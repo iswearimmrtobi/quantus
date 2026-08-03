@@ -8,3 +8,9 @@ out/
 
 .DS_Store
 *.log
+
+desktop/node_modules/
+desktop/dist/
+desktop/dist-electron/
+# aus node_modules kopiert (npm run copy-fonts)
+desktop/public/fonts/

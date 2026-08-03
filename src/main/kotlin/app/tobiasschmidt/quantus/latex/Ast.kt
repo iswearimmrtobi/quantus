@@ -24,7 +24,11 @@ data class ConstantNode(val name: String, override val position: Int) : Node
  * A variable. Per F2 a variable always carries a subscript — an identifier without one is a
  * unit or a constant, never a variable.
  */
-data class VariableNode(val name: String, val index: String, override val position: Int) : Node
+data class VariableNode(val name: String, val index: String, override val position: Int) : Node {
+
+    /** How the session addresses this variable: `v_1`. */
+    val key: String get() = "${name}_$index"
+}
 
 data class BinaryNode(
     val operator: Operator,
@@ -62,8 +66,16 @@ enum class Operator {
     IMPLICIT_TIMES,
 }
 
-/** The left-hand side of `F = …`. Phase 3 turns a label with a subscript into a variable definition. */
-data class Label(val name: String, val index: String?, val position: Int)
+/**
+ * The left-hand side of `F = …`. A label **with** a subscript is a variable definition
+ * (F5) — `r_1 = 0{,}5\,\mathrm{m}` defines `r_1`; a label without one is just a name for
+ * the line, per the uniqueness rule of F2.
+ */
+data class Label(val name: String, val index: String?, val position: Int) {
+
+    /** The session key of the variable this label defines, or `null` if it defines none. */
+    val key: String? get() = index?.let { "${name}_$it" }
+}
 
 /** A complete input: an optional `label =` and the expression itself. */
 data class Formula(val label: Label?, val expression: Node, val source: String)

@@ -92,7 +92,7 @@ class LatexCalculatorTest {
     }
 
     @Test
-    @DisplayName("a variable without a definition says so — phase 3 will resolve them")
+    @DisplayName("a variable the session does not know says so")
     fun undefinedVariable() {
         val error = assertFailsWith<UnresolvedVariableException> { evaluate("v_1 \\cdot 2s") }
         assertTrue(error.message!!.contains("v_1"), error.message!!)

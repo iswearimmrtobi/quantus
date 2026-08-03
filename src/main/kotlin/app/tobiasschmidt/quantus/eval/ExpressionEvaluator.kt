@@ -22,8 +22,11 @@ import app.tobiasschmidt.quantus.quantity.PhysicalQuantity
  *
  * Values stay exact throughout: a number literal enters as a rational, π stays π. Only the
  * caller turns the result into decimal digits.
+ *
+ * [variables] are the definitions of the current session (F5), keyed as `v_1`. An input that
+ * uses a variable the session does not know fails with [UnresolvedVariableException].
  */
-class ExpressionEvaluator {
+class ExpressionEvaluator(private val variables: Map<String, PhysicalQuantity> = emptyMap()) {
 
     fun evaluate(node: Node): PhysicalQuantity = when (node) {
         is NumberNode -> PhysicalQuantity.dimensionless(node.value)
@@ -32,8 +35,8 @@ class ExpressionEvaluator {
             Constants.find(node.name) ?: throw QuantusException("Unknown constant '${node.name}'."),
         )
 
-        is VariableNode -> throw UnresolvedVariableException(
-            "The variable ${node.name}_${node.index} has no value yet. Define it first, e.g. ${node.name}_${node.index} = 5\\,\\mathrm{m}.",
+        is VariableNode -> variables[node.key] ?: throw UnresolvedVariableException(
+            "The variable ${node.key} has no value yet. Define it first, e.g. ${node.key} = 5m.",
         )
 
         is GroupNode -> evaluate(node.inner)
@@ -69,5 +72,5 @@ class ExpressionEvaluator {
     }
 }
 
-/** A variable was used before it was defined. Phase 3 resolves these from the session. */
+/** A variable was used before the session defined it. */
 class UnresolvedVariableException(message: String) : QuantusException(message)

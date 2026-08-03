@@ -186,16 +186,20 @@ POST /api/derive | /api/integrate   # oder als LaTeX-Kommando \frac{d}{dx} im Ev
 - [x] Fehlertoleranz: Parserfehler mit Positionsangabe
 - **Meilenstein:** Round-Trip für `F = 2kg \cdot 10\frac{m}{s^2}` → `F = 20\,\mathrm{N}`
 
-**Offene Punkte aus Phase 2 (für Phase 3):** Variablen im AST werden erkannt, aber noch nicht
-aufgelöst (`UnresolvedVariableException`); Klammern im Output werden aus der Präzedenz neu
+**Offene Punkte aus Phase 2:** Variablen löst inzwischen Phase 3 auf; Klammern im Output werden aus der Präzedenz neu
 abgeleitet statt aus der Eingabe übernommen; Temperaturen mit eigenem Nullpunkt (°C) lassen
 sich bewusst nicht mit K addieren, sondern nur explizit umrechnen.
 
-### Phase 3 — Variablen & Schritte *(~1–2 Wochen nebenbei)*
-- [ ] Session-Kontext mit Variablendefinitionen (`r_1 = 0,5 m`)
-- [ ] Schritt-Erzeugung: symbolisch → eingesetzt → Ergebnis (jeweils als LaTeX)
-- [ ] REST-API (`/evaluate`, `/variables`) + Session-Handling
+### Phase 3 — Variablen & Schritte *(~1–2 Wochen nebenbei)* — **erledigt (2026-08-03)**
+- [x] Session-Kontext mit Variablendefinitionen (`r_1 = 0,5 m`) — Label **mit** Index definiert,
+  Label ohne Index benennt nur die Zeile
+- [x] Schritt-Erzeugung: symbolisch → eingesetzt → Ergebnis (jeweils als LaTeX); der
+  Einsetz-Schritt entfällt, wo es nichts einzusetzen gibt
+- [x] REST-API (`/api/evaluate`, `/api/variables`, `/api/health`) + Session-Handling
 - **Meilenstein:** Physikaufgabe mit Variablen liefert dreistufigen LaTeX-Rechenweg via API
+
+**Offen aus Phase 3:** Sessions leben nur im Speicher (Persistenz ist Phase 6); der
+Einsetz-Schritt zeigt Dezimalwerte, keine exakten Brüche.
 
 ### Phase 4 — Analysis & komplexe Zahlen *(~1 Woche nebenbei)*
 - [ ] Ableitungen und unbestimmte Integrale über Symja anbinden (`\frac{d}{dx}`, `\int`)
@@ -203,13 +207,17 @@ sich bewusst nicht mit K addieren, sondern nur explizit umrechnen.
 - [ ] Klären: Einheiten in Analysis-Ausdrücken (v(t) ableiten → Einheit /s mitführen?) — ggf. zunächst einheitenlos
 - **Meilenstein:** `\frac{d}{dx} x^2 \sin(x)` und `(3+4i)·(1−2i)` funktionieren
 
-### Phase 5 — Electron-Frontend *(~2–3 Wochen nebenbei)*
-- [ ] Electron-Grundgerüst (TypeScript/Vite/React), Backend-Kindprozess-Start mit Health-Check und sauberem Shutdown
-- [ ] MathLive-Editor mit Live-Rendering
-- [ ] Numpad-/Tastatur-Workflow: Enter = auswerten, Kürzel für Copy-LaTeX (globale Shortcuts via Electron)
-- [ ] Schritt-Ansicht mit Copy-Buttons (einzeln + gesamt als `align*`), Clipboard via Electron-API
-- [ ] Variablen-Panel
+### Phase 5 — Electron-Frontend *(~2–3 Wochen nebenbei)* — **erledigt (2026-08-03)**
+- [x] Electron-Grundgerüst (TypeScript/Vite/React), Backend-Kindprozess-Start mit Health-Check und sauberem Shutdown
+  (ein bereits laufendes Backend wird erkannt und nur mitbenutzt, nicht beendet)
+- [x] MathLive-Editor mit Live-Rendering, darunter der LaTeX-Quelltext zum Kopieren
+- [x] Numpad-/Tastatur-Workflow: Enter = auswerten, Kürzel für Copy-LaTeX (globale Shortcuts als Menü-Accelerators)
+- [x] Schritt-Ansicht mit Copy-Buttons (einzeln + gesamt als `align*`), Clipboard via Electron-API
+- [x] Variablen-Panel (Klick fügt die Variable ein, ✕ vergisst sie) plus Verlaufs-Panel für die laufende Sitzung
 - **Meilenstein:** Kompletter Workflow in der Desktop-App bedienbar ohne Maus
+
+**Offen aus Phase 5:** Der Verlauf lebt nur im Renderer (Persistenz ist Phase 6); die
+Analysis-Eingaben aus Phase 4 fehlen noch, die Oberfläche hat dafür keine eigenen Elemente.
 
 ### Phase 6 — History & Packaging *(~1–2 Wochen nebenbei)*
 - [ ] Persistenz der Rechnungen + Variablen (JPA + SQLite im User-Profil)
