@@ -30,7 +30,8 @@ import java.math.BigDecimal
  */
 class LatexParser(private val source: String) {
 
-    private val tokens: List<Token> = LatexLexer(source).tokenize()
+    // Mutable because a brace-less argument may split a number token in two (see takeFirstDigit).
+    private val tokens: MutableList<Token> = LatexLexer(source).tokenize().toMutableList()
     private var index = 0
 
     /** Inside `\mathrm{}`/`\text{}`/`\qty{}{}` every identifier must be a unit. */
@@ -160,7 +161,9 @@ class LatexParser(private val source: String) {
         }
 
         // Explicit unit markup: \mathrm{kg}, \text{m/s^2}, siunitx' \si{} and \unit{}.
-        "\\mathrm", "\\text", "\\si", "\\unit" -> {
+        // \operatorname{} belongs here too — that is how math editors wrap any identifier of
+        // more than one letter, and in this language such an identifier is a unit.
+        "\\mathrm", "\\text", "\\si", "\\unit", "\\operatorname" -> {
             advance()
             inUnitContext { parseArgument(token.text) }
         }
@@ -179,12 +182,47 @@ class LatexParser(private val source: String) {
         else -> throw LatexParseException("Unsupported command '${token.text}'.", token.position, source)
     }
 
-    /** A command argument: `{…}` — braces are mandatory, which keeps `\frac12` from surprising anyone. */
+    /**
+     * A command argument — `{…}`, or a single token if no brace follows.
+     *
+     * The brace-less form is LaTeX's own rule and not a convenience of ours: `\frac12` is one
+     * half, not twelve over something. Editors emit it constantly — MathLive turns `2/3` into
+     * `\frac23` — so rejecting it would mean rejecting what our own input field produces.
+     *
+     * "One token" is one *character*, which is why a multi-digit number is split here: in
+     * `\frac12` the numerator is the 1 and the 2 stays behind as the denominator.
+     */
     private fun parseArgument(command: String): Node {
-        if (current.type != TokenType.LBRACE) {
-            throw LatexParseException("'$command' expects its argument in braces, e.g. $command{…}.", current.position, source)
+        if (current.type == TokenType.LBRACE) return parseGroup(TokenType.RBRACE, "}")
+
+        val token = current
+        return when (token.type) {
+            TokenType.NUMBER -> NumberNode(BigDecimal(takeFirstDigit()), token.position)
+            TokenType.IDENTIFIER, TokenType.COMMAND -> parseAtom()
+            else -> throw LatexParseException(
+                "'$command' is missing its argument — write it as $command{…}.",
+                token.position,
+                source,
+            )
         }
-        return parseGroup(TokenType.RBRACE, "}")
+    }
+
+    /**
+     * Takes the first digit of the current number and leaves the rest in its place, so that
+     * the `12` in `\frac12` becomes the numerator `1` and a denominator `2` still to be read.
+     *
+     * A number with a decimal point stays whole: `\frac1{,}5` cannot mean anything sensible
+     * digit by digit, and silently dropping everything after the `1` would be worse than
+     * treating it as one argument.
+     */
+    private fun takeFirstDigit(): String {
+        val token = current
+        if (token.text.length == 1 || token.text.contains('.')) {
+            advance()
+            return token.text
+        }
+        tokens[index] = Token(TokenType.NUMBER, token.text.drop(1), token.position + 1)
+        return token.text.take(1)
     }
 
     private fun <T> inUnitContext(block: () -> T): T {

@@ -113,7 +113,7 @@ class LatexParserTest {
         assertTrue(incomplete.reason.contains("Expected a number"), incomplete.reason)
 
         val missingArgument = parseError("\\frac{1}")
-        assertTrue(missingArgument.reason.contains("braces"), missingArgument.reason)
+        assertTrue(missingArgument.reason.contains("missing its argument"), missingArgument.reason)
 
         val unknownUnit = parseError("5\\mathrm{xyz}")
         assertEquals(9, unknownUnit.position)

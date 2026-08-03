@@ -79,6 +79,12 @@ bleiben unberührt.
 | Strg+Alt+C | ganze Rechnung als `align*`-Block kopieren |
 | Esc | Panel schließen |
 
+Im Eingabefeld gilt die übliche Formeleditor-Mechanik: `/` erzeugt einen Bruch, `*` ein
+`\cdot`, `^` und `_` Hoch- und Tiefstellung. LaTeX-Befehle gehen auch direkt — `\frac`
+tippen und mit ⏎ abschließen setzt einen Bruch mit zwei Platzhaltern, zwischen denen Tab
+weiterspringt. Aus einem Index (und aus jeder anderen Klammer) führt die Pfeiltaste → wieder
+heraus: `m_1` `→` `= 2kg` definiert die Variable.
+
 Variablen tragen immer einen Index (`r_1`, `v_1`). Eine Eingabe mit Index-Label ist eine
 Definition (`m_1 = 2kg`) und bleibt für die Session gültig; ein Label ohne Index (`F = …`)
 benennt nur die Zeile.
