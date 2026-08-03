@@ -222,7 +222,8 @@ Analysis-Eingaben aus Phase 4 fehlen noch, die Oberfläche hat dafür keine eige
 ### Phase 6 — History & Packaging *(~1–2 Wochen nebenbei)*
 - [ ] Persistenz der Rechnungen + Variablen (JPA + SQLite im User-Profil)
 - [ ] History-UI: laden, erneut ausführen
-- [ ] Packaging: jlink-JRE + Backend-Jar bündeln, electron-builder-Installer (Windows/Linux)
+- [x] Packaging: jlink-JRE (19 Module, ~56 MB) + Backend-Jar gebündelt, electron-builder baut
+  ein AppImage für Linux — Windows-Installer offen
 - [ ] Optional: Dockerfile fürs Backend, Betrieb im Homelab mit Remote-Verbindung aus der App
 - **Meilenstein:** v1.0 als installierbare Desktop-App im Einsatz
 
@@ -242,4 +243,4 @@ Analysis-Eingaben aus Phase 4 fehlen noch, die Oberfläche hat dafür keine eige
 | Indriya erkennt abgeleitete Einheiten nicht automatisch als N/J/… | F1 unvollständig | Eigene Dimension→Name-Lookup-Tabelle (überschaubar: ~20 SI-Einheiten) |
 | Symja-TeX-Export unbrauchbar für Schritt-Darstellung | Mehraufwand Serializer | Eigenbau ohnehin eingeplant, Export nur als Abkürzung |
 | Einheiten + Analysis kombiniert ist konzeptionell schwierig | F8 eingeschränkt | Analysis zunächst einheitenlos ausliefern (Phase 4) |
-| JVM-Bündelung bläht die App auf / Prozess-Lifecycle fummelig | Installer groß (~100–150 MB), Zombie-Prozesse | jlink-Minimal-Runtime; Backend an Electron-Lifecycle koppeln (Port-Handshake, Kill on quit); Fallback: Remote-Backend-Modus |
+| JVM-Bündelung bläht die App auf / Prozess-Lifecycle fummelig | Installer groß (~100–150 MB), Zombie-Prozesse | **eingetreten und behandelt (Phase 6):** jlink-Minimal-Runtime mit 19 Modulen, AppImage trotzdem ~215 MB; Backend hängt am Electron-Lifecycle (Health-Check beim Start, Kill on quit) und beendet sich zusätzlich selbst, wenn seine stdin-Pipe zugeht — sonst überlebt es ein `kill -9` auf die App |

@@ -40,11 +40,32 @@ cd desktop
 npm install           # einmalig (kopiert dabei die MathLive-Fonts nach public/fonts)
 npm start             # Renderer bauen und App starten
 npm run dev           # Vite-Dev-Server + Electron mit Hot Reload
+npm run dist          # AppImage nach desktop/release/ bauen
 ```
 
 Die App sucht beim Start ein laufendes Backend auf Port 8437 und hängt sich daran; findet
 sie keins, startet sie `build/libs/quantus-*.jar` selbst als Kindprozess und beendet es
 beim Schließen wieder. Für den ersten Start also einmal `./gradlew bootJar` laufen lassen.
+
+## Paketierung
+
+`npm run dist` baut ein AppImage (~215 MB) unter `desktop/release/`, das alles mitbringt:
+Renderer, Backend-Jar und eine per jlink erzeugte Minimal-JRE (19 Module, ~56 MB). Auf dem
+Zielrechner braucht es damit weder Java noch Node.
+
+```bash
+cd desktop && npm run dist
+./release/Quantus-0.1.0-x86_64.AppImage
+```
+
+Der npm-Lauf ruft vorab `./gradlew desktopResources` auf; das baut Jar und JRE und prüft mit
+`verifyRuntime`, ob das Backend unter der Minimal-JRE wirklich startet — fehlt ein Modul in
+`backendModules` (build.gradle.kts), scheitert der Build hier statt später beim Anwender.
+
+Das Backend beendet sich mit der App, auch wenn diese hart abgeschossen wird: Electron hält
+dessen stdin offen, und der `ParentProcessWatchdog` macht aus dem EOF ein Shutdown-Signal.
+Ohne den Schalter `--quantus.parent-watch=true` ist er aus — `bootRun` und der Docker-Betrieb
+bleiben unberührt.
 
 ## Bedienung
 
@@ -77,6 +98,8 @@ src/main/resources/application.yaml               Port, Default-Präzision, CORS
 src/test/kotlin/app/tobiasschmidt/quantus/spike/  Phase-0-Spikes (Symja, Indriya, TeX-Export)
 desktop/electron/                                 Main-Prozess: Backend-Kindprozess, Menü, Preload
 desktop/src/                                      React-Renderer: MathLive-Editor, Schritte, Panels
+desktop/electron-builder.yml                      AppImage-Paketierung (Jar + jlink-JRE als Resources)
+desktop/build/icon.svg                            App-Icon, daraus gerendert icon.png
 docs/phase0-findings.md                           Erkenntnisse aus Phase 0
 gradle/libs.versions.toml                         Versionen aller Abhängigkeiten
 ```

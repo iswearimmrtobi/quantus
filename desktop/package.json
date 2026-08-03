@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Quantus — SI-Rechner als Desktop-App (Electron-Frontend zum Kotlin-Backend)",
+  "author": "Tobias Schmidt",
   "main": "dist-electron/main.js",
+  "desktopName": "quantus.desktop",
   "scripts": {
     "dev": "concurrently -k -n vite,electron -c cyan,magenta \"npm:dev:renderer\" \"npm:dev:app\"",
     "dev:renderer": "vite",
@@ -12,7 +14,10 @@
     "build:renderer": "vite build",
     "build": "npm run build:main && npm run build:renderer",
     "start": "npm run build && electron .",
+    "dist": "npm run dist:backend && npm run build && electron-builder --linux AppImage",
+    "dist:backend": "../gradlew -p .. desktopResources",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "icon": "rsvg-convert -w 512 -h 512 build/icon.svg -o build/icon.png",
     "copy-fonts": "node scripts/copy-mathlive-fonts.mjs",
     "postinstall": "npm run copy-fonts"
   },
@@ -29,6 +34,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.1.0",
     "electron": "40.8.0",
+    "electron-builder": "^26.15.7",
     "typescript": "^5.9.0",
     "vite": "^7.0.0"
   },

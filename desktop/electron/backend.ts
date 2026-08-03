@@ -46,8 +46,11 @@ export class Backend {
 
     const java = findJava();
     console.log(`[quantus] starting backend: ${java} -jar ${jar}`);
-    this.child = spawn(java, ['-jar', jar, `--server.port=${this.port}`], {
-      stdio: ['ignore', 'pipe', 'pipe'],
+    // stdin bleibt als Pipe offen und wird nie beschrieben: stirbt diese App, schließt das
+    // Betriebssystem die Pipe, und der Watchdog im Backend beendet sich selbst. Das deckt
+    // die Fälle ab, in denen `stop()` nicht mehr zum Zug kommt (SIGKILL, Absturz).
+    this.child = spawn(java, ['-jar', jar, `--server.port=${this.port}`, '--quantus.parent-watch=true'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
     this.child.stdout?.on('data', (chunk) => process.stdout.write(`[backend] ${chunk}`));
     this.child.stderr?.on('data', (chunk) => process.stderr.write(`[backend] ${chunk}`));

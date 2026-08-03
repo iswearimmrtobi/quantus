@@ -1,0 +1,43 @@
+appId: app.tobiasschmidt.quantus
+productName: Quantus
+copyright: Tobias Schmidt
+
+directories:
+  output: release
+  buildResources: build
+
+# Nur das Gebaute wandert in die App — die Quellen liegen daneben im Repo.
+files:
+  - dist/**
+  - dist-electron/**
+  - package.json
+
+# Backend-Jar und Minimal-JRE landen als resources/backend/quantus.jar und resources/jre —
+# genau dort sucht electron/backend.ts sie (N2a). Beides legt `./gradlew desktopResources` ab.
+extraResources:
+  - from: ../build/dist
+    to: .
+    filter:
+      - '**/*'
+
+linux:
+  target: AppImage
+  category: Education
+  # Setzt StartupWMClass passend zum `desktopName` aus der package.json. Ohne das ordnen
+  # Desktop-Umgebungen das laufende Fenster nicht dem Starter zu — die App bekäme in der
+  # Taskleiste ein generisches Icon statt ihres eigenen.
+  syncDesktopName: true
+  synopsis: SI-Einheiten-Rechner mit LaTeX-Ein- und Ausgabe
+  description: >-
+    Taschenrechner für physikalische Berechnungen: rechnet dimensionell korrekt mit
+    SI-Einheiten, nimmt LaTeX entgegen und gibt den Rechenweg als LaTeX zurück.
+  desktop:
+    entry:
+      Keywords: Rechner;Physik;SI;LaTeX;
+
+appImage:
+  artifactName: ${productName}-${version}-${arch}.AppImage
+
+# Das Jar ist bereits komprimiert; noch einmal packen kostet nur Zeit.
+compression: normal
+npmRebuild: false
