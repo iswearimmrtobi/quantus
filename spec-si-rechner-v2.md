@@ -167,12 +167,12 @@ POST /api/derive | /api/integrate   # oder als LaTeX-Kommando \frac{d}{dx} im Ev
 - **Meilenstein:** Beide Libraries laufen im selben Projekt, Erkenntnisse dokumentiert
   → siehe [docs/phase0-findings.md](docs/phase0-findings.md)
 
-### Phase 1 — Kern: PhysicalQuantity *(~1–2 Wochen nebenbei)*
-- [ ] `PhysicalQuantity`-Klasse (IExpr + Unit) mit +, −, ×, ÷, ^, √
-- [ ] Dimensionsprüfung mit verständlichen Fehlermeldungen
-- [ ] Vereinfachung auf benannte Einheiten (kg·m/s² → N); ggf. eigene Lookup-Tabelle
-- [ ] Präzisions-Konfiguration durchgereicht bis Symja
-- [ ] Unit-Tests: Standard-Physikaufgaben als Testfälle (F=ma, E=½mv², U=RI, …)
+### Phase 1 — Kern: PhysicalQuantity *(~1–2 Wochen nebenbei)* — **erledigt (2026-08-03)**
+- [x] `PhysicalQuantity`-Klasse (IExpr + Unit) mit +, −, ×, ÷, ^, √
+- [x] Dimensionsprüfung mit verständlichen Fehlermeldungen
+- [x] Vereinfachung auf benannte Einheiten (kg·m/s² → N); ggf. eigene Lookup-Tabelle
+- [x] Präzisions-Konfiguration durchgereicht bis Symja
+- [x] Unit-Tests: Standard-Physikaufgaben als Testfälle (F=ma, E=½mv², U=RI, …)
 - **Meilenstein:** `1 kg × 1 m/s² = 1 N` programmatisch korrekt, mit 50 Stellen
 
 ### Phase 2 — LaTeX rein und raus *(~2 Wochen nebenbei)*
