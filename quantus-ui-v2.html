@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantus</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #17161D;
+    --surface: #1E1D27;
+    --surface-raised: #262532;
+    --surface-hover: #2D2B3A;
+    --hairline: #322F3F;
+    --hairline-strong: #433E56;
+    --text: #EDEBF3;
+    --text-muted: #8B87A3;
+    --text-faint: #55506A;
+    --cyan: #9186E8;
+    --cyan-dim: #423A63;
+    --amber: #D8A9FF;
+    --amber-dim: #4E3C63;
+    --danger: #FF8FA8;
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --radius: 3px;
+    --rail-w: 44px;
+    --panel-w: 300px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    min-height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+  }
+
+  ::selection { background: var(--cyan-dim); color: var(--text); }
+
+  :focus-visible {
+    outline: 1.5px solid var(--cyan);
+    outline-offset: 2px;
+  }
+
+  button {
+    font-family: var(--sans);
+    color: var(--text);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .app {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: 40px 1fr 26px;
+    grid-template-columns: 1fr var(--rail-w);
+  }
+
+  .app::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image:
+      linear-gradient(var(--hairline-strong) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hairline-strong) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* ---------- Header ---------- */
+  .topbar {
+    grid-column: 1 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--surface);
+    -webkit-app-region: drag;
+    font-family: var(--mono);
+    font-size: 12px;
+    z-index: 3;
+  }
+
+  .wordmark {
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--text);
+    font-size: 12.5px;
+  }
+  .wordmark span { color: var(--cyan); }
+
+  .topbar-mid {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+  }
+
+  .dim-readout {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+  }
+  .dim-readout .bra { color: var(--text-faint); }
+  .dim-readout .vec { color: var(--cyan); letter-spacing: 0.02em; }
+  .dim-readout .arrow { color: var(--text-faint); }
+  .dim-readout .unit { color: var(--amber); font-weight: 500; }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+  }
+  .precision-tag { color: var(--text-muted); }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+    display: inline-block;
+  }
+
+  /* ---------- Main workspace ---------- */
+  .workspace {
+    grid-column: 1 / 2;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .calc-panel {
+    width: 100%;
+    max-width: 720px;
+    margin-top: 14vh;
+    padding: 0 24px 40px;
+  }
+
+  .input-row {
+    position: relative;
+    border: 1px solid var(--hairline-strong);
+    background: var(--surface-raised);
+    border-radius: var(--radius);
+    transition: border-color 120ms ease;
+  }
+  .input-row:focus-within {
+    border-color: var(--cyan-dim);
+  }
+
+  #expr-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 20px;
+    padding: 16px 18px;
+    caret-color: var(--cyan);
+  }
+  #expr-input::placeholder { color: var(--text-faint); }
+
+  .input-hint {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius);
+    padding: 2px 6px;
+    pointer-events: none;
+  }
+
+  .latex-preview {
+    min-height: 52px;
+    margin-top: 10px;
+    padding: 14px 18px;
+    border: 1px dashed var(--hairline);
+    border-radius: var(--radius);
+    font-size: 19px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+  }
+  .latex-preview.empty {
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 13px;
+    border-style: dashed;
+  }
+  .katex { color: var(--text); }
+
+  .result-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 22px;
+    padding: 0 4px;
+  }
+
+  .result-main {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-family: var(--mono);
+  }
+  .result-eq { color: var(--text-faint); font-size: 18px; }
+  .result-value {
+    font-size: 34px;
+    font-weight: 500;
+    color: var(--amber);
+    text-shadow: 0 0 18px rgba(216,169,255,0.22);
+    letter-spacing: 0.01em;
+  }
+  .result-unit {
+    font-size: 14px;
+    padding: 4px 8px;
+    margin-left: 2px;
+    border: 1px solid var(--amber-dim);
+    border-radius: var(--radius);
+    color: var(--amber);
+    align-self: center;
+  }
+
+  .steps-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius);
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .steps-toggle:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+  .steps-toggle .chev { transition: transform 160ms ease; display: inline-block; }
+  .steps-toggle.open .chev { transform: rotate(180deg); }
+  .steps-toggle kbd {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+    padding: 0 4px;
+  }
+
+  .steps-panel {
+    margin-top: 16px;
+    display: grid;
+    gap: 1px;
+    background: var(--hairline);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    overflow: hidden;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 180ms ease;
+  }
+  .steps-panel.hidden { display: none; }
+
+  .step-row {
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+  }
+  .step-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    width: 84px;
+    flex-shrink: 0;
+  }
+  .step-label.result-label { color: var(--amber); }
+  .step-latex { flex: 1; font-size: 16px; overflow-x: auto; }
+  .copy-btn {
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 7px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+  }
+  .copy-btn:hover { color: var(--cyan); border-color: var(--hairline-strong); }
+
+  /* ---------- Side rail + panel ---------- */
+  .side-rail {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    background: var(--surface);
+    border-left: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px;
+    gap: 4px;
+    z-index: 3;
+  }
+  .rail-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius);
+    color: var(--text-muted);
+  }
+  .rail-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .rail-btn.active { color: var(--cyan); background: var(--surface-hover); }
+  .rail-btn svg { width: 16px; height: 16px; }
+  .rail-badge {
+    position: absolute;
+    transform: translate(10px, -10px);
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--bg);
+    background: var(--cyan);
+    border-radius: 6px;
+    padding: 0 4px;
+    line-height: 13px;
+  }
+
+  .side-panel {
+    grid-column: 1 / 3;
+    grid-row: 2 / 3;
+    justify-self: end;
+    width: var(--panel-w);
+    height: 100%;
+    background: var(--surface);
+    border-left: 1px solid var(--hairline-strong);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(0);
+    transition: transform 160ms ease;
+  }
+  .side-panel.hidden { transform: translateX(100%); pointer-events: none; }
+
+  .panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 11.5px;
+  }
+  .panel-tab {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+  }
+  .panel-tab.active { color: var(--text); border-color: var(--cyan); }
+  .panel-tab:hover { color: var(--text); }
+
+  .panel-body { flex: 1; overflow-y: auto; padding: 4px; }
+  .panel-view { display: none; }
+  .panel-view.active { display: block; }
+
+  .hist-item {
+    padding: 10px 10px;
+    border-radius: var(--radius);
+    margin-bottom: 2px;
+  }
+  .hist-item:hover { background: var(--surface-hover); cursor: pointer; }
+  .hist-latex { font-size: 13.5px; margin-bottom: 4px; }
+  .hist-meta {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    display: flex;
+    justify-content: space-between;
+  }
+  .hist-meta .val { color: var(--amber); }
+
+  .var-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 10px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .var-item:hover { background: var(--surface-hover); }
+  .var-name { color: var(--cyan); }
+  .var-val { color: var(--text-muted); font-size: 12px; }
+
+  .panel-add {
+    margin: 8px 10px;
+    padding: 8px;
+    border: 1px dashed var(--hairline-strong);
+    border-radius: var(--radius);
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    width: calc(100% - 20px);
+  }
+  .panel-add:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+
+  /* ---------- Footer ---------- */
+  .statusbar {
+    grid-column: 1 / 3;
+    border-top: 1px solid var(--hairline);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    z-index: 3;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="wordmark">QUANTU<span>S</span></div>
+    <div class="topbar-mid">
+      <div class="dim-readout">
+        <span class="bra">⟨</span><span class="vec" id="dim-vec">—</span><span class="bra">⟩</span>
+        <span class="arrow">→</span>
+        <span class="unit" id="dim-unit">·</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="precision-tag" id="precision-tag">50 sig</span>
+      <span><span class="status-dot"></span> bereit</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="calc-panel">
+
+      <div class="input-row">
+        <input id="expr-input" type="text" spellcheck="false" autocomplete="off"
+               placeholder="z. B. 1+2  oder  F = 2kg \cdot 10\frac{m}{s^2}" />
+        <span class="input-hint">⏎ auswerten</span>
+      </div>
+
+      <div id="preview" class="latex-preview empty">Eingabe wird hier live gerendert …</div>
+
+      <div class="result-row">
+        <div class="result-main">
+          <span class="result-eq">=</span>
+          <span class="result-value" id="result-value">–</span>
+          <span class="result-unit" id="result-unit" style="display:none;"></span>
+        </div>
+        <button class="steps-toggle" id="steps-toggle">
+          Rechenweg <span class="chev">⌄</span> <kbd>Strg+J</kbd>
+        </button>
+      </div>
+
+      <div class="steps-panel hidden" id="steps-panel">
+        <div class="step-row">
+          <span class="step-label">SYMBOLISCH</span>
+          <span class="step-latex" id="step-1"></span>
+          <button class="copy-btn">copy</button>
+        </div>
+        <div class="step-row">
+          <span class="step-label">EINGESETZT</span>
+          <span class="step-latex" id="step-2"></span>
+          <button class="copy-btn">copy</button>
+        </div>
+        <div class="step-row">
+          <span class="step-label result-label">ERGEBNIS</span>
+          <span class="step-latex" id="step-3"></span>
+          <button class="copy-btn">copy</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="side-rail">
+    <button class="rail-btn" id="rail-history" title="Verlauf (Strg+H)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    </button>
+    <button class="rail-btn" id="rail-vars" title="Variablen (Strg+,)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 5c-2 0-2.5 1-2.5 3s0 3-2 4c2 1 2 2 2 4s.5 3 2.5 3"/><path d="M15 5c2 0 2.5 1 2.5 3s0 3 2 4c-2 1-2 2-2 4s-.5 3-2.5 3"/></svg>
+    </button>
+  </div>
+
+  <aside class="side-panel hidden" id="side-panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" data-tab="history">Verlauf</div>
+      <div class="panel-tab" data-tab="vars">Variablen</div>
+    </div>
+    <div class="panel-body">
+      <div class="panel-view active" id="view-history">
+        <div class="hist-item" data-latex="v_1 = \frac{200\,\mathrm{km}}{2{,}5\,\mathrm{h}}">
+          <div class="hist-latex" data-render="v_1 = \frac{200\,\mathrm{km}}{2{,}5\,\mathrm{h}}"></div>
+          <div class="hist-meta"><span>vor 4 Min</span><span class="val">80 km/h</span></div>
+        </div>
+        <div class="hist-item" data-latex="E = \frac{1}{2} m_1 v_1^2">
+          <div class="hist-latex" data-render="E = \frac{1}{2} m_1 v_1^2"></div>
+          <div class="hist-meta"><span>vor 11 Min</span><span class="val">3200 J</span></div>
+        </div>
+        <div class="hist-item" data-latex="F = 2kg \cdot 10\frac{m}{s^2}">
+          <div class="hist-latex" data-render="F = 2kg \cdot 10\frac{m}{s^2}"></div>
+          <div class="hist-meta"><span>vor 18 Min</span><span class="val">20 N</span></div>
+        </div>
+      </div>
+      <div class="panel-view" id="view-vars">
+        <div class="var-item"><span class="var-name">r_1</span><span class="var-val">0,5 m</span></div>
+        <div class="var-item"><span class="var-name">m_1</span><span class="var-val">2 kg</span></div>
+        <div class="var-item"><span class="var-name">v_1</span><span class="var-val">80 km/h</span></div>
+        <button class="panel-add">+ Variable definieren</button>
+      </div>
+    </div>
+  </aside>
+
+  <footer class="statusbar">
+    <span>Symja · Indriya — Session aktiv</span>
+    <span id="footer-vars">3 Variablen · 3 Einträge im Verlauf</span>
+  </footer>
+
+</div>
+
+<script>
+const input = document.getElementById('expr-input');
+const preview = document.getElementById('preview');
+const resultValue = document.getElementById('result-value');
+const resultUnit = document.getElementById('result-unit');
+const dimVec = document.getElementById('dim-vec');
+const dimUnit = document.getElementById('dim-unit');
+const stepsToggle = document.getElementById('steps-toggle');
+const stepsPanel = document.getElementById('steps-panel');
+const sidePanel = document.getElementById('side-panel');
+const railHistory = document.getElementById('rail-history');
+const railVars = document.getElementById('rail-vars');
+const tabs = document.querySelectorAll('.panel-tab');
+const views = { history: document.getElementById('view-history'), vars: document.getElementById('view-vars') };
+
+// render every static [data-render] latex block (history list) once
+document.querySelectorAll('[data-render]').forEach(el => {
+  katex.render(el.getAttribute('data-render'), el, { throwOnError: false, displayMode: false });
+});
+
+function renderPreview(raw) {
+  if (!raw.trim()) {
+    preview.classList.add('empty');
+    preview.innerHTML = 'Eingabe wird hier live gerendert …';
+    return;
+  }
+  preview.classList.remove('empty');
+  try {
+    katex.render(raw, preview, { throwOnError: false, displayMode: true });
+  } catch (e) {
+    preview.textContent = raw;
+  }
+}
+
+// very small demo evaluator — real logic lives in the Kotlin backend later.
+// handles plain arithmetic for real, and recognizes one canned unit example
+// so the result / unit chip / dimension readout / steps panel can be shown.
+function tryEvaluate(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  if (/kg/.test(trimmed) && /frac\{m\}\{s\^?2?\}/.test(trimmed.replace(/\s/g,''))) {
+    return {
+      value: '20', unit: 'N', dim: 'M¹ L¹ T⁻²',
+      steps: [
+        'F = m \\cdot a',
+        'F = 2\\,\\mathrm{kg} \\cdot 10\\,\\mathrm{m/s^2}',
+        'F = 20\\,\\mathrm{N}'
+      ]
+    };
+  }
+
+  let expr = trimmed
+    .replace(/\\cdot|\\times/g, '*')
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)')
+    .replace(/\\sqrt\{([^{}]+)\}/g, 'Math.sqrt($1)')
+    .replace(/\^/g, '**')
+    .replace(/\\,/g, '')
+    .replace(/,/g, '.');
+
+  if (!/^[0-9+\-*/.()\seE]+$|Math\.sqrt/.test(expr)) return null;
+
+  try {
+    // eslint-disable-next-line no-new-func
+    const val = Function('"use strict"; return (' + expr + ')')();
+    if (typeof val === 'number' && isFinite(val)) {
+      return { value: trimDecimals(val), unit: '', dim: '—', steps: null };
+    }
+  } catch (e) { /* ignore, mid-typing */ }
+  return null;
+}
+
+function trimDecimals(n) {
+  return Math.round(n * 1e6) / 1e6 + '';
+}
+
+function updateResult(raw) {
+  const r = tryEvaluate(raw);
+  if (!r) {
+    resultValue.textContent = '–';
+    resultUnit.style.display = 'none';
+    dimVec.textContent = '—';
+    dimUnit.textContent = '·';
+    stepsToggle.style.visibility = 'hidden';
+    setSteps(null);
+    return;
+  }
+  resultValue.textContent = r.value;
+  if (r.unit) {
+    resultUnit.style.display = 'inline-block';
+    resultUnit.textContent = r.unit;
+  } else {
+    resultUnit.style.display = 'none';
+  }
+  dimVec.textContent = r.dim;
+  dimUnit.textContent = r.unit || 'dimensionslos';
+  stepsToggle.style.visibility = r.steps ? 'visible' : 'hidden';
+  setSteps(r.steps);
+}
+
+function setSteps(steps) {
+  if (!steps) { stepsPanel.classList.add('hidden'); stepsToggle.classList.remove('open'); return; }
+  katex.render(steps[0], document.getElementById('step-1'), { throwOnError: false });
+  katex.render(steps[1], document.getElementById('step-2'), { throwOnError: false });
+  katex.render(steps[2], document.getElementById('step-3'), { throwOnError: false });
+}
+
+let debounce;
+input.addEventListener('input', () => {
+  clearTimeout(debounce);
+  const raw = input.value;
+  debounce = setTimeout(() => { renderPreview(raw); updateResult(raw); }, 120);
+});
+
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { renderPreview(input.value); updateResult(input.value); }
+});
+
+stepsToggle.addEventListener('click', () => {
+  stepsPanel.classList.toggle('hidden');
+  stepsToggle.classList.toggle('open');
+});
+
+function openPanel(tab) {
+  sidePanel.classList.remove('hidden');
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  views.history.classList.toggle('active', tab === 'history');
+  views.vars.classList.toggle('active', tab === 'vars');
+  railHistory.classList.toggle('active', tab === 'history');
+  railVars.classList.toggle('active', tab === 'vars');
+}
+function togglePanel(tab) {
+  const isOpenOnTab = !sidePanel.classList.contains('hidden') &&
+    document.querySelector('.panel-tab.active').dataset.tab === tab;
+  if (isOpenOnTab) {
+    sidePanel.classList.add('hidden');
+    railHistory.classList.remove('active');
+    railVars.classList.remove('active');
+  } else {
+    openPanel(tab);
+  }
+}
+
+railHistory.addEventListener('click', () => togglePanel('history'));
+railVars.addEventListener('click', () => togglePanel('vars'));
+tabs.forEach(t => t.addEventListener('click', () => openPanel(t.dataset.tab)));
+
+document.querySelectorAll('.hist-item').forEach(item => {
+  item.addEventListener('click', () => {
+    input.value = item.getAttribute('data-latex');
+    input.focus();
+    renderPreview(input.value);
+    updateResult(input.value);
+  });
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'j') { e.preventDefault(); stepsToggle.click(); }
+  if (e.ctrlKey && e.key.toLowerCase() === 'h') { e.preventDefault(); togglePanel('history'); }
+  if (e.ctrlKey && e.key === ',') { e.preventDefault(); togglePanel('vars'); }
+  if (e.key === 'Escape') { sidePanel.classList.add('hidden'); railHistory.classList.remove('active'); railVars.classList.remove('active'); }
+});
+
+input.focus();
+renderPreview('');
+updateResult('');
+</script>
+
+</body>
+</html>
