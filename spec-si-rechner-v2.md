@@ -175,16 +175,21 @@ POST /api/derive | /api/integrate   # oder als LaTeX-Kommando \frac{d}{dx} im Ev
 - [x] Unit-Tests: Standard-Physikaufgaben als Testfälle (F=ma, E=½mv², U=RI, …)
 - **Meilenstein:** `1 kg × 1 m/s² = 1 N` programmatisch korrekt, mit 50 Stellen
 
-### Phase 2 — LaTeX rein und raus *(~2 Wochen nebenbei)*
-- [ ] Recursive-descent-Parser: Zahlen (inkl. dt. Komma), `+ − \times \cdot / \frac ^ \sqrt`, Klammern, Variablen mit Subskript
-- [ ] **Einheiten-Erkennung ohne Markup:** Tokenizer klassifiziert nackte Bezeichner über die Eindeutigkeitsregel — mit Subskript = Variable, ohne Subskript = Lookup in Einheiten-Tabelle (inkl. Präfix-Zerlegung: `kJ` → kilo + Joule), sonst Konstanten-Tabelle, sonst Parserfehler. `2kg` = implizite Multiplikation Zahl × Einheit
-- [ ] Sonderfälle der Präfix-Zerlegung testen: Mehrdeutigkeiten wie `mN` (Millinewton, nie Meter·Newton — implizite Einheitenprodukte erfordern `\cdot`), `min` vs. `m·i·n`, `Pa` vs. Präfix-Deutung
-- [ ] `\mathrm{}`/`\text{}` weiterhin als explizite Einheiten-Markierung
-- [ ] **Auto-Bruch-Umbau:** `/`-Operator immer als `\frac{}{}` rendern, Operandengrenzen nach Präzedenz, Ketten-Vereinfachung (`a/b/c` → `\frac{a}{b\cdot c}`) als Normalisierungsschritt nach dem Parsen
-- [ ] AST → PhysicalQuantity-Auswertung
-- [ ] LaTeX-Serializer: AST und Ergebnisse zurück nach LaTeX (Einheiten im Output normalisiert als `\mathrm{}`)
-- [ ] Fehlertoleranz: Parserfehler mit Positionsangabe
+### Phase 2 — LaTeX rein und raus *(~2 Wochen nebenbei)* — **erledigt (2026-08-03)**
+- [x] Recursive-descent-Parser: Zahlen (inkl. dt. Komma), `+ − \times \cdot / \frac ^ \sqrt`, Klammern, Variablen mit Subskript
+- [x] **Einheiten-Erkennung ohne Markup:** Tokenizer klassifiziert nackte Bezeichner über die Eindeutigkeitsregel — mit Subskript = Variable, ohne Subskript = Lookup in Einheiten-Tabelle (inkl. Präfix-Zerlegung: `kJ` → kilo + Joule), sonst Konstanten-Tabelle, sonst Parserfehler. `2kg` = implizite Multiplikation Zahl × Einheit
+- [x] Sonderfälle der Präfix-Zerlegung testen: Mehrdeutigkeiten wie `mN` (Millinewton, nie Meter·Newton — implizite Einheitenprodukte erfordern `\cdot`), `min` vs. `m·i·n`, `Pa` vs. Präfix-Deutung
+- [x] `\mathrm{}`/`\text{}` weiterhin als explizite Einheiten-Markierung (dazu siunitx `\qty{}{}`, `\si{}`)
+- [x] **Auto-Bruch-Umbau:** `/`-Operator immer als `\frac{}{}` rendern, Operandengrenzen nach Präzedenz, Ketten-Vereinfachung (`a/b/c` → `\frac{a}{b\cdot c}`) als Normalisierungsschritt nach dem Parsen
+- [x] AST → PhysicalQuantity-Auswertung
+- [x] LaTeX-Serializer: AST und Ergebnisse zurück nach LaTeX (Einheiten im Output normalisiert als `\mathrm{}`)
+- [x] Fehlertoleranz: Parserfehler mit Positionsangabe
 - **Meilenstein:** Round-Trip für `F = 2kg \cdot 10\frac{m}{s^2}` → `F = 20\,\mathrm{N}`
+
+**Offene Punkte aus Phase 2 (für Phase 3):** Variablen im AST werden erkannt, aber noch nicht
+aufgelöst (`UnresolvedVariableException`); Klammern im Output werden aus der Präzedenz neu
+abgeleitet statt aus der Eingabe übernommen; Temperaturen mit eigenem Nullpunkt (°C) lassen
+sich bewusst nicht mit K addieren, sondern nur explizit umrechnen.
 
 ### Phase 3 — Variablen & Schritte *(~1–2 Wochen nebenbei)*
 - [ ] Session-Kontext mit Variablendefinitionen (`r_1 = 0,5 m`)

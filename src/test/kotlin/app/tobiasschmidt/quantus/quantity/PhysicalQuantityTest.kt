@@ -160,6 +160,22 @@ class PhysicalQuantityTest {
     }
 
     @Test
+    @DisplayName("offset units refuse to be added across their zero point")
+    fun offsetUnits() {
+        val celsius = PhysicalQuantity.of(20, Units.CELSIUS)
+
+        // 20 °C + 5 K is 25 °C as a difference and 298.15 °C as two absolute temperatures —
+        // ambiguous enough to say so instead of picking one.
+        val error = assertFailsWith<DimensionMismatchException> { celsius + PhysicalQuantity.of(5, Units.KELVIN) }
+        assertTrue(error.message!!.contains("zero point of its own"), error.message!!)
+
+        // Within one unit there is nothing to be ambiguous about.
+        assertQuantity("25", Units.CELSIUS, celsius + PhysicalQuantity.of(5, Units.CELSIUS))
+        // And the explicit conversion keeps the offset, as it should.
+        assertQuantity("293.15", Units.KELVIN, celsius.to(Units.KELVIN))
+    }
+
+    @Test
     @DisplayName("negation keeps the unit")
     fun negation() {
         assertQuantity("-3", Units.KELVIN, -PhysicalQuantity.of(3, Units.KELVIN))

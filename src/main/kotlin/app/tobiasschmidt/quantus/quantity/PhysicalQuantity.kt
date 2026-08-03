@@ -129,7 +129,17 @@ class PhysicalQuantity private constructor(
                     "${UnitRegistry.describe(unit)} cannot be $verb.",
             )
         }
-        return UnitConversions.between(unit, target).apply(value)
+        val conversion = UnitConversions.between(unit, target)
+        // Offset units have no meaningful sum: 20 °C + 5 K is 25 °C read as a temperature
+        // difference and 298.15 °C read as two absolute temperatures. Rather than pick one
+        // silently, say so — converting to K makes the intent explicit.
+        if (!conversion.offset.isZero) {
+            throw DimensionMismatchException(
+                "${UnitRegistry.describe(context.unit)} and ${UnitRegistry.describe(unit)} cannot be $verb " +
+                    "directly because one of them has a zero point of its own. Convert both to the same unit first.",
+            )
+        }
+        return conversion.apply(value)
     }
 
     /** Unit to the power p/q — `unit.pow(p).root(q)`. */

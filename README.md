@@ -3,9 +3,16 @@
 SI-Einheiten-Rechner mit symbolischer Mathematik und LaTeX-Ein-/Ausgabe.
 Spezifikation: [spec-si-rechner-v2.md](spec-si-rechner-v2.md).
 
-**Aktueller Stand:** Phase 1 (Kern: `PhysicalQuantity`) abgeschlossen — Einheitenrechnung
-mit Dimensionsprüfung, Vereinfachung auf benannte Einheiten und 50 Stellen Genauigkeit.
-Davor Phase 0 (Fundament) mit den drei Spikes: [docs/phase0-findings.md](docs/phase0-findings.md).
+**Aktueller Stand:** Phase 2 (LaTeX rein und raus) abgeschlossen. `LatexCalculator` nimmt
+LaTeX entgegen und gibt LaTeX zurück:
+
+```
+F = 2kg \cdot 10\frac{m}{s^2}   →   F = 20\,\mathrm{N}
+```
+
+Davor Phase 1 (Kern `PhysicalQuantity`: Einheitenrechnung mit Dimensionsprüfung,
+Vereinfachung auf benannte Einheiten, 50 Stellen) und Phase 0 (Fundament) mit den drei
+Spikes: [docs/phase0-findings.md](docs/phase0-findings.md).
 
 Code, Kommentare und Fehlermeldungen sind auf Englisch, die Projektdokumentation
 (Spec, README, Findings) auf Deutsch.
@@ -29,6 +36,8 @@ src/main/kotlin/app/tobiasschmidt/quantus/
   cas/                                            Symja-Grenze: Präzision, exakte Zahlen
   units/                                          Indriya-Grenze: Lookup-Tabellen, Umrechnung
   quantity/                                       PhysicalQuantity — Wert + Einheit
+  latex/                                          Lexer, Parser, AST, Serializer
+  eval/                                           AST-Auswertung, LatexCalculator (Fassade)
 src/main/resources/application.yaml               Port, Default-Präzision
 src/test/kotlin/app/tobiasschmidt/quantus/spike/  Phase-0-Spikes (Symja, Indriya, TeX-Export)
 docs/phase0-findings.md                           Erkenntnisse aus Phase 0
