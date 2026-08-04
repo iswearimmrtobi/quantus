@@ -214,7 +214,8 @@ code {
   background: var(--surface-raised);
   border-radius: var(--radius);
   transition: border-color 120ms ease;
-  padding: 10px 96px 10px 14px;
+  /* Rechts bleibt Platz für die Umschalttaste zwischen Formel- und Quelltexteingabe. */
+  padding: 10px 68px 10px 14px;
 }
 .input-row:focus-within {
   border-color: var(--cyan-dim);
@@ -247,9 +248,34 @@ code {
   display: none;
 }
 
-.input-hint {
+/* Quelltext-Eingabe: derselbe Rahmen, aber Schreibmaschinensatz — man tippt hier Zeichen,
+   keine Formel. */
+.latex-input {
+  display: block;
+  width: 100%;
+  min-height: 34px;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 17px;
+  line-height: 1.5;
+  caret-color: var(--cyan);
+  field-sizing: content;
+}
+.latex-input::placeholder {
+  color: var(--text-faint);
+}
+
+.input-row.latex {
+  border-color: var(--cyan-dim);
+}
+
+.mode-toggle {
   position: absolute;
-  right: 14px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--mono);
@@ -257,8 +283,24 @@ code {
   color: var(--text-faint);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
-  padding: 2px 6px;
-  pointer-events: none;
+  padding: 3px 7px;
+  line-height: 1.2;
+}
+.mode-toggle:hover {
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+}
+.input-row.latex .mode-toggle {
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+}
+
+/* Im Quelltext-Modus steht unter dem Feld die gesetzte Formel statt des Quelltexts. */
+.source-preview {
+  flex: 1;
+  font-size: 17px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .source-row {

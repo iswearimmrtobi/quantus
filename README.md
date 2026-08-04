@@ -77,13 +77,19 @@ bleiben unberührt.
 | Strg+, / Strg+H | Variablen- / Verlaufs-Panel |
 | Strg+Shift+C | Ergebnis als LaTeX kopieren |
 | Strg+Alt+C | ganze Rechnung als `align*`-Block kopieren |
-| Esc | Panel schließen |
+| `\` bzw. Strg+L | zwischen Formeleditor und LaTeX-Quelltext wechseln |
+| Esc | Quelltext verlassen · Panel schließen |
 
-Im Eingabefeld gilt die übliche Formeleditor-Mechanik: `/` erzeugt einen Bruch, `*` ein
-`\cdot`, `^` und `_` Hoch- und Tiefstellung. LaTeX-Befehle gehen auch direkt — `\frac`
-tippen und mit ⏎ abschließen setzt einen Bruch mit zwei Platzhaltern, zwischen denen Tab
-weiterspringt. Aus einem Index (und aus jeder anderen Klammer) führt die Pfeiltaste → wieder
-heraus: `m_1` `→` `= 2kg` definiert die Variable.
+### Zwei Eingabearten
+
+Der **Formeleditor** ist die schnelle: `/` erzeugt einen Bruch, `*` ein `\cdot`, `^` und `_`
+Hoch- und Tiefstellung, `2kg` eine Zahl mit Einheit. Aus einem Index (und aus jeder anderen
+Klammer) führt die Pfeiltaste → wieder heraus — `m_1` `→` `= 2kg` definiert die Variable.
+
+Der **Quelltext** ist die genaue: ein Backslash schaltet mitten im Tippen dorthin um, und ab
+da steht da, was man schreibt — `\qty{12}{cm}`, `\sqrt[3]{27}`, `\frac{200\mathrm{km}}{2{,}5\mathrm{h}}`.
+Unter dem Feld läuft die gesetzte Formel als Kontrolle mit. ⏎ rechnet, Esc geht zurück in
+den Formeleditor; der Inhalt bleibt dabei in beide Richtungen erhalten.
 
 Variablen tragen immer einen Index (`r_1`, `v_1`). Eine Eingabe mit Index-Label ist eine
 Definition (`m_1 = 2kg`) und bleibt für die Session gültig; ein Label ohne Index (`F = …`)
@@ -103,7 +109,7 @@ src/main/kotlin/app/tobiasschmidt/quantus/
 src/main/resources/application.yaml               Port, Default-Präzision, CORS
 src/test/kotlin/app/tobiasschmidt/quantus/spike/  Phase-0-Spikes (Symja, Indriya, TeX-Export)
 desktop/electron/                                 Main-Prozess: Backend-Kindprozess, Menü, Preload
-desktop/src/                                      React-Renderer: MathLive-Editor, Schritte, Panels
+desktop/src/                                      React-Renderer: Formeleditor, LaTeX-Quelltext, Schritte, Panels
 desktop/electron-builder.yml                      AppImage-Paketierung (Jar + jlink-JRE als Resources)
 desktop/build/icon.svg                            App-Icon, daraus gerendert icon.png
 docs/phase0-findings.md                           Erkenntnisse aus Phase 0

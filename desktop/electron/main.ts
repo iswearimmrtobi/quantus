@@ -19,7 +19,8 @@ type Shortcut =
   | 'copy-result'
   | 'copy-all'
   | 'toggle-variables'
-  | 'toggle-history';
+  | 'toggle-history'
+  | 'toggle-latex';
 
 function send(shortcut: Shortcut): void {
   window?.webContents.send('quantus:shortcut', shortcut);
@@ -71,6 +72,7 @@ function buildMenu(): void {
       submenu: [
         { label: 'Neue Rechnung', accelerator: 'CmdOrCtrl+N', click: () => send('new') },
         { label: 'Auswerten', accelerator: 'CmdOrCtrl+Return', click: () => send('evaluate') },
+        { label: 'LaTeX schreiben', accelerator: 'CmdOrCtrl+L', click: () => send('toggle-latex') },
         { type: 'separator' },
         { label: 'Ergebnis kopieren', accelerator: 'CmdOrCtrl+Shift+C', click: () => send('copy-result') },
         { label: 'Ganze Rechnung kopieren', accelerator: 'CmdOrCtrl+Alt+C', click: () => send('copy-all') },

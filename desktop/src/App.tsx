@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type Calculation, type StepKind, type Variable } from './api';
 import { Katex } from './components/Katex';
-import { MathField, type MathFieldHandle } from './components/MathField';
+import { LatexInput, type LatexInputHandle } from './components/LatexInput';
+import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
 
 interface HistoryEntry {
   id: number;
@@ -32,8 +33,12 @@ export function App() {
   const [precision, setPrecision] = useState<number | null>(null);
   const [online, setOnline] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  /** Quelltext statt Formeleditor — über `\` oder Strg+L (F2). */
+  const [latexMode, setLatexMode] = useState(false);
 
   const field = useRef<MathFieldHandle>(null);
+  const latexField = useRef<LatexInputHandle>(null);
+  const editor = () => (latexMode ? latexField.current : field.current);
   // The menu shortcuts fire from outside React's render cycle and must not see stale state.
   const latest = useRef({ input, calculation });
   latest.current = { input, calculation };
@@ -78,14 +83,29 @@ export function App() {
     setCalculation(null);
     setError(null);
     field.current?.setValue('');
+    latexField.current?.focus();
   }, []);
 
   const togglePanel = useCallback((next: Exclude<Panel, null>) => {
     setPanel((current) => (current === next ? null : next));
   }, []);
 
+  /** Übernimmt eine Formel ins gerade sichtbare Eingabefeld — Verlauf, Kürzel, Panels. */
   const load = useCallback((latex: string) => {
+    setInput(latex);
     field.current?.setValue(latex);
+  }, []);
+
+  /**
+   * Wechsel zwischen Formeleditor und Quelltext. Der Inhalt geht dabei nicht verloren: In den
+   * Quelltext kommt er in der Schreibweise, in der man ihn auch tippen würde, zurück im
+   * Formeleditor liest MathLive ihn wieder als Formel ein.
+   */
+  const toggleLatexMode = useCallback((seed?: string) => {
+    setLatexMode((current) => {
+      if (!current) setInput((text) => seed ?? toReadableLatex(text));
+      return !current;
+    });
   }, []);
 
   // Health and variables once at start, then a slow heartbeat for the status dot.
@@ -136,9 +156,12 @@ export function App() {
         case 'toggle-history':
           togglePanel('history');
           break;
+        case 'toggle-latex':
+          toggleLatexMode();
+          break;
       }
     });
-  }, [copy, evaluate, reset, togglePanel]);
+  }, [copy, evaluate, reset, togglePanel, toggleLatexMode]);
 
   // Escape closes the panel everywhere; the Ctrl combos only stand in for the menu when the
   // UI runs in a plain browser (`npm run dev:renderer`).
@@ -146,12 +169,15 @@ export function App() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setPanel(null);
-        field.current?.focus();
+        editor()?.focus();
         return;
       }
       if (window.quantus || !event.ctrlKey) return;
       const key = event.key.toLowerCase();
-      if (key === 'j') {
+      if (key === 'l') {
+        event.preventDefault();
+        toggleLatexMode();
+      } else if (key === 'j') {
         event.preventDefault();
         setStepsOpen((open) => !open);
       } else if (key === 'h') {
@@ -164,7 +190,9 @@ export function App() {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [togglePanel]);
+    // `editor()` liest nur Refs und braucht deshalb nicht in die Abhängigkeiten.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [togglePanel, toggleLatexMode]);
 
   const forget = async (key: string) => {
     await api.forget(key);
@@ -196,13 +224,48 @@ export function App() {
 
       <main className="workspace">
         <div className="calc-panel">
-          <div className="input-row">
-            <MathField ref={field} value={input} onChange={setInput} onEnter={() => void evaluate()} />
-            <span className="input-hint">⏎ auswerten</span>
+          <div className={latexMode ? 'input-row latex' : 'input-row'}>
+            {latexMode ? (
+              <LatexInput
+                ref={latexField}
+                value={input}
+                onChange={setInput}
+                onEnter={() => void evaluate()}
+                onLeave={() => toggleLatexMode()}
+              />
+            ) : (
+              <MathField
+                ref={field}
+                value={input}
+                onChange={setInput}
+                onEnter={() => void evaluate()}
+                onLatexRequested={(seed) => toggleLatexMode(seed)}
+              />
+            )}
+            <button
+              className="mode-toggle"
+              title={latexMode ? 'Zurück zum Formeleditor (Esc)' : 'LaTeX schreiben (\\ oder Strg+L)'}
+              onClick={() => toggleLatexMode()}
+            >
+              {latexMode ? 'TeX' : 'f(x)'}
+            </button>
           </div>
 
+          {/*
+            Unter dem Feld steht immer die jeweils andere Sicht: beim Tippen im Formeleditor
+            der Quelltext zum Kopieren, beim Schreiben von LaTeX die gesetzte Formel — damit
+            man sieht, ob der Ausdruck das ist, was man gemeint hat.
+          */}
           <div className="source-row">
-            <code className="source">{input || PLACEHOLDER}</code>
+            {latexMode ? (
+              input ? (
+                <Katex className="source-preview" latex={input} />
+              ) : (
+                <code className="source">{PLACEHOLDER}</code>
+              )
+            ) : (
+              <code className="source">{input || PLACEHOLDER}</code>
+            )}
             {input && (
               <button className="copy-btn" onClick={() => void copy(input, 'input')}>
                 {copied === 'input' ? 'kopiert' : 'copy'}
@@ -327,7 +390,7 @@ export function App() {
             ) : (
               variables.map((variable) => (
                 <div className="var-item" key={variable.key}>
-                  <button className="var-insert" onClick={() => field.current?.insert(variable.symbol)}>
+                  <button className="var-insert" onClick={() => editor()?.insert(variable.symbol)}>
                     <Katex className="var-name" latex={variable.symbol} />
                     <Katex className="var-val" latex={variable.latex} />
                   </button>

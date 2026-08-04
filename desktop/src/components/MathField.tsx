@@ -61,7 +61,23 @@ interface Props {
   value: string;
   onChange(latex: string): void;
   onEnter(): void;
+  /** Der Nutzer hat `\` getippt und will LaTeX schreiben — [seed] ist der Text für das Quelltextfeld. */
+  onLatexRequested(seed: string): void;
   ref?: Ref<MathFieldHandle>;
+}
+
+/**
+ * Was der Editor intern führt, in der Schreibweise, in der man es von Hand tippen würde.
+ *
+ * MathLive verpackt jeden mehrbuchstabigen Bezeichner in `\operatorname{}` — als Struktur
+ * richtig, zum Weiterschreiben aber sperrig. Fürs Quelltextfeld wird daraus wieder das
+ * `\mathrm{}`, das im Rest der Anwendung ohnehin die Einheiten-Auszeichnung ist. Für das
+ * Backend sind beide Formen dasselbe, es ändert sich also nur, was der Nutzer liest.
+ */
+export function toReadableLatex(latex: string): string {
+  return latex
+    .replace(/\\operatorname\{\\mathrm\{([^{}]*)\}\}/g, '\\mathrm{$1}')
+    .replace(/\\operatorname\{([^{}]*)\}/g, '\\mathrm{$1}');
 }
 
 /**
@@ -70,11 +86,13 @@ interface Props {
  * The element is created imperatively rather than as JSX — it is a custom element with a
  * property-based API, and React would only ever set attributes.
  */
-export function MathField({ value, onChange, onEnter, ref }: Props) {
+export function MathField({ value, onChange, onEnter, onLatexRequested, ref }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
-  const callbacks = useRef({ onChange, onEnter });
-  callbacks.current = { onChange, onEnter };
+  const callbacks = useRef({ onChange, onEnter, onLatexRequested });
+  callbacks.current = { onChange, onEnter, onLatexRequested };
+  /** Der zuletzt aus dem Feld gemeldete Wert — alles andere kommt von außen. */
+  const reported = useRef(value);
 
   useEffect(() => {
     const mathfield = new MathfieldElement();
@@ -94,10 +112,23 @@ export function MathField({ value, onChange, onEnter, ref }: Props) {
         commandJustCommitted = false;
         completeCommand(mathfield);
       }
+      reported.current = mathfield.value;
       callbacks.current.onChange(mathfield.value);
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
+      // Der Backslash ist die Tür zum Quelltext (F2). MathLive hätte hier seinen eigenen
+      // Latex-Modus angeboten, in dem aber nur der Befehlsname steht und nicht die Formel —
+      // Argumente, Klammern und alles Verschachtelte gehen dort nicht von Hand zu tippen.
+      if (event.key === '\\' && mathfield.mode !== 'latex') {
+        // stopPropagation, nicht nur preventDefault: MathLive verarbeitet die Taste im
+        // Inneren des Elements und würde sonst trotzdem seinen eigenen Latex-Modus öffnen.
+        event.preventDefault();
+        event.stopPropagation();
+        callbacks.current.onLatexRequested(`${toReadableLatex(mathfield.value)}\\`);
+        return;
+      }
+
       if (event.key !== 'Enter') return;
       // Beim Tippen eines Befehls (`\frac`) steht das Feld im Latex-Modus, und Enter ist dort
       // die Taste, die den Befehl abschließt. Nähme die App sie an sich, käme der Nutzer aus
@@ -107,6 +138,7 @@ export function MathField({ value, onChange, onEnter, ref }: Props) {
       // (`\operatorname{kg}`), und dort muss Enter ganz normal rechnen.
       if (mathfield.mode === 'latex') return;
       event.preventDefault();
+      event.stopPropagation();
       callbacks.current.onEnter();
     };
 
@@ -119,7 +151,8 @@ export function MathField({ value, onChange, onEnter, ref }: Props) {
     };
 
     mathfield.addEventListener('input', onInput);
-    mathfield.addEventListener('keydown', onKeyDown);
+    // Capture-Phase: MathLive verarbeitet Tasten in seinem Inneren und ist sonst zuerst dran.
+    mathfield.addEventListener('keydown', onKeyDown, true);
     mathfield.addEventListener('mode-change', onModeChange);
 
     host.current?.appendChild(mathfield);
@@ -128,7 +161,7 @@ export function MathField({ value, onChange, onEnter, ref }: Props) {
 
     return () => {
       mathfield.removeEventListener('input', onInput);
-      mathfield.removeEventListener('keydown', onKeyDown);
+      mathfield.removeEventListener('keydown', onKeyDown, true);
       mathfield.removeEventListener('mode-change', onModeChange);
       mathfield.remove();
       field.current = null;
@@ -137,10 +170,18 @@ export function MathField({ value, onChange, onEnter, ref }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The input can also change from the outside — history, "new calculation", shortcuts.
+  /**
+   * Änderungen von außen — Verlauf, neue Rechnung, eingefügte Variablen — ins Feld schreiben.
+   *
+   * Was aus dem Feld selbst kam, wird hier bewusst nicht zurückgeschrieben: Der Zustand von
+   * React hinkt beim Tippen einen Rendervorgang hinterher, und ein Rückschreiben würde
+   * mitten im Wort den vorherigen Stand wiederherstellen und den Cursor ans Ende werfen.
+   */
   useEffect(() => {
     const mathfield = field.current;
-    if (mathfield && mathfield.value !== value) mathfield.value = value;
+    if (!mathfield || value === reported.current) return;
+    if (mathfield.value !== value) mathfield.value = value;
+    reported.current = value;
   }, [value]);
 
   useImperativeHandle(ref, () => ({
@@ -150,6 +191,7 @@ export function MathField({ value, onChange, onEnter, ref }: Props) {
       if (!mathfield) return;
       mathfield.value = latex;
       mathfield.focus();
+      reported.current = mathfield.value;
       callbacks.current.onChange(mathfield.value);
     },
     insert: (latex: string) => {

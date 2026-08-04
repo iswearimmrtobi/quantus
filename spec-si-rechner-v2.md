@@ -211,6 +211,10 @@ Einsetz-Schritt zeigt Dezimalwerte, keine exakten Brüche.
 - [x] Electron-Grundgerüst (TypeScript/Vite/React), Backend-Kindprozess-Start mit Health-Check und sauberem Shutdown
   (ein bereits laufendes Backend wird erkannt und nur mitbenutzt, nicht beendet)
 - [x] MathLive-Editor mit Live-Rendering, darunter der LaTeX-Quelltext zum Kopieren
+- [x] Zweite Eingabeart für F2: ein Backslash (oder Strg+L) schaltet auf reinen
+  LaTeX-Quelltext um, mit gesetzter Formel als Kontrolle darunter — der Formeleditor kann
+  nur, was er als Struktur kennt, getippt werden muss aber alles können (`\qty{12}{cm}`,
+  `\sqrt[3]{27}`)
 - [x] Numpad-/Tastatur-Workflow: Enter = auswerten, Kürzel für Copy-LaTeX (globale Shortcuts als Menü-Accelerators)
 - [x] Schritt-Ansicht mit Copy-Buttons (einzeln + gesamt als `align*`), Clipboard via Electron-API
 - [x] Variablen-Panel (Klick fügt die Variable ein, ✕ vergisst sie) plus Verlaufs-Panel für die laufende Sitzung
