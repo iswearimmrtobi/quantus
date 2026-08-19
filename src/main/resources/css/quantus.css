@@ -1,0 +1,256 @@
+/* Dark theme ported from quantus-ui-v2.html (Phase 5 bullet 1). JavaFX CSS has no custom
+ * properties, only "looked-up colors" defined once on .root and referenced by name below. */
+.root {
+    -bg: #17161D;
+    -surface: #1E1D27;
+    -surface-raised: #262532;
+    -surface-hover: #2D2B3A;
+    -hairline: #322F3F;
+    -hairline-strong: #433E56;
+    -text: #EDEBF3;
+    -text-muted: #8B87A3;
+    -text-faint: #55506A;
+    -cyan: #9186E8;
+    -cyan-dim: #423A63;
+    -amber: #D8A9FF;
+    -amber-dim: #4E3C63;
+    -danger: #FF8FA8;
+
+    -fx-font-family: "IBM Plex Sans";
+    -fx-text-fill: -text;
+    -fx-background-color: -bg;
+}
+
+.mono { -fx-font-family: "JetBrains Mono"; }
+.font-medium { -fx-font-family: "IBM Plex Sans Medium"; }
+.font-semibold { -fx-font-family: "IBM Plex Sans SemiBold"; }
+.mono-medium { -fx-font-family: "JetBrains Mono Medium"; }
+.mono-semibold { -fx-font-family: "JetBrains Mono SemiBold"; }
+
+.label { -fx-text-fill: -text; }
+
+/* ---------- Topbar ---------- */
+.topbar {
+    -fx-background-color: -surface;
+    -fx-border-color: -hairline;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 14 0 14;
+    -fx-min-height: 40;
+    -fx-pref-height: 40;
+}
+.wordmark {
+    -fx-font-family: "IBM Plex Sans SemiBold";
+    -fx-font-size: 12.5px;
+}
+.wordmark-accent { -fx-text-fill: -cyan; }
+.precision-tag { -fx-font-family: "JetBrains Mono"; -fx-font-size: 12px; -fx-text-fill: -text-muted; }
+.status-text { -fx-font-family: "JetBrains Mono"; -fx-font-size: 12px; -fx-text-fill: -text-muted; }
+.status-dot {
+    -fx-fill: -cyan;
+    -fx-effect: dropshadow(gaussian, -cyan, 6, 0.4, 0, 0);
+}
+.status-dot.error { -fx-fill: -danger; -fx-effect: dropshadow(gaussian, -danger, 6, 0.4, 0, 0); }
+
+/* ---------- Workspace / calc panel ---------- */
+.workspace { -fx-background-color: -bg; }
+.calc-panel { -fx-padding: 0 24 40 24; }
+
+.input-row {
+    -fx-background-color: -surface-raised;
+    -fx-border-color: -hairline-strong;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 4 8 4 8;
+}
+.input-row.focused { -fx-border-color: -cyan-dim; }
+
+#expr-input {
+    -fx-background-color: transparent;
+    -fx-text-fill: -text;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 20px;
+    -fx-padding: 12 10 12 10;
+}
+#expr-input:focused { -fx-background-color: transparent; }
+
+.input-hint {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -text-faint;
+    -fx-border-color: -hairline-strong;
+    -fx-border-radius: 3;
+    -fx-padding: 2 6 2 6;
+}
+
+.result-eq { -fx-text-fill: -text-faint; -fx-font-family: "JetBrains Mono"; -fx-font-size: 18px; }
+.result-value {
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-font-size: 34px;
+    -fx-text-fill: -amber;
+    -fx-effect: dropshadow(gaussian, rgba(216,169,255,0.22), 18, 0.3, 0, 0);
+}
+.result-value.error { -fx-text-fill: -danger; -fx-font-size: 16px; -fx-font-family: "JetBrains Mono"; }
+.result-unit {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 13px;
+    -fx-text-fill: -amber;
+    -fx-border-color: -amber-dim;
+    -fx-border-radius: 3;
+    -fx-padding: 3 8 3 8;
+}
+
+.steps-toggle {
+    -fx-background-color: transparent;
+    -fx-border-color: -hairline-strong;
+    -fx-border-radius: 3;
+    -fx-text-fill: -text-muted;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 12px;
+    -fx-padding: 6 10 6 10;
+    -fx-cursor: hand;
+}
+.steps-toggle:hover { -fx-text-fill: -cyan; -fx-border-color: -cyan-dim; }
+
+.steps-panel {
+    -fx-background-color: -hairline;
+    -fx-border-color: -hairline;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+.step-row {
+    -fx-background-color: -surface;
+    -fx-padding: 12 16 12 16;
+    -fx-spacing: 14;
+}
+.step-label {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 10px;
+    -fx-text-fill: -text-faint;
+    -fx-min-width: 84;
+}
+.step-label.result-label { -fx-text-fill: -amber; }
+.step-latex { -fx-font-family: "JetBrains Mono"; -fx-font-size: 15px; -fx-text-fill: -text; }
+
+.copy-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -text-faint;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 11px;
+    -fx-padding: 3 7 3 7;
+    -fx-border-radius: 3;
+    -fx-cursor: hand;
+}
+.copy-btn:hover { -fx-text-fill: -cyan; -fx-border-color: -hairline-strong; }
+.copy-all-btn { -fx-background-color: transparent; -fx-border-color: -hairline-strong; -fx-border-radius: 3;
+    -fx-text-fill: -text-muted; -fx-font-family: "JetBrains Mono"; -fx-font-size: 11px; -fx-padding: 4 8 4 8; -fx-cursor: hand; }
+.copy-all-btn:hover { -fx-text-fill: -cyan; -fx-border-color: -cyan-dim; }
+
+/* ---------- Side rail + panel ---------- */
+.side-rail {
+    -fx-background-color: -surface;
+    -fx-border-color: -hairline;
+    -fx-border-width: 0 0 0 1;
+    -fx-padding: 10 0 0 0;
+    -fx-pref-width: 44;
+    -fx-min-width: 44;
+    -fx-spacing: 4;
+    -fx-alignment: top-center;
+}
+.rail-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: -text-muted;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 15px;
+    -fx-pref-width: 32;
+    -fx-pref-height: 32;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+}
+.rail-btn:hover { -fx-background-color: -surface-hover; -fx-text-fill: -text; }
+.rail-btn.active { -fx-text-fill: -cyan; -fx-background-color: -surface-hover; }
+
+.side-panel {
+    -fx-background-color: -surface;
+    -fx-border-color: -hairline-strong;
+    -fx-border-width: 0 0 0 1;
+    -fx-pref-width: 300;
+    -fx-min-width: 300;
+}
+.panel-tabs { -fx-border-color: -hairline; -fx-border-width: 0 0 1 0; }
+.panel-tab {
+    -fx-background-color: transparent;
+    -fx-text-fill: -text-muted;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 11.5px;
+    -fx-padding: 10 0 10 0;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-cursor: hand;
+}
+.panel-tab.active { -fx-text-fill: -text; -fx-border-color: transparent transparent -cyan transparent; }
+.panel-tab:hover { -fx-text-fill: -text; }
+
+.panel-body { -fx-background-color: -surface; }
+
+.hist-item, .var-item { -fx-background-color: -surface; -fx-padding: 10; -fx-background-radius: 3; }
+.hist-item:hover, .var-item:hover { -fx-background-color: -surface-hover; -fx-cursor: hand; }
+.hist-latex { -fx-font-family: "JetBrains Mono"; -fx-font-size: 12.5px; -fx-text-fill: -text; }
+.hist-meta { -fx-font-family: "JetBrains Mono"; -fx-font-size: 10.5px; -fx-text-fill: -text-faint; }
+.hist-meta-val { -fx-text-fill: -amber; }
+.var-name { -fx-font-family: "JetBrains Mono"; -fx-text-fill: -cyan; -fx-font-size: 13px; }
+.var-val { -fx-font-family: "JetBrains Mono"; -fx-text-fill: -text-muted; -fx-font-size: 12px; }
+.empty-hint { -fx-font-family: "JetBrains Mono"; -fx-font-size: 11.5px; -fx-text-fill: -text-faint; -fx-padding: 14; }
+
+.panel-add {
+    -fx-background-color: transparent;
+    -fx-border-color: -hairline-strong;
+    -fx-border-style: segments(4, 3);
+    -fx-border-radius: 3;
+    -fx-text-fill: -text-faint;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 11.5px;
+    -fx-padding: 8;
+    -fx-cursor: hand;
+}
+.panel-add:hover { -fx-text-fill: -cyan; -fx-border-color: -cyan-dim; }
+
+/* ---------- Statusbar ---------- */
+.statusbar {
+    -fx-background-color: -surface;
+    -fx-border-color: -hairline;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 0 14 0 14;
+    -fx-min-height: 26;
+    -fx-pref-height: 26;
+}
+.statusbar-text { -fx-font-family: "JetBrains Mono"; -fx-font-size: 10.5px; -fx-text-fill: -text-faint; }
+
+/* ---------- Dialog ---------- */
+.dialog-pane { -fx-background-color: -surface; }
+.dialog-pane .label { -fx-text-fill: -text; }
+.dialog-pane .content { -fx-background-color: -surface; }
+.dialog-pane:header .header-panel { -fx-background-color: -surface-raised; }
+.dialog-pane .header-panel .label { -fx-text-fill: -text; -fx-font-family: "IBM Plex Sans SemiBold"; }
+.text-field {
+    -fx-background-color: -surface-raised;
+    -fx-text-fill: -text;
+    -fx-border-color: -hairline-strong;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-font-family: "JetBrains Mono";
+    -fx-highlight-fill: -cyan-dim;
+    -fx-highlight-text-fill: -text;
+}
+.text-field:focused { -fx-border-color: -cyan-dim; }
+.button {
+    -fx-background-color: -surface-raised;
+    -fx-text-fill: -text;
+    -fx-border-color: -hairline-strong;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-font-family: "IBM Plex Sans";
+    -fx-cursor: hand;
+}
+.button:hover { -fx-background-color: -surface-hover; }
+.button:default { -fx-border-color: -cyan-dim; -fx-text-fill: -cyan; }
