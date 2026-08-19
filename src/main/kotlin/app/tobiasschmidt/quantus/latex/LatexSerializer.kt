@@ -25,8 +25,17 @@ object LatexSerializer {
     fun expression(node: Node): String = render(node, PRECEDENCE_ADDITIVE)
 
     /** A result: value and unit, e.g. `20\,\mathrm{N}`. */
-    fun quantity(value: BigDecimal, unit: Unit<*>): String {
-        val number = LatexNumbers.format(value)
+    fun quantity(value: BigDecimal, unit: Unit<*>): String = withUnit(LatexNumbers.format(value), unit)
+
+    /** F4 — a complex result in cartesian form, plus unit: `(11 - 2\,i)\,\mathrm{N}`. */
+    fun complexQuantity(re: BigDecimal, im: BigDecimal, unit: Unit<*>): String =
+        withUnit(LatexComplex.cartesian(re, im), unit)
+
+    /** F4 — a complex result in polar form, plus unit. */
+    fun polarQuantity(r: BigDecimal, phi: BigDecimal, unit: Unit<*>): String =
+        withUnit(LatexComplex.polar(r, phi), unit)
+
+    private fun withUnit(number: String, unit: Unit<*>): String {
         if (unit == AbstractUnit.ONE) return number
         return "$number\\,${UnitLatex.format(unit)}"
     }

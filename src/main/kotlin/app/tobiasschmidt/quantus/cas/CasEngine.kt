@@ -48,6 +48,15 @@ class CasEngine(val precision: Int = DEFAULT_PRECISION) {
         return BigDecimal(real.apfloatValue().toString()).round(MathContext(precision))
     }
 
+    /**
+     * A complex value's real and imaginary part, each rounded to [precision] digits (F4).
+     * `Re`/`Im` of a complex number are themselves real, so this reuses [decimal] verbatim.
+     */
+    fun complexParts(expr: IExpr): Pair<BigDecimal, BigDecimal> = decimal(F.Re(expr)) to decimal(F.Im(expr))
+
+    /** The same value as modulus and argument (radians), for the polar form `r * e^{iφ}` (F4). */
+    fun polarParts(expr: IExpr): Pair<BigDecimal, BigDecimal> = decimal(F.Abs(expr)) to decimal(F.Arg(expr))
+
     companion object {
         /** Default digit count per F3; overridable via `quantus.precision`. */
         const val DEFAULT_PRECISION = 50

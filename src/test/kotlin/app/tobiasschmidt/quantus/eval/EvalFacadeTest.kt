@@ -1,8 +1,11 @@
 package app.tobiasschmidt.quantus.eval
 
+import app.tobiasschmidt.quantus.cas.CasEngine
+import app.tobiasschmidt.quantus.latex.LatexNumbers
 import app.tobiasschmidt.quantus.quantity.PhysicalQuantity
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.matheclipse.core.expression.F
 import tech.units.indriya.unit.Units
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -103,5 +106,34 @@ class EvalFacadeTest {
     fun parseErrorIsAnError() {
         val result = facade.evaluate("F = )(", SessionId.random())
         assertNotNull(result.error)
+    }
+
+    @Test
+    @DisplayName("Phase 4 milestone: (3+4i)(1-2i) = 11 - 2i, cartesian by default")
+    fun complexMultiplicationCartesian() {
+        val result = facade.evaluate("(3 + 4i)(1 - 2i)", SessionId.random())
+
+        assertNull(result.error)
+        assertEquals("11 - 2\\,i", result.value)
+        assertEquals(Step(StepKind.RESULT, "11 - 2\\,i"), result.steps.last())
+    }
+
+    @Test
+    @DisplayName("F4: the same complex result, rendered in polar form on request")
+    fun complexMultiplicationPolar() {
+        val result = facade.evaluate("(3 + 4i)(1 - 2i)", SessionId.random(), complexFormat = ComplexFormat.POLAR)
+
+        assertNull(result.error)
+        // |11 - 2i| = sqrt(125), arg = atan2(-2, 11) — checked against a decimal engine directly.
+        val engine = CasEngine(50)
+        val (r, phi) = engine.polarParts(F.Plus(F.ZZ(11), F.Times(F.ZZ(-2), F.CI)))
+        assertEquals("${LatexNumbers.format(r)} \\cdot e^{i\\,${LatexNumbers.format(phi)}}", result.value)
+    }
+
+    @Test
+    @DisplayName("a purely imaginary result renders without a spurious real part")
+    fun pureImaginaryResult() {
+        val result = facade.evaluate("2i \\cdot 3i", SessionId.random())
+        assertEquals("-6", result.value)
     }
 }

@@ -4,13 +4,12 @@ import app.tobiasschmidt.quantus.QuantusException
 import app.tobiasschmidt.quantus.cas.CasEngine
 import app.tobiasschmidt.quantus.latex.Formula
 import app.tobiasschmidt.quantus.latex.Label
+import app.tobiasschmidt.quantus.latex.LatexComplex
 import app.tobiasschmidt.quantus.latex.LatexNumbers
 import app.tobiasschmidt.quantus.latex.LatexParser
 import app.tobiasschmidt.quantus.latex.LatexSerializer
 import app.tobiasschmidt.quantus.quantity.PhysicalQuantity
 import app.tobiasschmidt.quantus.units.UnitRegistry
-import java.math.BigDecimal
-import javax.measure.Unit
 
 /**
  * The internal facade the UI (phase 5) calls directly — spec section 5. No REST/JSON (N2a):
@@ -23,10 +22,15 @@ import javax.measure.Unit
  */
 class EvalFacade(private val sessions: SessionStore = SessionStore()) {
 
-    fun evaluate(latex: String, sessionId: SessionId, precision: Int = CasEngine.DEFAULT_PRECISION): EvaluationResult {
+    fun evaluate(
+        latex: String,
+        sessionId: SessionId,
+        precision: Int = CasEngine.DEFAULT_PRECISION,
+        complexFormat: ComplexFormat = ComplexFormat.CARTESIAN,
+    ): EvaluationResult {
         val session = sessions.session(sessionId)
         return try {
-            evaluateOrThrow(latex, session, precision)
+            evaluateOrThrow(latex, session, precision, complexFormat)
         } catch (e: QuantusException) {
             EvaluationResult(steps = emptyList(), value = "", unit = "", error = e.message)
         }
@@ -38,15 +42,15 @@ class EvalFacade(private val sessions: SessionStore = SessionStore()) {
 
     fun getVariables(sessionId: SessionId): List<VariableDefinition> = sessions.session(sessionId).variables()
 
-    private fun evaluateOrThrow(latex: String, session: Session, precision: Int): EvaluationResult {
+    private fun evaluateOrThrow(latex: String, session: Session, precision: Int, complexFormat: ComplexFormat): EvaluationResult {
         // The engine has to exist before any expression is built: it installs the
         // thread-local EvalEngine that PhysicalQuantity's arithmetic uses.
         val engine = CasEngine(precision)
         val formula = LatexParser(latex).parse()
         val quantity = ExpressionEvaluator(session::resolve).evaluate(formula.expression).simplify()
-        val value = quantity.decimal(engine)
+        val (numberLatex, quantityLatex) = render(quantity, engine, complexFormat)
 
-        val steps = buildSteps(formula, session, engine, value, quantity.unit)
+        val steps = buildSteps(formula, session, engine, resultLatex(formula.label, quantityLatex))
 
         val label = formula.label
         if (label != null && label.index != null) {
@@ -55,33 +59,47 @@ class EvalFacade(private val sessions: SessionStore = SessionStore()) {
 
         return EvaluationResult(
             steps = steps,
-            value = LatexNumbers.format(value),
+            value = numberLatex,
             unit = UnitRegistry.format(quantity.unit),
             error = null,
         )
     }
 
-    private fun buildSteps(
-        formula: Formula,
-        session: Session,
-        engine: CasEngine,
-        value: BigDecimal,
-        unit: Unit<*>,
-    ): List<Step> = buildList {
+    /** The bare number and the number-plus-unit LaTeX, real or complex (F4). */
+    private fun render(quantity: PhysicalQuantity, engine: CasEngine, complexFormat: ComplexFormat): Pair<String, String> {
+        if (!quantity.isComplex) {
+            val value = quantity.decimal(engine)
+            return LatexNumbers.format(value) to LatexSerializer.quantity(value, quantity.unit)
+        }
+        return when (complexFormat) {
+            ComplexFormat.CARTESIAN -> {
+                val (re, im) = quantity.complexCartesian(engine)
+                LatexComplex.cartesian(re, im) to LatexSerializer.complexQuantity(re, im, quantity.unit)
+            }
+
+            ComplexFormat.POLAR -> {
+                val (r, phi) = quantity.complexPolar(engine)
+                LatexComplex.polar(r, phi) to LatexSerializer.polarQuantity(r, phi, quantity.unit)
+            }
+        }
+    }
+
+    private fun buildSteps(formula: Formula, session: Session, engine: CasEngine, resultBody: String): List<Step> = buildList {
         add(Step(StepKind.SYMBOLIC, LatexSerializer.formula(formula)))
 
         VariableSubstitution.substitute(formula.expression, session, engine)?.let { substituted ->
             add(Step(StepKind.SUBSTITUTED, LatexSerializer.formula(Formula(formula.label, substituted, formula.source))))
         }
 
-        add(Step(StepKind.RESULT, resultLatex(formula.label, value, unit)))
+        add(Step(StepKind.RESULT, resultBody))
     }
 
-    private fun resultLatex(label: Label?, value: BigDecimal, unit: Unit<*>): String {
-        val quantity = LatexSerializer.quantity(value, unit)
-        return label?.let { "${LatexSerializer.label(it)} = $quantity" } ?: quantity
-    }
+    private fun resultLatex(label: Label?, quantityLatex: String): String =
+        label?.let { "${LatexSerializer.label(it)} = $quantityLatex" } ?: quantityLatex
 }
+
+/** F4 — how a complex result is written: cartesian `a+bi` or polar `r \cdot e^{iφ}`. */
+enum class ComplexFormat { CARTESIAN, POLAR }
 
 /** F6: a calculation's three-step LaTeX presentation, symbolic -> substituted -> result. */
 enum class StepKind { SYMBOLIC, SUBSTITUTED, RESULT }
