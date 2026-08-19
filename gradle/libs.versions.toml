@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.4.10"
-springBoot = "4.1.0"
-springDependencyManagement = "1.1.7"
+javafx = "21.0.4"
+javafxPlugin = "0.1.0"
 symja = "3.2.0"
 indriya = "2.2.4"
 
@@ -11,6 +11,4 @@ indriya = { module = "tech.units:indriya", version.ref = "indriya" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
-spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
-spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
+javafx = { id = "org.openjfx.javafxplugin", version.ref = "javafxPlugin" }

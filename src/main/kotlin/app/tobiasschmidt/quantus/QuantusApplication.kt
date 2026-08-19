@@ -1,11 +1,21 @@
 package app.tobiasschmidt.quantus
 
-import org.springframework.boot.SpringApplication
-import org.springframework.boot.autoconfigure.SpringBootApplication
+import javafx.application.Application
+import javafx.scene.Scene
+import javafx.scene.control.Label
+import javafx.scene.layout.StackPane
+import javafx.stage.Stage
 
-@SpringBootApplication
-class QuantusApplication
+/** Entry point shell for Phase 5 — the real UI (editor, steps, variables) lands there. */
+class QuantusApplication : Application() {
+
+    override fun start(stage: Stage) {
+        stage.title = "Quantus"
+        stage.scene = Scene(StackPane(Label("Quantus")), 800.0, 600.0)
+        stage.show()
+    }
+}
 
 fun main(args: Array<String>) {
-    SpringApplication.run(QuantusApplication::class.java, *args)
+    Application.launch(QuantusApplication::class.java, *args)
 }
