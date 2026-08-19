@@ -41,10 +41,10 @@ aufgelöst (`UnresolvedVariableException`); Klammern im Output werden aus der Pr
 abgeleitet statt aus der Eingabe übernommen; Temperaturen mit eigenem Nullpunkt (°C) lassen
 sich bewusst nicht mit K addieren, sondern nur explizit umrechnen.
 
-### Phase 3 — Variablen & Schritte *(~1–2 Wochen nebenbei)*
-- [ ] Session-Kontext mit Variablendefinitionen (`r_1 = 0,5 m`)
-- [ ] Schritt-Erzeugung: symbolisch → eingesetzt → Ergebnis (jeweils als LaTeX)
-- [ ] Interne Eval-Fassade (`evaluate`, `defineVariable`, `getVariables` — siehe
+### Phase 3 — Variablen & Schritte *(~1–2 Wochen nebenbei)* — **erledigt (2026-08-19)**
+- [x] Session-Kontext mit Variablendefinitionen (`r_1 = 0,5 m`)
+- [x] Schritt-Erzeugung: symbolisch → eingesetzt → Ergebnis (jeweils als LaTeX)
+- [x] Interne Eval-Fassade (`evaluate`, `defineVariable`, `getVariables` — siehe
       [spec-si-rechner-v3.md](spec-si-rechner-v3.md) Abschnitt 5) + Session-Handling
 - **Meilenstein:** Physikaufgabe mit Variablen liefert dreistufigen LaTeX-Rechenweg über die interne Fassade
 

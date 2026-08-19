@@ -3,16 +3,19 @@
 SI-Einheiten-Rechner mit symbolischer Mathematik und LaTeX-Ein-/Ausgabe.
 Spezifikation: [spec-si-rechner-v3.md](spec-si-rechner-v3.md).
 
-**Aktueller Stand:** Phase 2 (LaTeX rein und raus) abgeschlossen. `LatexCalculator` nimmt
-LaTeX entgegen und gibt LaTeX zurück:
+**Aktueller Stand:** Phase 3 (Variablen & Schritte) abgeschlossen. `EvalFacade` verwaltet
+Sessions mit Variablendefinitionen und liefert Rechnungen dreistufig als LaTeX:
 
 ```
-F = 2kg \cdot 10\frac{m}{s^2}   →   F = 20\,\mathrm{N}
+m_1 = 2\,\mathrm{kg}          a_1 = 9{,}81\,\frac{m}{s^2}          F = m_1 \cdot a_1
+→   symbolisch:  F = m_{1} \cdot a_{1}
+→   eingesetzt:  F = 2\,\mathrm{kg} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}
+→   Ergebnis:    F = 19{,}62\,\mathrm{N}
 ```
 
-Davor Phase 1 (Kern `PhysicalQuantity`: Einheitenrechnung mit Dimensionsprüfung,
-Vereinfachung auf benannte Einheiten, 50 Stellen) und Phase 0 (Fundament) mit den drei
-Spikes: [docs/phase0-findings.md](docs/phase0-findings.md).
+Davor Phase 2 (LaTeX rein und raus, `LatexCalculator`), Phase 1 (Kern `PhysicalQuantity`:
+Einheitenrechnung mit Dimensionsprüfung, Vereinfachung auf benannte Einheiten, 50 Stellen)
+und Phase 0 (Fundament) mit den drei Spikes: [docs/phase0-findings.md](docs/phase0-findings.md).
 
 Code, Kommentare und Fehlermeldungen sind auf Englisch, die Projektdokumentation
 (Spec, README, Findings) auf Deutsch.
@@ -37,7 +40,7 @@ src/main/kotlin/app/tobiasschmidt/quantus/
   units/                                          Indriya-Grenze: Lookup-Tabellen, Umrechnung
   quantity/                                       PhysicalQuantity — Wert + Einheit
   latex/                                          Lexer, Parser, AST, Serializer
-  eval/                                           AST-Auswertung, LatexCalculator (Fassade)
+  eval/                                           AST-Auswertung, Sessions, EvalFacade (Schritte)
 src/test/kotlin/app/tobiasschmidt/quantus/spike/  Phase-0-Spikes (Symja, Indriya, TeX-Export)
 docs/phase0-findings.md                           Erkenntnisse aus Phase 0
 gradle/libs.versions.toml                         Versionen aller Abhängigkeiten
