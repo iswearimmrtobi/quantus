@@ -1,8 +1,7 @@
 plugins {
+    application
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.spring)
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.javafx)
 }
 
 group = "app.tobiasschmidt"
@@ -20,21 +19,27 @@ kotlin {
     }
 }
 
+application {
+    mainClass = "app.tobiasschmidt.quantus.QuantusApplicationKt"
+}
+
+javafx {
+    version = libs.versions.javafx.get()
+    // controls: native panels (result, steps, variables, history); web: WebView for the
+    // embedded MathLive editor (see spec-si-rechner-v3.md Abschnitt 4).
+    modules = listOf("javafx.controls", "javafx.web")
+}
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-
     // CAS: symbolische und numerische Auswertung, beliebige Präzision
     implementation(libs.symja.core)
     // Einheiten: JSR-385-Referenzimplementierung, Dimensionsprüfung
     implementation(libs.indriya)
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(kotlin("test"))
 }
 

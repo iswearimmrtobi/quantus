@@ -183,7 +183,7 @@ class SymjaSpikeTest {
     }
 
     @Test
-    @DisplayName("EvalEngine ist thread-lokal — relevant für den Spring-Boot-Betrieb")
+    @DisplayName("EvalEngine ist thread-lokal — relevant, sobald Auswertung von der JavaFX-UI-Thread abgekoppelt wird")
     fun engineIsThreadLocal() {
         val mainEngine = EvalEngine.get()
         var workerEngine: EvalEngine? = null
