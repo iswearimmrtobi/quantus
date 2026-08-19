@@ -40,6 +40,7 @@ class QuantusApplication : Application() {
         accelerators[KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN)] = Runnable { view.handleShortcut("new") }
         accelerators[KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN)] =
             Runnable { view.handleShortcut("copyAll") }
+        accelerators[KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN)] = Runnable { view.handleShortcut("define") }
         accelerators[KeyCodeCombination(KeyCode.ESCAPE)] = Runnable { view.handleShortcut("escape") }
     }
 }
