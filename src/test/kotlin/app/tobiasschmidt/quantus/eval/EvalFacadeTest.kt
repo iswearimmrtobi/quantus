@@ -136,4 +136,49 @@ class EvalFacadeTest {
         val result = facade.evaluate("2i \\cdot 3i", SessionId.random())
         assertEquals("-6", result.value)
     }
+
+    @Test
+    @DisplayName("Phase 4 milestone: d/dx of x^2 sin(x)")
+    fun derivativeMilestone() {
+        // Cross-checked against SymjaSpikeTest.calculus() and SymjaTexExportSpikeTest.calculusForms().
+        val result = facade.derive("x^2 \\sin(x)", "x")
+
+        assertNull(result.error)
+        assertEquals(
+            Step(StepKind.SYMBOLIC, "\\frac{d}{dx}\\left[x^{2} \\cdot \\sin\\left(x\\right)\\right]"),
+            result.steps.first(),
+        )
+        assertEquals("{x}^{2} \\cdot \\cos (x)+2 \\cdot x \\cdot \\sin (x)", result.value)
+        assertEquals(result.value, result.steps.last().latex)
+        assertEquals("1", result.unit)
+    }
+
+    @Test
+    @DisplayName("F8: higher-order derivatives")
+    fun higherOrderDerivative() {
+        val result = facade.derive("x^4", "x", order = 2)
+        assertNull(result.error)
+        assertEquals("12 \\cdot {x}^{2}", result.value)
+        assertEquals(Step(StepKind.SYMBOLIC, "\\frac{d^{2}}{dx^{2}}\\left[x^{4}\\right]"), result.steps.first())
+    }
+
+    @Test
+    @DisplayName("Phase 4: indefinite integral of x sin(x), with a + C")
+    fun integralMilestone() {
+        // Cross-checked against SymjaTexExportSpikeTest.calculusForms().
+        val result = facade.integrate("x \\sin(x)", "x")
+
+        assertNull(result.error)
+        assertEquals("- x \\cdot \\cos (x) + \\sin (x)", result.value)
+        assertEquals(Step(StepKind.RESULT, "- x \\cdot \\cos (x) + \\sin (x) + C"), result.steps.last())
+    }
+
+    @Test
+    @DisplayName("F8: analysis expressions stay unitless for now")
+    fun analysisIsUnitless() {
+        // Explicit \mathrm{} markup still resolves to a real unit even in analysis mode.
+        val result = facade.derive("x \\cdot \\mathrm{kg}", "x")
+        assertNotNull(result.error)
+        assertTrue(result.error!!.contains("unitless"), result.error!!)
+    }
 }

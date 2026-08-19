@@ -48,10 +48,12 @@ sich bewusst nicht mit K addieren, sondern nur explizit umrechnen.
       [spec-si-rechner-v3.md](spec-si-rechner-v3.md) Abschnitt 5) + Session-Handling
 - **Meilenstein:** Physikaufgabe mit Variablen liefert dreistufigen LaTeX-Rechenweg über die interne Fassade
 
-### Phase 4 — Analysis & komplexe Zahlen *(~1 Woche nebenbei)*
-- [ ] Ableitungen und unbestimmte Integrale über Symja anbinden (`\frac{d}{dx}`, `\int`)
-- [ ] Komplexe Zahlen: Parsing (i), Ausgabeformen (kartesisch/polar)
-- [ ] Klären: Einheiten in Analysis-Ausdrücken (v(t) ableiten → Einheit /s mitführen?) — ggf. zunächst einheitenlos
+### Phase 4 — Analysis & komplexe Zahlen *(~1 Woche nebenbei)* — **erledigt (2026-08-19)**
+- [x] Ableitungen und unbestimmte Integrale über Symja anbinden (`\frac{d}{dx}`, `\int`)
+- [x] Komplexe Zahlen: Parsing (i), Ausgabeformen (kartesisch/polar)
+- [x] Klären: Einheiten in Analysis-Ausdrücken (v(t) ableiten → Einheit /s mitführen?) — ggf. zunächst einheitenlos
+  → entschieden: Analysis-Ausdrücke bleiben vorerst einheitenlos, `EvalFacade.derive`/`integrate`
+  weisen eine Einheit im Ausdruck explizit zurück, statt sie stillschweigend zu ignorieren
 - **Meilenstein:** `\frac{d}{dx} x^2 \sin(x)` und `(3+4i)·(1−2i)` funktionieren
 
 ### Phase 5 — JavaFX-Frontend *(~2–3 Wochen nebenbei)*
