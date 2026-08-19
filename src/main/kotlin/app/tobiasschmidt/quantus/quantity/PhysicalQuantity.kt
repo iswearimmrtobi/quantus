@@ -40,6 +40,9 @@ class PhysicalQuantity private constructor(
 
     val isDimensionless: Boolean get() = unit.isCompatible(AbstractUnit.ONE)
 
+    /** F4 — is the value a genuine complex number rather than a real one? */
+    val isComplex: Boolean get() = value.isNumber && !value.isReal
+
     /** F11 — informational quantity name (`m/s` → "velocity"), if known. */
     val quantityName: String? get() = UnitRegistry.quantityName(dimension)
 
@@ -114,6 +117,12 @@ class PhysicalQuantity private constructor(
 
     /** Numeric value with the digit count of [engine] (F3). */
     fun decimal(engine: CasEngine): BigDecimal = engine.decimal(value)
+
+    /** F4 — cartesian form (re, im), each with the digit count of [engine]. */
+    fun complexCartesian(engine: CasEngine): Pair<BigDecimal, BigDecimal> = engine.complexParts(value)
+
+    /** F4 — polar form (r, φ in radians), each with the digit count of [engine]. */
+    fun complexPolar(engine: CasEngine): Pair<BigDecimal, BigDecimal> = engine.polarParts(value)
 
     /** The same quantity with its value evaluated numerically. */
     fun numeric(engine: CasEngine): PhysicalQuantity = PhysicalQuantity(engine.numeric(value), unit)

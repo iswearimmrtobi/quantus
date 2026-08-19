@@ -62,4 +62,23 @@ class CasEngineTest {
         val error = assertFailsWith<NotRealException> { CasEngine().decimal(F.Plus(F.C1, F.CI)) }
         assertTrue(error.message!!.contains("not a real number"), error.message!!)
     }
+
+    @Test
+    @DisplayName("F4: a complex value splits into real and imaginary decimal parts")
+    fun complexParts() {
+        val engine = CasEngine(10)
+        val (re, im) = engine.complexParts(F.Plus(F.ZZ(11), F.Times(F.ZZ(-2), F.CI)))
+        assertEquals(0, BigDecimal("11").compareTo(re))
+        assertEquals(0, BigDecimal("-2").compareTo(im))
+    }
+
+    @Test
+    @DisplayName("F4: a complex value splits into modulus and argument (polar form)")
+    fun polarParts() {
+        val engine = CasEngine(10)
+        // 3 + 4i has modulus 5, exactly.
+        val (r, phi) = engine.polarParts(F.Plus(F.ZZ(3), F.Times(F.ZZ(4), F.CI)))
+        assertEquals(0, BigDecimal("5").compareTo(r))
+        assertTrue(phi.signum() > 0, "3+4i lies in the first quadrant, expected a positive argument")
+    }
 }
