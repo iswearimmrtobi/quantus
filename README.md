@@ -3,17 +3,20 @@
 SI-Einheiten-Rechner mit symbolischer Mathematik und LaTeX-Ein-/Ausgabe.
 Spezifikation: [spec-si-rechner-v3.md](spec-si-rechner-v3.md).
 
-**Aktueller Stand:** Phase 3 (Variablen & Schritte) abgeschlossen. `EvalFacade` verwaltet
-Sessions mit Variablendefinitionen und liefert Rechnungen dreistufig als LaTeX:
+**Aktueller Stand:** Phase 4 (Analysis & komplexe Zahlen) abgeschlossen. `EvalFacade` kann
+neben Einheitenrechnung auch Ableitungen, unbestimmte Integrale und komplexe Zahlen:
 
 ```
-m_1 = 2\,\mathrm{kg}          a_1 = 9{,}81\,\frac{m}{s^2}          F = m_1 \cdot a_1
-→   symbolisch:  F = m_{1} \cdot a_{1}
-→   eingesetzt:  F = 2\,\mathrm{kg} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}
-→   Ergebnis:    F = 19{,}62\,\mathrm{N}
+EvalFacade.derive("x^2\sin(x)", "x")     →  x²cos(x) + 2x·sin(x)
+EvalFacade.integrate("x\sin(x)", "x")    →  -x·cos(x) + sin(x) + C
+EvalFacade.evaluate("(3+4i)(1-2i)", …)   →  11 - 2i   (wahlweise polar: r·e^{iφ})
 ```
 
-Davor Phase 2 (LaTeX rein und raus, `LatexCalculator`), Phase 1 (Kern `PhysicalQuantity`:
+Analysis-Ausdrücke sind vorerst einheitenlos (Spec Abschnitt 6); ein bare Bezeichner wie `x`
+braucht dort — anders als bei physikalischen Größen (F2) — keinen Index.
+
+Davor Phase 3 (Variablen & Schritte, `EvalFacade` mit Sessions und dreistufigem LaTeX-Rechenweg),
+Phase 2 (LaTeX rein und raus, `LatexCalculator`), Phase 1 (Kern `PhysicalQuantity`:
 Einheitenrechnung mit Dimensionsprüfung, Vereinfachung auf benannte Einheiten, 50 Stellen)
 und Phase 0 (Fundament) mit den drei Spikes: [docs/phase0-findings.md](docs/phase0-findings.md).
 
