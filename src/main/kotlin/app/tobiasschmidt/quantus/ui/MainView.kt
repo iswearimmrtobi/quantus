@@ -59,6 +59,12 @@ class MainView {
     private val varsTab = Button("Variablen").apply { styleClass.add("panel-tab") }
     private val historyList = ListView<HistoryEntry>()
     private val varsList = ListView<VariableDefinition>()
+    private val addVariableBtn = Button("+ Variable definieren").apply {
+        styleClass.add("panel-add")
+        maxWidth = Double.MAX_VALUE
+        tooltip = javafx.scene.control.Tooltip("Variable definieren (Strg+D)")
+    }
+    private val varsView = VBox(varsList, addVariableBtn)
 
     private val statusText = Label("bereit").apply { styleClass.add("statusbar-text") }
     private val statusDot = Circle(3.0).apply { styleClass.add("status-dot") }
@@ -110,6 +116,7 @@ class MainView {
             "new" -> newCalculation()
             "escape" -> closePanel()
             "copyAll" -> copyAllSteps()
+            "define" -> openDefineVariableDialog()
         }
     }
 
@@ -118,6 +125,45 @@ class MainView {
         showEmptyResult()
         closePanel()
         exprInput.focus()
+    }
+
+    /**
+     * F5's "+ Variable definieren" (bullet 5): a small dialog for name, subscript and value,
+     * built into the same `name_{index} = value` formula the editor accepts, then run through
+     * the normal [evaluate] path — [EvalFacade] already defines the variable as a side effect
+     * of evaluating a labeled formula, so success here shows up as an ordinary calculation.
+     */
+    private fun openDefineVariableDialog() {
+        val nameField = javafx.scene.control.TextField().apply { promptText = "r" }
+        val indexField = javafx.scene.control.TextField().apply { promptText = "1" }
+        val valueField = javafx.scene.control.TextField().apply { promptText = "0{,}5\\,\\mathrm{m}" }
+
+        val grid = javafx.scene.layout.GridPane().apply {
+            hgap = 8.0
+            vgap = 10.0
+            padding = Insets(14.0)
+            addRow(0, Label("Name").apply { styleClass.add("statusbar-text") }, nameField)
+            addRow(1, Label("Index").apply { styleClass.add("statusbar-text") }, indexField)
+            addRow(2, Label("Wert (LaTeX)").apply { styleClass.add("statusbar-text") }, valueField)
+        }
+
+        val dialog = javafx.scene.control.Dialog<javafx.scene.control.ButtonType>().apply {
+            title = "Variable definieren"
+            dialogPane.content = grid
+            dialogPane.buttonTypes.addAll(javafx.scene.control.ButtonType.OK, javafx.scene.control.ButtonType.CANCEL)
+            dialogPane.stylesheets.add(requireNotNull(MainView::class.java.getResource("/css/quantus.css")).toExternalForm())
+        }
+
+        val choice = dialog.showAndWait()
+        if (choice.isEmpty || choice.get() != javafx.scene.control.ButtonType.OK) return
+
+        val name = nameField.text.trim()
+        val index = indexField.text.trim()
+        val value = valueField.text.trim()
+        if (name.isEmpty() || index.isEmpty() || value.isEmpty()) return
+
+        evaluate("${name}_{$index} = $value")
+        openPanel(PanelTab.VARIABLES)
     }
 
     // ---------- topbar ----------
@@ -213,6 +259,9 @@ class MainView {
 
         VBox.setVgrow(historyList, Priority.ALWAYS)
         VBox.setVgrow(varsList, Priority.ALWAYS)
+        VBox.setMargin(addVariableBtn, Insets(8.0, 10.0, 8.0, 10.0))
+
+        addVariableBtn.setOnAction { openDefineVariableDialog() }
 
         sidePanel.children.addAll(tabs, historyList)
     }
@@ -259,7 +308,7 @@ class MainView {
         varsTab.styleClass.setAll(if (tab == PanelTab.VARIABLES) listOf("panel-tab", "active") else listOf("panel-tab"))
         railHistoryBtn.styleClass.setAll(if (tab == PanelTab.HISTORY) listOf("rail-btn", "active") else listOf("rail-btn"))
         railVarsBtn.styleClass.setAll(if (tab == PanelTab.VARIABLES) listOf("rail-btn", "active") else listOf("rail-btn"))
-        sidePanel.children.setAll(sidePanel.children[0], if (tab == PanelTab.HISTORY) historyList else varsList)
+        sidePanel.children.setAll(sidePanel.children[0], if (tab == PanelTab.HISTORY) historyList else varsView)
         if (tab == PanelTab.VARIABLES) refreshVariables()
     }
 

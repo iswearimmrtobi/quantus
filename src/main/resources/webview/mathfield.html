@@ -66,6 +66,7 @@
       event.ctrlKey && event.key === ',' ? 'vars' :
       event.ctrlKey && event.key.toLowerCase() === 'n' ? 'new' :
       event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'c' ? 'copyAll' :
+      event.ctrlKey && event.key.toLowerCase() === 'd' ? 'define' :
       event.key === 'Escape' ? 'escape' :
       null;
     if (shortcut) {
