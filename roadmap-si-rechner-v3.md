@@ -56,12 +56,12 @@ sich bewusst nicht mit K addieren, sondern nur explizit umrechnen.
   weisen eine Einheit im Ausdruck explizit zurück, statt sie stillschweigend zu ignorieren
 - **Meilenstein:** `\frac{d}{dx} x^2 \sin(x)` und `(3+4i)·(1−2i)` funktionieren
 
-### Phase 5 — JavaFX-Frontend *(~2–3 Wochen nebenbei)*
-- [ ] JavaFX-Grundgerüst (Kotlin), Fensteraufbau/Layout nach `quantus-ui-v2.html`-Mockup (Dark Theme, IBM Plex Sans/JetBrains Mono)
-- [ ] MathLive-Editor eingebettet in eine JavaFX-`WebView`; schlanke JS↔Kotlin-Bridge (LaTeX-Wert + Cursor-Events, siehe Risiko in der Spec)
-- [ ] Numpad-/Tastatur-Workflow: Enter = auswerten, Kürzel über JavaFX-Accelerators (kein separater Electron-Global-Shortcut-Mechanismus mehr nötig)
-- [ ] Schritt-Ansicht (nativ, JavaFX/CSS) mit Copy-Buttons (einzeln + gesamt als `align*`), Zwischenablage über die JavaFX-Clipboard-API
-- [ ] Variablen-Panel (nativ)
+### Phase 5 — JavaFX-Frontend *(~2–3 Wochen nebenbei)* — **erledigt (2026-08-19)**
+- [x] JavaFX-Grundgerüst (Kotlin), Fensteraufbau/Layout nach `quantus-ui-v2.html`-Mockup (Dark Theme, IBM Plex Sans/JetBrains Mono)
+- [x] MathLive-Editor eingebettet in eine JavaFX-`WebView`; schlanke JS↔Kotlin-Bridge — auf LaTeX-Wert + benannte Tastenkürzel beschränkt statt zusätzlich Cursor-Events zu übertragen, da kein Bildschirm-Numpad existiert, das eine Cursor-Position bräuchte (F10 heißt hier: physische Tastatur/Ziffernblock tippt direkt ins MathLive-Feld)
+- [x] Numpad-/Tastatur-Workflow: Enter = auswerten, Kürzel über JavaFX-Accelerators (kein separater Electron-Global-Shortcut-Mechanismus mehr nötig)
+- [x] Schritt-Ansicht (nativ, JavaFX/CSS) mit Copy-Buttons (einzeln + gesamt als `align*`), Zwischenablage über die JavaFX-Clipboard-API
+- [x] Variablen-Panel (nativ)
 - **Meilenstein:** Kompletter Workflow im Programm bedienbar ohne Maus, in einem einzigen JVM-Prozess
 
 ### Phase 6 — History & Packaging *(~1–2 Wochen nebenbei)*
