@@ -45,6 +45,11 @@ class MainView {
         tooltip = javafx.scene.control.Tooltip("Rechenweg ein-/ausblenden (Strg+J)")
     }
     private val stepsBox = VBox().apply { styleClass.add("steps-panel") }
+    private val copyAllBtn = Button("Alles kopieren").apply {
+        styleClass.add("copy-all-btn")
+        tooltip = javafx.scene.control.Tooltip("Als align*-Block kopieren (Strg+Umschalt+C)")
+    }
+    private var lastSteps: List<Step> = emptyList()
 
     private val railHistoryBtn = Button("⏱").apply { styleClass.add("rail-btn") }
     private val railVarsBtn = Button("x₁").apply { styleClass.add("rail-btn") }
@@ -70,6 +75,7 @@ class MainView {
         exprInput.setOnEnter(::evaluate)
         exprInput.setOnShortcut(::handleShortcut)
         stepsToggle.setOnAction { toggleSteps() }
+        copyAllBtn.setOnAction { copyAllSteps() }
         railHistoryBtn.setOnAction { togglePanel(PanelTab.HISTORY) }
         railVarsBtn.setOnAction { togglePanel(PanelTab.VARIABLES) }
         historyTab.setOnAction { openPanel(PanelTab.HISTORY) }
@@ -103,6 +109,7 @@ class MainView {
             "vars" -> togglePanel(PanelTab.VARIABLES)
             "new" -> newCalculation()
             "escape" -> closePanel()
+            "copyAll" -> copyAllSteps()
         }
     }
 
@@ -313,6 +320,7 @@ class MainView {
         statusDot.styleClass.setAll("status-dot")
         setStepsVisible(false)
         stepsBox.children.clear()
+        lastSteps = emptyList()
     }
 
     private fun showResult(result: EvaluationResult) {
@@ -340,10 +348,16 @@ class MainView {
         statusDot.styleClass.setAll("status-dot", "error")
         setStepsVisible(false)
         stepsBox.children.clear()
+        lastSteps = emptyList()
     }
 
     private fun renderSteps(steps: List<Step>) {
-        stepsBox.children.setAll(steps.map(::stepRow))
+        lastSteps = steps
+        val header = HBox(Region().apply { HBox.setHgrow(this, Priority.ALWAYS) }, copyAllBtn).apply {
+            styleClass.add("step-row")
+            alignment = Pos.CENTER_RIGHT
+        }
+        stepsBox.children.setAll(listOf(header) + steps.map(::stepRow))
         setStepsVisible(stepsBox.isVisible)
     }
 
@@ -359,7 +373,17 @@ class MainView {
         }
         val latex = Label(step.latex).apply { styleClass.add("step-latex") }
         val spacer = Region().apply { HBox.setHgrow(this, Priority.ALWAYS) }
-        return HBox(label, latex, spacer).apply { styleClass.add("step-row") }
+        val copyBtn = Button("copy").apply {
+            styleClass.add("copy-btn")
+            setOnAction { ClipboardSupport.copyText(step.latex) }
+        }
+        return HBox(label, latex, spacer, copyBtn).apply { styleClass.add("step-row") }
+    }
+
+    private fun copyAllSteps() {
+        if (lastSteps.isEmpty()) return
+        val block = "\\begin{align*}\n" + lastSteps.joinToString(" \\\\\n") { it.latex } + "\n\\end{align*}"
+        ClipboardSupport.copyText(block)
     }
 
     private fun toggleSteps() = setStepsVisible(!stepsBox.isVisible)

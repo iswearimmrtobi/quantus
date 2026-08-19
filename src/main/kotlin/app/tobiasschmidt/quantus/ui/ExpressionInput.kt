@@ -15,8 +15,8 @@ interface ExpressionInput {
     fun setOnEnter(handler: (String) -> Unit)
 
     /**
-     * Called with a shortcut name ("steps", "history", "vars", "new", "escape") when the user
-     * types one of the app-wide shortcuts while this widget has focus. Needed because a
+     * Called with a shortcut name ("steps", "history", "vars", "new", "copyAll", "escape") when
+     * the user types one of the app-wide shortcuts while this widget has focus. Needed because a
      * focused WebView swallows key events before they reach the [javafx.scene.Scene]'s
      * accelerators (bullet 3) — [MainView] runs the same dispatch either way.
      */
