@@ -3,6 +3,7 @@ package app.tobiasschmidt.quantus.eval
 import app.tobiasschmidt.quantus.cas.CasEngine
 import app.tobiasschmidt.quantus.latex.BinaryNode
 import app.tobiasschmidt.quantus.latex.FractionNode
+import app.tobiasschmidt.quantus.latex.FunctionCallNode
 import app.tobiasschmidt.quantus.latex.GroupNode
 import app.tobiasschmidt.quantus.latex.NegationNode
 import app.tobiasschmidt.quantus.latex.Node
@@ -32,6 +33,7 @@ object VariableSubstitution {
         is RootNode -> containsVariable(node.radicand) || (node.degree?.let(::containsVariable) ?: false)
         is NegationNode -> containsVariable(node.operand)
         is GroupNode -> containsVariable(node.inner)
+        is FunctionCallNode -> containsVariable(node.argument)
         else -> false
     }
 
@@ -67,6 +69,7 @@ object VariableSubstitution {
 
         is NegationNode -> NegationNode(replace(node.operand, session, engine), node.position)
         is GroupNode -> GroupNode(replace(node.inner, session, engine), node.position)
+        is FunctionCallNode -> FunctionCallNode(node.name, replace(node.argument, session, engine), node.position)
         else -> node
     }
 }

@@ -21,6 +21,7 @@ object FractionNormalizer {
         is RootNode -> RootNode(normalize(node.radicand), node.degree?.let { normalize(it) }, node.position)
         is NegationNode -> NegationNode(normalize(node.operand), node.position)
         is GroupNode -> GroupNode(normalize(node.inner), node.position)
+        is FunctionCallNode -> FunctionCallNode(node.name, normalize(node.argument), node.position)
         else -> node
     }
 

@@ -136,4 +136,26 @@ class LatexParserTest {
         // And a run that resolves to nothing is an error rather than a guess.
         assertTrue(parseError("2kg m").reason.contains("explicit \\cdot"))
     }
+
+    @Test
+    @DisplayName("F8: analysis mode turns bare identifiers into free math symbols, no subscript needed")
+    fun analysisModeMathSymbols() {
+        val formula = LatexParser("x^2 \\sin(x)", analysisMode = true).parse()
+        assertEquals("x^{2} \\cdot \\sin\\left(x\\right)", LatexSerializer.formula(formula))
+
+        // Same identifier, ordinary mode: rejected, because it carries no subscript.
+        assertTrue(parseError("x^2").reason.contains("Variables must carry a subscript"))
+    }
+
+    @Test
+    @DisplayName("F8: \\sin, \\cos, \\tan, \\exp, \\ln, \\log — with parens, braces, or bare")
+    fun functionCalls() {
+        fun analysisExpression(input: String) = LatexSerializer.expression(LatexParser(input, analysisMode = true).parse().expression)
+
+        assertEquals("\\sin\\left(x\\right)", analysisExpression("\\sin(x)"))
+        assertEquals("\\sin\\left(x\\right)", analysisExpression("\\sin{x}"))
+        assertEquals("\\cos\\left(x\\right) \\cdot \\ln\\left(x\\right)", analysisExpression("\\cos(x) \\cdot \\ln(x)"))
+        // no parens/braces: grabs a single unary term, not the rest of the product chain
+        assertEquals("\\sin\\left(x\\right) \\cdot 2", analysisExpression("\\sin x \\cdot 2"))
+    }
 }

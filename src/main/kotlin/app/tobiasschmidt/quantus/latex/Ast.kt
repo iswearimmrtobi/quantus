@@ -33,6 +33,21 @@ data class QuantityLiteralNode(val value: BigDecimal, val unit: Unit<*>, overrid
  */
 data class VariableNode(val name: String, val index: String, override val position: Int) : Node
 
+/**
+ * A free symbolic variable, only produced when parsing in analysis mode (F8: derivatives,
+ * integrals). Unlike [VariableNode] it needs no subscript and is never resolved against a
+ * session — it maps straight to a Symja symbol. Analysis expressions stay unitless for now
+ * (spec section 6, risk table), so there is no unit lookup here either.
+ */
+data class MathSymbolNode(val name: String, override val position: Int) : Node
+
+/**
+ * A named function applied to one argument — `\sin(x)`, `\ln(x)`, … Only meaningful inside
+ * analysis expressions in practice, since [argument] otherwise has to resolve the same way any
+ * other sub-expression does (unit or subscripted variable, per F2).
+ */
+data class FunctionCallNode(val name: String, val argument: Node, override val position: Int) : Node
+
 data class BinaryNode(
     val operator: Operator,
     val left: Node,
