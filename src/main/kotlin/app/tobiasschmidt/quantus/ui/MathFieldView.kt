@@ -27,6 +27,7 @@ class MathFieldView : ExpressionInput {
     private val engine = webView.engine
 
     private var enterHandler: (String) -> Unit = {}
+    private var shortcutHandler: (String) -> Unit = {}
     private var loaded = false
     private var pendingLatex: String? = null
     private var pendingFocus = false
@@ -52,6 +53,10 @@ class MathFieldView : ExpressionInput {
 
     override fun setOnEnter(handler: (String) -> Unit) {
         enterHandler = handler
+    }
+
+    override fun setOnShortcut(handler: (String) -> Unit) {
+        shortcutHandler = handler
     }
 
     override fun setLatex(latex: String) {
@@ -87,6 +92,10 @@ class MathFieldView : ExpressionInput {
     inner class Bridge {
         fun onEnter(latex: String) {
             Platform.runLater { enterHandler(latex) }
+        }
+
+        fun onShortcut(name: String) {
+            Platform.runLater { shortcutHandler(name) }
         }
     }
 }
