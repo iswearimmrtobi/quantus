@@ -49,6 +49,7 @@ object LatexSerializer {
         is UnitNode -> UnitLatex.symbol(node.symbol)
         is ConstantNode -> node.name
         is VariableNode -> "${node.name}_{${node.index}}"
+        is QuantityLiteralNode -> quantity(node.value, node.unit)
         is NegationNode -> "-${render(node.operand, PRECEDENCE_MULTIPLICATIVE)}"
         is FractionNode -> "\\frac{${expression(node.numerator)}}{${expression(node.denominator)}}"
         is RootNode -> root(node)
@@ -63,8 +64,9 @@ object LatexSerializer {
     }
 
     private fun power(node: PowerNode): String {
-        // A fraction as the base needs brackets of its own — \frac{a}{b}^{2} reads wrong.
-        val base = if (node.base is FractionNode || node.base is RootNode) {
+        // A fraction (or a substituted "value unit") as the base needs brackets of its own —
+        // \frac{a}{b}^{2} and 0{,}5\,\mathrm{m}^{2} both read wrong.
+        val base = if (node.base is FractionNode || node.base is RootNode || node.base is QuantityLiteralNode) {
             "(${text(node.base)})"
         } else {
             render(node.base, PRECEDENCE_ATOM)

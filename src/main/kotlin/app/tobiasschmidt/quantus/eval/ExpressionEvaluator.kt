@@ -11,6 +11,7 @@ import app.tobiasschmidt.quantus.latex.Node
 import app.tobiasschmidt.quantus.latex.NumberNode
 import app.tobiasschmidt.quantus.latex.Operator
 import app.tobiasschmidt.quantus.latex.PowerNode
+import app.tobiasschmidt.quantus.latex.QuantityLiteralNode
 import app.tobiasschmidt.quantus.latex.RootNode
 import app.tobiasschmidt.quantus.latex.UnitNode
 import app.tobiasschmidt.quantus.latex.VariableNode
@@ -38,6 +39,8 @@ class ExpressionEvaluator(private val resolveVariable: (VariableKey) -> Physical
         is VariableNode -> resolveVariable(VariableKey(node.name, node.index)) ?: throw UnresolvedVariableException(
             "The variable ${node.name}_${node.index} has no value yet. Define it first, e.g. ${node.name}_${node.index} = 5\\,\\mathrm{m}.",
         )
+
+        is QuantityLiteralNode -> PhysicalQuantity.of(node.value, node.unit)
 
         is GroupNode -> evaluate(node.inner)
         is NegationNode -> -evaluate(node.operand)
