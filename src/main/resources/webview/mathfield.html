@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Quantus Editor</title>
+<link rel="stylesheet" href="mathlive/mathlive-fonts.css">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    /* matches --surface-raised in quantus.css — the WebView paints its own page background
+       rather than relying on cross-layer alpha compositing with the JavaFX pane behind it. */
+    background: #262532;
+    overflow: hidden;
+  }
+  math-field {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    background: transparent;
+    color: #EDEBF3;
+    font-size: 20px;
+    padding: 10px 8px;
+    --caret-color: #9186E8;
+    --primary-color: #9186E8;
+    --selection-background-color: #423A63;
+  }
+  math-field:focus, math-field:focus-within { outline: none; }
+</style>
+</head>
+<body>
+<math-field id="mf" virtual-keyboard-mode="off"></math-field>
+
+<script src="mathlive/mathlive.min.js"></script>
+<script>
+  MathfieldElement.fontsDirectory = "mathlive/fonts";
+  MathfieldElement.soundsDirectory = null;
+
+  const mf = document.getElementById('mf');
+  mf.smartFence = true;
+  mf.smartSuperscript = true;
+
+  // Kotlin -> JS: MathFieldView calls these through WebEngine.executeScript.
+  window.qSetValue = function (latex) {
+    mf.setValue(latex, { silenceNotifications: true });
+  };
+  window.qFocus = function () {
+    mf.focus();
+  };
+
+  // JS -> Kotlin: a thin bridge, LaTeX value only (spec section 6 risk: keep it small).
+  // window.javaBridge is installed by MathFieldView once the page load succeeds.
+  mf.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (window.javaBridge) window.javaBridge.onEnter(mf.getValue('latex'));
+    }
+  });
+
+  mf.focus();
+</script>
+</body>
+</html>

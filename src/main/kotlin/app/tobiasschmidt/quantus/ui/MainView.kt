@@ -36,7 +36,7 @@ class MainView {
     private val sessionId = SessionId.random()
     private val history = mutableListOf<HistoryEntry>()
 
-    private val exprInput: ExpressionInput = TextFieldExpressionInput()
+    private val exprInput: ExpressionInput = MathFieldView()
 
     private val resultValueLabel = Label("–").apply { styleClass.add("result-value") }
     private val resultUnitLabel = Label().apply { styleClass.add("result-unit") }
