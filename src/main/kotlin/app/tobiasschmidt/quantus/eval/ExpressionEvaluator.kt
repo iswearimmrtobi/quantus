@@ -22,8 +22,11 @@ import app.tobiasschmidt.quantus.quantity.PhysicalQuantity
  *
  * Values stay exact throughout: a number literal enters as a rational, π stays π. Only the
  * caller turns the result into decimal digits.
+ *
+ * [resolveVariable] looks a variable up in the session (phase 3, F5); the default resolver
+ * finds nothing, so a bare `ExpressionEvaluator()` still rejects every variable as before.
  */
-class ExpressionEvaluator {
+class ExpressionEvaluator(private val resolveVariable: (VariableKey) -> PhysicalQuantity? = { null }) {
 
     fun evaluate(node: Node): PhysicalQuantity = when (node) {
         is NumberNode -> PhysicalQuantity.dimensionless(node.value)
@@ -32,7 +35,7 @@ class ExpressionEvaluator {
             Constants.find(node.name) ?: throw QuantusException("Unknown constant '${node.name}'."),
         )
 
-        is VariableNode -> throw UnresolvedVariableException(
+        is VariableNode -> resolveVariable(VariableKey(node.name, node.index)) ?: throw UnresolvedVariableException(
             "The variable ${node.name}_${node.index} has no value yet. Define it first, e.g. ${node.name}_${node.index} = 5\\,\\mathrm{m}.",
         )
 
@@ -69,5 +72,5 @@ class ExpressionEvaluator {
     }
 }
 
-/** A variable was used before it was defined. Phase 3 resolves these from the session. */
+/** A variable was used before it was defined in the session (F5). */
 class UnresolvedVariableException(message: String) : QuantusException(message)
