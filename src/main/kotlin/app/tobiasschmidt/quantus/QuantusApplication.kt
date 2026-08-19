@@ -38,6 +38,8 @@ class QuantusApplication : Application() {
         accelerators[KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN)] = Runnable { view.handleShortcut("history") }
         accelerators[KeyCodeCombination(KeyCode.COMMA, KeyCombination.CONTROL_DOWN)] = Runnable { view.handleShortcut("vars") }
         accelerators[KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN)] = Runnable { view.handleShortcut("new") }
+        accelerators[KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN)] =
+            Runnable { view.handleShortcut("copyAll") }
         accelerators[KeyCodeCombination(KeyCode.ESCAPE)] = Runnable { view.handleShortcut("escape") }
     }
 }
