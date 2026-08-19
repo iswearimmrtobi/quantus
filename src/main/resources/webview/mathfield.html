@@ -49,12 +49,27 @@
     mf.focus();
   };
 
-  // JS -> Kotlin: a thin bridge, LaTeX value only (spec section 6 risk: keep it small).
-  // window.javaBridge is installed by MathFieldView once the page load succeeds.
+  // JS -> Kotlin: a thin bridge, LaTeX value plus named shortcuts only (spec section 6 risk:
+  // keep it small). window.javaBridge is installed by MathFieldView once the page has loaded.
   mf.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (window.javaBridge) window.javaBridge.onEnter(mf.getValue('latex'));
+      return;
+    }
+
+    // A focused WebView captures these before they reach the Scene's accelerators (bullet 3),
+    // so the same app-wide shortcuts are recognized here and forwarded by name.
+    const shortcut =
+      event.ctrlKey && event.key.toLowerCase() === 'j' ? 'steps' :
+      event.ctrlKey && event.key.toLowerCase() === 'h' ? 'history' :
+      event.ctrlKey && event.key === ',' ? 'vars' :
+      event.ctrlKey && event.key.toLowerCase() === 'n' ? 'new' :
+      event.key === 'Escape' ? 'escape' :
+      null;
+    if (shortcut) {
+      event.preventDefault();
+      if (window.javaBridge) window.javaBridge.onShortcut(shortcut);
     }
   });
 

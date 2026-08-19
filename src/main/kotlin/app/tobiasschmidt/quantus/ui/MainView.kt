@@ -40,7 +40,10 @@ class MainView {
 
     private val resultValueLabel = Label("–").apply { styleClass.add("result-value") }
     private val resultUnitLabel = Label().apply { styleClass.add("result-unit") }
-    private val stepsToggle = Button("Rechenweg ⌄").apply { styleClass.add("steps-toggle") }
+    private val stepsToggle = Button("Rechenweg ⌄").apply {
+        styleClass.add("steps-toggle")
+        tooltip = javafx.scene.control.Tooltip("Rechenweg ein-/ausblenden (Strg+J)")
+    }
     private val stepsBox = VBox().apply { styleClass.add("steps-panel") }
 
     private val railHistoryBtn = Button("⏱").apply { styleClass.add("rail-btn") }
@@ -65,6 +68,7 @@ class MainView {
         root.bottom = buildStatusbar()
 
         exprInput.setOnEnter(::evaluate)
+        exprInput.setOnShortcut(::handleShortcut)
         stepsToggle.setOnAction { toggleSteps() }
         railHistoryBtn.setOnAction { togglePanel(PanelTab.HISTORY) }
         railVarsBtn.setOnAction { togglePanel(PanelTab.VARIABLES) }
@@ -85,6 +89,29 @@ class MainView {
     }
 
     fun focusInput() = exprInput.focus()
+
+    /**
+     * Dispatches an app-wide shortcut by name — bullet 3. Called both from [QuantusApplication]'s
+     * [javafx.scene.Scene] accelerators (focus outside the editor) and, via
+     * [ExpressionInput.setOnShortcut], from inside the WebView, which would otherwise swallow
+     * the key event before it reaches the scene.
+     */
+    fun handleShortcut(name: String) {
+        when (name) {
+            "steps" -> toggleSteps()
+            "history" -> togglePanel(PanelTab.HISTORY)
+            "vars" -> togglePanel(PanelTab.VARIABLES)
+            "new" -> newCalculation()
+            "escape" -> closePanel()
+        }
+    }
+
+    private fun newCalculation() {
+        exprInput.clear()
+        showEmptyResult()
+        closePanel()
+        exprInput.focus()
+    }
 
     // ---------- topbar ----------
 
@@ -153,8 +180,8 @@ class MainView {
     }
 
     private fun buildSideRail(): VBox {
-        railHistoryBtn.tooltip = javafx.scene.control.Tooltip("Verlauf")
-        railVarsBtn.tooltip = javafx.scene.control.Tooltip("Variablen")
+        railHistoryBtn.tooltip = javafx.scene.control.Tooltip("Verlauf (Strg+H)")
+        railVarsBtn.tooltip = javafx.scene.control.Tooltip("Variablen (Strg+,)")
         return VBox(railHistoryBtn, railVarsBtn).apply { styleClass.add("side-rail") }
     }
 
