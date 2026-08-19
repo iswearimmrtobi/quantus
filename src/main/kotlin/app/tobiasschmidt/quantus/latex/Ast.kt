@@ -21,6 +21,13 @@ data class UnitNode(val unit: Unit<*>, val symbol: String, override val position
 data class ConstantNode(val name: String, override val position: Int) : Node
 
 /**
+ * A variable already substituted with its session value (F6 step 2: "eingesetzt"). [value] is
+ * rounded to display precision — evaluation never uses this node, it resolves the original
+ * [VariableNode] against the session directly so the result stays exact.
+ */
+data class QuantityLiteralNode(val value: BigDecimal, val unit: Unit<*>, override val position: Int) : Node
+
+/**
  * A variable. Per F2 a variable always carries a subscript — an identifier without one is a
  * unit or a constant, never a variable.
  */
