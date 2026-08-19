@@ -58,6 +58,8 @@ object LatexSerializer {
         is UnitNode -> UnitLatex.symbol(node.symbol)
         is ConstantNode -> node.name
         is VariableNode -> "${node.name}_{${node.index}}"
+        is MathSymbolNode -> node.name
+        is FunctionCallNode -> "\\${node.name}\\left(${expression(node.argument)}\\right)"
         is QuantityLiteralNode -> quantity(node.value, node.unit)
         is NegationNode -> "-${render(node.operand, PRECEDENCE_MULTIPLICATIVE)}"
         is FractionNode -> "\\frac{${expression(node.numerator)}}{${expression(node.denominator)}}"

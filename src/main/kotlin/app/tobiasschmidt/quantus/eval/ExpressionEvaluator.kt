@@ -5,7 +5,9 @@ import app.tobiasschmidt.quantus.cas.Constants
 import app.tobiasschmidt.quantus.latex.BinaryNode
 import app.tobiasschmidt.quantus.latex.ConstantNode
 import app.tobiasschmidt.quantus.latex.FractionNode
+import app.tobiasschmidt.quantus.latex.FunctionCallNode
 import app.tobiasschmidt.quantus.latex.GroupNode
+import app.tobiasschmidt.quantus.latex.MathSymbolNode
 import app.tobiasschmidt.quantus.latex.NegationNode
 import app.tobiasschmidt.quantus.latex.Node
 import app.tobiasschmidt.quantus.latex.NumberNode
@@ -16,6 +18,8 @@ import app.tobiasschmidt.quantus.latex.RootNode
 import app.tobiasschmidt.quantus.latex.UnitNode
 import app.tobiasschmidt.quantus.latex.VariableNode
 import app.tobiasschmidt.quantus.quantity.PhysicalQuantity
+import app.tobiasschmidt.quantus.units.UnitRegistry
+import org.matheclipse.core.expression.F
 
 /**
  * Evaluates a parsed AST into a [PhysicalQuantity] — the step where the LaTeX side hands
@@ -42,12 +46,38 @@ class ExpressionEvaluator(private val resolveVariable: (VariableKey) -> Physical
 
         is QuantityLiteralNode -> PhysicalQuantity.of(node.value, node.unit)
 
+        // F8: a free symbol from an analysis expression, straight through to Symja.
+        is MathSymbolNode -> PhysicalQuantity.dimensionless(F.symbol(node.name))
+        is FunctionCallNode -> function(node)
+
         is GroupNode -> evaluate(node.inner)
         is NegationNode -> -evaluate(node.operand)
         is FractionNode -> evaluate(node.numerator) / evaluate(node.denominator)
         is PowerNode -> evaluate(node.base).pow(evaluate(node.exponent))
         is RootNode -> evaluate(node.radicand).root(degreeOf(node))
         is BinaryNode -> binary(node)
+    }
+
+    /** F8 — the fixed set of analysis functions the parser recognises (`\sin`, `\ln`, …). */
+    private fun function(node: FunctionCallNode): PhysicalQuantity {
+        val argument = evaluate(node.argument)
+        if (!argument.isDimensionless) {
+            throw QuantusException(
+                "The argument of \\${node.name} must be dimensionless, but carries the unit " +
+                    UnitRegistry.describe(argument.unit) + ".",
+            )
+        }
+        val value = argument.value
+        val applied = when (node.name) {
+            "sin" -> F.Sin(value)
+            "cos" -> F.Cos(value)
+            "tan" -> F.Tan(value)
+            "exp" -> F.Exp(value)
+            "ln" -> F.Log(value)
+            "log" -> F.Log10(value)
+            else -> throw QuantusException("Unknown function '\\${node.name}'.")
+        }
+        return PhysicalQuantity.dimensionless(applied)
     }
 
     private fun binary(node: BinaryNode): PhysicalQuantity {

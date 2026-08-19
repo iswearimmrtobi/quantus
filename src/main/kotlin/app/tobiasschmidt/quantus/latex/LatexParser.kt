@@ -28,7 +28,13 @@ import java.math.BigDecimal
  * Step 2 is deliberately greedy, which is what makes implicit unit products illegal: `m s`
  * resolves to millisecond, not metre·second. Products of units need an explicit `\cdot`.
  */
-class LatexParser(private val source: String) {
+/**
+ * [analysisMode] switches identifier resolution for F8 (derivatives, integrals): bare
+ * identifiers without a subscript become a [MathSymbolNode] straight away instead of going
+ * through the unit table — analysis expressions are unitless for now (spec section 6). It does
+ * not change how anything else parses; `\sin`, `\cos`, … are recognised either way.
+ */
+class LatexParser(private val source: String, private val analysisMode: Boolean = false) {
 
     private val tokens: List<Token> = LatexLexer(source).tokenize()
     private var index = 0
@@ -176,7 +182,20 @@ class LatexParser(private val source: String) {
             }
         }
 
+        // F8: analysis functions. `\sin(x)`, `\sin{x}` and the bare `\sin x` shorthand all work.
+        "\\sin", "\\cos", "\\tan", "\\exp", "\\ln", "\\log" -> {
+            advance()
+            FunctionCallNode(token.text.substring(1), parseFunctionArgument(), token.position)
+        }
+
         else -> throw LatexParseException("Unsupported command '${token.text}'.", token.position, source)
+    }
+
+    /** A function's argument: parenthesised, braced, or — lacking either — a single unary term. */
+    private fun parseFunctionArgument(): Node = when (current.type) {
+        TokenType.LPAREN -> parseGroup(TokenType.RPAREN, ")")
+        TokenType.LBRACE -> parseGroup(TokenType.RBRACE, "}")
+        else -> parseUnary()
     }
 
     /** A command argument: `{…}` — braces are mandatory, which keeps `\frac12` from surprising anyone. */
@@ -205,6 +224,13 @@ class LatexParser(private val source: String) {
             advance()
             advance()
             return VariableNode(token.text, parseSubscript(), token.position)
+        }
+
+        // Analysis mode (F8): no unit table, no "must carry a subscript" error — every other
+        // bare identifier is a free math symbol, straight through to Symja.
+        if (analysisMode && !unitContext) {
+            advance()
+            return if (Constants.isConstant(token.text)) ConstantNode(token.text, token.position) else MathSymbolNode(token.text, token.position)
         }
 
         // The whole run has to resolve as one symbol: `m s` is the millisecond, and a
