@@ -9,6 +9,7 @@ pub mod num;
 pub(crate) mod numeric;
 pub mod quantity;
 pub mod session;
+pub mod settings;
 pub mod units;
 
 pub use error::{QuantusError, Result};

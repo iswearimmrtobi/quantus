@@ -28,6 +28,9 @@
 //! 5. otherwise a run of letters that are each a variable (`ab`) is their product `a \cdot b`,
 //! 6. otherwise a parse error naming the position.
 //!
+//! Two of these choices are [`ParseOptions`]: `a` and `y` skip step 2 and are variables rather
+//! than annum and year, and step 5 can be switched off so that `ab` stays an error.
+//!
 //! Step 2 is deliberately greedy, which is what makes implicit unit products illegal: `m s`
 //! resolves to millisecond, not metre·second. Products of units need an explicit `\cdot`.
 
@@ -48,11 +51,12 @@ fn is_single_letter(text: &str) -> bool {
 
 /// A run of letters like `ab` that is no unit but reads as a product of single-letter variables:
 /// every letter must be a variable on its own, so `xm` (x times metre?) stays an error.
-fn is_variable_product(text: &str) -> bool {
+fn is_variable_product(text: &str, options: &ParseOptions) -> bool {
     text.chars().count() > 1
-        && text
-            .chars()
-            .all(|c| c.is_ascii_alphabetic() && (c == 'a' || c == 'y' || units::find(&c.to_string()).is_none()))
+        && text.chars().all(|c| {
+            c.is_ascii_alphabetic()
+                && (options.a_and_y_as_variables && (c == 'a' || c == 'y') || units::find(&c.to_string()).is_none())
+        })
 }
 
 fn is_function_command(token: &Token) -> bool {
@@ -69,8 +73,37 @@ fn greek_symbol(text: &str) -> &str {
     }
 }
 
+/// The user-adjustable parts of identifier classification.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ParseOptions {
+    /// Outside a unit context, `a` and `y` are variables rather than annum and year.
+    pub a_and_y_as_variables: bool,
+    /// A run of letters that are each a variable (`ab`) is their product.
+    pub letter_products: bool,
+}
+
+impl Default for ParseOptions {
+    fn default() -> Self {
+        ParseOptions { a_and_y_as_variables: true, letter_products: true }
+    }
+}
+
 pub fn parse(source: &str) -> Result<Formula> {
-    Parser { source, tokens: tokenize(source)?, index: 0, unit_context: false, abs_depth: 0, bound: Vec::new(), stops: Vec::new() }.parse()
+    parse_with(source, &ParseOptions::default())
+}
+
+pub fn parse_with(source: &str, options: &ParseOptions) -> Result<Formula> {
+    Parser {
+        source,
+        tokens: tokenize(source)?,
+        index: 0,
+        unit_context: false,
+        abs_depth: 0,
+        bound: Vec::new(),
+        stops: Vec::new(),
+        options: *options,
+    }
+    .parse()
 }
 
 struct Parser<'a> {
@@ -89,6 +122,7 @@ struct Parser<'a> {
     /// Token positions where an enclosing integral's differential starts: juxtaposition stops
     /// there, so `x\,dx` is not the product of `x` and a unit `dx`.
     stops: Vec<usize>,
+    options: ParseOptions,
 }
 
 impl Parser<'_> {
@@ -717,8 +751,9 @@ impl Parser<'_> {
         let symbol: String = run.iter().map(|t| greek_symbol(&t.text)).collect();
 
         // Disambiguation: outside explicit unit context, single-letter 'y' and 'a' (annum/year)
-        // are free algebraic variables rather than unit aliases.
-        let is_reclassified_variable = !self.unit_context && (symbol == "y" || symbol == "a");
+        // are free algebraic variables rather than unit aliases, unless switched off.
+        let is_reclassified_variable =
+            self.options.a_and_y_as_variables && !self.unit_context && (symbol == "y" || symbol == "a");
 
         if !is_reclassified_variable {
             if let Some(unit) = units::find(&symbol) {
@@ -740,7 +775,7 @@ impl Parser<'_> {
             return Ok(Node::Variable { name: token.text, index: String::new(), position: token.position });
         }
 
-        if !self.unit_context && is_variable_product(&token.text) {
+        if !self.unit_context && self.options.letter_products && is_variable_product(&token.text, &self.options) {
             return Ok(self.take_first_letter());
         }
 
