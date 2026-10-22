@@ -108,6 +108,17 @@ fn cat1_nested_fractions_sums_inside() {
     assert_equivalent(r"\frac{1 + \frac{1}{x}}{1 - \frac{1}{x}}", &res);
 }
 
+#[test]
+fn cat1_triple_nested_fraction_4th_order() {
+    // 3-level nested fraction with 4th order polynomial numerator:
+    // (((x^4 - 16)/(x - 1))/(x + 2)) / ((x^2 + 4)/(x^2 - 1)) -> x^2 - x - 2
+    let input = r"\frac{\frac{\frac{x^4 - 16}{x - 1}}{x + 2}}{\frac{x^2 + 4}{x^2 - 1}}";
+    let res = run(input);
+    assert_eq!(serializer::algebraic_expression(&res.node), "x^{2} - x - 2");
+    assert_eq!(restrictions(&res), "x != -2, -1, 1, x^2 + 4 != 0");
+    assert_equivalent(input, &res);
+}
+
 // ---------------------------------------------------------------------------------------------
 // Category 2: Adding and subtracting fractions with identical denominators
 // ---------------------------------------------------------------------------------------------
