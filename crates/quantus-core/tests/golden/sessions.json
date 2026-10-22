@@ -1,0 +1,149 @@
+{
+  "_comment": "Stateful scenarios: a sequence of operations against one session store. Source: CalculationStepsTest, CalculatorControllerTest. Ops: evaluate {latex, session?, expect}, define {latex, session?, expect | errorContains}, list_variables {session?, keys}, delete {key, session?}. Session defaults to \"default\". `expect` keys: latex, result, steps [{kind, latex}], stepKinds, alignBlock, variable {key, symbol, latex, value}, noVariable, errorContains. `value` is a numeric string compared as a decimal.",
+  "scenarios": [
+    {
+      "name": "three steps with variables",
+      "ops": [
+        { "op": "evaluate", "latex": "m_1 = 2kg" },
+        { "op": "evaluate", "latex": "a_1 = 9{,}81\\frac{m}{s^2}" },
+        {
+          "op": "evaluate",
+          "latex": "F = m_1 \\cdot a_1",
+          "expect": {
+            "steps": [
+              { "kind": "symbolic", "latex": "F = m_{1} \\cdot a_{1}" },
+              { "kind": "substituted", "latex": "F = 2\\,\\mathrm{kg} \\cdot 9{,}81\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}" },
+              { "kind": "result", "latex": "F = 19{,}62\\,\\mathrm{N}" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "without variables: two steps",
+      "ops": [
+        {
+          "op": "evaluate",
+          "latex": "F = 2kg \\cdot 10\\frac{m}{s^2}",
+          "expect": {
+            "stepKinds": ["symbolic", "result"],
+            "steps": [
+              { "kind": "symbolic", "latex": "F = 2\\,\\mathrm{kg} \\cdot 10\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}" },
+              { "kind": "result", "latex": "F = 20\\,\\mathrm{N}" }
+            ],
+            "noVariable": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "substituted values keep their unit and get brackets",
+      "ops": [
+        { "op": "evaluate", "latex": "m_1 = 2kg" },
+        { "op": "evaluate", "latex": "v_1 = \\frac{200km}{2{,}5h}" },
+        {
+          "op": "evaluate",
+          "latex": "E = \\frac{1}{2} \\cdot m_1 \\cdot v_1^2",
+          "expect": {
+            "steps": [
+              { "kind": "symbolic", "latex": "E = \\frac{1}{2} \\cdot m_{1} \\cdot v_{1}^{2}" },
+              { "kind": "substituted", "latex": "E = \\frac{1}{2} \\cdot 2\\,\\mathrm{kg} \\cdot (80\\,\\frac{\\mathrm{km}}{\\mathrm{h}})^{2}" },
+              { "kind": "result", "latex": "E = 493{,}82716049382716049382716049382716049382716049383\\,\\mathrm{J}" }
+            ],
+            "result": "493{,}82716049382716049382716049382716049382716049383\\,\\mathrm{J}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "no label, no label in steps",
+      "ops": [
+        {
+          "op": "evaluate",
+          "latex": "2kg + 500g",
+          "expect": {
+            "steps": [
+              { "kind": "symbolic", "latex": "2\\,\\mathrm{kg} + 500\\,\\mathrm{g}" },
+              { "kind": "result", "latex": "2{,}5\\,\\mathrm{kg}" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "a definition that is its own result shows one step",
+      "ops": [
+        {
+          "op": "evaluate",
+          "latex": "m_1 = 2kg",
+          "expect": { "steps": [{ "kind": "result", "latex": "m_{1} = 2\\,\\mathrm{kg}" }] }
+        }
+      ]
+    },
+    {
+      "name": "align block",
+      "ops": [
+        {
+          "op": "evaluate",
+          "latex": "F = 2kg \\cdot 10\\frac{m}{s^2}",
+          "expect": {
+            "alignBlock": "\\begin{align*}\n  F = 2\\,\\mathrm{kg} \\cdot 10\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}} \\\\\n  F = 20\\,\\mathrm{N}\n\\end{align*}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a definition comes back as a variable and resolves later",
+      "ops": [
+        {
+          "op": "evaluate",
+          "latex": "m_1 = 2kg",
+          "session": "vars",
+          "expect": { "variable": { "key": "m_1", "symbol": "m_{1}", "latex": "2\\,\\mathrm{kg}" } }
+        },
+        { "op": "evaluate", "latex": "a_1 = 10\\frac{m}{s^2}", "session": "vars" },
+        {
+          "op": "evaluate",
+          "latex": "F = m_1 \\cdot a_1",
+          "session": "vars",
+          "expect": {
+            "latex": "F = 20\\,\\mathrm{N}",
+            "stepKinds": ["symbolic", "substituted", "result"],
+            "steps": [
+              { "kind": "symbolic", "latex": "F = m_{1} \\cdot a_{1}" },
+              { "kind": "substituted", "latex": "F = 2\\,\\mathrm{kg} \\cdot 10\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}" },
+              { "kind": "result", "latex": "F = 20\\,\\mathrm{N}" }
+            ]
+          }
+        },
+        { "op": "list_variables", "session": "vars", "keys": ["m_1", "a_1"] }
+      ]
+    },
+    {
+      "name": "define and forget",
+      "ops": [
+        {
+          "op": "define",
+          "latex": "r_1 = 0{,}5m",
+          "session": "define",
+          "expect": { "variable": { "key": "r_1", "value": "0.5" } }
+        },
+        { "op": "delete", "key": "r_1", "session": "define" },
+        { "op": "list_variables", "session": "define", "keys": [] }
+      ]
+    },
+    {
+      "name": "define rejects an expression",
+      "ops": [
+        { "op": "define", "latex": "2kg \\cdot 3", "session": "define-error", "errorContains": "does not define a variable" }
+      ]
+    },
+    {
+      "name": "sessions are separate",
+      "ops": [
+        { "op": "evaluate", "latex": "r_1 = 1m", "session": "one" },
+        { "op": "evaluate", "latex": "2 \\cdot r_1", "session": "two", "errorContains": "r_1" }
+      ]
+    }
+  ]
+}

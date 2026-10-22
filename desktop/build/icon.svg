@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Quantus: das Q als Größe in Klammern — ⟨Q⟩ ist die Notation, in der die App oben
+    ihre Dimension anzeigt. Der Querstrich des Q liegt auf der Bruchlinie darunter.
+  -->
+  <defs>
+    <!--
+      userSpaceOnUse, nicht die Default-Bounding-Box: der waagerechte Bruchstrich hat eine
+      Bounding-Box ohne Höhe und bekäme sonst gar keine Farbe.
+    -->
+    <linearGradient id="glyph" gradientUnits="userSpaceOnUse" x1="104" y1="132" x2="408" y2="380">
+      <stop offset="0" stop-color="#9186E8"/>
+      <stop offset="1" stop-color="#D8A9FF"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="104" fill="#17161D"/>
+  <rect x="8" y="8" width="496" height="496" rx="96" fill="none" stroke="#322F3F" stroke-width="4"/>
+
+  <g stroke="url(#glyph)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Klammern -->
+    <path d="M150 132 L104 256 L150 380" stroke-width="20"/>
+    <path d="M362 132 L408 256 L362 380" stroke-width="20"/>
+    <!-- Q -->
+    <circle cx="256" cy="228" r="74" stroke-width="26"/>
+    <path d="M292 268 L330 318" stroke-width="26"/>
+    <!-- Bruchstrich -->
+    <path d="M186 356 L326 356" stroke-width="18"/>
+  </g>
+</svg>

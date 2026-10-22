@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Quantus",
+  "version": "0.1.0",
+  "identifier": "de.quantus.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev:renderer",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build:renderer",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Quantus",
+        "width": 1180,
+        "height": 780,
+        "backgroundColor": "#17161D"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "appimage",
+      "deb"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/64x64.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "category": "Education",
+    "copyright": "Tobias Schmidt",
+    "shortDescription": "SI-Einheiten-Rechner mit LaTeX-Ein- und Ausgabe",
+    "longDescription": "Taschenrechner für physikalische Berechnungen: rechnet dimensionell korrekt mit SI-Einheiten, nimmt LaTeX entgegen und gibt den Rechenweg als LaTeX zurück.",
+    "linux": {
+      "deb": {
+        "desktopTemplate": "packaging/quantus.desktop"
+      }
+    }
+  }
+}
