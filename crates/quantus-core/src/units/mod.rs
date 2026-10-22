@@ -11,7 +11,7 @@ pub mod registry;
 pub mod unit;
 
 pub use atom::{Atom, Kind, Prefix};
-pub use conversions::AffineConversion;
+pub use conversions::{between, AffineConversion};
 pub use dimension::{BaseDim, Dimension};
 pub use lookup::find;
 pub use unit::Unit;
