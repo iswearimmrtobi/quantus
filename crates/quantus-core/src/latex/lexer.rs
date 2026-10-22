@@ -22,6 +22,8 @@ pub enum TokenType {
     Caret,
     Underscore,
     Equals,
+    /// `|`, `\vert`, `\lvert`, `\rvert`: opens or closes an absolute value.
+    Pipe,
     LBrace,
     RBrace,
     LParen,
@@ -46,6 +48,8 @@ const SPACING_SYMBOLS: [char; 6] = [',', ';', ':', '!', ' ', '\\'];
 
 const IGNORED_COMMANDS: [&str; 7] =
     ["\\left", "\\right", "\\quad", "\\qquad", "\\displaystyle", "\\textstyle", "\\limits"];
+
+const PIPE_COMMANDS: [&str; 3] = ["\\vert", "\\lvert", "\\rvert"];
 
 /// Greek letters are identifiers: variable names (`\omega_0`) or constants (`\pi`).
 const GREEK_COMMANDS: [&str; 37] = [
@@ -169,6 +173,8 @@ impl Lexer<'_> {
         let text: String = self.chars[start..self.index].iter().collect();
         Ok(if IGNORED_COMMANDS.contains(&text.as_str()) {
             None
+        } else if PIPE_COMMANDS.contains(&text.as_str()) {
+            Some(Token { kind: TokenType::Pipe, text: "|".to_string(), position: start })
         } else if GREEK_COMMANDS.contains(&text.as_str()) {
             Some(Token { kind: TokenType::Identifier, text, position: start })
         } else {
@@ -188,6 +194,7 @@ impl Lexer<'_> {
             '^' => TokenType::Caret,
             '_' => TokenType::Underscore,
             '=' => TokenType::Equals,
+            '|' => TokenType::Pipe,
             '{' => TokenType::LBrace,
             '}' => TokenType::RBrace,
             '(' => TokenType::LParen,
@@ -233,6 +240,12 @@ mod tests {
         let tokens = texts("\\omega\\frac");
         assert_eq!(tokens[0], (TokenType::Identifier, "\\omega".to_string()));
         assert_eq!(tokens[1], (TokenType::Command, "\\frac".to_string()));
+    }
+
+    #[test]
+    fn pipes_are_tokens_in_every_spelling() {
+        let kinds: Vec<_> = texts("|x|\\left|x\\right|\\lvert x\\rvert").into_iter().map(|t| t.0).collect();
+        assert_eq!(kinds.iter().filter(|k| **k == TokenType::Pipe).count(), 6);
     }
 
     #[test]

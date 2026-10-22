@@ -56,6 +56,11 @@
   ],
   "labels": [
     { "input": "E_{kin} = \\frac{1}{2} \\cdot m_1 \\cdot v_1^2", "label": { "name": "E", "index": "kin" } },
-    { "input": "2kg", "label": null }
+    { "input": "2kg", "label": null },
+
+    {"name": "binom", "input": "\\binom{5}{2}", "expected": "\\binom{5}{2}"},
+    {"name": "abs", "input": "|x_1 - 2|", "expected": "\\left|x_{1} - 2\\right|"},
+    {"name": "abs with left right", "input": "\\left|x_1\\right|", "expected": "\\left|x_{1}\\right|"},
+    {"name": "degrees", "input": "30^\\circ", "expected": "30^{\\circ}"}
   ]
 }

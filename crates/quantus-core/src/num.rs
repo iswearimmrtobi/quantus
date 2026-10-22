@@ -244,6 +244,15 @@ impl Value {
         matches!(self, Value::Rat(r) if *r == RBig::ZERO)
     }
 
+    /// Is the value below zero? Symbolic values are decided on their decimal expansion;
+    /// complex ones have no sign.
+    pub fn is_negative(&self) -> Result<bool> {
+        match self {
+            Value::Rat(r) => Ok(r.numerator().sign() == Sign::Negative),
+            _ => Ok(self.decimal(20)?.is_negative()),
+        }
+    }
+
     pub fn is_one(&self) -> bool {
         matches!(self, Value::Rat(r) if *r == RBig::ONE)
     }

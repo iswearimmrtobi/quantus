@@ -8,6 +8,9 @@
 
 use std::collections::HashMap;
 
+use dashu::integer::IBig;
+use dashu::rational::RBig;
+
 use crate::latex::{Node, Operator};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
@@ -57,10 +60,20 @@ impl<'a> Evaluator<'a> {
                     Operator::Divide => left.div(&right),
                 }
             }
+            Node::Abs { operand, .. } => {
+                let quantity = self.evaluate(operand)?;
+                if quantity.value.is_negative()? { Ok(quantity.neg()) } else { Ok(quantity) }
+            }
+            Node::Degrees { operand, .. } => {
+                let angle = self.plain_number(operand, "An angle in degrees")?;
+                Ok(PhysicalQuantity::dimensionless(angle.mul(&Value::Pi).div(&Value::int(180))?))
+            }
+            Node::Binomial { n, k, .. } => {
+                let n = self.whole_number(n, "binom")?;
+                let k = self.whole_number(k, "binom")?;
+                binomial(n, k).map(|value| PhysicalQuantity::dimensionless(Value::Rat(RBig::from(value))))
+            }
             Node::Function { .. }
-            | Node::Abs { .. }
-            | Node::Binomial { .. }
-            | Node::Degrees { .. }
             | Node::Sum { .. }
             | Node::Integral { .. }
             | Node::Limit { .. }
@@ -69,6 +82,22 @@ impl<'a> Evaluator<'a> {
             | Node::Determinant { .. }
             | Node::Equation { .. } => Err(QuantusError::other("This kind of expression cannot be evaluated yet.")),
         }
+    }
+
+    /// A dimensionless operand's value; `what` names the construct for the error.
+    fn plain_number(&self, node: &Node, what: &str) -> Result<Value> {
+        let quantity = self.evaluate(node)?;
+        if !quantity.is_dimensionless() {
+            return Err(QuantusError::other(format!("{what} must be a plain number, not a quantity with a unit.")));
+        }
+        Ok(quantity.value)
+    }
+
+    fn whole_number(&self, node: &Node, command: &str) -> Result<i64> {
+        let value = self.plain_number(node, &format!("An argument of \\{command}"))?;
+        value.to_i64().filter(|n| *n >= 0).ok_or_else(|| {
+            QuantusError::other(format!("The arguments of \\{command} must be non-negative whole numbers, but one was '{value}'."))
+        })
     }
 
     fn degree(&self, degree: Option<&Node>) -> Result<u32> {
@@ -87,6 +116,23 @@ impl<'a> Evaluator<'a> {
             ))),
         }
     }
+}
+
+/// `n` over `k`, exact. Zero when `k > n`.
+fn binomial(n: i64, k: i64) -> Result<IBig> {
+    const LIMIT: i64 = 100_000;
+    if k > n {
+        return Ok(IBig::ZERO);
+    }
+    let k = k.min(n - k);
+    if k > LIMIT {
+        return Err(QuantusError::other("\\binom is limited to a lower index of 100000."));
+    }
+    let mut result = IBig::ONE;
+    for i in 0..k {
+        result = result * IBig::from(n - i) / IBig::from(i + 1);
+    }
+    Ok(result)
 }
 
 /// Reserved constant names (F2). They are looked up after the unit table, so a symbol that is

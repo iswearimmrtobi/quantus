@@ -6,8 +6,9 @@
 //! expression  := term ( ('+' | '-') term )*
 //! term        := unary ( ('\cdot' | '\times' | '*' | '/' | juxtaposition) unary )*
 //! unary       := ('-' | '+') unary | power
-//! power       := atom [ '^' unary ]
+//! power       := atom [ '^' ( '\circ' | '{\circ}' | unary ) ]
 //! atom        := number | identifier | '\frac' arg arg | '\sqrt' ['[' expr ']'] arg
+//!              | '\binom' arg arg | '|' expression '|'
 //!              | '\mathrm' arg | '\text' arg | '\qty' arg arg | '(' expression ')' | '{' expression '}'
 //! ```
 //!
@@ -42,7 +43,7 @@ fn greek_symbol(text: &str) -> &str {
 }
 
 pub fn parse(source: &str) -> Result<Formula> {
-    Parser { source, tokens: tokenize(source)?, index: 0, unit_context: false }.parse()
+    Parser { source, tokens: tokenize(source)?, index: 0, unit_context: false, abs_depth: 0 }.parse()
 }
 
 struct Parser<'a> {
@@ -52,6 +53,9 @@ struct Parser<'a> {
     index: usize,
     /// Inside `\mathrm{}`/`\text{}`/`\qty{}{}` every identifier must be a unit.
     unit_context: bool,
+    /// How many `|…|` are open. Inside one, a `|` closes it instead of starting a new one, which
+    /// is what makes `|a|b|` unambiguous; brackets and braces start afresh.
+    abs_depth: usize,
 }
 
 impl Parser<'_> {
@@ -144,7 +148,27 @@ impl Parser<'_> {
         }
         self.advance();
         let position = base.position();
+        if self.at_degree_sign() {
+            return Ok(Node::Degrees { operand: Box::new(base), position });
+        }
         Ok(Node::Power { base: Box::new(base), exponent: Box::new(self.parse_unary()?), position })
+    }
+
+    /// `\circ` or `{\circ}` after a `^`; consumes it when present.
+    fn at_degree_sign(&mut self) -> bool {
+        let is_circ = |t: &Token| t.kind == TokenType::Command && t.text == "\\circ";
+        if is_circ(self.current()) {
+            self.advance();
+            return true;
+        }
+        if self.current().kind == TokenType::LBrace
+            && is_circ(self.peek(1))
+            && self.peek(2).kind == TokenType::RBrace
+        {
+            self.index += 3;
+            return true;
+        }
+        false
     }
 
     fn parse_atom(&mut self) -> Result<Node> {
@@ -155,6 +179,7 @@ impl Parser<'_> {
                 Ok(Node::Number { value: self.decimal(&token.text, token.position)?, position: token.position })
             }
             TokenType::Identifier => self.parse_identifier(),
+            TokenType::Pipe => self.parse_abs(),
             TokenType::LParen => self.parse_group(TokenType::RParen, ")"),
             TokenType::LBrace => self.parse_group(TokenType::RBrace, "}"),
             TokenType::Command => self.parse_command(&token),
@@ -162,9 +187,25 @@ impl Parser<'_> {
         }
     }
 
+    fn parse_abs(&mut self) -> Result<Node> {
+        let open = self.advance();
+        self.abs_depth += 1;
+        let operand = self.parse_expression();
+        self.abs_depth -= 1;
+        let operand = operand?;
+        if self.current().kind != TokenType::Pipe {
+            return Err(self.error("The absolute value is missing its closing '|'.", open.position));
+        }
+        self.advance();
+        Ok(Node::Abs { operand: Box::new(operand), position: open.position })
+    }
+
     fn parse_group(&mut self, closing: TokenType, closing_text: &str) -> Result<Node> {
         let open = self.advance();
-        let inner = self.parse_expression()?;
+        let outer_abs_depth = std::mem::replace(&mut self.abs_depth, 0);
+        let inner = self.parse_expression();
+        self.abs_depth = outer_abs_depth;
+        let inner = inner?;
         self.expect(closing, &format!("'{closing_text}'"))?;
         Ok(Node::Group { inner: Box::new(inner), position: open.position })
     }
@@ -177,6 +218,12 @@ impl Parser<'_> {
                 let numerator = self.parse_argument(&token.text)?;
                 let denominator = self.parse_argument(&token.text)?;
                 Ok(Node::fraction(numerator, denominator, position))
+            }
+            "\\binom" | "\\dbinom" | "\\tbinom" => {
+                self.advance();
+                let n = self.parse_argument(&token.text)?;
+                let k = self.parse_argument(&token.text)?;
+                Ok(Node::Binomial { n: Box::new(n), k: Box::new(k), position })
             }
             "\\sqrt" => {
                 self.advance();
@@ -365,6 +412,7 @@ impl Parser<'_> {
         let token = self.current();
         match token.kind {
             TokenType::Number | TokenType::Identifier | TokenType::LParen | TokenType::LBrace => true,
+            TokenType::Pipe => self.abs_depth == 0,
             TokenType::Command => !MULTIPLICATION_COMMANDS.contains(&token.text.as_str()) && token.text != "\\div",
             _ => false,
         }

@@ -9,6 +9,9 @@
     { "name": "empty input", "input": "", "reasonContains": "empty" },
     { "name": "two equals signs", "input": "2 = 3 = 4", "reasonContains": "Only one '='" },
     { "name": "implicit unit product refused", "input": "2kg m", "reasonContains": "explicit \\cdot" },
-    { "name": "trailing cdot (API contract: error has a position)", "input": "2 \\cdot", "hasPosition": true }
+    { "name": "trailing cdot (API contract: error has a position)", "input": "2 \\cdot", "hasPosition": true },
+
+    {"name": "unclosed abs", "input": "|2 + 3", "position": 0, "reasonContains": "closing '|'"},
+    {"name": "binom missing argument", "input": "\\binom{5}", "reasonContains": "missing its argument"}
   ]
 }
