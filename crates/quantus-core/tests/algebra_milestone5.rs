@@ -383,3 +383,24 @@ fn test_verification_fallback_on_mismatch() {
     assert_eq!(res.latex, "x + 1");
     assert!(res.diagnostic.is_none());
 }
+
+// ---------------------------------------------------------------------------------------------
+// 5.4 Unsupported constructs handling
+// ---------------------------------------------------------------------------------------------
+
+#[test]
+fn test_unsupported_constructs_diagnostic_and_partial_simplification() {
+    // Non-integer exponent: returns diagnostic without invalid algebraic steps
+    let res = simplify(r"x^{\pi} + 1").unwrap();
+    assert_eq!(res.latex, r"x^{\pi} + 1");
+    assert!(res.diagnostic.as_ref().unwrap().contains("non-integer exponents"));
+
+    // Matrix: returns diagnostic gracefully
+    let res = simplify(r"\begin{pmatrix} x & 1 \ 0 & x \end{pmatrix}").unwrap();
+    assert!(res.diagnostic.as_ref().unwrap().contains("matrices"));
+
+    // Transcendental function: simplifies supported rational subtrees, notes diagnostic
+    let res = simplify(r"\sin(x) + \frac{x^2 - 1}{x - 1}").unwrap();
+    assert!(res.diagnostic.as_ref().unwrap().contains("transcendental functions"));
+    assert!(!res.steps.is_empty(), "Should simplify rational subtrees");
+}

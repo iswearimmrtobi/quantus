@@ -150,8 +150,8 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
   - [x] Sample the original AST and the simplified AST at multiple deterministic rational test points for all free variables (skipping points that violate domain restrictions or make any denominator zero).
   - [x] Evaluate both expressions using exact rational arithmetic (`RBig`) and verify equality across all sample points.
   - [x] If verification ever fails, abort or fall back safely with a diagnostic rather than returning an incorrect simplification.
-- [ ] **5.4. Detect unsupported constructs gracefully**:
-  - [ ] When an expression contains constructs outside rational/polynomial algebra (e.g. non-integer variable exponents like `x^{\pi}`, transcendental functions of variables that cannot be algebraically simplified, matrices), either simplify the supported rational subtrees or return the expression with a clear diagnostic message without producing invalid steps.
+- [x] **5.4. Detect unsupported constructs gracefully**:
+  - [x] When an expression contains constructs outside rational/polynomial algebra (e.g. non-integer variable exponents like `x^{\pi}`, transcendental functions of variables that cannot be algebraically simplified, matrices), either simplify the supported rational subtrees or return the expression with a clear diagnostic message without producing invalid steps.
 
 ---
 

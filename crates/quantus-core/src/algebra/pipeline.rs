@@ -142,6 +142,42 @@ fn collect_variables_rec(node: &Node, vars: &mut BTreeSet<String>) {
     }
 }
 
+/// Detects if an expression contains constructs outside rational/polynomial algebra.
+///
+/// Returns a descriptive name if unsupported constructs are found.
+pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
+    match node {
+        Node::Matrix { .. } => Some("matrices"),
+        Node::Determinant { .. } => Some("determinants"),
+        Node::Equation { .. } => Some("equations"),
+        Node::Function { .. } => Some("transcendental functions"),
+        Node::Sum { .. } => Some("sums"),
+        Node::Integral { .. } => Some("integrals"),
+        Node::Limit { .. } => Some("limits"),
+        Node::Derivative { .. } => Some("derivatives"),
+        Node::Power { exponent, .. } => {
+            if integer_exponent(exponent).is_none() {
+                Some("non-integer exponents")
+            } else {
+                for child in node.children() {
+                    if let Some(desc) = find_unsupported_construct(child) {
+                        return Some(desc);
+                    }
+                }
+                None
+            }
+        }
+        _ => {
+            for child in node.children() {
+                if let Some(desc) = find_unsupported_construct(child) {
+                    return Some(desc);
+                }
+            }
+            None
+        }
+    }
+}
+
 /// Whether `node` is in rational normal form: a polynomial, or (minus) a quotient of two
 /// polynomials. Expressions in this form need no further pass.
 pub fn is_rational_normal_form(node: &Node) -> bool {
@@ -393,6 +429,16 @@ impl Pipeline {
                  but may not be fully simplified."
             }
         });
+        let mut diagnostic = diagnostic.map(|s| s.to_string());
+        if diagnostic.is_none() {
+            if let Some(construct) = find_unsupported_construct(&self.original) {
+                diagnostic = Some(format!(
+                    "Expression contains {}, which cannot be fully simplified algebraically; supported rational subtrees were simplified.",
+                    construct
+                ));
+            }
+        }
+
         let result =
             SimplificationResult::new(self.current, self.steps, restrictions);
         match diagnostic {
