@@ -17,11 +17,13 @@
 //! 11. Factor numerator and denominator (`FACTOR_POLYNOMIAL`, `APPLY_BINOMIAL_IDENTITY`).
 //! 12. Cancel common multiplicative factors (`CANCEL_COMMON_FACTORS`).
 //! 13. Normalize the final expression into its canonical readable form (`NORMALIZE_EXPRESSION`):
-//!     expanded numerator, denominator kept factored when it is a product of several factors.
+//!     expanded numerator, denominator kept factored when it is a product of several factors
+//!     (or always expanded / always factored, per [`OutputStyle::denominator`]).
 //! 14. Write a polynomial result in binomial form (`APPLY_BINOMIAL_IDENTITY`, `COMPLETE_SQUARE`):
 //!     `a^2 + 2ab + b^2` becomes `(a + b)^2`, and `x^2 + 2 \cdot x \cdot 4 + 11` or
-//!     `x^2 + 8x + 11` (monic, integer shift) becomes `(x + 4)^2 - 5`. Skipped when the input itself was compact (`(a + b)^2`, `(a - b)(a + b)`),
-//!     since then the expansion is what was asked for.
+//!     `x^2 + 8x + 11` (monic, integer shift) becomes `(x + 4)^2 - 5`. By default skipped when the
+//!     input itself was compact (`(a + b)^2`, `(a - b)(a + b)`), since then the expansion is what
+//!     was asked for; [`OutputStyle`] can force either direction and turn off completing the square.
 //!
 //! Every stage is a bounded loop of single, recorded rewrites, so each `AlgebraStep` holds the
 //! complete expression before and after the transformation.
@@ -58,8 +60,23 @@ use crate::error::Result;
 use crate::latex::ast::{Node, Operator};
 use crate::latex::{parser, serializer};
 use crate::num::Decimal;
+use crate::settings::{BinomialForm, DenominatorForm, Settings};
 
-/// Limits that guarantee the pipeline terminates.
+/// How the result is written: the user-adjustable choices of stages 13 and 14.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OutputStyle {
+    pub binomial: BinomialForm,
+    pub complete_square: bool,
+    pub denominator: DenominatorForm,
+}
+
+impl Default for OutputStyle {
+    fn default() -> Self {
+        Settings::default().output_style()
+    }
+}
+
+/// Limits that guarantee the pipeline terminates, and the style of the result.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PipelineConfig {
     /// How often the phase sequence may be repeated when a pass leaves the expression outside
@@ -71,6 +88,8 @@ pub struct PipelineConfig {
     pub max_total_steps: usize,
     /// Whether to verify mathematical equivalence against the original AST.
     pub verify_equivalence: bool,
+    /// How stages 13 and 14 write the result.
+    pub style: OutputStyle,
 }
 
 impl Default for PipelineConfig {
@@ -80,6 +99,7 @@ impl Default for PipelineConfig {
             max_stage_iterations: 32,
             max_total_steps: 256,
             verify_equivalence: true,
+            style: OutputStyle::default(),
         }
     }
 }
@@ -233,20 +253,31 @@ struct Pipeline {
 /// The direction in which binomial formulas are applied to a polynomial result.
 #[derive(Clone, Debug)]
 enum BinomialStyle {
-    /// The input was compact (`(a + b)^2`, `(a - b)(a + b)`): keep the expanded result.
+    /// Keep the expanded result: the input was compact (`(a + b)^2`, `(a - b)(a + b)`), or the
+    /// user asked for expanded results.
     Expand,
-    /// Anything else: write the result in binomial form where possible. Carries the `(A, B)` of
-    /// an explicit double product `2 \cdot A \cdot B` in the input, used to complete the square.
-    Compress { double_product: Option<(Poly, Poly)> },
+    /// Write the result in binomial form where possible. Carries the `(A, B)` of an explicit
+    /// double product `2 \cdot A \cdot B` in the input, used to complete the square, and whether
+    /// completing the square is allowed at all.
+    Compress {
+        double_product: Option<(Poly, Poly)>,
+        complete_square: bool,
+    },
 }
 
 impl BinomialStyle {
-    fn of_input(node: &Node) -> Self {
-        if is_compact_binomial_input(node) {
+    fn of_input(node: &Node, style: &OutputStyle) -> Self {
+        let expand = match style.binomial {
+            BinomialForm::Auto => is_compact_binomial_input(node),
+            BinomialForm::Expanded => true,
+            BinomialForm::Binomial => false,
+        };
+        if expand {
             Self::Expand
         } else {
             Self::Compress {
                 double_product: find_explicit_double_product(node),
+                complete_square: style.complete_square,
             }
         }
     }
@@ -287,7 +318,7 @@ impl Pipeline {
         }
         tracker.scan_and_record(&normalized)?;
         pipeline.tracker = tracker;
-        pipeline.binomial_style = BinomialStyle::of_input(&normalized);
+        pipeline.binomial_style = BinomialStyle::of_input(&normalized, &config.style);
         Ok(pipeline)
     }
 
@@ -340,7 +371,8 @@ impl Pipeline {
 
         self.enter(Phase::Canonicalize);
         // Stage 13: canonical final form.
-        self.run_stage(|node, _| canonicalize_step(node));
+        let denominator = self.config.style.denominator;
+        self.run_stage(|node, _| canonicalize_step(node, denominator));
         // Stage 14: binomial form of a polynomial result.
         let style = self.binomial_style.clone();
         self.run_stage(|node, _| binomial_form_step(node, &style));
@@ -749,12 +781,17 @@ pub fn common_denominator_step(root: &Node) -> Option<LocalRewrite> {
 // Stage 13: canonical final form
 // ---------------------------------------------------------------------------------------------
 
-/// Canonical form of a polynomial denominator: factored when it splits into several factors (or
-/// a repeated one), expanded otherwise.
-fn canonical_denominator(poly: &Poly) -> Node {
+/// Canonical form of a polynomial denominator. In the automatic form it is factored when it
+/// splits into several factors (or a repeated one), expanded otherwise.
+fn canonical_denominator(poly: &Poly, form: DenominatorForm) -> Node {
     let factored = FactoredPoly::from_poly(poly.clone());
     let splits = factored.factors.len() > 1 || factored.factors.iter().any(|f| f.exp > 1);
-    if splits {
+    let factor = match form {
+        DenominatorForm::Auto => splits,
+        DenominatorForm::Expanded => false,
+        DenominatorForm::Factored => true,
+    };
+    if factor {
         factored.to_node()
     } else {
         poly.to_node()
@@ -762,7 +799,7 @@ fn canonical_denominator(poly: &Poly) -> Node {
 }
 
 /// Builds the canonical node for `num / den` (both polynomials, `den` non-zero).
-fn canonical_fraction(num: &Poly, den: &Poly) -> Node {
+fn canonical_fraction(num: &Poly, den: &Poly, form: DenominatorForm) -> Node {
     if den.is_constant() {
         let c = den.leading_coeff();
         return (num / &c).to_node();
@@ -773,12 +810,12 @@ fn canonical_fraction(num: &Poly, den: &Poly) -> Node {
     } else {
         (num.clone(), den.clone())
     };
-    make_fraction(num.to_node(), canonical_denominator(&den))
+    make_fraction(num.to_node(), canonical_denominator(&den, form))
 }
 
 /// Stage 13 rule: brings a polynomial or a quotient of polynomials into its canonical readable
 /// form (expanded numerator in descending degree order, factored denominator).
-pub fn canonical_form(node: &Node) -> Option<Node> {
+pub fn canonical_form(node: &Node, form: DenominatorForm) -> Option<Node> {
     let unwrapped = unwrap_group(node);
     if let Ok(poly) = Poly::from_node(unwrapped) {
         return Some(poly.to_node());
@@ -794,12 +831,12 @@ pub fn canonical_form(node: &Node) -> Option<Node> {
         return None;
     }
     let num = if sign < 0 { -&num } else { num };
-    Some(canonical_fraction(&num, &den))
+    Some(canonical_fraction(&num, &den, form))
 }
 
 /// Stage 13: rewrites the whole expression into its canonical form, if that changes it.
-pub fn canonicalize_step(root: &Node) -> Option<LocalRewrite> {
-    let canonical = canonical_form(root)?;
+pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewrite> {
+    let canonical = canonical_form(root, form)?;
     if serializer::expression(&canonical) == serializer::expression(root) {
         return None;
     }
@@ -865,7 +902,7 @@ fn is_compact_binomial_input(node: &Node) -> bool {
 /// Stage 14: writes a polynomial result as a binomial formula, or completes the square when the
 /// input spelled out a double product `2 \cdot A \cdot B`.
 fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite> {
-    let BinomialStyle::Compress { double_product } = style else {
+    let BinomialStyle::Compress { double_product, complete_square: may_complete } = style else {
         return None;
     };
     let poly = Poly::from_node(unwrap_group(root)).ok()?;
@@ -875,6 +912,7 @@ fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite
             RuleId::ApplyBinomialIdentity,
             format!("Write as a binomial: {}", identity.description()),
         ),
+        None if !may_complete => return None,
         None => {
             let (a, b) = double_product.clone().or_else(|| integer_square_shift(&poly))?;
             let after = complete_square(&poly, &a, &b)?;

@@ -9,6 +9,7 @@ use quantus_core::algebra::steps::{RuleId, SimplificationResult};
 use quantus_core::algebra::{simplify, simplify_node};
 use quantus_core::latex::ast::Node;
 use quantus_core::latex::{parser, serializer};
+use quantus_core::settings::DenominatorForm;
 
 fn parse(input: &str) -> Node {
     parser::parse(input)
@@ -246,13 +247,13 @@ fn pipeline_division_by_zero_is_an_error() {
 fn pipeline_stage13_canonical_form() {
     // Expanded numerator, factored denominator, positive leading denominator coefficient.
     let node = parse(r"\frac{(x + 1) \cdot (x + 2)}{-x^2 + 1}");
-    let canonical = canonical_form(&node).unwrap();
+    let canonical = canonical_form(&node, DenominatorForm::Auto).unwrap();
     assert_eq!(
         serializer::expression(&canonical),
         r"\frac{-x^{2} - 3 \cdot x - 2}{(x - 1) \cdot (x + 1)}"
     );
     // Constant denominators are divided out.
-    let canonical = canonical_form(&parse(r"\frac{2x + 4}{2}")).unwrap();
+    let canonical = canonical_form(&parse(r"\frac{2x + 4}{2}"), DenominatorForm::Auto).unwrap();
     assert_eq!(serializer::expression(&canonical), "x + 2");
 }
 

@@ -3,6 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::algebra::pipeline::OutputStyle;
 use crate::latex::parser::ParseOptions;
 use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
 use crate::{QuantusError, Result};
@@ -77,6 +78,14 @@ impl Settings {
         ParseOptions {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
+        }
+    }
+
+    pub fn output_style(&self) -> OutputStyle {
+        OutputStyle {
+            binomial: self.binomial_form,
+            complete_square: self.complete_square,
+            denominator: self.denominator_form,
         }
     }
 }
