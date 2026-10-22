@@ -158,11 +158,11 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
 ### Milestone 6: Integration with Parser, Serializer, Evaluator & UI
 **Goal**: Integrate the algebraic simplification engine seamlessly into `quantus-core` and `desktop` without breaking any existing physics/unit features or golden tests.
 
-- [ ] **6.1. Parser & Serializer enhancements (`crates/quantus-core/src/latex/`)**:
-  - [ ] Review identifier classification in `latex::parser`:
+- [x] **6.1. Parser & Serializer enhancements (`crates/quantus-core/src/latex/`)**:
+  - [x] Review identifier classification in `latex::parser`:
     - Currently `x`, `z`, `\theta` parse as free `Node::Variable { name, index: "" }`.
     - Letters like `y` (year), `a` (year), `d` (day), `h` (hour), `s` (second), `m` (metre), `g` (gram) are in the unit lookup table. Add smart disambiguation (or fallback when an expression is algebraic / when `y` is used alongside `x` or with polynomial exponents/operations, or reclassify single-letter `y` if not required by unit oracle tests—verify against `units_oracle.rs`, `evaluate.json`, `roundtrip.json`, `quantity_cases.json`).
-  - [ ] Enhance `latex::serializer` (or add an algebraic serializer mode in `latex::serializer`) so that algebraic products format cleanly and naturally (e.g. `3(x - 2)` or `3 \cdot (x - 2)`, `(x - 4)(x + 3)`, `3x^{2} - 17x - 78`), while preserving 100% compatibility with `tests/latex_golden.rs` and `tests/golden.rs`.
+  - [x] Enhance `latex::serializer` (or add an algebraic serializer mode in `latex::serializer`) so that algebraic products format cleanly and naturally (e.g. `3(x - 2)` or `3 \cdot (x - 2)`, `(x - 4)(x + 3)`, `3x^{2} - 17x - 78`), while preserving 100% compatibility with `tests/latex_golden.rs` and `tests/golden.rs`.
 - [ ] **6.2. Calculator & API integration (`crates/quantus-core/src/eval/calculator.rs`, `src/api.rs`)**:
   - [ ] In `LatexCalculator::evaluate`, detect when an expression (not an `Equation`, `\int`, `\sum`, `\lim`, `\frac{d}{dx}`) contains free algebraic variables (or is a pure algebraic simplification request).
   - [ ] Route such expressions to the algebraic simplification engine instead of failing with `UnresolvedVariable`.

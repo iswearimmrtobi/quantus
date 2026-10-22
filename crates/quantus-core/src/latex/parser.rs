@@ -705,14 +705,21 @@ impl Parser<'_> {
         // of units is only ever written with an explicit \cdot.
         let run = self.identifier_run();
         let symbol: String = run.iter().map(|t| greek_symbol(&t.text)).collect();
-        if let Some(unit) = units::find(&symbol) {
-            self.index += run.len();
-            return Ok(Node::Unit { unit, symbol, position: token.position });
+
+        // Disambiguation: outside explicit unit context, single-letter 'y' is a free algebraic
+        // variable rather than the year unit alias.
+        let is_reclassified_variable = !self.unit_context && symbol == "y";
+
+        if !is_reclassified_variable {
+            if let Some(unit) = units::find(&symbol) {
+                self.index += run.len();
+                return Ok(Node::Unit { unit, symbol, position: token.position });
+            }
         }
 
         // Where the run as a whole is no unit, its first symbol can still stand alone (`\pi x`,
         // `x y`) unless it is itself a unit: `m kg` stays an error, a product of units needs \cdot.
-        let first_is_unit = units::find(greek_symbol(&token.text)).is_some();
+        let first_is_unit = !is_reclassified_variable && units::find(greek_symbol(&token.text)).is_some();
         if !self.unit_context && !first_is_unit && CONSTANTS.contains(&token.text.as_str()) {
             self.advance();
             return Ok(Node::Constant { name: token.text, position: token.position });

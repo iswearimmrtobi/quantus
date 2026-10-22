@@ -32,7 +32,22 @@ pub fn label(label: &Label) -> String {
 }
 
 pub fn expression(node: &Node) -> String {
-    render(node, PRECEDENCE_ADDITIVE)
+    expression_with_mode(node, SerializerMode::Standard)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SerializerMode {
+    #[default]
+    Standard,
+    Algebraic,
+}
+
+pub fn expression_with_mode(node: &Node, mode: SerializerMode) -> String {
+    render(node, PRECEDENCE_ADDITIVE, mode)
+}
+
+pub fn algebraic_expression(node: &Node) -> String {
+    expression_with_mode(node, SerializerMode::Algebraic)
 }
 
 /// A result: value and unit, e.g. `20\,\mathrm{N}`.
@@ -44,11 +59,11 @@ pub fn quantity(value: &Decimal, unit: &Unit) -> String {
     format!("{number}\\,{}", unit_latex::format(unit))
 }
 
-fn render(node: &Node, min_precedence: u8) -> String {
+fn render(node: &Node, min_precedence: u8, mode: SerializerMode) -> String {
     if let Node::Group { inner, .. } = node {
-        return render(inner, min_precedence);
+        return render(inner, min_precedence, mode);
     }
-    let text = text(node);
+    let text = text(node, mode);
     if precedence(node) < min_precedence {
         format!("({text})")
     } else {
@@ -56,98 +71,166 @@ fn render(node: &Node, min_precedence: u8) -> String {
     }
 }
 
-fn text(node: &Node) -> String {
+fn text(node: &Node, mode: SerializerMode) -> String {
     match node {
         Node::Number { value, .. } => numbers::format(value),
         Node::Unit { symbol, .. } => unit_latex::symbol(symbol),
         Node::Constant { name, .. } => name.clone(),
         Node::Variable { name, index, .. } if index.is_empty() => name.clone(),
         Node::Variable { name, index, .. } => format!("{name}_{{{index}}}"),
-        Node::Negation { operand, .. } => format!("-{}", render(operand, PRECEDENCE_MULTIPLICATIVE)),
+        Node::Negation { operand, .. } => format!("-{}", render(operand, PRECEDENCE_MULTIPLICATIVE, mode)),
         Node::Fraction { numerator, denominator, .. } => {
-            format!("\\frac{{{}}}{{{}}}", expression(numerator), expression(denominator))
+            format!("\\frac{{{}}}{{{}}}", expression_with_mode(numerator, mode), expression_with_mode(denominator, mode))
         }
         Node::Root { radicand, degree, .. } => {
-            let radicand = expression(radicand);
+            let radicand = expression_with_mode(radicand, mode);
             match degree {
-                Some(degree) => format!("\\sqrt[{}]{{{radicand}}}", expression(degree)),
+                Some(degree) => format!("\\sqrt[{}]{{{radicand}}}", expression_with_mode(degree, mode)),
                 None => format!("\\sqrt{{{radicand}}}"),
             }
         }
         Node::Power { base, exponent, .. } if matches!(**base, Node::Function { .. }) => {
             let Node::Function { name, argument, .. } = &**base else { unreachable!() };
-            format!("\\{name}^{{{}}}{{{}}}", expression(exponent), expression(argument))
+            format!("\\{name}^{{{}}}{{{}}}", expression_with_mode(exponent, mode), expression_with_mode(argument, mode))
         }
         Node::Power { base, exponent, .. } => {
             // A fraction as the base needs brackets of its own: \frac{a}{b}^{2} reads wrong.
             let base = if matches!(**base, Node::Fraction { .. } | Node::Root { .. }) {
-                format!("({})", text(base))
+                format!("({})", text(base, mode))
             } else {
-                render(base, PRECEDENCE_ATOM)
+                render(base, PRECEDENCE_ATOM, mode)
             };
-            format!("{base}^{{{}}}", expression(exponent))
+            format!("{base}^{{{}}}", expression_with_mode(exponent, mode))
         }
-        Node::Binary { operator, left, right, .. } => binary(*operator, left, right),
-        Node::Group { inner, .. } => expression(inner),
-        Node::Function { name, argument, .. } => format!("\\{name}{{{}}}", expression(argument)),
-        Node::Abs { operand, .. } => format!("\\left|{}\\right|", expression(operand)),
-        Node::Binomial { n, k, .. } => format!("\\binom{{{}}}{{{}}}", expression(n), expression(k)),
-        Node::Degrees { operand, .. } => format!("{}^{{\\circ}}", render(operand, PRECEDENCE_ATOM)),
+        Node::Binary { operator, left, right, .. } => binary(*operator, left, right, mode),
+        Node::Group { inner, .. } => expression_with_mode(inner, mode),
+        Node::Function { name, argument, .. } => format!("\\{name}{{{}}}", expression_with_mode(argument, mode)),
+        Node::Abs { operand, .. } => format!("\\left|{}\\right|", expression_with_mode(operand, mode)),
+        Node::Binomial { n, k, .. } => format!("\\binom{{{}}}{{{}}}", expression_with_mode(n, mode), expression_with_mode(k, mode)),
+        Node::Degrees { operand, .. } => format!("{}^{{\\circ}}", render(operand, PRECEDENCE_ATOM, mode)),
         Node::Sum { index, from, to, body, .. } => format!(
             "\\sum_{{{index}={}}}^{{{}}} {}",
-            expression(from),
-            expression(to),
-            render(body, PRECEDENCE_MULTIPLICATIVE)
+            expression_with_mode(from, mode),
+            expression_with_mode(to, mode),
+            render(body, PRECEDENCE_MULTIPLICATIVE, mode)
         ),
         Node::Integral { variable, lower, upper, body, .. } => format!(
             "\\int_{{{}}}^{{{}}} {} \\,d{variable}",
-            expression(lower),
-            expression(upper),
-            expression(body)
+            expression_with_mode(lower, mode),
+            expression_with_mode(upper, mode),
+            expression_with_mode(body, mode)
         ),
         Node::Limit { variable, target, body, .. } => {
-            format!("\\lim_{{{variable} \\to {}}} {}", expression(target), render(body, PRECEDENCE_MULTIPLICATIVE))
+            format!("\\lim_{{{variable} \\to {}}} {}", expression_with_mode(target, mode), render(body, PRECEDENCE_MULTIPLICATIVE, mode))
         }
         Node::Derivative { variable, body, at: None, .. } => {
-            format!("\\frac{{d}}{{d{variable}}} {}", render(body, PRECEDENCE_MULTIPLICATIVE))
+            format!("\\frac{{d}}{{d{variable}}} {}", render(body, PRECEDENCE_MULTIPLICATIVE, mode))
         }
         Node::Derivative { variable, body, at: Some(at), .. } => format!(
             "\\left.\\frac{{d}}{{d{variable}}} {}\\right|_{{{variable}={}}}",
-            render(body, PRECEDENCE_MULTIPLICATIVE),
-            expression(at)
+            render(body, PRECEDENCE_MULTIPLICATIVE, mode),
+            expression_with_mode(at, mode)
         ),
         Node::Matrix { rows, .. } => {
             let rows: Vec<String> =
-                rows.iter().map(|row| row.iter().map(expression).collect::<Vec<_>>().join(" & ")).collect();
+                rows.iter().map(|row| row.iter().map(|cell| expression_with_mode(cell, mode)).collect::<Vec<_>>().join(" & ")).collect();
             format!("\\begin{{pmatrix}} {} \\end{{pmatrix}}", rows.join(" \\\\ "))
         }
-        Node::Determinant { operand, .. } => format!("\\det {}", render(operand, PRECEDENCE_ATOM)),
-        Node::Equation { left, right, .. } => format!("{} = {}", expression(left), expression(right)),
+        Node::Determinant { operand, .. } => format!("\\det {}", render(operand, PRECEDENCE_ATOM, mode)),
+        Node::Equation { left, right, .. } => format!("{} = {}", expression_with_mode(left, mode), expression_with_mode(right, mode)),
     }
 }
 
-fn binary(operator: Operator, left: &Node, right: &Node) -> String {
+fn binary(operator: Operator, left: &Node, right: &Node, mode: SerializerMode) -> String {
     match operator {
         Operator::Plus => {
-            format!("{} + {}", render(left, PRECEDENCE_ADDITIVE), render(right, PRECEDENCE_ADDITIVE))
+            format!("{} + {}", render(left, PRECEDENCE_ADDITIVE, mode), render(right, PRECEDENCE_ADDITIVE, mode))
         }
         // The right operand of a minus needs brackets around a sum: a - (b - c).
         Operator::Minus => {
-            format!("{} - {}", render(left, PRECEDENCE_ADDITIVE), render(right, PRECEDENCE_MULTIPLICATIVE))
+            format!("{} - {}", render(left, PRECEDENCE_ADDITIVE, mode), render(right, PRECEDENCE_MULTIPLICATIVE, mode))
         }
-        Operator::Times => multiplication(left, right, " \\cdot "),
+        Operator::Times => {
+            let sep = match mode {
+                SerializerMode::Standard => " \\cdot ",
+                SerializerMode::Algebraic => algebraic_separator(left, right),
+            };
+            multiplication(left, right, sep, mode)
+        }
         // Normalisation turns every division into a fraction; this is only a safety net.
-        Operator::Divide => format!("\\frac{{{}}}{{{}}}", expression(left), expression(right)),
+        Operator::Divide => format!("\\frac{{{}}}{{{}}}", expression_with_mode(left, mode), expression_with_mode(right, mode)),
         Operator::ImplicitTimes => {
-            multiplication(left, right, if is_unit_only(right) { "\\," } else { " \\cdot " })
+            let sep = match mode {
+                SerializerMode::Standard => if is_unit_only(right) { "\\," } else { " \\cdot " },
+                SerializerMode::Algebraic => algebraic_separator(left, right),
+            };
+            multiplication(left, right, sep, mode)
         }
     }
 }
 
-fn multiplication(left: &Node, right: &Node, separator: &str) -> String {
+fn algebraic_separator(left: &Node, right: &Node) -> &'static str {
+    if is_unit_only(right) {
+        return "\\,";
+    }
+    let is_bracketed = |n: &Node| {
+        precedence(n) < PRECEDENCE_MULTIPLICATIVE || matches!(n, Node::Group { .. })
+    };
+    let is_number = |n: &Node| {
+        matches!(n, Node::Number { .. })
+            || matches!(n, Node::Negation { operand, .. } if matches!(**operand, Node::Number { .. }))
+    };
+    let is_var = |n: &Node| matches!(n, Node::Variable { .. });
+    let is_var_power = |n: &Node| match n {
+        Node::Power { base, .. } => matches!(**base, Node::Variable { .. }),
+        _ => false,
+    };
+
+    let left_bracketed = is_bracketed(left);
+    let right_bracketed = is_bracketed(right);
+
+    if left_bracketed && right_bracketed {
+        return "";
+    }
+    if is_number(left) && right_bracketed {
+        return "";
+    }
+    if is_var(left) && right_bracketed {
+        return "";
+    }
+    if left_bracketed && is_var(right) {
+        return "";
+    }
+    if is_number(left) && is_var(right) {
+        return "";
+    }
+    if is_number(left) && is_var_power(right) {
+        return "";
+    }
+    if matches!(left, Node::Power { base, .. } if is_bracketed(base)) && right_bracketed {
+        return "";
+    }
+    if left_bracketed && matches!(right, Node::Power { base, .. } if is_bracketed(base)) {
+        return "";
+    }
+
+    " \\cdot "
+}
+
+fn multiplication(left: &Node, right: &Node, separator: &str, mode: SerializerMode) -> String {
     // A leading minus needs no brackets: -5\,\mathrm{m} reads back as -(5 m), same value.
-    let left = if matches!(left, Node::Negation { .. }) { text(left) } else { render(left, PRECEDENCE_MULTIPLICATIVE) };
-    format!("{left}{separator}{}", render(right, PRECEDENCE_MULTIPLICATIVE))
+    let left_str = if matches!(left, Node::Negation { .. }) { text(left, mode) } else { render(left, PRECEDENCE_MULTIPLICATIVE, mode) };
+    let right_str = render(right, PRECEDENCE_MULTIPLICATIVE, mode);
+    let effective_separator = if mode == SerializerMode::Algebraic && separator != "\\," {
+        if left_str.ends_with(')') && right_str.starts_with('(') {
+            ""
+        } else {
+            separator
+        }
+    } else {
+        separator
+    };
+    format!("{left_str}{effective_separator}{right_str}")
 }
 
 fn precedence(node: &Node) -> u8 {
