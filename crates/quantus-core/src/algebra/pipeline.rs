@@ -61,6 +61,8 @@ pub struct PipelineConfig {
     pub max_stage_iterations: usize,
     /// Upper bound on the number of recorded steps over the whole run.
     pub max_total_steps: usize,
+    /// Whether to verify mathematical equivalence against the original AST.
+    pub verify_equivalence: bool,
 }
 
 impl Default for PipelineConfig {
@@ -69,6 +71,7 @@ impl Default for PipelineConfig {
             max_passes: 4,
             max_stage_iterations: 32,
             max_total_steps: 256,
+            verify_equivalence: true,
         }
     }
 }
@@ -355,6 +358,27 @@ impl Pipeline {
     }
 
     fn finish(self) -> SimplificationResult {
+        let restrictions = self.tracker.into_restrictions();
+
+        // Mathematical equivalence verification (Step 5.3)
+        if self.config.verify_equivalence && !self.steps.is_empty() {
+            let verification = crate::algebra::verify::verify_equivalence(
+                &self.original,
+                &self.current,
+                &restrictions,
+                5,
+            );
+            if let crate::algebra::verify::VerificationResult::Mismatch { point, original_val, simplified_val } = verification {
+                // If verification fails, fall back safely to original expression
+                let diag = format!(
+                    "Equivalence verification failed at test point {:?} (original: {}, simplified: {}). Reverting to original expression.",
+                    point, original_val, simplified_val
+                );
+                return SimplificationResult::new(self.original, Vec::new(), restrictions)
+                    .with_diagnostic(diag);
+            }
+        }
+
         let diagnostic = self.stop.map(|reason| match reason {
             StopReason::CycleDetected => {
                 "Simplification stopped because a transformation would have repeated an earlier \
@@ -370,7 +394,7 @@ impl Pipeline {
             }
         });
         let result =
-            SimplificationResult::new(self.current, self.steps, self.tracker.into_restrictions());
+            SimplificationResult::new(self.current, self.steps, restrictions);
         match diagnostic {
             Some(message) => result.with_diagnostic(message),
             None => result,

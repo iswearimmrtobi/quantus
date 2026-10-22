@@ -11,6 +11,7 @@ pub mod pipeline;
 pub mod poly;
 pub mod reduce;
 pub mod steps;
+pub mod verify;
 
 pub use binomial::{
     check_difference_of_squares, check_perfect_cube, check_perfect_square_trinomial,
@@ -42,3 +43,4 @@ pub use pipeline::{collect_variables, simplify, simplify_node};
 pub use poly::{Monomial, Poly, Term};
 pub use reduce::{reduce_all_rationals, reduce_next_rational, reduce_rational_node};
 pub use steps::{AlgebraStep, RuleId, SimplificationResult};
+pub use verify::{eval_rational, verify_equivalence, VerificationResult};

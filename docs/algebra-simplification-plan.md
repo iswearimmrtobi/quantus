@@ -146,10 +146,10 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
   13. Normalize final expression into canonical readable form (`NORMALIZE_EXPRESSION`, keeping denominator factored when it is a product of linear/irreducible factors, and deciding expanded vs. factored form via deterministic complexity/canonical rules).
 - [x] **5.2. Guarantee termination & prevent oscillation**:
   - [x] Define a strict phase progression per subtree depth (Inner simplify -> Nested fraction flatten -> LCD combine -> Numerator expand & collect -> Factor & cancel -> Canonicalize) plus a bounded pass limit and visited-state hash check so expand/factor cycles can never loop.
-- [ ] **5.3. Implement Mathematical Equivalence Verification (`algebra::verify`)**:
-  - [ ] Sample the original AST and the simplified AST at multiple deterministic rational test points for all free variables (skipping points that violate domain restrictions or make any denominator zero).
-  - [ ] Evaluate both expressions using exact rational arithmetic (`RBig`) and verify equality across all sample points.
-  - [ ] If verification ever fails, abort or fall back safely with a diagnostic rather than returning an incorrect simplification.
+- [x] **5.3. Implement Mathematical Equivalence Verification (`algebra::verify`)**:
+  - [x] Sample the original AST and the simplified AST at multiple deterministic rational test points for all free variables (skipping points that violate domain restrictions or make any denominator zero).
+  - [x] Evaluate both expressions using exact rational arithmetic (`RBig`) and verify equality across all sample points.
+  - [x] If verification ever fails, abort or fall back safely with a diagnostic rather than returning an incorrect simplification.
 - [ ] **5.4. Detect unsupported constructs gracefully**:
   - [ ] When an expression contains constructs outside rational/polynomial algebra (e.g. non-integer variable exponents like `x^{\pi}`, transcendental functions of variables that cannot be algebraically simplified, matrices), either simplify the supported rational subtrees or return the expression with a clear diagnostic message without producing invalid steps.
 

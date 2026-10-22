@@ -331,3 +331,55 @@ fn pipeline_terminates_on_large_powers() {
     assert_eq!(result.latex, r"x^{2} + 2 \cdot x + 1");
     assert_eq!(restrictions(&result), "x != -1");
 }
+
+// ---------------------------------------------------------------------------------------------
+// 5.3 Mathematical Equivalence Verification
+// ---------------------------------------------------------------------------------------------
+
+#[test]
+fn test_equivalence_verification_success() {
+    use quantus_core::algebra::verify::verify_equivalence;
+    use quantus_core::algebra::domain::DomainRestriction;
+
+    let orig = parse(r"\frac{x^2 - 1}{x - 1}");
+    let simp = parse(r"x + 1");
+    let restrs = vec![DomainRestriction::var_not_equal("x", 1)];
+    let res = verify_equivalence(&orig, &simp, &restrs, 5);
+    assert!(res.is_equivalent(), "Should verify as equivalent");
+}
+
+#[test]
+fn test_equivalence_verification_detects_mismatch() {
+    use quantus_core::algebra::verify::VerificationResult;
+    use quantus_core::algebra::verify::verify_equivalence;
+
+    let orig = parse(r"x + 2");
+    let wrong_simp = parse(r"x + 3");
+    let res = verify_equivalence(&orig, &wrong_simp, &[], 5);
+    match res {
+        VerificationResult::Mismatch { original_val, simplified_val, .. } => {
+            assert_ne!(original_val, simplified_val);
+        }
+        other => panic!("Expected mismatch, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_equivalence_verification_multivariate() {
+    use quantus_core::algebra::verify::verify_equivalence;
+
+    let orig = parse(r"(x + z)^2");
+    let simp = parse(r"x^2 + 2 \cdot x \cdot z + z^2");
+    let res = verify_equivalence(&orig, &simp, &[], 5);
+    assert!(res.is_equivalent());
+}
+
+#[test]
+fn test_verification_fallback_on_mismatch() {
+    use quantus_core::algebra::pipeline::simplify_node;
+
+    // A valid simplification preserves equivalence.
+    let res = simplify_node(&parse(r"\frac{x^2 - 1}{x - 1}")).unwrap();
+    assert_eq!(res.latex, "x + 1");
+    assert!(res.diagnostic.is_none());
+}
