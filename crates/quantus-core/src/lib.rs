@@ -5,6 +5,7 @@ pub mod eval;
 pub mod latex;
 pub mod num;
 pub mod quantity;
+pub mod session;
 pub mod units;
 
 pub use error::{QuantusError, Result};
