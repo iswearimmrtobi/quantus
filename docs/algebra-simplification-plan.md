@@ -98,13 +98,13 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
 ### Milestone 4: Nested Fractions, LCD, Expansion & Rational Simplification
 **Goal**: Implement the core algebraic transformation rules A, B, C, F, and G with clear intermediate AST states.
 
-- [ ] **4.1. Simplification of Nested Fractions (Rule A)**:
-  - [ ] Detect complex fractions at arbitrary depth:
+- [x] **4.1. Simplification of Nested Fractions (Rule A)**:
+  - [x] Detect complex fractions at arbitrary depth:
     - `a / (b / c) -> (a * c) / b` (`APPLY_RECIPROCAL_RULE` / `SIMPLIFY_NESTED_FRACTION`)
     - `(a / b) / c -> a / (b * c)` (`SIMPLIFY_NESTED_FRACTION`)
     - `(a / b) / (c / d) -> (a * d) / (b * c)` (`APPLY_RECIPROCAL_RULE`)
-  - [ ] When a numerator or denominator of a complex fraction is itself a sum of fractions (e.g., `(1 + 1/x) / (1 - 1/x)`), recursively combine the inner sum into a single fraction first, then apply the reciprocal rule.
-  - [ ] Preserve factored structure during nested-fraction simplification: e.g., `3 / ((x + 3)/(x - 2))` becomes `3(x - 2)/(x + 3)` and `((x - 102)/(x - 4))/(x + 3)` becomes `(x - 102)/((x - 4)(x + 3))`.
+  - [x] When a numerator or denominator of a complex fraction is itself a sum of fractions (e.g., `(1 + 1/x) / (1 - 1/x)`), recursively combine the inner sum into a single fraction first, then apply the reciprocal rule.
+  - [x] Preserve factored structure during nested-fraction simplification: e.g., `3 / ((x + 3)/(x - 2))` becomes `3(x - 2)/(x + 3)` and `((x - 102)/(x - 4))/(x + 3)` becomes `(x - 102)/((x - 4)(x + 3))`.
 - [ ] **4.2. Finding Common Denominators & Combining Fractions (Rule B)**:
   - [ ] Flatten sums and differences of rational expressions `f_1 ± f_2 ± ... ± f_k` (including standalone polynomial terms treated as `P / 1`).
   - [ ] Factor each denominator into `FactoredPoly` (`FACTOR_DENOMINATORS` step if any denominator was unfactored and factorable).

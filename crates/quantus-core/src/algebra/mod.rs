@@ -4,6 +4,7 @@ pub mod binomial;
 pub mod domain;
 pub mod factor;
 pub mod factored;
+pub mod nested;
 pub mod poly;
 pub mod steps;
 
@@ -21,5 +22,9 @@ pub use domain::{
 };
 pub use factor::{factor_polynomial, factor_polynomial_node};
 pub use factored::{Factor, FactoredPoly};
+pub use nested::{
+    is_nested_fraction, simplify_all_nested_fractions, simplify_nested_fraction_at,
+    simplify_next_nested_fraction,
+};
 pub use poly::{Monomial, Poly, Term};
 pub use steps::{AlgebraStep, RuleId, SimplificationResult};
