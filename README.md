@@ -1,112 +1,167 @@
+<div align="center">
+
+<img src="desktop/build/icon.svg" alt="Quantus icon" width="128" height="128">
+
 # Quantus
 
-SI-Einheiten-Rechner mit symbolischer Mathematik und LaTeX-Ein-/Ausgabe.
-Spezifikation: [spec-si-rechner-v2.md](spec-si-rechner-v2.md).
+### A calculator for physical quantities, with LaTeX in and LaTeX out
 
-**Aktueller Stand:** Die Engine ist von Kotlin/Spring auf Rust portiert, die Desktop-App läuft
-auf Tauri. Getippt wird im MathLive-Editor, ausgewertet mit ⏎, und der Rechenweg kommt
-dreistufig zurück:
+*Type a formula, press enter, and get the working: symbolic, substituted, solved.*
+
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Rust](https://img.shields.io/badge/Rust-2021-orange?logo=rust&logoColor=white)
+![Tauri](https://img.shields.io/badge/Tauri-2-24c8db?logo=tauri&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
+![Status](https://img.shields.io/badge/status-pre--release-lightgrey)
+
+[Features](#-features) •
+[Building](#-building) •
+[Usage](#-usage) •
+[Interface](#-interface) •
+[Documentation](#-documentation)
+
+</div>
+
+---
+
+Quantus is a desktop calculator for SI units and symbolic maths. You write in a
+MathLive formula editor (or straight in LaTeX), evaluate with <kbd>⏎</kbd>, and
+get the calculation back in three steps. The engine is a Rust library that the
+Tauri app calls directly: no server and no child process.
 
 ```
 m_1 = 2kg                       →   m_1 = 2\,\mathrm{kg}
 F = m_1 \cdot 9{,}81\frac{m}{s^2}
-    SYMBOLISCH   F = m_{1} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}
-    EINGESETZT   F = 2\,\mathrm{kg} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}
-    ERGEBNIS     F = 19{,}62\,\mathrm{N}
+    SYMBOLIC     F = m_{1} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}
+    SUBSTITUTED  F = 2\,\mathrm{kg} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}
+    RESULT       F = 19{,}62\,\mathrm{N}
 ```
 
-Die Rust-Engine liegt als Bibliothek in `crates/quantus-core` und wird von der Tauri-App
-direkt aufgerufen — kein Server, kein Kindprozess. Die frühere Kotlin-Implementierung
-(Phasen 0–5 der Spezifikation) ist entfernt; ihre Testfälle leben als Golden-Dateien in
-`crates/quantus-core/tests/golden` weiter. Zum Hintergrund der Umstellung siehe
-[migration-rust-tauri.md](migration-rust-tauri.md), zu den ursprünglichen Library-Spikes
-[docs/phase0-findings.md](docs/phase0-findings.md).
+> ⚠️ **Early and unreleased.** The engine was ported from Kotlin/Spring to
+> Rust and the app from Electron to Tauri. The user interface is in German.
 
-Code, Kommentare und Fehlermeldungen sind auf Englisch, die Projektdokumentation
-(Spec, README, Findings) auf Deutsch — die Oberfläche ist deutsch.
+## ✨ Features
 
-## Voraussetzungen
+<table>
+<tr>
+<td width="50%" valign="top">
 
-Rust (stable, Edition 2021) und Node 20+. Unter Linux braucht Tauri außerdem WebKitGTK 4.1
-und die üblichen GTK-Entwicklungspakete (siehe die
-[Tauri-Voraussetzungen](https://v2.tauri.app/start/prerequisites/)).
+### ✍️ Input
+- **Formula editor** (MathLive): `/` makes a fraction, `*` a `\cdot`, `^` and `_` super- and subscripts, `2kg` a number with a unit
+- **LaTeX source** for exact input, such as `\qty{12}{cm}` or `\sqrt[3]{27}`, with a live preview underneath
+- Switch between the two at any time with <kbd>\\</kbd>; the content carries over both ways
 
-## Befehle
+</td>
+<td width="50%" valign="top">
 
-```bash
-cargo test --workspace   # Engine-Tests inkl. Golden-Dateien und Tauri-IPC-Tests
+### 🧮 Calculation
+- **Exact numbers** with arbitrary precision (`dashu`, `astro-float`)
+- **Units and dimensions** are checked and converted, and results are named (`N`, `J`, …)
+- **Session variables**: an indexed label such as `m_1 = 2kg` defines a variable for the session
+- Parser errors report the **position** in the input
+
+</td>
+</tr>
+<tr>
+<td colspan="2" valign="top">
+
+### 📋 Output
+Every result comes with its working in three stages, and can be copied as
+LaTeX (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>) or as a whole `align*`
+block (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd>). A variables panel and a
+history panel keep track of the session.
+
+</td>
+</tr>
+</table>
+
+## 🔨 Building
+
+**You need:**
+
+| | |
+|---|---|
+| 🦀 **Rust** | stable, edition 2021 |
+| 🟢 **Node** | 20 or newer |
+| 🐧 **Linux** | WebKitGTK 4.1 and the usual GTK development packages, see the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) |
+
+```sh
+cargo test --workspace   # engine tests, golden files and Tauri IPC tests
 
 cd desktop
-npm install              # einmalig (kopiert dabei die MathLive-Fonts nach public/fonts)
-npm run dev              # Vite-Dev-Server + Tauri-Fenster mit Hot Reload
-npm run bundle           # AppImage und .deb bauen
-npm run typecheck        # TypeScript prüfen
+npm install              # once; also copies the MathLive fonts to public/fonts
+npm run dev              # Vite dev server + Tauri window with hot reload
+npm run typecheck        # check the TypeScript
+npm run bundle           # build the AppImage and .deb
 ```
 
-## Paketierung
+> 💡 **Tip:** `npm install` has to run in `desktop/`, not in the repository root.
 
-`npm run bundle` ruft `tauri build` auf und legt AppImage und `.deb` unter
-`target/release/bundle/` ab. Das AppImage (~100 MB) bringt WebKitGTK mit; das `.deb`
-(~6 MB) hängt vom System-WebKitGTK ab. Der Desktop-Eintrag stammt aus
-`desktop/src-tauri/packaging/quantus.desktop`, die Icons werden aus `desktop/build/icon.svg`
-mit `npx tauri icon` erzeugt.
+<details>
+<summary><b>📦 Packaging</b></summary>
 
-```bash
+<br>
+
+`npm run bundle` runs `tauri build` and puts the AppImage and the `.deb` in
+`target/release/bundle/`. The AppImage (~100 MB) ships WebKitGTK; the `.deb`
+(~6 MB) depends on the system's WebKitGTK. The desktop entry comes from
+`desktop/src-tauri/packaging/quantus.desktop`, and the icons are generated from
+`desktop/build/icon.svg` with `npx tauri icon`.
+
+```sh
 cd desktop && npm run bundle
-./../target/release/bundle/appimage/Quantus_0.1.0_amd64.AppImage
+../target/release/bundle/appimage/Quantus_0.1.0_amd64.AppImage
 ```
 
-## Bedienung
+</details>
 
-| Taste | Wirkung |
+<details>
+<summary><b>🧱 How the code is laid out</b></summary>
+
+<br>
+
+| Path | What it does |
 |---|---|
-| ⏎ | auswerten |
-| Strg+N | neue Rechnung |
-| Strg+J | Rechenweg ein-/ausblenden |
-| Strg+, / Strg+H | Variablen- / Verlaufs-Panel |
-| Strg+Shift+C | Ergebnis als LaTeX kopieren |
-| Strg+Alt+C | ganze Rechnung als `align*`-Block kopieren |
-| `\` bzw. Strg+L | zwischen Formeleditor und LaTeX-Quelltext wechseln |
-| Esc | Quelltext verlassen · Panel schließen |
+| `crates/quantus-core/src/num.rs`, `quantity.rs` | Numbers and `PhysicalQuantity` |
+| `crates/quantus-core/src/units/` | Unit table, dimensions, conversion, naming |
+| `crates/quantus-core/src/latex/` | Lexer, parser, AST, serializer |
+| `crates/quantus-core/src/eval/` | AST evaluation, substitution, steps |
+| `crates/quantus-core/src/session.rs`, `api.rs` | Session variables and the app's JSON types |
+| `crates/quantus-core/tests/` | Golden tests, carried over from the Kotlin tests |
+| `desktop/src-tauri/` | Tauri shell: commands, menu, single instance, bundling |
+| `desktop/src/` | React renderer: formula editor, LaTeX source, steps, panels |
 
-### Zwei Eingabearten
+Numbers, units and LaTeX I/O depend on each other in one direction only. The
+Tauri commands know nothing but `api` and `SessionStore`.
 
-Der **Formeleditor** ist die schnelle: `/` erzeugt einen Bruch, `*` ein `\cdot`, `^` und `_`
-Hoch- und Tiefstellung, `2kg` eine Zahl mit Einheit. Aus einem Index (und aus jeder anderen
-Klammer) führt die Pfeiltaste → wieder heraus — `m_1` `→` `= 2kg` definiert die Variable.
+</details>
 
-Der **Quelltext** ist die genaue: ein Backslash schaltet mitten im Tippen dorthin um, und ab
-da steht da, was man schreibt — `\qty{12}{cm}`, `\sqrt[3]{27}`, `\frac{200\mathrm{km}}{2{,}5\mathrm{h}}`.
-Unter dem Feld läuft die gesetzte Formel als Kontrolle mit. ⏎ rechnet, Esc geht zurück in
-den Formeleditor; der Inhalt bleibt dabei in beide Richtungen erhalten.
+## 🎹 Usage
 
-Variablen tragen immer einen Index (`r_1`, `v_1`). Eine Eingabe mit Index-Label ist eine
-Definition (`m_1 = 2kg`) und bleibt für die Session gültig; ein Label ohne Index (`F = …`)
-benennt nur die Zeile.
+| Key | Action |
+|---|---|
+| <kbd>⏎</kbd> | evaluate |
+| <kbd>Ctrl</kbd>+<kbd>N</kbd> | new calculation |
+| <kbd>Ctrl</kbd>+<kbd>J</kbd> | show or hide the working |
+| <kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd> | variables / history panel |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | copy the result as LaTeX |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> | copy the whole calculation as an `align*` block |
+| <kbd>\\</kbd> or <kbd>Ctrl</kbd>+<kbd>L</kbd> | switch between formula editor and LaTeX source |
+| <kbd>Esc</kbd> | leave the source · close a panel |
 
-## Struktur
+**Two ways to type.** The formula editor is the quick one. Arrow <kbd>→</kbd>
+leaves an index or any other bracket, so `m_1` `→` `= 2kg` defines the
+variable. The LaTeX source is the exact one: a backslash switches to it while
+you type, and from then on what you write is what you get.
 
-```
-crates/quantus-core/src/
-  num.rs, quantity.rs                             Zahlen (dashu/astro-float) und PhysicalQuantity
-  units/                                          Einheiten-Tabelle, Dimensionen, Umrechnung, Benennung
-  latex/                                          Lexer, Parser, AST, Serializer
-  eval/                                           AST-Auswertung, Substitution, Schritte
-  session.rs, api.rs                              Session-Variablen und die JSON-Strukturen der App
-crates/quantus-core/tests/                        Golden-Tests (aus den Kotlin-Tests extrahiert)
-desktop/src-tauri/                                Tauri-Shell: Befehle, Menü, Single-Instance, Bundling
-desktop/src/                                      React-Renderer: Formeleditor, LaTeX-Quelltext, Schritte, Panels
-desktop/build/icon.svg                            App-Icon (Quelle für die Icon-Erzeugung)
-docs/phase0-findings.md                           Erkenntnisse aus den Kotlin-Spikes (historisch)
-migration-rust-tauri.md                           Plan und Befunde der Rust/Tauri-Umstellung
-```
+**Variables** always carry an index (`r_1`, `v_1`). An input with an indexed
+label is a definition (`m_1 = 2kg`) and stays valid for the session. A label
+without an index (`F = …`) only names the line.
 
-Die Modultrennung folgt N5: Zahlen, Einheiten und LaTeX-I/O hängen nur in eine Richtung
-voneinander ab; die Tauri-Befehle kennen nur `api` und `SessionStore`.
+## 🔌 Interface
 
-## Schnittstelle
-
-Der Renderer ruft Tauri-Befehle auf (`desktop/src/api.ts`), die `quantus_core::api` aufrufen:
+The renderer calls Tauri commands (`desktop/src/api.ts`), which call
+`quantus_core::api`:
 
 ```
 evaluate         { request: { latex, sessionId?, precision? } }
@@ -114,8 +169,31 @@ evaluate         { request: { latex, sessionId?, precision? } }
                      value, unit, quantityName, dimension, variable }
 define_variable  { request: { latex: "r_1 = 0{,}5m", … } } → Variable
 list_variables   { sessionId? }               → [ { key, symbol, latex, value, unit } ]
-delete_variable  { key, sessionId? }          Variable vergessen
+delete_variable  { key, sessionId? }          forget a variable
 ```
 
-Fehler kommen als `{ error, position }` zurück; `position` (0-basiert) zeigt bei
-Parserfehlern auf die Stelle in der Eingabe.
+Errors come back as `{ error, position }`. For parser errors, `position`
+(0-based) points at the spot in the input.
+
+## 📚 Documentation
+
+| | |
+|---|---|
+| 📐 [`spec-si-rechner-v2.md`](spec-si-rechner-v2.md) | The specification (German) |
+| 🔀 [`migration-rust-tauri.md`](migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
+| 🧪 [`docs/phase0-findings.md`](docs/phase0-findings.md) | Results of the early library spikes (German, historical) |
+
+Code, comments and error messages are in English. The project documentation
+(spec, findings) is in German, and so is the interface.
+
+## 📜 License
+
+Quantus is released under the MIT license, as declared in `Cargo.toml`.
+
+<div align="center">
+
+---
+
+<sub>Made with 🧮 for people who like to see the working.</sub>
+
+</div>
