@@ -180,16 +180,16 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
 ### Milestone 7: Testing, Reference Case Validation & Quality Assurance
 **Goal**: Validate the mandatory reference test case, all 14 required unit test categories, and ensure zero regressions across the entire workspace.
 
-- [ ] **7.1. Mandatory Reference Integration Test**:
-  - [ ] Add an integration test for:
+- [x] **7.1. Mandatory Reference Integration Test**:
+  - [x] Add an integration test for:
     `3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)`
-  - [ ] Verify the step-by-step sequence:
+  - [x] Verify the step-by-step sequence:
     1. Simplify first complex fraction: `3 / ((x + 3)/(x - 2))` -> `3(x - 2)/(x + 3)`
     2. Simplify second complex fraction: `((x - 102)/(x - 4))/(x + 3)` -> `(x - 102)/((x - 4)(x + 3))`
     3. Find common denominator & combine: `[3(x - 2)(x - 4) + (x - 102)] / [(x - 4)(x + 3)]`
     4. Expand polynomial products: `3(x^2 - 6x + 8) + x - 102` (and `3x^2 - 18x + 24 + x - 102`) over `(x - 4)(x + 3)`
     5. Combine like terms: `(3x^2 - 17x - 78) / ((x - 4)(x + 3))`
-  - [ ] Verify domain restrictions: `x ≠ -3, 2, 4`.
+  - [x] Verify domain restrictions: `x ≠ -3, 2, 4`.
 - [ ] **7.2. Comprehensive Unit Test Suite (`crates/quantus-core/tests/algebra_simplification.rs`)**:
   - [ ] 1. Simplifying nested fractions (single, double, deep nesting, sums inside nested fractions).
   - [ ] 2. Adding and subtracting fractions with identical denominators.
