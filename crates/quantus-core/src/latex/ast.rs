@@ -4,7 +4,7 @@
 use crate::num::Decimal;
 use crate::units::Unit;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Node {
     /// A literal number, never a float.
     Number { value: Decimal, position: usize },
