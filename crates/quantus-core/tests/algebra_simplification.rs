@@ -225,10 +225,20 @@ fn cat5_expanding_binomial_squares() {
     // Multivariate: (x + z)^2 -> x^2 + 2xz + z^2
     let res = run(r"(x + z)^2");
     assert_equivalent(r"(x + z)^2", &res);
+
+    // Textbook variables: (a + b)^2 and (a - b)^2
+    let res = run(r"(a + b)^2");
+    assert_equivalent(r"(a + b)^2", &res);
+
+    let res = run(r"(a - b)^2");
+    assert_equivalent(r"(a - b)^2", &res);
 }
 
 #[test]
 fn cat5_expanding_binomial_cubes() {
+    // (a + b)^3 -> a^3 + 3a^2 b + 3a b^2 + b^3
+    let res = run(r"(a + b)^3");
+    assert_equivalent(r"(a + b)^3", &res);
     // (x + 2)^3 -> x^3 + 6x^2 + 12x + 8
     let res = run(r"(x + 2)^3");
     assert_eq!(

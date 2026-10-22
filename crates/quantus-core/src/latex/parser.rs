@@ -706,9 +706,9 @@ impl Parser<'_> {
         let run = self.identifier_run();
         let symbol: String = run.iter().map(|t| greek_symbol(&t.text)).collect();
 
-        // Disambiguation: outside explicit unit context, single-letter 'y' is a free algebraic
-        // variable rather than the year unit alias.
-        let is_reclassified_variable = !self.unit_context && symbol == "y";
+        // Disambiguation: outside explicit unit context, single-letter 'y' and 'a' (annum/year)
+        // are free algebraic variables rather than unit aliases.
+        let is_reclassified_variable = !self.unit_context && (symbol == "y" || symbol == "a");
 
         if !is_reclassified_variable {
             if let Some(unit) = units::find(&symbol) {

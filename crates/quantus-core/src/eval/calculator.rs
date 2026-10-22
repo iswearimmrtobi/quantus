@@ -175,9 +175,9 @@ impl LatexCalculator {
 
     fn evaluate_algebraic(&self, formula: Formula) -> Result<Calculation> {
         let simp_result = crate::algebra::pipeline::simplify_node(&formula.expression)?;
-        // If the expression cannot be simplified further and contains free variables,
-        // it cannot be evaluated numerically without variable definitions.
-        if simp_result.steps.is_empty() {
+        // If the expression cannot be simplified further, has no domain restrictions,
+        // and contains free variables, it cannot be evaluated numerically without variable definitions.
+        if simp_result.steps.is_empty() && simp_result.domain_restrictions.is_empty() {
             let vars = crate::algebra::pipeline::collect_variables(&formula.expression);
             if let Some(first_var) = vars.into_iter().next() {
                 return Err(crate::QuantusError::UnresolvedVariable(format!(

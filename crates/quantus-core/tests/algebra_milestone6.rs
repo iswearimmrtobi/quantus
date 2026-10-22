@@ -123,6 +123,18 @@ fn test_latex_calculator_algebraic_routing_and_domain_restrictions() {
         simp.domain_restrictions.as_deref(),
         Some(&["x \\neq 1".to_string()][..])
     );
+
+    // Already-reduced rational expression with domain restriction
+    let irreducible = calc.evaluate(r"\frac{x + 2}{x}", &vars).unwrap();
+    assert_eq!(irreducible.result, r"\frac{x + 2}{x}");
+    assert_eq!(
+        irreducible.domain_restrictions.as_deref(),
+        Some(&["x \\neq 0".to_string()][..])
+    );
+
+    // Disambiguated algebraic variable 'a' in binomial square expansion
+    let binom = calc.evaluate(r"(a + b)^2", &vars).unwrap();
+    assert!(binom.result.contains("a") && binom.result.contains("b"));
 }
 
 #[test]
