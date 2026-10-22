@@ -8,8 +8,7 @@ use crate::num::Decimal;
 
 const DECIMAL_SEPARATOR: &str = "{,}";
 /// Magnitudes from 1e15 up and below 1e-4 are written in scientific notation.
-const SCIENTIFIC_UPPER: i64 = 15;
-const SCIENTIFIC_LOWER: i64 = -4;
+const PLAIN_EXPONENTS: std::ops::Range<i64> = -4..15;
 
 pub fn format(value: &Decimal) -> String {
     let stripped = value.normalized();
@@ -17,7 +16,7 @@ pub fn format(value: &Decimal) -> String {
         return "0".to_string();
     }
     let exponent = stripped.precision() as i64 - stripped.scale() - 1;
-    if exponent >= SCIENTIFIC_UPPER || exponent < SCIENTIFIC_LOWER {
+    if !PLAIN_EXPONENTS.contains(&exponent) {
         scientific(&stripped, exponent)
     } else {
         plain(&stripped)

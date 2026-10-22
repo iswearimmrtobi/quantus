@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use quantus_core::latex::parser::parse;
+use quantus_core::latex::serializer;
 use quantus_core::QuantusError;
 use serde_json::Value as Json;
 
@@ -32,6 +33,35 @@ fn parse_errors_match_the_kotlin_implementation() {
         }
         if case["hasPosition"].as_bool() == Some(true) {
             assert!(error.position().is_some(), "{name}: position");
+        }
+    }
+}
+
+#[test]
+fn round_trips_match_the_kotlin_implementation() {
+    for case in cases("roundtrip.json") {
+        let name = case["name"].as_str().unwrap();
+        let formula = parse(case["input"].as_str().unwrap()).unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert_eq!(serializer::formula(&formula), case["expected"].as_str().unwrap(), "{name}");
+    }
+}
+
+#[test]
+fn labels_are_split_into_name_and_index() {
+    let root: Json = {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/roundtrip.json");
+        serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap()
+    };
+    for case in root["labels"].as_array().unwrap() {
+        let input = case["input"].as_str().unwrap();
+        let label = parse(input).unwrap().label;
+        match (&case["label"], label) {
+            (Json::Null, None) => {}
+            (expected, Some(label)) => {
+                assert_eq!(label.name, expected["name"].as_str().unwrap(), "{input}");
+                assert_eq!(label.index.as_deref(), expected["index"].as_str(), "{input}");
+            }
+            (expected, None) => panic!("{input}: expected label {expected}"),
         }
     }
 }
