@@ -18,6 +18,7 @@ Quantus is a LaTeX-in/LaTeX-out physics calculator. Today: Kotlin backend (Sprin
 
 - Done: branch `rust-tauri`; Cargo workspace; `quantus-core::{error, num}` with 12 passing tests; golden JSON (`roundtrip`, `parse_errors`, `evaluate`, `sessions`, ~80 cases) in `crates/quantus-core/tests/golden/`.
 - Done: M1 oracle extraction. `units_symbols.json` (715 known symbols, 187,802 unknown candidates), `units_format.json` (79 units), `quantity_cases.json` (81 operation cases). Kotlin suite green before and after; the temporary dumper was deleted.
+- Done: M3 quantity (`quantus-core::quantity`, 12 unit tests plus `tests/quantity_golden.rs` over all 81 cases of `quantity_cases.json`).
 - Done: M2 units (`quantus-core::units`, 29 unit tests plus `tests/units_oracle.rs`). The oracle test checks all 188,499 one to three character candidates against `units_symbols.json` (known or not, dimension string and vector, exact factor and offset, printed form) and all 79 units of `units_format.json` on every field.
 - The user's uncommitted Kotlin/Electron startup work is untouched and becomes obsolete at cutover.
 - Environment: Rust 1.94, Node 26, webkit2gtk-4.1 2.52, GTK3, librsvg, patchelf, rsvg-convert are present. No `cargo-tauri`; use `@tauri-apps/cli` v2 through npm. Tauri 2.12 needs rustc 1.90 (OK).
@@ -102,7 +103,13 @@ M2 findings that change M3/M4:
 - Unit LaTeX (`units::latex`, including `symbol()` for the parser) moved from M4 into M2 because its oracle is in `units_format.json`.
 - `Unit::to_string()` is the registry format (`1` for the dimensionless unit); `registry::{preferred_unit, simplification_target, quantity_name, describe}` are the Kotlin `UnitRegistry` API.
 
-**M3 Quantity.** `PhysicalQuantity` on `Value` and `Unit`; exact conversion; error messages byte-identical to Kotlin. Exit: `quantity_cases.json` and the dimension/offset tests pass.
+**M3 Quantity (done).** `PhysicalQuantity` on `Value` and `Unit`; exact conversion; error messages byte-identical to Kotlin. Exit: `quantity_cases.json` and the dimension/offset tests pass.
+
+M3 findings that change M4/M5:
+- Division by zero is refused with `Division by zero.` instead of Kotlin's non-real ComplexInfinity; the golden runner accepts that one deliberate deviation. M5 should check what `evaluate.json` expects for `1/0`.
+- The oracle dump never executed the `simplify` operator (those cases record the operand unchanged), so the runner treats `op: simplify` as a no-op; real simplification is covered by `quantity.rs` unit tests (`W/A` to `V`, `V/A` to `Ω`, `kg·m²/s²` to `J`, `J/(N·m)` to `1`).
+- `Value`'s `Display` prints `Sqrt(x)` for a power of ½, matching the Symja text embedded in the "rational power" error.
+- `UnsupportedConversion` for products with offsets/roots keeps its own wording; no quantity case needed Indriya's.
 
 **M4 LaTeX.** AST, lexer, parser, normalizer, numbers, serializer, parse-error excerpt (unit LaTeX is done, see M2). Exit: `roundtrip.json` and `parse_errors.json` pass (positions 0-based, message substrings match).
 
