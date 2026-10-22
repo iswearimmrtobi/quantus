@@ -1,0 +1,2520 @@
+# Algebra simplification test cases
+
+2500 test cases for the algebraic simplification pipeline (`LatexCalculator::evaluate` with free variables), from polynomial order 1 to 100, 25 cases per order. The last four columns are empty and meant for recording results.
+
+## Conventions
+
+- **Order**: the highest polynomial degree that appears in the input (for multivariate cases: the highest total degree).
+- **Difficulty**: order 1–5 Easy, 6–20 Medium, 21–50 Hard, 51–100 Very hard.
+- **Input**: LaTeX exactly as it is typed into Quantus.
+- **Expected output**: the fully simplified form, written like `serializer::algebraic_expression` (expanded polynomials, a single reduced fraction otherwise). Any mathematically equal form that is fully reduced counts as correct (e.g. factored instead of expanded); note the difference in *Notes*.
+- **Domain restrictions**: written like `format_restrictions_plain`, e.g. `x != -2, -1, 1, x^2 + 4 != 0`. Real excluded values are listed as numbers. A factor with no real zero (such as `x^2 + 4`) is listed as `p != 0` when it appears as a binomial factor of a denominator; it excludes no real number. `none` means there is no restriction. Restrictions of the *input* are kept even when the factor cancels.
+- **Variables**: `x`, plus `a`, `b`, `z` in multivariate cases. Letters that are units (`m`, `s`, `g`, `y`, `t`, …) are not used.
+- **Pass/Fail**: `PASS`, `FAIL` or `ERROR` (engine error / no result).
+
+Every input was checked against its expected output with exact rational arithmetic at several random points, and every restriction against the values that make a denominator zero, when this file was generated. Quantus itself has not been run on them.
+
+## Cases
+
+| # | Order | Difficulty | Category | Input (LaTeX) | Expected output | Domain restrictions | Actual output | Actual restrictions | Pass/Fail | Notes |
+|---:|---:|---|---|---|---|---|---|---|---|---|
+| 1 | 1 | Easy | Cancels to zero | `\frac{-4x - 28}{x + 7} - (-4)` | `0` | `x != -7` |  |  |  |  |
+| 2 | 1 | Easy | Same denominator | `\frac{-5x}{x - 2} + \frac{7x - 4}{x - 2}` | `2` | `x != 2` |  |  |  |  |
+| 3 | 1 | Easy | Different denominators | `\frac{-4x}{x} + \frac{-2x - 12}{x + 6}` | `-6` | `x != -6, 0` |  |  |  |  |
+| 4 | 1 | Easy | Polynomial plus fraction | `(x - 3) + \frac{3}{x - 1}` | `\frac{x^{2} - 4x + 6}{x - 1}` | `x != 1` |  |  |  |  |
+| 5 | 1 | Easy | Sign flip | `\frac{4x + 4}{x + 1}` | `4` | `x != -1` |  |  |  |  |
+| 6 | 1 | Easy | Negative exponents | `x^{-1} \cdot (2x)` | `2` | `x != 0` |  |  |  |  |
+| 7 | 1 | Easy | Nested fraction | `\frac{\frac{-5x + 20}{x - 5}}{\frac{x - 4}{x - 5}}` | `-5` | `x != 4, 5` |  |  |  |  |
+| 8 | 1 | Easy | Monomial division | `\frac{12x}{4x}` | `3` | `x != 0` |  |  |  |  |
+| 9 | 1 | Easy | Linear factor cancellation | `\frac{-5x - 20}{x + 4}` | `-5` | `x != -4` |  |  |  |  |
+| 10 | 1 | Easy | Collect like terms | `4 - 5x + 6x - 4` | `x` | `none` |  |  |  |  |
+| 11 | 1 | Easy | Distribute | `3(x - 5) - 5x` | `-2x - 15` | `none` |  |  |  |  |
+| 12 | 1 | Easy | Multivariate monomials | `\frac{-12a}{2a}` | `-6` | `a != 0` |  |  |  |  |
+| 13 | 1 | Easy | Already irreducible | `\frac{x - 3}{x}` | `\frac{x - 3}{x}` | `x != 0` |  |  |  |  |
+| 14 | 1 | Easy | Constant factor | `\frac{8x^{2} + 48x - 56}{2x + 14}` | `4x - 4` | `x != -7` |  |  |  |  |
+| 15 | 1 | Easy | Cancels to zero | `\frac{-5x + 10}{x - 2} - (-5)` | `0` | `x != 2` |  |  |  |  |
+| 16 | 1 | Easy | Same denominator | `\frac{2x - 5}{x - 2} - \frac{-x + 1}{x - 2}` | `3` | `x != 2` |  |  |  |  |
+| 17 | 1 | Easy | Different denominators | `\frac{5x - 20}{x - 4} + \frac{3x + 6}{x + 2}` | `8` | `x != -2, 4` |  |  |  |  |
+| 18 | 1 | Easy | Polynomial plus fraction | `(x + 5) + \frac{5}{x - 7}` | `\frac{x^{2} - 2x - 30}{x - 7}` | `x != 7` |  |  |  |  |
+| 19 | 1 | Easy | Sign flip | `\frac{-3x - 3}{x + 1}` | `-3` | `x != -1` |  |  |  |  |
+| 20 | 1 | Easy | Negative exponents | `x^{-1} \cdot (-3x)` | `-3` | `x != 0` |  |  |  |  |
+| 21 | 1 | Easy | Nested fraction | `\frac{\frac{-3x - 15}{x - 1}}{\frac{x + 5}{x - 1}}` | `-3` | `x != -5, 1` |  |  |  |  |
+| 22 | 1 | Easy | Monomial division | `\frac{-5x}{5x}` | `-1` | `x != 0` |  |  |  |  |
+| 23 | 1 | Easy | Linear factor cancellation | `\frac{-3x}{x}` | `-3` | `x != 0` |  |  |  |  |
+| 24 | 1 | Easy | Distribute | `2(x + 4) - 1x` | `x + 8` | `none` |  |  |  |  |
+| 25 | 1 | Easy | Multivariate monomials | `\frac{-24z}{6}` | `-4z` | `none` |  |  |  |  |
+| 26 | 2 | Easy | Cancels to zero | `\frac{2x^{2} + 10x - 12}{x + 6} - (2x - 2)` | `0` | `x != -6` |  |  |  |  |
+| 27 | 2 | Easy | Perfect square trinomial | `\frac{x^{2} - 4x + 4}{x - 2}` | `x - 2` | `x != 2` |  |  |  |  |
+| 28 | 2 | Easy | Nested fraction | `\frac{\frac{x^{2} + 3x - 18}{x + 4}}{\frac{x + 6}{x + 4}}` | `x - 3` | `x != -6, -4` |  |  |  |  |
+| 29 | 2 | Easy | Constant factor | `\frac{4x^{3} - 20x^{2}}{x - 5}` | `4x^{2}` | `x != 5` |  |  |  |  |
+| 30 | 2 | Easy | Collapsing identity | `(x - 5)^{2} - (x + 5)^{2}` | `-20x` | `none` |  |  |  |  |
+| 31 | 2 | Easy | Power of a power | `(-x^{2})^{1} \cdot x^{-1}` | `-x` | `x != 0` |  |  |  |  |
+| 32 | 2 | Easy | Monomial division | `\frac{x^{2} + 2x}{x}` | `x + 2` | `x != 0` |  |  |  |  |
+| 33 | 2 | Easy | Expand product | `(-2x + 4)(x)` | `-2x^{2} + 4x` | `none` |  |  |  |  |
+| 34 | 2 | Easy | Binomial expansion | `(x + 1)^{2}` | `x^{2} + 2x + 1` | `none` |  |  |  |  |
+| 35 | 2 | Easy | Common power factor | `\frac{x^{2} + 3x}{x^{2} + x}` | `\frac{x + 3}{x + 1}` | `x != -1, 0` |  |  |  |  |
+| 36 | 2 | Easy | Same denominator | `\frac{-3x^{2} - x + 4}{x + 1} - \frac{-6x^{2} - 2x + 6}{x + 1}` | `3x - 2` | `x != -1` |  |  |  |  |
+| 37 | 2 | Easy | Sign flip | `\frac{5x^{2} + 10x}{x + 2}` | `5x` | `x != -2` |  |  |  |  |
+| 38 | 2 | Easy | Partial cancellation | `\frac{x^{2} + 2x - 3}{x^{2} + 7x + 12}` | `\frac{x - 1}{x + 4}` | `x != -4, -3` |  |  |  |  |
+| 39 | 2 | Easy | Quadratic factor cancellation | `\frac{4x^{2} + 4x - 80}{x^{2} + x - 20}` | `4` | `x != -5, 4` |  |  |  |  |
+| 40 | 2 | Easy | Distribute and collect | `4x(x - 3) - x` | `4x^{2} - 13x` | `none` |  |  |  |  |
+| 41 | 2 | Easy | Already irreducible | `\frac{x^{2} + 1}{x^{2} - 1}` | `\frac{x^{2} + 1}{x^{2} - 1}` | `x != -1, 1` |  |  |  |  |
+| 42 | 2 | Easy | Polynomial plus fraction | `x^{2} + \frac{3}{x + 4}` | `\frac{x^{3} + 4x^{2} + 3}{x + 4}` | `x != -4` |  |  |  |  |
+| 43 | 2 | Easy | Negative exponents | `x^{-1} \cdot (4x^{2} + 2x)` | `4x + 2` | `x != 0` |  |  |  |  |
+| 44 | 2 | Easy | Different denominators | `\frac{x^{2} + 2x}{x + 2} + \frac{-4x + 16}{x - 4}` | `x - 4` | `x != -2, 4` |  |  |  |  |
+| 45 | 2 | Easy | Multivariate distribution | `a \cdot (a + 2b)` | `a^{2} + 2a b` | `none` |  |  |  |  |
+| 46 | 2 | Easy | Multivariate monomials | `\frac{-15 \cdot a \cdot b}{3a}` | `-5b` | `a != 0` |  |  |  |  |
+| 47 | 2 | Easy | Difference of powers | `\frac{x^{2} - 1}{x - 1}` | `x + 1` | `x != 1` |  |  |  |  |
+| 48 | 2 | Easy | Linear factor cancellation | `\frac{x^{2} - 7x + 12}{x - 3}` | `x - 4` | `x != 3` |  |  |  |  |
+| 49 | 2 | Easy | Cancels to zero | `\frac{x^{2} + 3x}{x + 3} - x` | `0` | `x != -3` |  |  |  |  |
+| 50 | 2 | Easy | Perfect square trinomial | `\frac{x^{2} + 6x + 9}{x + 3}` | `x + 3` | `x != -3` |  |  |  |  |
+| 51 | 3 | Easy | Difference of powers | `\frac{x^{3} - x}{x^{2} - x}` | `x + 1` | `x != 0, 1` |  |  |  |  |
+| 52 | 3 | Easy | Negative exponents | `x^{-1} \cdot (-x^{3} - 2x^{2})` | `-x^{2} - 2x` | `x != 0` |  |  |  |  |
+| 53 | 3 | Easy | Triple nested fraction | `\frac{\frac{\frac{-5x^{3} + 25x^{2} + 10x - 120}{x - 3}}{x + 2}}{\frac{x - 4}{x + 6}}` | `-5x - 30` | `x != -6, -2, 3, 4` |  |  |  |  |
+| 54 | 3 | Easy | Sign flip | `\frac{-x^{3} - 3x^{2} + 8x + 16}{x + 4}` | `-x^{2} + x + 4` | `x != -4` |  |  |  |  |
+| 55 | 3 | Easy | Different denominators | `\frac{-3x^{3} - 3x^{2}}{x + 1} + \frac{x^{3} + 6x^{2}}{x + 6}` | `-2x^{2}` | `x != -6, -1` |  |  |  |  |
+| 56 | 3 | Easy | Common power factor | `\frac{x^{3} - 5x^{2}}{x^{3} + x^{2}}` | `\frac{x - 5}{x + 1}` | `x != -1, 0` |  |  |  |  |
+| 57 | 3 | Easy | Collapsing identity | `(x^{2} + 5)(x - 5) - x^{3}` | `-5x^{2} + 5x - 25` | `none` |  |  |  |  |
+| 58 | 3 | Easy | Geometric sum | `\frac{x^{3} - 1}{x - 1}` | `x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 59 | 3 | Easy | Perfect square trinomial | `\frac{x^{3} + 4x^{2} + 4x}{x + 2}` | `x^{2} + 2x` | `x != -2` |  |  |  |  |
+| 60 | 3 | Easy | Polynomial plus fraction | `(-x^{3} - 3x^{2}) + \frac{1}{x - 7}` | `\frac{-x^{4} + 4x^{3} + 21x^{2} + 1}{x - 7}` | `x != 7` |  |  |  |  |
+| 61 | 3 | Easy | Constant factor | `\frac{-6x^{3}}{6}` | `-x^{3}` | `none` |  |  |  |  |
+| 62 | 3 | Easy | Cancels to zero | `\frac{x^{3} - 5x^{2} + 6x}{x - 2} - (x^{2} - 3x)` | `0` | `x != 2` |  |  |  |  |
+| 63 | 3 | Easy | Distribute and collect | `-5x^{2}(x + 5) - 4x^{2}` | `-5x^{3} - 29x^{2}` | `none` |  |  |  |  |
+| 64 | 3 | Easy | Linear factor cancellation | `\frac{-4x^{3} - 28x^{2}}{x + 7}` | `-4x^{2}` | `x != -7` |  |  |  |  |
+| 65 | 3 | Easy | Nested fraction | `\frac{\frac{x^{3} + 2x^{2}}{x - 7}}{\frac{x + 2}{x - 7}}` | `x^{2}` | `x != -2, 7` |  |  |  |  |
+| 66 | 3 | Easy | Expand product | `(x - 1)(x^{2})` | `x^{3} - x^{2}` | `none` |  |  |  |  |
+| 67 | 3 | Easy | Multivariate distribution | `a^{2} \cdot (a - 3b)` | `a^{3} - 3a^{2} b` | `none` |  |  |  |  |
+| 68 | 3 | Easy | Monomial division | `\frac{2x^{3} - 6x^{2}}{2x^{2}}` | `x - 3` | `x != 0` |  |  |  |  |
+| 69 | 3 | Easy | Already irreducible | `\frac{x^{3} - 4}{x^{3}}` | `\frac{x^{3} - 4}{x^{3}}` | `x != 0` |  |  |  |  |
+| 70 | 3 | Easy | Collect like terms | `5x^{3} + 2 - 2 - 4x^{3} + 2x^{2} - 4x^{2}` | `x^{3} - 2x^{2}` | `none` |  |  |  |  |
+| 71 | 3 | Easy | Same denominator | `\frac{x^{3}}{x + 3} + \frac{-3x^{3} - 3x^{2} + 7x - 6}{x + 3}` | `-2x^{2} + 3x - 2` | `x != -3` |  |  |  |  |
+| 72 | 3 | Easy | Partial cancellation | `\frac{2x^{3} - 11x^{2} + 12x}{x^{2} - 11x + 28}` | `\frac{2x^{2} - 3x}{x - 7}` | `x != 4, 7` |  |  |  |  |
+| 73 | 3 | Easy | Reference-type rational | `\frac{x^{3} - 2x^{2} - 15x + 36}{x^{3} + 3x^{2} - 10x - 24}` | `\frac{x - 3}{x + 2}` | `x != -4, -2, 3` |  |  |  |  |
+| 74 | 3 | Easy | Quadratic factor cancellation | `\frac{3x^{3} - 5x^{2} - 124x + 84}{x^{2} - x - 42}` | `3x - 2` | `x != -6, 7` |  |  |  |  |
+| 75 | 3 | Easy | Multivariate monomials | `\frac{-12 \cdot a \cdot b^{2}}{3a}` | `-4b^{2}` | `a != 0` |  |  |  |  |
+| 76 | 4 | Easy | Negative exponents | `x^{-3} \cdot (3x^{4} - x^{3})` | `3x - 1` | `x != 0` |  |  |  |  |
+| 77 | 4 | Easy | Expand product | `(-4x)(4x^{3} - 5x^{2})` | `-16x^{4} + 20x^{3}` | `none` |  |  |  |  |
+| 78 | 4 | Easy | Cancels to zero | `\frac{x^{4} - 3x^{3} - 3x^{2} + 9x}{x - 3} - (x^{3} - 3x)` | `0` | `x != 3` |  |  |  |  |
+| 79 | 4 | Easy | Linear factor cancellation | `\frac{x^{4} + x^{3} + 4x^{2} - x - 5}{x + 1}` | `x^{3} + 4x - 5` | `x != -1` |  |  |  |  |
+| 80 | 4 | Easy | Quadratic factor cancellation | `\frac{x^{4} + x^{3} - 5x^{2} - 9x - 36}{(x - 3)(x + 3)}` | `x^{2} + x + 4` | `x != -3, 3` |  |  |  |  |
+| 81 | 4 | Easy | Power of a power | `\frac{(x^{4})^{1}}{x^{3}}` | `x` | `x != 0` |  |  |  |  |
+| 82 | 4 | Easy | Collect like terms | `4 + 6x^{4} - 4 - 5x^{3} - 2 - 5x^{4} + 8x^{3}` | `x^{4} + 3x^{3} - 2` | `none` |  |  |  |  |
+| 83 | 4 | Easy | Same denominator | `\frac{x^{4} + 5x^{3} + 4x^{2}}{x^{3} + 8} - \frac{-2x^{4} + 2x^{3} + 4x^{2} - 24x - 24}{x^{3} + 8}` | `3x + 3` | `x != -2` |  |  |  |  |
+| 84 | 4 | Easy | Partial cancellation | `\frac{-x^{4} - x^{3}}{x^{2} - 4x - 5}` | `\frac{-x^{3}}{x - 5}` | `x != -1, 5` |  |  |  |  |
+| 85 | 4 | Easy | Multivariate monomials | `\frac{6 \cdot a \cdot b \cdot z^{2}}{a}` | `6b z^{2}` | `a != 0` |  |  |  |  |
+| 86 | 4 | Easy | Geometric sum | `\frac{x^{4} - 1}{x - 1}` | `x^{3} + x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 87 | 4 | Easy | Nested fraction | `\frac{\frac{4x^{4} - 8x^{3} - 4x + 8}{x}}{\frac{x - 2}{x}}` | `4x^{3} - 4` | `x != 0, 2` |  |  |  |  |
+| 88 | 4 | Easy | Perfect square trinomial | `\frac{x^{4} - 2x^{2} + 1}{x^{2} - 1}` | `x^{2} - 1` | `x != -1, 1` |  |  |  |  |
+| 89 | 4 | Easy | Difference of squares chain | `\frac{x^{4} - 1}{(x - 1)(x + 1)}` | `x^{2} + 1` | `x != -1, 1` |  |  |  |  |
+| 90 | 4 | Easy | Monomial division | `\frac{-x^{4} + 3x^{3} - 3x}{x}` | `-x^{3} + 3x^{2} - 3` | `x != 0` |  |  |  |  |
+| 91 | 4 | Easy | Sign flip | `\frac{5x^{4} - 5x^{3}}{x - 1}` | `5x^{3}` | `x != 1` |  |  |  |  |
+| 92 | 4 | Easy | Multivariate expansion | `(a^{2} + b^{2})(a^{2} - b^{2})` | `a^{4} - b^{4}` | `none` |  |  |  |  |
+| 93 | 4 | Easy | Difference of powers | `\frac{x^{4} - 1}{x^{2} - 1}` | `x^{2} + 1` | `x != -1, 1` |  |  |  |  |
+| 94 | 4 | Easy | Constant factor | `\frac{4x^{4}}{4}` | `x^{4}` | `none` |  |  |  |  |
+| 95 | 4 | Easy | Polynomial plus fraction | `4x^{4} - \frac{2}{x - 5}` | `\frac{4x^{5} - 20x^{4} - 2}{x - 5}` | `x != 5` |  |  |  |  |
+| 96 | 4 | Easy | Different denominators | `\frac{x^{4} - 5x^{3}}{x - 5} + \frac{-4x^{4} - 24x^{3}}{x + 6}` | `-3x^{3}` | `x != -6, 5` |  |  |  |  |
+| 97 | 4 | Easy | Already irreducible | `\frac{x^{4} - 4}{x^{4} - 1}` | `\frac{x^{4} - 4}{x^{4} - 1}` | `x != -1, 1` |  |  |  |  |
+| 98 | 4 | Easy | Reference-type rational | `\frac{-x^{4} - 9x^{3} - 23x^{2} - 45x - 90}{x^{3} + 3x^{2} - 36x - 108}` | `\frac{-x^{2} - 5}{x - 6}` | `x != -6, -3, 6` |  |  |  |  |
+| 99 | 4 | Easy | Collapsing identity | `(x^{2} - 5)^{2} - (x^{2} + 5)^{2}` | `-20x^{2}` | `none` |  |  |  |  |
+| 100 | 4 | Easy | Common power factor | `\frac{x^{4} + 2x}{x^{4} + x}` | `\frac{x^{3} + 2}{x^{3} + 1}` | `x != -1, 0` |  |  |  |  |
+| 101 | 5 | Easy | Different denominators | `\frac{x^{5} + 6x^{4}}{x + 6} + \frac{-x^{3} - 4x^{2}}{x + 4}` | `x^{4} - x^{2}` | `x != -6, -4` |  |  |  |  |
+| 102 | 5 | Easy | Monomial division | `\frac{18x^{5} - 12x^{4}}{6x^{4}}` | `3x - 2` | `x != 0` |  |  |  |  |
+| 103 | 5 | Easy | Multivariate distribution | `b^{3} \cdot (a^{2} - 2b^{2})` | `a^{2} b^{3} - 2b^{5}` | `none` |  |  |  |  |
+| 104 | 5 | Easy | Quadratic factor cancellation | `\frac{-3x^{5} + 4x^{4} + 74x^{3} + 52x^{2} + 48x}{(x + 4)(x - 6)}` | `-3x^{3} - 2x^{2} - 2x` | `x != -4, 6` |  |  |  |  |
+| 105 | 5 | Easy | Geometric sum | `\frac{x^{5} - 1}{x - 1}` | `x^{4} + x^{3} + x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 106 | 5 | Easy | Polynomial plus fraction | `(-5x^{5} - 3x^{3}) - \frac{3}{x + 5}` | `\frac{-5x^{6} - 25x^{5} - 3x^{4} - 15x^{3} - 3}{x + 5}` | `x != -5` |  |  |  |  |
+| 107 | 5 | Easy | Power of a power | `(x^{5})^{1} \cdot x^{-4}` | `x` | `x != 0` |  |  |  |  |
+| 108 | 5 | Easy | Same denominator | `\frac{x^{5} - 4x^{3} - 5x}{x + 4} - \frac{-4x^{4} - 4x^{3} - 5x}{x + 4}` | `x^{4}` | `x != -4` |  |  |  |  |
+| 109 | 5 | Easy | Collapsing identity | `(x^{3} - 1)(x^{2} + 1) - x^{5}` | `x^{3} - x^{2} - 1` | `none` |  |  |  |  |
+| 110 | 5 | Easy | Linear factor cancellation | `\frac{x^{5} - 3x^{4}}{x - 3}` | `x^{4}` | `x != 3` |  |  |  |  |
+| 111 | 5 | Easy | Expand product | `(x + 1)(-4x^{4})` | `-4x^{5} - 4x^{4}` | `none` |  |  |  |  |
+| 112 | 5 | Easy | Partial cancellation | `\frac{-5x^{5} + 15x^{4} - 5x^{2} + 15x}{x^{2} - 9x + 18}` | `\frac{-5x^{4} - 5x}{x - 6}` | `x != 3, 6` |  |  |  |  |
+| 113 | 5 | Easy | Constant factor | `\frac{2x^{5} - 6x^{3}}{2}` | `x^{5} - 3x^{3}` | `none` |  |  |  |  |
+| 114 | 5 | Easy | Already irreducible | `\frac{x^{5} - 3}{x^{5} + 1}` | `\frac{x^{5} - 3}{x^{5} + 1}` | `x != -1` |  |  |  |  |
+| 115 | 5 | Easy | Negative exponents | `x^{-5} \cdot (4x^{5})` | `4` | `x != 0` |  |  |  |  |
+| 116 | 5 | Easy | Nested fraction | `\frac{\frac{x^{5} + 3x^{4}}{x - 4}}{\frac{x + 3}{x - 4}}` | `x^{4}` | `x != -3, 4` |  |  |  |  |
+| 117 | 5 | Easy | Collect like terms | `-3x^{2} + 5x^{2} - x^{5} - 2x^{5}` | `-3x^{5} + 2x^{2}` | `none` |  |  |  |  |
+| 118 | 5 | Easy | Difference of powers | `\frac{x^{5} - x}{x^{3} - x}` | `x^{2} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 119 | 5 | Easy | Distribute and collect | `-3x(x^{4} - 2) + x` | `-3x^{5} + 7x` | `none` |  |  |  |  |
+| 120 | 5 | Easy | Triple nested fraction | `\frac{\frac{\frac{x^{5} - 12x^{4} + 47x^{3} - 60x^{2}}{x - 3}}{x - 4}}{\frac{x - 5}{x + 5}}` | `x^{3} + 5x^{2}` | `x != -5, 3, 4, 5` |  |  |  |  |
+| 121 | 5 | Easy | Multivariate monomials | `\frac{-3 \cdot a^{4} \cdot b}{a^{3} \cdot b}` | `-3a` | `a != 0, b != 0` |  |  |  |  |
+| 122 | 5 | Easy | Sign flip | `\frac{-4x^{5} + 20x^{4} + 3x^{2} - 15x}{x - 5}` | `-4x^{4} + 3x` | `x != 5` |  |  |  |  |
+| 123 | 5 | Easy | Common power factor | `\frac{x^{5} - x^{4}}{x^{5} + x^{4}}` | `\frac{x - 1}{x + 1}` | `x != -1, 0` |  |  |  |  |
+| 124 | 5 | Easy | Perfect square trinomial | `\frac{x^{5} - 2x^{3} + x}{x^{2} - 1}` | `x^{3} - x` | `x != -1, 1` |  |  |  |  |
+| 125 | 5 | Easy | Reference-type rational | `\frac{x^{5} + 11x^{4} + 30x^{3}}{x^{3} + 9x^{2} + 8x - 60}` | `\frac{x^{3}}{x - 2}` | `x != -6, -5, 2` |  |  |  |  |
+| 126 | 6 | Medium | Nested fraction | `\frac{\frac{-3x^{6} + 12x^{5}}{x + 4}}{\frac{x - 4}{x + 4}}` | `-3x^{5}` | `x != -4, 4` |  |  |  |  |
+| 127 | 6 | Medium | Expand product | `(2x^{4})(-5x^{2})` | `-10x^{6}` | `none` |  |  |  |  |
+| 128 | 6 | Medium | Negative exponents | `x^{-4} \cdot (-x^{6} + 5x^{5})` | `-x^{2} + 5x` | `x != 0` |  |  |  |  |
+| 129 | 6 | Medium | Sign flip | `\frac{4x^{6} - 22x^{5} + 5x^{4} + 25x^{3}}{x - 5}` | `4x^{5} - 2x^{4} - 5x^{3}` | `x != 5` |  |  |  |  |
+| 130 | 6 | Medium | Multivariate distribution | `a^{4} \cdot b \cdot (a + b)` | `a^{5} b + a^{4} b^{2}` | `none` |  |  |  |  |
+| 131 | 6 | Medium | Common power factor | `\frac{x^{6} - 3x^{5}}{x^{6} + x^{5}}` | `\frac{x - 3}{x + 1}` | `x != -1, 0` |  |  |  |  |
+| 132 | 6 | Medium | Same denominator | `\frac{x^{6} + 4x^{4} - 1}{x^{2} + 1} - \frac{-4x^{6} + 5x^{5} - x^{4} + 5x^{3} - 5x^{2} - 6}{x^{2} + 1}` | `5x^{4} - 5x^{3} + 5` | `x^2 + 1 != 0` |  |  |  |  |
+| 133 | 6 | Medium | Power of a power | `(-x^{2})^{3} \cdot x^{-1}` | `-x^{5}` | `x != 0` |  |  |  |  |
+| 134 | 6 | Medium | Monomial division | `\frac{x^{6} + 4x^{4}}{x^{4}}` | `x^{2} + 4` | `x != 0` |  |  |  |  |
+| 135 | 6 | Medium | Partial cancellation | `\frac{x^{6} - 2x^{5} - 2x + 4}{x^{2} - 2x}` | `\frac{x^{5} - 2}{x}` | `x != 0, 2` |  |  |  |  |
+| 136 | 6 | Medium | Already irreducible | `\frac{x^{6} - 1}{x^{6}}` | `\frac{x^{6} - 1}{x^{6}}` | `x != 0` |  |  |  |  |
+| 137 | 6 | Medium | Reference-type rational | `\frac{x^{6} - 3x^{5} - 4x^{4}}{x^{3} - 8x^{2} + 11x + 20}` | `\frac{x^{4}}{x - 5}` | `x != -1, 4, 5` |  |  |  |  |
+| 138 | 6 | Medium | Collapsing identity | `(x^{3} + 2)^{2} - (x^{3} - 2)^{2}` | `8x^{3}` | `none` |  |  |  |  |
+| 139 | 6 | Medium | Difference of powers | `\frac{x^{6} - 1}{x^{3} + 1}` | `x^{3} - 1` | `x != -1` |  |  |  |  |
+| 140 | 6 | Medium | Different denominators | `\frac{4x^{6} - 8x^{5} - 4x^{4} + 8x^{3}}{x - 2} + \frac{x^{5} + 4x^{4}}{x + 4}` | `4x^{5} + x^{4} - 4x^{3}` | `x != -4, 2` |  |  |  |  |
+| 141 | 6 | Medium | Cancels to zero | `\frac{x^{6} - x^{5} - 2x^{4} + 2x^{3}}{x - 1} - (x^{5} - 2x^{3})` | `0` | `x != 1` |  |  |  |  |
+| 142 | 6 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{6} - 15x^{5} + 71x^{4} - 105x^{3}}{x - 7}}{x - 5}}{\frac{x - 3}{x + 6}}` | `x^{4} + 6x^{3}` | `x != -6, 3, 5, 7` |  |  |  |  |
+| 143 | 6 | Medium | Perfect square trinomial | `\frac{x^{6} + 16x^{3} + 64}{x^{3} + 8}` | `x^{3} + 8` | `x != -2` |  |  |  |  |
+| 144 | 6 | Medium | Quadratic factor cancellation | `\frac{-5x^{6} - 5x^{5} + 30x^{4} - x^{3} - x^{2} + 6x}{x^{2} + x - 6}` | `-5x^{4} - x` | `x != -3, 2` |  |  |  |  |
+| 145 | 6 | Medium | Constant factor | `\frac{30x^{6} + 24x^{5} - 12}{6}` | `5x^{6} + 4x^{5} - 2` | `none` |  |  |  |  |
+| 146 | 6 | Medium | Linear factor cancellation | `\frac{4x^{6} + 29x^{5} + 30x^{4}}{x + 6}` | `4x^{5} + 5x^{4}` | `x != -6` |  |  |  |  |
+| 147 | 6 | Medium | Binomial expansion | `(x - 1)^{6}` | `x^{6} - 6x^{5} + 15x^{4} - 20x^{3} + 15x^{2} - 6x + 1` | `none` |  |  |  |  |
+| 148 | 6 | Medium | Polynomial plus fraction | `x^{6} + \frac{1}{x - 7}` | `\frac{x^{7} - 7x^{6} + 1}{x - 7}` | `x != 7` |  |  |  |  |
+| 149 | 6 | Medium | Collect like terms | `-3x^{6} - x^{3} - 2x^{4} - 3x^{3} - x^{5} + 4x^{6} - 3 - 2x^{5} - 2x^{4}` | `x^{6} - 3x^{5} - 4x^{4} - 4x^{3} - 3` | `none` |  |  |  |  |
+| 150 | 6 | Medium | Nested fraction | `\frac{\frac{5x^{6} + 20x^{5}}{x + 1}}{\frac{x + 4}{x + 1}}` | `5x^{5}` | `x != -4, -1` |  |  |  |  |
+| 151 | 7 | Medium | Common power factor | `\frac{x^{7} - 5x^{2}}{x^{7} + x^{2}}` | `\frac{x^{5} - 5}{x^{5} + 1}` | `x != -1, 0` |  |  |  |  |
+| 152 | 7 | Medium | Same denominator | `\frac{x^{7} + 3x^{4}}{x - 1} + \frac{-x^{6} + x^{4} - 4x^{3}}{x - 1}` | `x^{6} + 4x^{3}` | `x != 1` |  |  |  |  |
+| 153 | 7 | Medium | Monomial division | `\frac{25x^{7} + 15x^{6} - 25x^{5} - 25x}{5x}` | `5x^{6} + 3x^{5} - 5x^{4} - 5` | `x != 0` |  |  |  |  |
+| 154 | 7 | Medium | Quadratic factor cancellation | `\frac{-2x^{7} - 24x^{6} - 70x^{5} + 5x^{3} + 60x^{2} + 175x}{x^{2} + 12x + 35}` | `-2x^{5} + 5x` | `x != -7, -5` |  |  |  |  |
+| 155 | 7 | Medium | Cancels to zero | `\frac{x^{7}}{x} - x^{6}` | `0` | `x != 0` |  |  |  |  |
+| 156 | 7 | Medium | Already irreducible | `\frac{x^{7} - 3}{x^{7} + 1}` | `\frac{x^{7} - 3}{x^{7} + 1}` | `x != -1` |  |  |  |  |
+| 157 | 7 | Medium | Different denominators | `\frac{2x^{7} + 10x^{6}}{x + 5} + \frac{x^{5} - 6x^{4} - 2x^{3} + 12x^{2}}{x - 6}` | `2x^{6} + x^{4} - 2x^{2}` | `x != -5, 6` |  |  |  |  |
+| 158 | 7 | Medium | Power of a power | `(-x^{7})^{1} \cdot x^{-6}` | `-x` | `x != 0` |  |  |  |  |
+| 159 | 7 | Medium | Polynomial plus fraction | `-5x^{7} + \frac{2}{x - 1}` | `\frac{-5x^{8} + 5x^{7} + 2}{x - 1}` | `x != 1` |  |  |  |  |
+| 160 | 7 | Medium | Expand product | `(x - 5)(x^{6} - 3x)` | `x^{7} - 5x^{6} - 3x^{2} + 15x` | `none` |  |  |  |  |
+| 161 | 7 | Medium | Binomial expansion | `(x + 2)^{7}` | `x^{7} + 14x^{6} + 84x^{5} + 280x^{4} + 560x^{3} + 672x^{2} + 448x + 128` | `none` |  |  |  |  |
+| 162 | 7 | Medium | Multivariate monomials | `\frac{8 \cdot a^{3} \cdot b \cdot z^{3}}{2b}` | `4a^{3} z^{3}` | `b != 0` |  |  |  |  |
+| 163 | 7 | Medium | Collect like terms | `x^{7} - 2x^{2} - x^{3} - 3x^{6} + x^{3}` | `x^{7} - 3x^{6} - 2x^{2}` | `none` |  |  |  |  |
+| 164 | 7 | Medium | Perfect square trinomial | `\frac{x^{7} - 2x^{4} + x}{x^{3} - 1}` | `x^{4} - x` | `x != 1` |  |  |  |  |
+| 165 | 7 | Medium | Nested fraction | `\frac{\frac{x^{7} - 2x^{6} - x^{2} - 3x + 10}{x + 3}}{\frac{x - 2}{x + 3}}` | `x^{6} - x - 5` | `x != -3, 2` |  |  |  |  |
+| 166 | 7 | Medium | Collapsing identity | `(x^{4} + 5)(x^{3} - 5) - x^{7}` | `-5x^{4} + 5x^{3} - 25` | `none` |  |  |  |  |
+| 167 | 7 | Medium | Constant factor | `\frac{10x^{8} + 5x^{4} + 15x^{2}}{x}` | `10x^{7} + 5x^{3} + 15x` | `x != 0` |  |  |  |  |
+| 168 | 7 | Medium | Sign flip | `\frac{-x^{7} + 5x^{6} - 5x^{4} + 25x^{3} + 3x^{2} - 15x}{x - 5}` | `-x^{6} - 5x^{3} + 3x` | `x != 5` |  |  |  |  |
+| 169 | 7 | Medium | Multivariate distribution | `a^{2} \cdot b^{2} \cdot (5b^{3} + a)` | `5a^{2} b^{5} + a^{3} b^{2}` | `none` |  |  |  |  |
+| 170 | 7 | Medium | Distribute and collect | `5x^{6}(x + 2) - 4x^{6}` | `5x^{7} + 6x^{6}` | `none` |  |  |  |  |
+| 171 | 7 | Medium | Partial cancellation | `\frac{x^{7} - 3x^{6} - 10x^{5} + x - 5}{x^{2} - 5x}` | `\frac{x^{6} + 2x^{5} + 1}{x}` | `x != 0, 5` |  |  |  |  |
+| 172 | 7 | Medium | Negative exponents | `x^{-5} \cdot (-3x^{7} - 5x^{6})` | `-3x^{2} - 5x` | `x != 0` |  |  |  |  |
+| 173 | 7 | Medium | Reference-type rational | `\frac{x^{7} - x^{6} - 12x^{5} + x^{4} - x^{3} - 12x^{2}}{x^{3} - 8x^{2} - 5x + 84}` | `\frac{x^{5} + x^{2}}{x - 7}` | `x != -3, 4, 7` |  |  |  |  |
+| 174 | 7 | Medium | Difference of powers | `\frac{x^{7} - x}{x^{4} - x}` | `x^{3} + 1` | `x != 0, 1` |  |  |  |  |
+| 175 | 7 | Medium | Triple nested fraction | `\frac{\frac{\frac{-3x^{7} + 15x^{6} + 6x^{5} - 73x^{4} + 5x^{3} + 2x^{2} - 24x}{x - 4}}{x - 3}}{\frac{x + 2}{x + 5}}` | `-3x^{5} - 15x^{4} - x^{2} - 5x` | `x != -5, -2, 3, 4` |  |  |  |  |
+| 176 | 8 | Medium | Perfect square trinomial | `\frac{x^{8} + 2x^{4} + 1}{x^{4} + 1}` | `x^{4} + 1` | `x^4 + 1 != 0` |  |  |  |  |
+| 177 | 8 | Medium | Polynomial plus fraction | `(4x^{8} + 2x^{5}) - \frac{2}{x + 7}` | `\frac{4x^{9} + 28x^{8} + 2x^{6} + 14x^{5} - 2}{x + 7}` | `x != -7` |  |  |  |  |
+| 178 | 8 | Medium | Already irreducible | `\frac{x^{8} - 2}{x^{8} - 1}` | `\frac{x^{8} - 2}{x^{8} - 1}` | `x != -1, 1` |  |  |  |  |
+| 179 | 8 | Medium | Collect like terms | `-3 - 3 - 6x^{8} + 3 + 5 + 7x^{8}` | `x^{8} + 2` | `none` |  |  |  |  |
+| 180 | 8 | Medium | Reference-type rational | `\frac{x^{8} - 7x^{7} + 12x^{6} - 2x^{5} + 14x^{4} - 24x^{3} + 3x^{2} - 21x + 36}{x^{3} - 5x^{2} - 2x + 24}` | `\frac{x^{6} - 2x^{3} + 3}{x + 2}` | `x != -2, 3, 4` |  |  |  |  |
+| 181 | 8 | Medium | Distribute and collect | `-2x^{2}(x^{6} - 4) - 4x^{2}` | `-2x^{8} + 4x^{2}` | `none` |  |  |  |  |
+| 182 | 8 | Medium | Power of a power | `\frac{(x^{4})^{2}}{x^{4}}` | `x^{4}` | `x != 0` |  |  |  |  |
+| 183 | 8 | Medium | Collapsing identity | `(x^{4} + 4)^{2} - (x^{4} - 4)^{2}` | `16x^{4}` | `none` |  |  |  |  |
+| 184 | 8 | Medium | Quadratic factor cancellation | `\frac{x^{8} + 9x^{7} + 20x^{6} + 3x^{3} + 30x^{2} + 87x + 60}{(x + 4)(x + 5)}` | `x^{6} + 3x + 3` | `x != -5, -4` |  |  |  |  |
+| 185 | 8 | Medium | Different denominators | `\frac{x^{8} + 6x^{7} + 3x^{4} + 18x^{3}}{x + 6} + \frac{x^{8} - 7x^{7}}{x - 7}` | `2x^{7} + 3x^{3}` | `x != -6, 7` |  |  |  |  |
+| 186 | 8 | Medium | Same denominator | `\frac{-2x^{8} + 2x}{x^{2} - 4} - \frac{-x^{8} - 4x^{6} + 2x}{x^{2} - 4}` | `-x^{6}` | `x != -2, 2` |  |  |  |  |
+| 187 | 8 | Medium | Monomial division | `\frac{-15x^{8} - 20x^{5}}{5x^{5}}` | `-3x^{3} - 4` | `x != 0` |  |  |  |  |
+| 188 | 8 | Medium | Constant factor | `\frac{4x^{8}}{2}` | `2x^{8}` | `none` |  |  |  |  |
+| 189 | 8 | Medium | Difference of powers | `\frac{x^{8} - 256}{x^{4} + 16}` | `x^{4} - 16` | `x^4 + 16 != 0` |  |  |  |  |
+| 190 | 8 | Medium | Multivariate monomials | `\frac{18 \cdot a^{3} \cdot z^{5}}{3a^{3}}` | `6z^{5}` | `a != 0` |  |  |  |  |
+| 191 | 8 | Medium | Cancels to zero | `\frac{x^{8} - 2x^{7} - 15x^{6} - 3x + 15}{x - 5} - (x^{7} + 3x^{6} - 3)` | `0` | `x != 5` |  |  |  |  |
+| 192 | 8 | Medium | Geometric sum | `\frac{x^{8} - 1}{x - 1}` | `x^{7} + x^{6} + x^{5} + x^{4} + x^{3} + x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 193 | 8 | Medium | Expand product | `(2x)(4x^{7})` | `8x^{8}` | `none` |  |  |  |  |
+| 194 | 8 | Medium | Triple nested fraction | `\frac{\frac{\frac{4x^{8} - 12x^{7} - 64x^{6} - 51x^{5} + 9x^{4} + 48x^{3} + 36x^{2}}{x + 2}}{x + 1}}{\frac{x - 6}{x + 3}}` | `4x^{6} + 12x^{5} - 3x^{3} - 9x^{2}` | `x != -3, -2, -1, 6` |  |  |  |  |
+| 195 | 8 | Medium | Nested fraction | `\frac{\frac{-2x^{8} - 3x^{7}}{x + 5}}{\frac{x}{x + 5}}` | `-2x^{7} - 3x^{6}` | `x != -5, 0` |  |  |  |  |
+| 196 | 8 | Medium | Sign flip | `\frac{3x^{8} - 3x^{7} + x^{3} - x^{2}}{x - 1}` | `3x^{7} + x^{2}` | `x != 1` |  |  |  |  |
+| 197 | 8 | Medium | Negative exponents | `x^{-4} \cdot (5x^{8} - 5x^{6})` | `5x^{4} - 5x^{2}` | `x != 0` |  |  |  |  |
+| 198 | 8 | Medium | Common power factor | `\frac{x^{8} + 3x^{3}}{x^{8} - x^{3}}` | `\frac{x^{5} + 3}{x^{5} - 1}` | `x != 0, 1` |  |  |  |  |
+| 199 | 8 | Medium | Difference of squares chain | `\frac{x^{8} - 1}{(x^{2} - 1)(x^{2} + 1)}` | `x^{4} + 1` | `x != -1, 1, x^2 + 1 != 0` |  |  |  |  |
+| 200 | 8 | Medium | Multivariate distribution | `a^{6} \cdot (-3b^{2} + a)` | `-3a^{6} b^{2} + a^{7}` | `none` |  |  |  |  |
+| 201 | 9 | Medium | Multivariate monomials | `\frac{-18 \cdot a^{5} \cdot b^{4}}{6 \cdot a \cdot b^{3}}` | `-3a^{4} b` | `a != 0, b != 0` |  |  |  |  |
+| 202 | 9 | Medium | Multivariate distribution | `a^{5} \cdot b^{2} \cdot (-3b^{2} + a)` | `-3a^{5} b^{4} + a^{6} b^{2}` | `none` |  |  |  |  |
+| 203 | 9 | Medium | Collect like terms | `3x^{8} - x^{2} + 5x^{9} + x^{2} + 4x^{2}` | `5x^{9} + 3x^{8} + 4x^{2}` | `none` |  |  |  |  |
+| 204 | 9 | Medium | Geometric sum | `\frac{x^{9} - 1}{x - 1}` | `x^{8} + x^{7} + x^{6} + x^{5} + x^{4} + x^{3} + x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 205 | 9 | Medium | Monomial division | `\frac{6x^{9} + 24x}{6x}` | `x^{8} + 4` | `x != 0` |  |  |  |  |
+| 206 | 9 | Medium | Expand product | `(3x^{4})(4x^{5} + 3)` | `12x^{9} + 9x^{4}` | `none` |  |  |  |  |
+| 207 | 9 | Medium | Quadratic factor cancellation | `\frac{x^{9} + x^{8} + x^{7} + 3x^{6} - 7x^{5} - x^{4} + 2x^{3}}{x^{2} + x - 2}` | `x^{7} + 3x^{5} - x^{3}` | `x != -2, 1` |  |  |  |  |
+| 208 | 9 | Medium | Different denominators | `\frac{x^{9} + 6x^{8} - 3x^{5} - 18x^{4}}{x + 6} + \frac{x^{7}}{x}` | `x^{8} + x^{6} - 3x^{4}` | `x != -6, 0` |  |  |  |  |
+| 209 | 9 | Medium | Power of a power | `\frac{(x^{9})^{1}}{x^{2}}` | `x^{7}` | `x != 0` |  |  |  |  |
+| 210 | 9 | Medium | Nested fraction | `\frac{\frac{3x^{9} - 21x^{8} + 4x - 28}{x + 7}}{\frac{x - 7}{x + 7}}` | `3x^{8} + 4` | `x != -7, 7` |  |  |  |  |
+| 211 | 9 | Medium | Polynomial plus fraction | `(x^{9} - x^{8}) - \frac{5}{x + 7}` | `\frac{x^{10} + 6x^{9} - 7x^{8} - 5}{x + 7}` | `x != -7` |  |  |  |  |
+| 212 | 9 | Medium | Collapsing identity | `(x^{5} - 4)(x^{4} + 4) - x^{9}` | `4x^{5} - 4x^{4} - 16` | `none` |  |  |  |  |
+| 213 | 9 | Medium | Cancels to zero | `\frac{5x^{9} - 5x^{8} - 5x^{7} + 5x^{6}}{x - 1} - (5x^{8} - 5x^{6})` | `0` | `x != 1` |  |  |  |  |
+| 214 | 9 | Medium | Triple nested fraction | `\frac{\frac{\frac{-5x^{9} + 20x^{8} + 135x^{7} - 450x^{6}}{x + 5}}{x - 6}}{\frac{x - 3}{x + 3}}` | `-5x^{7} - 15x^{6}` | `x != -5, -3, 3, 6` |  |  |  |  |
+| 215 | 9 | Medium | Same denominator | `\frac{x^{9} + 2x^{8}}{x^{3} + 1} - \frac{2x^{9} + 2x^{8} + 3x^{7} + x^{6} - 3x}{x^{3} + 1}` | `-x^{6} - 3x^{4} + 3x` | `x != -1` |  |  |  |  |
+| 216 | 9 | Medium | Negative exponents | `x^{-8} \cdot (3x^{9})` | `3x` | `x != 0` |  |  |  |  |
+| 217 | 9 | Medium | Constant factor | `\frac{-30x^{10} + 180x^{9} + 40x^{5} - 240x^{4}}{2x - 12}` | `-15x^{9} + 20x^{4}` | `x != 6` |  |  |  |  |
+| 218 | 9 | Medium | Difference of powers | `\frac{x^{9} - x}{x^{5} - x}` | `x^{4} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 219 | 9 | Medium | Linear factor cancellation | `\frac{x^{9} + 5x^{5} - 4x^{2}}{x}` | `x^{8} + 5x^{4} - 4x` | `x != 0` |  |  |  |  |
+| 220 | 9 | Medium | Perfect square trinomial | `\frac{x^{9} + 32x^{5} + 256x}{x^{4} + 16}` | `x^{5} + 16x` | `x^4 + 16 != 0` |  |  |  |  |
+| 221 | 9 | Medium | Sign flip | `\frac{-x^{9} - 6x^{8}}{x + 6}` | `-x^{8}` | `x != -6` |  |  |  |  |
+| 222 | 9 | Medium | Reference-type rational | `\frac{x^{9} - 7x^{8} + 12x^{7} + x^{2} - 7x + 12}{x^{3} - 8x^{2} + 19x - 12}` | `\frac{x^{7} + 1}{x - 1}` | `x != 1, 3, 4` |  |  |  |  |
+| 223 | 9 | Medium | Already irreducible | `\frac{x^{9} + 3}{x^{9} + 1}` | `\frac{x^{9} + 3}{x^{9} + 1}` | `x != -1` |  |  |  |  |
+| 224 | 9 | Medium | Distribute and collect | `-2x^{3}(x^{6} - 1) + x^{3}` | `-2x^{9} + 3x^{3}` | `none` |  |  |  |  |
+| 225 | 9 | Medium | Common power factor | `\frac{x^{9} - 5x^{6}}{x^{9} - x^{6}}` | `\frac{x^{3} - 5}{x^{3} - 1}` | `x != 0, 1` |  |  |  |  |
+| 226 | 10 | Medium | Multivariate distribution | `a \cdot b \cdot (3b^{8} + a^{5})` | `3a b^{9} + a^{6} b` | `none` |  |  |  |  |
+| 227 | 10 | Medium | Quadratic factor cancellation | `\frac{x^{10} - 13x^{9} + 46x^{8} - 52x^{7} + 168x^{6} + x^{4} - 13x^{3} + 42x^{2}}{x^{2} - 13x + 42}` | `x^{8} + 4x^{6} + x^{2}` | `x != 6, 7` |  |  |  |  |
+| 228 | 10 | Medium | Power of a power | `(3x^{5})^{2} \cdot x^{-3}` | `9x^{7}` | `x != 0` |  |  |  |  |
+| 229 | 10 | Medium | Collect like terms | `-3x^{2} + 3x^{10} + 2x^{6} - 8x^{10} - 2x^{6} + 5x^{2}` | `-5x^{10} + 2x^{2}` | `none` |  |  |  |  |
+| 230 | 10 | Medium | Triple nested fraction | `\frac{\frac{\frac{3x^{10} + 12x^{9} - 3x^{8} - 11x^{7} + 4x^{6} - x^{5} - 4x^{4}}{x + 4}}{x + 1}}{\frac{x - 1}{x - 7}}` | `3x^{8} - 21x^{7} + x^{5} - 7x^{4}` | `x != -4, -1, 1, 7` |  |  |  |  |
+| 231 | 10 | Medium | Polynomial plus fraction | `x^{10} + \frac{2}{x - 1}` | `\frac{x^{11} - x^{10} + 2}{x - 1}` | `x != 1` |  |  |  |  |
+| 232 | 10 | Medium | Monomial division | `\frac{4x^{10} - 16x^{4} + 12x^{3}}{4x^{3}}` | `x^{7} - 4x + 3` | `x != 0` |  |  |  |  |
+| 233 | 10 | Medium | Nested fraction | `\frac{\frac{x^{10} + 4x^{9} - 3x^{6} - 12x^{5} + x + 4}{x + 5}}{\frac{x + 4}{x + 5}}` | `x^{9} - 3x^{5} + 1` | `x != -5, -4` |  |  |  |  |
+| 234 | 10 | Medium | Distribute and collect | `x^{2}(x^{8} - 4) + x^{2}` | `x^{10} - 3x^{2}` | `none` |  |  |  |  |
+| 235 | 10 | Medium | Negative exponents | `x^{-6} \cdot (x^{10})` | `x^{4}` | `x != 0` |  |  |  |  |
+| 236 | 10 | Medium | Common power factor | `\frac{x^{10} + 3x^{6}}{x^{10} - x^{6}}` | `\frac{x^{4} + 3}{x^{4} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 237 | 10 | Medium | Reference-type rational | `\frac{-4x^{10} - 5x^{9} + 6x^{8}}{x^{3} + 9x^{2} + 14x}` | `\frac{-4x^{8} + 3x^{7}}{x + 7}` | `x != -7, -2, 0` |  |  |  |  |
+| 238 | 10 | Medium | Multivariate monomials | `\frac{-6 \cdot a^{7} \cdot z^{3}}{6a^{2}}` | `-a^{5} z^{3}` | `a != 0` |  |  |  |  |
+| 239 | 10 | Medium | Partial cancellation | `\frac{x^{10} + 3x^{7} + 2x^{3}}{x^{2} - x}` | `\frac{x^{9} + 3x^{6} + 2x^{2}}{x - 1}` | `x != 0, 1` |  |  |  |  |
+| 240 | 10 | Medium | Difference of powers | `\frac{x^{10} - 59049}{x^{5} + 243}` | `x^{5} - 243` | `x != -3` |  |  |  |  |
+| 241 | 10 | Medium | Geometric sum | `\frac{x^{10} - 1}{x - 1}` | `x^{9} + x^{8} + x^{7} + x^{6} + x^{5} + x^{4} + x^{3} + x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 242 | 10 | Medium | Same denominator | `\frac{3x^{10} + x^{4}}{x^{2} + 1} - \frac{2x^{10} - x^{8} + 2x^{7} + 2x^{5} - 3x^{4} - 4x^{2}}{x^{2} + 1}` | `x^{8} - 2x^{5} + 4x^{2}` | `x^2 + 1 != 0` |  |  |  |  |
+| 243 | 10 | Medium | Linear factor cancellation | `\frac{x^{10}}{x}` | `x^{9}` | `x != 0` |  |  |  |  |
+| 244 | 10 | Medium | Collapsing identity | `(x^{5} - 5)^{2} - (x^{5} + 5)^{2}` | `-20x^{5}` | `none` |  |  |  |  |
+| 245 | 10 | Medium | Cancels to zero | `\frac{x^{10} - 7x^{9} + x^{8} - 7x^{7} - x^{2} + 7x}{x - 7} - (x^{9} + x^{7} - x)` | `0` | `x != 7` |  |  |  |  |
+| 246 | 10 | Medium | Sign flip | `\frac{-x^{10} - 6x^{9} + 4x^{3} + 24x^{2}}{x + 6}` | `-x^{9} + 4x^{2}` | `x != -6` |  |  |  |  |
+| 247 | 10 | Medium | Constant factor | `\frac{18x^{10} + 24x}{6}` | `3x^{10} + 4x` | `none` |  |  |  |  |
+| 248 | 10 | Medium | Already irreducible | `\frac{x^{10} + 2}{x^{10} - 1}` | `\frac{x^{10} + 2}{x^{10} - 1}` | `x != -1, 1` |  |  |  |  |
+| 249 | 10 | Medium | Different denominators | `\frac{x^{10} - 3x^{9}}{x - 3} + \frac{x^{8} - 6x^{7} + 2x^{6} - 12x^{5}}{x - 6}` | `x^{9} + x^{7} + 2x^{5}` | `x != 3, 6` |  |  |  |  |
+| 250 | 10 | Medium | Expand product | `(x^{5} + 3x)(x^{5} + 5x^{3})` | `x^{10} + 5x^{8} + 3x^{6} + 15x^{4}` | `none` |  |  |  |  |
+| 251 | 11 | Medium | Linear factor cancellation | `\frac{-3x^{11} - 6x^{10} + x^{8} + 2x^{7}}{x + 2}` | `-3x^{10} + x^{7}` | `x != -2` |  |  |  |  |
+| 252 | 11 | Medium | Perfect square trinomial | `\frac{x^{11} - 64x^{6} + 1024x}{x^{5} - 32}` | `x^{6} - 32x` | `x != 2` |  |  |  |  |
+| 253 | 11 | Medium | Negative exponents | `x^{-2} \cdot (-4x^{11})` | `-4x^{9}` | `x != 0` |  |  |  |  |
+| 254 | 11 | Medium | Cancels to zero | `\frac{x^{11} + 7x^{10}}{x + 7} - x^{10}` | `0` | `x != -7` |  |  |  |  |
+| 255 | 11 | Medium | Partial cancellation | `\frac{x^{11} - 4x^{10} + 3x^{9} - 12x^{8} - 2x^{4} + 8x^{3}}{x^{2} - 2x - 8}` | `\frac{x^{10} + 3x^{8} - 2x^{3}}{x + 2}` | `x != -2, 4` |  |  |  |  |
+| 256 | 11 | Medium | Monomial division | `\frac{3x^{11} - 12x^{10} - 3x^{7}}{3x^{7}}` | `x^{4} - 4x^{3} - 1` | `x != 0` |  |  |  |  |
+| 257 | 11 | Medium | Multivariate monomials | `\frac{5a^{11}}{a^{3}}` | `5a^{8}` | `a != 0` |  |  |  |  |
+| 258 | 11 | Medium | Already irreducible | `\frac{x^{11} - 5}{x^{11} + 1}` | `\frac{x^{11} - 5}{x^{11} + 1}` | `x != -1` |  |  |  |  |
+| 259 | 11 | Medium | Common power factor | `\frac{x^{11} + 4x^{10}}{x^{11} - x^{10}}` | `\frac{x + 4}{x - 1}` | `x != 0, 1` |  |  |  |  |
+| 260 | 11 | Medium | Collect like terms | `x + 5x^{11} - x^{11} + 2 + x^{3} - x^{3} - 3x - 4 - 5x^{5}` | `4x^{11} - 5x^{5} - 2x - 2` | `none` |  |  |  |  |
+| 261 | 11 | Medium | Quadratic factor cancellation | `\frac{x^{11} + 9x^{10} + 14x^{9} + 2x^{5} + 14x^{4} - 8x^{3} - 56x^{2}}{(x + 2)(x + 7)}` | `x^{9} + 2x^{3} - 4x^{2}` | `x != -7, -2` |  |  |  |  |
+| 262 | 11 | Medium | Sign flip | `\frac{x^{11} - 4x^{10}}{x - 4}` | `x^{10}` | `x != 4` |  |  |  |  |
+| 263 | 11 | Medium | Multivariate distribution | `a^{4} \cdot b^{4} \cdot (-4b^{3} + a)` | `-4a^{4} b^{7} + a^{5} b^{4}` | `none` |  |  |  |  |
+| 264 | 11 | Medium | Reference-type rational | `\frac{x^{11} - 3x^{10} - 4x^{9} - 4x^{7} + 12x^{6} + 20x^{5} - 12x^{4} - 16x^{3}}{x^{3} - 6x^{2} + 5x + 12}` | `\frac{x^{9} - 4x^{5} + 4x^{3}}{x - 3}` | `x != -1, 3, 4` |  |  |  |  |
+| 265 | 11 | Medium | Difference of powers | `\frac{x^{11} - x}{x^{6} - x}` | `x^{5} + 1` | `x != 0, 1` |  |  |  |  |
+| 266 | 11 | Medium | Distribute and collect | `2x^{8}(x^{3} - 5) + 2x^{8}` | `2x^{11} - 8x^{8}` | `none` |  |  |  |  |
+| 267 | 11 | Medium | Different denominators | `\frac{x^{11} - 3x^{10} + 3x^{7} - 9x^{6}}{x - 3} + \frac{x^{9} + 4x^{8} - 4x^{7} - 16x^{6}}{x + 4}` | `x^{10} + x^{8} - x^{6}` | `x != -4, 3` |  |  |  |  |
+| 268 | 11 | Medium | Same denominator | `\frac{x^{11} - 2x^{7}}{x + 4} - \frac{-4x^{11} - 20x^{10} - 2x^{7}}{x + 4}` | `5x^{10}` | `x != -4` |  |  |  |  |
+| 269 | 11 | Medium | Expand product | `(-4x^{6} + 3)(x^{5})` | `-4x^{11} + 3x^{5}` | `none` |  |  |  |  |
+| 270 | 11 | Medium | Polynomial plus fraction | `(-4x^{11} + 5x^{7}) - \frac{2}{x + 4}` | `\frac{-4x^{12} - 16x^{11} + 5x^{8} + 20x^{7} - 2}{x + 4}` | `x != -4` |  |  |  |  |
+| 271 | 11 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{11} + 4x^{10} - 25x^{9} - 28x^{8} - 3x^{6} - 12x^{5} + 75x^{4} + 84x^{3}}{x + 1}}{x + 7}}{\frac{x - 4}{x - 5}}` | `x^{9} - 5x^{8} - 3x^{4} + 15x^{3}` | `x != -7, -1, 4, 5` |  |  |  |  |
+| 272 | 11 | Medium | Nested fraction | `\frac{\frac{x^{11} - 7x^{10}}{x + 1}}{\frac{x - 7}{x + 1}}` | `x^{10}` | `x != -1, 7` |  |  |  |  |
+| 273 | 11 | Medium | Power of a power | `\frac{(x^{11})^{1}}{x^{7}}` | `x^{4}` | `x != 0` |  |  |  |  |
+| 274 | 11 | Medium | Binomial expansion | `(x - 1)^{11}` | `x^{11} - 11x^{10} + 55x^{9} - 165x^{8} + 330x^{7} - 462x^{6} + 462x^{5} - 330x^{4} + 165x^{3} - 55x^{2} + 11x - 1` | `none` |  |  |  |  |
+| 275 | 11 | Medium | Constant factor | `\frac{20x^{11} + 20x}{5}` | `4x^{11} + 4x` | `none` |  |  |  |  |
+| 276 | 12 | Medium | Linear factor cancellation | `\frac{x^{12} - 6x^{11} - 5x^{7} + 30x^{6} - 4x^{2} + 24x}{x - 6}` | `x^{11} - 5x^{6} - 4x` | `x != 6` |  |  |  |  |
+| 277 | 12 | Medium | Difference of squares chain | `\frac{x^{12} - 1}{x^{6} - 1}` | `x^{6} + 1` | `x != -1, 1` |  |  |  |  |
+| 278 | 12 | Medium | Distribute and collect | `2x^{6}(x^{6} - 2) - 3x^{6}` | `2x^{12} - 7x^{6}` | `none` |  |  |  |  |
+| 279 | 12 | Medium | Different denominators | `\frac{x^{12} - 3x^{11}}{x - 3} + \frac{x^{11} + 7x^{10} + x^{3} + 7x^{2}}{x + 7}` | `x^{11} + x^{10} + x^{2}` | `x != -7, 3` |  |  |  |  |
+| 280 | 12 | Medium | Constant factor | `\frac{-15x^{13} + 105x^{12}}{3x - 21}` | `-5x^{12}` | `x != 7` |  |  |  |  |
+| 281 | 12 | Medium | Reference-type rational | `\frac{-3x^{12} - 27x^{11} - 54x^{10}}{x^{3} + 13x^{2} + 54x + 72}` | `\frac{-3x^{10}}{x + 4}` | `x != -6, -4, -3` |  |  |  |  |
+| 282 | 12 | Medium | Same denominator | `\frac{x^{12} + x^{7} + 2x^{4}}{x^{5} + 32} + \frac{3x^{10} + 31x^{7} + 96x^{5} - 2x^{4}}{x^{5} + 32}` | `x^{7} + 3x^{5}` | `x != -2` |  |  |  |  |
+| 283 | 12 | Medium | Quadratic factor cancellation | `\frac{x^{12} + 11x^{11} + 28x^{10} + 5x^{6} + 55x^{5} + 140x^{4}}{x^{2} + 11x + 28}` | `x^{10} + 5x^{4}` | `x != -7, -4` |  |  |  |  |
+| 284 | 12 | Medium | Common power factor | `\frac{x^{12} + 2x^{8}}{x^{12} + x^{8}}` | `\frac{x^{4} + 2}{x^{4} + 1}` | `x != 0, x^4 + 1 != 0` |  |  |  |  |
+| 285 | 12 | Medium | Collapsing identity | `(x^{6} - 1)^{2} - (x^{6} + 1)^{2}` | `-4x^{6}` | `none` |  |  |  |  |
+| 286 | 12 | Medium | Collect like terms | `x^{4} - 4x^{4} - 9x^{5} - 5x^{2} + 6x^{5} - 11x^{12} - 1 + 5 + 6x^{12}` | `-5x^{12} - 3x^{5} - 3x^{4} - 5x^{2} + 4` | `none` |  |  |  |  |
+| 287 | 12 | Medium | Partial cancellation | `\frac{x^{12} - x^{11}}{x^{2} + 3x - 4}` | `\frac{x^{11}}{x + 4}` | `x != -4, 1` |  |  |  |  |
+| 288 | 12 | Medium | Already irreducible | `\frac{x^{12} + 3}{x^{12} - 1}` | `\frac{x^{12} + 3}{x^{12} - 1}` | `x != -1, 1` |  |  |  |  |
+| 289 | 12 | Medium | Geometric sum | `\frac{x^{12} - 1}{x - 1}` | `x^{11} + x^{10} + x^{9} + x^{8} + x^{7} + x^{6} + x^{5} + x^{4} + x^{3} + x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 290 | 12 | Medium | Polynomial plus fraction | `-5x^{12} + \frac{3}{x - 7}` | `\frac{-5x^{13} + 35x^{12} + 3}{x - 7}` | `x != 7` |  |  |  |  |
+| 291 | 12 | Medium | Expand product | `(x^{8})(x^{4})` | `x^{12}` | `none` |  |  |  |  |
+| 292 | 12 | Medium | Cancels to zero | `\frac{-2x^{12} - 8x^{11}}{x + 4} - (-2x^{11})` | `0` | `x != -4` |  |  |  |  |
+| 293 | 12 | Medium | Multivariate expansion | `(a^{6} + b^{6})(a^{6} - b^{6})` | `a^{12} - b^{12}` | `none` |  |  |  |  |
+| 294 | 12 | Medium | Negative exponents | `x^{-12} \cdot (-3x^{12})` | `-3` | `x != 0` |  |  |  |  |
+| 295 | 12 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{12} - 3x^{11} - 22x^{10} + 24x^{9}}{x - 6}}{x + 4}}{\frac{x - 1}{x - 5}}` | `x^{10} - 5x^{9}` | `x != -4, 1, 5, 6` |  |  |  |  |
+| 296 | 12 | Medium | Power of a power | `(x^{6})^{2} \cdot x^{-3}` | `x^{9}` | `x != 0` |  |  |  |  |
+| 297 | 12 | Medium | Difference of powers | `\frac{x^{12} - 1}{x^{6} + 1}` | `x^{6} - 1` | `x^6 + 1 != 0` |  |  |  |  |
+| 298 | 12 | Medium | Multivariate monomials | `\frac{-18 \cdot b^{3} \cdot z^{9}}{3b^{3}}` | `-6z^{9}` | `b != 0` |  |  |  |  |
+| 299 | 12 | Medium | Sign flip | `\frac{-x^{12} + x^{11}}{x - 1}` | `-x^{11}` | `x != 1` |  |  |  |  |
+| 300 | 12 | Medium | Perfect square trinomial | `\frac{x^{12} + 2x^{6} + 1}{x^{6} + 1}` | `x^{6} + 1` | `x^6 + 1 != 0` |  |  |  |  |
+| 301 | 13 | Medium | Collect like terms | `4x^{5} + x^{9} - x^{9} - 6x^{6} - 3x^{7} + 6x^{13} - 2x^{10} - x^{13} + 3x^{6} + 4x^{10}` | `5x^{13} + 2x^{10} - 3x^{7} - 3x^{6} + 4x^{5}` | `none` |  |  |  |  |
+| 302 | 13 | Medium | Linear factor cancellation | `\frac{x^{13} + 3x^{12} - 5x^{11} - 15x^{10}}{x + 3}` | `x^{12} - 5x^{10}` | `x != -3` |  |  |  |  |
+| 303 | 13 | Medium | Expand product | `(-4x^{5} - 2x^{2})(x^{8} + 2x^{6})` | `-4x^{13} - 8x^{11} - 2x^{10} - 4x^{8}` | `none` |  |  |  |  |
+| 304 | 13 | Medium | Negative exponents | `x^{-13} \cdot (-4x^{13})` | `-4` | `x != 0` |  |  |  |  |
+| 305 | 13 | Medium | Same denominator | `\frac{x^{13} + x^{9}}{x - 2} - \frac{2x^{12} + x^{9} - 2x^{7} + 4x^{6} - 4x^{5} + 8x^{4}}{x - 2}` | `x^{12} + 2x^{6} + 4x^{4}` | `x != 2` |  |  |  |  |
+| 306 | 13 | Medium | Perfect square trinomial | `\frac{x^{13} - 2x^{7} + x}{x^{6} - 1}` | `x^{7} - x` | `x != -1, 1` |  |  |  |  |
+| 307 | 13 | Medium | Nested fraction | `\frac{\frac{-x^{13} - 11x^{12} - 28x^{11}}{x - 5}}{\frac{x + 7}{x - 5}}` | `-x^{12} - 4x^{11}` | `x != -7, 5` |  |  |  |  |
+| 308 | 13 | Medium | Reference-type rational | `\frac{x^{13} + 3x^{12} - 4x^{11}}{x^{3} + x^{2} - 10x + 8}` | `\frac{x^{11}}{x - 2}` | `x != -4, 1, 2` |  |  |  |  |
+| 309 | 13 | Medium | Monomial division | `\frac{3x^{13} + 3x}{x}` | `3x^{12} + 3` | `x != 0` |  |  |  |  |
+| 310 | 13 | Medium | Partial cancellation | `\frac{2x^{13} - 14x^{12}}{x^{2} - 8x + 7}` | `\frac{2x^{12}}{x - 1}` | `x != 1, 7` |  |  |  |  |
+| 311 | 13 | Medium | Distribute and collect | `-3x^{11}(x^{2} + 2) - 3x^{11}` | `-3x^{13} - 9x^{11}` | `none` |  |  |  |  |
+| 312 | 13 | Medium | Sign flip | `\frac{3x^{13} + 21x^{12}}{x + 7}` | `3x^{12}` | `x != -7` |  |  |  |  |
+| 313 | 13 | Medium | Power of a power | `\frac{(x^{13})^{1}}{x^{2}}` | `x^{11}` | `x != 0` |  |  |  |  |
+| 314 | 13 | Medium | Difference of powers | `\frac{x^{13} - x}{x^{7} - x}` | `x^{6} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 315 | 13 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{13} - 6x^{12} + 3x^{11} + 10x^{10} - x^{7} + 6x^{6} - 3x^{5} - 10x^{4}}{x - 5}}{x - 2}}{\frac{x + 1}{x + 5}}` | `x^{11} + 5x^{10} - x^{5} - 5x^{4}` | `x != -5, -1, 2, 5` |  |  |  |  |
+| 316 | 13 | Medium | Multivariate monomials | `\frac{30 \cdot a^{4} \cdot b^{2} \cdot z^{7}}{6}` | `5a^{4} b^{2} z^{7}` | `none` |  |  |  |  |
+| 317 | 13 | Medium | Constant factor | `\frac{6x^{13} + 30x}{6}` | `x^{13} + 5x` | `none` |  |  |  |  |
+| 318 | 13 | Medium | Common power factor | `\frac{x^{13} - 5x^{6}}{x^{13} - x^{6}}` | `\frac{x^{7} - 5}{x^{7} - 1}` | `x != 0, 1` |  |  |  |  |
+| 319 | 13 | Medium | Cancels to zero | `\frac{x^{13} + 6x^{12} + 3x^{2} + 18x}{x + 6} - (x^{12} + 3x)` | `0` | `x != -6` |  |  |  |  |
+| 320 | 13 | Medium | Already irreducible | `\frac{x^{13} - 4}{x^{13}}` | `\frac{x^{13} - 4}{x^{13}}` | `x != 0` |  |  |  |  |
+| 321 | 13 | Medium | Polynomial plus fraction | `-4x^{13} + \frac{4}{x + 7}` | `\frac{-4x^{14} - 28x^{13} + 4}{x + 7}` | `x != -7` |  |  |  |  |
+| 322 | 13 | Medium | Quadratic factor cancellation | `\frac{x^{13} + 13x^{12} + 42x^{11} + 5x^{8} + 65x^{7} + 210x^{6} + 5x^{2} + 65x + 210}{(x + 7)(x + 6)}` | `x^{11} + 5x^{6} + 5` | `x != -7, -6` |  |  |  |  |
+| 323 | 13 | Medium | Different denominators | `\frac{4x^{13} - 8x^{12}}{x - 2} + \frac{4x^{12} + 12x^{11}}{x + 3}` | `4x^{12} + 4x^{11}` | `x != -3, 2` |  |  |  |  |
+| 324 | 13 | Medium | Multivariate distribution | `a^{11} \cdot b \cdot (a + 2b)` | `a^{12} b + 2a^{11} b^{2}` | `none` |  |  |  |  |
+| 325 | 13 | Medium | Binomial expansion | `(x + 1)^{13}` | `x^{13} + 13x^{12} + 78x^{11} + 286x^{10} + 715x^{9} + 1287x^{8} + 1716x^{7} + 1716x^{6} + 1287x^{5} + 715x^{4} + 286x^{3} + 78x^{2} + 13x + 1` | `none` |  |  |  |  |
+| 326 | 14 | Medium | Multivariate monomials | `\frac{8 \cdot a^{8} \cdot b^{2} \cdot z^{4}}{4 \cdot a^{2} \cdot b^{2}}` | `2a^{6} z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 327 | 14 | Medium | Same denominator | `\frac{x^{14} - 3x^{10} + 4}{x^{3} + 1} + \frac{4x^{14} + 5x^{11} + 3x^{10} - 4}{x^{3} + 1}` | `5x^{11}` | `x != -1` |  |  |  |  |
+| 328 | 14 | Medium | Already irreducible | `\frac{x^{14} - 1}{x^{14} + 1}` | `\frac{x^{14} - 1}{x^{14} + 1}` | `x^14 + 1 != 0` |  |  |  |  |
+| 329 | 14 | Medium | Perfect square trinomial | `\frac{x^{14} + 2x^{7} + 1}{x^{7} + 1}` | `x^{7} + 1` | `x != -1` |  |  |  |  |
+| 330 | 14 | Medium | Quadratic factor cancellation | `\frac{x^{14} - x^{12} + 4x^{6} - 4x^{4}}{x^{2} - 1}` | `x^{12} + 4x^{4}` | `x != -1, 1` |  |  |  |  |
+| 331 | 14 | Medium | Monomial division | `\frac{2x^{14} + 3x^{6}}{x^{6}}` | `2x^{8} + 3` | `x != 0` |  |  |  |  |
+| 332 | 14 | Medium | Constant factor | `\frac{6x^{14} + 18x^{9}}{6}` | `x^{14} + 3x^{9}` | `none` |  |  |  |  |
+| 333 | 14 | Medium | Polynomial plus fraction | `x^{14} + \frac{5}{x - 4}` | `\frac{x^{15} - 4x^{14} + 5}{x - 4}` | `x != 4` |  |  |  |  |
+| 334 | 14 | Medium | Difference of powers | `\frac{x^{14} - 1}{x^{7} - 1}` | `x^{7} + 1` | `x != 1` |  |  |  |  |
+| 335 | 14 | Medium | Partial cancellation | `\frac{5x^{14} - 25x^{13} - 5x^{10} + 25x^{9} + x^{7} - 5x^{6}}{x^{2} - 6x + 5}` | `\frac{5x^{13} - 5x^{9} + x^{6}}{x - 1}` | `x != 1, 5` |  |  |  |  |
+| 336 | 14 | Medium | Multivariate distribution | `a^{10} \cdot (-4b^{4} + a^{2})` | `-4a^{10} b^{4} + a^{12}` | `none` |  |  |  |  |
+| 337 | 14 | Medium | Power of a power | `\frac{(x^{7})^{2}}{x^{4}}` | `x^{10}` | `x != 0` |  |  |  |  |
+| 338 | 14 | Medium | Distribute and collect | `2x^{8}(x^{6} + 2) - 3x^{8}` | `2x^{14} + x^{8}` | `none` |  |  |  |  |
+| 339 | 14 | Medium | Common power factor | `\frac{x^{14} - 3x^{11}}{x^{14} + x^{11}}` | `\frac{x^{3} - 3}{x^{3} + 1}` | `x != -1, 0` |  |  |  |  |
+| 340 | 14 | Medium | Negative exponents | `x^{-7} \cdot (-x^{14} + 5x^{10})` | `-x^{7} + 5x^{3}` | `x != 0` |  |  |  |  |
+| 341 | 14 | Medium | Linear factor cancellation | `\frac{-4x^{14} - 12x^{13} - 3x^{9} - 9x^{8}}{x + 3}` | `-4x^{13} - 3x^{8}` | `x != -3` |  |  |  |  |
+| 342 | 14 | Medium | Binomial expansion | `(x - 1)^{14}` | `x^{14} - 14x^{13} + 91x^{12} - 364x^{11} + 1001x^{10} - 2002x^{9} + 3003x^{8} - 3432x^{7} + 3003x^{6} - 2002x^{5} + 1001x^{4} - 364x^{3} + 91x^{2} - 14x + 1` | `none` |  |  |  |  |
+| 343 | 14 | Medium | Cancels to zero | `\frac{x^{14} + 4x^{13}}{x + 4} - x^{13}` | `0` | `x != -4` |  |  |  |  |
+| 344 | 14 | Medium | Expand product | `(-5x^{3})(x^{11} - x^{2})` | `-5x^{14} + 5x^{5}` | `none` |  |  |  |  |
+| 345 | 14 | Medium | Different denominators | `\frac{x^{14} - 4x^{13} - 5x^{2} + 20x}{x - 4} + \frac{-2x^{12} + 6x^{11} - 2x + 6}{x - 3}` | `x^{13} - 2x^{11} - 5x - 2` | `x != 3, 4` |  |  |  |  |
+| 346 | 14 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{14} + 13x^{13} + 42x^{12} + 3x^{7} + 39x^{6} + 126x^{5}}{x + 6}}{x}}{\frac{x + 7}{x - 1}}` | `x^{12} - x^{11} + 3x^{5} - 3x^{4}` | `x != -7, -6, 0, 1` |  |  |  |  |
+| 347 | 14 | Medium | Collect like terms | `4x^{14} + 4x^{5} - 7x^{5}` | `4x^{14} - 3x^{5}` | `none` |  |  |  |  |
+| 348 | 14 | Medium | Sign flip | `\frac{-x^{14} + 3x^{13} + 3x^{2} - 9x}{x - 3}` | `-x^{13} + 3x` | `x != 3` |  |  |  |  |
+| 349 | 14 | Medium | Nested fraction | `\frac{\frac{3x^{14} - 18x^{13}}{x}}{\frac{x - 6}{x}}` | `3x^{13}` | `x != 0, 6` |  |  |  |  |
+| 350 | 14 | Medium | Collapsing identity | `(x^{7} - 5)^{2} - (x^{7} + 5)^{2}` | `-20x^{7}` | `none` |  |  |  |  |
+| 351 | 15 | Medium | Polynomial plus fraction | `(5x^{15} + 4x^{4}) + \frac{2}{x + 6}` | `\frac{5x^{16} + 30x^{15} + 4x^{5} + 24x^{4} + 2}{x + 6}` | `x != -6` |  |  |  |  |
+| 352 | 15 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{15} + 2x^{14} - 19x^{13} - 20x^{12}}{x + 1}}{x + 5}}{\frac{x - 4}{x + 4}}` | `x^{13} + 4x^{12}` | `x != -5, -4, -1, 4` |  |  |  |  |
+| 353 | 15 | Medium | Collapsing identity | `(x^{8} - 5)(x^{7} + 5) - x^{15}` | `5x^{8} - 5x^{7} - 25` | `none` |  |  |  |  |
+| 354 | 15 | Medium | Perfect square trinomial | `\frac{x^{15} - 2x^{8} + x}{x^{7} - 1}` | `x^{8} - x` | `x != 1` |  |  |  |  |
+| 355 | 15 | Medium | Cancels to zero | `\frac{x^{15} - 7x^{14} - 3x^{10} + 21x^{9} - 2x^{4} + 14x^{3}}{x - 7} - (x^{14} - 3x^{9} - 2x^{3})` | `0` | `x != 7` |  |  |  |  |
+| 356 | 15 | Medium | Constant factor | `\frac{20x^{16} - 60x^{15} - 20x^{9} + 60x^{8}}{x - 3}` | `20x^{15} - 20x^{8}` | `x != 3` |  |  |  |  |
+| 357 | 15 | Medium | Power of a power | `(-x^{15})^{1} \cdot x^{-14}` | `-x` | `x != 0` |  |  |  |  |
+| 358 | 15 | Medium | Difference of powers | `\frac{x^{15} - x}{x^{8} - x}` | `x^{7} + 1` | `x != 0, 1` |  |  |  |  |
+| 359 | 15 | Medium | Reference-type rational | `\frac{x^{15} - 9x^{14} + 20x^{13}}{x^{3} - 16x}` | `\frac{x^{13} - 5x^{12}}{x + 4}` | `x != -4, 0, 4` |  |  |  |  |
+| 360 | 15 | Medium | Distribute and collect | `3x^{13}(x^{2} + 1) - 2x^{13}` | `3x^{15} + x^{13}` | `none` |  |  |  |  |
+| 361 | 15 | Medium | Different denominators | `\frac{4x^{15} + 20x^{14} - 2x - 10}{x + 5} + \frac{x^{15} - 5x^{14}}{x - 5}` | `5x^{14} - 2` | `x != -5, 5` |  |  |  |  |
+| 362 | 15 | Medium | Expand product | `(x^{11} - 3x^{3})(-4x^{4})` | `-4x^{15} + 12x^{7}` | `none` |  |  |  |  |
+| 363 | 15 | Medium | Partial cancellation | `\frac{4x^{15} + 24x^{14}}{x^{2} + 10x + 24}` | `\frac{4x^{14}}{x + 4}` | `x != -6, -4` |  |  |  |  |
+| 364 | 15 | Medium | Linear factor cancellation | `\frac{x^{15} + 4x^{14} + x^{8} + 4x^{7}}{x + 4}` | `x^{14} + x^{7}` | `x != -4` |  |  |  |  |
+| 365 | 15 | Medium | Monomial division | `\frac{6x^{15} + 15x^{8} - 9x^{7}}{3x^{7}}` | `2x^{8} + 5x - 3` | `x != 0` |  |  |  |  |
+| 366 | 15 | Medium | Nested fraction | `\frac{\frac{3x^{15} + 3x^{14}}{x + 4}}{\frac{x + 1}{x + 4}}` | `3x^{14}` | `x != -4, -1` |  |  |  |  |
+| 367 | 15 | Medium | Collect like terms | `2x^{7} - 3x^{5} + 4x^{5} + 2x^{15} - 2x^{7} - 6x^{7} - x^{15} + 2x^{6} + 2x^{7}` | `x^{15} - 4x^{7} + 2x^{6} + x^{5}` | `none` |  |  |  |  |
+| 368 | 15 | Medium | Sign flip | `\frac{-2x^{15} + 12x^{14} - 2x^{6} + 17x^{5} - 30x^{4}}{x - 6}` | `-2x^{14} - 2x^{5} + 5x^{4}` | `x != 6` |  |  |  |  |
+| 369 | 15 | Medium | Negative exponents | `x^{-10} \cdot (-3x^{15} + x^{11})` | `-3x^{5} + x` | `x != 0` |  |  |  |  |
+| 370 | 15 | Medium | Already irreducible | `\frac{x^{15} + 2}{x^{15} - 1}` | `\frac{x^{15} + 2}{x^{15} - 1}` | `x != 1` |  |  |  |  |
+| 371 | 15 | Medium | Same denominator | `\frac{-5x^{15}}{x^{5} + 32} - \frac{-x^{15} + 128x^{10} - 5x^{9} - 160x^{4}}{x^{5} + 32}` | `-4x^{10} + 5x^{4}` | `x != -2` |  |  |  |  |
+| 372 | 15 | Medium | Geometric sum | `\frac{x^{15} - 1}{x - 1}` | `x^{14} + x^{13} + x^{12} + x^{11} + x^{10} + x^{9} + x^{8} + x^{7} + x^{6} + x^{5} + x^{4} + x^{3} + x^{2} + x + 1` | `x != 1` |  |  |  |  |
+| 373 | 15 | Medium | Multivariate monomials | `\frac{12 \cdot a^{3} \cdot b^{2} \cdot z^{10}}{2 \cdot a \cdot b}` | `6a^{2} b z^{10}` | `a != 0, b != 0` |  |  |  |  |
+| 374 | 15 | Medium | Multivariate distribution | `a^{3} \cdot b^{2} \cdot (-4b^{10} + a)` | `-4a^{3} b^{12} + a^{4} b^{2}` | `none` |  |  |  |  |
+| 375 | 15 | Medium | Quadratic factor cancellation | `\frac{x^{15} - 11x^{14} + 34x^{13} - 24x^{12}}{x^{2} - 10x + 24}` | `x^{13} - x^{12}` | `x != 4, 6` |  |  |  |  |
+| 376 | 16 | Medium | Partial cancellation | `\frac{x^{16} - 2x^{15} + x^{9} - 2x^{8} - 3x + 6}{x^{2} + 2x - 8}` | `\frac{x^{15} + x^{8} - 3}{x + 4}` | `x != -4, 2` |  |  |  |  |
+| 377 | 16 | Medium | Same denominator | `\frac{x^{16} - 2x^{8}}{x + 6} + \frac{6x^{15} + x^{12} + 6x^{11} + 2x^{8} + x + 6}{x + 6}` | `x^{15} + x^{11} + 1` | `x != -6` |  |  |  |  |
+| 378 | 16 | Medium | Nested fraction | `\frac{\frac{-x^{16} + 6x^{15}}{x - 1}}{\frac{x - 6}{x - 1}}` | `-x^{15}` | `x != 1, 6` |  |  |  |  |
+| 379 | 16 | Medium | Expand product | `(2x)(x^{15} + x^{9})` | `2x^{16} + 2x^{10}` | `none` |  |  |  |  |
+| 380 | 16 | Medium | Power of a power | `\frac{(-x^{4})^{4}}{x^{4}}` | `x^{12}` | `x != 0` |  |  |  |  |
+| 381 | 16 | Medium | Multivariate expansion | `(a^{8} + b^{8})(a^{8} - b^{8})` | `a^{16} - b^{16}` | `none` |  |  |  |  |
+| 382 | 16 | Medium | Sign flip | `\frac{-x^{16} + 4x^{15} - 4x^{4} + 16x^{3}}{x - 4}` | `-x^{15} - 4x^{3}` | `x != 4` |  |  |  |  |
+| 383 | 16 | Medium | Polynomial plus fraction | `(x^{16} + 3x^{5}) + \frac{2}{x + 1}` | `\frac{x^{17} + x^{16} + 3x^{6} + 3x^{5} + 2}{x + 1}` | `x != -1` |  |  |  |  |
+| 384 | 16 | Medium | Perfect square trinomial | `\frac{x^{16} - 2x^{8} + 1}{x^{8} - 1}` | `x^{8} - 1` | `x != -1, 1` |  |  |  |  |
+| 385 | 16 | Medium | Multivariate monomials | `\frac{4 \cdot a^{9} \cdot b^{3} \cdot z^{4}}{4 \cdot a \cdot b}` | `a^{8} b^{2} z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 386 | 16 | Medium | Difference of powers | `\frac{x^{16} - 65536}{x^{8} + 256}` | `x^{8} - 256` | `x^8 + 256 != 0` |  |  |  |  |
+| 387 | 16 | Medium | Quadratic factor cancellation | `\frac{-x^{16} + 4x^{15} + 5x^{8} - 20x^{7} + 4x^{4} - 16x^{3}}{(x - 4)(x)}` | `-x^{14} + 5x^{6} + 4x^{2}` | `x != 0, 4` |  |  |  |  |
+| 388 | 16 | Medium | Monomial division | `\frac{2x^{16} - 4x^{12} + 8x^{3} - 10x}{2x}` | `x^{15} - 2x^{11} + 4x^{2} - 5` | `x != 0` |  |  |  |  |
+| 389 | 16 | Medium | Difference of squares chain | `\frac{x^{16} - 1}{x^{8} - 1}` | `x^{8} + 1` | `x != -1, 1` |  |  |  |  |
+| 390 | 16 | Medium | Cancels to zero | `\frac{-3x^{16} - 12x^{15} + x^{14} + 4x^{13} - x^{12} - 4x^{11}}{x + 4} - (-3x^{15} + x^{13} - x^{11})` | `0` | `x != -4` |  |  |  |  |
+| 391 | 16 | Medium | Negative exponents | `x^{-14} \cdot (4x^{16} + 4x^{14})` | `4x^{2} + 4` | `x != 0` |  |  |  |  |
+| 392 | 16 | Medium | Collapsing identity | `(x^{8} + 1)^{2} - (x^{8} - 1)^{2}` | `4x^{8}` | `none` |  |  |  |  |
+| 393 | 16 | Medium | Triple nested fraction | `\frac{\frac{\frac{4x^{16} + 8x^{15} - 84x^{14} + 72x^{13}}{x - 3}}{x + 6}}{\frac{x - 1}{x + 7}}` | `4x^{14} + 28x^{13}` | `x != -7, -6, 1, 3` |  |  |  |  |
+| 394 | 16 | Medium | Constant factor | `\frac{6x^{17} - 36x^{16} - 6x^{14} + 36x^{13} - 24x^{4} + 144x^{3}}{3x - 18}` | `2x^{16} - 2x^{13} - 8x^{3}` | `x != 6` |  |  |  |  |
+| 395 | 16 | Medium | Already irreducible | `\frac{x^{16} + 2}{x^{16} - 1}` | `\frac{x^{16} + 2}{x^{16} - 1}` | `x != -1, 1` |  |  |  |  |
+| 396 | 16 | Medium | Reference-type rational | `\frac{x^{16} - 5x^{15} - 14x^{14} + 5x^{3} - 25x^{2} - 70x}{x^{3} - 39x - 70}` | `\frac{x^{14} + 5x}{x + 5}` | `x != -5, -2, 7` |  |  |  |  |
+| 397 | 16 | Medium | Common power factor | `\frac{x^{16} - 4x^{2}}{x^{16} + x^{2}}` | `\frac{x^{14} - 4}{x^{14} + 1}` | `x != 0, x^14 + 1 != 0` |  |  |  |  |
+| 398 | 16 | Medium | Linear factor cancellation | `\frac{3x^{16} + 15x^{15} + 5x^{5} + 25x^{4}}{x + 5}` | `3x^{15} + 5x^{4}` | `x != -5` |  |  |  |  |
+| 399 | 16 | Medium | Distribute and collect | `4x^{8}(x^{8} - 5) - x^{8}` | `4x^{16} - 21x^{8}` | `none` |  |  |  |  |
+| 400 | 16 | Medium | Collect like terms | `3x^{12} - 5x^{16} + x^{12} - x^{10} + 6x^{10} + 6x^{16}` | `x^{16} + 4x^{12} + 5x^{10}` | `none` |  |  |  |  |
+| 401 | 17 | Medium | Negative exponents | `x^{-6} \cdot (-2x^{17})` | `-2x^{11}` | `x != 0` |  |  |  |  |
+| 402 | 17 | Medium | Common power factor | `\frac{x^{17} - 4x^{11}}{x^{17} - x^{11}}` | `\frac{x^{6} - 4}{x^{6} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 403 | 17 | Medium | Partial cancellation | `\frac{x^{17} + 4x^{16} - 5x^{13} - 20x^{12} + 4x^{5} + 16x^{4}}{x^{2} - x - 20}` | `\frac{x^{16} - 5x^{12} + 4x^{4}}{x - 5}` | `x != -4, 5` |  |  |  |  |
+| 404 | 17 | Medium | Power of a power | `(3x^{17})^{1} \cdot x^{-4}` | `3x^{13}` | `x != 0` |  |  |  |  |
+| 405 | 17 | Medium | Difference of powers | `\frac{x^{17} - x}{x^{9} - x}` | `x^{8} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 406 | 17 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{17} - 10x^{16} + 11x^{15} + 75x^{14} - 50x^{13} + 55x^{12} + 350x^{11}}{x + 2}}{x - 7}}{\frac{x - 5}{x - 1}}` | `x^{15} - x^{14} + 5x^{12} - 5x^{11}` | `x != -2, 1, 5, 7` |  |  |  |  |
+| 407 | 17 | Medium | Distribute and collect | `-5x^{7}(x^{10} - 1) - 2x^{7}` | `-5x^{17} + 3x^{7}` | `none` |  |  |  |  |
+| 408 | 17 | Medium | Collect like terms | `2 + 1 - 3x^{5} + x^{17} + 5x^{2} + 4x^{5} + 6x^{5} - 4x^{5}` | `x^{17} + 3x^{5} + 5x^{2} + 3` | `none` |  |  |  |  |
+| 409 | 17 | Medium | Monomial division | `\frac{x^{17} + 3x^{10} + 4x^{8}}{x^{8}}` | `x^{9} + 3x^{2} + 4` | `x != 0` |  |  |  |  |
+| 410 | 17 | Medium | Nested fraction | `\frac{\frac{x^{17} - 4x^{16} + 5x^{8} - 20x^{7} - 3x + 12}{x - 7}}{\frac{x - 4}{x - 7}}` | `x^{16} + 5x^{7} - 3` | `x != 4, 7` |  |  |  |  |
+| 411 | 17 | Medium | Multivariate distribution | `a^{2} \cdot b^{7} \cdot (-3b^{8} + a^{7})` | `-3a^{2} b^{15} + a^{9} b^{7}` | `none` |  |  |  |  |
+| 412 | 17 | Medium | Quadratic factor cancellation | `\frac{x^{17} + 8x^{16} + 15x^{15}}{x^{2} + 8x + 15}` | `x^{15}` | `x != -5, -3` |  |  |  |  |
+| 413 | 17 | Medium | Cancels to zero | `\frac{x^{17} - 5x^{16}}{x - 5} - x^{16}` | `0` | `x != 5` |  |  |  |  |
+| 414 | 17 | Medium | Expand product | `(x^{2})(x^{15})` | `x^{17}` | `none` |  |  |  |  |
+| 415 | 17 | Medium | Collapsing identity | `(x^{9} + 2)(x^{8} - 2) - x^{17}` | `-2x^{9} + 2x^{8} - 4` | `none` |  |  |  |  |
+| 416 | 17 | Medium | Linear factor cancellation | `\frac{x^{17} - x^{16}}{x - 1}` | `x^{16}` | `x != 1` |  |  |  |  |
+| 417 | 17 | Medium | Perfect square trinomial | `\frac{x^{17} + 2x^{9} + x}{x^{8} + 1}` | `x^{9} + x` | `x^8 + 1 != 0` |  |  |  |  |
+| 418 | 17 | Medium | Multivariate monomials | `\frac{-2a^{17}}{a^{13}}` | `-2a^{4}` | `a != 0` |  |  |  |  |
+| 419 | 17 | Medium | Reference-type rational | `\frac{x^{17} - 16x^{15} + 2x^{6} + 8x^{5}}{x^{3} + 10x^{2} + 24x}` | `\frac{x^{15} - 4x^{14} + 2x^{4}}{x + 6}` | `x != -6, -4, 0` |  |  |  |  |
+| 420 | 17 | Medium | Different denominators | `\frac{x^{17} + x^{16} + 2x^{13} + 2x^{12}}{x + 1} + \frac{x^{16} - 6x^{15} + x^{10} - 6x^{9}}{x - 6}` | `x^{16} + x^{15} + 2x^{12} + x^{9}` | `x != -1, 6` |  |  |  |  |
+| 421 | 17 | Medium | Constant factor | `\frac{-24x^{18} - 168x^{17} + 24x^{5} + 168x^{4}}{x + 7}` | `-24x^{17} + 24x^{4}` | `x != -7` |  |  |  |  |
+| 422 | 17 | Medium | Sign flip | `\frac{x^{17} - 4x^{16} - 3x^{13} + 12x^{12} - 3x^{7} + 12x^{6}}{x - 4}` | `x^{16} - 3x^{12} - 3x^{6}` | `x != 4` |  |  |  |  |
+| 423 | 17 | Medium | Polynomial plus fraction | `x^{17} + \frac{1}{x + 5}` | `\frac{x^{18} + 5x^{17} + 1}{x + 5}` | `x != -5` |  |  |  |  |
+| 424 | 17 | Medium | Same denominator | `\frac{x^{17}}{x} + \frac{4x^{12}}{x}` | `x^{16} + 4x^{11}` | `x != 0` |  |  |  |  |
+| 425 | 17 | Medium | Already irreducible | `\frac{x^{17} + 3}{x^{17} + 1}` | `\frac{x^{17} + 3}{x^{17} + 1}` | `x != -1` |  |  |  |  |
+| 426 | 18 | Medium | Difference of powers | `\frac{x^{18} - 262144}{x^{9} + 512}` | `x^{9} - 512` | `x != -2` |  |  |  |  |
+| 427 | 18 | Medium | Power of a power | `\frac{(x^{9})^{2}}{x^{7}}` | `x^{11}` | `x != 0` |  |  |  |  |
+| 428 | 18 | Medium | Common power factor | `\frac{x^{18} + 5x}{x^{18} - x}` | `\frac{x^{17} + 5}{x^{17} - 1}` | `x != 0, 1` |  |  |  |  |
+| 429 | 18 | Medium | Different denominators | `\frac{x^{18} - 6x^{17} - 4x^{8} + 24x^{7}}{x - 6} + \frac{x^{16} + 6x^{15}}{x + 6}` | `x^{17} + x^{15} - 4x^{7}` | `x != -6, 6` |  |  |  |  |
+| 430 | 18 | Medium | Multivariate expansion | `(a^{9} + b^{9})(a^{9} - b^{9})` | `a^{18} - b^{18}` | `none` |  |  |  |  |
+| 431 | 18 | Medium | Cancels to zero | `\frac{x^{18} + x^{17} + 5x + 5}{x + 1} - (x^{17} + 5)` | `0` | `x != -1` |  |  |  |  |
+| 432 | 18 | Medium | Perfect square trinomial | `\frac{x^{18} - 2x^{9} + 1}{x^{9} - 1}` | `x^{9} - 1` | `x != 1` |  |  |  |  |
+| 433 | 18 | Medium | Partial cancellation | `\frac{x^{18} + x^{17} + 2x^{2} + 2x}{x^{2} - 1}` | `\frac{x^{17} + 2x}{x - 1}` | `x != -1, 1` |  |  |  |  |
+| 434 | 18 | Medium | Monomial division | `\frac{x^{18} - 2x^{17} + 5x^{15}}{x^{15}}` | `x^{3} - 2x^{2} + 5` | `x != 0` |  |  |  |  |
+| 435 | 18 | Medium | Multivariate monomials | `\frac{3 \cdot a^{13} \cdot b^{2} \cdot z^{3}}{a^{11} \cdot b^{2}}` | `3a^{2} z^{3}` | `a != 0, b != 0` |  |  |  |  |
+| 436 | 18 | Medium | Constant factor | `\frac{4x^{18} + 12x^{17} - 8}{4}` | `x^{18} + 3x^{17} - 2` | `none` |  |  |  |  |
+| 437 | 18 | Medium | Nested fraction | `\frac{\frac{4x^{18} - 9x^{17} - 9x^{16} + 5x^{5} - 15x^{4}}{x + 1}}{\frac{x - 3}{x + 1}}` | `4x^{17} + 3x^{16} + 5x^{4}` | `x != -1, 3` |  |  |  |  |
+| 438 | 18 | Medium | Already irreducible | `\frac{x^{18} + 4}{x^{18} + 1}` | `\frac{x^{18} + 4}{x^{18} + 1}` | `x^18 + 1 != 0` |  |  |  |  |
+| 439 | 18 | Medium | Quadratic factor cancellation | `\frac{-3x^{18} - 30x^{17} - 63x^{16}}{x^{2} + 10x + 21}` | `-3x^{16}` | `x != -7, -3` |  |  |  |  |
+| 440 | 18 | Medium | Expand product | `(x^{6} + 4x)(x^{12})` | `x^{18} + 4x^{13}` | `none` |  |  |  |  |
+| 441 | 18 | Medium | Polynomial plus fraction | `-4x^{18} - \frac{4}{x - 6}` | `\frac{-4x^{19} + 24x^{18} - 4}{x - 6}` | `x != 6` |  |  |  |  |
+| 442 | 18 | Medium | Sign flip | `\frac{-x^{18} - 6x^{17} + 5x^{4} + 30x^{3}}{x + 6}` | `-x^{17} + 5x^{3}` | `x != -6` |  |  |  |  |
+| 443 | 18 | Medium | Collapsing identity | `(x^{9} - 4)^{2} - (x^{9} + 4)^{2}` | `-16x^{9}` | `none` |  |  |  |  |
+| 444 | 18 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{18} - x^{17} - 49x^{16} + 49x^{15} - 4x^{9} + 4x^{8} + 196x^{7} - 196x^{6}}{x - 7}}{x - 1}}{\frac{x + 7}{x - 6}}` | `x^{16} - 6x^{15} - 4x^{7} + 24x^{6}` | `x != -7, 1, 6, 7` |  |  |  |  |
+| 445 | 18 | Medium | Same denominator | `\frac{5x^{18}}{x^{5} - 243} - \frac{6x^{18} - 2x^{15} - 243x^{13} + 486x^{10}}{x^{5} - 243}` | `-x^{13} + 2x^{10}` | `x != 3` |  |  |  |  |
+| 446 | 18 | Medium | Reference-type rational | `\frac{4x^{18} - 4x^{16}}{x^{3} + 3x^{2} - x - 3}` | `\frac{4x^{16}}{x + 3}` | `x != -3, -1, 1` |  |  |  |  |
+| 447 | 18 | Medium | Negative exponents | `x^{-3} \cdot (2x^{18} + 3x^{10})` | `2x^{15} + 3x^{7}` | `x != 0` |  |  |  |  |
+| 448 | 18 | Medium | Distribute and collect | `-x^{15}(x^{3} + 5) + 4x^{15}` | `-x^{18} - x^{15}` | `none` |  |  |  |  |
+| 449 | 18 | Medium | Linear factor cancellation | `\frac{x^{18} + 4x^{17}}{x + 4}` | `x^{17}` | `x != -4` |  |  |  |  |
+| 450 | 18 | Medium | Collect like terms | `-x^{4} + 6x^{18} - 2x^{4} - 2x^{18}` | `4x^{18} - 3x^{4}` | `none` |  |  |  |  |
+| 451 | 19 | Medium | Reference-type rational | `\frac{4x^{19} - 40x^{18} + 84x^{17} + 2x^{16} - 20x^{15} + 42x^{14}}{x^{3} - 15x^{2} + 71x - 105}` | `\frac{4x^{17} + 2x^{14}}{x - 5}` | `x != 3, 5, 7` |  |  |  |  |
+| 452 | 19 | Medium | Already irreducible | `\frac{x^{19} - 3}{x^{19}}` | `\frac{x^{19} - 3}{x^{19}}` | `x != 0` |  |  |  |  |
+| 453 | 19 | Medium | Multivariate monomials | `\frac{-12 \cdot a^{2} \cdot b^{4} \cdot z^{13}}{6b^{2}}` | `-2a^{2} b^{2} z^{13}` | `b != 0` |  |  |  |  |
+| 454 | 19 | Medium | Nested fraction | `\frac{\frac{x^{19} + 6x^{18}}{x + 2}}{\frac{x + 6}{x + 2}}` | `x^{18}` | `x != -6, -2` |  |  |  |  |
+| 455 | 19 | Medium | Distribute and collect | `5x^{9}(x^{10} - 5) + 3x^{9}` | `5x^{19} - 22x^{9}` | `none` |  |  |  |  |
+| 456 | 19 | Medium | Collapsing identity | `(x^{10} + 3)(x^{9} - 3) - x^{19}` | `-3x^{10} + 3x^{9} - 9` | `none` |  |  |  |  |
+| 457 | 19 | Medium | Different denominators | `\frac{x^{19} + 3x^{18} + x^{2} + 3x}{x + 3} + \frac{x^{18} + 7x^{17} + 3x^{3} + 21x^{2}}{x + 7}` | `x^{18} + x^{17} + 3x^{2} + x` | `x != -7, -3` |  |  |  |  |
+| 458 | 19 | Medium | Polynomial plus fraction | `(3x^{19} - 5x^{4}) - \frac{2}{x + 7}` | `\frac{3x^{20} + 21x^{19} - 5x^{5} - 35x^{4} - 2}{x + 7}` | `x != -7` |  |  |  |  |
+| 459 | 19 | Medium | Multivariate distribution | `a^{11} \cdot b^{2} \cdot (-2b^{6} + a^{4})` | `-2a^{11} b^{8} + a^{15} b^{2}` | `none` |  |  |  |  |
+| 460 | 19 | Medium | Linear factor cancellation | `\frac{-3x^{19} + 17x^{18} - 10x^{17}}{x - 5}` | `-3x^{18} + 2x^{17}` | `x != 5` |  |  |  |  |
+| 461 | 19 | Medium | Sign flip | `\frac{-x^{19} - 6x^{18} - 3x^{16} - 18x^{15}}{x + 6}` | `-x^{18} - 3x^{15}` | `x != -6` |  |  |  |  |
+| 462 | 19 | Medium | Difference of powers | `\frac{x^{19} - x}{x^{10} - x}` | `x^{9} + 1` | `x != 0, 1` |  |  |  |  |
+| 463 | 19 | Medium | Negative exponents | `x^{-11} \cdot (-5x^{19} - 2x^{15})` | `-5x^{8} - 2x^{4}` | `x != 0` |  |  |  |  |
+| 464 | 19 | Medium | Quadratic factor cancellation | `\frac{x^{19} - 3x^{18} - 18x^{17} + 4x^{16} - 12x^{15} - 72x^{14}}{(x - 6)(x + 3)}` | `x^{17} + 4x^{14}` | `x != -3, 6` |  |  |  |  |
+| 465 | 19 | Medium | Constant factor | `\frac{8x^{20} + 8x^{19} + 8x^{15} + 8x^{14}}{2x + 2}` | `4x^{19} + 4x^{14}` | `x != -1` |  |  |  |  |
+| 466 | 19 | Medium | Monomial division | `\frac{2x^{19} - 2x^{4}}{2x^{4}}` | `x^{15} - 1` | `x != 0` |  |  |  |  |
+| 467 | 19 | Medium | Power of a power | `(x^{19})^{1} \cdot x^{-9}` | `x^{10}` | `x != 0` |  |  |  |  |
+| 468 | 19 | Medium | Expand product | `(-x^{14})(x^{5})` | `-x^{19}` | `none` |  |  |  |  |
+| 469 | 19 | Medium | Perfect square trinomial | `\frac{x^{19} + 1024x^{10} + 262144x}{x^{9} + 512}` | `x^{10} + 512x` | `x != -2` |  |  |  |  |
+| 470 | 19 | Medium | Cancels to zero | `\frac{5x^{19} + 30x^{18}}{x + 6} - 5x^{18}` | `0` | `x != -6` |  |  |  |  |
+| 471 | 19 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{19} + 12x^{18} + 47x^{17} + 60x^{16} + 3x^{11} + 36x^{10} + 141x^{9} + 180x^{8}}{x + 3}}{x + 5}}{\frac{x + 4}{x - 5}}` | `x^{17} - 5x^{16} + 3x^{9} - 15x^{8}` | `x != -5, -4, -3, 5` |  |  |  |  |
+| 472 | 19 | Medium | Collect like terms | `5x^{17} + 2x^{7} - x^{19} - x^{7} - x^{19} - x^{5} - 6x^{17}` | `-2x^{19} - x^{17} + x^{7} - x^{5}` | `none` |  |  |  |  |
+| 473 | 19 | Medium | Same denominator | `\frac{-5x^{19} + 4x^{15} - x}{x^{2} + 9} + \frac{2x^{19} - 27x^{17} - 4x^{15} + x^{7} + 9x^{5} + x}{x^{2} + 9}` | `-3x^{17} + x^{5}` | `x^2 + 9 != 0` |  |  |  |  |
+| 474 | 19 | Medium | Partial cancellation | `\frac{x^{19} + 7x^{18} + 3x^{12} + 21x^{11} - x^{10} - 7x^{9}}{x^{2} - 49}` | `\frac{x^{18} + 3x^{11} - x^{9}}{x - 7}` | `x != -7, 7` |  |  |  |  |
+| 475 | 19 | Medium | Already irreducible | `\frac{x^{19} + 2}{x^{19} + 1}` | `\frac{x^{19} + 2}{x^{19} + 1}` | `x != -1` |  |  |  |  |
+| 476 | 20 | Medium | Quadratic factor cancellation | `\frac{x^{20} - 2x^{19} - 8x^{18} + 3x^{6} - 6x^{5} - 24x^{4}}{x^{2} - 2x - 8}` | `x^{18} + 3x^{4}` | `x != -2, 4` |  |  |  |  |
+| 477 | 20 | Medium | Difference of squares chain | `\frac{x^{20} - 1}{x^{10} - 1}` | `x^{10} + 1` | `x != -1, 1` |  |  |  |  |
+| 478 | 20 | Medium | Already irreducible | `\frac{x^{20} + 4}{x^{20} - 1}` | `\frac{x^{20} + 4}{x^{20} - 1}` | `x != -1, 1` |  |  |  |  |
+| 479 | 20 | Medium | Negative exponents | `x^{-10} \cdot (-2x^{20})` | `-2x^{10}` | `x != 0` |  |  |  |  |
+| 480 | 20 | Medium | Collapsing identity | `(x^{10} - 5)^{2} - (x^{10} + 5)^{2}` | `-20x^{10}` | `none` |  |  |  |  |
+| 481 | 20 | Medium | Constant factor | `\frac{4x^{21} - 12x^{20} - 4x^{14} + 12x^{13} - 4x^{7} + 12x^{6}}{x - 3}` | `4x^{20} - 4x^{13} - 4x^{6}` | `x != 3` |  |  |  |  |
+| 482 | 20 | Medium | Expand product | `(3x^{12} - 5x^{7})(x^{8})` | `3x^{20} - 5x^{15}` | `none` |  |  |  |  |
+| 483 | 20 | Medium | Collect like terms | `-4x^{18} + 8 + 3x^{18} - x^{13} + 6x^{20} - 11x^{20} + 4x^{13} - 3` | `-5x^{20} - x^{18} + 3x^{13} + 5` | `none` |  |  |  |  |
+| 484 | 20 | Medium | Cancels to zero | `\frac{x^{20} + 2x^{19} + x^{17} + 2x^{16}}{x + 2} - (x^{19} + x^{16})` | `0` | `x != -2` |  |  |  |  |
+| 485 | 20 | Medium | Triple nested fraction | `\frac{\frac{\frac{x^{20} - 9x^{19} + 8x^{18} + 60x^{17}}{x - 6}}{x + 2}}{\frac{x - 5}{x + 6}}` | `x^{18} + 6x^{17}` | `x != -6, -2, 5, 6` |  |  |  |  |
+| 486 | 20 | Medium | Difference of powers | `\frac{x^{20} - 1}{x^{10} + 1}` | `x^{10} - 1` | `x^10 + 1 != 0` |  |  |  |  |
+| 487 | 20 | Medium | Common power factor | `\frac{x^{20} - 2x^{11}}{x^{20} + x^{11}}` | `\frac{x^{9} - 2}{x^{9} + 1}` | `x != -1, 0` |  |  |  |  |
+| 488 | 20 | Medium | Partial cancellation | `\frac{x^{20} + 3x^{19} + 3x^{11} + 9x^{10}}{x^{2} + 8x + 15}` | `\frac{x^{19} + 3x^{10}}{x + 5}` | `x != -5, -3` |  |  |  |  |
+| 489 | 20 | Medium | Multivariate monomials | `\frac{16 \cdot a^{13} \cdot z^{7}}{4a^{7}}` | `4a^{6} z^{7}` | `a != 0` |  |  |  |  |
+| 490 | 20 | Medium | Polynomial plus fraction | `(-x^{20} - 5x^{17}) + \frac{4}{x + 5}` | `\frac{-x^{21} - 5x^{20} - 5x^{18} - 25x^{17} + 4}{x + 5}` | `x != -5` |  |  |  |  |
+| 491 | 20 | Medium | Distribute and collect | `-x^{2}(x^{18} + 3) - x^{2}` | `-x^{20} - 4x^{2}` | `none` |  |  |  |  |
+| 492 | 20 | Medium | Nested fraction | `\frac{\frac{x^{20} + 2x^{19} + 3x^{6} + 6x^{5}}{x + 6}}{\frac{x + 2}{x + 6}}` | `x^{19} + 3x^{5}` | `x != -6, -2` |  |  |  |  |
+| 493 | 20 | Medium | Monomial division | `\frac{20x^{20} + 16x^{9} + 16x^{2}}{4x^{2}}` | `5x^{18} + 4x^{7} + 4` | `x != 0` |  |  |  |  |
+| 494 | 20 | Medium | Power of a power | `\frac{(-x^{20})^{1}}{x^{5}}` | `-x^{15}` | `x != 0` |  |  |  |  |
+| 495 | 20 | Medium | Linear factor cancellation | `\frac{x^{20} + 3x^{19} + 2x^{18}}{x + 1}` | `x^{19} + 2x^{18}` | `x != -1` |  |  |  |  |
+| 496 | 20 | Medium | Different denominators | `\frac{5x^{20} - 30x^{19} + 5x^{18} - 30x^{17}}{x - 6} + \frac{x^{20} - 4x^{19} - 5x^{11} + 20x^{10}}{x - 4}` | `6x^{19} + 5x^{17} - 5x^{10}` | `x != 4, 6` |  |  |  |  |
+| 497 | 20 | Medium | Same denominator | `\frac{4x^{20} + 5x^{15} + 3x^{12}}{x^{3} - 27} - \frac{108x^{17} + 5x^{15} - 4x^{14} + 3x^{12} + 108x^{11}}{x^{3} - 27}` | `4x^{17} + 4x^{11}` | `x != 3` |  |  |  |  |
+| 498 | 20 | Medium | Perfect square trinomial | `\frac{x^{20} - 2x^{10} + 1}{x^{10} - 1}` | `x^{10} - 1` | `x != -1, 1` |  |  |  |  |
+| 499 | 20 | Medium | Sign flip | `\frac{3x^{20} + 9x^{19} - 2x^{11} - 6x^{10}}{x + 3}` | `3x^{19} - 2x^{10}` | `x != -3` |  |  |  |  |
+| 500 | 20 | Medium | Reference-type rational | `\frac{x^{20} + 9x^{19} + 18x^{18} + x^{3} + 9x^{2} + 18x}{x^{3} + 5x^{2} - 18x - 72}` | `\frac{x^{18} + x}{x - 4}` | `x != -6, -3, 4` |  |  |  |  |
+| 501 | 21 | Hard | Different denominators | `\frac{x^{21} + 4x^{20}}{x + 4} + \frac{x^{19} - 4x^{18} + 4x^{10} - 16x^{9}}{x - 4}` | `x^{20} + x^{18} + 4x^{9}` | `x != -4, 4` |  |  |  |  |
+| 502 | 21 | Hard | Sign flip | `\frac{4x^{21} + 12x^{20} + 2x^{15} + 6x^{14}}{x + 3}` | `4x^{20} + 2x^{14}` | `x != -3` |  |  |  |  |
+| 503 | 21 | Hard | Monomial division | `\frac{-4x^{21} - 10x^{15} + 10x^{5}}{2x^{5}}` | `-2x^{16} - 5x^{10} + 5` | `x != 0` |  |  |  |  |
+| 504 | 21 | Hard | Expand product | `(x^{3} - 5x^{2})(x^{18})` | `x^{21} - 5x^{20}` | `none` |  |  |  |  |
+| 505 | 21 | Hard | Collect like terms | `5x^{2} + 2x^{21} - x^{8} + 5x^{8} - 2x^{15} - x^{21} - x^{15} + x^{18} - 3x^{2} + 3x^{18}` | `x^{21} + 4x^{18} - 3x^{15} + 4x^{8} + 2x^{2}` | `none` |  |  |  |  |
+| 506 | 21 | Hard | Cancels to zero | `\frac{-5x^{21} + 30x^{20}}{x - 6} - (-5x^{20})` | `0` | `x != 6` |  |  |  |  |
+| 507 | 21 | Hard | Common power factor | `\frac{x^{21} + 2x^{9}}{x^{21} - x^{9}}` | `\frac{x^{12} + 2}{x^{12} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 508 | 21 | Hard | Constant factor | `\frac{4x^{22} - 8x^{21}}{x - 2}` | `4x^{21}` | `x != 2` |  |  |  |  |
+| 509 | 21 | Hard | Linear factor cancellation | `\frac{x^{21} + 2x^{20} - 2x^{19} - 4x^{18}}{x + 2}` | `x^{20} - 2x^{18}` | `x != -2` |  |  |  |  |
+| 510 | 21 | Hard | Quadratic factor cancellation | `\frac{x^{21} - 2x^{20} - 3x^{19}}{x^{2} - 2x - 3}` | `x^{19}` | `x != -1, 3` |  |  |  |  |
+| 511 | 21 | Hard | Collapsing identity | `(x^{11} + 2)(x^{10} - 2) - x^{21}` | `-2x^{11} + 2x^{10} - 4` | `none` |  |  |  |  |
+| 512 | 21 | Hard | Distribute and collect | `3x^{4}(x^{17} - 3) - 4x^{4}` | `3x^{21} - 13x^{4}` | `none` |  |  |  |  |
+| 513 | 21 | Hard | Multivariate distribution | `a^{17} \cdot b \cdot (2b^{3} + a)` | `2a^{17} b^{4} + a^{18} b` | `none` |  |  |  |  |
+| 514 | 21 | Hard | Difference of powers | `\frac{x^{21} - x}{x^{11} - x}` | `x^{10} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 515 | 21 | Hard | Perfect square trinomial | `\frac{x^{21} - 2x^{11} + x}{x^{10} - 1}` | `x^{11} - x` | `x != -1, 1` |  |  |  |  |
+| 516 | 21 | Hard | Partial cancellation | `\frac{x^{21} + 8x^{20} + 12x^{19}}{x^{2} - x - 42}` | `\frac{x^{20} + 2x^{19}}{x - 7}` | `x != -6, 7` |  |  |  |  |
+| 517 | 21 | Hard | Same denominator | `\frac{x^{21} - 5x^{16}}{x - 4} + \frac{-4x^{20} + 5x^{16}}{x - 4}` | `x^{20}` | `x != 4` |  |  |  |  |
+| 518 | 21 | Hard | Negative exponents | `x^{-8} \cdot (x^{21} + 3x^{8})` | `x^{13} + 3` | `x != 0` |  |  |  |  |
+| 519 | 21 | Hard | Already irreducible | `\frac{x^{21} + 4}{x^{21} - 1}` | `\frac{x^{21} + 4}{x^{21} - 1}` | `x != 1` |  |  |  |  |
+| 520 | 21 | Hard | Triple nested fraction | `\frac{\frac{\frac{-3x^{21} - 9x^{20} + 30x^{19} + 72x^{18}}{x - 3}}{x + 2}}{\frac{x + 4}{x}}` | `-3x^{19}` | `x != -4, -2, 0, 3` |  |  |  |  |
+| 521 | 21 | Hard | Nested fraction | `\frac{\frac{x^{21} + 2x^{19} + 4x^{14}}{x - 4}}{\frac{x}{x - 4}}` | `x^{20} + 2x^{18} + 4x^{13}` | `x != 0, 4` |  |  |  |  |
+| 522 | 21 | Hard | Polynomial plus fraction | `x^{21} - \frac{1}{x - 7}` | `\frac{x^{22} - 7x^{21} - 1}{x - 7}` | `x != 7` |  |  |  |  |
+| 523 | 21 | Hard | Power of a power | `\frac{(x^{7})^{3}}{x^{2}}` | `x^{19}` | `x != 0` |  |  |  |  |
+| 524 | 21 | Hard | Multivariate monomials | `\frac{12 \cdot a^{18} \cdot z^{3}}{6a^{12}}` | `2a^{6} z^{3}` | `a != 0` |  |  |  |  |
+| 525 | 21 | Hard | Different denominators | `\frac{x^{21}}{x} + \frac{4x^{21} + 24x^{20} - x^{8} - 6x^{7}}{x + 6}` | `5x^{20} - x^{7}` | `x != -6, 0` |  |  |  |  |
+| 526 | 22 | Hard | Common power factor | `\frac{x^{22} + 2x^{8}}{x^{22} + x^{8}}` | `\frac{x^{14} + 2}{x^{14} + 1}` | `x != 0, x^14 + 1 != 0` |  |  |  |  |
+| 527 | 22 | Hard | Different denominators | `\frac{5x^{22} - 30x^{21} + 3x^{13} - 18x^{12}}{x - 6} + \frac{x^{22} + 5x^{21} + 4x^{17} + 20x^{16}}{x + 5}` | `6x^{21} + 4x^{16} + 3x^{12}` | `x != -5, 6` |  |  |  |  |
+| 528 | 22 | Hard | Polynomial plus fraction | `x^{22} + \frac{5}{x + 1}` | `\frac{x^{23} + x^{22} + 5}{x + 1}` | `x != -1` |  |  |  |  |
+| 529 | 22 | Hard | Collapsing identity | `(x^{11} - 1)^{2} - (x^{11} + 1)^{2}` | `-4x^{11}` | `none` |  |  |  |  |
+| 530 | 22 | Hard | Partial cancellation | `\frac{5x^{22} - 35x^{21} + 5x^{7} - 35x^{6} + 4x^{5} - 28x^{4}}{x^{2} - 8x + 7}` | `\frac{5x^{21} + 5x^{6} + 4x^{4}}{x - 1}` | `x != 1, 7` |  |  |  |  |
+| 531 | 22 | Hard | Multivariate distribution | `a^{11} \cdot (2b^{11} + a^{7})` | `2a^{11} b^{11} + a^{18}` | `none` |  |  |  |  |
+| 532 | 22 | Hard | Reference-type rational | `\frac{3x^{22} - 3x^{21} - 12x^{20} + 17x^{19} - 20x^{17}}{x^{3} + 4x^{2} - 4x - 16}` | `\frac{3x^{20} - 3x^{19} + 5x^{17}}{x + 4}` | `x != -4, -2, 2` |  |  |  |  |
+| 533 | 22 | Hard | Power of a power | `\frac{(3x^{11})^{2}}{x^{9}}` | `9x^{13}` | `x != 0` |  |  |  |  |
+| 534 | 22 | Hard | Difference of powers | `\frac{x^{22} - 1}{x^{11} - 1}` | `x^{11} + 1` | `x != 1` |  |  |  |  |
+| 535 | 22 | Hard | Distribute and collect | `-x^{15}(x^{7} - 5) + x^{15}` | `-x^{22} + 6x^{15}` | `none` |  |  |  |  |
+| 536 | 22 | Hard | Multivariate monomials | `\frac{-8 \cdot a^{19} \cdot z^{3}}{2a^{14}}` | `-4a^{5} z^{3}` | `a != 0` |  |  |  |  |
+| 537 | 22 | Hard | Quadratic factor cancellation | `\frac{-4x^{22} - 32x^{21} - 28x^{20} + x^{5} + 8x^{4} + 7x^{3} - x^{2} - 8x - 7}{(x + 7)(x + 1)}` | `-4x^{20} + x^{3} - 1` | `x != -7, -1` |  |  |  |  |
+| 538 | 22 | Hard | Expand product | `(x^{2})(x^{20})` | `x^{22}` | `none` |  |  |  |  |
+| 539 | 22 | Hard | Constant factor | `\frac{5x^{22} - 15x^{7}}{5}` | `x^{22} - 3x^{7}` | `none` |  |  |  |  |
+| 540 | 22 | Hard | Already irreducible | `\frac{x^{22} + 4}{x^{22} - 1}` | `\frac{x^{22} + 4}{x^{22} - 1}` | `x != -1, 1` |  |  |  |  |
+| 541 | 22 | Hard | Nested fraction | `\frac{\frac{x^{22} + x^{21} - x^{11} - x^{10} + 2x^{6} + 2x^{5}}{x - 7}}{\frac{x + 1}{x - 7}}` | `x^{21} - x^{10} + 2x^{5}` | `x != -1, 7` |  |  |  |  |
+| 542 | 22 | Hard | Perfect square trinomial | `\frac{x^{22} - 2x^{11} + 1}{x^{11} - 1}` | `x^{11} - 1` | `x != 1` |  |  |  |  |
+| 543 | 22 | Hard | Cancels to zero | `\frac{3x^{22} - 6x^{21} - 5x^{3} + 10x^{2}}{x - 2} - (3x^{21} - 5x^{2})` | `0` | `x != 2` |  |  |  |  |
+| 544 | 22 | Hard | Negative exponents | `x^{-22} \cdot (-3x^{22})` | `-3` | `x != 0` |  |  |  |  |
+| 545 | 22 | Hard | Linear factor cancellation | `\frac{x^{22} - 7x^{21} - 5x^{14} + 35x^{13}}{x - 7}` | `x^{21} - 5x^{13}` | `x != 7` |  |  |  |  |
+| 546 | 22 | Hard | Same denominator | `\frac{x^{22}}{x^{6} - 729} + \frac{-3x^{22} + 1458x^{16}}{x^{6} - 729}` | `-2x^{16}` | `x != -3, 3` |  |  |  |  |
+| 547 | 22 | Hard | Sign flip | `\frac{-x^{22} - 4x^{21} - 3x^{14} - 16x^{13} - 16x^{12}}{x + 4}` | `-x^{21} - 3x^{13} - 4x^{12}` | `x != -4` |  |  |  |  |
+| 548 | 22 | Hard | Collect like terms | `1 + 3x^{22} + 2x^{5} - 2x^{22} - 6x^{6} + 3x^{6}` | `x^{22} - 3x^{6} + 2x^{5} + 1` | `none` |  |  |  |  |
+| 549 | 22 | Hard | Monomial division | `\frac{5x^{22} + 25x^{15} + 25x^{9} + 15x^{8}}{5x^{8}}` | `x^{14} + 5x^{7} + 5x + 3` | `x != 0` |  |  |  |  |
+| 550 | 22 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{22} - 37x^{20} - 84x^{19} + 3x^{4} - 111x^{2} - 252x}{x + 4}}{x + 3}}{\frac{x - 7}{x - 3}}` | `x^{20} - 3x^{19} + 3x^{2} - 9x` | `x != -4, -3, 3, 7` |  |  |  |  |
+| 551 | 23 | Hard | Sign flip | `\frac{5x^{23} + 10x^{22}}{x + 2}` | `5x^{22}` | `x != -2` |  |  |  |  |
+| 552 | 23 | Hard | Expand product | `(x^{18})(x^{5} - 5x)` | `x^{23} - 5x^{19}` | `none` |  |  |  |  |
+| 553 | 23 | Hard | Collapsing identity | `(x^{12} + 2)(x^{11} - 2) - x^{23}` | `-2x^{12} + 2x^{11} - 4` | `none` |  |  |  |  |
+| 554 | 23 | Hard | Cancels to zero | `\frac{x^{23} - x^{22} - 4x^{11} + 4x^{10}}{x - 1} - (x^{22} - 4x^{10})` | `0` | `x != 1` |  |  |  |  |
+| 555 | 23 | Hard | Constant factor | `\frac{5x^{23} + 25x^{18}}{5}` | `x^{23} + 5x^{18}` | `none` |  |  |  |  |
+| 556 | 23 | Hard | Quadratic factor cancellation | `\frac{-3x^{23} - 24x^{22} - 36x^{21}}{(x + 2)(x + 6)}` | `-3x^{21}` | `x != -6, -2` |  |  |  |  |
+| 557 | 23 | Hard | Different denominators | `\frac{x^{23} + 5x^{22} + x^{18} + 5x^{17}}{x + 5} + \frac{-5x^{22} + 15x^{21} - 5x^{16} + 15x^{15}}{x - 3}` | `x^{22} - 5x^{21} + x^{17} - 5x^{15}` | `x != -5, 3` |  |  |  |  |
+| 558 | 23 | Hard | Perfect square trinomial | `\frac{x^{23} + 2x^{12} + x}{x^{11} + 1}` | `x^{12} + x` | `x != -1` |  |  |  |  |
+| 559 | 23 | Hard | Distribute and collect | `-2x^{5}(x^{18} - 1) + 3x^{5}` | `-2x^{23} + 5x^{5}` | `none` |  |  |  |  |
+| 560 | 23 | Hard | Collect like terms | `4x^{8} - 4x^{22} + 5x^{22} + 2x^{23} - x^{23}` | `x^{23} + x^{22} + 4x^{8}` | `none` |  |  |  |  |
+| 561 | 23 | Hard | Already irreducible | `\frac{x^{23} - 5}{x^{23}}` | `\frac{x^{23} - 5}{x^{23}}` | `x != 0` |  |  |  |  |
+| 562 | 23 | Hard | Multivariate distribution | `a^{21} \cdot (a^{2} - 4b^{2})` | `a^{23} - 4a^{21} b^{2}` | `none` |  |  |  |  |
+| 563 | 23 | Hard | Power of a power | `(x^{23})^{1} \cdot x^{-14}` | `x^{9}` | `x != 0` |  |  |  |  |
+| 564 | 23 | Hard | Multivariate monomials | `\frac{a^{6} \cdot b^{11} \cdot z^{6}}{b^{4}}` | `a^{6} b^{7} z^{6}` | `b != 0` |  |  |  |  |
+| 565 | 23 | Hard | Nested fraction | `\frac{\frac{x^{23} + 5x^{22}}{x + 2}}{\frac{x + 5}{x + 2}}` | `x^{22}` | `x != -5, -2` |  |  |  |  |
+| 566 | 23 | Hard | Linear factor cancellation | `\frac{2x^{23} - 4x^{22}}{x - 2}` | `2x^{22}` | `x != 2` |  |  |  |  |
+| 567 | 23 | Hard | Same denominator | `\frac{-x^{23} - 4x^{15} - 3x^{11}}{x + 1} + \frac{2x^{23} + x^{22} + 4x^{15} + 4x^{12} + 7x^{11} - x^{10} - x^{9}}{x + 1}` | `x^{22} + 4x^{11} - x^{9}` | `x != -1` |  |  |  |  |
+| 568 | 23 | Hard | Negative exponents | `x^{-9} \cdot (-5x^{23} + 3x^{15})` | `-5x^{14} + 3x^{6}` | `x != 0` |  |  |  |  |
+| 569 | 23 | Hard | Common power factor | `\frac{x^{23} - 4x^{13}}{x^{23} + x^{13}}` | `\frac{x^{10} - 4}{x^{10} + 1}` | `x != 0, x^10 + 1 != 0` |  |  |  |  |
+| 570 | 23 | Hard | Partial cancellation | `\frac{-x^{23} + 5x^{22} + 4x^{15} - 20x^{14} + 4x^{12} - 20x^{11}}{x^{2} - 25}` | `\frac{-x^{22} + 4x^{14} + 4x^{11}}{x + 5}` | `x != -5, 5` |  |  |  |  |
+| 571 | 23 | Hard | Reference-type rational | `\frac{-3x^{23} - 15x^{22} - 2x^{2} - 10x}{x^{3} + 2x^{2} - 15x}` | `\frac{-3x^{21} - 2}{x - 3}` | `x != -5, 0, 3` |  |  |  |  |
+| 572 | 23 | Hard | Polynomial plus fraction | `2x^{23} + \frac{3}{x + 5}` | `\frac{2x^{24} + 10x^{23} + 3}{x + 5}` | `x != -5` |  |  |  |  |
+| 573 | 23 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{23} - 10x^{22} + 17x^{21} + 28x^{20}}{x + 1}}{x - 7}}{\frac{x - 4}{x + 6}}` | `x^{21} + 6x^{20}` | `x != -6, -1, 4, 7` |  |  |  |  |
+| 574 | 23 | Hard | Difference of powers | `\frac{x^{23} - x}{x^{12} - x}` | `x^{11} + 1` | `x != 0, 1` |  |  |  |  |
+| 575 | 23 | Hard | Monomial division | `\frac{6x^{23} - 24x^{21} - 30x^{17}}{6x^{17}}` | `x^{6} - 4x^{4} - 5` | `x != 0` |  |  |  |  |
+| 576 | 24 | Hard | Multivariate expansion | `(a^{12} + b^{12})(a^{12} - b^{12})` | `a^{24} - b^{24}` | `none` |  |  |  |  |
+| 577 | 24 | Hard | Multivariate monomials | `\frac{-2 \cdot a^{21} \cdot z^{3}}{2a^{16}}` | `-a^{5} z^{3}` | `a != 0` |  |  |  |  |
+| 578 | 24 | Hard | Collapsing identity | `(x^{12} - 1)^{2} - (x^{12} + 1)^{2}` | `-4x^{12}` | `none` |  |  |  |  |
+| 579 | 24 | Hard | Polynomial plus fraction | `x^{24} + \frac{1}{x + 7}` | `\frac{x^{25} + 7x^{24} + 1}{x + 7}` | `x != -7` |  |  |  |  |
+| 580 | 24 | Hard | Distribute and collect | `-5x^{20}(x^{4} - 2) + x^{20}` | `-5x^{24} + 11x^{20}` | `none` |  |  |  |  |
+| 581 | 24 | Hard | Reference-type rational | `\frac{x^{24} - 3x^{23} - 4x^{22}}{x^{3} - x^{2} - 10x - 8}` | `\frac{x^{22}}{x + 2}` | `x != -2, -1, 4` |  |  |  |  |
+| 582 | 24 | Hard | Perfect square trinomial | `\frac{x^{24} - 2x^{12} + 1}{x^{12} - 1}` | `x^{12} - 1` | `x != -1, 1` |  |  |  |  |
+| 583 | 24 | Hard | Monomial division | `\frac{5x^{24} - 25x^{11}}{5x^{11}}` | `x^{13} - 5` | `x != 0` |  |  |  |  |
+| 584 | 24 | Hard | Difference of powers | `\frac{x^{24} - 1}{x^{12} + 1}` | `x^{12} - 1` | `x^12 + 1 != 0` |  |  |  |  |
+| 585 | 24 | Hard | Sign flip | `\frac{-4x^{24} - 4x^{23}}{x + 1}` | `-4x^{23}` | `x != -1` |  |  |  |  |
+| 586 | 24 | Hard | Collect like terms | `x^{24} + 8x^{13} - 6x^{13} - 6x^{4} + 3x^{4}` | `x^{24} + 2x^{13} - 3x^{4}` | `none` |  |  |  |  |
+| 587 | 24 | Hard | Linear factor cancellation | `\frac{-x^{24} + 2x^{23}}{x - 2}` | `-x^{23}` | `x != 2` |  |  |  |  |
+| 588 | 24 | Hard | Different denominators | `\frac{-5x^{24} + 15x^{23} + 3x - 9}{x - 3} + \frac{x^{23} + 7x^{22} + 5x^{12} + 35x^{11}}{x + 7}` | `-5x^{23} + x^{22} + 5x^{11} + 3` | `x != -7, 3` |  |  |  |  |
+| 589 | 24 | Hard | Cancels to zero | `\frac{x^{24} - 4x^{23}}{x - 4} - x^{23}` | `0` | `x != 4` |  |  |  |  |
+| 590 | 24 | Hard | Expand product | `(5x^{9})(5x^{15} + 3x^{6})` | `25x^{24} + 15x^{15}` | `none` |  |  |  |  |
+| 591 | 24 | Hard | Difference of squares chain | `\frac{x^{24} - 1}{x^{12} - 1}` | `x^{12} + 1` | `x != -1, 1` |  |  |  |  |
+| 592 | 24 | Hard | Quadratic factor cancellation | `\frac{-4x^{24} - 21x^{23} - 21x^{22} - 4x^{21}}{(x + 4)(x + 1)}` | `-4x^{22} - x^{21}` | `x != -4, -1` |  |  |  |  |
+| 593 | 24 | Hard | Nested fraction | `\frac{\frac{x^{24} + 4x^{23} - 4x^{7} - 16x^{6} - 4x^{2} - 16x}{x + 6}}{\frac{x + 4}{x + 6}}` | `x^{23} - 4x^{6} - 4x` | `x != -6, -4` |  |  |  |  |
+| 594 | 24 | Hard | Common power factor | `\frac{x^{24} - 2x^{14}}{x^{24} - x^{14}}` | `\frac{x^{10} - 2}{x^{10} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 595 | 24 | Hard | Partial cancellation | `\frac{x^{24} - 6x^{23} + x^{17} - 6x^{16}}{x^{2} - x - 30}` | `\frac{x^{23} + x^{16}}{x + 5}` | `x != -5, 6` |  |  |  |  |
+| 596 | 24 | Hard | Negative exponents | `x^{-4} \cdot (-5x^{24})` | `-5x^{20}` | `x != 0` |  |  |  |  |
+| 597 | 24 | Hard | Power of a power | `(x^{12})^{2} \cdot x^{-9}` | `x^{15}` | `x != 0` |  |  |  |  |
+| 598 | 24 | Hard | Same denominator | `\frac{-4x^{24}}{x + 7} - \frac{-5x^{24} - 7x^{23}}{x + 7}` | `x^{23}` | `x != -7` |  |  |  |  |
+| 599 | 24 | Hard | Already irreducible | `\frac{x^{24} - 1}{x^{24}}` | `\frac{x^{24} - 1}{x^{24}}` | `x != 0` |  |  |  |  |
+| 600 | 24 | Hard | Constant factor | `\frac{-4x^{25} - 24x^{24}}{x + 6}` | `-4x^{24}` | `x != -6` |  |  |  |  |
+| 601 | 25 | Hard | Different denominators | `\frac{x^{25} + 4x^{24} - 5x^{20} - 20x^{19}}{x + 4} + \frac{x^{24} - 3x^{23} + 4x^{3} - 12x^{2}}{x - 3}` | `x^{24} + x^{23} - 5x^{19} + 4x^{2}` | `x != -4, 3` |  |  |  |  |
+| 602 | 25 | Hard | Sign flip | `\frac{2x^{25} + 4x^{24} - 3x^{13} - 6x^{12}}{x + 2}` | `2x^{24} - 3x^{12}` | `x != -2` |  |  |  |  |
+| 603 | 25 | Hard | Cancels to zero | `\frac{x^{25} - 3x^{24} + 2x^{8} - 6x^{7} - 4x + 12}{x - 3} - (x^{24} + 2x^{7} - 4)` | `0` | `x != 3` |  |  |  |  |
+| 604 | 25 | Hard | Negative exponents | `x^{-13} \cdot (-3x^{25} + 4x^{19})` | `-3x^{12} + 4x^{6}` | `x != 0` |  |  |  |  |
+| 605 | 25 | Hard | Nested fraction | `\frac{\frac{x^{25}}{x - 5}}{\frac{x}{x - 5}}` | `x^{24}` | `x != 0, 5` |  |  |  |  |
+| 606 | 25 | Hard | Same denominator | `\frac{-x^{25} + 5x^{20}}{x^{6} - 729} + \frac{-x^{25} - 3x^{22} - 5x^{20} + 1458x^{19} + x^{17} + 2187x^{16} - 729x^{11}}{x^{6} - 729}` | `-2x^{19} - 3x^{16} + x^{11}` | `x != -3, 3` |  |  |  |  |
+| 607 | 25 | Hard | Triple nested fraction | `\frac{\frac{\frac{-2x^{25} - 4x^{24} + 26x^{23} - 20x^{22} - 3x^{18} - 6x^{17} + 39x^{16} - 30x^{15}}{x - 1}}{x + 5}}{\frac{x - 2}{x - 5}}` | `-2x^{23} + 10x^{22} - 3x^{16} + 15x^{15}` | `x != -5, 1, 2, 5` |  |  |  |  |
+| 608 | 25 | Hard | Monomial division | `\frac{3x^{25} - 15x^{23} - 6x^{13} + 6x^{9}}{3x^{9}}` | `x^{16} - 5x^{14} - 2x^{4} + 2` | `x != 0` |  |  |  |  |
+| 609 | 25 | Hard | Polynomial plus fraction | `(4x^{25} - x^{15}) + \frac{3}{x - 7}` | `\frac{4x^{26} - 28x^{25} - x^{16} + 7x^{15} + 3}{x - 7}` | `x != 7` |  |  |  |  |
+| 610 | 25 | Hard | Already irreducible | `\frac{x^{25} + 2}{x^{25}}` | `\frac{x^{25} + 2}{x^{25}}` | `x != 0` |  |  |  |  |
+| 611 | 25 | Hard | Collapsing identity | `(x^{13} + 2)(x^{12} - 2) - x^{25}` | `-2x^{13} + 2x^{12} - 4` | `none` |  |  |  |  |
+| 612 | 25 | Hard | Power of a power | `(2x^{25})^{1} \cdot x^{-3}` | `2x^{22}` | `x != 0` |  |  |  |  |
+| 613 | 25 | Hard | Collect like terms | `-5x^{25} + 6x^{25} + 5x^{18} + x^{15} - x^{15} - 6x^{18}` | `x^{25} - x^{18}` | `none` |  |  |  |  |
+| 614 | 25 | Hard | Perfect square trinomial | `\frac{x^{25} + 2x^{13} + x}{x^{12} + 1}` | `x^{13} + x` | `x^12 + 1 != 0` |  |  |  |  |
+| 615 | 25 | Hard | Difference of powers | `\frac{x^{25} - x}{x^{13} - x}` | `x^{12} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 616 | 25 | Hard | Partial cancellation | `\frac{x^{25} - 5x^{24} - 5x^{17} + 25x^{16}}{x^{2} - 12x + 35}` | `\frac{x^{24} - 5x^{16}}{x - 7}` | `x != 5, 7` |  |  |  |  |
+| 617 | 25 | Hard | Quadratic factor cancellation | `\frac{x^{25} + x^{24} - 12x^{23}}{x^{2} + x - 12}` | `x^{23}` | `x != -4, 3` |  |  |  |  |
+| 618 | 25 | Hard | Expand product | `(x^{23})(-2x^{2})` | `-2x^{25}` | `none` |  |  |  |  |
+| 619 | 25 | Hard | Constant factor | `\frac{6x^{25}}{6}` | `x^{25}` | `none` |  |  |  |  |
+| 620 | 25 | Hard | Multivariate monomials | `\frac{4 \cdot a^{13} \cdot b^{8} \cdot z^{4}}{4 \cdot a^{5} \cdot b^{4}}` | `a^{8} b^{4} z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 621 | 25 | Hard | Multivariate distribution | `a^{7} \cdot b^{13} \cdot (-b^{5} + a^{3})` | `-a^{7} b^{18} + a^{10} b^{13}` | `none` |  |  |  |  |
+| 622 | 25 | Hard | Reference-type rational | `\frac{-x^{25} + 12x^{24} - 40x^{23} + 60x^{22} - 175x^{21} + 3x^{3} - 36x^{2} + 105x}{x^{3} - 18x^{2} + 107x - 210}` | `\frac{-x^{23} - 5x^{21} + 3x}{x - 6}` | `x != 5, 6, 7` |  |  |  |  |
+| 623 | 25 | Hard | Distribute and collect | `-3x^{24}(x + 5) - 2x^{24}` | `-3x^{25} - 17x^{24}` | `none` |  |  |  |  |
+| 624 | 25 | Hard | Linear factor cancellation | `\frac{x^{25} + x^{24} - x^{20} - x^{19}}{x + 1}` | `x^{24} - x^{19}` | `x != -1` |  |  |  |  |
+| 625 | 25 | Hard | Different denominators | `\frac{-3x^{25} - 3x^{24}}{x + 1} + \frac{x^{23} + 2x^{22}}{x + 2}` | `-3x^{24} + x^{22}` | `x != -2, -1` |  |  |  |  |
+| 626 | 26 | Hard | Sign flip | `\frac{-x^{26} + 6x^{25} - 4x^{13} + 24x^{12} + 4x^{5} - 24x^{4}}{x - 6}` | `-x^{25} - 4x^{12} + 4x^{4}` | `x != 6` |  |  |  |  |
+| 627 | 26 | Hard | Expand product | `(x^{8})(x^{18})` | `x^{26}` | `none` |  |  |  |  |
+| 628 | 26 | Hard | Monomial division | `\frac{x^{26} - 2x^{21} + 4x^{19}}{x^{19}}` | `x^{7} - 2x^{2} + 4` | `x != 0` |  |  |  |  |
+| 629 | 26 | Hard | Partial cancellation | `\frac{-3x^{26} - 21x^{25}}{x^{2} + 5x - 14}` | `\frac{-3x^{25}}{x - 2}` | `x != -7, 2` |  |  |  |  |
+| 630 | 26 | Hard | Collapsing identity | `(x^{13} + 2)^{2} - (x^{13} - 2)^{2}` | `8x^{13}` | `none` |  |  |  |  |
+| 631 | 26 | Hard | Collect like terms | `2x^{26} - x^{26}` | `x^{26}` | `none` |  |  |  |  |
+| 632 | 26 | Hard | Same denominator | `\frac{5x^{26}}{x^{4} + 1} + \frac{-x^{26} + 4x^{22}}{x^{4} + 1}` | `4x^{22}` | `x^4 + 1 != 0` |  |  |  |  |
+| 633 | 26 | Hard | Distribute and collect | `3x^{7}(x^{19} + 3) - 3x^{7}` | `3x^{26} + 6x^{7}` | `none` |  |  |  |  |
+| 634 | 26 | Hard | Reference-type rational | `\frac{x^{26} + 6x^{25} - 7x^{24} + 3x^{9} + 18x^{8} - 21x^{7} + 4x^{3} + 24x^{2} - 28x}{x^{3} + x^{2} - 37x + 35}` | `\frac{x^{24} + 3x^{7} + 4x}{x - 5}` | `x != -7, 1, 5` |  |  |  |  |
+| 635 | 26 | Hard | Quadratic factor cancellation | `\frac{x^{26} + x^{25} - 20x^{24} - 4x^{14} - 4x^{13} + 80x^{12} + 3x^{8} + 3x^{7} - 60x^{6}}{x^{2} + x - 20}` | `x^{24} - 4x^{12} + 3x^{6}` | `x != -5, 4` |  |  |  |  |
+| 636 | 26 | Hard | Cancels to zero | `\frac{-5x^{26} + 20x^{25} - 2x^{7} + 8x^{6}}{x - 4} - (-5x^{25} - 2x^{6})` | `0` | `x != 4` |  |  |  |  |
+| 637 | 26 | Hard | Linear factor cancellation | `\frac{-x^{26} - 5x^{25} - 4x^{19} - 20x^{18} + x^{4} + 5x^{3}}{x + 5}` | `-x^{25} - 4x^{18} + x^{3}` | `x != -5` |  |  |  |  |
+| 638 | 26 | Hard | Multivariate distribution | `a^{19} \cdot b^{4} \cdot (-3b^{3} + a^{2})` | `-3a^{19} b^{7} + a^{21} b^{4}` | `none` |  |  |  |  |
+| 639 | 26 | Hard | Power of a power | `(-x^{13})^{2} \cdot x^{-3}` | `x^{23}` | `x != 0` |  |  |  |  |
+| 640 | 26 | Hard | Already irreducible | `\frac{x^{26} + 3}{x^{26} + 1}` | `\frac{x^{26} + 3}{x^{26} + 1}` | `x^26 + 1 != 0` |  |  |  |  |
+| 641 | 26 | Hard | Common power factor | `\frac{x^{26} - x^{13}}{x^{26} + x^{13}}` | `\frac{x^{13} - 1}{x^{13} + 1}` | `x != -1, 0` |  |  |  |  |
+| 642 | 26 | Hard | Difference of powers | `\frac{x^{26} - 1}{x^{13} - 1}` | `x^{13} + 1` | `x != 1` |  |  |  |  |
+| 643 | 26 | Hard | Different denominators | `\frac{x^{26} - 6x^{25}}{x - 6} + \frac{2x^{26}}{x}` | `3x^{25}` | `x != 0, 6` |  |  |  |  |
+| 644 | 26 | Hard | Constant factor | `\frac{12x^{27} - 24x^{26} - 12x^{4} + 24x^{3}}{2x - 4}` | `6x^{26} - 6x^{3}` | `x != 2` |  |  |  |  |
+| 645 | 26 | Hard | Triple nested fraction | `\frac{\frac{\frac{-x^{26} - 8x^{25} - 15x^{24} - 12x^{23} - 44x^{22} + 80x^{21}}{x + 4}}{x - 1}}{\frac{x + 5}{x - 3}}` | `-x^{24} + 3x^{23} - 4x^{22} + 12x^{21}` | `x != -5, -4, 1, 3` |  |  |  |  |
+| 646 | 26 | Hard | Negative exponents | `x^{-14} \cdot (-5x^{26} + 3x^{15})` | `-5x^{12} + 3x` | `x != 0` |  |  |  |  |
+| 647 | 26 | Hard | Multivariate monomials | `\frac{-2 \cdot a^{3} \cdot b^{10} \cdot z^{13}}{a^{2} \cdot b^{8}}` | `-2a b^{2} z^{13}` | `a != 0, b != 0` |  |  |  |  |
+| 648 | 26 | Hard | Perfect square trinomial | `\frac{x^{26} - 2x^{13} + 1}{x^{13} - 1}` | `x^{13} - 1` | `x != 1` |  |  |  |  |
+| 649 | 26 | Hard | Nested fraction | `\frac{\frac{2x^{26} + 12x^{25} + 3x^{10} + 18x^{9} + 3x^{2} + 18x}{x - 2}}{\frac{x + 6}{x - 2}}` | `2x^{25} + 3x^{9} + 3x` | `x != -6, 2` |  |  |  |  |
+| 650 | 26 | Hard | Polynomial plus fraction | `3x^{26} + \frac{2}{x - 6}` | `\frac{3x^{27} - 18x^{26} + 2}{x - 6}` | `x != 6` |  |  |  |  |
+| 651 | 27 | Hard | Multivariate monomials | `\frac{36a^{27}}{6a^{27}}` | `6` | `a != 0` |  |  |  |  |
+| 652 | 27 | Hard | Perfect square trinomial | `\frac{x^{27} - 2x^{14} + x}{x^{13} - 1}` | `x^{14} - x` | `x != 1` |  |  |  |  |
+| 653 | 27 | Hard | Polynomial plus fraction | `(-5x^{27} + x^{10}) + \frac{5}{x - 7}` | `\frac{-5x^{28} + 35x^{27} + x^{11} - 7x^{10} + 5}{x - 7}` | `x != 7` |  |  |  |  |
+| 654 | 27 | Hard | Common power factor | `\frac{x^{27} + 2x^{5}}{x^{27} + x^{5}}` | `\frac{x^{22} + 2}{x^{22} + 1}` | `x != 0, x^22 + 1 != 0` |  |  |  |  |
+| 655 | 27 | Hard | Nested fraction | `\frac{\frac{3x^{27} - 6x^{26} - 5x^{12} + 10x^{11}}{x - 4}}{\frac{x - 2}{x - 4}}` | `3x^{26} - 5x^{11}` | `x != 2, 4` |  |  |  |  |
+| 656 | 27 | Hard | Already irreducible | `\frac{x^{27} - 3}{x^{27} + 1}` | `\frac{x^{27} - 3}{x^{27} + 1}` | `x != -1` |  |  |  |  |
+| 657 | 27 | Hard | Multivariate distribution | `a^{12} \cdot b^{4} \cdot (-5b^{11} + a^{2})` | `-5a^{12} b^{15} + a^{14} b^{4}` | `none` |  |  |  |  |
+| 658 | 27 | Hard | Sign flip | `\frac{-x^{27} + 2x^{26}}{x - 2}` | `-x^{26}` | `x != 2` |  |  |  |  |
+| 659 | 27 | Hard | Partial cancellation | `\frac{5x^{27} + 25x^{26} - 3x^{18} - 15x^{17}}{x^{2} + 4x - 5}` | `\frac{5x^{26} - 3x^{17}}{x - 1}` | `x != -5, 1` |  |  |  |  |
+| 660 | 27 | Hard | Same denominator | `\frac{x^{27} + 2x^{7} + x^{4}}{x - 6} + \frac{-6x^{26} + 3x^{16} - 18x^{15} - 2x^{14} + 12x^{13} - 2x^{7} - x^{4}}{x - 6}` | `x^{26} + 3x^{15} - 2x^{13}` | `x != 6` |  |  |  |  |
+| 661 | 27 | Hard | Expand product | `(x^{24} + 5x^{15})(2x^{3})` | `2x^{27} + 10x^{18}` | `none` |  |  |  |  |
+| 662 | 27 | Hard | Power of a power | `(x^{27})^{1} \cdot x^{-24}` | `x^{3}` | `x != 0` |  |  |  |  |
+| 663 | 27 | Hard | Cancels to zero | `\frac{x^{27} - 7x^{26} + 3x^{20} - 21x^{19} - 5x^{17} + 35x^{16}}{x - 7} - (x^{26} + 3x^{19} - 5x^{16})` | `0` | `x != 7` |  |  |  |  |
+| 664 | 27 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{27} - 10x^{26} + 23x^{25} - 14x^{24}}{x - 2}}{x - 7}}{\frac{x - 1}{x - 5}}` | `x^{25} - 5x^{24}` | `x != 1, 2, 5, 7` |  |  |  |  |
+| 665 | 27 | Hard | Collapsing identity | `(x^{14} + 3)(x^{13} - 3) - x^{27}` | `-3x^{14} + 3x^{13} - 9` | `none` |  |  |  |  |
+| 666 | 27 | Hard | Negative exponents | `x^{-19} \cdot (3x^{27})` | `3x^{8}` | `x != 0` |  |  |  |  |
+| 667 | 27 | Hard | Constant factor | `\frac{-36x^{28} + 216x^{27} - 9x^{23} + 54x^{22}}{3x - 18}` | `-12x^{27} - 3x^{22}` | `x != 6` |  |  |  |  |
+| 668 | 27 | Hard | Linear factor cancellation | `\frac{-2x^{27} + 14x^{26}}{x - 7}` | `-2x^{26}` | `x != 7` |  |  |  |  |
+| 669 | 27 | Hard | Collect like terms | `9x^{27} - 3 + 2 - 5x^{27}` | `4x^{27} - 1` | `none` |  |  |  |  |
+| 670 | 27 | Hard | Reference-type rational | `\frac{x^{27} - 2x^{26} - 3x^{7} + 6x^{6}}{x^{3} + 3x^{2} - 10x}` | `\frac{x^{25} - 3x^{5}}{x + 5}` | `x != -5, 0, 2` |  |  |  |  |
+| 671 | 27 | Hard | Difference of powers | `\frac{x^{27} - x}{x^{14} - x}` | `x^{13} + 1` | `x != 0, 1` |  |  |  |  |
+| 672 | 27 | Hard | Different denominators | `\frac{x^{27} - 2x^{26} - 15x^{25}}{x + 3} + \frac{-2x^{26} + 4x^{25}}{x - 2}` | `x^{26} - 7x^{25}` | `x != -3, 2` |  |  |  |  |
+| 673 | 27 | Hard | Distribute and collect | `3x^{11}(x^{16} - 2) - x^{11}` | `3x^{27} - 7x^{11}` | `none` |  |  |  |  |
+| 674 | 27 | Hard | Monomial division | `\frac{20x^{27} + 20x^{15}}{5x^{15}}` | `4x^{12} + 4` | `x != 0` |  |  |  |  |
+| 675 | 27 | Hard | Quadratic factor cancellation | `\frac{-x^{27} - 7x^{26} - 12x^{25} - x^{10} - 4x^{9}}{x^{2} + 4x}` | `-x^{25} - 3x^{24} - x^{8}` | `x != -4, 0` |  |  |  |  |
+| 676 | 28 | Hard | Constant factor | `\frac{-18x^{29} + 36x^{28}}{3x - 6}` | `-6x^{28}` | `x != 2` |  |  |  |  |
+| 677 | 28 | Hard | Negative exponents | `x^{-19} \cdot (x^{28})` | `x^{9}` | `x != 0` |  |  |  |  |
+| 678 | 28 | Hard | Polynomial plus fraction | `(2x^{28} + x^{20}) + \frac{5}{x + 4}` | `\frac{2x^{29} + 8x^{28} + x^{21} + 4x^{20} + 5}{x + 4}` | `x != -4` |  |  |  |  |
+| 679 | 28 | Hard | Power of a power | `\frac{(-x^{14})^{2}}{x^{9}}` | `x^{19}` | `x != 0` |  |  |  |  |
+| 680 | 28 | Hard | Multivariate expansion | `(a^{14} + b^{14})(a^{14} - b^{14})` | `a^{28} - b^{28}` | `none` |  |  |  |  |
+| 681 | 28 | Hard | Expand product | `(x^{10})(x^{18})` | `x^{28}` | `none` |  |  |  |  |
+| 682 | 28 | Hard | Collapsing identity | `(x^{14} - 1)^{2} - (x^{14} + 1)^{2}` | `-4x^{14}` | `none` |  |  |  |  |
+| 683 | 28 | Hard | Different denominators | `\frac{x^{28} + 6x^{27} - x^{25} - 6x^{24}}{x + 6} + \frac{-2x^{27} - 14x^{26}}{x + 7}` | `x^{27} - 2x^{26} - x^{24}` | `x != -7, -6` |  |  |  |  |
+| 684 | 28 | Hard | Quadratic factor cancellation | `\frac{x^{28} - 25x^{26} - 5x^{12} - 25x^{11}}{x^{2} + 5x}` | `x^{26} - 5x^{25} - 5x^{10}` | `x != -5, 0` |  |  |  |  |
+| 685 | 28 | Hard | Linear factor cancellation | `\frac{x^{28} - 3x^{27} - 4x^{22} + 12x^{21} - 4x^{12} + 12x^{11}}{x - 3}` | `x^{27} - 4x^{21} - 4x^{11}` | `x != 3` |  |  |  |  |
+| 686 | 28 | Hard | Monomial division | `\frac{x^{28} + 5x^{4}}{x^{4}}` | `x^{24} + 5` | `x != 0` |  |  |  |  |
+| 687 | 28 | Hard | Distribute and collect | `-x^{20}(x^{8} - 2) - x^{20}` | `-x^{28} + x^{20}` | `none` |  |  |  |  |
+| 688 | 28 | Hard | Common power factor | `\frac{x^{28} - 5x^{5}}{x^{28} + x^{5}}` | `\frac{x^{23} - 5}{x^{23} + 1}` | `x != -1, 0` |  |  |  |  |
+| 689 | 28 | Hard | Difference of powers | `\frac{x^{28} - 1}{x^{14} + 1}` | `x^{14} - 1` | `x^14 + 1 != 0` |  |  |  |  |
+| 690 | 28 | Hard | Multivariate monomials | `\frac{2 \cdot a^{24} \cdot b^{3} \cdot z}{2 \cdot a^{3} \cdot b^{2}}` | `a^{21} b z` | `a != 0, b != 0` |  |  |  |  |
+| 691 | 28 | Hard | Cancels to zero | `\frac{-x^{28} - 6x^{27}}{x + 6} - (-x^{27})` | `0` | `x != -6` |  |  |  |  |
+| 692 | 28 | Hard | Collect like terms | `4x^{28} - 2x^{28}` | `2x^{28}` | `none` |  |  |  |  |
+| 693 | 28 | Hard | Same denominator | `\frac{x^{28} - 2x^{20} - 5x^{11}}{x^{6} - 64} + \frac{-64x^{22} + 2x^{20} + 5x^{11}}{x^{6} - 64}` | `x^{22}` | `x != -2, 2` |  |  |  |  |
+| 694 | 28 | Hard | Reference-type rational | `\frac{-2x^{28} + 14x^{27}}{x^{3} - x^{2} - 42x}` | `\frac{-2x^{26}}{x + 6}` | `x != -6, 0, 7` |  |  |  |  |
+| 695 | 28 | Hard | Partial cancellation | `\frac{-3x^{28} - 6x^{27}}{x^{2} - 4}` | `\frac{-3x^{27}}{x - 2}` | `x != -2, 2` |  |  |  |  |
+| 696 | 28 | Hard | Difference of squares chain | `\frac{x^{28} - 1}{x^{14} - 1}` | `x^{14} + 1` | `x != -1, 1` |  |  |  |  |
+| 697 | 28 | Hard | Perfect square trinomial | `\frac{x^{28} + 2x^{14} + 1}{x^{14} + 1}` | `x^{14} + 1` | `x^14 + 1 != 0` |  |  |  |  |
+| 698 | 28 | Hard | Already irreducible | `\frac{x^{28} + 4}{x^{28}}` | `\frac{x^{28} + 4}{x^{28}}` | `x != 0` |  |  |  |  |
+| 699 | 28 | Hard | Nested fraction | `\frac{\frac{x^{28} - 2x^{27} - 3x^{26} + 6x^{25} - 5x^{4} + 10x^{3}}{x - 6}}{\frac{x - 2}{x - 6}}` | `x^{27} - 3x^{25} - 5x^{3}` | `x != 2, 6` |  |  |  |  |
+| 700 | 28 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{28} - 14x^{27} + 63x^{26} - 90x^{25}}{x - 3}}{x - 6}}{\frac{x - 5}{x - 7}}` | `x^{26} - 7x^{25}` | `x != 3, 5, 6, 7` |  |  |  |  |
+| 701 | 29 | Hard | Quadratic factor cancellation | `\frac{5x^{29} + 20x^{28} - 105x^{27}}{x^{2} + 4x - 21}` | `5x^{27}` | `x != -7, 3` |  |  |  |  |
+| 702 | 29 | Hard | Triple nested fraction | `\frac{\frac{\frac{-3x^{29} + 93x^{27} - 90x^{26}}{x - 5}}{x + 6}}{\frac{x - 1}{x - 2}}` | `-3x^{27} + 6x^{26}` | `x != -6, 1, 2, 5` |  |  |  |  |
+| 703 | 29 | Hard | Already irreducible | `\frac{x^{29} - 1}{x^{29}}` | `\frac{x^{29} - 1}{x^{29}}` | `x != 0` |  |  |  |  |
+| 704 | 29 | Hard | Multivariate monomials | `\frac{24 \cdot a^{20} \cdot b^{3} \cdot z^{6}}{6 \cdot a^{6} \cdot b}` | `4a^{14} b^{2} z^{6}` | `a != 0, b != 0` |  |  |  |  |
+| 705 | 29 | Hard | Perfect square trinomial | `\frac{x^{29} - 2x^{15} + x}{x^{14} - 1}` | `x^{15} - x` | `x != -1, 1` |  |  |  |  |
+| 706 | 29 | Hard | Collapsing identity | `(x^{15} + 4)(x^{14} - 4) - x^{29}` | `-4x^{15} + 4x^{14} - 16` | `none` |  |  |  |  |
+| 707 | 29 | Hard | Constant factor | `\frac{90x^{30} + 630x^{29}}{3x + 21}` | `30x^{29}` | `x != -7` |  |  |  |  |
+| 708 | 29 | Hard | Distribute and collect | `2x(x^{28} - 3) - 3x` | `2x^{29} - 9x` | `none` |  |  |  |  |
+| 709 | 29 | Hard | Monomial division | `\frac{25x^{29}}{5x^{29}}` | `5` | `x != 0` |  |  |  |  |
+| 710 | 29 | Hard | Cancels to zero | `\frac{x^{29} - 3x^{28}}{x - 3} - x^{28}` | `0` | `x != 3` |  |  |  |  |
+| 711 | 29 | Hard | Nested fraction | `\frac{\frac{x^{29} + 4x^{2}}{x + 3}}{\frac{x}{x + 3}}` | `x^{28} + 4x` | `x != -3, 0` |  |  |  |  |
+| 712 | 29 | Hard | Reference-type rational | `\frac{4x^{29} + 24x^{28} + x^{18} + 6x^{17}}{x^{3} + 7x^{2} + 6x}` | `\frac{4x^{27} + x^{16}}{x + 1}` | `x != -6, -1, 0` |  |  |  |  |
+| 713 | 29 | Hard | Different denominators | `\frac{-3x^{29} + 12x^{28} + 2x - 8}{x - 4} + \frac{-4x^{28} - 12x^{27} + 5x^{4} + 15x^{3}}{x + 3}` | `-3x^{28} - 4x^{27} + 5x^{3} + 2` | `x != -3, 4` |  |  |  |  |
+| 714 | 29 | Hard | Same denominator | `\frac{x^{29}}{x - 7} + \frac{3x^{29} - 28x^{28} - 4x^{21} + 28x^{20}}{x - 7}` | `4x^{28} - 4x^{20}` | `x != 7` |  |  |  |  |
+| 715 | 29 | Hard | Partial cancellation | `\frac{x^{29} + x^{6}}{x^{2} - 6x}` | `\frac{x^{28} + x^{5}}{x - 6}` | `x != 0, 6` |  |  |  |  |
+| 716 | 29 | Hard | Polynomial plus fraction | `(5x^{29} - 2) - \frac{3}{x + 2}` | `\frac{5x^{30} + 10x^{29} - 2x - 7}{x + 2}` | `x != -2` |  |  |  |  |
+| 717 | 29 | Hard | Negative exponents | `x^{-13} \cdot (5x^{29} + 3x^{13})` | `5x^{16} + 3` | `x != 0` |  |  |  |  |
+| 718 | 29 | Hard | Sign flip | `\frac{2x^{29} + 4x^{28} - 16x^{27}}{x + 4}` | `2x^{28} - 4x^{27}` | `x != -4` |  |  |  |  |
+| 719 | 29 | Hard | Common power factor | `\frac{x^{29} - 4x^{10}}{x^{29} + x^{10}}` | `\frac{x^{19} - 4}{x^{19} + 1}` | `x != -1, 0` |  |  |  |  |
+| 720 | 29 | Hard | Expand product | `(x^{5})(4x^{24} + 5x^{12})` | `4x^{29} + 5x^{17}` | `none` |  |  |  |  |
+| 721 | 29 | Hard | Power of a power | `(-x^{29})^{1} \cdot x^{-9}` | `-x^{20}` | `x != 0` |  |  |  |  |
+| 722 | 29 | Hard | Difference of powers | `\frac{x^{29} - x}{x^{15} - x}` | `x^{14} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 723 | 29 | Hard | Multivariate distribution | `a^{27} \cdot b \cdot (a + 4b)` | `a^{28} b + 4a^{27} b^{2}` | `none` |  |  |  |  |
+| 724 | 29 | Hard | Collect like terms | `-5x^{21} + x^{6} - 3x^{6} - 4x^{29} + 5x^{21} - x^{29} + 3x^{8} - 6x^{8} + 3x^{24} - x^{24}` | `-5x^{29} + 2x^{24} - 3x^{8} - 2x^{6}` | `none` |  |  |  |  |
+| 725 | 29 | Hard | Linear factor cancellation | `\frac{x^{29} - 2x^{28}}{x - 2}` | `x^{28}` | `x != 2` |  |  |  |  |
+| 726 | 30 | Hard | Already irreducible | `\frac{x^{30} + 4}{x^{30} - 1}` | `\frac{x^{30} + 4}{x^{30} - 1}` | `x != -1, 1` |  |  |  |  |
+| 727 | 30 | Hard | Different denominators | `\frac{-5x^{30} - 20x^{29} - 3x^{18} - 12x^{17}}{x + 4} + \frac{x^{28} - 7x^{27} + 4x^{2} - 28x}{x - 7}` | `-5x^{29} + x^{27} - 3x^{17} + 4x` | `x != -4, 7` |  |  |  |  |
+| 728 | 30 | Hard | Multivariate monomials | `\frac{2 \cdot b^{4} \cdot z^{26}}{b^{2}}` | `2b^{2} z^{26}` | `b != 0` |  |  |  |  |
+| 729 | 30 | Hard | Perfect square trinomial | `\frac{x^{30} - 2x^{15} + 1}{x^{15} - 1}` | `x^{15} - 1` | `x != 1` |  |  |  |  |
+| 730 | 30 | Hard | Same denominator | `\frac{2x^{30} + x^{25} + 4x^{3}}{x + 2} - \frac{-2x^{30} - 8x^{29} + x^{25} + 4x^{3}}{x + 2}` | `4x^{29}` | `x != -2` |  |  |  |  |
+| 731 | 30 | Hard | Collect like terms | `5x^{26} + 8x^{17} + x^{23} - 6x^{30} - 5x^{26} + 3x^{23} - 5x^{17} - 1 + 4 + 5x^{27} + 7x^{30}` | `x^{30} + 5x^{27} + 4x^{23} + 3x^{17} + 3` | `none` |  |  |  |  |
+| 732 | 30 | Hard | Constant factor | `\frac{-3x^{30}}{3}` | `-x^{30}` | `none` |  |  |  |  |
+| 733 | 30 | Hard | Difference of powers | `\frac{x^{30} - 1}{x^{15} - 1}` | `x^{15} + 1` | `x != 1` |  |  |  |  |
+| 734 | 30 | Hard | Common power factor | `\frac{x^{30} + 4x^{9}}{x^{30} + x^{9}}` | `\frac{x^{21} + 4}{x^{21} + 1}` | `x != -1, 0` |  |  |  |  |
+| 735 | 30 | Hard | Sign flip | `\frac{4x^{30} + 4x^{29}}{x + 1}` | `4x^{29}` | `x != -1` |  |  |  |  |
+| 736 | 30 | Hard | Power of a power | `\frac{(3x^{15})^{2}}{x^{11}}` | `9x^{19}` | `x != 0` |  |  |  |  |
+| 737 | 30 | Hard | Partial cancellation | `\frac{x^{30} - 2x^{29} - 2x^{20} + 4x^{19} - 4x^{7} + 8x^{6}}{x^{2} + x - 6}` | `\frac{x^{29} - 2x^{19} - 4x^{6}}{x + 3}` | `x != -3, 2` |  |  |  |  |
+| 738 | 30 | Hard | Collapsing identity | `(x^{15} - 4)^{2} - (x^{15} + 4)^{2}` | `-16x^{15}` | `none` |  |  |  |  |
+| 739 | 30 | Hard | Quadratic factor cancellation | `\frac{-4x^{30} - 8x^{29} + 96x^{28} - 3x^{22} - 6x^{21} + 72x^{20} - 3x^{19} - 6x^{18} + 72x^{17}}{x^{2} + 2x - 24}` | `-4x^{28} - 3x^{20} - 3x^{17}` | `x != -6, 4` |  |  |  |  |
+| 740 | 30 | Hard | Nested fraction | `\frac{\frac{x^{30} + 2x^{29} + x^{2} + 2x}{x + 1}}{\frac{x + 2}{x + 1}}` | `x^{29} + x` | `x != -2, -1` |  |  |  |  |
+| 741 | 30 | Hard | Expand product | `(-x^{16} + 2x^{2})(x^{14} - x)` | `-x^{30} + x^{17} + 2x^{16} - 2x^{3}` | `none` |  |  |  |  |
+| 742 | 30 | Hard | Distribute and collect | `-2x^{5}(x^{25} - 2) - 3x^{5}` | `-2x^{30} + x^{5}` | `none` |  |  |  |  |
+| 743 | 30 | Hard | Polynomial plus fraction | `(3x^{30} + x^{2}) - \frac{3}{x - 4}` | `\frac{3x^{31} - 12x^{30} + x^{3} - 4x^{2} - 3}{x - 4}` | `x != 4` |  |  |  |  |
+| 744 | 30 | Hard | Monomial division | `\frac{-25x^{30} - 25x^{29} - 25x^{28} - 10x^{7}}{5x^{7}}` | `-5x^{23} - 5x^{22} - 5x^{21} - 2` | `x != 0` |  |  |  |  |
+| 745 | 30 | Hard | Linear factor cancellation | `\frac{-2x^{30} + 11x^{29} + 6x^{28}}{x - 6}` | `-2x^{29} - x^{28}` | `x != 6` |  |  |  |  |
+| 746 | 30 | Hard | Cancels to zero | `\frac{-3x^{30} + 18x^{29} + 4x^{24} - 24x^{23}}{x - 6} - (-3x^{29} + 4x^{23})` | `0` | `x != 6` |  |  |  |  |
+| 747 | 30 | Hard | Negative exponents | `x^{-10} \cdot (x^{30} - 4x^{21})` | `x^{20} - 4x^{11}` | `x != 0` |  |  |  |  |
+| 748 | 30 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{30} - 5x^{29} - 16x^{28} + 80x^{27} + 3x^{15} - 15x^{14} - 48x^{13} + 240x^{12}}{x - 4}}{x - 5}}{\frac{x + 4}{x - 3}}` | `x^{28} - 3x^{27} + 3x^{13} - 9x^{12}` | `x != -4, 3, 4, 5` |  |  |  |  |
+| 749 | 30 | Hard | Multivariate expansion | `(a^{15} + b^{15})(a^{15} - b^{15})` | `a^{30} - b^{30}` | `none` |  |  |  |  |
+| 750 | 30 | Hard | Already irreducible | `\frac{x^{30} + 5}{x^{30} - 1}` | `\frac{x^{30} + 5}{x^{30} - 1}` | `x != -1, 1` |  |  |  |  |
+| 751 | 31 | Hard | Linear factor cancellation | `\frac{3x^{31}}{x}` | `3x^{30}` | `x != 0` |  |  |  |  |
+| 752 | 31 | Hard | Negative exponents | `x^{-6} \cdot (2x^{31} - 3x^{14})` | `2x^{25} - 3x^{8}` | `x != 0` |  |  |  |  |
+| 753 | 31 | Hard | Different denominators | `\frac{-2x^{31} - 12x^{30}}{x + 6} + \frac{-3x^{31}}{x}` | `-5x^{30}` | `x != -6, 0` |  |  |  |  |
+| 754 | 31 | Hard | Power of a power | `(-x^{31})^{1} \cdot x^{-2}` | `-x^{29}` | `x != 0` |  |  |  |  |
+| 755 | 31 | Hard | Constant factor | `\frac{6x^{32}}{x}` | `6x^{31}` | `x != 0` |  |  |  |  |
+| 756 | 31 | Hard | Quadratic factor cancellation | `\frac{4x^{31} - 4x^{30} - 48x^{29} + 2x^{16} - 2x^{15} - 24x^{14}}{x^{2} - x - 12}` | `4x^{29} + 2x^{14}` | `x != -3, 4` |  |  |  |  |
+| 757 | 31 | Hard | Polynomial plus fraction | `(-3x^{31} + x^{22}) + \frac{3}{x - 2}` | `\frac{-3x^{32} + 6x^{31} + x^{23} - 2x^{22} + 3}{x - 2}` | `x != 2` |  |  |  |  |
+| 758 | 31 | Hard | Common power factor | `\frac{x^{31} + 5x}{x^{31} + x}` | `\frac{x^{30} + 5}{x^{30} + 1}` | `x != 0, x^30 + 1 != 0` |  |  |  |  |
+| 759 | 31 | Hard | Reference-type rational | `\frac{-4x^{31} - 28x^{30} - 4x^{23} - 28x^{22} - x^{7} - 7x^{6}}{x^{3} + 6x^{2} - 7x}` | `\frac{-4x^{29} - 4x^{21} - x^{5}}{x - 1}` | `x != -7, 0, 1` |  |  |  |  |
+| 760 | 31 | Hard | Partial cancellation | `\frac{x^{31} + 7x^{30} + 2x^{28} + 14x^{27} + 3x^{5} + 21x^{4}}{x^{2} + 9x + 14}` | `\frac{x^{30} + 2x^{27} + 3x^{4}}{x + 2}` | `x != -7, -2` |  |  |  |  |
+| 761 | 31 | Hard | Expand product | `(x^{28} - 2)(x^{3} + 5x)` | `x^{31} + 5x^{29} - 2x^{3} - 10x` | `none` |  |  |  |  |
+| 762 | 31 | Hard | Monomial division | `\frac{-8x^{31}}{2x^{31}}` | `-4` | `x != 0` |  |  |  |  |
+| 763 | 31 | Hard | Difference of powers | `\frac{x^{31} - x}{x^{16} - x}` | `x^{15} + 1` | `x != 0, 1` |  |  |  |  |
+| 764 | 31 | Hard | Collapsing identity | `(x^{16} + 4)(x^{15} - 4) - x^{31}` | `-4x^{16} + 4x^{15} - 16` | `none` |  |  |  |  |
+| 765 | 31 | Hard | Sign flip | `\frac{2x^{31} + 14x^{30} - 3x^{5} - 21x^{4}}{x + 7}` | `2x^{30} - 3x^{4}` | `x != -7` |  |  |  |  |
+| 766 | 31 | Hard | Cancels to zero | `\frac{x^{31} - 2x^{30} + 5x^{19} - 10x^{18} - 4x^{3} + 8x^{2}}{x - 2} - (x^{30} + 5x^{18} - 4x^{2})` | `0` | `x != 2` |  |  |  |  |
+| 767 | 31 | Hard | Distribute and collect | `-4x^{2}(x^{29} - 4) + x^{2}` | `-4x^{31} + 17x^{2}` | `none` |  |  |  |  |
+| 768 | 31 | Hard | Multivariate distribution | `a^{3} \cdot b^{23} \cdot (3b^{5} + a^{3})` | `3a^{3} b^{28} + a^{6} b^{23}` | `none` |  |  |  |  |
+| 769 | 31 | Hard | Same denominator | `\frac{x^{31} - x^{13} + 5x^{3}}{x^{4} - 16} + \frac{-16x^{27} + x^{13} - 5x^{3}}{x^{4} - 16}` | `x^{27}` | `x != -2, 2` |  |  |  |  |
+| 770 | 31 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{31} + x^{30} - 36x^{29} - 36x^{28}}{x + 1}}{x - 6}}{\frac{x + 6}{x - 2}}` | `x^{29} - 2x^{28}` | `x != -6, -1, 2, 6` |  |  |  |  |
+| 771 | 31 | Hard | Collect like terms | `7x^{31} + 5x^{16} - x^{9} - 4x^{16} - 6x^{31} - 3x^{28} + 6x^{9} + 3x^{28}` | `x^{31} + x^{16} + 5x^{9}` | `none` |  |  |  |  |
+| 772 | 31 | Hard | Already irreducible | `\frac{x^{31} - 3}{x^{31}}` | `\frac{x^{31} - 3}{x^{31}}` | `x != 0` |  |  |  |  |
+| 773 | 31 | Hard | Multivariate monomials | `\frac{-6 \cdot a^{25} \cdot b^{2} \cdot z^{4}}{6a^{12}}` | `-a^{13} b^{2} z^{4}` | `a != 0` |  |  |  |  |
+| 774 | 31 | Hard | Nested fraction | `\frac{\frac{x^{31} + 5x^{30}}{x - 5}}{\frac{x + 5}{x - 5}}` | `x^{30}` | `x != -5, 5` |  |  |  |  |
+| 775 | 31 | Hard | Perfect square trinomial | `\frac{x^{31} + 2x^{16} + x}{x^{15} + 1}` | `x^{16} + x` | `x != -1` |  |  |  |  |
+| 776 | 32 | Hard | Collect like terms | `-x^{7} + 3x^{32} - 3x^{3} - 2x^{28} - 2x^{3} - 2x^{7} - 4x^{32} + x^{28}` | `-x^{32} - x^{28} - 3x^{7} - 5x^{3}` | `none` |  |  |  |  |
+| 777 | 32 | Hard | Triple nested fraction | `\frac{\frac{\frac{5x^{32} + 5x^{31} - 125x^{30} - 120x^{29} + 5x^{28} - 125x^{27} - 125x^{26}}{x + 1}}{x - 5}}{\frac{x + 5}{x - 4}}` | `5x^{30} - 20x^{29} + 5x^{27} - 20x^{26}` | `x != -5, -1, 4, 5` |  |  |  |  |
+| 778 | 32 | Hard | Sign flip | `\frac{-x^{32} - x^{31}}{x + 1}` | `-x^{31}` | `x != -1` |  |  |  |  |
+| 779 | 32 | Hard | Collapsing identity | `(x^{16} + 2)^{2} - (x^{16} - 2)^{2}` | `8x^{16}` | `none` |  |  |  |  |
+| 780 | 32 | Hard | Reference-type rational | `\frac{x^{32} - 8x^{31} + 12x^{30} + x^{26} - 8x^{25} + 12x^{24} - 3x^{10} + 24x^{9} - 36x^{8}}{x^{3} - 9x^{2} + 20x - 12}` | `\frac{x^{30} + x^{24} - 3x^{8}}{x - 1}` | `x != 1, 2, 6` |  |  |  |  |
+| 781 | 32 | Hard | Difference of squares chain | `\frac{x^{32} - 1}{x^{16} - 1}` | `x^{16} + 1` | `x != -1, 1` |  |  |  |  |
+| 782 | 32 | Hard | Same denominator | `\frac{-2x^{32} + x^{19} - 4x^{2}}{x^{6} - 729} + \frac{3x^{32} - 3x^{31} - 729x^{26} + 2187x^{25} - x^{19} + 4x^{2}}{x^{6} - 729}` | `x^{26} - 3x^{25}` | `x != -3, 3` |  |  |  |  |
+| 783 | 32 | Hard | Multivariate monomials | `\frac{-5 \cdot a^{25} \cdot b^{2} \cdot z^{5}}{a^{9} \cdot b^{2}}` | `-5a^{16} z^{5}` | `a != 0, b != 0` |  |  |  |  |
+| 784 | 32 | Hard | Different denominators | `\frac{x^{32} - 4x^{23}}{x} + \frac{x^{32} - 4x^{31} - 5x^{27} + 20x^{26}}{x - 4}` | `2x^{31} - 5x^{26} - 4x^{22}` | `x != 0, 4` |  |  |  |  |
+| 785 | 32 | Hard | Perfect square trinomial | `\frac{x^{32} - 2x^{16} + 1}{x^{16} - 1}` | `x^{16} - 1` | `x != -1, 1` |  |  |  |  |
+| 786 | 32 | Hard | Monomial division | `\frac{2x^{32} - 10x^{29} - 4x^{23} - 2x^{22}}{2x^{22}}` | `x^{10} - 5x^{7} - 2x - 1` | `x != 0` |  |  |  |  |
+| 787 | 32 | Hard | Constant factor | `\frac{4x^{32} + 12x^{26}}{4}` | `x^{32} + 3x^{26}` | `none` |  |  |  |  |
+| 788 | 32 | Hard | Partial cancellation | `\frac{-2x^{32} - 2x^{31} - 5x^{26} - 5x^{25} - 2x^{24} - 2x^{23}}{x^{2} + 3x + 2}` | `\frac{-2x^{31} - 5x^{25} - 2x^{23}}{x + 2}` | `x != -2, -1` |  |  |  |  |
+| 789 | 32 | Hard | Nested fraction | `\frac{\frac{x^{32} + 2x^{7} - x^{6}}{x - 4}}{\frac{x}{x - 4}}` | `x^{31} + 2x^{6} - x^{5}` | `x != 0, 4` |  |  |  |  |
+| 790 | 32 | Hard | Expand product | `(-5x^{26} + 4x^{23})(3x^{6})` | `-15x^{32} + 12x^{29}` | `none` |  |  |  |  |
+| 791 | 32 | Hard | Polynomial plus fraction | `-x^{32} + \frac{5}{x}` | `\frac{-x^{33} + 5}{x}` | `x != 0` |  |  |  |  |
+| 792 | 32 | Hard | Multivariate distribution | `a^{17} \cdot b^{11} \cdot (3b^{4} + a)` | `3a^{17} b^{15} + a^{18} b^{11}` | `none` |  |  |  |  |
+| 793 | 32 | Hard | Difference of powers | `\frac{x^{32} - 1}{x^{16} + 1}` | `x^{16} - 1` | `x^16 + 1 != 0` |  |  |  |  |
+| 794 | 32 | Hard | Linear factor cancellation | `\frac{x^{32} - 6x^{31} - x^{13} + 6x^{12}}{x - 6}` | `x^{31} - x^{12}` | `x != 6` |  |  |  |  |
+| 795 | 32 | Hard | Common power factor | `\frac{x^{32} + 4x^{22}}{x^{32} - x^{22}}` | `\frac{x^{10} + 4}{x^{10} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 796 | 32 | Hard | Distribute and collect | `4x^{8}(x^{24} + 4) + 3x^{8}` | `4x^{32} + 19x^{8}` | `none` |  |  |  |  |
+| 797 | 32 | Hard | Cancels to zero | `\frac{x^{32} - 3x^{31} + 5x^{24} - 15x^{23} - 4x^{18} + 12x^{17}}{x - 3} - (x^{31} + 5x^{23} - 4x^{17})` | `0` | `x != 3` |  |  |  |  |
+| 798 | 32 | Hard | Quadratic factor cancellation | `\frac{x^{32} - 10x^{31} + 21x^{30}}{x^{2} - 10x + 21}` | `x^{30}` | `x != 3, 7` |  |  |  |  |
+| 799 | 32 | Hard | Power of a power | `\frac{(-x^{32})^{1}}{x^{8}}` | `-x^{24}` | `x != 0` |  |  |  |  |
+| 800 | 32 | Hard | Negative exponents | `x^{-11} \cdot (3x^{32} + 2x^{13})` | `3x^{21} + 2x^{2}` | `x != 0` |  |  |  |  |
+| 801 | 33 | Hard | Perfect square trinomial | `\frac{x^{33} - 2x^{17} + x}{x^{16} - 1}` | `x^{17} - x` | `x != -1, 1` |  |  |  |  |
+| 802 | 33 | Hard | Reference-type rational | `\frac{4x^{33} + 8x^{32} - 32x^{31}}{x^{3} - 5x^{2} - 22x + 56}` | `\frac{4x^{31}}{x - 7}` | `x != -4, 2, 7` |  |  |  |  |
+| 803 | 33 | Hard | Same denominator | `\frac{x^{33} - 5x^{32}}{x - 3} + \frac{2x^{32}}{x - 3}` | `x^{32}` | `x != 3` |  |  |  |  |
+| 804 | 33 | Hard | Quadratic factor cancellation | `\frac{3x^{33} - 15x^{32} + 12x^{31} + 5x^{10} - 25x^{9} + 24x^{8} - 20x^{7} + 16x^{6}}{x^{2} - 5x + 4}` | `3x^{31} + 5x^{8} + 4x^{6}` | `x != 1, 4` |  |  |  |  |
+| 805 | 33 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{33} - 6x^{32} + 5x^{31}}{x - 5}}{x}}{\frac{x - 1}{x - 4}}` | `x^{31} - 4x^{30}` | `x != 0, 1, 4, 5` |  |  |  |  |
+| 806 | 33 | Hard | Collect like terms | `4x^{33} - x^{33} + 2x^{11} - 5x^{30} + 3x^{11}` | `3x^{33} - 5x^{30} + 5x^{11}` | `none` |  |  |  |  |
+| 807 | 33 | Hard | Partial cancellation | `\frac{x^{33} - 3x^{32}}{x^{2} - 7x + 12}` | `\frac{x^{32}}{x - 4}` | `x != 3, 4` |  |  |  |  |
+| 808 | 33 | Hard | Difference of powers | `\frac{x^{33} - x}{x^{17} - x}` | `x^{16} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 809 | 33 | Hard | Different denominators | `\frac{4x^{33} - 2x^{28}}{x} + \frac{-2x^{32} - 6x^{31}}{x + 3}` | `4x^{32} - 2x^{31} - 2x^{27}` | `x != -3, 0` |  |  |  |  |
+| 810 | 33 | Hard | Expand product | `(-3x^{24} - 3x^{20})(3x^{9} - 3)` | `-9x^{33} - 9x^{29} + 9x^{24} + 9x^{20}` | `none` |  |  |  |  |
+| 811 | 33 | Hard | Power of a power | `(x^{11})^{3} \cdot x^{-2}` | `x^{31}` | `x != 0` |  |  |  |  |
+| 812 | 33 | Hard | Multivariate monomials | `\frac{-18 \cdot a^{19} \cdot b \cdot z^{13}}{6}` | `-3a^{19} b z^{13}` | `none` |  |  |  |  |
+| 813 | 33 | Hard | Distribute and collect | `-3x^{25}(x^{8} - 4) + 5x^{25}` | `-3x^{33} + 17x^{25}` | `none` |  |  |  |  |
+| 814 | 33 | Hard | Negative exponents | `x^{-7} \cdot (-5x^{33} - x^{32})` | `-5x^{26} - x^{25}` | `x != 0` |  |  |  |  |
+| 815 | 33 | Hard | Collapsing identity | `(x^{17} + 4)(x^{16} - 4) - x^{33}` | `-4x^{17} + 4x^{16} - 16` | `none` |  |  |  |  |
+| 816 | 33 | Hard | Cancels to zero | `\frac{-2x^{33} + 14x^{32} + x^{29} - 7x^{28}}{x - 7} - (-2x^{32} + x^{28})` | `0` | `x != 7` |  |  |  |  |
+| 817 | 33 | Hard | Polynomial plus fraction | `(3x^{33} - 3x^{24}) + \frac{2}{x - 4}` | `\frac{3x^{34} - 12x^{33} - 3x^{25} + 12x^{24} + 2}{x - 4}` | `x != 4` |  |  |  |  |
+| 818 | 33 | Hard | Multivariate distribution | `a^{25} \cdot b^{2} \cdot (3b^{6} + a^{4})` | `3a^{25} b^{8} + a^{29} b^{2}` | `none` |  |  |  |  |
+| 819 | 33 | Hard | Monomial division | `\frac{4x^{33} + 12x^{32}}{4x^{32}}` | `x + 3` | `x != 0` |  |  |  |  |
+| 820 | 33 | Hard | Linear factor cancellation | `\frac{x^{33} - 7x^{32}}{x - 7}` | `x^{32}` | `x != 7` |  |  |  |  |
+| 821 | 33 | Hard | Constant factor | `\frac{-36x^{34} - 216x^{33}}{2x + 12}` | `-18x^{33}` | `x != -6` |  |  |  |  |
+| 822 | 33 | Hard | Nested fraction | `\frac{\frac{x^{33} - x^{32} - x^{6} + x^{5} - x^{4} + x^{3}}{x + 7}}{\frac{x - 1}{x + 7}}` | `x^{32} - x^{5} - x^{3}` | `x != -7, 1` |  |  |  |  |
+| 823 | 33 | Hard | Already irreducible | `\frac{x^{33} + 1}{x^{33}}` | `\frac{x^{33} + 1}{x^{33}}` | `x != 0` |  |  |  |  |
+| 824 | 33 | Hard | Common power factor | `\frac{x^{33} - 3x^{2}}{x^{33} - x^{2}}` | `\frac{x^{31} - 3}{x^{31} - 1}` | `x != 0, 1` |  |  |  |  |
+| 825 | 33 | Hard | Sign flip | `\frac{-4x^{33} - 5x^{29}}{x}` | `-4x^{32} - 5x^{28}` | `x != 0` |  |  |  |  |
+| 826 | 34 | Hard | Linear factor cancellation | `\frac{x^{34} - 5x^{33}}{x - 5}` | `x^{33}` | `x != 5` |  |  |  |  |
+| 827 | 34 | Hard | Negative exponents | `x^{-19} \cdot (5x^{34})` | `5x^{15}` | `x != 0` |  |  |  |  |
+| 828 | 34 | Hard | Perfect square trinomial | `\frac{x^{34} + 2x^{17} + 1}{x^{17} + 1}` | `x^{17} + 1` | `x != -1` |  |  |  |  |
+| 829 | 34 | Hard | Multivariate monomials | `\frac{18 \cdot a^{27} \cdot b \cdot z^{6}}{3 \cdot a^{23} \cdot b}` | `6a^{4} z^{6}` | `a != 0, b != 0` |  |  |  |  |
+| 830 | 34 | Hard | Quadratic factor cancellation | `\frac{-3x^{34} + 39x^{33} - 126x^{32} - x^{30} + 13x^{29} - 42x^{28} - x^{3} + 13x^{2} - 42x}{(x - 7)(x - 6)}` | `-3x^{32} - x^{28} - x` | `x != 6, 7` |  |  |  |  |
+| 831 | 34 | Hard | Expand product | `(x^{16})(-5x^{18})` | `-5x^{34}` | `none` |  |  |  |  |
+| 832 | 34 | Hard | Power of a power | `\frac{(3x^{17})^{2}}{x^{12}}` | `9x^{22}` | `x != 0` |  |  |  |  |
+| 833 | 34 | Hard | Same denominator | `\frac{x^{34}}{x^{4} + 81} + \frac{-6x^{34} - 405x^{30} - 5x^{13} - 405x^{9}}{x^{4} + 81}` | `-5x^{30} - 5x^{9}` | `x^4 + 81 != 0` |  |  |  |  |
+| 834 | 34 | Hard | Nested fraction | `\frac{\frac{x^{34} - 4x^{33} + 2x^{25} - 8x^{24} + 4x^{15} - 16x^{14}}{x - 1}}{\frac{x - 4}{x - 1}}` | `x^{33} + 2x^{24} + 4x^{14}` | `x != 1, 4` |  |  |  |  |
+| 835 | 34 | Hard | Already irreducible | `\frac{x^{34} + 3}{x^{34}}` | `\frac{x^{34} + 3}{x^{34}}` | `x != 0` |  |  |  |  |
+| 836 | 34 | Hard | Sign flip | `\frac{-x^{34} + 3x^{33} - 4x^{30} + 12x^{29}}{x - 3}` | `-x^{33} - 4x^{29}` | `x != 3` |  |  |  |  |
+| 837 | 34 | Hard | Multivariate expansion | `(a^{17} + b^{17})(a^{17} - b^{17})` | `a^{34} - b^{34}` | `none` |  |  |  |  |
+| 838 | 34 | Hard | Common power factor | `\frac{x^{34} + 4x^{25}}{x^{34} - x^{25}}` | `\frac{x^{9} + 4}{x^{9} - 1}` | `x != 0, 1` |  |  |  |  |
+| 839 | 34 | Hard | Reference-type rational | `\frac{-4x^{34} + 20x^{33} - 20x^{32} - 20x^{31} + 24x^{30}}{x^{3} - 12x^{2} + 41x - 42}` | `\frac{-4x^{32} + 4x^{30}}{x - 7}` | `x != 2, 3, 7` |  |  |  |  |
+| 840 | 34 | Hard | Monomial division | `\frac{4x^{34} + 20x^{5}}{4x^{5}}` | `x^{29} + 5` | `x != 0` |  |  |  |  |
+| 841 | 34 | Hard | Distribute and collect | `2x^{6}(x^{28} + 1) + 4x^{6}` | `2x^{34} + 6x^{6}` | `none` |  |  |  |  |
+| 842 | 34 | Hard | Collapsing identity | `(x^{17} - 5)^{2} - (x^{17} + 5)^{2}` | `-20x^{17}` | `none` |  |  |  |  |
+| 843 | 34 | Hard | Triple nested fraction | `\frac{\frac{\frac{-2x^{34} + 12x^{33} + 32x^{32} - 192x^{31} - 4x^{18} + 24x^{17} + 64x^{16} - 384x^{15}}{x - 4}}{x + 4}}{\frac{x - 6}{x - 2}}` | `-2x^{32} + 4x^{31} - 4x^{16} + 8x^{15}` | `x != -4, 2, 4, 6` |  |  |  |  |
+| 844 | 34 | Hard | Constant factor | `\frac{2x^{34} + 10x^{9}}{2}` | `x^{34} + 5x^{9}` | `none` |  |  |  |  |
+| 845 | 34 | Hard | Partial cancellation | `\frac{-x^{34} + 7x^{33}}{x^{2} - 49}` | `\frac{-x^{33}}{x + 7}` | `x != -7, 7` |  |  |  |  |
+| 846 | 34 | Hard | Cancels to zero | `\frac{x^{34} + 6x^{33} - 5x^{4} - 30x^{3}}{x + 6} - (x^{33} - 5x^{3})` | `0` | `x != -6` |  |  |  |  |
+| 847 | 34 | Hard | Different denominators | `\frac{x^{34} + 7x^{33}}{x + 7} + \frac{x^{32} - 2x^{31} + 3x^{9} - 6x^{8}}{x - 2}` | `x^{33} + x^{31} + 3x^{8}` | `x != -7, 2` |  |  |  |  |
+| 848 | 34 | Hard | Collect like terms | `-x^{34} - 4x^{34}` | `-5x^{34}` | `none` |  |  |  |  |
+| 849 | 34 | Hard | Polynomial plus fraction | `5x^{34} + \frac{5}{x - 5}` | `\frac{5x^{35} - 25x^{34} + 5}{x - 5}` | `x != 5` |  |  |  |  |
+| 850 | 34 | Hard | Difference of powers | `\frac{x^{34} - 1}{x^{17} + 1}` | `x^{17} - 1` | `x != -1` |  |  |  |  |
+| 851 | 35 | Hard | Multivariate distribution | `a^{17} \cdot (5b^{18} + a^{2})` | `5a^{17} b^{18} + a^{19}` | `none` |  |  |  |  |
+| 852 | 35 | Hard | Nested fraction | `\frac{\frac{x^{35} + 6x^{34} + 2x^{30} + 12x^{29} - 3x^{3} - 18x^{2}}{x + 5}}{\frac{x + 6}{x + 5}}` | `x^{34} + 2x^{29} - 3x^{2}` | `x != -6, -5` |  |  |  |  |
+| 853 | 35 | Hard | Power of a power | `(x^{35})^{1} \cdot x^{-18}` | `x^{17}` | `x != 0` |  |  |  |  |
+| 854 | 35 | Hard | Same denominator | `\frac{-2x^{35}}{x^{4} - 16} + \frac{3x^{35} - 16x^{31} + 5x^{9} + 3x^{6} - 80x^{5} - 48x^{2}}{x^{4} - 16}` | `x^{31} + 5x^{5} + 3x^{2}` | `x != -2, 2` |  |  |  |  |
+| 855 | 35 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{35} + 13x^{34} + 42x^{33}}{x + 6}}{x}}{\frac{x + 7}{x + 1}}` | `x^{33} + x^{32}` | `x != -7, -6, -1, 0` |  |  |  |  |
+| 856 | 35 | Hard | Collect like terms | `4x^{23} - 7x^{35} + 2 - 4x^{23} + 2x^{11} + 2x^{35} + 2 + 5x^{25} - 5x^{11}` | `-5x^{35} + 5x^{25} - 3x^{11} + 4` | `none` |  |  |  |  |
+| 857 | 35 | Hard | Monomial division | `\frac{6x^{35} - 12x^{34} - 30x^{33}}{6x^{33}}` | `x^{2} - 2x - 5` | `x != 0` |  |  |  |  |
+| 858 | 35 | Hard | Partial cancellation | `\frac{x^{35} - 3x^{34} + 2x^{21} - 6x^{20} - 4x^{7} + 12x^{6}}{x^{2} - 9x + 18}` | `\frac{x^{34} + 2x^{20} - 4x^{6}}{x - 6}` | `x != 3, 6` |  |  |  |  |
+| 859 | 35 | Hard | Constant factor | `\frac{25x^{36} - 125x^{35} - 15x^{34} + 75x^{33} - 15x^{19} + 75x^{18}}{x - 5}` | `25x^{35} - 15x^{33} - 15x^{18}` | `x != 5` |  |  |  |  |
+| 860 | 35 | Hard | Already irreducible | `\frac{x^{35} + 5}{x^{35} - 1}` | `\frac{x^{35} + 5}{x^{35} - 1}` | `x != 1` |  |  |  |  |
+| 861 | 35 | Hard | Different denominators | `\frac{x^{35} + 3x^{34} + x^{32} + 3x^{31}}{x + 3} + \frac{x^{34} + 2x^{33}}{x + 2}` | `x^{34} + x^{33} + x^{31}` | `x != -3, -2` |  |  |  |  |
+| 862 | 35 | Hard | Perfect square trinomial | `\frac{x^{35} + 2x^{18} + x}{x^{17} + 1}` | `x^{18} + x` | `x != -1` |  |  |  |  |
+| 863 | 35 | Hard | Common power factor | `\frac{x^{35} + 5x^{15}}{x^{35} - x^{15}}` | `\frac{x^{20} + 5}{x^{20} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 864 | 35 | Hard | Negative exponents | `x^{-5} \cdot (-2x^{35} - x^{19})` | `-2x^{30} - x^{14}` | `x != 0` |  |  |  |  |
+| 865 | 35 | Hard | Difference of powers | `\frac{x^{35} - x}{x^{18} - x}` | `x^{17} + 1` | `x != 0, 1` |  |  |  |  |
+| 866 | 35 | Hard | Cancels to zero | `\frac{5x^{35}}{x} - 5x^{34}` | `0` | `x != 0` |  |  |  |  |
+| 867 | 35 | Hard | Quadratic factor cancellation | `\frac{x^{35} + 3x^{34} - 4x^{33}}{x^{2} + 3x - 4}` | `x^{33}` | `x != -4, 1` |  |  |  |  |
+| 868 | 35 | Hard | Polynomial plus fraction | `-x^{35} + \frac{2}{x + 4}` | `\frac{-x^{36} - 4x^{35} + 2}{x + 4}` | `x != -4` |  |  |  |  |
+| 869 | 35 | Hard | Reference-type rational | `\frac{5x^{35} - 15x^{34} - 20x^{33} - 3x^{19} + 9x^{18} + 12x^{17}}{x^{3} + x^{2} - 16x - 16}` | `\frac{5x^{33} - 3x^{17}}{x + 4}` | `x != -4, -1, 4` |  |  |  |  |
+| 870 | 35 | Hard | Distribute and collect | `-4x^{14}(x^{21} + 4) + 5x^{14}` | `-4x^{35} - 11x^{14}` | `none` |  |  |  |  |
+| 871 | 35 | Hard | Expand product | `(-3x^{5} - 1)(-5x^{30})` | `15x^{35} + 5x^{30}` | `none` |  |  |  |  |
+| 872 | 35 | Hard | Collapsing identity | `(x^{18} - 2)(x^{17} + 2) - x^{35}` | `2x^{18} - 2x^{17} - 4` | `none` |  |  |  |  |
+| 873 | 35 | Hard | Sign flip | `\frac{-2x^{35} + 8x^{34} - 2x^{18} + 8x^{17}}{x - 4}` | `-2x^{34} - 2x^{17}` | `x != 4` |  |  |  |  |
+| 874 | 35 | Hard | Linear factor cancellation | `\frac{-4x^{35} + 28x^{34}}{x - 7}` | `-4x^{34}` | `x != 7` |  |  |  |  |
+| 875 | 35 | Hard | Multivariate monomials | `\frac{4 \cdot a^{22} \cdot b^{12} \cdot z}{2 \cdot a^{16} \cdot b^{8}}` | `2a^{6} b^{4} z` | `a != 0, b != 0` |  |  |  |  |
+| 876 | 36 | Hard | Sign flip | `\frac{-x^{36} - 6x^{35} + 3x^{32} + 18x^{31}}{x + 6}` | `-x^{35} + 3x^{31}` | `x != -6` |  |  |  |  |
+| 877 | 36 | Hard | Triple nested fraction | `\frac{\frac{\frac{-5x^{36} - 20x^{35} + 195x^{34} + 630x^{33}}{x + 7}}{x - 6}}{\frac{x + 3}{x - 4}}` | `-5x^{34} + 20x^{33}` | `x != -7, -3, 4, 6` |  |  |  |  |
+| 878 | 36 | Hard | Different denominators | `\frac{-5x^{36} - 5x^{35} - 4x^{8} - 4x^{7}}{x + 1} + \frac{x^{34} + 3x^{33}}{x + 3}` | `-5x^{35} + x^{33} - 4x^{7}` | `x != -3, -1` |  |  |  |  |
+| 879 | 36 | Hard | Distribute and collect | `4x^{11}(x^{25} - 4) + 5x^{11}` | `4x^{36} - 11x^{11}` | `none` |  |  |  |  |
+| 880 | 36 | Hard | Polynomial plus fraction | `(x^{36} - x^{30}) + \frac{5}{x - 2}` | `\frac{x^{37} - 2x^{36} - x^{31} + 2x^{30} + 5}{x - 2}` | `x != 2` |  |  |  |  |
+| 881 | 36 | Hard | Quadratic factor cancellation | `\frac{x^{36} - x^{35} - 42x^{34}}{(x - 7)(x + 6)}` | `x^{34}` | `x != -6, 7` |  |  |  |  |
+| 882 | 36 | Hard | Difference of powers | `\frac{x^{36} - 1}{x^{18} + 1}` | `x^{18} - 1` | `x^18 + 1 != 0` |  |  |  |  |
+| 883 | 36 | Hard | Multivariate monomials | `\frac{6 \cdot a^{32} \cdot b^{3} \cdot z}{2a^{28}}` | `3a^{4} b^{3} z` | `a != 0` |  |  |  |  |
+| 884 | 36 | Hard | Already irreducible | `\frac{x^{36} - 3}{x^{36} + 1}` | `\frac{x^{36} - 3}{x^{36} + 1}` | `x^36 + 1 != 0` |  |  |  |  |
+| 885 | 36 | Hard | Expand product | `(x^{16})(x^{20} + 2x^{13})` | `x^{36} + 2x^{29}` | `none` |  |  |  |  |
+| 886 | 36 | Hard | Same denominator | `\frac{x^{36} - x^{3}}{x + 1} + \frac{x^{35} + 3x^{22} + 3x^{21} + x^{16} + x^{15} + x^{3}}{x + 1}` | `x^{35} + 3x^{21} + x^{15}` | `x != -1` |  |  |  |  |
+| 887 | 36 | Hard | Constant factor | `\frac{3x^{36}}{3}` | `x^{36}` | `none` |  |  |  |  |
+| 888 | 36 | Hard | Perfect square trinomial | `\frac{x^{36} - 2x^{18} + 1}{x^{18} - 1}` | `x^{18} - 1` | `x != -1, 1` |  |  |  |  |
+| 889 | 36 | Hard | Negative exponents | `x^{-11} \cdot (-2x^{36} + 2x^{12})` | `-2x^{25} + 2x` | `x != 0` |  |  |  |  |
+| 890 | 36 | Hard | Difference of squares chain | `\frac{x^{36} - 1}{x^{18} - 1}` | `x^{18} + 1` | `x != -1, 1` |  |  |  |  |
+| 891 | 36 | Hard | Linear factor cancellation | `\frac{x^{36} - x^{35} - x^{12} + x^{11}}{x - 1}` | `x^{35} - x^{11}` | `x != 1` |  |  |  |  |
+| 892 | 36 | Hard | Cancels to zero | `\frac{x^{36} - 7x^{35} + 5x^{31} - 35x^{30} + 3x^{13} - 21x^{12}}{x - 7} - (x^{35} + 5x^{30} + 3x^{12})` | `0` | `x != 7` |  |  |  |  |
+| 893 | 36 | Hard | Collect like terms | `-3x^{3} + 3x^{3} - 4x^{23} - 3x^{3} + 2x^{36} - x^{36}` | `x^{36} - 4x^{23} - 3x^{3}` | `none` |  |  |  |  |
+| 894 | 36 | Hard | Multivariate expansion | `(a^{18} + b^{18})(a^{18} - b^{18})` | `a^{36} - b^{36}` | `none` |  |  |  |  |
+| 895 | 36 | Hard | Monomial division | `\frac{-5x^{36} + 10x^{31} - 25x^{29}}{5x^{29}}` | `-x^{7} + 2x^{2} - 5` | `x != 0` |  |  |  |  |
+| 896 | 36 | Hard | Collapsing identity | `(x^{18} + 2)^{2} - (x^{18} - 2)^{2}` | `8x^{18}` | `none` |  |  |  |  |
+| 897 | 36 | Hard | Reference-type rational | `\frac{-3x^{36} - 9x^{35} + 30x^{34}}{x^{3} - 4x^{2} - 31x + 70}` | `\frac{-3x^{34}}{x - 7}` | `x != -5, 2, 7` |  |  |  |  |
+| 898 | 36 | Hard | Power of a power | `\frac{(-x^{12})^{3}}{x^{9}}` | `-x^{27}` | `x != 0` |  |  |  |  |
+| 899 | 36 | Hard | Nested fraction | `\frac{\frac{x^{36} - x^{14}}{x - 4}}{\frac{x}{x - 4}}` | `x^{35} - x^{13}` | `x != 0, 4` |  |  |  |  |
+| 900 | 36 | Hard | Partial cancellation | `\frac{-x^{36} - 6x^{35}}{x^{2} + 2x - 24}` | `\frac{-x^{35}}{x - 4}` | `x != -6, 4` |  |  |  |  |
+| 901 | 37 | Hard | Expand product | `(x^{20} + 3x^{19})(3x^{17} + 5x^{10})` | `3x^{37} + 9x^{36} + 5x^{30} + 15x^{29}` | `none` |  |  |  |  |
+| 902 | 37 | Hard | Quadratic factor cancellation | `\frac{x^{37} - 2x^{36} - 35x^{35} - x^{17} + 2x^{16} + 35x^{15} - 4x^{10} + 8x^{9} + 140x^{8}}{x^{2} - 2x - 35}` | `x^{35} - x^{15} - 4x^{8}` | `x != -5, 7` |  |  |  |  |
+| 903 | 37 | Hard | Difference of powers | `\frac{x^{37} - x}{x^{19} - x}` | `x^{18} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 904 | 37 | Hard | Power of a power | `\frac{(x^{37})^{1}}{x^{4}}` | `x^{33}` | `x != 0` |  |  |  |  |
+| 905 | 37 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{37} - 2x^{36} - 35x^{35}}{x}}{x - 7}}{\frac{x + 5}{x - 1}}` | `x^{35} - x^{34}` | `x != -5, 0, 1, 7` |  |  |  |  |
+| 906 | 37 | Hard | Constant factor | `\frac{4x^{37}}{4}` | `x^{37}` | `none` |  |  |  |  |
+| 907 | 37 | Hard | Linear factor cancellation | `\frac{x^{37} - 3x^{36} - 5x^{29} + 15x^{28} + x^{8} - 3x^{7}}{x - 3}` | `x^{36} - 5x^{28} + x^{7}` | `x != 3` |  |  |  |  |
+| 908 | 37 | Hard | Nested fraction | `\frac{\frac{x^{37} - 3x^{36} - 5x^{16} + 15x^{15} - 4x^{12} + 12x^{11}}{x + 3}}{\frac{x - 3}{x + 3}}` | `x^{36} - 5x^{15} - 4x^{11}` | `x != -3, 3` |  |  |  |  |
+| 909 | 37 | Hard | Already irreducible | `\frac{x^{37} + 5}{x^{37} + 1}` | `\frac{x^{37} + 5}{x^{37} + 1}` | `x != -1` |  |  |  |  |
+| 910 | 37 | Hard | Common power factor | `\frac{x^{37} + 3x^{30}}{x^{37} - x^{30}}` | `\frac{x^{7} + 3}{x^{7} - 1}` | `x != 0, 1` |  |  |  |  |
+| 911 | 37 | Hard | Cancels to zero | `\frac{-4x^{37} - 16x^{36} + x^{27} + 4x^{26}}{x + 4} - (-4x^{36} + x^{26})` | `0` | `x != -4` |  |  |  |  |
+| 912 | 37 | Hard | Negative exponents | `x^{-28} \cdot (-4x^{37} + 2x^{34})` | `-4x^{9} + 2x^{6}` | `x != 0` |  |  |  |  |
+| 913 | 37 | Hard | Partial cancellation | `\frac{4x^{37} - 4x^{36}}{x^{2} + 6x - 7}` | `\frac{4x^{36}}{x + 7}` | `x != -7, 1` |  |  |  |  |
+| 914 | 37 | Hard | Different denominators | `\frac{2x^{37} + 6x^{36}}{x + 3} + \frac{x^{36} - 5x^{35} - 5x^{28} + 25x^{27}}{x - 5}` | `2x^{36} + x^{35} - 5x^{27}` | `x != -3, 5` |  |  |  |  |
+| 915 | 37 | Hard | Sign flip | `\frac{-x^{37} - x^{36} - x^{26} - x^{25} + 2x^{20} + 2x^{19}}{x + 1}` | `-x^{36} - x^{25} + 2x^{19}` | `x != -1` |  |  |  |  |
+| 916 | 37 | Hard | Multivariate distribution | `a^{22} \cdot b^{6} \cdot (2b^{9} + a^{3})` | `2a^{22} b^{15} + a^{25} b^{6}` | `none` |  |  |  |  |
+| 917 | 37 | Hard | Collapsing identity | `(x^{19} + 2)(x^{18} - 2) - x^{37}` | `-2x^{19} + 2x^{18} - 4` | `none` |  |  |  |  |
+| 918 | 37 | Hard | Collect like terms | `-3x^{29} + 3x^{29} - x + x^{37} + 3x^{37}` | `4x^{37} - x` | `none` |  |  |  |  |
+| 919 | 37 | Hard | Polynomial plus fraction | `2x^{37} + \frac{2}{x + 7}` | `\frac{2x^{38} + 14x^{37} + 2}{x + 7}` | `x != -7` |  |  |  |  |
+| 920 | 37 | Hard | Multivariate monomials | `\frac{16 \cdot a^{21} \cdot b^{16}}{4 \cdot a^{16} \cdot b^{14}}` | `4a^{5} b^{2}` | `a != 0, b != 0` |  |  |  |  |
+| 921 | 37 | Hard | Perfect square trinomial | `\frac{x^{37} - 2x^{19} + x}{x^{18} - 1}` | `x^{19} - x` | `x != -1, 1` |  |  |  |  |
+| 922 | 37 | Hard | Monomial division | `\frac{4x^{37} + 10x^{4}}{2x^{4}}` | `2x^{33} + 5` | `x != 0` |  |  |  |  |
+| 923 | 37 | Hard | Reference-type rational | `\frac{x^{37} - 16x^{35} - 3x^{33} + 48x^{31}}{x^{3} + 5x^{2} - 16x - 80}` | `\frac{x^{35} - 3x^{31}}{x + 5}` | `x != -5, -4, 4` |  |  |  |  |
+| 924 | 37 | Hard | Same denominator | `\frac{x^{37} - 3x^{11} + 3x^{3}}{x - 1} - \frac{-x^{37} + 2x^{36} - 2x^{22} + 2x^{21} - 3x^{11} + 5x^{8} - 5x^{7} + 3x^{3}}{x - 1}` | `2x^{36} + 2x^{21} - 5x^{7}` | `x != 1` |  |  |  |  |
+| 925 | 37 | Hard | Expand product | `(x^{7} - 3x^{6})(x^{30} + x^{8})` | `x^{37} - 3x^{36} + x^{15} - 3x^{14}` | `none` |  |  |  |  |
+| 926 | 38 | Hard | Negative exponents | `x^{-32} \cdot (x^{38} + x^{33})` | `x^{6} + x` | `x != 0` |  |  |  |  |
+| 927 | 38 | Hard | Perfect square trinomial | `\frac{x^{38} - 2x^{19} + 1}{x^{19} - 1}` | `x^{19} - 1` | `x != 1` |  |  |  |  |
+| 928 | 38 | Hard | Reference-type rational | `\frac{x^{38} - 9x^{37} + 14x^{36} + 2x^{26} - 18x^{25} + 28x^{24}}{x^{3} - 15x^{2} + 68x - 84}` | `\frac{x^{36} + 2x^{24}}{x - 6}` | `x != 2, 6, 7` |  |  |  |  |
+| 929 | 38 | Hard | Monomial division | `\frac{3x^{38} - 9x^{32} + 6x^{30}}{3x^{30}}` | `x^{8} - 3x^{2} + 2` | `x != 0` |  |  |  |  |
+| 930 | 38 | Hard | Collapsing identity | `(x^{19} + 3)^{2} - (x^{19} - 3)^{2}` | `12x^{19}` | `none` |  |  |  |  |
+| 931 | 38 | Hard | Cancels to zero | `\frac{4x^{38} - 24x^{37} - x^{14} + 6x^{13} + 4x^{4} - 24x^{3}}{x - 6} - (4x^{37} - x^{13} + 4x^{3})` | `0` | `x != 6` |  |  |  |  |
+| 932 | 38 | Hard | Nested fraction | `\frac{\frac{3x^{38} + 21x^{37} + 2x^{18} + 14x^{17} + 5x^{15} + 35x^{14}}{x + 4}}{\frac{x + 7}{x + 4}}` | `3x^{37} + 2x^{17} + 5x^{14}` | `x != -7, -4` |  |  |  |  |
+| 933 | 38 | Hard | Linear factor cancellation | `\frac{x^{38} + 7x^{37} - 2x^{12} - 13x^{11} + 7x^{10}}{x + 7}` | `x^{37} - 2x^{11} + x^{10}` | `x != -7` |  |  |  |  |
+| 934 | 38 | Hard | Same denominator | `\frac{5x^{38}}{x^{3} + 8} + \frac{-4x^{38} + 8x^{35} + 2x^{23} + 16x^{20} - 5x^{13} - 40x^{10}}{x^{3} + 8}` | `x^{35} + 2x^{20} - 5x^{10}` | `x != -2` |  |  |  |  |
+| 935 | 38 | Hard | Multivariate monomials | `\frac{-12 \cdot a^{29} \cdot b^{2} \cdot z^{7}}{2 \cdot a^{8} \cdot b}` | `-6a^{21} b z^{7}` | `a != 0, b != 0` |  |  |  |  |
+| 936 | 38 | Hard | Difference of powers | `\frac{x^{38} - 1}{x^{19} + 1}` | `x^{19} - 1` | `x != -1` |  |  |  |  |
+| 937 | 38 | Hard | Common power factor | `\frac{x^{38} - 2x^{5}}{x^{38} + x^{5}}` | `\frac{x^{33} - 2}{x^{33} + 1}` | `x != -1, 0` |  |  |  |  |
+| 938 | 38 | Hard | Power of a power | `(-x^{19})^{2} \cdot x^{-10}` | `x^{28}` | `x != 0` |  |  |  |  |
+| 939 | 38 | Hard | Polynomial plus fraction | `4x^{38} + \frac{4}{x + 4}` | `\frac{4x^{39} + 16x^{38} + 4}{x + 4}` | `x != -4` |  |  |  |  |
+| 940 | 38 | Hard | Already irreducible | `\frac{x^{38} + 3}{x^{38} - 1}` | `\frac{x^{38} + 3}{x^{38} - 1}` | `x != -1, 1` |  |  |  |  |
+| 941 | 38 | Hard | Quadratic factor cancellation | `\frac{3x^{38} + 12x^{37} + 9x^{36} - 2x^{17} - 8x^{16} - 6x^{15}}{x^{2} + 4x + 3}` | `3x^{36} - 2x^{15}` | `x != -3, -1` |  |  |  |  |
+| 942 | 38 | Hard | Different denominators | `\frac{-4x^{38} + 4x^{37} + 4x^{7} - 4x^{6}}{x - 1} + \frac{-x^{37} - 2x^{36}}{x}` | `-4x^{37} - x^{36} - 2x^{35} + 4x^{6}` | `x != 0, 1` |  |  |  |  |
+| 943 | 38 | Hard | Collect like terms | `4x^{28} + 6x^{38} - 7x^{38} - 4x^{28}` | `-x^{38}` | `none` |  |  |  |  |
+| 944 | 38 | Hard | Sign flip | `\frac{2x^{38} - 4x^{37}}{x - 2}` | `2x^{37}` | `x != 2` |  |  |  |  |
+| 945 | 38 | Hard | Partial cancellation | `\frac{2x^{38} - 12x^{37}}{x^{2} + x - 42}` | `\frac{2x^{37}}{x + 7}` | `x != -7, 6` |  |  |  |  |
+| 946 | 38 | Hard | Constant factor | `\frac{-60x^{39} - 420x^{38} + 60x^{21} + 420x^{20}}{2x + 14}` | `-30x^{38} + 30x^{20}` | `x != -7` |  |  |  |  |
+| 947 | 38 | Hard | Triple nested fraction | `\frac{\frac{\frac{-5x^{38} + 35x^{37} + 70x^{36} - 600x^{35}}{x - 6}}{x - 5}}{\frac{x + 4}{x + 2}}` | `-5x^{36} - 10x^{35}` | `x != -4, -2, 5, 6` |  |  |  |  |
+| 948 | 38 | Hard | Expand product | `(3x^{34} + 5x^{6})(x^{4} + 4x)` | `3x^{38} + 12x^{35} + 5x^{10} + 20x^{7}` | `none` |  |  |  |  |
+| 949 | 38 | Hard | Multivariate expansion | `(a^{19} + b^{19})(a^{19} - b^{19})` | `a^{38} - b^{38}` | `none` |  |  |  |  |
+| 950 | 38 | Hard | Distribute and collect | `3x^{6}(x^{32} + 3) + 4x^{6}` | `3x^{38} + 13x^{6}` | `none` |  |  |  |  |
+| 951 | 39 | Hard | Perfect square trinomial | `\frac{x^{39} + 2x^{20} + x}{x^{19} + 1}` | `x^{20} + x` | `x != -1` |  |  |  |  |
+| 952 | 39 | Hard | Reference-type rational | `\frac{5x^{39} + 35x^{38} + 60x^{37} - 2x^{23} - 14x^{22} - 25x^{21} - 7x^{20} - 12x^{19}}{x^{3} + 8x^{2} + 19x + 12}` | `\frac{5x^{37} - 2x^{21} - x^{19}}{x + 1}` | `x != -4, -3, -1` |  |  |  |  |
+| 953 | 39 | Hard | Triple nested fraction | `\frac{\frac{\frac{2x^{39} + 6x^{38} - 8x^{37} + 4x^{30} + 12x^{29} - 16x^{28}}{x + 4}}{x - 1}}{\frac{x}{x + 7}}` | `2x^{37} + 14x^{36} + 4x^{28} + 28x^{27}` | `x != -7, -4, 0, 1` |  |  |  |  |
+| 954 | 39 | Hard | Expand product | `(x^{19})(x^{20} + 2x^{7})` | `x^{39} + 2x^{26}` | `none` |  |  |  |  |
+| 955 | 39 | Hard | Multivariate distribution | `a^{2} \cdot b^{29} \cdot (a^{8} - 2b^{8})` | `a^{10} b^{29} - 2a^{2} b^{37}` | `none` |  |  |  |  |
+| 956 | 39 | Hard | Already irreducible | `\frac{x^{39} + 3}{x^{39}}` | `\frac{x^{39} + 3}{x^{39}}` | `x != 0` |  |  |  |  |
+| 957 | 39 | Hard | Power of a power | `\frac{(x^{13})^{3}}{x^{10}}` | `x^{29}` | `x != 0` |  |  |  |  |
+| 958 | 39 | Hard | Distribute and collect | `5x^{10}(x^{29} + 2) + 3x^{10}` | `5x^{39} + 13x^{10}` | `none` |  |  |  |  |
+| 959 | 39 | Hard | Quadratic factor cancellation | `\frac{4x^{39} - 12x^{38} - 40x^{37} + x^{33} - 3x^{32} - 10x^{31} - x^{18} + 3x^{17} + 10x^{16}}{(x - 5)(x + 2)}` | `4x^{37} + x^{31} - x^{16}` | `x != -2, 5` |  |  |  |  |
+| 960 | 39 | Hard | Constant factor | `\frac{-12x^{40} - 72x^{39} + 24x^{24} + 144x^{23}}{x + 6}` | `-12x^{39} + 24x^{23}` | `x != -6` |  |  |  |  |
+| 961 | 39 | Hard | Polynomial plus fraction | `(x^{39} + 2x^{19}) + \frac{4}{x}` | `\frac{x^{40} + 2x^{20} + 4}{x}` | `x != 0` |  |  |  |  |
+| 962 | 39 | Hard | Different denominators | `\frac{x^{39} + 6x^{38}}{x + 6} + \frac{x^{39} - 3x^{38}}{x - 3}` | `2x^{38}` | `x != -6, 3` |  |  |  |  |
+| 963 | 39 | Hard | Nested fraction | `\frac{\frac{-3x^{39} - 21x^{38}}{x - 7}}{\frac{x + 7}{x - 7}}` | `-3x^{38}` | `x != -7, 7` |  |  |  |  |
+| 964 | 39 | Hard | Same denominator | `\frac{x^{39}}{x - 5} + \frac{3x^{39} - 20x^{38}}{x - 5}` | `4x^{38}` | `x != 5` |  |  |  |  |
+| 965 | 39 | Hard | Collapsing identity | `(x^{20} - 5)(x^{19} + 5) - x^{39}` | `5x^{20} - 5x^{19} - 25` | `none` |  |  |  |  |
+| 966 | 39 | Hard | Cancels to zero | `\frac{x^{39} - 4x^{38} - x^{5} + 4x^{4}}{x - 4} - (x^{38} - x^{4})` | `0` | `x != 4` |  |  |  |  |
+| 967 | 39 | Hard | Collect like terms | `-2x^{39} + 3x^{39}` | `x^{39}` | `none` |  |  |  |  |
+| 968 | 39 | Hard | Sign flip | `\frac{-x^{39} + 4x^{38} + 3x^{34} - 12x^{33} - 2x^{4} + 8x^{3}}{x - 4}` | `-x^{38} + 3x^{33} - 2x^{3}` | `x != 4` |  |  |  |  |
+| 969 | 39 | Hard | Partial cancellation | `\frac{3x^{39} + 3x^{38}}{x^{2} - x - 2}` | `\frac{3x^{38}}{x - 2}` | `x != -1, 2` |  |  |  |  |
+| 970 | 39 | Hard | Multivariate monomials | `\frac{20 \cdot a^{9} \cdot b^{8} \cdot z^{22}}{4 \cdot a^{4} \cdot b^{8}}` | `5a^{5} z^{22}` | `a != 0, b != 0` |  |  |  |  |
+| 971 | 39 | Hard | Monomial division | `\frac{3x^{39} + 9x^{10} - 9x^{6} - 9x^{3}}{3x^{3}}` | `x^{36} + 3x^{7} - 3x^{3} - 3` | `x != 0` |  |  |  |  |
+| 972 | 39 | Hard | Difference of powers | `\frac{x^{39} - x}{x^{20} - x}` | `x^{19} + 1` | `x != 0, 1` |  |  |  |  |
+| 973 | 39 | Hard | Linear factor cancellation | `\frac{3x^{39} - 21x^{38} - 2x^{9} + 14x^{8}}{x - 7}` | `3x^{38} - 2x^{8}` | `x != 7` |  |  |  |  |
+| 974 | 39 | Hard | Negative exponents | `x^{-26} \cdot (-4x^{39} - 3x^{32})` | `-4x^{13} - 3x^{6}` | `x != 0` |  |  |  |  |
+| 975 | 39 | Hard | Reference-type rational | `\frac{-x^{39} + 6x^{38} + 7x^{37}}{x^{3} - 12x^{2} + 29x + 42}` | `\frac{-x^{37}}{x - 6}` | `x != -1, 6, 7` |  |  |  |  |
+| 976 | 40 | Hard | Cancels to zero | `\frac{4x^{40} + 16x^{39} + 2x^{16} + 8x^{15}}{x + 4} - (4x^{39} + 2x^{15})` | `0` | `x != -4` |  |  |  |  |
+| 977 | 40 | Hard | Difference of squares chain | `\frac{x^{40} - 1}{(x^{10} - 1)(x^{10} + 1)}` | `x^{20} + 1` | `x != -1, 1, x^10 + 1 != 0` |  |  |  |  |
+| 978 | 40 | Hard | Linear factor cancellation | `\frac{x^{40} - x^{39} + x^{23} - x^{22} + 2x^{3} - 2x^{2}}{x - 1}` | `x^{39} + x^{22} + 2x^{2}` | `x != 1` |  |  |  |  |
+| 979 | 40 | Hard | Multivariate monomials | `\frac{6 \cdot a^{7} \cdot b^{12} \cdot z^{21}}{6 \cdot a^{7} \cdot b^{11}}` | `b z^{21}` | `a != 0, b != 0` |  |  |  |  |
+| 980 | 40 | Hard | Negative exponents | `x^{-18} \cdot (x^{40})` | `x^{22}` | `x != 0` |  |  |  |  |
+| 981 | 40 | Hard | Nested fraction | `\frac{\frac{x^{40} - 2x^{39}}{x - 5}}{\frac{x - 2}{x - 5}}` | `x^{39}` | `x != 2, 5` |  |  |  |  |
+| 982 | 40 | Hard | Collect like terms | `6x^{40} - 5x^{40} - 7x^{35} + 5x^{35}` | `x^{40} - 2x^{35}` | `none` |  |  |  |  |
+| 983 | 40 | Hard | Difference of powers | `\frac{x^{40} - 1}{x^{20} + 1}` | `x^{20} - 1` | `x^20 + 1 != 0` |  |  |  |  |
+| 984 | 40 | Hard | Reference-type rational | `\frac{x^{40} - x^{39} - 42x^{38} - 5x^{24} + 5x^{23} + 210x^{22} + 2x^{15} - 2x^{14} - 84x^{13}}{x^{3} + 4x^{2} - 47x - 210}` | `\frac{x^{38} - 5x^{22} + 2x^{13}}{x + 5}` | `x != -6, -5, 7` |  |  |  |  |
+| 985 | 40 | Hard | Different denominators | `\frac{x^{40} + 4x^{39}}{x + 4} + \frac{x^{40} + 5x^{39}}{x + 5}` | `2x^{39}` | `x != -5, -4` |  |  |  |  |
+| 986 | 40 | Hard | Same denominator | `\frac{x^{40} + 2x^{21}}{x + 3} + \frac{3x^{39} - 3x^{28} - 9x^{27} - 2x^{21}}{x + 3}` | `x^{39} - 3x^{27}` | `x != -3` |  |  |  |  |
+| 987 | 40 | Hard | Perfect square trinomial | `\frac{x^{40} + 2x^{20} + 1}{x^{20} + 1}` | `x^{20} + 1` | `x^20 + 1 != 0` |  |  |  |  |
+| 988 | 40 | Hard | Collapsing identity | `(x^{20} - 1)^{2} - (x^{20} + 1)^{2}` | `-4x^{20}` | `none` |  |  |  |  |
+| 989 | 40 | Hard | Partial cancellation | `\frac{-3x^{40}}{x^{2} + 4x}` | `\frac{-3x^{39}}{x + 4}` | `x != -4, 0` |  |  |  |  |
+| 990 | 40 | Hard | Monomial division | `\frac{3x^{40} - 15x^{34} + 3x^{27}}{3x^{27}}` | `x^{13} - 5x^{7} + 1` | `x != 0` |  |  |  |  |
+| 991 | 40 | Hard | Sign flip | `\frac{4x^{40} + 4x^{39}}{x + 1}` | `4x^{39}` | `x != -1` |  |  |  |  |
+| 992 | 40 | Hard | Power of a power | `\frac{(2x^{8})^{5}}{x}` | `32x^{39}` | `x != 0` |  |  |  |  |
+| 993 | 40 | Hard | Multivariate expansion | `(a^{20} + b^{20})(a^{20} - b^{20})` | `a^{40} - b^{40}` | `none` |  |  |  |  |
+| 994 | 40 | Hard | Constant factor | `\frac{25x^{40} - 10x^{39} + 5x^{7}}{5}` | `5x^{40} - 2x^{39} + x^{7}` | `none` |  |  |  |  |
+| 995 | 40 | Hard | Distribute and collect | `-4x^{2}(x^{38} + 5) + 3x^{2}` | `-4x^{40} - 17x^{2}` | `none` |  |  |  |  |
+| 996 | 40 | Hard | Polynomial plus fraction | `-2x^{40} + \frac{3}{x - 1}` | `\frac{-2x^{41} + 2x^{40} + 3}{x - 1}` | `x != 1` |  |  |  |  |
+| 997 | 40 | Hard | Common power factor | `\frac{x^{40} - 4x^{8}}{x^{40} - x^{8}}` | `\frac{x^{32} - 4}{x^{32} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 998 | 40 | Hard | Already irreducible | `\frac{x^{40} + 3}{x^{40} - 1}` | `\frac{x^{40} + 3}{x^{40} - 1}` | `x != -1, 1` |  |  |  |  |
+| 999 | 40 | Hard | Quadratic factor cancellation | `\frac{x^{40} + 8x^{39} + 7x^{38} + 5x^{23} + 40x^{22} + 35x^{21}}{(x + 7)(x + 1)}` | `x^{38} + 5x^{21}` | `x != -7, -1` |  |  |  |  |
+| 1000 | 40 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{40} + 9x^{39} + 20x^{38}}{x + 5}}{x}}{\frac{x + 4}{x - 7}}` | `x^{38} - 7x^{37}` | `x != -5, -4, 0, 7` |  |  |  |  |
+| 1001 | 41 | Hard | Already irreducible | `\frac{x^{41} - 5}{x^{41}}` | `\frac{x^{41} - 5}{x^{41}}` | `x != 0` |  |  |  |  |
+| 1002 | 41 | Hard | Collect like terms | `-x^{34} - 2x^{34} - 2x^{41} - 2x^{29} + 4x^{7} + 4x^{41}` | `2x^{41} - 3x^{34} - 2x^{29} + 4x^{7}` | `none` |  |  |  |  |
+| 1003 | 41 | Hard | Reference-type rational | `\frac{x^{41} + x^{40} - 12x^{39} - x^{29} - x^{28} + 12x^{27}}{x^{3} - 6x^{2} - 19x + 84}` | `\frac{x^{39} - x^{27}}{x - 7}` | `x != -4, 3, 7` |  |  |  |  |
+| 1004 | 41 | Hard | Cancels to zero | `\frac{5x^{41} + 20x^{40}}{x + 4} - 5x^{40}` | `0` | `x != -4` |  |  |  |  |
+| 1005 | 41 | Hard | Expand product | `(x^{16} - 4x^{6})(x^{25})` | `x^{41} - 4x^{31}` | `none` |  |  |  |  |
+| 1006 | 41 | Hard | Sign flip | `\frac{3x^{41} - 12x^{40} - 3x^{29} + 12x^{28}}{x - 4}` | `3x^{40} - 3x^{28}` | `x != 4` |  |  |  |  |
+| 1007 | 41 | Hard | Nested fraction | `\frac{\frac{-5x^{41}}{x + 7}}{\frac{x}{x + 7}}` | `-5x^{40}` | `x != -7, 0` |  |  |  |  |
+| 1008 | 41 | Hard | Difference of powers | `\frac{x^{41} - x}{x^{21} - x}` | `x^{20} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1009 | 41 | Hard | Same denominator | `\frac{-3x^{41}}{x + 2} + \frac{4x^{41} + 2x^{40} + 2x^{33} + 4x^{32}}{x + 2}` | `x^{40} + 2x^{32}` | `x != -2` |  |  |  |  |
+| 1010 | 41 | Hard | Monomial division | `\frac{3x^{41} - 15x^{39}}{3x^{39}}` | `x^{2} - 5` | `x != 0` |  |  |  |  |
+| 1011 | 41 | Hard | Collapsing identity | `(x^{21} - 2)(x^{20} + 2) - x^{41}` | `2x^{21} - 2x^{20} - 4` | `none` |  |  |  |  |
+| 1012 | 41 | Hard | Polynomial plus fraction | `4x^{41} - \frac{2}{x + 1}` | `\frac{4x^{42} + 4x^{41} - 2}{x + 1}` | `x != -1` |  |  |  |  |
+| 1013 | 41 | Hard | Distribute and collect | `-5x^{21}(x^{20} - 2) - 4x^{21}` | `-5x^{41} + 6x^{21}` | `none` |  |  |  |  |
+| 1014 | 41 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{41} + 7x^{40} + 4x^{39} - 12x^{38} - 4x^{5} - 28x^{4} - 16x^{3} + 48x^{2}}{x + 2}}{x + 6}}{\frac{x - 1}{x - 2}}` | `x^{39} - 2x^{38} - 4x^{3} + 8x^{2}` | `x != -6, -2, 1, 2` |  |  |  |  |
+| 1015 | 41 | Hard | Partial cancellation | `\frac{x^{41} + 3x^{40} - 3x^{36} - 9x^{35}}{x^{2} - 2x - 15}` | `\frac{x^{40} - 3x^{35}}{x - 5}` | `x != -3, 5` |  |  |  |  |
+| 1016 | 41 | Hard | Multivariate monomials | `\frac{-3 \cdot a^{33} \cdot b^{8}}{3 \cdot a^{26} \cdot b^{6}}` | `-a^{7} b^{2}` | `a != 0, b != 0` |  |  |  |  |
+| 1017 | 41 | Hard | Different denominators | `\frac{5x^{41} + 5x^{40} - 3x^{35} - 3x^{34}}{x + 1} + \frac{x^{40} + 5x^{39} - 2x^{27} - 10x^{26}}{x + 5}` | `5x^{40} + x^{39} - 3x^{34} - 2x^{26}` | `x != -5, -1` |  |  |  |  |
+| 1018 | 41 | Hard | Constant factor | `\frac{9x^{42} + 45x^{11}}{3x}` | `3x^{41} + 15x^{10}` | `x != 0` |  |  |  |  |
+| 1019 | 41 | Hard | Quadratic factor cancellation | `\frac{x^{41} + 2x^{40} + 3x^{24} + 6x^{23} - 4x^{21} - 8x^{20}}{(x)(x + 2)}` | `x^{39} + 3x^{22} - 4x^{19}` | `x != -2, 0` |  |  |  |  |
+| 1020 | 41 | Hard | Multivariate distribution | `a^{29} \cdot b^{3} \cdot (-b^{9} + a^{8})` | `-a^{29} b^{12} + a^{37} b^{3}` | `none` |  |  |  |  |
+| 1021 | 41 | Hard | Perfect square trinomial | `\frac{x^{41} + 2x^{21} + x}{x^{20} + 1}` | `x^{21} + x` | `x^20 + 1 != 0` |  |  |  |  |
+| 1022 | 41 | Hard | Linear factor cancellation | `\frac{x^{41} + x^{40} - 3x^{32} - 3x^{31}}{x + 1}` | `x^{40} - 3x^{31}` | `x != -1` |  |  |  |  |
+| 1023 | 41 | Hard | Negative exponents | `x^{-20} \cdot (2x^{41} - 4x^{37})` | `2x^{21} - 4x^{17}` | `x != 0` |  |  |  |  |
+| 1024 | 41 | Hard | Power of a power | `(3x^{41})^{1} \cdot x^{-25}` | `3x^{16}` | `x != 0` |  |  |  |  |
+| 1025 | 41 | Hard | Common power factor | `\frac{x^{41} - 4x^{27}}{x^{41} + x^{27}}` | `\frac{x^{14} - 4}{x^{14} + 1}` | `x != 0, x^14 + 1 != 0` |  |  |  |  |
+| 1026 | 42 | Hard | Multivariate expansion | `(a^{21} + b^{21})(a^{21} - b^{21})` | `a^{42} - b^{42}` | `none` |  |  |  |  |
+| 1027 | 42 | Hard | Sign flip | `\frac{-x^{42} + 7x^{41} - 4x^{39} + 28x^{38} - 2x^{19} + 14x^{18}}{x - 7}` | `-x^{41} - 4x^{38} - 2x^{18}` | `x != 7` |  |  |  |  |
+| 1028 | 42 | Hard | Constant factor | `\frac{4x^{42} + 20x^{21}}{4}` | `x^{42} + 5x^{21}` | `none` |  |  |  |  |
+| 1029 | 42 | Hard | Quadratic factor cancellation | `\frac{4x^{42} - x^{41} - 13x^{40} + 10x^{39}}{(x + 2)(x - 1)}` | `4x^{40} - 5x^{39}` | `x != -2, 1` |  |  |  |  |
+| 1030 | 42 | Hard | Collapsing identity | `(x^{21} + 2)^{2} - (x^{21} - 2)^{2}` | `8x^{21}` | `none` |  |  |  |  |
+| 1031 | 42 | Hard | Reference-type rational | `\frac{-x^{42} + 49x^{40}}{x^{3} - x^{2} - 49x + 49}` | `\frac{-x^{40}}{x - 1}` | `x != -7, 1, 7` |  |  |  |  |
+| 1032 | 42 | Hard | Same denominator | `\frac{x^{42} + 3x^{32} + 5x^{25}}{x^{5} + 243} - \frac{6x^{42} + 1220x^{37} + 1218x^{32} + 5x^{25} + 2x^{14} + 486x^{9}}{x^{5} + 243}` | `-5x^{37} - 5x^{32} - 2x^{9}` | `x != -3` |  |  |  |  |
+| 1033 | 42 | Hard | Collect like terms | `6x^{4} + 5x^{24} - 6x^{24} - 7x^{4} + 6x^{39} - 2x^{2} - 11x^{39} + 7x^{2} - 5x^{42}` | `-5x^{42} - 5x^{39} - x^{24} - x^{4} + 5x^{2}` | `none` |  |  |  |  |
+| 1034 | 42 | Hard | Distribute and collect | `-x^{6}(x^{36} + 2) + 4x^{6}` | `-x^{42} + 2x^{6}` | `none` |  |  |  |  |
+| 1035 | 42 | Hard | Cancels to zero | `\frac{x^{42} - 2x^{41}}{x - 2} - x^{41}` | `0` | `x != 2` |  |  |  |  |
+| 1036 | 42 | Hard | Monomial division | `\frac{5x^{42} - 20x^{24}}{5x^{24}}` | `x^{18} - 4` | `x != 0` |  |  |  |  |
+| 1037 | 42 | Hard | Perfect square trinomial | `\frac{x^{42} - 2x^{21} + 1}{x^{21} - 1}` | `x^{21} - 1` | `x != 1` |  |  |  |  |
+| 1038 | 42 | Hard | Linear factor cancellation | `\frac{x^{42} - 6x^{41} - 3x^{38} + 18x^{37} - 2x^{2} + 12x}{x - 6}` | `x^{41} - 3x^{37} - 2x` | `x != 6` |  |  |  |  |
+| 1039 | 42 | Hard | Difference of powers | `\frac{x^{42} - 1}{x^{21} - 1}` | `x^{21} + 1` | `x != 1` |  |  |  |  |
+| 1040 | 42 | Hard | Different denominators | `\frac{x^{42} + 7x^{41}}{x + 7} + \frac{x^{40} + 5x^{39}}{x + 5}` | `x^{41} + x^{39}` | `x != -7, -5` |  |  |  |  |
+| 1041 | 42 | Hard | Common power factor | `\frac{x^{42} + 3x^{6}}{x^{42} - x^{6}}` | `\frac{x^{36} + 3}{x^{36} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1042 | 42 | Hard | Triple nested fraction | `\frac{\frac{\frac{3x^{42} - 84x^{40} - 144x^{39}}{x + 2}}{x - 6}}{\frac{x + 4}{x}}` | `3x^{40}` | `x != -4, -2, 0, 6` |  |  |  |  |
+| 1043 | 42 | Hard | Multivariate monomials | `\frac{-24 \cdot a^{19} \cdot b^{18} \cdot z^{5}}{4 \cdot a^{16} \cdot b^{4}}` | `-6a^{3} b^{14} z^{5}` | `a != 0, b != 0` |  |  |  |  |
+| 1044 | 42 | Hard | Nested fraction | `\frac{\frac{x^{42} - 6x^{41} - 4x^{36} + 24x^{35}}{x - 4}}{\frac{x - 6}{x - 4}}` | `x^{41} - 4x^{35}` | `x != 4, 6` |  |  |  |  |
+| 1045 | 42 | Hard | Partial cancellation | `\frac{-3x^{42} - 12x^{41} - x^{18} - 4x^{17}}{x^{2} + x - 12}` | `\frac{-3x^{41} - x^{17}}{x - 3}` | `x != -4, 3` |  |  |  |  |
+| 1046 | 42 | Hard | Expand product | `(x^{31} + 4x^{19})(x^{11} + 2x^{6})` | `x^{42} + 2x^{37} + 4x^{30} + 8x^{25}` | `none` |  |  |  |  |
+| 1047 | 42 | Hard | Polynomial plus fraction | `(-x^{42} + 5x^{40}) - \frac{2}{x - 5}` | `\frac{-x^{43} + 5x^{42} + 5x^{41} - 25x^{40} - 2}{x - 5}` | `x != 5` |  |  |  |  |
+| 1048 | 42 | Hard | Negative exponents | `x^{-33} \cdot (4x^{42} - 2x^{33})` | `4x^{9} - 2` | `x != 0` |  |  |  |  |
+| 1049 | 42 | Hard | Power of a power | `\frac{(2x^{14})^{3}}{x^{7}}` | `8x^{35}` | `x != 0` |  |  |  |  |
+| 1050 | 42 | Hard | Multivariate distribution | `a^{18} \cdot b^{3} \cdot (-3b^{21} + a^{19})` | `-3a^{18} b^{24} + a^{37} b^{3}` | `none` |  |  |  |  |
+| 1051 | 43 | Hard | Monomial division | `\frac{15x^{43} + 6x^{35} + 9x^{32} + 3x^{25}}{3x^{25}}` | `5x^{18} + 2x^{10} + 3x^{7} + 1` | `x != 0` |  |  |  |  |
+| 1052 | 43 | Hard | Polynomial plus fraction | `x^{43} - \frac{2}{x + 2}` | `\frac{x^{44} + 2x^{43} - 2}{x + 2}` | `x != -2` |  |  |  |  |
+| 1053 | 43 | Hard | Collect like terms | `-3x + x^{15} + 4x + x^{18} + 4x^{18} + 2x^{39} + x^{39} + x^{43}` | `x^{43} + 3x^{39} + 5x^{18} + x^{15} + x` | `none` |  |  |  |  |
+| 1054 | 43 | Hard | Different denominators | `\frac{x^{43} + 3x^{13}}{x} + \frac{x^{41} - 2x^{40} - 3x^{32} + 6x^{31}}{x - 2}` | `x^{42} + x^{40} - 3x^{31} + 3x^{12}` | `x != 0, 2` |  |  |  |  |
+| 1055 | 43 | Hard | Reference-type rational | `\frac{x^{43} - 7x^{42} + 10x^{41} + x^{32} - 7x^{31} + 10x^{30} - 4x^{20} + 28x^{19} - 40x^{18}}{x^{3} - 39x + 70}` | `\frac{x^{41} + x^{30} - 4x^{18}}{x + 7}` | `x != -7, 2, 5` |  |  |  |  |
+| 1056 | 43 | Hard | Same denominator | `\frac{x^{43}}{x + 3} - \frac{-3x^{42} + x^{40} + 3x^{39} + 3x^{12} + 9x^{11}}{x + 3}` | `x^{42} - x^{39} - 3x^{11}` | `x != -3` |  |  |  |  |
+| 1057 | 43 | Hard | Constant factor | `\frac{-24x^{44} + 120x^{43} - 40x^{14} + 200x^{13} + 24x^{5} - 120x^{4}}{2x - 10}` | `-12x^{43} - 20x^{13} + 12x^{4}` | `x != 5` |  |  |  |  |
+| 1058 | 43 | Hard | Linear factor cancellation | `\frac{2x^{43} + 8x^{42} - 4x^{29} - 16x^{28} + 2x^{16} + 8x^{15}}{x + 4}` | `2x^{42} - 4x^{28} + 2x^{15}` | `x != -4` |  |  |  |  |
+| 1059 | 43 | Hard | Quadratic factor cancellation | `\frac{x^{43} - 8x^{42} + 7x^{41}}{x^{2} - 8x + 7}` | `x^{41}` | `x != 1, 7` |  |  |  |  |
+| 1060 | 43 | Hard | Multivariate distribution | `a^{36} \cdot b^{3} \cdot (a^{4} + 2b^{4})` | `a^{40} b^{3} + 2a^{36} b^{7}` | `none` |  |  |  |  |
+| 1061 | 43 | Hard | Perfect square trinomial | `\frac{x^{43} - 2x^{22} + x}{x^{21} - 1}` | `x^{22} - x` | `x != 1` |  |  |  |  |
+| 1062 | 43 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{43} + 10x^{42} + 19x^{41} - 30x^{40}}{x + 6}}{x - 1}}{\frac{x + 5}{x - 7}}` | `x^{41} - 7x^{40}` | `x != -6, -5, 1, 7` |  |  |  |  |
+| 1063 | 43 | Hard | Multivariate monomials | `\frac{-24 \cdot a \cdot b^{3} \cdot z^{39}}{4b}` | `-6a b^{2} z^{39}` | `b != 0` |  |  |  |  |
+| 1064 | 43 | Hard | Expand product | `(-5x^{28})(5x^{15})` | `-25x^{43}` | `none` |  |  |  |  |
+| 1065 | 43 | Hard | Cancels to zero | `\frac{x^{43} - 2x^{42} + 5x^{11} - 10x^{10}}{x - 2} - (x^{42} + 5x^{10})` | `0` | `x != 2` |  |  |  |  |
+| 1066 | 43 | Hard | Negative exponents | `x^{-28} \cdot (-2x^{43})` | `-2x^{15}` | `x != 0` |  |  |  |  |
+| 1067 | 43 | Hard | Already irreducible | `\frac{x^{43} - 5}{x^{43} + 1}` | `\frac{x^{43} - 5}{x^{43} + 1}` | `x != -1` |  |  |  |  |
+| 1068 | 43 | Hard | Power of a power | `\frac{(x^{43})^{1}}{x^{16}}` | `x^{27}` | `x != 0` |  |  |  |  |
+| 1069 | 43 | Hard | Partial cancellation | `\frac{x^{43} + 2x^{42}}{x^{2} + 6x + 8}` | `\frac{x^{42}}{x + 4}` | `x != -4, -2` |  |  |  |  |
+| 1070 | 43 | Hard | Collapsing identity | `(x^{22} - 3)(x^{21} + 3) - x^{43}` | `3x^{22} - 3x^{21} - 9` | `none` |  |  |  |  |
+| 1071 | 43 | Hard | Sign flip | `\frac{2x^{43} + 2x^{42} - 5x^{8} - 5x^{7}}{x + 1}` | `2x^{42} - 5x^{7}` | `x != -1` |  |  |  |  |
+| 1072 | 43 | Hard | Nested fraction | `\frac{\frac{3x^{43} - 3x^{42}}{x - 5}}{\frac{x - 1}{x - 5}}` | `3x^{42}` | `x != 1, 5` |  |  |  |  |
+| 1073 | 43 | Hard | Distribute and collect | `-4x^{12}(x^{31} + 3) - x^{12}` | `-4x^{43} - 13x^{12}` | `none` |  |  |  |  |
+| 1074 | 43 | Hard | Difference of powers | `\frac{x^{43} - x}{x^{22} - x}` | `x^{21} + 1` | `x != 0, 1` |  |  |  |  |
+| 1075 | 43 | Hard | Monomial division | `\frac{-10x^{43} - 15x^{42} + 20x^{41}}{5x^{41}}` | `-2x^{2} - 3x + 4` | `x != 0` |  |  |  |  |
+| 1076 | 44 | Hard | Triple nested fraction | `\frac{\frac{\frac{-5x^{44} + 40x^{43} + 115x^{42} - 1050x^{41}}{x - 7}}{x - 6}}{\frac{x + 5}{x - 4}}` | `-5x^{42} + 20x^{41}` | `x != -5, 4, 6, 7` |  |  |  |  |
+| 1077 | 44 | Hard | Perfect square trinomial | `\frac{x^{44} + 2x^{22} + 1}{x^{22} + 1}` | `x^{22} + 1` | `x^22 + 1 != 0` |  |  |  |  |
+| 1078 | 44 | Hard | Linear factor cancellation | `\frac{-4x^{44} - 24x^{43} - 5x^{37} - 30x^{36} + 2x^{14} + 12x^{13}}{x + 6}` | `-4x^{43} - 5x^{36} + 2x^{13}` | `x != -6` |  |  |  |  |
+| 1079 | 44 | Hard | Already irreducible | `\frac{x^{44} - 2}{x^{44}}` | `\frac{x^{44} - 2}{x^{44}}` | `x != 0` |  |  |  |  |
+| 1080 | 44 | Hard | Quadratic factor cancellation | `\frac{x^{44} + 4x^{43} - 5x^{42} + 4x^{21} + 16x^{20} - 20x^{19}}{(x - 1)(x + 5)}` | `x^{42} + 4x^{19}` | `x != -5, 1` |  |  |  |  |
+| 1081 | 44 | Hard | Multivariate monomials | `\frac{18 \cdot a^{12} \cdot b^{12} \cdot z^{20}}{3 \cdot a^{2} \cdot b^{8}}` | `6a^{10} b^{4} z^{20}` | `a != 0, b != 0` |  |  |  |  |
+| 1082 | 44 | Hard | Polynomial plus fraction | `x^{44} - \frac{2}{x - 3}` | `\frac{x^{45} - 3x^{44} - 2}{x - 3}` | `x != 3` |  |  |  |  |
+| 1083 | 44 | Hard | Difference of squares chain | `\frac{x^{44} - 1}{x^{22} - 1}` | `x^{22} + 1` | `x != -1, 1` |  |  |  |  |
+| 1084 | 44 | Hard | Constant factor | `\frac{4x^{44} + 8x^{12} + 20x^{7}}{4}` | `x^{44} + 2x^{12} + 5x^{7}` | `none` |  |  |  |  |
+| 1085 | 44 | Hard | Difference of powers | `\frac{x^{44} - 1}{x^{22} + 1}` | `x^{22} - 1` | `x^22 + 1 != 0` |  |  |  |  |
+| 1086 | 44 | Hard | Cancels to zero | `\frac{x^{44} + 5x^{43}}{x + 5} - x^{43}` | `0` | `x != -5` |  |  |  |  |
+| 1087 | 44 | Hard | Sign flip | `\frac{-x^{44} + 3x^{43} + 2x^{25} - 6x^{24} - x^{3} + 3x^{2}}{x - 3}` | `-x^{43} + 2x^{24} - x^{2}` | `x != 3` |  |  |  |  |
+| 1088 | 44 | Hard | Multivariate expansion | `(a^{22} + b^{22})(a^{22} - b^{22})` | `a^{44} - b^{44}` | `none` |  |  |  |  |
+| 1089 | 44 | Hard | Power of a power | `(2x^{22})^{2} \cdot x^{-14}` | `4x^{30}` | `x != 0` |  |  |  |  |
+| 1090 | 44 | Hard | Collapsing identity | `(x^{22} + 4)^{2} - (x^{22} - 4)^{2}` | `16x^{22}` | `none` |  |  |  |  |
+| 1091 | 44 | Hard | Reference-type rational | `\frac{x^{44} - 11x^{43} + 30x^{42} - 4x^{30} + 44x^{29} - 120x^{28} - 3x^{17} + 33x^{16} - 90x^{15}}{x^{3} - 12x^{2} + 41x - 30}` | `\frac{x^{42} - 4x^{28} - 3x^{15}}{x - 1}` | `x != 1, 5, 6` |  |  |  |  |
+| 1092 | 44 | Hard | Same denominator | `\frac{-5x^{44} - x^{11} - 2x^{10}}{x - 2} + \frac{9x^{44} - 8x^{43} + x^{11} + 2x^{10}}{x - 2}` | `4x^{43}` | `x != 2` |  |  |  |  |
+| 1093 | 44 | Hard | Nested fraction | `\frac{\frac{-x^{44} + 2x^{43}}{x - 4}}{\frac{x - 2}{x - 4}}` | `-x^{43}` | `x != 2, 4` |  |  |  |  |
+| 1094 | 44 | Hard | Distribute and collect | `x^{25}(x^{19} + 1) + 5x^{25}` | `x^{44} + 6x^{25}` | `none` |  |  |  |  |
+| 1095 | 44 | Hard | Monomial division | `\frac{-10x^{44} + 25x^{37}}{5x^{37}}` | `-2x^{7} + 5` | `x != 0` |  |  |  |  |
+| 1096 | 44 | Hard | Different denominators | `\frac{x^{44} + x^{43} - 4x^{36} - 4x^{35}}{x + 1} + \frac{x^{44} + 5x^{43}}{x + 5}` | `2x^{43} - 4x^{35}` | `x != -5, -1` |  |  |  |  |
+| 1097 | 44 | Hard | Common power factor | `\frac{x^{44} + 5x^{35}}{x^{44} + x^{35}}` | `\frac{x^{9} + 5}{x^{9} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1098 | 44 | Hard | Expand product | `(-5x^{18} + 5x)(-3x^{26})` | `15x^{44} - 15x^{27}` | `none` |  |  |  |  |
+| 1099 | 44 | Hard | Negative exponents | `x^{-29} \cdot (4x^{44} - x^{32})` | `4x^{15} - x^{3}` | `x != 0` |  |  |  |  |
+| 1100 | 44 | Hard | Partial cancellation | `\frac{-5x^{44} - 20x^{43}}{x^{2} + 6x + 8}` | `\frac{-5x^{43}}{x + 2}` | `x != -4, -2` |  |  |  |  |
+| 1101 | 45 | Hard | Cancels to zero | `\frac{x^{45} - 6x^{44}}{x - 6} - x^{44}` | `0` | `x != 6` |  |  |  |  |
+| 1102 | 45 | Hard | Partial cancellation | `\frac{x^{45} + 3x^{44} - 3x^{5} - 9x^{4}}{x^{2} + 2x - 3}` | `\frac{x^{44} - 3x^{4}}{x - 1}` | `x != -3, 1` |  |  |  |  |
+| 1103 | 45 | Hard | Monomial division | `\frac{4x^{45} - 4x^{15}}{4x^{15}}` | `x^{30} - 1` | `x != 0` |  |  |  |  |
+| 1104 | 45 | Hard | Nested fraction | `\frac{\frac{2x^{45} + 2x^{44} - 4x^{3} - 5x^{2} - x}{x + 6}}{\frac{x + 1}{x + 6}}` | `2x^{44} - 4x^{2} - x` | `x != -6, -1` |  |  |  |  |
+| 1105 | 45 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{45} - 13x^{43} - 12x^{42}}{x + 1}}{x + 3}}{\frac{x - 4}{x - 6}}` | `x^{43} - 6x^{42}` | `x != -3, -1, 4, 6` |  |  |  |  |
+| 1106 | 45 | Hard | Multivariate monomials | `\frac{-3 \cdot a^{17} \cdot b \cdot z^{27}}{3 \cdot a^{9} \cdot b}` | `-a^{8} z^{27}` | `a != 0, b != 0` |  |  |  |  |
+| 1107 | 45 | Hard | Perfect square trinomial | `\frac{x^{45} + 2x^{23} + x}{x^{22} + 1}` | `x^{23} + x` | `x^22 + 1 != 0` |  |  |  |  |
+| 1108 | 45 | Hard | Common power factor | `\frac{x^{45} + 3x^{14}}{x^{45} + x^{14}}` | `\frac{x^{31} + 3}{x^{31} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1109 | 45 | Hard | Polynomial plus fraction | `x^{45} - \frac{1}{x + 7}` | `\frac{x^{46} + 7x^{45} - 1}{x + 7}` | `x != -7` |  |  |  |  |
+| 1110 | 45 | Hard | Same denominator | `\frac{3x^{45}}{x^{2} + 4} - \frac{2x^{45} - 4x^{43} - x^{17} - 4x^{15}}{x^{2} + 4}` | `x^{43} + x^{15}` | `x^2 + 4 != 0` |  |  |  |  |
+| 1111 | 45 | Hard | Different denominators | `\frac{x^{45} + 3x^{44} + x^{6} + 3x^{5}}{x + 3} + \frac{x^{44} + 5x^{43}}{x + 5}` | `x^{44} + x^{43} + x^{5}` | `x != -5, -3` |  |  |  |  |
+| 1112 | 45 | Hard | Reference-type rational | `\frac{-4x^{45} - 20x^{44} - 4x^{43} - 20x^{42}}{x^{3} + x^{2} - 20x}` | `\frac{-4x^{43} - 4x^{41}}{x - 4}` | `x != -5, 0, 4` |  |  |  |  |
+| 1113 | 45 | Hard | Difference of powers | `\frac{x^{45} - x}{x^{23} - x}` | `x^{22} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1114 | 45 | Hard | Distribute and collect | `-2x^{3}(x^{42} + 5) - 5x^{3}` | `-2x^{45} - 15x^{3}` | `none` |  |  |  |  |
+| 1115 | 45 | Hard | Already irreducible | `\frac{x^{45} + 3}{x^{45} - 1}` | `\frac{x^{45} + 3}{x^{45} - 1}` | `x != 1` |  |  |  |  |
+| 1116 | 45 | Hard | Constant factor | `\frac{60x^{46} + 240x^{45}}{3x + 12}` | `20x^{45}` | `x != -4` |  |  |  |  |
+| 1117 | 45 | Hard | Linear factor cancellation | `\frac{-2x^{45} - 8x^{44} + x^{25} + 4x^{24} - 5x^{21} - 20x^{20}}{x + 4}` | `-2x^{44} + x^{24} - 5x^{20}` | `x != -4` |  |  |  |  |
+| 1118 | 45 | Hard | Power of a power | `(x^{9})^{5} \cdot x^{-4}` | `x^{41}` | `x != 0` |  |  |  |  |
+| 1119 | 45 | Hard | Expand product | `(x^{38} - 3x^{10})(x^{7} - 4x^{3})` | `x^{45} - 4x^{41} - 3x^{17} + 12x^{13}` | `none` |  |  |  |  |
+| 1120 | 45 | Hard | Collapsing identity | `(x^{23} + 1)(x^{22} - 1) - x^{45}` | `-x^{23} + x^{22} - 1` | `none` |  |  |  |  |
+| 1121 | 45 | Hard | Collect like terms | `-5x^{43} - x^{12} + x^{12} + 5x^{44} + 5x^{42} + x^{45}` | `x^{45} + 5x^{44} - 5x^{43} + 5x^{42}` | `none` |  |  |  |  |
+| 1122 | 45 | Hard | Multivariate distribution | `a^{14} \cdot b^{30} \cdot (a + b)` | `a^{15} b^{30} + a^{14} b^{31}` | `none` |  |  |  |  |
+| 1123 | 45 | Hard | Negative exponents | `x^{-37} \cdot (-3x^{45} + 4x^{37})` | `-3x^{8} + 4` | `x != 0` |  |  |  |  |
+| 1124 | 45 | Hard | Sign flip | `\frac{-x^{45} - 2x^{44}}{x + 2}` | `-x^{44}` | `x != -2` |  |  |  |  |
+| 1125 | 45 | Hard | Quadratic factor cancellation | `\frac{5x^{45} + 20x^{44}}{x^{2} + 4x}` | `5x^{43}` | `x != -4, 0` |  |  |  |  |
+| 1126 | 46 | Hard | Already irreducible | `\frac{x^{46} - 1}{x^{46} + 1}` | `\frac{x^{46} - 1}{x^{46} + 1}` | `x^46 + 1 != 0` |  |  |  |  |
+| 1127 | 46 | Hard | Power of a power | `\frac{(x^{23})^{2}}{x^{4}}` | `x^{42}` | `x != 0` |  |  |  |  |
+| 1128 | 46 | Hard | Polynomial plus fraction | `x^{46} - \frac{2}{x - 7}` | `\frac{x^{47} - 7x^{46} - 2}{x - 7}` | `x != 7` |  |  |  |  |
+| 1129 | 46 | Hard | Expand product | `(x^{16} + 4x^{6})(4x^{30} - 3x^{18})` | `4x^{46} + 16x^{36} - 3x^{34} - 12x^{24}` | `none` |  |  |  |  |
+| 1130 | 46 | Hard | Negative exponents | `x^{-30} \cdot (5x^{46} - 4x^{45})` | `5x^{16} - 4x^{15}` | `x != 0` |  |  |  |  |
+| 1131 | 46 | Hard | Nested fraction | `\frac{\frac{x^{46} - 2x^{45} - 4x^{31} + 8x^{30}}{x - 5}}{\frac{x - 2}{x - 5}}` | `x^{45} - 4x^{30}` | `x != 2, 5` |  |  |  |  |
+| 1132 | 46 | Hard | Collapsing identity | `(x^{23} - 2)^{2} - (x^{23} + 2)^{2}` | `-8x^{23}` | `none` |  |  |  |  |
+| 1133 | 46 | Hard | Perfect square trinomial | `\frac{x^{46} + 2x^{23} + 1}{x^{23} + 1}` | `x^{23} + 1` | `x != -1` |  |  |  |  |
+| 1134 | 46 | Hard | Different denominators | `\frac{x^{46} - 7x^{45}}{x - 7} + \frac{5x^{44} - 5x^{43}}{x - 1}` | `x^{45} + 5x^{43}` | `x != 1, 7` |  |  |  |  |
+| 1135 | 46 | Hard | Common power factor | `\frac{x^{46} + 5x^{22}}{x^{46} + x^{22}}` | `\frac{x^{24} + 5}{x^{24} + 1}` | `x != 0, x^24 + 1 != 0` |  |  |  |  |
+| 1136 | 46 | Hard | Sign flip | `\frac{-x^{46} + 6x^{45} + 2x^{2} - 12x}{x - 6}` | `-x^{45} + 2x` | `x != 6` |  |  |  |  |
+| 1137 | 46 | Hard | Constant factor | `\frac{-6x^{46} - 9x^{26}}{3}` | `-2x^{46} - 3x^{26}` | `none` |  |  |  |  |
+| 1138 | 46 | Hard | Multivariate monomials | `\frac{5 \cdot a^{26} \cdot b^{18} \cdot z^{2}}{a^{17} \cdot b^{10}}` | `5a^{9} b^{8} z^{2}` | `a != 0, b != 0` |  |  |  |  |
+| 1139 | 46 | Hard | Multivariate distribution | `a^{29} \cdot b^{3} \cdot (5b^{14} + a^{13})` | `5a^{29} b^{17} + a^{42} b^{3}` | `none` |  |  |  |  |
+| 1140 | 46 | Hard | Distribute and collect | `4x^{31}(x^{15} + 5) - 4x^{31}` | `4x^{46} + 16x^{31}` | `none` |  |  |  |  |
+| 1141 | 46 | Hard | Cancels to zero | `\frac{-3x^{46} - 18x^{45} - x^{37} - 6x^{36} - x^{4} - 6x^{3}}{x + 6} - (-3x^{45} - x^{36} - x^{3})` | `0` | `x != -6` |  |  |  |  |
+| 1142 | 46 | Hard | Difference of powers | `\frac{x^{46} - 1}{x^{23} + 1}` | `x^{23} - 1` | `x != -1` |  |  |  |  |
+| 1143 | 46 | Hard | Same denominator | `\frac{-3x^{46} + 5x^{33} - 2x^{21}}{x + 4} - \frac{-4x^{46} - 4x^{45} + 5x^{33} - 2x^{21}}{x + 4}` | `x^{45}` | `x != -4` |  |  |  |  |
+| 1144 | 46 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{46} + 10x^{45} + 11x^{44} - 70x^{43}}{x + 7}}{x - 2}}{\frac{x + 5}{x - 6}}` | `x^{44} - 6x^{43}` | `x != -7, -5, 2, 6` |  |  |  |  |
+| 1145 | 46 | Hard | Partial cancellation | `\frac{-4x^{46} + 8x^{45}}{x^{2} - 5x + 6}` | `\frac{-4x^{45}}{x - 3}` | `x != 2, 3` |  |  |  |  |
+| 1146 | 46 | Hard | Linear factor cancellation | `\frac{2x^{46} + 4x^{45} + 4x^{18} + 8x^{17} + 5x^{6} + 10x^{5}}{x + 2}` | `2x^{45} + 4x^{17} + 5x^{5}` | `x != -2` |  |  |  |  |
+| 1147 | 46 | Hard | Reference-type rational | `\frac{x^{46} + 3x^{45} - 18x^{44} + 4x^{13} + 12x^{12} - 72x^{11}}{x^{3} + x^{2} - 24x + 36}` | `\frac{x^{44} + 4x^{11}}{x - 2}` | `x != -6, 2, 3` |  |  |  |  |
+| 1148 | 46 | Hard | Monomial division | `\frac{4x^{46} + 12x^{41} - 20x^{29} + 4x^{26}}{4x^{26}}` | `x^{20} + 3x^{15} - 5x^{3} + 1` | `x != 0` |  |  |  |  |
+| 1149 | 46 | Hard | Quadratic factor cancellation | `\frac{x^{46} - 7x^{45} + 12x^{44} + 4x^{36} - 28x^{35} + 48x^{34} - 3x^{33} + 21x^{32} - 36x^{31}}{x^{2} - 7x + 12}` | `x^{44} + 4x^{34} - 3x^{31}` | `x != 3, 4` |  |  |  |  |
+| 1150 | 46 | Hard | Already irreducible | `\frac{x^{46} - 1}{x^{46}}` | `\frac{x^{46} - 1}{x^{46}}` | `x != 0` |  |  |  |  |
+| 1151 | 47 | Hard | Distribute and collect | `5x^{36}(x^{11} + 2) - 2x^{36}` | `5x^{47} + 8x^{36}` | `none` |  |  |  |  |
+| 1152 | 47 | Hard | Constant factor | `\frac{24x^{47}}{6}` | `4x^{47}` | `none` |  |  |  |  |
+| 1153 | 47 | Hard | Collect like terms | `-5x^{47} - x^{13} + 6x^{47} - 4x^{43} + 6x^{13}` | `x^{47} - 4x^{43} + 5x^{13}` | `none` |  |  |  |  |
+| 1154 | 47 | Hard | Common power factor | `\frac{x^{47} - x^{2}}{x^{47} + x^{2}}` | `\frac{x^{45} - 1}{x^{45} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1155 | 47 | Hard | Monomial division | `\frac{3x^{47} + 12x^{13}}{3x^{13}}` | `x^{34} + 4` | `x != 0` |  |  |  |  |
+| 1156 | 47 | Hard | Perfect square trinomial | `\frac{x^{47} + 2x^{24} + x}{x^{23} + 1}` | `x^{24} + x` | `x != -1` |  |  |  |  |
+| 1157 | 47 | Hard | Partial cancellation | `\frac{x^{47} + 7x^{46}}{x^{2} + x - 42}` | `\frac{x^{46}}{x - 6}` | `x != -7, 6` |  |  |  |  |
+| 1158 | 47 | Hard | Already irreducible | `\frac{x^{47} - 2}{x^{47}}` | `\frac{x^{47} - 2}{x^{47}}` | `x != 0` |  |  |  |  |
+| 1159 | 47 | Hard | Difference of powers | `\frac{x^{47} - x}{x^{24} - x}` | `x^{23} + 1` | `x != 0, 1` |  |  |  |  |
+| 1160 | 47 | Hard | Different denominators | `\frac{x^{47} - 7x^{46} + 3x^{27} - 21x^{26}}{x - 7} + \frac{x^{45} + 7x^{44}}{x + 7}` | `x^{46} + x^{44} + 3x^{26}` | `x != -7, 7` |  |  |  |  |
+| 1161 | 47 | Hard | Negative exponents | `x^{-24} \cdot (4x^{47})` | `4x^{23}` | `x != 0` |  |  |  |  |
+| 1162 | 47 | Hard | Quadratic factor cancellation | `\frac{2x^{47} - 4x^{46} - 16x^{45} - x^{41} + 2x^{40} + 8x^{39}}{x^{2} - 2x - 8}` | `2x^{45} - x^{39}` | `x != -2, 4` |  |  |  |  |
+| 1163 | 47 | Hard | Multivariate distribution | `a^{28} \cdot b^{5} \cdot (2b^{14} + a^{11})` | `2a^{28} b^{19} + a^{39} b^{5}` | `none` |  |  |  |  |
+| 1164 | 47 | Hard | Polynomial plus fraction | `x^{47} - \frac{5}{x + 3}` | `\frac{x^{48} + 3x^{47} - 5}{x + 3}` | `x != -3` |  |  |  |  |
+| 1165 | 47 | Hard | Collapsing identity | `(x^{24} - 2)(x^{23} + 2) - x^{47}` | `2x^{24} - 2x^{23} - 4` | `none` |  |  |  |  |
+| 1166 | 47 | Hard | Cancels to zero | `\frac{x^{47} - 3x^{46} - 4x^{43} + 12x^{42} + 2x^{38} - 6x^{37}}{x - 3} - (x^{46} - 4x^{42} + 2x^{37})` | `0` | `x != 3` |  |  |  |  |
+| 1167 | 47 | Hard | Sign flip | `\frac{-3x^{47} + 9x^{46}}{x - 3}` | `-3x^{46}` | `x != 3` |  |  |  |  |
+| 1168 | 47 | Hard | Power of a power | `(-x^{47})^{1} \cdot x^{-44}` | `-x^{3}` | `x != 0` |  |  |  |  |
+| 1169 | 47 | Hard | Expand product | `(-5x^{40} - 4x^{2})(-3x^{7})` | `15x^{47} + 12x^{9}` | `none` |  |  |  |  |
+| 1170 | 47 | Hard | Linear factor cancellation | `\frac{2x^{47} - 4x^{46}}{x - 2}` | `2x^{46}` | `x != 2` |  |  |  |  |
+| 1171 | 47 | Hard | Nested fraction | `\frac{\frac{5x^{47} + 10x^{46} - 2x^{42} - 4x^{41} - 5x^{23} - 10x^{22}}{x - 2}}{\frac{x + 2}{x - 2}}` | `5x^{46} - 2x^{41} - 5x^{22}` | `x != -2, 2` |  |  |  |  |
+| 1172 | 47 | Hard | Reference-type rational | `\frac{-3x^{47} + 18x^{46} + 21x^{45} - 3x^{29} + 18x^{28} + 21x^{27}}{x^{3} - 11x^{2} + 23x + 35}` | `\frac{-3x^{45} - 3x^{27}}{x - 5}` | `x != -1, 5, 7` |  |  |  |  |
+| 1173 | 47 | Hard | Multivariate monomials | `\frac{6 \cdot a^{29} \cdot b^{15} \cdot z^{3}}{3 \cdot a^{20} \cdot b^{9}}` | `2a^{9} b^{6} z^{3}` | `a != 0, b != 0` |  |  |  |  |
+| 1174 | 47 | Hard | Same denominator | `\frac{x^{47}}{x - 5} + \frac{x^{47} - 10x^{46} - x^{29} + 5x^{28} - 3x^{6} + 15x^{5}}{x - 5}` | `2x^{46} - x^{28} - 3x^{5}` | `x != 5` |  |  |  |  |
+| 1175 | 47 | Hard | Triple nested fraction | `\frac{\frac{\frac{-5x^{47} - 80x^{46} - 405x^{45} - 630x^{44}}{x + 7}}{x + 3}}{\frac{x + 6}{x - 5}}` | `-5x^{45} + 25x^{44}` | `x != -7, -6, -3, 5` |  |  |  |  |
+| 1176 | 48 | Hard | Collapsing identity | `(x^{24} - 2)^{2} - (x^{24} + 2)^{2}` | `-8x^{24}` | `none` |  |  |  |  |
+| 1177 | 48 | Hard | Collect like terms | `-4x^{25} + 3x^{29} + 4x^{9} - x^{9} + x^{48} - 6x^{29} + 8x^{25} - 4x^{31}` | `x^{48} - 4x^{31} - 3x^{29} + 4x^{25} + 3x^{9}` | `none` |  |  |  |  |
+| 1178 | 48 | Hard | Partial cancellation | `\frac{4x^{48} - 28x^{47}}{x^{2} - 2x - 35}` | `\frac{4x^{47}}{x + 5}` | `x != -5, 7` |  |  |  |  |
+| 1179 | 48 | Hard | Constant factor | `\frac{24x^{48} + 24x^{47}}{6}` | `4x^{48} + 4x^{47}` | `none` |  |  |  |  |
+| 1180 | 48 | Hard | Negative exponents | `x^{-8} \cdot (-3x^{48} - 5x^{36})` | `-3x^{40} - 5x^{28}` | `x != 0` |  |  |  |  |
+| 1181 | 48 | Hard | Same denominator | `\frac{-4x^{48}}{x^{2} - 4} - \frac{-5x^{48} + 4x^{46} + x^{22} - 4x^{20} + 3x^{16} - 12x^{14}}{x^{2} - 4}` | `x^{46} - x^{20} - 3x^{14}` | `x != -2, 2` |  |  |  |  |
+| 1182 | 48 | Hard | Quadratic factor cancellation | `\frac{4x^{48} + 8x^{47}}{x^{2} + 2x}` | `4x^{46}` | `x != -2, 0` |  |  |  |  |
+| 1183 | 48 | Hard | Distribute and collect | `-4x^{45}(x^{3} + 4) + 5x^{45}` | `-4x^{48} - 11x^{45}` | `none` |  |  |  |  |
+| 1184 | 48 | Hard | Reference-type rational | `\frac{x^{48} - 13x^{47} + 42x^{46}}{x^{3} - 8x^{2} - 23x + 210}` | `\frac{x^{46}}{x + 5}` | `x != -5, 6, 7` |  |  |  |  |
+| 1185 | 48 | Hard | Expand product | `(5x^{7})(x^{41} - 2x^{33})` | `5x^{48} - 10x^{40}` | `none` |  |  |  |  |
+| 1186 | 48 | Hard | Already irreducible | `\frac{x^{48} - 5}{x^{48} - 1}` | `\frac{x^{48} - 5}{x^{48} - 1}` | `x != -1, 1` |  |  |  |  |
+| 1187 | 48 | Hard | Multivariate monomials | `\frac{9 \cdot a^{42} \cdot b^{6}}{3 \cdot a^{29} \cdot b^{3}}` | `3a^{13} b^{3}` | `a != 0, b != 0` |  |  |  |  |
+| 1188 | 48 | Hard | Triple nested fraction | `\frac{\frac{\frac{-3x^{48} + 21x^{47} - 108x^{45} - 2x^{25} + 14x^{24} - 72x^{22}}{x - 3}}{x + 2}}{\frac{x - 6}{x - 1}}` | `-3x^{46} + 3x^{45} - 2x^{23} + 2x^{22}` | `x != -2, 1, 3, 6` |  |  |  |  |
+| 1189 | 48 | Hard | Power of a power | `(x^{8})^{6} \cdot x^{-6}` | `x^{42}` | `x != 0` |  |  |  |  |
+| 1190 | 48 | Hard | Difference of squares chain | `\frac{x^{48} - 1}{(x^{12} - 1)(x^{12} + 1)}` | `x^{24} + 1` | `x != -1, 1, x^12 + 1 != 0` |  |  |  |  |
+| 1191 | 48 | Hard | Common power factor | `\frac{x^{48} + 4x^{40}}{x^{48} + x^{40}}` | `\frac{x^{8} + 4}{x^{8} + 1}` | `x != 0, x^8 + 1 != 0` |  |  |  |  |
+| 1192 | 48 | Hard | Cancels to zero | `\frac{x^{48} + 5x^{47}}{x + 5} - x^{47}` | `0` | `x != -5` |  |  |  |  |
+| 1193 | 48 | Hard | Monomial division | `\frac{20x^{48} + 25x^{34}}{5x^{34}}` | `4x^{14} + 5` | `x != 0` |  |  |  |  |
+| 1194 | 48 | Hard | Multivariate distribution | `a^{4} \cdot b^{11} \cdot (-b^{33} + a^{17})` | `-a^{4} b^{44} + a^{21} b^{11}` | `none` |  |  |  |  |
+| 1195 | 48 | Hard | Perfect square trinomial | `\frac{x^{48} - 2x^{24} + 1}{x^{24} - 1}` | `x^{24} - 1` | `x != -1, 1` |  |  |  |  |
+| 1196 | 48 | Hard | Nested fraction | `\frac{\frac{x^{48} + 7x^{47} - 2x^{44} - 14x^{43} - 4x^{12} - 28x^{11}}{x - 7}}{\frac{x + 7}{x - 7}}` | `x^{47} - 2x^{43} - 4x^{11}` | `x != -7, 7` |  |  |  |  |
+| 1197 | 48 | Hard | Different denominators | `\frac{x^{48} - 5x^{47} - 5x^{43} + 25x^{42}}{x - 5} + \frac{x^{46} + 7x^{45}}{x + 7}` | `x^{47} + x^{45} - 5x^{42}` | `x != -7, 5` |  |  |  |  |
+| 1198 | 48 | Hard | Polynomial plus fraction | `(-3x^{48} + 5x^{12}) + \frac{1}{x + 3}` | `\frac{-3x^{49} - 9x^{48} + 5x^{13} + 15x^{12} + 1}{x + 3}` | `x != -3` |  |  |  |  |
+| 1199 | 48 | Hard | Linear factor cancellation | `\frac{x^{48} - x^{47} + 4x^{42} - 7x^{41} + 3x^{40}}{x - 1}` | `x^{47} + 4x^{41} - 3x^{40}` | `x != 1` |  |  |  |  |
+| 1200 | 48 | Hard | Sign flip | `\frac{x^{48} + 6x^{47} + x^{25} + 6x^{24} - 2x^{16} - 12x^{15}}{x + 6}` | `x^{47} + x^{24} - 2x^{15}` | `x != -6` |  |  |  |  |
+| 1201 | 49 | Hard | Polynomial plus fraction | `(-x^{49} - 4x^{30}) + \frac{3}{x + 1}` | `\frac{-x^{50} - x^{49} - 4x^{31} - 4x^{30} + 3}{x + 1}` | `x != -1` |  |  |  |  |
+| 1202 | 49 | Hard | Common power factor | `\frac{x^{49} - x^{39}}{x^{49} + x^{39}}` | `\frac{x^{10} - 1}{x^{10} + 1}` | `x != 0, x^10 + 1 != 0` |  |  |  |  |
+| 1203 | 49 | Hard | Quadratic factor cancellation | `\frac{x^{49} + 11x^{48} + 28x^{47}}{x^{2} + 11x + 28}` | `x^{47}` | `x != -7, -4` |  |  |  |  |
+| 1204 | 49 | Hard | Already irreducible | `\frac{x^{49} - 4}{x^{49} - 1}` | `\frac{x^{49} - 4}{x^{49} - 1}` | `x != 1` |  |  |  |  |
+| 1205 | 49 | Hard | Collect like terms | `-3x^{33} - x^{33} + 5x^{49} - 2x^{49}` | `3x^{49} - 4x^{33}` | `none` |  |  |  |  |
+| 1206 | 49 | Hard | Multivariate monomials | `\frac{-6 \cdot a^{14} \cdot b^{2} \cdot z^{33}}{a^{7}}` | `-6a^{7} b^{2} z^{33}` | `a != 0` |  |  |  |  |
+| 1207 | 49 | Hard | Constant factor | `\frac{48x^{50} + 192x^{49} + 24x^{5} + 96x^{4}}{3x + 12}` | `16x^{49} + 8x^{4}` | `x != -4` |  |  |  |  |
+| 1208 | 49 | Hard | Multivariate distribution | `a^{5} \cdot b^{30} \cdot (-b^{14} + a^{3})` | `-a^{5} b^{44} + a^{8} b^{30}` | `none` |  |  |  |  |
+| 1209 | 49 | Hard | Nested fraction | `\frac{\frac{x^{49} + 4x^{48} + 4x^{27} + 16x^{26}}{x + 3}}{\frac{x + 4}{x + 3}}` | `x^{48} + 4x^{26}` | `x != -4, -3` |  |  |  |  |
+| 1210 | 49 | Hard | Linear factor cancellation | `\frac{x^{49} - 5x^{48} - x^{33} + 5x^{32} - 5x^{21} + 25x^{20}}{x - 5}` | `x^{48} - x^{32} - 5x^{20}` | `x != 5` |  |  |  |  |
+| 1211 | 49 | Hard | Sign flip | `\frac{-x^{49} - 7x^{48}}{x + 7}` | `-x^{48}` | `x != -7` |  |  |  |  |
+| 1212 | 49 | Hard | Cancels to zero | `\frac{x^{49} - 3x^{48} - x^{19} + 3x^{18} - 3x^{9} + 9x^{8}}{x - 3} - (x^{48} - x^{18} - 3x^{8})` | `0` | `x != 3` |  |  |  |  |
+| 1213 | 49 | Hard | Different denominators | `\frac{2x^{49} + 2x^{22}}{x} + \frac{x^{48} + 4x^{47}}{x + 4}` | `2x^{48} + x^{47} + 2x^{21}` | `x != -4, 0` |  |  |  |  |
+| 1214 | 49 | Hard | Triple nested fraction | `\frac{\frac{\frac{x^{49} + x^{48} - 30x^{47} - 72x^{46} + x^{41} + x^{40} - 30x^{39} - 72x^{38}}{x + 3}}{x - 6}}{\frac{x + 4}{x - 7}}` | `x^{47} - 7x^{46} + x^{39} - 7x^{38}` | `x != -4, -3, 6, 7` |  |  |  |  |
+| 1215 | 49 | Hard | Distribute and collect | `-4x^{35}(x^{14} + 2) + 2x^{35}` | `-4x^{49} - 6x^{35}` | `none` |  |  |  |  |
+| 1216 | 49 | Hard | Difference of powers | `\frac{x^{49} - x}{x^{25} - x}` | `x^{24} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1217 | 49 | Hard | Monomial division | `\frac{x^{49} + 5x^{47} + 2x^{42}}{x^{42}}` | `x^{7} + 5x^{5} + 2` | `x != 0` |  |  |  |  |
+| 1218 | 49 | Hard | Power of a power | `(x^{7})^{7} \cdot x^{-2}` | `x^{47}` | `x != 0` |  |  |  |  |
+| 1219 | 49 | Hard | Same denominator | `\frac{x^{49} + 5x^{14} - 5x^{12}}{x - 3} - \frac{3x^{48} + x^{16} - 3x^{15} + 5x^{14} - 5x^{12} - 2x^{5} + 6x^{4}}{x - 3}` | `x^{48} - x^{15} + 2x^{4}` | `x != 3` |  |  |  |  |
+| 1220 | 49 | Hard | Expand product | `(-2x^{35} + 2x^{8})(3x^{14} + 3x^{2})` | `-6x^{49} - 6x^{37} + 6x^{22} + 6x^{10}` | `none` |  |  |  |  |
+| 1221 | 49 | Hard | Reference-type rational | `\frac{x^{49} - 4x^{48} - 5x^{47}}{x^{3} - 11x^{2} + 23x + 35}` | `\frac{x^{47}}{x - 7}` | `x != -1, 5, 7` |  |  |  |  |
+| 1222 | 49 | Hard | Negative exponents | `x^{-30} \cdot (5x^{49} - x^{43})` | `5x^{19} - x^{13}` | `x != 0` |  |  |  |  |
+| 1223 | 49 | Hard | Perfect square trinomial | `\frac{x^{49} + 2x^{25} + x}{x^{24} + 1}` | `x^{25} + x` | `x^24 + 1 != 0` |  |  |  |  |
+| 1224 | 49 | Hard | Collapsing identity | `(x^{25} + 1)(x^{24} - 1) - x^{49}` | `-x^{25} + x^{24} - 1` | `none` |  |  |  |  |
+| 1225 | 49 | Hard | Polynomial plus fraction | `(3x^{49} + x^{24}) + \frac{4}{x - 6}` | `\frac{3x^{50} - 18x^{49} + x^{25} - 6x^{24} + 4}{x - 6}` | `x != 6` |  |  |  |  |
+| 1226 | 50 | Hard | Multivariate expansion | `(a^{25} + b^{25})(a^{25} - b^{25})` | `a^{50} - b^{50}` | `none` |  |  |  |  |
+| 1227 | 50 | Hard | Quadratic factor cancellation | `\frac{-4x^{50} - 44x^{49} - 120x^{48}}{x^{2} + 11x + 30}` | `-4x^{48}` | `x != -6, -5` |  |  |  |  |
+| 1228 | 50 | Hard | Power of a power | `\frac{(3x^{50})^{1}}{x^{24}}` | `3x^{26}` | `x != 0` |  |  |  |  |
+| 1229 | 50 | Hard | Different denominators | `\frac{x^{50} + 7x^{49}}{x + 7} + \frac{x^{48} + 5x^{47}}{x + 5}` | `x^{49} + x^{47}` | `x != -7, -5` |  |  |  |  |
+| 1230 | 50 | Hard | Same denominator | `\frac{x^{50} + 3x^{12}}{x + 4} - \frac{-4x^{49} + 3x^{12}}{x + 4}` | `x^{49}` | `x != -4` |  |  |  |  |
+| 1231 | 50 | Hard | Already irreducible | `\frac{x^{50} - 5}{x^{50}}` | `\frac{x^{50} - 5}{x^{50}}` | `x != 0` |  |  |  |  |
+| 1232 | 50 | Hard | Multivariate monomials | `\frac{-3 \cdot a^{3} \cdot b^{39} \cdot z^{8}}{a \cdot b^{13}}` | `-3a^{2} b^{26} z^{8}` | `a != 0, b != 0` |  |  |  |  |
+| 1233 | 50 | Hard | Monomial division | `\frac{5x^{50} - 25x^{47} - 20x^{46} + 20x^{38}}{5x^{38}}` | `x^{12} - 5x^{9} - 4x^{8} + 4` | `x != 0` |  |  |  |  |
+| 1234 | 50 | Hard | Triple nested fraction | `\frac{\frac{\frac{-3x^{50} - 45x^{49} - 222x^{48} - 360x^{47} - 3x^{18} - 45x^{17} - 222x^{16} - 360x^{15}}{x + 4}}{x + 6}}{\frac{x + 5}{x - 6}}` | `-3x^{48} + 18x^{47} - 3x^{16} + 18x^{15}` | `x != -6, -5, -4, 6` |  |  |  |  |
+| 1235 | 50 | Hard | Partial cancellation | `\frac{x^{50} - 7x^{49}}{x^{2} - 5x - 14}` | `\frac{x^{49}}{x + 2}` | `x != -2, 7` |  |  |  |  |
+| 1236 | 50 | Hard | Collect like terms | `-x^{14} - 6x^{50} + 2x^{50} + 3x^{14}` | `-4x^{50} + 2x^{14}` | `none` |  |  |  |  |
+| 1237 | 50 | Hard | Distribute and collect | `2x^{33}(x^{17} - 3) + 3x^{33}` | `2x^{50} - 3x^{33}` | `none` |  |  |  |  |
+| 1238 | 50 | Hard | Expand product | `(x^{43} + 4x^{2})(-5x^{7} - 3)` | `-5x^{50} - 3x^{43} - 20x^{9} - 12x^{2}` | `none` |  |  |  |  |
+| 1239 | 50 | Hard | Constant factor | `\frac{2x^{50}}{2}` | `x^{50}` | `none` |  |  |  |  |
+| 1240 | 50 | Hard | Difference of powers | `\frac{x^{50} - 1}{x^{25} + 1}` | `x^{25} - 1` | `x != -1` |  |  |  |  |
+| 1241 | 50 | Hard | Collapsing identity | `(x^{25} + 2)^{2} - (x^{25} - 2)^{2}` | `8x^{25}` | `none` |  |  |  |  |
+| 1242 | 50 | Hard | Negative exponents | `x^{-14} \cdot (5x^{50} + 2x^{38})` | `5x^{36} + 2x^{24}` | `x != 0` |  |  |  |  |
+| 1243 | 50 | Hard | Nested fraction | `\frac{\frac{x^{50} - 6x^{49} - 3x^{2} + 18x}{x + 2}}{\frac{x - 6}{x + 2}}` | `x^{49} - 3x` | `x != -2, 6` |  |  |  |  |
+| 1244 | 50 | Hard | Perfect square trinomial | `\frac{x^{50} + 2x^{25} + 1}{x^{25} + 1}` | `x^{25} + 1` | `x != -1` |  |  |  |  |
+| 1245 | 50 | Hard | Cancels to zero | `\frac{-2x^{50} - 2x^{49}}{x + 1} - (-2x^{49})` | `0` | `x != -1` |  |  |  |  |
+| 1246 | 50 | Hard | Polynomial plus fraction | `(x^{50} - 1) - \frac{1}{x - 1}` | `\frac{x^{51} - x^{50} - x}{x - 1}` | `x != 1` |  |  |  |  |
+| 1247 | 50 | Hard | Common power factor | `\frac{x^{50} - 5x^{46}}{x^{50} - x^{46}}` | `\frac{x^{4} - 5}{x^{4} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1248 | 50 | Hard | Sign flip | `\frac{3x^{50} + 12x^{49} - x^{29} - 4x^{28}}{x + 4}` | `3x^{49} - x^{28}` | `x != -4` |  |  |  |  |
+| 1249 | 50 | Hard | Linear factor cancellation | `\frac{x^{50} - 7x^{49}}{x - 7}` | `x^{49}` | `x != 7` |  |  |  |  |
+| 1250 | 50 | Hard | Reference-type rational | `\frac{x^{50} + 11x^{49} + 28x^{48} - 4x^{47} - 44x^{46} - 112x^{45}}{x^{3} + 9x^{2} + 6x - 56}` | `\frac{x^{48} - 4x^{45}}{x - 2}` | `x != -7, -4, 2` |  |  |  |  |
+| 1251 | 51 | Very hard | Polynomial plus fraction | `-5x^{51} - \frac{4}{x + 7}` | `\frac{-5x^{52} - 35x^{51} - 4}{x + 7}` | `x != -7` |  |  |  |  |
+| 1252 | 51 | Very hard | Multivariate distribution | `a^{14} \cdot b^{9} \cdot (-3b^{28} + a^{21})` | `-3a^{14} b^{37} + a^{35} b^{9}` | `none` |  |  |  |  |
+| 1253 | 51 | Very hard | Difference of powers | `\frac{x^{51} - x}{x^{26} - x}` | `x^{25} + 1` | `x != 0, 1` |  |  |  |  |
+| 1254 | 51 | Very hard | Common power factor | `\frac{x^{51} - 3x^{7}}{x^{51} + x^{7}}` | `\frac{x^{44} - 3}{x^{44} + 1}` | `x != 0, x^44 + 1 != 0` |  |  |  |  |
+| 1255 | 51 | Very hard | Sign flip | `\frac{x^{51} - 3x^{50}}{x - 3}` | `x^{50}` | `x != 3` |  |  |  |  |
+| 1256 | 51 | Very hard | Cancels to zero | `\frac{-3x^{51} - 6x^{50} - 3x^{5} - 6x^{4}}{x + 2} - (-3x^{50} - 3x^{4})` | `0` | `x != -2` |  |  |  |  |
+| 1257 | 51 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-x^{51} + 4x^{50} - 3x^{49}}{x}}{x - 3}}{\frac{x - 1}{x - 7}}` | `-x^{49} + 7x^{48}` | `x != 0, 1, 3, 7` |  |  |  |  |
+| 1258 | 51 | Very hard | Collect like terms | `4x^{14} - 6x^{14} - x^{30} - 3x^{30} + 2x - x - 3x^{51}` | `-3x^{51} - 4x^{30} - 2x^{14} + x` | `none` |  |  |  |  |
+| 1259 | 51 | Very hard | Quadratic factor cancellation | `\frac{-3x^{51} + 6x^{50} + 105x^{49}}{(x - 7)(x + 5)}` | `-3x^{49}` | `x != -5, 7` |  |  |  |  |
+| 1260 | 51 | Very hard | Collapsing identity | `(x^{26} - 1)(x^{25} + 1) - x^{51}` | `x^{26} - x^{25} - 1` | `none` |  |  |  |  |
+| 1261 | 51 | Very hard | Multivariate monomials | `\frac{-6 \cdot a^{44} \cdot b^{7}}{3 \cdot a^{14} \cdot b^{2}}` | `-2a^{30} b^{5}` | `a != 0, b != 0` |  |  |  |  |
+| 1262 | 51 | Very hard | Distribute and collect | `-x^{39}(x^{12} + 3) - 3x^{39}` | `-x^{51} - 6x^{39}` | `none` |  |  |  |  |
+| 1263 | 51 | Very hard | Already irreducible | `\frac{x^{51} + 4}{x^{51} - 1}` | `\frac{x^{51} + 4}{x^{51} - 1}` | `x != 1` |  |  |  |  |
+| 1264 | 51 | Very hard | Reference-type rational | `\frac{x^{51} + 13x^{50} + 42x^{49}}{x^{3} + 6x^{2} - 49x - 294}` | `\frac{x^{49}}{x - 7}` | `x != -7, -6, 7` |  |  |  |  |
+| 1265 | 51 | Very hard | Partial cancellation | `\frac{4x^{51} - 20x^{50} - x^{28} + 5x^{27}}{x^{2} - 9x + 20}` | `\frac{4x^{50} - x^{27}}{x - 4}` | `x != 4, 5` |  |  |  |  |
+| 1266 | 51 | Very hard | Constant factor | `\frac{10x^{51} - 20x^{32}}{5}` | `2x^{51} - 4x^{32}` | `none` |  |  |  |  |
+| 1267 | 51 | Very hard | Perfect square trinomial | `\frac{x^{51} + 2x^{26} + x}{x^{25} + 1}` | `x^{26} + x` | `x != -1` |  |  |  |  |
+| 1268 | 51 | Very hard | Power of a power | `(x^{17})^{3} \cdot x^{-12}` | `x^{39}` | `x != 0` |  |  |  |  |
+| 1269 | 51 | Very hard | Linear factor cancellation | `\frac{4x^{51} + 12x^{50}}{x + 3}` | `4x^{50}` | `x != -3` |  |  |  |  |
+| 1270 | 51 | Very hard | Nested fraction | `\frac{\frac{x^{51} - 2x^{50} - 2x^{47} + 4x^{46} - x^{43} + 2x^{42}}{x - 5}}{\frac{x - 2}{x - 5}}` | `x^{50} - 2x^{46} - x^{42}` | `x != 2, 5` |  |  |  |  |
+| 1271 | 51 | Very hard | Same denominator | `\frac{x^{51}}{x^{2} - 4} - \frac{-x^{51} + 8x^{49}}{x^{2} - 4}` | `2x^{49}` | `x != -2, 2` |  |  |  |  |
+| 1272 | 51 | Very hard | Different denominators | `\frac{x^{51} - 2x^{50}}{x - 2} + \frac{x^{49} - x^{48}}{x - 1}` | `x^{50} + x^{48}` | `x != 1, 2` |  |  |  |  |
+| 1273 | 51 | Very hard | Expand product | `(x^{20} + x^{17})(x^{31})` | `x^{51} + x^{48}` | `none` |  |  |  |  |
+| 1274 | 51 | Very hard | Negative exponents | `x^{-24} \cdot (5x^{51} - 2x^{39})` | `5x^{27} - 2x^{15}` | `x != 0` |  |  |  |  |
+| 1275 | 51 | Very hard | Monomial division | `\frac{2x^{51} - 6x^{49} + 4x^{44}}{2x^{44}}` | `x^{7} - 3x^{5} + 2` | `x != 0` |  |  |  |  |
+| 1276 | 52 | Very hard | Common power factor | `\frac{x^{52} + 4x^{21}}{x^{52} + x^{21}}` | `\frac{x^{31} + 4}{x^{31} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1277 | 52 | Very hard | Collect like terms | `-9x^{52} - 6x^{35} + x^{35} - 4x^{36} - 2x^{30} + 6x^{52} + 2x^{30}` | `-3x^{52} - 4x^{36} - 5x^{35}` | `none` |  |  |  |  |
+| 1278 | 52 | Very hard | Same denominator | `\frac{x^{52}}{x^{3} - 1} - \frac{x^{49}}{x^{3} - 1}` | `x^{49}` | `x != 1` |  |  |  |  |
+| 1279 | 52 | Very hard | Negative exponents | `x^{-44} \cdot (-2x^{52} + x^{44})` | `-2x^{8} + 1` | `x != 0` |  |  |  |  |
+| 1280 | 52 | Very hard | Perfect square trinomial | `\frac{x^{52} + 2x^{26} + 1}{x^{26} + 1}` | `x^{26} + 1` | `x^26 + 1 != 0` |  |  |  |  |
+| 1281 | 52 | Very hard | Different denominators | `\frac{x^{52} + x^{51}}{x + 1} + \frac{-2x^{52} + 2x^{51} - 2x^{27} + 2x^{26}}{x - 1}` | `-x^{51} - 2x^{26}` | `x != -1, 1` |  |  |  |  |
+| 1282 | 52 | Very hard | Difference of squares chain | `\frac{x^{52} - 1}{(x^{13} - 1)(x^{13} + 1)}` | `x^{26} + 1` | `x != -1, 1` |  |  |  |  |
+| 1283 | 52 | Very hard | Power of a power | `\frac{(-x^{13})^{4}}{x^{9}}` | `x^{43}` | `x != 0` |  |  |  |  |
+| 1284 | 52 | Very hard | Sign flip | `\frac{-x^{52} + 4x^{51} - 5x^{26} + 20x^{25}}{x - 4}` | `-x^{51} - 5x^{25}` | `x != 4` |  |  |  |  |
+| 1285 | 52 | Very hard | Cancels to zero | `\frac{-3x^{52}}{x} - (-3x^{51})` | `0` | `x != 0` |  |  |  |  |
+| 1286 | 52 | Very hard | Distribute and collect | `-2x^{36}(x^{16} + 3) + 4x^{36}` | `-2x^{52} - 2x^{36}` | `none` |  |  |  |  |
+| 1287 | 52 | Very hard | Multivariate expansion | `(a^{26} + b^{26})(a^{26} - b^{26})` | `a^{52} - b^{52}` | `none` |  |  |  |  |
+| 1288 | 52 | Very hard | Multivariate monomials | `\frac{-3 \cdot a^{22} \cdot b^{22} \cdot z^{8}}{a^{4} \cdot b^{15}}` | `-3a^{18} b^{7} z^{8}` | `a != 0, b != 0` |  |  |  |  |
+| 1289 | 52 | Very hard | Nested fraction | `\frac{\frac{-4x^{52} + 4x^{51} - 2x^{15} + 2x^{14} - x^{11} + x^{10}}{x - 4}}{\frac{x - 1}{x - 4}}` | `-4x^{51} - 2x^{14} - x^{10}` | `x != 1, 4` |  |  |  |  |
+| 1290 | 52 | Very hard | Quadratic factor cancellation | `\frac{x^{52} - 9x^{51} + 14x^{50} + 3x^{32} - 27x^{31} + 42x^{30}}{(x - 7)(x - 2)}` | `x^{50} + 3x^{30}` | `x != 2, 7` |  |  |  |  |
+| 1291 | 52 | Very hard | Monomial division | `\frac{-4x^{52} - 4x^{27} - 2x^{20}}{2x^{20}}` | `-2x^{32} - 2x^{7} - 1` | `x != 0` |  |  |  |  |
+| 1292 | 52 | Very hard | Constant factor | `\frac{-18x^{52}}{6}` | `-3x^{52}` | `none` |  |  |  |  |
+| 1293 | 52 | Very hard | Reference-type rational | `\frac{x^{52} + 11x^{51} + 30x^{50} + 4x^{35} + 44x^{34} + 120x^{33}}{x^{3} + 18x^{2} + 107x + 210}` | `\frac{x^{50} + 4x^{33}}{x + 7}` | `x != -7, -6, -5` |  |  |  |  |
+| 1294 | 52 | Very hard | Partial cancellation | `\frac{x^{52} - 2x^{51}}{x^{2} + 4x - 12}` | `\frac{x^{51}}{x + 6}` | `x != -6, 2` |  |  |  |  |
+| 1295 | 52 | Very hard | Polynomial plus fraction | `(x^{52} + 4x^{15}) - \frac{3}{x - 3}` | `\frac{x^{53} - 3x^{52} + 4x^{16} - 12x^{15} - 3}{x - 3}` | `x != 3` |  |  |  |  |
+| 1296 | 52 | Very hard | Already irreducible | `\frac{x^{52} + 4}{x^{52} + 1}` | `\frac{x^{52} + 4}{x^{52} + 1}` | `x^52 + 1 != 0` |  |  |  |  |
+| 1297 | 52 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{52} + x^{51} - 30x^{50} - 72x^{49} - 3x^{24} - 3x^{23} + 90x^{22} + 216x^{21}}{x - 6}}{x + 4}}{\frac{x + 3}{x}}` | `x^{50} - 3x^{22}` | `x != -4, -3, 0, 6` |  |  |  |  |
+| 1298 | 52 | Very hard | Linear factor cancellation | `\frac{-3x^{52} - 12x^{51} - 4x^{40} - 16x^{39} - 2x^{16} - 8x^{15}}{x + 4}` | `-3x^{51} - 4x^{39} - 2x^{15}` | `x != -4` |  |  |  |  |
+| 1299 | 52 | Very hard | Expand product | `(4x^{34} - 4x^{2})(2x^{18} - 3x^{15})` | `8x^{52} - 12x^{49} - 8x^{20} + 12x^{17}` | `none` |  |  |  |  |
+| 1300 | 52 | Very hard | Difference of powers | `\frac{x^{52} - 1}{x^{26} - 1}` | `x^{26} + 1` | `x != -1, 1` |  |  |  |  |
+| 1301 | 53 | Very hard | Reference-type rational | `\frac{4x^{53} - 20x^{52} - 5x^{40} + 25x^{39} - 2x^{37} + 10x^{36}}{x^{3} - 4x^{2} - 5x}` | `\frac{4x^{51} - 5x^{38} - 2x^{35}}{x + 1}` | `x != -1, 0, 5` |  |  |  |  |
+| 1302 | 53 | Very hard | Different denominators | `\frac{x^{53} - 6x^{52}}{x - 6} + \frac{x^{51} - 3x^{50}}{x - 3}` | `x^{52} + x^{50}` | `x != 3, 6` |  |  |  |  |
+| 1303 | 53 | Very hard | Expand product | `(3x^{31} - 5x^{18})(x^{22})` | `3x^{53} - 5x^{40}` | `none` |  |  |  |  |
+| 1304 | 53 | Very hard | Partial cancellation | `\frac{-x^{53} - x^{52} - 2x^{17} - 2x^{16} + x^{6} + x^{5}}{x^{2} + 8x + 7}` | `\frac{-x^{52} - 2x^{16} + x^{5}}{x + 7}` | `x != -7, -1` |  |  |  |  |
+| 1305 | 53 | Very hard | Difference of powers | `\frac{x^{53} - x}{x^{27} - x}` | `x^{26} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1306 | 53 | Very hard | Power of a power | `\frac{(x^{53})^{1}}{x^{15}}` | `x^{38}` | `x != 0` |  |  |  |  |
+| 1307 | 53 | Very hard | Monomial division | `\frac{2x^{53} - 2x^{34} + 4x^{21} - 2x^{16}}{x^{16}}` | `2x^{37} - 2x^{18} + 4x^{5} - 2` | `x != 0` |  |  |  |  |
+| 1308 | 53 | Very hard | Linear factor cancellation | `\frac{-2x^{53} + 4x^{52} - x^{36} + 2x^{35} - 4x^{5} + 8x^{4}}{x - 2}` | `-2x^{52} - x^{35} - 4x^{4}` | `x != 2` |  |  |  |  |
+| 1309 | 53 | Very hard | Collapsing identity | `(x^{27} - 3)(x^{26} + 3) - x^{53}` | `3x^{27} - 3x^{26} - 9` | `none` |  |  |  |  |
+| 1310 | 53 | Very hard | Multivariate monomials | `\frac{18 \cdot a^{19} \cdot b^{31} \cdot z^{3}}{3 \cdot a^{18} \cdot b^{27}}` | `6a b^{4} z^{3}` | `a != 0, b != 0` |  |  |  |  |
+| 1311 | 53 | Very hard | Negative exponents | `x^{-15} \cdot (x^{53} - 5x^{32})` | `x^{38} - 5x^{17}` | `x != 0` |  |  |  |  |
+| 1312 | 53 | Very hard | Triple nested fraction | `\frac{\frac{\frac{2x^{53} + 14x^{52} + 14x^{51} - 30x^{50} + x^{23} + 7x^{22} + 7x^{21} - 15x^{20}}{x - 1}}{x + 5}}{\frac{x + 3}{x - 2}}` | `2x^{51} - 4x^{50} + x^{21} - 2x^{20}` | `x != -5, -3, 1, 2` |  |  |  |  |
+| 1313 | 53 | Very hard | Constant factor | `\frac{-10x^{53}}{5}` | `-2x^{53}` | `none` |  |  |  |  |
+| 1314 | 53 | Very hard | Collect like terms | `-x^{50} + x^{2} - x^{53} - 3x^{50} + 2x^{53}` | `x^{53} - 4x^{50} + x^{2}` | `none` |  |  |  |  |
+| 1315 | 53 | Very hard | Nested fraction | `\frac{\frac{-2x^{53} + 6x^{52}}{x + 5}}{\frac{x - 3}{x + 5}}` | `-2x^{52}` | `x != -5, 3` |  |  |  |  |
+| 1316 | 53 | Very hard | Same denominator | `\frac{x^{53}}{x^{3} - 27} - \frac{-3x^{53} + 108x^{50} - 5x^{42} + 135x^{39} - 5x^{18} + 135x^{15}}{x^{3} - 27}` | `4x^{50} + 5x^{39} + 5x^{15}` | `x != 3` |  |  |  |  |
+| 1317 | 53 | Very hard | Sign flip | `\frac{-x^{53} + 5x^{48} - 3x^{31}}{x}` | `-x^{52} + 5x^{47} - 3x^{30}` | `x != 0` |  |  |  |  |
+| 1318 | 53 | Very hard | Already irreducible | `\frac{x^{53} - 5}{x^{53} - 1}` | `\frac{x^{53} - 5}{x^{53} - 1}` | `x != 1` |  |  |  |  |
+| 1319 | 53 | Very hard | Perfect square trinomial | `\frac{x^{53} - 2x^{27} + x}{x^{26} - 1}` | `x^{27} - x` | `x != -1, 1` |  |  |  |  |
+| 1320 | 53 | Very hard | Multivariate distribution | `a^{42} \cdot b^{9} \cdot (a^{2} - 3b^{2})` | `a^{44} b^{9} - 3a^{42} b^{11}` | `none` |  |  |  |  |
+| 1321 | 53 | Very hard | Distribute and collect | `-x^{22}(x^{31} - 2) - 5x^{22}` | `-x^{53} - 3x^{22}` | `none` |  |  |  |  |
+| 1322 | 53 | Very hard | Quadratic factor cancellation | `\frac{x^{53} + 4x^{52} - 12x^{51}}{x^{2} + 4x - 12}` | `x^{51}` | `x != -6, 2` |  |  |  |  |
+| 1323 | 53 | Very hard | Cancels to zero | `\frac{x^{53} + x^{29} - x^{28}}{x} - (x^{52} + x^{28} - x^{27})` | `0` | `x != 0` |  |  |  |  |
+| 1324 | 53 | Very hard | Polynomial plus fraction | `(-5x^{53} - 5x^{25}) - \frac{1}{x - 3}` | `\frac{-5x^{54} + 15x^{53} - 5x^{26} + 15x^{25} - 1}{x - 3}` | `x != 3` |  |  |  |  |
+| 1325 | 53 | Very hard | Reference-type rational | `\frac{x^{53} - 5x^{52} - x^{46} + 5x^{45} + 5x^{37} - 25x^{36}}{x^{3} - 12x^{2} + 35x}` | `\frac{x^{51} - x^{44} + 5x^{35}}{x - 7}` | `x != 0, 5, 7` |  |  |  |  |
+| 1326 | 54 | Very hard | Polynomial plus fraction | `-x^{54} + \frac{2}{x}` | `\frac{-x^{55} + 2}{x}` | `x != 0` |  |  |  |  |
+| 1327 | 54 | Very hard | Expand product | `(x^{18} + 4x^{5})(x^{36})` | `x^{54} + 4x^{41}` | `none` |  |  |  |  |
+| 1328 | 54 | Very hard | Triple nested fraction | `\frac{\frac{\frac{4x^{54} + 16x^{53} - 28x^{52} - 40x^{51} + x^{36} + 4x^{35} - 7x^{34} - 10x^{33}}{x + 1}}{x + 5}}{\frac{x - 2}{x + 7}}` | `4x^{52} + 28x^{51} + x^{34} + 7x^{33}` | `x != -7, -5, -1, 2` |  |  |  |  |
+| 1329 | 54 | Very hard | Collect like terms | `-x^{32} - x^{54} + x^{32} + 6x^{20} - 3x^{20} + 2x^{40}` | `-x^{54} + 2x^{40} + 3x^{20}` | `none` |  |  |  |  |
+| 1330 | 54 | Very hard | Partial cancellation | `\frac{x^{54} + x^{53} + 2x^{26} + 2x^{25}}{x^{2} + 4x + 3}` | `\frac{x^{53} + 2x^{25}}{x + 3}` | `x != -3, -1` |  |  |  |  |
+| 1331 | 54 | Very hard | Distribute and collect | `-4x^{45}(x^{9} + 2) - 3x^{45}` | `-4x^{54} - 11x^{45}` | `none` |  |  |  |  |
+| 1332 | 54 | Very hard | Power of a power | `\frac{(x^{9})^{6}}{x^{4}}` | `x^{50}` | `x != 0` |  |  |  |  |
+| 1333 | 54 | Very hard | Perfect square trinomial | `\frac{x^{54} - 2x^{27} + 1}{x^{27} - 1}` | `x^{27} - 1` | `x != 1` |  |  |  |  |
+| 1334 | 54 | Very hard | Negative exponents | `x^{-53} \cdot (-2x^{54} - 4x^{53})` | `-2x - 4` | `x != 0` |  |  |  |  |
+| 1335 | 54 | Very hard | Cancels to zero | `\frac{x^{54} + 3x^{53} - x^{10} - 3x^{9} - 4x^{7} - 12x^{6}}{x + 3} - (x^{53} - x^{9} - 4x^{6})` | `0` | `x != -3` |  |  |  |  |
+| 1336 | 54 | Very hard | Multivariate expansion | `(a^{27} + b^{27})(a^{27} - b^{27})` | `a^{54} - b^{54}` | `none` |  |  |  |  |
+| 1337 | 54 | Very hard | Nested fraction | `\frac{\frac{x^{54} + 5x^{53} + 3x^{44} + 15x^{43} - 4x^{18} - 20x^{17}}{x}}{\frac{x + 5}{x}}` | `x^{53} + 3x^{43} - 4x^{17}` | `x != -5, 0` |  |  |  |  |
+| 1338 | 54 | Very hard | Sign flip | `\frac{-x^{54} + 2x^{53}}{x - 2}` | `-x^{53}` | `x != 2` |  |  |  |  |
+| 1339 | 54 | Very hard | Same denominator | `\frac{x^{54} - 3x^{32}}{x - 2} + \frac{-2x^{53} - x^{45} + 2x^{44} + 3x^{32}}{x - 2}` | `x^{53} - x^{44}` | `x != 2` |  |  |  |  |
+| 1340 | 54 | Very hard | Different denominators | `\frac{x^{54} - 6x^{53}}{x - 6} + \frac{x^{53} - 4x^{52} - 4x^{37} + 16x^{36}}{x - 4}` | `x^{53} + x^{52} - 4x^{36}` | `x != 4, 6` |  |  |  |  |
+| 1341 | 54 | Very hard | Quadratic factor cancellation | `\frac{x^{54} + 4x^{53} - 12x^{52}}{(x + 6)(x - 2)}` | `x^{52}` | `x != -6, 2` |  |  |  |  |
+| 1342 | 54 | Very hard | Multivariate monomials | `\frac{-30 \cdot a^{39} \cdot b^{5} \cdot z^{10}}{6 \cdot a^{30} \cdot b^{3}}` | `-5a^{9} b^{2} z^{10}` | `a != 0, b != 0` |  |  |  |  |
+| 1343 | 54 | Very hard | Difference of powers | `\frac{x^{54} - 1}{x^{27} + 1}` | `x^{27} - 1` | `x != -1` |  |  |  |  |
+| 1344 | 54 | Very hard | Common power factor | `\frac{x^{54} - x^{24}}{x^{54} + x^{24}}` | `\frac{x^{30} - 1}{x^{30} + 1}` | `x != 0, x^30 + 1 != 0` |  |  |  |  |
+| 1345 | 54 | Very hard | Already irreducible | `\frac{x^{54} - 4}{x^{54} + 1}` | `\frac{x^{54} - 4}{x^{54} + 1}` | `x^54 + 1 != 0` |  |  |  |  |
+| 1346 | 54 | Very hard | Reference-type rational | `\frac{5x^{54} - 35x^{53} + 50x^{52} - 5x^{47} + 35x^{46} - 50x^{45}}{x^{3} - 4x^{2} - 11x + 30}` | `\frac{5x^{52} - 5x^{45}}{x + 3}` | `x != -3, 2, 5` |  |  |  |  |
+| 1347 | 54 | Very hard | Collapsing identity | `(x^{27} + 1)^{2} - (x^{27} - 1)^{2}` | `4x^{27}` | `none` |  |  |  |  |
+| 1348 | 54 | Very hard | Monomial division | `\frac{6x^{54} + 12x^{19}}{6x^{19}}` | `x^{35} + 2` | `x != 0` |  |  |  |  |
+| 1349 | 54 | Very hard | Linear factor cancellation | `\frac{x^{54} + 6x^{53} + 5x^{37} + 30x^{36} + 2x^{18} + 12x^{17}}{x + 6}` | `x^{53} + 5x^{36} + 2x^{17}` | `x != -6` |  |  |  |  |
+| 1350 | 54 | Very hard | Constant factor | `\frac{4x^{55} + 28x^{54} + 8x^{50} + 56x^{49} + 4x^{28} + 28x^{27}}{x + 7}` | `4x^{54} + 8x^{49} + 4x^{27}` | `x != -7` |  |  |  |  |
+| 1351 | 55 | Very hard | Polynomial plus fraction | `-4x^{55} - \frac{5}{x - 1}` | `\frac{-4x^{56} + 4x^{55} - 5}{x - 1}` | `x != 1` |  |  |  |  |
+| 1352 | 55 | Very hard | Linear factor cancellation | `\frac{x^{55} + 3x^{54} - 2x^{40} - 6x^{39} + 5x^{32} + 15x^{31}}{x + 3}` | `x^{54} - 2x^{39} + 5x^{31}` | `x != -3` |  |  |  |  |
+| 1353 | 55 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{55} + 11x^{54} + 31x^{53} + 21x^{52}}{x + 3}}{x + 1}}{\frac{x + 7}{x - 4}}` | `x^{53} - 4x^{52}` | `x != -7, -3, -1, 4` |  |  |  |  |
+| 1354 | 55 | Very hard | Sign flip | `\frac{-x^{55} + 3x^{54}}{x - 3}` | `-x^{54}` | `x != 3` |  |  |  |  |
+| 1355 | 55 | Very hard | Already irreducible | `\frac{x^{55} - 2}{x^{55} - 1}` | `\frac{x^{55} - 2}{x^{55} - 1}` | `x != 1` |  |  |  |  |
+| 1356 | 55 | Very hard | Difference of powers | `\frac{x^{55} - x}{x^{28} - x}` | `x^{27} + 1` | `x != 0, 1` |  |  |  |  |
+| 1357 | 55 | Very hard | Expand product | `(-5x^{45} + x^{10})(-x^{10})` | `5x^{55} - x^{20}` | `none` |  |  |  |  |
+| 1358 | 55 | Very hard | Perfect square trinomial | `\frac{x^{55} - 2x^{28} + x}{x^{27} - 1}` | `x^{28} - x` | `x != 1` |  |  |  |  |
+| 1359 | 55 | Very hard | Quadratic factor cancellation | `\frac{x^{55} - 2x^{54} - 3x^{2} + 6x}{(x)(x - 2)}` | `x^{53} - 3` | `x != 0, 2` |  |  |  |  |
+| 1360 | 55 | Very hard | Distribute and collect | `-2x^{40}(x^{15} - 5) + x^{40}` | `-2x^{55} + 11x^{40}` | `none` |  |  |  |  |
+| 1361 | 55 | Very hard | Power of a power | `\frac{(-x^{11})^{5}}{x^{10}}` | `-x^{45}` | `x != 0` |  |  |  |  |
+| 1362 | 55 | Very hard | Multivariate distribution | `a^{25} \cdot b^{22} \cdot (-2b^{8} + a^{2})` | `-2a^{25} b^{30} + a^{27} b^{22}` | `none` |  |  |  |  |
+| 1363 | 55 | Very hard | Cancels to zero | `\frac{x^{55} + 7x^{54}}{x + 7} - x^{54}` | `0` | `x != -7` |  |  |  |  |
+| 1364 | 55 | Very hard | Partial cancellation | `\frac{x^{55} + 4x^{54} - 5x^{51} - 20x^{50} - 3x^{22} - 12x^{21}}{x^{2} + 6x + 8}` | `\frac{x^{54} - 5x^{50} - 3x^{21}}{x + 2}` | `x != -4, -2` |  |  |  |  |
+| 1365 | 55 | Very hard | Common power factor | `\frac{x^{55} + 3x^{49}}{x^{55} + x^{49}}` | `\frac{x^{6} + 3}{x^{6} + 1}` | `x != 0, x^6 + 1 != 0` |  |  |  |  |
+| 1366 | 55 | Very hard | Nested fraction | `\frac{\frac{x^{55} - 3x^{54} - x^{21} + 3x^{20}}{x + 3}}{\frac{x - 3}{x + 3}}` | `x^{54} - x^{20}` | `x != -3, 3` |  |  |  |  |
+| 1367 | 55 | Very hard | Different denominators | `\frac{-x^{55} + 3x^{54} + 5x^{47} - 15x^{46}}{x - 3} + \frac{-x^{55} - 4x^{54}}{x + 4}` | `-2x^{54} + 5x^{46}` | `x != -4, 3` |  |  |  |  |
+| 1368 | 55 | Very hard | Same denominator | `\frac{x^{55} + 3x^{53}}{x + 1} + \frac{-5x^{55} - 4x^{54} - 3x^{53}}{x + 1}` | `-4x^{54}` | `x != -1` |  |  |  |  |
+| 1369 | 55 | Very hard | Monomial division | `\frac{6x^{55} + 2x^{13}}{2x^{13}}` | `3x^{42} + 1` | `x != 0` |  |  |  |  |
+| 1370 | 55 | Very hard | Reference-type rational | `\frac{x^{55} + x^{54} - 12x^{53} + 5x^{49} + 5x^{48} - 60x^{47}}{x^{3} - 6x^{2} - 19x + 84}` | `\frac{x^{53} + 5x^{47}}{x - 7}` | `x != -4, 3, 7` |  |  |  |  |
+| 1371 | 55 | Very hard | Constant factor | `\frac{6x^{55} - 24x^{51}}{6}` | `x^{55} - 4x^{51}` | `none` |  |  |  |  |
+| 1372 | 55 | Very hard | Collapsing identity | `(x^{28} - 2)(x^{27} + 2) - x^{55}` | `2x^{28} - 2x^{27} - 4` | `none` |  |  |  |  |
+| 1373 | 55 | Very hard | Multivariate monomials | `\frac{2 \cdot a^{18} \cdot b^{30} \cdot z^{7}}{a^{4} \cdot b^{25}}` | `2a^{14} b^{5} z^{7}` | `a != 0, b != 0` |  |  |  |  |
+| 1374 | 55 | Very hard | Negative exponents | `x^{-1} \cdot (x^{55} + 5x^{2})` | `x^{54} + 5x` | `x != 0` |  |  |  |  |
+| 1375 | 55 | Very hard | Collect like terms | `-6x^{19} - 2x^{55} + 2x^{19} + 3x^{55}` | `x^{55} - 4x^{19}` | `none` |  |  |  |  |
+| 1376 | 56 | Very hard | Nested fraction | `\frac{\frac{x^{56} + x^{55} + x^{31} + x^{30} - x^{20} - x^{19}}{x - 4}}{\frac{x + 1}{x - 4}}` | `x^{55} + x^{30} - x^{19}` | `x != -1, 4` |  |  |  |  |
+| 1377 | 56 | Very hard | Expand product | `(x^{43} + x^{9})(-2x^{13} - 4x^{2})` | `-2x^{56} - 4x^{45} - 2x^{22} - 4x^{11}` | `none` |  |  |  |  |
+| 1378 | 56 | Very hard | Multivariate monomials | `\frac{-24 \cdot a^{49} \cdot b^{4} \cdot z^{3}}{4 \cdot a^{31} \cdot b}` | `-6a^{18} b^{3} z^{3}` | `a != 0, b != 0` |  |  |  |  |
+| 1379 | 56 | Very hard | Constant factor | `\frac{4x^{56} - 8x}{4}` | `x^{56} - 2x` | `none` |  |  |  |  |
+| 1380 | 56 | Very hard | Perfect square trinomial | `\frac{x^{56} + 2x^{28} + 1}{x^{28} + 1}` | `x^{28} + 1` | `x^28 + 1 != 0` |  |  |  |  |
+| 1381 | 56 | Very hard | Cancels to zero | `\frac{x^{56} + 4x^{55} - 3x^{28} - 12x^{27} + 5x^{14} + 20x^{13}}{x + 4} - (x^{55} - 3x^{27} + 5x^{13})` | `0` | `x != -4` |  |  |  |  |
+| 1382 | 56 | Very hard | Power of a power | `\frac{(2x^{28})^{2}}{x^{22}}` | `4x^{34}` | `x != 0` |  |  |  |  |
+| 1383 | 56 | Very hard | Collapsing identity | `(x^{28} - 5)^{2} - (x^{28} + 5)^{2}` | `-20x^{28}` | `none` |  |  |  |  |
+| 1384 | 56 | Very hard | Different denominators | `\frac{x^{56} - 5x^{27}}{x} + \frac{x^{56} - x^{55} - 3x^{40} + 3x^{39}}{x - 1}` | `2x^{55} - 3x^{39} - 5x^{26}` | `x != 0, 1` |  |  |  |  |
+| 1385 | 56 | Very hard | Distribute and collect | `-2x^{26}(x^{30} + 3) + x^{26}` | `-2x^{56} - 5x^{26}` | `none` |  |  |  |  |
+| 1386 | 56 | Very hard | Polynomial plus fraction | `(-x^{56} - 3x^{44}) + \frac{3}{x - 1}` | `\frac{-x^{57} + x^{56} - 3x^{45} + 3x^{44} + 3}{x - 1}` | `x != 1` |  |  |  |  |
+| 1387 | 56 | Very hard | Common power factor | `\frac{x^{56} - 2x}{x^{56} - x}` | `\frac{x^{55} - 2}{x^{55} - 1}` | `x != 0, 1` |  |  |  |  |
+| 1388 | 56 | Very hard | Negative exponents | `x^{-50} \cdot (-3x^{56})` | `-3x^{6}` | `x != 0` |  |  |  |  |
+| 1389 | 56 | Very hard | Same denominator | `\frac{-4x^{56} + 2x^{54} + 2x^{12}}{x - 4} + \frac{-x^{56} + 20x^{55} - 2x^{54} - x^{16} + 4x^{15} + 5x^{14} - 20x^{13} - 2x^{12}}{x - 4}` | `-5x^{55} - x^{15} + 5x^{13}` | `x != 4` |  |  |  |  |
+| 1390 | 56 | Very hard | Difference of squares chain | `\frac{x^{56} - 1}{x^{28} - 1}` | `x^{28} + 1` | `x != -1, 1` |  |  |  |  |
+| 1391 | 56 | Very hard | Difference of powers | `\frac{x^{56} - 1}{x^{28} + 1}` | `x^{28} - 1` | `x^28 + 1 != 0` |  |  |  |  |
+| 1392 | 56 | Very hard | Partial cancellation | `\frac{x^{56} + 3x^{55}}{x^{2} + 10x + 21}` | `\frac{x^{55}}{x + 7}` | `x != -7, -3` |  |  |  |  |
+| 1393 | 56 | Very hard | Quadratic factor cancellation | `\frac{x^{56} - x^{55} - 6x^{54} + 2x^{20} - 2x^{19} - 12x^{18} - 4x^{16} + 4x^{15} + 24x^{14}}{x^{2} - x - 6}` | `x^{54} + 2x^{18} - 4x^{14}` | `x != -2, 3` |  |  |  |  |
+| 1394 | 56 | Very hard | Monomial division | `\frac{3x^{56} + 3x^{41} + 6x^{39} - 12x^{24}}{3x^{24}}` | `x^{32} + x^{17} + 2x^{15} - 4` | `x != 0` |  |  |  |  |
+| 1395 | 56 | Very hard | Reference-type rational | `\frac{x^{56} + 9x^{55} + 14x^{54}}{x^{3} + 10x^{2} + 23x + 14}` | `\frac{x^{54}}{x + 1}` | `x != -7, -2, -1` |  |  |  |  |
+| 1396 | 56 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{56} + 2x^{55} - 21x^{54} + 18x^{53}}{x - 1}}{x - 3}}{\frac{x + 6}{x + 3}}` | `x^{54} + 3x^{53}` | `x != -6, -3, 1, 3` |  |  |  |  |
+| 1397 | 56 | Very hard | Multivariate expansion | `(a^{28} + b^{28})(a^{28} - b^{28})` | `a^{56} - b^{56}` | `none` |  |  |  |  |
+| 1398 | 56 | Very hard | Linear factor cancellation | `\frac{-2x^{56} + 2x^{55}}{x - 1}` | `-2x^{55}` | `x != 1` |  |  |  |  |
+| 1399 | 56 | Very hard | Sign flip | `\frac{-2x^{56} - 8x^{55}}{x + 4}` | `-2x^{55}` | `x != -4` |  |  |  |  |
+| 1400 | 56 | Very hard | Collect like terms | `-x^{56} + x^{10} - 4x^{10} - 2x^{56} + x^{56} - x^{56} + x^{20}` | `-3x^{56} + x^{20} - 3x^{10}` | `none` |  |  |  |  |
+| 1401 | 57 | Very hard | Already irreducible | `\frac{x^{57} - 3}{x^{57}}` | `\frac{x^{57} - 3}{x^{57}}` | `x != 0` |  |  |  |  |
+| 1402 | 57 | Very hard | Multivariate monomials | `\frac{12 \cdot a^{41} \cdot b^{4} \cdot z^{12}}{2a^{13}}` | `6a^{28} b^{4} z^{12}` | `a != 0` |  |  |  |  |
+| 1403 | 57 | Very hard | Distribute and collect | `-3x^{7}(x^{50} - 4) - 2x^{7}` | `-3x^{57} + 10x^{7}` | `none` |  |  |  |  |
+| 1404 | 57 | Very hard | Constant factor | `\frac{10x^{58} - 40x^{57} + 40x^{42} - 160x^{41} - 40x^{23} + 160x^{22}}{2x - 8}` | `5x^{57} + 20x^{41} - 20x^{22}` | `x != 4` |  |  |  |  |
+| 1405 | 57 | Very hard | Collapsing identity | `(x^{29} - 2)(x^{28} + 2) - x^{57}` | `2x^{29} - 2x^{28} - 4` | `none` |  |  |  |  |
+| 1406 | 57 | Very hard | Nested fraction | `\frac{\frac{x^{57} - 5x^{56} - 2x^{16} + 10x^{15}}{x + 3}}{\frac{x - 5}{x + 3}}` | `x^{56} - 2x^{15}` | `x != -3, 5` |  |  |  |  |
+| 1407 | 57 | Very hard | Monomial division | `\frac{4x^{57} + 16x^{55} - 20x^{51} - 8x^{48}}{4x^{48}}` | `x^{9} + 4x^{7} - 5x^{3} - 2` | `x != 0` |  |  |  |  |
+| 1408 | 57 | Very hard | Quadratic factor cancellation | `\frac{-2x^{57} - 2x^{56} + 60x^{55} - 2x^{33} - 2x^{32} + 57x^{31} - 3x^{30} + 90x^{29}}{(x - 5)(x + 6)}` | `-2x^{55} - 2x^{31} - 3x^{29}` | `x != -6, 5` |  |  |  |  |
+| 1409 | 57 | Very hard | Collect like terms | `-3x^{47} + x^{57} + 7x^{47}` | `x^{57} + 4x^{47}` | `none` |  |  |  |  |
+| 1410 | 57 | Very hard | Common power factor | `\frac{x^{57} - 2x^{49}}{x^{57} + x^{49}}` | `\frac{x^{8} - 2}{x^{8} + 1}` | `x != 0, x^8 + 1 != 0` |  |  |  |  |
+| 1411 | 57 | Very hard | Expand product | `(-3x^{52})(x^{5})` | `-3x^{57}` | `none` |  |  |  |  |
+| 1412 | 57 | Very hard | Difference of powers | `\frac{x^{57} - x}{x^{29} - x}` | `x^{28} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1413 | 57 | Very hard | Different denominators | `\frac{5x^{57} - 15x^{56}}{x - 3} + \frac{-2x^{55} - 10x^{54} - 5x^{9} - 25x^{8}}{x + 5}` | `5x^{56} - 2x^{54} - 5x^{8}` | `x != -5, 3` |  |  |  |  |
+| 1414 | 57 | Very hard | Perfect square trinomial | `\frac{x^{57} - 2x^{29} + x}{x^{28} - 1}` | `x^{29} - x` | `x != -1, 1` |  |  |  |  |
+| 1415 | 57 | Very hard | Cancels to zero | `\frac{x^{57} + 5x^{56}}{x + 5} - x^{56}` | `0` | `x != -5` |  |  |  |  |
+| 1416 | 57 | Very hard | Power of a power | `\frac{(x^{57})^{1}}{x^{22}}` | `x^{35}` | `x != 0` |  |  |  |  |
+| 1417 | 57 | Very hard | Partial cancellation | `\frac{-3x^{57} + 9x^{56} + 4x^{41} - 12x^{40} + 4x^{28} - 12x^{27}}{x^{2} + x - 12}` | `\frac{-3x^{56} + 4x^{40} + 4x^{27}}{x + 4}` | `x != -4, 3` |  |  |  |  |
+| 1418 | 57 | Very hard | Multivariate distribution | `a^{30} \cdot b^{21} \cdot (4b^{6} + a)` | `4a^{30} b^{27} + a^{31} b^{21}` | `none` |  |  |  |  |
+| 1419 | 57 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{57} - 6x^{56} - 16x^{55} + 96x^{54}}{x - 6}}{x - 4}}{\frac{x + 4}{x - 2}}` | `x^{55} - 2x^{54}` | `x != -4, 2, 4, 6` |  |  |  |  |
+| 1420 | 57 | Very hard | Same denominator | `\frac{3x^{57} + 2x^{27}}{x - 7} + \frac{-2x^{57} - 7x^{56} - 3x^{42} + 19x^{41} + 14x^{40} - 2x^{27}}{x - 7}` | `x^{56} - 3x^{41} - 2x^{40}` | `x != 7` |  |  |  |  |
+| 1421 | 57 | Very hard | Negative exponents | `x^{-23} \cdot (-2x^{57})` | `-2x^{34}` | `x != 0` |  |  |  |  |
+| 1422 | 57 | Very hard | Linear factor cancellation | `\frac{4x^{57} + 4x^{56} + 2x^{31} + 2x^{30}}{x + 1}` | `4x^{56} + 2x^{30}` | `x != -1` |  |  |  |  |
+| 1423 | 57 | Very hard | Polynomial plus fraction | `-x^{57} - \frac{3}{x - 1}` | `\frac{-x^{58} + x^{57} - 3}{x - 1}` | `x != 1` |  |  |  |  |
+| 1424 | 57 | Very hard | Sign flip | `\frac{-3x^{57} - 12x^{56} + 5x^{53} + 20x^{52} - 4x^{47} - 16x^{46}}{x + 4}` | `-3x^{56} + 5x^{52} - 4x^{46}` | `x != -4` |  |  |  |  |
+| 1425 | 57 | Very hard | Reference-type rational | `\frac{-x^{57} - 5x^{56} - 4x^{55}}{x^{3} + 12x^{2} + 39x + 28}` | `\frac{-x^{55}}{x + 7}` | `x != -7, -4, -1` |  |  |  |  |
+| 1426 | 58 | Very hard | Nested fraction | `\frac{\frac{-4x^{58} - 4x^{57} - 4x^{22} - 4x^{21}}{x - 1}}{\frac{x + 1}{x - 1}}` | `-4x^{57} - 4x^{21}` | `x != -1, 1` |  |  |  |  |
+| 1427 | 58 | Very hard | Linear factor cancellation | `\frac{-2x^{58} - 8x^{57} - x^{47} - 4x^{46}}{x + 4}` | `-2x^{57} - x^{46}` | `x != -4` |  |  |  |  |
+| 1428 | 58 | Very hard | Perfect square trinomial | `\frac{x^{58} + 2x^{29} + 1}{x^{29} + 1}` | `x^{29} + 1` | `x != -1` |  |  |  |  |
+| 1429 | 58 | Very hard | Quadratic factor cancellation | `\frac{-x^{58} + 2x^{57} + 35x^{56} - 5x^{55} + 10x^{54} + 175x^{53} + 4x^{31} - 8x^{30} - 140x^{29}}{x^{2} - 2x - 35}` | `-x^{56} - 5x^{53} + 4x^{29}` | `x != -5, 7` |  |  |  |  |
+| 1430 | 58 | Very hard | Monomial division | `\frac{3x^{58} + 15x^{57} - 15x^{54}}{3x^{54}}` | `x^{4} + 5x^{3} - 5` | `x != 0` |  |  |  |  |
+| 1431 | 58 | Very hard | Distribute and collect | `4x^{14}(x^{44} + 3) + x^{14}` | `4x^{58} + 13x^{14}` | `none` |  |  |  |  |
+| 1432 | 58 | Very hard | Collect like terms | `-5x^{4} - 3x^{58} + 11x^{57} + 4x^{58} + 5x^{7} - 6x^{53} + 5x^{53} - 6x^{57} + x^{4} - x^{7}` | `x^{58} + 5x^{57} - x^{53} + 4x^{7} - 4x^{4}` | `none` |  |  |  |  |
+| 1433 | 58 | Very hard | Expand product | `(x^{18})(x^{40} + 2x^{20})` | `x^{58} + 2x^{38}` | `none` |  |  |  |  |
+| 1434 | 58 | Very hard | Same denominator | `\frac{x^{58}}{x - 2} - \frac{-3x^{58} + 8x^{57}}{x - 2}` | `4x^{57}` | `x != 2` |  |  |  |  |
+| 1435 | 58 | Very hard | Multivariate monomials | `\frac{-20 \cdot a^{20} \cdot b^{8} \cdot z^{30}}{4 \cdot a^{7} \cdot b^{5}}` | `-5a^{13} b^{3} z^{30}` | `a != 0, b != 0` |  |  |  |  |
+| 1436 | 58 | Very hard | Collapsing identity | `(x^{29} - 2)^{2} - (x^{29} + 2)^{2}` | `-8x^{29}` | `none` |  |  |  |  |
+| 1437 | 58 | Very hard | Already irreducible | `\frac{x^{58} + 3}{x^{58}}` | `\frac{x^{58} + 3}{x^{58}}` | `x != 0` |  |  |  |  |
+| 1438 | 58 | Very hard | Negative exponents | `x^{-46} \cdot (-4x^{58} - 5x^{53})` | `-4x^{12} - 5x^{7}` | `x != 0` |  |  |  |  |
+| 1439 | 58 | Very hard | Cancels to zero | `\frac{3x^{58} + 21x^{57} + x^{22} + 7x^{21}}{x + 7} - (3x^{57} + x^{21})` | `0` | `x != -7` |  |  |  |  |
+| 1440 | 58 | Very hard | Triple nested fraction | `\frac{\frac{\frac{3x^{58} - 15x^{57} - 66x^{56} + 168x^{55}}{x + 4}}{x - 7}}{\frac{x - 2}{x + 6}}` | `3x^{56} + 18x^{55}` | `x != -6, -4, 2, 7` |  |  |  |  |
+| 1441 | 58 | Very hard | Partial cancellation | `\frac{5x^{58} - 35x^{57} + 2x^{26} - 14x^{25}}{x^{2} - 10x + 21}` | `\frac{5x^{57} + 2x^{25}}{x - 3}` | `x != 3, 7` |  |  |  |  |
+| 1442 | 58 | Very hard | Constant factor | `\frac{-90x^{59} - 630x^{58}}{3x + 21}` | `-30x^{58}` | `x != -7` |  |  |  |  |
+| 1443 | 58 | Very hard | Difference of powers | `\frac{x^{58} - 1}{x^{29} - 1}` | `x^{29} + 1` | `x != 1` |  |  |  |  |
+| 1444 | 58 | Very hard | Different denominators | `\frac{x^{58} - 7x^{57} + 5x^{44} - 35x^{43}}{x - 7} + \frac{x^{56} + x^{55} - 5x^{33} - 5x^{32}}{x + 1}` | `x^{57} + x^{55} + 5x^{43} - 5x^{32}` | `x != -1, 7` |  |  |  |  |
+| 1445 | 58 | Very hard | Common power factor | `\frac{x^{58} + 3x^{9}}{x^{58} + x^{9}}` | `\frac{x^{49} + 3}{x^{49} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1446 | 58 | Very hard | Multivariate distribution | `a^{37} \cdot b^{8} \cdot (-b^{13} + a^{5})` | `-a^{37} b^{21} + a^{42} b^{8}` | `none` |  |  |  |  |
+| 1447 | 58 | Very hard | Polynomial plus fraction | `x^{58} + \frac{3}{x - 5}` | `\frac{x^{59} - 5x^{58} + 3}{x - 5}` | `x != 5` |  |  |  |  |
+| 1448 | 58 | Very hard | Power of a power | `\frac{(-x^{29})^{2}}{x^{14}}` | `x^{44}` | `x != 0` |  |  |  |  |
+| 1449 | 58 | Very hard | Sign flip | `\frac{-3x^{58} - 18x^{57}}{x + 6}` | `-3x^{57}` | `x != -6` |  |  |  |  |
+| 1450 | 58 | Very hard | Nested fraction | `\frac{\frac{-4x^{58} + 4x^{57}}{x + 1}}{\frac{x - 1}{x + 1}}` | `-4x^{57}` | `x != -1, 1` |  |  |  |  |
+| 1451 | 59 | Very hard | Distribute and collect | `-2x^{32}(x^{27} + 5) - 2x^{32}` | `-2x^{59} - 12x^{32}` | `none` |  |  |  |  |
+| 1452 | 59 | Very hard | Difference of powers | `\frac{x^{59} - x}{x^{30} - x}` | `x^{29} + 1` | `x != 0, 1` |  |  |  |  |
+| 1453 | 59 | Very hard | Monomial division | `\frac{20x^{59} - 25x^{54} + 20x^{47} + 25x^{45}}{5x^{45}}` | `4x^{14} - 5x^{9} + 4x^{2} + 5` | `x != 0` |  |  |  |  |
+| 1454 | 59 | Very hard | Sign flip | `\frac{-x^{59} + 4x^{58}}{x}` | `-x^{58} + 4x^{57}` | `x != 0` |  |  |  |  |
+| 1455 | 59 | Very hard | Multivariate monomials | `\frac{8 \cdot a^{6} \cdot b^{30} \cdot z^{23}}{4 \cdot a^{5} \cdot b^{8}}` | `2a b^{22} z^{23}` | `a != 0, b != 0` |  |  |  |  |
+| 1456 | 59 | Very hard | Collapsing identity | `(x^{30} + 1)(x^{29} - 1) - x^{59}` | `-x^{30} + x^{29} - 1` | `none` |  |  |  |  |
+| 1457 | 59 | Very hard | Same denominator | `\frac{-4x^{59}}{x^{4} + 16} + \frac{5x^{59} + 3x^{56} + 16x^{55} + 48x^{52}}{x^{4} + 16}` | `x^{55} + 3x^{52}` | `x^4 + 16 != 0` |  |  |  |  |
+| 1458 | 59 | Very hard | Partial cancellation | `\frac{x^{59} - 5x^{58} + 2x^{50} - 10x^{49} - 5x^{6} + 25x^{5}}{x^{2} - x - 20}` | `\frac{x^{58} + 2x^{49} - 5x^{5}}{x + 4}` | `x != -4, 5` |  |  |  |  |
+| 1459 | 59 | Very hard | Reference-type rational | `\frac{x^{59} - 4x^{58} - 5x^{57} - 2x^{46} + 8x^{45} + 10x^{44} - 3x^{11} + 12x^{10} + 15x^{9}}{x^{3} - 21x - 20}` | `\frac{x^{57} - 2x^{44} - 3x^{9}}{x + 4}` | `x != -4, -1, 5` |  |  |  |  |
+| 1460 | 59 | Very hard | Multivariate distribution | `a^{22} \cdot b^{14} \cdot (3b^{23} + a^{19})` | `3a^{22} b^{37} + a^{41} b^{14}` | `none` |  |  |  |  |
+| 1461 | 59 | Very hard | Quadratic factor cancellation | `\frac{x^{59} - x^{58} - 40x^{57} + 112x^{56} + 5x^{23} + 15x^{22} - 140x^{21}}{x^{2} + 3x - 28}` | `x^{57} - 4x^{56} + 5x^{21}` | `x != -7, 4` |  |  |  |  |
+| 1462 | 59 | Very hard | Linear factor cancellation | `\frac{x^{59} + 2x^{58}}{x + 2}` | `x^{58}` | `x != -2` |  |  |  |  |
+| 1463 | 59 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-3x^{59} - 15x^{58} + 57x^{57} + 231x^{56} - 54x^{55} - 216x^{54}}{x - 4}}{x + 3}}{\frac{x + 6}{x + 7}}` | `-3x^{57} - 21x^{56} + 3x^{55} + 21x^{54}` | `x != -7, -6, -3, 4` |  |  |  |  |
+| 1464 | 59 | Very hard | Collect like terms | `x^{59} - 3x^{24} + 5x^{24}` | `x^{59} + 2x^{24}` | `none` |  |  |  |  |
+| 1465 | 59 | Very hard | Expand product | `(x^{12})(-5x^{47} + x^{30})` | `-5x^{59} + x^{42}` | `none` |  |  |  |  |
+| 1466 | 59 | Very hard | Different denominators | `\frac{5x^{59} - 25x^{58}}{x - 5} + \frac{x^{58} + 5x^{57}}{x + 5}` | `5x^{58} + x^{57}` | `x != -5, 5` |  |  |  |  |
+| 1467 | 59 | Very hard | Polynomial plus fraction | `4x^{59} + \frac{2}{x + 4}` | `\frac{4x^{60} + 16x^{59} + 2}{x + 4}` | `x != -4` |  |  |  |  |
+| 1468 | 59 | Very hard | Common power factor | `\frac{x^{59} - 2x^{7}}{x^{59} - x^{7}}` | `\frac{x^{52} - 2}{x^{52} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1469 | 59 | Very hard | Cancels to zero | `\frac{x^{59} - 5x^{58} + x^{18} - 5x^{17}}{x - 5} - (x^{58} + x^{17})` | `0` | `x != 5` |  |  |  |  |
+| 1470 | 59 | Very hard | Constant factor | `\frac{6x^{59} - 18x^{42}}{6}` | `x^{59} - 3x^{42}` | `none` |  |  |  |  |
+| 1471 | 59 | Very hard | Power of a power | `\frac{(2x^{59})^{1}}{x^{4}}` | `2x^{55}` | `x != 0` |  |  |  |  |
+| 1472 | 59 | Very hard | Nested fraction | `\frac{\frac{x^{59} - 4x^{58} + x^{15} - 4x^{14}}{x - 1}}{\frac{x - 4}{x - 1}}` | `x^{58} + x^{14}` | `x != 1, 4` |  |  |  |  |
+| 1473 | 59 | Very hard | Negative exponents | `x^{-16} \cdot (x^{59})` | `x^{43}` | `x != 0` |  |  |  |  |
+| 1474 | 59 | Very hard | Already irreducible | `\frac{x^{59} - 3}{x^{59} - 1}` | `\frac{x^{59} - 3}{x^{59} - 1}` | `x != 1` |  |  |  |  |
+| 1475 | 59 | Very hard | Perfect square trinomial | `\frac{x^{59} + 2x^{30} + x}{x^{29} + 1}` | `x^{30} + x` | `x != -1` |  |  |  |  |
+| 1476 | 60 | Very hard | Already irreducible | `\frac{x^{60} + 5}{x^{60} + 1}` | `\frac{x^{60} + 5}{x^{60} + 1}` | `x^60 + 1 != 0` |  |  |  |  |
+| 1477 | 60 | Very hard | Same denominator | `\frac{x^{60} - 3x^{53}}{x} - \frac{4x^{60} - 3x^{53}}{x}` | `-3x^{59}` | `x != 0` |  |  |  |  |
+| 1478 | 60 | Very hard | Multivariate monomials | `\frac{4 \cdot a^{52} \cdot b^{3} \cdot z^{5}}{2a^{27}}` | `2a^{25} b^{3} z^{5}` | `a != 0` |  |  |  |  |
+| 1479 | 60 | Very hard | Polynomial plus fraction | `x^{60} - \frac{3}{x + 3}` | `\frac{x^{61} + 3x^{60} - 3}{x + 3}` | `x != -3` |  |  |  |  |
+| 1480 | 60 | Very hard | Different denominators | `\frac{x^{60} - 7x^{59}}{x - 7} + \frac{-4x^{58} + 16x^{57} - x^{44} + 4x^{43}}{x - 4}` | `x^{59} - 4x^{57} - x^{43}` | `x != 4, 7` |  |  |  |  |
+| 1481 | 60 | Very hard | Monomial division | `\frac{12x^{60} + 9x^{53}}{3x^{53}}` | `4x^{7} + 3` | `x != 0` |  |  |  |  |
+| 1482 | 60 | Very hard | Partial cancellation | `\frac{-2x^{60} + 12x^{59} - 4x^{16} + 24x^{15}}{x^{2} - 8x + 12}` | `\frac{-2x^{59} - 4x^{15}}{x - 2}` | `x != 2, 6` |  |  |  |  |
+| 1483 | 60 | Very hard | Power of a power | `\frac{(-x^{30})^{2}}{x}` | `x^{59}` | `x != 0` |  |  |  |  |
+| 1484 | 60 | Very hard | Collapsing identity | `(x^{30} + 2)^{2} - (x^{30} - 2)^{2}` | `8x^{30}` | `none` |  |  |  |  |
+| 1485 | 60 | Very hard | Collect like terms | `-6x^{7} + 7x^{60} + 2x^{7} - 6x^{60} - 4x^{45} + 3x^{45} + x^{34}` | `x^{60} - x^{45} + x^{34} - 4x^{7}` | `none` |  |  |  |  |
+| 1486 | 60 | Very hard | Constant factor | `\frac{-18x^{61} + 72x^{60}}{3x - 12}` | `-6x^{60}` | `x != 4` |  |  |  |  |
+| 1487 | 60 | Very hard | Negative exponents | `x^{-57} \cdot (x^{60} + 3x^{57})` | `x^{3} + 3` | `x != 0` |  |  |  |  |
+| 1488 | 60 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-5x^{60} - 5x^{59} + 185x^{58} - 175x^{57}}{x - 5}}{x - 1}}{\frac{x + 7}{x - 6}}` | `-5x^{58} + 30x^{57}` | `x != -7, 1, 5, 6` |  |  |  |  |
+| 1489 | 60 | Very hard | Linear factor cancellation | `\frac{-5x^{60} + 5x^{59} - 4x^{25} + 4x^{24} + 3x - 3}{x - 1}` | `-5x^{59} - 4x^{24} + 3` | `x != 1` |  |  |  |  |
+| 1490 | 60 | Very hard | Difference of squares chain | `\frac{x^{60} - 1}{x^{30} - 1}` | `x^{30} + 1` | `x != -1, 1` |  |  |  |  |
+| 1491 | 60 | Very hard | Distribute and collect | `x^{43}(x^{17} + 3) + 3x^{43}` | `x^{60} + 6x^{43}` | `none` |  |  |  |  |
+| 1492 | 60 | Very hard | Perfect square trinomial | `\frac{x^{60} - 2x^{30} + 1}{x^{30} - 1}` | `x^{30} - 1` | `x != -1, 1` |  |  |  |  |
+| 1493 | 60 | Very hard | Reference-type rational | `\frac{-3x^{60} - 24x^{59} - 36x^{58}}{x^{3} + 5x^{2} - 12x - 36}` | `\frac{-3x^{58}}{x - 3}` | `x != -6, -2, 3` |  |  |  |  |
+| 1494 | 60 | Very hard | Difference of powers | `\frac{x^{60} - 1}{x^{30} + 1}` | `x^{30} - 1` | `x^30 + 1 != 0` |  |  |  |  |
+| 1495 | 60 | Very hard | Common power factor | `\frac{x^{60} - 4x^{7}}{x^{60} - x^{7}}` | `\frac{x^{53} - 4}{x^{53} - 1}` | `x != 0, 1` |  |  |  |  |
+| 1496 | 60 | Very hard | Multivariate expansion | `(a^{30} + b^{30})(a^{30} - b^{30})` | `a^{60} - b^{60}` | `none` |  |  |  |  |
+| 1497 | 60 | Very hard | Nested fraction | `\frac{\frac{-2x^{60} + 2x^{59} + 4x^{22} - 4x^{21}}{x - 6}}{\frac{x - 1}{x - 6}}` | `-2x^{59} + 4x^{21}` | `x != 1, 6` |  |  |  |  |
+| 1498 | 60 | Very hard | Cancels to zero | `\frac{x^{60} + 5x^{58} - 5x^{41}}{x} - (x^{59} + 5x^{57} - 5x^{40})` | `0` | `x != 0` |  |  |  |  |
+| 1499 | 60 | Very hard | Sign flip | `\frac{4x^{60} + 24x^{59} + 2x^{53} + 12x^{52} - 4x^{26} - 24x^{25}}{x + 6}` | `4x^{59} + 2x^{52} - 4x^{25}` | `x != -6` |  |  |  |  |
+| 1500 | 60 | Very hard | Expand product | `(-4x^{42} - 2x^{27})(x^{18} - 3x^{9})` | `-4x^{60} + 12x^{51} - 2x^{45} + 6x^{36}` | `none` |  |  |  |  |
+| 1501 | 61 | Very hard | Cancels to zero | `\frac{2x^{61} + 10x^{60}}{x + 5} - 2x^{60}` | `0` | `x != -5` |  |  |  |  |
+| 1502 | 61 | Very hard | Monomial division | `\frac{2x^{61} - 8x^{57} + 4x^{18}}{2x^{18}}` | `x^{43} - 4x^{39} + 2` | `x != 0` |  |  |  |  |
+| 1503 | 61 | Very hard | Nested fraction | `\frac{\frac{5x^{61} + 20x^{60} - 2x^{56} - 8x^{55} - 4x^{19} - 16x^{18}}{x - 4}}{\frac{x + 4}{x - 4}}` | `5x^{60} - 2x^{55} - 4x^{18}` | `x != -4, 4` |  |  |  |  |
+| 1504 | 61 | Very hard | Distribute and collect | `x^{5}(x^{56} + 5) + 2x^{5}` | `x^{61} + 7x^{5}` | `none` |  |  |  |  |
+| 1505 | 61 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{61} - 4x^{60} - x^{59} + 4x^{58}}{x - 1}}{x - 4}}{\frac{x + 1}{x + 2}}` | `x^{59} + 2x^{58}` | `x != -2, -1, 1, 4` |  |  |  |  |
+| 1506 | 61 | Very hard | Power of a power | `(2x^{61})^{1} \cdot x^{-21}` | `2x^{40}` | `x != 0` |  |  |  |  |
+| 1507 | 61 | Very hard | Already irreducible | `\frac{x^{61} - 2}{x^{61} + 1}` | `\frac{x^{61} - 2}{x^{61} + 1}` | `x != -1` |  |  |  |  |
+| 1508 | 61 | Very hard | Quadratic factor cancellation | `\frac{x^{61} - 5x^{60} - 14x^{59}}{(x - 7)(x + 2)}` | `x^{59}` | `x != -2, 7` |  |  |  |  |
+| 1509 | 61 | Very hard | Negative exponents | `x^{-23} \cdot (-x^{61})` | `-x^{38}` | `x != 0` |  |  |  |  |
+| 1510 | 61 | Very hard | Same denominator | `\frac{x^{61}}{x^{6} - 1} + \frac{3x^{61} - 4x^{55} - 2x^{37} + 2x^{31} - 3x^{15} + 3x^{9}}{x^{6} - 1}` | `4x^{55} - 2x^{31} - 3x^{9}` | `x != -1, 1` |  |  |  |  |
+| 1511 | 61 | Very hard | Different denominators | `\frac{x^{61} + 3x^{60} + x^{19} + 3x^{18}}{x + 3} + \frac{-5x^{59} + 10x^{58}}{x - 2}` | `x^{60} - 5x^{58} + x^{18}` | `x != -3, 2` |  |  |  |  |
+| 1512 | 61 | Very hard | Constant factor | `\frac{8x^{62} - 8x^{23}}{x}` | `8x^{61} - 8x^{22}` | `x != 0` |  |  |  |  |
+| 1513 | 61 | Very hard | Partial cancellation | `\frac{x^{61} + 5x^{60}}{x^{2} - 25}` | `\frac{x^{60}}{x - 5}` | `x != -5, 5` |  |  |  |  |
+| 1514 | 61 | Very hard | Difference of powers | `\frac{x^{61} - x}{x^{31} - x}` | `x^{30} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1515 | 61 | Very hard | Linear factor cancellation | `\frac{3x^{61} + 15x^{60}}{x + 5}` | `3x^{60}` | `x != -5` |  |  |  |  |
+| 1516 | 61 | Very hard | Expand product | `(2x^{57} + 2x^{31})(x^{4} + x)` | `2x^{61} + 2x^{58} + 2x^{35} + 2x^{32}` | `none` |  |  |  |  |
+| 1517 | 61 | Very hard | Multivariate monomials | `\frac{5 \cdot a^{40} \cdot b^{8} \cdot z^{13}}{a^{28} \cdot b^{4}}` | `5a^{12} b^{4} z^{13}` | `a != 0, b != 0` |  |  |  |  |
+| 1518 | 61 | Very hard | Collect like terms | `-4x^{21} + 4x^{21} + 5x^{61} + 5x^{10} - 4x^{61}` | `x^{61} + 5x^{10}` | `none` |  |  |  |  |
+| 1519 | 61 | Very hard | Collapsing identity | `(x^{31} + 5)(x^{30} - 5) - x^{61}` | `-5x^{31} + 5x^{30} - 25` | `none` |  |  |  |  |
+| 1520 | 61 | Very hard | Polynomial plus fraction | `(2x^{61} + 3x^{14}) - \frac{3}{x + 1}` | `\frac{2x^{62} + 2x^{61} + 3x^{15} + 3x^{14} - 3}{x + 1}` | `x != -1` |  |  |  |  |
+| 1521 | 61 | Very hard | Reference-type rational | `\frac{3x^{61} - 33x^{60} + 84x^{59} + 5x^{56} - 58x^{55} + 173x^{54} - 84x^{53}}{x^{3} - 9x^{2} + 6x + 56}` | `\frac{3x^{59} + 5x^{54} - 3x^{53}}{x + 2}` | `x != -2, 4, 7` |  |  |  |  |
+| 1522 | 61 | Very hard | Sign flip | `\frac{-x^{61} - 2x^{60} - 2x^{23} - 4x^{22}}{x + 2}` | `-x^{60} - 2x^{22}` | `x != -2` |  |  |  |  |
+| 1523 | 61 | Very hard | Multivariate distribution | `a^{18} \cdot b^{7} \cdot (-3b^{36} + a^{10})` | `-3a^{18} b^{43} + a^{28} b^{7}` | `none` |  |  |  |  |
+| 1524 | 61 | Very hard | Perfect square trinomial | `\frac{x^{61} - 2x^{31} + x}{x^{30} - 1}` | `x^{31} - x` | `x != -1, 1` |  |  |  |  |
+| 1525 | 61 | Very hard | Common power factor | `\frac{x^{61} + 5x^{2}}{x^{61} - x^{2}}` | `\frac{x^{59} + 5}{x^{59} - 1}` | `x != 0, 1` |  |  |  |  |
+| 1526 | 62 | Very hard | Polynomial plus fraction | `-3x^{62} + \frac{2}{x}` | `\frac{-3x^{63} + 2}{x}` | `x != 0` |  |  |  |  |
+| 1527 | 62 | Very hard | Distribute and collect | `-5x^{6}(x^{56} - 1) + 2x^{6}` | `-5x^{62} + 7x^{6}` | `none` |  |  |  |  |
+| 1528 | 62 | Very hard | Difference of powers | `\frac{x^{62} - 1}{x^{31} + 1}` | `x^{31} - 1` | `x != -1` |  |  |  |  |
+| 1529 | 62 | Very hard | Expand product | `(x^{44} + 4x^{21})(x^{18} - 5)` | `x^{62} - 5x^{44} + 4x^{39} - 20x^{21}` | `none` |  |  |  |  |
+| 1530 | 62 | Very hard | Quadratic factor cancellation | `\frac{x^{62} + 12x^{61} + 35x^{60} + 3x^{6} + 36x^{5} + 105x^{4}}{(x + 5)(x + 7)}` | `x^{60} + 3x^{4}` | `x != -7, -5` |  |  |  |  |
+| 1531 | 62 | Very hard | Cancels to zero | `\frac{x^{62} - 7x^{61} - 2x^{7} + 14x^{6}}{x - 7} - (x^{61} - 2x^{6})` | `0` | `x != 7` |  |  |  |  |
+| 1532 | 62 | Very hard | Sign flip | `\frac{2x^{62} + 4x^{61} - 2x^{44} - 4x^{43} - 5x^{12} - 10x^{11}}{x + 2}` | `2x^{61} - 2x^{43} - 5x^{11}` | `x != -2` |  |  |  |  |
+| 1533 | 62 | Very hard | Power of a power | `(-x^{62})^{1} \cdot x^{-6}` | `-x^{56}` | `x != 0` |  |  |  |  |
+| 1534 | 62 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{62} + 7x^{61} - x^{60} - 7x^{59} + 2x^{54} + 14x^{53} - 2x^{52} - 14x^{51}}{x + 7}}{x + 1}}{\frac{x - 1}{x + 4}}` | `x^{60} + 4x^{59} + 2x^{52} + 8x^{51}` | `x != -7, -4, -1, 1` |  |  |  |  |
+| 1535 | 62 | Very hard | Multivariate monomials | `\frac{6 \cdot a^{28} \cdot b^{3} \cdot z^{31}}{b^{3}}` | `6a^{28} z^{31}` | `b != 0` |  |  |  |  |
+| 1536 | 62 | Very hard | Multivariate distribution | `a^{42} \cdot b^{15} \cdot (-4b^{5} + a^{3})` | `-4a^{42} b^{20} + a^{45} b^{15}` | `none` |  |  |  |  |
+| 1537 | 62 | Very hard | Collect like terms | `-4x^{60} - 5x^{29} - 5x^{62} + 6x^{62}` | `x^{62} - 4x^{60} - 5x^{29}` | `none` |  |  |  |  |
+| 1538 | 62 | Very hard | Common power factor | `\frac{x^{62} - 2x^{37}}{x^{62} + x^{37}}` | `\frac{x^{25} - 2}{x^{25} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1539 | 62 | Very hard | Linear factor cancellation | `\frac{x^{62} + 2x^{58} - x^{47}}{x}` | `x^{61} + 2x^{57} - x^{46}` | `x != 0` |  |  |  |  |
+| 1540 | 62 | Very hard | Partial cancellation | `\frac{x^{62} - x^{61}}{x^{2} + 4x - 5}` | `\frac{x^{61}}{x + 5}` | `x != -5, 1` |  |  |  |  |
+| 1541 | 62 | Very hard | Reference-type rational | `\frac{x^{62} + 9x^{61} + 18x^{60} + 3x^{32} + 27x^{31} + 54x^{30}}{x^{3} + 3x^{2} - 36x - 108}` | `\frac{x^{60} + 3x^{30}}{x - 6}` | `x != -6, -3, 6` |  |  |  |  |
+| 1542 | 62 | Very hard | Same denominator | `\frac{x^{62} - x^{50} + 5x^{19}}{x - 1} + \frac{-x^{61} + x^{50} + 2x^{43} - 2x^{42} - 5x^{19} - 3x^{15} + 3x^{14}}{x - 1}` | `x^{61} + 2x^{42} - 3x^{14}` | `x != 1` |  |  |  |  |
+| 1543 | 62 | Very hard | Negative exponents | `x^{-28} \cdot (4x^{62} + 4x^{41})` | `4x^{34} + 4x^{13}` | `x != 0` |  |  |  |  |
+| 1544 | 62 | Very hard | Already irreducible | `\frac{x^{62} - 2}{x^{62} - 1}` | `\frac{x^{62} - 2}{x^{62} - 1}` | `x != -1, 1` |  |  |  |  |
+| 1545 | 62 | Very hard | Monomial division | `\frac{12x^{62} + 9x^{31}}{3x^{31}}` | `4x^{31} + 3` | `x != 0` |  |  |  |  |
+| 1546 | 62 | Very hard | Collapsing identity | `(x^{31} - 1)^{2} - (x^{31} + 1)^{2}` | `-4x^{31}` | `none` |  |  |  |  |
+| 1547 | 62 | Very hard | Perfect square trinomial | `\frac{x^{62} - 2x^{31} + 1}{x^{31} - 1}` | `x^{31} - 1` | `x != 1` |  |  |  |  |
+| 1548 | 62 | Very hard | Nested fraction | `\frac{\frac{x^{62} - 3x^{61} + x^{55} - 3x^{54} - x^{34} + 3x^{33}}{x - 2}}{\frac{x - 3}{x - 2}}` | `x^{61} + x^{54} - x^{33}` | `x != 2, 3` |  |  |  |  |
+| 1549 | 62 | Very hard | Constant factor | `\frac{-15x^{63} - 15x^{62}}{3x + 3}` | `-5x^{62}` | `x != -1` |  |  |  |  |
+| 1550 | 62 | Very hard | Different denominators | `\frac{5x^{62} - 20x^{61}}{x - 4} + \frac{x^{60} - 6x^{59}}{x - 6}` | `5x^{61} + x^{59}` | `x != 4, 6` |  |  |  |  |
+| 1551 | 63 | Very hard | Nested fraction | `\frac{\frac{x^{63} + 2x^{11}}{x - 7}}{\frac{x}{x - 7}}` | `x^{62} + 2x^{10}` | `x != 0, 7` |  |  |  |  |
+| 1552 | 63 | Very hard | Difference of powers | `\frac{x^{63} - x}{x^{32} - x}` | `x^{31} + 1` | `x != 0, 1` |  |  |  |  |
+| 1553 | 63 | Very hard | Expand product | `(-5x^{57})(x^{6} - 1)` | `-5x^{63} + 5x^{57}` | `none` |  |  |  |  |
+| 1554 | 63 | Very hard | Already irreducible | `\frac{x^{63} + 2}{x^{63}}` | `\frac{x^{63} + 2}{x^{63}}` | `x != 0` |  |  |  |  |
+| 1555 | 63 | Very hard | Multivariate distribution | `a^{51} \cdot b^{3} \cdot (5b^{9} + a^{7})` | `5a^{51} b^{12} + a^{58} b^{3}` | `none` |  |  |  |  |
+| 1556 | 63 | Very hard | Common power factor | `\frac{x^{63} - 4x^{3}}{x^{63} + x^{3}}` | `\frac{x^{60} - 4}{x^{60} + 1}` | `x != 0, x^60 + 1 != 0` |  |  |  |  |
+| 1557 | 63 | Very hard | Multivariate monomials | `\frac{20 \cdot a^{55} \cdot b^{4} \cdot z^{4}}{4 \cdot a^{54} \cdot b^{4}}` | `5a z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 1558 | 63 | Very hard | Linear factor cancellation | `\frac{x^{63} - 5x^{62} + 2x^{29}}{x}` | `x^{62} - 5x^{61} + 2x^{28}` | `x != 0` |  |  |  |  |
+| 1559 | 63 | Very hard | Partial cancellation | `\frac{2x^{63} + 4x^{62} + 2x^{23} + 4x^{22} - 2x^{2} - 4x}{x^{2} - 3x - 10}` | `\frac{2x^{62} + 2x^{22} - 2x}{x - 5}` | `x != -2, 5` |  |  |  |  |
+| 1560 | 63 | Very hard | Reference-type rational | `\frac{x^{63} + 7x^{62} + 10x^{61} - 5x^{39} - 35x^{38} - 50x^{37}}{x^{3} + 11x^{2} + 38x + 40}` | `\frac{x^{61} - 5x^{37}}{x + 4}` | `x != -5, -4, -2` |  |  |  |  |
+| 1561 | 63 | Very hard | Polynomial plus fraction | `5x^{63} - \frac{3}{x - 5}` | `\frac{5x^{64} - 25x^{63} - 3}{x - 5}` | `x != 5` |  |  |  |  |
+| 1562 | 63 | Very hard | Monomial division | `\frac{16x^{63} + 20x^{22}}{4x^{22}}` | `4x^{41} + 5` | `x != 0` |  |  |  |  |
+| 1563 | 63 | Very hard | Constant factor | `\frac{6x^{63} - 12x^{49}}{6}` | `x^{63} - 2x^{49}` | `none` |  |  |  |  |
+| 1564 | 63 | Very hard | Negative exponents | `x^{-44} \cdot (5x^{63} - 4x^{44})` | `5x^{19} - 4` | `x != 0` |  |  |  |  |
+| 1565 | 63 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{63} - 10x^{62} + 21x^{61}}{x - 7}}{x - 3}}{\frac{x}{x - 6}}` | `x^{61} - 6x^{60}` | `x != 0, 3, 6, 7` |  |  |  |  |
+| 1566 | 63 | Very hard | Different denominators | `\frac{4x^{63} + 20x^{62} + 5x^{47} + 25x^{46}}{x + 5} + \frac{-2x^{63} + 10x^{62} + 2x^{42} - 10x^{41}}{x - 5}` | `2x^{62} + 5x^{46} + 2x^{41}` | `x != -5, 5` |  |  |  |  |
+| 1567 | 63 | Very hard | Quadratic factor cancellation | `\frac{2x^{63} + 2x^{62} - 3x^{24} - 3x^{23}}{x^{2} + x}` | `2x^{61} - 3x^{22}` | `x != -1, 0` |  |  |  |  |
+| 1568 | 63 | Very hard | Cancels to zero | `\frac{x^{63} + x^{39} - 3x^{18}}{x} - (x^{62} + x^{38} - 3x^{17})` | `0` | `x != 0` |  |  |  |  |
+| 1569 | 63 | Very hard | Sign flip | `\frac{-x^{63} - 6x^{62}}{x + 6}` | `-x^{62}` | `x != -6` |  |  |  |  |
+| 1570 | 63 | Very hard | Collect like terms | `3x^{63} - x^{17} + x^{17} - 2x^{56} - 2x^{63} + 6x^{4} + 6x^{56} - 5x^{4}` | `x^{63} + 4x^{56} + x^{4}` | `none` |  |  |  |  |
+| 1571 | 63 | Very hard | Same denominator | `\frac{-2x^{63} - x^{26}}{x^{6} - 729} - \frac{-3x^{63} + 729x^{57} - x^{26} - 4x^{23} + 2916x^{17}}{x^{6} - 729}` | `x^{57} + 4x^{17}` | `x != -3, 3` |  |  |  |  |
+| 1572 | 63 | Very hard | Distribute and collect | `-4x^{59}(x^{4} - 4) - x^{59}` | `-4x^{63} + 15x^{59}` | `none` |  |  |  |  |
+| 1573 | 63 | Very hard | Power of a power | `(-x^{63})^{1} \cdot x^{-46}` | `-x^{17}` | `x != 0` |  |  |  |  |
+| 1574 | 63 | Very hard | Perfect square trinomial | `\frac{x^{63} + 2x^{32} + x}{x^{31} + 1}` | `x^{32} + x` | `x != -1` |  |  |  |  |
+| 1575 | 63 | Very hard | Collapsing identity | `(x^{32} - 2)(x^{31} + 2) - x^{63}` | `2x^{32} - 2x^{31} - 4` | `none` |  |  |  |  |
+| 1576 | 64 | Very hard | Negative exponents | `x^{-21} \cdot (-4x^{64})` | `-4x^{43}` | `x != 0` |  |  |  |  |
+| 1577 | 64 | Very hard | Perfect square trinomial | `\frac{x^{64} - 2x^{32} + 1}{x^{32} - 1}` | `x^{32} - 1` | `x != -1, 1` |  |  |  |  |
+| 1578 | 64 | Very hard | Partial cancellation | `\frac{-5x^{64} - 20x^{63} - 2x^{17} - 8x^{16}}{x^{2} + 11x + 28}` | `\frac{-5x^{63} - 2x^{16}}{x + 7}` | `x != -7, -4` |  |  |  |  |
+| 1579 | 64 | Very hard | Linear factor cancellation | `\frac{x^{64} - 5x^{63} - 5x^{61} + 25x^{60}}{x - 5}` | `x^{63} - 5x^{60}` | `x != 5` |  |  |  |  |
+| 1580 | 64 | Very hard | Reference-type rational | `\frac{5x^{64} + 5x^{63} - 210x^{62} - x^{47} - x^{46} + 42x^{45}}{x^{3} - x^{2} - 44x + 84}` | `\frac{5x^{62} - x^{45}}{x - 2}` | `x != -7, 2, 6` |  |  |  |  |
+| 1581 | 64 | Very hard | Distribute and collect | `2x^{15}(x^{49} - 5) - x^{15}` | `2x^{64} - 11x^{15}` | `none` |  |  |  |  |
+| 1582 | 64 | Very hard | Constant factor | `\frac{6x^{65} + 6x^{64} - 30x^{38} - 30x^{37}}{2x + 2}` | `3x^{64} - 15x^{37}` | `x != -1` |  |  |  |  |
+| 1583 | 64 | Very hard | Same denominator | `\frac{x^{64}}{x^{2} - 9} + \frac{3x^{64} - 36x^{62}}{x^{2} - 9}` | `4x^{62}` | `x != -3, 3` |  |  |  |  |
+| 1584 | 64 | Very hard | Cancels to zero | `\frac{-5x^{64} - 20x^{63} - 2x^{45} - 8x^{44}}{x + 4} - (-5x^{63} - 2x^{44})` | `0` | `x != -4` |  |  |  |  |
+| 1585 | 64 | Very hard | Different denominators | `\frac{-2x^{64} - 4x^{63} + 2x^{58} + 4x^{57}}{x + 2} + \frac{x^{64} + 5x^{63} - x^{57} - 5x^{56}}{x + 5}` | `-x^{63} + 2x^{57} - x^{56}` | `x != -5, -2` |  |  |  |  |
+| 1586 | 64 | Very hard | Expand product | `(x^{21} - x^{16})(x^{43} - x^{19})` | `x^{64} - x^{59} - x^{40} + x^{35}` | `none` |  |  |  |  |
+| 1587 | 64 | Very hard | Collapsing identity | `(x^{32} - 5)^{2} - (x^{32} + 5)^{2}` | `-20x^{32}` | `none` |  |  |  |  |
+| 1588 | 64 | Very hard | Common power factor | `\frac{x^{64} - x^{30}}{x^{64} + x^{30}}` | `\frac{x^{34} - 1}{x^{34} + 1}` | `x != 0, x^34 + 1 != 0` |  |  |  |  |
+| 1589 | 64 | Very hard | Power of a power | `\frac{(-x^{8})^{8}}{x^{4}}` | `x^{60}` | `x != 0` |  |  |  |  |
+| 1590 | 64 | Very hard | Difference of powers | `\frac{x^{64} - 1}{x^{32} - 1}` | `x^{32} + 1` | `x != -1, 1` |  |  |  |  |
+| 1591 | 64 | Very hard | Multivariate expansion | `(a^{32} + b^{32})(a^{32} - b^{32})` | `a^{64} - b^{64}` | `none` |  |  |  |  |
+| 1592 | 64 | Very hard | Multivariate monomials | `\frac{a^{31} \cdot b^{19} \cdot z^{14}}{a^{8} \cdot b^{18}}` | `a^{23} b z^{14}` | `a != 0, b != 0` |  |  |  |  |
+| 1593 | 64 | Very hard | Already irreducible | `\frac{x^{64} - 3}{x^{64}}` | `\frac{x^{64} - 3}{x^{64}}` | `x != 0` |  |  |  |  |
+| 1594 | 64 | Very hard | Polynomial plus fraction | `x^{64} + \frac{3}{x + 7}` | `\frac{x^{65} + 7x^{64} + 3}{x + 7}` | `x != -7` |  |  |  |  |
+| 1595 | 64 | Very hard | Nested fraction | `\frac{\frac{x^{64} + 3x^{63}}{x - 7}}{\frac{x + 3}{x - 7}}` | `x^{63}` | `x != -3, 7` |  |  |  |  |
+| 1596 | 64 | Very hard | Sign flip | `\frac{-x^{64} - 3x^{51} - 2x^{18}}{x}` | `-x^{63} - 3x^{50} - 2x^{17}` | `x != 0` |  |  |  |  |
+| 1597 | 64 | Very hard | Collect like terms | `-x^{64} + 2x^{64}` | `x^{64}` | `none` |  |  |  |  |
+| 1598 | 64 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{64} - 16x^{63} + 83x^{62} - 140x^{61} + x^{43} - 16x^{42} + 83x^{41} - 140x^{40}}{x - 4}}{x - 7}}{\frac{x - 5}{x + 2}}` | `x^{62} + 2x^{61} + x^{41} + 2x^{40}` | `x != -2, 4, 5, 7` |  |  |  |  |
+| 1599 | 64 | Very hard | Monomial division | `\frac{-5x^{64} + 25x^{60}}{5x^{60}}` | `-x^{4} + 5` | `x != 0` |  |  |  |  |
+| 1600 | 64 | Very hard | Quadratic factor cancellation | `\frac{-4x^{64} + 20x^{63} - 16x^{62} + 5x^{51} - 25x^{50} + 20x^{49} - x^{32} + 5x^{31} - 4x^{30}}{x^{2} - 5x + 4}` | `-4x^{62} + 5x^{49} - x^{30}` | `x != 1, 4` |  |  |  |  |
+| 1601 | 65 | Very hard | Quadratic factor cancellation | `\frac{-2x^{65} + 4x^{64} + 3x^{17} - 6x^{16} + 3x^{6} - 6x^{5}}{x^{2} - 2x}` | `-2x^{63} + 3x^{15} + 3x^{4}` | `x != 0, 2` |  |  |  |  |
+| 1602 | 65 | Very hard | Polynomial plus fraction | `x^{65} - \frac{5}{x - 6}` | `\frac{x^{66} - 6x^{65} - 5}{x - 6}` | `x != 6` |  |  |  |  |
+| 1603 | 65 | Very hard | Constant factor | `\frac{-9x^{65} - 6x^{42}}{3}` | `-3x^{65} - 2x^{42}` | `none` |  |  |  |  |
+| 1604 | 65 | Very hard | Collect like terms | `-6x^{48} + 3x^{4} + 2x^{48} + x^{65} + 5x^{15} + 2x^{4}` | `x^{65} - 4x^{48} + 5x^{15} + 5x^{4}` | `none` |  |  |  |  |
+| 1605 | 65 | Very hard | Nested fraction | `\frac{\frac{-2x^{65} + 10x^{64}}{x - 4}}{\frac{x - 5}{x - 4}}` | `-2x^{64}` | `x != 4, 5` |  |  |  |  |
+| 1606 | 65 | Very hard | Same denominator | `\frac{5x^{65} - 5x^{46}}{x - 1} + \frac{-8x^{65} + 3x^{64} + 5x^{46}}{x - 1}` | `-3x^{64}` | `x != 1` |  |  |  |  |
+| 1607 | 65 | Very hard | Already irreducible | `\frac{x^{65} - 4}{x^{65} - 1}` | `\frac{x^{65} - 4}{x^{65} - 1}` | `x != 1` |  |  |  |  |
+| 1608 | 65 | Very hard | Collapsing identity | `(x^{33} - 3)(x^{32} + 3) - x^{65}` | `3x^{33} - 3x^{32} - 9` | `none` |  |  |  |  |
+| 1609 | 65 | Very hard | Distribute and collect | `-x^{20}(x^{45} - 3) + 2x^{20}` | `-x^{65} + 5x^{20}` | `none` |  |  |  |  |
+| 1610 | 65 | Very hard | Different denominators | `\frac{-2x^{65} - 4x^{64} + 2x^{40} + 4x^{39}}{x + 2} + \frac{-3x^{63} + 6x^{62} + 4x^{4} - 8x^{3}}{x - 2}` | `-2x^{64} - 3x^{62} + 2x^{39} + 4x^{3}` | `x != -2, 2` |  |  |  |  |
+| 1611 | 65 | Very hard | Partial cancellation | `\frac{x^{65} + 5x^{64}}{x^{2} + 3x - 10}` | `\frac{x^{64}}{x - 2}` | `x != -5, 2` |  |  |  |  |
+| 1612 | 65 | Very hard | Negative exponents | `x^{-47} \cdot (-2x^{65} + 3x^{61})` | `-2x^{18} + 3x^{14}` | `x != 0` |  |  |  |  |
+| 1613 | 65 | Very hard | Multivariate monomials | `\frac{15 \cdot a^{31} \cdot b^{8} \cdot z^{26}}{3 \cdot a^{23} \cdot b^{8}}` | `5a^{8} z^{26}` | `a != 0, b != 0` |  |  |  |  |
+| 1614 | 65 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{65} + 2x^{64} - 54x^{63} - 108x^{62} + 245x^{61} + 490x^{60}}{x + 2}}{x - 7}}{\frac{x + 7}{x + 6}}` | `x^{63} + 6x^{62} - 5x^{61} - 30x^{60}` | `x != -7, -6, -2, 7` |  |  |  |  |
+| 1615 | 65 | Very hard | Reference-type rational | `\frac{-x^{65} - 7x^{64} - 10x^{63} - x^{25} - 7x^{24} - 10x^{23} + 5x^{12} + 35x^{11} + 50x^{10}}{x^{3} + 6x^{2} + 3x - 10}` | `\frac{-x^{63} - x^{23} + 5x^{10}}{x - 1}` | `x != -5, -2, 1` |  |  |  |  |
+| 1616 | 65 | Very hard | Expand product | `(x^{13})(x^{52})` | `x^{65}` | `none` |  |  |  |  |
+| 1617 | 65 | Very hard | Power of a power | `\frac{(x^{13})^{5}}{x^{7}}` | `x^{58}` | `x != 0` |  |  |  |  |
+| 1618 | 65 | Very hard | Difference of powers | `\frac{x^{65} - x}{x^{33} - x}` | `x^{32} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1619 | 65 | Very hard | Multivariate distribution | `a^{52} \cdot b^{11} \cdot (-2b^{2} + a)` | `-2a^{52} b^{13} + a^{53} b^{11}` | `none` |  |  |  |  |
+| 1620 | 65 | Very hard | Common power factor | `\frac{x^{65} + 2x^{31}}{x^{65} - x^{31}}` | `\frac{x^{34} + 2}{x^{34} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1621 | 65 | Very hard | Sign flip | `\frac{-x^{65} + 4x^{64} - 3x^{63} - x^{49} + 3x^{48}}{x - 3}` | `-x^{64} + x^{63} - x^{48}` | `x != 3` |  |  |  |  |
+| 1622 | 65 | Very hard | Cancels to zero | `\frac{-4x^{65} + 4x^{64} + 4x^{30} - 4x^{29} - 4x^{10} + 4x^{9}}{x - 1} - (-4x^{64} + 4x^{29} - 4x^{9})` | `0` | `x != 1` |  |  |  |  |
+| 1623 | 65 | Very hard | Linear factor cancellation | `\frac{-5x^{65} + 10x^{64} + 4x^{36} - 8x^{35}}{x - 2}` | `-5x^{64} + 4x^{35}` | `x != 2` |  |  |  |  |
+| 1624 | 65 | Very hard | Perfect square trinomial | `\frac{x^{65} - 2x^{33} + x}{x^{32} - 1}` | `x^{33} - x` | `x != -1, 1` |  |  |  |  |
+| 1625 | 65 | Very hard | Monomial division | `\frac{10x^{65} + 8x^{55} - 6x^{42} + 8x^{41}}{2x^{41}}` | `5x^{24} + 4x^{14} - 3x + 4` | `x != 0` |  |  |  |  |
+| 1626 | 66 | Very hard | Linear factor cancellation | `\frac{x^{66} - 6x^{65}}{x - 6}` | `x^{65}` | `x != 6` |  |  |  |  |
+| 1627 | 66 | Very hard | Multivariate monomials | `\frac{-24 \cdot a^{18} \cdot b^{31} \cdot z^{17}}{4 \cdot a^{3} \cdot b^{22}}` | `-6a^{15} b^{9} z^{17}` | `a != 0, b != 0` |  |  |  |  |
+| 1628 | 66 | Very hard | Collapsing identity | `(x^{33} + 1)^{2} - (x^{33} - 1)^{2}` | `4x^{33}` | `none` |  |  |  |  |
+| 1629 | 66 | Very hard | Different denominators | `\frac{-4x^{66} - 8x^{65} - 4x^{41} - 8x^{40}}{x + 2} + \frac{x^{65} + 7x^{64}}{x + 7}` | `-4x^{65} + x^{64} - 4x^{40}` | `x != -7, -2` |  |  |  |  |
+| 1630 | 66 | Very hard | Power of a power | `\frac{(x^{22})^{3}}{x^{17}}` | `x^{49}` | `x != 0` |  |  |  |  |
+| 1631 | 66 | Very hard | Monomial division | `\frac{12x^{66} + 30x^{61} - 18x^{41} + 30x^{35}}{6x^{35}}` | `2x^{31} + 5x^{26} - 3x^{6} + 5` | `x != 0` |  |  |  |  |
+| 1632 | 66 | Very hard | Same denominator | `\frac{5x^{66} + 4x^{63} + x^{40}}{x - 3} - \frac{10x^{66} - 15x^{65} + 4x^{63} + x^{40}}{x - 3}` | `-5x^{65}` | `x != 3` |  |  |  |  |
+| 1633 | 66 | Very hard | Already irreducible | `\frac{x^{66} - 1}{x^{66}}` | `\frac{x^{66} - 1}{x^{66}}` | `x != 0` |  |  |  |  |
+| 1634 | 66 | Very hard | Reference-type rational | `\frac{x^{66} + 2x^{65} - 35x^{64} - 3x^{45} - 6x^{44} + 105x^{43} - 2x^{27} - 4x^{26} + 70x^{25}}{x^{3} + x^{2} - 37x + 35}` | `\frac{x^{64} - 3x^{43} - 2x^{25}}{x - 1}` | `x != -7, 1, 5` |  |  |  |  |
+| 1635 | 66 | Very hard | Nested fraction | `\frac{\frac{x^{66} + 2x^{65}}{x + 3}}{\frac{x + 2}{x + 3}}` | `x^{65}` | `x != -3, -2` |  |  |  |  |
+| 1636 | 66 | Very hard | Quadratic factor cancellation | `\frac{-3x^{66} - 3x^{65} + 36x^{64} - x^{37} - x^{36} + 12x^{35} - 2x^{11} - 2x^{10} + 24x^{9}}{x^{2} + x - 12}` | `-3x^{64} - x^{35} - 2x^{9}` | `x != -4, 3` |  |  |  |  |
+| 1637 | 66 | Very hard | Negative exponents | `x^{-23} \cdot (3x^{66} - 3x^{35})` | `3x^{43} - 3x^{12}` | `x != 0` |  |  |  |  |
+| 1638 | 66 | Very hard | Multivariate distribution | `a^{17} \cdot b^{43} \cdot (a^{6} - b^{6})` | `a^{23} b^{43} - a^{17} b^{49}` | `none` |  |  |  |  |
+| 1639 | 66 | Very hard | Constant factor | `\frac{8x^{67} - 8x^{27} - 8x^{14}}{2x}` | `4x^{66} - 4x^{26} - 4x^{13}` | `x != 0` |  |  |  |  |
+| 1640 | 66 | Very hard | Expand product | `(x^{31})(2x^{35} - 3x^{3})` | `2x^{66} - 3x^{34}` | `none` |  |  |  |  |
+| 1641 | 66 | Very hard | Perfect square trinomial | `\frac{x^{66} - 2x^{33} + 1}{x^{33} - 1}` | `x^{33} - 1` | `x != 1` |  |  |  |  |
+| 1642 | 66 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{66} - 8x^{65} + 15x^{64} + 5x^{29} - 40x^{28} + 75x^{27}}{x}}{x - 5}}{\frac{x - 3}{x + 4}}` | `x^{64} + 4x^{63} + 5x^{27} + 20x^{26}` | `x != -4, 0, 3, 5` |  |  |  |  |
+| 1643 | 66 | Very hard | Difference of powers | `\frac{x^{66} - 1}{x^{33} - 1}` | `x^{33} + 1` | `x != 1` |  |  |  |  |
+| 1644 | 66 | Very hard | Collect like terms | `5x^{66} - 4x^{66}` | `x^{66}` | `none` |  |  |  |  |
+| 1645 | 66 | Very hard | Polynomial plus fraction | `(-2x^{66} - 4x^{54}) + \frac{5}{x + 3}` | `\frac{-2x^{67} - 6x^{66} - 4x^{55} - 12x^{54} + 5}{x + 3}` | `x != -3` |  |  |  |  |
+| 1646 | 66 | Very hard | Cancels to zero | `\frac{2x^{66} + 8x^{65}}{x + 4} - 2x^{65}` | `0` | `x != -4` |  |  |  |  |
+| 1647 | 66 | Very hard | Sign flip | `\frac{5x^{66} + 5x^{65} + 4x^{31} + 4x^{30}}{x + 1}` | `5x^{65} + 4x^{30}` | `x != -1` |  |  |  |  |
+| 1648 | 66 | Very hard | Common power factor | `\frac{x^{66} - 2x^{10}}{x^{66} - x^{10}}` | `\frac{x^{56} - 2}{x^{56} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1649 | 66 | Very hard | Distribute and collect | `-3x^{50}(x^{16} - 3) + 3x^{50}` | `-3x^{66} + 12x^{50}` | `none` |  |  |  |  |
+| 1650 | 66 | Very hard | Linear factor cancellation | `\frac{5x^{66} - 10x^{65} + 5x^{53} - 10x^{52} - 2x^{25} + 4x^{24}}{x - 2}` | `5x^{65} + 5x^{52} - 2x^{24}` | `x != 2` |  |  |  |  |
+| 1651 | 67 | Very hard | Negative exponents | `x^{-60} \cdot (4x^{67} + 5x^{62})` | `4x^{7} + 5x^{2}` | `x != 0` |  |  |  |  |
+| 1652 | 67 | Very hard | Common power factor | `\frac{x^{67} - 2x^{24}}{x^{67} - x^{24}}` | `\frac{x^{43} - 2}{x^{43} - 1}` | `x != 0, 1` |  |  |  |  |
+| 1653 | 67 | Very hard | Nested fraction | `\frac{\frac{x^{67} - 4x^{66}}{x + 2}}{\frac{x - 4}{x + 2}}` | `x^{66}` | `x != -2, 4` |  |  |  |  |
+| 1654 | 67 | Very hard | Different denominators | `\frac{-2x^{67} + 14x^{66}}{x - 7} + \frac{x^{66} - 4x^{65} - x^{62} + 4x^{61}}{x - 4}` | `-2x^{66} + x^{65} - x^{61}` | `x != 4, 7` |  |  |  |  |
+| 1655 | 67 | Very hard | Quadratic factor cancellation | `\frac{x^{67} + 8x^{66} + 15x^{65}}{x^{2} + 8x + 15}` | `x^{65}` | `x != -5, -3` |  |  |  |  |
+| 1656 | 67 | Very hard | Multivariate monomials | `\frac{-36 \cdot a^{8} \cdot b^{21} \cdot z^{38}}{6 \cdot a \cdot b^{7}}` | `-6a^{7} b^{14} z^{38}` | `a != 0, b != 0` |  |  |  |  |
+| 1657 | 67 | Very hard | Distribute and collect | `-2x^{60}(x^{7} - 1) - x^{60}` | `-2x^{67} + x^{60}` | `none` |  |  |  |  |
+| 1658 | 67 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{67} - 12x^{66} + 41x^{65} - 42x^{64}}{x - 3}}{x - 7}}{\frac{x - 2}{x}}` | `x^{65}` | `x != 0, 2, 3, 7` |  |  |  |  |
+| 1659 | 67 | Very hard | Power of a power | `\frac{(2x^{67})^{1}}{x^{8}}` | `2x^{59}` | `x != 0` |  |  |  |  |
+| 1660 | 67 | Very hard | Expand product | `(x)(x^{66})` | `x^{67}` | `none` |  |  |  |  |
+| 1661 | 67 | Very hard | Already irreducible | `\frac{x^{67} - 5}{x^{67}}` | `\frac{x^{67} - 5}{x^{67}}` | `x != 0` |  |  |  |  |
+| 1662 | 67 | Very hard | Same denominator | `\frac{x^{67} - 5x^{62}}{x - 4} - \frac{4x^{66} - 5x^{62}}{x - 4}` | `x^{66}` | `x != 4` |  |  |  |  |
+| 1663 | 67 | Very hard | Cancels to zero | `\frac{x^{67} + 5x^{66} - 4x^{42} - 20x^{41}}{x + 5} - (x^{66} - 4x^{41})` | `0` | `x != -5` |  |  |  |  |
+| 1664 | 67 | Very hard | Perfect square trinomial | `\frac{x^{67} - 2x^{34} + x}{x^{33} - 1}` | `x^{34} - x` | `x != 1` |  |  |  |  |
+| 1665 | 67 | Very hard | Sign flip | `\frac{-x^{67} + x^{66}}{x - 1}` | `-x^{66}` | `x != 1` |  |  |  |  |
+| 1666 | 67 | Very hard | Monomial division | `\frac{-8x^{67} - 6x^{56} - 2x^{31} + 8x^{12}}{2x^{12}}` | `-4x^{55} - 3x^{44} - x^{19} + 4` | `x != 0` |  |  |  |  |
+| 1667 | 67 | Very hard | Linear factor cancellation | `\frac{-4x^{67} - 4x^{66} + 3x^{25} + 3x^{24}}{x + 1}` | `-4x^{66} + 3x^{24}` | `x != -1` |  |  |  |  |
+| 1668 | 67 | Very hard | Constant factor | `\frac{-10x^{67} + 25x^{37}}{5}` | `-2x^{67} + 5x^{37}` | `none` |  |  |  |  |
+| 1669 | 67 | Very hard | Reference-type rational | `\frac{3x^{67} - 21x^{66} + 36x^{65}}{x^{3} - 14x^{2} + 61x - 84}` | `\frac{3x^{65}}{x - 7}` | `x != 3, 4, 7` |  |  |  |  |
+| 1670 | 67 | Very hard | Multivariate distribution | `a^{53} \cdot b \cdot (3b^{13} + a^{8})` | `3a^{53} b^{14} + a^{61} b` | `none` |  |  |  |  |
+| 1671 | 67 | Very hard | Collapsing identity | `(x^{34} + 5)(x^{33} - 5) - x^{67}` | `-5x^{34} + 5x^{33} - 25` | `none` |  |  |  |  |
+| 1672 | 67 | Very hard | Partial cancellation | `\frac{-3x^{67} + 18x^{66} + 3x^{58} - 18x^{57}}{x^{2} - 2x - 24}` | `\frac{-3x^{66} + 3x^{57}}{x + 4}` | `x != -4, 6` |  |  |  |  |
+| 1673 | 67 | Very hard | Difference of powers | `\frac{x^{67} - x}{x^{34} - x}` | `x^{33} + 1` | `x != 0, 1` |  |  |  |  |
+| 1674 | 67 | Very hard | Collect like terms | `-5x^{67} + 4x^{67} - 2x^{7} + 2x^{7}` | `-x^{67}` | `none` |  |  |  |  |
+| 1675 | 67 | Very hard | Polynomial plus fraction | `-5x^{67} - \frac{3}{x + 2}` | `\frac{-5x^{68} - 10x^{67} - 3}{x + 2}` | `x != -2` |  |  |  |  |
+| 1676 | 68 | Very hard | Nested fraction | `\frac{\frac{x^{68} - 5x^{67}}{x - 2}}{\frac{x - 5}{x - 2}}` | `x^{67}` | `x != 2, 5` |  |  |  |  |
+| 1677 | 68 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-2x^{68} - 8x^{67} + 72x^{66} + 288x^{65} + 4x^{49} + 16x^{48} - 144x^{47} - 576x^{46}}{x - 6}}{x + 6}}{\frac{x + 4}{x + 5}}` | `-2x^{66} - 10x^{65} + 4x^{47} + 20x^{46}` | `x != -6, -5, -4, 6` |  |  |  |  |
+| 1678 | 68 | Very hard | Multivariate monomials | `\frac{-6 \cdot a^{17} \cdot b^{5} \cdot z^{46}}{2 \cdot a^{6} \cdot b^{3}}` | `-3a^{11} b^{2} z^{46}` | `a != 0, b != 0` |  |  |  |  |
+| 1679 | 68 | Very hard | Distribute and collect | `-5x^{10}(x^{58} + 3) + 3x^{10}` | `-5x^{68} - 12x^{10}` | `none` |  |  |  |  |
+| 1680 | 68 | Very hard | Quadratic factor cancellation | `\frac{x^{68} - 8x^{67} + 7x^{66} - 4x^{13} + 32x^{12} - 28x^{11}}{x^{2} - 8x + 7}` | `x^{66} - 4x^{11}` | `x != 1, 7` |  |  |  |  |
+| 1681 | 68 | Very hard | Sign flip | `\frac{-x^{68} + 5x^{67} + 2x^{44} - 10x^{43} + 3x^{26} - 15x^{25}}{x - 5}` | `-x^{67} + 2x^{43} + 3x^{25}` | `x != 5` |  |  |  |  |
+| 1682 | 68 | Very hard | Constant factor | `\frac{12x^{69} - 60x^{68} + 4x^{41} - 20x^{40}}{x - 5}` | `12x^{68} + 4x^{40}` | `x != 5` |  |  |  |  |
+| 1683 | 68 | Very hard | Collapsing identity | `(x^{34} - 5)^{2} - (x^{34} + 5)^{2}` | `-20x^{34}` | `none` |  |  |  |  |
+| 1684 | 68 | Very hard | Linear factor cancellation | `\frac{x^{68} - 3x^{51}}{x}` | `x^{67} - 3x^{50}` | `x != 0` |  |  |  |  |
+| 1685 | 68 | Very hard | Power of a power | `(-x^{34})^{2} \cdot x^{-22}` | `x^{46}` | `x != 0` |  |  |  |  |
+| 1686 | 68 | Very hard | Difference of squares chain | `\frac{x^{68} - 1}{x^{34} - 1}` | `x^{34} + 1` | `x != -1, 1` |  |  |  |  |
+| 1687 | 68 | Very hard | Reference-type rational | `\frac{x^{68} - 5x^{67} - 6x^{66}}{x^{3} - 7x^{2} + 4x + 12}` | `\frac{x^{66}}{x - 2}` | `x != -1, 2, 6` |  |  |  |  |
+| 1688 | 68 | Very hard | Negative exponents | `x^{-3} \cdot (4x^{68})` | `4x^{65}` | `x != 0` |  |  |  |  |
+| 1689 | 68 | Very hard | Common power factor | `\frac{x^{68} - x^{28}}{x^{68} + x^{28}}` | `\frac{x^{40} - 1}{x^{40} + 1}` | `x != 0, x^40 + 1 != 0` |  |  |  |  |
+| 1690 | 68 | Very hard | Same denominator | `\frac{x^{68} - 4x^{26}}{x + 3} + \frac{3x^{68} + 12x^{67} + 3x^{63} + 9x^{62} + 4x^{26} - 5x^{19} - 15x^{18}}{x + 3}` | `4x^{67} + 3x^{62} - 5x^{18}` | `x != -3` |  |  |  |  |
+| 1691 | 68 | Very hard | Cancels to zero | `\frac{2x^{68} - 2x^{67} - 3x^{20} + 3x^{19}}{x - 1} - (2x^{67} - 3x^{19})` | `0` | `x != 1` |  |  |  |  |
+| 1692 | 68 | Very hard | Polynomial plus fraction | `(5x^{68} + x^{23}) + \frac{1}{x + 2}` | `\frac{5x^{69} + 10x^{68} + x^{24} + 2x^{23} + 1}{x + 2}` | `x != -2` |  |  |  |  |
+| 1693 | 68 | Very hard | Monomial division | `\frac{x^{68} + 4x^{62} + x^{56}}{x^{56}}` | `x^{12} + 4x^{6} + 1` | `x != 0` |  |  |  |  |
+| 1694 | 68 | Very hard | Collect like terms | `x^{56} + x^{68} - 5x^{56} + 5x^{41} - 2x^{41}` | `x^{68} - 4x^{56} + 3x^{41}` | `none` |  |  |  |  |
+| 1695 | 68 | Very hard | Partial cancellation | `\frac{x^{68} + 7x^{67} + 10x^{66} - 2x^{49} - 10x^{48}}{x^{2} + 8x + 15}` | `\frac{x^{67} + 2x^{66} - 2x^{48}}{x + 3}` | `x != -5, -3` |  |  |  |  |
+| 1696 | 68 | Very hard | Already irreducible | `\frac{x^{68} + 5}{x^{68} + 1}` | `\frac{x^{68} + 5}{x^{68} + 1}` | `x^68 + 1 != 0` |  |  |  |  |
+| 1697 | 68 | Very hard | Perfect square trinomial | `\frac{x^{68} - 2x^{34} + 1}{x^{34} - 1}` | `x^{34} - 1` | `x != -1, 1` |  |  |  |  |
+| 1698 | 68 | Very hard | Multivariate distribution | `a^{45} \cdot b^{12} \cdot (-2b^{11} + a^{4})` | `-2a^{45} b^{23} + a^{49} b^{12}` | `none` |  |  |  |  |
+| 1699 | 68 | Very hard | Different denominators | `\frac{x^{68} + 7x^{67} + 3x^{45} + 21x^{44}}{x + 7} + \frac{x^{66} - x^{65} - x^{44} + x^{43}}{x - 1}` | `x^{67} + x^{65} + 3x^{44} - x^{43}` | `x != -7, 1` |  |  |  |  |
+| 1700 | 68 | Very hard | Expand product | `(-x^{55} + 3x^{54})(-2x^{13})` | `2x^{68} - 6x^{67}` | `none` |  |  |  |  |
+| 1701 | 69 | Very hard | Common power factor | `\frac{x^{69} + 5x^{53}}{x^{69} + x^{53}}` | `\frac{x^{16} + 5}{x^{16} + 1}` | `x != 0, x^16 + 1 != 0` |  |  |  |  |
+| 1702 | 69 | Very hard | Monomial division | `\frac{6x^{69} + 2x^{53}}{2x^{53}}` | `3x^{16} + 1` | `x != 0` |  |  |  |  |
+| 1703 | 69 | Very hard | Distribute and collect | `3x^{11}(x^{58} - 5) + x^{11}` | `3x^{69} - 14x^{11}` | `none` |  |  |  |  |
+| 1704 | 69 | Very hard | Already irreducible | `\frac{x^{69} + 4}{x^{69}}` | `\frac{x^{69} + 4}{x^{69}}` | `x != 0` |  |  |  |  |
+| 1705 | 69 | Very hard | Perfect square trinomial | `\frac{x^{69} + 2x^{35} + x}{x^{34} + 1}` | `x^{35} + x` | `x^34 + 1 != 0` |  |  |  |  |
+| 1706 | 69 | Very hard | Cancels to zero | `\frac{3x^{69} - 3x^{68}}{x - 1} - 3x^{68}` | `0` | `x != 1` |  |  |  |  |
+| 1707 | 69 | Very hard | Nested fraction | `\frac{\frac{x^{69} + 2x^{68}}{x}}{\frac{x + 2}{x}}` | `x^{68}` | `x != -2, 0` |  |  |  |  |
+| 1708 | 69 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{69} - x^{68} - 10x^{67} - 8x^{66} - 2x^{11} + 2x^{10} + 20x^{9} + 16x^{8}}{x + 2}}{x + 1}}{\frac{x - 4}{x + 5}}` | `x^{67} + 5x^{66} - 2x^{9} - 10x^{8}` | `x != -5, -2, -1, 4` |  |  |  |  |
+| 1709 | 69 | Very hard | Negative exponents | `x^{-50} \cdot (4x^{69} + 3x^{56})` | `4x^{19} + 3x^{6}` | `x != 0` |  |  |  |  |
+| 1710 | 69 | Very hard | Collapsing identity | `(x^{35} + 2)(x^{34} - 2) - x^{69}` | `-2x^{35} + 2x^{34} - 4` | `none` |  |  |  |  |
+| 1711 | 69 | Very hard | Constant factor | `\frac{-6x^{69} - 12x^{25}}{3}` | `-2x^{69} - 4x^{25}` | `none` |  |  |  |  |
+| 1712 | 69 | Very hard | Partial cancellation | `\frac{x^{69} - 3x^{68}}{x^{2} - 9}` | `\frac{x^{68}}{x + 3}` | `x != -3, 3` |  |  |  |  |
+| 1713 | 69 | Very hard | Collect like terms | `3x^{53} + 3x^{23} + 4x^{34} + 2x^{69} - x^{69} - x^{34} - 2x^{23} - 2x^{53}` | `x^{69} + x^{53} + 3x^{34} + x^{23}` | `none` |  |  |  |  |
+| 1714 | 69 | Very hard | Difference of powers | `\frac{x^{69} - x}{x^{35} - x}` | `x^{34} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1715 | 69 | Very hard | Multivariate distribution | `a^{4} \cdot b^{13} \cdot (2b^{52} + a^{34})` | `2a^{4} b^{65} + a^{38} b^{13}` | `none` |  |  |  |  |
+| 1716 | 69 | Very hard | Linear factor cancellation | `\frac{x^{69} - 5x^{68}}{x - 5}` | `x^{68}` | `x != 5` |  |  |  |  |
+| 1717 | 69 | Very hard | Quadratic factor cancellation | `\frac{-2x^{69} - 8x^{68} + 24x^{67}}{(x - 2)(x + 6)}` | `-2x^{67}` | `x != -6, 2` |  |  |  |  |
+| 1718 | 69 | Very hard | Polynomial plus fraction | `(2x^{69} + 5x^{43}) + \frac{1}{x + 7}` | `\frac{2x^{70} + 14x^{69} + 5x^{44} + 35x^{43} + 1}{x + 7}` | `x != -7` |  |  |  |  |
+| 1719 | 69 | Very hard | Multivariate monomials | `\frac{6 \cdot a^{15} \cdot b^{25} \cdot z^{29}}{a^{8}}` | `6a^{7} b^{25} z^{29}` | `a != 0` |  |  |  |  |
+| 1720 | 69 | Very hard | Different denominators | `\frac{x^{69} - x^{68}}{x - 1} + \frac{x^{68} + 6x^{67}}{x + 6}` | `x^{68} + x^{67}` | `x != -6, 1` |  |  |  |  |
+| 1721 | 69 | Very hard | Expand product | `(5x^{30} + 3x^{9})(x^{39} - x^{37})` | `5x^{69} - 5x^{67} + 3x^{48} - 3x^{46}` | `none` |  |  |  |  |
+| 1722 | 69 | Very hard | Same denominator | `\frac{x^{69}}{x^{3} - 27} - \frac{27x^{66}}{x^{3} - 27}` | `x^{66}` | `x != 3` |  |  |  |  |
+| 1723 | 69 | Very hard | Sign flip | `\frac{-x^{69} + 4x^{68} + x^{39} - 4x^{38} - 5x^{15} + 20x^{14}}{x - 4}` | `-x^{68} + x^{38} - 5x^{14}` | `x != 4` |  |  |  |  |
+| 1724 | 69 | Very hard | Power of a power | `\frac{(2x^{69})^{1}}{x^{55}}` | `2x^{14}` | `x != 0` |  |  |  |  |
+| 1725 | 69 | Very hard | Common power factor | `\frac{x^{69} - 4x^{2}}{x^{69} + x^{2}}` | `\frac{x^{67} - 4}{x^{67} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1726 | 70 | Very hard | Difference of powers | `\frac{x^{70} - 1}{x^{35} + 1}` | `x^{35} - 1` | `x != -1` |  |  |  |  |
+| 1727 | 70 | Very hard | Monomial division | `\frac{2x^{70} + 6x^{4}}{2x^{4}}` | `x^{66} + 3` | `x != 0` |  |  |  |  |
+| 1728 | 70 | Very hard | Cancels to zero | `\frac{-2x^{70} + 12x^{69}}{x - 6} - (-2x^{69})` | `0` | `x != 6` |  |  |  |  |
+| 1729 | 70 | Very hard | Sign flip | `\frac{-x^{70} + 7x^{69}}{x - 7}` | `-x^{69}` | `x != 7` |  |  |  |  |
+| 1730 | 70 | Very hard | Collapsing identity | `(x^{35} + 3)^{2} - (x^{35} - 3)^{2}` | `12x^{35}` | `none` |  |  |  |  |
+| 1731 | 70 | Very hard | Power of a power | `(-x^{70})^{1} \cdot x^{-5}` | `-x^{65}` | `x != 0` |  |  |  |  |
+| 1732 | 70 | Very hard | Different denominators | `\frac{x^{70} + 3x^{69} + 4x^{53} + 12x^{52}}{x + 3} + \frac{2x^{70} - 14x^{69} - 4x^{51} + 28x^{50}}{x - 7}` | `3x^{69} + 4x^{52} - 4x^{50}` | `x != -3, 7` |  |  |  |  |
+| 1733 | 70 | Very hard | Partial cancellation | `\frac{x^{70} + 7x^{69} + 3x^{57} + 21x^{56}}{x^{2} + 13x + 42}` | `\frac{x^{69} + 3x^{56}}{x + 6}` | `x != -7, -6` |  |  |  |  |
+| 1734 | 70 | Very hard | Perfect square trinomial | `\frac{x^{70} - 2x^{35} + 1}{x^{35} - 1}` | `x^{35} - 1` | `x != 1` |  |  |  |  |
+| 1735 | 70 | Very hard | Same denominator | `\frac{x^{70} + 3x^{67} + 2}{x - 3} - \frac{-x^{70} + 6x^{69} + 3x^{67} + 5x^{55} - 15x^{54} + x^{15} - 3x^{14} + 2}{x - 3}` | `2x^{69} - 5x^{54} - x^{14}` | `x != 3` |  |  |  |  |
+| 1736 | 70 | Very hard | Collect like terms | `6x^{39} + 2 + 2x^{8} - 5x^{39} - 6x^{8} - 5x^{70} + x^{70} - 3x^{42}` | `-4x^{70} - 3x^{42} + x^{39} - 4x^{8} + 2` | `none` |  |  |  |  |
+| 1737 | 70 | Very hard | Triple nested fraction | `\frac{\frac{\frac{2x^{70} + 4x^{69} - 86x^{68} - 280x^{67} - 3x^{39} - 6x^{38} + 129x^{37} + 420x^{36}}{x + 4}}{x + 5}}{\frac{x - 7}{x - 2}}` | `2x^{68} - 4x^{67} - 3x^{37} + 6x^{36}` | `x != -5, -4, 2, 7` |  |  |  |  |
+| 1738 | 70 | Very hard | Expand product | `(-3x^{50})(-3x^{20} - x^{9})` | `9x^{70} + 3x^{59}` | `none` |  |  |  |  |
+| 1739 | 70 | Very hard | Distribute and collect | `3x^{53}(x^{17} + 1) + 4x^{53}` | `3x^{70} + 7x^{53}` | `none` |  |  |  |  |
+| 1740 | 70 | Very hard | Negative exponents | `x^{-35} \cdot (3x^{70} + x^{40})` | `3x^{35} + x^{5}` | `x != 0` |  |  |  |  |
+| 1741 | 70 | Very hard | Multivariate expansion | `(a^{35} + b^{35})(a^{35} - b^{35})` | `a^{70} - b^{70}` | `none` |  |  |  |  |
+| 1742 | 70 | Very hard | Constant factor | `\frac{20x^{70} - 5x^{46}}{5}` | `4x^{70} - x^{46}` | `none` |  |  |  |  |
+| 1743 | 70 | Very hard | Nested fraction | `\frac{\frac{5x^{70} - 10x^{69}}{x + 7}}{\frac{x - 2}{x + 7}}` | `5x^{69}` | `x != -7, 2` |  |  |  |  |
+| 1744 | 70 | Very hard | Linear factor cancellation | `\frac{x^{70} - 6x^{69} - x^{6} + 6x^{5}}{x - 6}` | `x^{69} - x^{5}` | `x != 6` |  |  |  |  |
+| 1745 | 70 | Very hard | Polynomial plus fraction | `(-2x^{70} + 4x^{7}) + \frac{1}{x - 2}` | `\frac{-2x^{71} + 4x^{70} + 4x^{8} - 8x^{7} + 1}{x - 2}` | `x != 2` |  |  |  |  |
+| 1746 | 70 | Very hard | Already irreducible | `\frac{x^{70} + 3}{x^{70}}` | `\frac{x^{70} + 3}{x^{70}}` | `x != 0` |  |  |  |  |
+| 1747 | 70 | Very hard | Common power factor | `\frac{x^{70} - 5x^{44}}{x^{70} - x^{44}}` | `\frac{x^{26} - 5}{x^{26} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1748 | 70 | Very hard | Quadratic factor cancellation | `\frac{-4x^{70} - 24x^{69} + 28x^{68}}{x^{2} + 6x - 7}` | `-4x^{68}` | `x != -7, 1` |  |  |  |  |
+| 1749 | 70 | Very hard | Multivariate monomials | `\frac{24 \cdot a^{62} \cdot b^{4} \cdot z^{4}}{4 \cdot a^{24} \cdot b^{3}}` | `6a^{38} b z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 1750 | 70 | Very hard | Reference-type rational | `\frac{2x^{70} - 8x^{69}}{x^{3} - 5x^{2} + 4x}` | `\frac{2x^{68}}{x - 1}` | `x != 0, 1, 4` |  |  |  |  |
+| 1751 | 71 | Very hard | Linear factor cancellation | `\frac{-4x^{71} + 4x^{70} + 2x^{48} - 2x^{47} - 2x^{45} + 2x^{44}}{x - 1}` | `-4x^{70} + 2x^{47} - 2x^{44}` | `x != 1` |  |  |  |  |
+| 1752 | 71 | Very hard | Same denominator | `\frac{x^{71} + x^{57} - x^{52}}{x - 5} - \frac{4x^{71} - 15x^{70} + x^{57} + 4x^{53} - 21x^{52} + 4x^{30} - 20x^{29}}{x - 5}` | `-3x^{70} - 4x^{52} - 4x^{29}` | `x != 5` |  |  |  |  |
+| 1753 | 71 | Very hard | Expand product | `(x^{66})(x^{5} - 3x^{4})` | `x^{71} - 3x^{70}` | `none` |  |  |  |  |
+| 1754 | 71 | Very hard | Sign flip | `\frac{3x^{71} - 6x^{70}}{x - 2}` | `3x^{70}` | `x != 2` |  |  |  |  |
+| 1755 | 71 | Very hard | Multivariate monomials | `\frac{9 \cdot a^{42} \cdot b^{26} \cdot z^{3}}{3 \cdot a^{28} \cdot b}` | `3a^{14} b^{25} z^{3}` | `a != 0, b != 0` |  |  |  |  |
+| 1756 | 71 | Very hard | Collect like terms | `3x^{71} + 3x^{47} - 3x^{47}` | `3x^{71}` | `none` |  |  |  |  |
+| 1757 | 71 | Very hard | Perfect square trinomial | `\frac{x^{71} - 2x^{36} + x}{x^{35} - 1}` | `x^{36} - x` | `x != 1` |  |  |  |  |
+| 1758 | 71 | Very hard | Multivariate distribution | `a^{34} \cdot b^{6} \cdot (-3b^{31} + a^{12})` | `-3a^{34} b^{37} + a^{46} b^{6}` | `none` |  |  |  |  |
+| 1759 | 71 | Very hard | Negative exponents | `x^{-37} \cdot (4x^{71} - 5x^{45})` | `4x^{34} - 5x^{8}` | `x != 0` |  |  |  |  |
+| 1760 | 71 | Very hard | Constant factor | `\frac{4x^{71} + 16x^{50} + 20x^{26}}{4}` | `x^{71} + 4x^{50} + 5x^{26}` | `none` |  |  |  |  |
+| 1761 | 71 | Very hard | Already irreducible | `\frac{x^{71} + 5}{x^{71}}` | `\frac{x^{71} + 5}{x^{71}}` | `x != 0` |  |  |  |  |
+| 1762 | 71 | Very hard | Polynomial plus fraction | `(x^{71} + 4x^{33}) + \frac{2}{x - 7}` | `\frac{x^{72} - 7x^{71} + 4x^{34} - 28x^{33} + 2}{x - 7}` | `x != 7` |  |  |  |  |
+| 1763 | 71 | Very hard | Collapsing identity | `(x^{36} - 3)(x^{35} + 3) - x^{71}` | `3x^{36} - 3x^{35} - 9` | `none` |  |  |  |  |
+| 1764 | 71 | Very hard | Distribute and collect | `4x^{26}(x^{45} + 2) + x^{26}` | `4x^{71} + 9x^{26}` | `none` |  |  |  |  |
+| 1765 | 71 | Very hard | Power of a power | `\frac{(x^{71})^{1}}{x^{22}}` | `x^{49}` | `x != 0` |  |  |  |  |
+| 1766 | 71 | Very hard | Quadratic factor cancellation | `\frac{x^{71} + 2x^{70} - 35x^{69} + 2x^{67} + 4x^{66} - 70x^{65} + x^{13} + 2x^{12} - 35x^{11}}{(x - 5)(x + 7)}` | `x^{69} + 2x^{65} + x^{11}` | `x != -7, 5` |  |  |  |  |
+| 1767 | 71 | Very hard | Reference-type rational | `\frac{x^{71} - 49x^{69} - x^{48} + 49x^{46} - 5x^{32} + 245x^{30}}{x^{3} + x^{2} - 49x - 49}` | `\frac{x^{69} - x^{46} - 5x^{30}}{x + 1}` | `x != -7, -1, 7` |  |  |  |  |
+| 1768 | 71 | Very hard | Cancels to zero | `\frac{x^{71} + 7x^{70} + x^{38} + 7x^{37} + x^{7} + 7x^{6}}{x + 7} - (x^{70} + x^{37} + x^{6})` | `0` | `x != -7` |  |  |  |  |
+| 1769 | 71 | Very hard | Nested fraction | `\frac{\frac{x^{71} - 4x^{70}}{x + 6}}{\frac{x - 4}{x + 6}}` | `x^{70}` | `x != -6, 4` |  |  |  |  |
+| 1770 | 71 | Very hard | Different denominators | `\frac{x^{71} - x^{70} - 3x^{50} + 3x^{49}}{x - 1} + \frac{x^{71} + x^{70} + x^{38} + x^{37}}{x + 1}` | `2x^{70} - 3x^{49} + x^{37}` | `x != -1, 1` |  |  |  |  |
+| 1771 | 71 | Very hard | Triple nested fraction | `\frac{\frac{\frac{5x^{71} + 50x^{70} + 120x^{69} - x^{14} - 10x^{13} - 24x^{12}}{x}}{x + 6}}{\frac{x + 4}{x + 7}}` | `5x^{69} + 35x^{68} - x^{12} - 7x^{11}` | `x != -7, -6, -4, 0` |  |  |  |  |
+| 1772 | 71 | Very hard | Monomial division | `\frac{5x^{71} + 20x^{70} + 15x^{5}}{5x^{5}}` | `x^{66} + 4x^{65} + 3` | `x != 0` |  |  |  |  |
+| 1773 | 71 | Very hard | Partial cancellation | `\frac{x^{71} - 6x^{70} + 4x^{51} - 24x^{50} + 3x^{6} - 18x^{5}}{x^{2} - 13x + 42}` | `\frac{x^{70} + 4x^{50} + 3x^{5}}{x - 7}` | `x != 6, 7` |  |  |  |  |
+| 1774 | 71 | Very hard | Difference of powers | `\frac{x^{71} - x}{x^{36} - x}` | `x^{35} + 1` | `x != 0, 1` |  |  |  |  |
+| 1775 | 71 | Very hard | Linear factor cancellation | `\frac{x^{71} - 7x^{70} - 4x^{31} + 28x^{30}}{x - 7}` | `x^{70} - 4x^{30}` | `x != 7` |  |  |  |  |
+| 1776 | 72 | Very hard | Collect like terms | `6x^{50} - 5x^{72} - 10x^{45} - 2x^{50} + 5x^{45}` | `-5x^{72} + 4x^{50} - 5x^{45}` | `none` |  |  |  |  |
+| 1777 | 72 | Very hard | Common power factor | `\frac{x^{72} - 4x^{69}}{x^{72} - x^{69}}` | `\frac{x^{3} - 4}{x^{3} - 1}` | `x != 0, 1` |  |  |  |  |
+| 1778 | 72 | Very hard | Cancels to zero | `\frac{x^{72} - 7x^{71} - 5x^{43} + 35x^{42} - 2x^{13} + 14x^{12}}{x - 7} - (x^{71} - 5x^{42} - 2x^{12})` | `0` | `x != 7` |  |  |  |  |
+| 1779 | 72 | Very hard | Multivariate expansion | `(a^{36} + b^{36})(a^{36} - b^{36})` | `a^{72} - b^{72}` | `none` |  |  |  |  |
+| 1780 | 72 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{72} - 7x^{71} + 36x^{69} + 3x^{11} - 21x^{10} + 108x^{8}}{x + 2}}{x - 6}}{\frac{x - 3}{x - 4}}` | `x^{70} - 4x^{69} + 3x^{9} - 12x^{8}` | `x != -2, 3, 4, 6` |  |  |  |  |
+| 1781 | 72 | Very hard | Perfect square trinomial | `\frac{x^{72} + 2x^{36} + 1}{x^{36} + 1}` | `x^{36} + 1` | `x^36 + 1 != 0` |  |  |  |  |
+| 1782 | 72 | Very hard | Already irreducible | `\frac{x^{72} + 4}{x^{72} + 1}` | `\frac{x^{72} + 4}{x^{72} + 1}` | `x^72 + 1 != 0` |  |  |  |  |
+| 1783 | 72 | Very hard | Same denominator | `\frac{x^{72}}{x + 5} - \frac{-x^{72} - 10x^{71} + 3x^{52} + 15x^{51}}{x + 5}` | `2x^{71} - 3x^{51}` | `x != -5` |  |  |  |  |
+| 1784 | 72 | Very hard | Quadratic factor cancellation | `\frac{2x^{72} - 98x^{70} + 3x^{69} - 147x^{67} + 5x^{62} - 245x^{60}}{(x + 7)(x - 7)}` | `2x^{70} + 3x^{67} + 5x^{60}` | `x != -7, 7` |  |  |  |  |
+| 1785 | 72 | Very hard | Reference-type rational | `\frac{-2x^{72} - 16x^{71} - 14x^{70} - 2x^{49} - 16x^{48} - 14x^{47} + 2x^{36} + 16x^{35} + 14x^{34}}{x^{3} + 6x^{2} - 9x - 14}` | `\frac{-2x^{70} - 2x^{47} + 2x^{34}}{x - 2}` | `x != -7, -1, 2` |  |  |  |  |
+| 1786 | 72 | Very hard | Distribute and collect | `2x^{24}(x^{48} + 4) + 2x^{24}` | `2x^{72} + 10x^{24}` | `none` |  |  |  |  |
+| 1787 | 72 | Very hard | Expand product | `(x^{39} + x^{36})(x^{33})` | `x^{72} + x^{69}` | `none` |  |  |  |  |
+| 1788 | 72 | Very hard | Monomial division | `\frac{-4x^{72} - 8x^{65} + 2x^{49} - 2x^{6}}{2x^{6}}` | `-2x^{66} - 4x^{59} + x^{43} - 1` | `x != 0` |  |  |  |  |
+| 1789 | 72 | Very hard | Constant factor | `\frac{15x^{73} - 75x^{72} + 45x^{67} - 225x^{66}}{3x - 15}` | `5x^{72} + 15x^{66}` | `x != 5` |  |  |  |  |
+| 1790 | 72 | Very hard | Power of a power | `(-x^{24})^{3} \cdot x^{-3}` | `-x^{69}` | `x != 0` |  |  |  |  |
+| 1791 | 72 | Very hard | Sign flip | `\frac{5x^{72} - 35x^{71} + 2x^{38} - 14x^{37}}{x - 7}` | `5x^{71} + 2x^{37}` | `x != 7` |  |  |  |  |
+| 1792 | 72 | Very hard | Partial cancellation | `\frac{-5x^{72} - 25x^{71}}{x^{2} - 2x - 35}` | `\frac{-5x^{71}}{x - 7}` | `x != -5, 7` |  |  |  |  |
+| 1793 | 72 | Very hard | Negative exponents | `x^{-24} \cdot (-4x^{72} + 2x^{68})` | `-4x^{48} + 2x^{44}` | `x != 0` |  |  |  |  |
+| 1794 | 72 | Very hard | Different denominators | `\frac{x^{72} - 3x^{71} + x^{61} - 3x^{60}}{x - 3} + \frac{x^{72} - 7x^{71}}{x - 7}` | `2x^{71} + x^{60}` | `x != 3, 7` |  |  |  |  |
+| 1795 | 72 | Very hard | Difference of squares chain | `\frac{x^{72} - 1}{x^{36} - 1}` | `x^{36} + 1` | `x != -1, 1` |  |  |  |  |
+| 1796 | 72 | Very hard | Multivariate monomials | `\frac{8 \cdot a^{33} \cdot b^{36} \cdot z^{3}}{4a^{24}}` | `2a^{9} b^{36} z^{3}` | `a != 0` |  |  |  |  |
+| 1797 | 72 | Very hard | Polynomial plus fraction | `(x^{72} - 3x^{51}) - \frac{2}{x}` | `\frac{x^{73} - 3x^{52} - 2}{x}` | `x != 0` |  |  |  |  |
+| 1798 | 72 | Very hard | Nested fraction | `\frac{\frac{-5x^{72} + 30x^{71} - 3x^{6} + 18x^{5} - 2x + 12}{x + 6}}{\frac{x - 6}{x + 6}}` | `-5x^{71} - 3x^{5} - 2` | `x != -6, 6` |  |  |  |  |
+| 1799 | 72 | Very hard | Linear factor cancellation | `\frac{x^{72} - 5x^{71}}{x - 5}` | `x^{71}` | `x != 5` |  |  |  |  |
+| 1800 | 72 | Very hard | Difference of powers | `\frac{x^{72} - 1}{x^{36} + 1}` | `x^{36} - 1` | `x^36 + 1 != 0` |  |  |  |  |
+| 1801 | 73 | Very hard | Difference of powers | `\frac{x^{73} - x}{x^{37} - x}` | `x^{36} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1802 | 73 | Very hard | Linear factor cancellation | `\frac{5x^{73} + 35x^{72} - x^{33} - 7x^{32}}{x + 7}` | `5x^{72} - x^{32}` | `x != -7` |  |  |  |  |
+| 1803 | 73 | Very hard | Different denominators | `\frac{x^{73} - 2x^{72}}{x - 2} + \frac{x^{71} - 3x^{70} - 3x^{31} + 9x^{30}}{x - 3}` | `x^{72} + x^{70} - 3x^{30}` | `x != 2, 3` |  |  |  |  |
+| 1804 | 73 | Very hard | Quadratic factor cancellation | `\frac{4x^{73} + 8x^{72} - 32x^{71}}{(x - 2)(x + 4)}` | `4x^{71}` | `x != -4, 2` |  |  |  |  |
+| 1805 | 73 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-2x^{73} - 16x^{72} + 46x^{71} + 420x^{70}}{x + 7}}{x - 5}}{\frac{x + 6}{x + 4}}` | `-2x^{71} - 8x^{70}` | `x != -7, -6, -4, 5` |  |  |  |  |
+| 1806 | 73 | Very hard | Negative exponents | `x^{-39} \cdot (-5x^{73})` | `-5x^{34}` | `x != 0` |  |  |  |  |
+| 1807 | 73 | Very hard | Nested fraction | `\frac{\frac{x^{73} - 3x^{72} - 3x^{56} + 9x^{55} - 2x^{12} + 6x^{11}}{x - 1}}{\frac{x - 3}{x - 1}}` | `x^{72} - 3x^{55} - 2x^{11}` | `x != 1, 3` |  |  |  |  |
+| 1808 | 73 | Very hard | Already irreducible | `\frac{x^{73} + 4}{x^{73}}` | `\frac{x^{73} + 4}{x^{73}}` | `x != 0` |  |  |  |  |
+| 1809 | 73 | Very hard | Multivariate monomials | `\frac{15 \cdot a^{11} \cdot b^{46} \cdot z^{16}}{3b^{7}}` | `5a^{11} b^{39} z^{16}` | `b != 0` |  |  |  |  |
+| 1810 | 73 | Very hard | Power of a power | `\frac{(3x^{73})^{1}}{x^{17}}` | `3x^{56}` | `x != 0` |  |  |  |  |
+| 1811 | 73 | Very hard | Cancels to zero | `\frac{x^{73} - 3x^{72}}{x - 3} - x^{72}` | `0` | `x != 3` |  |  |  |  |
+| 1812 | 73 | Very hard | Partial cancellation | `\frac{x^{73} - 3x^{72} - x^{18} + 3x^{17} + 5x^{8} - 15x^{7}}{x^{2} - 4x + 3}` | `\frac{x^{72} - x^{17} + 5x^{7}}{x - 1}` | `x != 1, 3` |  |  |  |  |
+| 1813 | 73 | Very hard | Sign flip | `\frac{-x^{73} - 7x^{72} + 3x^{42} + 21x^{41} - 2x^{39} - 14x^{38}}{x + 7}` | `-x^{72} + 3x^{41} - 2x^{38}` | `x != -7` |  |  |  |  |
+| 1814 | 73 | Very hard | Multivariate distribution | `a^{57} \cdot b^{4} \cdot (b^{12} + a^{5})` | `a^{57} b^{16} + a^{62} b^{4}` | `none` |  |  |  |  |
+| 1815 | 73 | Very hard | Monomial division | `\frac{5x^{73} - 15x^{34} - 20x^{21}}{5x^{21}}` | `x^{52} - 3x^{13} - 4` | `x != 0` |  |  |  |  |
+| 1816 | 73 | Very hard | Collapsing identity | `(x^{37} + 3)(x^{36} - 3) - x^{73}` | `-3x^{37} + 3x^{36} - 9` | `none` |  |  |  |  |
+| 1817 | 73 | Very hard | Perfect square trinomial | `\frac{x^{73} - 2x^{37} + x}{x^{36} - 1}` | `x^{37} - x` | `x != -1, 1` |  |  |  |  |
+| 1818 | 73 | Very hard | Same denominator | `\frac{x^{73} + 3x^{69}}{x^{2} - 4} - \frac{-4x^{73} + 20x^{71} + 3x^{69} - 4x^{58} + 16x^{56} - 2x^{6} + 8x^{4}}{x^{2} - 4}` | `5x^{71} + 4x^{56} + 2x^{4}` | `x != -2, 2` |  |  |  |  |
+| 1819 | 73 | Very hard | Expand product | `(x^{30} + 3x^{22})(-3x^{43} - 2x^{29})` | `-3x^{73} - 9x^{65} - 2x^{59} - 6x^{51}` | `none` |  |  |  |  |
+| 1820 | 73 | Very hard | Polynomial plus fraction | `-x^{73} - \frac{5}{x + 1}` | `\frac{-x^{74} - x^{73} - 5}{x + 1}` | `x != -1` |  |  |  |  |
+| 1821 | 73 | Very hard | Collect like terms | `3x^{73} - 2x^{73}` | `x^{73}` | `none` |  |  |  |  |
+| 1822 | 73 | Very hard | Constant factor | `\frac{18x^{74} - 90x^{73} - 24x^{16} + 120x^{15} + 18x^{8} - 90x^{7}}{x - 5}` | `18x^{73} - 24x^{15} + 18x^{7}` | `x != 5` |  |  |  |  |
+| 1823 | 73 | Very hard | Common power factor | `\frac{x^{73} - 3x^{64}}{x^{73} + x^{64}}` | `\frac{x^{9} - 3}{x^{9} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1824 | 73 | Very hard | Reference-type rational | `\frac{x^{73} - 3x^{72} - 4x^{71} + x^{58} - 3x^{57} - 4x^{56} - 3x^{52} + 9x^{51} + 12x^{50}}{x^{3} - 10x^{2} + 17x + 28}` | `\frac{x^{71} + x^{56} - 3x^{50}}{x - 7}` | `x != -1, 4, 7` |  |  |  |  |
+| 1825 | 73 | Very hard | Linear factor cancellation | `\frac{-3x^{73} + 15x^{72} + 5x^{46} - 25x^{45}}{x - 5}` | `-3x^{72} + 5x^{45}` | `x != 5` |  |  |  |  |
+| 1826 | 74 | Very hard | Different denominators | `\frac{5x^{74} - 35x^{73} + 3x^{44} - 21x^{43}}{x - 7} + \frac{-4x^{72} - 16x^{71}}{x + 4}` | `5x^{73} - 4x^{71} + 3x^{43}` | `x != -4, 7` |  |  |  |  |
+| 1827 | 74 | Very hard | Negative exponents | `x^{-69} \cdot (-3x^{74} + 2x^{71})` | `-3x^{5} + 2x^{2}` | `x != 0` |  |  |  |  |
+| 1828 | 74 | Very hard | Reference-type rational | `\frac{x^{74} - 5x^{73} - 2x^{58} + 10x^{57} - 3x^{13} + 15x^{12}}{x^{3} - 6x^{2} + 5x}` | `\frac{x^{72} - 2x^{56} - 3x^{11}}{x - 1}` | `x != 0, 1, 5` |  |  |  |  |
+| 1829 | 74 | Very hard | Polynomial plus fraction | `x^{74} - \frac{1}{x - 3}` | `\frac{x^{75} - 3x^{74} - 1}{x - 3}` | `x != 3` |  |  |  |  |
+| 1830 | 74 | Very hard | Linear factor cancellation | `\frac{x^{74} - 3x^{73} - 4x^{26} + 12x^{25} + 4x^{14} - 12x^{13}}{x - 3}` | `x^{73} - 4x^{25} + 4x^{13}` | `x != 3` |  |  |  |  |
+| 1831 | 74 | Very hard | Perfect square trinomial | `\frac{x^{74} - 2x^{37} + 1}{x^{37} - 1}` | `x^{37} - 1` | `x != 1` |  |  |  |  |
+| 1832 | 74 | Very hard | Quadratic factor cancellation | `\frac{5x^{74} + 30x^{73} - 35x^{72}}{(x - 1)(x + 7)}` | `5x^{72}` | `x != -7, 1` |  |  |  |  |
+| 1833 | 74 | Very hard | Triple nested fraction | `\frac{\frac{\frac{3x^{74} + 30x^{73} + 72x^{72} - 2x^{54} - 20x^{53} - 48x^{52}}{x + 4}}{x + 6}}{\frac{x}{x + 5}}` | `3x^{72} + 15x^{71} - 2x^{52} - 10x^{51}` | `x != -6, -5, -4, 0` |  |  |  |  |
+| 1834 | 74 | Very hard | Distribute and collect | `4x^{68}(x^{6} + 3) - 4x^{68}` | `4x^{74} + 8x^{68}` | `none` |  |  |  |  |
+| 1835 | 74 | Very hard | Difference of powers | `\frac{x^{74} - 1}{x^{37} + 1}` | `x^{37} - 1` | `x != -1` |  |  |  |  |
+| 1836 | 74 | Very hard | Cancels to zero | `\frac{4x^{74} + 20x^{73} - 5x^{50} - 25x^{49} - 5x^{29} - 25x^{28}}{x + 5} - (4x^{73} - 5x^{49} - 5x^{28})` | `0` | `x != -5` |  |  |  |  |
+| 1837 | 74 | Very hard | Multivariate expansion | `(a^{37} + b^{37})(a^{37} - b^{37})` | `a^{74} - b^{74}` | `none` |  |  |  |  |
+| 1838 | 74 | Very hard | Multivariate monomials | `\frac{18 \cdot a^{70} \cdot b^{4}}{6a^{52}}` | `3a^{18} b^{4}` | `a != 0` |  |  |  |  |
+| 1839 | 74 | Very hard | Collect like terms | `4x^{27} - 5x^{74} + 6x^{74} - 4x^{27} + 3x^{24}` | `x^{74} + 3x^{24}` | `none` |  |  |  |  |
+| 1840 | 74 | Very hard | Expand product | `(x^{42})(x^{32} - 2x^{12})` | `x^{74} - 2x^{54}` | `none` |  |  |  |  |
+| 1841 | 74 | Very hard | Monomial division | `\frac{4x^{74} - 16x^{70} - 16x^{65}}{4x^{65}}` | `x^{9} - 4x^{5} - 4` | `x != 0` |  |  |  |  |
+| 1842 | 74 | Very hard | Collapsing identity | `(x^{37} - 2)^{2} - (x^{37} + 2)^{2}` | `-8x^{37}` | `none` |  |  |  |  |
+| 1843 | 74 | Very hard | Power of a power | `\frac{(x^{74})^{1}}{x^{34}}` | `x^{40}` | `x != 0` |  |  |  |  |
+| 1844 | 74 | Very hard | Common power factor | `\frac{x^{74} - 2x^{6}}{x^{74} + x^{6}}` | `\frac{x^{68} - 2}{x^{68} + 1}` | `x != 0, x^68 + 1 != 0` |  |  |  |  |
+| 1845 | 74 | Very hard | Sign flip | `\frac{-2x^{74} + 14x^{73} + 5x^{57} - 35x^{56} + 5x^{7} - 35x^{6}}{x - 7}` | `-2x^{73} + 5x^{56} + 5x^{6}` | `x != 7` |  |  |  |  |
+| 1846 | 74 | Very hard | Constant factor | `\frac{6x^{74}}{6}` | `x^{74}` | `none` |  |  |  |  |
+| 1847 | 74 | Very hard | Same denominator | `\frac{x^{74} + 4x^{28}}{x + 2} + \frac{2x^{73} + 3x^{48} + 6x^{47} - 4x^{28}}{x + 2}` | `x^{73} + 3x^{47}` | `x != -2` |  |  |  |  |
+| 1848 | 74 | Very hard | Partial cancellation | `\frac{x^{74} - 5x^{73}}{x^{2} - 2x - 15}` | `\frac{x^{73}}{x + 3}` | `x != -3, 5` |  |  |  |  |
+| 1849 | 74 | Very hard | Nested fraction | `\frac{\frac{4x^{74} + 12x^{73}}{x - 5}}{\frac{x + 3}{x - 5}}` | `4x^{73}` | `x != -3, 5` |  |  |  |  |
+| 1850 | 74 | Very hard | Different denominators | `\frac{4x^{74} - 20x^{73}}{x - 5} + \frac{2x^{74} + 8x^{73}}{x + 4}` | `6x^{73}` | `x != -4, 5` |  |  |  |  |
+| 1851 | 75 | Very hard | Already irreducible | `\frac{x^{75} + 5}{x^{75}}` | `\frac{x^{75} + 5}{x^{75}}` | `x != 0` |  |  |  |  |
+| 1852 | 75 | Very hard | Perfect square trinomial | `\frac{x^{75} - 2x^{38} + x}{x^{37} - 1}` | `x^{38} - x` | `x != 1` |  |  |  |  |
+| 1853 | 75 | Very hard | Expand product | `(4x^{3} - 3x)(3x^{72})` | `12x^{75} - 9x^{73}` | `none` |  |  |  |  |
+| 1854 | 75 | Very hard | Multivariate monomials | `\frac{-16 \cdot a^{6} \cdot b^{26} \cdot z^{43}}{4 \cdot a^{3} \cdot b^{20}}` | `-4a^{3} b^{6} z^{43}` | `a != 0, b != 0` |  |  |  |  |
+| 1855 | 75 | Very hard | Nested fraction | `\frac{\frac{x^{75} + 5x^{74}}{x + 3}}{\frac{x + 5}{x + 3}}` | `x^{74}` | `x != -5, -3` |  |  |  |  |
+| 1856 | 75 | Very hard | Partial cancellation | `\frac{-2x^{75} + 6x^{74} + 2x^{64} - 6x^{63}}{x^{2} - 2x - 3}` | `\frac{-2x^{74} + 2x^{63}}{x + 1}` | `x != -1, 3` |  |  |  |  |
+| 1857 | 75 | Very hard | Constant factor | `\frac{4x^{75}}{4}` | `x^{75}` | `none` |  |  |  |  |
+| 1858 | 75 | Very hard | Monomial division | `\frac{-2x^{75} - 2x^{70} - 6x^{13}}{2x^{13}}` | `-x^{62} - x^{57} - 3` | `x != 0` |  |  |  |  |
+| 1859 | 75 | Very hard | Cancels to zero | `\frac{x^{75} + x^{74} + x^{70} + x^{69} + 4x^{27} + 4x^{26}}{x + 1} - (x^{74} + x^{69} + 4x^{26})` | `0` | `x != -1` |  |  |  |  |
+| 1860 | 75 | Very hard | Collect like terms | `-4x^{75} + x^{70} + 4x^{70} + 5x^{75}` | `x^{75} + 5x^{70}` | `none` |  |  |  |  |
+| 1861 | 75 | Very hard | Multivariate distribution | `b^{19} \cdot (-b^{56} + a^{2})` | `-b^{75} + a^{2} b^{19}` | `none` |  |  |  |  |
+| 1862 | 75 | Very hard | Polynomial plus fraction | `x^{75} - \frac{4}{x - 7}` | `\frac{x^{76} - 7x^{75} - 4}{x - 7}` | `x != 7` |  |  |  |  |
+| 1863 | 75 | Very hard | Different denominators | `\frac{-2x^{75} - 14x^{74} + x^{61} + 7x^{60}}{x + 7} + \frac{-5x^{73} + 30x^{72}}{x - 6}` | `-2x^{74} - 5x^{72} + x^{60}` | `x != -7, 6` |  |  |  |  |
+| 1864 | 75 | Very hard | Negative exponents | `x^{-12} \cdot (3x^{75})` | `3x^{63}` | `x != 0` |  |  |  |  |
+| 1865 | 75 | Very hard | Linear factor cancellation | `\frac{x^{75} - 6x^{74} + 3x^{33} - 18x^{32} - x^{28} + 6x^{27}}{x - 6}` | `x^{74} + 3x^{32} - x^{27}` | `x != 6` |  |  |  |  |
+| 1866 | 75 | Very hard | Distribute and collect | `2x^{43}(x^{32} - 1) - 5x^{43}` | `2x^{75} - 7x^{43}` | `none` |  |  |  |  |
+| 1867 | 75 | Very hard | Quadratic factor cancellation | `\frac{x^{75} - 4x^{74} - 5x^{73} + 4x^{65} - 16x^{64} - 20x^{63} + 2x^{25} - 8x^{24} - 10x^{23}}{(x + 1)(x - 5)}` | `x^{73} + 4x^{63} + 2x^{23}` | `x != -1, 5` |  |  |  |  |
+| 1868 | 75 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{75} + x^{74} - 24x^{73} + 36x^{72} + x^{38} + x^{37} - 24x^{36} + 36x^{35}}{x - 2}}{x + 6}}{\frac{x - 3}{x + 1}}` | `x^{73} + x^{72} + x^{36} + x^{35}` | `x != -6, -1, 2, 3` |  |  |  |  |
+| 1869 | 75 | Very hard | Sign flip | `\frac{-x^{75} + 2x^{74}}{x - 2}` | `-x^{74}` | `x != 2` |  |  |  |  |
+| 1870 | 75 | Very hard | Difference of powers | `\frac{x^{75} - x}{x^{38} - x}` | `x^{37} + 1` | `x != 0, 1` |  |  |  |  |
+| 1871 | 75 | Very hard | Collapsing identity | `(x^{38} - 5)(x^{37} + 5) - x^{75}` | `5x^{38} - 5x^{37} - 25` | `none` |  |  |  |  |
+| 1872 | 75 | Very hard | Same denominator | `\frac{x^{75}}{x - 2} - \frac{4x^{75} - 6x^{74} - 3x^{65} + 6x^{64}}{x - 2}` | `-3x^{74} + 3x^{64}` | `x != 2` |  |  |  |  |
+| 1873 | 75 | Very hard | Reference-type rational | `\frac{x^{75} + x^{74} - 12x^{73} - 4x^{38} - 4x^{37} + 48x^{36}}{x^{3} + 4x^{2} - 9x - 36}` | `\frac{x^{73} - 4x^{36}}{x + 3}` | `x != -4, -3, 3` |  |  |  |  |
+| 1874 | 75 | Very hard | Power of a power | `\frac{(x^{15})^{5}}{x^{12}}` | `x^{63}` | `x != 0` |  |  |  |  |
+| 1875 | 75 | Very hard | Already irreducible | `\frac{x^{75} + 4}{x^{75} + 1}` | `\frac{x^{75} + 4}{x^{75} + 1}` | `x != -1` |  |  |  |  |
+| 1876 | 76 | Very hard | Different denominators | `\frac{x^{76} - 2x^{75}}{x - 2} + \frac{x^{75} - x^{74}}{x - 1}` | `x^{75} + x^{74}` | `x != 1, 2` |  |  |  |  |
+| 1877 | 76 | Very hard | Already irreducible | `\frac{x^{76} - 4}{x^{76}}` | `\frac{x^{76} - 4}{x^{76}}` | `x != 0` |  |  |  |  |
+| 1878 | 76 | Very hard | Difference of squares chain | `\frac{x^{76} - 1}{x^{38} - 1}` | `x^{38} + 1` | `x != -1, 1` |  |  |  |  |
+| 1879 | 76 | Very hard | Quadratic factor cancellation | `\frac{x^{76} - 4x^{74}}{(x - 2)(x + 2)}` | `x^{74}` | `x != -2, 2` |  |  |  |  |
+| 1880 | 76 | Very hard | Nested fraction | `\frac{\frac{-4x^{76} - 4x^{75}}{x - 4}}{\frac{x + 1}{x - 4}}` | `-4x^{75}` | `x != -1, 4` |  |  |  |  |
+| 1881 | 76 | Very hard | Multivariate expansion | `(a^{38} + b^{38})(a^{38} - b^{38})` | `a^{76} - b^{76}` | `none` |  |  |  |  |
+| 1882 | 76 | Very hard | Partial cancellation | `\frac{x^{76} - 7x^{75} - 2x^{69} + 14x^{68}}{x^{2} - 49}` | `\frac{x^{75} - 2x^{68}}{x + 7}` | `x != -7, 7` |  |  |  |  |
+| 1883 | 76 | Very hard | Expand product | `(-3x^{51})(x^{25})` | `-3x^{76}` | `none` |  |  |  |  |
+| 1884 | 76 | Very hard | Power of a power | `(3x^{38})^{2} \cdot x^{-36}` | `9x^{40}` | `x != 0` |  |  |  |  |
+| 1885 | 76 | Very hard | Collapsing identity | `(x^{38} + 3)^{2} - (x^{38} - 3)^{2}` | `12x^{38}` | `none` |  |  |  |  |
+| 1886 | 76 | Very hard | Same denominator | `\frac{4x^{76}}{x + 4} - \frac{3x^{76} - 4x^{75} + 5x^{69} + 20x^{68} - 5x^{19} - 20x^{18}}{x + 4}` | `x^{75} - 5x^{68} + 5x^{18}` | `x != -4` |  |  |  |  |
+| 1887 | 76 | Very hard | Constant factor | `\frac{4x^{76} + 8x^{49} + 4x^{21}}{4}` | `x^{76} + 2x^{49} + x^{21}` | `none` |  |  |  |  |
+| 1888 | 76 | Very hard | Negative exponents | `x^{-15} \cdot (5x^{76} - x^{65})` | `5x^{61} - x^{50}` | `x != 0` |  |  |  |  |
+| 1889 | 76 | Very hard | Cancels to zero | `\frac{x^{76} + 2x^{75} + x^{41} + 2x^{40}}{x + 2} - (x^{75} + x^{40})` | `0` | `x != -2` |  |  |  |  |
+| 1890 | 76 | Very hard | Multivariate monomials | `\frac{5 \cdot a^{24} \cdot b^{48} \cdot z^{4}}{a^{18} \cdot b^{17}}` | `5a^{6} b^{31} z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 1891 | 76 | Very hard | Reference-type rational | `\frac{3x^{76} + 15x^{75} - 18x^{74} + 4x^{69} + 20x^{68} - 24x^{67}}{x^{3} + 7x^{2} + 4x - 12}` | `\frac{3x^{74} + 4x^{67}}{x + 2}` | `x != -6, -2, 1` |  |  |  |  |
+| 1892 | 76 | Very hard | Linear factor cancellation | `\frac{-5x^{76} + 30x^{75}}{x - 6}` | `-5x^{75}` | `x != 6` |  |  |  |  |
+| 1893 | 76 | Very hard | Perfect square trinomial | `\frac{x^{76} - 2x^{38} + 1}{x^{38} - 1}` | `x^{38} - 1` | `x != -1, 1` |  |  |  |  |
+| 1894 | 76 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-5x^{76} - 30x^{75} + 65x^{74} + 210x^{73} - 2x^{65} - 12x^{64} + 26x^{63} + 84x^{62}}{x + 2}}{x - 3}}{\frac{x + 7}{x - 4}}` | `-5x^{74} + 20x^{73} - 2x^{63} + 8x^{62}` | `x != -7, -2, 3, 4` |  |  |  |  |
+| 1895 | 76 | Very hard | Polynomial plus fraction | `-x^{76} + \frac{4}{x - 3}` | `\frac{-x^{77} + 3x^{76} + 4}{x - 3}` | `x != 3` |  |  |  |  |
+| 1896 | 76 | Very hard | Collect like terms | `-4x^{76} + 5x^{70} + 5x^{76} - x^{62} + 3x^{10} - 6x^{55} - x^{70} - 5x^{6} + 11x^{55} + x^{62} + 7x^{6} - 6x^{10}` | `x^{76} + 4x^{70} + 5x^{55} - 3x^{10} + 2x^{6}` | `none` |  |  |  |  |
+| 1897 | 76 | Very hard | Sign flip | `\frac{-x^{76} - 6x^{75} - 3x^{49} - 18x^{48}}{x + 6}` | `-x^{75} - 3x^{48}` | `x != -6` |  |  |  |  |
+| 1898 | 76 | Very hard | Monomial division | `\frac{-6x^{76} - 10x^{28}}{2x^{28}}` | `-3x^{48} - 5` | `x != 0` |  |  |  |  |
+| 1899 | 76 | Very hard | Common power factor | `\frac{x^{76} - 3x^{7}}{x^{76} - x^{7}}` | `\frac{x^{69} - 3}{x^{69} - 1}` | `x != 0, 1` |  |  |  |  |
+| 1900 | 76 | Very hard | Distribute and collect | `-4x^{64}(x^{12} + 4) + 5x^{64}` | `-4x^{76} - 11x^{64}` | `none` |  |  |  |  |
+| 1901 | 77 | Very hard | Difference of powers | `\frac{x^{77} - x}{x^{39} - x}` | `x^{38} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 1902 | 77 | Very hard | Power of a power | `(x^{11})^{7} \cdot x^{-5}` | `x^{72}` | `x != 0` |  |  |  |  |
+| 1903 | 77 | Very hard | Collect like terms | `2x^{77} + 3x^{77}` | `5x^{77}` | `none` |  |  |  |  |
+| 1904 | 77 | Very hard | Multivariate monomials | `\frac{-8 \cdot a^{8} \cdot b^{28} \cdot z^{41}}{4 \cdot a^{4} \cdot b^{15}}` | `-2a^{4} b^{13} z^{41}` | `a != 0, b != 0` |  |  |  |  |
+| 1905 | 77 | Very hard | Quadratic factor cancellation | `\frac{3x^{77} + 3x^{76} - 90x^{75} - 5x^{37} - 5x^{36} + 150x^{35}}{x^{2} + x - 30}` | `3x^{75} - 5x^{35}` | `x != -6, 5` |  |  |  |  |
+| 1906 | 77 | Very hard | Multivariate distribution | `a^{49} \cdot b^{18} \cdot (4b^{10} + a^{4})` | `4a^{49} b^{28} + a^{53} b^{18}` | `none` |  |  |  |  |
+| 1907 | 77 | Very hard | Polynomial plus fraction | `(x^{77} - x^{18}) + \frac{1}{x - 5}` | `\frac{x^{78} - 5x^{77} - x^{19} + 5x^{18} + 1}{x - 5}` | `x != 5` |  |  |  |  |
+| 1908 | 77 | Very hard | Constant factor | `\frac{8x^{77} + 20x^{54}}{4}` | `2x^{77} + 5x^{54}` | `none` |  |  |  |  |
+| 1909 | 77 | Very hard | Different denominators | `\frac{x^{77} + 7x^{76} + 4x + 28}{x + 7} + \frac{4x^{77} + 12x^{76}}{x + 3}` | `5x^{76} + 4` | `x != -7, -3` |  |  |  |  |
+| 1910 | 77 | Very hard | Nested fraction | `\frac{\frac{x^{77} - 3x^{76}}{x - 4}}{\frac{x - 3}{x - 4}}` | `x^{76}` | `x != 3, 4` |  |  |  |  |
+| 1911 | 77 | Very hard | Perfect square trinomial | `\frac{x^{77} + 2x^{39} + x}{x^{38} + 1}` | `x^{39} + x` | `x^38 + 1 != 0` |  |  |  |  |
+| 1912 | 77 | Very hard | Cancels to zero | `\frac{5x^{77} - 25x^{76} - 2x^{73} + 10x^{72}}{x - 5} - (5x^{76} - 2x^{72})` | `0` | `x != 5` |  |  |  |  |
+| 1913 | 77 | Very hard | Negative exponents | `x^{-36} \cdot (-x^{77})` | `-x^{41}` | `x != 0` |  |  |  |  |
+| 1914 | 77 | Very hard | Common power factor | `\frac{x^{77} - x^{74}}{x^{77} + x^{74}}` | `\frac{x^{3} - 1}{x^{3} + 1}` | `x != -1, 0` |  |  |  |  |
+| 1915 | 77 | Very hard | Already irreducible | `\frac{x^{77} - 1}{x^{77} + 1}` | `\frac{x^{77} - 1}{x^{77} + 1}` | `x != -1` |  |  |  |  |
+| 1916 | 77 | Very hard | Same denominator | `\frac{5x^{77} + 2x^{59} - 5x^{21}}{x^{4} + 16} + \frac{80x^{73} - 2x^{59} + x^{40} + 16x^{36} + 3x^{35} + 48x^{31} + 5x^{21}}{x^{4} + 16}` | `5x^{73} + x^{36} + 3x^{31}` | `x^4 + 16 != 0` |  |  |  |  |
+| 1917 | 77 | Very hard | Collapsing identity | `(x^{39} - 4)(x^{38} + 4) - x^{77}` | `4x^{39} - 4x^{38} - 16` | `none` |  |  |  |  |
+| 1918 | 77 | Very hard | Expand product | `(x^{47})(x^{30})` | `x^{77}` | `none` |  |  |  |  |
+| 1919 | 77 | Very hard | Triple nested fraction | `\frac{\frac{\frac{4x^{77} + 32x^{76} + 76x^{75} + 48x^{74}}{x + 4}}{x + 1}}{\frac{x + 3}{x}}` | `4x^{75}` | `x != -4, -3, -1, 0` |  |  |  |  |
+| 1920 | 77 | Very hard | Monomial division | `\frac{5x^{77} + 5x^{68} - 2x^{55}}{x^{55}}` | `5x^{22} + 5x^{13} - 2` | `x != 0` |  |  |  |  |
+| 1921 | 77 | Very hard | Partial cancellation | `\frac{x^{77} - 3x^{76} - x^{63} + 3x^{62} + 2x^{2} - 6x}{x^{2} - 10x + 21}` | `\frac{x^{76} - x^{62} + 2x}{x - 7}` | `x != 3, 7` |  |  |  |  |
+| 1922 | 77 | Very hard | Sign flip | `\frac{-x^{77} + 7x^{76} - x^{62} + 7x^{61} + 4x^{51} - 28x^{50}}{x - 7}` | `-x^{76} - x^{61} + 4x^{50}` | `x != 7` |  |  |  |  |
+| 1923 | 77 | Very hard | Linear factor cancellation | `\frac{5x^{77}}{x}` | `5x^{76}` | `x != 0` |  |  |  |  |
+| 1924 | 77 | Very hard | Power of a power | `(-x^{77})^{1} \cdot x^{-30}` | `-x^{47}` | `x != 0` |  |  |  |  |
+| 1925 | 77 | Very hard | Collect like terms | `-2x^{60} - 3x^{60} + 2x^{77} - 4x^{26} - x^{77} + 4x^{26}` | `x^{77} - 5x^{60}` | `none` |  |  |  |  |
+| 1926 | 78 | Very hard | Constant factor | `\frac{5x^{78} + 15x^{37} + 15x^{7}}{5}` | `x^{78} + 3x^{37} + 3x^{7}` | `none` |  |  |  |  |
+| 1927 | 78 | Very hard | Distribute and collect | `5x^{37}(x^{41} - 5) - 3x^{37}` | `5x^{78} - 28x^{37}` | `none` |  |  |  |  |
+| 1928 | 78 | Very hard | Collapsing identity | `(x^{39} + 1)^{2} - (x^{39} - 1)^{2}` | `4x^{39}` | `none` |  |  |  |  |
+| 1929 | 78 | Very hard | Already irreducible | `\frac{x^{78} + 2}{x^{78} - 1}` | `\frac{x^{78} + 2}{x^{78} - 1}` | `x != -1, 1` |  |  |  |  |
+| 1930 | 78 | Very hard | Different denominators | `\frac{x^{78} + 2x^{77}}{x + 2} + \frac{x^{76} - 5x^{75}}{x - 5}` | `x^{77} + x^{75}` | `x != -2, 5` |  |  |  |  |
+| 1931 | 78 | Very hard | Collect like terms | `3x^{8} - 5x^{78} - 10x^{12} + 6x^{12} + 6x^{78}` | `x^{78} - 4x^{12} + 3x^{8}` | `none` |  |  |  |  |
+| 1932 | 78 | Very hard | Linear factor cancellation | `\frac{5x^{78} - 10x^{77}}{x - 2}` | `5x^{77}` | `x != 2` |  |  |  |  |
+| 1933 | 78 | Very hard | Negative exponents | `x^{-63} \cdot (4x^{78})` | `4x^{15}` | `x != 0` |  |  |  |  |
+| 1934 | 78 | Very hard | Power of a power | `(-x^{13})^{6} \cdot x^{-3}` | `x^{75}` | `x != 0` |  |  |  |  |
+| 1935 | 78 | Very hard | Sign flip | `\frac{5x^{78} - 4x^{69} + 2x^{16}}{x}` | `5x^{77} - 4x^{68} + 2x^{15}` | `x != 0` |  |  |  |  |
+| 1936 | 78 | Very hard | Partial cancellation | `\frac{x^{78} + 2x^{77} + 4x^{72} + 8x^{71} + 3x^{27} + 6x^{26}}{x^{2} - 4x - 12}` | `\frac{x^{77} + 4x^{71} + 3x^{26}}{x - 6}` | `x != -2, 6` |  |  |  |  |
+| 1937 | 78 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{78} + 10x^{77} + 3x^{76} - 126x^{75}}{x - 3}}{x + 6}}{\frac{x + 7}{x - 2}}` | `x^{76} - 2x^{75}` | `x != -7, -6, 2, 3` |  |  |  |  |
+| 1938 | 78 | Very hard | Polynomial plus fraction | `x^{78} - \frac{5}{x + 4}` | `\frac{x^{79} + 4x^{78} - 5}{x + 4}` | `x != -4` |  |  |  |  |
+| 1939 | 78 | Very hard | Expand product | `(x^{45})(x^{33})` | `x^{78}` | `none` |  |  |  |  |
+| 1940 | 78 | Very hard | Perfect square trinomial | `\frac{x^{78} + 2x^{39} + 1}{x^{39} + 1}` | `x^{39} + 1` | `x != -1` |  |  |  |  |
+| 1941 | 78 | Very hard | Monomial division | `\frac{30x^{78} + 24x^{66} + 24x^{50} - 12x^{31}}{6x^{31}}` | `5x^{47} + 4x^{35} + 4x^{19} - 2` | `x != 0` |  |  |  |  |
+| 1942 | 78 | Very hard | Difference of powers | `\frac{x^{78} - 1}{x^{39} - 1}` | `x^{39} + 1` | `x != 1` |  |  |  |  |
+| 1943 | 78 | Very hard | Same denominator | `\frac{x^{78}}{x - 1} - \frac{x^{77}}{x - 1}` | `x^{77}` | `x != 1` |  |  |  |  |
+| 1944 | 78 | Very hard | Quadratic factor cancellation | `\frac{-3x^{78} - 3x^{77} + 126x^{76} - 4x^{74} - 2x^{73} + 170x^{72} - 84x^{71}}{x^{2} + x - 42}` | `-3x^{76} - 4x^{72} + 2x^{71}` | `x != -7, 6` |  |  |  |  |
+| 1945 | 78 | Very hard | Cancels to zero | `\frac{x^{78} - 4x^{77} - x^{64} + 4x^{63}}{x - 4} - (x^{77} - x^{63})` | `0` | `x != 4` |  |  |  |  |
+| 1946 | 78 | Very hard | Reference-type rational | `\frac{x^{78} + 3x^{77} - 10x^{76} - 2x^{50} - 6x^{49} + 20x^{48}}{x^{3} + 4x^{2} - 7x - 10}` | `\frac{x^{76} - 2x^{48}}{x + 1}` | `x != -5, -1, 2` |  |  |  |  |
+| 1947 | 78 | Very hard | Nested fraction | `\frac{\frac{x^{78} + 2x^{77} - 35x^{76}}{x - 1}}{\frac{x + 7}{x - 1}}` | `x^{77} - 5x^{76}` | `x != -7, 1` |  |  |  |  |
+| 1948 | 78 | Very hard | Common power factor | `\frac{x^{78} + 3x^{15}}{x^{78} - x^{15}}` | `\frac{x^{63} + 3}{x^{63} - 1}` | `x != 0, 1` |  |  |  |  |
+| 1949 | 78 | Very hard | Multivariate monomials | `\frac{-30 \cdot a^{62} \cdot b^{13} \cdot z^{3}}{6 \cdot a^{41} \cdot b^{2}}` | `-5a^{21} b^{11} z^{3}` | `a != 0, b != 0` |  |  |  |  |
+| 1950 | 78 | Very hard | Multivariate distribution | `a^{48} \cdot (-b^{30} + a^{21})` | `-a^{48} b^{30} + a^{69}` | `none` |  |  |  |  |
+| 1951 | 79 | Very hard | Cancels to zero | `\frac{x^{79} - x^{78}}{x - 1} - x^{78}` | `0` | `x != 1` |  |  |  |  |
+| 1952 | 79 | Very hard | Linear factor cancellation | `\frac{2x^{79} - 4x^{78} - 3x^{57} + 6x^{56}}{x - 2}` | `2x^{78} - 3x^{56}` | `x != 2` |  |  |  |  |
+| 1953 | 79 | Very hard | Nested fraction | `\frac{\frac{-x^{79} - 3x^{78} + 2x^{62} + 10x^{61} + 12x^{60}}{x - 4}}{\frac{x + 3}{x - 4}}` | `-x^{78} + 2x^{61} + 4x^{60}` | `x != -3, 4` |  |  |  |  |
+| 1954 | 79 | Very hard | Multivariate monomials | `\frac{-4 \cdot a^{15} \cdot b^{41} \cdot z^{23}}{a^{6} \cdot b^{21}}` | `-4a^{9} b^{20} z^{23}` | `a != 0, b != 0` |  |  |  |  |
+| 1955 | 79 | Very hard | Collapsing identity | `(x^{40} + 3)(x^{39} - 3) - x^{79}` | `-3x^{40} + 3x^{39} - 9` | `none` |  |  |  |  |
+| 1956 | 79 | Very hard | Polynomial plus fraction | `(x^{79} + 2x^{17}) + \frac{2}{x - 5}` | `\frac{x^{80} - 5x^{79} + 2x^{18} - 10x^{17} + 2}{x - 5}` | `x != 5` |  |  |  |  |
+| 1957 | 79 | Very hard | Different denominators | `\frac{x^{79} + 3x^{78}}{x + 3} + \frac{x^{79} + 2x^{78} - 2x^{26} - 4x^{25}}{x + 2}` | `2x^{78} - 2x^{25}` | `x != -3, -2` |  |  |  |  |
+| 1958 | 79 | Very hard | Common power factor | `\frac{x^{79} + 3x^{37}}{x^{79} - x^{37}}` | `\frac{x^{42} + 3}{x^{42} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1959 | 79 | Very hard | Multivariate distribution | `a^{64} \cdot b^{9} \cdot (4b^{6} + a^{3})` | `4a^{64} b^{15} + a^{67} b^{9}` | `none` |  |  |  |  |
+| 1960 | 79 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{79} - x^{78} - 24x^{77} - 36x^{76}}{x - 6}}{x + 2}}{\frac{x + 3}{x - 4}}` | `x^{77} - 4x^{76}` | `x != -3, -2, 4, 6` |  |  |  |  |
+| 1961 | 79 | Very hard | Monomial division | `\frac{5x^{79} - 10x^{70} - 20x^{61} + 15x^{33}}{5x^{33}}` | `x^{46} - 2x^{37} - 4x^{28} + 3` | `x != 0` |  |  |  |  |
+| 1962 | 79 | Very hard | Same denominator | `\frac{x^{79} - 2x^{49} + 4x^{24}}{x - 4} - \frac{5x^{79} - 16x^{78} - 2x^{49} + 5x^{26} - 20x^{25} + 4x^{24}}{x - 4}` | `-4x^{78} - 5x^{25}` | `x != 4` |  |  |  |  |
+| 1963 | 79 | Very hard | Quadratic factor cancellation | `\frac{x^{79} + 9x^{78} + 20x^{77} - x^{74} - 9x^{73} - 20x^{72}}{(x + 4)(x + 5)}` | `x^{77} - x^{72}` | `x != -5, -4` |  |  |  |  |
+| 1964 | 79 | Very hard | Perfect square trinomial | `\frac{x^{79} + 2x^{40} + x}{x^{39} + 1}` | `x^{40} + x` | `x != -1` |  |  |  |  |
+| 1965 | 79 | Very hard | Expand product | `(x^{32})(-x^{47} + 3x^{21})` | `-x^{79} + 3x^{53}` | `none` |  |  |  |  |
+| 1966 | 79 | Very hard | Negative exponents | `x^{-40} \cdot (4x^{79} - 3x^{65})` | `4x^{39} - 3x^{25}` | `x != 0` |  |  |  |  |
+| 1967 | 79 | Very hard | Sign flip | `\frac{x^{79} + 5x^{34} + 2x^{27}}{x}` | `x^{78} + 5x^{33} + 2x^{26}` | `x != 0` |  |  |  |  |
+| 1968 | 79 | Very hard | Reference-type rational | `\frac{2x^{79} + 4x^{78} - 6x^{77} + 2x^{12} + 4x^{11} - 6x^{10} + 3x^{5} + 6x^{4} - 9x^{3}}{x^{3} + 4x^{2} + x - 6}` | `\frac{2x^{77} + 2x^{10} + 3x^{3}}{x + 2}` | `x != -3, -2, 1` |  |  |  |  |
+| 1969 | 79 | Very hard | Power of a power | `\frac{(2x^{79})^{1}}{x^{39}}` | `2x^{40}` | `x != 0` |  |  |  |  |
+| 1970 | 79 | Very hard | Collect like terms | `4x^{79} + x^{28} - 3x^{24} + 2x^{44} + x^{28} - 6x^{30} + 7x^{30} - 2x^{24} - x^{28}` | `4x^{79} + 2x^{44} + x^{30} + x^{28} - 5x^{24}` | `none` |  |  |  |  |
+| 1971 | 79 | Very hard | Difference of powers | `\frac{x^{79} - x}{x^{40} - x}` | `x^{39} + 1` | `x != 0, 1` |  |  |  |  |
+| 1972 | 79 | Very hard | Already irreducible | `\frac{x^{79} + 4}{x^{79}}` | `\frac{x^{79} + 4}{x^{79}}` | `x != 0` |  |  |  |  |
+| 1973 | 79 | Very hard | Partial cancellation | `\frac{x^{79} + 4x^{78} - 3x^{74} - 12x^{73}}{x^{2} + 3x - 4}` | `\frac{x^{78} - 3x^{73}}{x - 1}` | `x != -4, 1` |  |  |  |  |
+| 1974 | 79 | Very hard | Constant factor | `\frac{4x^{79}}{4}` | `x^{79}` | `none` |  |  |  |  |
+| 1975 | 79 | Very hard | Cancels to zero | `\frac{x^{79} + 2x^{78} + x^{74} + 2x^{73} + 4x^{15} + 8x^{14}}{x + 2} - (x^{78} + x^{73} + 4x^{14})` | `0` | `x != -2` |  |  |  |  |
+| 1976 | 80 | Very hard | Monomial division | `\frac{3x^{80} - 3x^{70} - 12x^{66} - 6x^{65}}{3x^{65}}` | `x^{15} - x^{5} - 4x - 2` | `x != 0` |  |  |  |  |
+| 1977 | 80 | Very hard | Sign flip | `\frac{-x^{80} + 5x^{79} - 5x^{13} + 25x^{12}}{x - 5}` | `-x^{79} - 5x^{12}` | `x != 5` |  |  |  |  |
+| 1978 | 80 | Very hard | Cancels to zero | `\frac{x^{80} - 3x^{79}}{x - 3} - x^{79}` | `0` | `x != 3` |  |  |  |  |
+| 1979 | 80 | Very hard | Difference of powers | `\frac{x^{80} - 1}{x^{40} + 1}` | `x^{40} - 1` | `x^40 + 1 != 0` |  |  |  |  |
+| 1980 | 80 | Very hard | Difference of squares chain | `\frac{x^{80} - 1}{(x^{20} - 1)(x^{20} + 1)}` | `x^{40} + 1` | `x != -1, 1, x^20 + 1 != 0` |  |  |  |  |
+| 1981 | 80 | Very hard | Quadratic factor cancellation | `\frac{-5x^{80} - 20x^{79} + 5x^{78} + 20x^{77} + 2x^{25} + 6x^{24} - 8x^{23}}{(x + 4)(x - 1)}` | `-5x^{78} - 5x^{77} + 2x^{23}` | `x != -4, 1` |  |  |  |  |
+| 1982 | 80 | Very hard | Expand product | `(-5x^{13})(x^{67} + 4x^{53})` | `-5x^{80} - 20x^{66}` | `none` |  |  |  |  |
+| 1983 | 80 | Very hard | Different denominators | `\frac{-2x^{80} - 4x^{79} - 3x^{5} - 6x^{4}}{x + 2} + \frac{x^{80} + 5x^{79}}{x + 5}` | `-x^{79} - 3x^{4}` | `x != -5, -2` |  |  |  |  |
+| 1984 | 80 | Very hard | Power of a power | `(-x^{80})^{1} \cdot x^{-5}` | `-x^{75}` | `x != 0` |  |  |  |  |
+| 1985 | 80 | Very hard | Multivariate distribution | `a^{27} \cdot b^{2} \cdot (-5b^{51} + a^{31})` | `-5a^{27} b^{53} + a^{58} b^{2}` | `none` |  |  |  |  |
+| 1986 | 80 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-3x^{80} - 42x^{79} - 177x^{78} - 210x^{77}}{x + 2}}{x + 7}}{\frac{x + 5}{x - 3}}` | `-3x^{78} + 9x^{77}` | `x != -7, -5, -2, 3` |  |  |  |  |
+| 1987 | 80 | Very hard | Constant factor | `\frac{72x^{81} + 144x^{80} + 18x^{33} + 36x^{32}}{3x + 6}` | `24x^{80} + 6x^{32}` | `x != -2` |  |  |  |  |
+| 1988 | 80 | Very hard | Common power factor | `\frac{x^{80} - 5x^{70}}{x^{80} - x^{70}}` | `\frac{x^{10} - 5}{x^{10} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 1989 | 80 | Very hard | Negative exponents | `x^{-26} \cdot (-2x^{80} - 2x^{66})` | `-2x^{54} - 2x^{40}` | `x != 0` |  |  |  |  |
+| 1990 | 80 | Very hard | Nested fraction | `\frac{\frac{x^{80} - 4x^{79} + 2x^{12} - 8x^{11}}{x}}{\frac{x - 4}{x}}` | `x^{79} + 2x^{11}` | `x != 0, 4` |  |  |  |  |
+| 1991 | 80 | Very hard | Partial cancellation | `\frac{x^{80} + 5x^{79} - 5x^{17} - 25x^{16}}{x^{2} + 2x - 15}` | `\frac{x^{79} - 5x^{16}}{x - 3}` | `x != -5, 3` |  |  |  |  |
+| 1992 | 80 | Very hard | Multivariate monomials | `\frac{-6 \cdot a^{72} \cdot b^{7} \cdot z}{3 \cdot a \cdot b^{7}}` | `-2a^{71} z` | `a != 0, b != 0` |  |  |  |  |
+| 1993 | 80 | Very hard | Collapsing identity | `(x^{40} + 3)^{2} - (x^{40} - 3)^{2}` | `12x^{40}` | `none` |  |  |  |  |
+| 1994 | 80 | Very hard | Collect like terms | `6x^{25} - 7x^{25} - 2x^{80} - 2x^{59} - 3x^{59}` | `-2x^{80} - 5x^{59} - x^{25}` | `none` |  |  |  |  |
+| 1995 | 80 | Very hard | Polynomial plus fraction | `(2x^{80} + 2x) - \frac{1}{x - 2}` | `\frac{2x^{81} - 4x^{80} + 2x^{2} - 4x - 1}{x - 2}` | `x != 2` |  |  |  |  |
+| 1996 | 80 | Very hard | Same denominator | `\frac{x^{80} + 2x^{24} - 5x^{13}}{x^{2} - 9} - \frac{3x^{80} - 18x^{78} - 3x^{64} + 27x^{62} + 2x^{24} - x^{14} - 5x^{13} + 9x^{12}}{x^{2} - 9}` | `-2x^{78} + 3x^{62} + x^{12}` | `x != -3, 3` |  |  |  |  |
+| 1997 | 80 | Very hard | Perfect square trinomial | `\frac{x^{80} - 2x^{40} + 1}{x^{40} - 1}` | `x^{40} - 1` | `x != -1, 1` |  |  |  |  |
+| 1998 | 80 | Very hard | Linear factor cancellation | `\frac{x^{80} + 5x^{79}}{x + 5}` | `x^{79}` | `x != -5` |  |  |  |  |
+| 1999 | 80 | Very hard | Reference-type rational | `\frac{-x^{80} - x^{79} + 42x^{78} + x^{47} + x^{46} - 42x^{45} + 2x^{34} + 2x^{33} - 84x^{32}}{x^{3} + 7x^{2} - 36x - 252}` | `\frac{-x^{78} + x^{45} + 2x^{32}}{x + 6}` | `x != -7, -6, 6` |  |  |  |  |
+| 2000 | 80 | Very hard | Monomial division | `\frac{8x^{80} + 12x^{29} + 4x^{20}}{4x^{20}}` | `2x^{60} + 3x^{9} + 1` | `x != 0` |  |  |  |  |
+| 2001 | 81 | Very hard | Difference of powers | `\frac{x^{81} - x}{x^{41} - x}` | `x^{40} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 2002 | 81 | Very hard | Distribute and collect | `-2x^{49}(x^{32} - 3) - 4x^{49}` | `-2x^{81} + 2x^{49}` | `none` |  |  |  |  |
+| 2003 | 81 | Very hard | Collect like terms | `-2x^{81} - x^{29} + 5x^{81} + 4x^{29} - 3x^{56}` | `3x^{81} - 3x^{56} + 3x^{29}` | `none` |  |  |  |  |
+| 2004 | 81 | Very hard | Already irreducible | `\frac{x^{81} + 2}{x^{81} - 1}` | `\frac{x^{81} + 2}{x^{81} - 1}` | `x != 1` |  |  |  |  |
+| 2005 | 81 | Very hard | Common power factor | `\frac{x^{81} + 3x^{30}}{x^{81} - x^{30}}` | `\frac{x^{51} + 3}{x^{51} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2006 | 81 | Very hard | Cancels to zero | `\frac{x^{81} + 2x^{80} + x^{25} + 2x^{24} + 4x^{14} + 8x^{13}}{x + 2} - (x^{80} + x^{24} + 4x^{13})` | `0` | `x != -2` |  |  |  |  |
+| 2007 | 81 | Very hard | Collapsing identity | `(x^{41} + 5)(x^{40} - 5) - x^{81}` | `-5x^{41} + 5x^{40} - 25` | `none` |  |  |  |  |
+| 2008 | 81 | Very hard | Quadratic factor cancellation | `\frac{x^{81} + 8x^{80} + 12x^{79} - 3x^{53} - 24x^{52} - 36x^{51}}{(x + 6)(x + 2)}` | `x^{79} - 3x^{51}` | `x != -6, -2` |  |  |  |  |
+| 2009 | 81 | Very hard | Sign flip | `\frac{-x^{81} - 3x^{59} - 2x^{30}}{x}` | `-x^{80} - 3x^{58} - 2x^{29}` | `x != 0` |  |  |  |  |
+| 2010 | 81 | Very hard | Nested fraction | `\frac{\frac{x^{81}}{x + 6}}{\frac{x}{x + 6}}` | `x^{80}` | `x != -6, 0` |  |  |  |  |
+| 2011 | 81 | Very hard | Constant factor | `\frac{-15x^{82} + 60x^{81} - 30x^{73} + 120x^{72} - 30x^{45} + 120x^{44}}{3x - 12}` | `-5x^{81} - 10x^{72} - 10x^{44}` | `x != 4` |  |  |  |  |
+| 2012 | 81 | Very hard | Power of a power | `(x^{81})^{1} \cdot x^{-52}` | `x^{29}` | `x != 0` |  |  |  |  |
+| 2013 | 81 | Very hard | Multivariate distribution | `a^{39} \cdot b^{12} \cdot (-5b^{30} + a^{29})` | `-5a^{39} b^{42} + a^{68} b^{12}` | `none` |  |  |  |  |
+| 2014 | 81 | Very hard | Different denominators | `\frac{x^{81} + 5x^{80}}{x + 5} + \frac{x^{80} + 2x^{79}}{x + 2}` | `x^{80} + x^{79}` | `x != -5, -2` |  |  |  |  |
+| 2015 | 81 | Very hard | Reference-type rational | `\frac{x^{81} - 36x^{79} + 5x^{71} - 180x^{69}}{x^{3} + 7x^{2} - 36x - 252}` | `\frac{x^{79} + 5x^{69}}{x + 7}` | `x != -7, -6, 6` |  |  |  |  |
+| 2016 | 81 | Very hard | Multivariate monomials | `\frac{-12 \cdot a^{4} \cdot b^{49} \cdot z^{28}}{4 \cdot a^{3} \cdot b^{48}}` | `-3a b z^{28}` | `a != 0, b != 0` |  |  |  |  |
+| 2017 | 81 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-x^{81} - x^{80} + 10x^{79} - 8x^{78} + 3x^{40} + 3x^{39} - 30x^{38} + 24x^{37}}{x + 4}}{x - 1}}{\frac{x - 2}{x - 5}}` | `-x^{79} + 5x^{78} + 3x^{38} - 15x^{37}` | `x != -4, 1, 2, 5` |  |  |  |  |
+| 2018 | 81 | Very hard | Linear factor cancellation | `\frac{-4x^{81} + 28x^{80} + 3x^{71} - 21x^{70} + 5x^{45} - 35x^{44}}{x - 7}` | `-4x^{80} + 3x^{70} + 5x^{44}` | `x != 7` |  |  |  |  |
+| 2019 | 81 | Very hard | Same denominator | `\frac{x^{81} - 2x^{79} - 3x^{24}}{x + 2} - \frac{-2x^{81} - 6x^{80} - 2x^{79} + 2x^{53} + 4x^{52} - 4x^{50} - 8x^{49} - 3x^{24}}{x + 2}` | `3x^{80} - 2x^{52} + 4x^{49}` | `x != -2` |  |  |  |  |
+| 2020 | 81 | Very hard | Perfect square trinomial | `\frac{x^{81} + 2x^{41} + x}{x^{40} + 1}` | `x^{41} + x` | `x^40 + 1 != 0` |  |  |  |  |
+| 2021 | 81 | Very hard | Expand product | `(3x^{58})(-2x^{23})` | `-6x^{81}` | `none` |  |  |  |  |
+| 2022 | 81 | Very hard | Partial cancellation | `\frac{4x^{81} - 8x^{80} + 4x^{49} - 8x^{48}}{x^{2} - x - 2}` | `\frac{4x^{80} + 4x^{48}}{x + 1}` | `x != -1, 2` |  |  |  |  |
+| 2023 | 81 | Very hard | Negative exponents | `x^{-37} \cdot (-4x^{81} + 3x^{80})` | `-4x^{44} + 3x^{43}` | `x != 0` |  |  |  |  |
+| 2024 | 81 | Very hard | Monomial division | `\frac{15x^{81} - 5x^{54} - 25x^{51} + 20x^{21}}{5x^{21}}` | `3x^{60} - x^{33} - 5x^{30} + 4` | `x != 0` |  |  |  |  |
+| 2025 | 81 | Very hard | Polynomial plus fraction | `(x^{81} - 4x^{22}) + \frac{4}{x + 4}` | `\frac{x^{82} + 4x^{81} - 4x^{23} - 16x^{22} + 4}{x + 4}` | `x != -4` |  |  |  |  |
+| 2026 | 82 | Very hard | Power of a power | `\frac{(x^{41})^{2}}{x^{41}}` | `x^{41}` | `x != 0` |  |  |  |  |
+| 2027 | 82 | Very hard | Cancels to zero | `\frac{-5x^{82} - 30x^{81} - 4x^{65} - 24x^{64}}{x + 6} - (-5x^{81} - 4x^{64})` | `0` | `x != -6` |  |  |  |  |
+| 2028 | 82 | Very hard | Expand product | `(-x^{37} - 5x^{34})(5x^{45} - x^{28})` | `-5x^{82} - 25x^{79} + x^{65} + 5x^{62}` | `none` |  |  |  |  |
+| 2029 | 82 | Very hard | Negative exponents | `x^{-25} \cdot (-2x^{82} + 3x^{58})` | `-2x^{57} + 3x^{33}` | `x != 0` |  |  |  |  |
+| 2030 | 82 | Very hard | Multivariate expansion | `(a^{41} + b^{41})(a^{41} - b^{41})` | `a^{82} - b^{82}` | `none` |  |  |  |  |
+| 2031 | 82 | Very hard | Difference of powers | `\frac{x^{82} - 1}{x^{41} - 1}` | `x^{41} + 1` | `x != 1` |  |  |  |  |
+| 2032 | 82 | Very hard | Polynomial plus fraction | `(x^{82} - 2x^{50}) - \frac{1}{x + 1}` | `\frac{x^{83} + x^{82} - 2x^{51} - 2x^{50} - 1}{x + 1}` | `x != -1` |  |  |  |  |
+| 2033 | 82 | Very hard | Linear factor cancellation | `\frac{x^{82} + 4x^{81} - 5x^{72} - 20x^{71} + x^{26} + 4x^{25}}{x + 4}` | `x^{81} - 5x^{71} + x^{25}` | `x != -4` |  |  |  |  |
+| 2034 | 82 | Very hard | Monomial division | `\frac{16x^{82} - 8x^{22} - 12x^{19}}{4x^{19}}` | `4x^{63} - 2x^{3} - 3` | `x != 0` |  |  |  |  |
+| 2035 | 82 | Very hard | Already irreducible | `\frac{x^{82} + 3}{x^{82} - 1}` | `\frac{x^{82} + 3}{x^{82} - 1}` | `x != -1, 1` |  |  |  |  |
+| 2036 | 82 | Very hard | Constant factor | `\frac{4x^{82}}{4}` | `x^{82}` | `none` |  |  |  |  |
+| 2037 | 82 | Very hard | Collapsing identity | `(x^{41} - 5)^{2} - (x^{41} + 5)^{2}` | `-20x^{41}` | `none` |  |  |  |  |
+| 2038 | 82 | Very hard | Multivariate monomials | `\frac{30 \cdot a^{36} \cdot b^{44} \cdot z^{2}}{6 \cdot a^{10} \cdot b^{21}}` | `5a^{26} b^{23} z^{2}` | `a != 0, b != 0` |  |  |  |  |
+| 2039 | 82 | Very hard | Same denominator | `\frac{x^{82} + 2x^{59} - 5x^{52}}{x} + \frac{-5x^{72} - 2x^{59} + 5x^{52} - x^{34}}{x}` | `x^{81} - 5x^{71} - x^{33}` | `x != 0` |  |  |  |  |
+| 2040 | 82 | Very hard | Common power factor | `\frac{x^{82} + 3x^{24}}{x^{82} - x^{24}}` | `\frac{x^{58} + 3}{x^{58} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 2041 | 82 | Very hard | Sign flip | `\frac{-x^{82} - 6x^{81}}{x + 6}` | `-x^{81}` | `x != -6` |  |  |  |  |
+| 2042 | 82 | Very hard | Nested fraction | `\frac{\frac{x^{82} + 3x^{81} - 4x^{72} - 13x^{71} - 3x^{70}}{x - 7}}{\frac{x + 3}{x - 7}}` | `x^{81} - 4x^{71} - x^{70}` | `x != -3, 7` |  |  |  |  |
+| 2043 | 82 | Very hard | Collect like terms | `-4x^{82} - 3x^{19} + 5x^{82} + 3x^{19}` | `x^{82}` | `none` |  |  |  |  |
+| 2044 | 82 | Very hard | Quadratic factor cancellation | `\frac{5x^{82} - 15x^{81} - 5x^{80} + 15x^{79}}{x^{2} - 2x - 3}` | `5x^{80} - 5x^{79}` | `x != -1, 3` |  |  |  |  |
+| 2045 | 82 | Very hard | Partial cancellation | `\frac{x^{82} - 2x^{81} + 2x - 4}{x^{2} + x - 6}` | `\frac{x^{81} + 2}{x + 3}` | `x != -3, 2` |  |  |  |  |
+| 2046 | 82 | Very hard | Distribute and collect | `-3x^{79}(x^{3} - 4) + 4x^{79}` | `-3x^{82} + 16x^{79}` | `none` |  |  |  |  |
+| 2047 | 82 | Very hard | Triple nested fraction | `\frac{\frac{\frac{3x^{82} + 12x^{81} - 33x^{80} - 90x^{79}}{x - 3}}{x + 5}}{\frac{x + 2}{x + 6}}` | `3x^{80} + 18x^{79}` | `x != -6, -5, -2, 3` |  |  |  |  |
+| 2048 | 82 | Very hard | Different denominators | `\frac{5x^{82} - 30x^{81}}{x - 6} + \frac{2x^{81} + 4x^{80}}{x + 2}` | `5x^{81} + 2x^{80}` | `x != -2, 6` |  |  |  |  |
+| 2049 | 82 | Very hard | Perfect square trinomial | `\frac{x^{82} + 2x^{41} + 1}{x^{41} + 1}` | `x^{41} + 1` | `x != -1` |  |  |  |  |
+| 2050 | 82 | Very hard | Reference-type rational | `\frac{-3x^{82} - 33x^{81} - 90x^{80} + 3x^{75} + 33x^{74} + 90x^{73} - 5x^{38} - 55x^{37} - 150x^{36}}{x^{3} + 14x^{2} + 63x + 90}` | `\frac{-3x^{80} + 3x^{73} - 5x^{36}}{x + 3}` | `x != -6, -5, -3` |  |  |  |  |
+| 2051 | 83 | Very hard | Sign flip | `\frac{-x^{83} - x^{82} + 5x^{60} + 5x^{59}}{x + 1}` | `-x^{82} + 5x^{59}` | `x != -1` |  |  |  |  |
+| 2052 | 83 | Very hard | Already irreducible | `\frac{x^{83} + 3}{x^{83}}` | `\frac{x^{83} + 3}{x^{83}}` | `x != 0` |  |  |  |  |
+| 2053 | 83 | Very hard | Cancels to zero | `\frac{x^{83} - 2x^{82} - 4x^{50} + 8x^{49}}{x - 2} - (x^{82} - 4x^{49})` | `0` | `x != 2` |  |  |  |  |
+| 2054 | 83 | Very hard | Multivariate monomials | `\frac{4 \cdot a^{20} \cdot b^{40} \cdot z^{23}}{2 \cdot a^{6} \cdot b^{38}}` | `2a^{14} b^{2} z^{23}` | `a != 0, b != 0` |  |  |  |  |
+| 2055 | 83 | Very hard | Perfect square trinomial | `\frac{x^{83} + 2x^{42} + x}{x^{41} + 1}` | `x^{42} + x` | `x != -1` |  |  |  |  |
+| 2056 | 83 | Very hard | Different denominators | `\frac{x^{83} + 2x^{82} + 3x^{44} + 6x^{43}}{x + 2} + \frac{4x^{83}}{x}` | `5x^{82} + 3x^{43}` | `x != -2, 0` |  |  |  |  |
+| 2057 | 83 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-x^{83} + 4x^{82} + 47x^{81} - 210x^{80}}{x + 7}}{x - 5}}{\frac{x - 6}{x + 2}}` | `-x^{81} - 2x^{80}` | `x != -7, -2, 5, 6` |  |  |  |  |
+| 2058 | 83 | Very hard | Collapsing identity | `(x^{42} + 5)(x^{41} - 5) - x^{83}` | `-5x^{42} + 5x^{41} - 25` | `none` |  |  |  |  |
+| 2059 | 83 | Very hard | Expand product | `(x^{68})(x^{15})` | `x^{83}` | `none` |  |  |  |  |
+| 2060 | 83 | Very hard | Difference of powers | `\frac{x^{83} - x}{x^{42} - x}` | `x^{41} + 1` | `x != 0, 1` |  |  |  |  |
+| 2061 | 83 | Very hard | Partial cancellation | `\frac{3x^{83} + 12x^{82} - x^{56} - 4x^{55}}{x^{2} + 9x + 20}` | `\frac{3x^{82} - x^{55}}{x + 5}` | `x != -5, -4` |  |  |  |  |
+| 2062 | 83 | Very hard | Distribute and collect | `-2x^{81}(x^{2} + 5) - 3x^{81}` | `-2x^{83} - 13x^{81}` | `none` |  |  |  |  |
+| 2063 | 83 | Very hard | Nested fraction | `\frac{\frac{x^{83} + 6x^{82}}{x + 3}}{\frac{x + 6}{x + 3}}` | `x^{82}` | `x != -6, -3` |  |  |  |  |
+| 2064 | 83 | Very hard | Same denominator | `\frac{2x^{83} + 3x^{28} - 2x^{11}}{x^{2} - 1} - \frac{3x^{83} - x^{81} + 3x^{28} - 2x^{11}}{x^{2} - 1}` | `-x^{81}` | `x != -1, 1` |  |  |  |  |
+| 2065 | 83 | Very hard | Quadratic factor cancellation | `\frac{x^{83} - 5x^{82}}{(x)(x - 5)}` | `x^{81}` | `x != 0, 5` |  |  |  |  |
+| 2066 | 83 | Very hard | Negative exponents | `x^{-28} \cdot (-x^{83} - 3x^{81})` | `-x^{55} - 3x^{53}` | `x != 0` |  |  |  |  |
+| 2067 | 83 | Very hard | Linear factor cancellation | `\frac{x^{83} + 5x^{82} + 2x^{59} + 10x^{58} - 2x^{27} - 10x^{26}}{x + 5}` | `x^{82} + 2x^{58} - 2x^{26}` | `x != -5` |  |  |  |  |
+| 2068 | 83 | Very hard | Monomial division | `\frac{x^{83} + 4x^{56} + 5x^{14}}{x^{14}}` | `x^{69} + 4x^{42} + 5` | `x != 0` |  |  |  |  |
+| 2069 | 83 | Very hard | Constant factor | `\frac{3x^{83}}{3}` | `x^{83}` | `none` |  |  |  |  |
+| 2070 | 83 | Very hard | Collect like terms | `4x^{83} + 5x^{17}` | `4x^{83} + 5x^{17}` | `none` |  |  |  |  |
+| 2071 | 83 | Very hard | Multivariate distribution | `a^{4} \cdot b^{14} \cdot (3b^{65} + a^{47})` | `3a^{4} b^{79} + a^{51} b^{14}` | `none` |  |  |  |  |
+| 2072 | 83 | Very hard | Polynomial plus fraction | `(4x^{83} - 4x^{73}) - \frac{5}{x + 7}` | `\frac{4x^{84} + 28x^{83} - 4x^{74} - 28x^{73} - 5}{x + 7}` | `x != -7` |  |  |  |  |
+| 2073 | 83 | Very hard | Power of a power | `(x^{83})^{1} \cdot x^{-79}` | `x^{4}` | `x != 0` |  |  |  |  |
+| 2074 | 83 | Very hard | Common power factor | `\frac{x^{83} - 3x^{8}}{x^{83} - x^{8}}` | `\frac{x^{75} - 3}{x^{75} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2075 | 83 | Very hard | Sign flip | `\frac{-5x^{83} - 25x^{82}}{x + 5}` | `-5x^{82}` | `x != -5` |  |  |  |  |
+| 2076 | 84 | Very hard | Negative exponents | `x^{-51} \cdot (-x^{84})` | `-x^{33}` | `x != 0` |  |  |  |  |
+| 2077 | 84 | Very hard | Multivariate monomials | `\frac{-2 \cdot a^{29} \cdot b^{23} \cdot z^{32}}{2 \cdot a^{21} \cdot b^{20}}` | `-a^{8} b^{3} z^{32}` | `a != 0, b != 0` |  |  |  |  |
+| 2078 | 84 | Very hard | Constant factor | `\frac{-10x^{84} + 6x^{34}}{2}` | `-5x^{84} + 3x^{34}` | `none` |  |  |  |  |
+| 2079 | 84 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{84} - 3x^{83} - 16x^{82} + 48x^{81}}{x - 3}}{x - 4}}{\frac{x + 4}{x + 2}}` | `x^{82} + 2x^{81}` | `x != -4, -2, 3, 4` |  |  |  |  |
+| 2080 | 84 | Very hard | Collapsing identity | `(x^{42} + 3)^{2} - (x^{42} - 3)^{2}` | `12x^{42}` | `none` |  |  |  |  |
+| 2081 | 84 | Very hard | Different denominators | `\frac{x^{84} + x^{83}}{x + 1} + \frac{5x^{84} + 15x^{83}}{x + 3}` | `6x^{83}` | `x != -3, -1` |  |  |  |  |
+| 2082 | 84 | Very hard | Nested fraction | `\frac{\frac{-5x^{84} - 10x^{83} + 3x^{30} + 6x^{29}}{x + 4}}{\frac{x + 2}{x + 4}}` | `-5x^{83} + 3x^{29}` | `x != -4, -2` |  |  |  |  |
+| 2083 | 84 | Very hard | Monomial division | `\frac{5x^{84} + 5x^{29}}{5x^{29}}` | `x^{55} + 1` | `x != 0` |  |  |  |  |
+| 2084 | 84 | Very hard | Distribute and collect | `3x^{49}(x^{35} - 2) - 3x^{49}` | `3x^{84} - 9x^{49}` | `none` |  |  |  |  |
+| 2085 | 84 | Very hard | Sign flip | `\frac{-x^{84} - 7x^{83}}{x + 7}` | `-x^{83}` | `x != -7` |  |  |  |  |
+| 2086 | 84 | Very hard | Multivariate expansion | `(a^{42} + b^{42})(a^{42} - b^{42})` | `a^{84} - b^{84}` | `none` |  |  |  |  |
+| 2087 | 84 | Very hard | Power of a power | `(2x^{84})^{1} \cdot x^{-82}` | `2x^{2}` | `x != 0` |  |  |  |  |
+| 2088 | 84 | Very hard | Difference of powers | `\frac{x^{84} - 1}{x^{42} - 1}` | `x^{42} + 1` | `x != -1, 1` |  |  |  |  |
+| 2089 | 84 | Very hard | Linear factor cancellation | `\frac{x^{84}}{x}` | `x^{83}` | `x != 0` |  |  |  |  |
+| 2090 | 84 | Very hard | Difference of squares chain | `\frac{x^{84} - 1}{(x^{21} - 1)(x^{21} + 1)}` | `x^{42} + 1` | `x != -1, 1` |  |  |  |  |
+| 2091 | 84 | Very hard | Collect like terms | `3x^{22} + 5x^{69} - 4x^{53} - 4x^{84} + 7x^{84} + 4x^{53} + 5x^{27} + 5x + x^{22} - 3x^{69} - x^{27}` | `3x^{84} + 2x^{69} + 4x^{27} + 4x^{22} + 5x` | `none` |  |  |  |  |
+| 2092 | 84 | Very hard | Partial cancellation | `\frac{x^{84} - x^{83} - 4x^{66} + 4x^{65} + 3x^{6} - 3x^{5}}{x^{2} + 3x - 4}` | `\frac{x^{83} - 4x^{65} + 3x^{5}}{x + 4}` | `x != -4, 1` |  |  |  |  |
+| 2093 | 84 | Very hard | Same denominator | `\frac{x^{84}}{x - 4} + \frac{-4x^{83} + 4x^{16} - 16x^{15} - 5x^{12} + 20x^{11}}{x - 4}` | `x^{83} + 4x^{15} - 5x^{11}` | `x != 4` |  |  |  |  |
+| 2094 | 84 | Very hard | Polynomial plus fraction | `x^{84} + \frac{2}{x + 2}` | `\frac{x^{85} + 2x^{84} + 2}{x + 2}` | `x != -2` |  |  |  |  |
+| 2095 | 84 | Very hard | Quadratic factor cancellation | `\frac{-5x^{84} + 20x^{83} + 4x^{49} - 16x^{48}}{(x)(x - 4)}` | `-5x^{82} + 4x^{47}` | `x != 0, 4` |  |  |  |  |
+| 2096 | 84 | Very hard | Expand product | `(3x^{26} - 4x^{9})(5x^{58})` | `15x^{84} - 20x^{67}` | `none` |  |  |  |  |
+| 2097 | 84 | Very hard | Perfect square trinomial | `\frac{x^{84} - 2x^{42} + 1}{x^{42} - 1}` | `x^{42} - 1` | `x != -1, 1` |  |  |  |  |
+| 2098 | 84 | Very hard | Cancels to zero | `\frac{x^{84} - 4x^{83}}{x - 4} - x^{83}` | `0` | `x != 4` |  |  |  |  |
+| 2099 | 84 | Very hard | Negative exponents | `x^{-44} \cdot (x^{84})` | `x^{40}` | `x != 0` |  |  |  |  |
+| 2100 | 84 | Very hard | Multivariate monomials | `\frac{-2 \cdot a^{80} \cdot b^{4}}{2 \cdot a^{77} \cdot b^{2}}` | `-a^{3} b^{2}` | `a != 0, b != 0` |  |  |  |  |
+| 2101 | 85 | Very hard | Nested fraction | `\frac{\frac{x^{85} + 7x^{84} + 2x^{42} + 14x^{41} + 3x^{19} + 21x^{18}}{x + 6}}{\frac{x + 7}{x + 6}}` | `x^{84} + 2x^{41} + 3x^{18}` | `x != -7, -6` |  |  |  |  |
+| 2102 | 85 | Very hard | Reference-type rational | `\frac{x^{85} + 8x^{84} + 15x^{83} - 5x^{71} - 40x^{70} - 75x^{69}}{x^{3} + 5x^{2} - 9x - 45}` | `\frac{x^{83} - 5x^{69}}{x - 3}` | `x != -5, -3, 3` |  |  |  |  |
+| 2103 | 85 | Very hard | Linear factor cancellation | `\frac{x^{85} + 3x^{84} + x^{76} + 3x^{75} + x^{24} + 3x^{23}}{x + 3}` | `x^{84} + x^{75} + x^{23}` | `x != -3` |  |  |  |  |
+| 2104 | 85 | Very hard | Different denominators | `\frac{x^{85} + 5x^{84} - 5x^{17} - 25x^{16}}{x + 5} + \frac{4x^{83} + 16x^{82} - 4x^{30} - 16x^{29}}{x + 4}` | `x^{84} + 4x^{82} - 4x^{29} - 5x^{16}` | `x != -5, -4` |  |  |  |  |
+| 2105 | 85 | Very hard | Multivariate distribution | `a^{12} \cdot b^{13} \cdot (2b^{60} + a^{42})` | `2a^{12} b^{73} + a^{54} b^{13}` | `none` |  |  |  |  |
+| 2106 | 85 | Very hard | Multivariate monomials | `\frac{-10 \cdot a^{71} \cdot b^{2} \cdot z^{12}}{2 \cdot a^{41} \cdot b^{2}}` | `-5a^{30} z^{12}` | `a != 0, b != 0` |  |  |  |  |
+| 2107 | 85 | Very hard | Cancels to zero | `\frac{x^{85} + 6x^{84} + 2x^{77} + 12x^{76}}{x + 6} - (x^{84} + 2x^{76})` | `0` | `x != -6` |  |  |  |  |
+| 2108 | 85 | Very hard | Already irreducible | `\frac{x^{85} - 3}{x^{85} + 1}` | `\frac{x^{85} - 3}{x^{85} + 1}` | `x != -1` |  |  |  |  |
+| 2109 | 85 | Very hard | Partial cancellation | `\frac{x^{85}}{x^{2} - 2x}` | `\frac{x^{84}}{x - 2}` | `x != 0, 2` |  |  |  |  |
+| 2110 | 85 | Very hard | Distribute and collect | `-3x^{64}(x^{21} - 5) + 2x^{64}` | `-3x^{85} + 17x^{64}` | `none` |  |  |  |  |
+| 2111 | 85 | Very hard | Polynomial plus fraction | `(-2x^{85} - x^{49}) + \frac{1}{x - 3}` | `\frac{-2x^{86} + 6x^{85} - x^{50} + 3x^{49} + 1}{x - 3}` | `x != 3` |  |  |  |  |
+| 2112 | 85 | Very hard | Perfect square trinomial | `\frac{x^{85} - 2x^{43} + x}{x^{42} - 1}` | `x^{43} - x` | `x != -1, 1` |  |  |  |  |
+| 2113 | 85 | Very hard | Negative exponents | `x^{-29} \cdot (-x^{85})` | `-x^{56}` | `x != 0` |  |  |  |  |
+| 2114 | 85 | Very hard | Sign flip | `\frac{-x^{85} - x^{84} + 12x^{83}}{x - 3}` | `-x^{84} - 4x^{83}` | `x != 3` |  |  |  |  |
+| 2115 | 85 | Very hard | Power of a power | `(-x^{17})^{5} \cdot x^{-8}` | `-x^{77}` | `x != 0` |  |  |  |  |
+| 2116 | 85 | Very hard | Difference of powers | `\frac{x^{85} - x}{x^{43} - x}` | `x^{42} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 2117 | 85 | Very hard | Collect like terms | `3x^{85} + 3x^{80} + 2x^{12} - 6x^{12} - x^{80}` | `3x^{85} + 2x^{80} - 4x^{12}` | `none` |  |  |  |  |
+| 2118 | 85 | Very hard | Expand product | `(x^{56})(-4x^{29})` | `-4x^{85}` | `none` |  |  |  |  |
+| 2119 | 85 | Very hard | Common power factor | `\frac{x^{85} + 4x^{46}}{x^{85} - x^{46}}` | `\frac{x^{39} + 4}{x^{39} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2120 | 85 | Very hard | Collapsing identity | `(x^{43} - 5)(x^{42} + 5) - x^{85}` | `5x^{43} - 5x^{42} - 25` | `none` |  |  |  |  |
+| 2121 | 85 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{85} - 4x^{84} - 49x^{83} + 196x^{82}}{x - 7}}{x - 4}}{\frac{x + 7}{x + 3}}` | `x^{83} + 3x^{82}` | `x != -7, -3, 4, 7` |  |  |  |  |
+| 2122 | 85 | Very hard | Quadratic factor cancellation | `\frac{2x^{85} + 6x^{84} - 8x^{83} - 3x^{18} - 9x^{17} + 12x^{16}}{x^{2} + 3x - 4}` | `2x^{83} - 3x^{16}` | `x != -4, 1` |  |  |  |  |
+| 2123 | 85 | Very hard | Monomial division | `\frac{-20x^{85} - 15x^{83} - 5x^{77} - 5x^{43}}{5x^{43}}` | `-4x^{42} - 3x^{40} - x^{34} - 1` | `x != 0` |  |  |  |  |
+| 2124 | 85 | Very hard | Constant factor | `\frac{4x^{85} + 12x^{63}}{4}` | `x^{85} + 3x^{63}` | `none` |  |  |  |  |
+| 2125 | 85 | Very hard | Same denominator | `\frac{x^{85} - 4x^{18}}{x + 2} - \frac{-2x^{84} - 3x^{37} - 6x^{36} - 4x^{18}}{x + 2}` | `x^{84} + 3x^{36}` | `x != -2` |  |  |  |  |
+| 2126 | 86 | Very hard | Polynomial plus fraction | `(x^{86} + 3x^{22}) - \frac{5}{x - 7}` | `\frac{x^{87} - 7x^{86} + 3x^{23} - 21x^{22} - 5}{x - 7}` | `x != 7` |  |  |  |  |
+| 2127 | 86 | Very hard | Monomial division | `\frac{3x^{86} - 12x^{58} - 9x^{15}}{3x^{15}}` | `x^{71} - 4x^{43} - 3` | `x != 0` |  |  |  |  |
+| 2128 | 86 | Very hard | Expand product | `(x^{30} + 4x^{24})(3x^{56})` | `3x^{86} + 12x^{80}` | `none` |  |  |  |  |
+| 2129 | 86 | Very hard | Cancels to zero | `\frac{x^{86} - 3x^{85} - 2x^{65} + 6x^{64} - 5x^{63} + 15x^{62}}{x - 3} - (x^{85} - 2x^{64} - 5x^{62})` | `0` | `x != 3` |  |  |  |  |
+| 2130 | 86 | Very hard | Linear factor cancellation | `\frac{x^{86} - 2x^{85} + 4x - 8}{x - 2}` | `x^{85} + 4` | `x != 2` |  |  |  |  |
+| 2131 | 86 | Very hard | Distribute and collect | `3x^{22}(x^{64} + 4) - 5x^{22}` | `3x^{86} + 7x^{22}` | `none` |  |  |  |  |
+| 2132 | 86 | Very hard | Reference-type rational | `\frac{x^{86} + 11x^{85} + 28x^{84} + 3x^{70} + 33x^{69} + 84x^{68} + 4x^{33} + 44x^{32} + 112x^{31}}{x^{3} + 8x^{2} - 5x - 84}` | `\frac{x^{84} + 3x^{68} + 4x^{31}}{x - 3}` | `x != -7, -4, 3` |  |  |  |  |
+| 2133 | 86 | Very hard | Same denominator | `\frac{x^{86} + 4x^{7}}{x^{2} - 1} - \frac{x^{84} + x^{55} - x^{53} - 2x^{23} + 2x^{21} + 4x^{7}}{x^{2} - 1}` | `x^{84} - x^{53} + 2x^{21}` | `x != -1, 1` |  |  |  |  |
+| 2134 | 86 | Very hard | Already irreducible | `\frac{x^{86} - 2}{x^{86} + 1}` | `\frac{x^{86} - 2}{x^{86} + 1}` | `x^86 + 1 != 0` |  |  |  |  |
+| 2135 | 86 | Very hard | Triple nested fraction | `\frac{\frac{\frac{2x^{86} - 2x^{85} - 40x^{84} - x^{46} + x^{45} + 20x^{44}}{x}}{x + 4}}{\frac{x - 5}{x - 4}}` | `2x^{84} - 8x^{83} - x^{44} + 4x^{43}` | `x != -4, 0, 4, 5` |  |  |  |  |
+| 2136 | 86 | Very hard | Negative exponents | `x^{-66} \cdot (-x^{86})` | `-x^{20}` | `x != 0` |  |  |  |  |
+| 2137 | 86 | Very hard | Collapsing identity | `(x^{43} - 4)^{2} - (x^{43} + 4)^{2}` | `-16x^{43}` | `none` |  |  |  |  |
+| 2138 | 86 | Very hard | Multivariate monomials | `\frac{-12 \cdot a^{80} \cdot b^{3} \cdot z^{3}}{2a^{16}}` | `-6a^{64} b^{3} z^{3}` | `a != 0` |  |  |  |  |
+| 2139 | 86 | Very hard | Difference of powers | `\frac{x^{86} - 1}{x^{43} - 1}` | `x^{43} + 1` | `x != 1` |  |  |  |  |
+| 2140 | 86 | Very hard | Multivariate expansion | `(a^{43} + b^{43})(a^{43} - b^{43})` | `a^{86} - b^{86}` | `none` |  |  |  |  |
+| 2141 | 86 | Very hard | Collect like terms | `-x^{86} + 6x^{86}` | `5x^{86}` | `none` |  |  |  |  |
+| 2142 | 86 | Very hard | Power of a power | `\frac{(2x^{43})^{2}}{x^{22}}` | `4x^{64}` | `x != 0` |  |  |  |  |
+| 2143 | 86 | Very hard | Nested fraction | `\frac{\frac{x^{86} - 3x^{85} + 2x^{68} - 6x^{67} + x^{53} - 3x^{52}}{x + 6}}{\frac{x - 3}{x + 6}}` | `x^{85} + 2x^{67} + x^{52}` | `x != -6, 3` |  |  |  |  |
+| 2144 | 86 | Very hard | Quadratic factor cancellation | `\frac{4x^{86} + 51x^{85} + 155x^{84} - 42x^{83} + 3x^{8} + 39x^{7} + 126x^{6}}{(x + 6)(x + 7)}` | `4x^{84} - x^{83} + 3x^{6}` | `x != -7, -6` |  |  |  |  |
+| 2145 | 86 | Very hard | Perfect square trinomial | `\frac{x^{86} - 2x^{43} + 1}{x^{43} - 1}` | `x^{43} - 1` | `x != 1` |  |  |  |  |
+| 2146 | 86 | Very hard | Common power factor | `\frac{x^{86} + 2x^{49}}{x^{86} - x^{49}}` | `\frac{x^{37} + 2}{x^{37} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2147 | 86 | Very hard | Partial cancellation | `\frac{-2x^{86} - 2x^{85} - 5x^{10} - 5x^{9} - x^{3} - x^{2}}{x^{2} - x - 2}` | `\frac{-2x^{85} - 5x^{9} - x^{2}}{x - 2}` | `x != -1, 2` |  |  |  |  |
+| 2148 | 86 | Very hard | Different denominators | `\frac{x^{86} + 3x^{85}}{x + 3} + \frac{x^{84} + 7x^{83} + 5x^{3} + 35x^{2}}{x + 7}` | `x^{85} + x^{83} + 5x^{2}` | `x != -7, -3` |  |  |  |  |
+| 2149 | 86 | Very hard | Sign flip | `\frac{-2x^{86} + 14x^{85}}{x - 7}` | `-2x^{85}` | `x != 7` |  |  |  |  |
+| 2150 | 86 | Very hard | Constant factor | `\frac{45x^{87} + 225x^{86}}{3x + 15}` | `15x^{86}` | `x != -5` |  |  |  |  |
+| 2151 | 87 | Very hard | Reference-type rational | `\frac{3x^{87} - 33x^{86} + 90x^{85}}{x^{3} - 15x^{2} + 74x - 120}` | `\frac{3x^{85}}{x - 4}` | `x != 4, 5, 6` |  |  |  |  |
+| 2152 | 87 | Very hard | Nested fraction | `\frac{\frac{x^{87} - 2x^{86} - 3x^{56} + 6x^{55} - 2x^{14} + 4x^{13}}{x - 4}}{\frac{x - 2}{x - 4}}` | `x^{86} - 3x^{55} - 2x^{13}` | `x != 2, 4` |  |  |  |  |
+| 2153 | 87 | Very hard | Partial cancellation | `\frac{x^{87} - 6x^{86}}{x^{2} - x - 30}` | `\frac{x^{86}}{x + 5}` | `x != -5, 6` |  |  |  |  |
+| 2154 | 87 | Very hard | Collapsing identity | `(x^{44} + 4)(x^{43} - 4) - x^{87}` | `-4x^{44} + 4x^{43} - 16` | `none` |  |  |  |  |
+| 2155 | 87 | Very hard | Polynomial plus fraction | `(x^{87} + 4x^{30}) - \frac{3}{x + 3}` | `\frac{x^{88} + 3x^{87} + 4x^{31} + 12x^{30} - 3}{x + 3}` | `x != -3` |  |  |  |  |
+| 2156 | 87 | Very hard | Difference of powers | `\frac{x^{87} - x}{x^{44} - x}` | `x^{43} + 1` | `x != 0, 1` |  |  |  |  |
+| 2157 | 87 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{87} - 2x^{86} - 5x^{85} + 6x^{84} - 4x^{14} + 8x^{13} + 20x^{12} - 24x^{11}}{x + 2}}{x - 1}}{\frac{x - 3}{x + 1}}` | `x^{85} + x^{84} - 4x^{12} - 4x^{11}` | `x != -2, -1, 1, 3` |  |  |  |  |
+| 2158 | 87 | Very hard | Distribute and collect | `-5x^{81}(x^{6} - 3) + 2x^{81}` | `-5x^{87} + 17x^{81}` | `none` |  |  |  |  |
+| 2159 | 87 | Very hard | Multivariate distribution | `a^{65} \cdot b^{5} \cdot (a^{17} - 5b^{17})` | `a^{82} b^{5} - 5a^{65} b^{22}` | `none` |  |  |  |  |
+| 2160 | 87 | Very hard | Same denominator | `\frac{x^{87}}{x^{6} + 64} + \frac{64x^{81} - x^{37} - 64x^{31}}{x^{6} + 64}` | `x^{81} - x^{31}` | `x^6 + 64 != 0` |  |  |  |  |
+| 2161 | 87 | Very hard | Already irreducible | `\frac{x^{87} + 4}{x^{87}}` | `\frac{x^{87} + 4}{x^{87}}` | `x != 0` |  |  |  |  |
+| 2162 | 87 | Very hard | Collect like terms | `x^{85} + 3x^{34} + 3x^{85} - 5x^{83} - 3x^{34} + 2x^{83} + x^{87}` | `x^{87} + 4x^{85} - 3x^{83}` | `none` |  |  |  |  |
+| 2163 | 87 | Very hard | Cancels to zero | `\frac{x^{87} - 3x^{86} - x^{59} + 3x^{58} - x^{52} + 3x^{51}}{x - 3} - (x^{86} - x^{58} - x^{51})` | `0` | `x != 3` |  |  |  |  |
+| 2164 | 87 | Very hard | Monomial division | `\frac{x^{87} + x^{59}}{x^{59}}` | `x^{28} + 1` | `x != 0` |  |  |  |  |
+| 2165 | 87 | Very hard | Sign flip | `\frac{5x^{87} - 25x^{86} + 4x^{32} - 20x^{31} + 3x^{30} - 15x^{29}}{x - 5}` | `5x^{86} + 4x^{31} + 3x^{29}` | `x != 5` |  |  |  |  |
+| 2166 | 87 | Very hard | Multivariate monomials | `\frac{6 \cdot a^{54} \cdot b^{29} \cdot z^{4}}{6 \cdot a^{39} \cdot b^{11}}` | `a^{15} b^{18} z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 2167 | 87 | Very hard | Power of a power | `\frac{(x^{87})^{1}}{x^{7}}` | `x^{80}` | `x != 0` |  |  |  |  |
+| 2168 | 87 | Very hard | Different denominators | `\frac{x^{87} - 5x^{86}}{x - 5} + \frac{x^{87} + 4x^{86}}{x + 4}` | `2x^{86}` | `x != -4, 5` |  |  |  |  |
+| 2169 | 87 | Very hard | Negative exponents | `x^{-22} \cdot (x^{87} - 2x^{79})` | `x^{65} - 2x^{57}` | `x != 0` |  |  |  |  |
+| 2170 | 87 | Very hard | Linear factor cancellation | `\frac{x^{87} + 5x^{86} + x^{73} + 5x^{72} - 4x^{4} - 20x^{3}}{x + 5}` | `x^{86} + x^{72} - 4x^{3}` | `x != -5` |  |  |  |  |
+| 2171 | 87 | Very hard | Perfect square trinomial | `\frac{x^{87} + 2x^{44} + x}{x^{43} + 1}` | `x^{44} + x` | `x != -1` |  |  |  |  |
+| 2172 | 87 | Very hard | Expand product | `(-x^{86} + 4x^{74})(x)` | `-x^{87} + 4x^{75}` | `none` |  |  |  |  |
+| 2173 | 87 | Very hard | Quadratic factor cancellation | `\frac{-5x^{87} + 45x^{85} + x^{54} - 9x^{52}}{(x - 3)(x + 3)}` | `-5x^{85} + x^{52}` | `x != -3, 3` |  |  |  |  |
+| 2174 | 87 | Very hard | Common power factor | `\frac{x^{87} + 2x^{26}}{x^{87} + x^{26}}` | `\frac{x^{61} + 2}{x^{61} + 1}` | `x != -1, 0` |  |  |  |  |
+| 2175 | 87 | Very hard | Constant factor | `\frac{36x^{88} + 72x^{87}}{3x + 6}` | `12x^{87}` | `x != -2` |  |  |  |  |
+| 2176 | 88 | Very hard | Power of a power | `\frac{(2x^{44})^{2}}{x^{25}}` | `4x^{63}` | `x != 0` |  |  |  |  |
+| 2177 | 88 | Very hard | Cancels to zero | `\frac{x^{88} + 5x^{87} + 4x^{30} + 20x^{29}}{x + 5} - (x^{87} + 4x^{29})` | `0` | `x != -5` |  |  |  |  |
+| 2178 | 88 | Very hard | Common power factor | `\frac{x^{88} + 5x^{78}}{x^{88} + x^{78}}` | `\frac{x^{10} + 5}{x^{10} + 1}` | `x != 0, x^10 + 1 != 0` |  |  |  |  |
+| 2179 | 88 | Very hard | Already irreducible | `\frac{x^{88} + 5}{x^{88}}` | `\frac{x^{88} + 5}{x^{88}}` | `x != 0` |  |  |  |  |
+| 2180 | 88 | Very hard | Multivariate expansion | `(a^{44} + b^{44})(a^{44} - b^{44})` | `a^{88} - b^{88}` | `none` |  |  |  |  |
+| 2181 | 88 | Very hard | Multivariate monomials | `\frac{-12 \cdot a^{24} \cdot z^{64}}{3a^{4}}` | `-4a^{20} z^{64}` | `a != 0` |  |  |  |  |
+| 2182 | 88 | Very hard | Same denominator | `\frac{x^{88} - 5x^{66}}{x - 2} - \frac{5x^{88} - 8x^{87} - 5x^{66} - 4x^{9} + 8x^{8}}{x - 2}` | `-4x^{87} + 4x^{8}` | `x != 2` |  |  |  |  |
+| 2183 | 88 | Very hard | Triple nested fraction | `\frac{\frac{\frac{3x^{88} - 12x^{87} - 108x^{86} + 432x^{85} - 2x^{33} + 8x^{32} + 72x^{31} - 288x^{30}}{x + 6}}{x - 6}}{\frac{x - 4}{x + 2}}` | `3x^{86} + 6x^{85} - 2x^{31} - 4x^{30}` | `x != -6, -2, 4, 6` |  |  |  |  |
+| 2184 | 88 | Very hard | Reference-type rational | `\frac{-3x^{88} + 30x^{87} - 63x^{86}}{x^{3} - 7x^{2} - 9x + 63}` | `\frac{-3x^{86}}{x + 3}` | `x != -3, 3, 7` |  |  |  |  |
+| 2185 | 88 | Very hard | Sign flip | `\frac{-2x^{88} - 4x^{87}}{x + 2}` | `-2x^{87}` | `x != -2` |  |  |  |  |
+| 2186 | 88 | Very hard | Quadratic factor cancellation | `\frac{2x^{88} + 4x^{87} - 70x^{86} - 4x^{13} - 4x^{12} + 148x^{11} - 140x^{10}}{x^{2} + 2x - 35}` | `2x^{86} - 4x^{11} + 4x^{10}` | `x != -7, 5` |  |  |  |  |
+| 2187 | 88 | Very hard | Partial cancellation | `\frac{-5x^{88} + 20x^{87}}{x^{2} + 3x - 28}` | `\frac{-5x^{87}}{x + 7}` | `x != -7, 4` |  |  |  |  |
+| 2188 | 88 | Very hard | Nested fraction | `\frac{\frac{4x^{88} - 28x^{87} + 2x^{46} - 14x^{45} - 4x^{30} + 28x^{29}}{x + 6}}{\frac{x - 7}{x + 6}}` | `4x^{87} + 2x^{45} - 4x^{29}` | `x != -6, 7` |  |  |  |  |
+| 2189 | 88 | Very hard | Linear factor cancellation | `\frac{3x^{88} + 3x^{87}}{x + 1}` | `3x^{87}` | `x != -1` |  |  |  |  |
+| 2190 | 88 | Very hard | Polynomial plus fraction | `(x^{88} + 3x^{46}) + \frac{1}{x}` | `\frac{x^{89} + 3x^{47} + 1}{x}` | `x != 0` |  |  |  |  |
+| 2191 | 88 | Very hard | Distribute and collect | `4x^{15}(x^{73} + 2) - 3x^{15}` | `4x^{88} + 5x^{15}` | `none` |  |  |  |  |
+| 2192 | 88 | Very hard | Difference of squares chain | `\frac{x^{88} - 1}{x^{44} - 1}` | `x^{44} + 1` | `x != -1, 1` |  |  |  |  |
+| 2193 | 88 | Very hard | Perfect square trinomial | `\frac{x^{88} - 2x^{44} + 1}{x^{44} - 1}` | `x^{44} - 1` | `x != -1, 1` |  |  |  |  |
+| 2194 | 88 | Very hard | Collapsing identity | `(x^{44} - 3)^{2} - (x^{44} + 3)^{2}` | `-12x^{44}` | `none` |  |  |  |  |
+| 2195 | 88 | Very hard | Collect like terms | `-6x + 5x - 2x^{41} + 7x^{57} + x^{88} - 4x^{57} + 2x^{72}` | `x^{88} + 2x^{72} + 3x^{57} - 2x^{41} - x` | `none` |  |  |  |  |
+| 2196 | 88 | Very hard | Different denominators | `\frac{x^{88} + 6x^{87}}{x + 6} + \frac{x^{88} + 3x^{87} + 3x^{14} + 9x^{13}}{x + 3}` | `2x^{87} + 3x^{13}` | `x != -6, -3` |  |  |  |  |
+| 2197 | 88 | Very hard | Constant factor | `\frac{6x^{88}}{6}` | `x^{88}` | `none` |  |  |  |  |
+| 2198 | 88 | Very hard | Expand product | `(3x^{15})(x^{73})` | `3x^{88}` | `none` |  |  |  |  |
+| 2199 | 88 | Very hard | Monomial division | `\frac{16x^{88} - 12x^{79} - 12x^{45} - 12x^{40}}{4x^{40}}` | `4x^{48} - 3x^{39} - 3x^{5} - 3` | `x != 0` |  |  |  |  |
+| 2200 | 88 | Very hard | Negative exponents | `x^{-13} \cdot (-3x^{88})` | `-3x^{75}` | `x != 0` |  |  |  |  |
+| 2201 | 89 | Very hard | Polynomial plus fraction | `(-x^{89} - 4x^{13}) - \frac{5}{x - 7}` | `\frac{-x^{90} + 7x^{89} - 4x^{14} + 28x^{13} - 5}{x - 7}` | `x != 7` |  |  |  |  |
+| 2202 | 89 | Very hard | Monomial division | `\frac{2x^{89} - 6x^{83} + 6x^{75} - 4x^{17}}{2x^{17}}` | `x^{72} - 3x^{66} + 3x^{58} - 2` | `x != 0` |  |  |  |  |
+| 2203 | 89 | Very hard | Collapsing identity | `(x^{45} - 1)(x^{44} + 1) - x^{89}` | `x^{45} - x^{44} - 1` | `none` |  |  |  |  |
+| 2204 | 89 | Very hard | Sign flip | `\frac{-5x^{89} + 35x^{88} + x^{56} - 7x^{55} + x^{21} - 7x^{20}}{x - 7}` | `-5x^{88} + x^{55} + x^{20}` | `x != 7` |  |  |  |  |
+| 2205 | 89 | Very hard | Multivariate distribution | `a^{25} \cdot b^{24} \cdot (-2b^{40} + a^{18})` | `-2a^{25} b^{64} + a^{43} b^{24}` | `none` |  |  |  |  |
+| 2206 | 89 | Very hard | Multivariate monomials | `\frac{-2 \cdot a^{21} \cdot b^{14} \cdot z^{54}}{2 \cdot a^{13} \cdot b^{4}}` | `-a^{8} b^{10} z^{54}` | `a != 0, b != 0` |  |  |  |  |
+| 2207 | 89 | Very hard | Nested fraction | `\frac{\frac{-4x^{89} - 20x^{88} + 4x^{21} + 20x^{20}}{x - 3}}{\frac{x + 5}{x - 3}}` | `-4x^{88} + 4x^{20}` | `x != -5, 3` |  |  |  |  |
+| 2208 | 89 | Very hard | Perfect square trinomial | `\frac{x^{89} + 2x^{45} + x}{x^{44} + 1}` | `x^{45} + x` | `x^44 + 1 != 0` |  |  |  |  |
+| 2209 | 89 | Very hard | Cancels to zero | `\frac{x^{89} - 5x^{88} + 3x^{54} - 15x^{53}}{x - 5} - (x^{88} + 3x^{53})` | `0` | `x != 5` |  |  |  |  |
+| 2210 | 89 | Very hard | Expand product | `(x^{16})(x^{73})` | `x^{89}` | `none` |  |  |  |  |
+| 2211 | 89 | Very hard | Distribute and collect | `-5x^{32}(x^{57} - 3) + 2x^{32}` | `-5x^{89} + 17x^{32}` | `none` |  |  |  |  |
+| 2212 | 89 | Very hard | Negative exponents | `x^{-80} \cdot (-5x^{89})` | `-5x^{9}` | `x != 0` |  |  |  |  |
+| 2213 | 89 | Very hard | Already irreducible | `\frac{x^{89} + 2}{x^{89}}` | `\frac{x^{89} + 2}{x^{89}}` | `x != 0` |  |  |  |  |
+| 2214 | 89 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{89} + x^{88} - 30x^{87} - 72x^{86} + 2x^{63} + 2x^{62} - 60x^{61} - 144x^{60}}{x + 4}}{x - 6}}{\frac{x + 3}{x - 3}}` | `x^{87} - 3x^{86} + 2x^{61} - 6x^{60}` | `x != -4, -3, 3, 6` |  |  |  |  |
+| 2215 | 89 | Very hard | Same denominator | `\frac{-x^{89} - 5x}{x + 5} - \frac{-6x^{89} - 25x^{88} + x^{78} + 5x^{77} + 5x^{14} + 25x^{13} - 5x}{x + 5}` | `5x^{88} - x^{77} - 5x^{13}` | `x != -5` |  |  |  |  |
+| 2216 | 89 | Very hard | Linear factor cancellation | `\frac{x^{89} - 2x^{88} - 3x^{64} + 6x^{63} + 2x^{38} - 4x^{37}}{x - 2}` | `x^{88} - 3x^{63} + 2x^{37}` | `x != 2` |  |  |  |  |
+| 2217 | 89 | Very hard | Common power factor | `\frac{x^{89} - 5x^{47}}{x^{89} + x^{47}}` | `\frac{x^{42} - 5}{x^{42} + 1}` | `x != 0, x^42 + 1 != 0` |  |  |  |  |
+| 2218 | 89 | Very hard | Difference of powers | `\frac{x^{89} - x}{x^{45} - x}` | `x^{44} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 2219 | 89 | Very hard | Constant factor | `\frac{10x^{90} - 30x^{89} + 10x^{38} - 30x^{37}}{2x - 6}` | `5x^{89} + 5x^{37}` | `x != 3` |  |  |  |  |
+| 2220 | 89 | Very hard | Collect like terms | `-2x^{89} + 2x^{54} - 4x^{54}` | `-2x^{89} - 2x^{54}` | `none` |  |  |  |  |
+| 2221 | 89 | Very hard | Quadratic factor cancellation | `\frac{x^{89} + 6x^{88} + 5x^{87} + 3x^{84} + 18x^{83} + 15x^{82}}{(x + 1)(x + 5)}` | `x^{87} + 3x^{82}` | `x != -5, -1` |  |  |  |  |
+| 2222 | 89 | Very hard | Partial cancellation | `\frac{-4x^{89} + 16x^{88} + 4x^{83} - 16x^{82}}{x^{2} - 9x + 20}` | `\frac{-4x^{88} + 4x^{82}}{x - 5}` | `x != 4, 5` |  |  |  |  |
+| 2223 | 89 | Very hard | Power of a power | `\frac{(x^{89})^{1}}{x^{8}}` | `x^{81}` | `x != 0` |  |  |  |  |
+| 2224 | 89 | Very hard | Different denominators | `\frac{x^{89} - 4x^{87}}{x} + \frac{x^{87} - 2x^{86}}{x - 2}` | `x^{88} - 3x^{86}` | `x != 0, 2` |  |  |  |  |
+| 2225 | 89 | Very hard | Reference-type rational | `\frac{5x^{89} - 35x^{88} + 30x^{87} + 5x^{44} - 35x^{43} + 30x^{42}}{x^{3} - 43x + 42}` | `\frac{5x^{87} + 5x^{42}}{x + 7}` | `x != -7, 1, 6` |  |  |  |  |
+| 2226 | 90 | Very hard | Same denominator | `\frac{x^{90} + 5x^{34}}{x - 4} - \frac{5x^{90} - 16x^{89} + 2x^{34} + 12x^{33}}{x - 4}` | `-4x^{89} + 3x^{33}` | `x != 4` |  |  |  |  |
+| 2227 | 90 | Very hard | Sign flip | `\frac{-x^{90} - 3x^{89} + 3x^{65} + 9x^{64} - 3x^{59} - 9x^{58}}{x + 3}` | `-x^{89} + 3x^{64} - 3x^{58}` | `x != -3` |  |  |  |  |
+| 2228 | 90 | Very hard | Negative exponents | `x^{-35} \cdot (x^{90} + 5x^{44})` | `x^{55} + 5x^{9}` | `x != 0` |  |  |  |  |
+| 2229 | 90 | Very hard | Reference-type rational | `\frac{x^{90} - 6x^{89} - x^{87} + 6x^{86} - 3x^{39} + 18x^{38}}{x^{3} - 11x^{2} + 30x}` | `\frac{x^{88} - x^{85} - 3x^{37}}{x - 5}` | `x != 0, 5, 6` |  |  |  |  |
+| 2230 | 90 | Very hard | Collapsing identity | `(x^{45} + 4)^{2} - (x^{45} - 4)^{2}` | `16x^{45}` | `none` |  |  |  |  |
+| 2231 | 90 | Very hard | Common power factor | `\frac{x^{90} + 2x^{47}}{x^{90} - x^{47}}` | `\frac{x^{43} + 2}{x^{43} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2232 | 90 | Very hard | Difference of powers | `\frac{x^{90} - 1}{x^{45} + 1}` | `x^{45} - 1` | `x != -1` |  |  |  |  |
+| 2233 | 90 | Very hard | Cancels to zero | `\frac{x^{90} - 5x^{89}}{x - 5} - x^{89}` | `0` | `x != 5` |  |  |  |  |
+| 2234 | 90 | Very hard | Nested fraction | `\frac{\frac{-x^{90} - 2x^{89} - 4x^{74} - 8x^{73}}{x + 1}}{\frac{x + 2}{x + 1}}` | `-x^{89} - 4x^{73}` | `x != -2, -1` |  |  |  |  |
+| 2235 | 90 | Very hard | Expand product | `(x^{66} - 5x^{4})(-2x^{24})` | `-2x^{90} + 10x^{28}` | `none` |  |  |  |  |
+| 2236 | 90 | Very hard | Collect like terms | `-x^{52} - x^{89} + 3x^{90} - 2x^{55} + 4x^{52} - 2x^{90} + 2x^{58} + x^{89} - x^{33} - x^{33} - 2x^{55}` | `x^{90} + 2x^{58} - 4x^{55} + 3x^{52} - 2x^{33}` | `none` |  |  |  |  |
+| 2237 | 90 | Very hard | Polynomial plus fraction | `(2x^{90} - 5x^{86}) - \frac{3}{x + 1}` | `\frac{2x^{91} + 2x^{90} - 5x^{87} - 5x^{86} - 3}{x + 1}` | `x != -1` |  |  |  |  |
+| 2238 | 90 | Very hard | Partial cancellation | `\frac{x^{90} + 5x^{89}}{x^{2} - 2x - 35}` | `\frac{x^{89}}{x - 7}` | `x != -5, 7` |  |  |  |  |
+| 2239 | 90 | Very hard | Quadratic factor cancellation | `\frac{5x^{90} + 10x^{89} - 120x^{88} + 4x^{77} + 8x^{76} - 96x^{75}}{x^{2} + 2x - 24}` | `5x^{88} + 4x^{75}` | `x != -6, 4` |  |  |  |  |
+| 2240 | 90 | Very hard | Different denominators | `\frac{x^{90} - 7x^{89}}{x - 7} + \frac{x^{90} + 2x^{89} - 4x^{11} - 8x^{10}}{x + 2}` | `2x^{89} - 4x^{10}` | `x != -2, 7` |  |  |  |  |
+| 2241 | 90 | Very hard | Monomial division | `\frac{3x^{90} + 9x^{88} - 3x^{64} - 9x^{48}}{3x^{48}}` | `x^{42} + 3x^{40} - x^{16} - 3` | `x != 0` |  |  |  |  |
+| 2242 | 90 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-4x^{90} + 28x^{89} + 36x^{88} - 252x^{87} + 4x^{86} - 28x^{85} - 36x^{84} + 252x^{83}}{x - 7}}{x - 3}}{\frac{x + 3}{x + 7}}` | `-4x^{88} - 28x^{87} + 4x^{84} + 28x^{83}` | `x != -7, -3, 3, 7` |  |  |  |  |
+| 2243 | 90 | Very hard | Linear factor cancellation | `\frac{2x^{90} + 2x^{89} + 5x^{11} + 5x^{10}}{x + 1}` | `2x^{89} + 5x^{10}` | `x != -1` |  |  |  |  |
+| 2244 | 90 | Very hard | Power of a power | `(-x^{45})^{2} \cdot x^{-24}` | `x^{66}` | `x != 0` |  |  |  |  |
+| 2245 | 90 | Very hard | Multivariate monomials | `\frac{-6 \cdot a^{19} \cdot b^{37} \cdot z^{34}}{3 \cdot a^{9} \cdot b^{29}}` | `-2a^{10} b^{8} z^{34}` | `a != 0, b != 0` |  |  |  |  |
+| 2246 | 90 | Very hard | Constant factor | `\frac{-6x^{91} + 30x^{90} + 18x^{26} - 90x^{25}}{3x - 15}` | `-2x^{90} + 6x^{25}` | `x != 5` |  |  |  |  |
+| 2247 | 90 | Very hard | Multivariate distribution | `a^{10} \cdot b^{79} \cdot (a - 2b)` | `a^{11} b^{79} - 2a^{10} b^{80}` | `none` |  |  |  |  |
+| 2248 | 90 | Very hard | Perfect square trinomial | `\frac{x^{90} - 2x^{45} + 1}{x^{45} - 1}` | `x^{45} - 1` | `x != 1` |  |  |  |  |
+| 2249 | 90 | Very hard | Already irreducible | `\frac{x^{90} + 4}{x^{90}}` | `\frac{x^{90} + 4}{x^{90}}` | `x != 0` |  |  |  |  |
+| 2250 | 90 | Very hard | Distribute and collect | `3x^{68}(x^{22} + 1) - 2x^{68}` | `3x^{90} + x^{68}` | `none` |  |  |  |  |
+| 2251 | 91 | Very hard | Distribute and collect | `-4x^{45}(x^{46} - 2) - x^{45}` | `-4x^{91} + 7x^{45}` | `none` |  |  |  |  |
+| 2252 | 91 | Very hard | Difference of powers | `\frac{x^{91} - x}{x^{46} - x}` | `x^{45} + 1` | `x != 0, 1` |  |  |  |  |
+| 2253 | 91 | Very hard | Polynomial plus fraction | `(x^{91} - 5x^{18}) - \frac{4}{x + 5}` | `\frac{x^{92} + 5x^{91} - 5x^{19} - 25x^{18} - 4}{x + 5}` | `x != -5` |  |  |  |  |
+| 2254 | 91 | Very hard | Already irreducible | `\frac{x^{91} - 3}{x^{91} + 1}` | `\frac{x^{91} - 3}{x^{91} + 1}` | `x != -1` |  |  |  |  |
+| 2255 | 91 | Very hard | Linear factor cancellation | `\frac{-x^{91} - x^{90}}{x + 1}` | `-x^{90}` | `x != -1` |  |  |  |  |
+| 2256 | 91 | Very hard | Multivariate distribution | `a^{5} \cdot b^{9} \cdot (b^{77} + a)` | `a^{5} b^{86} + a^{6} b^{9}` | `none` |  |  |  |  |
+| 2257 | 91 | Very hard | Reference-type rational | `\frac{-3x^{91} + 9x^{90} + 12x^{89} - x^{85} + 3x^{84} + 4x^{83}}{x^{3} + 2x^{2} - 19x - 20}` | `\frac{-3x^{89} - x^{83}}{x + 5}` | `x != -5, -1, 4` |  |  |  |  |
+| 2258 | 91 | Very hard | Different denominators | `\frac{x^{91} - 2x^{90} - x^{69} + 2x^{68}}{x - 2} + \frac{5x^{89} - 30x^{88} + x^{79} - 6x^{78}}{x - 6}` | `x^{90} + 5x^{88} + x^{78} - x^{68}` | `x != 2, 6` |  |  |  |  |
+| 2259 | 91 | Very hard | Nested fraction | `\frac{\frac{x^{91} - 4x^{90}}{x + 5}}{\frac{x - 4}{x + 5}}` | `x^{90}` | `x != -5, 4` |  |  |  |  |
+| 2260 | 91 | Very hard | Power of a power | `\frac{(-x^{91})^{1}}{x^{60}}` | `-x^{31}` | `x != 0` |  |  |  |  |
+| 2261 | 91 | Very hard | Perfect square trinomial | `\frac{x^{91} + 2x^{46} + x}{x^{45} + 1}` | `x^{46} + x` | `x != -1` |  |  |  |  |
+| 2262 | 91 | Very hard | Sign flip | `\frac{-2x^{91} + 4x^{90} + 3x^{58} - 6x^{57} + 4x^{16} - 8x^{15}}{x - 2}` | `-2x^{90} + 3x^{57} + 4x^{15}` | `x != 2` |  |  |  |  |
+| 2263 | 91 | Very hard | Collapsing identity | `(x^{46} + 3)(x^{45} - 3) - x^{91}` | `-3x^{46} + 3x^{45} - 9` | `none` |  |  |  |  |
+| 2264 | 91 | Very hard | Expand product | `(x^{5} + 4x)(4x^{86})` | `4x^{91} + 16x^{87}` | `none` |  |  |  |  |
+| 2265 | 91 | Very hard | Cancels to zero | `\frac{-3x^{91} - 15x^{90}}{x + 5} - (-3x^{90})` | `0` | `x != -5` |  |  |  |  |
+| 2266 | 91 | Very hard | Partial cancellation | `\frac{2x^{91} + 2x^{90}}{x^{2} + 8x + 7}` | `\frac{2x^{90}}{x + 7}` | `x != -7, -1` |  |  |  |  |
+| 2267 | 91 | Very hard | Quadratic factor cancellation | `\frac{2x^{91} + 16x^{90} + 24x^{89} + 5x^{39} + 40x^{38} + 60x^{37} - 5x^{21} - 40x^{20} - 60x^{19}}{(x + 6)(x + 2)}` | `2x^{89} + 5x^{37} - 5x^{19}` | `x != -6, -2` |  |  |  |  |
+| 2268 | 91 | Very hard | Negative exponents | `x^{-78} \cdot (4x^{91} - 5x^{85})` | `4x^{13} - 5x^{7}` | `x != 0` |  |  |  |  |
+| 2269 | 91 | Very hard | Multivariate monomials | `\frac{-10 \cdot a^{62} \cdot b^{8} \cdot z^{21}}{2 \cdot a^{48} \cdot b^{6}}` | `-5a^{14} b^{2} z^{21}` | `a != 0, b != 0` |  |  |  |  |
+| 2270 | 91 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-4x^{91} + 36x^{90} - 72x^{89} - 4x^{30} + 36x^{29} - 72x^{28}}{x - 3}}{x}}{\frac{x - 6}{x - 2}}` | `-4x^{89} + 8x^{88} - 4x^{28} + 8x^{27}` | `x != 0, 2, 3, 6` |  |  |  |  |
+| 2271 | 91 | Very hard | Collect like terms | `2x^{32} - 5x^{33} - 2x^{32} + 10x^{33} + 2x^{91} - x^{91}` | `x^{91} + 5x^{33}` | `none` |  |  |  |  |
+| 2272 | 91 | Very hard | Same denominator | `\frac{2x^{91}}{x + 4} + \frac{-x^{91} + 4x^{90} - 3x^{29} - 12x^{28} - 3x^{20} - 12x^{19}}{x + 4}` | `x^{90} - 3x^{28} - 3x^{19}` | `x != -4` |  |  |  |  |
+| 2273 | 91 | Very hard | Monomial division | `\frac{3x^{91} - x^{47}}{x^{47}}` | `3x^{44} - 1` | `x != 0` |  |  |  |  |
+| 2274 | 91 | Very hard | Common power factor | `\frac{x^{91} + 2x^{11}}{x^{91} - x^{11}}` | `\frac{x^{80} + 2}{x^{80} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 2275 | 91 | Very hard | Constant factor | `\frac{20x^{92} - 40x^{91} + 20x^{77} - 40x^{76} - 30x^{59} + 60x^{58}}{2x - 4}` | `10x^{91} + 10x^{76} - 15x^{58}` | `x != 2` |  |  |  |  |
+| 2276 | 92 | Very hard | Power of a power | `\frac{(3x^{92})^{1}}{x^{9}}` | `3x^{83}` | `x != 0` |  |  |  |  |
+| 2277 | 92 | Very hard | Constant factor | `\frac{3x^{92}}{3}` | `x^{92}` | `none` |  |  |  |  |
+| 2278 | 92 | Very hard | Multivariate distribution | `a^{26} \cdot b^{37} \cdot (-3b^{29} + a^{10})` | `-3a^{26} b^{66} + a^{36} b^{37}` | `none` |  |  |  |  |
+| 2279 | 92 | Very hard | Multivariate monomials | `\frac{-4 \cdot a^{39} \cdot b^{3} \cdot z^{50}}{2 \cdot a^{37} \cdot b^{3}}` | `-2a^{2} z^{50}` | `a != 0, b != 0` |  |  |  |  |
+| 2280 | 92 | Very hard | Cancels to zero | `\frac{x^{92} - 6x^{91}}{x - 6} - x^{91}` | `0` | `x != 6` |  |  |  |  |
+| 2281 | 92 | Very hard | Difference of squares chain | `\frac{x^{92} - 1}{x^{46} - 1}` | `x^{46} + 1` | `x != -1, 1` |  |  |  |  |
+| 2282 | 92 | Very hard | Quadratic factor cancellation | `\frac{-x^{92} - 5x^{91} - 6x^{90} + 4x^{57} + 20x^{56} + 24x^{55} - x^{5} - 5x^{4} - 6x^{3}}{(x + 3)(x + 2)}` | `-x^{90} + 4x^{55} - x^{3}` | `x != -3, -2` |  |  |  |  |
+| 2283 | 92 | Very hard | Collapsing identity | `(x^{46} + 1)^{2} - (x^{46} - 1)^{2}` | `4x^{46}` | `none` |  |  |  |  |
+| 2284 | 92 | Very hard | Expand product | `(-5x^{86})(x^{6} - 5x^{3})` | `-5x^{92} + 25x^{89}` | `none` |  |  |  |  |
+| 2285 | 92 | Very hard | Perfect square trinomial | `\frac{x^{92} + 2x^{46} + 1}{x^{46} + 1}` | `x^{46} + 1` | `x^46 + 1 != 0` |  |  |  |  |
+| 2286 | 92 | Very hard | Triple nested fraction | `\frac{\frac{\frac{5x^{92} + 60x^{91} + 195x^{90} + 140x^{89} - 3x^{52} - 36x^{51} - 117x^{50} - 84x^{49}}{x + 7}}{x + 1}}{\frac{x + 4}{x + 2}}` | `5x^{90} + 10x^{89} - 3x^{50} - 6x^{49}` | `x != -7, -4, -2, -1` |  |  |  |  |
+| 2287 | 92 | Very hard | Negative exponents | `x^{-28} \cdot (-2x^{92})` | `-2x^{64}` | `x != 0` |  |  |  |  |
+| 2288 | 92 | Very hard | Reference-type rational | `\frac{x^{92} - x^{91} - 42x^{90}}{x^{3} - 3x^{2} - 40x + 84}` | `\frac{x^{90}}{x - 2}` | `x != -6, 2, 7` |  |  |  |  |
+| 2289 | 92 | Very hard | Same denominator | `\frac{x^{92} + x^{48}}{x^{6} + 1} + \frac{4x^{92} + 5x^{86} - x^{48} - 5x^{19} - 5x^{13}}{x^{6} + 1}` | `5x^{86} - 5x^{13}` | `x^6 + 1 != 0` |  |  |  |  |
+| 2290 | 92 | Very hard | Sign flip | `\frac{-x^{92}}{x}` | `-x^{91}` | `x != 0` |  |  |  |  |
+| 2291 | 92 | Very hard | Partial cancellation | `\frac{-3x^{92} + 9x^{91} - 5x^{85} + 15x^{84} + 3x^{78} - 9x^{77}}{x^{2} - 8x + 15}` | `\frac{-3x^{91} - 5x^{84} + 3x^{77}}{x - 5}` | `x != 3, 5` |  |  |  |  |
+| 2292 | 92 | Very hard | Polynomial plus fraction | `x^{92} - \frac{2}{x + 4}` | `\frac{x^{93} + 4x^{92} - 2}{x + 4}` | `x != -4` |  |  |  |  |
+| 2293 | 92 | Very hard | Distribute and collect | `5x^{73}(x^{19} - 5) - 3x^{73}` | `5x^{92} - 28x^{73}` | `none` |  |  |  |  |
+| 2294 | 92 | Very hard | Linear factor cancellation | `\frac{x^{92} + 5x^{91} + 6x^{90} + 3x^{5} + 6x^{4}}{x + 2}` | `x^{91} + 3x^{90} + 3x^{4}` | `x != -2` |  |  |  |  |
+| 2295 | 92 | Very hard | Common power factor | `\frac{x^{92} - 4x^{56}}{x^{92} - x^{56}}` | `\frac{x^{36} - 4}{x^{36} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 2296 | 92 | Very hard | Already irreducible | `\frac{x^{92} + 1}{x^{92}}` | `\frac{x^{92} + 1}{x^{92}}` | `x != 0` |  |  |  |  |
+| 2297 | 92 | Very hard | Nested fraction | `\frac{\frac{2x^{92} - 6x^{91} + x^{55} - 3x^{54}}{x + 7}}{\frac{x - 3}{x + 7}}` | `2x^{91} + x^{54}` | `x != -7, 3` |  |  |  |  |
+| 2298 | 92 | Very hard | Different denominators | `\frac{x^{92} - 2x^{91} + 2x^{87} - 4x^{86}}{x - 2} + \frac{-x^{90} - 2x^{89} - 5x^{62} - 10x^{61}}{x + 2}` | `x^{91} - x^{89} + 2x^{86} - 5x^{61}` | `x != -2, 2` |  |  |  |  |
+| 2299 | 92 | Very hard | Collect like terms | `4x^{48} - 2x^{92} - x^{54} - 7x^{48} + 3x^{92} - x^{54}` | `x^{92} - 2x^{54} - 3x^{48}` | `none` |  |  |  |  |
+| 2300 | 92 | Very hard | Monomial division | `\frac{-2x^{92} + 4x^{90} + 3x^{89} + 2x^{88}}{x^{88}}` | `-2x^{4} + 4x^{2} + 3x + 2` | `x != 0` |  |  |  |  |
+| 2301 | 93 | Very hard | Different denominators | `\frac{x^{93} - 4x^{92}}{x - 4} + \frac{x^{91} - 3x^{90}}{x - 3}` | `x^{92} + x^{90}` | `x != 3, 4` |  |  |  |  |
+| 2302 | 93 | Very hard | Negative exponents | `x^{-29} \cdot (-5x^{93} + 4x^{63})` | `-5x^{64} + 4x^{34}` | `x != 0` |  |  |  |  |
+| 2303 | 93 | Very hard | Collapsing identity | `(x^{47} + 2)(x^{46} - 2) - x^{93}` | `-2x^{47} + 2x^{46} - 4` | `none` |  |  |  |  |
+| 2304 | 93 | Very hard | Collect like terms | `-4x^{51} + 5x^{55} - 2x^{64} - 3x^{55} + x^{64} - x^{51} - 2x^{93}` | `-2x^{93} - x^{64} + 2x^{55} - 5x^{51}` | `none` |  |  |  |  |
+| 2305 | 93 | Very hard | Partial cancellation | `\frac{x^{93} - 7x^{92} - 5x^{49} + 35x^{48}}{x^{2} - 49}` | `\frac{x^{92} - 5x^{48}}{x + 7}` | `x != -7, 7` |  |  |  |  |
+| 2306 | 93 | Very hard | Linear factor cancellation | `\frac{-2x^{93} + 4x^{92} - 5x^{36} + 6x^{35} + 8x^{34}}{x - 2}` | `-2x^{92} - 5x^{35} - 4x^{34}` | `x != 2` |  |  |  |  |
+| 2307 | 93 | Very hard | Already irreducible | `\frac{x^{93} - 4}{x^{93} + 1}` | `\frac{x^{93} - 4}{x^{93} + 1}` | `x != -1` |  |  |  |  |
+| 2308 | 93 | Very hard | Sign flip | `\frac{5x^{93} - 10x^{92} - 3x^{20} + 6x^{19}}{x - 2}` | `5x^{92} - 3x^{19}` | `x != 2` |  |  |  |  |
+| 2309 | 93 | Very hard | Same denominator | `\frac{x^{93}}{x^{2} + 9} + \frac{3x^{93} + 36x^{91} + 4x^{45} + 37x^{43} + 9x^{41}}{x^{2} + 9}` | `4x^{91} + 4x^{43} + x^{41}` | `x^2 + 9 != 0` |  |  |  |  |
+| 2310 | 93 | Very hard | Expand product | `(-3x^{12})(-x^{81} - 4x^{52})` | `3x^{93} + 12x^{64}` | `none` |  |  |  |  |
+| 2311 | 93 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{93} - x^{92} - 42x^{91}}{x - 7}}{x + 6}}{\frac{x}{x - 4}}` | `x^{91} - 4x^{90}` | `x != -6, 0, 4, 7` |  |  |  |  |
+| 2312 | 93 | Very hard | Perfect square trinomial | `\frac{x^{93} + 2x^{47} + x}{x^{46} + 1}` | `x^{47} + x` | `x^46 + 1 != 0` |  |  |  |  |
+| 2313 | 93 | Very hard | Multivariate monomials | `\frac{-36 \cdot a^{62} \cdot b^{27} \cdot z^{4}}{6 \cdot a^{61} \cdot b^{23}}` | `-6a b^{4} z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 2314 | 93 | Very hard | Polynomial plus fraction | `x^{93} + \frac{3}{x - 6}` | `\frac{x^{94} - 6x^{93} + 3}{x - 6}` | `x != 6` |  |  |  |  |
+| 2315 | 93 | Very hard | Constant factor | `\frac{3x^{93} + 15x^{4} - 9x^{2}}{3}` | `x^{93} + 5x^{4} - 3x^{2}` | `none` |  |  |  |  |
+| 2316 | 93 | Very hard | Nested fraction | `\frac{\frac{x^{93} - 6x^{92} - 3x^{54} + 18x^{53}}{x - 4}}{\frac{x - 6}{x - 4}}` | `x^{92} - 3x^{53}` | `x != 4, 6` |  |  |  |  |
+| 2317 | 93 | Very hard | Distribute and collect | `-4x^{42}(x^{51} - 3) - 5x^{42}` | `-4x^{93} + 7x^{42}` | `none` |  |  |  |  |
+| 2318 | 93 | Very hard | Multivariate distribution | `a^{86} \cdot b^{3} \cdot (-4b^{4} + a)` | `-4a^{86} b^{7} + a^{87} b^{3}` | `none` |  |  |  |  |
+| 2319 | 93 | Very hard | Power of a power | `(-x^{31})^{3} \cdot x^{-18}` | `-x^{75}` | `x != 0` |  |  |  |  |
+| 2320 | 93 | Very hard | Quadratic factor cancellation | `\frac{2x^{93} + 12x^{92} + 4x^{90} + 24x^{89} - 5x^{21} - 30x^{20}}{x^{2} + 6x}` | `2x^{91} + 4x^{88} - 5x^{19}` | `x != -6, 0` |  |  |  |  |
+| 2321 | 93 | Very hard | Difference of powers | `\frac{x^{93} - x}{x^{47} - x}` | `x^{46} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 2322 | 93 | Very hard | Common power factor | `\frac{x^{93} + 5x^{32}}{x^{93} - x^{32}}` | `\frac{x^{61} + 5}{x^{61} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2323 | 93 | Very hard | Reference-type rational | `\frac{5x^{93} - 45x^{92} + 100x^{91}}{x^{3} - 2x^{2} - 43x + 140}` | `\frac{5x^{91}}{x + 7}` | `x != -7, 4, 5` |  |  |  |  |
+| 2324 | 93 | Very hard | Monomial division | `\frac{6x^{93} - 24x^{85} - 12x^{7}}{6x^{7}}` | `x^{86} - 4x^{78} - 2` | `x != 0` |  |  |  |  |
+| 2325 | 93 | Very hard | Cancels to zero | `\frac{x^{93} + 5x^{61} + 3x^{53}}{x} - (x^{92} + 5x^{60} + 3x^{52})` | `0` | `x != 0` |  |  |  |  |
+| 2326 | 94 | Very hard | Collapsing identity | `(x^{47} - 4)^{2} - (x^{47} + 4)^{2}` | `-16x^{47}` | `none` |  |  |  |  |
+| 2327 | 94 | Very hard | Nested fraction | `\frac{\frac{x^{94} - 6x^{93}}{x - 7}}{\frac{x - 6}{x - 7}}` | `x^{93}` | `x != 6, 7` |  |  |  |  |
+| 2328 | 94 | Very hard | Polynomial plus fraction | `(5x^{94} + x^{69}) + \frac{2}{x - 2}` | `\frac{5x^{95} - 10x^{94} + x^{70} - 2x^{69} + 2}{x - 2}` | `x != 2` |  |  |  |  |
+| 2329 | 94 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-2x^{94} - 20x^{93} - 54x^{92} - 36x^{91}}{x + 6}}{x + 1}}{\frac{x + 3}{x - 3}}` | `-2x^{92} + 6x^{91}` | `x != -6, -3, -1, 3` |  |  |  |  |
+| 2330 | 94 | Very hard | Sign flip | `\frac{-x^{94} + 2x^{93} + 4x^{37} - 8x^{36} - 5x^{12} + 10x^{11}}{x - 2}` | `-x^{93} + 4x^{36} - 5x^{11}` | `x != 2` |  |  |  |  |
+| 2331 | 94 | Very hard | Multivariate monomials | `\frac{12 \cdot a^{6} \cdot b^{35} \cdot z^{53}}{4 \cdot a^{6} \cdot b^{11}}` | `3b^{24} z^{53}` | `a != 0, b != 0` |  |  |  |  |
+| 2332 | 94 | Very hard | Constant factor | `\frac{-18x^{94}}{6}` | `-3x^{94}` | `none` |  |  |  |  |
+| 2333 | 94 | Very hard | Negative exponents | `x^{-76} \cdot (4x^{94} + 5x^{84})` | `4x^{18} + 5x^{8}` | `x != 0` |  |  |  |  |
+| 2334 | 94 | Very hard | Collect like terms | `-3x^{27} + 5x^{82} - 2x^{63} - 5x^{82} + x^{63} + x^{94} + 8x^{27}` | `x^{94} - x^{63} + 5x^{27}` | `none` |  |  |  |  |
+| 2335 | 94 | Very hard | Common power factor | `\frac{x^{94} - 5x^{59}}{x^{94} + x^{59}}` | `\frac{x^{35} - 5}{x^{35} + 1}` | `x != -1, 0` |  |  |  |  |
+| 2336 | 94 | Very hard | Power of a power | `(2x^{47})^{2} \cdot x^{-27}` | `4x^{67}` | `x != 0` |  |  |  |  |
+| 2337 | 94 | Very hard | Monomial division | `\frac{6x^{94} - 30x^{36}}{6x^{36}}` | `x^{58} - 5` | `x != 0` |  |  |  |  |
+| 2338 | 94 | Very hard | Already irreducible | `\frac{x^{94} - 3}{x^{94} + 1}` | `\frac{x^{94} - 3}{x^{94} + 1}` | `x^94 + 1 != 0` |  |  |  |  |
+| 2339 | 94 | Very hard | Distribute and collect | `5x^{36}(x^{58} - 3) + 2x^{36}` | `5x^{94} - 13x^{36}` | `none` |  |  |  |  |
+| 2340 | 94 | Very hard | Perfect square trinomial | `\frac{x^{94} - 2x^{47} + 1}{x^{47} - 1}` | `x^{47} - 1` | `x != 1` |  |  |  |  |
+| 2341 | 94 | Very hard | Linear factor cancellation | `\frac{-3x^{94} - 3x^{93} + 5x^{45} + 5x^{44}}{x + 1}` | `-3x^{93} + 5x^{44}` | `x != -1` |  |  |  |  |
+| 2342 | 94 | Very hard | Same denominator | `\frac{4x^{94}}{x^{6} - 1} + \frac{-3x^{94} - x^{88}}{x^{6} - 1}` | `x^{88}` | `x != -1, 1` |  |  |  |  |
+| 2343 | 94 | Very hard | Difference of powers | `\frac{x^{94} - 1}{x^{47} + 1}` | `x^{47} - 1` | `x != -1` |  |  |  |  |
+| 2344 | 94 | Very hard | Different denominators | `\frac{x^{94} + 4x^{93} + x^{41} + 4x^{40}}{x + 4} + \frac{x^{94} + 7x^{93} - 2x^{10} - 14x^{9}}{x + 7}` | `2x^{93} + x^{40} - 2x^{9}` | `x != -7, -4` |  |  |  |  |
+| 2345 | 94 | Very hard | Cancels to zero | `\frac{x^{94} - 7x^{93} + 2x^{83} - 14x^{82} - 2x^{43} + 14x^{42}}{x - 7} - (x^{93} + 2x^{82} - 2x^{42})` | `0` | `x != 7` |  |  |  |  |
+| 2346 | 94 | Very hard | Quadratic factor cancellation | `\frac{x^{94} + 4x^{93} - 21x^{92} - 4x^{56} - 16x^{55} + 84x^{54}}{x^{2} + 4x - 21}` | `x^{92} - 4x^{54}` | `x != -7, 3` |  |  |  |  |
+| 2347 | 94 | Very hard | Multivariate distribution | `a^{69} \cdot b^{19} \cdot (a^{6} - 3b^{6})` | `a^{75} b^{19} - 3a^{69} b^{25}` | `none` |  |  |  |  |
+| 2348 | 94 | Very hard | Reference-type rational | `\frac{x^{94} + 5x^{93}}{x^{3} + 3x^{2} - 10x}` | `\frac{x^{92}}{x - 2}` | `x != -5, 0, 2` |  |  |  |  |
+| 2349 | 94 | Very hard | Expand product | `(x^{48} + 4x^{39})(-4x^{46} + x^{16})` | `-4x^{94} - 16x^{85} + x^{64} + 4x^{55}` | `none` |  |  |  |  |
+| 2350 | 94 | Very hard | Partial cancellation | `\frac{x^{94} + 4x^{93} - x^{20} - 4x^{19}}{x^{2} - x - 20}` | `\frac{x^{93} - x^{19}}{x - 5}` | `x != -4, 5` |  |  |  |  |
+| 2351 | 95 | Very hard | Expand product | `(4x^{52} + x^{35})(x^{43} + 3x^{39})` | `4x^{95} + 12x^{91} + x^{78} + 3x^{74}` | `none` |  |  |  |  |
+| 2352 | 95 | Very hard | Already irreducible | `\frac{x^{95} + 2}{x^{95}}` | `\frac{x^{95} + 2}{x^{95}}` | `x != 0` |  |  |  |  |
+| 2353 | 95 | Very hard | Reference-type rational | `\frac{-2x^{95} + 6x^{94} - 4x^{93} + x^{33} - 3x^{32} + 2x^{31}}{x^{3} - 7x + 6}` | `\frac{-2x^{93} + x^{31}}{x + 3}` | `x != -3, 1, 2` |  |  |  |  |
+| 2354 | 95 | Very hard | Negative exponents | `x^{-60} \cdot (4x^{95} - 5x^{68})` | `4x^{35} - 5x^{8}` | `x != 0` |  |  |  |  |
+| 2355 | 95 | Very hard | Linear factor cancellation | `\frac{x^{95} - 6x^{94} - 2x^{88} + 12x^{87}}{x - 6}` | `x^{94} - 2x^{87}` | `x != 6` |  |  |  |  |
+| 2356 | 95 | Very hard | Multivariate distribution | `a^{75} \cdot b^{10} \cdot (-3b^{10} + a^{2})` | `-3a^{75} b^{20} + a^{77} b^{10}` | `none` |  |  |  |  |
+| 2357 | 95 | Very hard | Sign flip | `\frac{-x^{95} - x^{94} + 2x^{70} + 2x^{69} + x^{8} + x^{7}}{x + 1}` | `-x^{94} + 2x^{69} + x^{7}` | `x != -1` |  |  |  |  |
+| 2358 | 95 | Very hard | Distribute and collect | `5x^{53}(x^{42} - 5) + 2x^{53}` | `5x^{95} - 23x^{53}` | `none` |  |  |  |  |
+| 2359 | 95 | Very hard | Perfect square trinomial | `\frac{x^{95} + 2x^{48} + x}{x^{47} + 1}` | `x^{48} + x` | `x != -1` |  |  |  |  |
+| 2360 | 95 | Very hard | Multivariate monomials | `\frac{24 \cdot a^{75} \cdot b^{16} \cdot z^{4}}{6 \cdot a^{60} \cdot b^{4}}` | `4a^{15} b^{12} z^{4}` | `a != 0, b != 0` |  |  |  |  |
+| 2361 | 95 | Very hard | Nested fraction | `\frac{\frac{x^{95} - 7x^{94}}{x + 1}}{\frac{x - 7}{x + 1}}` | `x^{94}` | `x != -1, 7` |  |  |  |  |
+| 2362 | 95 | Very hard | Constant factor | `\frac{5x^{95}}{5}` | `x^{95}` | `none` |  |  |  |  |
+| 2363 | 95 | Very hard | Collapsing identity | `(x^{48} - 2)(x^{47} + 2) - x^{95}` | `2x^{48} - 2x^{47} - 4` | `none` |  |  |  |  |
+| 2364 | 95 | Very hard | Collect like terms | `8 + x^{95} - 5` | `x^{95} + 3` | `none` |  |  |  |  |
+| 2365 | 95 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-5x^{95} + 50x^{94} - 95x^{93} - 150x^{92}}{x - 5}}{x - 6}}{\frac{x + 1}{x + 4}}` | `-5x^{93} - 20x^{92}` | `x != -4, -1, 5, 6` |  |  |  |  |
+| 2366 | 95 | Very hard | Different denominators | `\frac{-4x^{95} + 16x^{94} - 3x^{77} + 12x^{76}}{x - 4} + \frac{4x^{94} - 20x^{93}}{x - 5}` | `-4x^{94} + 4x^{93} - 3x^{76}` | `x != 4, 5` |  |  |  |  |
+| 2367 | 95 | Very hard | Cancels to zero | `\frac{-3x^{95} - 3x^{94} + 2x^{85} + 2x^{84} + 3x^{44} + 3x^{43}}{x + 1} - (-3x^{94} + 2x^{84} + 3x^{43})` | `0` | `x != -1` |  |  |  |  |
+| 2368 | 95 | Very hard | Polynomial plus fraction | `(x^{95} - x^{42}) + \frac{2}{x + 1}` | `\frac{x^{96} + x^{95} - x^{43} - x^{42} + 2}{x + 1}` | `x != -1` |  |  |  |  |
+| 2369 | 95 | Very hard | Power of a power | `\frac{(x^{19})^{5}}{x^{14}}` | `x^{81}` | `x != 0` |  |  |  |  |
+| 2370 | 95 | Very hard | Same denominator | `\frac{-4x^{95} - 5x^{53} + 2x^{41}}{x^{3} - 27} + \frac{5x^{95} - 27x^{92} + x^{77} - 27x^{74} + 5x^{53} - 2x^{41} + 2x^{22} - 54x^{19}}{x^{3} - 27}` | `x^{92} + x^{74} + 2x^{19}` | `x != 3` |  |  |  |  |
+| 2371 | 95 | Very hard | Monomial division | `\frac{-2x^{95} + 6x^{55} + 2x^{17}}{2x^{17}}` | `-x^{78} + 3x^{38} + 1` | `x != 0` |  |  |  |  |
+| 2372 | 95 | Very hard | Quadratic factor cancellation | `\frac{3x^{95} - 30x^{94} + 72x^{93}}{x^{2} - 10x + 24}` | `3x^{93}` | `x != 4, 6` |  |  |  |  |
+| 2373 | 95 | Very hard | Difference of powers | `\frac{x^{95} - x}{x^{48} - x}` | `x^{47} + 1` | `x != 0, 1` |  |  |  |  |
+| 2374 | 95 | Very hard | Partial cancellation | `\frac{x^{95} + 6x^{94} + 4x^{37} + 24x^{36} + 3x^{32} + 18x^{31}}{x^{2} + 11x + 30}` | `\frac{x^{94} + 4x^{36} + 3x^{31}}{x + 5}` | `x != -6, -5` |  |  |  |  |
+| 2375 | 95 | Very hard | Expand product | `(x^{4} + 5)(-5x^{91} + 3x^{55})` | `-5x^{95} - 25x^{91} + 3x^{59} + 15x^{55}` | `none` |  |  |  |  |
+| 2376 | 96 | Very hard | Difference of powers | `\frac{x^{96} - 1}{x^{48} + 1}` | `x^{48} - 1` | `x^48 + 1 != 0` |  |  |  |  |
+| 2377 | 96 | Very hard | Monomial division | `\frac{6x^{96}}{2x^{96}}` | `3` | `x != 0` |  |  |  |  |
+| 2378 | 96 | Very hard | Different denominators | `\frac{-x^{96} + 4x^{95}}{x - 4} + \frac{x^{95} - 7x^{94}}{x - 7}` | `-x^{95} + x^{94}` | `x != 4, 7` |  |  |  |  |
+| 2379 | 96 | Very hard | Sign flip | `\frac{-5x^{96} - 25x^{95} + 4x^{39} + 20x^{38} + x^{31} + 5x^{30}}{x + 5}` | `-5x^{95} + 4x^{38} + x^{30}` | `x != -5` |  |  |  |  |
+| 2380 | 96 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{96} + 7x^{95} - 36x^{93}}{x - 2}}{x + 6}}{\frac{x + 3}{x - 5}}` | `x^{94} - 5x^{93}` | `x != -6, -3, 2, 5` |  |  |  |  |
+| 2381 | 96 | Very hard | Cancels to zero | `\frac{x^{96} + 5x^{95} + 2x^{68} + 10x^{67} - x^{48} - 5x^{47}}{x + 5} - (x^{95} + 2x^{67} - x^{47})` | `0` | `x != -5` |  |  |  |  |
+| 2382 | 96 | Very hard | Collapsing identity | `(x^{48} - 4)^{2} - (x^{48} + 4)^{2}` | `-16x^{48}` | `none` |  |  |  |  |
+| 2383 | 96 | Very hard | Polynomial plus fraction | `x^{96} + \frac{4}{x - 6}` | `\frac{x^{97} - 6x^{96} + 4}{x - 6}` | `x != 6` |  |  |  |  |
+| 2384 | 96 | Very hard | Reference-type rational | `\frac{x^{96} - 2x^{95} - 24x^{94} - 4x^{79} + 8x^{78} + 96x^{77} - 2x^{26} + 4x^{25} + 48x^{24}}{x^{3} - 7x^{2} - 14x + 120}` | `\frac{x^{94} - 4x^{77} - 2x^{24}}{x - 5}` | `x != -4, 5, 6` |  |  |  |  |
+| 2385 | 96 | Very hard | Perfect square trinomial | `\frac{x^{96} + 2x^{48} + 1}{x^{48} + 1}` | `x^{48} + 1` | `x^48 + 1 != 0` |  |  |  |  |
+| 2386 | 96 | Very hard | Linear factor cancellation | `\frac{x^{96} - 2x^{95}}{x - 2}` | `x^{95}` | `x != 2` |  |  |  |  |
+| 2387 | 96 | Very hard | Common power factor | `\frac{x^{96} - 3x^{25}}{x^{96} - x^{25}}` | `\frac{x^{71} - 3}{x^{71} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2388 | 96 | Very hard | Distribute and collect | `3x^{29}(x^{67} + 5) + 2x^{29}` | `3x^{96} + 17x^{29}` | `none` |  |  |  |  |
+| 2389 | 96 | Very hard | Same denominator | `\frac{5x^{96} + 3x^{46}}{x^{3} + 1} - \frac{-5x^{93} - 5x^{59} - 5x^{56} + 3x^{46}}{x^{3} + 1}` | `5x^{93} + 5x^{56}` | `x != -1` |  |  |  |  |
+| 2390 | 96 | Very hard | Difference of squares chain | `\frac{x^{96} - 1}{(x^{24} - 1)(x^{24} + 1)}` | `x^{48} + 1` | `x != -1, 1, x^24 + 1 != 0` |  |  |  |  |
+| 2391 | 96 | Very hard | Collect like terms | `3x^{42} - 3x^{42} - x^{73} - 4x^{44} + 3x^{44} - 5x^{96} - x^{74} + 5x^{73}` | `-5x^{96} - x^{74} + 4x^{73} - x^{44}` | `none` |  |  |  |  |
+| 2392 | 96 | Very hard | Expand product | `(-5x^{48} + 2x^{39})(-4x^{48})` | `20x^{96} - 8x^{87}` | `none` |  |  |  |  |
+| 2393 | 96 | Very hard | Negative exponents | `x^{-69} \cdot (5x^{96} + 4x^{88})` | `5x^{27} + 4x^{19}` | `x != 0` |  |  |  |  |
+| 2394 | 96 | Very hard | Already irreducible | `\frac{x^{96} - 5}{x^{96} - 1}` | `\frac{x^{96} - 5}{x^{96} - 1}` | `x != -1, 1` |  |  |  |  |
+| 2395 | 96 | Very hard | Constant factor | `\frac{4x^{97} - 4x^{96} - 8x^{46} + 8x^{45}}{x - 1}` | `4x^{96} - 8x^{45}` | `x != 1` |  |  |  |  |
+| 2396 | 96 | Very hard | Quadratic factor cancellation | `\frac{x^{96} - 3x^{95} - 18x^{94} + 3x^{64} - 9x^{63} - 54x^{62} - 4x^{43} + 12x^{42} + 72x^{41}}{(x + 3)(x - 6)}` | `x^{94} + 3x^{62} - 4x^{41}` | `x != -3, 6` |  |  |  |  |
+| 2397 | 96 | Very hard | Power of a power | `\frac{(-x^{48})^{2}}{x^{8}}` | `x^{88}` | `x != 0` |  |  |  |  |
+| 2398 | 96 | Very hard | Multivariate expansion | `(a^{48} + b^{48})(a^{48} - b^{48})` | `a^{96} - b^{96}` | `none` |  |  |  |  |
+| 2399 | 96 | Very hard | Nested fraction | `\frac{\frac{x^{96} + 2x^{95}}{x + 5}}{\frac{x + 2}{x + 5}}` | `x^{95}` | `x != -5, -2` |  |  |  |  |
+| 2400 | 96 | Very hard | Multivariate monomials | `\frac{24 \cdot a^{13} \cdot b^{75} \cdot z^{8}}{4 \cdot a^{7} \cdot b^{50}}` | `6a^{6} b^{25} z^{8}` | `a != 0, b != 0` |  |  |  |  |
+| 2401 | 97 | Very hard | Multivariate distribution | `a^{18} \cdot b^{4} \cdot (-5b^{75} + a^{3})` | `-5a^{18} b^{79} + a^{21} b^{4}` | `none` |  |  |  |  |
+| 2402 | 97 | Very hard | Different denominators | `\frac{x^{97} + 7x^{96}}{x + 7} + \frac{x^{95} - 4x^{94} - 3x^{77} + 12x^{76}}{x - 4}` | `x^{96} + x^{94} - 3x^{76}` | `x != -7, 4` |  |  |  |  |
+| 2403 | 97 | Very hard | Expand product | `(x^{5} - 2x)(3x^{92} - 5x^{52})` | `3x^{97} - 6x^{93} - 5x^{57} + 10x^{53}` | `none` |  |  |  |  |
+| 2404 | 97 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-4x^{97} - 24x^{96} - 20x^{95}}{x}}{x + 1}}{\frac{x + 5}{x + 4}}` | `-4x^{95} - 16x^{94}` | `x != -5, -4, -1, 0` |  |  |  |  |
+| 2405 | 97 | Very hard | Multivariate monomials | `\frac{6 \cdot a^{84} \cdot b^{11} \cdot z^{2}}{a^{24} \cdot b^{8}}` | `6a^{60} b^{3} z^{2}` | `a != 0, b != 0` |  |  |  |  |
+| 2406 | 97 | Very hard | Perfect square trinomial | `\frac{x^{97} - 2x^{49} + x}{x^{48} - 1}` | `x^{49} - x` | `x != -1, 1` |  |  |  |  |
+| 2407 | 97 | Very hard | Partial cancellation | `\frac{-5x^{97} + 20x^{96} - 2x^{63} + 8x^{62}}{x^{2} - 9x + 20}` | `\frac{-5x^{96} - 2x^{62}}{x - 5}` | `x != 4, 5` |  |  |  |  |
+| 2408 | 97 | Very hard | Already irreducible | `\frac{x^{97} + 3}{x^{97} + 1}` | `\frac{x^{97} + 3}{x^{97} + 1}` | `x != -1` |  |  |  |  |
+| 2409 | 97 | Very hard | Collect like terms | `6x^{97} - x^{97} + 2x^{40} - 2x^{40}` | `5x^{97}` | `none` |  |  |  |  |
+| 2410 | 97 | Very hard | Common power factor | `\frac{x^{97} - 3x^{72}}{x^{97} + x^{72}}` | `\frac{x^{25} - 3}{x^{25} + 1}` | `x != -1, 0` |  |  |  |  |
+| 2411 | 97 | Very hard | Collapsing identity | `(x^{49} - 2)(x^{48} + 2) - x^{97}` | `2x^{49} - 2x^{48} - 4` | `none` |  |  |  |  |
+| 2412 | 97 | Very hard | Cancels to zero | `\frac{-x^{97} + 6x^{96} - 2x^{50} + 12x^{49} + 4x^{6} - 24x^{5}}{x - 6} - (-x^{96} - 2x^{49} + 4x^{5})` | `0` | `x != 6` |  |  |  |  |
+| 2413 | 97 | Very hard | Monomial division | `\frac{8x^{97} + 6x^{91} + 10x^{44} - 4x^{17}}{2x^{17}}` | `4x^{80} + 3x^{74} + 5x^{27} - 2` | `x != 0` |  |  |  |  |
+| 2414 | 97 | Very hard | Quadratic factor cancellation | `\frac{x^{97} - x^{96} - 20x^{95}}{x^{2} - x - 20}` | `x^{95}` | `x != -4, 5` |  |  |  |  |
+| 2415 | 97 | Very hard | Same denominator | `\frac{x^{97} - 3x}{x^{4} - 1} + \frac{-5x^{97} + 4x^{93} + 3x}{x^{4} - 1}` | `-4x^{93}` | `x != -1, 1` |  |  |  |  |
+| 2416 | 97 | Very hard | Power of a power | `\frac{(3x^{97})^{1}}{x^{14}}` | `3x^{83}` | `x != 0` |  |  |  |  |
+| 2417 | 97 | Very hard | Nested fraction | `\frac{\frac{x^{97} + 5x^{96} + 4x^{81} + 20x^{80} + 3x^{13} + 15x^{12}}{x + 3}}{\frac{x + 5}{x + 3}}` | `x^{96} + 4x^{80} + 3x^{12}` | `x != -5, -3` |  |  |  |  |
+| 2418 | 97 | Very hard | Difference of powers | `\frac{x^{97} - x}{x^{49} - x}` | `x^{48} + 1` | `x != -1, 0, 1` |  |  |  |  |
+| 2419 | 97 | Very hard | Constant factor | `\frac{2x^{97} + 2x^{32} - 6x^{18}}{2}` | `x^{97} + x^{32} - 3x^{18}` | `none` |  |  |  |  |
+| 2420 | 97 | Very hard | Reference-type rational | `\frac{x^{97} + 2x^{96} - 35x^{95} + 5x^{14} + 10x^{13} - 175x^{12}}{x^{3} - x^{2} - 41x + 105}` | `\frac{x^{95} + 5x^{12}}{x - 3}` | `x != -7, 3, 5` |  |  |  |  |
+| 2421 | 97 | Very hard | Negative exponents | `x^{-62} \cdot (4x^{97} + 5x^{65})` | `4x^{35} + 5x^{3}` | `x != 0` |  |  |  |  |
+| 2422 | 97 | Very hard | Sign flip | `\frac{5x^{97} - 5x^{96} + x^{78} - x^{77} + 4x^{37} - 4x^{36}}{x - 1}` | `5x^{96} + x^{77} + 4x^{36}` | `x != 1` |  |  |  |  |
+| 2423 | 97 | Very hard | Distribute and collect | `x^{19}(x^{78} + 5) - x^{19}` | `x^{97} + 4x^{19}` | `none` |  |  |  |  |
+| 2424 | 97 | Very hard | Linear factor cancellation | `\frac{x^{97} + x^{96} - x^{77} - x^{76} + 2x^{25} + 2x^{24}}{x + 1}` | `x^{96} - x^{76} + 2x^{24}` | `x != -1` |  |  |  |  |
+| 2425 | 97 | Very hard | Polynomial plus fraction | `(-4x^{97} - 3x^{87}) - \frac{1}{x - 7}` | `\frac{-4x^{98} + 28x^{97} - 3x^{88} + 21x^{87} - 1}{x - 7}` | `x != 7` |  |  |  |  |
+| 2426 | 98 | Very hard | Distribute and collect | `-4x(x^{97} - 5) + x` | `-4x^{98} + 21x` | `none` |  |  |  |  |
+| 2427 | 98 | Very hard | Reference-type rational | `\frac{4x^{98} - 12x^{97} - 112x^{96} + 5x^{62} - 15x^{61} - 140x^{60}}{x^{3} - 4x^{2} - 25x + 28}` | `\frac{4x^{96} + 5x^{60}}{x - 1}` | `x != -4, 1, 7` |  |  |  |  |
+| 2428 | 98 | Very hard | Quadratic factor cancellation | `\frac{5x^{98} + 25x^{97} + 20x^{96} - 2x^{32} - 10x^{31} - 8x^{30}}{x^{2} + 5x + 4}` | `5x^{96} - 2x^{30}` | `x != -4, -1` |  |  |  |  |
+| 2429 | 98 | Very hard | Negative exponents | `x^{-10} \cdot (-4x^{98} + 2x^{37})` | `-4x^{88} + 2x^{27}` | `x != 0` |  |  |  |  |
+| 2430 | 98 | Very hard | Nested fraction | `\frac{\frac{x^{98}}{x + 6}}{\frac{x}{x + 6}}` | `x^{97}` | `x != -6, 0` |  |  |  |  |
+| 2431 | 98 | Very hard | Constant factor | `\frac{4x^{98} - 12x^{65} + 20x^{57}}{4}` | `x^{98} - 3x^{65} + 5x^{57}` | `none` |  |  |  |  |
+| 2432 | 98 | Very hard | Expand product | `(x^{19})(x^{79})` | `x^{98}` | `none` |  |  |  |  |
+| 2433 | 98 | Very hard | Collapsing identity | `(x^{49} + 5)^{2} - (x^{49} - 5)^{2}` | `20x^{49}` | `none` |  |  |  |  |
+| 2434 | 98 | Very hard | Collect like terms | `-2x^{23} + 3x^{19} + 3x^{6} + 6x^{51} - 3x^{51} + x^{98} + 5x^{23} - 6x^{6}` | `x^{98} + 3x^{51} + 3x^{23} + 3x^{19} - 3x^{6}` | `none` |  |  |  |  |
+| 2435 | 98 | Very hard | Triple nested fraction | `\frac{\frac{\frac{2x^{98} + 18x^{97} + 52x^{96} + 48x^{95} - 2x^{69} - 18x^{68} - 52x^{67} - 48x^{66}}{x + 4}}{x + 2}}{\frac{x + 3}{x - 1}}` | `2x^{96} - 2x^{95} - 2x^{67} + 2x^{66}` | `x != -4, -3, -2, 1` |  |  |  |  |
+| 2436 | 98 | Very hard | Already irreducible | `\frac{x^{98} - 5}{x^{98}}` | `\frac{x^{98} - 5}{x^{98}}` | `x != 0` |  |  |  |  |
+| 2437 | 98 | Very hard | Power of a power | `(-x^{98})^{1} \cdot x^{-65}` | `-x^{33}` | `x != 0` |  |  |  |  |
+| 2438 | 98 | Very hard | Partial cancellation | `\frac{3x^{98} - 15x^{97} + 3x^{93} - 15x^{92} + 4x^{46} - 20x^{45}}{x^{2} - 25}` | `\frac{3x^{97} + 3x^{92} + 4x^{45}}{x + 5}` | `x != -5, 5` |  |  |  |  |
+| 2439 | 98 | Very hard | Same denominator | `\frac{x^{98}}{x + 3} - \frac{-3x^{97} + x^{28} + 3x^{27}}{x + 3}` | `x^{97} - x^{27}` | `x != -3` |  |  |  |  |
+| 2440 | 98 | Very hard | Difference of powers | `\frac{x^{98} - 1}{x^{49} + 1}` | `x^{49} - 1` | `x != -1` |  |  |  |  |
+| 2441 | 98 | Very hard | Different denominators | `\frac{-5x^{98} + 10x^{97}}{x - 2} + \frac{x^{98} + 3x^{97} - 5x^{96} - 15x^{95}}{x + 3}` | `-4x^{97} - 5x^{95}` | `x != -3, 2` |  |  |  |  |
+| 2442 | 98 | Very hard | Cancels to zero | `\frac{x^{98} - 5x^{97} + 2x - 10}{x - 5} - (x^{97} + 2)` | `0` | `x != 5` |  |  |  |  |
+| 2443 | 98 | Very hard | Linear factor cancellation | `\frac{5x^{98} - 5x^{97} + 2x^{64} - 2x^{63} - x^{49} + x^{48}}{x - 1}` | `5x^{97} + 2x^{63} - x^{48}` | `x != 1` |  |  |  |  |
+| 2444 | 98 | Very hard | Sign flip | `\frac{-x^{98} + 7x^{97} - 3x^{36} + 21x^{35}}{x - 7}` | `-x^{97} - 3x^{35}` | `x != 7` |  |  |  |  |
+| 2445 | 98 | Very hard | Common power factor | `\frac{x^{98} + x^{19}}{x^{98} - x^{19}}` | `\frac{x^{79} + 1}{x^{79} - 1}` | `x != 0, 1` |  |  |  |  |
+| 2446 | 98 | Very hard | Multivariate expansion | `(a^{49} + b^{49})(a^{49} - b^{49})` | `a^{98} - b^{98}` | `none` |  |  |  |  |
+| 2447 | 98 | Very hard | Polynomial plus fraction | `2x^{98} + \frac{3}{x}` | `\frac{2x^{99} + 3}{x}` | `x != 0` |  |  |  |  |
+| 2448 | 98 | Very hard | Monomial division | `\frac{5x^{98} + 10x^{64} - 10x^{58}}{5x^{58}}` | `x^{40} + 2x^{6} - 2` | `x != 0` |  |  |  |  |
+| 2449 | 98 | Very hard | Perfect square trinomial | `\frac{x^{98} - 2x^{49} + 1}{x^{49} - 1}` | `x^{49} - 1` | `x != 1` |  |  |  |  |
+| 2450 | 98 | Very hard | Multivariate monomials | `\frac{-4 \cdot a^{89} \cdot b^{5} \cdot z^{4}}{2a^{74}}` | `-2a^{15} b^{5} z^{4}` | `a != 0` |  |  |  |  |
+| 2451 | 99 | Very hard | Multivariate monomials | `\frac{30 \cdot a^{86} \cdot b^{2} \cdot z^{11}}{6 \cdot a^{10} \cdot b}` | `5a^{76} b z^{11}` | `a != 0, b != 0` |  |  |  |  |
+| 2452 | 99 | Very hard | Collapsing identity | `(x^{50} + 5)(x^{49} - 5) - x^{99}` | `-5x^{50} + 5x^{49} - 25` | `none` |  |  |  |  |
+| 2453 | 99 | Very hard | Common power factor | `\frac{x^{99} - 3x^{83}}{x^{99} - x^{83}}` | `\frac{x^{16} - 3}{x^{16} - 1}` | `x != -1, 0, 1` |  |  |  |  |
+| 2454 | 99 | Very hard | Monomial division | `\frac{-15x^{99} - 20x^{81} + 25x^{70} - 20x^{43}}{5x^{43}}` | `-3x^{56} - 4x^{38} + 5x^{27} - 4` | `x != 0` |  |  |  |  |
+| 2455 | 99 | Very hard | Different denominators | `\frac{x^{99} - 4x^{98}}{x - 4} + \frac{-2x^{97} - 12x^{96} + 5x^{23} + 30x^{22}}{x + 6}` | `x^{98} - 2x^{96} + 5x^{22}` | `x != -6, 4` |  |  |  |  |
+| 2456 | 99 | Very hard | Power of a power | `\frac{(x^{99})^{1}}{x^{18}}` | `x^{81}` | `x != 0` |  |  |  |  |
+| 2457 | 99 | Very hard | Collect like terms | `2x^{99} - x^{21} - 2x^{89} - 5x^{99} + 4x^{89} + 5x^{53} - 2x^{53}` | `-3x^{99} + 2x^{89} + 3x^{53} - x^{21}` | `none` |  |  |  |  |
+| 2458 | 99 | Very hard | Linear factor cancellation | `\frac{3x^{99} - 6x^{98}}{x - 2}` | `3x^{98}` | `x != 2` |  |  |  |  |
+| 2459 | 99 | Very hard | Difference of powers | `\frac{x^{99} - x}{x^{50} - x}` | `x^{49} + 1` | `x != 0, 1` |  |  |  |  |
+| 2460 | 99 | Very hard | Nested fraction | `\frac{\frac{x^{99}}{x - 7}}{\frac{x}{x - 7}}` | `x^{98}` | `x != 0, 7` |  |  |  |  |
+| 2461 | 99 | Very hard | Constant factor | `\frac{2x^{100} + 4x^{99} + 2x^{42} + 4x^{41} - 2x^{11} - 4x^{10}}{x + 2}` | `2x^{99} + 2x^{41} - 2x^{10}` | `x != -2` |  |  |  |  |
+| 2462 | 99 | Very hard | Polynomial plus fraction | `x^{99} - \frac{4}{x + 3}` | `\frac{x^{100} + 3x^{99} - 4}{x + 3}` | `x != -3` |  |  |  |  |
+| 2463 | 99 | Very hard | Quadratic factor cancellation | `\frac{x^{99} + 13x^{98} + 42x^{97} - x^{72} - 13x^{71} - 42x^{70} + x^{44} + 13x^{43} + 42x^{42}}{x^{2} + 13x + 42}` | `x^{97} - x^{70} + x^{42}` | `x != -7, -6` |  |  |  |  |
+| 2464 | 99 | Very hard | Cancels to zero | `\frac{-3x^{99} - 18x^{98}}{x + 6} - (-3x^{98})` | `0` | `x != -6` |  |  |  |  |
+| 2465 | 99 | Very hard | Negative exponents | `x^{-30} \cdot (-4x^{99})` | `-4x^{69}` | `x != 0` |  |  |  |  |
+| 2466 | 99 | Very hard | Multivariate distribution | `a^{58} \cdot b^{31} \cdot (3b^{10} + a^{9})` | `3a^{58} b^{41} + a^{67} b^{31}` | `none` |  |  |  |  |
+| 2467 | 99 | Very hard | Distribute and collect | `-3x(x^{98} - 5) - 5x` | `-3x^{99} + 10x` | `none` |  |  |  |  |
+| 2468 | 99 | Very hard | Partial cancellation | `\frac{5x^{99} - 20x^{98} + 4x^{82} - 16x^{81} + 4x^{78} - 16x^{77}}{x^{2} + 3x - 28}` | `\frac{5x^{98} + 4x^{81} + 4x^{77}}{x + 7}` | `x != -7, 4` |  |  |  |  |
+| 2469 | 99 | Very hard | Triple nested fraction | `\frac{\frac{\frac{x^{99} - 2x^{98} - 33x^{97} + 90x^{96} + 4x^{82} - 8x^{81} - 132x^{80} + 360x^{79}}{x - 3}}{x + 6}}{\frac{x - 5}{x - 1}}` | `x^{97} - x^{96} + 4x^{80} - 4x^{79}` | `x != -6, 1, 3, 5` |  |  |  |  |
+| 2470 | 99 | Very hard | Perfect square trinomial | `\frac{x^{99} - 2x^{50} + x}{x^{49} - 1}` | `x^{50} - x` | `x != 1` |  |  |  |  |
+| 2471 | 99 | Very hard | Same denominator | `\frac{x^{99}}{x} + \frac{-2x^{99}}{x}` | `-x^{98}` | `x != 0` |  |  |  |  |
+| 2472 | 99 | Very hard | Reference-type rational | `\frac{-2x^{99} - 10x^{98} - 8x^{97} - 5x^{31} - 25x^{30} - 20x^{29} - 2x^{15} - 10x^{14} - 8x^{13}}{x^{3} + 2x^{2} - 11x - 12}` | `\frac{-2x^{97} - 5x^{29} - 2x^{13}}{x - 3}` | `x != -4, -1, 3` |  |  |  |  |
+| 2473 | 99 | Very hard | Sign flip | `\frac{-5x^{99} + 5x^{98} + 3x^{65} - 3x^{64}}{x - 1}` | `-5x^{98} + 3x^{64}` | `x != 1` |  |  |  |  |
+| 2474 | 99 | Very hard | Expand product | `(-5x^{61})(x^{38} - x^{7})` | `-5x^{99} + 5x^{68}` | `none` |  |  |  |  |
+| 2475 | 99 | Very hard | Already irreducible | `\frac{x^{99} - 4}{x^{99} + 1}` | `\frac{x^{99} - 4}{x^{99} + 1}` | `x != -1` |  |  |  |  |
+| 2476 | 100 | Very hard | Negative exponents | `x^{-47} \cdot (x^{100})` | `x^{53}` | `x != 0` |  |  |  |  |
+| 2477 | 100 | Very hard | Common power factor | `\frac{x^{100} - 5x^{64}}{x^{100} + x^{64}}` | `\frac{x^{36} - 5}{x^{36} + 1}` | `x != 0, x^36 + 1 != 0` |  |  |  |  |
+| 2478 | 100 | Very hard | Same denominator | `\frac{-x^{100}}{x^{5} + 32} + \frac{5x^{100} + x^{97} + 128x^{95} + 32x^{92}}{x^{5} + 32}` | `4x^{95} + x^{92}` | `x != -2` |  |  |  |  |
+| 2479 | 100 | Very hard | Cancels to zero | `\frac{-5x^{100}}{x} - (-5x^{99})` | `0` | `x != 0` |  |  |  |  |
+| 2480 | 100 | Very hard | Nested fraction | `\frac{\frac{x^{100} - 5x^{99}}{x + 4}}{\frac{x - 5}{x + 4}}` | `x^{99}` | `x != -4, 5` |  |  |  |  |
+| 2481 | 100 | Very hard | Difference of squares chain | `\frac{x^{100} - 1}{(x^{25} - 1)(x^{25} + 1)}` | `x^{50} + 1` | `x != -1, 1` |  |  |  |  |
+| 2482 | 100 | Very hard | Partial cancellation | `\frac{-x^{100} - 7x^{99} + 2x^{98} + 14x^{97}}{x^{2} + 4x - 21}` | `\frac{-x^{99} + 2x^{97}}{x - 3}` | `x != -7, 3` |  |  |  |  |
+| 2483 | 100 | Very hard | Already irreducible | `\frac{x^{100} - 5}{x^{100} - 1}` | `\frac{x^{100} - 5}{x^{100} - 1}` | `x != -1, 1` |  |  |  |  |
+| 2484 | 100 | Very hard | Triple nested fraction | `\frac{\frac{\frac{-4x^{100} - 20x^{99} - 8x^{98} + 32x^{97}}{x - 1}}{x + 2}}{\frac{x + 4}{x - 2}}` | `-4x^{98} + 8x^{97}` | `x != -4, -2, 1, 2` |  |  |  |  |
+| 2485 | 100 | Very hard | Monomial division | `\frac{3x^{100} + 6x^{57}}{3x^{57}}` | `x^{43} + 2` | `x != 0` |  |  |  |  |
+| 2486 | 100 | Very hard | Multivariate expansion | `(a^{50} + b^{50})(a^{50} - b^{50})` | `a^{100} - b^{100}` | `none` |  |  |  |  |
+| 2487 | 100 | Very hard | Expand product | `(x^{94})(-2x^{6})` | `-2x^{100}` | `none` |  |  |  |  |
+| 2488 | 100 | Very hard | Sign flip | `\frac{-x^{100} + 5x^{99}}{x - 5}` | `-x^{99}` | `x != 5` |  |  |  |  |
+| 2489 | 100 | Very hard | Constant factor | `\frac{4x^{101} + 20x^{100}}{x + 5}` | `4x^{100}` | `x != -5` |  |  |  |  |
+| 2490 | 100 | Very hard | Difference of powers | `\frac{x^{100} - 1}{x^{50} + 1}` | `x^{50} - 1` | `x^50 + 1 != 0` |  |  |  |  |
+| 2491 | 100 | Very hard | Polynomial plus fraction | `(2x^{100} + 3x^{76}) + \frac{4}{x + 6}` | `\frac{2x^{101} + 12x^{100} + 3x^{77} + 18x^{76} + 4}{x + 6}` | `x != -6` |  |  |  |  |
+| 2492 | 100 | Very hard | Perfect square trinomial | `\frac{x^{100} - 2x^{50} + 1}{x^{50} - 1}` | `x^{50} - 1` | `x != -1, 1` |  |  |  |  |
+| 2493 | 100 | Very hard | Collapsing identity | `(x^{50} + 5)^{2} - (x^{50} - 5)^{2}` | `20x^{50}` | `none` |  |  |  |  |
+| 2494 | 100 | Very hard | Different denominators | `\frac{x^{100} - 7x^{99}}{x - 7} + \frac{x^{98} + 6x^{97} - x^{73} - 6x^{72}}{x + 6}` | `x^{99} + x^{97} - x^{72}` | `x != -6, 7` |  |  |  |  |
+| 2495 | 100 | Very hard | Multivariate monomials | `\frac{15 \cdot a^{64} \cdot b^{3} \cdot z^{33}}{3 \cdot a^{40} \cdot b^{2}}` | `5a^{24} b z^{33}` | `a != 0, b != 0` |  |  |  |  |
+| 2496 | 100 | Very hard | Distribute and collect | `-3x^{21}(x^{79} - 2) - 2x^{21}` | `-3x^{100} + 4x^{21}` | `none` |  |  |  |  |
+| 2497 | 100 | Very hard | Quadratic factor cancellation | `\frac{-3x^{100} + 15x^{99} + 18x^{98} + 4x^{85} - 20x^{84} - 24x^{83} + x^{37} - 5x^{36} - 6x^{35}}{x^{2} - 5x - 6}` | `-3x^{98} + 4x^{83} + x^{35}` | `x != -1, 6` |  |  |  |  |
+| 2498 | 100 | Very hard | Power of a power | `\frac{(2x^{50})^{2}}{x^{3}}` | `4x^{97}` | `x != 0` |  |  |  |  |
+| 2499 | 100 | Very hard | Collect like terms | `-x^{100} - 4x^{41} + x^{69} + 10x^{62} - x^{41} + 2x^{100} - 6x^{62}` | `x^{100} + x^{69} + 4x^{62} - 5x^{41}` | `none` |  |  |  |  |
+| 2500 | 100 | Very hard | Linear factor cancellation | `\frac{x^{100}}{x}` | `x^{99}` | `x != 0` |  |  |  |  |
