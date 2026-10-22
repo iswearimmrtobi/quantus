@@ -130,7 +130,7 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
 ### Milestone 5: Deterministic Simplification Pipeline & Equivalence Verification
 **Goal**: Orchestrate the 17-stage simplification pipeline so that it always terminates, avoids expand/factor loops, verifies equivalence, and produces clear student-level explanations.
 
-- [ ] **5.1. Implement the 17-stage deterministic pipeline (`algebra::pipeline`)**:
+- [x] **5.1. Implement the 17-stage deterministic pipeline (`algebra::pipeline`)**:
   1. Parse input into AST (`Formula` / `Node`).
   2. Normalize notation, signs, and identify algebraic variables vs. constants.
   3. Extract initial domain restrictions (including nested reciprocal denominators).

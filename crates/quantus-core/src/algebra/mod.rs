@@ -7,6 +7,7 @@ pub mod expand;
 pub mod factor;
 pub mod factored;
 pub mod nested;
+pub mod pipeline;
 pub mod poly;
 pub mod reduce;
 pub mod steps;
@@ -37,6 +38,7 @@ pub use nested::{
     is_nested_fraction, simplify_all_nested_fractions, simplify_nested_fraction_at,
     simplify_next_nested_fraction,
 };
+pub use pipeline::{collect_variables, simplify, simplify_node};
 pub use poly::{Monomial, Poly, Term};
 pub use reduce::{reduce_all_rationals, reduce_next_rational, reduce_rational_node};
 pub use steps::{AlgebraStep, RuleId, SimplificationResult};
