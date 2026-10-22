@@ -22,6 +22,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
 }
 
 fn main() {
+    std::panic::set_hook(Box::new(|info| fatal(&info.to_string())));
     // Not part of `app()`: it needs a real application identifier (a D-Bus name on Linux), which
     // the mock runtime of the tests does not have.
     let single_instance = tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -29,7 +30,19 @@ fn main() {
     });
     app(tauri::Builder::default().plugin(single_instance))
         .run(tauri::generate_context!())
-        .expect("error while running Quantus");
+        .unwrap_or_else(|error| fatal(&error.to_string()));
+}
+
+/// The engine lives in the process, so what can still fail is the shell itself (no display, no
+/// webview library). Say so in a dialog instead of exiting silently when started from a launcher.
+fn fatal(message: &str) -> ! {
+    eprintln!("Quantus: {message}");
+    rfd::MessageDialog::new()
+        .set_level(rfd::MessageLevel::Error)
+        .set_title("Quantus startet nicht")
+        .set_description(message)
+        .show();
+    std::process::exit(1);
 }
 
 #[cfg(test)]
