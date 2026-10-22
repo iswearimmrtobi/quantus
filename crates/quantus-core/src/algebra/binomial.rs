@@ -513,6 +513,21 @@ pub fn find_explicit_double_product(node: &Node) -> Option<(Poly, Poly)> {
     None
 }
 
+/// The `(A, B)` for completing the square of a monic quadratic `x^2 + bx + c` in one variable
+/// whose shift `B = b/2` is a non-zero integer, e.g. `x^2 + 8x + 11` gives `(x, 4)`.
+pub fn integer_square_shift(poly: &Poly) -> Option<(Poly, Poly)> {
+    let vars = poly.variables();
+    if vars.len() != 1 || poly.total_degree() != 2 || poly.leading_coeff() != RBig::ONE {
+        return None;
+    }
+    let var = vars.into_iter().next()?;
+    let b = poly.coeff_of(&Monomial::single(var.clone(), 1));
+    if b.is_zero() || b.denominator() != &UBig::ONE || !(b.numerator() % IBig::from(2)).is_zero() {
+        return None;
+    }
+    Some((Poly::from_var(&var), Poly::from_const(b / RBig::from(2))))
+}
+
 /// Completes the square ("add and subtract `B^2`"): writes `poly` as `(A + B)^2 + R`.
 ///
 /// Declines when `poly` is exactly `(A + B)^2` (a binomial formula, not a completed square) or

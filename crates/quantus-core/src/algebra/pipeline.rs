@@ -19,8 +19,8 @@
 //! 13. Normalize the final expression into its canonical readable form (`NORMALIZE_EXPRESSION`):
 //!     expanded numerator, denominator kept factored when it is a product of several factors.
 //! 14. Write a polynomial result in binomial form (`APPLY_BINOMIAL_IDENTITY`, `COMPLETE_SQUARE`):
-//!     `a^2 + 2ab + b^2` becomes `(a + b)^2`, and `x^2 + 2 \cdot x \cdot 4 + 11` becomes
-//!     `(x + 4)^2 - 5`. Skipped when the input itself was compact (`(a + b)^2`, `(a - b)(a + b)`),
+//!     `a^2 + 2ab + b^2` becomes `(a + b)^2`, and `x^2 + 2 \cdot x \cdot 4 + 11` or
+//!     `x^2 + 8x + 11` (monic, integer shift) becomes `(x + 4)^2 - 5`. Skipped when the input itself was compact (`(a + b)^2`, `(a - b)(a + b)`),
 //!     since then the expansion is what was asked for.
 //!
 //! Every stage is a bounded loop of single, recorded rewrites, so each `AlgebraStep` holds the
@@ -41,6 +41,7 @@ use dashu::integer::UBig;
 
 use crate::algebra::binomial::{
     complete_square, compress_binomial, expand_binomial_node, find_explicit_double_product,
+    integer_square_shift,
 };
 use crate::algebra::combine::{
     combine_next_fractions, den_to_factored, factor_denominators_in_node, flatten_additive_terms,
@@ -875,11 +876,11 @@ fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite
             format!("Write as a binomial: {}", identity.description()),
         ),
         None => {
-            let (a, b) = double_product.as_ref()?;
-            let after = complete_square(&poly, a, b)?;
+            let (a, b) = double_product.clone().or_else(|| integer_square_shift(&poly))?;
+            let after = complete_square(&poly, &a, &b)?;
             let explanation = format!(
                 "Complete the square: add and subtract {}, then apply the binomial formula",
-                serializer::expression(&(b * b).to_node())
+                serializer::expression(&(&b * &b).to_node())
             );
             (after, RuleId::CompleteSquare, explanation)
         }

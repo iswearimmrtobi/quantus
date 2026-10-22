@@ -68,11 +68,18 @@ fn explicit_double_product_completes_the_square() {
 }
 
 #[test]
-fn quadratics_without_double_product_stay_expanded() {
-    let result = run(r"x^2 + 8x + 11");
-    assert_eq!(serializer::algebraic_expression(&result.node), "x^{2} + 8x + 11");
-    assert!(result.steps.is_empty());
-    assert_simplifies(r"3x^2 - 18x + 24 + x - 102", "3x^{2} - 17x - 78");
+fn monic_quadratics_with_integer_shift_complete_the_square() {
+    let result = assert_simplifies(r"x^2 + 8x + 11", "(x + 4)^{2} - 5");
+    assert_eq!(last_rule(&result), Some(RuleId::CompleteSquare));
+    assert_simplifies(r"z^2 - 6z + 1", "(z - 3)^{2} - 8");
+}
+
+#[test]
+fn other_quadratics_stay_expanded() {
+    for input in [r"x^2 - 5x + 6", r"x^2 + 4", r"3x^2 - 17x - 78"] {
+        let result = run(input);
+        assert!(result.steps.is_empty(), "'{input}' should be left alone: {:?}", result.steps);
+    }
 }
 
 #[test]
