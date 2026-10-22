@@ -14,6 +14,7 @@ use dashu::rational::RBig;
 
 use crate::latex::{Node, Operator};
 use crate::num::{Decimal, MathFunction, Value, DEFAULT_PRECISION, MAX_PRECISION};
+use super::derivative;
 use crate::numeric;
 use crate::quantity::PhysicalQuantity;
 use crate::{QuantusError, Result};
@@ -21,9 +22,9 @@ use crate::{QuantusError, Result};
 pub type Variables = HashMap<String, PhysicalQuantity>;
 
 pub struct Evaluator<'a> {
-    variables: &'a Variables,
+    pub(super) variables: &'a Variables,
     /// Significant digits that numerical results (integrals, limits) are computed to.
-    precision: usize,
+    pub(super) precision: usize,
     /// Digits an integral is computed to: `precision`, but capped, because the work of the
     /// quadrature grows with it and nested integrals multiply that work.
     numeric_digits: usize,
@@ -54,6 +55,10 @@ impl<'a> Evaluator<'a> {
     /// samples.
     fn scoped<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
         Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits }
+    }
+
+    pub(super) fn scoped_over<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
+        self.scoped(scope)
     }
 
     /// Like [`Self::scoped`], for the body of a numerical construct. It is computed with extra
@@ -127,10 +132,13 @@ impl<'a> Evaluator<'a> {
             Node::Sum { index, from, to, body, .. } => self.sum(index, from, to, body),
             Node::Integral { variable, lower, upper, body, .. } => self.integral(variable, lower, upper, body),
             Node::Limit { variable, target, body, .. } => self.limit(variable, target, body),
-            Node::Derivative { .. }
-            | Node::Matrix { .. }
-            | Node::Determinant { .. }
-            | Node::Equation { .. } => Err(QuantusError::other("This kind of expression cannot be evaluated yet.")),
+            Node::Derivative { variable, body, at, .. } => self.derivative(variable, body, at.as_deref()),
+            Node::Equation { .. } => {
+                self.solve(node)?.values.into_iter().next().ok_or_else(|| QuantusError::other("The equation has no solution."))
+            }
+            Node::Matrix { .. } | Node::Determinant { .. } => {
+                Err(QuantusError::other("This kind of expression cannot be evaluated yet."))
+            }
         }
     }
 
@@ -213,6 +221,25 @@ impl<'a> Evaluator<'a> {
         let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
         let value = Value::from_decimal(&result.round(self.numeric_digits));
         Ok(PhysicalQuantity::new(value, unit).mul(&PhysicalQuantity::new(Value::one(), lower.unit)))
+    }
+
+    /// Differentiates symbolically, then evaluates the result at `at`, or with whatever the
+    /// variable already stands for.
+    fn derivative(&self, variable: &str, body: &Node, at: Option<&Node>) -> Result<PhysicalQuantity> {
+        let derived = derivative::differentiate(body, variable)?;
+        let mut scope = self.variables.clone();
+        match at {
+            Some(at) => {
+                scope.insert(variable.to_string(), self.evaluate(at)?);
+            }
+            None if !scope.contains_key(variable) => {
+                return Err(QuantusError::UnresolvedVariable(format!(
+                    "The derivative with respect to {variable} needs a point to be evaluated at. Write it as \\left.\\frac{{d}}{{d{variable}}} … \\right|_{{{variable}=2}}."
+                )));
+            }
+            None => {}
+        }
+        self.scoped(&scope).evaluate(&derived)
     }
 
     /// Two-sided and numerical: the body is sampled just either side of the target and the

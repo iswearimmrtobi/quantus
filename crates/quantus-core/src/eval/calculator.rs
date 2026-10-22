@@ -80,10 +80,17 @@ impl LatexCalculator {
 
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
         let formula = parser::parse(latex)?;
-        let quantity = Evaluator::new(variables).with_precision(self.precision).evaluate(&formula.expression)?.simplify()?;
-        let value = quantity.decimal(self.precision)?;
-
-        let result = serializer::quantity(&value, &quantity.unit);
+        let evaluator = Evaluator::new(variables).with_precision(self.precision);
+        let (quantity, value, result) = match &formula.expression {
+            // An equation can have several solutions, which no single quantity can hold.
+            equation @ Node::Equation { .. } => self.solve(&evaluator, equation)?,
+            expression => {
+                let quantity = evaluator.evaluate(expression)?.simplify()?;
+                let value = quantity.decimal(self.precision)?;
+                let result = serializer::quantity(&value, &quantity.unit);
+                (quantity, value, result)
+            }
+        };
         let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
         Ok(Calculation {
             input: serializer::formula(&formula),
@@ -96,6 +103,21 @@ impl LatexCalculator {
             quantity,
             formula,
         })
+    }
+
+    /// `x = 2 \lor x = 3`, with the first solution as the calculation's quantity.
+    fn solve(&self, evaluator: &Evaluator, equation: &Node) -> Result<(PhysicalQuantity, Decimal, String)> {
+        let solutions = evaluator.solve(equation)?;
+        let mut parts = Vec::new();
+        let mut first = None;
+        for quantity in &solutions.values {
+            let quantity = quantity.simplify()?;
+            let value = quantity.decimal(self.precision)?;
+            parts.push(format!("{} = {}", solutions.variable, serializer::quantity(&value, &quantity.unit)));
+            first.get_or_insert((quantity, value));
+        }
+        let (quantity, value) = first.ok_or_else(|| crate::QuantusError::other("The equation has no solution."))?;
+        Ok((quantity, value, parts.join(" \\lor ")))
     }
 
     fn steps(&self, formula: &Formula, prefix: &str, result: &str, variables: &Variables) -> Vec<Step> {

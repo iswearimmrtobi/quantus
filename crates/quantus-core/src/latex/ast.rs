@@ -42,8 +42,8 @@ pub enum Node {
     Integral { variable: String, lower: Box<Node>, upper: Box<Node>, body: Box<Node>, position: usize },
     /// `\lim_{x \to target} body`.
     Limit { variable: String, target: Box<Node>, body: Box<Node>, position: usize },
-    /// `\frac{d}{dx} body`.
-    Derivative { variable: String, body: Box<Node>, position: usize },
+    /// `\frac{d}{dx} body`, optionally evaluated at a point: `\left.\frac{d}{dx} body\right|_{x=at}`.
+    Derivative { variable: String, body: Box<Node>, at: Option<Box<Node>>, position: usize },
     /// `\begin{pmatrix} … \end{pmatrix}`, row by row.
     Matrix { rows: Vec<Vec<Node>>, position: usize },
     /// `\det` of a matrix.
@@ -99,7 +99,7 @@ impl Node {
             Node::Sum { from, to, body, .. } => vec![from, to, body],
             Node::Integral { lower, upper, body, .. } => vec![lower, upper, body],
             Node::Limit { target, body, .. } => vec![target, body],
-            Node::Derivative { body, .. } => vec![body],
+            Node::Derivative { body, at, .. } => std::iter::once(&**body).chain(at.as_deref()).collect(),
             Node::Matrix { rows, .. } => rows.iter().flatten().collect(),
         }
     }
@@ -136,7 +136,9 @@ impl Node {
             Node::Limit { variable, target, body, position } => {
                 Node::Limit { variable, target: b(target), body: b(body), position }
             }
-            Node::Derivative { variable, body, position } => Node::Derivative { variable, body: b(body), position },
+            Node::Derivative { variable, body, at, position } => {
+                Node::Derivative { variable, body: b(body), at: at.map(&mut b), position }
+            }
             Node::Matrix { rows, position } => Node::Matrix {
                 rows: rows.into_iter().map(|row| row.into_iter().map(&mut *f).collect()).collect(),
                 position,

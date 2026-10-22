@@ -171,6 +171,10 @@ impl Lexer<'_> {
             self.index += 1;
         }
         let text: String = self.chars[start..self.index].iter().collect();
+        // `\left.` and `\right.` are the invisible delimiter.
+        if matches!(text.as_str(), "\\left" | "\\right") && self.at(0) == Some('.') {
+            self.index += 1;
+        }
         Ok(if IGNORED_COMMANDS.contains(&text.as_str()) {
             None
         } else if PIPE_COMMANDS.contains(&text.as_str()) {

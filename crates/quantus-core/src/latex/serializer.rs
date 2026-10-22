@@ -108,9 +108,14 @@ fn text(node: &Node) -> String {
         Node::Limit { variable, target, body, .. } => {
             format!("\\lim_{{{variable} \\to {}}} {}", expression(target), render(body, PRECEDENCE_MULTIPLICATIVE))
         }
-        Node::Derivative { variable, body, .. } => {
+        Node::Derivative { variable, body, at: None, .. } => {
             format!("\\frac{{d}}{{d{variable}}} {}", render(body, PRECEDENCE_MULTIPLICATIVE))
         }
+        Node::Derivative { variable, body, at: Some(at), .. } => format!(
+            "\\left.\\frac{{d}}{{d{variable}}} {}\\right|_{{{variable}={}}}",
+            render(body, PRECEDENCE_MULTIPLICATIVE),
+            expression(at)
+        ),
         Node::Matrix { rows, .. } => {
             let rows: Vec<String> =
                 rows.iter().map(|row| row.iter().map(expression).collect::<Vec<_>>().join(" & ")).collect();
@@ -151,7 +156,9 @@ fn precedence(node: &Node) -> u8 {
         Node::Binary { .. } => PRECEDENCE_MULTIPLICATIVE,
         Node::Negation { .. } => PRECEDENCE_ADDITIVE,
         // Their bodies reach as far right as a term, so they need brackets as a factor.
-        Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. } => PRECEDENCE_ADDITIVE,
+        Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. } | Node::Derivative { at: None, .. } => {
+            PRECEDENCE_ADDITIVE
+        }
         Node::Power { .. } => PRECEDENCE_POWER,
         Node::Group { inner, .. } => precedence(inner),
         _ => PRECEDENCE_ATOM,

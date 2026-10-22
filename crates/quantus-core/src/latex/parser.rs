@@ -2,7 +2,7 @@
 //!
 //! Grammar (each level binds tighter than the one above):
 //! ```text
-//! formula     := [ label '=' ] expression
+//! formula     := [ label '=' ] expression [ '=' expression ]
 //! expression  := term ( ('+' | '-') term )*
 //! term        := unary ( ('\cdot' | '\times' | '*' | '/' | juxtaposition) unary )*
 //! unary       := ('-' | '+') unary | power
@@ -12,6 +12,7 @@
 //!              | '\sum' '_{' name '=' expr '}' '^' arg term
 //!              | '\int' '_' arg '^' arg expression differential
 //!              | '\lim' '_{' name '\to' expr '}' term
+//!              | '\frac{d}{dx}' term [ '|_{x=' expr '}' ]
 //!              | '\binom' arg arg | '|' expression '|'
 //!              | '\mathrm' arg | '\text' arg | '\qty' arg arg | '(' expression ')' | '{' expression '}'
 //! ```
@@ -84,9 +85,16 @@ impl Parser<'_> {
             return Err(self.error("The input is empty.", 0));
         }
         let label = self.parse_label()?;
-        let expression = self.parse_expression()?;
+        let mut expression = self.parse_expression()?;
         if self.current().kind == TokenType::Equals {
-            return Err(self.error("Only one '=' is allowed, and only right after the label.", self.current().position));
+            // `x^2 - 5x + 6 = 0`: an equation to solve, not a label.
+            self.advance();
+            let right = self.parse_expression()?;
+            let position = expression.position();
+            expression = Node::Equation { left: Box::new(expression), right: Box::new(right), position };
+        }
+        if self.current().kind == TokenType::Equals {
+            return Err(self.error("Only one '=' is allowed.", self.current().position));
         }
         self.expect(TokenType::End, "the end of the input")?;
         Ok(Formula { label, expression: normalizer::normalize(expression), source: self.source.to_string() })
@@ -233,6 +241,7 @@ impl Parser<'_> {
     fn parse_command(&mut self, token: &Token) -> Result<Node> {
         let position = token.position;
         match token.text.as_str() {
+            "\\frac" | "\\dfrac" | "\\tfrac" if self.derivative_header().is_some() => self.parse_derivative(token),
             "\\frac" | "\\dfrac" | "\\tfrac" => {
                 self.advance();
                 let numerator = self.parse_argument(&token.text)?;
@@ -412,6 +421,65 @@ impl Parser<'_> {
         })
     }
 
+    /// `{d}{dx}` right after a `\frac`: the variable and the token index after the header.
+    fn derivative_header(&self) -> Option<(String, usize)> {
+        let kind = |i: usize| self.peek(i - self.index).kind;
+        let text = |i: usize| self.peek(i - self.index).text.as_str();
+        let mut i = self.index + 1;
+        if kind(i) != TokenType::LBrace {
+            return None;
+        }
+        i += 1;
+        if kind(i) == TokenType::Identifier && text(i) == "d" && kind(i + 1) == TokenType::RBrace {
+            i += 2;
+        } else if kind(i) == TokenType::Command
+            && text(i) == "\\mathrm"
+            && kind(i + 1) == TokenType::LBrace
+            && text(i + 2) == "d"
+            && kind(i + 3) == TokenType::RBrace
+            && kind(i + 4) == TokenType::RBrace
+        {
+            i += 5;
+        } else {
+            return None;
+        }
+        if kind(i) != TokenType::LBrace {
+            return None;
+        }
+        let (name, length) = self.differential_at(i + 1)?;
+        (kind(i + 1 + length) == TokenType::RBrace).then_some((name, i + 2 + length))
+    }
+
+    /// `\frac{d}{dx} body`, and `\left.\frac{d}{dx} body\right|_{x=a}` for the value at a point.
+    fn parse_derivative(&mut self, token: &Token) -> Result<Node> {
+        let (variable, after_header) = self.derivative_header().expect("checked by the caller");
+        self.index = after_header;
+        let body = self.with_bound(&variable, |p| p.parse_term())?;
+        let at = if self.current().kind == TokenType::Pipe && self.peek(1).kind == TokenType::Underscore {
+            self.index += 2;
+            self.expect(TokenType::LBrace, "'{'")?;
+            let named = self.parse_bound_name("the evaluation point")?;
+            if named != variable {
+                return Err(self.error(&format!("The point has to be given for {variable}, as in _{{{variable}=2}}."), self.current().position));
+            }
+            self.expect(TokenType::Equals, "'='")?;
+            let at = self.parse_expression()?;
+            self.expect(TokenType::RBrace, "'}'")?;
+            Some(Box::new(at))
+        } else {
+            None
+        };
+        // In `\frac{d}{dx}\frac{d}{dx} f |_{x=2}` the inner derivative has already taken the
+        // point; it belongs to the outermost one.
+        let (body, at) = match (body, at) {
+            (Node::Derivative { variable, body, at: Some(point), position }, None) => {
+                (Node::Derivative { variable, body, at: None, position }, Some(point))
+            }
+            other => other,
+        };
+        Ok(Node::Derivative { variable, body: Box::new(body), at, position: token.position })
+    }
+
     /// The single-letter name a sum, limit or integral binds.
     fn parse_bound_name(&mut self, command: &str) -> Result<String> {
         let token = self.current().clone();
@@ -569,12 +637,15 @@ impl Parser<'_> {
             return Ok(Node::Unit { unit, symbol, position: token.position });
         }
 
-        if !self.unit_context && run.len() == 1 && CONSTANTS.contains(&token.text.as_str()) {
+        // Where the run as a whole is no unit, its first symbol can still stand alone (`\pi x`,
+        // `x y`) unless it is itself a unit: `m kg` stays an error, a product of units needs \cdot.
+        let first_is_unit = units::find(greek_symbol(&token.text)).is_some();
+        if !self.unit_context && !first_is_unit && CONSTANTS.contains(&token.text.as_str()) {
             self.advance();
             return Ok(Node::Constant { name: token.text, position: token.position });
         }
 
-        if !self.unit_context && run.len() == 1 && is_single_letter(&token.text) {
+        if !self.unit_context && !first_is_unit && is_single_letter(&token.text) {
             self.advance();
             return Ok(Node::Variable { name: token.text, index: String::new(), position: token.position });
         }
@@ -659,7 +730,8 @@ impl Parser<'_> {
         let token = self.current();
         match token.kind {
             TokenType::Number | TokenType::Identifier | TokenType::LParen | TokenType::LBrace => true,
-            TokenType::Pipe => self.abs_depth == 0,
+            // `|_{x=2}` after a derivative is its evaluation point, not an absolute value.
+            TokenType::Pipe => self.abs_depth == 0 && self.peek(1).kind != TokenType::Underscore,
             TokenType::Command => !MULTIPLICATION_COMMANDS.contains(&token.text.as_str()) && token.text != "\\div",
             _ => false,
         }
