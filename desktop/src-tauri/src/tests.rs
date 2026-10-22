@@ -108,3 +108,22 @@ fn engine_info_reports_the_default_precision() {
     let info = invoke(&window(), "engine_info", json!({})).unwrap();
     assert_eq!(info["precision"], 50);
 }
+
+#[test]
+fn menu_has_an_item_for_every_forwarded_shortcut() {
+    let app = super::app(mock_builder())
+        .build(mock_context(noop_assets()))
+        .unwrap();
+    let menu = super::shell::build_menu(app.handle()).unwrap();
+    let ids: Vec<String> = menu
+        .items()
+        .unwrap()
+        .iter()
+        .filter_map(|top| top.as_submenu())
+        .flat_map(|submenu| submenu.items().unwrap())
+        .map(|entry| entry.id().as_ref().to_string())
+        .collect();
+    for id in super::shell::FORWARDED {
+        assert!(ids.iter().any(|found| found == id), "menu item {id} missing");
+    }
+}
