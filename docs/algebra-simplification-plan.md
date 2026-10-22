@@ -111,11 +111,11 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
   - [x] Compute the least common denominator `LCD` as the LCM of all factored denominators, avoiding duplicate shared factors and respecting factor multiplicities (e.g. `(x + 3)` and `(x - 4)(x + 3)` -> LCD `(x - 4)(x + 3)`).
   - [x] Multiply each numerator by its missing LCD factors (`FIND_COMMON_DENOMINATOR`) and combine into a single fraction over the factored LCD (`COMBINE_FRACTIONS`):
     `[3(x - 2)(x - 4) + (x - 102)] / [(x - 4)(x + 3)]`.
-- [ ] **4.3. Polynomial Expansion & Combining Like Terms (Rules C & F)**:
-  - [ ] Expand multi-factor polynomial products step by step (`EXPAND_POLYNOMIAL` / `EXPAND_BINOMIAL`):
+- [x] **4.3. Polynomial Expansion & Combining Like Terms (Rules C & F)**:
+  - [x] Expand multi-factor polynomial products step by step (`EXPAND_POLYNOMIAL` / `EXPAND_BINOMIAL`):
     - First expand factor pairs inside products when helpful for clarity, e.g., `3(x - 2)(x - 4) + (x - 102) -> 3(x^2 - 6x + 8) + x - 102`.
     - Distribute scalar/monomial multipliers across parentheses: `3(x^2 - 6x + 8) + x - 102 -> 3x^2 - 18x + 24 + x - 102`.
-  - [ ] Collect like terms (`COLLECT_LIKE_TERMS`) and sort terms by descending degree:
+  - [x] Collect like terms (`COLLECT_LIKE_TERMS`) and sort terms by descending degree:
     `3x^2 - 18x + 24 + x - 102 -> 3x^2 - 17x - 78`.
 - [ ] **4.4. Rational Expression Reduction & Factor Cancellation (Rules E & G)**:
   - [ ] After simplifying the numerator into canonical polynomial form, attempt to factor the numerator (`FACTOR_POLYNOMIAL` / `APPLY_BINOMIAL_IDENTITY`).

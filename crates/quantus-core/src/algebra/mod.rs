@@ -3,6 +3,7 @@
 pub mod binomial;
 pub mod combine;
 pub mod domain;
+pub mod expand;
 pub mod factor;
 pub mod factored;
 pub mod nested;
@@ -19,6 +20,10 @@ pub use binomial::{
 pub use combine::{
     combine_all_fractions, combine_fractions_at, combine_next_fractions,
     factor_denominators_in_node, is_combinable_fraction_sum,
+};
+pub use expand::{
+    collect_like_terms_step, expand_and_collect_all, expand_polynomial_products_step,
+    expand_product_node,
 };
 pub use domain::{
     collect_raw_denominators, extract_domain_restrictions, format_restrictions_latex,
