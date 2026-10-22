@@ -2536,6 +2536,7 @@ version = "0.1.0"
 dependencies = [
  "quantus-core",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
 ]
