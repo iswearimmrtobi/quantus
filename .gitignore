@@ -1,8 +1,3 @@
-.gradle/
-# nur das Gradle-Build-Verzeichnis im Wurzelprojekt — desktop/build/ gehört electron-builder
-/build/
-!gradle/wrapper/gradle-wrapper.jar
-
 .idea/
 *.iml
 out/
@@ -12,9 +7,6 @@ out/
 
 desktop/node_modules/
 desktop/dist/
-desktop/dist-electron/
-# fertige AppImages
-desktop/release/
 # aus node_modules kopiert (npm run copy-fonts)
 desktop/public/fonts/
 
