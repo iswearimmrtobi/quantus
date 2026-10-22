@@ -127,3 +127,18 @@ fn menu_has_an_item_for_every_forwarded_shortcut() {
         assert!(ids.iter().any(|found| found == id), "menu item {id} missing");
     }
 }
+
+#[test]
+fn algebraic_simplification_reaches_the_renderer() {
+    let w = window();
+    let calc = evaluate(&w, r"3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)").unwrap();
+    assert_eq!(calc["result"], r"\frac{3x - 26}{x - 4}");
+    assert_eq!(
+        calc["domainRestrictions"],
+        json!(["x \\neq -3, 2, 4"])
+    );
+    let steps = calc["steps"].as_array().unwrap();
+    assert!(steps.len() >= 5);
+    let algebraic_step = steps.iter().find(|s| s["kind"] == "algebraic").unwrap();
+    assert!(algebraic_step["explanation"].is_string());
+}

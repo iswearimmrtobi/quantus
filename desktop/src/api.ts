@@ -2,11 +2,15 @@ import { invoke } from '@tauri-apps/api/core';
 
 /** The engine contract (spec §5) as the renderer sees it. */
 
-export type StepKind = 'symbolic' | 'substituted' | 'result';
+export type StepKind = 'symbolic' | 'substituted' | 'result' | 'algebraic';
 
 export interface Step {
   kind: StepKind;
   latex: string;
+  rule?: string;
+  explanation?: string;
+  before?: string;
+  after?: string;
 }
 
 export interface Variable {
@@ -28,6 +32,7 @@ export interface Calculation {
   quantityName: string | null;
   dimension: string;
   variable: Variable | null;
+  domainRestrictions?: string[];
 }
 
 export interface EngineInfo {

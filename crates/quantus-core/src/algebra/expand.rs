@@ -95,7 +95,7 @@ pub fn expand_product_node(node: &Node) -> Option<(Node, RuleId, String)> {
         let additive_indices: Vec<usize> = factors
             .iter()
             .enumerate()
-            .filter(|(_, f)| is_additive_factor(f) && Poly::from_node(f).map_or(false, |p| p.total_degree() >= 1))
+            .filter(|(_, f)| is_additive_factor(f) && Poly::from_node(f).is_ok_and(|p| p.total_degree() >= 1))
             .map(|(i, _)| i)
             .collect();
 
@@ -282,23 +282,21 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
             operator: Operator::Plus | Operator::Minus,
             ..
         }
-    ) {
-        if expand_product_node(unwrapped).is_none() {
-            if let Ok(poly) = Poly::from_node(unwrapped) {
-                let canonical_node = poly.to_node();
-                if serializer::expression(&canonical_node) != serializer::expression(unwrapped) {
-                    let explanation = format!(
-                        "Combine like terms to obtain {}",
-                        serializer::expression(&canonical_node)
-                    );
-                    *step_info = Some(AlgebraStep::new(
-                        node.clone(),
-                        canonical_node.clone(),
-                        explanation,
-                        Some(RuleId::CollectLikeTerms),
-                    ));
-                    return canonical_node;
-                }
+    ) && expand_product_node(unwrapped).is_none() {
+        if let Ok(poly) = Poly::from_node(unwrapped) {
+            let canonical_node = poly.to_node();
+            if serializer::expression(&canonical_node) != serializer::expression(unwrapped) {
+                let explanation = format!(
+                    "Combine like terms to obtain {}",
+                    serializer::expression(&canonical_node)
+                );
+                *step_info = Some(AlgebraStep::new(
+                    node.clone(),
+                    canonical_node.clone(),
+                    explanation,
+                    Some(RuleId::CollectLikeTerms),
+                ));
+                return canonical_node;
             }
         }
     }

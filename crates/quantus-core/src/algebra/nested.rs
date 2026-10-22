@@ -296,7 +296,7 @@ pub fn simplify_nested_fraction_at(node: &Node) -> Option<(Node, RuleId, String)
     let num_frac = split_fraction(&num_combined);
     let den_frac = split_fraction(&den_combined);
 
-    let simplified = match (num_frac, den_frac) {
+    match (num_frac, den_frac) {
         // Case 1: (a / b) / (c / d) -> (a * d) / (b * c)
         (Some((a, b)), Some((c, d))) => {
             let new_num = make_product(a.clone(), d.clone());
@@ -341,9 +341,7 @@ pub fn simplify_nested_fraction_at(node: &Node) -> Option<(Node, RuleId, String)
 
         // Not a complex fraction
         (None, None) => None,
-    };
-
-    simplified
+    }
 }
 
 /// Recursively traverses `root` bottom-up to locate and simplify the next complex fraction.

@@ -19,6 +19,7 @@ const STEP_LABELS: Record<StepKind, string> = {
   symbolic: 'SYMBOLISCH',
   substituted: 'EINGESETZT',
   result: 'ERGEBNIS',
+  algebraic: 'SCHRITT',
 };
 
 const PLACEHOLDER = 'F = 2kg \\cdot 10\\frac{m}{s^2}';
@@ -262,23 +263,37 @@ export function App() {
               </span>
             </div>
           ) : (
-            <div className="result-row">
-              <div className="result-main">
-                <span className="result-eq">=</span>
-                {calculation ? (
-                  <Katex className="result-value" latex={calculation.result} />
-                ) : (
-                  <span className="result-value">–</span>
+            <div className="result-container">
+              <div className="result-row">
+                <div className="result-main">
+                  <span className="result-eq">=</span>
+                  {calculation ? (
+                    <Katex className="result-value" latex={calculation.result} />
+                  ) : (
+                    <span className="result-value">–</span>
+                  )}
+                  {calculation?.quantityName && <span className="result-unit">{calculation.quantityName}</span>}
+                </div>
+                {calculation && (
+                  <button
+                    className={stepsOpen ? 'steps-toggle open' : 'steps-toggle'}
+                    onClick={() => setStepsOpen((open) => !open)}
+                  >
+                    Rechenweg <span className="chev">⌄</span> <kbd>Strg+J</kbd>
+                  </button>
                 )}
-                {calculation?.quantityName && <span className="result-unit">{calculation.quantityName}</span>}
               </div>
-              {calculation && (
-                <button
-                  className={stepsOpen ? 'steps-toggle open' : 'steps-toggle'}
-                  onClick={() => setStepsOpen((open) => !open)}
-                >
-                  Rechenweg <span className="chev">⌄</span> <kbd>Strg+J</kbd>
-                </button>
+              {calculation?.domainRestrictions && calculation.domainRestrictions.length > 0 && (
+                <div className="domain-row">
+                  <span className="domain-label">DEFINITIONSBEREICH</span>
+                  <div className="domain-list">
+                    {calculation.domainRestrictions.map((r, i) => (
+                      <span className="domain-item" key={i}>
+                        für <Katex latex={r} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -286,14 +301,36 @@ export function App() {
           {calculation && stepsOpen && (
             <div className="steps-panel">
               {calculation.steps.map((step, index) => (
-                <div className="step-row" key={`${step.kind}-${index}`}>
-                  <span className={step.kind === 'result' ? 'step-label result-label' : 'step-label'}>
-                    {STEP_LABELS[step.kind]}
-                  </span>
-                  <Katex className="step-latex" latex={step.latex} />
-                  <button className="copy-btn" onClick={() => void copy(step.latex, `step-${index}`)}>
-                    {copied === `step-${index}` ? 'kopiert' : 'copy'}
-                  </button>
+                <div
+                  className={`step-row ${step.explanation ? 'step-row-with-explanation' : ''}`}
+                  key={`${step.kind}-${index}`}
+                >
+                  {step.explanation ? (
+                    <>
+                      <div className="step-header">
+                        <span className={step.kind === 'result' ? 'step-label result-label' : 'step-label'}>
+                          {STEP_LABELS[step.kind]}
+                        </span>
+                        <span className="step-explanation">{step.explanation}</span>
+                      </div>
+                      <div className="step-body">
+                        <Katex className="step-latex" latex={step.latex} />
+                        <button className="copy-btn" onClick={() => void copy(step.latex, `step-${index}`)}>
+                          {copied === `step-${index}` ? 'kopiert' : 'copy'}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className={step.kind === 'result' ? 'step-label result-label' : 'step-label'}>
+                        {STEP_LABELS[step.kind]}
+                      </span>
+                      <Katex className="step-latex" latex={step.latex} />
+                      <button className="copy-btn" onClick={() => void copy(step.latex, `step-${index}`)}>
+                        {copied === `step-${index}` ? 'kopiert' : 'copy'}
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
               <div className="step-row step-row-all">

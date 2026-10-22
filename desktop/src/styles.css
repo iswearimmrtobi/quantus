@@ -317,6 +317,11 @@ code {
   white-space: nowrap;
 }
 
+.result-container {
+  display: flex;
+  flex-direction: column;
+}
+
 .result-row {
   display: flex;
   align-items: baseline;
@@ -324,6 +329,43 @@ code {
   gap: 16px;
   margin-top: 22px;
   padding: 0 4px;
+}
+
+.domain-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.domain-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+  flex-shrink: 0;
+}
+
+.domain-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.domain-item {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.domain-item .katex {
+  color: var(--cyan);
 }
 
 .result-main {
@@ -437,6 +479,26 @@ code {
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
+}
+.step-row.step-row-with-explanation {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.step-explanation {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.step-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 .step-label {
   font-family: var(--mono);

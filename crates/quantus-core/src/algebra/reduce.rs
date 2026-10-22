@@ -151,10 +151,10 @@ pub fn reduce_rational_node(
 /// Recursively traverses `root` to locate and perform the next reduction step.
 pub fn reduce_next_rational(
     root: &Node,
-    mut tracker: Option<&mut DomainTracker>,
+    tracker: Option<&mut DomainTracker>,
 ) -> Option<(Node, AlgebraStep)> {
     let mut step_info: Option<AlgebraStep> = None;
-    let new_root = reduce_recursive(root, &mut step_info, tracker.as_deref_mut());
+    let new_root = reduce_recursive(root, &mut step_info, tracker);
     step_info.map(|step| (new_root, step))
 }
 

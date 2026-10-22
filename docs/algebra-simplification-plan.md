@@ -170,10 +170,10 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
     - Keep all existing fields (`input`, `latex`, `result`, `steps`, `align_block`, `value`, `unit`, `quantity_name`, `dimension`, `variable`) intact so existing API tests (`the_milestone_has_the_kotlin_response_shape`) pass or only extend optional/additional fields cleanly as appropriate.
     - Include step metadata (`rule`, `explanation`, `before`, `after`) and `domain_restrictions: Vec<String>` (or formatted restriction string) in the calculation/API response.
     - Expose a dedicated public entry point `quantus_core::algebra::simplify(latex: &str) -> Result<SimplificationResult>` for direct programmatic and test access as well.
-- [ ] **6.3. Frontend UI integration (`desktop/src/api.ts`, `desktop/src/App.tsx`, `desktop/src/styles.css`)**:
-  - [ ] Update TypeScript types in `desktop/src/api.ts` to support algebraic simplification steps (rule description/explanation) and domain restrictions (`domainRestrictions`).
-  - [ ] Display domain restrictions clearly next to or below the simplified result in `App.tsx` (e.g., `x ≠ -3, 2, 4`), kept separate from the simplified expression itself.
-  - [ ] Render each algebraic transformation step in the steps panel ("Rechenweg") with its mathematical explanation and LaTeX formula.
+- [x] **6.3. Frontend UI integration (`desktop/src/api.ts`, `desktop/src/App.tsx`, `desktop/src/styles.css`)**:
+  - [x] Update TypeScript types in `desktop/src/api.ts` to support algebraic simplification steps (rule description/explanation) and domain restrictions (`domainRestrictions`).
+  - [x] Display domain restrictions clearly next to or below the simplified result in `App.tsx` (e.g., `x ≠ -3, 2, 4`), kept separate from the simplified expression itself.
+  - [x] Render each algebraic transformation step in the steps panel ("Rechenweg") with its mathematical explanation and LaTeX formula.
 
 ---
 
