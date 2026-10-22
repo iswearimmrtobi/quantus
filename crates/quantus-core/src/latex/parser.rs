@@ -8,6 +8,7 @@
 //! unary       := ('-' | '+') unary | power
 //! power       := atom [ '^' ( '\circ' | '{\circ}' | unary ) ]
 //! atom        := number | identifier | '\frac' arg arg | '\sqrt' ['[' expr ']'] arg
+//!              | ('\sin' | '\cos' | '\tan' | '\ln' | '\log') ['^' arg] argument
 //!              | '\binom' arg arg | '|' expression '|'
 //!              | '\mathrm' arg | '\text' arg | '\qty' arg arg | '(' expression ')' | '{' expression '}'
 //! ```
@@ -31,6 +32,10 @@ use crate::{QuantusError, Result};
 
 const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
+
+fn is_function_command(token: &Token) -> bool {
+    token.kind == TokenType::Command && matches!(token.text.as_str(), "\\sin" | "\\cos" | "\\tan" | "\\ln" | "\\log")
+}
 
 /// `\mu` is the µ of `µm`, `\Omega` the Ω of `k\Omega`.
 fn greek_symbol(text: &str) -> &str {
@@ -219,6 +224,7 @@ impl Parser<'_> {
                 let denominator = self.parse_argument(&token.text)?;
                 Ok(Node::fraction(numerator, denominator, position))
             }
+            "\\sin" | "\\cos" | "\\tan" | "\\ln" | "\\log" => self.parse_function(token),
             "\\binom" | "\\dbinom" | "\\tbinom" => {
                 self.advance();
                 let n = self.parse_argument(&token.text)?;
@@ -257,6 +263,67 @@ impl Parser<'_> {
             }
             other => Err(self.error(&format!("Unsupported command '{other}'."), position)),
         }
+    }
+
+    /// `\sin x`, `\sin(x)`, `\sin{x}`, `\sin^2 x`.
+    ///
+    /// A bracketed or braced argument is exactly that group, so `\sin(x)y` is `\sin(x) \cdot y`.
+    /// Without brackets the argument is the implicit product that follows (`\sin 2\pi x`,
+    /// `\sin 30^\circ`), cut off at an explicit operator or at the next function, which makes
+    /// `\sin x \cos x` a product of two functions.
+    fn parse_function(&mut self, token: &Token) -> Result<Node> {
+        let position = token.position;
+        let name = token.text.trim_start_matches('\\').to_string();
+        self.advance();
+        if self.current().kind == TokenType::Underscore {
+            return Err(self.error(
+                &format!("A base on {} is not supported. Write \\ln x / \\ln b instead.", token.text),
+                self.current().position,
+            ));
+        }
+        let exponent = if self.current().kind == TokenType::Caret {
+            let caret = self.advance();
+            let exponent = self.parse_argument(&token.text)?;
+            if matches!(&exponent, Node::Negation { operand, .. } if matches!(**operand, Node::Number { .. }))
+                || matches!(&exponent, Node::Group { inner, .. } if matches!(**inner, Node::Negation { .. }))
+            {
+                return Err(self.error(
+                    &format!("{}^{{-1}} is not supported; write 1/{} x instead.", token.text, token.text),
+                    caret.position,
+                ));
+            }
+            Some(exponent)
+        } else {
+            None
+        };
+
+        let argument = if matches!(self.current().kind, TokenType::LParen | TokenType::LBrace) {
+            self.parse_atom()?
+        } else {
+            self.parse_function_operand(&token.text)?
+        };
+        let function = Node::Function { name, argument: Box::new(argument), position };
+        Ok(match exponent {
+            Some(exponent) => Node::Power { base: Box::new(function), exponent: Box::new(exponent), position },
+            None => function,
+        })
+    }
+
+    fn parse_function_operand(&mut self, command: &str) -> Result<Node> {
+        let first = self.current().clone();
+        if !self.starts_atom() || is_function_command(&first) {
+            return Err(self.error(
+                &format!("'{command}' is missing its argument — write it as {command}{{…}}."),
+                first.position,
+            ));
+        }
+        let mut operand = self.parse_power()?;
+        while self.starts_atom() && !is_function_command(self.current()) {
+            let right = self.parse_power()?;
+            let position = operand.position();
+            operand = Node::binary(Operator::ImplicitTimes, operand, right, position);
+        }
+        Ok(operand)
     }
 
     /// A command argument: `{…}`, or a single token if no brace follows.

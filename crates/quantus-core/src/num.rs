@@ -209,6 +209,43 @@ pub enum Value {
     Add(Vec<Value>),
     Mul(Vec<Value>),
     Pow(Box<Value>, Box<Value>),
+    /// A transcendental function of a value that did not fold to something exact.
+    Func(MathFunction, Box<Value>),
+}
+
+/// The functions a [`Value`] can be wrapped in. Trigonometry takes radians.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MathFunction {
+    Sin,
+    Cos,
+    Tan,
+    /// Natural logarithm.
+    Ln,
+    /// Base-10 logarithm.
+    Log,
+}
+
+impl MathFunction {
+    pub fn from_command(name: &str) -> Option<MathFunction> {
+        Some(match name {
+            "sin" => MathFunction::Sin,
+            "cos" => MathFunction::Cos,
+            "tan" => MathFunction::Tan,
+            "ln" => MathFunction::Ln,
+            "log" => MathFunction::Log,
+            _ => return None,
+        })
+    }
+
+    fn display_name(self) -> &'static str {
+        match self {
+            MathFunction::Sin => "Sin",
+            MathFunction::Cos => "Cos",
+            MathFunction::Tan => "Tan",
+            MathFunction::Ln => "Ln",
+            MathFunction::Log => "Log10",
+        }
+    }
 }
 
 impl Value {
@@ -357,6 +394,79 @@ impl Value {
         Ok(Value::Pow(Box::new(self.clone()), Box::new(exponent.clone())))
     }
 
+    /// `function(self)`: exact where the result is a known closed form (`sin 0`, `cos(\pi/3)`,
+    /// `\ln e`, `\log 100`), symbolic otherwise. Arguments outside the domain are an error.
+    pub fn apply(&self, function: MathFunction) -> Result<Value> {
+        match function {
+            MathFunction::Sin | MathFunction::Cos | MathFunction::Tan => {
+                if let Some(exact) = self.exact_trig(function)? {
+                    return Ok(exact);
+                }
+            }
+            MathFunction::Ln | MathFunction::Log => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                if self.is_zero() || self.is_negative()? {
+                    return Err(QuantusError::other(format!(
+                        "The logarithm is only defined for positive numbers, but the argument was '{self}'."
+                    )));
+                }
+                if let Some(exact) = self.exact_log(function) {
+                    return Ok(exact);
+                }
+            }
+        }
+        Ok(Value::Func(function, Box::new(self.clone())))
+    }
+
+    /// `self` as a rational multiple of π, if it is one (`\pi`, `\frac{\pi}{6}`, `0`).
+    fn pi_multiple(&self) -> Option<RBig> {
+        match self {
+            Value::Rat(r) if *r == RBig::ZERO => Some(RBig::ZERO),
+            Value::Pi => Some(RBig::ONE),
+            Value::Mul(factors) => match factors.as_slice() {
+                [Value::Rat(r), Value::Pi] | [Value::Pi, Value::Rat(r)] => Some(r.clone()),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    fn exact_trig(&self, function: MathFunction) -> Result<Option<Value>> {
+        let Some(r) = self.pi_multiple() else { return Ok(None) };
+        // sin(πr) = cos(π(1/2 - r)).
+        let half = RBig::from_parts(IBig::ONE, UBig::from(2u8));
+        let cos_of = |r: &RBig| cos_of_pi_multiple(r);
+        Ok(match function {
+            MathFunction::Cos => cos_of(&r),
+            MathFunction::Sin => cos_of(&(half - &r)),
+            _ => {
+                let (sin, cos) = (cos_of(&(half - &r)), cos_of(&r));
+                match (sin, cos) {
+                    (_, Some(c)) if c.is_zero() => {
+                        return Err(QuantusError::other("The tangent is undefined at odd multiples of \u{3c0}/2."))
+                    }
+                    (Some(s), Some(c)) => Some(s.div(&c)?),
+                    _ => tan_of_quarter_pi_multiple(&r),
+                }
+            }
+        })
+    }
+
+    fn exact_log(&self, function: MathFunction) -> Option<Value> {
+        match (function, self) {
+            (_, Value::Rat(r)) if *r == RBig::ONE => Some(Value::zero()),
+            (MathFunction::Ln, Value::E) => Some(Value::one()),
+            (MathFunction::Ln, Value::Pow(base, exponent)) if **base == Value::E => Some((**exponent).clone()),
+            (MathFunction::Log, Value::Rat(r)) => {
+                let ten = RBig::from(10);
+                (-50i64..=50).find(|k| *r == ten.pow(*k as isize)).map(Value::int)
+            }
+            _ => None,
+        }
+    }
+
     /// The value as a decimal with `precision` significant digits, correctly rounded.
     pub fn decimal(&self, precision: usize) -> Result<Decimal> {
         if !(1..=MAX_PRECISION).contains(&precision) {
@@ -418,6 +528,20 @@ impl Value {
                 }
                 product
             }
+            Value::Func(function, argument) => {
+                let x = argument.eval_float(bits, consts)?;
+                let result = match function {
+                    MathFunction::Sin => x.sin(bits, rm, consts),
+                    MathFunction::Cos => x.cos(bits, rm, consts),
+                    MathFunction::Tan => x.tan(bits, rm, consts),
+                    MathFunction::Ln => x.ln(bits, rm, consts),
+                    MathFunction::Log => x.log10(bits, rm, consts),
+                };
+                if result.is_nan() || result.is_inf() {
+                    return Err(self.not_real());
+                }
+                result
+            }
             Value::Pow(base, exponent) => {
                 let b = base.eval_float(bits, consts)?;
                 // A negative base to a non-whole power is complex.
@@ -436,6 +560,7 @@ impl Value {
             Value::I => true,
             Value::Add(items) | Value::Mul(items) => items.iter().any(Value::contains_imaginary),
             Value::Pow(base, exponent) => base.contains_imaginary() || exponent.contains_imaginary(),
+            Value::Func(_, argument) => argument.contains_imaginary(),
             _ => false,
         }
     }
@@ -460,6 +585,7 @@ impl fmt::Display for Value {
             Value::I => f.write_str("I"),
             Value::Add(items) => write_joined(f, items, "+"),
             Value::Mul(items) => write_joined(f, items, "*"),
+            Value::Func(function, argument) => write!(f, "{}({argument})", function.display_name()),
             Value::Pow(base, exponent) if **exponent == Value::ratio(1, 2) => write!(f, "Sqrt({base})"),
             Value::Pow(base, exponent) => write!(f, "({base})^({exponent})"),
         }
@@ -479,6 +605,39 @@ fn write_joined(f: &mut fmt::Formatter<'_>, items: &[Value], separator: &str) ->
 // ---------------------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------------------
+
+/// `cos(πr)` when it is rational: 0, ±1/2 or ±1.
+fn cos_of_pi_multiple(r: &RBig) -> Option<Value> {
+    let two = RBig::from(2);
+    let mut r = r - &two * RBig::from(r.floor() / IBig::from(2)); // into [0, 2)
+    if r > RBig::ONE {
+        r = two - r; // cos is symmetric around π
+    }
+    let numerator = i64::try_from(r.numerator().clone()).ok()?;
+    let denominator = u64::try_from(r.denominator().clone()).ok()?;
+    match (numerator, denominator) {
+        (0, _) => Some(Value::one()),
+        (1, 1) => Some(Value::int(-1)),
+        (1, 2) => Some(Value::zero()),
+        (1, 3) => Some(Value::ratio(1, 2)),
+        (2, 3) => Some(Value::ratio(-1, 2)),
+        _ => None,
+    }
+}
+
+/// `tan(πr)` for the odd quarter turns, where sine and cosine are not rational.
+fn tan_of_quarter_pi_multiple(r: &RBig) -> Option<Value> {
+    let quarters = r * RBig::from(4);
+    if *quarters.denominator() != UBig::ONE {
+        return None;
+    }
+    // tan has period π: 1 at π/4, -1 at 3π/4.
+    match i64::try_from(quarters.numerator().clone()).ok()?.rem_euclid(4) {
+        1 => Some(Value::one()),
+        3 => Some(Value::int(-1)),
+        _ => None,
+    }
+}
 
 /// `base^exponent` when it stays rational, `None` when it has to stay symbolic.
 fn rational_power(base: &RBig, exponent: &RBig) -> Result<Option<RBig>> {

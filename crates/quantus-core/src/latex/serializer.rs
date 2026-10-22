@@ -73,6 +73,10 @@ fn text(node: &Node) -> String {
                 None => format!("\\sqrt{{{radicand}}}"),
             }
         }
+        Node::Power { base, exponent, .. } if matches!(**base, Node::Function { .. }) => {
+            let Node::Function { name, argument, .. } = &**base else { unreachable!() };
+            format!("\\{name}^{{{}}}{{{}}}", expression(exponent), expression(argument))
+        }
         Node::Power { base, exponent, .. } => {
             // A fraction as the base needs brackets of its own: \frac{a}{b}^{2} reads wrong.
             let base = if matches!(**base, Node::Fraction { .. } | Node::Root { .. }) {

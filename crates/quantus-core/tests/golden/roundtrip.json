@@ -61,6 +61,14 @@
     {"name": "binom", "input": "\\binom{5}{2}", "expected": "\\binom{5}{2}"},
     {"name": "abs", "input": "|x_1 - 2|", "expected": "\\left|x_{1} - 2\\right|"},
     {"name": "abs with left right", "input": "\\left|x_1\\right|", "expected": "\\left|x_{1}\\right|"},
-    {"name": "degrees", "input": "30^\\circ", "expected": "30^{\\circ}"}
+    {"name": "degrees", "input": "30^\\circ", "expected": "30^{\\circ}"},
+
+    {"name": "sin", "input": "\\sin x_1", "expected": "\\sin{x_{1}}"},
+    {"name": "sin squared", "input": "\\sin^2 x_1", "expected": "\\sin^{2}{x_{1}}"},
+    {"name": "implicit chain argument", "input": "\\sin 2\\pi x_1", "expected": "\\sin{2 \\cdot \\pi \\cdot x_{1}}"},
+    {"name": "bracket ends the argument", "input": "\\sin(x_1)y_1", "expected": "\\sin{x_{1}} \\cdot y_{1}"},
+    {"name": "two functions", "input": "\\sin x_1\\cos x_1", "expected": "\\sin{x_{1}} \\cdot \\cos{x_{1}}"},
+    {"name": "ln", "input": "\\ln{x_1}", "expected": "\\ln{x_{1}}"},
+    {"name": "degrees inside sin", "input": "\\sin 30^\\circ", "expected": "\\sin{30^{\\circ}}"}
   ]
 }

@@ -12,7 +12,7 @@ use dashu::integer::IBig;
 use dashu::rational::RBig;
 
 use crate::latex::{Node, Operator};
-use crate::num::Value;
+use crate::num::{MathFunction, Value};
 use crate::quantity::PhysicalQuantity;
 use crate::{QuantusError, Result};
 
@@ -73,8 +73,13 @@ impl<'a> Evaluator<'a> {
                 let k = self.whole_number(k, "binom")?;
                 binomial(n, k).map(|value| PhysicalQuantity::dimensionless(Value::Rat(RBig::from(value))))
             }
-            Node::Function { .. }
-            | Node::Sum { .. }
+            Node::Function { name, argument, .. } => {
+                let function = MathFunction::from_command(name)
+                    .ok_or_else(|| QuantusError::other(format!("Unknown function '\\{name}'.")))?;
+                let argument = self.plain_number(argument, &format!("The argument of \\{name}"))?;
+                argument.apply(function).map(PhysicalQuantity::dimensionless)
+            }
+            Node::Sum { .. }
             | Node::Integral { .. }
             | Node::Limit { .. }
             | Node::Derivative { .. }
