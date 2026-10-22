@@ -141,7 +141,14 @@ M6 findings that change M7:
 - A definition from literals has two steps (`symbolic`, `result`); only inputs that use variables get the `substituted` step.
 - `window.quantus` (copy, shortcuts) is still the Electron bridge and is `undefined` under Tauri; copy falls back to `navigator.clipboard`, shortcuts do nothing until M7.
 
-**M7 Native shell parity.** Menu, accelerators, single instance, external links, clipboard, zoom/fullscreen/devtools, fatal-error dialog. Exit: manual checklist against the Electron app, item by item.
+**M7 Native shell parity (done in code, manual checklist open).** Menu, accelerators, single instance, external links, clipboard, zoom/fullscreen/devtools, fatal-error dialog. Exit: manual checklist against the Electron app, item by item.
+
+M7 findings that change M8:
+- The shell lives in `src-tauri/src/shell.rs`; menu items forward a `quantus://shortcut` event (ids in `FORWARDED`, mirrored by `Shortcut` in `src/shell.ts`). `window.quantus` and `quantus.d.ts` are gone; `inShell` replaces the old bridge check.
+- Tauri has no zoom/fullscreen/devtools roles, so those are custom items: zoom (Ctrl+0, Ctrl+Plus, Ctrl+-, 50-300 %) is tracked in a `Zoom` state because the webview has no getter, fullscreen is F11, devtools (Ctrl+Shift+I) only in debug builds. These accelerators are new or differ from Electron's defaults.
+- Plugins: `clipboard-manager` (copy), `opener` (external links), `single-instance` (registered in `main()`, not in `app()`: it needs a valid D-Bus application id, which the mock runtime lacks). Capabilities: `clipboard-manager:allow-write-text`, `opener:default`.
+- The fatal-error dialog uses `rfd` directly (gtk3) from `main()`: a failed `run` or any panic shows "Quantus startet nicht" and exits 1. There is no backend process to fail any more.
+- Verified: menu contains every forwarded id (unit test), IPC tests, `cargo run` stays up. Not verified by eye: accelerators in the real window, second launch focusing the first, link opening, clipboard content. Run the checklist in the Verification section before calling M7 closed.
 
 **M8 Packaging.** Icon pipeline (`tauri icon` or the existing `rsvg-convert` script), desktop entry (category Education, keywords, `StartupWMClass`), AppImage via the Tauri bundler; optionally `.deb`/PKGBUILD. Exit: runs from a clean directory; measured cold start and size compared with Electron+JRE.
 
