@@ -1,5 +1,6 @@
 //! Quantus calculation engine: LaTeX in, exact physical quantities, LaTeX out.
 
+pub mod api;
 pub mod error;
 pub mod eval;
 pub mod latex;
