@@ -13,6 +13,8 @@
 //!              | '\int' '_' arg '^' arg expression differential
 //!              | '\lim' '_{' name '\to' expr '}' term
 //!              | '\frac{d}{dx}' term [ '|_{x=' expr '}' ]
+//!              | '\begin{pmatrix}' expr ('&' expr)* ('\\' expr ('&' expr)*)* '\end{pmatrix}'
+//!              | '\det' atom
 //!              | '\binom' arg arg | '|' expression '|'
 //!              | '\mathrm' arg | '\text' arg | '\qty' arg arg | '(' expression ')' | '{' expression '}'
 //! ```
@@ -249,6 +251,12 @@ impl Parser<'_> {
                 Ok(Node::fraction(numerator, denominator, position))
             }
             "\\sin" | "\\cos" | "\\tan" | "\\ln" | "\\log" => self.parse_function(token),
+            "\\begin" => self.parse_matrix(token),
+            "\\det" => {
+                self.advance();
+                let operand = self.parse_atom()?;
+                Ok(Node::Determinant { operand: Box::new(operand), position })
+            }
             "\\sum" => self.parse_sum(token),
             "\\int" => self.parse_integral(token),
             "\\lim" => self.parse_limit(token),
@@ -419,6 +427,71 @@ impl Parser<'_> {
             body: Box::new(body),
             position: token.position,
         })
+    }
+
+    /// `\begin{pmatrix} a & b \\ c & d \end{pmatrix}`; `vmatrix`, the bars of a determinant,
+    /// gives the determinant of the matrix.
+    fn parse_matrix(&mut self, token: &Token) -> Result<Node> {
+        self.advance();
+        let environment = self.parse_environment_name("\\begin")?;
+        let determinant = match environment.as_str() {
+            "pmatrix" | "bmatrix" | "matrix" => false,
+            "vmatrix" => true,
+            other => {
+                return Err(self.error(&format!("Unsupported environment '{other}'."), token.position));
+            }
+        };
+
+        let mut rows: Vec<Vec<Node>> = vec![Vec::new()];
+        loop {
+            let cell = self.parse_expression()?;
+            rows.last_mut().expect("there is always a row").push(cell);
+            match self.current().kind {
+                TokenType::Ampersand => {
+                    self.advance();
+                }
+                TokenType::RowBreak => {
+                    self.advance();
+                    if self.is_end_command() {
+                        break;
+                    }
+                    rows.push(Vec::new());
+                }
+                _ if self.is_end_command() => break,
+                _ => return Err(self.error("Expected '&', '\\\\' or '\\end' in the matrix.", self.current().position)),
+            }
+        }
+        self.advance(); // \end
+        let closing = self.parse_environment_name("\\end")?;
+        if closing != environment {
+            return Err(self.error(&format!("\\begin{{{environment}}} is closed by \\end{{{closing}}}."), token.position));
+        }
+
+        if rows.iter().any(|row| row.len() != rows[0].len()) {
+            return Err(self.error("All rows of a matrix need the same number of entries.", token.position));
+        }
+        let matrix = Node::Matrix { rows, position: token.position };
+        Ok(if determinant {
+            Node::Determinant { operand: Box::new(matrix), position: token.position }
+        } else {
+            matrix
+        })
+    }
+
+    fn is_end_command(&self) -> bool {
+        self.current().kind == TokenType::Command && self.current().text == "\\end"
+    }
+
+    /// The `{name}` after `\begin` or `\end`.
+    fn parse_environment_name(&mut self, command: &str) -> Result<String> {
+        self.expect(TokenType::LBrace, &format!("'{{' after {command}"))?;
+        let name = self.current().clone();
+        if name.kind != TokenType::Identifier {
+            return Err(self.error(&format!("{command} needs the name of an environment."), name.position));
+        }
+        self.advance();
+        self.expect(TokenType::RBrace, "'}'")?;
+        Ok(name.text)
     }
 
     /// `{d}{dx}` right after a `\frac`: the variable and the token index after the header.
@@ -732,7 +805,9 @@ impl Parser<'_> {
             TokenType::Number | TokenType::Identifier | TokenType::LParen | TokenType::LBrace => true,
             // `|_{x=2}` after a derivative is its evaluation point, not an absolute value.
             TokenType::Pipe => self.abs_depth == 0 && self.peek(1).kind != TokenType::Underscore,
-            TokenType::Command => !MULTIPLICATION_COMMANDS.contains(&token.text.as_str()) && token.text != "\\div",
+            TokenType::Command => {
+                !MULTIPLICATION_COMMANDS.contains(&token.text.as_str()) && token.text != "\\div" && token.text != "\\end"
+            }
             _ => false,
         }
     }

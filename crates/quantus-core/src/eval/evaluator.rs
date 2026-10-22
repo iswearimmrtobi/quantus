@@ -36,6 +36,9 @@ const MAX_SUM_TERMS: i64 = 1_000_000;
 /// Extra digits for each level of nested numerical constructs.
 const NESTING_DIGITS: usize = 10;
 
+/// Cofactor expansion takes n! steps; this keeps it instant.
+const MAX_DETERMINANT_SIZE: usize = 8;
+
 /// Most significant digits an integral is asked for. A numerical result shows its digits as
 /// they are, so asking for fewer than the calculator's precision is visible, not silent.
 const MAX_NUMERIC_DIGITS: usize = 30;
@@ -136,9 +139,10 @@ impl<'a> Evaluator<'a> {
             Node::Equation { .. } => {
                 self.solve(node)?.values.into_iter().next().ok_or_else(|| QuantusError::other("The equation has no solution."))
             }
-            Node::Matrix { .. } | Node::Determinant { .. } => {
-                Err(QuantusError::other("This kind of expression cannot be evaluated yet."))
-            }
+            Node::Matrix { .. } => Err(QuantusError::other(
+                "A matrix is not a number. Take its determinant with \\det.",
+            )),
+            Node::Determinant { operand, .. } => self.determinant(operand),
         }
     }
 
@@ -223,6 +227,42 @@ impl<'a> Evaluator<'a> {
         Ok(PhysicalQuantity::new(value, unit).mul(&PhysicalQuantity::new(Value::one(), lower.unit)))
     }
 
+    /// Exact, by cofactor expansion. The entries have to agree in dimension; the result carries
+    /// that unit to the power of the matrix size.
+    fn determinant(&self, operand: &Node) -> Result<PhysicalQuantity> {
+        let mut operand = operand;
+        while let Node::Group { inner, .. } = operand {
+            operand = inner;
+        }
+        let Node::Matrix { rows, .. } = operand else {
+            return Err(QuantusError::other("\\det needs a matrix, as in \\det\\begin{pmatrix} … \\end{pmatrix}."));
+        };
+        let size = rows.len();
+        if rows.iter().any(|row| row.len() != size) {
+            return Err(QuantusError::other(format!(
+                "The determinant needs a square matrix, but this one has {size} rows of {} entries.",
+                rows[0].len()
+            )));
+        }
+        if size > MAX_DETERMINANT_SIZE {
+            return Err(QuantusError::other(format!("Determinants are limited to {MAX_DETERMINANT_SIZE}×{MAX_DETERMINANT_SIZE} matrices.")));
+        }
+
+        let mut entries = Vec::with_capacity(size * size);
+        for node in rows.iter().flatten() {
+            entries.push(self.evaluate(node)?);
+        }
+        let unit = entries[0].unit.clone();
+        let values = entries
+            .iter()
+            .map(|entry| entry.to(&unit).map(|e| e.value))
+            .collect::<Result<Vec<Value>>>()?;
+
+        let determinant = cofactor_determinant(&values, size);
+        let scale = PhysicalQuantity::new(Value::one(), unit).pow_int(i32::try_from(size).expect("size is at most 8"))?;
+        Ok(PhysicalQuantity::dimensionless(determinant).mul(&scale))
+    }
+
     /// Differentiates symbolically, then evaluates the result at `at`, or with whatever the
     /// variable already stands for.
     fn derivative(&self, variable: &str, body: &Node, at: Option<&Node>) -> Result<PhysicalQuantity> {
@@ -299,6 +339,22 @@ impl<'a> Evaluator<'a> {
                 quantity.value
             ))),
         }
+    }
+}
+
+/// The determinant of the row-major `size`×`size` matrix, expanding along the first row.
+fn cofactor_determinant(values: &[Value], size: usize) -> Value {
+    match size {
+        0 => Value::one(),
+        1 => values[0].clone(),
+        _ => (0..size).fold(Value::zero(), |sum, column| {
+            let minor: Vec<Value> = (1..size)
+                .flat_map(|row| (0..size).filter(move |c| *c != column).map(move |c| row * size + c))
+                .map(|i| values[i].clone())
+                .collect();
+            let term = values[column].mul(&cofactor_determinant(&minor, size - 1));
+            if column % 2 == 0 { sum.add(&term) } else { sum.sub(&term) }
+        }),
     }
 }
 

@@ -24,6 +24,10 @@ pub enum TokenType {
     Equals,
     /// `|`, `\vert`, `\lvert`, `\rvert`: opens or closes an absolute value.
     Pipe,
+    /// `&`, between the cells of a matrix row.
+    Ampersand,
+    /// `\\`, between the rows of a matrix.
+    RowBreak,
     LBrace,
     RBrace,
     LParen,
@@ -44,7 +48,7 @@ pub struct Token {
 const DEGREE: char = '°';
 
 /// `\,` `\;` `\:` `\!` and friends: horizontal spacing, no meaning.
-const SPACING_SYMBOLS: [char; 6] = [',', ';', ':', '!', ' ', '\\'];
+const SPACING_SYMBOLS: [char; 5] = [',', ';', ':', '!', ' '];
 
 const IGNORED_COMMANDS: [&str; 7] =
     ["\\left", "\\right", "\\quad", "\\qquad", "\\displaystyle", "\\textstyle", "\\limits"];
@@ -100,7 +104,7 @@ impl Lexer<'_> {
     }
 
     fn skip_whitespace(&mut self) {
-        while self.at(0).is_some_and(|c| c.is_whitespace() || c == '~' || c == '&') {
+        while self.at(0).is_some_and(|c| c.is_whitespace() || c == '~') {
             self.index += 1;
         }
     }
@@ -159,6 +163,10 @@ impl Lexer<'_> {
             return Err(self.error("A backslash must be followed by a command name.".into(), start));
         };
 
+        if first == '\\' {
+            self.index += 1;
+            return Ok(Some(Token { kind: TokenType::RowBreak, text: "\\\\".to_string(), position: start }));
+        }
         if !first.is_alphabetic() {
             self.index += 1;
             if SPACING_SYMBOLS.contains(&first) {
@@ -199,6 +207,7 @@ impl Lexer<'_> {
             '_' => TokenType::Underscore,
             '=' => TokenType::Equals,
             '|' => TokenType::Pipe,
+            '&' => TokenType::Ampersand,
             '{' => TokenType::LBrace,
             '}' => TokenType::RBrace,
             '(' => TokenType::LParen,
@@ -234,7 +243,7 @@ mod tests {
 
     #[test]
     fn spacing_and_delimiters_vanish() {
-        let kinds: Vec<_> = texts("2\\,\\left(3\\right)\\quad~&4").into_iter().map(|t| t.0).collect();
+        let kinds: Vec<_> = texts("2\\,\\left(3\\right)\\quad~4").into_iter().map(|t| t.0).collect();
         use TokenType::*;
         assert_eq!(kinds, [Number, LParen, Number, RParen, Number, End]);
     }

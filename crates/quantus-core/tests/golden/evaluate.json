@@ -173,6 +173,25 @@
     {"name": "error: two unknowns", "latex": "x + z = 3", "errorContains": "more than one unknown"},
     {"name": "error: no unknown", "latex": "3 = 3", "errorContains": "no unknown"},
     {"name": "error: pole is no root", "latex": "\\frac{1}{x} = 0", "errorContains": "No solution"},
-    {"name": "error: equation sides differ in unit", "latex": "x\\,m = 3s", "errorContains": "Incompatible"}
+    {"name": "error: equation sides differ in unit", "latex": "x\\,m = 3s", "errorContains": "Incompatible"},
+
+    {"name": "determinant 2x2", "latex": "\\det\\begin{pmatrix}1 & 2 \\\\ 3 & 4\\end{pmatrix}", "expect": {"value": "-2"}},
+    {"name": "determinant with vmatrix", "latex": "\\begin{vmatrix}1 & 2 \\\\ 3 & 4\\end{vmatrix}", "expect": {"value": "-2"}},
+    {"name": "determinant with bmatrix", "latex": "\\det\\begin{bmatrix}1 & 2 \\\\ 3 & 4\\end{bmatrix}", "expect": {"value": "-2"}},
+    {"name": "determinant 3x3", "latex": "\\det\\begin{pmatrix}2 & 0 & 1 \\\\ 1 & 3 & 2 \\\\ 1 & 1 & 4\\end{pmatrix}", "expect": {"value": "18"}},
+    {"name": "determinant 1x1", "latex": "\\det\\begin{pmatrix}7\\end{pmatrix}", "expect": {"value": "7"}},
+    {"name": "determinant of expressions", "latex": "\\det\\begin{pmatrix}\\frac{1}{2} & 1 \\\\ 1 & 2\\end{pmatrix}", "expect": {"value": "0"}},
+    {"name": "determinant is exact with pi", "latex": "\\det\\begin{pmatrix}\\pi & 0 \\\\ 0 & 2\\end{pmatrix}", "expect": {"resultStartsWith": "6{,}28318530717958647692"}},
+    {"name": "determinant with units", "latex": "\\det\\begin{pmatrix}1m & 2m \\\\ 3m & 4m\\end{pmatrix}", "expect": {"value": "-2", "unit": "m²"}},
+    {"name": "determinant in brackets", "latex": "\\det(\\begin{pmatrix}1 & 2 \\\\ 3 & 4\\end{pmatrix}) + 1", "expect": {"value": "-1"}},
+    {"name": "determinant times a factor", "latex": "2\\det\\begin{pmatrix}1 & 2 \\\\ 3 & 4\\end{pmatrix}", "expect": {"value": "-4"}},
+    {"name": "determinant with a trailing row break", "latex": "\\det\\begin{pmatrix}1 & 2 \\\\ 3 & 4 \\\\\\end{pmatrix}", "expect": {"value": "-2"}},
+    {"name": "error: matrix alone", "latex": "\\begin{pmatrix}1 & 2 \\\\ 3 & 4\\end{pmatrix}", "errorContains": "not a number"},
+    {"name": "error: non-square", "latex": "\\det\\begin{pmatrix}1 & 2 & 3 \\\\ 4 & 5 & 6\\end{pmatrix}", "errorContains": "square matrix"},
+    {"name": "error: ragged rows", "latex": "\\det\\begin{pmatrix}1 & 2 \\\\ 3\\end{pmatrix}", "errorContains": "same number of entries"},
+    {"name": "error: unknown environment", "latex": "\\begin{align}1\\end{align}", "errorContains": "Unsupported environment"},
+    {"name": "error: mismatched end", "latex": "\\det\\begin{pmatrix}1\\end{bmatrix}", "errorContains": "closed by"},
+    {"name": "error: entries with different dimensions", "latex": "\\det\\begin{pmatrix}1m & 2s \\\\ 3 & 4\\end{pmatrix}", "errorContains": "Cannot convert"},
+    {"name": "error: det of a number", "latex": "\\det 3", "errorContains": "needs a matrix"}
   ]
 }

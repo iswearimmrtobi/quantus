@@ -83,6 +83,9 @@
     {"name": "derivative", "input": "\\frac{d}{dx} x^2", "expected": "\\frac{d}{dx} x^{2}"},
     {"name": "derivative at a point", "input": "\\left.\\frac{d}{dx} x^2\\right|_{x=2}", "expected": "\\left.\\frac{d}{dx} x^{2}\\right|_{x=2}"},
     {"name": "mathrm derivative", "input": "\\frac{\\mathrm{d}}{\\mathrm{d}t} t^2", "expected": "\\frac{d}{dt} t^{2}"},
-    {"name": "equation", "input": "x^2 - 5x + 6 = 0", "expected": "x^{2} - 5 \\cdot x + 6 = 0"}
+    {"name": "equation", "input": "x^2 - 5x + 6 = 0", "expected": "x^{2} - 5 \\cdot x + 6 = 0"},
+
+    {"name": "matrix determinant", "input": "\\det\\begin{pmatrix}1 & 2 \\\\ 3 & 4\\end{pmatrix}", "expected": "\\det \\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}"},
+    {"name": "vmatrix is a determinant", "input": "\\begin{vmatrix}a_1 & b_1 \\\\ c_1 & d_1\\end{vmatrix}", "expected": "\\det \\begin{pmatrix} a_{1} & b_{1} \\\\ c_{1} & d_{1} \\end{pmatrix}"}
   ]
 }

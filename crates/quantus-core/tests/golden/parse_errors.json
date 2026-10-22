@@ -15,6 +15,9 @@
     {"name": "binom missing argument", "input": "\\binom{5}", "reasonContains": "missing its argument"},
 
     {"name": "two-letter unknown run names the rule", "input": "xy + 1", "position": 0, "reasonContains": "single letter or carries a subscript"},
-    {"name": "unindexed variable not allowed in unit markup", "input": "\\mathrm{x}", "reasonContains": "not a known unit"}
+    {"name": "unindexed variable not allowed in unit markup", "input": "\\mathrm{x}", "reasonContains": "not a known unit"},
+
+    {"name": "matrix without end", "input": "\\det\\begin{pmatrix}1 & 2", "reasonContains": "in the matrix"},
+    {"name": "stray ampersand", "input": "1 & 2", "reasonContains": "end of the input"}
   ]
 }
