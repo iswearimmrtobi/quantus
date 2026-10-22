@@ -17,6 +17,7 @@
     "dist": "npm run dist:backend && npm run build && electron-builder --linux AppImage",
     "dist:backend": "../gradlew -p .. desktopResources",
     "tauri": "tauri",
+    "bundle": "tauri build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "icon": "rsvg-convert -w 512 -h 512 build/icon.svg -o build/icon.png",
     "copy-fonts": "node scripts/copy-mathlive-fonts.mjs",

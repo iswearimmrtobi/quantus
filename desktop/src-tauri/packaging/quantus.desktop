@@ -1,0 +1,12 @@
+[Desktop Entry]
+Categories={{categories}}
+{{#if comment}}
+Comment={{comment}}
+{{/if}}
+Exec={{exec}}
+Icon={{icon}}
+Keywords=Rechner;Physik;SI;LaTeX;Calculator;Physics;
+Name={{name}}
+StartupWMClass=de.quantus.desktop
+Terminal=false
+Type=Application
