@@ -18,6 +18,7 @@ Quantus is a LaTeX-in/LaTeX-out physics calculator. Today: Kotlin backend (Sprin
 
 - Done: branch `rust-tauri`; Cargo workspace; `quantus-core::{error, num}` with 12 passing tests; golden JSON (`roundtrip`, `parse_errors`, `evaluate`, `sessions`, ~80 cases) in `crates/quantus-core/tests/golden/`.
 - Done: M1 oracle extraction. `units_symbols.json` (715 known symbols, 187,802 unknown candidates), `units_format.json` (79 units), `quantity_cases.json` (81 operation cases). Kotlin suite green before and after; the temporary dumper was deleted.
+- Done: M5 eval, session, api (`quantus-core::{eval,session,api}`, 21 unit tests plus `tests/golden.rs` over all of `evaluate.json` and `sessions.json`).
 - Done: M4 LaTeX (`quantus-core::latex::{ast,lexer,parser,normalizer,numbers,serializer}`, 17 unit tests plus `tests/latex_golden.rs` over all 42 round trips, 2 labels and 9 parse errors).
 - Done: M3 quantity (`quantus-core::quantity`, 12 unit tests plus `tests/quantity_golden.rs` over all 81 cases of `quantity_cases.json`).
 - Done: M2 units (`quantus-core::units`, 29 unit tests plus `tests/units_oracle.rs`). The oracle test checks all 188,499 one to three character candidates against `units_symbols.json` (known or not, dimension string and vector, exact factor and offset, printed form) and all 79 units of `units_format.json` on every field.
@@ -120,7 +121,15 @@ M4 findings that change M5:
 - Kept from Kotlin on purpose: a parenthesised fraction as a power base (`(a/b)^2`) serialises without brackets, because the `Group` hides the fraction from the bracket check. Pinned in a serializer test; fix it only together with the Kotlin behaviour.
 - The lexer accepts ASCII digits only (Kotlin `isDigit` also takes other Unicode digits); such input now fails as an unexpected character.
 
-**M5 Eval, session, API structs.** Evaluator, substitution, calculator with steps and `alignBlock`, sessions, `api` module. Exit: `evaluate.json` and `sessions.json` pass through a `tests/golden.rs` runner; JSON field names/shape equal the Kotlin `CalculationResponse` (checked with a serde round-trip test against the old controller expectations).
+**M5 Eval, session, API structs (done).** Evaluator, substitution, calculator with steps and `alignBlock`, sessions, `api` module. Exit: `evaluate.json` and `sessions.json` pass through a `tests/golden.rs` runner; JSON field names/shape equal the Kotlin `CalculationResponse` (checked with a serde round-trip test against the old controller expectations).
+
+M5 findings that change M6:
+- `api::{evaluate, define_variable, list_variables, delete_variable}` take `&mut SessionStore` and return the serde structs or `ApiError {error, position}`; the Tauri commands only lock the `Mutex<SessionStore>` and call them. `ApiError` implements `Serialize`, so it can be the command's error type directly.
+- `position` is 0-based and `null` for non-parse errors, as in Kotlin; `App.tsx:310` already adds 1, so nothing changes.
+- `dimension` is the Indriya string of the *simplified* unit, so the milestone shows `[L]·[M]/[T]²` (N), not `[M]·[L]/[T]²`; check the UI does not rely on the second spelling.
+- `evaluate.json` has no `1/0` case, so the deliberate `Division by zero.` deviation from M3 is only covered by the `num` and `quantity` unit tests.
+- Precision arrives as `Option<i64>` so that `0` and negative values produce Kotlin's range message instead of a deserialisation error.
+- The Rust engine has no thread-local state, so a command may evaluate on any thread; only the store needs the mutex.
 
 **M6 Wire Tauri to core.** Real commands, state, error mapping to `{error, position}`; rewrite `api.ts`; remove health polling. Exit: milestone, variable define/reuse/delete, parse error position, dimension error text, all visible in the running app.
 
