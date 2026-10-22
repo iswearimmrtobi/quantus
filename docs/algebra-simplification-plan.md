@@ -62,10 +62,10 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
   - [x] Collect every denominator `D` from `Node::Fraction { numerator, denominator }` and `Node::Binary { operator: Operator::Divide, .. }`.
   - [x] Also collect any sub-expression `N` that becomes a denominator after applying the reciprocal rule `a / (b / c) -> a * (c / b)` (where both `c != 0` and `b != 0` are required!).
   - [x] Collect bases of negative exponents `base^(-n)` as denominator restrictions (`base != 0`).
-- [ ] **2.2. Solve denominator roots exactly**:
-  - [ ] Factor each denominator polynomial into irreducible factors using the factorization engine (or linear/quadratic root solver over `RBig`).
-  - [ ] Extract exact rational roots (`x != r`) and quadratic radical roots where applicable, plus general polynomial inequality constraints (`P(x, y) != 0`) for higher-degree irreducible or multivariate factors.
-  - [ ] Deduplicate and sort restrictions canonically (e.g., `x != -3, 2, 4`).
+- [x] **2.2. Solve denominator roots exactly**:
+  - [x] Factor each denominator polynomial into irreducible factors using the factorization engine (or linear/quadratic root solver over `RBig`).
+  - [x] Extract exact rational roots (`x != r`) and quadratic radical roots where applicable, plus general polynomial inequality constraints (`P(x, y) != 0`) for higher-degree irreducible or multivariate factors.
+  - [x] Deduplicate and sort restrictions canonically (e.g., `x != -3, 2, 4`).
 - [ ] **2.3. Preserve restrictions across cancellations**:
   - [ ] Store restrictions in the pipeline context so canceling `(x - 1)` from `(x^2 - 1)/(x - 1)` retains `x != 1` in the final output.
   - [ ] Detect division-by-zero constants immediately (e.g., `x / 0` or `1 / (x - x)`) and return an appropriate `QuantusError` (`Division by zero.`).

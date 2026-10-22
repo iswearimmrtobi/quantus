@@ -3,11 +3,11 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use dashu::base::{Abs, Signed};
-use dashu::integer::UBig;
+use dashu::base::{Abs, Signed, SquareRoot, UnsignedAbs};
+use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
-use crate::algebra::poly::Poly;
+use crate::algebra::poly::{Monomial, Poly};
 use crate::latex::ast::{Node, Operator};
 
 /// A domain restriction indicating that a variable or sub-expression cannot equal a specific value.
@@ -293,4 +293,262 @@ pub fn collect_raw_denominators(node: &Node) -> Vec<Node> {
         }
     }
     unique
+}
+
+fn exact_rational_sqrt(r: &RBig) -> Option<RBig> {
+    let num = r.numerator();
+    let den = r.denominator();
+    if num.is_negative() {
+        return None;
+    }
+    let (_, num_abs) = num.clone().into_parts();
+    let num_s = num_abs.sqrt();
+    if &num_s * &num_s != num_abs {
+        return None;
+    }
+    let den_s = den.sqrt();
+    if &den_s * &den_s != *den {
+        return None;
+    }
+    Some(RBig::from_parts(IBig::from(num_s), den_s))
+}
+
+fn integer_divisors(n: &UBig) -> Vec<UBig> {
+    if n == &UBig::ZERO {
+        return vec![];
+    }
+    if n == &UBig::from(1u8) {
+        return vec![UBig::from(1u8)];
+    }
+    let n_u64 = match u64::try_from(n) {
+        Ok(v) if v <= 100_000 => v,
+        _ => return vec![UBig::from(1u8), n.clone()],
+    };
+    let mut divs = Vec::new();
+    for i in 1..=n_u64 {
+        if i * i > n_u64 {
+            break;
+        }
+        if n_u64 % i == 0 {
+            divs.push(UBig::from(i));
+            if i * i != n_u64 {
+                divs.push(UBig::from(n_u64 / i));
+            }
+        }
+    }
+    divs.sort();
+    divs
+}
+
+fn eval_univariate(poly: &Poly, var: &str, r: &RBig) -> RBig {
+    let mut sum = RBig::ZERO;
+    for term in &poly.terms {
+        let exp = term.monomial.degree_of(var);
+        let mut r_pow = RBig::ONE;
+        let mut b = r.clone();
+        let mut e = exp;
+        while e > 0 {
+            if e % 2 == 1 {
+                r_pow *= &b;
+            }
+            if e > 1 {
+                b = &b * &b;
+            }
+            e /= 2;
+        }
+        sum += &term.coeff * r_pow;
+    }
+    sum
+}
+
+/// Solves for rational roots of a univariate polynomial.
+/// Returns the list of distinct rational roots, and any remaining irreducible cofactor of degree >= 2.
+pub fn solve_univariate_rational_roots(poly: &Poly, var: &str) -> (Vec<RBig>, Option<Poly>) {
+    let mut current = poly.primitive_part();
+    if current.leading_coeff().is_negative() {
+        current = -&current;
+    }
+    let mut roots = Vec::new();
+
+    // 1. Monomial root at 0: factor out powers of var
+    while current.degree_of(var) > 0 {
+        let c0 = current.coeff_of(&Monomial::one());
+        if c0.is_zero() {
+            if !roots.contains(&RBig::ZERO) {
+                roots.push(RBig::ZERO);
+            }
+            let x_poly = Poly::from_var(var);
+            if let Ok((q, _)) = current.div_rem(&x_poly) {
+                current = q.primitive_part();
+                if current.leading_coeff().is_negative() {
+                    current = -&current;
+                }
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+
+    // 2. While degree >= 3, test rational roots via Rational Root Theorem
+    while current.degree_of(var) >= 3 {
+        let deg = current.degree_of(var);
+        let cn = current.coeff_of(&Monomial::single(var, deg));
+        let c0 = current.coeff_of(&Monomial::one());
+        if cn.is_zero() || c0.is_zero() {
+            break;
+        }
+
+        let p_abs = c0.numerator().unsigned_abs();
+        let q_abs = cn.numerator().unsigned_abs();
+        let p_divs = integer_divisors(&p_abs);
+        let q_divs = integer_divisors(&q_abs);
+
+        let mut found_root = None;
+        'candidate_loop: for p in &p_divs {
+            for q in &q_divs {
+                for sign in [1, -1] {
+                    let cand = RBig::from_parts(IBig::from(p.clone()) * sign, q.clone());
+                    if eval_univariate(&current, var, &cand).is_zero() {
+                        found_root = Some(cand);
+                        break 'candidate_loop;
+                    }
+                }
+            }
+        }
+
+        if let Some(r) = found_root {
+            roots.push(r.clone());
+            let divisor = &Poly::from_var(var) - &Poly::from_const(r);
+            if let Ok((q, _)) = current.div_rem(&divisor) {
+                current = q.primitive_part();
+                if current.leading_coeff().is_negative() {
+                    current = -&current;
+                }
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+
+    // 3. Degree 2: quadratic ax^2 + bx + c
+    if current.degree_of(var) == 2 {
+        let a = current.coeff_of(&Monomial::single(var, 2));
+        let b = current.coeff_of(&Monomial::single(var, 1));
+        let c = current.coeff_of(&Monomial::one());
+        let disc = &b * &b - &a * &c * RBig::from(4);
+        if disc.is_zero() {
+            let r = -&b / (&a * RBig::from(2));
+            roots.push(r);
+            current = Poly::from_const(1);
+        } else if let Some(sqrt_disc) = exact_rational_sqrt(&disc) {
+            let two_a = &a * RBig::from(2);
+            let r1 = (-&b - &sqrt_disc) / &two_a;
+            let r2 = (-&b + &sqrt_disc) / &two_a;
+            roots.push(r1);
+            roots.push(r2);
+            current = Poly::from_const(1);
+        }
+    } else if current.degree_of(var) == 1 {
+        // 4. Degree 1: ax + b
+        let a = current.coeff_of(&Monomial::single(var, 1));
+        let b = current.coeff_of(&Monomial::one());
+        if !a.is_zero() {
+            let r = -&b / &a;
+            roots.push(r);
+            current = Poly::from_const(1);
+        }
+    }
+
+    let remaining = if current.degree_of(var) > 0 {
+        Some(current)
+    } else {
+        None
+    };
+
+    roots.sort();
+    roots.dedup();
+    (roots, remaining)
+}
+
+/// Solves denominator polynomials and extracts all exact domain restrictions.
+pub fn solve_poly_restrictions(poly: &Poly) -> Vec<DomainRestriction> {
+    if poly.is_constant() {
+        return Vec::new();
+    }
+
+    let mut restrictions = Vec::new();
+
+    // 1. Extract monomial GCD factors (e.g. x^2 * y -> x != 0, y != 0)
+    let m_gcd = poly.monomial_gcd();
+    for var in m_gcd.variables() {
+        if m_gcd.degree_of(&var) > 0 {
+            restrictions.push(DomainRestriction::var_not_equal(var, RBig::ZERO));
+        }
+    }
+
+    let cofactor = if !m_gcd.is_one() {
+        let m_poly = Poly::from_term(RBig::ONE, m_gcd);
+        match poly.div_rem(&m_poly) {
+            Ok((q, _)) => q,
+            Err(_) => poly.clone(),
+        }
+    } else {
+        poly.clone()
+    };
+
+    if cofactor.is_constant() {
+        restrictions.sort();
+        restrictions.dedup();
+        return restrictions;
+    }
+
+    let vars = cofactor.variables();
+    if vars.len() == 1 {
+        let var = vars.into_iter().next().unwrap();
+        let (roots, remaining) = solve_univariate_rational_roots(&cofactor, &var);
+        for r in roots {
+            restrictions.push(DomainRestriction::var_not_equal(&var, r));
+        }
+        if let Some(rem) = remaining {
+            let mut p = rem.primitive_part();
+            if p.leading_coeff().is_negative() {
+                p = -&p;
+            }
+            restrictions.push(DomainRestriction::poly_not_zero(p));
+        }
+    } else {
+        // Multivariate irreducible factor
+        let mut p = cofactor.primitive_part();
+        if p.leading_coeff().is_negative() {
+            p = -&p;
+        }
+        restrictions.push(DomainRestriction::poly_not_zero(p));
+    }
+
+    restrictions.sort();
+    restrictions.dedup();
+    restrictions
+}
+
+/// Solves a collection of denominator AST nodes into canonical domain restrictions.
+pub fn solve_denominator_roots(denominators: &[Node]) -> Vec<DomainRestriction> {
+    let mut restrictions = Vec::new();
+    for node in denominators {
+        if let Ok(poly) = Poly::from_node(node) {
+            restrictions.extend(solve_poly_restrictions(&poly));
+        }
+    }
+    restrictions.sort();
+    restrictions.dedup();
+    restrictions
+}
+
+/// Convenience entry point: scans an AST and extracts all domain restrictions.
+pub fn extract_domain_restrictions(node: &Node) -> Vec<DomainRestriction> {
+    let raw = collect_raw_denominators(node);
+    solve_denominator_roots(&raw)
 }
