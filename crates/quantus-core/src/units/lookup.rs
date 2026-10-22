@@ -163,3 +163,54 @@ pub fn find(symbol: &str) -> Option<Unit> {
 pub fn label(atom: &Atom) -> Option<&'static str> {
     tables().labels.get(atom).map(String::as_str)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn atom(kind: Kind) -> Unit {
+        Unit::from(Atom::plain(kind))
+    }
+
+    fn prefixed(kind: Kind, symbol: &str) -> Unit {
+        let prefix = Prefix::METRIC.iter().find(|p| p.symbol == symbol).unwrap();
+        Unit::from(Atom::prefixed(kind, *prefix))
+    }
+
+    #[test]
+    fn ambiguous_symbols_resolve_the_way_the_spec_wants() {
+        assert_eq!(find("mN"), Some(prefixed(Kind::Newton, "m")), "mN is millinewton, never m·N");
+        assert_eq!(find("min"), Some(atom(Kind::Minute)), "min is the minute, never m·i·n");
+        assert_eq!(find("Pa"), Some(atom(Kind::Pascal)), "Pa is the pascal, never peta-year");
+        assert_eq!(find("ms"), Some(prefixed(Kind::Second, "m")), "ms is millisecond, never m·s");
+        assert_eq!(find("kg"), Some(atom(Kind::Kilogram)));
+        assert_eq!(find("g"), Some(atom(Kind::Gram)));
+        assert_eq!(find("h"), Some(atom(Kind::Hour)));
+        assert_eq!(find("a"), Some(atom(Kind::Year)));
+        assert_eq!(find("d"), Some(atom(Kind::Day)));
+    }
+
+    #[test]
+    fn composition_is_not_the_lookups_job() {
+        for symbol in ["m2", "m²", "m/s", "m·s", "m s", "", "e", "i", "x", "℃", "km/h", "%"] {
+            assert_eq!(find(symbol), None, "{symbol:?}");
+        }
+    }
+
+    #[test]
+    fn both_micro_spellings_name_the_same_unit() {
+        assert_eq!(find("\u{b5}m"), find("\u{3bc}m"));
+        assert_eq!(find("\u{b5}g"), find("\u{3bc}g"));
+        assert!(find("\u{b5}m").is_some());
+    }
+
+    #[test]
+    fn spellings_longer_than_three_characters_follow_the_same_table() {
+        assert_eq!(find("mmol"), Some(prefixed(Kind::Mole, "m")));
+        assert_eq!(find("kOhm"), Some(prefixed(Kind::Ohm, "k")));
+        assert_eq!(find("month"), Some(atom(Kind::Month)));
+        assert_eq!(find("dacd"), Some(prefixed(Kind::Candela, "da")));
+        assert_eq!(find("k°C"), Some(prefixed(Kind::Celsius, "k")));
+        assert_eq!(find("one"), Some(Unit::ONE));
+    }
+}

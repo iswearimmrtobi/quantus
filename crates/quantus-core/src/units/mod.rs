@@ -3,8 +3,11 @@
 pub mod atom;
 pub mod conversions;
 pub mod dimension;
+pub mod format;
+pub mod latex;
 pub mod lookup;
 pub mod product;
+pub mod registry;
 pub mod unit;
 
 pub use atom::{Atom, Kind, Prefix};

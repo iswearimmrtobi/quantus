@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use dashu::rational::RBig;
-use quantus_core::units::{find, Unit};
+use quantus_core::units::{find, latex, registry, Unit};
 use serde_json::Value;
 
 fn golden(name: &str) -> Value {
@@ -98,9 +98,63 @@ fn lookup_matches_indriya_for_every_short_symbol() {
 }
 
 fn check_symbol(symbol: &str, entry: &Value, unit: &Unit) {
+    // `one` is the empty product; the registry prints it as `1`, Indriya's raw format as `one`.
+    if symbol != "one" {
+        assert_eq!(unit.to_string(), entry["format"].as_str().unwrap(), "format of {symbol:?}");
+    }
     assert_eq!(unit.dimension().to_string(), entry["dimension"].as_str().unwrap(), "dimension of {symbol:?}");
     assert_eq!(actual_vector(unit), expected_vector(entry), "dimension vector of {symbol:?}");
     let conversion = unit.system_conversion().unwrap();
     assert_eq!(conversion.factor, rational(entry["factor"].as_str().unwrap()), "factor of {symbol:?}");
     assert_eq!(conversion.offset, rational(entry["offset"].as_str().unwrap()), "offset of {symbol:?}");
+}
+
+/// The dump builds each unit from `[symbol, power, root]` factors multiplied in order from `1`.
+fn build(entry: &Value) -> Unit {
+    entry["factors"].as_array().unwrap().iter().fold(Unit::ONE, |acc, factor| {
+        let symbol = factor[0].as_str().unwrap();
+        let power = factor[1].as_i64().unwrap() as i32;
+        let root = factor[2].as_i64().unwrap() as i32;
+        let atom = find(symbol).unwrap_or_else(|| panic!("{symbol:?} should be known"));
+        acc.multiply(&atom.pow(power).root(root).unwrap())
+    })
+}
+
+fn optional(entry: &Value, key: &str) -> Option<String> {
+    entry[key].as_str().map(str::to_string)
+}
+
+#[test]
+fn format_registry_and_latex_match_indriya() {
+    let dump = golden("units_format.json");
+    let units = dump["units"].as_array().unwrap();
+    assert_eq!(units.len(), 79);
+
+    for entry in units {
+        let spec = entry["spec"].as_str().unwrap();
+        let unit = build(entry);
+
+        assert_eq!(unit.is_product(), entry["isProduct"].as_bool().unwrap(), "{spec}: product or atom");
+        assert_eq!(unit.to_string(), entry["format"].as_str().unwrap(), "{spec}: format");
+        assert_eq!(latex::format(&unit), entry["latex"].as_str().unwrap(), "{spec}: latex");
+
+        let dimension = unit.dimension();
+        assert_eq!(dimension.to_string(), entry["dimension"].as_str().unwrap(), "{spec}: dimension");
+        assert_eq!(actual_vector(&unit), expected_vector(entry), "{spec}: dimension vector");
+        assert_eq!(dimension.is_none(), entry["isDimensionless"].as_bool().unwrap(), "{spec}: dimensionless");
+
+        assert_eq!(registry::quantity_name(&dimension).map(str::to_string), optional(entry, "quantityName"), "{spec}: quantity name");
+        assert_eq!(registry::describe(&unit), entry["describe"].as_str().unwrap(), "{spec}: describe");
+        assert_eq!(registry::format(&unit), entry["format"].as_str().unwrap(), "{spec}: registry format");
+        assert_eq!(
+            registry::simplification_target(&unit).map(|u| u.to_string()),
+            optional(entry, "simplificationTarget"),
+            "{spec}: simplification target"
+        );
+        assert_eq!(
+            registry::preferred_unit(&dimension).map(|u| u.to_string()),
+            optional(entry, "preferredUnit"),
+            "{spec}: preferred unit"
+        );
+    }
 }
