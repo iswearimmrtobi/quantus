@@ -18,6 +18,7 @@ Quantus is a LaTeX-in/LaTeX-out physics calculator. Today: Kotlin backend (Sprin
 
 - Done: branch `rust-tauri`; Cargo workspace; `quantus-core::{error, num}` with 12 passing tests; golden JSON (`roundtrip`, `parse_errors`, `evaluate`, `sessions`, ~80 cases) in `crates/quantus-core/tests/golden/`.
 - Done: M1 oracle extraction. `units_symbols.json` (715 known symbols, 187,802 unknown candidates), `units_format.json` (79 units), `quantity_cases.json` (81 operation cases). Kotlin suite green before and after; the temporary dumper was deleted.
+- Done: M2 units (`quantus-core::units`, 29 unit tests plus `tests/units_oracle.rs`). The oracle test checks all 188,499 one to three character candidates against `units_symbols.json` (known or not, dimension string and vector, exact factor and offset, printed form) and all 79 units of `units_format.json` on every field.
 - The user's uncommitted Kotlin/Electron startup work is untouched and becomes obsolete at cutover.
 - Environment: Rust 1.94, Node 26, webkit2gtk-4.1 2.52, GTK3, librsvg, patchelf, rsvg-convert are present. No `cargo-tauri`; use `@tauri-apps/cli` v2 through npm. Tauri 2.12 needs rustc 1.90 (OK).
 
@@ -91,11 +92,19 @@ Run `./gradlew test` once to confirm the Kotlin suite is green before and after 
 
 **M1b Tauri de-risk spike (early, throwaway-able).** Scaffold `desktop/src-tauri` with a stub `evaluate` returning the milestone result; point it at the existing React UI. Verify in WebKitGTK: MathLive input and fonts, KaTeX rendering, CSP, shortcuts, Wayland/NVIDIA rendering (`WEBKIT_DISABLE_DMABUF_RENDERER` if needed), and that `tauri build` produces an AppImage on this machine (set `NO_STRIP=true` if linuxdeploy fails on this rolling distro). Record the size and cold-start numbers next to the Electron AppImage. Exit: go/no-go on WebKit rendering before the engine port consumes more time.
 
-**M2 Units.** `dimension`, `atom`/prefix tables, `Unit` (Atom/Product), `lookup`, `conversions`, `registry`, `format`. Exit: an exhaustive test compares the Rust lookup with `units_symbols.json` (every candidate symbol) and the format outputs with `units_format.json`; ambiguity tests (`mN`, `min`, `Pa`, `ms`, `m2`, `m/s`) pass.
+**M2 Units (done).** `dimension`, `atom`/prefix tables, `Unit` (Atom/Product), `lookup`, `conversions`, `registry`, `format`. Exit: an exhaustive test compares the Rust lookup with `units_symbols.json` (every candidate symbol) and the format outputs with `units_format.json`; ambiguity tests (`mN`, `min`, `Pa`, `ms`, `m2`, `m/s`) pass.
+
+M2 findings that change M3/M4:
+- Lookup rebuilds `SimpleUnitFormat`'s name tables in registration order (`units::lookup`), with Indriya's overrides, instead of splitting prefixes. Beyond three characters the table is extrapolated from the source, not the oracle (`mmol`, `kOhm`, `dacd`, `month`, `k°C`), and covered by unit tests only.
+- A `Dimension` remembers its construction order (`N` prints `[L]·[M]/[T]²`, `kg·m/s²` prints `[M]·[L]/[T]²`); equality ignores it. `Unit::dimension()` folds the factors in order, as `ProductUnit.getDimension`.
+- `Dimension::is_compatible` keeps Indriya's lossy fallback (`DimensionalModel.getFundamentalDimension` folds `(acc·base)^e` and drops roots), so `m^(1/2)` counts as compatible with `m`. M3 inherits that on purpose; drop it only together with the Kotlin behaviour.
+- Products with an offset unit (`°C/s`) or a root (`m^(1/2)`) cannot be converted: `Unit::system_conversion` returns `UnsupportedConversion`. The message is not Indriya's text (that embeds the unit's `toString`); M3 decides whether any case needs the exact wording.
+- Unit LaTeX (`units::latex`, including `symbol()` for the parser) moved from M4 into M2 because its oracle is in `units_format.json`.
+- `Unit::to_string()` is the registry format (`1` for the dimensionless unit); `registry::{preferred_unit, simplification_target, quantity_name, describe}` are the Kotlin `UnitRegistry` API.
 
 **M3 Quantity.** `PhysicalQuantity` on `Value` and `Unit`; exact conversion; error messages byte-identical to Kotlin. Exit: `quantity_cases.json` and the dimension/offset tests pass.
 
-**M4 LaTeX.** AST, lexer, parser, normalizer, numbers, unit LaTeX, serializer, parse-error excerpt. Exit: `roundtrip.json` and `parse_errors.json` pass (positions 0-based, message substrings match).
+**M4 LaTeX.** AST, lexer, parser, normalizer, numbers, serializer, parse-error excerpt (unit LaTeX is done, see M2). Exit: `roundtrip.json` and `parse_errors.json` pass (positions 0-based, message substrings match).
 
 **M5 Eval, session, API structs.** Evaluator, substitution, calculator with steps and `alignBlock`, sessions, `api` module. Exit: `evaluate.json` and `sessions.json` pass through a `tests/golden.rs` runner; JSON field names/shape equal the Kotlin `CalculationResponse` (checked with a serde round-trip test against the old controller expectations).
 
