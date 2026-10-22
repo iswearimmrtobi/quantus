@@ -2,6 +2,8 @@
 
 pub mod ast;
 pub mod lexer;
+pub mod normalizer;
+pub mod parser;
 pub mod numbers;
 
 pub use ast::{Formula, Label, Node, Operator};
