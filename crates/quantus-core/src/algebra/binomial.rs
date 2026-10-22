@@ -500,7 +500,7 @@ pub fn expand_difference_of_squares_product_poly(left: &Poly, right: &Poly) -> O
         let a = &two_a / &RBig::from(2);
         let b = left - &a;
         let expanded = &(&a * &a) - &(&b * &b);
-        if &expanded == &(left * right) {
+        if expanded == (left * right) {
             return Some(expanded);
         }
     }

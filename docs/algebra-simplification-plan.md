@@ -75,23 +75,23 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
 ### Milestone 3: Binomial Identities & Polynomial Factorization Engine
 **Goal**: Recognize binomial identities in both directions and factor polynomials over the integers/rationals reliably without false claims.
 
-- [ ] **3.1. Implement Binomial Identity recognizer & transformer (`algebra::binomial`)**:
-  - [ ] **Expansion direction** (`EXPAND_BINOMIAL` / `APPLY_BINOMIAL_IDENTITY`):
+- [x] **3.1. Implement Binomial Identity recognizer & transformer (`algebra::binomial`)**:
+  - [x] **Expansion direction** (`EXPAND_BINOMIAL` / `APPLY_BINOMIAL_IDENTITY`):
     - Square of a sum: `(a + b)^2 = a^2 + 2ab + b^2`
     - Square of a difference: `(a - b)^2 = a^2 - 2ab + b^2`
     - Cube of a sum: `(a + b)^3 = a^3 + 3a^2b + 3ab^2 + b^3`
     - Cube of a difference: `(a - b)^3 = a^3 - 3a^2b + 3ab^2 - b^3`
     - Difference of squares product: `(a - b)(a + b) = a^2 - b^2`
-  - [ ] **Factoring direction** (`APPLY_BINOMIAL_IDENTITY` / `FACTOR_POLYNOMIAL`):
+  - [x] **Factoring direction** (`APPLY_BINOMIAL_IDENTITY` / `FACTOR_POLYNOMIAL`):
     - Recognize `a^2 - b^2` (including higher even powers and monomial squares like `9x^2 - 16y^2`) -> `(a - b)(a + b)`.
     - Recognize perfect-square trinomials `a^2 + 2ab + b^2 -> (a + b)^2` and `a^2 - 2ab + b^2 -> (a - b)^2`.
     - Recognize perfect-cube quattro-nomials `a^3 ± 3a^2b + 3ab^2 ± b^3 -> (a ± b)^3` and sum/difference of cubes `a^3 ± b^3`.
-- [ ] **3.2. Implement Polynomial Factorization (`algebra::factor`)**:
-  - [ ] **Step 1: Content & Monomial GCF extraction**: Factor out the greatest common rational/integer coefficient and common variable powers (e.g., `6x^3 - 12x^2 -> 6x^2(x - 2)`). Ensure leading coefficient of each irreducible factor is positive.
-  - [ ] **Step 2: Binomial pattern recognition**: Check difference of squares, perfect square trinomials, and perfect cubes first so steps can specifically cite binomial identities when applicable.
-  - [ ] **Step 3: Quadratic polynomial factorization**: For `ax^2 + bx + c` (and homogeneous `ax^2 + bxy + cy^2`), compute discriminant `Δ = b^2 - 4ac`. If `Δ >= 0` is a perfect rational square, factor into linear factors over `ℤ`/`ℚ`.
-  - [ ] **Step 4: Rational Root Theorem & Kronecker/square-free reduction for degree ≥ 3**: Test rational root candidates `p/q` where `p | c_0` and `q | c_n`, dividing out linear factors `(qx - p)` and recursing on the quotient.
-  - [ ] **Integrity guarantee**: Never claim a polynomial is factorable over `ℤ`/`ℚ` if its discriminant is non-square or no rational factors exist; leave irreducible polynomials untouched.
+- [x] **3.2. Implement Polynomial Factorization (`algebra::factor`)**:
+  - [x] **Step 1: Content & Monomial GCF extraction**: Factor out the greatest common rational/integer coefficient and common variable powers (e.g., `6x^3 - 12x^2 -> 6x^2(x - 2)`). Ensure leading coefficient of each irreducible factor is positive.
+  - [x] **Step 2: Binomial pattern recognition**: Check difference of squares, perfect square trinomials, and perfect cubes first so steps can specifically cite binomial identities when applicable.
+  - [x] **Step 3: Quadratic polynomial factorization**: For `ax^2 + bx + c` (and homogeneous `ax^2 + bxy + cy^2`), compute discriminant `Δ = b^2 - 4ac`. If `Δ >= 0` is a perfect rational square, factor into linear factors over `ℤ`/`ℚ`.
+  - [x] **Step 4: Rational Root Theorem & Kronecker/square-free reduction for degree ≥ 3**: Test rational root candidates `p/q` where `p | c_0` and `q | c_n`, dividing out linear factors `(qx - p)` and recursing on the quotient.
+  - [x] **Integrity guarantee**: Never claim a polynomial is factorable over `ℤ`/`ℚ` if its discriminant is non-square or no rational factors exist; leave irreducible polynomials untouched.
 
 ---
 

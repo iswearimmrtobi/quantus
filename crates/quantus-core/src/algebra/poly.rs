@@ -590,6 +590,11 @@ impl Poly {
         }
     }
 
+    /// Factors this polynomial into irreducible factors over ℤ and ℚ.
+    pub fn factor(&self) -> crate::algebra::factored::FactoredPoly {
+        crate::algebra::factor::factor_polynomial(self)
+    }
+
     /// Bidirectional conversion: parses a `latex::ast::Node` into a `Poly` if valid.
     pub fn from_node(node: &Node) -> Result<Poly, QuantusError> {
         match node {

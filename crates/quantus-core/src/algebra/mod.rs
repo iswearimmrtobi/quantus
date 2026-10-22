@@ -2,6 +2,7 @@
 
 pub mod binomial;
 pub mod domain;
+pub mod factor;
 pub mod factored;
 pub mod poly;
 pub mod steps;
@@ -18,6 +19,7 @@ pub use domain::{
     format_restrictions_plain, is_constant_zero, solve_denominator_roots, solve_poly_restrictions,
     solve_univariate_rational_roots, DomainRestriction, DomainTracker,
 };
+pub use factor::{factor_polynomial, factor_polynomial_node};
 pub use factored::{Factor, FactoredPoly};
 pub use poly::{Monomial, Poly, Term};
 pub use steps::{AlgebraStep, RuleId, SimplificationResult};

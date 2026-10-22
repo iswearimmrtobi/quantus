@@ -1,3 +1,4 @@
+use dashu::base::Signed;
 use dashu::integer::IBig;
 use dashu::rational::RBig;
 
@@ -8,6 +9,8 @@ use quantus_core::algebra::binomial::{
     expand_difference_of_squares_product_poly, factor_binomial, factor_binomial_node,
     BinomialIdentity,
 };
+use quantus_core::algebra::factor::{factor_polynomial, factor_polynomial_node};
+use quantus_core::algebra::factored::FactoredPoly;
 use quantus_core::algebra::poly::Poly;
 use quantus_core::algebra::steps::RuleId;
 use quantus_core::latex::ast::Node;
@@ -256,3 +259,220 @@ fn test_factor_binomial_ast_node_and_non_binomial() {
         "x^2 + 1 is irreducible"
     );
 }
+
+#[test]
+fn test_factor_step1_content_and_monomial_gcf() {
+    // 6x^3 - 12x^2 -> 6 * x^2 * (x - 2)
+    let p1 = Poly::from_node(&parse("6x^3 - 12x^2")).unwrap();
+    let f1 = factor_polynomial(&p1);
+    assert_eq!(f1.coeff, RBig::from(6));
+    assert_eq!(f1.factors.len(), 2);
+    // factors are sorted canonically
+    let factor_x = f1.factors.iter().find(|f| f.base == Poly::from_var("x")).unwrap();
+    assert_eq!(factor_x.exp, 2);
+    let factor_xm2 = f1.factors.iter().find(|f| f.base == &Poly::from_var("x") - &Poly::from_const(2)).unwrap();
+    assert_eq!(factor_xm2.exp, 1);
+
+    // Negative leading coefficient: -2x^2 + 8 -> -2(x - 2)(x + 2)
+    let p2 = Poly::from_node(&parse("-2x^2 + 8")).unwrap();
+    let f2 = factor_polynomial(&p2);
+    assert_eq!(f2.coeff, RBig::from(-2));
+    assert_eq!(f2.factors.len(), 2);
+    for factor in &f2.factors {
+        assert!(factor.base.leading_coeff().is_positive(), "Every factor base must have a positive leading coefficient");
+    }
+
+    // Multivariate monomial GCF: 12x^3 z^2 - 18x^2 z^3 -> 6 * x^2 * z^2 * (2x - 3z)
+    let p3 = Poly::from_node(&parse("12x^3 z^2 - 18x^2 z^3")).unwrap();
+    let f3 = factor_polynomial(&p3);
+    assert_eq!(f3.coeff, RBig::from(6));
+    let f_x = f3.factors.iter().find(|f| f.base == Poly::from_var("x")).unwrap();
+    assert_eq!(f_x.exp, 2);
+    let f_z = f3.factors.iter().find(|f| f.base == Poly::from_var("z")).unwrap();
+    assert_eq!(f_z.exp, 2);
+    let f_lin = f3.factors.iter().find(|f| f.base.total_degree() == 1 && f.base != Poly::from_var("x") && f.base != Poly::from_var("z")).unwrap();
+    let expected_lin = &(&Poly::from_var("x") * &RBig::from(2)) - &(&Poly::from_var("z") * &RBig::from(3));
+    assert_eq!(f_lin.base, expected_lin);
+    assert_eq!(f_lin.exp, 1);
+}
+
+#[test]
+fn test_factor_step2_binomial_patterns_in_factor() {
+    // x^4 - 16 -> (x - 2)(x + 2)(x^2 + 4)
+    let p1 = Poly::from_node(&parse("x^4 - 16")).unwrap();
+    let f1 = factor_polynomial(&p1);
+    assert_eq!(f1.coeff, RBig::ONE);
+    assert_eq!(f1.factors.len(), 3);
+    assert!(f1.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(2)));
+    assert!(f1.factors.iter().any(|f| f.base == &Poly::from_var("x") + &Poly::from_const(2)));
+    assert!(f1.factors.iter().any(|f| f.base == Poly::from_node(&parse("x^2 + 4")).unwrap()));
+
+    // 3x^2 + 18x + 27 -> 3(x + 3)^2
+    let p2 = Poly::from_node(&parse("3x^2 + 18x + 27")).unwrap();
+    let f2 = factor_polynomial(&p2);
+    assert_eq!(f2.coeff, RBig::from(3));
+    assert_eq!(f2.factors.len(), 1);
+    assert_eq!(f2.factors[0].base, &Poly::from_var("x") + &Poly::from_const(3));
+    assert_eq!(f2.factors[0].exp, 2);
+}
+
+#[test]
+fn test_factor_step3_quadratic_polynomials() {
+    // Monic: x^2 - 5x + 6 -> (x - 3)(x - 2)
+    let p1 = Poly::from_node(&parse("x^2 - 5x + 6")).unwrap();
+    let f1 = factor_polynomial(&p1);
+    assert_eq!(f1.coeff, RBig::ONE);
+    assert_eq!(f1.factors.len(), 2);
+    assert!(f1.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(3)));
+    assert!(f1.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(2)));
+
+    // Non-monic: 2x^2 + 5x + 2 -> (2x + 1)(x + 2)
+    let p2 = Poly::from_node(&parse("2x^2 + 5x + 2")).unwrap();
+    let f2 = factor_polynomial(&p2);
+    assert_eq!(f2.coeff, RBig::ONE);
+    assert_eq!(f2.factors.len(), 2);
+    let expected_2xp1 = &(&Poly::from_var("x") * &RBig::from(2)) + &Poly::from_const(1);
+    let expected_xp2 = &Poly::from_var("x") + &Poly::from_const(2);
+    assert!(f2.factors.iter().any(|f| f.base == expected_2xp1));
+    assert!(f2.factors.iter().any(|f| f.base == expected_xp2));
+
+    // Non-monic: 6x^2 + 7x + 2 -> (2x + 1)(3x + 2)
+    let p3 = Poly::from_node(&parse("6x^2 + 7x + 2")).unwrap();
+    let f3 = factor_polynomial(&p3);
+    assert_eq!(f3.coeff, RBig::ONE);
+    assert_eq!(f3.factors.len(), 2);
+    let expected_3xp2 = &(&Poly::from_var("x") * &RBig::from(3)) + &Poly::from_const(2);
+    assert!(f3.factors.iter().any(|f| f.base == expected_2xp1));
+    assert!(f3.factors.iter().any(|f| f.base == expected_3xp2));
+
+    // Homogeneous bivariate: 2x^2 + 5xz + 2z^2 -> (2x + z)(x + 2z)
+    let p4 = Poly::from_node(&parse("2x^2 + 5x z + 2z^2")).unwrap();
+    let f4 = factor_polynomial(&p4);
+    assert_eq!(f4.coeff, RBig::ONE);
+    assert_eq!(f4.factors.len(), 2);
+    let expected_2xpz = &(&Poly::from_var("x") * &RBig::from(2)) + &Poly::from_var("z");
+    let expected_xp2z = &Poly::from_var("x") + &(&Poly::from_var("z") * &RBig::from(2));
+    assert!(f4.factors.iter().any(|f| f.base == expected_2xpz));
+    assert!(f4.factors.iter().any(|f| f.base == expected_xp2z));
+
+    // Homogeneous bivariate: x^2 - 5xz + 6z^2 -> (x - 3z)(x - 2z)
+    let p5 = Poly::from_node(&parse("x^2 - 5x z + 6z^2")).unwrap();
+    let f5 = factor_polynomial(&p5);
+    assert_eq!(f5.coeff, RBig::ONE);
+    assert_eq!(f5.factors.len(), 2);
+    let expected_xm3z = &Poly::from_var("x") - &(&Poly::from_var("z") * &RBig::from(3));
+    let expected_xm2z = &Poly::from_var("x") - &(&Poly::from_var("z") * &RBig::from(2));
+    assert!(f5.factors.iter().any(|f| f.base == expected_xm3z));
+    assert!(f5.factors.iter().any(|f| f.base == expected_xm2z));
+}
+
+#[test]
+fn test_factor_step4_rational_root_theorem_and_biquadratic() {
+    // Cubic with 3 rational roots: x^3 - 7x + 6 -> (x - 1)(x - 2)(x + 3)
+    let p1 = Poly::from_node(&parse("x^3 - 7x + 6")).unwrap();
+    let f1 = factor_polynomial(&p1);
+    assert_eq!(f1.coeff, RBig::ONE);
+    assert_eq!(f1.factors.len(), 3);
+    assert!(f1.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(1)));
+    assert!(f1.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(2)));
+    assert!(f1.factors.iter().any(|f| f.base == &Poly::from_var("x") + &Poly::from_const(3)));
+
+    // Cubic with 1 rational root and 1 irreducible quadratic: x^3 - 2x^2 + x - 2 -> (x - 2)(x^2 + 1)
+    let p2 = Poly::from_node(&parse("x^3 - 2x^2 + x - 2")).unwrap();
+    let f2 = factor_polynomial(&p2);
+    assert_eq!(f2.coeff, RBig::ONE);
+    assert_eq!(f2.factors.len(), 2);
+    assert!(f2.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(2)));
+    assert!(f2.factors.iter().any(|f| f.base == Poly::from_node(&parse("x^2 + 1")).unwrap()));
+
+    // Non-monic cubic: 2x^3 + 3x^2 - 8x + 3 -> (x - 1)(2x - 1)(x + 3)
+    let p3 = Poly::from_node(&parse("2x^3 + 3x^2 - 8x + 3")).unwrap();
+    let f3 = factor_polynomial(&p3);
+    assert_eq!(f3.coeff, RBig::ONE);
+    assert_eq!(f3.factors.len(), 3);
+    let expected_2xm1 = &(&Poly::from_var("x") * &RBig::from(2)) - &Poly::from_const(1);
+    assert!(f3.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(1)));
+    assert!(f3.factors.iter().any(|f| f.base == expected_2xm1));
+    assert!(f3.factors.iter().any(|f| f.base == &Poly::from_var("x") + &Poly::from_const(3)));
+
+    // Biquadratic: x^4 - 5x^2 + 4 -> (x - 1)(x + 1)(x - 2)(x + 2)
+    let p4 = Poly::from_node(&parse("x^4 - 5x^2 + 4")).unwrap();
+    let f4 = factor_polynomial(&p4);
+    assert_eq!(f4.coeff, RBig::ONE);
+    assert_eq!(f4.factors.len(), 4);
+    assert!(f4.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(1)));
+    assert!(f4.factors.iter().any(|f| f.base == &Poly::from_var("x") + &Poly::from_const(1)));
+    assert!(f4.factors.iter().any(|f| f.base == &Poly::from_var("x") - &Poly::from_const(2)));
+    assert!(f4.factors.iter().any(|f| f.base == &Poly::from_var("x") + &Poly::from_const(2)));
+
+    // Biquadratic with irreducible factors: x^4 + 3x^2 + 2 -> (x^2 + 1)(x^2 + 2)
+    let p5 = Poly::from_node(&parse("x^4 + 3x^2 + 2")).unwrap();
+    let f5 = factor_polynomial(&p5);
+    assert_eq!(f5.coeff, RBig::ONE);
+    assert_eq!(f5.factors.len(), 2);
+    assert!(f5.factors.iter().any(|f| f.base == Poly::from_node(&parse("x^2 + 1")).unwrap()));
+    assert!(f5.factors.iter().any(|f| f.base == Poly::from_node(&parse("x^2 + 2")).unwrap()));
+}
+
+#[test]
+fn test_factor_integrity_guarantee_irreducibles() {
+    // Irreducible quadratic over Q: x^2 + x + 1 (Delta = -3 < 0)
+    let p1 = Poly::from_node(&parse("x^2 + x + 1")).unwrap();
+    let f1 = factor_polynomial(&p1);
+    assert_eq!(f1.coeff, RBig::ONE);
+    assert_eq!(f1.factors.len(), 1);
+    assert_eq!(f1.factors[0].base, p1);
+    assert_eq!(f1.factors[0].exp, 1);
+
+    // Irreducible quadratic over Q: x^2 - 2 (Delta = 8, not a rational square)
+    let p2 = Poly::from_node(&parse("x^2 - 2")).unwrap();
+    let f2 = factor_polynomial(&p2);
+    assert_eq!(f2.coeff, RBig::ONE);
+    assert_eq!(f2.factors.len(), 1);
+    assert_eq!(f2.factors[0].base, p2);
+
+    // Irreducible cubic over Q: x^3 - 2
+    let p3 = Poly::from_node(&parse("x^3 - 2")).unwrap();
+    let f3 = factor_polynomial(&p3);
+    assert_eq!(f3.coeff, RBig::ONE);
+    assert_eq!(f3.factors.len(), 1);
+    assert_eq!(f3.factors[0].base, p3);
+
+    // Constant polynomial: 5
+    let p4 = Poly::from_node(&parse("5")).unwrap();
+    let f4 = factor_polynomial(&p4);
+    assert_eq!(f4.coeff, RBig::from(5));
+    assert!(f4.factors.is_empty());
+
+    // Linear polynomial: 2x + 3
+    let p5 = Poly::from_node(&parse("2x + 3")).unwrap();
+    let f5 = factor_polynomial(&p5);
+    assert_eq!(f5.coeff, RBig::ONE);
+    assert_eq!(f5.factors.len(), 1);
+    assert_eq!(f5.factors[0].base, p5);
+}
+
+#[test]
+fn test_factor_polynomial_ast_node_and_convenience_methods() {
+    // Node step generation for quadratic factoring
+    let node1 = parse("2x^2 + 5x + 2");
+    let step1 = factor_polynomial_node(&node1).expect("Step for 2x^2 + 5x + 2");
+    assert_eq!(step1.rule, Some(RuleId::FactorPolynomial));
+
+    // Node step generation for binomial identity
+    let node2 = parse("x^2 + 6x + 9");
+    let step2 = factor_polynomial_node(&node2).expect("Step for x^2 + 6x + 9");
+    assert_eq!(step2.rule, Some(RuleId::ApplyBinomialIdentity));
+
+    // Irreducible polynomial generates no step
+    let node3 = parse("x^2 + x + 1");
+    assert!(factor_polynomial_node(&node3).is_none());
+
+    // Poly::factor() and FactoredPoly::from_poly()
+    let p = Poly::from_node(&parse("x^2 - 9")).unwrap();
+    let fp1 = p.factor();
+    let fp2 = FactoredPoly::from_poly(p);
+    assert_eq!(fp1, fp2);
+    assert_eq!(fp1.factors.len(), 2);
+}
+

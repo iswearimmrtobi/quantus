@@ -76,20 +76,9 @@ impl FactoredPoly {
         }
     }
 
-    /// Creates a factored polynomial with a single primitive factor.
+    /// Fully factors a polynomial over ℤ and ℚ into irreducible factors.
     pub fn from_poly(poly: Poly) -> Self {
-        if poly.is_zero() {
-            return Self::zero();
-        }
-        if poly.is_constant() {
-            return Self::from_const(poly.leading_coeff());
-        }
-        let c = poly.content();
-        let prim = poly.primitive_part();
-        Self {
-            coeff: c,
-            factors: vec![Factor::new(prim, 1)],
-        }
+        crate::algebra::factor::factor_polynomial(&poly)
     }
 
     /// Constructs and canonicalizes a `FactoredPoly` from a coefficient and a list of factors.
