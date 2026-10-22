@@ -18,6 +18,8 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::define_variable,
             commands::list_variables,
             commands::delete_variable,
+            commands::get_settings,
+            commands::set_settings,
         ])
 }
 
@@ -29,6 +31,11 @@ fn main() {
         shell::focus_main(app);
     });
     app(tauri::Builder::default().plugin(single_instance))
+        // Here rather than in `app()`, so the tests never read or write the user's settings.
+        .setup(|app| {
+            commands::restore_settings(app.handle());
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| fatal(&error.to_string()));
 }

@@ -145,3 +145,43 @@ fn algebraic_simplification_reaches_the_renderer() {
     let algebraic_step = steps.iter().find(|s| s["kind"] == "algebraic").unwrap();
     assert!(algebraic_step["explanation"].is_string());
 }
+
+#[test]
+fn settings_round_trip_and_change_the_result() {
+    let w = window();
+    let defaults = invoke(&w, "get_settings", json!({})).unwrap();
+    assert_eq!(defaults["binomialForm"], "auto");
+    assert_eq!(evaluate(&w, "a^2+2ab+b^2").unwrap()["result"], "(a + b)^{2}");
+
+    let mut changed = defaults.clone();
+    changed["binomialForm"] = json!("expanded");
+    changed["precision"] = json!(7);
+    assert_eq!(invoke(&w, "set_settings", json!({ "settings": changed })).unwrap(), changed);
+    assert_eq!(invoke(&w, "get_settings", json!({})).unwrap(), changed);
+    assert_eq!(evaluate(&w, "(a+b)^2").unwrap()["result"], r"a^{2} + 2 \cdot a \cdot b + b^{2}");
+    assert_eq!(invoke(&w, "engine_info", json!({})).unwrap()["precision"], 7);
+}
+
+#[test]
+fn invalid_settings_are_rejected_and_keep_the_old_ones() {
+    let w = window();
+    let error = invoke(&w, "set_settings", json!({ "settings": { "precision": 0 } })).unwrap_err();
+    assert!(error["error"].as_str().unwrap().contains("between 1 and"), "{error}");
+    assert_eq!(invoke(&w, "get_settings", json!({})).unwrap()["precision"], 50);
+}
+
+#[test]
+fn settings_files_are_written_and_read_back() {
+    use quantus_core::settings::{DenominatorForm, Settings};
+    let dir = std::env::temp_dir().join(format!("quantus-settings-{}", std::process::id()));
+    let path = dir.join("nested").join("settings.json");
+    assert_eq!(super::commands::load_settings(&path).unwrap(), Settings::default());
+
+    let settings = Settings { denominator_form: DenominatorForm::Factored, ..Settings::default() };
+    super::commands::save_settings(&path, &settings).unwrap();
+    assert_eq!(super::commands::load_settings(&path).unwrap(), settings);
+
+    std::fs::write(&path, r#"{ "precision": 0 }"#).unwrap();
+    assert!(super::commands::load_settings(&path).is_err());
+    std::fs::remove_dir_all(dir).unwrap();
+}
