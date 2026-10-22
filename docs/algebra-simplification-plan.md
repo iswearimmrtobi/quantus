@@ -190,21 +190,21 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
     4. Expand polynomial products: `3(x^2 - 6x + 8) + x - 102` (and `3x^2 - 18x + 24 + x - 102`) over `(x - 4)(x + 3)`
     5. Combine like terms: `(3x^2 - 17x - 78) / ((x - 4)(x + 3))`
   - [x] Verify domain restrictions: `x ≠ -3, 2, 4`.
-- [ ] **7.2. Comprehensive Unit Test Suite (`crates/quantus-core/tests/algebra_simplification.rs`)**:
-  - [ ] 1. Simplifying nested fractions (single, double, deep nesting, sums inside nested fractions).
-  - [ ] 2. Adding and subtracting fractions with identical denominators.
-  - [ ] 3. Adding and subtracting fractions with different denominators.
-  - [ ] 4. Finding the least common denominator with repeated polynomial factors (e.g., `1/(x+1)^2 + 1/((x+1)(x-1))`).
-  - [ ] 5. Expanding binomial squares and cubes (`(a+b)^2`, `(a-b)^2`, `(a+b)^3`, `(a-b)^3`).
-  - [ ] 6. Recognizing differences of squares (`x^2 - 9`, `4x^2 - 25y^2`).
-  - [ ] 7. Factoring quadratic polynomials (monic, non-monic `2x^2 + 5x + 2`, perfect-square trinomials `x^2 + 6x + 9`, and irreducible quadratics `x^2 + x + 1`).
-  - [ ] 8. Combining like terms and canonical descending degree sorting (`3x^2 - 18x + 24 + x - 102 -> 3x^2 - 17x - 78`).
-  - [ ] 9. Canceling common factors safely (e.g., `(x^2 - 9)/(x^2 + 6x + 9) -> (x - 3)/(x + 3)`, and verifying `(x + 2)/x` is **not** canceled to `2`).
-  - [ ] 10. Preserving domain restrictions after cancellation (`(x^2 - 1)/(x - 1) -> x + 1` with `x ≠ 1`).
-  - [ ] 11. Handling negative coefficients, subtraction of fractions, and nested parentheses.
-  - [ ] 12. Handling constant expressions and zero numerators (`(x - x)/(x + 1) -> 0` with `x ≠ -1`).
-  - [ ] 13. Detecting unsupported expressions gracefully without returning incorrect results.
-  - [ ] 14. Verifying mathematical equivalence between original and simplified expressions across all test cases.
+- [x] **7.2. Comprehensive Unit Test Suite (`crates/quantus-core/tests/algebra_simplification.rs`)**:
+  - [x] 1. Simplifying nested fractions (single, double, deep nesting, sums inside nested fractions).
+  - [x] 2. Adding and subtracting fractions with identical denominators.
+  - [x] 3. Adding and subtracting fractions with different denominators.
+  - [x] 4. Finding the least common denominator with repeated polynomial factors (e.g., `1/(x+1)^2 + 1/((x+1)(x-1))`).
+  - [x] 5. Expanding binomial squares and cubes (`(a+b)^2`, `(a-b)^2`, `(a+b)^3`, `(a-b)^3`).
+  - [x] 6. Recognizing differences of squares (`x^2 - 9`, `4x^2 - 25y^2`).
+  - [x] 7. Factoring quadratic polynomials (monic, non-monic `2x^2 + 5x + 2`, perfect-square trinomials `x^2 + 6x + 9`, and irreducible quadratics `x^2 + x + 1`).
+  - [x] 8. Combining like terms and canonical descending degree sorting (`3x^2 - 18x + 24 + x - 102 -> 3x^2 - 17x - 78`).
+  - [x] 9. Canceling common factors safely (e.g., `(x^2 - 9)/(x^2 + 6x + 9) -> (x - 3)/(x + 3)`, and verifying `(x + 2)/x` is **not** canceled to `2`).
+  - [x] 10. Preserving domain restrictions after cancellation (`(x^2 - 1)/(x - 1) -> x + 1` with `x ≠ 1`).
+  - [x] 11. Handling negative coefficients, subtraction of fractions, and nested parentheses.
+  - [x] 12. Handling constant expressions and zero numerators (`(x - x)/(x + 1) -> 0` with `x ≠ -1`).
+  - [x] 13. Detecting unsupported expressions gracefully without returning incorrect results.
+  - [x] 14. Verifying mathematical equivalence between original and simplified expressions across all test cases.
 - [ ] **7.3. Regression & Workspace Checks**:
   - [ ] Run `cargo test --workspace` and verify all existing unit, golden, and oracle tests pass.
   - [ ] Run `cargo clippy --workspace --all-targets` and fix any warnings.
