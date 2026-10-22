@@ -2,6 +2,8 @@
 
 pub mod error;
 pub mod num;
+pub mod quantity;
 pub mod units;
 
 pub use error::{QuantusError, Result};
+pub use quantity::PhysicalQuantity;
