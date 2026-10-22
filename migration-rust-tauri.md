@@ -17,7 +17,8 @@ Quantus is a LaTeX-in/LaTeX-out physics calculator. Today: Kotlin backend (Sprin
 ## Status
 
 - Done: branch `rust-tauri`; Cargo workspace; `quantus-core::{error, num}` with 12 passing tests; golden JSON (`roundtrip`, `parse_errors`, `evaluate`, `sessions`, ~80 cases) in `crates/quantus-core/tests/golden/`.
-- Nothing committed yet. The user's uncommitted Kotlin/Electron startup work is untouched and becomes obsolete at cutover.
+- Done: M1 oracle extraction. `units_symbols.json` (715 known symbols, 187,802 unknown candidates), `units_format.json` (79 units), `quantity_cases.json` (81 operation cases). Kotlin suite green before and after; the temporary dumper was deleted.
+- The user's uncommitted Kotlin/Electron startup work is untouched and becomes obsolete at cutover.
 - Environment: Rust 1.94, Node 26, webkit2gtk-4.1 2.52, GTK3, librsvg, patchelf, rsvg-convert are present. No `cargo-tauri`; use `@tauri-apps/cli` v2 through npm. Tauri 2.12 needs rustc 1.90 (OK).
 
 ## Target layout
@@ -74,10 +75,18 @@ Each package ends green (`cargo test`, clippy) before the next starts.
 
 **M0 Foundations (done).** Branch, workspace, goldens, `num`.
 
-**M1 Oracle extraction (Kotlin, one shot).** A temporary Kotlin test (deleted after) dumps JSON to `crates/quantus-core/tests/golden/`:
+**M1 Oracle extraction (Kotlin, one shot; done).** A temporary Kotlin test (deleted after) dumps JSON to `crates/quantus-core/tests/golden/`:
 1. `units_symbols.json`: every 1 to 3 character candidate symbol (letters, µ, μ, Ω, Ω, °, ℃) resolved by `UnitLookup.find` to its structure (prefix, atom, dimension vector, exact factor and offset via `UnitConversions`).
 2. `units_format.json`: `UnitRegistry.format`, `UnitLatex.format`, `Dimension.toString`, `quantityName` and `simplificationTarget` for a list of ~60 representative units and products.
-3. `quantity_cases.json`: results of `PhysicalQuantityTest`/`PhysicsFormulasTest` rewritten as LaTeX-in/result-out cases.
+3. `quantity_cases.json`: results of `PhysicalQuantityTest`/`PhysicsFormulasTest` plus edge cases, as structured operations (operands and units as factor lists), not LaTeX: M3 comes before the parser, and LaTeX-level cases already live in `evaluate.json`.
+
+Findings that change M2/M3:
+- The lookup knows no angle degree (`°` alone, `deg`), so no symbol carries a π factor; `piPower` is 0 everywhere. Drop the π-power from `AffineConversion` unless a unit needing it turns up.
+- `a` is the year, `d` the day, `h` the hour; many 3-letter strings are prefix+atom (`acd`, `alm`).
+- `km/h`, `m/s` etc. only exist as products; products of different prefixed atoms do not merge (`km·m`, `m·km`, `km/m`), but addition and conversion still work through the dimension. `km/m` is dimensionless without simplifying to `1`.
+- `dimensionVector` is lossy for roots (`m^(1/2)` shows exponent 1); the `Dimension.toString()` string (`[L]^1:2`, unit format `m^1:2`) is the reference there.
+- Some Kotlin error texts embed Symja's printout (`'Sqrt(2)'`); compare those by prefix.
+- Division by zero yields a non-real value (`decimal: null`), no error at quantity level.
 Run `./gradlew test` once to confirm the Kotlin suite is green before and after (baseline for the cutover).
 
 **M1b Tauri de-risk spike (early, throwaway-able).** Scaffold `desktop/src-tauri` with a stub `evaluate` returning the milestone result; point it at the existing React UI. Verify in WebKitGTK: MathLive input and fonts, KaTeX rendering, CSP, shortcuts, Wayland/NVIDIA rendering (`WEBKIT_DISABLE_DMABUF_RENDERER` if needed), and that `tauri build` produces an AppImage on this machine (set `NO_STRIP=true` if linuxdeploy fails on this rolling distro). Record the size and cold-start numbers next to the Electron AppImage. Exit: go/no-go on WebKit rendering before the engine port consumes more time.
