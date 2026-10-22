@@ -1,14 +1,21 @@
 # Phase 0 — Erkenntnisse aus den Spikes
 
-**Stand:** 2026-08-03 · **Status:** abgeschlossen
+**Stand:** 2026-08-03 · **Status:** abgeschlossen, seit 2026-10-22 historisch
 
-Grundlage sind die ausführbaren Spikes unter `src/test/kotlin/app/tobiasschmidt/quantus/spike/`.
-Jede Aussage hier ist dort als Test festgenagelt — ändert eine Library-Version das
-Verhalten, schlägt der zugehörige Test fehl.
+> **Historisch.** Die Kotlin-Spikes, auf die sich dieses Dokument stützt, sind mit der Umstellung
+> auf Rust entfernt worden (Git-Verlauf vor dem Commit „Remove the Kotlin/Spring backend…“). Die
+> Befunde zu Symja und Indriya beschreiben deshalb das Verhalten der damaligen Libraries, nicht
+> mehr des Programms. Ersetzt wurden sie durch:
+>
+> - **Symja (Zahlen, Präzision):** `crates/quantus-core/src/num.rs` (`dashu`/`astro-float`); die
+>   Rundung (Guard-Digits, dann kaufmännisch) ist bewusst die der Kotlin-Fassung.
+> - **Indriya (Einheiten, Dimensionen, Benennung):** `crates/quantus-core/src/units/`; die Tabelle
+>   wurde gegen einen einmaligen Indriya-Dump geprüft (`tests/units_oracle.rs`).
+> - **Symjas TeX-Export:** blieb ungenutzt, der Eigenbau-Serializer ist `latex/serializer.rs`.
+> - **Verhaltensabweichung:** `1/0` meldet `Division by zero.` statt „nicht reell“.
 
-```
-./gradlew test
-```
+Grundlage waren ausführbare Spikes unter `src/test/kotlin/app/tobiasschmidt/quantus/spike/`
+(nur noch im Git-Verlauf). Jede Aussage hier war dort als Test festgenagelt.
 
 ## Aufgesetzter Stack
 

@@ -1,6 +1,14 @@
 # Spec Sheet: SI-Einheiten-Rechner ("Quantus")
 
-**Stand:** 2026-08-01 · **Status:** Konzeptphase
+**Stand:** 2026-10-22 · **Status:** Phasen 0–5 umgesetzt, seit der Umstellung auf Rust + Tauri (2026-10) ohne JVM
+
+> **Umstellung auf Rust + Tauri.** Die Abschnitte 3, 4 und 6 beschreiben den ursprünglichen
+> Kotlin/Spring/Electron-Entwurf und sind als Entscheidungsverlauf stehen geblieben. Gültig ist
+> heute: Engine als Rust-Bibliothek (`crates/quantus-core`, Zahlen mit `dashu`/`astro-float`,
+> eigene Einheiten-Tabelle statt Indriya), Frontend als Tauri-App mit denselben React/MathLive-
+> Quellen, Aufruf der Engine über Tauri-Befehle statt REST. Damit entfallen N2a (jlink-JRE) und
+> vorerst N4 (self-hosted Service; ein dünnes axum-Crate über `quantus-core` bliebe möglich).
+> Plan und Befunde: [migration-rust-tauri.md](migration-rust-tauri.md).
 
 ---
 
@@ -79,11 +87,11 @@ Darstellung wie im Physikunterricht, drei Zustände pro Rechnung:
 
 | # | Anforderung |
 |---|---|
-| N1 | Backend in **Kotlin + Spring Boot** (kein JavaScript-Backend) |
-| N2 | Frontend als **Electron-Desktop-App** (TypeScript/React), MathLive als Eingabe-Widget; Anbindung ans Backend via REST |
-| N2a | Kotlin-Backend wird als lokaler Kindprozess mit der App ausgeliefert (gebündelte JRE via jlink); optional stattdessen Verbindung zu einer self-hosted Instanz |
+| N1 | ~~Backend in Kotlin + Spring Boot~~ — ersetzt: Engine in **Rust** (kein JavaScript-Backend) |
+| N2 | Frontend als **Tauri-Desktop-App** (ursprünglich Electron) (TypeScript/React), MathLive als Eingabe-Widget; Anbindung ans Backend via REST |
+| N2a | ~~Kotlin-Backend wird als lokaler Kindprozess mit der App ausgeliefert (gebündelte JRE via jlink); optional stattdessen Verbindung zu einer self-hosted Instanz~~ — entfällt, die Engine läuft im App-Prozess |
 | N3 | Antwortzeit für typische Auswertungen < 200 ms |
-| N4 | Backend zusätzlich als self-hosted Service (Docker) betreibbar — gleiche Codebasis, Electron-App kann sich wahlweise dorthin verbinden |
+| N4 | (zurückgestellt) Backend zusätzlich als self-hosted Service (Docker) betreibbar — gleiche Codebasis, Electron-App kann sich wahlweise dorthin verbinden |
 | N5 | Saubere Trennung: CAS-Logik, Einheiten-Logik, LaTeX-I/O als getrennte Module |
 
 ---
