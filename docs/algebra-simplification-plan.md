@@ -105,11 +105,11 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
     - `(a / b) / (c / d) -> (a * d) / (b * c)` (`APPLY_RECIPROCAL_RULE`)
   - [x] When a numerator or denominator of a complex fraction is itself a sum of fractions (e.g., `(1 + 1/x) / (1 - 1/x)`), recursively combine the inner sum into a single fraction first, then apply the reciprocal rule.
   - [x] Preserve factored structure during nested-fraction simplification: e.g., `3 / ((x + 3)/(x - 2))` becomes `3(x - 2)/(x + 3)` and `((x - 102)/(x - 4))/(x + 3)` becomes `(x - 102)/((x - 4)(x + 3))`.
-- [ ] **4.2. Finding Common Denominators & Combining Fractions (Rule B)**:
-  - [ ] Flatten sums and differences of rational expressions `f_1 ± f_2 ± ... ± f_k` (including standalone polynomial terms treated as `P / 1`).
-  - [ ] Factor each denominator into `FactoredPoly` (`FACTOR_DENOMINATORS` step if any denominator was unfactored and factorable).
-  - [ ] Compute the least common denominator `LCD` as the LCM of all factored denominators, avoiding duplicate shared factors and respecting factor multiplicities (e.g. `(x + 3)` and `(x - 4)(x + 3)` -> LCD `(x - 4)(x + 3)`).
-  - [ ] Multiply each numerator by its missing LCD factors (`FIND_COMMON_DENOMINATOR`) and combine into a single fraction over the factored LCD (`COMBINE_FRACTIONS`):
+- [x] **4.2. Finding Common Denominators & Combining Fractions (Rule B)**:
+  - [x] Flatten sums and differences of rational expressions `f_1 ± f_2 ± ... ± f_k` (including standalone polynomial terms treated as `P / 1`).
+  - [x] Factor each denominator into `FactoredPoly` (`FACTOR_DENOMINATORS` step if any denominator was unfactored and factorable).
+  - [x] Compute the least common denominator `LCD` as the LCM of all factored denominators, avoiding duplicate shared factors and respecting factor multiplicities (e.g. `(x + 3)` and `(x - 4)(x + 3)` -> LCD `(x - 4)(x + 3)`).
+  - [x] Multiply each numerator by its missing LCD factors (`FIND_COMMON_DENOMINATOR`) and combine into a single fraction over the factored LCD (`COMBINE_FRACTIONS`):
     `[3(x - 2)(x - 4) + (x - 102)] / [(x - 4)(x + 3)]`.
 - [ ] **4.3. Polynomial Expansion & Combining Like Terms (Rules C & F)**:
   - [ ] Expand multi-factor polynomial products step by step (`EXPAND_POLYNOMIAL` / `EXPAND_BINOMIAL`):

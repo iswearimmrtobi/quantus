@@ -1,6 +1,7 @@
 //! Symbolic algebraic expression simplification engine.
 
 pub mod binomial;
+pub mod combine;
 pub mod domain;
 pub mod factor;
 pub mod factored;
@@ -14,6 +15,10 @@ pub use binomial::{
     exact_ubig_cbrt, exact_ubig_sqrt, expand_binomial_node, expand_binomial_poly,
     expand_difference_of_squares_product_poly, factor_binomial, factor_binomial_node,
     BinomialIdentity,
+};
+pub use combine::{
+    combine_all_fractions, combine_fractions_at, combine_next_fractions,
+    factor_denominators_in_node, is_combinable_fraction_sum,
 };
 pub use domain::{
     collect_raw_denominators, extract_domain_restrictions, format_restrictions_latex,
