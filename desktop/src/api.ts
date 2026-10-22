@@ -35,6 +35,19 @@ export interface Calculation {
   domainRestrictions?: string[];
 }
 
+export type BinomialForm = 'auto' | 'expanded' | 'binomial';
+export type DenominatorForm = 'auto' | 'expanded' | 'factored';
+
+/** What `quantus_core::settings::Settings` serialises to. */
+export interface Settings {
+  precision: number;
+  binomialForm: BinomialForm;
+  completeSquare: boolean;
+  denominatorForm: DenominatorForm;
+  aAndYAsVariables: boolean;
+  letterProducts: boolean;
+}
+
 export interface EngineInfo {
   application: string;
   precision: number;
@@ -77,4 +90,9 @@ export const api = {
   variables: () => call<Variable[]>('list_variables', { sessionId: SESSION_ID }),
 
   forget: (key: string) => call<void>('delete_variable', { key, sessionId: SESSION_ID }),
+
+  settings: () => call<Settings>('get_settings'),
+
+  /** Checks and saves; returns what the engine now uses. */
+  saveSettings: (settings: Settings) => call<Settings>('set_settings', { settings }),
 };

@@ -10,7 +10,8 @@ export type Shortcut =
   | 'copy-all'
   | 'toggle-variables'
   | 'toggle-history'
-  | 'toggle-latex';
+  | 'toggle-latex'
+  | 'toggle-settings';
 
 /** False in a plain browser (`npm run dev:renderer`), where there is no menu behind the UI. */
 export const inShell = '__TAURI_INTERNALS__' in window;

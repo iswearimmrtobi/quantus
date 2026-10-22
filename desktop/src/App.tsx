@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError, type Calculation, type StepKind, type Variable } from './api';
+import { api, ApiError, type Calculation, type Settings, type StepKind, type Variable } from './api';
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
+import { DEFAULT_SETTINGS, SettingsPanel } from './components/SettingsPanel';
 
 interface HistoryEntry {
   id: number;
@@ -13,7 +14,7 @@ interface HistoryEntry {
   at: Date;
 }
 
-type Panel = 'history' | 'variables' | null;
+type Panel = 'history' | 'variables' | 'settings' | null;
 
 const STEP_LABELS: Record<StepKind, string> = {
   symbolic: 'SYMBOLISCH',
@@ -34,6 +35,8 @@ export function App() {
   const [panel, setPanel] = useState<Panel>(null);
   const [precision, setPrecision] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   /** Quelltext statt Formeleditor — über `\` oder Strg+L (F2). */
   const [latexMode, setLatexMode] = useState(false);
 
@@ -41,8 +44,8 @@ export function App() {
   const latexField = useRef<LatexInputHandle>(null);
   const editor = () => (latexMode ? latexField.current : field.current);
   // The menu shortcuts fire from outside React's render cycle and must not see stale state.
-  const latest = useRef({ input, calculation });
-  latest.current = { input, calculation };
+  const latest = useRef({ input, calculation, error });
+  latest.current = { input, calculation, error };
 
   const refreshVariables = useCallback(async () => {
     try {
@@ -52,16 +55,19 @@ export function App() {
     }
   }, []);
 
-  const evaluate = useCallback(async () => {
+  /** `record: false` rechnet nur neu (nach geänderten Einstellungen), ohne Verlaufseintrag. */
+  const evaluate = useCallback(async ({ record = true } = {}) => {
     const latex = latest.current.input.trim();
     if (!latex) return;
     try {
       const result = await api.evaluate(latex);
       setCalculation(result);
       setError(null);
-      setHistory((entries) =>
-        [{ id: Date.now(), latex: result.input, result: result.result, at: new Date() }, ...entries].slice(0, 50),
-      );
+      if (record) {
+        setHistory((entries) =>
+          [{ id: Date.now(), latex: result.input, result: result.result, at: new Date() }, ...entries].slice(0, 50),
+        );
+      }
       if (result.variable) await refreshVariables();
     } catch (failure) {
       setCalculation(null);
@@ -108,8 +114,25 @@ export function App() {
   // The engine runs inside the app, so there is nothing to wait for.
   useEffect(() => {
     api.info().then((info) => setPrecision(info.precision), () => {});
+    api.settings().then(setSettings, () => {});
     void refreshVariables();
   }, [refreshVariables]);
+
+  /** Speichert sofort und rechnet die angezeigte Eingabe neu, damit man die Wirkung sieht. */
+  const changeSettings = useCallback(
+    async (next: Settings) => {
+      try {
+        const saved = await api.saveSettings(next);
+        setSettings(saved);
+        setPrecision(saved.precision);
+        setSettingsError(null);
+        if (latest.current.calculation || latest.current.error) await evaluate({ record: false });
+      } catch (failure) {
+        setSettingsError(failure instanceof Error ? failure.message : String(failure));
+      }
+    },
+    [evaluate],
+  );
 
   // The menu accelerators of the native shell (F10).
   useEffect(() => {
@@ -140,6 +163,9 @@ export function App() {
         case 'toggle-latex':
           toggleLatexMode();
           break;
+        case 'toggle-settings':
+          togglePanel('settings');
+          break;
       }
     });
   }, [copy, evaluate, reset, togglePanel, toggleLatexMode]);
@@ -167,6 +193,9 @@ export function App() {
       } else if (key === ',') {
         event.preventDefault();
         togglePanel('variables');
+      } else if (key === '.') {
+        event.preventDefault();
+        togglePanel('settings');
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -366,6 +395,17 @@ export function App() {
             <path d="M15 5c2 0 2.5 1 2.5 3s0 3 2 4c-2 1-2 2-2 4s-.5 3-2.5 3" />
           </svg>
         </button>
+        <button
+          className={panel === 'settings' ? 'rail-btn active' : 'rail-btn'}
+          title="Einstellungen (Strg+.)"
+          onClick={() => togglePanel('settings')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+            <circle cx="16" cy="7" r="2" />
+            <circle cx="10" cy="17" r="2" />
+          </svg>
+        </button>
       </div>
 
       <aside className={panel ? 'side-panel' : 'side-panel hidden'}>
@@ -381,6 +421,12 @@ export function App() {
             onClick={() => setPanel('variables')}
           >
             Variablen
+          </button>
+          <button
+            className={panel === 'settings' ? 'panel-tab active' : 'panel-tab'}
+            onClick={() => setPanel('settings')}
+          >
+            Einstellungen
           </button>
         </div>
         <div className="panel-body">
@@ -417,6 +463,10 @@ export function App() {
                 </div>
               ))
             ))}
+
+          {panel === 'settings' && (
+            <SettingsPanel settings={settings} error={settingsError} onChange={(next) => void changeSettings(next)} />
+          )}
         </div>
       </aside>
 

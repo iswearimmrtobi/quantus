@@ -633,6 +633,111 @@ code {
   color: var(--text-muted);
 }
 
+.settings {
+  padding: 6px 10px 14px;
+  font-size: 12px;
+  color: var(--text);
+}
+.setting {
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.setting h3 {
+  margin: 0 0 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.setting-hint {
+  display: block;
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+.segmented {
+  display: flex;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.segment {
+  flex: 1;
+  padding: 6px 4px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.segment + .segment {
+  border-left: 1px solid var(--hairline-strong);
+}
+.segment:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.segment.active {
+  background: var(--cyan-dim);
+  color: var(--text);
+}
+.setting-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.setting-toggle input {
+  margin: 1px 0 0;
+  accent-color: var(--cyan);
+}
+.setting-toggle .setting-hint {
+  margin-top: 2px;
+}
+.setting-precision {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.setting-precision input {
+  width: 72px;
+  padding: 4px 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.setting-precision input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.setting-precision .setting-hint {
+  margin: 0;
+}
+.setting-error {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--danger);
+}
+.setting-reset {
+  margin-top: 14px;
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.setting-reset:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
 .hist-item {
   padding: 10px;
   border-radius: var(--radius);
