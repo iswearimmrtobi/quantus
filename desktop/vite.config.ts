@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// The packaged app loads the build from file://, so every asset URL has to be relative.
+// Relative asset URLs keep the build independent of where the webview serves it from.
 export default defineConfig({
   base: './',
   plugins: [react()],
