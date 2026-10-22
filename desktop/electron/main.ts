@@ -121,17 +121,21 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
 
-  app.whenReady().then(async () => {
+  /**
+   * The backend starts before Electron is even ready, and nothing waits for it.
+   *
+   * The JVM needs about a second, Electron about as long — one after the other that is the
+   * whole startup, side by side it is the longer of the two. The window comes up right away
+   * and shows "startet …" until the health check answers (the renderer polls for it).
+   */
+  backend.start().catch((error: unknown) => {
+    dialog.showErrorBox('Quantus: Backend startet nicht', String(error instanceof Error ? error.message : error));
+    app.quit();
+  });
+
+  app.whenReady().then(() => {
     // Clipboard access stays in the main process: the sandboxed preload only forwards.
     ipcMain.handle('quantus:copy', (_event, text: string) => clipboard.writeText(text));
-
-    try {
-      await backend.start();
-    } catch (error) {
-      dialog.showErrorBox('Quantus: Backend startet nicht', String(error instanceof Error ? error.message : error));
-      app.quit();
-      return;
-    }
 
     buildMenu();
     window = createWindow();
@@ -145,12 +149,15 @@ if (!app.requestSingleInstanceLock()) {
     if (process.platform !== 'darwin') app.quit();
   });
 
-  // Quitting waits for the backend so no orphan java process is left behind.
+  // Quitting waits for the backend so no orphan java process is left behind. The window goes
+  // first: the JVM may spend a few seconds writing its shared archive, and nobody should have
+  // to watch that.
   let shutdown = false;
   app.on('before-quit', (event) => {
     if (shutdown) return;
     event.preventDefault();
     shutdown = true;
+    window?.hide();
     backend.stop().finally(() => app.quit());
   });
 }

@@ -12,8 +12,8 @@ files:
   - dist-electron/**
   - package.json
 
-# Backend-Jar und Minimal-JRE landen als resources/backend/quantus.jar und resources/jre —
-# genau dort sucht electron/backend.ts sie (N2a). Beides legt `./gradlew desktopResources` ab.
+# Backend und Minimal-JRE landen als resources/backend/ und resources/jre — genau dort sucht
+# electron/backend.ts sie (N2a). Beides legt `./gradlew desktopResources` ab.
 extraResources:
   - from: ../build/dist
     to: .

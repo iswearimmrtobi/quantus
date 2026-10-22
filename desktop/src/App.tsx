@@ -14,6 +14,18 @@ interface HistoryEntry {
 
 type Panel = 'history' | 'variables' | null;
 
+/** `starting` heißt: das Fenster ist da, die JVM des Backends noch nicht. */
+type BackendStatus = 'starting' | 'online' | 'offline';
+
+const STATUS_LABELS: Record<BackendStatus, string> = {
+  starting: 'startet …',
+  online: 'bereit',
+  offline: 'kein Backend',
+};
+
+/** So lange gilt Schweigen des Backends als Anlaufen und nicht als Fehler. */
+const STARTUP_GRACE_MS = 20_000;
+
 const STEP_LABELS: Record<StepKind, string> = {
   symbolic: 'SYMBOLISCH',
   substituted: 'EINGESETZT',
@@ -31,7 +43,7 @@ export function App() {
   const [stepsOpen, setStepsOpen] = useState(true);
   const [panel, setPanel] = useState<Panel>(null);
   const [precision, setPrecision] = useState<number | null>(null);
-  const [online, setOnline] = useState(false);
+  const [status, setStatus] = useState<BackendStatus>('starting');
   const [copied, setCopied] = useState<string | null>(null);
   /** Quelltext statt Formeleditor — über `\` oder Strg+L (F2). */
   const [latexMode, setLatexMode] = useState(false);
@@ -108,25 +120,42 @@ export function App() {
     });
   }, []);
 
-  // Health and variables once at start, then a slow heartbeat for the status dot.
+  /**
+   * Der Status-Punkt oben rechts.
+   *
+   * Das Fenster steht vor dem Backend — dessen JVM startet daneben noch. Solange nichts
+   * antwortet, wird schnell nachgefragt, damit die App in dem Moment bereit ist, in dem das
+   * Backend es ist; danach genügt ein langsamer Herzschlag.
+   */
   useEffect(() => {
     let cancelled = false;
+    let timer = 0;
+    let reachable = false;
+    const begin = Date.now();
+
     const check = async () => {
+      let healthy = false;
       try {
         const health = await api.health();
         if (cancelled) return;
-        setOnline(true);
+        healthy = true;
+        setStatus('online');
         setPrecision(health.precision);
       } catch {
-        if (!cancelled) setOnline(false);
+        if (cancelled) return;
+        setStatus(reachable || Date.now() - begin > STARTUP_GRACE_MS ? 'offline' : 'starting');
       }
+      // Die Variablen holt nur der Übergang: beim ersten Kontakt und nach einem Neustart des
+      // Backends — nicht bei jedem Herzschlag.
+      if (healthy && !reachable) void refreshVariables();
+      reachable = healthy;
+      timer = window.setTimeout(check, healthy ? 15_000 : 150);
     };
+
     void check();
-    void refreshVariables();
-    const timer = window.setInterval(check, 15_000);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
     };
   }, [refreshVariables]);
 
@@ -217,7 +246,7 @@ export function App() {
         <div className="topbar-right">
           <span className="precision-tag">{precision ? `${precision} sig` : '—'}</span>
           <span>
-            <span className={online ? 'status-dot' : 'status-dot offline'} /> {online ? 'bereit' : 'kein Backend'}
+            <span className={status === 'online' ? 'status-dot' : `status-dot ${status}`} /> {STATUS_LABELS[status]}
           </span>
         </div>
       </header>
