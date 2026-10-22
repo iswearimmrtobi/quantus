@@ -215,6 +215,17 @@ mod tests {
     }
 
     #[test]
+    fn simplify_rewrites_products_only() {
+        let named = |quantity: PhysicalQuantity| quantity.simplify().unwrap().unit.to_string();
+        assert_eq!(named(q(3, &[("W", 1), ("A", -1)])), "V");
+        assert_eq!(named(q(3, &[("V", 1), ("A", -1)])), "Ω");
+        assert_eq!(named(q(1, &[("kg", 1), ("m", 2), ("s", -2)])), "J");
+        assert_eq!(named(q(3, &[("J", 1), ("N", -1), ("m", -1)])), "1");
+        assert_eq!(named(q(2, &[("kJ", 1)])), "kJ");
+        assert_eq!(named(q(36, &[("km", 1), ("h", -1)])), "km/h");
+    }
+
+    #[test]
     fn the_right_operand_is_converted_into_the_left_unit() {
         let sum = q(1, &[("km", 1), ("h", -1)]).add(&q(1, &[("m", 1), ("s", -1)])).unwrap();
         assert_eq!(sum.value, Value::ratio(23, 5));
