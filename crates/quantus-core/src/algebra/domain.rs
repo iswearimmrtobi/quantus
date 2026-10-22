@@ -8,6 +8,7 @@ use dashu::integer::UBig;
 use dashu::rational::RBig;
 
 use crate::algebra::poly::Poly;
+use crate::latex::ast::{Node, Operator};
 
 /// A domain restriction indicating that a variable or sub-expression cannot equal a specific value.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -177,4 +178,119 @@ pub fn format_rbig_latex(r: &RBig) -> String {
     } else {
         format!("\\frac{{{num}}}{{{den}}}")
     }
+}
+
+/// Unwraps nested `Node::Group`s to get to the underlying node.
+pub fn unwrap_group(mut node: &Node) -> &Node {
+    while let Node::Group { inner, .. } = node {
+        node = inner;
+    }
+    node
+}
+
+/// Checks if an exponent node represents a negative number or negative constant polynomial.
+pub fn is_negative_exponent(node: &Node) -> bool {
+    let unwrapped = unwrap_group(node);
+    if let Ok(poly) = Poly::from_node(unwrapped) {
+        if poly.is_constant() {
+            return poly.leading_coeff().is_negative();
+        }
+    }
+    match unwrapped {
+        Node::Negation { .. } => true,
+        Node::Number { value, .. } => value.is_negative() || value.to_rational().numerator().is_negative(),
+        _ => false,
+    }
+}
+
+/// Recursively decomposes an expression in a denominator / divisor position.
+///
+/// In particular:
+/// - In `a / (b / c)`, applying the reciprocal rule gives `a * (c / b)`.
+///   Therefore both `c != 0` and `b != 0` are required.
+/// - Products `b * c` in a denominator require both `b != 0` and `c != 0`.
+/// - Powers `base^k` in a denominator require `base != 0`.
+pub fn extract_denominators_from_divisor(divisor: &Node, out: &mut Vec<Node>) {
+    let unwrapped = unwrap_group(divisor);
+    match unwrapped {
+        Node::Fraction { numerator, denominator, .. }
+        | Node::Binary {
+            operator: Operator::Divide,
+            left: numerator,
+            right: denominator,
+            ..
+        } => {
+            extract_denominators_from_divisor(denominator, out);
+            extract_denominators_from_divisor(numerator, out);
+        }
+        Node::Binary {
+            operator: Operator::Times | Operator::ImplicitTimes,
+            left,
+            right,
+            ..
+        } => {
+            extract_denominators_from_divisor(left, out);
+            extract_denominators_from_divisor(right, out);
+        }
+        Node::Power { base, .. } => {
+            extract_denominators_from_divisor(base, out);
+        }
+        _ => {
+            out.push(unwrapped.clone());
+        }
+    }
+}
+
+fn collect_raw_denominators_rec(node: &Node, out: &mut Vec<Node>) {
+    let unwrapped = unwrap_group(node);
+    match unwrapped {
+        Node::Fraction { numerator, denominator, .. } => {
+            extract_denominators_from_divisor(denominator, out);
+            collect_raw_denominators_rec(numerator, out);
+            collect_raw_denominators_rec(denominator, out);
+        }
+        Node::Binary {
+            operator: Operator::Divide,
+            left,
+            right,
+            ..
+        } => {
+            extract_denominators_from_divisor(right, out);
+            collect_raw_denominators_rec(left, out);
+            collect_raw_denominators_rec(right, out);
+        }
+        Node::Power { base, exponent, .. } => {
+            if is_negative_exponent(exponent) {
+                extract_denominators_from_divisor(base, out);
+            }
+            collect_raw_denominators_rec(base, out);
+            collect_raw_denominators_rec(exponent, out);
+        }
+        _ => {
+            for child in unwrapped.children() {
+                collect_raw_denominators_rec(child, out);
+            }
+        }
+    }
+}
+
+/// Recursively scans an AST before any cancellation or reciprocal rewrites to collect
+/// all expressions that appear in a denominator or divisor position.
+///
+/// This includes:
+/// - Explicit denominators of `Node::Fraction` and `Operator::Divide`.
+/// - Sub-expressions that become denominators after the reciprocal rule `a / (b / c) -> (a * c) / b`.
+/// - Bases of negative exponents `base^(-n)`.
+///
+/// Results are deduplicated while preserving discovery order.
+pub fn collect_raw_denominators(node: &Node) -> Vec<Node> {
+    let mut raw = Vec::new();
+    collect_raw_denominators_rec(node, &mut raw);
+    let mut unique = Vec::new();
+    for item in raw {
+        if !unique.contains(&item) {
+            unique.push(item);
+        }
+    }
+    unique
 }

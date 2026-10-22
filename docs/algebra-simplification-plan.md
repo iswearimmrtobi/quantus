@@ -57,11 +57,11 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
 ### Milestone 2: Domain Restriction Detection & Tracking
 **Goal**: Accurately identify, solve, and preserve all denominator zero-restrictions from the original expression and throughout every transformation step.
 
-- [ ] **2.1. Implement recursive denominator scanner (`algebra::domain`)**:
-  - [ ] Traverse the initial AST before any cancellation or reciprocal rewrite.
-  - [ ] Collect every denominator `D` from `Node::Fraction { numerator, denominator }` and `Node::Binary { operator: Operator::Divide, .. }`.
-  - [ ] Also collect any sub-expression `N` that becomes a denominator after applying the reciprocal rule `a / (b / c) -> a * (c / b)` (where both `c != 0` and `b != 0` are required!).
-  - [ ] Collect bases of negative exponents `base^(-n)` as denominator restrictions (`base != 0`).
+- [x] **2.1. Implement recursive denominator scanner (`algebra::domain`)**:
+  - [x] Traverse the initial AST before any cancellation or reciprocal rewrite.
+  - [x] Collect every denominator `D` from `Node::Fraction { numerator, denominator }` and `Node::Binary { operator: Operator::Divide, .. }`.
+  - [x] Also collect any sub-expression `N` that becomes a denominator after applying the reciprocal rule `a / (b / c) -> a * (c / b)` (where both `c != 0` and `b != 0` are required!).
+  - [x] Collect bases of negative exponents `base^(-n)` as denominator restrictions (`base != 0`).
 - [ ] **2.2. Solve denominator roots exactly**:
   - [ ] Factor each denominator polynomial into irreducible factors using the factorization engine (or linear/quadratic root solver over `RBig`).
   - [ ] Extract exact rational roots (`x != r`) and quadratic radical roots where applicable, plus general polynomial inequality constraints (`P(x, y) != 0`) for higher-degree irreducible or multivariate factors.
