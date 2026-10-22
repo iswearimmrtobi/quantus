@@ -885,7 +885,7 @@ fn is_compact_binomial_term(term: &Node) -> bool {
 
 /// Whether the input is written purely in compact binomial form: binomial powers or products,
 /// plus constants (`(x + 3)^2`, `(a - b)(a + b)`, `(x + 4)^2 - 5`).
-fn is_compact_binomial_input(node: &Node) -> bool {
+pub fn is_compact_binomial_input(node: &Node) -> bool {
     let mut terms = Vec::new();
     flatten_additive_terms(node, true, &mut terms);
     let mut has_binomial = false;

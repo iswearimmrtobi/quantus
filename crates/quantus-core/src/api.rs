@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::eval::Calculation;
 use crate::session::{SessionStore, Variable};
+use crate::settings::Settings;
 use crate::QuantusError;
 
 /// An `evaluate` call: the input as the user typed it.
@@ -138,14 +139,27 @@ impl std::fmt::Display for ApiError {
 impl std::error::Error for ApiError {}
 
 pub fn evaluate(store: &mut SessionStore, request: &CalculationRequest) -> Result<CalculationResponse, ApiError> {
+    let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
-    let (calculation, variable) = session.evaluate(&request.latex, request.precision)?;
+    let (calculation, variable) = session.evaluate_with(&request.latex, request.precision, &settings)?;
     Ok(CalculationResponse::of(&calculation, variable.as_ref()))
 }
 
 pub fn define_variable(store: &mut SessionStore, request: &CalculationRequest) -> Result<VariableResponse, ApiError> {
+    let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
-    Ok(VariableResponse::of(&session.define_from(&request.latex, request.precision)?))
+    Ok(VariableResponse::of(&session.define_from_with(&request.latex, request.precision, &settings)?))
+}
+
+pub fn get_settings(store: &SessionStore) -> Settings {
+    store.settings.clone()
+}
+
+/// Replaces the settings for all following calls, after checking them.
+pub fn set_settings(store: &mut SessionStore, settings: Settings) -> Result<Settings, ApiError> {
+    settings.validate()?;
+    store.settings = settings;
+    Ok(store.settings.clone())
 }
 
 pub fn list_variables(store: &mut SessionStore, session_id: Option<&str>) -> Vec<VariableResponse> {
@@ -255,6 +269,32 @@ mod tests {
         assert_eq!((request.session_id.as_deref(), request.precision), (Some("s"), Some(7)));
         let bare: CalculationRequest = serde_json::from_value(json!({ "latex": "1m" })).unwrap();
         assert_eq!((bare.session_id, bare.precision), (None, None));
+    }
+
+    #[test]
+    fn settings_apply_to_later_calls_and_are_validated() {
+        let mut store = SessionStore::new();
+        assert_eq!(evaluate(&mut store, &request("a^2+2ab+b^2")).unwrap().result, "(a + b)^{2}");
+
+        let expanded = Settings { binomial_form: crate::settings::BinomialForm::Expanded, precision: 3, ..Settings::default() };
+        set_settings(&mut store, expanded.clone()).unwrap();
+        assert_eq!(get_settings(&store), expanded);
+        assert_eq!(evaluate(&mut store, &request("(a+b)^2")).unwrap().result, r"a^{2} + 2 \cdot a \cdot b + b^{2}");
+        assert_eq!(evaluate(&mut store, &request("\\frac{1}{3}")).unwrap().result, "0{,}333");
+
+        let error = set_settings(&mut store, Settings { precision: 0, ..Settings::default() }).unwrap_err();
+        assert!(error.error.contains("between 1 and"));
+        assert_eq!(get_settings(&store), expanded);
+    }
+
+    #[test]
+    fn a_compact_binomial_stays_as_it_is_when_binomial_form_is_asked_for() {
+        let mut store = SessionStore::new();
+        let binomial = Settings { binomial_form: crate::settings::BinomialForm::Binomial, ..Settings::default() };
+        set_settings(&mut store, binomial).unwrap();
+        assert_eq!(evaluate(&mut store, &request("(x+1)^2")).unwrap().result, "(x + 1)^{2}");
+        // A lone variable still has no value.
+        assert!(evaluate(&mut store, &request("x")).is_err());
     }
 
     #[test]

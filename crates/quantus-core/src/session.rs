@@ -8,8 +8,9 @@ use std::collections::HashMap;
 
 use crate::eval::{Calculation, LatexCalculator, Variables};
 use crate::latex::serializer;
-use crate::num::{Decimal, DEFAULT_PRECISION, MAX_PRECISION};
+use crate::num::{Decimal, MAX_PRECISION};
 use crate::quantity::PhysicalQuantity;
+use crate::settings::Settings;
 use crate::{QuantusError, Result};
 
 pub const DEFAULT_SESSION: &str = "default";
@@ -74,7 +75,19 @@ impl Session {
     /// (`r_1 = 0{,}5m`, a label **with** a subscript per F5) is stored and returned as the
     /// second element.
     pub fn evaluate(&mut self, latex: &str, precision: Option<i64>) -> Result<(Calculation, Option<Variable>)> {
-        let calculation = LatexCalculator::new(precision_or_default(precision)?).evaluate(latex, &self.quantities())?;
+        self.evaluate_with(latex, precision, &Settings::default())
+    }
+
+    /// [`Session::evaluate`] under the user's settings; `precision`, when given, overrides theirs
+    /// for this one call.
+    pub fn evaluate_with(
+        &mut self,
+        latex: &str,
+        precision: Option<i64>,
+        settings: &Settings,
+    ) -> Result<(Calculation, Option<Variable>)> {
+        let calculator = LatexCalculator::new(precision_or(precision, settings.precision)?).with_settings(settings.clone());
+        let calculation = calculator.evaluate(latex, &self.quantities())?;
         let variable = calculation.formula.label.as_ref().and_then(|label| {
             let key = label.key()?;
             Some(Variable {
@@ -96,7 +109,11 @@ impl Session {
     /// expression without a label, or a label without a subscript, which F5 does not accept
     /// as a variable name.
     pub fn define_from(&mut self, latex: &str, precision: Option<i64>) -> Result<Variable> {
-        self.evaluate(latex, precision)?.1.ok_or_else(|| {
+        self.define_from_with(latex, precision, &Settings::default())
+    }
+
+    pub fn define_from_with(&mut self, latex: &str, precision: Option<i64>, settings: &Settings) -> Result<Variable> {
+        self.evaluate_with(latex, precision, settings)?.1.ok_or_else(|| {
             QuantusError::other(format!(
                 "'{latex}' does not define a variable. Write it as name and value, e.g. r_1 = 0{{,}}5m \
                  — and remember that a variable name always carries a subscript."
@@ -105,8 +122,8 @@ impl Session {
     }
 }
 
-fn precision_or_default(requested: Option<i64>) -> Result<usize> {
-    let Some(precision) = requested else { return Ok(DEFAULT_PRECISION) };
+fn precision_or(requested: Option<i64>, default: usize) -> Result<usize> {
+    let Some(precision) = requested else { return Ok(default) };
     match usize::try_from(precision) {
         Ok(p) if (1..=MAX_PRECISION).contains(&p) => Ok(p),
         _ => Err(QuantusError::other(format!(
@@ -119,6 +136,8 @@ fn precision_or_default(requested: Option<i64>) -> Result<usize> {
 #[derive(Debug, Default)]
 pub struct SessionStore {
     sessions: HashMap<String, Session>,
+    /// The user's settings, shared by all sessions.
+    pub settings: Settings,
 }
 
 impl SessionStore {

@@ -9,7 +9,9 @@ use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
 use crate::latex::{parser, serializer, Formula, Node};
 use crate::num::{Decimal, DEFAULT_PRECISION};
+use crate::algebra::pipeline::PipelineConfig;
 use crate::quantity::PhysicalQuantity;
+use crate::settings::{BinomialForm, Settings};
 use crate::units::registry;
 use crate::Result;
 
@@ -103,6 +105,8 @@ impl StepKind {
 
 pub struct LatexCalculator {
     precision: usize,
+    /// How inputs are read and algebraic results written; its precision is not used here.
+    settings: Settings,
 }
 
 impl Default for LatexCalculator {
@@ -113,11 +117,15 @@ impl Default for LatexCalculator {
 
 impl LatexCalculator {
     pub fn new(precision: usize) -> Self {
-        LatexCalculator { precision }
+        LatexCalculator { precision, settings: Settings::default() }
+    }
+
+    pub fn with_settings(self, settings: Settings) -> Self {
+        LatexCalculator { settings, ..self }
     }
 
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
-        let formula = parser::parse(latex)?;
+        let formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let evaluator = Evaluator::new(variables).with_precision(self.precision);
         match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
@@ -174,10 +182,14 @@ impl LatexCalculator {
     }
 
     fn evaluate_algebraic(&self, formula: Formula) -> Result<Calculation> {
-        let simp_result = crate::algebra::pipeline::simplify_node(&formula.expression)?;
+        let config = PipelineConfig { style: self.settings.output_style(), ..PipelineConfig::default() };
+        let simp_result = crate::algebra::pipeline::simplify_node_with(&formula.expression, config)?;
         // If the expression cannot be simplified further, has no domain restrictions,
         // and contains free variables, it cannot be evaluated numerically without variable definitions.
-        if simp_result.steps.is_empty() && simp_result.domain_restrictions.is_empty() {
+        // A binomial kept as it is, because binomial form was asked for, is an answer of its own.
+        let kept_binomial = self.settings.binomial_form == BinomialForm::Binomial
+            && crate::algebra::pipeline::is_compact_binomial_input(&formula.expression);
+        if simp_result.steps.is_empty() && simp_result.domain_restrictions.is_empty() && !kept_binomial {
             let vars = crate::algebra::pipeline::collect_variables(&formula.expression);
             if let Some(first_var) = vars.into_iter().next() {
                 return Err(crate::QuantusError::UnresolvedVariable(format!(
