@@ -328,7 +328,7 @@ fn pipeline_pass_limit_stops_with_a_diagnostic() {
 #[test]
 fn pipeline_terminates_on_large_powers() {
     let result = run(r"\frac{(x + 1)^6}{(x + 1)^4}");
-    assert_eq!(result.latex, r"x^{2} + 2 \cdot x + 1");
+    assert_eq!(result.latex, r"(x + 1)^{2}");
     assert_eq!(restrictions(&result), "x != -1");
 }
 

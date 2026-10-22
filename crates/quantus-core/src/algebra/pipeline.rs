@@ -18,6 +18,10 @@
 //! 12. Cancel common multiplicative factors (`CANCEL_COMMON_FACTORS`).
 //! 13. Normalize the final expression into its canonical readable form (`NORMALIZE_EXPRESSION`):
 //!     expanded numerator, denominator kept factored when it is a product of several factors.
+//! 14. Write a polynomial result in binomial form (`APPLY_BINOMIAL_IDENTITY`, `COMPLETE_SQUARE`):
+//!     `a^2 + 2ab + b^2` becomes `(a + b)^2`, and `x^2 + 2 \cdot x \cdot 4 + 11` becomes
+//!     `(x + 4)^2 - 5`. Skipped when the input itself was compact (`(a + b)^2`, `(a - b)(a + b)`),
+//!     since then the expansion is what was asked for.
 //!
 //! Every stage is a bounded loop of single, recorded rewrites, so each `AlgebraStep` holds the
 //! complete expression before and after the transformation.
@@ -35,6 +39,9 @@ use std::hash::{Hash, Hasher};
 use dashu::base::Signed;
 use dashu::integer::UBig;
 
+use crate::algebra::binomial::{
+    complete_square, compress_binomial, expand_binomial_node, find_explicit_double_product,
+};
 use crate::algebra::combine::{
     combine_next_fractions, den_to_factored, factor_denominators_in_node, flatten_additive_terms,
     is_combinable_fraction_sum,
@@ -218,6 +225,30 @@ struct Pipeline {
     rewrites: usize,
     phase: Phase,
     stop: Option<StopReason>,
+    /// Which way a polynomial result is written by stage 14.
+    binomial_style: BinomialStyle,
+}
+
+/// The direction in which binomial formulas are applied to a polynomial result.
+#[derive(Clone, Debug)]
+enum BinomialStyle {
+    /// The input was compact (`(a + b)^2`, `(a - b)(a + b)`): keep the expanded result.
+    Expand,
+    /// Anything else: write the result in binomial form where possible. Carries the `(A, B)` of
+    /// an explicit double product `2 \cdot A \cdot B` in the input, used to complete the square.
+    Compress { double_product: Option<(Poly, Poly)> },
+}
+
+impl BinomialStyle {
+    fn of_input(node: &Node) -> Self {
+        if is_compact_binomial_input(node) {
+            Self::Expand
+        } else {
+            Self::Compress {
+                double_product: find_explicit_double_product(node),
+            }
+        }
+    }
 }
 
 type LocalRewrite = (Node, AlgebraStep);
@@ -238,6 +269,7 @@ impl Pipeline {
             rewrites: 0,
             phase: Phase::Normalize,
             stop: None,
+            binomial_style: BinomialStyle::Expand,
         };
 
         // Stage 2: normalize notation and signs.
@@ -254,6 +286,7 @@ impl Pipeline {
         }
         tracker.scan_and_record(&normalized)?;
         pipeline.tracker = tracker;
+        pipeline.binomial_style = BinomialStyle::of_input(&normalized);
         Ok(pipeline)
     }
 
@@ -307,6 +340,9 @@ impl Pipeline {
         self.enter(Phase::Canonicalize);
         // Stage 13: canonical final form.
         self.run_stage(|node, _| canonicalize_step(node));
+        // Stage 14: binomial form of a polynomial result.
+        let style = self.binomial_style.clone();
+        self.run_stage(|node, _| binomial_form_step(node, &style));
     }
 
     fn enter(&mut self, phase: Phase) {
@@ -773,6 +809,86 @@ pub fn canonicalize_step(root: &Node) -> Option<LocalRewrite> {
         Some(RuleId::NormalizeExpression),
     );
     Some((canonical, step))
+}
+
+// ---------------------------------------------------------------------------------------------
+// Stage 14: binomial form
+// ---------------------------------------------------------------------------------------------
+
+fn is_constant_node(node: &Node) -> bool {
+    Poly::from_node(node).is_ok_and(|p| p.is_constant())
+}
+
+/// Whether `term` is (a constant times) a binomial square or cube, a product of conjugate
+/// binomials or a product of two equal binomials.
+fn is_compact_binomial_term(term: &Node) -> bool {
+    if expand_binomial_node(term).is_some() {
+        return true;
+    }
+    let Node::Binary {
+        operator: Operator::Times | Operator::ImplicitTimes,
+        left,
+        right,
+        ..
+    } = unwrap_group(term)
+    else {
+        return false;
+    };
+    if is_constant_node(left) && is_compact_binomial_term(right)
+        || is_constant_node(right) && is_compact_binomial_term(left)
+    {
+        return true;
+    }
+    match (Poly::from_node(left), Poly::from_node(right)) {
+        (Ok(l), Ok(r)) => l.terms.len() == 2 && l == r,
+        _ => false,
+    }
+}
+
+/// Whether the input is written purely in compact binomial form: binomial powers or products,
+/// plus constants (`(x + 3)^2`, `(a - b)(a + b)`, `(x + 4)^2 - 5`).
+fn is_compact_binomial_input(node: &Node) -> bool {
+    let mut terms = Vec::new();
+    flatten_additive_terms(node, true, &mut terms);
+    let mut has_binomial = false;
+    for (_, term) in &terms {
+        if is_compact_binomial_term(term) {
+            has_binomial = true;
+        } else if !is_constant_node(term) {
+            return false;
+        }
+    }
+    has_binomial
+}
+
+/// Stage 14: writes a polynomial result as a binomial formula, or completes the square when the
+/// input spelled out a double product `2 \cdot A \cdot B`.
+fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite> {
+    let BinomialStyle::Compress { double_product } = style else {
+        return None;
+    };
+    let poly = Poly::from_node(unwrap_group(root)).ok()?;
+    let (after, rule, explanation) = match compress_binomial(&poly) {
+        Some((factored, identity)) => (
+            factored.to_node(),
+            RuleId::ApplyBinomialIdentity,
+            format!("Write as a binomial: {}", identity.description()),
+        ),
+        None => {
+            let (a, b) = double_product.as_ref()?;
+            let after = complete_square(&poly, a, b)?;
+            let explanation = format!(
+                "Complete the square: add and subtract {}, then apply the binomial formula",
+                serializer::expression(&(b * b).to_node())
+            );
+            (after, RuleId::CompleteSquare, explanation)
+        }
+    };
+    if serializer::expression(&after) == serializer::expression(root) {
+        return None;
+    }
+    let step = AlgebraStep::new(root.clone(), after.clone(), explanation, Some(rule));
+    Some((after, step))
 }
 
 #[cfg(test)]
