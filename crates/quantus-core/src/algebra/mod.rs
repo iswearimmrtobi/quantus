@@ -15,9 +15,10 @@ pub mod verify;
 
 pub use binomial::{
     check_difference_of_squares, check_perfect_cube, check_perfect_square_trinomial,
-    check_sum_or_diff_of_cubes, exact_ibig_cbrt, exact_rational_cbrt, exact_rational_sqrt,
+    check_sum_or_diff_of_cubes, complete_square, compress_binomial, exact_ibig_cbrt, exact_rational_cbrt, exact_rational_sqrt,
     exact_ubig_cbrt, exact_ubig_sqrt, expand_binomial_node, expand_binomial_poly,
     expand_difference_of_squares_product_poly, factor_binomial, factor_binomial_node,
+    find_explicit_double_product,
     BinomialIdentity,
 };
 pub use combine::{

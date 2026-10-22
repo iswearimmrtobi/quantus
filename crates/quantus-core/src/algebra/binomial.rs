@@ -16,9 +16,10 @@ use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 use serde::{Deserialize, Serialize};
 
+use crate::algebra::combine::flatten_additive_terms;
 use crate::algebra::domain::unwrap_group;
 use crate::algebra::factored::{Factor, FactoredPoly};
-use crate::algebra::poly::{Monomial, Poly};
+use crate::algebra::poly::{rational_to_node, term_to_node, Monomial, Poly};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::{Node, Operator};
 
@@ -382,21 +383,26 @@ pub fn check_sum_or_diff_of_cubes(poly: &Poly) -> Option<(Poly, Poly, BinomialId
     None
 }
 
-/// Attempts to factor a polynomial directly via binomial identities.
-/// Automatically extracts scalar content first so expressions like `2x^2 - 18` or `3(x^2 + 6x + 9)`
-/// are recognized as binomial patterns.
-pub fn factor_binomial(poly: &Poly) -> Option<(FactoredPoly, BinomialIdentity)> {
+/// Splits a non-constant polynomial into its scalar content and a primitive part with a positive
+/// leading coefficient.
+fn split_content(poly: &Poly) -> Option<(RBig, Poly)> {
     if poly.is_zero() || poly.is_constant() {
         return None;
     }
-
     let c = poly.content();
     let prim = poly.primitive_part();
-    let (c_eff, p_eff) = if prim.leading_coeff().is_negative() {
-        (-c, -prim)
+    if prim.leading_coeff().is_negative() {
+        Some((-c, -prim))
     } else {
-        (c, prim)
-    };
+        Some((c, prim))
+    }
+}
+
+/// Writes a polynomial in the compact form of one of the three binomial formulas:
+/// `A^2 ± 2AB + B^2 = (A ± B)^2` or `A^2 - B^2 = (A - B)(A + B)`, keeping scalar content in front
+/// (`2x^2 - 18 = 2(x - 3)(x + 3)`).
+pub fn compress_binomial(poly: &Poly) -> Option<(FactoredPoly, BinomialIdentity)> {
+    let (c_eff, p_eff) = split_content(poly)?;
 
     // 1. Difference of squares: A^2 - B^2
     if let Some((f1, f2)) = check_difference_of_squares(&p_eff) {
@@ -412,6 +418,19 @@ pub fn factor_binomial(poly: &Poly) -> Option<(FactoredPoly, BinomialIdentity)> 
         let fp = FactoredPoly::from_factors(c_eff, vec![Factor::new(base, 2)]);
         return Some((fp, id));
     }
+
+    None
+}
+
+/// Attempts to factor a polynomial directly via binomial identities.
+/// Automatically extracts scalar content first so expressions like `2x^2 - 18` or `3(x^2 + 6x + 9)`
+/// are recognized as binomial patterns.
+pub fn factor_binomial(poly: &Poly) -> Option<(FactoredPoly, BinomialIdentity)> {
+    // 1. & 2. Difference of squares and perfect square trinomials
+    if let Some(compressed) = compress_binomial(poly) {
+        return Some(compressed);
+    }
+    let (c_eff, p_eff) = split_content(poly)?;
 
     // 3. Perfect cube: (A ± B)^3
     if let Some((base, id)) = check_perfect_cube(&p_eff) {
@@ -429,6 +448,104 @@ pub fn factor_binomial(poly: &Poly) -> Option<(FactoredPoly, BinomialIdentity)> 
     }
 
     None
+}
+
+// ---------------------------------------------------------------------------
+// COMPLETING THE SQUARE
+// ---------------------------------------------------------------------------
+
+fn is_literal_two(node: &Node) -> bool {
+    matches!(unwrap_group(node), Node::Number { value, .. } if value.to_rational() == RBig::from(2))
+}
+
+/// Flattens a chain of multiplications into its factors.
+fn flatten_product<'a>(node: &'a Node, factors: &mut Vec<&'a Node>) {
+    match unwrap_group(node) {
+        Node::Binary {
+            operator: Operator::Times | Operator::ImplicitTimes,
+            left,
+            right,
+            ..
+        } => {
+            flatten_product(left, factors);
+            flatten_product(right, factors);
+        }
+        _ => factors.push(node),
+    }
+}
+
+/// Finds a sum term written as an explicit double product `2 \cdot A \cdot B` whose `A^2` is
+/// another (positive) term of the same sum, e.g. `x^2 + 2 \cdot x \cdot 4 + 11` gives `(x, 4)`.
+/// `B` carries the sign of the term, so `x^2 - 2 \cdot x \cdot 3` gives `(x, -3)`.
+pub fn find_explicit_double_product(node: &Node) -> Option<(Poly, Poly)> {
+    let mut terms = Vec::new();
+    flatten_additive_terms(node, true, &mut terms);
+    let polys: Vec<Option<Poly>> = terms.iter().map(|(_, t)| Poly::from_node(t).ok()).collect();
+
+    for (i, (positive, term)) in terms.iter().enumerate() {
+        let mut factors = Vec::new();
+        flatten_product(term, &mut factors);
+        if factors.len() != 3 {
+            continue;
+        }
+        let Some(two) = factors.iter().position(|f| is_literal_two(f)) else {
+            continue;
+        };
+        factors.remove(two);
+        let (Ok(f1), Ok(f2)) = (Poly::from_node(factors[0]), Poly::from_node(factors[1])) else {
+            continue;
+        };
+        for (a, b) in [(&f1, &f2), (&f2, &f1)] {
+            if a.is_constant() {
+                continue;
+            }
+            let a_squared = a * a;
+            let has_square = polys
+                .iter()
+                .enumerate()
+                .any(|(j, p)| j != i && terms[j].0 && p.as_ref() == Some(&a_squared));
+            if has_square {
+                let b = if *positive { b.clone() } else { -b };
+                return Some((a.clone(), b));
+            }
+        }
+    }
+    None
+}
+
+/// Completes the square ("add and subtract `B^2`"): writes `poly` as `(A + B)^2 + R`.
+///
+/// Declines when `poly` is exactly `(A + B)^2` (a binomial formula, not a completed square) or
+/// when the remainder `R` still depends on a variable of `A`.
+pub fn complete_square(poly: &Poly, a: &Poly, b: &Poly) -> Option<Node> {
+    let mut base = a + b;
+    let rest = poly - &(&base * &base);
+    let a_vars = a.variables();
+    if rest.is_zero() || a_vars.is_empty() || rest.variables().iter().any(|v| a_vars.contains(v)) {
+        return None;
+    }
+    if base.leading_coeff().is_negative() {
+        base = -&base;
+    }
+
+    let mut acc = Node::Power {
+        base: Box::new(Node::Group {
+            inner: Box::new(base.to_node()),
+            position: 0,
+        }),
+        exponent: Box::new(rational_to_node(&RBig::from(2))),
+        position: 0,
+    };
+    for term in &rest.terms {
+        let operator = if term.coeff.is_negative() {
+            Operator::Minus
+        } else {
+            Operator::Plus
+        };
+        let term_node = term_to_node(&term.coeff.clone().abs(), &term.monomial);
+        acc = Node::binary(operator, acc, term_node, 0);
+    }
+    Some(acc)
 }
 
 // ---------------------------------------------------------------------------
