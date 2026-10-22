@@ -117,13 +117,13 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
     - Distribute scalar/monomial multipliers across parentheses: `3(x^2 - 6x + 8) + x - 102 -> 3x^2 - 18x + 24 + x - 102`.
   - [x] Collect like terms (`COLLECT_LIKE_TERMS`) and sort terms by descending degree:
     `3x^2 - 18x + 24 + x - 102 -> 3x^2 - 17x - 78`.
-- [ ] **4.4. Rational Expression Reduction & Factor Cancellation (Rules E & G)**:
-  - [ ] After simplifying the numerator into canonical polynomial form, attempt to factor the numerator (`FACTOR_POLYNOMIAL` / `APPLY_BINOMIAL_IDENTITY`).
-  - [ ] Compare factored numerator and factored denominator:
-    - If they share common multiplicative factors (or a common numerical GCD), emit the factored form step and then cancel common factors (`CANCEL_COMMON_FACTORS`).
-    - If no common factors exist between the newly factored numerator and the denominator, keep the numerator in its cleaner canonical form (or keep factored form only when it is simpler, e.g., `(3x^2 - 17x - 78) / ((x - 4)(x + 3))` keeps the expanded numerator because `3x^2 - 17x - 78` is irreducible over `ℚ` and shares no factor with `(x - 4)(x + 3)`).
-  - [ ] Enforce strict multiplicative-only cancellation: never cancel additive terms across `+` or `-` (e.g., `(x + 2)/x` stays `(x + 2)/x`).
-  - [ ] Handle zero numerators (`0 / D -> 0`), equal numerator/denominator (`P / P -> 1`), opposite signs (`(a - b) / (b - a) -> -1`), and constant denominators (`P / 1 -> P`).
+- [x] **4.4. Rational Expression Reduction & Factor Cancellation (Rules E & G)**:
+  - [x] After simplifying the numerator into canonical polynomial form, attempt to factor the numerator (`FACTOR_POLYNOMIAL` / `APPLY_BINOMIAL_IDENTITY`).
+  - [x] Compare factored numerator and factored denominator:
+    - [x] If they share common multiplicative factors (or a common numerical GCD), emit the factored form step and then cancel common factors (`CANCEL_COMMON_FACTORS`).
+    - [x] If no common factors exist between the newly factored numerator and the denominator, keep the numerator in its cleaner canonical form (or keep factored form only when it is simpler, e.g., `(3x^2 - 17x - 78) / ((x - 4)(x + 3))` keeps the expanded numerator because `3x^2 - 17x - 78` is irreducible over `ℚ` and shares no factor with `(x - 4)(x + 3)`).
+  - [x] Enforce strict multiplicative-only cancellation: never cancel additive terms across `+` or `-` (e.g., `(x + 2)/x` stays `(x + 2)/x`).
+  - [x] Handle zero numerators (`0 / D -> 0`), equal numerator/denominator (`P / P -> 1`), opposite signs (`(a - b) / (b - a) -> -1`), and constant denominators (`P / 1 -> P`).
 
 ---
 
