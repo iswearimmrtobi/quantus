@@ -144,8 +144,8 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
   11. Factor numerator and denominator (`FACTOR_POLYNOMIAL`, `APPLY_BINOMIAL_IDENTITY`).
   12. Cancel common multiplicative polynomial/numeric factors (`CANCEL_COMMON_FACTORS`).
   13. Normalize final expression into canonical readable form (`NORMALIZE_EXPRESSION`, keeping denominator factored when it is a product of linear/irreducible factors, and deciding expanded vs. factored form via deterministic complexity/canonical rules).
-- [ ] **5.2. Guarantee termination & prevent oscillation**:
-  - [ ] Define a strict phase progression per subtree depth (Inner simplify -> Nested fraction flatten -> LCD combine -> Numerator expand & collect -> Factor & cancel -> Canonicalize) plus a bounded pass limit and visited-state hash check so expand/factor cycles can never loop.
+- [x] **5.2. Guarantee termination & prevent oscillation**:
+  - [x] Define a strict phase progression per subtree depth (Inner simplify -> Nested fraction flatten -> LCD combine -> Numerator expand & collect -> Factor & cancel -> Canonicalize) plus a bounded pass limit and visited-state hash check so expand/factor cycles can never loop.
 - [ ] **5.3. Implement Mathematical Equivalence Verification (`algebra::verify`)**:
   - [ ] Sample the original AST and the simplified AST at multiple deterministic rational test points for all free variables (skipping points that violate domain restrictions or make any denominator zero).
   - [ ] Evaluate both expressions using exact rational arithmetic (`RBig`) and verify equality across all sample points.

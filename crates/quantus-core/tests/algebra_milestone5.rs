@@ -2,7 +2,8 @@
 
 use quantus_core::algebra::domain::format_restrictions_plain;
 use quantus_core::algebra::pipeline::{
-    canonical_form, common_denominator_at, normalize_notation, normalize_product_at,
+    canonical_form, common_denominator_at, is_rational_normal_form, normalize_notation,
+    normalize_product_at, simplify_node_with, PipelineConfig,
 };
 use quantus_core::algebra::steps::{RuleId, SimplificationResult};
 use quantus_core::algebra::{simplify, simplify_node};
@@ -139,6 +140,16 @@ fn pipeline_stage5_distributes_powers_over_fractions() {
     assert_steps_chain(&parse(input), &result);
     assert_eq!(result.latex, r"\frac{x}{x + 1}");
     assert_eq!(restrictions(&result), "x != -1, 0");
+    // Expanding x^2(x + 1) only to factor it back is a detour that gets rolled back (5.2).
+    assert_eq!(
+        rules(&result),
+        vec![
+            RuleId::NormalizeExpression,
+            RuleId::NormalizeExpression,
+            RuleId::CancelCommonFactors
+        ]
+    );
+    assert!(result.diagnostic.is_none());
 }
 
 #[test]
@@ -251,4 +262,72 @@ fn pipeline_is_deterministic() {
     let a = run(input);
     let b = simplify_node(&parse(input)).unwrap();
     assert_eq!(a, b);
+}
+
+// ---------------------------------------------------------------------------------------------
+// 5.2 Termination & oscillation prevention
+// ---------------------------------------------------------------------------------------------
+
+#[test]
+fn pipeline_runs_another_pass_when_a_new_nested_fraction_appears() {
+    // Stage 5 turns x * 1/(x + 1) into x/(x + 1), creating a nested fraction only after stage 4
+    // has run; the second pass flattens it.
+    let input = r"\frac{1}{x \cdot \frac{1}{x + 1}}";
+    let result = run(input);
+    assert_steps_chain(&parse(input), &result);
+    assert!(is_rational_normal_form(&result.node));
+    assert_eq!(result.latex, r"\frac{x + 1}{x}");
+    assert_eq!(restrictions(&result), "x != -1, 0");
+    assert!(result.diagnostic.is_none());
+}
+
+#[test]
+fn pipeline_never_revisits_a_state() {
+    for input in [
+        r"\frac{3}{\frac{x + 3}{x - 2}} + \frac{\frac{x - 102}{x - 4}}{x + 3}",
+        r"\frac{x^2 - 9}{x^2 + 6x + 9}",
+        r"(x + 1)^3 - (x - 1)^3",
+        r"\frac{1 + \frac{1}{x}}{1 - \frac{1}{x}}",
+        r"\frac{1}{x \cdot \frac{1}{x + 1}}",
+    ] {
+        let result = run(input);
+        let mut seen = std::collections::HashSet::new();
+        seen.insert(serializer::expression(&parse(input)));
+        for step in &result.steps {
+            assert!(seen.insert(step.after_latex.clone()), "{input}: revisited {}", step.after_latex);
+        }
+        assert!(result.steps.len() <= PipelineConfig::default().max_total_steps);
+    }
+}
+
+#[test]
+fn pipeline_step_limit_stops_with_a_diagnostic() {
+    let input = r"\frac{3}{\frac{x + 3}{x - 2}} + \frac{\frac{x - 102}{x - 4}}{x + 3}";
+    let config = PipelineConfig {
+        max_total_steps: 3,
+        ..PipelineConfig::default()
+    };
+    let result = simplify_node_with(&parse(input), config).unwrap();
+    assert_eq!(result.steps.len(), 3);
+    assert!(result.diagnostic.as_deref().unwrap().contains("step limit"));
+    // Restrictions are complete even when stopping early.
+    assert_eq!(restrictions(&result), "x != -3, 2, 4");
+}
+
+#[test]
+fn pipeline_pass_limit_stops_with_a_diagnostic() {
+    let config = PipelineConfig {
+        max_passes: 1,
+        ..PipelineConfig::default()
+    };
+    let result = simplify_node_with(&parse(r"\frac{1}{x \cdot \frac{1}{x + 1}}"), config).unwrap();
+    assert!(!is_rational_normal_form(&result.node));
+    assert!(result.diagnostic.as_deref().unwrap().contains("pass limit"));
+}
+
+#[test]
+fn pipeline_terminates_on_large_powers() {
+    let result = run(r"\frac{(x + 1)^6}{(x + 1)^4}");
+    assert_eq!(result.latex, r"x^{2} + 2 \cdot x + 1");
+    assert_eq!(restrictions(&result), "x != -1");
 }

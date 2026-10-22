@@ -21,8 +21,16 @@
 //!
 //! Every stage is a bounded loop of single, recorded rewrites, so each `AlgebraStep` holds the
 //! complete expression before and after the transformation.
+//!
+//! Termination (5.2): stages are grouped into [`Phase`]s that only move forward within a pass;
+//! passes repeat (at most `max_passes` times) only while the expression is not yet in rational
+//! normal form; every stage and the whole run have rewrite budgets; and every state is
+//! fingerprinted, so a rewrite that returns to an earlier state rolls the detour back instead of
+//! oscillating between expanded and factored forms.
 
-use std::collections::BTreeSet;
+use std::collections::hash_map::DefaultHasher;
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 
 use dashu::base::Signed;
 use dashu::integer::UBig;
@@ -43,8 +51,59 @@ use crate::latex::ast::{Node, Operator};
 use crate::latex::{parser, serializer};
 use crate::num::Decimal;
 
-/// Upper bound on the number of rewrites a single stage may perform.
-pub const MAX_STAGE_ITERATIONS: usize = 32;
+/// Limits that guarantee the pipeline terminates.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PipelineConfig {
+    /// How often the phase sequence may be repeated when a pass leaves the expression outside
+    /// the rational normal form (e.g. a product turned into a new nested fraction).
+    pub max_passes: usize,
+    /// Upper bound on the number of rewrites a single stage may perform within one pass.
+    pub max_stage_iterations: usize,
+    /// Upper bound on the number of recorded steps over the whole run.
+    pub max_total_steps: usize,
+}
+
+impl Default for PipelineConfig {
+    fn default() -> Self {
+        Self {
+            max_passes: 4,
+            max_stage_iterations: 32,
+            max_total_steps: 256,
+        }
+    }
+}
+
+/// The phases of one pass, in their strict order. Within a pass the pipeline only ever moves
+/// forward through this list, so an expansion can never be followed by a re-factoring that
+/// triggers the same expansion again inside the same pass.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Phase {
+    /// Stage 2: notation and sign normalization (only at the very start).
+    Normalize,
+    /// Stage 4: flatten nested fractions.
+    NestedFractions,
+    /// Stage 5: inner simplification of products, quotients and powers of fractions.
+    InnerSimplify,
+    /// Stages 6–8: factor denominators, find the LCD, combine.
+    CommonDenominator,
+    /// Stages 9–10: expand the numerator and collect like terms.
+    ExpandCollect,
+    /// Stages 11–12: factor and cancel.
+    FactorCancel,
+    /// Stage 13: canonical final form.
+    Canonicalize,
+}
+
+/// Why a run stopped before reaching its natural end, if it did.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StopReason {
+    /// A rewrite would have reproduced an earlier state (expand/factor oscillation).
+    CycleDetected,
+    /// `max_total_steps` was reached.
+    StepLimit,
+    /// `max_passes` passes ran and the expression still changed in the last one.
+    PassLimit,
+}
 
 /// Stage 1: parses `latex` and runs the whole pipeline on the resulting expression.
 pub fn simplify(latex: &str) -> Result<SimplificationResult> {
@@ -54,7 +113,12 @@ pub fn simplify(latex: &str) -> Result<SimplificationResult> {
 
 /// Runs stages 2–13 on an already parsed expression.
 pub fn simplify_node(node: &Node) -> Result<SimplificationResult> {
-    let mut pipeline = Pipeline::new(node)?;
+    simplify_node_with(node, PipelineConfig::default())
+}
+
+/// Runs stages 2–13 with explicit termination limits.
+pub fn simplify_node_with(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
+    let mut pipeline = Pipeline::new(node, config)?;
     pipeline.run();
     Ok(pipeline.finish())
 }
@@ -75,29 +139,72 @@ fn collect_variables_rec(node: &Node, vars: &mut BTreeSet<String>) {
     }
 }
 
+/// Whether `node` is in rational normal form: a polynomial, or (minus) a quotient of two
+/// polynomials. Expressions in this form need no further pass.
+pub fn is_rational_normal_form(node: &Node) -> bool {
+    let node = unwrap_group(node);
+    if Poly::from_node(node).is_ok() {
+        return true;
+    }
+    let inner = match node {
+        Node::Negation { operand, .. } => unwrap_group(operand),
+        other => other,
+    };
+    match split_fraction(inner) {
+        Some((num, den)) => Poly::from_node(num).is_ok() && Poly::from_node(den).is_ok(),
+        None => false,
+    }
+}
+
+/// A fingerprint of an expression state, used to detect revisited states.
+fn state_key(node: &Node) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    serializer::expression(node).hash(&mut hasher);
+    hasher.finish()
+}
+
 /// The mutable state threaded through all stages.
 struct Pipeline {
+    config: PipelineConfig,
     current: Node,
     steps: Vec<AlgebraStep>,
     tracker: DomainTracker,
+    /// The input expression (state 0).
+    original: Node,
+    /// Every live state, mapped to the number of steps recorded when it was reached.
+    visited: HashMap<u64, usize>,
+    /// States that were left behind by a rollback; reaching one again is a cycle.
+    abandoned: HashSet<u64>,
+    /// Number of accepted rewrites, including rolled-back ones (bounded by `max_total_steps`).
+    rewrites: usize,
+    phase: Phase,
+    stop: Option<StopReason>,
 }
 
 type LocalRewrite = (Node, AlgebraStep);
 
 impl Pipeline {
     /// Stages 2 and 3: normalization and initial domain extraction.
-    fn new(node: &Node) -> Result<Self> {
+    fn new(node: &Node, config: PipelineConfig) -> Result<Self> {
         // Stage 3 runs on the untouched input as well, so no restriction can be lost by stage 2.
         let mut tracker = DomainTracker::from_ast(node)?;
         let mut pipeline = Self {
+            config,
             current: node.clone(),
             steps: Vec::new(),
             tracker: DomainTracker::new(),
+            original: node.clone(),
+            visited: HashMap::from([(state_key(node), 0)]),
+            abandoned: HashSet::new(),
+            rewrites: 0,
+            phase: Phase::Normalize,
+            stop: None,
         };
 
         // Stage 2: normalize notation and signs.
         let normalized = normalize_notation(node);
         if serializer::expression(&normalized) != serializer::expression(node) {
+            pipeline.visited.insert(state_key(&normalized), 1);
             pipeline.record(
                 normalized.clone(),
                 "Rewrite negative exponents as fractions and normalize signs",
@@ -111,45 +218,129 @@ impl Pipeline {
         Ok(pipeline)
     }
 
-    /// Stages 4–13.
+    /// Stages 4–13, repeated in bounded passes until the expression is in normal form.
     fn run(&mut self) {
+        for _ in 0..self.config.max_passes {
+            let start = state_key(&self.current);
+            self.run_pass();
+            if self.stop.is_some()
+                || is_rational_normal_form(&self.current)
+                || state_key(&self.current) == start
+            {
+                return;
+            }
+        }
+        if !is_rational_normal_form(&self.current) {
+            self.stop = Some(StopReason::PassLimit);
+        }
+    }
+
+    /// One pass through all phases in their strict order.
+    fn run_pass(&mut self) {
+        self.phase = Phase::Normalize;
+
+        self.enter(Phase::NestedFractions);
         // Stage 4: nested fractions, bottom-up.
         self.run_stage(|node, _| simplify_next_nested_fraction(node));
+
+        self.enter(Phase::InnerSimplify);
         // Stage 5: products, quotients and powers of fractions; signs.
         self.run_stage(|node, _| normalize_products_step(node));
+
+        self.enter(Phase::CommonDenominator);
         // Stage 6: factor denominators.
         self.run_stage(|node, _| factor_denominators_in_node(node));
         // Stage 7: rewrite fractions over the least common denominator.
         self.run_stage(|node, _| common_denominator_step(node));
         // Stage 8: combine the numerators over the common denominator.
         self.run_stage(|node, _| combine_next_fractions(node));
+
+        self.enter(Phase::ExpandCollect);
         // Stage 9: expand products and binomial powers.
         self.run_stage(|node, _| expand_polynomial_products_step(node));
         // Stage 10: collect like terms.
         self.run_stage(|node, _| collect_like_terms_step(node));
+
+        self.enter(Phase::FactorCancel);
         // Stages 11 & 12: factor and cancel.
         self.run_stage(|node, tracker| reduce_next_rational(node, Some(tracker)));
+
+        self.enter(Phase::Canonicalize);
         // Stage 13: canonical final form.
         self.run_stage(|node, _| canonicalize_step(node));
     }
 
+    fn enter(&mut self, phase: Phase) {
+        assert!(phase >= self.phase, "pipeline phases must progress monotonically");
+        self.phase = phase;
+    }
+
     /// Repeatedly applies `rewrite` to the whole expression, recording each rewrite as a step.
+    ///
+    /// Stops when the rule declines, after `max_stage_iterations` rewrites, or when the global
+    /// rewrite budget is used up.
+    ///
+    /// A rewrite that returns to an earlier state means the steps in between were a detour
+    /// (typically: expand a product, then factor it back to find a common factor). The detour is
+    /// rolled back and the stage continues from the earlier state, which is never worse. Reaching
+    /// an abandoned state, or a second revisit within the same stage, is a genuine cycle and stops
+    /// the run.
     fn run_stage<F>(&mut self, mut rewrite: F)
     where
         F: FnMut(&Node, &mut DomainTracker) -> Option<LocalRewrite>,
     {
-        for _ in 0..MAX_STAGE_ITERATIONS {
-            let Some((next, local)) = rewrite(&self.current, &mut self.tracker) else {
-                break;
+        let mut rolled_back = false;
+        for _ in 0..self.config.max_stage_iterations {
+            if self.stop.is_some() {
+                return;
+            }
+            if self.rewrites >= self.config.max_total_steps {
+                self.stop = Some(StopReason::StepLimit);
+                return;
+            }
+            // Rules see a scratch copy of the tracker: a rejected rewrite must leave no trace.
+            let mut tracker = self.tracker.clone();
+            let Some((next, local)) = rewrite(&self.current, &mut tracker) else {
+                return;
             };
             if serializer::expression(&next) == serializer::expression(&self.current) {
                 // A rewrite that does not change the visible expression would only add noise.
                 self.current = next;
-                break;
+                return;
             }
+            let key = state_key(&next);
+            if self.abandoned.contains(&key) {
+                self.stop = Some(StopReason::CycleDetected);
+                return;
+            }
+            if let Some(&index) = self.visited.get(&key) {
+                if rolled_back {
+                    self.stop = Some(StopReason::CycleDetected);
+                    return;
+                }
+                rolled_back = true;
+                self.rollback(index);
+                continue;
+            }
+            self.rewrites += 1;
+            self.visited.insert(key, self.steps.len() + 1);
+            self.tracker = tracker;
             let rule = local.rule.unwrap_or(RuleId::NormalizeExpression);
             self.record(next, local.explanation, rule);
         }
+    }
+
+    /// Drops every step after the `index`-th state and makes that state current again.
+    fn rollback(&mut self, index: usize) {
+        for step in self.steps.drain(index..) {
+            let key = state_key(&step.after);
+            self.visited.remove(&key);
+            self.abandoned.insert(key);
+        }
+        self.current = match self.steps.last() {
+            Some(step) => step.after.clone(),
+            None => self.original.clone(),
+        };
     }
 
     fn record(&mut self, after: Node, explanation: impl Into<String>, rule: RuleId) {
@@ -164,7 +355,26 @@ impl Pipeline {
     }
 
     fn finish(self) -> SimplificationResult {
-        SimplificationResult::new(self.current, self.steps, self.tracker.into_restrictions())
+        let diagnostic = self.stop.map(|reason| match reason {
+            StopReason::CycleDetected => {
+                "Simplification stopped because a transformation would have repeated an earlier \
+                 form; the result is equivalent but may not be fully simplified."
+            }
+            StopReason::StepLimit => {
+                "Simplification stopped after reaching the step limit; the result is equivalent \
+                 but may not be fully simplified."
+            }
+            StopReason::PassLimit => {
+                "Simplification stopped after reaching the pass limit; the result is equivalent \
+                 but may not be fully simplified."
+            }
+        });
+        let result =
+            SimplificationResult::new(self.current, self.steps, self.tracker.into_restrictions());
+        match diagnostic {
+            Some(message) => result.with_diagnostic(message),
+            None => result,
+        }
     }
 }
 
@@ -493,4 +703,66 @@ pub fn canonicalize_step(root: &Node) -> Option<LocalRewrite> {
         Some(RuleId::NormalizeExpression),
     );
     Some((canonical, step))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(input: &str) -> Node {
+        parser::parse(input).unwrap().expression
+    }
+
+    /// An expand/factor pair that would loop forever without the visited-state guard.
+    fn toggle(node: &Node) -> Option<LocalRewrite> {
+        let latex = serializer::expression(node);
+        let next = if latex.contains(r"\cdot") {
+            parse(r"x^2 - 1")
+        } else {
+            parse(r"(x - 1) \cdot (x + 1)")
+        };
+        let step = AlgebraStep::new(node.clone(), next.clone(), "toggle", Some(RuleId::FactorPolynomial));
+        Some((next, step))
+    }
+
+    #[test]
+    fn oscillating_rewrites_are_stopped_by_the_visited_state_guard() {
+        let mut pipeline = Pipeline::new(&parse(r"x^2 - 1"), PipelineConfig::default()).unwrap();
+        pipeline.run_stage(|node, _| toggle(node));
+        // x^2 - 1 -> (x - 1)(x + 1) -> x^2 - 1 rolls the detour back; trying the same rewrite
+        // again reaches the abandoned state and stops the run.
+        assert!(pipeline.steps.is_empty());
+        assert_eq!(serializer::expression(&pipeline.current), "x^{2} - 1");
+        assert_eq!(pipeline.stop, Some(StopReason::CycleDetected));
+        let result = pipeline.finish();
+        assert!(result.diagnostic.unwrap().contains("repeated"));
+    }
+
+    #[test]
+    fn stage_iterations_are_bounded() {
+        let config = PipelineConfig {
+            max_stage_iterations: 3,
+            ..PipelineConfig::default()
+        };
+        let mut pipeline = Pipeline::new(&parse("x"), config).unwrap();
+        let mut counter = 0;
+        pipeline.run_stage(|node, _| {
+            counter += 1;
+            let next = Node::binary(Operator::Plus, node.clone(), number(counter), 0);
+            let step = AlgebraStep::new(node.clone(), next.clone(), "grow", None);
+            Some((next, step))
+        });
+        assert_eq!(pipeline.steps.len(), 3);
+        assert_eq!(pipeline.stop, None);
+    }
+
+    #[test]
+    fn phases_progress_monotonically() {
+        let mut pipeline = Pipeline::new(&parse("x"), PipelineConfig::default()).unwrap();
+        pipeline.enter(Phase::ExpandCollect);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            pipeline.enter(Phase::NestedFractions)
+        }));
+        assert!(result.is_err());
+    }
 }
