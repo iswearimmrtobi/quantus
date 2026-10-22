@@ -84,6 +84,35 @@ fn text(node: &Node) -> String {
         }
         Node::Binary { operator, left, right, .. } => binary(*operator, left, right),
         Node::Group { inner, .. } => expression(inner),
+        Node::Function { name, argument, .. } => format!("\\{name}{{{}}}", expression(argument)),
+        Node::Abs { operand, .. } => format!("\\left|{}\\right|", expression(operand)),
+        Node::Binomial { n, k, .. } => format!("\\binom{{{}}}{{{}}}", expression(n), expression(k)),
+        Node::Degrees { operand, .. } => format!("{}^{{\\circ}}", render(operand, PRECEDENCE_ATOM)),
+        Node::Sum { index, from, to, body, .. } => format!(
+            "\\sum_{{{index}={}}}^{{{}}} {}",
+            expression(from),
+            expression(to),
+            render(body, PRECEDENCE_MULTIPLICATIVE)
+        ),
+        Node::Integral { variable, lower, upper, body, .. } => format!(
+            "\\int_{{{}}}^{{{}}} {} \\,d{variable}",
+            expression(lower),
+            expression(upper),
+            expression(body)
+        ),
+        Node::Limit { variable, target, body, .. } => {
+            format!("\\lim_{{{variable} \\to {}}} {}", expression(target), render(body, PRECEDENCE_MULTIPLICATIVE))
+        }
+        Node::Derivative { variable, body, .. } => {
+            format!("\\frac{{d}}{{d{variable}}} {}", render(body, PRECEDENCE_MULTIPLICATIVE))
+        }
+        Node::Matrix { rows, .. } => {
+            let rows: Vec<String> =
+                rows.iter().map(|row| row.iter().map(expression).collect::<Vec<_>>().join(" & ")).collect();
+            format!("\\begin{{pmatrix}} {} \\end{{pmatrix}}", rows.join(" \\\\ "))
+        }
+        Node::Determinant { operand, .. } => format!("\\det {}", render(operand, PRECEDENCE_ATOM)),
+        Node::Equation { left, right, .. } => format!("{} = {}", expression(left), expression(right)),
     }
 }
 

@@ -10,29 +10,12 @@ use crate::quantity::PhysicalQuantity;
 use crate::units::registry;
 
 pub fn substitute(node: &Node, variables: &Variables, precision: usize) -> Node {
-    let recurse = |n: &Node| Box::new(substitute(n, variables, precision));
     match node {
         Node::Variable { name, index, position } => variables
             .get(&Node::variable_key(name, index))
             .and_then(|quantity| value_node(quantity, *position, precision))
             .unwrap_or_else(|| node.clone()),
-        Node::Group { inner, position } => Node::Group { inner: recurse(inner), position: *position },
-        Node::Negation { operand, position } => Node::Negation { operand: recurse(operand), position: *position },
-        Node::Fraction { numerator, denominator, position } => {
-            Node::Fraction { numerator: recurse(numerator), denominator: recurse(denominator), position: *position }
-        }
-        Node::Power { base, exponent, position } => {
-            Node::Power { base: recurse(base), exponent: recurse(exponent), position: *position }
-        }
-        Node::Root { radicand, degree, position } => Node::Root {
-            radicand: recurse(radicand),
-            degree: degree.as_deref().map(&recurse),
-            position: *position,
-        },
-        Node::Binary { operator, left, right, position } => {
-            Node::Binary { operator: *operator, left: recurse(left), right: recurse(right), position: *position }
-        }
-        Node::Number { .. } | Node::Unit { .. } | Node::Constant { .. } => node.clone(),
+        other => other.clone().map_children(&mut |child| substitute(&child, variables, precision)),
     }
 }
 

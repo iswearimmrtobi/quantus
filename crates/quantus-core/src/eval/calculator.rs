@@ -119,18 +119,7 @@ impl LatexCalculator {
 }
 
 fn uses_variables(node: &Node) -> bool {
-    match node {
-        Node::Variable { .. } => true,
-        Node::Group { inner, .. } => uses_variables(inner),
-        Node::Negation { operand, .. } => uses_variables(operand),
-        Node::Fraction { numerator, denominator, .. } => uses_variables(numerator) || uses_variables(denominator),
-        Node::Power { base, exponent, .. } => uses_variables(base) || uses_variables(exponent),
-        Node::Root { radicand, degree, .. } => {
-            uses_variables(radicand) || degree.as_deref().is_some_and(uses_variables)
-        }
-        Node::Binary { left, right, .. } => uses_variables(left) || uses_variables(right),
-        Node::Number { .. } | Node::Unit { .. } | Node::Constant { .. } => false,
-    }
+    matches!(node, Node::Variable { .. }) || node.children().into_iter().any(uses_variables)
 }
 
 #[cfg(test)]

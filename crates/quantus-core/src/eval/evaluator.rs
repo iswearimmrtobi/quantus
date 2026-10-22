@@ -57,6 +57,17 @@ impl<'a> Evaluator<'a> {
                     Operator::Divide => left.div(&right),
                 }
             }
+            Node::Function { .. }
+            | Node::Abs { .. }
+            | Node::Binomial { .. }
+            | Node::Degrees { .. }
+            | Node::Sum { .. }
+            | Node::Integral { .. }
+            | Node::Limit { .. }
+            | Node::Derivative { .. }
+            | Node::Matrix { .. }
+            | Node::Determinant { .. }
+            | Node::Equation { .. } => Err(QuantusError::other("This kind of expression cannot be evaluated yet.")),
         }
     }
 

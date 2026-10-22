@@ -15,23 +15,7 @@ use super::ast::{Node, Operator};
 pub fn normalize(node: Node) -> Node {
     match node {
         Node::Binary { operator: Operator::Divide, .. } => normalize_division(node),
-        Node::Binary { operator, left, right, position } => {
-            Node::binary(operator, normalize(*left), normalize(*right), position)
-        }
-        Node::Fraction { numerator, denominator, position } => {
-            Node::fraction(normalize(*numerator), normalize(*denominator), position)
-        }
-        Node::Power { base, exponent, position } => {
-            Node::Power { base: Box::new(normalize(*base)), exponent: Box::new(normalize(*exponent)), position }
-        }
-        Node::Root { radicand, degree, position } => Node::Root {
-            radicand: Box::new(normalize(*radicand)),
-            degree: degree.map(|d| Box::new(normalize(*d))),
-            position,
-        },
-        Node::Negation { operand, position } => Node::Negation { operand: Box::new(normalize(*operand)), position },
-        Node::Group { inner, position } => Node::Group { inner: Box::new(normalize(*inner)), position },
-        leaf => leaf,
+        other => other.map_children(&mut normalize),
     }
 }
 
