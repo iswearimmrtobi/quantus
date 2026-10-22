@@ -13,8 +13,9 @@ pub enum Node {
     Unit { unit: Unit, symbol: String, position: usize },
     /// A reserved constant name: `\pi`, `e`, `i`.
     Constant { name: String, position: usize },
-    /// A variable. Per F2 it always carries a subscript; an identifier without one is a unit
-    /// or a constant, never a variable.
+    /// A variable: `v_1`, or a single letter without a subscript (`x`, `\theta`) that is neither
+    /// a unit nor a constant, in which case `index` is empty. Unindexed variables are free: a
+    /// session cannot define them, they only get a value from a construct that binds them.
     Variable { name: String, index: String, position: usize },
     Binary { operator: Operator, left: Box<Node>, right: Box<Node>, position: usize },
     /// `\frac{a}{b}`, and what every `/` turns into during normalisation (F2, auto-fraction).
@@ -153,7 +154,11 @@ impl Node {
 
     /// How the session addresses a variable node: `v_1`.
     pub fn variable_key(name: &str, index: &str) -> String {
-        format!("{name}_{index}")
+        if index.is_empty() {
+            name.to_string()
+        } else {
+            format!("{name}_{index}")
+        }
     }
 }
 

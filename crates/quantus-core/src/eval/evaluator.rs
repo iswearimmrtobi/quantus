@@ -35,9 +35,14 @@ impl<'a> Evaluator<'a> {
             Node::Variable { name, index, .. } => {
                 let key = Node::variable_key(name, index);
                 self.variables.get(&key).cloned().ok_or_else(|| {
-                    QuantusError::UnresolvedVariable(format!(
-                        "The variable {key} has no value yet. Define it first, e.g. {key} = 5m."
-                    ))
+                    QuantusError::UnresolvedVariable(if index.is_empty() {
+                        format!(
+                            "The variable {key} has no value. Only variables with a subscript can be \
+                             defined, e.g. {key}_1 = 5m."
+                        )
+                    } else {
+                        format!("The variable {key} has no value yet. Define it first, e.g. {key} = 5m.")
+                    })
                 })
             }
             Node::Group { inner, .. } => self.evaluate(inner),

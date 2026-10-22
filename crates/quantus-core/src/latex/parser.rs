@@ -18,7 +18,8 @@
 //! 2. otherwise the longest run of adjacent identifiers that resolves against the unit table:
 //!    unit (`kg`, `mN`, `\mu m` is µm),
 //! 3. otherwise the constant table (`\pi`, `e`, `i`),
-//! 4. otherwise a parse error naming the position.
+//! 4. otherwise a single letter (`x`, `\theta`) is a free variable without index,
+//! 5. otherwise a parse error naming the position.
 //!
 //! Step 2 is deliberately greedy, which is what makes implicit unit products illegal: `m s`
 //! resolves to millisecond, not metre·second. Products of units need an explicit `\cdot`.
@@ -32,6 +33,11 @@ use crate::{QuantusError, Result};
 
 const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
+
+/// One letter or one Greek command: the spelling of an unindexed variable.
+fn is_single_letter(text: &str) -> bool {
+    text.starts_with('\\') || text.chars().count() == 1
+}
 
 fn is_function_command(token: &Token) -> bool {
     token.kind == TokenType::Command && matches!(token.text.as_str(), "\\sin" | "\\cos" | "\\tan" | "\\ln" | "\\log")
@@ -402,11 +408,16 @@ impl Parser<'_> {
             return Ok(Node::Constant { name: token.text, position: token.position });
         }
 
+        if !self.unit_context && run.len() == 1 && is_single_letter(&token.text) {
+            self.advance();
+            return Ok(Node::Variable { name: token.text, index: String::new(), position: token.position });
+        }
+
         let hint = if run.len() > 1 { " A product of units needs an explicit \\cdot." } else { "" };
         let reason = if self.unit_context {
             format!("'{symbol}' is not a known unit.{hint}")
         } else {
-            format!("'{symbol}' is neither a unit nor a constant. Variables must carry a subscript, e.g. v_1.{hint}")
+            format!("'{symbol}' is neither a unit nor a constant. A variable is a single letter or carries a subscript, e.g. x or v_1.{hint}")
         };
         Err(self.error(&reason, token.position))
     }

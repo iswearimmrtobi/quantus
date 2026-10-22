@@ -69,6 +69,10 @@
     {"name": "bracket ends the argument", "input": "\\sin(x_1)y_1", "expected": "\\sin{x_{1}} \\cdot y_{1}"},
     {"name": "two functions", "input": "\\sin x_1\\cos x_1", "expected": "\\sin{x_{1}} \\cdot \\cos{x_{1}}"},
     {"name": "ln", "input": "\\ln{x_1}", "expected": "\\ln{x_{1}}"},
-    {"name": "degrees inside sin", "input": "\\sin 30^\\circ", "expected": "\\sin{30^{\\circ}}"}
+    {"name": "degrees inside sin", "input": "\\sin 30^\\circ", "expected": "\\sin{30^{\\circ}}"},
+
+    {"name": "unindexed variable", "input": "x^2 - 5x + 6", "expected": "x^{2} - 5 \\cdot x + 6"},
+    {"name": "unindexed greek variable", "input": "2\\theta", "expected": "2 \\cdot \\theta"},
+    {"name": "unindexed variable in a function", "input": "\\sin x", "expected": "\\sin{x}"}
   ]
 }

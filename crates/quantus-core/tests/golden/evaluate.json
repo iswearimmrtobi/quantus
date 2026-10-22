@@ -108,6 +108,10 @@
     {"name": "error: log with a base", "latex": "\\log_2 8", "errorContains": "not supported"},
     {"name": "error: inverse by exponent", "latex": "\\sin^{-1} 1", "errorContains": "not supported"},
     {"name": "error: function without argument", "latex": "\\sin", "errorContains": "missing its argument"},
-    {"name": "error: function followed by function", "latex": "\\sin\\cos 1", "errorContains": "missing its argument"}
+    {"name": "error: function followed by function", "latex": "\\sin\\cos 1", "errorContains": "missing its argument"},
+
+    {"name": "error: free variable has no value", "latex": "x^2 - 5x + 6", "errorContains": "The variable x has no value"},
+    {"name": "error: free greek variable", "latex": "2\\theta", "errorContains": "The variable \\theta has no value"},
+    {"name": "units still win over letters", "latex": "5m + 2m", "expect": {"value": "7", "unit": "m"}}
   ]
 }

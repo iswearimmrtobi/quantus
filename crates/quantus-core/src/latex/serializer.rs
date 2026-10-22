@@ -61,6 +61,7 @@ fn text(node: &Node) -> String {
         Node::Number { value, .. } => numbers::format(value),
         Node::Unit { symbol, .. } => unit_latex::symbol(symbol),
         Node::Constant { name, .. } => name.clone(),
+        Node::Variable { name, index, .. } if index.is_empty() => name.clone(),
         Node::Variable { name, index, .. } => format!("{name}_{{{index}}}"),
         Node::Negation { operand, .. } => format!("-{}", render(operand, PRECEDENCE_MULTIPLICATIVE)),
         Node::Fraction { numerator, denominator, .. } => {
