@@ -110,24 +110,24 @@ fn test_denominator_roots_linear_and_quadratic() {
 
     // Linear
     let node1 = parse(r"\frac{1}{2x + 1}");
-    let r1 = extract_domain_restrictions(&node1);
+    let r1 = extract_domain_restrictions(&node1).unwrap();
     assert_eq!(format_restrictions_plain(&r1), "x != -1/2");
     assert_eq!(format_restrictions_latex(&r1), r"x \neq -\frac{1}{2}");
 
     // Quadratic with two roots
     let node2 = parse(r"\frac{1}{x^2 - 9}");
-    let r2 = extract_domain_restrictions(&node2);
+    let r2 = extract_domain_restrictions(&node2).unwrap();
     assert_eq!(format_restrictions_plain(&r2), "x != -3, 3");
     assert_eq!(format_restrictions_latex(&r2), r"x \neq -3, 3");
 
     // Perfect square trinomial
     let node3 = parse(r"\frac{1}{x^2 + 6x + 9}");
-    let r3 = extract_domain_restrictions(&node3);
+    let r3 = extract_domain_restrictions(&node3).unwrap();
     assert_eq!(format_restrictions_plain(&r3), "x != -3");
 
     // Non-monic quadratic
     let node4 = parse(r"\frac{1}{2x^2 + 5x + 2}");
-    let r4 = extract_domain_restrictions(&node4);
+    let r4 = extract_domain_restrictions(&node4).unwrap();
     assert_eq!(format_restrictions_plain(&r4), "x != -2, -1/2");
     assert_eq!(format_restrictions_latex(&r4), r"x \neq -2, -\frac{1}{2}");
 }
@@ -140,17 +140,17 @@ fn test_denominator_roots_monomials_and_higher_degree() {
 
     // Monomial
     let node_mono = parse(r"\frac{1}{x^3}");
-    let r_mono = extract_domain_restrictions(&node_mono);
+    let r_mono = extract_domain_restrictions(&node_mono).unwrap();
     assert_eq!(format_restrictions_plain(&r_mono), "x != 0");
 
     // Monomial + linear
     let node_mix = parse(r"\frac{1}{x(x - 2)}");
-    let r_mix = extract_domain_restrictions(&node_mix);
+    let r_mix = extract_domain_restrictions(&node_mix).unwrap();
     assert_eq!(format_restrictions_plain(&r_mix), "x != 0, 2");
 
     // Degree 3 cubic with rational roots (x-1)(x-2)(x+3) = x^3 - 7x + 6
     let node_cubic = parse(r"\frac{1}{x^3 - 7x + 6}");
-    let r_cubic = extract_domain_restrictions(&node_cubic);
+    let r_cubic = extract_domain_restrictions(&node_cubic).unwrap();
     assert_eq!(format_restrictions_plain(&r_cubic), "x != -3, 1, 2");
     assert_eq!(format_restrictions_latex(&r_cubic), r"x \neq -3, 1, 2");
 }
@@ -163,18 +163,18 @@ fn test_denominator_roots_irreducible_and_multivariate() {
 
     // Irreducible quadratic with negative discriminant
     let node_irred = parse(r"\frac{1}{x^2 + 1}");
-    let r_irred = extract_domain_restrictions(&node_irred);
+    let r_irred = extract_domain_restrictions(&node_irred).unwrap();
     assert_eq!(format_restrictions_plain(&r_irred), "x^2 + 1 != 0");
     assert_eq!(format_restrictions_latex(&r_irred), "x^{2} + 1 \\neq 0");
 
     // Multivariate monomial
     let node_multi_mono = parse(r"\frac{1}{x z}");
-    let r_multi_mono = extract_domain_restrictions(&node_multi_mono);
+    let r_multi_mono = extract_domain_restrictions(&node_multi_mono).unwrap();
     assert_eq!(format_restrictions_plain(&r_multi_mono), "x != 0, z != 0");
 
     // Multivariate polynomial
     let node_multi_poly = parse(r"\frac{1}{x^2 + z^2}");
-    let r_multi_poly = extract_domain_restrictions(&node_multi_poly);
+    let r_multi_poly = extract_domain_restrictions(&node_multi_poly).unwrap();
     assert_eq!(format_restrictions_plain(&r_multi_poly), "x^2 + z^2 != 0");
 }
 
@@ -187,9 +187,73 @@ fn test_reference_expression_exact_restrictions() {
     // Reference test case from Milestone 7:
     // 3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)
     let node = parse(r"\frac{3}{\frac{x + 3}{x - 2}} + \frac{\frac{x - 102}{x - 4}}{x + 3}");
-    let restrictions = extract_domain_restrictions(&node);
+    let restrictions = extract_domain_restrictions(&node).unwrap();
 
     assert_eq!(format_restrictions_plain(&restrictions), "x != -3, 2, 4");
     assert_eq!(format_restrictions_latex(&restrictions), r"x \neq -3, 2, 4");
 }
+
+#[test]
+fn test_division_by_zero_detection() {
+    use quantus_core::algebra::domain::extract_domain_restrictions;
+
+    // x / 0
+    let node1 = parse(r"\frac{x}{0}");
+    let err1 = extract_domain_restrictions(&node1).unwrap_err();
+    assert_eq!(err1.to_string(), "Division by zero.");
+
+    // 1 / (x - x)
+    let node2 = parse(r"\frac{1}{x - x}");
+    let err2 = extract_domain_restrictions(&node2).unwrap_err();
+    assert_eq!(err2.to_string(), "Division by zero.");
+
+    // 1 / (3 - 3)
+    let node3 = parse(r"1 / (3 - 3)");
+    let err3 = extract_domain_restrictions(&node3).unwrap_err();
+    assert_eq!(err3.to_string(), "Division by zero.");
+
+    // Reciprocal zero denominator: 3 / ((x + 3) / 0)
+    let node4 = parse(r"\frac{3}{\frac{x + 3}{0}}");
+    let err4 = extract_domain_restrictions(&node4).unwrap_err();
+    assert_eq!(err4.to_string(), "Division by zero.");
+
+    // Reciprocal zero numerator: 3 / (0 / (x - 2))
+    let node5 = parse(r"\frac{3}{\frac{0}{x - 2}}");
+    let err5 = extract_domain_restrictions(&node5).unwrap_err();
+    assert_eq!(err5.to_string(), "Division by zero.");
+
+    // Negative power of zero: 0^{-2}
+    let node6 = parse(r"0^{-2}");
+    let err6 = extract_domain_restrictions(&node6).unwrap_err();
+    assert_eq!(err6.to_string(), "Division by zero.");
+}
+
+#[test]
+fn test_preserve_restrictions_across_cancellations() {
+    use quantus_core::algebra::domain::DomainTracker;
+    use quantus_core::algebra::poly::Poly;
+
+    // Original expression: (x^2 - 1)/(x - 1)
+    let original = parse(r"\frac{x^2 - 1}{x - 1}");
+    let mut tracker = DomainTracker::from_ast(&original).unwrap();
+
+    // Verify initial restriction is x != 1
+    assert_eq!(tracker.format_plain(), "x != 1");
+
+    // Suppose cancellation occurs in the simplification pipeline:
+    // (x - 1) is cancelled out, producing simplified AST: x + 1
+    let simplified_ast = parse(r"x + 1");
+    // Notice simplified_ast has no denominator:
+    assert!(quantus_core::algebra::domain::collect_raw_denominators(&simplified_ast).is_empty());
+
+    // Record the cancellation of factor (x - 1) in the tracker
+    let cancelled_factor = &Poly::from_var("x") - &Poly::from_const(1);
+    tracker.record_cancellation(&cancelled_factor);
+
+    // The tracker must still preserve x != 1!
+    assert_eq!(tracker.format_plain(), "x != 1");
+    assert_eq!(tracker.format_latex(), r"x \neq 1");
+    assert_eq!(tracker.restrictions().len(), 1);
+}
+
 

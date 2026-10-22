@@ -8,6 +8,7 @@ use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use crate::algebra::poly::{Monomial, Poly};
+use crate::error::QuantusError;
 use crate::latex::ast::{Node, Operator};
 
 /// A domain restriction indicating that a variable or sub-expression cannot equal a specific value.
@@ -547,8 +548,107 @@ pub fn solve_denominator_roots(denominators: &[Node]) -> Vec<DomainRestriction> 
     restrictions
 }
 
-/// Convenience entry point: scans an AST and extracts all domain restrictions.
-pub fn extract_domain_restrictions(node: &Node) -> Vec<DomainRestriction> {
+/// Checks if an AST node evaluates to an exact constant zero.
+pub fn is_constant_zero(node: &Node) -> bool {
+    let unwrapped = unwrap_group(node);
+    match unwrapped {
+        Node::Number { value, .. } => value.is_zero(),
+        _ => {
+            if let Ok(poly) = Poly::from_node(unwrapped) {
+                poly.is_zero()
+            } else {
+                false
+            }
+        }
+    }
+}
+
+/// Convenience entry point: scans an AST and extracts all domain restrictions,
+/// immediately failing with `QuantusError::DivisionByZero` if any denominator is constant zero.
+pub fn extract_domain_restrictions(node: &Node) -> Result<Vec<DomainRestriction>, QuantusError> {
     let raw = collect_raw_denominators(node);
-    solve_denominator_roots(&raw)
+    for den in &raw {
+        if is_constant_zero(den) {
+            return Err(QuantusError::other("Division by zero."));
+        }
+    }
+    Ok(solve_denominator_roots(&raw))
+}
+
+/// Pipeline context for tracking domain restrictions across transformations and cancellations.
+///
+/// Ensures that when common factors (such as `(x - 1)` from `(x^2 - 1)/(x - 1)`) are cancelled,
+/// their domain exclusions (`x != 1`) are retained in the final output.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DomainTracker {
+    restrictions: Vec<DomainRestriction>,
+}
+
+impl DomainTracker {
+    pub fn new() -> Self {
+        Self {
+            restrictions: Vec::new(),
+        }
+    }
+
+    /// Initializes restrictions by scanning the initial unsimplified AST.
+    /// Fails immediately if any denominator evaluates to constant zero.
+    pub fn from_ast(node: &Node) -> Result<Self, QuantusError> {
+        let restrictions = extract_domain_restrictions(node)?;
+        Ok(Self { restrictions })
+    }
+
+    /// Scans an AST node, validates against division by zero, and merges newly discovered restrictions.
+    pub fn scan_and_record(&mut self, node: &Node) -> Result<(), QuantusError> {
+        let found = extract_domain_restrictions(node)?;
+        self.add_all(found);
+        Ok(())
+    }
+
+    /// Adds a single domain restriction, keeping the collection sorted and deduplicated.
+    pub fn add(&mut self, restriction: DomainRestriction) {
+        if !self.restrictions.contains(&restriction) {
+            self.restrictions.push(restriction);
+            self.restrictions.sort();
+        }
+    }
+
+    /// Adds multiple domain restrictions, keeping the collection sorted and deduplicated.
+    pub fn add_all(&mut self, restrictions: impl IntoIterator<Item = DomainRestriction>) {
+        for r in restrictions {
+            if !self.restrictions.contains(&r) {
+                self.restrictions.push(r);
+            }
+        }
+        self.restrictions.sort();
+    }
+
+    /// Explicitly records cancelled polynomial factors to preserve their domain restrictions.
+    pub fn record_cancellation(&mut self, cancelled_factor: &Poly) {
+        let restrictions = solve_poly_restrictions(cancelled_factor);
+        self.add_all(restrictions);
+    }
+
+    /// Explicitly records cancelled AST node factors.
+    pub fn record_cancellation_node(&mut self, factor_node: &Node) {
+        if let Ok(poly) = Poly::from_node(factor_node) {
+            self.record_cancellation(&poly);
+        }
+    }
+
+    pub fn restrictions(&self) -> &[DomainRestriction] {
+        &self.restrictions
+    }
+
+    pub fn into_restrictions(self) -> Vec<DomainRestriction> {
+        self.restrictions
+    }
+
+    pub fn format_latex(&self) -> String {
+        format_restrictions_latex(&self.restrictions)
+    }
+
+    pub fn format_plain(&self) -> String {
+        format_restrictions_plain(&self.restrictions)
+    }
 }
