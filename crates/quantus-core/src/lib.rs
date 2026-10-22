@@ -5,6 +5,7 @@ pub mod error;
 pub mod eval;
 pub mod latex;
 pub mod num;
+pub(crate) mod numeric;
 pub mod quantity;
 pub mod session;
 pub mod units;

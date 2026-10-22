@@ -8,11 +8,13 @@
 
 use std::collections::HashMap;
 
-use dashu::integer::IBig;
+use dashu::base::Abs;
+use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use crate::latex::{Node, Operator};
-use crate::num::{MathFunction, Value};
+use crate::num::{Decimal, MathFunction, Value, DEFAULT_PRECISION, MAX_PRECISION};
+use crate::numeric;
 use crate::quantity::PhysicalQuantity;
 use crate::{QuantusError, Result};
 
@@ -20,11 +22,49 @@ pub type Variables = HashMap<String, PhysicalQuantity>;
 
 pub struct Evaluator<'a> {
     variables: &'a Variables,
+    /// Significant digits that numerical results (integrals, limits) are computed to.
+    precision: usize,
+    /// Digits an integral is computed to: `precision`, but capped, because the work of the
+    /// quadrature grows with it and nested integrals multiply that work.
+    numeric_digits: usize,
 }
+
+/// Longest sum that is worth adding up term by term.
+const MAX_SUM_TERMS: i64 = 1_000_000;
+
+/// Extra digits for each level of nested numerical constructs.
+const NESTING_DIGITS: usize = 10;
+
+/// Most significant digits an integral is asked for. A numerical result shows its digits as
+/// they are, so asking for fewer than the calculator's precision is visible, not silent.
+const MAX_NUMERIC_DIGITS: usize = 30;
 
 impl<'a> Evaluator<'a> {
     pub fn new(variables: &'a Variables) -> Self {
-        Evaluator { variables }
+        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS) }
+    }
+
+    pub fn with_precision(mut self, precision: usize) -> Self {
+        self.precision = precision;
+        self.numeric_digits = precision.min(MAX_NUMERIC_DIGITS);
+        self
+    }
+
+    /// An evaluator that sees the same variables plus `scope`, which the caller updates between
+    /// samples.
+    fn scoped<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
+        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits }
+    }
+
+    /// Like [`Self::scoped`], for the body of a numerical construct. It is computed with extra
+    /// digits: an integral inside an integral would otherwise hand the outer one noise at the
+    /// outer tolerance and the outer quadrature would never settle.
+    fn scoped_deeper<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
+        Evaluator {
+            variables: scope,
+            precision: (self.precision + NESTING_DIGITS).min(MAX_PRECISION),
+            numeric_digits: self.numeric_digits + NESTING_DIGITS,
+        }
     }
 
     pub fn evaluate(&self, node: &Node) -> Result<PhysicalQuantity> {
@@ -84,10 +124,10 @@ impl<'a> Evaluator<'a> {
                 let argument = self.plain_number(argument, &format!("The argument of \\{name}"))?;
                 argument.apply(function).map(PhysicalQuantity::dimensionless)
             }
-            Node::Sum { .. }
-            | Node::Integral { .. }
-            | Node::Limit { .. }
-            | Node::Derivative { .. }
+            Node::Sum { index, from, to, body, .. } => self.sum(index, from, to, body),
+            Node::Integral { variable, lower, upper, body, .. } => self.integral(variable, lower, upper, body),
+            Node::Limit { variable, target, body, .. } => self.limit(variable, target, body),
+            Node::Derivative { .. }
             | Node::Matrix { .. }
             | Node::Determinant { .. }
             | Node::Equation { .. } => Err(QuantusError::other("This kind of expression cannot be evaluated yet.")),
@@ -108,6 +148,113 @@ impl<'a> Evaluator<'a> {
         value.to_i64().filter(|n| *n >= 0).ok_or_else(|| {
             QuantusError::other(format!("The arguments of \\{command} must be non-negative whole numbers, but one was '{value}'."))
         })
+    }
+
+    fn whole_integer(&self, node: &Node, what: &str) -> Result<i64> {
+        let value = self.plain_number(node, what)?;
+        value
+            .to_i64()
+            .ok_or_else(|| QuantusError::other(format!("{what} must be a whole number, but was '{value}'.")))
+    }
+
+    // ---- constructs that bind a variable ------------------------------------------------
+
+    fn sum(&self, index: &str, from: &Node, to: &Node, body: &Node) -> Result<PhysicalQuantity> {
+        let from = self.whole_integer(from, "The lower limit of a sum")?;
+        let to = self.whole_integer(to, "The upper limit of a sum")?;
+        if to.saturating_sub(from) >= MAX_SUM_TERMS {
+            return Err(QuantusError::other(format!("A sum is limited to {MAX_SUM_TERMS} terms.")));
+        }
+        let mut scope = self.variables.clone();
+        let mut total: Option<PhysicalQuantity> = None;
+        for i in from..=to {
+            scope.insert(index.to_string(), PhysicalQuantity::dimensionless(Value::int(i)));
+            let term = self.scoped(&scope).evaluate(body)?;
+            total = Some(match total {
+                None => term,
+                Some(sum) => sum.add(&term)?,
+            });
+        }
+        Ok(total.unwrap_or_else(|| PhysicalQuantity::dimensionless(Value::zero())))
+    }
+
+    /// Numerical, to the calculator's precision. The variable carries the unit of the limits,
+    /// and the result the unit of the integrand times that.
+    fn integral(&self, variable: &str, lower: &Node, upper: &Node, body: &Node) -> Result<PhysicalQuantity> {
+        let (lower, upper) = (self.evaluate(lower)?, self.evaluate(upper)?);
+        // A bare 0 as lower limit (`\int_0^{2m}`) takes the unit of the other limit.
+        let (lower, upper) = if lower.is_dimensionless() && lower.value.is_zero() {
+            (PhysicalQuantity::new(Value::zero(), upper.unit.clone()), upper)
+        } else {
+            let upper = upper.to(&lower.unit)?;
+            (lower, upper)
+        };
+        let digits = self.numeric_digits + 8;
+        let (a, b) = (lower.value.decimal(digits)?, upper.value.decimal(digits)?);
+
+        let mut scope = self.variables.clone();
+        let mut integrand_unit = None;
+        let mut sample = |x: &Decimal| -> Result<Decimal> {
+            scope.insert(
+                variable.to_string(),
+                PhysicalQuantity::new(Value::from_decimal(x), lower.unit.clone()),
+            );
+            let y = self.scoped_deeper(&scope).evaluate(body)?;
+            let y = match &integrand_unit {
+                None => {
+                    integrand_unit = Some(y.unit.clone());
+                    y
+                }
+                Some(unit) => y.to(unit)?,
+            };
+            y.value.decimal(digits + 10)
+        };
+        let result = numeric::integrate(&a, &b, digits, &mut sample)?;
+        let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
+        let value = Value::from_decimal(&result.round(self.numeric_digits));
+        Ok(PhysicalQuantity::new(value, unit).mul(&PhysicalQuantity::new(Value::one(), lower.unit)))
+    }
+
+    /// Two-sided and numerical: the body is sampled just either side of the target and the
+    /// samples must agree, which also rules out a limit that diverges.
+    fn limit(&self, variable: &str, target: &Node, body: &Node) -> Result<PhysicalQuantity> {
+        let target = self.evaluate(target)?;
+        let digits = self.precision;
+        let working = 3 * digits + 30;
+        let centre = target.value.decimal(working)?.to_rational();
+        let step = |exponent: usize| Value::Rat(RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(exponent)));
+
+        let mut scope = self.variables.clone();
+        let mut unit = None;
+        let mut samples = Vec::new();
+        for exponent in [digits + 5, digits + 4] {
+            for direction in [1, -1] {
+                let offset = step(exponent).mul(&Value::int(direction));
+                let x = Value::Rat(centre.clone()).add(&offset);
+                scope.insert(variable.to_string(), PhysicalQuantity::new(x, target.unit.clone()));
+                let y = self.scoped_deeper(&scope).evaluate(body)?;
+                let y = match &unit {
+                    None => {
+                        unit = Some(y.unit.clone());
+                        y
+                    }
+                    Some(u) => y.to(u)?,
+                };
+                samples.push(y.value.decimal(working)?.to_rational());
+            }
+        }
+
+        let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits.saturating_sub(5)));
+        let reference = samples[0].clone();
+        let scale = reference.clone().abs().max(RBig::ONE);
+        if samples.iter().any(|s| (s.clone() - &reference).abs() > &tolerance * &scale) {
+            return Err(QuantusError::other(
+                "The limit does not exist: the values on the two sides of the target disagree or grow without bound.",
+            ));
+        }
+        let mean = samples.iter().fold(RBig::ZERO, |sum, s| sum + s) / RBig::from(samples.len());
+        let value = Value::from_decimal(&Value::Rat(mean).decimal(digits)?);
+        Ok(PhysicalQuantity::new(value, unit.unwrap_or(crate::units::Unit::ONE)))
     }
 
     fn degree(&self, degree: Option<&Node>) -> Result<u32> {

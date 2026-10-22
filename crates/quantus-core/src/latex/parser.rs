@@ -9,6 +9,9 @@
 //! power       := atom [ '^' ( '\circ' | '{\circ}' | unary ) ]
 //! atom        := number | identifier | '\frac' arg arg | '\sqrt' ['[' expr ']'] arg
 //!              | ('\sin' | '\cos' | '\tan' | '\ln' | '\log') ['^' arg] argument
+//!              | '\sum' '_{' name '=' expr '}' '^' arg term
+//!              | '\int' '_' arg '^' arg expression differential
+//!              | '\lim' '_{' name '\to' expr '}' term
 //!              | '\binom' arg arg | '|' expression '|'
 //!              | '\mathrm' arg | '\text' arg | '\qty' arg arg | '(' expression ')' | '{' expression '}'
 //! ```
@@ -54,7 +57,7 @@ fn greek_symbol(text: &str) -> &str {
 }
 
 pub fn parse(source: &str) -> Result<Formula> {
-    Parser { source, tokens: tokenize(source)?, index: 0, unit_context: false, abs_depth: 0 }.parse()
+    Parser { source, tokens: tokenize(source)?, index: 0, unit_context: false, abs_depth: 0, bound: Vec::new(), stops: Vec::new() }.parse()
 }
 
 struct Parser<'a> {
@@ -67,6 +70,12 @@ struct Parser<'a> {
     /// How many `|…|` are open. Inside one, a `|` closes it instead of starting a new one, which
     /// is what makes `|a|b|` unambiguous; brackets and braces start afresh.
     abs_depth: usize,
+    /// Names bound by an enclosing `\sum`, `\int` or `\lim`. They win over units and
+    /// constants, so `i` in `\sum_{i=1}^{3} i` is the index and not the imaginary unit.
+    bound: Vec<String>,
+    /// Token positions where an enclosing integral's differential starts: juxtaposition stops
+    /// there, so `x\,dx` is not the product of `x` and a unit `dx`.
+    stops: Vec<usize>,
 }
 
 impl Parser<'_> {
@@ -231,6 +240,9 @@ impl Parser<'_> {
                 Ok(Node::fraction(numerator, denominator, position))
             }
             "\\sin" | "\\cos" | "\\tan" | "\\ln" | "\\log" => self.parse_function(token),
+            "\\sum" => self.parse_sum(token),
+            "\\int" => self.parse_integral(token),
+            "\\lim" => self.parse_limit(token),
             "\\binom" | "\\dbinom" | "\\tbinom" => {
                 self.advance();
                 let n = self.parse_argument(&token.text)?;
@@ -332,6 +344,155 @@ impl Parser<'_> {
         Ok(operand)
     }
 
+    /// `\sum_{i=1}^{n} body`. The body is a whole term, so `\sum_{i=1}^{3} i \cdot 2` sums the
+    /// product and a following `+` ends it.
+    fn parse_sum(&mut self, token: &Token) -> Result<Node> {
+        self.advance();
+        self.expect(TokenType::Underscore, "'_' with the index, as in \\sum_{i=1}^{n}")?;
+        self.expect(TokenType::LBrace, "'{'")?;
+        let index = self.parse_bound_name("\\sum")?;
+        self.expect(TokenType::Equals, "'=' after the summation index")?;
+        let from = self.parse_expression()?;
+        self.expect(TokenType::RBrace, "'}'")?;
+        self.expect(TokenType::Caret, "'^' with the upper limit, as in \\sum_{i=1}^{n}")?;
+        let to = self.parse_argument(&token.text)?;
+        let body = self.with_bound(&index, |p| p.parse_term())?;
+        Ok(Node::Sum {
+            index,
+            from: Box::new(from),
+            to: Box::new(to),
+            body: Box::new(body),
+            position: token.position,
+        })
+    }
+
+    /// `\lim_{x \to a} body`, two-sided; the body is a term like a sum's.
+    fn parse_limit(&mut self, token: &Token) -> Result<Node> {
+        self.advance();
+        self.expect(TokenType::Underscore, "'_' with the limit, as in \\lim_{x \\to 0}")?;
+        self.expect(TokenType::LBrace, "'{'")?;
+        let variable = self.parse_bound_name("\\lim")?;
+        if !(self.current().kind == TokenType::Command && matches!(self.current().text.as_str(), "\\to" | "\\rightarrow")) {
+            return Err(self.error("Expected '\\to' here.", self.current().position));
+        }
+        self.advance();
+        let target = self.parse_expression()?;
+        self.expect(TokenType::RBrace, "'}'")?;
+        let body = self.with_bound(&variable, |p| p.parse_term())?;
+        Ok(Node::Limit { variable, target: Box::new(target), body: Box::new(body), position: token.position })
+    }
+
+    /// `\int_a^b body \, dx`. The differential is found first, so the integration variable is
+    /// known (and wins over a unit of the same name) while the body is read.
+    fn parse_integral(&mut self, token: &Token) -> Result<Node> {
+        self.advance();
+        if self.current().kind != TokenType::Underscore {
+            return Err(self.error("An integral needs limits, as in \\int_{0}^{1} x \\, dx.", self.current().position));
+        }
+        self.advance();
+        let lower = self.parse_argument(&token.text)?;
+        self.expect(TokenType::Caret, "'^' with the upper limit, as in \\int_{0}^{1}")?;
+        let upper = self.parse_argument(&token.text)?;
+
+        let (variable, stop, length) = self.find_differential(token.position)?;
+        self.stops.push(stop);
+        let body = self.with_bound(&variable, |p| p.parse_expression());
+        self.stops.pop();
+        let body = body?;
+        if self.index != stop {
+            return Err(self.error(&format!("Expected 'd{variable}' here."), self.current().position));
+        }
+        self.index += length;
+        Ok(Node::Integral {
+            variable,
+            lower: Box::new(lower),
+            upper: Box::new(upper),
+            body: Box::new(body),
+            position: token.position,
+        })
+    }
+
+    /// The single-letter name a sum, limit or integral binds.
+    fn parse_bound_name(&mut self, command: &str) -> Result<String> {
+        let token = self.current().clone();
+        if token.kind != TokenType::Identifier || !is_single_letter(&token.text) {
+            return Err(self.error(&format!("{command} needs a single letter as its variable."), token.position));
+        }
+        self.advance();
+        Ok(token.text)
+    }
+
+    fn with_bound<T>(&mut self, name: &str, block: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        self.bound.push(name.to_string());
+        let result = block(self);
+        self.bound.pop();
+        result
+    }
+
+    /// Looks ahead for the `dx` that closes the integral starting at `position`: the first
+    /// differential outside brackets that is not claimed by a nested `\int`.
+    /// Returns the variable, the token index of the differential and how many tokens it spans.
+    fn find_differential(&self, position: usize) -> Result<(String, usize, usize)> {
+        let mut depth = 0_i32;
+        let mut nested = 0;
+        let mut i = self.index;
+        loop {
+            let token = &self.tokens[i];
+            if depth == 0 {
+                if let Some((name, length)) = self.differential_at(i) {
+                    if nested == 0 {
+                        return Ok((name, i, length));
+                    }
+                    nested -= 1;
+                    i += length;
+                    continue;
+                }
+            }
+            match token.kind {
+                TokenType::End => {
+                    return Err(self.error("The integral is missing its differential, e.g. \\, dx.", position));
+                }
+                TokenType::LParen | TokenType::LBrace | TokenType::LBracket => depth += 1,
+                TokenType::RParen | TokenType::RBrace | TokenType::RBracket => depth -= 1,
+                TokenType::Command if token.text == "\\int" && depth == 0 => nested += 1,
+                _ => {}
+            }
+            if depth < 0 {
+                return Err(self.error("The integral is missing its differential, e.g. \\, dx.", position));
+            }
+            i += 1;
+        }
+    }
+
+    /// `dx`, `d x`, `d\theta` or `\mathrm{d}x` starting at token `i`: the variable and the
+    /// number of tokens used.
+    fn differential_at(&self, i: usize) -> Option<(String, usize)> {
+        let token = |offset: usize| &self.tokens[(i + offset).min(self.tokens.len() - 1)];
+        let is_name = |t: &Token| t.kind == TokenType::Identifier && is_single_letter(&t.text);
+        let first = token(0);
+        if first.kind == TokenType::Identifier {
+            if let Some(rest) = first.text.strip_prefix('d') {
+                if rest.chars().count() == 1 {
+                    return Some((rest.to_string(), 1));
+                }
+                if rest.is_empty() && is_name(token(1)) {
+                    return Some((token(1).text.clone(), 2));
+                }
+            }
+        }
+        if first.kind == TokenType::Command
+            && first.text == "\\mathrm"
+            && token(1).kind == TokenType::LBrace
+            && token(2).kind == TokenType::Identifier
+            && token(2).text == "d"
+            && token(3).kind == TokenType::RBrace
+            && is_name(token(4))
+        {
+            return Some((token(4).text.clone(), 5));
+        }
+        None
+    }
+
     /// A command argument: `{…}`, or a single token if no brace follows.
     ///
     /// The brace-less form is LaTeX's own rule and not a convenience of ours: `\frac12` is one
@@ -392,6 +553,11 @@ impl Parser<'_> {
             self.advance();
             let index = self.parse_subscript()?;
             return Ok(Node::Variable { name: token.text, index, position: token.position });
+        }
+
+        if !self.unit_context && self.bound.contains(&token.text) {
+            self.advance();
+            return Ok(Node::Variable { name: token.text, index: String::new(), position: token.position });
         }
 
         // The whole run has to resolve as one symbol: `m s` is the millisecond, and a product
@@ -487,6 +653,9 @@ impl Parser<'_> {
 
     /// Does the current token start an atom, i.e. is this juxtaposition (`2kg`)?
     fn starts_atom(&self) -> bool {
+        if self.stops.contains(&self.index) {
+            return false;
+        }
         let token = self.current();
         match token.kind {
             TokenType::Number | TokenType::Identifier | TokenType::LParen | TokenType::LBrace => true,

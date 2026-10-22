@@ -493,6 +493,9 @@ impl Value {
         if result.is_nan() || result.is_inf() {
             return Err(self.not_real());
         }
+        if result.is_zero() {
+            return Ok(Decimal::new(IBig::ZERO, 0));
+        }
         let text = result
             .format(Radix::Dec, RoundingMode::ToEven, &mut consts)
             .map_err(|_| QuantusError::other("could not format a number"))?;
@@ -713,7 +716,7 @@ fn bigfloat_from_int(value: &IBig, bits: usize, consts: &mut Consts) -> BigFloat
 
 /// Reads astro-float's `d.ddd...e+N` output and keeps at most `digits` significant digits
 /// (truncated), as a [`Decimal`].
-fn parse_float_text(text: &str, digits: usize) -> Option<Decimal> {
+pub(crate) fn parse_float_text(text: &str, digits: usize) -> Option<Decimal> {
     let (mantissa, exponent) = text.split_once('e')?;
     let exponent: i64 = exponent.parse().ok()?;
     let (negative, mantissa) = match mantissa.strip_prefix('-') {

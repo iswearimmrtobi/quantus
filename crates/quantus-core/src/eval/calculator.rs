@@ -80,7 +80,7 @@ impl LatexCalculator {
 
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
         let formula = parser::parse(latex)?;
-        let quantity = Evaluator::new(variables).evaluate(&formula.expression)?.simplify()?;
+        let quantity = Evaluator::new(variables).with_precision(self.precision).evaluate(&formula.expression)?.simplify()?;
         let value = quantity.decimal(self.precision)?;
 
         let result = serializer::quantity(&value, &quantity.unit);
@@ -107,11 +107,11 @@ impl LatexCalculator {
 
         let mut steps = vec![Step { kind: StepKind::Symbolic, latex: symbolic }];
         if uses_variables(&formula.expression) {
-            let substituted = substitute(&formula.expression, variables, self.precision);
-            steps.push(Step {
-                kind: StepKind::Substituted,
-                latex: format!("{prefix}{}", serializer::expression(&substituted)),
-            });
+            let substituted = format!("{prefix}{}", serializer::expression(&substitute(&formula.expression, variables, self.precision)));
+            // A bound variable (`\sum_{i=1}^{3} i`) is a variable too, but has nothing to put in.
+            if substituted != steps[0].latex {
+                steps.push(Step { kind: StepKind::Substituted, latex: substituted });
+            }
         }
         steps.push(Step { kind: StepKind::Result, latex: format!("{prefix}{result}") });
         steps

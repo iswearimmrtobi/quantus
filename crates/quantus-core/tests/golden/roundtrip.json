@@ -73,6 +73,11 @@
 
     {"name": "unindexed variable", "input": "x^2 - 5x + 6", "expected": "x^{2} - 5 \\cdot x + 6"},
     {"name": "unindexed greek variable", "input": "2\\theta", "expected": "2 \\cdot \\theta"},
-    {"name": "unindexed variable in a function", "input": "\\sin x", "expected": "\\sin{x}"}
+    {"name": "unindexed variable in a function", "input": "\\sin x", "expected": "\\sin{x}"},
+
+    {"name": "sum", "input": "\\sum_{i=1}^{n_1} i^2", "expected": "\\sum_{i=1}^{n_{1}} i^{2}"},
+    {"name": "sum in a product is bracketed", "input": "2 (\\sum_{k=1}^{3} k)", "expected": "2 \\cdot (\\sum_{k=1}^{3} k)"},
+    {"name": "integral", "input": "\\int_0^1 x^2 dx", "expected": "\\int_{0}^{1} x^{2} \\,dx"},
+    {"name": "limit", "input": "\\lim_{x\\to 0} \\frac{\\sin x}{x}", "expected": "\\lim_{x \\to 0} \\frac{\\sin{x}}{x}"}
   ]
 }

@@ -150,6 +150,8 @@ fn precedence(node: &Node) -> u8 {
         Node::Binary { operator: Operator::Plus | Operator::Minus, .. } => PRECEDENCE_ADDITIVE,
         Node::Binary { .. } => PRECEDENCE_MULTIPLICATIVE,
         Node::Negation { .. } => PRECEDENCE_ADDITIVE,
+        // Their bodies reach as far right as a term, so they need brackets as a factor.
+        Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. } => PRECEDENCE_ADDITIVE,
         Node::Power { .. } => PRECEDENCE_POWER,
         Node::Group { inner, .. } => precedence(inner),
         _ => PRECEDENCE_ATOM,

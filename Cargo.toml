@@ -6,3 +6,18 @@ members = ["crates/quantus-core", "desktop/src-tauri"]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+
+# Numerical integration runs thousands of arbitrary-precision operations; unoptimised, the
+# number crates make `\int` and the golden tests several times slower.
+[profile.dev.package.astro-float-num]
+opt-level = 3
+[profile.dev.package.astro-float]
+opt-level = 3
+[profile.dev.package.dashu-int]
+opt-level = 3
+[profile.dev.package.dashu-ratio]
+opt-level = 3
+[profile.dev.package.dashu-float]
+opt-level = 3
+[profile.dev.package.dashu-base]
+opt-level = 3

@@ -112,6 +112,36 @@
 
     {"name": "error: free variable has no value", "latex": "x^2 - 5x + 6", "errorContains": "The variable x has no value"},
     {"name": "error: free greek variable", "latex": "2\\theta", "errorContains": "The variable \\theta has no value"},
-    {"name": "units still win over letters", "latex": "5m + 2m", "expect": {"value": "7", "unit": "m"}}
+    {"name": "units still win over letters", "latex": "5m + 2m", "expect": {"value": "7", "unit": "m"}},
+
+    {"name": "sum of squares", "latex": "\\sum_{i=1}^{4} i^2", "expect": {"value": "30"}},
+    {"name": "sum with index named i", "latex": "\\sum_{i=1}^{3} i", "expect": {"value": "6"}},
+    {"name": "sum then plus", "latex": "\\sum_{k=1}^{3} k + 1", "expect": {"value": "7"}},
+    {"name": "sum of a product", "latex": "\\sum_{k=1}^{3} k \\cdot 2", "expect": {"value": "12"}},
+    {"name": "empty sum is zero", "latex": "\\sum_{k=3}^{1} k", "expect": {"value": "0"}},
+    {"name": "geometric sum", "latex": "\\sum_{n=0}^{10} 2^n", "expect": {"value": "2047"}},
+    {"name": "sum keeps units", "latex": "\\sum_{k=1}^{3} k\\,m", "expect": {"value": "6", "unit": "m"}},
+    {"name": "nested sums", "latex": "\\sum_{a=1}^{2}\\sum_{b=1}^{3} a b", "expect": {"value": "18"}},
+    {"name": "error: sum limit with a unit", "latex": "\\sum_{k=1}^{3m} k", "errorContains": "plain number"},
+    {"name": "error: sum too long", "latex": "\\sum_{k=1}^{2000000} k", "errorContains": "limited to"},
+    {"name": "integral of x squared", "latex": "\\int_0^1 x^2 \\, dx", "expect": {"value": "0.333333333333333333333333333333"}},
+    {"name": "integral of 2x", "latex": "\\int_{0}^{3} 2x\\,dx", "expect": {"value": "9"}},
+    {"name": "integral of sin over 0..pi", "latex": "\\int_0^{\\pi} \\sin x \\, dx", "expect": {"resultStartsWith": "2"}},
+    {"name": "integral of 1 over x", "latex": "\\int_1^2 \\frac{1}{x} dx", "expect": {"resultStartsWith": "0{,}693147180559945309417232121458"}},
+    {"name": "integral with a singular end", "latex": "\\int_0^1 \\ln x \\, dx", "expect": {"resultStartsWith": "-1"}},
+    {"name": "integral of inverse sqrt", "latex": "\\int_0^1 \\frac{1}{\\sqrt{x}} dx", "expect": {"resultStartsWith": "2"}},
+    {"name": "reversed limits negate", "latex": "\\int_3^0 2x\\,dx", "expect": {"value": "-9"}},
+    {"name": "equal limits give zero", "latex": "\\int_2^2 x\\,dx", "expect": {"value": "0"}},
+    {"name": "nested integral", "latex": "\\int_0^1\\int_0^2 x y \\, dx\\, dy", "expect": {"value": "1"}},
+    {"name": "integral with units", "latex": "\\int_0^{2m} 3\\frac{N}{m} x\\,dx", "expect": {"value": "6", "unit": "J"}},
+    {"name": "integral variable named like a unit", "latex": "\\int_0^2 t\\,dt", "expect": {"value": "2"}},
+    {"name": "mathrm differential", "latex": "\\int_0^2 x\\,\\mathrm{d}x", "expect": {"value": "2"}},
+    {"name": "limit sin x over x", "latex": "\\lim_{x \\to 0} \\frac{\\sin x}{x}", "expect": {"value": "1"}},
+    {"name": "limit of a removable gap", "latex": "\\lim_{x \\to 1} \\frac{x^2 - 1}{x - 1}", "expect": {"value": "2"}},
+    {"name": "limit gives e", "latex": "\\lim_{x \\to 0} (1 + x)^{1/x}", "expect": {"resultStartsWith": "2{,}7182818284590452353602874713526624977572470"}},
+    {"name": "limit by substitution", "latex": "\\lim_{x \\to 2} x^2", "expect": {"value": "4"}},
+    {"name": "error: diverging limit", "latex": "\\lim_{x \\to 0} \\frac{1}{x^2}", "errorContains": "does not exist"},
+    {"name": "error: one-sided mismatch", "latex": "\\lim_{x \\to 0} \\frac{|x|}{x}", "errorContains": "does not exist"},
+    {"name": "error: integral without differential", "latex": "\\int_0^1 x", "errorContains": "missing its differential"}
   ]
 }
