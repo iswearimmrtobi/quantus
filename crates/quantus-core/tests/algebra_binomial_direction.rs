@@ -39,6 +39,7 @@ fn expanded_square_of_sum_is_compressed() {
 #[test]
 fn expanded_square_of_difference_is_compressed() {
     assert_simplifies(r"a^2 - 2 \cdot a \cdot b + b^2", "(a - b)^{2}");
+    assert_simplifies(r"a^2 - 2ab + b^2", "(a - b)^{2}");
     assert_simplifies(r"4x^2 - 12x + 9", "(2x - 3)^{2}");
 }
 

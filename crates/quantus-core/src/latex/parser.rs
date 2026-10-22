@@ -25,7 +25,8 @@
 //!    unit (`kg`, `mN`, `\mu m` is µm),
 //! 3. otherwise the constant table (`\pi`, `e`, `i`),
 //! 4. otherwise a single letter (`x`, `\theta`) is a free variable without index,
-//! 5. otherwise a parse error naming the position.
+//! 5. otherwise a run of letters that are each a variable (`ab`) is their product `a \cdot b`,
+//! 6. otherwise a parse error naming the position.
 //!
 //! Step 2 is deliberately greedy, which is what makes implicit unit products illegal: `m s`
 //! resolves to millisecond, not metre·second. Products of units need an explicit `\cdot`.
@@ -43,6 +44,15 @@ const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
 /// One letter or one Greek command: the spelling of an unindexed variable.
 fn is_single_letter(text: &str) -> bool {
     text.starts_with('\\') || text.chars().count() == 1
+}
+
+/// A run of letters like `ab` that is no unit but reads as a product of single-letter variables:
+/// every letter must be a variable on its own, so `xm` (x times metre?) stays an error.
+fn is_variable_product(text: &str) -> bool {
+    text.chars().count() > 1
+        && text
+            .chars()
+            .all(|c| c.is_ascii_alphabetic() && (c == 'a' || c == 'y' || units::find(&c.to_string()).is_none()))
 }
 
 fn is_function_command(token: &Token) -> bool {
@@ -730,6 +740,10 @@ impl Parser<'_> {
             return Ok(Node::Variable { name: token.text, index: String::new(), position: token.position });
         }
 
+        if !self.unit_context && is_variable_product(&token.text) {
+            return Ok(self.take_first_letter());
+        }
+
         let hint = if run.len() > 1 { " A product of units needs an explicit \\cdot." } else { "" };
         let reason = if self.unit_context {
             format!("'{symbol}' is not a known unit.{hint}")
@@ -737,6 +751,16 @@ impl Parser<'_> {
             format!("'{symbol}' is neither a unit nor a constant. A variable is a single letter or carries a subscript, e.g. x or v_1.{hint}")
         };
         Err(self.error(&reason, token.position))
+    }
+
+    /// `ab` in `2ab` becomes the variable `a`, with `b` left behind as the next token to be read,
+    /// so juxtaposition makes it `2 \cdot a \cdot b` and an exponent binds to `b` alone.
+    fn take_first_letter(&mut self) -> Node {
+        let token = self.current().clone();
+        let (first, rest) = token.text.split_at(1);
+        self.tokens[self.index] =
+            Token { kind: TokenType::Identifier, text: rest.to_string(), position: token.position + 1 };
+        Node::Variable { name: first.to_string(), index: String::new(), position: token.position }
     }
 
     /// The adjacent identifiers eligible for the longest-match lookup. An identifier carrying a

@@ -62,6 +62,9 @@
     {"name": "abs", "input": "|x_1 - 2|", "expected": "\\left|x_{1} - 2\\right|"},
     {"name": "abs with left right", "input": "\\left|x_1\\right|", "expected": "\\left|x_{1}\\right|"},
     {"name": "degrees", "input": "30^\\circ", "expected": "30^{\\circ}"},
+    {"name": "letter run is a variable product", "input": "2ab", "expected": "2 \\cdot a \\cdot b"},
+    {"name": "exponent binds to the last letter", "input": "2ab^2", "expected": "2 \\cdot a \\cdot b^{2}"},
+    {"name": "three letter product", "input": "xbz", "expected": "x \\cdot b \\cdot z"},
 
     {"name": "sin", "input": "\\sin x_1", "expected": "\\sin{x_{1}}"},
     {"name": "sin squared", "input": "\\sin^2 x_1", "expected": "\\sin^{2}{x_{1}}"},
