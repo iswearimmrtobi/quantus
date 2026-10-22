@@ -205,7 +205,7 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
   - [x] 12. Handling constant expressions and zero numerators (`(x - x)/(x + 1) -> 0` with `x ≠ -1`).
   - [x] 13. Detecting unsupported expressions gracefully without returning incorrect results.
   - [x] 14. Verifying mathematical equivalence between original and simplified expressions across all test cases.
-- [ ] **7.3. Regression & Workspace Checks**:
-  - [ ] Run `cargo test --workspace` and verify all existing unit, golden, and oracle tests pass.
-  - [ ] Run `cargo clippy --workspace --all-targets` and fix any warnings.
-  - [ ] Run `npm run typecheck` in `desktop/` to verify frontend TypeScript compilation.
+- [x] **7.3. Regression & Workspace Checks**:
+  - [x] Run `cargo test --workspace` and verify all existing unit, golden, and oracle tests pass.
+  - [x] Run `cargo clippy --workspace --all-targets` and fix any warnings.
+  - [x] Run `npm run typecheck` in `desktop/` to verify frontend TypeScript compilation.

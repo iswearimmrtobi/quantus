@@ -6,6 +6,9 @@ use tauri::webview::InvokeRequest;
 use tauri::{WebviewWindow, WebviewWindowBuilder};
 
 fn window() -> WebviewWindow<MockRuntime> {
+    if std::env::var("XDG_DATA_HOME").is_err() {
+        std::env::set_var("XDG_DATA_HOME", std::env::temp_dir());
+    }
     let app = super::app(mock_builder())
         .build(mock_context(noop_assets()))
         .unwrap();
