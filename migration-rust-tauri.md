@@ -131,7 +131,15 @@ M5 findings that change M6:
 - Precision arrives as `Option<i64>` so that `0` and negative values produce Kotlin's range message instead of a deserialisation error.
 - The Rust engine has no thread-local state, so a command may evaluate on any thread; only the store needs the mutex.
 
-**M6 Wire Tauri to core.** Real commands, state, error mapping to `{error, position}`; rewrite `api.ts`; remove health polling. Exit: milestone, variable define/reuse/delete, parse error position, dimension error text, all visible in the running app.
+**M6 Wire Tauri to core (done).** Real commands, state, error mapping to `{error, position}`; rewrite `api.ts`; remove health polling. Exit: milestone, variable define/reuse/delete, parse error position, dimension error text, all visible in the running app.
+
+M6 findings that change M7:
+- M1b was never run, so M6 also created `desktop/src-tauri` (Tauri 2.12, workspace member `quantus-desktop`, no bundling yet, `csp: null`). `npm run tauri dev` builds and starts the window on this machine; `@tauri-apps/api` and `@tauri-apps/cli` are npm dependencies.
+- Commands: `engine_info`, `evaluate`, `define_variable`, `list_variables`, `delete_variable`; the `Engine` state is a `Mutex<SessionStore>`. `api.ts` maps the `{error, position}` rejection to `ApiError`; `Health`, `STARTUP_GRACE_MS` and the polling effect are gone (the status dot is a static "bereit").
+- Verified through Tauri's mock-runtime IPC (`src-tauri/src/tests.rs`): milestone, define/reuse/delete, parse-error position, `1m + 1s` error. Not seen in the visible window: no screenshot tool worked here (grim/spectacle refused on this compositor), so the window rendering (MathLive, fonts, KaTeX, WebKitGTK) is still unchecked by eye; M1b's go/no-go belongs to the first manual look.
+- Tauri 2 only allows commands from `tauri://localhost`; the IPC tests use that origin.
+- A definition from literals has two steps (`symbolic`, `result`); only inputs that use variables get the `substituted` step.
+- `window.quantus` (copy, shortcuts) is still the Electron bridge and is `undefined` under Tauri; copy falls back to `navigator.clipboard`, shortcuts do nothing until M7.
 
 **M7 Native shell parity.** Menu, accelerators, single instance, external links, clipboard, zoom/fullscreen/devtools, fatal-error dialog. Exit: manual checklist against the Electron app, item by item.
 
