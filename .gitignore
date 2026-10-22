@@ -17,3 +17,6 @@ desktop/dist-electron/
 desktop/release/
 # aus node_modules kopiert (npm run copy-fonts)
 desktop/public/fonts/
+
+# Rust
+/target/

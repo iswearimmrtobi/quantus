@@ -1,0 +1,64 @@
+{
+  "_comment": "Stateless evaluation (no session variables). Source: LatexCalculatorTest, MathfieldInputTest, CalculatorControllerTest. Optional keys in `expect`: latex, result, input, unit, quantityName, value (numeric string, compared as a decimal), valueSignificantDigits, resultStartsWith. Optional key `precision` overrides the default of 50. Error cases use `error` (exact message) or `errorContains`.",
+  "cases": [
+    {
+      "name": "milestone",
+      "latex": "F = 2kg \\cdot 10\\frac{m}{s^2}",
+      "expect": {
+        "latex": "F = 20\\,\\mathrm{N}",
+        "result": "20\\,\\mathrm{N}",
+        "input": "F = 2\\,\\mathrm{kg} \\cdot 10\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}",
+        "value": "20",
+        "unit": "N",
+        "quantityName": "force"
+      }
+    },
+    { "name": "spec reference example", "latex": "1\\,\\mathrm{kg} \\times 1\\,\\mathrm{m/s^2}", "expect": { "latex": "1\\,\\mathrm{N}" } },
+
+    { "name": "weight force", "latex": "2kg \\cdot 9{,}81\\frac{m}{s^2}", "expect": { "latex": "19{,}62\\,\\mathrm{N}" } },
+    { "name": "kinetic energy", "latex": "E = \\frac{1}{2} \\cdot 2kg \\cdot (3\\frac{m}{s})^2", "expect": { "latex": "E = 9\\,\\mathrm{J}" } },
+    { "name": "ohm's law", "latex": "U = 5\\Omega \\cdot 2A", "expect": { "latex": "U = 10\\,\\mathrm{V}" } },
+    { "name": "pressure", "latex": "P = \\frac{100N}{2m^2}", "expect": { "latex": "P = 50\\,\\mathrm{Pa}" } },
+    { "name": "unit conversion in addition", "latex": "2kg + 500g", "expect": { "latex": "2{,}5\\,\\mathrm{kg}" } },
+
+    {
+      "name": "compound result keeps its unit and gets a quantity name",
+      "latex": "v_1 = \\frac{100m}{8s}",
+      "expect": { "result": "12{,}5\\,\\frac{\\mathrm{m}}{\\mathrm{s}}", "quantityName": "velocity" }
+    },
+
+    {
+      "name": "precision 50: one third",
+      "latex": "\\frac{1m}{3}",
+      "precision": 50,
+      "expect": { "resultStartsWith": "0{,}333333333333333333333333333333333333333333333333", "valueSignificantDigits": 50 }
+    },
+    { "name": "precision 6: root of two", "latex": "\\sqrt{2}m", "precision": 6, "expect": { "result": "1{,}41421\\,\\mathrm{m}" } },
+
+    { "name": "scientific notation", "latex": "1kg \\cdot (299792458\\frac{m}{s})^2", "expect": { "result": "8{,}9875517873681764 \\cdot 10^{16}\\,\\mathrm{J}" } },
+
+    {
+      "name": "celsius survives the round trip",
+      "latex": "20°C + 5°C",
+      "expect": { "input": "20\\,^\\circ\\mathrm{C} + 5\\,^\\circ\\mathrm{C}", "result": "25\\,^\\circ\\mathrm{C}" }
+    },
+
+    { "name": "mathfield: frac12 evaluates", "latex": "\\frac12", "expect": { "result": "0{,}5" } },
+    { "name": "mathfield: sqrt only covers the 4", "latex": "\\sqrt4m^2", "expect": { "result": "2\\,\\mathrm{m}^{2}" } },
+    { "name": "mathfield: sqrt over a unit power", "latex": "\\sqrt{4m^2}", "expect": { "result": "2\\,\\mathrm{m}" } },
+    {
+      "name": "mathfield: operatorname milestone",
+      "latex": "2\\operatorname{kg}\\cdot10\\frac{\\operatorname{m}}{\\operatorname{s}^2}",
+      "expect": { "result": "20\\,\\mathrm{N}" }
+    },
+    {
+      "name": "mathfield: typed milestone",
+      "latex": "F=2\\operatorname{kg}\\cdot10\\frac{\\operatorname{m}}{\\operatorname{s}^2}",
+      "expect": { "latex": "F = 20\\,\\mathrm{N}" }
+    },
+
+    { "name": "error: dimension mismatch", "latex": "1m + 1s", "error": "Incompatible units: m (length) and s (time) cannot be added." },
+    { "name": "error: celsius plus kelvin", "latex": "20°C + 5K", "errorContains": "zero point of its own" },
+    { "name": "error: undefined variable", "latex": "v_1 \\cdot 2s", "errorContains": "v_1" }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "_comment": "parse -> serialise round trips. Source: LatexParserTest, MathfieldInputTest (Kotlin). `input` is parsed as a formula, `expected` is LatexSerializer.formula(...).",
+  "cases": [
+    { "name": "milestone", "input": "F = 2kg \\cdot 10\\frac{m}{s^2}", "expected": "F = 2\\,\\mathrm{kg} \\cdot 10\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}" },
+
+    { "name": "bare unit kg", "input": "2kg", "expected": "2\\,\\mathrm{kg}" },
+    { "name": "bare unit mN", "input": "9mN", "expected": "9\\,\\mathrm{mN}" },
+    { "name": "bare unit micro", "input": "5\\mu m", "expected": "5\\,\\mathrm{\\mu m}" },
+    { "name": "bare unit kJ", "input": "3kJ", "expected": "3\\,\\mathrm{kJ}" },
+    { "name": "bare unit ohm", "input": "7\\Omega", "expected": "7\\,\\mathrm{\\Omega }" },
+
+    { "name": "mathrm markup", "input": "2\\,\\mathrm{kg}", "expected": "2\\,\\mathrm{kg}" },
+    { "name": "text markup", "input": "2\\text{kg}", "expected": "2\\,\\mathrm{kg}" },
+    { "name": "siunitx qty", "input": "\\qty{12}{cm}", "expected": "12\\,\\mathrm{cm}" },
+    { "name": "mathrm with slash", "input": "10\\mathrm{m/s^2}", "expected": "10\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}" },
+
+    { "name": "decimal comma in braces", "input": "9{,}81\\frac{m}{s^2}", "expected": "9{,}81\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}" },
+    { "name": "decimal comma bare", "input": "0,5m", "expected": "0{,}5\\,\\mathrm{m}" },
+    { "name": "decimal point", "input": "0.5m", "expected": "0{,}5\\,\\mathrm{m}" },
+
+    { "name": "auto fraction", "input": "v_1/t_1", "expected": "\\frac{v_{1}}{t_{1}}" },
+    { "name": "auto fraction chain", "input": "v_1/t_1/x_1", "expected": "\\frac{v_{1}}{t_{1} \\cdot x_{1}}" },
+    { "name": "auto fraction product numerator", "input": "2 \\cdot 3/4", "expected": "\\frac{2 \\cdot 3}{4}" },
+    { "name": "explicit brackets in denominator", "input": "v_1/(t_1/x_1)", "expected": "\\frac{v_{1}}{\\frac{t_{1}}{x_{1}}}" },
+    { "name": "explicit brackets in numerator", "input": "(v_1 \\cdot t_1)/x_1", "expected": "\\frac{v_{1} \\cdot t_{1}}{x_{1}}" },
+
+    { "name": "label with subscript", "input": "E_{kin} = \\frac{1}{2} \\cdot m_1 \\cdot v_1^2", "expected": "E_{kin} = \\frac{1}{2} \\cdot m_{1} \\cdot v_{1}^{2}" },
+    { "name": "greek variable", "input": "\\omega_0 \\cdot t_1", "expected": "\\omega_{0} \\cdot t_{1}" },
+
+    { "name": "brackets kept", "input": "(2+3) \\cdot 4", "expected": "(2 + 3) \\cdot 4" },
+    { "name": "brackets dropped", "input": "2+(3 \\cdot 4)", "expected": "2 + 3 \\cdot 4" },
+    { "name": "brackets in subtraction", "input": "2-(3-4)", "expected": "2 - (3 - 4)" },
+    { "name": "brackets under power", "input": "(2+3)^2", "expected": "(2 + 3)^{2}" },
+    { "name": "negative quantity", "input": "-5m", "expected": "-5\\,\\mathrm{m}" },
+
+    { "name": "square root", "input": "\\sqrt{2}", "expected": "\\sqrt{2}" },
+    { "name": "cube root", "input": "\\sqrt[3]{8}", "expected": "\\sqrt[3]{8}" },
+    { "name": "pi constant", "input": "2 \\cdot \\pi \\cdot r_1", "expected": "2 \\cdot \\pi \\cdot r_{1}" },
+    { "name": "right-associative power", "input": "2^3^2", "expected": "2^{3^{2}}" },
+    { "name": "negative exponent", "input": "x_1^{-1}", "expected": "x_{1}^{-1}" },
+
+    { "name": "unit run: longest match is millisecond", "input": "2m s", "expected": "2\\,\\mathrm{ms}" },
+    { "name": "unit product needs cdot", "input": "2m \\cdot s", "expected": "2\\,\\mathrm{m} \\cdot \\mathrm{s}" },
+
+    { "name": "mathfield: frac23", "input": "\\frac23", "expected": "\\frac{2}{3}" },
+    { "name": "mathfield: frac12", "input": "\\frac12", "expected": "\\frac{1}{2}" },
+    { "name": "mathfield: sqrt2", "input": "\\sqrt2", "expected": "\\sqrt{2}" },
+    { "name": "mathfield: frac123 splits the digits", "input": "\\frac123", "expected": "\\frac{1}{2} \\cdot 3" },
+    { "name": "mathfield: braced multi-digit frac", "input": "\\frac{12}{34}", "expected": "\\frac{12}{34}" },
+    { "name": "mathfield: decimal stays whole", "input": "\\frac1{,}5{2}", "expected": "\\frac{1{,}5}{2}" },
+    { "name": "mathfield: operatorname unit", "input": "2\\operatorname{kg}", "expected": "2\\,\\mathrm{kg}" },
+    { "name": "mathfield: nested operatorname mathrm", "input": "2\\operatorname{\\mathrm{kg}}", "expected": "2\\,\\mathrm{kg}" },
+    { "name": "mathfield: left/right delimiters", "input": "\\left(2+3\\right)\\cdot4", "expected": "(2 + 3) \\cdot 4" },
+
+    { "name": "temperature degree sign", "input": "20°C + 5°C", "expected": "20\\,^\\circ\\mathrm{C} + 5\\,^\\circ\\mathrm{C}" }
+  ],
+  "labels": [
+    { "input": "E_{kin} = \\frac{1}{2} \\cdot m_1 \\cdot v_1^2", "label": { "name": "E", "index": "kin" } },
+    { "input": "2kg", "label": null }
+  ]
+}
