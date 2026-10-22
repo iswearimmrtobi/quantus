@@ -26,6 +26,7 @@ pub struct Calculation {
     pub unit: String,
     pub quantity_name: Option<String>,
     pub quantity: PhysicalQuantity,
+    pub domain_restrictions: Option<Vec<String>>,
 }
 
 impl Calculation {
@@ -41,6 +42,40 @@ impl Calculation {
 pub struct Step {
     pub kind: StepKind,
     pub latex: String,
+    pub rule: Option<String>,
+    pub explanation: Option<String>,
+    pub before: Option<String>,
+    pub after: Option<String>,
+}
+
+impl Step {
+    pub fn new(kind: StepKind, latex: impl Into<String>) -> Self {
+        Self {
+            kind,
+            latex: latex.into(),
+            rule: None,
+            explanation: None,
+            before: None,
+            after: None,
+        }
+    }
+
+    pub fn algebraic(
+        latex: impl Into<String>,
+        rule: Option<String>,
+        explanation: impl Into<String>,
+        before: Option<String>,
+        after: Option<String>,
+    ) -> Self {
+        Self {
+            kind: StepKind::Algebraic,
+            latex: latex.into(),
+            rule,
+            explanation: Some(explanation.into()),
+            before,
+            after,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -51,6 +86,8 @@ pub enum StepKind {
     Substituted,
     /// The evaluated result.
     Result,
+    /// An algebraic transformation step.
+    Algebraic,
 }
 
 impl StepKind {
@@ -59,6 +96,7 @@ impl StepKind {
             StepKind::Symbolic => "symbolic",
             StepKind::Substituted => "substituted",
             StepKind::Result => "result",
+            StepKind::Algebraic => "algebraic",
         }
     }
 }
@@ -81,27 +119,114 @@ impl LatexCalculator {
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
         let formula = parser::parse(latex)?;
         let evaluator = Evaluator::new(variables).with_precision(self.precision);
-        let (quantity, value, result) = match &formula.expression {
+        match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
-            equation @ Node::Equation { .. } => self.solve(&evaluator, equation)?,
-            expression => {
-                let quantity = evaluator.evaluate(expression)?.simplify()?;
-                let value = quantity.decimal(self.precision)?;
-                let result = serializer::quantity(&value, &quantity.unit);
-                (quantity, value, result)
+            equation @ Node::Equation { .. } => {
+                let (quantity, value, result) = self.solve(&evaluator, equation)?;
+                let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
+                Ok(Calculation {
+                    input: serializer::formula(&formula),
+                    latex: format!("{prefix}{result}"),
+                    steps: self.steps(&formula, &prefix, &result, variables),
+                    unit: registry::format(&quantity.unit),
+                    quantity_name: quantity.quantity_name().map(str::to_string),
+                    result,
+                    value,
+                    quantity,
+                    formula,
+                    domain_restrictions: None,
+                })
             }
-        };
+            expression => {
+                if has_free_algebraic_variables(expression, variables) {
+                    return self.evaluate_algebraic(formula);
+                }
+                match evaluator.evaluate(expression) {
+                    Ok(raw_qty) => {
+                        let quantity = raw_qty.simplify()?;
+                        let value = quantity.decimal(self.precision)?;
+                        let result = serializer::quantity(&value, &quantity.unit);
+                        let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
+                        Ok(Calculation {
+                            input: serializer::formula(&formula),
+                            latex: format!("{prefix}{result}"),
+                            steps: self.steps(&formula, &prefix, &result, variables),
+                            unit: registry::format(&quantity.unit),
+                            quantity_name: quantity.quantity_name().map(str::to_string),
+                            result,
+                            value,
+                            quantity,
+                            formula,
+                            domain_restrictions: None,
+                        })
+                    }
+                    Err(crate::QuantusError::UnresolvedVariable(name)) => {
+                        if !name.contains('_') {
+                            self.evaluate_algebraic(formula)
+                        } else {
+                            Err(crate::QuantusError::UnresolvedVariable(name))
+                        }
+                    }
+                    Err(err) => Err(err),
+                }
+            }
+        }
+    }
+
+    fn evaluate_algebraic(&self, formula: Formula) -> Result<Calculation> {
+        let simp_result = crate::algebra::pipeline::simplify_node(&formula.expression)?;
+        // If the expression cannot be simplified further and contains free variables,
+        // it cannot be evaluated numerically without variable definitions.
+        if simp_result.steps.is_empty() {
+            let vars = crate::algebra::pipeline::collect_variables(&formula.expression);
+            if let Some(first_var) = vars.into_iter().next() {
+                return Err(crate::QuantusError::UnresolvedVariable(format!(
+                    "The variable {first_var} has no value. Only variables with a subscript can be defined, e.g. {first_var}_1 = 5m."
+                )));
+            }
+        }
+
+        let result = serializer::algebraic_expression(&simp_result.node);
         let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
+        let latex = format!("{prefix}{result}");
+
+        let mut steps = Vec::new();
+        let initial_symbolic = format!("{prefix}{}", serializer::expression(&formula.expression));
+        steps.push(Step::new(StepKind::Symbolic, initial_symbolic));
+
+        for s in &simp_result.steps {
+            steps.push(Step::algebraic(
+                format!("{prefix}{}", serializer::algebraic_expression(&s.after)),
+                s.rule.map(|r| r.as_str().to_string()),
+                s.explanation.clone(),
+                Some(serializer::algebraic_expression(&s.before)),
+                Some(serializer::algebraic_expression(&s.after)),
+            ));
+        }
+
+        if simp_result.steps.is_empty() || steps.last().map(|st| &st.latex) != Some(&latex) {
+            steps.push(Step::new(StepKind::Result, latex.clone()));
+        }
+
+        let domain_restrictions = if simp_result.domain_restrictions.is_empty() {
+            None
+        } else {
+            Some(crate::algebra::domain::format_restrictions_latex_list(&simp_result.domain_restrictions))
+        };
+
+        let zero = Decimal::from_i64(0);
+        let val_zero = crate::num::Value::Rat(dashu::rational::RBig::ZERO);
         Ok(Calculation {
             input: serializer::formula(&formula),
-            latex: format!("{prefix}{result}"),
-            steps: self.steps(&formula, &prefix, &result, variables),
-            unit: registry::format(&quantity.unit),
-            quantity_name: quantity.quantity_name().map(str::to_string),
+            latex,
+            steps,
+            value: zero,
+            unit: String::new(),
+            quantity_name: None,
+            quantity: PhysicalQuantity::new(val_zero, crate::units::Unit::ONE),
             result,
-            value,
-            quantity,
             formula,
+            domain_restrictions,
         })
     }
 
@@ -124,19 +249,71 @@ impl LatexCalculator {
         let symbolic = format!("{prefix}{}", serializer::expression(&formula.expression));
         // A definition such as `m_1 = 2kg` has nothing to show but itself.
         if symbolic == format!("{prefix}{result}") {
-            return vec![Step { kind: StepKind::Result, latex: symbolic }];
+            return vec![Step::new(StepKind::Result, symbolic)];
         }
 
-        let mut steps = vec![Step { kind: StepKind::Symbolic, latex: symbolic }];
+        let mut steps = vec![Step::new(StepKind::Symbolic, symbolic)];
         if uses_variables(&formula.expression) {
             let substituted = format!("{prefix}{}", serializer::expression(&substitute(&formula.expression, variables, self.precision)));
             // A bound variable (`\sum_{i=1}^{3} i`) is a variable too, but has nothing to put in.
             if substituted != steps[0].latex {
-                steps.push(Step { kind: StepKind::Substituted, latex: substituted });
+                steps.push(Step::new(StepKind::Substituted, substituted));
             }
         }
-        steps.push(Step { kind: StepKind::Result, latex: format!("{prefix}{result}") });
+        steps.push(Step::new(StepKind::Result, format!("{prefix}{result}")));
         steps
+    }
+}
+
+fn has_free_algebraic_variables(node: &Node, variables: &Variables) -> bool {
+    let mut bound = Vec::new();
+    check_free_algebraic_variables(node, &mut bound, variables)
+}
+
+fn check_free_algebraic_variables(node: &Node, bound: &mut Vec<String>, variables: &Variables) -> bool {
+    match node {
+        Node::Variable { name, index, .. } if index.is_empty() => {
+            !bound.contains(name) && !variables.contains_key(name)
+        }
+        Node::Sum { index, from, to, body, .. } => {
+            if check_free_algebraic_variables(from, bound, variables) || check_free_algebraic_variables(to, bound, variables) {
+                return true;
+            }
+            bound.push(index.clone());
+            let found = check_free_algebraic_variables(body, bound, variables);
+            bound.pop();
+            found
+        }
+        Node::Integral { variable, lower, upper, body, .. } => {
+            if check_free_algebraic_variables(lower, bound, variables) || check_free_algebraic_variables(upper, bound, variables) {
+                return true;
+            }
+            bound.push(variable.clone());
+            let found = check_free_algebraic_variables(body, bound, variables);
+            bound.pop();
+            found
+        }
+        Node::Limit { variable, target, body, .. } => {
+            if check_free_algebraic_variables(target, bound, variables) {
+                return true;
+            }
+            bound.push(variable.clone());
+            let found = check_free_algebraic_variables(body, bound, variables);
+            bound.pop();
+            found
+        }
+        Node::Derivative { variable, body, at, .. } => {
+            if let Some(at_node) = at {
+                if check_free_algebraic_variables(at_node, bound, variables) {
+                    return true;
+                }
+            }
+            bound.push(variable.clone());
+            let found = check_free_algebraic_variables(body, bound, variables);
+            bound.pop();
+            found
+        }
+        _ => node.children().into_iter().any(|c| check_free_algebraic_variables(c, bound, variables)),
     }
 }
 
@@ -173,7 +350,7 @@ mod tests {
     #[test]
     fn a_definition_that_is_its_own_result_has_one_step() {
         let c = calc("m_1 = 2kg");
-        assert_eq!(c.steps, [Step { kind: StepKind::Result, latex: "m_{1} = 2\\,\\mathrm{kg}".into() }]);
+        assert_eq!(c.steps, [Step::new(StepKind::Result, "m_{1} = 2\\,\\mathrm{kg}")]);
     }
 
     #[test]

@@ -163,10 +163,10 @@ We will extend `quantus-core` with a dedicated symbolic algebra module (`crates/
     - Currently `x`, `z`, `\theta` parse as free `Node::Variable { name, index: "" }`.
     - Letters like `y` (year), `a` (year), `d` (day), `h` (hour), `s` (second), `m` (metre), `g` (gram) are in the unit lookup table. Add smart disambiguation (or fallback when an expression is algebraic / when `y` is used alongside `x` or with polynomial exponents/operations, or reclassify single-letter `y` if not required by unit oracle tests—verify against `units_oracle.rs`, `evaluate.json`, `roundtrip.json`, `quantity_cases.json`).
   - [x] Enhance `latex::serializer` (or add an algebraic serializer mode in `latex::serializer`) so that algebraic products format cleanly and naturally (e.g. `3(x - 2)` or `3 \cdot (x - 2)`, `(x - 4)(x + 3)`, `3x^{2} - 17x - 78`), while preserving 100% compatibility with `tests/latex_golden.rs` and `tests/golden.rs`.
-- [ ] **6.2. Calculator & API integration (`crates/quantus-core/src/eval/calculator.rs`, `src/api.rs`)**:
-  - [ ] In `LatexCalculator::evaluate`, detect when an expression (not an `Equation`, `\int`, `\sum`, `\lim`, `\frac{d}{dx}`) contains free algebraic variables (or is a pure algebraic simplification request).
-  - [ ] Route such expressions to the algebraic simplification engine instead of failing with `UnresolvedVariable`.
-  - [ ] Extend `Calculation`, `Step`, `CalculationResponse`, and `StepResponse` with backwards-compatible fields:
+- [x] **6.2. Calculator & API integration (`crates/quantus-core/src/eval/calculator.rs`, `src/api.rs`)**:
+  - [x] In `LatexCalculator::evaluate`, detect when an expression (not an `Equation`, `\int`, `\sum`, `\lim`, `\frac{d}{dx}`) contains free algebraic variables (or is a pure algebraic simplification request).
+  - [x] Route such expressions to the algebraic simplification engine instead of failing with `UnresolvedVariable`.
+  - [x] Extend `Calculation`, `Step`, `CalculationResponse`, and `StepResponse` with backwards-compatible fields:
     - Keep all existing fields (`input`, `latex`, `result`, `steps`, `align_block`, `value`, `unit`, `quantity_name`, `dimension`, `variable`) intact so existing API tests (`the_milestone_has_the_kotlin_response_shape`) pass or only extend optional/additional fields cleanly as appropriate.
     - Include step metadata (`rule`, `explanation`, `before`, `after`) and `domain_restrictions: Vec<String>` (or formatted restriction string) in the calculation/API response.
     - Expose a dedicated public entry point `quantus_core::algebra::simplify(latex: &str) -> Result<SimplificationResult>` for direct programmatic and test access as well.

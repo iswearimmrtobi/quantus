@@ -87,3 +87,73 @@ fn test_algebraic_serializer_clean_products() {
     let node_unit = parse(r"2\,\mathrm{kg}");
     assert_eq!(serializer::algebraic_expression(&node_unit), r"2\,\mathrm{kg}");
 }
+
+#[test]
+fn test_latex_calculator_algebraic_routing_and_domain_restrictions() {
+    use quantus_core::eval::LatexCalculator;
+    use std::collections::HashMap;
+
+    let calc = LatexCalculator::default();
+    let vars = HashMap::new();
+
+    // Reference expression
+    let input = r"3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)";
+    let calculation = calc.evaluate(input, &vars).unwrap();
+
+    assert_eq!(
+        calculation.result,
+        r"\frac{3x - 26}{x - 4}"
+    );
+    assert_eq!(
+        calculation.domain_restrictions.as_deref(),
+        Some(&["x \\neq -3, 2, 4".to_string()][..])
+    );
+    assert!(calculation.steps.len() >= 5);
+    // Intermediate step has rule, explanation, before and after
+    let step = calculation.steps.iter().find(|s| s.rule.is_some()).unwrap();
+    assert!(step.rule.is_some());
+    assert!(step.explanation.is_some());
+    assert!(step.before.is_some());
+    assert!(step.after.is_some());
+
+    // Simple rational reduction with domain restriction
+    let simp = calc.evaluate(r"\frac{x^2 - 1}{x - 1}", &vars).unwrap();
+    assert_eq!(simp.result, "x + 1");
+    assert_eq!(
+        simp.domain_restrictions.as_deref(),
+        Some(&["x \\neq 1".to_string()][..])
+    );
+}
+
+#[test]
+fn test_api_evaluate_algebraic_response_shape() {
+    use quantus_core::api::{evaluate, CalculationRequest};
+    use quantus_core::session::SessionStore;
+
+    let mut store = SessionStore::new();
+    let request = CalculationRequest {
+        latex: r"3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)".into(),
+        ..Default::default()
+    };
+    let response = evaluate(&mut store, &request).unwrap();
+
+    assert_eq!(
+        response.result,
+        r"\frac{3x - 26}{x - 4}"
+    );
+    assert_eq!(
+        response.domain_restrictions.as_deref(),
+        Some(&["x \\neq -3, 2, 4".to_string()][..])
+    );
+    let step = response.steps.iter().find(|s| s.rule.is_some()).unwrap();
+    assert!(step.explanation.is_some());
+    assert!(step.before.is_some());
+    assert!(step.after.is_some());
+
+    // Public simplify function
+    let res = quantus_core::algebra::simplify(r"3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)").unwrap();
+    assert_eq!(
+        quantus_core::latex::serializer::algebraic_expression(&res.node),
+        r"\frac{3x - 26}{x - 4}"
+    );
+}

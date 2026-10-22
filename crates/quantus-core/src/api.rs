@@ -42,6 +42,9 @@ pub struct CalculationResponse {
     pub dimension: String,
     /// Set when the input defined a variable (`r_1 = 0{,}5m`).
     pub variable: Option<VariableResponse>,
+    /// Domain restrictions for algebraic expressions, e.g. `["x \\neq -3, 2, 4"]`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub domain_restrictions: Option<Vec<String>>,
 }
 
 impl CalculationResponse {
@@ -53,7 +56,14 @@ impl CalculationResponse {
             steps: calculation
                 .steps
                 .iter()
-                .map(|s| StepResponse { kind: s.kind.name().to_string(), latex: s.latex.clone() })
+                .map(|s| StepResponse {
+                    kind: s.kind.name().to_string(),
+                    latex: s.latex.clone(),
+                    rule: s.rule.clone(),
+                    explanation: s.explanation.clone(),
+                    before: s.before.clone(),
+                    after: s.after.clone(),
+                })
                 .collect(),
             align_block: calculation.align_block(),
             value: calculation.value.to_plain_string(),
@@ -61,15 +71,25 @@ impl CalculationResponse {
             quantity_name: calculation.quantity_name.clone(),
             dimension: calculation.quantity.dimension().to_string(),
             variable: variable.map(VariableResponse::of),
+            domain_restrictions: calculation.domain_restrictions.clone(),
         }
     }
 }
 
-/// `kind` is `symbolic`, `substituted` or `result`.
+/// `kind` is `symbolic`, `substituted`, `result`, or `algebraic`.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct StepResponse {
     pub kind: String,
     pub latex: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rule: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub explanation: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub after: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]

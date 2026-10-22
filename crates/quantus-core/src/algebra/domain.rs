@@ -96,8 +96,13 @@ impl fmt::Display for DomainRestriction {
 /// Formats a list of domain restrictions into canonical LaTeX representation,
 /// grouping multiple values for the same variable (e.g. `x \neq -3, 2, 4`).
 pub fn format_restrictions_latex(restrictions: &[DomainRestriction]) -> String {
+    format_restrictions_latex_list(restrictions).join(", ")
+}
+
+/// Formats a list of domain restrictions into canonical LaTeX strings per variable/polynomial.
+pub fn format_restrictions_latex_list(restrictions: &[DomainRestriction]) -> Vec<String> {
     if restrictions.is_empty() {
-        return String::new();
+        return Vec::new();
     }
     let mut sorted = restrictions.to_vec();
     sorted.sort();
@@ -128,7 +133,7 @@ pub fn format_restrictions_latex(restrictions: &[DomainRestriction]) -> String {
             }
         }
     }
-    parts.join(", ")
+    parts
 }
 
 /// Formats a list of domain restrictions into plain text representation,
