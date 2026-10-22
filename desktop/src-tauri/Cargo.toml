@@ -11,3 +11,4 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 quantus-core = { path = "../../crates/quantus-core" }
 tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
