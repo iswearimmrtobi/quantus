@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-clipboard-manager": "^2.5.0",
     "katex": "^0.16.11",
     "mathlive": "^0.110.0",
     "react": "^19.2.0",

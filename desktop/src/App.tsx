@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type Calculation, type StepKind, type Variable } from './api';
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
-import { inShell, onShortcut } from './shell';
+import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
 
 interface HistoryEntry {
@@ -69,11 +69,7 @@ export function App() {
   }, [refreshVariables]);
 
   const copy = useCallback(async (text: string, marker: string) => {
-    if (window.quantus) {
-      await window.quantus.copy(text);
-    } else {
-      await navigator.clipboard.writeText(text);
-    }
+    await copyText(text);
     setCopied(marker);
     window.setTimeout(() => setCopied((current) => (current === marker ? null : current)), 1200);
   }, []);

@@ -5,6 +5,7 @@ mod shell;
 
 fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
     builder
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(commands::Engine::default())
         .manage(shell::Zoom::default())
         .menu(|app| shell::build_menu(app))
