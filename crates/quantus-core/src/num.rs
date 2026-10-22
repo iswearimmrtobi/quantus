@@ -451,6 +451,7 @@ impl fmt::Display for Value {
             Value::I => f.write_str("I"),
             Value::Add(items) => write_joined(f, items, "+"),
             Value::Mul(items) => write_joined(f, items, "*"),
+            Value::Pow(base, exponent) if **exponent == Value::ratio(1, 2) => write!(f, "Sqrt({base})"),
             Value::Pow(base, exponent) => write!(f, "({base})^({exponent})"),
         }
     }

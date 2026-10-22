@@ -71,6 +71,56 @@ impl PhysicalQuantity {
         PhysicalQuantity::new(self.value.neg(), self.unit.clone())
     }
 
+    pub fn pow_int(&self, exponent: i32) -> Result<PhysicalQuantity> {
+        Ok(PhysicalQuantity::new(
+            self.value.pow(&Value::int(exponent.into()))?,
+            self.unit.pow(exponent),
+        ))
+    }
+
+    /// Raising to an arbitrary power.
+    ///
+    /// The exponent must be dimensionless. If the base carries a unit, the exponent must also
+    /// be rational: only then can the unit be raised along with it (`m²` to the ½ is `m`). A
+    /// dimensionless base may be raised to anything.
+    pub fn pow(&self, exponent: &PhysicalQuantity) -> Result<PhysicalQuantity> {
+        if !exponent.is_dimensionless() {
+            return Err(QuantusError::DimensionMismatch(format!(
+                "The exponent must be dimensionless but carries the unit {}.",
+                registry::describe(&exponent.unit)
+            )));
+        }
+        let powered = self.value.pow(&exponent.value)?;
+        if self.is_dimensionless() {
+            return Ok(PhysicalQuantity::dimensionless(powered));
+        }
+        let rational = exponent.value.as_rational().ok_or_else(|| {
+            QuantusError::other(format!(
+                "A quantity with a unit can only be raised to a rational power, but the exponent \
+                 here is '{}'.",
+                exponent.value
+            ))
+        })?;
+        let (numerator, denominator) = (
+            i32::try_from(rational.numerator().clone()),
+            i32::try_from(rational.denominator().clone()),
+        );
+        let (Ok(numerator), Ok(denominator)) = (numerator, denominator) else {
+            return Err(QuantusError::other(format!("The exponent '{}' is too large.", exponent.value)));
+        };
+        let unit = self.unit.pow(numerator);
+        let unit = if denominator == 1 { unit } else { unit.root(denominator)? };
+        Ok(PhysicalQuantity::new(powered, unit))
+    }
+
+    /// `n`-th root of both value and unit (`m²` to `m`).
+    pub fn root(&self, n: u32) -> Result<PhysicalQuantity> {
+        if n == 0 {
+            return Err(QuantusError::other("root exponent must be positive, was: 0"));
+        }
+        self.pow(&PhysicalQuantity::dimensionless(Value::ratio(1, n.into())))
+    }
+
     /// Explicit conversion to a target unit (F1: km/h to m/s, prefixes).
     pub fn to(&self, target: &Unit) -> Result<PhysicalQuantity> {
         if !self.unit.is_compatible(target) {
@@ -213,6 +263,43 @@ mod tests {
     #[test]
     fn dividing_by_zero_is_an_error() {
         assert!(q(1, &[("m", 1)]).div(&q(0, &[("s", 1)])).is_err());
+    }
+
+    #[test]
+    fn integer_powers_raise_the_unit_along() {
+        let area = q(3, &[("m", 1)]).pow_int(2).unwrap();
+        assert_eq!((area.value, area.unit.to_string()), (Value::int(9), "m²".to_string()));
+        let inverse = q(3, &[("m", 1)]).pow_int(-2).unwrap();
+        assert_eq!((inverse.value, inverse.unit.to_string()), (Value::ratio(1, 9), "1/m²".to_string()));
+        let zero = q(3, &[("m", 1)]).pow_int(0).unwrap();
+        assert_eq!((zero.value, zero.unit), (Value::one(), Unit::ONE));
+    }
+
+    #[test]
+    fn roots_take_the_unit_along() {
+        let length = q(9, &[("m", 2)]).root(2).unwrap();
+        assert_eq!((length.value, length.unit.to_string()), (Value::int(3), "m".to_string()));
+        let half = q(9, &[("m", 1)]).root(2).unwrap();
+        assert_eq!(half.unit.to_string(), "m^1:2");
+        let irrational = q(2, &[]).root(2).unwrap();
+        assert!(irrational.value.as_rational().is_none());
+        assert!(q(2, &[]).root(0).is_err());
+    }
+
+    #[test]
+    fn exponents_must_be_dimensionless_and_rational_for_unit_bearing_bases() {
+        assert_eq!(
+            message(q(2, &[("m", 1)]).pow(&q(2, &[("s", 1)]))),
+            "The exponent must be dimensionless but carries the unit s (time)."
+        );
+        let sqrt2 = PhysicalQuantity::dimensionless(Value::int(2).pow(&Value::ratio(1, 2)).unwrap());
+        assert_eq!(
+            message(q(2, &[("m", 1)]).pow(&sqrt2)),
+            "A quantity with a unit can only be raised to a rational power, but the exponent here is 'Sqrt(2)'."
+        );
+        let half = PhysicalQuantity::dimensionless(Value::ratio(1, 2));
+        let root = q(4, &[("m", 2)]).pow(&half).unwrap();
+        assert_eq!((root.value, root.unit.to_string()), (Value::int(2), "m".to_string()));
     }
 
     #[test]
