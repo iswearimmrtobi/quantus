@@ -160,7 +160,13 @@ M8 findings that change M9:
 - Not done: PKGBUILD/Flatpak (AppImage is fine), rendering by eye, signing/updates.
 
 
-**M9 Cutover.** Run the Kotlin suite one last time; delete `src/`, Gradle files, `gradlew*`, `desktop/electron/`, `electron-builder.yml`, Electron/concurrently dependencies, jlink/CDS tasks, `desktop/hs_err_*.log`; update README (German), `.gitignore`, spec status; keep `spec-si-rechner-v2.md` and `docs/phase0-findings.md` (add a note that Symja/Indriya findings are historical and which Rust behaviour replaces them). Commit in reviewable steps (only when the user asks).
+**M9 Cutover (done).** Run the Kotlin suite one last time; delete `src/`, Gradle files, `gradlew*`, `desktop/electron/`, `electron-builder.yml`, Electron/concurrently dependencies, jlink/CDS tasks, `desktop/hs_err_*.log`; update README (German), `.gitignore`, spec status; keep `spec-si-rechner-v2.md` and `docs/phase0-findings.md` (add a note that Symja/Indriya findings are historical and which Rust behaviour replaces them). Commit in reviewable steps (only when the user asks).
+
+M9 findings:
+- The Kotlin suite ran once more with `--rerun-tasks`: 118 tests, 0 failures, then `src/`, Gradle files, `desktop/electron/`, `electron-builder.yml`, `tsconfig.electron.json`, `build/icon.png`, the Electron/concurrently dependencies and the stray `hs_err` log were removed (Kotlin stays in git history). The obsolete startup work (CDS, CasWarmUp) went with them.
+- npm scripts are now `dev` (`tauri dev`), `dev:renderer`/`build:renderer` (called by `tauri.conf.json`), `bundle`, `typecheck`. `cargo test --workspace` and `npm run typecheck`/`build:renderer` pass after the removal.
+- README is rewritten for Rust/Tauri; the spec carries a banner and struck-through N1/N2a (N4 marked deferred); `docs/phase0-findings.md` is marked historical with the Rust replacement per finding.
+- The cold-start comparison with Electron is dropped: the Electron build no longer exists, and the 457-510 ms AppImage figure from M8 stands alone.
 
 **M10 Follow-ups (not part of the migration).** Optional thin `quantus-server` crate (axum) over `quantus-core` if self-hosting/Docker (N4) is still wanted; history and persistence (phase 6); F8 analysis (derive, integrate, solve, plot), where a CAS such as Symbolica gets re-evaluated for licence terms; physical constants (c, h, G).
 
