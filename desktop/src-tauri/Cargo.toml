@@ -1,0 +1,13 @@
+[package]
+name = "quantus-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Quantus desktop shell: Tauri commands over quantus-core"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+quantus-core = { path = "../../crates/quantus-core" }
+tauri = { version = "2", features = [] }
