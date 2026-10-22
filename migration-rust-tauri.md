@@ -18,6 +18,7 @@ Quantus is a LaTeX-in/LaTeX-out physics calculator. Today: Kotlin backend (Sprin
 
 - Done: branch `rust-tauri`; Cargo workspace; `quantus-core::{error, num}` with 12 passing tests; golden JSON (`roundtrip`, `parse_errors`, `evaluate`, `sessions`, ~80 cases) in `crates/quantus-core/tests/golden/`.
 - Done: M1 oracle extraction. `units_symbols.json` (715 known symbols, 187,802 unknown candidates), `units_format.json` (79 units), `quantity_cases.json` (81 operation cases). Kotlin suite green before and after; the temporary dumper was deleted.
+- Done: M4 LaTeX (`quantus-core::latex::{ast,lexer,parser,normalizer,numbers,serializer}`, 17 unit tests plus `tests/latex_golden.rs` over all 42 round trips, 2 labels and 9 parse errors).
 - Done: M3 quantity (`quantus-core::quantity`, 12 unit tests plus `tests/quantity_golden.rs` over all 81 cases of `quantity_cases.json`).
 - Done: M2 units (`quantus-core::units`, 29 unit tests plus `tests/units_oracle.rs`). The oracle test checks all 188,499 one to three character candidates against `units_symbols.json` (known or not, dimension string and vector, exact factor and offset, printed form) and all 79 units of `units_format.json` on every field.
 - The user's uncommitted Kotlin/Electron startup work is untouched and becomes obsolete at cutover.
@@ -111,7 +112,13 @@ M3 findings that change M4/M5:
 - `Value`'s `Display` prints `Sqrt(x)` for a power of ½, matching the Symja text embedded in the "rational power" error.
 - `UnsupportedConversion` for products with offsets/roots keeps its own wording; no quantity case needed Indriya's.
 
-**M4 LaTeX.** AST, lexer, parser, normalizer, numbers, serializer, parse-error excerpt (unit LaTeX is done, see M2). Exit: `roundtrip.json` and `parse_errors.json` pass (positions 0-based, message substrings match).
+**M4 LaTeX (done).** AST, lexer, parser, normalizer, numbers, serializer, parse-error excerpt (unit LaTeX is done, see M2). Exit: `roundtrip.json` and `parse_errors.json` pass (positions 0-based, message substrings match).
+
+M4 findings that change M5:
+- `QuantusError::Parse` now carries `source`; its message is `<reason> (at position N+1: '<up to 12 characters>…')`. Positions are character indices (Kotlin: UTF-16 units), identical for the BMP.
+- `Node::Unit` holds the resolved `Unit` and the spelling that resolved it; `serializer::quantity(&Decimal, &Unit)` is the result renderer M5 needs. `Node::variable_key` and `Label::key` give the session key `name_index`.
+- Kept from Kotlin on purpose: a parenthesised fraction as a power base (`(a/b)^2`) serialises without brackets, because the `Group` hides the fraction from the bracket check. Pinned in a serializer test; fix it only together with the Kotlin behaviour.
+- The lexer accepts ASCII digits only (Kotlin `isDigit` also takes other Unicode digits); such input now fails as an unexpected character.
 
 **M5 Eval, session, API structs.** Evaluator, substitution, calculator with steps and `alignBlock`, sessions, `api` module. Exit: `evaluate.json` and `sessions.json` pass through a `tests/golden.rs` runner; JSON field names/shape equal the Kotlin `CalculationResponse` (checked with a serde round-trip test against the old controller expectations).
 
