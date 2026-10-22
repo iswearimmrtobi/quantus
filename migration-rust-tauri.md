@@ -150,7 +150,15 @@ M7 findings that change M8:
 - The fatal-error dialog uses `rfd` directly (gtk3) from `main()`: a failed `run` or any panic shows "Quantus startet nicht" and exits 1. There is no backend process to fail any more.
 - Verified: menu contains every forwarded id (unit test), IPC tests, `cargo run` stays up. Not verified by eye: accelerators in the real window, second launch focusing the first, link opening, clipboard content. Run the checklist in the Verification section before calling M7 closed.
 
-**M8 Packaging.** Icon pipeline (`tauri icon` or the existing `rsvg-convert` script), desktop entry (category Education, keywords, `StartupWMClass`), AppImage via the Tauri bundler; optionally `.deb`/PKGBUILD. Exit: runs from a clean directory; measured cold start and size compared with Electron+JRE.
+**M8 Packaging (done, manual checks open).** Icon pipeline (`tauri icon` or the existing `rsvg-convert` script), desktop entry (category Education, keywords, `StartupWMClass`), AppImage via the Tauri bundler; optionally `.deb`/PKGBUILD. Exit: runs from a clean directory; measured cold start and size compared with Electron+JRE.
+
+M8 findings that change M9:
+- `npm run bundle` (`tauri build`) produces `Quantus_0.1.0_amd64.AppImage` (102 MiB) and `.deb` (6.4 MiB, depends on the system WebKitGTK) under `target/release/bundle/`. The AppImage bundles WebKit libs, so it is about 44 % of the Electron+JRE AppImage (223 MiB); the bare binary is 17 MiB.
+- Icons: `tauri icon build/icon.svg`, trimmed to the Linux set in `src-tauri/icons` (32, 64, 128, 128@2x, icon.png). `build/icon.svg` stays the source; the `icon` npm script (rsvg-convert) is only needed by electron-builder and goes at M9.
+- The desktop entry comes from `src-tauri/packaging/quantus.desktop` (Handlebars; used for both AppImage and deb): Education, keywords, `StartupWMClass=de.quantus.desktop`. Whether that class matches the window on Wayland/X11 is unchecked; verify in a taskbar before relying on it.
+- Cold start, AppImage run from a fresh temp directory under `GDK_BACKEND=x11`, until a window titled Quantus exists: 457-510 ms (3 runs, includes the FUSE mount). The old Electron AppImage in `desktop/release` opened no window here (stale Kotlin backend), so there is no like-for-like number; measure at M9 or drop the comparison.
+- Not done: PKGBUILD/Flatpak (AppImage is fine), rendering by eye, signing/updates.
+
 
 **M9 Cutover.** Run the Kotlin suite one last time; delete `src/`, Gradle files, `gradlew*`, `desktop/electron/`, `electron-builder.yml`, Electron/concurrently dependencies, jlink/CDS tasks, `desktop/hs_err_*.log`; update README (German), `.gitignore`, spec status; keep `spec-si-rechner-v2.md` and `docs/phase0-findings.md` (add a note that Symja/Indriya findings are historical and which Rust behaviour replaces them). Commit in reviewable steps (only when the user asks).
 
