@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type Calculation, type StepKind, type Variable } from './api';
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
+import { inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
 
 interface HistoryEntry {
@@ -113,9 +114,9 @@ export function App() {
     void refreshVariables();
   }, [refreshVariables]);
 
-  // The menu accelerators of the main process (F10).
+  // The menu accelerators of the native shell (F10).
   useEffect(() => {
-    return window.quantus?.onShortcut((shortcut) => {
+    return onShortcut((shortcut) => {
       const current = latest.current.calculation;
       switch (shortcut) {
         case 'new':
@@ -155,7 +156,7 @@ export function App() {
         editor()?.focus();
         return;
       }
-      if (window.quantus || !event.ctrlKey) return;
+      if (inShell || !event.ctrlKey) return;
       const key = event.key.toLowerCase();
       if (key === 'l') {
         event.preventDefault();
