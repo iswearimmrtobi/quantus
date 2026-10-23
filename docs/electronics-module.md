@@ -35,7 +35,8 @@ Target example: *100 m copper cable with 2.0 mm² and a 10 Ω load resistor – 
 | Code location | Module `quantus_core::electro` in the existing crate (no new crate) |
 | Integration | Tauri commands calling `quantus_core`, circuit sent as JSON; no server |
 | Units | Existing `PhysicalQuantity` / `Unit` (Ω, V, A, W, S, K and °C already exist) |
-| Saving circuits | Not in v1 (the circuit lives in memory) |
+| Several unknowns | A result is `Known` only if it is exactly unchanged when each unknown is varied; otherwise `Unknown("hängt von R1, R2 ab")`. No partial or symbolic relations |
+| Saving circuits | v1 has load and save of a circuit as a JSON file; no autosave |
 
 ---
 
@@ -167,6 +168,14 @@ Same conventions as `api.rs`: camelCase field names, absent values as `null`, er
 - The mode switch in the top bar gets a fourth entry "Elektronik". The UI language is German, so all labels, notes and error texts shown in the editor are German.
 - **Live display:** every element and node immediately shows its computed values (rendered with `Katex`), `Unknown` is greyed out, notes (e.g. "idealised") are visible.
 - Recalculation on every change via the `solve_circuit` Tauri command.
+- **Load / save:** two buttons ("Laden", "Speichern") read and write the circuit as a `.json` file. The file holds the circuit as the editor keeps it: nodes, elements with their parameter texts, and the editor metadata (x, y, rotation), in the same structure as the `CircuitRequest`, plus a `version` field for later format changes. Loading validates the file and reports a broken one as an error instead of replacing the circuit. There is no autosave; the circuit is lost when the app closes unless it was saved.
+- **German texts** (labels, `Unknown` reasons, notes, errors):
+  - Missing input: "Unbekannt: Versorgungsspannung fehlt"
+  - Depends on an unknown: "Unbekannt: hängt von R1 ab"
+  - Idealised wire: "Leitung W1 idealisiert: Material fehlt"
+  - Default temperature: "bei 20 °C"
+  - Ratio without a source: "relativ, 14,7 % (Spannung unbekannt)"
+  - Solver errors: "Kurzschluss", "Knoten nicht verbunden", "keine Lösung: Last zu groß", "nicht konvergiert"
 
 ---
 
@@ -201,13 +210,11 @@ Each step is one commit on `master`, built and tested before the next.
 2. Linear exact MNA with `Known/Unknown` logic and tests.
 3. Power load (Newton) and reverse solving.
 4. `Mode::Electronics`, JSON interface (`api.rs`) and Tauri command.
-5. Schematic editor (React/SVG) with live display.
-6. Later: AC (complex impedances via `Value::I`, capacitor and inductor, π-model of the wire with `R + jωL` in series and C/2 at both ends in shunt, output as magnitude and phase). Saving and loading circuits.
+5. Schematic editor (React/SVG) with live display, then load and save as JSON.
+6. Later: AC (complex impedances via `Value::I`, capacitor and inductor, π-model of the wire with `R + jωL` in series and C/2 at both ends in shunt, output as magnitude and phase).
 
 ---
 
 ## 11. Open Points
 
-- Exact behaviour with several simultaneous unknowns outside reverse solving (just `Unknown`, or partial solutions as well).
-- Saving and loading circuits (format and location), deferred past v1.
-- How `Unknown` and notes are worded in German in the UI.
+- How the JSON file is opened and written. A native file dialog needs a new Tauri plugin (`tauri-plugin-dialog`, and `tauri-plugin-fs` or a command in `commands.rs` for the file access), like the clipboard plugin already used. The alternative without a new dependency is an `<input type="file">` for loading and a download link for saving, which may behave poorly in the webview. To be decided when step 5 starts.
