@@ -9,6 +9,7 @@
 use crate::error::{QuantusError, Result};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
+use super::text::msg;
 use crate::units::{find, Unit};
 
 use super::circuit::{Circuit, ElementKind};
@@ -70,7 +71,7 @@ const GRID: std::ops::RangeInclusive<i64> = -15..=15;
 pub fn solve_for(circuit: &Circuit, element: &str, parameter: Parameter, target: &Target, precision: usize) -> Result<Reverse> {
     let trial = |x: &Value| with_parameter(circuit, element, parameter, x);
     if missing_parameters(&trial(&Value::one())?)? > 0 {
-        return Err(QuantusError::other("mehr als eine Unbekannte"));
+        return Err(QuantusError::other(msg!("more than one unknown", "more than one unknown")));
     }
     let goal = target_value(&target.measure, &target.value)?;
     // The inner solves converge a little further than the answer is looked for.
@@ -109,7 +110,7 @@ pub fn solve_for(circuit: &Circuit, element: &str, parameter: Parameter, target:
         previous = Some((x, d));
     }
     let Some((mut low, low_deviation, mut high)) = bracket else {
-        return Err(first_error.unwrap_or_else(|| QuantusError::other("Ziel nicht erreichbar")));
+        return Err(first_error.unwrap_or_else(|| QuantusError::other(msg!("the target cannot be reached", "the target cannot be reached"))));
     };
 
     let negative_at_low = low_deviation.is_negative()?;
@@ -176,7 +177,7 @@ fn with_parameter(circuit: &Circuit, id: &str, parameter: Parameter, x: &Value) 
         .elements
         .iter_mut()
         .find(|e| e.id == id)
-        .ok_or_else(|| QuantusError::other(format!("Element {id} gibt es nicht")))?;
+        .ok_or_else(|| QuantusError::other(msg!("Element {id} does not exist", "Element {id} gibt es nicht")))?;
     let quantity = parameter_unit(parameter).map(|u| Some(PhysicalQuantity::new(x.clone(), u)));
     let slot: Option<&mut Option<PhysicalQuantity>> = match (&mut element.kind, parameter) {
         (ElementKind::Resistor { r }, Parameter::Resistance) => Some(r),
@@ -189,22 +190,22 @@ fn with_parameter(circuit: &Circuit, id: &str, parameter: Parameter, x: &Value) 
         (ElementKind::Potentiometer { r_total, .. }, Parameter::TotalResistance) => Some(r_total),
         (ElementKind::Potentiometer { position, .. }, Parameter::Position) => {
             if position.is_some() {
-                return Err(QuantusError::other(format!("Der Parameter von {id} ist schon gegeben")));
+                return Err(QuantusError::other(msg!("The parameter of {id} is already given", "Der Parameter von {id} ist schon gegeben")));
             }
             *position = Some(x.clone());
             return Ok(circuit);
         }
-        _ => return Err(QuantusError::other(format!("Der Parameter passt nicht zu {id}"))),
+        _ => return Err(QuantusError::other(msg!("The parameter does not fit {id}", "Der Parameter passt nicht zu {id}"))),
     };
     let slot = slot.expect("a parameter with a unit");
     if slot.is_some() {
-        return Err(QuantusError::other(format!("Der Parameter von {id} ist schon gegeben")));
+        return Err(QuantusError::other(msg!("The parameter of {id} is already given", "Der Parameter von {id} ist schon gegeben")));
     }
     *slot = quantity.expect("a parameter with a unit");
     // A wire is only resistive if it is complete; a partial one would silently stay ideal.
     if let ElementKind::Wire(w) = &element.kind {
         if w.r_override.is_none() && (w.material.is_none() || w.length.is_none() || w.area.is_none()) {
-            return Err(QuantusError::other("mehr als eine Unbekannte"));
+            return Err(QuantusError::other(msg!("more than one unknown", "more than one unknown")));
         }
     }
     Ok(circuit)
@@ -228,13 +229,13 @@ fn read(circuit: &Circuit, measure: &Measure, solution: &Solution) -> Result<Val
             .elements
             .iter()
             .find(|e| e.id == id)
-            .ok_or_else(|| QuantusError::other(format!("Element {id} gibt es nicht")))
+            .ok_or_else(|| QuantusError::other(msg!("Element {id} does not exist", "Element {id} gibt es nicht")))
     };
     let number = |output: &Output| -> Result<(Value, bool)> {
         match output {
             Output::Known(q) => Ok((q.value.clone(), false)),
             Output::Relative { value, .. } => Ok((value.value.clone(), true)),
-            Output::Unknown(reason) => Err(QuantusError::other(format!("Unbekannt: {}", reason.german()))),
+            Output::Unknown(reason) => Err(QuantusError::other(msg!("Unknown: {}", "Unbekannt: {}", reason.text()))),
         }
     };
     match measure {
@@ -243,7 +244,7 @@ fn read(circuit: &Circuit, measure: &Measure, solution: &Solution) -> Result<Val
                 .nodes
                 .iter()
                 .find(|n| n.id == *id)
-                .ok_or_else(|| QuantusError::other(format!("Knoten {id} gibt es nicht")))?;
+                .ok_or_else(|| QuantusError::other(msg!("Node {id} does not exist", "Knoten {id} gibt es nicht")))?;
             Ok(number(&node.voltage)?.0)
         }
         Measure::Voltage(id) => Ok(number(&element(id)?.voltage)?.0),
@@ -263,8 +264,8 @@ fn read(circuit: &Circuit, measure: &Measure, solution: &Solution) -> Result<Val
             let supply = circuit.elements.iter().find(|e| e.id == *source);
             match supply.map(|e| &e.kind) {
                 Some(ElementKind::VoltageSource { u: Some(u), .. }) => sum.div(&u.to(&unit("V"))?.value),
-                Some(ElementKind::VoltageSource { .. }) => Err(QuantusError::other("Unbekannt: Versorgungsspannung fehlt")),
-                _ => Err(QuantusError::other(format!("{source} ist keine Spannungsquelle"))),
+                Some(ElementKind::VoltageSource { .. }) => Err(QuantusError::other(msg!("Unknown: the supply voltage is missing", "Unbekannt: Versorgungsspannung fehlt"))),
+                _ => Err(QuantusError::other(msg!("{source} is not a voltage source", "{source} ist keine Spannungsquelle"))),
             }
         }
     }
@@ -379,25 +380,25 @@ mod tests {
     fn what_cannot_be_done_is_said() {
         let message = |c: &Circuit, p, t: &Target| solve_for(c, "W1", p, t, 10).unwrap_err().to_string();
         // A drop of 200 % cannot be reached.
-        assert_eq!(message(&cable(Some(230)), Parameter::Area, &drop(200)), "Ziel nicht erreichbar");
+        assert_eq!(message(&cable(Some(230)), Parameter::Area, &drop(200)), "the target cannot be reached");
 
         // A second missing value.
         let mut two = cable(Some(230));
         two.elements[2] = resistor("R1", 2, 0, None);
-        assert_eq!(message(&two, Parameter::Area, &drop(3)), "mehr als eine Unbekannte");
+        assert_eq!(message(&two, Parameter::Area, &drop(3)), "more than one unknown");
 
         // A wire that lacks its material would stay ideal whatever its area.
         let mut ideal = cable(Some(230));
         let ElementKind::Wire(w) = &mut ideal.elements[1].kind else { unreachable!() };
         w.material = None;
-        assert_eq!(message(&ideal, Parameter::Area, &drop(3)), "mehr als eine Unbekannte");
+        assert_eq!(message(&ideal, Parameter::Area, &drop(3)), "more than one unknown");
 
         // The parameter is given already, or does not belong to the element.
         let mut given = cable(Some(230));
         let ElementKind::Wire(w) = &mut given.elements[1].kind else { unreachable!() };
         w.area = q(2, "m");
-        assert_eq!(message(&given, Parameter::Area, &drop(3)), "Der Parameter von W1 ist schon gegeben");
-        assert_eq!(message(&cable(Some(230)), Parameter::Power, &drop(3)), "Der Parameter passt nicht zu W1");
+        assert_eq!(message(&given, Parameter::Area, &drop(3)), "The parameter of W1 is already given");
+        assert_eq!(message(&cable(Some(230)), Parameter::Power, &drop(3)), "The parameter does not fit W1");
 
         // The target must have the unit of its measure.
         let volts = Target { measure: Measure::Current("R1".into()), value: q(1, "V").unwrap() };

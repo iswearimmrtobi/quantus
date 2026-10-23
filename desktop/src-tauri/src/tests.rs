@@ -272,24 +272,37 @@ fn a_broken_circuit_file_is_reported_not_loaded() {
         invoke(&w, "load_circuit", json!({ "path": path.to_string_lossy() })).unwrap_err()
     };
 
-    assert!(load("{ nicht json")["error"].as_str().unwrap().starts_with("Keine gültige Schaltungsdatei"));
+    assert!(load("{ nicht json")["error"].as_str().unwrap().starts_with("Not a valid circuit file"));
     assert_eq!(
         load(r#"{ "elements": [] }"#)["error"],
-        "Das ist keine Schaltungsdatei: die Version fehlt."
+        "This is not a circuit file: the version is missing."
     );
     assert_eq!(
         load(r#"{ "version": 2, "elements": [] }"#)["error"],
-        "Schaltungsdatei hat die unbekannte Version 2."
+        "The circuit file has the unknown version 2."
     );
     let bad_kind = r#"{ "version": 1, "elements": [{ "id": "X1", "kind": "diode", "x": 0, "y": 0 }] }"#;
-    assert_eq!(load(bad_kind)["error"], "X1: unbekannte Bauteilart „diode“.");
+    assert_eq!(load(bad_kind)["error"], "X1: unknown kind of part “diode”.");
     let no_position = r#"{ "version": 1, "elements": [{ "id": "R1", "kind": "resistor", "x": 0 }] }"#;
-    assert_eq!(load(no_position)["error"], "R1: die Position (y) fehlt.");
+    assert_eq!(load(no_position)["error"], "R1: the position (y) is missing.");
     let twice = r#"{ "version": 1, "elements": [
         { "id": "R1", "kind": "resistor", "x": 0, "y": 0 }, { "id": "R1", "kind": "resistor", "x": 0, "y": 0 }] }"#;
-    assert_eq!(load(twice)["error"], "Die ID R1 kommt mehrfach vor.");
+    assert_eq!(load(twice)["error"], "The ID R1 occurs more than once.");
 
     let missing = invoke(&w, "load_circuit", json!({ "path": dir.join("gibt-es-nicht.json").to_string_lossy() }));
-    assert!(missing.unwrap_err()["error"].as_str().unwrap().contains("konnte nicht gelesen werden"));
+    assert!(missing.unwrap_err()["error"].as_str().unwrap().contains("could not be read"));
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn circuit_file_errors_follow_the_language_setting() {
+    let w = window();
+    invoke(&w, "set_settings", json!({ "settings": { "language": "de" } })).unwrap();
+    let dir = std::env::temp_dir().join(format!("quantus-german-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("leer.json");
+    std::fs::write(&path, r#"{ "elements": [] }"#).unwrap();
+    let error = invoke(&w, "load_circuit", json!({ "path": path.to_string_lossy() })).unwrap_err();
+    assert_eq!(error["error"], "Das ist keine Schaltungsdatei: die Version fehlt.");
     std::fs::remove_dir_all(dir).unwrap();
 }

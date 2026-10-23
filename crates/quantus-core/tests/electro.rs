@@ -6,7 +6,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use quantus_core::api::{solve_circuit, CircuitRequest};
-use quantus_core::settings::{Mode, Settings};
+use quantus_core::settings::{Language, Mode, Settings};
 use serde_json::{json, Value};
 
 fn golden() -> Value {
@@ -87,4 +87,12 @@ fn the_reverse_result_meets_the_target_when_fed_back() {
 fn a_bad_precision_is_an_error() {
     let request = CircuitRequest { nodes: vec![0], precision: Some(0), ..Default::default() };
     assert!(solve_circuit(&settings(), &request).is_err());
+}
+
+#[test]
+fn the_texts_follow_the_language_setting() {
+    let request = CircuitRequest { nodes: vec![1], ..Default::default() };
+    let message = |language| solve_circuit(&Settings { language, ..settings() }, &request).unwrap_err().to_string();
+    assert_eq!(message(Language::En), "The circuit has no ground node 0.");
+    assert_eq!(message(Language::De), "Die Schaltung hat keinen Masseknoten 0.");
 }

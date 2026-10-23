@@ -6,6 +6,7 @@ use crate::quantity::PhysicalQuantity;
 use crate::units::find;
 
 use super::materials::Material;
+use super::text::msg;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Wire {
@@ -41,21 +42,25 @@ pub enum Missing {
 }
 
 impl Warning {
-    /// The German note shown in the editor; `wire` is the wire's name, e.g. "W1".
-    pub fn german(&self, wire: &str) -> String {
+    /// The note shown in the editor; `wire` is the wire's name, e.g. "W1".
+    pub fn text(&self, wire: &str) -> String {
         match self {
-            Warning::DefaultTemperature => "bei 20 °C".to_string(),
+            Warning::DefaultTemperature => msg!("at 20 °C", "bei 20 °C"),
             Warning::Idealised { missing } => {
-                let names: Vec<&str> = missing
+                let names: Vec<String> = missing
                     .iter()
                     .map(|m| match m {
-                        Missing::Material => "Material",
-                        Missing::Length => "Länge",
-                        Missing::Area => "Querschnitt",
+                        Missing::Material => msg!("material", "Material"),
+                        Missing::Length => msg!("length", "Länge"),
+                        Missing::Area => msg!("cross-section", "Querschnitt"),
                     })
                     .collect();
-                let verb = if names.len() == 1 { "fehlt" } else { "fehlen" };
-                format!("Leitung {wire} idealisiert: {} {verb}", names.join(", "))
+                let names = names.join(", ");
+                if missing.len() == 1 {
+                    msg!("Wire {wire} idealised: {names} is missing", "Leitung {wire} idealisiert: {names} fehlt")
+                } else {
+                    msg!("Wire {wire} idealised: {names} are missing", "Leitung {wire} idealisiert: {names} fehlen")
+                }
             }
         }
     }
@@ -73,7 +78,7 @@ impl Wire {
         if let Some(r) = &self.r_override {
             let r = r.to(&ohm)?;
             if r.value.is_negative()? {
-                return Err(QuantusError::other("The resistance must not be negative."));
+                return Err(QuantusError::other(msg!("The resistance must not be negative.", "Der Widerstand darf nicht negativ sein.")));
             }
             return Ok((r, vec![]));
         }
@@ -96,10 +101,10 @@ impl Wire {
         let length = length.to(&find("m").expect("unit is registered"))?;
         let area = area.to(&find("m").expect("unit is registered").pow(2))?;
         if length.value.is_negative()? {
-            return Err(QuantusError::other("The length must not be negative."));
+            return Err(QuantusError::other(msg!("The length must not be negative.", "Die Länge darf nicht negativ sein.")));
         }
         if area.value.is_zero() || area.value.is_negative()? {
-            return Err(QuantusError::other("The cross-section must be positive."));
+            return Err(QuantusError::other(msg!("The cross-section must be positive.", "Der Querschnitt muss positiv sein.")));
         }
 
         let (difference, warnings) = self.temperature_difference()?;
@@ -145,7 +150,7 @@ mod tests {
         assert_eq!(r.value, Value::ratio(43, 25));
         assert_eq!(r.unit.to_string(), "Ω");
         assert_eq!(warnings, vec![Warning::DefaultTemperature]);
-        assert_eq!(warnings[0].german("W1"), "bei 20 °C");
+        assert_eq!(warnings[0].text("W1"), "at 20 °C");
     }
 
     #[test]
@@ -192,11 +197,11 @@ mod tests {
         wire.material = None;
         let (r, warnings) = wire.resistance().unwrap();
         assert!(r.value.is_zero());
-        assert_eq!(warnings[0].german("W1"), "Leitung W1 idealisiert: Material fehlt");
+        assert_eq!(warnings[0].text("W1"), "Wire W1 idealised: material is missing");
 
         wire.length = None;
         let (_, warnings) = wire.resistance().unwrap();
-        assert_eq!(warnings[0].german("W2"), "Leitung W2 idealisiert: Material, Länge fehlen");
+        assert_eq!(warnings[0].text("W2"), "Wire W2 idealised: material, length are missing");
     }
 
     #[test]

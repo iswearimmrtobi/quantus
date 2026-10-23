@@ -5,6 +5,7 @@ pub mod interface;
 pub mod materials;
 pub mod reverse;
 pub mod solve;
+pub mod text;
 pub mod wire;
 
 pub use circuit::{Circuit, Element, ElementKind, GROUND};

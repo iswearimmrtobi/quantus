@@ -13,10 +13,20 @@ use quantus_core::api::{
     VariableResponse,
 };
 use quantus_core::session::SessionStore;
-use quantus_core::settings::Settings;
+use quantus_core::settings::{Language, Settings};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime, State};
+
+/// `format!` in the given language: the English text first, then the German one.
+macro_rules! text {
+    ($language:expr, $en:literal, $de:literal $(, $arg:expr)* $(,)?) => {
+        match $language {
+            Language::En => format!($en $(, $arg)*),
+            Language::De => format!($de $(, $arg)*),
+        }
+    };
+}
 
 #[derive(Default)]
 pub struct Engine {
@@ -26,6 +36,10 @@ pub struct Engine {
 }
 
 impl Engine {
+    pub fn language(&self) -> Language {
+        self.with(|store| store.settings.language)
+    }
+
     fn with<T>(&self, f: impl FnOnce(&mut SessionStore) -> T) -> T {
         // A poisoned lock only means an earlier command panicked; the store itself is intact.
         let mut store = self
@@ -134,7 +148,11 @@ pub fn set_settings(engine: State<Engine>, settings: Settings) -> Result<Setting
     let saved = engine.with(|store| api::set_settings(store, settings))?;
     if let Some(path) = engine.settings_file.get() {
         save_settings(path, &saved).map_err(|error| ApiError {
-            error: format!("Einstellungen konnten nicht gespeichert werden: {error}"),
+            error: text!(
+                saved.language,
+                "The settings could not be saved: {error}",
+                "Einstellungen konnten nicht gespeichert werden: {error}"
+            ),
             position: None,
         })?;
     }
@@ -163,18 +181,26 @@ fn file_error(message: impl std::fmt::Display) -> ApiError {
 
 /// Checks the shape of a circuit file: the version, and for each element an ID, a known kind and
 /// the editor's position. The parameter texts are not checked here; the solver reads them.
-pub fn validate_circuit(circuit: &Value) -> Result<(), ApiError> {
+pub fn validate_circuit(circuit: &Value, language: Language) -> Result<(), ApiError> {
     let version = circuit.get("version").and_then(Value::as_u64);
     if version != Some(CIRCUIT_FILE_VERSION) {
         return Err(file_error(match version {
-            Some(other) => format!("Schaltungsdatei hat die unbekannte Version {other}."),
-            None => "Das ist keine Schaltungsdatei: die Version fehlt.".to_string(),
+            Some(other) => text!(
+                language,
+                "The circuit file has the unknown version {other}.",
+                "Schaltungsdatei hat die unbekannte Version {other}."
+            ),
+            None => text!(
+                language,
+                "This is not a circuit file: the version is missing.",
+                "Das ist keine Schaltungsdatei: die Version fehlt."
+            ),
         }));
     }
     let elements = circuit
         .get("elements")
         .and_then(Value::as_array)
-        .ok_or_else(|| file_error("Schaltungsdatei ohne Bauteilliste."))?;
+        .ok_or_else(|| file_error(text!(language, "The circuit file has no list of parts.", "Schaltungsdatei ohne Bauteilliste.")))?;
     let mut ids = std::collections::HashSet::new();
     for (index, element) in elements.iter().enumerate() {
         let number = index + 1;
@@ -182,17 +208,17 @@ pub fn validate_circuit(circuit: &Value) -> Result<(), ApiError> {
             .get("id")
             .and_then(Value::as_str)
             .filter(|id| !id.trim().is_empty())
-            .ok_or_else(|| file_error(format!("Bauteil {number}: die ID fehlt.")))?;
+            .ok_or_else(|| file_error(text!(language, "Part {number}: the ID is missing.", "Bauteil {number}: die ID fehlt.")))?;
         if !ids.insert(id) {
-            return Err(file_error(format!("Die ID {id} kommt mehrfach vor.")));
+            return Err(file_error(text!(language, "The ID {id} occurs more than once.", "Die ID {id} kommt mehrfach vor.")));
         }
         let kind = element.get("kind").and_then(Value::as_str).unwrap_or_default();
         if !ELEMENT_KINDS.contains(&kind) {
-            return Err(file_error(format!("{id}: unbekannte Bauteilart „{kind}“.")));
+            return Err(file_error(text!(language, "{id}: unknown kind of part “{kind}”.", "{id}: unbekannte Bauteilart „{kind}“.")));
         }
         for key in ["x", "y"] {
             if !element.get(key).is_some_and(Value::is_number) {
-                return Err(file_error(format!("{id}: die Position ({key}) fehlt.")));
+                return Err(file_error(text!(language, "{id}: the position ({key}) is missing.", "{id}: die Position ({key}) fehlt.")));
             }
         }
     }
@@ -201,28 +227,38 @@ pub fn validate_circuit(circuit: &Value) -> Result<(), ApiError> {
 
 /// Reads a circuit file. A broken one is reported instead of being returned, so the caller keeps
 /// the circuit it has.
-pub fn read_circuit(path: &Path) -> Result<Value, ApiError> {
+pub fn read_circuit(path: &Path, language: Language) -> Result<Value, ApiError> {
     let text = fs::read_to_string(path)
-        .map_err(|error| file_error(format!("{} konnte nicht gelesen werden: {error}", path.display())))?;
+        .map_err(|error| file_error(text!(
+            language,
+            "{} could not be read: {error}",
+            "{} konnte nicht gelesen werden: {error}",
+            path.display()
+        )))?;
     let circuit: Value = serde_json::from_str(&text)
-        .map_err(|error| file_error(format!("Keine gültige Schaltungsdatei: {error}")))?;
-    validate_circuit(&circuit)?;
+        .map_err(|error| file_error(text!(language, "Not a valid circuit file: {error}", "Keine gültige Schaltungsdatei: {error}")))?;
+    validate_circuit(&circuit, language)?;
     Ok(circuit)
 }
 
-pub fn write_circuit(path: &Path, circuit: &Value) -> Result<(), ApiError> {
-    validate_circuit(circuit)?;
+pub fn write_circuit(path: &Path, circuit: &Value, language: Language) -> Result<(), ApiError> {
+    validate_circuit(circuit, language)?;
     let text = serde_json::to_string_pretty(circuit).map_err(file_error)?;
     fs::write(path, text)
-        .map_err(|error| file_error(format!("{} konnte nicht gespeichert werden: {error}", path.display())))
+        .map_err(|error| file_error(text!(
+            language,
+            "{} could not be saved: {error}",
+            "{} konnte nicht gespeichert werden: {error}",
+            path.display()
+        )))
 }
 
 #[tauri::command]
-pub fn load_circuit(path: String) -> Result<Value, ApiError> {
-    read_circuit(Path::new(&path))
+pub fn load_circuit(engine: State<Engine>, path: String) -> Result<Value, ApiError> {
+    read_circuit(Path::new(&path), engine.language())
 }
 
 #[tauri::command]
-pub fn save_circuit(path: String, circuit: Value) -> Result<(), ApiError> {
-    write_circuit(Path::new(&path), &circuit)
+pub fn save_circuit(engine: State<Engine>, path: String, circuit: Value) -> Result<(), ApiError> {
+    write_circuit(Path::new(&path), &circuit, engine.language())
 }

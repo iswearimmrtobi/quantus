@@ -15,7 +15,7 @@
       "expect": {
         "elements": [
           {"id": "V1", "current": {"status": "known", "result": "-19{,}625\\,\\mathrm{A}"}},
-          {"id": "W1", "voltage": {"status": "known", "result": "16{,}877\\,\\mathrm{V}", "unit": "V"}, "notes": ["bei 20 °C"]},
+          {"id": "W1", "voltage": {"status": "known", "result": "16{,}877\\,\\mathrm{V}", "unit": "V"}, "notes": ["at 20 °C"]},
           {"id": "R1", "voltage": {"result": "196{,}25\\,\\mathrm{V}"}},
           {"id": "W2", "voltage": {"result": "16{,}877\\,\\mathrm{V}"}}
         ]
@@ -35,10 +35,10 @@
       "expect": {
         "nodes": [
           {"id": 0, "voltage": {"status": "known", "result": "0\\,\\mathrm{V}"}},
-          {"id": 2, "voltage": {"status": "relative", "result": "75\\,\\%", "source": "V1", "text": "relativ, 75 % (Spannung unbekannt)"}}
+          {"id": 2, "voltage": {"status": "relative", "result": "75\\,\\%", "source": "V1", "text": "relative, 75 % (voltage unknown)"}}
         ],
         "elements": [
-          {"id": "R1", "power": {"status": "unknown", "text": "Unbekannt: Versorgungsspannung fehlt"}}
+          {"id": "R1", "power": {"status": "unknown", "text": "Unknown: the supply voltage is missing"}}
         ]
       }
     },
@@ -56,7 +56,7 @@
       "expect": {
         "nodes": [
           {"id": 1, "voltage": {"status": "known", "result": "10\\,\\mathrm{V}"}},
-          {"id": 2, "voltage": {"status": "unknown", "text": "Unbekannt: hängt von R1 ab"}}
+          {"id": 2, "voltage": {"status": "unknown", "text": "Unknown: depends on R1"}}
         ]
       }
     },
@@ -91,7 +91,7 @@
           {"id": "W1", "kind": "wire", "a": 1, "b": 0}
         ]
       },
-      "error": "Kurzschluss"
+      "error": "short circuit"
     },
     {
       "name": "a length given in volts is rejected",
@@ -106,7 +106,7 @@
     {
       "name": "an unknown kind is an error",
       "request": {"nodes": [0, 1], "elements": [{"id": "X1", "kind": "diode", "a": 1, "b": 0}]},
-      "error": "X1: unbekannte Bauteilart „diode“"
+      "error": "X1: unknown element kind “diode”"
     },
     {
       "name": "editor data is ignored",

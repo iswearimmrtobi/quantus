@@ -19,6 +19,8 @@ use crate::num::{Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::units::{find, Unit};
 
+use super::text::msg;
+
 use super::circuit::{Circuit, ElementKind, GROUND};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -39,12 +41,15 @@ pub enum Reason {
 }
 
 impl Reason {
-    /// The German text shown after "Unbekannt: ".
-    pub fn german(&self) -> String {
+    /// The text shown after "Unknown: ".
+    pub fn text(&self) -> String {
         match self {
-            Reason::MissingSource { current: false, .. } => "Versorgungsspannung fehlt".to_string(),
-            Reason::MissingSource { current: true, .. } => "Versorgungsstrom fehlt".to_string(),
-            Reason::DependsOn(ids) => format!("hängt von {} ab", ids.join(", ")),
+            Reason::MissingSource { current: false, .. } => msg!("the supply voltage is missing", "Versorgungsspannung fehlt"),
+            Reason::MissingSource { current: true, .. } => msg!("the supply current is missing", "Versorgungsstrom fehlt"),
+            Reason::DependsOn(ids) => {
+                let ids = ids.join(", ");
+                msg!("depends on {ids}", "hängt von {ids} ab")
+            }
         }
     }
 }
@@ -63,7 +68,7 @@ pub struct ElementResult {
     pub voltage: Output,
     pub current: Output,
     pub power: Output,
-    /// German notes, e.g. "bei 20 °C".
+    /// Notes, e.g. "at 20 °C".
     pub notes: Vec<String>,
 }
 
@@ -80,7 +85,7 @@ struct Slot {
     which: u8,
 }
 
-/// Newton steps before giving up with "nicht konvergiert".
+/// Newton steps before giving up with "did not converge".
 const MAX_ITERATIONS: usize = 100;
 
 /// One two-terminal piece of the lowered network.
@@ -278,15 +283,15 @@ impl<'a> Model<'a> {
         let mut index = HashMap::new();
         for (n, id) in circuit.nodes.iter().enumerate() {
             if index.insert(*id, n).is_some() {
-                return Err(QuantusError::other(format!("Node {id} exists twice.")));
+                return Err(QuantusError::other(msg!("Node {id} exists twice.", "Knoten {id} kommt doppelt vor.")));
             }
         }
         if !index.contains_key(&GROUND) {
-            return Err(QuantusError::other("The circuit has no ground node 0."));
+            return Err(QuantusError::other(msg!("The circuit has no ground node 0.", "Die Schaltung hat keinen Masseknoten 0.")));
         }
         for (n, element) in circuit.elements.iter().enumerate() {
             if circuit.elements[..n].iter().any(|e| e.id == element.id) {
-                return Err(QuantusError::other(format!("Element {} exists twice.", element.id)));
+                return Err(QuantusError::other(msg!("Element {} exists twice.", "Das Bauteil {} kommt doppelt vor.", element.id)));
             }
             let wiper = match &element.kind {
                 ElementKind::Potentiometer { wiper, .. } => Some(*wiper),
@@ -294,7 +299,11 @@ impl<'a> Model<'a> {
             };
             for node in [Some(element.a), Some(element.b), wiper].into_iter().flatten() {
                 if !index.contains_key(&node) {
-                    return Err(QuantusError::other(format!("Element {} uses the unknown node {node}.", element.id)));
+                    return Err(QuantusError::other(msg!(
+                        "Element {} uses the unknown node {node}.",
+                        "Das Bauteil {} nutzt den unbekannten Knoten {node}.",
+                        element.id
+                    )));
                 }
             }
         }
@@ -319,7 +328,7 @@ impl<'a> Model<'a> {
                 ElementKind::Wire(w) => {
                     let (r, warnings) = w.resistance()?;
                     wire = r.value;
-                    note = warnings.iter().map(|w| w.german(&element.id)).collect();
+                    note = warnings.iter().map(|w| w.text(&element.id)).collect();
                 }
                 ElementKind::VoltageSource { u, internal_resistance } => {
                     params.insert(main, u.as_ref().map(|u| u.to(&volt)).transpose()?.map(|u| u.value));
@@ -336,8 +345,9 @@ impl<'a> Model<'a> {
                     params.insert(main, nonnegative(r_total, &ohm, &element.id)?);
                     if let Some(p) = position {
                         if p.is_negative()? || !p.sub(&Value::one()).is_negative()? && !p.sub(&Value::one()).is_zero() {
-                            return Err(QuantusError::other(format!(
+                            return Err(QuantusError::other(msg!(
                                 "The wiper position of {} must be between 0 and 1.",
+                                "Die Stellung von {} muss zwischen 0 und 1 liegen.",
                                 element.id
                             )));
                         }
@@ -417,7 +427,7 @@ impl<'a> Model<'a> {
             return self.run_linear(values, &HashMap::new());
         }
 
-        let no_solution = || QuantusError::other("keine Lösung: Last zu groß");
+        let no_solution = || QuantusError::other(msg!("no solution: the load is too large", "no solution: the load is too large"));
         let tolerance = convergence_tolerance(precision)?;
         let two = Value::int(2);
         let mut tangents = HashMap::new();
@@ -461,7 +471,7 @@ impl<'a> Model<'a> {
             }
             tangents = next;
         }
-        Err(QuantusError::other("nicht konvergiert"))
+        Err(QuantusError::other(msg!("did not converge", "nicht konvergiert")))
     }
 
     fn run_linear(&self, values: &BTreeMap<Slot, Value>, loads: &HashMap<usize, (Value, Value)>) -> Result<Run> {
@@ -617,8 +627,8 @@ impl<'a> Model<'a> {
             }
         }
         match reached.iter().position(|r| !r) {
-            Some(n) => QuantusError::other(format!("Knoten {} nicht verbunden", self.circuit.nodes[n])),
-            None => QuantusError::other("Kurzschluss"),
+            Some(n) => QuantusError::other(msg!("Node {} is not connected", "Knoten {} nicht verbunden", self.circuit.nodes[n])),
+            None => QuantusError::other(msg!("short circuit", "Kurzschluss")),
         }
     }
 }
@@ -651,7 +661,7 @@ fn nonnegative(value: &Option<PhysicalQuantity>, target: &Unit, id: &str) -> Res
     let Some(q) = value else { return Ok(None) };
     let q = q.to(target)?;
     if q.value.is_negative()? {
-        return Err(QuantusError::other(format!("The value of {id} must not be negative.")));
+        return Err(QuantusError::other(msg!("The value of {id} must not be negative.", "Der Wert von {id} darf nicht negativ sein.")));
     }
     Ok(Some(q.value))
 }
@@ -765,7 +775,7 @@ mod tests {
         assert_eq!(drop, Value::ratio(9890, 293));
         assert_eq!(drop.decimal(4).unwrap().to_plain_string(), "33.75");
         assert_eq!(known(&result(&s, "R1").current), Value::ratio(5750, 293));
-        assert_eq!(result(&s, "W1").notes, vec!["bei 20 °C".to_string()]);
+        assert_eq!(result(&s, "W1").notes, vec!["at 20 °C".to_string()]);
     }
 
     #[test]
@@ -784,7 +794,7 @@ mod tests {
         // Currents are in S per volt, power needs the voltage.
         assert!(matches!(&result(&s, "R1").current, Output::Relative { value, .. } if value.unit.to_string() == "S"));
         assert_eq!(result(&s, "R1").power, Output::Unknown(Reason::MissingSource { id: "U1".into(), current: false }));
-        assert_eq!(Reason::MissingSource { id: "U1".into(), current: false }.german(), "Versorgungsspannung fehlt");
+        assert_eq!(Reason::MissingSource { id: "U1".into(), current: false }.text(), "the supply voltage is missing");
         // The reference potential is known whatever the source.
         assert_eq!(known(node(&s, 0)), Value::zero());
     }
@@ -795,7 +805,7 @@ mod tests {
         let s = solve(&c).unwrap();
         assert_eq!(known(node(&s, 1)), Value::int(12));
         assert_eq!(node(&s, 2), &Output::Unknown(Reason::DependsOn(vec!["R1".into()])));
-        assert_eq!(Reason::DependsOn(vec!["R1".into(), "R2".into()]).german(), "hängt von R1, R2 ab");
+        assert_eq!(Reason::DependsOn(vec!["R1".into(), "R2".into()]).text(), "depends on R1, R2");
     }
 
     #[test]
@@ -918,10 +928,10 @@ mod tests {
     #[test]
     fn errors_are_named() {
         let short = circuit(&[0, 1], vec![source("U1", 1, 0, Some(5)), element("W1", 1, 0, ElementKind::Wire(Box::default()))]);
-        assert_eq!(solve(&short).unwrap_err().to_string(), "Kurzschluss");
+        assert_eq!(solve(&short).unwrap_err().to_string(), "short circuit");
 
         let floating = circuit(&[0, 1, 2], vec![source("U1", 1, 0, Some(5)), resistor("R1", 1, 0, Some(5))]);
-        assert_eq!(solve(&floating).unwrap_err().to_string(), "Knoten 2 nicht verbunden");
+        assert_eq!(solve(&floating).unwrap_err().to_string(), "Node 2 is not connected");
 
         let wrong = circuit(&[0, 1], vec![element("R1", 1, 0, ElementKind::Resistor { r: q(5, "V") })]);
         assert!(solve(&wrong).is_err());
@@ -970,7 +980,7 @@ mod tests {
         assert!(close(&rest, 0, 40));
         assert!(close(&cable.sub(&i.mul(&Value::ratio(43, 25))), 0, 40));
         assert_eq!(v.decimal(6).unwrap().to_plain_string(), "213.919");
-        assert_eq!(result(&s, "W1").notes, vec!["bei 20 °C".to_string()]);
+        assert_eq!(result(&s, "W1").notes, vec!["at 20 °C".to_string()]);
     }
 
     #[test]
@@ -993,17 +1003,17 @@ mod tests {
     fn a_load_that_is_too_large_has_no_solution() {
         // The most this source and resistor can deliver is 25 W.
         for watts in [26, 30, 1000] {
-            assert_eq!(solve(&loaded(Some(10), Some(watts))).unwrap_err().to_string(), "keine Lösung: Last zu groß");
+            assert_eq!(solve(&loaded(Some(10), Some(watts))).unwrap_err().to_string(), "no solution: the load is too large");
         }
         assert!(solve(&loaded(Some(10), Some(24))).is_ok());
         // The load is pushed backwards by a reversed source.
-        assert_eq!(solve(&loaded(Some(-10), Some(9))).unwrap_err().to_string(), "keine Lösung: Last zu groß");
+        assert_eq!(solve(&loaded(Some(-10), Some(9))).unwrap_err().to_string(), "no solution: the load is too large");
     }
 
     #[test]
     fn a_load_at_the_limit_does_not_converge() {
         // At exactly 25 W the root is a double one and Newton's method only halves the error.
-        assert_eq!(solve(&loaded(Some(10), Some(25))).unwrap_err().to_string(), "nicht konvergiert");
+        assert_eq!(solve(&loaded(Some(10), Some(25))).unwrap_err().to_string(), "did not converge");
     }
 
     #[test]
