@@ -5,8 +5,11 @@
 //!
 //! Polynomials up to degree two are solved exactly. The coefficients are read off by
 //! evaluating at a few points and checked at others, which also covers `\pi x = 3` and
-//! `\sqrt{2} x^2 = 4`. Anything else is solved numerically: the equation is scanned for sign
-//! changes on [-100, 100] and each is refined by bisection to the working precision.
+//! `\sqrt{2} x^2 = 4`. Anything else is solved numerically: the equation is scanned on
+//! [-100, 100], each sign change is refined by bisection and each interior minimum of the
+//! residual's magnitude by a shrinking-interval search, which finds roots the residual only
+//! touches (`|x - 2| = 0`). A point where the equation is undefined (`1/x` at 0) is sampled
+//! just beside it, so a root next to it is still bracketed.
 
 use dashu::base::Abs;
 use dashu::integer::{IBig, UBig};
@@ -87,23 +90,61 @@ impl Evaluator<'_> {
 
         let mut roots: Vec<RBig> = Vec::new();
         let mut previous: Option<(RBig, i32, RBig)> = None;
+        // The last three samples without a gap, for spotting minima of |f|.
+        let mut window: Vec<(RBig, i32, RBig)> = Vec::new();
+        let mut minima: Vec<(RBig, RBig, RBig)> = Vec::new();
+        let step = RBig::from_parts(IBig::ONE, UBig::from(SCAN_STEPS_PER_UNIT as u64));
+        let nudge = &step / RBig::from(1024);
         for i in -SCAN_LIMIT * SCAN_STEPS_PER_UNIT..=SCAN_LIMIT * SCAN_STEPS_PER_UNIT {
             let x = RBig::from_parts(IBig::from(i), UBig::from(SCAN_STEPS_PER_UNIT as u64));
-            let Some((sign, magnitude)) = sample(&x)? else {
-                previous = None;
-                continue;
+            let points = match sample(&x)? {
+                Some(s) => vec![(x.clone(), s)],
+                None => {
+                    // Undefined here: look just left and just right of the point instead.
+                    window.clear();
+                    let mut beside = Vec::new();
+                    for p in [&x - &nudge, &x + &nudge] {
+                        if let Some(s) = sample(&p)? {
+                            beside.push((p, s));
+                        }
+                    }
+                    if beside.is_empty() {
+                        previous = None;
+                    }
+                    beside
+                }
             };
-            if sign == 0 {
-                roots.push(x.clone());
-            } else if let Some((lo, lo_sign, lo_magnitude)) = &previous {
-                if *lo_sign != 0 && *lo_sign != sign {
-                    let ceiling = if *lo_magnitude < magnitude { lo_magnitude.clone() } else { magnitude.clone() };
-                    if let Some(root) = bisect(&mut sample, lo.clone(), x.clone(), *lo_sign, &ceiling, &tolerance)? {
-                        roots.push(root);
+            for (x, (sign, magnitude)) in points {
+                if sign == 0 {
+                    roots.push(x.clone());
+                } else if let Some((lo, lo_sign, lo_magnitude)) = &previous {
+                    if *lo_sign != 0 && *lo_sign != sign {
+                        let ceiling = if *lo_magnitude < magnitude { lo_magnitude.clone() } else { magnitude.clone() };
+                        if let Some(root) = bisect(&mut sample, lo.clone(), x.clone(), *lo_sign, &ceiling, &tolerance)? {
+                            roots.push(root);
+                        }
                     }
                 }
+                window.push((x.clone(), sign, magnitude.clone()));
+                if window.len() > 3 {
+                    window.remove(0);
+                }
+                if let [(a, sa, ma), (_, sb, mb), (c, sc, mc)] = window.as_slice() {
+                    if *sa == *sb && *sb == *sc && *sb != 0 && mb < ma && mb < mc {
+                        minima.push((mb.clone(), a.clone(), c.clone()));
+                    }
+                }
+                previous = Some((x, sign, magnitude));
             }
-            previous = Some((x, sign, magnitude));
+        }
+
+        // Roots the residual only touches; the smallest minima first, and only a few of them.
+        minima.sort_by(|x, y| x.0.cmp(&y.0));
+        let accept = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.precision));
+        for (_, lo, hi) in minima.into_iter().take(MAX_ROOTS) {
+            if let Some(root) = touch(&mut sample, lo, hi, &tolerance, &accept)? {
+                roots.push(root);
+            }
         }
 
         if roots.is_empty() {
@@ -150,26 +191,63 @@ fn bisect(
     Ok((magnitude * RBig::from(100_000) <= *ceiling).then_some(root))
 }
 
+/// Narrows an interior minimum of |f| in `[lo, hi]` and returns it when |f| vanishes there.
+/// Each step keeps 5/8 of the interval, on the side of the smaller of two probes; all points stay
+/// dyadic, so the rationals do not grow.
+fn touch(
+    sample: &mut dyn FnMut(&RBig) -> Result<Option<Sample>>,
+    mut lo: RBig,
+    mut hi: RBig,
+    tolerance: &RBig,
+    accept: &RBig,
+) -> Result<Option<RBig>> {
+    let two = RBig::from(2);
+    let eight = RBig::from(8);
+    while (hi.clone() - &lo) > *tolerance {
+        let mid = (lo.clone() + &hi) / &two;
+        let w = (hi.clone() - &lo) / &eight;
+        let (left, right) = (&mid - &w, &mid + &w);
+        let (Some((sl, ml)), Some((sr, mr))) = (sample(&left)?, sample(&right)?) else { return Ok(None) };
+        if sl == 0 {
+            return Ok(Some(left));
+        }
+        if sr == 0 {
+            return Ok(Some(right));
+        }
+        if ml < mr {
+            hi = right;
+        } else {
+            lo = left;
+        }
+    }
+    let root = (lo + &hi) / &two;
+    let Some((_, magnitude)) = sample(&root)? else { return Ok(None) };
+    Ok((magnitude <= *accept).then_some(root))
+}
+
 /// Exact roots when the residual is a polynomial of degree at most two, `None` otherwise.
 fn polynomial_roots(residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>) -> Result<Option<Vec<Value>>> {
-    let mut at = |x: i64| -> Result<Option<Value>> {
-        match residual(Value::int(x)) {
+    let mut at = |x: Value| -> Result<Option<Value>> {
+        match residual(x) {
             Ok(q) => Ok(Some(q.value)),
             Err(e @ (QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_))) => Err(e),
             Err(_) => Ok(None),
         }
     };
-    let (Some(f0), Some(f1), Some(f2)) = (at(0)?, at(1)?, at(2)?) else { return Ok(None) };
+    let (Some(f0), Some(f1), Some(f2)) = (at(Value::int(0))?, at(Value::int(1))?, at(Value::int(2))?) else {
+        return Ok(None);
+    };
 
     let c = f0.clone();
     let a = f2.sub(&f1.mul(&Value::int(2))).add(&f0).div(&Value::int(2))?;
     let b = f1.sub(&f0).sub(&a);
 
-    // A quadratic through three points must also hit these.
-    let quadratic = |x: i64| a.mul(&Value::int(x * x)).add(&b.mul(&Value::int(x))).add(&c);
-    for x in [-1, 3, 5] {
-        match at(x)? {
-            Some(value) if value == quadratic(x) => {}
+    // A quadratic through three points must also hit these. Points far out and between the
+    // integers catch residuals that only look quadratic near 0, like |x - 9| - 3.
+    let quadratic = |x: &Value| a.mul(&x.mul(x)).add(&b.mul(x)).add(&c);
+    for x in [Value::int(-1), Value::int(3), Value::int(5), Value::ratio(7, 3), Value::ratio(-11, 2), Value::int(1000), Value::int(-1000)] {
+        match at(x.clone())? {
+            Some(value) if value == quadratic(&x) => {}
             _ => return Ok(None),
         }
     }
