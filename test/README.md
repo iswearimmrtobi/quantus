@@ -1,14 +1,15 @@
 # Engine test set
 
-100,000 generated cases that put the engine through arithmetic, elementary functions, equations,
-derivatives, integrals, limits, algebraic simplification, physics with units and parser robustness.
+103,000 generated cases that put the engine through arithmetic, elementary functions, equations,
+derivatives, integrals, limits, algebraic simplification, physics with units, parser robustness and
+complex numbers.
 The 2500 hand-checked algebra cases from before are in `algebra-simplification-cases.md`.
 
 | Path | What |
 |---|---|
 | `generator/generate.py` | Writes `cases/`. Standard library only, deterministic (seed 20261023). |
 | `generator/gens/*.py` | One module per area; every expected value is computed there, independently of the engine. |
-| `cases/<category>/<category>-NNN.json` | The cases, 1000 per file, 100 files. |
+| `cases/<category>/<category>-NNN.json` | The cases, 1000 per file, 103 files. |
 | `results/summary.md` | The last full run. `results/results.jsonl` (one line per case) is not committed. |
 | `results/failures.jsonl` | Every case of the last full run that did not pass, one JSON line each. Committed. |
 | `../crates/quantus-core/examples/run_cases.rs` | The runner. |
@@ -28,7 +29,7 @@ Each worker is a child process limited to 4 GiB of address space; a case that ha
 memory is killed and reported as `TIMEOUT` or `ERROR` without affecting the others. To be safe on a
 shared desktop, wrap a full run in `systemd-run --user --scope -p MemoryMax=12G`.
 
-`--check` asserts 100,000 unique ids and parseable expectations, and compares the generator's unit
+`--check` asserts 103,000 unique ids and parseable expectations, and compares the generator's unit
 factors and dimensions with the oracle dump in `crates/quantus-core/tests/golden/units_symbols.json`.
 
 ## Case format
@@ -57,6 +58,8 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 | `quantity` | The result's dimension equals `dim` (base exponents `L M T I Θ N J`) and its value, converted to the coherent SI unit (°C becomes K), matches `value`. `unit`, if given, is only compared for a note. |
 | `solutions` | The solver's real solutions equal `values` as a set, with SI values and `dim`. |
 | `algebra` | The result equals `simplified` at 8 sample points (exact rationals), is fully reduced (`Poly::gcd` of numerator and denominator is constant), and its restrictions equal `restrictions` (values per variable) plus `poly_restrictions`. |
+| `complex` | The result's real part (`value`) and imaginary part match `re` and `im` within `rel_tol`; a real result has the imaginary part 0. Used with `settings.mode` set to `imaginary`. |
+| `complex-solutions` | The solver's roots, each split into real and imaginary part, equal `values` (`{re, im}` pairs) as a set. |
 | `error` | The engine refuses the input with a message containing `contains`. |
 
 The tolerances are `1e-45` for exact results (the engine prints 50 digits) and `1e-40` for exact
@@ -89,9 +92,12 @@ the case itself is wrong.
 | limits | 8,000 | Removable singularities, standard limits (`sin x / x`, `(1 + kx)^{1/x}`, …), continuous points, divergent limits |
 | algebra | 20,000 | Rational functions of order 1–40 in categories like those of the 2500-case table, plus continued fractions, binomials, geometric sums, multivariate and negative exponents |
 | physics | 22,000 | Mechanics, gravitation, fluids, thermodynamics (°C), waves and optics, circuits, modern and nuclear physics (Bq, Gy, Sv, decay), photometry (cd, lm, lx, sr), chemistry (mol, kat), and niche cases: extreme prefixes (ym … Ym), calendar units, mixed prefixes, named-unit collapse, radians, `\qty`, dimension errors |
+| complex | 3,000 | Imaginary mode: sums, products, quotients and integer powers of Gaussian rationals, powers of `i`, roots of negative numbers, modulus, `\Re`, `\Im`, `\overline`, Euler's formula, `\exp` of a complex number, quadratics with a negative discriminant, and the errors that the other modes keep giving |
 | syntax | 3,000 | Malformed input that must be refused, mathematical errors, notation variants (`\left`, `\dfrac`, `\times`, `*`, unicode operators, spacing) |
 
 ## Latest results
+
+The 3,000 `complex` cases were added after this run and have been run on their own: 3,000 of 3,000 pass.
 
 Full run (2026-10-23, 8 workers, 5 s limit, 216 s): **99,206 of 100,000 pass (99.21%)**. All 97,646
 cases for implemented features pass. The 794 that do not are all `not-implemented` cases that the
