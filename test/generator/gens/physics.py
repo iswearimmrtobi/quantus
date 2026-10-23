@@ -744,15 +744,14 @@ def unit_errors(rng, diff):
     return case("function-of-unit", diff, f"\\ln({a}\\,\\mathrm{{m}})", expect_error(), "logarithm of a length")
 
 
-def physics_gaps(rng, diff):
-    """Named constants and non-SI units: not implemented, mixed in on purpose."""
-    c = Ctx(rng, diff)
+def constants_and_units(rng, diff):
+    """Named physical constants (c_0, k_B, …) and common units outside the SI."""
     a = rng.randint(1, 99)
     options = [
-        (f"E = {a}\\,\\mathrm{{kg}} \\cdot c^2", F(a) * 299792458 ** 2, {L: 2, M: 1, T: -2}, "speed of light as c"),
-        (f"{a}\\,\\mathrm{{kg}} \\cdot g", F(a) * F(980665, 100000), {L: 1, M: 1, T: -2}, "standard gravity as g"),
-        (f"h \\cdot {a}\\,\\mathrm{{THz}}", F(662607015, 10 ** 8) * F(10) ** -34 * a * 10 ** 12, {L: 2, M: 1, T: -2},
-         "Planck constant as h"),
+        (f"E = {a}\\,\\mathrm{{kg}} \\cdot c_0^2", F(a) * 299792458 ** 2, {L: 2, M: 1, T: -2}, "speed of light as c_0"),
+        (f"{a}\\,\\mathrm{{kg}} \\cdot g_n", F(a) * F(980665, 100000), {L: 1, M: 1, T: -2}, "standard gravity as g_n"),
+        (f"h_P \\cdot {a}\\,\\mathrm{{THz}}", F(662607015, 10 ** 8) * F(10) ** -34 * a * 10 ** 12, {L: 2, M: 1, T: -2},
+         "Planck constant as h_P"),
         (f"k_B \\cdot {a}\\,\\mathrm{{K}}", F(1380649, 10 ** 6) * F(10) ** -23 * a, {L: 2, M: 1, T: -2},
          "Boltzmann constant as k_B"),
         (f"N_A \\cdot {a}\\,\\mathrm{{mol}}", F(602214076, 10 ** 8) * F(10) ** 23 * a, {}, "Avogadro constant as N_A"),
@@ -773,10 +772,11 @@ def physics_gaps(rng, diff):
         (f"{a}\\,\\mathrm{{kOhm}}", F(a) * 1000, {L: 2, M: 1, T: -3, I: -2}, "kOhm spelled out"),
     ]
     latex, val, dim, desc = rng.choice(options)
-    return case("not-implemented", diff, latex, expect_quantity(val, dim), desc, gap=True)
+    sub = "named-constant" if "constant" in desc or "gravity" in desc or "speed of light" in desc else "non-si-unit"
+    return case(sub, diff, latex, expect_quantity(val, dim), desc)
 
 
 GENERATORS = [
     (16, mechanics), (5, gravitation), (7, fluids), (9, thermo), (8, waves_optics), (16, electricity), (6, modern),
-    (6, nuclear), (6, photometry_chem), (12, niche_units), (5, unit_errors), (4, physics_gaps),
+    (6, nuclear), (6, photometry_chem), (12, niche_units), (5, unit_errors), (4, constants_and_units),
 ]
