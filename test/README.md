@@ -21,7 +21,11 @@ cargo run --release -p quantus-core --example run_cases -- --filter physics/deca
 ```
 
 Runner options: `--cases DIR`, `--out DIR`, `--filter TEXT` (id, category or `category/subcategory`
-prefix; repeatable), `--jobs N`, `--timeout SECS` (default 5), `--limit N`, `--fail-only`.
+prefix; repeatable), `--jobs N` (default: cores, at most 8), `--timeout SECS` (default 5), `--limit N`, `--fail-only`.
+
+Each worker is a child process limited to 4 GiB of address space; a case that hangs or runs out of
+memory is killed and reported as `TIMEOUT` or `ERROR` without affecting the others. To be safe on a
+shared desktop, wrap a full run in `systemd-run --user --scope -p MemoryMax=12G`.
 
 `--check` asserts 100,000 unique ids and parseable expectations, and compares the generator's unit
 factors and dimensions with the oracle dump in `crates/quantus-core/tests/golden/units_symbols.json`.
