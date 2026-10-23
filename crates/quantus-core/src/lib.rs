@@ -3,6 +3,7 @@
 pub mod algebra;
 pub mod api;
 pub mod error;
+pub mod electro;
 pub mod eval;
 pub mod latex;
 pub mod num;

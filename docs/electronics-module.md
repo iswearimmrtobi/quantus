@@ -196,7 +196,7 @@ Copper, 2 × 100 m (out and back), 2.0 mm², 10 Ω load, 230 V:
 
 - R_wire = 0.0172 · 200 / 2 ≈ **1.72 Ω**
 - I = 230 / 11.72 ≈ **19.6 A**
-- Voltage drop across the wire ≈ **33.7 V** (≈ 14.7 %)
+- Voltage drop across the wire ≈ **33.75 V** (≈ 14.7 %)
 
 Without a supply voltage: the relative drop of 14.7 % is known, absolute values are `Unknown`.
 
