@@ -8,6 +8,7 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
 import { I18nContext, makeTranslate } from './i18n';
+import type { TextKey } from './i18n/en';
 import { DEFAULT_SETTINGS, MODE_CHOICES, Segmented, SettingsPanel } from './components/SettingsPanel';
 
 interface HistoryEntry {
@@ -20,11 +21,11 @@ interface HistoryEntry {
 
 type Panel = 'history' | 'variables' | 'settings' | null;
 
-const STEP_LABELS: Record<StepKind, string> = {
-  symbolic: 'SYMBOLISCH',
-  substituted: 'EINGESETZT',
-  result: 'ERGEBNIS',
-  algebraic: 'SCHRITT',
+const STEP_LABELS: Record<StepKind, TextKey> = {
+  symbolic: 'step.symbolic',
+  substituted: 'step.substituted',
+  result: 'step.result',
+  algebraic: 'step.algebraic',
 };
 
 const PLACEHOLDER = 'F = 2kg \\cdot 10\\frac{m}{s^2}';
@@ -54,7 +55,9 @@ export function App() {
     document.documentElement.lang = language;
   }, [language]);
 
-  const FILTERS = [{ name: 'Schaltung', extensions: ['json'] }];
+  const { t } = i18n;
+  const ctrl = t('key.ctrl');
+  const FILTERS = [{ name: t('file.filter'), extensions: ['json'] }];
 
   /** Replaces the circuit only when the file checks out; a broken one leaves it untouched. */
   const loadCircuit = async () => {
@@ -70,7 +73,7 @@ export function App() {
 
   const saveCircuit = async () => {
     try {
-      const path = await save({ filters: FILTERS, defaultPath: 'schaltung.json' });
+      const path = await save({ filters: FILTERS, defaultPath: t('file.default') });
       if (!path) return;
       await api.saveCircuit(path, toFile(circuit));
       setFileError(null);
@@ -276,7 +279,7 @@ export function App() {
           </div>
           <span className="precision-tag">{precision ? `${precision} sig` : '—'}</span>
           <span>
-            <span className="status-dot" /> bereit
+            <span className="status-dot" /> {t('status.ready')}
           </span>
         </div>
       </header>
@@ -288,12 +291,12 @@ export function App() {
             onChange={setCircuit}
             toolbar={
               <div className="file-buttons">
-                <div className="palette-title">DATEI</div>
+                <div className="palette-title">{t('file.title')}</div>
                 <button className="palette-item" onClick={() => void loadCircuit()}>
-                  Laden
+                  {t('file.load')}
                 </button>
                 <button className="palette-item" onClick={() => void saveCircuit()}>
-                  Speichern
+                  {t('file.save')}
                 </button>
                 {fileError && <p className="file-error">{fileError}</p>}
               </div>
@@ -323,7 +326,7 @@ export function App() {
             )}
             <button
               className="mode-toggle"
-              title={latexMode ? 'Zurück zum Formeleditor (Esc)' : 'LaTeX schreiben (\\ oder Strg+L)'}
+              title={latexMode ? t('editor.back') : t('editor.latex', { ctrl })}
               onClick={() => toggleLatexMode()}
             >
               {latexMode ? 'TeX' : 'f(x)'}
@@ -347,17 +350,17 @@ export function App() {
             )}
             {input && (
               <button className="copy-btn" onClick={() => void copy(input, 'input')}>
-                {copied === 'input' ? 'kopiert' : 'copy'}
+                {copied === 'input' ? t('copied') : t('copy')}
               </button>
             )}
           </div>
 
           {error ? (
             <div className="error-row">
-              <span className="error-label">FEHLER</span>
+              <span className="error-label">{t('error')}</span>
               <span className="error-text">
                 {error.message}
-                {error.position !== null && <span className="error-position"> · Position {error.position + 1}</span>}
+                {error.position !== null && <span className="error-position"> · {t('position', { n: error.position + 1 })}</span>}
               </span>
             </div>
           ) : (
@@ -377,23 +380,23 @@ export function App() {
                     className={stepsOpen ? 'steps-toggle open' : 'steps-toggle'}
                     onClick={() => setStepsOpen((open) => !open)}
                   >
-                    Rechenweg <span className="chev">⌄</span> <kbd>Strg+J</kbd>
+                    {t('steps')} <span className="chev">⌄</span> <kbd>{ctrl}+J</kbd>
                   </button>
                 )}
               </div>
               {calculation?.warning && (
                 <div className="domain-row warning-row">
-                  <span className="domain-label">HINWEIS</span>
+                  <span className="domain-label">{t('note')}</span>
                   <span>{calculation.warning}</span>
                 </div>
               )}
               {calculation?.domainRestrictions && calculation.domainRestrictions.length > 0 && (
                 <div className="domain-row">
-                  <span className="domain-label">DEFINITIONSBEREICH</span>
+                  <span className="domain-label">{t('domain')}</span>
                   <div className="domain-list">
                     {calculation.domainRestrictions.map((r, i) => (
                       <span className="domain-item" key={i}>
-                        für <Katex latex={r} />
+                        {t('domain.for')} <Katex latex={r} />
                       </span>
                     ))}
                   </div>
@@ -413,35 +416,35 @@ export function App() {
                     <>
                       <div className="step-header">
                         <span className={step.kind === 'result' ? 'step-label result-label' : 'step-label'}>
-                          {STEP_LABELS[step.kind]}
+                          {t(STEP_LABELS[step.kind])}
                         </span>
                         <span className="step-explanation">{step.explanation}</span>
                       </div>
                       <div className="step-body">
                         <Katex className="step-latex" latex={step.latex} />
                         <button className="copy-btn" onClick={() => void copy(step.latex, `step-${index}`)}>
-                          {copied === `step-${index}` ? 'kopiert' : 'copy'}
+                          {copied === `step-${index}` ? t('copied') : t('copy')}
                         </button>
                       </div>
                     </>
                   ) : (
                     <>
                       <span className={step.kind === 'result' ? 'step-label result-label' : 'step-label'}>
-                        {STEP_LABELS[step.kind]}
+                        {t(STEP_LABELS[step.kind])}
                       </span>
                       <Katex className="step-latex" latex={step.latex} />
                       <button className="copy-btn" onClick={() => void copy(step.latex, `step-${index}`)}>
-                        {copied === `step-${index}` ? 'kopiert' : 'copy'}
+                        {copied === `step-${index}` ? t('copied') : t('copy')}
                       </button>
                     </>
                   )}
                 </div>
               ))}
               <div className="step-row step-row-all">
-                <span className="step-label">GESAMT</span>
-                <span className="step-hint">als align*-Block · Strg+Alt+C</span>
+                <span className="step-label">{t('total')}</span>
+                <span className="step-hint">{t('total.hint', { ctrl })}</span>
                 <button className="copy-btn" onClick={() => void copy(calculation.alignBlock, 'all')}>
-                  {copied === 'all' ? 'kopiert' : 'copy'}
+                  {copied === 'all' ? t('copied') : t('copy')}
                 </button>
               </div>
             </div>
@@ -453,7 +456,7 @@ export function App() {
       <div className="side-rail">
         <button
           className={panel === 'history' ? 'rail-btn active' : 'rail-btn'}
-          title="Verlauf (Strg+H)"
+          title={`${t('history')} (${ctrl}+H)`}
           onClick={() => togglePanel('history')}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -463,7 +466,7 @@ export function App() {
         </button>
         <button
           className={panel === 'variables' ? 'rail-btn active' : 'rail-btn'}
-          title="Variablen (Strg+,)"
+          title={`${t('variables')} (${ctrl}+,)`}
           onClick={() => togglePanel('variables')}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -473,7 +476,7 @@ export function App() {
         </button>
         <button
           className={panel === 'settings' ? 'rail-btn active' : 'rail-btn'}
-          title="Einstellungen (Strg+.)"
+          title={`${t('settings')} (${ctrl}+.)`}
           onClick={() => togglePanel('settings')}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -490,24 +493,24 @@ export function App() {
             className={panel === 'history' ? 'panel-tab active' : 'panel-tab'}
             onClick={() => setPanel('history')}
           >
-            Verlauf
+            {t('history')}
           </button>
           <button
             className={panel === 'variables' ? 'panel-tab active' : 'panel-tab'}
             onClick={() => setPanel('variables')}
           >
-            Variablen
+            {t('variables')}
           </button>
           <button
             className={panel === 'settings' ? 'panel-tab active' : 'panel-tab'}
             onClick={() => setPanel('settings')}
           >
-            Einstellungen
+            {t('settings')}
           </button>
           {/* Das Panel liegt über der Leiste, deren Knöpfe es sonst schließen würden. */}
           <button
             className="panel-collapse"
-            title="Seitenleiste einklappen (Esc)"
+            title={t('panel.collapse')}
             onClick={() => {
               setPanel(null);
               editor()?.focus();
@@ -521,13 +524,13 @@ export function App() {
         <div className="panel-body">
           {panel === 'history' &&
             (history.length === 0 ? (
-              <p className="panel-empty">Noch nichts gerechnet.</p>
+              <p className="panel-empty">{t('history.empty')}</p>
             ) : (
               history.map((entry) => (
                 <div className="hist-item" key={entry.id} onClick={() => load(entry.latex)}>
                   <Katex className="hist-latex" latex={entry.latex} />
                   <div className="hist-meta">
-                    <span>{entry.at.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>{entry.at.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}</span>
                     <Katex className="val" latex={entry.result} />
                   </div>
                 </div>
@@ -537,7 +540,7 @@ export function App() {
           {panel === 'variables' &&
             (variables.length === 0 ? (
               <p className="panel-empty">
-                Noch keine Variablen. Definiere eine mit <code>r_1 = 0{','}5m</code>.
+                {t('variables.empty')} <code>r_1 = 0{language === 'de' ? ',' : '.'}5m</code>.
               </p>
             ) : (
               variables.map((variable) => (
@@ -546,7 +549,7 @@ export function App() {
                     <Katex className="var-name" latex={variable.symbol} />
                     <Katex className="var-val" latex={variable.latex} />
                   </button>
-                  <button className="var-forget" title="Variable löschen" onClick={() => void forget(variable.key)}>
+                  <button className="var-forget" title={t('variable.forget')} onClick={() => void forget(variable.key)}>
                     ✕
                   </button>
                 </div>
@@ -560,9 +563,9 @@ export function App() {
       </aside>
 
       <footer className="statusbar">
-        <span>Symja · Indriya — Session aktiv</span>
+        <span>{t('footer.session')}</span>
         <span>
-          {variables.length} Variablen · {history.length} Einträge im Verlauf
+          {t('footer.counts', { variables: variables.length, history: history.length })}
         </span>
       </footer>
     </div>
