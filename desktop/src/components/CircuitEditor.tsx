@@ -9,6 +9,7 @@ import {
   newElement,
   numberNodes,
   pointKey,
+  rotate,
   snap,
   terminals,
   toRequest,
@@ -27,9 +28,10 @@ interface Props {
 }
 
 type Drag =
-  | { type: 'move'; id: string; from: Point; origin: EditorElement }
+  | { type: 'move'; from: Point; origins: Map<string, EditorElement> }
   | { type: 'end'; id: string; end: 'a' | 'b' }
-  | { type: 'draw'; from: Point; to: Point };
+  | { type: 'draw'; from: Point; to: Point }
+  | { type: 'marquee'; from: Point; to: Point };
 
 const PALETTE: EditorKind[] = [
   'voltageSource',
@@ -42,7 +44,7 @@ const PALETTE: EditorKind[] = [
 ];
 
 export function CircuitEditor({ elements, onChange, toolbar }: Props) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [response, setResponse] = useState<CircuitResponse | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -86,30 +88,50 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
   const update = (id: string, change: Partial<EditorElement>) =>
     onChange(elements.map((e) => (e.id === id ? { ...e, ...change } : e)));
 
+  const selected = selection.length === 1 ? selection[0] : null;
+
   const add = (kind: EditorKind, at?: Point) => {
     // Without a drop position the part goes to a free spot, one row below the last one.
     const spot = at ?? { x: 160 + (elements.length % 4) * 3 * GRID, y: 120 + Math.floor(elements.length / 4) * 3 * GRID };
     const element = newElement(elements, kind, spot);
     onChange([...elements, element]);
-    setSelected(element.id);
+    setSelection([element.id]);
   };
 
-  const remove = (id: string) => {
-    onChange(elements.filter((e) => e.id !== id));
-    setSelected(null);
+  const remove = (ids: string[]) => {
+    onChange(elements.filter((e) => !ids.includes(e.id)));
+    setSelection([]);
   };
 
   const rotateSelected = () => {
-    const element = elements.find((e) => e.id === selected);
-    if (!element) return;
-    if (element.kind === 'wire') {
-      // A wire turns about its start point.
-      const dx = (element.x2 ?? element.x) - element.x;
-      const dy = (element.y2 ?? element.y) - element.y;
-      update(element.id, { x2: element.x - dy, y2: element.y + dx });
+    const chosen = elements.filter((e) => selection.includes(e.id));
+    if (chosen.length === 0) return;
+    // One part turns about itself (a wire about its start); several turn together about the
+    // middle of their bounding box, so they stay connected to each other.
+    let center: Point;
+    if (chosen.length === 1) {
+      center = { x: chosen[0].x, y: chosen[0].y };
     } else {
-      update(element.id, { rotation: (element.rotation + 1) % 4 });
+      const points = chosen.flatMap((e) => Object.values(terminals(e)) as Point[]);
+      const xs = points.map((p) => p.x);
+      const ys = points.map((p) => p.y);
+      center = { x: snap((Math.min(...xs) + Math.max(...xs)) / 2), y: snap((Math.min(...ys) + Math.max(...ys)) / 2) };
     }
+    const turn = (x: number, y: number): Point => {
+      const turned = rotate({ x: x - center.x, y: y - center.y }, 1);
+      return { x: center.x + turned.x, y: center.y + turned.y };
+    };
+    onChange(
+      elements.map((e) => {
+        if (!selection.includes(e.id)) return e;
+        const start = turn(e.x, e.y);
+        if (e.kind === 'wire') {
+          const end = turn(e.x2 ?? e.x, e.y2 ?? e.y);
+          return { ...e, x: start.x, y: start.y, x2: end.x, y2: end.y };
+        }
+        return { ...e, x: start.x, y: start.y, rotation: (e.rotation + 1) % 4 };
+      }),
+    );
   };
 
   const toCanvas = (event: { clientX: number; clientY: number }): Point => {
@@ -120,14 +142,20 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
   const startMove = (event: ReactPointerEvent, element: EditorElement) => {
     event.stopPropagation();
     canvas.current?.setPointerCapture(event.pointerId);
-    setSelected(element.id);
-    setDrag({ type: 'move', id: element.id, from: toCanvas(event), origin: element });
+    // Grabbing a part of the selection moves all of it; any other part becomes the selection.
+    const group = selection.includes(element.id) ? selection : [element.id];
+    setSelection(group);
+    setDrag({
+      type: 'move',
+      from: toCanvas(event),
+      origins: new Map(elements.filter((e) => group.includes(e.id)).map((e) => [e.id, e])),
+    });
   };
 
   const startEnd = (event: ReactPointerEvent, element: EditorElement, end: 'a' | 'b') => {
     event.stopPropagation();
     canvas.current?.setPointerCapture(event.pointerId);
-    setSelected(element.id);
+    setSelection([element.id]);
     setDrag({ type: 'end', id: element.id, end });
   };
 
@@ -137,8 +165,22 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
     setDrag({ type: 'draw', from, to: from });
   };
 
+  const startMarquee = (event: ReactPointerEvent) => {
+    const box = canvas.current!.getBoundingClientRect();
+    const from = { x: event.clientX - box.left, y: event.clientY - box.top };
+    canvas.current?.setPointerCapture(event.pointerId);
+    canvas.current?.focus();
+    setSelection([]);
+    setDrag({ type: 'marquee', from, to: from });
+  };
+
   const onMove = (event: ReactPointerEvent) => {
     if (!drag) return;
+    if (drag.type === 'marquee') {
+      const box = canvas.current!.getBoundingClientRect();
+      setDrag({ ...drag, to: { x: event.clientX - box.left, y: event.clientY - box.top } });
+      return;
+    }
     const at = toCanvas(event);
     if (drag.type === 'draw') {
       if (at.x !== drag.to.x || at.y !== drag.to.y) setDrag({ ...drag, to: at });
@@ -147,12 +189,14 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
     } else {
       const dx = at.x - drag.from.x;
       const dy = at.y - drag.from.y;
-      const o = drag.origin;
-      update(
-        drag.id,
-        o.kind === 'wire'
-          ? { x: o.x + dx, y: o.y + dy, x2: (o.x2 ?? o.x) + dx, y2: (o.y2 ?? o.y) + dy }
-          : { x: o.x + dx, y: o.y + dy },
+      onChange(
+        elements.map((e) => {
+          const o = drag.origins.get(e.id);
+          if (!o) return e;
+          return o.kind === 'wire'
+            ? { ...e, x: o.x + dx, y: o.y + dy, x2: (o.x2 ?? o.x) + dx, y2: (o.y2 ?? o.y) + dy }
+            : { ...e, x: o.x + dx, y: o.y + dy };
+        }),
       );
     }
   };
@@ -161,18 +205,28 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
     if (drag?.type === 'draw' && pointKey(drag.from) !== pointKey(drag.to)) {
       const wire = { ...newElement(elements, 'wire', drag.from), x2: drag.to.x, y2: drag.to.y };
       onChange([...elements, wire]);
-      setSelected(wire.id);
+      setSelection([wire.id]);
+    } else if (drag?.type === 'marquee') {
+      const [x0, x1] = [Math.min(drag.from.x, drag.to.x), Math.max(drag.from.x, drag.to.x)];
+      const [y0, y1] = [Math.min(drag.from.y, drag.to.y), Math.max(drag.from.y, drag.to.y)];
+      const inside = (p: Point) => p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
+      // A part is picked when its position or any of its terminals lies in the rectangle.
+      setSelection(
+        elements
+          .filter((e) => [{ x: e.x, y: e.y }, ...(Object.values(terminals(e)) as Point[])].some(inside))
+          .map((e) => e.id),
+      );
     }
     setDrag(null);
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      if (selected) remove(selected);
-    } else if (event.key.toLowerCase() === 'r') {
+      remove(selection);
+    } else if (event.key === ' ' || event.key.toLowerCase() === 'r') {
       rotateSelected();
     } else if (event.key === 'Escape') {
-      setSelected(null);
+      setSelection([]);
     } else {
       return;
     }
@@ -202,7 +256,7 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
         ))}
         {toolbar}
         <p className="palette-hint">
-          Von einer Klemme ziehen zeichnet eine Leitung. <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht.
+          Von einer Klemme ziehen zeichnet eine Leitung. Auf freier Fläche ziehen wählt mehrere Bauteile. <kbd>Leertaste</kbd> dreht, <kbd>Entf</kbd> löscht.
         </p>
       </div>
 
@@ -215,10 +269,7 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={() => setDrag(null)}
-          onPointerDown={() => {
-            setSelected(null);
-            canvas.current?.focus();
-          }}
+          onPointerDown={startMarquee}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -237,13 +288,24 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
             <Part
               key={element.id}
               element={element}
-              selected={element.id === selected}
+              selected={selection.includes(element.id)}
               onPointerDown={(event) => startMove(event, element)}
               onTerminal={(event, point) => startDraw(event, point)}
               onEnd={(event, end) => startEnd(event, element, end)}
               result={results.get(element.id)}
             />
           ))}
+
+          {drag?.type === 'marquee' && (
+            <rect
+              className="marquee"
+              x={Math.min(drag.from.x, drag.to.x)}
+              y={Math.min(drag.from.y, drag.to.y)}
+              width={Math.abs(drag.to.x - drag.from.x)}
+              height={Math.abs(drag.to.y - drag.from.y)}
+              pointerEvents="none"
+            />
+          )}
 
           {drag?.type === 'draw' && (
             <line className="wire-ghost" x1={drag.from.x} y1={drag.from.y} x2={drag.to.x} y2={drag.to.y} />
@@ -274,7 +336,7 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
             element={chosen}
             result={results.get(chosen.id)}
             onChange={(change) => update(chosen.id, change)}
-            onRemove={() => remove(chosen.id)}
+            onRemove={() => remove([chosen.id])}
           />
         ) : (
           <p className="panel-empty">

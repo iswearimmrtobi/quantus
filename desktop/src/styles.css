@@ -1099,3 +1099,11 @@ code {
   font-size: 11px;
   line-height: 1.5;
 }
+
+.marquee {
+  fill: var(--cyan);
+  fill-opacity: 0.12;
+  stroke: var(--cyan);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
