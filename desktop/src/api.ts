@@ -180,7 +180,7 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   } catch (failure) {
     if (typeof failure === 'object' && failure !== null && 'error' in failure) {
       const { error, position } = failure as ErrorPayload;
-      throw new ApiError(error ?? 'Unbekannter Fehler.', position ?? null);
+      throw new ApiError(error ?? 'Unknown error.', position ?? null);
     }
     throw new ApiError(String(failure));
   }

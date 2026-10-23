@@ -1,3 +1,4 @@
+import type { TextKey } from './i18n/en';
 import type { CircuitElement, CircuitRequest, ElementKind } from './api';
 
 /**
@@ -42,14 +43,14 @@ const PREFIX: Record<EditorKind, string> = {
   ground: 'GND',
 };
 
-export const KIND_LABELS: Record<EditorKind, string> = {
-  resistor: 'Widerstand',
-  wire: 'Leitung',
-  voltageSource: 'Spannungsquelle',
-  currentSource: 'Stromquelle',
-  potentiometer: 'Potentiometer',
-  powerLoad: 'Leistungslast',
-  ground: 'Masse',
+export const KIND_LABELS: Record<EditorKind, TextKey> = {
+  resistor: 'kind.resistor',
+  wire: 'kind.wire',
+  voltageSource: 'kind.voltageSource',
+  currentSource: 'kind.currentSource',
+  potentiometer: 'kind.potentiometer',
+  powerLoad: 'kind.powerLoad',
+  ground: 'kind.ground',
 };
 
 /** Half the length of a part along its axis, so its terminals are four grid steps apart. */
@@ -183,45 +184,45 @@ export function newElement(elements: EditorElement[], kind: EditorKind, at: Poin
   return kind === 'wire' ? { ...base, x2: snap(at.x) + 2 * HALF, y2: snap(at.y) } : base;
 }
 
-/** The text fields the inspector offers per kind. */
+/** The text fields the inspector offers per kind; `{,}` in a placeholder is the decimal mark. */
 export interface Field {
   key: keyof CircuitElement;
-  label: string;
+  label: TextKey;
   placeholder: string;
 }
 
 export const FIELDS: Record<EditorKind, Field[]> = {
-  resistor: [{ key: 'r', label: 'Widerstand', placeholder: '10\\Omega' }],
+  resistor: [{ key: 'r', label: 'field.r', placeholder: '10\\Omega' }],
   wire: [
-    { key: 'length', label: 'Länge', placeholder: '100m' },
-    { key: 'area', label: 'Querschnitt', placeholder: '2mm^2' },
-    { key: 'temp', label: 'Temperatur', placeholder: '20°C' },
-    { key: 'rOverride', label: 'Widerstand (fest)', placeholder: '0{,}1\\Omega' },
+    { key: 'length', label: 'field.length', placeholder: '100m' },
+    { key: 'area', label: 'field.area', placeholder: '2mm^2' },
+    { key: 'temp', label: 'field.temp', placeholder: '20°C' },
+    { key: 'rOverride', label: 'field.rOverride', placeholder: '0{,}1\\Omega' },
   ],
   voltageSource: [
-    { key: 'u', label: 'Spannung', placeholder: '230V' },
-    { key: 'internalResistance', label: 'Innenwiderstand', placeholder: '0{,}5\\Omega' },
+    { key: 'u', label: 'field.u', placeholder: '230V' },
+    { key: 'internalResistance', label: 'field.internalResistance', placeholder: '0{,}5\\Omega' },
   ],
   currentSource: [
-    { key: 'i', label: 'Strom', placeholder: '2A' },
-    { key: 'internalConductance', label: 'Innenleitwert', placeholder: '1mS' },
+    { key: 'i', label: 'field.i', placeholder: '2A' },
+    { key: 'internalConductance', label: 'field.internalConductance', placeholder: '1mS' },
   ],
   potentiometer: [
-    { key: 'rTotal', label: 'Gesamtwiderstand', placeholder: '10k\\Omega' },
-    { key: 'position', label: 'Stellung (0 bis 1)', placeholder: '0{,}25' },
+    { key: 'rTotal', label: 'field.rTotal', placeholder: '10k\\Omega' },
+    { key: 'position', label: 'field.position', placeholder: '0{,}25' },
   ],
-  powerLoad: [{ key: 'p', label: 'Leistung', placeholder: '500W' }],
+  powerLoad: [{ key: 'p', label: 'field.p', placeholder: '500W' }],
   ground: [],
 };
 
-export const MATERIALS = [
-  { id: 'copper', label: 'Kupfer' },
-  { id: 'aluminium', label: 'Aluminium' },
-  { id: 'silver', label: 'Silber' },
-  { id: 'gold', label: 'Gold' },
-  { id: 'iron', label: 'Eisen' },
-  { id: 'constantan', label: 'Konstantan' },
-  { id: 'brass', label: 'Messing' },
+export const MATERIALS: { id: string; label: TextKey }[] = [
+  { id: 'copper', label: 'material.copper' },
+  { id: 'aluminium', label: 'material.aluminium' },
+  { id: 'silver', label: 'material.silver' },
+  { id: 'gold', label: 'material.gold' },
+  { id: 'iron', label: 'material.iron' },
+  { id: 'constantan', label: 'material.constantan' },
+  { id: 'brass', label: 'material.brass' },
 ];
 
 /** The version of the circuit file; the backend refuses any other. */

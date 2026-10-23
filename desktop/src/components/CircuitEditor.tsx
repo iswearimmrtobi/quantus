@@ -18,6 +18,7 @@ import {
   type Point,
   type Terminal,
 } from '../circuit';
+import { useT } from '../i18n';
 import { Katex } from './Katex';
 
 interface Props {
@@ -44,6 +45,7 @@ const PALETTE: EditorKind[] = [
 ];
 
 export function CircuitEditor({ elements, onChange, toolbar }: Props) {
+  const { t, language } = useT();
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [response, setResponse] = useState<CircuitResponse | null>(null);
@@ -80,7 +82,7 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
       current = false;
       window.clearTimeout(timer);
     };
-  }, [request]);
+  }, [request, language]);
 
   const results = useMemo(() => new Map(response?.elements.map((e) => [e.id, e])), [response]);
   const voltages = useMemo(() => new Map(response?.nodes.map((n) => [n.id, n.voltage])), [response]);
@@ -238,25 +240,25 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
   return (
     <div className="circuit">
       <div className="circuit-palette">
-        <div className="palette-title">BAUTEILE</div>
+        <div className="palette-title">{t('circuit.parts')}</div>
         {PALETTE.map((kind) => (
           <button
             key={kind}
             className="palette-item"
             draggable
-            title="Auf die Zeichenfläche ziehen oder klicken"
+            title={t('circuit.drag')}
             onDragStart={(event) => event.dataTransfer.setData('text/plain', kind)}
             onClick={() => add(kind)}
           >
             <svg viewBox="-48 -24 96 48" width="48" height="24">
               <Symbol kind={kind} />
             </svg>
-            <span>{KIND_LABELS[kind]}</span>
+            <span>{t(KIND_LABELS[kind])}</span>
           </button>
         ))}
         {toolbar}
         <p className="palette-hint">
-          Von einer Klemme ziehen zeichnet eine Leitung. Auf freier Fläche ziehen wählt mehrere Bauteile. <kbd>Leertaste</kbd> dreht, <kbd>Entf</kbd> löscht.
+          {t('circuit.hint')} <kbd>{t('key.space')}</kbd> {t('circuit.rotates')}, <kbd>{t('key.delete')}</kbd> {t('circuit.deletes')}.
         </p>
       </div>
 
@@ -325,7 +327,7 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
         {(failure || (elements.length > 0 && !nodes.grounded && nodes.byPoint.size > 0)) && (
           <div className={failure ? 'circuit-note error' : 'circuit-note'}>
             {failure ??
-              'Keine Masse gesetzt: Bezugspotential ist der Minuspol der ersten Spannungsquelle.'}
+              t('circuit.noGround')}
           </div>
         )}
       </div>
@@ -341,8 +343,8 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
         ) : (
           <p className="panel-empty">
             {elements.length === 0
-              ? 'Bauteile aus der Palette auf die Fläche ziehen, dann Klemmen mit Leitungen verbinden.'
-              : 'Ein Bauteil wählen, um seine Werte einzugeben.'}
+              ? t('circuit.empty')
+              : t('circuit.choose')}
           </p>
         )}
       </aside>
@@ -519,28 +521,29 @@ function Inspector({
   onChange(change: Partial<EditorElement>): void;
   onRemove(): void;
 }) {
+  const { t, language } = useT();
   const parameters = element as unknown as Record<string, string | undefined>;
   return (
     <div className="inspector">
       <div className="inspector-head">
         <span className="inspector-id">{element.id}</span>
-        <span className="inspector-kind">{KIND_LABELS[element.kind]}</span>
-        <button className="inspector-delete" title="Löschen (Entf)" onClick={onRemove}>
+        <span className="inspector-kind">{t(KIND_LABELS[element.kind])}</span>
+        <button className="inspector-delete" title={`${t('circuit.delete')} (${t('key.delete')})`} onClick={onRemove}>
           ✕
         </button>
       </div>
 
       {element.kind === 'wire' && (
         <label className="field">
-          <span>Material</span>
+          <span>{t('field.material')}</span>
           <select
             value={element.material ?? ''}
             onChange={(event) => onChange({ material: event.target.value || undefined })}
           >
-            <option value="">— ideal —</option>
+            <option value="">{t('circuit.ideal')}</option>
             {MATERIALS.map((material) => (
               <option key={material.id} value={material.id}>
-                {material.label}
+                {t(material.label)}
               </option>
             ))}
           </select>
@@ -549,13 +552,13 @@ function Inspector({
 
       {FIELDS[element.kind].map((field) => (
         <label className="field" key={field.key}>
-          <span>{field.label}</span>
+          <span>{t(field.label)}</span>
           <input
             type="text"
             spellCheck={false}
             autoComplete="off"
             value={parameters[field.key] ?? ''}
-            placeholder={field.placeholder}
+            placeholder={field.placeholder.replace('{,}', language === 'de' ? '{,}' : '.')}
             onChange={(event) => onChange({ [field.key]: event.target.value })}
           />
         </label>
@@ -563,9 +566,9 @@ function Inspector({
 
       {result && (
         <div className="inspector-results">
-          <ResultRow label="Spannung" value={result.voltage} />
-          <ResultRow label="Strom" value={result.current} />
-          <ResultRow label="Leistung" value={result.power} />
+          <ResultRow label={t('result.voltage')} value={result.voltage} />
+          <ResultRow label={t('result.current')} value={result.current} />
+          <ResultRow label={t('result.power')} value={result.power} />
           {result.notes.map((note) => (
             <div className="inspector-note" key={note}>
               {note}
@@ -578,6 +581,7 @@ function Inspector({
 }
 
 function ResultRow({ label, value }: { label: string; value: CircuitValue }) {
+  const { t } = useT();
   return (
     <div className="result-line">
       <span className="result-line-label">{label}</span>
@@ -585,7 +589,7 @@ function ResultRow({ label, value }: { label: string; value: CircuitValue }) {
         <Katex latex={value.result} />
       ) : (
         <span className={value.status === 'relative' ? 'value-relative' : 'value-unknown'}>
-          {value.text ?? 'Unbekannt'}
+          {value.text ?? t('result.unknown')}
         </span>
       )}
     </div>
