@@ -156,10 +156,20 @@ class Restrictions:
         if written_factored:
             for f in fac.factors:
                 if f[0] == "quad":
-                    self.polys.add(f)
+                    self.polys.add(("factor", f))
+        else:
+            # Written expanded, what is left after the monomial factor has no real zero
+            # (`2w^{2} + 4`, `x^{3} + 4x`, `-2x^{4} - 38x^{2} - 96`): it is listed as written, each
+            # repeated factor once (the convention of algebra-simplification-cases.md).
+            rest = {f: 1 for f in fac.factors if f != ("lin", 1, 0)}
+            if rest and all(f[0] == "quad" for f in rest):
+                self.polys.add(("written", tuple(sorted(rest.items()))))
 
     def expect(self, v, simplified):
-        polys = [poly_latex(f_poly(f), v) for f in sorted(self.polys)]
+        def text(entry):
+            kind, item = entry
+            return poly_latex(f_poly(item) if kind == "factor" else Factored(1, dict(item)).poly(), v)
+        polys = [text(e) for e in sorted(self.polys)]
         vals = [str(r) for r in self.values]
         return expect_algebra(simplified, {v: vals} if vals else {}, polys)
 
