@@ -5,11 +5,17 @@
 //! only if it is exactly the same in all runs; exact arithmetic means no tolerance is involved.
 //! With a single source whose value is missing, the network is solved for a source of one unit
 //! and the results are reported as ratios.
+//!
+//! A constant-power load makes the network nonlinear. It is solved by Newton's method around the
+//! linear solver: the load is replaced by its tangent at the current voltage (a conductance and a
+//! current source), the network is solved exactly, and the load voltage is rounded to working
+//! precision before the next tangent, so the iterates stay small rationals. Results are then no
+//! longer exact, only converged, and two runs are compared with a tolerance.
 
 use std::collections::{BTreeMap, HashMap};
 
 use crate::error::{QuantusError, Result};
-use crate::num::Value;
+use crate::num::{Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::units::{find, Unit};
 
@@ -74,6 +80,9 @@ struct Slot {
     which: u8,
 }
 
+/// Newton steps before giving up with "nicht konvergiert".
+const MAX_ITERATIONS: usize = 100;
+
 /// One two-terminal piece of the lowered network.
 struct Branch {
     element: usize,
@@ -103,7 +112,14 @@ impl Run {
 }
 
 pub fn solve(circuit: &Circuit) -> Result<Solution> {
+    solve_at(circuit, DEFAULT_PRECISION)
+}
+
+/// Like [`solve`]; `precision` is the number of significant digits the results of a circuit with
+/// a power load are converged to (a linear circuit is exact anyway).
+pub fn solve_at(circuit: &Circuit, precision: usize) -> Result<Solution> {
     let model = Model::new(circuit)?;
+    let nonlinear = circuit.elements.iter().any(|e| matches!(e.kind, ElementKind::PowerLoad { .. }));
 
     let unknown: Vec<Slot> = model.params.iter().filter(|(_, v)| v.is_none()).map(|(s, _)| *s).collect();
     let sources: Vec<usize> = circuit
@@ -117,6 +133,10 @@ pub fn solve(circuit: &Circuit) -> Result<Solution> {
         [only] if unknown.contains(&Slot { element: only, which: 0 }) => Some(only),
         _ => None,
     };
+    if let (Some(only), true) = (relative, nonlinear) {
+        // A power load does not scale with the source, so nothing absolute can be said.
+        return Ok(model.without_source(only));
+    }
     let varied: Vec<Slot> =
         unknown.iter().copied().filter(|s| Some(s.element) != relative).collect();
 
@@ -126,35 +146,56 @@ pub fn solve(circuit: &Circuit) -> Result<Solution> {
             let value = if Some(slot.element) == relative {
                 Value::one()
             } else {
-                test_value(slot.which, n, Some(*slot) == changed)
+                let load = matches!(circuit.elements[slot.element].kind, ElementKind::PowerLoad { .. });
+                test_value(slot.which, n, Some(*slot) == changed, load)
             };
             values.insert(*slot, value);
         }
         values
     };
 
-    let baseline = model.run(&assignment(None))?;
+    let baseline = model.run(&assignment(None), precision)?;
     let mut variations = Vec::new();
     for slot in &varied {
-        variations.push((*slot, model.run(&assignment(Some(*slot)))?));
+        // A test value can make a nonlinear network unsolvable; then the result is not known to
+        // be independent of that parameter.
+        let run = match model.run(&assignment(Some(*slot)), precision) {
+            Ok(run) => Some(run),
+            Err(_) if nonlinear => None,
+            Err(e) => return Err(e),
+        };
+        variations.push((*slot, run));
     }
 
     let base = baseline.flat();
+    let tolerance = convergence_tolerance(precision)?;
+    let same = |a: &Value, b: &Value| -> Result<bool> {
+        if !nonlinear {
+            return Ok(a == b);
+        }
+        let (ma, mb) = (magnitude(a)?, magnitude(b)?);
+        let larger = if at_most(&ma, &mb)? { mb } else { ma };
+        at_most(&magnitude(&a.sub(b))?, &tolerance.mul(&Value::one().add(&larger)))
+    };
     // The element IDs each output depends on.
-    let depends: Vec<Vec<String>> = (0..base.len())
-        .map(|n| {
+    let depends = (0..base.len())
+        .map(|n| -> Result<Vec<String>> {
             let mut ids: Vec<String> = Vec::new();
             for (slot, run) in &variations {
-                if run.flat()[n] != base[n] {
+                let differs = match run {
+                    Some(run) => !same(&run.flat()[n], base[n])?,
+                    None => true,
+                };
+                if differs {
                     let id = circuit.elements[slot.element].id.clone();
                     if !ids.contains(&id) {
                         ids.push(id);
                     }
                 }
             }
-            ids
+            Ok(ids)
         })
-        .collect();
+        .collect::<Result<Vec<_>>>()?;
 
     let volt = unit("V");
     let amp = unit("A");
@@ -216,10 +257,13 @@ fn unit(symbol: &str) -> Unit {
 }
 
 /// Stand-ins for a missing parameter. Positive and different for every unknown, so that no two
-/// of them cancel by accident; the `changed` one gets a second value.
-fn test_value(which: u8, n: usize, changed: bool) -> Value {
+/// of them cancel by accident; the `changed` one gets a second value. A power load gets a small
+/// one, so that the test network stays solvable.
+fn test_value(which: u8, n: usize, changed: bool, load: bool) -> Value {
     let n = n as i64;
     match (which, changed) {
+        _ if load && changed => Value::ratio(2 + n, 11),
+        _ if load => Value::ratio(1 + n, 7),
         (1, false) => Value::ratio(1, 3),
         (1, true) => Value::ratio(2, 5),
         (_, false) => Value::ratio(1000 + 37 * n, 7),
@@ -295,6 +339,9 @@ impl<'a> Model<'a> {
                     params.insert(main, i.as_ref().map(|i| i.to(&amp)).transpose()?.map(|i| i.value));
                     inner = nonnegative(internal_conductance, &siemens, &element.id)?.unwrap_or_else(Value::zero);
                 }
+                ElementKind::PowerLoad { p } => {
+                    params.insert(main, nonnegative(p, &unit("W"), &element.id)?);
+                }
                 ElementKind::Potentiometer { r_total, position, .. } => {
                     params.insert(main, nonnegative(r_total, &ohm, &element.id)?);
                     if let Some(p) = position {
@@ -316,7 +363,10 @@ impl<'a> Model<'a> {
     }
 
     /// The branches of the network for complete parameters.
-    fn lower(&self, values: &BTreeMap<Slot, Value>) -> Vec<Branch> {
+    ///
+    /// A power load is its tangent from `loads` (current and parallel conductance), an open
+    /// circuit if it has none.
+    fn lower(&self, values: &BTreeMap<Slot, Value>, loads: &HashMap<usize, (Value, Value)>) -> Vec<Branch> {
         let resistive = |element: usize, a: u32, b: u32, r: Value| Branch {
             element,
             a,
@@ -342,6 +392,10 @@ impl<'a> Model<'a> {
                     b,
                     kind: BranchKind::CurrentSource { i: main(), g: self.internal[n].clone() },
                 }),
+                ElementKind::PowerLoad { .. } => {
+                    let (i, g) = loads.get(&n).cloned().unwrap_or_else(|| (Value::zero(), Value::zero()));
+                    branches.push(Branch { element: n, a, b, kind: BranchKind::CurrentSource { i, g } });
+                }
                 ElementKind::Potentiometer { wiper, .. } => {
                     let position = values[&Slot { element: n, which: 1 }].clone();
                     let total = main();
@@ -353,8 +407,75 @@ impl<'a> Model<'a> {
         branches
     }
 
-    fn run(&self, values: &BTreeMap<Slot, Value>) -> Result<Run> {
-        let branches = self.lower(values);
+    /// Solves the network, by Newton's method if it has a power load.
+    ///
+    /// Starting from the network without the loads, each step replaces a load by its tangent at
+    /// the voltage `v` of the last step: `I = P/v` is `2P/v − P/v²·V`. For one load the voltage
+    /// then falls steadily to the solution if there is one; if it rises or reaches zero there is
+    /// none, and the same is taken to hold for several loads.
+    fn run(&self, values: &BTreeMap<Slot, Value>, precision: usize) -> Result<Run> {
+        let loads: Vec<(usize, Value)> = self
+            .circuit
+            .elements
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| matches!(e.kind, ElementKind::PowerLoad { .. }))
+            .map(|(n, _)| (n, values[&Slot { element: n, which: 0 }].clone()))
+            .filter(|(_, p)| !p.is_zero())
+            .collect();
+        if loads.is_empty() {
+            return self.run_linear(values, &HashMap::new());
+        }
+
+        let no_solution = || QuantusError::other("keine Lösung: Last zu groß");
+        let tolerance = convergence_tolerance(precision)?;
+        let two = Value::int(2);
+        let mut tangents = HashMap::new();
+        let mut previous: Vec<Option<Value>> = vec![None; loads.len()];
+        for _ in 0..MAX_ITERATIONS {
+            let mut run = match self.run_linear(values, &tangents) {
+                Err(_) if !tangents.is_empty() => return Err(no_solution()),
+                run => run?,
+            };
+            let mut converged = true;
+            let mut next = HashMap::new();
+            for (k, (n, p)) in loads.iter().enumerate() {
+                let v = run.elements[*n][0].clone();
+                if v.is_zero() || v.is_negative()? {
+                    return Err(no_solution());
+                }
+                match &previous[k] {
+                    Some(last) => {
+                        let step = v.sub(last);
+                        let allowed = tolerance.mul(&v);
+                        if !at_most(&magnitude(&step)?, &allowed)? {
+                            converged = false;
+                            if !step.is_negative()? {
+                                return Err(no_solution());
+                            }
+                        }
+                    }
+                    None => converged = false,
+                }
+                let v = Value::from_decimal(&v.decimal(precision + 8)?);
+                next.insert(*n, (two.mul(p).div(&v)?, p.div(&v.mul(&v))?.neg()));
+                previous[k] = Some(v);
+            }
+            if converged {
+                for (n, p) in &loads {
+                    let v = run.elements[*n][0].clone();
+                    run.elements[*n][1] = p.div(&v)?;
+                    run.elements[*n][2] = p.clone();
+                }
+                return Ok(run);
+            }
+            tangents = next;
+        }
+        Err(QuantusError::other("nicht konvergiert"))
+    }
+
+    fn run_linear(&self, values: &BTreeMap<Slot, Value>, loads: &HashMap<usize, (Value, Value)>) -> Result<Run> {
+        let branches = self.lower(values, loads);
         // Unknowns: the voltage of every node but ground, then one current per branch that
         // needs one.
         let node_row = |id: u32| -> Option<usize> {
@@ -441,6 +562,37 @@ impl<'a> Model<'a> {
         Ok(Run { nodes, elements })
     }
 
+    /// The result for a network with a power load and a missing source: only the reference
+    /// potential is known.
+    fn without_source(&self, source: usize) -> Solution {
+        let element = &self.circuit.elements[source];
+        let current = matches!(element.kind, ElementKind::CurrentSource { .. });
+        let unknown = || Output::Unknown(Reason::MissingSource { id: element.id.clone(), current });
+        let nodes = self
+            .circuit
+            .nodes
+            .iter()
+            .map(|id| NodeResult {
+                id: *id,
+                voltage: if *id == GROUND {
+                    Output::Known(PhysicalQuantity::new(Value::zero(), unit("V")))
+                } else {
+                    unknown()
+                },
+            })
+            .collect();
+        let elements = (0..self.circuit.elements.len())
+            .map(|n| ElementResult {
+                id: self.circuit.elements[n].id.clone(),
+                voltage: unknown(),
+                current: unknown(),
+                power: unknown(),
+                notes: self.notes[n].clone(),
+            })
+            .collect();
+        Solution { nodes, elements }
+    }
+
     /// Why the matrix is singular: a node that no voltage-fixing branch reaches from ground
     /// (floating), otherwise a loop of ideal voltage sources (short circuit).
     fn diagnose(&self, branches: &[Branch]) -> QuantusError {
@@ -465,6 +617,20 @@ impl<'a> Model<'a> {
             None => QuantusError::other("Kurzschluss"),
         }
     }
+}
+
+/// 10^-(precision + 4): how closely Newton's method converges, and results of two runs agree.
+fn convergence_tolerance(precision: usize) -> Result<Value> {
+    Value::int(10).pow(&Value::int(-(precision as i64 + 4)))
+}
+
+fn magnitude(value: &Value) -> Result<Value> {
+    Ok(if value.is_negative()? { value.neg() } else { value.clone() })
+}
+
+fn at_most(a: &Value, b: &Value) -> Result<bool> {
+    let difference = a.sub(b);
+    Ok(difference.is_zero() || difference.is_negative()?)
 }
 
 /// A missing value stays `None`; a given one is converted to `target` and must not be negative.
@@ -751,5 +917,110 @@ mod tests {
         let missing = circuit(&[0], vec![resistor("R1", 1, 0, Some(5))]);
         assert_eq!(solve(&missing).unwrap_err().to_string(), "Element R1 uses the unknown node 1.");
         assert!(solve(&circuit(&[1], vec![])).is_err());
+    }
+
+    fn load(id: &str, a: u32, b: u32, watts: Option<i64>) -> Element {
+        element(id, a, b, ElementKind::PowerLoad { p: watts.and_then(|p| q(p, "W")) })
+    }
+
+    /// A source of `volts` behind a 1 Ω resistor driving a load of `watts`.
+    fn loaded(volts: Option<i64>, watts: Option<i64>) -> Circuit {
+        circuit(&[0, 1, 2], vec![source("U1", 1, 0, volts), resistor("R1", 1, 2, Some(1)), load("L1", 2, 0, watts)])
+    }
+
+    fn close(value: &Value, expected: i64, digits: usize) -> bool {
+        let tolerance = Value::int(10).pow(&Value::int(-(digits as i64))).unwrap();
+        at_most(&magnitude(&value.sub(&Value::int(expected))).unwrap(), &tolerance).unwrap()
+    }
+
+    #[test]
+    fn a_power_load_takes_the_upper_root() {
+        // V² − 10·V + 9 = 0: 9 V at 1 A, not the root at 1 V and 9 A.
+        let s = solve(&loaded(Some(10), Some(9))).unwrap();
+        assert!(close(&known(node(&s, 2)), 9, 40));
+        assert!(close(&known(&result(&s, "L1").current), 1, 40));
+        assert_eq!(known(&result(&s, "L1").power), Value::int(9));
+        assert!(close(&known(&result(&s, "R1").voltage), 1, 40));
+    }
+
+    #[test]
+    fn a_power_load_on_the_reference_cable() {
+        let mut c = reference(Some(230));
+        c.elements[2] = load("L1", 2, 3, Some(2000));
+        let s = solve(&c).unwrap();
+        // Voltage times current at the load is 2000 W, and what is left of 230 V drops over the cable.
+        let v = known(&result(&s, "L1").voltage);
+        let i = known(&result(&s, "L1").current);
+        assert_eq!(v.mul(&i), Value::int(2000));
+        let cable = known(&result(&s, "W1").voltage).add(&known(&result(&s, "W2").voltage));
+        let rest = Value::int(230).sub(&v).sub(&cable);
+        assert!(close(&rest, 0, 40));
+        assert!(close(&cable.sub(&i.mul(&Value::ratio(43, 25))), 0, 40));
+        assert_eq!(v.decimal(6).unwrap().to_plain_string(), "213.919");
+        assert_eq!(result(&s, "W1").notes, vec!["bei 20 °C".to_string()]);
+    }
+
+    #[test]
+    fn kirchhoff_and_the_power_balance_hold_with_a_power_load() {
+        let s = solve(&loaded(Some(10), Some(9))).unwrap();
+        let total = s.elements.iter().fold(Value::zero(), |sum, r| sum.add(&known(&r.power)));
+        assert!(close(&total, 0, 40));
+        let current = |id| known(&result(&s, id).current);
+        assert!(close(&current("U1").add(&current("R1")), 0, 40));
+        assert!(close(&current("R1").sub(&current("L1")), 0, 40));
+    }
+
+    #[test]
+    fn the_precision_sets_how_far_the_load_converges() {
+        let s = solve_at(&loaded(Some(10), Some(9)), 5).unwrap();
+        assert!(close(&known(node(&s, 2)), 9, 4));
+    }
+
+    #[test]
+    fn a_load_that_is_too_large_has_no_solution() {
+        // The most this source and resistor can deliver is 25 W.
+        for watts in [26, 30, 1000] {
+            assert_eq!(solve(&loaded(Some(10), Some(watts))).unwrap_err().to_string(), "keine Lösung: Last zu groß");
+        }
+        assert!(solve(&loaded(Some(10), Some(24))).is_ok());
+        // The load is pushed backwards by a reversed source.
+        assert_eq!(solve(&loaded(Some(-10), Some(9))).unwrap_err().to_string(), "keine Lösung: Last zu groß");
+    }
+
+    #[test]
+    fn a_load_at_the_limit_does_not_converge() {
+        // At exactly 25 W the root is a double one and Newton's method only halves the error.
+        assert_eq!(solve(&loaded(Some(10), Some(25))).unwrap_err().to_string(), "nicht konvergiert");
+    }
+
+    #[test]
+    fn a_load_without_power_is_an_open_circuit() {
+        let s = solve(&loaded(Some(10), Some(0))).unwrap();
+        assert_eq!(known(node(&s, 2)), Value::int(10));
+        assert!(known(&result(&s, "L1").current).is_zero());
+    }
+
+    #[test]
+    fn a_power_load_does_not_scale_with_a_missing_source() {
+        let s = solve(&loaded(None, Some(9))).unwrap();
+        assert_eq!(known(node(&s, 0)), Value::zero());
+        let missing = Output::Unknown(Reason::MissingSource { id: "U1".into(), current: false });
+        assert_eq!(node(&s, 2), &missing);
+        assert_eq!(result(&s, "R1").current, missing);
+    }
+
+    #[test]
+    fn a_missing_value_next_to_a_power_load_is_named() {
+        // The load's power is unknown; the source is not.
+        let s = solve(&loaded(Some(10), None)).unwrap();
+        assert_eq!(known(node(&s, 1)), Value::int(10));
+        assert_eq!(node(&s, 2), &Output::Unknown(Reason::DependsOn(vec!["L1".into()])));
+
+        // A resistor that the load current does not pass changes nothing about the load.
+        let mut c = loaded(Some(10), Some(9));
+        c.elements.push(resistor("R2", 1, 0, None));
+        let s = solve(&c).unwrap();
+        assert!(close(&known(node(&s, 2)), 9, 40));
+        assert!(matches!(result(&s, "R2").current, Output::Unknown(_)));
     }
 }

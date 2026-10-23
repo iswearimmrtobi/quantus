@@ -51,4 +51,9 @@ pub enum ElementKind {
         r_total: Option<PhysicalQuantity>,
         position: Option<Value>,
     },
+    /// A consumer that draws the constant power `P` whatever its voltage: `V·I = P` with the
+    /// voltage `V(a) − V(b)` positive. Nonlinear, so the solver iterates.
+    PowerLoad {
+        p: Option<PhysicalQuantity>,
+    },
 }

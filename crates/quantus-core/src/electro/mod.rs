@@ -7,5 +7,5 @@ pub mod wire;
 
 pub use circuit::{Circuit, Element, ElementKind, GROUND};
 pub use materials::Material;
-pub use solve::{solve, ElementResult, NodeResult, Output, Reason, Solution};
+pub use solve::{solve, solve_at, ElementResult, NodeResult, Output, Reason, Solution};
 pub use wire::{Warning, Wire};
