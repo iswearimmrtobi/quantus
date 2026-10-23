@@ -288,6 +288,24 @@ fn run_case(case: &Value) -> Outcome {
             }
             out
         }
+        "complex" => {
+            let parse = |key: &str| expect[key].as_str().and_then(parse_rational);
+            let (Some(re), Some(im)) = (parse("re"), parse("im")) else {
+                return generator("unparsable expected complex value");
+            };
+            let got_im = calc.imaginary.as_ref().map(|d| d.to_rational()).unwrap_or(RBig::ZERO);
+            let got_re = calc.value.to_rational();
+            if close(&got_re, &re, &tol) && close(&got_im, &im, &tol) {
+                Outcome::pass(calc.latex)
+            } else {
+                Outcome::fail(
+                    "wrong-value",
+                    format!("expected {} + {}i, got {} + {}i", show(&re), show(&im), show(&got_re), show(&got_im)),
+                    calc.latex,
+                )
+            }
+        }
+        "complex-solutions" => check_complex_solutions(latex, &settings, expect, &tol, calc.latex),
         "solutions" => check_solutions(latex, &settings, expect, &tol, calc.latex),
         "algebra" => check_algebra(latex, &settings, expect, calc.result),
         _ => generator("unknown expectation kind"),
@@ -347,6 +365,49 @@ fn check_solutions(latex: &str, settings: &Settings, expect: &Value, tol: &RBig,
     let (got, want) = (dedup(got), dedup(want));
     let missing: Vec<String> = want.iter().filter(|w| !got.iter().any(|g| close(g, w, tol))).map(show).collect();
     let extra: Vec<String> = got.iter().filter(|g| !want.iter().any(|w| close(g, w, tol))).map(show).collect();
+    if missing.is_empty() && extra.is_empty() {
+        Outcome::pass(shown)
+    } else {
+        Outcome::fail("solutions", format!("missing [{}], unexpected [{}]", missing.join(", "), extra.join(", ")), shown)
+    }
+}
+
+/// The roots of an equation as (re, im) pairs, compared with the expected ones in any order.
+fn check_complex_solutions(latex: &str, settings: &Settings, expect: &Value, tol: &RBig, shown: String) -> Outcome {
+    let formula = match parser::parse_with(latex, &settings.parse_options()) {
+        Ok(f) => f,
+        Err(e) => return Outcome::error(e.to_string()),
+    };
+    let vars = Variables::new();
+    let evaluator = Evaluator::new(&vars).with_precision(PRECISION).with_mode(settings.mode);
+    let solutions = match evaluator.solve(&formula.expression) {
+        Ok(s) => s,
+        Err(e) => return Outcome::error(e.to_string()),
+    };
+    let part = |value: quantus_core::num::Value| -> Result<RBig, String> {
+        value.decimal(PRECISION).map(|d| d.to_rational()).map_err(|e| e.to_string())
+    };
+    let mut got = Vec::new();
+    for q in &solutions.values {
+        let Some((re, im)) = q.value.re_im() else { return Outcome::error("a root is not of the form a + bi".into()) };
+        match (part(re), part(im)) {
+            (Ok(re), Ok(im)) => got.push((re, im)),
+            (Err(e), _) | (_, Err(e)) => return Outcome::error(e),
+        }
+    }
+    let want: Vec<(RBig, RBig)> = expect["values"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| Some((parse_rational(v["re"].as_str()?)?, parse_rational(v["im"].as_str()?)?)))
+                .collect()
+        })
+        .unwrap_or_default();
+    let same = |x: &(RBig, RBig), y: &(RBig, RBig)| close(&x.0, &y.0, tol) && close(&x.1, &y.1, tol);
+    let missing: Vec<String> =
+        want.iter().filter(|w| !got.iter().any(|g| same(g, w))).map(|w| format!("{} + {}i", show(&w.0), show(&w.1))).collect();
+    let extra: Vec<String> =
+        got.iter().filter(|g| !want.iter().any(|w| same(g, w))).map(|g| format!("{} + {}i", show(&g.0), show(&g.1))).collect();
     if missing.is_empty() && extra.is_empty() {
         Outcome::pass(shown)
     } else {

@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from gens import algebra, arithmetic, calculus, functions, physics, syntax  # noqa: E402
+from gens import algebra, arithmetic, calculus, complex_numbers, functions, physics, syntax  # noqa: E402
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -39,6 +39,7 @@ CATEGORIES = {
     "algebra": ("alg", 20000, algebra.GENERATORS),
     "physics": ("phys", 22000, physics.GENERATORS),
     "syntax": ("syn", 3000, syntax.GENERATORS),
+    "complex": ("cplx", 3000, complex_numbers.GENERATORS),
 }
 
 
@@ -89,8 +90,9 @@ def check(all_cases):
     ids = [c["id"] for c in all_cases]
     if len(ids) != len(set(ids)):
         errors.append("duplicate ids")
-    if len(all_cases) != 100_000:
-        errors.append(f"expected 100000 cases, got {len(all_cases)}")
+    expected = sum(n for _, n, _ in CATEGORIES.values())
+    if len(all_cases) != expected:
+        errors.append(f"expected {expected} cases, got {len(all_cases)}")
     for c in all_cases:
         e = c["expect"]
         try:
@@ -99,6 +101,12 @@ def check(all_cases):
                 float(e["rel_tol"])
             elif e["kind"] == "solutions":
                 [_parse_value(v) for v in e["values"]]
+            elif e["kind"] == "complex":
+                _parse_value(e["re"])
+                _parse_value(e["im"])
+                float(e["rel_tol"])
+            elif e["kind"] == "complex-solutions":
+                [(_parse_value(v["re"]), _parse_value(v["im"])) for v in e["values"]]
             elif e["kind"] == "algebra":
                 for vals in e["restrictions"].values():
                     [Fraction(v) for v in vals]
