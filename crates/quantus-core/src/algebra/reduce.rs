@@ -95,7 +95,10 @@ pub fn reduce_rational_node(
 
     // Check if the numerator or denominator in the AST needs to be factored first
     let num_is_unfactored = if fact_num.factors.len() > 1 || (fact_num.factors.len() == 1 && fact_num.factors[0].exp > 1) {
-        let num_unwrapped = unwrap_group(num);
+        let mut num_unwrapped = unwrap_group(num);
+        while let Node::Negation { operand, .. } = num_unwrapped {
+            num_unwrapped = unwrap_group(operand);
+        }
         !matches!(num_unwrapped, Node::Binary { operator: crate::latex::ast::Operator::ImplicitTimes | crate::latex::ast::Operator::Times, .. } | Node::Power { .. })
     } else {
         false

@@ -556,3 +556,10 @@ fn cat14_mathematical_equivalence_verification_suite() {
         );
     }
 }
+
+#[test]
+fn cancels_fraction_with_negative_leading_numerator() {
+    let result = run(r"\frac{-x^{3} - 2x^{2}}{x}");
+    assert_eq!(serializer::algebraic_expression(&result.node), "-x^{2} - 2x");
+    assert_eq!(restrictions(&result), "x != 0");
+}
