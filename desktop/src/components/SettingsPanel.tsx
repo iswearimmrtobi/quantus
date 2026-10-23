@@ -43,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   aAndYAsVariables: true,
   letterProducts: true,
   extraUnitLetters: false,
+  language: 'en',
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {

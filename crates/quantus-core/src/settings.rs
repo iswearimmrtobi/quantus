@@ -50,6 +50,15 @@ pub enum Mode {
     Electronics,
 }
 
+/// The language of the texts the engine writes itself (the electronics notes and errors).
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    #[default]
+    En,
+    De,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -68,6 +77,7 @@ pub struct Settings {
     pub letter_products: bool,
     /// `t`, `u` and `in` are the tonne, the atomic mass unit and the inch rather than variables.
     pub extra_unit_letters: bool,
+    pub language: Language,
 }
 
 impl Default for Settings {
@@ -82,6 +92,7 @@ impl Default for Settings {
             a_and_y_as_variables: true,
             letter_products: true,
             extra_unit_letters: false,
+            language: Language::En,
         }
     }
 }
@@ -141,7 +152,8 @@ mod tests {
                 "exactRoots": false,
                 "aAndYAsVariables": true,
                 "letterProducts": true,
-                "extraUnitLetters": false
+                "extraUnitLetters": false,
+                "language": "en"
             })
         );
     }

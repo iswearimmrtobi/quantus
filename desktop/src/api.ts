@@ -135,6 +135,7 @@ export interface CircuitResponse {
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
 export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics';
+export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 
 /** What `quantus_core::settings::Settings` serialises to. */
@@ -148,6 +149,7 @@ export interface Settings {
   aAndYAsVariables: boolean;
   letterProducts: boolean;
   extraUnitLetters: boolean;
+  language: Language;
 }
 
 export interface EngineInfo {
