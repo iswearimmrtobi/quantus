@@ -72,6 +72,31 @@ pub fn exact_quantity(exact: &str, unit: &Unit) -> String {
     format!("{exact}\\,{}", unit_latex::format(unit))
 }
 
+/// A complex result with exact parts, `\\frac{\\sqrt{2}}{2} + \\frac{\\sqrt{2}}{2}i`.
+pub fn exact_complex_quantity(re: &str, im: &str, unit: &Unit) -> String {
+    use super::exact::is_sum;
+    let (negative, magnitude) = match im.strip_prefix('-') {
+        Some(rest) if !is_sum(im) => (true, rest),
+        _ => (false, im),
+    };
+    let magnitude = match magnitude {
+        "1" => String::new(),
+        m if is_sum(m) => format!("({m})"),
+        m => m.to_string(),
+    };
+    let imaginary = format!("{magnitude}i");
+    let number = match (re, negative) {
+        ("0", true) => format!("-{imaginary}"),
+        ("0", false) => imaginary,
+        (re, true) => format!("{re} - {imaginary}"),
+        (re, false) => format!("{re} + {imaginary}"),
+    };
+    if unit.is_one() {
+        return number;
+    }
+    format!("\\left({number}\\right)\\,{}", unit_latex::format(unit))
+}
+
 /// A complex result, `3 + 4i` or `-2i`, with its unit after the parenthesised number.
 pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
     let magnitude = |value: &Decimal| match numbers::format(&Decimal::new(IBig::from(value.unscaled().clone().unsigned_abs()), value.scale())).as_str() {

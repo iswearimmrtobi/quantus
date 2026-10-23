@@ -296,8 +296,12 @@ impl LatexCalculator {
             Err(crate::QuantusError::NotReal(message)) if self.settings.mode == Mode::Imaginary => {
                 let not_real = || crate::QuantusError::NotReal(message.clone());
                 let (re, im) = quantity.value.re_im().ok_or_else(not_real)?;
+                let exact = self.settings.exact_roots.then(|| exact::format_complex(&re, &im)).flatten();
                 let (re, im) = (re.decimal(self.precision)?, im.decimal(self.precision)?);
-                let result = serializer::complex_quantity(&re, &im, &quantity.unit);
+                let result = match exact {
+                    Some((exact_re, exact_im)) => serializer::exact_complex_quantity(&exact_re, &exact_im, &quantity.unit),
+                    None => serializer::complex_quantity(&re, &im, &quantity.unit),
+                };
                 Ok((re, Some(im), result))
             }
             Err(error) => Err(error),
@@ -431,6 +435,18 @@ mod tests {
         assert_eq!(exact("\\frac{1}{4}"), "0{,}25");
         assert_eq!(exact("\\sqrt{4}"), "2");
         assert_eq!(exact("\\pi"), calc("\\pi").result);
+    }
+
+    #[test]
+    fn exact_roots_apply_to_complex_results() {
+        let settings = Settings { exact_roots: true, mode: Mode::Imaginary, ..Settings::default() };
+        let run = |input: &str| {
+            LatexCalculator::default().with_settings(settings.clone()).evaluate(input, &Variables::new()).unwrap().result
+        };
+        assert_eq!(run("\\sqrt{i}"), "\\frac{\\sqrt{2}}{2} + \\frac{\\sqrt{2}}{2}i");
+        assert_eq!(run("\\sqrt{-3}"), "\\sqrt{3}i");
+        assert_eq!(run("1 - \\sqrt{-2}"), "1 - \\sqrt{2}i");
+        assert_eq!(run("3 + 4i"), "3 + 4i");
     }
 
     #[test]

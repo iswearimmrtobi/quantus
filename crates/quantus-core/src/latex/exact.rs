@@ -27,16 +27,29 @@ type Terms = BTreeMap<Vec<Radical>, RBig>;
 /// The LaTeX of `value` if it contains a root and has an exact form; `None` otherwise, including
 /// for plain rationals, which read better as the decimal.
 pub fn format(value: &Value) -> Option<String> {
+    let terms = terms_of(value)?;
+    has_root(&terms).then(|| sum(&terms))
+}
+
+/// A complex value `re + im·i` where either part contains a root, as `(re, im)` with the
+/// imaginary part's sign and its `i` left to the caller's layout: `im` has no `i`.
+pub fn format_complex(re: &Value, im: &Value) -> Option<(String, String)> {
+    let (re, im) = (terms_of(re)?, terms_of(im)?);
+    (has_root(&re) || has_root(&im)).then(|| (sum(&re), sum(&im)))
+}
+
+fn terms_of(value: &Value) -> Option<Terms> {
     let mut terms = Terms::new();
     match value {
         Value::Add(items) => items.iter().try_for_each(|item| add_term(&mut terms, item))?,
         other => add_term(&mut terms, other)?,
     }
     terms.retain(|_, coefficient| *coefficient != RBig::ZERO);
-    if !terms.keys().any(|radicals| !radicals.is_empty()) {
-        return None;
-    }
-    Some(sum(&terms))
+    Some(terms)
+}
+
+fn has_root(terms: &Terms) -> bool {
+    terms.keys().any(|radicals| !radicals.is_empty())
 }
 
 /// Whether the sum needs parentheses before a unit is attached to it.
@@ -135,6 +148,9 @@ fn extract(index: u32, radicand: UBig) -> (UBig, UBig) {
 }
 
 fn sum(terms: &Terms) -> String {
+    if terms.is_empty() {
+        return "0".to_string();
+    }
     let mut out = String::new();
     // The rational part first, then the radicals.
     for (radicals, coefficient) in terms {
@@ -224,6 +240,16 @@ mod tests {
         assert!(format(&Value::Pi).is_none());
         assert!(format(&Value::Pi.mul(&root(2, 2))).is_none());
         assert!(format(&root(4, 2)).is_none());
+    }
+
+    #[test]
+    fn complex_parts_are_written_exactly_when_one_has_a_root() {
+        let half = Value::ratio(1, 2).mul(&root(2, 2));
+        let (re, im) = format_complex(&half, &half).unwrap();
+        assert_eq!((re.as_str(), im.as_str()), ("\\frac{\\sqrt{2}}{2}", "\\frac{\\sqrt{2}}{2}"));
+        let (re, im) = format_complex(&Value::zero(), &root(3, 2)).unwrap();
+        assert_eq!((re.as_str(), im.as_str()), ("0", "\\sqrt{3}"));
+        assert!(format_complex(&Value::int(1), &Value::int(2)).is_none());
     }
 
     #[test]
