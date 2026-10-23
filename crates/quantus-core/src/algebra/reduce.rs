@@ -79,8 +79,8 @@ pub fn reduce_rational_node(
     }
 
     // 5. Multiplicative cancellation via FactoredPoly GCD
-    let fact_num = den_to_factored(num);
     let fact_den = den_to_factored(den);
+    let fact_num = den_to_factored(num).split_by(&fact_den);
 
     if fact_num.is_zero() || fact_den.is_zero() {
         return None;

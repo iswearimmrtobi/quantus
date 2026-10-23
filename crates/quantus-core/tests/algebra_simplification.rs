@@ -563,3 +563,9 @@ fn cancels_fraction_with_negative_leading_numerator() {
     assert_eq!(serializer::algebraic_expression(&result.node), "-x^{2} - 2x");
     assert_eq!(restrictions(&result), "x != 0");
 }
+
+#[test]
+fn cancels_a_quadratic_factor_the_factorizer_does_not_find() {
+    let result = run(r"\frac{5x^{6} - 5x^{5} + 5x^{4} - 5x^{3} + 5x^{2} + 5}{x^{2} + 1}");
+    assert_eq!(serializer::algebraic_expression(&result.node), "5x^{4} - 5x^{3} + 5");
+}

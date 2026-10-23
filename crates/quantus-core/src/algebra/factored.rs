@@ -12,6 +12,24 @@ use crate::algebra::poly::{rational_gcd, rational_lcm, rational_to_node, Poly};
 use crate::latex::ast::{Node, Operator};
 use crate::num::Decimal;
 
+fn split_base(base: &Poly, divisors: &FactoredPoly) -> FactoredPoly {
+    for d in &divisors.factors {
+        if d.base == *base || d.base.total_degree() >= base.total_degree() {
+            continue;
+        }
+        if let Ok((q, rem)) = base.div_rem(&d.base) {
+            if rem.is_zero() && !q.is_constant() {
+                let rest = split_base(&q.primitive_part(), divisors);
+                let content = FactoredPoly::from_const(q.content());
+                return FactoredPoly::from_factors(RBig::ONE, vec![Factor::new(d.base.clone(), 1)])
+                    .mul(&rest)
+                    .mul(&content);
+            }
+        }
+    }
+    FactoredPoly::from_factors(RBig::ONE, vec![Factor::new(base.clone(), 1)])
+}
+
 /// An irreducible/primitive polynomial base raised to a positive integer multiplicity.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Factor {
@@ -118,6 +136,23 @@ impl FactoredPoly {
             .collect();
 
         Self { coeff, factors }
+    }
+
+    /// Splits off every factor of `divisors` that divides one of this polynomial's factors exactly.
+    ///
+    /// The factorizer does not find every irreducible factor of high degree, but a factor of the
+    /// denominator can be tested by trial division, so cancellation still sees it.
+    pub fn split_by(&self, divisors: &Self) -> Self {
+        let mut result = Self::from_const(self.coeff.clone());
+        for f in &self.factors {
+            let split = split_base(&f.base, divisors).pow(f.exp);
+            result = result.mul(&split);
+        }
+        if result.to_poly() == self.to_poly() {
+            result
+        } else {
+            self.clone()
+        }
     }
 
     pub fn is_zero(&self) -> bool {
