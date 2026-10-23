@@ -38,7 +38,8 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 ```
 
 > ⚠️ **Early and unreleased.** The engine was ported from Kotlin/Spring to
-> Rust and the app from Electron to Tauri. The user interface is in German.
+> Rust and the app from Electron to Tauri. The user interface is in English
+> and German (Settings → Language).
 
 ## ✨ Features
 
@@ -185,8 +186,11 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 | 🔀 [`migration-rust-tauri.md`](migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
 | 🧪 [`docs/phase0-findings.md`](docs/phase0-findings.md) | Results of the early library spikes (German, historical) |
 
-Code, comments and error messages are in English. The project documentation
-(spec, findings) is in German, and so is the interface.
+Code and comments are in English. The interface is available in English (the
+default) and German; the texts live in `desktop/src/i18n/` and, for the
+electronics module, in `crates/quantus-core/src/electro/`. The engine's own
+parser and algebra messages are English only. The project documentation (spec,
+findings) is in German.
 
 ## 📜 License
 
