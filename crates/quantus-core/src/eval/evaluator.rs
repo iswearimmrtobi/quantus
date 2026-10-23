@@ -221,10 +221,79 @@ impl<'a> Evaluator<'a> {
             };
             y.value.decimal(digits + 10)
         };
-        let result = numeric::integrate(&a, &b, digits, &mut sample)?;
+        // A kink (|x - 1| at 1) slows tanh-sinh to a crawl; integrating up to it and on from it
+        // keeps every piece smooth.
+        let mut points = vec![a.clone()];
+        points.extend(self.kinks(variable, body, &lower, &a, &b, digits)?);
+        points.push(b.clone());
+        let mut result = RBig::ZERO;
+        for piece in points.windows(2) {
+            result += numeric::integrate(&piece[0], &piece[1], digits, &mut sample)?.to_rational();
+        }
         let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
-        let value = Value::from_decimal(&result.round(self.numeric_digits));
+        let value = Value::from_decimal(&Value::Rat(result).decimal(self.numeric_digits)?);
         Ok(PhysicalQuantity::new(value, unit).mul(&PhysicalQuantity::new(Value::one(), lower.unit)))
+    }
+
+    /// Points strictly between `a` and `b` where the operand of an absolute value in `body`
+    /// changes sign, ordered from `a` to `b`. Found on a coarse grid and refined by bisection.
+    fn kinks(&self, variable: &str, body: &Node, lower: &PhysicalQuantity, a: &Decimal, b: &Decimal, digits: usize) -> Result<Vec<Decimal>> {
+        const GRID: i64 = 64;
+        let mut operands = Vec::new();
+        collect_abs_operands(body, variable, &mut operands);
+        if operands.is_empty() {
+            return Ok(Vec::new());
+        }
+        let (ra, rb) = (a.to_rational(), b.to_rational());
+        let width = &rb - &ra;
+        let tolerance = width.clone().abs() / RBig::from(IBig::from(10).pow(digits + 4));
+        let mut scope = self.variables.clone();
+        let mut sign = |operand: &Node, x: &RBig| -> Option<i32> {
+            scope.insert(variable.to_string(), PhysicalQuantity::new(Value::Rat(x.clone()), lower.unit.clone()));
+            let d = self.scoped_deeper(&scope).evaluate(operand).ok()?.value.decimal(digits).ok()?;
+            Some(if d.is_zero() { 0 } else if d.is_negative() { -1 } else { 1 })
+        };
+        let mut found: Vec<RBig> = Vec::new();
+        for operand in operands {
+            let mut previous: Option<(RBig, i32)> = None;
+            for i in 0..=GRID {
+                let x = &ra + &width * RBig::from_parts(IBig::from(i), UBig::from(GRID as u64));
+                let Some(s) = sign(operand, &x) else {
+                    previous = None;
+                    continue;
+                };
+                if s == 0 {
+                    if i != 0 && i != GRID {
+                        found.push(x.clone());
+                    }
+                } else if let Some((lo, ls)) = &previous {
+                    if *ls != 0 && *ls != s {
+                        let (mut lo, mut hi) = (lo.clone(), x.clone());
+                        while (&hi - &lo).abs() > tolerance {
+                            let mid = (&lo + &hi) / RBig::from(2);
+                            match sign(operand, &mid) {
+                                Some(m) if m == *ls => lo = mid,
+                                Some(0) => {
+                                    lo = mid.clone();
+                                    hi = mid;
+                                }
+                                Some(_) => hi = mid,
+                                None => break,
+                            }
+                        }
+                        found.push((lo + hi) / RBig::from(2));
+                    }
+                }
+                previous = Some((x, s));
+            }
+        }
+        let ascending = ra < rb;
+        found.sort();
+        if !ascending {
+            found.reverse();
+        }
+        found.dedup();
+        found.into_iter().map(|x| Value::Rat(x).decimal(digits + 8)).collect()
     }
 
     /// Exact, by cofactor expansion. The entries have to agree in dimension; the result carries
@@ -340,6 +409,23 @@ impl<'a> Evaluator<'a> {
             ))),
         }
     }
+}
+
+/// The operands of `|…|` in `node` that depend on `variable`.
+fn collect_abs_operands<'n>(node: &'n Node, variable: &str, out: &mut Vec<&'n Node>) {
+    if let Node::Abs { operand, .. } = node {
+        if mentions(operand, variable) {
+            out.push(operand);
+        }
+    }
+    for child in node.children() {
+        collect_abs_operands(child, variable, out);
+    }
+}
+
+fn mentions(node: &Node, variable: &str) -> bool {
+    matches!(node, Node::Variable { name, index, .. } if index.is_empty() && name == variable)
+        || node.children().into_iter().any(|c| mentions(c, variable))
 }
 
 /// The determinant of the row-major `size`×`size` matrix, expanding along the first row.
