@@ -235,3 +235,61 @@ fn circuit_errors_reach_the_renderer_like_other_errors() {
     assert_eq!(error["error"], "W1: unbekanntes Material „unobtainium“");
     assert!(error["position"].is_null());
 }
+
+fn saved_circuit() -> Value {
+    json!({
+        "version": 1,
+        "nodes": [0, 1],
+        "elements": [
+            { "id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "12V", "x": 100, "y": 100, "rotation": 0 },
+            { "id": "W1", "kind": "wire", "a": 1, "b": 0, "x": 20, "y": 40, "x2": 60, "y2": 40 },
+            { "id": "GND1", "kind": "ground", "a": 0, "b": 0, "x": 0, "y": 0, "rotation": 0 },
+        ],
+    })
+}
+
+#[test]
+fn a_circuit_is_saved_and_loaded_unchanged() {
+    let w = window();
+    let dir = std::env::temp_dir().join(format!("quantus-circuit-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("schaltung.json").to_string_lossy().into_owned();
+
+    invoke(&w, "save_circuit", json!({ "path": path, "circuit": saved_circuit() })).unwrap();
+    let loaded = invoke(&w, "load_circuit", json!({ "path": path })).unwrap();
+    assert_eq!(loaded, saved_circuit());
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_broken_circuit_file_is_reported_not_loaded() {
+    let w = window();
+    let dir = std::env::temp_dir().join(format!("quantus-broken-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let load = |text: &str| {
+        let path = dir.join("kaputt.json");
+        std::fs::write(&path, text).unwrap();
+        invoke(&w, "load_circuit", json!({ "path": path.to_string_lossy() })).unwrap_err()
+    };
+
+    assert!(load("{ nicht json")["error"].as_str().unwrap().starts_with("Keine gültige Schaltungsdatei"));
+    assert_eq!(
+        load(r#"{ "elements": [] }"#)["error"],
+        "Das ist keine Schaltungsdatei: die Version fehlt."
+    );
+    assert_eq!(
+        load(r#"{ "version": 2, "elements": [] }"#)["error"],
+        "Schaltungsdatei hat die unbekannte Version 2."
+    );
+    let bad_kind = r#"{ "version": 1, "elements": [{ "id": "X1", "kind": "diode", "x": 0, "y": 0 }] }"#;
+    assert_eq!(load(bad_kind)["error"], "X1: unbekannte Bauteilart „diode“.");
+    let no_position = r#"{ "version": 1, "elements": [{ "id": "R1", "kind": "resistor", "x": 0 }] }"#;
+    assert_eq!(load(no_position)["error"], "R1: die Position (y) fehlt.");
+    let twice = r#"{ "version": 1, "elements": [
+        { "id": "R1", "kind": "resistor", "x": 0, "y": 0 }, { "id": "R1", "kind": "resistor", "x": 0, "y": 0 }] }"#;
+    assert_eq!(load(twice)["error"], "Die ID R1 kommt mehrfach vor.");
+
+    let missing = invoke(&w, "load_circuit", json!({ "path": dir.join("gibt-es-nicht.json").to_string_lossy() }));
+    assert!(missing.unwrap_err()["error"].as_str().unwrap().contains("konnte nicht gelesen werden"));
+    std::fs::remove_dir_all(dir).unwrap();
+}

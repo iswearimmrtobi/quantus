@@ -15,6 +15,7 @@ use quantus_core::api::{
 use quantus_core::session::SessionStore;
 use quantus_core::settings::Settings;
 use serde::Serialize;
+use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime, State};
 
 #[derive(Default)]
@@ -138,4 +139,90 @@ pub fn set_settings(engine: State<Engine>, settings: Settings) -> Result<Setting
         })?;
     }
     Ok(saved)
+}
+
+/// The version of the circuit file this build writes and reads.
+const CIRCUIT_FILE_VERSION: u64 = 1;
+
+const ELEMENT_KINDS: [&str; 7] = [
+    "resistor",
+    "wire",
+    "voltageSource",
+    "currentSource",
+    "potentiometer",
+    "powerLoad",
+    "ground",
+];
+
+fn file_error(message: impl std::fmt::Display) -> ApiError {
+    ApiError {
+        error: message.to_string(),
+        position: None,
+    }
+}
+
+/// Checks the shape of a circuit file: the version, and for each element an ID, a known kind and
+/// the editor's position. The parameter texts are not checked here; the solver reads them.
+pub fn validate_circuit(circuit: &Value) -> Result<(), ApiError> {
+    let version = circuit.get("version").and_then(Value::as_u64);
+    if version != Some(CIRCUIT_FILE_VERSION) {
+        return Err(file_error(match version {
+            Some(other) => format!("Schaltungsdatei hat die unbekannte Version {other}."),
+            None => "Das ist keine Schaltungsdatei: die Version fehlt.".to_string(),
+        }));
+    }
+    let elements = circuit
+        .get("elements")
+        .and_then(Value::as_array)
+        .ok_or_else(|| file_error("Schaltungsdatei ohne Bauteilliste."))?;
+    let mut ids = std::collections::HashSet::new();
+    for (index, element) in elements.iter().enumerate() {
+        let number = index + 1;
+        let id = element
+            .get("id")
+            .and_then(Value::as_str)
+            .filter(|id| !id.trim().is_empty())
+            .ok_or_else(|| file_error(format!("Bauteil {number}: die ID fehlt.")))?;
+        if !ids.insert(id) {
+            return Err(file_error(format!("Die ID {id} kommt mehrfach vor.")));
+        }
+        let kind = element.get("kind").and_then(Value::as_str).unwrap_or_default();
+        if !ELEMENT_KINDS.contains(&kind) {
+            return Err(file_error(format!("{id}: unbekannte Bauteilart „{kind}“.")));
+        }
+        for key in ["x", "y"] {
+            if !element.get(key).is_some_and(Value::is_number) {
+                return Err(file_error(format!("{id}: die Position ({key}) fehlt.")));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Reads a circuit file. A broken one is reported instead of being returned, so the caller keeps
+/// the circuit it has.
+pub fn read_circuit(path: &Path) -> Result<Value, ApiError> {
+    let text = fs::read_to_string(path)
+        .map_err(|error| file_error(format!("{} konnte nicht gelesen werden: {error}", path.display())))?;
+    let circuit: Value = serde_json::from_str(&text)
+        .map_err(|error| file_error(format!("Keine gültige Schaltungsdatei: {error}")))?;
+    validate_circuit(&circuit)?;
+    Ok(circuit)
+}
+
+pub fn write_circuit(path: &Path, circuit: &Value) -> Result<(), ApiError> {
+    validate_circuit(circuit)?;
+    let text = serde_json::to_string_pretty(circuit).map_err(file_error)?;
+    fs::write(path, text)
+        .map_err(|error| file_error(format!("{} konnte nicht gespeichert werden: {error}", path.display())))
+}
+
+#[tauri::command]
+pub fn load_circuit(path: String) -> Result<Value, ApiError> {
+    read_circuit(Path::new(&path))
+}
+
+#[tauri::command]
+pub fn save_circuit(path: String, circuit: Value) -> Result<(), ApiError> {
+    write_circuit(Path::new(&path), &circuit)
 }

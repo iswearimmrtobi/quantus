@@ -3,7 +3,8 @@ import { api, ApiError, type Calculation, type Settings, type StepKind, type Var
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { CircuitEditor } from './components/CircuitEditor';
-import type { EditorElement } from './circuit';
+import { fromFile, toFile, type EditorElement } from './circuit';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
 import { DEFAULT_SETTINGS, MODE_CHOICES, Segmented, SettingsPanel } from './components/SettingsPanel';
@@ -43,6 +44,32 @@ export function App() {
   const [latexMode, setLatexMode] = useState(false);
   /** The schematic lives here so it survives a switch to another mode and back. */
   const [circuit, setCircuit] = useState<EditorElement[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const FILTERS = [{ name: 'Schaltung', extensions: ['json'] }];
+
+  /** Replaces the circuit only when the file checks out; a broken one leaves it untouched. */
+  const loadCircuit = async () => {
+    try {
+      const path = await open({ filters: FILTERS, multiple: false });
+      if (typeof path !== 'string') return;
+      setCircuit(fromFile(await api.loadCircuit(path)));
+      setFileError(null);
+    } catch (failure) {
+      setFileError(failure instanceof Error ? failure.message : String(failure));
+    }
+  };
+
+  const saveCircuit = async () => {
+    try {
+      const path = await save({ filters: FILTERS, defaultPath: 'schaltung.json' });
+      if (!path) return;
+      await api.saveCircuit(path, toFile(circuit));
+      setFileError(null);
+    } catch (failure) {
+      setFileError(failure instanceof Error ? failure.message : String(failure));
+    }
+  };
 
   const field = useRef<MathFieldHandle>(null);
   const latexField = useRef<LatexInputHandle>(null);
@@ -245,7 +272,22 @@ export function App() {
 
       {settings.mode === 'electronics' ? (
         <main className="workspace circuit-workspace">
-          <CircuitEditor elements={circuit} onChange={setCircuit} />
+          <CircuitEditor
+            elements={circuit}
+            onChange={setCircuit}
+            toolbar={
+              <div className="file-buttons">
+                <div className="palette-title">DATEI</div>
+                <button className="palette-item" onClick={() => void loadCircuit()}>
+                  Laden
+                </button>
+                <button className="palette-item" onClick={() => void saveCircuit()}>
+                  Speichern
+                </button>
+                {fileError && <p className="file-error">{fileError}</p>}
+              </div>
+            }
+          />
         </main>
       ) : (
       <main className="workspace">

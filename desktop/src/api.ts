@@ -191,6 +191,11 @@ export const api = {
 
   solveCircuit: (request: CircuitRequest) => call<CircuitResponse>('solve_circuit', { request }),
 
+  /** Reads a circuit file; a broken one is an `ApiError` and nothing is returned. */
+  loadCircuit: (path: string) => call<unknown>('load_circuit', { path }),
+
+  saveCircuit: (path: string, circuit: unknown) => call<void>('save_circuit', { path, circuit }),
+
   variables: () => call<Variable[]>('list_variables', { sessionId: SESSION_ID }),
 
   forget: (key: string) => call<void>('delete_variable', { key, sessionId: SESSION_ID }),

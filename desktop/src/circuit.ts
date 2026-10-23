@@ -223,3 +223,37 @@ export const MATERIALS = [
   { id: 'constantan', label: 'Konstantan' },
   { id: 'brass', label: 'Messing' },
 ];
+
+/** The version of the circuit file; the backend refuses any other. */
+export const FILE_VERSION = 1;
+
+/**
+ * The file holds the circuit as the editor keeps it, in the structure of a `CircuitRequest`
+ * (nodes, elements with their parameter texts, node numbers filled in) plus the editor's
+ * positions and a version.
+ */
+export function toFile(elements: EditorElement[]) {
+  const nodes = numberNodes(elements);
+  const request = toRequest(elements, nodes);
+  const placed = new Map(elements.map((e) => [e.id, e]));
+  const solverElements = new Map(request.elements.map((e) => [e.id, e]));
+  return {
+    version: FILE_VERSION,
+    nodes: request.nodes,
+    elements: elements.map((element) => {
+      // Ground has no place in a request, but the file keeps it like any other part.
+      const entry = solverElements.get(element.id) ?? { a: 0, b: 0 };
+      return { ...entry, ...placed.get(element.id), a: entry.a, b: entry.b };
+    }),
+  };
+}
+
+/** The editor's elements from a file the backend has already checked. */
+export function fromFile(file: unknown): EditorElement[] {
+  const { elements } = file as { elements: (EditorElement & { a?: number; b?: number; wiper?: number })[] };
+  // Node numbers are derived from the positions again, so they are not carried over.
+  return elements.map(({ a: _a, b: _b, wiper: _wiper, rotation, ...rest }) => ({
+    ...rest,
+    rotation: typeof rotation === 'number' ? rotation : 0,
+  }));
+}

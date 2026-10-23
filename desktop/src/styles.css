@@ -1089,3 +1089,13 @@ code {
   color: var(--text-faint);
   font-size: 11px;
 }
+
+.file-buttons {
+  margin-top: 16px;
+}
+.file-error {
+  margin: 8px 2px 0;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.5;
+}
