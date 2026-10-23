@@ -4,7 +4,7 @@ use quantus_core::latex::parser::{parse, parse_with, ParseOptions};
 use quantus_core::latex::Node;
 
 fn options(a_and_y_as_variables: bool, letter_products: bool) -> ParseOptions {
-    ParseOptions { a_and_y_as_variables, letter_products, extra_unit_letters: false }
+    ParseOptions { a_and_y_as_variables, letter_products, ..ParseOptions::default() }
 }
 
 #[test]
@@ -107,4 +107,14 @@ fn denominator_form_follows_the_setting() {
     for (input, form, expected) in cases {
         assert_eq!(simplified(input, denominator(form)).0, expected, "{input} {form:?}");
     }
+}
+
+#[test]
+fn i_is_a_constant_only_in_imaginary_mode_and_units_vanish_in_algebra_mode() {
+    let physics = ParseOptions { imaginary_i: false, ..ParseOptions::default() };
+    assert!(matches!(parse_with("i", &physics).unwrap().expression, Node::Variable { .. }));
+    assert!(matches!(parse("i").unwrap().expression, Node::Constant { .. }));
+    let algebra = ParseOptions { units: false, imaginary_i: false, ..ParseOptions::default() };
+    assert!(matches!(parse_with("m", &algebra).unwrap().expression, Node::Variable { .. }));
+    assert!(matches!(parse("m").unwrap().expression, Node::Unit { .. }));
 }

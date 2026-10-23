@@ -100,18 +100,29 @@ pub struct ParseOptions {
     /// Outside a unit context, `t`, `u` and `in` are the tonne, the atomic mass unit and the
     /// inch rather than variables.
     pub extra_unit_letters: bool,
+    /// Outside a unit context, symbols are never units: every letter is a variable.
+    pub units: bool,
+    /// `i` outside a binding is the imaginary unit rather than a variable.
+    pub imaginary_i: bool,
 }
 
 impl Default for ParseOptions {
     fn default() -> Self {
-        ParseOptions { a_and_y_as_variables: true, letter_products: true, extra_unit_letters: false }
+        ParseOptions {
+            a_and_y_as_variables: true,
+            letter_products: true,
+            extra_unit_letters: false,
+            units: true,
+            imaginary_i: true,
+        }
     }
 }
 
 impl ParseOptions {
     /// Whether a symbol that names a unit is read as a variable instead (outside `\mathrm{}`).
     fn reads_as_variable(&self, symbol: &str) -> bool {
-        (self.a_and_y_as_variables && matches!(symbol, "a" | "y"))
+        !self.units
+            || (self.a_and_y_as_variables && matches!(symbol, "a" | "y"))
             || (!self.extra_unit_letters && matches!(symbol, "t" | "u" | "in"))
     }
 }
@@ -924,7 +935,8 @@ impl Parser<'_> {
         let first = greek_symbol(&token.text);
         let first_is_unit =
             !(!self.unit_context && self.options.reads_as_variable(first)) && units::find(first).is_some();
-        if !self.unit_context && !first_is_unit && CONSTANTS.contains(&token.text.as_str()) {
+        let is_constant = CONSTANTS.contains(&token.text.as_str()) && (token.text != "i" || self.options.imaginary_i);
+        if !self.unit_context && !first_is_unit && is_constant {
             self.advance();
             return Ok(Node::Constant { name: token.text, position: token.position });
         }
