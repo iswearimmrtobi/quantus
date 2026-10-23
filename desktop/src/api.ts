@@ -28,6 +28,8 @@ export interface Calculation {
   steps: Step[];
   alignBlock: string;
   value: string;
+  /** Imaginary part of a complex result; `value` is then the real part. */
+  imaginary?: string;
   unit: string;
   quantityName: string | null;
   dimension: string;
