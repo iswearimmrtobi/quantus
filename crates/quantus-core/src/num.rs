@@ -305,7 +305,15 @@ impl Value {
 
     pub fn add(&self, other: &Value) -> Value {
         let mut constant = RBig::ZERO;
-        let mut terms: Vec<Value> = Vec::new();
+        // Like terms are collected: √3/2 - √3/2 is exactly 0, not a rounding residue.
+        let mut collected: Vec<(RBig, Value)> = Vec::new();
+        let mut push = |t: &Value| {
+            let (coefficient, rest) = t.split_coefficient();
+            match collected.iter_mut().find(|(_, r)| *r == rest) {
+                Some((c, _)) => *c += coefficient,
+                None => collected.push((coefficient, rest)),
+            }
+        };
         for term in [self, other] {
             match term {
                 Value::Rat(r) => constant += r,
@@ -313,13 +321,18 @@ impl Value {
                     for t in inner {
                         match t {
                             Value::Rat(r) => constant += r,
-                            other => terms.push(other.clone()),
+                            other => push(other),
                         }
                     }
                 }
-                other => terms.push(other.clone()),
+                other => push(other),
             }
         }
+        let mut terms: Vec<Value> = collected
+            .into_iter()
+            .filter(|(c, _)| *c != RBig::ZERO)
+            .map(|(c, rest)| Value::Rat(c).mul(&rest))
+            .collect();
         if constant != RBig::ZERO || terms.is_empty() {
             terms.insert(0, Value::Rat(constant));
         }
@@ -327,6 +340,20 @@ impl Value {
             terms.remove(0)
         } else {
             Value::Add(terms)
+        }
+    }
+
+    /// `3·√2·π` as (3, √2·π); a term without a rational factor has coefficient 1.
+    fn split_coefficient(&self) -> (RBig, Value) {
+        match self {
+            Value::Mul(factors) => match factors.as_slice() {
+                [Value::Rat(c), rest @ ..] => {
+                    let rest = if rest.len() == 1 { rest[0].clone() } else { Value::Mul(rest.to_vec()) };
+                    (c.clone(), rest)
+                }
+                _ => (RBig::ONE, self.clone()),
+            },
+            other => (RBig::ONE, other.clone()),
         }
     }
 
@@ -340,7 +367,18 @@ impl Value {
 
     pub fn mul(&self, other: &Value) -> Value {
         let mut constant = RBig::ONE;
-        let mut factors: Vec<Value> = Vec::new();
+        // Factors with the same base are merged: √3·√3 is 3, √3/√3 is 1.
+        let mut powers: Vec<(Value, Value)> = Vec::new();
+        let mut push = |f: &Value| {
+            let (base, exponent) = match f {
+                Value::Pow(base, exponent) if matches!(**base, Value::Rat(_)) => ((**base).clone(), (**exponent).clone()),
+                other => (other.clone(), Value::one()),
+            };
+            match powers.iter_mut().find(|(b, _)| *b == base) {
+                Some((_, e)) => *e = e.add(&exponent),
+                None => powers.push((base, exponent)),
+            }
+        };
         for factor in [self, other] {
             match factor {
                 Value::Rat(r) => constant *= r,
@@ -348,16 +386,36 @@ impl Value {
                     for f in inner {
                         match f {
                             Value::Rat(r) => constant *= r,
-                            other => factors.push(other.clone()),
+                            other => push(other),
                         }
                     }
                 }
-                other => factors.push(other.clone()),
+                other => push(other),
             }
         }
         if constant == RBig::ZERO {
             return Value::zero();
         }
+        let mut factors: Vec<Value> = Vec::new();
+        for (base, exponent) in powers {
+            let merged = if exponent.is_one() {
+                base
+            } else {
+                match base.pow(&exponent) {
+                    Ok(v) => v,
+                    Err(_) => Value::Pow(Box::new(base), Box::new(exponent)),
+                }
+            };
+            match merged {
+                Value::Rat(r) => constant *= r,
+                other => factors.push(other),
+            }
+        }
+        if constant == RBig::ZERO {
+            return Value::zero();
+        }
+        // A canonical order, so equal products compare equal when terms are collected.
+        factors.sort_by_cached_key(|f| f.to_string());
         if constant != RBig::ONE || factors.is_empty() {
             factors.insert(0, Value::Rat(constant));
         }
@@ -547,13 +605,21 @@ impl Value {
             }
             Value::Pow(base, exponent) => {
                 let b = base.eval_float(bits, consts)?;
-                // A negative base to a non-whole power is complex.
-                let whole = exponent.as_rational().is_some_and(|e| *e.denominator() == UBig::ONE);
-                if b.is_negative() && !whole {
-                    return Err(self.not_real());
-                }
                 let e = exponent.eval_float(bits, consts)?;
-                b.pow(&e, bits, rm, consts)
+                if !b.is_negative() {
+                    return Ok(b.pow(&e, bits, rm, consts));
+                }
+                // A negative base has a real power only for a rational exponent with an odd
+                // denominator: (-2)^(1/3) = -(2^(1/3)), (-2)^(2/3) = 2^(2/3).
+                let Some(r) = exponent.as_rational() else { return Err(self.not_real()) };
+                if *r.denominator() == UBig::ONE {
+                    b.pow(&e, bits, rm, consts)
+                } else if r.denominator() % UBig::from(2u8) == UBig::ZERO {
+                    return Err(self.not_real());
+                } else {
+                    let magnitude = b.abs().pow(&e, bits, rm, consts);
+                    if r.numerator() % IBig::from(2) == IBig::ZERO { magnitude } else { magnitude.neg() }
+                }
             }
         })
     }
@@ -609,10 +675,12 @@ fn write_joined(f: &mut fmt::Formatter<'_>, items: &[Value], separator: &str) ->
 // helpers
 // ---------------------------------------------------------------------------------------
 
-/// `cos(πr)` when it is rational: 0, ±1/2 or ±1.
+/// `cos(πr)` when it has a closed form: 0, ±1/2, ±1, ±√2/2 or ±√3/2.
 fn cos_of_pi_multiple(r: &RBig) -> Option<Value> {
     let two = RBig::from(2);
-    let mut r = r - &two * RBig::from(r.floor() / IBig::from(2)); // into [0, 2)
+    // Into [0, 2): r - 2·floor(r/2). Dividing floor(r) by 2 would truncate towards zero and
+    // leave negative r unreduced.
+    let mut r = r - &two * RBig::from((r / &two).floor());
     if r > RBig::ONE {
         r = two - r; // cos is symmetric around π
     }
@@ -624,8 +692,17 @@ fn cos_of_pi_multiple(r: &RBig) -> Option<Value> {
         (1, 2) => Some(Value::zero()),
         (1, 3) => Some(Value::ratio(1, 2)),
         (2, 3) => Some(Value::ratio(-1, 2)),
+        (1, 4) => Some(half_root(2, 1)),
+        (3, 4) => Some(half_root(2, -1)),
+        (1, 6) => Some(half_root(3, 1)),
+        (5, 6) => Some(half_root(3, -1)),
         _ => None,
     }
+}
+
+/// `sign·√n/2`
+fn half_root(n: i64, sign: i64) -> Value {
+    Value::ratio(sign, 2).mul(&Value::Pow(Box::new(Value::int(n)), Box::new(Value::ratio(1, 2))))
 }
 
 /// `tan(πr)` for the odd quarter turns, where sine and cosine are not rational.
@@ -634,8 +711,9 @@ fn tan_of_quarter_pi_multiple(r: &RBig) -> Option<Value> {
     if *quarters.denominator() != UBig::ONE {
         return None;
     }
-    // tan has period π: 1 at π/4, -1 at 3π/4.
+    // tan has period π: 0 at 0, 1 at π/4, -1 at 3π/4.
     match i64::try_from(quarters.numerator().clone()).ok()?.rem_euclid(4) {
+        0 | 2 => Some(Value::zero()),
         1 => Some(Value::one()),
         3 => Some(Value::int(-1)),
         _ => None,
@@ -663,13 +741,15 @@ fn rational_power(base: &RBig, exponent: &RBig) -> Result<Option<RBig>> {
         // `RBig::pow` takes negative exponents and inverts for us.
         return Ok(Some(base.pow(n as isize)));
     }
-    // A whole root: (a/b)^(p/q) with both a and b perfect q-th powers.
-    if base.numerator().sign() == Sign::Negative {
-        return Ok(None);
-    }
+    // A whole root: (a/b)^(p/q) with both a and b perfect q-th powers. A negative base has a
+    // real root only for odd q: (-27)^(1/3) = -3.
     let (Ok(p), Ok(q)) = (i32::try_from(numerator.clone()), usize::try_from(denominator.clone())) else {
         return Ok(None);
     };
+    let negative = base.numerator().sign() == Sign::Negative;
+    if negative && q % 2 == 0 {
+        return Ok(None);
+    }
     if p.unsigned_abs() > MAX_EXACT_EXPONENT {
         return Ok(None);
     }
@@ -679,7 +759,7 @@ fn rational_power(base: &RBig, exponent: &RBig) -> Result<Option<RBig>> {
     if root_a.pow(q) != a || root_b.pow(q) != b {
         return Ok(None);
     }
-    let root = RBig::from_parts(IBig::from(root_a), root_b);
+    let root = RBig::from_parts(if negative { -IBig::from(root_a) } else { IBig::from(root_a) }, root_b);
     if root == RBig::ZERO {
         return if p > 0 { Ok(Some(RBig::ZERO)) } else { Err(QuantusError::other("Division by zero.")) };
     }
