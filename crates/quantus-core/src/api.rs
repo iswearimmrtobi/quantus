@@ -36,6 +36,9 @@ pub struct CalculationResponse {
     pub align_block: String,
     /// The numeric value in full precision, unformatted.
     pub value: String,
+    /// The imaginary part of a complex result; `value` is then the real part.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imaginary: Option<String>,
     pub unit: String,
     /// The informational name of the quantity (F11), e.g. "force".
     pub quantity_name: Option<String>,
@@ -71,6 +74,7 @@ impl CalculationResponse {
                 .collect(),
             align_block: calculation.align_block(),
             value: calculation.value.to_plain_string(),
+            imaginary: calculation.imaginary.as_ref().map(|im| im.to_plain_string()),
             unit: calculation.unit.clone(),
             quantity_name: calculation.quantity_name.clone(),
             dimension: calculation.quantity.dimension().to_string(),

@@ -25,6 +25,8 @@ pub struct Calculation {
     pub latex: String,
     pub steps: Vec<Step>,
     pub value: Decimal,
+    /// The imaginary part of a complex result, whose real part is `value`.
+    pub imaginary: Option<Decimal>,
     pub unit: String,
     pub quantity_name: Option<String>,
     pub quantity: PhysicalQuantity,
@@ -134,7 +136,7 @@ impl LatexCalculator {
         match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
             equation @ Node::Equation { .. } => {
-                let (quantity, value, result) = self.solve(&evaluator, equation)?;
+                let (quantity, value, imaginary, result) = self.solve(&evaluator, equation)?;
                 let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
                 Ok(Calculation {
                     input: serializer::formula(&formula),
@@ -144,6 +146,7 @@ impl LatexCalculator {
                     quantity_name: quantity.quantity_name().map(str::to_string),
                     result,
                     value,
+                    imaginary,
                     quantity,
                     formula,
                     domain_restrictions: None,
@@ -157,8 +160,7 @@ impl LatexCalculator {
                 match evaluator.evaluate(expression) {
                     Ok(raw_qty) => {
                         let quantity = raw_qty.simplify()?;
-                        let value = quantity.decimal(self.precision)?;
-                        let result = serializer::quantity(&value, &quantity.unit);
+                        let (value, imaginary, result) = self.present(&quantity)?;
                         let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
                         Ok(Calculation {
                             input: serializer::formula(&formula),
@@ -168,6 +170,7 @@ impl LatexCalculator {
                             quantity_name: quantity.quantity_name().map(str::to_string),
                             result,
                             value,
+                            imaginary,
                             quantity,
                             formula,
                             domain_restrictions: None,
@@ -247,6 +250,7 @@ impl LatexCalculator {
             latex,
             steps,
             value: zero,
+            imaginary: None,
             unit: String::new(),
             quantity_name: None,
             quantity: PhysicalQuantity::new(val_zero, crate::units::Unit::ONE),
@@ -258,18 +262,42 @@ impl LatexCalculator {
     }
 
     /// `x = 2 \lor x = 3`, with the first solution as the calculation's quantity.
-    fn solve(&self, evaluator: &Evaluator, equation: &Node) -> Result<(PhysicalQuantity, Decimal, String)> {
+    fn solve(
+        &self,
+        evaluator: &Evaluator,
+        equation: &Node,
+    ) -> Result<(PhysicalQuantity, Decimal, Option<Decimal>, String)> {
         let solutions = evaluator.solve(equation)?;
         let mut parts = Vec::new();
         let mut first = None;
         for quantity in &solutions.values {
             let quantity = quantity.simplify()?;
-            let value = quantity.decimal(self.precision)?;
-            parts.push(format!("{} = {}", solutions.variable, serializer::quantity(&value, &quantity.unit)));
-            first.get_or_insert((quantity, value));
+            let (value, imaginary, shown) = self.present(&quantity)?;
+            parts.push(format!("{} = {shown}", solutions.variable));
+            first.get_or_insert((quantity, value, imaginary));
         }
-        let (quantity, value) = first.ok_or_else(|| crate::QuantusError::other("The equation has no solution."))?;
-        Ok((quantity, value, parts.join(" \\lor ")))
+        let (quantity, value, imaginary) =
+            first.ok_or_else(|| crate::QuantusError::other("The equation has no solution."))?;
+        Ok((quantity, value, imaginary, parts.join(" \\lor ")))
+    }
+
+    /// The decimal value and its LaTeX. A complex value is only shown in imaginary mode, as
+    /// `a + bi` with both parts to the calculator's precision; elsewhere it is an error.
+    fn present(&self, quantity: &PhysicalQuantity) -> Result<(Decimal, Option<Decimal>, String)> {
+        match quantity.decimal(self.precision) {
+            Ok(value) => {
+                let result = serializer::quantity(&value, &quantity.unit);
+                Ok((value, None, result))
+            }
+            Err(crate::QuantusError::NotReal(message)) if self.settings.mode == Mode::Imaginary => {
+                let not_real = || crate::QuantusError::NotReal(message.clone());
+                let (re, im) = quantity.value.re_im().ok_or_else(not_real)?;
+                let (re, im) = (re.decimal(self.precision)?, im.decimal(self.precision)?);
+                let result = serializer::complex_quantity(&re, &im, &quantity.unit);
+                Ok((re, Some(im), result))
+            }
+            Err(error) => Err(error),
+        }
     }
 
     fn steps(&self, formula: &Formula, prefix: &str, result: &str, variables: &Variables) -> Vec<Step> {

@@ -8,6 +8,8 @@
 use super::ast::{Formula, Label, Node, Operator};
 use super::numbers;
 use crate::num::Decimal;
+use dashu::base::UnsignedAbs;
+use dashu::integer::IBig;
 use crate::units::{latex as unit_latex, Unit};
 
 const PRECEDENCE_ADDITIVE: u8 = 1;
@@ -57,6 +59,25 @@ pub fn quantity(value: &Decimal, unit: &Unit) -> String {
         return number;
     }
     format!("{number}\\,{}", unit_latex::format(unit))
+}
+
+/// A complex result, `3 + 4i` or `-2i`, with its unit after the parenthesised number.
+pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
+    let magnitude = |value: &Decimal| match numbers::format(&Decimal::new(IBig::from(value.unscaled().clone().unsigned_abs()), value.scale())).as_str() {
+        "1" => String::new(),
+        other => other.to_string(),
+    };
+    let imaginary = format!("{}i", magnitude(im));
+    let number = if re.is_zero() {
+        if im.is_negative() { format!("-{imaginary}") } else { imaginary }
+    } else {
+        let sign = if im.is_negative() { '-' } else { '+' };
+        format!("{} {sign} {imaginary}", numbers::format(re))
+    };
+    if unit.is_one() {
+        return number;
+    }
+    format!("\\left({number}\\right)\\,{}", unit_latex::format(unit))
 }
 
 fn render(node: &Node, min_precedence: u8, mode: SerializerMode) -> String {
