@@ -86,3 +86,11 @@ fn the_other_modes_keep_rejecting_a_logarithm_of_a_negative_number() {
         assert!(evaluate(mode, r"\ln(-1)").unwrap_err().contains("only defined for positive"), "{mode:?}");
     }
 }
+
+#[test]
+fn quadratics_with_a_negative_discriminant_have_complex_roots() {
+    assert_eq!(imaginary(r"x^2+1=0"), r"x = -i \lor x = i");
+    assert_eq!(imaginary(r"x^2+2x+5=0"), r"x = -1 - 2i \lor x = -1 + 2i");
+    assert_eq!(imaginary(r"2x^2+x+1=0").matches("i").count(), 2);
+    assert!(evaluate(Mode::Physics, r"x^2+1=0").unwrap_err().contains("no real solution"));
+}

@@ -48,7 +48,7 @@ impl Evaluator<'_> {
             evaluator.evaluate(left)?.sub(&evaluator.evaluate(right)?)
         };
 
-        let roots = match polynomial_roots(&mut residual)? {
+        let roots = match polynomial_roots(&mut residual, self.complex())? {
             Some(roots) => roots,
             None => self.numeric_roots(&mut residual, &variable)?,
         };
@@ -226,7 +226,10 @@ fn touch(
 }
 
 /// Exact roots when the residual is a polynomial of degree at most two, `None` otherwise.
-fn polynomial_roots(residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>) -> Result<Option<Vec<Value>>> {
+fn polynomial_roots(
+    residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>,
+    complex: bool,
+) -> Result<Option<Vec<Value>>> {
     let mut at = |x: Value| -> Result<Option<Value>> {
         match residual(x) {
             Ok(q) => Ok(Some(q.value)),
@@ -268,6 +271,14 @@ fn polynomial_roots(residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>)
         return Ok(Some(vec![b.neg().div(&a.mul(&Value::int(2)))?]));
     }
     if discriminant.is_negative()? {
+        if complex {
+            // (-b ± i√-D) / 2a, the one below the real axis first.
+            let two_a = a.mul(&Value::int(2));
+            let re = b.neg().div(&two_a)?;
+            let im = discriminant.neg().pow(&Value::ratio(1, 2))?.div(&two_a)?;
+            let im = if im.is_negative()? { im.neg() } else { im };
+            return Ok(Some(vec![re.sub(&im.mul(&Value::I)), re.add(&im.mul(&Value::I))]));
+        }
         return Err(QuantusError::other("This equation has no real solution."));
     }
     let root = discriminant.pow(&Value::ratio(1, 2))?;

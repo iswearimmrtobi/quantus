@@ -63,7 +63,7 @@ impl<'a> Evaluator<'a> {
         self
     }
 
-    fn complex(&self) -> bool {
+    pub(super) fn complex(&self) -> bool {
         self.mode == Mode::Imaginary
     }
 
