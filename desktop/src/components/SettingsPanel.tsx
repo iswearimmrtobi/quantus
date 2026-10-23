@@ -16,6 +16,7 @@ const MODE_HINTS: Record<Mode, string> = {
   algebra: 'Buchstaben sind Variablen: keine Einheiten, keine Naturkonstanten, i ist eine Variable.',
   physics: 'Einheiten und Naturkonstanten sind bekannt; i ist eine Variable.',
   imaginary: 'i ist die imaginäre Einheit, Ergebnisse dürfen komplex sein.',
+  electronics: 'Schaltungsrechner: Eingaben werden wie in Physik gelesen.',
 };
 
 const BINOMIAL_CHOICES: Choice<BinomialForm>[] = [

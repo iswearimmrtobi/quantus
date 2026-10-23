@@ -16,6 +16,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::engine_info,
             commands::evaluate,
             commands::define_variable,
+            commands::solve_circuit,
             commands::list_variables,
             commands::delete_variable,
             commands::get_settings,

@@ -46,6 +46,8 @@ pub enum Mode {
     Physics,
     /// `i` is the imaginary unit and results may be complex.
     Imaginary,
+    /// The circuit calculator. Inputs are read as in `Physics`.
+    Electronics,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -150,6 +152,7 @@ mod tests {
         assert_eq!((options(Mode::Algebra).units, options(Mode::Algebra).imaginary_i), (false, false));
         assert_eq!((options(Mode::Physics).units, options(Mode::Physics).imaginary_i), (true, false));
         assert_eq!((options(Mode::Imaginary).units, options(Mode::Imaginary).imaginary_i), (true, true));
+        assert_eq!((options(Mode::Electronics).units, options(Mode::Electronics).imaginary_i), (true, false));
     }
 
     #[test]

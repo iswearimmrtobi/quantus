@@ -9,7 +9,8 @@ use std::sync::{Mutex, OnceLock};
 use std::{fs, io};
 
 use quantus_core::api::{
-    self, ApiError, CalculationRequest, CalculationResponse, VariableResponse,
+    self, ApiError, CalculationRequest, CalculationResponse, CircuitRequest, CircuitResponse,
+    VariableResponse,
 };
 use quantus_core::session::SessionStore;
 use quantus_core::settings::Settings;
@@ -99,6 +100,17 @@ pub fn define_variable(
     request: CalculationRequest,
 ) -> Result<VariableResponse, ApiError> {
     engine.with(|store| api::define_variable(store, &request))
+}
+
+/// The solver is stateless, so only the settings are taken from the store; the lock is not held
+/// while solving.
+#[tauri::command]
+pub fn solve_circuit(
+    engine: State<Engine>,
+    request: CircuitRequest,
+) -> Result<CircuitResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::solve_circuit(&settings, &request)
 }
 
 #[tauri::command]

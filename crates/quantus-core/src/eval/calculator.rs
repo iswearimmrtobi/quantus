@@ -283,7 +283,7 @@ impl LatexCalculator {
 
     /// The decimal value and its LaTeX. A complex value is only shown in imaginary mode, as
     /// `a + bi` with both parts to the calculator's precision; elsewhere it is an error.
-    fn present(&self, quantity: &PhysicalQuantity) -> Result<(Decimal, Option<Decimal>, String)> {
+    pub(crate) fn present(&self, quantity: &PhysicalQuantity) -> Result<(Decimal, Option<Decimal>, String)> {
         match quantity.decimal(self.precision) {
             Ok(value) => {
                 let exact = self.settings.exact_roots.then(|| exact::format(&quantity.value)).flatten();

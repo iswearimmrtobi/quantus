@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::electro::interface;
 use crate::eval::Calculation;
 use crate::session::{SessionStore, Variable};
 use crate::settings::Settings;
@@ -157,6 +158,13 @@ pub fn define_variable(store: &mut SessionStore, request: &CalculationRequest) -
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
     Ok(VariableResponse::of(&session.define_from_with(&request.latex, request.precision, &settings)?))
+}
+
+pub use crate::electro::interface::{CircuitRequest, CircuitResponse};
+
+/// Solves a circuit. It touches no session, so it needs the settings only, not the store.
+pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<CircuitResponse, ApiError> {
+    Ok(interface::solve_circuit(settings, request)?)
 }
 
 pub fn get_settings(store: &SessionStore) -> Settings {

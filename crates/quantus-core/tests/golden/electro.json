@@ -1,0 +1,123 @@
+{
+  "cases": [
+    {
+      "name": "copper cable 2 x 100 m, 2 mm², 10 Ω load, 230 V",
+      "request": {
+        "precision": 5,
+        "nodes": [0, 1, 2, 3],
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "230V"},
+          {"id": "W1", "kind": "wire", "a": 1, "b": 2, "material": "copper", "length": "100m", "area": "2mm^2"},
+          {"id": "R1", "kind": "resistor", "a": 2, "b": 3, "r": "10\\Omega"},
+          {"id": "W2", "kind": "wire", "a": 3, "b": 0, "material": "Kupfer", "length": "100m", "area": "2mm^2"}
+        ]
+      },
+      "expect": {
+        "elements": [
+          {"id": "V1", "current": {"status": "known", "result": "-19{,}625\\,\\mathrm{A}"}},
+          {"id": "W1", "voltage": {"status": "known", "result": "16{,}877\\,\\mathrm{V}", "unit": "V"}, "notes": ["bei 20 °C"]},
+          {"id": "R1", "voltage": {"result": "196{,}25\\,\\mathrm{V}"}},
+          {"id": "W2", "voltage": {"result": "16{,}877\\,\\mathrm{V}"}}
+        ]
+      }
+    },
+    {
+      "name": "without a supply voltage only ratios are known",
+      "request": {
+        "precision": 3,
+        "nodes": [0, 1, 2],
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": ""},
+          {"id": "R1", "kind": "resistor", "a": 1, "b": 2, "r": "1\\Omega"},
+          {"id": "R2", "kind": "resistor", "a": 2, "b": 0, "r": "3\\Omega"}
+        ]
+      },
+      "expect": {
+        "nodes": [
+          {"id": 0, "voltage": {"status": "known", "result": "0\\,\\mathrm{V}"}},
+          {"id": 2, "voltage": {"status": "relative", "result": "75\\,\\%", "source": "V1", "text": "relativ, 75 % (Spannung unbekannt)"}}
+        ],
+        "elements": [
+          {"id": "R1", "power": {"status": "unknown", "text": "Unbekannt: Versorgungsspannung fehlt"}}
+        ]
+      }
+    },
+    {
+      "name": "a missing resistor value is named",
+      "request": {
+        "precision": 3,
+        "nodes": [0, 1, 2],
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "10V"},
+          {"id": "R1", "kind": "resistor", "a": 1, "b": 2},
+          {"id": "R2", "kind": "resistor", "a": 2, "b": 0, "r": "5\\Omega"}
+        ]
+      },
+      "expect": {
+        "nodes": [
+          {"id": 1, "voltage": {"status": "known", "result": "10\\,\\mathrm{V}"}},
+          {"id": 2, "voltage": {"status": "unknown", "text": "Unbekannt: hängt von R1 ab"}}
+        ]
+      }
+    },
+    {
+      "name": "reverse: the cross-section for a 3 % drop",
+      "request": {
+        "precision": 4,
+        "nodes": [0, 1, 2, 3],
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "230V"},
+          {"id": "W1", "kind": "wire", "a": 1, "b": 2, "material": "copper", "length": "100m"},
+          {"id": "R1", "kind": "resistor", "a": 2, "b": 3, "r": "10\\Omega"},
+          {"id": "W2", "kind": "wire", "a": 3, "b": 0, "material": "copper", "length": "100m", "area": "2mm^2"}
+        ],
+        "reverse": {
+          "element": "W1",
+          "parameter": "area",
+          "measure": {"kind": "voltage", "element": "R1"},
+          "value": "200V"
+        }
+      },
+      "expect": {
+        "reverse": {"element": "W1", "parameter": "area", "value": {"status": "known", "unit": "m²"}}
+      }
+    },
+    {
+      "name": "a short circuit is an error",
+      "request": {
+        "nodes": [0, 1],
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "5V"},
+          {"id": "W1", "kind": "wire", "a": 1, "b": 0}
+        ]
+      },
+      "error": "Kurzschluss"
+    },
+    {
+      "name": "a length given in volts is rejected",
+      "request": {
+        "nodes": [0, 1],
+        "elements": [
+          {"id": "W1", "kind": "wire", "a": 1, "b": 0, "material": "copper", "length": "5V", "area": "1mm^2"}
+        ]
+      },
+      "errorContains": "W1"
+    },
+    {
+      "name": "an unknown kind is an error",
+      "request": {"nodes": [0, 1], "elements": [{"id": "X1", "kind": "diode", "a": 1, "b": 0}]},
+      "error": "X1: unbekannte Bauteilart „diode“"
+    },
+    {
+      "name": "editor data is ignored",
+      "request": {
+        "nodes": [0, 1],
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "5V", "x": 10, "y": 20, "rotation": 90},
+          {"id": "R1", "kind": "resistor", "a": 1, "b": 0, "r": "5\\Omega", "x": 50, "y": 20, "rotation": 0}
+        ]
+      },
+      "expect": {"elements": [{"id": "R1", "current": {"result": "1\\,\\mathrm{A}"}}]}
+    }
+  ]
+}

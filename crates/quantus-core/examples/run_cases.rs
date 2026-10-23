@@ -212,6 +212,7 @@ fn settings_of(case: &Value) -> Settings {
                 "algebra" => Mode::Algebra,
                 "physics" => Mode::Physics,
                 "imaginary" => Mode::Imaginary,
+                "electronics" => Mode::Electronics,
                 other => panic!("unknown mode {other:?}"),
             };
         }

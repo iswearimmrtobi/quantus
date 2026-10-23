@@ -38,8 +38,103 @@ export interface Calculation {
   warning?: string;
 }
 
+export type ElementKind =
+  | 'resistor'
+  | 'wire'
+  | 'voltageSource'
+  | 'currentSource'
+  | 'potentiometer'
+  | 'powerLoad';
+
+/**
+ * One element of a circuit as `CircuitRequest` takes it. Parameters are the text the user typed
+ * (`"2mm^2"`); blank or absent means missing. x, y and rotation belong to the editor and are
+ * ignored by the solver.
+ */
+export interface CircuitElement {
+  id: string;
+  kind: ElementKind;
+  a: number;
+  b: number;
+  wiper?: number;
+  r?: string;
+  material?: string;
+  length?: string;
+  area?: string;
+  temp?: string;
+  rOverride?: string;
+  lPerM?: string;
+  cPerM?: string;
+  u?: string;
+  internalResistance?: string;
+  i?: string;
+  internalConductance?: string;
+  rTotal?: string;
+  position?: string;
+  p?: string;
+  x?: number;
+  y?: number;
+  rotation?: number;
+}
+
+export type ReverseParameter =
+  | 'resistance'
+  | 'length'
+  | 'area'
+  | 'voltage'
+  | 'current'
+  | 'power'
+  | 'totalResistance'
+  | 'position';
+
+export interface ReverseRequest {
+  element: string;
+  parameter: ReverseParameter;
+  measure: {
+    kind: 'nodeVoltage' | 'voltage' | 'current' | 'power' | 'relativeDrop';
+    node?: number;
+    element?: string;
+    elements?: string[];
+    source?: string;
+  };
+  value: string;
+}
+
+export interface CircuitRequest {
+  nodes: number[];
+  elements: CircuitElement[];
+  reverse?: ReverseRequest | null;
+  precision?: number | null;
+}
+
+/**
+ * A computed value. `relative` is the value for a source of one unit, because the source has no
+ * value; `text` is the German reading of a relative or unknown one ("Unbekannt: …").
+ */
+export interface CircuitValue {
+  status: 'known' | 'relative' | 'unknown';
+  result: string | null;
+  value: string | null;
+  unit: string | null;
+  source: string | null;
+  text: string | null;
+}
+
+export interface CircuitResponse {
+  nodes: { id: number; voltage: CircuitValue }[];
+  elements: {
+    id: string;
+    voltage: CircuitValue;
+    current: CircuitValue;
+    power: CircuitValue;
+    notes: string[];
+  }[];
+  /** The parameter found; the values above are those with it. */
+  reverse: { element: string; parameter: ReverseParameter; value: CircuitValue } | null;
+}
+
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
-export type Mode = 'algebra' | 'physics' | 'imaginary';
+export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 
 /** What `quantus_core::settings::Settings` serialises to. */
@@ -93,6 +188,8 @@ export const api = {
   info: () => call<EngineInfo>('engine_info'),
 
   evaluate: (latex: string) => call<Calculation>('evaluate', { request: { latex, sessionId: SESSION_ID } }),
+
+  solveCircuit: (request: CircuitRequest) => call<CircuitResponse>('solve_circuit', { request }),
 
   variables: () => call<Variable[]>('list_variables', { sessionId: SESSION_ID }),
 

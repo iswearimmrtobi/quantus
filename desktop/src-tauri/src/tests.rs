@@ -198,3 +198,40 @@ fn settings_files_are_written_and_read_back() {
     assert!(super::commands::load_settings(&path).is_err());
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+fn cable() -> Value {
+    json!({
+        "nodes": [0, 1, 2, 3],
+        "elements": [
+            { "id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "230V" },
+            { "id": "W1", "kind": "wire", "a": 1, "b": 2, "material": "copper", "length": "100m", "area": "2mm^2" },
+            { "id": "R1", "kind": "resistor", "a": 2, "b": 3, "r": "10\\Omega" },
+            { "id": "W2", "kind": "wire", "a": 3, "b": 0, "material": "copper", "length": "100m", "area": "2mm^2" },
+        ],
+    })
+}
+
+#[test]
+fn a_circuit_is_solved_through_the_command_at_the_set_precision() {
+    let w = window();
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    settings["precision"] = json!(5);
+    invoke(&w, "set_settings", json!({ "settings": settings })).unwrap();
+
+    let solved = invoke(&w, "solve_circuit", json!({ "request": cable() })).unwrap();
+    let wire = solved["elements"].as_array().unwrap().iter().find(|e| e["id"] == "W1").unwrap();
+    assert_eq!(wire["voltage"]["result"], r"16{,}877\,\mathrm{V}");
+    assert_eq!(wire["voltage"]["status"], "known");
+    assert_eq!(wire["notes"], json!(["bei 20 °C"]));
+    assert!(solved["reverse"].is_null());
+}
+
+#[test]
+fn circuit_errors_reach_the_renderer_like_other_errors() {
+    let mut request = cable();
+    request["elements"][2]["r"] = json!("0\\Omega");
+    request["elements"][1]["material"] = json!("unobtainium");
+    let error = invoke(&window(), "solve_circuit", json!({ "request": request })).unwrap_err();
+    assert_eq!(error["error"], "W1: unbekanntes Material „unobtainium“");
+    assert!(error["position"].is_null());
+}
