@@ -550,7 +550,8 @@ impl Poly {
         let mut r0 = div_m(&p1, &m1);
         let mut r1 = div_m(&p2, &m2);
 
-        if !r0.is_constant() && !r1.is_constant() {
+        let r1_was_constant = r1.is_constant();
+        if !r0.is_constant() && !r1_was_constant {
             while !r1.is_zero() {
                 if let Ok((_, r2)) = r0.div_rem(&r1) {
                     r0 = r1;
@@ -561,7 +562,7 @@ impl Poly {
             }
         }
 
-        let poly_part = if r0.is_constant() {
+        let poly_part = if r0.is_constant() || r1_was_constant {
             Poly::from_const(RBig::ONE)
         } else {
             r0.primitive_part()

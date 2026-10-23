@@ -299,3 +299,13 @@ fn test_steps_and_rules() {
     assert_eq!(res.domain_restrictions.len(), 1);
     assert_eq!(res.steps.len(), 1);
 }
+
+#[test]
+fn test_polynomial_gcd_of_coprime_polynomials_with_a_monomial_factor_is_one() {
+    use quantus_core::algebra::poly::Poly;
+    let x = Poly::from_var("x");
+    let x_minus_3 = &x - &Poly::from_const(3);
+    assert_eq!(x_minus_3.gcd(&x), Poly::from_const(1));
+    assert_eq!(x.gcd(&x_minus_3), Poly::from_const(1));
+    assert_eq!(x_minus_3.lcm(&x), &x_minus_3 * &x);
+}
