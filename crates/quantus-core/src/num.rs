@@ -731,11 +731,11 @@ impl Value {
                 let b = base.eval_float(bits, consts)?;
                 let e = exponent.eval_float(bits, consts)?;
                 if !b.is_negative() {
-                    // Far outside the float's exponent range (e^(-10^80) in an improper integral)
+                    // Far outside what is worth computing (e^(-10^80), or e^(-2·10^8), in an improper integral)
                     // `pow` crawls; the result is 0 or too large anyway.
                     if !b.is_zero() {
                         let magnitude = b.ln(bits, rm, consts).mul(&e, bits, rm);
-                        let limit = BigFloat::from_i64(1_000_000_000, bits);
+                        let limit = BigFloat::from_i64(1_000_000, bits);
                         if magnitude.cmp(&limit.neg()).is_some_and(|o| o < 0) {
                             return Ok(BigFloat::from_u8(0, bits));
                         }
