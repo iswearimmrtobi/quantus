@@ -222,7 +222,7 @@ fn a_circuit_is_solved_through_the_command_at_the_set_precision() {
     let wire = solved["elements"].as_array().unwrap().iter().find(|e| e["id"] == "W1").unwrap();
     assert_eq!(wire["voltage"]["result"], r"16{,}877\,\mathrm{V}");
     assert_eq!(wire["voltage"]["status"], "known");
-    assert_eq!(wire["notes"], json!(["bei 20 °C"]));
+    assert_eq!(wire["notes"], json!(["at 20 °C"]));
     assert!(solved["reverse"].is_null());
 }
 
@@ -232,7 +232,7 @@ fn circuit_errors_reach_the_renderer_like_other_errors() {
     request["elements"][2]["r"] = json!("0\\Omega");
     request["elements"][1]["material"] = json!("unobtainium");
     let error = invoke(&window(), "solve_circuit", json!({ "request": request })).unwrap_err();
-    assert_eq!(error["error"], "W1: unbekanntes Material „unobtainium“");
+    assert_eq!(error["error"], "W1: unknown material “unobtainium”");
     assert!(error["position"].is_null());
 }
 
