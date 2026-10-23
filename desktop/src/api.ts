@@ -37,10 +37,12 @@ export interface Calculation {
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
+export type Mode = 'algebra' | 'physics' | 'imaginary';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 
 /** What `quantus_core::settings::Settings` serialises to. */
 export interface Settings {
+  mode: Mode;
   precision: number;
   binomialForm: BinomialForm;
   completeSquare: boolean;

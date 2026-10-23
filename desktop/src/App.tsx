@@ -4,7 +4,7 @@ import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
-import { DEFAULT_SETTINGS, SettingsPanel } from './components/SettingsPanel';
+import { DEFAULT_SETTINGS, MODE_CHOICES, Segmented, SettingsPanel } from './components/SettingsPanel';
 
 interface HistoryEntry {
   id: number;
@@ -225,6 +225,13 @@ export function App() {
           </div>
         </div>
         <div className="topbar-right">
+          <div className="mode-switch">
+            <Segmented
+              choices={MODE_CHOICES}
+              value={settings.mode}
+              onChange={(mode) => void changeSettings({ ...settings, mode })}
+            />
+          </div>
           <span className="precision-tag">{precision ? `${precision} sig` : '—'}</span>
           <span>
             <span className="status-dot" /> bereit

@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, DenominatorForm, Settings } from '../api';
+import type { BinomialForm, DenominatorForm, Mode, Settings } from '../api';
 
 interface Choice<T extends string> {
   value: T;
   label: string;
 }
+
+export const MODE_CHOICES: Choice<Mode>[] = [
+  { value: 'algebra', label: 'Algebra' },
+  { value: 'physics', label: 'Physik' },
+  { value: 'imaginary', label: 'Imaginär' },
+];
+
+const MODE_HINTS: Record<Mode, string> = {
+  algebra: 'Buchstaben sind Variablen: keine Einheiten, keine Naturkonstanten, i ist eine Variable.',
+  physics: 'Einheiten und Naturkonstanten sind bekannt; i ist eine Variable.',
+  imaginary: 'i ist die imaginäre Einheit, Ergebnisse dürfen komplex sein.',
+};
 
 const BINOMIAL_CHOICES: Choice<BinomialForm>[] = [
   { value: 'auto', label: 'Automatisch' },
@@ -20,6 +32,7 @@ const DENOMINATOR_CHOICES: Choice<DenominatorForm>[] = [
 
 /** So sieht die Engine ohne Einstellungsdatei aus. */
 export const DEFAULT_SETTINGS: Settings = {
+  mode: 'physics',
   precision: 50,
   binomialForm: 'auto',
   completeSquare: true,
@@ -29,7 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   extraUnitLetters: false,
 };
 
-function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
+export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
   return (
     <div className="segmented">
       {props.choices.map((choice) => (
@@ -76,6 +89,12 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
 
   return (
     <div className="settings">
+      <section className="setting">
+        <h3>Modus</h3>
+        <Segmented choices={MODE_CHOICES} value={settings.mode} onChange={(v) => set('mode', v)} />
+        <p className="setting-hint">{MODE_HINTS[settings.mode]}</p>
+      </section>
+
       <section className="setting">
         <h3>Genauigkeit</h3>
         <div className="setting-precision">

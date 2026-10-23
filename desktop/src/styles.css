@@ -855,3 +855,7 @@ code {
 .warning-row .domain-label {
   color: var(--amber);
 }
+.mode-switch .segment {
+  flex: none;
+  padding: 3px 10px;
+}

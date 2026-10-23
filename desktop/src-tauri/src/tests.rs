@@ -163,6 +163,19 @@ fn settings_round_trip_and_change_the_result() {
 }
 
 #[test]
+fn the_mode_round_trips_and_decides_whether_constants_are_known() {
+    let w = window();
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    assert_eq!(settings["mode"], "physics");
+    assert!(evaluate(&w, r"2 \cdot c_0").is_ok());
+
+    settings["mode"] = json!("algebra");
+    assert_eq!(invoke(&w, "set_settings", json!({ "settings": settings })).unwrap(), settings);
+    assert_eq!(invoke(&w, "get_settings", json!({})).unwrap()["mode"], "algebra");
+    assert!(evaluate(&w, r"2 \cdot c_0").is_err());
+}
+
+#[test]
 fn invalid_settings_are_rejected_and_keep_the_old_ones() {
     let w = window();
     let error = invoke(&w, "set_settings", json!({ "settings": { "precision": 0 } })).unwrap_err();
