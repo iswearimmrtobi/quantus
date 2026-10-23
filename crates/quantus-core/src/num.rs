@@ -498,6 +498,11 @@ impl Value {
                 }
             }
         }
+        if self.contains_imaginary() || exponent.contains_imaginary() {
+            if let Some(power) = self.complex_power(exponent)? {
+                return Ok(power);
+            }
+        }
         if let (Value::Rat(base), Value::Rat(exp)) = (self, exponent) {
             // The principal square root of a negative number: (-a)^(p/2) = i^p · a^(p/2).
             if base.numerator().sign() == Sign::Negative && *exp.denominator() == UBig::from(2u8) {
@@ -833,6 +838,96 @@ impl Value {
         Ok(Some(result))
     }
 
+    /// `self^exponent` for a complex base or exponent, in the principal branch: `e^(a+bi)` is
+    /// `e^a (cos b + i sin b)`, and `z^w = exp(w·ln z)` with `ln z = ln|z| + i·arg z`.
+    /// `None` when a part is not of the form `a + b·i` (or the base is 0).
+    fn complex_power(&self, exponent: &Value) -> Result<Option<Value>> {
+        let Some((c, d)) = exponent.re_im() else { return Ok(None) };
+        let cis = |angle: &Value| -> Result<Value> {
+            Ok(angle.apply(MathFunction::Cos)?.add(&Value::I.mul(&angle.apply(MathFunction::Sin)?)))
+        };
+        if *self == Value::E {
+            return Ok(Some(Value::E.pow(&c)?.mul(&cis(&d)?)));
+        }
+        let Some((a, b)) = self.re_im() else { return Ok(None) };
+        let norm = a.mul(&a).add(&b.mul(&b));
+        if norm.is_zero() {
+            return Ok(None);
+        }
+        let theta = arg_of(&a, &b)?;
+        let half = Value::ratio(1, 2);
+        let mut modulus = norm.pow(&c.mul(&half))?;
+        let mut phase = c.mul(&theta);
+        if !d.is_zero() {
+            let ln_modulus = norm.apply(MathFunction::Ln)?.mul(&half);
+            modulus = modulus.mul(&Value::E.pow(&d.mul(&theta).neg())?);
+            phase = phase.add(&d.mul(&ln_modulus));
+        }
+        Ok(Some(modulus.mul(&cis(&phase)?)))
+    }
+
+    /// Like [`Self::apply`], but a complex argument (or a negative one for the logarithm) has a
+    /// complex value: `ln z = ln|z| + i·arg z`, `sin(a+bi) = sin a cosh b + i cos a sinh b`.
+    pub fn apply_complex(&self, function: MathFunction) -> Result<Value> {
+        let parts = self.re_im();
+        let complex = self.contains_imaginary();
+        match (function, parts) {
+            (MathFunction::Ln | MathFunction::Log, Some((a, b))) if complex || a.is_negative()? => {
+                let norm = a.mul(&a).add(&b.mul(&b));
+                if norm.is_zero() {
+                    return Err(QuantusError::other("The logarithm of 0 is undefined."));
+                }
+                let ln = norm.apply(MathFunction::Ln)?.mul(&Value::ratio(1, 2)).add(&Value::I.mul(&arg_of(&a, &b)?));
+                match function {
+                    MathFunction::Log => ln.div(&Value::int(10).apply(MathFunction::Ln)?),
+                    _ => Ok(ln),
+                }
+            }
+            (MathFunction::Sin | MathFunction::Cos, Some((a, b))) if complex => {
+                let (sin, cos) = (a.apply(MathFunction::Sin)?, a.apply(MathFunction::Cos)?);
+                let (sinh, cosh) = (b.apply(MathFunction::Sinh)?, b.apply(MathFunction::Cosh)?);
+                Ok(match function {
+                    MathFunction::Sin => sin.mul(&cosh).add(&Value::I.mul(&cos.mul(&sinh))),
+                    _ => cos.mul(&cosh).sub(&Value::I.mul(&sin.mul(&sinh))),
+                })
+            }
+            (MathFunction::Tan | MathFunction::Cot | MathFunction::Sec | MathFunction::Csc, Some(_)) if complex => {
+                let (sin, cos) = (self.apply_complex(MathFunction::Sin)?, self.apply_complex(MathFunction::Cos)?);
+                match function {
+                    MathFunction::Tan => sin.div(&cos),
+                    MathFunction::Cot => cos.div(&sin),
+                    MathFunction::Sec => Value::one().div(&cos),
+                    _ => Value::one().div(&sin),
+                }
+            }
+            _ => self.apply(function),
+        }
+    }
+
+    /// `|z|` of `a + b·i`: `√(a² + b²)`.
+    pub fn modulus(&self) -> Option<Result<Value>> {
+        let (a, b) = self.re_im()?;
+        Some(a.mul(&a).add(&b.mul(&b)).pow(&Value::ratio(1, 2)))
+    }
+
+    /// The real part, the imaginary part and the argument of `a + b·i`, and its conjugate.
+    pub fn real_part(&self) -> Option<Value> {
+        self.re_im().map(|(a, _)| a)
+    }
+
+    pub fn imaginary_part(&self) -> Option<Value> {
+        self.re_im().map(|(_, b)| b)
+    }
+
+    pub fn conjugate(&self) -> Option<Value> {
+        self.re_im().map(|(a, b)| a.sub(&b.mul(&Value::I)))
+    }
+
+    pub fn argument(&self) -> Option<Result<Value>> {
+        let (a, b) = self.re_im()?;
+        Some(arg_of(&a, &b))
+    }
+
     /// The real and imaginary part of a value of the form `a + b·i`, where `a` and `b` are real.
     /// `None` when `i` hides inside a power or a function (`√i`).
     pub fn re_im(&self) -> Option<(Value, Value)> {
@@ -860,7 +955,7 @@ impl Value {
         Some((re, im))
     }
 
-    fn contains_imaginary(&self) -> bool {
+    pub fn contains_imaginary(&self) -> bool {
         match self {
             Value::I => true,
             Value::Add(items) | Value::Mul(items) => items.iter().any(Value::contains_imaginary),
@@ -910,6 +1005,27 @@ fn write_joined(f: &mut fmt::Formatter<'_>, items: &[Value], separator: &str) ->
 // ---------------------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------------------
+
+/// The principal argument of `a + b·i`, in (-π, π].
+fn arg_of(a: &Value, b: &Value) -> Result<Value> {
+    if b.is_zero() {
+        return match a {
+            _ if a.is_zero() => Err(QuantusError::other("The argument of 0 is undefined.")),
+            _ if a.is_negative()? => Ok(Value::Pi),
+            _ => Ok(Value::zero()),
+        };
+    }
+    if a.is_zero() {
+        let quarter = Value::Pi.div(&Value::int(2))?;
+        return Ok(if b.is_negative()? { quarter.neg() } else { quarter });
+    }
+    let base = b.div(a)?.apply(MathFunction::Arctan)?;
+    Ok(match (a.is_negative()?, b.is_negative()?) {
+        (false, _) => base,
+        (true, false) => base.add(&Value::Pi),
+        (true, true) => base.sub(&Value::Pi),
+    })
+}
 
 /// `cos(πr)` when it has a closed form: 0, ±1/2, ±1, ±√2/2 or ±√3/2.
 fn cos_of_pi_multiple(r: &RBig) -> Option<Value> {

@@ -47,3 +47,42 @@ fn complex_results_are_an_error_outside_imaginary_mode() {
         assert!(evaluate(mode, r"\sqrt{-4}").unwrap_err().contains("not a real number"), "{mode:?}");
     }
 }
+
+#[test]
+fn euler_and_the_functions_of_a_complex_argument() {
+    assert_eq!(imaginary(r"e^{i\pi}"), "-1");
+    assert_eq!(imaginary(r"e^{i\pi/2}"), "i");
+    assert!(imaginary(r"e^{i}").starts_with("0{,}54030230586813971740"));
+    assert!(imaginary(r"e^{i}").contains(" + 0{,}84147098480789650665"));
+    assert!(imaginary(r"\sin(i)").starts_with("1{,}17520119364380145688"));
+    assert!(imaginary(r"\cos(1+i)").contains(" - 0{,}98889770576286509638"));
+    assert!(imaginary(r"i^i").starts_with("0{,}2078795763507619085"));
+}
+
+#[test]
+fn logarithms_roots_and_powers_with_complex_values() {
+    let ln = |latex: &str| imaginary(latex);
+    assert!(ln(r"\ln(-1)").starts_with("3{,}14159265358979323846") && ln(r"\ln(-1)").ends_with('i'));
+    assert!(ln(r"\ln(i)").starts_with("1{,}5707963267948966192") && ln(r"\ln(i)").ends_with('i'));
+    let parts = |latex: &str| imaginary(latex).split(" + ").map(str::to_string).collect::<Vec<_>>();
+    let root_i = parts(r"\sqrt{i}");
+    assert!(root_i[0].starts_with("0{,}70710678118654752440") && root_i[1].starts_with("0{,}70710678118654752440"));
+    let root = parts(r"(1+i)^{1/2}");
+    assert!(root[0].starts_with("1{,}0986841134678099660") && root[1].starts_with("0{,}45508986056222734130"));
+}
+
+#[test]
+fn modulus_argument_conjugate_and_parts() {
+    assert_eq!(imaginary(r"|3+4i|"), "5");
+    assert_eq!(imaginary(r"\overline{3+4i}"), "3 - 4i");
+    assert_eq!(imaginary(r"\Re(3+4i)"), "3");
+    assert_eq!(imaginary(r"\Im(3+4i)"), "4");
+    assert!(imaginary(r"\arg(i)").starts_with("1{,}5707963267948966192"));
+}
+
+#[test]
+fn the_other_modes_keep_rejecting_a_logarithm_of_a_negative_number() {
+    for mode in [Mode::Physics, Mode::Algebra] {
+        assert!(evaluate(mode, r"\ln(-1)").unwrap_err().contains("only defined for positive"), "{mode:?}");
+    }
+}

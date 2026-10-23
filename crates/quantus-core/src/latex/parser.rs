@@ -45,9 +45,11 @@ const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
 
 /// Commands that take one argument and evaluate through `MathFunction`.
-const FUNCTION_COMMANDS: [&str; 16] = [
+const FUNCTION_COMMANDS: [&str; 20] = [
     "\\sin", "\\cos", "\\tan", "\\ln", "\\log", "\\lg", "\\exp", "\\sinh", "\\cosh", "\\tanh", "\\cot",
     "\\sec", "\\csc", "\\arcsin", "\\arccos", "\\arctan",
+    // Of a complex number (imaginary mode): real part, imaginary part, argument, conjugate.
+    "\\Re", "\\Im", "\\arg", "\\overline",
 ];
 
 /// One letter or one Greek command: the spelling of an unindexed variable.

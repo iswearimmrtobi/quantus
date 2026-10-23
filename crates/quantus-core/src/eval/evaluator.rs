@@ -16,6 +16,7 @@ use crate::latex::{Node, Operator};
 use crate::num::{Decimal, MathFunction, Value, DEFAULT_PRECISION, MAX_PRECISION};
 use super::derivative;
 use crate::numeric;
+use crate::settings::Mode;
 use crate::quantity::PhysicalQuantity;
 use crate::{QuantusError, Result};
 
@@ -28,8 +29,9 @@ pub struct Evaluator<'a> {
     /// Digits an integral is computed to: `precision`, but capped, because the work of the
     /// quadrature grows with it and nested integrals multiply that work.
     numeric_digits: usize,
-    /// Whether the physical constants (`c_0`, `h_P`, ...) are known; algebra mode has none.
-    constants: bool,
+    /// Algebra mode knows no physical constants (`c_0`, `h_P`, ...); imaginary mode computes
+    /// with complex numbers where the other modes report an error.
+    mode: Mode,
 }
 
 /// Longest sum that is worth adding up term by term.
@@ -47,7 +49,7 @@ const MAX_NUMERIC_DIGITS: usize = 30;
 
 impl<'a> Evaluator<'a> {
     pub fn new(variables: &'a Variables) -> Self {
-        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS), constants: true }
+        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS), mode: Mode::default() }
     }
 
     pub fn with_precision(mut self, precision: usize) -> Self {
@@ -56,20 +58,24 @@ impl<'a> Evaluator<'a> {
         self
     }
 
-    pub fn with_constants(mut self, constants: bool) -> Self {
-        self.constants = constants;
+    pub fn with_mode(mut self, mode: Mode) -> Self {
+        self.mode = mode;
         self
+    }
+
+    fn complex(&self) -> bool {
+        self.mode == Mode::Imaginary
     }
 
     /// The physical constant of that name, unless the mode has none.
     pub(super) fn physical_constant(&self, key: &str) -> Option<PhysicalQuantity> {
-        if self.constants { physical_constant(key) } else { None }
+        if self.mode != Mode::Algebra { physical_constant(key) } else { None }
     }
 
     /// An evaluator that sees the same variables plus `scope`, which the caller updates between
     /// samples.
     fn scoped<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
-        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, constants: self.constants }
+        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, mode: self.mode }
     }
 
     pub(super) fn scoped_over<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
@@ -84,7 +90,7 @@ impl<'a> Evaluator<'a> {
             variables: scope,
             precision: (self.precision + NESTING_DIGITS).min(MAX_PRECISION),
             numeric_digits: self.numeric_digits + NESTING_DIGITS,
-            constants: self.constants,
+            mode: self.mode,
         }
     }
 
@@ -132,6 +138,11 @@ impl<'a> Evaluator<'a> {
             }
             Node::Abs { operand, .. } => {
                 let quantity = self.evaluate(operand)?;
+                if self.complex() && quantity.value.contains_imaginary() {
+                    if let Some(modulus) = quantity.value.modulus() {
+                        return Ok(PhysicalQuantity::new(modulus?, quantity.unit));
+                    }
+                }
                 if quantity.value.is_negative()? { Ok(quantity.neg()) } else { Ok(quantity) }
             }
             Node::Degrees { operand, .. } => {
@@ -143,11 +154,23 @@ impl<'a> Evaluator<'a> {
                 let k = self.whole_number(k, "binom")?;
                 binomial(n, k).map(|value| PhysicalQuantity::dimensionless(Value::Rat(RBig::from(value))))
             }
+            Node::Function { name, argument, .. } if self.complex() && is_complex_function(name) => {
+                let argument = self.plain_number(argument, &format!("The argument of \\{name}"))?;
+                let unknown = || QuantusError::other(format!("\\{name} needs a number of the form a + bi."));
+                match name.as_str() {
+                    "Re" => argument.real_part().ok_or_else(unknown),
+                    "Im" => argument.imaginary_part().ok_or_else(unknown),
+                    "overline" => argument.conjugate().ok_or_else(unknown),
+                    _ => argument.argument().ok_or_else(unknown)?,
+                }
+                .map(PhysicalQuantity::dimensionless)
+            }
             Node::Function { name, argument, .. } => {
                 let function = MathFunction::from_command(name)
                     .ok_or_else(|| QuantusError::other(format!("Unknown function '\\{name}'.")))?;
                 let argument = self.plain_number(argument, &format!("The argument of \\{name}"))?;
-                argument.apply(function).map(PhysicalQuantity::dimensionless)
+                let applied = if self.complex() { argument.apply_complex(function) } else { argument.apply(function) };
+                applied.map(PhysicalQuantity::dimensionless)
             }
             Node::Sum { index, from, to, body, .. } => self.sum(index, from, to, body),
             Node::Integral { variable, lower, upper, body, .. } => self.integral(variable, lower, upper, body),
@@ -664,6 +687,12 @@ fn binomial(n: i64, k: i64) -> Result<IBig> {
 /// a unit stays a unit. The values are symbolic: π stays π until the last numeric evaluation.
 /// Physical constants (CODATA 2018), by the name they are written with: `c_0`, `k_B`, `\hbar`.
 /// A session variable of the same name takes precedence.
+/// The functions of a complex number, which are no `MathFunction`: real part, imaginary part,
+/// conjugate and argument.
+fn is_complex_function(name: &str) -> bool {
+    matches!(name, "Re" | "Im" | "overline" | "arg")
+}
+
 pub(crate) fn physical_constant(key: &str) -> Option<PhysicalQuantity> {
     let (value, unit): (&str, &str) = match key {
         "c_0" => ("299792458", "m/s"),

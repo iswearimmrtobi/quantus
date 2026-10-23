@@ -132,7 +132,7 @@ impl LatexCalculator {
         let formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
-            .with_constants(self.settings.mode != Mode::Algebra);
+            .with_mode(self.settings.mode);
         match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
             equation @ Node::Equation { .. } => {
