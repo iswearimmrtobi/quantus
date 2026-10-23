@@ -217,6 +217,12 @@ impl Parser<'_> {
                 TokenType::Divide => Operator::Divide,
                 TokenType::Command if MULTIPLICATION_COMMANDS.contains(&token.text.as_str()) => Operator::Times,
                 TokenType::Command if token.text == "\\div" => Operator::Divide,
+                TokenType::Command if token.text == "\\bmod" => {
+                    let position = self.advance().position;
+                    let right = self.parse_unary()?;
+                    left = Node::Call { name: "mod".into(), arguments: vec![left, right], position };
+                    continue;
+                }
                 _ if self.starts_atom() => Operator::ImplicitTimes,
                 _ => return Ok(left),
             };
@@ -244,7 +250,11 @@ impl Parser<'_> {
     }
 
     fn parse_power(&mut self) -> Result<Node> {
-        let base = self.parse_atom()?;
+        let mut base = self.parse_atom()?;
+        while self.current().kind == TokenType::Bang {
+            let bang = self.advance();
+            base = Node::Call { name: "factorial".into(), arguments: vec![base], position: bang.position };
+        }
         if self.current().kind != TokenType::Caret {
             return Ok(base);
         }
@@ -350,6 +360,33 @@ impl Parser<'_> {
                 Ok(Node::fraction(numerator, denominator, position))
             }
             name if FUNCTION_COMMANDS.contains(&name) => self.parse_function(token),
+            "\\lfloor" | "\\lceil" => {
+                let (name, closing) = if token.text == "\\lfloor" { ("floor", "\\rfloor") } else { ("ceil", "\\rceil") };
+                self.advance();
+                let inner = self.parse_expression()?;
+                if !(self.current().kind == TokenType::Command && self.current().text == closing) {
+                    return Err(self.error(&format!("'{}' is missing its '{closing}'.", token.text), self.current().position));
+                }
+                self.advance();
+                Ok(Node::Call { name: name.into(), arguments: vec![inner], position })
+            }
+            "\\max" | "\\min" => {
+                self.advance();
+                let closing = match self.current().kind {
+                    TokenType::LParen => TokenType::RParen,
+                    TokenType::LBrace => TokenType::RBrace,
+                    TokenType::LBracket => TokenType::RBracket,
+                    _ => return Err(self.error(&format!("'{}' needs its arguments in brackets: {}(a, b).", token.text, token.text), self.current().position)),
+                };
+                self.advance();
+                let mut arguments = vec![self.parse_expression()?];
+                while self.current().kind == TokenType::Comma {
+                    self.advance();
+                    arguments.push(self.parse_expression()?);
+                }
+                self.expect(closing, "a closing bracket")?;
+                Ok(Node::Call { name: token.text.trim_start_matches('\\').to_string(), arguments, position })
+            }
             "\\begin" => self.parse_matrix(token),
             "\\det" => {
                 self.advance();
@@ -956,7 +993,8 @@ impl Parser<'_> {
             // `|_{x=2}` after a derivative is its evaluation point, not an absolute value.
             TokenType::Pipe => self.abs_depth == 0 && self.peek(1).kind != TokenType::Underscore,
             TokenType::Command => {
-                !MULTIPLICATION_COMMANDS.contains(&token.text.as_str()) && token.text != "\\div" && token.text != "\\end"
+                !MULTIPLICATION_COMMANDS.contains(&token.text.as_str())
+                    && !matches!(token.text.as_str(), "\\div" | "\\end" | "\\bmod" | "\\rfloor" | "\\rceil")
             }
             _ => false,
         }

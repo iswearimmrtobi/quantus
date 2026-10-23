@@ -115,7 +115,13 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
         }
         // A derivative inside a derivative: work the inner one out first.
         Node::Derivative { variable, body, at: None, .. } => d(&differentiate(body, variable)?)?,
-        Node::Binomial { .. } | Node::Limit { .. } | Node::Derivative { .. } | Node::Matrix { .. } | Node::Determinant { .. } | Node::Equation { .. } => {
+        Node::Binomial { .. }
+        | Node::Limit { .. }
+        | Node::Derivative { .. }
+        | Node::Matrix { .. }
+        | Node::Determinant { .. }
+        | Node::Equation { .. }
+        | Node::Call { .. } => {
             if !depends_on(node, var) {
                 return Ok(number(0, position));
             }

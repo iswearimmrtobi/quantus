@@ -105,6 +105,16 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         Node::Binary { operator, left, right, .. } => binary(*operator, left, right, mode),
         Node::Group { inner, .. } => expression_with_mode(inner, mode),
         Node::Function { name, argument, .. } => format!("\\{name}{{{}}}", expression_with_mode(argument, mode)),
+        Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
+            ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
+            ("floor", [x]) => format!("\\lfloor {} \\rfloor", expression_with_mode(x, mode)),
+            ("ceil", [x]) => format!("\\lceil {} \\rceil", expression_with_mode(x, mode)),
+            ("mod", [a, b]) => format!("{} \\bmod {}", render(a, PRECEDENCE_ATOM, mode), render(b, PRECEDENCE_ATOM, mode)),
+            (name, arguments) => format!(
+                "\\{name}\\left({}\\right)",
+                arguments.iter().map(|a| expression_with_mode(a, mode)).collect::<Vec<_>>().join(", ")
+            ),
+        },
         Node::Abs { operand, .. } => format!("\\left|{}\\right|", expression_with_mode(operand, mode)),
         Node::Binomial { n, k, .. } => format!("\\binom{{{}}}{{{}}}", expression_with_mode(n, mode), expression_with_mode(k, mode)),
         Node::Degrees { operand, .. } => format!("{}^{{\\circ}}", render(operand, PRECEDENCE_ATOM, mode)),

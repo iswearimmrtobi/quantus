@@ -147,6 +147,7 @@ impl<'a> Evaluator<'a> {
                 "A matrix is not a number. Take its determinant with \\det.",
             )),
             Node::Determinant { operand, .. } => self.determinant(operand),
+            Node::Call { name, arguments, .. } => self.call(name, arguments),
         }
     }
 
@@ -237,6 +238,55 @@ impl<'a> Evaluator<'a> {
         let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
         let value = Value::from_decimal(&Value::Rat(result).decimal(self.numeric_digits)?);
         Ok(PhysicalQuantity::new(value, unit).mul(&PhysicalQuantity::new(Value::one(), lower.unit)))
+    }
+
+    /// `n!`, floor, ceiling, max, min and mod. Floor, ceiling and mod keep the unit of their
+    /// argument; max and min need arguments of one dimension and answer in the first one's unit.
+    fn call(&self, name: &str, arguments: &[Node]) -> Result<PhysicalQuantity> {
+        let real = |q: &PhysicalQuantity| -> Result<RBig> { Ok(q.value.decimal(self.precision + 10)?.to_rational()) };
+        match (name, arguments) {
+            ("factorial", [n]) => {
+                let n = self.whole_number(n, "factorial")?;
+                if n > 10_000 {
+                    return Err(QuantusError::other(format!("{n}! is too large to compute exactly.")));
+                }
+                let product = (2..=n).fold(IBig::ONE, |p, k| p * IBig::from(k));
+                Ok(PhysicalQuantity::dimensionless(Value::Rat(RBig::from(product))))
+            }
+            ("floor" | "ceil", [x]) => {
+                let q = self.evaluate(x)?;
+                let r = match q.value.as_rational() {
+                    Some(r) => r.clone(),
+                    None => real(&q)?,
+                };
+                let rounded = if name == "floor" { r.floor() } else { r.ceil() };
+                Ok(PhysicalQuantity::new(Value::Rat(RBig::from(rounded)), q.unit))
+            }
+            ("mod", [a, b]) => {
+                let (a, b) = (self.evaluate(a)?, self.evaluate(b)?);
+                let b = b.to(&a.unit)?;
+                let (ra, rb) = (real(&a)?, real(&b)?);
+                if rb.is_zero() {
+                    return Err(QuantusError::other("Division by zero."));
+                }
+                let quotient = RBig::from((&ra / &rb).floor());
+                Ok(PhysicalQuantity::new(Value::Rat(ra - rb * quotient), a.unit))
+            }
+            ("max" | "min", [first, rest @ ..]) => {
+                let mut best = self.evaluate(first)?;
+                let mut best_value = real(&best)?;
+                for argument in rest {
+                    let q = self.evaluate(argument)?.to(&best.unit)?;
+                    let value = real(&q)?;
+                    if (name == "max" && value > best_value) || (name == "min" && value < best_value) {
+                        best_value = value;
+                        best = q;
+                    }
+                }
+                Ok(best)
+            }
+            _ => Err(QuantusError::other(format!("Unknown function '\\{name}'."))),
+        }
     }
 
     /// Points strictly between `a` and `b` where the operand of an absolute value in `body`

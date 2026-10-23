@@ -179,6 +179,7 @@ pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
         Node::Determinant { .. } => Some("determinants"),
         Node::Equation { .. } => Some("equations"),
         Node::Function { .. } => Some("transcendental functions"),
+        Node::Call { .. } => Some("integer functions"),
         Node::Sum { .. } => Some("sums"),
         Node::Integral { .. } => Some("integrals"),
         Node::Limit { .. } => Some("limits"),

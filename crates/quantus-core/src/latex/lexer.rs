@@ -34,6 +34,10 @@ pub enum TokenType {
     RParen,
     LBracket,
     RBracket,
+    /// `,` (with a space after it, else it is a decimal comma) or `;`, between arguments.
+    Comma,
+    /// `!`, the factorial.
+    Bang,
     End,
 }
 
@@ -234,6 +238,8 @@ impl Lexer<'_> {
             ')' => TokenType::RParen,
             '[' => TokenType::LBracket,
             ']' => TokenType::RBracket,
+            ',' | ';' => TokenType::Comma,
+            '!' => TokenType::Bang,
             _ => return Err(self.error(format!("Unexpected character '{c}'."), start)),
         };
         Ok(Token { kind, text: c.to_string(), position: start })
