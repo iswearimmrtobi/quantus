@@ -117,14 +117,14 @@ def eq_special(rng, diff):
     v = rng.choice(["x", "z"])
     a = rng.randint(2, 12)
     options = [
-        (f"\\sqrt{{{v}}} = {a}", [F(a * a)], "square root"),
+        (f"\\sqrt{{{v}}} = {a % 10 + 1}", [F((a % 10 + 1) ** 2)], "square root"),
         (f"{v}^3 = {a ** 3}", [F(a)], "pure cube"),
         (f"2^{{{v}}} = {2 ** a}", [F(a)], "exponential"),
-        (f"\\ln {v} = {a}", [d_exp(a)], "logarithmic"),
+        (f"\\ln {v} = {a % 4 + 1}", [d_exp(a % 4 + 1)], "logarithmic"),
         (f"e^{{{v}}} = {a}", [d_ln(a)], "exponential with base e"),
         (f"|{v} - {a}| = 3", [F(a - 3), F(a + 3)], "absolute value"),
         (f"{v}^4 - {a * a + 1}{v}^2 + {a * a} = 0", sorted([F(-a), F(-1), F(1), F(a)]), "biquadratic"),
-        (f"{v} = {v} + 1", None, "contradiction"),
+        (f"2{v} + 1 = 2{v} + 3", None, "contradiction"),
         (f"({v} - {a})^2 = 0", [F(a)], "double root in a square"),
         (f"{v}^2 = {a}", sorted([-d_sqrt(dec(a)), d_sqrt(dec(a))]), "pure quadratic"),
         (f"{a}{v}\\,\\mathrm{{m}} = {a * 3}\\,\\mathrm{{m}}", [F(3)], "both sides carry a unit"),
@@ -334,8 +334,10 @@ def int_units(rng, diff):
     options = [
         (f"\\int_0^{{{a}\\,\\mathrm{{m}}}} {k}\\,\\frac{{\\mathrm{{N}}}}{{\\mathrm{{m}}}} x\\,dx", F(k * a * a, 2),
          {"L": 2, "M": 1, "T": -2}, "spring work, integrated force"),
+        (f"\\int_0^{{{a}\\,\\mathrm{{s}}}} {k}\\,\\frac{{\\mathrm{{m}}}}{{\\mathrm{{s}}^2}}\\,dt", F(k * a),
+         {"L": 1, "T": -1}, "velocity from a constant acceleration"),
         (f"\\int_0^{{{a}\\,\\mathrm{{s}}}} {k}\\,\\frac{{\\mathrm{{m}}}}{{\\mathrm{{s}}^2}} t\\,dt", F(k * a * a, 2),
-         {"L": 1, "T": -1}, "velocity from acceleration"),
+         {"L": 1}, "distance under constant acceleration"),
         (f"\\int_0^{{{a}\\,\\mathrm{{s}}}} {k}\\,\\mathrm{{W}}\\,dt", F(k * a), {"L": 2, "M": 1, "T": -2},
          "energy from constant power"),
     ]

@@ -3,7 +3,7 @@
 from fractions import Fraction as F
 from math import comb
 
-from .common import (PI, TOL_TRANSC, case, d_asin, d_atan, d_cos, d_exp, d_ln, d_log10, d_sin, d_tan, dec,
+from .common import (PI, TOL_EXACT, TOL_TRANSC, case, snap, d_asin, d_atan, d_cos, d_exp, d_ln, d_log10, d_sin, d_tan, dec,
                      expect_error, expect_number, level, num_latex)
 
 FUNCS = {"sin": d_sin, "cos": d_cos, "tan": d_tan}
@@ -37,7 +37,8 @@ def trig_exact(rng, diff):
     if fn == "tan" and not _tan_ok(x):
         fn = "sin"
     arg = f"({tex})" if "^" in tex and rng.random() < 0.3 else tex
-    return case("trig-special-angle", diff, f"\\{fn} {arg}", expect_number(FUNCS[fn](x), TOL_TRANSC),
+    v = snap(FUNCS[fn](x))
+    return case("trig-special-angle", diff, f"\\{fn} {arg}", expect_number(v, TOL_EXACT if isinstance(v, F) else TOL_TRANSC),
                 f"{fn} at a special angle")
 
 
@@ -63,8 +64,8 @@ def trig_combo(rng, diff):
         (f"\\frac{{\\sin {t1}}}{{2}} + 3\\cos {t2}", d_sin(x1) / 2 + 3 * d_cos(x2), "linear combination"),
     ]
     latex, v, desc = rng.choice(options[: 2 + 2 * level(diff)])
-    return case("trig-combination", diff, latex, expect_number(dec(v) if isinstance(v, int) else v, TOL_TRANSC),
-                desc)
+    v = snap(dec(v) if isinstance(v, int) else v)
+    return case("trig-combination", diff, latex, expect_number(v, TOL_EXACT if isinstance(v, F) else TOL_TRANSC), desc)
 
 
 def logs(rng, diff):

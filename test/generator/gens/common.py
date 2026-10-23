@@ -220,6 +220,15 @@ def d_tan(x):
     return d_sin(x) / d_cos(x)
 
 
+def snap(v):
+    """Exact Fraction when a Decimal is within 1e-60 of a multiple of 1/2 (sin 30° = 1/2, cos 90° = 0)."""
+    if isinstance(v, D):
+        r = F(round(v * 2), 2)
+        if abs(v - dec(r)) < D(10) ** -60:
+            return r
+    return v
+
+
 def d_atan(x):
     """Only for gap cases; series with argument reduction."""
     x = x if isinstance(x, D) else dec(x)

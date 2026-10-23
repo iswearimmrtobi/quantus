@@ -8,7 +8,7 @@ from collections import Counter
 from decimal import Decimal as D
 from fractions import Fraction as F
 
-from .common import (PI, TOL_EXACT, TOL_TRANSC, case, d_cos, d_exp, d_ln, d_sin, d_sqrt, d_tan, dec, expect_error,
+from .common import (PI, TOL_EXACT, TOL_TRANSC, case, snap, d_cos, d_exp, d_ln, d_sin, d_sqrt, d_tan, dec, expect_error,
                      expect_quantity, level, num_latex, sci_latex)
 
 # --- units ---------------------------------------------------------------------------------------
@@ -226,7 +226,7 @@ class Ctx:
         else:
             ntex = num_latex(v, comma)
         style = rng.choices([0, 1, 2], [6, 1, 3])[0]
-        if style == 1 and all(x.tex.isalpha() for x, _ in units):
+        if style == 1 and all(x.tex.isalpha() for x, _ in units) and any(p > 0 for _, p in units):
             # \qty{value}{unit}, siunitx style
             utext = ".".join(x.tex + (f"^{p}" if p != 1 else "") for x, p in units if p > 0)
             neg = [x.tex + (f"^{-p}" if p != -1 else "") for x, p in units if p < 0]
@@ -306,11 +306,11 @@ HALF = Q("\\frac{1}{2}", F(1, 2), {}, PREC_ATOM)
 
 
 def sin_deg(deg):
-    return Q(f"\\sin {deg}^\\circ", d_sin(dec(deg) * PI / 180), {}, PREC_ATOM)
+    return Q(f"\\sin {deg}^\\circ", snap(d_sin(dec(deg) * PI / 180)), {}, PREC_ATOM)
 
 
 def cos_deg(deg):
-    return Q(f"\\cos {deg}^\\circ", d_cos(dec(deg) * PI / 180), {}, PREC_ATOM)
+    return Q(f"\\cos {deg}^\\circ", snap(d_cos(dec(deg) * PI / 180)), {}, PREC_ATOM)
 
 
 # --- formulas -------------------------------------------------------------------------------------
@@ -487,14 +487,14 @@ def waves_optics(rng, diff):
         n1 = num(F(rng.choice([100, 133, 150, 152, 242]), 100))
         n2 = num(F(rng.choice([100, 133, 150]), 100))
         ang = rng.choice([10, 20, 30, 40])
-        return _finish("snell", c, n1 * sin_deg(ang) / n2, "sine of the refraction angle", "\\sin\\beta")
+        return _finish("snell", c, n1 * sin_deg(ang) / n2, "sine of the refraction angle")
     if k == 4:
         T_ = c.q(c.nice(1, 500), pick(c, "ms", "µs", "s", "ns"))
         return _finish("period", c, 1 / T_, "f = 1 / T", "f")
     f = c.q(c.nice(100, 1000), "Hz")
     v = c.q(c.nice(1, 50), "m/s")
     cs = c.q(343, "m/s")
-    return _finish("doppler", c, f * cs / (cs - v), "Doppler shift, source approaching", "f'")
+    return _finish("doppler", c, f * cs / (cs - v), "Doppler shift, source approaching", "f_B")
 
 
 def electricity(rng, diff):
