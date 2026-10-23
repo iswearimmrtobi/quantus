@@ -29,6 +29,8 @@ pub struct Calculation {
     pub quantity_name: Option<String>,
     pub quantity: PhysicalQuantity,
     pub domain_restrictions: Option<Vec<String>>,
+    /// A note that does not stop the result, e.g. that an expression kept as typed has free variables.
+    pub warning: Option<String>,
 }
 
 impl Calculation {
@@ -143,6 +145,7 @@ impl LatexCalculator {
                     quantity,
                     formula,
                     domain_restrictions: None,
+                    warning: None,
                 })
             }
             expression => {
@@ -166,6 +169,7 @@ impl LatexCalculator {
                             quantity,
                             formula,
                             domain_restrictions: None,
+                    warning: None,
                         })
                     }
                     Err(crate::QuantusError::UnresolvedVariable(name)) => {
@@ -184,19 +188,27 @@ impl LatexCalculator {
     fn evaluate_algebraic(&self, formula: Formula) -> Result<Calculation> {
         let config = PipelineConfig { style: self.settings.output_style(), ..PipelineConfig::default() };
         let simp_result = crate::algebra::pipeline::simplify_node_with(&formula.expression, config)?;
-        // If the expression cannot be simplified further, has no domain restrictions,
-        // and contains free variables, it cannot be evaluated numerically without variable definitions.
+        // An expression that stays as typed (nothing to simplify, no restrictions) is returned 1:1;
+        // its free variables are reported as a warning instead of failing the calculation.
         // A binomial kept as it is, because binomial form was asked for, is an answer of its own.
         let kept_binomial = self.settings.binomial_form == BinomialForm::Binomial
             && crate::algebra::pipeline::is_compact_binomial_input(&formula.expression);
-        if simp_result.steps.is_empty() && simp_result.domain_restrictions.is_empty() && !kept_binomial {
-            let vars = crate::algebra::pipeline::collect_variables(&formula.expression);
-            if let Some(first_var) = vars.into_iter().next() {
-                return Err(crate::QuantusError::UnresolvedVariable(format!(
-                    "The variable {first_var} has no value. Only variables with a subscript can be defined, e.g. {first_var}_1 = 5m."
-                )));
+        let warning = if simp_result.steps.is_empty() && simp_result.domain_restrictions.is_empty() && !kept_binomial {
+            let vars: Vec<String> = crate::algebra::pipeline::collect_variables(&formula.expression).into_iter().collect();
+            match vars.as_slice() {
+                [] => None,
+                [one] => Some(format!(
+                    "The variable {one} has no value, so the expression is shown as typed. Only variables with a subscript can be defined, e.g. {one}_1 = 5m."
+                )),
+                many => Some(format!(
+                    "The variables {} have no value, so the expression is shown as typed. Only variables with a subscript can be defined, e.g. {}_1 = 5m.",
+                    many.join(", "),
+                    many[0]
+                )),
             }
-        }
+        } else {
+            None
+        };
 
         let result = serializer::algebraic_expression(&simp_result.node);
         let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
@@ -239,6 +251,7 @@ impl LatexCalculator {
             result,
             formula,
             domain_restrictions,
+            warning,
         })
     }
 

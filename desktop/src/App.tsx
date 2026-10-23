@@ -312,6 +312,12 @@ export function App() {
                   </button>
                 )}
               </div>
+              {calculation?.warning && (
+                <div className="domain-row warning-row">
+                  <span className="domain-label">HINWEIS</span>
+                  <span>{calculation.warning}</span>
+                </div>
+              )}
               {calculation?.domainRestrictions && calculation.domainRestrictions.length > 0 && (
                 <div className="domain-row">
                   <span className="domain-label">DEFINITIONSBEREICH</span>

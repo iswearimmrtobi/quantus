@@ -46,6 +46,9 @@ pub struct CalculationResponse {
     /// Domain restrictions for algebraic expressions, e.g. `["x \\neq -3, 2, 4"]`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub domain_restrictions: Option<Vec<String>>,
+    /// Set when the result is shown as typed because its variables have no value.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warning: Option<String>,
 }
 
 impl CalculationResponse {
@@ -73,6 +76,7 @@ impl CalculationResponse {
             dimension: calculation.quantity.dimension().to_string(),
             variable: variable.map(VariableResponse::of),
             domain_restrictions: calculation.domain_restrictions.clone(),
+            warning: calculation.warning.clone(),
         }
     }
 }
@@ -293,8 +297,20 @@ mod tests {
         let binomial = Settings { binomial_form: crate::settings::BinomialForm::Binomial, ..Settings::default() };
         set_settings(&mut store, binomial).unwrap();
         assert_eq!(evaluate(&mut store, &request("(x+1)^2")).unwrap().result, "(x + 1)^{2}");
-        // A lone variable still has no value.
-        assert!(evaluate(&mut store, &request("x")).is_err());
+        // A lone variable is shown as typed, with a warning that it has no value.
+        let lone = evaluate(&mut store, &request("x")).unwrap();
+        assert_eq!(lone.result, "x");
+        assert!(lone.warning.unwrap().contains("The variable x has no value"));
+    }
+
+    #[test]
+    fn an_expression_that_stays_as_typed_is_returned_with_a_warning() {
+        let mut store = SessionStore::new();
+        let kept = evaluate(&mut store, &request("4x^{83} + 5x^{17}")).unwrap();
+        assert_eq!(kept.result, "4x^{83} + 5x^{17}");
+        assert!(kept.warning.unwrap().contains("The variable x has no value"));
+        // A simplified result is an answer, so it carries no warning.
+        assert_eq!(evaluate(&mut store, &request("x + x")).unwrap().warning, None);
     }
 
     #[test]

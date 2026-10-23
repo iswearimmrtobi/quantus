@@ -851,3 +851,7 @@ code {
     transition: none !important;
   }
 }
+
+.warning-row .domain-label {
+  color: var(--amber);
+}

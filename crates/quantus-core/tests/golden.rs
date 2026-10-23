@@ -58,6 +58,10 @@ fn evaluate_cases_match_the_kotlin_implementation() {
             let want = Decimal::parse(v).unwrap().to_rational();
             assert_eq!(calculation.value.to_rational(), want, "{name}: value");
         }
+        if let Some(v) = text("warningContains") {
+            let warning = calculation.warning.as_deref().unwrap_or_else(|| panic!("{name}: expected a warning"));
+            assert!(warning.contains(v), "{name}: {warning:?} should contain {v:?}");
+        }
         if let Some(v) = text("resultStartsWith") {
             assert!(calculation.result.starts_with(v), "{name}: {}", calculation.result);
         }

@@ -33,6 +33,7 @@ export interface Calculation {
   dimension: string;
   variable: Variable | null;
   domainRestrictions?: string[];
+  warning?: string;
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
