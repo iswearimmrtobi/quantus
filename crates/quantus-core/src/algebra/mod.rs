@@ -9,6 +9,7 @@ pub mod factored;
 pub mod nested;
 pub mod pipeline;
 pub mod poly;
+pub mod rational_roots;
 pub mod reduce;
 pub mod steps;
 pub mod verify;

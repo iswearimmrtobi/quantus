@@ -578,3 +578,28 @@ fn leaves_out_restrictions_on_factors_without_real_zeros() {
     let result = run(r"\frac{x}{(x^{2} - 1)(x^{2} + 1)}");
     assert_eq!(restrictions(&result), "x != -1, 1, x^2 + 1 != 0");
 }
+
+#[test]
+fn cancels_factors_of_expanded_polynomials_with_large_constant_terms() {
+    // The expanded denominator ends in 206976, beyond what listing divisors can handle.
+    let input = r"\frac{(x - 1)(x + 12)(x + 5)x(x - 7)^{2}}{-(x + 11)(x - 4)(x - 8)(x - 7)^{2}(x + 12)}";
+    let result = run(input);
+    assert_eq!(restrictions(&result), "x != -12, -11, 4, 7, 8");
+    assert_equivalent(input, &result);
+    let node = &result.node;
+    let text = serializer::algebraic_expression(node);
+    assert!(!text.contains("x - 7") && !text.contains("x + 12"), "{text}");
+}
+
+#[test]
+fn finds_every_root_of_an_expanded_denominator_with_repeated_factors() {
+    // (x + 15)^8 · x: the constant term of the combined denominator is 15^9.
+    let result = run(r"\frac{-4}{(x + 15)^{8}} - \frac{-3}{x^{2} + 15x}");
+    assert_eq!(restrictions(&result), "x != -15, 0");
+}
+
+#[test]
+fn lists_a_repeated_factor_without_real_zeros_once() {
+    let result = run(r"\frac{1}{(w^{2} + 4)^{2}(w + 3)}");
+    assert_eq!(restrictions(&result), "w != -3, w^2 + 4 != 0");
+}

@@ -8,8 +8,8 @@
 //!
 //! Integrity guarantee: polynomials irreducible over ℚ remain untouched; no false factorizations.
 
-use dashu::base::{Signed, UnsignedAbs};
-use dashu::integer::{IBig, UBig};
+use dashu::base::Signed;
+use dashu::integer::IBig;
 use dashu::rational::RBig;
 
 use crate::algebra::binomial::{exact_rational_sqrt, factor_binomial};
@@ -17,56 +17,6 @@ use crate::algebra::factored::{Factor, FactoredPoly};
 use crate::algebra::poly::{Monomial, Poly, Term};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
-
-/// Divisors of an unsigned big integer up to a reasonable limit for candidate testing.
-fn integer_divisors(n: &UBig) -> Vec<UBig> {
-    if n.is_zero() {
-        return vec![];
-    }
-    if n == &UBig::ONE {
-        return vec![UBig::ONE];
-    }
-    let n_u64 = match u64::try_from(n) {
-        Ok(v) if v <= 100_000 => v,
-        _ => return vec![UBig::ONE, n.clone()],
-    };
-    let mut divs = Vec::new();
-    for i in 1..=n_u64 {
-        if i * i > n_u64 {
-            break;
-        }
-        if n_u64 % i == 0 {
-            divs.push(UBig::from(i));
-            if i * i != n_u64 {
-                divs.push(UBig::from(n_u64 / i));
-            }
-        }
-    }
-    divs.sort();
-    divs
-}
-
-/// Evaluates a univariate polynomial at a rational value `r`.
-fn eval_univariate(poly: &Poly, var: &str, r: &RBig) -> RBig {
-    let mut sum = RBig::ZERO;
-    for term in &poly.terms {
-        let exp = term.monomial.degree_of(var);
-        let mut r_pow = RBig::ONE;
-        let mut b = r.clone();
-        let mut e = exp;
-        while e > 0 {
-            if e % 2 == 1 {
-                r_pow *= &b;
-            }
-            if e > 1 {
-                b = &b * &b;
-            }
-            e /= 2;
-        }
-        sum += &term.coeff * r_pow;
-    }
-    sum
-}
 
 /// Divides a polynomial by a monomial with coefficient 1.
 fn divide_by_monomial(poly: &Poly, m: &Monomial) -> Poly {
@@ -218,25 +168,7 @@ fn factor_primitive(poly: &Poly, factors_out: &mut Vec<Factor>) {
         let cn = poly.coeff_of(&Monomial::single(&var, deg));
         let c0 = poly.coeff_of(&Monomial::one());
         if !cn.is_zero() && !c0.is_zero() {
-            let p_abs = c0.numerator().unsigned_abs();
-            let q_abs = cn.numerator().unsigned_abs();
-            let p_divs = integer_divisors(&p_abs);
-            let q_divs = integer_divisors(&q_abs);
-
-            let mut found_root = None;
-            'candidate_loop: for p in &p_divs {
-                for q in &q_divs {
-                    for sign in [1, -1] {
-                        let cand = RBig::from_parts(IBig::from(p.clone()) * sign, q.clone());
-                        if eval_univariate(poly, &var, &cand).is_zero() {
-                            found_root = Some(cand);
-                            break 'candidate_loop;
-                        }
-                    }
-                }
-            }
-
-            if let Some(r) = found_root {
+            if let Some(r) = crate::algebra::rational_roots::find_rational_root(poly, &var) {
                 let divisor = root_to_primitive_linear(&var, &r);
                 if let Ok((quotient, rem)) = poly.div_rem(&divisor) {
                     if rem.is_zero() {

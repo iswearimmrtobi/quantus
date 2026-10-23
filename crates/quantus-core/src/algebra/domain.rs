@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use dashu::base::{Abs, Signed, SquareRoot, UnsignedAbs};
+use dashu::base::{Abs, Signed, SquareRoot};
 use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
@@ -319,54 +319,6 @@ fn exact_rational_sqrt(r: &RBig) -> Option<RBig> {
     Some(RBig::from_parts(IBig::from(num_s), den_s))
 }
 
-fn integer_divisors(n: &UBig) -> Vec<UBig> {
-    if n == &UBig::ZERO {
-        return vec![];
-    }
-    if n == &UBig::from(1u8) {
-        return vec![UBig::from(1u8)];
-    }
-    let n_u64 = match u64::try_from(n) {
-        Ok(v) if v <= 100_000 => v,
-        _ => return vec![UBig::from(1u8), n.clone()],
-    };
-    let mut divs = Vec::new();
-    for i in 1..=n_u64 {
-        if i * i > n_u64 {
-            break;
-        }
-        if n_u64 % i == 0 {
-            divs.push(UBig::from(i));
-            if i * i != n_u64 {
-                divs.push(UBig::from(n_u64 / i));
-            }
-        }
-    }
-    divs.sort();
-    divs
-}
-
-fn eval_univariate(poly: &Poly, var: &str, r: &RBig) -> RBig {
-    let mut sum = RBig::ZERO;
-    for term in &poly.terms {
-        let exp = term.monomial.degree_of(var);
-        let mut r_pow = RBig::ONE;
-        let mut b = r.clone();
-        let mut e = exp;
-        while e > 0 {
-            if e % 2 == 1 {
-                r_pow *= &b;
-            }
-            if e > 1 {
-                b = &b * &b;
-            }
-            e /= 2;
-        }
-        sum += &term.coeff * r_pow;
-    }
-    sum
-}
-
 /// Solves for rational roots of a univariate polynomial.
 /// Returns the list of distinct rational roots, and any remaining irreducible cofactor of degree >= 2.
 pub fn solve_univariate_rational_roots(poly: &Poly, var: &str) -> (Vec<RBig>, Option<Poly>) {
@@ -406,25 +358,7 @@ pub fn solve_univariate_rational_roots(poly: &Poly, var: &str) -> (Vec<RBig>, Op
             break;
         }
 
-        let p_abs = c0.numerator().unsigned_abs();
-        let q_abs = cn.numerator().unsigned_abs();
-        let p_divs = integer_divisors(&p_abs);
-        let q_divs = integer_divisors(&q_abs);
-
-        let mut found_root = None;
-        'candidate_loop: for p in &p_divs {
-            for q in &q_divs {
-                for sign in [1, -1] {
-                    let cand = RBig::from_parts(IBig::from(p.clone()) * sign, q.clone());
-                    if eval_univariate(&current, var, &cand).is_zero() {
-                        found_root = Some(cand);
-                        break 'candidate_loop;
-                    }
-                }
-            }
-        }
-
-        if let Some(r) = found_root {
+        if let Some(r) = crate::algebra::rational_roots::find_rational_root(&current, var) {
             roots.push(r.clone());
             let divisor = &Poly::from_var(var) - &Poly::from_const(r);
             if let Ok((q, _)) = current.div_rem(&divisor) {
@@ -528,6 +462,8 @@ pub fn solve_poly_restrictions(poly: &Poly) -> Vec<DomainRestriction> {
                 restrictions.dedup();
                 return restrictions;
             }
+            // (w^2 + 4)^2 is zero exactly where w^2 + 4 is.
+            let rem = crate::algebra::rational_roots::square_free(&rem, &var).unwrap_or(rem);
             let mut p = rem.primitive_part();
             if p.leading_coeff().is_negative() {
                 p = -&p;
