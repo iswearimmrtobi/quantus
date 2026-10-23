@@ -457,7 +457,7 @@ impl Pipeline {
         // This catches e.g. `x != 1` in `(1 + 1/x) / (1 - 1/x)`, which only becomes a polynomial
         // denominator once the inner sums are combined. Constant-zero denominators were already
         // rejected by the initial scan.
-        let _ = self.tracker.scan_and_record(&after);
+        let _ = self.tracker.scan_and_record_derived(&after);
         let before = std::mem::replace(&mut self.current, after.clone());
         self.steps.push(AlgebraStep::new(before, after, explanation, Some(rule)));
     }

@@ -7,7 +7,7 @@ use dashu::base::{Abs, Signed, SquareRoot, UnsignedAbs};
 use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
-use crate::algebra::poly::{Monomial, Poly};
+use crate::algebra::poly::{Monomial, Poly, Term};
 use crate::error::QuantusError;
 use crate::latex::ast::{Node, Operator};
 
@@ -516,10 +516,18 @@ pub fn solve_poly_restrictions(poly: &Poly) -> Vec<DomainRestriction> {
     if vars.len() == 1 {
         let var = vars.into_iter().next().unwrap();
         let (roots, remaining) = solve_univariate_rational_roots(&cofactor, &var);
+        let found_roots = !roots.is_empty();
         for r in roots {
             restrictions.push(DomainRestriction::var_not_equal(&var, r));
         }
         if let Some(rem) = remaining {
+            // What is left after dividing off rational roots and has no real zero excludes
+            // nothing that the roots do not already exclude.
+            if found_roots && has_no_real_roots(&rem) {
+                restrictions.sort();
+                restrictions.dedup();
+                return restrictions;
+            }
             let mut p = rem.primitive_part();
             if p.leading_coeff().is_negative() {
                 p = -&p;
@@ -538,6 +546,45 @@ pub fn solve_poly_restrictions(poly: &Poly) -> Vec<DomainRestriction> {
     restrictions.sort();
     restrictions.dedup();
     restrictions
+}
+
+/// Whether a univariate polynomial provably has no real zero (Sturm's theorem).
+pub fn has_no_real_roots(poly: &Poly) -> bool {
+    if !poly.is_univariate() || poly.is_constant() {
+        return false;
+    }
+    let var = poly.main_variable().unwrap();
+    let derivative = |p: &Poly| -> Poly {
+        Poly::from_terms(
+            p.terms
+                .iter()
+                .filter_map(|t| {
+                    let e = t.monomial.degree_of(&var);
+                    (e > 0).then(|| {
+                        Term::new(&t.coeff * RBig::from(e), Monomial::single(&var, e - 1))
+                    })
+                })
+                .collect(),
+        )
+    };
+    let mut seq = vec![poly.clone(), derivative(poly)];
+    while !seq[seq.len() - 1].is_constant() {
+        let n = seq.len();
+        let Ok((_, rem)) = seq[n - 2].div_rem(&seq[n - 1]) else {
+            return false;
+        };
+        if rem.is_zero() {
+            break;
+        }
+        seq.push(-rem);
+    }
+    let sign_changes = |signs: Vec<bool>| signs.windows(2).filter(|w| w[0] != w[1]).count();
+    let at_plus: Vec<bool> = seq.iter().map(|p| !p.leading_coeff().is_negative()).collect();
+    let at_minus: Vec<bool> = seq
+        .iter()
+        .map(|p| !p.leading_coeff().is_negative() ^ (p.total_degree() % 2 == 1))
+        .collect();
+    sign_changes(at_minus) == sign_changes(at_plus)
 }
 
 /// Solves a collection of denominator AST nodes into canonical domain restrictions.
@@ -610,6 +657,20 @@ impl DomainTracker {
         Ok(())
     }
 
+    /// Like `scan_and_record`, for denominators that only appear during simplification.
+    ///
+    /// A univariate factor without a real zero (such as `x^2 + x + 1`) is left out: it came from
+    /// factoring a denominator and excludes no real number. Denominators of the input are
+    /// recorded in full by `from_ast`.
+    pub fn scan_and_record_derived(&mut self, node: &Node) -> Result<(), QuantusError> {
+        let found = extract_domain_restrictions(node)?;
+        self.add_all(found.into_iter().filter(|r| match r {
+            DomainRestriction::PolyNotZero(p) => !has_no_real_roots(p),
+            DomainRestriction::VariableNotEqual { .. } => true,
+        }));
+        Ok(())
+    }
+
     /// Adds a single domain restriction, keeping the collection sorted and deduplicated.
     pub fn add(&mut self, restriction: DomainRestriction) {
         if !self.restrictions.contains(&restriction) {
@@ -630,7 +691,12 @@ impl DomainTracker {
 
     /// Explicitly records cancelled polynomial factors to preserve their domain restrictions.
     pub fn record_cancellation(&mut self, cancelled_factor: &Poly) {
-        let restrictions = solve_poly_restrictions(cancelled_factor);
+        // A cancelled factor without a real zero excludes no real number; if it was a factor of
+        // the input denominator, the initial scan has recorded it already.
+        let restrictions = solve_poly_restrictions(cancelled_factor).into_iter().filter(|r| match r {
+            DomainRestriction::PolyNotZero(p) => !has_no_real_roots(p),
+            DomainRestriction::VariableNotEqual { .. } => true,
+        });
         self.add_all(restrictions);
     }
 

@@ -569,3 +569,12 @@ fn cancels_a_quadratic_factor_the_factorizer_does_not_find() {
     let result = run(r"\frac{5x^{6} - 5x^{5} + 5x^{4} - 5x^{3} + 5x^{2} + 5}{x^{2} + 1}");
     assert_eq!(serializer::algebraic_expression(&result.node), "5x^{4} - 5x^{3} + 5");
 }
+
+#[test]
+fn leaves_out_restrictions_on_factors_without_real_zeros() {
+    let result = run(r"\frac{x^{6} - 1}{x^{3} + 1}");
+    assert_eq!(restrictions(&result), "x != -1");
+    // An irreducible factor written in the input is still listed.
+    let result = run(r"\frac{x}{(x^{2} - 1)(x^{2} + 1)}");
+    assert_eq!(restrictions(&result), "x != -1, 1, x^2 + 1 != 0");
+}
