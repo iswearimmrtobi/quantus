@@ -118,3 +118,16 @@ fn i_is_a_constant_only_in_imaginary_mode_and_units_vanish_in_algebra_mode() {
     assert!(matches!(parse_with("m", &algebra).unwrap().expression, Node::Variable { .. }));
     assert!(matches!(parse("m").unwrap().expression, Node::Unit { .. }));
 }
+
+#[test]
+fn physical_constants_are_known_except_in_algebra_mode() {
+    use quantus_core::eval::LatexCalculator;
+    use quantus_core::settings::{Mode, Settings};
+    use std::collections::HashMap;
+
+    let calculator = |mode| LatexCalculator::new(50).with_settings(Settings { mode, ..Settings::default() });
+    let latex = r"c_0 \cdot 2";
+    assert!(calculator(Mode::Physics).evaluate(latex, &HashMap::new()).is_ok());
+    assert!(calculator(Mode::Imaginary).evaluate(latex, &HashMap::new()).is_ok());
+    assert!(calculator(Mode::Algebra).evaluate(latex, &HashMap::new()).is_err());
+}

@@ -11,7 +11,7 @@ use crate::latex::{parser, serializer, Formula, Node};
 use crate::num::{Decimal, DEFAULT_PRECISION};
 use crate::algebra::pipeline::PipelineConfig;
 use crate::quantity::PhysicalQuantity;
-use crate::settings::{BinomialForm, Settings};
+use crate::settings::{BinomialForm, Mode, Settings};
 use crate::units::registry;
 use crate::Result;
 
@@ -128,7 +128,9 @@ impl LatexCalculator {
 
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
         let formula = parser::parse_with(latex, &self.settings.parse_options())?;
-        let evaluator = Evaluator::new(variables).with_precision(self.precision);
+        let evaluator = Evaluator::new(variables)
+            .with_precision(self.precision)
+            .with_constants(self.settings.mode != Mode::Algebra);
         match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
             equation @ Node::Equation { .. } => {
@@ -149,7 +151,7 @@ impl LatexCalculator {
                 })
             }
             expression => {
-                if has_free_algebraic_variables(expression, variables) {
+                if has_free_algebraic_variables(expression, &evaluator) {
                     return self.evaluate_algebraic(formula);
                 }
                 match evaluator.evaluate(expression) {
@@ -290,55 +292,55 @@ impl LatexCalculator {
     }
 }
 
-fn has_free_algebraic_variables(node: &Node, variables: &Variables) -> bool {
+fn has_free_algebraic_variables(node: &Node, evaluator: &Evaluator) -> bool {
     let mut bound = Vec::new();
-    check_free_algebraic_variables(node, &mut bound, variables)
+    check_free_algebraic_variables(node, &mut bound, evaluator)
 }
 
-fn check_free_algebraic_variables(node: &Node, bound: &mut Vec<String>, variables: &Variables) -> bool {
+fn check_free_algebraic_variables(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator) -> bool {
     match node {
         Node::Variable { name, index, .. } if index.is_empty() => {
-            !bound.contains(name) && !variables.contains_key(name) && super::evaluator::physical_constant(name).is_none()
+            !bound.contains(name) && !evaluator.variables.contains_key(name) && evaluator.physical_constant(name).is_none()
         }
         Node::Sum { index, from, to, body, .. } => {
-            if check_free_algebraic_variables(from, bound, variables) || check_free_algebraic_variables(to, bound, variables) {
+            if check_free_algebraic_variables(from, bound, evaluator) || check_free_algebraic_variables(to, bound, evaluator) {
                 return true;
             }
             bound.push(index.clone());
-            let found = check_free_algebraic_variables(body, bound, variables);
+            let found = check_free_algebraic_variables(body, bound, evaluator);
             bound.pop();
             found
         }
         Node::Integral { variable, lower, upper, body, .. } => {
-            if check_free_algebraic_variables(lower, bound, variables) || check_free_algebraic_variables(upper, bound, variables) {
+            if check_free_algebraic_variables(lower, bound, evaluator) || check_free_algebraic_variables(upper, bound, evaluator) {
                 return true;
             }
             bound.push(variable.clone());
-            let found = check_free_algebraic_variables(body, bound, variables);
+            let found = check_free_algebraic_variables(body, bound, evaluator);
             bound.pop();
             found
         }
         Node::Limit { variable, target, body, .. } => {
-            if check_free_algebraic_variables(target, bound, variables) {
+            if check_free_algebraic_variables(target, bound, evaluator) {
                 return true;
             }
             bound.push(variable.clone());
-            let found = check_free_algebraic_variables(body, bound, variables);
+            let found = check_free_algebraic_variables(body, bound, evaluator);
             bound.pop();
             found
         }
         Node::Derivative { variable, body, at, .. } => {
             if let Some(at_node) = at {
-                if check_free_algebraic_variables(at_node, bound, variables) {
+                if check_free_algebraic_variables(at_node, bound, evaluator) {
                     return true;
                 }
             }
             bound.push(variable.clone());
-            let found = check_free_algebraic_variables(body, bound, variables);
+            let found = check_free_algebraic_variables(body, bound, evaluator);
             bound.pop();
             found
         }
-        _ => node.children().into_iter().any(|c| check_free_algebraic_variables(c, bound, variables)),
+        _ => node.children().into_iter().any(|c| check_free_algebraic_variables(c, bound, evaluator)),
     }
 }
 

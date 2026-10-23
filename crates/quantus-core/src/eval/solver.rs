@@ -288,7 +288,7 @@ fn collect_unknowns(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator,
             if !bound.contains(name)
                 && !evaluator.variables.contains_key(name)
                 && !found.contains(name)
-                && super::evaluator::physical_constant(name).is_none()
+                && evaluator.physical_constant(name).is_none()
             {
                 found.push(name.clone());
             }

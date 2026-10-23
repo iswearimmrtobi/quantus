@@ -28,6 +28,8 @@ pub struct Evaluator<'a> {
     /// Digits an integral is computed to: `precision`, but capped, because the work of the
     /// quadrature grows with it and nested integrals multiply that work.
     numeric_digits: usize,
+    /// Whether the physical constants (`c_0`, `h_P`, ...) are known; algebra mode has none.
+    constants: bool,
 }
 
 /// Longest sum that is worth adding up term by term.
@@ -45,7 +47,7 @@ const MAX_NUMERIC_DIGITS: usize = 30;
 
 impl<'a> Evaluator<'a> {
     pub fn new(variables: &'a Variables) -> Self {
-        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS) }
+        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS), constants: true }
     }
 
     pub fn with_precision(mut self, precision: usize) -> Self {
@@ -54,10 +56,20 @@ impl<'a> Evaluator<'a> {
         self
     }
 
+    pub fn with_constants(mut self, constants: bool) -> Self {
+        self.constants = constants;
+        self
+    }
+
+    /// The physical constant of that name, unless the mode has none.
+    pub(super) fn physical_constant(&self, key: &str) -> Option<PhysicalQuantity> {
+        if self.constants { physical_constant(key) } else { None }
+    }
+
     /// An evaluator that sees the same variables plus `scope`, which the caller updates between
     /// samples.
     fn scoped<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
-        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits }
+        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, constants: self.constants }
     }
 
     pub(super) fn scoped_over<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
@@ -72,6 +84,7 @@ impl<'a> Evaluator<'a> {
             variables: scope,
             precision: (self.precision + NESTING_DIGITS).min(MAX_PRECISION),
             numeric_digits: self.numeric_digits + NESTING_DIGITS,
+            constants: self.constants,
         }
     }
 
@@ -85,7 +98,7 @@ impl<'a> Evaluator<'a> {
                 if let Some(value) = self.variables.get(&key) {
                     return Ok(value.clone());
                 }
-                if let Some(constant) = physical_constant(&key) {
+                if let Some(constant) = self.physical_constant(&key) {
                     return Ok(constant);
                 }
                 Err(QuantusError::UnresolvedVariable(if index.is_empty() {
