@@ -617,6 +617,23 @@ code {
 .panel-tab:hover {
   color: var(--text);
 }
+.panel-collapse {
+  flex-shrink: 0;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  border-left: 1px solid var(--hairline);
+}
+.panel-collapse:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.panel-collapse svg {
+  width: 14px;
+  height: 14px;
+}
 
 .panel-body {
   flex: 1;

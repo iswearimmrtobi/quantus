@@ -428,6 +428,19 @@ export function App() {
           >
             Einstellungen
           </button>
+          {/* Das Panel liegt über der Leiste, deren Knöpfe es sonst schließen würden. */}
+          <button
+            className="panel-collapse"
+            title="Seitenleiste einklappen (Esc)"
+            onClick={() => {
+              setPanel(null);
+              editor()?.focus();
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M7 6l6 6-6 6M13 6l6 6-6 6" />
+            </svg>
+          </button>
         </div>
         <div className="panel-body">
           {panel === 'history' &&
