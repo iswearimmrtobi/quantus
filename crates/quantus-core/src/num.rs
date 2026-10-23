@@ -223,6 +223,16 @@ pub enum MathFunction {
     Ln,
     /// Base-10 logarithm.
     Log,
+    Exp,
+    Sinh,
+    Cosh,
+    Tanh,
+    Cot,
+    Sec,
+    Csc,
+    Arcsin,
+    Arccos,
+    Arctan,
 }
 
 impl MathFunction {
@@ -232,7 +242,17 @@ impl MathFunction {
             "cos" => MathFunction::Cos,
             "tan" => MathFunction::Tan,
             "ln" => MathFunction::Ln,
-            "log" => MathFunction::Log,
+            "log" | "lg" => MathFunction::Log,
+            "exp" => MathFunction::Exp,
+            "sinh" => MathFunction::Sinh,
+            "cosh" => MathFunction::Cosh,
+            "tanh" => MathFunction::Tanh,
+            "cot" => MathFunction::Cot,
+            "sec" => MathFunction::Sec,
+            "csc" => MathFunction::Csc,
+            "arcsin" => MathFunction::Arcsin,
+            "arccos" => MathFunction::Arccos,
+            "arctan" => MathFunction::Arctan,
             _ => return None,
         })
     }
@@ -244,6 +264,16 @@ impl MathFunction {
             MathFunction::Tan => "Tan",
             MathFunction::Ln => "Ln",
             MathFunction::Log => "Log10",
+            MathFunction::Exp => "Exp",
+            MathFunction::Sinh => "Sinh",
+            MathFunction::Cosh => "Cosh",
+            MathFunction::Tanh => "Tanh",
+            MathFunction::Cot => "Cot",
+            MathFunction::Sec => "Sec",
+            MathFunction::Csc => "Csc",
+            MathFunction::Arcsin => "ArcSin",
+            MathFunction::Arccos => "ArcCos",
+            MathFunction::Arctan => "ArcTan",
         }
     }
 }
@@ -474,8 +504,91 @@ impl Value {
                     return Ok(exact);
                 }
             }
+            // The rest are built from e^x, sine and cosine, so their exact values come for free.
+            MathFunction::Exp => {
+                if let Value::Func(MathFunction::Ln, inner) = self {
+                    return Ok((**inner).clone());
+                }
+                return Value::E.pow(self);
+            }
+            MathFunction::Sinh | MathFunction::Cosh | MathFunction::Tanh => {
+                let (plus, minus) = (Value::E.pow(self)?, Value::E.pow(&self.neg())?);
+                let (sinh, cosh) = (plus.sub(&minus).div(&Value::int(2))?, plus.add(&minus).div(&Value::int(2))?);
+                return match function {
+                    MathFunction::Sinh => Ok(sinh),
+                    MathFunction::Cosh => Ok(cosh),
+                    _ => sinh.div(&cosh),
+                };
+            }
+            MathFunction::Cot | MathFunction::Sec | MathFunction::Csc => {
+                let (sin, cos) = (self.apply(MathFunction::Sin)?, self.apply(MathFunction::Cos)?);
+                let (top, bottom) = match function {
+                    MathFunction::Cot => (cos, sin),
+                    MathFunction::Sec => (Value::one(), cos),
+                    _ => (Value::one(), sin),
+                };
+                if bottom.is_zero() {
+                    return Err(QuantusError::other(format!(
+                        "{} is undefined at '{self}'.",
+                        function.display_name()
+                    )));
+                }
+                return top.div(&bottom);
+            }
+            MathFunction::Arcsin | MathFunction::Arccos | MathFunction::Arctan => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                if let Some(exact) = self.exact_arc(function)? {
+                    return Ok(exact);
+                }
+            }
         }
         Ok(Value::Func(function, Box::new(self.clone())))
+    }
+
+    /// arcsin, arccos and arctan at the values where they are a rational multiple of π, by
+    /// comparing 60 digits with the known ones; outside [-1, 1] arcsin and arccos are not real.
+    fn exact_arc(&self, function: MathFunction) -> Result<Option<Value>> {
+        let x = self.decimal(60)?.to_rational();
+        if function != MathFunction::Arctan && x.clone().abs() > RBig::ONE {
+            return Err(QuantusError::other(format!(
+                "{} is only defined between -1 and 1, but the argument was '{self}'.",
+                function.display_name()
+            )));
+        }
+        let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(55));
+        // (multiple of π, value) for the principal branch.
+        let candidates: Vec<(RBig, Value)> = match function {
+            MathFunction::Arctan => [(0, 1), (1, 6), (1, 4), (1, 3), (-1, 6), (-1, 4), (-1, 3)]
+                .iter()
+                .map(|(n, d)| {
+                    let r = RBig::from_parts(IBig::from(*n), UBig::from(*d as u64));
+                    let angle = Value::Rat(r.clone()).mul(&Value::Pi);
+                    (r, angle.apply(MathFunction::Tan).unwrap_or(Value::zero()))
+                })
+                .collect(),
+            _ => [(0, 1), (1, 6), (1, 4), (1, 3), (1, 2), (-1, 6), (-1, 4), (-1, 3), (-1, 2)]
+                .iter()
+                .map(|(n, d)| {
+                    let r = RBig::from_parts(IBig::from(*n), UBig::from(*d as u64));
+                    (r.clone(), Value::Rat(r).mul(&Value::Pi).apply(MathFunction::Sin).unwrap_or(Value::zero()))
+                })
+                .collect(),
+        };
+        for (multiple, value) in candidates {
+            let known = value.decimal(60)?.to_rational();
+            if (&known - &x).abs() <= tolerance {
+                // arccos x = π/2 - arcsin x
+                let multiple = if function == MathFunction::Arccos {
+                    RBig::from_parts(IBig::ONE, UBig::from(2u8)) - multiple
+                } else {
+                    multiple
+                };
+                return Ok(Some(Value::Rat(multiple).mul(&Value::Pi)));
+            }
+        }
+        Ok(None)
     }
 
     /// `self` as a rational multiple of π, if it is one (`\pi`, `\frac{\pi}{6}`, `0`).
@@ -597,6 +710,17 @@ impl Value {
                     MathFunction::Tan => x.tan(bits, rm, consts),
                     MathFunction::Ln => x.ln(bits, rm, consts),
                     MathFunction::Log => x.log10(bits, rm, consts),
+                    MathFunction::Arcsin => x.asin(bits, rm, consts),
+                    MathFunction::Arccos => x.acos(bits, rm, consts),
+                    MathFunction::Arctan => x.atan(bits, rm, consts),
+                    // Built from exp, sin and cos by `apply`, so never wrapped.
+                    MathFunction::Exp => x.exp(bits, rm, consts),
+                    MathFunction::Sinh => x.sinh(bits, rm, consts),
+                    MathFunction::Cosh => x.cosh(bits, rm, consts),
+                    MathFunction::Tanh => x.tanh(bits, rm, consts),
+                    MathFunction::Cot => x.tan(bits, rm, consts).reciprocal(bits, rm),
+                    MathFunction::Sec => x.cos(bits, rm, consts).reciprocal(bits, rm),
+                    MathFunction::Csc => x.sin(bits, rm, consts).reciprocal(bits, rm),
                 };
                 if result.is_nan() || result.is_inf() {
                     return Err(self.not_real());

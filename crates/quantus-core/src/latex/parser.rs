@@ -44,6 +44,12 @@ use crate::{QuantusError, Result};
 const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
 
+/// Commands that take one argument and evaluate through `MathFunction`.
+const FUNCTION_COMMANDS: [&str; 16] = [
+    "\\sin", "\\cos", "\\tan", "\\ln", "\\log", "\\lg", "\\exp", "\\sinh", "\\cosh", "\\tanh", "\\cot",
+    "\\sec", "\\csc", "\\arcsin", "\\arccos", "\\arctan",
+];
+
 /// One letter or one Greek command: the spelling of an unindexed variable.
 fn is_single_letter(text: &str) -> bool {
     text.starts_with('\\') || text.chars().count() == 1
@@ -60,7 +66,18 @@ fn is_variable_product(text: &str, options: &ParseOptions) -> bool {
 }
 
 fn is_function_command(token: &Token) -> bool {
-    token.kind == TokenType::Command && matches!(token.text.as_str(), "\\sin" | "\\cos" | "\\tan" | "\\ln" | "\\log")
+    token.kind == TokenType::Command && FUNCTION_COMMANDS.contains(&token.text.as_str())
+}
+
+/// `-1` or `{-1}`.
+fn is_minus_one(node: &Node) -> bool {
+    match node {
+        Node::Group { inner, .. } => is_minus_one(inner),
+        Node::Negation { operand, .. } => {
+            matches!(&**operand, Node::Number { value, .. } if value.to_rational() == dashu::rational::RBig::ONE)
+        }
+        _ => false,
+    }
 }
 
 /// `\mu` is the µ of `µm`, `\Omega` the Ω of `k\Omega`.
@@ -332,7 +349,7 @@ impl Parser<'_> {
                 let denominator = self.parse_argument(&token.text)?;
                 Ok(Node::fraction(numerator, denominator, position))
             }
-            "\\sin" | "\\cos" | "\\tan" | "\\ln" | "\\log" => self.parse_function(token),
+            name if FUNCTION_COMMANDS.contains(&name) => self.parse_function(token),
             "\\begin" => self.parse_matrix(token),
             "\\det" => {
                 self.advance();
@@ -390,26 +407,37 @@ impl Parser<'_> {
     /// `\sin x \cos x` a product of two functions.
     fn parse_function(&mut self, token: &Token) -> Result<Node> {
         let position = token.position;
-        let name = token.text.trim_start_matches('\\').to_string();
+        let mut name = token.text.trim_start_matches('\\').to_string();
         self.advance();
-        if self.current().kind == TokenType::Underscore {
-            return Err(self.error(
-                &format!("A base on {} is not supported. Write \\ln x / \\ln b instead.", token.text),
-                self.current().position,
-            ));
-        }
+        // `\log_b x` (also `\log_{b}`) is ln x / ln b.
+        let base = if self.current().kind == TokenType::Underscore {
+            if name != "log" {
+                return Err(self.error(&format!("A base on {} is not supported.", token.text), self.current().position));
+            }
+            self.advance();
+            Some(self.parse_argument(&token.text)?)
+        } else {
+            None
+        };
         let exponent = if self.current().kind == TokenType::Caret {
             let caret = self.advance();
             let exponent = self.parse_argument(&token.text)?;
-            if matches!(&exponent, Node::Negation { operand, .. } if matches!(**operand, Node::Number { .. }))
-                || matches!(&exponent, Node::Group { inner, .. } if matches!(**inner, Node::Negation { .. }))
-            {
-                return Err(self.error(
-                    &format!("{}^{{-1}} is not supported; write 1/{} x instead.", token.text, token.text),
-                    caret.position,
-                ));
+            let negative = matches!(&exponent, Node::Negation { operand, .. } if matches!(**operand, Node::Number { .. }))
+                || matches!(&exponent, Node::Group { inner, .. } if matches!(**inner, Node::Negation { .. }));
+            if negative {
+                // \sin^{-1} is the inverse function, arcsin; any other negative power is ambiguous.
+                let inverse = matches!(name.as_str(), "sin" | "cos" | "tan") && is_minus_one(&exponent);
+                if !inverse {
+                    return Err(self.error(
+                        &format!("{}^{{-n}} is ambiguous; write 1/{} x or \\arc… instead.", token.text, token.text),
+                        caret.position,
+                    ));
+                }
+                name = format!("arc{name}");
+                None
+            } else {
+                Some(exponent)
             }
-            Some(exponent)
         } else {
             None
         };
@@ -419,7 +447,14 @@ impl Parser<'_> {
         } else {
             self.parse_function_operand(&token.text)?
         };
-        let function = Node::Function { name, argument: Box::new(argument), position };
+        let function = match base {
+            None => Node::Function { name, argument: Box::new(argument), position },
+            Some(base) => Node::fraction(
+                Node::Function { name: "ln".into(), argument: Box::new(argument), position },
+                Node::Function { name: "ln".into(), argument: Box::new(base), position },
+                position,
+            ),
+        };
         Ok(match exponent {
             Some(exponent) => Node::Power { base: Box::new(function), exponent: Box::new(exponent), position },
             None => function,

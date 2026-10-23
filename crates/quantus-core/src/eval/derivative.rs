@@ -41,11 +41,31 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
                 "cos" => negate(function("sin", u, position), position),
                 "tan" => Node::fraction(number(1, position), square(function("cos", u, position), position), position),
                 "ln" => Node::fraction(number(1, position), u, position),
-                "log" => Node::fraction(
+                "log" | "lg" => Node::fraction(
                     number(1, position),
                     multiply(u, function("ln", number(10, position), position), position),
                     position,
                 ),
+                "exp" => function("exp", u, position),
+                "sinh" => function("cosh", u, position),
+                "cosh" => function("sinh", u, position),
+                "tanh" => Node::fraction(number(1, position), square(function("cosh", u, position), position), position),
+                "cot" => negate(Node::fraction(number(1, position), square(function("sin", u, position), position), position), position),
+                "sec" => Node::fraction(function("tan", u.clone(), position), function("cos", u, position), position),
+                "csc" => negate(
+                    Node::fraction(function("cos", u.clone(), position), square(function("sin", u, position), position), position),
+                    position,
+                ),
+                "arcsin" | "arccos" => {
+                    let root = Node::Root {
+                        radicand: Box::new(subtract(number(1, position), square(u, position), position)),
+                        degree: None,
+                        position,
+                    };
+                    let derivative = Node::fraction(number(1, position), root, position);
+                    if name == "arccos" { negate(derivative, position) } else { derivative }
+                }
+                "arctan" => Node::fraction(number(1, position), add(number(1, position), square(u, position), position), position),
                 other => return Err(QuantusError::other(format!("Cannot differentiate \\{other}."))),
             };
             multiply(outer, inner, position)
