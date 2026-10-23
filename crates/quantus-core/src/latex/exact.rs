@@ -1,7 +1,7 @@
-//! Exact results with roots in LaTeX: `2\sqrt{3}` or `\frac{\sqrt{2}}{2}` instead of a decimal.
+//! Exact results with roots and π in LaTeX: `2\sqrt{3}`, `\frac{\pi}{2}` or `\frac{\sqrt{2}}{2}` instead of a decimal.
 //!
 //! Only values built from rationals and rational powers of rationals qualify. Anything else
-//! (`\pi`, `e`, functions, the imaginary unit) has no such form here, and the caller falls back
+//! (`e`, functions) has no such form here, and the caller falls back
 //! to the decimal.
 
 use std::collections::BTreeMap;
@@ -22,7 +22,14 @@ const MAX_EXPONENT: u32 = 64;
 type Radical = (u32, UBig);
 
 /// A sum of rational multiples of products of radicals, collected by that product.
-type Terms = BTreeMap<Vec<Radical>, RBig>;
+type Terms = BTreeMap<Product, RBig>;
+
+/// What a term carries besides its rational coefficient: a power of π and radicals.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Product {
+    pi: u32,
+    radicals: Vec<Radical>,
+}
 
 /// The LaTeX of `value` if it contains a root and has an exact form; `None` otherwise, including
 /// for plain rationals, which read better as the decimal.
@@ -49,7 +56,7 @@ fn terms_of(value: &Value) -> Option<Terms> {
 }
 
 fn has_root(terms: &Terms) -> bool {
-    terms.keys().any(|radicals| !radicals.is_empty())
+    terms.keys().any(|product| product.pi > 0 || !product.radicals.is_empty())
 }
 
 /// Whether the sum needs parentheses before a unit is attached to it.
@@ -59,22 +66,27 @@ pub fn is_sum(latex: &str) -> bool {
 }
 
 fn add_term(terms: &mut Terms, term: &Value) -> Option<()> {
-    let (coefficient, radicals) = split(term)?;
-    *terms.entry(radicals).or_insert(RBig::ZERO) += coefficient;
+    let (coefficient, product) = split(term)?;
+    *terms.entry(product).or_insert(RBig::ZERO) += coefficient;
     Some(())
 }
 
 /// One product of a rational and powers of rationals, as coefficient and radicals.
-fn split(term: &Value) -> Option<(RBig, Vec<Radical>)> {
+fn split(term: &Value) -> Option<(RBig, Product)> {
     let factors = match term {
         Value::Mul(factors) => factors.as_slice(),
         other => std::slice::from_ref(other),
     };
     let mut coefficient = RBig::ONE;
     let mut by_index: BTreeMap<u32, UBig> = BTreeMap::new();
+    let mut pi = 0;
     for factor in factors {
         match factor {
             Value::Rat(r) => coefficient *= r,
+            Value::Pi => pi += 1,
+            Value::Pow(base, exponent) if **base == Value::Pi => {
+                pi += u32::try_from(exponent.to_i64()?).ok().filter(|n| (1..=MAX_EXPONENT).contains(n))?;
+            }
             Value::Pow(base, exponent) => {
                 let (Value::Rat(base), Value::Rat(exponent)) = (&**base, &**exponent) else { return None };
                 let (c, index, radicand) = power(base, exponent)?;
@@ -93,7 +105,7 @@ fn split(term: &Value) -> Option<(RBig, Vec<Radical>)> {
             radicals.push((index, inside));
         }
     }
-    Some((coefficient, radicals))
+    Some((coefficient, Product { pi, radicals }))
 }
 
 /// `base^exponent` as `coefficient · radicand^(1/index)`, with the denominator of the base
@@ -153,9 +165,9 @@ fn sum(terms: &Terms) -> String {
     }
     let mut out = String::new();
     // The rational part first, then the radicals.
-    for (radicals, coefficient) in terms {
+    for (product, coefficient) in terms {
         let negative = coefficient.numerator().sign() == Sign::Negative;
-        let text = term(&coefficient.clone().abs(), radicals);
+        let text = term(&coefficient.clone().abs(), product);
         match (out.is_empty(), negative) {
             (true, true) => out = format!("-{text}"),
             (true, false) => out = text,
@@ -166,15 +178,21 @@ fn sum(terms: &Terms) -> String {
     out
 }
 
-/// A positive coefficient with its radicals: `3`, `\sqrt{2}`, `\frac{3\sqrt{2}}{2}`.
-fn term(coefficient: &RBig, radicals: &[Radical]) -> String {
-    let roots: String = radicals
+/// A positive coefficient with its radicals: `3`, `\sqrt{2}`, `\frac{3\pi\sqrt{2}}{2}`.
+fn term(coefficient: &RBig, product: &Product) -> String {
+    let pi = match product.pi {
+        0 => String::new(),
+        1 => "\\pi".to_string(),
+        n => format!("\\pi^{{{n}}}"),
+    };
+    let roots: String = product.radicals
         .iter()
         .map(|(index, radicand)| match index {
             2 => format!("\\sqrt{{{radicand}}}"),
             n => format!("\\sqrt[{n}]{{{radicand}}}"),
         })
         .collect();
+    let roots = format!("{pi}{roots}");
     let numerator = coefficient.numerator().clone().unsigned_abs();
     let numerator = match (numerator == UBig::ONE, roots.is_empty()) {
         (true, false) => roots,
@@ -237,9 +255,19 @@ mod tests {
     #[test]
     fn what_has_no_root_or_no_exact_form_is_left_alone() {
         assert!(format(&Value::ratio(1, 2)).is_none());
-        assert!(format(&Value::Pi).is_none());
-        assert!(format(&Value::Pi.mul(&root(2, 2))).is_none());
+        assert!(format(&Value::E).is_none());
         assert!(format(&root(4, 2)).is_none());
+    }
+
+    #[test]
+    fn multiples_of_pi() {
+        assert_eq!(format(&Value::Pi).unwrap(), "\\pi");
+        assert_eq!(format(&Value::ratio(1, 2).mul(&Value::Pi)).unwrap(), "\\frac{\\pi}{2}");
+        assert_eq!(format(&Value::int(-3).mul(&Value::Pi)).unwrap(), "-3\\pi");
+        assert_eq!(format(&Value::Pi.mul(&Value::Pi)).unwrap(), "\\pi^{2}");
+        assert_eq!(format(&Value::Pi.mul(&root(8, 2))).unwrap(), "2\\pi\\sqrt{2}");
+        assert_eq!(format(&Value::int(1).add(&Value::Pi)).unwrap(), "1 + \\pi");
+        assert_eq!(format(&Value::Pi.add(&Value::Pi)).unwrap(), "2\\pi");
     }
 
     #[test]

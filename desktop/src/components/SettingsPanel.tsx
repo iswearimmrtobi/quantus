@@ -137,11 +137,11 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
       </section>
 
       <section className="setting">
-        <h3>Wurzeln</h3>
+        <h3>Exakte Werte</h3>
         <Toggle
           checked={settings.exactRoots}
           label="Exakt als Wurzel"
-          hint="√2 statt 1,414…; 2√3 statt 3,464…"
+          hint="√2 statt 1,414… und π/2 statt 1,570…"
           onChange={(v) => set('exactRoots', v)}
         />
       </section>

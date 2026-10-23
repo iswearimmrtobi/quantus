@@ -434,7 +434,7 @@ mod tests {
     fn exact_roots_leave_other_results_alone() {
         assert_eq!(exact("\\frac{1}{4}"), "0{,}25");
         assert_eq!(exact("\\sqrt{4}"), "2");
-        assert_eq!(exact("\\pi"), calc("\\pi").result);
+        assert_eq!(exact("e"), calc("e").result);
     }
 
     #[test]
@@ -447,6 +447,14 @@ mod tests {
         assert_eq!(run("\\sqrt{-3}"), "\\sqrt{3}i");
         assert_eq!(run("1 - \\sqrt{-2}"), "1 - \\sqrt{2}i");
         assert_eq!(run("3 + 4i"), "3 + 4i");
+    }
+
+    #[test]
+    fn exact_roots_write_multiples_of_pi() {
+        assert_eq!(exact("\\pi"), "\\pi");
+        assert_eq!(exact("\\frac{\\pi}{2}"), "\\frac{\\pi}{2}");
+        assert_eq!(exact("2\\pi \\cdot 3"), "6\\pi");
+        assert_eq!(exact("\\sin(\\frac{\\pi}{4})"), "\\frac{\\sqrt{2}}{2}");
     }
 
     #[test]

@@ -58,7 +58,7 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 - **Exact numbers** with arbitrary precision (`dashu`, `astro-float`)
 - **Units and dimensions** are checked and converted, and results are named (`N`, `J`, …)
 - **Three modes**, switched in the top bar: *Algebra* (letters are variables, no units or constants), *Physik* (units and constants, the default) and *Imaginär* (`i` is the imaginary unit and results may be complex, shown as `a + bi`)
-- **Exact roots**, a setting: `\sqrt{12}` is shown as `2\sqrt{3}` instead of a decimal (off by default)
+- **Exact roots and π**, a setting: `\sqrt{12}` is shown as `2\sqrt{3}` and `\pi/2` as `\frac{\pi}{2}` instead of a decimal (off by default)
 - **Session variables**: an indexed label such as `m_1 = 2kg` defines a variable for the session
 - Parser errors report the **position** in the input
 
