@@ -12,7 +12,7 @@ use dashu::rational::RBig;
 
 use crate::error::{QuantusError, Result};
 use crate::num::{Decimal, Value};
-use crate::units::{between, registry, AffineConversion, Dimension, Unit};
+use crate::units::{between, registry, AffineConversion, Atom, BaseDim, Dimension, Kind, Unit};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PhysicalQuantity {
@@ -110,9 +110,41 @@ impl PhysicalQuantity {
         let (Ok(numerator), Ok(denominator)) = (numerator, denominator) else {
             return Err(QuantusError::other(format!("The exponent '{}' is too large.", exponent.value)));
         };
+        let whole_root = self.dimension().exponents().iter().all(|(_, e)| (e * numerator) % denominator == 0);
+        if denominator != 1 && whole_root {
+            // √(cm / (m/s²)) has to become s, not cm^½·m^-½·s: in the coherent unit of its
+            // dimension the root comes out whole. Where it would not (√N), the unit stays as it is.
+            if let Some(coherent) = self.in_coherent_unit() {
+                if coherent.unit != self.unit {
+                    return coherent.pow(&exponent);
+                }
+            }
+        }
         let unit = self.unit.pow(numerator);
         let unit = if denominator == 1 { unit } else { unit.root(denominator)? };
         Ok(PhysicalQuantity::new(powered, unit))
+    }
+
+    /// The same quantity in the product of SI base units for its dimension (`km/h` in `m/s`),
+    /// or `None` when there is no such conversion (an offset unit, or a unit already under a root).
+    fn in_coherent_unit(&self) -> Option<PhysicalQuantity> {
+        if self.unit.factors().iter().any(|e| e.root != 1) {
+            return None;
+        }
+        let mut unit = Unit::ONE;
+        for (base, exponent) in self.dimension().exponents() {
+            let kind = match base {
+                BaseDim::Length => Kind::Metre,
+                BaseDim::Mass => Kind::Kilogram,
+                BaseDim::Time => Kind::Second,
+                BaseDim::Current => Kind::Ampere,
+                BaseDim::Temperature => Kind::Kelvin,
+                BaseDim::Amount => Kind::Mole,
+                BaseDim::Luminous => Kind::Candela,
+            };
+            unit = unit.multiply(&Unit::Atom(Atom::plain(kind)).pow(exponent));
+        }
+        self.to(&unit).ok()
     }
 
     /// The value of a dimensionless quantity in the unit one: `4 wk / 2 d` is 14, not 2.
