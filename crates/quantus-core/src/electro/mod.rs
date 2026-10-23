@@ -2,10 +2,12 @@
 
 pub mod circuit;
 pub mod materials;
+pub mod reverse;
 pub mod solve;
 pub mod wire;
 
 pub use circuit::{Circuit, Element, ElementKind, GROUND};
 pub use materials::Material;
+pub use reverse::{solve_for, Measure, Parameter, Reverse, Target};
 pub use solve::{solve, solve_at, ElementResult, NodeResult, Output, Reason, Solution};
 pub use wire::{Warning, Wire};

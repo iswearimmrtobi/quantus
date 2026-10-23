@@ -122,17 +122,7 @@ pub fn solve_at(circuit: &Circuit, precision: usize) -> Result<Solution> {
     let nonlinear = circuit.elements.iter().any(|e| matches!(e.kind, ElementKind::PowerLoad { .. }));
 
     let unknown: Vec<Slot> = model.params.iter().filter(|(_, v)| v.is_none()).map(|(s, _)| *s).collect();
-    let sources: Vec<usize> = circuit
-        .elements
-        .iter()
-        .enumerate()
-        .filter(|(_, e)| matches!(e.kind, ElementKind::VoltageSource { .. } | ElementKind::CurrentSource { .. }))
-        .map(|(i, _)| i)
-        .collect();
-    let relative = match sources[..] {
-        [only] if unknown.contains(&Slot { element: only, which: 0 }) => Some(only),
-        _ => None,
-    };
+    let relative = model.relative_source();
     if let (Some(only), true) = (relative, nonlinear) {
         // A power load does not scale with the source, so nothing absolute can be said.
         return Ok(model.without_source(only));
@@ -593,6 +583,20 @@ impl<'a> Model<'a> {
         Solution { nodes, elements }
     }
 
+    /// The only source of the circuit if its value is missing: the network is then solved for a
+    /// source of one unit.
+    fn relative_source(&self) -> Option<usize> {
+        let mut sources = self
+            .circuit
+            .elements
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| matches!(e.kind, ElementKind::VoltageSource { .. } | ElementKind::CurrentSource { .. }))
+            .map(|(i, _)| i);
+        let only = sources.next().filter(|_| sources.next().is_none())?;
+        matches!(self.params.get(&Slot { element: only, which: 0 }), Some(None)).then_some(only)
+    }
+
     /// Why the matrix is singular: a node that no voltage-fixing branch reaches from ground
     /// (floating), otherwise a loop of ideal voltage sources (short circuit).
     fn diagnose(&self, branches: &[Branch]) -> QuantusError {
@@ -617,6 +621,15 @@ impl<'a> Model<'a> {
             None => QuantusError::other("Kurzschluss"),
         }
     }
+}
+
+/// How many parameters of the circuit are missing, not counting the value of the only source of
+/// a linear circuit: that one is handled as a ratio.
+pub(super) fn missing_parameters(circuit: &Circuit) -> Result<usize> {
+    let model = Model::new(circuit)?;
+    let missing = model.params.values().filter(|v| v.is_none()).count();
+    let linear = !model.circuit.elements.iter().any(|e| matches!(e.kind, ElementKind::PowerLoad { .. }));
+    Ok(missing - usize::from(linear && model.relative_source().is_some()))
 }
 
 /// 10^-(precision + 4): how closely Newton's method converges, and results of two runs agree.
