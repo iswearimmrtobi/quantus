@@ -56,12 +56,12 @@ const IGNORED_COMMANDS: [&str; 7] =
 const PIPE_COMMANDS: [&str; 3] = ["\\vert", "\\lvert", "\\rvert"];
 
 /// Greek letters are identifiers: variable names (`\omega_0`) or constants (`\pi`).
-const GREEK_COMMANDS: [&str; 37] = [
+const GREEK_COMMANDS: [&str; 38] = [
     "\\alpha", "\\beta", "\\gamma", "\\delta", "\\epsilon", "\\varepsilon", "\\zeta", "\\eta",
     "\\theta", "\\vartheta", "\\iota", "\\kappa", "\\lambda", "\\mu", "\\nu", "\\xi", "\\pi",
     "\\rho", "\\sigma", "\\tau", "\\upsilon", "\\phi", "\\varphi", "\\chi", "\\psi", "\\omega",
     "\\Gamma", "\\Delta", "\\Theta", "\\Lambda", "\\Xi", "\\Pi", "\\Sigma", "\\Upsilon",
-    "\\Phi", "\\Psi", "\\Omega",
+    "\\Phi", "\\Psi", "\\Omega", "\\hbar",
 ];
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>> {

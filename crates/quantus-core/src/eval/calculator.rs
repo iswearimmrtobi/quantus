@@ -298,7 +298,7 @@ fn has_free_algebraic_variables(node: &Node, variables: &Variables) -> bool {
 fn check_free_algebraic_variables(node: &Node, bound: &mut Vec<String>, variables: &Variables) -> bool {
     match node {
         Node::Variable { name, index, .. } if index.is_empty() => {
-            !bound.contains(name) && !variables.contains_key(name)
+            !bound.contains(name) && !variables.contains_key(name) && super::evaluator::physical_constant(name).is_none()
         }
         Node::Sum { index, from, to, body, .. } => {
             if check_free_algebraic_variables(from, bound, variables) || check_free_algebraic_variables(to, bound, variables) {

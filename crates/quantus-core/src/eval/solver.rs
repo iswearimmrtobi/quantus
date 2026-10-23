@@ -285,7 +285,11 @@ fn polynomial_roots(residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>)
 fn collect_unknowns(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator, found: &mut Vec<String>) {
     match node {
         Node::Variable { name, index, .. } if index.is_empty() => {
-            if !bound.contains(name) && !evaluator.variables.contains_key(name) && !found.contains(name) {
+            if !bound.contains(name)
+                && !evaluator.variables.contains_key(name)
+                && !found.contains(name)
+                && super::evaluator::physical_constant(name).is_none()
+            {
                 found.push(name.clone());
             }
         }

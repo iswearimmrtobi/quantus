@@ -82,16 +82,20 @@ impl<'a> Evaluator<'a> {
             Node::Constant { name, .. } => constant(name).map(PhysicalQuantity::dimensionless),
             Node::Variable { name, index, .. } => {
                 let key = Node::variable_key(name, index);
-                self.variables.get(&key).cloned().ok_or_else(|| {
-                    QuantusError::UnresolvedVariable(if index.is_empty() {
-                        format!(
-                            "The variable {key} has no value. Only variables with a subscript can be \
-                             defined, e.g. {key}_1 = 5m."
-                        )
-                    } else {
-                        format!("The variable {key} has no value yet. Define it first, e.g. {key} = 5m.")
-                    })
-                })
+                if let Some(value) = self.variables.get(&key) {
+                    return Ok(value.clone());
+                }
+                if let Some(constant) = physical_constant(&key) {
+                    return Ok(constant);
+                }
+                Err(QuantusError::UnresolvedVariable(if index.is_empty() {
+                    format!(
+                        "The variable {key} has no value. Only variables with a subscript can be \
+                         defined, e.g. {key}_1 = 5m."
+                    )
+                } else {
+                    format!("The variable {key} has no value yet. Define it first, e.g. {key} = 5m.")
+                }))
             }
             Node::Group { inner, .. } => self.evaluate(inner),
             Node::Negation { operand, .. } => Ok(self.evaluate(operand)?.neg()),
@@ -463,6 +467,45 @@ fn binomial(n: i64, k: i64) -> Result<IBig> {
 
 /// Reserved constant names (F2). They are looked up after the unit table, so a symbol that is
 /// a unit stays a unit. The values are symbolic: π stays π until the last numeric evaluation.
+/// Physical constants (CODATA 2018), by the name they are written with: `c_0`, `k_B`, `\hbar`.
+/// A session variable of the same name takes precedence.
+pub(crate) fn physical_constant(key: &str) -> Option<PhysicalQuantity> {
+    let (value, unit): (&str, &str) = match key {
+        "c_0" => ("299792458", "m/s"),
+        "h_P" => ("6.62607015e-34", "J*s"),
+        "\\hbar" => return Some(quantity("6.62607015e-34", "J*s").div(&PhysicalQuantity::dimensionless(Value::int(2).mul(&Value::Pi))).ok()?),
+        "k_B" => ("1.380649e-23", "J/K"),
+        "N_A" => ("6.02214076e23", "/mol"),
+        // N_A k_B, exactly
+        "R_m" => ("8.31446261815324", "J/mol/K"),
+        "e_0" => ("1.602176634e-19", "C"),
+        "\\varepsilon_0" | "\\epsilon_0" => ("8.8541878128e-12", "F/m"),
+        "\\mu_0" => ("1.25663706212e-6", "N/A/A"),
+        "m_e" => ("9.1093837015e-31", "kg"),
+        "m_p" => ("1.67262192369e-27", "kg"),
+        "m_n" => ("1.67492749804e-27", "kg"),
+        "\\sigma_SB" => ("5.670374419e-8", "W/m/m/K/K/K/K"),
+        "g_n" => ("9.80665", "m/s/s"),
+        "G_N" => ("6.67430e-11", "m*m*m/kg/s/s"),
+        _ => return None,
+    };
+    Some(quantity(value, unit))
+}
+
+/// `value` in the unit written as `a*b/c/d`, from atoms of the unit table.
+fn quantity(value: &str, unit: &str) -> PhysicalQuantity {
+    let mut parts = unit.split('/');
+    let mut result = crate::units::Unit::ONE;
+    for factor in parts.next().unwrap_or_default().split('*').filter(|s| !s.is_empty()) {
+        result = result.multiply(&crate::units::find(factor).expect("a known unit"));
+    }
+    for divisor in parts {
+        result = result.divide(&crate::units::find(divisor).expect("a known unit"));
+    }
+    let value = Decimal::parse(value).expect("a valid decimal");
+    PhysicalQuantity::new(Value::from_decimal(&value), result)
+}
+
 fn constant(name: &str) -> Result<Value> {
     match name {
         "\\pi" => Ok(Value::Pi),
