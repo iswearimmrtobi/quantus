@@ -5,14 +5,15 @@
 //!   --cases DIR      case directory (default test/cases)
 //!   --out DIR        report directory (default test/results)
 //!   --filter TEXT    only cases whose id, category or category/subcategory starts with TEXT (repeatable)
-//!   --jobs N         worker threads (default: available parallelism)
+//!   --jobs N         worker processes (default: available parallelism, at most 8)
 //!   --timeout SECS   per-case time limit (default 5)
 //!   --limit N        stop after N cases (after filtering)
 //!   --fail-only      write only non-passing cases to results.jsonl
 //! ```
 //!
-//! The case format is described in `test/README.md`. Every case is evaluated on its own thread so a
-//! panic or a hang is reported as `PANIC` / `TIMEOUT` instead of stopping the run.
+//! The case format is described in `test/README.md`. Cases are evaluated in worker processes capped at 4 GiB of address
+//! space, so a panic, a hang or a runaway allocation is reported as `PANIC` / `TIMEOUT` / `ERROR` instead of
+//! stopping the run; a timed-out worker is killed and replaced.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -57,7 +58,7 @@ fn options() -> Options {
         cases: PathBuf::from("test/cases"),
         out: PathBuf::from("test/results"),
         filters: Vec::new(),
-        jobs: std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4),
+        jobs: std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(8),
         timeout: Duration::from_secs(5),
         limit: None,
         fail_only: false,
@@ -548,39 +549,138 @@ fn collect_json(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-fn run_with_timeout(case: Arc<Value>, timeout: Duration) -> (Outcome, f64) {
-    let (tx, rx) = mpsc::channel();
-    let start = Instant::now();
-    let spawned = std::thread::Builder::new().stack_size(256 << 20).spawn(move || {
-        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_case(&case)));
-        let _ = tx.send(r);
-    });
-    if let Err(e) = spawned {
-        return (Outcome::error(format!("could not start a thread: {e}")), 0.0);
+/// Address-space limit for each worker process in KiB. A runaway evaluation hits this and dies alone
+/// instead of growing until the kernel's OOM killer takes the whole desktop session with it.
+const WORKER_LIMIT_KIB: u64 = 4 * 1024 * 1024;
+
+/// A child process that evaluates cases one at a time. A thread cannot be killed, so a case that
+/// hangs would keep allocating after its timeout; a process can be, and its memory comes back.
+struct Worker {
+    child: std::process::Child,
+    stdin: std::process::ChildStdin,
+    lines: mpsc::Receiver<String>,
+}
+
+impl Worker {
+    fn start() -> Worker {
+        let exe = std::env::current_exe().expect("current_exe");
+        let script = format!("ulimit -v {WORKER_LIMIT_KIB} && exec \"$0\" --worker");
+        let mut child = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(script)
+            .arg(exe)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("start worker process");
+        let stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.take().unwrap();
+        let (tx, lines) = mpsc::channel();
+        std::thread::spawn(move || {
+            use std::io::BufRead;
+            for line in std::io::BufReader::new(stdout).lines().map_while(Result::ok) {
+                if tx.send(line).is_err() {
+                    break;
+                }
+            }
+        });
+        Worker { child, stdin, lines }
     }
-    let outcome = match rx.recv_timeout(timeout) {
-        Ok(Ok(o)) => o,
-        Ok(Err(panic)) => {
-            let msg = panic
-                .downcast_ref::<String>()
-                .cloned()
-                .or_else(|| panic.downcast_ref::<&str>().map(|s| s.to_string()))
-                .unwrap_or_else(|| "panic".into());
-            Outcome { status: "PANIC", reason: String::new(), detail: msg, actual: String::new(), note: String::new() }
-        }
-        Err(mpsc::RecvTimeoutError::Timeout) => Outcome {
-            status: "TIMEOUT",
-            reason: String::new(),
-            detail: format!("no result after {:?}", timeout),
-            actual: String::new(),
-            note: String::new(),
-        },
-        Err(mpsc::RecvTimeoutError::Disconnected) => Outcome::error("worker thread vanished".into()),
+
+    fn stop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+
+    fn run(&mut self, case: &Value, timeout: Duration) -> (Outcome, f64) {
+        let start = Instant::now();
+        let sent = writeln!(self.stdin, "{case}").and_then(|_| self.stdin.flush());
+        let outcome = match sent.is_ok().then(|| self.lines.recv_timeout(timeout)) {
+            Some(Ok(line)) => outcome_from_json(&serde_json::from_str(&line).unwrap_or(Value::Null)),
+            Some(Err(mpsc::RecvTimeoutError::Timeout)) => {
+                self.restart();
+                Outcome {
+                    status: "TIMEOUT",
+                    reason: String::new(),
+                    detail: format!("no result after {timeout:?}"),
+                    actual: String::new(),
+                    note: String::new(),
+                }
+            }
+            _ => {
+                self.restart();
+                Outcome::error("worker process died (out of memory or stack overflow)".into())
+            }
+        };
+        (outcome, start.elapsed().as_secs_f64() * 1000.0)
+    }
+
+    fn restart(&mut self) {
+        self.stop();
+        *self = Worker::start();
+    }
+}
+
+impl Drop for Worker {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+fn outcome_to_json(o: &Outcome) -> Value {
+    json!({"status": o.status, "reason": o.reason, "detail": o.detail, "actual": o.actual, "note": o.note})
+}
+
+fn outcome_from_json(v: &Value) -> Outcome {
+    let text = |k: &str| v[k].as_str().unwrap_or_default().to_string();
+    let status = match v["status"].as_str().unwrap_or_default() {
+        "PASS" => "PASS",
+        "FAIL" => "FAIL",
+        "UNEXPECTED_OK" => "UNEXPECTED_OK",
+        "PANIC" => "PANIC",
+        "TIMEOUT" => "TIMEOUT",
+        "GENERATOR" => "GENERATOR",
+        _ => "ERROR",
     };
-    (outcome, start.elapsed().as_secs_f64() * 1000.0)
+    Outcome { status, reason: text("reason"), detail: text("detail"), actual: text("actual"), note: text("note") }
+}
+
+/// The body of a worker process: one case per input line, one outcome per output line.
+fn worker_main() {
+    std::panic::set_hook(Box::new(|_| {}));
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    while stdin.read_line(&mut line).map(|n| n > 0).unwrap_or(false) {
+        let case: Value = serde_json::from_str(&line).expect("case line");
+        line.clear();
+        let outcome = std::thread::Builder::new()
+            .stack_size(256 << 20)
+            .spawn(move || {
+                let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_case(&case)));
+                match r {
+                    Ok(o) => o,
+                    Err(panic) => {
+                        let msg = panic
+                            .downcast_ref::<String>()
+                            .cloned()
+                            .or_else(|| panic.downcast_ref::<&str>().map(|s| s.to_string()))
+                            .unwrap_or_else(|| "panic".into());
+                        Outcome { status: "PANIC", reason: String::new(), detail: msg, actual: String::new(), note: String::new() }
+                    }
+                }
+            })
+            .expect("start case thread")
+            .join()
+            .unwrap_or_else(|_| Outcome::error("case thread failed".into()));
+        println!("{}", outcome_to_json(&outcome));
+    }
 }
 
 fn main() {
+    if std::env::args().nth(1).as_deref() == Some("--worker") {
+        return worker_main();
+    }
     let opts = options();
     std::panic::set_hook(Box::new(|_| {}));
     let mut cases = load(&opts.cases, &opts.filters);
@@ -595,17 +695,20 @@ fn main() {
     let records: Mutex<Vec<Option<Record>>> = Mutex::new((0..total).map(|_| None).collect());
     std::thread::scope(|s| {
         for _ in 0..opts.jobs {
-            s.spawn(|| loop {
+            s.spawn(|| {
+                let mut worker = Worker::start();
+                loop {
                 let i = next.fetch_add(1, Ordering::Relaxed);
                 if i >= total {
                     break;
                 }
                 let case = cases[i].clone();
-                let (outcome, millis) = run_with_timeout(case.clone(), opts.timeout);
+                let (outcome, millis) = worker.run(&case, opts.timeout);
                 records.lock().unwrap()[i] = Some(Record { case, outcome, millis });
                 let d = done.fetch_add(1, Ordering::Relaxed) + 1;
                 if d % 5000 == 0 {
                     eprintln!("  {d}/{total} after {:.0} s", started.elapsed().as_secs_f64());
+                }
                 }
             });
         }
