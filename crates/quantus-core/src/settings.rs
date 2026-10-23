@@ -58,6 +58,8 @@ pub struct Settings {
     /// Whether a polynomial without a binomial form is written by completing the square.
     pub complete_square: bool,
     pub denominator_form: DenominatorForm,
+    /// Results with roots are written as `\sqrt{2}` rather than as a decimal.
+    pub exact_roots: bool,
     /// `a` and `y` are variables rather than the units annum and year.
     pub a_and_y_as_variables: bool,
     /// A run of letters like `ab` in `2ab` is the product `a \cdot b`.
@@ -74,6 +76,7 @@ impl Default for Settings {
             binomial_form: BinomialForm::Auto,
             complete_square: true,
             denominator_form: DenominatorForm::Auto,
+            exact_roots: false,
             a_and_y_as_variables: true,
             letter_products: true,
             extra_unit_letters: false,
@@ -133,6 +136,7 @@ mod tests {
                 "binomialForm": "auto",
                 "completeSquare": true,
                 "denominatorForm": "auto",
+                "exactRoots": false,
                 "aAndYAsVariables": true,
                 "letterProducts": true,
                 "extraUnitLetters": false

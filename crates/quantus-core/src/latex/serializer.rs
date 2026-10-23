@@ -61,6 +61,17 @@ pub fn quantity(value: &Decimal, unit: &Unit) -> String {
     format!("{number}\\,{}", unit_latex::format(unit))
 }
 
+/// A result already written in exact form, e.g. `2\sqrt{3}\,\mathrm{m}`; a sum is parenthesised.
+pub fn exact_quantity(exact: &str, unit: &Unit) -> String {
+    if unit.is_one() {
+        return exact.to_string();
+    }
+    if super::exact::is_sum(exact) {
+        return format!("\\left({exact}\\right)\\,{}", unit_latex::format(unit));
+    }
+    format!("{exact}\\,{}", unit_latex::format(unit))
+}
+
 /// A complex result, `3 + 4i` or `-2i`, with its unit after the parenthesised number.
 pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
     let magnitude = |value: &Decimal| match numbers::format(&Decimal::new(IBig::from(value.unscaled().clone().unsigned_abs()), value.scale())).as_str() {

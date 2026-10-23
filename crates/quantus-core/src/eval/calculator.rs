@@ -7,7 +7,7 @@
 
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
-use crate::latex::{parser, serializer, Formula, Node};
+use crate::latex::{exact, parser, serializer, Formula, Node};
 use crate::num::{Decimal, DEFAULT_PRECISION};
 use crate::algebra::pipeline::PipelineConfig;
 use crate::quantity::PhysicalQuantity;
@@ -286,7 +286,11 @@ impl LatexCalculator {
     fn present(&self, quantity: &PhysicalQuantity) -> Result<(Decimal, Option<Decimal>, String)> {
         match quantity.decimal(self.precision) {
             Ok(value) => {
-                let result = serializer::quantity(&value, &quantity.unit);
+                let exact = self.settings.exact_roots.then(|| exact::format(&quantity.value)).flatten();
+                let result = match exact {
+                    Some(exact) => serializer::exact_quantity(&exact, &quantity.unit),
+                    None => serializer::quantity(&value, &quantity.unit),
+                };
                 Ok((value, None, result))
             }
             Err(crate::QuantusError::NotReal(message)) if self.settings.mode == Mode::Imaginary => {
@@ -406,6 +410,38 @@ mod tests {
     fn a_definition_that_is_its_own_result_has_one_step() {
         let c = calc("m_1 = 2kg");
         assert_eq!(c.steps, [Step::new(StepKind::Result, "m_{1} = 2\\,\\mathrm{kg}")]);
+    }
+
+    fn exact(input: &str) -> String {
+        let settings = Settings { exact_roots: true, ..Settings::default() };
+        LatexCalculator::default().with_settings(settings).evaluate(input, &Variables::new()).unwrap().result
+    }
+
+    #[test]
+    fn roots_are_decimals_unless_exact_roots_is_on() {
+        assert_eq!(calc("\\sqrt{2}").result, "1{,}4142135623730950488016887242096980785696718753769");
+        assert_eq!(exact("\\sqrt{2}"), "\\sqrt{2}");
+        assert_eq!(exact("\\sqrt{12}"), "2\\sqrt{3}");
+        assert_eq!(exact("\\frac{\\sqrt{2}}{2}"), "\\frac{\\sqrt{2}}{2}");
+        assert_eq!(exact("1 + \\sqrt{2}"), "1 + \\sqrt{2}");
+    }
+
+    #[test]
+    fn exact_roots_leave_other_results_alone() {
+        assert_eq!(exact("\\frac{1}{4}"), "0{,}25");
+        assert_eq!(exact("\\sqrt{4}"), "2");
+        assert_eq!(exact("\\pi"), calc("\\pi").result);
+    }
+
+    #[test]
+    fn exact_roots_keep_the_unit() {
+        assert_eq!(exact("\\sqrt{2} \\cdot 3m"), "3\\sqrt{2}\\,\\mathrm{m}");
+        assert_eq!(exact("(1 + \\sqrt{2}) m"), "\\left(1 + \\sqrt{2}\\right)\\,\\mathrm{m}");
+    }
+
+    #[test]
+    fn exact_roots_apply_to_solutions() {
+        assert_eq!(exact("x^2 = 2"), "x = -\\sqrt{2} \\lor x = \\sqrt{2}");
     }
 
     #[test]

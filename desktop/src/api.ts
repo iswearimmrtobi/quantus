@@ -49,6 +49,7 @@ export interface Settings {
   binomialForm: BinomialForm;
   completeSquare: boolean;
   denominatorForm: DenominatorForm;
+  exactRoots: boolean;
   aAndYAsVariables: boolean;
   letterProducts: boolean;
   extraUnitLetters: boolean;

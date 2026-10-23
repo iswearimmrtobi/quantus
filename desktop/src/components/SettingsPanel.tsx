@@ -37,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   binomialForm: 'auto',
   completeSquare: true,
   denominatorForm: 'auto',
+  exactRoots: false,
   aAndYAsVariables: true,
   letterProducts: true,
   extraUnitLetters: false,
@@ -133,6 +134,16 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
           onChange={(v) => set('denominatorForm', v)}
         />
         <p className="setting-hint">Automatisch: faktorisiert, wenn er in mehrere Faktoren zerfällt.</p>
+      </section>
+
+      <section className="setting">
+        <h3>Wurzeln</h3>
+        <Toggle
+          checked={settings.exactRoots}
+          label="Exakt als Wurzel"
+          hint="√2 statt 1,414…; 2√3 statt 3,464…"
+          onChange={(v) => set('exactRoots', v)}
+        />
       </section>
 
       <section className="setting">
