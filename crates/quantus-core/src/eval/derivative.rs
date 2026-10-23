@@ -186,14 +186,52 @@ fn number(value: i64, position: usize) -> Node {
 }
 
 fn is_number(node: &Node, value: i64) -> bool {
-    matches!(node, Node::Number { value: v, .. } if v.to_rational() == dashu::rational::RBig::from(value))
+    literal(node).is_some_and(|v| v.to_rational() == dashu::rational::RBig::from(value))
 }
 
 fn is_zero(node: &Node) -> bool {
     is_number(node, 0)
 }
 
+/// A numeric literal (`3`, `-2{,}5`) as a decimal.
+fn literal(node: &Node) -> Option<Decimal> {
+    match node {
+        Node::Number { value, .. } => Some(value.clone()),
+        Node::Group { inner, .. } => literal(inner),
+        Node::Negation { operand, .. } => literal(operand).map(|d| Decimal::new(-d.unscaled().clone(), d.scale())),
+        _ => None,
+    }
+}
+
+/// Sums, differences and products of two decimals are decimals again, so they fold to a literal.
+/// Without this, nested derivatives build `x^((2-1)-1)`, which fails at `x = 0` as `0^0`.
+fn fold(a: &Node, b: &Node, op: Operator, position: usize) -> Option<Node> {
+    let (x, y) = (literal(a)?, literal(b)?);
+    let (rx, ry) = (x.to_rational(), y.to_rational());
+    let (value, scale) = match op {
+        Operator::Plus => (rx + ry, x.scale().max(y.scale())),
+        Operator::Minus => (rx - ry, x.scale().max(y.scale())),
+        _ => (rx * ry, x.scale() + y.scale()),
+    };
+    let scale = scale.max(0);
+    let scaled = value * dashu::rational::RBig::from(dashu::integer::IBig::from(10).pow(scale as usize));
+    let unscaled = scaled.numerator().clone();
+    let decimal = Decimal::new(unscaled, scale).normalized();
+    let node = if decimal.is_negative() {
+        Node::Negation {
+            operand: Box::new(Node::Number { value: Decimal::new(-decimal.unscaled().clone(), decimal.scale()), position }),
+            position,
+        }
+    } else {
+        Node::Number { value: decimal, position }
+    };
+    Some(node)
+}
+
 fn add(a: Node, b: Node, position: usize) -> Node {
+    if let Some(folded) = fold(&a, &b, Operator::Plus, position) {
+        return folded;
+    }
     match (is_zero(&a), is_zero(&b)) {
         (true, _) => b,
         (_, true) => a,
@@ -202,6 +240,9 @@ fn add(a: Node, b: Node, position: usize) -> Node {
 }
 
 fn subtract(a: Node, b: Node, position: usize) -> Node {
+    if let Some(folded) = fold(&a, &b, Operator::Minus, position) {
+        return folded;
+    }
     match (is_zero(&a), is_zero(&b)) {
         (_, true) => a,
         (true, _) => negate(b, position),
@@ -221,6 +262,9 @@ fn multiply(a: Node, b: Node, position: usize) -> Node {
     if is_zero(&a) || is_zero(&b) {
         return number(0, position);
     }
+    if let Some(folded) = fold(&a, &b, Operator::Times, position) {
+        return folded;
+    }
     if is_number(&a, 1) {
         return b;
     }
@@ -231,6 +275,12 @@ fn multiply(a: Node, b: Node, position: usize) -> Node {
 }
 
 fn power(base: Node, exponent: Node, position: usize) -> Node {
+    if is_zero(&exponent) {
+        return number(1, position);
+    }
+    if is_number(&exponent, 1) {
+        return base;
+    }
     Node::Power { base: Box::new(base), exponent: Box::new(exponent), position }
 }
 

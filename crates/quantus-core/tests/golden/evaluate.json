@@ -157,6 +157,9 @@
     {"name": "error: one-sided mismatch", "latex": "\\lim_{x \\to 0} \\frac{|x|}{x}", "errorContains": "does not exist"},
     {"name": "error: integral without differential", "latex": "\\int_0^1 x", "errorContains": "missing its differential"},
 
+    {"name": "second derivative at zero", "latex": "\\left.\\frac{d}{dx} \\frac{d}{dx} (-8x^{3} - 7x^{2} - 7x - 8)\\right|_{x=0}", "expect": {"value": "-14"}},
+    {"name": "fourth derivative of a cubic at zero", "latex": "\\left.\\frac{d}{dx} \\frac{d}{dx} \\frac{d}{dx} \\frac{d}{dx} (-30{,}25x^{3} - 9x^{2} + 101)\\right|_{x=0}", "expect": {"value": "0"}},
+    {"name": "third derivative with decimal coefficients", "latex": "\\left.\\frac{d}{dx} \\frac{d}{dx} \\frac{d}{dx} (2{,}5x^{4})\\right|_{x=0}", "expect": {"value": "0"}},
     {"name": "derivative of a power", "latex": "\\left.\\frac{d}{dx} x^3\\right|_{x=2}", "expect": {"value": "12"}},
     {"name": "derivative of a sum in brackets", "latex": "\\left.\\frac{d}{dx} (3x^2 + 2x)\\right|_{x=1}", "expect": {"value": "8"}},
     {"name": "derivative of sin", "latex": "\\left.\\frac{d}{dx} \\sin x\\right|_{x=0}", "expect": {"value": "1"}},
