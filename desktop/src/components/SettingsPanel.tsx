@@ -1,41 +1,34 @@
 import { useEffect, useState } from 'react';
 import type { BinomialForm, DenominatorForm, Language, Mode, Settings } from '../api';
-import { LANGUAGE_NAMES, useT } from '../i18n';
+import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
   value: T;
   label: string;
 }
 
-export const MODE_CHOICES: Choice<Mode>[] = [
-  { value: 'algebra', label: 'Algebra' },
-  { value: 'physics', label: 'Physik' },
-  { value: 'imaginary', label: 'Imaginär' },
-  { value: 'electronics', label: 'Elektronik' },
+export const modeChoices = (t: Translate): Choice<Mode>[] => [
+  { value: 'algebra', label: t('mode.algebra') },
+  { value: 'physics', label: t('mode.physics') },
+  { value: 'imaginary', label: t('mode.imaginary') },
+  { value: 'electronics', label: t('mode.electronics') },
 ];
-
-const MODE_HINTS: Record<Mode, string> = {
-  algebra: 'Buchstaben sind Variablen: keine Einheiten, keine Naturkonstanten, i ist eine Variable.',
-  physics: 'Einheiten und Naturkonstanten sind bekannt; i ist eine Variable.',
-  imaginary: 'i ist die imaginäre Einheit, Ergebnisse dürfen komplex sein.',
-  electronics: 'Schaltungsrechner: Eingaben werden wie in Physik gelesen.',
-};
 
 const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({
   value,
   label: LANGUAGE_NAMES[value],
 }));
 
-const BINOMIAL_CHOICES: Choice<BinomialForm>[] = [
-  { value: 'auto', label: 'Automatisch' },
-  { value: 'expanded', label: 'Ausmultipliziert' },
-  { value: 'binomial', label: 'Als Binom' },
+const binomialChoices = (t: Translate): Choice<BinomialForm>[] => [
+  { value: 'auto', label: t('choice.auto') },
+  { value: 'expanded', label: t('choice.expanded') },
+  { value: 'binomial', label: t('choice.binomial') },
 ];
 
-const DENOMINATOR_CHOICES: Choice<DenominatorForm>[] = [
-  { value: 'auto', label: 'Automatisch' },
-  { value: 'expanded', label: 'Ausmultipliziert' },
-  { value: 'factored', label: 'Faktorisiert' },
+const denominatorChoices = (t: Translate): Choice<DenominatorForm>[] => [
+  { value: 'auto', label: t('choice.auto') },
+  { value: 'expanded', label: t('choice.expanded') },
+  { value: 'factored', label: t('choice.factored') },
 ];
 
 /** So sieht die Engine ohne Einstellungsdatei aus. */
@@ -106,13 +99,13 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
       </section>
 
       <section className="setting">
-        <h3>Modus</h3>
-        <Segmented choices={MODE_CHOICES} value={settings.mode} onChange={(v) => set('mode', v)} />
-        <p className="setting-hint">{MODE_HINTS[settings.mode]}</p>
+        <h3>{t('settings.mode')}</h3>
+        <Segmented choices={modeChoices(t)} value={settings.mode} onChange={(v) => set('mode', v)} />
+        <p className="setting-hint">{t(`mode.${settings.mode}.hint`)}</p>
       </section>
 
       <section className="setting">
-        <h3>Genauigkeit</h3>
+        <h3>{t('settings.precision')}</h3>
         <div className="setting-precision">
           <input
             type="number"
@@ -123,62 +116,62 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
             onBlur={commitPrecision}
             onKeyDown={(event) => event.key === 'Enter' && commitPrecision()}
           />
-          <span className="setting-hint">signifikante Stellen</span>
+          <span className="setting-hint">{t('settings.digits')}</span>
         </div>
       </section>
 
       <section className="setting">
-        <h3>Binomische Formeln</h3>
-        <Segmented choices={BINOMIAL_CHOICES} value={settings.binomialForm} onChange={(v) => set('binomialForm', v)} />
+        <h3>{t('settings.binomial')}</h3>
+        <Segmented choices={binomialChoices(t)} value={settings.binomialForm} onChange={(v) => set('binomialForm', v)} />
         <p className="setting-hint">
-          Automatisch: als Binom, außer die Eingabe war schon eins — dann ausmultipliziert.
+          {t('settings.binomial.hint')}
         </p>
         <Toggle
           checked={settings.completeSquare}
-          label="Quadratische Ergänzung"
-          hint="x² + 8x + 11 wird zu (x + 4)² − 5"
+          label={t('settings.square')}
+          hint={t('settings.square.hint')}
           onChange={(v) => set('completeSquare', v)}
         />
       </section>
 
       <section className="setting">
-        <h3>Nenner</h3>
+        <h3>{t('settings.denominator')}</h3>
         <Segmented
-          choices={DENOMINATOR_CHOICES}
+          choices={denominatorChoices(t)}
           value={settings.denominatorForm}
           onChange={(v) => set('denominatorForm', v)}
         />
-        <p className="setting-hint">Automatisch: faktorisiert, wenn er in mehrere Faktoren zerfällt.</p>
+        <p className="setting-hint">{t('settings.denominator.hint')}</p>
       </section>
 
       <section className="setting">
-        <h3>Exakte Werte</h3>
+        <h3>{t('settings.exact')}</h3>
         <Toggle
           checked={settings.exactRoots}
-          label="Exakt als Wurzel"
-          hint="√2 statt 1,414… und π/2 statt 1,570…"
+          label={t('settings.roots')}
+          hint={t('settings.roots.hint')}
           onChange={(v) => set('exactRoots', v)}
         />
       </section>
 
       <section className="setting">
-        <h3>Eingabe</h3>
+        <h3>{t('settings.input')}</h3>
         <Toggle
           checked={settings.aAndYAsVariables}
-          label="a und y als Variablen"
-          hint="sonst die Einheiten Jahr (a, y)"
+          label={t('settings.ay')}
+          hint={t('settings.ay.hint')}
           onChange={(v) => set('aAndYAsVariables', v)}
         />
         <Toggle
           checked={settings.letterProducts}
-          label="Buchstabenfolgen als Produkt"
-          hint="2ab wird als 2 · a · b gelesen"
+          label={t('settings.products')}
+          hint={t('settings.products.hint')}
           onChange={(v) => set('letterProducts', v)}
         />
         <Toggle
           checked={settings.extraUnitLetters}
-          label="t, u und in als Einheiten"
-          hint="Tonne, atomare Masseneinheit und Zoll statt Variablen"
+          label={t('settings.letters')}
+          hint={t('settings.letters.hint')}
           onChange={(v) => set('extraUnitLetters', v)}
         />
       </section>
@@ -186,7 +179,7 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
       {props.error && <p className="setting-error">{props.error}</p>}
 
       <button className="setting-reset" onClick={() => onChange({ ...DEFAULT_SETTINGS, language: settings.language })}>
-        Standard wiederherstellen
+        {t('settings.reset')}
       </button>
     </div>
   );

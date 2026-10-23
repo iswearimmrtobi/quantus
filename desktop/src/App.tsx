@@ -9,7 +9,7 @@ import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
 import { I18nContext, makeTranslate } from './i18n';
 import type { TextKey } from './i18n/en';
-import { DEFAULT_SETTINGS, MODE_CHOICES, Segmented, SettingsPanel } from './components/SettingsPanel';
+import { DEFAULT_SETTINGS, modeChoices, Segmented, SettingsPanel } from './components/SettingsPanel';
 
 interface HistoryEntry {
   id: number;
@@ -272,7 +272,7 @@ export function App() {
         <div className="topbar-right">
           <div className="mode-switch">
             <Segmented
-              choices={MODE_CHOICES}
+              choices={modeChoices(t)}
               value={settings.mode}
               onChange={(mode) => void changeSettings({ ...settings, mode })}
             />
