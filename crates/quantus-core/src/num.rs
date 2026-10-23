@@ -396,6 +396,23 @@ impl Value {
     }
 
     pub fn mul(&self, other: &Value) -> Value {
+        // A sum with an imaginary part is multiplied out, so that `(3+4i)(1-2i)` is `11-2i` and
+        // `i·i` finds its way to -1 term by term.
+        if matches!(self, Value::Add(_)) && self.contains_imaginary()
+            || matches!(other, Value::Add(_)) && other.contains_imaginary()
+        {
+            let terms = |v: &Value| match v {
+                Value::Add(terms) => terms.clone(),
+                other => vec![other.clone()],
+            };
+            let mut total = Value::zero();
+            for a in terms(self) {
+                for b in terms(other) {
+                    total = total.add(&a.mul(&b));
+                }
+            }
+            return total;
+        }
         let mut constant = RBig::ONE;
         // Factors with the same base are merged: √3·√3 is 3, √3/√3 is 1.
         let mut powers: Vec<(Value, Value)> = Vec::new();
@@ -474,7 +491,21 @@ impl Value {
         if exponent.is_one() {
             return Ok(self.clone());
         }
+        if let Some(n) = exponent.to_i64() {
+            if self.contains_imaginary() {
+                if let Some(power) = self.imaginary_integer_power(n)? {
+                    return Ok(power);
+                }
+            }
+        }
         if let (Value::Rat(base), Value::Rat(exp)) = (self, exponent) {
+            // The principal square root of a negative number: (-a)^(p/2) = i^p · a^(p/2).
+            if base.numerator().sign() == Sign::Negative && *exp.denominator() == UBig::from(2u8) {
+                if let Ok(p) = i64::try_from(exp.numerator().clone()) {
+                    let root = Value::Rat(-base.clone()).pow(exponent)?;
+                    return Ok(Value::I.pow(&Value::int(p))?.mul(&root));
+                }
+            }
             if let Some(exact) = rational_power(base, exp)? {
                 return Ok(Value::Rat(exact));
             }
@@ -762,6 +793,73 @@ impl Value {
         })
     }
 
+    /// `self^n` for a whole `n` when `self` is `a + b·i` with real `a` and `b`: powers of `i`
+    /// cycle through 1, i, -1, -i, and other bases are multiplied out (square and multiply, with
+    /// the reciprocal `conj / |.|²` for a negative `n`). `None` leaves the power symbolic.
+    fn imaginary_integer_power(&self, n: i64) -> Result<Option<Value>> {
+        if *self == Value::I {
+            return Ok(Some(match n.rem_euclid(4) {
+                0 => Value::one(),
+                1 => Value::I,
+                2 => Value::int(-1),
+                _ => Value::int(-1).mul(&Value::I),
+            }));
+        }
+        if n.unsigned_abs() > u64::from(MAX_EXACT_EXPONENT) {
+            return Ok(None);
+        }
+        let Some((re, im)) = self.re_im() else { return Ok(None) };
+        let mut base = if n < 0 {
+            let norm = re.mul(&re).add(&im.mul(&im));
+            let conjugate = re.sub(&im.mul(&Value::I));
+            conjugate.mul(&norm.pow(&Value::int(-1))?)
+        } else {
+            self.clone()
+        };
+        if n < 0 && re.is_zero() && im.is_zero() {
+            return Err(QuantusError::other("Division by zero."));
+        }
+        let mut result = Value::one();
+        let mut remaining = n.unsigned_abs();
+        while remaining > 0 {
+            if remaining & 1 == 1 {
+                result = result.mul(&base);
+            }
+            remaining >>= 1;
+            if remaining > 0 {
+                base = base.mul(&base);
+            }
+        }
+        Ok(Some(result))
+    }
+
+    /// The real and imaginary part of a value of the form `a + b·i`, where `a` and `b` are real.
+    /// `None` when `i` hides inside a power or a function (`√i`).
+    pub fn re_im(&self) -> Option<(Value, Value)> {
+        let part = |term: &Value| -> Option<(Value, Value)> {
+            match term {
+                Value::I => Some((Value::zero(), Value::one())),
+                Value::Mul(factors) if factors.contains(&Value::I) => {
+                    let rest: Vec<Value> = factors.iter().filter(|f| **f != Value::I).cloned().collect();
+                    let rest = rest.iter().fold(Value::one(), |product, f| product.mul(f));
+                    (!rest.contains_imaginary()).then(|| (Value::zero(), rest))
+                }
+                other => (!other.contains_imaginary()).then(|| (other.clone(), Value::zero())),
+            }
+        };
+        let terms = match self {
+            Value::Add(terms) => terms.clone(),
+            other => vec![other.clone()],
+        };
+        let (mut re, mut im) = (Value::zero(), Value::zero());
+        for term in &terms {
+            let (r, i) = part(term)?;
+            re = re.add(&r);
+            im = im.add(&i);
+        }
+        Some((re, im))
+    }
+
     fn contains_imaginary(&self) -> bool {
         match self {
             Value::I => true,
@@ -1044,6 +1142,35 @@ mod tests {
         assert!(matches!(err, QuantusError::NotReal(_)));
         let err = Value::int(-4).pow(&Value::ratio(1, 2)).unwrap().decimal(10).unwrap_err();
         assert!(matches!(err, QuantusError::NotReal(_)));
+    }
+
+    #[test]
+    fn square_roots_of_negative_numbers_are_imaginary() {
+        let root = |n: i64| Value::int(n).pow(&Value::ratio(1, 2)).unwrap();
+        assert_eq!(root(-1), Value::I);
+        assert_eq!(root(-4), Value::int(2).mul(&Value::I));
+        assert_eq!(Value::int(-4).pow(&Value::ratio(3, 2)).unwrap(), Value::int(-8).mul(&Value::I));
+        assert_eq!(Value::int(-4).pow(&Value::ratio(-1, 2)).unwrap(), Value::ratio(-1, 2).mul(&Value::I));
+    }
+
+    #[test]
+    fn powers_of_i_cycle() {
+        let power = |n: i64| Value::I.pow(&Value::int(n)).unwrap();
+        assert_eq!(power(2), Value::int(-1));
+        assert_eq!(power(7), Value::int(-1).mul(&Value::I));
+        assert_eq!(power(-1), Value::int(-1).mul(&Value::I));
+        assert_eq!(power(8), Value::one());
+        assert_eq!(Value::I.mul(&Value::I), Value::int(-1));
+    }
+
+    #[test]
+    fn complex_arithmetic_is_multiplied_out() {
+        let z = |a: i64, b: i64| Value::int(a).add(&Value::int(b).mul(&Value::I));
+        assert_eq!(z(3, 4).mul(&z(1, -2)), z(11, -2));
+        assert_eq!(z(3, 4).pow(&Value::int(2)).unwrap(), z(-7, 24));
+        assert_eq!(z(3, 4).div(&z(1, -2)).unwrap(), Value::ratio(-1, 1).add(&Value::int(2).mul(&Value::I)));
+        assert_eq!(z(1, 1).pow(&Value::int(-2)).unwrap(), Value::ratio(-1, 2).mul(&Value::I));
+        assert!(z(0, 0).pow(&Value::int(-1)).is_err());
     }
 
     #[test]
