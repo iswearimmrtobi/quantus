@@ -152,7 +152,7 @@ impl<'a> Evaluator<'a> {
         if !quantity.is_dimensionless() {
             return Err(QuantusError::other(format!("{what} must be a plain number, not a quantity with a unit.")));
         }
-        Ok(quantity.value)
+        quantity.dimensionless_value()
     }
 
     fn whole_number(&self, node: &Node, command: &str) -> Result<i64> {
@@ -332,11 +332,11 @@ impl<'a> Evaluator<'a> {
                 "The degree of a root must be a plain number, not a quantity with a unit.",
             ));
         }
-        match quantity.value.to_i64() {
+        let value = quantity.dimensionless_value()?;
+        match value.to_i64() {
             Some(n) if n > 0 && n <= i64::from(u32::MAX) => Ok(n as u32),
             _ => Err(QuantusError::other(format!(
-                "The degree of a root must be a positive whole number, but was '{}'.",
-                quantity.value
+                "The degree of a root must be a positive whole number, but was '{value}'."
             ))),
         }
     }

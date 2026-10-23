@@ -90,6 +90,8 @@ impl PhysicalQuantity {
                 registry::describe(&exponent.unit)
             )));
         }
+        // `wk/d` is dimensionless but not 1: the exponent's value is taken in the unit one.
+        let exponent = PhysicalQuantity::dimensionless(exponent.dimensionless_value()?);
         let powered = self.value.pow(&exponent.value)?;
         if self.is_dimensionless() {
             return Ok(PhysicalQuantity::dimensionless(powered));
@@ -111,6 +113,14 @@ impl PhysicalQuantity {
         let unit = self.unit.pow(numerator);
         let unit = if denominator == 1 { unit } else { unit.root(denominator)? };
         Ok(PhysicalQuantity::new(powered, unit))
+    }
+
+    /// The value of a dimensionless quantity in the unit one: `4 wk / 2 d` is 14, not 2.
+    pub fn dimensionless_value(&self) -> Result<Value> {
+        if self.unit.is_one() {
+            return Ok(self.value.clone());
+        }
+        Ok(self.to(&Unit::ONE)?.value)
     }
 
     /// `n`-th root of both value and unit (`m²` to `m`).
