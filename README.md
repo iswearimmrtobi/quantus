@@ -57,6 +57,7 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 ### 🧮 Calculation
 - **Exact numbers** with arbitrary precision (`dashu`, `astro-float`)
 - **Units and dimensions** are checked and converted, and results are named (`N`, `J`, …)
+- **Three modes**, switched in the top bar: *Algebra* (letters are variables, no units or constants), *Physik* (units and constants, the default) and *Imaginär* (`i` is the imaginary unit and results may be complex, shown as `a + bi`)
 - **Session variables**: an indexed label such as `m_1 = 2kg` defines a variable for the session
 - Parser errors report the **position** in the input
 

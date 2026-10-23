@@ -42,6 +42,37 @@ re-run as a set. What has been checked is the feature each one was waiting for.
   derivatives other than by nesting, `\arcsin` and friends, `\sin^{-1}`, matrix results
   (only `\det`), equations with several unknowns.
 
+## Modes and complex numbers
+
+The mode is a setting (`mode`: `algebra`, `physics`, `imaginary`; physics is the default) and is
+switched in the top bar.
+
+| | algebra | physics | imaginary |
+|---|---|---|---|
+| Units (outside `\mathrm{}`) | no, every letter is a variable | yes | yes |
+| Physical constants (`c_0`, `h_P`, …) | no | yes | yes |
+| `i` | a variable | a variable | the imaginary unit |
+| Complex results | error | error | shown as `a + bi` |
+
+In imaginary mode:
+
+- `i^n`, `\sqrt{-a}` (principal root `i\sqrt{a}`), sums, products, quotients and integer powers
+  of `a + bi` are exact. `(3+4i)(1-2i)` is `11 - 2i`.
+- `e^{a+bi}`, `z^w` (as `exp(w ln z)`, principal branch), `\ln` and `\log` of a negative or
+  complex number, `\sin`, `\cos`, `\tan`, `\sinh`, … of a complex argument, `\exp`.
+- `|z|` is the modulus; `\Re`, `\Im`, `\arg` and `\overline` give the real part, the imaginary
+  part, the argument in (-π, π] and the conjugate.
+- Quadratic equations with a negative discriminant have the roots `(-b ± i√-D) / 2a`.
+- A variable can hold a complex number (`z_1 = 3+4i`).
+- Both parts of a result are given to the calculator's precision; the API reports the real part
+  as `value` and the imaginary part as `imaginary`.
+
+Not covered: `\arcsin`, `\arccos` and `\arctan` of a complex number, equations of degree above
+two with complex roots, derivatives and integrals of complex functions, and complex units
+(`2i\,\mathrm{m}` works, `\mathrm{m}` is not a complex quantity). Odd roots of negative
+numbers keep their real value: `\sqrt[3]{-8}` is -2. The algebraic simplifier leaves `i` alone,
+so `(x+i)(x-i)` with a free `x` is shown as typed.
+
 ## Inputs that already worked
 
 M1, M2, P1, P4, P9–P15, U1, U2, U4, U6, U9–U19 (arithmetic, powers, roots, fractions, units,
