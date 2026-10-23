@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type Calculation, type Settings, type StepKind, type Variable } from './api';
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
+import { CircuitEditor } from './components/CircuitEditor';
+import type { EditorElement } from './circuit';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
 import { DEFAULT_SETTINGS, MODE_CHOICES, Segmented, SettingsPanel } from './components/SettingsPanel';
@@ -39,6 +41,8 @@ export function App() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   /** Quelltext statt Formeleditor — über `\` oder Strg+L (F2). */
   const [latexMode, setLatexMode] = useState(false);
+  /** The schematic lives here so it survives a switch to another mode and back. */
+  const [circuit, setCircuit] = useState<EditorElement[]>([]);
 
   const field = useRef<MathFieldHandle>(null);
   const latexField = useRef<LatexInputHandle>(null);
@@ -239,6 +243,11 @@ export function App() {
         </div>
       </header>
 
+      {settings.mode === 'electronics' ? (
+        <main className="workspace circuit-workspace">
+          <CircuitEditor elements={circuit} onChange={setCircuit} />
+        </main>
+      ) : (
       <main className="workspace">
         <div className="calc-panel">
           <div className={latexMode ? 'input-row latex' : 'input-row'}>
@@ -386,6 +395,7 @@ export function App() {
           )}
         </div>
       </main>
+      )}
 
       <div className="side-rail">
         <button

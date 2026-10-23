@@ -1,0 +1,225 @@
+import type { CircuitElement, CircuitRequest, ElementKind } from './api';
+
+/**
+ * The schematic as the editor keeps it, and the pure functions that turn it into a
+ * `CircuitRequest`. Nodes are never typed in: two terminals are connected when they sit on the
+ * same grid point, so the numbers the solver needs come out of the geometry.
+ */
+
+export const GRID = 20;
+
+/** `ground` is the reference potential (node 0); the solver never sees it as an element. */
+export type EditorKind = ElementKind | 'ground';
+
+/**
+ * `a`, `b` and `wiper` are filled in by [`toRequest`]; what the editor stores is the position.
+ * A wire runs from (x, y) to (x2, y2); every other part sits at (x, y), turned by
+ * `rotation` quarter turns.
+ */
+export interface EditorElement extends Omit<CircuitElement, 'kind' | 'a' | 'b'> {
+  kind: EditorKind;
+  x: number;
+  y: number;
+  rotation: number;
+  x2?: number;
+  y2?: number;
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export type Terminal = 'a' | 'b' | 'wiper' | 'ground';
+
+const PREFIX: Record<EditorKind, string> = {
+  resistor: 'R',
+  wire: 'W',
+  voltageSource: 'V',
+  currentSource: 'I',
+  potentiometer: 'P',
+  powerLoad: 'L',
+  ground: 'GND',
+};
+
+export const KIND_LABELS: Record<EditorKind, string> = {
+  resistor: 'Widerstand',
+  wire: 'Leitung',
+  voltageSource: 'Spannungsquelle',
+  currentSource: 'Stromquelle',
+  potentiometer: 'Potentiometer',
+  powerLoad: 'Leistungslast',
+  ground: 'Masse',
+};
+
+/** Half the length of a part along its axis, so its terminals are four grid steps apart. */
+export const HALF = 2 * GRID;
+
+const LOCAL_TERMINALS: Record<Exclude<EditorKind, 'wire'>, Partial<Record<Terminal, Point>>> = {
+  resistor: { a: { x: -HALF, y: 0 }, b: { x: HALF, y: 0 } },
+  voltageSource: { a: { x: -HALF, y: 0 }, b: { x: HALF, y: 0 } },
+  currentSource: { a: { x: -HALF, y: 0 }, b: { x: HALF, y: 0 } },
+  powerLoad: { a: { x: -HALF, y: 0 }, b: { x: HALF, y: 0 } },
+  potentiometer: { a: { x: -HALF, y: 0 }, b: { x: HALF, y: 0 }, wiper: { x: 0, y: -HALF } },
+  ground: { ground: { x: 0, y: 0 } },
+};
+
+export function snap(value: number): number {
+  return Math.round(value / GRID) * GRID;
+}
+
+export function rotate(point: Point, quarterTurns: number): Point {
+  const turns = ((quarterTurns % 4) + 4) % 4;
+  switch (turns) {
+    case 1:
+      return { x: -point.y, y: point.x };
+    case 2:
+      return { x: -point.x, y: -point.y };
+    case 3:
+      return { x: point.y, y: -point.x };
+    default:
+      return point;
+  }
+}
+
+/** The terminals of an element at their places on the canvas. */
+export function terminals(element: EditorElement): Partial<Record<Terminal, Point>> {
+  if (element.kind === 'wire') {
+    return {
+      a: { x: element.x, y: element.y },
+      b: { x: element.x2 ?? element.x, y: element.y2 ?? element.y },
+    };
+  }
+  const placed: Partial<Record<Terminal, Point>> = {};
+  for (const [name, local] of Object.entries(LOCAL_TERMINALS[element.kind])) {
+    const turned = rotate(local, element.rotation);
+    placed[name as Terminal] = { x: element.x + turned.x, y: element.y + turned.y };
+  }
+  return placed;
+}
+
+export const pointKey = (point: Point) => `${point.x},${point.y}`;
+
+export interface Nodes {
+  /** Node number by grid point; 0 is the ground. */
+  byPoint: Map<string, number>;
+  /** One representative point per node, where its voltage is shown. */
+  pointOf: Map<number, Point>;
+  /** Whether the node was chosen by a ground symbol rather than picked for lack of one. */
+  grounded: boolean;
+}
+
+/**
+ * Numbers the points where terminals sit. Ground is the point of a ground symbol; without one it
+ * is the negative terminal of the first voltage source, so a drawn source-and-load circuit
+ * works without ceremony.
+ */
+export function numberNodes(elements: EditorElement[]): Nodes {
+  const points = new Map<string, Point>();
+  let ground: string | null = null;
+  for (const element of elements) {
+    for (const [name, point] of Object.entries(terminals(element))) {
+      const key = pointKey(point);
+      if (!points.has(key)) points.set(key, point);
+      if (element.kind === 'ground' && name === 'ground' && ground === null) ground = key;
+    }
+  }
+  const grounded = ground !== null;
+  if (ground === null) {
+    const source = elements.find((e) => e.kind === 'voltageSource');
+    if (source) ground = pointKey(terminals(source).b!);
+  }
+
+  const byPoint = new Map<string, number>();
+  const pointOf = new Map<number, Point>();
+  if (ground !== null) {
+    byPoint.set(ground, 0);
+    pointOf.set(0, points.get(ground)!);
+  }
+  let next = 1;
+  for (const [key, point] of points) {
+    if (byPoint.has(key)) continue;
+    byPoint.set(key, next);
+    pointOf.set(next, point);
+    next += 1;
+  }
+  return { byPoint, pointOf, grounded };
+}
+
+/** The editor-only fields never go to the solver. */
+const EDITOR_FIELDS = ['kind', 'x', 'y', 'rotation', 'x2', 'y2'] as const;
+
+export function toRequest(elements: EditorElement[], nodes: Nodes, precision?: number | null): CircuitRequest {
+  const node = (point: Point | undefined) => (point ? (nodes.byPoint.get(pointKey(point)) ?? 0) : 0);
+  const list: CircuitElement[] = [];
+  for (const element of elements) {
+    if (element.kind === 'ground') continue;
+    const places = terminals(element);
+    const parameters: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(element)) {
+      if ((EDITOR_FIELDS as readonly string[]).includes(key)) continue;
+      if (typeof value === 'string' && value.trim() === '') continue;
+      parameters[key] = value;
+    }
+    const entry = { ...parameters, kind: element.kind, a: node(places.a), b: node(places.b) } as CircuitElement;
+    if (places.wiper) entry.wiper = node(places.wiper);
+    list.push(entry);
+  }
+  const ids = [...nodes.pointOf.keys()].sort((p, q) => p - q);
+  return { nodes: ids.length ? ids : [0], elements: list, precision: precision ?? null };
+}
+
+/** The next unused ID of a kind: R1, R2, … */
+export function freshId(elements: EditorElement[], kind: EditorKind): string {
+  const taken = new Set(elements.map((e) => e.id));
+  for (let n = 1; ; n += 1) {
+    const id = `${PREFIX[kind]}${n}`;
+    if (!taken.has(id)) return id;
+  }
+}
+
+export function newElement(elements: EditorElement[], kind: EditorKind, at: Point): EditorElement {
+  const base = { id: freshId(elements, kind), kind, x: snap(at.x), y: snap(at.y), rotation: 0 };
+  return kind === 'wire' ? { ...base, x2: snap(at.x) + 2 * HALF, y2: snap(at.y) } : base;
+}
+
+/** The text fields the inspector offers per kind. */
+export interface Field {
+  key: keyof CircuitElement;
+  label: string;
+  placeholder: string;
+}
+
+export const FIELDS: Record<EditorKind, Field[]> = {
+  resistor: [{ key: 'r', label: 'Widerstand', placeholder: '10\\Omega' }],
+  wire: [
+    { key: 'length', label: 'Länge', placeholder: '100m' },
+    { key: 'area', label: 'Querschnitt', placeholder: '2mm^2' },
+    { key: 'temp', label: 'Temperatur', placeholder: '20°C' },
+    { key: 'rOverride', label: 'Widerstand (fest)', placeholder: '0{,}1\\Omega' },
+  ],
+  voltageSource: [
+    { key: 'u', label: 'Spannung', placeholder: '230V' },
+    { key: 'internalResistance', label: 'Innenwiderstand', placeholder: '0{,}5\\Omega' },
+  ],
+  currentSource: [
+    { key: 'i', label: 'Strom', placeholder: '2A' },
+    { key: 'internalConductance', label: 'Innenleitwert', placeholder: '1mS' },
+  ],
+  potentiometer: [
+    { key: 'rTotal', label: 'Gesamtwiderstand', placeholder: '10k\\Omega' },
+    { key: 'position', label: 'Stellung (0 bis 1)', placeholder: '0{,}25' },
+  ],
+  powerLoad: [{ key: 'p', label: 'Leistung', placeholder: '500W' }],
+  ground: [],
+};
+
+export const MATERIALS = [
+  { id: 'copper', label: 'Kupfer' },
+  { id: 'aluminium', label: 'Aluminium' },
+  { id: 'silver', label: 'Silber' },
+  { id: 'gold', label: 'Gold' },
+  { id: 'iron', label: 'Eisen' },
+  { id: 'constantan', label: 'Konstantan' },
+  { id: 'brass', label: 'Messing' },
+];

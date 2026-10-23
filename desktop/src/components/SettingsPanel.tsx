@@ -10,6 +10,7 @@ export const MODE_CHOICES: Choice<Mode>[] = [
   { value: 'algebra', label: 'Algebra' },
   { value: 'physics', label: 'Physik' },
   { value: 'imaginary', label: 'Imaginär' },
+  { value: 'electronics', label: 'Elektronik' },
 ];
 
 const MODE_HINTS: Record<Mode, string> = {

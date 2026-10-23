@@ -859,3 +859,233 @@ code {
   flex: none;
   padding: 3px 10px;
 }
+
+/* ---------- Electronics: the schematic editor ---------- */
+
+.workspace.circuit-workspace {
+  display: block;
+  overflow: hidden;
+}
+
+.circuit {
+  display: grid;
+  grid-template-columns: 170px 1fr 250px;
+  height: 100%;
+}
+
+.circuit-palette,
+.circuit-inspector {
+  padding: 14px 12px;
+  overflow-y: auto;
+  background: var(--surface);
+}
+.circuit-palette {
+  border-right: 1px solid var(--hairline);
+}
+.circuit-inspector {
+  border-left: 1px solid var(--hairline);
+}
+
+.palette-title {
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px;
+  font-size: 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+.palette-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--hairline-strong);
+}
+.palette-item svg {
+  flex: none;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+}
+
+.palette-hint {
+  margin: 14px 2px 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.circuit-stage {
+  position: relative;
+  min-width: 0;
+}
+
+.circuit-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+.grid-dot {
+  fill: var(--hairline-strong);
+}
+
+.part .symbol,
+.part .wire {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.part.selected .symbol,
+.part.selected .wire {
+  stroke: var(--cyan);
+}
+.part .hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: move;
+}
+.part .terminal,
+.part .end {
+  fill: var(--bg);
+  stroke: var(--cyan);
+  stroke-width: 1.5;
+  cursor: crosshair;
+}
+.part .terminal:hover,
+.part .end:hover {
+  fill: var(--cyan);
+}
+.wire-ghost {
+  stroke: var(--cyan);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
+.part-id {
+  fill: var(--amber);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.value-box {
+  overflow: visible;
+}
+.canvas-value {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--text);
+}
+.canvas-value.small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.value-label {
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+.value-unknown {
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+.value-relative {
+  color: var(--amber);
+}
+
+.circuit-note {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.circuit-note.error {
+  color: var(--danger);
+  border-color: var(--amber-dim);
+  border-left: 2px solid var(--danger);
+}
+
+.inspector-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.inspector-id {
+  color: var(--amber);
+  font-family: var(--mono);
+}
+.inspector-kind {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.inspector-delete {
+  color: var(--text-faint);
+}
+.inspector-delete:hover {
+  color: var(--danger);
+}
+
+.field {
+  display: block;
+  margin-bottom: 10px;
+}
+.field span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.field input,
+.field select {
+  width: 100%;
+  padding: 5px 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+
+.inspector-results {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+.result-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.result-line-label {
+  color: var(--text-muted);
+}
+.inspector-note {
+  margin-top: 6px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
