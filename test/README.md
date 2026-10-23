@@ -47,7 +47,7 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
   one-sided limits, `\infty`, `\arcsin`, `\log_b`, named constants like `c`, and units like `eV` or
   `atm`. These cases make up about 3% of the set. They count like any other case, but the summary
   reports them separately.
-- `settings` (optional) overrides `Settings` fields (`a_and_y_as_variables`, `letter_products`).
+- `settings` (optional) overrides `Settings` fields (`a_and_y_as_variables`, `letter_products`, `extra_unit_letters`, and `mode`: `algebra`, `physics` (the default) or `imaginary`).
 - Values are exact rationals `p/q` or decimal strings. `rel_tol` is relative. If the expected value
   is 0 the comparison is absolute, and with the exact tolerance `1e-45` it must be exactly 0.
 

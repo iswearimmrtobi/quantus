@@ -37,7 +37,7 @@ use quantus_core::algebra::verify::eval_rational;
 use quantus_core::eval::{Evaluator, LatexCalculator, Variables};
 use quantus_core::latex::{parser, Node};
 use quantus_core::num::Decimal;
-use quantus_core::settings::Settings;
+use quantus_core::settings::{Mode, Settings};
 use quantus_core::units::BaseDim;
 use quantus_core::PhysicalQuantity;
 
@@ -206,6 +206,14 @@ fn settings_of(case: &Value) -> Settings {
         }
         if let Some(b) = m.get("extra_unit_letters").and_then(Value::as_bool) {
             s.extra_unit_letters = b;
+        }
+        if let Some(mode) = m.get("mode").and_then(Value::as_str) {
+            s.mode = match mode {
+                "algebra" => Mode::Algebra,
+                "physics" => Mode::Physics,
+                "imaginary" => Mode::Imaginary,
+                other => panic!("unknown mode {other:?}"),
+            };
         }
     }
     s
