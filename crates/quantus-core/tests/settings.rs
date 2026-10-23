@@ -4,7 +4,7 @@ use quantus_core::latex::parser::{parse, parse_with, ParseOptions};
 use quantus_core::latex::Node;
 
 fn options(a_and_y_as_variables: bool, letter_products: bool) -> ParseOptions {
-    ParseOptions { a_and_y_as_variables, letter_products }
+    ParseOptions { a_and_y_as_variables, letter_products, extra_unit_letters: false }
 }
 
 #[test]
@@ -14,6 +14,23 @@ fn a_and_y_are_variables_by_default_and_units_when_switched_off() {
     let off = options(false, true);
     assert!(matches!(parse_with("a", &off).unwrap().expression, Node::Unit { .. }));
     assert!(matches!(parse_with("y", &off).unwrap().expression, Node::Unit { .. }));
+}
+
+#[test]
+fn t_u_and_in_are_variables_by_default_and_units_when_switched_on() {
+    for symbol in ["t", "u"] {
+        assert!(matches!(parse(symbol).unwrap().expression, Node::Variable { .. }), "{symbol}");
+    }
+    let on = ParseOptions { extra_unit_letters: true, ..ParseOptions::default() };
+    for symbol in ["t", "u", "in"] {
+        assert!(matches!(parse_with(symbol, &on).unwrap().expression, Node::Unit { .. }), "{symbol}");
+    }
+    // Explicit unit markup is a unit either way.
+    let marked = parse(r"\mathrm{t}").unwrap().expression;
+    let marked = if let Node::Group { inner, .. } = marked { *inner } else { marked };
+    assert!(matches!(marked, Node::Unit { .. }), "{marked:?}");
+    // A product of letters keeps working: 3tx is 3 · t · x.
+    assert!(parse("3tx").is_ok());
 }
 
 #[test]

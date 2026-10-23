@@ -26,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   denominatorForm: 'auto',
   aAndYAsVariables: true,
   letterProducts: true,
+  extraUnitLetters: false,
 };
 
 function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
@@ -128,6 +129,12 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
           label="Buchstabenfolgen als Produkt"
           hint="2ab wird als 2 · a · b gelesen"
           onChange={(v) => set('letterProducts', v)}
+        />
+        <Toggle
+          checked={settings.extraUnitLetters}
+          label="t, u und in als Einheiten"
+          hint="Tonne, atomare Masseneinheit und Zoll statt Variablen"
+          onChange={(v) => set('extraUnitLetters', v)}
         />
       </section>
 

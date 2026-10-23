@@ -1,8 +1,9 @@
 //! Atoms: the units a symbol can name, with or without a prefix.
 //!
 //! The set is what Indriya's `SimpleUnitFormat` registers and `UnitLookup` can reach: the seven
-//! base units, the named SI units, gram, litre, degree celsius and the common time units.
-//! Everything else is a product of these.
+//! base units, the named SI units, gram, litre, degree celsius and the common time units; plus the
+//! common units outside the SI (electronvolt, bar, calorie, watt hour, …). Everything else is a
+//! product of these.
 
 use std::sync::OnceLock;
 
@@ -56,9 +57,26 @@ pub enum Kind {
     Week,
     Year,
     Month,
+    // common units outside the SI, by their exact definitions (CODATA 2018 for eV and Da)
+    Electronvolt,
+    Atmosphere,
+    Bar,
+    Torr,
+    Calorie,
+    WattHour,
+    Hectare,
+    Angstrom,
+    MilePerHour,
+    LightYear,
+    AstronomicalUnit,
+    Dalton,
+    Percent,
+    // read as units only with `extra_unit_letters`, since the letters are common variables
+    Tonne,
+    Inch,
 }
 
-const KIND_COUNT: usize = Kind::Month as usize + 1;
+const KIND_COUNT: usize = Kind::Inch as usize + 1;
 
 /// How a kind relates to the rest.
 enum Origin {
@@ -108,6 +126,21 @@ impl Kind {
             Kind::Week => "wk",
             Kind::Year => "yr",
             Kind::Month => "mo",
+            Kind::Electronvolt => "eV",
+            Kind::Atmosphere => "atm",
+            Kind::Bar => "bar",
+            Kind::Torr => "Torr",
+            Kind::Calorie => "cal",
+            Kind::WattHour => "Wh",
+            Kind::Hectare => "ha",
+            Kind::Angstrom => "\u{c5}",
+            Kind::MilePerHour => "mph",
+            Kind::LightYear => "ly",
+            Kind::AstronomicalUnit => "AU",
+            Kind::Dalton => "Da",
+            Kind::Percent => "%",
+            Kind::Tonne => "t",
+            Kind::Inch => "in",
         }
     }
 
@@ -151,6 +184,13 @@ impl Kind {
             Kind::Litre => Origin::Of(m().pow(3)),
             Kind::Celsius => Origin::Of(Kind::Kelvin.unit()),
             Kind::Minute | Kind::Hour | Kind::Day | Kind::Week | Kind::Year | Kind::Month => Origin::Of(s()),
+            Kind::Electronvolt | Kind::Calorie | Kind::WattHour => Origin::Of(Kind::Joule.unit()),
+            Kind::Atmosphere | Kind::Bar | Kind::Torr => Origin::Of(Kind::Pascal.unit()),
+            Kind::Hectare => Origin::Of(m().pow(2)),
+            Kind::Angstrom | Kind::LightYear | Kind::AstronomicalUnit | Kind::Inch => Origin::Of(m()),
+            Kind::MilePerHour => Origin::Of(m().divide(&s())),
+            Kind::Dalton | Kind::Tonne => Origin::Of(Kind::Kilogram.unit()),
+            Kind::Percent => Origin::Of(one),
         }
     }
 
@@ -175,10 +215,32 @@ impl Kind {
             // 365.2425 days, the Gregorian year; a month is a twelfth of it.
             Kind::Year => (rat(31_556_952, 1), RBig::ZERO),
             Kind::Month => (rat(2_629_746, 1), RBig::ZERO),
+            Kind::Electronvolt => (decimal("1.602176634e-19"), RBig::ZERO),
+            Kind::Atmosphere => (rat(101_325, 1), RBig::ZERO),
+            Kind::Bar => (rat(100_000, 1), RBig::ZERO),
+            // 1 Torr is 1/760 of a standard atmosphere.
+            Kind::Torr => (rat(101_325, 760), RBig::ZERO),
+            // The thermochemical calorie.
+            Kind::Calorie => (rat(4184, 1000), RBig::ZERO),
+            Kind::WattHour => (rat(3600, 1), RBig::ZERO),
+            Kind::Hectare => (rat(10_000, 1), RBig::ZERO),
+            Kind::Angstrom => (decimal("1e-10"), RBig::ZERO),
+            Kind::MilePerHour => (rat(44_704, 100_000), RBig::ZERO),
+            // Julian year times c.
+            Kind::LightYear => (rat(9_460_730_472_580_800, 1), RBig::ZERO),
+            Kind::AstronomicalUnit => (rat(149_597_870_700, 1), RBig::ZERO),
+            Kind::Dalton => (decimal("1.66053906660e-27"), RBig::ZERO),
+            Kind::Percent => (rat(1, 100), RBig::ZERO),
+            Kind::Tonne => (rat(1000, 1), RBig::ZERO),
+            Kind::Inch => (rat(254, 10_000), RBig::ZERO),
             _ => (RBig::ONE, RBig::ZERO),
         };
         AffineConversion { factor, offset }
     }
+}
+
+fn decimal(text: &str) -> RBig {
+    crate::num::Decimal::parse(text).expect("a valid decimal").to_rational()
 }
 
 fn rat(numerator: i64, denominator: u64) -> RBig {

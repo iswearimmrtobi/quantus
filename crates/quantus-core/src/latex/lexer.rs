@@ -87,6 +87,9 @@ impl Lexer<'_> {
                 tokens.push(self.number());
             } else if c.is_alphabetic() || c == DEGREE {
                 tokens.push(self.identifier());
+            } else if c == '%' {
+                tokens.push(Token { kind: TokenType::Identifier, text: "%".to_string(), position: self.index });
+                self.index += 1;
             } else if c == '\u{2103}' {
                 // The one-character degree Celsius sign reads like `°C`.
                 tokens.push(Token { kind: TokenType::Identifier, text: "°C".to_string(), position: self.index });
@@ -174,6 +177,9 @@ impl Lexer<'_> {
         if !first.is_alphabetic() {
             self.index += 1;
             // `\{ … \}` are brackets like `( … )`.
+            if first == '%' {
+                return Ok(Some(Token { kind: TokenType::Identifier, text: "%".to_string(), position: start }));
+            }
             if first == '{' {
                 return Ok(Some(Token { kind: TokenType::LParen, text: "\\{".to_string(), position: start }));
             }
@@ -198,6 +204,8 @@ impl Lexer<'_> {
             None
         } else if PIPE_COMMANDS.contains(&text.as_str()) {
             Some(Token { kind: TokenType::Pipe, text: "|".to_string(), position: start })
+        } else if text == "\\AA" {
+            Some(Token { kind: TokenType::Identifier, text: "\u{c5}".to_string(), position: start })
         } else if GREEK_COMMANDS.contains(&text.as_str()) {
             Some(Token { kind: TokenType::Identifier, text, position: start })
         } else {

@@ -54,8 +54,8 @@ fn is_single_letter(text: &str) -> bool {
 fn is_variable_product(text: &str, options: &ParseOptions) -> bool {
     text.chars().count() > 1
         && text.chars().all(|c| {
-            c.is_ascii_alphabetic()
-                && (options.a_and_y_as_variables && (c == 'a' || c == 'y') || units::find(&c.to_string()).is_none())
+            let letter = c.to_string();
+            c.is_ascii_alphabetic() && (options.reads_as_variable(&letter) || units::find(&letter).is_none())
         })
 }
 
@@ -80,11 +80,22 @@ pub struct ParseOptions {
     pub a_and_y_as_variables: bool,
     /// A run of letters that are each a variable (`ab`) is their product.
     pub letter_products: bool,
+    /// Outside a unit context, `t`, `u` and `in` are the tonne, the atomic mass unit and the
+    /// inch rather than variables.
+    pub extra_unit_letters: bool,
 }
 
 impl Default for ParseOptions {
     fn default() -> Self {
-        ParseOptions { a_and_y_as_variables: true, letter_products: true }
+        ParseOptions { a_and_y_as_variables: true, letter_products: true, extra_unit_letters: false }
+    }
+}
+
+impl ParseOptions {
+    /// Whether a symbol that names a unit is read as a variable instead (outside `\mathrm{}`).
+    fn reads_as_variable(&self, symbol: &str) -> bool {
+        (self.a_and_y_as_variables && matches!(symbol, "a" | "y"))
+            || (!self.extra_unit_letters && matches!(symbol, "t" | "u" | "in"))
     }
 }
 
@@ -787,10 +798,9 @@ impl Parser<'_> {
         let run = self.identifier_run();
         let symbol: String = run.iter().map(|t| greek_symbol(&t.text)).collect();
 
-        // Disambiguation: outside explicit unit context, single-letter 'y' and 'a' (annum/year)
-        // are free algebraic variables rather than unit aliases, unless switched off.
-        let is_reclassified_variable =
-            self.options.a_and_y_as_variables && !self.unit_context && (symbol == "y" || symbol == "a");
+        // Disambiguation: outside explicit unit context, `a` and `y` (annum/year) and `t`, `u`,
+        // `in` are free algebraic variables rather than units, as the settings say.
+        let is_reclassified_variable = !self.unit_context && self.options.reads_as_variable(&symbol);
 
         if !is_reclassified_variable {
             if let Some(unit) = units::find(&symbol) {
@@ -801,7 +811,9 @@ impl Parser<'_> {
 
         // Where the run as a whole is no unit, its first symbol can still stand alone (`\pi x`,
         // `x y`) unless it is itself a unit: `m kg` stays an error, a product of units needs \cdot.
-        let first_is_unit = !is_reclassified_variable && units::find(greek_symbol(&token.text)).is_some();
+        let first = greek_symbol(&token.text);
+        let first_is_unit =
+            !(!self.unit_context && self.options.reads_as_variable(first)) && units::find(first).is_some();
         if !self.unit_context && !first_is_unit && CONSTANTS.contains(&token.text.as_str()) {
             self.advance();
             return Ok(Node::Constant { name: token.text, position: token.position });

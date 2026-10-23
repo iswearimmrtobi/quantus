@@ -48,6 +48,8 @@ pub struct Settings {
     pub a_and_y_as_variables: bool,
     /// A run of letters like `ab` in `2ab` is the product `a \cdot b`.
     pub letter_products: bool,
+    /// `t`, `u` and `in` are the tonne, the atomic mass unit and the inch rather than variables.
+    pub extra_unit_letters: bool,
 }
 
 impl Default for Settings {
@@ -59,6 +61,7 @@ impl Default for Settings {
             denominator_form: DenominatorForm::Auto,
             a_and_y_as_variables: true,
             letter_products: true,
+            extra_unit_letters: false,
         }
     }
 }
@@ -78,6 +81,7 @@ impl Settings {
         ParseOptions {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
+            extra_unit_letters: self.extra_unit_letters,
         }
     }
 
@@ -112,7 +116,8 @@ mod tests {
                 "completeSquare": true,
                 "denominatorForm": "auto",
                 "aAndYAsVariables": true,
-                "letterProducts": true
+                "letterProducts": true,
+                "extraUnitLetters": false
             })
         );
     }

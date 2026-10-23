@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use dashu::rational::RBig;
-use quantus_core::units::{find, latex, registry, Unit};
+use quantus_core::units::{find, latex, registry, Kind, Unit};
 use serde_json::Value;
 
 fn golden(name: &str) -> Value {
@@ -63,6 +63,25 @@ fn actual_vector(unit: &Unit) -> Vec<(String, i32)> {
     vector
 }
 
+/// The kinds Quantus adds to Indriya's units.
+const EXTENSIONS: [Kind; 15] = [
+    Kind::Electronvolt,
+    Kind::Atmosphere,
+    Kind::Bar,
+    Kind::Torr,
+    Kind::Calorie,
+    Kind::WattHour,
+    Kind::Hectare,
+    Kind::Angstrom,
+    Kind::MilePerHour,
+    Kind::LightYear,
+    Kind::AstronomicalUnit,
+    Kind::Dalton,
+    Kind::Percent,
+    Kind::Tonne,
+    Kind::Inch,
+];
+
 #[test]
 fn lookup_matches_indriya_for_every_short_symbol() {
     let dump = golden("units_symbols.json");
@@ -80,7 +99,9 @@ fn lookup_matches_indriya_for_every_short_symbol() {
         match known.get(symbol.as_str()) {
             None => {
                 unknown += 1;
-                assert!(found.is_none(), "{symbol:?} should be unknown, found {found:?}");
+                // Units Quantus adds beyond Indriya's table (eV, bar, kWh, …) are the only exceptions.
+                let extension = matches!(&found, Some(Unit::Atom(atom)) if EXTENSIONS.contains(&atom.kind()));
+                assert!(found.is_none() || extension, "{symbol:?} should be unknown, found {found:?}");
             }
             Some(entry) => {
                 let unit = found.unwrap_or_else(|| panic!("{symbol:?} should be known"));

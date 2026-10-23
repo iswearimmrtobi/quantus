@@ -203,6 +203,9 @@ fn settings_of(case: &Value) -> Settings {
         if let Some(b) = m.get("letter_products").and_then(Value::as_bool) {
             s.letter_products = b;
         }
+        if let Some(b) = m.get("extra_unit_letters").and_then(Value::as_bool) {
+            s.extra_unit_letters = b;
+        }
     }
     s
 }

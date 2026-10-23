@@ -47,6 +47,7 @@ export interface Settings {
   denominatorForm: DenominatorForm;
   aAndYAsVariables: boolean;
   letterProducts: boolean;
+  extraUnitLetters: boolean;
 }
 
 export interface EngineInfo {

@@ -138,6 +138,24 @@ impl Tables {
         }
 
         t.label_with_prefixes(Kind::Litre, "l");
+
+        t.label_with_prefixes(Kind::Electronvolt, "eV");
+        t.label(plain(Kind::Atmosphere), "atm");
+        t.label_with_prefixes(Kind::Bar, "bar");
+        t.label(plain(Kind::Torr), "Torr");
+        t.label_with_prefixes(Kind::Calorie, "cal");
+        t.label_with_prefixes(Kind::WattHour, "Wh");
+        t.label(plain(Kind::Hectare), "ha");
+        t.label(plain(Kind::Angstrom), "\u{c5}");
+        t.label(plain(Kind::MilePerHour), "mph");
+        t.label(plain(Kind::LightYear), "ly");
+        t.label(plain(Kind::AstronomicalUnit), "AU");
+        t.label(plain(Kind::Dalton), "Da");
+        t.label(plain(Kind::Percent), "%");
+        // The parser reads these three as variables unless `extra_unit_letters` is on.
+        t.label(plain(Kind::Tonne), "t");
+        t.alias_atom(plain(Kind::Dalton), "u");
+        t.label(plain(Kind::Inch), "in");
         t
     }
 }
@@ -148,7 +166,7 @@ fn tables() -> &'static Tables {
 }
 
 fn is_plain_symbol(symbol: &str) -> bool {
-    !symbol.is_empty() && symbol.chars().all(|c| c.is_alphabetic() || c == '°')
+    symbol == "%" || !symbol.is_empty() && symbol.chars().all(|c| c.is_alphabetic() || c == '°')
 }
 
 /// The unit for `symbol`, or `None` if it is not a known unit.
@@ -192,7 +210,7 @@ mod tests {
 
     #[test]
     fn composition_is_not_the_lookups_job() {
-        for symbol in ["m2", "m²", "m/s", "m·s", "m s", "", "e", "i", "x", "℃", "km/h", "%"] {
+        for symbol in ["m2", "m²", "m/s", "m·s", "m s", "", "e", "i", "x", "℃", "km/h", "%%"] {
             assert_eq!(find(symbol), None, "{symbol:?}");
         }
     }

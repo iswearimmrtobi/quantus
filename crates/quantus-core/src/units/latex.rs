@@ -97,6 +97,8 @@ fn escape(c: char) -> String {
         '\u{b5}' | '\u{3bc}' => "\\mu ".to_string(), // micro sign as typed, greek mu as printed
         '\u{3a9}' | '\u{2126}' => "\\Omega ".to_string(), // greek capital omega, ohm sign
         '°' => "^\\circ ".to_string(),
+        '%' => "\\%".to_string(),
+        '\u{c5}' => "\\AA ".to_string(),
         c => c.to_string(),
     }
 }
