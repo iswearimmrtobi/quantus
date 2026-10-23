@@ -198,6 +198,10 @@ impl<'a> Evaluator<'a> {
     /// Numerical, to the calculator's precision. The variable carries the unit of the limits,
     /// and the result the unit of the integrand times that.
     fn integral(&self, variable: &str, lower: &Node, upper: &Node, body: &Node) -> Result<PhysicalQuantity> {
+        let (lower_inf, upper_inf) = (infinity_sign(lower), infinity_sign(upper));
+        if lower_inf.is_some() || upper_inf.is_some() {
+            return self.improper_integral(variable, lower, upper, body, lower_inf, upper_inf);
+        }
         let (lower, upper) = (self.evaluate(lower)?, self.evaluate(upper)?);
         // A bare 0 as lower limit (`\int_0^{2m}`) takes the unit of the other limit.
         let (lower, upper) = if lower.is_dimensionless() && lower.value.is_zero() {
@@ -238,6 +242,99 @@ impl<'a> Evaluator<'a> {
         let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
         let value = Value::from_decimal(&Value::Rat(result).decimal(self.numeric_digits)?);
         Ok(PhysicalQuantity::new(value, unit).mul(&PhysicalQuantity::new(Value::one(), lower.unit)))
+    }
+
+    /// An integral with an infinite bound, mapped onto a finite interval: x = a + t/(1-t) on
+    /// [0, 1) for [a, ∞), x = b - t/(1-t) for (-∞, b], x = t/(1-t²) on (-1, 1) for (-∞, ∞),
+    /// with the Jacobian in the integrand. Far out, where the integrand of a convergent integral
+    /// has vanished, a sample that cannot be computed (e^(-x²) at x = 10^80) counts as 0.
+    fn improper_integral(
+        &self,
+        variable: &str,
+        lower: &Node,
+        upper: &Node,
+        body: &Node,
+        lower_inf: Option<i64>,
+        upper_inf: Option<i64>,
+    ) -> Result<PhysicalQuantity> {
+        // Orient the bounds so that an infinite lower bound is -∞ and an infinite upper one +∞.
+        let (lower, upper, lower_inf, upper_inf, sign) = match (lower_inf, upper_inf) {
+            (Some(l), Some(u)) if l == u => {
+                return Ok(PhysicalQuantity::dimensionless(Value::zero()))
+            }
+            (Some(1), _) | (_, Some(-1)) => (upper, lower, upper_inf, lower_inf, -1),
+            _ => (lower, upper, lower_inf, upper_inf, 1),
+        };
+        let finite = match (lower_inf, upper_inf) {
+            (None, _) => Some(self.evaluate(lower)?),
+            (_, None) => Some(self.evaluate(upper)?),
+            _ => None,
+        };
+        let variable_unit = finite
+            .as_ref()
+            .map(|q| q.unit.clone())
+            .unwrap_or(crate::units::Unit::ONE);
+        let anchor = match &finite {
+            Some(q) => q.value.decimal(self.numeric_digits + 20)?.to_rational(),
+            None => RBig::ZERO,
+        };
+        let digits = self.numeric_digits + 8;
+        let one = RBig::ONE;
+        let far = RBig::from(IBig::from(10).pow(20));
+
+        let mut scope = self.variables.clone();
+        let mut integrand_unit = None;
+        let mut sample = |t: &Decimal| -> Result<Decimal> {
+            let t = t.to_rational();
+            let (x, jacobian) = match (lower_inf, upper_inf) {
+                (None, Some(_)) => {
+                    let s = &one - &t;
+                    (&anchor + &t / &s, &one / (&s * &s))
+                }
+                (Some(_), None) => {
+                    let s = &one - &t;
+                    (&anchor - &t / &s, &one / (&s * &s))
+                }
+                _ => {
+                    let s = &one - &t * &t;
+                    (&t / &s, (&one + &t * &t) / (&s * &s))
+                }
+            };
+            scope.insert(
+                variable.to_string(),
+                PhysicalQuantity::new(Value::Rat(x.clone()), variable_unit.clone()),
+            );
+            let y = match self.scoped_deeper(&scope).evaluate(body) {
+                Ok(y) => y,
+                Err(_) if x.clone().abs() > far => return Ok(Decimal::from_i64(0)),
+                Err(e) => return Err(e),
+            };
+            let y = match &integrand_unit {
+                None => {
+                    integrand_unit = Some(y.unit.clone());
+                    y
+                }
+                Some(unit) => y.to(unit)?,
+            };
+            let value = match y.value.decimal(digits + 10) {
+                Ok(v) => v.to_rational(),
+                Err(_) if x.clone().abs() > far => RBig::ZERO,
+                Err(e) => return Err(e),
+            };
+            Value::Rat(value * jacobian).decimal(digits + 10)
+        };
+        let (a, b) = match (lower_inf, upper_inf) {
+            (Some(_), Some(_)) => (Decimal::from_i64(-1), Decimal::from_i64(1)),
+            (None, Some(_)) => (Decimal::from_i64(0), Decimal::from_i64(1)),
+            // x = anchor - t/(1-t) runs from -∞ (t → 1) to the anchor (t = 0).
+            _ => (Decimal::from_i64(0), Decimal::from_i64(1)),
+        };
+        let result =
+            numeric::integrate(&a, &b, digits, &mut sample)?.to_rational() * RBig::from(sign);
+        let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
+        let value = Value::from_decimal(&Value::Rat(result).decimal(self.numeric_digits)?);
+        Ok(PhysicalQuantity::new(value, unit)
+            .mul(&PhysicalQuantity::new(Value::one(), variable_unit)))
     }
 
     /// `n!`, floor, ceiling, max, min and mod. Floor, ceiling and mod keep the unit of their
