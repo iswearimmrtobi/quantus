@@ -1,5 +1,6 @@
 //! The commands through Tauri's own IPC layer, as the renderer's `invoke` reaches them.
 
+use quantus_core::settings::Language;
 use serde_json::{json, Value};
 use tauri::test::{mock_builder, mock_context, noop_assets, MockRuntime};
 use tauri::webview::InvokeRequest;
@@ -117,17 +118,19 @@ fn menu_has_an_item_for_every_forwarded_shortcut() {
     let app = super::app(mock_builder())
         .build(mock_context(noop_assets()))
         .unwrap();
-    let menu = super::shell::build_menu(app.handle()).unwrap();
-    let ids: Vec<String> = menu
-        .items()
-        .unwrap()
-        .iter()
-        .filter_map(|top| top.as_submenu())
-        .flat_map(|submenu| submenu.items().unwrap())
-        .map(|entry| entry.id().as_ref().to_string())
-        .collect();
-    for id in super::shell::FORWARDED {
-        assert!(ids.iter().any(|found| found == id), "menu item {id} missing");
+    for language in [Language::En, Language::De] {
+        let menu = super::shell::build_menu(app.handle(), language).unwrap();
+        let ids: Vec<String> = menu
+            .items()
+            .unwrap()
+            .iter()
+            .filter_map(|top| top.as_submenu())
+            .flat_map(|submenu| submenu.items().unwrap())
+            .map(|entry| entry.id().as_ref().to_string())
+            .collect();
+        for id in super::shell::FORWARDED {
+            assert!(ids.iter().any(|found| found == id), "menu item {id} missing");
+        }
     }
 }
 
@@ -295,14 +298,13 @@ fn a_broken_circuit_file_is_reported_not_loaded() {
 }
 
 #[test]
-fn circuit_file_errors_follow_the_language_setting() {
-    let w = window();
-    invoke(&w, "set_settings", json!({ "settings": { "language": "de" } })).unwrap();
+fn circuit_file_errors_follow_the_language() {
     let dir = std::env::temp_dir().join(format!("quantus-german-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("leer.json");
     std::fs::write(&path, r#"{ "elements": [] }"#).unwrap();
-    let error = invoke(&w, "load_circuit", json!({ "path": path.to_string_lossy() })).unwrap_err();
-    assert_eq!(error["error"], "Das ist keine Schaltungsdatei: die Version fehlt.");
+    let message = |language| super::commands::read_circuit(&path, language).unwrap_err().error;
+    assert_eq!(message(Language::En), "This is not a circuit file: the version is missing.");
+    assert_eq!(message(Language::De), "Das ist keine Schaltungsdatei: die Version fehlt.");
     std::fs::remove_dir_all(dir).unwrap();
 }

@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use tauri::Manager;
+
 mod commands;
 mod shell;
 
@@ -11,7 +13,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
         .plugin(tauri_plugin_dialog::init())
         .manage(commands::Engine::default())
         .manage(shell::Zoom::default())
-        .menu(|app| shell::build_menu(app))
+        .menu(|app| shell::build_menu(app, quantus_core::settings::Language::En))
         .on_menu_event(shell::on_menu_event)
         .invoke_handler(tauri::generate_handler![
             commands::engine_info,
@@ -38,10 +40,19 @@ fn main() {
         // Here rather than in `app()`, so the tests never read or write the user's settings.
         .setup(|app| {
             commands::restore_settings(app.handle());
+            shell::set_menu_language(app.handle(), app.state::<commands::Engine>().language());
             Ok(())
         })
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| fatal(&error.to_string()));
+}
+
+/// The settings are not readable this early, so the system's language decides.
+fn system_is_german() -> bool {
+    ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .find_map(|name| std::env::var(name).ok().filter(|value| !value.is_empty()))
+        .is_some_and(|value| value.starts_with("de"))
 }
 
 /// The engine lives in the process, so what can still fail is the shell itself (no display, no
@@ -50,7 +61,7 @@ fn fatal(message: &str) -> ! {
     eprintln!("Quantus: {message}");
     rfd::MessageDialog::new()
         .set_level(rfd::MessageLevel::Error)
-        .set_title("Quantus startet nicht")
+        .set_title(if system_is_german() { "Quantus startet nicht" } else { "Quantus cannot start" })
         .set_description(message)
         .show();
     std::process::exit(1);

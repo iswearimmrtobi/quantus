@@ -144,8 +144,16 @@ pub fn get_settings(engine: State<Engine>) -> Settings {
 }
 
 #[tauri::command]
-pub fn set_settings(engine: State<Engine>, settings: Settings) -> Result<Settings, ApiError> {
+pub fn set_settings<R: Runtime>(
+    app: AppHandle<R>,
+    engine: State<Engine>,
+    settings: Settings,
+) -> Result<Settings, ApiError> {
+    let before = engine.language();
     let saved = engine.with(|store| api::set_settings(store, settings))?;
+    if saved.language != before {
+        crate::shell::set_menu_language(&app, saved.language);
+    }
     if let Some(path) = engine.settings_file.get() {
         save_settings(path, &saved).map_err(|error| ApiError {
             error: text!(

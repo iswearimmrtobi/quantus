@@ -6,6 +6,7 @@
 
 use std::sync::Mutex;
 
+use quantus_core::settings::Language;
 use tauri::menu::{Menu, MenuBuilder, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
@@ -47,40 +48,44 @@ fn item<R: Runtime>(
     MenuItem::with_id(app, id, label, true, accelerator)
 }
 
-pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
-    let calculation = SubmenuBuilder::new(app, "Rechnung")
-        .item(&item(app, "new", "Neue Rechnung", Some("CmdOrCtrl+N"))?)
-        .item(&item(app, "evaluate", "Auswerten", Some("CmdOrCtrl+Enter"))?)
-        .item(&item(app, "toggle-latex", "LaTeX schreiben", Some("CmdOrCtrl+L"))?)
+pub fn build_menu<R: Runtime>(app: &AppHandle<R>, language: Language) -> tauri::Result<Menu<R>> {
+    let l = |en: &'static str, de: &'static str| match language {
+        Language::En => en,
+        Language::De => de,
+    };
+    let calculation = SubmenuBuilder::new(app, l("Calculation", "Rechnung"))
+        .item(&item(app, "new", l("New calculation", "Neue Rechnung"), Some("CmdOrCtrl+N"))?)
+        .item(&item(app, "evaluate", l("Evaluate", "Auswerten"), Some("CmdOrCtrl+Enter"))?)
+        .item(&item(app, "toggle-latex", l("Write LaTeX", "LaTeX schreiben"), Some("CmdOrCtrl+L"))?)
         .separator()
-        .item(&item(app, "copy-result", "Ergebnis kopieren", Some("CmdOrCtrl+Shift+C"))?)
-        .item(&item(app, "copy-all", "Ganze Rechnung kopieren", Some("CmdOrCtrl+Alt+C"))?)
+        .item(&item(app, "copy-result", l("Copy result", "Ergebnis kopieren"), Some("CmdOrCtrl+Shift+C"))?)
+        .item(&item(app, "copy-all", l("Copy whole calculation", "Ganze Rechnung kopieren"), Some("CmdOrCtrl+Alt+C"))?)
         .separator()
-        .item(&PredefinedMenuItem::quit(app, Some("Beenden"))?)
+        .item(&PredefinedMenuItem::quit(app, Some(l("Quit", "Beenden")))?)
         .build()?;
 
-    let edit = SubmenuBuilder::new(app, "Bearbeiten")
-        .item(&PredefinedMenuItem::undo(app, Some("Rückgängig"))?)
-        .item(&PredefinedMenuItem::redo(app, Some("Wiederherstellen"))?)
+    let edit = SubmenuBuilder::new(app, l("Edit", "Bearbeiten"))
+        .item(&PredefinedMenuItem::undo(app, Some(l("Undo", "Rückgängig")))?)
+        .item(&PredefinedMenuItem::redo(app, Some(l("Redo", "Wiederherstellen")))?)
         .separator()
-        .item(&PredefinedMenuItem::cut(app, Some("Ausschneiden"))?)
-        .item(&PredefinedMenuItem::copy(app, Some("Kopieren"))?)
-        .item(&PredefinedMenuItem::paste(app, Some("Einfügen"))?)
-        .item(&PredefinedMenuItem::select_all(app, Some("Alles auswählen"))?)
+        .item(&PredefinedMenuItem::cut(app, Some(l("Cut", "Ausschneiden")))?)
+        .item(&PredefinedMenuItem::copy(app, Some(l("Copy", "Kopieren")))?)
+        .item(&PredefinedMenuItem::paste(app, Some(l("Paste", "Einfügen")))?)
+        .item(&PredefinedMenuItem::select_all(app, Some(l("Select all", "Alles auswählen")))?)
         .build()?;
 
-    let mut view = SubmenuBuilder::new(app, "Ansicht")
-        .item(&item(app, "toggle-steps", "Rechenweg", Some("CmdOrCtrl+J"))?)
-        .item(&item(app, "toggle-variables", "Variablen", Some("CmdOrCtrl+,"))?)
-        .item(&item(app, "toggle-history", "Verlauf", Some("CmdOrCtrl+H"))?)
-        .item(&item(app, "toggle-settings", "Einstellungen", Some("CmdOrCtrl+."))?)
+    let mut view = SubmenuBuilder::new(app, l("View", "Ansicht"))
+        .item(&item(app, "toggle-steps", l("Steps", "Rechenweg"), Some("CmdOrCtrl+J"))?)
+        .item(&item(app, "toggle-variables", l("Variables", "Variablen"), Some("CmdOrCtrl+,"))?)
+        .item(&item(app, "toggle-history", l("History", "Verlauf"), Some("CmdOrCtrl+H"))?)
+        .item(&item(app, "toggle-settings", l("Settings", "Einstellungen"), Some("CmdOrCtrl+."))?)
         .separator()
-        .item(&item(app, "zoom-reset", "Zoom zurücksetzen", Some("CmdOrCtrl+0"))?)
-        .item(&item(app, "zoom-in", "Größer", Some("CmdOrCtrl+Plus"))?)
-        .item(&item(app, "zoom-out", "Kleiner", Some("CmdOrCtrl+-"))?)
-        .item(&item(app, "fullscreen", "Vollbild", Some("F11"))?);
+        .item(&item(app, "zoom-reset", l("Reset zoom", "Zoom zurücksetzen"), Some("CmdOrCtrl+0"))?)
+        .item(&item(app, "zoom-in", l("Zoom in", "Größer"), Some("CmdOrCtrl+Plus"))?)
+        .item(&item(app, "zoom-out", l("Zoom out", "Kleiner"), Some("CmdOrCtrl+-"))?)
+        .item(&item(app, "fullscreen", l("Full screen", "Vollbild"), Some("F11"))?);
     if cfg!(debug_assertions) {
-        view = view.item(&item(app, "devtools", "Entwicklerwerkzeuge", Some("CmdOrCtrl+Shift+I"))?);
+        view = view.item(&item(app, "devtools", l("Developer tools", "Entwicklerwerkzeuge"), Some("CmdOrCtrl+Shift+I"))?);
     }
 
     MenuBuilder::new(app).item(&calculation).item(&edit).item(&view.build()?).build()
@@ -135,5 +140,12 @@ pub fn focus_main<R: Runtime>(app: &AppHandle<R>) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
+    }
+}
+
+/// Replaces the application menu by one in `language`.
+pub fn set_menu_language<R: Runtime>(app: &AppHandle<R>, language: Language) {
+    if let Ok(menu) = build_menu(app, language) {
+        let _ = app.set_menu(menu);
     }
 }
