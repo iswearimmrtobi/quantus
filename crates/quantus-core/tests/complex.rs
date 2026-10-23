@@ -94,3 +94,15 @@ fn quadratics_with_a_negative_discriminant_have_complex_roots() {
     assert_eq!(imaginary(r"2x^2+x+1=0").matches("i").count(), 2);
     assert!(evaluate(Mode::Physics, r"x^2+1=0").unwrap_err().contains("no real solution"));
 }
+
+#[test]
+fn a_variable_can_hold_a_complex_number() {
+    use quantus_core::session::Session;
+
+    let settings = Settings { mode: Mode::Imaginary, ..Settings::default() };
+    let mut session = Session::new("complex");
+    let (_, variable) = session.evaluate_with("z_1 = 3+4i", None, &settings).unwrap();
+    assert_eq!(variable.unwrap().latex, "3 + 4i");
+    let (calculation, _) = session.evaluate_with(r"z_1 \cdot z_1", None, &settings).unwrap();
+    assert_eq!(calculation.result, "-7 + 24i");
+}
