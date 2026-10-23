@@ -87,6 +87,10 @@ impl Lexer<'_> {
                 tokens.push(self.number());
             } else if c.is_alphabetic() || c == DEGREE {
                 tokens.push(self.identifier());
+            } else if c == '\u{2103}' {
+                // The one-character degree Celsius sign reads like `°C`.
+                tokens.push(Token { kind: TokenType::Identifier, text: "°C".to_string(), position: self.index });
+                self.index += 1;
             } else if c == '\\' {
                 tokens.extend(self.command()?);
             } else {
@@ -169,6 +173,13 @@ impl Lexer<'_> {
         }
         if !first.is_alphabetic() {
             self.index += 1;
+            // `\{ … \}` are brackets like `( … )`.
+            if first == '{' {
+                return Ok(Some(Token { kind: TokenType::LParen, text: "\\{".to_string(), position: start }));
+            }
+            if first == '}' {
+                return Ok(Some(Token { kind: TokenType::RParen, text: "\\}".to_string(), position: start }));
+            }
             if SPACING_SYMBOLS.contains(&first) {
                 return Ok(None);
             }
@@ -200,9 +211,10 @@ impl Lexer<'_> {
         self.index += 1;
         let kind = match c {
             '+' => TokenType::Plus,
-            '-' => TokenType::Minus,
-            '*' | '·' | '×' => TokenType::Times,
-            '/' => TokenType::Divide,
+            // Pasted text often has the typographic minus and the other multiplication dots.
+            '-' | '\u{2212}' | '\u{2013}' => TokenType::Minus,
+            '*' | '·' | '×' | '\u{22c5}' | '\u{2219}' => TokenType::Times,
+            '/' | '÷' => TokenType::Divide,
             '^' => TokenType::Caret,
             '_' => TokenType::Underscore,
             '=' => TokenType::Equals,

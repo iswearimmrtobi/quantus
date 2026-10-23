@@ -58,6 +58,18 @@
     },
 
     { "name": "error: dimension mismatch", "latex": "1m + 1s", "error": "Incompatible units: m (length) and s (time) cannot be added." },
+    {"name": "celsius as results are written", "latex": "160\\,^\\circ\\mathrm{C}", "expect": {"result": "160\\,^\\circ\\mathrm{C}", "quantityName": "temperature"}},
+    {"name": "negative celsius with text", "latex": "-41^{\\circ}\\text{C}", "expect": {"result": "-41\\,^\\circ\\mathrm{C}"}},
+    {"name": "celsius with a bare C", "latex": "25^\\circ C + 5^\\circ C", "expect": {"result": "30\\,^\\circ\\mathrm{C}"}},
+    {"name": "one-character celsius sign", "latex": "20\u2103", "expect": {"result": "20\\,^\\circ\\mathrm{C}"}},
+    {"name": "degrees stay angles", "latex": "\\sin 30^\\circ", "expect": {"value": "0.5"}},
+    {"name": "signed function argument", "latex": "\\sin -30^\\circ", "expect": {"value": "-0.5"}},
+    {"name": "signed arguments in a sum", "latex": "\\sin^2 -30^\\circ + \\cos^2 -30^\\circ", "expect": {"value": "1"}},
+    {"name": "square brackets group", "latex": "\\left[7 + 3\\right] \\cdot 4", "expect": {"value": "40"}},
+    {"name": "escaped curly brackets group", "latex": "\\{ 2 + 3 \\} \\cdot 4", "expect": {"value": "20"}},
+    {"name": "typographic minus", "latex": "12 \u2212 17", "expect": {"value": "-5"}},
+    {"name": "division sign", "latex": "12 \u00f7 4", "expect": {"value": "3"}},
+    {"name": "dot operator", "latex": "3 \u22c5 4", "expect": {"value": "12"}},
     { "name": "error: celsius plus kelvin", "latex": "20°C + 5K", "errorContains": "zero point of its own" },
     { "name": "error: undefined variable", "latex": "v_1 \\cdot 2s", "errorContains": "v_1" },
 

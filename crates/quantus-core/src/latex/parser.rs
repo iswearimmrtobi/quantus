@@ -223,9 +223,35 @@ impl Parser<'_> {
         self.advance();
         let position = base.position();
         if self.at_degree_sign() {
+            // `20\,^\circ\mathrm{C}` is twenty degrees Celsius, the way results are written,
+            // not twenty angle degrees times a coulomb.
+            if let Some(celsius) = self.celsius_after_degree_sign() {
+                return Ok(Node::binary(Operator::ImplicitTimes, base, celsius, position));
+            }
             return Ok(Node::Degrees { operand: Box::new(base), position });
         }
         Ok(Node::Power { base: Box::new(base), exponent: Box::new(self.parse_unary()?), position })
+    }
+
+    /// A `C` right after a degree sign, bare or as `\mathrm{C}` / `\text{C}`: the Celsius unit.
+    fn celsius_after_degree_sign(&mut self) -> Option<Node> {
+        let is_c = |t: &Token| t.kind == TokenType::Identifier && t.text == "C";
+        let position = self.current().position;
+        let consumed = if is_c(self.current()) {
+            1
+        } else if self.current().kind == TokenType::Command
+            && matches!(self.current().text.as_str(), "\\mathrm" | "\\text")
+            && self.peek(1).kind == TokenType::LBrace
+            && is_c(self.peek(2))
+            && self.peek(3).kind == TokenType::RBrace
+        {
+            4
+        } else {
+            return None;
+        };
+        let unit = units::find("°C")?;
+        self.index += consumed;
+        Some(Node::Unit { unit, symbol: "°C".to_string(), position })
     }
 
     /// `\circ` or `{\circ}` after a `^`; consumes it when present.
@@ -256,6 +282,7 @@ impl Parser<'_> {
             TokenType::Pipe => self.parse_abs(),
             TokenType::LParen => self.parse_group(TokenType::RParen, ")"),
             TokenType::LBrace => self.parse_group(TokenType::RBrace, "}"),
+            TokenType::LBracket => self.parse_group(TokenType::RBracket, "]"),
             TokenType::Command => self.parse_command(&token),
             _ => Err(self.error("Expected a number, a unit or a variable here.", token.position)),
         }
@@ -389,6 +416,16 @@ impl Parser<'_> {
     }
 
     fn parse_function_operand(&mut self, command: &str) -> Result<Node> {
+        // A signed argument, `\sin -30^\circ`: the sign belongs to the whole operand.
+        if matches!(self.current().kind, TokenType::Minus | TokenType::Plus) {
+            let sign = self.advance();
+            let operand = self.parse_function_operand(command)?;
+            return Ok(if sign.kind == TokenType::Minus {
+                Node::Negation { operand: Box::new(operand), position: sign.position }
+            } else {
+                operand
+            });
+        }
         let first = self.current().clone();
         if !self.starts_atom() || is_function_command(&first) {
             return Err(self.error(
@@ -868,7 +905,7 @@ impl Parser<'_> {
         }
         let token = self.current();
         match token.kind {
-            TokenType::Number | TokenType::Identifier | TokenType::LParen | TokenType::LBrace => true,
+            TokenType::Number | TokenType::Identifier | TokenType::LParen | TokenType::LBrace | TokenType::LBracket => true,
             // `|_{x=2}` after a derivative is its evaluation point, not an absolute value.
             TokenType::Pipe => self.abs_depth == 0 && self.peek(1).kind != TokenType::Underscore,
             TokenType::Command => {
