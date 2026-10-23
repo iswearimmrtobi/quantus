@@ -130,8 +130,17 @@ fn text(node: &Node, mode: SerializerMode) -> String {
             expression_with_mode(upper, mode),
             expression_with_mode(body, mode)
         ),
-        Node::Limit { variable, target, body, .. } => {
-            format!("\\lim_{{{variable} \\to {}}} {}", expression_with_mode(target, mode), render(body, PRECEDENCE_MULTIPLICATIVE, mode))
+        Node::Limit { variable, target, body, side, .. } => {
+            let side = match side {
+                1 => "^{+}",
+                -1 => "^{-}",
+                _ => "",
+            };
+            format!(
+                "\\lim_{{{variable} \\to {}{side}}} {}",
+                expression_with_mode(target, mode),
+                render(body, PRECEDENCE_MULTIPLICATIVE, mode)
+            )
         }
         Node::Derivative { variable, body, at: None, .. } => {
             format!("\\frac{{d}}{{d{variable}}} {}", render(body, PRECEDENCE_MULTIPLICATIVE, mode))

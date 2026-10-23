@@ -360,6 +360,12 @@ impl Parser<'_> {
                 Ok(Node::fraction(numerator, denominator, position))
             }
             name if FUNCTION_COMMANDS.contains(&name) => self.parse_function(token),
+            // Only a limit's target or an integral's bound can be infinite; elsewhere it is an
+            // error when evaluated.
+            "\\infty" => {
+                self.advance();
+                Ok(Node::Constant { name: "\\infty".into(), position })
+            }
             "\\lfloor" | "\\lceil" => {
                 let (name, closing) = if token.text == "\\lfloor" { ("floor", "\\rfloor") } else { ("ceil", "\\rceil") };
                 self.advance();
@@ -557,10 +563,42 @@ impl Parser<'_> {
             return Err(self.error("Expected '\\to' here.", self.current().position));
         }
         self.advance();
+        let side = self.take_limit_side();
         let target = self.parse_expression()?;
         self.expect(TokenType::RBrace, "'}'")?;
         let body = self.with_bound(&variable, |p| p.parse_term())?;
-        Ok(Node::Limit { variable, target: Box::new(target), body: Box::new(body), position: token.position })
+        Ok(Node::Limit { variable, target: Box::new(target), body: Box::new(body), side, position: token.position })
+    }
+
+    /// A one-sided target ends in `^+`, `^-`, `^{+}` or `^{-}` before the `}`. The suffix is
+    /// removed from the tokens, so the target itself reads as an ordinary expression.
+    fn take_limit_side(&mut self) -> i8 {
+        let mut depth = 0;
+        let mut close = None;
+        for (i, t) in self.tokens.iter().enumerate().skip(self.index) {
+            match t.kind {
+                TokenType::LBrace => depth += 1,
+                TokenType::RBrace if depth == 0 => {
+                    close = Some(i);
+                    break;
+                }
+                TokenType::RBrace => depth -= 1,
+                TokenType::End => break,
+                _ => {}
+            }
+        }
+        let Some(close) = close else { return 0 };
+        let kinds: Vec<TokenType> = self.tokens[self.index..close].iter().map(|t| t.kind).collect();
+        let (sign, length) = match kinds.as_slice() {
+            [.., TokenType::Caret, s @ (TokenType::Plus | TokenType::Minus)] => (*s, 2),
+            [.., TokenType::Caret, TokenType::LBrace, s @ (TokenType::Plus | TokenType::Minus), TokenType::RBrace] => (*s, 4),
+            _ => return 0,
+        };
+        if kinds.len() == length {
+            return 0;
+        }
+        self.tokens.drain(close - length..close);
+        if sign == TokenType::Plus { 1 } else { -1 }
     }
 
     /// `\int_a^b body \, dx`. The differential is found first, so the integration variable is

@@ -138,7 +138,7 @@ impl<'a> Evaluator<'a> {
             }
             Node::Sum { index, from, to, body, .. } => self.sum(index, from, to, body),
             Node::Integral { variable, lower, upper, body, .. } => self.integral(variable, lower, upper, body),
-            Node::Limit { variable, target, body, .. } => self.limit(variable, target, body),
+            Node::Limit { variable, target, body, side, .. } => self.limit(variable, target, body, *side),
             Node::Derivative { variable, body, at, .. } => self.derivative(variable, body, at.as_deref()),
             Node::Equation { .. } => {
                 self.solve(node)?.values.into_iter().next().ok_or_else(|| QuantusError::other("The equation has no solution."))
@@ -407,20 +407,33 @@ impl<'a> Evaluator<'a> {
 
     /// Two-sided and numerical: the body is sampled just either side of the target and the
     /// samples must agree, which also rules out a limit that diverges.
-    fn limit(&self, variable: &str, target: &Node, body: &Node) -> Result<PhysicalQuantity> {
-        let target = self.evaluate(target)?;
+    /// Numerical: the body at points ever closer to the target (from both sides unless `side`
+    /// picks one) must agree. At ±∞ the points are ±10^k for large k, i.e. x = 1/t with t → 0⁺.
+    fn limit(&self, variable: &str, target: &Node, body: &Node, side: i8) -> Result<PhysicalQuantity> {
+        let infinite = infinity_sign(target);
+        let target = match infinite {
+            Some(_) => PhysicalQuantity::dimensionless(Value::zero()),
+            None => self.evaluate(target)?,
+        };
         let digits = self.precision;
         let working = 3 * digits + 30;
         let centre = target.value.decimal(working)?.to_rational();
         let step = |exponent: usize| Value::Rat(RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(exponent)));
+        let directions: &[i64] = match side {
+            1 => &[1],
+            -1 => &[-1],
+            _ => &[1, -1],
+        };
 
         let mut scope = self.variables.clone();
         let mut unit = None;
         let mut samples = Vec::new();
         for exponent in [digits + 5, digits + 4] {
-            for direction in [1, -1] {
-                let offset = step(exponent).mul(&Value::int(direction));
-                let x = Value::Rat(centre.clone()).add(&offset);
+            for direction in directions {
+                let x = match infinite {
+                    Some(sign) => Value::Rat(RBig::from(IBig::from(10).pow(exponent) * IBig::from(sign))),
+                    None => Value::Rat(centre.clone()).add(&step(exponent).mul(&Value::int(*direction))),
+                };
                 scope.insert(variable.to_string(), PhysicalQuantity::new(x, target.unit.clone()));
                 let y = self.scoped_deeper(&scope).evaluate(body)?;
                 let y = match &unit {
@@ -438,12 +451,24 @@ impl<'a> Evaluator<'a> {
         let reference = samples[0].clone();
         let scale = reference.clone().abs().max(RBig::ONE);
         if samples.iter().any(|s| (s.clone() - &reference).abs() > &tolerance * &scale) {
-            return Err(QuantusError::other(
-                "The limit does not exist: the values on the two sides of the target disagree or grow without bound.",
-            ));
+            return Err(QuantusError::other(if side == 0 && infinite.is_none() {
+                "The limit does not exist: the values on the two sides of the target disagree or grow without bound."
+            } else {
+                "The limit does not exist: the values do not settle or grow without bound."
+            }));
         }
         let mean = samples.iter().fold(RBig::ZERO, |sum, s| sum + s) / RBig::from(samples.len());
-        let value = Value::from_decimal(&Value::Rat(mean).decimal(digits)?);
+        // Only the digits the samples agree on are kept: x ln x at 0 is 0, not -6.8·10^-53.
+        let whole_digits = scale.floor().to_string().trim_start_matches('-').len() as i64;
+        let quantum_exponent = whole_digits - 1 - digits.saturating_sub(5) as i64;
+        let quantum = if quantum_exponent >= 0 {
+            RBig::from(IBig::from(10).pow(quantum_exponent as usize))
+        } else {
+            RBig::from_parts(IBig::ONE, UBig::from(10u8).pow((-quantum_exponent) as usize))
+        };
+        let half = RBig::from_parts(IBig::ONE, UBig::from(2u8));
+        let rounded = RBig::from((&mean / &quantum + half).floor()) * &quantum;
+        let value = Value::from_decimal(&Value::Rat(rounded).decimal(digits)?);
         Ok(PhysicalQuantity::new(value, unit.unwrap_or(crate::units::Unit::ONE)))
     }
 
@@ -462,6 +487,16 @@ impl<'a> Evaluator<'a> {
                 "The degree of a root must be a positive whole number, but was '{value}'."
             ))),
         }
+    }
+}
+
+/// `Some(1)` for `\\infty` (also `+\\infty`), `Some(-1)` for `-\\infty`.
+fn infinity_sign(node: &Node) -> Option<i64> {
+    match node {
+        Node::Constant { name, .. } if name == "\\infty" => Some(1),
+        Node::Group { inner, .. } => infinity_sign(inner),
+        Node::Negation { operand, .. } => infinity_sign(operand).map(|s| -s),
+        _ => None,
     }
 }
 
@@ -561,6 +596,9 @@ fn constant(name: &str) -> Result<Value> {
         "\\pi" => Ok(Value::Pi),
         "e" => Ok(Value::E),
         "i" => Ok(Value::I),
+        "\\infty" => Err(QuantusError::other(
+            "\\infty is not a number. It can be the target of a limit or a bound of an integral.",
+        )),
         _ => Err(QuantusError::other(format!("Unknown constant '{name}'."))),
     }
 }

@@ -41,7 +41,8 @@ pub enum Node {
     /// `\int_{lower}^{upper} body \, dx`.
     Integral { variable: String, lower: Box<Node>, upper: Box<Node>, body: Box<Node>, position: usize },
     /// `\lim_{x \to target} body`.
-    Limit { variable: String, target: Box<Node>, body: Box<Node>, position: usize },
+    /// `side` is 0 for a two-sided limit, 1 from the right (`0^+`), -1 from the left (`0^-`).
+    Limit { variable: String, target: Box<Node>, body: Box<Node>, side: i8, position: usize },
     /// `\frac{d}{dx} body`, optionally evaluated at a point: `\left.\frac{d}{dx} body\right|_{x=at}`.
     Derivative { variable: String, body: Box<Node>, at: Option<Box<Node>>, position: usize },
     /// `\begin{pmatrix} … \end{pmatrix}`, row by row.
@@ -141,8 +142,8 @@ impl Node {
             Node::Integral { variable, lower, upper, body, position } => {
                 Node::Integral { variable, lower: b(lower), upper: b(upper), body: b(body), position }
             }
-            Node::Limit { variable, target, body, position } => {
-                Node::Limit { variable, target: b(target), body: b(body), position }
+            Node::Limit { variable, target, body, side, position } => {
+                Node::Limit { variable, target: b(target), body: b(body), side, position }
             }
             Node::Derivative { variable, body, at, position } => {
                 Node::Derivative { variable, body: b(body), at: at.map(&mut b), position }
