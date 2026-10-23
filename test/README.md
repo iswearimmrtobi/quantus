@@ -10,6 +10,7 @@ The 2500 hand-checked algebra cases from before are in `algebra-simplification-c
 | `generator/gens/*.py` | One module per area; every expected value is computed there, independently of the engine. |
 | `cases/<category>/<category>-NNN.json` | The cases, 1000 per file, 100 files. |
 | `results/summary.md` | The last full run. `results/results.jsonl` (one line per case) is not committed. |
+| `results/failures.jsonl` | Every case of the last full run that did not pass, one JSON line each. Committed. |
 | `../crates/quantus-core/examples/run_cases.rs` | The runner. |
 
 ## Running
@@ -89,3 +90,18 @@ the case itself is wrong.
 | algebra | 20,000 | Rational functions of order 1–40 in categories like those of the 2500-case table, plus continued fractions, binomials, geometric sums, multivariate and negative exponents |
 | physics | 22,000 | Mechanics, gravitation, fluids, thermodynamics (°C), waves and optics, circuits, modern and nuclear physics (Bq, Gy, Sv, decay), photometry (cd, lm, lx, sr), chemistry (mol, kat), and niche cases: extreme prefixes (ym … Ym), calendar units, mixed prefixes, named-unit collapse, radians, `\qty`, dimension errors |
 | syntax | 3,000 | Malformed input that must be refused, mathematical errors, notation variants (`\left`, `\dfrac`, `\times`, `*`, unicode operators, spacing) |
+
+## Latest results
+
+Full run (2026-10-23, 8 workers, 5 s limit, 216 s): **99,206 of 100,000 pass (99.21%)**. All 97,646
+cases for implemented features pass. The 794 that do not are all `not-implemented` cases that the
+generator marks as gaps, listed one per line in `test/results/failures.jsonl`:
+
+| Category | Outcome | Cases |
+|---|---|---:|
+| derivatives | ERROR (partial derivatives, `dx` notation not parsed) | 252 |
+| equations | ERROR | 263 |
+| integrals | ERROR | 149 |
+| integrals | TIMEOUT (5 s) | 130 |
+
+The full breakdown is in `test/results/summary.md`.
