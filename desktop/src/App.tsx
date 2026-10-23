@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, ApiError, type Calculation, type Settings, type StepKind, type Variable } from './api';
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
@@ -7,6 +7,7 @@ import { fromFile, toFile, type EditorElement } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
+import { I18nContext, makeTranslate } from './i18n';
 import { DEFAULT_SETTINGS, MODE_CHOICES, Segmented, SettingsPanel } from './components/SettingsPanel';
 
 interface HistoryEntry {
@@ -39,12 +40,19 @@ export function App() {
   const [precision, setPrecision] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   /** Quelltext statt Formeleditor — über `\` oder Strg+L (F2). */
   const [latexMode, setLatexMode] = useState(false);
   /** The schematic lives here so it survives a switch to another mode and back. */
   const [circuit, setCircuit] = useState<EditorElement[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
+
+  const language = settings.language;
+  const i18n = useMemo(() => ({ language, t: makeTranslate(language) }), [language]);
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const FILTERS = [{ name: 'Schaltung', extensions: ['json'] }];
 
@@ -145,7 +153,7 @@ export function App() {
   // The engine runs inside the app, so there is nothing to wait for.
   useEffect(() => {
     api.info().then((info) => setPrecision(info.precision), () => {});
-    api.settings().then(setSettings, () => {});
+    api.settings().then(setSettings, () => {}).finally(() => setSettingsLoaded(true));
     void refreshVariables();
   }, [refreshVariables]);
 
@@ -240,7 +248,10 @@ export function App() {
     await refreshVariables();
   };
 
+  if (!settingsLoaded) return null;
+
   return (
+    <I18nContext.Provider value={i18n}>
     <div className={panel ? 'app panel-open' : 'app'}>
       <header className="topbar">
         <div className="wordmark">
@@ -555,5 +566,6 @@ export function App() {
         </span>
       </footer>
     </div>
+    </I18nContext.Provider>
   );
 }

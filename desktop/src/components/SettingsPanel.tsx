@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, DenominatorForm, Mode, Settings } from '../api';
+import type { BinomialForm, DenominatorForm, Language, Mode, Settings } from '../api';
+import { LANGUAGE_NAMES, useT } from '../i18n';
 
 interface Choice<T extends string> {
   value: T;
@@ -19,6 +20,11 @@ const MODE_HINTS: Record<Mode, string> = {
   imaginary: 'i ist die imaginäre Einheit, Ergebnisse dürfen komplex sein.',
   electronics: 'Schaltungsrechner: Eingaben werden wie in Physik gelesen.',
 };
+
+const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({
+  value,
+  label: LANGUAGE_NAMES[value],
+}));
 
 const BINOMIAL_CHOICES: Choice<BinomialForm>[] = [
   { value: 'auto', label: 'Automatisch' },
@@ -80,6 +86,7 @@ function Toggle(props: { checked: boolean; label: string; hint: string; onChange
  */
 export function SettingsPanel(props: { settings: Settings; error: string | null; onChange: (settings: Settings) => void }) {
   const { settings, onChange } = props;
+  const { t } = useT();
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => onChange({ ...settings, [key]: value });
 
   // Die Genauigkeit wird erst beim Verlassen des Feldes übernommen, nicht bei jeder Ziffer.
@@ -93,6 +100,11 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
 
   return (
     <div className="settings">
+      <section className="setting">
+        <h3>{t('settings.language')}</h3>
+        <Segmented choices={LANGUAGE_CHOICES} value={settings.language} onChange={(v) => set('language', v)} />
+      </section>
+
       <section className="setting">
         <h3>Modus</h3>
         <Segmented choices={MODE_CHOICES} value={settings.mode} onChange={(v) => set('mode', v)} />
@@ -173,7 +185,7 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
 
       {props.error && <p className="setting-error">{props.error}</p>}
 
-      <button className="setting-reset" onClick={() => onChange(DEFAULT_SETTINGS)}>
+      <button className="setting-reset" onClick={() => onChange({ ...DEFAULT_SETTINGS, language: settings.language })}>
         Standard wiederherstellen
       </button>
     </div>
