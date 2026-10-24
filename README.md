@@ -182,8 +182,8 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 
 | | |
 |---|---|
-| 📐 [`spec-si-rechner-v2.md`](spec-si-rechner-v2.md) | The specification (German) |
-| 🔀 [`migration-rust-tauri.md`](migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
+| 📐 [`docs/spec-si-rechner-v2.md`](docs/spec-si-rechner-v2.md) | The specification (German) |
+| 🔀 [`docs/migration-rust-tauri.md`](docs/migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
 | 🧪 [`docs/phase0-findings.md`](docs/phase0-findings.md) | Results of the early library spikes (German, historical) |
 
 Code and comments are in English. The interface is available in English (the

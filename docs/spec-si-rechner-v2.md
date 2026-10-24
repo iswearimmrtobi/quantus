@@ -173,7 +173,7 @@ POST /api/derive | /api/integrate   # oder als LaTeX-Kommando \frac{d}{dx} im Ev
 - [x] Spike: Indriya-Unit-Arithmetik (kg × m/s² → prüfen, ob/wie N erkannt wird)
 - [x] Spike: Symjas eingebauten TeX-Export testen — brauchbar oder Eigenbau?
 - **Meilenstein:** Beide Libraries laufen im selben Projekt, Erkenntnisse dokumentiert
-  → siehe [docs/phase0-findings.md](docs/phase0-findings.md)
+  → siehe [phase0-findings.md](phase0-findings.md)
 
 ### Phase 1 — Kern: PhysicalQuantity *(~1–2 Wochen nebenbei)* — **erledigt (2026-08-03)**
 - [x] `PhysicalQuantity`-Klasse (IExpr + Unit) mit +, −, ×, ÷, ^, √
