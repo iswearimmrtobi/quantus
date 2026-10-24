@@ -8,7 +8,8 @@
 > eigene Einheiten-Tabelle statt Indriya), Frontend als Tauri-App mit denselben React/MathLive-
 > Quellen, Aufruf der Engine über Tauri-Befehle statt REST. Damit entfallen N2a (jlink-JRE) und
 > vorerst N4 (self-hosted Service; ein dünnes axum-Crate über `quantus-core` bliebe möglich).
-> Plan und Befunde: [migration-rust-tauri.md](migration-rust-tauri.md).
+> Der Migrationsplan und die Befunde stehen im Git-Verlauf (`docs/migration-rust-tauri.md`, entfernt 2026-10-24);
+> offene Punkte in [plans.md](plans.md).
 
 ---
 
@@ -173,7 +174,7 @@ POST /api/derive | /api/integrate   # oder als LaTeX-Kommando \frac{d}{dx} im Ev
 - [x] Spike: Indriya-Unit-Arithmetik (kg × m/s² → prüfen, ob/wie N erkannt wird)
 - [x] Spike: Symjas eingebauten TeX-Export testen — brauchbar oder Eigenbau?
 - **Meilenstein:** Beide Libraries laufen im selben Projekt, Erkenntnisse dokumentiert
-  → siehe [phase0-findings.md](phase0-findings.md)
+  → Befunde im Git-Verlauf (`docs/phase0-findings.md`, entfernt 2026-10-24)
 
 ### Phase 1 — Kern: PhysicalQuantity *(~1–2 Wochen nebenbei)* — **erledigt (2026-08-03)**
 - [x] `PhysicalQuantity`-Klasse (IExpr + Unit) mit +, −, ×, ÷, ^, √

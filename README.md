@@ -185,15 +185,15 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 | 🧪 [`docs/testing.md`](docs/testing.md) | Every test in the repository and how to run it |
 | 🗺️ [`docs/plans.md`](docs/plans.md) | Open work and plans |
 | 📐 [`docs/spec-si-rechner-v2.md`](docs/spec-si-rechner-v2.md) | The specification (German) |
-| 🔀 [`docs/migration-rust-tauri.md`](docs/migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
-| 🧪 [`docs/phase0-findings.md`](docs/phase0-findings.md) | Results of the early library spikes (German, historical) |
+| ⚡ [`docs/electronics-module.md`](docs/electronics-module.md) | The specification of the electronics mode |
+| 🚧 [`docs/unsupported-inputs.md`](docs/unsupported-inputs.md) | What the engine supports and its known limits |
 | 🎨 [`docs/quantus-ui-v2.html`](docs/quantus-ui-v2.html) | The UI mockup the desktop styles are based on |
 
 Code and comments are in English. The interface is available in English (the
 default) and German; the texts live in `desktop/src/i18n/` and, for the
 electronics module, in `crates/quantus-core/src/electro/`. The engine's own
-parser and algebra messages are English only. The project documentation (spec,
-findings) is in German.
+parser and algebra messages are English only. The specification is in German;
+the other documentation is in English.
 
 ## 📜 License
 
