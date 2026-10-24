@@ -37,8 +37,8 @@
     ],
     "category": "Education",
     "copyright": "Tobias Schmidt",
-    "shortDescription": "SI-Einheiten-Rechner mit LaTeX-Ein- und Ausgabe",
-    "longDescription": "Taschenrechner für physikalische Berechnungen: rechnet dimensionell korrekt mit SI-Einheiten, nimmt LaTeX entgegen und gibt den Rechenweg als LaTeX zurück.",
+    "shortDescription": "SI unit calculator with LaTeX input and output",
+    "longDescription": "Calculator for physics that keeps SI units dimensionally consistent, takes LaTeX as input and returns the working as LaTeX.",
     "linux": {
       "deb": {
         "desktopTemplate": "packaging/quantus.desktop"

@@ -2,7 +2,7 @@
   "name": "quantus-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Quantus — SI-Rechner als Desktop-App (Tauri-Frontend zur Rust-Engine)",
+  "description": "Quantus: an SI unit calculator as a desktop app (Tauri frontend for the Rust engine)",
   "author": "Tobias Schmidt",
   "scripts": {
     "dev": "tauri dev",
