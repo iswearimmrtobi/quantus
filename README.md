@@ -183,6 +183,7 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 | | |
 |---|---|
 | 🧪 [`docs/testing.md`](docs/testing.md) | Every test in the repository and how to run it |
+| 🗺️ [`docs/plans.md`](docs/plans.md) | Open work and plans |
 | 📐 [`docs/spec-si-rechner-v2.md`](docs/spec-si-rechner-v2.md) | The specification (German) |
 | 🔀 [`docs/migration-rust-tauri.md`](docs/migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
 | 🧪 [`docs/phase0-findings.md`](docs/phase0-findings.md) | Results of the early library spikes (German, historical) |
