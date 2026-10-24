@@ -89,7 +89,7 @@ history panel keep track of the session.
 | 🐧 **Linux** | WebKitGTK 4.1 and the usual GTK development packages, see the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) |
 
 ```sh
-cargo test --workspace   # engine tests, golden files and Tauri IPC tests
+cargo test --workspace   # engine tests, golden files and Tauri IPC tests (see docs/testing.md)
 
 cd desktop
 npm install              # once; also copies the MathLive fonts to public/fonts
@@ -182,6 +182,7 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 
 | | |
 |---|---|
+| 🧪 [`docs/testing.md`](docs/testing.md) | Every test in the repository and how to run it |
 | 📐 [`docs/spec-si-rechner-v2.md`](docs/spec-si-rechner-v2.md) | The specification (German) |
 | 🔀 [`docs/migration-rust-tauri.md`](docs/migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
 | 🧪 [`docs/phase0-findings.md`](docs/phase0-findings.md) | Results of the early library spikes (German, historical) |
