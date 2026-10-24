@@ -185,6 +185,7 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 | 📐 [`docs/spec-si-rechner-v2.md`](docs/spec-si-rechner-v2.md) | The specification (German) |
 | 🔀 [`docs/migration-rust-tauri.md`](docs/migration-rust-tauri.md) | Plan and findings of the move to Rust and Tauri (German) |
 | 🧪 [`docs/phase0-findings.md`](docs/phase0-findings.md) | Results of the early library spikes (German, historical) |
+| 🎨 [`docs/quantus-ui-v2.html`](docs/quantus-ui-v2.html) | The UI mockup the desktop styles are based on |
 
 Code and comments are in English. The interface is available in English (the
 default) and German; the texts live in `desktop/src/i18n/` and, for the
