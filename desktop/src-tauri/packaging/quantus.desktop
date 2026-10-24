@@ -7,6 +7,6 @@ Exec={{exec}}
 Icon={{icon}}
 Keywords=Rechner;Physik;SI;LaTeX;Calculator;Physics;
 Name={{name}}
-StartupWMClass=de.quantus.desktop
+StartupWMClass=dev.tobifrosch.quantus
 Terminal=false
 Type=Application
