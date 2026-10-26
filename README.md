@@ -87,6 +87,7 @@ history panel keep track of the session.
 | 🦀 **Rust** | stable, edition 2021 |
 | 🟢 **Node** | 20 or newer |
 | 🐧 **Linux** | WebKitGTK 4.1 and the usual GTK development packages, see the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) |
+| 🪟 **Windows** | the MSVC build tools and WebView2 (built into Windows 10 and 11), same link |
 
 ```sh
 cargo test --workspace   # engine tests, golden files and Tauri IPC tests (see docs/testing.md)
@@ -95,7 +96,7 @@ cd desktop
 npm install              # once; also copies the MathLive fonts to public/fonts
 npm run dev              # Vite dev server + Tauri window with hot reload
 npm run typecheck        # check the TypeScript
-npm run bundle           # build the AppImage and .deb
+npm run bundle           # build the AppImage and .deb (on Windows: .exe and .msi)
 ```
 
 > 💡 **Tip:** `npm install` has to run in `desktop/`, not in the repository root.
@@ -115,6 +116,13 @@ npm run bundle           # build the AppImage and .deb
 cd desktop && npm run bundle
 ../target/release/bundle/appimage/Quantus_0.1.0_amd64.AppImage
 ```
+
+On Windows the same command builds an NSIS installer (`bundle/nsis/*.exe`) and an
+`.msi` (`bundle/msi/`). If WebView2 is missing, the installer downloads it. You don't
+need a Windows machine for this: the *Windows build* workflow
+(`.github/workflows/windows.yml`) runs the tests and builds both installers on every
+`v*` tag, or by hand from the Actions tab, and attaches them to the run as the
+`quantus-windows` artifact.
 
 </details>
 
