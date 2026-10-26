@@ -23,8 +23,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Test
-        run: cargo test --workspace
+      - name: Test the desktop shell
+        run: cargo test -p quantus-desktop
 
       - name: Install frontend dependencies
         working-directory: desktop

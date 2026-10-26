@@ -120,7 +120,7 @@ cd desktop && npm run bundle
 On Windows the same command builds an NSIS installer (`bundle/nsis/*.exe`) and an
 `.msi` (`bundle/msi/`). If WebView2 is missing, the installer downloads it. You don't
 need a Windows machine for this: the *Windows build* workflow
-(`.github/workflows/windows.yml`) runs the tests and builds both installers on every
+(`.github/workflows/windows.yml`) runs the desktop tests and builds both installers on every
 `v*` tag, or by hand from the Actions tab, and attaches them to the run as the
 `quantus-windows` artifact.
 
