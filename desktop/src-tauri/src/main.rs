@@ -52,7 +52,23 @@ fn system_is_german() -> bool {
     ["LC_ALL", "LC_MESSAGES", "LANG"]
         .iter()
         .find_map(|name| std::env::var(name).ok().filter(|value| !value.is_empty()))
+        .or_else(system_locale)
         .is_some_and(|value| value.starts_with("de"))
+}
+
+/// Windows does not set `LANG`; the user locale (`de-DE`, `en-US`, …) stands in for it.
+#[cfg(windows)]
+fn system_locale() -> Option<String> {
+    use windows_sys::Win32::Globalization::GetUserDefaultLocaleName;
+    let mut name = [0u16; 85]; // LOCALE_NAME_MAX_LENGTH
+    let written = unsafe { GetUserDefaultLocaleName(name.as_mut_ptr(), name.len() as i32) };
+    // `written` counts the terminating NUL; 0 means the call failed.
+    (written > 1).then(|| String::from_utf16_lossy(&name[..written as usize - 1]))
+}
+
+#[cfg(not(windows))]
+fn system_locale() -> Option<String> {
+    None
 }
 
 /// The engine lives in the process, so what can still fail is the shell itself (no display, no
