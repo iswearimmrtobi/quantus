@@ -34,12 +34,12 @@ MIT was chosen.
 
 | Commit | Change |
 |---|---|
-| `0e3577a` | Translated the remaining German metadata (`package.json` description, `tauri.conf.json` short and long description, a `.gitignore` comment). The German search keywords in the `.desktop` file stay, so German users still find the app. |
-| `0962476` | App identifier `de.quantus.desktop` → `dev.tobifrosch.quantus` (the old one implied owning `quantus.de`). This moves the app's config directory, which is fine before a release. |
-| `9646214` | Fixed the failing Cauchy-integral golden case, see below. |
-| `4c1e395` | `docs/testing.md`: every test and how to run it. |
-| `5124228` | `docs/plans.md`: open work. |
-| `978cff6` | Removed finished docs: `phase0-findings.md` (old Kotlin library spikes), `algebra-simplification-plan.md` (implemented), `migration-rust-tauri.md` (migration finished; its open manual checks moved to `plans.md`). Links in the README and the spec updated. |
+| `d95dace` | Translated the remaining German metadata (`package.json` description, `tauri.conf.json` short and long description, a `.gitignore` comment). The German search keywords in the `.desktop` file stay, so German users still find the app. |
+| `a7bfe22` | App identifier `de.quantus.desktop` → `dev.tobifrosch.quantus` (the old one implied owning `quantus.de`). This moves the app's config directory, which is fine before a release. |
+| `13d3df9` | Fixed the failing Cauchy-integral golden case, see below. |
+| `0f25e88` | `docs/testing.md`: every test and how to run it. |
+| `8a29219` | `docs/plans.md`: open work. |
+| `81d6097` | Removed finished docs: `phase0-findings.md` (old Kotlin library spikes), `algebra-simplification-plan.md` (implemented), `migration-rust-tauri.md` (migration finished; its open manual checks moved to `plans.md`). Links in the README and the spec updated. |
 
 The test cases in `test/` and `crates/quantus-core/tests/golden/` stay in the repository: they show
 the engine is tested and let others reproduce runs. The largest file is 0.5 MB, far below GitHub's
@@ -59,6 +59,13 @@ changed. The local git config already used the no-reply address.
   ```sh
   git push --force-with-lease origin master
   ```
+
+- **Do not pull before this push.** `git pull`, or RustRover's *Update Project* after a rejected
+  push, rebases the local commits onto the old history on GitHub and undoes the rewrite. This
+  happened once on 2026-10-24, and the rewrite had to be run again. A rejected push is expected
+  here; `--force-with-lease` is the answer to it, not a pull.
+- After the push, check that `git log --format='%ae%n%ce' | sort -u` shows only the no-reply
+  address and `noreply@github.com` (GitHub's committer address for commits made in its web UI).
 
 ## The failing Cauchy-integral test
 
