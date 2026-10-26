@@ -19,11 +19,13 @@ fn window() -> WebviewWindow<MockRuntime> {
 }
 
 fn invoke(window: &WebviewWindow<MockRuntime>, command: &str, body: Value) -> Result<Value, Value> {
+    // The app's own origin; any other one is refused by the permission check.
+    let origin = if cfg!(windows) { "http://tauri.localhost" } else { "tauri://localhost" };
     let request = InvokeRequest {
         cmd: command.into(),
         callback: tauri::ipc::CallbackFn(0),
         error: tauri::ipc::CallbackFn(1),
-        url: "tauri://localhost".parse().unwrap(),
+        url: origin.parse().unwrap(),
         body: tauri::ipc::InvokeBody::Json(body),
         headers: Default::default(),
         invoke_key: tauri::test::INVOKE_KEY.to_string(),
