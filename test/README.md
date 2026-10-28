@@ -97,10 +97,8 @@ the case itself is wrong.
 
 ## Latest results
 
-The 3,000 `complex` cases were added after this run and have been run on their own: 3,000 of 3,000 pass.
-
-Full run (2026-10-23, 8 workers, 5 s limit, 216 s): **99,206 of 100,000 pass (99.21%)**. All 97,646
-cases for implemented features pass. The 794 that do not are all `not-implemented` cases that the
+Full run (2026-10-28, 8 workers, 5 s limit, 71 s): **102,336 of 103,000 pass (99.36%)**. All 100,646
+cases for implemented features pass. The 664 that do not are all `not-implemented` cases that the
 generator marks as gaps, listed one per line in `test/results/failures.jsonl`:
 
 | Category | Outcome | Cases |
@@ -108,6 +106,5 @@ generator marks as gaps, listed one per line in `test/results/failures.jsonl`:
 | derivatives | ERROR (partial derivatives, `dx` notation not parsed) | 252 |
 | equations | ERROR | 263 |
 | integrals | ERROR | 149 |
-| integrals | TIMEOUT (5 s) | 130 |
 
 The full breakdown is in `test/results/summary.md`.
