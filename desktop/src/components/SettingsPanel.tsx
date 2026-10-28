@@ -69,6 +69,19 @@ export function Segmented<T extends string>(props: { choices: Choice<T>[]; value
   );
 }
 
+/** A dropdown for choices too many or too long to fit side by side in the panel. */
+function Dropdown<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
+  return (
+    <select className="setting-select" value={props.value} onChange={(event) => props.onChange(event.target.value as T)}>
+      {props.choices.map((choice) => (
+        <option key={choice.value} value={choice.value}>
+          {choice.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function Toggle(props: { checked: boolean; label: string; hint: string; onChange: (checked: boolean) => void }) {
   return (
     <label className="setting-toggle">
@@ -108,7 +121,7 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
 
       <section className="setting">
         <h3>{t('settings.mode')}</h3>
-        <Segmented choices={modeChoices(t)} value={settings.mode} onChange={(v) => set('mode', v)} />
+        <Dropdown choices={modeChoices(t)} value={settings.mode} onChange={(v) => set('mode', v)} />
         <p className="setting-hint">{t(`mode.${settings.mode}.hint`)}</p>
       </section>
 

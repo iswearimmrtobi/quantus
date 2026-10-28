@@ -711,6 +711,20 @@ code {
   background: var(--cyan-dim);
   color: var(--text);
 }
+.setting-select {
+  width: 100%;
+  padding: 5px 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.setting-select:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
 .setting-toggle {
   display: flex;
   align-items: flex-start;
