@@ -562,3 +562,16 @@ fn polynomial_division_multiplies_back_before_subtracting() {
     assert_eq!(detailed[at + 1].1, "Partial quotient x^{2}");
     assert!(!working(&d, "zeros", StepDetail::Standard).iter().any(|(_, text)| text == "Multiply back"));
 }
+
+#[test]
+fn the_second_derivative_test_and_the_y_values_put_x_in() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x^3-3x^2+2");
+    let brief = working(&d, "extrema", StepDetail::Brief);
+    let standard = working(&d, "extrema", StepDetail::Standard);
+    assert!(brief.iter().any(|(latex, _)| latex == "f''(0) = -6 < 0"));
+    assert!(!standard.iter().any(|(latex, _)| latex == "f''(0) = -6 < 0"));
+    assert!(standard.iter().any(|(latex, _)| latex == r"f''(0) = 6 \cdot 0 - 6 = -6 < 0"));
+    assert!(standard.contains(&(r"f(2) = 2^{3} - 3 \cdot 2^{2} + 2 = -2".to_string(), "The y-value".to_string())));
+    assert!(working(&d, "inflection", StepDetail::Standard).iter().any(|(latex, _)| latex == r"f(1) = 1^{3} - 3 \cdot 1^{2} + 2 = 0"));
+}

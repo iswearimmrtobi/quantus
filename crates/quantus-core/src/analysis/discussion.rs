@@ -15,12 +15,12 @@ use super::expr::{Expr, Fn};
 use super::integrate::{antiderivative, IntegrateContext};
 use super::interval::{simplest_between, Bound, Domain, Interval, PeriodicSet, Point};
 use super::limits::{approximating_curve, behaviour, infinity_working, oblique, pole, pole_working, Approach, Behaviour, LimitContext};
-use super::rules::{step, AnalysisRule};
+use super::rules::{put_in, step, written_out, AnalysisRule};
 use super::simplify::{display, is_zero, is_zero_numeric, simplify};
 use super::solve::{merge_families, solve_zero, Root, SolveContext, Solutions};
 use crate::eval::Step;
 use crate::num::Value;
-use crate::settings::{Language, Settings};
+use crate::settings::{Language, Settings, StepDetail};
 use crate::text::msg;
 use crate::Result;
 
@@ -679,11 +679,10 @@ impl Sketch<'_> {
                     let kind = if v.approx < 0.0 { PointKind::Max } else { PointKind::Min };
                     let relation = if v.approx < 0.0 { "< 0" } else { "> 0" };
                     let name = if kind == PointKind::Max { msg!("maximum", "Hochpunkt") } else { msg!("minimum", "Tiefpunkt") };
-                    steps.push(step(
-                        AnalysisRule::SecondDerivativeTest,
-                        msg!("Sufficient condition: f''({}) {} gives a {}", "Hinreichende Bedingung: f''({}) {} ergibt einen {}", x_text, relation, name),
-                        format!("f''({x_text}) = {} {relation}", v.to_latex(self.ctx.digits)),
-                    ));
+                    let text = msg!("Sufficient condition: f''({}) {} gives a {}", "Hinreichende Bedingung: f''({}) {} ergibt einen {}", x_text, relation, name);
+                    let value = v.to_latex(self.ctx.digits);
+                    let short = step(AnalysisRule::SecondDerivativeTest, text, format!("f''({x_text}) = {value} {relation}"));
+                    steps.extend(self.with_value_put_in(short, f2, x0, &format!("f''({x_text}) = "), &format!(" = {value} {relation}")));
                     Some(kind)
                 }
                 _ => {
@@ -713,6 +712,9 @@ impl Sketch<'_> {
             };
             let Some(kind) = kind else { continue };
             let Some(y) = self.value_at(&self.f, x0) else { continue };
+            if candidate.family.is_none() {
+                steps.extend(self.y_value_line(x0, &y));
+            }
             match &candidate.family {
                 Some(family) => families.push((kind, family.clone(), y)),
                 None => lines.push(self.mark(kind, x0, &y)),
@@ -722,6 +724,25 @@ impl Sketch<'_> {
         lines.extend(self.boundary_points(f1));
         let result = if lines.is_empty() { text(&msg!("No extrema", "Keine Extrempunkte")) } else { lines.join(", \\quad ") };
         self.section("extrema", steps, Some(result), complete)
+    }
+
+    /// `short`, written out from Standard on with `x` put into `g`: `f''(0) = 6 \cdot 0 - 6 = -6 < 0`.
+    fn with_value_put_in(&self, short: Step, g: &Expr, x: &Point, before: &str, after: &str) -> Vec<Step> {
+        match &x.exact {
+            Some(at) if !g.is_constant() => {
+                let long = Step { latex: format!("{before}{}{after}", put_in(g, at, self.ctx.var)), ..short.clone() };
+                written_out(short, long).to_vec()
+            }
+            _ => vec![short],
+        }
+    }
+
+    /// The y-value of a point worked out (Standard): `f(2) = 2^{3} - 3 \cdot 2^{2} + 2 = -2`.
+    fn y_value_line(&self, x: &Point, y: &Point) -> Option<Step> {
+        let at = x.exact.as_ref()?;
+        let x_text = x.to_latex(self.ctx.digits);
+        let latex = format!("f({x_text}) = {} = {}", put_in(&self.f, at, self.ctx.var), y.to_latex(self.ctx.digits));
+        Some(step(AnalysisRule::Simplify, msg!("The y-value", "Der y-Wert"), latex).with_level(StepDetail::Standard))
     }
 
     /// Whether `g` is defined at `x` (its own domain, which may be smaller than f's).
@@ -790,11 +811,10 @@ impl Sketch<'_> {
             let third = if self.domain_of_defined(f3, x0) { self.value_at(f3, x0) } else { None };
             let inflects = match third.as_ref().filter(|v| !(v.exact.as_ref().is_some_and(is_zero) || v.approx == 0.0)) {
                 Some(v) => {
-                    steps.push(step(
-                        AnalysisRule::ThirdDerivativeTest,
-                        msg!("Sufficient condition: f'''({}) ≠ 0", "Hinreichende Bedingung: f'''({}) ≠ 0", x_text),
-                        format!("f'''({x_text}) = {} \\neq 0", v.to_latex(self.ctx.digits)),
-                    ));
+                    let text = msg!("Sufficient condition: f'''({}) ≠ 0", "Hinreichende Bedingung: f'''({}) ≠ 0", x_text);
+                    let value = v.to_latex(self.ctx.digits);
+                    let short = step(AnalysisRule::ThirdDerivativeTest, text, format!("f'''({x_text}) = {value} \\neq 0"));
+                    steps.extend(self.with_value_put_in(short, f3, x0, &format!("f'''({x_text}) = "), &format!(" = {value} \\neq 0")));
                     true
                 }
                 None => {
@@ -825,6 +845,9 @@ impl Sketch<'_> {
                 ));
             }
             let Some(y) = self.value_at(&self.f, x0) else { continue };
+            if candidate.family.is_none() {
+                steps.extend(self.y_value_line(x0, &y));
+            }
             match &candidate.family {
                 Some(family) => families.push((kind, family.clone(), y)),
                 None => lines.push(self.mark(kind, x0, &y)),
