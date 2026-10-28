@@ -764,3 +764,11 @@ fn a_negative_leading_term_in_the_denominator_is_flipped_with_minus_one() {
         ]
     );
 }
+
+#[test]
+fn writing_as_a_binomial_first_recognises_the_square() {
+    let detailed = rows("x^2+6x+9", StepDetail::Detailed);
+    assert_eq!(detailed[0], row(r"x^{2} + 2 \cdot x \cdot 3 + 3^{2}", "Recognise a² + 2ab + b² with a = x, b = 3"));
+    assert_eq!(detailed[1].0, "(x + 3)^{2}");
+    assert_eq!(rows("x^2+6x+9", StepDetail::Standard).len(), 1);
+}

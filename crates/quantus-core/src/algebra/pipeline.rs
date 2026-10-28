@@ -1147,7 +1147,23 @@ fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite
         Some((factored, identity)) => {
             let after = factored.to_node();
             let explanation = format!("Write as a binomial: {}", identity.description());
-            (after.clone(), AlgebraStep::new(root.clone(), after, explanation, Some(RuleId::ApplyBinomialIdentity)))
+            let step = AlgebraStep::new(root.clone(), after.clone(), explanation.clone(), Some(RuleId::ApplyBinomialIdentity));
+            // The square recognised in the polynomial: x^2 + 2 \cdot x \cdot 3 + 3^2.
+            let recognised = match factored.factors.as_slice() {
+                [square] if square.exp == 2 && factored.coeff == dashu::rational::RBig::ONE => {
+                    crate::algebra::binomial::binomial_formula_line(&square.base, 2, identity)
+                }
+                _ => None,
+            };
+            let step = match recognised {
+                Some((line, formula, values)) => {
+                    let pattern = formula.split(" = ").nth(1).unwrap_or(&formula).to_string();
+                    let text = format!("Recognise {pattern} with {values}");
+                    step.with_working(vec![AlgebraStep::line(root, line, text, StepDetail::Detailed)], explanation)
+                }
+                None => step,
+            };
+            (after, step)
         }
         None if !may_complete => return None,
         None => {

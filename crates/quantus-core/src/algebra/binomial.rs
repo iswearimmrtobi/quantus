@@ -579,9 +579,10 @@ fn signed_terms(poly: &Poly) -> Vec<(bool, Node)> {
 // EXPANSION DIRECTION
 // ---------------------------------------------------------------------------
 
-/// The binomial formula with `a` and `b` put in: `x^2 - 2 \cdot x \cdot 3 + 3^2` for `(x - 3)^2`.
-/// None when `a` and `b` are plain letters, as then the line is the formula itself.
-fn binomial_formula_line(base: &Poly, exp: usize, identity: BinomialIdentity) -> Option<(Node, String)> {
+/// The binomial formula with `a` and `b` put in: `x^2 - 2 \cdot x \cdot 3 + 3^2` for `(x - 3)^2`,
+/// with the formula and the values (`a = x, b = 3`). None when `a` and `b` are plain letters, as
+/// then the line is the formula itself.
+pub(crate) fn binomial_formula_line(base: &Poly, exp: usize, identity: BinomialIdentity) -> Option<(Node, String, String)> {
     let [t0, t1] = &base.terms[..] else { return None };
     let a = Poly::from_term(t0.coeff.clone(), t0.monomial.clone());
     let b = Poly::from_term(t1.coeff.clone().abs(), t1.monomial.clone());
@@ -616,7 +617,7 @@ fn binomial_formula_line(base: &Poly, exp: usize, identity: BinomialIdentity) ->
     };
     let (a_latex, b_latex) = (crate::latex::serializer::expression(&a_node), crate::latex::serializer::expression(&b_node));
     let formula = identity.description().split(": ").nth(1).unwrap_or(identity.description());
-    Some((signed_terms_sum(terms)?, format!("{formula} with a = {a_latex}, b = {b_latex}")))
+    Some((signed_terms_sum(terms)?, formula.to_string(), format!("a = {a_latex}, b = {b_latex}")))
 }
 
 /// Expands a binomial power `(A + B)^n` or `(A - B)^n` for n in {2, 3}.
@@ -738,8 +739,8 @@ pub fn expand_binomial_node(node: &Node) -> Option<AlgebraStep> {
                             );
                             let step = AlgebraStep::new(node.clone(), after_node, explanation, Some(rule));
                             return Some(match binomial_formula_line(&poly_base, exp, identity) {
-                                Some((line, text)) => step.with_working(
-                                    vec![AlgebraStep::line(node, line, text, StepDetail::Standard)],
+                                Some((line, formula, values)) => step.with_working(
+                                    vec![AlgebraStep::line(node, line, format!("{formula} with {values}"), StepDetail::Standard)],
                                     "Work out the terms",
                                 ),
                                 None => step,
