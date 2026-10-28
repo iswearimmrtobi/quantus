@@ -149,6 +149,13 @@ pub fn simplify_node(node: &Node) -> Result<SimplificationResult> {
 
 /// Runs stages 2–13 with explicit termination limits.
 pub fn simplify_node_with(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
+    if let Some(result) = crate::algebra::radicals::simplify_with_roots(node, |atomized| simplify_rational(atomized, config)) {
+        return result;
+    }
+    simplify_rational(node, config)
+}
+
+fn simplify_rational(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
     let mut pipeline = Pipeline::new(node, config)?;
     pipeline.run();
     Ok(pipeline.finish())

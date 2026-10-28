@@ -21,6 +21,7 @@ pub enum RuleId {
     CollectLikeTerms,
     FactorPolynomial,
     CancelCommonFactors,
+    RationalizeDenominator,
     NormalizeExpression,
 }
 
@@ -39,6 +40,7 @@ impl RuleId {
             Self::CollectLikeTerms => "COLLECT_LIKE_TERMS",
             Self::FactorPolynomial => "FACTOR_POLYNOMIAL",
             Self::CancelCommonFactors => "CANCEL_COMMON_FACTORS",
+            Self::RationalizeDenominator => "RATIONALIZE_DENOMINATOR",
             Self::NormalizeExpression => "NORMALIZE_EXPRESSION",
         }
     }

@@ -17,7 +17,7 @@
 //! 14. Verifying mathematical equivalence across all valid test cases.
 
 use quantus_core::algebra::domain::format_restrictions_plain;
-use quantus_core::algebra::steps::SimplificationResult;
+use quantus_core::algebra::steps::{RuleId, SimplificationResult};
 use quantus_core::algebra::verify::verify_equivalence;
 use quantus_core::algebra::simplify;
 use quantus_core::latex::ast::Node;
@@ -516,11 +516,29 @@ fn cat13_unsupported_expressions_handled_gracefully() {
 
 #[test]
 fn cat13_non_polynomial_denominators_are_not_dropped() {
-    // Combining over the LCD once read these denominators as 1: 1/√a + 1 became 2.
-    for input in [r"\frac{1}{\sqrt{a}} + 1", r"\frac{1}{\sin(x)} + 1", r"\frac{1}{x + \sqrt{a}} + \frac{1}{x}"] {
+    // Combining over the LCD once read this denominator as 1: 1/sin(x) + 1 became 2.
+    let input = r"\frac{1}{\sin(x)} + 1";
+    assert_eq!(serializer::expression(&run(input).node), serializer::expression(&parse(input)));
+}
+
+#[test]
+fn cat13_square_roots_are_rationalized_and_collected() {
+    let cases = [
+        (r"\frac{1}{\sqrt{a}} + \frac{\sqrt{a}}{a}", r"\frac{2\sqrt{a}}{a}", "a != 0"),
+        (r"\frac{1}{\sqrt{a}} + 1", r"\frac{a + \sqrt{a}}{a}", "a != 0"),
+        (r"\sqrt{a} + \sqrt{a}", r"2\sqrt{a}", ""),
+        (r"\frac{x}{\sqrt{x}}", r"\sqrt{x}", "x != 0"),
+        (r"\frac{1}{x + \sqrt{a}} + \frac{1}{x}", r"\frac{2x + \sqrt{a}}{x(x + \sqrt{a})}", r"x != 0, \sqrt{a} + x != 0"),
+    ];
+    for (input, expected, domain) in cases {
         let res = run(input);
-        assert_eq!(serializer::expression(&res.node), serializer::expression(&parse(input)), "{input}");
+        assert_eq!(serializer::algebraic_expression(&res.node), expected, "{input}");
+        assert_eq!(restrictions(&res), domain, "{input}");
     }
+
+    let res = run(r"\frac{1}{\sqrt{a}} + \frac{\sqrt{a}}{a}");
+    assert_eq!(res.steps[0].rule, Some(RuleId::RationalizeDenominator));
+    assert!(res.steps.iter().all(|step| !step.explanation.contains('√')), "{:?}", res.steps);
 }
 
 // ---------------------------------------------------------------------------------------------
