@@ -8,6 +8,8 @@ use quantus_core::units::{find, latex, registry, Unit};
 use quantus_core::{PhysicalQuantity, QuantusError, Result};
 use serde_json::Value as Json;
 
+mod common;
+
 fn cases() -> Vec<Json> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/quantity_cases.json");
     let root: Json = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
@@ -75,43 +77,45 @@ fn value_text(r: &dashu::rational::RBig) -> String {
 
 #[test]
 fn quantity_cases_match_the_kotlin_implementation() {
-    for case in cases() {
-        let name = case["name"].as_str().unwrap();
-        let expect = &case["expect"];
-        let outcome = run(&case);
+    common::check_all(&cases(), |case| case["name"].as_str().unwrap().to_string(), check_case);
+}
 
-        if let Some(message) = expect["error"].as_str() {
-            let error = outcome.expect_err(name);
-            assert_eq!(error.to_string(), message, "{name}");
-            let kind_ok = match expect["errorKind"].as_str().unwrap() {
-                "DimensionMismatchException" => matches!(error, QuantusError::DimensionMismatch(_)),
-                _ => matches!(error, QuantusError::Other(_)),
-            };
-            assert!(kind_ok, "{name}: error kind of {error:?}");
-            continue;
-        }
+fn check_case(case: &Json) {
+    let name = case["name"].as_str().unwrap();
+    let expect = &case["expect"];
+    let outcome = run(case);
 
-        // Kotlin divides by zero into Symja's ComplexInfinity, which is merely not real. Here
-        // the division is refused up front (see the plan's findings for M3).
-        if expect["exact"].is_null() && expect["decimal"].is_null() && case["op"] == "div" {
-            let error = outcome.expect_err(name);
-            assert_eq!(error.to_string(), "Division by zero.", "{name}");
-            continue;
-        }
+    if let Some(message) = expect["error"].as_str() {
+        let error = outcome.expect_err(name);
+        assert_eq!(error.to_string(), message, "{name}");
+        let kind_ok = match expect["errorKind"].as_str().unwrap() {
+            "DimensionMismatchException" => matches!(error, QuantusError::DimensionMismatch(_)),
+            _ => matches!(error, QuantusError::Other(_)),
+        };
+        assert!(kind_ok, "{name}: error kind of {error:?}");
+        return;
+    }
 
-        let result = outcome.unwrap_or_else(|e| panic!("{name}: {e}"));
-        assert_eq!(registry::format(&result.unit), expect["unit"].as_str().unwrap(), "{name}: unit");
-        assert_eq!(latex::format(&result.unit), expect["unitLatex"].as_str().unwrap(), "{name}: latex");
-        assert_eq!(result.quantity_name(), expect["quantityName"].as_str(), "{name}: quantity name");
-        assert_eq!(result.dimension().to_string(), expect["dimension"].as_str().unwrap(), "{name}: dimension");
-        assert_eq!(result.is_dimensionless(), expect["isDimensionless"].as_bool().unwrap(), "{name}: dimensionless");
-        assert_eq!(exact(&result.value).as_deref(), expect["exact"].as_str(), "{name}: exact");
-        match expect["decimal"].as_str() {
-            Some(digits) => {
-                let decimal = result.decimal(50).unwrap_or_else(|e| panic!("{name}: {e}"));
-                assert_eq!(decimal.normalized().to_plain_string(), digits, "{name}: decimal");
-            }
-            None => assert!(matches!(result.decimal(50), Err(QuantusError::NotReal(_))), "{name}: decimal"),
+    // Kotlin divides by zero into Symja's ComplexInfinity, which is merely not real. Here
+    // the division is refused up front (see the plan's findings for M3).
+    if expect["exact"].is_null() && expect["decimal"].is_null() && case["op"] == "div" {
+        let error = outcome.expect_err(name);
+        assert_eq!(error.to_string(), "Division by zero.", "{name}");
+        return;
+    }
+
+    let result = outcome.unwrap_or_else(|e| panic!("{name}: {e}"));
+    assert_eq!(registry::format(&result.unit), expect["unit"].as_str().unwrap(), "{name}: unit");
+    assert_eq!(latex::format(&result.unit), expect["unitLatex"].as_str().unwrap(), "{name}: latex");
+    assert_eq!(result.quantity_name(), expect["quantityName"].as_str(), "{name}: quantity name");
+    assert_eq!(result.dimension().to_string(), expect["dimension"].as_str().unwrap(), "{name}: dimension");
+    assert_eq!(result.is_dimensionless(), expect["isDimensionless"].as_bool().unwrap(), "{name}: dimensionless");
+    assert_eq!(exact(&result.value).as_deref(), expect["exact"].as_str(), "{name}: exact");
+    match expect["decimal"].as_str() {
+        Some(digits) => {
+            let decimal = result.decimal(50).unwrap_or_else(|e| panic!("{name}: {e}"));
+            assert_eq!(decimal.normalized().to_plain_string(), digits, "{name}: decimal");
         }
+        None => assert!(matches!(result.decimal(50), Err(QuantusError::NotReal(_))), "{name}: decimal"),
     }
 }

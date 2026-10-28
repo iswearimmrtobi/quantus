@@ -66,8 +66,9 @@ These files replay those dumps, so the Rust engine is checked against what the o
 | `units_oracle.rs` | `units_symbols.json`, `units_format.json` | Every one- to three-character unit symbol (188,499 candidates) against Indriya: known or not, dimension, factor, offset, printed form; and 79 formatted units |
 | `electro.rs` | `electro.json` | The circuit calculator's JSON interface: request in, the fields of the response that must match |
 
-To add a case, add a line to the JSON file; the runner picks it up. `golden.rs` stops at the first
-case that fails, so a broken case hides every case after it in the file.
+To add a case, add a line to the JSON file; the runner picks it up. `golden.rs`, `latex_golden.rs`
+and `quantity_golden.rs` check every case and fail once at the end, listing each failing case with
+how long it took (`tests/common/mod.rs`).
 
 ### Algebra
 

@@ -28,15 +28,7 @@ so the cost is in building and evaluating the huge rationals, not in `exp`.
 4. Measure again. Target: each case under 0.2 s, with no change in digits (the golden expectations
    are 30 significant digits).
 
-## 2. Report every failing golden case, not just the first
-
-`golden.rs` runs all 254 cases of `evaluate.json` in one `#[test]` and panics at the first
-mismatch. The Cauchy-integral case had a wrong expectation from the day it was added, and because
-it failed, the 74 cases after it were never checked. Collect the failures in a list and fail once
-at the end, with every failing case and how long each case took. Do the same in `latex_golden.rs`
-and `quantity_golden.rs`.
-
-## 3. Manual checks left over from the Rust/Tauri migration
+## 2. Manual checks left over from the Rust/Tauri migration
 
 Verified in code and unit tests, but not yet by eye in the running app:
 
@@ -48,7 +40,7 @@ Verified in code and unit tests, but not yet by eye in the running app:
   and X11).
 - The rendering of the AppImage, run from a fresh directory.
 
-## 4. Later
+## 3. Later
 
 - Physical constants (c, h, G) and the remaining gaps in [unsupported-inputs.md](unsupported-inputs.md).
 - History and persistence of calculations.
