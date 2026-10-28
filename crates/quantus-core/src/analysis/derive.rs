@@ -43,10 +43,21 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
     let name = format!("{}({var})", derivative_name(order));
     let tex = |e: &Expr| e.to_latex(var);
 
+    let mut parts = Vec::new();
+    let rule = explain(&shown, var, settings, &mut parts, &name);
+    let (constant, rest) = split_constant(&shown);
+    let times_constant = constant.as_ref().map(|c| format!("{} \\cdot ", c.to_latex(var))).unwrap_or_default();
     let mut steps = Vec::new();
-    let rule = explain(&shown, var, settings, &mut steps);
+    steps.extend(parts);
     if let (AnalysisRule::SumRule, Expr::Sum(terms)) = (&rule, &shown) {
         steps.extend(term_by_term(terms, &name, var));
+    }
+    if let (AnalysisRule::ProductRule, Some((u, v, false))) = (rule, split_parts(&rest)) {
+        // The parts put into u' \cdot v + u \cdot v'.
+        let (du, dv) = (display(&derivative(&u), settings), display(&derivative(&v), settings));
+        let sum = format!("{} \\cdot {} + {} \\cdot {}", factor_tex(&du, var), factor_tex(&v, var), factor_tex(&u, var), factor_tex(&dv, var));
+        let put_in = if constant.is_some() { format!("{name} = {times_constant}\\left({sum}\\right)") } else { format!("{name} = {sum}") };
+        steps.push(step(AnalysisRule::ProductRule, msg!("Put in", "Einsetzen"), put_in).with_level(StepDetail::Detailed));
     }
     let line = match (&rule, &shown) {
         (AnalysisRule::SumRule, Expr::Sum(terms)) => {
@@ -148,7 +159,7 @@ fn rule_text(rule: AnalysisRule) -> String {
 }
 
 /// Pushes the parts of the outermost rule (u, v, the inner function) and returns that rule.
-fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) -> AnalysisRule {
+fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name: &str) -> AnalysisRule {
     let tex = |e: &Expr| e.to_latex(var);
     let shown_derivative = |e: &Expr| tex(&display(&derivative(e), settings));
     if e.is_constant() {
@@ -159,8 +170,15 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) -> A
         Expr::Sum(_) => AnalysisRule::SumRule,
         Expr::Product(_) => {
             let (constant, rest) = split_constant(e);
-            if constant.is_some() {
-                return explain(&rest, var, settings, steps);
+            if let Some(constant) = constant {
+                // Before the product rule the constant is set aside; the chain rule keeps it in its line.
+                if split_parts(&rest).is_some() {
+                    let c = constant.to_latex(var);
+                    let text = msg!("Constant factor rule: {} stays in front", "Faktorregel: {} bleibt als Faktor stehen", c);
+                    let latex = format!("{name} = {c} \\cdot \\left({}\\right)'", rest.to_latex(var));
+                    steps.push(step(AnalysisRule::FactorRule, text, latex).with_level(StepDetail::Standard));
+                }
+                return explain(&rest, var, settings, steps, name);
             }
             let Some((u, v, quotient)) = split_parts(e) else {
                 // Only denominators: the power rule on v^{-1} with the chain rule.
@@ -168,6 +186,10 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) -> A
                 inner_function(&Expr::product(factors.iter().map(inverted).collect()), var, settings, steps);
                 return AnalysisRule::ChainRule;
             };
+            if !quotient {
+                steps.extend(chain_for_part("u", &u, var, settings));
+                steps.extend(chain_for_part("v", &v, var, settings));
+            }
             let parts = format!(
                 "u = {}, \\quad v = {}, \\quad u' = {}, \\quad v' = {}",
                 tex(&u),
@@ -222,6 +244,57 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) -> A
 fn inner_function(u: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) {
     let latex = format!("u = {}, \\quad u' = {}", u.to_latex(var), display(&derivative(u), settings).to_latex(var));
     steps.push(step(AnalysisRule::ChainRule, msg!("Inner function", "Innere Funktion"), latex));
+}
+
+/// A function of an inner function, as `(outer, inner)` with the outer one in x: `e^{2x}` is
+/// `(e^x, 2x)`, `(x - 1)^{-3}` is `(x^{-3}, x - 1)`.
+fn chain_parts(e: &Expr) -> Option<(Expr, Expr)> {
+    match e {
+        Expr::Func(function, argument) if **argument != Expr::Var => Some((Expr::func(*function, Expr::Var), (**argument).clone())),
+        Expr::Pow(base, exponent) if exponent.is_constant() && **base != Expr::Var && !base.is_constant() => {
+            Some((Expr::pow(Expr::Var, (**exponent).clone()), (**base).clone()))
+        }
+        Expr::Pow(base, exponent) if base.is_constant() && **exponent != Expr::Var => Some((Expr::pow((**base).clone(), Expr::Var), (**exponent).clone())),
+        _ => None,
+    }
+}
+
+/// `e` in brackets when it is a sum, as a factor of a product.
+fn factor_tex(e: &Expr, var: &str) -> String {
+    let tex = e.to_latex(var);
+    if matches!(e, Expr::Sum(_)) || tex.starts_with('-') { format!("\\left({tex}\\right)") } else { tex }
+}
+
+/// The outer derivative at the inner function times the inner derivative, not yet simplified:
+/// `-3(x - 1)^{-4} \cdot 1`, `e^{2x} \cdot 2`.
+fn chain_product(outer: &Expr, inner: &Expr, var: &str, settings: &Settings) -> String {
+    let inner_derivative = factor_tex(&display(&derivative(inner), settings), var);
+    let outer_derivative = match outer {
+        // Powers keep their exponent as written, n - 1 included.
+        Expr::Pow(base, exponent) if **base == Expr::Var => {
+            let n = exponent.as_num().cloned().unwrap_or(RBig::ONE);
+            let lowered = Expr::Num(&n - RBig::ONE).to_latex(var);
+            let n_tex = factor_tex(&Expr::Num(n), var);
+            format!("{n_tex}({})^{{{lowered}}}", inner.to_latex(var))
+        }
+        _ => factor_tex(&display(&derivative(outer), settings).substitute(inner), var),
+    };
+    format!("{outer_derivative} \\cdot {inner_derivative}")
+}
+
+/// `p'` by the chain rule, for a part `p` of the product rule that needs it.
+fn chain_for_part(label: &str, part: &Expr, var: &str, settings: &Settings) -> Option<Step> {
+    let (outer, inner) = chain_parts(part)?;
+    let text = msg!(
+        "{}' by the chain rule: outer {}, inner u = {}, u' = {}",
+        "{}' mit der Kettenregel: äußere {}, innere u = {}, u' = {}",
+        label,
+        outer.to_latex("u"),
+        inner.to_latex(var),
+        display(&derivative(&inner), settings).to_latex(var)
+    );
+    let latex = format!("{label}' = {}", chain_product(&outer, &inner, var, settings));
+    Some(step(AnalysisRule::ChainRule, text, latex).with_level(StepDetail::Standard))
 }
 
 /// The constant factors of a product and the rest.
@@ -453,8 +526,10 @@ mod tests {
     #[test]
     fn the_working_names_the_rule_and_its_parts() {
         let d = derive(&expr("x^2 e^x"), 1, "x", &Settings::default());
-        let rules: Vec<_> = d.steps.iter().map(|s| s.rule.clone().unwrap()).collect();
+        let brief = crate::eval::calculator::shown_steps(&d.steps, StepDetail::Brief);
+        let rules: Vec<_> = brief.iter().map(|s| s.rule.clone().unwrap()).collect();
         assert_eq!(rules, ["PRODUCT_RULE", "PRODUCT_RULE", "SIMPLIFY"]);
+        let d = Derivation { steps: brief, ..d };
         assert_eq!(d.steps[0].latex, "u = x^{2}, \\quad v = e^{x}, \\quad u' = 2x, \\quad v' = e^{x}");
         assert_eq!(d.steps[1].latex, "f'(x) = u' \\cdot v + u \\cdot v' = 2xe^{x} + x^{2}e^{x}");
         assert_eq!(d.steps[2].latex, "f'(x) = (x^{2} + 2x)e^{x}");

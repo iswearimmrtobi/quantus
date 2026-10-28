@@ -409,3 +409,18 @@ fn the_sum_rule_writes_each_term_before_the_power_rule() {
     assert_eq!(working(&d, "derivatives", StepDetail::Standard).len(), detailed.len() - 2);
     assert_eq!(working(&d, "derivatives", StepDetail::Brief)[0].0, "f'(x) = 3x^{2} - 6x + 0");
 }
+
+#[test]
+fn the_product_rule_shows_the_chain_rule_of_its_parts_and_puts_them_in() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x e^{2x}");
+    let detailed = working(&d, "derivatives", StepDetail::Detailed);
+    assert_eq!(detailed[0], (r"v' = e^{2x} \cdot 2".to_string(), "v' by the chain rule: outer e^{u}, inner u = 2x, u' = 2".to_string()));
+    assert_eq!(detailed[2], (r"f'(x) = 1 \cdot e^{2x} + x \cdot 2e^{2x}".to_string(), "Put in".to_string()));
+    assert!(!working(&d, "derivatives", StepDetail::Standard).iter().any(|(_, text)| text == "Put in"));
+
+    let d = sketch(r"\sin(x^2)");
+    let standard = working(&d, "derivatives", StepDetail::Standard);
+    assert!(standard.iter().any(|(latex, text)| latex == r"f''(x) = 2 \cdot \left(x\cos(x^{2})\right)'" && text == "Constant factor rule: 2 stays in front"));
+}
+
