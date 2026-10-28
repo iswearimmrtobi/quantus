@@ -433,6 +433,9 @@ fn growth(e: &Expr) -> Option<Growth> {
 
 /// Samples ever closer to the approach: growing beyond bounds, settling, or swinging.
 fn numeric(f: &Expr, at: &Approach) -> Behaviour {
+    if super::budget::exceeded() {
+        return Behaviour::Unknown;
+    }
     let values: Vec<f64> = (1..=12).filter_map(|k| f.eval_f64(at.sample_at(10f64.powi(k)))).collect();
     let shifted: Vec<f64> = (1..=12).filter_map(|k| f.eval_f64(at.sample_at(1.37 * 10f64.powi(k)))).collect();
     if values.len() < 6 {

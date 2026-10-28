@@ -402,7 +402,7 @@ fn marker() -> Expr {
 /// `\int h(g(x)) g'(x) dx = H(g(x))`: the result, u = g(x), h and H as functions of u (in the
 /// variable slot).
 fn substitution(f: &Expr, depth: usize) -> Option<(Expr, Expr, Expr, Expr)> {
-    if depth > MAX_DEPTH {
+    if depth > MAX_DEPTH || super::budget::exceeded() {
         return None;
     }
     let mut candidates = Vec::new();
@@ -472,7 +472,7 @@ enum Parts {
 }
 
 fn by_parts(f: &Expr, depth: usize) -> Option<(Expr, Parts)> {
-    if depth > MAX_DEPTH {
+    if depth > MAX_DEPTH || super::budget::exceeded() {
         return None;
     }
     let factors: Vec<Expr> = match f {
@@ -521,7 +521,7 @@ fn by_parts(f: &Expr, depth: usize) -> Option<(Expr, Parts)> {
 
 /// Any method without working, for the integrals inside substitution and parts.
 fn basic(e: &Expr, depth: usize) -> Option<Expr> {
-    if depth > MAX_DEPTH {
+    if depth > MAX_DEPTH || super::budget::exceeded() {
         return None;
     }
     if let Some(result) = table(e) {

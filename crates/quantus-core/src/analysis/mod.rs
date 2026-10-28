@@ -31,6 +31,12 @@ use crate::Result;
 /// How long one curve sketch may take before the remaining sections are skipped.
 pub const ANALYZE_LIMIT: Duration = Duration::from_secs(3);
 
+/// How long one task (tangent, area, value table) may take.
+pub const TASK_LIMIT: Duration = Duration::from_secs(2);
+
+/// How long fresh curve samples for a panned view may take.
+pub const SAMPLE_LIMIT: Duration = Duration::from_millis(200);
+
 /// Significant digits of approximate values unless a precision is asked for.
 pub const DEFAULT_DIGITS: usize = 6;
 
@@ -42,7 +48,8 @@ pub fn digits(settings: &Settings, precision: Option<usize>) -> usize {
 /// The curve sketch of the function in `latex` (`f(x) = …`, `y = …` or a bare expression).
 pub fn analyze(latex: &str, variable: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Discussion> {
     let _language = Scope::new(settings.language);
+    let _budget = budget::Guard::new(ANALYZE_LIMIT);
     let (f, var) = input::parse_function(latex, variable, settings)?;
-    let ctx = discussion::Ctx { settings, var: &var, digits: digits(settings, precision), budget: budget::Budget::new(ANALYZE_LIMIT) };
+    let ctx = discussion::Ctx { settings, var: &var, digits: digits(settings, precision) };
     discussion::discuss(&f, &ctx)
 }

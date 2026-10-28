@@ -259,6 +259,7 @@ fn asymptote(a: &Asymptote) -> AsymptoteResponse {
 /// Fresh curve segments for a panned or zoomed view.
 pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<SampleResponse> {
     let _language = Scope::new(settings.language);
+    let _budget = super::budget::Guard::new(super::SAMPLE_LIMIT);
     let (f, var) = super::input::parse_function(&request.latex, request.variable.as_deref(), settings)?;
     let digits = super::digits(settings, None);
     let (domain, _) = super::domain::domain(&f, &super::domain::DomainContext { settings, var: &var, digits })?;

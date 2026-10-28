@@ -43,6 +43,9 @@ pub fn simplify(e: &Expr) -> Expr {
     let mut current = e.clone();
     let mut seen = HashSet::new();
     for _ in 0..MAX_PASSES {
+        if super::budget::exceeded() {
+            break;
+        }
         let next = pass(&current);
         if next == current || !seen.insert(next.clone()) {
             return next;

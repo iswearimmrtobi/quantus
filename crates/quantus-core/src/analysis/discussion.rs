@@ -7,7 +7,7 @@ use dashu::base::{Abs, UnsignedAbs};
 use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
-use super::budget::Budget;
+use super::budget;
 use super::derive::{derive_chain, derivative_name, Derivation};
 use super::domain::{domain, sign_at, DomainContext};
 use super::exact::times_pi;
@@ -163,7 +163,6 @@ pub struct Ctx<'a> {
     pub settings: &'a Settings,
     pub var: &'a str,
     pub digits: usize,
-    pub budget: Budget,
 }
 
 /// A candidate x for an extremum or inflection point, with the family it belongs to if any.
@@ -171,6 +170,18 @@ struct Candidate {
     point: Point,
     /// `b + k·P` written generally, when the candidate stands for a whole family.
     family: Option<PeriodicSet>,
+}
+
+fn time_limit() -> String {
+    msg!("Time limit reached", "Zeitlimit erreicht")
+}
+
+/// Marks a section whose methods ran out of time on the way: what it found may be incomplete.
+fn out_of_time(section: &mut Section) {
+    if budget::exceeded() && section.status == SectionStatus::Ok {
+        section.status = SectionStatus::Partial;
+        section.message = Some(time_limit());
+    }
 }
 
 /// The whole curve sketch of `f` (the tree as typed). Fails only when the domain is empty.
@@ -219,13 +230,16 @@ pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
         ("behaviour", msg!("Behaviour at the edges and asymptotes", "Verhalten an den Rändern und Asymptoten"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.behaviour())),
         ("antiderivative", msg!("Antiderivative", "Stammfunktion"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.antiderivative())),
     ];
+    for section in &mut sections {
+        out_of_time(section);
+    }
     for (id, title, build) in builders {
-        if ctx.budget.exceeded() {
+        if budget::exceeded() {
             sections.push(Section {
                 id,
                 title,
                 status: SectionStatus::Partial,
-                message: Some(msg!("Time limit reached", "Zeitlimit erreicht")),
+                message: Some(time_limit()),
                 steps: Vec::new(),
                 result: None,
             });
@@ -233,6 +247,7 @@ pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
         }
         let mut section = build(&mut sketch, &derivatives);
         section.title = title;
+        out_of_time(&mut section);
         sections.push(section);
     }
     let mut points = sketch.points;
@@ -1083,5 +1098,24 @@ fn approx_text(p: &Point, digits: usize) -> String {
         p.to_latex(digits)
     } else {
         format!("\\approx {}", p.to_latex(digits))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::super::analyze;
+    use super::*;
+
+    #[test]
+    fn out_of_time_every_section_is_partial() {
+        let _budget = budget::Guard::new(Duration::ZERO);
+        let d = analyze("x^3 - 3x", None, &Settings::default(), None).unwrap();
+        assert_eq!(d.sections.len(), 11);
+        for section in &d.sections {
+            assert_eq!(section.status, SectionStatus::Partial, "{}", section.id);
+            assert_eq!(section.message.as_deref(), Some("Time limit reached"), "{}", section.id);
+        }
     }
 }

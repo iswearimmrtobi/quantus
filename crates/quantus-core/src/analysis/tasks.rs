@@ -3,6 +3,7 @@
 
 use dashu::rational::RBig;
 
+use super::budget;
 use super::derive::derive_chain;
 use super::domain::{domain, DomainContext};
 use super::expr::Expr;
@@ -89,6 +90,7 @@ fn parse_number(latex: &str, settings: &Settings, what: &str) -> Result<Point> {
 /// Tangent and normal to the graph at `x0`.
 pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Settings, precision: Option<usize>) -> Result<TangentResult> {
     let _language = Scope::new(settings.language);
+    let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, settings, precision)?;
     let var = p.var.as_str();
     let tex = |e: &Expr| e.to_latex(var);
@@ -160,6 +162,7 @@ fn bracket(text: &str) -> String {
 /// The area between the graph and the x-axis over [from, to], or between the outermost zeros.
 pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<AreaResult> {
     let _language = Scope::new(settings.language);
+    let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, settings, precision)?;
     let var = p.var.as_str();
     let ctx = SolveContext { settings, var, domain: &p.domain, window: (-10.0, 10.0), digits: p.digits };
@@ -274,6 +277,7 @@ fn sum(parts: &[Point], absolute: bool) -> Point {
 /// f at `from`, `from + step`, … up to `to`.
 pub fn value_table(latex: &str, variable: Option<&str>, from: &str, to: &str, step_size: &str, settings: &Settings, precision: Option<usize>) -> Result<Vec<TableRow>> {
     let _language = Scope::new(settings.language);
+    let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, settings, precision)?;
     let (start, end, step) = (parse_number(from, settings, "from")?, parse_number(to, settings, "to")?, parse_number(step_size, settings, "step")?);
     if step.approx <= 0.0 {
@@ -340,6 +344,13 @@ mod tests {
         assert_eq!(numeric.area.to_latex(6), "1{,}46265");
         assert!(area("\\frac{1}{x}", None, Some("-1"), Some("1"), &Settings::default(), None).unwrap_err().to_string().contains("improper"));
         assert!(area("x^2 + 1", None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("both bounds"));
+    }
+
+    #[test]
+    fn out_of_time_the_tasks_still_answer() {
+        let _budget = budget::Guard::new(std::time::Duration::ZERO);
+        assert!(tangent("x^2", None, "1", &Settings::default(), None).is_ok());
+        assert!(value_table("x^2", None, "-2", "2", "1", &Settings::default(), None).is_ok());
     }
 
     #[test]

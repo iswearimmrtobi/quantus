@@ -491,6 +491,10 @@ impl Solver<'_> {
         let span = u64::try_from((&bound).unsigned_abs()).unwrap_or(u64::MAX).max(1);
         let steps_per_unit = (2000 / (2 * span)).max(1);
         let mut sample = |v: &RBig| -> crate::Result<Option<Sample>> {
+            // Out of time, the rest of the scan sees nothing and ends quickly.
+            if super::budget::exceeded() {
+                return Ok(None);
+            }
             let mut env = std::collections::BTreeMap::new();
             env.insert(x.to_string(), v.clone());
             let y = eval_poly(&simple, &env);
@@ -838,7 +842,7 @@ fn never_zero(factor: &Expr) -> Option<&'static str> {
 /// Roots of `e` in [lo, hi] from `samples` floating-point samples: sign changes (not across a
 /// pole) refined by bisection, and minima of |e| that reach zero.
 fn scan_f64(e: &Expr, lo: f64, hi: f64, samples: usize) -> Vec<f64> {
-    let f = |x: f64| e.eval_f64(x);
+    let f = |x: f64| if super::budget::exceeded() { None } else { e.eval_f64(x) };
     let nudge = (hi - lo) * 1e-9;
     let xs: Vec<f64> = (0..=samples).map(|i| (lo + (hi - lo) * i as f64 / samples as f64).clamp(lo + nudge, hi - nudge)).collect();
     let ys: Vec<Option<f64>> = xs.iter().map(|&x| f(x)).collect();
