@@ -7,6 +7,7 @@ use super::expr::Expr;
 use super::rules::{step, step_with_rows, AnalysisRule};
 use crate::algebra::poly::{Monomial, Poly};
 use crate::eval::Step;
+use crate::settings::StepDetail;
 use crate::text::msg;
 
 pub struct Division {
@@ -30,6 +31,10 @@ pub fn divide(dividend: &Poly, divisor: &Poly, var: &str) -> Division {
         let term = Poly::from_term(coefficient, Monomial::single(x, d - degree));
         let subtracted = &term * divisor;
         let next = &remainder - &subtracted;
+        // The partial quotient times the divisor, before it is subtracted: x^2 \cdot (x - 1) = x^3 - x^2.
+        let factor = |p: &Poly| if p.terms.len() > 1 { format!("({})", tex(p)) } else { tex(p) };
+        let product = format!("{} \\cdot {} = {}", factor(&term), factor(divisor), tex(&subtracted));
+        steps.push(step(AnalysisRule::PolynomialDivision, msg!("Multiply back", "Zurückmultiplizieren"), product).with_level(StepDetail::Detailed));
         // The rows of the written division: what is subtracted, and what is left.
         steps.push(step_with_rows(
             AnalysisRule::PolynomialDivision,
@@ -78,7 +83,8 @@ mod tests {
         let division = divide(&poly(&[-6, 11, -6, 1]), &linear_factor(&RBig::ONE), "x");
         assert_eq!(division.quotient, poly(&[6, -5, 1]));
         assert!(division.remainder.is_zero());
-        let lines: Vec<&str> = division.steps.iter().map(|s| s.latex.as_str()).collect();
+        let brief = crate::eval::calculator::shown_steps(&division.steps, StepDetail::Brief);
+        let lines: Vec<&str> = brief.iter().map(|s| s.latex.as_str()).collect();
         assert_eq!(
             lines,
             [
@@ -88,8 +94,8 @@ mod tests {
                 "(x^{3} - 6x^{2} + 11x - 6) : (x - 1) = x^{2} - 5x + 6",
             ]
         );
-        assert_eq!(division.steps[0].before.as_deref(), Some("- (x^{3} - x^{2})"));
-        assert_eq!(division.steps[0].after.as_deref(), Some("-5x^{2} + 11x - 6"));
+        assert_eq!(brief[0].before.as_deref(), Some("- (x^{3} - x^{2})"));
+        assert_eq!(brief[0].after.as_deref(), Some("-5x^{2} + 11x - 6"));
     }
 
     #[test]

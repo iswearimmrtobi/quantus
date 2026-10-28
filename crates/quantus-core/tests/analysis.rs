@@ -444,7 +444,7 @@ fn the_quadratic_formula_computes_the_discriminant_and_divides() {
     assert_eq!(detailed[at].0, r"b^{2} - 4ac = \left(-2\right)^{2} - 4 \cdot 1 \cdot \left(-2\right) = 4 + 8 = 12");
     assert_eq!(detailed[at + 2], (r"\sqrt{12} = \sqrt{4 \cdot 3} = 2\sqrt{3}".to_string(), "Take the square out of the root".to_string()));
     assert_eq!(detailed[at + 3], (r"x_{1,2} = 1 \pm \sqrt{3}".to_string(), "Divide by 2".to_string()));
-    assert_eq!(working(&d, "zeros", StepDetail::Standard).len(), detailed.len() - 1);
+    assert!(!working(&d, "zeros", StepDetail::Standard).iter().any(|(_, text)| text == "Take the square out of the root"));
 
     let pq = Settings { quadratic_formula: QuadraticFormula::Pq, ..Settings::default() };
     let d = analyze("x^3-3x^2+2", None, &pq, None).unwrap();
@@ -550,4 +550,15 @@ fn antiderivatives_show_the_rule_put_in() {
 
     let standard = working(&sketch("x e^{x^2}"), "antiderivative", StepDetail::Standard);
     assert_eq!(standard[1].0, r"\int xe^{x^{2}} \, dx = \int \frac{1}{2}e^{u} \, du");
+}
+
+#[test]
+fn polynomial_division_multiplies_back_before_subtracting() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x^3-3x^2+2");
+    let detailed = working(&d, "zeros", StepDetail::Detailed);
+    let at = detailed.iter().position(|(_, text)| text == "Multiply back").unwrap();
+    assert_eq!(detailed[at].0, r"x^{2} \cdot (x - 1) = x^{3} - x^{2}");
+    assert_eq!(detailed[at + 1].1, "Partial quotient x^{2}");
+    assert!(!working(&d, "zeros", StepDetail::Standard).iter().any(|(_, text)| text == "Multiply back"));
 }
