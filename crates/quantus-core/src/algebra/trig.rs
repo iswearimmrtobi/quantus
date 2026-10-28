@@ -22,8 +22,9 @@ use crate::algebra::identities::{each_atom, each_poly, everywhere, note, Conditi
 use crate::algebra::nested::{make_fraction, split_fraction};
 use crate::algebra::poly::{Monomial, Poly};
 use crate::algebra::steps::RuleId;
-use crate::latex::ast::Node;
+use crate::latex::ast::{Node, Operator};
 use crate::latex::serializer;
+use crate::settings::StepDetail;
 
 const TRIG: [&str; 4] = ["sin", "cos", "tan", "cot"];
 
@@ -322,10 +323,18 @@ fn double_angle(node: &Node, ctx: &mut Context) -> Option<Local> {
             let detail = if quotient.is_constant() {
                 format!("{} = {}", latex_of(&(&quotient * &form)), latex_of(&result))
             } else {
-                let shown = if factor == RBig::ONE { merged.clone() } else { &Poly::from_const(factor) * &merged };
+                let shown = if factor == RBig::ONE { merged.clone() } else { &Poly::from_const(factor.clone()) * &merged };
                 format!("{} = {}", latex_of(&form), latex_of(&shown))
             };
-            return Some(Local::new(result.to_node(), detail));
+            let local = Local::new(result.to_node(), detail);
+            // 2 \sin x \cos x = 2 \cdot \frac{1}{2} \sin(2x): the identity first, then the numbers.
+            if quotient.is_constant() && factor != RBig::ONE {
+                let half = (&Poly::from_const(factor) * &merged).to_node();
+                let identity = format!("{} = {}", latex_of(&form), serializer::expression(&half));
+                let line = Node::binary(Operator::Times, quotient.to_node(), half, 0);
+                return Some(local.with_working(vec![(line, identity, StepDetail::Detailed)], "Multiply the numbers"));
+            }
+            return Some(local);
         }
     }
     None

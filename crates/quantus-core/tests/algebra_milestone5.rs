@@ -820,3 +820,15 @@ fn logarithms_write_the_argument_as_a_power() {
         [row(r"2 \cdot \ln{e}", r"\ln(a^{n}) = n \ln a"), row(r"2 \cdot 1", r"\ln e = 1")]
     );
 }
+
+#[test]
+fn the_double_angle_shows_the_identity_with_its_half() {
+    assert_eq!(
+        rows(r"2\sin(x)\cos(x)", StepDetail::Detailed),
+        [
+            row(r"2 \cdot \frac{1}{2} \cdot \sin{2 \cdot x}", r"\sin{x} \cdot \cos{x} = \frac{1}{2} \cdot \sin{2 \cdot x}"),
+            row(r"\sin{2 \cdot x}", "Multiply the numbers"),
+        ]
+    );
+    assert_eq!(rows(r"2\sin(x)\cos(x)", StepDetail::Standard).len(), 1);
+}
