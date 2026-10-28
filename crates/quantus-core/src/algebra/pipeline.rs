@@ -966,8 +966,29 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
     }
     let (explanation, rule) = canonical_explanation(root);
     let level = if crate::algebra::expand::is_term_reordering(unwrap_group(root)) { StepDetail::Maximal } else { StepDetail::Brief };
-    let step = AlgebraStep::new(root.clone(), canonical.clone(), explanation, Some(rule)).with_level(level);
-    Some((canonical, step))
+    let step = AlgebraStep::new(root.clone(), canonical.clone(), explanation.clone(), Some(rule)).with_level(level);
+    // Powers of numbers are worked out first: \frac{x^3}{2^3} reads \frac{x^3}{8}.
+    let evaluated = evaluate_number_powers(root);
+    let lines = [&evaluated]
+        .into_iter()
+        .filter(|e| serializer::expression(e) != serializer::expression(root) && serializer::expression(e) != serializer::expression(&canonical))
+        .map(|e| AlgebraStep::line(root, e.clone(), "Evaluate the power", StepDetail::Detailed))
+        .collect();
+    Some((canonical, step.with_working(lines, explanation)))
+}
+
+/// `node` with each power of a whole number by a whole number worked out: `2^3` is `8`.
+fn evaluate_number_powers(node: &Node) -> Node {
+    let node = node.clone().map_children(&mut |child| evaluate_number_powers(&child));
+    if let Node::Power { base, exponent, .. } = &node {
+        if let (Node::Number { value, .. }, Some(n)) = (unwrap_group(base), integer_exponent(exponent)) {
+            if (0..=16).contains(&n) && value.to_rational().denominator() == &UBig::ONE {
+                let power = (0..n).fold(dashu::rational::RBig::ONE, |acc, _| acc * value.to_rational());
+                return crate::algebra::poly::rational_to_node(&power);
+            }
+        }
+    }
+    node
 }
 
 /// What stage 13 does to `root`, in words: the rewrite is one call to [`canonical_form`], but the

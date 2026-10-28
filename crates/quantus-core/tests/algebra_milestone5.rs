@@ -744,3 +744,12 @@ fn each_kind_of_notation_is_a_step_of_its_own() {
     assert_eq!(maximal[3], r"Dividing by \frac{1}{x} is multiplying by its reciprocal x");
     assert!(rows(input, StepDetail::Standard).iter().all(|(_, text)| !text.starts_with("Two minus")));
 }
+
+#[test]
+fn a_power_of_a_fraction_evaluates_the_number_power() {
+    let input = r"\left(\frac{x}{2}\right)^3";
+    let detailed = rows(input, StepDetail::Detailed);
+    assert_eq!(detailed[0], row(r"\frac{x^{3}}{2^{3}}", "Raise numerator and denominator to the power separately"));
+    assert_eq!(detailed[1], row(r"\frac{x^{3}}{8}", "Evaluate the power"));
+    assert_eq!(rows(input, StepDetail::Standard).len(), 2);
+}
