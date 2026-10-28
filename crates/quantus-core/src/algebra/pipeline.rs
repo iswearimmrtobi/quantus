@@ -983,11 +983,46 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
         .map(|e| AlgebraStep::line(root, e.clone(), "Evaluate the power", StepDetail::Detailed))
         .collect();
     let mut last = explanation;
+    if let Some((line, text)) = exponent_line(root) {
+        lines.push(AlgebraStep::line(root, line, text, StepDetail::Standard));
+        last = "Work out the exponent".to_string();
+    }
     if let Some(flipped) = sign_flip_line(root) {
         lines.push(AlgebraStep::line(root, flipped, "Multiply numerator and denominator by -1", StepDetail::Standard));
         last = "Multiply out".to_string();
     }
     Some((canonical, step.with_working(lines, last)))
+}
+
+/// The exponents written out before they are added or multiplied: `x^{2 + 3}` for
+/// `x^2 \cdot x^3`, `x^{2 \cdot 3}` for `(x^2)^3`.
+fn exponent_line(root: &Node) -> Option<(Node, &'static str)> {
+    let exponent_of = |node: &Node| -> Option<(String, Node, Node)> {
+        match unwrap_group(node) {
+            v @ Node::Variable { .. } => Some((serializer::expression(v), v.clone(), number(1))),
+            Node::Power { base, exponent, .. } if matches!(unwrap_group(base), Node::Variable { .. }) => {
+                integer_exponent(exponent)?;
+                Some((serializer::expression(base), unwrap_group(base).clone(), (**exponent).clone()))
+            }
+            _ => None,
+        }
+    };
+    let unwrapped = unwrap_group(root);
+    if let Node::Power { base, exponent, .. } = unwrapped {
+        let (_, inner_base, inner) = exponent_of(base).filter(|_| matches!(unwrap_group(base), Node::Power { .. }))?;
+        integer_exponent(exponent)?;
+        let product = Node::binary(Operator::Times, inner, (**exponent).clone(), 0);
+        return Some((Node::Power { base: Box::new(inner_base), exponent: Box::new(product), position: 0 }, "Power of a power: multiply the exponents"));
+    }
+    if !is_power_product(unwrapped) {
+        return None;
+    }
+    let mut factors = Vec::new();
+    crate::algebra::expand::flatten_multiplicative_factors(unwrapped, &mut factors);
+    let parts: Vec<(String, Node, Node)> = factors.iter().map(|f| exponent_of(f)).collect::<Option<_>>()?;
+    let (_, base, _) = parts.first()?.clone();
+    let sum = parts.into_iter().map(|(_, _, e)| e).reduce(|acc, e| Node::binary(Operator::Plus, acc, e, 0))?;
+    Some((Node::Power { base: Box::new(base), exponent: Box::new(sum), position: 0 }, "Same base: add the exponents"))
 }
 
 /// Whether `root` is a sum over a number, `\frac{\sqrt{3} + 1}{2}`, written term by term in its

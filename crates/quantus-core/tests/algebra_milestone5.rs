@@ -797,3 +797,13 @@ fn roots_show_the_square_factor_the_powers_and_the_extension() {
     assert_eq!(conjugate.last().unwrap(), &row(r"\frac{1}{2} \cdot \sqrt{3} + \frac{1}{2}", "Split the fraction"));
     assert_eq!(rows(r"\frac{1}{\sqrt{3}-1}", StepDetail::Detailed).len(), conjugate.len() - 1);
 }
+
+#[test]
+fn powers_write_the_exponents_out() {
+    assert_eq!(
+        rows(r"x^2 \cdot x^3", StepDetail::Standard),
+        [row("x^{2 + 3}", "Same base: add the exponents"), row("x^{5}", "Work out the exponent")]
+    );
+    assert_eq!(rows("(x^2)^3", StepDetail::Standard)[0], row(r"x^{2 \cdot 3}", "Power of a power: multiply the exponents"));
+    assert_eq!(rows(r"x^2 \cdot x^3", StepDetail::Brief), [row("x^{5}", "Same base: add the exponents")]);
+}

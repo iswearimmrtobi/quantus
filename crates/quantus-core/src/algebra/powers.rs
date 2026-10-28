@@ -260,7 +260,11 @@ fn nest_power(index: usize, ctx: &mut Context) -> Option<Local> {
     let exponent = &inner * &outer;
     let merged = power_of(&inner_base, &exponent, ctx.atoms)?.to_node();
     let detail = format!("{} = {}", latex(&ctx.atoms.var(index)), latex(&merged));
-    Some(Local::new(merged, detail).with([Condition::Positive(inner_base)]))
+    // The product of the exponents written out: (a^{x})^{2} = a^{x \cdot 2}.
+    let product = Node::binary(crate::latex::ast::Operator::Times, inner.to_node(), outer.to_node(), 0);
+    let written = Node::Power { base: Box::new(inner_base.clone()), exponent: Box::new(product), position: 0 };
+    let working = vec![(written, "Power of a power: multiply the exponents".to_string(), crate::settings::StepDetail::Standard)];
+    Some(Local::new(merged, detail).with([Condition::Positive(inner_base)]).with_working(working, "Work out the exponent"))
 }
 
 /// `(a^{x})^{y} = a^{xy}`.
