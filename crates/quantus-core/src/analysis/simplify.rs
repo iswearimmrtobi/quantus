@@ -20,7 +20,7 @@ use super::exact::{self, TrigValue};
 use super::expr::{split_coefficient, summand_rank, Expr, Fn};
 use crate::algebra::pipeline::{simplify_node_with, OutputStyle, PipelineConfig};
 use crate::latex::{Node, Operator};
-use crate::settings::{BinomialForm, DenominatorForm, Settings};
+use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings};
 
 /// Passes over the whole tree before the simplifier gives up on reaching a fixed point.
 const MAX_PASSES: usize = 64;
@@ -28,9 +28,14 @@ const MAX_PASSES: usize = 64;
 /// Rational parts remembered per thread, since every pass asks again about the same ones.
 const CACHE_LIMIT: usize = 4096;
 
-/// How rational parts are written internally: expanded, so like terms meet.
-const INTERNAL_STYLE: OutputStyle =
-    OutputStyle { binomial: BinomialForm::Expanded, complete_square: false, denominator: DenominatorForm::Expanded };
+/// How rational parts are written internally: expanded, so like terms meet. The analysis keeps
+/// its own domain, so the algebra applies no identity that would add a condition to it.
+const INTERNAL_STYLE: OutputStyle = OutputStyle {
+    binomial: BinomialForm::Expanded,
+    complete_square: false,
+    denominator: DenominatorForm::Expanded,
+    conditions: ConditionalIdentities::AlwaysValid,
+};
 
 thread_local! {
     static RATIONAL_CACHE: RefCell<HashMap<(Expr, OutputStyleKey), Expr>> = RefCell::new(HashMap::new());
@@ -89,7 +94,7 @@ pub fn display(e: &Expr, settings: &Settings) -> Expr {
         BinomialForm::Auto => BinomialForm::Expanded,
         other => other,
     };
-    let style = OutputStyle { binomial, complete_square: false, denominator: settings.denominator_form };
+    let style = OutputStyle { binomial, complete_square: false, denominator: settings.denominator_form, ..INTERNAL_STYLE };
     if is_rational_candidate(&simplified) {
         if let Some(shown) = rational(&simplified, style) {
             return shown;

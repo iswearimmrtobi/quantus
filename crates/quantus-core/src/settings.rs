@@ -35,6 +35,18 @@ pub enum DenominatorForm {
     Factored,
 }
 
+/// What the algebra does with an identity that only holds under a condition, such as
+/// `\sqrt{a} \sqrt{b} = \sqrt{ab}` for `a, b \geq 0`.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase")]
+pub enum ConditionalIdentities {
+    /// Apply it and add the condition to the domain of the result.
+    #[default]
+    WithCondition,
+    /// Apply it only where the condition holds anyway (`\sqrt{2} \sqrt{3} = \sqrt{6}`).
+    AlwaysValid,
+}
+
 /// Which formula solves a quadratic equation in the analysis mode's working.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -84,6 +96,7 @@ pub struct Settings {
     /// Whether a polynomial without a binomial form is written by completing the square.
     pub complete_square: bool,
     pub denominator_form: DenominatorForm,
+    pub conditional_identities: ConditionalIdentities,
     /// Results with roots are written as `\sqrt{2}` rather than as a decimal.
     pub exact_roots: bool,
     /// `a` and `y` are variables rather than the units annum and year.
@@ -104,6 +117,7 @@ impl Default for Settings {
             binomial_form: BinomialForm::Auto,
             complete_square: true,
             denominator_form: DenominatorForm::Auto,
+            conditional_identities: ConditionalIdentities::WithCondition,
             exact_roots: false,
             a_and_y_as_variables: true,
             letter_products: true,
@@ -149,6 +163,7 @@ impl Settings {
             binomial: self.binomial_form,
             complete_square: self.complete_square,
             denominator: self.denominator_form,
+            conditions: self.conditional_identities,
         }
     }
 }
@@ -175,6 +190,7 @@ mod tests {
                 "binomialForm": "auto",
                 "completeSquare": true,
                 "denominatorForm": "auto",
+                "conditionalIdentities": "withCondition",
                 "exactRoots": false,
                 "aAndYAsVariables": true,
                 "letterProducts": true,
@@ -203,6 +219,14 @@ mod tests {
         assert!(with(QuadraticFormula::Pq, Language::En) && !with(QuadraticFormula::Abc, Language::De));
         let parsed: Settings = serde_json::from_value(json!({ "quadraticFormula": "pq" })).unwrap();
         assert_eq!(parsed.quadratic_formula, QuadraticFormula::Pq);
+    }
+
+    #[test]
+    fn conditional_identities_reach_the_output_style() {
+        let parsed: Settings = serde_json::from_value(json!({ "conditionalIdentities": "alwaysValid" })).unwrap();
+        assert_eq!(parsed.conditional_identities, ConditionalIdentities::AlwaysValid);
+        assert_eq!(parsed.output_style().conditions, ConditionalIdentities::AlwaysValid);
+        assert_eq!(Settings::default().output_style().conditions, ConditionalIdentities::WithCondition);
     }
 
     #[test]

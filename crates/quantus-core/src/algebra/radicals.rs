@@ -10,7 +10,8 @@ use std::collections::BTreeMap;
 
 use dashu::rational::RBig;
 
-use crate::algebra::atoms::{Atoms, Rewrite};
+use crate::algebra::atoms::Atoms;
+use crate::algebra::identities::{Context, Rewrite};
 use crate::algebra::domain::unwrap_group;
 use crate::algebra::nested::{make_fraction, make_product, split_fraction};
 use crate::algebra::poly::{Monomial, Poly};
@@ -64,11 +65,12 @@ fn rationalize(node: &Node, atoms: &Atoms) -> Node {
     node
 }
 
-pub fn rationalize_denominators(node: &Node, atoms: &mut Atoms) -> Option<Rewrite> {
+pub fn rationalize_denominators(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     Some(Rewrite {
-        node: rationalize(node, atoms),
+        node: rationalize(node, ctx.atoms),
         explanation: "Rationalize the denominator: multiply numerator and denominator by the square root".into(),
         rule: RuleId::RationalizeDenominator,
+        conditions: Vec::new(),
     })
 }
 
@@ -117,7 +119,8 @@ fn reduce(node: &Node, atoms: &Atoms, found: &mut Vec<usize>) -> Node {
     node.clone().map_children(&mut |child| reduce(&child, atoms, found))
 }
 
-pub fn multiply_roots(node: &Node, atoms: &mut Atoms) -> Option<Rewrite> {
+pub fn multiply_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
+    let atoms = &*ctx.atoms;
     let mut found = Vec::new();
     let reduced = reduce(node, atoms, &mut found);
     let identities: Vec<String> = found
@@ -132,5 +135,6 @@ pub fn multiply_roots(node: &Node, atoms: &mut Atoms) -> Option<Rewrite> {
         node: reduced,
         explanation: format!("Multiply the square roots: {}", identities.join(", ")),
         rule: RuleId::MultiplyRoots,
+        conditions: Vec::new(),
     })
 }

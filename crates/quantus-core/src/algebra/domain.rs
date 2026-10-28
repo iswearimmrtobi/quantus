@@ -21,6 +21,10 @@ pub enum DomainRestriction {
     },
     /// A general polynomial cannot be zero: `P(x, y) != 0`.
     PolyNotZero(Poly),
+    /// A polynomial must not be negative: `a \geq 0`, the condition of `\sqrt{a} \sqrt{b} = \sqrt{ab}`.
+    PolyNonNegative(Poly),
+    /// A polynomial must be positive: `a > 0`, the condition of `\ln a + \ln b = \ln(ab)`.
+    PolyPositive(Poly),
 }
 
 impl DomainRestriction {
@@ -43,6 +47,8 @@ impl DomainRestriction {
             Self::PolyNotZero(poly) => {
                 format!("{} != 0", poly.to_plain_string())
             }
+            Self::PolyNonNegative(poly) => format!("{} >= 0", poly.to_plain_string()),
+            Self::PolyPositive(poly) => format!("{} > 0", poly.to_plain_string()),
         }
     }
 
@@ -54,6 +60,18 @@ impl DomainRestriction {
             Self::PolyNotZero(poly) => {
                 format!("{} \\neq 0", poly.to_latex())
             }
+            Self::PolyNonNegative(poly) => format!("{} \\geq 0", poly.to_latex()),
+            Self::PolyPositive(poly) => format!("{} > 0", poly.to_latex()),
+        }
+    }
+
+    /// Where the restriction sorts: `≠` before `≥` before `>`.
+    fn rank(&self) -> u8 {
+        match self {
+            Self::VariableNotEqual { .. } => 0,
+            Self::PolyNotZero(_) => 1,
+            Self::PolyNonNegative(_) => 2,
+            Self::PolyPositive(_) => 3,
         }
     }
 }
@@ -68,15 +86,13 @@ impl Ord for DomainRestriction {
                 Ordering::Equal => val1.cmp(val2),
                 ord => ord,
             },
-            (DomainRestriction::VariableNotEqual { .. }, DomainRestriction::PolyNotZero(_)) => {
-                Ordering::Less
+            (DomainRestriction::PolyNotZero(p1), DomainRestriction::PolyNotZero(p2)) => p1.cmp(p2),
+            // Inequalities read in the order of their text: a \geq 0, b \geq 0.
+            (DomainRestriction::PolyNonNegative(p1), DomainRestriction::PolyNonNegative(p2))
+            | (DomainRestriction::PolyPositive(p1), DomainRestriction::PolyPositive(p2)) => {
+                p1.to_plain_string().cmp(&p2.to_plain_string()).then_with(|| p1.cmp(p2))
             }
-            (DomainRestriction::PolyNotZero(_), DomainRestriction::VariableNotEqual { .. }) => {
-                Ordering::Greater
-            }
-            (DomainRestriction::PolyNotZero(p1), DomainRestriction::PolyNotZero(p2)) => {
-                p1.cmp(p2)
-            }
+            _ => self.rank().cmp(&other.rank()),
         }
     }
 }
@@ -127,8 +143,8 @@ pub fn format_restrictions_latex_list(restrictions: &[DomainRestriction]) -> Vec
                 }
                 parts.push(format!("{var_name} \\neq {}", values.join(", ")));
             }
-            DomainRestriction::PolyNotZero(p) => {
-                parts.push(format!("{} \\neq 0", p.to_latex()));
+            other => {
+                parts.push(other.to_latex());
                 i += 1;
             }
         }
@@ -165,13 +181,46 @@ pub fn format_restrictions_plain(restrictions: &[DomainRestriction]) -> String {
                 }
                 parts.push(format!("{var_name} != {}", values.join(", ")));
             }
-            DomainRestriction::PolyNotZero(p) => {
-                parts.push(format!("{} != 0", p.to_plain_string()));
+            other => {
+                parts.push(other.to_plain_string());
                 i += 1;
             }
         }
     }
     parts.join(", ")
+}
+
+/// `p \geq 0` together with `p \neq 0` is `p > 0`, and `p > 0` makes both redundant.
+pub fn merge_inequalities(restrictions: Vec<DomainRestriction>) -> Vec<DomainRestriction> {
+    let not_zero = |r: &DomainRestriction| match r {
+        DomainRestriction::VariableNotEqual { variable, value } if *value == RBig::ZERO => Some(Poly::from_var(variable)),
+        DomainRestriction::PolyNotZero(p) => Some(p.clone()),
+        _ => None,
+    };
+    let excluded: Vec<Poly> = restrictions.iter().filter_map(not_zero).collect();
+    let mut positive: Vec<Poly> = Vec::new();
+    for restriction in &restrictions {
+        let poly = match restriction {
+            DomainRestriction::PolyPositive(p) => p,
+            DomainRestriction::PolyNonNegative(p) if excluded.contains(p) => p,
+            _ => continue,
+        };
+        if !positive.contains(poly) {
+            positive.push(poly.clone());
+        }
+    }
+    let mut merged: Vec<DomainRestriction> = Vec::new();
+    for restriction in restrictions {
+        let redundant = match &restriction {
+            DomainRestriction::PolyNonNegative(p) | DomainRestriction::PolyPositive(p) => positive.contains(p),
+            other => not_zero(other).is_some_and(|p| positive.contains(&p)),
+        };
+        if !redundant && !merged.contains(&restriction) {
+            merged.push(restriction);
+        }
+    }
+    merged.extend(positive.into_iter().map(DomainRestriction::PolyPositive));
+    merged
 }
 
 pub fn format_rbig_latex(r: &RBig) -> String {
@@ -602,7 +651,7 @@ impl DomainTracker {
         let found = extract_domain_restrictions(node)?;
         self.add_all(found.into_iter().filter(|r| match r {
             DomainRestriction::PolyNotZero(p) => !has_no_real_roots(p),
-            DomainRestriction::VariableNotEqual { .. } => true,
+            _ => true,
         }));
         Ok(())
     }
@@ -631,7 +680,7 @@ impl DomainTracker {
         // the input denominator, the initial scan has recorded it already.
         let restrictions = solve_poly_restrictions(cancelled_factor).into_iter().filter(|r| match r {
             DomainRestriction::PolyNotZero(p) => !has_no_real_roots(p),
-            DomainRestriction::VariableNotEqual { .. } => true,
+            _ => true,
         });
         self.add_all(restrictions);
     }
@@ -657,5 +706,25 @@ impl DomainTracker {
 
     pub fn format_plain(&self) -> String {
         format_restrictions_plain(&self.restrictions)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn inequalities_are_written_and_merged() {
+        let a = Poly::from_var("a");
+        let b = Poly::from_var("b");
+        let restrictions = vec![
+            DomainRestriction::var_not_equal("a", RBig::ZERO),
+            DomainRestriction::PolyNonNegative(a.clone()),
+            DomainRestriction::PolyNonNegative(b.clone()),
+            DomainRestriction::PolyPositive(b),
+        ];
+        let merged = merge_inequalities(restrictions);
+        assert_eq!(format_restrictions_plain(&merged), "a > 0, b > 0");
+        assert_eq!(format_restrictions_latex(&[DomainRestriction::PolyNonNegative(a)]), "a \\geq 0");
     }
 }

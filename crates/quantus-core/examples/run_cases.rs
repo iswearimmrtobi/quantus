@@ -545,6 +545,9 @@ fn check_algebra(latex: &str, settings: &Settings, expect: &Value, shown: String
             DomainRestriction::PolyNotZero(p) => {
                 got_polys.insert(p.to_monic().to_plain_string());
             }
+            // The cases state excluded values only; `u \geq 0` and `u > 0` come from identities of
+            // roots and logarithms, which the generated algebra cases do not contain.
+            DomainRestriction::PolyNonNegative(_) | DomainRestriction::PolyPositive(_) => {}
         }
     }
     if got_values != want_values || got_polys != want_polys {

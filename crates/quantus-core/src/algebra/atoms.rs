@@ -10,10 +10,12 @@
 //! which run on the atomized tree before each run of the pipeline. When one changes the
 //! pipeline's result, it runs again.
 
-use crate::algebra::domain::DomainRestriction;
+use crate::algebra::domain::{merge_inequalities, DomainRestriction};
+use crate::algebra::identities::apply_rules;
 use crate::algebra::pipeline::{integer_exponent, unsupported_diagnostic};
 use crate::algebra::poly::{Monomial, Poly, Term};
-use crate::algebra::steps::{AlgebraStep, RuleId, SimplificationResult};
+use crate::algebra::steps::{AlgebraStep, SimplificationResult};
+use crate::settings::ConditionalIdentities;
 use crate::latex::ast::Node;
 use crate::latex::serializer;
 
@@ -120,11 +122,8 @@ impl Atoms {
             Some(index) => serializer::algebraic_expression(&self.restore(self.var(index))),
             None => var,
         };
-        match restriction {
-            DomainRestriction::VariableNotEqual { variable, value } => {
-                DomainRestriction::VariableNotEqual { variable: rename(variable), value }
-            }
-            DomainRestriction::PolyNotZero(poly) => DomainRestriction::PolyNotZero(Poly::from_terms(
+        let rename_poly = |poly: Poly| {
+            Poly::from_terms(
                 poly.terms
                     .into_iter()
                     .map(|term| {
@@ -132,11 +131,19 @@ impl Atoms {
                         Term::new(term.coeff, Monomial::from_map(vars))
                     })
                     .collect(),
-            )),
+            )
+        };
+        match restriction {
+            DomainRestriction::VariableNotEqual { variable, value } => {
+                DomainRestriction::VariableNotEqual { variable: rename(variable), value }
+            }
+            DomainRestriction::PolyNotZero(poly) => DomainRestriction::PolyNotZero(rename_poly(poly)),
+            DomainRestriction::PolyNonNegative(poly) => DomainRestriction::PolyNonNegative(rename_poly(poly)),
+            DomainRestriction::PolyPositive(poly) => DomainRestriction::PolyPositive(rename_poly(poly)),
         }
     }
 
-    fn restore_step(&self, step: AlgebraStep) -> AlgebraStep {
+    pub(crate) fn restore_step(&self, step: AlgebraStep) -> AlgebraStep {
         AlgebraStep::new(self.restore(step.before), self.restore(step.after), self.restore_text(&step.explanation), step.rule)
     }
 }
@@ -181,42 +188,11 @@ pub fn atomize(node: Node, atoms: &mut Atoms) -> Node {
     }
 }
 
-/// One application of an identity: the rewritten tree and the step it is shown as.
-pub struct Rewrite {
-    pub node: Node,
-    pub explanation: String,
-    pub rule: RuleId,
-}
-
-/// An identity on the atomized tree; it may add atoms (`\sqrt{a} \sqrt{b} = \sqrt{ab}`).
-pub type Rule = fn(&Node, &mut Atoms) -> Option<Rewrite>;
-
-/// The identities, in the order they are tried before each run of the pipeline.
-const RULES: &[Rule] = &[
-    crate::algebra::radicals::multiply_roots,
-    crate::algebra::radicals::rationalize_denominators,
-    crate::algebra::radicals::multiply_roots,
-];
-
-/// Applies every rule once to `current`, recording each change; whether anything changed.
-fn apply_rules(current: &mut Node, atoms: &mut Atoms, steps: &mut Vec<AlgebraStep>) -> bool {
-    let mut changed = false;
-    for rule in RULES {
-        let Some(rewrite) = rule(current, atoms) else { continue };
-        if serializer::expression(&rewrite.node) == serializer::expression(current) {
-            continue;
-        }
-        steps.push(AlgebraStep::new(current.clone(), rewrite.node.clone(), rewrite.explanation, Some(rewrite.rule)));
-        *current = rewrite.node;
-        changed = true;
-    }
-    changed
-}
-
 /// Runs `simplify` on `node` with its non-polynomial parts held as atoms, or returns `None` when
 /// `node` has none.
 pub fn simplify_with_atoms(
     node: &Node,
+    policy: ConditionalIdentities,
     mut simplify: impl FnMut(&Node) -> crate::Result<SimplificationResult>,
 ) -> Option<crate::Result<SimplificationResult>> {
     if !contains_atom(node) {
@@ -229,7 +205,7 @@ pub fn simplify_with_atoms(
     let mut diagnostic = None;
 
     for round in 0..MAX_ROUNDS {
-        let rewritten = apply_rules(&mut current, &mut atoms, &mut steps);
+        let rewritten = apply_rules(&mut current, &mut atoms, policy, &mut restrictions, &mut steps);
         // After the first run, the pipeline's result is final unless an identity changed it.
         if round > 0 && !rewritten {
             break;
@@ -251,7 +227,7 @@ pub fn simplify_with_atoms(
     // A step that only changed how an atom was written looks like no step once it is written out.
     let steps =
         steps.into_iter().map(|step| atoms.restore_step(step)).filter(|step| step.before_latex != step.after_latex).collect();
-    let restrictions = restrictions.into_iter().map(|r| atoms.restore_restriction(r)).collect();
+    let restrictions = merge_inequalities(restrictions).into_iter().map(|r| atoms.restore_restriction(r)).collect();
     let mut restored = SimplificationResult::new(atoms.restore(current), steps, restrictions);
     restored.diagnostic = diagnostic.map(|text| atoms.restore_text(&text)).or_else(|| unsupported_diagnostic(node));
     Some(Ok(restored))

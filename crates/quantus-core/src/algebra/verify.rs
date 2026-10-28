@@ -145,6 +145,16 @@ pub fn violates_restrictions(env: &BTreeMap<String, RBig>, restrictions: &[Domai
                     return true;
                 }
             }
+            DomainRestriction::PolyNonNegative(p) => {
+                if eval_poly(p, env) < RBig::ZERO {
+                    return true;
+                }
+            }
+            DomainRestriction::PolyPositive(p) => {
+                if eval_poly(p, env) <= RBig::ZERO {
+                    return true;
+                }
+            }
         }
     }
     false

@@ -60,7 +60,7 @@ use crate::error::Result;
 use crate::latex::ast::{Node, Operator};
 use crate::latex::{parser, serializer};
 use crate::num::Decimal;
-use crate::settings::{BinomialForm, DenominatorForm, Settings};
+use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings};
 
 /// How the result is written: the user-adjustable choices of stages 13 and 14.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -68,6 +68,8 @@ pub struct OutputStyle {
     pub binomial: BinomialForm,
     pub complete_square: bool,
     pub denominator: DenominatorForm,
+    /// Whether identities that need a condition are applied with it or only where it holds.
+    pub conditions: ConditionalIdentities,
 }
 
 impl Default for OutputStyle {
@@ -149,7 +151,7 @@ pub fn simplify_node(node: &Node) -> Result<SimplificationResult> {
 
 /// Runs stages 2–13 with explicit termination limits.
 pub fn simplify_node_with(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
-    if let Some(result) = crate::algebra::atoms::simplify_with_atoms(node, |atomized| simplify_rational(atomized, config)) {
+    if let Some(result) = crate::algebra::atoms::simplify_with_atoms(node, config.style.conditions, |atomized| simplify_rational(atomized, config)) {
         return result;
     }
     simplify_rational(node, config)
