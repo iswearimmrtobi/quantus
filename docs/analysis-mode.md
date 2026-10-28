@@ -445,7 +445,7 @@ All three are stateless and reuse `input.rs`, `domain` and `derive`: `tasks::tan
 - `#[serde(rename_all="lowercase")] pub enum QuadraticFormula { #[default] Auto, Pq, Abc }` and `pub quadratic_formula: QuadraticFormula` (JSON `quadraticFormula`). Auto means pq for German and abc for English. A missing key in an old settings file means Auto (`#[serde(default)]` on Settings already handles that).
 - Extend `serializes_in_camel_case_with_lowercase_choices` and `the_mode_decides_units_and_the_imaginary_unit`.
 
-**`api.rs`**, all functions stateless like `solve_circuit`, taking `&Settings`:
+**`api.rs`**, all functions stateless like `solve_circuit`, taking `&Settings`. The structs live in `analysis/interface.rs` (like `electro/interface.rs`) and are re-exported from `api`; a tangent's point has kind `tangent` and name `P`, and a horizontal asymptote carries `slope: 0` and `intercept: y`:
 
 ```rust
 #[serde(rename_all="camelCase", default)] pub struct AnalysisRequest { pub latex: String, pub variable: Option<String>, pub precision: Option<usize> }
@@ -462,7 +462,7 @@ pub struct SectionResponse { pub id: String, pub title: String, pub status: Stri
 pub struct PointResponse { pub kind: String /* zero|yIntercept|max|min|inflection|saddle|hole|boundaryMax|boundaryMin */, pub name: String /* "H_1" */, pub x: f64, pub y: f64, pub latex: String }
 pub struct AsymptoteResponse { pub kind: String /* vertical|horizontal|oblique */, pub side: Option<String> /* plusInfinity|minusInfinity|both */, pub x: Option<f64>, pub slope: Option<f64>, pub intercept: Option<f64>, pub latex: String }
 pub struct PlotResponse { pub x_min: f64, pub x_max: f64, pub y_min: f64, pub y_max: f64, pub segments: Vec<Vec<[f64; 2]>> }
-pub struct SampleRequest { pub latex: String, pub variable: Option<String>, pub x_min: f64, pub x_max: f64, pub samples: usize }
+pub struct SampleRequest { pub latex: String, pub variable: Option<String>, pub x_min: f64, pub x_max: f64, pub samples: usize, pub y_min: Option<f64>, pub y_max: Option<f64> }  // y-range for clipping
 pub struct SampleResponse { pub segments: Vec<Vec<[f64; 2]>> }
 pub struct TangentRequest { pub latex: String, pub variable: Option<String>, pub x0: String, pub precision: Option<usize> }
 pub struct LineResponse { pub kind: String /* line|vertical */, pub slope: Option<f64>, pub intercept: Option<f64>, pub x: Option<f64>, pub latex: String }
@@ -471,8 +471,8 @@ pub struct AreaRequest { pub latex: String, pub variable: Option<String>, pub fr
 pub struct AreaResponse { pub steps: Vec<StepResponse>, pub area: String, pub signed: String, pub regions: Vec<RegionResponse> }
 pub struct RegionResponse { pub from: f64, pub to: f64, pub positive: bool, pub segments: Vec<Vec<[f64; 2]>> }
 pub struct TableRequest { pub latex: String, pub variable: Option<String>, pub from: String, pub to: String, pub step: String, pub precision: Option<usize> }
-pub struct TableResponse { pub rows: Vec<TableRow> }
-pub struct TableRow { pub x: String, pub y: Option<String> }
+pub struct TableResponse { pub rows: Vec<TableRowResponse> }
+pub struct TableRowResponse { pub x: String, pub y: Option<String> }
 pub fn analyze(settings: &Settings, r: &AnalysisRequest) -> Result<AnalysisResponse, ApiError>
 pub fn sample_function(settings: &Settings, r: &SampleRequest) -> Result<SampleResponse, ApiError>
 pub fn tangent(settings: &Settings, r: &TangentRequest) -> Result<TangentResponse, ApiError>

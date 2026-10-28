@@ -9,6 +9,7 @@ pub mod exact;
 pub mod expr;
 pub mod input;
 pub mod integrate;
+pub mod interface;
 pub mod interval;
 pub mod limits;
 pub mod plot;

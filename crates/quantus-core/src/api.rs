@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::electro::interface;
-use crate::eval::Calculation;
+use crate::eval::{Calculation, Step};
 use crate::session::{SessionStore, Variable};
 use crate::settings::Settings;
 use crate::QuantusError;
@@ -61,18 +61,7 @@ impl CalculationResponse {
             input: calculation.input.clone(),
             latex: calculation.latex.clone(),
             result: calculation.result.clone(),
-            steps: calculation
-                .steps
-                .iter()
-                .map(|s| StepResponse {
-                    kind: s.kind.name().to_string(),
-                    latex: s.latex.clone(),
-                    rule: s.rule.clone(),
-                    explanation: s.explanation.clone(),
-                    before: s.before.clone(),
-                    after: s.after.clone(),
-                })
-                .collect(),
+            steps: calculation.steps.iter().map(StepResponse::of).collect(),
             align_block: calculation.align_block(),
             value: calculation.value.to_plain_string(),
             imaginary: calculation.imaginary.as_ref().map(|im| im.to_plain_string()),
@@ -100,6 +89,19 @@ pub struct StepResponse {
     pub before: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub after: Option<String>,
+}
+
+impl StepResponse {
+    pub fn of(step: &Step) -> Self {
+        StepResponse {
+            kind: step.kind.name().to_string(),
+            latex: step.latex.clone(),
+            rule: step.rule.clone(),
+            explanation: step.explanation.clone(),
+            before: step.before.clone(),
+            after: step.after.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -165,6 +167,37 @@ pub use crate::electro::interface::{CircuitRequest, CircuitResponse};
 /// Solves a circuit. It touches no session, so it needs the settings only, not the store.
 pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<CircuitResponse, ApiError> {
     Ok(interface::solve_circuit(settings, request)?)
+}
+
+pub use crate::analysis::interface::{
+    AnalysisRequest, AnalysisResponse, AreaRequest, AreaResponse, AsymptoteResponse, LineResponse, PlotResponse,
+    PointResponse, RegionResponse, SampleRequest, SampleResponse, SectionResponse, TableRequest, TableResponse,
+    TableRowResponse, TangentRequest, TangentResponse,
+};
+
+/// The curve sketch of a function (analysis mode). Stateless, like `solve_circuit`.
+pub fn analyze(settings: &Settings, request: &AnalysisRequest) -> Result<AnalysisResponse, ApiError> {
+    Ok(crate::analysis::interface::analyze(settings, request)?)
+}
+
+/// Curve segments for a panned or zoomed graph.
+pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<SampleResponse, ApiError> {
+    Ok(crate::analysis::interface::sample_function(settings, request)?)
+}
+
+/// Tangent and normal at a point.
+pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentResponse, ApiError> {
+    Ok(crate::analysis::interface::tangent(settings, request)?)
+}
+
+/// The area between the graph and the x-axis.
+pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse, ApiError> {
+    Ok(crate::analysis::interface::area(settings, request)?)
+}
+
+/// A table of values.
+pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableResponse, ApiError> {
+    Ok(crate::analysis::interface::value_table(settings, request)?)
 }
 
 pub fn get_settings(store: &SessionStore) -> Settings {
@@ -323,6 +356,61 @@ mod tests {
         assert!(kept.warning.unwrap().contains("The variable x has no value"));
         // A simplified result is an answer, so it carries no warning.
         assert_eq!(evaluate(&mut store, &request("x + x")).unwrap().warning, None);
+    }
+
+    #[test]
+    fn the_analysis_has_its_response_shape() {
+        let request: AnalysisRequest = serde_json::from_value(json!({ "latex": "f(x) = x^3 - 3x" })).unwrap();
+        let body = json_of(&analyze(&Settings::default(), &request).unwrap());
+        let mut keys: Vec<_> = body.as_object().unwrap().keys().cloned().collect();
+        keys.sort();
+        assert_eq!(keys, ["asymptotes", "function", "period", "plot", "points", "sections", "variable"]);
+        assert_eq!(body["function"], "f(x) = x^{3} - 3x");
+        let ids: Vec<_> = body["sections"].as_array().unwrap().iter().map(|s| s["id"].as_str().unwrap().to_string()).collect();
+        assert_eq!(
+            ids,
+            ["derivatives", "domain", "symmetry", "yIntercept", "zeros", "extrema", "inflection", "monotonicity", "curvature", "behaviour", "antiderivative"]
+        );
+        assert_eq!(body["sections"][5]["status"], "ok");
+        assert_eq!(body["sections"][0]["steps"][0]["kind"], "algebraic");
+        let max = body["points"].as_array().unwrap().iter().find(|p| p["kind"] == "max").unwrap();
+        assert_eq!((max["name"].clone(), max["x"].clone(), max["y"].clone()), (json!("Max"), json!(-1.0), json!(2.0)));
+        assert!(body["plot"]["xMin"].as_f64().unwrap() < -1.8);
+        assert!(!body["plot"]["segments"].as_array().unwrap().is_empty());
+        assert!(body["period"].is_null());
+
+        let german = Settings { language: crate::settings::Language::De, ..Settings::default() };
+        let body = json_of(&analyze(&german, &request).unwrap());
+        assert_eq!(body["sections"][1]["title"], "Definitionsbereich");
+    }
+
+    #[test]
+    fn the_analysis_tasks_and_errors_go_through_the_api() {
+        let settings = Settings::default();
+        let pole = json_of(&analyze(&settings, &AnalysisRequest { latex: "\\frac{x^2-1}{x-2}".into(), ..Default::default() }).unwrap());
+        let kinds: Vec<_> = pole["asymptotes"].as_array().unwrap().iter().map(|a| a["kind"].as_str().unwrap().to_string()).collect();
+        assert_eq!(kinds, ["vertical", "oblique"]);
+        assert_eq!(pole["asymptotes"][1]["side"], "both");
+
+        let sampled = sample_function(&settings, &SampleRequest { latex: "\\frac{1}{x}".into(), x_min: -2.0, x_max: 2.0, samples: 100, ..Default::default() }).unwrap();
+        assert_eq!(sampled.segments.len(), 2);
+
+        let tangent = json_of(&tangent(&settings, &TangentRequest { latex: "x^2".into(), x0: "1".into(), ..Default::default() }).unwrap());
+        assert_eq!(tangent["tangent"], json!({ "kind": "line", "slope": 2.0, "intercept": -1.0, "x": null, "latex": "t(x) = 2x - 1" }));
+        assert_eq!(tangent["point"]["latex"], "P\\left(1 \\mid 1\\right)");
+
+        let area = area(&settings, &AreaRequest { latex: "x^3 - 3x".into(), ..Default::default() }).unwrap();
+        assert_eq!((area.area.as_str(), area.signed.as_str()), ("\\frac{9}{2}", "0"));
+        assert_eq!(area.regions.len(), 2);
+        assert!(!area.regions[0].segments.is_empty());
+
+        let table = value_table(&settings, &TableRequest { latex: "x^2".into(), from: "0".into(), to: "2".into(), step: "1".into(), ..Default::default() }).unwrap();
+        assert_eq!(table.rows[2], TableRowResponse { x: "2".into(), y: Some("4".into()) });
+
+        let parse = analyze(&settings, &AnalysisRequest { latex: "x^2 +".into(), ..Default::default() }).unwrap_err();
+        assert!(parse.position.is_some());
+        let family = analyze(&settings, &AnalysisRequest { latex: "x^2 + a".into(), ..Default::default() }).unwrap_err();
+        assert!(family.error.contains("function families") && family.position.is_none());
     }
 
     #[test]

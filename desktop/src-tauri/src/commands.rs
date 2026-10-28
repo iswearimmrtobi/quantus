@@ -9,8 +9,9 @@ use std::sync::{Mutex, OnceLock};
 use std::{fs, io};
 
 use quantus_core::api::{
-    self, ApiError, CalculationRequest, CalculationResponse, CircuitRequest, CircuitResponse,
-    VariableResponse,
+    self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
+    CalculationResponse, CircuitRequest, CircuitResponse, SampleRequest, SampleResponse, TableRequest,
+    TableResponse, TangentRequest, TangentResponse, VariableResponse,
 };
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{Language, Settings};
@@ -126,6 +127,38 @@ pub fn solve_circuit(
 ) -> Result<CircuitResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::solve_circuit(&settings, &request)
+}
+
+/// The curve sketch of a function. Like `solve_circuit` it touches no session.
+#[tauri::command]
+pub fn analyze(engine: State<Engine>, request: AnalysisRequest) -> Result<AnalysisResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::analyze(&settings, &request)
+}
+
+/// Fresh curve segments while the graph is panned or zoomed.
+#[tauri::command]
+pub fn sample_function(engine: State<Engine>, request: SampleRequest) -> Result<SampleResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::sample_function(&settings, &request)
+}
+
+#[tauri::command]
+pub fn tangent(engine: State<Engine>, request: TangentRequest) -> Result<TangentResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::tangent(&settings, &request)
+}
+
+#[tauri::command]
+pub fn area_under_curve(engine: State<Engine>, request: AreaRequest) -> Result<AreaResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::area(&settings, &request)
+}
+
+#[tauri::command]
+pub fn value_table(engine: State<Engine>, request: TableRequest) -> Result<TableResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::value_table(&settings, &request)
 }
 
 #[tauri::command]

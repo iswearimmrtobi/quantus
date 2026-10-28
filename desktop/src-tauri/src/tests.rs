@@ -310,3 +310,47 @@ fn circuit_file_errors_follow_the_language() {
     assert_eq!(message(Language::De), "Das ist keine Schaltungsdatei: die Version fehlt.");
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn a_function_is_analysed_through_the_command_and_the_mode_round_trips() {
+    // German texts are covered in quantus-core: switching the language here would rebuild the
+    // menu, which the mock runtime cannot.
+    let w = window();
+    let sketch = invoke(&w, "analyze", json!({ "request": { "latex": "f(x) = x^3 - 3x" } })).unwrap();
+    assert_eq!(sketch["function"], "f(x) = x^{3} - 3x");
+    assert_eq!(sketch["sections"].as_array().unwrap().len(), 11);
+    assert_eq!(sketch["sections"][1]["title"], "Domain");
+    let max = sketch["points"].as_array().unwrap().iter().find(|p| p["kind"] == "max").unwrap().clone();
+    assert_eq!((max["name"].clone(), max["x"].clone()), (json!("Max"), json!(-1.0)));
+
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    settings["mode"] = json!("analysis");
+    settings["quadraticFormula"] = json!("pq");
+    let saved = invoke(&w, "set_settings", json!({ "settings": settings })).unwrap();
+    assert_eq!((saved["mode"].clone(), saved["quadraticFormula"].clone()), (json!("analysis"), json!("pq")));
+    // Analysis mode reads like algebra mode: no physical constants.
+    assert!(evaluate(&w, r"2 \cdot c_0").is_err());
+}
+
+#[test]
+fn the_analysis_tasks_reach_the_renderer() {
+    let w = window();
+    let sampled = invoke(&w, "sample_function", json!({ "request": { "latex": "\\tan x", "xMin": -4.0, "xMax": 4.0, "samples": 200, "yMin": -5.0, "yMax": 5.0 } })).unwrap();
+    assert_eq!(sampled["segments"].as_array().unwrap().len(), 3);
+    let tangent = invoke(&w, "tangent", json!({ "request": { "latex": "x^2", "x0": "0" } })).unwrap();
+    assert_eq!(tangent["normal"]["kind"], "vertical");
+    let area = invoke(&w, "area_under_curve", json!({ "request": { "latex": "x^2", "from": "0", "to": "3" } })).unwrap();
+    assert_eq!(area["area"], "9");
+    let table = invoke(&w, "value_table", json!({ "request": { "latex": "\\ln x", "from": "0", "to": "1", "step": "1" } })).unwrap();
+    assert_eq!(table["rows"], json!([{ "x": "0", "y": null }, { "x": "1", "y": "0" }]));
+}
+
+#[test]
+fn analysis_errors_reach_the_renderer_like_other_errors() {
+    let w = window();
+    let parse = invoke(&w, "analyze", json!({ "request": { "latex": "f(x) = x^2 +" } })).unwrap_err();
+    assert!(parse["position"].as_u64().is_some());
+    let improper = invoke(&w, "area_under_curve", json!({ "request": { "latex": "\\frac{1}{x}", "from": "-1", "to": "1" } })).unwrap_err();
+    assert!(improper["error"].as_str().unwrap().contains("improper"));
+    assert!(improper["position"].is_null());
+}

@@ -29,7 +29,7 @@ pub struct Evaluator<'a> {
     /// Digits an integral is computed to: `precision`, but capped, because the work of the
     /// quadrature grows with it and nested integrals multiply that work.
     numeric_digits: usize,
-    /// Algebra mode knows no physical constants (`c_0`, `h_P`, ...); imaginary mode computes
+    /// Algebra and analysis mode know no physical constants (`c_0`, `h_P`, ...); imaginary mode computes
     /// with complex numbers where the other modes report an error.
     mode: Mode,
 }
@@ -69,7 +69,7 @@ impl<'a> Evaluator<'a> {
 
     /// The physical constant of that name, unless the mode has none.
     pub(super) fn physical_constant(&self, key: &str) -> Option<PhysicalQuantity> {
-        if self.mode != Mode::Algebra { physical_constant(key) } else { None }
+        if matches!(self.mode, Mode::Algebra | Mode::Analysis) { None } else { physical_constant(key) }
     }
 
     /// An evaluator that sees the same variables plus `scope`, which the caller updates between
