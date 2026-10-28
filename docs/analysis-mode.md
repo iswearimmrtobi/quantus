@@ -298,8 +298,12 @@ Strategies are tried in order on `simplify(e)`. Solutions outside the domain are
 ```rust
 pub enum Approach { PosInf, NegInf, Left(Point), Right(Point) }
 pub enum Behaviour { Finite(Point), PosInf, NegInf, Oscillates, Unknown }
-pub fn behaviour(f: &Expr, at: &Approach, budget: &Budget) -> (Behaviour, Vec<Step>)
+pub fn behaviour(f: &Expr, at: &Approach, ctx: &LimitContext) -> (Behaviour, Step)
+pub fn pole(f: &Expr, at: &Point, ctx: &LimitContext) -> (Behaviour, Behaviour, Step)   // both sides, "with/without sign change"
+pub fn oblique(f: &Expr, at: &Approach, ctx: &LimitContext) -> Option<(Expr, Expr, Vec<Step>)>
 ```
+
+Every approach is first rewritten as t → ∞ (x = t, x = −t, x = a ± 1/t) and simplified, so one growth analysis covers ±∞, poles and open domain bounds such as 0⁺ for `\ln x`.
 
 Methods, tried in order:
 
@@ -313,7 +317,7 @@ Methods, tried in order:
      | n > m | ±∞ | the sign comes from aₙ/bₘ and the parity of n − m at −∞ |
 
    - **At a pole x₀:** k = the multiplicity of x₀ in D, r(x₀) = (N/(D/(x−x₀)^k))(x₀). Then `sign_right = sign r(x₀)` and `sign_left = sign r(x₀)·(−1)^k`. Step: "Polstelle mit (ohne) Vorzeichenwechsel" / "Pole with (without) sign change".
-2. **Growth orders** (exact, for products and quotients of `x^a`, `e^{bx}`, `(\ln x)^c` and constants, and sums of such terms):
+2. **Growth orders** (exact, for products and quotients of `x^a`, `e^{bx+c}`, `(\ln x)^c`, `\arctan` of something with a limit, and constants, and sums of such terms; when the leading terms of a sum cancel, this method gives up):
    - At +∞ a term is C·e^{bx}·x^a·(ln x)^c, compared lexicographically on (b, a, c). The dominant term of a sum decides the limit.
    - At −∞, substitute x = −t (ln terms are then undefined, so no domain issue arises).
    - At 0⁺: `x^a (\ln x)^c` tends to 0 for a > 0.
@@ -321,8 +325,8 @@ Methods, tried in order:
    The step names the dominance: "e^{x} wächst schneller als jede Potenz von x" / "e^{x} grows faster than any power of x", and "jede Potenz x^a (a > 0) wächst schneller als \ln x" / "any power x^a (a > 0) grows faster than \ln x".
 3. **Bounded × vanishing.** `sin`/`cos` (bounded) times a factor tending to 0 gives 0, by squeezing. A bounded oscillating term alone gives `Oscillates`.
 4. **Numeric classifier.** Sample at t = 10^k, k = 1…12 (for ±∞: x = ±t; for x₀±: x = x₀ ± 10^{-k}), plus the shifted points t·1.37:
-   - |f| > 1e12 and growing monotonically over the last 4 samples: `PosInf` or `NegInf`.
-   - Successive differences shrinking geometrically, last one < 1e-9·max(1,|f|): `Finite`, value from the exact Evaluator at the largest t, shown with ≈.
+   - |f| > 10⁹ and growing monotonically over the last 4 samples: `PosInf` or `NegInf`.
+   - The last two samples and the last shifted sample agree to 10⁻⁷·max(1,|f|): `Finite`, shown with ≈.
    - Sign changes or non-monotone and bounded: `Oscillates`.
    - Otherwise: `Unknown`.
 

@@ -6,6 +6,7 @@ pub mod domain;
 pub mod exact;
 pub mod expr;
 pub mod interval;
+pub mod limits;
 pub mod polydiv;
 pub mod rules;
 pub mod simplify;
