@@ -15,6 +15,7 @@ pub mod polydiv;
 pub mod rules;
 pub mod simplify;
 pub mod solve;
+pub mod tasks;
 
 use std::time::Duration;
 

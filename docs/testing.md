@@ -2,7 +2,7 @@
 
 Quantus has two kinds of tests:
 
-1. **`cargo test`**: 426 tests that run in a few seconds. Run them before every commit.
+1. **`cargo test`**: 429 tests that run in a few seconds. Run them before every commit.
 2. **The generated test set** in `test/`: 103,000 cases run by a separate program, for broad
    coverage of the engine. A full run takes about 4 minutes, so run it when you change the engine's
    behaviour, not on every commit.
@@ -29,14 +29,14 @@ without that, the integral cases run several times slower.
 No single test should take longer than a second. Today `tests/golden.rs` breaks that rule (about
 5 s, see [plans.md](plans.md)); everything else finishes in under 0.2 s per file.
 
-## Unit tests (235)
+## Unit tests (238)
 
 `#[cfg(test)] mod tests` blocks inside the source files. They test one module at a time and live
 next to the code they test, so the file you change is also where its tests are.
 
 | Where | Tests | What |
 |---|---:|---|
-| `crates/quantus-core/src/analysis/` | 60 | Analysis mode: expression tree, conversion from and to LaTeX, evaluation, simplifier, exact radicals and trig values, derivatives with working, intervals, polynomial division, equation solving, domains, limits and asymptotes, antiderivatives, input |
+| `crates/quantus-core/src/analysis/` | 63 | Analysis mode: expression tree, conversion from and to LaTeX, evaluation, simplifier, exact radicals and trig values, derivatives with working, intervals, polynomial division, equation solving, domains, limits and asymptotes, antiderivatives, input, tangent, area and value table |
 | `crates/quantus-core/src/electro/` | 36 | Circuit solver, wire resistance, reverse solving, material table |
 | `crates/quantus-core/src/num.rs` | 15 | Exact numbers, rounding, powers, π and roots |
 | `crates/quantus-core/src/quantity.rs` | 11 | `PhysicalQuantity`: arithmetic, conversion, dimension errors |

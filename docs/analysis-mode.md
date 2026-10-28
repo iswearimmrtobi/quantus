@@ -414,10 +414,10 @@ Methods are tried in order; the first verified one wins:
 
 ## 12. Tasks (`tasks.rs`)
 
-All three are stateless and reuse `input.rs`, `domain` and `derive`.
+All three are stateless and reuse `input.rs`, `domain` and `derive`: `tasks::tangent(latex, variable, x0, settings, precision)`, `tasks::area(latex, variable, from, to, settings, precision)` and `tasks::value_table(latex, variable, from, to, step, settings, precision)`. Typed numbers (x₀, bounds, step) may be exact (`\frac{\pi}{4}`); a letter in them is an error.
 
 **Tangent and normal** at `x0` (LaTeX, may be exact, e.g. `\frac{\pi}{4}`):
-- x0 ∉ D or f′ undefined at x0: error ("f ist an der Stelle x_0 nicht differenzierbar" / "f is not differentiable at x_0").
+- x0 ∉ D or f′ undefined at x0 (checked in floating point, since simplifying `x/|x|` at 0 would fold `0·0^{-1}` to 0): error ("f ist an der Stelle x_0 nicht differenzierbar" / "f is not differentiable at x_0").
 - Steps:
   1. `f(x_0) = …`
   2. `f'(x_0) = m = …`
