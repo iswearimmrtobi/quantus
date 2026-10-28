@@ -765,10 +765,35 @@ impl Solver<'_> {
         found.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
         found.dedup_by(|a, b| (*a - *b).abs() <= 1e-9 * a.abs().max(1.0));
         found.truncate(MAX_NUMERIC_ROOTS);
-        let points: Vec<Point> = found.into_iter().map(Point::approx).collect();
+        let points: Vec<Point> = found.into_iter().map(|x| recognise(e, x)).collect();
         self.numeric_step(&points, Some(range));
         Solutions { roots: points.into_iter().map(|point| Root { point, multiplicity: None }).collect(), ..Solutions::default() }
     }
+}
+
+/// A numerically found root as an exact number when a simple one fits and is exactly a root:
+/// a rational with a small denominator, or such a multiple of π.
+fn recognise(e: &Expr, x: f64) -> Point {
+    let tolerance = 1e-9 * x.abs().max(1.0);
+    let simple = |v: f64| {
+        let r = super::interval::simplest_between(v - tolerance, v + tolerance);
+        (r.denominator() <= &UBig::from(100u8)).then_some(r)
+    };
+    let mut candidates = Vec::new();
+    if let Some(r) = simple(x) {
+        candidates.push(Expr::Num(r));
+    }
+    if let Some(r) = simple(x / std::f64::consts::PI) {
+        candidates.push(times_pi(r));
+    }
+    for candidate in candidates {
+        if is_zero(&simplify(&e.substitute(&candidate))) {
+            if let Some(point) = Point::exact(candidate) {
+                return point;
+            }
+        }
+    }
+    Point::approx(x)
 }
 
 /// What the inner function of an inverted equation must equal.

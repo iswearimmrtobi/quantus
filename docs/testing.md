@@ -2,7 +2,7 @@
 
 Quantus has two kinds of tests:
 
-1. **`cargo test`**: 403 tests that run in a few seconds. Run them before every commit.
+1. **`cargo test`**: 426 tests that run in a few seconds. Run them before every commit.
 2. **The generated test set** in `test/`: 103,000 cases run by a separate program, for broad
    coverage of the engine. A full run takes about 4 minutes, so run it when you change the engine's
    behaviour, not on every commit.
@@ -29,14 +29,14 @@ without that, the integral cases run several times slower.
 No single test should take longer than a second. Today `tests/golden.rs` breaks that rule (about
 5 s, see [plans.md](plans.md)); everything else finishes in under 0.2 s per file.
 
-## Unit tests (232)
+## Unit tests (235)
 
 `#[cfg(test)] mod tests` blocks inside the source files. They test one module at a time and live
 next to the code they test, so the file you change is also where its tests are.
 
 | Where | Tests | What |
 |---|---:|---|
-| `crates/quantus-core/src/analysis/` | 57 | Analysis mode: expression tree, conversion from and to LaTeX, evaluation, simplifier, exact radicals and trig values, derivatives with working, intervals, polynomial division, equation solving, domains, limits and asymptotes, antiderivatives |
+| `crates/quantus-core/src/analysis/` | 60 | Analysis mode: expression tree, conversion from and to LaTeX, evaluation, simplifier, exact radicals and trig values, derivatives with working, intervals, polynomial division, equation solving, domains, limits and asymptotes, antiderivatives, input |
 | `crates/quantus-core/src/electro/` | 36 | Circuit solver, wire resistance, reverse solving, material table |
 | `crates/quantus-core/src/num.rs` | 15 | Exact numbers, rounding, powers, π and roots |
 | `crates/quantus-core/src/quantity.rs` | 11 | `PhysicalQuantity`: arithmetic, conversion, dimension errors |
@@ -47,7 +47,7 @@ next to the code they test, so the file you change is also where its tests are.
 | `crates/quantus-core/src/` (rest) | 21 | Sessions, settings, error messages, message language, algebra pipeline, rational roots |
 | `desktop/src-tauri/src/tests.rs` | 16 | The Tauri commands through Tauri's own IPC layer with a mock runtime, as the renderer's `invoke` reaches them: evaluation, variables, error positions, settings and circuit files, the menu |
 
-## Integration tests (171)
+## Integration tests (191)
 
 `crates/quantus-core/tests/*.rs`. Each file is its own test binary and uses only the public API of
 `quantus-core`.
@@ -89,6 +89,7 @@ The symbolic simplification of rational expressions, built milestone by mileston
 
 | File | Tests | What |
 |---|---:|---|
+| `analysis.rs` | 20 | The analysis mode end to end: each section's result and the marked points for the cases of `docs/analysis-mode.md` §17, German texts, the pq formula, input forms and errors, and a time check |
 | `complex.rs` | 10 | Complex results in imaginary mode |
 | `settings.rs` | 10 | Each user setting switches its reading or writing rule |
 

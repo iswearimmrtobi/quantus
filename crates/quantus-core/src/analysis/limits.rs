@@ -302,6 +302,9 @@ const EXP: u8 = 1;
 const POWER: u8 = 2;
 const LOG: u8 = 4;
 
+/// The exponential rate standing for "e to something that grows faster than t".
+const SUPER_EXPONENTIAL: i64 = 1_000_000;
+
 /// A term as t → ∞: `coefficient · e^{exp·t} · t^{power} · (\ln t)^{log}`.
 #[derive(Clone, Debug)]
 struct Growth {
@@ -385,7 +388,16 @@ fn growth(e: &Expr) -> Option<Growth> {
         Expr::Func(Fn::Exp, u) => {
             // e^{kt + c} = e^c · e^{kt}
             let slope = simplify(&super::derive::derivative(u));
-            let k = slope.as_num()?.clone();
+            let Some(k) = slope.as_num().cloned() else {
+                // e^{t^2} and the like: faster (or slower) than any e^{kt} the rest can bring.
+                let inner = growth(u)?;
+                return match inner.limit() {
+                    Behaviour::PosInf => Some(Growth { exp: RBig::from(SUPER_EXPONENTIAL), kinds: EXP, ..Growth::constant(Expr::int(1)) }),
+                    Behaviour::NegInf => Some(Growth { exp: -RBig::from(SUPER_EXPONENTIAL), kinds: EXP, ..Growth::constant(Expr::int(1)) }),
+                    Behaviour::Finite(p) => Some(Growth::constant(simplify(&Expr::func(Fn::Exp, p.exact?)))),
+                    _ => None,
+                };
+            };
             let c = simplify(&u.substitute(&Expr::int(0)));
             Some(Growth { coefficient: simplify(&Expr::func(Fn::Exp, c)), exp: k, kinds: EXP, ..Growth::constant(Expr::int(1)) })
         }
@@ -457,7 +469,8 @@ pub fn oblique(f: &Expr, at: &Approach, ctx: &LimitContext) -> Option<(Expr, Exp
     if let Some((n, d)) = f.as_rational() {
         let common = n.gcd(&d);
         let (n, d) = (n.div_rem(&common).ok()?.0, d.div_rem(&common).ok()?.0);
-        if n.degree_of(x) != d.degree_of(x) + 1 {
+        // A polynomial (also after cancelling) has no asymptote, not even itself.
+        if d.is_constant() || n.degree_of(x) != d.degree_of(x) + 1 {
             return None;
         }
         let division = divide(&n, &d, ctx.var);

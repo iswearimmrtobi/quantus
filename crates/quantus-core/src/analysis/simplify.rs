@@ -217,10 +217,23 @@ fn rational(e: &Expr, style: OutputStyle) -> Option<Expr> {
         return Some(hit);
     }
     let variable = Expr::poly_variable();
+    // Cancel the common factor first: the pipeline only finds it when it can factor both sides.
+    let reduced = match e.as_rational() {
+        Some((n, d)) if !d.is_constant() => {
+            let common = n.gcd(&d);
+            match (n.div_rem(&common), d.div_rem(&common)) {
+                (Ok((n, _)), Ok((d, _))) if !common.is_constant() => {
+                    Expr::Product(vec![Expr::from_poly(&n), Expr::recip(Expr::from_poly(&d))])
+                }
+                _ => e.clone(),
+            }
+        }
+        _ => e.clone(),
+    };
     // Verified: without the check the pipeline can return a wrong result for nested fractions
     // such as `\frac{1}{a} \cdot \frac{1}{1 + (\frac{x}{a})^2} \cdot \frac{1}{a} - \frac{1}{1 + x^2}`.
     let config = PipelineConfig { verify_equivalence: true, style, ..PipelineConfig::default() };
-    let result = simplify_node_with(&e.to_node(variable), config).ok()?;
+    let result = simplify_node_with(&reduced.to_node(variable), config).ok()?;
     let simplified = canon(&Expr::from_node(&result.node, variable).ok()?);
     RATIONAL_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
@@ -470,6 +483,10 @@ fn local_pow(base: Expr, exponent: Expr) -> Expr {
         return Expr::int(1);
     }
     match (&base, exponent.as_num()) {
+        // |u|^{2k} = u^{2k}
+        (Expr::Func(Fn::Abs, u), Some(n)) if n.is_int() && n.numerator() % IBig::from(2) == IBig::ZERO => {
+            return local_pow((**u).clone(), exponent);
+        }
         (Expr::Num(b), Some(e)) => {
             if let Some(value) = exact::radical(b, e) {
                 return value;

@@ -106,7 +106,7 @@ impl Bound {
         }
     }
 
-    fn closed(&self) -> bool {
+    pub fn closed(&self) -> bool {
         matches!(self, Bound::At { closed: true, .. })
     }
 }
@@ -147,7 +147,7 @@ impl Interval {
         simplest_between(self.lo.value(), self.hi.value())
     }
 
-    fn to_latex(&self, digits: usize, language: Language) -> String {
+    pub fn to_latex(&self, digits: usize, language: Language) -> String {
         let bound = |b: &Bound| match b {
             Bound::NegInf => "-\\infty".to_string(),
             Bound::PosInf => "\\infty".to_string(),

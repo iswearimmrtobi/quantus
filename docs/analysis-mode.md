@@ -380,6 +380,14 @@ Methods are tried in order; the first verified one wins:
 - If x₀ is exact: `y = display(simplify(f.substitute(x₀)))`, and the LaTeX is `H\left(e \mid \frac{1}{e}\right)`, regardless of `settings.exact_roots`. Where it is not just a rational number, the approximation follows: `H(2-\sqrt{3} \mid 4-2\sqrt{3}) \approx H(0{,}268 \mid 0{,}536)`.
 - If x₀ is approximate: y = `eval_exact` at the refined x₀, shown with ≈.
 
+**The function line** shows f as typed (`\frac{x^{2} - 1}{x - 1}`, not the cancelled `x + 1`); the sections work with the simplified f.
+
+**Point names:** German H, T, W, S (saddle), N (zero), S_y, L (gap), R (boundary point); English Max, Min, I, S, Z, S_y, G, B. A kind that occurs more than once is numbered by x: `H_{1}`, `H_{2}`. The sections are written with a placeholder token per point, replaced by the name once all points are known.
+
+**Sign tables** merge neighbouring intervals with the same sign when the point between them is in D (no sign change there): `x^3` is increasing on `]-\infty; \infty[`.
+
+**Numerically found roots** are checked against simple exact candidates (a rational with denominator ≤ 100, or such a multiple of π); one that is exactly a root is shown exactly (`x + \sin x` has the root 0).
+
 **Sections**, in this order. Their `id`s are fixed API values.
 
 | # | id | Content |

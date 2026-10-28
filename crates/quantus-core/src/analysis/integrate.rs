@@ -239,6 +239,8 @@ fn leaf(e: &Expr) -> Option<Expr> {
                 Fn::Sinh => Expr::func(Fn::Cosh, u),
                 Fn::Cosh => Expr::func(Fn::Sinh, u),
                 Fn::Ln => Expr::Sum(vec![Expr::Product(vec![u.clone(), Expr::func(Fn::Ln, u.clone())]), Expr::neg(u)]),
+                // \int |u| = \frac{1}{2} u |u|
+                Fn::Abs => Expr::Product(vec![Expr::ratio(1, 2), u.clone(), Expr::func(Fn::Abs, u)]),
                 _ => return None,
             };
             over(result, &a)

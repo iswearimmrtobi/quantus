@@ -286,7 +286,7 @@ fn close_at(pieces: &mut Vec<Interval>, zero: &Point) {
 }
 
 /// The sign of `u` at `x`: exactly where the evaluator can, in floating point otherwise.
-fn sign_at(u: &Expr, x: &RBig) -> i32 {
+pub fn sign_at(u: &Expr, x: &RBig) -> i32 {
     if let Ok(value) = u.eval_exact(&Value::Rat(x.clone()), 30) {
         if value.is_zero() {
             return 0;

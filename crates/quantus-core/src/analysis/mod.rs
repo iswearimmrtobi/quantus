@@ -1,10 +1,13 @@
 //! Analysis mode (Kurvendiskussion): a function of one variable in, the full curve sketch with
 //! its working out. See `docs/analysis-mode.md`.
 
+pub mod budget;
 pub mod derive;
+pub mod discussion;
 pub mod domain;
 pub mod exact;
 pub mod expr;
+pub mod input;
 pub mod integrate;
 pub mod interval;
 pub mod limits;
@@ -13,4 +16,30 @@ pub mod rules;
 pub mod simplify;
 pub mod solve;
 
+use std::time::Duration;
+
+pub use discussion::{Asymptote, Discussion, MarkedPoint, PointKind, Section, SectionStatus, Side};
 pub use expr::{Expr, Fn};
+
+use crate::settings::Settings;
+use crate::text::Scope;
+use crate::Result;
+
+/// How long one curve sketch may take before the remaining sections are skipped.
+pub const ANALYZE_LIMIT: Duration = Duration::from_secs(3);
+
+/// Significant digits of approximate values unless a precision is asked for.
+pub const DEFAULT_DIGITS: usize = 6;
+
+/// The digits approximate values are shown with.
+pub fn digits(settings: &Settings, precision: Option<usize>) -> usize {
+    precision.unwrap_or_else(|| settings.precision.min(DEFAULT_DIGITS)).max(1)
+}
+
+/// The curve sketch of the function in `latex` (`f(x) = …`, `y = …` or a bare expression).
+pub fn analyze(latex: &str, variable: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Discussion> {
+    let _language = Scope::new(settings.language);
+    let (f, var) = input::parse_function(latex, variable, settings)?;
+    let ctx = discussion::Ctx { settings, var: &var, digits: digits(settings, precision), budget: budget::Budget::new(ANALYZE_LIMIT) };
+    discussion::discuss(&f, &ctx)
+}
