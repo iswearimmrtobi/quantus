@@ -4,7 +4,7 @@
 use dashu::rational::RBig;
 
 use super::expr::Expr;
-use super::rules::{step, AnalysisRule};
+use super::rules::{step, step_with_rows, AnalysisRule};
 use crate::algebra::poly::{Monomial, Poly};
 use crate::eval::Step;
 use crate::text::msg;
@@ -30,10 +30,13 @@ pub fn divide(dividend: &Poly, divisor: &Poly, var: &str) -> Division {
         let term = Poly::from_term(coefficient, Monomial::single(x, d - degree));
         let subtracted = &term * divisor;
         let next = &remainder - &subtracted;
-        steps.push(step(
+        // The rows of the written division: what is subtracted, and what is left.
+        steps.push(step_with_rows(
             AnalysisRule::PolynomialDivision,
             msg!("Partial quotient {}", "Teilquotient {}", tex(&term)),
             format!("{} - ({}) = {}", tex(&remainder), tex(&subtracted), tex(&next)),
+            format!("- ({})", tex(&subtracted)),
+            tex(&next),
         ));
         quotient = &quotient + &term;
         remainder = next;
@@ -49,7 +52,10 @@ pub fn divide(dividend: &Poly, divisor: &Poly, var: &str) -> Division {
         }
     }
     steps.push(step(AnalysisRule::PolynomialDivision, msg!("Polynomial division", "Polynomdivision"), result));
-    debug_assert!(&(&quotient * divisor) + &remainder == *dividend);
+    // The written rows must agree with the division of the algebra module.
+    if let Ok((checked_quotient, checked_remainder)) = dividend.div_rem(divisor) {
+        assert!(checked_quotient == quotient && checked_remainder == remainder, "polynomial division disagrees with Poly::div_rem");
+    }
     Division { quotient, remainder, steps }
 }
 
@@ -82,6 +88,8 @@ mod tests {
                 "(x^{3} - 6x^{2} + 11x - 6) : (x - 1) = x^{2} - 5x + 6",
             ]
         );
+        assert_eq!(division.steps[0].before.as_deref(), Some("- (x^{3} - x^{2})"));
+        assert_eq!(division.steps[0].after.as_deref(), Some("-5x^{2} + 11x - 6"));
     }
 
     #[test]

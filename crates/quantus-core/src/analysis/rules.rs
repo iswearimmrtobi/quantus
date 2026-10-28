@@ -88,3 +88,8 @@ impl AnalysisRule {
 pub fn step(rule: AnalysisRule, explanation: impl Into<String>, latex: impl Into<String>) -> Step {
     Step::algebraic(latex, Some(rule.as_str().to_string()), explanation, None, None)
 }
+
+/// A step that also carries the rows before and after it, as in a written-out division.
+pub fn step_with_rows(rule: AnalysisRule, explanation: impl Into<String>, latex: impl Into<String>, before: String, after: String) -> Step {
+    Step::algebraic(latex, Some(rule.as_str().to_string()), explanation, Some(before), Some(after))
+}

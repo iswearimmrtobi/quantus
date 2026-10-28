@@ -118,6 +118,9 @@ pub fn solve_zero(e: &Expr, ctx: &SolveContext) -> Solved {
     }
     solutions.roots = merge(kept);
     solutions.families = merge_families(solutions.families);
+    for family in &solutions.families {
+        solver.family_outside_domain(family);
+    }
     Solved { solutions, steps: solver.steps, complete: solver.complete }
 }
 
@@ -147,6 +150,40 @@ impl Solver<'_> {
         e.to_latex(self.ctx.var)
     }
 
+    /// Steps for the members of a family that D leaves out: the gaps of D on the family
+    /// (`\frac{\sin x}{x}` loses x = 0), and a note when D ends, so only part of it counts.
+    fn family_outside_domain(&mut self, family: &PeriodicSet) {
+        let domain = self.ctx.domain;
+        let mut gaps: Vec<&Point> = Vec::new();
+        for interval in &domain.set.0 {
+            for bound in [&interval.lo, &interval.hi] {
+                if let Bound::At { point, closed: false } = bound {
+                    if family.contains(point.approx) && !gaps.iter().any(|g| g.same(point)) {
+                        gaps.push(point);
+                    }
+                }
+            }
+        }
+        for gap in gaps {
+            let x = gap.to_latex(self.ctx.digits);
+            self.push(
+                AnalysisRule::DomainCondition,
+                msg!("Not in the domain, so no solution", "Nicht im Definitionsbereich, also keine Lösung"),
+                format!("{} = {x} \\notin D", self.ctx.var),
+            );
+        }
+        let bounded = !matches!(domain.set.0.first().map(|i| &i.lo), Some(Bound::NegInf))
+            || !matches!(domain.set.0.last().map(|i| &i.hi), Some(Bound::PosInf));
+        if bounded {
+            let listed = family.to_latex().join(", ");
+            self.push(
+                AnalysisRule::DomainCondition,
+                msg!("Only the members in D are solutions", "Nur die Werte in D sind Lösungen"),
+                format!("{} = {listed}, \\ {} \\in D", self.ctx.var, self.ctx.var),
+            );
+        }
+    }
+
     fn push(&mut self, rule: AnalysisRule, explanation: String, latex: String) {
         self.steps.push(step(rule, explanation, latex));
     }
@@ -167,6 +204,11 @@ impl Solver<'_> {
         }
         match &shown {
             Expr::Product(factors) => {
+                let constant = Expr::product(factors.iter().filter(|f| f.is_constant()).cloned().collect());
+                if constant.as_num().is_none_or(|c| c.clone().abs() != RBig::ONE) {
+                    let latex = format!("{} \\neq 0", self.tex(&constant));
+                    self.push(AnalysisRule::ZeroProduct, msg!("A constant factor is never zero", "Ein konstanter Faktor wird nie null"), latex);
+                }
                 let rest: Vec<Expr> = factors.iter().filter(|f| !f.is_constant()).cloned().collect();
                 let (below, above): (Vec<Expr>, Vec<Expr>) = rest.into_iter().partition(is_below_the_line);
                 if !below.is_empty() {
@@ -321,12 +363,49 @@ impl Solver<'_> {
             String::new()
         };
         let value = self.tex(&Expr::Num(r.clone()));
-        let latex = format!("{candidates}{} = {value}", self.ctx.var);
+        let latex = format!("{candidates}{} = 0", self.put_in(p, r));
         self.push(
             AnalysisRule::RationalRootGuess,
-            msg!("By inspection: {} = {} is a root", "Raten: {} = {} ist eine Nullstelle", self.ctx.var, value),
+            msg!(
+                "By inspection: the value at {} = {} is 0, so it is a root",
+                "Raten: Der Wert bei {} = {} ist 0, also ist es eine Nullstelle",
+                self.ctx.var,
+                value
+            ),
             latex,
         );
+    }
+
+    /// `p(r)` written out term by term, as checked by hand: `1^{3} - 6 \\cdot 1^{2} + 11 \\cdot 1 - 6`.
+    fn put_in(&self, p: &Poly, r: &RBig) -> String {
+        let x = Expr::poly_variable();
+        let value = self.tex(&Expr::Num(r.clone()));
+        let base = if r.is_negative() || !r.is_int() { format!("\\left({value}\\right)") } else { value };
+        let mut out = String::new();
+        for d in (0..=p.degree_of(x)).rev() {
+            let c = p.coeff_of(&Monomial::single(x, d));
+            if c == RBig::ZERO {
+                continue;
+            }
+            let power = match d {
+                0 => String::new(),
+                1 => base.clone(),
+                _ => format!("{base}^{{{d}}}"),
+            };
+            let size = self.tex(&Expr::Num(c.clone().abs()));
+            let term = match (d, size.as_str()) {
+                (0, _) => size,
+                (_, "1") => power,
+                _ => format!("{size} \\cdot {power}"),
+            };
+            match (out.is_empty(), c.is_negative()) {
+                (true, true) => out.push_str(&format!("-{term}")),
+                (true, false) => out.push_str(&term),
+                (false, true) => out.push_str(&format!(" - {term}")),
+                (false, false) => out.push_str(&format!(" + {term}")),
+            }
+        }
+        out
     }
 
     /// `a·s^2 + b·s + c = 0` in the symbol `s` (x, or z after a substitution).
@@ -340,7 +419,14 @@ impl Solver<'_> {
             return self.pure_power(2, &value, 1);
         }
         let (discriminant, centre, root_scale);
-        if self.ctx.settings.uses_pq_formula() {
+        let pq = self.ctx.settings.uses_pq_formula();
+        let rule = if pq { AnalysisRule::QuadraticPq } else { AnalysisRule::QuadraticAbc };
+        // `\sqrt{16} = 4`, `\sqrt{8} = 2\sqrt{2}`: the radical once more, simplified.
+        let radical = |d: &RBig| {
+            let root = simplify(&Expr::pow(Expr::Num(d.clone()), Expr::ratio(1, 2)));
+            (!d.is_negative() && !matches!(&root, Expr::Pow(base, _) if **base == Expr::Num(d.clone()))).then(|| root.to_latex(s))
+        };
+        if pq {
             let (p, q) = (b / a, c / a);
             if *a != RBig::ONE {
                 let normal = Expr::poly_from_coefficients(&[q.clone(), p.clone(), RBig::ONE]);
@@ -349,11 +435,14 @@ impl Solver<'_> {
             }
             let half = -p.clone() / &two;
             discriminant = &half * &half - &q;
-            let latex = format!(
+            let mut latex = format!(
                 "{s}_{{1,2}} = -\\frac{{p}}{{2}} \\pm \\sqrt{{\\left(\\frac{{p}}{{2}}\\right)^{{2}} - q}} = {} \\pm \\sqrt{{{}}}",
                 num(&half),
                 num(&discriminant)
             );
+            if let Some(root) = radical(&discriminant) {
+                latex.push_str(&format!(" = {} \\pm {root}", num(&half)));
+            }
             self.push(
                 AnalysisRule::QuadraticPq,
                 msg!("pq formula with p = {}, q = {}", "pq-Formel mit p = {}, q = {}", plain(&p), plain(&q)),
@@ -363,12 +452,15 @@ impl Solver<'_> {
             root_scale = RBig::ONE;
         } else {
             discriminant = b * b - RBig::from(4) * a * c;
-            let latex = format!(
+            let mut latex = format!(
                 "{s}_{{1,2}} = \\frac{{-b \\pm \\sqrt{{b^{{2}} - 4ac}}}}{{2a}} = \\frac{{{} \\pm \\sqrt{{{}}}}}{{{}}}",
                 num(&-b.clone()),
                 num(&discriminant),
                 num(&(&two * a))
             );
+            if let Some(root) = radical(&discriminant) {
+                latex.push_str(&format!(" = \\frac{{{} \\pm {root}}}{{{}}}", num(&-b.clone()), num(&(&two * a))));
+            }
             self.push(
                 AnalysisRule::QuadraticAbc,
                 msg!(
@@ -386,7 +478,7 @@ impl Solver<'_> {
         if discriminant.is_negative() {
             let latex = format!("{} < 0", num(&discriminant));
             self.push(
-                AnalysisRule::QuadraticAbc,
+                rule,
                 msg!("The radicand is negative: no real solution", "Der Radikand ist negativ: keine reelle Lösung"),
                 latex,
             );
@@ -394,7 +486,7 @@ impl Solver<'_> {
         }
         if discriminant == RBig::ZERO {
             let latex = format!("{s} = {}", num(&centre));
-            self.push(AnalysisRule::QuadraticAbc, msg!("Double solution", "Doppelte Lösung"), latex);
+            self.push(rule, msg!("Double solution", "Doppelte Lösung"), latex);
             return Solutions::root(Point::rational(centre), 2);
         }
         let root = Expr::Product(vec![Expr::Num(root_scale), Expr::pow(Expr::Num(discriminant), Expr::ratio(1, 2))]);
@@ -406,7 +498,7 @@ impl Solver<'_> {
             .collect();
         points.sort_by(|a, b| a.approx.partial_cmp(&b.approx).unwrap_or(Ordering::Equal));
         let latex = format!("{s}_{{1}} = {}, \\quad {s}_{{2}} = {}", points[0].to_latex(self.ctx.digits), points[1].to_latex(self.ctx.digits));
-        self.push(AnalysisRule::QuadraticAbc, msg!("Two solutions", "Zwei Lösungen"), latex);
+        self.push(rule, msg!("Two solutions", "Zwei Lösungen"), latex);
         let mut all = Solutions::none();
         for point in points {
             all.extend(Solutions::root(point, 1));
@@ -905,10 +997,22 @@ fn scan_f64(e: &Expr, lo: f64, hi: f64, samples: usize) -> Vec<f64> {
     roots
 }
 
-/// `k` with `base^k = value` for whole k, when both are rational: `\log_2 8 = 3`.
+/// The rational k with `base^k = value`, when both are rational: `\log_2 8 = 3`,
+/// `\log_4 2 = \frac{1}{2}`. The candidate is the simplest fraction near the floating-point
+/// logarithm, confirmed exactly.
 fn exact_log(base: &Expr, value: &Expr) -> Option<Expr> {
     let (Expr::Num(a), Expr::Num(v)) = (base, value) else { return None };
-    (-64i64..=64).find(|k| super::exact::radical(a, &RBig::from(*k)) == Some(Expr::Num(v.clone()))).map(Expr::int)
+    let (fa, fv) = (a.to_f64().value(), v.to_f64().value());
+    if fa <= 0.0 || fv <= 0.0 || fa == 1.0 {
+        return None;
+    }
+    let guess = fv.ln() / fa.ln();
+    let tolerance = 1e-9 * guess.abs().max(1.0);
+    let k = super::interval::simplest_between(guess - tolerance, guess + tolerance);
+    if k.denominator() > &UBig::from(12u8) || k.numerator().unsigned_abs() > UBig::from(768u16) {
+        return None;
+    }
+    (super::exact::radical(a, &k) == Some(Expr::Num(v.clone()))).then_some(Expr::Num(k))
 }
 
 /// Two families with the same period whose bases lie half a period apart are one family with
@@ -925,8 +1029,14 @@ fn merge_families(mut families: Vec<PeriodicSet>) -> Vec<PeriodicSet> {
             }
             let (x, y) = (a.base[0].eval_f64(0.0).unwrap_or(f64::NAN), b.base[0].eval_f64(0.0).unwrap_or(f64::NAN));
             let offset = ((x - y) / (p / 2.0)).round();
-            if offset as i64 % 2 == 0 || ((x - y) - offset * p / 2.0).abs() > 1e-9 * p {
+            if ((x - y) - offset * p / 2.0).abs() > 1e-9 * p {
                 continue;
+            }
+            // Whole periods apart: the same family found twice.
+            if offset as i64 % 2 == 0 {
+                families.remove(j);
+                merged = true;
+                break;
             }
             let half = simplify(&Expr::Product(vec![a.period.clone(), Expr::ratio(1, 2)]));
             let k = (x / (p / 2.0)).floor() as i64;
@@ -1019,6 +1129,25 @@ mod tests {
         assert_eq!(cubic.solutions.roots.iter().map(|r| r.point.to_latex(6)).collect::<Vec<_>>(), ["1", "2", "3"]);
         assert_eq!(&rules(&cubic)[..2], ["RATIONAL_ROOT_GUESS", "POLYNOMIAL_DIVISION"]);
         assert!(cubic.steps[0].latex.starts_with("x \\in \\{\\pm 1, \\pm 2, \\pm 3, \\pm 6\\}"));
+        assert!(cubic.steps[0].latex.ends_with("1^{3} - 6 \\cdot 1^{2} + 11 \\cdot 1 - 6 = 0"), "{}", cubic.steps[0].latex);
+    }
+
+    #[test]
+    fn exact_logarithms_and_named_constant_factors() {
+        assert_eq!(roots("4^x - 2"), ["\\frac{1}{2}"]);
+        assert_eq!(roots("2^x - 8"), ["3"]);
+        assert_eq!(roots("27^x - 9"), ["\\frac{2}{3}"]);
+        let scaled = solve("3 x e^x");
+        assert!(scaled.steps.iter().any(|s| s.latex == "3 \\neq 0"), "{:?}", scaled.steps);
+    }
+
+    #[test]
+    fn families_lose_the_members_outside_the_domain() {
+        let domain = Domain { set: IntervalSet::reals().remove_point(&Point::rational(RBig::ZERO)), excluded: vec![], holes: vec![] };
+        let solved = solve_with("\\sin x", &Settings::default(), &domain);
+        assert!(solved.steps.iter().any(|s| s.latex == "x = 0 \\notin D"), "{:?}", solved.steps);
+        let twice = merge_families(vec![pi_family(RBig::ZERO, RBig::from(2)), pi_family(RBig::from(2), RBig::from(2))]);
+        assert_eq!(twice.len(), 1);
     }
 
     #[test]
@@ -1028,12 +1157,17 @@ mod tests {
         assert_eq!(solved.steps[0].rule.as_deref(), Some("QUADRATIC_PQ"));
         assert_eq!(
             solved.steps[0].latex,
-            "x_{1,2} = -\\frac{p}{2} \\pm \\sqrt{\\left(\\frac{p}{2}\\right)^{2} - q} = 1 \\pm \\sqrt{4}"
+            "x_{1,2} = -\\frac{p}{2} \\pm \\sqrt{\\left(\\frac{p}{2}\\right)^{2} - q} = 1 \\pm \\sqrt{4} = 1 \\pm 2"
         );
         assert_eq!(solved.steps[0].explanation.as_deref(), Some("pq formula with p = -2, q = -3"));
+        assert!(rules(&solved).iter().all(|r| r == "QUADRATIC_PQ"), "{:?}", rules(&solved));
         let abc = solve("2x^2 - 4x - 6");
         assert_eq!(abc.steps[0].rule.as_deref(), Some("QUADRATIC_ABC"));
-        assert!(abc.steps[0].latex.ends_with("= \\frac{4 \\pm \\sqrt{64}}{4}"));
+        assert!(abc.steps[0].latex.ends_with("= \\frac{4 \\pm \\sqrt{64}}{4} = \\frac{4 \\pm 8}{4}"));
+        let surd = solve("x^2 - 2x - 1");
+        assert!(surd.steps[0].latex.ends_with("= \\frac{2 \\pm \\sqrt{8}}{2} = \\frac{2 \\pm 2\\sqrt{2}}{2}"), "{}", surd.steps[0].latex);
+        let none = solve("x^2 + x + 1");
+        assert!(!none.steps[0].latex.contains("\\sqrt{-3} ="));
         let german = Settings { language: Language::De, ..Settings::default() };
         assert_eq!(solve_with("x^2 - 2x - 3", &german, &Domain::reals()).steps[0].rule.as_deref(), Some("QUADRATIC_PQ"));
     }
