@@ -23,6 +23,31 @@ The steps of §16, one commit each, and the checks of §17.
 - [x] `cd desktop && npm run typecheck` passes
 - [ ] Manual check in `npm run dev` (§17)
 
+### Completion
+
+A check of the code against this specification found gaps after step 15. They were closed one
+commit each:
+
+- [x] Time budget inside the numeric loops, the simplifier and the integration methods; limits for the tasks and the sampling (`49a5eab`)
+- [x] Domain and interval rules: exact point equality and symmetry, merged intersections, arcsin as two inequalities, irrational exponents, numeric zeros noted (`04e10c6`, `7755350`)
+- [x] Solver working: families outside D, rational exact logarithms, duplicate families, constant factors, the put-in guess, pq rule ids, simplified radicals, division rows in `before`/`after` (`46c7145`)
+- [x] Limits: exact pole signs, `\ln` of growing arguments, the numeric classifier, approximate oblique asymptotes, the approximating curve (`40ee1f9`)
+- [x] Antiderivatives: nested parts, irrational quadratic roots, working for `e^{ax}\sin(bx)`, completed squares in the table, `\ln|u|` by the sign on D, polynomials multiplied out (`33e40d5`)
+- [x] Serializer join of x-powers, odd and even sums, the chain-rule step for a constant over several factors (`8673b1b`)
+- [x] Point text, refined y, boundary point names, multiplicity notes and section wording (`cd27790`)
+- [x] Periodic families merged after classifying, moving y for ax + periodic, `period` in the API (`ec65a1e`)
+- [x] Tasks: zeros on [a, b], bounds and errors, signed integral, closed-form table cells, `xValue`/`yValue`, five tangent steps (`1484300`)
+- [x] Plot: domain ends in every view, the pole offset (`e6fd912`)
+- [x] Frontend: request order, kept view and selection, tooltip, zoom limits, one-sided and periodic asymptotes (`90ca1bf`)
+- [x] Frontend: placeholder, input row, i18n keys, colour tokens, container query (`1c737d7`)
+- [x] Tests for every row of §17 and every expected antiderivative (`5b9615d`)
+
+Decided while completing it, and written into the sections below:
+
+- `1/\sqrt{a} = \sqrt{a}/a` stays part of the canonical form (§5): it is what lets `\frac{\sqrt{2}}{2}` and `\frac{1}{\sqrt{2}}` collect as like terms.
+- Holes are found with the gcd of numerator and denominator, which is what `DomainTracker` records (§7).
+- Families are listed in [−10, 10] when f is not periodic (§11): the plot window is computed from the listed points, so it cannot decide which points are listed.
+
 ## 1. Context and scope
 
 Quantus can differentiate symbolically (`eval/derivative.rs`), but it only uses that to evaluate a derivative at a point. Integrals are definite and numerical only (`numeric.rs`, tanh-sinh). The algebra pipeline rejects anything that is not rational (`algebra::pipeline::find_unsupported_construct`). This plan adds a fifth app mode, **Analysis** (German UI: "Analysis"). The user enters f(x) and gets a full curve sketch with the working written out the way a student would write it, plus three tasks: tangent/normal, area and value table.
@@ -127,12 +152,12 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
 **`to_node(&self, var) -> Node`** (all positions are 0). The output goes through `latex::serializer::algebraic_expression`.
 - **Summand order:** positive powers of x by decreasing degree, then terms with functions, then the constant, then negative powers of x (`x^{3} - 3x + 2`, `x + e^{x} - 1`, `x + 2 + \frac{1}{x}`).
 - **Signs:** a summand with a negative coefficient becomes `Binary Minus`.
-- **Product order:** coefficient, then π, then x-powers, then other powers, then functions (`2\pi x^{2} e^{x}`).
+- **Product order:** coefficient, then π, then x-powers, then other powers, then functions (`2\pi x^{2}e^{x}`).
 - **Negative powers** go to a `\frac` denominator (`\frac{x+1}{(x-2)^{2}}`).
 - **Rational powers** `p/q` with `q ≥ 2` become `Root` (`\sqrt{x}`, `\sqrt[3]{x^{2}}`, `\frac{1}{\sqrt{x}}`).
 - **Functions:** `Func(Exp,u)` becomes `e^{u}`; `Func(Abs,u)` becomes `Abs`.
 - **Constant coefficients** like `\frac{1}{e}` are written `\frac{1}{e}`, not `e^{-1}`.
-- **Separators:** the serializer's `algebraic_separator` decides them. It is extended (Algebraic mode only) so that a coefficient or constant is joined to a following function, root, constant, `|…|` or e-power, and a numeric fraction or constant to a following power of x: `2\sqrt{3}`, `3e^{x}`, `2\sin(x)`, `2\pi x`, `\frac{1}{4}x^{4}`. In Algebraic mode function arguments are bracketed: `\sin(x + 1)`, `\sin^{2}(x)`.
+- **Separators:** the serializer's `algebraic_separator` decides them. It is extended (Algebraic mode only) so that a coefficient or constant is joined to a following function, root, constant, `|…|` or e-power, and a numeric fraction or constant to a following power of x: `2\sqrt{3}`, `3e^{x}`, `2\sin(x)`, `2\pi x`, `\frac{1}{4}x^{4}`. A power of x is joined to a following function, root, `|…|` or e-power: `x^{2}e^{x}`, `x\sin(x)`. In Algebraic mode function arguments are bracketed: `\sin(x + 1)`, `\sin^{2}(x)`.
 
 **Other methods:**
 - `substitute(&self, with: &Expr) -> Expr`
@@ -159,7 +184,7 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
    - `e^{c·ln a} = a^c` for constant `a > 0`
 5. Radicals (`exact.rs`):
    - `Pow(Num r, p/q)` with q ∈ {2, 3} pulls out perfect powers via `algebra::binomial::exact_rational_sqrt` and `exact_rational_cbrt`, and for q = 2 by trial division up to 10⁶ (`√8 = 2√2`, `√(4/9) = 2/3`).
-   - `1/√a` becomes `√a/a` (rationalised denominator), for display only.
+   - `1/√a` becomes `√a/a` (rationalised denominator). This is part of the canonical form, so equal radicals collect as like terms.
 6. Trig at rational multiples of π (table in `exact.rs`). The argument is reduced mod 2π:
    - sin and cos at multiples of π/6 and π/4 are exact (0, ±1/2, ±√2/2, ±√3/2, ±1).
    - tan at those points is exact (0, ±√3/3, ±1, ±√3), or undefined.
@@ -251,7 +276,7 @@ pub struct Domain { pub set: IntervalSet, pub excluded: Vec<PeriodicSet>, pub ho
 
 **Texts** follow the language scope (`text::Scope`) that the API entry points open from `settings.language`.
 
-**Removable holes:** for the rational part, `algebra::domain::DomainTracker` records the factors cancelled by the pipeline. For a rational f, an excluded point that is no zero of the denominator after cancelling `gcd(N, D)` is a hole: `holes` holds its x (the discussion works out y as the value of the reduced function). These points stay excluded from `set`.
+**Removable holes:** for the rational part, the factors the pipeline cancels are those of `gcd(N, D)` (what `algebra::domain::DomainTracker` records), and the domain computes that gcd itself. For a rational f, an excluded point that is no zero of the denominator after cancelling `gcd(N, D)` is a hole: `holes` holds its x (the discussion works out y as the value of the reduced function). These points stay excluded from `set`.
 
 An empty domain is an input error ("f is defined nowhere" / "f ist nirgends definiert").
 
@@ -428,10 +453,10 @@ Methods are tried in order; the first verified one wins:
 | 11 | `antiderivative` | §10 |
 
 **Periodic f.** f is periodic if every occurrence of x sits inside sin/cos/tan of a linear argument `a_i x + b_i` and every ratio a_i/a_j is rational. The period is P = lcm(2π/|a_i|) (π/|a_i| for tan). Then:
-- Solution families are split to the period P (`π/2 + kπ` becomes `π/2 + 2kπ` and `3π/2 + 2kπ`), using base points in [0, P), and each representative is classified once (`H(\frac{\pi}{2} + 2k\pi \mid 1)`).
+- Solution families are split to the period P (`π/2 + kπ` becomes `π/2 + 2kπ` and `3π/2 + 2kπ`), using base points in [0, P), and each representative is classified once (`H(\frac{\pi}{2} + 2k\pi \mid 1)`). Afterwards, representatives of the same kind and the same y that lie half a period apart are merged again: `W(k\pi \mid 0)` for `\sin x`.
 - The points inside the plot window are also listed and marked (at most 12 per family).
 - Sign tables cover one period [0, P] with the note "periodisch fortgesetzt" / "continued periodically".
-- Non-periodic f with periodic solution families (e.g. `x + \sin x`) shows the general family and classifies each window point separately.
+- Non-periodic f with periodic solution families: for f = ax + (a periodic part), such as `x + \sin x`, the families are split to the period of that part, and y moves with the family: `S(\pi + 2k\pi \mid \pi + 2k\pi)`. For other f only x is written generally. The members are listed in [−10, 10].
 
 **Constant functions** (`f = 3`): the extrema, inflection, monotonicity and curvature sections say "f ist konstant" / "f is constant" and have status ok.
 
@@ -482,8 +507,8 @@ All three are stateless and reuse `input.rs`, `domain` and `derive`: `tasks::tan
     pub plot: PlotResponse,
 }
 pub struct SectionResponse { pub id: String, pub title: String, pub status: String /* ok|partial|failed */, pub message: Option<String>, pub steps: Vec<StepResponse>, pub result: Option<String> }
-pub struct PointResponse { pub kind: String /* zero|yIntercept|max|min|inflection|saddle|hole|boundaryMax|boundaryMin */, pub name: String /* "H_1" */, pub x: f64, pub y: f64, pub latex: String }
-pub struct AsymptoteResponse { pub kind: String /* vertical|horizontal|oblique */, pub side: Option<String> /* plusInfinity|minusInfinity|both */, pub x: Option<f64>, pub slope: Option<f64>, pub intercept: Option<f64>, pub latex: String }
+pub struct PointResponse { pub kind: String /* zero|yIntercept|max|min|inflection|saddle|hole|boundaryMax|boundaryMin */, pub name: String /* "H_1" */, pub x: f64, pub y: f64, pub latex: String, pub period: Option<f64> /* member of a periodic family */ }
+pub struct AsymptoteResponse { pub kind: String /* vertical|horizontal|oblique */, pub side: Option<String> /* plusInfinity|minusInfinity|both */, pub x: Option<f64>, pub slope: Option<f64>, pub intercept: Option<f64>, pub latex: String, pub period: Option<f64> /* periodic poles (tan) */ }
 pub struct PlotResponse { pub x_min: f64, pub x_max: f64, pub y_min: f64, pub y_max: f64, pub segments: Vec<Vec<[f64; 2]>> }
 pub struct SampleRequest { pub latex: String, pub variable: Option<String>, pub x_min: f64, pub x_max: f64, pub samples: usize, pub y_min: Option<f64>, pub y_max: Option<f64> }  // y-range for clipping
 pub struct SampleResponse { pub segments: Vec<Vec<[f64; 2]>> }
@@ -495,7 +520,7 @@ pub struct AreaResponse { pub steps: Vec<StepResponse>, pub area: String, pub si
 pub struct RegionResponse { pub from: f64, pub to: f64, pub positive: bool, pub segments: Vec<Vec<[f64; 2]>> }
 pub struct TableRequest { pub latex: String, pub variable: Option<String>, pub from: String, pub to: String, pub step: String, pub precision: Option<usize> }
 pub struct TableResponse { pub rows: Vec<TableRowResponse> }
-pub struct TableRowResponse { pub x: String, pub y: Option<String> }
+pub struct TableRowResponse { pub x: String, pub y: Option<String>, pub x_value: f64, pub y_value: Option<f64> }
 pub fn analyze(settings: &Settings, r: &AnalysisRequest) -> Result<AnalysisResponse, ApiError>
 pub fn sample_function(settings: &Settings, r: &SampleRequest) -> Result<SampleResponse, ApiError>
 pub fn tangent(settings: &Settings, r: &TangentRequest) -> Result<TangentResponse, ApiError>

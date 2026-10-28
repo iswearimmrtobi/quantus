@@ -96,17 +96,25 @@ Limits worth knowing:
   window of a periodic family); the section is then marked *partial*. Such roots are accurate
   to about 15 digits, polynomial roots to the full precision. A numeric root that is exactly a
   simple rational or rational multiple of π is shown exactly.
-- Antiderivatives are found by a table, partial fractions, substitution and integration by
-  parts. **Repeated irreducible quadratic factors** in a denominator (`\frac{1}{(x^2+1)^2}`) and
-  integrands without an elementary antiderivative (`e^{x^2}`, `\frac{\sin x}{x}`) give "no
-  elementary antiderivative found". Every result shown has been checked by differentiation.
-- Limits that neither degrees, growth orders nor the bounded-factor rule decide are sampled
-  numerically and shown with `\approx`, or as unknown.
+- Antiderivatives are found by a table (with completed squares for `\frac{1}{x^2+2x+5}` and
+  `\frac{1}{\sqrt{3+2x-x^2}}`), partial fractions (also over quadratics with irrational roots,
+  `\frac{1}{x^2-2}`), substitution and integration by parts (up to six nested rounds, so
+  `x^5 e^{2x}` works). **Repeated irreducible quadratic factors** in a denominator
+  (`\frac{1}{(x^2+1)^2}`) and integrands without an elementary antiderivative (`e^{x^2}`,
+  `\frac{\sin x}{x}`) give "no elementary antiderivative found". Every result shown has been
+  checked by differentiation.
+- Limits that neither degrees, pole orders, growth orders (including `\ln` of a growing
+  argument) nor the bounded-factor rule decide are sampled numerically and shown with
+  `\approx`, or as unknown. An oblique asymptote found that way is shown with `\approx`.
+- The time budget is checked inside the numeric scans, the simplifier and the integration
+  methods, so a section that runs out of time is marked partial, not only the ones after it.
+  The tasks have 2 seconds each, a resampled view of the graph 200 ms.
 - Simplification treats functions such as `\ln x` and `\sqrt{3}` as independent symbols when it
   multiplies out and cancels, so a result can be correct without being the shortest form.
 - A sketch is cut off after **3 seconds**; the sections still missing are marked partial.
-- A periodic family of inflection points is listed split to the period of f (`2k\pi` and
-  `\pi + 2k\pi` for `\sin x`) rather than merged to `k\pi`.
+- Periodic families are listed in the window [−P, P] (at most 12 members each), or [−10, 10]
+  when f itself is not periodic. For f = ax + (a periodic part), such as `x + \sin x`, the
+  general family is shown with a y that moves along; for other non-periodic f only x is general.
 
 ## Inputs that already worked
 
