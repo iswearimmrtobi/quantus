@@ -45,6 +45,7 @@ use crate::algebra::binomial::{
     complete_square, compress_binomial, expand_binomial_node, find_explicit_double_product,
     integer_square_shift, square_completion_lines,
 };
+use crate::algebra::display::signed_terms_sum;
 use crate::algebra::combine::{
     combine_next_fractions, den_to_factored, factor_denominators_in_node, flatten_additive_terms,
     is_combinable_fraction_sum,
@@ -853,13 +854,6 @@ fn common_denominator_rewrite(node: &Node) -> Option<AlgebraStep> {
     Some(step.with_working(vec![AlgebraStep::line(node, extended, extend, StepDetail::Standard)], "Multiply the fractions"))
 }
 
-/// `±t_1 ± t_2 ± …`, a leading minus written as a negation.
-fn signed_terms_sum(terms: Vec<(bool, Node)>) -> Option<Node> {
-    let mut terms = terms.into_iter();
-    let (positive, first) = terms.next()?;
-    let first = if positive { first } else { Node::Negation { operand: Box::new(first), position: 0 } };
-    Some(crate::algebra::display::signed_sum(first, terms))
-}
 
 /// Stage 7: applies [`common_denominator_at`] to the outermost applicable sum.
 pub fn common_denominator_step(root: &Node) -> Option<LocalRewrite> {

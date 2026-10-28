@@ -20,3 +20,11 @@ pub fn signed_sum(first: Node, rest: impl IntoIterator<Item = (bool, Node)>) -> 
         Node::binary(if positive { Operator::Plus } else { Operator::Minus }, acc, term, 0)
     })
 }
+
+/// `±t_1 ± t_2 ± …`, a leading minus written as a negation.
+pub fn signed_terms_sum(terms: impl IntoIterator<Item = (bool, Node)>) -> Option<Node> {
+    let mut terms = terms.into_iter();
+    let (positive, first) = terms.next()?;
+    let first = if positive { first } else { Node::Negation { operand: Box::new(first), position: 0 } };
+    Some(signed_sum(first, terms))
+}

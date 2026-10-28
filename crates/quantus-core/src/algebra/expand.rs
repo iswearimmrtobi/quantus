@@ -14,7 +14,9 @@ use crate::algebra::combine::flatten_additive_terms;
 use crate::algebra::domain::unwrap_group;
 use crate::algebra::nested::wrap_factor;
 use crate::algebra::poly::Poly;
+use crate::algebra::display::signed_terms_sum;
 use crate::algebra::steps::{AlgebraStep, RuleId};
+use crate::settings::StepDetail;
 use crate::latex::ast::{Node, Operator};
 use crate::latex::serializer;
 
@@ -264,6 +266,51 @@ pub(crate) fn is_term_reordering(node: &Node) -> bool {
         })
 }
 
+/// The lines before like terms are collected: brackets after a minus sign are resolved.
+fn collect_working(node: &Node) -> Vec<AlgebraStep> {
+    let brackets = negated_brackets(unwrap_group(node));
+    if brackets.is_empty() {
+        return Vec::new();
+    }
+    let mut terms = Vec::new();
+    flatten_additive_terms(node, true, &mut terms);
+    let Some(resolved) = signed_terms_sum(terms) else {
+        return Vec::new();
+    };
+    let identities: Vec<String> = brackets
+        .iter()
+        .filter_map(|inner| {
+            let mut flipped = Vec::new();
+            flatten_additive_terms(inner, false, &mut flipped);
+            let flipped = signed_terms_sum(flipped)?;
+            Some(format!("-({}) = {}", serializer::expression(inner), serializer::expression(&flipped)))
+        })
+        .collect();
+    let text = format!("A minus sign in front of a bracket flips every sign inside: {}", identities.join(", "));
+    vec![AlgebraStep::line(node, resolved, text, StepDetail::Standard)]
+}
+
+/// The sums that stand in brackets after a minus sign in the sum `node`: `x + 1` in `x^2 - (x + 1)`.
+fn negated_brackets(node: &Node) -> Vec<Node> {
+    let is_sum = |n: &Node| matches!(unwrap_group(n), Node::Binary { operator: Operator::Plus | Operator::Minus, .. });
+    match node {
+        Node::Binary { operator: Operator::Plus, left, right, .. } => {
+            let mut found = negated_brackets(unwrap_group(left));
+            found.extend(negated_brackets(unwrap_group(right)));
+            found
+        }
+        Node::Binary { operator: Operator::Minus, left, right, .. } => {
+            let mut found = negated_brackets(unwrap_group(left));
+            if is_sum(right) {
+                found.push(unwrap_group(right).clone());
+            }
+            found
+        }
+        Node::Negation { operand, .. } if is_sum(operand) => vec![unwrap_group(operand).clone()],
+        _ => Vec::new(),
+    }
+}
+
 /// Attempts to collect like terms in an additive polynomial expression.
 pub fn collect_like_terms_step(root: &Node) -> Option<(Node, AlgebraStep)> {
     let mut step_info: Option<AlgebraStep> = None;
@@ -308,12 +355,8 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
                 } else {
                     format!("Combine like terms to obtain {}", serializer::expression(&canonical_node))
                 };
-                *step_info = Some(AlgebraStep::new(
-                    node.clone(),
-                    canonical_node.clone(),
-                    explanation,
-                    Some(RuleId::CollectLikeTerms),
-                ));
+                let step = AlgebraStep::new(node.clone(), canonical_node.clone(), explanation.clone(), Some(RuleId::CollectLikeTerms));
+                *step_info = Some(step.with_working(collect_working(node), explanation));
                 return canonical_node;
             }
         }

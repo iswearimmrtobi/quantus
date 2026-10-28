@@ -570,3 +570,16 @@ fn a_common_denominator_shows_where_the_missing_factors_come_from() {
     // A term without a denominator is extended too.
     assert_eq!(rows(r"\frac{1}{x}+1", StepDetail::Standard)[0].0, r"\frac{1}{x} + 1 \cdot \frac{x}{x}");
 }
+
+#[test]
+fn a_minus_before_a_bracket_flips_the_signs_in_a_line_of_its_own() {
+    let standard = rows(r"\frac{x}{x+1}-\frac{1}{x}", StepDetail::Standard);
+    let n = standard.len();
+    assert_eq!(
+        standard[n - 2],
+        row(r"\frac{x \cdot x - x - 1}{x \cdot (x + 1)}", "A minus sign in front of a bracket flips every sign inside: -(x + 1) = -x - 1")
+    );
+    assert_eq!(standard[n - 1].0, r"\frac{x^{2} - x - 1}{x \cdot (x + 1)}");
+    let brief = rows(r"\frac{x}{x+1}-\frac{1}{x}", StepDetail::Brief);
+    assert_eq!(brief.last().unwrap(), &row(r"\frac{x^{2} - x - 1}{x \cdot (x + 1)}", r"Combine like terms to obtain x^{2} - x - 1"));
+}
