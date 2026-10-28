@@ -134,7 +134,8 @@ export interface CircuitResponse {
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
-export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics';
+export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis';
+export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 
@@ -150,6 +151,106 @@ export interface Settings {
   letterProducts: boolean;
   extraUnitLetters: boolean;
   language: Language;
+  /** How the analysis mode solves quadratics; `auto` is pq in German and abc in English. */
+  quadraticFormula: QuadraticFormula;
+}
+
+/** A segment of the graph: points in order, broken at poles and gaps. */
+export type Segment = [number, number][];
+
+export interface AnalysisSection {
+  id:
+    | 'derivatives'
+    | 'domain'
+    | 'symmetry'
+    | 'yIntercept'
+    | 'zeros'
+    | 'extrema'
+    | 'inflection'
+    | 'monotonicity'
+    | 'curvature'
+    | 'behaviour'
+    | 'antiderivative';
+  title: string;
+  status: 'ok' | 'partial' | 'failed';
+  message: string | null;
+  steps: Step[];
+  result: string | null;
+}
+
+export type PointKind =
+  | 'zero'
+  | 'yIntercept'
+  | 'max'
+  | 'min'
+  | 'inflection'
+  | 'saddle'
+  | 'hole'
+  | 'boundaryMax'
+  | 'boundaryMin'
+  | 'tangent';
+
+export interface MarkedPoint {
+  kind: PointKind;
+  name: string;
+  x: number;
+  y: number;
+  latex: string;
+}
+
+export interface Asymptote {
+  kind: 'vertical' | 'horizontal' | 'oblique';
+  side: 'plusInfinity' | 'minusInfinity' | 'both' | null;
+  x: number | null;
+  slope: number | null;
+  intercept: number | null;
+  latex: string;
+}
+
+export interface PlotData {
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+  segments: Segment[];
+}
+
+/** What `quantus_core::api::AnalysisResponse` serialises to. */
+export interface Analysis {
+  function: string;
+  variable: string;
+  sections: AnalysisSection[];
+  points: MarkedPoint[];
+  asymptotes: Asymptote[];
+  period: string | null;
+  plot: PlotData;
+}
+
+export interface Line {
+  kind: 'line' | 'vertical';
+  slope: number | null;
+  intercept: number | null;
+  x: number | null;
+  latex: string;
+}
+
+export interface TangentResult {
+  steps: Step[];
+  point: MarkedPoint;
+  tangent: Line;
+  normal: Line;
+}
+
+export interface AreaResult {
+  steps: Step[];
+  area: string;
+  signed: string;
+  regions: { from: number; to: number; positive: boolean; segments: Segment[] }[];
+}
+
+export interface TableResult {
+  /** `y` is null outside the domain. */
+  rows: { x: string; y: string | null }[];
 }
 
 export interface EngineInfo {
@@ -197,6 +298,22 @@ export const api = {
   loadCircuit: (path: string) => call<unknown>('load_circuit', { path }),
 
   saveCircuit: (path: string, circuit: unknown) => call<void>('save_circuit', { path, circuit }),
+
+  /** The curve sketch; the variable is read off the input (`f(t) = …`). */
+  analyze: (latex: string) => call<Analysis>('analyze', { request: { latex } }),
+
+  /** Fresh curve segments for a panned or zoomed view; the y-range is for clipping. */
+  sampleFunction: (latex: string, view: { xMin: number; xMax: number; yMin: number; yMax: number }, samples: number) =>
+    call<{ segments: Segment[] }>('sample_function', { request: { latex, ...view, samples } }),
+
+  tangent: (latex: string, x0: string) => call<TangentResult>('tangent', { request: { latex, x0 } }),
+
+  /** Without bounds, the area between the outermost zeros. */
+  areaUnderCurve: (latex: string, from: string | null, to: string | null) =>
+    call<AreaResult>('area_under_curve', { request: { latex, from, to } }),
+
+  valueTable: (latex: string, from: string, to: string, step: string) =>
+    call<TableResult>('value_table', { request: { latex, from, to, step } }),
 
   variables: () => call<Variable[]>('list_variables', { sessionId: SESSION_ID }),
 

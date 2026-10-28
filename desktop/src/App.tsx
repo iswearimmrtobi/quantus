@@ -3,6 +3,7 @@ import { api, ApiError, type Calculation, type Settings, type StepKind, type Var
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { CircuitEditor } from './components/CircuitEditor';
+import { AnalysisView } from './components/AnalysisView';
 import { fromFile, toFile, type EditorElement } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
@@ -284,7 +285,9 @@ export function App() {
         </div>
       </header>
 
-      {settings.mode === 'electronics' ? (
+      {settings.mode === 'analysis' ? (
+        <AnalysisView settings={settings} />
+      ) : settings.mode === 'electronics' ? (
         <main className="workspace circuit-workspace">
           <CircuitEditor
             elements={circuit}

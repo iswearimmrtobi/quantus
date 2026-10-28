@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, DenominatorForm, Language, Mode, Settings } from '../api';
+import type { BinomialForm, DenominatorForm, Language, Mode, QuadraticFormula, Settings } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -12,6 +12,7 @@ export const modeChoices = (t: Translate): Choice<Mode>[] => [
   { value: 'physics', label: t('mode.physics') },
   { value: 'imaginary', label: t('mode.imaginary') },
   { value: 'electronics', label: t('mode.electronics') },
+  { value: 'analysis', label: t('mode.analysis') },
 ];
 
 const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({
@@ -23,6 +24,12 @@ const binomialChoices = (t: Translate): Choice<BinomialForm>[] => [
   { value: 'auto', label: t('choice.auto') },
   { value: 'expanded', label: t('choice.expanded') },
   { value: 'binomial', label: t('choice.binomial') },
+];
+
+const quadraticChoices = (t: Translate): Choice<QuadraticFormula>[] => [
+  { value: 'auto', label: t('choice.auto') },
+  { value: 'pq', label: t('choice.pq') },
+  { value: 'abc', label: t('choice.abc') },
 ];
 
 const denominatorChoices = (t: Translate): Choice<DenominatorForm>[] => [
@@ -43,6 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   letterProducts: true,
   extraUnitLetters: false,
   language: 'en',
+  quadraticFormula: 'auto',
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
@@ -103,6 +111,18 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
         <Segmented choices={modeChoices(t)} value={settings.mode} onChange={(v) => set('mode', v)} />
         <p className="setting-hint">{t(`mode.${settings.mode}.hint`)}</p>
       </section>
+
+      {settings.mode === 'analysis' && (
+        <section className="setting">
+          <h3>{t('settings.quadratic')}</h3>
+          <Segmented
+            choices={quadraticChoices(t)}
+            value={settings.quadraticFormula}
+            onChange={(v) => set('quadraticFormula', v)}
+          />
+          <p className="setting-hint">{t('settings.quadratic.hint')}</p>
+        </section>
+      )}
 
       <section className="setting">
         <h3>{t('settings.precision')}</h3>

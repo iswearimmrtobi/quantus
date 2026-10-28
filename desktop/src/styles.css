@@ -1107,3 +1107,375 @@ code {
   stroke-width: 1;
   stroke-dasharray: 4 3;
 }
+
+/* ---- Analysis mode ------------------------------------------------------------------------ */
+
+.analysis-panel {
+  width: 100%;
+  max-width: 1280px;
+  margin-top: 4vh;
+  padding: 0 24px 40px;
+}
+
+.analysis-tabs {
+  margin: 14px 0 12px;
+}
+
+.analysis-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.analysis-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .analysis-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.analysis-sheet {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.analysis-function {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.analysis-period {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  min-width: 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+}
+
+.section-head .chev {
+  color: var(--text-faint);
+  transform: rotate(-90deg);
+  transition: transform 120ms ease;
+}
+
+.section-head .chev.open {
+  transform: none;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.section-status {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  color: var(--amber);
+  border: 1px solid var(--amber-dim);
+}
+
+.section-status.failed {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.section-result {
+  display: block;
+  margin-top: 8px;
+  font-size: 15px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+.section-message {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.analysis-steps {
+  margin-top: 10px;
+  display: grid;
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.analysis-step {
+  background: var(--surface-raised);
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px;
+  min-width: 0;
+}
+
+.analysis-step .step-latex {
+  font-size: 14px;
+}
+
+.task-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-inputs label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-input {
+  width: 110px;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 5px 8px;
+}
+
+.task-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.task-results {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 10px;
+}
+
+.value-table {
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.value-table th,
+.value-table td {
+  border: 1px solid var(--hairline);
+  padding: 4px 14px;
+  text-align: right;
+}
+
+.value-table th {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.table-undefined {
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.analysis-graph {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.plot {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.plot-canvas {
+  position: relative;
+  height: 420px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.plot-canvas:active {
+  cursor: grabbing;
+}
+
+.plot-canvas svg {
+  display: block;
+}
+
+.plot-grid {
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+
+.plot-axis {
+  stroke: var(--text-faint);
+  stroke-width: 1.2;
+}
+
+.plot-tick {
+  fill: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.plot-curve {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.plot-asymptote {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.plot-line {
+  stroke: var(--amber);
+  stroke-width: 1.5;
+}
+
+.plot-region {
+  fill: var(--cyan);
+  fill-opacity: 0.18;
+  stroke: none;
+}
+
+.plot-region.negative {
+  fill: var(--amber);
+}
+
+.plot-dot {
+  fill: var(--amber);
+}
+
+.plot-point {
+  stroke: var(--bg);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.plot-point.selected {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.plot-point.kind-hole {
+  fill: var(--surface) !important;
+  stroke: var(--text);
+}
+
+.plot-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.plot-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.plot-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.point-list {
+  display: grid;
+  gap: 2px;
+}
+
+.point-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  text-align: left;
+  font-size: 13px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.point-item:hover,
+.point-item.selected {
+  background: var(--surface-hover);
+}
+
+.point-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.point-kind {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 110px;
+  flex-shrink: 0;
+}
+
+/* One colour per kind of point, in the graph and in the list. */
+.kind-zero { --point: #7fd1b9; }
+.kind-yIntercept { --point: #8fb8ff; }
+.kind-max { --point: #ff8fa8; }
+.kind-min { --point: #9186e8; }
+.kind-inflection { --point: #d8a9ff; }
+.kind-saddle { --point: #ffd27f; }
+.kind-hole { --point: #edebf3; }
+.kind-boundaryMax { --point: #ff8fa8; }
+.kind-boundaryMin { --point: #9186e8; }
+.kind-tangent { --point: #d8a9ff; }
+
+.plot-point { fill: var(--point); }
+.point-swatch { background: var(--point); }

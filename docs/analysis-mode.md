@@ -508,12 +508,13 @@ pub fn value_table(settings: &Settings, r: &TableRequest) -> Result<TableRespons
 
 - **`api.ts`:** add `'analysis'` to `Mode` and `quadraticFormula: 'auto' | 'pq' | 'abc'` to `Settings`. Add TS types for every struct in §13 and the wrappers `analyze`, `sampleFunction`, `tangent`, `areaUnderCurve` and `valueTable`.
 - **`components/SettingsPanel.tsx`:** add `analysis` to `modeChoices`. A new `Segmented` control "Quadratic formula: Auto / pq / abc" is shown when `settings.mode === 'analysis'`. `DEFAULT_SETTINGS` gets `quadraticFormula: 'auto'`.
-- **`App.tsx`:** a branch `settings.mode === 'analysis'` next to `electronics` renders `<AnalysisView settings={settings} t={t} />` inside `<main className="workspace analysis-workspace">`. The top-bar dimension readout shows `f(x)`.
+- **`App.tsx`:** a branch `settings.mode === 'analysis'` next to `electronics` renders `<AnalysisView settings={settings} />`, which brings its own `<main className="workspace analysis-workspace">`.
 - **`components/AnalysisView.tsx`:**
   - **Top:** the function input using `MathField`/`LatexInput` with the same LaTeX toggle and Enter behaviour, and a placeholder `f(x) = x^3 - 3x`.
   - **Below the input:** a tab row "Kurvendiskussion · Tangente/Normale · Fläche · Wertetabelle" / "Curve sketch · Tangent/normal · Area · Value table".
   - **Body:** two columns, collapsing to one under 900 px.
-    - **Left:** the results sheet. Curve-sketch tab: one collapsible card per section, with the title, a status badge for partial or failed, the result line (KaTeX) and steps (explanation text plus KaTeX latex, rule as a small tag), the same rendering as the calculator's steps. Task tabs: small `MathField` inputs (x₀ / from–to / from–to–step) with a "Berechnen" / "Compute" button, then the steps or a table.
+    - **Left:** the results sheet. Curve-sketch tab: one collapsible card per section, with the title, a status badge for partial or failed (its message as tooltip and below the result), the result line (KaTeX) and steps (explanation text plus KaTeX latex). Task tabs: small LaTeX text fields (x₀ / from–to / from–to–step; these are short numbers, so no formula editor) with a "Berechnen" / "Compute" button, then the steps or a table.
+    - **Below the graph:** the list of marked points with their kind (Hochpunkt, …) and coordinates; clicking one selects it in the graph and the other way round.
     - **Right:** `FunctionPlot`.
   - **State:** `response`, `selectedPoint`, `taskResult`.
   - **Re-runs:** a change of language, precision, output style or quadratic formula re-runs `analyze` and the active task.
