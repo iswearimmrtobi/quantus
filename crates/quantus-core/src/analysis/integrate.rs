@@ -19,14 +19,17 @@ use super::interval::Domain;
 use super::polydiv::divide;
 use super::rules::{step, AnalysisRule};
 use super::simplify::{display, is_zero, is_zero_numeric, simplify};
+use super::solve::{solve_zero, SolveContext};
+use crate::algebra::expand::expand_and_collect_all;
 use crate::algebra::factor::factor_polynomial;
 use crate::algebra::poly::{Monomial, Poly};
 use crate::eval::Step;
 use crate::settings::Settings;
 use crate::text::msg;
 
-/// How deep substitution and parts may nest inside each other.
-const MAX_DEPTH: usize = 4;
+/// How many integrals substitution and parts may nest inside each other (`x^5 e^x` takes five
+/// rounds of parts).
+const MAX_DEPTH: usize = 6;
 
 pub struct Integration {
     /// F without the constant C.
@@ -50,15 +53,24 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         if !verified(&result, &f, ctx.domain) {
             return None;
         }
-        let shown = without_needless_abs(&display(&result, ctx.settings), ctx.domain);
+        let shown = without_needless_abs(&display(&result, ctx.settings), ctx);
         steps.push(step(method, method_text(method), format!("F({}) = {} + C", ctx.var, tex(&shown))));
         Some(Integration { result: shown, method, steps })
     };
 
+    if f.as_rational().is_some_and(|(_, d)| d.is_constant()) {
+        // A polynomial: multiplied out, then term by term.
+        let (expanded, _) = expand_and_collect_all(&f.to_node("x"));
+        if let Ok(expanded) = Expr::from_node(&expanded, "x") {
+            if let Some(result) = table(&simplify(&expanded)) {
+                if let Some(done) = finish(result, AnalysisRule::IntegralPolynomial, Vec::new()) {
+                    return Some(done);
+                }
+            }
+        }
+    }
     if let Some(result) = table(&f) {
-        let polynomial = f.as_rational().is_some_and(|(_, d)| d.is_constant());
-        let method = if polynomial { AnalysisRule::IntegralPolynomial } else { AnalysisRule::IntegralTable };
-        if let Some(done) = finish(result, method, Vec::new()) {
+        if let Some(done) = finish(result, AnalysisRule::IntegralTable, Vec::new()) {
             return Some(done);
         }
     }
@@ -88,24 +100,57 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         }
     }
     if let Some((result, parts)) = by_parts(&f, 0) {
-        let latex = match &parts {
-            Parts::Plain { u, v_prime, v } => format!(
+        let with = || msg!("Integration by parts: ∫u·v' dx = u·v − ∫u'·v dx with", "Partielle Integration: ∫u·v' dx = u·v − ∫u'·v dx mit");
+        let named = |u: &Expr, v_prime: &Expr, u_prime: &Expr, v: &Expr| {
+            format!(
                 "u = {}, \\quad v' = {}, \\quad u' = {}, \\quad v = {}",
                 tex(u),
                 tex(v_prime),
-                tex(&display(&derivative(u), ctx.settings)),
+                tex(&display(u_prime, ctx.settings)),
                 tex(&display(v, ctx.settings))
-            ),
-            Parts::Recurring => "\\int e^{ax} \\sin(bx) \\, dx".to_string(),
+            )
         };
-        let explanation = match parts {
-            Parts::Plain { .. } => msg!("Integration by parts: ∫u·v' dx = u·v − ∫u'·v dx with", "Partielle Integration: ∫u·v' dx = u·v − ∫u'·v dx mit"),
-            Parts::Recurring => msg!(
-                "Integrating by parts twice brings back the same integral, which is then solved for",
-                "Zweimal partiell integrieren liefert dasselbe Integral wieder, nach dem dann aufgelöst wird"
-            ),
+        let steps = match &parts {
+            Parts::Plain { u, v_prime, v } => vec![step(AnalysisRule::IntegrationByParts, with(), named(u, v_prime, &derivative(u), v))],
+            Parts::Recurring { integrand, first, second, kappa } => {
+                let shown = |e: &Expr| tex(&display(&simplify(e), ctx.settings));
+                let integral = |e: &Expr| format!("\\int {} \\, d{}", shown(e), ctx.var);
+                let product = |a: &Expr, b: &Expr| Expr::Product(vec![a.clone(), b.clone()]);
+                let solved = simplify(&Expr::Sum(vec![
+                    product(&first.u, &first.v),
+                    Expr::neg(product(&second.u, &second.v)),
+                ]));
+                vec![
+                    step(AnalysisRule::IntegrationByParts, with(), named(&first.u, &first.v_prime, &first.u_prime, &first.v)),
+                    step(
+                        AnalysisRule::IntegrationByParts,
+                        msg!("First round", "Erste Runde"),
+                        format!("I = {} = {} - {}", integral(integrand), shown(&product(&first.u, &first.v)), integral(&product(&first.u_prime, &first.v))),
+                    ),
+                    step(AnalysisRule::IntegrationByParts, with(), named(&second.u, &second.v_prime, &second.u_prime, &second.v)),
+                    step(
+                        AnalysisRule::IntegrationByParts,
+                        msg!("Second round: the integral I comes back", "Zweite Runde: das Integral I kommt wieder"),
+                        format!(
+                            "{} = {} - {}",
+                            integral(&product(&first.u_prime, &first.v)),
+                            shown(&product(&second.u, &second.v)),
+                            integral(&product(&second.u_prime, &second.v))
+                        ),
+                    ),
+                    step(
+                        AnalysisRule::IntegrationByParts,
+                        msg!("Solve for I", "Nach I auflösen"),
+                        format!(
+                            "I = {} + {} I \\Rightarrow I = {}",
+                            shown(&solved),
+                            shown(kappa),
+                            shown(&Expr::Product(vec![solved.clone(), Expr::recip(Expr::Sum(vec![Expr::int(1), Expr::neg(kappa.clone())]))]))
+                        ),
+                    ),
+                ]
+            }
         };
-        let steps = vec![step(AnalysisRule::IntegrationByParts, explanation, latex)];
         if let Some(done) = finish(result, AnalysisRule::IntegrationByParts, steps) {
             return Some(done);
         }
@@ -130,31 +175,33 @@ fn verified(big_f: &Expr, f: &Expr, domain: &Domain) -> bool {
 }
 
 /// `\ln|u|` becomes `\ln(u)` where u is positive on the whole domain.
-fn without_needless_abs(e: &Expr, domain: &Domain) -> Expr {
+fn without_needless_abs(e: &Expr, ctx: &IntegrateContext) -> Expr {
     match e {
         Expr::Func(Fn::Ln, argument) => match &**argument {
-            Expr::Func(Fn::Abs, u) if positive_on(u, domain) => Expr::func(Fn::Ln, without_needless_abs(u, domain)),
-            other => Expr::func(Fn::Ln, without_needless_abs(other, domain)),
+            Expr::Func(Fn::Abs, u) if positive_on(u, ctx) => Expr::func(Fn::Ln, without_needless_abs(u, ctx)),
+            other => Expr::func(Fn::Ln, without_needless_abs(other, ctx)),
         },
-        Expr::Sum(items) => Expr::Sum(items.iter().map(|i| without_needless_abs(i, domain)).collect()),
-        Expr::Product(items) => Expr::Product(items.iter().map(|i| without_needless_abs(i, domain)).collect()),
-        Expr::Pow(b, x) => Expr::pow(without_needless_abs(b, domain), without_needless_abs(x, domain)),
-        Expr::Func(function, argument) => Expr::func(*function, without_needless_abs(argument, domain)),
+        Expr::Sum(items) => Expr::Sum(items.iter().map(|i| without_needless_abs(i, ctx)).collect()),
+        Expr::Product(items) => Expr::Product(items.iter().map(|i| without_needless_abs(i, ctx)).collect()),
+        Expr::Pow(b, x) => Expr::pow(without_needless_abs(b, ctx), without_needless_abs(x, ctx)),
+        Expr::Func(function, argument) => Expr::func(*function, without_needless_abs(argument, ctx)),
         other => other.clone(),
     }
 }
 
-fn positive_on(u: &Expr, domain: &Domain) -> bool {
-    // A polynomial without real zeros and positive somewhere is positive everywhere.
-    if let Some((n, d)) = u.as_rational() {
-        if d.is_constant() && !n.is_constant() && crate::algebra::domain::has_no_real_roots(&n) {
-            return u.eval_f64(0.0).is_some_and(|v| v > 0.0);
-        }
+/// Whether u > 0 on all of D: it has no zero in D (all of them found exactly) and is positive
+/// at the sample points, one in each interval of D at least.
+fn positive_on(u: &Expr, ctx: &IntegrateContext) -> bool {
+    let domain = ctx.domain;
+    let solve_ctx = SolveContext { settings: ctx.settings, var: ctx.var, domain, window: (-10.0, 10.0), digits: 6 };
+    let solved = solve_zero(u, &solve_ctx);
+    let zeros = &solved.solutions;
+    if !solved.complete || zeros.all || !zeros.roots.is_empty() || !zeros.families.is_empty() || !domain.excluded.is_empty() {
+        return false;
     }
-    // Otherwise only where the domain bounds it: \ln x on ]0; ∞[.
-    let points = domain.sample_points(9);
-    let lowest = domain.set.0.first().map(|i| i.lo.value()).unwrap_or(f64::NEG_INFINITY);
-    *u == Expr::Var && lowest >= 0.0 && !points.is_empty()
+    let mut points = domain.sample_points(9);
+    points.extend(domain.set.0.iter().map(|i| i.test_point().to_f64().value()));
+    !points.is_empty() && points.iter().all(|&x| u.eval_f64(x).is_some_and(|v| v > 0.0))
 }
 
 // ---- basic integrals ---------------------------------------------------------------------------
@@ -207,21 +254,41 @@ fn leaf(e: &Expr) -> Option<Expr> {
                     return over(Expr::func(Fn::Tan, (**u).clone()), &a);
                 }
             }
-            // \int (c - kx^2)^{-1/2} = \frac{1}{\sqrt{k}} \arcsin(\sqrt{k/c}\,x)
-            if exponent.as_num() == Some(&RBig::from_parts(IBig::from(-1), UBig::from(2u8))) {
-                let (n, d) = base.as_rational()?;
-                let x = Expr::poly_variable();
-                if d.is_constant() && n.degree_of(x) == 2 {
-                    let d0 = d.constant_term();
-                    let (k, b, c) = (-n.coeff_of(&Monomial::single(x, 2)) / &d0, n.coeff_of(&Monomial::single(x, 1)), n.constant_term() / &d0);
-                    if k.is_positive() && c.is_positive() && b == RBig::ZERO {
-                        let scale = Expr::pow(Expr::Num(k.clone() / &c), Expr::ratio(1, 2));
-                        let arcsin = Expr::func(Fn::Arcsin, Expr::Product(vec![scale, Expr::Var]));
-                        return Some(Expr::Product(vec![Expr::pow(Expr::Num(k), Expr::ratio(-1, 2)), arcsin]));
-                    }
-                }
+            let half = RBig::from_parts(IBig::from(-1), UBig::from(2u8));
+            let minus_one = -RBig::ONE;
+            let r = exponent.as_num()?;
+            if *r != half && *r != minus_one {
+                return None;
             }
-            None
+            // A quadratic base, completed to a square: -k(x - h)^2 + m or k((x - h)^2 + m).
+            let (n, d) = base.as_rational()?;
+            let x = Expr::poly_variable();
+            if !d.is_constant() || n.degree_of(x) != 2 {
+                return None;
+            }
+            let d0 = d.constant_term();
+            let (a2, a1, a0) = (n.coeff_of(&Monomial::single(x, 2)) / &d0, n.coeff_of(&Monomial::single(x, 1)) / &d0, n.constant_term() / &d0);
+            let h = -a1.clone() / (RBig::from(2) * &a2);
+            let shifted = Expr::Sum(vec![Expr::Var, Expr::Num(-h.clone())]);
+            let m = a0 - &a2 * &h * &h;
+            if *r == minus_one {
+                // \int \frac{1}{a((x - h)^2 + w^2)} = \frac{1}{a w} \arctan\frac{x - h}{w}
+                let w_squared = m / &a2;
+                if !w_squared.is_positive() || w_squared == RBig::ZERO {
+                    return None;
+                }
+                let w = Expr::pow(Expr::Num(w_squared), Expr::ratio(1, 2));
+                let arctan = Expr::func(Fn::Arctan, Expr::Product(vec![shifted, Expr::recip(w.clone())]));
+                return Some(Expr::Product(vec![Expr::Num(RBig::ONE / &a2), Expr::recip(w), arctan]));
+            }
+            // \int (m - k(x - h)^2)^{-1/2} = \frac{1}{\sqrt{k}} \arcsin(\sqrt{k/m}\,(x - h))
+            let k = -a2;
+            if !k.is_positive() || !m.is_positive() || m == RBig::ZERO {
+                return None;
+            }
+            let scale = Expr::pow(Expr::Num(k.clone() / &m), Expr::ratio(1, 2));
+            let arcsin = Expr::func(Fn::Arcsin, Expr::Product(vec![scale, shifted]));
+            Some(Expr::Product(vec![Expr::pow(Expr::Num(k), Expr::ratio(-1, 2)), arcsin]))
         }
         // \int c^{u} = \frac{c^u}{\ln c}
         Expr::Pow(base, exponent) if base.is_constant() => {
@@ -377,16 +444,30 @@ fn fraction_integral(numerator: &Poly, base: &Poly, power: usize) -> Option<Expr
     let (qa, qb, qc) = (c(base, 2), c(base, 1), c(base, 0));
     let (big_b, big_c) = (c(numerator, 1), c(numerator, 0));
     let two_a = RBig::from(2) * &qa;
-    let log_part = Expr::Product(vec![Expr::Num(big_b.clone() / &two_a), Expr::func(Fn::Ln, b)]);
-    let k = big_c - big_b * &qb / &two_a;
+    let k = big_c - big_b.clone() * &qb / &two_a;
     // a((x + h)^2 + w^2) with h = b/2a, w^2 = (4ac - b^2)/4a^2
     let h = qb.clone() / &two_a;
     let w_squared = (RBig::from(4) * &qa * &qc - &qb * &qb) / (&two_a * &two_a);
-    if !w_squared.is_positive() {
+    if w_squared == RBig::ZERO {
         return None;
     }
+    let shift = Expr::Sum(vec![Expr::Var, Expr::Num(h)]);
+    if w_squared.is_negative() {
+        // Real roots that are not rational, (x + h)^2 - s^2 = (x + h - s)(x + h + s):
+        // \int \frac{1}{(x+h)^2 - s^2} = \frac{1}{2s} \ln\left|\frac{x + h - s}{x + h + s}\right|
+        let log_part = Expr::Product(vec![Expr::Num(big_b / &two_a), Expr::func(Fn::Ln, Expr::func(Fn::Abs, b))]);
+        let s = Expr::pow(Expr::Num(-w_squared), Expr::ratio(1, 2));
+        let ratio = Expr::Product(vec![
+            Expr::Sum(vec![shift.clone(), Expr::neg(s.clone())]),
+            Expr::recip(Expr::Sum(vec![shift, s.clone()])),
+        ]);
+        let ln = Expr::func(Fn::Ln, Expr::func(Fn::Abs, ratio));
+        let scaled = Expr::Product(vec![Expr::Num(k / &qa), Expr::recip(Expr::Product(vec![Expr::int(2), s])), ln]);
+        return Some(Expr::Sum(vec![log_part, scaled]));
+    }
+    let log_part = Expr::Product(vec![Expr::Num(big_b / &two_a), Expr::func(Fn::Ln, b)]);
     let w = Expr::pow(Expr::Num(w_squared), Expr::ratio(1, 2));
-    let shifted = Expr::Product(vec![Expr::Sum(vec![Expr::Var, Expr::Num(h)]), Expr::recip(w.clone())]);
+    let shifted = Expr::Product(vec![shift, Expr::recip(w.clone())]);
     let arctan = Expr::Product(vec![Expr::Num(k / &qa), Expr::recip(w), Expr::func(Fn::Arctan, shifted)]);
     Some(Expr::Sum(vec![log_part, arctan]))
 }
@@ -465,10 +546,19 @@ fn replace(e: &Expr, from: &Expr, to: &Expr) -> Expr {
 
 // ---- integration by parts ----------------------------------------------------------------------
 
+/// One round of integration by parts: `\int u v' = u v - \int u' v`.
+struct Round {
+    u: Expr,
+    v_prime: Expr,
+    u_prime: Expr,
+    v: Expr,
+}
+
 enum Parts {
     Plain { u: Expr, v_prime: Expr, v: Expr },
-    /// `e^{ax}\sin(bx)`: the integral comes back and is solved for.
-    Recurring,
+    /// `e^{ax}\sin(bx)`: two rounds bring back `κ·I`, the integral I it started from, which is
+    /// then solved for.
+    Recurring { integrand: Expr, first: Round, second: Round, kappa: Expr },
 }
 
 fn by_parts(f: &Expr, depth: usize) -> Option<(Expr, Parts)> {
@@ -505,15 +595,32 @@ fn by_parts(f: &Expr, depth: usize) -> Option<(Expr, Parts)> {
             if p == Expr::int(1) =>
         {
             let (a, _) = linear(e_arg)?;
-            let (b, _) = linear(t_arg)?;
+            linear(t_arg)?;
             let exp = Expr::func(Fn::Exp, (**e_arg).clone());
-            let (sin, cos) = (Expr::func(Fn::Sin, (**t_arg).clone()), Expr::func(Fn::Cos, (**t_arg).clone()));
-            let bracket = match trig {
-                Fn::Sin => Expr::Sum(vec![Expr::Product(vec![a.clone(), sin]), Expr::neg(Expr::Product(vec![b.clone(), cos]))]),
-                _ => Expr::Sum(vec![Expr::Product(vec![a.clone(), cos]), Expr::Product(vec![b.clone(), sin])]),
+            let wave = Expr::func(*trig, (**t_arg).clone());
+            let integrand = Expr::Product(vec![exp.clone(), wave.clone()]);
+            // Both rounds differentiate the trig factor and integrate the e-power.
+            let round = |u: Expr, v_prime: Expr| Round {
+                u_prime: simplify(&derivative(&u)),
+                u,
+                v: simplify(&Expr::Product(vec![v_prime.clone(), Expr::recip(a.clone())])),
+                v_prime,
             };
-            let norm = Expr::Sum(vec![Expr::pow(a, Expr::int(2)), Expr::pow(b, Expr::int(2))]);
-            Some((scaled(Expr::Product(vec![exp, bracket, Expr::recip(norm)])), Parts::Recurring))
+            let first = round(wave, exp.clone());
+            let second = round(first.u_prime.clone(), first.v.clone());
+            // u'·v after the second round is κ times the integrand: I = u₁v₁ − (u₂v₂ − κI).
+            let kappa = simplify(&Expr::Product(vec![second.u_prime.clone(), second.v.clone(), Expr::recip(integrand.clone())]));
+            if !kappa.is_constant() || is_zero(&Expr::Sum(vec![kappa.clone(), Expr::int(-1)])) {
+                return None;
+            }
+            let found = Expr::Product(vec![
+                Expr::Sum(vec![
+                    Expr::Product(vec![first.u.clone(), first.v.clone()]),
+                    Expr::neg(Expr::Product(vec![second.u.clone(), second.v.clone()])),
+                ]),
+                Expr::recip(Expr::Sum(vec![Expr::int(1), Expr::neg(kappa.clone())])),
+            ]);
+            Some((scaled(found), Parts::Recurring { integrand, first, second, kappa }))
         }
         _ => None,
     }
@@ -532,10 +639,10 @@ fn basic(e: &Expr, depth: usize) -> Option<Expr> {
             return Some(result);
         }
     }
-    if let Some((result, _)) = by_parts(e, depth + 1) {
+    if let Some((result, _)) = by_parts(e, depth) {
         return Some(result);
     }
-    substitution(e, depth + 1).map(|(result, ..)| result)
+    substitution(e, depth).map(|(result, ..)| result)
 }
 
 #[cfg(test)]
@@ -603,6 +710,48 @@ mod tests {
         assert_eq!(primitive("x \\ln x"), "\\frac{1}{2}x^{2} \\cdot \\ln(x) - \\frac{1}{4}x^{2}");
         assert_eq!(primitive("\\arctan x"), "x \\cdot \\arctan(x) - \\frac{1}{2}\\ln(x^{2} + 1)");
         assert_eq!(primitive("e^x \\sin x"), "\\frac{1}{2}(\\sin(x) - \\cos(x))e^{x}");
+        assert_eq!(primitive("x^3 e^x"), "(x^{3} - 3x^{2} + 6x - 6)e^{x}");
+        assert_ne!(primitive("x^3 \\sin x"), "none");
+        assert_ne!(primitive("x^5 e^{2x}"), "none");
+        assert_eq!(primitive("\\sin x \\cos x"), "\\frac{1}{2}\\sin^{2}(x)");
+        let recurring = integrate("e^x \\cos(2x)").unwrap();
+        assert_eq!(recurring.steps.len(), 6);
+        assert_eq!(recurring.steps[0].latex, "u = \\cos(2x), \\quad v' = e^{x}, \\quad u' = -2\\sin(2x), \\quad v = e^{x}");
+        assert!(recurring.steps[4].latex.starts_with("I = "), "{}", recurring.steps[4].latex);
+    }
+
+    #[test]
+    fn quadratics_with_irrational_roots_and_completed_squares() {
+        assert_ne!(primitive("\\frac{1}{x^2-2}"), "none");
+        assert_eq!(method("\\frac{1}{x^2-2}"), "PARTIAL_FRACTIONS");
+        assert_eq!(primitive("\\frac{1}{x^2+4}"), "\\frac{1}{2}\\arctan\\left(\\frac{1}{2}x\\right)");
+        assert_eq!(method("\\frac{1}{x^2+4}"), "INTEGRAL_TABLE");
+        assert_ne!(primitive("\\frac{1}{x^2+2x+5}"), "none");
+        assert_ne!(primitive("\\frac{1}{\\sqrt{3 + 2x - x^2}}"), "none");
+    }
+
+    #[test]
+    fn polynomials_are_multiplied_out_first() {
+        assert_eq!(primitive("(x-1)^2"), "\\frac{1}{3}x^{3} - x^{2} + x");
+        assert_eq!(method("(x-1)^2 (x+1)"), "INTEGRAL_POLYNOMIAL");
+    }
+
+    #[test]
+    fn the_absolute_value_goes_where_the_argument_is_positive() {
+        use crate::analysis::interval::{Bound, Interval, IntervalSet, Point};
+        let settings = Settings::default();
+        let right = Domain {
+            set: IntervalSet(vec![Interval { lo: Bound::At { point: Point::rational(RBig::ONE), closed: false }, hi: Bound::PosInf }]),
+            excluded: vec![],
+            holes: vec![],
+        };
+        let ctx = IntegrateContext { settings: &settings, var: "x", domain: &right };
+        let logarithm = Expr::func(Fn::Ln, Expr::func(Fn::Abs, expr("x - 1")));
+        assert_eq!(without_needless_abs(&logarithm, &ctx).to_latex("x"), "\\ln(x - 1)");
+        let everywhere = Domain::reals();
+        let ctx = IntegrateContext { settings: &settings, var: "x", domain: &everywhere };
+        assert_eq!(without_needless_abs(&logarithm, &ctx).to_latex("x"), "\\ln\\left|x - 1\\right|");
+        assert_eq!(primitive("\\frac{2x}{x^2+1}"), "\\ln(x^{2} + 1)");
     }
 
     #[test]
@@ -614,7 +763,24 @@ mod tests {
 
     #[test]
     fn every_result_differentiates_back() {
-        for input in ["x^3-3x", "x e^x", "\\frac{x^2-1}{x-2}", "\\frac{\\ln x}{x}", "\\frac{1}{x^2+1}", "\\sin x", "\\frac{3x+1}{x^2+2x+5}", "\\tan x"] {
+        for input in [
+            "x^3-3x",
+            "x e^x",
+            "\\frac{x^2-1}{x-2}",
+            "\\frac{\\ln x}{x}",
+            "\\frac{1}{x^2+1}",
+            "\\sin x",
+            "\\frac{3x+1}{x^2+2x+5}",
+            "\\tan x",
+            "x^3 e^x",
+            "x^3 \\sin x",
+            "\\frac{1}{x^2-2}",
+            "\\frac{2x+3}{x^2+2x-1}",
+            "e^x \\cos(2x)",
+            "e^{2x} \\sin(3x)",
+            "\\frac{1}{\\sqrt{3 + 2x - x^2}}",
+            "\\frac{x}{x^2+1}",
+        ] {
             let f = expr(input);
             let big_f = integrate(input).unwrap().result;
             let back = simplify(&Expr::Sum(vec![derivative(&big_f), Expr::neg(f.clone())]));
