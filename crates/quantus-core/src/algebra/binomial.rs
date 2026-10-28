@@ -17,11 +17,12 @@ use dashu::rational::RBig;
 use serde::{Deserialize, Serialize};
 
 use crate::algebra::combine::flatten_additive_terms;
-use crate::algebra::display::{bracket, signed_sum};
+use crate::algebra::display::{bracket, signed_sum, signed_terms_sum};
 use crate::algebra::domain::unwrap_group;
 use crate::algebra::factored::{Factor, FactoredPoly};
 use crate::algebra::poly::{rational_to_node, term_to_node, Monomial, Poly};
 use crate::algebra::steps::{AlgebraStep, RuleId};
+use crate::settings::StepDetail;
 use crate::latex::ast::{Node, Operator};
 
 /// Recognized binomial identities.
@@ -578,6 +579,46 @@ fn signed_terms(poly: &Poly) -> Vec<(bool, Node)> {
 // EXPANSION DIRECTION
 // ---------------------------------------------------------------------------
 
+/// The binomial formula with `a` and `b` put in: `x^2 - 2 \cdot x \cdot 3 + 3^2` for `(x - 3)^2`.
+/// None when `a` and `b` are plain letters, as then the line is the formula itself.
+fn binomial_formula_line(base: &Poly, exp: usize, identity: BinomialIdentity) -> Option<(Node, String)> {
+    let [t0, t1] = &base.terms[..] else { return None };
+    let a = Poly::from_term(t0.coeff.clone(), t0.monomial.clone());
+    let b = Poly::from_term(t1.coeff.clone().abs(), t1.monomial.clone());
+    let letter = |p: &Poly| p.terms.len() == 1 && p.terms[0].coeff == RBig::ONE && p.terms[0].monomial.total_degree() == 1;
+    if letter(&a) && letter(&b) {
+        return None;
+    }
+    let is_atom = |p: &Poly| p.terms.len() == 1 && (p.is_constant() || letter(p));
+    let (a_node, b_node) = (a.to_node(), b.to_node());
+    let factor = |p: &Poly, n: &Node| if is_atom(p) { n.clone() } else { bracket(n.clone()) };
+    let power_of = |n: &Node, k: i64| Node::Power {
+        base: Box::new(Node::Group { inner: Box::new(n.clone()), position: 0 }),
+        exponent: Box::new(rational_to_node(&RBig::from(k))),
+        position: 0,
+    };
+    let times = |parts: Vec<Node>| parts.into_iter().reduce(|acc, next| Node::binary(Operator::Times, acc, next, 0)).unwrap();
+    let number = |k: i64| rational_to_node(&RBig::from(k));
+    let minus = t1.coeff.is_negative();
+    let terms: Vec<(bool, Node)> = if exp == 2 {
+        vec![
+            (true, power_of(&a_node, 2)),
+            (!minus, times(vec![number(2), factor(&a, &a_node), factor(&b, &b_node)])),
+            (true, power_of(&b_node, 2)),
+        ]
+    } else {
+        vec![
+            (true, power_of(&a_node, 3)),
+            (!minus, times(vec![number(3), power_of(&a_node, 2), factor(&b, &b_node)])),
+            (true, times(vec![number(3), factor(&a, &a_node), power_of(&b_node, 2)])),
+            (!minus, power_of(&b_node, 3)),
+        ]
+    };
+    let (a_latex, b_latex) = (crate::latex::serializer::expression(&a_node), crate::latex::serializer::expression(&b_node));
+    let formula = identity.description().split(": ").nth(1).unwrap_or(identity.description());
+    Some((signed_terms_sum(terms)?, format!("{formula} with a = {a_latex}, b = {b_latex}")))
+}
+
 /// Expands a binomial power `(A + B)^n` or `(A - B)^n` for n in {2, 3}.
 pub fn expand_binomial_poly(base: &Poly, exp: usize) -> Option<(Poly, BinomialIdentity)> {
     if exp != 2 && exp != 3 {
@@ -695,7 +736,14 @@ pub fn expand_binomial_node(node: &Node) -> Option<AlgebraStep> {
                                 "Expand binomial power using {}",
                                 identity.description()
                             );
-                            return Some(AlgebraStep::new(node.clone(), after_node, explanation, Some(rule)));
+                            let step = AlgebraStep::new(node.clone(), after_node, explanation, Some(rule));
+                            return Some(match binomial_formula_line(&poly_base, exp, identity) {
+                                Some((line, text)) => step.with_working(
+                                    vec![AlgebraStep::line(node, line, text, StepDetail::Standard)],
+                                    "Work out the terms",
+                                ),
+                                None => step,
+                            });
                         }
                     }
                 }

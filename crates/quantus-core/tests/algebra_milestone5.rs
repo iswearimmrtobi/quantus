@@ -690,3 +690,20 @@ fn a_product_of_sums_is_multiplied_out_term_by_term() {
     // The other factors stay in place around the pair.
     assert_eq!(rows("3(x-2)(x-4)", StepDetail::Detailed)[0].0, r"3 \cdot (x \cdot x + x \cdot (-4) + (-2) \cdot x + (-2) \cdot (-4))");
 }
+
+#[test]
+fn a_binomial_power_puts_the_values_into_the_formula() {
+    assert_eq!(
+        rows("(x-3)^2", StepDetail::Standard),
+        [
+            row(r"x^{2} - 2 \cdot x \cdot 3 + 3^{2}", "(a - b)² = a² - 2ab + b² with a = x, b = 3"),
+            row(r"x^{2} - 6 \cdot x + 9", "Work out the terms"),
+        ]
+    );
+    assert_eq!(
+        rows("(2x+1)^3", StepDetail::Standard)[0].0,
+        r"(2 \cdot x)^{3} + 3 \cdot (2 \cdot x)^{2} \cdot 1 + 3 \cdot (2 \cdot x) \cdot 1^{2} + 1^{3}"
+    );
+    // With letters only, the line would be the formula itself.
+    assert_eq!(rows("(a+b)^2", StepDetail::Standard).len(), 1);
+}
