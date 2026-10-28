@@ -969,12 +969,33 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
     let step = AlgebraStep::new(root.clone(), canonical.clone(), explanation.clone(), Some(rule)).with_level(level);
     // Powers of numbers are worked out first: \frac{x^3}{2^3} reads \frac{x^3}{8}.
     let evaluated = evaluate_number_powers(root);
-    let lines = [&evaluated]
+    let mut lines: Vec<AlgebraStep> = [&evaluated]
         .into_iter()
         .filter(|e| serializer::expression(e) != serializer::expression(root) && serializer::expression(e) != serializer::expression(&canonical))
         .map(|e| AlgebraStep::line(root, e.clone(), "Evaluate the power", StepDetail::Detailed))
         .collect();
-    Some((canonical, step.with_working(lines, explanation)))
+    let mut last = explanation;
+    if let Some(flipped) = sign_flip_line(root) {
+        lines.push(AlgebraStep::line(root, flipped, "Multiply numerator and denominator by -1", StepDetail::Standard));
+        last = "Multiply out".to_string();
+    }
+    Some((canonical, step.with_working(lines, last)))
+}
+
+/// `\frac{1 \cdot (-1)}{(1 - x) \cdot (-1)}` for `\frac{1}{1 - x}`: a fraction whose denominator
+/// starts with a minus sign, extended by -1.
+fn sign_flip_line(root: &Node) -> Option<Node> {
+    let unwrapped = unwrap_group(root);
+    if Poly::from_node(unwrapped).is_ok() {
+        return None;
+    }
+    let (num, den) = split_fraction(unwrapped)?;
+    if !Poly::from_node(den).ok()?.leading_coeff().is_negative() {
+        return None;
+    }
+    let minus_one = || Node::Negation { operand: Box::new(number(1)), position: 0 };
+    let times = |node: &Node| Node::binary(Operator::Times, node.clone(), minus_one(), 0);
+    Some(make_fraction(times(num), times(den)))
 }
 
 /// `node` with each power of a whole number by a whole number worked out: `2^3` is `8`.

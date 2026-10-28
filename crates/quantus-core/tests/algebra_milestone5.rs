@@ -753,3 +753,14 @@ fn a_power_of_a_fraction_evaluates_the_number_power() {
     assert_eq!(detailed[1], row(r"\frac{x^{3}}{8}", "Evaluate the power"));
     assert_eq!(rows(input, StepDetail::Standard).len(), 2);
 }
+
+#[test]
+fn a_negative_leading_term_in_the_denominator_is_flipped_with_minus_one() {
+    assert_eq!(
+        rows(r"\frac{1}{1-x}", StepDetail::Standard),
+        [
+            row(r"\frac{1 \cdot (-1)}{(1 - x) \cdot (-1)}", "Multiply numerator and denominator by -1"),
+            row(r"\frac{-1}{x - 1}", "Multiply out"),
+        ]
+    );
+}
