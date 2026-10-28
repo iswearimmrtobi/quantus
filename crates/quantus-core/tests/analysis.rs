@@ -575,3 +575,15 @@ fn the_second_derivative_test_and_the_y_values_put_x_in() {
     assert!(standard.contains(&(r"f(2) = 2^{3} - 3 \cdot 2^{2} + 2 = -2".to_string(), "The y-value".to_string())));
     assert!(working(&d, "inflection", StepDetail::Standard).iter().any(|(latex, _)| latex == r"f(1) = 1^{3} - 3 \cdot 1^{2} + 2 = 0"));
 }
+
+#[test]
+fn symmetry_and_the_y_intercept_put_the_values_in() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x^3-3x^2+2");
+    let standard = working(&d, "symmetry", StepDetail::Standard);
+    assert_eq!(standard[0].0, r"f(-x) = (-x)^{3} - 3 \cdot (-x)^{2} + 2");
+    assert_eq!(standard[2].0, r"f(x) = x^{3} - 3x^{2} + 2, \quad -f(x) = -x^{3} + 3x^{2} - 2");
+    assert_eq!(working(&d, "symmetry", StepDetail::Brief).len(), 2);
+    assert_eq!(working(&d, "yIntercept", StepDetail::Standard)[0].0, r"f(0) = 0^{3} - 3 \cdot 0^{2} + 2 = 2");
+    assert_eq!(working(&d, "yIntercept", StepDetail::Brief)[0].0, "f(0) = 2");
+}

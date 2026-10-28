@@ -481,6 +481,8 @@ impl Sketch<'_> {
             return self.section("symmetry", steps, Some(text(&result)), true);
         }
         let mirrored = simplify(&self.f.substitute(&Expr::neg(Expr::Var)));
+        let replaced = format!("f(-{var}) = {}", put_in(&self.f, &Expr::neg(Expr::Var), var));
+        steps.push(step(AnalysisRule::Symmetry, msg!("Replace x by -x", "x durch -x ersetzen"), replaced).with_level(StepDetail::Standard));
         steps.push(step(
             AnalysisRule::Symmetry,
             msg!("Replace x by -x", "x durch -x ersetzen"),
@@ -508,6 +510,9 @@ impl Sketch<'_> {
             format!("f(-{var}) = -f({var})")
         };
         let result = if checked { format!("{result} {}", msg!("(checked numerically)", "(numerisch geprüft)")) } else { result };
+        let negated = display(&simplify(&Expr::neg(self.f.clone())), self.ctx.settings);
+        let compared = format!("f({var}) = {}, \\quad -f({var}) = {}", self.tex(&display(&self.f, self.ctx.settings)), self.tex(&negated));
+        steps.push(step(AnalysisRule::Symmetry, msg!("Compare with f(x) and -f(x)", "Mit f(x) und -f(x) vergleichen"), compared).with_level(StepDetail::Standard));
         steps.push(step(AnalysisRule::Symmetry, result.clone(), relation));
         self.section("symmetry", steps, Some(text(&result)), true)
     }
@@ -522,7 +527,10 @@ impl Sketch<'_> {
         let Some(y) = self.value_at(&self.f, &zero) else {
             return self.section("yIntercept", Vec::new(), None, false);
         };
-        let steps = vec![step(AnalysisRule::Simplify, msg!("Put in x = 0", "x = 0 einsetzen"), format!("f(0) = {}", y.to_latex(self.ctx.digits)))];
+        let put = msg!("Put in x = 0", "x = 0 einsetzen");
+        let value = y.to_latex(self.ctx.digits);
+        let short = step(AnalysisRule::Simplify, put.clone(), format!("f(0) = {value}"));
+        let steps = self.with_value_put_in(short, &self.f.clone(), &zero, "f(0) = ", &format!(" = {value}"));
         let point = self.mark(PointKind::YIntercept, &zero, &y);
         let _ = var;
         self.section("yIntercept", steps, Some(point), true)
