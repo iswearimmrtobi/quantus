@@ -22,12 +22,19 @@ use quantus_core::algebra::domain::{
 };
 use quantus_core::algebra::steps::RuleId;
 use quantus_core::algebra::verify_equivalence;
-use quantus_core::algebra::simplify;
+use quantus_core::algebra::pipeline::{simplify_node_with, PipelineConfig};
+use quantus_core::algebra::SimplificationResult;
+use quantus_core::settings::StepDetail;
 use quantus_core::api::{evaluate as api_evaluate, CalculationRequest};
 use quantus_core::eval::LatexCalculator;
 use quantus_core::latex::ast::Node;
 use quantus_core::latex::{parser, serializer};
 use quantus_core::session::SessionStore;
+
+/// One step per rule, as the rules record them.
+fn simplify(input: &str) -> quantus_core::Result<SimplificationResult> {
+    simplify_node_with(&parse(input), PipelineConfig { detail: StepDetail::Brief, ..PipelineConfig::default() })
+}
 
 fn parse(input: &str) -> Node {
     parser::parse(input)

@@ -179,9 +179,11 @@ impl AlgebraStep {
             }
         }
         let mut steps: Vec<AlgebraStep> = substeps.into_iter().flat_map(AlgebraStep::flatten).collect();
-        // Only the outermost rule is summed up; a sub-step's own working stays as it is.
+        // Only the outermost rule is summed up; a sub-step's own working stays as it is. A line
+        // belongs to the rule of its step.
         for step in &mut steps {
             step.summary = None;
+            step.rule = step.rule.or(self.rule);
         }
         if let Some(index) = steps.iter().rposition(|step| !step.note) {
             let before = steps[index].after.clone();

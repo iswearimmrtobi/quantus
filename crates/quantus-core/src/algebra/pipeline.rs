@@ -635,13 +635,16 @@ pub(crate) fn rewrite_first_bottom_up(root: &Node, rule: &mut Rule<'_>) -> Optio
 }
 
 /// Finds the first (pre-order, i.e. outermost-first) node where `rule` applies and rewrites it.
-pub(crate) fn rewrite_first_top_down(root: &Node, rule: &mut Rule<'_>) -> Option<LocalRewrite> {
-    if let Some((after, rule_id, explanation)) = rule(root) {
-        let step = AlgebraStep::new(root.clone(), after.clone(), explanation, Some(rule_id));
-        return Some((after, step));
+/// The rule describes its rewrite as a step of its own, which may carry sub-steps.
+pub(crate) fn rewrite_first_top_down_with(
+    root: &Node,
+    rule: &mut dyn FnMut(&Node) -> Option<AlgebraStep>,
+) -> Option<LocalRewrite> {
+    if let Some(step) = rule(root) {
+        return Some((step.after.clone(), step));
     }
     for (index, child) in root.children().into_iter().enumerate() {
-        if let Some((new_child, step)) = rewrite_first_top_down(child, rule) {
+        if let Some((new_child, step)) = rewrite_first_top_down_with(child, rule) {
             return Some((replace_child(root, index, new_child), step));
         }
     }
@@ -791,6 +794,13 @@ pub fn normalize_products_step(root: &Node) -> Option<LocalRewrite> {
 /// `\frac{3(x - 2)}{x + 3} + \frac{x - 102}{(x - 4)(x + 3)}` becomes
 /// `\frac{3(x - 2)(x - 4)}{(x - 4)(x + 3)} + \frac{x - 102}{(x - 4)(x + 3)}`.
 pub fn common_denominator_at(node: &Node) -> Option<(Node, RuleId, String)> {
+    let step = common_denominator_rewrite(node)?;
+    Some((step.after, RuleId::FindCommonDenominator, step.summary.unwrap_or(step.explanation)))
+}
+
+/// [`common_denominator_at`] as a step whose Standard line extends each fraction by the factor
+/// its denominator is missing: `\frac{3}{x - 3} \cdot \frac{x + 3}{x + 3} + …`.
+fn common_denominator_rewrite(node: &Node) -> Option<AlgebraStep> {
     if !is_combinable_fraction_sum(node) {
         return None;
     }
@@ -820,42 +830,40 @@ pub fn common_denominator_at(node: &Node) -> Option<(Node, RuleId, String)> {
     }
 
     let lcd_node = lcd.to_node();
-    let mut acc: Option<Node> = None;
+    let mut rewritten = Vec::new();
+    let mut extended = Vec::new();
     for (positive, num, den) in parts {
         let missing = lcd.div(&den).unwrap_or_else(FactoredPoly::one);
-        let scaled = if missing.is_one() {
-            num
+        let original = if den.is_one() { num.clone() } else { make_fraction(num.clone(), den.to_node()) };
+        if missing.is_one() {
+            extended.push((positive, original));
+            rewritten.push((positive, make_fraction(num, lcd_node.clone())));
         } else {
-            make_product(num, missing.to_node())
-        };
-        let fraction = make_fraction(scaled, lcd_node.clone());
-        acc = Some(match acc {
-            None if positive => fraction,
-            None => Node::Negation {
-                operand: Box::new(fraction),
-                position: 0,
-            },
-            Some(prev) => Node::binary(
-                if positive { Operator::Plus } else { Operator::Minus },
-                prev,
-                fraction,
-                0,
-            ),
-        });
+            let factor = missing.to_node();
+            extended.push((positive, Node::binary(Operator::Times, original, make_fraction(factor.clone(), factor.clone()), 0)));
+            rewritten.push((positive, make_fraction(make_product(num, factor), lcd_node.clone())));
+        }
     }
-    Some((
-        acc?,
-        RuleId::FindCommonDenominator,
-        format!(
-            "Rewrite every fraction over the least common denominator {}",
-            serializer::expression(&lcd_node)
-        ),
-    ))
+    let after = signed_terms_sum(rewritten)?;
+    let extended = signed_terms_sum(extended)?;
+    let lcd_latex = serializer::expression(&lcd_node);
+    let summary = format!("Rewrite every fraction over the least common denominator {lcd_latex}");
+    let extend = format!("Extend each fraction by the factor its denominator is missing from the least common denominator {lcd_latex}");
+    let step = AlgebraStep::new(node.clone(), after, summary, Some(RuleId::FindCommonDenominator));
+    Some(step.with_working(vec![AlgebraStep::line(node, extended, extend, StepDetail::Standard)], "Multiply the fractions"))
+}
+
+/// `±t_1 ± t_2 ± …`, a leading minus written as a negation.
+fn signed_terms_sum(terms: Vec<(bool, Node)>) -> Option<Node> {
+    let mut terms = terms.into_iter();
+    let (positive, first) = terms.next()?;
+    let first = if positive { first } else { Node::Negation { operand: Box::new(first), position: 0 } };
+    Some(crate::algebra::display::signed_sum(first, terms))
 }
 
 /// Stage 7: applies [`common_denominator_at`] to the outermost applicable sum.
 pub fn common_denominator_step(root: &Node) -> Option<LocalRewrite> {
-    rewrite_first_top_down(root, &mut common_denominator_at)
+    rewrite_first_top_down_with(root, &mut common_denominator_rewrite)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1173,9 +1181,9 @@ mod tests {
                 return None;
             }
             let rule = &mut |node: &Node| {
-                (serializer::expression(node) == r"x \cdot x \cdot x").then(|| (parse("x^3"), RuleId::MergePowers, "merge".to_string()))
+                (serializer::expression(node) == r"x \cdot x \cdot x").then(|| AlgebraStep::new(node.clone(), parse("x^3"), "merge", None))
             };
-            let (next, step) = rewrite_first_top_down(root, rule)?;
+            let (next, step) = rewrite_first_top_down_with(root, rule)?;
             let idea = AlgebraStep::new(step.before.clone(), parse("x^{1 + 1 + 1}"), "idea", None).with_level(StepDetail::Standard);
             Some((next, step.with_substeps(vec![idea])))
         });

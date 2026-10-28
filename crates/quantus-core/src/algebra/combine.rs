@@ -282,7 +282,7 @@ pub fn combine_fractions_at(node: &Node) -> Option<(Node, RuleId, String)> {
     let combined_fraction = make_fraction(combined_num, combined_den);
 
     let rule = RuleId::CombineFractions;
-    let explanation = "Find common denominator and combine fractions into a single fraction".to_string();
+    let explanation = "Add the numerators over the common denominator".to_string();
 
     Some((combined_fraction, rule, explanation))
 }

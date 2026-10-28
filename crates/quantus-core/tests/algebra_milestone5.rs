@@ -273,9 +273,10 @@ fn pipeline_stage13_canonical_form() {
 #[test]
 fn pipeline_is_deterministic() {
     let input = r"\frac{3}{\frac{x + 3}{x - 2}} + \frac{\frac{x - 102}{x - 4}}{x + 3}";
-    let a = run(input);
-    let b = simplify_node(&parse(input)).unwrap();
-    assert_eq!(a, b);
+    for detail in LEVELS {
+        assert_eq!(run_at(input, detail), run_at(input, detail));
+    }
+    assert_eq!(run_at(input, StepDetail::Standard), simplify_node(&parse(input)).unwrap());
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -319,6 +320,7 @@ fn pipeline_step_limit_stops_with_a_diagnostic() {
     let input = r"\frac{3}{\frac{x + 3}{x - 2}} + \frac{\frac{x - 102}{x - 4}}{x + 3}";
     let config = PipelineConfig {
         max_total_steps: 3,
+        detail: StepDetail::Brief,
         ..PipelineConfig::default()
     };
     let result = simplify_node_with(&parse(input), config).unwrap();
@@ -548,4 +550,23 @@ fn completing_the_square_adds_and_subtracts_then_groups() {
     let explicit = rows(r"x^2 + 2 \cdot x \cdot 4 + 11", StepDetail::Standard);
     assert_eq!(explicit[1], row(r"x^{2} + 8 \cdot x + 16 - 16 + 11", r"2 \cdot x \cdot 4 is 2ab with a = x, b = 4: add and subtract b² = 16"));
     assert_eq!(explicit[2].1, "First binomial formula: a² + 2ab + b² = (a + b)²");
+}
+
+#[test]
+fn a_common_denominator_shows_where_the_missing_factors_come_from() {
+    let input = r"\frac{3}{x-3}+\frac{x}{x+3}";
+    let brief = rows(input, StepDetail::Brief);
+    assert_eq!(brief[0].1, r"Rewrite every fraction over the least common denominator (x - 3) \cdot (x + 3)");
+    assert_eq!(brief[1].1, "Add the numerators over the common denominator");
+    let standard = rows(input, StepDetail::Standard);
+    assert_eq!(
+        standard[0],
+        row(
+            r"\frac{3}{x - 3} \cdot \frac{x + 3}{x + 3} + \frac{x}{x + 3} \cdot \frac{x - 3}{x - 3}",
+            r"Extend each fraction by the factor its denominator is missing from the least common denominator (x - 3) \cdot (x + 3)"
+        )
+    );
+    assert_eq!(standard[1], row(r"\frac{3 \cdot (x + 3)}{(x - 3) \cdot (x + 3)} + \frac{x \cdot (x - 3)}{(x - 3) \cdot (x + 3)}", "Multiply the fractions"));
+    // A term without a denominator is extended too.
+    assert_eq!(rows(r"\frac{1}{x}+1", StepDetail::Standard)[0].0, r"\frac{1}{x} + 1 \cdot \frac{x}{x}");
 }
