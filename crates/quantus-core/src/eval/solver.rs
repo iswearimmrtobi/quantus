@@ -26,7 +26,7 @@ const SCAN_STEPS_PER_UNIT: i64 = 4;
 const MAX_ROOTS: usize = 6;
 
 /// The sign of the residual at a point (-1, 0, 1) and its magnitude.
-type Sample = (i32, RBig);
+pub(crate) type Sample = (i32, RBig);
 
 /// The unknown and its solutions, smallest first.
 pub struct Solutions {
@@ -87,65 +87,15 @@ impl Evaluator<'_> {
             }
         };
         let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.precision + 5));
-
-        let mut roots: Vec<RBig> = Vec::new();
-        let mut previous: Option<(RBig, i32, RBig)> = None;
-        // The last three samples without a gap, for spotting minima of |f|.
-        let mut window: Vec<(RBig, i32, RBig)> = Vec::new();
-        let mut minima: Vec<(RBig, RBig, RBig)> = Vec::new();
-        let step = RBig::from_parts(IBig::ONE, UBig::from(SCAN_STEPS_PER_UNIT as u64));
-        let nudge = &step / RBig::from(1024);
-        for i in -SCAN_LIMIT * SCAN_STEPS_PER_UNIT..=SCAN_LIMIT * SCAN_STEPS_PER_UNIT {
-            let x = RBig::from_parts(IBig::from(i), UBig::from(SCAN_STEPS_PER_UNIT as u64));
-            let points = match sample(&x)? {
-                Some(s) => vec![(x.clone(), s)],
-                None => {
-                    // Undefined here: look just left and just right of the point instead.
-                    window.clear();
-                    let mut beside = Vec::new();
-                    for p in [&x - &nudge, &x + &nudge] {
-                        if let Some(s) = sample(&p)? {
-                            beside.push((p, s));
-                        }
-                    }
-                    if beside.is_empty() {
-                        previous = None;
-                    }
-                    beside
-                }
-            };
-            for (x, (sign, magnitude)) in points {
-                if sign == 0 {
-                    roots.push(x.clone());
-                } else if let Some((lo, lo_sign, lo_magnitude)) = &previous {
-                    if *lo_sign != 0 && *lo_sign != sign {
-                        let ceiling = if *lo_magnitude < magnitude { lo_magnitude.clone() } else { magnitude.clone() };
-                        if let Some(root) = bisect(&mut sample, lo.clone(), x.clone(), *lo_sign, &ceiling, &tolerance)? {
-                            roots.push(root);
-                        }
-                    }
-                }
-                window.push((x.clone(), sign, magnitude.clone()));
-                if window.len() > 3 {
-                    window.remove(0);
-                }
-                if let [(a, sa, ma), (_, sb, mb), (c, sc, mc)] = window.as_slice() {
-                    if *sa == *sb && *sb == *sc && *sb != 0 && mb < ma && mb < mc {
-                        minima.push((mb.clone(), a.clone(), c.clone()));
-                    }
-                }
-                previous = Some((x, sign, magnitude));
-            }
-        }
-
-        // Roots the residual only touches; the smallest minima first, and only a few of them.
-        minima.sort_by(|x, y| x.0.cmp(&y.0));
         let accept = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.precision));
-        for (_, lo, hi) in minima.into_iter().take(MAX_ROOTS) {
-            if let Some(root) = touch(&mut sample, lo, hi, &tolerance, &accept)? {
-                roots.push(root);
-            }
-        }
+        let mut roots = scan_roots(
+            &mut sample,
+            &RBig::from(-SCAN_LIMIT),
+            &RBig::from(SCAN_LIMIT),
+            SCAN_STEPS_PER_UNIT as u64,
+            &tolerance,
+            &accept,
+        )?;
 
         if roots.is_empty() {
             return Err(QuantusError::other(format!(
@@ -153,7 +103,6 @@ impl Evaluator<'_> {
             )));
         }
         roots.sort_by_key(|root| root.clone().abs());
-        roots.dedup();
         roots.truncate(MAX_ROOTS);
         roots.sort();
         roots
@@ -161,6 +110,88 @@ impl Evaluator<'_> {
             .map(|root| Ok(Value::from_decimal(&Value::Rat(root).decimal(self.precision)?)))
             .collect()
     }
+}
+
+/// The roots of a residual on `[lo, hi]`, smallest first and without duplicates; empty when there
+/// are none.
+///
+/// The residual is scanned in steps of `1 / steps_per_unit`. Each sign change is refined by
+/// bisection to `tolerance`, and each interior minimum of its magnitude by a shrinking-interval
+/// search, accepted as a root the residual only touches when its magnitude is at most `accept`
+/// (only the [`MAX_ROOTS`] smallest minima are refined). A point where the residual is undefined
+/// is sampled just beside it, so a root next to it is still bracketed.
+pub(crate) fn scan_roots(
+    sample: &mut dyn FnMut(&RBig) -> Result<Option<Sample>>,
+    lo: &RBig,
+    hi: &RBig,
+    steps_per_unit: u64,
+    tolerance: &RBig,
+    accept: &RBig,
+) -> Result<Vec<RBig>> {
+    let mut roots: Vec<RBig> = Vec::new();
+    let mut previous: Option<(RBig, i32, RBig)> = None;
+    // The last three samples without a gap, for spotting minima of |f|.
+    let mut window: Vec<(RBig, i32, RBig)> = Vec::new();
+    let mut minima: Vec<(RBig, RBig, RBig)> = Vec::new();
+    let step = RBig::from_parts(IBig::ONE, UBig::from(steps_per_unit));
+    let nudge = &step / RBig::from(1024);
+    let first = (lo * RBig::from(steps_per_unit)).ceil();
+    let last = (hi * RBig::from(steps_per_unit)).floor();
+    let mut i = first;
+    while i <= last {
+        let x = RBig::from_parts(i.clone(), UBig::from(steps_per_unit));
+        i += IBig::ONE;
+        let points = match sample(&x)? {
+            Some(s) => vec![(x.clone(), s)],
+            None => {
+                // Undefined here: look just left and just right of the point instead.
+                window.clear();
+                let mut beside = Vec::new();
+                for p in [&x - &nudge, &x + &nudge] {
+                    if let Some(s) = sample(&p)? {
+                        beside.push((p, s));
+                    }
+                }
+                if beside.is_empty() {
+                    previous = None;
+                }
+                beside
+            }
+        };
+        for (x, (sign, magnitude)) in points {
+            if sign == 0 {
+                roots.push(x.clone());
+            } else if let Some((lo, lo_sign, lo_magnitude)) = &previous {
+                if *lo_sign != 0 && *lo_sign != sign {
+                    let ceiling = if *lo_magnitude < magnitude { lo_magnitude.clone() } else { magnitude.clone() };
+                    if let Some(root) = bisect(sample, lo.clone(), x.clone(), *lo_sign, &ceiling, tolerance)? {
+                        roots.push(root);
+                    }
+                }
+            }
+            window.push((x.clone(), sign, magnitude.clone()));
+            if window.len() > 3 {
+                window.remove(0);
+            }
+            if let [(a, sa, ma), (_, sb, mb), (c, sc, mc)] = window.as_slice() {
+                if *sa == *sb && *sb == *sc && *sb != 0 && mb < ma && mb < mc {
+                    minima.push((mb.clone(), a.clone(), c.clone()));
+                }
+            }
+            previous = Some((x, sign, magnitude));
+        }
+    }
+
+    // Roots the residual only touches; the smallest minima first, and only a few of them.
+    minima.sort_by(|x, y| x.0.cmp(&y.0));
+    for (_, lo, hi) in minima.into_iter().take(MAX_ROOTS) {
+        if let Some(root) = touch(sample, lo, hi, tolerance, accept)? {
+            roots.push(root);
+        }
+    }
+    roots.sort();
+    roots.dedup();
+    Ok(roots)
 }
 
 /// Narrows a sign change in `[lo, hi]` down to `tolerance`. A sign change across a pole
@@ -317,5 +348,44 @@ fn collect_unknowns(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator,
                 collect_unknowns(child, bound, evaluator, found);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scan(f: impl Fn(&RBig) -> Option<RBig>, lo: i64, hi: i64) -> Vec<RBig> {
+        let mut sample = |x: &RBig| -> Result<Option<Sample>> {
+            Ok(f(x).map(|y| {
+                let sign = if y == RBig::ZERO { 0 } else if y < RBig::ZERO { -1 } else { 1 };
+                (sign, y.abs())
+            }))
+        };
+        let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(20));
+        let accept = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(15));
+        scan_roots(&mut sample, &RBig::from(lo), &RBig::from(hi), 4, &tolerance, &accept).unwrap()
+    }
+
+    #[test]
+    fn scan_roots_finds_crossings_and_touches_in_order() {
+        let near = |root: &RBig, value: f64| (root.to_f64().value() - value).abs() < 1e-12;
+        // (x - 1/3)(x + 2): two sign changes, neither on the grid.
+        let roots = scan(|x| Some((x - RBig::from_parts(IBig::ONE, UBig::from(3u8))) * (x + RBig::from(2))), -5, 5);
+        assert_eq!(roots.len(), 2);
+        assert!(near(&roots[0], -2.0) && near(&roots[1], 1.0 / 3.0));
+        // (x - 0.3)^2 only touches zero.
+        let touched = scan(|x| Some((x - RBig::from_parts(IBig::from(3), UBig::from(10u8))).pow(2)), -5, 5);
+        assert_eq!(touched.len(), 1);
+        assert!(near(&touched[0], 0.3));
+    }
+
+    #[test]
+    fn scan_roots_is_empty_without_roots_and_skips_poles() {
+        assert!(scan(|x| Some(x * x + RBig::ONE), -5, 5).is_empty());
+        // 1/x changes sign at its pole, which is no root.
+        assert!(scan(|x| (*x != RBig::ZERO).then(|| RBig::ONE / x), -5, 5).is_empty());
+        // Only the interval asked for is scanned.
+        assert!(scan(|x| Some(x - RBig::from(10)), -5, 5).is_empty());
     }
 }
