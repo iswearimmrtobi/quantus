@@ -5,6 +5,7 @@ pub mod derive;
 pub mod domain;
 pub mod exact;
 pub mod expr;
+pub mod integrate;
 pub mod interval;
 pub mod limits;
 pub mod polydiv;

@@ -326,8 +326,12 @@ fn algebraic_separator(left: &Node, right: &Node) -> &'static str {
     if (is_numeric_fraction(last) || is_constant(last)) && (is_var(right) || is_var_power(right)) {
         return "";
     }
+    // A numeric fraction before a bracket: \frac{1}{2}(x + 1).
+    if is_numeric_fraction(last) && right_bracketed {
+        return "";
+    }
     // A bracket before a function or an e-power: (x + 1)e^{x}.
-    if left_bracketed && joins_any {
+    if (left_bracketed || is_bracketed(last)) && joins_any {
         return "";
     }
 

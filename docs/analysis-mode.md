@@ -125,8 +125,8 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
 `pub fn simplify(e: &Expr) -> Expr` works bottom-up to a fixed point, with at most 64 passes. Each pass is fingerprinted, as `state_key` does in `pipeline.rs`. The rules, in this order:
 
 1. Flatten, fold rational constants, and remove 0 and 1.
-2. Collect like terms (coefficient × rest) and like factors (`u^a·u^b = u^{a+b}`). Factors are only merged into `u^{a+b}` when this does not drop a domain condition: if `a` or `b` has an even denominator and `a+b` does not, they are not merged.
-3. `(u^a)^b = u^{ab}` only if `b` is an integer and `a` has no even denominator.
+2. Collect like terms (coefficient × rest) and like factors (`u^a·u^b = u^{a+b}` for numeric exponents).
+3. `(u^a)^b = u^{ab}` when `b` is an integer. Since the domain is always taken from the tree as typed before simplifying, a rule may extend a function beyond its domain (`(\sqrt{x})^2 = x`, `\sqrt{x}\sqrt{x} = x`), but it never changes a value inside it (`\sqrt{x^2}` stays: it is `|x|`).
 4. Exp and ln rules:
    - `e^a·e^b = e^{a+b}`
    - `(e^u)^n = e^{nu}`
@@ -142,12 +142,12 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
    - tan at those points is exact (0, ±√3/3, ±1, ±√3), or undefined.
    - Inverse table: arcsin, arccos and arctan of these values give the angle.
 7. Odd and even: `sin(-u) = -sin u`, `cos(-u) = cos u`, `tan(-u) = -tan u`, `|-u| = |u|`, `sinh(-u) = -sinh u`, `cosh(-u) = cosh u`.
-8. Rational subtrees: a subtree whose `as_rational()` succeeds is replaced by the result of `algebra::pipeline::simplify_node_with(node, PipelineConfig{ style: expanded, no completed square, verify_equivalence: false, ..})`, converted back.
-9. Rational in x and atoms: a sum or product that mixes x with functions, roots or constants (the atoms) and has a sum inside a product or power, such as `\frac{-x - 2x(1 - \ln x)}{x^{4}}`, goes through the same pipeline with each distinct atom as a variable `a_i`, which is put back afterwards (`\frac{2\ln(x) - 3}{x^{3}}`). The atoms count as independent variables, which is always valid, even where it is not the simplest form.
+8. Rational subtrees: a subtree whose `as_rational()` succeeds is replaced by the result of `algebra::pipeline::simplify_node_with(node, PipelineConfig{ style: expanded, no completed square, verify_equivalence: true, ..})`, converted back.
+9. Rational in x and atoms: a sum or product that mixes x with functions, roots or constants (the atoms) and has a sum inside a product or power, such as `\frac{-x - 2x(1 - \ln x)}{x^{4}}`, goes through the same pipeline with each distinct atom as a variable `a_i`, which is put back afterwards (`\frac{2\ln(x) - 3}{x^{3}}`). Both run with `verify_equivalence: true`: without the check the pipeline returns a wrong result for nested fractions such as `\frac{1}{a} \cdot \frac{1}{1 + (\frac{x}{a})^2} \cdot \frac{1}{a} - \frac{1}{1 + x^2}` (an existing pipeline bug, caught by the check in Algebra mode too). The atoms count as independent variables, which is always valid, even where it is not the simplest form.
 
 **Display forms** (`pub fn display(e: &Expr, settings) -> Expr`):
 - A rational result keeps the pipeline form: expanded numerator, denominator per `settings.denominator_form`. Polynomials are expanded unless the binomial setting is explicitly `binomial` (`auto` counts as `expanded` here, so f′(x) reads `3x^{2} - 3`, not `3(x - 1)(x + 1)`), and never written as a completed square.
-- If every summand shares a non-rational factor `g` (usually `e^{u}` or `\ln`), it is factored out and the polynomial rest is written first: `(x+1)e^{x}`, `e^{-x}(2x - x^{2})`. The rest is ordered by decreasing degree; for `(x+1)e^{x}` the leading factor is chosen so its leading coefficient is positive.
+- If every summand shares a non-rational factor `g` (usually `e^{u}` or `\ln`), it is factored out and the rest is written first: `(x + 1)e^{x}`, `-(x^{2} - 2x)e^{-x}`, `\frac{1}{2}(\sin(x) - \cos(x))e^{x}`. A rest that is not a polynomial gives up its rational content to the front, and a minus goes in front when the rest would start with one.
 - Otherwise the canonical order from §4 is used.
 
 **Exact zero test:** `is_zero(e) = simplify(e) == Num(0)`.
@@ -343,7 +343,7 @@ Methods, tried in order:
 
 ## 10. Antiderivative (`integrate.rs`)
 
-`pub fn antiderivative(f: &Expr, domain: &Domain, budget) -> Result<Integration, NoElementary>`, where `Integration { result: Expr, method: AnalysisRule, steps }`.
+`pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration>` (`None`: no elementary antiderivative found), where `Integration { result: Expr, method: AnalysisRule, steps }` and the context holds the settings, the variable and the domain.
 
 Methods are tried in order; the first verified one wins:
 

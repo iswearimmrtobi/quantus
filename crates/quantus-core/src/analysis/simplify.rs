@@ -6,14 +6,14 @@
 //! algebra pipeline instead, so polynomials and fractions come out as they do in Algebra mode.
 //!
 //! No rule here keeps track of the domain: it is worked out on the tree as typed, before anything
-//! is simplified. Rules that would change a value somewhere inside the domain (`\sqrt{x}^2 = x`
-//! for negative x) are not applied.
+//! is simplified. A rule may therefore extend a function beyond its domain (`(\sqrt{x})^2 = x`),
+//! but never change a value inside it (`\sqrt{x^2}` stays, it is |x|).
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use dashu::base::{Abs, Signed};
-use dashu::integer::{IBig, UBig};
+use dashu::integer::IBig;
 use dashu::rational::RBig;
 
 use super::exact::{self, TrigValue};
@@ -126,12 +126,15 @@ fn factor_common(e: &Expr, settings: &Settings) -> Option<Expr> {
         })
         .collect();
     let mut rest = display(&Expr::sum(rest_terms), settings);
-    let mut sign = RBig::ONE;
+    // The rational content of the bracket goes in front: \frac{1}{2}(\sin(x) - \cos(x))e^{x}.
+    let mut scale = content(&rest);
     if leading_is_negative(&rest) {
-        sign = -sign;
-        rest = display(&Expr::neg(rest), settings);
+        scale = -scale;
     }
-    let mut factors = vec![Expr::Num(sign), rest];
+    if scale != RBig::ONE {
+        rest = display(&Expr::Product(vec![Expr::Num(RBig::ONE / &scale), rest]), settings);
+    }
+    let mut factors = vec![Expr::Num(scale), rest];
     factors.extend(common);
     Some(Expr::Product(factors.into_iter().filter(|f| *f != Expr::int(1)).collect()))
 }
@@ -145,13 +148,30 @@ fn factors_of(e: &Expr) -> Vec<Expr> {
     }
 }
 
-/// Whether the summand written first is negative.
+/// Whether the sum would be written with a minus in front: its leading term is negative, or,
+/// for a sum with functions (written with a positive term first where possible), all are.
 fn leading_is_negative(e: &Expr) -> bool {
-    let first = match e {
-        Expr::Sum(terms) => terms.iter().min_by_key(|t| summand_rank(t)).unwrap(),
-        other => other,
-    };
-    split_coefficient(first).0.is_negative()
+    let Expr::Sum(terms) = e else { return split_coefficient(e).0.is_negative() };
+    let mixed = terms.iter().any(|t| summand_rank(t).0 == 1);
+    if mixed {
+        return terms.iter().all(|t| split_coefficient(t).0.is_negative());
+    }
+    split_coefficient(terms.iter().min_by_key(|t| summand_rank(t)).unwrap()).0.is_negative()
+}
+
+/// The positive rational that divides every coefficient of a sum into whole numbers without a
+/// common factor: 1/2 for `\frac{1}{2}a - \frac{1}{2}b`, 2 for `2a + 4b`. 1 for anything else.
+fn content(e: &Expr) -> RBig {
+    let Expr::Sum(terms) = e else { return RBig::ONE };
+    // Polynomials keep their coefficients: 3x^{2} - 3 stays as it is.
+    if e.as_rational().is_some() {
+        return RBig::ONE;
+    }
+    terms
+        .iter()
+        .map(|t| split_coefficient(t).0.abs())
+        .reduce(|a, b| crate::algebra::poly::rational_gcd(&a, &b))
+        .unwrap_or(RBig::ONE)
 }
 
 // ---- one pass ----------------------------------------------------------------------------------
@@ -162,12 +182,13 @@ fn pass(e: &Expr) -> Expr {
             return simplified;
         }
     }
-    if needs_atoms(e) {
-        if let Some(simplified) = rational_in_atoms(e, INTERNAL_STYLE) {
+    let children = map_children(e, pass);
+    if needs_atoms(&children) {
+        if let Some(simplified) = rational_in_atoms(&children, INTERNAL_STYLE) {
             return simplified;
         }
     }
-    local(map_children(e, pass))
+    local(children)
 }
 
 /// The local rules on every node, children first, without the algebra pipeline.
@@ -196,7 +217,9 @@ fn rational(e: &Expr, style: OutputStyle) -> Option<Expr> {
         return Some(hit);
     }
     let variable = Expr::poly_variable();
-    let config = PipelineConfig { verify_equivalence: false, style, ..PipelineConfig::default() };
+    // Verified: without the check the pipeline can return a wrong result for nested fractions
+    // such as `\frac{1}{a} \cdot \frac{1}{1 + (\frac{x}{a})^2} \cdot \frac{1}{a} - \frac{1}{1 + x^2}`.
+    let config = PipelineConfig { verify_equivalence: true, style, ..PipelineConfig::default() };
     let result = simplify_node_with(&e.to_node(variable), config).ok()?;
     let simplified = canon(&Expr::from_node(&result.node, variable).ok()?);
     RATIONAL_CACHE.with(|cache| {
@@ -239,7 +262,9 @@ fn rational_in_atoms(e: &Expr, style: OutputStyle) -> Option<Expr> {
     }
     let mut atoms = Vec::new();
     let node = atom_node(e, &mut atoms)?;
-    let config = PipelineConfig { verify_equivalence: false, style, ..PipelineConfig::default() };
+    // Verified: without the check the pipeline can return a wrong result for nested fractions
+    // such as `\frac{1}{a} \cdot \frac{1}{1 + (\frac{x}{a})^2} \cdot \frac{1}{a} - \frac{1}{1 + x^2}`.
+    let config = PipelineConfig { verify_equivalence: true, style, ..PipelineConfig::default() };
     let result = simplify_node_with(&node, config).ok()?;
     let variable = Expr::poly_variable();
     let restored = result.node.map_children(&mut |child| restore_atoms(child, &atoms, variable));
@@ -278,6 +303,9 @@ fn atom_node(e: &Expr, atoms: &mut Vec<Expr>) -> Option<Node> {
         }
         atom => {
             let simplified = simplify(atom);
+            if let Expr::Num(r) = &simplified {
+                return Some(number(r));
+            }
             let index = match atoms.iter().position(|a| *a == simplified) {
                 Some(i) => i,
                 None => {
@@ -417,15 +445,10 @@ fn add_power(powers: &mut Vec<(Expr, Expr)>, base: Expr, exponent: Expr) {
     powers.push((base, exponent));
 }
 
-/// Whether `u^a · u^b = u^{a+b}` keeps the value: both exponents are numbers, and an even root
-/// does not disappear (`\sqrt{x}\sqrt{x}` is not x for negative x) unless u is a positive constant.
-fn mergeable(base: &Expr, a: &Expr, b: &Expr) -> bool {
-    let (Some(a), Some(b)) = (a.as_num(), b.as_num()) else { return false };
-    if is_positive_constant(base) {
-        return true;
-    }
-    let even = |r: &RBig| r.denominator().clone() % UBig::from(2u8) == UBig::ZERO;
-    !(even(a) || even(b)) || even(&(a + b))
+/// Whether `u^a · u^b` can be written `u^{a+b}`: both exponents are numbers. Where an even root
+/// makes the left side undefined, the right side merely extends it; the domain is taken before.
+fn mergeable(_base: &Expr, a: &Expr, b: &Expr) -> bool {
+    a.as_num().is_some() && b.as_num().is_some()
 }
 
 fn is_positive_constant(e: &Expr) -> bool {
@@ -452,12 +475,11 @@ fn local_pow(base: Expr, exponent: Expr) -> Expr {
                 return value;
             }
         }
-        // (u^a)^n = u^{an} for whole n, unless a is an even root of something that may be negative.
+        // (u^a)^n = u^{an} for whole n. Where an even root makes the left side undefined (u < 0
+        // in (\sqrt{u})^2) the right side merely extends it; the domain is taken before this.
         (Expr::Pow(u, a), Some(n)) if n.is_int() => {
             if let Some(a) = a.as_num() {
-                if a.denominator().clone() % UBig::from(2u8) != UBig::ZERO || is_positive_constant(u) {
-                    return local_pow((**u).clone(), Expr::Num(a * n));
-                }
+                return local_pow((**u).clone(), Expr::Num(a * n));
             }
         }
         // (ab)^n = a^n b^n for whole n.
@@ -601,9 +623,9 @@ mod tests {
         assert_eq!(simplified("e \\cdot e^{x}"), "e^{x + 1}");
         assert_eq!(simplified("e^{x} \\cdot e^{-x}"), "1");
         assert_eq!(simplified("\\sin x + 2\\sin x - 3 \\sin x"), "0");
-        // An even root does not disappear: \sqrt{x}^2 is not x for negative x.
-        assert_eq!(simplified("\\sqrt{x} \\cdot \\sqrt{x}"), "\\sqrt{x} \\cdot \\sqrt{x}");
-        assert_eq!(simplified("(\\sqrt{x})^2"), "(\\sqrt{x})^{2}");
+        // The domain (x ≥ 0) is taken before simplifying, so the root may go.
+        assert_eq!(simplified("\\sqrt{x} \\cdot \\sqrt{x}"), "x");
+        assert_eq!(simplified("(\\sqrt{x})^2"), "x");
         assert_eq!(simplified("\\sqrt{2} \\cdot \\sqrt{2}"), "2");
         assert_eq!(simplified("(\\sqrt[3]{x})^3"), "x");
     }
