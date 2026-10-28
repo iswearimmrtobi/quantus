@@ -737,6 +737,11 @@ When the calculator solves an equation for the unknown (`eval/solver.rs`), Stand
 equation rearranged for the unknown before the values are put in, e.g. $E = \frac{1}{2}mv^2
 \Rightarrow v = \sqrt{\frac{2E}{m}}$.
 
+Built: the order of operations (Maximal), the conversion to a common unit and the product of the
+numbers and units before the unit is named (Standard). Not built: the Detailed row that writes the
+numbers and the units apart, and the rearranged equation, since `eval/solver.rs` solves
+numerically and has no symbolic form to show.
+
 Code: `LatexCalculator::steps` (`calculator.rs:311`), `eval/evaluator.rs`, `eval/solver.rs`.
 
 ---

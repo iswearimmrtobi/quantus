@@ -104,6 +104,8 @@ fn check_variable(name: &str, variable: &Variable, expect: &Json) {
 fn check_scenario(scenario: &Json) {
     let name = scenario["name"].as_str().unwrap();
     let mut store = SessionStore::new();
+    // The Kotlin engine showed one step per rule, as Brief does.
+    let brief = quantus_core::settings::Settings { step_detail: quantus_core::settings::StepDetail::Brief, ..Default::default() };
     for op in scenario["ops"].as_array().unwrap() {
         let session = store.session(op["session"].as_str());
         let latex = op["latex"].as_str().unwrap_or_default();
@@ -113,7 +115,7 @@ fn check_scenario(scenario: &Json) {
                 let outcome = if defining {
                     session.define_from(latex, None).map(|variable| (None, Some(variable)))
                 } else {
-                    session.evaluate(latex, None).map(|(c, v)| (Some(c), v))
+                    session.evaluate_with(latex, None, &brief).map(|(c, v)| (Some(c), v))
                 };
                 if let Some(part) = op["errorContains"].as_str() {
                     let message = outcome.err().unwrap_or_else(|| panic!("{name}: expected an error")).to_string();

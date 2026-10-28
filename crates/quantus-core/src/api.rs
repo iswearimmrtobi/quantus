@@ -236,6 +236,8 @@ mod tests {
     #[test]
     fn the_milestone_has_the_kotlin_response_shape() {
         let mut store = SessionStore::new();
+        // The Kotlin engine showed one step per rule, as Brief does.
+        store.settings.step_detail = crate::settings::StepDetail::Brief;
         let body = json_of(&evaluate(&mut store, &request("F = 2kg \\cdot 10\\frac{m}{s^2}")).unwrap());
         assert_eq!(body["latex"], "F = 20\\,\\mathrm{N}");
         assert_eq!(body["result"], "20\\,\\mathrm{N}");

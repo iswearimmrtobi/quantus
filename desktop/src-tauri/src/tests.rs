@@ -64,7 +64,8 @@ fn milestone_result_reaches_the_renderer() {
         .iter()
         .map(|s| s["kind"].as_str().unwrap())
         .collect();
-    assert_eq!(kinds, ["symbolic", "result"]);
+    // At the default detail, numbers and units are multiplied before the unit gets its name.
+    assert_eq!(kinds, ["symbolic", "algebraic", "result"]);
     assert_eq!(calc["variable"]["key"], "F_1");
 }
 
@@ -79,8 +80,8 @@ fn variables_are_defined_reused_and_forgotten() {
     assert_eq!(reused["result"], r"20\,\mathrm{N}");
     assert_eq!(
         reused["steps"].as_array().unwrap().len(),
-        3,
-        "variables add the substituted step"
+        4,
+        "variables add the substituted step, before numbers and units are multiplied"
     );
 
     invoke(

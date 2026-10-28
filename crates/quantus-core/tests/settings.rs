@@ -131,3 +131,47 @@ fn physical_constants_are_known_only_in_physics_mode() {
     assert!(calculator(Mode::Imaginary).evaluate(latex, &HashMap::new()).is_err());
     assert!(calculator(Mode::Algebra).evaluate(latex, &HashMap::new()).is_err());
 }
+
+#[test]
+#[ignore]
+fn show_calculator_steps() {
+    use quantus_core::eval::LatexCalculator;
+    use quantus_core::settings::StepDetail;
+    let input = std::env::var("INPUT").unwrap();
+    for detail in [StepDetail::Brief, StepDetail::Standard, StepDetail::Detailed, StepDetail::Maximal] {
+        let settings = quantus_core::settings::Settings { step_detail: detail, ..Default::default() };
+        let c = LatexCalculator::new(50).with_settings(settings).evaluate(&input, &Default::default()).unwrap();
+        println!("--- {detail:?}");
+        for s in c.steps {
+            println!("{:?}\t{}\t[{}]", s.kind, s.latex, s.explanation.unwrap_or_default());
+        }
+    }
+}
+
+
+fn calculator_lines(input: &str, detail: quantus_core::settings::StepDetail) -> Vec<(String, String)> {
+    let settings = quantus_core::settings::Settings { step_detail: detail, ..Default::default() };
+    let c = quantus_core::eval::LatexCalculator::new(50).with_settings(settings).evaluate(input, &Default::default()).unwrap();
+    c.steps.into_iter().map(|s| (s.latex, s.explanation.unwrap_or_default())).collect()
+}
+
+#[test]
+fn the_calculator_shows_the_order_of_operations_at_maximal() {
+    use quantus_core::settings::StepDetail;
+    let input = r"3 \cdot (4+5)^2 - \frac{6}{4}";
+    assert_eq!(calculator_lines(input, StepDetail::Detailed).len(), 2);
+    let maximal = calculator_lines(input, StepDetail::Maximal);
+    let lines: Vec<&str> = maximal.iter().map(|(latex, _)| latex.as_str()).collect();
+    assert_eq!(lines, [r"3 \cdot (4 + 5)^{2} - \frac{6}{4}", r"3 \cdot 9^{2} - \frac{6}{4}", r"3 \cdot 81 - \frac{6}{4}", "243 - 1{,}5", "241{,}5"]);
+}
+
+#[test]
+fn the_calculator_converts_to_a_common_unit_and_names_the_unit() {
+    use quantus_core::settings::StepDetail;
+    let sum = calculator_lines(r"5\,\mathrm{km} + 300\,\mathrm{m}", StepDetail::Standard);
+    assert_eq!(sum[1], (r"5\,\mathrm{km} + 0{,}3\,\mathrm{km}".to_string(), "Convert to a common unit".to_string()));
+    assert_eq!(calculator_lines(r"5\,\mathrm{km} + 300\,\mathrm{m}", StepDetail::Brief).len(), 2);
+    let energy = calculator_lines(r"\frac{1}{2} \cdot 3\,\mathrm{kg} \cdot (4\,\mathrm{m/s})^2", StepDetail::Standard);
+    assert_eq!(energy[1].0, r"24\,\frac{\mathrm{kg} \cdot \mathrm{m}^{2}}{\mathrm{s}^{2}}");
+    assert_eq!(energy[2].0, r"24\,\mathrm{J}");
+}

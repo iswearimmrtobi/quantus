@@ -7,11 +7,12 @@
 
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
-use crate::latex::{exact, parser, serializer, Formula, Node};
+use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::num::{Decimal, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::settings::{BinomialForm, Mode, Settings, StepDetail};
 use crate::units::registry;
+use crate::text::msg;
 use crate::Result;
 
 /// One evaluated input. `input` is the canonical re-rendering of what was typed (with `/`
@@ -345,16 +346,162 @@ impl LatexCalculator {
         }
 
         let mut steps = vec![Step::new(StepKind::Symbolic, symbolic)];
+        let mut expression = formula.expression.clone();
         if uses_variables(&formula.expression) {
-            let substituted = format!("{prefix}{}", serializer::expression(&substitute(&formula.expression, variables, self.precision)));
+            let substituted_node = substitute(&formula.expression, variables, self.precision);
+            let substituted = format!("{prefix}{}", serializer::expression(&substituted_node));
             // A bound variable (`\sum_{i=1}^{3} i`) is a variable too, but has nothing to put in.
             if substituted != steps[0].latex {
                 steps.push(Step::new(StepKind::Substituted, substituted));
+                expression = substituted_node;
             }
+        }
+        // The working between the input and the result, as far as the levels ask for it.
+        if self.settings.step_detail > StepDetail::Brief && !matches!(expression, Node::Equation { .. }) {
+            let evaluator = Evaluator::new(variables).with_precision(self.precision).with_mode(self.settings.mode);
+            steps.extend(common_unit_line(&expression, &evaluator, prefix));
+            steps.extend(arithmetic_lines(&expression, &evaluator, prefix));
+            steps.extend(self.unit_line(&expression, &evaluator, prefix, result));
         }
         steps.push(Step::new(StepKind::Result, format!("{prefix}{result}")));
         steps
     }
+
+    /// The numbers and the units multiplied, before the unit gets its name (Standard):
+    /// `24\,\frac{\mathrm{kg} \cdot \mathrm{m}^{2}}{\mathrm{s}^{2}}` before `24\,\mathrm{J}`.
+    fn unit_line(&self, expression: &Node, evaluator: &Evaluator, prefix: &str, result: &str) -> Option<Step> {
+        let raw = evaluator.evaluate(expression).ok()?;
+        if raw.is_dimensionless() {
+            return None;
+        }
+        let simplified = raw.simplify().ok()?;
+        if registry::format(&raw.unit) == registry::format(&simplified.unit) {
+            return None;
+        }
+        let line = serializer::quantity(&raw.decimal(self.precision).ok()?, &raw.unit);
+        if line == result {
+            return None;
+        }
+        let text = msg!("Multiply the numbers and the units", "Zahlen und Einheiten multiplizieren");
+        Some(Step::algebraic(format!("{prefix}{line}"), None, text, None, None).with_level(StepDetail::Standard))
+    }
+}
+
+// ---- the working of a calculation ----------------------------------------------------------------
+
+/// A number as a node: a terminating decimal as itself, any other fraction as a fraction.
+fn number_node(value: &dashu::rational::RBig) -> Node {
+    use dashu::base::{Abs, Signed};
+    use dashu::integer::IBig;
+    let negative = value.is_negative();
+    let size = value.clone().abs();
+    let mut scale = 0i64;
+    let mut scaled = size.clone();
+    while scaled.denominator() != &dashu::integer::UBig::ONE && scale < 20 {
+        scaled *= dashu::rational::RBig::from(10);
+        scale += 1;
+    }
+    let node = if scaled.denominator() == &dashu::integer::UBig::ONE {
+        Node::Number { value: Decimal::new(scaled.numerator().clone(), scale), position: 0 }
+    } else {
+        let part = |n: IBig| Node::Number { value: Decimal::new(n, 0), position: 0 };
+        Node::Fraction { numerator: Box::new(part(size.numerator().clone())), denominator: Box::new(part(IBig::from(size.denominator().clone()))), position: 0 }
+    };
+    if negative { Node::Negation { operand: Box::new(node), position: 0 } } else { node }
+}
+
+fn contains_unit(node: &Node) -> bool {
+    matches!(node, Node::Unit { .. }) || node.children().into_iter().any(contains_unit)
+}
+
+/// `node` with each part `pick` chooses worked out, outermost first. `None` when a part has no
+/// plain rational value.
+fn work_out(node: &Node, pick: &dyn Fn(&Node) -> bool, evaluator: &Evaluator) -> Option<Node> {
+    if pick(node) && !matches!(node, Node::Number { .. }) {
+        let quantity = evaluator.evaluate(node).ok()?;
+        if !quantity.is_dimensionless() {
+            return None;
+        }
+        let crate::num::Value::Rat(value) = quantity.value.clone() else { return None };
+        return Some(number_node(&value));
+    }
+    let mut failed = false;
+    let rebuilt = node.clone().map_children(&mut |child| match work_out(&child, pick, evaluator) {
+        Some(done) => done,
+        None => {
+            failed = true;
+            child
+        }
+    });
+    (!failed).then_some(rebuilt)
+}
+
+/// The order of operations, one kind at a time, for a plain calculation (Maximal):
+/// `3 \cdot 9^{2} - \frac{6}{4}`, `3 \cdot 81 - \frac{6}{4}`, `243 - 1{,}5`.
+fn arithmetic_lines(expression: &Node, evaluator: &Evaluator, prefix: &str) -> Vec<Step> {
+    if contains_unit(expression) {
+        return Vec::new();
+    }
+    let brackets = |n: &Node| matches!(n, Node::Group { inner, .. } if !matches!(**inner, Node::Number { .. }));
+    let powers = |n: &Node| matches!(n, Node::Power { .. } | Node::Root { .. } | Node::Function { .. } | Node::Abs { .. });
+    let products = |n: &Node| {
+        matches!(n, Node::Fraction { .. } | Node::Binary { operator: Operator::Times | Operator::ImplicitTimes | Operator::Divide, .. })
+    };
+    let stages: [(&dyn Fn(&Node) -> bool, String); 3] = [
+        (&brackets, msg!("Brackets first", "Klammern zuerst")),
+        (&powers, msg!("Powers and roots", "Potenzen und Wurzeln")),
+        (&products, msg!("Multiplication and division", "Punktrechnung")),
+    ];
+    let mut lines = Vec::new();
+    let mut current = expression.clone();
+    for (pick, text) in stages {
+        let Some(next) = work_out(&current, pick, evaluator) else { return Vec::new() };
+        if serializer::expression(&next) != serializer::expression(&current) {
+            lines.push(Step::algebraic(format!("{prefix}{}", serializer::expression(&next)), None, text, None, None).with_level(StepDetail::Maximal));
+            current = next;
+        }
+    }
+    // The last stage that is still a calculation, not the result itself.
+    if matches!(current, Node::Number { .. }) {
+        lines.pop();
+    }
+    lines
+}
+
+/// A sum of quantities in different units, each converted to the unit of the first (Standard):
+/// `5\,\mathrm{km} + 0{,}3\,\mathrm{km}`.
+fn common_unit_line(expression: &Node, evaluator: &Evaluator, prefix: &str) -> Option<Step> {
+    let mut terms = Vec::new();
+    crate::algebra::combine::flatten_additive_terms(expression, true, &mut terms);
+    if terms.len() < 2 {
+        return None;
+    }
+    // Each term a number times one unit.
+    let parts: Vec<(bool, Node, PhysicalQuantity)> = terms
+        .iter()
+        .map(|(positive, term)| match term {
+            Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, left, right, .. }
+                if matches!(**left, Node::Number { .. }) && matches!(crate::algebra::domain::unwrap_group(right), Node::Unit { .. }) =>
+            {
+                Some((*positive, (**right).clone(), evaluator.evaluate(term).ok()?))
+            }
+            _ => None,
+        })
+        .collect::<Option<_>>()?;
+    let (_, unit_node, first) = &parts[0];
+    if parts.iter().all(|(_, node, _)| serializer::expression(node) == serializer::expression(unit_node)) {
+        return None;
+    }
+    let converted: Vec<(bool, Node)> = parts
+        .iter()
+        .map(|(positive, _, quantity)| {
+            let crate::num::Value::Rat(value) = quantity.to(&first.unit).ok()?.value else { return None };
+            Some((*positive, Node::binary(Operator::ImplicitTimes, number_node(&value), unit_node.clone(), 0)))
+        })
+        .collect::<Option<_>>()?;
+    let line = crate::algebra::display::signed_terms_sum(converted)?;
+    let text = msg!("Convert to a common unit", "In eine gemeinsame Einheit umrechnen");
+    Some(Step::algebraic(format!("{prefix}{}", serializer::expression(&line)), None, text, None, None).with_level(StepDetail::Standard))
 }
 
 fn has_free_algebraic_variables(node: &Node, evaluator: &Evaluator) -> bool {
@@ -417,8 +564,10 @@ fn uses_variables(node: &Node) -> bool {
 mod tests {
     use super::*;
 
+    /// One step per rule, as the presentation of F6 has it.
     fn calc(input: &str) -> Calculation {
-        LatexCalculator::default().evaluate(input, &Variables::new()).unwrap()
+        let brief = Settings { step_detail: StepDetail::Brief, ..Settings::default() };
+        LatexCalculator::default().with_settings(brief).evaluate(input, &Variables::new()).unwrap()
     }
 
     #[test]
