@@ -20,7 +20,10 @@ use super::exact::{self, TrigValue};
 use super::expr::{split_coefficient, summand_rank, Expr, Fn};
 use crate::algebra::pipeline::{simplify_node_with, OutputStyle, PipelineConfig};
 use crate::latex::{Node, Operator};
-use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings};
+use super::rules::{step, AnalysisRule};
+use crate::eval::Step;
+use crate::latex::serializer;
+use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings, StepDetail};
 
 /// Passes over the whole tree before the simplifier gives up on reaching a fixed point.
 const MAX_PASSES: usize = 64;
@@ -42,6 +45,31 @@ thread_local! {
 }
 
 type OutputStyleKey = (BinomialForm, bool, DenominatorForm);
+
+/// The algebra's working for simplifying `e` into `shown`, as lines `{prefix}…` from Standard on:
+/// what "Simplify" does in one line at Brief. Empty unless the working ends in `shown` itself, so
+/// the lines lead to the line after them.
+pub fn working(e: &Expr, var: &str, prefix: &str, shown: &str, settings: &Settings) -> Vec<Step> {
+    let config = PipelineConfig { detail: StepDetail::Maximal, ..settings.pipeline_config() };
+    let Ok(result) = simplify_node_with(&e.to_node(var), config) else { return Vec::new() };
+    let mut lines: Vec<Step> = result
+        .steps
+        .iter()
+        // The domain has a section of its own.
+        .filter(|s| !s.note)
+        .map(|s| {
+            let latex = format!("{prefix}{}", serializer::algebraic_expression(&s.after));
+            step(AnalysisRule::Simplify, s.explanation.clone(), latex).with_level(s.level.max(StepDetail::Standard))
+        })
+        .collect();
+    match lines.iter().position(|line| line.latex == shown) {
+        Some(end) => {
+            lines.truncate(end);
+            lines
+        }
+        None => Vec::new(),
+    }
+}
 
 /// The canonical form of `e`.
 pub fn simplify(e: &Expr) -> Expr {

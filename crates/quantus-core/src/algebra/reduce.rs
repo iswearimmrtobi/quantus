@@ -201,6 +201,14 @@ fn mark_cancelled(node: &Node, factors: &mut Vec<Factor>) -> Node {
             factors.remove(index);
             return cancel(node.clone());
         }
+        // A number times the factor, not yet written as a product: 4x - 4 is 4 \cdot (x - 1).
+        let is_sum = matches!(unwrap_group(node), Node::Binary { operator: Operator::Plus | Operator::Minus, .. });
+        if let Some(index) = factors.iter().position(|f| is_sum && f.exp == 1 && is_multiple_of(&poly, &f.base)) {
+            let factor = factors.remove(index);
+            let multiple = &poly.leading_coeff() / &factor.base.leading_coeff();
+            let grouped = Node::Group { inner: Box::new(factor.base.to_node()), position: 0 };
+            return Node::binary(Operator::ImplicitTimes, rational_to_node(&multiple), cancel(grouped), 0);
+        }
     }
     // Only part of a power cancels: x^2 over x is written x \cdot x, one of them marked.
     if let Node::Power { base, exponent, .. } = unwrap_group(node) {
@@ -223,6 +231,12 @@ fn mark_cancelled(node: &Node, factors: &mut Vec<Factor>) -> Node {
         Node::Group { inner, position } => Node::Group { inner: Box::new(mark_cancelled(inner, factors)), position: *position },
         other => other.clone(),
     }
+}
+
+/// Whether `poly` is a number other than 1 times `base`.
+fn is_multiple_of(poly: &Poly, base: &Poly) -> bool {
+    let multiple = &poly.leading_coeff() / &base.leading_coeff();
+    multiple != dashu::rational::RBig::ONE && &(base * &Poly::from_const(multiple)) == poly
 }
 
 /// Where the cancelled factor `base` was zero, the input is undefined.

@@ -59,6 +59,7 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
     steps.push(step(rule, rule_text(rule), line.clone()));
     let simplified = format!("{name} = {}", tex(&result));
     if simplified != line {
+        steps.extend(super::simplify::working(&raw, var, &format!("{name} = "), &simplified, settings));
         steps.push(step(AnalysisRule::Simplify, msg!("Simplify", "Zusammenfassen"), simplified));
     }
     Derivation { raw, result, steps }

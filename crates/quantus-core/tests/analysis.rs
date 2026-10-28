@@ -360,3 +360,41 @@ fn steps_without_a_change_are_left_out() {
     let antiderivative = steps(&d, "antiderivative");
     assert!(!antiderivative.contains(&"\\frac{2}{x - 1} = \\frac{2}{x - 1}".to_string()), "{antiderivative:?}");
 }
+
+#[test]
+#[ignore]
+fn show_steps() {
+    let input = std::env::var("INPUT").unwrap_or_default();
+    let section = std::env::var("SECTION").unwrap_or_else(|_| "derivatives".into());
+    let d = sketch(&input);
+    for step in &d.sections.iter().find(|s| s.id == section).unwrap().steps {
+        println!("{:?}\t{}\t[{}]", step.level, step.latex, step.explanation.clone().unwrap_or_default());
+    }
+}
+
+/// The working of a section as shown at `detail`: `(latex, explanation)`.
+fn working(d: &Discussion, id: &str, detail: quantus_core::settings::StepDetail) -> Vec<(String, String)> {
+    let steps = &d.sections.iter().find(|s| s.id == id).unwrap().steps;
+    quantus_core::eval::calculator::shown_steps(steps, detail)
+        .into_iter()
+        .map(|s| (s.latex, s.explanation.unwrap_or_default()))
+        .collect()
+}
+
+#[test]
+fn simplifying_a_derivative_shows_the_algebra_from_standard_on() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch(r"\frac{x^2+1}{x-1}");
+    let brief = working(&d, "derivatives", StepDetail::Brief);
+    let standard = working(&d, "derivatives", StepDetail::Standard);
+    assert!(standard.len() > brief.len());
+    assert!(standard.contains(&(
+        r"f'(x) = \frac{2x^{2} - 2x - x^{2} - 1}{(x - 1)^{2}}".to_string(),
+        "A minus sign in front of a bracket flips every sign inside: -(x^{2} + 1) = -x^{2} - 1".to_string()
+    )));
+    // Each run of lines ends in the Simplify line of Brief.
+    let simplify = standard.iter().position(|(_, text)| text == "Simplify").unwrap();
+    assert_eq!(standard[simplify].0, r"f'(x) = \frac{x^{2} - 2x - 1}{(x - 1)^{2}}");
+    let detailed = working(&d, "derivatives", StepDetail::Detailed);
+    assert!(detailed.iter().any(|(latex, _)| latex == r"f''(x) = \frac{4 \cdot \cancel{(x - 1)}}{(x - 1)^{3} \cdot \cancel{(x - 1)}}"));
+}
