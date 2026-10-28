@@ -5,7 +5,7 @@
 //! orders, where a term behaves like `c·e^{bt}·t^a·(\ln t)^l` and the largest (b, a, l) wins;
 //! sin and cos are bounded; and what none of that decides is sampled numerically.
 
-use dashu::base::Signed;
+use dashu::base::{Abs, Signed};
 use dashu::rational::RBig;
 
 use super::expr::{Expr, Fn};
@@ -15,6 +15,7 @@ use super::rules::{step, AnalysisRule};
 use super::simplify::{is_zero, simplify};
 use crate::algebra::poly::{Monomial, Poly};
 use crate::eval::Step;
+use crate::settings::StepDetail;
 use crate::text::msg;
 
 #[derive(Clone, Debug)]
@@ -279,6 +280,101 @@ pub fn pole(f: &Expr, at: &Point, ctx: &LimitContext) -> (Behaviour, Behaviour, 
         _ => msg!("Behaviour at the gap", "Verhalten an der Lücke"),
     };
     (left, right, step(AnalysisRule::LimitPole, explanation, latex))
+}
+
+// ---- the working behind a limit ----------------------------------------------------------------
+
+/// `p` divided by `x^{n}`, term by term: `1 - \frac{3}{x} + \frac{2}{x^{3}}` for `x^3 - 3x^2 + 2`
+/// and n = 3, with the leading coefficient `scale` divided out as well.
+fn over_power(p: &Poly, n: usize, scale: &RBig, var: &str) -> String {
+    let x = Expr::poly_variable();
+    let mut terms: Vec<(usize, RBig)> = p.terms.iter().map(|t| (t.monomial.degree_of(x), t.coeff.clone() / scale)).collect();
+    terms.sort_by(|a, b| b.0.cmp(&a.0));
+    let mut out = String::new();
+    for (index, (k, c)) in terms.into_iter().enumerate() {
+        let size = Expr::Num(c.clone().abs()).to_latex(var);
+        let term = match n - k {
+            0 => size,
+            1 => format!("\\frac{{{size}}}{{{var}}}"),
+            m => format!("\\frac{{{size}}}{{{var}^{{{m}}}}}"),
+        };
+        let sign = match (index, c.is_negative()) {
+            (0, false) => "",
+            (0, true) => "-",
+            (_, false) => " + ",
+            (_, true) => " - ",
+        };
+        out.push_str(&format!("{sign}{term}"));
+    }
+    out
+}
+
+/// The lines before a limit at ±∞ of a polynomial or of a quotient of equal degrees: the highest
+/// power taken out, and what the rest tends to.
+pub fn infinity_working(f: &Expr, at: &Approach, ctx: &LimitContext) -> Vec<Step> {
+    let (Approach::PosInf | Approach::NegInf) = at else { return Vec::new() };
+    let Some((numerator, denominator)) = f.as_rational() else { return Vec::new() };
+    let x = Expr::poly_variable();
+    let var = ctx.var;
+    let (deg_n, deg_d) = (numerator.degree_of(x), denominator.degree_of(x));
+    let leading = |p: &Poly| p.coeff_of(&Monomial::single(x, p.degree_of(x)));
+    let limit = at.to_latex(var, ctx.digits);
+    if denominator.is_constant() && deg_n >= 1 && numerator.terms.len() > 1 {
+        let c = leading(&numerator) / denominator.constant_term();
+        let power = Expr::Product(vec![Expr::Num(c.clone()), Expr::pow(Expr::Var, Expr::int(deg_n as i64))]);
+        let power = simplify(&power).to_latex(var);
+        let bracket = over_power(&numerator, deg_n, &leading(&numerator), var);
+        let factored = format!("f({var}) = {power}\\left({bracket}\\right)");
+        let result = decide(f, at).0.to_latex(ctx.digits);
+        let tends = format!("\\lim_{{{limit}}} {power} \\cdot 1 = {result}");
+        return vec![
+            step(AnalysisRule::LimitDegree, msg!("Factor out the highest power", "Höchste Potenz ausklammern"), factored).with_level(StepDetail::Standard),
+            step(AnalysisRule::LimitDegree, msg!("The bracket tends to 1", "Die Klammer geht gegen 1"), tends).with_level(StepDetail::Standard),
+        ];
+    }
+    if deg_n == deg_d && deg_n >= 1 {
+        let divided = format!(
+            "f({var}) = \\frac{{{}}}{{{}}}",
+            over_power(&numerator, deg_n, &RBig::ONE, var),
+            over_power(&denominator, deg_d, &RBig::ONE, var)
+        );
+        let text = msg!("Divide numerator and denominator by {}^{}", "Zähler und Nenner durch {}^{} teilen", var, deg_n);
+        return vec![step(AnalysisRule::LimitDegree, text, divided).with_level(StepDetail::Standard)];
+    }
+    Vec::new()
+}
+
+/// The lines before the two sides of a pole: the numerator at the point, and which side of 0 the
+/// denominator comes from.
+pub fn pole_working(f: &Expr, at: &Point, ctx: &LimitContext) -> Vec<Step> {
+    let (Some((numerator, denominator)), Some(a)) = (f.as_rational(), &at.exact) else { return Vec::new() };
+    let common = numerator.gcd(&denominator);
+    let (n, d) = match (numerator.div_rem(&common), denominator.div_rem(&common)) {
+        (Ok((n, _)), Ok((d, _))) => (Expr::from_poly(&n), Expr::from_poly(&d)),
+        _ => return Vec::new(),
+    };
+    let (Some(numerator_sign), Some((order, derivative_sign))) = (sign_of(&n, at), zero_order(&d, at)) else { return Vec::new() };
+    if numerator_sign == 0 {
+        return Vec::new();
+    }
+    let var = ctx.var;
+    let value = simplify(&n.substitute(a)).to_latex(var);
+    let compared = if numerator_sign > 0 { "> 0" } else { "< 0" };
+    let numerator_line = format!("{} = {value} {compared}", super::rules::put_in(&n, a, var));
+    let side = |sign: i32| if sign > 0 { "0^{+}" } else { "0^{-}" };
+    let left = if order % 2 == 1 { -derivative_sign } else { derivative_sign };
+    let (d_tex, a_tex) = (d.to_latex(var), at.to_latex(ctx.digits));
+    let denominator_line = format!(
+        "{}: {d_tex} \\to {}, \\quad {}: {d_tex} \\to {}",
+        Approach::Left(at.clone()).to_latex(var, ctx.digits),
+        side(left),
+        Approach::Right(at.clone()).to_latex(var, ctx.digits),
+        side(derivative_sign)
+    );
+    vec![
+        step(AnalysisRule::LimitPole, msg!("The numerator at {}", "Der Zähler bei {}", a_tex), numerator_line).with_level(StepDetail::Standard),
+        step(AnalysisRule::LimitPole, msg!("Sign of the denominator", "Vorzeichen des Nenners"), denominator_line).with_level(StepDetail::Standard),
+    ]
 }
 
 // ---- bounded factors ---------------------------------------------------------------------------

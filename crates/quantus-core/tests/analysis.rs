@@ -513,3 +513,22 @@ fn an_area_puts_the_bounds_into_the_antiderivative() {
     assert!(standard[at + 1].0.starts_with("A_{1} = "));
     assert_eq!(standard.len(), task_working(&r.steps, StepDetail::Brief).len() + 2);
 }
+
+#[test]
+fn limits_show_the_highest_power_and_the_signs_at_a_pole() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x^3-3x^2+2");
+    let standard = working(&d, "behaviour", StepDetail::Standard);
+    assert_eq!(standard[0], (r"f(x) = x^{3}\left(1 - \frac{3}{x} + \frac{2}{x^{3}}\right)".to_string(), "Factor out the highest power".to_string()));
+    assert_eq!(standard[1].0, r"\lim_{x \to -\infty} x^{3} \cdot 1 = -\infty");
+
+    let d = sketch(r"\frac{x^2+1}{x-1}");
+    let standard = working(&d, "behaviour", StepDetail::Standard);
+    assert!(standard.contains(&("1^{2} + 1 = 2 > 0".to_string(), "The numerator at 1".to_string())));
+    assert!(standard.contains(&(r"x \to 1^{-}: x - 1 \to 0^{-}, \quad x \to 1^{+}: x - 1 \to 0^{+}".to_string(), "Sign of the denominator".to_string())));
+
+    let d = sketch(r"\frac{2x^2+1}{x^2-4}");
+    let standard = working(&d, "behaviour", StepDetail::Standard);
+    assert_eq!(standard[0].0, r"f(x) = \frac{2 + \frac{1}{x^{2}}}{1 - \frac{4}{x^{2}}}");
+    assert!(working(&d, "behaviour", StepDetail::Brief).len() < standard.len());
+}

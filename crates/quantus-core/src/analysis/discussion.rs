@@ -14,7 +14,7 @@ use super::exact::times_pi;
 use super::expr::{Expr, Fn};
 use super::integrate::{antiderivative, IntegrateContext};
 use super::interval::{simplest_between, Bound, Domain, Interval, PeriodicSet, Point};
-use super::limits::{approximating_curve, behaviour, oblique, pole, Approach, Behaviour, LimitContext};
+use super::limits::{approximating_curve, behaviour, infinity_working, oblique, pole, pole_working, Approach, Behaviour, LimitContext};
 use super::rules::{step, AnalysisRule};
 use super::simplify::{display, is_zero, is_zero_numeric, simplify};
 use super::solve::{merge_families, solve_zero, Root, SolveContext, Solutions};
@@ -1023,6 +1023,7 @@ impl Sketch<'_> {
         let mut oblique_lines: Vec<(Point, Point, Side)> = Vec::new();
         for end in ends {
             let (result, s) = behaviour(&self.f, &end, &ctx);
+            steps.extend(infinity_working(&self.f, &end, &ctx));
             steps.push(s);
             complete &= !matches!(result, Behaviour::Unknown);
             match (&end, &result) {
@@ -1122,6 +1123,9 @@ impl Sketch<'_> {
 
     fn gap(&mut self, at: &Point, ctx: &LimitContext, steps: &mut Vec<Step>, lines: &mut Vec<String>) {
         let (left, right, s) = pole(&self.f, at, ctx);
+        if left.is_infinite() || right.is_infinite() {
+            steps.extend(pole_working(&self.f, at, ctx));
+        }
         steps.push(s);
         if left.is_infinite() || right.is_infinite() {
             self.vertical(at, lines);
