@@ -11,6 +11,7 @@ pub mod identities;
 pub mod nested;
 pub mod pipeline;
 pub mod poly;
+pub mod powers;
 pub mod radicals;
 pub mod rational_roots;
 pub mod reduce;

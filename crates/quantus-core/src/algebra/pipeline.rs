@@ -194,7 +194,9 @@ pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
         Node::Limit { .. } => Some("limits"),
         Node::Derivative { .. } => Some("derivatives"),
         Node::Power { exponent, .. } => {
-            if integer_exponent(exponent).is_none() {
+            // A rational exponent is a root (`algebra::powers`), which the identities simplify.
+            let rational = Poly::from_node(unwrap_group(exponent)).is_ok_and(|p| p.is_constant());
+            if integer_exponent(exponent).is_none() && !rational {
                 Some("non-integer exponents")
             } else {
                 for child in node.children() {

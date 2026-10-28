@@ -16,7 +16,7 @@ use quantus_core::settings::ConditionalIdentities;
 type Case = (&'static str, (&'static str, &'static str), (&'static str, &'static str));
 
 /// The values the variables take in the numeric check: positive, so every condition holds.
-const VALUES: [(&str, f64); 3] = [("a", 2.3), ("b", 0.7), ("x", 1.9)];
+const VALUES: [(&str, f64); 4] = [("a", 2.3), ("b", 0.7), ("x", 1.9), ("y", 0.6)];
 
 fn simplify(node: &Node, conditions: ConditionalIdentities) -> SimplificationResult {
     let config = PipelineConfig { style: OutputStyle { conditions, ..OutputStyle::default() }, ..PipelineConfig::default() };
@@ -115,5 +115,36 @@ fn roots() {
         (r"\frac{1}{\sqrt{2}+1}x", (r"x\sqrt{2} - x", ""), (r"x\sqrt{2} - x", "")),
         (r"\frac{1}{\sqrt[3]{a}}", (r"\frac{\sqrt[3]{a^{2}}}{a}", "a != 0"), (r"\frac{\sqrt[3]{a^{2}}}{a}", "a != 0")),
         (r"\frac{\sqrt{ab}}{\sqrt{a}}", (r"\sqrt{b}", "a b >= 0, a > 0"), (r"\frac{\sqrt{a \cdot b} \cdot \sqrt{a}}{a}", "a != 0")),
+    ]);
+}
+
+#[test]
+fn exponents() {
+    check(&[
+        // B1: rational exponents are roots.
+        (r"a^{1/2}", (r"\sqrt{a}", ""), (r"\sqrt{a}", "")),
+        (r"a^{1/2}a^{1/2}", ("a", ""), ("a", "")),
+        (r"a^{-1/2}", (r"\frac{\sqrt{a}}{a}", "a != 0"), (r"\frac{\sqrt{a}}{a}", "a != 0")),
+        (r"a^{2/3}", (r"\sqrt[3]{a^{2}}", ""), (r"\sqrt[3]{a^{2}}", "")),
+        (r"a^{1/2}a^{1/3}", (r"\sqrt[6]{a^{5}}", "a >= 0"), (r"\sqrt{a} \cdot \sqrt[3]{a}", "")),
+        // B2, B7: one base, the exponents added and subtracted.
+        (r"a^x a^y", (r"a^{x + y}", "a > 0"), (r"a^{x} \cdot a^{y}", "")),
+        (r"a\cdot a^x", (r"a^{x + 1}", "a > 0"), (r"a \cdot a^{x}", "")),
+        (r"a^x a^{-x}", ("1", "a > 0"), (r"a^{x} \cdot a^{-x}", "")),
+        (r"a^x a^x", (r"a^{2x}", ""), (r"a^{2x}", "")),
+        (r"\frac{a^x}{a^y}", (r"a^{x - y}", "a > 0"), (r"\frac{a^{x}}{a^{y}}", "a^{y} != 0")),
+        (r"\frac{a^{x+1}}{a}", (r"a^{x}", "a > 0"), (r"\frac{a^{x + 1}}{a}", "a != 0")),
+        (r"a^{x+1}-a\cdot a^x", ("0", "a > 0"), (r"-a \cdot a^{x} + a^{x + 1}", "")),
+        // B4: a power of a power.
+        (r"(a^x)^y", (r"a^{x \cdot y}", "a > 0"), (r"(a^{x})^{y}", "")),
+        (r"(\sqrt{a})^x", (r"a^{\frac{1}{2}x}", "a > 0"), (r"(\sqrt{a})^{x}", "")),
+        // B5: one exponent, the bases multiplied.
+        (r"a^x b^x", (r"(a \cdot b)^{x}", "a > 0, b > 0"), (r"a^{x} \cdot b^{x}", "")),
+        // C1, C3: e is positive, so these always hold.
+        (r"e^x e^y", (r"e^{x + y}", ""), (r"e^{x + y}", "")),
+        (r"e^x e^{-x}+1", ("2", ""), ("2", "")),
+        (r"\frac{e^{x}}{e}", (r"e^{x - 1}", ""), (r"e^{x - 1}", "")),
+        (r"\frac{e^{2x}}{e^x}", (r"e^{x}", ""), (r"e^{x}", "")),
+        (r"(e^x)^2", (r"e^{2x}", ""), (r"e^{2x}", "")),
     ]);
 }

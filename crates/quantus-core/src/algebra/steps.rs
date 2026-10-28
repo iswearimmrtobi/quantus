@@ -26,6 +26,10 @@ pub enum RuleId {
     MergeRoots,
     ExtractRoots,
     NestRoots,
+    RationalExponent,
+    MergePowers,
+    NestPowers,
+    MergeBases,
     NormalizeExpression,
 }
 
@@ -49,6 +53,10 @@ impl RuleId {
             Self::MergeRoots => "MERGE_ROOTS",
             Self::ExtractRoots => "EXTRACT_ROOTS",
             Self::NestRoots => "NEST_ROOTS",
+            Self::RationalExponent => "RATIONAL_EXPONENT",
+            Self::MergePowers => "MERGE_POWERS",
+            Self::NestPowers => "NEST_POWERS",
+            Self::MergeBases => "MERGE_BASES",
             Self::NormalizeExpression => "NORMALIZE_EXPRESSION",
         }
     }

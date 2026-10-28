@@ -8,7 +8,8 @@
 use crate::algebra::atoms::Atoms;
 use crate::algebra::domain::DomainRestriction;
 use crate::algebra::poly::Poly;
-use crate::algebra::radicals;
+use crate::num::Decimal;
+use crate::algebra::{powers, radicals};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
 use crate::latex::serializer;
@@ -253,10 +254,87 @@ pub fn everywhere(node: &Node, ctx: &mut Context, title: &str, rule: RuleId, loc
     (!details.is_empty()).then(|| Rewrite { node, explanation: format!("{title}: {}", details.join(", ")), rule, conditions })
 }
 
+// ---- helpers for the rules -----------------------------------------------------------------
+
+pub(crate) fn number(n: usize) -> Node {
+    Node::Number { value: Decimal::from_i64(n as i64), position: 0 }
+}
+
+pub(crate) fn power(base: Node, exp: usize) -> Node {
+    if exp == 1 {
+        base
+    } else {
+        Node::Power { base: Box::new(base), exponent: Box::new(number(exp)), position: 0 }
+    }
+}
+
+/// The atoms that occur in `node`, in the order they are met.
+pub(crate) fn atoms_in(node: &Node, atoms: &Atoms, found: &mut Vec<usize>) {
+    if let Some(index) = atoms.index_of(node) {
+        if !found.contains(&index) {
+            found.push(index);
+        }
+    }
+    for child in node.children() {
+        atoms_in(child, atoms, found);
+    }
+}
+
+/// `node` with the atom `index` replaced by `replacement`.
+pub(crate) fn substitute(node: &Node, index: usize, replacement: &Node, atoms: &Atoms) -> Node {
+    if atoms.index_of(node) == Some(index) {
+        return replacement.clone();
+    }
+    node.clone().map_children(&mut |child| substitute(&child, index, replacement, atoms))
+}
+
+/// Rewrites each atom of `node` that `rewrite` changes, as one step titled `title`.
+pub(crate) fn each_atom(
+    node: &Node,
+    ctx: &mut Context,
+    title: &str,
+    rule: RuleId,
+    rewrite: fn(usize, &mut Context) -> Option<Local>,
+) -> Option<Rewrite> {
+    let mut indices = Vec::new();
+    atoms_in(node, ctx.atoms, &mut indices);
+    let mut current = node.clone();
+    let mut details = Vec::new();
+    let mut conditions = Vec::new();
+    for index in indices {
+        let Some(local) = rewrite(index, ctx).filter(|local| ctx.allows(&local.conditions)) else { continue };
+        current = substitute(&current, index, &local.node, ctx.atoms);
+        details.push(local.detail);
+        conditions.extend(local.conditions);
+    }
+    (!details.is_empty()).then(|| Rewrite { node: current, explanation: format!("{title}: {}", details.join(", ")), rule, conditions })
+}
+
+pub(crate) type PolyRule = fn(&Poly, &mut Context, &mut Vec<String>, &mut Vec<Condition>) -> Option<Poly>;
+
+/// Applies `poly_rule` to every polynomial part of `node`, gathering the details it reports.
+pub(crate) fn each_poly(node: &Node, ctx: &mut Context, poly_rule: PolyRule, details: &mut Vec<String>, conditions: &mut Vec<Condition>) -> Node {
+    if let Ok(poly) = Poly::from_node(node) {
+        return poly_rule(&poly, ctx, details, conditions).map_or_else(|| node.clone(), |rewritten| rewritten.to_node());
+    }
+    node.clone().map_children(&mut |child| each_poly(&child, ctx, poly_rule, details, conditions))
+}
+
+pub(crate) fn note(details: &mut Vec<String>, detail: String) {
+    if !details.contains(&detail) {
+        details.push(detail);
+    }
+}
+
 pub type Rule = fn(&Node, &mut Context) -> Option<Rewrite>;
 
 /// The identities, in the order they are tried before each run of the pipeline.
 const RULES: &[Rule] = &[
+    powers::rational_exponents,
+    powers::nest_powers,
+    powers::merge_powers,
+    powers::divide_powers,
+    powers::merge_bases,
     radicals::nest_roots,
     radicals::extract_roots,
     radicals::multiply_roots,

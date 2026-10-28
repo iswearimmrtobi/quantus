@@ -20,14 +20,13 @@ use dashu::rational::RBig;
 use crate::algebra::atoms::Atoms;
 use crate::algebra::binomial::exact_ubig_sqrt;
 use crate::algebra::domain::unwrap_group;
-use crate::algebra::identities::{everywhere, Condition, Context, Local, Rewrite};
+use crate::algebra::identities::{each_atom, each_poly, everywhere, note, number, power, Condition, Context, Local, Rewrite};
 use crate::algebra::nested::{make_fraction, make_product, split_fraction};
 use crate::algebra::pipeline::integer_exponent;
 use crate::algebra::poly::{rational_to_node, Monomial, Poly};
 use crate::algebra::steps::RuleId;
 use crate::latex::ast::{Node, Operator};
 use crate::latex::serializer;
-use crate::num::Decimal;
 
 /// The degree and radicand of the atom with `index`, if it is a root of a polynomial.
 fn root(atoms: &Atoms, index: usize) -> Option<(usize, &Node)> {
@@ -46,62 +45,8 @@ fn root_of(atoms: &Atoms, node: &Node) -> Option<(usize, usize, Poly)> {
     Some((index, n, Poly::from_node(radicand).ok()?))
 }
 
-fn number(n: usize) -> Node {
-    Node::Number { value: Decimal::from_i64(n as i64), position: 0 }
-}
-
-fn make_root(n: usize, radicand: Node) -> Node {
+pub(crate) fn make_root(n: usize, radicand: Node) -> Node {
     Node::Root { radicand: Box::new(radicand), degree: (n != 2).then(|| Box::new(number(n))), position: 0 }
-}
-
-fn power(base: Node, exp: usize) -> Node {
-    if exp == 1 {
-        base
-    } else {
-        Node::Power { base: Box::new(base), exponent: Box::new(number(exp)), position: 0 }
-    }
-}
-
-/// The atoms that occur in `node`, in the order they are met.
-fn atoms_in(node: &Node, atoms: &Atoms, found: &mut Vec<usize>) {
-    if let Some(index) = atoms.index_of(node) {
-        if !found.contains(&index) {
-            found.push(index);
-        }
-    }
-    for child in node.children() {
-        atoms_in(child, atoms, found);
-    }
-}
-
-/// `node` with the atom `index` replaced by `replacement`.
-fn substitute(node: &Node, index: usize, replacement: &Node, atoms: &Atoms) -> Node {
-    if atoms.index_of(node) == Some(index) {
-        return replacement.clone();
-    }
-    node.clone().map_children(&mut |child| substitute(&child, index, replacement, atoms))
-}
-
-/// Rewrites each root atom of `node` that `rewrite` changes, as one step titled `title`.
-fn each_root(
-    node: &Node,
-    ctx: &mut Context,
-    title: &str,
-    rule: RuleId,
-    rewrite: fn(usize, &mut Context) -> Option<Local>,
-) -> Option<Rewrite> {
-    let mut indices = Vec::new();
-    atoms_in(node, ctx.atoms, &mut indices);
-    let mut current = node.clone();
-    let mut details = Vec::new();
-    let mut conditions = Vec::new();
-    for index in indices {
-        let Some(local) = rewrite(index, ctx).filter(|local| ctx.allows(&local.conditions)) else { continue };
-        current = substitute(&current, index, &local.node, ctx.atoms);
-        details.push(local.detail);
-        conditions.extend(local.conditions);
-    }
-    (!details.is_empty()).then(|| Rewrite { node: current, explanation: format!("{title}: {}", details.join(", ")), rule, conditions })
 }
 
 // ---- nested roots ----------------------------------------------------------------------------
@@ -117,7 +62,7 @@ fn nest_root(index: usize, ctx: &mut Context) -> Option<Local> {
 
 /// `\sqrt[m]{\sqrt[n]{u}} = \sqrt[mn]{u}`.
 pub fn nest_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_root(node, ctx, "Write the nested roots as one root", RuleId::NestRoots, nest_root)
+    each_atom(node, ctx, "Write the nested roots as one root", RuleId::NestRoots, nest_root)
 }
 
 // ---- powers out of the radicand ---------------------------------------------------------------
@@ -277,26 +222,10 @@ fn common_degree(n: usize, constant: &RBig, factors: &[(Poly, usize)]) -> Option
 
 /// `\sqrt{8} = 2\sqrt{2}`, `\sqrt{4a} = 2\sqrt{a}`, `\sqrt{a^{3}} = a\sqrt{a}`, `\sqrt{a^{2}} = |a|`.
 pub fn extract_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_root(node, ctx, "Take powers out of the root", RuleId::ExtractRoots, extract_root)
+    each_atom(node, ctx, "Take powers out of the root", RuleId::ExtractRoots, extract_root)
 }
 
 // ---- powers and products of roots --------------------------------------------------------------
-
-type PolyRule = fn(&Poly, &mut Context, &mut Vec<String>, &mut Vec<Condition>) -> Option<Poly>;
-
-/// Applies `poly_rule` to every polynomial part of `node`, gathering the details it reports.
-fn each_poly(node: &Node, ctx: &mut Context, poly_rule: PolyRule, details: &mut Vec<String>, conditions: &mut Vec<Condition>) -> Node {
-    if let Ok(poly) = Poly::from_node(node) {
-        return poly_rule(&poly, ctx, details, conditions).map_or_else(|| node.clone(), |rewritten| rewritten.to_node());
-    }
-    node.clone().map_children(&mut |child| each_poly(&child, ctx, poly_rule, details, conditions))
-}
-
-fn note(details: &mut Vec<String>, detail: String) {
-    if !details.contains(&detail) {
-        details.push(detail);
-    }
-}
 
 /// `\sqrt[n]{u}^{nk + r} = u^k \sqrt[n]{u}^r` in every term of `poly`.
 fn reduce_poly(poly: &Poly, ctx: &mut Context, details: &mut Vec<String>, _: &mut Vec<Condition>) -> Option<Poly> {
@@ -354,45 +283,48 @@ pub fn multiply_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     })
 }
 
-/// `\sqrt[n]{a}^{i} \sqrt[n]{b}^{j} = \sqrt[n]{a^{i} b^{j}}` in every term of `poly`, for the roots
-/// whose condition (`a, b \geq 0` for an even `n`) may be used.
+/// `\sqrt[n]{a}^{i} \sqrt[m]{b}^{j} = \sqrt[L]{a^{iL/n} b^{jL/m}}` with `L` the lcm of the degrees, in
+/// every term of `poly`. Under an even root every radicand must not be negative (`a, b \geq 0`), so
+/// only the roots whose condition may be used take part.
 fn merge_poly(poly: &Poly, ctx: &mut Context, details: &mut Vec<String>, conditions: &mut Vec<Condition>) -> Option<Poly> {
     let mut changed = false;
     let mut sum = Poly::zero();
     for term in &poly.terms {
-        // The roots of this term by degree: (variable, exponent, radicand).
-        let mut by_degree: BTreeMap<usize, Vec<(String, usize, Poly)>> = BTreeMap::new();
+        // The roots of this term: (variable, degree, exponent, radicand).
+        let mut roots = Vec::new();
         for (var, &exp) in &term.monomial.vars {
             let Some(index) = ctx.atoms.index_of_key(var) else { continue };
             let Some((n, radicand)) = root(ctx.atoms, index) else { continue };
             let Ok(radicand) = Poly::from_node(radicand) else { continue };
-            let condition = Condition::NonNegative(radicand.to_node());
-            if exp < n && (n % 2 == 1 || ctx.allows(&[condition])) {
-                by_degree.entry(n).or_default().push((var.clone(), exp, radicand));
+            if exp < n {
+                roots.push((var.clone(), n, exp, radicand));
             }
         }
+        if !roots.iter().all(|(_, n, _, _)| n % 2 == 1) {
+            roots.retain(|(_, _, _, radicand)| ctx.allows(&[Condition::NonNegative(radicand.to_node())]));
+        }
+        if roots.len() < 2 && roots.iter().all(|(_, _, exp, _)| *exp < 2) {
+            sum = &sum + &Poly::from_term(term.coeff.clone(), term.monomial.clone());
+            continue;
+        }
+        let degree = roots.iter().fold(1, |l, (_, n, _, _)| l / gcd(l, *n) * n);
         let mut vars = term.monomial.vars.clone();
-        for (n, members) in by_degree {
-            if members.len() < 2 && members.iter().all(|(_, exp, _)| *exp < 2) {
-                continue;
+        let mut radicand = Poly::from_const(RBig::ONE);
+        let mut parts = Vec::new();
+        for (var, n, exp, factor) in &roots {
+            radicand = &radicand * &factor.pow(exp * degree / n);
+            vars.remove(var);
+            let index = ctx.atoms.index_of_key(var)?;
+            parts.push(serializer::expression(&power(ctx.atoms.var(index), *exp)));
+            if degree % 2 == 0 {
+                conditions.push(Condition::NonNegative(factor.to_node()));
             }
-            let mut radicand = Poly::from_const(RBig::ONE);
-            let mut parts = Vec::new();
-            for (var, exp, factor) in &members {
-                radicand = &radicand * &factor.pow(*exp);
-                vars.remove(var);
-                let index = ctx.atoms.index_of_key(var)?;
-                parts.push(serializer::expression(&power(ctx.atoms.var(index), *exp)));
-                if n % 2 == 0 {
-                    conditions.push(Condition::NonNegative(factor.to_node()));
-                }
-            }
-            let merged = ctx.atoms.intern(make_root(n, radicand.to_node()));
-            note(details, format!("{} = {}", parts.join(" \\cdot "), serializer::expression(&merged)));
-            let Node::Variable { name, index, .. } = &merged else { return None };
-            *vars.entry(Node::variable_key(name, index)).or_insert(0) += 1;
-            changed = true;
         }
+        let merged = ctx.atoms.intern(make_root(degree, radicand.to_node()));
+        note(details, format!("{} = {}", parts.join(" \\cdot "), serializer::expression(&merged)));
+        let Node::Variable { name, index, .. } = &merged else { return None };
+        *vars.entry(Node::variable_key(name, index)).or_insert(0) += 1;
+        changed = true;
         sum = &sum + &Poly::from_term(term.coeff.clone(), Monomial::from_map(vars));
     }
     changed.then_some(sum)
