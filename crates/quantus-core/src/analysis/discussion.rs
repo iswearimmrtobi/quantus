@@ -19,6 +19,7 @@ use super::rules::{step, AnalysisRule};
 use super::simplify::{display, is_zero, is_zero_numeric, simplify};
 use super::solve::{solve_zero, Root, SolveContext, Solutions};
 use crate::eval::Step;
+use crate::num::Value;
 use crate::settings::{Language, Settings};
 use crate::text::msg;
 use crate::Result;
@@ -334,10 +335,18 @@ fn name_points(points: &mut [MarkedPoint]) {
         PointKind::BoundaryMax,
         PointKind::BoundaryMin,
     ];
+    // Boundary maxima and minima share their letter, so they are numbered together.
+    let group = |kind: PointKind| match kind {
+        PointKind::BoundaryMin => PointKind::BoundaryMax,
+        other => other,
+    };
     for kind in kinds {
-        let count = points.iter().filter(|p| p.kind == kind).count();
+        if kind == PointKind::BoundaryMin {
+            continue;
+        }
+        let count = points.iter().filter(|p| group(p.kind) == kind).count();
         let mut i = 0;
-        for point in points.iter_mut().filter(|p| p.kind == kind) {
+        for point in points.iter_mut().filter(|p| group(p.kind) == kind) {
             i += 1;
             let letter = kind.letter();
             point.name = if count == 1 { letter.to_string() } else { format!("{letter}_{{{i}}}") };
@@ -387,30 +396,40 @@ impl Sketch<'_> {
             Some(exact) => Point::exact(simplify(&e.substitute(exact))),
             None => {
                 let v = e.eval_f64(x.approx)?;
-                Some(Point { exact: None, approx: v, refined: None })
+                // At a refined x the evaluator gives y to the digits x has.
+                let digits = self.ctx.digits + 10;
+                let refined = x
+                    .refined
+                    .as_ref()
+                    .and_then(|r| e.eval_exact(&Value::Rat(r.clone()), digits).ok())
+                    .and_then(|value| value.decimal(digits).ok())
+                    .map(|decimal| decimal.to_rational());
+                let approx = refined.as_ref().map_or(v, |r| r.to_f64().value());
+                Some(Point { exact: None, approx, refined })
             }
         }
     }
 
-    /// `(x \mid y)`, followed by a decimal version when the exact one is not plain.
-    fn coordinates(&self, x: &Point, y: &Point) -> String {
+    /// `name(x \mid y)`, followed by `\approx name(…)` in decimals when the exact one is not
+    /// plain.
+    fn coordinates(&self, name: &str, x: &Point, y: &Point) -> String {
         let d = self.ctx.digits;
-        let exact = format!("\\left({} \\mid {}\\right)", x.to_latex(d), y.to_latex(d));
+        let exact = format!("{name}\\left({} \\mid {}\\right)", x.to_latex(d), y.to_latex(d));
         let plain = (x.exact.is_none() || x.is_rational()) && (y.exact.is_none() || y.is_rational());
         let numeric = x.exact.is_none() || y.exact.is_none();
         if plain && numeric {
-            format!("\\left({} \\mid {}\\right)", approx_text(x, d), approx_text(y, d))
+            format!("{name}\\left({} \\mid {}\\right)", approx_text(x, d), approx_text(y, d))
         } else if plain {
             exact
         } else {
-            format!("{exact} \\approx \\left({} \\mid {}\\right)", x.decimal_latex(d), y.decimal_latex(d))
+            format!("{exact} \\approx {name}\\left({} \\mid {}\\right)", x.decimal_latex(d), y.decimal_latex(d))
         }
     }
 
     /// Marks a point and returns `token(x | y)`; the token becomes the point's name.
     fn mark(&mut self, kind: PointKind, x: &Point, y: &Point) -> String {
         let token = format!("@{}@", self.points.len());
-        let latex = format!("{token}{}", self.coordinates(x, y));
+        let latex = self.coordinates(&token, x, y);
         self.points.push(MarkedPoint { kind, name: String::new(), x: x.approx, y: y.approx, latex: latex.clone(), token });
         latex
     }
@@ -474,7 +493,7 @@ impl Sketch<'_> {
     fn y_intercept(&mut self) -> Section {
         let var = self.ctx.var;
         if !self.domain.contains(0.0) {
-            let result = msg!("0 is not in D: no y-intercept", "0 ∉ D: kein Schnittpunkt mit der y-Achse");
+            let result = msg!("0 ∉ D: no y-intercept", "0 ∉ D: kein y-Achsenabschnitt");
             return self.section("yIntercept", Vec::new(), Some(text(&result)), true);
         }
         let zero = Point::rational(RBig::ZERO);
@@ -500,8 +519,7 @@ impl Sketch<'_> {
             let zero = Point::rational(RBig::ZERO);
             let coordinates = self.mark(PointKind::Zero, &root.point, &zero);
             let note = match root.multiplicity {
-                Some(2) => format!(" \\ \\text{{({})}}", msg!("double root: the graph touches the axis", "doppelte Nullstelle: Berührpunkt")),
-                Some(m) if m >= 3 && m % 2 == 1 => format!(" \\ \\text{{({})}}", msg!("multiple root with a sign change", "mehrfache Nullstelle mit Vorzeichenwechsel")),
+                Some(m) if m >= 2 => format!(" \\ \\text{{({})}}", multiplicity_text(m)),
                 _ => String::new(),
             };
             lines.push(format!("{coordinates}{note}"));
@@ -650,7 +668,10 @@ impl Sketch<'_> {
                     let verdict = match kind {
                         Some(PointKind::Max) => msg!("sign change + to -: maximum", "Vorzeichenwechsel von + nach -: Hochpunkt"),
                         Some(_) => msg!("sign change - to +: minimum", "Vorzeichenwechsel von - nach +: Tiefpunkt"),
-                        None => msg!("no sign change: no extremum", "kein Vorzeichenwechsel: kein Extrempunkt"),
+                        None => msg!(
+                            "no sign change: no extremum (saddle candidate)",
+                            "kein Vorzeichenwechsel: kein Extrempunkt (Sattelpunkt-Kandidat)"
+                        ),
                     };
                     steps.push(step(
                         AnalysisRule::SignChangeTest,
@@ -726,7 +747,9 @@ impl Sketch<'_> {
             format!("f''({var}) = 0 \\Leftrightarrow {} = 0", self.tex(f2)),
         )];
         if f2.is_constant() {
-            let result = if is_zero(f2) && f1.is_constant() {
+            let result = if is_zero(f1) {
+                msg!("f is constant", "f ist konstant")
+            } else if is_zero(f2) && f1.is_constant() {
                 msg!("f is linear: no inflection points", "f ist linear: keine Wendepunkte")
             } else {
                 msg!("No inflection points", "Keine Wendepunkte")
@@ -895,7 +918,12 @@ impl Sketch<'_> {
 
     fn curvature(&mut self, f2: &Expr) -> Section {
         if f2.is_constant() && is_zero(f2) {
-            return self.section("curvature", Vec::new(), Some(text(&msg!("f is linear: no curvature", "f ist linear: keine Krümmung"))), true);
+            let result = if self.f.is_constant() {
+                msg!("f is constant", "f ist konstant")
+            } else {
+                msg!("f is linear: no curvature", "f ist linear: keine Krümmung")
+            };
+            return self.section("curvature", Vec::new(), Some(text(&result)), true);
         }
         let (pieces, complete) = self.sign_intervals(f2);
         let table = self.sign_table("f''", &pieces, "\\smile", "\\frown");
@@ -1100,6 +1128,21 @@ fn side_text(side: Side) -> String {
         Side::PlusInfinity => format!(" \\ \\text{{({})}}", msg!("for x → ∞", "für x → ∞")),
         Side::MinusInfinity => format!(" \\ \\text{{({})}}", msg!("for x → −∞", "für x → −∞")),
     }
+}
+
+/// `double root: touches the axis`, `triple root: crosses the axis`, `4-fold root: …`.
+fn multiplicity_text(m: u32) -> String {
+    let name = match m {
+        2 => msg!("double root", "doppelte Nullstelle"),
+        3 => msg!("triple root", "dreifache Nullstelle"),
+        _ => msg!("{}-fold root", "{}-fache Nullstelle", m),
+    };
+    let behaviour = if m % 2 == 0 {
+        msg!("touches the axis", "Berührpunkt")
+    } else {
+        msg!("crosses the axis", "mit Vorzeichenwechsel")
+    };
+    format!("{name}: {behaviour}")
 }
 
 fn text(words: &str) -> String {

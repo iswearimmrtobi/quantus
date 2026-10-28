@@ -30,9 +30,9 @@ fn a_cubic() {
     assert_eq!(
         points(&d, "zero"),
         [
-            "Z_{1}\\left(-\\sqrt{3} \\mid 0\\right) \\approx \\left(-1{,}73205 \\mid 0\\right)",
+            "Z_{1}\\left(-\\sqrt{3} \\mid 0\\right) \\approx Z_{1}\\left(-1{,}73205 \\mid 0\\right)",
             "Z_{2}\\left(0 \\mid 0\\right)",
-            "Z_{3}\\left(\\sqrt{3} \\mid 0\\right) \\approx \\left(1{,}73205 \\mid 0\\right)"
+            "Z_{3}\\left(\\sqrt{3} \\mid 0\\right) \\approx Z_{3}\\left(1{,}73205 \\mid 0\\right)"
         ]
     );
     assert_eq!(points(&d, "max"), ["Max\\left(-1 \\mid 2\\right)"]);
@@ -47,12 +47,12 @@ fn a_cubic() {
 fn a_quartic_touches_the_axis() {
     let d = sketch("x^4-2x^2");
     assert_eq!(result(&d, "symmetry"), "\\text{Symmetric about the y-axis}");
-    assert!(result(&d, "zeros").contains("\\left(0 \\mid 0\\right) \\ \\text{(double root: the graph touches the axis)}"));
+    assert!(result(&d, "zeros").contains("\\left(0 \\mid 0\\right) \\ \\text{(double root: touches the axis)}"));
     assert_eq!(points(&d, "min"), ["Min_{1}\\left(-1 \\mid -1\\right)", "Min_{2}\\left(1 \\mid -1\\right)"]);
     assert_eq!(points(&d, "max"), ["Max\\left(0 \\mid 0\\right)"]);
     assert_eq!(
         points(&d, "inflection")[1],
-        "I_{2}\\left(\\frac{\\sqrt{3}}{3} \\mid -\\frac{5}{9}\\right) \\approx \\left(0{,}57735 \\mid -0{,}555556\\right)"
+        "I_{2}\\left(\\frac{\\sqrt{3}}{3} \\mid -\\frac{5}{9}\\right) \\approx I_{2}\\left(0{,}57735 \\mid -0{,}555556\\right)"
     );
 }
 
@@ -69,8 +69,8 @@ fn a_cubic_with_guessed_roots() {
 fn x_times_e_to_the_x() {
     let d = sketch("x e^x");
     assert_eq!(result(&d, "derivatives"), "f'(x) = (x + 1)e^{x}, \\quad f''(x) = (x + 2)e^{x}, \\quad f'''(x) = (x + 3)e^{x}");
-    assert_eq!(points(&d, "min"), ["Min\\left(-1 \\mid -\\frac{1}{e}\\right) \\approx \\left(-1 \\mid -0{,}367879\\right)"]);
-    assert_eq!(points(&d, "inflection"), ["I\\left(-2 \\mid -\\frac{2}{e^{2}}\\right) \\approx \\left(-2 \\mid -0{,}270671\\right)"]);
+    assert_eq!(points(&d, "min"), ["Min\\left(-1 \\mid -\\frac{1}{e}\\right) \\approx Min\\left(-1 \\mid -0{,}367879\\right)"]);
+    assert_eq!(points(&d, "inflection"), ["I\\left(-2 \\mid -\\frac{2}{e^{2}}\\right) \\approx I\\left(-2 \\mid -0{,}270671\\right)"]);
     assert_eq!(result(&d, "behaviour"), "\\text{horizontal asymptote} y = 0 \\ \\text{(for x → −∞)}");
     assert_eq!(result(&d, "antiderivative"), "F(x) = (x - 1)e^{x} + C");
 }
@@ -80,8 +80,8 @@ fn a_rational_function_with_a_pole_and_an_oblique_asymptote() {
     let d = sketch("\\frac{x^2-1}{x-2}");
     assert_eq!(result(&d, "domain"), "D = \\mathbb{R} \\setminus \\{2\\}");
     assert_eq!(points(&d, "yIntercept"), ["S_y\\left(0 \\mid \\frac{1}{2}\\right)"]);
-    assert_eq!(points(&d, "max"), ["Max\\left(2 - \\sqrt{3} \\mid 4 - 2\\sqrt{3}\\right) \\approx \\left(0{,}267949 \\mid 0{,}535898\\right)"]);
-    assert_eq!(points(&d, "min"), ["Min\\left(2 + \\sqrt{3} \\mid 4 + 2\\sqrt{3}\\right) \\approx \\left(3{,}73205 \\mid 7{,}4641\\right)"]);
+    assert_eq!(points(&d, "max"), ["Max\\left(2 - \\sqrt{3} \\mid 4 - 2\\sqrt{3}\\right) \\approx Max\\left(0{,}267949 \\mid 0{,}535898\\right)"]);
+    assert_eq!(points(&d, "min"), ["Min\\left(2 + \\sqrt{3} \\mid 4 + 2\\sqrt{3}\\right) \\approx Min\\left(3{,}73205 \\mid 7{,}4641\\right)"]);
     assert_eq!(result(&d, "behaviour"), "\\text{vertical asymptote} x = 2, \\quad \\text{oblique asymptote} y = x + 2");
     let behaviour = d.sections.iter().find(|s| s.id == "behaviour").unwrap();
     assert!(behaviour.steps.iter().any(|s| s.explanation.as_deref() == Some("Pole with a sign change")));
@@ -101,10 +101,10 @@ fn a_removable_gap_is_a_hole() {
 fn the_logarithm_over_x() {
     let d = sketch("\\frac{\\ln x}{x}");
     assert_eq!(result(&d, "domain"), "D = (0, \\infty)");
-    assert_eq!(points(&d, "max"), ["Max\\left(e \\mid \\frac{1}{e}\\right) \\approx \\left(2{,}71828 \\mid 0{,}367879\\right)"]);
+    assert_eq!(points(&d, "max"), ["Max\\left(e \\mid \\frac{1}{e}\\right) \\approx Max\\left(2{,}71828 \\mid 0{,}367879\\right)"]);
     assert_eq!(
         points(&d, "inflection"),
-        ["I\\left(e^{\\frac{3}{2}} \\mid \\frac{3}{2e^{\\frac{3}{2}}}\\right) \\approx \\left(4{,}48169 \\mid 0{,}334695\\right)"]
+        ["I\\left(e^{\\frac{3}{2}} \\mid \\frac{3}{2e^{\\frac{3}{2}}}\\right) \\approx I\\left(4{,}48169 \\mid 0{,}334695\\right)"]
     );
     assert_eq!(result(&d, "behaviour"), "\\text{vertical asymptote} x = 0, \\quad \\text{horizontal asymptote} y = 0 \\ \\text{(for x → ∞)}");
     assert_eq!(result(&d, "antiderivative"), "F(x) = \\frac{1}{2}\\ln^{2}(x) + C");
@@ -129,7 +129,7 @@ fn sine_has_periodic_points() {
 #[test]
 fn x_plus_sine_has_saddle_points() {
     let d = sketch("x + \\sin x");
-    assert_eq!(points(&d, "saddle")[2], "S_{3}\\left(\\pi \\mid \\pi\\right) \\approx \\left(3{,}14159 \\mid 3{,}14159\\right)");
+    assert_eq!(points(&d, "saddle")[2], "S_{3}\\left(\\pi \\mid \\pi\\right) \\approx S_{3}\\left(3{,}14159 \\mid 3{,}14159\\right)");
     assert_eq!(result(&d, "monotonicity"), "\\text{strictly increasing on}: (-\\infty, \\infty)");
 }
 
@@ -176,7 +176,7 @@ fn arctan_has_two_horizontal_asymptotes() {
 fn the_witch_of_agnesi() {
     let d = sketch("\\frac{1}{x^2+1}");
     assert_eq!(points(&d, "max"), ["Max\\left(0 \\mid 1\\right)"]);
-    assert_eq!(points(&d, "inflection")[0], "I_{1}\\left(-\\frac{\\sqrt{3}}{3} \\mid \\frac{3}{4}\\right) \\approx \\left(-0{,}57735 \\mid 0{,}75\\right)");
+    assert_eq!(points(&d, "inflection")[0], "I_{1}\\left(-\\frac{\\sqrt{3}}{3} \\mid \\frac{3}{4}\\right) \\approx I_{1}\\left(-0{,}57735 \\mid 0{,}75\\right)");
     assert_eq!(result(&d, "behaviour"), "\\text{horizontal asymptote} y = 0");
     assert_eq!(result(&d, "antiderivative"), "F(x) = \\arctan(x) + C");
 }
@@ -184,7 +184,7 @@ fn the_witch_of_agnesi() {
 #[test]
 fn exact_and_missing_antiderivatives() {
     let zero = sketch("e^{x}-2");
-    assert_eq!(points(&zero, "zero"), ["Z\\left(\\ln(2) \\mid 0\\right) \\approx \\left(0{,}693147 \\mid 0\\right)"]);
+    assert_eq!(points(&zero, "zero"), ["Z\\left(\\ln(2) \\mid 0\\right) \\approx Z\\left(0{,}693147 \\mid 0\\right)"]);
     let gauss = sketch("e^{x^2}");
     assert_eq!(status(&gauss, "antiderivative"), "partial");
     assert_eq!(result(&gauss, "antiderivative"), "\\text{No elementary antiderivative found}");
@@ -205,7 +205,7 @@ fn german_names_and_notation() {
     let d = analyze("f(x) = \\frac{\\ln x}{x}", None, &settings, None).unwrap();
     assert_eq!(d.sections[1].title, "Definitionsbereich");
     assert_eq!(result(&d, "domain"), "D = ]0; \\infty[");
-    assert_eq!(points(&d, "max"), ["H\\left(e \\mid \\frac{1}{e}\\right) \\approx \\left(2{,}71828 \\mid 0{,}367879\\right)"]);
+    assert_eq!(points(&d, "max"), ["H\\left(e \\mid \\frac{1}{e}\\right) \\approx H\\left(2{,}71828 \\mid 0{,}367879\\right)"]);
     assert_eq!(points(&d, "zero"), ["N\\left(1 \\mid 0\\right)"]);
     assert_eq!(result(&d, "monotonicity"), "\\text{streng monoton steigend auf}: ]0; e], \\quad \\text{streng monoton fallend auf}: [e; \\infty[");
 }
@@ -229,4 +229,30 @@ fn every_sketch_answers_quickly() {
         assert!(start.elapsed().as_millis() < 1000, "{input}");
         assert!(d.sections.iter().all(|s| s.status.name() != "failed"), "{input}");
     }
+}
+
+#[test]
+fn constant_functions_say_so() {
+    let d = sketch("3");
+    for id in ["extrema", "inflection", "monotonicity", "curvature"] {
+        assert_eq!(result(&d, id), "\\text{f is constant}", "{id}");
+        assert_eq!(status(&d, id), "ok", "{id}");
+    }
+}
+
+#[test]
+fn boundary_points_share_their_letter() {
+    let d = sketch("x\\sqrt{1-x^2}");
+    assert_eq!(points(&d, "boundaryMax"), ["B_{1}\\left(-1 \\mid 0\\right)"]);
+    assert_eq!(points(&d, "boundaryMin"), ["B_{2}\\left(1 \\mid 0\\right)"]);
+}
+
+#[test]
+fn notes_on_zeros_and_the_y_axis() {
+    assert!(result(&sketch("x^3"), "zeros").contains("\\text{(triple root: crosses the axis)}"));
+    assert!(result(&sketch("x^4"), "zeros").contains("\\text{(4-fold root: touches the axis)}"));
+    assert_eq!(result(&sketch("\\ln x"), "yIntercept"), "\\text{0 ∉ D: no y-intercept}");
+    let extrema = sketch("x^3");
+    let extrema = extrema.sections.iter().find(|s| s.id == "extrema").unwrap();
+    assert!(extrema.steps.iter().any(|s| s.explanation.as_deref().is_some_and(|e| e.ends_with("(saddle candidate)"))));
 }
