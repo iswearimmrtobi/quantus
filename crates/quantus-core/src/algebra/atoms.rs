@@ -10,8 +10,8 @@
 //! which run on the atomized tree before each run of the pipeline. When one changes the
 //! pipeline's result, it runs again.
 
-use crate::algebra::domain::{merge_inequalities, DomainRestriction};
-use crate::algebra::identities::apply_rules;
+use crate::algebra::domain::{merge_inequalities, unwrap_group, DomainRestriction};
+use crate::algebra::identities::{always_satisfied, apply_rules};
 use crate::algebra::pipeline::{integer_exponent, unsupported_diagnostic};
 use crate::algebra::poly::{Monomial, Poly, Term};
 use crate::algebra::steps::{AlgebraStep, SimplificationResult};
@@ -74,7 +74,7 @@ impl Atoms {
 
     /// Which atom `node` is the variable of, if any.
     pub fn index_of(&self, node: &Node) -> Option<usize> {
-        match node {
+        match unwrap_group(node) {
             Node::Variable { name, index, .. } => self.index_of_key(&Node::variable_key(name, index)),
             _ => None,
         }
@@ -227,7 +227,11 @@ pub fn simplify_with_atoms(
     // A step that only changed how an atom was written looks like no step once it is written out.
     let steps =
         steps.into_iter().map(|step| atoms.restore_step(step)).filter(|step| step.before_latex != step.after_latex).collect();
-    let restrictions = merge_inequalities(restrictions).into_iter().map(|r| atoms.restore_restriction(r)).collect();
+    let restrictions = merge_inequalities(restrictions)
+        .into_iter()
+        .filter(|r| !always_satisfied(r, &atoms))
+        .map(|r| atoms.restore_restriction(r))
+        .collect();
     let mut restored = SimplificationResult::new(atoms.restore(current), steps, restrictions);
     restored.diagnostic = diagnostic.map(|text| atoms.restore_text(&text)).or_else(|| unsupported_diagnostic(node));
     Some(Ok(restored))

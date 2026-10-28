@@ -23,6 +23,9 @@ pub enum RuleId {
     CancelCommonFactors,
     RationalizeDenominator,
     MultiplyRoots,
+    MergeRoots,
+    ExtractRoots,
+    NestRoots,
     NormalizeExpression,
 }
 
@@ -43,6 +46,9 @@ impl RuleId {
             Self::CancelCommonFactors => "CANCEL_COMMON_FACTORS",
             Self::RationalizeDenominator => "RATIONALIZE_DENOMINATOR",
             Self::MultiplyRoots => "MULTIPLY_ROOTS",
+            Self::MergeRoots => "MERGE_ROOTS",
+            Self::ExtractRoots => "EXTRACT_ROOTS",
+            Self::NestRoots => "NEST_ROOTS",
             Self::NormalizeExpression => "NORMALIZE_EXPRESSION",
         }
     }

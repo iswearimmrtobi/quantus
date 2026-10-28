@@ -8,6 +8,7 @@
 use crate::algebra::atoms::Atoms;
 use crate::algebra::domain::DomainRestriction;
 use crate::algebra::poly::Poly;
+use crate::algebra::radicals;
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
 use crate::latex::serializer;
@@ -88,6 +89,71 @@ fn sign(poly: &Poly, atoms: &Atoms) -> Sign {
     }
 }
 
+/// The value of an expression without variables, if it is a real number.
+fn evaluate(node: &Node) -> Option<f64> {
+    use crate::latex::ast::Operator;
+    let value = match node {
+        Node::Number { value, .. } => value.to_rational().to_f64().value(),
+        Node::Constant { name, .. } if name == "\\pi" => std::f64::consts::PI,
+        Node::Constant { name, .. } if name == "e" => std::f64::consts::E,
+        Node::Group { inner, .. } => evaluate(inner)?,
+        Node::Negation { operand, .. } => -evaluate(operand)?,
+        Node::Abs { operand, .. } => evaluate(operand)?.abs(),
+        Node::Binary { operator, left, right, .. } => {
+            let (l, r) = (evaluate(left)?, evaluate(right)?);
+            match operator {
+                Operator::Plus => l + r,
+                Operator::Minus => l - r,
+                Operator::Times | Operator::ImplicitTimes => l * r,
+                Operator::Divide => l / r,
+            }
+        }
+        Node::Fraction { numerator, denominator, .. } => evaluate(numerator)? / evaluate(denominator)?,
+        Node::Power { base, exponent, .. } => evaluate(base)?.powf(evaluate(exponent)?),
+        Node::Root { radicand, degree, .. } => {
+            let n = degree.as_ref().map_or(Some(2.0), |d| evaluate(d))?;
+            let u = evaluate(radicand)?;
+            if u < 0.0 {
+                // Only an odd root of a negative number is real.
+                if n.fract() != 0.0 || n as i64 % 2 == 0 {
+                    return None;
+                }
+                -(-u).powf(1.0 / n)
+            } else {
+                u.powf(1.0 / n)
+            }
+        }
+        Node::Function { name, argument, .. } => {
+            let x = evaluate(argument)?;
+            match name.as_str() {
+                "sin" => x.sin(),
+                "cos" => x.cos(),
+                "tan" => x.tan(),
+                "ln" => x.ln(),
+                "exp" => x.exp(),
+                _ => return None,
+            }
+        }
+        _ => return None,
+    };
+    value.is_finite().then_some(value)
+}
+
+/// Whether `restriction` (in the atoms) excludes nothing, as `\sqrt{a} \neq -1` or `e^{x} > 0`.
+pub fn always_satisfied(restriction: &DomainRestriction, atoms: &Atoms) -> bool {
+    match restriction {
+        DomainRestriction::VariableNotEqual { variable, value } => {
+            match atoms.index_of_key(variable).map(|index| atom_sign(atoms, index)) {
+                Some(Sign::Positive) => *value <= RBig::ZERO,
+                Some(Sign::NonNegative) => *value < RBig::ZERO,
+                _ => false,
+            }
+        }
+        DomainRestriction::PolyNotZero(poly) | DomainRestriction::PolyPositive(poly) => sign(poly, atoms) == Sign::Positive,
+        DomainRestriction::PolyNonNegative(poly) => sign(poly, atoms) != Sign::Unknown,
+    }
+}
+
 /// What a rule may see and decide on.
 pub struct Context<'a> {
     pub atoms: &'a mut Atoms,
@@ -98,8 +164,16 @@ pub struct Context<'a> {
 
 impl Context<'_> {
     /// Whether `condition` holds without being added to the domain.
-    fn holds(&self, condition: &Condition) -> bool {
+    pub fn holds(&self, condition: &Condition) -> bool {
         let Ok(poly) = Poly::from_node(condition.node()) else { return false };
+        // An expression without variables, such as \sqrt{2} - 1, has a value to look at.
+        if let Some(value) = evaluate(&self.atoms.restore(condition.node().clone())) {
+            return match condition {
+                Condition::NonNegative(_) => value >= 0.0,
+                Condition::Positive(_) => value > 1e-12,
+                Condition::NonZero(_) => value.abs() > 1e-12,
+            };
+        }
         let sign = sign(&poly, self.atoms);
         let known = |restriction: DomainRestriction| self.known.contains(&restriction);
         let positive = sign == Sign::Positive || known(DomainRestriction::PolyPositive(poly.clone()));
@@ -183,9 +257,15 @@ pub type Rule = fn(&Node, &mut Context) -> Option<Rewrite>;
 
 /// The identities, in the order they are tried before each run of the pipeline.
 const RULES: &[Rule] = &[
-    crate::algebra::radicals::multiply_roots,
-    crate::algebra::radicals::rationalize_denominators,
-    crate::algebra::radicals::multiply_roots,
+    radicals::nest_roots,
+    radicals::extract_roots,
+    radicals::multiply_roots,
+    radicals::merge_roots,
+    radicals::extract_roots,
+    radicals::rationalize_denominators,
+    radicals::multiply_roots,
+    radicals::merge_roots,
+    radicals::extract_roots,
 ];
 
 /// Applies every rule once to `current`, recording each change as a step and each condition

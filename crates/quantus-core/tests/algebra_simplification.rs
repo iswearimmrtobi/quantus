@@ -541,7 +541,7 @@ fn cat13_square_roots_are_rationalized_collected_and_multiplied() {
         (r"\frac{1}{\sqrt{a}} + 1", r"\frac{a + \sqrt{a}}{a}", "a != 0"),
         (r"\sqrt{a} + \sqrt{a}", r"2\sqrt{a}", ""),
         (r"\frac{x}{\sqrt{x}}", r"\sqrt{x}", "x != 0"),
-        (r"\frac{1}{x + \sqrt{a}} + \frac{1}{x}", r"\frac{2x + \sqrt{a}}{x(x + \sqrt{a})}", r"x != 0, \sqrt{a} + x != 0"),
+        (r"\frac{1}{x + \sqrt{a}} + \frac{1}{x}", r"\frac{2x^{2} - x\sqrt{a} - a}{x(x^{2} - a)}", "x != 0, x^2 - a != 0"),
         // A root times itself is its radicand.
         (r"\sqrt{a} \cdot \sqrt{a}", "a", ""),
         (r"\sqrt{a} \sqrt{a} + a", "2a", ""),
