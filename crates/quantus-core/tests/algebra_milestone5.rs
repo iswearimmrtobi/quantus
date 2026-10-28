@@ -644,3 +644,33 @@ fn cancelling_powers_subtracts_the_exponents() {
     );
     assert_eq!(rows(r"\frac{x^2}{x^5}", StepDetail::Standard)[0].0, r"\frac{1}{x^{5 - 2}}");
 }
+
+#[test]
+fn the_reciprocal_rule_writes_the_multiplication_out() {
+    let standard = rows(r"\frac{\frac{1}{x}}{\frac{2}{x^2}}", StepDetail::Standard);
+    assert_eq!(
+        standard[..2],
+        [
+            row(r"\frac{1}{x} \cdot \frac{x^{2}}{2}", r"Dividing by \frac{2}{x^{2}} is multiplying by its reciprocal \frac{x^{2}}{2}"),
+            row(r"\frac{x^{2}}{x \cdot 2}", "Multiply numerators and denominators"),
+        ]
+    );
+    // Part of a power is cancelled: it is split before it is marked.
+    let detailed = rows(r"\frac{\frac{1}{x}}{\frac{2}{x^2}}", StepDetail::Detailed);
+    assert_eq!(detailed[2], row(r"\frac{x \cdot \cancel{x}}{\cancel{x} \cdot 2}", "Mark the common factor"));
+
+    let input = r"\frac{1}{1+\frac{1}{x}}";
+    assert_eq!(
+        rows(input, StepDetail::Standard),
+        [
+            row(r"\frac{1}{\frac{x}{x} + \frac{1}{x}}", "Write 1 over the denominator x"),
+            row(r"\frac{1}{\frac{x + 1}{x}}", "Combine the inner fractions"),
+            row(r"1 \cdot \frac{x}{x + 1}", r"Dividing by \frac{x + 1}{x} is multiplying by its reciprocal \frac{x}{x + 1}"),
+            row(r"\frac{x}{x + 1}", "Multiply numerators and denominators"),
+        ]
+    );
+    assert_eq!(rows(input, StepDetail::Brief), [row(r"\frac{x}{x + 1}", "Apply the reciprocal rule: divide by a fraction by multiplying by its reciprocal")]);
+    let maximal = run_at(input, StepDetail::Maximal);
+    assert!(maximal.steps[0].note);
+    assert_eq!(maximal.steps[0].explanation, "Note: x ≠ -1, 0, where a denominator of the input is zero");
+}

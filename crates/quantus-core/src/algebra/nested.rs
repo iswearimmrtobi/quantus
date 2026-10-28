@@ -14,7 +14,9 @@ use crate::algebra::domain::unwrap_group;
 use crate::algebra::poly::Poly;
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::{Node, Operator};
+use crate::latex::serializer;
 use crate::num::Decimal;
+use crate::settings::StepDetail;
 
 /// Helper to wrap an additive or negation node in `Node::Group` when needed as a multiplicative factor.
 pub fn wrap_factor(node: Node) -> Node {
@@ -277,6 +279,72 @@ pub fn is_nested_fraction(node: &Node) -> bool {
 /// Attempts to simplify a complex fraction at `node`.
 /// Returns `Some((simplified_node, rule, explanation))` if `node` was a complex fraction.
 pub fn simplify_nested_fraction_at(node: &Node) -> Option<(Node, RuleId, String)> {
+    let step = nested_fraction_step(node)?;
+    Some((step.after, step.rule?, step.summary.unwrap_or(step.explanation)))
+}
+
+/// [`simplify_nested_fraction_at`] as a step with its working: inner sums written over one
+/// denominator and combined, then the division written as a multiplication by the reciprocal.
+fn nested_fraction_step(node: &Node) -> Option<AlgebraStep> {
+    let (simplified, rule, explanation) = simplify_nested_fraction_parts(node)?;
+    let (num, den) = split_fraction(unwrap_group(node))?;
+    let mut lines: Vec<(Node, String)> = Vec::new();
+    let (mut num_now, mut den_now) = (num.clone(), den.clone());
+    for numerator_side in [true, false] {
+        let side = if numerator_side { num } else { den };
+        let Some(combined) = is_fraction_sum(side).then(|| combine_simple_fraction_sum(side)).flatten() else { continue };
+        let place = |part: Node, num_now: &Node, den_now: &Node| {
+            if numerator_side { make_fraction(part, den_now.clone()) } else { make_fraction(num_now.clone(), part) }
+        };
+        if let Some((over, text)) = write_over_denominator(side) {
+            lines.push((place(over, &num_now, &den_now), text));
+        }
+        lines.push((place(combined.clone(), &num_now, &den_now), "Combine the inner fractions".to_string()));
+        if numerator_side { num_now = combined } else { den_now = combined }
+    }
+    let last = if let Some((c, d)) = split_fraction(&den_now) {
+        let reciprocal = make_fraction(d.clone(), c.clone());
+        let text = format!(
+            "Dividing by {} is multiplying by its reciprocal {}",
+            serializer::expression(&den_now),
+            serializer::expression(&reciprocal)
+        );
+        lines.push((Node::binary(Operator::Times, num_now, reciprocal, 0), text));
+        "Multiply numerators and denominators"
+    } else {
+        "Multiply the denominators"
+    };
+    let mut before = node.clone();
+    let working = lines
+        .into_iter()
+        .map(|(after, text)| {
+            let line = AlgebraStep::line(&before, after.clone(), text, StepDetail::Standard);
+            before = after;
+            line
+        })
+        .collect();
+    let step = AlgebraStep::new(node.clone(), simplified, explanation, Some(rule));
+    Some(step.with_working(working, last))
+}
+
+/// `\frac{x}{x} + \frac{1}{x}` for `1 + \frac{1}{x}`: the one term without a denominator written
+/// over the denominator of the other.
+fn write_over_denominator(sum: &Node) -> Option<(Node, String)> {
+    let Node::Binary { operator: operator @ (Operator::Plus | Operator::Minus), left, right, .. } = unwrap_group(sum) else {
+        return None;
+    };
+    let over = |term: &Node, d: &Node| make_fraction(make_product(term.clone(), d.clone()), d.clone());
+    let text = |term: &Node, d: &Node| format!("Write {} over the denominator {}", serializer::expression(term), serializer::expression(d));
+    let (left_frac, right_frac) = (split_fraction(left), split_fraction(right));
+    let (written, text) = match (left_frac, right_frac) {
+        (None, Some((_, d))) => (Node::binary(*operator, over(left, d), (**right).clone(), 0), text(left, d)),
+        (Some((_, d)), None) => (Node::binary(*operator, (**left).clone(), over(right, d), 0), text(right, d)),
+        _ => return None,
+    };
+    Some((written, text))
+}
+
+fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)> {
     let unwrapped = unwrap_group(node);
     let (num, den) = split_fraction(unwrapped)?;
 
@@ -406,8 +474,9 @@ fn transform_bottom_up(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node
                     right: Box::new(new_right),
                     position: *position,
                 };
-                if let Some((simplified, rule, explanation)) = simplify_nested_fraction_at(&candidate) {
-                    *step_info = Some(AlgebraStep::new(candidate, simplified.clone(), explanation, Some(rule)));
+                if let Some(step) = nested_fraction_step(&candidate) {
+                    let simplified = step.after.clone();
+                    *step_info = Some(step);
                     return simplified;
                 }
                 return candidate;
@@ -449,8 +518,9 @@ fn transform_bottom_up(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node
                 denominator: Box::new(new_den),
                 position: *position,
             };
-            if let Some((simplified, rule, explanation)) = simplify_nested_fraction_at(&candidate) {
-                *step_info = Some(AlgebraStep::new(candidate, simplified.clone(), explanation, Some(rule)));
+            if let Some(step) = nested_fraction_step(&candidate) {
+                let simplified = step.after.clone();
+                *step_info = Some(step);
                 return simplified;
             }
             candidate

@@ -162,7 +162,12 @@ pub fn simplify_node_with(node: &Node, config: PipelineConfig) -> Result<Simplif
         Some(result) => result,
         None => simplify_rational(node, config),
     };
-    result.map(|result| result.filtered(config.detail, config.cancel_marks))
+    result.map(|mut result| {
+        if let Some(note) = result.steps.first().and_then(|_| input_domain_note(node, &result.domain_restrictions)) {
+            result.steps.insert(0, note);
+        }
+        result.filtered(config.detail, config.cancel_marks)
+    })
 }
 
 fn simplify_rational(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
@@ -545,6 +550,16 @@ impl Pipeline {
             None => result,
         }
     }
+}
+
+/// A note on where the input itself is undefined: where one of its denominators is zero.
+fn input_domain_note(input: &Node, restrictions: &[crate::algebra::domain::DomainRestriction]) -> Option<AlgebraStep> {
+    if restrictions.is_empty() {
+        return None;
+    }
+    let plain = crate::algebra::domain::format_restrictions_plain(restrictions).replace("!=", "≠");
+    let text = format!("Note: {plain}, where a denominator of the input is zero");
+    Some(AlgebraStep::note(input.clone(), text, None, StepDetail::Maximal))
 }
 
 // ---------------------------------------------------------------------------------------------

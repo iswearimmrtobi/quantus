@@ -108,7 +108,9 @@ Input `\frac{1}{1+\frac{1}{x}}`, now: one step to $\frac{x}{x + 1}$.
 | Maximal | Note: $x \neq 0$ and $x \neq -1$, from the denominators of the input | (unchanged) |
 
 Domain notes appear for both kinds of restriction: those already visible in the input (as here)
-and those of a cancelled factor, which the result no longer shows.
+and those of a cancelled factor, which the result no longer shows. The note on the input comes
+first, before the working, since it is about the input; the note of a cancelled factor follows
+the cancel.
 
 Code: `simplify_next_nested_fraction` in `nested.rs:300-340`.
 

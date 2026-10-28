@@ -202,6 +202,17 @@ fn mark_cancelled(node: &Node, factors: &mut Vec<Factor>) -> Node {
             return cancel(node.clone());
         }
     }
+    // Only part of a power cancels: x^2 over x is written x \cdot x, one of them marked.
+    if let Node::Power { base, exponent, .. } = unwrap_group(node) {
+        let (Ok(base_poly), Some(k)) = (Poly::from_node(base), crate::algebra::pipeline::integer_exponent(exponent)) else {
+            return node.clone();
+        };
+        if let Some(index) = factors.iter().position(|f| f.base == base_poly && (f.exp as i64) < k) {
+            let j = factors.remove(index).exp as i64;
+            let power = |e: i64| if e == 1 { (**base).clone() } else { Node::Power { base: base.clone(), exponent: Box::new(Node::Number { value: Decimal::from_i64(e), position: 0 }), position: 0 } };
+            return Node::binary(Operator::Times, power(k - j), cancel(power(j)), 0);
+        }
+    }
     match node {
         Node::Binary { operator: operator @ (Operator::Times | Operator::ImplicitTimes), left, right, position } => {
             let left = mark_cancelled(left, factors);
