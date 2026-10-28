@@ -99,6 +99,9 @@ pub struct AlgebraStep {
     /// The in-between lines of this rewrite, in order, from `before` to the state this step
     /// finishes from. Presentation only: the pipeline works on `after`.
     pub substeps: Vec<AlgebraStep>,
+    /// The explanation when this step also stands for hidden sub-steps before it: the text of the
+    /// whole rule, while `explanation` describes only the last line.
+    pub summary: Option<String>,
 }
 
 impl AlgebraStep {
@@ -120,6 +123,7 @@ impl AlgebraStep {
             level: StepDetail::Brief,
             note: false,
             substeps: Vec::new(),
+            summary: None,
         }
     }
 
@@ -136,6 +140,19 @@ impl AlgebraStep {
     pub fn with_substeps(mut self, substeps: Vec<AlgebraStep>) -> Self {
         self.substeps = substeps;
         self
+    }
+
+    /// The rule's in-between lines, followed by its last line with the text `last`. Shown alone
+    /// (at a level that hides the in-between lines), the step keeps its own explanation.
+    pub fn with_working(mut self, substeps: Vec<AlgebraStep>, last: impl Into<String>) -> Self {
+        let summary = std::mem::replace(&mut self.explanation, last.into());
+        self.summary = Some(summary);
+        self.with_substeps(substeps)
+    }
+
+    /// A sub-step: `before` to `after` with `explanation`, shown from `level` on.
+    pub fn line(before: &Node, after: Node, explanation: impl Into<String>, level: StepDetail) -> Self {
+        Self::new(before.clone(), after, explanation, None).with_level(level)
     }
 
     /// The same step, starting from `before` instead.
@@ -156,10 +173,25 @@ impl AlgebraStep {
     /// ended.
     pub fn flatten(mut self) -> Vec<AlgebraStep> {
         let substeps = std::mem::take(&mut self.substeps);
+        if substeps.is_empty() {
+            if let Some(summary) = self.summary.take() {
+                self.explanation = summary;
+            }
+        }
         let mut steps: Vec<AlgebraStep> = substeps.into_iter().flat_map(AlgebraStep::flatten).collect();
-        if let Some(last) = steps.iter().rev().find(|step| !step.note) {
-            let before = last.after.clone();
+        // Only the outermost rule is summed up; a sub-step's own working stays as it is.
+        for step in &mut steps {
+            step.summary = None;
+        }
+        if let Some(index) = steps.iter().rposition(|step| !step.note) {
+            let before = steps[index].after.clone();
             self = self.starting_at(before);
+            // The last line already reached the result: it is the step's last line.
+            if !self.note && self.before_latex == self.after_latex {
+                let line = steps.remove(index);
+                self.explanation = line.explanation;
+                self = self.starting_at(line.before);
+            }
         }
         if self.before_latex != self.after_latex || self.note {
             steps.push(self);
@@ -170,29 +202,43 @@ impl AlgebraStep {
 
 /// The steps shown at `detail`. A hidden step merges into the next shown one, which then starts
 /// where the hidden one started; hidden steps at the end merge into the last shown one. So the
-/// steps still chain, and an expression that changed always has at least one step.
+/// steps still chain, and an expression that changed always has at least one step. A rule whose
+/// in-between lines are all hidden is shown with the text of the whole rule.
 pub fn filter_steps(steps: Vec<AlgebraStep>, detail: StepDetail) -> Vec<AlgebraStep> {
     let mut shown: Vec<AlgebraStep> = Vec::new();
     // The state the hidden rewrites since the last shown one started from, and where they ended.
     let mut hidden: Option<(Node, AlgebraStep)> = None;
-    for step in steps.into_iter().flat_map(AlgebraStep::flatten) {
-        if !detail.shows(step.level) {
-            if !step.note {
-                let start = hidden.take().map_or_else(|| step.before.clone(), |(start, _)| start);
-                hidden = Some((start, step));
+    for step in steps {
+        let mut parts = step.flatten();
+        let last = parts.len().saturating_sub(1);
+        let mut own_shown = false;
+        for (index, mut part) in parts.drain(..).enumerate() {
+            if !detail.shows(part.level) {
+                if !part.note {
+                    let start = hidden.take().map_or_else(|| part.before.clone(), |(start, _)| start);
+                    hidden = Some((start, part));
+                }
+                continue;
             }
-            continue;
-        }
-        if step.note {
-            shown.push(step);
-            continue;
-        }
-        let step = match hidden.take() {
-            Some((start, _)) => step.starting_at(start),
-            None => step,
-        };
-        if step.before_latex != step.after_latex {
-            shown.push(step);
+            let summary = part.summary.take();
+            if part.note {
+                shown.push(part);
+                continue;
+            }
+            if index < last {
+                own_shown = true;
+            } else if !own_shown {
+                if let Some(summary) = summary {
+                    part.explanation = summary;
+                }
+            }
+            let part = match hidden.take() {
+                Some((start, _)) => part.starting_at(start),
+                None => part,
+            };
+            if part.before_latex != part.after_latex {
+                shown.push(part);
+            }
         }
     }
     if let Some((start, last)) = hidden {
@@ -202,7 +248,10 @@ pub fn filter_steps(steps: Vec<AlgebraStep>, detail: StepDetail) -> Vec<AlgebraS
                 shown[index] = shown[index].clone().ending_at(after);
             }
             None => {
-                let step = last.starting_at(start);
+                let mut step = last.starting_at(start);
+                if let Some(summary) = step.summary.take() {
+                    step.explanation = summary;
+                }
                 if step.before_latex != step.after_latex {
                     shown.push(step);
                 }

@@ -17,6 +17,7 @@ use dashu::rational::RBig;
 use serde::{Deserialize, Serialize};
 
 use crate::algebra::combine::flatten_additive_terms;
+use crate::algebra::display::{bracket, signed_sum};
 use crate::algebra::domain::unwrap_group;
 use crate::algebra::factored::{Factor, FactoredPoly};
 use crate::algebra::poly::{rational_to_node, term_to_node, Monomial, Poly};
@@ -533,34 +534,44 @@ pub fn integer_square_shift(poly: &Poly) -> Option<(Poly, Poly)> {
 /// Declines when `poly` is exactly `(A + B)^2` (a binomial formula, not a completed square) or
 /// when the remainder `R` still depends on a variable of `A`.
 pub fn complete_square(poly: &Poly, a: &Poly, b: &Poly) -> Option<Node> {
-    let mut base = a + b;
+    let base = a + b;
     let rest = poly - &(&base * &base);
     let a_vars = a.variables();
     if rest.is_zero() || a_vars.is_empty() || rest.variables().iter().any(|v| a_vars.contains(v)) {
         return None;
     }
-    if base.leading_coeff().is_negative() {
-        base = -&base;
-    }
+    Some(signed_sum(square_of(&base), signed_terms(&rest)))
+}
 
-    let mut acc = Node::Power {
-        base: Box::new(Node::Group {
-            inner: Box::new(base.to_node()),
-            position: 0,
-        }),
+/// The lines of completing the square, before the constants are added: `poly` with `B^2` added
+/// and subtracted (`x^2 - 6x + 9 - 9 + 3`), the square grouped (`(x^2 - 6x + 9) - 9 + 3`), and the
+/// square written as a binomial (`(x - 3)^2 - 9 + 3`). Call only where [`complete_square`] applies.
+pub fn square_completion_lines(poly: &Poly, a: &Poly, b: &Poly) -> [Node; 3] {
+    let a_vars = a.variables();
+    let (square, others): (Vec<_>, Vec<_>) =
+        poly.terms.iter().cloned().partition(|term| term.monomial.vars.keys().any(|v| a_vars.contains(v)));
+    let (square, others) = (Poly::from_terms(square), Poly::from_terms(others));
+    let b_squared = (b * b).to_node();
+    let tail = || std::iter::once((false, b_squared.clone())).chain(signed_terms(&others));
+    let added = signed_sum(square.to_node(), std::iter::once((true, b_squared.clone())).chain(tail()));
+    let grouped = signed_sum(bracket(signed_sum(square.to_node(), [(true, b_squared.clone())])), tail());
+    let binomial = signed_sum(square_of(&(a + b)), tail());
+    [added, grouped, binomial]
+}
+
+/// `(base)^2`, with the leading sign of `base` made positive.
+fn square_of(base: &Poly) -> Node {
+    let base = if base.leading_coeff().is_negative() { -base } else { base.clone() };
+    Node::Power {
+        base: Box::new(Node::Group { inner: Box::new(base.to_node()), position: 0 }),
         exponent: Box::new(rational_to_node(&RBig::from(2))),
         position: 0,
-    };
-    for term in &rest.terms {
-        let operator = if term.coeff.is_negative() {
-            Operator::Minus
-        } else {
-            Operator::Plus
-        };
-        let term_node = term_to_node(&term.coeff.clone().abs(), &term.monomial);
-        acc = Node::binary(operator, acc, term_node, 0);
     }
-    Some(acc)
+}
+
+/// The terms of `poly` as `(positive, |term|)`, for [`signed_sum`].
+fn signed_terms(poly: &Poly) -> Vec<(bool, Node)> {
+    poly.terms.iter().map(|term| (!term.coeff.is_negative(), term_to_node(&term.coeff.clone().abs(), &term.monomial))).collect()
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ pub mod abs;
 pub mod atoms;
 pub mod binomial;
 pub mod combine;
+pub mod display;
 pub mod domain;
 pub mod expand;
 pub mod factor;

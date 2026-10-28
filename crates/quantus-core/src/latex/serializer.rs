@@ -198,6 +198,10 @@ fn text(node: &Node, mode: SerializerMode) -> String {
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
             ("floor", [x]) => format!("\\lfloor {} \\rfloor", expression_with_mode(x, mode)),
             ("ceil", [x]) => format!("\\lceil {} \\rceil", expression_with_mode(x, mode)),
+            (crate::algebra::display::BRACKET, [x]) => {
+                let inner = expression_with_mode(x, mode);
+                if inner.contains("\\frac") { format!("\\left({inner}\\right)") } else { format!("({inner})") }
+            }
             ("mod", [a, b]) => format!("{} \\bmod {}", render(a, PRECEDENCE_ATOM, mode), render(b, PRECEDENCE_ATOM, mode)),
             (name, arguments) => format!(
                 "\\{name}\\left({}\\right)",

@@ -148,6 +148,7 @@ impl Atoms {
             level: step.level,
             note: step.note,
             substeps: step.substeps.into_iter().map(|sub| self.restore_step(sub)).collect(),
+            summary: step.summary.map(|text| self.restore_text(&text)),
             ..AlgebraStep::new(self.restore(step.before), self.restore(step.after), self.restore_text(&step.explanation), step.rule)
         }
     }

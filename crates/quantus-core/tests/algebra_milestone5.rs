@@ -495,3 +495,57 @@ fn every_detail_level_chains_to_the_same_result() {
         }
     }
 }
+
+/// `(before, after, explanation)` of each step, in LaTeX.
+fn lines(result: &SimplificationResult) -> Vec<(String, String, String)> {
+    result.steps.iter().map(|s| (s.before_latex.clone(), s.after_latex.clone(), s.explanation.clone())).collect()
+}
+
+fn print_levels(input: &str) {
+    for detail in LEVELS {
+        println!("--- {detail:?}");
+        for (before, after, text) in lines(&run_at(input, detail)) {
+            println!("{before}  ->  {after}   [{text}]");
+        }
+    }
+}
+
+#[test]
+#[ignore]
+fn show_levels() {
+    for input in std::env::var("INPUTS").unwrap_or_default().split(';').filter(|s| !s.is_empty()) {
+        println!("===== {input}");
+        print_levels(input);
+    }
+}
+
+/// `(after, explanation)` of each step at `detail`.
+fn rows(input: &str, detail: StepDetail) -> Vec<(String, String)> {
+    run_at(input, detail).steps.into_iter().map(|s| (s.after_latex, s.explanation)).collect()
+}
+
+fn row(after: &str, text: &str) -> (String, String) {
+    (after.to_string(), text.to_string())
+}
+
+#[test]
+fn completing_the_square_adds_and_subtracts_then_groups() {
+    let input = "x^2-6x+3";
+    assert_eq!(
+        rows(input, StepDetail::Brief),
+        [row("(x - 3)^{2} - 6", "Complete the square: add and subtract 9, then apply the binomial formula")]
+    );
+    let standard = [
+        row(r"x^{2} - 6 \cdot x + 9 - 9 + 3", "Half of the coefficient of x is -3, its square is 9: add and subtract 9"),
+        row("(x - 3)^{2} - 9 + 3", "Second binomial formula: a² - 2ab + b² = (a - b)²"),
+        row("(x - 3)^{2} - 6", "Add the constants"),
+    ];
+    assert_eq!(rows(input, StepDetail::Standard), standard);
+    let detailed = rows(input, StepDetail::Detailed);
+    assert_eq!(detailed.len(), 4);
+    assert_eq!(detailed[1], row(r"(x^{2} - 6 \cdot x + 9) - 9 + 3", "Group the square"));
+
+    let explicit = rows(r"x^2 + 2 \cdot x \cdot 4 + 11", StepDetail::Standard);
+    assert_eq!(explicit[1], row(r"x^{2} + 8 \cdot x + 16 - 16 + 11", r"2 \cdot x \cdot 4 is 2ab with a = x, b = 4: add and subtract b² = 16"));
+    assert_eq!(explicit[2].1, "First binomial formula: a² + 2ab + b² = (a + b)²");
+}

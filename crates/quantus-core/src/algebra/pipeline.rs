@@ -43,7 +43,7 @@ use dashu::integer::UBig;
 
 use crate::algebra::binomial::{
     complete_square, compress_binomial, expand_binomial_node, find_explicit_double_product,
-    integer_square_shift,
+    integer_square_shift, square_completion_lines,
 };
 use crate::algebra::combine::{
     combine_next_fractions, den_to_factored, factor_denominators_in_node, flatten_additive_terms,
@@ -467,6 +467,7 @@ impl Pipeline {
             let step = self.steps.last_mut().expect("just recorded");
             step.level = local.level;
             step.substeps = substeps;
+            step.summary = local.summary;
         }
     }
 
@@ -535,8 +536,8 @@ impl Pipeline {
             diagnostic = unsupported_diagnostic(&self.original);
         }
 
-        let steps = self.steps.into_iter().flat_map(AlgebraStep::flatten).collect();
-        let result = SimplificationResult::new(self.current, steps, restrictions);
+        // Kept with their sub-steps; `simplify_node_with` filters them for the detail level.
+        let result = SimplificationResult::new(self.current, self.steps, restrictions);
         match diagnostic {
             Some(message) => result.with_diagnostic(message),
             None => result,
@@ -1056,28 +1057,60 @@ fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite
         return None;
     };
     let poly = Poly::from_node(unwrap_group(root)).ok()?;
-    let (after, rule, explanation) = match compress_binomial(&poly) {
-        Some((factored, identity)) => (
-            factored.to_node(),
-            RuleId::ApplyBinomialIdentity,
-            format!("Write as a binomial: {}", identity.description()),
-        ),
+    let (after, step) = match compress_binomial(&poly) {
+        Some((factored, identity)) => {
+            let after = factored.to_node();
+            let explanation = format!("Write as a binomial: {}", identity.description());
+            (after.clone(), AlgebraStep::new(root.clone(), after, explanation, Some(RuleId::ApplyBinomialIdentity)))
+        }
         None if !may_complete => return None,
         None => {
+            let explicit = double_product.is_some();
             let (a, b) = double_product.clone().or_else(|| integer_square_shift(&poly))?;
             let after = complete_square(&poly, &a, &b)?;
-            let explanation = format!(
-                "Complete the square: add and subtract {}, then apply the binomial formula",
-                serializer::expression(&(&b * &b).to_node())
-            );
-            (after, RuleId::CompleteSquare, explanation)
+            (after.clone(), completing_the_square(root, after, &poly, &a, &b, explicit))
         }
     };
     if serializer::expression(&after) == serializer::expression(root) {
         return None;
     }
-    let step = AlgebraStep::new(root.clone(), after.clone(), explanation, Some(rule));
     Some((after, step))
+}
+
+/// Completing the square, line by line: add and subtract `B^2`, group the square, write it as a
+/// binomial, add what is left.
+fn completing_the_square(root: &Node, after: Node, poly: &Poly, a: &Poly, b: &Poly, explicit: bool) -> AlgebraStep {
+    let latex = |p: &Poly| serializer::expression(&p.to_node());
+    let b_squared = latex(&(b * b));
+    let summary = format!("Complete the square: add and subtract {b_squared}, then apply the binomial formula");
+    let idea = if explicit {
+        let b_abs = if b.leading_coeff().is_negative() { -b } else { b.clone() };
+        format!(
+            "2 \\cdot {} \\cdot {} is 2ab with a = {}, b = {}: add and subtract b² = {b_squared}",
+            latex(a),
+            latex(&b_abs),
+            latex(a),
+            latex(&b_abs)
+        )
+    } else {
+        format!("Half of the coefficient of {} is {}, its square is {b_squared}: add and subtract {b_squared}", latex(a), latex(b))
+    };
+    let formula = if b.leading_coeff().is_negative() {
+        "Second binomial formula: a² - 2ab + b² = (a - b)²"
+    } else {
+        "First binomial formula: a² + 2ab + b² = (a + b)²"
+    };
+    let [added, grouped, binomial] = square_completion_lines(poly, a, b);
+    let rest = poly - &(&(a + b) * &(a + b));
+    let last = if rest.is_constant() { "Add the constants" } else { "Combine like terms" };
+    AlgebraStep::new(root.clone(), after, summary, Some(RuleId::CompleteSquare)).with_working(
+        vec![
+            AlgebraStep::line(root, added.clone(), idea, StepDetail::Standard),
+            AlgebraStep::line(&added, grouped.clone(), "Group the square", StepDetail::Detailed),
+            AlgebraStep::line(&grouped, binomial, formula, StepDetail::Standard),
+        ],
+        last,
+    )
 }
 
 #[cfg(test)]
@@ -1146,7 +1179,8 @@ mod tests {
             let idea = AlgebraStep::new(step.before.clone(), parse("x^{1 + 1 + 1}"), "idea", None).with_level(StepDetail::Standard);
             Some((next, step.with_substeps(vec![idea])))
         });
-        let lines: Vec<String> = pipeline.finish().steps.iter().map(|s| format!("{} -> {}", s.before_latex, s.after_latex)).collect();
+        let steps = crate::algebra::steps::filter_steps(pipeline.finish().steps, StepDetail::Maximal);
+        let lines: Vec<String> = steps.iter().map(|s| format!("{} -> {}", s.before_latex, s.after_latex)).collect();
         assert_eq!(
             lines,
             vec![
