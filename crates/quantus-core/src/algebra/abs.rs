@@ -18,6 +18,7 @@ use crate::algebra::poly::{Monomial, Poly};
 use crate::algebra::steps::RuleId;
 use crate::latex::ast::Node;
 use crate::latex::serializer;
+use crate::settings::StepDetail;
 
 /// The operand of the atom with `index`, if it is an absolute value.
 fn abs_atom(atoms: &Atoms, index: usize) -> Option<&Node> {
@@ -39,6 +40,8 @@ fn latex_of(poly: &Poly) -> String {
 fn abs_value(index: usize, ctx: &mut Context) -> Option<Local> {
     let operand = abs_atom(ctx.atoms, index)?.clone();
     let before = serializer::expression(&ctx.atoms.var(index));
+    // A number keeps its sign for the note: -3 < 0, so |-3| = 3.
+    let number = Poly::from_node(&operand).ok().filter(Poly::is_constant).map(|p| (p.constant_term(), serializer::expression(&operand)));
     let result = if ctx.holds(&Condition::NonNegative(operand.clone())) {
         operand
     } else {
@@ -59,7 +62,15 @@ fn abs_value(index: usize, ctx: &mut Context) -> Option<Local> {
         if rest.is_constant() { factor } else { &factor * &abs_of(rest.to_node(), ctx.atoms) }.to_node()
     };
     let detail = format!("{before} = {}", serializer::expression(&result));
-    Some(Local::new(result, detail))
+    let local = Local::new(result.clone(), detail);
+    match number {
+        Some((value, operand)) => {
+            let sign = if value.is_negative() { "<" } else { "\\geq" };
+            let text = format!("{operand} {sign} 0, so {before} = {}", serializer::expression(&result));
+            Some(local.with_working(vec![(ctx.atoms.var(index), text, StepDetail::Detailed)], "Take the absolute value"))
+        }
+        None => Some(local),
+    }
 }
 
 /// `|-a| = |a|`, `|2a| = 2|a|`, `|a^{2}| = a^{2}`.

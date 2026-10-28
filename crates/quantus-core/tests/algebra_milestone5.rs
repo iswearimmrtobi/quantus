@@ -832,3 +832,11 @@ fn the_double_angle_shows_the_identity_with_its_half() {
     );
     assert_eq!(rows(r"2\sin(x)\cos(x)", StepDetail::Standard).len(), 1);
 }
+
+#[test]
+fn the_absolute_value_of_a_number_notes_its_sign() {
+    let detailed = run_at("|-3|", StepDetail::Detailed);
+    assert!(detailed.steps[0].note);
+    assert_eq!(detailed.steps[0].explanation, r"-3 < 0, so \left|-3\right| = 3");
+    assert_eq!(rows("|-3|", StepDetail::Standard), [row("3", r"Simplify the absolute value: \left|-3\right| = 3")]);
+}

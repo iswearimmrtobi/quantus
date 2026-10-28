@@ -358,13 +358,17 @@ impl Local {
     }
 }
 
-/// `lines` as sub-steps from `start`, each line's node put into the tree by `place`.
+/// `lines` as sub-steps from `start`, each line's node put into the tree by `place`. A line that
+/// leaves the tree as it is, is a note.
 fn placed_lines(start: &Node, lines: &[(Node, String, StepDetail)], place: impl Fn(&Node) -> Node) -> Vec<AlgebraStep> {
     let mut before = start.clone();
     lines
         .iter()
         .map(|(node, text, level)| {
             let after = place(node);
+            if serializer::expression(&after) == serializer::expression(&before) {
+                return AlgebraStep::note(before.clone(), text.clone(), None, *level);
+            }
             let line = AlgebraStep::line(&before, after.clone(), text.clone(), *level);
             before = after;
             line
