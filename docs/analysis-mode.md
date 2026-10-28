@@ -1,5 +1,28 @@
 # Analysis mode (Kurvendiskussion)
 
+## Implementation plan
+
+The steps of §16, one commit each, and the checks of §17.
+
+- [x] 1. Move `msg!`/`Scope` to `crate::text` (`b2098fd`)
+- [x] 2. Refactor the solver into `scan_roots` (`3a09035`)
+- [x] 3. `analysis::expr`: from/to node, eval, serializer separator extension (`4b8f3a3`)
+- [x] 4. `simplify` + `exact` tables (`22c52eb`)
+- [x] 5. `derive` with rule steps (`41f87fc`)
+- [x] 6. `interval` + `polydiv` + `solve` + `QuadraticFormula` setting (`cc5748a`)
+- [x] 7. `domain` (`7d2c778`)
+- [x] 8. `limits` + asymptotes (`2191375`)
+- [x] 9. `integrate`: table, polynomial, partial fractions, substitution, parts, guard (`c15f51c`)
+- [x] 10. `discussion` + `tests/analysis.rs` (`bd29215`)
+- [x] 11. `tasks`: tangent, area, table (`8c62df4`)
+- [x] 12. `plot` (`5de3a06`)
+- [x] 13. `Mode::Analysis`, API types and functions, Tauri commands (`cfd60b6`)
+- [x] 14. Frontend: api.ts, SettingsPanel, App, AnalysisView, FunctionPlot, i18n, styles (`7b3309e`)
+- [x] 15. Docs: README, `docs/unsupported-inputs.md`, `docs/testing.md` (`fce7c9d`)
+- [x] `cargo test --workspace` passes
+- [x] `cd desktop && npm run typecheck` passes
+- [ ] Manual check in `npm run dev` (§17)
+
 ## 1. Context and scope
 
 Quantus can differentiate symbolically (`eval/derivative.rs`), but it only uses that to evaluate a derivative at a point. Integrals are definite and numerical only (`numeric.rs`, tanh-sinh). The algebra pipeline rejects anything that is not rational (`algebra::pipeline::find_unsupported_construct`). This plan adds a fifth app mode, **Analysis** (German UI: "Analysis"). The user enters f(x) and gets a full curve sketch with the working written out the way a student would write it, plus three tasks: tangent/normal, area and value table.
