@@ -10,7 +10,7 @@ use super::substitution::substitute;
 use crate::latex::{exact, parser, serializer, Formula, Node};
 use crate::num::{Decimal, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
-use crate::settings::{BinomialForm, Mode, Settings};
+use crate::settings::{BinomialForm, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::Result;
 
@@ -51,6 +51,8 @@ pub struct Step {
     pub explanation: Option<String>,
     pub before: Option<String>,
     pub after: Option<String>,
+    /// The lowest detail level at which the step is shown.
+    pub level: StepDetail,
 }
 
 impl Step {
@@ -62,6 +64,7 @@ impl Step {
             explanation: None,
             before: None,
             after: None,
+            level: StepDetail::Brief,
         }
     }
 
@@ -79,8 +82,20 @@ impl Step {
             explanation: Some(explanation.into()),
             before,
             after,
+            level: StepDetail::Brief,
         }
     }
+
+    pub fn with_level(mut self, level: StepDetail) -> Self {
+        self.level = level;
+        self
+    }
+}
+
+/// The steps shown at `detail`. Steps that are not lines of one chain (the analysis mode's
+/// working, the calculator's lines) are simply left out.
+pub fn shown_steps(steps: &[Step], detail: StepDetail) -> Vec<Step> {
+    steps.iter().filter(|step| detail.shows(step.level)).cloned().collect()
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -143,7 +158,7 @@ impl LatexCalculator {
                 Ok(Calculation {
                     input: serializer::formula(&formula),
                     latex: format!("{prefix}{result}"),
-                    steps: self.steps(&formula, &prefix, &result, variables),
+                    steps: shown_steps(&self.steps(&formula, &prefix, &result, variables), self.settings.step_detail),
                     unit: registry::format(&quantity.unit),
                     quantity_name: quantity.quantity_name().map(str::to_string),
                     result,
@@ -167,7 +182,7 @@ impl LatexCalculator {
                         Ok(Calculation {
                             input: serializer::formula(&formula),
                             latex: format!("{prefix}{result}"),
-                            steps: self.steps(&formula, &prefix, &result, variables),
+                            steps: shown_steps(&self.steps(&formula, &prefix, &result, variables), self.settings.step_detail),
                             unit: registry::format(&quantity.unit),
                             quantity_name: quantity.quantity_name().map(str::to_string),
                             result,
@@ -411,6 +426,18 @@ mod tests {
         assert_eq!(c.unit, "N");
         assert_eq!(c.quantity_name.as_deref(), Some("force"));
         assert_eq!(c.steps.iter().map(|s| s.kind).collect::<Vec<_>>(), [StepKind::Symbolic, StepKind::Result]);
+    }
+
+    #[test]
+    fn steps_above_the_detail_level_are_left_out() {
+        let steps = [
+            Step::new(StepKind::Symbolic, "a"),
+            Step::new(StepKind::Algebraic, "b").with_level(StepDetail::Maximal),
+            Step::new(StepKind::Result, "c"),
+        ];
+        let latex = |detail| shown_steps(&steps, detail).into_iter().map(|s| s.latex).collect::<Vec<_>>();
+        assert_eq!(latex(StepDetail::Detailed), ["a", "c"]);
+        assert_eq!(latex(StepDetail::Maximal), ["a", "b", "c"]);
     }
 
     #[test]

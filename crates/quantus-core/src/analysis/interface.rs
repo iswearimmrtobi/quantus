@@ -8,6 +8,8 @@ use super::interval::Point;
 use super::plot::{breaks_in, default_window, ends_in, sample, Segment};
 use super::tasks::{self, Line};
 use crate::api::StepResponse;
+use crate::eval::calculator::shown_steps;
+use crate::eval::Step;
 use crate::settings::Settings;
 use crate::text::Scope;
 use crate::Result;
@@ -206,10 +208,15 @@ pub struct TableRowResponse {
 /// The curve sketch with the initial plot.
 pub fn analyze(settings: &Settings, request: &AnalysisRequest) -> Result<AnalysisResponse> {
     let d = super::analyze(&request.latex, request.variable.as_deref(), settings, request.precision)?;
-    Ok(response(&d))
+    Ok(response(&d, settings))
 }
 
-fn response(d: &Discussion) -> AnalysisResponse {
+/// The steps shown at the chosen detail level.
+fn steps(steps: &[Step], settings: &Settings) -> Vec<StepResponse> {
+    shown_steps(steps, settings.step_detail).iter().map(StepResponse::of).collect()
+}
+
+fn response(d: &Discussion, settings: &Settings) -> AnalysisResponse {
     let window = default_window(d);
     let breaks = breaks_in(&d.domain, window.x_min, window.x_max);
     let mut marks: Vec<f64> = d.points.iter().map(|p| p.x).collect();
@@ -226,7 +233,7 @@ fn response(d: &Discussion) -> AnalysisResponse {
                 title: s.title.clone(),
                 status: s.status.name().to_string(),
                 message: s.message.clone(),
-                steps: s.steps.iter().map(StepResponse::of).collect(),
+                steps: steps(&s.steps, settings),
                 result: s.result.clone(),
             })
             .collect(),
@@ -292,7 +299,7 @@ pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentR
     let digits = super::digits(settings, request.precision);
     let latex = format!("\\left({} \\mid {}\\right)", r.x.to_latex(digits), r.y.to_latex(digits));
     Ok(TangentResponse {
-        steps: r.steps.iter().map(StepResponse::of).collect(),
+        steps: steps(&r.steps, settings),
         point: PointResponse { kind: "tangent".into(), name: "P".into(), x: r.x.approx, y: r.y.approx, latex: format!("P{latex}"), period: None },
         tangent: line(&r.tangent),
         normal: line(&r.normal),
@@ -328,7 +335,7 @@ pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> 
             segments: sample(&f, &[], &[], region.from, region.to, REGION_SAMPLES, None),
         })
         .collect();
-    Ok(AreaResponse { steps: r.steps.iter().map(StepResponse::of).collect(), area: shown(&r.area), signed: shown(&r.signed), regions })
+    Ok(AreaResponse { steps: steps(&r.steps, settings), area: shown(&r.area), signed: shown(&r.signed), regions })
 }
 
 pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableResponse> {
