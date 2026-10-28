@@ -138,6 +138,7 @@ export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analys
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
+export type ConditionalIdentities = 'withCondition' | 'alwaysValid';
 
 /** What `quantus_core::settings::Settings` serialises to. */
 export interface Settings {
@@ -146,6 +147,8 @@ export interface Settings {
   binomialForm: BinomialForm;
   completeSquare: boolean;
   denominatorForm: DenominatorForm;
+  /** Whether an identity like √a·√b = √(ab) is applied with its condition (a, b ≥ 0) or only where it holds anyway. */
+  conditionalIdentities: ConditionalIdentities;
   exactRoots: boolean;
   aAndYAsVariables: boolean;
   letterProducts: boolean;

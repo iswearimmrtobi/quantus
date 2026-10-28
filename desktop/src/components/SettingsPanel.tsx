@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, DenominatorForm, Language, Mode, QuadraticFormula, Settings } from '../api';
+import type { BinomialForm, ConditionalIdentities, DenominatorForm, Language, Mode, QuadraticFormula, Settings } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -38,6 +38,11 @@ const denominatorChoices = (t: Translate): Choice<DenominatorForm>[] => [
   { value: 'factored', label: t('choice.factored') },
 ];
 
+const conditionChoices = (t: Translate): Choice<ConditionalIdentities>[] => [
+  { value: 'withCondition', label: t('choice.withCondition') },
+  { value: 'alwaysValid', label: t('choice.alwaysValid') },
+];
+
 /** So sieht die Engine ohne Einstellungsdatei aus. */
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'physics',
@@ -45,6 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   binomialForm: 'auto',
   completeSquare: true,
   denominatorForm: 'auto',
+  conditionalIdentities: 'withCondition',
   exactRoots: false,
   aAndYAsVariables: true,
   letterProducts: true,
@@ -175,6 +181,16 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
           onChange={(v) => set('denominatorForm', v)}
         />
         <p className="setting-hint">{t('settings.denominator.hint')}</p>
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.conditions')}</h3>
+        <Segmented
+          choices={conditionChoices(t)}
+          value={settings.conditionalIdentities}
+          onChange={(v) => set('conditionalIdentities', v)}
+        />
+        <p className="setting-hint">{t('settings.conditions.hint')}</p>
       </section>
 
       <section className="setting">
