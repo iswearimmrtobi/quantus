@@ -95,7 +95,13 @@ fn collect(e: &Expr, out: &mut Vec<Condition>) -> Result<()> {
         Expr::Pow(base, exponent) => {
             collect(base, out)?;
             collect(exponent, out)?;
-            match exponent.as_num() {
+            // A constant exponent as typed may still be a quotient (`x^{2/3}`).
+            let rational = match exponent.as_num() {
+                Some(r) => Some(r.clone()),
+                None if exponent.is_constant() => simplify(exponent).as_num().cloned(),
+                None => None,
+            };
+            match rational.as_ref() {
                 Some(r) => {
                     let even_root = r.denominator().clone() % dashu::integer::UBig::from(2u8) == dashu::integer::UBig::ZERO;
                     if even_root && r.is_positive() {
@@ -401,6 +407,8 @@ mod tests {
         assert_eq!(written("\\arcsin(2x)"), "[-\\frac{1}{2}; \\frac{1}{2}]");
         assert_eq!(written("x^{\\pi}"), "[0; \\infty[");
         assert_eq!(written("x^{-\\sqrt{2}}"), "]0; \\infty[");
+        assert_eq!(written("x^{2/3}"), "\\mathbb{R}");
+        assert_eq!(written("x^{\\frac{1}{2}}"), "[0; \\infty[");
         assert_eq!(domain_of_latex("\\ln x", Language::En).unwrap().0.to_latex(6, Language::En), "(0, \\infty)");
     }
 
