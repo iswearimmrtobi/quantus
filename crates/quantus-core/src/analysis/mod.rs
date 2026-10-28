@@ -2,6 +2,7 @@
 //! its working out. See `docs/analysis-mode.md`.
 
 pub mod derive;
+pub mod domain;
 pub mod exact;
 pub mod expr;
 pub mod interval;

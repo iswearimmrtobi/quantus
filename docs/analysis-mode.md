@@ -226,7 +226,9 @@ pub struct Domain { pub set: IntervalSet, pub excluded: Vec<PeriodicSet>, pub ho
 - If any of these inequalities has a periodic critical set, v1 gives the error "periodic domains are not supported yet".
 - Each condition is one step: the condition in LaTeX, then its solution set.
 
-**Removable holes:** for the rational part, `algebra::domain::DomainTracker` records the factors cancelled by the pipeline. A cancelled factor whose root is not a root of the reduced denominator gives `holes: [Point]` with y = the limit of the reduced function (exact). These points stay excluded from `set`.
+**Texts** follow the language scope (`text::Scope`) that the API entry points open from `settings.language`.
+
+**Removable holes:** for the rational part, `algebra::domain::DomainTracker` records the factors cancelled by the pipeline. For a rational f, an excluded point that is no zero of the denominator after cancelling `gcd(N, D)` is a hole: `holes` holds its x (the discussion works out y as the value of the reduced function). These points stay excluded from `set`.
 
 An empty domain is an input error ("f is defined nowhere" / "f ist nirgends definiert").
 
