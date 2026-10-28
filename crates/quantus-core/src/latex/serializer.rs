@@ -228,7 +228,9 @@ fn text(node: &Node, mode: SerializerMode) -> String {
 /// argument gets brackets that grow with it.
 fn function_argument(argument: &Node) -> String {
     let inner = expression_with_mode(argument, SerializerMode::Algebraic);
-    if inner.contains("\\frac") {
+    if matches!(argument, Node::Abs { .. }) {
+        inner
+    } else if inner.contains("\\frac") {
         format!("\\left({inner}\\right)")
     } else {
         format!("({inner})")
@@ -322,6 +324,10 @@ fn algebraic_separator(left: &Node, right: &Node) -> &'static str {
         return "";
     }
     if (is_numeric_fraction(last) || is_constant(last)) && (is_var(right) || is_var_power(right)) {
+        return "";
+    }
+    // A bracket before a function or an e-power: (x + 1)e^{x}.
+    if left_bracketed && joins_any {
         return "";
     }
 

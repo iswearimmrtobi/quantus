@@ -145,7 +145,7 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
 8. Rational subtrees: a subtree whose `as_rational()` succeeds is replaced by the result of `algebra::pipeline::simplify_node_with(node, PipelineConfig{ style: settings.output_style(), verify_equivalence: false, ..})`, converted back.
 
 **Display forms** (`pub fn display(e: &Expr, settings) -> Expr`):
-- A rational result keeps the pipeline form: expanded numerator, denominator per `settings.denominator_form`.
+- A rational result keeps the pipeline form: expanded numerator, denominator per `settings.denominator_form`. Polynomials are expanded unless the binomial setting is explicitly `binomial` (`auto` counts as `expanded` here, so f′(x) reads `3x^{2} - 3`, not `3(x - 1)(x + 1)`), and never written as a completed square.
 - If every summand shares a non-rational factor `g` (usually `e^{u}` or `\ln`), it is factored out and the polynomial rest is written first: `(x+1)e^{x}`, `e^{-x}(2x - x^{2})`. The rest is ordered by decreasing degree; for `(x+1)e^{x}` the leading factor is chosen so its leading coefficient is positive.
 - Otherwise the canonical order from §4 is used.
 

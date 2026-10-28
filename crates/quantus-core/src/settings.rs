@@ -9,7 +9,7 @@ use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
 use crate::{QuantusError, Result};
 
 /// Which way the binomial formulas are applied to a polynomial result.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum BinomialForm {
     /// Binomial form, unless the input itself was compact (`(a + b)^2`): then the expansion is
@@ -23,7 +23,7 @@ pub enum BinomialForm {
 }
 
 /// How the denominator of a rational result is written.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum DenominatorForm {
     /// Factored when it splits into several (or repeated) factors, expanded otherwise.

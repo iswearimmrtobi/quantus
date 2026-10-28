@@ -299,7 +299,7 @@ fn unsigned_rational(r: &RBig) -> Node {
 
 /// Where a summand goes: positive powers of the variable by falling degree, then everything
 /// else, then the constant, then negative powers by falling degree.
-fn summand_rank(term: &Expr) -> (u8, RBig) {
+pub(crate) fn summand_rank(term: &Expr) -> (u8, RBig) {
     let (_, rest) = split_coefficient(term);
     match variable_degree(&rest) {
         Some(degree) if degree > RBig::ZERO => (0, -degree),
@@ -320,7 +320,7 @@ fn variable_degree(e: &Expr) -> Option<RBig> {
 }
 
 /// The rational coefficient of a term and the rest of it.
-fn split_coefficient(term: &Expr) -> (RBig, Expr) {
+pub(crate) fn split_coefficient(term: &Expr) -> (RBig, Expr) {
     match term {
         Expr::Num(r) => (r.clone(), Expr::int(1)),
         Expr::Product(factors) => {
@@ -419,9 +419,13 @@ fn term_node(term: &Expr, var: &str) -> (bool, Node) {
     let chain = |lead: Option<Node>, factors: &[Expr]| -> Node {
         lead.into_iter().chain(factors.iter().map(|f| factor_node(f, var))).reduce(times).unwrap()
     };
-    let node = if lower.is_empty() {
+    let node = if lower.is_empty() && (coefficient.is_int() || upper.is_empty() || upper.iter().any(Expr::depends_on_var)) {
         let lead = (coefficient != RBig::ONE || upper.is_empty()).then(|| unsigned_rational(&coefficient));
         chain(lead, &upper)
+    } else if lower.is_empty() {
+        // A constant over a number reads as one fraction: \frac{\sqrt{2}}{2}, \frac{2\pi}{3}.
+        let lead = (top != UBig::ONE).then(|| number(&IBig::from(top)));
+        Node::fraction(chain(lead, &upper), number(&IBig::from(bottom)), 0)
     } else {
         // With a denominator, the coefficient joins the fraction: \frac{3}{2(x - 2)}.
         let lead = (top != UBig::ONE || upper.is_empty()).then(|| number(&IBig::from(top)));
