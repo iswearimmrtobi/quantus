@@ -14,7 +14,7 @@ use crate::algebra::combine::flatten_additive_terms;
 use crate::algebra::domain::unwrap_group;
 use crate::algebra::nested::wrap_factor;
 use crate::algebra::poly::Poly;
-use crate::algebra::display::signed_terms_sum;
+use crate::algebra::display::{bracket, signed_terms_sum};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::settings::StepDetail;
 use crate::latex::ast::{Node, Operator};
@@ -71,12 +71,18 @@ fn is_additive_factor(node: &Node) -> bool {
 
 /// Attempts to expand a single product or binomial power in `node`.
 pub fn expand_product_node(node: &Node) -> Option<(Node, RuleId, String)> {
+    let step = expand_product_step(node)?;
+    Some((step.after, step.rule?, step.summary.unwrap_or(step.explanation)))
+}
+
+/// [`expand_product_node`] as a step with its working.
+fn expand_product_step(node: &Node) -> Option<AlgebraStep> {
     let unwrapped = unwrap_group(node);
 
     // 1. Binomial power check first: (a ± b)^2 or (a ± b)^3
     if let Some(step) = expand_binomial_node(unwrapped) {
         let rule = step.rule.unwrap_or(RuleId::ExpandBinomial);
-        return Some((step.after, rule, step.explanation));
+        return Some(AlgebraStep { rule: Some(rule), ..step.starting_from(node) });
     }
 
     // 2. Product expansion check
@@ -125,14 +131,26 @@ pub fn expand_product_node(node: &Node) -> Option<(Node, RuleId, String)> {
                 }
             }
 
-            let result_node = rebuild_product(new_factors);
+            let result_node = rebuild_product(new_factors.clone());
             let rule = RuleId::ExpandPolynomial;
             let explanation = format!(
                 "Expand polynomial product {} to {}",
-                serializer::expression(&rebuild_product(vec![f1, f2])),
+                serializer::expression(&rebuild_product(vec![f1.clone(), f2.clone()])),
                 serializer::expression(&prod_node)
             );
-            return Some((result_node, rule, explanation));
+            // The lines put in place of the expanded pair.
+            let place = |pair: Node| {
+                let mut factors = new_factors.clone();
+                factors[i1] = wrap_factor(pair);
+                if factors.len() == 1 { unwrap_group(&factors[0]).clone() } else { rebuild_product(factors) }
+            };
+            let (each, uncollected) = term_by_term(&f1, &f2)?;
+            let working = vec![
+                AlgebraStep::line(node, place(each.clone()), "Write each term of the first bracket times each term of the second", StepDetail::Detailed),
+                AlgebraStep::line(&place(each), place(uncollected), "Multiply every term of the first bracket by every term of the second", StepDetail::Standard),
+            ];
+            let step = AlgebraStep::new(node.clone(), result_node, explanation, Some(rule));
+            return Some(step.with_working(working, "Combine like terms"));
         }
 
         // Case B: Distribute a scalar or monomial multiplier across a sum factor
@@ -167,7 +185,7 @@ pub fn expand_product_node(node: &Node) -> Option<(Node, RuleId, String)> {
                             serializer::expression(&add_factor),
                             serializer::expression(&dist_node)
                         );
-                        return Some((result_node, rule, explanation));
+                        return Some(AlgebraStep::new(node.clone(), result_node, explanation, Some(rule)));
                     }
                 }
             }
@@ -175,6 +193,30 @@ pub fn expand_product_node(node: &Node) -> Option<(Node, RuleId, String)> {
     }
 
     None
+}
+
+/// `x \cdot x + x \cdot (-5) + 2 \cdot x + 2 \cdot (-5)` and `x^2 - 5x + 2x - 10` for
+/// `(x + 2)(x - 5)`: every product of a term of `first` and a term of `second`, written out and
+/// then each worked out.
+fn term_by_term(first: &Node, second: &Node) -> Option<(Node, Node)> {
+    let terms = |node: &Node| {
+        let mut terms = Vec::new();
+        flatten_additive_terms(node, true, &mut terms);
+        terms.into_iter().map(|(positive, term)| if positive { term } else { Node::Negation { operand: Box::new(term), position: 0 } })
+    };
+    let mut products = Vec::new();
+    let mut values = Vec::new();
+    for a in terms(first) {
+        for b in terms(second) {
+            let product = Poly::from_node(&a).ok()? * Poly::from_node(&b).ok()?;
+            let negative = product.leading_coeff() < dashu::rational::RBig::ZERO;
+            values.push((!negative, if negative { (-product).to_node() } else { product.to_node() }));
+            // A negative first factor in brackets: (-2) \cdot x.
+            let first = if matches!(a, Node::Negation { .. }) { bracket(a.clone()) } else { a.clone() };
+            products.push((true, Node::binary(Operator::Times, first, b, 0)));
+        }
+    }
+    Some((signed_terms_sum(products)?, signed_terms_sum(values)?))
 }
 
 /// Recursively traverses `root` to locate and perform the next expansion step.
@@ -190,8 +232,9 @@ fn expand_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
     }
 
     // Try expanding current node
-    if let Some((expanded, rule, explanation)) = expand_product_node(node) {
-        *step_info = Some(AlgebraStep::new(node.clone(), expanded.clone(), explanation, Some(rule)));
+    if let Some(step) = expand_product_step(node) {
+        let expanded = step.after.clone();
+        *step_info = Some(step);
         return expanded;
     }
 

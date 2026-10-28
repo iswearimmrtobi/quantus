@@ -674,3 +674,19 @@ fn the_reciprocal_rule_writes_the_multiplication_out() {
     assert!(maximal.steps[0].note);
     assert_eq!(maximal.steps[0].explanation, "Note: x ≠ -1, 0, where a denominator of the input is zero");
 }
+
+#[test]
+fn a_product_of_sums_is_multiplied_out_term_by_term() {
+    let input = "(x+2)(x-5)";
+    assert_eq!(rows(input, StepDetail::Brief).len(), 1);
+    assert_eq!(
+        rows(input, StepDetail::Standard),
+        [
+            row(r"x^{2} - 5 \cdot x + 2 \cdot x - 10", "Multiply every term of the first bracket by every term of the second"),
+            row(r"x^{2} - 3 \cdot x - 10", "Combine like terms"),
+        ]
+    );
+    assert_eq!(rows(input, StepDetail::Detailed)[0].0, r"x \cdot x + x \cdot (-5) + 2 \cdot x + 2 \cdot (-5)");
+    // The other factors stay in place around the pair.
+    assert_eq!(rows("3(x-2)(x-4)", StepDetail::Detailed)[0].0, r"3 \cdot (x \cdot x + x \cdot (-4) + (-2) \cdot x + (-2) \cdot (-4))");
+}

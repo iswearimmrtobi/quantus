@@ -165,6 +165,11 @@ impl AlgebraStep {
         Self::new(before.clone(), after, explanation, None).with_level(level)
     }
 
+    /// The same step, starting from `before`, which reads the same (the node it was found in).
+    pub fn starting_from(self, before: &Node) -> Self {
+        self.starting_at(before.clone())
+    }
+
     /// The step with its cancel marks in colour.
     fn highlighted(self) -> Self {
         let (before, after) = (highlight_cancelled(self.before.clone()), highlight_cancelled(self.after.clone()));
