@@ -219,7 +219,22 @@ pub fn merge_inequalities(restrictions: Vec<DomainRestriction>) -> Vec<DomainRes
             merged.push(restriction);
         }
     }
-    merged.extend(positive.into_iter().map(DomainRestriction::PolyPositive));
+    // A product of powers of the other positive polynomials is positive anyway: x^{2} > 0 and
+    // ab > 0 add nothing to x > 0, a > 0, b > 0.
+    let follows = |q: &Poly| {
+        let mut rest = q.clone();
+        for p in positive.iter().filter(|p| *p != q && !p.is_constant()) {
+            while let Ok((quotient, remainder)) = rest.div_rem(p) {
+                if !remainder.is_zero() {
+                    break;
+                }
+                rest = quotient;
+            }
+        }
+        rest.is_constant() && rest.constant_term() > RBig::ZERO
+    };
+    let kept: Vec<Poly> = positive.iter().filter(|q| !follows(q)).cloned().collect();
+    merged.extend(kept.into_iter().map(DomainRestriction::PolyPositive));
     merged
 }
 

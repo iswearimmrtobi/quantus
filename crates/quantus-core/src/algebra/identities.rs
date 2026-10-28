@@ -9,7 +9,7 @@ use crate::algebra::atoms::Atoms;
 use crate::algebra::domain::DomainRestriction;
 use crate::algebra::poly::Poly;
 use crate::num::Decimal;
-use crate::algebra::{powers, radicals};
+use crate::algebra::{logs, powers, radicals};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
 use crate::latex::serializer;
@@ -142,6 +142,30 @@ fn evaluate(node: &Node) -> Option<f64> {
 
 /// Whether `restriction` (in the atoms) excludes nothing, as `\sqrt{a} \neq -1` or `e^{x} > 0`.
 pub fn always_satisfied(restriction: &DomainRestriction, atoms: &Atoms) -> bool {
+    // Without variables the restriction has a value to look at: \ln(2) \neq 0.
+    let value = |poly: &Poly| evaluate(&atoms.restore(poly.to_node()));
+    match restriction {
+        DomainRestriction::VariableNotEqual { variable, value: excluded } => {
+            if let Some(v) = value(&Poly::from_var(variable)) {
+                return (v - excluded.to_f64().value()).abs() > 1e-12;
+            }
+        }
+        DomainRestriction::PolyNotZero(poly) => {
+            if let Some(v) = value(poly) {
+                return v.abs() > 1e-12;
+            }
+        }
+        DomainRestriction::PolyPositive(poly) => {
+            if let Some(v) = value(poly) {
+                return v > 1e-12;
+            }
+        }
+        DomainRestriction::PolyNonNegative(poly) => {
+            if let Some(v) = value(poly) {
+                return v >= 0.0;
+            }
+        }
+    }
     match restriction {
         DomainRestriction::VariableNotEqual { variable, value } => {
             match atoms.index_of_key(variable).map(|index| atom_sign(atoms, index)) {
@@ -153,6 +177,92 @@ pub fn always_satisfied(restriction: &DomainRestriction, atoms: &Atoms) -> bool 
         DomainRestriction::PolyNotZero(poly) | DomainRestriction::PolyPositive(poly) => sign(poly, atoms) == Sign::Positive,
         DomainRestriction::PolyNonNegative(poly) => sign(poly, atoms) != Sign::Unknown,
     }
+}
+
+/// The polynomial a `\neq 0` restriction is about.
+fn not_zero_poly(restriction: &DomainRestriction) -> Option<Poly> {
+    match restriction {
+        DomainRestriction::VariableNotEqual { variable, value } if *value == RBig::ZERO => Some(Poly::from_var(variable)),
+        DomainRestriction::PolyNotZero(poly) => Some(poly.clone()),
+        _ => None,
+    }
+}
+
+/// What an atom being nonzero means for what it is built from: `\sqrt[n]{u}`, `|u|` and `u^{y}`
+/// are zero only where `u` is.
+fn atom_not_zero(poly: &Poly, atoms: &Atoms) -> Option<Vec<DomainRestriction>> {
+    let [term] = poly.terms.as_slice() else { return None };
+    let [(var, _)] = term.monomial.vars.iter().collect::<Vec<_>>()[..] else { return None };
+    let inner = match atoms.node(atoms.index_of_key(var)?) {
+        Node::Root { radicand, .. } => radicand,
+        Node::Abs { operand, .. } => operand,
+        Node::Power { base, .. } => base,
+        _ => return None,
+    };
+    Some(crate::algebra::domain::solve_poly_restrictions(&Poly::from_node(inner).ok()?))
+}
+
+/// `p + q \sqrt{u}` for a polynomial linear in a square root: `p` and `q`, and `u`.
+fn conjugate_norm(poly: &Poly, atoms: &Atoms) -> Option<Poly> {
+    for var in poly.variables() {
+        let Some(Node::Root { radicand, degree: None, .. }) = atoms.index_of_key(&var).map(|i| atoms.node(i)) else { continue };
+        if poly.degree_of(&var) != 1 {
+            continue;
+        }
+        let radicand = Poly::from_node(radicand).ok()?;
+        let (mut p, mut q) = (Poly::zero(), Poly::zero());
+        for term in &poly.terms {
+            let mut vars = term.monomial.vars.clone();
+            if vars.remove(&var).is_some() {
+                q = &q + &Poly::from_term(term.coeff.clone(), crate::algebra::poly::Monomial::from_map(vars));
+            } else {
+                p = &p + &Poly::from_term(term.coeff.clone(), term.monomial.clone());
+            }
+        }
+        return Some(square_roots_through_radicands(&(&(&p * &p) - &(&(&q * &q) * &radicand)), atoms));
+    }
+    None
+}
+
+/// `poly` with `\sqrt{u}^{2} = u` applied to each of its square roots.
+fn square_roots_through_radicands(poly: &Poly, atoms: &Atoms) -> Poly {
+    let mut sum = Poly::zero();
+    for term in &poly.terms {
+        let mut product = Poly::from_const(term.coeff.clone());
+        for (var, &exp) in &term.monomial.vars {
+            let radicand = match atoms.index_of_key(var).map(|i| atoms.node(i)) {
+                Some(Node::Root { radicand, degree: None, .. }) if exp >= 2 => Poly::from_node(radicand).ok(),
+                _ => None,
+            };
+            product = match radicand {
+                Some(radicand) => &(&product * &radicand.pow(exp / 2)) * &Poly::from_var(var).pow(exp % 2),
+                None => &product * &Poly::from_var(var).pow(exp),
+            };
+        }
+        sum = &sum + &product;
+    }
+    sum
+}
+
+/// The restrictions without the ones others imply, written through what atoms are built from.
+pub fn simplify_restrictions(restrictions: Vec<DomainRestriction>, atoms: &Atoms) -> Vec<DomainRestriction> {
+    let mut expanded: Vec<DomainRestriction> = Vec::new();
+    for restriction in restrictions {
+        let replaced = not_zero_poly(&restriction).and_then(|poly| atom_not_zero(&poly, atoms));
+        for r in replaced.unwrap_or_else(|| vec![restriction]) {
+            if !expanded.contains(&r) {
+                expanded.push(r);
+            }
+        }
+    }
+    // p + q\sqrt{u} \neq 0 follows from p^{2} - q^{2} u \neq 0, which rationalizing brings in.
+    let implied = |restriction: &DomainRestriction| {
+        let Some(norm) = not_zero_poly(restriction).and_then(|poly| conjugate_norm(&poly, atoms)) else { return false };
+        let needed = crate::algebra::domain::solve_poly_restrictions(&norm);
+        !needed.is_empty() && needed.iter().all(|r| expanded.contains(r))
+    };
+    let kept: Vec<DomainRestriction> = expanded.iter().filter(|r| !implied(r)).cloned().collect();
+    crate::algebra::domain::merge_inequalities(kept).into_iter().filter(|r| !always_satisfied(r, atoms)).collect()
 }
 
 /// What a rule may see and decide on.
@@ -330,6 +440,8 @@ pub type Rule = fn(&Node, &mut Context) -> Option<Rewrite>;
 
 /// The identities, in the order they are tried before each run of the pipeline.
 const RULES: &[Rule] = &[
+    logs::exp_values,
+    logs::log_values,
     powers::rational_exponents,
     powers::nest_powers,
     powers::merge_powers,
@@ -344,6 +456,9 @@ const RULES: &[Rule] = &[
     radicals::multiply_roots,
     radicals::merge_roots,
     radicals::extract_roots,
+    logs::merge_logs,
+    logs::divide_logs,
+    logs::log_values,
 ];
 
 /// Applies every rule once to `current`, recording each change as a step and each condition

@@ -45,7 +45,7 @@ fn as_integer(poly: &Poly) -> Option<IBig> {
 }
 
 /// `base^{exponent}` as a node: a polynomial factor for a positive integer exponent, an atom otherwise.
-fn power_of(base: &Node, exponent: &Poly, atoms: &mut Atoms) -> Option<Poly> {
+pub(crate) fn power_of(base: &Node, exponent: &Poly, atoms: &mut Atoms) -> Option<Poly> {
     match as_integer(exponent) {
         Some(k) if !k.is_negative() => Some(Poly::from_node(base).ok()?.pow(usize::try_from(k).ok()?)),
         // A negative integer power belongs in a denominator, which a term cannot hold.

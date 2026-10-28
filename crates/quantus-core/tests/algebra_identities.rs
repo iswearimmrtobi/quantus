@@ -60,6 +60,7 @@ fn evaluate(node: &Node) -> f64 {
                 "tan" => x.tan(),
                 "cot" => 1.0 / x.tan(),
                 "ln" => x.ln(),
+                "log" | "lg" => x.log10(),
                 "exp" => x.exp(),
                 other => panic!("no value for \\{other}"),
             }
@@ -132,7 +133,7 @@ fn exponents() {
         (r"a\cdot a^x", (r"a^{x + 1}", "a > 0"), (r"a \cdot a^{x}", "")),
         (r"a^x a^{-x}", ("1", "a > 0"), (r"a^{x} \cdot a^{-x}", "")),
         (r"a^x a^x", (r"a^{2x}", ""), (r"a^{2x}", "")),
-        (r"\frac{a^x}{a^y}", (r"a^{x - y}", "a > 0"), (r"\frac{a^{x}}{a^{y}}", "a^{y} != 0")),
+        (r"\frac{a^x}{a^y}", (r"a^{x - y}", "a > 0"), (r"\frac{a^{x}}{a^{y}}", "a != 0")),
         (r"\frac{a^{x+1}}{a}", (r"a^{x}", "a > 0"), (r"\frac{a^{x + 1}}{a}", "a != 0")),
         (r"a^{x+1}-a\cdot a^x", ("0", "a > 0"), (r"-a \cdot a^{x} + a^{x + 1}", "")),
         // B4: a power of a power.
@@ -146,5 +147,31 @@ fn exponents() {
         (r"\frac{e^{x}}{e}", (r"e^{x - 1}", ""), (r"e^{x - 1}", "")),
         (r"\frac{e^{2x}}{e^x}", (r"e^{x}", ""), (r"e^{x}", "")),
         (r"(e^x)^2", (r"e^{2x}", ""), (r"e^{2x}", "")),
+    ]);
+}
+
+#[test]
+fn exponentials_and_logarithms() {
+    check(&[
+        // C4, C6, C7: a sum of logarithms is one logarithm.
+        (r"\ln(a)+\ln(b)", (r"\ln(a \cdot b)", "a > 0, b > 0"), (r"\ln(a) + \ln(b)", "")),
+        (r"\ln(a)-\ln(b)", (r"\ln\left(\frac{a}{b}\right)", "a > 0, b > 0"), (r"\ln(a) - \ln(b)", "")),
+        (r"2\ln(a)+\ln(b)", (r"\ln(a^{2} \cdot b)", "a > 0, b > 0"), (r"2\ln(a) + \ln(b)", "")),
+        (r"\ln(2)+\ln(3)", (r"\ln(6)", ""), (r"\ln(6)", "")),
+        (r"\ln(x^2)-2\ln(x)", ("0", "x > 0"), (r"\ln(x^{2}) - 2\ln(x)", "")),
+        (r"\ln(a)+\ln(b)-\ln(ab)", ("0", "a > 0, b > 0"), (r"\ln(a) + \ln(b) - \ln(a \cdot b)", "")),
+        // C8: values.
+        (r"\ln(e)", ("1", ""), ("1", "")),
+        (r"\ln(1)+x", ("x", ""), ("x", "")),
+        (r"\ln(e^x)", ("x", ""), ("x", "")),
+        (r"\ln(e^2)", ("2", ""), ("2", "")),
+        (r"\log(1000)", ("3", ""), ("3", "")),
+        (r"e^{\ln(a)}", ("a", "a > 0"), (r"e^{\ln(a)}", "")),
+        (r"e^{2\ln(a)}", (r"a^{2}", "a > 0"), (r"e^{2\ln(a)}", "")),
+        (r"e^{-\ln(a)}", (r"\frac{1}{a}", "a > 0"), (r"e^{-\ln(a)}", "")),
+        (r"\exp(x)\exp(y)", (r"e^{x + y}", ""), (r"e^{x + y}", "")),
+        // C9: \log_b is read as a quotient of logarithms.
+        (r"\log_2(8)x", ("3x", ""), ("3x", "")),
+        (r"\log_a(a^2)", ("2", r"\ln(a) != 0, a > 0"), (r"\frac{\ln(a^{2})}{\ln(a)}", r"\ln(a) != 0")),
     ]);
 }

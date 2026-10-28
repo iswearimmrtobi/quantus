@@ -8,6 +8,7 @@ pub mod expand;
 pub mod factor;
 pub mod factored;
 pub mod identities;
+pub mod logs;
 pub mod nested;
 pub mod pipeline;
 pub mod poly;

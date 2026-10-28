@@ -30,6 +30,9 @@ pub enum RuleId {
     MergePowers,
     NestPowers,
     MergeBases,
+    LogValue,
+    ExpValue,
+    MergeLogs,
     NormalizeExpression,
 }
 
@@ -57,6 +60,9 @@ impl RuleId {
             Self::MergePowers => "MERGE_POWERS",
             Self::NestPowers => "NEST_POWERS",
             Self::MergeBases => "MERGE_BASES",
+            Self::LogValue => "LOG_VALUE",
+            Self::ExpValue => "EXP_VALUE",
+            Self::MergeLogs => "MERGE_LOGS",
             Self::NormalizeExpression => "NORMALIZE_EXPRESSION",
         }
     }
