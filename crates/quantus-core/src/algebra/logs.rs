@@ -22,9 +22,10 @@ use crate::algebra::nested::{make_fraction, split_fraction};
 use crate::algebra::poly::{Monomial, Poly};
 use crate::algebra::powers::power_of;
 use crate::algebra::steps::RuleId;
-use crate::latex::ast::Node;
+use crate::latex::ast::{Node, Operator};
 use crate::latex::serializer;
 use crate::num::Decimal;
+use crate::settings::StepDetail;
 
 /// Which logarithm a function name is: `ln`, or `log` and `lg`, which are one base 10 logarithm.
 fn log_base(name: &str) -> Option<&'static str> {
@@ -100,7 +101,22 @@ fn log_value(index: usize, ctx: &mut Context) -> Option<Local> {
         }
     };
     let detail = format!("{} = {}", serializer::expression(&atoms.var(index)), serializer::expression(&value));
-    Some(Local::new(value, detail))
+    let local = Local::new(value.clone(), detail);
+    // \ln(e^{2}) = 2 \ln e = 2 \cdot 1.
+    if base == "ln" {
+        if let Some((power_base, exponent)) = as_power(argument, atoms) {
+            if is_e(power_base, atoms) && Poly::from_node(exponent).is_ok_and(|p| p.is_constant() && p.constant_term() != RBig::ONE) {
+                let ln_e = Node::Function { name: "ln".into(), argument: Box::new(Node::Constant { name: "e".into(), position: 0 }), position: 0 };
+                let times = |right: Node| Node::binary(Operator::Times, exponent.clone(), right, 0);
+                let working = vec![
+                    (times(ln_e), "\\ln(a^{n}) = n \\ln a".to_string(), StepDetail::Detailed),
+                    (times(number(&IBig::ONE)), "\\ln e = 1".to_string(), StepDetail::Detailed),
+                ];
+                return Some(local.with_working(working, "Multiply"));
+            }
+        }
+    }
+    Some(local)
 }
 
 /// `\ln 1 = 0`, `\ln e = 1`, `\ln(e^{x}) = x`, `\log 1000 = 3`.
@@ -271,7 +287,19 @@ fn log_quotient(node: &Node, ctx: &mut Context) -> Option<Local> {
         (true, 1) => format!("{}, so {quotient} = {}", power(&a, k), serializer::expression(&result)),
         (true, _) => format!("{}, {}, so {quotient} = {}", power(&a, k), power(&b, m), serializer::expression(&result)),
     };
-    Some(Local::new(result, detail).with([Condition::Positive(base.to_node())]))
+    let local = Local::new(result, detail).with([Condition::Positive(base.to_node())]);
+    // \log_2 8 = \log_2(2^{3}): the argument as a power of the base.
+    if base.is_constant() && m == 1 && k > 1 {
+        let power = Node::Power { base: Box::new(base.to_node()), exponent: Box::new(number(&IBig::from(k))), position: 0 };
+        let name = match atoms.node(top_index) {
+            Node::Function { name, .. } => name.clone(),
+            _ => return Some(local),
+        };
+        let written = make_fraction(Node::Function { name, argument: Box::new(power), position: 0 }, atoms.node(bottom_index).clone());
+        let text = format!("Write {} as a power of the base", serializer::expression(&a.to_node()));
+        return Some(local.with_working(vec![(written, text, StepDetail::Standard)], "\\log_{b}(b^{n}) = n"));
+    }
+    Some(local)
 }
 
 /// `\frac{\ln(a^{2})}{\ln a} = 2` for `a > 0`.

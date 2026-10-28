@@ -807,3 +807,16 @@ fn powers_write_the_exponents_out() {
     assert_eq!(rows("(x^2)^3", StepDetail::Standard)[0], row(r"x^{2 \cdot 3}", "Power of a power: multiply the exponents"));
     assert_eq!(rows(r"x^2 \cdot x^3", StepDetail::Brief), [row("x^{5}", "Same base: add the exponents")]);
 }
+
+#[test]
+fn logarithms_write_the_argument_as_a_power() {
+    assert_eq!(
+        rows(r"\log_2(8)", StepDetail::Standard),
+        [row(r"\log_{2}{2^{3}}", "Write 8 as a power of the base"), row("3", r"\log_{b}(b^{n}) = n")]
+    );
+    assert_eq!(rows(r"\ln(e^2)", StepDetail::Standard).len(), 1);
+    assert_eq!(
+        rows(r"\ln(e^2)", StepDetail::Detailed)[..2],
+        [row(r"2 \cdot \ln{e}", r"\ln(a^{n}) = n \ln a"), row(r"2 \cdot 1", r"\ln e = 1")]
+    );
+}
