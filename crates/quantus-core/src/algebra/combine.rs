@@ -7,6 +7,8 @@
 //! - Multiplying numerators by missing LCD factors and combining over LCD (`COMBINE_FRACTIONS`).
 
 use crate::algebra::domain::unwrap_group;
+use crate::algebra::binomial::factor_binomial;
+use crate::algebra::factor::{factoring_lines, line_steps};
 use crate::algebra::factored::FactoredPoly;
 use crate::algebra::nested::{is_constant_one, make_fraction, make_product, split_fraction, wrap_factor};
 use crate::algebra::poly::Poly;
@@ -114,15 +116,17 @@ fn factor_den_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Nod
     if let Some((num, den)) = split_fraction(unwrapped) {
         if is_unfactored_denominator(den) {
             let poly = Poly::from_node(den).unwrap();
-            let factored = FactoredPoly::from_poly(poly);
+            let factored = FactoredPoly::from_poly(poly.clone());
             let factored_den_node = factored.to_node();
             let new_frac = make_fraction(num.clone(), factored_den_node);
-            *step_info = Some(AlgebraStep::new(
-                node.clone(),
-                new_frac.clone(),
-                "Factor polynomial denominator to find common factors",
-                Some(RuleId::FactorDenominators),
-            ));
+            let explanation = match factor_binomial(&poly) {
+                Some((_, identity)) => format!("Factor the denominator using binomial identity: {}", identity.description()),
+                None => "Factor polynomial denominator to find common factors".to_string(),
+            };
+            let (lines, last) = factoring_lines(&poly);
+            let lines = lines.into_iter().map(|line| line.placed(|part| make_fraction(num.clone(), part))).collect();
+            let step = AlgebraStep::new(node.clone(), new_frac.clone(), explanation, Some(RuleId::FactorDenominators));
+            *step_info = Some(step.with_working(line_steps(node, lines), last));
             return new_frac;
         }
     }

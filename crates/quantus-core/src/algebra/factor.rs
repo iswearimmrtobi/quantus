@@ -8,15 +8,17 @@
 //!
 //! Integrity guarantee: polynomials irreducible over ℚ remain untouched; no false factorizations.
 
-use dashu::base::Signed;
+use dashu::base::{Abs, Signed};
 use dashu::integer::IBig;
 use dashu::rational::RBig;
 
 use crate::algebra::binomial::{exact_rational_sqrt, factor_binomial};
 use crate::algebra::factored::{Factor, FactoredPoly};
 use crate::algebra::poly::{Monomial, Poly, Term};
+use crate::algebra::display::signed_terms_sum;
 use crate::algebra::steps::{AlgebraStep, RuleId};
-use crate::latex::ast::Node;
+use crate::latex::ast::{Node, Operator};
+use crate::settings::StepDetail;
 
 /// Divides a polynomial by a monomial with coefficient 1.
 fn divide_by_monomial(poly: &Poly, m: &Monomial) -> Poly {
@@ -305,4 +307,195 @@ pub fn factor_polynomial_node(node: &Node) -> Option<AlgebraStep> {
     };
 
     Some(AlgebraStep::new(node.clone(), after_node, explanation, Some(rule)))
+}
+
+/// One line of the working of a rewrite, for a part of the expression: the part as it reads
+/// after the line, what was done, and the lowest detail level that shows it. A note leaves the
+/// part as it was.
+#[derive(Clone, Debug)]
+pub struct Line {
+    pub node: Node,
+    pub text: String,
+    pub level: StepDetail,
+    pub note: bool,
+}
+
+impl Line {
+    fn new(node: Node, text: impl Into<String>, level: StepDetail) -> Self {
+        Line { node, text: text.into(), level, note: false }
+    }
+
+    fn note(node: Node, text: impl Into<String>, level: StepDetail) -> Self {
+        Line { node, text: text.into(), level, note: true }
+    }
+
+    /// The line with its part put back into the whole: `place(part)`.
+    pub fn placed(self, place: impl Fn(Node) -> Node) -> Self {
+        Line { node: place(self.node), ..self }
+    }
+}
+
+/// Lines from `before` on, as the sub-steps of a step.
+pub fn line_steps(before: &Node, lines: Vec<Line>) -> Vec<AlgebraStep> {
+    let mut current = before.clone();
+    let mut steps = Vec::new();
+    for line in lines {
+        if line.note {
+            steps.push(AlgebraStep::note(current.clone(), line.text, None, line.level));
+        } else {
+            steps.push(AlgebraStep::line(&current, line.node.clone(), line.text, line.level));
+            current = line.node;
+        }
+    }
+    steps
+}
+
+/// The in-between lines of factoring `poly`, and the text of the last line that reaches the
+/// factored form: the common factor found and taken out, terms written as squares before a
+/// binomial formula, roots tried and divided off.
+pub fn factoring_lines(poly: &Poly) -> (Vec<Line>, String) {
+    let common = Poly::from_term(poly.content(), poly.monomial_gcd());
+    if common == Poly::from_const(RBig::ONE) || poly.terms.len() < 2 {
+        return rest_lines(poly);
+    }
+    let rest = poly / &poly.content();
+    let rest = divide_by_monomial(&rest, &poly.monomial_gcd());
+    let common_node = common.to_node();
+    let each: Vec<(bool, Node)> = rest
+        .terms
+        .iter()
+        .map(|t| {
+            let quotient = Poly::from_term(t.coeff.clone().abs(), t.monomial.clone()).to_node();
+            (!t.coeff.is_negative(), Node::binary(Operator::Times, common_node.clone(), quotient, 0))
+        })
+        .collect();
+    let mut lines = Vec::new();
+    if let Some(found) = signed_terms_sum(each) {
+        lines.push(Line::new(found, format!("Find the common factor {} of all terms", latex(&common_node)), StepDetail::Detailed));
+    }
+    let taken_out = |part: Node| Node::binary(Operator::ImplicitTimes, common_node.clone(), Node::Group { inner: Box::new(part), position: 0 }, 0);
+    let factor_out = format!("Factor out {}", latex(&common_node));
+    let further = factor_polynomial(&rest);
+    if further.factors.len() <= 1 && further.factors.iter().all(|f| f.exp == 1) {
+        return (lines, factor_out);
+    }
+    lines.push(Line::new(taken_out(rest.to_node()), factor_out, StepDetail::Brief));
+    let (rest_lines, last) = rest_lines(&rest);
+    lines.extend(rest_lines.into_iter().map(|line| line.placed(&taken_out)));
+    (lines, last)
+}
+
+/// [`factoring_lines`] for a polynomial without a common factor.
+fn rest_lines(poly: &Poly) -> (Vec<Line>, String) {
+    if let Some((_, identity)) = factor_binomial(poly) {
+        let mut lines = Vec::new();
+        if identity == crate::algebra::binomial::BinomialIdentity::DifferenceOfSquares {
+            lines.extend(squares_line(poly));
+        }
+        return (lines, identity.description().to_string());
+    }
+    let Some(var) = poly.main_variable().filter(|_| poly.is_univariate() && poly.total_degree() >= 2) else {
+        return (Vec::new(), "Factor the polynomial".to_string());
+    };
+    let mut lines = Vec::new();
+    let mut current = poly.clone();
+    while current.total_degree() >= 2 {
+        let Some(root) = crate::algebra::rational_roots::find_rational_root(&current, &var) else { break };
+        let divisor = root_to_primitive_linear(&var, &root);
+        let Ok((quotient, rest)) = current.div_rem(&divisor) else { break };
+        if !rest.is_zero() {
+            break;
+        }
+        let constant = current.coeff_of(&Monomial::one());
+        let leading = current.leading_coeff();
+        let tried = if root.denominator() == &dashu::integer::UBig::ONE {
+            format!("Try the divisors of {}", latex(&rational_node(&constant.clone().abs())))
+        } else {
+            format!(
+                "Try fractions of a divisor of {} over a divisor of {}",
+                latex(&rational_node(&constant.clone().abs())),
+                latex(&rational_node(&leading.clone().abs()))
+            )
+        };
+        let r = latex(&rational_node(&root));
+        let text = format!("{tried}: p({r}) = {} = 0, so {} is a factor", term_values(&current, &var, &root), latex(&divisor.to_node()));
+        lines.push(Line::note(poly.to_node(), text, StepDetail::Standard));
+        let divide = format!("Divide: ({}) : ({}) = {}", latex(&current.to_node()), latex(&divisor.to_node()), latex(&quotient.to_node()));
+        lines.push(Line::note(poly.to_node(), divide, StepDetail::Detailed));
+        current = quotient;
+    }
+    let last = if lines.is_empty() { "Factor the polynomial" } else { "Write as a product of the factors" };
+    (lines, last.to_string())
+}
+
+/// `x^2 - 3^2` for `x^2 - 9`: both terms of a difference of squares written as squares, where one
+/// of them is not yet written so.
+fn squares_line(poly: &Poly) -> Option<Line> {
+    if poly.terms.len() != 2 {
+        return None;
+    }
+    let mut written = Vec::new();
+    let mut changed = Vec::new();
+    for term in &poly.terms {
+        let coeff = term.coeff.clone().abs();
+        let root_coeff = exact_rational_sqrt(&coeff)?;
+        let mut vars = std::collections::BTreeMap::new();
+        for (var, exp) in &term.monomial.vars {
+            if exp % 2 != 0 {
+                return None;
+            }
+            vars.insert(var.clone(), exp / 2);
+        }
+        let root = Poly::from_term(root_coeff.clone(), Monomial::from_map(vars));
+        let plain = term_is_plain_square(&root_coeff, &root);
+        let node = if plain {
+            Poly::from_term(coeff.clone(), term.monomial.clone()).to_node()
+        } else {
+            let square = Node::Power {
+                base: Box::new(Node::Group { inner: Box::new(root.to_node()), position: 0 }),
+                exponent: Box::new(rational_node(&RBig::from(2))),
+                position: 0,
+            };
+            changed.push(format!("{} as {}", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
+            square
+        };
+        written.push((!term.coeff.is_negative(), node));
+    }
+    if changed.is_empty() {
+        return None;
+    }
+    Some(Line::new(signed_terms_sum(written)?, format!("Write {}", changed.join(" and ")), StepDetail::Detailed))
+}
+
+/// Whether the square of `root` already reads as a square: `x^2`, `y^4`.
+fn term_is_plain_square(root_coeff: &RBig, root: &Poly) -> bool {
+    *root_coeff == RBig::ONE && root.terms.len() == 1 && root.terms[0].monomial.vars.len() == 1
+}
+
+/// The values of the terms of `poly` at `var = value`: `4 - 10 + 6`.
+fn term_values(poly: &Poly, var: &str, value: &RBig) -> String {
+    let mut text = String::new();
+    for (index, term) in poly.terms.iter().enumerate() {
+        let exponent = term.monomial.vars.get(var).copied().unwrap_or(0);
+        let mut v = term.coeff.clone();
+        for _ in 0..exponent {
+            v = &v * value;
+        }
+        let shown = latex(&rational_node(&v.clone().abs()));
+        match (index, v.is_negative()) {
+            (0, false) => text.push_str(&shown),
+            (0, true) => text.push_str(&format!("-{shown}")),
+            (_, false) => text.push_str(&format!(" + {shown}")),
+            (_, true) => text.push_str(&format!(" - {shown}")),
+        }
+    }
+    text
+}
+
+fn rational_node(value: &RBig) -> Node {
+    crate::algebra::poly::rational_to_node(value)
+}
+
+fn latex(node: &Node) -> String {
+    crate::latex::serializer::expression(node)
 }

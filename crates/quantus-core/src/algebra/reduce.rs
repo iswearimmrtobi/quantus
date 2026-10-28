@@ -16,6 +16,7 @@ use crate::algebra::binomial::factor_binomial_node;
 use crate::algebra::combine::den_to_factored;
 use crate::algebra::domain::{is_constant_zero, unwrap_group, DomainTracker};
 use crate::algebra::nested::{is_constant_one, make_fraction, split_fraction};
+use crate::algebra::factor::{factoring_lines, line_steps};
 use crate::algebra::poly::Poly;
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
@@ -23,10 +24,14 @@ use crate::latex::serializer;
 use crate::num::Decimal;
 
 /// Attempts to reduce a fraction node by factoring, cancellation, or special cases.
-pub fn reduce_rational_node(
-    node: &Node,
-    mut tracker: Option<&mut DomainTracker>,
-) -> Option<(Node, RuleId, String)> {
+pub fn reduce_rational_node(node: &Node, tracker: Option<&mut DomainTracker>) -> Option<(Node, RuleId, String)> {
+    let step = reduce_rational_step(node, tracker)?;
+    Some((step.after, step.rule?, step.summary.unwrap_or(step.explanation)))
+}
+
+/// [`reduce_rational_node`] as a step with its working: the numerator factored line by line.
+fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) -> Option<AlgebraStep> {
+    let simple = |after: Node, rule: RuleId, explanation: String| Some(AlgebraStep::new(node.clone(), after, explanation, Some(rule)));
     let unwrapped = unwrap_group(node);
     let (num, den) = split_fraction(unwrapped)?;
 
@@ -38,14 +43,14 @@ pub fn reduce_rational_node(
         };
         let rule = RuleId::NormalizeExpression;
         let explanation = "Zero divided by any non-zero expression is 0".to_string();
-        return Some((zero_node, rule, explanation));
+        return simple(zero_node, rule, explanation);
     }
 
     // 2. Denominator is 1: P / 1 -> P
     if is_constant_one(den) {
         let rule = RuleId::NormalizeExpression;
         let explanation = "Division by 1 leaves the expression unchanged".to_string();
-        return Some((num.clone(), rule, explanation));
+        return simple(num.clone(), rule, explanation);
     }
 
     // 3. Polynomial equality: P / P -> 1
@@ -60,7 +65,7 @@ pub fn reduce_rational_node(
             };
             let rule = RuleId::CancelCommonFactors;
             let explanation = "Cancel identical numerator and denominator to get 1".to_string();
-            return Some((one_node, rule, explanation));
+            return simple(one_node, rule, explanation);
         }
 
         // 4. Opposite signs: (a - b) / (b - a) -> -1
@@ -74,7 +79,7 @@ pub fn reduce_rational_node(
             };
             let rule = RuleId::CancelCommonFactors;
             let explanation = "Cancel opposite terms to get -1".to_string();
-            return Some((neg_one_node, rule, explanation));
+            return simple(neg_one_node, rule, explanation);
         }
     }
 
@@ -122,7 +127,11 @@ pub fn reduce_rational_node(
             "Factor numerator to identify common factors: {}",
             serializer::expression(&fact_num.to_node())
         );
-        return Some((new_frac, rule, explanation));
+        let step = AlgebraStep::new(node.clone(), new_frac, explanation, Some(rule));
+        let Ok(poly) = Poly::from_node(num) else { return Some(step) };
+        let (lines, last) = factoring_lines(&poly);
+        let lines = lines.into_iter().map(|line| line.placed(|part| make_fraction(part, den.clone()))).collect();
+        return Some(step.with_working(line_steps(node, lines), last));
     }
 
     // Perform factor cancellation
@@ -148,7 +157,7 @@ pub fn reduce_rational_node(
         serializer::expression(&gcd.to_node())
     );
 
-    Some((res_node, rule, explanation))
+    simple(res_node, rule, explanation)
 }
 
 /// Recursively traverses `root` to locate and perform the next reduction step.
@@ -172,10 +181,9 @@ fn reduce_recursive(
 
     // Try reducing current node if it's a fraction
     if split_fraction(unwrap_group(node)).is_some() {
-        if let Some((reduced, rule, explanation)) =
-            reduce_rational_node(node, tracker.as_deref_mut())
-        {
-            *step_info = Some(AlgebraStep::new(node.clone(), reduced.clone(), explanation, Some(rule)));
+        if let Some(step) = reduce_rational_step(node, tracker.as_deref_mut()) {
+            let reduced = step.after.clone();
+            *step_info = Some(step);
             return reduced;
         }
     }

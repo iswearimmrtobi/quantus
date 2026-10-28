@@ -583,3 +583,35 @@ fn a_minus_before_a_bracket_flips_the_signs_in_a_line_of_its_own() {
     let brief = rows(r"\frac{x}{x+1}-\frac{1}{x}", StepDetail::Brief);
     assert_eq!(brief.last().unwrap(), &row(r"\frac{x^{2} - x - 1}{x \cdot (x + 1)}", r"Combine like terms to obtain x^{2} - x - 1"));
 }
+
+#[test]
+fn factoring_names_the_identity_and_writes_the_squares() {
+    let input = r"\frac{2x^2+4x}{x^2-4}";
+    let brief = rows(input, StepDetail::Brief);
+    assert_eq!(brief[0].1, "Factor the denominator using binomial identity: Difference of squares: a² - b² = (a - b)(a + b)");
+    let detailed = rows(input, StepDetail::Detailed);
+    assert_eq!(detailed[0], row(r"\frac{2 \cdot x^{2} + 4 \cdot x}{x^{2} - 2^{2}}", "Write 4 as 2^{2}"));
+    assert_eq!(detailed[1].1, "Difference of squares: a² - b² = (a - b)(a + b)");
+    assert_eq!(detailed[2], row(r"\frac{2 \cdot x \cdot x + 2 \cdot x \cdot 2}{(x - 2) \cdot (x + 2)}", r"Find the common factor 2 \cdot x of all terms"));
+    assert_eq!(detailed[3], row(r"\frac{2 \cdot x \cdot (x + 2)}{(x - 2) \cdot (x + 2)}", r"Factor out 2 \cdot x"));
+}
+
+#[test]
+fn factoring_by_a_root_tries_it_and_divides_it_off() {
+    let input = r"\frac{x^2-5x+6}{x-2}";
+    let standard = rows(input, StepDetail::Standard);
+    assert_eq!(standard[0].1, "Try the divisors of 6: p(2) = 4 - 10 + 6 = 0, so x - 2 is a factor");
+    assert_eq!(standard[1], row(r"\frac{(x - 3) \cdot (x - 2)}{x - 2}", "Write as a product of the factors"));
+    let detailed = rows(input, StepDetail::Detailed);
+    assert_eq!(detailed[1].1, r"Divide: (x^{2} - 5 \cdot x + 6) : (x - 2) = x - 3");
+    assert!(run_at(input, StepDetail::Detailed).steps[..2].iter().all(|s| s.note));
+    assert_eq!(rows(input, StepDetail::Brief)[0].1, r"Factor numerator to identify common factors: (x - 3) \cdot (x - 2)");
+}
+
+#[test]
+fn a_common_factor_comes_out_before_the_rest_is_factored() {
+    let brief = rows(r"\frac{2x^2-8}{x-2}", StepDetail::Brief);
+    assert_eq!(brief[0], row(r"\frac{2 \cdot (x^{2} - 4)}{x - 2}", "Factor out 2"));
+    assert_eq!(brief[1], row(r"\frac{2 \cdot (x - 2) \cdot (x + 2)}{x - 2}", "Difference of squares: a² - b² = (a - b)(a + b)"));
+}
+

@@ -212,7 +212,8 @@ pub fn filter_steps(steps: Vec<AlgebraStep>, detail: StepDetail) -> Vec<AlgebraS
     let mut hidden: Option<(Node, AlgebraStep)> = None;
     for step in steps {
         let mut parts = step.flatten();
-        let last = parts.len().saturating_sub(1);
+        // The rule's own last line; notes about its result may follow it.
+        let last = parts.iter().rposition(|part| !part.note).unwrap_or(0);
         let mut own_shown = false;
         for (index, mut part) in parts.drain(..).enumerate() {
             if !detail.shows(part.level) {
@@ -224,6 +225,7 @@ pub fn filter_steps(steps: Vec<AlgebraStep>, detail: StepDetail) -> Vec<AlgebraS
             }
             let summary = part.summary.take();
             if part.note {
+                own_shown |= index < last;
                 shown.push(part);
                 continue;
             }

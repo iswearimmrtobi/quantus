@@ -241,23 +241,14 @@ impl LatexCalculator {
         steps.push(Step::new(StepKind::Symbolic, initial_symbolic));
 
         for s in &simp_result.steps {
-            if s.note {
-                steps.push(Step { kind: StepKind::Note, ..Step::algebraic(
-                    format!("{prefix}{}", serializer::algebraic_expression(&s.after)),
-                    s.rule.map(|r| r.as_str().to_string()),
-                    s.explanation.clone(),
-                    None,
-                    None,
-                ) });
-                continue;
-            }
-            steps.push(Step::algebraic(
+            let kind = if s.note { StepKind::Note } else { StepKind::Algebraic };
+            steps.push(Step { kind, ..Step::algebraic(
                 format!("{prefix}{}", serializer::algebraic_expression(&s.after)),
                 s.rule.map(|r| r.as_str().to_string()),
                 s.explanation.clone(),
                 Some(serializer::algebraic_expression(&s.before)),
                 Some(serializer::algebraic_expression(&s.after)),
-            ));
+            ) });
         }
 
         if simp_result.steps.is_empty() || steps.last().map(|st| &st.latex) != Some(&latex) {
