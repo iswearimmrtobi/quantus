@@ -587,3 +587,13 @@ fn symmetry_and_the_y_intercept_put_the_values_in() {
     assert_eq!(working(&d, "yIntercept", StepDetail::Standard)[0].0, r"f(0) = 0^{3} - 3 \cdot 0^{2} + 2 = 2");
     assert_eq!(working(&d, "yIntercept", StepDetail::Brief)[0].0, "f(0) = 2");
 }
+
+#[test]
+fn a_sign_condition_of_the_domain_solves_for_the_zeros_first() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch(r"\sqrt{x^2-4}");
+    let standard = working(&d, "domain", StepDetail::Standard);
+    assert_eq!(standard[0], ("x^{2} - 4 = 0".to_string(), "Where the sign can change".to_string()));
+    assert!(standard.contains(&(r"x_{1,2} = \pm 2".to_string(), "Take the root".to_string())));
+    assert_eq!(working(&d, "domain", StepDetail::Brief).len(), 2);
+}

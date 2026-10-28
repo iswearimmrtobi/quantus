@@ -17,7 +17,7 @@ use super::simplify::{is_zero, simplify};
 use super::solve::{solve_zero, SolveContext};
 use crate::eval::Step;
 use crate::num::Value;
-use crate::settings::Settings;
+use crate::settings::{Settings, StepDetail};
 use crate::text::msg;
 use crate::{QuantusError, Result};
 
@@ -188,6 +188,10 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
         Condition::Positive(u, _) | Condition::NonNegative(u, _) => {
             let strict = matches!(condition, Condition::Positive(..));
             let (set, complete) = sign_set(u, strict, ctx)?;
+            // Where the sign can change: the zeros of u, solved as in the zeros section.
+            if *u != Expr::Var {
+                steps.extend(zero_working(u, ctx));
+            }
             domain.set = domain.set.intersect(&set);
             let relation = if strict { ">" } else { "\\geq" };
             let latex = format!("{} {relation} 0 \\Rightarrow {var} \\in {}", tex(u), set.to_latex(ctx.digits, ctx.settings.language));
@@ -251,6 +255,21 @@ fn zeros(u: &Expr, ctx: &DomainContext) -> (Vec<Point>, Vec<PeriodicSet>, bool) 
     let solve_ctx = SolveContext { settings: ctx.settings, var: ctx.var, domain: &reals, window: SEARCH_WINDOW, digits: ctx.digits };
     let solved = solve_zero(u, &solve_ctx);
     (solved.solutions.roots.into_iter().map(|r| r.point).collect(), solved.solutions.families, solved.complete)
+}
+
+/// How the zeros of `u` are found, from Standard on.
+fn zero_working(u: &Expr, ctx: &DomainContext) -> Vec<Step> {
+    let reals = Domain::reals();
+    let solve_ctx = SolveContext { settings: ctx.settings, var: ctx.var, domain: &reals, window: SEARCH_WINDOW, digits: ctx.digits };
+    let solved = solve_zero(u, &solve_ctx);
+    let lead = step(AnalysisRule::DomainCondition, msg!("Where the sign can change", "Wo das Vorzeichen wechseln kann"), format!("{} = 0", u.to_latex(ctx.var)));
+    std::iter::once(lead)
+        .chain(solved.steps)
+        .map(|s| {
+            let level = s.level.max(StepDetail::Standard);
+            s.with_level(level)
+        })
+        .collect()
 }
 
 /// A step's explanation, with a note when the zeros behind it were only searched numerically.
@@ -449,6 +468,7 @@ mod tests {
     #[test]
     fn each_condition_is_a_step_and_errors_are_named() {
         let (_, steps) = domain_of_latex("\\frac{\\ln x}{x - 2}", Language::De).unwrap();
+        let steps = crate::eval::calculator::shown_steps(&steps, StepDetail::Brief);
         assert_eq!(steps.len(), 3);
         assert_eq!(steps[0].latex, "x > 0 \\Rightarrow x \\in ]0; \\infty[");
         assert_eq!(steps[0].explanation.as_deref(), Some("Argument des Logarithmus > 0"));
