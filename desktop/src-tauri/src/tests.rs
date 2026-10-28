@@ -356,4 +356,25 @@ fn analysis_errors_reach_the_renderer_like_other_errors() {
     let improper = invoke(&w, "area_under_curve", json!({ "request": { "latex": "\\frac{1}{x}", "from": "-1", "to": "1" } })).unwrap_err();
     assert!(improper["error"].as_str().unwrap().contains("Improper integral"));
     assert!(improper["position"].is_null());
+    let tangent = invoke(&w, "tangent", json!({ "request": { "latex": "\\ln x", "x0": "-1" } })).unwrap_err();
+    assert!(tangent["error"].as_str().unwrap().contains("not differentiable"));
+    let table = invoke(&w, "value_table", json!({ "request": { "latex": "x", "from": "0", "to": "1", "step": "-1" } })).unwrap_err();
+    assert!(table["error"].as_str().unwrap().contains("step"));
+    let sample = invoke(&w, "sample_function", json!({ "request": { "latex": "x^2 + a", "xMin": -1.0, "xMax": 1.0, "samples": 10 } })).unwrap_err();
+    assert!(sample["error"].as_str().unwrap().contains("function families"));
+}
+
+#[test]
+fn the_analysis_follows_the_set_precision() {
+    let w = window();
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    settings["precision"] = json!(3);
+    invoke(&w, "set_settings", json!({ "settings": settings })).unwrap();
+    let sketch = invoke(&w, "analyze", json!({ "request": { "latex": "x^3 - 3x" } })).unwrap();
+    let zero = sketch["points"].as_array().unwrap().iter().find(|p| p["kind"] == "zero").unwrap().clone();
+    assert!(zero["latex"].as_str().unwrap().ends_with("\\approx Z_{1}\\left(-1{,}73 \\mid 0\\right)"), "{}", zero["latex"]);
+    let precise = invoke(&w, "analyze", json!({ "request": { "latex": "x^3 - 3x", "precision": 8 } })).unwrap();
+    assert!(precise["points"][0]["latex"].as_str().unwrap().contains("-1{,}7320508"));
+    let area = invoke(&w, "area_under_curve", json!({ "request": { "latex": "e^{x^2}", "from": "0", "to": "1" } })).unwrap();
+    assert_eq!(area["area"], "\\approx 1{,}46");
 }

@@ -379,9 +379,36 @@ mod tests {
         assert!(!body["plot"]["segments"].as_array().unwrap().is_empty());
         assert!(body["period"].is_null());
 
+        let keys_of = |value: &serde_json::Value| {
+            let mut keys: Vec<String> = value.as_object().unwrap().keys().cloned().collect();
+            keys.sort();
+            keys
+        };
+        assert_eq!(keys_of(&body["sections"][0]), ["id", "message", "result", "status", "steps", "title"]);
+        assert_eq!(keys_of(max), ["kind", "latex", "name", "period", "x", "y"]);
+        assert_eq!(keys_of(&body["plot"]), ["segments", "xMax", "xMin", "yMax", "yMin"]);
+        let pole = json_of(&analyze(&Settings::default(), &AnalysisRequest { latex: "\\frac{1}{x}".into(), ..Default::default() }).unwrap());
+        assert_eq!(keys_of(&pole["asymptotes"][0]), ["intercept", "kind", "latex", "period", "side", "slope", "x"]);
+
         let german = Settings { language: crate::settings::Language::De, ..Settings::default() };
         let body = json_of(&analyze(&german, &request).unwrap());
-        assert_eq!(body["sections"][1]["title"], "Definitionsbereich");
+        let titles: Vec<_> = body["sections"].as_array().unwrap().iter().map(|s| s["title"].as_str().unwrap().to_string()).collect();
+        assert_eq!(
+            titles,
+            [
+                "Ableitungen",
+                "Definitionsbereich",
+                "Symmetrie",
+                "Schnittpunkt mit der y-Achse",
+                "Nullstellen",
+                "Extrempunkte",
+                "Wendepunkte",
+                "Monotonie",
+                "Krümmung",
+                "Verhalten an den Rändern und Asymptoten",
+                "Stammfunktion"
+            ]
+        );
     }
 
     #[test]

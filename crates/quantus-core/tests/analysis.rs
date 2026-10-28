@@ -271,3 +271,65 @@ fn periodic_families_merge_and_move() {
     let tangent = sketch("\\tan x");
     assert!(tangent.asymptotes.iter().all(|a| matches!(a, Asymptote::Vertical { period: Some(p), .. } if (p - std::f64::consts::PI).abs() < 1e-12)));
 }
+
+/// The rows of §17 that the tests above leave out.
+#[test]
+fn the_remaining_rows_of_the_specification() {
+    let cubic = sketch("x^3-3x");
+    assert_eq!(result(&cubic, "curvature"), "\\text{left-curved (convex) on}: [0, \\infty), \\quad \\text{right-curved (concave) on}: (-\\infty, 0]");
+
+    let quartic = sketch("x^4-2x^2");
+    let zeros: Vec<f64> = quartic.points.iter().filter(|p| p.kind.name() == "zero").map(|p| p.x).collect();
+    assert_eq!(zeros.len(), 3);
+    assert!((zeros[0] + 2f64.sqrt()).abs() < 1e-12 && (zeros[2] - 2f64.sqrt()).abs() < 1e-12);
+    assert!(points(&quartic, "zero")[0].starts_with("Z_{1}\\left(-\\sqrt{2} \\mid 0\\right)"));
+    let zero_steps = &quartic.sections.iter().find(|s| s.id == "zeros").unwrap().steps;
+    assert!(zero_steps.iter().any(|s| s.rule.as_deref() == Some("FACTOR_OUT")));
+    assert_eq!(
+        points(&quartic, "inflection")[0],
+        "I_{1}\\left(-\\frac{\\sqrt{3}}{3} \\mid -\\frac{5}{9}\\right) \\approx I_{1}\\left(-0{,}57735 \\mid -0{,}555556\\right)"
+    );
+
+    let exp = sketch("x e^x");
+    let behaviour = exp.sections.iter().find(|s| s.id == "behaviour").unwrap();
+    assert!(behaviour.steps.iter().any(|s| s.latex == "\\lim_{x \\to \\infty} f(x) = \\infty"));
+    let antiderivative = exp.sections.iter().find(|s| s.id == "antiderivative").unwrap();
+    assert!(antiderivative.steps.iter().any(|s| s.rule.as_deref() == Some("INTEGRATION_BY_PARTS")));
+
+    let log = sketch("\\frac{\\ln x}{x}");
+    let behaviour = log.sections.iter().find(|s| s.id == "behaviour").unwrap();
+    assert!(behaviour.steps.iter().any(|s| s.latex == "\\lim_{x \\to 0^{+}} f(x) = -\\infty"));
+    assert!(behaviour.steps.iter().any(|s| s.rule.as_deref() == Some("LIMIT_DOMINANCE")));
+    assert_eq!(points(&log, "zero"), ["Z\\left(1 \\mid 0\\right)"]);
+
+    assert!(result(&sketch("x^3"), "zeros").starts_with("Z\\left(0 \\mid 0\\right) \\ \\text{(triple root"));
+    assert_eq!(points(&sketch("x^{2/3}"), "min"), ["Min\\left(0 \\mid 0\\right)"]);
+    assert_eq!(
+        points(&sketch("\\frac{1}{x^2+1}"), "inflection")[1],
+        "I_{2}\\left(\\frac{\\sqrt{3}}{3} \\mid \\frac{3}{4}\\right) \\approx I_{2}\\left(0{,}57735 \\mid 0{,}75\\right)"
+    );
+    // The minima of \sin x inside the window [-2π, 2π]: -π/2 and 3π/2.
+    let minima: Vec<f64> = sketch("\\sin x").points.iter().filter(|p| p.kind.name() == "min").map(|p| p.x).collect();
+    assert_eq!(minima.len(), 2);
+    assert!((minima[0] + std::f64::consts::FRAC_PI_2).abs() < 1e-12);
+}
+
+/// Every antiderivative the tests expect is differentiated back to f.
+#[test]
+fn every_antiderivative_differentiates_back() {
+    use quantus_core::analysis::derive::derivative;
+    use quantus_core::analysis::domain::{domain, DomainContext};
+    use quantus_core::analysis::input::parse_function;
+    use quantus_core::analysis::integrate::{antiderivative, IntegrateContext};
+    use quantus_core::analysis::simplify::{is_zero, is_zero_numeric, simplify};
+    use quantus_core::analysis::Expr;
+
+    let settings = Settings::default();
+    for input in ["x^3-3x", "x e^x", "\\frac{x^2-1}{x-2}", "\\frac{\\ln x}{x}", "\\sin x", "\\frac{1}{x^2+1}", "\\arctan x", "x^4-2x^2", "\\sqrt{x}", "e^{x}-2"] {
+        let (f, var) = parse_function(input, None, &settings).unwrap();
+        let (d, _) = domain(&f, &DomainContext { settings: &settings, var: &var, digits: 6 }).unwrap();
+        let found = antiderivative(&simplify(&f), &IntegrateContext { settings: &settings, var: &var, domain: &d }).unwrap_or_else(|| panic!("{input}"));
+        let back = simplify(&Expr::Sum(vec![derivative(&found.result), Expr::neg(f.clone())]));
+        assert!(is_zero(&back) || is_zero_numeric(&back, &d.sample_points(9)), "{input}");
+    }
+}
