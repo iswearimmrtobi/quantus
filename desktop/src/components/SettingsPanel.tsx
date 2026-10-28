@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, ConditionalIdentities, DenominatorForm, Language, Mode, QuadraticFormula, Settings } from '../api';
+import type { BinomialForm, ConditionalIdentities, DenominatorForm, Language, Mode, QuadraticFormula, Settings, StepDetail } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -43,6 +43,14 @@ const conditionChoices = (t: Translate): Choice<ConditionalIdentities>[] => [
   { value: 'alwaysValid', label: t('choice.alwaysValid') },
 ];
 
+const detailChoices = (t: Translate): Choice<StepDetail>[] => [
+  { value: 'none', label: t('detail.none') },
+  { value: 'brief', label: t('detail.brief') },
+  { value: 'standard', label: t('detail.standard') },
+  { value: 'detailed', label: t('detail.detailed') },
+  { value: 'maximal', label: t('detail.maximal') },
+];
+
 /** So sieht die Engine ohne Einstellungsdatei aus. */
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'physics',
@@ -57,6 +65,8 @@ export const DEFAULT_SETTINGS: Settings = {
   extraUnitLetters: false,
   language: 'en',
   quadraticFormula: 'auto',
+  stepDetail: 'standard',
+  cancelMarks: true,
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
@@ -129,6 +139,18 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
         <h3>{t('settings.mode')}</h3>
         <Dropdown choices={modeChoices(t)} value={settings.mode} onChange={(v) => set('mode', v)} />
         <p className="setting-hint">{t(`mode.${settings.mode}.hint`)}</p>
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.detail')}</h3>
+        <Dropdown choices={detailChoices(t)} value={settings.stepDetail} onChange={(v) => set('stepDetail', v)} />
+        <p className="setting-hint">{t(`detail.${settings.stepDetail}.hint`)}</p>
+        <Toggle
+          checked={settings.cancelMarks}
+          label={t('settings.cancel')}
+          hint={t('settings.cancel.hint')}
+          onChange={(v) => set('cancelMarks', v)}
+        />
       </section>
 
       {settings.mode === 'analysis' && (

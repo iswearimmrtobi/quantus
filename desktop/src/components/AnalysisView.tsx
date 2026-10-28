@@ -29,7 +29,8 @@ const TABS: { id: Tab; label: TextKey }[] = [
 
 const PLACEHOLDER = 'f(x) = x^3 - 3x';
 
-function Steps({ steps }: { steps: Step[] }) {
+function Steps({ steps, hidden }: { steps: Step[]; hidden: boolean }) {
+  if (hidden) return null;
   return (
     <div className="analysis-steps">
       {steps.map((step, index) => (
@@ -165,8 +166,9 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     setTaskError(null);
   };
 
-  // A changed language, precision or output style shows at once.
-  const { language, precision, binomialForm, denominatorForm, quadraticFormula } = settings;
+  // A changed language, precision, output style or step detail shows at once.
+  const { language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks } = settings;
+  const hideSteps = stepDetail === 'none';
   const latest = useRef({ analysed, tab, runTask });
   latest.current = { analysed, tab, runTask };
   useEffect(() => {
@@ -174,7 +176,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     if (!latex) return;
     void run(latex);
     if (active !== 'sketch') void task(active, latex);
-  }, [language, precision, binomialForm, denominatorForm, quadraticFormula, run]);
+  }, [language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks, run]);
 
   const toggleLatexMode = (seed?: string) => {
     setLatexMode((current) => {
@@ -265,7 +267,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                       </button>
                       {section.result && <Katex className="section-result" latex={section.result} />}
                       {section.message && <p className="section-message">{section.message}</p>}
-                      {open && section.steps.length > 0 && <Steps steps={section.steps} />}
+                      {open && section.steps.length > 0 && <Steps steps={section.steps} hidden={hideSteps} />}
                     </section>
                   );
                 })}
@@ -285,7 +287,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                   {tangent && (
                     <>
                       <Katex className="section-result" latex={`${tangent.tangent.latex}, \\quad ${tangent.normal.latex}`} />
-                      <Steps steps={tangent.steps} />
+                      <Steps steps={tangent.steps} hidden={hideSteps} />
                     </>
                   )}
                 </section>
@@ -321,7 +323,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                         <span className="domain-label">{t('analysis.signed')}</span>
                         <Katex latex={area.signed} />
                       </div>
-                      <Steps steps={area.steps} />
+                      <Steps steps={area.steps} hidden={hideSteps} />
                     </>
                   )}
                 </section>

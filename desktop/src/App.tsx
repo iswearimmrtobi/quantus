@@ -51,6 +51,8 @@ export function App() {
   const [fileError, setFileError] = useState<string | null>(null);
 
   const language = settings.language;
+  // At the detail level `none` the engine still computes the steps; only the list is hidden.
+  const showSteps = settings.stepDetail !== 'none';
   const i18n = useMemo(() => ({ language, t: makeTranslate(language) }), [language]);
   useEffect(() => {
     document.documentElement.lang = language;
@@ -379,7 +381,7 @@ export function App() {
                   )}
                   {calculation?.quantityName && <span className="result-unit">{calculation.quantityName}</span>}
                 </div>
-                {calculation && (
+                {calculation && showSteps && (
                   <button
                     className={stepsOpen ? 'steps-toggle open' : 'steps-toggle'}
                     onClick={() => setStepsOpen((open) => !open)}
@@ -409,7 +411,7 @@ export function App() {
             </div>
           )}
 
-          {calculation && stepsOpen && (
+          {calculation && showSteps && stepsOpen && (
             <div className="steps-panel">
               {calculation.steps.map((step, index) => (
                 <div

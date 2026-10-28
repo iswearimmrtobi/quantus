@@ -60,6 +60,31 @@ pub enum QuadraticFormula {
     Abc,
 }
 
+/// How much working the step list shows. Each level contains every step of the levels before it.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum StepDetail {
+    /// Only the result; the engine still computes the steps at `Brief`, the list is hidden.
+    None,
+    /// One step per rule.
+    Brief,
+    /// What a student writes in their notebook: the line that shows the idea of the rule.
+    #[default]
+    Standard,
+    /// Every intermediate expression of a rule: the formula with the values put in, the factor
+    /// written out before it is cancelled.
+    Detailed,
+    /// Also the bookkeeping: signs, the order of terms, the domain notes of cancelled factors.
+    Maximal,
+}
+
+impl StepDetail {
+    /// Whether a step of `level` is shown at this setting. `None` shows what `Brief` shows.
+    pub fn shows(self, level: StepDetail) -> bool {
+        level <= self.max(StepDetail::Brief)
+    }
+}
+
 /// What the calculator is used for. It decides which symbols mean something on their own.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -107,6 +132,9 @@ pub struct Settings {
     pub extra_unit_letters: bool,
     pub language: Language,
     pub quadratic_formula: QuadraticFormula,
+    pub step_detail: StepDetail,
+    /// Whether a cancelled factor is struck through (`\cancel`) rather than coloured.
+    pub cancel_marks: bool,
 }
 
 impl Default for Settings {
@@ -124,6 +152,8 @@ impl Default for Settings {
             extra_unit_letters: false,
             language: Language::En,
             quadratic_formula: QuadraticFormula::Auto,
+            step_detail: StepDetail::Standard,
+            cancel_marks: true,
         }
     }
 }
@@ -196,7 +226,9 @@ mod tests {
                 "letterProducts": true,
                 "extraUnitLetters": false,
                 "language": "en",
-                "quadraticFormula": "auto"
+                "quadraticFormula": "auto",
+                "stepDetail": "standard",
+                "cancelMarks": true
             })
         );
     }
@@ -227,6 +259,16 @@ mod tests {
         assert_eq!(parsed.conditional_identities, ConditionalIdentities::AlwaysValid);
         assert_eq!(parsed.output_style().conditions, ConditionalIdentities::AlwaysValid);
         assert_eq!(Settings::default().output_style().conditions, ConditionalIdentities::WithCondition);
+    }
+
+    #[test]
+    fn each_detail_level_shows_the_levels_before_it() {
+        use StepDetail::*;
+        assert!(Standard.shows(Brief) && Standard.shows(Standard) && !Standard.shows(Detailed));
+        assert!(None.shows(Brief) && !None.shows(Standard));
+        assert!(Maximal.shows(Maximal));
+        let parsed: Settings = serde_json::from_value(json!({ "stepDetail": "maximal", "cancelMarks": false })).unwrap();
+        assert_eq!((parsed.step_detail, parsed.cancel_marks), (Maximal, false));
     }
 
     #[test]

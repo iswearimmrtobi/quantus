@@ -139,6 +139,7 @@ export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 export type ConditionalIdentities = 'withCondition' | 'alwaysValid';
+export type StepDetail = 'none' | 'brief' | 'standard' | 'detailed' | 'maximal';
 
 /** What `quantus_core::settings::Settings` serialises to. */
 export interface Settings {
@@ -156,6 +157,10 @@ export interface Settings {
   language: Language;
   /** How the analysis mode solves quadratics; `auto` is pq in German and abc in English. */
   quadraticFormula: QuadraticFormula;
+  /** How much working the step list shows; `none` hides it. */
+  stepDetail: StepDetail;
+  /** Whether a cancelled factor is struck through rather than coloured. */
+  cancelMarks: boolean;
 }
 
 /** A segment of the graph: points in order, broken at poles and gaps. */
