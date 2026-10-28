@@ -142,7 +142,8 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
    - tan at those points is exact (0, ±√3/3, ±1, ±√3), or undefined.
    - Inverse table: arcsin, arccos and arctan of these values give the angle.
 7. Odd and even: `sin(-u) = -sin u`, `cos(-u) = cos u`, `tan(-u) = -tan u`, `|-u| = |u|`, `sinh(-u) = -sinh u`, `cosh(-u) = cosh u`.
-8. Rational subtrees: a subtree whose `as_rational()` succeeds is replaced by the result of `algebra::pipeline::simplify_node_with(node, PipelineConfig{ style: settings.output_style(), verify_equivalence: false, ..})`, converted back.
+8. Rational subtrees: a subtree whose `as_rational()` succeeds is replaced by the result of `algebra::pipeline::simplify_node_with(node, PipelineConfig{ style: expanded, no completed square, verify_equivalence: false, ..})`, converted back.
+9. Rational in x and atoms: a sum or product that mixes x with functions, roots or constants (the atoms) and has a sum inside a product or power, such as `\frac{-x - 2x(1 - \ln x)}{x^{4}}`, goes through the same pipeline with each distinct atom as a variable `a_i`, which is put back afterwards (`\frac{2\ln(x) - 3}{x^{3}}`). The atoms count as independent variables, which is always valid, even where it is not the simplest form.
 
 **Display forms** (`pub fn display(e: &Expr, settings) -> Expr`):
 - A rational result keeps the pipeline form: expanded numerator, denominator per `settings.denominator_form`. Polynomials are expanded unless the binomial setting is explicitly `binomial` (`auto` counts as `expanded` here, so f′(x) reads `3x^{2} - 3`, not `3(x - 1)(x + 1)`), and never written as a completed square.
@@ -180,10 +181,10 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
 
 **Before the next derivative:** `result = display(simplify(raw))`. If it is rational, the pipeline cancels common factors (`(x−2)` from `(x−2)⁴` in f″), so degrees don't blow up. f′, f″ and f‴ are computed in turn, each from the simplified result of the previous one.
 
-**Steps for each derivative:**
-1. One step per rule application at the top level, each with `rule` and an explanation naming the parts. For example `rule: "PRODUCT_RULE"`, explanation "Produktregel mit u = x^{2}, v = e^{x}" / "Product rule with u = x^{2}, v = e^{x}"; the latex shows `f'(x) = u'v + uv' = 2x·e^{x} + x^{2}·e^{x}`. Inner chain-rule applications appear in the same step's explanation ("Kettenregel: innere Ableitung 2x").
-2. `raw`
-3. `result` (only if it differs)
+**Steps for each derivative** (for the outermost rule; a constant factor is looked through):
+1. The parts, for the product and quotient rule: explanation "Produktregel mit" / "Product rule with", latex `u = x^{2}, \quad v = e^{x}, \quad u' = 2x, \quad v' = e^{x}`. For the chain rule: "Innere Funktion" / "Inner function", latex `u = x^{2}, \quad u' = 2x`.
+2. The rule applied, ending in the raw result: `f'(x) = u' \cdot v + u \cdot v' = 2x \cdot e^{x} + x^{2} \cdot e^{x}`, explanation naming the rule (sum and factor rule, power rule, product rule, quotient rule, chain rule, derivative of a basic function, or "the derivative of a constant is 0"). For a sum, each term's derivative is shown simplified.
+3. The simplified result, rule `SIMPLIFY` ("Zusammenfassen" / "Simplify"), only if it differs: `f'(x) = (x^{2} + 2x)e^{x}`.
 
 ## 7. Intervals and domain (`interval.rs`, `domain.rs`)
 
@@ -464,7 +465,7 @@ pub fn value_table(settings: &Settings, r: &TableRequest) -> Result<TableRespons
 
 `StepResponse` gets a `fn of(&Step)` constructor so `CalculationResponse::of` and the analysis use the same mapping. Every entry point opens `text::Scope::new(settings.language)`.
 
-**`rules.rs`:** `AnalysisRule` with `as_str()` in SCREAMING_SNAKE (`SUM_RULE`, `FACTOR_RULE`, `POWER_RULE`, `PRODUCT_RULE`, `QUOTIENT_RULE`, `CHAIN_RULE`, `DOMAIN_CONDITION`, `ZERO_PRODUCT`, `FACTOR_OUT`, `QUADRATIC_PQ`, `QUADRATIC_ABC`, `SUBSTITUTION`, `RATIONAL_ROOT_GUESS`, `POLYNOMIAL_DIVISION`, `INVERSE_FUNCTION`, `NUMERIC_ROOT`, `SECOND_DERIVATIVE_TEST`, `SIGN_CHANGE_TEST`, `THIRD_DERIVATIVE_TEST`, `SYMMETRY`, `LIMIT_DEGREE`, `LIMIT_POLE`, `LIMIT_DOMINANCE`, `LIMIT_SQUEEZE`, `LIMIT_NUMERIC`, `INTEGRAL_TABLE`, `INTEGRAL_POLYNOMIAL`, `PARTIAL_FRACTIONS`, `INTEGRAL_SUBSTITUTION`, `INTEGRATION_BY_PARTS`, `TANGENT`, `NORMAL`, `AREA`).
+**`rules.rs`:** `AnalysisRule` with `as_str()` in SCREAMING_SNAKE (`SUM_RULE`, `FACTOR_RULE`, `POWER_RULE`, `PRODUCT_RULE`, `QUOTIENT_RULE`, `CHAIN_RULE`, `ELEMENTARY_DERIVATIVE`, `SIMPLIFY`, `DOMAIN_CONDITION`, `ZERO_PRODUCT`, `FACTOR_OUT`, `QUADRATIC_PQ`, `QUADRATIC_ABC`, `SUBSTITUTION`, `RATIONAL_ROOT_GUESS`, `POLYNOMIAL_DIVISION`, `INVERSE_FUNCTION`, `NUMERIC_ROOT`, `SECOND_DERIVATIVE_TEST`, `SIGN_CHANGE_TEST`, `THIRD_DERIVATIVE_TEST`, `SYMMETRY`, `LIMIT_DEGREE`, `LIMIT_POLE`, `LIMIT_DOMINANCE`, `LIMIT_SQUEEZE`, `LIMIT_NUMERIC`, `INTEGRAL_TABLE`, `INTEGRAL_POLYNOMIAL`, `PARTIAL_FRACTIONS`, `INTEGRAL_SUBSTITUTION`, `INTEGRATION_BY_PARTS`, `TANGENT`, `NORMAL`, `AREA`).
 
 **Budget (`budget.rs`):** `Budget::new(Duration)` with `exceeded()`, checked in the numeric loops and the simplifier passes. Limits: `analyze` 3 s, `sample_function` 200 ms, the tasks 2 s each. When the budget runs out, the current section gets status `partial` with "Zeitlimit erreicht" / "Time limit reached", and later sections are skipped with the same status.
 

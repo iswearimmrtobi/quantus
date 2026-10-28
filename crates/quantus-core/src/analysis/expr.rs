@@ -341,6 +341,15 @@ pub(crate) fn split_coefficient(term: &Expr) -> (RBig, Expr) {
 fn sum_node(terms: &[Expr], var: &str) -> Node {
     let mut ordered: Vec<&Expr> = terms.iter().collect();
     ordered.sort_by_key(|term| summand_rank(term));
+    // A sum with functions in it does not start with a minus when a positive term can go first:
+    // 1 - \ln(x). Polynomials keep falling degree: -x^{2} + 4.
+    let mixed = ordered.iter().any(|term| summand_rank(term).0 == 1);
+    if mixed && split_coefficient(ordered[0]).0.is_negative() {
+        if let Some(i) = ordered.iter().position(|term| !split_coefficient(term).0.is_negative()) {
+            let positive = ordered.remove(i);
+            ordered.insert(0, positive);
+        }
+    }
     let mut node: Option<Node> = None;
     for term in ordered {
         let (negative, magnitude) = match term {
@@ -365,11 +374,13 @@ fn sum_node_grouped(e: &Expr, var: &str) -> Node {
     Node::Group { inner: Box::new(e.to_node(var)), position: 0 }
 }
 
-/// Where a factor goes in a product: π and e, powers of the variable, other powers and roots,
-/// then functions and sums.
+/// Where a factor goes in a product: constants (π, e, \\ln(2)), powers of the variable, other
+/// powers and roots, then functions and sums.
 fn factor_rank(factor: &Expr) -> u8 {
     match factor {
         Expr::Num(_) => 0,
+        // Constants like \ln(2) or \sqrt{3} lead: \ln(2) \cdot 2^{x}.
+        _ if factor.is_constant() => 1,
         Expr::Pi | Expr::E => 1,
         Expr::Var => 2,
         Expr::Pow(base, _) if **base == Expr::Var => 2,
@@ -497,6 +508,11 @@ fn power_node(base: &Expr, exponent: &Expr, var: &str) -> Node {
 // ---- structure and evaluation ------------------------------------------------------------------
 
 impl Expr {
+    /// The tree in LaTeX, as [`Expr::to_node`] writes it.
+    pub fn to_latex(&self, var: &str) -> String {
+        crate::latex::serializer::algebraic_expression(&self.to_node(var))
+    }
+
     /// The tree with the variable replaced by `with`, e.g. `-x` for symmetry or a root `x_0`.
     pub fn substitute(&self, with: &Expr) -> Expr {
         match self {
@@ -721,6 +737,8 @@ mod tests {
         assert_eq!(latex(&f), "x^{3} - 3x + 2");
         let g = Expr::Sum(vec![Expr::int(-1), Expr::Var, Expr::func(Fn::Exp, Expr::Var)]);
         assert_eq!(latex(&g), "x + e^{x} - 1");
+        let mixed = Expr::Sum(vec![Expr::neg(Expr::func(Fn::Ln, Expr::Var)), Expr::int(1)]);
+        assert_eq!(latex(&mixed), "1 - \\ln(x)");
         let h = Expr::Sum(vec![Expr::recip(Expr::Var), Expr::int(2), Expr::Var]);
         assert_eq!(latex(&h), "x + 2 + \\frac{1}{x}");
         assert_eq!(latex(&Expr::neg(x_pow(2))), "-x^{2}");

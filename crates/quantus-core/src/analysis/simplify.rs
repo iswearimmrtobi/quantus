@@ -19,6 +19,7 @@ use dashu::rational::RBig;
 use super::exact::{self, TrigValue};
 use super::expr::{split_coefficient, summand_rank, Expr, Fn};
 use crate::algebra::pipeline::{simplify_node_with, OutputStyle, PipelineConfig};
+use crate::latex::{Node, Operator};
 use crate::settings::{BinomialForm, DenominatorForm, Settings};
 
 /// Passes over the whole tree before the simplifier gives up on reaching a fixed point.
@@ -91,7 +92,9 @@ pub fn display(e: &Expr, settings: &Settings) -> Expr {
             return shown;
         }
     }
-    factor_common(&simplified, settings).unwrap_or(simplified)
+    let shown = if needs_atoms(&simplified) { rational_in_atoms(&simplified, style) } else { None };
+    let shown = shown.unwrap_or(simplified);
+    factor_common(&shown, settings).unwrap_or(shown)
 }
 
 fn factor_common(e: &Expr, settings: &Settings) -> Option<Expr> {
@@ -159,6 +162,11 @@ fn pass(e: &Expr) -> Expr {
             return simplified;
         }
     }
+    if needs_atoms(e) {
+        if let Some(simplified) = rational_in_atoms(e, INTERNAL_STYLE) {
+            return simplified;
+        }
+    }
     local(map_children(e, pass))
 }
 
@@ -199,6 +207,101 @@ fn rational(e: &Expr, style: OutputStyle) -> Option<Expr> {
         cache.insert(key, simplified.clone());
     });
     Some(simplified)
+}
+
+// ---- rational in x and atoms --------------------------------------------------------------------
+
+/// Whether `e` mixes x with functions (the atoms) in a way the algebra pipeline can multiply out
+/// or cancel: a sum inside a product or a power, as in `\frac{-x - 2x(1 - \ln x)}{x^{4}}`.
+fn needs_atoms(e: &Expr) -> bool {
+    fn sum_below(e: &Expr, under_product: bool) -> bool {
+        match e {
+            Expr::Sum(terms) => under_product || terms.iter().any(|t| sum_below(t, false)),
+            Expr::Product(factors) => factors.iter().any(|f| sum_below(f, true)),
+            Expr::Pow(base, exponent) if is_integer(exponent) => sum_below(base, true),
+            _ => false,
+        }
+    }
+    matches!(e, Expr::Sum(_) | Expr::Product(_)) && e.as_rational().is_none() && sum_below(e, false)
+}
+
+fn is_integer(e: &Expr) -> bool {
+    e.as_num().is_some_and(|r| r.is_int())
+}
+
+/// `e` through the algebra pipeline with every atom (a function, a root, a constant like π) as
+/// a variable of its own, `a_1, a_2, …`, put back afterwards. The pipeline treats the atoms as
+/// independent, which is always valid, if not always the simplest.
+fn rational_in_atoms(e: &Expr, style: OutputStyle) -> Option<Expr> {
+    let key = (e.clone(), (style.binomial, style.complete_square, style.denominator));
+    if let Some(hit) = RATIONAL_CACHE.with(|cache| cache.borrow().get(&key).cloned()) {
+        return Some(hit);
+    }
+    let mut atoms = Vec::new();
+    let node = atom_node(e, &mut atoms)?;
+    let config = PipelineConfig { verify_equivalence: false, style, ..PipelineConfig::default() };
+    let result = simplify_node_with(&node, config).ok()?;
+    let variable = Expr::poly_variable();
+    let restored = result.node.map_children(&mut |child| restore_atoms(child, &atoms, variable));
+    let restored = restore_atoms(restored, &atoms, variable);
+    let simplified = canon(&Expr::from_node(&restored, variable).ok()?);
+    RATIONAL_CACHE.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        if cache.len() >= CACHE_LIMIT {
+            cache.clear();
+        }
+        cache.insert(key, simplified.clone());
+    });
+    Some(simplified)
+}
+
+/// The rational skeleton of `e` as a node, with each distinct atom as the variable `a_i`.
+fn atom_node(e: &Expr, atoms: &mut Vec<Expr>) -> Option<Node> {
+    let number = |r: &RBig| Expr::Num(r.clone()).to_node(Expr::poly_variable());
+    Some(match e {
+        Expr::Num(r) => number(r),
+        Expr::Var => Expr::Var.to_node(Expr::poly_variable()),
+        Expr::Sum(terms) => {
+            terms.iter().map(|t| atom_node(t, atoms)).collect::<Option<Vec<_>>>()?.into_iter().reduce(|a, b| Node::binary(Operator::Plus, a, b, 0))?
+        }
+        Expr::Product(factors) => factors
+            .iter()
+            .map(|f| atom_node(f, atoms))
+            .collect::<Option<Vec<_>>>()?
+            .into_iter()
+            .reduce(|a, b| Node::binary(Operator::Times, a, b, 0))?,
+        Expr::Pow(base, exponent) if is_integer(exponent) => {
+            let n = exponent.as_num().unwrap();
+            let base = Node::Group { inner: Box::new(atom_node(base, atoms)?), position: 0 };
+            let power = Node::Power { base: Box::new(base), exponent: Box::new(number(&n.clone().abs())), position: 0 };
+            if n.is_negative() { Node::fraction(number(&RBig::ONE), power, 0) } else { power }
+        }
+        atom => {
+            let simplified = simplify(atom);
+            let index = match atoms.iter().position(|a| *a == simplified) {
+                Some(i) => i,
+                None => {
+                    atoms.push(simplified);
+                    atoms.len() - 1
+                }
+            };
+            Node::Variable { name: "a".into(), index: (index + 1).to_string(), position: 0 }
+        }
+    })
+}
+
+fn restore_atoms(node: Node, atoms: &[Expr], variable: &str) -> Node {
+    // The pipeline writes a variable back under its key, `a_1`.
+    let atom = match &node {
+        Node::Variable { name, index, .. } => {
+            Node::variable_key(name, index).strip_prefix("a_").and_then(|i| i.parse::<usize>().ok())
+        }
+        _ => None,
+    };
+    match atom {
+        Some(i) => Node::Group { inner: Box::new(atoms[i - 1].to_node(variable)), position: 0 },
+        None => node.map_children(&mut |child| restore_atoms(child, atoms, variable)),
+    }
 }
 
 fn local(e: Expr) -> Expr {
