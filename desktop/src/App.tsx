@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, ApiError, type Calculation, type Settings, type StepKind, type Variable } from './api';
+import { api, ApiError, type Calculation, type Mode, type Settings, type StepKind, type Variable } from './api';
 import { Katex } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { CircuitEditor } from './components/CircuitEditor';
@@ -30,7 +30,12 @@ const STEP_LABELS: Record<StepKind, TextKey> = {
   note: 'note',
 };
 
-const PLACEHOLDER = 'F = 2kg \\cdot 10\\frac{m}{s^2}';
+/** An example under the empty field that fits what the mode reads; analysis and electronics bring their own. */
+const PLACEHOLDERS: Partial<Record<Mode, string>> = {
+  algebra: '\\frac{x^2 - 1}{x + 1}',
+  physics: 'F = 2kg \\cdot 10\\frac{m}{s^2}',
+  imaginary: '(2 + 3i)(1 - i)',
+};
 
 export function App() {
   const [input, setInput] = useState('');
@@ -52,6 +57,7 @@ export function App() {
   const [fileError, setFileError] = useState<string | null>(null);
 
   const language = settings.language;
+  const placeholder = PLACEHOLDERS[settings.mode] ?? PLACEHOLDERS.physics;
   // At the detail level `none` the engine still computes the steps; only the list is hidden.
   const showSteps = settings.stepDetail !== 'none';
   const i18n = useMemo(() => ({ language, t: makeTranslate(language) }), [language]);
@@ -321,6 +327,7 @@ export function App() {
                 onChange={setInput}
                 onEnter={() => void evaluate()}
                 onLeave={() => toggleLatexMode()}
+                placeholder={placeholder}
               />
             ) : (
               <MathField
@@ -350,10 +357,10 @@ export function App() {
               input ? (
                 <Katex className="source-preview" latex={input} />
               ) : (
-                <code className="source">{PLACEHOLDER}</code>
+                <code className="source">{placeholder}</code>
               )
             ) : (
-              <code className="source">{input || PLACEHOLDER}</code>
+              <code className="source">{input || placeholder}</code>
             )}
             {input && (
               <button className="copy-btn" onClick={() => void copy(input, 'input')}>
