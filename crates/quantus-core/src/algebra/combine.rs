@@ -212,6 +212,11 @@ pub fn combine_fractions_at(node: &Node) -> Option<(Node, RuleId, String)> {
         } else {
             (term_node, one_node.clone())
         };
+        // `den_to_factored` reads a denominator that is not a polynomial (`\sqrt{a}`, `\sin(x)`) as 1,
+        // which would silently drop it from the sum.
+        if !is_constant_one(&den) && Poly::from_node(&den).is_err() {
+            return None;
+        }
 
         let fact_den = den_to_factored(&den);
         lcd = lcd.lcm(&fact_den);

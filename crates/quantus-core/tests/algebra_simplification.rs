@@ -514,6 +514,15 @@ fn cat13_unsupported_expressions_handled_gracefully() {
     assert_eq!(restrictions(&res), "x != 1");
 }
 
+#[test]
+fn cat13_non_polynomial_denominators_are_not_dropped() {
+    // Combining over the LCD once read these denominators as 1: 1/√a + 1 became 2.
+    for input in [r"\frac{1}{\sqrt{a}} + 1", r"\frac{1}{\sin(x)} + 1", r"\frac{1}{x + \sqrt{a}} + \frac{1}{x}"] {
+        let res = run(input);
+        assert_eq!(serializer::expression(&res.node), serializer::expression(&parse(input)), "{input}");
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Category 14: Verifying mathematical equivalence across test cases
 // ---------------------------------------------------------------------------------------------
