@@ -1142,6 +1142,8 @@ code {
 }
 
 .analysis-panel {
+  /* Its own height, not the workspace's: otherwise the bottom padding falls outside the scroll range. */
+  align-self: flex-start;
   width: 100%;
   max-width: 1280px;
   margin-top: 4vh;
