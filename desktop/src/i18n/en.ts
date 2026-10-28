@@ -38,7 +38,7 @@ export const en = {
   'mode.electronics': 'Electronics',
   'mode.algebra.hint': 'Letters are variables: no units, no natural constants, i is a variable.',
   'mode.physics.hint': 'Units and natural constants are known; i is a variable.',
-  'mode.imaginary.hint': 'i is the imaginary unit, results may be complex.',
+  'mode.imaginary.hint': 'As in Algebra, but i is the imaginary unit, results may be complex.',
   'mode.electronics.hint': 'Circuit calculator: inputs are read as in Physics.',
   'choice.auto': 'Automatic',
   'choice.expanded': 'Expanded',

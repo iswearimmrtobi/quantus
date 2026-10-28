@@ -49,8 +49,8 @@ switched in the top bar.
 
 | | algebra | physics | imaginary |
 |---|---|---|---|
-| Units (outside `\mathrm{}`) | no, every letter is a variable | yes | yes |
-| Physical constants (`c_0`, `h_P`, …) | no | yes | yes |
+| Units (outside `\mathrm{}`) | no, every letter is a variable | yes | no, every letter but `i` is a variable |
+| Physical constants (`c_0`, `h_P`, …) | no | yes | no |
 | `i` | a variable | a variable | the imaginary unit |
 | Complex results | error | error | shown as `a + bi` |
 

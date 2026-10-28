@@ -39,7 +39,7 @@ export const de: Record<TextKey, string> = {
   'mode.electronics': 'Elektronik',
   'mode.algebra.hint': 'Buchstaben sind Variablen: keine Einheiten, keine Naturkonstanten, i ist eine Variable.',
   'mode.physics.hint': 'Einheiten und Naturkonstanten sind bekannt; i ist eine Variable.',
-  'mode.imaginary.hint': 'i ist die imaginäre Einheit, Ergebnisse dürfen komplex sein.',
+  'mode.imaginary.hint': 'Wie Algebra, aber i ist die imaginäre Einheit, Ergebnisse dürfen komplex sein.',
   'mode.electronics.hint': 'Schaltungsrechner: Eingaben werden wie in Physik gelesen.',
   'choice.auto': 'Automatisch',
   'choice.expanded': 'Ausmultipliziert',

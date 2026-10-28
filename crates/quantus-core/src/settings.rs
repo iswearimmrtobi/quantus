@@ -69,7 +69,7 @@ pub enum Mode {
     /// Units and physical constants are known; `i` is a variable.
     #[default]
     Physics,
-    /// `i` is the imaginary unit and results may be complex.
+    /// Inputs are read as in `Algebra`, but `i` is the imaginary unit and results may be complex.
     Imaginary,
     /// The circuit calculator. Inputs are read as in `Physics`.
     Electronics,
@@ -144,7 +144,7 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Analysis),
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis),
             imaginary_i: self.mode == Mode::Imaginary,
         }
     }
@@ -206,7 +206,7 @@ mod tests {
         let options = |mode| Settings { mode, ..Settings::default() }.parse_options();
         assert_eq!((options(Mode::Algebra).units, options(Mode::Algebra).imaginary_i), (false, false));
         assert_eq!((options(Mode::Physics).units, options(Mode::Physics).imaginary_i), (true, false));
-        assert_eq!((options(Mode::Imaginary).units, options(Mode::Imaginary).imaginary_i), (true, true));
+        assert_eq!((options(Mode::Imaginary).units, options(Mode::Imaginary).imaginary_i), (false, true));
         assert_eq!((options(Mode::Electronics).units, options(Mode::Electronics).imaginary_i), (true, false));
         assert_eq!((options(Mode::Analysis).units, options(Mode::Analysis).imaginary_i), (false, false));
         assert_eq!(serde_json::to_value(Mode::Analysis).unwrap(), json!("analysis"));
