@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { api, ApiError, type Calculation, type Mode, type Settings, type StepKind, type Variable } from './api';
-import { Katex } from './components/Katex';
+import { Katex, latexLines } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { CircuitEditor } from './components/CircuitEditor';
 import { AnalysisView } from './components/AnalysisView';
@@ -352,10 +353,10 @@ export function App() {
             der Quelltext zum Kopieren, beim Schreiben von LaTeX die gesetzte Formel — damit
             man sieht, ob der Ausdruck das ist, was man gemeint hat.
           */}
-          <div className="source-row">
+          <div className="source-row" style={{ '--lines': latexMode && input ? latexLines(input) : 1 } as CSSProperties}>
             {latexMode ? (
               input ? (
-                <Katex className="source-preview" latex={input} />
+                <Katex className="source-preview" latex={`\\displaystyle ${input}`} />
               ) : (
                 <code className="source">{placeholder}</code>
               )

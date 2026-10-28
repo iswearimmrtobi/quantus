@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   api,
   ApiError,
@@ -14,7 +15,7 @@ import { useT } from '../i18n';
 import { copyText } from '../shell';
 import type { TextKey } from '../i18n/en';
 import { FunctionPlot } from './FunctionPlot';
-import { Katex } from './Katex';
+import { Katex, latexLines } from './Katex';
 import { LatexInput, type LatexInputHandle } from './LatexInput';
 import { MathField, toReadableLatex, type MathFieldHandle } from './MathField';
 
@@ -219,8 +220,8 @@ export function AnalysisView({ settings }: { settings: Settings }) {
           </button>
         </div>
         {/* The other view of the input below it, as in the calculator: typeset while writing LaTeX, the source otherwise. */}
-        <div className="source-row">
-          {latexMode && input ? <Katex className="source-preview" latex={input} /> : <code className="source">{input || PLACEHOLDER}</code>}
+        <div className="source-row" style={{ '--lines': latexMode && input ? latexLines(input) : 1 } as CSSProperties}>
+          {latexMode && input ? <Katex className="source-preview" latex={`\\displaystyle ${input}`} /> : <code className="source">{input || PLACEHOLDER}</code>}
           {input && (
             <button className="copy-btn" onClick={() => void copyInput()}>
               {copied ? t('copied') : t('analysis.input.copy')}

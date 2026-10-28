@@ -320,7 +320,8 @@ code {
   padding: 8px 12px;
   border: 1px dashed var(--hairline);
   border-radius: var(--radius);
-  min-height: 34px;
+  /* --lines: how tall the typeset formula stands (see latexLines). */
+  min-height: calc(34px * var(--lines, 1));
 }
 .source {
   flex: 1;
