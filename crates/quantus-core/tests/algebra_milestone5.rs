@@ -733,3 +733,14 @@ fn like_terms_are_grouped_before_they_are_added() {
     let n = cancelling.len();
     assert_eq!(cancelling[n - 2], row(r"\frac{x^{2} + 0 + 9}{(x - 3) \cdot (x + 3)}", r"3 \cdot x - 3 \cdot x = 0"));
 }
+
+#[test]
+fn each_kind_of_notation_is_a_step_of_its_own() {
+    assert_eq!(rows("x^{-2}", StepDetail::Brief), [row(r"\frac{1}{x^{2}}", r"Negative exponent: a^{-n} = \frac{1}{a^{n}}")]);
+    assert_eq!(rows("-(-x)", StepDetail::Brief), [row("x", "Two minus signs cancel: -(-a) = a")]);
+    let input = r"\frac{-(-x)}{x^{-1}}";
+    let maximal: Vec<String> = run_at(input, StepDetail::Maximal).steps.into_iter().map(|s| s.explanation).collect();
+    assert_eq!(maximal[1..3], [r"Negative exponent: a^{-n} = \frac{1}{a^{n}}", "Two minus signs cancel: -(-a) = a"]);
+    assert_eq!(maximal[3], r"Dividing by \frac{1}{x} is multiplying by its reciprocal x");
+    assert!(rows(input, StepDetail::Standard).iter().all(|(_, text)| !text.starts_with("Two minus")));
+}

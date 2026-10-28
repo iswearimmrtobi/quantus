@@ -338,18 +338,20 @@ impl Pipeline {
             binomial_style: BinomialStyle::Expand,
         };
 
-        // Stage 2: normalize notation and signs.
+        // Stage 2: normalize notation and signs, one kind of rewrite at a time.
         let normalized = normalize_notation(node);
-        if serializer::expression(&normalized) != serializer::expression(node) {
-            pipeline.visited.insert(state_key(&normalized), 1);
-            pipeline.record(
-                normalized.clone(),
-                "Rewrite negative exponents as fractions and normalize signs",
-                RuleId::NormalizeExpression,
-            );
-        } else {
-            pipeline.current = normalized.clone();
+        let mut kinds = Vec::new();
+        for kind in [Notation::Division, Notation::NegativeExponent, Notation::DoubleNegation] {
+            kinds.push(kind);
+            let next = normalize_notation_of(node, &kinds);
+            if serializer::expression(&next) != serializer::expression(&pipeline.current) {
+                let (text, level) = kind.step();
+                pipeline.visited.insert(state_key(&next), pipeline.steps.len() + 1);
+                pipeline.record(next, text, RuleId::NormalizeExpression);
+                pipeline.steps.last_mut().expect("just recorded").level = level;
+            }
         }
+        pipeline.current = normalized.clone();
         tracker.scan_and_record(&normalized)?;
         pipeline.tracker = tracker;
         pipeline.binomial_style = BinomialStyle::of_input(&normalized, &config.style);
@@ -695,9 +697,32 @@ pub(crate) fn integer_exponent(node: &Node) -> Option<i64> {
 /// Stage 2: rewrites `b^{-n}` as `\frac{1}{b^{n}}`, removes double negations and turns any
 /// remaining `/` into a fraction. Applied to the whole tree at once.
 pub fn normalize_notation(node: &Node) -> Node {
-    let node = node.clone().map_children(&mut |child| normalize_notation(&child));
+    normalize_notation_of(node, &[Notation::Division, Notation::NegativeExponent, Notation::DoubleNegation])
+}
+
+/// The kinds of rewrite of stage 2, each a step of its own.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Notation {
+    Division,
+    NegativeExponent,
+    DoubleNegation,
+}
+
+impl Notation {
+    fn step(self) -> (&'static str, StepDetail) {
+        match self {
+            Notation::Division => ("Write the division as a fraction", StepDetail::Maximal),
+            Notation::NegativeExponent => ("Negative exponent: a^{-n} = \\frac{1}{a^{n}}", StepDetail::Brief),
+            Notation::DoubleNegation => ("Two minus signs cancel: -(-a) = a", StepDetail::Maximal),
+        }
+    }
+}
+
+/// [`normalize_notation`], with only the rewrites of `kinds`.
+fn normalize_notation_of(node: &Node, kinds: &[Notation]) -> Node {
+    let node = node.clone().map_children(&mut |child| normalize_notation_of(&child, kinds));
     match node {
-        Node::Power { ref base, ref exponent, .. } => match integer_exponent(exponent) {
+        Node::Power { ref base, ref exponent, .. } if kinds.contains(&Notation::NegativeExponent) => match integer_exponent(exponent) {
             Some(n) if n < 0 => {
                 let positive = if n == -1 {
                     (**base).clone()
@@ -712,7 +737,7 @@ pub fn normalize_notation(node: &Node) -> Node {
             }
             _ => node,
         },
-        Node::Negation { ref operand, .. } => match unwrap_group(operand) {
+        Node::Negation { ref operand, .. } if kinds.contains(&Notation::DoubleNegation) => match unwrap_group(operand) {
             Node::Negation { operand: inner, .. } => (**inner).clone(),
             _ => node,
         },
@@ -721,7 +746,7 @@ pub fn normalize_notation(node: &Node) -> Node {
             left,
             right,
             ..
-        } => make_fraction(*left, *right),
+        } if kinds.contains(&Notation::Division) => make_fraction(*left, *right),
         other => other,
     }
 }

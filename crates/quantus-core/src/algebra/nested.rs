@@ -303,7 +303,7 @@ fn nested_fraction_step(node: &Node) -> Option<AlgebraStep> {
         if numerator_side { num_now = combined } else { den_now = combined }
     }
     let last = if let Some((c, d)) = split_fraction(&den_now) {
-        let reciprocal = make_fraction(d.clone(), c.clone());
+        let reciprocal = if is_constant_one(c) { d.clone() } else { make_fraction(d.clone(), c.clone()) };
         let text = format!(
             "Dividing by {} is multiplying by its reciprocal {}",
             serializer::expression(&den_now),

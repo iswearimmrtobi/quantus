@@ -207,18 +207,15 @@ impl AlgebraStep {
             step.summary = None;
             step.rule = step.rule.or(self.rule);
         }
-        if let Some(index) = steps.iter().rposition(|step| !step.note) {
-            let before = steps[index].after.clone();
+        let has_lines = steps.iter().any(|step| !step.note);
+        if let Some(last) = steps.iter().rev().find(|step| !step.note) {
+            let before = last.after.clone();
             self = self.starting_at(before);
-            // The last line already reached the result: it is the step's last line.
-            if !self.note && self.before_latex == self.after_latex {
-                let line = steps.remove(index);
-                self.explanation = line.explanation;
-                self = self.starting_at(line.before);
-            }
         }
         let (after, rule) = (self.after.clone(), self.rule);
-        if self.before_latex != self.after_latex || self.note {
+        // When its lines already reach the result, the step itself changes nothing; it is kept
+        // to stand for them where they are hidden.
+        if self.before_latex != self.after_latex || self.note || has_lines {
             steps.push(self);
         }
         for note in notes {
