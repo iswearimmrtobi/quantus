@@ -26,7 +26,7 @@ use crate::{QuantusError, Result};
 enum Condition {
     NonZero(Expr),
     Positive(Expr, Reason),
-    NonNegative(Expr),
+    NonNegative(Expr, Reason),
     /// `-1 ≤ u ≤ 1`.
     UnitRange(Expr),
     /// `\cos u ≠ 0`, for `\tan u`.
@@ -39,6 +39,9 @@ enum Reason {
     Logarithm,
     VariablePower,
     RootBelowTheLine,
+    EvenRoot,
+    /// A power with a constant irrational exponent, `x^{\pi}`.
+    RealPower,
 }
 
 pub struct DomainContext<'a> {
@@ -96,7 +99,7 @@ fn collect(e: &Expr, out: &mut Vec<Condition>) -> Result<()> {
                 Some(r) => {
                     let even_root = r.denominator().clone() % dashu::integer::UBig::from(2u8) == dashu::integer::UBig::ZERO;
                     if even_root && r.is_positive() {
-                        add(out, Condition::NonNegative((**base).clone()), base)?;
+                        add(out, Condition::NonNegative((**base).clone(), Reason::EvenRoot), base)?;
                     } else if even_root {
                         add(out, Condition::Positive((**base).clone(), Reason::RootBelowTheLine), base)?;
                     } else if r.is_negative() {
@@ -104,7 +107,12 @@ fn collect(e: &Expr, out: &mut Vec<Condition>) -> Result<()> {
                     }
                 }
                 None if exponent.depends_on_var() => add(out, Condition::Positive((**base).clone(), Reason::VariablePower), base)?,
-                None => {}
+                // `x^{\pi}` is only real for x ≥ 0, `x^{-\pi}` for x > 0.
+                None => match exponent.eval_f64(0.0) {
+                    Some(v) if v > 0.0 => add(out, Condition::NonNegative((**base).clone(), Reason::RealPower), base)?,
+                    Some(v) if v < 0.0 => add(out, Condition::Positive((**base).clone(), Reason::RealPower), base)?,
+                    _ => {}
+                },
             }
         }
         Expr::Func(function, argument) => {
@@ -127,7 +135,7 @@ fn check_constant(condition: &Condition, value: &Expr) -> Result<()> {
         (_, None) => false,
         (Condition::NonZero(_), Some(_)) => !is_zero(value),
         (Condition::Positive(..), Some(v)) => v > 0.0,
-        (Condition::NonNegative(_), Some(v)) => v >= 0.0,
+        (Condition::NonNegative(..), Some(v)) => v >= 0.0,
         (Condition::UnitRange(_), Some(v)) => v.abs() <= 1.0,
         (Condition::CosNonZero(_), Some(v)) => v.cos().abs() > 1e-15,
     };
@@ -143,7 +151,7 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
     let var = ctx.var;
     match condition {
         Condition::NonZero(u) => {
-            let (points, families) = zeros(u, ctx);
+            let (points, families, complete) = zeros(u, ctx);
             for point in &points {
                 domain.set = domain.set.remove_point(point);
             }
@@ -153,11 +161,12 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
                 None => format!("{} \\neq 0", tex(u)),
                 Some(listed) => format!("{} \\neq 0 \\Rightarrow {var} \\neq {listed}", tex(u)),
             };
-            steps.push(step(AnalysisRule::DomainCondition, msg!("Denominator must not be zero", "Nenner darf nicht null sein"), latex));
+            let explanation = msg!("Denominator must not be zero", "Nenner darf nicht null sein");
+            steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, complete), latex));
         }
         Condition::CosNonZero(u) => {
             let cosine = Expr::func(Fn::Cos, u.clone());
-            let (points, families) = zeros(&cosine, ctx);
+            let (points, families, _) = zeros(&cosine, ctx);
             for point in &points {
                 domain.set = domain.set.remove_point(point);
             }
@@ -170,9 +179,9 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
                 latex,
             ));
         }
-        Condition::Positive(u, _) | Condition::NonNegative(u) => {
+        Condition::Positive(u, _) | Condition::NonNegative(u, _) => {
             let strict = matches!(condition, Condition::Positive(..));
-            let set = sign_set(u, strict, ctx)?;
+            let (set, complete) = sign_set(u, strict, ctx)?;
             domain.set = domain.set.intersect(&set);
             let relation = if strict { ">" } else { "\\geq" };
             let latex = format!("{} {relation} 0 \\Rightarrow {var} \\in {}", tex(u), set.to_latex(ctx.digits, ctx.settings.language));
@@ -186,21 +195,29 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
                 Condition::Positive(_, Reason::RootBelowTheLine) => {
                     msg!("Radicand of an even root in the denominator > 0", "Radikand einer geraden Wurzel im Nenner > 0")
                 }
+                Condition::Positive(_, Reason::RealPower) => {
+                    msg!("Base of a power with a negative irrational exponent > 0", "Basis einer Potenz mit negativem irrationalem Exponenten > 0")
+                }
+                Condition::NonNegative(_, Reason::RealPower) => {
+                    msg!("Base of a power with an irrational exponent ≥ 0", "Basis einer Potenz mit irrationalem Exponenten ≥ 0")
+                }
                 _ => msg!("Radicand of an even root ≥ 0", "Radikand einer geraden Wurzel ≥ 0"),
             };
-            steps.push(step(AnalysisRule::DomainCondition, explanation, latex));
+            steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, complete), latex));
         }
         Condition::UnitRange(u) => {
-            let upper = sign_set(&Expr::Sum(vec![Expr::int(1), Expr::neg(u.clone())]), false, ctx)?;
-            let lower = sign_set(&Expr::Sum(vec![u.clone(), Expr::int(1)]), false, ctx)?;
-            let set = upper.intersect(&lower);
-            domain.set = domain.set.intersect(&set);
-            let latex = format!("-1 \\leq {} \\leq 1 \\Rightarrow {var} \\in {}", tex(u), set.to_latex(ctx.digits, ctx.settings.language));
-            steps.push(step(
-                AnalysisRule::DomainCondition,
-                msg!("arcsin and arccos need an argument between -1 and 1", "arcsin und arccos brauchen ein Argument zwischen -1 und 1"),
-                latex,
-            ));
+            // Two inequalities, one step each.
+            let language = ctx.settings.language;
+            let (lower, lower_complete) = sign_set(&Expr::Sum(vec![u.clone(), Expr::int(1)]), false, ctx)?;
+            domain.set = domain.set.intersect(&lower);
+            let latex = format!("{} \\geq -1 \\Rightarrow {var} \\in {}", tex(u), lower.to_latex(ctx.digits, language));
+            let explanation = msg!("Argument of arcsin or arccos ≥ -1", "Argument von arcsin oder arccos ≥ -1");
+            steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, lower_complete), latex));
+            let (upper, upper_complete) = sign_set(&Expr::Sum(vec![Expr::int(1), Expr::neg(u.clone())]), false, ctx)?;
+            domain.set = domain.set.intersect(&upper);
+            let latex = format!("{} \\leq 1 \\Rightarrow {var} \\in {}", tex(u), upper.to_latex(ctx.digits, language));
+            let explanation = msg!("Argument of arcsin or arccos ≤ 1", "Argument von arcsin oder arccos ≤ 1");
+            steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, upper_complete), latex));
         }
     }
     Ok(())
@@ -217,19 +234,33 @@ fn exclusions(points: &[Point], families: &[PeriodicSet], digits: usize) -> Opti
     (!parts.is_empty()).then(|| parts.join(", "))
 }
 
-/// The real zeros of `u`, exact where possible.
-fn zeros(u: &Expr, ctx: &DomainContext) -> (Vec<Point>, Vec<PeriodicSet>) {
+/// Where periodic zeros of a non-linear argument are listed (`\frac{1}{\sin(x^2)}`); the
+/// solver's own numeric fallback searches [-100, 100].
+const SEARCH_WINDOW: (f64, f64) = (-10.0, 10.0);
+
+/// The real zeros of `u`, exact where possible, and whether they are all of them (`false` when
+/// part of the search was numeric in a window).
+fn zeros(u: &Expr, ctx: &DomainContext) -> (Vec<Point>, Vec<PeriodicSet>, bool) {
     let reals = Domain::reals();
-    let solve_ctx = SolveContext { settings: ctx.settings, var: ctx.var, domain: &reals, window: (-10.0, 10.0), digits: ctx.digits };
+    let solve_ctx = SolveContext { settings: ctx.settings, var: ctx.var, domain: &reals, window: SEARCH_WINDOW, digits: ctx.digits };
     let solved = solve_zero(u, &solve_ctx);
-    (solved.solutions.roots.into_iter().map(|r| r.point).collect(), solved.solutions.families)
+    (solved.solutions.roots.into_iter().map(|r| r.point).collect(), solved.solutions.families, solved.complete)
+}
+
+/// A step's explanation, with a note when the zeros behind it were only searched numerically.
+fn numeric_note(explanation: String, complete: bool) -> String {
+    if complete {
+        explanation
+    } else {
+        msg!("{} (zeros found numerically, some may be missing)", "{} (Nullstellen numerisch gesucht, es können welche fehlen)", explanation)
+    }
 }
 
 /// Where `u > 0` (or `u ≥ 0`): the domain of u cut at the zeros of u, with the sign tested in
 /// each piece at its simplest rational point.
-fn sign_set(u: &Expr, strict: bool, ctx: &DomainContext) -> Result<IntervalSet> {
+fn sign_set(u: &Expr, strict: bool, ctx: &DomainContext) -> Result<(IntervalSet, bool)> {
     let (own, _) = domain_of(u, ctx)?;
-    let (points, families) = zeros(u, ctx);
+    let (points, families, complete) = zeros(u, ctx);
     if !families.is_empty() || !own.excluded.is_empty() {
         return Err(QuantusError::other(msg!(
             "Domains made of periodic intervals are not supported yet.",
@@ -260,7 +291,7 @@ fn sign_set(u: &Expr, strict: bool, ctx: &DomainContext) -> Result<IntervalSet> 
             }
         }
     }
-    Ok(IntervalSet(pieces))
+    Ok((IntervalSet(pieces), complete))
 }
 
 /// Adds a zero of u to the pieces where u ≥ 0: it closes the bound it touches, joins two pieces
@@ -320,8 +351,10 @@ fn holes(f: &Expr, domain: &Domain) -> Vec<Point> {
     let mut out = Vec::new();
     for interval in &domain.set.0 {
         if let Bound::At { point, closed: false } = &interval.hi {
-            let Some(x) = &point.exact else { continue };
-            let still_zero = is_zero(&simplify(&reduced.substitute(x)));
+            let still_zero = match &point.exact {
+                Some(x) => is_zero(&simplify(&reduced.substitute(x))),
+                None => reduced.eval_f64(point.approx).is_none_or(|v| v.abs() <= 1e-9),
+            };
             if !still_zero && !out.iter().any(|p: &Point| p.same(point)) {
                 out.push(point.clone());
             }
@@ -366,6 +399,8 @@ mod tests {
         assert_eq!(written("\\sqrt[3]{x}"), "\\mathbb{R}");
         assert_eq!(written("x^x"), "]0; \\infty[");
         assert_eq!(written("\\arcsin(2x)"), "[-\\frac{1}{2}; \\frac{1}{2}]");
+        assert_eq!(written("x^{\\pi}"), "[0; \\infty[");
+        assert_eq!(written("x^{-\\sqrt{2}}"), "]0; \\infty[");
         assert_eq!(domain_of_latex("\\ln x", Language::En).unwrap().0.to_latex(6, Language::En), "(0, \\infty)");
     }
 
@@ -385,6 +420,22 @@ mod tests {
         let (d, steps) = domain_of_latex("\\tan x", Language::En).unwrap();
         assert_eq!(d.to_latex(6, Language::En), "\\mathbb{R} \\setminus \\{\\frac{\\pi}{2} + k\\pi \\mid k \\in \\mathbb{Z}\\}");
         assert!(steps[0].latex.starts_with("\\cos(x) \\neq 0"));
+        let (d, _) = domain_of_latex("\\tan x", Language::De).unwrap();
+        assert_eq!(d.to_latex(6, Language::De), "\\mathbb{R} \\setminus \\{\\frac{\\pi}{2} + k\\pi \\mid k \\in \\mathbb{Z}\\}");
+    }
+
+    #[test]
+    fn arcsin_gives_two_inequalities() {
+        let (_, steps) = domain_of_latex("\\arcsin(2x)", Language::En).unwrap();
+        assert_eq!(steps[0].latex, "2x \\geq -1 \\Rightarrow x \\in [-\\frac{1}{2}, \\infty)");
+        assert_eq!(steps[1].latex, "2x \\leq 1 \\Rightarrow x \\in (-\\infty, \\frac{1}{2}]");
+        assert_eq!(steps[2].latex, "D = [-\\frac{1}{2}, \\frac{1}{2}]");
+    }
+
+    #[test]
+    fn zeros_found_numerically_are_noted() {
+        let (_, steps) = domain_of_latex("\\frac{1}{e^x - x - 2}", Language::En).unwrap();
+        assert!(steps[0].explanation.as_deref().unwrap().ends_with("(zeros found numerically, some may be missing)"), "{:?}", steps[0]);
     }
 
     #[test]

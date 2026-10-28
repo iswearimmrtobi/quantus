@@ -46,7 +46,9 @@ impl Point {
             if (self.approx - other.approx).abs() > 1e-9 * self.approx.abs().max(1.0) {
                 return false;
             }
-            return is_zero(&Expr::Sum(vec![a.clone(), Expr::neg(b.clone())]));
+            if is_zero(&Expr::Sum(vec![a.clone(), Expr::neg(b.clone())])) {
+                return true;
+            }
         }
         (self.approx - other.approx).abs() <= 1e-12 * self.approx.abs().max(1.0)
     }
@@ -271,7 +273,7 @@ impl IntervalSet {
             }
         }
         out.sort_by(|x, y| x.lo.value().partial_cmp(&y.lo.value()).unwrap_or(Ordering::Equal));
-        IntervalSet(out)
+        IntervalSet(merged(out))
     }
 
     /// Whether the set is its own mirror image at 0.
@@ -332,6 +334,31 @@ impl IntervalSet {
     }
 }
 
+/// Sorted intervals with the touching ones joined: `[0; 1] ∪ ]1; 2[` is `[0; 2[`. Two open
+/// ends at the same point leave it out and stay apart.
+fn merged(sorted: Vec<Interval>) -> Vec<Interval> {
+    let mut out: Vec<Interval> = Vec::new();
+    for interval in sorted {
+        if let Some(last) = out.last_mut() {
+            let joins = match (&last.hi, &interval.lo) {
+                (Bound::PosInf, _) | (_, Bound::NegInf) => true,
+                (Bound::At { point: a, closed: c }, Bound::At { point: b, closed: d }) => {
+                    a.approx > b.approx || (a.same(b) && (*c || *d))
+                }
+                _ => false,
+            };
+            if joins {
+                if interval.hi.value() > last.hi.value() || (interval.hi.value() == last.hi.value() && interval.hi.closed()) {
+                    last.hi = interval.hi;
+                }
+                continue;
+            }
+        }
+        out.push(interval);
+    }
+    out
+}
+
 fn open(b: &Bound) -> Bound {
     match b {
         Bound::At { point, .. } => Bound::At { point: point.clone(), closed: false },
@@ -343,7 +370,11 @@ fn mirrored(a: &Bound, b: &Bound) -> bool {
     match (a, b) {
         (Bound::NegInf, Bound::PosInf) | (Bound::PosInf, Bound::NegInf) => true,
         (Bound::At { point: p, closed: c }, Bound::At { point: q, closed: d }) => {
-            c == d && same_value(p.approx, -q.approx)
+            c == d
+                && match (&p.exact, &q.exact) {
+                    (Some(a), Some(b)) => is_zero(&Expr::Sum(vec![a.clone(), b.clone()])),
+                    _ => same_value(p.approx, -q.approx),
+                }
         }
         _ => false,
     }
@@ -476,6 +507,27 @@ mod tests {
         let b = IntervalSet(vec![Interval { lo: at(0, false), hi: Bound::PosInf }]);
         assert_eq!(a.intersect(&b).to_latex(6, Language::De), "]0; 1]");
         assert!(a.intersect(&IntervalSet(vec![Interval { lo: at(2, true), hi: at(3, true) }])).is_empty());
+        let touching = IntervalSet(vec![Interval { lo: at(-1, true), hi: at(0, true) }, Interval { lo: at(0, false), hi: at(1, true) }]);
+        assert_eq!(touching.intersect(&IntervalSet::reals()).to_latex(6, Language::De), "[-1; 1]");
+        let gap = IntervalSet::reals().remove_point(&Point::rational(RBig::ZERO));
+        assert_eq!(gap.intersect(&IntervalSet::reals()).0.len(), 2);
+    }
+
+    #[test]
+    fn points_are_the_same_exactly_or_to_floating_point_accuracy() {
+        let root = Point::exact(Expr::pow(Expr::int(2), Expr::ratio(1, 2))).unwrap();
+        assert!(root.same(&Point::approx(std::f64::consts::SQRT_2)));
+        let pi = Point::exact(Expr::Pi).unwrap();
+        let close = Point::exact(Expr::Num(RBig::try_from(std::f64::consts::PI).unwrap())).unwrap();
+        assert!(pi.same(&close));
+        assert!(!pi.same(&Point::rational(RBig::from(3))));
+    }
+
+    #[test]
+    fn symmetry_compares_the_exact_bounds() {
+        let root = |sign: i64| Point::exact(Expr::Product(vec![Expr::int(sign), Expr::pow(Expr::int(3), Expr::ratio(1, 2))])).unwrap();
+        let set = IntervalSet(vec![Interval { lo: Bound::At { point: root(-1), closed: true }, hi: Bound::At { point: root(1), closed: true } }]);
+        assert!(set.is_symmetric());
     }
 
     #[test]
