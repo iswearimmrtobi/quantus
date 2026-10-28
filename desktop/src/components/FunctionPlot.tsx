@@ -29,6 +29,22 @@ interface Props {
 
 const ZOOM_STEP = 1.15;
 const RESAMPLE_DELAY = 120;
+/** The narrowest and widest view the wheel may zoom to. */
+const MIN_SPAN = 1e-6;
+const MAX_SPAN = 1e6;
+/** Most copies of one periodic point or asymptote drawn in a view. */
+const MAX_REPEATS = 200;
+/** Room the tooltip keeps from the right and top edge of the plot. */
+const TOOLTIP_WIDTH = 220;
+const TOOLTIP_HEIGHT = 34;
+
+/** `x`, and for a periodic one `x + k·period` for every k that lands inside [min, max]. */
+function repeats(x: number, period: number | null, min: number, max: number): number[] {
+  if (!period || period <= 0 || (max - min) / period > MAX_REPEATS) return [x];
+  const out: number[] = [];
+  for (let k = Math.ceil((min - x) / period); x + k * period <= max; k++) out.push(x + k * period);
+  return out;
+}
 
 /** 1, 2 or 5 times a power of ten, so that about `count` ticks fit into `span`. */
 function tickStep(span: number, count: number): number {
@@ -57,15 +73,33 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
   const initial: View = useMemo(() => ({ xMin: plot.xMin, xMax: plot.xMax, yMin: plot.yMin, yMax: plot.yMax }), [plot]);
   const [view, setView] = useState<View>(initial);
   const [segments, setSegments] = useState<Segment[]>(plot.segments);
-  const [hovered, setHovered] = useState<number | null>(null);
+  /** The point under the pointer, with the x of the copy that is hovered. */
+  const [hovered, setHovered] = useState<{ index: number; x: number } | null>(null);
   const drag = useRef<{ x: number; y: number; view: View } | null>(null);
   const request = useRef(0);
-
-  // A new analysis starts from its own window.
+  /** Whether the user moved or zoomed the view since the function was analysed. */
+  const moved = useRef(false);
+  const shownLatex = useRef(latex);
+  const alive = useRef(true);
   useEffect(() => {
-    setView(initial);
-    setSegments(plot.segments);
-  }, [initial, plot.segments]);
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
+  // A new function starts from its own window. The same function analysed again (other settings)
+  // keeps a view the user has moved; the resampling below then fills it.
+  useEffect(() => {
+    const newFunction = latex !== shownLatex.current;
+    shownLatex.current = latex;
+    if (newFunction || !moved.current) {
+      moved.current = false;
+      request.current++;
+      setView(initial);
+      setSegments(plot.segments);
+    }
+  }, [latex, initial, plot.segments]);
 
   useEffect(() => {
     const element = host.current;
@@ -85,8 +119,9 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
     const timer = window.setTimeout(() => {
       api.sampleFunction(latex, view, Math.round(size.width)).then(
         (sampled) => {
-          if (id === request.current) setSegments(sampled.segments);
+          if (alive.current && id === request.current) setSegments(sampled.segments);
         },
+        // The old segments stay; the next movement asks again.
         () => {},
       );
     }, RESAMPLE_DELAY);
@@ -114,6 +149,9 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
       const fy = 1 - (event.clientY - rect.top) / rect.height;
       const factor = event.deltaY > 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
       setView((v) => {
+        const spans = [(v.xMax - v.xMin) * factor, (v.yMax - v.yMin) * factor];
+        if (spans.some((span) => span < MIN_SPAN || span > MAX_SPAN)) return v;
+        moved.current = true;
         const cx = v.xMin + fx * (v.xMax - v.xMin);
         const cy = v.yMin + fy * (v.yMax - v.yMin);
         return {
@@ -130,6 +168,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
 
   const reset = () => {
     request.current++;
+    moved.current = false;
     setView(initial);
     setSegments(plot.segments);
   };
@@ -144,6 +183,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
     if (!start) return;
     const dx = ((event.clientX - start.x) / width) * (start.view.xMax - start.view.xMin);
     const dy = ((event.clientY - start.y) / height) * (start.view.yMax - start.view.yMin);
+    moved.current = true;
     setView({ xMin: start.view.xMin - dx, xMax: start.view.xMax - dx, yMin: start.view.yMin + dy, yMax: start.view.yMax + dy });
   };
   const onPointerUp = () => {
@@ -156,9 +196,34 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
       ? { x1: sx(line.x), y1: 0, x2: sx(line.x), y2: height }
       : { x1: 0, y1: sy((line.slope ?? 0) * view.xMin + (line.intercept ?? 0)), x2: width, y2: sy((line.slope ?? 0) * view.xMax + (line.intercept ?? 0)) };
 
+  /**
+   * An asymptote as lines in the view: a periodic vertical one repeated, a horizontal or oblique
+   * one that holds for one side only drawn on that side of the y-axis.
+   */
+  const asymptoteLines = (a: Asymptote) => {
+    if (a.kind === 'vertical' && a.x !== null) return repeats(a.x, a.period, view.xMin, view.xMax).map((x) => straight({ ...a, x }));
+    const [from, to] =
+      a.side === 'plusInfinity' ? [Math.max(view.xMin, 0), view.xMax] : a.side === 'minusInfinity' ? [view.xMin, Math.min(view.xMax, 0)] : [view.xMin, view.xMax];
+    if (from >= to) return [];
+    const y = (x: number) => (a.slope ?? 0) * x + (a.intercept ?? 0);
+    return [{ x1: sx(from), y1: sy(y(from)), x2: sx(to), y2: sy(y(to)) }];
+  };
+
+  /** Each point with its copies one period apart, all pointing back to the same index. */
+  const drawn = points.flatMap((p, index) => {
+    const seen = new Set<string>();
+    return repeats(p.x, p.period, view.xMin, view.xMax).flatMap((x) => {
+      const key = x.toPrecision(9);
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [{ point: p, index, x }];
+    });
+  });
+
   const xTicks = ticks(view.xMin, view.xMax, Math.max(4, Math.round(width / 80)));
   const yTicks = ticks(view.yMin, view.yMax, Math.max(4, Math.round(height / 60)));
-  const shown = hovered ?? selected;
+  const shown = hovered?.index ?? selected;
+  const shownX = hovered?.x ?? (shown !== null ? points[shown]?.x : undefined);
 
   return (
     <div className="plot">
@@ -194,9 +259,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
             )}
             {view.yMin < 0 && view.yMax > 0 && <line className="plot-axis" x1={0} y1={sy(0)} x2={width} y2={sy(0)} />}
             {view.xMin < 0 && view.xMax > 0 && <line className="plot-axis" x1={sx(0)} y1={0} x2={sx(0)} y2={height} />}
-            {asymptotes.map((a, i) => (
-              <line key={`a${i}`} className="plot-asymptote" {...straight(a)} />
-            ))}
+            {asymptotes.flatMap((a, i) => asymptoteLines(a).map((coordinates, j) => <line key={`a${i}-${j}`} className="plot-asymptote" {...coordinates} />))}
             {lines.map((line, i) => (
               <line key={`l${i}`} className="plot-line" {...straight(line)} />
             ))}
@@ -221,21 +284,27 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
               </text>
             ),
           )}
-          {points.map((p, i) => (
+          {drawn.map(({ point: p, index: i, x }) => (
             <circle
-              key={`p${i}`}
+              key={`p${i}-${x}`}
               className={`plot-point kind-${p.kind}${i === selected ? ' selected' : ''}`}
-              cx={sx(p.x)}
+              cx={sx(x)}
               cy={sy(p.y)}
               r={i === selected ? 7 : 5}
-              onPointerEnter={() => setHovered(i)}
+              onPointerEnter={() => setHovered({ index: i, x })}
               onPointerLeave={() => setHovered(null)}
               onClick={() => onSelect(i === selected ? null : i)}
             />
           ))}
         </svg>
-        {shown !== null && points[shown] && (
-          <div className="plot-tooltip" style={{ left: sx(points[shown].x) + 10, top: sy(points[shown].y) - 34 }}>
+        {shown !== null && points[shown] && shownX !== undefined && (
+          <div
+            className="plot-tooltip"
+            style={{
+              left: Math.max(4, Math.min(sx(shownX) + 10, width - TOOLTIP_WIDTH)),
+              top: Math.max(4, Math.min(sy(points[shown].y) - TOOLTIP_HEIGHT, height - TOOLTIP_HEIGHT)),
+            }}
+          >
             <Katex latex={points[shown].latex} />
           </div>
         )}

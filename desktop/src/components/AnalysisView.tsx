@@ -56,6 +56,9 @@ function ErrorRow({ error }: { error: ApiError }) {
 
 const asError = (failure: unknown) => (failure instanceof ApiError ? failure : new ApiError(String(failure)));
 
+/** Identifies a point across re-runs, unlike its index. */
+const pointKey = (point: MarkedPoint) => `${point.kind}|${point.x}|${point.y}`;
+
 /**
  * The analysis mode: a function in, the curve sketch with its working on the left and the graph
  * on the right, plus tangent, area and value table as tasks on the same function.
@@ -70,7 +73,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const [error, setError] = useState<ApiError | null>(null);
   const [tab, setTab] = useState<Tab>('sketch');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const [x0, setX0] = useState('1');
   const [tangent, setTangent] = useState<TangentResult | null>(null);
@@ -82,29 +85,59 @@ export function AnalysisView({ settings }: { settings: Settings }) {
 
   const field = useRef<MathFieldHandle>(null);
   const latexField = useRef<LatexInputHandle>(null);
+  /** The latest request of each kind; an answer to an older one is dropped. */
+  const analysisRequest = useRef(0);
+  const taskRequest = useRef(0);
 
-  const run = useCallback(async (latex: string) => {
-    try {
-      setAnalysis(await api.analyze(latex));
-      setAnalysed(latex);
-      setError(null);
-      setSelected(null);
-    } catch (failure) {
-      setAnalysis(null);
-      setAnalysed(null);
-      setError(asError(failure));
-    }
+  const clearTasks = useCallback(() => {
+    taskRequest.current++;
+    setTangent(null);
+    setArea(null);
+    setRows(null);
+    setTaskError(null);
   }, []);
+
+  const run = useCallback(
+    async (latex: string) => {
+      const id = ++analysisRequest.current;
+      try {
+        const result = await api.analyze(latex);
+        if (id !== analysisRequest.current) return;
+        setAnalysis(result);
+        setAnalysed(latex);
+        setError(null);
+      } catch (failure) {
+        if (id !== analysisRequest.current) return;
+        setAnalysis(null);
+        setAnalysed(null);
+        setSelected(null);
+        setError(asError(failure));
+        clearTasks();
+      }
+    },
+    [clearTasks],
+  );
 
   const runTask = useCallback(
     async (which: Tab, latex: string) => {
+      const id = ++taskRequest.current;
+      const current = () => id === taskRequest.current;
       try {
         setTaskError(null);
-        if (which === 'tangent') setTangent(await api.tangent(latex, x0));
-        if (which === 'area') setArea(await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null));
-        if (which === 'table') setRows(await api.valueTable(latex, table.from, table.to, table.step));
+        if (which === 'tangent') {
+          const result = await api.tangent(latex, x0);
+          if (current()) setTangent(result);
+        }
+        if (which === 'area') {
+          const result = await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null);
+          if (current()) setArea(result);
+        }
+        if (which === 'table') {
+          const result = await api.valueTable(latex, table.from, table.to, table.step);
+          if (current()) setRows(result);
+        }
       } catch (failure) {
-        setTaskError(asError(failure));
+        if (current()) setTaskError(asError(failure));
       }
     },
     [x0, bounds, table],
@@ -113,11 +146,15 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const submit = () => {
     const latex = input.trim();
     if (!latex) return;
-    setTangent(null);
-    setArea(null);
-    setRows(null);
-    setTaskError(null);
+    clearTasks();
+    setSelected(null);
     void run(latex);
+  };
+
+  const changeTab = (next: Tab) => {
+    setTab(next);
+    setSelected(null);
+    setTaskError(null);
   };
 
   // A changed language, precision or output style shows at once.
@@ -148,6 +185,8 @@ export function AnalysisView({ settings }: { settings: Settings }) {
 
   const taskPoints: MarkedPoint[] = tab === 'tangent' && tangent ? [tangent.point] : [];
   const points = analysis ? [...analysis.points, ...taskPoints] : [];
+  const selectedIndex = selected === null ? null : points.findIndex((point) => pointKey(point) === selected);
+  const select = (index: number | null) => setSelected(index === null || index < 0 ? null : pointKey(points[index]));
 
   return (
     <main className="workspace analysis-workspace">
@@ -168,7 +207,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
 
         <div className="segmented analysis-tabs">
           {TABS.map((item) => (
-            <button key={item.id} className={item.id === tab ? 'segment active' : 'segment'} onClick={() => setTab(item.id)}>
+            <button key={item.id} className={item.id === tab ? 'segment active' : 'segment'} onClick={() => changeTab(item.id)}>
               {t(item.label)}
             </button>
           ))}
@@ -236,7 +275,12 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                   <div className="task-inputs">
                     <label>
                       {t('analysis.from')}
-                      <input className="task-input" value={bounds.from} onChange={(e) => setBounds({ ...bounds, from: e.target.value })} />
+                      <input
+                        className="task-input"
+                        value={bounds.from}
+                        onChange={(e) => setBounds({ ...bounds, from: e.target.value })}
+                        onKeyDown={(e) => e.key === 'Enter' && void runTask('area', analysed)}
+                      />
                     </label>
                     <label>
                       {t('analysis.to')}
@@ -318,15 +362,15 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                 lines={tab === 'tangent' && tangent ? [tangent.tangent, tangent.normal] : []}
                 regions={tab === 'area' && area ? area.regions : []}
                 dots={tab === 'table' && rows ? tableDots(rows) : []}
-                selected={selected}
-                onSelect={setSelected}
+                selected={selectedIndex !== null && selectedIndex >= 0 ? selectedIndex : null}
+                onSelect={select}
               />
               <div className="point-list">
                 {points.map((point, i) => (
                   <button
-                    key={i}
-                    className={i === selected ? `point-item kind-${point.kind} selected` : `point-item kind-${point.kind}`}
-                    onClick={() => setSelected(i === selected ? null : i)}
+                    key={pointKey(point)}
+                    className={i === selectedIndex ? `point-item kind-${point.kind} selected` : `point-item kind-${point.kind}`}
+                    onClick={() => select(i === selectedIndex ? null : i)}
                   >
                     <span className="point-swatch" />
                     <span className="point-kind">{t(`point.${point.kind}`)}</span>
@@ -342,16 +386,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   );
 }
 
-/** The table rows as dots for the graph, where both coordinates read as numbers. */
+/** The table rows inside the domain as dots for the graph. */
 function tableDots(rows: TableResult): [number, number][] {
-  const number = (latex: string) => {
-    const plain = latex.replace('{,}', '.').replace(/\\frac\{(-?\d+)\}\{(\d+)\}/, (_, a, b) => String(Number(a) / Number(b)));
-    const value = Number(plain);
-    return Number.isFinite(value) ? value : null;
-  };
-  return rows.rows.flatMap((row) => {
-    const x = number(row.x);
-    const y = row.y === null ? null : number(row.y);
-    return x !== null && y !== null ? [[x, y] as [number, number]] : [];
-  });
+  return rows.rows.flatMap((row) => (row.yValue === null ? [] : [[row.xValue, row.yValue] as [number, number]]));
 }

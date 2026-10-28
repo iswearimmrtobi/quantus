@@ -196,6 +196,8 @@ export interface MarkedPoint {
   x: number;
   y: number;
   latex: string;
+  /** For a member of a periodic family: the distance to the next member. */
+  period: number | null;
 }
 
 export interface Asymptote {
@@ -205,6 +207,8 @@ export interface Asymptote {
   slope: number | null;
   intercept: number | null;
   latex: string;
+  /** For the poles of a periodic family (tan): the distance to the next one. */
+  period: number | null;
 }
 
 export interface PlotData {
@@ -249,8 +253,8 @@ export interface AreaResult {
 }
 
 export interface TableResult {
-  /** `y` is null outside the domain. */
-  rows: { x: string; y: string | null }[];
+  /** `y` and `yValue` are null outside the domain. */
+  rows: { x: string; y: string | null; xValue: number; yValue: number | null }[];
 }
 
 export interface EngineInfo {

@@ -169,7 +169,8 @@ export function App() {
         setSettings(saved);
         setPrecision(saved.precision);
         setSettingsError(null);
-        if (latest.current.calculation || latest.current.error) await evaluate({ record: false });
+        // The analysis view re-runs itself; the hidden calculator input need not.
+        if (saved.mode !== 'analysis' && (latest.current.calculation || latest.current.error)) await evaluate({ record: false });
       } catch (failure) {
         setSettingsError(failure instanceof Error ? failure.message : String(failure));
       }
