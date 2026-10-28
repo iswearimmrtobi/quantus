@@ -940,7 +940,8 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
         return None;
     }
     let (explanation, rule) = canonical_explanation(root);
-    let step = AlgebraStep::new(root.clone(), canonical.clone(), explanation, Some(rule));
+    let level = if crate::algebra::expand::is_term_reordering(unwrap_group(root)) { StepDetail::Maximal } else { StepDetail::Brief };
+    let step = AlgebraStep::new(root.clone(), canonical.clone(), explanation, Some(rule)).with_level(level);
     Some((canonical, step))
 }
 

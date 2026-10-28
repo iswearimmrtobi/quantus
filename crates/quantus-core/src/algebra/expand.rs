@@ -461,12 +461,14 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
         if let Ok(poly) = Poly::from_node(unwrapped) {
             let canonical_node = poly.to_node();
             if serializer::expression(&canonical_node) != serializer::expression(unwrapped) {
-                let explanation = if is_term_reordering(unwrapped) {
-                    "Order the terms by descending powers".to_string()
+                // Only putting the terms in order is bookkeeping (Maximal).
+                let (explanation, level) = if is_term_reordering(unwrapped) {
+                    ("Order the terms by descending powers".to_string(), StepDetail::Maximal)
                 } else {
-                    format!("Combine like terms to obtain {}", serializer::expression(&canonical_node))
+                    (format!("Combine like terms to obtain {}", serializer::expression(&canonical_node)), StepDetail::Brief)
                 };
-                let step = AlgebraStep::new(node.clone(), canonical_node.clone(), explanation.clone(), Some(RuleId::CollectLikeTerms));
+                let step = AlgebraStep::new(node.clone(), canonical_node.clone(), explanation.clone(), Some(RuleId::CollectLikeTerms))
+                    .with_level(level);
                 let working = collect_working(node);
                 let last = if working.iter().any(|line| line.explanation == "Put like terms next to each other") {
                     "Add the coefficients".to_string()

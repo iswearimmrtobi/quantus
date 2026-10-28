@@ -427,7 +427,6 @@ fn steps_name_what_they_change() {
     let cases = [
         (r"x^2 \cdot x^3", "Same base: add the exponents", "x^{5}"),
         (r"(x^2)^3", "Power of a power: multiply the exponents", "x^{6}"),
-        (r"3 + x^2 - 2x", "Order the terms by descending powers", "x^{2} - 2 \\cdot x + 3"),
         (r"\frac{x}{2}", "Write the division by 2 as a coefficient", "\\frac{1}{2} \\cdot x"),
         (
             r"\frac{1}{1 - x}",
@@ -448,6 +447,15 @@ fn steps_name_what_they_change() {
         assert_eq!(step.explanation, explanation, "{input}");
         assert_eq!(step.after_latex, after, "{input}");
     }
+    // Putting the terms in order is bookkeeping: its own step only at Maximal, otherwise part of
+    // the step after it.
+    let ordered = run_at(r"3 + x^2 - 2x", StepDetail::Maximal);
+    assert_eq!(ordered.steps[0].explanation, "Order the terms by descending powers");
+    assert_eq!(ordered.steps[0].after_latex, "x^{2} - 2 \\cdot x + 3");
+    let brief = run(r"3 + x^2 - 2x");
+    assert_eq!(brief.steps.len(), 1);
+    assert_eq!(brief.steps[0].before_latex, "3 + x^{2} - 2 \\cdot x");
+    assert!(brief.steps[0].explanation.starts_with("Complete the square"));
 }
 
 #[test]
