@@ -20,6 +20,9 @@ use crate::settings::StepDetail;
 use crate::latex::ast::{Node, Operator};
 use crate::latex::serializer;
 
+/// The most products of terms a multiplied-out pair of sums is written with.
+const MAX_WRITTEN_PRODUCTS: usize = 16;
+
 /// Flattens a product node into its factors.
 pub fn flatten_multiplicative_factors(node: &Node, factors: &mut Vec<Node>) {
     let unwrapped = unwrap_group(node);
@@ -71,12 +74,12 @@ fn is_additive_factor(node: &Node) -> bool {
 
 /// Attempts to expand a single product or binomial power in `node`.
 pub fn expand_product_node(node: &Node) -> Option<(Node, RuleId, String)> {
-    let step = expand_product_step(node)?;
+    let step = expand_product_step(node, false)?;
     Some((step.after, step.rule?, step.summary.unwrap_or(step.explanation)))
 }
 
-/// [`expand_product_node`] as a step with its working.
-fn expand_product_step(node: &Node) -> Option<AlgebraStep> {
+/// [`expand_product_node`] as a step, with its working when `working` is set.
+fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
     let unwrapped = unwrap_group(node);
 
     // 1. Binomial power check first: (a ± b)^2 or (a ± b)^3
@@ -144,12 +147,14 @@ fn expand_product_step(node: &Node) -> Option<AlgebraStep> {
                 factors[i1] = wrap_factor(pair);
                 if factors.len() == 1 { unwrap_group(&factors[0]).clone() } else { rebuild_product(factors) }
             };
-            let (each, uncollected) = term_by_term(&f1, &f2)?;
+            let step = AlgebraStep::new(node.clone(), result_node, explanation, Some(rule));
+            let Some((each, uncollected)) = term_by_term(&f1, &f2).filter(|_| working) else {
+                return Some(step);
+            };
             let working = vec![
                 AlgebraStep::line(node, place(each.clone()), "Write each term of the first bracket times each term of the second", StepDetail::Detailed),
                 AlgebraStep::line(&place(each), place(uncollected), "Multiply every term of the first bracket by every term of the second", StepDetail::Standard),
             ];
-            let step = AlgebraStep::new(node.clone(), result_node, explanation, Some(rule));
             return Some(step.with_working(working, "Combine like terms"));
         }
 
@@ -204,6 +209,10 @@ fn term_by_term(first: &Node, second: &Node) -> Option<(Node, Node)> {
         flatten_additive_terms(node, true, &mut terms);
         terms.into_iter().map(|(positive, term)| if positive { term } else { Node::Negation { operand: Box::new(term), position: 0 } })
     };
+    // More products than fit on a line are not written out.
+    if terms(first).count() * terms(second).count() > MAX_WRITTEN_PRODUCTS {
+        return None;
+    }
     let mut products = Vec::new();
     let mut values = Vec::new();
     for a in terms(first) {
@@ -232,7 +241,7 @@ fn expand_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
     }
 
     // Try expanding current node
-    if let Some(step) = expand_product_step(node) {
+    if let Some(step) = expand_product_step(node, true) {
         let expanded = step.after.clone();
         *step_info = Some(step);
         return expanded;

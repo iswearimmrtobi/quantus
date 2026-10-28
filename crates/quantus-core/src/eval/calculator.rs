@@ -170,7 +170,7 @@ impl LatexCalculator {
                 Ok(Calculation {
                     input: serializer::formula(&formula),
                     latex: format!("{prefix}{result}"),
-                    steps: shown_steps(&self.steps(&formula, &prefix, &result, variables), self.settings.step_detail),
+                    steps: shown_steps(&self.steps(&formula, &prefix, &result, variables, None), self.settings.step_detail),
                     unit: registry::format(&quantity.unit),
                     quantity_name: quantity.quantity_name().map(str::to_string),
                     result,
@@ -194,7 +194,7 @@ impl LatexCalculator {
                         Ok(Calculation {
                             input: serializer::formula(&formula),
                             latex: format!("{prefix}{result}"),
-                            steps: shown_steps(&self.steps(&formula, &prefix, &result, variables), self.settings.step_detail),
+                            steps: shown_steps(&self.steps(&formula, &prefix, &result, variables, Some(&raw_qty)), self.settings.step_detail),
                             unit: registry::format(&quantity.unit),
                             quantity_name: quantity.quantity_name().map(str::to_string),
                             result,
@@ -338,7 +338,8 @@ impl LatexCalculator {
         }
     }
 
-    fn steps(&self, formula: &Formula, prefix: &str, result: &str, variables: &Variables) -> Vec<Step> {
+    /// `raw` is the value as evaluated, before its unit is simplified.
+    fn steps(&self, formula: &Formula, prefix: &str, result: &str, variables: &Variables, raw: Option<&PhysicalQuantity>) -> Vec<Step> {
         let symbolic = format!("{prefix}{}", serializer::expression(&formula.expression));
         // A definition such as `m_1 = 2kg` has nothing to show but itself.
         if symbolic == format!("{prefix}{result}") {
@@ -360,8 +361,11 @@ impl LatexCalculator {
         if self.settings.step_detail > StepDetail::Brief && !matches!(expression, Node::Equation { .. }) {
             let evaluator = Evaluator::new(variables).with_precision(self.precision).with_mode(self.settings.mode);
             steps.extend(common_unit_line(&expression, &evaluator, prefix));
-            steps.extend(arithmetic_lines(&expression, &evaluator, prefix));
-            steps.extend(self.unit_line(&expression, &evaluator, prefix, result));
+            // Each part evaluated once more: only where it is shown.
+            if self.settings.step_detail == StepDetail::Maximal {
+                steps.extend(arithmetic_lines(&expression, &evaluator, prefix));
+            }
+            steps.extend(raw.and_then(|raw| self.unit_line(raw, prefix, result)));
         }
         steps.push(Step::new(StepKind::Result, format!("{prefix}{result}")));
         steps
@@ -369,8 +373,7 @@ impl LatexCalculator {
 
     /// The numbers and the units multiplied, before the unit gets its name (Standard):
     /// `24\,\frac{\mathrm{kg} \cdot \mathrm{m}^{2}}{\mathrm{s}^{2}}` before `24\,\mathrm{J}`.
-    fn unit_line(&self, expression: &Node, evaluator: &Evaluator, prefix: &str, result: &str) -> Option<Step> {
-        let raw = evaluator.evaluate(expression).ok()?;
+    fn unit_line(&self, raw: &PhysicalQuantity, prefix: &str, result: &str) -> Option<Step> {
         if raw.is_dimensionless() {
             return None;
         }

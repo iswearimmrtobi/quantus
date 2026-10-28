@@ -571,25 +571,34 @@ fn input_domain_note(input: &Node, restrictions: &[crate::algebra::domain::Domai
 /// A local rewrite rule: given a node, either rewrites it or declines.
 type Rule<'a> = dyn FnMut(&Node) -> Option<(Node, RuleId, String)> + 'a;
 
-/// The path from `root` to the node a local rewrite replaced: the subtree that reads as
-/// `local_before` in `root` and as `local_after` in `next`, with everything around it unchanged.
-fn rewrite_path(root: &Node, next: &Node, local_before: &str, local_after: &str) -> Option<Vec<usize>> {
-    if serializer::expression(root) == local_before && serializer::expression(next) == local_after {
+/// The path from `root` to the node a local rewrite replaced: the subtree that is `before` in
+/// `root` and `after` in `next`, with everything around it unchanged. Compared as trees first;
+/// where a rule rebuilt the node, by how it reads.
+fn rewrite_path(root: &Node, next: &Node, before: &Node, after: &Node) -> Option<Vec<usize>> {
+    let same_tree = |a: &Node, b: &Node| a == b;
+    path_by(root, next, &|r, n| r == before && n == after, &same_tree).or_else(|| {
+        let (before, after) = (serializer::expression(before), serializer::expression(after));
+        let reads_same = |a: &Node, b: &Node| serializer::expression(a) == serializer::expression(b);
+        path_by(root, next, &|r, n| serializer::expression(r) == before && serializer::expression(n) == after, &reads_same)
+    })
+}
+
+/// [`rewrite_path`] with `found` deciding the rewritten node and `same` the unchanged ones.
+fn path_by(root: &Node, next: &Node, found: &dyn Fn(&Node, &Node) -> bool, same: &dyn Fn(&Node, &Node) -> bool) -> Option<Vec<usize>> {
+    if found(root, next) {
         return Some(Vec::new());
     }
     let (children, next_children) = (root.children(), next.children());
     if children.len() != next_children.len() {
         return None;
     }
-    let differing: Vec<usize> = (0..children.len())
-        .filter(|&i| serializer::expression(children[i]) != serializer::expression(next_children[i]))
-        .collect();
+    let differing: Vec<usize> = (0..children.len()).filter(|&i| !same(children[i], next_children[i])).collect();
     let [index] = differing[..] else { return None };
     // Only the one child may differ, not the node itself.
-    if serializer::expression(&replace_child(root, index, next_children[index].clone())) != serializer::expression(next) {
+    if !same(&replace_child(root, index, next_children[index].clone()), next) {
         return None;
     }
-    let mut path = rewrite_path(children[index], next_children[index], local_before, local_after)?;
+    let mut path = path_by(children[index], next_children[index], found, same)?;
     path.insert(0, index);
     Some(path)
 }
@@ -597,7 +606,7 @@ fn rewrite_path(root: &Node, next: &Node, local_before: &str, local_after: &str)
 /// The path to the node that reads `before` in `root` and `after` in `next`, everything around it
 /// unchanged.
 pub(crate) fn path_of_rewrite(root: &Node, next: &Node, before: &Node, after: &Node) -> Option<Vec<usize>> {
-    rewrite_path(root, next, &serializer::expression(before), &serializer::expression(after))
+    rewrite_path(root, next, before, after)
 }
 
 pub(crate) fn replace_at(root: &Node, path: &[usize], replacement: Node) -> Node {
@@ -614,7 +623,7 @@ fn lift_substeps(root: &Node, next: &Node, local: &AlgebraStep) -> Vec<AlgebraSt
     if local.substeps.is_empty() {
         return Vec::new();
     }
-    let Some(path) = rewrite_path(root, next, &local.before_latex, &local.after_latex) else {
+    let Some(path) = rewrite_path(root, next, &local.before, &local.after) else {
         return Vec::new();
     };
     let place = |node: &Node| replace_at(root, &path, node.clone());
