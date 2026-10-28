@@ -495,6 +495,15 @@ fn every_detail_level_chains_to_the_same_result() {
         r"\frac{1}{\sqrt{3}-1}",
         r"\log_2(8)",
         r"2\sin(x)\cos(x)",
+        r"\sqrt{2}\cdot\sqrt{8}",
+        r"\sqrt{\sqrt{x}}",
+        r"\frac{1}{\sqrt{2}}",
+        r"\ln(e^2)",
+        r"|-3| + x",
+        r"(\sin(x)+3)^2",
+        r"\frac{\ln(x)^2-9}{\ln(x)-3}",
+        r"\frac{x^2-5x+6}{x-2}",
+        r"\frac{-(-x)}{x^{-1}}",
     ];
     for input in inputs {
         let brief = run(input);
@@ -839,4 +848,12 @@ fn the_absolute_value_of_a_number_notes_its_sign() {
     assert!(detailed.steps[0].note);
     assert_eq!(detailed.steps[0].explanation, r"-3 < 0, so \left|-3\right| = 3");
     assert_eq!(rows("|-3|", StepDetail::Standard), [row("3", r"Simplify the absolute value: \left|-3\right| = 3")]);
+}
+
+#[test]
+fn the_working_of_the_inner_run_comes_back_with_the_atoms_put_back() {
+    let detailed = rows(r"\frac{\ln(x)^2-9}{\ln(x)-3}", StepDetail::Detailed);
+    assert_eq!(detailed[0], row(r"\frac{\ln^{2}{x} - 3^{2}}{\ln{x} - 3}", "Write 9 as 3^{2}"));
+    assert_eq!(detailed[2].0, r"\frac{\cancel{(\ln{x} - 3)} \cdot (\ln{x} + 3)}{\cancel{(\ln{x} - 3)}}");
+    assert_eq!(rows(r"(\sin(x)+3)^2", StepDetail::Standard)[0].1, r"(a + b)² = a² + 2ab + b² with a = \sin{x}, b = 3");
 }
