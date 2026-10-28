@@ -132,22 +132,6 @@ fn physical_constants_are_known_only_in_physics_mode() {
     assert!(calculator(Mode::Algebra).evaluate(latex, &HashMap::new()).is_err());
 }
 
-#[test]
-#[ignore]
-fn show_calculator_steps() {
-    use quantus_core::eval::LatexCalculator;
-    use quantus_core::settings::StepDetail;
-    let input = std::env::var("INPUT").unwrap();
-    for detail in [StepDetail::Brief, StepDetail::Standard, StepDetail::Detailed, StepDetail::Maximal] {
-        let settings = quantus_core::settings::Settings { step_detail: detail, ..Default::default() };
-        let c = LatexCalculator::new(50).with_settings(settings).evaluate(&input, &Default::default()).unwrap();
-        println!("--- {detail:?}");
-        for s in c.steps {
-            println!("{:?}\t{}\t[{}]", s.kind, s.latex, s.explanation.unwrap_or_default());
-        }
-    }
-}
-
 
 fn calculator_lines(input: &str, detail: quantus_core::settings::StepDetail) -> Vec<(String, String)> {
     let settings = quantus_core::settings::Settings { step_detail: detail, ..Default::default() };

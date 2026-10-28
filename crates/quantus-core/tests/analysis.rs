@@ -361,17 +361,6 @@ fn steps_without_a_change_are_left_out() {
     assert!(!antiderivative.contains(&"\\frac{2}{x - 1} = \\frac{2}{x - 1}".to_string()), "{antiderivative:?}");
 }
 
-#[test]
-#[ignore]
-fn show_steps() {
-    let input = std::env::var("INPUT").unwrap_or_default();
-    let section = std::env::var("SECTION").unwrap_or_else(|_| "derivatives".into());
-    let d = sketch(&input);
-    for step in &d.sections.iter().find(|s| s.id == section).unwrap().steps {
-        println!("{:?}\t{}\t[{}]", step.level, step.latex, step.explanation.clone().unwrap_or_default());
-    }
-}
-
 /// The working of a section as shown at `detail`: `(latex, explanation)`.
 fn working(d: &Discussion, id: &str, detail: quantus_core::settings::StepDetail) -> Vec<(String, String)> {
     let steps = &d.sections.iter().find(|s| s.id == id).unwrap().steps;
@@ -470,19 +459,6 @@ fn an_even_power_of_x_bounds_k_and_takes_the_root() {
     let standard = working(&d, "zeros", StepDetail::Standard);
     assert!(standard.contains(&(r"x = \pm \sqrt{k \cdot 2\pi}, \quad k \in \mathbb{N}_{0}".to_string(), "x^{2} ≥ 0, so k ≥ 0; take the root".to_string())));
     assert_eq!(working(&d, "zeros", StepDetail::Brief).len(), standard.len() - 2);
-}
-
-#[test]
-#[ignore]
-fn show_tangent() {
-    use quantus_core::settings::StepDetail;
-    let r = quantus_core::analysis::tasks::tangent(&std::env::var("INPUT").unwrap(), None, &std::env::var("X0").unwrap_or("1".into()), &Settings::default(), None).unwrap();
-    for detail in [StepDetail::Brief, StepDetail::Standard, StepDetail::Maximal] {
-        println!("--- {detail:?}");
-        for s in quantus_core::eval::calculator::shown_steps(&r.steps, detail) {
-            println!("{}\t[{}]", s.latex, s.explanation.unwrap_or_default());
-        }
-    }
 }
 
 fn task_working(steps: &[quantus_core::eval::Step], detail: quantus_core::settings::StepDetail) -> Vec<(String, String)> {

@@ -516,28 +516,6 @@ fn every_detail_level_chains_to_the_same_result() {
     }
 }
 
-/// `(before, after, explanation)` of each step, in LaTeX.
-fn lines(result: &SimplificationResult) -> Vec<(String, String, String)> {
-    result.steps.iter().map(|s| (s.before_latex.clone(), s.after_latex.clone(), s.explanation.clone())).collect()
-}
-
-fn print_levels(input: &str) {
-    for detail in LEVELS {
-        println!("--- {detail:?}");
-        for (before, after, text) in lines(&run_at(input, detail)) {
-            println!("{before}  ->  {after}   [{text}]");
-        }
-    }
-}
-
-#[test]
-#[ignore]
-fn show_levels() {
-    for input in std::env::var("INPUTS").unwrap_or_default().split(';').filter(|s| !s.is_empty()) {
-        println!("===== {input}");
-        print_levels(input);
-    }
-}
 
 /// `(after, explanation)` of each step at `detail`.
 fn rows(input: &str, detail: StepDetail) -> Vec<(String, String)> {

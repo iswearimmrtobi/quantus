@@ -14,7 +14,7 @@ The "Now" rows are real output of the engine (default settings), after the fixes
 specification; the tests in `tests/algebra_milestone5.rs`, `tests/analysis.rs` and
 `tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
 section says so under **Built**. Rows not built: the Maximal $+(-2) = -2$ of the tangent, the
-merged family `x^2 = k\pi` of the inverse functions, a Standard block per summand that needs the
+merged family $x^2 = k\pi$ of the inverse functions, a Standard block per summand that needs the
 product or chain rule inside a sum, factoring out $e^{2x}$ after the product rule (the algebra
 pipeline only simplifies rational parts), and the calculator's numbers and units written apart and
 its rearranged equation.
