@@ -88,8 +88,8 @@ impl Approach {
         match self {
             Approach::PosInf => t,
             Approach::NegInf => -t,
-            Approach::Left(a) => a.approx - (1.0 / t) * a.approx.abs().max(1.0),
-            Approach::Right(a) => a.approx + (1.0 / t) * a.approx.abs().max(1.0),
+            Approach::Left(a) => a.approx - 1.0 / t,
+            Approach::Right(a) => a.approx + 1.0 / t,
         }
     }
 }
@@ -192,11 +192,59 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
                     msg!("Removable gap: the cancelled function is continuous here", "Hebbare Lücke: die gekürzte Funktion ist hier stetig"),
                 ));
             }
-            let x = at.sample_at(1e7);
-            let value = reduced.eval_f64(x)?;
-            Some((infinite(value.signum() as i32), AnalysisRule::LimitPole, msg!("Pole", "Polstelle")))
+            // D(x) ≈ D^{(k)}(x₀)/k! · (x − x₀)^k next to a zero of order k, so the sign on the
+            // right is that of N(x₀)·D^{(k)}(x₀), and on the left it flips once more for odd k.
+            let (order, derivative_sign) = zero_order(&below, a)?;
+            let numerator_sign = sign_of(&Expr::from_poly(&n), a)?;
+            let right = numerator_sign * derivative_sign;
+            let sign = match at {
+                Approach::Left(_) if order % 2 == 1 => -right,
+                _ => right,
+            };
+            let explanation = msg!(
+                "Pole of order {}: the signs of the numerator and of (x - x_0)^{} decide",
+                "Polstelle der Ordnung {}: die Vorzeichen des Zählers und von (x - x_0)^{} entscheiden",
+                order,
+                order
+            );
+            Some((infinite(sign), AnalysisRule::LimitPole, explanation))
         }
     }
+}
+
+/// The order k of the zero of `p` at `a` and the sign of its k-th derivative there.
+fn zero_order(p: &Expr, a: &Point) -> Option<(u32, i32)> {
+    let mut derivative = p.clone();
+    for k in 1..=64u32 {
+        derivative = simplify(&super::derive::derivative(&derivative));
+        let sign = sign_of(&derivative, a)?;
+        if sign != 0 {
+            return Some((k, sign));
+        }
+    }
+    None
+}
+
+/// The sign of `e` at `a`: exactly for an exact point, otherwise in floating point with a
+/// tolerance for the error in `a`.
+fn sign_of(e: &Expr, a: &Point) -> Option<i32> {
+    let value = match &a.exact {
+        Some(x) => {
+            let value = simplify(&e.substitute(x));
+            if is_zero(&value) {
+                return Some(0);
+            }
+            value.eval_f64(0.0)?
+        }
+        None => {
+            let value = e.eval_f64(a.approx)?;
+            if value.abs() < 1e-9 {
+                return Some(0);
+            }
+            value
+        }
+    };
+    Some(if value > 0.0 { 1 } else { -1 })
 }
 
 fn sign_at_infinity(ratio: &RBig, odd_power: usize, negative_side: bool) -> i32 {
@@ -402,6 +450,22 @@ fn growth(e: &Expr) -> Option<Growth> {
             Some(Growth { coefficient: simplify(&Expr::func(Fn::Exp, c)), exp: k, kinds: EXP, ..Growth::constant(Expr::int(1)) })
         }
         Expr::Func(Fn::Ln, u) if **u == Expr::Var => Some(Growth { log: RBig::ONE, kinds: LOG, ..Growth::constant(Expr::int(1)) }),
+        // ln(c·e^{bt}·t^a·…) = bt + a·ln t + …: the strongest part of the argument decides.
+        Expr::Func(Fn::Ln, u) => {
+            let inner = growth(u)?;
+            if inner.coefficient.eval_f64(0.0)? <= 0.0 {
+                return None;
+            }
+            if inner.exp > RBig::ZERO {
+                Some(Growth { power: RBig::ONE, kinds: POWER | inner.kinds, ..Growth::constant(Expr::Num(inner.exp)) })
+            } else if inner.exp == RBig::ZERO && inner.power > RBig::ZERO {
+                Some(Growth { log: RBig::ONE, kinds: LOG | inner.kinds, ..Growth::constant(Expr::Num(inner.power)) })
+            } else if inner.order() == (RBig::ZERO, RBig::ZERO, RBig::ZERO) {
+                Some(Growth::constant(simplify(&Expr::func(Fn::Ln, inner.coefficient))))
+            } else {
+                None
+            }
+        }
         Expr::Func(Fn::Arctan, u) => {
             let inner = growth(u)?;
             let half_pi = Expr::Product(vec![Expr::ratio(1, 2), Expr::Pi]);
@@ -454,8 +518,11 @@ fn numeric(f: &Expr, at: &Approach) -> Behaviour {
     if settled {
         return Behaviour::Finite(Point::approx(last));
     }
+    let rises = values.windows(2).any(|w| w[1] > w[0]);
+    let falls = values.windows(2).any(|w| w[1] < w[0]);
     let swings = values.windows(2).filter(|w| w[0].signum() != w[1].signum()).count() >= 2
-        || shifted.iter().zip(&values).any(|(s, v)| (s - v).abs() > 1e-3 * v.abs().max(1.0));
+        || shifted.iter().zip(&values).any(|(s, v)| (s - v).abs() > 1e-3 * v.abs().max(1.0))
+        || (rises && falls);
     let bounded = values.iter().all(|v| v.abs() < 1e12);
     if swings && bounded {
         return Behaviour::Oscillates;
@@ -467,7 +534,7 @@ fn numeric(f: &Expr, at: &Approach) -> Behaviour {
 
 /// `y = mx + b` that f approaches at ±∞, with the working (a polynomial division for a rational
 /// function), or `None` when there is none.
-pub fn oblique(f: &Expr, at: &Approach, ctx: &LimitContext) -> Option<(Expr, Expr, Vec<Step>)> {
+pub fn oblique(f: &Expr, at: &Approach, ctx: &LimitContext) -> Option<(Point, Point, Vec<Step>)> {
     let x = Expr::poly_variable();
     if let Some((n, d)) = f.as_rational() {
         let common = n.gcd(&d);
@@ -477,24 +544,39 @@ pub fn oblique(f: &Expr, at: &Approach, ctx: &LimitContext) -> Option<(Expr, Exp
             return None;
         }
         let division = divide(&n, &d, ctx.var);
-        let slope = Expr::Num(division.quotient.coeff_of(&Monomial::single(x, 1)));
-        let intercept = Expr::Num(division.quotient.constant_term());
+        let slope = Point::rational(division.quotient.coeff_of(&Monomial::single(x, 1)));
+        let intercept = Point::rational(division.quotient.constant_term());
         return Some((slope, intercept, division.steps));
     }
     let (m, step_m) = behaviour(&simplify(&Expr::Product(vec![f.clone(), Expr::recip(Expr::Var)])), at, ctx);
     let Behaviour::Finite(m) = m else { return None };
-    let slope = m.exact.clone()?;
-    if is_zero(&slope) {
+    if m.approx.abs() < 1e-12 || m.exact.as_ref().is_some_and(is_zero) {
         return None;
     }
-    let rest = simplify(&Expr::Sum(vec![f.clone(), Expr::neg(Expr::Product(vec![slope.clone(), Expr::Var]))]));
+    // A slope found only numerically is taken as the decimal it was shown with.
+    let slope = m.exact.clone().unwrap_or_else(|| Expr::Num(RBig::try_from(m.approx).unwrap_or(RBig::ZERO)));
+    let rest = simplify(&Expr::Sum(vec![f.clone(), Expr::neg(Expr::Product(vec![slope, Expr::Var]))]));
     let (b, step_b) = behaviour(&rest, at, ctx);
     let Behaviour::Finite(b) = b else { return None };
     let mut steps = vec![step_m, step_b];
     for (s, name) in steps.iter_mut().zip(["m", "b"]) {
         s.explanation = Some(format!("{} ({name})", s.explanation.clone().unwrap_or_default()));
     }
-    Some((slope, b.exact?, steps))
+    Some((m, b, steps))
+}
+
+/// The polynomial part of a rational function whose numerator degree exceeds the denominator's
+/// by two or more: the curve f approaches (Näherungskurve), with the division.
+pub fn approximating_curve(f: &Expr, ctx: &LimitContext) -> Option<(Expr, Vec<Step>)> {
+    let x = Expr::poly_variable();
+    let (n, d) = f.as_rational()?;
+    let common = n.gcd(&d);
+    let (n, d) = (n.div_rem(&common).ok()?.0, d.div_rem(&common).ok()?.0);
+    if d.is_constant() || n.degree_of(x) < d.degree_of(x) + 2 {
+        return None;
+    }
+    let division = divide(&n, &d, ctx.var);
+    Some((Expr::from_poly(&division.quotient), division.steps))
 }
 
 #[cfg(test)]
@@ -541,7 +623,15 @@ mod tests {
         assert!(matches!((left, right), (Behaviour::PosInf, Behaviour::PosInf)));
         assert_eq!(limit("\\frac{x^2-1}{x-1}", Approach::Right(at(1))), "2");
         let root = Point::exact(Expr::pow(Expr::int(3), Expr::ratio(1, 2))).unwrap();
-        assert_eq!(limit("\\frac{1}{x^2-3}", Approach::Right(root)), "\\infty");
+        assert_eq!(limit("\\frac{1}{x^2-3}", Approach::Right(root.clone())), "\\infty");
+        assert_eq!(limit("\\frac{1}{x^2-3}", Approach::Left(root)), "-\\infty");
+        let (left, right, step) = pole(&expr("\\frac{-x}{(x-1)^2}"), &at(1), &CTX);
+        assert!(matches!((left, right), (Behaviour::NegInf, Behaviour::NegInf)));
+        assert_eq!(step.explanation.as_deref(), Some("Pole without a sign change"));
+        let (_, s) = behaviour(&expr("\\frac{-x}{(x-1)^2}"), &Approach::Right(at(1)), &CTX);
+        assert_eq!(s.explanation.as_deref(), Some("Pole of order 2: the signs of the numerator and of (x - x_0)^2 decide"));
+        let (left, right, _) = pole(&expr("\\frac{1}{(x+2)^3}"), &at(-2), &CTX);
+        assert!(matches!((left, right), (Behaviour::NegInf, Behaviour::PosInf)));
     }
 
     #[test]
@@ -555,6 +645,12 @@ mod tests {
         assert_eq!(limit("e^{-x} + 2", Approach::PosInf), "2");
         assert_eq!(limit("\\arctan x", Approach::NegInf), "-\\frac{\\pi}{2}");
         assert_eq!(limit("\\sqrt{x}", Approach::PosInf), "\\infty");
+        assert_eq!(limit("\\ln(x+1)", Approach::PosInf), "\\infty");
+        assert_eq!(limit("\\frac{\\ln(x^2+1)}{x}", Approach::PosInf), "0");
+        assert_eq!(limit("\\frac{x}{\\ln(2x)}", Approach::PosInf), "\\infty");
+        assert_eq!(limit("\\ln(e^{x} + 1) - 2x", Approach::PosInf), "-\\infty");
+        let (_, step) = behaviour(&expr("\\frac{\\ln(x^2+1)}{x}"), &Approach::PosInf, &CTX);
+        assert_eq!(step.rule.as_deref(), Some("LIMIT_DOMINANCE"));
         let (_, step) = behaviour(&expr("\\frac{\\ln x}{x}"), &Approach::PosInf, &CTX);
         assert_eq!(step.explanation.as_deref(), Some("Any power x^a (a > 0) grows faster than ln x"));
         let (_, step) = behaviour(&expr("x e^x"), &Approach::NegInf, &CTX);
@@ -574,16 +670,25 @@ mod tests {
         assert_eq!(limit("\\tan x", Approach::Left(Point::exact(Expr::Product(vec![Expr::ratio(1, 2), Expr::Pi])).unwrap())), "\\infty");
         assert_eq!(limit("x^{\\frac{1}{x}}", Approach::PosInf), "\\approx 1");
         assert_eq!(limit("e^{\\frac{1}{x}}", Approach::Left(at(0))), "0");
+        let (wave, step) = behaviour(&expr("\\frac{\\sin x}{\\sin x + 2}"), &Approach::PosInf, &CTX);
+        assert!(matches!(wave, Behaviour::Oscillates));
+        assert_eq!(step.rule.as_deref(), Some("LIMIT_NUMERIC"));
+        assert!(matches!(behaviour(&expr("x^{x}"), &Approach::PosInf, &CTX).0, Behaviour::Unknown));
     }
 
     #[test]
     fn oblique_asymptotes() {
         let (m, b, steps) = oblique(&expr("\\frac{x^2-1}{x-2}"), &Approach::PosInf, &CTX).unwrap();
-        assert_eq!((m.to_latex("x"), b.to_latex("x")), ("1".into(), "2".into()));
+        assert_eq!((m.to_latex(6), b.to_latex(6)), ("1".into(), "2".into()));
         assert_eq!(steps.last().unwrap().latex, "(x^{2} - 1) : (x - 2) = x + 2 + \\frac{3}{x - 2}");
         let (m, b, _) = oblique(&expr("2x + 1 + e^{-x}"), &Approach::PosInf, &CTX).unwrap();
-        assert_eq!((m.to_latex("x"), b.to_latex("x")), ("2".into(), "1".into()));
+        assert_eq!((m.to_latex(6), b.to_latex(6)), ("2".into(), "1".into()));
         assert!(oblique(&expr("x^2"), &Approach::PosInf, &CTX).is_none());
         assert!(oblique(&expr("\\frac{1}{x}"), &Approach::PosInf, &CTX).is_none());
+        assert!(oblique(&expr("\\frac{x^4}{x-1}"), &Approach::PosInf, &CTX).is_none());
+        let (curve, steps) = approximating_curve(&expr("\\frac{x^4}{x-1}"), &CTX).unwrap();
+        assert_eq!(curve.to_latex("x"), "x^{3} + x^{2} + x + 1");
+        assert!(steps.last().unwrap().latex.starts_with("(x^{4}) : (x - 1) = x^{3} + x^{2} + x + 1"));
+        assert!(approximating_curve(&expr("\\frac{x^2-1}{x-2}"), &CTX).is_none());
     }
 }

@@ -14,7 +14,7 @@ use super::exact::times_pi;
 use super::expr::{Expr, Fn};
 use super::integrate::{antiderivative, IntegrateContext};
 use super::interval::{simplest_between, Bound, Domain, Interval, PeriodicSet, Point};
-use super::limits::{behaviour, oblique, pole, Approach, Behaviour, LimitContext};
+use super::limits::{approximating_curve, behaviour, oblique, pole, Approach, Behaviour, LimitContext};
 use super::rules::{step, AnalysisRule};
 use super::simplify::{display, is_zero, is_zero_numeric, simplify};
 use super::solve::{solve_zero, Root, SolveContext, Solutions};
@@ -935,7 +935,7 @@ impl Sketch<'_> {
             _ => {}
         }
         let mut horizontal: Vec<(Point, Side)> = Vec::new();
-        let mut oblique_lines: Vec<(Expr, Expr, Side)> = Vec::new();
+        let mut oblique_lines: Vec<(Point, Point, Side)> = Vec::new();
         for end in ends {
             let (result, s) = behaviour(&self.f, &end, &ctx);
             steps.push(s);
@@ -951,7 +951,7 @@ impl Sketch<'_> {
                 (Approach::PosInf | Approach::NegInf, b) if b.is_infinite() => {
                     let side = if matches!(end, Approach::PosInf) { Side::PlusInfinity } else { Side::MinusInfinity };
                     if let Some((m, b, division)) = oblique(&self.f, &end, &ctx) {
-                        match oblique_lines.iter_mut().find(|(m2, b2, _)| *m2 == m && *b2 == b) {
+                        match oblique_lines.iter_mut().find(|(m2, b2, _)| m2.same(&m) && b2.same(&b)) {
                             Some((.., existing)) => *existing = Side::Both,
                             None => {
                                 steps.extend(division);
@@ -994,15 +994,28 @@ impl Sketch<'_> {
             self.asymptotes.push(Asymptote::Horizontal { y: l.approx, side, latex });
         }
         for (m, b, side) in oblique_lines {
-            let line = simplify(&Expr::Sum(vec![Expr::Product(vec![m.clone(), Expr::Var]), b.clone()]));
-            let latex = format!("y = {}", self.tex(&line));
+            let latex = match (&m.exact, &b.exact) {
+                (Some(slope), Some(intercept)) => {
+                    let line = simplify(&Expr::Sum(vec![Expr::Product(vec![slope.clone(), Expr::Var]), intercept.clone()]));
+                    format!("y = {}", self.tex(&line))
+                }
+                // Found numerically: `y \approx 1{,}5x - 0{,}25`.
+                _ => {
+                    let intercept = b.decimal_latex(self.ctx.digits);
+                    let (sign, intercept) = match intercept.strip_prefix('-') {
+                        Some(rest) => ("-", rest.to_string()),
+                        None => ("+", intercept),
+                    };
+                    format!("y \\approx {}{} {sign} {intercept}", m.decimal_latex(self.ctx.digits), self.ctx.var)
+                }
+            };
             lines.push(format!("{} {latex}{}", text(&msg!("oblique asymptote", "schiefe Asymptote")), side_text(side)));
-            self.asymptotes.push(Asymptote::Oblique {
-                slope: m.eval_f64(0.0).unwrap_or(f64::NAN),
-                intercept: b.eval_f64(0.0).unwrap_or(f64::NAN),
-                side,
-                latex,
-            });
+            self.asymptotes.push(Asymptote::Oblique { slope: m.approx, intercept: b.approx, side, latex });
+        }
+        if let Some((curve, division)) = approximating_curve(&self.f, &ctx) {
+            steps.extend(division);
+            let latex = format!("y = {}", self.tex(&curve));
+            lines.push(format!("{} {latex}", text(&msg!("approximating curve", "Näherungskurve"))));
         }
         let result = if lines.is_empty() { text(&msg!("No asymptotes", "Keine Asymptoten")) } else { lines.join(", \\quad ") };
         self.section("behaviour", steps, Some(result), complete)
