@@ -707,3 +707,21 @@ fn a_binomial_power_puts_the_values_into_the_formula() {
     // With letters only, the line would be the formula itself.
     assert_eq!(rows("(a+b)^2", StepDetail::Standard).len(), 1);
 }
+
+#[test]
+fn like_terms_are_grouped_before_they_are_added() {
+    let input = "3x^2 - 18x + 24 + x - 102";
+    assert_eq!(rows(input, StepDetail::Standard), rows(input, StepDetail::Brief));
+    assert_eq!(
+        rows(input, StepDetail::Detailed),
+        [
+            row(r"3 \cdot x^{2} + (-18 \cdot x + x) + (24 - 102)", "Put like terms next to each other"),
+            row(r"3 \cdot x^{2} - 17 \cdot x - 78", "Add the coefficients"),
+        ]
+    );
+    assert_eq!(rows(input, StepDetail::Maximal)[0], row(r"3 \cdot x^{2} - 18 \cdot x + x + 24 - 102", "Order the terms by degree"));
+
+    let cancelling = rows(r"\frac{3}{x-3}+\frac{x}{x+3}", StepDetail::Detailed);
+    let n = cancelling.len();
+    assert_eq!(cancelling[n - 2], row(r"\frac{x^{2} + 0 + 9}{(x - 3) \cdot (x + 3)}", r"3 \cdot x - 3 \cdot x = 0"));
+}

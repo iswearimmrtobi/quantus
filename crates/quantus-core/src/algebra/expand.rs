@@ -309,28 +309,96 @@ pub(crate) fn is_term_reordering(node: &Node) -> bool {
         })
 }
 
-/// The lines before like terms are collected: brackets after a minus sign are resolved.
+/// The lines before like terms are collected: brackets after a minus sign resolved, like terms
+/// ordered (Maximal) and put next to each other in brackets (Detailed), sums that cancel written
+/// as 0 (Detailed).
 fn collect_working(node: &Node) -> Vec<AlgebraStep> {
-    let brackets = negated_brackets(unwrap_group(node));
-    if brackets.is_empty() {
-        return Vec::new();
-    }
+    let mut lines = Vec::new();
     let mut terms = Vec::new();
     flatten_additive_terms(node, true, &mut terms);
-    let Some(resolved) = signed_terms_sum(terms) else {
+    let mut current = node.clone();
+    let brackets = negated_brackets(unwrap_group(node));
+    if !brackets.is_empty() {
+        let Some(resolved) = signed_terms_sum(terms.clone()) else {
+            return Vec::new();
+        };
+        let identities: Vec<String> = brackets
+            .iter()
+            .filter_map(|inner| {
+                let mut flipped = Vec::new();
+                flatten_additive_terms(inner, false, &mut flipped);
+                let flipped = signed_terms_sum(flipped)?;
+                Some(format!("-({}) = {}", serializer::expression(inner), serializer::expression(&flipped)))
+            })
+            .collect();
+        let text = format!("A minus sign in front of a bracket flips every sign inside: {}", identities.join(", "));
+        lines.push(AlgebraStep::line(&current, resolved.clone(), text, StepDetail::Standard));
+        current = resolved;
+    }
+    lines.extend(like_term_lines(&current, &terms));
+    lines
+}
+
+/// [`collect_working`] for the signed `terms` of the sum `node`, once no bracket is left.
+fn like_term_lines(node: &Node, terms: &[(bool, Node)]) -> Vec<AlgebraStep> {
+    // Like terms in groups, in the order of the canonical form: by descending powers.
+    let mut groups: Vec<(crate::algebra::poly::Monomial, Vec<(bool, Node)>)> = Vec::new();
+    for (positive, term) in terms {
+        let Ok(poly) = Poly::from_node(term) else { return Vec::new() };
+        let monomial = poly.terms.first().map(|t| t.monomial.clone()).unwrap_or_else(crate::algebra::poly::Monomial::one);
+        if poly.terms.len() > 1 {
+            return Vec::new();
+        }
+        match groups.iter_mut().find(|(m, _)| *m == monomial) {
+            Some((_, group)) => group.push((*positive, term.clone())),
+            None => groups.push((monomial, vec![(*positive, term.clone())])),
+        }
+    }
+    if groups.iter().all(|(_, group)| group.len() == 1) {
         return Vec::new();
+    }
+    let order = |m: &crate::algebra::poly::Monomial| Poly::from_term(dashu::rational::RBig::ONE, m.clone());
+    groups.sort_by(|(a, _), (b, _)| order(b).total_degree().cmp(&order(a).total_degree()));
+
+    let mut lines = Vec::new();
+    let mut current = node.clone();
+    let mut push = |after: Node, text: &str, level: StepDetail, current: &mut Node| {
+        if serializer::expression(&after) != serializer::expression(current) {
+            lines.push(AlgebraStep::line(current, after.clone(), text, level));
+            *current = after;
+        }
     };
-    let identities: Vec<String> = brackets
+    if let Some(ordered) = signed_terms_sum(groups.iter().flat_map(|(_, group)| group.clone())) {
+        push(ordered, "Order the terms by degree", StepDetail::Maximal, &mut current);
+    }
+    let grouped = groups.iter().map(|(_, group)| match group.as_slice() {
+        [single] => single.clone(),
+        many => (true, bracket(signed_terms_sum(many.to_vec()).expect("a group has terms"))),
+    });
+    if let Some(grouped) = signed_terms_sum(grouped) {
+        push(grouped, "Put like terms next to each other", StepDetail::Detailed, &mut current);
+    }
+    // Groups that add up to zero.
+    let sum = |group: &[(bool, Node)]| {
+        group.iter().filter_map(|(positive, term)| Poly::from_node(term).ok().map(|p| if *positive { p } else { -p })).fold(Poly::zero(), |acc, p| &acc + &p)
+    };
+    let zeros: Vec<String> = groups
         .iter()
-        .filter_map(|inner| {
-            let mut flipped = Vec::new();
-            flatten_additive_terms(inner, false, &mut flipped);
-            let flipped = signed_terms_sum(flipped)?;
-            Some(format!("-({}) = {}", serializer::expression(inner), serializer::expression(&flipped)))
-        })
+        .filter(|(_, group)| group.len() > 1 && sum(group).is_zero())
+        .filter_map(|(_, group)| Some(format!("{} = 0", serializer::expression(&signed_terms_sum(group.clone())?))))
         .collect();
-    let text = format!("A minus sign in front of a bracket flips every sign inside: {}", identities.join(", "));
-    vec![AlgebraStep::line(node, resolved, text, StepDetail::Standard)]
+    if !zeros.is_empty() {
+        let zero = Node::Number { value: crate::num::Decimal::from_i64(0), position: 0 };
+        let with_zeros = groups.iter().map(|(_, group)| match group.as_slice() {
+            [single] => single.clone(),
+            many if sum(many).is_zero() => (true, zero.clone()),
+            many => (true, bracket(signed_terms_sum(many.to_vec()).expect("a group has terms"))),
+        });
+        if let Some(with_zeros) = signed_terms_sum(with_zeros) {
+            push(with_zeros, &zeros.join(", "), StepDetail::Detailed, &mut current);
+        }
+    }
+    lines
 }
 
 /// The sums that stand in brackets after a minus sign in the sum `node`: `x + 1` in `x^2 - (x + 1)`.
@@ -399,7 +467,13 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
                     format!("Combine like terms to obtain {}", serializer::expression(&canonical_node))
                 };
                 let step = AlgebraStep::new(node.clone(), canonical_node.clone(), explanation.clone(), Some(RuleId::CollectLikeTerms));
-                *step_info = Some(step.with_working(collect_working(node), explanation));
+                let working = collect_working(node);
+                let last = if working.iter().any(|line| line.explanation == "Put like terms next to each other") {
+                    "Add the coefficients".to_string()
+                } else {
+                    explanation
+                };
+                *step_info = Some(step.with_working(working, last));
                 return canonical_node;
             }
         }
