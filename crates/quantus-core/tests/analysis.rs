@@ -424,3 +424,13 @@ fn the_product_rule_shows_the_chain_rule_of_its_parts_and_puts_them_in() {
     assert!(standard.iter().any(|(latex, text)| latex == r"f''(x) = 2 \cdot \left(x\cos(x^{2})\right)'" && text == "Constant factor rule: 2 stays in front"));
 }
 
+#[test]
+fn the_chain_rule_writes_a_power_and_multiplies_outer_by_inner() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch(r"\frac{x^2+1}{x-1}");
+    let standard = working(&d, "derivatives", StepDetail::Standard);
+    let at = standard.iter().position(|(_, text)| text == "Write as a power").unwrap();
+    assert_eq!(standard[at].0, "f''(x) = 4(x - 1)^{-3}");
+    assert_eq!(standard[at + 1].1, "Inner function");
+    assert_eq!(standard[at + 2], (r"f'''(x) = 4 \cdot \left(-3\right)(x - 1)^{-4} \cdot 1".to_string(), "Outer derivative times inner derivative".to_string()));
+}

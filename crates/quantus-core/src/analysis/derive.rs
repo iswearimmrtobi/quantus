@@ -48,9 +48,29 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
     let (constant, rest) = split_constant(&shown);
     let times_constant = constant.as_ref().map(|c| format!("{} \\cdot ", c.to_latex(var))).unwrap_or_default();
     let mut steps = Vec::new();
+    // The function of an inner function the chain rule works on: x^{-3} for (x - 1)^{-3}.
+    let chained = match &rest {
+        Expr::Product(factors) if factors.len() == 1 => factors[0].clone(),
+        other => other.clone(),
+    };
+    let chain = (rule == AnalysisRule::ChainRule).then(|| chain_parts(&chained)).flatten();
+    if let (Some(_), Expr::Pow(base, exponent)) = (&chain, &chained) {
+        // A constant over a power is written as a power first: \frac{4}{(x - 1)^3} = 4(x - 1)^{-3}.
+        if exponent.as_num().is_some_and(|n| n.is_negative()) {
+            let previous = format!("{}({var})", derivative_name(order - 1));
+            let c = constant.as_ref().map(|c| c.to_latex(var)).unwrap_or_default();
+            let power = format!("{previous} = {c}({})^{{{}}}", base.to_latex(var), exponent.to_latex(var));
+            steps.push(step(AnalysisRule::ChainRule, msg!("Write as a power", "Als Potenz schreiben"), power).with_level(StepDetail::Standard));
+        }
+    }
     steps.extend(parts);
     if let (AnalysisRule::SumRule, Expr::Sum(terms)) = (&rule, &shown) {
         steps.extend(term_by_term(terms, &name, var));
+    }
+    if let Some((outer, inner)) = chain {
+        let latex = format!("{name} = {times_constant}{}", chain_product(&outer, &inner, var, settings));
+        let text = msg!("Outer derivative times inner derivative", "Äußere mal innere Ableitung");
+        steps.push(step(AnalysisRule::ChainRule, text, latex).with_level(StepDetail::Standard));
     }
     if let (AnalysisRule::ProductRule, Some((u, v, false))) = (rule, split_parts(&rest)) {
         // The parts put into u' \cdot v + u \cdot v'.
