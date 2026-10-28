@@ -522,13 +522,21 @@ fn cat13_non_polynomial_denominators_are_not_dropped() {
 }
 
 #[test]
-fn cat13_square_roots_are_rationalized_and_collected() {
+fn cat13_square_roots_are_rationalized_collected_and_multiplied() {
     let cases = [
         (r"\frac{1}{\sqrt{a}} + \frac{\sqrt{a}}{a}", r"\frac{2\sqrt{a}}{a}", "a != 0"),
         (r"\frac{1}{\sqrt{a}} + 1", r"\frac{a + \sqrt{a}}{a}", "a != 0"),
         (r"\sqrt{a} + \sqrt{a}", r"2\sqrt{a}", ""),
         (r"\frac{x}{\sqrt{x}}", r"\sqrt{x}", "x != 0"),
         (r"\frac{1}{x + \sqrt{a}} + \frac{1}{x}", r"\frac{2x + \sqrt{a}}{x(x + \sqrt{a})}", r"x != 0, \sqrt{a} + x != 0"),
+        // A root times itself is its radicand.
+        (r"\sqrt{a} \cdot \sqrt{a}", "a", ""),
+        (r"\sqrt{a} \sqrt{a} + a", "2a", ""),
+        (r"(\sqrt{a} + 1)(\sqrt{a} - 1)", "a - 1", ""),
+        (r"\sqrt{x + 1} \cdot \sqrt{x + 1} - x", "1", ""),
+        (r"(\sqrt{x})^3", r"x\sqrt{x}", ""),
+        (r"\frac{\sqrt{a}}{\sqrt{a}}", "1", "a != 0"),
+        (r"\frac{1}{\sqrt{a} \sqrt{a}}", r"\frac{1}{a}", "a != 0"),
     ];
     for (input, expected, domain) in cases {
         let res = run(input);
@@ -539,6 +547,10 @@ fn cat13_square_roots_are_rationalized_and_collected() {
     let res = run(r"\frac{1}{\sqrt{a}} + \frac{\sqrt{a}}{a}");
     assert_eq!(res.steps[0].rule, Some(RuleId::RationalizeDenominator));
     assert!(res.steps.iter().all(|step| !step.explanation.contains('√')), "{:?}", res.steps);
+
+    let res = run(r"\sqrt{a} \cdot \sqrt{a}");
+    assert_eq!(res.steps[0].rule, Some(RuleId::MultiplyRoots));
+    assert!(res.steps[0].explanation.contains(r"\sqrt{a} \cdot \sqrt{a} = a"), "{}", res.steps[0].explanation);
 }
 
 // ---------------------------------------------------------------------------------------------

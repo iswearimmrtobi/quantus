@@ -22,6 +22,7 @@ pub enum RuleId {
     FactorPolynomial,
     CancelCommonFactors,
     RationalizeDenominator,
+    MultiplyRoots,
     NormalizeExpression,
 }
 
@@ -41,6 +42,7 @@ impl RuleId {
             Self::FactorPolynomial => "FACTOR_POLYNOMIAL",
             Self::CancelCommonFactors => "CANCEL_COMMON_FACTORS",
             Self::RationalizeDenominator => "RATIONALIZE_DENOMINATOR",
+            Self::MultiplyRoots => "MULTIPLY_ROOTS",
             Self::NormalizeExpression => "NORMALIZE_EXPRESSION",
         }
     }
