@@ -43,6 +43,22 @@ pub fn breaks_in(domain: &Domain, lo: f64, hi: f64) -> Vec<f64> {
     out
 }
 
+/// The finite ends of the domain intervals inside [lo, hi], where the graph starts or stops:
+/// sampled exactly, so `\sqrt{x}` reaches its endpoint at 0 in every view.
+pub fn ends_in(domain: &Domain, lo: f64, hi: f64) -> Vec<f64> {
+    domain
+        .set
+        .0
+        .iter()
+        .flat_map(|i| [&i.lo, &i.hi])
+        .filter_map(|b| match b {
+            Bound::At { point, closed: true } => Some(point.approx),
+            _ => None,
+        })
+        .filter(|x| *x >= lo && *x <= hi)
+        .collect()
+}
+
 /// The graph of f on [x_min, x_max] from about `samples` points, plus points just beside each
 /// break and at each of `marks`. With a y-range, values are clipped to ten heights beyond it.
 pub fn sample(f: &Expr, breaks: &[f64], marks: &[f64], x_min: f64, x_max: f64, samples: usize, y_range: Option<(f64, f64)>) -> Vec<Segment> {
@@ -51,7 +67,7 @@ pub fn sample(f: &Expr, breaks: &[f64], marks: &[f64], x_min: f64, x_max: f64, s
     }
     let n = samples.clamp(10, MAX_SAMPLES);
     let span = x_max - x_min;
-    let beside = span * 1e-6;
+    let beside = span * 1e-9;
     let mut xs: Vec<f64> = (0..=n).map(|i| x_min + span * i as f64 / n as f64).collect();
     for b in breaks {
         xs.push(b - beside);
@@ -222,6 +238,33 @@ mod tests {
         assert!(segments[0][0][0].abs() < 1e-3);
         let hole = graph("\\frac{x^2-1}{x-1}", -3.0, 3.0);
         assert_eq!(hole.len(), 2);
+    }
+
+    #[test]
+    fn a_panned_view_starts_exactly_at_the_end_of_the_domain() {
+        let settings = Settings::default();
+        let request = super::super::interface::SampleRequest {
+            latex: "\\sqrt{x}".into(),
+            variable: None,
+            x_min: -3.3,
+            x_max: 7.7,
+            samples: 100,
+            y_min: None,
+            y_max: None,
+        };
+        let segments = super::super::interface::sample_function(&settings, &request).unwrap().segments;
+        assert_eq!(segments[0][0], [0.0, 0.0]);
+    }
+
+    #[test]
+    fn steep_stretches_are_refined_and_samples_are_capped() {
+        let flat = sample(&Expr::Var, &[], &[], 0.0, 1.0, 100, None);
+        assert_eq!(flat[0].len(), 101);
+        let d = analyze("e^{10x}", None, &Settings::default(), None).unwrap();
+        let steep = sample(&d.f, &[], &[], 0.0, 1.0, 100, None);
+        assert!(steep[0].len() > 101);
+        let capped = sample(&Expr::Var, &[], &[], 0.0, 1.0, 1_000_000, None);
+        assert_eq!(capped[0].len(), MAX_SAMPLES + 1);
     }
 
     #[test]

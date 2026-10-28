@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::discussion::{Asymptote, Discussion, MarkedPoint};
 use super::interval::Point;
-use super::plot::{breaks_in, default_window, sample, Segment};
+use super::plot::{breaks_in, default_window, ends_in, sample, Segment};
 use super::tasks::{self, Line};
 use crate::api::StepResponse;
 use crate::settings::Settings;
@@ -212,7 +212,8 @@ pub fn analyze(settings: &Settings, request: &AnalysisRequest) -> Result<Analysi
 fn response(d: &Discussion) -> AnalysisResponse {
     let window = default_window(d);
     let breaks = breaks_in(&d.domain, window.x_min, window.x_max);
-    let marks: Vec<f64> = d.points.iter().map(|p| p.x).collect();
+    let mut marks: Vec<f64> = d.points.iter().map(|p| p.x).collect();
+    marks.extend(ends_in(&d.domain, window.x_min, window.x_max));
     let segments = sample(&d.f, &breaks, &marks, window.x_min, window.x_max, INITIAL_SAMPLES, Some((window.y_min, window.y_max)));
     AnalysisResponse {
         function: d.function.clone(),
@@ -281,8 +282,9 @@ pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<S
     let (domain, _) = super::domain::domain(&f, &super::domain::DomainContext { settings, var: &var, digits })?;
     let f = super::simplify::simplify(&f);
     let breaks = breaks_in(&domain, request.x_min, request.x_max);
+    let ends = ends_in(&domain, request.x_min, request.x_max);
     let y_range = request.y_min.zip(request.y_max);
-    Ok(SampleResponse { segments: sample(&f, &breaks, &[], request.x_min, request.x_max, request.samples, y_range) })
+    Ok(SampleResponse { segments: sample(&f, &breaks, &ends, request.x_min, request.x_max, request.samples, y_range) })
 }
 
 pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentResponse> {
