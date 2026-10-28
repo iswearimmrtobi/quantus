@@ -9,7 +9,7 @@ use crate::algebra::atoms::Atoms;
 use crate::algebra::domain::DomainRestriction;
 use crate::algebra::poly::Poly;
 use crate::num::Decimal;
-use crate::algebra::{logs, powers, radicals, trig};
+use crate::algebra::{abs, logs, powers, radicals, trig};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
 use crate::latex::serializer;
@@ -54,7 +54,10 @@ enum Sign {
 /// The sign of an atom on its own: a square root or `|u|` is never negative, `\pi`, `e` and
 /// `e^{u}` are positive.
 fn atom_sign(atoms: &Atoms, index: usize) -> Sign {
-    let is_e = |node: &Node| matches!(node, Node::Constant { name, .. } if name == "e");
+    let is_e = |node: &Node| {
+        let node = atoms.index_of(node).map_or(node, |i| atoms.node(i));
+        matches!(node, Node::Constant { name, .. } if name == "e")
+    };
     match atoms.node(index) {
         Node::Constant { name, .. } if name == "\\pi" || name == "e" => Sign::Positive,
         Node::Power { base, .. } if is_e(base) => Sign::Positive,
@@ -465,6 +468,9 @@ const RULES: &[Rule] = &[
     trig::tan_squares,
     trig::double_angles,
     trig::quotients_as_tan,
+    abs::abs_values,
+    abs::abs_products,
+    abs::abs_quotients,
 ];
 
 /// Applies every rule once to `current`, recording each change as a step and each condition

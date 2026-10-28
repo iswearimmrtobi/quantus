@@ -37,6 +37,8 @@ pub enum RuleId {
     TrigQuotient,
     Pythagorean,
     DoubleAngle,
+    AbsValue,
+    MergeAbs,
     NormalizeExpression,
 }
 
@@ -71,6 +73,8 @@ impl RuleId {
             Self::TrigQuotient => "TRIG_QUOTIENT",
             Self::Pythagorean => "PYTHAGOREAN",
             Self::DoubleAngle => "DOUBLE_ANGLE",
+            Self::AbsValue => "ABS_VALUE",
+            Self::MergeAbs => "MERGE_ABS",
             Self::NormalizeExpression => "NORMALIZE_EXPRESSION",
         }
     }

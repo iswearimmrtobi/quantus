@@ -207,3 +207,24 @@ fn trigonometry() {
         (r"\cos(-x)-\cos(x)", ("0", ""), ("0", "")),
     ]);
 }
+
+#[test]
+fn absolute_values() {
+    check(&[
+        // E1, E2: one absolute value of a product or quotient.
+        (r"|a||b|", (r"\left|a \cdot b\right|", ""), (r"\left|a \cdot b\right|", "")),
+        (r"\frac{|a|}{|b|}", (r"\left|\frac{a}{b}\right|", "b != 0"), (r"\left|\frac{a}{b}\right|", "b != 0")),
+        (r"\sqrt{a^2}\cdot|b|", (r"\left|a \cdot b\right|", ""), (r"\left|a \cdot b\right|", "")),
+        // E3: even powers, signs and what cannot be negative.
+        (r"|a|^2", (r"a^{2}", ""), (r"a^{2}", "")),
+        (r"|a||a|", (r"a^{2}", ""), (r"a^{2}", "")),
+        (r"|a|^3", (r"a^{2}\left|a\right|", ""), (r"a^{2}\left|a\right|", "")),
+        (r"|-a|-|a|", ("0", ""), ("0", "")),
+        (r"|-3|x", ("3x", ""), ("3x", "")),
+        (r"|-2a|", (r"2\left|a\right|", ""), (r"2\left|a\right|", "")),
+        (r"|a^2|", (r"a^{2}", ""), (r"a^{2}", "")),
+        (r"|x^2+1|", (r"x^{2} + 1", ""), (r"x^{2} + 1", "")),
+        (r"|\sqrt{a}|", (r"\sqrt{a}", ""), (r"\sqrt{a}", "")),
+        (r"|e^x|", (r"e^{x}", ""), (r"e^{x}", "")),
+    ]);
+}
