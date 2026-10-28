@@ -96,7 +96,8 @@ code {
   position: relative;
   height: 100vh;
   display: grid;
-  grid-template-rows: 40px 1fr 26px;
+  /* minmax(0, …): a tall panel or result scrolls inside the row instead of stretching it past the window. */
+  grid-template-rows: 40px minmax(0, 1fr) 26px;
   grid-template-columns: 1fr var(--rail-w);
 }
 
