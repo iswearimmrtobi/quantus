@@ -162,7 +162,7 @@ pub fn simplify_node_with(node: &Node, config: PipelineConfig) -> Result<Simplif
         Some(result) => result,
         None => simplify_rational(node, config),
     };
-    result.map(|result| result.filtered(config.detail))
+    result.map(|result| result.filtered(config.detail, config.cancel_marks))
 }
 
 fn simplify_rational(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
@@ -469,6 +469,7 @@ impl Pipeline {
             step.level = local.level;
             step.substeps = substeps;
             step.summary = local.summary;
+            step.notes = local.notes;
         }
     }
 

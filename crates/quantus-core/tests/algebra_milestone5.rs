@@ -615,3 +615,32 @@ fn a_common_factor_comes_out_before_the_rest_is_factored() {
     assert_eq!(brief[1], row(r"\frac{2 \cdot (x - 2) \cdot (x + 2)}{x - 2}", "Difference of squares: a² - b² = (a - b)(a + b)"));
 }
 
+#[test]
+fn cancelling_marks_the_factor_and_notes_where_it_was_zero() {
+    let input = r"\frac{x^2-9}{x-3}";
+    let cancel = row("x + 3", "Cancel common factor x - 3 from numerator and denominator");
+    assert_eq!(rows(input, StepDetail::Standard).last().unwrap(), &cancel);
+    let detailed = rows(input, StepDetail::Detailed);
+    assert_eq!(detailed[2], row(r"\frac{\cancel{(x - 3)} \cdot (x + 3)}{\cancel{(x - 3)}}", "Mark the common factor"));
+    assert_eq!(detailed[3], row("x + 3", "Cancel x - 3"));
+    let maximal = run_at(input, StepDetail::Maximal);
+    let note = maximal.steps.last().unwrap();
+    assert!(note.note && note.after_latex == "x + 3");
+    assert_eq!(note.explanation, "Note: x ≠ 3: the cancelled factor x - 3 is zero there, so the input is undefined at x = 3");
+
+    let coloured = simplify_node_with(
+        &parse(input),
+        PipelineConfig { detail: StepDetail::Detailed, cancel_marks: false, ..PipelineConfig::default() },
+    )
+    .unwrap();
+    assert_eq!(coloured.steps[2].after_latex, r"\frac{\textcolor{orange}{(x - 3)} \cdot (x + 3)}{\textcolor{orange}{(x - 3)}}");
+}
+
+#[test]
+fn cancelling_powers_subtracts_the_exponents() {
+    assert_eq!(
+        rows(r"\frac{x^5}{x^2}", StepDetail::Standard),
+        [row("x^{5 - 2}", "Divide powers of the same base: subtract the exponents"), row("x^{3}", "Cancel x^{2}")]
+    );
+    assert_eq!(rows(r"\frac{x^2}{x^5}", StepDetail::Standard)[0].0, r"\frac{1}{x^{5 - 2}}");
+}

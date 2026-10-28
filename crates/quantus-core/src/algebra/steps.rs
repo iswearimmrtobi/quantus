@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::algebra::display::highlight_cancelled;
 use crate::algebra::domain::DomainRestriction;
 use crate::latex::ast::Node;
 use crate::settings::StepDetail;
@@ -102,6 +103,8 @@ pub struct AlgebraStep {
     /// The explanation when this step also stands for hidden sub-steps before it: the text of the
     /// whole rule, while `explanation` describes only the last line.
     pub summary: Option<String>,
+    /// Remarks about the result of this step, shown after it.
+    pub notes: Vec<AlgebraStep>,
 }
 
 impl AlgebraStep {
@@ -124,6 +127,7 @@ impl AlgebraStep {
             note: false,
             substeps: Vec::new(),
             summary: None,
+            notes: Vec::new(),
         }
     }
 
@@ -150,9 +154,21 @@ impl AlgebraStep {
         self.with_substeps(substeps)
     }
 
+    /// Remarks about the result, shown after the step.
+    pub fn with_notes(mut self, notes: Vec<AlgebraStep>) -> Self {
+        self.notes = notes;
+        self
+    }
+
     /// A sub-step: `before` to `after` with `explanation`, shown from `level` on.
     pub fn line(before: &Node, after: Node, explanation: impl Into<String>, level: StepDetail) -> Self {
         Self::new(before.clone(), after, explanation, None).with_level(level)
+    }
+
+    /// The step with its cancel marks in colour.
+    fn highlighted(self) -> Self {
+        let (before, after) = (highlight_cancelled(self.before.clone()), highlight_cancelled(self.after.clone()));
+        self.starting_at(before).ending_at(after)
     }
 
     /// The same step, starting from `before` instead.
@@ -173,6 +189,7 @@ impl AlgebraStep {
     /// ended.
     pub fn flatten(mut self) -> Vec<AlgebraStep> {
         let substeps = std::mem::take(&mut self.substeps);
+        let notes = std::mem::take(&mut self.notes);
         if substeps.is_empty() {
             if let Some(summary) = self.summary.take() {
                 self.explanation = summary;
@@ -195,8 +212,12 @@ impl AlgebraStep {
                 self = self.starting_at(line.before);
             }
         }
+        let (after, rule) = (self.after.clone(), self.rule);
         if self.before_latex != self.after_latex || self.note {
             steps.push(self);
+        }
+        for note in notes {
+            steps.push(AlgebraStep::note(after.clone(), note.explanation, note.rule.or(rule), note.level));
         }
         steps
     }
@@ -291,9 +312,13 @@ impl SimplificationResult {
         }
     }
 
-    /// The result with the steps shown at `detail`.
-    pub fn filtered(mut self, detail: StepDetail) -> Self {
+    /// The result with the steps shown at `detail`, cancelled factors struck through or, without
+    /// `cancel_marks`, in colour.
+    pub fn filtered(mut self, detail: StepDetail, cancel_marks: bool) -> Self {
         self.steps = filter_steps(self.steps, detail);
+        if !cancel_marks {
+            self.steps = self.steps.into_iter().map(AlgebraStep::highlighted).collect();
+        }
         self
     }
 

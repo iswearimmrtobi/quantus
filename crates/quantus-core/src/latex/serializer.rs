@@ -202,6 +202,10 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 let inner = expression_with_mode(x, mode);
                 if inner.contains("\\frac") { format!("\\left({inner}\\right)") } else { format!("({inner})") }
             }
+            (crate::algebra::display::CANCEL, [x]) => format!("\\cancel{{{}}}", render(x, PRECEDENCE_MULTIPLICATIVE, mode)),
+            (crate::algebra::display::HIGHLIGHT, [x]) => {
+                format!("\\textcolor{{orange}}{{{}}}", render(x, PRECEDENCE_MULTIPLICATIVE, mode))
+            }
             ("mod", [a, b]) => format!("{} \\bmod {}", render(a, PRECEDENCE_ATOM, mode), render(b, PRECEDENCE_ATOM, mode)),
             (name, arguments) => format!(
                 "\\{name}\\left({}\\right)",
