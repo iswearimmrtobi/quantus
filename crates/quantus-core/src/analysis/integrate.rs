@@ -348,8 +348,12 @@ fn rational(n: &Poly, d: &Poly, mut steps: Option<(&mut Vec<Step>, &str)>) -> Op
         }
         if let Some((list, var)) = steps.as_mut() {
             let shown = Expr::Product(vec![Expr::from_poly(&remainder), Expr::recip(Expr::from_poly(&d))]);
-            let latex = format!("{} = {}", shown.to_latex(var), Expr::Sum(parts).to_latex(var));
-            list.push(step(AnalysisRule::PartialFractions, msg!("Partial fraction decomposition", "Partialbruchzerlegung"), latex));
+            let (left, right) = (shown.to_latex(var), Expr::Sum(parts).to_latex(var));
+            // A single fraction over a linear factor is its own decomposition.
+            if left != right {
+                let latex = format!("{left} = {right}");
+                list.push(step(AnalysisRule::PartialFractions, msg!("Partial fraction decomposition", "Partialbruchzerlegung"), latex));
+            }
         }
     }
     Some(Expr::Sum(integral))

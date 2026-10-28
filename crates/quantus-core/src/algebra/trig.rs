@@ -313,8 +313,14 @@ fn double_angle(node: &Node, ctx: &mut Context) -> Option<Local> {
             let Some(quotient) = divide(&poly, &form) else { continue };
             let merged = function(name, &double, ctx.atoms);
             let result = &(&quotient * &Poly::from_const(factor.clone())) * &merged;
-            let shown = if factor == RBig::ONE { merged.clone() } else { &Poly::from_const(factor) * &merged };
-            let detail = format!("{} = {}", latex_of(&form), latex_of(&shown));
+            // With a constant in front, the identity is shown with it: `2 \sin x \cos x = \sin(2x)`,
+            // not `\sin x \cos x = \frac{1}{2} \sin(2x)` next to a result without the \frac{1}{2}.
+            let detail = if quotient.is_constant() {
+                format!("{} = {}", latex_of(&(&quotient * &form)), latex_of(&result))
+            } else {
+                let shown = if factor == RBig::ONE { merged.clone() } else { &Poly::from_const(factor) * &merged };
+                format!("{} = {}", latex_of(&form), latex_of(&shown))
+            };
             return Some(Local::new(result.to_node(), detail));
         }
     }

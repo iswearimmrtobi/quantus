@@ -116,6 +116,26 @@ pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
     format!("\\left({number}\\right)\\,{}", unit_latex::format(unit))
 }
 
+/// The base and argument of `\frac{\ln a}{\ln b}` with a positive number `b \\neq 1`: the change of base the
+/// parser makes of `\log_b a`.
+fn log_with_base<'a>(numerator: &'a Node, denominator: &'a Node) -> Option<(&'a Decimal, &'a Node)> {
+    let ln = |node: &'a Node| match node {
+        Node::Function { name, argument, .. } if name == "ln" => Some(&**argument),
+        _ => None,
+    };
+    let argument = ln(numerator)?;
+    let mut base = ln(denominator)?;
+    while let Node::Group { inner, .. } = base {
+        base = inner;
+    }
+    match base {
+        Node::Number { value, .. } if !value.is_negative() && !value.is_zero() && value.normalized() != Decimal::from_i64(1) => {
+            Some((value, argument))
+        }
+        _ => None,
+    }
+}
+
 fn render(node: &Node, min_precedence: u8, mode: SerializerMode) -> String {
     if let Node::Group { inner, .. } = node {
         return render(inner, min_precedence, mode);
@@ -136,9 +156,14 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         Node::Variable { name, index, .. } if index.is_empty() => name.clone(),
         Node::Variable { name, index, .. } => format!("{name}_{{{index}}}"),
         Node::Negation { operand, .. } => format!("-{}", render(operand, PRECEDENCE_MULTIPLICATIVE, mode)),
-        Node::Fraction { numerator, denominator, .. } => {
-            format!("\\frac{{{}}}{{{}}}", expression_with_mode(numerator, mode), expression_with_mode(denominator, mode))
-        }
+        Node::Fraction { numerator, denominator, .. } => match log_with_base(numerator, denominator) {
+            // How the parser reads `\log_b a`; written back the way it was typed.
+            Some((base, argument)) => match mode {
+                SerializerMode::Standard => format!("\\log_{{{}}}{{{}}}", numbers::format(base), expression_with_mode(argument, mode)),
+                SerializerMode::Algebraic => format!("\\log_{{{}}}{}", numbers::format(base), function_argument(argument)),
+            },
+            None => format!("\\frac{{{}}}{{{}}}", expression_with_mode(numerator, mode), expression_with_mode(denominator, mode)),
+        },
         Node::Root { radicand, degree, .. } => {
             let radicand = expression_with_mode(radicand, mode);
             match degree {

@@ -2,7 +2,7 @@
 
 Quantus has two kinds of tests:
 
-1. **`cargo test`**: 458 tests that run in a few seconds. Run them before every commit.
+1. **`cargo test`**: 462 tests that run in a few seconds. Run them before every commit.
 2. **The generated test set** in `test/`: 103,000 cases run by a separate program, for broad
    coverage of the engine. A full run takes about 4 minutes, so run it when you change the engine's
    behaviour, not on every commit.
@@ -47,7 +47,7 @@ next to the code they test, so the file you change is also where its tests are.
 | `crates/quantus-core/src/` (rest) | 21 | Sessions, settings, error messages, message language, algebra pipeline, rational roots |
 | `desktop/src-tauri/src/tests.rs` | 20 | The Tauri commands through Tauri's own IPC layer with a mock runtime, as the renderer's `invoke` reaches them: evaluation, variables, error positions, settings and circuit files, the menu, the analysis commands at a set precision and with their errors |
 
-## Integration tests (197)
+## Integration tests (201)
 
 `crates/quantus-core/tests/*.rs`. Each file is its own test binary and uses only the public API of
 `quantus-core`.
@@ -80,7 +80,7 @@ The symbolic simplification of rational expressions, built milestone by mileston
 | `algebra_milestone2.rs` | 11 | Finding the denominators of an expression, for domain restrictions |
 | `algebra_milestone3.rs` | 14 | Binomial formulas, exact roots, factoring |
 | `algebra_milestone4.rs` | 22 | Nested fractions, common denominators, expansion |
-| `algebra_milestone5.rs` | 28 | The full simplification pipeline and checking that input and output are equivalent |
+| `algebra_milestone5.rs` | 30 | The full simplification pipeline, checking that input and output are equivalent, and that step texts name what the step changes |
 | `algebra_milestone6.rs` | 4 | Wiring into parser, serializer, calculator and API |
 | `algebra_reference_integration.rs` | 5 | One reference expression, `3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)`, end to end |
 | `algebra_simplification.rs` | 37 | The 14 categories of simplification the engine has to handle |
@@ -90,7 +90,7 @@ The symbolic simplification of rational expressions, built milestone by mileston
 
 | File | Tests | What |
 |---|---:|---|
-| `analysis.rs` | 26 | The analysis mode end to end: each section's result and the marked points for every case of `docs/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, and a time check |
+| `analysis.rs` | 28 | The analysis mode end to end: each section's result and the marked points for every case of `docs/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, and a time check |
 | `complex.rs` | 10 | Complex results in imaginary mode |
 | `settings.rs` | 10 | Each user setting switches its reading or writing rule |
 

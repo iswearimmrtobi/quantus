@@ -333,3 +333,30 @@ fn every_antiderivative_differentiates_back() {
         assert!(is_zero(&back) || is_zero_numeric(&back, &d.sample_points(9)), "{input}");
     }
 }
+
+fn steps(d: &Discussion, id: &str) -> Vec<String> {
+    d.sections.iter().find(|s| s.id == id).unwrap().steps.iter().map(|s| s.latex.clone()).collect()
+}
+
+#[test]
+fn every_solution_has_its_step() {
+    // x = 0 from the factor x is a step of its own, not only a result.
+    let extrema = steps(&sketch("x^3-3x^2+2"), "extrema");
+    assert!(extrema.contains(&"x = 0 \\lor 3x - 6 = 0".to_string()), "{extrema:?}");
+    // The equation is not repeated as a "Factor out" step when it is already shown factored.
+    let extrema = steps(&sketch("x e^{2x}"), "extrema");
+    assert_eq!(extrema.iter().filter(|s| s.as_str() == "(2x + 1)e^{2x} = 0").count(), 0, "{extrema:?}");
+    // No `0 + k \cdot 2\pi`.
+    let zeros = steps(&sketch("\\sin(x^2)"), "zeros");
+    assert!(zeros.iter().any(|s| s.starts_with("x^{2} = k \\cdot 2\\pi")), "{zeros:?}");
+}
+
+#[test]
+fn steps_without_a_change_are_left_out() {
+    let d = sketch("\\frac{x^2+1}{x-1}");
+    let derivatives = steps(&d, "derivatives");
+    assert!(derivatives.iter().any(|s| s.ends_with("{(x - 1)^{4}}")), "{derivatives:?}");
+    assert!(!derivatives.iter().any(|s| s.contains("((x - 1)^{2})^{2}")), "{derivatives:?}");
+    let antiderivative = steps(&d, "antiderivative");
+    assert!(!antiderivative.contains(&"\\frac{2}{x - 1} = \\frac{2}{x - 1}".to_string()), "{antiderivative:?}");
+}

@@ -856,13 +856,83 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
     if serializer::expression(&canonical) == serializer::expression(root) {
         return None;
     }
-    let step = AlgebraStep::new(
-        root.clone(),
-        canonical.clone(),
-        "Write the result in canonical form: terms in descending degree order, denominator factored",
-        Some(RuleId::NormalizeExpression),
-    );
+    let (explanation, rule) = canonical_explanation(root);
+    let step = AlgebraStep::new(root.clone(), canonical.clone(), explanation, Some(rule));
     Some((canonical, step))
+}
+
+/// What stage 13 does to `root`, in words: the rewrite is one call to [`canonical_form`], but the
+/// reader sees which of its parts actually changed the expression.
+fn canonical_explanation(root: &Node) -> (String, RuleId) {
+    let unwrapped = unwrap_group(root);
+    let inner = match unwrapped {
+        Node::Negation { operand, .. } => unwrap_group(operand),
+        other => other,
+    };
+    let den = split_fraction(inner).and_then(|(_, den)| Poly::from_node(den).ok());
+    if let Some(den) = den.as_ref().filter(|den| den.is_constant()) {
+        return (
+            format!("Write the division by {} as a coefficient", serializer::expression(&den.to_node())),
+            RuleId::NormalizeExpression,
+        );
+    }
+    if let Ok(poly) = Poly::from_node(unwrapped) {
+        return match unwrapped {
+            Node::Power { base, .. } if matches!(unwrap_group(base), Node::Power { .. }) => {
+                ("Power of a power: multiply the exponents".into(), RuleId::NestPowers)
+            }
+            Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, .. }
+                if is_power_product(unwrapped) =>
+            {
+                ("Same base: add the exponents".into(), RuleId::MergePowers)
+            }
+            _ if crate::algebra::expand::is_term_reordering(unwrapped) => {
+                ("Order the terms by descending powers".into(), RuleId::NormalizeExpression)
+            }
+            _ if poly.terms.len() == 1 => {
+                ("Multiply the factors into one term".into(), RuleId::NormalizeExpression)
+            }
+            _ => (
+                "Write the polynomial expanded, terms in descending powers".into(),
+                RuleId::NormalizeExpression,
+            ),
+        };
+    }
+    match den {
+        Some(den) if den.leading_coeff().is_negative() => (
+            "Multiply numerator and denominator by -1, so the denominator starts with a positive term"
+                .into(),
+            RuleId::NormalizeExpression,
+        ),
+        _ => (
+            "Write the result in canonical form: numerator expanded, denominator factored".into(),
+            RuleId::NormalizeExpression,
+        ),
+    }
+}
+
+/// Whether `node` is a product of powers of one variable (`x^2 \cdot x^3`), possibly with a
+/// constant factor.
+fn is_power_product(node: &Node) -> bool {
+    let mut factors = Vec::new();
+    crate::algebra::expand::flatten_multiplicative_factors(node, &mut factors);
+    let mut bases = BTreeSet::new();
+    let mut powers = 0;
+    for factor in &factors {
+        match unwrap_group(factor) {
+            Node::Variable { .. } => {
+                bases.insert(serializer::expression(factor));
+                powers += 1;
+            }
+            Node::Power { base, .. } if matches!(unwrap_group(base), Node::Variable { .. }) => {
+                bases.insert(serializer::expression(base));
+                powers += 1;
+            }
+            other if is_constant_node(other) => {}
+            _ => return false,
+        }
+    }
+    bases.len() == 1 && powers >= 2
 }
 
 // ---------------------------------------------------------------------------------------------

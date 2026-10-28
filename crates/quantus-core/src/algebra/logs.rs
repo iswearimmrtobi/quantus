@@ -261,12 +261,14 @@ fn log_quotient(node: &Node, ctx: &mut Context) -> Option<Local> {
     let (k, m) = (exponent_of(&a, &base)?, exponent_of(&b, &base)?);
     let value = RBig::from(k) / RBig::from(m);
     let result = Poly::from_const(value).to_node();
-    let detail = format!(
-        "\\frac{{{}}}{{{}}} = {}",
-        serializer::expression(&atoms.var(top_index)),
-        serializer::expression(&atoms.var(bottom_index)),
-        serializer::expression(&result)
-    );
+    // `\log_2 8` is serialized as typed, a quotient of other logarithms as a fraction.
+    let quotient = serializer::expression(&make_fraction(atoms.node(top_index).clone(), atoms.node(bottom_index).clone()));
+    let power = |value: &Poly, k: usize| format!("{} = {}^{{{k}}}", serializer::expression(&value.to_node()), serializer::expression(&base.to_node()));
+    let detail = match (base.is_constant(), m) {
+        (false, _) => format!("{quotient} = {}", serializer::expression(&result)),
+        (true, 1) => format!("{}, so {quotient} = {}", power(&a, k), serializer::expression(&result)),
+        (true, _) => format!("{}, {}, so {quotient} = {}", power(&a, k), power(&b, m), serializer::expression(&result)),
+    };
     Some(Local::new(result, detail).with([Condition::Positive(base.to_node())]))
 }
 

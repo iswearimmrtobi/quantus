@@ -10,6 +10,7 @@
 //!   e.g. `3x^2 - 18x + 24 + x - 102 -> 3x^2 - 17x - 78`.
 
 use crate::algebra::binomial::expand_binomial_node;
+use crate::algebra::combine::flatten_additive_terms;
 use crate::algebra::domain::unwrap_group;
 use crate::algebra::nested::wrap_factor;
 use crate::algebra::poly::Poly;
@@ -247,6 +248,22 @@ fn expand_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
     }
 }
 
+/// Whether the polynomial `node` differs from its canonical form only in the order of its terms:
+/// every term is already a single monomial written canonically, and no two of them combine.
+pub(crate) fn is_term_reordering(node: &Node) -> bool {
+    let Ok(poly) = Poly::from_node(unwrap_group(node)) else {
+        return false;
+    };
+    let mut terms = Vec::new();
+    flatten_additive_terms(node, true, &mut terms);
+    terms.len() == poly.terms.len()
+        && terms.iter().all(|(_, term)| {
+            Poly::from_node(term).is_ok_and(|p| {
+                p.terms.len() == 1 && serializer::expression(&p.to_node()) == serializer::expression(term)
+            })
+        })
+}
+
 /// Attempts to collect like terms in an additive polynomial expression.
 pub fn collect_like_terms_step(root: &Node) -> Option<(Node, AlgebraStep)> {
     let mut step_info: Option<AlgebraStep> = None;
@@ -286,10 +303,11 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
         if let Ok(poly) = Poly::from_node(unwrapped) {
             let canonical_node = poly.to_node();
             if serializer::expression(&canonical_node) != serializer::expression(unwrapped) {
-                let explanation = format!(
-                    "Combine like terms to obtain {}",
-                    serializer::expression(&canonical_node)
-                );
+                let explanation = if is_term_reordering(unwrapped) {
+                    "Order the terms by descending powers".to_string()
+                } else {
+                    format!("Combine like terms to obtain {}", serializer::expression(&canonical_node))
+                };
                 *step_info = Some(AlgebraStep::new(
                     node.clone(),
                     canonical_node.clone(),

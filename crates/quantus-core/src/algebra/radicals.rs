@@ -407,13 +407,19 @@ fn rationalize_conjugate(node: &Node, ctx: &Context) -> Option<Local> {
         if p.is_zero() || q.is_zero() {
             continue;
         }
-        let conjugate = &p - &(&q * &Poly::from_var(&var));
-        let rationalized = &(&p * &p) - &(&(&q * &q) * &radicand);
+        let mut conjugate = &p - &(&q * &Poly::from_var(&var));
+        let mut rationalized = &(&p * &p) - &(&(&q * &q) * &radicand);
+        // `\frac{1}{\sqrt{3} - 1}` is extended by `\sqrt{3} + 1`, not by `-\sqrt{3} - 1`: the sign
+        // that keeps the new denominator positive.
+        if rationalized.leading_coeff().is_negative() {
+            conjugate = -&conjugate;
+            rationalized = -&rationalized;
+        }
         // The new denominator brings p^{2} - q^{2} u \neq 0 into the domain, which is the condition.
         if !ctx.allows(&[Condition::NonZero(conjugate.to_node())]) {
             continue;
         }
-        let detail = format!("multiply by {}", serializer::expression(&conjugate.to_node()));
+        let detail = format!("multiply by the conjugate {}", serializer::expression(&conjugate.to_node()));
         let node = make_fraction(make_product(numerator.clone(), conjugate.to_node()), rationalized.to_node());
         return Some(Local::new(node, detail));
     }

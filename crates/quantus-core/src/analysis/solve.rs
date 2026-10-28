@@ -200,7 +200,11 @@ impl Solver<'_> {
         }
         if matches!(simplify(e), Expr::Sum(_)) && matches!(shown, Expr::Product(_)) {
             let latex = format!("{} = 0", self.tex(&shown));
-            self.push(AnalysisRule::FactorOut, msg!("Factor out", "Ausklammern"), latex);
+            // Not when the equation is already shown in this form: by the caller, which writes the
+            // equation before solving it (`f'(x) = 0 \Leftrightarrow …`), or by the step before.
+            if !self.steps.last().is_none_or(|last| last.latex.ends_with(&latex)) {
+                self.push(AnalysisRule::FactorOut, msg!("Factor out", "Ausklammern"), latex);
+            }
         }
         match &shown {
             Expr::Product(factors) => {
@@ -300,6 +304,16 @@ impl Solver<'_> {
             let latex = format!("{} \\cdot ({}) = 0", self.tex(&power), self.tex(&Expr::from_poly(&rest)));
             let name = self.tex(&power);
             self.push(AnalysisRule::FactorOut, msg!("Factor out {}", "{} ausklammern", name), latex);
+            let latex = format!("{} = 0 \\lor {} = 0", self.tex(&power), self.tex(&Expr::from_poly(&rest)));
+            self.push(
+                AnalysisRule::ZeroProduct,
+                msg!("A product is zero where one of its factors is zero", "Ein Produkt ist null, wenn ein Faktor null ist"),
+                latex,
+            );
+            if k > 1 {
+                let latex = format!("{} = 0", self.ctx.var);
+                self.push(AnalysisRule::ZeroProduct, msg!("Only zero solves it", "Nur null löst die Gleichung"), latex);
+            }
             let mut all = Solutions::root(Point::rational(RBig::ZERO), k as u32);
             all.extend(self.polynomial(&rest));
             return all;
@@ -803,6 +817,7 @@ impl Solver<'_> {
         };
         let shown = match &period {
             None => format!("{} = {}", self.tex(u), self.tex(&base)),
+            Some(p) if is_zero(&base) => format!("{} = k \\cdot {}, \\quad k \\in \\mathbb{{Z}}", self.tex(u), self.tex(p)),
             Some(p) => format!("{} = {} + k \\cdot {}, \\quad k \\in \\mathbb{{Z}}", self.tex(u), self.tex(&base), self.tex(p)),
         };
         self.push(AnalysisRule::InverseFunction, msg!("Apply the inverse function", "Umkehrfunktion anwenden"), shown);

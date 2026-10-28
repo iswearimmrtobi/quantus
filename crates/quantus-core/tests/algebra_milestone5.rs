@@ -405,3 +405,41 @@ fn test_unsupported_constructs_diagnostic_and_partial_simplification() {
     assert!(res.diagnostic.as_ref().unwrap().contains("transcendental functions"));
     assert!(!res.steps.is_empty(), "Should simplify rational subtrees");
 }
+
+/// `(input, explanation of the step, result)`: each step says what it changed.
+#[test]
+fn steps_name_what_they_change() {
+    let cases = [
+        (r"x^2 \cdot x^3", "Same base: add the exponents", "x^{5}"),
+        (r"(x^2)^3", "Power of a power: multiply the exponents", "x^{6}"),
+        (r"3 + x^2 - 2x", "Order the terms by descending powers", "x^{2} - 2 \\cdot x + 3"),
+        (r"\frac{x}{2}", "Write the division by 2 as a coefficient", "\\frac{1}{2} \\cdot x"),
+        (
+            r"\frac{1}{1 - x}",
+            "Multiply numerator and denominator by -1, so the denominator starts with a positive term",
+            "\\frac{-1}{x - 1}",
+        ),
+        (r"2 \sin(x) \cos(x)", "Use the double angle: 2 \\cdot \\sin{x} \\cdot \\cos{x} = \\sin{2 \\cdot x}", "\\sin{2 \\cdot x}"),
+        (r"\log_2(8)", "Divide the logarithms: 8 = 2^{3}, so \\log_{2}{8} = 3", "3"),
+        (
+            r"\frac{1}{\sqrt{3} - 1}",
+            "Rationalize the denominator: multiply by the conjugate \\sqrt{3} + 1",
+            "\\frac{\\sqrt{3} + 1}{2}",
+        ),
+    ];
+    for (input, explanation, after) in cases {
+        let result = run(input);
+        let step = &result.steps[0];
+        assert_eq!(step.explanation, explanation, "{input}");
+        assert_eq!(step.after_latex, after, "{input}");
+    }
+}
+
+#[test]
+fn a_logarithm_with_a_base_is_shown_as_typed() {
+    let result = run(r"\log_{8} 4");
+    assert_eq!(result.steps[0].before_latex, "\\log_{8}{4}");
+    assert_eq!(result.latex, "\\frac{2}{3}");
+    // A quotient of logarithms without a number as the base stays a fraction.
+    assert_eq!(serializer::expression(&parse(r"\frac{\ln x}{\ln y}")), "\\frac{\\ln{x}}{\\ln{y}}");
+}

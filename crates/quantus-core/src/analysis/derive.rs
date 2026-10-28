@@ -236,7 +236,15 @@ pub fn derivative(e: &Expr) -> Expr {
                         mul(vec![derivative(&u), v.clone()]),
                         mul(vec![Expr::int(-1), u.clone(), derivative(&v)]),
                     ]);
-                    mul(vec![top, Expr::pow(v, Expr::int(-2))])
+                    // v = u^{n} gives u^{-2n}, so the quotient rule shows (x - 1)^{4}, not ((x - 1)^{2})^{2}.
+                    let squared = match &v {
+                        Expr::Pow(base, exponent) => match exponent.as_num() {
+                            Some(n) => Expr::pow((**base).clone(), Expr::Num(n * RBig::from(-2))),
+                            None => Expr::pow(v.clone(), Expr::int(-2)),
+                        },
+                        _ => Expr::pow(v, Expr::int(-2)),
+                    };
+                    mul(vec![top, squared])
                 }
                 // A constant over a product: c \cdot v^{-1} with v the product of the denominators.
                 None => {
