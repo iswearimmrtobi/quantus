@@ -12,6 +12,8 @@ interface Props {
   onEnter(): void;
   /** Zurück zum Formeleditor (Esc). */
   onLeave(): void;
+  /** What the empty field shows; a physics example unless the caller has a better one. */
+  placeholder?: string;
   ref?: Ref<LatexInputHandle>;
 }
 
@@ -23,7 +25,7 @@ interface Props {
  * unverändert stehen lässt. Genau das ist hier: ein gewöhnliches Textfeld, dessen Inhalt
  * ungefiltert ans Backend geht.
  */
-export function LatexInput({ value, onChange, onEnter, onLeave, ref }: Props) {
+export function LatexInput({ value, onChange, onEnter, onLeave, placeholder = 'F = 2kg \\cdot 10\\frac{m}{s^2}', ref }: Props) {
   const input = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function LatexInput({ value, onChange, onEnter, onLeave, ref }: Props) {
       spellCheck={false}
       autoComplete="off"
       rows={1}
-      placeholder="F = 2kg \cdot 10\frac{m}{s^2}"
+      placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' && !event.shiftKey) {

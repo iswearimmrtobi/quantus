@@ -63,6 +63,8 @@ interface Props {
   onEnter(): void;
   /** Der Nutzer hat `\` getippt und will LaTeX schreiben — [seed] ist der Text für das Quelltextfeld. */
   onLatexRequested(seed: string): void;
+  /** LaTeX the empty editor shows greyed out. */
+  placeholder?: string;
   ref?: Ref<MathFieldHandle>;
 }
 
@@ -86,7 +88,7 @@ export function toReadableLatex(latex: string): string {
  * The element is created imperatively rather than as JSX — it is a custom element with a
  * property-based API, and React would only ever set attributes.
  */
-export function MathField({ value, onChange, onEnter, onLatexRequested, ref }: Props) {
+export function MathField({ value, onChange, onEnter, onLatexRequested, placeholder, ref }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
   const callbacks = useRef({ onChange, onEnter, onLatexRequested });
@@ -100,6 +102,7 @@ export function MathField({ value, onChange, onEnter, onLatexRequested, ref }: P
     // No virtual keyboard: the desktop workflow is physical keys and the numpad (F10).
     mathfield.mathVirtualKeyboardPolicy = 'manual';
     mathfield.smartMode = false;
+    if (placeholder) mathfield.placeholder = placeholder;
     mathfield.value = value;
 
     // Beim Verlassen des Latex-Modus meldet `mode-change` den neuen Modus, trägt den

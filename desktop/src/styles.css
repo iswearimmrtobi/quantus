@@ -18,6 +18,17 @@
   --amber: #d8a9ff;
   --amber-dim: #4e3c63;
   --danger: #ff8fa8;
+  /* The analysis graph: asymptotes, tangent and normal, and one colour per kind of point. */
+  --muted: var(--text-muted);
+  --accent: var(--amber);
+  --point-zero: #7fd1b9;
+  --point-y-intercept: #8fb8ff;
+  --point-max: #ff8fa8;
+  --point-min: #9186e8;
+  --point-inflection: #d8a9ff;
+  --point-saddle: #ffd27f;
+  --point-hole: var(--text);
+  --point-tangent: var(--accent);
   --mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
   --sans: system-ui, 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
   --radius: 3px;
@@ -1110,6 +1121,11 @@ code {
 
 /* ---- Analysis mode ------------------------------------------------------------------------ */
 
+/* The body's columns follow the width the workspace has, which shrinks while the panel is open. */
+.analysis-workspace {
+  container-type: inline-size;
+}
+
 .analysis-panel {
   width: 100%;
   max-width: 1280px;
@@ -1133,7 +1149,7 @@ code {
   align-items: start;
 }
 
-@media (max-width: 900px) {
+@container (max-width: 900px) {
   .analysis-body {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1364,13 +1380,13 @@ code {
 }
 
 .plot-asymptote {
-  stroke: var(--text-muted);
+  stroke: var(--muted);
   stroke-width: 1;
   stroke-dasharray: 5 4;
 }
 
 .plot-line {
-  stroke: var(--amber);
+  stroke: var(--accent);
   stroke-width: 1.5;
 }
 
@@ -1385,7 +1401,7 @@ code {
 }
 
 .plot-dot {
-  fill: var(--amber);
+  fill: var(--accent);
 }
 
 .plot-point {
@@ -1466,16 +1482,16 @@ code {
 }
 
 /* One colour per kind of point, in the graph and in the list. */
-.kind-zero { --point: #7fd1b9; }
-.kind-yIntercept { --point: #8fb8ff; }
-.kind-max { --point: #ff8fa8; }
-.kind-min { --point: #9186e8; }
-.kind-inflection { --point: #d8a9ff; }
-.kind-saddle { --point: #ffd27f; }
-.kind-hole { --point: #edebf3; }
-.kind-boundaryMax { --point: #ff8fa8; }
-.kind-boundaryMin { --point: #9186e8; }
-.kind-tangent { --point: #d8a9ff; }
+.kind-zero { --point: var(--point-zero); }
+.kind-yIntercept { --point: var(--point-y-intercept); }
+.kind-max { --point: var(--point-max); }
+.kind-min { --point: var(--point-min); }
+.kind-inflection { --point: var(--point-inflection); }
+.kind-saddle { --point: var(--point-saddle); }
+.kind-hole { --point: var(--point-hole); }
+.kind-boundaryMax { --point: var(--point-max); }
+.kind-boundaryMin { --point: var(--point-min); }
+.kind-tangent { --point: var(--point-tangent); }
 
 .plot-point { fill: var(--point); }
 .point-swatch { background: var(--point); }

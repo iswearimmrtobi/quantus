@@ -11,6 +11,7 @@ import {
   type TangentResult,
 } from '../api';
 import { useT } from '../i18n';
+import { copyText } from '../shell';
 import type { TextKey } from '../i18n/en';
 import { FunctionPlot } from './FunctionPlot';
 import { Katex } from './Katex';
@@ -65,6 +66,13 @@ const pointKey = (point: MarkedPoint) => `${point.kind}|${point.x}|${point.y}`;
  */
 export function AnalysisView({ settings }: { settings: Settings }) {
   const { t } = useT();
+  const ctrl = t('key.ctrl');
+  const [copied, setCopied] = useState(false);
+  const copyInput = async () => {
+    await copyText(input);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  };
   const [input, setInput] = useState('');
   const [latexMode, setLatexMode] = useState(false);
   /** The function the results belong to; tasks and the graph use it, not the half-typed input. */
@@ -191,18 +199,31 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   return (
     <main className="workspace analysis-workspace">
       <div className="analysis-panel">
-        <div className={latexMode ? 'input-row latex' : 'input-row'}>
+        <div className={latexMode ? 'input-row latex' : 'input-row'} title={t('analysis.input.function')}>
           {latexMode ? (
-            <LatexInput ref={latexField} value={input} onChange={setInput} onEnter={submit} onLeave={() => toggleLatexMode()} />
+            <LatexInput ref={latexField} value={input} onChange={setInput} onEnter={submit} onLeave={() => toggleLatexMode()} placeholder={PLACEHOLDER} />
           ) : (
-            <MathField ref={field} value={input} onChange={setInput} onEnter={submit} onLatexRequested={(seed) => toggleLatexMode(seed)} />
+            <MathField
+              ref={field}
+              value={input}
+              onChange={setInput}
+              onEnter={submit}
+              onLatexRequested={(seed) => toggleLatexMode(seed)}
+              placeholder={PLACEHOLDER}
+            />
           )}
-          <button className="mode-toggle" onClick={() => toggleLatexMode()}>
+          <button className="mode-toggle" title={latexMode ? t('editor.back') : t('editor.latex', { ctrl })} onClick={() => toggleLatexMode()}>
             {latexMode ? 'TeX' : 'f(x)'}
           </button>
         </div>
+        {/* The other view of the input below it, as in the calculator: typeset while writing LaTeX, the source otherwise. */}
         <div className="source-row">
-          <code className="source">{input || PLACEHOLDER}</code>
+          {latexMode && input ? <Katex className="source-preview" latex={input} /> : <code className="source">{input || PLACEHOLDER}</code>}
+          {input && (
+            <button className="copy-btn" onClick={() => void copyInput()}>
+              {copied ? t('copied') : t('analysis.input.copy')}
+            </button>
+          )}
         </div>
 
         <div className="segmented analysis-tabs">
@@ -238,12 +259,12 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                         <span className="section-title">{section.title}</span>
                         {section.status !== 'ok' && (
                           <span className={`section-status ${section.status}`} title={section.message ?? ''}>
-                            {t(section.status === 'partial' ? 'analysis.partial' : 'analysis.failed')}
+                            {t(section.status === 'partial' ? 'analysis.status.partial' : 'analysis.status.failed')}
                           </span>
                         )}
                       </button>
                       {section.result && <Katex className="section-result" latex={section.result} />}
-                      {section.message && open && <p className="section-message">{section.message}</p>}
+                      {section.message && <p className="section-message">{section.message}</p>}
                       {open && section.steps.length > 0 && <Steps steps={section.steps} />}
                     </section>
                   );

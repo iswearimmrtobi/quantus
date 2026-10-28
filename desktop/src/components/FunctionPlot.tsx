@@ -312,7 +312,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
       <div className="plot-footer">
         <span className="plot-hint">{t('plot.hint')}</span>
         <button className="copy-btn" onClick={reset}>
-          {t('plot.reset')}
+          {t('analysis.reset')}
         </button>
       </div>
     </div>
