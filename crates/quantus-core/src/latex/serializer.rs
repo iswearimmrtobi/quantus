@@ -148,7 +148,11 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Power { base, exponent, .. } if matches!(**base, Node::Function { .. }) => {
             let Node::Function { name, argument, .. } = &**base else { unreachable!() };
-            format!("\\{name}^{{{}}}{{{}}}", expression_with_mode(exponent, mode), expression_with_mode(argument, mode))
+            let exponent = expression_with_mode(exponent, mode);
+            match mode {
+                SerializerMode::Standard => format!("\\{name}^{{{exponent}}}{{{}}}", expression_with_mode(argument, mode)),
+                SerializerMode::Algebraic => format!("\\{name}^{{{exponent}}}{}", function_argument(argument)),
+            }
         }
         Node::Power { base, exponent, .. } => {
             // A fraction as the base needs brackets of its own: \frac{a}{b}^{2} reads wrong.
@@ -161,7 +165,10 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Binary { operator, left, right, .. } => binary(*operator, left, right, mode),
         Node::Group { inner, .. } => expression_with_mode(inner, mode),
-        Node::Function { name, argument, .. } => format!("\\{name}{{{}}}", expression_with_mode(argument, mode)),
+        Node::Function { name, argument, .. } => match mode {
+            SerializerMode::Standard => format!("\\{name}{{{}}}", expression_with_mode(argument, mode)),
+            SerializerMode::Algebraic => format!("\\{name}{}", function_argument(argument)),
+        },
         Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
             ("floor", [x]) => format!("\\lfloor {} \\rfloor", expression_with_mode(x, mode)),
@@ -214,6 +221,17 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Determinant { operand, .. } => format!("\\det {}", render(operand, PRECEDENCE_ATOM, mode)),
         Node::Equation { left, right, .. } => format!("{} = {}", expression_with_mode(left, mode), expression_with_mode(right, mode)),
+    }
+}
+
+/// A function argument in brackets, `(x + 1)`: braces alone would read as `\sin x + 1`. A tall
+/// argument gets brackets that grow with it.
+fn function_argument(argument: &Node) -> String {
+    let inner = expression_with_mode(argument, SerializerMode::Algebraic);
+    if inner.contains("\\frac") {
+        format!("\\left({inner}\\right)")
+    } else {
+        format!("({inner})")
     }
 }
 
@@ -290,7 +308,33 @@ fn algebraic_separator(left: &Node, right: &Node) -> &'static str {
         return "";
     }
 
+    // A coefficient or constant joins what follows it: 2\sqrt{3}, 3e^{x}, 2\sin(x), 2\pi x,
+    // \frac{1}{4}x^{4}. In a longer product the factor just before decides.
+    let last = last_factor(left);
+    let is_numeric_fraction = |n: &Node| {
+        matches!(n, Node::Fraction { numerator, denominator, .. }
+            if matches!(**numerator, Node::Number { .. }) && matches!(**denominator, Node::Number { .. }))
+    };
+    let is_constant = |n: &Node| matches!(n, Node::Constant { .. });
+    let joins_any = matches!(right, Node::Function { .. } | Node::Root { .. } | Node::Constant { .. } | Node::Abs { .. })
+        || matches!(right, Node::Power { base, .. } if matches!(**base, Node::Constant { .. } | Node::Function { .. }));
+    if (is_number(last) || is_numeric_fraction(last) || is_constant(last)) && joins_any {
+        return "";
+    }
+    if (is_numeric_fraction(last) || is_constant(last)) && (is_var(right) || is_var_power(right)) {
+        return "";
+    }
+
     " \\cdot "
+}
+
+/// The right-most factor of a product: `\pi` in `2\pi`.
+fn last_factor(node: &Node) -> &Node {
+    match node {
+        Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, right, .. } => last_factor(right),
+        Node::Group { inner, .. } => last_factor(inner),
+        other => other,
+    }
 }
 
 fn multiplication(left: &Node, right: &Node, separator: &str, mode: SerializerMode) -> String {
@@ -306,7 +350,21 @@ fn multiplication(left: &Node, right: &Node, separator: &str, mode: SerializerMo
     } else {
         separator
     };
+    // A command needs a space before a letter: `\pi x`, not `\pix`.
+    let effective_separator = if effective_separator.is_empty() && ends_with_command(&left_str)
+        && right_str.starts_with(|c: char| c.is_ascii_alphabetic())
+    {
+        " "
+    } else {
+        effective_separator
+    };
     format!("{left_str}{effective_separator}{right_str}")
+}
+
+/// Does `text` end in a command name such as `\pi`?
+fn ends_with_command(text: &str) -> bool {
+    let letters = text.trim_end_matches(|c: char| c.is_ascii_alphabetic());
+    letters.len() < text.len() && letters.ends_with('\\')
 }
 
 fn precedence(node: &Node) -> u8 {

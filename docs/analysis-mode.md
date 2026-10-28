@@ -102,14 +102,14 @@ pub enum Fn { Sin, Cos, Tan, Ln, Exp, Arcsin, Arccos, Arctan, Sinh, Cosh, Abs }
 | anything else (`Sum`, `Integral`, `Limit`, `Derivative`, `Matrix`, `Call`, `Binomial`, `Unit`, indexed variable, `i`) | `Err` naming the construct (DE/EN) |
 
 **`to_node(&self, var) -> Node`** (all positions are 0). The output goes through `latex::serializer::algebraic_expression`.
-- **Summand order:** decreasing x-degree for polynomial parts; terms with functions come before the constant; the constant comes last (`x^{3} - 3x + 2`, `e^{x} + x - 1`).
+- **Summand order:** positive powers of x by decreasing degree, then terms with functions, then the constant, then negative powers of x (`x^{3} - 3x + 2`, `x + e^{x} - 1`, `x + 2 + \frac{1}{x}`).
 - **Signs:** a summand with a negative coefficient becomes `Binary Minus`.
 - **Product order:** coefficient, then π, then x-powers, then other powers, then functions (`2\pi x^{2} e^{x}`).
 - **Negative powers** go to a `\frac` denominator (`\frac{x+1}{(x-2)^{2}}`).
 - **Rational powers** `p/q` with `q ≥ 2` become `Root` (`\sqrt{x}`, `\sqrt[3]{x^{2}}`, `\frac{1}{\sqrt{x}}`).
 - **Functions:** `Func(Exp,u)` becomes `e^{u}`; `Func(Abs,u)` becomes `Abs`.
 - **Constant coefficients** like `\frac{1}{e}` are written `\frac{1}{e}`, not `e^{-1}`.
-- **Separators:** the serializer's `algebraic_separator` decides them. Extend it so that a number followed by a `Function`, `Root` or `Power` with a constant base is joined without `\cdot`: `2\sqrt{3}`, `3e^{x}`, `2\sin(x)`. Add serializer tests for these.
+- **Separators:** the serializer's `algebraic_separator` decides them. It is extended (Algebraic mode only) so that a coefficient or constant is joined to a following function, root, constant, `|…|` or e-power, and a numeric fraction or constant to a following power of x: `2\sqrt{3}`, `3e^{x}`, `2\sin(x)`, `2\pi x`, `\frac{1}{4}x^{4}`. In Algebraic mode function arguments are bracketed: `\sin(x + 1)`, `\sin^{2}(x)`.
 
 **Other methods:**
 - `substitute(&self, with: &Expr) -> Expr`
