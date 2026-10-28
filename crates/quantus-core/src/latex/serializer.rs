@@ -334,6 +334,12 @@ fn algebraic_separator(left: &Node, right: &Node) -> &'static str {
     if (left_bracketed || is_bracketed(last)) && joins_any {
         return "";
     }
+    // A power of x before a function, root, |…| or e-power: x^{2}e^{x}, x\sin(x), x\sqrt{x}.
+    let joins_x = matches!(right, Node::Function { .. } | Node::Root { .. } | Node::Abs { .. })
+        || matches!(right, Node::Power { base, .. } if matches!(**base, Node::Constant { .. } | Node::Function { .. }));
+    if (is_var(last) || is_var_power(last)) && joins_x {
+        return "";
+    }
 
     " \\cdot "
 }

@@ -761,7 +761,7 @@ mod tests {
     #[test]
     fn products_put_the_coefficient_first_and_powers_below_the_line() {
         let f = Expr::Product(vec![Expr::func(Fn::Exp, Expr::Var), x_pow(2), Expr::int(2), Expr::Pi]);
-        assert_eq!(latex(&f), "2\\pi x^{2} \\cdot e^{x}");
+        assert_eq!(latex(&f), "2\\pi x^{2}e^{x}");
         let quotient = Expr::Product(vec![
             Expr::Sum(vec![Expr::Var, Expr::int(1)]),
             Expr::pow(Expr::Sum(vec![Expr::Var, Expr::int(-2)]), Expr::int(-2)),

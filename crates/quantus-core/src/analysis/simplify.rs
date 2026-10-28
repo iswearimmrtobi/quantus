@@ -590,6 +590,7 @@ fn local_func(function: Fn, argument: Expr) -> Expr {
             Expr::Func(Fn::Abs | Fn::Exp, _) => argument,
             Expr::Pow(_, n) if n.as_num().is_some_and(|n| n.numerator() % IBig::from(2) == IBig::ZERO) => argument,
             _ if is_positive_constant(&argument) => argument,
+            _ if matches!(argument, Expr::Sum(_)) && negated(&argument).is_some() => keep(negated(&argument).unwrap()),
             // |c u| = |c| |u|
             Expr::Product(factors) => match factors.split_first() {
                 Some((Expr::Num(c), rest)) => {
@@ -602,10 +603,22 @@ fn local_func(function: Fn, argument: Expr) -> Expr {
     }
 }
 
-/// `-u` when `u` has a negative coefficient.
+/// `-u` when `u` has a negative coefficient, or is a sum that reads better negated: more
+/// negative terms than positive ones, or as many and a negative term in x first
+/// (`\sin(-x - 1) = -\sin(x + 1)`, `\sin(1 - x) = -\sin(x - 1)`).
 fn negated(u: &Expr) -> Option<Expr> {
     match u {
         Expr::Num(r) if r.is_negative() => Some(Expr::Num(-r.clone())),
+        Expr::Sum(terms) if u.depends_on_var() => {
+            let negative = terms.iter().filter(|t| negated(t).is_some()).count();
+            let positive = terms.len() - negative;
+            let leading_negative = terms.iter().find(|t| t.depends_on_var()).is_some_and(|t| negated(t).is_some());
+            if negative > positive || (negative == positive && leading_negative) {
+                Some(simplify(&Expr::neg(u.clone())))
+            } else {
+                None
+            }
+        }
         Expr::Product(factors) => match factors.first() {
             Some(Expr::Num(c)) if c.is_negative() => Some(local_product(
                 std::iter::once(Expr::Num(-c.clone())).chain(factors[1..].iter().cloned()).collect(),
@@ -690,6 +703,10 @@ mod tests {
         assert_eq!(simplified("\\arcsin\\frac{1}{2}"), "\\frac{\\pi}{6}");
         assert_eq!(simplified("\\arccos(-\\frac{1}{2})"), "\\frac{2\\pi}{3}");
         assert_eq!(simplified("\\arctan(-x)"), "-\\arctan(x)");
+        assert_eq!(simplified("\\sin(-x-1)"), "-\\sin(x + 1)");
+        assert_eq!(simplified("\\cos(1-x)"), "\\cos(x - 1)");
+        assert_eq!(simplified("\\sin(x-1)"), "\\sin(x - 1)");
+        assert_eq!(simplified("|2-x|"), "\\left|x - 2\\right|");
     }
 
     #[test]

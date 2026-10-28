@@ -683,7 +683,7 @@ mod tests {
         assert_eq!(primitive("\\sin x"), "-\\cos(x)");
         assert_eq!(primitive("\\sqrt{x}"), "\\frac{2}{3}\\sqrt{x^{3}}");
         assert_eq!(primitive("\\frac{1}{\\sqrt{1-x^2}}"), "\\arcsin(x)");
-        assert_eq!(primitive("\\ln x"), "x \\cdot \\ln(x) - x");
+        assert_eq!(primitive("\\ln x"), "x\\ln(x) - x");
     }
 
     #[test]
@@ -706,9 +706,9 @@ mod tests {
         assert_eq!(primitive("x e^x"), "(x - 1)e^{x}");
         assert_eq!(method("x e^x"), "INTEGRATION_BY_PARTS");
         assert_eq!(primitive("x^2 e^x"), "(x^{2} - 2x + 2)e^{x}");
-        assert_eq!(primitive("x \\sin x"), "\\sin(x) - x \\cdot \\cos(x)");
-        assert_eq!(primitive("x \\ln x"), "\\frac{1}{2}x^{2} \\cdot \\ln(x) - \\frac{1}{4}x^{2}");
-        assert_eq!(primitive("\\arctan x"), "x \\cdot \\arctan(x) - \\frac{1}{2}\\ln(x^{2} + 1)");
+        assert_eq!(primitive("x \\sin x"), "\\sin(x) - x\\cos(x)");
+        assert_eq!(primitive("x \\ln x"), "\\frac{1}{2}x^{2}\\ln(x) - \\frac{1}{4}x^{2}");
+        assert_eq!(primitive("\\arctan x"), "x\\arctan(x) - \\frac{1}{2}\\ln(x^{2} + 1)");
         assert_eq!(primitive("e^x \\sin x"), "\\frac{1}{2}(\\sin(x) - \\cos(x))e^{x}");
         assert_eq!(primitive("x^3 e^x"), "(x^{3} - 3x^{2} + 6x - 6)e^{x}");
         assert_ne!(primitive("x^3 \\sin x"), "none");

@@ -105,7 +105,10 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) -> A
                 return explain(&rest, var, settings, steps);
             }
             let Some((u, v, quotient)) = split_parts(e) else {
-                return AnalysisRule::PowerRule;
+                // Only denominators: the power rule on v^{-1} with the chain rule.
+                let Expr::Product(factors) = e else { return AnalysisRule::PowerRule };
+                inner_function(&Expr::product(factors.iter().map(inverted).collect()), var, settings, steps);
+                return AnalysisRule::ChainRule;
             };
             let parts = format!(
                 "u = {}, \\quad v = {}, \\quad u' = {}, \\quad v' = {}",
@@ -350,13 +353,16 @@ mod tests {
         assert_eq!(first("\\frac{x^2-1}{x-2}"), "\\frac{x^{2} - 4x + 1}{(x - 2)^{2}}");
         assert_eq!(derivatives("\\frac{\\ln x}{x}")[..2], ["\\frac{1 - \\ln(x)}{x^{2}}", "\\frac{2\\ln(x) - 3}{x^{3}}"]);
         assert_eq!(derivatives("\\frac{1}{x^2+1}")[0], "-\\frac{2x}{(x^{2} + 1)^{2}}");
+        let over_two = derive_chain(&expr("\\frac{3}{x(x+1)}"), 1, "x", &Settings::default()).remove(0);
+        assert_eq!(over_two.steps[0].rule.as_deref(), Some("CHAIN_RULE"));
+        assert!(over_two.steps[0].latex.starts_with("u = x(x + 1)") || over_two.steps[0].latex.starts_with("u = x^{2} + x"), "{}", over_two.steps[0].latex);
     }
 
     #[test]
     fn functions_and_the_chain_rule() {
         assert_eq!(derivatives("\\sin x"), ["\\cos(x)", "-\\sin(x)", "-\\cos(x)"]);
         assert_eq!(first("\\sin(2x+1)"), "2\\cos(2x + 1)");
-        assert_eq!(first("e^{x^2}"), "2x \\cdot e^{x^{2}}");
+        assert_eq!(first("e^{x^2}"), "2xe^{x^{2}}");
         assert_eq!(first("\\ln(x^2+1)"), "\\frac{2x}{x^{2} + 1}");
         assert_eq!(first("\\arctan x"), "\\frac{1}{x^{2} + 1}");
         assert_eq!(first("2^x"), "\\ln(2) \\cdot 2^{x}");
@@ -384,7 +390,7 @@ mod tests {
         let rules: Vec<_> = d.steps.iter().map(|s| s.rule.clone().unwrap()).collect();
         assert_eq!(rules, ["PRODUCT_RULE", "PRODUCT_RULE", "SIMPLIFY"]);
         assert_eq!(d.steps[0].latex, "u = x^{2}, \\quad v = e^{x}, \\quad u' = 2x, \\quad v' = e^{x}");
-        assert_eq!(d.steps[1].latex, "f'(x) = u' \\cdot v + u \\cdot v' = 2x \\cdot e^{x} + x^{2} \\cdot e^{x}");
+        assert_eq!(d.steps[1].latex, "f'(x) = u' \\cdot v + u \\cdot v' = 2xe^{x} + x^{2}e^{x}");
         assert_eq!(d.steps[2].latex, "f'(x) = (x^{2} + 2x)e^{x}");
 
         let chain = derive(&expr("\\sin(x^2)"), 2, "x", &Settings::default());

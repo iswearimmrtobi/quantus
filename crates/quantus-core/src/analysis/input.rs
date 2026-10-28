@@ -109,7 +109,7 @@ mod tests {
         assert_eq!(parsed("g_{1}(x) = 2x"), ("2x".into(), "x".into()));
         assert_eq!(parsed("y = x^3"), ("x^{3}".into(), "x".into()));
         assert_eq!(parsed("x^3 - 3x"), ("x^{3} - 3x".into(), "x".into()));
-        assert_eq!(parsed("t e^t"), ("t \\cdot e^{t}".into(), "t".into()));
+        assert_eq!(parsed("t e^t"), ("te^{t}".into(), "t".into()));
         assert_eq!(parsed("5"), ("5".into(), "x".into()));
     }
 
