@@ -73,6 +73,41 @@ two with complex roots, derivatives and integrals of complex functions, and comp
 numbers keep their real value: `\sqrt[3]{-8}` is -2. The algebraic simplifier leaves `i` alone,
 so `(x+i)(x-i)` with a free `x` is shown as typed.
 
+## Analysis mode
+
+The analysis mode (`docs/analysis-mode.md`) takes a function of one real variable built from
+numbers, `\pi`, `e`, `+ − · /`, powers, roots, `e^u`, `a^u`, `\exp`, `\ln`, `\log`, `\log_b`,
+`\sin`, `\cos`, `\tan`, `\cot`, `\sec`, `\csc`, `\arcsin`, `\arccos`, `\arctan`, `\sinh`,
+`\cosh`, `\tanh`, `|u|` and degrees, nested in any way.
+
+Rejected with an error that names the reason:
+
+- **Function families** (a second free letter, `x^2 + a`).
+- Piecewise functions, implicit or parametric curves, complex results.
+- Units, sums, integrals, limits, derivatives, matrices, `n!` and the other integer functions.
+- **Domains made of periodic intervals**, such as `\ln(\sin x)` (periodic gaps like those of
+  `\tan x` are fine).
+- In the area task: **improper integrals** (a pole, gap or unbounded bound in the interval) and
+  areas between two curves.
+
+Limits worth knowing:
+
+- Equations no school method solves are **scanned numerically** on [−100, 100] (or in the
+  window of a periodic family); the section is then marked *partial*. Such roots are accurate
+  to about 15 digits, polynomial roots to the full precision. A numeric root that is exactly a
+  simple rational or rational multiple of π is shown exactly.
+- Antiderivatives are found by a table, partial fractions, substitution and integration by
+  parts. **Repeated irreducible quadratic factors** in a denominator (`\frac{1}{(x^2+1)^2}`) and
+  integrands without an elementary antiderivative (`e^{x^2}`, `\frac{\sin x}{x}`) give "no
+  elementary antiderivative found". Every result shown has been checked by differentiation.
+- Limits that neither degrees, growth orders nor the bounded-factor rule decide are sampled
+  numerically and shown with `\approx`, or as unknown.
+- Simplification treats functions such as `\ln x` and `\sqrt{3}` as independent symbols when it
+  multiplies out and cancels, so a result can be correct without being the shortest form.
+- A sketch is cut off after **3 seconds**; the sections still missing are marked partial.
+- A periodic family of inflection points is listed split to the period of f (`2k\pi` and
+  `\pi + 2k\pi` for `\sin x`) rather than merged to `k\pi`.
+
 ## Inputs that already worked
 
 M1, M2, P1, P4, P9–P15, U1, U2, U4, U6, U9–U19 (arithmetic, powers, roots, fractions, units,

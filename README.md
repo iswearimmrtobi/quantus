@@ -59,6 +59,7 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 - **Exact numbers** with arbitrary precision (`dashu`, `astro-float`)
 - **Units and dimensions** are checked and converted, and results are named (`N`, `J`, …)
 - **Three modes**, switched in the top bar: *Algebra* (letters are variables, no units or constants), *Physik* (units and constants, the default) and *Imaginär* (`i` is the imaginary unit and results may be complex, shown as `a + bi`)
+- **Analysis mode** (*Analysis*): enter `f(x) = …` and get the whole curve sketch with its working — derivatives, domain, symmetry, zeros, extrema, inflection and saddle points, monotonicity and curvature, behaviour at the edges and poles with asymptotes, an antiderivative — beside an interactive graph, plus tangent and normal, the area under the curve and a value table
 - **Exact roots and π**, a setting: `\sqrt{12}` is shown as `2\sqrt{3}` and `\pi/2` as `\frac{\pi}{2}` instead of a decimal (off by default)
 - **Session variables**: an indexed label such as `m_1 = 2kg` defines a variable for the session
 - Parser errors report the **position** in the input
@@ -165,6 +166,17 @@ leaves an index or any other bracket, so `m_1` `→` `= 2kg` defines the
 variable. The LaTeX source is the exact one: a backslash switches to it while
 you type, and from then on what you write is what you get.
 
+**Analysis mode.** Choose *Analysis* in the top bar and enter a function as
+`f(x) = x^3 - 3x`, `y = …` or just the expression. Polynomials, rational
+functions, `e^x`, `a^x`, logarithms, roots, the trig functions and their
+inverses and `|x|` work, also combined. Results are exact where school methods
+reach (`H(e | 1/e)`, `N(±√3 | 0)`) and marked as numeric where they do not.
+The graph zooms with the wheel and moves by dragging; clicking a point selects
+it in the list below and the other way round. The tabs above the results
+compute a tangent and normal, an area or a value table for the same function.
+Whether quadratics are solved with the pq formula or the abc formula is a
+setting (automatic: pq in German).
+
 **Variables** always carry an index (`r_1`, `v_1`). An input with an indexed
 label is a definition (`m_1 = 2kg`) and stays valid for the session. A label
 without an index (`F = …`) only names the line.
@@ -181,7 +193,16 @@ evaluate         { request: { latex, sessionId?, precision? } }
 define_variable  { request: { latex: "r_1 = 0{,}5m", … } } → Variable
 list_variables   { sessionId? }               → [ { key, symbol, latex, value, unit } ]
 delete_variable  { key, sessionId? }          forget a variable
+analyze          { request: { latex, variable?, precision? } }
+                 → { function, variable, sections[], points[], asymptotes[], period, plot }
+sample_function  { request: { latex, xMin, xMax, samples, yMin?, yMax? } } → { segments }
+tangent          { request: { latex, x0 } }   → { steps[], point, tangent, normal }
+area_under_curve { request: { latex, from?, to? } } → { steps[], area, signed, regions[] }
+value_table      { request: { latex, from, to, step } } → { rows: [ { x, y } ] }
 ```
+
+The analysis commands are stateless; `docs/analysis-mode.md` §13 has the
+full shapes.
 
 Errors come back as `{ error, position }`. For parser errors, `position`
 (0-based) points at the spot in the input.
@@ -194,12 +215,14 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 | 🗺️ [`docs/plans.md`](docs/plans.md) | Open work and plans |
 | 📐 [`docs/spec-si-rechner-v2.md`](docs/spec-si-rechner-v2.md) | The specification (German) |
 | ⚡ [`docs/electronics-module.md`](docs/electronics-module.md) | The specification of the electronics mode |
+| 📈 [`docs/analysis-mode.md`](docs/analysis-mode.md) | The specification of the analysis mode (curve sketching) |
 | 🚧 [`docs/unsupported-inputs.md`](docs/unsupported-inputs.md) | What the engine supports and its known limits |
 | 🎨 [`docs/quantus-ui-v2.html`](docs/quantus-ui-v2.html) | The UI mockup the desktop styles are based on |
 
 Code and comments are in English. The interface is available in English (the
 default) and German; the texts live in `desktop/src/i18n/` and, for the
-electronics module, in `crates/quantus-core/src/electro/`. The engine's own
+electronics and analysis modules, next to their code in
+`crates/quantus-core/src/electro/` and `crates/quantus-core/src/analysis/`. The engine's own
 parser and algebra messages are English only. The specification is in German;
 the other documentation is in English.
 
