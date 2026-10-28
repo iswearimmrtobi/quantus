@@ -342,7 +342,10 @@ fn the_analysis_tasks_reach_the_renderer() {
     let area = invoke(&w, "area_under_curve", json!({ "request": { "latex": "x^2", "from": "0", "to": "3" } })).unwrap();
     assert_eq!(area["area"], "9");
     let table = invoke(&w, "value_table", json!({ "request": { "latex": "\\ln x", "from": "0", "to": "1", "step": "1" } })).unwrap();
-    assert_eq!(table["rows"], json!([{ "x": "0", "y": null }, { "x": "1", "y": "0" }]));
+    assert_eq!(
+        table["rows"],
+        json!([{ "x": "0", "y": null, "xValue": 0.0, "yValue": null }, { "x": "1", "y": "0", "xValue": 1.0, "yValue": 0.0 }])
+    );
 }
 
 #[test]
@@ -351,6 +354,6 @@ fn analysis_errors_reach_the_renderer_like_other_errors() {
     let parse = invoke(&w, "analyze", json!({ "request": { "latex": "f(x) = x^2 +" } })).unwrap_err();
     assert!(parse["position"].as_u64().is_some());
     let improper = invoke(&w, "area_under_curve", json!({ "request": { "latex": "\\frac{1}{x}", "from": "-1", "to": "1" } })).unwrap_err();
-    assert!(improper["error"].as_str().unwrap().contains("improper"));
+    assert!(improper["error"].as_str().unwrap().contains("Improper integral"));
     assert!(improper["position"].is_null());
 }

@@ -186,18 +186,21 @@ pub struct TableRequest {
     pub precision: Option<usize>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TableResponse {
     pub rows: Vec<TableRowResponse>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TableRowResponse {
     pub x: String,
     /// `null` outside the domain.
     pub y: Option<String>,
+    /// The values as numbers, for the dots in the graph.
+    pub x_value: f64,
+    pub y_value: Option<f64>,
 }
 
 /// The curve sketch with the initial plot.
@@ -328,5 +331,5 @@ pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> 
 
 pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableResponse> {
     let rows = tasks::value_table(&request.latex, request.variable.as_deref(), &request.from, &request.to, &request.step, settings, request.precision)?;
-    Ok(TableResponse { rows: rows.into_iter().map(|r| TableRowResponse { x: r.x, y: r.y }).collect() })
+    Ok(TableResponse { rows: rows.into_iter().map(|r| TableRowResponse { x: r.x, y: r.y, x_value: r.x_value, y_value: r.y_value }).collect() })
 }

@@ -405,7 +405,7 @@ mod tests {
         assert!(!area.regions[0].segments.is_empty());
 
         let table = value_table(&settings, &TableRequest { latex: "x^2".into(), from: "0".into(), to: "2".into(), step: "1".into(), ..Default::default() }).unwrap();
-        assert_eq!(table.rows[2], TableRowResponse { x: "2".into(), y: Some("4".into()) });
+        assert_eq!(table.rows[2], TableRowResponse { x: "2".into(), y: Some("4".into()), x_value: 2.0, y_value: Some(4.0) });
 
         let parse = analyze(&settings, &AnalysisRequest { latex: "x^2 +".into(), ..Default::default() }).unwrap_err();
         assert!(parse.position.is_some());

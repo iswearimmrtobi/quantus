@@ -59,6 +59,8 @@ pub struct TableRow {
     pub x: String,
     /// `None` outside the domain.
     pub y: Option<String>,
+    pub x_value: f64,
+    pub y_value: Option<f64>,
 }
 
 struct Prepared {
@@ -133,9 +135,10 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     let (t, t_intercept) = line(&m_exact);
     steps.push(step(
         AnalysisRule::Tangent,
-        msg!("Tangent: t(x) = f'(x_0)(x - x_0) + f(x_0)", "Tangente: t(x) = f'(x_0)(x - x_0) + f(x_0)"),
-        format!("t({var}) = {m_tex} \\cdot ({var} - {}) + {} = {}", bracket(&x_tex), bracket(&y_tex), tex(&display(&t, settings))),
+        msg!("Tangent: t(x) = f'(x_0)(x - x_0) + f(x_0), values put in", "Tangente: t(x) = f'(x_0)(x - x_0) + f(x_0), Werte eingesetzt"),
+        format!("t({var}) = {m_tex} \\cdot ({var} - {}) + {}", bracket(&x_tex), bracket(&y_tex)),
     ));
+    steps.push(step(AnalysisRule::Simplify, msg!("Simplify", "Zusammenfassen"), format!("t({var}) = {}", tex(&display(&t, settings)))));
     let tangent = Line::Sloped { slope: m_exact.clone(), intercept: t_intercept, latex: format!("t({var}) = {}", tex(&display(&t, settings))) };
     let normal = if is_zero(&m_exact) {
         let latex = format!("{var} = {x_tex}");
@@ -165,27 +168,39 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, settings, precision)?;
     let var = p.var.as_str();
-    let ctx = SolveContext { settings, var, domain: &p.domain, window: (-10.0, 10.0), digits: p.digits };
-    let zeros: Vec<Point> = {
-        let solved = solve_zero(&p.f, &ctx);
-        let mut points: Vec<Point> = solved.solutions.roots.into_iter().map(|r| r.point).collect();
-        for family in &solved.solutions.families {
-            points.extend(family.points_in(-10.0, 10.0, 24));
+    let improper = || QuantusError::other(msg!("Improper integral, not supported yet.", "Uneigentliches Integral, noch nicht unterstützt."));
+    let enter_bounds = || QuantusError::other(msg!("Please enter the bounds.", "Bitte Grenzen angeben."));
+    let infinite = |bound: Option<&str>| bound.is_some_and(|b| b.contains("\\infty") || b.contains('∞'));
+    if infinite(from) || infinite(to) {
+        return Err(improper());
+    }
+    let bounds = match (from, to) {
+        (Some(from), Some(to)) => {
+            let (a, b) = (parse_number(from, settings, "a")?, parse_number(to, settings, "b")?);
+            Some(if a.approx <= b.approx { (a, b) } else { (b, a) })
         }
-        points.sort_by(|a, b| a.approx.partial_cmp(&b.approx).unwrap_or(std::cmp::Ordering::Equal));
-        points
+        (None, None) => None,
+        _ => return Err(enter_bounds()),
     };
-    let (a, b) = match (from, to) {
-        (Some(from), Some(to)) => (parse_number(from, settings, "a")?, parse_number(to, settings, "b")?),
-        (None, None) if zeros.len() >= 2 => (zeros[0].clone(), zeros[zeros.len() - 1].clone()),
-        _ => return Err(QuantusError::other(msg!("Please enter both bounds.", "Bitte beide Grenzen angeben."))),
+    // The zeros on [a, b] itself, or all of them when the bounds are to be the outermost ones.
+    let window = bounds.as_ref().map_or((-10.0, 10.0), |(a, b)| (a.approx, b.approx));
+    let ctx = SolveContext { settings, var, domain: &p.domain, window, digits: p.digits };
+    let solved = solve_zero(&p.f, &ctx);
+    let mut zeros: Vec<Point> = solved.solutions.roots.into_iter().map(|r| r.point).collect();
+    if bounds.is_some() {
+        for family in &solved.solutions.families {
+            zeros.extend(family.points_in(window.0, window.1, MAX_TABLE_ROWS));
+        }
+    }
+    zeros.sort_by(|a, b| a.approx.partial_cmp(&b.approx).unwrap_or(std::cmp::Ordering::Equal));
+    let (a, b) = match bounds {
+        Some(bounds) => bounds,
+        // Infinitely many zeros have no outermost ones.
+        None if zeros.len() >= 2 && solved.solutions.families.is_empty() => (zeros[0].clone(), zeros[zeros.len() - 1].clone()),
+        None => return Err(enter_bounds()),
     };
-    let (a, b) = if a.approx <= b.approx { (a, b) } else { (b, a) };
     if !covers(&p.domain, a.approx, b.approx) {
-        return Err(QuantusError::other(msg!(
-            "The integral over this interval is improper (f has a gap there); this is not supported yet.",
-            "Das Integral über dieses Intervall ist uneigentlich (f hat dort eine Lücke); das wird noch nicht unterstützt."
-        )));
+        return Err(improper());
     }
     let mut cuts = vec![a.clone()];
     cuts.extend(zeros.iter().filter(|z| z.approx > a.approx + 1e-12 && z.approx < b.approx - 1e-12).cloned());
@@ -225,6 +240,14 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let area_shown = if area.exact.is_some() { area.to_latex(d) } else { format!("\\approx {}", area.to_latex(d)) };
     let decimal = if area.exact.is_some() && !area.is_rational() { format!(" \\approx {}", area.decimal_latex(d)) } else { String::new() };
     steps.push(step(AnalysisRule::Area, msg!("Parts below the axis count with their absolute value", "Teile unter der Achse zählen mit ihrem Betrag"), format!("A = {} = {area_shown}{decimal}", names.join(" + "))));
+    // The signed integral, where parts below the axis count negatively.
+    let signed_shown = if signed.exact.is_some() { signed.to_latex(d) } else { format!("\\approx {}", signed.to_latex(d)) };
+    let parts_sum: Vec<String> = (1..=parts.len()).map(|i| format!("A_{{{i}}}")).collect();
+    steps.push(step(
+        AnalysisRule::Area,
+        msg!("The integral itself counts parts below the axis negatively", "Das Integral selbst zählt Teile unter der Achse negativ"),
+        format!("\\int_{{{}}}^{{{}}} f({var}) \\, d{var} = {} = {signed_shown}", a.to_latex(d), b.to_latex(d), parts_sum.join(" + ")),
+    ));
     Ok(AreaResult { steps, area, signed, regions })
 }
 
@@ -274,6 +297,16 @@ fn sum(parts: &[Point], absolute: bool) -> Point {
     Point { exact: None, approx, refined }
 }
 
+/// Whether a table value reads best exactly: a rational, or a value with roots and π that
+/// `latex::exact` writes in closed form (`\sqrt{2}`), not one with ln, e or trig left in it.
+fn closed_form(y: &Point, f: &Expr, x: &Expr) -> bool {
+    if y.is_rational() {
+        return true;
+    }
+    let Some(value) = x.eval_exact(&Value::zero(), 30).ok().and_then(|x| f.eval_exact(&x, 30).ok()) else { return false };
+    crate::latex::exact::format(&value).is_some()
+}
+
 /// f at `from`, `from + step`, … up to `to`.
 pub fn value_table(latex: &str, variable: Option<&str>, from: &str, to: &str, step_size: &str, settings: &Settings, precision: Option<usize>) -> Result<Vec<TableRow>> {
     let _language = Scope::new(settings.language);
@@ -295,12 +328,9 @@ pub fn value_table(latex: &str, variable: Option<&str>, from: &str, to: &str, st
     for i in 0..=count as i64 {
         let x = simplify(&Expr::Sum(vec![start.exact.clone().unwrap(), Expr::Product(vec![Expr::int(i), step.exact.clone().unwrap()])]));
         let point = Point::exact(x.clone()).unwrap();
-        let y = if p.domain.contains(point.approx) {
-            Point::exact(simplify(&p.f.substitute(&x))).map(|y| if y.is_rational() { y.to_latex(p.digits) } else { y.decimal_latex(p.digits) })
-        } else {
-            None
-        };
-        rows.push(TableRow { x: point.to_latex(p.digits), y });
+        let y = if p.domain.contains(point.approx) { Point::exact(simplify(&p.f.substitute(&x))) } else { None };
+        let y_text = y.as_ref().map(|y| if closed_form(y, &p.f, &x) { y.to_latex(p.digits) } else { y.decimal_latex(p.digits) });
+        rows.push(TableRow { x: point.to_latex(p.digits), y: y_text, x_value: point.approx, y_value: y.map(|y| y.approx) });
     }
     let _ = p.var;
     Ok(rows)
@@ -321,7 +351,9 @@ mod tests {
         let r = tangent("x^2", None, "1", &Settings::default(), None).unwrap();
         assert_eq!(line(&r.tangent), "t(x) = 2x - 1");
         assert_eq!(line(&r.normal), "n(x) = -\\frac{1}{2}x + \\frac{3}{2}");
-        assert_eq!(r.steps[2].latex, "t(x) = 2 \\cdot (x - 1) + 1 = 2x - 1");
+        assert_eq!(r.steps.len(), 5);
+        assert_eq!(r.steps[2].latex, "t(x) = 2 \\cdot (x - 1) + 1");
+        assert_eq!(r.steps[3].latex, "t(x) = 2x - 1");
         let flat = tangent("x^2", None, "0", &Settings::default(), None).unwrap();
         assert_eq!(line(&flat.normal), "x = 0");
         let exact = tangent("\\sin x", None, "\\frac{\\pi}{2}", &Settings::default(), None).unwrap();
@@ -337,13 +369,21 @@ mod tests {
         assert_eq!(r.signed.to_latex(6), "0");
         assert_eq!(r.regions.len(), 2);
         assert!(r.regions[0].positive && !r.regions[1].positive);
-        assert_eq!(r.steps.last().unwrap().latex, "A = \\left|A_{1}\\right| + \\left|A_{2}\\right| = \\frac{9}{2}");
+        assert_eq!(r.steps[r.steps.len() - 2].latex, "A = \\left|A_{1}\\right| + \\left|A_{2}\\right| = \\frac{9}{2}");
+        assert_eq!(r.steps.last().unwrap().latex, "\\int_{-\\sqrt{3}}^{\\sqrt{3}} f(x) \\, dx = A_{1} + A_{2} = 0");
+        let parts: Vec<String> = r.steps.iter().filter(|s| s.latex.starts_with("A_{")).map(|s| s.latex.rsplit(" = ").next().unwrap().to_string()).collect();
+        assert_eq!(parts, ["\\frac{9}{4}", "-\\frac{9}{4}"]);
+        let wide = area("x - 12", None, Some("0"), Some("20"), &Settings::default(), None).unwrap();
+        assert_eq!(wide.regions.len(), 2);
+        assert_eq!(wide.area.to_latex(6), "104");
+        assert!(area("e^{-x}", None, Some("0"), Some("\\infty"), &Settings::default(), None).unwrap_err().to_string().contains("Improper integral"));
         let bounded = area("x^2", None, Some("0"), Some("3"), &Settings::default(), None).unwrap();
         assert_eq!(bounded.area.to_latex(6), "9");
         let numeric = area("e^{x^2}", None, Some("0"), Some("1"), &Settings::default(), None).unwrap();
         assert_eq!(numeric.area.to_latex(6), "1{,}46265");
-        assert!(area("\\frac{1}{x}", None, Some("-1"), Some("1"), &Settings::default(), None).unwrap_err().to_string().contains("improper"));
-        assert!(area("x^2 + 1", None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("both bounds"));
+        assert!(area("\\frac{1}{x}", None, Some("-1"), Some("1"), &Settings::default(), None).unwrap_err().to_string().contains("Improper integral, not supported yet"));
+        assert!(area("x^2 + 1", None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("Please enter the bounds"));
+        assert!(area("\\sin x", None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("Please enter the bounds"));
     }
 
     #[test]
@@ -362,6 +402,9 @@ mod tests {
         let log = value_table("\\ln x", None, "0", "2", "1", &Settings::default(), None).unwrap();
         assert_eq!(log[0].y, None);
         assert_eq!(log[2].y.as_deref(), Some("0{,}693147"));
+        assert_eq!(log[2].y_value, Some(std::f64::consts::LN_2));
+        let root = value_table("\\sqrt{x}", None, "0", "2", "1", &Settings::default(), None).unwrap();
+        assert_eq!(root[2].y.as_deref(), Some("\\sqrt{2}"));
         assert!(value_table("x", None, "0", "1000", "1", &Settings::default(), None).is_err());
         assert!(value_table("x", None, "0", "1", "-1", &Settings::default(), None).is_err());
     }
