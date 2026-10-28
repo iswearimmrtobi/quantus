@@ -31,7 +31,7 @@ use serde_json::{json, Value};
 
 use quantus_core::algebra::domain::{format_restrictions_plain, DomainRestriction};
 use quantus_core::algebra::nested::split_fraction;
-use quantus_core::algebra::pipeline::{collect_variables, simplify_node_with, PipelineConfig};
+use quantus_core::algebra::pipeline::{collect_variables, simplify_node_with};
 use quantus_core::algebra::poly::Poly;
 use quantus_core::algebra::verify::eval_rational;
 use quantus_core::eval::{Evaluator, LatexCalculator, Variables};
@@ -437,7 +437,7 @@ fn check_algebra(latex: &str, settings: &Settings, expect: &Value, shown: String
         Ok(n) => n,
         Err(e) => return Outcome::error(e.to_string()),
     };
-    let config = PipelineConfig { style: settings.output_style(), ..PipelineConfig::default() };
+    let config = settings.pipeline_config();
     let simplified = match simplify_node_with(&input, config) {
         Ok(s) => s,
         Err(e) => return Outcome::error(e.to_string()),

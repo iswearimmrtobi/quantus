@@ -27,6 +27,7 @@ const STEP_LABELS: Record<StepKind, TextKey> = {
   substituted: 'step.substituted',
   result: 'step.result',
   algebraic: 'step.algebraic',
+  note: 'note',
 };
 
 const PLACEHOLDER = 'F = 2kg \\cdot 10\\frac{m}{s^2}';

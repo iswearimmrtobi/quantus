@@ -9,7 +9,6 @@ use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
 use crate::latex::{exact, parser, serializer, Formula, Node};
 use crate::num::{Decimal, DEFAULT_PRECISION};
-use crate::algebra::pipeline::PipelineConfig;
 use crate::quantity::PhysicalQuantity;
 use crate::settings::{BinomialForm, Mode, Settings};
 use crate::units::registry;
@@ -94,6 +93,8 @@ pub enum StepKind {
     Result,
     /// An algebraic transformation step.
     Algebraic,
+    /// A remark about the expression that does not change it, such as a domain restriction.
+    Note,
 }
 
 impl StepKind {
@@ -103,6 +104,7 @@ impl StepKind {
             StepKind::Substituted => "substituted",
             StepKind::Result => "result",
             StepKind::Algebraic => "algebraic",
+            StepKind::Note => "note",
         }
     }
 }
@@ -191,7 +193,7 @@ impl LatexCalculator {
     }
 
     fn evaluate_algebraic(&self, formula: Formula) -> Result<Calculation> {
-        let config = PipelineConfig { style: self.settings.output_style(), ..PipelineConfig::default() };
+        let config = self.settings.pipeline_config();
         let simp_result = crate::algebra::pipeline::simplify_node_with(&formula.expression, config)?;
         // An expression that stays as typed (nothing to simplify, no restrictions) is returned 1:1;
         // its free variables are reported as a warning instead of failing the calculation.
@@ -224,6 +226,16 @@ impl LatexCalculator {
         steps.push(Step::new(StepKind::Symbolic, initial_symbolic));
 
         for s in &simp_result.steps {
+            if s.note {
+                steps.push(Step { kind: StepKind::Note, ..Step::algebraic(
+                    format!("{prefix}{}", serializer::algebraic_expression(&s.after)),
+                    s.rule.map(|r| r.as_str().to_string()),
+                    s.explanation.clone(),
+                    None,
+                    None,
+                ) });
+                continue;
+            }
             steps.push(Step::algebraic(
                 format!("{prefix}{}", serializer::algebraic_expression(&s.after)),
                 s.rule.map(|r| r.as_str().to_string()),

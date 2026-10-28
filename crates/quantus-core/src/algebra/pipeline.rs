@@ -60,7 +60,7 @@ use crate::error::Result;
 use crate::latex::ast::{Node, Operator};
 use crate::latex::{parser, serializer};
 use crate::num::Decimal;
-use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings};
+use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings, StepDetail};
 
 /// How the result is written: the user-adjustable choices of stages 13 and 14.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -92,6 +92,10 @@ pub struct PipelineConfig {
     pub verify_equivalence: bool,
     /// How stages 13 and 14 write the result.
     pub style: OutputStyle,
+    /// Which steps the result shows.
+    pub detail: StepDetail,
+    /// Whether a cancelled factor is struck through rather than coloured.
+    pub cancel_marks: bool,
 }
 
 impl Default for PipelineConfig {
@@ -102,6 +106,8 @@ impl Default for PipelineConfig {
             max_total_steps: 256,
             verify_equivalence: true,
             style: OutputStyle::default(),
+            detail: StepDetail::default(),
+            cancel_marks: true,
         }
     }
 }
@@ -151,10 +157,11 @@ pub fn simplify_node(node: &Node) -> Result<SimplificationResult> {
 
 /// Runs stages 2–13 with explicit termination limits.
 pub fn simplify_node_with(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
-    if let Some(result) = crate::algebra::atoms::simplify_with_atoms(node, config.style.conditions, |atomized| simplify_rational(atomized, config)) {
-        return result;
-    }
-    simplify_rational(node, config)
+    let result = match crate::algebra::atoms::simplify_with_atoms(node, config.style.conditions, |atomized| simplify_rational(atomized, config)) {
+        Some(result) => result,
+        None => simplify_rational(node, config),
+    };
+    result.map(|result| result.filtered(config.detail))
 }
 
 fn simplify_rational(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
@@ -454,8 +461,12 @@ impl Pipeline {
             self.rewrites += 1;
             self.visited.insert(key, self.steps.len() + 1);
             self.tracker = tracker;
+            let substeps = lift_substeps(&self.current, &next, &local);
             let rule = local.rule.unwrap_or(RuleId::NormalizeExpression);
             self.record(next, local.explanation, rule);
+            let step = self.steps.last_mut().expect("just recorded");
+            step.level = local.level;
+            step.substeps = substeps;
         }
     }
 
@@ -524,8 +535,8 @@ impl Pipeline {
             diagnostic = unsupported_diagnostic(&self.original);
         }
 
-        let result =
-            SimplificationResult::new(self.current, self.steps, restrictions);
+        let steps = self.steps.into_iter().flat_map(AlgebraStep::flatten).collect();
+        let result = SimplificationResult::new(self.current, steps, restrictions);
         match diagnostic {
             Some(message) => result.with_diagnostic(message),
             None => result,
@@ -539,6 +550,59 @@ impl Pipeline {
 
 /// A local rewrite rule: given a node, either rewrites it or declines.
 type Rule<'a> = dyn FnMut(&Node) -> Option<(Node, RuleId, String)> + 'a;
+
+/// The path from `root` to the node a local rewrite replaced: the subtree that reads as
+/// `local_before` in `root` and as `local_after` in `next`, with everything around it unchanged.
+fn rewrite_path(root: &Node, next: &Node, local_before: &str, local_after: &str) -> Option<Vec<usize>> {
+    if serializer::expression(root) == local_before && serializer::expression(next) == local_after {
+        return Some(Vec::new());
+    }
+    let (children, next_children) = (root.children(), next.children());
+    if children.len() != next_children.len() {
+        return None;
+    }
+    let differing: Vec<usize> = (0..children.len())
+        .filter(|&i| serializer::expression(children[i]) != serializer::expression(next_children[i]))
+        .collect();
+    let [index] = differing[..] else { return None };
+    // Only the one child may differ, not the node itself.
+    if serializer::expression(&replace_child(root, index, next_children[index].clone())) != serializer::expression(next) {
+        return None;
+    }
+    let mut path = rewrite_path(children[index], next_children[index], local_before, local_after)?;
+    path.insert(0, index);
+    Some(path)
+}
+
+fn replace_at(root: &Node, path: &[usize], replacement: Node) -> Node {
+    match path.split_first() {
+        None => replacement,
+        Some((&index, rest)) => replace_child(root, index, replace_at(root.children()[index], rest, replacement)),
+    }
+}
+
+/// The sub-steps of a local rewrite, written as whole expressions: each intermediate local state
+/// put in the place of the rewritten subtree. Sub-steps that cannot be placed are dropped, so the
+/// rewrite is shown as one step.
+fn lift_substeps(root: &Node, next: &Node, local: &AlgebraStep) -> Vec<AlgebraStep> {
+    if local.substeps.is_empty() {
+        return Vec::new();
+    }
+    let Some(path) = rewrite_path(root, next, &local.before_latex, &local.after_latex) else {
+        return Vec::new();
+    };
+    let place = |node: &Node| replace_at(root, &path, node.clone());
+    local
+        .substeps
+        .iter()
+        .cloned()
+        .flat_map(AlgebraStep::flatten)
+        .map(|sub| AlgebraStep {
+            note: sub.note,
+            ..AlgebraStep::new(place(&sub.before), place(&sub.after), sub.explanation, sub.rule).with_level(sub.level)
+        })
+        .collect()
+}
 
 /// Replaces the `index`-th direct child of `node` by `replacement`.
 fn replace_child(node: &Node, index: usize, replacement: Node) -> Node {
@@ -1065,6 +1129,31 @@ mod tests {
         });
         assert_eq!(pipeline.steps.len(), 3);
         assert_eq!(pipeline.stop, None);
+    }
+
+    #[test]
+    fn substeps_of_a_local_rewrite_are_written_into_the_whole_expression() {
+        let mut pipeline = Pipeline::new(&parse(r"\frac{1}{x \cdot x \cdot x} + 1"), PipelineConfig::default()).unwrap();
+        let mut done = false;
+        pipeline.run_stage(|root, _| {
+            if std::mem::replace(&mut done, true) {
+                return None;
+            }
+            let rule = &mut |node: &Node| {
+                (serializer::expression(node) == r"x \cdot x \cdot x").then(|| (parse("x^3"), RuleId::MergePowers, "merge".to_string()))
+            };
+            let (next, step) = rewrite_first_top_down(root, rule)?;
+            let idea = AlgebraStep::new(step.before.clone(), parse("x^{1 + 1 + 1}"), "idea", None).with_level(StepDetail::Standard);
+            Some((next, step.with_substeps(vec![idea])))
+        });
+        let lines: Vec<String> = pipeline.finish().steps.iter().map(|s| format!("{} -> {}", s.before_latex, s.after_latex)).collect();
+        assert_eq!(
+            lines,
+            vec![
+                r"\frac{1}{x \cdot x \cdot x} + 1 -> \frac{1}{x^{1 + 1 + 1}} + 1",
+                r"\frac{1}{x^{1 + 1 + 1}} + 1 -> \frac{1}{x^{3}} + 1",
+            ]
+        );
     }
 
     #[test]

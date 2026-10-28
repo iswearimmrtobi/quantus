@@ -144,7 +144,12 @@ impl Atoms {
     }
 
     pub(crate) fn restore_step(&self, step: AlgebraStep) -> AlgebraStep {
-        AlgebraStep::new(self.restore(step.before), self.restore(step.after), self.restore_text(&step.explanation), step.rule)
+        AlgebraStep {
+            level: step.level,
+            note: step.note,
+            substeps: step.substeps.into_iter().map(|sub| self.restore_step(sub)).collect(),
+            ..AlgebraStep::new(self.restore(step.before), self.restore(step.after), self.restore_text(&step.explanation), step.rule)
+        }
     }
 }
 
@@ -233,7 +238,7 @@ pub fn simplify_with_atoms(
 
     // A step that only changed how an atom was written looks like no step once it is written out.
     let steps =
-        steps.into_iter().map(|step| atoms.restore_step(step)).filter(|step| step.before_latex != step.after_latex).collect();
+        steps.into_iter().map(|step| atoms.restore_step(step)).filter(|step| step.note || step.before_latex != step.after_latex).collect();
     let restrictions = simplify_restrictions(restrictions, &atoms).into_iter().map(|r| atoms.restore_restriction(r)).collect();
     let mut restored = SimplificationResult::new(atoms.restore(current), steps, restrictions);
     restored.diagnostic = diagnostic.map(|text| atoms.restore_text(&text)).or_else(|| unsupported_diagnostic(node));

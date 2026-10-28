@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::algebra::pipeline::OutputStyle;
+use crate::algebra::pipeline::{OutputStyle, PipelineConfig};
 use crate::latex::parser::ParseOptions;
 use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
 use crate::{QuantusError, Result};
@@ -194,6 +194,16 @@ impl Settings {
             complete_square: self.complete_square,
             denominator: self.denominator_form,
             conditions: self.conditional_identities,
+        }
+    }
+
+    /// The simplification pipeline as these settings write results and steps.
+    pub fn pipeline_config(&self) -> PipelineConfig {
+        PipelineConfig {
+            style: self.output_style(),
+            detail: self.step_detail,
+            cancel_marks: self.cancel_marks,
+            ..PipelineConfig::default()
         }
     }
 }

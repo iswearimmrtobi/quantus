@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 
 /** The engine contract (spec §5) as the renderer sees it. */
 
-export type StepKind = 'symbolic' | 'substituted' | 'result' | 'algebraic';
+export type StepKind = 'symbolic' | 'substituted' | 'result' | 'algebraic' | 'note';
 
 export interface Step {
   kind: StepKind;

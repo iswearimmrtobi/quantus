@@ -75,7 +75,7 @@ impl CalculationResponse {
     }
 }
 
-/// `kind` is `symbolic`, `substituted`, `result`, or `algebraic`.
+/// `kind` is `symbolic`, `substituted`, `result`, `algebraic`, or `note`.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct StepResponse {

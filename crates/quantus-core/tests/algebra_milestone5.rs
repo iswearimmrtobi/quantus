@@ -9,7 +9,7 @@ use quantus_core::algebra::steps::{RuleId, SimplificationResult};
 use quantus_core::algebra::{simplify, simplify_node};
 use quantus_core::latex::ast::Node;
 use quantus_core::latex::{parser, serializer};
-use quantus_core::settings::DenominatorForm;
+use quantus_core::settings::{DenominatorForm, StepDetail};
 
 fn parse(input: &str) -> Node {
     parser::parse(input)
@@ -17,9 +17,18 @@ fn parse(input: &str) -> Node {
         .expression
 }
 
+/// The steps as the rules record them, one per rule (`StepDetail::Brief`).
 fn run(input: &str) -> SimplificationResult {
-    simplify(input).unwrap_or_else(|e| panic!("Simplification of {input} failed: {e}"))
+    run_at(input, StepDetail::Brief)
 }
+
+fn run_at(input: &str, detail: StepDetail) -> SimplificationResult {
+    simplify_node_with(&parse(input), PipelineConfig { detail, ..PipelineConfig::default() })
+        .unwrap_or_else(|e| panic!("Simplification of {input} failed: {e}"))
+}
+
+const LEVELS: [StepDetail; 5] =
+    [StepDetail::None, StepDetail::Brief, StepDetail::Standard, StepDetail::Detailed, StepDetail::Maximal];
 
 fn rules(result: &SimplificationResult) -> Vec<RuleId> {
     result.steps.iter().filter_map(|s| s.rule).collect()
@@ -34,6 +43,10 @@ fn restrictions(result: &SimplificationResult) -> String {
 fn assert_steps_chain(input: &Node, result: &SimplificationResult) {
     let mut current = serializer::expression(input);
     for step in &result.steps {
+        if step.note {
+            assert_eq!(step.before_latex, step.after_latex, "a note changes nothing");
+            continue;
+        }
         assert_eq!(step.before_latex, current, "step does not start where the previous ended");
         assert_ne!(step.before_latex, step.after_latex, "step without visible change");
         current = step.after_latex.clone();
@@ -442,4 +455,43 @@ fn a_logarithm_with_a_base_is_shown_as_typed() {
     assert_eq!(result.latex, "\\frac{2}{3}");
     // A quotient of logarithms without a number as the base stays a fraction.
     assert_eq!(serializer::expression(&parse(r"\frac{\ln x}{\ln y}")), "\\frac{\\ln{x}}{\\ln{y}}");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Step detail: every level chains and ends at the same result
+// ---------------------------------------------------------------------------------------------
+
+#[test]
+fn every_detail_level_chains_to_the_same_result() {
+    let inputs = [
+        r"x^2 - 6x + 3",
+        r"\frac{3}{x-3}+\frac{x}{x+3}",
+        r"\frac{x}{x+1}-\frac{1}{x}",
+        r"\frac{2x^2+4x}{x^2-4}",
+        r"\frac{x^2-9}{x-3}",
+        r"\frac{\frac{1}{x}}{\frac{2}{x^2}}",
+        r"\frac{1}{1+\frac{1}{x}}",
+        r"(x+2)(x-5)",
+        r"(x-3)^2",
+        r"3x^2 - 18x + 24 + x - 102",
+        r"3+x^2-2x",
+        r"\frac{x^5}{x^2}",
+        r"\frac{1}{1-x}",
+        r"x^2+6x+9",
+        r"\left(\frac{x}{2}\right)^3",
+        r"x^{-2}",
+        r"\sqrt{12}",
+        r"\frac{1}{\sqrt{3}-1}",
+        r"\log_2(8)",
+        r"2\sin(x)\cos(x)",
+    ];
+    for input in inputs {
+        let brief = run(input);
+        for detail in LEVELS {
+            let result = run_at(input, detail);
+            assert_steps_chain(&parse(input), &result);
+            assert_eq!(result.latex, brief.latex, "{input} at {detail:?}");
+            assert!(result.steps.len() >= brief.steps.len(), "{input} at {detail:?} has fewer steps than at Brief");
+        }
+    }
 }
