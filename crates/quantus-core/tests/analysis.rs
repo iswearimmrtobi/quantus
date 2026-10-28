@@ -398,3 +398,14 @@ fn simplifying_a_derivative_shows_the_algebra_from_standard_on() {
     let detailed = working(&d, "derivatives", StepDetail::Detailed);
     assert!(detailed.iter().any(|(latex, _)| latex == r"f''(x) = \frac{4 \cdot \cancel{(x - 1)}}{(x - 1)^{3} \cdot \cancel{(x - 1)}}"));
 }
+
+#[test]
+fn the_sum_rule_writes_each_term_before_the_power_rule() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x^3-3x^2+2");
+    let detailed = working(&d, "derivatives", StepDetail::Detailed);
+    assert_eq!(detailed[0], ("f'(x) = (x^{3})' - 3(x^{2})' + (2)'".to_string(), "Term by term".to_string()));
+    assert_eq!(detailed[1].0, r"f'(x) = 3x^{3 - 1} - 3 \cdot 2x^{2 - 1} + 0");
+    assert_eq!(working(&d, "derivatives", StepDetail::Standard).len(), detailed.len() - 2);
+    assert_eq!(working(&d, "derivatives", StepDetail::Brief)[0].0, "f'(x) = 3x^{2} - 6x + 0");
+}

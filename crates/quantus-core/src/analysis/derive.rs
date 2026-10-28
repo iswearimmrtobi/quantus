@@ -6,14 +6,14 @@
 //! [`derive`] adds the steps for the outermost rule: the parts u and v (or the inner function)
 //! with their derivatives, the rule applied, and the simplified result.
 
-use dashu::base::Signed;
+use dashu::base::{Abs, Signed};
 use dashu::rational::RBig;
 
 use super::expr::{Expr, Fn};
 use super::rules::{step, AnalysisRule};
 use super::simplify::display;
 use crate::eval::Step;
-use crate::settings::Settings;
+use crate::settings::{Settings, StepDetail};
 use crate::text::msg;
 
 /// One derivative and how it was found.
@@ -45,6 +45,9 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
 
     let mut steps = Vec::new();
     let rule = explain(&shown, var, settings, &mut steps);
+    if let (AnalysisRule::SumRule, Expr::Sum(terms)) = (&rule, &shown) {
+        steps.extend(term_by_term(terms, &name, var));
+    }
     let line = match (&rule, &shown) {
         (AnalysisRule::SumRule, Expr::Sum(terms)) => {
             let parts: Vec<Expr> = terms.iter().map(|t| display(&derivative(t), settings)).collect();
@@ -63,6 +66,60 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
         steps.push(step(AnalysisRule::Simplify, msg!("Simplify", "Zusammenfassen"), simplified));
     }
     Derivation { raw, result, steps }
+}
+
+/// The sum rule written out: `f'(x) = (x^{3})' - 3(x^{2})' + (2)'` (Standard), and the power rule
+/// put into each power of x: `f'(x) = 3x^{3 - 1} - 3 \cdot 2x^{2 - 1} + 0` (Detailed).
+fn term_by_term(terms: &[Expr], name: &str, var: &str) -> Vec<Step> {
+    let mut ordered: Vec<&Expr> = terms.iter().collect();
+    ordered.sort_by_key(|term| super::expr::summand_rank(term));
+    let mut marked = String::new();
+    let mut powered = String::new();
+    let mut has_power = false;
+    for (index, term) in ordered.into_iter().enumerate() {
+        let (coefficient, rest) = super::expr::split_coefficient(term);
+        let sign = match (index, coefficient.is_negative()) {
+            (0, false) => "",
+            (0, true) => "-",
+            (_, false) => " + ",
+            (_, true) => " - ",
+        };
+        let size = coefficient.clone().abs();
+        let size_tex = Expr::Num(size.clone()).to_latex(var);
+        let is_one = size == RBig::ONE;
+        if rest.is_constant() {
+            marked.push_str(&format!("{sign}({size_tex})'"));
+            powered.push_str(&format!("{sign}0"));
+            continue;
+        }
+        let factor = if is_one { String::new() } else { size_tex.clone() };
+        marked.push_str(&format!("{sign}{factor}({})'", rest.to_latex(var)));
+        let times = if is_one { String::new() } else { format!("{size_tex} \\cdot ") };
+        let exponent = match &rest {
+            Expr::Var => Some(RBig::ONE),
+            Expr::Pow(base, exponent) if **base == Expr::Var => exponent.as_num().cloned(),
+            _ => None,
+        };
+        match exponent {
+            Some(n) if n != RBig::ONE => {
+                has_power = true;
+                let n_tex = Expr::Num(n).to_latex(var);
+                powered.push_str(&format!("{sign}{times}{n_tex}{var}^{{{n_tex} - 1}}"));
+            }
+            Some(_) => powered.push_str(&format!("{sign}{size_tex}")),
+            None => {
+                let derivative = super::simplify::simplify(&derivative(&rest)).to_latex(var);
+                powered.push_str(&format!("{sign}{times}({derivative})"));
+            }
+        }
+    }
+    let marked = step(AnalysisRule::SumRule, msg!("Term by term", "Gliedweise"), format!("{name} = {marked}"));
+    let mut lines = vec![marked.with_level(StepDetail::Standard)];
+    if has_power {
+        let text = msg!("Power rule: (x^n)' = n x^{{n - 1}}", "Potenzregel: (x^n)' = n x^{{n - 1}}");
+        lines.push(step(AnalysisRule::PowerRule, text, format!("{name} = {powered}")).with_level(StepDetail::Detailed));
+    }
+    lines
 }
 
 /// `f'`, `f''`, `f'''`, then `f^{(4)}`.
@@ -408,6 +465,8 @@ mod tests {
 
         let _german = Scope::new(Language::De);
         let sum = derive(&expr("x^2 + \\sin x"), 1, "x", &Settings::default());
-        assert_eq!(sum.steps[0].explanation.as_deref(), Some("Summen- und Faktorregel: gliedweise ableiten"));
+        let brief = crate::eval::calculator::shown_steps(&sum.steps, StepDetail::Brief);
+        assert_eq!(brief[0].explanation.as_deref(), Some("Summen- und Faktorregel: gliedweise ableiten"));
+        assert_eq!(sum.steps[0].explanation.as_deref(), Some("Gliedweise"));
     }
 }
