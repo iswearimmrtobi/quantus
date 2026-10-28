@@ -301,6 +301,10 @@ fn unsigned_rational(r: &RBig) -> Node {
 /// else, then the constant, then negative powers by falling degree.
 pub(crate) fn summand_rank(term: &Expr) -> (u8, RBig) {
     let (_, rest) = split_coefficient(term);
+    // In a sum of constants the rational number goes first: 1 + \sqrt{3}.
+    if rest.is_constant() && rest != Expr::int(1) {
+        return (2, RBig::ONE);
+    }
     match variable_degree(&rest) {
         Some(degree) if degree > RBig::ZERO => (0, -degree),
         Some(degree) if degree == RBig::ZERO => (2, RBig::ZERO),
@@ -405,6 +409,16 @@ fn term_node(term: &Expr, var: &str) -> (bool, Node) {
     for factor in factors {
         match factor {
             Expr::Num(r) => coefficient *= r,
+            // A whole power of a number is a number: (-1)^{-1} = -1.
+            Expr::Pow(base, exponent)
+                if base.as_num().is_some_and(|b| *b != RBig::ZERO) && exponent.as_num().is_some_and(|e| e.is_int() && e.numerator().unsigned_abs() <= UBig::from(64u8)) =>
+            {
+                let b = base.as_num().unwrap();
+                let e = exponent.as_num().unwrap();
+                let k = usize::try_from(e.numerator().unsigned_abs()).unwrap();
+                let power = RBig::from_parts(b.numerator().pow(k), b.denominator().pow(k));
+                coefficient *= if e.is_negative() { RBig::ONE / power } else { power };
+            }
             Expr::Pow(base, exponent) if exponent.as_num().is_some_and(|e| e.is_negative()) => {
                 let positive = -exponent.as_num().unwrap().clone();
                 if positive == RBig::ONE {

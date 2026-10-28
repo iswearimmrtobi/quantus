@@ -35,6 +35,19 @@ pub enum DenominatorForm {
     Factored,
 }
 
+/// Which formula solves a quadratic equation in the analysis mode's working.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum QuadraticFormula {
+    /// The pq formula in German, the quadratic (abc) formula in English.
+    #[default]
+    Auto,
+    /// `x_{1,2} = -\frac{p}{2} \pm \sqrt{(\frac{p}{2})^2 - q}` after dividing by a.
+    Pq,
+    /// `x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}`.
+    Abc,
+}
+
 /// What the calculator is used for. It decides which symbols mean something on their own.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -78,6 +91,7 @@ pub struct Settings {
     /// `t`, `u` and `in` are the tonne, the atomic mass unit and the inch rather than variables.
     pub extra_unit_letters: bool,
     pub language: Language,
+    pub quadratic_formula: QuadraticFormula,
 }
 
 impl Default for Settings {
@@ -93,6 +107,7 @@ impl Default for Settings {
             letter_products: true,
             extra_unit_letters: false,
             language: Language::En,
+            quadratic_formula: QuadraticFormula::Auto,
         }
     }
 }
@@ -115,6 +130,15 @@ impl Settings {
             extra_unit_letters: self.extra_unit_letters,
             units: self.mode != Mode::Algebra,
             imaginary_i: self.mode == Mode::Imaginary,
+        }
+    }
+
+    /// Whether quadratics are solved with the pq formula rather than the abc formula.
+    pub fn uses_pq_formula(&self) -> bool {
+        match self.quadratic_formula {
+            QuadraticFormula::Auto => self.language == Language::De,
+            QuadraticFormula::Pq => true,
+            QuadraticFormula::Abc => false,
         }
     }
 
@@ -153,7 +177,8 @@ mod tests {
                 "aAndYAsVariables": true,
                 "letterProducts": true,
                 "extraUnitLetters": false,
-                "language": "en"
+                "language": "en",
+                "quadraticFormula": "auto"
             })
         );
     }
@@ -165,6 +190,15 @@ mod tests {
         assert_eq!((options(Mode::Physics).units, options(Mode::Physics).imaginary_i), (true, false));
         assert_eq!((options(Mode::Imaginary).units, options(Mode::Imaginary).imaginary_i), (true, true));
         assert_eq!((options(Mode::Electronics).units, options(Mode::Electronics).imaginary_i), (true, false));
+    }
+
+    #[test]
+    fn the_quadratic_formula_follows_the_language_unless_chosen() {
+        let with = |quadratic_formula, language| Settings { quadratic_formula, language, ..Settings::default() }.uses_pq_formula();
+        assert!(with(QuadraticFormula::Auto, Language::De) && !with(QuadraticFormula::Auto, Language::En));
+        assert!(with(QuadraticFormula::Pq, Language::En) && !with(QuadraticFormula::Abc, Language::De));
+        let parsed: Settings = serde_json::from_value(json!({ "quadraticFormula": "pq" })).unwrap();
+        assert_eq!(parsed.quadratic_formula, QuadraticFormula::Pq);
     }
 
     #[test]

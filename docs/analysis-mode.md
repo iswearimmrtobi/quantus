@@ -234,9 +234,10 @@ An empty domain is an input error ("f is defined nowhere" / "f ist nirgends defi
 
 ```rust
 pub struct Root { pub point: Point, pub multiplicity: Option<u32> }
-pub enum Solutions { Finite(Vec<Root>), Periodic(Vec<PeriodicSet>), All, None }
+pub struct Solutions { pub roots: Vec<Root>, pub families: Vec<PeriodicSet>, pub all: bool }  // x·sin x = 0 has both
 pub struct Solved { pub solutions: Solutions, pub steps: Vec<Step>, pub complete: bool }  // complete=false: numeric search in a window
-pub fn solve_zero(e: &Expr, domain: &Domain, settings: &Settings, budget: &Budget) -> Solved
+pub struct SolveContext<'a> { pub settings: &'a Settings, pub var: &'a str, pub domain: &'a Domain, pub window: (f64, f64), pub digits: usize }
+pub fn solve_zero(e: &Expr, ctx: &SolveContext) -> Solved
 ```
 
 Strategies are tried in order on `simplify(e)`. Solutions outside the domain are dropped with a step: "x = 2 ∉ D, keine Lösung" / "x = 2 ∉ D, not a solution".
@@ -282,7 +283,9 @@ Strategies are tried in order on `simplify(e)`. Solutions outside the domain are
 
    The inverse-trig values come from the exact table in §5 (arcsin ½ = π/6), and otherwise stay symbolic (`\arcsin\frac{1}{3}`). If `u` is linear (`αx + β`), the families map exactly: `x = (b - β)/α + k·period/α`, giving `Periodic`. If `u` is not linear, the solutions are found only inside the window, and `complete = false`.
 6. **Common factor.** If summands share a factor g (§5 display rule), factor it out (step "Ausklammern" / "Factor out"), then use strategy 3.
-7. **Numeric fallback.** For each domain interval ∩ `[-100, 100]`: scan in f64 with 2000 steps, bracket sign changes and local minima of |e|, then refine in `RBig` with `bisect`/`touch` from `eval/solver.rs` to `digits + 5`. The result has `complete = false`, and the step says "numerisch im Bereich [−100; 100]" / "numerically on [−100, 100]".
+7. **Numeric fallback.** For each domain interval ∩ `[-100, 100]`: scan in f64 with about 4000 samples, refine sign changes by bisection (rejecting sign changes across a pole, where |e| grows) and local minima of |e| by golden-section search. Non-polynomial roots are therefore accurate to about 15 digits (polynomial roots are refined exactly in `RBig` by `scan_roots`). At most 50 roots are reported. The result has `complete = false`, and the step says "numerisch im Bereich [−100; 100]" / "numerically on [−100, 100]".
+
+**Periodic families** found for sin and cos are merged when two of them lie half a period apart (`0 + 2k\pi` and `\pi + 2k\pi` become `k\pi`) and written `2k\pi`, `\frac{k\pi}{2}`. Exact logarithms are recognised: `2^x = 8` gives `x = 3`.
 
 **Solver refactor in `eval/solver.rs`:** `bisect`, `touch` and the scan loop become `pub(crate) fn scan_roots(sample: &mut dyn FnMut(&RBig) -> Result<Option<Sample>>, lo: RBig, hi: RBig, steps_per_unit, tolerance, accept) -> Result<Vec<RBig>>`. It returns an empty `Vec` when nothing is found. `Evaluator::numeric_roots` calls it with [−100, 100] and keeps its old error text for an empty result. All existing solver tests stay green unchanged.
 
@@ -526,8 +529,8 @@ pub fn value_table(settings: &Settings, r: &TableRequest) -> Result<TableRespons
 3. `analysis::expr` (from/to node, eval) + serializer separator extension + tests
 4. `simplify` + `exact` tables + tests
 5. `derive` with rule steps + tests
-6. `interval` + `domain` + tests
-7. `polydiv` + `solve` (polynomial, quadratic pq/abc, substitution, guess+division, isolation, periodic, numeric) + `QuadraticFormula` setting + tests
+6. `interval` + `polydiv` + `solve` (polynomial, quadratic pq/abc, substitution, guess+division, isolation, periodic, numeric) + `QuadraticFormula` setting + tests (`Domain` lives in `interval.rs`, so the solver can filter by it before the domain can be computed)
+7. `domain` + tests (it solves `u ≠ 0` and `u > 0` with `solve`)
 8. `limits` + asymptotes + tests
 9. `integrate` (table, polynomial, partial fractions, substitution, parts, guard) + tests
 10. `discussion` (all sections, periodic handling, budget) + `tests/analysis.rs`

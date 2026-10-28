@@ -4,7 +4,10 @@
 pub mod derive;
 pub mod exact;
 pub mod expr;
+pub mod interval;
+pub mod polydiv;
 pub mod rules;
 pub mod simplify;
+pub mod solve;
 
 pub use expr::{Expr, Fn};
