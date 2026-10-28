@@ -182,6 +182,8 @@ pub fn merge_powers(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
         explanation: format!("Add the exponents: {}", details.join(", ")),
         rule: RuleId::MergePowers,
         conditions,
+        working: Vec::new(),
+        last: None,
     })
 }
 
@@ -306,5 +308,7 @@ pub fn merge_bases(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
         explanation: format!("Multiply the bases: {}", details.join(", ")),
         rule: RuleId::MergeBases,
         conditions,
+        working: Vec::new(),
+        last: None,
     })
 }

@@ -216,6 +216,8 @@ pub fn merge_logs(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
         explanation: format!("Combine the logarithms: {}", details.join(", ")),
         rule: RuleId::MergeLogs,
         conditions,
+        working: Vec::new(),
+        last: None,
     })
 }
 

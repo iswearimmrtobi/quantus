@@ -594,7 +594,13 @@ fn rewrite_path(root: &Node, next: &Node, local_before: &str, local_after: &str)
     Some(path)
 }
 
-fn replace_at(root: &Node, path: &[usize], replacement: Node) -> Node {
+/// The path to the node that reads `before` in `root` and `after` in `next`, everything around it
+/// unchanged.
+pub(crate) fn path_of_rewrite(root: &Node, next: &Node, before: &Node, after: &Node) -> Option<Vec<usize>> {
+    rewrite_path(root, next, &serializer::expression(before), &serializer::expression(after))
+}
+
+pub(crate) fn replace_at(root: &Node, path: &[usize], replacement: Node) -> Node {
     match path.split_first() {
         None => replacement,
         Some((&index, rest)) => replace_child(root, index, replace_at(root.children()[index], rest, replacement)),
@@ -965,7 +971,9 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
         return None;
     }
     let (explanation, rule) = canonical_explanation(root);
-    let level = if crate::algebra::expand::is_term_reordering(unwrap_group(root)) { StepDetail::Maximal } else { StepDetail::Brief };
+    // Putting terms in order and splitting a sum over a number are bookkeeping.
+    let bookkeeping = crate::algebra::expand::is_term_reordering(unwrap_group(root)) || splits_a_sum(root);
+    let level = if bookkeeping { StepDetail::Maximal } else { StepDetail::Brief };
     let step = AlgebraStep::new(root.clone(), canonical.clone(), explanation.clone(), Some(rule)).with_level(level);
     // Powers of numbers are worked out first: \frac{x^3}{2^3} reads \frac{x^3}{8}.
     let evaluated = evaluate_number_powers(root);
@@ -980,6 +988,13 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
         last = "Multiply out".to_string();
     }
     Some((canonical, step.with_working(lines, last)))
+}
+
+/// Whether `root` is a sum over a number, `\frac{\sqrt{3} + 1}{2}`, written term by term in its
+/// canonical form.
+fn splits_a_sum(root: &Node) -> bool {
+    let Some((num, den)) = split_fraction(unwrap_group(root)) else { return false };
+    Poly::from_node(den).is_ok_and(|d| d.is_constant()) && Poly::from_node(num).is_ok_and(|n| n.terms.len() > 1)
 }
 
 /// `\frac{1 \cdot (-1)}{(1 - x) \cdot (-1)}` for `\frac{1}{1 - x}`: a fraction whose denominator
@@ -1022,6 +1037,9 @@ fn canonical_explanation(root: &Node) -> (String, RuleId) {
     };
     let den = split_fraction(inner).and_then(|(_, den)| Poly::from_node(den).ok());
     if let Some(den) = den.as_ref().filter(|den| den.is_constant()) {
+        if splits_a_sum(root) {
+            return ("Split the fraction".into(), RuleId::NormalizeExpression);
+        }
         return (
             format!("Write the division by {} as a coefficient", serializer::expression(&den.to_node())),
             RuleId::NormalizeExpression,

@@ -119,6 +119,8 @@ pub fn abs_products(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
         explanation: format!("Multiply the absolute values: {}", details.join(", ")),
         rule: RuleId::MergeAbs,
         conditions,
+        working: Vec::new(),
+        last: None,
     })
 }
 

@@ -27,6 +27,7 @@ use crate::algebra::poly::{rational_to_node, Monomial, Poly};
 use crate::algebra::steps::RuleId;
 use crate::latex::ast::{Node, Operator};
 use crate::latex::serializer;
+use crate::settings::StepDetail;
 
 /// The degree and radicand of the atom with `index`, if it is a root of a polynomial.
 fn root(atoms: &Atoms, index: usize) -> Option<(usize, &Node)> {
@@ -55,9 +56,19 @@ fn nest_root(index: usize, ctx: &mut Context) -> Option<Local> {
     let (n, radicand) = root(ctx.atoms, index)?;
     let (inner, m, _) = root_of(ctx.atoms, radicand)?;
     let (_, inner_radicand) = root(ctx.atoms, inner)?;
-    let merged = ctx.atoms.intern(make_root(n * m, inner_radicand.clone()));
+    let radicand = inner_radicand.clone();
+    let merged = ctx.atoms.intern(make_root(n * m, radicand.clone()));
     let detail = format!("{} = {}", serializer::expression(&ctx.atoms.var(index)), serializer::expression(&merged));
-    Some(Local::new(merged, detail))
+    // \sqrt{\sqrt{x}} = (x^{1/2})^{1/2} = x^{1/4}.
+    let reciprocal = |k: usize| make_fraction(number(1), number(k));
+    let raised = |base: Node, k: usize| Node::Power { base: Box::new(Node::Group { inner: Box::new(base), position: 0 }), exponent: Box::new(reciprocal(k)), position: 0 };
+    let powers = raised(raised(radicand.clone(), m), n);
+    let product = raised(radicand, n * m);
+    let working = vec![
+        (powers, "Write the roots as powers".to_string(), StepDetail::Detailed),
+        (product, "Multiply the exponents".to_string(), StepDetail::Detailed),
+    ];
+    Some(Local::new(merged, detail).with_working(working, "Write the power as a root"))
 }
 
 /// `\sqrt[m]{\sqrt[n]{u}} = \sqrt[mn]{u}`.
@@ -104,6 +115,8 @@ fn extract_root(index: usize, ctx: &mut Context) -> Option<Local> {
     // of an odd root.
     let coeff = factored.coeff.clone();
     let (mut outside, inside);
+    // The whole number split into the part that comes out and the part that stays: 12 is 2^2 \cdot 3.
+    let mut split = None;
     if coeff.is_negative() && n % 2 == 0 {
         outside = RBig::ONE;
         inside = coeff;
@@ -117,6 +130,9 @@ fn extract_root(index: usize, ctx: &mut Context) -> Option<Local> {
         let m = UBig::try_from(coeff.numerator().abs()).ok()? * q.pow(n - 1);
         let (out, rest) = split_power(&m, n);
         changed |= out != UBig::ONE || q != UBig::ONE;
+        if q == UBig::ONE {
+            split = Some((out.clone(), rest.clone()));
+        }
         outside = outside * RBig::from_parts(IBig::from(out), q);
         inside = RBig::from(rest);
     }
@@ -183,7 +199,31 @@ fn extract_root(index: usize, ctx: &mut Context) -> Option<Local> {
         result = make_product(result, rest);
     }
     let detail = format!("{} = {}", serializer::expression(&ctx.atoms.var(index)), serializer::expression(&result));
-    Some(Local::new(result, detail).with(conditions))
+    let local = Local::new(result, detail).with(conditions);
+    // A number under the root: \sqrt{12} = \sqrt{4 \cdot 3} = \sqrt{4} \cdot \sqrt{3} = 2\sqrt{3}.
+    match split {
+        Some((out, rest)) if factored.factors.is_empty() && degree == n && out > UBig::ONE && rest > UBig::ONE => {
+            let power = out.pow(n);
+            let number = |u: &UBig| rational_to_node(&RBig::from(u.clone()));
+            let split = make_root(n, Node::binary(Operator::Times, number(&power), number(&rest), 0));
+            let apart = Node::binary(Operator::Times, make_root(n, number(&power)), make_root(n, number(&rest)), 0);
+            let kind = match n {
+                2 => "square".to_string(),
+                3 => "cube".to_string(),
+                n => format!("{n}th power"),
+            };
+            let rule = if n == 2 { "\\sqrt{ab} = \\sqrt{a} \\cdot \\sqrt{b}".to_string() } else { format!("\\sqrt[{n}]{{ab}} = \\sqrt[{n}]{{a}} \\cdot \\sqrt[{n}]{{b}}") };
+            let last = format!("{} = {}", serializer::expression(&make_root(n, number(&power))), out);
+            Some(local.with_working(
+                vec![
+                    (split, format!("Split off the largest {kind} factor"), StepDetail::Standard),
+                    (apart, rule, StepDetail::Detailed),
+                ],
+                last,
+            ))
+        }
+        _ => Some(local),
+    }
 }
 
 fn gcd(a: usize, b: usize) -> usize {
@@ -275,11 +315,30 @@ fn reduce_poly(poly: &Poly, ctx: &mut Context, details: &mut Vec<String>, _: &mu
 pub fn multiply_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let (mut details, mut conditions) = (Vec::new(), Vec::new());
     let reduced = each_poly(node, ctx, reduce_poly, &mut details, &mut conditions);
-    (!details.is_empty()).then(|| Rewrite {
+    if details.is_empty() {
+        return None;
+    }
+    // One term with a number in front: the roots first, then the numbers, 2 \cdot 2 before 4.
+    let mut working = Vec::new();
+    if let Ok(poly) = Poly::from_node(node) {
+        if let [term] = poly.terms.as_slice() {
+            let unit = Poly::from_term(RBig::ONE, term.monomial.clone());
+            if term.coeff != RBig::ONE {
+                if let Some(roots) = reduce_poly(&unit, ctx, &mut Vec::new(), &mut Vec::new()) {
+                    let line = Node::binary(Operator::Times, rational_to_node(&term.coeff), roots.to_node(), 0);
+                    working.push(crate::algebra::steps::AlgebraStep::line(node, line, details.join(", "), StepDetail::Standard));
+                }
+            }
+        }
+    }
+    let last = (!working.is_empty()).then(|| "Multiply the numbers".to_string());
+    Some(Rewrite {
         node: reduced,
         explanation: format!("Multiply the roots: {}", details.join(", ")),
         rule: RuleId::MultiplyRoots,
         conditions,
+        working,
+        last,
     })
 }
 
@@ -339,6 +398,8 @@ pub fn merge_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
         explanation: format!("Multiply under one root: {}", details.join(", ")),
         rule: RuleId::MergeRoots,
         conditions,
+        working: Vec::new(),
+        last: None,
     })
 }
 
@@ -382,6 +443,11 @@ fn rationalize_factor(node: &Node, atoms: &Atoms) -> Option<(Node, String)> {
     Some((make_fraction(make_product(numerator.clone(), by), rest), detail))
 }
 
+/// `\frac{1}{\sqrt{2}} \cdot \frac{\sqrt{2}}{\sqrt{2}}`: the fraction extended by `by`.
+fn extended(fraction: &Node, by: &Node) -> Node {
+    Node::binary(Operator::Times, fraction.clone(), make_fraction(by.clone(), by.clone()), 0)
+}
+
 /// `\frac{z}{p + q \sqrt{u}}` as `\frac{z (p - q \sqrt{u})}{p^{2} - q^{2} u}`, for a denominator that
 /// is linear in a square root. Needs `p - q \sqrt{u} \neq 0`.
 fn rationalize_conjugate(node: &Node, ctx: &Context) -> Option<Local> {
@@ -420,8 +486,24 @@ fn rationalize_conjugate(node: &Node, ctx: &Context) -> Option<Local> {
             continue;
         }
         let detail = format!("multiply by the conjugate {}", serializer::expression(&conjugate.to_node()));
-        let node = make_fraction(make_product(numerator.clone(), conjugate.to_node()), rationalized.to_node());
-        return Some(Local::new(node, detail));
+        let result = make_fraction(make_product(numerator.clone(), conjugate.to_node()), rationalized.to_node());
+        let extend = (extended(node, &conjugate.to_node()), format!("Extend by the conjugate {}", serializer::expression(&conjugate.to_node())), StepDetail::Standard);
+        let mut working = vec![extend];
+        // With numbers for p and q, the denominator is the third binomial formula: (\sqrt{3})^2 - 1^2.
+        if p.is_constant() && q.is_constant() {
+            let square = |n: Node| Node::Power { base: Box::new(Node::Group { inner: Box::new(n), position: 0 }), exponent: Box::new(number(2)), position: 0 };
+            let size = |c: &Poly| Poly::from_const(c.constant_term().abs());
+            let root_part = square((&size(&q) * &Poly::from_var(&var)).to_node());
+            let number_part = square(size(&p).to_node());
+            let formula = if (&(&q * &q) * &radicand) - (&p * &p) == rationalized {
+                Node::binary(Operator::Minus, root_part, number_part, 0)
+            } else {
+                Node::binary(Operator::Minus, number_part, root_part, 0)
+            };
+            let line = make_fraction(make_product(numerator.clone(), conjugate.to_node()), formula);
+            working.push((line, "Third binomial formula in the denominator".to_string(), StepDetail::Detailed));
+        }
+        return Some(Local::new(result, detail).with_working(working, "Work out the denominator"));
     }
     None
 }
@@ -430,14 +512,31 @@ fn rationalize_at(node: &Node, ctx: &mut Context) -> Option<Local> {
     // Each root factor that is taken out leaves one fewer, so this ends.
     let mut current = node.clone();
     let mut details = Vec::new();
+    let mut by = Vec::new();
     while let Some((next, detail)) = rationalize_factor(&current, ctx.atoms) {
+        by.push(root_factor_by(&current, ctx.atoms));
         current = next;
         details.push(detail);
     }
     if details.is_empty() {
         return rationalize_conjugate(node, ctx);
     }
-    Some(Local::new(current, details.join(", ")))
+    let local = Local::new(current, details.join(", "));
+    // One root in the denominator: \frac{1}{\sqrt{2}} \cdot \frac{\sqrt{2}}{\sqrt{2}} first.
+    match by.as_slice() {
+        [Some(by)] => {
+            let text = format!("Extend by {}", serializer::expression(by));
+            Some(local.with_working(vec![(extended(node, by), text, StepDetail::Standard)], "Multiply the fractions"))
+        }
+        _ => Some(local),
+    }
+}
+
+/// What [`rationalize_factor`] multiplies `node` by.
+fn root_factor_by(node: &Node, atoms: &Atoms) -> Option<Node> {
+    let (_, denominator) = split_fraction(node)?;
+    let (index, n, exp, _) = factors(denominator).iter().find_map(|factor| root_factor(factor, atoms))?;
+    Some(power(atoms.var(index), n - exp))
 }
 
 pub fn rationalize_denominators(node: &Node, ctx: &mut Context) -> Option<Rewrite> {

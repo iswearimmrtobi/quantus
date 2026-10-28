@@ -438,7 +438,8 @@ fn steps_name_what_they_change() {
         (
             r"\frac{1}{\sqrt{3} - 1}",
             "Rationalize the denominator: multiply by the conjugate \\sqrt{3} + 1",
-            "\\frac{\\sqrt{3} + 1}{2}",
+            // Splitting the fraction is bookkeeping, part of this step below Maximal.
+            "\\frac{1}{2} \\cdot \\sqrt{3} + \\frac{1}{2}",
         ),
     ];
     for (input, explanation, after) in cases {
@@ -771,4 +772,28 @@ fn writing_as_a_binomial_first_recognises_the_square() {
     assert_eq!(detailed[0], row(r"x^{2} + 2 \cdot x \cdot 3 + 3^{2}", "Recognise a² + 2ab + b² with a = x, b = 3"));
     assert_eq!(detailed[1].0, "(x + 3)^{2}");
     assert_eq!(rows("x^2+6x+9", StepDetail::Standard).len(), 1);
+}
+
+#[test]
+fn roots_show_the_square_factor_the_powers_and_the_extension() {
+    assert_eq!(
+        rows(r"\sqrt{12}", StepDetail::Detailed),
+        [
+            row(r"\sqrt{4 \cdot 3}", "Split off the largest square factor"),
+            row(r"\sqrt{4} \cdot \sqrt{3}", r"\sqrt{ab} = \sqrt{a} \cdot \sqrt{b}"),
+            row(r"2 \cdot \sqrt{3}", r"\sqrt{4} = 2"),
+        ]
+    );
+    let product = rows(r"\sqrt{2}\cdot\sqrt{8}", StepDetail::Standard);
+    assert_eq!(product[2..], [row(r"2 \cdot 2", r"\sqrt{2} \cdot \sqrt{2} = 2"), row("4", "Multiply the numbers")]);
+    assert_eq!(rows(r"\sqrt{\sqrt{x}}", StepDetail::Detailed)[..2], [
+        row(r"(x^{\frac{1}{2}})^{\frac{1}{2}}", "Write the roots as powers"),
+        row(r"x^{\frac{1}{4}}", "Multiply the exponents"),
+    ]);
+    assert_eq!(rows(r"\frac{1}{\sqrt{2}}", StepDetail::Standard)[0], row(r"\frac{1}{\sqrt{2}} \cdot \frac{\sqrt{2}}{\sqrt{2}}", r"Extend by \sqrt{2}"));
+    let conjugate = rows(r"\frac{1}{\sqrt{3}-1}", StepDetail::Maximal);
+    assert_eq!(conjugate[0], row(r"\frac{1}{\sqrt{3} - 1} \cdot \frac{\sqrt{3} + 1}{\sqrt{3} + 1}", r"Extend by the conjugate \sqrt{3} + 1"));
+    assert_eq!(conjugate[1], row(r"\frac{\sqrt{3} + 1}{(\sqrt{3})^{2} - 1^{2}}", "Third binomial formula in the denominator"));
+    assert_eq!(conjugate.last().unwrap(), &row(r"\frac{1}{2} \cdot \sqrt{3} + \frac{1}{2}", "Split the fraction"));
+    assert_eq!(rows(r"\frac{1}{\sqrt{3}-1}", StepDetail::Detailed).len(), conjugate.len() - 1);
 }

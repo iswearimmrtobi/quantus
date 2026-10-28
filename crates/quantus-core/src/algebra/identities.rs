@@ -13,7 +13,7 @@ use crate::algebra::{abs, logs, powers, radicals, trig};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
 use crate::latex::serializer;
-use crate::settings::ConditionalIdentities;
+use crate::settings::{ConditionalIdentities, StepDetail};
 
 use dashu::rational::RBig;
 
@@ -323,6 +323,10 @@ pub struct Rewrite {
     pub explanation: String,
     pub rule: RuleId,
     pub conditions: Vec<Condition>,
+    /// The in-between lines, from the tree before to the one before `node`, as sub-steps.
+    pub working: Vec<AlgebraStep>,
+    /// The text of the last line, when the working is shown.
+    pub last: Option<String>,
 }
 
 /// A rewrite of one node, as `everywhere` collects them.
@@ -331,40 +335,85 @@ pub struct Local {
     /// The identity as applied here: `\sqrt{a} \cdot \sqrt{b} = \sqrt{ab}`.
     pub detail: String,
     pub conditions: Vec<Condition>,
+    /// The in-between forms of this node, each with its text and level.
+    pub working: Vec<(Node, String, StepDetail)>,
+    pub last: Option<String>,
 }
 
 impl Local {
     pub fn new(node: Node, detail: String) -> Self {
-        Self { node, detail, conditions: Vec::new() }
+        Self { node, detail, conditions: Vec::new(), working: Vec::new(), last: None }
     }
 
     pub fn with(mut self, conditions: impl IntoIterator<Item = Condition>) -> Self {
         self.conditions.extend(conditions);
         self
     }
+
+    /// The node's in-between forms, and the text of the last line that reaches `node`.
+    pub fn with_working(mut self, working: Vec<(Node, String, StepDetail)>, last: impl Into<String>) -> Self {
+        self.working = working;
+        self.last = Some(last.into());
+        self
+    }
+}
+
+/// `lines` as sub-steps from `start`, each line's node put into the tree by `place`.
+fn placed_lines(start: &Node, lines: &[(Node, String, StepDetail)], place: impl Fn(&Node) -> Node) -> Vec<AlgebraStep> {
+    let mut before = start.clone();
+    lines
+        .iter()
+        .map(|(node, text, level)| {
+            let after = place(node);
+            let line = AlgebraStep::line(&before, after.clone(), text.clone(), *level);
+            before = after;
+            line
+        })
+        .collect()
 }
 
 pub type LocalRule = fn(&Node, &mut Context) -> Option<Local>;
 
 /// Applies `local` at every node of `node`, innermost first, as one rewrite titled `title`.
 pub fn everywhere(node: &Node, ctx: &mut Context, title: &str, rule: RuleId, local: LocalRule) -> Option<Rewrite> {
-    fn walk(node: &Node, ctx: &mut Context, local: LocalRule, details: &mut Vec<String>, conditions: &mut Vec<Condition>) -> Node {
-        let node = node.clone().map_children(&mut |child| walk(&child, ctx, local, details, conditions));
+    /// Every node `local` rewrote, as it was, with its rewrite.
+    type Applied = Vec<(Node, Local)>;
+    fn walk(node: &Node, ctx: &mut Context, local: LocalRule, details: &mut Vec<String>, conditions: &mut Vec<Condition>, applied: &mut Applied) -> Node {
+        let node = node.clone().map_children(&mut |child| walk(&child, ctx, local, details, conditions, applied));
         match local(&node, ctx) {
-            Some(rewrite) if ctx.allows(&rewrite.conditions) => {
+            Some(mut rewrite) if ctx.allows(&rewrite.conditions) => {
                 if !details.contains(&rewrite.detail) {
-                    details.push(rewrite.detail);
+                    details.push(std::mem::take(&mut rewrite.detail));
                 }
-                conditions.extend(rewrite.conditions);
-                rewrite.node
+                conditions.extend(std::mem::take(&mut rewrite.conditions));
+                let after = rewrite.node.clone();
+                applied.push((node, rewrite));
+                after
             }
             _ => node,
         }
     }
     let mut details = Vec::new();
     let mut conditions = Vec::new();
-    let node = walk(node, ctx, local, &mut details, &mut conditions);
-    (!details.is_empty()).then(|| Rewrite { node, explanation: format!("{title}: {}", details.join(", ")), rule, conditions })
+    let mut applied = Vec::new();
+    let after = walk(node, ctx, local, &mut details, &mut conditions, &mut applied);
+    if details.is_empty() {
+        return None;
+    }
+    // The working of a rewrite in one place, put into the whole tree.
+    let (working, last) = match applied.as_slice() {
+        [(before, local)] if !local.working.is_empty() => {
+            match crate::algebra::pipeline::path_of_rewrite(node, &after, before, &local.node) {
+                Some(path) => (
+                    placed_lines(node, &local.working, |line| crate::algebra::pipeline::replace_at(node, &path, line.clone())),
+                    local.last.clone(),
+                ),
+                None => (Vec::new(), None),
+            }
+        }
+        _ => (Vec::new(), None),
+    };
+    Some(Rewrite { node: after, explanation: format!("{title}: {}", details.join(", ")), rule, conditions, working, last })
 }
 
 // ---- helpers for the rules -----------------------------------------------------------------
@@ -414,13 +463,22 @@ pub(crate) fn each_atom(
     let mut current = node.clone();
     let mut details = Vec::new();
     let mut conditions = Vec::new();
+    let mut lines = Vec::new();
     for index in indices {
         let Some(local) = rewrite(index, ctx).filter(|local| ctx.allows(&local.conditions)) else { continue };
+        // The working of the rewritten atom, in place of it.
+        let placed = placed_lines(&current, &local.working, |line| substitute(&current, index, line, ctx.atoms));
+        lines.push((placed, local.last));
         current = substitute(&current, index, &local.node, ctx.atoms);
         details.push(local.detail);
         conditions.extend(local.conditions);
     }
-    (!details.is_empty()).then(|| Rewrite { node: current, explanation: format!("{title}: {}", details.join(", ")), rule, conditions })
+    // Shown only for a rewrite of one atom: several at once would need their lines interleaved.
+    let (working, last) = match lines.len() {
+        1 => lines.pop().expect("one"),
+        _ => (Vec::new(), None),
+    };
+    (!details.is_empty()).then(|| Rewrite { node: current, explanation: format!("{title}: {}", details.join(", ")), rule, conditions, working, last })
 }
 
 pub(crate) type PolyRule = fn(&Poly, &mut Context, &mut Vec<String>, &mut Vec<Condition>) -> Option<Poly>;
@@ -505,7 +563,11 @@ pub fn apply_rules(
                 restrictions.push(restriction);
             }
         }
-        steps.push(AlgebraStep::new(current.clone(), rewrite.node.clone(), explanation, Some(rewrite.rule)));
+        let step = AlgebraStep::new(current.clone(), rewrite.node.clone(), explanation.clone(), Some(rewrite.rule));
+        steps.push(match rewrite.last {
+            Some(last) if !rewrite.working.is_empty() => step.with_working(rewrite.working, last),
+            _ => step,
+        });
         *current = rewrite.node;
         changed = true;
     }

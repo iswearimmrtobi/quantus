@@ -147,6 +147,8 @@ pub fn tan_as_quotient(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
         explanation: format!("Write as sine and cosine: {}", details.join(", ")),
         rule: RuleId::TrigQuotient,
         conditions: Vec::new(),
+        working: Vec::new(),
+        last: None,
     })
 }
 
@@ -251,6 +253,8 @@ pub fn pythagorean(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
         explanation: format!("Use the Pythagorean identity: {}", details.join(", ")),
         rule: RuleId::Pythagorean,
         conditions,
+        working: Vec::new(),
+        last: None,
     })
 }
 
