@@ -11,6 +11,7 @@ pub mod input;
 pub mod integrate;
 pub mod interval;
 pub mod limits;
+pub mod plot;
 pub mod polydiv;
 pub mod rules;
 pub mod simplify;

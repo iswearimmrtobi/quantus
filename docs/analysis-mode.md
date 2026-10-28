@@ -490,18 +490,18 @@ pub fn value_table(settings: &Settings, r: &TableRequest) -> Result<TableRespons
 
 ## 14. Plot (`plot.rs`)
 
-**`sample(f, domain, poles, x_min, x_max, n) -> Vec<Vec<[f64;2]>>`:**
+**`sample(f, breaks, marks, x_min, x_max, n, y_range) -> Vec<Vec<[f64;2]>>`** with `breaks = breaks_in(domain, x_min, x_max)` (the open bounds of the domain intervals, the periodic gaps and the holes inside the range), so panning only needs the domain, not a new curve sketch:
 - Samples are n uniform points, plus the domain endpoints, each pole ± 1e-9·span, and the marked x values.
-- Adaptive refinement (depth ≤ 6) where the turn angle between neighbouring chords is over 10°, or where one neighbour is undefined.
+- Adaptive refinement (at most 6 halvings) where neighbouring values differ by more than 2 % of the 5th–95th percentile spread, or where one neighbour is undefined.
 - A segment breaks:
   - at a `None` value
   - at a known pole between two samples
   - at a jump with a sign change where |Δy| > 10·(y range)
-- y is clipped to `[y_min − 10h, y_max + 10h]` (h = the window height), so the SVG never sees huge values.
+- With a y-range, y is clipped to `[y_min − 10h, y_max + 10h]` (h = the window height), otherwise to ±10⁹, so the SVG never sees huge values.
 - n is capped at 2000.
 
 **Default window:**
-- x: the marked x values (points, poles, holes, closed domain endpoints) span [p, q], giving `[p − m, q + m]` with `m = max(1, 0.25(q − p))`. With no marked points: [−5, 5]. Periodic f: [−P, P]. Clamped to [−50, 50].
+- x: the marked x values (points, poles, holes, domain endpoints) span [p, q], giving `[p − m, q + m]` with `m = max(1, 0.25(q − p))`. With no marked points: [−5, 5]; with a single marked x: that x ± 5. Periodic f: [−P, P]. Clamped to [−50, 50].
 - y: the 5th–95th percentile of the sampled y values, extended to include every marked point, plus a 10 % margin, and at least 2 high.
 
 ## 15. Frontend (`desktop/src/`)
