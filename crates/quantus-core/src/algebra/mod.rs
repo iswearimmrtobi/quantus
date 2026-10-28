@@ -1,5 +1,6 @@
 //! Symbolic algebraic expression simplification engine.
 
+pub mod atoms;
 pub mod binomial;
 pub mod combine;
 pub mod domain;

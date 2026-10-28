@@ -149,7 +149,7 @@ pub fn simplify_node(node: &Node) -> Result<SimplificationResult> {
 
 /// Runs stages 2–13 with explicit termination limits.
 pub fn simplify_node_with(node: &Node, config: PipelineConfig) -> Result<SimplificationResult> {
-    if let Some(result) = crate::algebra::radicals::simplify_with_roots(node, |atomized| simplify_rational(atomized, config)) {
+    if let Some(result) = crate::algebra::atoms::simplify_with_atoms(node, |atomized| simplify_rational(atomized, config)) {
         return result;
     }
     simplify_rational(node, config)
@@ -212,6 +212,15 @@ pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
             None
         }
     }
+}
+
+/// The note for a result that still contains a construct the pipeline cannot simplify.
+pub(crate) fn unsupported_diagnostic(node: &Node) -> Option<String> {
+    find_unsupported_construct(node).map(|construct| {
+        format!(
+            "Expression contains {construct}, which cannot be fully simplified algebraically; supported rational subtrees were simplified."
+        )
+    })
 }
 
 /// Whether `node` is in rational normal form: a polynomial, or (minus) a quotient of two
@@ -508,12 +517,7 @@ impl Pipeline {
         });
         let mut diagnostic = diagnostic.map(|s| s.to_string());
         if diagnostic.is_none() {
-            if let Some(construct) = find_unsupported_construct(&self.original) {
-                diagnostic = Some(format!(
-                    "Expression contains {}, which cannot be fully simplified algebraically; supported rational subtrees were simplified.",
-                    construct
-                ));
-            }
+            diagnostic = unsupported_diagnostic(&self.original);
         }
 
         let result =

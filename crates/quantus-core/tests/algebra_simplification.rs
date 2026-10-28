@@ -515,10 +515,23 @@ fn cat13_unsupported_expressions_handled_gracefully() {
 }
 
 #[test]
-fn cat13_non_polynomial_denominators_are_not_dropped() {
-    // Combining over the LCD once read this denominator as 1: 1/sin(x) + 1 became 2.
-    let input = r"\frac{1}{\sin(x)} + 1";
-    assert_eq!(serializer::expression(&run(input).node), serializer::expression(&parse(input)));
+fn cat13_non_polynomial_parts_are_atoms() {
+    // Combining over the LCD once read a non-polynomial denominator as 1: 1/sin(x) + 1 became 2.
+    let cases = [
+        (r"\frac{1}{\sin(x)} + 1", r"\frac{\sin(x) + 1}{\sin(x)}", r"\sin(x) != 0"),
+        (r"\sin(x) + \sin(x)", r"2\sin(x)", ""),
+        (r"\pi x + \pi x", r"2\pi x", ""),
+        (r"|a| + |a|", r"2\left|a\right|", ""),
+        (r"x^{\pi} + x^{\pi}", r"2x^{\pi}", ""),
+        (r"\sqrt{\sin(x)} \cdot \sqrt{\sin(x)}", r"\sin(x)", ""),
+        (r"\ln(x) \cdot \ln(x) + \frac{1}{\ln(x)}", r"\frac{\ln^{3}(x) + 1}{\ln(x)}", r"\ln(x) != 0"),
+    ];
+    for (input, expected, domain) in cases {
+        let res = run(input);
+        assert_eq!(serializer::algebraic_expression(&res.node), expected, "{input}");
+        assert_eq!(restrictions(&res), domain, "{input}");
+        assert!(!res.latex.contains('◆') && !res.latex.contains('#'), "{input}: {}", res.latex);
+    }
 }
 
 #[test]

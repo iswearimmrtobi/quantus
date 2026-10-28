@@ -269,6 +269,13 @@ fn algebraic_separator(left: &Node, right: &Node) -> &'static str {
     if is_unit_only(right) {
         return "\\,";
     }
+    // A product on the right is written without brackets; when it starts with a constant, that
+    // constant is what follows: 2 \cdot (\pi x) is 2\pi x.
+    if let Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, left: first, .. } = right {
+        if matches!(**first, Node::Constant { .. }) {
+            return algebraic_separator(left, first);
+        }
+    }
     let is_bracketed = |n: &Node| {
         precedence(n) < PRECEDENCE_MULTIPLICATIVE || matches!(n, Node::Group { .. })
     };
