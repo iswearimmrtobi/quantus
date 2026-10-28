@@ -36,14 +36,14 @@ next to the code they test, so the file you change is also where its tests are.
 
 | Where | Tests | What |
 |---|---:|---|
-| `crates/quantus-core/src/electro/` | 37 | Circuit solver, wire resistance, reverse solving, material table, messages |
+| `crates/quantus-core/src/electro/` | 36 | Circuit solver, wire resistance, reverse solving, material table |
 | `crates/quantus-core/src/num.rs` | 15 | Exact numbers, rounding, powers, π and roots |
 | `crates/quantus-core/src/quantity.rs` | 11 | `PhysicalQuantity`: arithmetic, conversion, dimension errors |
 | `crates/quantus-core/src/api.rs` | 11 | The JSON shape the app receives (`CalculationResponse`) |
 | `crates/quantus-core/src/eval/` | 18 | Calculator steps, evaluator, substitution |
 | `crates/quantus-core/src/latex/` | 28 | Lexer, number formats, serializer, exact forms (`\frac{\sqrt{2}}{2}`, `\frac{\pi}{2}`) |
 | `crates/quantus-core/src/units/` | 17 | Dimensions, unit lookup, conversions |
-| `crates/quantus-core/src/` (rest) | 19 | Sessions, settings, error messages, algebra pipeline, rational roots |
+| `crates/quantus-core/src/` (rest) | 20 | Sessions, settings, error messages, message language, algebra pipeline, rational roots |
 | `desktop/src-tauri/src/tests.rs` | 16 | The Tauri commands through Tauri's own IPC layer with a mock runtime, as the renderer's `invoke` reaches them: evaluation, variables, error positions, settings and circuit files, the menu |
 
 ## Integration tests (171)
