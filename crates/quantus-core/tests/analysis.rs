@@ -502,3 +502,14 @@ fn the_tangent_puts_x0_in_and_multiplies_out() {
     assert!(standard.contains(&(r"-\frac{1}{m} = -\frac{1}{-1} = 1".to_string(), "Slope of the normal".to_string())));
     assert_eq!(standard.len(), brief.len() + 2);
 }
+
+#[test]
+fn an_area_puts_the_bounds_into_the_antiderivative() {
+    use quantus_core::settings::StepDetail;
+    let r = quantus_core::analysis::tasks::area("x^2-1", None, Some("0"), Some("2"), &Settings::default(), None).unwrap();
+    let standard = task_working(&r.steps, StepDetail::Standard);
+    let at = standard.iter().position(|(_, text)| text == "Upper minus lower bound").unwrap();
+    assert!(standard[at].0.starts_with("A_{1} = F(1) - F(0) = "));
+    assert!(standard[at + 1].0.starts_with("A_{1} = "));
+    assert_eq!(standard.len(), task_working(&r.steps, StepDetail::Brief).len() + 2);
+}

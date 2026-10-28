@@ -239,6 +239,12 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
             Some(_) if value.exact.is_some() => format!("A_{{{}}} = {bounds} = \\left[F({var})\\right]_{{{}}}^{{{}}} = {shown}", i + 1, lo.to_latex(d), hi.to_latex(d)),
             _ => format!("A_{{{}}} = {bounds} = {shown}", i + 1),
         };
+        // Upper minus lower bound, put into F.
+        if let (Some(big_f), Some(lo_exact), Some(hi_exact), Some(_)) = (&primitive, &lo.exact, &hi.exact, &value.exact) {
+            let put = |at: &Expr| format!("\\left({}\\right)", put_in(big_f, at, var));
+            let latex = format!("A_{{{}}} = F({}) - F({}) = {} - {}", i + 1, hi.to_latex(d), lo.to_latex(d), put(hi_exact), put(lo_exact));
+            steps.push(step(AnalysisRule::Area, msg!("Upper minus lower bound", "Obere minus untere Grenze"), latex).with_level(StepDetail::Standard));
+        }
         steps.push(step(AnalysisRule::Area, msg!("Integral over the part", "Integral über das Teilstück"), latex));
         regions.push(Region { from: lo.approx, to: hi.approx, positive: value.approx >= 0.0 });
         parts.push(value);
@@ -381,7 +387,8 @@ mod tests {
         assert!(r.regions[0].positive && !r.regions[1].positive);
         assert_eq!(r.steps[r.steps.len() - 2].latex, "A = \\left|A_{1}\\right| + \\left|A_{2}\\right| = \\frac{9}{2}");
         assert_eq!(r.steps.last().unwrap().latex, "\\int_{-\\sqrt{3}}^{\\sqrt{3}} f(x) \\, dx = A_{1} + A_{2} = 0");
-        let parts: Vec<String> = r.steps.iter().filter(|s| s.latex.starts_with("A_{")).map(|s| s.latex.rsplit(" = ").next().unwrap().to_string()).collect();
+        let brief = crate::eval::calculator::shown_steps(&r.steps, StepDetail::Brief);
+        let parts: Vec<String> = brief.iter().filter(|s| s.latex.starts_with("A_{")).map(|s| s.latex.rsplit(" = ").next().unwrap().to_string()).collect();
         assert_eq!(parts, ["\\frac{9}{4}", "-\\frac{9}{4}"]);
         let wide = area("x - 12", None, Some("0"), Some("20"), &Settings::default(), None).unwrap();
         assert_eq!(wide.regions.len(), 2);
