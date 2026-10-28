@@ -451,3 +451,14 @@ fn the_quadratic_formula_computes_the_discriminant_and_divides() {
     let standard = working(&d, "zeros", StepDetail::Standard);
     assert!(standard.contains(&(r"\left(\frac{p}{2}\right)^{2} - q = \left(-1\right)^{2} - \left(-2\right) = 1 + 2 = 3".to_string(), "Radicand".to_string())));
 }
+
+#[test]
+fn a_linear_equation_isolates_the_term_first() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x^3-3x^2+2");
+    let detailed = working(&d, "extrema", StepDetail::Detailed);
+    let at = detailed.iter().position(|(latex, _)| latex == "3x = 6").unwrap();
+    assert_eq!(detailed[at].1, "Add 6");
+    assert_eq!(detailed[at + 1].0, "x = 2");
+    assert!(!working(&d, "extrema", StepDetail::Standard).iter().any(|(latex, _)| latex == "3x = 6"));
+}

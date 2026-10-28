@@ -325,6 +325,14 @@ impl Solver<'_> {
         }
         if degree == 1 {
             let root = -c(0) / c(1);
+            // 3x - 6 = 0: first 3x = 6, then divide.
+            if c(0) != RBig::ZERO && c(1) != RBig::ONE {
+                let size = self.tex(&Expr::Num(c(0).abs()));
+                let text = if c(0).is_negative() { msg!("Add {}", "{} addieren", size) } else { msg!("Subtract {}", "{} subtrahieren", size) };
+                let term = self.tex(&Expr::Product(vec![Expr::Num(c(1)), Expr::Var]));
+                let latex = format!("{term} = {}", self.tex(&Expr::Num(-c(0))));
+                self.push_at(StepDetail::Detailed, AnalysisRule::InverseFunction, text, latex);
+            }
             let latex = format!("{} = {}", self.ctx.var, self.tex(&Expr::Num(root.clone())));
             self.push(AnalysisRule::InverseFunction, msg!("Solve the linear equation", "Lineare Gleichung lösen"), latex);
             return Solutions::root(Point::rational(root), 1);
