@@ -471,3 +471,34 @@ fn an_even_power_of_x_bounds_k_and_takes_the_root() {
     assert!(standard.contains(&(r"x = \pm \sqrt{k \cdot 2\pi}, \quad k \in \mathbb{N}_{0}".to_string(), "x^{2} ≥ 0, so k ≥ 0; take the root".to_string())));
     assert_eq!(working(&d, "zeros", StepDetail::Brief).len(), standard.len() - 2);
 }
+
+#[test]
+#[ignore]
+fn show_tangent() {
+    use quantus_core::settings::StepDetail;
+    let r = quantus_core::analysis::tasks::tangent(&std::env::var("INPUT").unwrap(), None, &std::env::var("X0").unwrap_or("1".into()), &Settings::default(), None).unwrap();
+    for detail in [StepDetail::Brief, StepDetail::Standard, StepDetail::Maximal] {
+        println!("--- {detail:?}");
+        for s in quantus_core::eval::calculator::shown_steps(&r.steps, detail) {
+            println!("{}\t[{}]", s.latex, s.explanation.unwrap_or_default());
+        }
+    }
+}
+
+fn task_working(steps: &[quantus_core::eval::Step], detail: quantus_core::settings::StepDetail) -> Vec<(String, String)> {
+    quantus_core::eval::calculator::shown_steps(steps, detail).into_iter().map(|s| (s.latex, s.explanation.unwrap_or_default())).collect()
+}
+
+#[test]
+fn the_tangent_puts_x0_in_and_multiplies_out() {
+    use quantus_core::settings::StepDetail;
+    let r = quantus_core::analysis::tasks::tangent("x^2-3x", None, "1", &Settings::default(), None).unwrap();
+    let brief = task_working(&r.steps, StepDetail::Brief);
+    let standard = task_working(&r.steps, StepDetail::Standard);
+    assert_eq!(brief[0].0, "f(1) = -2");
+    assert_eq!(standard[0].0, r"f(1) = 1^{2} - 3 \cdot 1 = -2");
+    assert_eq!(standard[1].0, r"f'(x) = 2x - 3, \quad m = f'(1) = 2 \cdot 1 - 3 = -1");
+    assert!(standard.contains(&("t(x) = -x + 1 - 2".to_string(), "A minus sign in front of a bracket flips every sign inside: -(x - 1) = -x + 1".to_string())));
+    assert!(standard.contains(&(r"-\frac{1}{m} = -\frac{1}{-1} = 1".to_string(), "Slope of the normal".to_string())));
+    assert_eq!(standard.len(), brief.len() + 2);
+}

@@ -53,6 +53,8 @@ pub struct Step {
     pub after: Option<String>,
     /// The lowest detail level at which the step is shown.
     pub level: StepDetail,
+    /// The level from which a longer line takes this one's place.
+    pub until: Option<StepDetail>,
 }
 
 impl Step {
@@ -65,6 +67,7 @@ impl Step {
             before: None,
             after: None,
             level: StepDetail::Brief,
+            until: None,
         }
     }
 
@@ -83,6 +86,7 @@ impl Step {
             before,
             after,
             level: StepDetail::Brief,
+            until: None,
         }
     }
 
@@ -90,12 +94,19 @@ impl Step {
         self.level = level;
         self
     }
+
+    /// The step, replaced from `level` on by a longer line of the same result.
+    pub fn until(mut self, level: StepDetail) -> Self {
+        self.until = Some(level);
+        self
+    }
 }
 
 /// The steps shown at `detail`. Steps that are not lines of one chain (the analysis mode's
 /// working, the calculator's lines) are simply left out.
 pub fn shown_steps(steps: &[Step], detail: StepDetail) -> Vec<Step> {
-    steps.iter().filter(|step| detail.shows(step.level)).cloned().collect()
+    let shown = |step: &&Step| detail.shows(step.level) && !step.until.is_some_and(|until| detail.shows(until));
+    steps.iter().filter(shown).cloned().collect()
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

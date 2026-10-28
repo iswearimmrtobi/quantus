@@ -9,13 +9,13 @@ use super::domain::{domain, DomainContext};
 use super::expr::Expr;
 use super::integrate::{antiderivative, IntegrateContext};
 use super::interval::{Domain, Point};
-use super::rules::{step, AnalysisRule};
+use super::rules::{put_in, step, written_out, AnalysisRule};
 use super::simplify::{display, is_zero, simplify};
 use super::solve::{solve_zero, SolveContext};
 use crate::eval::Step;
 use crate::latex::parser;
 use crate::num::{Decimal, Value};
-use crate::settings::{Mode, Settings};
+use crate::settings::{Mode, Settings, StepDetail};
 use crate::text::{msg, Scope};
 use crate::{QuantusError, Result};
 
@@ -116,14 +116,17 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     }
     let m = Point::exact(simplify(&f1.substitute(&at))).ok_or_else(not_differentiable)?;
     let (x_tex, y_tex, m_tex) = (x.to_latex(p.digits), y.to_latex(p.digits), m.to_latex(p.digits));
-    let mut steps = vec![
-        step(AnalysisRule::Tangent, msg!("Point on the graph", "Punkt auf dem Graphen"), format!("f({x_tex}) = {y_tex}")),
-        step(
-            AnalysisRule::Tangent,
-            msg!("Slope: the derivative at x_0", "Steigung: die Ableitung an der Stelle x_0"),
-            format!("f'({var}) = {}, \\quad m = f'({x_tex}) = {m_tex}", tex(&f1)),
-        ),
-    ];
+    let point = msg!("Point on the graph", "Punkt auf dem Graphen");
+    let slope = msg!("Slope: the derivative at x_0", "Steigung: die Ableitung an der Stelle x_0");
+    let mut steps = Vec::new();
+    steps.extend(written_out(
+        step(AnalysisRule::Tangent, point.clone(), format!("f({x_tex}) = {y_tex}")),
+        step(AnalysisRule::Tangent, point, format!("f({x_tex}) = {} = {y_tex}", put_in(&p.f, &at, var))),
+    ));
+    steps.extend(written_out(
+        step(AnalysisRule::Tangent, slope.clone(), format!("f'({var}) = {}, \\quad m = f'({x_tex}) = {m_tex}", tex(&f1))),
+        step(AnalysisRule::Tangent, slope, format!("f'({var}) = {}, \\quad m = f'({x_tex}) = {} = {m_tex}", tex(&f1), put_in(&f1, &at, var))),
+    ));
     let line = |slope: &Expr| {
         let shifted = Expr::Sum(vec![Expr::Var, Expr::neg(at.clone())]);
         let raw = Expr::Sum(vec![Expr::Product(vec![slope.clone(), shifted]), y.exact.clone().unwrap()]);
@@ -138,7 +141,10 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
         msg!("Tangent: t(x) = f'(x_0)(x - x_0) + f(x_0), values put in", "Tangente: t(x) = f'(x_0)(x - x_0) + f(x_0), Werte eingesetzt"),
         format!("t({var}) = {m_tex} \\cdot ({var} - {}) + {}", bracket(&x_tex), bracket(&y_tex)),
     ));
-    steps.push(step(AnalysisRule::Simplify, msg!("Simplify", "Zusammenfassen"), format!("t({var}) = {}", tex(&display(&t, settings)))));
+    let simplified = format!("t({var}) = {}", tex(&display(&t, settings)));
+    let raw = Expr::Sum(vec![Expr::Product(vec![m_exact.clone(), Expr::Sum(vec![Expr::Var, Expr::neg(at.clone())])]), y.exact.clone().unwrap()]);
+    steps.extend(super::simplify::working(&raw, var, &format!("t({var}) = "), &simplified, settings));
+    steps.push(step(AnalysisRule::Simplify, msg!("Simplify", "Zusammenfassen"), simplified));
     let tangent = Line::Sloped { slope: m_exact.clone(), intercept: t_intercept, latex: format!("t({var}) = {}", tex(&display(&t, settings))) };
     let normal = if is_zero(&m_exact) {
         let latex = format!("{var} = {x_tex}");
@@ -148,6 +154,9 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
         let slope = simplify(&Expr::neg(Expr::recip(m_exact)));
         let (n, n_intercept) = line(&slope);
         let shown = tex(&display(&n, settings));
+        let slope_tex = Point::exact(slope.clone()).map(|s| s.to_latex(p.digits)).unwrap_or_else(|| tex(&slope));
+        let latex = format!("-\\frac{{1}}{{m}} = -\\frac{{1}}{{{m_tex}}} = {slope_tex}");
+        steps.push(step(AnalysisRule::Normal, msg!("Slope of the normal", "Steigung der Normalen"), latex).with_level(StepDetail::Standard));
         steps.push(step(
             AnalysisRule::Normal,
             msg!("Normal: slope -1/m", "Normale: Steigung -1/m"),
@@ -351,9 +360,10 @@ mod tests {
         let r = tangent("x^2", None, "1", &Settings::default(), None).unwrap();
         assert_eq!(line(&r.tangent), "t(x) = 2x - 1");
         assert_eq!(line(&r.normal), "n(x) = -\\frac{1}{2}x + \\frac{3}{2}");
-        assert_eq!(r.steps.len(), 5);
-        assert_eq!(r.steps[2].latex, "t(x) = 2 \\cdot (x - 1) + 1");
-        assert_eq!(r.steps[3].latex, "t(x) = 2x - 1");
+        let brief = crate::eval::calculator::shown_steps(&r.steps, StepDetail::Brief);
+        assert_eq!(brief.len(), 5);
+        assert_eq!(brief[2].latex, "t(x) = 2 \\cdot (x - 1) + 1");
+        assert_eq!(brief[3].latex, "t(x) = 2x - 1");
         let flat = tangent("x^2", None, "0", &Settings::default(), None).unwrap();
         assert_eq!(line(&flat.normal), "x = 0");
         let exact = tangent("\\sin x", None, "\\frac{\\pi}{2}", &Settings::default(), None).unwrap();
