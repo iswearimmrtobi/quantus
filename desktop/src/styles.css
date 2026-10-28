@@ -4,6 +4,7 @@
  */
 
 :root {
+  color-scheme: dark;
   --bg: #17161d;
   --surface: #1e1d27;
   --surface-raised: #262532;
@@ -720,6 +721,10 @@ code {
   background: var(--bg);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
+}
+select option {
+  color: var(--text);
+  background: var(--surface-raised);
 }
 .setting-select:focus {
   outline: none;
