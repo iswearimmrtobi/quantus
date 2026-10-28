@@ -596,6 +596,10 @@ numeric values.
 | Standard | $\sin u = 0$ where $u = k\pi$ | $x^2 = k\pi,\ k \in \mathbb{Z}$ |
 | Standard | $x^2 \geq 0$, so $k \geq 0$; take the root | $x = \pm\sqrt{k\pi},\ k \in \mathbb{N}_0$ |
 
+Built: the second row, once for each of the two families $k \cdot 2\pi$ and $\pi + k \cdot 2\pi$.
+Merging them into $k\pi$ first would change how the solver keeps its families, so the first row is
+not shown.
+
 Code: `solve.rs:661`, `808`.
 
 ### Polynomial division (`polydiv.rs`)

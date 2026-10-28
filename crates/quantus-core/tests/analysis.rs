@@ -462,3 +462,12 @@ fn a_linear_equation_isolates_the_term_first() {
     assert_eq!(detailed[at + 1].0, "x = 2");
     assert!(!working(&d, "extrema", StepDetail::Standard).iter().any(|(latex, _)| latex == "3x = 6"));
 }
+
+#[test]
+fn an_even_power_of_x_bounds_k_and_takes_the_root() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch(r"\sin(x^2)");
+    let standard = working(&d, "zeros", StepDetail::Standard);
+    assert!(standard.contains(&(r"x = \pm \sqrt{k \cdot 2\pi}, \quad k \in \mathbb{N}_{0}".to_string(), "x^{2} ≥ 0, so k ≥ 0; take the root".to_string())));
+    assert_eq!(working(&d, "zeros", StepDetail::Brief).len(), standard.len() - 2);
+}

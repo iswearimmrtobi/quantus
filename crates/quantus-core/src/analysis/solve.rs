@@ -845,6 +845,9 @@ impl Solver<'_> {
             Some(p) => format!("{} = {} + k \\cdot {}, \\quad k \\in \\mathbb{{Z}}", self.tex(u), self.tex(&base), self.tex(p)),
         };
         self.push(AnalysisRule::InverseFunction, msg!("Apply the inverse function", "Umkehrfunktion anwenden"), shown);
+        if let (Some(p), Expr::Pow(inner, n)) = (&period, u) {
+            self.even_power_family(inner, n, &base, p);
+        }
         let slope = simplify(&derivative(u));
         let linear = slope.is_constant() && !is_zero(&slope);
         if *u != Expr::Var && !linear {
@@ -880,6 +883,36 @@ impl Solver<'_> {
                 Some(Solutions { families: vec![family], ..Solutions::default() })
             }
         }
+    }
+
+    /// `x^2 = b + k \cdot p`: an even power is never negative, which bounds k, and the root gives
+    /// x itself: `x = \pm\sqrt{k \cdot 2\pi}, \quad k \in \mathbb{N}_0`.
+    fn even_power_family(&mut self, inner: &Expr, n: &Expr, base: &Expr, period: &Expr) {
+        let Some(n) = n.as_num().filter(|n| n.is_int() && (n.numerator() % IBig::from(2)).is_zero()) else { return };
+        if *inner != Expr::Var {
+            return;
+        }
+        let (Some(b), Some(p)) = (base.eval_f64(0.0), period.eval_f64(0.0)) else { return };
+        if p <= 0.0 {
+            return;
+        }
+        let lowest = (-b / p).ceil().max(0.0) as i64;
+        let family = if is_zero(base) {
+            format!("k \\cdot {}", self.tex(period))
+        } else {
+            format!("{} + k \\cdot {}", self.tex(base), self.tex(period))
+        };
+        let power = self.tex(&Expr::pow(Expr::Var, Expr::Num(n.clone())));
+        let root = if *n == RBig::from(2) { format!("\\sqrt{{{family}}}") } else { format!("\\sqrt[{}]{{{family}}}", plain(n)) };
+        let range = if lowest == 0 { "k \\in \\mathbb{N}_{0}".to_string() } else { format!("k \\geq {lowest}") };
+        let latex = format!("{} = \\pm {root}, \\quad {range}", self.ctx.var);
+        let text = msg!(
+            "{} ≥ 0, so k ≥ {}; take the root",
+            "{} ≥ 0, also k ≥ {}; Wurzel ziehen",
+            power,
+            lowest
+        );
+        self.push_at(StepDetail::Standard, AnalysisRule::InverseFunction, text, latex);
     }
 
     // ---- numeric -------------------------------------------------------------------------------
