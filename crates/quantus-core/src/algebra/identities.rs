@@ -9,7 +9,7 @@ use crate::algebra::atoms::Atoms;
 use crate::algebra::domain::DomainRestriction;
 use crate::algebra::poly::Poly;
 use crate::num::Decimal;
-use crate::algebra::{logs, powers, radicals};
+use crate::algebra::{logs, powers, radicals, trig};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::latex::ast::Node;
 use crate::latex::serializer;
@@ -459,6 +459,12 @@ const RULES: &[Rule] = &[
     logs::merge_logs,
     logs::divide_logs,
     logs::log_values,
+    trig::symmetric_arguments,
+    trig::tan_as_quotient,
+    trig::pythagorean,
+    trig::tan_squares,
+    trig::double_angles,
+    trig::quotients_as_tan,
 ];
 
 /// Applies every rule once to `current`, recording each change as a step and each condition

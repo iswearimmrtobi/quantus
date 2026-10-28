@@ -175,3 +175,35 @@ fn exponentials_and_logarithms() {
         (r"\log_a(a^2)", ("2", r"\ln(a) != 0, a > 0"), (r"\frac{\ln(a^{2})}{\ln(a)}", r"\ln(a) != 0")),
     ]);
 }
+
+#[test]
+fn trigonometry() {
+    check(&[
+        // D1, D2: the Pythagorean identity, in the direction with fewer terms.
+        (r"\sin^2(x)+\cos^2(x)", ("1", ""), ("1", "")),
+        (r"3\sin^2(x)+3\cos^2(x)+y", ("y + 3", ""), ("y + 3", "")),
+        (r"1-\sin^2(x)", (r"\cos^{2}(x)", ""), (r"\cos^{2}(x)", "")),
+        (r"1-\cos^2(x)", (r"\sin^{2}(x)", ""), (r"\sin^{2}(x)", "")),
+        // D3: tangent and cotangent as quotients where that helps, and back.
+        (r"\tan(x)\cos(x)", (r"\sin(x)", r"\cos(x) != 0"), (r"\sin(x)", r"\cos(x) != 0")),
+        (r"\tan(x)\cot(x)", ("1", r"\cos(x) != 0, \sin(x) != 0"), ("1", r"\cos(x) != 0, \sin(x) != 0")),
+        (r"\frac{\sin(x)}{\cos(x)}", (r"\tan(x)", r"\cos(x) != 0"), (r"\tan(x)", r"\cos(x) != 0")),
+        (r"\tan(x)+\sin(x)", (r"\tan(x) + \sin(x)", ""), (r"\tan(x) + \sin(x)", "")),
+        (
+            r"\frac{\sin(x)}{\tan(x)}",
+            (r"\cos(x)", r"\cos(x) != 0, \sin(x) != 0, \tan(x) != 0"),
+            (r"\cos(x)", r"\cos(x) != 0, \sin(x) != 0, \tan(x) != 0"),
+        ),
+        // D6
+        (r"1+\tan^2(x)", (r"\frac{1}{\cos^{2}(x)}", r"\cos(x) != 0"), (r"\frac{1}{\cos^{2}(x)}", r"\cos(x) != 0")),
+        // D4, D5: double angles.
+        (r"2\sin(x)\cos(x)", (r"\sin(2x)", ""), (r"\sin(2x)", "")),
+        (r"\sin(x)\cos(x)", (r"\frac{1}{2}\sin(2x)", ""), (r"\frac{1}{2}\sin(2x)", "")),
+        (r"\cos^2(x)-\sin^2(x)", (r"\cos(2x)", ""), (r"\cos(2x)", "")),
+        (r"2\cos^2(x)-1", (r"\cos(2x)", ""), (r"\cos(2x)", "")),
+        (r"1-2\sin^2(x)", (r"\cos(2x)", ""), (r"\cos(2x)", "")),
+        // D8: symmetry.
+        (r"\sin(-x)+\sin(x)", ("0", ""), ("0", "")),
+        (r"\cos(-x)-\cos(x)", ("0", ""), ("0", "")),
+    ]);
+}

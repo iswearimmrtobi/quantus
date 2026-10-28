@@ -17,6 +17,7 @@ pub mod radicals;
 pub mod rational_roots;
 pub mod reduce;
 pub mod steps;
+pub mod trig;
 pub mod verify;
 
 pub use binomial::{

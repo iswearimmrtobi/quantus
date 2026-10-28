@@ -33,6 +33,10 @@ pub enum RuleId {
     LogValue,
     ExpValue,
     MergeLogs,
+    TrigSymmetry,
+    TrigQuotient,
+    Pythagorean,
+    DoubleAngle,
     NormalizeExpression,
 }
 
@@ -63,6 +67,10 @@ impl RuleId {
             Self::LogValue => "LOG_VALUE",
             Self::ExpValue => "EXP_VALUE",
             Self::MergeLogs => "MERGE_LOGS",
+            Self::TrigSymmetry => "TRIG_SYMMETRY",
+            Self::TrigQuotient => "TRIG_QUOTIENT",
+            Self::Pythagorean => "PYTHAGOREAN",
+            Self::DoubleAngle => "DOUBLE_ANGLE",
             Self::NormalizeExpression => "NORMALIZE_EXPRESSION",
         }
     }
