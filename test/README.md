@@ -97,7 +97,7 @@ the case itself is wrong.
 
 ## Latest results
 
-Full run (2026-10-28, 8 workers, 5 s limit, 71 s): **102,336 of 103,000 pass (99.36%)**. All 100,646
+Full run (2026-10-28, 8 workers, 5 s limit, 80 s): **102,336 of 103,000 pass (99.36%)**. All 100,646
 cases for implemented features pass. The 664 that do not are all `not-implemented` cases that the
 generator marks as gaps, listed one per line in `test/results/failures.jsonl`:
 

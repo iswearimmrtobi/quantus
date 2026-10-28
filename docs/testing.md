@@ -2,7 +2,7 @@
 
 Quantus has two kinds of tests:
 
-1. **`cargo test`**: 462 tests that run in a few seconds. Run them before every commit.
+1. **`cargo test`**: 518 tests that run in a few seconds. Run them before every commit.
 2. **The generated test set** in `test/`: 103,000 cases run by a separate program, for broad
    coverage of the engine. A full run takes about 4 minutes, so run it when you change the engine's
    behaviour, not on every commit.
@@ -29,7 +29,7 @@ without that, the integral cases run several times slower.
 No single test should take longer than a second. Today `tests/golden.rs` breaks that rule (about
 5 s, see [plans.md](plans.md)); everything else finishes in under 0.2 s per file.
 
-## Unit tests (261)
+## Unit tests (270)
 
 `#[cfg(test)] mod tests` blocks inside the source files. They test one module at a time and live
 next to the code they test, so the file you change is also where its tests are.
@@ -41,13 +41,13 @@ next to the code they test, so the file you change is also where its tests are.
 | `crates/quantus-core/src/num.rs` | 15 | Exact numbers, rounding, powers, π and roots |
 | `crates/quantus-core/src/quantity.rs` | 11 | `PhysicalQuantity`: arithmetic, conversion, dimension errors |
 | `crates/quantus-core/src/api.rs` | 13 | The JSON shape the app receives (`CalculationResponse`, `AnalysisResponse` and the analysis tasks) |
-| `crates/quantus-core/src/eval/` | 20 | Calculator steps, evaluator, substitution, numeric root scan |
+| `crates/quantus-core/src/eval/` | 21 | Calculator steps and their detail levels, evaluator, substitution, numeric root scan |
 | `crates/quantus-core/src/latex/` | 28 | Lexer, number formats, serializer, exact forms (`\frac{\sqrt{2}}{2}`, `\frac{\pi}{2}`) |
 | `crates/quantus-core/src/units/` | 17 | Dimensions, unit lookup, conversions |
-| `crates/quantus-core/src/` (rest) | 21 | Sessions, settings, error messages, message language, algebra pipeline, rational roots |
+| `crates/quantus-core/src/` (rest) | 29 | Sessions, settings, error messages, message language, algebra pipeline, rational roots, steps merged and filtered by detail level |
 | `desktop/src-tauri/src/tests.rs` | 20 | The Tauri commands through Tauri's own IPC layer with a mock runtime, as the renderer's `invoke` reaches them: evaluation, variables, error positions, settings and circuit files, the menu, the analysis commands at a set precision and with their errors |
 
-## Integration tests (201)
+## Integration tests (248)
 
 `crates/quantus-core/tests/*.rs`. Each file is its own test binary and uses only the public API of
 `quantus-core`.
@@ -80,19 +80,19 @@ The symbolic simplification of rational expressions, built milestone by mileston
 | `algebra_milestone2.rs` | 11 | Finding the denominators of an expression, for domain restrictions |
 | `algebra_milestone3.rs` | 14 | Binomial formulas, exact roots, factoring |
 | `algebra_milestone4.rs` | 22 | Nested fractions, common denominators, expansion |
-| `algebra_milestone5.rs` | 30 | The full simplification pipeline, checking that input and output are equivalent, and that step texts name what the step changes |
+| `algebra_milestone5.rs` | 53 | The full simplification pipeline, checking that input and output are equivalent, that step texts name what the step changes, and the working each detail level shows (`docs/step-detail.md`), chaining at every level |
 | `algebra_milestone6.rs` | 4 | Wiring into parser, serializer, calculator and API |
 | `algebra_reference_integration.rs` | 5 | One reference expression, `3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)`, end to end |
-| `algebra_simplification.rs` | 37 | The 14 categories of simplification the engine has to handle |
+| `algebra_simplification.rs` | 39 | The 14 categories of simplification the engine has to handle |
 | `algebra_binomial_direction.rs` | 8 | When results are written as a binomial and when they are expanded |
 
 ### Other
 
 | File | Tests | What |
 |---|---:|---|
-| `analysis.rs` | 28 | The analysis mode end to end: each section's result and the marked points for every case of `docs/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, and a time check |
+| `analysis.rs` | 43 | The analysis mode end to end: each section's result and the marked points for every case of `docs/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, a time check, and the working each detail level adds |
 | `complex.rs` | 10 | Complex results in imaginary mode |
-| `settings.rs` | 10 | Each user setting switches its reading or writing rule |
+| `settings.rs` | 12 | Each user setting switches its reading or writing rule; the calculator's working by detail level |
 
 ## The generated test set (103,000 cases)
 

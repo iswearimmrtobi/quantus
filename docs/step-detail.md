@@ -10,6 +10,15 @@ The "Now" rows are real output of the engine (default settings), after the fixes
 [Fixed along the way](#fixed-along-the-way). The
 "Proposed" rows are worked by hand; each row follows from the one before it.
 
+**Status:** built, in the order of [Order of work](#order-of-work). The tables are the
+specification; the tests in `tests/algebra_milestone5.rs`, `tests/analysis.rs` and
+`tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
+section says so under **Built**. Rows not built: the Maximal $+(-2) = -2$ of the tangent, the
+merged family `x^2 = k\pi` of the inverse functions, a Standard block per summand that needs the
+product or chain rule inside a sum, factoring out $e^{2x}$ after the product rule (the algebra
+pipeline only simplifies rational parts), and the calculator's numbers and units written apart and
+its rearranged equation.
+
 ## Detail levels
 
 A new setting with a drop-down, from no working at all to every intermediate line:
@@ -769,7 +778,7 @@ Problems in the Brief steps that were fixed while writing this document (tests i
 
 ## Order of work
 
-Biggest gain first:
+Biggest gain first (all done):
 
 1. The setting, sub-step list and merging (no visible change at Brief).
 2. Complete the square, common denominator, minus before a bracket.
