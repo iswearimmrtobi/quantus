@@ -434,3 +434,20 @@ fn the_chain_rule_writes_a_power_and_multiplies_outer_by_inner() {
     assert_eq!(standard[at + 1].1, "Inner function");
     assert_eq!(standard[at + 2], (r"f'''(x) = 4 \cdot \left(-3\right)(x - 1)^{-4} \cdot 1".to_string(), "Outer derivative times inner derivative".to_string()));
 }
+
+#[test]
+fn the_quadratic_formula_computes_the_discriminant_and_divides() {
+    use quantus_core::settings::StepDetail;
+    let d = sketch("x^3-3x^2+2");
+    let detailed = working(&d, "zeros", StepDetail::Detailed);
+    let at = detailed.iter().position(|(_, text)| text == "Discriminant").unwrap();
+    assert_eq!(detailed[at].0, r"b^{2} - 4ac = \left(-2\right)^{2} - 4 \cdot 1 \cdot \left(-2\right) = 4 + 8 = 12");
+    assert_eq!(detailed[at + 2], (r"\sqrt{12} = \sqrt{4 \cdot 3} = 2\sqrt{3}".to_string(), "Take the square out of the root".to_string()));
+    assert_eq!(detailed[at + 3], (r"x_{1,2} = 1 \pm \sqrt{3}".to_string(), "Divide by 2".to_string()));
+    assert_eq!(working(&d, "zeros", StepDetail::Standard).len(), detailed.len() - 1);
+
+    let pq = Settings { quadratic_formula: QuadraticFormula::Pq, ..Settings::default() };
+    let d = analyze("x^3-3x^2+2", None, &pq, None).unwrap();
+    let standard = working(&d, "zeros", StepDetail::Standard);
+    assert!(standard.contains(&(r"\left(\frac{p}{2}\right)^{2} - q = \left(-1\right)^{2} - \left(-2\right) = 1 + 2 = 3".to_string(), "Radicand".to_string())));
+}

@@ -27,7 +27,7 @@ use crate::algebra::rational_roots::{find_rational_root, square_free};
 use crate::algebra::verify::eval_poly;
 use crate::eval::solver::{scan_roots, Sample};
 use crate::eval::Step;
-use crate::settings::Settings;
+use crate::settings::{Settings, StepDetail};
 use crate::text::msg;
 
 /// How far the numeric scan looks when no other method applies.
@@ -186,6 +186,11 @@ impl Solver<'_> {
 
     fn push(&mut self, rule: AnalysisRule, explanation: String, latex: String) {
         self.steps.push(step(rule, explanation, latex));
+    }
+
+    /// A line of the working shown from `level` on.
+    fn push_at(&mut self, level: StepDetail, rule: AnalysisRule, explanation: String, latex: String) {
+        self.steps.push(step(rule, explanation, latex).with_level(level));
     }
 
     fn solve(&mut self, e: &Expr) -> Solutions {
@@ -449,6 +454,7 @@ impl Solver<'_> {
             }
             let half = -p.clone() / &two;
             discriminant = &half * &half - &q;
+            self.push_at(StepDetail::Standard, rule, msg!("Radicand", "Radikand"), radicand_line(&half, &q, s));
             let mut latex = format!(
                 "{s}_{{1,2}} = -\\frac{{p}}{{2}} \\pm \\sqrt{{\\left(\\frac{{p}}{{2}}\\right)^{{2}} - q}} = {} \\pm \\sqrt{{{}}}",
                 num(&half),
@@ -466,6 +472,7 @@ impl Solver<'_> {
             root_scale = RBig::ONE;
         } else {
             discriminant = b * b - RBig::from(4) * a * c;
+            self.push_at(StepDetail::Standard, rule, msg!("Discriminant", "Diskriminante"), discriminant_line(a, b, c, s));
             let mut latex = format!(
                 "{s}_{{1,2}} = \\frac{{-b \\pm \\sqrt{{b^{{2}} - 4ac}}}}{{2a}} = \\frac{{{} \\pm \\sqrt{{{}}}}}{{{}}}",
                 num(&-b.clone()),
@@ -488,6 +495,15 @@ impl Solver<'_> {
             );
             centre = -b.clone() / (&two * a);
             root_scale = RBig::ONE / (&two * a).abs();
+        }
+        if let Some(split) = square_split_line(&discriminant, s) {
+            self.push_at(StepDetail::Detailed, rule, msg!("Take the square out of the root", "Quadrat aus der Wurzel ziehen"), split);
+        }
+        let divisor = &two * a;
+        if !pq && discriminant.is_positive() && divisor.clone().abs() != RBig::ONE {
+            let root = simplify(&Expr::Product(vec![Expr::Num(root_scale.clone()), Expr::pow(Expr::Num(discriminant.clone()), Expr::ratio(1, 2))]));
+            let latex = format!("{s}_{{1,2}} = {} \\pm {}", num(&centre), root.to_latex(s));
+            self.push_at(StepDetail::Standard, rule, msg!("Divide by {}", "Durch {} teilen", num(&divisor)), latex);
         }
         if discriminant.is_negative() {
             let latex = format!("{} < 0", num(&discriminant));
@@ -1076,6 +1092,64 @@ fn divisors(n: u64) -> Vec<u64> {
 }
 
 /// A rational as plain text: `-2`, `\frac{1}{2}` is `1/2`.
+/// `(-2)` for a negative number in a product or power, the number itself otherwise.
+fn bracketed(r: &RBig, s: &str) -> String {
+    let tex = Expr::Num(r.clone()).to_latex(s);
+    if r.is_negative() { format!("\\left({tex}\\right)") } else { tex }
+}
+
+/// `b^2 - 4ac = (-2)^2 - 4 \cdot 1 \cdot (-2) = 4 + 8 = 12`.
+fn discriminant_line(a: &RBig, b: &RBig, c: &RBig, s: &str) -> String {
+    let num = |r: &RBig| Expr::Num(r.clone()).to_latex(s);
+    let (square, product) = (b * b, RBig::from(4) * a * c);
+    let difference = if product.is_negative() { format!("{} + {}", num(&square), num(&-product.clone())) } else { format!("{} - {}", num(&square), num(&product)) };
+    format!(
+        "b^{{2}} - 4ac = {}^{{2}} - 4 \\cdot {} \\cdot {} = {difference} = {}",
+        bracketed(b, s),
+        bracketed(a, s),
+        bracketed(c, s),
+        num(&(&square - &product))
+    )
+}
+
+/// `\left(\frac{p}{2}\right)^2 - q = (-1)^2 - (-2) = 1 + 2 = 3`, with `half` = -p/2.
+fn radicand_line(half: &RBig, q: &RBig, s: &str) -> String {
+    let num = |r: &RBig| Expr::Num(r.clone()).to_latex(s);
+    let square = half * half;
+    let difference = if q.is_negative() { format!("{} + {}", num(&square), num(&-q.clone())) } else { format!("{} - {}", num(&square), num(q)) };
+    format!(
+        "\\left(\\frac{{p}}{{2}}\\right)^{{2}} - q = {}^{{2}} - {} = {difference} = {}",
+        bracketed(&-half.clone(), s),
+        bracketed(q, s),
+        num(&(&square - q))
+    )
+}
+
+/// `\sqrt{12} = \sqrt{4 \cdot 3} = 2\sqrt{3}`: the largest square taken out of a whole number.
+fn square_split_line(d: &RBig, s: &str) -> Option<String> {
+    if !d.is_int() || d.is_negative() {
+        return None;
+    }
+    let n = d.numerator().unsigned_abs();
+    let mut k = UBig::ONE;
+    let mut candidate = UBig::from(2u8);
+    while &candidate * &candidate <= n {
+        if (&n % (&candidate * &candidate)).is_zero() {
+            k = candidate.clone();
+        }
+        candidate += UBig::ONE;
+        if candidate > UBig::from(100_000u32) {
+            break;
+        }
+    }
+    let rest = &n / (&k * &k);
+    if k == UBig::ONE || rest == UBig::ONE {
+        return None;
+    }
+    let root = simplify(&Expr::pow(Expr::Num(d.clone()), Expr::ratio(1, 2))).to_latex(s);
+    Some(format!("\\sqrt{{{n}}} = \\sqrt{{{} \\cdot {rest}}} = {root}", &k * &k))
+}
+
 fn plain(r: &RBig) -> String {
     if r.is_int() {
         r.numerator().to_string()
@@ -1167,22 +1241,23 @@ mod tests {
 
     #[test]
     fn the_quadratic_formula_follows_the_setting() {
+        let brief = |steps: &[Step]| crate::eval::calculator::shown_steps(steps, StepDetail::Brief);
         let pq = Settings { quadratic_formula: QuadraticFormula::Pq, ..Settings::default() };
         let solved = solve_with("x^2 - 2x - 3", &pq, &Domain::reals());
-        assert_eq!(solved.steps[0].rule.as_deref(), Some("QUADRATIC_PQ"));
+        assert_eq!(brief(&solved.steps)[0].rule.as_deref(), Some("QUADRATIC_PQ"));
         assert_eq!(
-            solved.steps[0].latex,
+            brief(&solved.steps)[0].latex,
             "x_{1,2} = -\\frac{p}{2} \\pm \\sqrt{\\left(\\frac{p}{2}\\right)^{2} - q} = 1 \\pm \\sqrt{4} = 1 \\pm 2"
         );
-        assert_eq!(solved.steps[0].explanation.as_deref(), Some("pq formula with p = -2, q = -3"));
+        assert_eq!(brief(&solved.steps)[0].explanation.as_deref(), Some("pq formula with p = -2, q = -3"));
         assert!(rules(&solved).iter().all(|r| r == "QUADRATIC_PQ"), "{:?}", rules(&solved));
         let abc = solve("2x^2 - 4x - 6");
-        assert_eq!(abc.steps[0].rule.as_deref(), Some("QUADRATIC_ABC"));
-        assert!(abc.steps[0].latex.ends_with("= \\frac{4 \\pm \\sqrt{64}}{4} = \\frac{4 \\pm 8}{4}"));
+        assert_eq!(brief(&abc.steps)[0].rule.as_deref(), Some("QUADRATIC_ABC"));
+        assert!(brief(&abc.steps)[0].latex.ends_with("= \\frac{4 \\pm \\sqrt{64}}{4} = \\frac{4 \\pm 8}{4}"));
         let surd = solve("x^2 - 2x - 1");
-        assert!(surd.steps[0].latex.ends_with("= \\frac{2 \\pm \\sqrt{8}}{2} = \\frac{2 \\pm 2\\sqrt{2}}{2}"), "{}", surd.steps[0].latex);
+        assert!(brief(&surd.steps)[0].latex.ends_with("= \\frac{2 \\pm \\sqrt{8}}{2} = \\frac{2 \\pm 2\\sqrt{2}}{2}"), "{}", brief(&surd.steps)[0].latex);
         let none = solve("x^2 + x + 1");
-        assert!(!none.steps[0].latex.contains("\\sqrt{-3} ="));
+        assert!(!brief(&none.steps)[0].latex.contains("\\sqrt{-3} ="));
         let german = Settings { language: Language::De, ..Settings::default() };
         assert_eq!(solve_with("x^2 - 2x - 3", &german, &Domain::reals()).steps[0].rule.as_deref(), Some("QUADRATIC_PQ"));
     }
