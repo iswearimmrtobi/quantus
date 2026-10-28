@@ -9,7 +9,7 @@
 //! Every result is differentiated and compared with the integrand before it is shown; when no
 //! method passes, there is no antiderivative rather than a wrong one.
 
-use dashu::base::Signed;
+use dashu::base::{Abs, Signed};
 use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
@@ -24,7 +24,7 @@ use crate::algebra::expand::expand_and_collect_all;
 use crate::algebra::factor::factor_polynomial;
 use crate::algebra::poly::{Monomial, Poly};
 use crate::eval::Step;
-use crate::settings::Settings;
+use crate::settings::{Settings, StepDetail};
 use crate::text::msg;
 
 /// How many integrals substitution and parts may nest inside each other (`x^5 e^x` takes five
@@ -63,7 +63,10 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         let (expanded, _) = expand_and_collect_all(&f.to_node("x"));
         if let Ok(expanded) = Expr::from_node(&expanded, "x") {
             if let Some(result) = table(&simplify(&expanded)) {
-                if let Some(done) = finish(result, AnalysisRule::IntegralPolynomial, Vec::new()) {
+                let text = msg!("Power rule: ∫ x^n dx = x^(n+1)/(n+1)", "Potenzregel: ∫ x^n dx = x^(n+1)/(n+1)");
+                let lines = power_rule_line(&simplify(&expanded), ctx.var)
+                    .map(|line| step(AnalysisRule::IntegralPolynomial, text, line).with_level(StepDetail::Detailed));
+                if let Some(done) = finish(result, AnalysisRule::IntegralPolynomial, lines.into_iter().collect()) {
                     return Some(done);
                 }
             }
@@ -91,6 +94,12 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
             ),
             step(
                 AnalysisRule::IntegralSubstitution,
+                msg!("Write the integral in u", "Das Integral in u schreiben"),
+                format!("\\int {} \\, d{} = \\int {} \\, du", tex(&f), ctx.var, g.to_latex("u")),
+            )
+            .with_level(StepDetail::Standard),
+            step(
+                AnalysisRule::IntegralSubstitution,
                 msg!("Integrate in u, then substitute back", "In u integrieren, dann zurück substituieren"),
                 format!("\\int {} \\, du = {}", g.to_latex("u"), big_g.to_latex("u")),
             ),
@@ -111,7 +120,21 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
             )
         };
         let steps = match &parts {
-            Parts::Plain { u, v_prime, v } => vec![step(AnalysisRule::IntegrationByParts, with(), named(u, v_prime, &derivative(u), v))],
+            Parts::Plain { u, v_prime, v } => {
+                let mut lines = vec![step(AnalysisRule::IntegrationByParts, with(), named(u, v_prime, &derivative(u), v))];
+                // u·v - ∫u'·v dx with the parts put in, then the integral that is left.
+                let uv = display(&Expr::Product(vec![u.clone(), v.clone()]), ctx.settings);
+                let rest = simplify(&Expr::Product(vec![derivative(u), v.clone()]));
+                let put = format!("F({var}) = {} - \\int {} \\, d{var}", tex(&uv), tex(&display(&rest, ctx.settings)), var = ctx.var);
+                lines.push(step(AnalysisRule::IntegrationByParts, msg!("Put into u·v − ∫u'·v dx", "In u·v − ∫u'·v dx einsetzen"), put).with_level(StepDetail::Standard));
+                if let Some(remaining) = antiderivative(&rest, ctx) {
+                    let g = tex(&remaining.result);
+                    let g = if matches!(remaining.result, Expr::Sum(_)) { format!("\\left({g}\\right)") } else { g };
+                    let latex = format!("F({}) = {} - {g} + C", ctx.var, tex(&uv));
+                    lines.push(step(AnalysisRule::IntegrationByParts, msg!("The integral that is left", "Das restliche Integral"), latex).with_level(StepDetail::Standard));
+                }
+                lines
+            }
             Parts::Recurring { integrand, first, second, kappa } => {
                 let shown = |e: &Expr| tex(&display(&simplify(e), ctx.settings));
                 let integral = |e: &Expr| format!("\\int {} \\, d{}", shown(e), ctx.var);
@@ -351,6 +374,12 @@ fn rational(n: &Poly, d: &Poly, mut steps: Option<(&mut Vec<Step>, &str)>) -> Op
             let (left, right) = (shown.to_latex(var), Expr::Sum(parts).to_latex(var));
             // A single fraction over a linear factor is its own decomposition.
             if left != right {
+                if let Some([ansatz, comparison]) = ansatz_lines(&remainder, &factored.coeff, &factored.factors, var) {
+                    let latex = format!("{left} = {ansatz}");
+                    list.push(step(AnalysisRule::PartialFractions, msg!("Ansatz", "Ansatz"), latex).with_level(StepDetail::Standard));
+                    let text = msg!("Compare the numerators", "Zähler vergleichen");
+                    list.push(step(AnalysisRule::PartialFractions, text, comparison).with_level(StepDetail::Detailed));
+                }
                 let latex = format!("{left} = {right}");
                 list.push(step(AnalysisRule::PartialFractions, msg!("Partial fraction decomposition", "Partialbruchzerlegung"), latex));
             }
@@ -363,6 +392,23 @@ fn rational(n: &Poly, d: &Poly, mut steps: Option<(&mut Vec<Step>, &str)>) -> Op
 /// for linear bases and linear for quadratic ones. `None` for a repeated quadratic or a base of
 /// degree three or more.
 fn partial_fractions(remainder: &Poly, coeff: &RBig, factors: &[crate::algebra::factored::Factor]) -> Option<Vec<(Poly, Poly, usize)>> {
+    let (unknowns, values) = unknowns_and_values(remainder, coeff, factors)?;
+    let mut out: Vec<(Poly, Poly, usize)> = Vec::new();
+    for ((base, power, is_x, _), value) in unknowns.into_iter().zip(values) {
+        let numerator = if is_x { Expr::poly_from_coefficients(&[RBig::ZERO, value]) } else { Expr::poly_from_coefficients(&[value]) };
+        match out.iter_mut().find(|(_, b, p)| *b == base && *p == power) {
+            Some((n, _, _)) => *n = &*n + &numerator,
+            None => out.push((numerator, base, power)),
+        }
+    }
+    out.retain(|(n, _, _)| !n.is_zero());
+    Some(out)
+}
+
+/// The unknown numerators of the partial fractions, `(base, power, is the x term, what it is
+/// multiplied by)`, and their values from comparing the coefficients.
+#[allow(clippy::type_complexity)]
+fn unknowns_and_values(remainder: &Poly, coeff: &RBig, factors: &[crate::algebra::factored::Factor]) -> Option<(Vec<(Poly, usize, bool, Poly)>, Vec<RBig>)> {
     let x = Expr::poly_variable();
     let product: Poly = factors.iter().fold(Expr::poly_from_coefficients(&[RBig::ONE]), |p, f| &p * &f.base.pow(f.exp));
     let degree = product.degree_of(x);
@@ -394,16 +440,72 @@ fn partial_fractions(remainder: &Poly, coeff: &RBig, factors: &[crate::algebra::
         })
         .collect();
     let values = solve_linear(&mut matrix)?;
-    let mut out: Vec<(Poly, Poly, usize)> = Vec::new();
-    for ((base, power, is_x, _), value) in unknowns.into_iter().zip(values) {
-        let numerator = if is_x { Expr::poly_from_coefficients(&[RBig::ZERO, value]) } else { Expr::poly_from_coefficients(&[value]) };
-        match out.iter_mut().find(|(_, b, p)| *b == base && *p == power) {
-            Some((n, _, _)) => *n = &*n + &numerator,
-            None => out.push((numerator, base, power)),
+    Some((unknowns, values))
+}
+
+/// The power rule put into each term: `F(x) = \frac{x^{4}}{4} - 3 \cdot \frac{x^{3}}{3} + 2x + C`.
+fn power_rule_line(polynomial: &Expr, var: &str) -> Option<String> {
+    let (n, _) = polynomial.as_rational()?;
+    let x = Expr::poly_variable();
+    let mut terms: Vec<(usize, RBig)> = n.terms.iter().map(|t| (t.monomial.degree_of(x), t.coeff.clone())).collect();
+    terms.sort_by(|a, b| b.0.cmp(&a.0));
+    if !terms.iter().any(|(k, _)| *k >= 1) {
+        return None;
+    }
+    let mut line = String::new();
+    for (index, (k, c)) in terms.into_iter().enumerate() {
+        let size = c.clone().abs();
+        let size_tex = Expr::Num(size.clone()).to_latex(var);
+        let term = if k == 0 {
+            if size == RBig::ONE { var.to_string() } else { format!("{size_tex}{var}") }
+        } else {
+            let fraction = format!("\\frac{{{var}^{{{}}}}}{{{}}}", k + 1, k + 1);
+            if size == RBig::ONE { fraction } else { format!("{size_tex} \\cdot {fraction}") }
+        };
+        let sign = match (index, c.is_negative()) {
+            (0, false) => "",
+            (0, true) => "-",
+            (_, false) => " + ",
+            (_, true) => " - ",
+        };
+        line.push_str(&format!("{sign}{term}"));
+    }
+    Some(format!("F({var}) = {line} + C"))
+}
+
+/// The partial fractions with unknown numerators, `\frac{A}{x - 1} + \frac{B}{x + 1}`, and the
+/// comparison of the numerators that finds them: `1 = A(x + 1) + B(x - 1)`, then their values.
+fn ansatz_lines(remainder: &Poly, coeff: &RBig, factors: &[crate::algebra::factored::Factor], var: &str) -> Option<[String; 2]> {
+    let (unknowns, values) = unknowns_and_values(remainder, coeff, factors)?;
+    let names: Vec<char> = ('A'..='Z').take(unknowns.len()).collect();
+    if names.len() < unknowns.len() {
+        return None;
+    }
+    let tex = |p: &Poly| Expr::from_poly(p).to_latex(var);
+    let bracketed = |p: &Poly| if p.terms.len() > 1 { format!("({})", tex(p)) } else { tex(p) };
+    let mut fractions = Vec::new();
+    let mut products = Vec::new();
+    let mut index = 0;
+    while index < unknowns.len() {
+        let (base, power, is_x, _) = &unknowns[index];
+        let below = if *power == 1 { tex(base) } else { format!("{}^{{{power}}}", bracketed(base)) };
+        if *is_x {
+            fractions.push(format!("\\frac{{{}{var} + {}}}{{{below}}}", names[index], names[index + 1]));
+            products.push(format!("({}{var} + {}){}", names[index], names[index + 1], bracketed(&unknowns[index + 1].3)));
+            index += 2;
+        } else {
+            fractions.push(format!("\\frac{{{}}}{{{below}}}", names[index]));
+            let basis = &unknowns[index].3;
+            products.push(if basis.is_constant() && basis.constant_term() == RBig::ONE { names[index].to_string() } else { format!("{}{}", names[index], bracketed(basis)) });
+            index += 1;
         }
     }
-    out.retain(|(n, _, _)| !n.is_zero());
-    Some(out)
+    let target = tex(&(remainder.clone() / coeff));
+    let solved: Vec<String> = names.iter().zip(&values).map(|(name, value)| format!("{name} = {}", Expr::Num(value.clone()).to_latex(var))).collect();
+    Some([
+        fractions.join(" + "),
+        format!("{target} = {} \\Rightarrow {}", products.join(" + "), solved.join(", \\ ")),
+    ])
 }
 
 /// Gaussian elimination over ℚ on an augmented square matrix.
@@ -698,7 +800,7 @@ mod tests {
         assert_eq!(primitive("\\frac{1}{x^2-1}"), "\\frac{1}{2}\\ln\\left|x - 1\\right| - \\frac{1}{2}\\ln\\left|x + 1\\right|");
         assert_eq!(primitive("\\frac{x}{x^2+1}"), "\\frac{1}{2}\\ln(x^{2} + 1)");
         assert_eq!(primitive("\\frac{1}{(x-1)^2}"), "-\\frac{1}{x - 1}");
-        let steps = integrate("\\frac{1}{x^2-1}").unwrap().steps;
+        let steps = crate::eval::calculator::shown_steps(&integrate("\\frac{1}{x^2-1}").unwrap().steps, StepDetail::Brief);
         assert_eq!(steps[0].latex, "\\frac{1}{x^{2} - 1} = \\frac{1}{2(x - 1)} - \\frac{1}{2(x + 1)}");
     }
 

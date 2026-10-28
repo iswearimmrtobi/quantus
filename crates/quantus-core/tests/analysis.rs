@@ -532,3 +532,22 @@ fn limits_show_the_highest_power_and_the_signs_at_a_pole() {
     assert_eq!(standard[0].0, r"f(x) = \frac{2 + \frac{1}{x^{2}}}{1 - \frac{4}{x^{2}}}");
     assert!(working(&d, "behaviour", StepDetail::Brief).len() < standard.len());
 }
+
+#[test]
+fn antiderivatives_show_the_rule_put_in() {
+    use quantus_core::settings::StepDetail;
+    let detailed = working(&sketch("x^3-3x^2+2"), "antiderivative", StepDetail::Detailed);
+    assert_eq!(detailed[0].0, r"F(x) = \frac{x^{4}}{4} - 3 \cdot \frac{x^{3}}{3} + 2x + C");
+
+    let standard = working(&sketch("x e^{2x}"), "antiderivative", StepDetail::Standard);
+    assert_eq!(standard[1].0, r"F(x) = \frac{1}{2}xe^{2x} - \int \frac{1}{2}e^{2x} \, dx");
+    assert_eq!(standard[2].0, r"F(x) = \frac{1}{2}xe^{2x} - \frac{1}{4}e^{2x} + C");
+
+    let d = sketch(r"\frac{1}{x^2-1}");
+    let detailed = working(&d, "antiderivative", StepDetail::Detailed);
+    assert_eq!(detailed[0], (r"\frac{1}{x^{2} - 1} = \frac{A}{x - 1} + \frac{B}{x + 1}".to_string(), "Ansatz".to_string()));
+    assert_eq!(detailed[1].0, r"1 = A(x + 1) + B(x - 1) \Rightarrow A = \frac{1}{2}, \ B = -\frac{1}{2}");
+
+    let standard = working(&sketch("x e^{x^2}"), "antiderivative", StepDetail::Standard);
+    assert_eq!(standard[1].0, r"\int xe^{x^{2}} \, dx = \int \frac{1}{2}e^{u} \, du");
+}
