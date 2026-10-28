@@ -1017,7 +1017,7 @@ fn exact_log(base: &Expr, value: &Expr) -> Option<Expr> {
 
 /// Two families with the same period whose bases lie half a period apart are one family with
 /// half the period: `0 + 2k\pi` and `\pi + 2k\pi` are `k\pi`.
-fn merge_families(mut families: Vec<PeriodicSet>) -> Vec<PeriodicSet> {
+pub(crate) fn merge_families(mut families: Vec<PeriodicSet>) -> Vec<PeriodicSet> {
     let mut i = 0;
     while i < families.len() {
         let mut merged = false;

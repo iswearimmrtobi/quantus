@@ -256,3 +256,18 @@ fn notes_on_zeros_and_the_y_axis() {
     let extrema = extrema.sections.iter().find(|s| s.id == "extrema").unwrap();
     assert!(extrema.steps.iter().any(|s| s.explanation.as_deref().is_some_and(|e| e.ends_with("(saddle candidate)"))));
 }
+
+#[test]
+fn periodic_families_merge_and_move() {
+    let sine = sketch("\\sin x");
+    assert_eq!(result(&sine, "inflection"), "I\\left(k\\pi \\mid 0\\right), \\ k \\in \\mathbb{Z}");
+    assert_eq!(result(&sine, "symmetry"), "\\text{Symmetric about the origin}");
+    let behaviour = sine.sections.iter().find(|s| s.id == "behaviour").unwrap();
+    assert!(behaviour.steps.iter().take(2).all(|s| s.latex.contains("oscillates")));
+    assert!(sine.points.iter().filter(|p| p.kind.name() != "yIntercept").all(|p| p.period.is_some()));
+    let shifted = sketch("x + \\sin x");
+    assert_eq!(result(&shifted, "inflection").split(", \\quad ").last().unwrap(), "S\\left(\\pi + 2k\\pi \\mid \\pi + 2k\\pi\\right), \\ k \\in \\mathbb{Z}");
+    assert!(shifted.points.iter().all(|p| p.period.is_none()));
+    let tangent = sketch("\\tan x");
+    assert!(tangent.asymptotes.iter().all(|a| matches!(a, Asymptote::Vertical { period: Some(p), .. } if (p - std::f64::consts::PI).abs() < 1e-12)));
+}

@@ -17,7 +17,7 @@ use super::interval::{simplest_between, Bound, Domain, Interval, PeriodicSet, Po
 use super::limits::{approximating_curve, behaviour, oblique, pole, Approach, Behaviour, LimitContext};
 use super::rules::{step, AnalysisRule};
 use super::simplify::{display, is_zero, is_zero_numeric, simplify};
-use super::solve::{solve_zero, Root, SolveContext, Solutions};
+use super::solve::{merge_families, solve_zero, Root, SolveContext, Solutions};
 use crate::eval::Step;
 use crate::num::Value;
 use crate::settings::{Language, Settings};
@@ -114,6 +114,8 @@ pub struct MarkedPoint {
     pub x: f64,
     pub y: f64,
     pub latex: String,
+    /// For a member of a family of a periodic f: the distance to the next member.
+    pub period: Option<f64>,
     /// Stands for the name in texts written before the points are named.
     token: String,
 }
@@ -137,7 +139,8 @@ impl Side {
 
 #[derive(Clone, Debug)]
 pub enum Asymptote {
-    Vertical { x: f64, latex: String },
+    /// `period`: for the poles of a periodic family, the distance to the next one.
+    Vertical { x: f64, period: Option<f64>, latex: String },
     Horizontal { y: f64, side: Side, latex: String },
     Oblique { slope: f64, intercept: f64, side: Side, latex: String },
 }
@@ -198,12 +201,14 @@ pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
         }
         None => (-10.0, 10.0),
     };
+    let wave = if period.is_none() { linear_plus_periodic(&simplify(f)) } else { None };
     let mut sketch = Sketch {
         ctx,
         f: simplify(f),
         domain: dom.clone(),
         window,
         period: period.clone(),
+        wave,
         points: Vec::new(),
         asymptotes: Vec::new(),
         breaks: Vec::new(),
@@ -287,6 +292,20 @@ pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
     })
 }
 
+/// For f = ax + b + (a periodic part), a ≠ 0: the period of that part as a multiple of π, and a.
+fn linear_plus_periodic(f: &Expr) -> Option<(RBig, Expr)> {
+    let Expr::Sum(terms) = f else { return None };
+    let (waves, rest): (Vec<Expr>, Vec<Expr>) = terms.iter().cloned().partition(|t| t.depends_on_var() && period_of(t).is_some());
+    if waves.is_empty() {
+        return None;
+    }
+    let slope = simplify(&super::derive::derivative(&Expr::sum(rest)));
+    if !slope.is_constant() || is_zero(&slope) {
+        return None;
+    }
+    Some((period_of(&Expr::sum(waves))?, slope))
+}
+
 /// The period of f as a multiple of π, when every x sits in sin, cos or tan of a linear
 /// argument with rational slopes.
 pub fn period_of(f: &Expr) -> Option<RBig> {
@@ -360,6 +379,9 @@ struct Sketch<'a> {
     domain: Domain,
     window: (f64, f64),
     period: Option<RBig>,
+    /// For f = ax + (a periodic part): the period of that part (a multiple of π) and a, so a
+    /// family's y moves by a·P from one member to the next.
+    wave: Option<(RBig, Expr)>,
     points: Vec<MarkedPoint>,
     asymptotes: Vec<Asymptote>,
     breaks: Vec<f64>,
@@ -430,7 +452,7 @@ impl Sketch<'_> {
     fn mark(&mut self, kind: PointKind, x: &Point, y: &Point) -> String {
         let token = format!("@{}@", self.points.len());
         let latex = self.coordinates(&token, x, y);
-        self.points.push(MarkedPoint { kind, name: String::new(), x: x.approx, y: y.approx, latex: latex.clone(), token });
+        self.points.push(MarkedPoint { kind, name: String::new(), x: x.approx, y: y.approx, latex: latex.clone(), period: None, token });
         latex
     }
 
@@ -518,6 +540,12 @@ impl Sketch<'_> {
         for root in self.members(&solved.solutions) {
             let zero = Point::rational(RBig::ZERO);
             let coordinates = self.mark(PointKind::Zero, &root.point, &zero);
+            if self.f_is_periodic() {
+                let family = solved.solutions.families.iter().find(|family| family.contains(root.point.approx));
+                if let (Some(family), Some(last)) = (family, self.points.last_mut()) {
+                    last.period = Some(family.period_f64());
+                }
+            }
             let note = match root.multiplicity {
                 Some(m) if m >= 2 => format!(" \\ \\text{{({})}}", multiplicity_text(m)),
                 _ => String::new(),
@@ -554,8 +582,9 @@ impl Sketch<'_> {
         steps.extend(solved.steps);
         *complete &= solved.complete;
         let mut out: Vec<Candidate> = solved.solutions.roots.into_iter().map(|r| Candidate { point: r.point, family: None }).collect();
+        let split_period = self.period.as_ref().or(self.wave.as_ref().map(|(p, _)| p));
         for family in solved.solutions.families {
-            match &self.period {
+            match split_period {
                 Some(p) => {
                     for split in split_family(&family, &times_pi(p.clone())) {
                         if let Some(point) = Point::exact(split.base[0].clone()) {
@@ -640,6 +669,7 @@ impl Sketch<'_> {
         let candidates = self.candidates(f1, &mut steps, &mut complete);
         let xs: Vec<f64> = candidates.iter().map(|c| c.point.approx).collect();
         let mut lines = Vec::new();
+        let mut families: Vec<(PointKind, PeriodicSet, Point)> = Vec::new();
         for candidate in &candidates {
             let x0 = &candidate.point;
             let x_text = self.general_x(candidate);
@@ -683,19 +713,12 @@ impl Sketch<'_> {
             };
             let Some(kind) = kind else { continue };
             let Some(y) = self.value_at(&self.f, x0) else { continue };
-            let letter = kind.letter();
             match &candidate.family {
-                Some(family) => {
-                    lines.push(format!("{letter}\\left({} \\mid {}\\right), \\ k \\in \\mathbb{{Z}}", family.to_latex()[0], y.to_latex(self.ctx.digits)));
-                    for member in family.points_in(self.window.0, self.window.1, MAX_WINDOW_POINTS) {
-                        if let Some(y) = self.value_at(&self.f, &member) {
-                            self.mark(kind, &member, &y);
-                        }
-                    }
-                }
+                Some(family) => families.push((kind, family.clone(), y)),
                 None => lines.push(self.mark(kind, x0, &y)),
             }
         }
+        lines.extend(self.family_points(families));
         lines.extend(self.boundary_points(f1));
         let result = if lines.is_empty() { text(&msg!("No extrema", "Keine Extrempunkte")) } else { lines.join(", \\quad ") };
         self.section("extrema", steps, Some(result), complete)
@@ -760,6 +783,7 @@ impl Sketch<'_> {
         let candidates = self.candidates(f2, &mut steps, &mut complete);
         let xs: Vec<f64> = candidates.iter().map(|c| c.point.approx).collect();
         let mut lines = Vec::new();
+        let mut families: Vec<(PointKind, PeriodicSet, Point)> = Vec::new();
         for candidate in &candidates {
             let x0 = &candidate.point;
             let x_text = self.general_x(candidate);
@@ -801,22 +825,55 @@ impl Sketch<'_> {
                 ));
             }
             let Some(y) = self.value_at(&self.f, x0) else { continue };
-            let letter = kind.letter();
             match &candidate.family {
-                Some(family) => {
-                    let y_text = if self.f_is_periodic() { y.to_latex(self.ctx.digits) } else { family.to_latex()[0].clone() };
-                    lines.push(format!("{letter}\\left({} \\mid {y_text}\\right), \\ k \\in \\mathbb{{Z}}", family.to_latex()[0]));
-                    for member in family.points_in(self.window.0, self.window.1, MAX_WINDOW_POINTS) {
-                        if let Some(y) = self.value_at(&self.f, &member) {
-                            self.mark(kind, &member, &y);
-                        }
-                    }
-                }
+                Some(family) => families.push((kind, family.clone(), y)),
                 None => lines.push(self.mark(kind, x0, &y)),
             }
         }
+        lines.extend(self.family_points(families));
         let result = if lines.is_empty() { text(&msg!("No inflection points", "Keine Wendepunkte")) } else { lines.join(", \\quad ") };
         self.section("inflection", steps, Some(result), complete)
+    }
+
+    /// The lines for points that stand for whole families, and their members in the window
+    /// marked. For a periodic f, families of one kind with the same y half a period apart are
+    /// one family (`W(k\pi \mid 0)` for `\sin x`). For f = ax + (periodic) the y moves with
+    /// the family: `S(\pi + 2k\pi \mid \pi + 2k\pi)` for `x + \sin x`.
+    fn family_points(&mut self, found: Vec<(PointKind, PeriodicSet, Point)>) -> Vec<String> {
+        let mut groups: Vec<(PointKind, Point, Vec<PeriodicSet>)> = Vec::new();
+        for (kind, family, y) in found {
+            let periodic = self.f_is_periodic();
+            match groups.iter_mut().find(|(k, other, _)| periodic && *k == kind && other.same(&y)) {
+                Some((.., families)) => families.push(family),
+                None => groups.push((kind, y, vec![family])),
+            }
+        }
+        let mut lines = Vec::new();
+        for (kind, y, families) in groups {
+            let families = if self.f_is_periodic() { merge_families(families) } else { families };
+            for family in families {
+                let y_text = match (&self.wave, &y.exact) {
+                    (Some((_, slope)), Some(exact)) => {
+                        let step = simplify(&Expr::Product(vec![slope.clone(), family.period.clone()]));
+                        PeriodicSet { base: vec![exact.clone()], period: step }.to_latex()[0].clone()
+                    }
+                    _ => y.to_latex(self.ctx.digits),
+                };
+                lines.push(format!("{}\\left({} \\mid {y_text}\\right), \\ k \\in \\mathbb{{Z}}", kind.letter(), family.to_latex()[0]));
+                let period = family.period_f64();
+                for member in family.points_in(self.window.0, self.window.1, MAX_WINDOW_POINTS) {
+                    if let Some(y) = self.value_at(&self.f, &member) {
+                        self.mark(kind, &member, &y);
+                        if self.f_is_periodic() {
+                            if let Some(last) = self.points.last_mut() {
+                                last.period = Some(period);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        lines
     }
 
     fn f_is_periodic(&self) -> bool {
@@ -1013,7 +1070,11 @@ impl Sketch<'_> {
             }
             for member in members {
                 self.breaks.push(member.approx);
-                self.asymptotes.push(Asymptote::Vertical { x: member.approx, latex: format!("{} = {}", self.ctx.var, member.to_latex(self.ctx.digits)) });
+                self.asymptotes.push(Asymptote::Vertical {
+                    x: member.approx,
+                    period: Some(family.period_f64()),
+                    latex: format!("{} = {}", self.ctx.var, member.to_latex(self.ctx.digits)),
+                });
             }
         }
         for (l, side) in horizontal {
@@ -1056,7 +1117,7 @@ impl Sketch<'_> {
         }
         lines.push(format!("{} {latex}", text(&msg!("vertical asymptote", "senkrechte Asymptote"))));
         self.breaks.push(p.approx);
-        self.asymptotes.push(Asymptote::Vertical { x: p.approx, latex });
+        self.asymptotes.push(Asymptote::Vertical { x: p.approx, period: None, latex });
     }
 
     fn gap(&mut self, at: &Point, ctx: &LimitContext, steps: &mut Vec<Step>, lines: &mut Vec<String>) {

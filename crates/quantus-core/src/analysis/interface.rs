@@ -66,6 +66,9 @@ pub struct PointResponse {
     pub x: f64,
     pub y: f64,
     pub latex: String,
+    /// For a member of a periodic family: the distance to the next member, so the graph can
+    /// repeat the point beyond the first window; `null` otherwise.
+    pub period: Option<f64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -79,6 +82,8 @@ pub struct AsymptoteResponse {
     pub slope: Option<f64>,
     pub intercept: Option<f64>,
     pub latex: String,
+    /// For the poles of a periodic family (tan): the distance to the next one; `null` otherwise.
+    pub period: Option<f64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -229,14 +234,20 @@ fn response(d: &Discussion) -> AnalysisResponse {
 }
 
 fn point(p: &MarkedPoint) -> PointResponse {
-    PointResponse { kind: p.kind.name().to_string(), name: p.name.clone(), x: p.x, y: p.y, latex: p.latex.clone() }
+    PointResponse { kind: p.kind.name().to_string(), name: p.name.clone(), x: p.x, y: p.y, latex: p.latex.clone(), period: p.period }
 }
 
 fn asymptote(a: &Asymptote) -> AsymptoteResponse {
     match a {
-        Asymptote::Vertical { x, latex } => {
-            AsymptoteResponse { kind: "vertical".into(), side: None, x: Some(*x), slope: None, intercept: None, latex: latex.clone() }
-        }
+        Asymptote::Vertical { x, period, latex } => AsymptoteResponse {
+            kind: "vertical".into(),
+            side: None,
+            x: Some(*x),
+            slope: None,
+            intercept: None,
+            latex: latex.clone(),
+            period: *period,
+        },
         Asymptote::Horizontal { y, side, latex } => AsymptoteResponse {
             kind: "horizontal".into(),
             side: Some(side.name().into()),
@@ -244,6 +255,7 @@ fn asymptote(a: &Asymptote) -> AsymptoteResponse {
             slope: Some(0.0),
             intercept: Some(*y),
             latex: latex.clone(),
+            period: None,
         },
         Asymptote::Oblique { slope, intercept, side, latex } => AsymptoteResponse {
             kind: "oblique".into(),
@@ -252,6 +264,7 @@ fn asymptote(a: &Asymptote) -> AsymptoteResponse {
             slope: Some(*slope),
             intercept: Some(*intercept),
             latex: latex.clone(),
+            period: None,
         },
     }
 }
@@ -275,7 +288,7 @@ pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentR
     let latex = format!("\\left({} \\mid {}\\right)", r.x.to_latex(digits), r.y.to_latex(digits));
     Ok(TangentResponse {
         steps: r.steps.iter().map(StepResponse::of).collect(),
-        point: PointResponse { kind: "tangent".into(), name: "P".into(), x: r.x.approx, y: r.y.approx, latex: format!("P{latex}") },
+        point: PointResponse { kind: "tangent".into(), name: "P".into(), x: r.x.approx, y: r.y.approx, latex: format!("P{latex}"), period: None },
         tangent: line(&r.tangent),
         normal: line(&r.normal),
     })
