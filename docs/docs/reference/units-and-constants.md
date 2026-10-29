@@ -5,7 +5,7 @@ title: Units and constants
 
 # Units and constants
 
-Units are known in Physics and Electronics mode. In the other modes write them in
+Units are known in Physics mode. In the other modes write them in
 `\mathrm{…}`. A unit symbol is looked up as a whole, so `min` is the minute (not $m \cdot i \cdot n$),
 `mN` the millinewton and `Pa` the pascal.
 

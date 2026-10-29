@@ -76,6 +76,8 @@ pairs, split at poles and gaps.
 
 ## Circuits
 
+The electronics mode that uses these commands is not in the app yet; the commands are.
+
 | Command | Arguments | Returns |
 |---|---|---|
 | `solve_circuit` | `{ request: CircuitRequest }` | `CircuitResponse` |

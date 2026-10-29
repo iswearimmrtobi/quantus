@@ -87,9 +87,3 @@ Results that are partial or approximate:
   without being the shortest form.
 - Periodic families are listed in $[-P, P]$ (at most 12 members each), or $[-10, 10]$ when $f$
   itself is not periodic.
-
-## Electronics mode
-
-DC only, passive parts: resistors, wires, voltage and current sources, potentiometers and
-constant-power loads. No diodes, transistors, capacitors or inductors, no AC. Reverse solving
-finds one unknown at a time. Circuits are saved by hand, there is no autosave.

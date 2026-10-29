@@ -41,18 +41,17 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 
 ## ✨ Features
 
-### 🧭 Five modes
+### 🧭 Four modes
 
 The mode is chosen in the top bar or in the settings panel. Each one decides
 how letters are read; an example under the empty input shows what fits.
 
 | Mode | What it is for |
 |---|---|
-| **Algebra** *(default)* | Every letter is a variable: simplify, factor and solve, no units or constants |
-| **Physics** | Units and physical constants are known; results are checked, converted and named (`N`, `J`, …) |
+| **Physics** *(default)* | Units and physical constants are known; results are checked, converted and named (`N`, `J`, …) |
+| **Algebra** | Every letter is a variable: simplify, factor and solve, no units or constants |
 | **Imaginary** | As Algebra, but `i` is the imaginary unit and results may be complex, shown as `a + bi` |
 | **Analysis** | Enter `f(x) = …` and get the whole curve sketch beside an interactive graph |
-| **Electronics** | A schematic editor for passive DC circuits with live results |
 
 ### ✍️ Input
 
@@ -68,7 +67,7 @@ how letters are read; an example under the empty input shows what fits.
 
 - **Exact numbers** with arbitrary precision (`dashu`, `astro-float`)
 - **Units and dimensions** are checked and converted, including common units outside the SI
-- **Maths beyond arithmetic**: equations with one unknown, derivatives, integrals
+- **Maths beyond arithmetic**: equations with one unknown, systems of linear equations, derivatives, integrals
   (also improper ones), limits (also one-sided and at infinity), sums, binomials and determinants
 - **Algebra**: simplifying and factoring fractions, roots, powers, logarithms and the
   trigonometric identities, with the domain conditions that go with them
@@ -81,14 +80,6 @@ Derivatives, domain, symmetry, zeros, extrema, inflection and saddle points,
 monotonicity and curvature, behaviour at the edges and poles with asymptotes and
 an antiderivative, each with its working. Tabs above the results add the tangent
 and normal, the area under the curve and a value table.
-
-### ⚡ Electronics
-
-Resistors, wires, voltage and current sources, potentiometers and constant-power
-loads, drawn in a schematic editor. Wires take their resistance from material,
-length and cross-section. The solver is exact, never guesses a missing value, and
-can solve backwards for one unknown (*which cross-section keeps the drop under 3 %?*).
-Circuits are saved and loaded as JSON files.
 
 ### 📋 Working and output
 
@@ -170,12 +161,12 @@ to the run as the `quantus-windows` artifact.
 | `crates/quantus-core/src/eval/` | AST evaluation, substitution, steps |
 | `crates/quantus-core/src/algebra/` | Simplifying, factoring and solving with working |
 | `crates/quantus-core/src/analysis/` | The analysis mode: curve sketch, graph, tangent, area, table |
-| `crates/quantus-core/src/electro/` | The electronics mode: materials, wires, circuit solver |
+| `crates/quantus-core/src/electro/` | The electronics mode (not in the app yet): materials, wires, circuit solver |
 | `crates/quantus-core/src/settings.rs` | User settings and modes |
 | `crates/quantus-core/src/session.rs`, `api.rs` | Session variables and the app's JSON types |
 | `crates/quantus-core/tests/` | Golden tests, carried over from the Kotlin tests |
 | `desktop/src-tauri/` | Tauri shell: commands, menu, single instance, bundling |
-| `desktop/src/` | React renderer: formula editor, LaTeX source, steps, panels, circuit editor |
+| `desktop/src/` | React renderer: formula editor, LaTeX source, steps, panels |
 
 Numbers, units and LaTeX I/O depend on each other in one direction only. The
 Tauri commands know nothing but `api` and `SessionStore`.
@@ -190,7 +181,7 @@ built from [`docs/`](docs/) (run it locally with `cd docs && npm install && npm 
 | | |
 |---|---|
 | 🚀 [Getting started](docs/docs/getting-started/) | Install, your first calculation, the concepts behind modes and variables |
-| 🧭 [Guides](docs/docs/guides/) | Entering formulas, units, algebra, complex numbers, calculus, curve sketching, circuits |
+| 🧭 [Guides](docs/docs/guides/) | Entering formulas, units, algebra, complex numbers, calculus, curve sketching |
 | 📖 [Reference](docs/docs/reference/) | Syntax, units and constants, settings, keyboard shortcuts, known limits, FAQ |
 | 🛠️ [Contributing](docs/docs/contributing/) | Architecture, building, the engine API, testing, translations |
 

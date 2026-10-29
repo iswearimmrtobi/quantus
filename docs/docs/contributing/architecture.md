@@ -47,7 +47,7 @@ build bundles it.
 | `eval/` | evaluating the AST, substitution of session variables, the equation solver, symbolic derivatives, the step list of the calculator |
 | `algebra/` | the simplification pipeline: expand, factor, combine, cancel, radicals, logs, trig identities, with a step per rule and the domain conditions |
 | `analysis/` | Analysis mode: its own expression tree, derivatives with rules, domains, limits, antiderivatives, equation solving, the plot sampler and the tasks, all under a time budget |
-| `electro/` | Electronics mode: material table, wire resistance, the exact MNA solver, Newton iteration for power loads, reverse solving |
+| `electro/` | Electronics mode (not in the app yet): material table, wire resistance, the exact MNA solver, Newton iteration for power loads, reverse solving |
 | `settings.rs` | `Settings` and `Mode` |
 | `session.rs` | `Session` (the variables of one session) and `SessionStore` |
 | `text.rs` | the language of texts the engine writes itself (`msg!`, `Scope`) |

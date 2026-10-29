@@ -6,8 +6,8 @@ import styles from "./index.module.css";
 const features = [
   {
     icon: "🧭",
-    title: "Five modes",
-    text: "Algebra, Physics, Imaginary, Analysis and Electronics. The mode decides how letters are read, so a plain x stays a variable and a g can be a constant.",
+    title: "Four modes",
+    text: "Algebra, Physics, Imaginary and Analysis. The mode decides how letters are read, so a plain x stays a variable and a g can be a constant.",
   },
   {
     icon: "✍️",
@@ -30,9 +30,9 @@ const features = [
     text: "Enter f(x) and get domain, symmetry, zeros, extrema, inflection points, asymptotes and an antiderivative beside an interactive graph.",
   },
   {
-    icon: "⚡",
-    title: "Circuits",
-    text: "Draw passive DC circuits in a schematic editor and solve them exactly, even backwards for one unknown such as a cable cross-section.",
+    icon: "🧩",
+    title: "Systems of equations",
+    text: "Solve systems of linear equations exactly, written as cases or separated by semicolons, with every Gauss step shown as fractions.",
   },
 ];
 

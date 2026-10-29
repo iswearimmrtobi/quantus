@@ -14,13 +14,13 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 
 | Setting | Key | Values | Default |
 |---|---|---|---|
-| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `electronics` | `physics` |
+| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis` | `physics` |
 | **Language** | `language` | `en`, `de` | `en` |
 | **Precision** | `precision` | 1 to 10,000 significant digits | 50 |
 
 **Mode** decides how letters are read, see [Concepts](../getting-started/concepts.md#modes-decide-how-letters-are-read).
 **Language** changes the interface, the menu and the texts the engine writes itself (the
-analysis and electronics working). The parser and algebra messages are English only.
+analysis working). The parser and algebra messages are English only.
 
 ## Working
 

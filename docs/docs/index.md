@@ -23,7 +23,7 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 
 Every result can be copied as LaTeX.
 
-## Five modes
+## Four modes
 
 | Mode | What it is for |
 |---|---|
@@ -31,7 +31,6 @@ Every result can be copied as LaTeX.
 | **Algebra** | Every letter is a variable: simplify, factor and solve |
 | **Imaginary** | As Algebra, but $i$ is the imaginary unit and results may be complex |
 | **Analysis** | Enter $f(x) = \ldots$ and get the whole curve sketch beside a graph |
-| **Electronics** | A schematic editor for passive DC circuits with live results |
 
 ## Where to go next
 
