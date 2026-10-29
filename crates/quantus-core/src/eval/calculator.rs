@@ -7,7 +7,9 @@
 
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
+use super::system::Solution;
 use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
+use crate::linear::RowOperation;
 use crate::num::{Decimal, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::settings::{BinomialForm, Mode, Settings, StepDetail};
@@ -162,6 +164,9 @@ impl LatexCalculator {
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
             .with_mode(self.settings.mode);
+        if let Node::System { .. } = formula.expression {
+            return self.evaluate_system(&evaluator, formula, variables);
+        }
         match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
             equation @ Node::Equation { .. } => {
@@ -311,6 +316,164 @@ impl LatexCalculator {
         Ok((quantity, value, imaginary, parts.join(" \\lor ")))
     }
 
+    /// `x = 2 \land y = 1`, or with infinitely many solutions the bound unknowns in terms of the
+    /// free ones: `x = 1 - y \land y \in \mathbb{R}`. The steps show the augmented matrix, each
+    /// row operation (Detailed) and the reduced matrix.
+    fn evaluate_system(&self, evaluator: &Evaluator, formula: Formula, variables: &Variables) -> Result<Calculation> {
+        let system = evaluator.solve_system(&formula.expression)?;
+        let names: Vec<String> = system
+            .unknowns
+            .iter()
+            .map(|name| serializer::expression(&Node::Variable { name: name.clone(), index: String::new(), position: 0 }))
+            .collect();
+
+        let mut parts = Vec::new();
+        let mut first = None;
+        match &system.solution {
+            Solution::Unique(values) => {
+                for (name, value) in names.iter().zip(values) {
+                    let quantity = PhysicalQuantity::dimensionless(value.clone());
+                    let (value, imaginary, shown) = self.present(&quantity)?;
+                    parts.push(format!("{name} = {shown}"));
+                    first.get_or_insert((quantity, value, imaginary));
+                }
+            }
+            Solution::Parametric { free, bound } => {
+                for (column, constant, terms) in bound {
+                    let mut right = if constant.is_zero() && !terms.is_empty() { String::new() } else { self.entry(constant)? };
+                    for (free, coefficient) in terms {
+                        // `x + k·y = c` is `x = c - k·y`.
+                        let negative = !coefficient.is_negative()?;
+                        let size = if coefficient.is_negative()? { coefficient.neg() } else { coefficient.clone() };
+                        let term =
+                            if size.is_one() { names[*free].clone() } else { format!("{} \\cdot {}", self.entry(&size)?, names[*free]) };
+                        right = match (right.is_empty(), negative) {
+                            (true, true) => format!("-{term}"),
+                            (true, false) => term,
+                            (false, true) => format!("{right} - {term}"),
+                            (false, false) => format!("{right} + {term}"),
+                        };
+                    }
+                    parts.push(format!("{} = {right}", names[*column]));
+                }
+                let numbers = if self.settings.mode == Mode::Imaginary { "\\mathbb{C}" } else { "\\mathbb{R}" };
+                let free: Vec<&str> = free.iter().map(|f| names[*f].as_str()).collect();
+                parts.push(format!("{} \\in {numbers}", free.join(", ")));
+            }
+        }
+        let result = parts.join(" \\land ");
+        let (quantity, value, imaginary) =
+            first.unwrap_or_else(|| (PhysicalQuantity::dimensionless(crate::num::Value::zero()), Decimal::from_i64(0), None));
+
+        let symbolic = serializer::expression(&formula.expression);
+        let mut steps = vec![Step::new(StepKind::Symbolic, symbolic.clone())];
+        if uses_variables(&formula.expression) {
+            let substituted = serializer::expression(&substitute(&formula.expression, variables, self.precision));
+            if substituted != symbolic {
+                steps.push(Step::new(StepKind::Substituted, substituted));
+            }
+        }
+        steps.push(
+            Step::algebraic(
+                self.augmented(&system.matrix)?,
+                None,
+                msg!("Write the system as an augmented matrix", "Das System als erweiterte Koeffizientenmatrix schreiben"),
+                None,
+                None,
+            )
+            .with_level(StepDetail::Standard),
+        );
+        for (operation, matrix) in &system.elimination.log {
+            let (operation, explanation) = self.row_operation(operation)?;
+            steps.push(
+                Step::algebraic(format!("\\xrightarrow{{{operation}}} {}", self.augmented(matrix)?), None, explanation, None, None)
+                    .with_level(StepDetail::Detailed),
+            );
+        }
+        if !system.elimination.log.is_empty() {
+            steps.push(
+                Step::algebraic(
+                    self.augmented(&system.elimination.matrix)?,
+                    None,
+                    msg!("Eliminate column by column", "Spalte für Spalte eliminieren"),
+                    None,
+                    None,
+                )
+                .with_level(StepDetail::Standard)
+                .until(StepDetail::Detailed),
+            );
+        }
+        steps.push(Step::new(StepKind::Result, result.clone()));
+
+        Ok(Calculation {
+            input: serializer::formula(&formula),
+            latex: result.clone(),
+            steps: shown_steps(&steps, self.settings.step_detail),
+            unit: String::new(),
+            quantity_name: None,
+            result,
+            value,
+            imaginary,
+            quantity,
+            formula,
+            domain_restrictions: None,
+            warning: None,
+        })
+    }
+
+    /// A matrix entry or coefficient: a rational as a decimal or fraction, anything else as
+    /// the result would show it.
+    fn entry(&self, value: &crate::num::Value) -> Result<String> {
+        match value.as_rational() {
+            Some(rational) => Ok(serializer::expression(&number_node(rational))),
+            None => Ok(self.present(&PhysicalQuantity::dimensionless(value.clone()))?.2),
+        }
+    }
+
+    /// `\left(\begin{array}{cc|c} 2 & 1 & 5 \\ 1 & -1 & 1 \end{array}\right)`.
+    fn augmented(&self, matrix: &[Vec<crate::num::Value>]) -> Result<String> {
+        let columns = matrix.first().map_or(1, Vec::len);
+        let mut rows = Vec::new();
+        for row in matrix {
+            let cells: Vec<String> = row.iter().map(|v| self.entry(v)).collect::<Result<_>>()?;
+            rows.push(cells.join(" & "));
+        }
+        Ok(format!(
+            "\\left(\\begin{{array}}{{{}|c}} {} \\end{{array}}\\right)",
+            "c".repeat(columns - 1),
+            rows.join(" \\\\ ")
+        ))
+    }
+
+    /// The operation in LaTeX (`\text{II} - 2 \cdot \text{I}`) and the explanation of the step.
+    fn row_operation(&self, operation: &RowOperation) -> Result<(String, String)> {
+        let row = |r: usize| format!("\\text{{{}}}", roman(r + 1));
+        Ok(match operation {
+            RowOperation::Swap(a, b) => (
+                format!("{} \\leftrightarrow {}", row(*a), row(*b)),
+                msg!("Swap the rows to get a pivot", "Zeilen tauschen, um ein Pivotelement zu bekommen"),
+            ),
+            RowOperation::Divide { row: r, divisor } => (
+                format!("{} : {}", row(*r), self.signed(divisor)?),
+                msg!("Divide the row by its pivot", "Die Zeile durch ihr Pivotelement teilen"),
+            ),
+            RowOperation::Subtract { target, source, factor } => {
+                let (sign, size) = if factor.is_negative()? { ("+", factor.neg()) } else { ("-", factor.clone()) };
+                let multiple = if size.is_one() { row(*source) } else { format!("{} \\cdot {}", self.entry(&size)?, row(*source)) };
+                (
+                    format!("{} {sign} {multiple}", row(*target)),
+                    msg!("Eliminate the unknown from the other row", "Die Unbekannte aus der anderen Zeile eliminieren"),
+                )
+            }
+        })
+    }
+
+    /// An entry that follows an operator: in brackets if it is negative.
+    fn signed(&self, value: &crate::num::Value) -> Result<String> {
+        let shown = self.entry(value)?;
+        Ok(if value.is_negative()? { format!("({shown})") } else { shown })
+    }
+
     /// The decimal value and its LaTeX. A complex value is only shown in imaginary mode, as
     /// `a + bi` with both parts to the calculator's precision; elsewhere it is an error.
     pub(crate) fn present(&self, quantity: &PhysicalQuantity) -> Result<(Decimal, Option<Decimal>, String)> {
@@ -393,6 +556,22 @@ impl LatexCalculator {
 // ---- the working of a calculation ----------------------------------------------------------------
 
 /// A number as a node: a terminating decimal as itself, any other fraction as a fraction.
+/// A row number as a Roman numeral, as rows of a system are named: I, II, III, IV.
+fn roman(mut n: usize) -> String {
+    const NUMERALS: [(usize, &str); 13] = [
+        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"),
+        (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+    ];
+    let mut text = String::new();
+    for (value, numeral) in NUMERALS {
+        while n >= value {
+            text.push_str(numeral);
+            n -= value;
+        }
+    }
+    text
+}
+
 fn number_node(value: &dashu::rational::RBig) -> Node {
     use dashu::base::{Abs, Signed};
     use dashu::integer::IBig;
@@ -607,6 +786,52 @@ mod tests {
     fn a_definition_that_is_its_own_result_has_one_step() {
         let c = calc("m_1 = 2kg");
         assert_eq!(c.steps, [Step::new(StepKind::Result, "m_{1} = 2\\,\\mathrm{kg}")]);
+    }
+
+    fn system(input: &str, detail: StepDetail) -> Calculation {
+        let settings = Settings { step_detail: detail, ..Settings::default() };
+        LatexCalculator::default().with_settings(settings).evaluate(input, &Variables::new()).unwrap()
+    }
+
+    #[test]
+    fn a_system_gives_every_unknown() {
+        let c = system("2x + y = 5; x - y = 1", StepDetail::Brief);
+        assert_eq!(c.result, "x = 2 \\land y = 1");
+        assert_eq!(c.value.to_string(), "2");
+        assert_eq!(c.steps.iter().map(|s| s.kind).collect::<Vec<_>>(), [StepKind::Symbolic, StepKind::Result]);
+        assert_eq!(system("x + y = 1; x - y = 0", StepDetail::Brief).result, "x = 0{,}5 \\land y = 0{,}5");
+    }
+
+    #[test]
+    fn infinitely_many_solutions_are_given_in_the_free_unknowns() {
+        assert_eq!(system("x + y = 1; 2x + 2y = 2", StepDetail::Brief).result, "x = 1 - y \\land y \\in \\mathbb{R}");
+        assert_eq!(system("x - 2y = 0; 3x = 6y", StepDetail::Brief).result, "x = 2 \\cdot y \\land y \\in \\mathbb{R}");
+        assert_eq!(
+            system("x + z = 1; y - z = 2", StepDetail::Brief).result,
+            "x = 1 - z \\land y = 2 + z \\land z \\in \\mathbb{R}"
+        );
+    }
+
+    #[test]
+    fn a_system_shows_its_matrices_by_detail_level() {
+        let latex = |detail| system("2x + y = 5; x - y = 1", detail).steps.into_iter().map(|s| s.latex).collect::<Vec<_>>();
+        let standard = latex(StepDetail::Standard);
+        assert_eq!(standard.len(), 4, "{standard:?}");
+        assert_eq!(standard[1], "\\left(\\begin{array}{cc|c} 2 & 1 & 5 \\\\ 1 & -1 & 1 \\end{array}\\right)");
+        assert_eq!(standard[2], "\\left(\\begin{array}{cc|c} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\end{array}\\right)");
+        let detailed = latex(StepDetail::Detailed);
+        assert!(detailed[2].starts_with("\\xrightarrow{\\text{I} : 2}"), "{detailed:?}");
+        assert!(detailed[3].starts_with("\\xrightarrow{\\text{II} - \\text{I}}"), "{detailed:?}");
+        assert_eq!(detailed.last().unwrap(), "x = 2 \\land y = 1");
+        // The last row operation already shows the reduced matrix.
+        assert!(!detailed.contains(&standard[2]), "{detailed:?}");
+    }
+
+    #[test]
+    fn a_contradictory_system_is_an_error() {
+        let settings = Settings::default();
+        let error = LatexCalculator::default().with_settings(settings).evaluate("x + y = 1; x + y = 2", &Variables::new());
+        assert!(error.unwrap_err().to_string().contains("no solution"));
     }
 
     fn exact(input: &str) -> String {
