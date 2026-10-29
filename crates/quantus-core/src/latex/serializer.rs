@@ -490,6 +490,8 @@ mod tests {
             "2x + y = 5; x - y = 1;",
             "\\begin{cases} 2x + y = 5 \\\\ x - y = 1 \\end{cases}",
             "\\begin{cases} 2x + y &= 5 \\\\ x - y &= 1 \\\\ \\end{cases}",
+            "\\begin{cases} 2x + y = 5 & \\\\ x - y = 1 & \\end{cases}",
+            "\\begin{cases}2x+y=&5\\\\x-y=&1\\end{cases}",
         ] {
             assert_eq!(round_trip(input), expected, "{input}");
         }

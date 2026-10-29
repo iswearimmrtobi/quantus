@@ -4,7 +4,7 @@
 //! ```text
 //! formula     := [ label '=' ] expression [ '=' expression ] | system
 //! system      := '\begin{cases}' equation ('\\' equation)* '\end{cases}' | equation (';' equation)*
-//! equation    := expression ['&'] '=' expression
+//! equation    := expression ['&'] '=' ['&'] expression ['&']
 //! expression  := term ( ('+' | '-') term )*
 //! term        := unary ( ('\cdot' | '\times' | '*' | '/' | juxtaposition) unary )*
 //! unary       := ('-' | '+') unary | power
@@ -259,19 +259,24 @@ impl Parser<'_> {
         Ok(Node::System { equations, position })
     }
 
-    /// One row of a system: `left = right`, where an alignment `&` may stand before the `=`.
+    /// One row of a system: `left = right`. Alignment `&`s around the `=` and an empty second
+    /// column at the end of the row (as MathLive writes `cases`) are skipped.
     fn parse_system_equation(&mut self) -> Result<Node> {
         let left = self.parse_expression()?;
-        if self.current().kind == TokenType::Ampersand {
-            self.advance();
-        }
+        self.skip_ampersand();
         if self.current().kind != TokenType::Equals {
             return Err(self.error("Every line of a system needs an '='.", self.current().position));
         }
         self.advance();
+        self.skip_ampersand();
         let right = self.parse_expression()?;
         if self.current().kind == TokenType::Equals {
             return Err(self.error("Only one '=' is allowed per equation.", self.current().position));
+        }
+        if self.current().kind == TokenType::Ampersand
+            && (self.peek(1).kind == TokenType::RowBreak || self.peek(1).text == "\\end")
+        {
+            self.advance();
         }
         let position = left.position();
         Ok(Node::Equation { left: Box::new(left), right: Box::new(right), position })
@@ -782,6 +787,12 @@ impl Parser<'_> {
         } else {
             matrix
         })
+    }
+
+    fn skip_ampersand(&mut self) {
+        if self.current().kind == TokenType::Ampersand {
+            self.advance();
+        }
     }
 
     fn is_end_command(&self) -> bool {
