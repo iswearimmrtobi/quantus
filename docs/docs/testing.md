@@ -108,7 +108,7 @@ python3 test/generator/generate.py --check                                 # reg
 
 The runner writes `test/results/summary.md` and `test/results/failures.jsonl`. Commit both after a
 full run, so the repository records the last result. Case format, pass criteria, runner options and
-the latest numbers are in [`test/README.md`](../test/README.md).
+the latest numbers are in [`test/README.md`](https://github.com/iswearimmrtobi/quantus/blob/master/test/README.md).
 
 `test/algebra-simplification-cases.md` is a table of 2,500 hand-checked algebra cases. It is not run
 directly; it defines the conventions the generator's algebra cases follow.
