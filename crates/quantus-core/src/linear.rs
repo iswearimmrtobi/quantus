@@ -4,9 +4,20 @@
 //! The arithmetic is exact, so a pivot is zero or it is not: no tolerance decides whether a
 //! matrix is singular. The pivot is the first non-zero entry of its column, which keeps the row
 //! operations the ones a student would pick.
+//!
+//! The one exception is a symbolic entry that [`Value`] does not fold, such as `π⁻¹·π - 1`: it
+//! counts as zero when it vanishes to [`ZERO_DIGITS`] decimal places, and is replaced by an
+//! exact zero.
+
+use dashu::base::Abs;
+use dashu::integer::{IBig, UBig};
+use dashu::rational::RBig;
 
 use crate::num::Value;
 use crate::Result;
+
+/// Decimal places to which a symbolic entry must vanish to count as zero.
+const ZERO_DIGITS: usize = 40;
 
 /// One row operation; rows are counted from zero.
 #[derive(Clone, Debug, PartialEq)]
@@ -42,6 +53,9 @@ pub(crate) enum Outcome {
 /// Reduces `matrix`, whose rows have `unknowns` coefficients followed by the right-hand side.
 /// With `record`, every row operation is logged with the matrix after it.
 pub(crate) fn eliminate(mut matrix: Vec<Vec<Value>>, unknowns: usize, record: bool) -> Result<Elimination> {
+    for entry in matrix.iter_mut().flatten() {
+        settle(entry);
+    }
     let mut pivots = Vec::new();
     let mut log = Vec::new();
     let mut note = |operation: RowOperation, matrix: &Vec<Vec<Value>>| {
@@ -73,12 +87,25 @@ pub(crate) fn eliminate(mut matrix: Vec<Vec<Value>>, unknowns: usize, record: bo
             for c in column..=unknowns {
                 let delta = factor.mul(&matrix[row][c]);
                 matrix[target][c] = matrix[target][c].sub(&delta);
+                settle(&mut matrix[target][c]);
             }
             note(RowOperation::Subtract { target, source: row, factor }, &matrix);
         }
         pivots.push(column);
     }
     Ok(Elimination { matrix, pivots, log })
+}
+
+/// Replaces a symbolic entry that is numerically zero by an exact zero.
+fn settle(entry: &mut Value) {
+    if matches!(entry, Value::Rat(_)) {
+        return;
+    }
+    let bound = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(ZERO_DIGITS));
+    // A complex entry has no decimal; it is left as it is.
+    if entry.decimal(2 * ZERO_DIGITS).is_ok_and(|d| d.to_rational().abs() < bound) {
+        *entry = Value::zero();
+    }
 }
 
 impl Elimination {
@@ -140,5 +167,13 @@ mod tests {
     fn a_singular_square_system_has_no_unique_solution() {
         assert_eq!(solve_square(matrix(&[&[1, 2, 3], &[2, 4, 6]]), 2).unwrap(), None);
         assert_eq!(solve_square(matrix(&[&[4, 8]]), 1).unwrap(), Some(vec![Value::int(2)]));
+    }
+
+    #[test]
+    fn a_symbolic_zero_is_no_pivot() {
+        // π·x + π·y = π and x + y = 1 are the same equation; π⁻¹·π does not fold to 1.
+        let pi = Value::Pi;
+        let rows = vec![vec![pi.clone(), pi.clone(), pi.clone()], vec![Value::one(), Value::one(), Value::one()]];
+        assert_eq!(eliminate(rows, 2, false).unwrap().outcome(), Outcome::Infinite { free: vec![1] });
     }
 }

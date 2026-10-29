@@ -324,7 +324,7 @@ fn polynomial_roots(
 }
 
 /// Variables without index and without value, outside whatever binds them.
-fn collect_unknowns(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator, found: &mut Vec<String>) {
+pub(super) fn collect_unknowns(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator, found: &mut Vec<String>) {
     match node {
         Node::Variable { name, index, .. } if index.is_empty() => {
             if !bound.contains(name)
