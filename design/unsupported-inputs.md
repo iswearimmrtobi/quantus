@@ -75,7 +75,7 @@ so `(x+i)(x-i)` with a free `x` is shown as typed.
 
 ## Analysis mode
 
-The analysis mode (`docs/analysis-mode.md`) takes a function of one real variable built from
+The analysis mode ([analysis-mode.md](analysis-mode.md)) takes a function of one real variable built from
 numbers, `\pi`, `e`, `+ − · /`, powers, roots, `e^u`, `a^u`, `\exp`, `\ln`, `\log`, `\log_b`,
 `\sin`, `\cos`, `\tan`, `\cot`, `\sec`, `\csc`, `\arcsin`, `\arccos`, `\arctan`, `\sinh`,
 `\cosh`, `\tanh`, `|u|` and degrees, nested in any way.

@@ -80,7 +80,7 @@ The symbolic simplification of rational expressions, built milestone by mileston
 | `algebra_milestone2.rs` | 11 | Finding the denominators of an expression, for domain restrictions |
 | `algebra_milestone3.rs` | 14 | Binomial formulas, exact roots, factoring |
 | `algebra_milestone4.rs` | 22 | Nested fractions, common denominators, expansion |
-| `algebra_milestone5.rs` | 53 | The full simplification pipeline, checking that input and output are equivalent, that step texts name what the step changes, and the working each detail level shows (`docs/step-detail.md`), chaining at every level |
+| `algebra_milestone5.rs` | 53 | The full simplification pipeline, checking that input and output are equivalent, that step texts name what the step changes, and the working each detail level shows (`design/step-detail.md`), chaining at every level |
 | `algebra_milestone6.rs` | 4 | Wiring into parser, serializer, calculator and API |
 | `algebra_reference_integration.rs` | 5 | One reference expression, `3 / ((x + 3)/(x - 2)) + ((x - 102)/(x - 4))/(x + 3)`, end to end |
 | `algebra_simplification.rs` | 39 | The 14 categories of simplification the engine has to handle |
@@ -90,7 +90,7 @@ The symbolic simplification of rational expressions, built milestone by mileston
 
 | File | Tests | What |
 |---|---:|---|
-| `analysis.rs` | 43 | The analysis mode end to end: each section's result and the marked points for every case of `docs/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, a time check, and the working each detail level adds |
+| `analysis.rs` | 43 | The analysis mode end to end: each section's result and the marked points for every case of `design/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, a time check, and the working each detail level adds |
 | `complex.rs` | 10 | Complex results in imaginary mode |
 | `settings.rs` | 12 | Each user setting switches its reading or writing rule; the calculator's working by detail level |
 

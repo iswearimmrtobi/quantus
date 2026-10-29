@@ -1,5 +1,5 @@
 //! Analysis mode (Kurvendiskussion): a function of one variable in, the full curve sketch with
-//! its working out. See `docs/docs/analysis-mode.md`.
+//! its working out. See `design/analysis-mode.md`.
 
 pub mod budget;
 pub mod derive;

@@ -1,5 +1,5 @@
 //! The analysis mode end to end: the function in, each section's result and the marked points
-//! out, for the cases of `docs/docs/analysis-mode.md` (§17).
+//! out, for the cases of `design/analysis-mode.md` (§17).
 
 use quantus_core::analysis::{analyze, Asymptote, Discussion};
 use quantus_core::settings::{Language, QuadraticFormula, Settings};

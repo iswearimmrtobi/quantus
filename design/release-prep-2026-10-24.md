@@ -2,7 +2,7 @@
 
 What was checked, changed and found while preparing `github.com/iswearimmrtobi/quantus` to become
 public. Open work from this is in [plans.md](https://github.com/iswearimmrtobi/quantus/blob/master/plans/plans.md); how to run the tests is in
-[testing.md](testing.md).
+[testing.md](../docs/docs/contributing/testing.md).
 
 ## Status
 

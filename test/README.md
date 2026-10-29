@@ -44,7 +44,7 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 ```
 
 - `difficulty`: `easy`, `medium`, `hard` or `very-hard`, in a 40/30/20/10 split.
-- `gap: true` marks inputs that `docs/unsupported-inputs.md` lists as not implemented, such as
+- `gap: true` marks inputs that `design/unsupported-inputs.md` lists as not implemented, such as
   one-sided limits, `\infty`, `\arcsin`, `\log_b`, named constants like `c`, and units like `eV` or
   `atm`. These cases make up about 3% of the set. They count like any other case, but the summary
   reports them separately.

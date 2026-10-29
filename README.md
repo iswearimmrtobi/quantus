@@ -119,7 +119,7 @@ and the language. Settings are kept in the app's config directory.
 | 🪟 **Windows** | the MSVC build tools and WebView2 (built into Windows 10 and 11), same link |
 
 ```sh
-cargo test --workspace   # engine tests, golden files and Tauri IPC tests (see docs/docs/testing.md)
+cargo test --workspace   # engine tests, golden files and Tauri IPC tests (see docs/docs/contributing/testing.md)
 
 cd desktop
 npm install              # once; also copies the MathLive fonts to public/fonts
@@ -131,7 +131,7 @@ npm run bundle           # build the AppImage and .deb (on Windows: .exe and .ms
 > 💡 **Tip:** `npm install` has to run in `desktop/`, not in the repository root.
 
 Besides the ~500 `cargo test` tests, a generated set of 103,000 cases in `test/`
-checks the engine broadly; [`docs/docs/testing.md`](docs/docs/testing.md) explains both.
+checks the engine broadly; [`docs/docs/contributing/testing.md`](docs/docs/contributing/testing.md) explains both.
 
 <details>
 <summary><b>📦 Packaging</b></summary>
@@ -254,8 +254,8 @@ engine_info                                   → { application, precision }
 
 </details>
 
-The analysis and circuit commands are stateless; `docs/docs/analysis-mode.md` §13 and
-`docs/docs/electronics-module.md` have the full shapes.
+The analysis and circuit commands are stateless; `design/analysis-mode.md` §13 and
+`design/electronics-module.md` have the full shapes.
 
 Errors come back as `{ error, position }`. For parser errors, `position`
 (0-based) points at the spot in the input.
@@ -264,13 +264,13 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 
 | | |
 |---|---|
-| 🧪 [`docs/docs/testing.md`](docs/docs/testing.md) | Every test in the repository and how to run it |
+| 🧪 [`docs/docs/contributing/testing.md`](docs/docs/contributing/testing.md) | Every test in the repository and how to run it |
 | 🗺️ [`plans/plans.md`](plans/plans.md) | Open work and plans |
-| 📐 [`docs/docs/spec-si-rechner-v2.md`](docs/docs/spec-si-rechner-v2.md) | The specification (German) |
-| ⚡ [`docs/docs/electronics-module.md`](docs/docs/electronics-module.md) | The specification of the electronics mode |
-| 📈 [`docs/docs/analysis-mode.md`](docs/docs/analysis-mode.md) | The specification of the analysis mode (curve sketching) |
-| 🪜 [`docs/docs/step-detail.md`](docs/docs/step-detail.md) | The detail levels of the working, with an example for each step |
-| 🚧 [`docs/docs/unsupported-inputs.md`](docs/docs/unsupported-inputs.md) | What the engine supports and its known limits |
+| 📐 [`design/spec-si-rechner-v2.md`](design/spec-si-rechner-v2.md) | The specification (German) |
+| ⚡ [`design/electronics-module.md`](design/electronics-module.md) | The specification of the electronics mode |
+| 📈 [`design/analysis-mode.md`](design/analysis-mode.md) | The specification of the analysis mode (curve sketching) |
+| 🪜 [`design/step-detail.md`](design/step-detail.md) | The detail levels of the working, with an example for each step |
+| 🚧 [`design/unsupported-inputs.md`](design/unsupported-inputs.md) | What the engine supports and its known limits |
 | 🎨 [`docs/static/mockups/quantus-ui-v2.html`](docs/static/mockups/quantus-ui-v2.html) | The UI mockup the desktop styles are based on |
 
 **Languages.** Code and comments are in English. The interface is available in

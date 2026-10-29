@@ -42,7 +42,7 @@ Verified in code and unit tests, but not yet by eye in the running app:
 
 ## 3. Later
 
-- Physical constants (c, h, G) and the remaining gaps in [unsupported-inputs.md](../docs/docs/unsupported-inputs.md).
+- Physical constants (c, h, G) and the remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md).
 - History and persistence of calculations.
 - Partial derivatives and `dx` notation: the largest group of failing cases in the generated test
   set (`test/results/failures.jsonl`).
