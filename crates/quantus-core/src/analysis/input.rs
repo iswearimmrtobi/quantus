@@ -14,7 +14,7 @@ pub fn parse_function(latex: &str, variable: Option<&str>, settings: &Settings) 
     let (source, named) = blank_prefix(latex);
     let options = Settings { mode: Mode::Algebra, ..settings.clone() }.parse_options();
     let formula = parser::parse_with(&source, &options)?;
-    if let Node::Equation { .. } = formula.expression {
+    if let Node::Equation { .. } | Node::System { .. } = formula.expression {
         return Err(QuantusError::other(msg!("Enter a function, not an equation.", "Gib eine Funktion ein, keine Gleichung.")));
     }
     let var = match (variable, named) {

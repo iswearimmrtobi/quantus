@@ -199,7 +199,7 @@ pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
     match node {
         Node::Matrix { .. } => Some("matrices"),
         Node::Determinant { .. } => Some("determinants"),
-        Node::Equation { .. } => Some("equations"),
+        Node::Equation { .. } | Node::System { .. } => Some("equations"),
         Node::Function { .. } => Some("transcendental functions"),
         Node::Call { .. } => Some("integer functions"),
         Node::Sum { .. } => Some("sums"),

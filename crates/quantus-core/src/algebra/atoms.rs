@@ -171,6 +171,7 @@ fn is_opaque(node: &Node) -> bool {
         Node::Matrix { .. }
             | Node::Determinant { .. }
             | Node::Equation { .. }
+            | Node::System { .. }
             | Node::Sum { .. }
             | Node::Integral { .. }
             | Node::Limit { .. }

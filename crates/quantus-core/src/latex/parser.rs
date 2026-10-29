@@ -2,7 +2,9 @@
 //!
 //! Grammar (each level binds tighter than the one above):
 //! ```text
-//! formula     := [ label '=' ] expression [ '=' expression ]
+//! formula     := [ label '=' ] expression [ '=' expression ] | system
+//! system      := '\begin{cases}' equation ('\\' equation)* '\end{cases}' | equation (';' equation)*
+//! equation    := expression ['&'] '=' expression
 //! expression  := term ( ('+' | '-') term )*
 //! term        := unary ( ('\cdot' | '\times' | '*' | '/' | juxtaposition) unary )*
 //! unary       := ('-' | '+') unary | power
@@ -171,6 +173,11 @@ impl Parser<'_> {
         if self.tokens.len() == 1 {
             return Err(self.error("The input is empty.", 0));
         }
+        if self.starts_cases() || self.has_top_level_semicolon() {
+            let system = self.parse_system()?;
+            self.expect(TokenType::End, "the end of the input")?;
+            return Ok(Formula { label: None, expression: normalizer::normalize(system), source: self.source.to_string() });
+        }
         let label = self.parse_label()?;
         let mut expression = self.parse_expression()?;
         if self.current().kind == TokenType::Equals {
@@ -188,6 +195,87 @@ impl Parser<'_> {
     }
 
     // ---- structure -------------------------------------------------------------------
+
+    /// Whether the input opens with `\begin{cases}`.
+    fn starts_cases(&self) -> bool {
+        self.current().kind == TokenType::Command
+            && self.current().text == "\\begin"
+            && self.peek(1).kind == TokenType::LBrace
+            && self.peek(2).text == "cases"
+    }
+
+    /// Whether a `;` outside all brackets separates equations: `x + y = 3; x - y = 1`.
+    fn has_top_level_semicolon(&self) -> bool {
+        let mut depth = 0usize;
+        for token in &self.tokens[self.index..] {
+            match token.kind {
+                TokenType::LBrace | TokenType::LParen | TokenType::LBracket => depth += 1,
+                TokenType::RBrace | TokenType::RParen | TokenType::RBracket => depth = depth.saturating_sub(1),
+                TokenType::Comma if depth == 0 && token.text == ";" => return true,
+                _ => {}
+            }
+        }
+        false
+    }
+
+    /// `\begin{cases} a = b \\ c = d \end{cases}`, or the same equations separated by `;`. A
+    /// trailing `\\` or `;` is allowed.
+    fn parse_system(&mut self) -> Result<Node> {
+        let position = self.current().position;
+        let mut equations = Vec::new();
+        if self.starts_cases() {
+            self.advance();
+            self.parse_environment_name("\\begin")?;
+            while !self.is_end_command() {
+                equations.push(self.parse_system_equation()?);
+                match self.current().kind {
+                    TokenType::RowBreak => {
+                        self.advance();
+                    }
+                    _ if self.is_end_command() => {}
+                    _ => return Err(self.error("Expected '\\\\' or '\\end' after the equation.", self.current().position)),
+                }
+            }
+            self.advance(); // \end
+            let closing = self.parse_environment_name("\\end")?;
+            if closing != "cases" {
+                return Err(self.error(&format!("\\begin{{cases}} is closed by \\end{{{closing}}}."), position));
+            }
+        } else {
+            loop {
+                equations.push(self.parse_system_equation()?);
+                if !(self.current().kind == TokenType::Comma && self.current().text == ";") {
+                    break;
+                }
+                self.advance();
+                if self.current().kind == TokenType::End {
+                    break;
+                }
+            }
+        }
+        if equations.is_empty() {
+            return Err(self.error("The system has no equations.", position));
+        }
+        Ok(Node::System { equations, position })
+    }
+
+    /// One row of a system: `left = right`, where an alignment `&` may stand before the `=`.
+    fn parse_system_equation(&mut self) -> Result<Node> {
+        let left = self.parse_expression()?;
+        if self.current().kind == TokenType::Ampersand {
+            self.advance();
+        }
+        if self.current().kind != TokenType::Equals {
+            return Err(self.error("Every line of a system needs an '='.", self.current().position));
+        }
+        self.advance();
+        let right = self.parse_expression()?;
+        if self.current().kind == TokenType::Equals {
+            return Err(self.error("Only one '=' is allowed per equation.", self.current().position));
+        }
+        let position = left.position();
+        Ok(Node::Equation { left: Box::new(left), right: Box::new(right), position })
+    }
 
     /// `F =` or `r_1 =`; anything else means the input is a bare expression.
     fn parse_label(&mut self) -> Result<Option<Label>> {
@@ -652,6 +740,9 @@ impl Parser<'_> {
         let determinant = match environment.as_str() {
             "pmatrix" | "bmatrix" | "matrix" => false,
             "vmatrix" => true,
+            "cases" => {
+                return Err(self.error("A system of equations must be the whole input.", token.position));
+            }
             other => {
                 return Err(self.error(&format!("Unsupported environment '{other}'."), token.position));
             }

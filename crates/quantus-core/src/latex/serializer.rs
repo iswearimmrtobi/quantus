@@ -254,6 +254,10 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Determinant { operand, .. } => format!("\\det {}", render(operand, PRECEDENCE_ATOM, mode)),
         Node::Equation { left, right, .. } => format!("{} = {}", expression_with_mode(left, mode), expression_with_mode(right, mode)),
+        Node::System { equations, .. } => {
+            let rows: Vec<String> = equations.iter().map(|equation| expression_with_mode(equation, mode)).collect();
+            format!("\\begin{{cases}} {} \\end{{cases}}", rows.join(" \\\\ "))
+        }
     }
 }
 
@@ -476,6 +480,29 @@ mod tests {
             let once = round_trip(input);
             assert_eq!(round_trip(&once), once, "{input}");
         }
+    }
+
+    #[test]
+    fn systems_are_written_as_cases_whichever_way_they_were_typed() {
+        let expected = "\\begin{cases} 2 \\cdot x + y = 5 \\\\ x - y = 1 \\end{cases}";
+        for input in [
+            "2x + y = 5; x - y = 1",
+            "2x + y = 5; x - y = 1;",
+            "\\begin{cases} 2x + y = 5 \\\\ x - y = 1 \\end{cases}",
+            "\\begin{cases} 2x + y &= 5 \\\\ x - y &= 1 \\\\ \\end{cases}",
+        ] {
+            assert_eq!(round_trip(input), expected, "{input}");
+        }
+        assert_eq!(round_trip(expected), expected);
+    }
+
+    #[test]
+    fn a_system_needs_equations_and_must_be_the_whole_input() {
+        for input in ["x + y; x - y = 1", "x = 1 = 2; y = 3", "2 + \\begin{cases} x = 1 \\end{cases}", "\\begin{cases} x = 1 \\end{pmatrix}"] {
+            assert!(parse(input).is_err(), "{input}");
+        }
+        // A `;` inside brackets does not split the input.
+        assert!(!matches!(parse("\\max(1; 2)").map(|f| f.expression), Ok(Node::System { .. })));
     }
 
     #[test]

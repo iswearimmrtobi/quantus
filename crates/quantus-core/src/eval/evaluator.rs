@@ -179,6 +179,9 @@ impl<'a> Evaluator<'a> {
             Node::Equation { .. } => {
                 self.solve(node)?.values.into_iter().next().ok_or_else(|| QuantusError::other("The equation has no solution."))
             }
+            Node::System { .. } => Err(QuantusError::other(
+                "A system of equations must be the whole input; it cannot be part of a calculation.",
+            )),
             Node::Matrix { .. } => Err(QuantusError::other(
                 "A matrix is not a number. Take its determinant with \\det.",
             )),

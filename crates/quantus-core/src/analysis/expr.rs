@@ -234,7 +234,7 @@ impl Expr {
             Node::Call { .. } => {
                 return Err(unsupported(msg!("integer functions such as n!", "ganzzahlige Funktionen wie n!")))
             }
-            Node::Equation { .. } => {
+            Node::Equation { .. } | Node::System { .. } => {
                 return Err(QuantusError::other(msg!(
                     "Enter a function, not an equation.",
                     "Gib eine Funktion ein, keine Gleichung."

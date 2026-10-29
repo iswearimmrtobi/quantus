@@ -51,6 +51,9 @@ pub enum Node {
     Determinant { operand: Box<Node>, position: usize },
     /// `left = right` with a free variable, to be solved.
     Equation { left: Box<Node>, right: Box<Node>, position: usize },
+    /// Several equations to solve together: `\begin{cases} … \end{cases}` or `a = b; c = d`.
+    /// Only ever the whole input, and every entry is an [`Node::Equation`].
+    System { equations: Vec<Node>, position: usize },
     /// The integer and selection functions: `factorial` (`n!`), `floor` (`\lfloor x \rfloor`),
     /// `ceil`, `max` and `min` (`\max(a, b, …)`) and `mod` (`a \bmod b`).
     Call { name: String, arguments: Vec<Node>, position: usize },
@@ -80,6 +83,7 @@ impl Node {
             | Node::Matrix { position, .. }
             | Node::Determinant { position, .. }
             | Node::Equation { position, .. }
+            | Node::System { position, .. }
             | Node::Call { position, .. } => *position,
         }
     }
@@ -107,6 +111,7 @@ impl Node {
             Node::Derivative { body, at, .. } => std::iter::once(&**body).chain(at.as_deref()).collect(),
             Node::Matrix { rows, .. } => rows.iter().flatten().collect(),
             Node::Call { arguments, .. } => arguments.iter().collect(),
+            Node::System { equations, .. } => equations.iter().collect(),
         }
     }
 
@@ -134,6 +139,9 @@ impl Node {
             Node::Function { name, argument, position } => Node::Function { name, argument: b(argument), position },
             Node::Call { name, arguments, position } => {
                 Node::Call { name, arguments: arguments.into_iter().map(&mut *f).collect(), position }
+            }
+            Node::System { equations, position } => {
+                Node::System { equations: equations.into_iter().map(&mut *f).collect(), position }
             }
             Node::Binomial { n, k, position } => Node::Binomial { n: b(n), k: b(k), position },
             Node::Sum { index, from, to, body, position } => {

@@ -121,6 +121,7 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
         | Node::Matrix { .. }
         | Node::Determinant { .. }
         | Node::Equation { .. }
+        | Node::System { .. }
         | Node::Call { .. } => {
             if !depends_on(node, var) {
                 return Ok(number(0, position));
