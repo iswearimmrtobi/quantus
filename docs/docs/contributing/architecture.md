@@ -56,6 +56,8 @@ build bundles it.
 Dependencies point one way: numbers ← quantities ← units ← LaTeX I/O ← evaluation. The Tauri
 commands know nothing but `api` and `SessionStore`.
 
+The path of one input through these modules is drawn in [How an input is solved](solving.md).
+
 ## Principles
 
 - **Exact first.** Arithmetic stays exact (rationals, symbolic $\pi$ and roots) until the result

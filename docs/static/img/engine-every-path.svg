@@ -1,0 +1,1506 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 15272.0" width="2400" height="15272.0" role="img" aria-labelledby="title">
+<title id="title">The Quantus engine, every path</title>
+<defs>
+<style>
+  text{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#1f2328}
+  .bg{fill:#fbfaf7}
+  .h0{font-size:40px;font-weight:800;fill:#1b2559}
+  .h0s{font-size:18px;fill:#59636e}
+  .ph{font-size:26px;font-weight:750;fill:#1b2559}
+  .ps{font-size:16px;fill:#59636e}
+  .pc{fill:#2d3a8c}
+  .pcl{font-size:20px;font-weight:800;fill:#fff}
+  .panel{fill:#f4f3ee;stroke:#dad6ca;stroke-width:1.5}
+  .lane{fill:#eceae2;stroke:#d6d2c4}
+  .lt{font-size:19px;font-weight:750;fill:#2d3a8c}
+  .ls{font-size:14px;fill:#6a737d;font-family:'JetBrains Mono',ui-monospace,monospace}
+  .t{font-size:16.5px;font-weight:680}
+  .b{font-size:15px;fill:#373e47}
+  .st{font-size:15px;font-weight:700;fill:#2d3a8c}
+  .eb{font-size:15px;fill:#a4262c}
+  .sb{font-size:15px;fill:#7a5300}
+  .mth{fill:#1f2328}
+  .m{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px}
+  .tl{font-size:16px;font-weight:650;fill:#fff}
+  .tg2{font-size:15px;font-weight:600;fill:#59636e}
+  .el{font-size:14px;font-weight:600;fill:#a4262c}
+  .lbl{font-size:14px;fill:#6e4f00;font-style:italic}
+  .tg{font-size:12.5px;font-weight:650;fill:#7a5300}
+  .tag{fill:#fff3cd;stroke:#d9a400}
+  .p{fill:#fff;stroke:#8c98dc;stroke-width:1.5}
+  .q{fill:#fff;stroke:#b8b3a3;stroke-width:1.2;stroke-dasharray:5 4}
+  .k{fill:#eef1ff;stroke:#3f51b5;stroke-width:2}
+  .n{fill:#fffdf5;stroke:#e0cf98;stroke-width:1.2}
+  .x{fill:#f6f6f6;stroke:#c4c4c4;stroke-width:1.2}
+  .d{fill:#fff6db;stroke:#c99a06;stroke-width:1.6}
+  .term{fill:#2d3a8c}
+  .grey{fill:#e4e4e4}
+  .err{fill:#fdecec;stroke:#d9534f;stroke-width:1.2}
+  .a{fill:none;stroke:#57606a;stroke-width:1.7}
+  .dash{stroke-dasharray:7 5}
+  .dot{fill:#7d8bd6}
+  .cn{fill:#fff;stroke:#2d3a8c;stroke-width:2.2}
+  .cnl{font-size:16px;font-weight:800;fill:#2d3a8c}
+  .th{font-size:15px;font-weight:700;fill:#2d3a8c}
+  .row{fill:#fff;stroke:#e2dfd5}
+</style>
+<marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker>
+</defs>
+<rect x="0" y="0" width="2400" height="15272.0" class="bg"/>
+<text x="40.0" y="78.0" class="h0" text-anchor="start">The Quantus engine, every path</text>
+<text x="40.0" y="114.0" class="h0s" text-anchor="start">How quantus-core turns an input into a result, the working and the errors: all commands, all node types, all modes except Electronics.</text>
+<text x="40.0" y="140.0" class="h0s" text-anchor="start">Read each panel top to bottom. A circled letter jumps to the panel with that letter. Taken from the code on the dev branch.</text>
+<rect x="1520" y="40" width="840" height="150" rx="14" class="row"/>
+<rect x="1540.0" y="58.0" width="150.0" height="36" rx="18.0" class="term"/>
+<text x="1615.0" y="81.5" class="tl" text-anchor="middle">command</text>
+<rect x="1710.0" y="54.0" width="120.0" height="45.0" rx="9" class="p"/>
+<text x="1770.0" y="82.0" class="b" text-anchor="middle">a step</text>
+<polygon points="1910,46 1970.0,77.0 1910,108 1850.0,77.0" class="d"/>
+<text x="1910.0" y="82.0" class="t" text-anchor="middle">decision</text>
+<rect x="1990.0" y="62.0" width="179.3" height="28" rx="14" class="err"/>
+<text x="2079.7" y="81.0" class="el" text-anchor="middle">error → ErrorResponse</text>
+<circle cx="2240.0" cy="76.0" r="17" class="cn"/>
+<text x="2240.0" y="82.0" class="cnl" text-anchor="middle">D</text>
+<text x="2266.0" y="81.0" class="lbl" text-anchor="start">jump to panel</text>
+<rect x="1540.0" y="122.0" width="180.0" height="66.0" rx="9" class="k"/>
+<text x="1630.0" y="150.0" class="b" text-anchor="middle">working the user</text>
+<text x="1630.0" y="171.0" class="b" text-anchor="middle">sees</text>
+<rect x="1740.0" y="122.0" width="150.0" height="45.0" rx="9" class="n"/>
+<text x="1815.0" y="150.0" class="b" text-anchor="middle">a note</text>
+<rect x="1910.0" y="122.0" width="200.0" height="45.0" rx="9" class="p"/>
+<text x="2010.0" y="150.0" class="b" text-anchor="middle">depends on a setting</text>
+<rect x="2024.6" y="111.0" width="77.4" height="22" rx="11" class="tag"/>
+<text x="2063.3" y="126.5" class="tg" text-anchor="middle">⚙ setting</text>
+<rect x="2130.0" y="122.0" width="200.0" height="45.0" rx="9" class="x"/>
+<text x="2230.0" y="150.0" class="b" text-anchor="middle">not shown in the app</text>
+<rect x="30" y="230" width="2340" height="379" rx="18" class="panel"/>
+<circle cx="68" cy="270" r="20" class="pc"/>
+<text x="68.0" y="277.0" class="pcl" text-anchor="middle">A</text>
+<text x="102.0" y="278.0" class="ph" text-anchor="start">Commands</text>
+<text x="102.0" y="304.0" class="ps" text-anchor="start">What a transport (the Tauri shell) calls in api.rs. Each one is a function without state of its own; the SessionStore holds sessions and settings.</text>
+<rect x="60.0" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
+<text x="193.8" y="357.5" class="tl" text-anchor="middle">evaluate</text>
+<path d="M193.8,374.0 L193.8,406.0" class="a" marker-end="url(#h)"/>
+<rect x="60.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
+<text x="74.0" y="432.0" class="b" text-anchor="start">The calculator: one input of</text>
+<text x="74.0" y="453.0" class="b" text-anchor="start">the session.</text>
+<text x="74.0" y="474.0" class="b" text-anchor="start">Algebra, Physics and</text>
+<text x="74.0" y="495.0" class="b" text-anchor="start">Imaginary mode.</text>
+<path d="M193.8,535.0 L193.8,565.0" class="a" marker-end="url(#h)"/>
+<circle cx="193.8" cy="582.0" r="17" class="cn"/>
+<text x="193.8" y="588.0" class="cnl" text-anchor="middle">B</text>
+<rect x="347.5" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
+<text x="481.2" y="357.5" class="tl" text-anchor="middle">define_variable</text>
+<path d="M481.2,374.0 L481.2,406.0" class="a" marker-end="url(#h)"/>
+<rect x="347.5" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
+<text x="361.5" y="434.0" class="b" text-anchor="start">Only through the API, the app</text>
+<text x="361.5" y="455.0" class="b" text-anchor="start">uses evaluate.</text>
+<text x="361.5" y="476.0" class="b" text-anchor="start">evaluate, then it must have</text>
+<text x="361.5" y="497.0" class="b" text-anchor="start">stored a variable, else</text>
+<text x="361.5" y="518.0" class="b" text-anchor="start">error.</text>
+<path d="M481.2,535.0 L481.2,565.0" class="a" marker-end="url(#h)"/>
+<circle cx="481.2" cy="582.0" r="17" class="cn"/>
+<text x="481.2" y="588.0" class="cnl" text-anchor="middle">B</text>
+<rect x="635.0" y="330" width="267.5" height="64" rx="22" class="term"/>
+<text x="768.8" y="356.0" class="tl" text-anchor="middle">list_variables ·</text>
+<text x="768.8" y="377.0" class="tl" text-anchor="middle">delete_variable</text>
+<path d="M768.8,394.0 L768.8,406.0" class="a" marker-end="url(#h)"/>
+<rect x="635.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
+<text x="649.0" y="432.0" class="b" text-anchor="start">The session&#x27;s variables in</text>
+<text x="649.0" y="453.0" class="b" text-anchor="start">the order they were defined.</text>
+<text x="649.0" y="474.0" class="b" text-anchor="start">Sessions are keyed by the id</text>
+<text x="649.0" y="495.0" class="b" text-anchor="start">the client sends.</text>
+<rect x="922.5" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
+<text x="1056.2" y="357.5" class="tl" text-anchor="middle">get_settings · set_settings</text>
+<path d="M1056.2,374.0 L1056.2,406.0" class="a" marker-end="url(#h)"/>
+<rect x="922.5" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
+<text x="936.5" y="432.0" class="b" text-anchor="start">Shared by all sessions.</text>
+<text x="936.5" y="453.0" class="b" text-anchor="start">set_settings checks the</text>
+<text x="936.5" y="474.0" class="b" text-anchor="start">precision: 1 … 10 000, else</text>
+<text x="936.5" y="495.0" class="b" text-anchor="start">error.</text>
+<rect x="1210.0" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
+<text x="1343.8" y="357.5" class="tl" text-anchor="middle">analyze</text>
+<path d="M1343.8,374.0 L1343.8,406.0" class="a" marker-end="url(#h)"/>
+<rect x="1210.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
+<text x="1224.0" y="432.0" class="b" text-anchor="start">Analysis mode: the whole</text>
+<text x="1224.0" y="453.0" class="b" text-anchor="start">curve sketch of one function.</text>
+<text x="1224.0" y="474.0" class="b" text-anchor="start">Stateless.</text>
+<path d="M1343.8,535.0 L1343.8,565.0" class="a" marker-end="url(#h)"/>
+<circle cx="1343.8" cy="582.0" r="17" class="cn"/>
+<text x="1343.8" y="588.0" class="cnl" text-anchor="middle">G</text>
+<rect x="1497.5" y="330" width="267.5" height="64" rx="22" class="term"/>
+<text x="1631.2" y="356.0" class="tl" text-anchor="middle">tangent · area_under_curve ·</text>
+<text x="1631.2" y="377.0" class="tl" text-anchor="middle">value_table</text>
+<path d="M1631.2,394.0 L1631.2,406.0" class="a" marker-end="url(#h)"/>
+<rect x="1497.5" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
+<text x="1511.5" y="432.0" class="b" text-anchor="start">The tasks beside the curve</text>
+<text x="1511.5" y="453.0" class="b" text-anchor="start">sketch. Stateless.</text>
+<path d="M1631.2,535.0 L1631.2,565.0" class="a" marker-end="url(#h)"/>
+<circle cx="1631.2" cy="582.0" r="17" class="cn"/>
+<text x="1631.2" y="588.0" class="cnl" text-anchor="middle">J</text>
+<rect x="1785.0" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
+<text x="1918.8" y="357.5" class="tl" text-anchor="middle">sample_function</text>
+<path d="M1918.8,374.0 L1918.8,406.0" class="a" marker-end="url(#h)"/>
+<rect x="1785.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
+<text x="1799.0" y="432.0" class="b" text-anchor="start">Fresh curve points when the</text>
+<text x="1799.0" y="453.0" class="b" text-anchor="start">plot is panned or zoomed.</text>
+<path d="M1918.8,535.0 L1918.8,565.0" class="a" marker-end="url(#h)"/>
+<circle cx="1918.8" cy="582.0" r="17" class="cn"/>
+<text x="1918.8" y="588.0" class="cnl" text-anchor="middle">J</text>
+<rect x="2072.5" y="330.0" width="267.5" height="44" rx="22.0" class="grey"/>
+<text x="2206.2" y="357.5" class="tg2" text-anchor="middle">solve_circuit</text>
+<path d="M2206.2,374.0 L2206.2,406.0" class="a" marker-end="url(#h)"/>
+<rect x="2072.5" y="406.0" width="267.5" height="129.0" rx="9" class="x"/>
+<text x="2086.5" y="432.0" class="b" text-anchor="start">Electronics mode: MNA solver,</text>
+<text x="2086.5" y="453.0" class="b" text-anchor="start">Newton iteration, reverse</text>
+<text x="2086.5" y="474.0" class="b" text-anchor="start">solving. Hidden in the app</text>
+<text x="2086.5" y="495.0" class="b" text-anchor="start">and not drawn here.</text>
+<rect x="30" y="669" width="2340" height="1449.0" rx="18" class="panel"/>
+<circle cx="600.0" cy="779.0" r="17" class="cn"/>
+<text x="600.0" y="785.0" class="cnl" text-anchor="middle">A</text>
+<text x="626.0" y="784.0" class="lbl" text-anchor="start">from evaluate / define_variable</text>
+<rect x="70.0" y="819.0" width="1060.0" height="158.0" rx="9" class="p"/>
+<text x="84.0" y="847.0" class="t" text-anchor="start">Session::evaluate_with</text>
+<circle cx="89.0" cy="871.0" r="2.6" class="dot"/>
+<text x="100.0" y="876.0" class="b" text-anchor="start">Settings: the store&#x27;s, shared by all sessions.</text>
+<circle cx="89.0" cy="892.0" r="2.6" class="dot"/>
+<text x="100.0" y="897.0" class="b" text-anchor="start">Precision: the request&#x27;s if it has one, else the setting.</text>
+<text x="84.0" y="918.0" class="eb">✕</text>
+<text x="100.0" y="918.0" class="eb" text-anchor="start">A precision outside 1 … 10 000: error.</text>
+<circle cx="89.0" cy="934.0" r="2.6" class="dot"/>
+<text x="100.0" y="939.0" class="b" text-anchor="start">Variables: the session&#x27;s, as exact quantities, keyed like <tspan class="m">v_1</tspan> or <tspan class="m">\omega_0</tspan>.</text>
+<circle cx="89.0" cy="955.0" r="2.6" class="dot"/>
+<text x="100.0" y="960.0" class="b" text-anchor="start">A LatexCalculator is built with precision and settings; the mode decides how the input is read (panel B, right).</text>
+<path d="M600.0,796.0 L600.0,819.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="1013.0" width="1060.0" height="137.0" rx="9" class="p"/>
+<text x="84.0" y="1041.0" class="t" text-anchor="start">Lexer   latex/lexer.rs</text>
+<circle cx="89.0" cy="1065.0" r="2.6" class="dot"/>
+<text x="100.0" y="1070.0" class="b" text-anchor="start">Numbers keep their decimal form as text: <tspan class="m">9{,}81</tspan>, <tspan class="m">9,81</tspan> and <tspan class="m">9.81</tspan> all become <tspan class="m">9.81</tspan>; no float ever.</text>
+<circle cx="89.0" cy="1086.0" r="2.6" class="dot"/>
+<text x="100.0" y="1091.0" class="b" text-anchor="start">Visual markup disappears: spacing (<tspan class="m">\,</tspan>, <tspan class="m">\quad</tspan>) and <tspan class="m">\left</tspan> / <tspan class="m">\right</tspan>.</text>
+<circle cx="89.0" cy="1107.0" r="2.6" class="dot"/>
+<text x="100.0" y="1112.0" class="b" text-anchor="start">Tokens: numbers, identifiers (letter runs, Greek commands), commands, operators, <tspan class="m">|</tspan>, <tspan class="m">&amp;</tspan>, <tspan class="m">\\</tspan>, braces.</text>
+<text x="84.0" y="1133.0" class="eb">✕</text>
+<text x="100.0" y="1133.0" class="eb" text-anchor="start">An empty input or a character it does not know: error with its position.</text>
+<path d="M600.0,977.0 L600.0,1013.0" class="a" marker-end="url(#h)"/>
+<polygon points="600.0,1186 860.0,1236.0 600.0,1286 340.0,1236.0" class="d"/>
+<text x="600.0" y="1230.5" class="t" text-anchor="middle">Starts with \begin{cases},</text>
+<text x="600.0" y="1251.5" class="b" text-anchor="middle">or a ; outside all brackets?</text>
+<path d="M600.0,1150.0 L600.0,1186.0" class="a" marker-end="url(#h)"/>
+<rect x="800.0" y="1316.0" width="330.0" height="116.0" rx="9" class="p"/>
+<text x="814.0" y="1344.0" class="t" text-anchor="start">Parse a system</text>
+<text x="814.0" y="1373.0" class="b" text-anchor="start">Equations separated by <tspan class="m">\\</tspan> or <tspan class="m">;</tspan>.</text>
+<text x="814.0" y="1394.0" class="eb">✕</text>
+<text x="830.0" y="1394.0" class="eb" text-anchor="start">A line that is not an equation:</text>
+<text x="830.0" y="1415.0" class="eb" text-anchor="start">error.</text>
+<path d="M860.0,1236.0 L965.0,1236.0 L965.0,1316.0" class="a" marker-end="url(#h)"/>
+<text x="872.0" y="1226.0" class="lbl" text-anchor="start">yes</text>
+<rect x="70.0" y="1316.0" width="690.0" height="116.0" rx="9" class="p"/>
+<text x="84.0" y="1344.0" class="t" text-anchor="start">Label?</text>
+<text x="84.0" y="1373.0" class="b" text-anchor="start">An identifier, optionally with a subscript, directly followed by <tspan class="m">=</tspan>: <tspan class="m">F =</tspan>, <tspan class="m">v_1 =</tspan>.</text>
+<text x="84.0" y="1394.0" class="b" text-anchor="start">Note: <tspan class="m">x = 2x + 1</tspan> is read the same way. x becomes a label and <tspan class="m">2x + 1</tspan> an</text>
+<text x="84.0" y="1415.0" class="b" text-anchor="start">expression, so it is simplified, not solved.</text>
+<path d="M600.0,1286.0 L600.0,1316.0" class="a" marker-end="url(#h)"/>
+<text x="608.0" y="1306.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="1468.0" width="690.0" height="221.0" rx="9" class="p"/>
+<text x="84.0" y="1496.0" class="t" text-anchor="start">Parse the expression   recursive descent</text>
+<text x="84.0" y="1525.0" class="b" text-anchor="start">sum → product (<tspan class="m">\cdot</tspan>, <tspan class="m">\times</tspan>, <tspan class="m">*</tspan>, <tspan class="m">/</tspan>, <tspan class="m">\div</tspan>, <tspan class="m">\bmod</tspan>, juxtaposition) → sign → power</text>
+<text x="84.0" y="1546.0" class="b" text-anchor="start">→ atom</text>
+<text x="84.0" y="1567.0" class="b" text-anchor="start">Atoms: numbers, identifiers (see the right), <tspan class="m">\frac</tspan>, <tspan class="m">\sqrt[n]{}</tspan>, functions (<tspan class="m">\sin</tspan></text>
+<text x="84.0" y="1588.0" class="b" text-anchor="start">… <tspan class="m">\arctan</tspan>, <tspan class="m">\ln</tspan>, <tspan class="m">\log_b</tspan>, <tspan class="m">\exp</tspan>, hyperbolic, <tspan class="m">\Re</tspan>, <tspan class="m">\Im</tspan>, <tspan class="m">\arg</tspan>, <tspan class="m">\overline</tspan>), <tspan class="m">\sum</tspan>,</text>
+<text x="84.0" y="1609.0" class="b" text-anchor="start"><tspan class="m">\int … dx</tspan>, <tspan class="m">\lim</tspan>, <tspan class="m">\frac{d}{dx}</tspan> with <tspan class="m">|_{x=a}</tspan>, <tspan class="m">pmatrix</tspan>, <tspan class="m">\det</tspan>, <tspan class="m">\binom</tspan>, <tspan class="m">|…|</tspan>,</text>
+<text x="84.0" y="1630.0" class="b" text-anchor="start"><tspan class="m">^\circ</tspan>, factorial, floor, ceil, mod, max, min, and <tspan class="m">\mathrm</tspan>, <tspan class="m">\text</tspan>, <tspan class="m">\qty</tspan> (where</text>
+<text x="84.0" y="1651.0" class="b" text-anchor="start">every identifier must be a unit).</text>
+<text x="84.0" y="1672.0" class="eb">✕</text>
+<text x="100.0" y="1672.0" class="eb" text-anchor="start">Anything else: error naming the position.</text>
+<path d="M415.0,1432.0 L415.0,1468.0" class="a" marker-end="url(#h)"/>
+<polygon points="415.0,1725 565.0,1780.0 415.0,1835 265.0,1780.0" class="d"/>
+<text x="415.0" y="1785.0" class="t" text-anchor="middle">Another =?</text>
+<path d="M415.0,1689.0 L415.0,1725.0" class="a" marker-end="url(#h)"/>
+<rect x="610.0" y="1740.0" width="250.0" height="80.0" rx="9" class="p"/>
+<text x="735.0" y="1766.0" class="t" text-anchor="middle">Equation node</text>
+<text x="735.0" y="1795.0" class="b" text-anchor="middle">left = right</text>
+<path d="M565.0,1780.0 L610.0,1780.0" class="a" marker-end="url(#h)"/>
+<text x="573.0" y="1770.0" class="lbl" text-anchor="start">yes</text>
+<rect x="610.0" y="1838.0" width="281.5" height="28" rx="14" class="err"/>
+<text x="750.8" y="1857.0" class="el" text-anchor="middle">a third = → Only one &#x27;=&#x27; is allowed</text>
+<path d="M640.0,1820.0 L640.0,1838.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="1916.0" width="1060.0" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="1944.0" class="t" text-anchor="start">Normalize   latex/normalizer.rs</text>
+<text x="84.0" y="1973.0" class="b" text-anchor="start">Every <tspan class="m">/</tspan> becomes <tspan class="m">\frac{}{}</tspan> with ordinary precedence: <tspan class="m">a \cdot b / c</tspan> = <tspan class="m">\frac{a \cdot b}{c}</tspan>; a chain shares one denominator,</text>
+<text x="84.0" y="1994.0" class="b" text-anchor="start"><tspan class="m">a/b/c</tspan> = <tspan class="m">\frac{a}{b \cdot c}</tspan>; brackets end a chain.</text>
+<path d="M415.0,1835.0 L415.0,1916.0" class="a" marker-end="url(#h)"/>
+<text x="423.0" y="1857.0" class="lbl" text-anchor="start">no</text>
+<path d="M860.0,1780.0 L930.0,1780.0 L930.0,1916.0" class="a" marker-end="url(#h)"/>
+<path d="M965.0,1432.0 L965.0,1916.0" class="a" marker-end="url(#h)"/>
+<circle cx="600.0" cy="2061.0" r="17" class="cn"/>
+<text x="600.0" y="2067.0" class="cnl" text-anchor="middle">C</text>
+<text x="626.0" y="2066.0" class="lbl" text-anchor="start">to the dispatch</text>
+<path d="M600.0,2011.0 L600.0,2044.0" class="a" marker-end="url(#h)"/>
+<rect x="1190" y="769" width="1140" height="844" rx="14" class="lane"/>
+<text x="1210.0" y="801.0" class="lt" text-anchor="start">How an identifier is classified</text>
+<text x="2310.0" y="801.0" class="ls" text-anchor="end">latex/parser.rs</text>
+<rect x="1220.0" y="829.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="857.0" class="t" text-anchor="start">0  Bound by an enclosing \sum, \int or \lim?</text>
+<text x="1234.0" y="886.0" class="b" text-anchor="start">→ that variable. Wins over units and constants, so <tspan class="m">i</tspan> in <tspan class="m">\sum_{i=1}^{3} i</tspan> is the index.</text>
+<rect x="1220.0" y="937.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="965.0" class="t" text-anchor="start">1  Has a subscript?</text>
+<text x="1234.0" y="994.0" class="b" text-anchor="start">→ a variable: <tspan class="m">v_1</tspan>, <tspan class="m">\omega_0</tspan>. Only these can be defined.</text>
+<path d="M1760.0,903.0 L1760.0,937.0" class="a" marker-end="url(#h)"/>
+<text x="1768.0" y="925.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="1045.0" width="1080.0" height="137.0" rx="9" class="p"/>
+<text x="1234.0" y="1073.0" class="t" text-anchor="start">2  The longest run of identifiers is a unit?</text>
+<text x="1234.0" y="1102.0" class="b" text-anchor="start">→ a unit: <tspan class="m">kg</tspan>, <tspan class="m">mN</tspan>, <tspan class="m">\mu m</tspan> (µm). Greedy, so <tspan class="m">m s</tspan> is a millisecond; products of units need <tspan class="m">\cdot</tspan>.</text>
+<text x="1233.0" y="1123.0" class="sb">⚙</text>
+<text x="1250.0" y="1123.0" class="sb" text-anchor="start">Skipped in Algebra, Imaginary and Analysis mode.</text>
+<text x="1233.0" y="1144.0" class="sb">⚙</text>
+<text x="1250.0" y="1144.0" class="sb" text-anchor="start">a and y are variables unless &#x27;a and y as variables&#x27; is off.</text>
+<text x="1233.0" y="1165.0" class="sb">⚙</text>
+<text x="1250.0" y="1165.0" class="sb" text-anchor="start">t, u and in are units only with &#x27;extra unit letters&#x27;.</text>
+<path d="M1760.0,1011.0 L1760.0,1045.0" class="a" marker-end="url(#h)"/>
+<text x="1768.0" y="1033.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="1216.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="1244.0" class="t" text-anchor="start">3  A constant?</text>
+<text x="1234.0" y="1273.0" class="b" text-anchor="start">→ <tspan class="m">\pi</tspan>, <tspan class="m">e</tspan>; <tspan class="m">i</tspan> is the imaginary unit only in Imaginary mode, otherwise a variable.</text>
+<path d="M1760.0,1182.0 L1760.0,1216.0" class="a" marker-end="url(#h)"/>
+<text x="1768.0" y="1204.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="1324.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="1352.0" class="t" text-anchor="start">4  A single letter or Greek letter?</text>
+<text x="1234.0" y="1381.0" class="b" text-anchor="start">→ a free variable without index: <tspan class="m">x</tspan>, <tspan class="m">\theta</tspan>.</text>
+<path d="M1760.0,1290.0 L1760.0,1324.0" class="a" marker-end="url(#h)"/>
+<text x="1768.0" y="1312.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="1432.0" width="1080.0" height="95.0" rx="9" class="p"/>
+<text x="1234.0" y="1460.0" class="t" text-anchor="start">5  A run of letters that are each a variable?</text>
+<text x="1234.0" y="1489.0" class="b" text-anchor="start">→ their product, <tspan class="m">ab</tspan> = <tspan class="m">a \cdot b</tspan>.</text>
+<text x="1233.0" y="1510.0" class="sb">⚙</text>
+<text x="1250.0" y="1510.0" class="sb" text-anchor="start">Only with &#x27;letter products&#x27;; <tspan class="m">xm</tspan> stays an error.</text>
+<path d="M1760.0,1398.0 L1760.0,1432.0" class="a" marker-end="url(#h)"/>
+<text x="1768.0" y="1420.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="1555.0" width="354.5" height="28" rx="14" class="err"/>
+<text x="1397.2" y="1574.0" class="el" text-anchor="middle">6  otherwise: parse error naming the position</text>
+<path d="M1280.0,1527.0 L1280.0,1555.0" class="a" marker-end="url(#h)"/>
+<text x="1288.0" y="1547.0" class="lbl" text-anchor="start">no</text>
+<rect x="1190" y="1653" width="1140" height="286" rx="14" class="lane"/>
+<text x="1210.0" y="1685.0" class="lt" text-anchor="start">What the mode changes</text>
+<text x="2310.0" y="1685.0" class="ls" text-anchor="end">settings.rs · parse_options</text>
+<rect x="1220" y="1699" width="1080" height="36" class="row"/>
+<text x="1232.0" y="1723.0" class="th" text-anchor="start">Mode</text>
+<text x="1422.0" y="1723.0" class="th" text-anchor="start">Units in the input</text>
+<text x="1657.0" y="1723.0" class="th" text-anchor="start">Physical constants c_0, h_P, …</text>
+<text x="1917.0" y="1723.0" class="th" text-anchor="start">i</text>
+<text x="2067.0" y="1723.0" class="th" text-anchor="start">Complex results</text>
+<text x="2207.0" y="1723.0" class="th" text-anchor="start">Used by</text>
+<rect x="1220" y="1735" width="1080" height="36" class="row"/>
+<text x="1232.0" y="1759.0" class="th" text-anchor="start">Physics (default)</text>
+<text x="1422.0" y="1759.0" class="b" text-anchor="start">yes</text>
+<text x="1657.0" y="1759.0" class="b" text-anchor="start">yes</text>
+<text x="1917.0" y="1759.0" class="b" text-anchor="start">a variable</text>
+<text x="2067.0" y="1759.0" class="b" text-anchor="start">error</text>
+<text x="2207.0" y="1759.0" class="b" text-anchor="start">evaluate</text>
+<rect x="1220" y="1771" width="1080" height="36" class="row"/>
+<text x="1232.0" y="1795.0" class="th" text-anchor="start">Algebra</text>
+<text x="1422.0" y="1795.0" class="b" text-anchor="start">no: letters are variables</text>
+<text x="1657.0" y="1795.0" class="b" text-anchor="start">no</text>
+<text x="1917.0" y="1795.0" class="b" text-anchor="start">a variable</text>
+<text x="2067.0" y="1795.0" class="b" text-anchor="start">error</text>
+<text x="2207.0" y="1795.0" class="b" text-anchor="start">evaluate</text>
+<rect x="1220" y="1807" width="1080" height="36" class="row"/>
+<text x="1232.0" y="1831.0" class="th" text-anchor="start">Imaginary</text>
+<text x="1422.0" y="1831.0" class="b" text-anchor="start">no</text>
+<text x="1657.0" y="1831.0" class="b" text-anchor="start">no</text>
+<text x="1917.0" y="1831.0" class="b" text-anchor="start">imaginary unit</text>
+<text x="2067.0" y="1831.0" class="b" text-anchor="start">a + bi</text>
+<text x="2207.0" y="1831.0" class="b" text-anchor="start">evaluate</text>
+<rect x="1220" y="1843" width="1080" height="36" class="row"/>
+<text x="1232.0" y="1867.0" class="th" text-anchor="start">Analysis</text>
+<text x="1422.0" y="1867.0" class="b" text-anchor="start">no (read as Algebra)</text>
+<text x="1657.0" y="1867.0" class="b" text-anchor="start">no</text>
+<text x="1917.0" y="1867.0" class="b" text-anchor="start">a variable</text>
+<text x="2067.0" y="1867.0" class="b" text-anchor="start">error</text>
+<text x="2207.0" y="1867.0" class="b" text-anchor="start">analyze, tasks</text>
+<rect x="1220" y="1879" width="1080" height="36" class="row"/>
+<text x="1232.0" y="1903.0" class="th" text-anchor="start">Electronics</text>
+<text x="1422.0" y="1903.0" class="b" text-anchor="start">yes (read as Physics)</text>
+<text x="1657.0" y="1903.0" class="b" text-anchor="start">yes</text>
+<text x="1917.0" y="1903.0" class="b" text-anchor="start">a variable</text>
+<text x="2067.0" y="1903.0" class="b" text-anchor="start">error</text>
+<text x="2207.0" y="1903.0" class="b" text-anchor="start">solve_circuit</text>
+<!-- B end -->
+<circle cx="68" cy="709" r="20" class="pc"/>
+<text x="68.0" y="716.0" class="pcl" text-anchor="middle">B</text>
+<text x="102.0" y="717.0" class="ph" text-anchor="start">Reading the input</text>
+<text x="102.0" y="743.0" class="ps" text-anchor="start">evaluate: from the LaTeX string to a tree. The same parser serves Analysis mode (panel G).</text>
+<rect x="30" y="2178.0" width="2340" height="1945.0" rx="18" class="panel"/>
+<rect x="60" y="2508.0" width="680" height="1505.0" rx="14" class="lane"/>
+<text x="80" y="2542.0" class="lt">System</text>
+<text x="720" y="2542.0" class="ls" text-anchor="end">eval/system.rs</text>
+<rect x="770" y="2508.0" width="860" height="1505.0" rx="14" class="lane"/>
+<text x="790" y="2542.0" class="lt">Equation with one unknown</text>
+<text x="1610" y="2542.0" class="ls" text-anchor="end">eval/solver.rs</text>
+<rect x="1660" y="2508.0" width="680" height="1505.0" rx="14" class="lane"/>
+<text x="1680" y="2542.0" class="lt">Expression</text>
+<text x="2320" y="2542.0" class="ls" text-anchor="end">eval/calculator.rs · evaluator.rs</text>
+<circle cx="1200.0" cy="2288.0" r="17" class="cn"/>
+<text x="1200.0" y="2294.0" class="cnl" text-anchor="middle">B</text>
+<text x="1226.0" y="2293.0" class="lbl" text-anchor="start">from the parser</text>
+<polygon points="1200.0,2328.0 1480.0,2383.0 1200.0,2438.0 920.0,2383.0" class="d"/>
+<text x="1200.0" y="2388.0" class="t" text-anchor="middle">What did the parser build?</text>
+<path d="M1200.0,2305.0 L1200.0,2328.0" class="a" marker-end="url(#h)"/>
+<rect x="90.0" y="2568.0" width="620.0" height="116.0" rx="9" class="p"/>
+<text x="104.0" y="2596.0" class="t" text-anchor="start">Collect the unknowns</text>
+<text x="104.0" y="2625.0" class="b" text-anchor="start">Letters without subscript and without a value, outside whatever binds</text>
+<text x="104.0" y="2646.0" class="b" text-anchor="start">them; sorted alphabetically: x, y, z.</text>
+<text x="104.0" y="2667.0" class="eb">✕</text>
+<text x="120.0" y="2667.0" class="eb" text-anchor="start">None: &#x27;The system has no unknown to solve for.&#x27;</text>
+<rect x="90.0" y="2720.0" width="620.0" height="179.0" rx="9" class="p"/>
+<text x="104.0" y="2748.0" class="t" text-anchor="start">Read off one row per equation</text>
+<text x="104.0" y="2777.0" class="b" text-anchor="start">Residual r = left − right, evaluated exactly with the unknowns put in.</text>
+<circle cx="109.0" cy="2793.0" r="2.6" class="dot"/>
+<text x="120.0" y="2798.0" class="b" text-anchor="start">constant: r(0, …, 0); coefficient a_j: r(e_j) − r(0)</text>
+<circle cx="109.0" cy="2814.0" r="2.6" class="dot"/>
+<text x="120.0" y="2819.0" class="b" text-anchor="start">check at three more points built from 2, −7/3, 5, 11/2, −1000</text>
+<text x="104.0" y="2840.0" class="eb">✕</text>
+<text x="120.0" y="2840.0" class="eb" text-anchor="start">The check misses, or r is undefined at a point: The system is not</text>
+<text x="120.0" y="2861.0" class="eb" text-anchor="start">linear in x, y.</text>
+<text x="104.0" y="2882.0" class="eb">✕</text>
+<text x="120.0" y="2882.0" class="eb" text-anchor="start">A dimension mismatch or a variable without value: that error.</text>
+<path d="M400.0,2684.0 L400.0,2720.0" class="a" marker-end="url(#h)"/>
+<rect x="90.0" y="2935.0" width="620.0" height="116.0" rx="9" class="p"/>
+<text x="104.0" y="2963.0" class="t" text-anchor="start">Gauss–Jordan elimination, exact   linear.rs</text>
+<text x="104.0" y="2992.0" class="b" text-anchor="start">Column by column: swap rows to get a pivot, divide the row by its pivot,</text>
+<text x="104.0" y="3013.0" class="b" text-anchor="start">subtract multiples from the other rows. Every operation is logged with</text>
+<text x="104.0" y="3034.0" class="b" text-anchor="start">the matrix after it.</text>
+<path d="M400.0,2899.0 L400.0,2935.0" class="a" marker-end="url(#h)"/>
+<polygon points="400.0,3087.0 550.0,3137.0 400.0,3187.0 250.0,3137.0" class="d"/>
+<text x="400.0" y="3142.0" class="t" text-anchor="middle">Outcome?</text>
+<path d="M400.0,3051.0 L400.0,3087.0" class="a" marker-end="url(#h)"/>
+<rect x="90.0" y="3207.0" width="215.8" height="28" rx="14" class="err"/>
+<text x="197.9" y="3226.0" class="el" text-anchor="middle">contradiction: no solution</text>
+<path d="M250.0,3137.0 L130.0,3137.0 L130.0,3207.0" class="a" marker-end="url(#h)"/>
+<rect x="90.0" y="3265.0" width="620.0" height="137.0" rx="9" class="p"/>
+<text x="104.0" y="3293.0" class="t" text-anchor="start">Write the solution</text>
+<circle cx="109.0" cy="3317.0" r="2.6" class="dot"/>
+<text x="120.0" y="3322.0" class="b" text-anchor="start">one: <tspan class="mth">x = 2 ∧ y = 1</tspan></text>
+<circle cx="109.0" cy="3338.0" r="2.6" class="dot"/>
+<text x="120.0" y="3343.0" class="b" text-anchor="start">infinitely many: each pivot unknown in terms of the free ones, <tspan class="mth">x = 1 -</tspan></text>
+<text x="120.0" y="3364.0" class="b" text-anchor="start"><tspan class="mth">y ∧ y ∈ ℝ</tspan> (ℂ in Imaginary mode)</text>
+<text x="104.0" y="3385.0" class="b" text-anchor="start">Each value is presented as in panel D.</text>
+<path d="M400.0,3187.0 L400.0,3265.0" class="a" marker-end="url(#h)"/>
+<text x="408.0" y="3213.0" class="lbl" text-anchor="start">consistent</text>
+<rect x="90.0" y="3438.0" width="620.0" height="179.0" rx="9" class="k"/>
+<text x="104.0" y="3466.0" class="t" text-anchor="start">Working of a system</text>
+<text x="104.0" y="3495.0" class="b" text-anchor="start">SYMBOLIC: the system as typed</text>
+<text x="104.0" y="3516.0" class="b" text-anchor="start">SUBSTITUTED: when it uses session variables</text>
+<text x="103.0" y="3537.0" class="sb">⚙</text>
+<text x="120.0" y="3537.0" class="sb" text-anchor="start">Standard: the augmented matrix</text>
+<text x="103.0" y="3558.0" class="sb">⚙</text>
+<text x="120.0" y="3558.0" class="sb" text-anchor="start">Detailed: every row operation, <tspan class="mth">—II - 2 · I→</tspan></text>
+<text x="103.0" y="3579.0" class="sb">⚙</text>
+<text x="120.0" y="3579.0" class="sb" text-anchor="start">Standard only: the reduced matrix, &#x27;Eliminate column by column&#x27;</text>
+<text x="104.0" y="3600.0" class="b" text-anchor="start">RESULT</text>
+<path d="M400.0,3402.0 L400.0,3438.0" class="a" marker-end="url(#h)"/>
+<rect x="800.0" y="2568.0" width="800.0" height="95.0" rx="9" class="p"/>
+<text x="814.0" y="2596.0" class="t" text-anchor="start">Find the one unknown</text>
+<text x="814.0" y="2625.0" class="b" text-anchor="start">A letter without subscript and without a value, outside whatever binds it.</text>
+<text x="814.0" y="2646.0" class="eb">✕</text>
+<text x="830.0" y="2646.0" class="eb" text-anchor="start">None: &#x27;The equation has no unknown to solve for.&#x27; Several: &#x27;more than one unknown (x, y)&#x27;.</text>
+<rect x="800.0" y="2699.0" width="800.0" height="137.0" rx="9" class="p"/>
+<text x="814.0" y="2727.0" class="t" text-anchor="start">Residual  f(x) = left − right</text>
+<text x="814.0" y="2756.0" class="b" text-anchor="start">x is put into a copy of the session variables; both sides are evaluated exactly (panel E) and</text>
+<text x="814.0" y="2777.0" class="b" text-anchor="start">subtracted. The unknown is a plain number, so both sides need one dimension.</text>
+<text x="814.0" y="2798.0" class="eb">✕</text>
+<text x="830.0" y="2798.0" class="eb" text-anchor="start">A dimension mismatch or a variable without value: that error, at once.</text>
+<circle cx="819.0" cy="2814.0" r="2.6" class="dot"/>
+<text x="830.0" y="2819.0" class="b" text-anchor="start">Any other failure at a point (ln of a negative number): no value there.</text>
+<path d="M1200.0,2663.0 L1200.0,2699.0" class="a" marker-end="url(#h)"/>
+<rect x="800.0" y="2872.0" width="800.0" height="95.0" rx="9" class="p"/>
+<text x="814.0" y="2900.0" class="t" text-anchor="start">Fit a quadratic through f(0), f(1), f(2)</text>
+<text x="814.0" y="2929.0" class="b" text-anchor="start">c = f(0),  a = (f(2) − 2 f(1) + f(0)) / 2,  b = f(1) − f(0) − a</text>
+<circle cx="819.0" cy="2945.0" r="2.6" class="dot"/>
+<text x="830.0" y="2950.0" class="b" text-anchor="start">one of the three undefined: not a quadratic, go numeric</text>
+<path d="M1200.0,2836.0 L1200.0,2872.0" class="a" marker-end="url(#h)"/>
+<polygon points="1200.0,3003.0 1460.0,3068.0 1200.0,3133.0 940.0,3068.0" class="d"/>
+<text x="1200.0" y="3062.5" class="t" text-anchor="middle">Does f equal ax² + bx + c at</text>
+<text x="1200.0" y="3083.5" class="b" text-anchor="middle">−1, 3, 5, 7/3, −11/2, 1000, −1000?</text>
+<path d="M1200.0,2967.0 L1200.0,3003.0" class="a" marker-end="url(#h)"/>
+<rect x="800.0" y="3183.0" width="385.0" height="284.0" rx="9" class="p"/>
+<text x="814.0" y="3211.0" class="t" text-anchor="start">Exact, degree ≤ 2</text>
+<circle cx="819.0" cy="3235.0" r="2.6" class="dot"/>
+<text x="830.0" y="3240.0" class="b" text-anchor="start">a = b = 0: c = 0 → error &#x27;Every number</text>
+<text x="830.0" y="3261.0" class="b" text-anchor="start">solves this equation.&#x27;, else error &#x27;This</text>
+<text x="830.0" y="3282.0" class="b" text-anchor="start">equation has no solution.&#x27;</text>
+<circle cx="819.0" cy="3298.0" r="2.6" class="dot"/>
+<text x="830.0" y="3303.0" class="b" text-anchor="start">a = 0: x = −c / b</text>
+<circle cx="819.0" cy="3319.0" r="2.6" class="dot"/>
+<text x="830.0" y="3324.0" class="b" text-anchor="start">D = b² − 4ac</text>
+<circle cx="819.0" cy="3340.0" r="2.6" class="dot"/>
+<text x="830.0" y="3345.0" class="b" text-anchor="start">D &gt; 0: two roots, sorted by value</text>
+<circle cx="819.0" cy="3361.0" r="2.6" class="dot"/>
+<text x="830.0" y="3366.0" class="b" text-anchor="start">D = 0: x = −b / 2a</text>
+<circle cx="819.0" cy="3382.0" r="2.6" class="dot"/>
+<text x="830.0" y="3387.0" class="b" text-anchor="start">D &lt; 0, Imaginary mode: (−b ± i√−D) / 2a,</text>
+<text x="830.0" y="3408.0" class="b" text-anchor="start">the one below the axis first</text>
+<text x="814.0" y="3429.0" class="eb">✕</text>
+<text x="830.0" y="3429.0" class="eb" text-anchor="start">D &lt; 0 otherwise: This equation has no real</text>
+<text x="830.0" y="3450.0" class="eb" text-anchor="start">solution.</text>
+<path d="M992.5,3081.1 L992.5,3183.0" class="a" marker-end="url(#h)"/>
+<text x="1000.5" y="3169.0" class="lbl" text-anchor="start">yes</text>
+<rect x="1215.0" y="3183.0" width="385.0" height="116.0" rx="9" class="p"/>
+<text x="1229.0" y="3211.0" class="t" text-anchor="start">Scan [−100, 100]</text>
+<text x="1229.0" y="3240.0" class="b" text-anchor="start">Steps of 1/4. Where f is undefined, also</text>
+<text x="1229.0" y="3261.0" class="b" text-anchor="start">just beside the point (± step/1024), so a</text>
+<text x="1229.0" y="3282.0" class="b" text-anchor="start">root next to a pole is still bracketed.</text>
+<path d="M1407.5,3081.1 L1407.5,3183.0" class="a" marker-end="url(#h)"/>
+<text x="1415.5" y="3169.0" class="lbl" text-anchor="start">no</text>
+<rect x="1215.0" y="3335.0" width="385.0" height="200.0" rx="9" class="p"/>
+<text x="1229.0" y="3363.0" class="t" text-anchor="start">Refine</text>
+<circle cx="1234.0" cy="3387.0" r="2.6" class="dot"/>
+<text x="1245.0" y="3392.0" class="b" text-anchor="start">sign change → bisection to 10^−(p+5); no</text>
+<text x="1245.0" y="3413.0" class="b" text-anchor="start">root if |f| does not shrink (a pole like</text>
+<text x="1245.0" y="3434.0" class="b" text-anchor="start">1/x)</text>
+<circle cx="1234.0" cy="3450.0" r="2.6" class="dot"/>
+<text x="1245.0" y="3455.0" class="b" text-anchor="start">interior minimum of |f| → keep 5/8 of the</text>
+<text x="1245.0" y="3476.0" class="b" text-anchor="start">interval towards the smaller probe, dyadic</text>
+<text x="1245.0" y="3497.0" class="b" text-anchor="start">points; a root if |f| ≤ 10^−p</text>
+<circle cx="1234.0" cy="3513.0" r="2.6" class="dot"/>
+<text x="1245.0" y="3518.0" class="b" text-anchor="start">only the 6 smallest minima are refined</text>
+<path d="M1407.5,3299.0 L1407.5,3335.0" class="a" marker-end="url(#h)"/>
+<rect x="1215.0" y="3571.0" width="385.0" height="137.0" rx="9" class="p"/>
+<text x="1229.0" y="3599.0" class="t" text-anchor="start">Keep and round</text>
+<text x="1229.0" y="3628.0" class="b" text-anchor="start">The 6 roots nearest 0, sorted, rounded to</text>
+<text x="1229.0" y="3649.0" class="b" text-anchor="start">the precision.</text>
+<text x="1229.0" y="3670.0" class="eb">✕</text>
+<text x="1245.0" y="3670.0" class="eb" text-anchor="start">None: No solution for x found between −100</text>
+<text x="1245.0" y="3691.0" class="eb" text-anchor="start">and 100.</text>
+<path d="M1407.5,3535.0 L1407.5,3571.0" class="a" marker-end="url(#h)"/>
+<rect x="800.0" y="3758.0" width="800.0" height="74.0" rx="9" class="p"/>
+<text x="1200.0" y="3786.0" class="t" text-anchor="middle">x = x₁ ∨ x₂</text>
+<text x="1200.0" y="3815.0" class="b" text-anchor="middle">Each root is simplified and presented (panel D); the first one is the calculation&#x27;s quantity.</text>
+<path d="M992.5,3467.0 L992.5,3758.0" class="a" marker-end="url(#h)"/>
+<path d="M1407.5,3708.0 L1407.5,3758.0" class="a" marker-end="url(#h)"/>
+<rect x="800.0" y="3868.0" width="800.0" height="95.0" rx="9" class="k"/>
+<text x="814.0" y="3896.0" class="t" text-anchor="start">Working of an equation</text>
+<text x="814.0" y="3925.0" class="b" text-anchor="start">SYMBOLIC, SUBSTITUTED (with session variables), RESULT. No lines in between: the solver writes</text>
+<text x="814.0" y="3946.0" class="b" text-anchor="start">no working.</text>
+<path d="M1200.0,3832.0 L1200.0,3868.0" class="a" marker-end="url(#h)"/>
+<polygon points="2000.0,2568.0 2280.0,2623.0 2000.0,2678.0 1720.0,2623.0" class="d"/>
+<text x="2000.0" y="2628.0" class="t" text-anchor="middle">A free algebraic variable?</text>
+<rect x="1690.0" y="2702.0" width="295.0" height="129.0" rx="9" class="n"/>
+<text x="1704.0" y="2730.0" class="b" text-anchor="start">A letter without subscript that</text>
+<text x="1704.0" y="2751.0" class="b" text-anchor="start">is not a session variable, not a</text>
+<text x="1704.0" y="2772.0" class="b" text-anchor="start">physical constant (Physics mode)</text>
+<text x="1704.0" y="2793.0" class="b" text-anchor="start">and not bound by <tspan class="mth">Σ</tspan>, <tspan class="mth">∫</tspan>, <tspan class="mth">lim</tspan> or</text>
+<text x="1704.0" y="2814.0" class="b" text-anchor="start"><tspan class="mth">d/dx</tspan>.</text>
+<rect x="1690.0" y="2891.0" width="295.0" height="137.0" rx="9" class="p"/>
+<text x="1704.0" y="2919.0" class="t" text-anchor="start">Evaluate exactly</text>
+<text x="1704.0" y="2948.0" class="b" text-anchor="start">Node by node, exact rationals,</text>
+<text x="1704.0" y="2969.0" class="b" text-anchor="start">π, e, roots and i; units</text>
+<text x="1704.0" y="2990.0" class="b" text-anchor="start">multiply with the numbers.</text>
+<text x="1704.0" y="3011.0" class="b" text-anchor="start">Details in panel E.</text>
+<path d="M1720.0,2623.0 L1678.0,2623.0 L1678.0,2919.5 L1690.0,2919.5" class="a" marker-end="url(#h)"/>
+<text x="1684.0" y="2613.0" class="lbl" text-anchor="end">no</text>
+<circle cx="2162.5" cy="2921.0" r="17" class="cn"/>
+<text x="2162.5" y="2927.0" class="cnl" text-anchor="middle">F</text>
+<text x="2188.5" y="2926.0" class="lbl" text-anchor="start">simplify</text>
+<path d="M2162.5,2646.1 L2162.5,2904.0" class="a" marker-end="url(#h)"/>
+<text x="2170.5" y="2890.0" class="lbl" text-anchor="start">yes</text>
+<circle cx="1837.5" cy="3068.0" r="17" class="cn"/>
+<text x="1837.5" y="3074.0" class="cnl" text-anchor="middle">E</text>
+<path d="M1837.5,3028.0 L1837.5,3051.0" class="a" marker-end="url(#h)"/>
+<polygon points="1837.5,3115.0 1980.0,3165.0 1837.5,3215.0 1695.0,3165.0" class="d"/>
+<text x="1837.5" y="3170.0" class="t" text-anchor="middle">Outcome?</text>
+<path d="M1837.5,3085.0 L1837.5,3115.0" class="a" marker-end="url(#h)"/>
+<rect x="1680.0" y="3235.0" width="62.5" height="28" rx="14" class="err"/>
+<text x="1711.2" y="3254.0" class="el" text-anchor="middle">error</text>
+<path d="M1695.0,3165.0 L1711.2,3165.0 L1711.2,3235.0" class="a" marker-end="url(#h)"/>
+<rect x="2015.0" y="3115.0" width="295.0" height="160.0" rx="9" class="n"/>
+<text x="2029.0" y="3143.0" class="t" text-anchor="start">UnresolvedVariable whose</text>
+<text x="2029.0" y="3166.0" class="t" text-anchor="start">message has no &#x27;_&#x27;</text>
+<text x="2029.0" y="3195.0" class="b" text-anchor="start">→ simplify instead (F). In</text>
+<text x="2029.0" y="3216.0" class="b" text-anchor="start">practice every such message</text>
+<text x="2029.0" y="3237.0" class="b" text-anchor="start">names a subscript (<tspan class="mth">x₁ = 5m</tspan>), so</text>
+<text x="2029.0" y="3258.0" class="b" text-anchor="start">this ends as an error.</text>
+<path d="M1980.0,3165.0 L2015.0,3165.0" class="a dash" marker-end="url(#h)"/>
+<rect x="1690.0" y="3303.0" width="295.0" height="116.0" rx="9" class="p"/>
+<text x="1704.0" y="3331.0" class="t" text-anchor="start">Simplify the unit</text>
+<text x="1704.0" y="3360.0" class="b" text-anchor="start">To a named unit: kg·m/s² → N. A</text>
+<text x="1704.0" y="3381.0" class="b" text-anchor="start">unit the user chose (kJ, km/h)</text>
+<text x="1704.0" y="3402.0" class="b" text-anchor="start">is left alone.</text>
+<path d="M1837.5,3215.0 L1837.5,3303.0" class="a" marker-end="url(#h)"/>
+<text x="1845.5" y="3291.0" class="lbl" text-anchor="start">a quantity</text>
+<circle cx="68" cy="2218.0" r="20" class="pc"/>
+<text x="68.0" y="2225.0" class="pcl" text-anchor="middle">C</text>
+<text x="102.0" y="2226.0" class="ph" text-anchor="start">Dispatch and the three branches</text>
+<text x="102.0" y="2252.0" class="ps" text-anchor="start">LatexCalculator::evaluate. A system, an equation, or anything else.</text>
+<path d="M920.0,2383.0 L400.0,2383.0 L400.0,2568.0" class="a" marker-end="url(#h)"/>
+<text x="410.0" y="2371.0" class="lbl" text-anchor="start">a system  2x + y = 5; x − y = 1</text>
+<path d="M1200.0,2438.0 L1200.0,2568.0" class="a" marker-end="url(#h)"/>
+<text x="1210.0" y="2468.0" class="lbl" text-anchor="start">an equation  x² − 5x + 6 = 0</text>
+<path d="M1480.0,2383.0 L2000.0,2383.0 L2000.0,2568.0" class="a" marker-end="url(#h)"/>
+<text x="1990.0" y="2371.0" class="lbl" text-anchor="end">an expression  F = 2 kg · 10 m/s²,  1/(x − 2) + …</text>
+<path d="M400.0,3617.0 L400.0,4046.0" class="a" marker-end="url(#h)"/>
+<circle cx="400.0" cy="4063.0" r="17" class="cn"/>
+<text x="400.0" y="4069.0" class="cnl" text-anchor="middle">D</text>
+<path d="M1200.0,3963.0 L1200.0,4046.0" class="a" marker-end="url(#h)"/>
+<circle cx="1200.0" cy="4063.0" r="17" class="cn"/>
+<text x="1200.0" y="4069.0" class="cnl" text-anchor="middle">D</text>
+<path d="M1837.5,3419.0 L1837.5,4046.0" class="a" marker-end="url(#h)"/>
+<circle cx="1837.5" cy="4063.0" r="17" class="cn"/>
+<text x="1837.5" y="4069.0" class="cnl" text-anchor="middle">D</text>
+<rect x="30" y="4183.0" width="2340" height="1286.0" rx="18" class="panel"/>
+<circle cx="330.0" cy="4293.0" r="17" class="cn"/>
+<text x="330.0" y="4299.0" class="cnl" text-anchor="middle">C</text>
+<text x="356.0" y="4298.0" class="lbl" text-anchor="start">from a system, an equation or an evaluated expression</text>
+<rect x="70.0" y="4343.0" width="1100.0" height="179.0" rx="9" class="p"/>
+<text x="84.0" y="4371.0" class="t" text-anchor="start">Present the value   LatexCalculator::present</text>
+<text x="84.0" y="4400.0" class="b" text-anchor="start">The decimal to the precision p.</text>
+<text x="83.0" y="4421.0" class="sb">⚙</text>
+<text x="100.0" y="4421.0" class="sb" text-anchor="start">&#x27;Exact roots&#x27;: a value built from rationals and rational powers of rationals is written exactly: <tspan class="mth">2√3</tspan>, <tspan class="mth">π/2</tspan>, <tspan class="mth">√2/2</tspan>. Anything else (e,</text>
+<text x="100.0" y="4442.0" class="sb" text-anchor="start">functions) falls back to the decimal.</text>
+<circle cx="89.0" cy="4458.0" r="2.6" class="dot"/>
+<text x="100.0" y="4463.0" class="b" text-anchor="start">Not a real number, Imaginary mode: <tspan class="mth">a + bi</tspan>, both parts to the precision (exactly with &#x27;exact roots&#x27;).</text>
+<text x="84.0" y="4484.0" class="eb">✕</text>
+<text x="100.0" y="4484.0" class="eb" text-anchor="start">Not a real number otherwise: &#x27;2·i is not a real number and cannot be shown as a decimal.&#x27;</text>
+<circle cx="89.0" cy="4500.0" r="2.6" class="dot"/>
+<text x="100.0" y="4505.0" class="b" text-anchor="start">The unit is formatted, the quantity named (force, energy, …) when it has a name.</text>
+<path d="M330.0,4310.0 L330.0,4343.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="4562.0" width="1100.0" height="271.0" rx="9" class="k"/>
+<text x="84.0" y="4590.0" class="t" text-anchor="start">Assemble the working   LatexCalculator::steps</text>
+<text x="84.0" y="4619.0" class="st" text-anchor="start">Is the input just its result (a definition <tspan class="mth">m₁ = 2kg</tspan>)? Then only RESULT.</text>
+<text x="84.0" y="4640.0" class="st" text-anchor="start">Otherwise, in order:</text>
+<circle cx="89.0" cy="4656.0" r="2.6" class="dot"/>
+<text x="100.0" y="4661.0" class="b" text-anchor="start">SYMBOLIC: the input, re-rendered</text>
+<circle cx="89.0" cy="4677.0" r="2.6" class="dot"/>
+<text x="100.0" y="4682.0" class="b" text-anchor="start">SUBSTITUTED: when the input uses variables and putting their values in changes the line. A display line only: the decimals at</text>
+<text x="100.0" y="4703.0" class="b" text-anchor="start">precision p; the arithmetic ran on the exact values.</text>
+<text x="83.0" y="4724.0" class="sb">⚙</text>
+<text x="100.0" y="4724.0" class="sb" text-anchor="start">Standard, not for equations: &#x27;Convert to a common unit&#x27; when a sum has quantities in different units (<tspan class="mth">5 km + 0,3 km</tspan>).</text>
+<text x="83.0" y="4745.0" class="sb">⚙</text>
+<text x="100.0" y="4745.0" class="sb" text-anchor="start">Maximal: the order of operations, one kind at a time: <tspan class="mth">3 · 9² - 6/4</tspan> → <tspan class="mth">3 · 81 - 6/4</tspan> → <tspan class="mth">243 - 1,5</tspan>.</text>
+<text x="83.0" y="4766.0" class="sb">⚙</text>
+<text x="100.0" y="4766.0" class="sb" text-anchor="start">Standard: &#x27;Multiply the numbers and the units&#x27; when the raw unit is not the named one: <tspan class="mth">24 (kg · m²)/s²</tspan> before <tspan class="mth">24 J</tspan>.</text>
+<circle cx="89.0" cy="4782.0" r="2.6" class="dot"/>
+<text x="100.0" y="4787.0" class="b" text-anchor="start">RESULT: label and result.</text>
+<text x="84.0" y="4816.0" class="b" text-anchor="start">Systems (C), equations (C) and algebraic results (F) bring their own lines and levels.</text>
+<path d="M620.0,4522.0 L620.0,4562.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="4873.0" width="1100.0" height="137.0" rx="9" class="k"/>
+<text x="84.0" y="4901.0" class="t" text-anchor="start">Filter by step detail   shown_steps</text>
+<text x="83.0" y="4930.0" class="sb">⚙</text>
+<text x="100.0" y="4930.0" class="sb" text-anchor="start">None: the list is hidden, the engine still works at Brief.</text>
+<text x="83.0" y="4951.0" class="sb">⚙</text>
+<text x="100.0" y="4951.0" class="sb" text-anchor="start">Brief: one line per rule.  Standard (default): what a student writes.  Detailed: every intermediate expression.  Maximal: also</text>
+<text x="100.0" y="4972.0" class="sb" text-anchor="start">signs, order of terms, domain notes.</text>
+<text x="84.0" y="4993.0" class="b" text-anchor="start">Every step carries the lowest level that shows it, and optionally the level from which a longer line replaces it.</text>
+<path d="M620.0,4833.0 L620.0,4873.0" class="a" marker-end="url(#h)"/>
+<polygon points="620.0,5050.0 900.0,5115.0 620.0,5180.0 340.0,5115.0" class="d"/>
+<text x="620.0" y="5109.5" class="t" text-anchor="middle">A label with a subscript?</text>
+<text x="620.0" y="5130.5" class="b" text-anchor="middle">v_1 = …</text>
+<path d="M620.0,5010.0 L620.0,5050.0" class="a" marker-end="url(#h)"/>
+<rect x="790.0" y="5210.0" width="380.0" height="95.0" rx="9" class="p"/>
+<text x="804.0" y="5238.0" class="t" text-anchor="start">Store the variable</text>
+<text x="804.0" y="5267.0" class="b" text-anchor="start">key, symbol, LaTeX, value, unit and exact</text>
+<text x="804.0" y="5288.0" class="b" text-anchor="start">quantity. A later definition replaces it.</text>
+<path d="M900.0,5115.0 L980.0,5115.0 L980.0,5210.0" class="a" marker-end="url(#h)"/>
+<text x="910.0" y="5105.0" class="lbl" text-anchor="start">yes</text>
+<rect x="190.0" y="5365.0" width="640.0" height="44" rx="22.0" class="term"/>
+<text x="510.0" y="5392.5" class="tl" text-anchor="middle">CalculationResponse</text>
+<path d="M620.0,5180.0 L620.0,5365.0" class="a" marker-end="url(#h)"/>
+<text x="628.0" y="5204.0" class="lbl" text-anchor="start">no</text>
+<path d="M980.0,5305.0 L980.0,5335.0 L710.0,5335.0 L710.0,5365.0" class="a" marker-end="url(#h)"/>
+<rect x="1230.0" y="4343.0" width="1100.0" height="242.0" rx="9" class="p"/>
+<text x="1244.0" y="4371.0" class="t" text-anchor="start">CalculationResponse   api.rs</text>
+<circle cx="1249.0" cy="4395.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4400.0" class="b" text-anchor="start">input: the input re-rendered (<tspan class="mth">/</tspan> as <tspan class="mth">/</tspan>)</text>
+<circle cx="1249.0" cy="4416.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4421.0" class="b" text-anchor="start">latex: the finished line <tspan class="mth">F = 20 N</tspan>;  result: without the label</text>
+<circle cx="1249.0" cy="4437.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4442.0" class="b" text-anchor="start">steps: kind (symbolic, substituted, algebraic, note, result), LaTeX, rule, explanation, before and after</text>
+<circle cx="1249.0" cy="4458.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4463.0" class="b" text-anchor="start">alignBlock: the whole calculation as one <tspan class="mth">align*</tspan> block for copying</text>
+<circle cx="1249.0" cy="4479.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4484.0" class="b" text-anchor="start">value and imaginary: full precision, unformatted</text>
+<circle cx="1249.0" cy="4500.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4505.0" class="b" text-anchor="start">unit, quantityName, dimension (<tspan class="mth">[M]·[L]/[T]²</tspan>)</text>
+<circle cx="1249.0" cy="4521.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4526.0" class="b" text-anchor="start">variable: when the input defined one</text>
+<circle cx="1249.0" cy="4542.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4547.0" class="b" text-anchor="start">domainRestrictions: for algebraic results, <tspan class="mth">x ≠ -2, 2</tspan></text>
+<circle cx="1249.0" cy="4563.0" r="2.6" class="dot"/>
+<text x="1260.0" y="4568.0" class="b" text-anchor="start">warning: when the result is shown as typed because its variables have no value</text>
+<rect x="1230.0" y="4625.0" width="1100.0" height="116.0" rx="9" class="p"/>
+<text x="1244.0" y="4653.0" class="t" text-anchor="start">ErrorResponse</text>
+<text x="1244.0" y="4682.0" class="b" text-anchor="start">Every red exit in panels B to F ends here: a message in the setting&#x27;s language, and the position for parse errors only. Nothing is</text>
+<text x="1244.0" y="4703.0" class="b" text-anchor="start">stored in the session.</text>
+<text x="1244.0" y="4724.0" class="b" text-anchor="start">The kinds of QuantusError: Parse (with position), DimensionMismatch, UnresolvedVariable, NotReal, Other.</text>
+<circle cx="68" cy="4223.0" r="20" class="pc"/>
+<text x="68.0" y="4230.0" class="pcl" text-anchor="middle">D</text>
+<text x="102.0" y="4231.0" class="ph" text-anchor="start">Present, working, response</text>
+<text x="102.0" y="4257.0" class="ps" text-anchor="start">The common end of every evaluate call.</text>
+<rect x="30" y="5529.0" width="2340" height="1170.0" rx="18" class="panel"/>
+<circle cx="330.0" cy="5639.0" r="17" class="cn"/>
+<text x="330.0" y="5645.0" class="cnl" text-anchor="middle">C</text>
+<text x="356.0" y="5644.0" class="lbl" text-anchor="start">from &#x27;Evaluate exactly&#x27;</text>
+<rect x="70.0" y="5689.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="84.0" y="5715.0" class="t" text-anchor="start">Number</text>
+<text x="84.0" y="5744.0" class="b" text-anchor="start">Its decimal text becomes an exact rational: <tspan class="mth">0,1</tspan> is 1/10.</text>
+<rect x="642.5" y="5689.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="656.5" y="5715.0" class="t" text-anchor="start">Unit</text>
+<text x="656.5" y="5744.0" class="b" text-anchor="start">1 times the unit; prefixes and compound units come from the</text>
+<text x="656.5" y="5765.0" class="b" text-anchor="start">unit table.</text>
+<rect x="1215.0" y="5689.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="1229.0" y="5715.0" class="t" text-anchor="start">Constant</text>
+<text x="1229.0" y="5744.0" class="b" text-anchor="start"><tspan class="mth">π</tspan> and <tspan class="mth">e</tspan> stay symbolic; <tspan class="mth">i</tspan> is the imaginary unit (Imaginary</text>
+<text x="1229.0" y="5765.0" class="b" text-anchor="start">mode).</text>
+<rect x="1787.5" y="5689.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="1801.5" y="5717.0" class="t" text-anchor="start">Variable</text>
+<text x="1801.5" y="5746.0" class="b" text-anchor="start">1. a session variable  2. a physical constant (<tspan class="mth">c₀</tspan>, <tspan class="mth">h_P</tspan>, <tspan class="mth">ħ</tspan>, <tspan class="mth">k_B</tspan>,</text>
+<text x="1801.5" y="5767.0" class="b" text-anchor="start"><tspan class="mth">N_A</tspan>, <tspan class="mth">Rₘ</tspan>, <tspan class="mth">e₀</tspan>, <tspan class="mth">ε₀</tspan>, <tspan class="mth">μ₀</tspan>, <tspan class="mth">mₑ</tspan>, …), Physics mode only  3. else</text>
+<text x="1801.5" y="5788.0" class="b" text-anchor="start">UnresolvedVariable</text>
+<text x="1801.5" y="5809.0" class="eb">✕</text>
+<text x="1817.5" y="5809.0" class="eb" text-anchor="start">&#x27;v_9 has no value yet. Define it first.&#x27;</text>
+<rect x="70.0" y="5852.0" width="542.5" height="116.0" rx="9" class="p"/>
+<text x="84.0" y="5878.0" class="t" text-anchor="start">Group · negation · fraction</text>
+<text x="84.0" y="5907.0" class="b" text-anchor="start">As they are; the fraction divides exactly.</text>
+<text x="84.0" y="5928.0" class="eb">✕</text>
+<text x="100.0" y="5928.0" class="eb" text-anchor="start">Division by zero.</text>
+<rect x="642.5" y="5852.0" width="542.5" height="116.0" rx="9" class="p"/>
+<text x="656.5" y="5880.0" class="t" text-anchor="start">+  −</text>
+<text x="656.5" y="5909.0" class="b" text-anchor="start">Both sides need one dimension; the right side is converted to</text>
+<text x="656.5" y="5930.0" class="b" text-anchor="start">the left&#x27;s unit.</text>
+<text x="656.5" y="5951.0" class="eb">✕</text>
+<text x="672.5" y="5951.0" class="eb" text-anchor="start">DimensionMismatch: 2 kg + 3 m.</text>
+<rect x="1215.0" y="5852.0" width="542.5" height="116.0" rx="9" class="p"/>
+<text x="1229.0" y="5878.0" class="t" text-anchor="start">·  /  and juxtaposition</text>
+<text x="1229.0" y="5907.0" class="b" text-anchor="start">Numbers and units multiply; <tspan class="mth">2kg · 5 m/s</tspan> = <tspan class="mth">10 kg·m/s</tspan>.</text>
+<rect x="1787.5" y="5852.0" width="542.5" height="116.0" rx="9" class="p"/>
+<text x="1801.5" y="5880.0" class="t" text-anchor="start">Power</text>
+<text x="1801.5" y="5909.0" class="b" text-anchor="start">Exact where it can be: rational powers of rationals stay</text>
+<text x="1801.5" y="5930.0" class="b" text-anchor="start">symbolic (<tspan class="mth">√8</tspan>).</text>
+<text x="1801.5" y="5951.0" class="eb">✕</text>
+<text x="1817.5" y="5951.0" class="eb" text-anchor="start">Not real (√−4): NotReal, except in Imaginary mode.</text>
+<rect x="70.0" y="5994.0" width="542.5" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="6022.0" class="t" text-anchor="start">Root  ⁿ√u</text>
+<text x="84.0" y="6051.0" class="b" text-anchor="start">n must be a positive whole number; then like a power 1/n.</text>
+<text x="84.0" y="6072.0" class="eb">✕</text>
+<text x="100.0" y="6072.0" class="eb" text-anchor="start">A degree with a unit, or not whole.</text>
+<rect x="642.5" y="5994.0" width="542.5" height="95.0" rx="9" class="p"/>
+<text x="656.5" y="6022.0" class="t" text-anchor="start">|u|</text>
+<text x="656.5" y="6051.0" class="b" text-anchor="start">The magnitude; in Imaginary mode the modulus of a + bi. The</text>
+<text x="656.5" y="6072.0" class="b" text-anchor="start">unit stays.</text>
+<rect x="1215.0" y="5994.0" width="542.5" height="95.0" rx="9" class="p"/>
+<text x="1229.0" y="6020.0" class="t" text-anchor="start">Degrees  30°</text>
+<text x="1229.0" y="6049.0" class="b" text-anchor="start">A plain number times π/180.</text>
+<rect x="1787.5" y="5994.0" width="542.5" height="95.0" rx="9" class="p"/>
+<text x="1801.5" y="6022.0" class="t" text-anchor="start">Binomial coefficient  (n k)</text>
+<text x="1801.5" y="6051.0" class="b" text-anchor="start">Exact; n and k non-negative whole numbers.</text>
+<text x="1801.5" y="6072.0" class="eb">✕</text>
+<text x="1817.5" y="6072.0" class="eb" text-anchor="start">Otherwise an error.</text>
+<rect x="70.0" y="6115.0" width="542.5" height="158.0" rx="9" class="p"/>
+<text x="84.0" y="6141.0" class="t" text-anchor="start">Functions</text>
+<text x="84.0" y="6170.0" class="b" text-anchor="start"><tspan class="mth">sin</tspan> … <tspan class="mth">arctan</tspan>, <tspan class="mth">ln</tspan>, <tspan class="mth">log</tspan>, <tspan class="mth">lg</tspan>, <tspan class="mth">exp</tspan>, <tspan class="mth">sinh</tspan>, <tspan class="mth">cosh</tspan>, <tspan class="mth">tanh</tspan>, <tspan class="mth">cot</tspan>, <tspan class="mth">sec</tspan>,</text>
+<text x="84.0" y="6191.0" class="b" text-anchor="start"><tspan class="mth">csc</tspan>: the argument must be a plain number; the complex version</text>
+<text x="84.0" y="6212.0" class="b" text-anchor="start">in Imaginary mode.</text>
+<text x="84.0" y="6233.0" class="b" text-anchor="start"><tspan class="mth">Re</tspan>, <tspan class="mth">Im</tspan>, <tspan class="mth">arg</tspan>, <tspan class="mth">overline</tspan>: Imaginary mode only.</text>
+<rect x="642.5" y="6115.0" width="542.5" height="158.0" rx="9" class="p"/>
+<text x="656.5" y="6141.0" class="t" text-anchor="start">Sum  Σ</text>
+<text x="656.5" y="6170.0" class="b" text-anchor="start">Whole-number bounds; the body term by term with the index</text>
+<text x="656.5" y="6191.0" class="b" text-anchor="start">bound; exact.</text>
+<text x="656.5" y="6212.0" class="eb">✕</text>
+<text x="672.5" y="6212.0" class="eb" text-anchor="start">More than 1 000 000 terms.</text>
+<rect x="1215.0" y="6115.0" width="542.5" height="158.0" rx="9" class="p"/>
+<text x="1229.0" y="6143.0" class="t" text-anchor="start">Integral, finite bounds</text>
+<text x="1229.0" y="6172.0" class="b" text-anchor="start">Bounds in one unit (a bare 0 takes the other one&#x27;s). Kinks of</text>
+<text x="1229.0" y="6193.0" class="b" text-anchor="start"><tspan class="mth">|…|</tspan> are found on a 64-point grid, bisected, and split the</text>
+<text x="1229.0" y="6214.0" class="b" text-anchor="start">interval. Each piece: tanh-sinh quadrature at min(p, 30) digits</text>
+<text x="1229.0" y="6235.0" class="b" text-anchor="start">+ 8 guard digits, +10 per nested construct. Unit: integrand ×</text>
+<text x="1229.0" y="6256.0" class="b" text-anchor="start">variable.</text>
+<rect x="1787.5" y="6115.0" width="542.5" height="158.0" rx="9" class="p"/>
+<text x="1801.5" y="6141.0" class="t" text-anchor="start">Integral, infinite bound</text>
+<text x="1801.5" y="6170.0" class="b" text-anchor="start">Mapped to a finite interval: x = a + t/(1−t), x = b − t/(1−t),</text>
+<text x="1801.5" y="6191.0" class="b" text-anchor="start">or x = t/(1−t²), with the Jacobian. A sample beyond 10²⁰ that</text>
+<text x="1801.5" y="6212.0" class="b" text-anchor="start">fails counts as 0. From ∞ to ∞: 0.</text>
+<rect x="70.0" y="6299.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="84.0" y="6327.0" class="t" text-anchor="start">Limit  lim</text>
+<text x="84.0" y="6356.0" class="b" text-anchor="start">The body at target ± 10^−(p+5) and ± 10^−(p+4) (one side for <tspan class="mth">x</tspan></text>
+<text x="84.0" y="6377.0" class="b" text-anchor="start"><tspan class="mth">→ a⁺</tspan>), or at ±10^(p+5) for ±∞. The samples must agree to</text>
+<text x="84.0" y="6398.0" class="b" text-anchor="start">10^−(p−5), relative; the mean is rounded to the agreed digits.</text>
+<text x="84.0" y="6419.0" class="eb">✕</text>
+<text x="100.0" y="6419.0" class="eb" text-anchor="start">They disagree or grow: &#x27;The limit does not exist&#x27;.</text>
+<rect x="642.5" y="6299.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="656.5" y="6327.0" class="t" text-anchor="start">Derivative  d/dx</text>
+<text x="656.5" y="6356.0" class="b" text-anchor="start">Differentiated symbolically (sum, product, quotient, chain,</text>
+<text x="656.5" y="6377.0" class="b" text-anchor="start">power and function rules), then evaluated at <tspan class="mth">|ₓ₌ₐ</tspan>, or with the</text>
+<text x="656.5" y="6398.0" class="b" text-anchor="start">value x already has.</text>
+<text x="656.5" y="6419.0" class="eb">✕</text>
+<text x="672.5" y="6419.0" class="eb" text-anchor="start">No point: &#x27;needs a point to be evaluated at&#x27;.</text>
+<rect x="1215.0" y="6299.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="1229.0" y="6325.0" class="t" text-anchor="start">Equation inside an expression</text>
+<text x="1229.0" y="6354.0" class="b" text-anchor="start">Solved (panel C); its first solution is the value.</text>
+<rect x="1787.5" y="6299.0" width="542.5" height="137.0" rx="9" class="p"/>
+<text x="1801.5" y="6325.0" class="t" text-anchor="start">System, matrix</text>
+<text x="1801.5" y="6354.0" class="eb">✕</text>
+<text x="1817.5" y="6354.0" class="eb" text-anchor="start">A system must be the whole input.</text>
+<text x="1801.5" y="6375.0" class="eb">✕</text>
+<text x="1817.5" y="6375.0" class="eb" text-anchor="start">A matrix is not a number: take its determinant.</text>
+<rect x="70.0" y="6462.0" width="542.5" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="6490.0" class="t" text-anchor="start">Determinant  det</text>
+<text x="84.0" y="6519.0" class="b" text-anchor="start">Square, at most 8×8, entries of one dimension; exact cofactor</text>
+<text x="84.0" y="6540.0" class="b" text-anchor="start">expansion; the unit to the power n.</text>
+<rect x="642.5" y="6462.0" width="542.5" height="95.0" rx="9" class="p"/>
+<text x="656.5" y="6490.0" class="t" text-anchor="start">Integer functions</text>
+<text x="656.5" y="6519.0" class="b" text-anchor="start"><tspan class="mth">n!</tspan> up to 10 000, exact; floor, ceil and mod keep the unit; max</text>
+<text x="656.5" y="6540.0" class="b" text-anchor="start">and min need one dimension and answer in the first one&#x27;s unit.</text>
+<rect x="70.0" y="6593.0" width="2260.0" height="66.0" rx="9" class="n"/>
+<text x="84.0" y="6621.0" class="b" text-anchor="start">Evaluation is recursive: each node evaluates its children first, so a sum inside an integral inside a limit works, each with its own bound variable. Errors travel up unchanged. The result is a PhysicalQuantity: an exact Value (rational, π, e, roots, i and their combinations)</text>
+<text x="84.0" y="6642.0" class="b" text-anchor="start">with a unit. Decimals are made only when presenting (panel D).</text>
+<circle cx="68" cy="5569.0" r="20" class="pc"/>
+<text x="68.0" y="5576.0" class="pcl" text-anchor="middle">E</text>
+<text x="102.0" y="5577.0" class="ph" text-anchor="start">Evaluating exactly, node by node</text>
+<text x="102.0" y="5603.0" class="ps" text-anchor="start">Evaluator::evaluate in eval/evaluator.rs, numeric.rs, eval/derivative.rs. Each card is one kind of node.</text>
+<rect x="30" y="6759.0" width="2340" height="2106.0" rx="18" class="panel"/>
+<circle cx="330.0" cy="6869.0" r="17" class="cn"/>
+<text x="330.0" y="6875.0" class="cnl" text-anchor="middle">C</text>
+<text x="356.0" y="6874.0" class="lbl" text-anchor="start">from &#x27;a free algebraic variable&#x27;</text>
+<rect x="70.0" y="6919.0" width="1080.0" height="137.0" rx="9" class="n"/>
+<text x="84.0" y="6947.0" class="t" text-anchor="start">Settings that shape the result</text>
+<text x="83.0" y="6976.0" class="sb">⚙</text>
+<text x="100.0" y="6976.0" class="sb" text-anchor="start">Binomial form: Auto, Expanded, Binomial.  ⚙ Complete the square: on/off.</text>
+<text x="83.0" y="6997.0" class="sb">⚙</text>
+<text x="100.0" y="6997.0" class="sb" text-anchor="start">Denominator form: Auto, Expanded, Factored.</text>
+<text x="83.0" y="7018.0" class="sb">⚙</text>
+<text x="100.0" y="7018.0" class="sb" text-anchor="start">Conditional identities: with condition (default) or only where they hold.</text>
+<text x="83.0" y="7039.0" class="sb">⚙</text>
+<text x="100.0" y="7039.0" class="sb" text-anchor="start">Step detail and cancel marks (struck through or coloured).</text>
+<path d="M330.0,6886.0 L330.0,6919.0" class="a" marker-end="url(#h)"/>
+<polygon points="610.0,7092.0 910.0,7162.0 610.0,7232.0 310.0,7162.0" class="d"/>
+<text x="610.0" y="7156.5" class="t" text-anchor="middle">Does it contain an atom?</text>
+<text x="610.0" y="7177.5" class="b" text-anchor="middle">a root, a function, π, e or i, |…|, a non-integer power</text>
+<path d="M610.0,7056.0 L610.0,7092.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="7282.0" width="1080.0" height="116.0" rx="9" class="p"/>
+<text x="84.0" y="7310.0" class="t" text-anchor="start">Atomize   algebra/atoms.rs</text>
+<text x="84.0" y="7339.0" class="b" text-anchor="start">Each distinct atom becomes a variable of its own (<tspan class="mth">#</tspan> for constants, ordered before the letters; <tspan class="mth">◆</tspan> for the rest, after them), so</text>
+<text x="84.0" y="7360.0" class="b" text-anchor="start">the polynomial machinery can work around it: <tspan class="mth">sin x + sin x</tspan> = <tspan class="mth">2 sin x</tspan>.</text>
+<text x="84.0" y="7381.0" class="b" text-anchor="start">Sums, integrals, limits, derivatives, matrices and equations are opaque: kept whole and untouched.</text>
+<path d="M610.0,7232.0 L610.0,7282.0" class="a" marker-end="url(#h)"/>
+<text x="618.0" y="7262.0" class="lbl" text-anchor="start">yes</text>
+<rect x="110.0" y="7448.0" width="1000.0" height="439.0" rx="9" class="p"/>
+<text x="124.0" y="7476.0" class="t" text-anchor="start">Round  (at most 6)</text>
+<text x="124.0" y="7505.0" class="st" text-anchor="start">1. Domain from the current denominators</text>
+<text x="124.0" y="7526.0" class="b" text-anchor="start">An identity can remove a denominator before the pipeline sees it (<tspan class="mth">logₐ(a²) = 2</tspan>), so they are recorded first.</text>
+<text x="124.0" y="7547.0" class="st" text-anchor="start">2. Every identity rule once, in this order   algebra/identities.rs</text>
+<circle cx="129.0" cy="7563.0" r="2.6" class="dot"/>
+<text x="140.0" y="7568.0" class="b" text-anchor="start">exp and log values: <tspan class="mth">ln 1 = 0</tspan>, <tspan class="mth">ln e = 1</tspan>, <tspan class="mth">e^(ln a) = a</tspan>, <tspan class="mth">exp(x) = eˣ</tspan></text>
+<circle cx="129.0" cy="7584.0" r="2.6" class="dot"/>
+<text x="140.0" y="7589.0" class="b" text-anchor="start">powers: rational exponent → root, <tspan class="mth">(aˣ)ʸ = aˣʸ</tspan>, <tspan class="mth">aˣ aʸ = aˣ⁺ʸ</tspan>, <tspan class="mth">aˣ/aʸ</tspan>, <tspan class="mth">aˣ bˣ = (ab)ˣ</tspan></text>
+<circle cx="129.0" cy="7605.0" r="2.6" class="dot"/>
+<text x="140.0" y="7610.0" class="b" text-anchor="start">roots: nest, extract (<tspan class="mth">√8 = 2√2</tspan>, <tspan class="mth">√a² = |a|</tspan>), multiply (<tspan class="mth">√u√u = u</tspan>), merge (<tspan class="mth">√a√b = √ab</tspan>), rationalize denominators (also</text>
+<text x="140.0" y="7631.0" class="b" text-anchor="start">with the conjugate); repeated so each sees the others&#x27; results</text>
+<circle cx="129.0" cy="7647.0" r="2.6" class="dot"/>
+<text x="140.0" y="7652.0" class="b" text-anchor="start">logs: <tspan class="mth">ln a + ln b = ln(ab)</tspan>, <tspan class="mth">ln a - ln b = ln a/b</tspan>, values again</text>
+<circle cx="129.0" cy="7668.0" r="2.6" class="dot"/>
+<text x="140.0" y="7673.0" class="b" text-anchor="start">trig: symmetry <tspan class="mth">sin(-x) = -sin x</tspan>, tan as a quotient, Pythagoras, <tspan class="mth">1 + tan² x</tspan>, double angles, quotient back to tan</text>
+<circle cx="129.0" cy="7689.0" r="2.6" class="dot"/>
+<text x="140.0" y="7694.0" class="b" text-anchor="start">absolute values: <tspan class="mth">|-a| = |a|</tspan>, <tspan class="mth">|a²| = a²</tspan>, products and quotients into one <tspan class="mth">|…|</tspan></text>
+<text x="124.0" y="7723.0" class="b" text-anchor="start">Each rule names the conditions it needs (<tspan class="mth">a ≥ 0, b ≥ 0</tspan> for <tspan class="mth">√a√b = √ab</tspan>). A condition already known to hold costs nothing;</text>
+<text x="124.0" y="7744.0" class="b" text-anchor="start">otherwise:</text>
+<text x="123.0" y="7765.0" class="sb">⚙</text>
+<text x="140.0" y="7765.0" class="sb" text-anchor="start">With condition: rewrite, and the condition joins the domain: &#x27;…, for a ≥ 0&#x27;.</text>
+<text x="123.0" y="7786.0" class="sb">⚙</text>
+<text x="140.0" y="7786.0" class="sb" text-anchor="start">Only where they hold: no rewrite.</text>
+<text x="124.0" y="7807.0" class="st" text-anchor="start">3. Stop?</text>
+<text x="124.0" y="7828.0" class="b" text-anchor="start">In round 2 and later: no rule changed anything → leave the loop.</text>
+<text x="124.0" y="7849.0" class="st" text-anchor="start">4. The rational pipeline on the atomized tree (right)</text>
+<text x="124.0" y="7870.0" class="b" text-anchor="start">Its steps and restrictions are collected, its result is the next round&#x27;s start.</text>
+<path d="M610.0,7398.0 L610.0,7448.0" class="a" marker-end="url(#h)"/>
+<path d="M110,7847.0 L88,7847.0 L88,7488.0 L110,7488.0" class="a dash" marker-end="url(#h)"/>
+<text x="82" y="7667.5" class="lbl" text-anchor="middle" transform="rotate(-90 82 7667.5)">next round</text>
+<rect x="70.0" y="7937.0" width="940.0" height="137.0" rx="9" class="p"/>
+<text x="84.0" y="7965.0" class="t" text-anchor="start">Restore the atoms</text>
+<text x="84.0" y="7994.0" class="b" text-anchor="start">In the result, every step and every restriction. A step that only changed how an atom was written is dropped.</text>
+<text x="84.0" y="8015.0" class="b" text-anchor="start">Restrictions are simplified against the atoms.</text>
+<text x="84.0" y="8036.0" class="b" text-anchor="start">Sums, integrals and the like left inside: note &#x27;cannot be fully simplified algebraically; supported rational</text>
+<text x="84.0" y="8057.0" class="b" text-anchor="start">subtrees were simplified.&#x27;</text>
+<path d="M610.0,7887.0 L610.0,7937.0" class="a" marker-end="url(#h)"/>
+<path d="M910.0,7162.0 L1180.0,7162.0" class="a" marker-end="url(#h)"/>
+<text x="920.0" y="7152.0" class="lbl" text-anchor="start">no</text>
+<rect x="1210.0" y="6919.0" width="1120.0" height="116.0" rx="9" class="p"/>
+<text x="1224.0" y="6947.0" class="t" text-anchor="start">The rational pipeline   algebra/pipeline.rs</text>
+<text x="1224.0" y="6976.0" class="b" text-anchor="start">Stage 3: domain restrictions from the untouched input: denominators, nested reciprocal denominators.</text>
+<text x="1224.0" y="6997.0" class="eb">✕</text>
+<text x="1240.0" y="6997.0" class="eb" text-anchor="start">A denominator that is 0 for every x.</text>
+<text x="1224.0" y="7018.0" class="b" text-anchor="start">Stage 2: normalize notation one kind at a time, each a step: division → fraction, negative exponent → fraction, double negation.</text>
+<path d="M1180.0,7162.0 L1180.0,6977.0 L1210.0,6977.0" class="a" marker-end="url(#h)"/>
+<path d="M1110.0,7748.0 L1198.0,7748.0 L1198.0,7015.0 L1210.0,7015.0" class="a dash" marker-end="url(#h)"/>
+<rect x="1210.0" y="7071.0" width="1120.0" height="116.0" rx="9" class="p"/>
+<text x="1224.0" y="7099.0" class="t" text-anchor="start">Choose the binomial style</text>
+<text x="1223.0" y="7128.0" class="sb">⚙</text>
+<text x="1240.0" y="7128.0" class="sb" text-anchor="start">Auto: keep it expanded when the input was written in compact binomials (<tspan class="mth">(x+3)²</tspan>, <tspan class="mth">(a-b)(a+b)</tspan>, <tspan class="mth">(x+4)² - 5</tspan>), else write the result in</text>
+<text x="1240.0" y="7149.0" class="sb" text-anchor="start">binomial form.</text>
+<text x="1223.0" y="7170.0" class="sb">⚙</text>
+<text x="1240.0" y="7170.0" class="sb" text-anchor="start">Expanded / Binomial: always that way.  ⚙ Complete the square allowed or not.</text>
+<path d="M1770.0,7035.0 L1770.0,7071.0" class="a" marker-end="url(#h)"/>
+<rect x="1210.0" y="7223.0" width="1120.0" height="95.0" rx="9" class="p"/>
+<text x="1224.0" y="7251.0" class="t" text-anchor="start">One pass  (at most 4)</text>
+<text x="1224.0" y="7280.0" class="b" text-anchor="start">The phases run in this strict order. Within a pass the pipeline only moves forward, so an expansion is never followed by a factoring</text>
+<text x="1224.0" y="7301.0" class="b" text-anchor="start">that triggers it again.</text>
+<path d="M1770.0,7187.0 L1770.0,7223.0" class="a" marker-end="url(#h)"/>
+<rect x="1250.0" y="7348.0" width="740.0" height="74.0" rx="9" class="p"/>
+<text x="1264.0" y="7376.0" class="t" text-anchor="start">Nested fractions</text>
+<text x="1264.0" y="7405.0" class="b" text-anchor="start">4  SIMPLIFY_NESTED_FRACTION, APPLY_RECIPROCAL_RULE, bottom-up</text>
+<path d="M1620.0,7318.0 L1620.0,7348.0" class="a" marker-end="url(#h)"/>
+<rect x="1250.0" y="7446.0" width="740.0" height="74.0" rx="9" class="p"/>
+<text x="1264.0" y="7474.0" class="t" text-anchor="start">Inner simplification</text>
+<text x="1264.0" y="7503.0" class="b" text-anchor="start">5  products, quotients and powers of fractions; signs</text>
+<path d="M1620.0,7422.0 L1620.0,7446.0" class="a" marker-end="url(#h)"/>
+<rect x="1250.0" y="7544.0" width="740.0" height="116.0" rx="9" class="p"/>
+<text x="1264.0" y="7572.0" class="t" text-anchor="start">Common denominator</text>
+<text x="1264.0" y="7601.0" class="b" text-anchor="start">6  FACTOR_DENOMINATORS</text>
+<text x="1264.0" y="7622.0" class="b" text-anchor="start">7  FIND_COMMON_DENOMINATOR: extend each fraction by what it misses of the LCD</text>
+<text x="1264.0" y="7643.0" class="b" text-anchor="start">8  COMBINE_FRACTIONS over the common denominator</text>
+<path d="M1620.0,7520.0 L1620.0,7544.0" class="a" marker-end="url(#h)"/>
+<rect x="1250.0" y="7684.0" width="740.0" height="95.0" rx="9" class="p"/>
+<text x="1264.0" y="7712.0" class="t" text-anchor="start">Expand and collect</text>
+<text x="1264.0" y="7741.0" class="b" text-anchor="start">9  EXPAND_POLYNOMIAL, EXPAND_BINOMIAL in the numerator</text>
+<text x="1264.0" y="7762.0" class="b" text-anchor="start">10  COLLECT_LIKE_TERMS</text>
+<path d="M1620.0,7660.0 L1620.0,7684.0" class="a" marker-end="url(#h)"/>
+<rect x="1250.0" y="7803.0" width="740.0" height="95.0" rx="9" class="p"/>
+<text x="1264.0" y="7831.0" class="t" text-anchor="start">Factor and cancel</text>
+<text x="1264.0" y="7860.0" class="b" text-anchor="start">11  FACTOR_POLYNOMIAL, APPLY_BINOMIAL_IDENTITY</text>
+<text x="1264.0" y="7881.0" class="b" text-anchor="start">12  CANCEL_COMMON_FACTORS; the zeros of a cancelled factor stay in the domain</text>
+<path d="M1620.0,7779.0 L1620.0,7803.0" class="a" marker-end="url(#h)"/>
+<rect x="1250.0" y="7922.0" width="740.0" height="137.0" rx="9" class="p"/>
+<text x="1264.0" y="7950.0" class="t" text-anchor="start">Canonical form</text>
+<text x="1264.0" y="7979.0" class="b" text-anchor="start">13  NORMALIZE_EXPRESSION: expanded numerator; ⚙ denominator factored when it is a</text>
+<text x="1264.0" y="8000.0" class="b" text-anchor="start">product of several factors (Auto), or always expanded / factored</text>
+<text x="1264.0" y="8021.0" class="b" text-anchor="start">14  ⚙ binomial form: APPLY_BINOMIAL_IDENTITY, COMPLETE_SQUARE: <tspan class="mth">x² + 8x + 11</tspan> → <tspan class="mth">(x+4)² -</tspan></text>
+<text x="1264.0" y="8042.0" class="b" text-anchor="start"><tspan class="mth">5</tspan></text>
+<path d="M1620.0,7898.0 L1620.0,7922.0" class="a" marker-end="url(#h)"/>
+<rect x="2030.0" y="7348.0" width="300.0" height="473.0" rx="9" class="p"/>
+<text x="2044.0" y="7376.0" class="t" text-anchor="start">Every stage: run_stage</text>
+<text x="2044.0" y="7405.0" class="b" text-anchor="start">Repeat:</text>
+<text x="2044.0" y="7426.0" class="b" text-anchor="start">1. The rule offers its next</text>
+<text x="2044.0" y="7447.0" class="b" text-anchor="start">rewrite, or the stage ends.</text>
+<text x="2044.0" y="7468.0" class="b" text-anchor="start">2. Nothing visible changed: the</text>
+<text x="2044.0" y="7489.0" class="b" text-anchor="start">stage ends.</text>
+<text x="2044.0" y="7510.0" class="b" text-anchor="start">3. A state abandoned earlier:</text>
+<text x="2044.0" y="7531.0" class="b" text-anchor="start">stop, CycleDetected.</text>
+<text x="2044.0" y="7552.0" class="b" text-anchor="start">4. A state seen before: the steps</text>
+<text x="2044.0" y="7573.0" class="b" text-anchor="start">since then were a detour (expand,</text>
+<text x="2044.0" y="7594.0" class="b" text-anchor="start">then factor back). Roll back to</text>
+<text x="2044.0" y="7615.0" class="b" text-anchor="start">it and abandon them. A second</text>
+<text x="2044.0" y="7636.0" class="b" text-anchor="start">time in this stage: stop,</text>
+<text x="2044.0" y="7657.0" class="b" text-anchor="start">CycleDetected.</text>
+<text x="2044.0" y="7678.0" class="b" text-anchor="start">5. Budget: 32 rewrites per stage,</text>
+<text x="2044.0" y="7699.0" class="b" text-anchor="start">256 per run, else stop,</text>
+<text x="2044.0" y="7720.0" class="b" text-anchor="start">StepLimit.</text>
+<text x="2044.0" y="7741.0" class="b" text-anchor="start">6. Record the step: before,</text>
+<text x="2044.0" y="7762.0" class="b" text-anchor="start">after, rule, explanation, level,</text>
+<text x="2044.0" y="7783.0" class="b" text-anchor="start">sub-steps; the new state&#x27;s</text>
+<text x="2044.0" y="7804.0" class="b" text-anchor="start">denominators join the domain.</text>
+<path d="M2030,7378.0 L2010,7378.0" class="a dash"/>
+<polygon points="1580.0,8099.0 1890.0,8164.0 1580.0,8229.0 1270.0,8164.0" class="d"/>
+<text x="1580.0" y="8158.5" class="t" text-anchor="middle">After the pass: stopped, in rational normal form,</text>
+<text x="1580.0" y="8179.5" class="b" text-anchor="middle">or unchanged?</text>
+<path d="M1620.0,8059.0 L1620.0,8099.0" class="a" marker-end="url(#h)"/>
+<path d="M1270.0,8164.0 L1228,8164.0 L1228,7318.0" class="a dash" marker-end="url(#h)"/>
+<text x="1236.0" y="8152.0" class="lbl" text-anchor="start">no: next pass</text>
+<rect x="1910.0" y="8142.0" width="420.0" height="45.0" rx="9" class="n"/>
+<text x="1924.0" y="8170.0" class="b" text-anchor="start">4 passes and still changing: stop, PassLimit.</text>
+<path d="M1890.0,8164.0 L1910,8164.0" class="a dash"/>
+<rect x="1210.0" y="8269.0" width="1120.0" height="137.0" rx="9" class="p"/>
+<text x="1224.0" y="8297.0" class="t" text-anchor="start">Finish</text>
+<circle cx="1229.0" cy="8321.0" r="2.6" class="dot"/>
+<text x="1240.0" y="8326.0" class="b" text-anchor="start">Verify: the input and the result are compared at 5 rational test points for all variables; points that break the domain are skipped.</text>
+<text x="1224.0" y="8347.0" class="eb">✕</text>
+<text x="1240.0" y="8347.0" class="eb" text-anchor="start">A mismatch: the input comes back unchanged, with a diagnostic. Nothing wrong is ever shown.</text>
+<circle cx="1229.0" cy="8363.0" r="2.6" class="dot"/>
+<text x="1240.0" y="8368.0" class="b" text-anchor="start">A stop reason becomes a note: &#x27;the result is equivalent but may not be fully simplified&#x27;.</text>
+<circle cx="1229.0" cy="8384.0" r="2.6" class="dot"/>
+<text x="1240.0" y="8389.0" class="b" text-anchor="start">The domain restrictions collected along the way: <tspan class="mth">x ≠ -2, 2</tspan>.</text>
+<path d="M1580.0,8229.0 L1580.0,8269.0" class="a" marker-end="url(#h)"/>
+<text x="1588.0" y="8255.0" class="lbl" text-anchor="start">yes</text>
+<path d="M1210.0,8337.5 L1140.0,8337.5 L1140.0,7837.0 L1110.0,7837.0" class="a dash" marker-end="url(#h)"/>
+<text x="1130.0" y="8325.5" class="lbl" text-anchor="end">with atoms: back to the round</text>
+<rect x="70.0" y="8476.0" width="1080.0" height="116.0" rx="9" class="k"/>
+<text x="84.0" y="8504.0" class="t" text-anchor="start">Shape the steps</text>
+<text x="84.0" y="8533.0" class="b" text-anchor="start">A note on the input&#x27;s domain is put first. Steps are filtered by the step detail: rewrites hidden at this level are merged into</text>
+<text x="84.0" y="8554.0" class="b" text-anchor="start">the next shown line, and a rule whose own lines are hidden shows its summary instead. ⚙ Cancelled factors struck through or</text>
+<text x="84.0" y="8575.0" class="b" text-anchor="start">coloured.</text>
+<path d="M540.0,8074.0 L540.0,8476.0" class="a" marker-end="url(#h)"/>
+<path d="M1770.0,8406.0 L1770.0,8534.0 L1150.0,8534.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="8628.0" width="1080.0" height="137.0" rx="9" class="k"/>
+<text x="84.0" y="8656.0" class="t" text-anchor="start">Back in the calculator   evaluate_algebraic</text>
+<circle cx="89.0" cy="8680.0" r="2.6" class="dot"/>
+<text x="100.0" y="8685.0" class="b" text-anchor="start">No step, no restriction, and not a binomial kept on purpose: the input is shown as typed, with the warning &#x27;The variable x has</text>
+<text x="100.0" y="8706.0" class="b" text-anchor="start">no value, so the expression is shown as typed&#x27;.</text>
+<circle cx="89.0" cy="8722.0" r="2.6" class="dot"/>
+<text x="100.0" y="8727.0" class="b" text-anchor="start">Working: SYMBOLIC, one ALGEBRAIC line per shown step (a NOTE for notes), RESULT if the last line is not already the result.</text>
+<circle cx="89.0" cy="8743.0" r="2.6" class="dot"/>
+<text x="100.0" y="8748.0" class="b" text-anchor="start">Value 0 and no unit: the result is LaTeX, not a number.</text>
+<path d="M610.0,8592.0 L610.0,8628.0" class="a" marker-end="url(#h)"/>
+<path d="M610.0,8765.0 L610.0,8798.0" class="a" marker-end="url(#h)"/>
+<circle cx="610.0" cy="8815.0" r="17" class="cn"/>
+<text x="610.0" y="8821.0" class="cnl" text-anchor="middle">D</text>
+<circle cx="68" cy="6799.0" r="20" class="pc"/>
+<text x="68.0" y="6806.0" class="pcl" text-anchor="middle">F</text>
+<text x="102.0" y="6807.0" class="ph" text-anchor="start">Simplifying an algebraic expression</text>
+<text x="102.0" y="6833.0" class="ps" text-anchor="start">algebra/: identities on atoms around a deterministic rational pipeline, every rewrite a recorded step.</text>
+<rect x="30" y="8925.0" width="2340" height="2232.0" rx="18" class="panel"/>
+<rect x="1190" y="9025.0" width="1140" height="1537.0" rx="14" class="lane"/>
+<text x="1210" y="9059.0" class="lt">The sections</text>
+<text x="2310" y="9059.0" class="ls" text-anchor="end">analysis/discussion.rs</text>
+<circle cx="600.0" cy="9035.0" r="17" class="cn"/>
+<text x="600.0" y="9041.0" class="cnl" text-anchor="middle">A</text>
+<text x="626.0" y="9040.0" class="lbl" text-anchor="start">from analyze</text>
+<rect x="70.0" y="9085.0" width="1060.0" height="116.0" rx="9" class="p"/>
+<text x="84.0" y="9113.0" class="t" text-anchor="start">Set up the call</text>
+<circle cx="89.0" cy="9137.0" r="2.6" class="dot"/>
+<text x="100.0" y="9142.0" class="b" text-anchor="start">The language of every text the engine writes: the setting&#x27;s.</text>
+<circle cx="89.0" cy="9158.0" r="2.6" class="dot"/>
+<text x="100.0" y="9163.0" class="b" text-anchor="start">A budget of 3 s: a deadline the numeric loops deep inside check, so a hard function still answers in time.</text>
+<circle cx="89.0" cy="9179.0" r="2.6" class="dot"/>
+<text x="100.0" y="9184.0" class="b" text-anchor="start">Digits: the request&#x27;s precision, else min(precision setting, 6).</text>
+<rect x="70.0" y="9235.0" width="1060.0" height="158.0" rx="9" class="p"/>
+<text x="84.0" y="9263.0" class="t" text-anchor="start">Read the function   analysis/input.rs</text>
+<circle cx="89.0" cy="9287.0" r="2.6" class="dot"/>
+<text x="100.0" y="9292.0" class="b" text-anchor="start">A leading <tspan class="mth">f(x) =</tspan> (also with \left( \right), as MathLive writes it) or <tspan class="mth">y =</tspan> is blanked out with spaces, so error positions stay</text>
+<text x="100.0" y="9313.0" class="b" text-anchor="start">right, and names the variable.</text>
+<circle cx="89.0" cy="9329.0" r="2.6" class="dot"/>
+<text x="100.0" y="9334.0" class="b" text-anchor="start">Parsed by the calculator&#x27;s parser (panel B) as in Algebra mode: no units, i is a variable.</text>
+<text x="84.0" y="9355.0" class="eb">✕</text>
+<text x="100.0" y="9355.0" class="eb" text-anchor="start">An equation or a system: &#x27;Enter a function, not an equation.&#x27;</text>
+<text x="84.0" y="9376.0" class="eb">✕</text>
+<text x="100.0" y="9376.0" class="eb" text-anchor="start">A parse error: with its position.</text>
+<path d="M600.0,9201.0 L600.0,9235.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="9427.0" width="1060.0" height="137.0" rx="9" class="p"/>
+<text x="84.0" y="9455.0" class="t" text-anchor="start">Which variable?</text>
+<circle cx="89.0" cy="9479.0" r="2.6" class="dot"/>
+<text x="100.0" y="9484.0" class="b" text-anchor="start">asked for and named differently: error &#x27;The function is written in t, but x was asked for.&#x27;</text>
+<circle cx="89.0" cy="9500.0" r="2.6" class="dot"/>
+<text x="100.0" y="9505.0" class="b" text-anchor="start">else the asked one, else the named one</text>
+<circle cx="89.0" cy="9521.0" r="2.6" class="dot"/>
+<text x="100.0" y="9526.0" class="b" text-anchor="start">else the free letters: none → x; one → that one</text>
+<text x="84.0" y="9547.0" class="eb">✕</text>
+<text x="100.0" y="9547.0" class="eb" text-anchor="start">several: &#x27;f may depend on one variable only … function families are not supported yet.&#x27;</text>
+<path d="M600.0,9393.0 L600.0,9427.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="9598.0" width="1060.0" height="116.0" rx="9" class="p"/>
+<text x="84.0" y="9626.0" class="t" text-anchor="start">Into the analysis tree   analysis/expr.rs</text>
+<text x="84.0" y="9655.0" class="b" text-anchor="start">One spelling for each thing: a quotient is a product with a negative power, a root a rational power, <tspan class="mth">eᵘ</tspan> and <tspan class="mth">exp u</tspan> are both exp,</text>
+<text x="84.0" y="9676.0" class="b" text-anchor="start">the variable is just x. Simplifier, derivatives and integrals match on this tree.</text>
+<text x="84.0" y="9697.0" class="eb">✕</text>
+<text x="100.0" y="9697.0" class="eb" text-anchor="start">A construct the tree has no form for: error.</text>
+<path d="M600.0,9564.0 L600.0,9598.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="9748.0" width="1060.0" height="200.0" rx="9" class="p"/>
+<text x="84.0" y="9776.0" class="t" text-anchor="start">Domain   analysis/domain.rs</text>
+<text x="84.0" y="9805.0" class="b" text-anchor="start">Read off the tree as typed, before anything cancels:</text>
+<circle cx="89.0" cy="9821.0" r="2.6" class="dot"/>
+<text x="100.0" y="9826.0" class="b" text-anchor="start">denominators ≠ 0, ln of a positive argument, even roots of non-negative radicands (positive in a denominator), a variable</text>
+<text x="100.0" y="9847.0" class="b" text-anchor="start">exponent&#x27;s base &gt; 0, arcsin and arccos between −1 and 1, tan away from its poles</text>
+<circle cx="89.0" cy="9863.0" r="2.6" class="dot"/>
+<text x="100.0" y="9868.0" class="b" text-anchor="start">u ≠ 0 is solved with solve_zero (panel H); u &gt; 0 by cutting the domain of u at its zeros and testing the sign in each piece;</text>
+<text x="100.0" y="9889.0" class="b" text-anchor="start">zeros found numerically are said so</text>
+<circle cx="89.0" cy="9905.0" r="2.6" class="dot"/>
+<text x="100.0" y="9910.0" class="b" text-anchor="start">holes recorded; the working is the domain section</text>
+<text x="84.0" y="9931.0" class="eb">✕</text>
+<text x="100.0" y="9931.0" class="eb" text-anchor="start">Empty: &#x27;f is defined nowhere.&#x27;</text>
+<path d="M600.0,9714.0 L600.0,9748.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="9982.0" width="1060.0" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="10010.0" class="t" text-anchor="start">Period and window</text>
+<text x="84.0" y="10039.0" class="b" text-anchor="start">The period of f from its periodic parts sets the window to one period each side (±π for sin x); without one the window is [−10,</text>
+<text x="84.0" y="10060.0" class="b" text-anchor="start">10]. f = ax + (periodic) is noted, the points then move with their family.</text>
+<path d="M600.0,9948.0 L600.0,9982.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="10111.0" width="1060.0" height="158.0" rx="9" class="p"/>
+<text x="84.0" y="10139.0" class="t" text-anchor="start">Derivatives f′, f″, f‴   analysis/derive.rs</text>
+<text x="84.0" y="10168.0" class="b" text-anchor="start">Each from the simplified one before it, with the working of the outermost rule: sum and factor rule, power rule, product rule</text>
+<text x="84.0" y="10189.0" class="b" text-anchor="start">(u, v, u′, v′), quotient rule (or power and chain rule when the numerator is constant), chain rule with the inner function, the</text>
+<text x="84.0" y="10210.0" class="b" text-anchor="start">elementary derivatives. Then simplified.</text>
+<text x="84.0" y="10231.0" class="b" text-anchor="start">Simplifying (analysis/simplify.rs): bottom-up until nothing changes; flat sums and products, folded constants, like terms,</text>
+<text x="84.0" y="10252.0" class="b" text-anchor="start">exp/ln and radical rules, exact trig values; a rational part goes through the algebra pipeline (panel F).</text>
+<path d="M600.0,10077.0 L600.0,10111.0" class="a" marker-end="url(#h)"/>
+<path d="M600.0,9052.0 L600.0,9085.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="10305.0" width="1060.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="10333.0" class="t" text-anchor="start">For each section, in order</text>
+<text x="84.0" y="10362.0" class="b" text-anchor="start">derivatives, domain, symmetry, y-intercept, zeros, extrema, inflection, monotonicity, curvature, behaviour, antiderivative</text>
+<path d="M600.0,10269.0 L600.0,10305.0" class="a" marker-end="url(#h)"/>
+<polygon points="600.0,10415.0 880.0,10470.0 600.0,10525.0 320.0,10470.0" class="d"/>
+<text x="600.0" y="10475.0" class="t" text-anchor="middle">Budget used up?</text>
+<path d="M600.0,10379.0 L600.0,10415.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="10555.0" width="420.0" height="66.0" rx="9" class="n"/>
+<text x="84.0" y="10583.0" class="b" text-anchor="start">The section comes back partial with the note</text>
+<text x="84.0" y="10604.0" class="b" text-anchor="start">&#x27;time limit&#x27;, without its working.</text>
+<path d="M280.0,10470.0 L280.0,10555.0" class="a" marker-end="url(#h)"/>
+<text x="288.0" y="10543.0" class="lbl" text-anchor="start">yes</text>
+<rect x="610.0" y="10555.0" width="520.0" height="137.0" rx="9" class="p"/>
+<text x="624.0" y="10583.0" class="t" text-anchor="start">Build the section (right)</text>
+<text x="624.0" y="10612.0" class="b" text-anchor="start">Its working, its result line and its status: ok, partial</text>
+<text x="624.0" y="10633.0" class="b" text-anchor="start">(found numerically in a window, or undecided) or failed. A</text>
+<text x="624.0" y="10654.0" class="b" text-anchor="start">section that runs out of time while it works is marked</text>
+<text x="624.0" y="10675.0" class="b" text-anchor="start">partial too.</text>
+<path d="M870.0,10472.0 L870.0,10555.0" class="a" marker-end="url(#h)"/>
+<text x="878.0" y="10543.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="10742.0" width="1060.0" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="10770.0" class="t" text-anchor="start">Name the points</text>
+<text x="84.0" y="10799.0" class="b" text-anchor="start">Sections refer to points by a token until all are known; then they are named by kind and order: Z₁ zeros (N in German), S_y,</text>
+<text x="84.0" y="10820.0" class="b" text-anchor="start">Max/H, Min/T, I/W inflection, S saddle, G/L hole, boundary extrema.</text>
+<rect x="70.0" y="10871.0" width="1060.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="10899.0" class="t" text-anchor="start">Plot</text>
+<text x="84.0" y="10928.0" class="b" text-anchor="start">The default window from the points; breaks at the gaps and poles of D; 600 samples (sampling, panel J).</text>
+<path d="M600.0,10837.0 L600.0,10871.0" class="a" marker-end="url(#h)"/>
+<path d="M280.0,10621.0 L280.0,10742.0" class="a" marker-end="url(#h)"/>
+<path d="M870.0,10692.0 L870.0,10742.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="10981.0" width="1060.0" height="116.0" rx="9" class="k"/>
+<text x="84.0" y="11009.0" class="t" text-anchor="start">AnalysisResponse</text>
+<text x="84.0" y="11038.0" class="b" text-anchor="start">function, variable; sections (id, title, status, message, steps filtered by the step detail, result); points; asymptotes; the</text>
+<text x="84.0" y="11059.0" class="b" text-anchor="start">window; the curve segments.</text>
+<text x="84.0" y="11080.0" class="b" text-anchor="start">Errors leave as ErrorResponse, as in panel D.</text>
+<path d="M600.0,10945.0 L600.0,10981.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="9085.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="9113.0" class="t" text-anchor="start">1  Derivatives</text>
+<text x="1234.0" y="9142.0" class="b" text-anchor="start">f′(x) = …, f″(x) = …, f‴(x) = …, each with its working (left).</text>
+<rect x="1220.0" y="9185.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="9213.0" class="t" text-anchor="start">2  Domain</text>
+<text x="1234.0" y="9242.0" class="b" text-anchor="start">The conditions as steps, then D = … (left).</text>
+<path d="M1760.0,9159.0 L1760.0,9185.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="9285.0" width="1080.0" height="158.0" rx="9" class="p"/>
+<text x="1234.0" y="9313.0" class="t" text-anchor="start">3  Symmetry</text>
+<circle cx="1239.0" cy="9337.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9342.0" class="b" text-anchor="start">D not symmetric about 0 (excluded families included): &#x27;No symmetry: D is not symmetric about 0&#x27;.</text>
+<circle cx="1239.0" cy="9358.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9363.0" class="b" text-anchor="start">f(−x), simplified; ⚙ Standard: x replaced by −x, and f(x), −f(x) for comparison.</text>
+<circle cx="1239.0" cy="9379.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9384.0" class="b" text-anchor="start">f(−x) − f(x) = 0 symbolically: symmetric about the y-axis; f(−x) + f(x) = 0: about the origin.</text>
+<circle cx="1239.0" cy="9400.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9405.0" class="b" text-anchor="start">neither: both tested at 9 points of D; a match says &#x27;(checked numerically)&#x27;.</text>
+<circle cx="1239.0" cy="9421.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9426.0" class="b" text-anchor="start">else &#x27;No simple symmetry&#x27;.</text>
+<path d="M1760.0,9259.0 L1760.0,9285.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="9469.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="9497.0" class="t" text-anchor="start">4  y-intercept</text>
+<text x="1234.0" y="9526.0" class="b" text-anchor="start">0 ∉ D: none. Else f(0), exact; ⚙ Standard: worked out with 0 put in. Point S_y.</text>
+<path d="M1760.0,9443.0 L1760.0,9469.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="9569.0" width="1080.0" height="116.0" rx="9" class="p"/>
+<text x="1234.0" y="9597.0" class="t" text-anchor="start">5  Zeros</text>
+<text x="1234.0" y="9626.0" class="b" text-anchor="start">f(x) = 0 by solve_zero (panel H). f ≡ 0: &#x27;f is 0 everywhere&#x27;.</text>
+<circle cx="1239.0" cy="9642.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9647.0" class="b" text-anchor="start">multiplicity ≥ 2 noted: a double root touches the axis, a triple one crosses it</text>
+<circle cx="1239.0" cy="9663.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9668.0" class="b" text-anchor="start">periodic f: the general solution <tspan class="mth">x = π/2 + kπ</tspan>, the members in the window marked</text>
+<path d="M1760.0,9543.0 L1760.0,9569.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="9711.0" width="1080.0" height="200.0" rx="9" class="p"/>
+<text x="1234.0" y="9739.0" class="t" text-anchor="start">6  Extrema</text>
+<text x="1234.0" y="9768.0" class="b" text-anchor="start">Necessary: f′(x) = 0 (solve_zero), plus the points of D where f′ is undefined (kinks). f′ constant: &#x27;f is constant&#x27; or &#x27;No</text>
+<text x="1234.0" y="9789.0" class="b" text-anchor="start">extrema&#x27;.</text>
+<text x="1234.0" y="9810.0" class="b" text-anchor="start">For each candidate:</text>
+<circle cx="1239.0" cy="9826.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9831.0" class="b" text-anchor="start">f″ defined and ≠ 0 there: f″ &lt; 0 maximum, &gt; 0 minimum (&#x27;Sufficient condition&#x27;); ⚙ Standard: the value put in</text>
+<circle cx="1239.0" cy="9847.0" r="2.6" class="dot"/>
+<text x="1250.0" y="9852.0" class="b" text-anchor="start">otherwise the sign of f′ just left and right, between the neighbouring candidates, gaps and ends: + to − maximum, − to +</text>
+<text x="1250.0" y="9873.0" class="b" text-anchor="start">minimum, no change: none</text>
+<text x="1234.0" y="9894.0" class="b" text-anchor="start">Closed ends of D: boundary maximum or minimum by the sign of f′ just inside. y-values worked out (⚙ Standard).</text>
+<path d="M1760.0,9685.0 L1760.0,9711.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="9937.0" width="1080.0" height="137.0" rx="9" class="p"/>
+<text x="1234.0" y="9965.0" class="t" text-anchor="start">7  Inflection points</text>
+<text x="1234.0" y="9994.0" class="b" text-anchor="start">f″(x) = 0 plus the points where f″ is undefined. f″ constant: &#x27;f is linear&#x27; or none.</text>
+<circle cx="1239.0" cy="10010.0" r="2.6" class="dot"/>
+<text x="1250.0" y="10015.0" class="b" text-anchor="start">f‴ ≠ 0 there: an inflection point; otherwise the sign change of f″ decides</text>
+<circle cx="1239.0" cy="10031.0" r="2.6" class="dot"/>
+<text x="1250.0" y="10036.0" class="b" text-anchor="start">f′ = 0 there as well: a saddle point</text>
+<circle cx="1239.0" cy="10052.0" r="2.6" class="dot"/>
+<text x="1250.0" y="10057.0" class="b" text-anchor="start">periodic: families of one kind with the same y half a period apart are one family, <tspan class="mth">W(kπ | 0)</tspan> for sin x</text>
+<path d="M1760.0,9911.0 L1760.0,9937.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="10100.0" width="1080.0" height="116.0" rx="9" class="p"/>
+<text x="1234.0" y="10128.0" class="t" text-anchor="start">8  Monotonicity</text>
+<text x="1234.0" y="10157.0" class="b" text-anchor="start">The sign of f′ on each interval between its zeros and gaps in D, tested at the simplest point of the interval (a sign table):</text>
+<text x="1234.0" y="10178.0" class="b" text-anchor="start">strictly increasing on …, strictly decreasing on …; periodic f: one period, &#x27;continued periodically&#x27;. f′ constant: &#x27;f is</text>
+<text x="1234.0" y="10199.0" class="b" text-anchor="start">constant&#x27;.</text>
+<path d="M1760.0,10074.0 L1760.0,10100.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="10242.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="10270.0" class="t" text-anchor="start">9  Curvature</text>
+<text x="1234.0" y="10299.0" class="b" text-anchor="start">The same with f″: left-curved (convex) on …, right-curved (concave) on …; linear f: no curvature.</text>
+<path d="M1760.0,10216.0 L1760.0,10242.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="10342.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="10370.0" class="t" text-anchor="start">10  Behaviour at the edges and asymptotes</text>
+<text x="1234.0" y="10399.0" class="b" text-anchor="start">Panel I.</text>
+<path d="M1760.0,10316.0 L1760.0,10342.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="10442.0" width="1080.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="10470.0" class="t" text-anchor="start">11  Antiderivative</text>
+<text x="1234.0" y="10499.0" class="b" text-anchor="start">Panel I. None found: partial, &#x27;No elementary antiderivative found&#x27;.</text>
+<path d="M1760.0,10416.0 L1760.0,10442.0" class="a" marker-end="url(#h)"/>
+<circle cx="2270.0" cy="10379.0" r="17" class="cn"/>
+<text x="2270.0" y="10385.0" class="cnl" text-anchor="middle">I</text>
+<circle cx="2270.0" cy="10479.0" r="17" class="cn"/>
+<text x="2270.0" y="10485.0" class="cnl" text-anchor="middle">I</text>
+<path d="M1130.0,10623.5 L1190.0,10623.5" class="a dash" marker-end="url(#h)"/>
+<circle cx="68" cy="8965.0" r="20" class="pc"/>
+<text x="68.0" y="8972.0" class="pcl" text-anchor="middle">G</text>
+<text x="102.0" y="8973.0" class="ph" text-anchor="start">Analysis mode: the curve sketch</text>
+<text x="102.0" y="8999.0" class="ps" text-anchor="start">analyze in analysis/. Stateless: everything comes with the request; the session is not touched.</text>
+<rect x="30" y="11217.0" width="2340" height="2372.0" rx="18" class="panel"/>
+<circle cx="330.0" cy="11327.0" r="17" class="cn"/>
+<text x="330.0" y="11333.0" class="cnl" text-anchor="middle">G</text>
+<text x="356.0" y="11332.0" class="lbl" text-anchor="start">from zeros, extrema, inflection points, the domain and the area</text>
+<rect x="70.0" y="11377.0" width="700.0" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="11405.0" class="t" text-anchor="start">solve_zero(e)</text>
+<text x="84.0" y="11434.0" class="b" text-anchor="start">e is f, f′, f″ or a domain condition; with it come D, the window and the digits.</text>
+<text x="84.0" y="11455.0" class="b" text-anchor="start">Every step below is a line of the working.</text>
+<path d="M330.0,11344.0 L330.0,11377.0" class="a" marker-end="url(#h)"/>
+<polygon points="420.0,11508.0 630.0,11558.0 420.0,11608.0 210.0,11558.0" class="d"/>
+<text x="420.0" y="11563.0" class="t" text-anchor="middle">Constant?</text>
+<path d="M420.0,11472.0 L420.0,11508.0" class="a" marker-end="url(#h)"/>
+<rect x="830.0" y="11514.0" width="600.0" height="66.0" rx="9" class="p"/>
+<text x="844.0" y="11542.0" class="b" text-anchor="start">0: every x, &#x27;f is 0 everywhere&#x27;. Otherwise &#x27;No solution&#x27; (c ≠ 0). On</text>
+<text x="844.0" y="11563.0" class="b" text-anchor="start">to Clean up.</text>
+<path d="M630.0,11558.0 L830.0,11558.0" class="a" marker-end="url(#h)"/>
+<text x="638.0" y="11548.0" class="lbl" text-anchor="start">yes</text>
+<rect x="70.0" y="11648.0" width="700.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="11676.0" class="t" text-anchor="start">Shown as a product?</text>
+<text x="84.0" y="11705.0" class="b" text-anchor="start">A sum that simplifies to a product is factored first: step &#x27;Factor out&#x27;.</text>
+<path d="M420.0,11608.0 L420.0,11648.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="11632.0" class="lbl" text-anchor="start">no</text>
+<polygon points="420.0,11758.0 630.0,11808.0 420.0,11858.0 210.0,11808.0" class="d"/>
+<text x="420.0" y="11813.0" class="t" text-anchor="middle">A product?</text>
+<path d="M420.0,11722.0 L420.0,11758.0" class="a" marker-end="url(#h)"/>
+<rect x="830.0" y="11728.0" width="820.0" height="158.0" rx="9" class="p"/>
+<text x="844.0" y="11756.0" class="t" text-anchor="start">Product</text>
+<circle cx="849.0" cy="11780.0" r="2.6" class="dot"/>
+<text x="860.0" y="11785.0" class="b" text-anchor="start">a constant factor other than ±1: &#x27;A constant factor is never zero&#x27;</text>
+<circle cx="849.0" cy="11801.0" r="2.6" class="dot"/>
+<text x="860.0" y="11806.0" class="b" text-anchor="start">factors below the line: only the numerator matters, &#x27;a fraction is zero where its numerator</text>
+<text x="860.0" y="11827.0" class="b" text-anchor="start">is&#x27;; solve it</text>
+<circle cx="849.0" cy="11843.0" r="2.6" class="dot"/>
+<text x="860.0" y="11848.0" class="b" text-anchor="start">one factor left: solve_factor; several: the zero-product rule <tspan class="mth">u = 0 ∨ v = 0</tspan>, each through</text>
+<text x="860.0" y="11869.0" class="b" text-anchor="start">solve_factor</text>
+<path d="M630.0,11808.0 L830.0,11808.0" class="a" marker-end="url(#h)"/>
+<text x="638.0" y="11798.0" class="lbl" text-anchor="start">yes</text>
+<rect x="830.0" y="11916.0" width="820.0" height="116.0" rx="9" class="p"/>
+<text x="844.0" y="11944.0" class="t" text-anchor="start">solve_factor(u)</text>
+<circle cx="849.0" cy="11968.0" r="2.6" class="dot"/>
+<text x="860.0" y="11973.0" class="b" text-anchor="start">never zero (<tspan class="mth">eᵘ</tspan>, <tspan class="mth">u² + 1</tspan>, a positive constant): &#x27;This factor is never zero&#x27;</text>
+<circle cx="849.0" cy="11989.0" r="2.6" class="dot"/>
+<text x="860.0" y="11994.0" class="b" text-anchor="start"><tspan class="mth">uʳ</tspan> with r &gt; 0: solve u, multiplicity times r</text>
+<circle cx="849.0" cy="12010.0" r="2.6" class="dot"/>
+<text x="860.0" y="12015.0" class="b" text-anchor="start">otherwise solve_single</text>
+<path d="M1240.0,11886.0 L1240.0,11916.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="12062.0" width="700.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="12090.0" class="t" text-anchor="start">solve_single(e)</text>
+<text x="84.0" y="12119.0" class="b" text-anchor="start">A power is solved like a factor first; anything else comes here.</text>
+<path d="M420.0,11858.0 L420.0,12062.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="11882.0" class="lbl" text-anchor="start">no</text>
+<path d="M1240.0,12032.0 L1240.0,12046.0 L800.0,12046.0 L800.0,12099.0 L770.0,12099.0" class="a" marker-end="url(#h)"/>
+<polygon points="420.0,12172.0 700.0,12237.0 420.0,12302.0 140.0,12237.0" class="d"/>
+<text x="420.0" y="12231.5" class="t" text-anchor="middle">A polynomial, or a fraction</text>
+<text x="420.0" y="12252.5" class="b" text-anchor="middle">of polynomials (then its numerator)?</text>
+<path d="M420.0,12136.0 L420.0,12172.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="12352.0" width="700.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="12380.0" class="t" text-anchor="start">Degree 0</text>
+<text x="84.0" y="12409.0" class="b" text-anchor="start">No solution.</text>
+<rect x="70.0" y="12456.0" width="700.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="12484.0" class="t" text-anchor="start">Only one power, a·xⁿ</text>
+<text x="84.0" y="12513.0" class="b" text-anchor="start">&#x27;Only zero solves it&#x27;: x = 0, n-fold.</text>
+<path d="M420.0,12426.0 L420.0,12456.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="12446.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="12560.0" width="700.0" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="12588.0" class="t" text-anchor="start">Lowest power xᵏ with k &gt; 0</text>
+<text x="84.0" y="12617.0" class="b" text-anchor="start">&#x27;Factor out xᵏ&#x27;: <tspan class="mth">xᵏ · (…) = 0</tspan>, then <tspan class="mth">xᵏ = 0 ∨ (…) = 0</tspan>; the rest from the top of</text>
+<text x="84.0" y="12638.0" class="b" text-anchor="start">this list.</text>
+<path d="M420.0,12530.0 L420.0,12560.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="12550.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="12685.0" width="700.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="12713.0" class="t" text-anchor="start">Degree 1</text>
+<text x="84.0" y="12742.0" class="b" text-anchor="start"><tspan class="mth">3x - 6 = 0</tspan>: ⚙ Detailed: <tspan class="mth">3x = 6</tspan>; then <tspan class="mth">x = 2</tspan>.</text>
+<path d="M420.0,12655.0 L420.0,12685.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="12675.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="12789.0" width="700.0" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="12817.0" class="t" text-anchor="start">Degree 2</text>
+<text x="83.0" y="12846.0" class="sb">⚙</text>
+<text x="100.0" y="12846.0" class="sb" text-anchor="start">The pq formula (German, or when set) or the abc formula; the discriminant</text>
+<text x="100.0" y="12867.0" class="sb" text-anchor="start">decides: two roots, a double one, or none.</text>
+<path d="M420.0,12759.0 L420.0,12789.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="12779.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="12914.0" width="700.0" height="95.0" rx="9" class="p"/>
+<text x="84.0" y="12942.0" class="t" text-anchor="start">a·xⁿ + c</text>
+<text x="84.0" y="12971.0" class="b" text-anchor="start">&#x27;Isolate the power&#x27;: the n-th root, ± for even n; none when an even root meets a</text>
+<text x="84.0" y="12992.0" class="b" text-anchor="start">negative number.</text>
+<path d="M420.0,12884.0 L420.0,12914.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="12904.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="13039.0" width="700.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="13067.0" class="t" text-anchor="start">a·x²ᵐ + b·xᵐ + c</text>
+<text x="84.0" y="13096.0" class="b" text-anchor="start">Substitution z = xᵐ: a quadratic in z, then back to x.</text>
+<path d="M420.0,13009.0 L420.0,13039.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="13029.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="13143.0" width="700.0" height="116.0" rx="9" class="p"/>
+<text x="84.0" y="13171.0" class="t" text-anchor="start">A rational root?</text>
+<text x="84.0" y="13200.0" class="b" text-anchor="start">Candidates ±p/q listed when both end coefficients are at most 1000; a root is</text>
+<text x="84.0" y="13221.0" class="b" text-anchor="start">guessed and checked, then divided off by long division with its working</text>
+<text x="84.0" y="13242.0" class="b" text-anchor="start">(analysis/polydiv.rs); the quotient from the top of this list.</text>
+<path d="M420.0,13113.0 L420.0,13143.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="13133.0" class="lbl" text-anchor="start">no</text>
+<rect x="70.0" y="13289.0" width="700.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="13317.0" class="t" text-anchor="start">Nothing left</text>
+<text x="84.0" y="13346.0" class="b" text-anchor="start">Numerically inside the Cauchy bound, and said so; the section becomes partial.</text>
+<path d="M420.0,13259.0 L420.0,13289.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="13279.0" class="lbl" text-anchor="start">no</text>
+<path d="M420.0,12302.0 L420.0,12352.0" class="a" marker-end="url(#h)"/>
+<text x="428.0" y="12338.0" class="lbl" text-anchor="start">yes</text>
+<rect x="830.0" y="12352.0" width="1500.0" height="116.0" rx="9" class="p"/>
+<text x="844.0" y="12380.0" class="t" text-anchor="start">Isolate   one outer function</text>
+<text x="844.0" y="12409.0" class="b" text-anchor="start">Exactly one term depends on x: coefficient · outer + constants.</text>
+<circle cx="849.0" cy="12425.0" r="2.6" class="dot"/>
+<text x="860.0" y="12430.0" class="b" text-anchor="start">outer is x itself: &#x27;Solve for x&#x27;</text>
+<circle cx="849.0" cy="12446.0" r="2.6" class="dot"/>
+<text x="860.0" y="12451.0" class="b" text-anchor="start">outer is a function, or a power with a constant base or exponent: &#x27;Isolate the function&#x27;, <tspan class="mth">sin(2x) = 1/2</tspan>, then invert it:</text>
+<path d="M700.0,12237.0 L1580.0,12237.0 L1580.0,12352.0" class="a" marker-end="url(#h)"/>
+<text x="710.0" y="12225.0" class="lbl" text-anchor="start">no</text>
+<rect x="870.0" y="12494.0" width="1460.0" height="74.0" rx="9" class="p"/>
+<text x="884.0" y="12522.0" class="t" text-anchor="start">exp</text>
+<text x="884.0" y="12551.0" class="b" text-anchor="start"><tspan class="mth">eᵘ = c</tspan> → <tspan class="mth">u = ln c</tspan> for c &gt; 0, else none</text>
+<rect x="870.0" y="12582.0" width="1460.0" height="74.0" rx="9" class="p"/>
+<text x="884.0" y="12610.0" class="t" text-anchor="start">ln</text>
+<text x="884.0" y="12639.0" class="b" text-anchor="start"><tspan class="mth">ln u = c</tspan> → <tspan class="mth">u = eᶜ</tspan></text>
+<rect x="870.0" y="12670.0" width="1460.0" height="74.0" rx="9" class="p"/>
+<text x="884.0" y="12698.0" class="t" text-anchor="start">powers and roots</text>
+<text x="884.0" y="12727.0" class="b" text-anchor="start">the root or the power, ± for even exponents; <tspan class="mth">aᵘ = c</tspan> → a logarithm</text>
+<rect x="870.0" y="12758.0" width="1460.0" height="74.0" rx="9" class="p"/>
+<text x="884.0" y="12786.0" class="t" text-anchor="start">sin, cos, tan</text>
+<text x="884.0" y="12815.0" class="b" text-anchor="start">the principal values (exact at multiples of π/6 and π/4) plus 2kπ, or kπ for tan: a periodic family</text>
+<rect x="870.0" y="12846.0" width="1460.0" height="74.0" rx="9" class="p"/>
+<text x="884.0" y="12874.0" class="t" text-anchor="start">arcsin, arccos, arctan</text>
+<text x="884.0" y="12903.0" class="b" text-anchor="start">sin, cos or tan of the value, if it lies in the range</text>
+<rect x="870.0" y="12934.0" width="1460.0" height="74.0" rx="9" class="p"/>
+<text x="884.0" y="12962.0" class="t" text-anchor="start">sinh, cosh</text>
+<text x="884.0" y="12991.0" class="b" text-anchor="start">arsinh, or ± arcosh for values ≥ 1</text>
+<rect x="870.0" y="13022.0" width="1460.0" height="74.0" rx="9" class="p"/>
+<text x="884.0" y="13050.0" class="t" text-anchor="start">|u|</text>
+<text x="884.0" y="13079.0" class="b" text-anchor="start"><tspan class="mth">|u| = c</tspan> → <tspan class="mth">u = ± c</tspan> for c ≥ 0</text>
+<path d="M850,12468.0 L850,13059.0" class="a"/>
+<path d="M850.0,12531.0 L870.0,12531.0" class="a" marker-end="url(#h)"/>
+<path d="M850.0,12619.0 L870.0,12619.0" class="a" marker-end="url(#h)"/>
+<path d="M850.0,12707.0 L870.0,12707.0" class="a" marker-end="url(#h)"/>
+<path d="M850.0,12795.0 L870.0,12795.0" class="a" marker-end="url(#h)"/>
+<path d="M850.0,12883.0 L870.0,12883.0" class="a" marker-end="url(#h)"/>
+<path d="M850.0,12971.0 L870.0,12971.0" class="a" marker-end="url(#h)"/>
+<path d="M850.0,13059.0 L870.0,13059.0" class="a" marker-end="url(#h)"/>
+<rect x="830.0" y="13130.0" width="1500.0" height="74.0" rx="9" class="p"/>
+<text x="844.0" y="13158.0" class="t" text-anchor="start">Solve the inner equation</text>
+<text x="844.0" y="13187.0" class="b" text-anchor="start">u = each value, from the top of solve_zero; families stay families.</text>
+<path d="M1580.0,13096.0 L1580.0,13130.0" class="a" marker-end="url(#h)"/>
+<rect x="830.0" y="13254.0" width="1500.0" height="95.0" rx="9" class="p"/>
+<text x="844.0" y="13282.0" class="t" text-anchor="start">Numeric scan</text>
+<text x="844.0" y="13311.0" class="b" text-anchor="start">Not invertible, or more than one term depends on x: D ∩ [−100, 100] is scanned, 4000 samples over the whole range (at least 200 per piece), sign changes and touches refined; at most</text>
+<text x="844.0" y="13332.0" class="b" text-anchor="start">50 roots. The section becomes partial.</text>
+<path d="M830.0,12382.0 L814.0,12382.0 L814.0,13301.5 L830.0,13301.5" class="a" marker-end="url(#h)"/>
+<text x="840.0" y="13240.0" class="lbl" text-anchor="start">not invertible</text>
+<rect x="70.0" y="13423.0" width="2260.0" height="116.0" rx="9" class="k"/>
+<text x="84.0" y="13451.0" class="t" text-anchor="start">Clean up</text>
+<circle cx="89.0" cy="13475.0" r="2.6" class="dot"/>
+<text x="100.0" y="13480.0" class="b" text-anchor="start">A root outside D: &#x27;Not in the domain, so no solution&#x27;, <tspan class="mth">x = 0 ∉ D</tspan>.</text>
+<circle cx="89.0" cy="13496.0" r="2.6" class="dot"/>
+<text x="100.0" y="13501.0" class="b" text-anchor="start">Equal roots found twice are merged, their multiplicities added; families merged; members of a family that D leaves out are named.</text>
+<circle cx="89.0" cy="13517.0" r="2.6" class="dot"/>
+<text x="100.0" y="13522.0" class="b" text-anchor="start">Back to the caller with roots, families, the working and whether it is complete.</text>
+<path d="M420.0,13363.0 L420.0,13423.0" class="a" marker-end="url(#h)"/>
+<path d="M1580.0,13349.0 L1580.0,13423.0" class="a" marker-end="url(#h)"/>
+<path d="M830.0,13167.0 L796.0,13167.0 L796.0,13423.0" class="a dash" marker-end="url(#h)"/>
+<circle cx="68" cy="11257.0" r="20" class="pc"/>
+<text x="68.0" y="11264.0" class="pcl" text-anchor="middle">H</text>
+<text x="102.0" y="11265.0" class="ph" text-anchor="start">solve_zero: f(x) = 0 the way a student solves it</text>
+<text x="102.0" y="11291.0" class="ps" text-anchor="start">analysis/solve.rs. Exact where a school method applies, numerically, and said so, where none does. The first strategy that fits takes the equation.</text>
+<rect x="30" y="13649.0" width="2340" height="918.0" rx="18" class="panel"/>
+<circle cx="1060.0" cy="13759.0" r="17" class="cn"/>
+<text x="1060.0" y="13765.0" class="cnl" text-anchor="middle">G</text>
+<text x="1086.0" y="13764.0" class="lbl" text-anchor="start">section 10</text>
+<rect x="70.0" y="13809.0" width="1110.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="13837.0" class="t" text-anchor="start">The approaches</text>
+<text x="84.0" y="13866.0" class="b" text-anchor="start">The outer ends of D (−∞, +∞ or an open end), the gaps between its pieces, and the families D excludes (the poles of tan).</text>
+<rect x="70.0" y="13917.0" width="1110.0" height="158.0" rx="9" class="p"/>
+<text x="84.0" y="13945.0" class="t" text-anchor="start">behaviour(f, approach)   analysis/limits.rs</text>
+<text x="84.0" y="13974.0" class="b" text-anchor="start">Every approach becomes t → ∞: x = t, x = −t or x = a ± 1/t.</text>
+<circle cx="89.0" cy="13990.0" r="2.6" class="dot"/>
+<text x="100.0" y="13995.0" class="b" text-anchor="start">rational functions: the degrees decide (at ±∞), or the sign next to the pole</text>
+<circle cx="89.0" cy="14011.0" r="2.6" class="dot"/>
+<text x="100.0" y="14016.0" class="b" text-anchor="start">otherwise growth orders: a term behaves like <tspan class="mth">c · eᵇᵗ · tᵃ · (ln t)ˡ</tspan>, the largest (b, a, l) wins</text>
+<circle cx="89.0" cy="14032.0" r="2.6" class="dot"/>
+<text x="100.0" y="14037.0" class="b" text-anchor="start">sin and cos are bounded</text>
+<circle cx="89.0" cy="14053.0" r="2.6" class="dot"/>
+<text x="100.0" y="14058.0" class="b" text-anchor="start">whatever that does not decide is sampled numerically; still unknown → the section is partial</text>
+<path d="M625.0,13883.0 L625.0,13917.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="14109.0" width="1110.0" height="137.0" rx="9" class="p"/>
+<text x="84.0" y="14137.0" class="t" text-anchor="start">At ±∞</text>
+<circle cx="89.0" cy="14161.0" r="2.6" class="dot"/>
+<text x="100.0" y="14166.0" class="b" text-anchor="start">a finite limit L: horizontal asymptote y = L, one line when both sides agree, else &#x27;for x → ∞&#x27;</text>
+<circle cx="89.0" cy="14182.0" r="2.6" class="dot"/>
+<text x="100.0" y="14187.0" class="b" text-anchor="start">±∞ with a linear part: oblique asymptote y = mx + b, by polynomial division for rational f, else by limits; found numerically it</text>
+<text x="100.0" y="14208.0" class="b" text-anchor="start">reads <tspan class="mth">y ≈ 1,5x - 0,25</tspan></text>
+<circle cx="89.0" cy="14224.0" r="2.6" class="dot"/>
+<text x="100.0" y="14229.0" class="b" text-anchor="start">a rational f whose numerator degree exceeds the denominator&#x27;s by 2 or more: the approximating curve, the polynomial part</text>
+<path d="M625.0,14075.0 L625.0,14109.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="14280.0" width="1110.0" height="116.0" rx="9" class="p"/>
+<text x="84.0" y="14308.0" class="t" text-anchor="start">At a gap inside D</text>
+<circle cx="89.0" cy="14332.0" r="2.6" class="dot"/>
+<text x="100.0" y="14337.0" class="b" text-anchor="start">the one-sided limits grow: vertical asymptote x = a, the limits shown</text>
+<circle cx="89.0" cy="14353.0" r="2.6" class="dot"/>
+<text x="100.0" y="14358.0" class="b" text-anchor="start">they meet at a finite value: a removable gap, marked as point G (L)</text>
+<circle cx="89.0" cy="14374.0" r="2.6" class="dot"/>
+<text x="100.0" y="14379.0" class="b" text-anchor="start">an excluded family: vertical asymptotes <tspan class="mth">x = π/2 + kπ</tspan>, the members in the window drawn</text>
+<path d="M625.0,14246.0 L625.0,14280.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="14430.0" width="1110.0" height="74.0" rx="9" class="p"/>
+<text x="84.0" y="14458.0" class="t" text-anchor="start">Result</text>
+<text x="84.0" y="14487.0" class="b" text-anchor="start">The asymptotes listed, or &#x27;No asymptotes&#x27;.</text>
+<path d="M625.0,14396.0 L625.0,14430.0" class="a" marker-end="url(#h)"/>
+<path d="M1060.0,13776.0 L1060.0,13809.0" class="a" marker-end="url(#h)"/>
+<circle cx="1775.0" cy="13759.0" r="17" class="cn"/>
+<text x="1775.0" y="13765.0" class="cnl" text-anchor="middle">G</text>
+<text x="1801.0" y="13764.0" class="lbl" text-anchor="start">section 11 and the area task</text>
+<rect x="1220.0" y="13809.0" width="810.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="13837.0" class="t" text-anchor="start">1  Basic integrals</text>
+<text x="1234.0" y="13866.0" class="b" text-anchor="start">With the sum and factor rule; inner functions may be linear: <tspan class="mth">∫ cos(2x+1) dx = 1/2 sin(2x+1)</tspan>.</text>
+<rect x="1220.0" y="13913.0" width="810.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="13941.0" class="t" text-anchor="start">2  Polynomials</text>
+<text x="1234.0" y="13970.0" class="b" text-anchor="start">Term by term.</text>
+<path d="M1625.0,13883.0 L1625.0,13913.0" class="a" marker-end="url(#h)"/>
+<text x="1633.0" y="13903.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="14017.0" width="810.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="14045.0" class="t" text-anchor="start">3  Rational functions</text>
+<text x="1234.0" y="14074.0" class="b" text-anchor="start">Polynomial division, then partial fractions.</text>
+<path d="M1625.0,13987.0 L1625.0,14017.0" class="a" marker-end="url(#h)"/>
+<text x="1633.0" y="14007.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="14121.0" width="810.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="14149.0" class="t" text-anchor="start">4  Substitution</text>
+<text x="1234.0" y="14178.0" class="b" text-anchor="start">u = g(x) when the integrand is h(g(x)) · g′(x).</text>
+<path d="M1625.0,14091.0 L1625.0,14121.0" class="a" marker-end="url(#h)"/>
+<text x="1633.0" y="14111.0" class="lbl" text-anchor="start">no</text>
+<rect x="1220.0" y="14225.0" width="810.0" height="74.0" rx="9" class="p"/>
+<text x="1234.0" y="14253.0" class="t" text-anchor="start">5  Integration by parts</text>
+<text x="1234.0" y="14282.0" class="b" text-anchor="start"><tspan class="mth">xⁿ eᵃˣ</tspan>, <tspan class="mth">xⁿ sin(ax)</tspan>, <tspan class="mth">xⁿ ln x</tspan>, <tspan class="mth">arctan x</tspan>, <tspan class="mth">eᵃˣ sin(bx)</tspan>.</text>
+<path d="M1625.0,14195.0 L1625.0,14225.0" class="a" marker-end="url(#h)"/>
+<text x="1633.0" y="14215.0" class="lbl" text-anchor="start">no</text>
+<path d="M1775.0,13776.0 L1775.0,13782.0 L1625.0,13782.0 L1625.0,13809.0" class="a" marker-end="url(#h)"/>
+<rect x="2060.0" y="13809.0" width="270.0" height="158.0" rx="9" class="n"/>
+<text x="2074.0" y="13837.0" class="t" text-anchor="start">Check every result</text>
+<text x="2074.0" y="13866.0" class="b" text-anchor="start">F is differentiated,</text>
+<text x="2074.0" y="13887.0" class="b" text-anchor="start">simplified and compared with</text>
+<text x="2074.0" y="13908.0" class="b" text-anchor="start">f. Only a match is shown: no</text>
+<text x="2074.0" y="13929.0" class="b" text-anchor="start">antiderivative rather than a</text>
+<text x="2074.0" y="13950.0" class="b" text-anchor="start">wrong one.</text>
+<path d="M2030.0,13846.0 L2046.0,13846.0" class="a dash" marker-end="url(#h)"/>
+<path d="M2030.0,13950.0 L2046.0,13950.0" class="a dash" marker-end="url(#h)"/>
+<path d="M2030.0,14054.0 L2046.0,14054.0" class="a dash" marker-end="url(#h)"/>
+<path d="M2030.0,14158.0 L2046.0,14158.0" class="a dash" marker-end="url(#h)"/>
+<path d="M2030.0,14262.0 L2046.0,14262.0" class="a dash" marker-end="url(#h)"/>
+<path d="M2046.0,13846.0 L2046.0,14262.0" class="a dash"/>
+<path d="M2046.0,13846.0 L2060.0,13846.0" class="a dash" marker-end="url(#h)"/>
+<rect x="1220.0" y="14339.0" width="1110.0" height="74.0" rx="9" class="k"/>
+<text x="1234.0" y="14367.0" class="t" text-anchor="start">Found</text>
+<text x="1234.0" y="14396.0" class="b" text-anchor="start"><tspan class="mth">F(x) = … + C</tspan> with the working of the method that passed.</text>
+<path d="M1625.0,14299.0 L1625.0,14339.0" class="a" marker-end="url(#h)"/>
+<rect x="1220.0" y="14443.0" width="1110.0" height="74.0" rx="9" class="n"/>
+<text x="1234.0" y="14471.0" class="t" text-anchor="start">None passed</text>
+<text x="1234.0" y="14500.0" class="b" text-anchor="start">The section is partial: &#x27;No elementary antiderivative found&#x27;. The area task falls back to numeric integration.</text>
+<circle cx="68" cy="13689.0" r="20" class="pc"/>
+<text x="68.0" y="13696.0" class="pcl" text-anchor="middle">I</text>
+<text x="102.0" y="13697.0" class="ph" text-anchor="start">Behaviour and asymptotes · the antiderivative</text>
+<text x="102.0" y="13723.0" class="ps" text-anchor="start">analysis/limits.rs and analysis/integrate.rs: the two sections that need more than solving.</text>
+<text x="70.0" y="13771.0" class="lt" text-anchor="start">Behaviour and asymptotes</text>
+<text x="1220.0" y="13771.0" class="lt" text-anchor="start">Antiderivative: the methods in order</text>
+<rect x="30" y="14627.0" width="2340" height="585" rx="18" class="panel"/>
+<circle cx="341.2" cy="14737.0" r="17" class="cn"/>
+<text x="341.2" y="14743.0" class="cnl" text-anchor="middle">A</text>
+<rect x="90.0" y="14777.0" width="502.5" height="44" rx="22.0" class="term"/>
+<text x="341.2" y="14804.5" class="tl" text-anchor="middle">tangent</text>
+<path d="M341.2,14754.0 L341.2,14777.0" class="a" marker-end="url(#h)"/>
+<path d="M341.2,14821.0 L341.2,14847.0" class="a" marker-end="url(#h)"/>
+<rect x="70.0" y="14847.0" width="542.5" height="305.0" rx="9" class="p"/>
+<text x="84.0" y="14875.0" class="t" text-anchor="start">Tangent and normal at x₀</text>
+<text x="84.0" y="14904.0" class="b" text-anchor="start">Budget 2 s. f and D read as in panel G.</text>
+<circle cx="89.0" cy="14920.0" r="2.6" class="dot"/>
+<text x="100.0" y="14925.0" class="b" text-anchor="start">x₀ must be a real number, exact if it can be (<tspan class="mth">π/2</tspan>, <tspan class="mth">√2</tspan>)</text>
+<text x="84.0" y="14946.0" class="eb">✕</text>
+<text x="100.0" y="14946.0" class="eb" text-anchor="start">not a number: &#x27;x_0 must be a number.&#x27;</text>
+<text x="84.0" y="14967.0" class="eb">✕</text>
+<text x="100.0" y="14967.0" class="eb" text-anchor="start">x₀ ∉ D, f(x₀) not exact, or f′ undefined there: &#x27;f is not</text>
+<text x="100.0" y="14988.0" class="eb" text-anchor="start">differentiable at x_0&#x27;</text>
+<circle cx="89.0" cy="15004.0" r="2.6" class="dot"/>
+<text x="100.0" y="15009.0" class="b" text-anchor="start">point on the graph (x₀ | f(x₀))</text>
+<circle cx="89.0" cy="15025.0" r="2.6" class="dot"/>
+<text x="100.0" y="15030.0" class="b" text-anchor="start">slope m = f′(x₀)</text>
+<circle cx="89.0" cy="15046.0" r="2.6" class="dot"/>
+<text x="100.0" y="15051.0" class="b" text-anchor="start"><tspan class="mth">t(x) = f&#x27;(x₀)(x - x₀) + f(x₀)</tspan> with the values put in,</text>
+<text x="100.0" y="15072.0" class="b" text-anchor="start">simplified</text>
+<circle cx="89.0" cy="15088.0" r="2.6" class="dot"/>
+<text x="100.0" y="15093.0" class="b" text-anchor="start">m = 0: the tangent is horizontal, so the normal is vertical,</text>
+<text x="100.0" y="15114.0" class="b" text-anchor="start">x = x₀</text>
+<circle cx="89.0" cy="15130.0" r="2.6" class="dot"/>
+<text x="100.0" y="15135.0" class="b" text-anchor="start">else the normal&#x27;s slope −1/m (⚙ Standard), n(x) = …</text>
+<circle cx="913.8" cy="14737.0" r="17" class="cn"/>
+<text x="913.8" y="14743.0" class="cnl" text-anchor="middle">A</text>
+<rect x="662.5" y="14777.0" width="502.5" height="44" rx="22.0" class="term"/>
+<text x="913.8" y="14804.5" class="tl" text-anchor="middle">area_under_curve</text>
+<path d="M913.8,14754.0 L913.8,14777.0" class="a" marker-end="url(#h)"/>
+<path d="M913.8,14821.0 L913.8,14847.0" class="a" marker-end="url(#h)"/>
+<rect x="642.5" y="14847.0" width="542.5" height="305.0" rx="9" class="p"/>
+<text x="656.5" y="14875.0" class="t" text-anchor="start">Area between graph and x-axis</text>
+<text x="656.5" y="14904.0" class="b" text-anchor="start">Budget 2 s.</text>
+<text x="656.5" y="14925.0" class="eb">✕</text>
+<text x="672.5" y="14925.0" class="eb" text-anchor="start">a bound with ∞: &#x27;Improper integral, not supported yet.&#x27;</text>
+<text x="656.5" y="14946.0" class="eb">✕</text>
+<text x="672.5" y="14946.0" class="eb" text-anchor="start">only one bound: &#x27;Please enter the bounds.&#x27;</text>
+<circle cx="661.5" cy="14962.0" r="2.6" class="dot"/>
+<text x="672.5" y="14967.0" class="b" text-anchor="start">no bounds: between the outermost zeros (at least two, no</text>
+<text x="672.5" y="14988.0" class="b" text-anchor="start">periodic family, else &#x27;Please enter the bounds&#x27;)</text>
+<text x="656.5" y="15009.0" class="eb">✕</text>
+<text x="672.5" y="15009.0" class="eb" text-anchor="start">[a, b] not inside D: improper as well</text>
+<circle cx="661.5" cy="15025.0" r="2.6" class="dot"/>
+<text x="672.5" y="15030.0" class="b" text-anchor="start">zeros inside split [a, b]</text>
+<circle cx="661.5" cy="15046.0" r="2.6" class="dot"/>
+<text x="672.5" y="15051.0" class="b" text-anchor="start">the antiderivative F (panel I); each part <tspan class="mth">[F(x)]ₐᵇ</tspan> exactly,</text>
+<text x="672.5" y="15072.0" class="b" text-anchor="start">else numerically (<tspan class="mth">≈</tspan>)</text>
+<text x="656.5" y="15093.0" class="eb">✕</text>
+<text x="672.5" y="15093.0" class="eb" text-anchor="start">neither works: &#x27;The integral could not be computed.&#x27;</text>
+<circle cx="661.5" cy="15109.0" r="2.6" class="dot"/>
+<text x="672.5" y="15114.0" class="b" text-anchor="start">A = the sum of the parts&#x27; absolute values; a note that the</text>
+<text x="672.5" y="15135.0" class="b" text-anchor="start">integral itself counts parts below the axis negatively</text>
+<circle cx="1486.2" cy="14737.0" r="17" class="cn"/>
+<text x="1486.2" y="14743.0" class="cnl" text-anchor="middle">A</text>
+<rect x="1235.0" y="14777.0" width="502.5" height="44" rx="22.0" class="term"/>
+<text x="1486.2" y="14804.5" class="tl" text-anchor="middle">value_table</text>
+<path d="M1486.2,14754.0 L1486.2,14777.0" class="a" marker-end="url(#h)"/>
+<path d="M1486.2,14821.0 L1486.2,14847.0" class="a" marker-end="url(#h)"/>
+<rect x="1215.0" y="14847.0" width="542.5" height="305.0" rx="9" class="p"/>
+<text x="1229.0" y="14873.0" class="t" text-anchor="start">Table of values</text>
+<text x="1229.0" y="14902.0" class="b" text-anchor="start">Budget 2 s.</text>
+<circle cx="1234.0" cy="14918.0" r="2.6" class="dot"/>
+<text x="1245.0" y="14923.0" class="b" text-anchor="start">from, to and step must be real numbers</text>
+<text x="1229.0" y="14944.0" class="eb">✕</text>
+<text x="1245.0" y="14944.0" class="eb" text-anchor="start">step ≤ 0: &#x27;The step must be positive.&#x27;</text>
+<text x="1229.0" y="14965.0" class="eb">✕</text>
+<text x="1245.0" y="14965.0" class="eb" text-anchor="start">more than 201 rows: error</text>
+<circle cx="1234.0" cy="14981.0" r="2.6" class="dot"/>
+<text x="1245.0" y="14986.0" class="b" text-anchor="start">x = from + i · step, exact</text>
+<circle cx="1234.0" cy="15002.0" r="2.6" class="dot"/>
+<text x="1245.0" y="15007.0" class="b" text-anchor="start">y = f(x) when x ∈ D: in closed form when it has one (√2),</text>
+<text x="1245.0" y="15028.0" class="b" text-anchor="start">else as a decimal; outside D the cell stays empty</text>
+<circle cx="2058.8" cy="14737.0" r="17" class="cn"/>
+<text x="2058.8" y="14743.0" class="cnl" text-anchor="middle">A</text>
+<rect x="1807.5" y="14777.0" width="502.5" height="44" rx="22.0" class="term"/>
+<text x="2058.8" y="14804.5" class="tl" text-anchor="middle">sample_function</text>
+<path d="M2058.8,14754.0 L2058.8,14777.0" class="a" marker-end="url(#h)"/>
+<path d="M2058.8,14821.0 L2058.8,14847.0" class="a" marker-end="url(#h)"/>
+<rect x="1787.5" y="14847.0" width="542.5" height="305.0" rx="9" class="p"/>
+<text x="1801.5" y="14873.0" class="t" text-anchor="start">Curve points for the plot</text>
+<text x="1801.5" y="14902.0" class="b" text-anchor="start">Budget 200 ms. Also used by analyze with 600 samples.</text>
+<circle cx="1806.5" cy="14918.0" r="2.6" class="dot"/>
+<text x="1817.5" y="14923.0" class="b" text-anchor="start">the domain gives the breaks (gaps, poles) and closed ends</text>
+<text x="1817.5" y="14944.0" class="b" text-anchor="start">inside the view</text>
+<circle cx="1806.5" cy="14960.0" r="2.6" class="dot"/>
+<text x="1817.5" y="14965.0" class="b" text-anchor="start">about n samples, n clamped to 10 … 2000, plus points just</text>
+<text x="1817.5" y="14986.0" class="b" text-anchor="start">beside each break and at each marked point</text>
+<circle cx="1806.5" cy="15002.0" r="2.6" class="dot"/>
+<text x="1817.5" y="15007.0" class="b" text-anchor="start">stretches that bend are halved again</text>
+<circle cx="1806.5" cy="15023.0" r="2.6" class="dot"/>
+<text x="1817.5" y="15028.0" class="b" text-anchor="start">segments break at poles and gaps; y is clipped to ten view</text>
+<text x="1817.5" y="15049.0" class="b" text-anchor="start">heights beyond the visible range</text>
+<circle cx="68" cy="14667.0" r="20" class="pc"/>
+<text x="68.0" y="14674.0" class="pcl" text-anchor="middle">J</text>
+<text x="102.0" y="14675.0" class="ph" text-anchor="start">The tasks beside the curve sketch</text>
+<text x="102.0" y="14701.0" class="ps" text-anchor="start">analysis/tasks.rs and analysis/plot.rs. Stateless, each with its own budget.</text>
+</svg>
