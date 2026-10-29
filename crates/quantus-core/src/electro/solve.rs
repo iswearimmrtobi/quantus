@@ -15,6 +15,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::error::{QuantusError, Result};
+use crate::linear;
 use crate::num::{Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::units::{find, Unit};
@@ -532,7 +533,7 @@ impl<'a> Model<'a> {
             }
         }
 
-        let x = match gauss(matrix, size)? {
+        let x = match linear::solve_square(matrix, size)? {
             Some(x) => x,
             None => return Err(self.diagnose(&branches)),
         };
@@ -664,32 +665,6 @@ fn nonnegative(value: &Option<PhysicalQuantity>, target: &Unit, id: &str) -> Res
         return Err(QuantusError::other(msg!("The value of {id} must not be negative.", "Der Wert von {id} darf nicht negativ sein.")));
     }
     Ok(Some(q.value))
-}
-
-/// Gaussian elimination on the augmented matrix `[A | z]` with row pivoting. `None` if `A` is
-/// singular, which exact arithmetic detects without a tolerance.
-fn gauss(mut m: Vec<Vec<Value>>, size: usize) -> Result<Option<Vec<Value>>> {
-    for column in 0..size {
-        let Some(pivot) = (column..size).find(|r| !m[*r][column].is_zero()) else {
-            return Ok(None);
-        };
-        m.swap(column, pivot);
-        let divisor = m[column][column].clone();
-        for c in column..=size {
-            m[column][c] = m[column][c].div(&divisor)?;
-        }
-        for row in 0..size {
-            if row == column || m[row][column].is_zero() {
-                continue;
-            }
-            let factor = m[row][column].clone();
-            for c in column..=size {
-                let delta = factor.mul(&m[column][c]);
-                m[row][c] = m[row][c].sub(&delta);
-            }
-        }
-    }
-    Ok(Some((0..size).map(|r| m[r][size].clone()).collect()))
 }
 
 #[cfg(test)]

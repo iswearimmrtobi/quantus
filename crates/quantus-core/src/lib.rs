@@ -7,6 +7,7 @@ pub mod error;
 pub mod electro;
 pub mod eval;
 pub mod latex;
+pub(crate) mod linear;
 pub mod num;
 pub(crate) mod numeric;
 pub mod quantity;
