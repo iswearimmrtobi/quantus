@@ -4,8 +4,40 @@ sidebar_position: 0
 title: Overview
 ---
 
-These pages are the documentation of Quantus.
+# Quantus
 
-- [Testing](contributing/testing.md): every test in the repository and how to run it
+Quantus is a desktop calculator for SI units and symbolic maths. You write a formula in a
+formula editor or straight in LaTeX, press <kbd>Enter</kbd>, and get the result together with
+its working, the way you would write it down in a notebook:
 
-For building and using the app, see the [README](https://github.com/iswearimmrtobi/quantus#readme).
+```latex
+F = m_1 \cdot 9{,}81\frac{m}{s^2}
+```
+
+| | |
+|---|---|
+| SYMBOLIC | $F = m_{1} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}$ |
+| SUBSTITUTED | $F = 2\,\mathrm{kg} \cdot 9{,}81\,\frac{\mathrm{m}}{\mathrm{s}^{2}}$ |
+| STEP | $F = 19{,}62\,\frac{\mathrm{kg} \cdot \mathrm{m}}{\mathrm{s}^{2}}$ |
+| RESULT | $F = 19{,}62\,\mathrm{N}$ |
+
+Every result can be copied as LaTeX.
+
+## Five modes
+
+| Mode | What it is for |
+|---|---|
+| **Physics** | Units and physical constants are known; results are checked, converted and named |
+| **Algebra** | Every letter is a variable: simplify, factor and solve |
+| **Imaginary** | As Algebra, but $i$ is the imaginary unit and results may be complex |
+| **Analysis** | Enter $f(x) = \ldots$ and get the whole curve sketch beside a graph |
+| **Electronics** | A schematic editor for passive DC circuits with live results |
+
+## Where to go next
+
+- New here? [Install Quantus](getting-started/install.md) and follow
+  [Your first calculation](getting-started/first-calculation.md).
+- Read [Concepts](getting-started/concepts.md) once: modes, how letters are read and why
+  variables carry an index explain most surprises.
+- The **Guides** show one task each, the **Reference** lists everything that is supported.
+- Want to change the code? Start with [Architecture](contributing/architecture.md).
