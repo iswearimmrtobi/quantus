@@ -1,0 +1,106 @@
+# Builds the Linux AppImage and the Windows .msi on a release tag or by hand from the Actions
+# tab. Both land as workflow artifacts; on a `v*` tag they are also attached to a draft release,
+# which is published by hand after a look at it.
+name: Release build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  linux:
+    # The oldest supported runner: an AppImage only runs on systems with at least the glibc it
+    # was built against.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test the desktop shell
+        run: cargo test -p quantus-desktop
+
+      - name: Install frontend dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: desktop
+        run: npm run typecheck
+
+      - name: Bundle
+        working-directory: desktop
+        run: npm run bundle:appimage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quantus-linux
+          path: target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test the desktop shell
+        run: cargo test -p quantus-desktop
+
+      - name: Install frontend dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: desktop
+        run: npm run typecheck
+
+      - name: Bundle
+        working-directory: desktop
+        run: npm run bundle:msi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quantus-windows
+          path: target/release/bundle/msi/*.msi
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: packages/*

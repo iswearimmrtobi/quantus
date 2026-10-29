@@ -10,6 +10,8 @@
     "build:renderer": "vite build",
     "tauri": "tauri",
     "bundle": "tauri build",
+    "bundle:appimage": "tauri build --bundles appimage",
+    "bundle:msi": "tauri build --bundles msi",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "copy-fonts": "node scripts/copy-mathlive-fonts.mjs",
     "licenses": "node scripts/third-party-licenses.mjs",

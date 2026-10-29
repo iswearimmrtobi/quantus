@@ -25,6 +25,8 @@ npm run dev              # Vite dev server + Tauri window with hot reload
 npm run dev:renderer     # only the renderer in a browser, without the Tauri shell
 npm run typecheck        # check the TypeScript
 npm run bundle           # build the packages
+npm run bundle:appimage  # only the AppImage (Linux)
+npm run bundle:msi       # only the .msi (Windows)
 ```
 
 :::tip
@@ -51,11 +53,16 @@ npm packages in the app. After adding or updating a dependency, regenerate the s
 `npm run licenses` in `desktop/` (it needs `cargo install cargo-about --features cli`) and commit
 it.
 
-## Windows builds without Windows
+## Release builds in CI
 
-The *Windows build* workflow (`.github/workflows/windows.yml`) runs the desktop tests and builds
-both installers on every `v*` tag, or by hand from the **Actions** tab. The installers are
-attached to the run as the `quantus-windows` artifact.
+The *Release build* workflow (`.github/workflows/release.yml`) runs the desktop tests and builds
+the AppImage on Ubuntu 22.04 and the `.msi` on Windows, on every `v*` tag or by hand from the
+**Actions** tab. The packages are attached to the run as the `quantus-linux` and
+`quantus-windows` artifacts. On a tag they also go into a draft GitHub release, which is
+published by hand.
+
+The AppImage is built on the oldest supported Ubuntu runner on purpose: it runs only on systems
+whose glibc is at least as new as the one it was built against.
 
 ## Next
 

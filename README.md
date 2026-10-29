@@ -44,8 +44,8 @@ Get the latest version from **[GitHub Releases](https://github.com/iswearimmrtob
 
 | | |
 |---|---|
-| 🐧 **Linux** | `.AppImage` (runs on most distributions) or `.deb` |
-| 🪟 **Windows** | `-setup.exe` (NSIS) or `.msi`; both need WebView2, which Windows 10 and 11 include |
+| 🐧 **Linux** | `.AppImage`, runs on most distributions |
+| 🪟 **Windows** | `.msi`; needs WebView2, which Windows 10 and 11 include |
 
 What changed between versions is in [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -125,6 +125,8 @@ npm install              # once; also copies the MathLive fonts to public/fonts
 npm run dev              # Vite dev server + Tauri window with hot reload
 npm run typecheck        # check the TypeScript
 npm run bundle           # build the AppImage and .deb (on Windows: .exe and .msi)
+npm run bundle:appimage  # only the AppImage (Linux)
+npm run bundle:msi       # only the .msi (Windows)
 ```
 
 > 💡 **Tip:** `npm install` has to run in `desktop/`, not in the repository root.
@@ -151,10 +153,11 @@ cd desktop && npm run bundle
 On Windows the same command builds an NSIS installer (`bundle/nsis/*.exe`) and an
 `.msi` (`bundle/msi/`). If WebView2 is missing, the installer downloads it.
 
-You don't need a Windows machine for this: the *Windows build* workflow
-(`.github/workflows/windows.yml`) runs the desktop tests and builds both
-installers on every `v*` tag, or by hand from the Actions tab, and attaches them
-to the run as the `quantus-windows` artifact.
+You don't need a Windows machine for this: the *Release build* workflow
+(`.github/workflows/release.yml`) runs the desktop tests and builds the AppImage
+on Linux and the `.msi` on Windows, on every `v*` tag or by hand from the Actions
+tab. The packages are attached to the run as the `quantus-linux` and
+`quantus-windows` artifacts; on a tag they also go into a draft GitHub release.
 
 </details>
 

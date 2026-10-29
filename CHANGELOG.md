@@ -25,7 +25,7 @@ The first release.
   `align*` block.
 - Session variables, history and settings, kept in the app's config directory.
 - English and German interface.
-- Packages for Linux (AppImage, `.deb`) and Windows (NSIS `.exe`, `.msi`).
+- Packages for Linux (AppImage) and Windows (`.msi`).
 
 [Unreleased]: https://github.com/iswearimmrtobi/quantus/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/iswearimmrtobi/quantus/releases/tag/v0.1.0
