@@ -421,11 +421,11 @@ impl LatexCalculator {
         })
     }
 
-    /// A matrix entry or coefficient: a rational as a decimal or fraction, anything else as
-    /// the result would show it.
+    /// A matrix entry or coefficient: a rational as a whole number or fraction (`\frac{1}{2}`,
+    /// not `0{,}5`), anything else as the result would show it.
     fn entry(&self, value: &crate::num::Value) -> Result<String> {
         match value.as_rational() {
-            Some(rational) => Ok(serializer::expression(&number_node(rational))),
+            Some(rational) => Ok(serializer::expression(&fraction_node(rational))),
             None => Ok(self.present(&PhysicalQuantity::dimensionless(value.clone()))?.2),
         }
     }
@@ -570,6 +570,19 @@ fn roman(mut n: usize) -> String {
         }
     }
     text
+}
+
+/// A rational as a whole number or a fraction, never as a decimal.
+fn fraction_node(value: &dashu::rational::RBig) -> Node {
+    use dashu::base::{Abs, Signed};
+    use dashu::integer::{IBig, UBig};
+    if value.denominator() == &UBig::ONE {
+        return number_node(value);
+    }
+    let size = value.clone().abs();
+    let part = |n: IBig| Node::Number { value: Decimal::new(n, 0), position: 0 };
+    let node = Node::fraction(part(size.numerator().clone()), part(IBig::from(size.denominator().clone())), 0);
+    if value.is_negative() { Node::Negation { operand: Box::new(node), position: 0 } } else { node }
 }
 
 fn number_node(value: &dashu::rational::RBig) -> Node {
@@ -821,6 +834,7 @@ mod tests {
         assert_eq!(standard[2], "\\left(\\begin{array}{cc|c} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\end{array}\\right)");
         let detailed = latex(StepDetail::Detailed);
         assert!(detailed[2].starts_with("\\xrightarrow{\\text{I} : 2}"), "{detailed:?}");
+        assert!(detailed[2].ends_with("1 & \\frac{1}{2} & \\frac{5}{2} \\\\ 1 & -1 & 1 \\end{array}\\right)"), "{detailed:?}");
         assert!(detailed[3].starts_with("\\xrightarrow{\\text{II} - \\text{I}}"), "{detailed:?}");
         assert_eq!(detailed.last().unwrap(), "x = 2 \\land y = 1");
         // The last row operation already shows the reduced matrix.
