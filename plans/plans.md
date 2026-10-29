@@ -40,7 +40,15 @@ Verified in code and unit tests, but not yet by eye in the running app:
   and X11).
 - The rendering of the AppImage, run from a fresh directory.
 
-## 3. Later
+## 3. Finish the electronics mode
+
+Implemented (`crates/quantus-core/src/electro/`, `tests/electro.rs`, the circuit editor in the
+frontend) but hidden since 0.1.0: the settings entry is gone and `desktop/src/App.tsx` maps a saved
+`mode: 'electronics'` to `'physics'` on load. Spec: [electronics-module.md](../design/electronics-module.md).
+Needed to ship it: bring back the settings entry and remove the remap, then document it in the
+README and the user docs.
+
+## 4. Later
 
 - Physical constants (c, h, G) and the remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md).
 - History and persistence of calculations.
