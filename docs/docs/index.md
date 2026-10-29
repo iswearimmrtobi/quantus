@@ -1,11 +1,15 @@
 ---
 slug: /
 sidebar_position: 0
-title: Quantus
+title: Overview
 ---
 
-Quantus is a desktop calculator for SI units and symbolic maths, with LaTeX in and LaTeX out. The
-engine is a Rust library that the Tauri app calls directly.
+These pages are the specifications, the test overview and the open plans of Quantus.
 
-The pages in the sidebar are the specifications, the test overview and the open plans. For building and
-using the app, see the [README](https://github.com/iswearimmrtobi/quantus#readme).
+- [Analysis mode](analysis-mode.md) and [Electronics mode](electronics-module.md): the specifications of the two larger modes
+- [Step detail](step-detail.md): the detail levels of the working, with an example for each step
+- [Unsupported inputs](unsupported-inputs.md): what the engine supports and its known limits
+- [Testing](testing.md): every test in the repository and how to run it
+- [Plans](plans.md): open work
+
+For building and using the app, see the [README](https://github.com/iswearimmrtobi/quantus#readme).
