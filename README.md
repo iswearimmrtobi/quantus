@@ -16,8 +16,6 @@
 
 [Features](#-features) •
 [Building](#-building) •
-[Usage](#-usage) •
-[Interface](#-interface) •
 [Documentation](#-documentation)
 
 </div>
@@ -184,101 +182,29 @@ Tauri commands know nothing but `api` and `SessionStore`.
 
 </details>
 
-## 🎹 Usage
-
-| Key | Action |
-|---|---|
-| <kbd>⏎</kbd> | evaluate |
-| <kbd>Ctrl</kbd>+<kbd>N</kbd> | new calculation |
-| <kbd>Ctrl</kbd>+<kbd>J</kbd> | show or hide the working |
-| <kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd> | variables / history panel |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | copy the result as LaTeX |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> | copy the whole calculation as an `align*` block |
-| <kbd>\\</kbd> or <kbd>Ctrl</kbd>+<kbd>L</kbd> | switch between formula editor and LaTeX source |
-| <kbd>Esc</kbd> | leave the source · close a panel |
-
-**Two ways to type.** The formula editor is the quick one. Arrow <kbd>→</kbd>
-leaves an index or any other bracket, so `m_1` `→` `= 2kg` defines the
-variable. The LaTeX source is the exact one: a backslash switches to it while
-you type, and from then on what you write is what you get.
-
-**Variables** always carry an index (`r_1`, `v_1`). An input with an indexed
-label is a definition (`m_1 = 2kg`) and stays valid for the session. A label
-without an index (`F = …`) only names the line.
-
-**Analysis mode.** Enter a function as `f(x) = x^3 - 3x`, `y = …` or just the
-expression. Polynomials, rational functions, `e^x`, `a^x`, logarithms, roots,
-the trig functions and their inverses and `|x|` work, also combined. Results are
-exact where school methods reach (`H(e | 1/e)`, `N(±√3 | 0)`) and marked as
-numeric where they do not. The graph zooms with the wheel and moves by dragging;
-clicking a point selects it in the list below and the other way round. Whether
-quadratics are solved with the pq formula or the abc formula is a setting
-(automatic: pq in German).
-
-**Electronics mode.** Add parts from the palette and draw wires between them;
-every change recalculates the circuit. <kbd>Space</kbd> rotates a part, and a marquee selects
-several. Values that cannot be determined yet are greyed out with the reason.
-
-## 🔌 Interface
-
-The renderer calls Tauri commands (`desktop/src/api.ts`), which call
-`quantus_core::api`:
-
-<details>
-<summary><b>Commands</b></summary>
-
-<br>
-
-```
-evaluate         { request: { latex, sessionId?, precision? } }
-                 → { input, latex, result, steps[], alignBlock,
-                     value, unit, quantityName, dimension, variable }
-define_variable  { request: { latex: "r_1 = 0{,}5m", … } } → Variable
-list_variables   { sessionId? }               → [ { key, symbol, latex, value, unit } ]
-delete_variable  { key, sessionId? }          forget a variable
-
-analyze          { request: { latex, variable?, precision? } }
-                 → { function, variable, sections[], points[], asymptotes[], period, plot }
-sample_function  { request: { latex, xMin, xMax, samples, yMin?, yMax? } } → { segments }
-tangent          { request: { latex, x0 } }   → { steps[], point, tangent, normal }
-area_under_curve { request: { latex, from?, to? } } → { steps[], area, signed, regions[] }
-value_table      { request: { latex, from, to, step } } → { rows: [ { x, y } ] }
-
-solve_circuit    { request: circuit }         → results per element and node
-load_circuit     { path }                     → circuit
-save_circuit     { path, circuit }
-
-get_settings / set_settings                   read and change the user settings
-engine_info                                   → { application, precision }
-```
-
-</details>
-
-The analysis and circuit commands are stateless; `design/analysis-mode.md` §13 and
-`design/electronics-module.md` have the full shapes.
-
-Errors come back as `{ error, position }`. For parser errors, `position`
-(0-based) points at the spot in the input.
-
 ## 📚 Documentation
+
+The documentation is at **[iswearimmrtobi.github.io/quantus](https://iswearimmrtobi.github.io/quantus/)**,
+built from [`docs/`](docs/) (run it locally with `cd docs && npm install && npm start`):
 
 | | |
 |---|---|
-| 🧪 [`docs/docs/contributing/testing.md`](docs/docs/contributing/testing.md) | Every test in the repository and how to run it |
+| 🚀 [Getting started](docs/docs/getting-started/) | Install, your first calculation, the concepts behind modes and variables |
+| 🧭 [Guides](docs/docs/guides/) | Entering formulas, units, algebra, complex numbers, calculus, curve sketching, circuits |
+| 📖 [Reference](docs/docs/reference/) | Syntax, units and constants, settings, keyboard shortcuts, known limits, FAQ |
+| 🛠️ [Contributing](docs/docs/contributing/) | Architecture, building, the engine API, testing, translations |
+
+Not on the site:
+
+| | |
+|---|---|
 | 🗺️ [`plans/plans.md`](plans/plans.md) | Open work and plans |
-| 📐 [`design/spec-si-rechner-v2.md`](design/spec-si-rechner-v2.md) | The specification (German) |
-| ⚡ [`design/electronics-module.md`](design/electronics-module.md) | The specification of the electronics mode |
-| 📈 [`design/analysis-mode.md`](design/analysis-mode.md) | The specification of the analysis mode (curve sketching) |
-| 🪜 [`design/step-detail.md`](design/step-detail.md) | The detail levels of the working, with an example for each step |
-| 🚧 [`design/unsupported-inputs.md`](design/unsupported-inputs.md) | What the engine supports and its known limits |
+| 📐 [`design/`](design/) | The specifications: the original one (German), the analysis and electronics modes, the step detail levels |
 | 🎨 [`docs/static/mockups/quantus-ui-v2.html`](docs/static/mockups/quantus-ui-v2.html) | The UI mockup the desktop styles are based on |
 
-**Languages.** Code and comments are in English. The interface is available in
-English (the default) and German; the texts live in `desktop/src/i18n/` and, for
-the electronics and analysis modules, next to their code in
-`crates/quantus-core/src/electro/` and `crates/quantus-core/src/analysis/`. The
-engine's own parser and algebra messages are English only. The specification is
-in German; the other documentation is in English.
+**Languages.** Code, comments and documentation are in English; the specification in `design/`
+is in German. The interface is available in English (the default) and German, see
+[Translations](docs/docs/contributing/translations.md).
 
 ## 📜 License
 
