@@ -8,7 +8,8 @@ const config = {
   favicon: "img/icon.svg",
 
   url: "https://iswearimmrtobi.github.io",
-  baseUrl: "/quantus/",
+  // GitHub Pages serves the site under /quantus/; the dev server serves it at the root.
+  baseUrl: process.env.NODE_ENV === "development" ? "/" : "/quantus/",
   organizationName: "iswearimmrtobi",
   projectName: "quantus",
   onBrokenLinks: "throw",
