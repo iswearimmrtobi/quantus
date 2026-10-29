@@ -265,7 +265,7 @@ Errors come back as `{ error, position }`. For parser errors, `position`
 | | |
 |---|---|
 | 🧪 [`docs/docs/testing.md`](docs/docs/testing.md) | Every test in the repository and how to run it |
-| 🗺️ [`docs/docs/plans.md`](docs/docs/plans.md) | Open work and plans |
+| 🗺️ [`plans/plans.md`](plans/plans.md) | Open work and plans |
 | 📐 [`docs/docs/spec-si-rechner-v2.md`](docs/docs/spec-si-rechner-v2.md) | The specification (German) |
 | ⚡ [`docs/docs/electronics-module.md`](docs/docs/electronics-module.md) | The specification of the electronics mode |
 | 📈 [`docs/docs/analysis-mode.md`](docs/docs/analysis-mode.md) | The specification of the analysis mode (curve sketching) |

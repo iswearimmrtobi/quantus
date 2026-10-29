@@ -27,7 +27,7 @@ The number crates are built with `opt-level = 3` even in debug builds (see the r
 without that, the integral cases run several times slower.
 
 No single test should take longer than a second. Today `tests/golden.rs` breaks that rule (about
-5 s, see [plans.md](plans.md)); everything else finishes in under 0.2 s per file.
+5 s, see [plans.md](https://github.com/iswearimmrtobi/quantus/blob/master/plans/plans.md)); everything else finishes in under 0.2 s per file.
 
 ## Unit tests (270)
 

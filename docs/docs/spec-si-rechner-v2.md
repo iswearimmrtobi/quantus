@@ -9,7 +9,7 @@
 > Quellen, Aufruf der Engine über Tauri-Befehle statt REST. Damit entfallen N2a (jlink-JRE) und
 > vorerst N4 (self-hosted Service; ein dünnes axum-Crate über `quantus-core` bliebe möglich).
 > Der Migrationsplan und die Befunde stehen im Git-Verlauf (`docs/migration-rust-tauri.md`, entfernt 2026-10-24);
-> offene Punkte in [plans.md](plans.md).
+> offene Punkte in [plans.md](https://github.com/iswearimmrtobi/quantus/blob/master/plans/plans.md).
 
 ---
 

@@ -1,7 +1,7 @@
 # Preparing the repository for going public (2026-10-24)
 
 What was checked, changed and found while preparing `github.com/iswearimmrtobi/quantus` to become
-public. Open work from this is in [plans.md](plans.md); how to run the tests is in
+public. Open work from this is in [plans.md](https://github.com/iswearimmrtobi/quantus/blob/master/plans/plans.md); how to run the tests is in
 [testing.md](testing.md).
 
 ## Status
@@ -105,5 +105,5 @@ A trace of the integrator showed about 1,100 samples per integral, with single s
 infinite end taking up to 130 ms. There, `x = t/(1-t)` is an exact fraction with about 100-digit
 numerator and denominator. A single `e^{-x}` is fast even for huge x, so the cost lies in building
 and evaluating those fractions. The rule is that no test may take more than a second;
-`tests/golden.rs` breaks it. The fix is item 1 in [plans.md](plans.md), and making `golden.rs`
+`tests/golden.rs` breaks it. The fix is item 1 in [plans.md](https://github.com/iswearimmrtobi/quantus/blob/master/plans/plans.md), and making `golden.rs`
 report every failing case is item 2.
