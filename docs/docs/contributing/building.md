@@ -46,6 +46,11 @@ The number crates are compiled with `opt-level = 3` even in debug builds (see th
 The desktop entry comes from `desktop/src-tauri/packaging/quantus.desktop`. The icons are
 generated from `desktop/build/icon.svg` with `npx tauri icon`.
 
+Every package ships `LICENSE` and `THIRD-PARTY-LICENSES.md`, the license texts of all crates and
+npm packages in the app. After adding or updating a dependency, regenerate the second one with
+`npm run licenses` in `desktop/` (it needs `cargo install cargo-about --features cli`) and commit
+it.
+
 ## Windows builds without Windows
 
 The *Windows build* workflow (`.github/workflows/windows.yml`) runs the desktop tests and builds

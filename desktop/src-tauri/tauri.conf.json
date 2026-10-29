@@ -39,6 +39,11 @@
       "icons/icon.ico"
     ],
     "category": "Education",
+    "licenseFile": "../../LICENSE",
+    "resources": {
+      "../../LICENSE": "LICENSE",
+      "../../THIRD-PARTY-LICENSES.md": "THIRD-PARTY-LICENSES.md"
+    },
     "copyright": "Tobias Schmidt",
     "shortDescription": "SI unit calculator with LaTeX input and output",
     "longDescription": "Calculator for physics that keeps SI units dimensionally consistent, takes LaTeX as input and returns the working as LaTeX.",

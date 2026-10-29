@@ -12,6 +12,7 @@
     "bundle": "tauri build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "copy-fonts": "node scripts/copy-mathlive-fonts.mjs",
+    "licenses": "node scripts/third-party-licenses.mjs",
     "postinstall": "npm run copy-fonts"
   },
   "dependencies": {

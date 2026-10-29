@@ -1,0 +1,23 @@
+# cargo-about: the licenses of the crates that ship in the app, for THIRD-PARTY-LICENSES.md.
+# Regenerate with `npm run licenses` in desktop/.
+accepted = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "ISC",
+    "Zlib",
+    "BSL-1.0",
+    "Unicode-3.0",
+    "Unlicense",
+    "CC0-1.0",
+    "MPL-2.0",
+]
+# The platforms the app is released for; macOS, Android and wasm crates don't ship.
+targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+ignore-dev-dependencies = true
+# The workspace's own crates are covered by LICENSE.
+private = { ignore = true }

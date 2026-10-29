@@ -1,0 +1,26 @@
+# Third-party licenses
+
+Quantus itself is released under the MIT license, see `LICENSE`. It is built on the open source
+projects listed here, under the licenses below. This file is generated: run `npm run licenses`
+in `desktop/`, don't edit it by hand.
+
+## Rust crates
+
+{{#each overview}}
+- {{{name}}} ({{count}})
+{{/each}}
+
+{{#each licenses}}
+### {{{name}}}
+
+Used by:
+
+{{#each used_by}}
+- {{crate.name}} {{crate.version}}{{#if crate.repository}} ({{crate.repository}}){{/if}}
+{{/each}}
+
+```text
+{{{text}}}
+```
+
+{{/each}}

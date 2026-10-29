@@ -4,6 +4,7 @@ description = "Quantus calculation engine: LaTeX in, exact physical quantities, 
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 
 [dependencies]
 astro-float = "0.9"
