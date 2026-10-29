@@ -11,7 +11,6 @@ export const modeChoices = (t: Translate): Choice<Mode>[] => [
   { value: 'algebra', label: t('mode.algebra') },
   { value: 'physics', label: t('mode.physics') },
   { value: 'imaginary', label: t('mode.imaginary') },
-  { value: 'electronics', label: t('mode.electronics') },
   { value: 'analysis', label: t('mode.analysis') },
 ];
 
