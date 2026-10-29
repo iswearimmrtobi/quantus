@@ -5,45 +5,35 @@ title: Install
 
 # Install
 
-:::note
-Quantus has no release yet. Until there is one, you build it yourself or take the Windows
-installer from the CI.
-:::
+Download the latest release from
+[GitHub Releases](https://github.com/iswearimmrtobi/quantus/releases/latest), or build Quantus
+yourself as described in [Building](../contributing/building.md).
 
 ## Windows
 
-The *Windows build* workflow on GitHub builds an installer for every `v*` tag, and can be
-started by hand from the **Actions** tab. Open a finished run and download the
-`quantus-windows` artifact. It contains:
+Take one of the two installers:
 
-- an NSIS installer (`.exe`), and
-- an `.msi` package.
+- `Quantus_0.1.0_x64-setup.exe`, an NSIS installer, or
+- `Quantus_0.1.0_x64_en-US.msi`, an `.msi` package.
 
 Both need WebView2, which is part of Windows 10 and 11; if it is missing, the installer
 downloads it.
 
 ## Linux
 
-Build the AppImage or the `.deb` from source as described in [Building](../contributing/building.md):
-
-```sh
-cd desktop
-npm install
-npm run bundle
-```
-
-The packages land in `target/release/bundle/`:
-
 | Package | Size | Notes |
 |---|---|---|
-| AppImage | ~100 MB | Ships its own WebKitGTK, runs on most distributions |
-| `.deb` | ~6 MB | Uses the system's WebKitGTK 4.1 |
+| `Quantus_0.1.0_amd64.AppImage` | ~100 MB | Ships its own WebKitGTK, runs on most distributions |
+| `Quantus_0.1.0_amd64.deb` | ~6 MB | Uses the system's WebKitGTK 4.1 |
 
-Run the AppImage directly:
+Make the AppImage executable and run it:
 
 ```sh
-./target/release/bundle/appimage/Quantus_0.1.0_amd64.AppImage
+chmod +x Quantus_0.1.0_amd64.AppImage
+./Quantus_0.1.0_amd64.AppImage
 ```
+
+Install the `.deb` with `sudo apt install ./Quantus_0.1.0_amd64.deb`.
 
 ## Where Quantus keeps its settings
 

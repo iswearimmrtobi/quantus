@@ -11,10 +11,11 @@ public. Open work from this is in [plans.md](https://github.com/iswearimmrtobi/q
 | License | MIT, added on GitHub (`9797065`) |
 | Secrets in history | None found |
 | Build output in git | None; `target/`, `node_modules/`, `.idea/` are ignored |
-| Dependency licenses | All MIT or Apache-2.0, compatible with MIT |
-| Personal email in history | Replaced with the GitHub no-reply address (local only, see below) |
+| Dependency licenses | All permissive and compatible with MIT: mostly MIT or Apache-2.0, plus BSD, ISC, Zlib, BSL-1.0, Unicode-3.0, Unlicense, CC0 and MPL-2.0 (unmodified Tauri dependencies). Their texts are in `THIRD-PARTY-LICENSES.md`, which the installers ship (2026-10-29) |
+| Personal email in history | Replaced with the GitHub no-reply address, see below |
 | Tests | `cargo test --workspace` passes, `npm run typecheck` passes |
-| **Still to do** | Force push, then make the repository public on GitHub |
+| Electronics mode | Not finished: hidden in the app and left out of the documentation for the first release (2026-10-29) |
+| **Still to do** | Make the repository public on GitHub |
 
 ## Licensing
 
@@ -47,25 +48,21 @@ the engine is tested and let others reproduce runs. The largest file is 0.5 MB, 
 
 ## Email in the git history
 
-13 commits had a personal email address as author email. All commits on `master` were rewritten
-with `git filter-branch` to use `103638753+iswearimmrtobi@users.noreply.github.com`; names were not
-changed. The local git config already used the no-reply address.
+Commits had a personal email address as author and committer email. All commits on `master` were
+rewritten with `git filter-branch` to use `103638753+iswearimmrtobi@users.noreply.github.com`;
+names were not changed. The first rewrite (2026-10-24) was lost to a `git pull` before it was
+pushed, and later commits used the personal address again, so it was run again on 2026-10-29 and
+force-pushed.
 
 - Every commit hash changed. Other clones of the repository have to be cloned again.
-- A backup of the history before the rewrite is at `/home/tobi/RustroverProjects/quantus-backup.git`.
-  It still contains the old email: do not push it anywhere, and delete it once the push has worked.
-- The rewrite is only local so far. Publish it with:
-
-  ```sh
-  git push --force-with-lease origin master
-  ```
-
-- **Do not pull before this push.** `git pull`, or RustRover's *Update Project* after a rejected
-  push, rebases the local commits onto the old history on GitHub and undoes the rewrite. This
-  happened once on 2026-10-24, and the rewrite had to be run again. A rejected push is expected
-  here; `--force-with-lease` is the answer to it, not a pull.
-- After the push, check that `git log --format='%ae%n%ce' | sort -u` shows only the no-reply
-  address and `noreply@github.com` (GitHub's committer address for commits made in its web UI).
+- **Never pull before the force push.** `git pull`, or RustRover's *Update Project* after a
+  rejected push, rebases the local commits onto the old history on GitHub and undoes the rewrite.
+  A rejected push is expected here; `git push --force-with-lease` is the answer to it.
+- Check with `git log --format='%ae%n%ce' | sort -u`: only the no-reply address and
+  `noreply@github.com` (GitHub's committer address for commits made in its web UI).
+- To keep it that way: the local git config uses the no-reply address, and on GitHub
+  *Settings → Emails* has *Keep my email addresses private* and *Block command line pushes that
+  expose my email* turned on.
 
 ## The failing Cauchy-integral test
 

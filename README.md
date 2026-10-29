@@ -12,8 +12,9 @@
 ![Rust](https://img.shields.io/badge/Rust-2021-orange?logo=rust&logoColor=white)
 ![Tauri](https://img.shields.io/badge/Tauri-2-24c8db?logo=tauri&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
-![Status](https://img.shields.io/badge/status-pre--release-lightgrey)
+![Release](https://img.shields.io/github/v/release/iswearimmrtobi/quantus)
 
+[Download](#-download) •
 [Features](#-features) •
 [Building](#-building) •
 [Documentation](#-documentation)
@@ -35,9 +36,18 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
     RESULT       F = 19{,}62\,\mathrm{N}
 ```
 
-> ⚠️ **Early and unreleased.** The engine was ported from Kotlin/Spring to
-> Rust and the app from Electron to Tauri. The interface is in English and
-> German (Settings → Language).
+The interface is in English and German (Settings → Language).
+
+## 📥 Download
+
+Get the latest version from **[GitHub Releases](https://github.com/iswearimmrtobi/quantus/releases/latest)**:
+
+| | |
+|---|---|
+| 🐧 **Linux** | `.AppImage` (runs on most distributions) or `.deb` |
+| 🪟 **Windows** | `-setup.exe` (NSIS) or `.msi`; both need WebView2, which Windows 10 and 11 include |
+
+What changed between versions is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## ✨ Features
 
@@ -199,7 +209,8 @@ is in German. The interface is available in English (the default) and German, se
 
 ## 📜 License
 
-Quantus is released under the MIT license, as declared in `Cargo.toml`.
+Quantus is released under the [MIT license](LICENSE). The licenses of the libraries it is built
+on are collected in [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.md), which ships with the app.
 
 <div align="center">
 

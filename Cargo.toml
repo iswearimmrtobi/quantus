@@ -6,6 +6,8 @@ members = ["crates/quantus-core", "desktop/src-tauri"]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/iswearimmrtobi/quantus"
+homepage = "https://quantus.tobifrosch.dev"
 
 # Numerical integration runs thousands of arbitrary-precision operations; unoptimised, the
 # number crates make `\int` and the golden tests several times slower.
