@@ -11,7 +11,9 @@ const config = {
 
   url: "https://iswearimmrtobi.github.io",
   // GitHub Pages serves the site under /quantus/; the dev server serves it at the root.
-  baseUrl: process.env.NODE_ENV === "development" ? "/" : "/quantus/",
+  // Not keyed on NODE_ENV: the CLI sets it to development for `serve` too, which then served
+  // the build at the root while its pages still pointed to /quantus/.
+  baseUrl: process.argv.includes("start") ? "/" : "/quantus/",
   organizationName: "iswearimmrtobi",
   projectName: "quantus",
   onBrokenLinks: "throw",
