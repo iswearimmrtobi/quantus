@@ -9,11 +9,9 @@ const config = {
   tagline: "A calculator for physical quantities, with LaTeX in and LaTeX out",
   favicon: "img/icon.svg",
 
-  url: "https://iswearimmrtobi.github.io",
-  // GitHub Pages serves the site under /quantus/; the dev server serves it at the root.
-  // Not keyed on NODE_ENV: the CLI sets it to development for `serve` too, which then served
-  // the build at the root while its pages still pointed to /quantus/.
-  baseUrl: process.argv.includes("start") ? "/" : "/quantus/",
+  // GitHub Pages serves the site on its own domain, so the landing page is at the root and the docs under /docs/.
+  url: "https://quantus.tobifrosch.dev",
+  baseUrl: "/",
   organizationName: "iswearimmrtobi",
   projectName: "quantus",
   onBrokenLinks: "throw",

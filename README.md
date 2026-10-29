@@ -184,7 +184,7 @@ Tauri commands know nothing but `api` and `SessionStore`.
 
 ## 📚 Documentation
 
-The documentation is at **[iswearimmrtobi.github.io/quantus](https://iswearimmrtobi.github.io/quantus/)**,
+The documentation is at **[quantus.tobifrosch.dev/docs](https://quantus.tobifrosch.dev/docs/)**,
 built from [`docs/`](docs/) (run it locally with `cd docs && npm install && npm start`):
 
 | | |
