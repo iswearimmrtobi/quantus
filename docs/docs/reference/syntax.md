@@ -78,6 +78,16 @@ functions use [Curve sketching](../guides/analysis.md).
 One unknown per equation. Degree up to 2 is solved exactly, higher degrees numerically on
 $[-100, 100]$.
 
+A **system of linear equations** has several unknowns and is the whole input:
+
+| Input | Result |
+|---|---|
+| `2x + y = 5; x - y = 1` | $x = 2 \land y = 1$ |
+| `\begin{cases} 2x + y = 5 \\ x - y = 1 \end{cases}` | the same |
+
+`&` for alignment (`2x + y &= 5`) is allowed. A comma cannot separate equations, it is the
+decimal separator.
+
 ## Labels and variables
 
 | Input | Meaning |

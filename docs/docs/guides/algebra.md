@@ -88,6 +88,25 @@ Write an equation with one unknown:
 | `\sqrt{x+3} = x - 3` | $x = 6$ (squaring would also give $x = 1$, which does not fit) |
 | `x^2 + 1 = 0` | *This equation has no real solution.* — try Imaginary mode |
 
+## Systems of linear equations
+
+Write several equations separated by `;`, or as `\begin{cases} … \end{cases}` in the LaTeX
+field (open it with `\`):
+
+| Input | Result |
+|---|---|
+| `2x + y = 5; x - y = 1` | $x = 2 \land y = 1$ |
+| `\begin{cases} x + y + z = 6 \\ x - y = 0 \\ 2z = 6 \end{cases}` | $x = 1{,}5 \land y = 1{,}5 \land z = 3$ |
+| `x + y = 1; 2x + 2y = 2` | $x = 1 - y \land y \in \mathbb{R}$ |
+| `x + y = 1; x + y = 2` | *The system has no solution: its equations contradict each other.* |
+
+The unknowns are the letters without a value, in alphabetical order. The system is solved
+exactly by Gauss–Jordan elimination: at *Standard* detail the steps show the augmented matrix
+and its reduced form, at *Detailed* every row operation ($\text{II} - 2 \cdot \text{I}$).
+With infinitely many solutions the unknowns without a pivot stay free and the others are given
+in terms of them. Coefficients may be fractions, $\pi$ or stored variables (`k_1 x + y = 7`);
+the unknowns themselves must appear linearly.
+
 ## When nothing happens
 
 An expression that is already as simple as Quantus can make it is shown as typed, with a note:
