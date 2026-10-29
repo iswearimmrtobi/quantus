@@ -1,3 +1,7 @@
+---
+sidebar_position: 4
+---
+
 # Testing
 
 Quantus has two kinds of tests:
