@@ -411,7 +411,7 @@ impl LatexCalculator {
 
     /// A coefficient in a result: a rational as a whole number or fraction (`\frac{1}{2}`, not
     /// `0{,}5`), anything else as the result would show it.
-    pub(super) fn entry(&self, value: &Value) -> Result<String> {
+    pub(crate) fn entry(&self, value: &Value) -> Result<String> {
         match value.as_rational() {
             Some(rational) => Ok(serializer::expression(&fraction_node(rational))),
             None => match gaussian(value) {

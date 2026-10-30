@@ -124,7 +124,7 @@ Each phase is one or more commits on `dev`. Tick a box when its commit lands.
 ### Phase 2: branches and equations
 
 - [x] `branches.rs`: junctions, branches, lead elements, directions, numbering.
-- [ ] `equations.rs`: junction and loop rules, symbolic and numeric, exact rows of `[A | b]`.
+- [x] `equations.rs`: junction and loop rules, symbolic and numeric, exact rows of `[A | b]`.
 - [ ] Tests: equation count and symbolic text for the reference circuits.
 
 ### Phase 3: solve and respond
