@@ -14,7 +14,7 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 
 | Setting | Key | Values | Default |
 |---|---|---|---|
-| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear` | `physics` |
+| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `kirchhoff` | `physics` |
 | **Language** | `language` | `en`, `de` | `en` |
 | **Precision** | `precision` | 1 to 10,000 significant digits | 50 |
 
@@ -45,8 +45,9 @@ off, a cancelled factor is shown in colour instead. See
 **Systems of equations** decides how the steps of a system (`2x + y = 5; x - y = 1`) reduce it:
 **Gauss** brings it to triangle form without fractions and then solves from the bottom up, as
 taught at school; **Gauss–Jordan** divides every pivot to 1 and clears its column above and below.
-The solution is the same. It applies to systems typed with `;` and to
-[Linear systems](../guides/linear-systems.md) mode.
+The solution is the same. It applies to systems typed with `;`, to
+[Linear systems](../guides/linear-systems.md) mode and to the equations of
+[Kirchhoff](../guides/kirchhoff.md) mode.
 
 ## Linear systems
 

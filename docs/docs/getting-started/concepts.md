@@ -19,6 +19,7 @@ the product $2 \cdot g \cdot k$ in Algebra.
 | **Imaginary** | variables | unknown | the imaginary unit |
 | **Analysis** | variables, as in Algebra | unknown | a variable |
 | **Linear systems** | unknowns; session variables are not used | unknown | an unknown, or the imaginary unit with the switch on |
+| **Kirchhoff** | values typed into the circuit's parts, read as in Physics | known | a variable |
 
 Switch the mode in the top bar or under **Settings → Mode**. An example under the empty input
 shows what fits the current mode.

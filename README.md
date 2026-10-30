@@ -51,7 +51,7 @@ What changed between versions is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## ✨ Features
 
-### 🧭 Four modes
+### 🧭 Modes
 
 The mode is chosen in the top bar or in the settings panel. Each one decides
 how letters are read; an example under the empty input shows what fits.
@@ -62,6 +62,7 @@ how letters are read; an example under the empty input shows what fits.
 | **Algebra** | Every letter is a variable: simplify, factor and solve, no units or constants |
 | **Imaginary** | As Algebra, but `i` is the imaginary unit and results may be complex, shown as `a + bi` |
 | **Analysis** | Enter `f(x) = …` and get the whole curve sketch beside an interactive graph |
+| **Kirchhoff** | Draw a resistor network and get the junction and loop rules, their Gauss steps, every current and a power balance |
 
 ### ✍️ Input
 
@@ -175,6 +176,7 @@ tab. The packages are attached to the run as the `quantus-linux` and
 | `crates/quantus-core/src/algebra/` | Simplifying, factoring and solving with working |
 | `crates/quantus-core/src/analysis/` | The analysis mode: curve sketch, graph, tangent, area, table |
 | `crates/quantus-core/src/electro/` | The electronics mode (not in the app yet): materials, wires, circuit solver |
+| `crates/quantus-core/src/kirchhoff/` | The Kirchhoff mode: drawing graph, branches, junction and loop rules |
 | `crates/quantus-core/src/settings.rs` | User settings and modes |
 | `crates/quantus-core/src/session.rs`, `api.rs` | Session variables and the app's JSON types |
 | `crates/quantus-core/tests/` | Golden tests, carried over from the Kotlin tests |

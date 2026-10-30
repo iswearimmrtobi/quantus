@@ -155,7 +155,7 @@ Each phase is one or more commits on `dev`. Tick a box when its commit lands.
 
 ### Phase 7: docs
 
-- [ ] `docs/docs/guides/kirchhoff.md`, the mode in the settings reference, the README mode list.
+- [x] `docs/docs/guides/kirchhoff.md`, the mode in the settings reference, the README mode list.
 - [ ] CHANGELOG entry, `test/circuits/kirchhoff-*.json` for manual checks.
 
 ## Verification
