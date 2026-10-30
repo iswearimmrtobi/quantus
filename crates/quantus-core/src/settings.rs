@@ -85,6 +85,17 @@ impl StepDetail {
     }
 }
 
+/// How a system of linear equations is reduced in the steps.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum Elimination {
+    /// The school method: triangle form without fractions, then back-substitution.
+    #[default]
+    Gauss,
+    /// Every pivot divided to 1 and its column cleared above and below.
+    GaussJordan,
+}
+
 /// What the calculator is used for. It decides which symbols mean something on their own.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -135,6 +146,7 @@ pub struct Settings {
     pub step_detail: StepDetail,
     /// Whether a cancelled factor is struck through (`\cancel`) rather than coloured.
     pub cancel_marks: bool,
+    pub elimination: Elimination,
 }
 
 impl Default for Settings {
@@ -154,6 +166,7 @@ impl Default for Settings {
             quadratic_formula: QuadraticFormula::Auto,
             step_detail: StepDetail::Standard,
             cancel_marks: true,
+            elimination: Elimination::Gauss,
         }
     }
 }
@@ -238,7 +251,8 @@ mod tests {
                 "language": "en",
                 "quadraticFormula": "auto",
                 "stepDetail": "standard",
-                "cancelMarks": true
+                "cancelMarks": true,
+                "elimination": "gauss"
             })
         );
     }
@@ -279,6 +293,13 @@ mod tests {
         assert!(Maximal.shows(Maximal));
         let parsed: Settings = serde_json::from_value(json!({ "stepDetail": "maximal", "cancelMarks": false })).unwrap();
         assert_eq!((parsed.step_detail, parsed.cancel_marks), (Maximal, false));
+    }
+
+    #[test]
+    fn gauss_is_the_default_elimination() {
+        let parsed: Settings = serde_json::from_value(json!({ "elimination": "gaussJordan" })).unwrap();
+        assert_eq!(parsed.elimination, Elimination::GaussJordan);
+        assert_eq!(Settings::default().elimination, Elimination::Gauss);
     }
 
     #[test]

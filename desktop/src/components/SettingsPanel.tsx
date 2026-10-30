@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, ConditionalIdentities, DenominatorForm, Language, Mode, QuadraticFormula, Settings, StepDetail } from '../api';
+import type { BinomialForm, ConditionalIdentities, DenominatorForm, Elimination, Language, Mode, QuadraticFormula, Settings, StepDetail } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -50,6 +50,11 @@ const detailChoices = (t: Translate): Choice<StepDetail>[] => [
   { value: 'maximal', label: t('detail.maximal') },
 ];
 
+const eliminationChoices = (t: Translate): Choice<Elimination>[] => [
+  { value: 'gauss', label: t('choice.gauss') },
+  { value: 'gaussJordan', label: t('choice.gaussJordan') },
+];
+
 /** So sieht die Engine ohne Einstellungsdatei aus. */
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'physics',
@@ -66,6 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
   quadraticFormula: 'auto',
   stepDetail: 'standard',
   cancelMarks: true,
+  elimination: 'gauss',
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
@@ -161,6 +167,18 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
             onChange={(v) => set('quadraticFormula', v)}
           />
           <p className="setting-hint">{t('settings.quadratic.hint')}</p>
+        </section>
+      )}
+
+      {settings.mode !== 'analysis' && (
+        <section className="setting">
+          <h3>{t('settings.elimination')}</h3>
+          <Segmented
+            choices={eliminationChoices(t)}
+            value={settings.elimination}
+            onChange={(v) => set('elimination', v)}
+          />
+          <p className="setting-hint">{t(`settings.elimination.${settings.elimination}.hint`)}</p>
         </section>
       )}
 

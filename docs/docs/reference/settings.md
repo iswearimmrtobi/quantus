@@ -28,6 +28,7 @@ analysis working). The parser and algebra messages are English only.
 |---|---|---|---|
 | **Step detail** | `stepDetail` | `none`, `brief`, `standard`, `detailed`, `maximal` | `standard` |
 | **Strike out cancelled factors** | `cancelMarks` | on / off | on |
+| **Systems of equations** | `elimination` | `gauss`, `gaussJordan` | `gauss` |
 
 | Step detail | What is shown |
 |---|---|
@@ -40,6 +41,11 @@ analysis working). The parser and algebra messages are English only.
 Each level contains every step of the levels before it. With **Strike out cancelled factors**
 off, a cancelled factor is shown in colour instead. See
 [Working and output](../guides/working-and-output.md).
+
+**Systems of equations** decides how the steps of a system (`2x + y = 5; x - y = 1`) reduce it:
+**Gauss** brings it to triangle form without fractions and then solves from the bottom up, as
+taught at school; **Gauss–Jordan** divides every pivot to 1 and clears its column above and below.
+The solution is the same.
 
 ## How results are written
 

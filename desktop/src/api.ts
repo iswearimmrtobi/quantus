@@ -140,6 +140,7 @@ export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 export type ConditionalIdentities = 'withCondition' | 'alwaysValid';
 export type StepDetail = 'none' | 'brief' | 'standard' | 'detailed' | 'maximal';
+export type Elimination = 'gauss' | 'gaussJordan';
 
 /** What `quantus_core::settings::Settings` serialises to. */
 export interface Settings {
@@ -161,6 +162,8 @@ export interface Settings {
   stepDetail: StepDetail;
   /** Whether a cancelled factor is struck through rather than coloured. */
   cancelMarks: boolean;
+  /** How the steps reduce a system of linear equations: school Gauss or Gauss–Jordan. */
+  elimination: Elimination;
 }
 
 /** A segment of the graph: points in order, broken at poles and gaps. */

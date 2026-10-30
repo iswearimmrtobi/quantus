@@ -162,6 +162,11 @@ export const en = {
   'choice.abc': 'abc formula',
   'settings.quadratic': 'Quadratic equations',
   'settings.quadratic.hint': 'Automatic: the pq formula in German, the quadratic formula in English.',
+  'choice.gauss': 'Gauss',
+  'choice.gaussJordan': 'Gauss–Jordan',
+  'settings.elimination': 'Systems of equations',
+  'settings.elimination.gauss.hint': 'Triangle form without fractions, then solved from the bottom up, as taught at school.',
+  'settings.elimination.gaussJordan.hint': 'Every pivot divided to 1 and its column cleared above and below.',
 };
 
 export type TextKey = keyof typeof en;

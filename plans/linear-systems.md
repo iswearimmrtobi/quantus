@@ -22,7 +22,7 @@ specification; this list says in which order to build them and where.
 
 ### Phase 2: Gauss steps (section 3)
 
-- [ ] Setting `elimination` (`Gauss` default, `GaussJordan`) in `crates/quantus-core/src/settings.rs`
+- [x] Setting `elimination` (`Gauss` default, `GaussJordan`) in `crates/quantus-core/src/settings.rs`
   next to `step_detail`; type in `desktop/src/api.ts`, drop-down in `SettingsPanel.tsx`, strings in
   `en.ts` and `de.ts`.
 - [ ] `linear.rs`: `gauss(matrix, unknowns) -> Echelon` with the log; new `RowOperation` variants

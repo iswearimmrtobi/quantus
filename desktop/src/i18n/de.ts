@@ -163,4 +163,9 @@ export const de: Record<TextKey, string> = {
   'choice.abc': 'abc-Formel',
   'settings.quadratic': 'Quadratische Gleichungen',
   'settings.quadratic.hint': 'Automatisch: pq-Formel auf Deutsch, Mitternachtsformel auf Englisch.',
+  'choice.gauss': 'Gauß',
+  'choice.gaussJordan': 'Gauß–Jordan',
+  'settings.elimination': 'Gleichungssysteme',
+  'settings.elimination.gauss.hint': 'Stufenform ohne Brüche, dann von unten nach oben gelöst, wie in der Schule.',
+  'settings.elimination.gaussJordan.hint': 'Jedes Pivotelement auf 1 geteilt und seine Spalte oben und unten ausgeräumt.',
 };
