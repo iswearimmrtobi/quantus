@@ -1,18 +1,16 @@
 //! Resolving a bare unit symbol: the table behind F2's uniqueness rule.
 //!
 //! Indriya's `SimpleUnitFormat` answers this with two hash maps filled at start-up
-//! (`nameToUnit` for parsing, `unitToName` for printing); the same maps are rebuilt here in the
-//! same order, so a later registration overrides an earlier one exactly as it does there. That
-//! is where the known ambiguities are decided: `mN` is millinewton, `min` the minute, `Pa` the
-//! pascal. Nothing is split at lookup time, so `m·i·n` or `P·a` never come up.
+//! (`nameToUnit` for parsing, `unitToName` for printing). Here the same registrations are
+//! replayed in the same order on every lookup and the last match wins, so a later registration
+//! overrides an earlier one exactly as it does there. That is where the known ambiguities are
+//! decided: `mN` is millinewton, `min` the minute, `Pa` the pascal. Nothing is split at lookup
+//! time, so `m·i·n` or `P·a` never come up.
 //!
 //! Only plain symbols (letters and `°`) are accepted. `m2`, `m²`, `km/h` and `℃` exist in
 //! Indriya's table too but are rejected up front, as `UnitLookup` does; composition is the
 //! parser's job. Units Indriya registers that are not atoms (`km/h`, `m²` with prefixes,
 //! percent) are left out for the same reason.
-
-use std::collections::HashMap;
-use std::sync::OnceLock;
 
 use super::atom::{Atom, Kind, Prefix};
 use super::unit::Unit;
@@ -51,54 +49,85 @@ const METRIC_UNITS: [Kind; 27] = [
     Kind::Weber,
 ];
 
-#[derive(Default)]
-struct Tables {
-    /// Symbol to unit (`nameToUnit`): labels and aliases.
-    names: HashMap<String, Unit>,
-    /// Atom to its preferred symbol (`unitToName`): the last label registered.
-    labels: HashMap<Atom, String>,
+/// A registered symbol: `prefix` followed by `base`, kept apart so nothing is allocated.
+#[derive(Clone, Copy)]
+struct Symbol {
+    prefix: &'static str,
+    base: &'static str,
 }
 
-impl Tables {
-    fn label(&mut self, atom: Atom, label: &str) {
-        self.names.insert(label.to_string(), Unit::from(atom));
-        self.labels.insert(atom, label.to_string());
+impl Symbol {
+    fn prefixed(prefix: &'static str, base: &'static str) -> Symbol {
+        Symbol { prefix, base }
     }
 
-    fn alias(&mut self, unit: Unit, alias: &str) {
-        self.names.insert(alias.to_string(), unit);
+    fn is(self, text: &str) -> bool {
+        text.strip_prefix(self.prefix) == Some(self.base)
+    }
+}
+
+impl From<&'static str> for Symbol {
+    fn from(base: &'static str) -> Symbol {
+        Symbol { prefix: "", base }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Target {
+    Atom(Atom),
+    One,
+}
+
+/// One entry of `DefaultFormat.init()`. A label goes into both of Indriya's maps, an alias only
+/// into `nameToUnit`.
+struct Registration {
+    symbol: Symbol,
+    target: Target,
+    label: bool,
+}
+
+/// Replays the registrations in order instead of storing them: the two maps hold about a
+/// thousand strings, too much for a microcontroller, and a lookup that keeps the last match
+/// gives the same answer as a map in which later insertions override earlier ones.
+struct Registrar<F: FnMut(Registration)> {
+    visit: F,
+}
+
+impl<F: FnMut(Registration)> Registrar<F> {
+    fn label(&mut self, atom: Atom, symbol: impl Into<Symbol>) {
+        (self.visit)(Registration { symbol: symbol.into(), target: Target::Atom(atom), label: true });
     }
 
-    fn alias_atom(&mut self, atom: Atom, alias: &str) {
-        self.alias(Unit::from(atom), alias);
+    fn alias_atom(&mut self, atom: Atom, alias: impl Into<Symbol>) {
+        (self.visit)(Registration { symbol: alias.into(), target: Target::Atom(atom), label: false });
     }
 
-    fn label_with_prefixes(&mut self, kind: Kind, label: &str) {
+    fn label_with_prefixes(&mut self, kind: Kind, label: &'static str) {
         self.label(Atom::plain(kind), label);
         for prefix in Prefix::METRIC.iter().chain(&Prefix::BINARY) {
-            self.label(Atom::prefixed(kind, *prefix), &format!("{}{label}", prefix.symbol));
+            self.label(Atom::prefixed(kind, *prefix), Symbol::prefixed(prefix.symbol, label));
         }
     }
 
-    fn alias_with_prefixes(&mut self, kind: Kind, alias: &str) {
+    fn alias_with_prefixes(&mut self, kind: Kind, alias: &'static str) {
         self.alias_atom(Atom::plain(kind), alias);
         for prefix in Prefix::METRIC.iter().chain(&Prefix::BINARY) {
-            self.alias_atom(Atom::prefixed(kind, *prefix), &format!("{}{alias}", prefix.symbol));
+            self.alias_atom(Atom::prefixed(kind, *prefix), Symbol::prefixed(prefix.symbol, alias));
         }
     }
 
     /// `DefaultFormat.init()`, minus the registrations that are not atoms.
-    fn build() -> Tables {
-        let mut t = Tables::default();
+    fn register_all(mut self) {
+        let t = &mut self;
 
         for kind in METRIC_UNITS {
             let symbol = kind.symbol();
             t.label(Atom::plain(kind), symbol);
             for prefix in Prefix::METRIC {
                 let atom = Atom::prefixed(kind, prefix);
-                t.label(atom, &format!("{}{symbol}", prefix.symbol));
+                t.label(atom, Symbol::prefixed(prefix.symbol, symbol));
                 if prefix == Prefix::MICRO {
-                    t.label(atom, &format!("{GREEK_MU}{symbol}"));
+                    t.label(atom, Symbol::prefixed(GREEK_MU, symbol));
                 }
             }
         }
@@ -109,17 +138,17 @@ impl Tables {
             if prefix == Prefix::KILO {
                 t.label(Atom::plain(Kind::Kilogram), "kg");
             } else {
-                t.label(Atom::prefixed(Kind::Gram, prefix), &format!("{}g", prefix.symbol));
+                t.label(Atom::prefixed(Kind::Gram, prefix), Symbol::prefixed(prefix.symbol, "g"));
             }
         }
         // `symbolToUnit`: the Greek spelling of microgram has no label of its own.
-        t.alias_atom(Atom::prefixed(Kind::Gram, Prefix::MICRO), &format!("{GREEK_MU}g"));
+        t.alias_atom(Atom::prefixed(Kind::Gram, Prefix::MICRO), Symbol::prefixed(GREEK_MU, "g"));
 
         t.alias_with_prefixes(Kind::Ohm, "Ohm");
         t.label_with_prefixes(Kind::Celsius, Kind::Celsius.symbol());
         t.alias_with_prefixes(Kind::Celsius, "°C");
 
-        t.names.insert("one".to_string(), Unit::ONE);
+        (t.visit)(Registration { symbol: "one".into(), target: Target::One, label: false });
 
         let plain = Atom::plain;
         t.label(plain(Kind::Minute), "min");
@@ -156,13 +185,11 @@ impl Tables {
         t.label(plain(Kind::Tonne), "t");
         t.alias_atom(plain(Kind::Dalton), "u");
         t.label(plain(Kind::Inch), "in");
-        t
     }
 }
 
-fn tables() -> &'static Tables {
-    static TABLES: OnceLock<Tables> = OnceLock::new();
-    TABLES.get_or_init(Tables::build)
+fn each_registration(visit: impl FnMut(Registration)) {
+    Registrar { visit }.register_all();
 }
 
 fn is_plain_symbol(symbol: &str) -> bool {
@@ -174,12 +201,27 @@ pub fn find(symbol: &str) -> Option<Unit> {
     if !is_plain_symbol(symbol) {
         return None;
     }
-    tables().names.get(symbol).cloned()
+    let mut found = None;
+    each_registration(|r| {
+        if r.symbol.is(symbol) {
+            found = Some(r.target);
+        }
+    });
+    found.map(|target| match target {
+        Target::Atom(atom) => Unit::from(atom),
+        Target::One => Unit::ONE,
+    })
 }
 
 /// The symbol `SimpleUnitFormat` prints for an atom, if it registered one.
-pub fn label(atom: &Atom) -> Option<&'static str> {
-    tables().labels.get(atom).map(String::as_str)
+pub fn label(atom: &Atom) -> Option<String> {
+    let mut found = None;
+    each_registration(|r| {
+        if r.label && matches!(r.target, Target::Atom(a) if a == *atom) {
+            found = Some(r.symbol);
+        }
+    });
+    found.map(|symbol| format!("{}{}", symbol.prefix, symbol.base))
 }
 
 #[cfg(test)]
