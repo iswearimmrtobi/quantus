@@ -177,7 +177,7 @@ export const en = {
   'linear.tab.matrix': 'Matrix',
   'linear.complex': 'Imaginary unit i',
   'linear.complex.hint': 'On: i is the imaginary unit and coefficients may be complex. Off: i is an unknown.',
-  'linear.empty.equations': 'Type one equation per line; Enter starts the next line and solves.',
+  'linear.empty.equations': 'Type one equation per line. Enter solves; Enter twice, \\\\ or a line break starts the next line.',
   'linear.empty.matrix': 'Fill in the coefficients and the right-hand side; empty cells are 0. Enter solves.',
   'linear.copy.hint': 'Result and steps as an align* block',
   'linear.unknowns': 'Unknowns',

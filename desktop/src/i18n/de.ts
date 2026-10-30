@@ -178,7 +178,7 @@ export const de: Record<TextKey, string> = {
   'linear.tab.matrix': 'Matrix',
   'linear.complex': 'Imaginäre Einheit i',
   'linear.complex.hint': 'An: i ist die imaginäre Einheit, Koeffizienten dürfen komplex sein. Aus: i ist eine Unbekannte.',
-  'linear.empty.equations': 'Eine Gleichung pro Zeile; Enter beginnt die nächste Zeile und löst.',
+  'linear.empty.equations': 'Eine Gleichung pro Zeile. Enter löst; zweimal Enter, \\\\ oder ein Zeilenumbruch beginnt die nächste Zeile.',
   'linear.empty.matrix': 'Koeffizienten und rechte Seite eintragen; leere Felder sind 0. Enter löst.',
   'linear.copy.hint': 'Ergebnis und Rechenweg als align*-Block',
   'linear.unknowns': 'Unbekannte',

@@ -123,7 +123,8 @@ same steps.
 
 - One MathLive field that shows the system as rendered maths, one equation per line (a `cases`
   block, so the parser reads it unchanged).
-- **Enter** adds a new line below the cursor (MathLive `addRowAfter`) and solves what is there.
+- **Enter** solves what is there. A second **Enter** right after it, `\\` or a line break (Shift+Enter
+  in the LaTeX source, or pasted) starts a new line below.
   An incomplete system that fails while typing is fine: the error is shown in grey under the field,
   not as a red error row, and goes away with the next valid state.
 - **Backspace** on an empty line removes it (`removeRow`); Up/Down move between lines.

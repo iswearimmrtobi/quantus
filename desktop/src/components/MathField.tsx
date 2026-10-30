@@ -76,6 +76,8 @@ interface Props {
   onLeaveLine?(direction: -1 | 1): void;
   /** Tab or Shift+Tab with no placeholder left to jump to in that direction: on to the next field. */
   onTab?(direction: -1 | 1): void;
+  /** Pasted text; returning true means it was taken care of and MathLive does not paste it. */
+  onPasteText?(text: string): boolean;
   className?: string;
   ref?: Ref<MathFieldHandle>;
 }
@@ -110,13 +112,14 @@ export function MathField({
   onBackspaceEmpty,
   onLeaveLine,
   onTab,
+  onPasteText,
   className,
   ref,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
-  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab });
-  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab };
+  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText });
+  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText };
   /** Der zuletzt aus dem Feld gemeldete Wert — alles andere kommt von außen. */
   const reported = useRef(value);
 
@@ -205,7 +208,15 @@ export function MathField({
       callbacks.current.onChange(mathfield.value);
     };
 
+    const onPaste = (event: ClipboardEvent) => {
+      const text = event.clipboardData?.getData('text/plain');
+      if (!text || !callbacks.current.onPasteText?.(text)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
     mathfield.addEventListener('input', onInput);
+    mathfield.addEventListener('paste', onPaste, true);
     // Capture-Phase: MathLive verarbeitet Tasten in seinem Inneren und ist sonst zuerst dran.
     mathfield.addEventListener('keydown', onKeyDown, true);
     mathfield.addEventListener('mode-change', onModeChange);
@@ -216,6 +227,7 @@ export function MathField({
 
     return () => {
       mathfield.removeEventListener('input', onInput);
+      mathfield.removeEventListener('paste', onPaste, true);
       mathfield.removeEventListener('keydown', onKeyDown, true);
       mathfield.removeEventListener('mode-change', onModeChange);
       mathfield.remove();
