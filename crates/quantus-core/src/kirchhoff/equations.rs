@@ -187,7 +187,7 @@ impl Equations {
 
 /// The number of a part's ID, `3` for `R3`; an ID that is not letters and a number is written
 /// out upright.
-fn index(id: &str) -> String {
+pub(super) fn index(id: &str) -> String {
     let digits = id.len() - id.chars().rev().take_while(|c| c.is_ascii_digit()).count();
     let (letters, number) = id.split_at(digits);
     if !number.is_empty() && letters.chars().all(|c| c.is_ascii_alphabetic()) {
@@ -197,7 +197,7 @@ fn index(id: &str) -> String {
     }
 }
 
-fn is_negative(value: &Value) -> bool {
+pub(super) fn is_negative(value: &Value) -> bool {
     value.is_negative().unwrap_or(false)
 }
 
@@ -257,11 +257,15 @@ struct Writer<'a> {
     width: usize,
 }
 
+/// The size of a value with its unit, exact: `10\,\Omega` for −10 Ω too.
+pub(super) fn quantity(calculator: &LatexCalculator, value: &Value, unit: UnitKind) -> Result<String> {
+    let size = signed(is_negative(value), value);
+    Ok(format!("{}\\,{}", calculator.entry(&size)?, unit_latex::format(&Unit::from(Atom::plain(unit)))))
+}
+
 impl Writer<'_> {
-    /// The size of a value with its unit, exact: `10\,\Omega` for −10 Ω too.
     fn quantity(&self, value: &Value, unit: UnitKind) -> Result<String> {
-        let size = signed(is_negative(value), value);
-        Ok(format!("{}\\,{}", self.calculator.entry(&size)?, unit_latex::format(&Unit::from(Atom::plain(unit)))))
+        quantity(self.calculator, value, unit)
     }
 
     /// A value as a factor of a term with the sign `minus`: the sign with the value's own folded

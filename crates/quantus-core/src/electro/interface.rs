@@ -186,7 +186,7 @@ fn circuit_of(calculator: &LatexCalculator, request: &CircuitRequest) -> Result<
     Ok(Circuit { nodes: request.nodes.clone(), elements })
 }
 
-fn element_of(calculator: &LatexCalculator, e: &ElementRequest) -> Result<Element> {
+pub(crate) fn element_of(calculator: &LatexCalculator, e: &ElementRequest) -> Result<Element> {
     let get = |text: &Option<String>, what: &str| optional(calculator, text, &format!("{} {what}", e.id));
     let kind = match e.kind.as_str() {
         "resistor" => ElementKind::Resistor { r: get(&e.r, "R")? },
@@ -332,7 +332,7 @@ fn resistance_of(calculator: &LatexCalculator, circuit: &Circuit, result: &Eleme
     }
 }
 
-fn known(calculator: &LatexCalculator, q: &PhysicalQuantity) -> Result<ValueResponse> {
+pub(crate) fn known(calculator: &LatexCalculator, q: &PhysicalQuantity) -> Result<ValueResponse> {
     let q = with_prefix(q.simplify()?, calculator.precision())?;
     let (value, _, result) = calculator.present(&q)?;
     Ok(ValueResponse {
@@ -353,7 +353,7 @@ const THOUSANDS: [&str; 9] = ["p", "n", "\u{b5}", "m", "", "k", "M", "G", "T"];
 /// A result in V, A, W, Ω or S gets the metric prefix that puts its number between 1 and 1000:
 /// 0,004 A is 4 mA. The size is read from the number as it is rounded, so 0,9999996 mA at six
 /// digits becomes 1 mA rather than 1000 µA. Zero, complex values and any other unit stay as they are.
-fn with_prefix(q: PhysicalQuantity, precision: usize) -> Result<PhysicalQuantity> {
+pub(crate) fn with_prefix(q: PhysicalQuantity, precision: usize) -> Result<PhysicalQuantity> {
     let Some(atom) = q.unit.as_atom().filter(|a| a.prefix().is_none() && PREFIXED.contains(&a.kind())) else {
         return Ok(q);
     };

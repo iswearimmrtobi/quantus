@@ -208,6 +208,14 @@ pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Resu
     Ok(crate::eval::linear_system::linear_system(settings, request)?)
 }
 
+pub use crate::kirchhoff::interface::{KirchhoffElement, KirchhoffRequest, KirchhoffResponse};
+
+/// A resistor network worked out by the junction and loop rules (Kirchhoff mode). Stateless,
+/// like `solve_circuit`.
+pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<KirchhoffResponse, ApiError> {
+    Ok(crate::kirchhoff::interface::kirchhoff(settings, request)?)
+}
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }
@@ -462,6 +470,30 @@ mod tests {
         assert_eq!(linear_system(&Settings::default(), &typed).unwrap().result, "x = \\frac{1}{2} \\land y = \\frac{1}{2}");
         let error = linear_system(&Settings::default(), &LinearSystemRequest::Equations("x^2 = 1; y = 2".into())).unwrap_err();
         assert!(error.error.contains("not linear") && error.position.is_none());
+    }
+
+    #[test]
+    fn the_kirchhoff_mode_has_its_request_and_response_shape() {
+        let request: KirchhoffRequest = serde_json::from_value(json!({ "elements": [
+            { "id": "V1", "kind": "voltageSource", "u": "10V", "pa": { "x": 0, "y": 4 }, "pb": { "x": 0, "y": 0 } },
+            { "id": "R1", "kind": "resistor", "r": "5\\Omega", "pa": { "x": 0, "y": 0 }, "pb": { "x": 4, "y": 0 } },
+            { "id": "W1", "kind": "wire", "pa": { "x": 4, "y": 0 }, "pb": { "x": 4, "y": 4 } },
+            { "id": "W2", "kind": "wire", "pa": { "x": 4, "y": 4 }, "pb": { "x": 0, "y": 4 } },
+            { "id": "GND1", "kind": "ground" }
+        ] })).unwrap();
+        let body = json_of(&kirchhoff(&Settings::default(), &request).unwrap());
+        let mut keys: Vec<_> = body.as_object().unwrap().keys().cloned().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            ["alignBlock", "branches", "elements", "error", "junctions", "loops", "matrix", "notes", "powerBalance", "result", "steps", "unknowns"]
+        );
+        assert_eq!(body["result"], json!(["I_{1} = 2\\,\\mathrm{A}"]));
+        assert_eq!(body["loops"][0]["name"], "L_{1}");
+        assert_eq!(body["branches"][0]["lead"], "V1");
+        assert_eq!(body["elements"][1]["current"]["result"], "-2\\,\\mathrm{A}");
+        assert_eq!(body["powerBalance"]["latex"], "\\sum P_{\\mathrm{gen}} = 20\\,\\mathrm{W} = \\sum P_{\\mathrm{cons}}");
+        assert!(body["alignBlock"].as_str().unwrap().contains("P_{\\mathrm{gen}}"));
     }
 
     #[test]

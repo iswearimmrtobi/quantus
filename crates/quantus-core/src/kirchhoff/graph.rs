@@ -14,12 +14,13 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 
 use dashu::rational::RBig;
+use serde::{Deserialize, Serialize};
 
 use crate::electro::text::msg;
 use crate::{QuantusError, Result};
 
 /// A grid point, in grid steps.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Point {
     pub x: i64,
     pub y: i64,
@@ -71,7 +72,7 @@ pub struct Step {
 }
 
 /// Where a loop's name and arrow go, in grid steps; may lie halfway between grid points.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Anchor {
     pub x: f64,
     pub y: f64,

@@ -364,7 +364,7 @@ impl LatexCalculator {
     }
 
     /// The solution of a system as one line, with the first unknown's value as the quantity.
-    pub(super) fn system_result(&self, system: &SystemSolution, names: &[String]) -> Result<(String, PhysicalQuantity, Decimal, Option<Decimal>)> {
+    pub(crate) fn system_result(&self, system: &SystemSolution, names: &[String]) -> Result<(String, PhysicalQuantity, Decimal, Option<Decimal>)> {
         let mut parts = Vec::new();
         let mut first = None;
         match &system.solution {

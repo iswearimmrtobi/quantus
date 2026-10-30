@@ -125,6 +125,8 @@ pub enum Mode {
     /// Systems of linear equations, typed or as a matrix. Inputs are read as in `Algebra`, or as
     /// in `Imaginary` with `linear_complex`.
     Linear,
+    /// A resistor network solved by the junction and loop rules. Inputs are read as in `Physics`.
+    Kirchhoff,
 }
 
 /// The language of the texts the engine writes itself (the electronics notes and errors).
@@ -302,6 +304,8 @@ mod tests {
         assert_eq!((options(Mode::Electronics).units, options(Mode::Electronics).imaginary_i), (true, false));
         assert_eq!((options(Mode::Analysis).units, options(Mode::Analysis).imaginary_i), (false, false));
         assert_eq!(serde_json::to_value(Mode::Analysis).unwrap(), json!("analysis"));
+        assert_eq!((options(Mode::Kirchhoff).units, options(Mode::Kirchhoff).imaginary_i), (true, false));
+        assert_eq!(serde_json::to_value(Mode::Kirchhoff).unwrap(), json!("kirchhoff"));
     }
 
     #[test]

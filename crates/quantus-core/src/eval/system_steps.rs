@@ -55,7 +55,7 @@ struct Marking<'a> {
 
 impl LatexCalculator {
     /// The working between the system as typed and its result.
-    pub(super) fn system_steps(&self, system: &SystemSolution, names: &[String]) -> Result<Vec<Step>> {
+    pub(crate) fn system_steps(&self, system: &SystemSolution, names: &[String]) -> Result<Vec<Step>> {
         let detail = self.settings.step_detail;
         let standard = detail >= StepDetail::Standard;
         let (log, reduced) = match &system.reduction {
