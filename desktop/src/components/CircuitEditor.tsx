@@ -12,6 +12,7 @@ import {
 import type { CircuitResponse, CircuitValue } from '../api';
 import {
   FIELDS,
+  connectedPoints,
   GRID,
   HALF,
   KIND_LABELS,
@@ -132,6 +133,7 @@ export function CircuitEditor({
   const canvas = useRef<SVGSVGElement>(null);
 
   const results = useMemo(() => new Map(resultList?.map((e) => [e.id, e])), [resultList]);
+  const connected = useMemo(() => connectedPoints(elements), [elements]);
 
   // The labels are laid out from their real sizes, which only the browser knows once KaTeX has
   // set them. Offset sizes ignore the zoom transform, so they are already in drawing units.
@@ -465,6 +467,7 @@ export function CircuitEditor({
                 element={element}
                 selected={selection.includes(element.id)}
                 highlighted={highlight?.includes(element.id) ?? false}
+                connected={connected}
                 onPointerDown={(event) => startMove(event, element)}
                 onTerminal={(event, point) => startDraw(event, point)}
                 onEnd={(event, end) => startEnd(event, element, end)}
@@ -634,13 +637,16 @@ interface PartProps {
   element: EditorElement;
   selected: boolean;
   highlighted: boolean;
+  /** The points where terminals meet; their dots are hidden until hovered. */
+  connected: Set<string>;
   onPointerDown(event: ReactPointerEvent): void;
   onTerminal(event: ReactPointerEvent, point: Point): void;
   onEnd(event: ReactPointerEvent, end: 'a' | 'b'): void;
 }
 
-function Part({ element, selected, highlighted, onPointerDown, onTerminal, onEnd }: PartProps) {
+function Part({ element, selected, highlighted, connected, onPointerDown, onTerminal, onEnd }: PartProps) {
   const places = terminals(element);
+  const dot = (base: string, point: Point) => (connected.has(pointKey(point)) ? `${base} connected` : base);
   const className = ['part', selected && 'selected', highlighted && 'highlighted'].filter(Boolean).join(' ');
 
   if (element.kind === 'wire') {
@@ -649,8 +655,8 @@ function Part({ element, selected, highlighted, onPointerDown, onTerminal, onEnd
       <g className={className}>
         <line className="hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} onPointerDown={onPointerDown} />
         <line className="wire" x1={a.x} y1={a.y} x2={b.x} y2={b.y} pointerEvents="none" />
-        <circle className="end" cx={a.x} cy={a.y} r="5" onPointerDown={(event) => onEnd(event, 'a')} />
-        <circle className="end" cx={b.x} cy={b.y} r="5" onPointerDown={(event) => onEnd(event, 'b')} />
+        <circle className={dot('end', a)} cx={a.x} cy={a.y} r="5" onPointerDown={(event) => onEnd(event, 'a')} />
+        <circle className={dot('end', b)} cx={b.x} cy={b.y} r="5" onPointerDown={(event) => onEnd(event, 'b')} />
       </g>
     );
   }
@@ -666,7 +672,7 @@ function Part({ element, selected, highlighted, onPointerDown, onTerminal, onEnd
       {(Object.entries(places) as [Terminal, Point][]).map(([name, point]) => (
         <circle
           key={name}
-          className="terminal"
+          className={dot('terminal', point)}
           cx={point.x}
           cy={point.y}
           r="5"

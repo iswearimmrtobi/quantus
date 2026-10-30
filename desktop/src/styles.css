@@ -1018,6 +1018,11 @@ select option {
 .part .end:hover {
   fill: var(--cyan);
 }
+/* A connected end keeps its handle but shows it only under the pointer. */
+.part .connected:not(:hover) {
+  fill: transparent;
+  stroke: transparent;
+}
 .label-leader {
   stroke: var(--text-faint);
   stroke-width: 1;

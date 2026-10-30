@@ -130,6 +130,28 @@ function inside(a: Point, b: Point, p: Point): boolean {
 }
 
 /**
+ * The points where a terminal or wire end is connected: where it meets another one, or sits in the
+ * middle of an ideal wire. The editor draws the open dot only at the others.
+ */
+export function connectedPoints(elements: EditorElement[]): Set<string> {
+  const count = new Map<string, number>();
+  const points: Point[] = [];
+  for (const element of elements) {
+    for (const point of Object.values(terminals(element)) as Point[]) {
+      const key = pointKey(point);
+      count.set(key, (count.get(key) ?? 0) + 1);
+      points.push(point);
+    }
+  }
+  const connected = new Set([...count].filter(([, n]) => n > 1).map(([key]) => key));
+  for (const wire of elements.filter(isIdealWire)) {
+    const { a, b } = terminals(wire);
+    for (const point of points) if (inside(a!, b!, point)) connected.add(pointKey(point));
+  }
+  return connected;
+}
+
+/**
  * Numbers the points where terminals sit. Ground is the point of a ground symbol; without one it
  * is the negative terminal of the first voltage source, so a drawn source-and-load circuit
  * works without ceremony. A terminal in the middle of an ideal wire is a junction and shares the
