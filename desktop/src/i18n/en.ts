@@ -110,7 +110,7 @@ export const en = {
   'material.brass': 'Brass',
   'circuit.parts': 'PARTS',
   'circuit.drag': 'Drag onto the canvas or click',
-  'circuit.hint': 'Dragging from a terminal draws a wire. Dragging on empty canvas selects several parts.',
+  'circuit.hint': 'Dragging from a terminal, or from a point on a wire, draws a wire. Dragging on empty canvas selects several parts.',
   'circuit.rotates': 'rotates',
   'circuit.deletes': 'deletes',
   'circuit.pan': 'Dragging with the right or middle mouse button, or scrolling, moves the canvas; Ctrl and scrolling zooms.',

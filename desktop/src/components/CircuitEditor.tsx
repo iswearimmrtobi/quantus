@@ -15,6 +15,8 @@ import {
   connectedPoints,
   GRID,
   HALF,
+  inside,
+  isIdealWire,
   KIND_LABELS,
   MATERIALS,
   newElement,
@@ -646,17 +648,41 @@ interface PartProps {
 
 function Part({ element, selected, highlighted, connected, onPointerDown, onTerminal, onEnd }: PartProps) {
   const places = terminals(element);
+  /** The grid point on an ideal wire under the pointer, where a new wire can start. */
+  const [junction, setJunction] = useState<Point | null>(null);
   const dot = (base: string, point: Point) => (connected.has(pointKey(point)) ? `${base} connected` : base);
   const className = ['part', selected && 'selected', highlighted && 'highlighted'].filter(Boolean).join(' ');
 
   if (element.kind === 'wire') {
     const { a, b } = places as Record<'a' | 'b', Point>;
+    // Near a grid point in its middle an ideal wire offers a handle, as a terminal does: a wire
+    // drawn from it starts a T-junction. Elsewhere the wire is grabbed to move it.
+    const findJunction = (event: ReactPointerEvent<SVGElement>) => {
+      const matrix = (event.currentTarget as SVGGraphicsElement).getScreenCTM()?.inverse();
+      if (!matrix || !isIdealWire(element)) return setJunction(null);
+      const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix);
+      const point = { x: snap(at.x), y: snap(at.y) };
+      const near = Math.hypot(at.x - point.x, at.y - point.y) <= 6 && inside(a, b, point);
+      setJunction((old) => (near ? (old && pointKey(old) === pointKey(point) ? old : point) : null));
+    };
     return (
-      <g className={className}>
+      <g className={className} onPointerMove={findJunction} onPointerLeave={() => setJunction(null)}>
         <line className="hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} onPointerDown={onPointerDown} />
         <line className="wire" x1={a.x} y1={a.y} x2={b.x} y2={b.y} pointerEvents="none" />
         <circle className={dot('end', a)} cx={a.x} cy={a.y} r="5" onPointerDown={(event) => onEnd(event, 'a')} />
         <circle className={dot('end', b)} cx={b.x} cy={b.y} r="5" onPointerDown={(event) => onEnd(event, 'b')} />
+        {junction && (
+          <circle
+            className="end"
+            cx={junction.x}
+            cy={junction.y}
+            r="5"
+            onPointerDown={(event) => {
+              setJunction(null);
+              onTerminal(event, junction);
+            }}
+          />
+        )}
       </g>
     );
   }

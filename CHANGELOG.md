@@ -31,6 +31,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     While parts are dragged, the labels keep their spots as long as those stay free, and settle
     again when the parts are dropped.
   - A wire or part ending in the middle of an ideal wire is now connected to it (a T-junction).
+    A new wire can also start there: a grid point on an ideal wire shows a handle under the
+    pointer, and dragging from it draws the wire.
   - The open dot at a terminal or wire end is gone once something is connected there; it shows
     again under the pointer, to drag from. This holds in the Kirchhoff mode too.
 - A seventh mode, **Kirchhoff**, for resistor networks worked out by the junction and loop rules.

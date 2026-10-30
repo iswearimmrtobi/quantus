@@ -123,7 +123,7 @@ export function isIdealWire(element: EditorElement): boolean {
 }
 
 /** Whether `p` lies on the segment from `a` to `b` but on neither end. */
-function inside(a: Point, b: Point, p: Point): boolean {
+export function inside(a: Point, b: Point, p: Point): boolean {
   if ((b.x - a.x) * (p.y - a.y) !== (b.y - a.y) * (p.x - a.x)) return false;
   if (pointKey(p) === pointKey(a) || pointKey(p) === pointKey(b)) return false;
   return Math.min(a.x, b.x) <= p.x && p.x <= Math.max(a.x, b.x) && Math.min(a.y, b.y) <= p.y && p.y <= Math.max(a.y, b.y);
