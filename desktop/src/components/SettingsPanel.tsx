@@ -12,6 +12,7 @@ export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[
   { value: 'algebra', label: t('mode.algebra') },
   { value: 'physics', label: t('mode.physics') },
   { value: 'imaginary', label: t('mode.imaginary') },
+  { value: 'electronics', label: t('mode.electronics') },
   { value: 'analysis', label: t('mode.analysis') },
   { value: 'linear', label: linearComplex ? `${t('mode.linear')} + 𝑖` : t('mode.linear') },
 ];

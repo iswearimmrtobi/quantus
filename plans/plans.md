@@ -43,10 +43,8 @@ Verified in code and unit tests, but not yet by eye in the running app:
 ## 3. Finish the electronics mode
 
 Implemented (`crates/quantus-core/src/electro/`, `tests/electro.rs`, the circuit editor in the
-frontend) but hidden since 0.1.0: the settings entry is gone and `desktop/src/App.tsx` maps a saved
-`mode: 'electronics'` to `'physics'` on load. Spec: [electronics-module.md](../design/electronics-module.md).
-Needed to ship it: bring back the settings entry and remove the remap, then document it in the
-README and the user docs.
+frontend) and selectable again in the mode selector. Spec: [electronics-module.md](../design/electronics-module.md).
+Needed to ship it: document it in the README and the user docs.
 
 ## 4. Later
 

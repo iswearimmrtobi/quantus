@@ -171,11 +171,7 @@ export function App() {
   // The engine runs inside the app, so there is nothing to wait for.
   useEffect(() => {
     api.info().then((info) => setPrecision(info.precision), () => {});
-    // The electronics mode is not offered yet; a settings file that still has it opens in physics.
-    api
-      .settings()
-      .then((saved) => setSettings(saved.mode === 'electronics' ? { ...saved, mode: 'physics' } : saved), () => {})
-      .finally(() => setSettingsLoaded(true));
+    api.settings().then(setSettings, () => {}).finally(() => setSettingsLoaded(true));
     void refreshVariables();
   }, [refreshVariables]);
 
