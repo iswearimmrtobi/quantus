@@ -7,7 +7,7 @@
 
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
-use super::system::Solution;
+use super::system::{Reduction, Solution};
 use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::linear::RowOperation;
 use crate::num::{Decimal, DEFAULT_PRECISION};
@@ -320,8 +320,8 @@ impl LatexCalculator {
     /// free ones: `x = 1 - y \land y \in \mathbb{R}`. The steps show the augmented matrix, each
     /// row operation (Detailed) and the reduced matrix.
     fn evaluate_system(&self, evaluator: &Evaluator, formula: Formula, variables: &Variables) -> Result<Calculation> {
-        let system = evaluator.solve_system(&formula.expression)?;
-        let names: Vec<String> = system
+        let system = evaluator.solve_system(&formula.expression, self.settings.elimination)?;
+        let system_names: Vec<String> = system
             .unknowns
             .iter()
             .map(|key| {
@@ -330,6 +330,7 @@ impl LatexCalculator {
             })
             .collect();
 
+        let names = &system_names;
         let mut parts = Vec::new();
         let mut first = None;
         match &system.solution {
@@ -341,7 +342,16 @@ impl LatexCalculator {
                     first.get_or_insert((quantity, value, imaginary));
                 }
             }
-            Solution::Parametric { free, bound } => {
+            Solution::Inconsistent { .. } => {
+                return Err(crate::QuantusError::other("The system has no solution: its equations contradict each other."));
+            }
+            Solution::Parametric { free, bound, parameters } => {
+                // After the Gauss method the free unknowns are parameters: `y = λ`.
+                let mut names = names.clone();
+                for (f, parameter) in free.iter().zip(parameters) {
+                    names[*f] = parameter.clone();
+                }
+                let mut lines: Vec<(usize, String)> = Vec::new();
                 for (column, constant, terms) in bound {
                     let mut right = if constant.is_zero() && !terms.is_empty() { String::new() } else { self.entry(constant)? };
                     for (free, coefficient) in terms {
@@ -357,8 +367,13 @@ impl LatexCalculator {
                             (false, false) => format!("{right} + {term}"),
                         };
                     }
-                    parts.push(format!("{} = {right}", names[*column]));
+                    lines.push((*column, format!("{} = {right}", system_names[*column])));
                 }
+                if !parameters.is_empty() {
+                    lines.extend(free.iter().map(|f| (*f, format!("{} = {}", system_names[*f], names[*f]))));
+                    lines.sort_by_key(|(column, _)| *column);
+                }
+                parts.extend(lines.into_iter().map(|(_, line)| line));
                 let numbers = if self.settings.mode == Mode::Imaginary { "\\mathbb{C}" } else { "\\mathbb{R}" };
                 let free: Vec<&str> = free.iter().map(|f| names[*f].as_str()).collect();
                 parts.push(format!("{} \\in {numbers}", free.join(", ")));
@@ -386,17 +401,21 @@ impl LatexCalculator {
             )
             .with_level(StepDetail::Standard),
         );
-        for crate::linear::Logged { operation, matrix, .. } in &system.elimination.log {
+        let (log, reduced) = match &system.reduction {
+            Reduction::Gauss { echelon, .. } => (&echelon.log, &echelon.matrix),
+            Reduction::GaussJordan(elimination) => (&elimination.log, &elimination.matrix),
+        };
+        for crate::linear::Logged { operation, matrix, .. } in log {
             let (operation, explanation) = self.row_operation(operation)?;
             steps.push(
                 Step::algebraic(format!("\\xrightarrow{{{operation}}} {}", self.augmented(matrix)?), None, explanation, None, None)
                     .with_level(StepDetail::Detailed),
             );
         }
-        if !system.elimination.log.is_empty() {
+        if !log.is_empty() {
             steps.push(
                 Step::algebraic(
-                    self.augmented(&system.elimination.matrix)?,
+                    self.augmented(reduced)?,
                     None,
                     msg!("Eliminate column by column", "Spalte für Spalte eliminieren"),
                     None,
@@ -769,6 +788,7 @@ fn uses_variables(node: &Node) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::settings::Elimination;
 
     /// One step per rule, as the presentation of F6 has it.
     fn calc(input: &str) -> Calculation {
@@ -813,7 +833,11 @@ mod tests {
     }
 
     fn system(input: &str, detail: StepDetail) -> Calculation {
-        let settings = Settings { step_detail: detail, ..Settings::default() };
+        system_with(input, detail, Elimination::Gauss)
+    }
+
+    fn system_with(input: &str, detail: StepDetail, elimination: Elimination) -> Calculation {
+        let settings = Settings { step_detail: detail, elimination, ..Settings::default() };
         LatexCalculator::default().with_settings(settings).evaluate(input, &Variables::new()).unwrap()
     }
 
@@ -831,7 +855,7 @@ mod tests {
     fn subscripted_variables_without_a_value_are_unknowns_of_a_system() {
         assert_eq!(system("x_1 + x_2 = 3; x_1 - x_2 = 1", StepDetail::Brief).result, "x_{1} = 2 \\land x_{2} = 1");
         assert_eq!(
-            system("x_1 + x_2 = 1; 2x_1 + 2x_2 = 2", StepDetail::Brief).result,
+            system_with("x_1 + x_2 = 1; 2x_1 + 2x_2 = 2", StepDetail::Brief, Elimination::GaussJordan).result,
             "x_{1} = 1 - x_{2} \\land x_{2} \\in \\mathbb{R}"
         );
         assert_eq!(system("x_{10} + x_2 = 3; x_{10} - x_2 = 1", StepDetail::Brief).result, "x_{2} = 1 \\land x_{10} = 2");
@@ -851,17 +875,25 @@ mod tests {
 
     #[test]
     fn infinitely_many_solutions_are_given_in_the_free_unknowns() {
-        assert_eq!(system("x + y = 1; 2x + 2y = 2", StepDetail::Brief).result, "x = 1 - y \\land y \\in \\mathbb{R}");
-        assert_eq!(system("x - 2y = 0; 3x = 6y", StepDetail::Brief).result, "x = 2 \\cdot y \\land y \\in \\mathbb{R}");
+        let jordan = |input| system_with(input, StepDetail::Brief, Elimination::GaussJordan).result;
+        assert_eq!(jordan("x + y = 1; 2x + 2y = 2"), "x = 1 - y \\land y \\in \\mathbb{R}");
+        assert_eq!(jordan("x - 2y = 0; 3x = 6y"), "x = 2 \\cdot y \\land y \\in \\mathbb{R}");
+        assert_eq!(jordan("x + z = 1; y - z = 2"), "x = 1 - z \\land y = 2 + z \\land z \\in \\mathbb{R}");
+    }
+
+    #[test]
+    fn the_gauss_method_sets_free_unknowns_to_parameters() {
+        let gauss = |input| system(input, StepDetail::Brief).result;
+        assert_eq!(gauss("x + y = 1; 2x + 2y = 2"), "x = 1 - \\lambda \\land y = \\lambda \\land \\lambda \\in \\mathbb{R}");
         assert_eq!(
-            system("x + z = 1; y - z = 2", StepDetail::Brief).result,
-            "x = 1 - z \\land y = 2 + z \\land z \\in \\mathbb{R}"
+            gauss("x + z = 1; y - z = 2"),
+            "x = 1 - \\lambda \\land y = 2 + \\lambda \\land z = \\lambda \\land \\lambda \\in \\mathbb{R}"
         );
     }
 
     #[test]
     fn a_system_shows_its_matrices_by_detail_level() {
-        let latex = |detail| system("2x + y = 5; x - y = 1", detail).steps.into_iter().map(|s| s.latex).collect::<Vec<_>>();
+        let latex = |detail| system_with("2x + y = 5; x - y = 1", detail, Elimination::GaussJordan).steps.into_iter().map(|s| s.latex).collect::<Vec<_>>();
         let standard = latex(StepDetail::Standard);
         assert_eq!(standard.len(), 4, "{standard:?}");
         assert_eq!(standard[1], "\\left(\\begin{array}{cc|c} 2 & 1 & 5 \\\\ 1 & -1 & 1 \\end{array}\\right)");

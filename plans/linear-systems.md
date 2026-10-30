@@ -28,9 +28,11 @@ specification; this list says in which order to build them and where.
 - [x] `linear.rs`: `gauss(matrix, unknowns) -> Echelon` with the log; new `RowOperation` variants
   `Combine { target, a, source, b }` and `Scale { row, divisor }`, and a reason enum.
   `eliminate` keeps its behaviour for the circuit solver and `solve_square`.
-- [ ] `system.rs`: back-substitution from the echelon form, the outcome (unique, `0 = c`, free
+- [x] `system.rs`: back-substitution from the echelon form, the outcome (unique, `0 = c`, free
   unknowns), Greek parameters `λ, μ, ν, …` skipping letters in use. A test that `gauss` and
   `eliminate` agree on every system in the tests. *Check:* how fraction-free steps look with `π`.
+  Result: `π·II − I`, no gcd, as intended; but the matrix showed `π` as a 50-digit decimal
+  unless *exact roots* is on, so the step block writes entries exactly.
 - [ ] `eval/calculator.rs`: rewrite the step block (`augmented`, `row_operation`) for both methods:
   row labels with marks (`II'`), the annotation column, the coloured pivot and changed row, the
   levels from the table in section 3 (entry-by-entry arithmetic at Detailed, the check at

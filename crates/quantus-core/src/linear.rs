@@ -229,7 +229,7 @@ fn common_factor(row: &[Value]) -> Option<Value> {
 }
 
 /// Replaces a symbolic entry that is numerically zero by an exact zero.
-fn settle(entry: &mut Value) {
+pub(crate) fn settle(entry: &mut Value) {
     if matches!(entry, Value::Rat(_)) {
         return;
     }
