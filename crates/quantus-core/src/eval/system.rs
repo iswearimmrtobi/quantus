@@ -1,7 +1,7 @@
 //! Systems of linear equations: `2x + y = 5; x - y = 1`.
 //!
-//! The unknowns are the free variables without a subscript, in the order `x, y, z, a, b, … w`
-//! (see [`variable_order`]). Each
+//! The unknowns are the free variables without a value, with or without a subscript (`x_1`), in
+//! the order `x, y, z, a, b, … w` (see [`variable_order`]). Each
 //! equation's coefficients are read off by evaluating its residual `left - right` at zero and at
 //! each unit vector, as the single-equation solver does for polynomials, and checked at other
 //! points: a residual that misses them is not linear. That also covers `\pi x`, fractions and
@@ -39,7 +39,7 @@ impl Evaluator<'_> {
             return Err(QuantusError::other("Only a system of equations can be solved as one."));
         };
         let mut unknowns = Vec::new();
-        collect_unknowns(system, &mut Vec::new(), self, &mut unknowns);
+        collect_unknowns(system, true, &mut Vec::new(), self, &mut unknowns);
         if unknowns.is_empty() {
             return Err(QuantusError::other(
                 "The system has no unknown to solve for. Use letters such as x and y without a value.",
@@ -195,6 +195,15 @@ mod tests {
         let mut keys = ["\\alpha", "b", "x_10", "z", "x", "x_2", "x_i", "a"];
         keys.sort_by_cached_key(|key| variable_order(key));
         assert_eq!(keys, ["x", "x_2", "x_10", "x_i", "z", "a", "b", "\\alpha"]);
+    }
+
+    #[test]
+    fn subscripted_variables_are_unknowns() {
+        let solution = solve("x_1 + x_2 = 3; x_1 - x_2 = 1").unwrap();
+        assert_eq!(solution.unknowns, ["x_1", "x_2"]);
+        assert!(matches!(solution.solution, Solution::Unique(values) if values == [Value::int(2), Value::int(1)]));
+        assert_eq!(solve("x_{10} + x_2 = 3; x_{10} - x_2 = 1").unwrap().unknowns, ["x_2", "x_10"]);
+        assert_eq!(solve("b + x = 1; a + b = 2; x_1 + a = 3; x - x_1 = 0").unwrap().unknowns, ["x", "x_1", "a", "b"]);
     }
 
     #[test]

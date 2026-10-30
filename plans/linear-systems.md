@@ -14,9 +14,9 @@ specification; this list says in which order to build them and where.
 
 - [x] `crates/quantus-core/src/eval/system.rs`: a `variable_order` key (`x, y, z`, then `a … w`,
   subscripts numerically, Greek and multi-letter names last) replaces `unknowns.sort()`.
-- [ ] `eval/solver.rs`, `collect_unknowns`: take a flag for systems; with it, a `Node::Variable` with an
+- [x] `eval/solver.rs`, `collect_unknowns`: take a flag for systems; with it, a `Node::Variable` with an
   index counts as an unknown if it has no value. Single equations pass the flag off.
-- [ ] Tests in `system.rs` and golden cases: `x_1 + x_2 = 3`, mixed `x, a, b`, `x_10` vs `x_2`, the
+- [x] Tests in `system.rs` and golden cases: `x_1 + x_2 = 3`, mixed `x, a, b`, `x_10` vs `x_2`, the
   physics case `v_1 = s_1/t_1` with `s_1 = 4 m`.
 - [ ] CHANGELOG entry.
 

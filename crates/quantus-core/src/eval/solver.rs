@@ -58,7 +58,7 @@ impl Evaluator<'_> {
     /// The one free, unindexed variable of the equation.
     fn unknown(&self, equation: &Node) -> Result<String> {
         let mut found = Vec::new();
-        collect_unknowns(equation, &mut Vec::new(), self, &mut found);
+        collect_unknowns(equation, false, &mut Vec::new(), self, &mut found);
         match found.as_slice() {
             [] => Err(QuantusError::other(
                 "The equation has no unknown to solve for. Use a letter such as x without a value.",
@@ -323,29 +323,38 @@ fn polynomial_roots(
     Ok(Some(keyed.into_iter().map(|(_, value)| value).collect()))
 }
 
-/// Variables without index and without value, outside whatever binds them.
-pub(super) fn collect_unknowns(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator, found: &mut Vec<String>) {
+/// Variables without value and without index, outside whatever binds them, by session key. In a
+/// system (`system`) a variable with an index counts too: `x_1` is an unknown there, while a
+/// single equation leaves `v_1` and `t_1` to the physics.
+pub(super) fn collect_unknowns(
+    node: &Node,
+    system: bool,
+    bound: &mut Vec<String>,
+    evaluator: &Evaluator,
+    found: &mut Vec<String>,
+) {
     match node {
-        Node::Variable { name, index, .. } if index.is_empty() => {
-            if !bound.contains(name)
-                && !evaluator.variables.contains_key(name)
-                && !found.contains(name)
-                && evaluator.physical_constant(name).is_none()
+        Node::Variable { name, index, .. } if system || index.is_empty() => {
+            let key = Node::variable_key(name, index);
+            if !bound.contains(&key)
+                && !evaluator.variables.contains_key(&key)
+                && !found.contains(&key)
+                && evaluator.physical_constant(&key).is_none()
             {
-                found.push(name.clone());
+                found.push(key);
             }
         }
         Node::Sum { index: name, .. } | Node::Integral { variable: name, .. } | Node::Limit { variable: name, .. }
         | Node::Derivative { variable: name, .. } => {
             bound.push(name.clone());
             for child in node.children() {
-                collect_unknowns(child, bound, evaluator, found);
+                collect_unknowns(child, system, bound, evaluator, found);
             }
             bound.pop();
         }
         other => {
             for child in other.children() {
-                collect_unknowns(child, bound, evaluator, found);
+                collect_unknowns(child, system, bound, evaluator, found);
             }
         }
     }

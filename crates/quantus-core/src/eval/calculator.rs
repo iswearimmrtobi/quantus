@@ -324,7 +324,10 @@ impl LatexCalculator {
         let names: Vec<String> = system
             .unknowns
             .iter()
-            .map(|name| serializer::expression(&Node::Variable { name: name.clone(), index: String::new(), position: 0 }))
+            .map(|key| {
+                let (name, index) = key.split_once('_').unwrap_or((key, ""));
+                serializer::expression(&Node::Variable { name: name.to_string(), index: index.to_string(), position: 0 })
+            })
             .collect();
 
         let mut parts = Vec::new();
@@ -814,6 +817,28 @@ mod tests {
         assert_eq!(c.steps.iter().map(|s| s.kind).collect::<Vec<_>>(), [StepKind::Symbolic, StepKind::Result]);
         assert_eq!(system("x + y = 1; x - y = 0", StepDetail::Brief).result, "x = 0{,}5 \\land y = 0{,}5");
         assert_eq!(system("a + x = 3; a - x = 1", StepDetail::Brief).result, "x = 1 \\land a = 2");
+    }
+
+    #[test]
+    fn subscripted_variables_without_a_value_are_unknowns_of_a_system() {
+        assert_eq!(system("x_1 + x_2 = 3; x_1 - x_2 = 1", StepDetail::Brief).result, "x_{1} = 2 \\land x_{2} = 1");
+        assert_eq!(
+            system("x_1 + x_2 = 1; 2x_1 + 2x_2 = 2", StepDetail::Brief).result,
+            "x_{1} = 1 - x_{2} \\land x_{2} \\in \\mathbb{R}"
+        );
+        assert_eq!(system("x_{10} + x_2 = 3; x_{10} - x_2 = 1", StepDetail::Brief).result, "x_{2} = 1 \\land x_{10} = 2");
+    }
+
+    #[test]
+    fn a_single_equation_leaves_subscripted_variables_to_the_physics() {
+        let mut variables = Variables::new();
+        let four_metres = Evaluator::new(&variables).evaluate(&parser::parse("4m").unwrap().expression).unwrap();
+        variables.insert("s_1".to_string(), four_metres);
+        let error = LatexCalculator::default().evaluate("v_1 = \\frac{s_1}{t_1}", &variables).unwrap_err();
+        assert!(error.to_string().contains("t_1 has no value"), "{error}");
+        // In a system, s_1 with its value is a coefficient and only t_1, t_2 are unknowns.
+        let c = LatexCalculator::default().evaluate("\\frac{s_1}{1m} = t_1 + t_2; t_1 - t_2 = 2", &variables).unwrap();
+        assert_eq!(c.result, "t_{1} = 3 \\land t_{2} = 1");
     }
 
     #[test]
