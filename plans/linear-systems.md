@@ -14,7 +14,7 @@ instead of `a … z`.
   letter, then by index numerically (`x_2` before `x_10`). Greek letters and multi-letter names go
   last, alphabetically.
 - Subscripts are currently excluded on purpose, because `v_1`, `t_1` in physics mode are
-  quantities, not unknowns. Rule proposal: a subscripted symbol is an unknown only in a *system*
+  quantities, not unknowns. Rule: a subscripted symbol is an unknown only in a *system*
   (two or more equations), and only if it has no value assigned. Single equations keep today's
   behaviour. Needs a test for the physics case (`v_1 = s_1/t_1` plus `s_1 = 4 m`).
 - The same order is used for the columns of the matrix, the displayed solution and the free
@@ -24,40 +24,141 @@ instead of `a … z`.
 subscript filter in `collect_unknowns` for systems, add golden cases (`x_1+x_2=3`, mixed `x, a, b`,
 `x_10` vs `x_2`).
 
-## 2. Better input for linear equations
+## 2. Input page for linear systems
 
-**Idea.** Entering a system as separate lines of LaTeX is clumsy.
+**Idea.** One line with `;` between the equations stays as it is, but it gets messy with three or
+more unknowns. A new mode **Linear systems** (German: **LGS**; next to Analysis in the mode switch)
+gets its own page with two tabs, *Equations* and *Matrix*. Both lead to the same solution and the
+same steps.
 
-**Check.** Sensible, but "better" is not yet defined. Candidates, cheapest first:
-1. Several equations in one input, separated by `;` or a line break, without needing `\begin{cases}`.
-2. A matrix input mode: dimension picker, grid of cells (MathLive has a matrix environment) for
-   `[A | b]`, solved with the same `linear` code.
-3. Paste of plain text (`2x + 3y = 5` per line, also `2x+3y-5=0`), converted to LaTeX.
+### Equations tab
 
-**Plan.** Start with 1 and 3 (parser only, no new UI), then decide on 2. Ask the user which of the
-three hurts most before building 2.
+- One MathLive field that shows the system as rendered maths, one equation per line (a `cases`
+  block, so the parser reads it unchanged).
+- **Enter** adds a new line below the cursor (MathLive `addRowAfter`) and solves what is there.
+  An incomplete system that fails while typing is fine: the error is shown in grey under the field,
+  not as a red error row, and goes away with the next valid state.
+- **Backspace** on an empty line removes it (`removeRow`); Up/Down move between lines.
+- The field starts as an empty one-line block, so the user never types `\begin{cases}`.
+- Risk: MathLive's editing inside environments. Spike it first (Enter, Backspace, pasting a line,
+  undo). If it is not good enough, fall back to one field per line that looks like a single block.
 
-## 3. Step-by-step Gauss with more detailed explanations
+### Matrix tab
 
-**Idea.** Explain every row operation in words, not only list it.
+- Two number inputs: **unknowns** n and **equations** m. If m is not set it equals n. Both are at
+  most 10; anything larger goes through the equations tab or JSON input (below).
+- Below them a grid of m × (n+1) cells, with a vertical bar before the right-hand side and the
+  unknowns as column headers.
+- **Unknown names** are a setting: `x_1 … x_n` (default), or letters in the order of section 1
+  (`x, y, z, a, b, c, … w`), continuing with `x_1, x_2, …` once the letters run out after `w`.
+  The names also apply to matrix → equations and to the solution.
+- Each cell is a small MathLive field, so `\frac{1}{2}`, `\pi` and `\sqrt{2}` are allowed.
+- **Tab** / **Shift+Tab** go through the cells row by row; Tab in the last cell does not leave the
+  grid. **Enter** solves. An empty cell counts as 0, so zeros never have to be typed.
+- Changing n or m keeps the entries that still fit.
+- **JSON input** for any size: paste or load a file with the rows of `[A | b]`, each entry a number
+  or a LaTeX string, optionally with names:
+  `{"unknowns": ["x_1", "x_2"], "rows": [[2, 1, 5], [1, "\\frac{1}{2}", 1]]}`, or just the `rows`
+  array. Up to 10 × 10 it fills the grid; above that the grid is replaced by a read-only matrix
+  preview and the system is solved from the JSON.
 
-**Check.** Sensible and fits [step-detail.md](../design/step-detail.md), which already defines
-detail levels; this should plug into them instead of being a separate switch.
+### Shared
 
-**What a step should say.**
-- Why this pivot (first non-zero entry of the column; why a swap was needed).
-- The operation as `R2 := R2 - 3·R1` plus the one-line reason ("eliminate x from row 2").
-- The matrix after the step, with the pivot and the changed row marked.
-- The ending: back-substitution reading of the reduced form, and for `Inconsistent` / `Infinite`
-  which row or free column caused it.
-- Levels: Brief = today's list; Standard = + reason sentence; Detailed = + the arithmetic of each
-  entry that changed (`5 - 3·2 = -1`).
+- Switching tabs converts the input: equations → matrix uses the matrix the engine reads
+  (`SystemSolution.matrix` and `unknowns`), matrix → equations writes `2x - y = 3` per row (zero
+  coefficients left out, 1 and −1 without the number).
+- The mode does not use session variables at all: `k_1` is an unknown here, not a stored value.
+  Systems that need stored values stay in Algebra with `;`.
+- Coefficients are dimensionless; units are an error, as today.
+- Copy works as in Algebra: the result and steps as an `align*` block.
+- **Imaginary unit** is a toggle: on, `i` is the imaginary unit and coefficients may be complex
+  (as in Imaginary mode); off, `i` is an ordinary unknown. While it is on, the mode name in the
+  mode switch reads "LGS + $i$" ("Linear systems + $i$").
+- The solution is shown exact only (`x_1 = \frac{3}{2}`, `\sqrt{2}`), without a decimal.
+- m ≠ n is allowed in both tabs (over- and underdetermined); it goes through the same
+  elimination and ends in a contradiction or free parameters.
+- Both tabs keep their input when switching to another mode and back (like the circuit editor),
+  and the page opens on the tab used last.
 
-**Plan.** Extend `RowOperation` with a reason enum (so the text is built in the `text` layer, in
-both languages, not in `linear.rs`), render through the existing step machinery, add a section to
-`step-detail.md` and the German strings.
+**Plan.**
+- Engine: `api::linear_system(settings, LinearSystemRequest)` where the request is either
+  `Equations(latex)` or `Matrix { unknowns, rows: Vec<Vec<String>> }`. The response holds the
+  unknowns, the matrix as LaTeX cells, the system as equations LaTeX, the steps and the result.
+  The matrix path parses and evaluates each cell to a `Value` and then uses the same elimination
+  and step code as the equation path; nothing is turned into LaTeX equations first.
+- `Mode::Linear` in the settings and `'linear'` in `desktop/src/api.ts`, a Tauri command
+  `solve_linear_system` in `desktop/src-tauri/src/commands.rs`.
+- Frontend: `components/LinearSystemView.tsx` built like `AnalysisView` (tabs, `Steps`, `ErrorRow`),
+  `SystemField` (the multiline field) and `MatrixGrid`. Strings go into `en.ts` and `de.ts`.
+- Settings: `unknown_names` (`Indexed` default, `Letters`), `linear_complex` (the `i` toggle,
+  default off) and `elimination` (see section 3).
+- Tests: golden cases for the LGS API (equations, matrix and JSON input, both elimination
+  methods, with and without `i`), a test that Gauss and Gauss–Jordan give the same solution, and
+  LGS cases in the generated test set (`run_cases`).
+- Docs: a user page for the mode, and a CHANGELOG entry.
+
+## 3. Step-by-step Gauss as taught at school
+
+**Idea.** The steps follow the school method: bring the system to triangle form without fractions,
+then solve from the bottom up. Each step shows what was done and why, with the pivot and the changed
+row marked.
+
+A setting `elimination` chooses the method: **Gauss** (default, below) or **Gauss–Jordan** (today's
+steps: every pivot divided to 1, columns cleared above and below, no back-substitution). It applies
+to the LGS mode and to systems typed with `;` in Algebra. Both methods get the marks, colours and
+levels below.
+
+**Method (Gauss).**
+- Pivot: the first non-zero entry of the column, swapping its row up if needed.
+- Eliminate below the pivot only, without fractions: `II := a·II − b·I` with `a`, `b` the pivot and
+  the entry divided by their gcd (`II := 2·II − 3·I`). Whenever a row's entries share a factor, it
+  is divided out (`II : 3`), always, so the numbers stay small. Symbolic entries (`π`) skip the gcd.
+- Then back-substitution: the last row gives `x_3 = …`, which is put into the row above, and so on,
+  written as equations rather than matrices.
+- `Inconsistent`: show the row `0 = c` and say that it contradicts. `Infinite`: name the free
+  unknowns, set them to Greek parameters (`λ`, then `μ`, `ν`, …), and solve for the others. A
+  letter the system already uses as an unknown is skipped.
+- New `linear::gauss(matrix, unknowns) -> Echelon` with its own `log`. `eliminate` stays
+  Gauss–Jordan for the circuit solver and `solve_square`. The result is checked against
+  `eliminate` in tests.
+
+**How a step looks.**
+- A row that was changed gets a mark, one per change: `II` → `II'` → `II''`. The operation names
+  the rows as they are at that moment (`III' - 2\cdot\text{II}'`). A swap exchanges the labels
+  with the rows.
+- The operation is written to the right of the row it changes, as on paper:
+  `\left(\begin{array}{cc|c|l} 2 & 1 & 5 & \\ 4 & -1 & 1 & \text{II} - 2\cdot\text{I} \end{array}\right)`.
+- The pivot is coloured (`\textcolor`) and the changed row in the next matrix has a background
+  (`\colorbox` or a cell colour), in both themes.
+- `+3·II` on row I is written out entry by entry: `I_1 + 3\cdot(II_1)`, `I_2 + 3\cdot(II_2)`, …
+  with the numbers: `2 + 3\cdot(-1) = -1`.
+
+**Levels** (from [step-detail.md](../design/step-detail.md), no separate switch):
+
+| Level | Shown |
+|---|---|
+| Brief | Start matrix, triangle form, solution. |
+| Standard | Every matrix with the operations next to the rows, pivot coloured, changed row marked, one-line reason ("eliminate x from II"); back-substitution as equations. |
+| Detailed | Also the entry-by-entry arithmetic of each changed row (`2 + 3·(−1) = −1`), and the gcd division. |
+| Maximal | Also why this pivot (the swap when the entry is zero), and the check of the solution in each original equation. |
+
+**Plan.** `RowOperation` gets the school variants (`Combine { target, a, source, b }`,
+`Scale { row, divisor }`, `Swap`) and a reason enum, so the text is built in the calculator/text
+layer in both languages and not in `linear.rs`. The step builder (`row_operation` and `augmented`
+in `eval/calculator.rs`) renders the annotation column and the colours. Add a *Linear systems*
+section to `step-detail.md` with one worked 3×3 example per level, and golden cases for unique,
+inconsistent and infinite.
 
 ## Order
 
-2.1 (ordering) first, it is small and unblocks 3-variable names. Then 3 (detailed steps), then the
-input work.
+1. Section 1 (ordering, indexed unknowns). It is small, and the matrix headers need it.
+2. Section 3 engine part: `linear::gauss`, the new `RowOperation`s and the steps. This is visible
+   at once in Algebra with `;`.
+3. Section 2: the spike on MathLive environments first, then the mode, the API, the equations tab,
+   the matrix tab, the conversion between the two tabs and JSON input.
+
+## Checks during implementation
+
+- MathLive editing inside `cases` (the spike before section 2).
+- A KaTeX row background inside `array`, in both themes.
+- How fraction-free steps look with symbolic entries.
