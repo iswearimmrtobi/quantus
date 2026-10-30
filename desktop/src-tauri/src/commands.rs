@@ -10,8 +10,8 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalculationResponse, CircuitRequest, CircuitResponse, LinearSystemRequest, LinearSystemResponse,
-    SampleRequest, SampleResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
+    CalculationResponse, CircuitRequest, CircuitResponse, KirchhoffRequest, KirchhoffResponse,
+    LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
     VariableResponse,
 };
 use quantus_core::session::SessionStore;
@@ -130,6 +130,16 @@ pub fn solve_circuit(
     api::solve_circuit(&settings, &request)
 }
 
+/// A resistor network by the junction and loop rules. Stateless like `solve_circuit`.
+#[tauri::command]
+pub fn solve_kirchhoff(
+    engine: State<Engine>,
+    request: KirchhoffRequest,
+) -> Result<KirchhoffResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::kirchhoff(&settings, &request)
+}
+
 /// The curve sketch of a function. Like `solve_circuit` it touches no session.
 #[tauri::command]
 pub fn analyze(engine: State<Engine>, request: AnalysisRequest) -> Result<AnalysisResponse, ApiError> {
@@ -232,7 +242,8 @@ fn file_error(message: impl std::fmt::Display) -> ApiError {
 }
 
 /// Checks the shape of a circuit file: the version, and for each element an ID, a known kind and
-/// the editor's position. The parameter texts are not checked here; the solver reads them.
+/// the editor's position, and that `reversed` (the Kirchhoff mode's flipped current) is a
+/// yes/no if it is there. The parameter texts are not checked here; the solver reads them.
 pub fn validate_circuit(circuit: &Value, language: Language) -> Result<(), ApiError> {
     let version = circuit.get("version").and_then(Value::as_u64);
     if version != Some(CIRCUIT_FILE_VERSION) {
@@ -272,6 +283,13 @@ pub fn validate_circuit(circuit: &Value, language: Language) -> Result<(), ApiEr
             if !element.get(key).is_some_and(Value::is_number) {
                 return Err(file_error(text!(language, "{id}: the position ({key}) is missing.", "{id}: die Position ({key}) fehlt.")));
             }
+        }
+        if element.get("reversed").is_some_and(|reversed| !reversed.is_boolean()) {
+            return Err(file_error(text!(
+                language,
+                "{id}: “reversed” must be true or false.",
+                "{id}: „reversed“ muss true oder false sein."
+            )));
         }
     }
     Ok(())

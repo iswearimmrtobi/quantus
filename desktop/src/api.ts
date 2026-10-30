@@ -135,6 +135,57 @@ export interface CircuitResponse {
   reverse: { element: string; parameter: ReverseParameter; value: CircuitValue } | null;
 }
 
+/** A grid point, in grid steps. */
+export interface GridPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * A part as the Kirchhoff mode takes it: the parameters of a `CircuitElement`, and instead of
+ * node numbers the grid points of its terminals. The engine works the nodes out itself.
+ */
+export interface KirchhoffElement extends Omit<CircuitElement, 'kind' | 'a' | 'b'> {
+  kind: ElementKind | 'ground';
+  pa: GridPoint;
+  pb: GridPoint;
+  /** Flips the reference direction of the branch this part leads. */
+  reversed?: boolean;
+}
+
+export interface KirchhoffRequest {
+  elements: KirchhoffElement[];
+  precision?: number | null;
+}
+
+/** A part in a branch or loop; `forward` if it is passed from `a` to `b`. */
+export interface KirchhoffMember {
+  id: string;
+  /** A source's internal resistance, which has no part of its own on the canvas. */
+  internal: boolean;
+  forward: boolean;
+}
+
+/** What `quantus_core::api::KirchhoffResponse` serialises to. */
+export interface Kirchhoff {
+  junctions: { name: string; anchor: GridPoint; symbolic: string; numeric: string; dropped: boolean }[];
+  /** Clockwise; the anchor lies inside the loop, in grid steps (not necessarily whole). */
+  loops: { name: string; anchor: GridPoint; members: KirchhoffMember[]; symbolic: string; numeric: string }[];
+  /** `current` is `I_{1}`, or a current source's, signed: `-I_{q,2}`. */
+  branches: { current: string; members: KirchhoffMember[]; lead: string }[];
+  unknowns: string[];
+  matrix: string[][];
+  steps: Step[];
+  result: string[];
+  /** U, I and P per part, empty without a solution. */
+  elements: CircuitResponse['elements'];
+  powerBalance: { generated: CircuitValue; consumed: CircuitValue; latex: string } | null;
+  notes: string[];
+  alignBlock: string;
+  /** The equations have no single solution; the steps end where that shows. */
+  error: string | null;
+}
+
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
 export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
@@ -335,6 +386,9 @@ export const api = {
   evaluate: (latex: string) => call<Calculation>('evaluate', { request: { latex, sessionId: SESSION_ID } }),
 
   solveCircuit: (request: CircuitRequest) => call<CircuitResponse>('solve_circuit', { request }),
+
+  /** A resistor network by the junction and loop rules, with all the working. */
+  solveKirchhoff: (request: KirchhoffRequest) => call<Kirchhoff>('solve_kirchhoff', { request }),
 
   /** Reads a circuit file; a broken one is an `ApiError` and nothing is returned. */
   loadCircuit: (path: string) => call<unknown>('load_circuit', { path }),
