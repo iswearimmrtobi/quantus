@@ -27,6 +27,13 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   a subscripted variable with a value stays a coefficient. Single equations are unchanged.
 - The unknowns of a system are ordered `x, y, z`, then `a … w`, with subscripts by number
   (`x_2` before `x_10`) and Greek letters last, instead of alphabetically.
+- Complex solutions of a system with rational parts are written exactly (`\frac{1}{2} - 3i`), and a
+  complex factor of a parameter is bracketed: `x = i - (1 + i) · λ`.
+
+### Fixed
+
+- In Imaginary mode `iy` is `i · y`; it was read as the variable `i` times `y`.
+- A system whose coefficients mix roots and `π` (`\sqrt{2} y + z = -\pi`) was refused as not linear.
 
 ## [0.1.0] - 2026-10-29
 

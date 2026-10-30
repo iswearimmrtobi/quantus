@@ -410,7 +410,10 @@ impl LatexCalculator {
     pub(super) fn entry(&self, value: &Value) -> Result<String> {
         match value.as_rational() {
             Some(rational) => Ok(serializer::expression(&fraction_node(rational))),
-            None => Ok(self.present(&PhysicalQuantity::dimensionless(value.clone()))?.2),
+            None => match gaussian(value) {
+                Some(exact) => Ok(exact),
+                None => Ok(self.present(&PhysicalQuantity::dimensionless(value.clone()))?.2),
+            },
         }
     }
 
@@ -421,7 +424,12 @@ impl LatexCalculator {
         for (name, coefficient) in terms {
             let negative = negative(coefficient);
             let size = if negative { coefficient.neg() } else { coefficient.clone() };
-            let term = if size.is_one() { name.to_string() } else { format!("{} \\cdot {name}", number(&size)?) };
+            let term = match number(&size)? {
+                _ if size.is_one() => name.to_string(),
+                // A complex factor is a sum: `(1 + 2i) \cdot \lambda`.
+                factor if exact::is_sum(&factor) => format!("\\left({factor}\\right) \\cdot {name}"),
+                factor => format!("{factor} \\cdot {name}"),
+            };
             out = match (out.is_empty(), negative) {
                 (true, true) => format!("-{term}"),
                 (true, false) => term,
@@ -541,6 +549,26 @@ pub(super) fn fraction_node(value: &dashu::rational::RBig) -> Node {
     let part = |n: IBig| Node::Number { value: Decimal::new(n, 0), position: 0 };
     let node = Node::fraction(part(size.numerator().clone()), part(IBig::from(size.denominator().clone())), 0);
     if value.is_negative() { Node::Negation { operand: Box::new(node), position: 0 } } else { node }
+}
+
+/// A complex number with rational parts, exactly: `\frac{1}{2} - 3i`, `-\frac{2}{3}i`. `None`
+/// for a real number or other parts.
+pub(super) fn gaussian(value: &Value) -> Option<String> {
+    use dashu::base::{Abs, Signed};
+    let (re, im) = value.re_im()?;
+    let (re, im) = (re.as_rational()?, im.as_rational()?);
+    if im.is_zero() {
+        return None;
+    }
+    let size = im.clone().abs();
+    let imaginary = if size.is_one() { "i".to_string() } else { format!("{}i", serializer::expression(&fraction_node(&size))) };
+    Some(match (re.is_zero(), im.is_negative()) {
+        (true, false) => imaginary,
+        (true, true) => format!("-{imaginary}"),
+        (false, negative) => {
+            format!("{} {} {imaginary}", serializer::expression(&fraction_node(re)), if negative { "-" } else { "+" })
+        }
+    })
 }
 
 fn number_node(value: &dashu::rational::RBig) -> Node {

@@ -10,7 +10,7 @@
 //! arithmetic of each changed row and the division by a common factor as a step of its own;
 //! Maximal also why a row was swapped and the check of the solution in each equation.
 
-use super::calculator::{fraction_node, roman, LatexCalculator, Step};
+use super::calculator::{fraction_node, gaussian, roman, LatexCalculator, Step};
 use super::system::{Affine, Back, Reduction, Solution, SystemSolution};
 use crate::latex::{exact, serializer, Node};
 use crate::linear::{Logged, Reason, RowOperation};
@@ -447,7 +447,7 @@ impl LatexCalculator {
         if let Some(rational) = value.as_rational() {
             return Ok(serializer::expression(&fraction_node(rational)));
         }
-        if let Some(exact) = exact::format(value) {
+        if let Some(exact) = exact::format(value).or_else(|| gaussian(value)) {
             return Ok(exact);
         }
         let short = LatexCalculator::new(6).with_settings(self.settings.clone());

@@ -55,9 +55,14 @@ specification; this list says in which order to build them and where.
 - [x] The response: unknowns, matrix cells as LaTeX, the system as equations LaTeX (for the tab
   switch, named by `unknown_names`), steps, the exact result, the copy block (`align*`).
 - [x] Tauri command `solve_linear_system` in `desktop/src-tauri/src/commands.rs`, wrapper in `api.ts`.
-- [ ] Tests: `crates/quantus-core/tests/linear_systems.rs` (equations, matrix, both methods, with and
+- [x] Tests: `crates/quantus-core/tests/linear_systems.rs` (equations, matrix, both methods, with and
   without `i`, m ≠ n, the round trip equations → matrix → equations) and LGS cases for
   `run_cases`.
+  Result: a `linear-systems` category of 2000 cases (`gens/linear_systems.py`, generated alone
+  with `--only`), checked by `run_cases` through `api::linear_system`. It found complex factors
+  of parameters written without brackets and Gaussian rationals written as decimals; both fixed.
+  Letters as unknown names skip `e` and `i`. Values without an exact form (`\frac{5 + \pi}{1 +
+  \sqrt{2}}`) still fall back to a decimal.
 
 ### Phase 4: LGS page (section 2, frontend)
 

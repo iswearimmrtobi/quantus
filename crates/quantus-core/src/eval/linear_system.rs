@@ -339,6 +339,11 @@ mod tests {
         assert_eq!(equations(&complex, "x + iy = 1; x - y = i").unwrap().result, "x = 0 \\land y = -i");
         let solved = matrix(&complex, &[&["1+i", "1", "2"], &["1", "-i", ""]]).unwrap();
         assert_eq!((solved.matrix[0][0].as_str(), solved.result.as_str()), ("1 + i", "x_{1} = 2 \\land x_{2} = -2i"));
+        // Complex values are exact too, and a complex factor is bracketed.
+        let parametric = equations(&complex, "x + (1+i)y = \\frac{1}{2}i").unwrap().result;
+        assert_eq!(parametric, "x = \\frac{1}{2}i - \\left(1 + i\\right) \\cdot \\lambda \\land y = \\lambda \\land \\lambda \\in \\mathbb{C}");
+        assert_eq!(matrix(&complex, &[&["2", "1"], &["", ""]]).unwrap().result, "x_{1} = \\frac{1}{2}");
+        assert_eq!(matrix(&complex, &[&["2", "i"]]).unwrap().result, "x_{1} = \\frac{1}{2}i");
         let free = equations(&complex, "x + iy = 1").unwrap().result;
         assert!(free.ends_with("\\in \\mathbb{C}"), "{free}");
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the 100,000-case engine test set into test/cases/<category>/<category>-NNN.json.
+"""Generates the 105,000-case engine test set into test/cases/<category>/<category>-NNN.json.
 
 Usage:
     python3 test/generator/generate.py            # write the cases
@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from gens import algebra, arithmetic, calculus, complex_numbers, functions, physics, syntax  # noqa: E402
+from gens import algebra, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax  # noqa: E402
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -40,6 +40,7 @@ CATEGORIES = {
     "physics": ("phys", 22000, physics.GENERATORS),
     "syntax": ("syn", 3000, syntax.GENERATORS),
     "complex": ("cplx", 3000, complex_numbers.GENERATORS),
+    "linear-systems": ("lgs", 2000, linear_systems.GENERATORS),
 }
 
 
@@ -110,6 +111,13 @@ def check(all_cases):
             elif e["kind"] == "algebra":
                 for vals in e["restrictions"].values():
                     [Fraction(v) for v in vals]
+            elif e["kind"] == "linear":
+                values = [v for row in e["rows"] for v in row] + e.get("values", [])
+                [(_parse_value(v["re"]), _parse_value(v["im"])) if isinstance(v, dict) else _parse_value(v) for v in values]
+                if e["outcome"] not in ("unique", "none", "infinite") or len(e["unknowns"]) != len(e["rows"][0]) - 1:
+                    errors.append(f"{c['id']}: bad linear expectation")
+                if "request" not in c:
+                    errors.append(f"{c['id']}: no request")
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001

@@ -34,10 +34,11 @@ use quantus_core::algebra::nested::split_fraction;
 use quantus_core::algebra::pipeline::{collect_variables, simplify_node_with};
 use quantus_core::algebra::poly::Poly;
 use quantus_core::algebra::verify::eval_rational;
+use quantus_core::api::{self, LinearSystemRequest, LinearSystemResponse};
 use quantus_core::eval::{Evaluator, LatexCalculator, Variables};
 use quantus_core::latex::{parser, Node};
-use quantus_core::num::Decimal;
-use quantus_core::settings::{Mode, Settings};
+use quantus_core::num::{Decimal, Value as Number};
+use quantus_core::settings::{Elimination, Mode, Settings, UnknownNames};
 use quantus_core::units::BaseDim;
 use quantus_core::PhysicalQuantity;
 
@@ -213,14 +214,27 @@ fn settings_of(case: &Value) -> Settings {
                 "physics" => Mode::Physics,
                 "imaginary" => Mode::Imaginary,
                 "electronics" => Mode::Electronics,
+                "linear" => Mode::Linear,
                 other => panic!("unknown mode {other:?}"),
             };
+        }
+        if let Some(b) = m.get("linear_complex").and_then(Value::as_bool) {
+            s.linear_complex = b;
+        }
+        if let Some(e) = m.get("elimination").and_then(Value::as_str) {
+            s.elimination = if e == "gaussJordan" { Elimination::GaussJordan } else { Elimination::Gauss };
+        }
+        if let Some(names) = m.get("unknown_names").and_then(Value::as_str) {
+            s.unknown_names = if names == "letters" { UnknownNames::Letters } else { UnknownNames::Indexed };
         }
     }
     s
 }
 
 fn run_case(case: &Value) -> Outcome {
+    if case.get("request").is_some() {
+        return run_linear_case(case);
+    }
     let latex = case["latex"].as_str().unwrap_or_default();
     let expect = &case["expect"];
     let settings = settings_of(case);
@@ -311,6 +325,169 @@ fn run_case(case: &Value) -> Outcome {
         "algebra" => check_algebra(latex, &settings, expect, calc.result),
         _ => generator("unknown expectation kind"),
     }
+}
+
+// --- linear systems mode -----------------------------------------------------------------------
+
+/// A case of the linear systems mode: `request` goes to `api::linear_system` as the UI sends it.
+fn run_linear_case(case: &Value) -> Outcome {
+    let expect = &case["expect"];
+    let settings = settings_of(case);
+    let Ok(request) = serde_json::from_value::<LinearSystemRequest>(case["request"].clone()) else {
+        return generator("unreadable request");
+    };
+    let result = api::linear_system(&settings, &request);
+    if expect["kind"] == "error" {
+        let contains = expect["contains"].as_str().unwrap_or_default();
+        return match result {
+            Err(e) if e.error.contains(contains) => Outcome::pass(format!("error: {e}")),
+            Err(e) => Outcome::fail("wrong-error", format!("expected an error containing '{contains}'"), format!("error: {e}")),
+            Ok(response) => Outcome {
+                status: "UNEXPECTED_OK",
+                reason: String::new(),
+                detail: "expected an error".into(),
+                actual: response.result,
+                note: String::new(),
+            },
+        };
+    }
+    match result {
+        Ok(response) => check_linear(&response, &settings, expect).unwrap_or_else(|(reason, detail)| {
+            Outcome::fail(reason, detail, response.result.clone())
+        }),
+        Err(e) => Outcome::error(e.error),
+    }
+}
+
+/// A complex number as the generator writes it: `"p/q"`, or `{"re": …, "im": …}`.
+type Complex = (RBig, RBig);
+
+fn expected_complex(v: &Value) -> Option<Complex> {
+    match v {
+        Value::String(s) => Some((parse_rational(s)?, RBig::ZERO)),
+        _ => Some((parse_rational(v["re"].as_str()?)?, parse_rational(v["im"].as_str()?)?)),
+    }
+}
+
+/// The engine's LaTeX evaluated back to a number, with `env` for the parameters.
+fn latex_complex(latex: &str, settings: &Settings, env: &Variables) -> Result<Complex, String> {
+    let formula = parser::parse_with(latex, &settings.parse_options()).map_err(|e| format!("{latex}: {e}"))?;
+    let evaluator = Evaluator::new(env).with_precision(PRECISION).with_mode(settings.evaluation_mode());
+    let value = evaluator.evaluate(&formula.expression).map_err(|e| format!("{latex}: {e}"))?.value;
+    let (re, im) = value.re_im().ok_or_else(|| format!("{latex}: not a + bi"))?;
+    let part = |v: Number| v.decimal(PRECISION).map(|d| d.to_rational()).map_err(|e| format!("{latex}: {e}"));
+    Ok((part(re)?, part(im)?))
+}
+
+fn close_complex(actual: &Complex, expected: &Complex) -> bool {
+    let tol = exact_tolerance();
+    close(&actual.0, &expected.0, &tol) && close(&actual.1, &expected.1, &tol)
+}
+
+fn show_complex(z: &Complex) -> String {
+    if z.1.is_zero() { show(&z.0) } else { format!("{} + {}i", show(&z.0), show(&z.1)) }
+}
+
+/// The unknowns, the matrix as read, and the solution: each value for a unique one, `no solution`,
+/// or for infinitely many the number of parameters and, at two choices of them, every equation.
+fn check_linear(response: &LinearSystemResponse, settings: &Settings, expect: &Value) -> Result<Outcome, (&'static str, String)> {
+    let unknowns: Vec<&str> = expect["unknowns"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+    if response.unknowns != unknowns {
+        return Err(("unknowns", format!("expected unknowns {unknowns:?}, got {:?}", response.unknowns)));
+    }
+    let empty = Variables::new();
+    let rows: Vec<Vec<Complex>> = expect["rows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|row| row.as_array().into_iter().flatten().filter_map(expected_complex).collect())
+        .collect();
+    if response.matrix.len() != rows.len() {
+        return Err(("matrix", format!("expected {} rows, got {}", rows.len(), response.matrix.len())));
+    }
+    for (r, (got, want)) in response.matrix.iter().zip(&rows).enumerate() {
+        for (c, (cell, want)) in got.iter().zip(want).enumerate() {
+            let value = latex_complex(cell, settings, &empty).map_err(|e| ("result-unparsable", e))?;
+            if !close_complex(&value, want) {
+                return Err(("matrix", format!("entry ({}, {}): expected {}, got {cell}", r + 1, c + 1, show_complex(want))));
+            }
+        }
+    }
+
+    let parts: Vec<&str> = response.result.split(" \\land ").collect();
+    let outcome = expect["outcome"].as_str().unwrap_or_default();
+    if outcome == "none" {
+        return if response.result == "\\text{no solution}" {
+            Ok(Outcome::pass(response.result.clone()))
+        } else {
+            Err(("solutions", "expected no solution".into()))
+        };
+    }
+    let mut lines = Vec::new();
+    for part in &parts {
+        if let Some((name, rhs)) = part.split_once(" = ") {
+            lines.push((name, rhs));
+        }
+    }
+    if outcome == "unique" {
+        let values: Vec<Complex> = expect["values"].as_array().into_iter().flatten().filter_map(expected_complex).collect();
+        if lines.len() != values.len() || lines.len() != parts.len() {
+            return Err(("solutions", format!("expected {} values", values.len())));
+        }
+        for ((name, rhs), (want_name, want)) in lines.iter().zip(unknowns.iter().zip(&values)) {
+            let value = latex_complex(rhs, settings, &empty).map_err(|e| ("result-unparsable", e))?;
+            if name != want_name || !close_complex(&value, want) {
+                return Err(("solutions", format!("expected {want_name} = {}, got {name} = {rhs}", show_complex(want))));
+            }
+        }
+        return Ok(Outcome::pass(response.result.clone()));
+    }
+
+    // Infinitely many: `… \land λ, μ \in \mathbb{R}` names the parameters.
+    let free = expect["free"].as_u64().unwrap_or_default() as usize;
+    let Some((parameters, _)) = parts.last().and_then(|last| last.split_once(" \\in ")) else {
+        return Err(("solutions", "expected parameters".into()));
+    };
+    let parameters: Vec<&str> = parameters.split(", ").collect();
+    if parameters.len() != free {
+        return Err(("solutions", format!("expected {free} parameters, got {}", parameters.len())));
+    }
+    let keys: Vec<String> = parameters
+        .iter()
+        .map(|p| match parser::parse_with(p, &settings.parse_options()).map(|f| f.expression) {
+            Ok(Node::Variable { name, index, .. }) => Ok(Node::variable_key(&name, &index)),
+            _ => Err(("result-unparsable", format!("parameter {p}"))),
+        })
+        .collect::<Result<_, _>>()?;
+    for choice in 1..=2i64 {
+        let mut env = Variables::new();
+        for (k, key) in keys.iter().enumerate() {
+            let value = RBig::from_parts(IBig::from(3 * choice + k as i64), UBig::from(7u8));
+            env.insert(key.clone(), PhysicalQuantity::dimensionless(Number::Rat(value)));
+        }
+        let mut x = Vec::new();
+        for name in &unknowns {
+            let value = match lines.iter().find(|(n, _)| n == name) {
+                Some((_, rhs)) => latex_complex(rhs, settings, &env).map_err(|e| ("result-unparsable", e))?,
+                // After Gauss–Jordan a free unknown is its own parameter.
+                None => latex_complex(name, settings, &env).map_err(|_| ("solutions", format!("{name} is missing")))?,
+            };
+            x.push(value);
+        }
+        for (r, row) in rows.iter().enumerate() {
+            let (mut re, mut im) = (RBig::ZERO, RBig::ZERO);
+            for (a, v) in row.iter().zip(&x) {
+                re += &a.0 * &v.0 - &a.1 * &v.1;
+                im += &a.0 * &v.1 + &a.1 * &v.0;
+            }
+            let b = &row[row.len() - 1];
+            let tol = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(35));
+            if (re - &b.0).abs() > tol || (im - &b.1).abs() > tol {
+                return Err(("solutions", format!("equation {} fails at parameter choice {choice}", r + 1)));
+            }
+        }
+    }
+    Ok(Outcome::pass(response.result.clone()))
 }
 
 fn generator(message: &str) -> Outcome {
