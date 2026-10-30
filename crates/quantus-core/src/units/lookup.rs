@@ -1,9 +1,10 @@
 //! Resolving a bare unit symbol: the table behind F2's uniqueness rule.
 //!
 //! Indriya's `SimpleUnitFormat` answers this with two hash maps filled at start-up
-//! (`nameToUnit` for parsing, `unitToName` for printing). Here the same registrations are
-//! replayed in the same order on every lookup and the last match wins, so a later registration
-//! overrides an earlier one exactly as it does there. That is where the known ambiguities are
+//! (`nameToUnit` for parsing, `unitToName` for printing); the same registrations are made here
+//! in the same order, so a later one overrides an earlier one exactly as it does there. By
+//! default they fill the same two maps once; with the `small-memory` feature they are replayed
+//! on every lookup instead, keeping the last match. That is where the known ambiguities are
 //! decided: `mN` is millinewton, `min` the minute, `Pa` the pascal. Nothing is split at lookup
 //! time, so `m·i·n` or `P·a` never come up.
 //!
@@ -49,7 +50,8 @@ const METRIC_UNITS: [Kind; 27] = [
     Kind::Weber,
 ];
 
-/// A registered symbol: `prefix` followed by `base`, kept apart so nothing is allocated.
+/// A registered symbol: `prefix` followed by `base`, kept apart so that replaying the
+/// registrations allocates nothing.
 #[derive(Clone, Copy)]
 struct Symbol {
     prefix: &'static str,
@@ -61,6 +63,7 @@ impl Symbol {
         Symbol { prefix, base }
     }
 
+    #[cfg(feature = "small-memory")]
     fn is(self, text: &str) -> bool {
         text.strip_prefix(self.prefix) == Some(self.base)
     }
@@ -86,9 +89,8 @@ struct Registration {
     label: bool,
 }
 
-/// Replays the registrations in order instead of storing them: the two maps hold about a
-/// thousand strings, too much for a microcontroller, and a lookup that keeps the last match
-/// gives the same answer as a map in which later insertions override earlier ones.
+/// Hands the registrations to `visit` in order. Kept as a replay rather than a table so that
+/// both kinds of `storage` read the same list.
 struct Registrar<F: FnMut(Registration)> {
     visit: F,
 }
@@ -196,32 +198,94 @@ fn is_plain_symbol(symbol: &str) -> bool {
     symbol == "%" || !symbol.is_empty() && symbol.chars().all(|c| c.is_alphabetic() || c == '°')
 }
 
+impl Target {
+    fn unit(self) -> Unit {
+        match self {
+            Target::Atom(atom) => Unit::from(atom),
+            Target::One => Unit::ONE,
+        }
+    }
+}
+
 /// The unit for `symbol`, or `None` if it is not a known unit.
 pub fn find(symbol: &str) -> Option<Unit> {
     if !is_plain_symbol(symbol) {
         return None;
     }
-    let mut found = None;
-    each_registration(|r| {
-        if r.symbol.is(symbol) {
-            found = Some(r.target);
-        }
-    });
-    found.map(|target| match target {
-        Target::Atom(atom) => Unit::from(atom),
-        Target::One => Unit::ONE,
-    })
+    storage::find(symbol).map(Target::unit)
 }
 
 /// The symbol `SimpleUnitFormat` prints for an atom, if it registered one.
 pub fn label(atom: &Atom) -> Option<String> {
-    let mut found = None;
-    each_registration(|r| {
-        if r.label && matches!(r.target, Target::Atom(a) if a == *atom) {
-            found = Some(r.symbol);
-        }
-    });
-    found.map(|symbol| format!("{}{}", symbol.prefix, symbol.base))
+    storage::label(atom)
+}
+
+/// Indriya's two maps, built once from the registrations.
+#[cfg(not(feature = "small-memory"))]
+mod storage {
+    use std::collections::HashMap;
+    use std::sync::OnceLock;
+
+    use super::{each_registration, Atom, Target};
+
+    #[derive(Default)]
+    struct Tables {
+        /// Symbol to unit (`nameToUnit`): labels and aliases.
+        names: HashMap<String, Target>,
+        /// Atom to its preferred symbol (`unitToName`): the last label registered.
+        labels: HashMap<Atom, String>,
+    }
+
+    fn tables() -> &'static Tables {
+        static TABLES: OnceLock<Tables> = OnceLock::new();
+        TABLES.get_or_init(|| {
+            let mut t = Tables::default();
+            each_registration(|r| {
+                let symbol = format!("{}{}", r.symbol.prefix, r.symbol.base);
+                if let (true, Target::Atom(atom)) = (r.label, r.target) {
+                    t.labels.insert(atom, symbol.clone());
+                }
+                t.names.insert(symbol, r.target);
+            });
+            t
+        })
+    }
+
+    pub fn find(symbol: &str) -> Option<Target> {
+        tables().names.get(symbol).copied()
+    }
+
+    pub fn label(atom: &Atom) -> Option<String> {
+        tables().labels.get(atom).cloned()
+    }
+}
+
+/// No maps: the registrations are replayed on every lookup and the last match is kept. The maps
+/// hold about a thousand strings, a good part of a microcontroller's RAM; a lookup then costs a
+/// scan instead of a hash.
+#[cfg(feature = "small-memory")]
+mod storage {
+    use super::{each_registration, Atom, Target};
+
+    pub fn find(symbol: &str) -> Option<Target> {
+        let mut found = None;
+        each_registration(|r| {
+            if r.symbol.is(symbol) {
+                found = Some(r.target);
+            }
+        });
+        found
+    }
+
+    pub fn label(atom: &Atom) -> Option<String> {
+        let mut found = None;
+        each_registration(|r| {
+            if r.label && matches!(r.target, Target::Atom(a) if a == *atom) {
+                found = Some(r.symbol);
+            }
+        });
+        found.map(|symbol| format!("{}{}", symbol.prefix, symbol.base))
+    }
 }
 
 #[cfg(test)]

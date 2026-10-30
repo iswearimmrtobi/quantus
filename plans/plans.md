@@ -58,11 +58,11 @@ printing results, time, heap and stack over serial. See its [README](../firmware
   takes 154 KB. The integrals take 7–17 s and keep another ~80 KB; after them the heap is gone
   and `e^{4i\pi/2}` aborts. `ln` and float formatting fail softly first (NaN, "could not read a
   computed number") because `astro-float` reports failed allocations instead of aborting.
-- [x] Shrink the unit table: `units/lookup.rs` now replays the registrations on every lookup
-  (last match wins, same answers for all 2345 tried spellings). Units then cost no heap; all
-  three integrals are right (7–20 s each) and `x^3 - 3x` sketches in 2.1 s. The price on the
-  desktop: ~34 µs per lookup in a debug build, so `units_oracle` (190 000 lookups) takes 6.5 s
-  instead of 0.16 s.
+- [x] Shrink the unit table: with the `small-memory` feature of `quantus-core` (on in the
+  firmware), `units/lookup.rs` replays the registrations on every lookup instead of keeping
+  the two maps (last match wins, same answers for all 2345 tried spellings). Units then cost no
+  heap; all three integrals are right (7–20 s each) and `x^3 - 3x` sketches in 2.1 s. The
+  desktop keeps the maps; with the feature a lookup costs ~34 µs in a debug build.
 - [ ] Each integral still keeps ~44 KB, mostly the quadrature node cache (`NODES` in
   `numeric.rs`; also `RATIONAL_CACHE` in `analysis/simplify.rs`, `CACHE` in
   `algebra/rational_roots.rs`), and the second curve sketch runs out of memory. A way to drop

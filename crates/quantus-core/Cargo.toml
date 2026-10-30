@@ -8,6 +8,11 @@ repository.workspace = true
 homepage.workspace = true
 publish = false
 
+[features]
+# Trade speed for RAM on microcontrollers (`firmware/esp32`): no unit table, every unit lookup
+# scans the registrations instead.
+small-memory = []
+
 [dependencies]
 astro-float = "0.9"
 dashu = "0.6"

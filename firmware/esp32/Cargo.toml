@@ -10,7 +10,7 @@ publish = false
 [workspace]
 
 [dependencies]
-quantus-core = { path = "../../crates/quantus-core" }
+quantus-core = { path = "../../crates/quantus-core", features = ["small-memory"] }
 esp-idf-svc = "0.53"
 log = "0.4"
 
