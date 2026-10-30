@@ -29,6 +29,8 @@ interface Props {
 export function LinearSystemView({ settings, onSettingsChange, input, onInputChange }: Props) {
   const { t } = useT();
   const [solution, setSolution] = useState<LinearSystem | null>(null);
+  /** The request the solution answers, to tell whether the input has changed since. */
+  const solved = useRef<string | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [copied, setCopied] = useState(false);
   /** The latest request; an answer to an older one is dropped. */
@@ -47,6 +49,7 @@ export function LinearSystemView({ settings, onSettingsChange, input, onInputCha
     try {
       const result = await api.solveLinearSystem(next);
       if (id !== request.current) return;
+      solved.current = JSON.stringify(next);
       setSolution(result);
       setError(null);
     } catch (failure) {
@@ -75,9 +78,19 @@ export function LinearSystemView({ settings, onSettingsChange, input, onInputCha
     onInputChange(next);
   };
 
+  /**
+   * The other tab gets the system as the engine read it: the matrix and its unknowns, or one
+   * equation per row. That needs a solution of the input as it stands; without one, the other tab
+   * keeps its own input.
+   */
   const changeTab = (tab: LinearTab) => {
-    if (tab === input.tab) return;
-    update({ ...input, tab });
+    const current = latest.current;
+    if (tab === current.tab) return;
+    const converts = solution !== null && solved.current === JSON.stringify(requestFor(current));
+    let next: LinearInput = { ...current, tab };
+    if (converts && tab === 'matrix') next = withMatrix(next, { unknowns: solution.unknowns, rows: solution.matrix });
+    if (converts && tab === 'equations') next = { ...next, lines: solution.equations };
+    update(next);
     void solve();
   };
 

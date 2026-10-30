@@ -83,7 +83,7 @@ specification; this list says in which order to build them and where.
   Tab/Shift+Tab/Enter, empty = 0, resizing keeps entries, column headers by `unknown_names`.
 - [x] JSON input: paste and a load button; up to 10 × 10 it fills the grid, above that a read-only
   preview of the matrix.
-- [ ] Tab switch converts through the API response. All strings in `en.ts` and `de.ts`.
+- [x] Tab switch converts through the API response. All strings in `en.ts` and `de.ts`.
 - [ ] Check in the running app (`npm run dev`).
 
 ### Phase 5: docs
