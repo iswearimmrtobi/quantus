@@ -285,23 +285,179 @@ mod tests {
     use super::*;
     use crate::kirchhoff::{Edge, Graph, Point};
 
+    /// A part by ID, the kind from its first letter: terminals `a` and `b`, a value in Ω, V or A.
+    type Spec<'a> = (&'a str, (i64, i64), (i64, i64), i64);
+
+    fn circuit(spec: &[Spec]) -> (Vec<Edge>, Vec<Part>) {
+        spec.iter()
+            .map(|&(id, a, b, value)| {
+                let kind = match &id[..1] {
+                    "V" => Kind::VoltageSource,
+                    "I" => Kind::CurrentSource,
+                    "W" => Kind::Wire,
+                    _ => Kind::Resistor,
+                };
+                let edge = Edge { id: id.into(), a: Point::new(a.0, a.1), b: Point::new(b.0, b.1), wire: kind == Kind::Wire };
+                (edge, Part { id: id.into(), kind, value: Value::int(value), internal: None, reversed: false })
+            })
+            .unzip()
+    }
+
+    fn build(edges: &[Edge], parts: &[Part]) -> Result<Equations> {
+        let network = Network::build(&Graph::build(edges).unwrap(), parts, edges);
+        Equations::build(&network, parts, &LatexCalculator::new(10))
+    }
+
+    /// The junction rules, a dropped one marked, then the loop rules.
+    fn symbolic(equations: &Equations) -> Vec<String> {
+        let junctions = equations.junctions.iter().map(|j| format!("{}{}", j.equation.symbolic, if j.dropped { " (dropped)" } else { "" }));
+        junctions.chain(equations.loops.iter().map(|l| l.symbolic.clone())).collect()
+    }
+
+    fn single() -> (Vec<Edge>, Vec<Part>) {
+        circuit(&[("V1", (0, 4), (0, 0), 10), ("R1", (0, 0), (4, 0), 5), ("W1", (4, 0), (4, 4), 0), ("W2", (4, 4), (0, 4), 0)])
+    }
+
+    /// `plans/test.json`: two sources, R3 between the top and bottom wires.
+    fn two_sources() -> (Vec<Edge>, Vec<Part>) {
+        circuit(&[
+            ("V1", (13, 13), (13, 9), 20),
+            ("V2", (27, 9), (27, 13), 25),
+            ("R1", (13, 7), (13, 3), 50),
+            ("R2", (27, 7), (27, 3), 100),
+            ("R3", (20, 6), (20, 10), 120),
+            ("W1", (13, 3), (27, 3), 0),
+            ("W2", (27, 9), (27, 7), 0),
+            ("W3", (13, 7), (13, 9), 0),
+            ("W4", (13, 13), (27, 13), 0),
+            ("W5", (20, 10), (20, 13), 0),
+            ("W6", (20, 6), (20, 3), 0),
+        ])
+    }
+
+    fn wheatstone() -> (Vec<Edge>, Vec<Part>) {
+        circuit(&[
+            ("R1", (0, 0), (4, 0), 100),
+            ("R2", (4, 0), (8, 0), 200),
+            ("R3", (0, 8), (4, 8), 300),
+            ("R4", (4, 8), (8, 8), 400),
+            ("R5", (4, 2), (4, 6), 500),
+            ("V1", (2, 12), (6, 12), 12),
+            ("W1", (4, 0), (4, 2), 0),
+            ("W2", (4, 6), (4, 8), 0),
+            ("W3", (0, 0), (0, 8), 0),
+            ("W4", (0, 8), (0, 12), 0),
+            ("W5", (0, 12), (2, 12), 0),
+            ("W6", (6, 12), (8, 12), 0),
+            ("W7", (8, 12), (8, 8), 0),
+            ("W8", (8, 8), (8, 0), 0),
+        ])
+    }
+
+    /// The rows hold for the given unknowns.
+    fn assert_solves(equations: &Equations, solution: &[Value]) {
+        for row in equations.matrix() {
+            let left = row.iter().zip(solution).fold(Value::zero(), |sum, (a, x)| sum.add(&a.mul(x)));
+            assert_eq!(left, row[solution.len()], "{row:?}");
+        }
+    }
+
     #[test]
     fn a_single_loop_has_one_loop_rule() {
-        let edge = |id: &str, a: (i64, i64), b: (i64, i64)| Edge {
-            id: id.into(),
-            a: Point::new(a.0, a.1),
-            b: Point::new(b.0, b.1),
-            wire: id.starts_with('W'),
-        };
-        let edges = vec![edge("V1", (0, 4), (0, 0)), edge("R1", (0, 0), (4, 0)), edge("W1", (4, 0), (4, 4)), edge("W2", (4, 4), (0, 4))];
-        let part = |id: &str, kind: Kind, value: i64| Part { id: id.into(), kind, value: Value::int(value), internal: None, reversed: false };
-        let parts = vec![part("V1", Kind::VoltageSource, 10), part("R1", Kind::Resistor, 5), part("W1", Kind::Wire, 0), part("W2", Kind::Wire, 0)];
-        let network = Network::build(&Graph::build(&edges).unwrap(), &parts, &edges);
-        let equations = Equations::build(&network, &parts, &LatexCalculator::new(10)).unwrap();
+        let (edges, mut parts) = single();
+        let equations = build(&edges, &parts).unwrap();
         assert_eq!(equations.names, ["I_{1}"]);
-        assert!(equations.junctions.is_empty());
-        assert_eq!(equations.loops[0].symbolic, "-R_{1} I_{1} = -U_{1}");
+        assert_eq!(symbolic(&equations), ["-R_{1} I_{1} = -U_{1}"]);
         assert_eq!(equations.loops[0].numeric, "-5\\,\\mathrm{\\Omega } \\cdot I_{1} = -10\\,\\mathrm{V}");
         assert_eq!(equations.matrix(), [[Value::int(-5), Value::int(-10)]]);
+
+        // Flipping the current turns it with the loop, which stays clockwise: I_1 is −2 A.
+        parts[0].reversed = true;
+        assert_eq!(symbolic(&build(&edges, &parts).unwrap()), ["R_{1} I_{1} = -U_{1}"]);
+    }
+
+    #[test]
+    fn two_sources_give_one_junction_rule_and_two_loop_rules() {
+        let (edges, parts) = two_sources();
+        let equations = build(&edges, &parts).unwrap();
+        assert_eq!(equations.names, ["I_{1}", "I_{2}", "I_{3}"]);
+        assert_eq!(
+            symbolic(&equations),
+            [
+                "-I_{1} + I_{2} - I_{3} = 0",
+                "I_{1} - I_{2} + I_{3} = 0 (dropped)",
+                "-R_{1} I_{1} + R_{3} I_{3} = -U_{1}",
+                "-R_{3} I_{3} - R_{2} I_{2} = -U_{2}",
+            ]
+        );
+        assert_eq!(equations.matrix().len(), 3);
+        // From the node voltage of the top wire, −90/23 V.
+        assert_solves(&equations, &[Value::ratio(37, 115), Value::ratio(133, 460), Value::ratio(-3, 92)]);
+    }
+
+    #[test]
+    fn a_wheatstone_bridge_gives_three_junction_rules_and_three_loop_rules() {
+        let (edges, parts) = wheatstone();
+        let equations = build(&edges, &parts).unwrap();
+        assert_eq!(
+            symbolic(&equations),
+            [
+                "I_{1} - I_{2} - I_{4} = 0",
+                "I_{2} - I_{3} - I_{6} = 0",
+                "-I_{1} + I_{3} + I_{5} = 0",
+                "I_{4} - I_{5} + I_{6} = 0 (dropped)",
+                "R_{1} I_{2} + R_{5} I_{6} - R_{3} I_{4} = 0",
+                "R_{2} I_{3} - R_{4} I_{5} - R_{5} I_{6} = 0",
+                "R_{3} I_{4} + R_{4} I_{5} = U_{1}",
+            ]
+        );
+        assert_eq!(equations.matrix().len(), equations.names.len());
+        assert_eq!(equations.loops[2].numeric, "300\\,\\mathrm{\\Omega } \\cdot I_{4} + 400\\,\\mathrm{\\Omega } \\cdot I_{5} = 12\\,\\mathrm{V}");
+    }
+
+    #[test]
+    fn an_internal_resistance_is_a_term_of_its_own() {
+        let (edges, mut parts) = single();
+        parts[0].internal = Some(Value::one());
+        let equations = build(&edges, &parts).unwrap();
+        assert_eq!(symbolic(&equations), ["-R_{\\mathrm{i,V1}} I_{1} - R_{1} I_{1} = -U_{1}"]);
+        assert_solves(&equations, &[Value::ratio(5, 3)]);
+    }
+
+    #[test]
+    fn a_current_source_makes_its_voltage_the_unknown() {
+        let (mut edges, mut parts) = single();
+        (edges[0].id, parts[0].id, parts[0].kind, parts[0].value) = ("I1".into(), "I1".into(), Kind::CurrentSource, Value::int(2));
+        let equations = build(&edges, &parts).unwrap();
+        assert_eq!(equations.names, ["U_{q,1}"]);
+        assert_eq!(symbolic(&equations), ["U_{q,1} + R_{1} I_{q,1} = 0"]);
+        assert_eq!(equations.loops[0].numeric, "U_{q,1} + 5\\,\\mathrm{\\Omega } \\cdot 2\\,\\mathrm{A} = 0");
+        assert_eq!(equations.matrix(), [[Value::one(), Value::int(-10)]]);
+
+        // With an internal conductance, 1/4 S, the source's current splits.
+        parts[0].internal = Some(Value::int(4));
+        let equations = build(&edges, &parts).unwrap();
+        assert_eq!(equations.names, ["U_{q,1}", "I_{2}", "I_{3}"]);
+        assert_eq!(
+            symbolic(&equations),
+            [
+                "I_{q,1} + I_{2} - I_{3} = 0",
+                "-I_{q,1} - I_{2} + I_{3} = 0 (dropped)",
+                "U_{q,1} - R_{\\mathrm{i,I1}} I_{2} = 0",
+                "U_{q,1} + R_{1} I_{3} = 0",
+            ]
+        );
+        assert_eq!(equations.junctions[0].equation.numeric, "2\\,\\mathrm{A} + I_{2} - I_{3} = 0");
+        assert_solves(&equations, &[Value::ratio(-40, 9), Value::ratio(-10, 9), Value::ratio(8, 9)]);
+    }
+
+    #[test]
+    fn two_current_sources_in_series_are_an_error() {
+        let (mut edges, mut parts) = single();
+        for (n, id) in [(0, "I1"), (1, "I2")] {
+            (edges[n].id, parts[n].id, parts[n].kind) = (id.into(), id.into(), Kind::CurrentSource);
+        }
+        let error = build(&edges, &parts).unwrap_err().to_string();
+        assert!(error.contains("I1") && error.contains("I2"), "{error}");
     }
 }
