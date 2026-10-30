@@ -187,7 +187,7 @@ export interface Kirchhoff {
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
-export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear';
+export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';

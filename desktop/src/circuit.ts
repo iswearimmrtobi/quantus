@@ -1,5 +1,5 @@
 import type { TextKey } from './i18n/en';
-import type { CircuitElement, CircuitRequest, ElementKind } from './api';
+import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, KirchhoffRequest } from './api';
 
 /**
  * The schematic as the editor keeps it, and the pure functions that turn it into a
@@ -25,6 +25,8 @@ export interface EditorElement extends Omit<CircuitElement, 'kind' | 'a' | 'b'> 
   rotation: number;
   x2?: number;
   y2?: number;
+  /** Kirchhoff mode: the branch this part leads runs the other way. */
+  reversed?: boolean;
 }
 
 export interface Point {
@@ -187,7 +189,18 @@ export function numberNodes(elements: EditorElement[]): Nodes {
 }
 
 /** The editor-only fields never go to the solver. */
-const EDITOR_FIELDS = ['kind', 'x', 'y', 'rotation', 'x2', 'y2'] as const;
+const EDITOR_FIELDS = ['kind', 'x', 'y', 'rotation', 'x2', 'y2', 'reversed'] as const;
+
+/** The ID and the parameters the user typed; blank ones are left out, as missing. */
+function parametersOf(element: EditorElement): Record<string, unknown> {
+  const parameters: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(element)) {
+    if ((EDITOR_FIELDS as readonly string[]).includes(key)) continue;
+    if (typeof value === 'string' && value.trim() === '') continue;
+    parameters[key] = value;
+  }
+  return parameters;
+}
 
 export function toRequest(elements: EditorElement[], nodes: Nodes, precision?: number | null): CircuitRequest {
   const node = (point: Point | undefined) => (point ? (nodes.byPoint.get(pointKey(point)) ?? 0) : 0);
@@ -195,18 +208,63 @@ export function toRequest(elements: EditorElement[], nodes: Nodes, precision?: n
   for (const element of elements) {
     if (element.kind === 'ground') continue;
     const places = terminals(element);
-    const parameters: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(element)) {
-      if ((EDITOR_FIELDS as readonly string[]).includes(key)) continue;
-      if (typeof value === 'string' && value.trim() === '') continue;
-      parameters[key] = value;
-    }
+    const parameters = parametersOf(element);
     const entry = { ...parameters, kind: element.kind, a: node(places.a), b: node(places.b) } as CircuitElement;
     if (places.wiper) entry.wiper = node(places.wiper);
     list.push(entry);
   }
   const ids = [...nodes.pointOf.keys()].sort((p, q) => p - q);
   return { nodes: ids.length ? ids : [0], elements: list, precision: precision ?? null };
+}
+
+/**
+ * The Kirchhoff mode works the nodes out from the drawing itself, so it gets the terminals in grid
+ * steps instead of node numbers. Ground symbols mean nothing there and stay behind.
+ */
+export function toKirchhoffRequest(elements: EditorElement[]): KirchhoffRequest {
+  const grid = (point: Point) => ({ x: point.x / GRID, y: point.y / GRID });
+  const list: KirchhoffElement[] = [];
+  for (const element of elements) {
+    if (element.kind === 'ground') continue;
+    const { a, b } = terminals(element);
+    const entry = { ...parametersOf(element), kind: element.kind, pa: grid(a!), pb: grid(b!) } as KirchhoffElement;
+    if (element.reversed) entry.reversed = true;
+    list.push(entry);
+  }
+  return { elements: list };
+}
+
+/**
+ * Where a junction's dot belongs: of the points of the node at `anchor`, the one where the most
+ * terminals and wires meet, the first in reading order of those. The engine names a node by its
+ * first point, which may be the end of a part rather than the fork of the wires.
+ */
+export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: Point): Point {
+  const node = nodes.byPoint.get(pointKey(anchor));
+  if (node === undefined) return anchor;
+  const degree = new Map<string, number>();
+  const count = (point: Point, by: number) => degree.set(pointKey(point), (degree.get(pointKey(point)) ?? 0) + by);
+  const unique = new Map<string, Point>();
+  for (const element of elements) {
+    if (element.kind === 'ground') continue;
+    for (const point of Object.values(terminals(element)) as Point[]) {
+      count(point, 1);
+      unique.set(pointKey(point), point);
+    }
+  }
+  const points = [...unique.values()];
+  // A point in the middle of an ideal wire has the wire on both sides.
+  for (const wire of elements.filter(isIdealWire)) {
+    const { a, b } = terminals(wire);
+    for (const point of points) if (inside(a!, b!, point)) count(point, 2);
+  }
+  let best = anchor;
+  for (const point of points) {
+    if (nodes.byPoint.get(pointKey(point)) !== node) continue;
+    const [d, e] = [degree.get(pointKey(point))!, degree.get(pointKey(best)) ?? 0];
+    if (d > e || (d === e && (point.y < best.y || (point.y === best.y && point.x < best.x)))) best = point;
+  }
+  return best;
 }
 
 /** The next unused ID of a kind: R1, R2, … */
@@ -267,6 +325,9 @@ export const FIELDS: Record<EditorKind, Field[]> = {
   powerLoad: [{ key: 'p', label: 'field.p', placeholder: '500W' }],
   ground: [],
 };
+
+/** The Kirchhoff mode's wires are ideal, so they have no fields. */
+export const IDEAL_FIELDS: Record<EditorKind, Field[]> = { ...FIELDS, wire: [] };
 
 export const MATERIALS: { id: string; label: TextKey }[] = [
   { id: 'copper', label: 'material.copper' },

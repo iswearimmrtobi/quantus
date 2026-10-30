@@ -15,6 +15,7 @@ export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[
   { value: 'electronics', label: t('mode.electronics') },
   { value: 'analysis', label: t('mode.analysis') },
   { value: 'linear', label: linearComplex ? `${t('mode.linear')} + 𝑖` : t('mode.linear') },
+  { value: 'kirchhoff', label: t('mode.kirchhoff') },
 ];
 
 const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({

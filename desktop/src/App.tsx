@@ -4,6 +4,7 @@ import { api, ApiError, type Calculation, type Mode, type Settings, type StepKin
 import { Katex, latexLines } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { ElectronicsView } from './components/ElectronicsView';
+import { KirchhoffView } from './components/KirchhoffView';
 import { AnalysisView } from './components/AnalysisView';
 import { LinearSystemView } from './components/LinearSystemView';
 import { EMPTY_LINEAR, type LinearInput } from './linear';
@@ -57,6 +58,8 @@ export function App() {
   const [latexMode, setLatexMode] = useState(false);
   /** The schematic lives here so it survives a switch to another mode and back. */
   const [circuit, setCircuit] = useState<EditorElement[]>([]);
+  /** The Kirchhoff mode draws its own network; files are shared with the electronics mode. */
+  const [kirchhoffCircuit, setKirchhoffCircuit] = useState<EditorElement[]>([]);
   /** Kept here rather than in the editor, so it outlasts a switch to another mode. */
   const [circuitShown, setCircuitShown] = useState<Shown>(SHOWN);
   /** The linear system and its tab, kept here for the same reason. */
@@ -76,12 +79,15 @@ export function App() {
   const ctrl = t('key.ctrl');
   const FILTERS = [{ name: t('file.filter'), extensions: ['json'] }];
 
+  /** The circuit of the mode that is open: the Kirchhoff mode has its own. */
+  const kirchhoff = settings.mode === 'kirchhoff';
+
   /** Replaces the circuit only when the file checks out; a broken one leaves it untouched. */
   const loadCircuit = async () => {
     try {
       const path = await open({ filters: FILTERS, multiple: false });
       if (typeof path !== 'string') return;
-      setCircuit(fromFile(await api.loadCircuit(path)));
+      (kirchhoff ? setKirchhoffCircuit : setCircuit)(fromFile(await api.loadCircuit(path)));
       setFileError(null);
     } catch (failure) {
       setFileError(failure instanceof Error ? failure.message : String(failure));
@@ -92,12 +98,25 @@ export function App() {
     try {
       const path = await save({ filters: FILTERS, defaultPath: t('file.default') });
       if (!path) return;
-      await api.saveCircuit(path, toFile(circuit));
+      await api.saveCircuit(path, toFile(kirchhoff ? kirchhoffCircuit : circuit));
       setFileError(null);
     } catch (failure) {
       setFileError(failure instanceof Error ? failure.message : String(failure));
     }
   };
+
+  const fileButtons = (
+    <div className="file-buttons">
+      <div className="palette-title">{t('file.title')}</div>
+      <button className="palette-item" onClick={() => void loadCircuit()}>
+        {t('file.load')}
+      </button>
+      <button className="palette-item" onClick={() => void saveCircuit()}>
+        {t('file.save')}
+      </button>
+      {fileError && <p className="file-error">{fileError}</p>}
+    </div>
+  );
 
   const field = useRef<MathFieldHandle>(null);
   const latexField = useRef<LatexInputHandle>(null);
@@ -319,18 +338,18 @@ export function App() {
             settings={settings}
             shown={circuitShown}
             onShownChange={setCircuitShown}
-            toolbar={
-              <div className="file-buttons">
-                <div className="palette-title">{t('file.title')}</div>
-                <button className="palette-item" onClick={() => void loadCircuit()}>
-                  {t('file.load')}
-                </button>
-                <button className="palette-item" onClick={() => void saveCircuit()}>
-                  {t('file.save')}
-                </button>
-                {fileError && <p className="file-error">{fileError}</p>}
-              </div>
-            }
+            toolbar={fileButtons}
+          />
+        </main>
+      ) : kirchhoff ? (
+        <main className="workspace circuit-workspace">
+          <KirchhoffView
+            elements={kirchhoffCircuit}
+            onChange={setKirchhoffCircuit}
+            settings={settings}
+            shown={circuitShown}
+            onShownChange={setCircuitShown}
+            toolbar={fileButtons}
           />
         </main>
       ) : (
