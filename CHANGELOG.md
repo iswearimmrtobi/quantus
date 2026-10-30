@@ -29,6 +29,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     with no room beside its part moves to the next free spot, and a dashed line leads to it.
     While parts are dragged, the labels keep their spots as long as those stay free, and settle
     again when the parts are dropped.
+  - A wire or part ending in the middle of an ideal wire is now connected to it (a T-junction).
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 

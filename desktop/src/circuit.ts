@@ -4,7 +4,8 @@ import type { CircuitElement, CircuitRequest, ElementKind } from './api';
 /**
  * The schematic as the editor keeps it, and the pure functions that turn it into a
  * `CircuitRequest`. Nodes are never typed in: two terminals are connected when they sit on the
- * same grid point, so the numbers the solver needs come out of the geometry.
+ * same grid point, or one sits in the middle of an ideal wire, so the numbers the solver needs
+ * come out of the geometry.
  */
 
 export const GRID = 20;
@@ -110,10 +111,27 @@ export interface Nodes {
   grounded: boolean;
 }
 
+/** A wire without a resistance: no `rOverride` and not all of material, length and area. */
+export function isIdealWire(element: EditorElement): boolean {
+  const given = (key: keyof EditorElement) => {
+    const value = element[key];
+    return typeof value === 'string' ? value.trim() !== '' : value != null;
+  };
+  return element.kind === 'wire' && !given('rOverride') && !(given('material') && given('length') && given('area'));
+}
+
+/** Whether `p` lies on the segment from `a` to `b` but on neither end. */
+function inside(a: Point, b: Point, p: Point): boolean {
+  if ((b.x - a.x) * (p.y - a.y) !== (b.y - a.y) * (p.x - a.x)) return false;
+  if (pointKey(p) === pointKey(a) || pointKey(p) === pointKey(b)) return false;
+  return Math.min(a.x, b.x) <= p.x && p.x <= Math.max(a.x, b.x) && Math.min(a.y, b.y) <= p.y && p.y <= Math.max(a.y, b.y);
+}
+
 /**
  * Numbers the points where terminals sit. Ground is the point of a ground symbol; without one it
  * is the negative terminal of the first voltage source, so a drawn source-and-load circuit
- * works without ceremony.
+ * works without ceremony. A terminal in the middle of an ideal wire is a junction and shares the
+ * node of the wire's start; a resistive wire is joined only at its ends.
  */
 export function numberNodes(elements: EditorElement[]): Nodes {
   const points = new Map<string, Point>();
@@ -131,18 +149,39 @@ export function numberNodes(elements: EditorElement[]): Nodes {
     if (source) ground = pointKey(terminals(source).b!);
   }
 
+  // Junctions: each point inside an ideal wire stands for the wire's start.
+  const alias = new Map<string, string>();
+  for (const wire of elements.filter(isIdealWire)) {
+    const { a, b } = terminals(wire);
+    for (const [key, point] of points) {
+      if (!alias.has(key) && inside(a!, b!, point)) alias.set(key, pointKey(a!));
+    }
+  }
+  const canonical = (key: string) => {
+    const seen = new Set<string>();
+    while (alias.has(key) && !seen.has(key)) {
+      seen.add(key);
+      key = alias.get(key)!;
+    }
+    return key;
+  };
+
   const byPoint = new Map<string, number>();
   const pointOf = new Map<number, Point>();
+  const numberOf = new Map<string, number>();
   if (ground !== null) {
-    byPoint.set(ground, 0);
+    numberOf.set(canonical(ground), 0);
     pointOf.set(0, points.get(ground)!);
   }
   let next = 1;
   for (const [key, point] of points) {
-    if (byPoint.has(key)) continue;
-    byPoint.set(key, next);
-    pointOf.set(next, point);
-    next += 1;
+    const root = canonical(key);
+    if (!numberOf.has(root)) {
+      numberOf.set(root, next);
+      pointOf.set(next, point);
+      next += 1;
+    }
+    byPoint.set(key, numberOf.get(root)!);
   }
   return { byPoint, pointOf, grounded };
 }

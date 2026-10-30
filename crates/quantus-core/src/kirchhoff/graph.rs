@@ -3,11 +3,12 @@
 //!
 //! The loops are the windows of the drawing, its bounded faces, each walked clockwise on the
 //! screen (y points down). That needs a planar drawing: if two segments cross, overlap or a
-//! terminal sits in the middle of another segment, the loops come from a spanning tree instead,
-//! one per link, and [`Graph::planar`] is false.
+//! terminal sits in the middle of a part, the loops come from a spanning tree instead, one per
+//! link, and [`Graph::planar`] is false.
 //!
-//! Ideal wires merge the points they join into one electrical node and drop out of the loops. All
-//! geometry is exact integer arithmetic on grid coordinates.
+//! Ideal wires merge the points they join into one electrical node and drop out of the loops. A
+//! terminal in the middle of an ideal wire is a junction: the wire is split there. All geometry is
+//! exact integer arithmetic on grid coordinates.
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -98,6 +99,7 @@ pub struct Graph {
 
 impl Graph {
     pub fn build(edges: &[Edge]) -> Result<Graph> {
+        let edges = &split_wires(edges);
         let mut points: Vec<Point> = Vec::new();
         let mut index: HashMap<Point, usize> = HashMap::new();
         let mut vertex = |p: Point| {
@@ -239,6 +241,31 @@ fn clash(p: (Point, Point), q: (Point, Point)) -> bool {
         || (d2 == 0 && within(q.0, q.1, p.1))
         || (d3 == 0 && within(p.0, p.1, q.0))
         || (d4 == 0 && within(p.0, p.1, q.1))
+}
+
+/// The edges with every wire cut where a terminal sits in its middle. The pieces after the first
+/// are appended, so every other edge keeps its index.
+fn split_wires(edges: &[Edge]) -> Vec<Edge> {
+    let ends: Vec<Point> = edges.iter().flat_map(|e| [e.a, e.b]).collect();
+    let mut split = edges.to_vec();
+    for (n, edge) in edges.iter().enumerate().filter(|(_, e)| e.wire && e.a != e.b) {
+        let mut taps: Vec<Point> = ends
+            .iter()
+            .copied()
+            .filter(|&p| p != edge.a && p != edge.b && cross(edge.a, edge.b, p) == 0 && within(edge.a, edge.b, p))
+            .collect();
+        if taps.is_empty() {
+            continue;
+        }
+        taps.sort_by_key(|p| (p.x - edge.a.x).abs() + (p.y - edge.a.y).abs());
+        taps.dedup();
+        let stops: Vec<Point> = std::iter::once(edge.a).chain(taps).chain([edge.b]).collect();
+        split[n].b = stops[1];
+        for pair in stops[1..].windows(2) {
+            split.push(Edge { id: edge.id.clone(), a: pair[0], b: pair[1], wire: true });
+        }
+    }
+    split
 }
 
 /// No two segments meet away from shared end points, and no part has length zero. Wires of
@@ -612,6 +639,32 @@ mod tests {
         assert_closed(&graph);
     }
 
+    /// The drawing of `plans/test.json`: two sources, R3 tapped into the middle of the top and
+    /// bottom wires.
+    #[test]
+    fn a_terminal_in_the_middle_of_a_wire_joins_it() {
+        let edges = vec![
+            part("V1", (13, 13), (13, 9)),
+            part("V2", (27, 9), (27, 13)),
+            part("R1", (13, 7), (13, 3)),
+            part("R2", (27, 7), (27, 3)),
+            part("R3", (20, 6), (20, 10)),
+            wire("W1", (13, 3), (27, 3)),
+            wire("W2", (27, 9), (27, 7)),
+            wire("W3", (13, 7), (13, 9)),
+            wire("W4", (13, 13), (27, 13)),
+            wire("W5", (20, 10), (20, 13)),
+            wire("W6", (20, 6), (20, 3)),
+        ];
+        let graph = Graph::build(&edges).unwrap();
+        assert!(graph.planar);
+        assert_eq!(graph.nodes.len(), 4);
+        assert_eq!(graph.links.len(), 5);
+        assert_eq!(graph.loops.len(), 2);
+        assert!(graph.links.iter().all(|l| !edges[l.edge].wire));
+        assert_closed(&graph);
+    }
+
     #[test]
     fn crossing_wires_fall_back_to_a_spanning_tree() {
         let mut edges = vec![
@@ -632,7 +685,7 @@ mod tests {
         assert_eq!(graph.loops.len(), 2);
         assert_closed(&graph);
 
-        // A terminal in the middle of a wire is not connected to it.
+        // A terminal in the middle of a part is not connected to it.
         edges.pop();
         edges.push(wire("W3", (6, 0), (6, -4)));
         assert!(!Graph::build(&edges).unwrap().planar);
