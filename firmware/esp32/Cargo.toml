@@ -1,0 +1,28 @@
+[package]
+name = "quantus-esp32"
+description = "Feasibility spike: the Quantus engine on an ESP32"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Its own workspace: the Xtensa toolchain and ESP-IDF stay out of `cargo test --workspace`.
+[workspace]
+
+[dependencies]
+quantus-core = { path = "../../crates/quantus-core" }
+esp-idf-svc = "0.53"
+log = "0.4"
+
+[build-dependencies]
+embuild = "0.33"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[profile.dev]
+# Unoptimised, the number crates are too slow and too stack-hungry to be worth measuring.
+opt-level = "s"
+debug = true

@@ -46,7 +46,17 @@ Implemented (`crates/quantus-core/src/electro/`, `tests/electro.rs`, the circuit
 frontend) and selectable again in the mode selector. Spec: [electronics-module.md](../design/electronics-module.md).
 Needed to ship it: document it in the README and the user docs.
 
-## 4. Later
+## 4. Quantus on an ESP32 (spike)
+
+`firmware/esp32`: the engine on a classic ESP32 (WROOM, no PSRAM), running fixed inputs and
+printing results, time, heap and stack over serial. See its [README](../firmware/esp32/README.md).
+
+- [x] Builds unchanged for `xtensa-esp32-espidf`; the release app is 1.9 MB of a 4 MB flash.
+- [ ] Flash it and record heap, stack and time per input. Do integrals and curve sketching fit
+  in 520 KB SRAM, or does it need an S3 with PSRAM?
+- [ ] If so: a keypad that writes LaTeX and a display that renders the result.
+
+## 5. Later
 
 - Physical constants (c, h, G) and the remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md).
 - History and persistence of calculations.
