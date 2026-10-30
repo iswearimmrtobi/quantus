@@ -7,6 +7,7 @@ import {
   KIND_LABELS,
   MATERIALS,
   newElement,
+  QUANTITIES,
   numberNodes,
   pointKey,
   rotate,
@@ -16,6 +17,7 @@ import {
   type EditorElement,
   type EditorKind,
   type Point,
+  type Shown,
   type Terminal,
 } from '../circuit';
 import { useT } from '../i18n';
@@ -26,6 +28,9 @@ interface Props {
   onChange(next: EditorElement[]): void;
   /** The solver reads the stored settings; these are watched so a change shows at once. */
   settings: Settings;
+  /** Which results the parts show on the canvas. */
+  shown: Shown;
+  onShownChange(next: Shown): void;
   /** Extra controls for the palette column (load and save). */
   toolbar?: ReactNode;
 }
@@ -58,7 +63,7 @@ const PALETTE: EditorKind[] = [
   'ground',
 ];
 
-export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) {
+export function CircuitEditor({ elements, onChange, settings, shown, onShownChange, toolbar }: Props) {
   const { t } = useT();
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -396,13 +401,27 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
 
         {/* The values are HTML over the canvas, not foreignObject in it: WebKitGTK draws KaTeX's
             positioned spans inside a foreignObject at the origin of the SVG. */}
+        <div className="segmented circuit-shown" role="group" aria-label={t('circuit.show')} title={t('circuit.show')}>
+          {QUANTITIES.map((quantity) => (
+            <button
+              key={quantity.key}
+              className={shown[quantity.key] ? 'segment active' : 'segment'}
+              aria-pressed={shown[quantity.key]}
+              title={t(quantity.label)}
+              onClick={() => onShownChange({ ...shown, [quantity.key]: !shown[quantity.key] })}
+            >
+              {quantity.symbol}
+            </button>
+          ))}
+        </div>
+
         <div className="circuit-labels">
           <div
             className="circuit-labels-drawing"
             style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}
           >
             {elements.map((element) => (
-              <PartLabel key={element.id} element={element} result={results.get(element.id)} />
+              <PartLabel key={element.id} element={element} result={results.get(element.id)} shown={shown} />
             ))}
             {[...nodes.pointOf].map(([id, point]) => {
               const voltage = voltages.get(id);
@@ -554,7 +573,15 @@ const SIDES: Record<Side, string> = {
  * vertical one, on the other side if a potentiometer's wiper is there. An ideal wire has no drop,
  * so it only gets a label once it has a material or a resistance; the inspector shows the rest.
  */
-function PartLabel({ element, result }: { element: EditorElement; result: CircuitResponse['elements'][number] | undefined }) {
+function PartLabel({
+  element,
+  result,
+  shown,
+}: {
+  element: EditorElement;
+  result: CircuitResponse['elements'][number] | undefined;
+  shown: Shown;
+}) {
   if (element.kind === 'ground') return null;
   let at: Point;
   let side: Side;
@@ -578,12 +605,11 @@ function PartLabel({ element, result }: { element: EditorElement; result: Circui
   return (
     <div className="part-label" style={{ left: at.x, top: at.y, transform: SIDES[side] }}>
       <span className="part-id">{element.id}</span>
-      {result && (
-        <>
-          <Value label="U" value={result.voltage} />
-          <Value label="I" value={result.current} />
-        </>
-      )}
+      {result &&
+        QUANTITIES.map(({ key, symbol }) => {
+          const value = result[key];
+          return shown[key] && value ? <Value key={key} label={symbol} value={value} /> : null;
+        })}
     </div>
   );
 }
@@ -662,6 +688,7 @@ function Inspector({
           <ResultRow label={t('result.voltage')} value={result.voltage} />
           <ResultRow label={t('result.current')} value={result.current} />
           <ResultRow label={t('result.power')} value={result.power} />
+          {result.resistance && <ResultRow label={t('result.resistance')} value={result.resistance} />}
           {result.notes.map((note) => (
             <div className="inspector-note" key={note}>
               {note}

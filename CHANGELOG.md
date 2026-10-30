@@ -20,6 +20,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   - A changed precision or output setting shows in the circuit at once.
   - Voltages, currents, powers, resistances and conductances get a unit prefix: `4 mA` instead of
     `0,004 A`, `2 kW` instead of `2000 W`.
+  - The buttons **U I P R** at the top right of the canvas choose which values the parts show
+    (voltage and current to start with). Each part now also reports its resistance: the one given,
+    or U/I for a power load.
   - The canvas moves (drag with the right or middle mouse button, or scroll) and zooms (Ctrl and
     scroll, or pinch); Home goes back.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**

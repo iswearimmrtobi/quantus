@@ -7,7 +7,7 @@ import { CircuitEditor } from './components/CircuitEditor';
 import { AnalysisView } from './components/AnalysisView';
 import { LinearSystemView } from './components/LinearSystemView';
 import { EMPTY_LINEAR, type LinearInput } from './linear';
-import { fromFile, toFile, type EditorElement } from './circuit';
+import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
@@ -57,6 +57,8 @@ export function App() {
   const [latexMode, setLatexMode] = useState(false);
   /** The schematic lives here so it survives a switch to another mode and back. */
   const [circuit, setCircuit] = useState<EditorElement[]>([]);
+  /** Kept here rather than in the editor, so it outlasts a switch to another mode. */
+  const [circuitShown, setCircuitShown] = useState<Shown>(SHOWN);
   /** The linear system and its tab, kept here for the same reason. */
   const [linear, setLinear] = useState<LinearInput>(EMPTY_LINEAR);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -315,6 +317,8 @@ export function App() {
             elements={circuit}
             onChange={setCircuit}
             settings={settings}
+            shown={circuitShown}
+            onShownChange={setCircuitShown}
             toolbar={
               <div className="file-buttons">
                 <div className="palette-title">{t('file.title')}</div>

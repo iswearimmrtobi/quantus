@@ -436,6 +436,9 @@ fn the_test_circuits_solve_to_their_documented_values() {
         ("wheatstone", "R1", "voltage", r"3{,}33333\,\mathrm{V}"),
         ("cable", "L1", "power", r"2\,\mathrm{kW}"),
         ("cable", "C1", "voltage", r"6{,}33116\,\mathrm{V}"),
+        ("wheatstone", "R5", "resistance", r"500\,\mathrm{\Omega }"),
+        ("cable", "L1", "resistance", r"23{,}6178\,\mathrm{\Omega }"),
+        ("cable", "C1", "resistance", r"688\,\mathrm{m\Omega }"),
         ("relative", "R1", "voltage", r"25\,\%"),
         ("relative", "R2", "voltage", r"75\,\%"),
     ];
@@ -445,5 +448,6 @@ fn the_test_circuits_solve_to_their_documented_values() {
         assert_eq!(element[quantity]["result"], result, "{circuit}: {quantity} of {id}");
     }
     assert_eq!(solve("relative").unwrap()["elements"][2]["voltage"]["status"], "relative");
+    assert!(solve("divider").unwrap()["elements"][0]["resistance"].is_null(), "a source has no resistance");
     assert_eq!(solve("short-circuit").unwrap_err()["error"], "short circuit");
 }

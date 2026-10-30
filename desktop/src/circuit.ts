@@ -184,6 +184,20 @@ export function newElement(elements: EditorElement[], kind: EditorKind, at: Poin
   return kind === 'wire' ? { ...base, x2: snap(at.x) + 2 * HALF, y2: snap(at.y) } : base;
 }
 
+/** The results a part can show on the canvas, with their symbols. */
+export const QUANTITIES = [
+  { key: 'voltage', symbol: 'U', label: 'result.voltage' },
+  { key: 'current', symbol: 'I', label: 'result.current' },
+  { key: 'power', symbol: 'P', label: 'result.power' },
+  { key: 'resistance', symbol: 'R', label: 'result.resistance' },
+] as const satisfies readonly { key: string; symbol: string; label: TextKey }[];
+
+export type Quantity = (typeof QUANTITIES)[number]['key'];
+
+/** Which results the canvas shows; voltage and current until changed. */
+export type Shown = Record<Quantity, boolean>;
+export const SHOWN: Shown = { voltage: true, current: true, power: false, resistance: false };
+
 /** The text fields the inspector offers per kind; `{,}` in a placeholder is the decimal mark. */
 export interface Field {
   key: keyof CircuitElement;

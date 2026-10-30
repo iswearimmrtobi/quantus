@@ -132,7 +132,8 @@
       },
       "expect": {
         "elements": [
-          {"id": "R1", "voltage": {"result": "12\\,\\mathrm{V}"}, "current": {"result": "4\\,\\mathrm{mA}", "unit": "mA"}, "power": {"result": "48\\,\\mathrm{mW}"}},
+          {"id": "R1", "voltage": {"result": "12\\,\\mathrm{V}"}, "current": {"result": "4\\,\\mathrm{mA}", "unit": "mA"}, "power": {"result": "48\\,\\mathrm{mW}"}, "resistance": {"result": "3\\,\\mathrm{k\\Omega }"}},
+          {"id": "V1", "resistance": null},
           {"id": "R2", "current": {"result": "23\\,\\mathrm{kA}"}, "power": {"result": "5{,}29\\,\\mathrm{MW}"}}
         ]
       }

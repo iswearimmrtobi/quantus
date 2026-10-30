@@ -15,7 +15,7 @@ use crate::units::{Atom, Kind, Prefix, Unit};
 use super::circuit::{Circuit, Element, ElementKind};
 use super::materials::Material;
 use super::reverse::{solve_for, Measure, Parameter, Reverse, Target};
-use super::solve::{solve_at, Output, Solution};
+use super::solve::{solve_at, ElementResult, Output, Solution};
 use super::text::{msg, Scope};
 use super::wire::Wire;
 
@@ -115,6 +115,9 @@ pub struct ElementResponse {
     pub voltage: ValueResponse,
     pub current: ValueResponse,
     pub power: ValueResponse,
+    /// The resistance of a passive part: the one given (a wire's as worked out from its material),
+    /// otherwise U/I. `None` for a source.
+    pub resistance: Option<ValueResponse>,
     /// German notes, e.g. "bei 20 °C".
     pub notes: Vec<String>,
 }
@@ -293,11 +296,40 @@ fn respond(
                 voltage: output(&e.voltage)?,
                 current: output(&e.current)?,
                 power: output(&e.power)?,
+                resistance: resistance_of(calculator, circuit, e)?,
                 notes: e.notes.clone(),
             })
         })
         .collect::<Result<Vec<_>>>()?;
     Ok(CircuitResponse { nodes, elements, reverse })
+}
+
+fn resistance_of(calculator: &LatexCalculator, circuit: &Circuit, result: &ElementResult) -> Result<Option<ValueResponse>> {
+    let Some(element) = circuit.elements.iter().find(|e| e.id == result.id) else { return Ok(None) };
+    let given = match &element.kind {
+        ElementKind::Resistor { r } => r.clone(),
+        ElementKind::Wire(wire) => Some(wire.resistance()?.0),
+        ElementKind::Potentiometer { r_total, .. } => r_total.clone(),
+        ElementKind::PowerLoad { .. } => None,
+        ElementKind::VoltageSource { .. } | ElementKind::CurrentSource { .. } => return Ok(None),
+    };
+    if let Some(r) = given {
+        return known(calculator, &r).map(Some);
+    }
+    // Relative values are for a source of one unit, which cancels out of U/I.
+    let ratio = match (&result.voltage, &result.current) {
+        (Output::Known(u), Output::Known(i)) | (Output::Relative { value: u, .. }, Output::Relative { value: i, .. }) => {
+            (!i.value.is_zero()).then(|| u.div(i)).transpose()?
+        }
+        (Output::Unknown(reason), _) | (_, Output::Unknown(reason)) => {
+            return value_of(calculator, circuit, &Output::Unknown(reason.clone())).map(Some);
+        }
+        _ => None,
+    };
+    match ratio {
+        Some(r) => known(calculator, &r).map(Some),
+        None => Ok(Some(ValueResponse { text: Some(msg!("Unknown: no current flows", "Unbekannt: es fließt kein Strom")), ..ValueResponse::absent("unknown") })),
+    }
 }
 
 fn known(calculator: &LatexCalculator, q: &PhysicalQuantity) -> Result<ValueResponse> {

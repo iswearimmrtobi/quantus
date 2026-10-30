@@ -127,6 +127,8 @@ export interface CircuitResponse {
     voltage: CircuitValue;
     current: CircuitValue;
     power: CircuitValue;
+    /** Given, or U/I; `null` for a source. */
+    resistance: CircuitValue | null;
     notes: string[];
   }[];
   /** The parameter found; the values above are those with it. */

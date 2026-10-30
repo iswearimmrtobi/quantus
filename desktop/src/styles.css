@@ -1016,6 +1016,17 @@ select option {
   pointer-events: none;
 }
 
+.circuit-shown {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  background: var(--surface);
+}
+.circuit-shown .segment {
+  flex: none;
+  min-width: 28px;
+}
 .circuit-labels {
   position: absolute;
   inset: 0;
