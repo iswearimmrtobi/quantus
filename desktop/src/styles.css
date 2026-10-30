@@ -910,7 +910,14 @@ select option {
 .circuit {
   display: grid;
   grid-template-columns: 170px 1fr 250px;
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
+}
+.circuit-centre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 
 .circuit-palette,
@@ -965,7 +972,9 @@ select option {
 
 .circuit-stage {
   position: relative;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 
 .circuit-canvas {
@@ -1151,6 +1160,80 @@ select option {
 }
 .kirchhoff-junction-name {
   color: var(--text-muted);
+}
+
+/* The working panel under the canvas. */
+.kirchhoff-splitter {
+  flex: none;
+  height: 6px;
+  cursor: row-resize;
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  touch-action: none;
+}
+.kirchhoff-splitter:hover {
+  background: var(--surface-hover);
+}
+.kirchhoff-working {
+  flex: none;
+  overflow: auto;
+  padding: 10px 16px 16px;
+}
+.kirchhoff-sheet {
+  display: grid;
+  gap: 12px;
+}
+.kirchhoff-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.kirchhoff-note {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.kirchhoff-title {
+  margin: 0 0 6px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: normal;
+  letter-spacing: 0.12em;
+}
+.kirchhoff-rule {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+}
+.kirchhoff-rule.active {
+  background: var(--surface-hover);
+}
+.kirchhoff-rule.dropped {
+  opacity: 0.5;
+}
+.kirchhoff-rule-name {
+  flex: none;
+  min-width: 36px;
+  color: var(--text-muted);
+}
+.kirchhoff-rule-forms {
+  display: grid;
+  gap: 2px;
+}
+.kirchhoff-numeric {
+  color: var(--text-muted);
+}
+.kirchhoff-unknowns {
+  color: var(--text-muted);
+}
+.kirchhoff-result {
+  display: block;
+  margin-bottom: 2px;
 }
 
 .circuit-note {

@@ -69,6 +69,8 @@ interface Props {
   reserved?: Rect[];
   /** Parts drawn emphasised, as those of the loop under the pointer. */
   highlight?: string[];
+  /** Shown under the canvas, between the palette and the inspector. */
+  below?: ReactNode;
   /** Which results the parts show on the canvas. */
   shown: Shown;
   onShownChange(next: Shown): void;
@@ -117,6 +119,7 @@ export function CircuitEditor({
   labels: extraLabels,
   reserved,
   highlight,
+  below,
   shown,
   onShownChange,
   toolbar,
@@ -423,6 +426,7 @@ export function CircuitEditor({
         </p>
       </div>
 
+      <div className="circuit-centre">
       <div className="circuit-stage">
         <svg
           ref={canvas}
@@ -552,6 +556,8 @@ export function CircuitEditor({
         </div>
 
         {(failure || note) && <div className={failure ? 'circuit-note error' : 'circuit-note'}>{failure ?? note}</div>}
+      </div>
+      {below}
       </div>
 
       <aside className="circuit-inspector">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { api, ApiError, type Kirchhoff, type Settings } from '../api';
 import {
   GRID,
@@ -13,8 +13,13 @@ import {
 import { useT } from '../i18n';
 import { CircuitEditor } from './CircuitEditor';
 import { currentArrows, KirchhoffOverlay, overlayLabels, overlayReserved, type Hover } from './KirchhoffOverlay';
+import { KirchhoffWorking } from './KirchhoffWorking';
 
 const PALETTE: EditorKind[] = ['voltageSource', 'currentSource', 'resistor', 'wire'];
+
+/** The working panel's height in pixels: at first, and the least the splitter leaves it and the canvas. */
+const WORKING_HEIGHT = 280;
+const MIN_HEIGHT = 80;
 
 interface Props {
   elements: EditorElement[];
@@ -35,6 +40,8 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
   const [solution, setSolution] = useState<Kirchhoff | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [hover, setHover] = useState<Hover>(null);
+  const [height, setHeight] = useState(WORKING_HEIGHT);
+  const resizing = useRef<{ y: number; height: number; room: number } | null>(null);
 
   const request = useMemo(() => toKirchhoffRequest(elements), [elements]);
 
@@ -87,6 +94,17 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
     return solution.loops[hover.index]?.members.map((m) => m.id);
   }, [hover, solution]);
 
+  const startResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const centre = event.currentTarget.parentElement!.getBoundingClientRect();
+    resizing.current = { y: event.clientY, height, room: centre.height - MIN_HEIGHT };
+  };
+  const resize = (event: ReactPointerEvent) => {
+    const start = resizing.current;
+    if (!start) return;
+    setHeight(Math.max(MIN_HEIGHT, Math.min(start.room, start.height - (event.clientY - start.y))));
+  };
+
   const flip = (lead: string) => onChange(elements.map((e) => (e.id === lead ? { ...e, reversed: !e.reversed } : e)));
 
   return (
@@ -113,7 +131,30 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       reserved={marks?.reserved}
       highlight={highlight}
       failure={failure ?? solution?.error}
-      note={elements.length === 0 ? t('kirchhoff.empty') : null}
+      below={
+        <>
+          <div
+            className="kirchhoff-splitter"
+            role="separator"
+            aria-orientation="horizontal"
+            title={t('kirchhoff.resize')}
+            onPointerDown={startResize}
+            onPointerMove={resize}
+            onPointerUp={() => (resizing.current = null)}
+            onPointerCancel={() => (resizing.current = null)}
+          />
+          <section className="kirchhoff-working" style={{ height }} aria-label={t('kirchhoff.working')}>
+            <KirchhoffWorking
+              solution={solution}
+              failure={failure}
+              empty={elements.length === 0}
+              stepsHidden={stepDetail === 'none'}
+              hover={hover}
+              onHover={setHover}
+            />
+          </section>
+        </>
+      }
       shown={shown}
       onShownChange={onShownChange}
       toolbar={toolbar}
