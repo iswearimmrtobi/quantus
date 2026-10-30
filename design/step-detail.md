@@ -753,6 +753,93 @@ numerically and has no symbolic form to show.
 
 Code: `LatexCalculator::steps` (`calculator.rs:311`), `eval/evaluator.rs`, `eval/solver.rs`.
 
+## Linear systems
+
+Code in `crates/quantus-core/src/linear.rs` (`gauss`, `eliminate`), `eval/system.rs` (the
+outcome and back-substitution) and `eval/system_steps.rs` (the steps). The setting `elimination`
+picks **Gauss** (default; school method: triangle form without fractions, then back-substitution)
+or **Gauss–Jordan** (every pivot divided to 1, the solution read off). The levels apply to both.
+
+How a matrix looks from Standard on:
+- The rows are named by Roman numerals to the left of the matrix. Each change adds a mark
+  ($\text{II} \to \text{II}' \to \text{II}''$), and a swap takes the names along.
+- The operation stands to the right of the row it changes, in the matrix *before* the change, as
+  on paper. It names the rows as they are at that moment ($\text{III}' - \text{II}'$).
+- The pivot is orange. The rows the step before changed are blue. KaTeX has no row background
+  inside `array` (no `\rowcolor`, and `\colorbox` takes text only), so it is coloured text.
+
+Input `2x + 3y + z = 11; 3x + 2y - z = 4; 4x - y + 2z = 8`, solution $x = 1, y = 2, z = 3$.
+
+**Brief:** the start matrix, the triangle form, the result.
+
+| Step | Expression |
+|---|---|
+| Write the system as an augmented matrix | $\left(\begin{array}{ccc\|c} 2 & 3 & 1 & 11 \\ 3 & 2 & -1 & 4 \\ 4 & -1 & 2 & 8 \end{array}\right)$ |
+| Bring it to triangle form | $\left(\begin{array}{ccc\|c} 2 & 3 & 1 & 11 \\ 0 & -1 & -1 & -5 \\ 0 & 0 & 1 & 3 \end{array}\right)$ |
+| | $x = 1 \land y = 2 \land z = 3$ |
+
+**Standard:** every matrix with its operations. A division by the common factor of a row joins
+the operation that made it ($(2 \cdot \text{II} - 3 \cdot \text{I}) : 5$). Then the
+back-substitution as equations.
+
+| Step | Expression |
+|---|---|
+| Eliminate x from II and III, then divide out the common factor | $\left(\begin{array}{ccc\|c\|l} \color{orange}2 & 3 & 1 & 11 & \\ 3 & 2 & -1 & 4 & (2 \cdot \text{II} - 3 \cdot \text{I}) : 5 \\ 4 & -1 & 2 & 8 & (\text{III} - 2 \cdot \text{I}) : 7 \end{array}\right)$ |
+| Eliminate y from III′ | $\left(\begin{array}{ccc\|c\|l} 2 & 3 & 1 & 11 & \\ 0 & \color{orange}-1 & -1 & -5 & \\ 0 & -1 & 0 & -2 & \text{III}' - \text{II}' \end{array}\right)$ |
+| The matrix is in triangle form | $\left(\begin{array}{ccc\|c} 2 & 3 & 1 & 11 \\ 0 & -1 & -1 & -5 \\ 0 & 0 & 1 & 3 \end{array}\right)$ (rows $\text{I}, \text{II}', \text{III}''$) |
+| Solve III″ for z | $z = 3$ |
+| Put z into II′ and solve for y | $-y - 3 = -5 \Rightarrow y = 2$ |
+| Put y and z into I and solve for x | $2x + 3 \cdot 2 + 3 = 11 \Rightarrow x = 1$ |
+
+**Detailed:** also each changed row worked out entry by entry, and the division by the common
+factor as a step of its own (so $\text{II}$ ends as $\text{II}''$).
+
+| Step | Expression |
+|---|---|
+| Eliminate x from II and III | the start matrix with $2 \cdot \text{II} - 3 \cdot \text{I}$ and $\text{III} - 2 \cdot \text{I}$ |
+| Work out II′ entry by entry | $\text{II}': \; 2 \cdot 3 - 3 \cdot 2 = 0, \quad 2 \cdot 2 - 3 \cdot 3 = -5, \quad 2 \cdot (-1) - 3 \cdot 1 = -5, \quad 2 \cdot 4 - 3 \cdot 11 = -25$ |
+| Work out III′ entry by entry | $\text{III}': \; 4 - 2 \cdot 2 = 0, \quad -1 - 2 \cdot 3 = -7, \quad 2 - 2 \cdot 1 = 0, \quad 8 - 2 \cdot 11 = -14$ |
+| Divide out the common factor of the row | the matrix with $\text{II}' : 5$ and $\text{III}' : 7$ |
+| Eliminate y from III″ | the matrix with $\text{III}'' - \text{II}''$ |
+| Work out III‴ entry by entry | $\text{III}''': \; -1 - (-1) = 0, \quad 0 - (-1) = 1, \quad -2 - (-5) = 3$ |
+| … | the triangle form and the back-substitution as at Standard |
+
+**Maximal:** also why the pivot was chosen, and the check of the solution in each equation.
+
+| Step | Expression |
+|---|---|
+| Eliminate x from II and III with the pivot of I, the first non-zero entry of the column | as at Detailed |
+| … | |
+| Check: put the solution into I | $\text{I}: \; 2 \cdot 1 + 3 \cdot 2 + 3 = 11 \; \checkmark$ |
+| Check: put the solution into II | $\text{II}: \; 3 \cdot 1 + 2 \cdot 2 - 3 = 4 \; \checkmark$ |
+| Check: put the solution into III | $\text{III}: \; 4 \cdot 1 - 2 + 2 \cdot 3 = 8 \; \checkmark$ |
+
+A zero in the pivot's place is swapped away with the first row below that has a non-zero entry
+($\text{I} \leftrightarrow \text{II}$). Standard says "Swap I and II to get a non-zero pivot",
+and Maximal says why: "The entry of x in I is zero, so swap I with II, …".
+
+**No solution.** The final matrix shows the row $0 = c$ in orange, followed by
+$\text{II}': \; 0 = 1$ with "Row II′ reads 0 = 1, a contradiction: the system has no solution". The
+result is "no solution". This is not an error, so the steps that lead to it stay visible. At Brief
+the row is named without marks, because no named matrix is shown there.
+
+**Infinitely many.** Gauss sets the free unknowns to $\lambda, \mu, \nu, \dots$ ("z is free: set it
+to a parameter", $z = \lambda$), skipping a letter the system uses as an unknown, and
+back-substitutes: $x = 3 - \frac{1}{2} \lambda \land y = 3 - \frac{1}{2} \lambda \land z = \lambda
+\land \lambda \in \mathbb{R}$. Gauss–Jordan keeps the free unknown: $x = 3 - \frac{1}{2} z \land
+\dots \land z \in \mathbb{R}$.
+
+**Gauss–Jordan** shows the same marks and colours. Its stages are "Divide I by its pivot" and
+"Eliminate x from II and III" (above and below the pivot), ending in "The matrix is in reduced row
+echelon form", with no back-substitution.
+
+Symbolic entries stay exact in the matrix ($\pi \cdot \text{II} - \text{I}$, $-1 + \pi^2$); rows
+with them skip the gcd. An entry with no exact form is a six-digit decimal.
+
+Built: all of the above. Tests: `tests/linear_systems.rs` with `tests/golden/systems.json` (this
+example at every level, plus one inconsistent and one infinite system with both methods), and the
+unit tests in `eval/calculator.rs`, `eval/system.rs` and `linear.rs`.
+
 ---
 
 ## Fixed along the way

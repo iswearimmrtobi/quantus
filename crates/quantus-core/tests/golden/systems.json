@@ -1,0 +1,408 @@
+{
+  "_comment": "Systems of linear equations typed with `;` in Algebra mode: the result and every step as [latex, explanation] for one system with a unique solution at each detail level, and for one inconsistent and one with infinitely many solutions, each with both settings of `elimination`. The 3×3 example is the one worked through in design/step-detail.md.",
+  "cases": [
+    {
+      "elimination": "gauss",
+      "expect": {
+        "result": "x = 1 \\land y = 2 \\land z = 3",
+        "steps": [
+          [
+            "\\begin{cases} 2 \\cdot x + 3 \\cdot y + z = 11 \\\\ 3 \\cdot x + 2 \\cdot y - z = 4 \\\\ 4 \\cdot x - y + 2 \\cdot z = 8 \\end{cases}",
+            ""
+          ],
+          [
+            "\\left(\\begin{array}{ccc|c} 2 & 3 & 1 & 11 \\\\ 3 & 2 & -1 & 4 \\\\ 4 & -1 & 2 & 8 \\end{array}\\right)",
+            "Write the system as an augmented matrix"
+          ],
+          [
+            "\\left(\\begin{array}{ccc|c} 2 & 3 & 1 & 11 \\\\ 0 & -1 & -1 & -5 \\\\ 0 & 0 & 1 & 3 \\end{array}\\right)",
+            "Bring it to triangle form"
+          ],
+          [
+            "x = 1 \\land y = 2 \\land z = 3",
+            ""
+          ]
+        ]
+      },
+      "latex": "2x + 3y + z = 11; 3x + 2y - z = 4; 4x - y + 2z = 8",
+      "name": "unique, Gauss, brief",
+      "stepDetail": "brief"
+    },
+    {
+      "elimination": "gauss",
+      "expect": {
+        "result": "x = 1 \\land y = 2 \\land z = 3",
+        "steps": [
+          [
+            "\\begin{cases} 2 \\cdot x + 3 \\cdot y + z = 11 \\\\ 3 \\cdot x + 2 \\cdot y - z = 4 \\\\ 4 \\cdot x - y + 2 \\cdot z = 8 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{2} 3 1 11 } \\\\ \\text{II}\\vphantom{3 2 -1 4 \\left(2 \\cdot \\text{II} - 3 \\cdot \\text{I}\\right) : 5} \\\\ \\text{III}\\vphantom{4 -1 2 8 \\left(\\text{III} - 2 \\cdot \\text{I}\\right) : 7} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{2} & 3 & 1 & 11 &  \\\\ 3 & 2 & -1 & 4 & \\left(2 \\cdot \\text{II} - 3 \\cdot \\text{I}\\right) : 5 \\\\ 4 & -1 & 2 & 8 & \\left(\\text{III} - 2 \\cdot \\text{I}\\right) : 7 \\end{array}\\right)",
+            "Eliminate x from II and III, then divide out the common factor"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11 } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{-1} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-5} } \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\text{III}' - \\text{II}'} \\end{array} \\left(\\begin{array}{ccc|c|l} 2 & 3 & 1 & 11 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{-1} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-5} &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\text{III}' - \\text{II}' \\end{array}\\right)",
+            "Eliminate y from III′"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11} \\\\ \\text{II}'\\vphantom{0 -1 -1 -5} \\\\ \\text{III}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{3}} \\end{array} \\left(\\begin{array}{ccc|c} 2 & 3 & 1 & 11 \\\\ 0 & -1 & -1 & -5 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{3} \\end{array}\\right)",
+            "The matrix is in triangle form"
+          ],
+          [
+            "z = 3",
+            "Solve III′′ for z"
+          ],
+          [
+            "-y - 3 = -5 \\quad\\Rightarrow\\quad y = 2",
+            "Put z into II′ and solve for y"
+          ],
+          [
+            "2x + 3 \\cdot 2 + 3 = 11 \\quad\\Rightarrow\\quad x = 1",
+            "Put y and z into I and solve for x"
+          ],
+          [
+            "x = 1 \\land y = 2 \\land z = 3",
+            ""
+          ]
+        ]
+      },
+      "latex": "2x + 3y + z = 11; 3x + 2y - z = 4; 4x - y + 2z = 8",
+      "name": "unique, Gauss, standard",
+      "stepDetail": "standard"
+    },
+    {
+      "elimination": "gauss",
+      "expect": {
+        "result": "x = 1 \\land y = 2 \\land z = 3",
+        "steps": [
+          [
+            "\\begin{cases} 2 \\cdot x + 3 \\cdot y + z = 11 \\\\ 3 \\cdot x + 2 \\cdot y - z = 4 \\\\ 4 \\cdot x - y + 2 \\cdot z = 8 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{2} 3 1 11 } \\\\ \\text{II}\\vphantom{3 2 -1 4 2 \\cdot \\text{II} - 3 \\cdot \\text{I}} \\\\ \\text{III}\\vphantom{4 -1 2 8 \\text{III} - 2 \\cdot \\text{I}} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{2} & 3 & 1 & 11 &  \\\\ 3 & 2 & -1 & 4 & 2 \\cdot \\text{II} - 3 \\cdot \\text{I} \\\\ 4 & -1 & 2 & 8 & \\text{III} - 2 \\cdot \\text{I} \\end{array}\\right)",
+            "Eliminate x from II and III"
+          ],
+          [
+            "\\text{II}': \\; 2 \\cdot 3 - 3 \\cdot 2 = 0, \\quad 2 \\cdot 2 - 3 \\cdot 3 = -5, \\quad 2 \\cdot \\left(-1\\right) - 3 \\cdot 1 = -5, \\quad 2 \\cdot 4 - 3 \\cdot 11 = -25",
+            "Work out II′ entry by entry"
+          ],
+          [
+            "\\text{III}': \\; 4 - 2 \\cdot 2 = 0, \\quad -1 - 2 \\cdot 3 = -7, \\quad 2 - 2 \\cdot 1 = 0, \\quad 8 - 2 \\cdot 11 = -14",
+            "Work out III′ entry by entry"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11 } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-5} \\textcolor{dodgerblue}{-5} \\textcolor{dodgerblue}{-25} \\text{II}' : 5} \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-7} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-14} \\text{III}' : 7} \\end{array} \\left(\\begin{array}{ccc|c|l} 2 & 3 & 1 & 11 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-5} & \\textcolor{dodgerblue}{-5} & \\textcolor{dodgerblue}{-25} & \\text{II}' : 5 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-7} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-14} & \\text{III}' : 7 \\end{array}\\right)",
+            "Divide out the common factor of the row"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11 } \\\\ \\text{II}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{-1} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-5} } \\\\ \\text{III}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\text{III}'' - \\text{II}''} \\end{array} \\left(\\begin{array}{ccc|c|l} 2 & 3 & 1 & 11 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{-1} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-5} &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\text{III}'' - \\text{II}'' \\end{array}\\right)",
+            "Eliminate y from III′′"
+          ],
+          [
+            "\\text{III}''': \\; -1 - \\left(-1\\right) = 0, \\quad 0 - \\left(-1\\right) = 1, \\quad -2 - \\left(-5\\right) = 3",
+            "Work out III′′′ entry by entry"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11} \\\\ \\text{II}''\\vphantom{0 -1 -1 -5} \\\\ \\text{III}'''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{3}} \\end{array} \\left(\\begin{array}{ccc|c} 2 & 3 & 1 & 11 \\\\ 0 & -1 & -1 & -5 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{3} \\end{array}\\right)",
+            "The matrix is in triangle form"
+          ],
+          [
+            "z = 3",
+            "Solve III′′′ for z"
+          ],
+          [
+            "-y - 3 = -5 \\quad\\Rightarrow\\quad y = 2",
+            "Put z into II′′ and solve for y"
+          ],
+          [
+            "2x + 3 \\cdot 2 + 3 = 11 \\quad\\Rightarrow\\quad x = 1",
+            "Put y and z into I and solve for x"
+          ],
+          [
+            "x = 1 \\land y = 2 \\land z = 3",
+            ""
+          ]
+        ]
+      },
+      "latex": "2x + 3y + z = 11; 3x + 2y - z = 4; 4x - y + 2z = 8",
+      "name": "unique, Gauss, detailed",
+      "stepDetail": "detailed"
+    },
+    {
+      "elimination": "gauss",
+      "expect": {
+        "result": "x = 1 \\land y = 2 \\land z = 3",
+        "steps": [
+          [
+            "\\begin{cases} 2 \\cdot x + 3 \\cdot y + z = 11 \\\\ 3 \\cdot x + 2 \\cdot y - z = 4 \\\\ 4 \\cdot x - y + 2 \\cdot z = 8 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{2} 3 1 11 } \\\\ \\text{II}\\vphantom{3 2 -1 4 2 \\cdot \\text{II} - 3 \\cdot \\text{I}} \\\\ \\text{III}\\vphantom{4 -1 2 8 \\text{III} - 2 \\cdot \\text{I}} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{2} & 3 & 1 & 11 &  \\\\ 3 & 2 & -1 & 4 & 2 \\cdot \\text{II} - 3 \\cdot \\text{I} \\\\ 4 & -1 & 2 & 8 & \\text{III} - 2 \\cdot \\text{I} \\end{array}\\right)",
+            "Eliminate x from II and III with the pivot of I, the first non-zero entry of the column"
+          ],
+          [
+            "\\text{II}': \\; 2 \\cdot 3 - 3 \\cdot 2 = 0, \\quad 2 \\cdot 2 - 3 \\cdot 3 = -5, \\quad 2 \\cdot \\left(-1\\right) - 3 \\cdot 1 = -5, \\quad 2 \\cdot 4 - 3 \\cdot 11 = -25",
+            "Work out II′ entry by entry"
+          ],
+          [
+            "\\text{III}': \\; 4 - 2 \\cdot 2 = 0, \\quad -1 - 2 \\cdot 3 = -7, \\quad 2 - 2 \\cdot 1 = 0, \\quad 8 - 2 \\cdot 11 = -14",
+            "Work out III′ entry by entry"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11 } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-5} \\textcolor{dodgerblue}{-5} \\textcolor{dodgerblue}{-25} \\text{II}' : 5} \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-7} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-14} \\text{III}' : 7} \\end{array} \\left(\\begin{array}{ccc|c|l} 2 & 3 & 1 & 11 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-5} & \\textcolor{dodgerblue}{-5} & \\textcolor{dodgerblue}{-25} & \\text{II}' : 5 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-7} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-14} & \\text{III}' : 7 \\end{array}\\right)",
+            "Divide out the common factor of the row"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11 } \\\\ \\text{II}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{-1} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-5} } \\\\ \\text{III}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\text{III}'' - \\text{II}''} \\end{array} \\left(\\begin{array}{ccc|c|l} 2 & 3 & 1 & 11 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{-1} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-5} &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\text{III}'' - \\text{II}'' \\end{array}\\right)",
+            "Eliminate y from III′′ with the pivot of II′′, the first non-zero entry of the column"
+          ],
+          [
+            "\\text{III}''': \\; -1 - \\left(-1\\right) = 0, \\quad 0 - \\left(-1\\right) = 1, \\quad -2 - \\left(-5\\right) = 3",
+            "Work out III′′′ entry by entry"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{2 3 1 11} \\\\ \\text{II}''\\vphantom{0 -1 -1 -5} \\\\ \\text{III}'''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{3}} \\end{array} \\left(\\begin{array}{ccc|c} 2 & 3 & 1 & 11 \\\\ 0 & -1 & -1 & -5 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{3} \\end{array}\\right)",
+            "The matrix is in triangle form"
+          ],
+          [
+            "z = 3",
+            "Solve III′′′ for z"
+          ],
+          [
+            "-y - 3 = -5 \\quad\\Rightarrow\\quad y = 2",
+            "Put z into II′′ and solve for y"
+          ],
+          [
+            "2x + 3 \\cdot 2 + 3 = 11 \\quad\\Rightarrow\\quad x = 1",
+            "Put y and z into I and solve for x"
+          ],
+          [
+            "\\text{I}: \\; 2 \\cdot 1 + 3 \\cdot 2 + 3 = 11 \\; \\checkmark",
+            "Check: put the solution into I"
+          ],
+          [
+            "\\text{II}: \\; 3 \\cdot 1 + 2 \\cdot 2 - 3 = 4 \\; \\checkmark",
+            "Check: put the solution into II"
+          ],
+          [
+            "\\text{III}: \\; 4 \\cdot 1 - 2 + 2 \\cdot 3 = 8 \\; \\checkmark",
+            "Check: put the solution into III"
+          ],
+          [
+            "x = 1 \\land y = 2 \\land z = 3",
+            ""
+          ]
+        ]
+      },
+      "latex": "2x + 3y + z = 11; 3x + 2y - z = 4; 4x - y + 2z = 8",
+      "name": "unique, Gauss, maximal",
+      "stepDetail": "maximal"
+    },
+    {
+      "elimination": "gaussJordan",
+      "expect": {
+        "result": "x = 1 \\land y = 2 \\land z = 3",
+        "steps": [
+          [
+            "\\begin{cases} 2 \\cdot x + 3 \\cdot y + z = 11 \\\\ 3 \\cdot x + 2 \\cdot y - z = 4 \\\\ 4 \\cdot x - y + 2 \\cdot z = 8 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{2} 3 1 11 \\text{I} : 2} \\\\ \\text{II}\\vphantom{3 2 -1 4 } \\\\ \\text{III}\\vphantom{4 -1 2 8 } \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{2} & 3 & 1 & 11 & \\text{I} : 2 \\\\ 3 & 2 & -1 & 4 &  \\\\ 4 & -1 & 2 & 8 &  \\end{array}\\right)",
+            "Divide I by its pivot"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}'\\vphantom{\\textcolor{orange}{1} \\textcolor{dodgerblue}{\\frac{3}{2}} \\textcolor{dodgerblue}{\\frac{1}{2}} \\textcolor{dodgerblue}{\\frac{11}{2}} } \\\\ \\text{II}\\vphantom{3 2 -1 4 \\text{II} - 3 \\cdot \\text{I}'} \\\\ \\text{III}\\vphantom{4 -1 2 8 \\text{III} - 4 \\cdot \\text{I}'} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{1} & \\textcolor{dodgerblue}{\\frac{3}{2}} & \\textcolor{dodgerblue}{\\frac{1}{2}} & \\textcolor{dodgerblue}{\\frac{11}{2}} &  \\\\ 3 & 2 & -1 & 4 & \\text{II} - 3 \\cdot \\text{I}' \\\\ 4 & -1 & 2 & 8 & \\text{III} - 4 \\cdot \\text{I}' \\end{array}\\right)",
+            "Eliminate x from II and III"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}'\\vphantom{1 \\frac{3}{2} \\frac{1}{2} \\frac{11}{2} } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{-\\frac{5}{2}} \\textcolor{dodgerblue}{-\\frac{5}{2}} \\textcolor{dodgerblue}{-\\frac{25}{2}} \\text{II}' : (-\\frac{5}{2})} \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-7} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-14} } \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & \\frac{3}{2} & \\frac{1}{2} & \\frac{11}{2} &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{-\\frac{5}{2}} & \\textcolor{dodgerblue}{-\\frac{5}{2}} & \\textcolor{dodgerblue}{-\\frac{25}{2}} & \\text{II}' : (-\\frac{5}{2}) \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-7} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-14} &  \\end{array}\\right)",
+            "Divide II′ by its pivot"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}'\\vphantom{1 \\frac{3}{2} \\frac{1}{2} \\frac{11}{2} \\text{I}' - \\frac{3}{2} \\cdot \\text{II}''} \\\\ \\text{II}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{1} \\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{5} } \\\\ \\text{III}'\\vphantom{0 -7 0 -14 \\text{III}' + 7 \\cdot \\text{II}''} \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & \\frac{3}{2} & \\frac{1}{2} & \\frac{11}{2} & \\text{I}' - \\frac{3}{2} \\cdot \\text{II}'' \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{1} & \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{5} &  \\\\ 0 & -7 & 0 & -14 & \\text{III}' + 7 \\cdot \\text{II}'' \\end{array}\\right)",
+            "Eliminate y from I′ and III′"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}''\\vphantom{\\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-2} } \\\\ \\text{II}''\\vphantom{0 1 1 5 } \\\\ \\text{III}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{orange}{7} \\textcolor{dodgerblue}{21} \\text{III}'' : 7} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-2} &  \\\\ 0 & 1 & 1 & 5 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{orange}{7} & \\textcolor{dodgerblue}{21} & \\text{III}'' : 7 \\end{array}\\right)",
+            "Divide III′′ by its pivot"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}''\\vphantom{1 0 -1 -2 \\text{I}'' + \\text{III}'''} \\\\ \\text{II}''\\vphantom{0 1 1 5 \\text{II}'' - \\text{III}'''} \\\\ \\text{III}'''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{orange}{1} \\textcolor{dodgerblue}{3} } \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 0 & -1 & -2 & \\text{I}'' + \\text{III}''' \\\\ 0 & 1 & 1 & 5 & \\text{II}'' - \\text{III}''' \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{orange}{1} & \\textcolor{dodgerblue}{3} &  \\end{array}\\right)",
+            "Eliminate z from I′′ and II′′"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}'''\\vphantom{\\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1}} \\\\ \\text{II}'''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{2}} \\\\ \\text{III}'''\\vphantom{0 0 1 3} \\end{array} \\left(\\begin{array}{ccc|c} \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{2} \\\\ 0 & 0 & 1 & 3 \\end{array}\\right)",
+            "The matrix is in reduced row echelon form"
+          ],
+          [
+            "x = 1 \\land y = 2 \\land z = 3",
+            ""
+          ]
+        ]
+      },
+      "latex": "2x + 3y + z = 11; 3x + 2y - z = 4; 4x - y + 2z = 8",
+      "name": "unique, Gauss-Jordan, standard",
+      "stepDetail": "standard"
+    },
+    {
+      "elimination": "gauss",
+      "expect": {
+        "result": "\\text{no solution}",
+        "steps": [
+          [
+            "\\begin{cases} x + y + z = 1 \\\\ 2 \\cdot x + 2 \\cdot y + 2 \\cdot z = 3 \\\\ x - y = 0 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{1} 1 1 1 } \\\\ \\text{II}\\vphantom{2 2 2 3 \\text{II} - 2 \\cdot \\text{I}} \\\\ \\text{III}\\vphantom{1 -1 0 0 \\text{III} - \\text{I}} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{1} & 1 & 1 & 1 &  \\\\ 2 & 2 & 2 & 3 & \\text{II} - 2 \\cdot \\text{I} \\\\ 1 & -1 & 0 & 0 & \\text{III} - \\text{I} \\end{array}\\right)",
+            "Eliminate x from II and III"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 1 } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1} \\text{II}' \\leftrightarrow \\text{III}'} \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-1} } \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 1 & 1 & 1 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} & \\text{II}' \\leftrightarrow \\text{III}' \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-1} &  \\end{array}\\right)",
+            "Swap II′ and III′ to get a non-zero pivot"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 1} \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-1}} \\\\ \\text{II}'\\vphantom{\\textcolor{orange}{0} \\textcolor{orange}{0} \\textcolor{orange}{0} \\textcolor{orange}{1}} \\end{array} \\left(\\begin{array}{ccc|c} 1 & 1 & 1 & 1 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-1} \\\\ \\textcolor{orange}{0} & \\textcolor{orange}{0} & \\textcolor{orange}{0} & \\textcolor{orange}{1} \\end{array}\\right)",
+            "The matrix is in triangle form"
+          ],
+          [
+            "\\text{II}': \\; 0 = 1",
+            "Row II′ reads 0 = 1, a contradiction: the system has no solution"
+          ],
+          [
+            "\\text{no solution}",
+            ""
+          ]
+        ]
+      },
+      "latex": "x + y + z = 1; 2x + 2y + 2z = 3; x - y = 0",
+      "name": "inconsistent, Gauss, standard",
+      "stepDetail": "standard"
+    },
+    {
+      "elimination": "gaussJordan",
+      "expect": {
+        "result": "\\text{no solution}",
+        "steps": [
+          [
+            "\\begin{cases} x + y + z = 1 \\\\ 2 \\cdot x + 2 \\cdot y + 2 \\cdot z = 3 \\\\ x - y = 0 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{1} 1 1 1 } \\\\ \\text{II}\\vphantom{2 2 2 3 \\text{II} - 2 \\cdot \\text{I}} \\\\ \\text{III}\\vphantom{1 -1 0 0 \\text{III} - \\text{I}} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{1} & 1 & 1 & 1 &  \\\\ 2 & 2 & 2 & 3 & \\text{II} - 2 \\cdot \\text{I} \\\\ 1 & -1 & 0 & 0 & \\text{III} - \\text{I} \\end{array}\\right)",
+            "Eliminate x from II and III"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 1 } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1} \\text{II}' \\leftrightarrow \\text{III}'} \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-1} } \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 1 & 1 & 1 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} & \\text{II}' \\leftrightarrow \\text{III}' \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-1} &  \\end{array}\\right)",
+            "Swap II′ and III′ to get a non-zero pivot"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 1 } \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-1} \\text{III}' : (-2)} \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{1} } \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 1 & 1 & 1 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-1} & \\text{III}' : (-2) \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{1} &  \\end{array}\\right)",
+            "Divide III′ by its pivot"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 1 \\text{I} - \\text{III}''} \\\\ \\text{III}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{1} \\textcolor{dodgerblue}{\\frac{1}{2}} \\textcolor{dodgerblue}{\\frac{1}{2}} } \\\\ \\text{II}'\\vphantom{0 0 0 1 } \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 1 & 1 & 1 & \\text{I} - \\text{III}'' \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{1} & \\textcolor{dodgerblue}{\\frac{1}{2}} & \\textcolor{dodgerblue}{\\frac{1}{2}} &  \\\\ 0 & 0 & 0 & 1 &  \\end{array}\\right)",
+            "Eliminate y from I"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}'\\vphantom{\\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{\\frac{1}{2}} \\textcolor{dodgerblue}{\\frac{1}{2}}} \\\\ \\text{III}''\\vphantom{0 1 \\frac{1}{2} \\frac{1}{2}} \\\\ \\text{II}'\\vphantom{\\textcolor{orange}{0} \\textcolor{orange}{0} \\textcolor{orange}{0} \\textcolor{orange}{1}} \\end{array} \\left(\\begin{array}{ccc|c} \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{\\frac{1}{2}} & \\textcolor{dodgerblue}{\\frac{1}{2}} \\\\ 0 & 1 & \\frac{1}{2} & \\frac{1}{2} \\\\ \\textcolor{orange}{0} & \\textcolor{orange}{0} & \\textcolor{orange}{0} & \\textcolor{orange}{1} \\end{array}\\right)",
+            "The matrix is in reduced row echelon form"
+          ],
+          [
+            "\\text{II}': \\; 0 = 1",
+            "Row II′ reads 0 = 1, a contradiction: the system has no solution"
+          ],
+          [
+            "\\text{no solution}",
+            ""
+          ]
+        ]
+      },
+      "latex": "x + y + z = 1; 2x + 2y + 2z = 3; x - y = 0",
+      "name": "inconsistent, Gauss-Jordan, standard",
+      "stepDetail": "standard"
+    },
+    {
+      "elimination": "gauss",
+      "expect": {
+        "result": "x = 3 - \\frac{1}{2} \\cdot \\lambda \\land y = 3 - \\frac{1}{2} \\cdot \\lambda \\land z = \\lambda \\land \\lambda \\in \\mathbb{R}",
+        "steps": [
+          [
+            "\\begin{cases} x + y + z = 6 \\\\ x - y = 0 \\\\ 2 \\cdot x + z = 6 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{1} 1 1 6 } \\\\ \\text{II}\\vphantom{1 -1 0 0 \\text{II} - \\text{I}} \\\\ \\text{III}\\vphantom{2 0 1 6 \\text{III} - 2 \\cdot \\text{I}} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{1} & 1 & 1 & 6 &  \\\\ 1 & -1 & 0 & 0 & \\text{II} - \\text{I} \\\\ 2 & 0 & 1 & 6 & \\text{III} - 2 \\cdot \\text{I} \\end{array}\\right)",
+            "Eliminate x from II and III"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 6 } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-6} } \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-6} \\text{III}' - \\text{II}'} \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 1 & 1 & 6 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-6} &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-6} & \\text{III}' - \\text{II}' \\end{array}\\right)",
+            "Eliminate y from III′"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 6} \\\\ \\text{II}'\\vphantom{0 -2 -1 -6} \\\\ \\text{III}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0}} \\end{array} \\left(\\begin{array}{ccc|c} 1 & 1 & 1 & 6 \\\\ 0 & -2 & -1 & -6 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} \\end{array}\\right)",
+            "The matrix is in triangle form"
+          ],
+          [
+            "z = \\lambda",
+            "z is free: set it to a parameter"
+          ],
+          [
+            "-2y - \\lambda = -6 \\quad\\Rightarrow\\quad y = 3 - \\frac{1}{2} \\cdot \\lambda",
+            "Put λ into II′ and solve for y"
+          ],
+          [
+            "x + \\left(3 - \\frac{1}{2} \\cdot \\lambda\\right) + \\lambda = 6 \\quad\\Rightarrow\\quad x = 3 - \\frac{1}{2} \\cdot \\lambda",
+            "Put y and λ into I and solve for x"
+          ],
+          [
+            "x = 3 - \\frac{1}{2} \\cdot \\lambda \\land y = 3 - \\frac{1}{2} \\cdot \\lambda \\land z = \\lambda \\land \\lambda \\in \\mathbb{R}",
+            ""
+          ]
+        ]
+      },
+      "latex": "x + y + z = 6; x - y = 0; 2x + z = 6",
+      "name": "infinite, Gauss, standard",
+      "stepDetail": "standard"
+    },
+    {
+      "elimination": "gaussJordan",
+      "expect": {
+        "result": "x = 3 - \\frac{1}{2} \\cdot z \\land y = 3 - \\frac{1}{2} \\cdot z \\land z \\in \\mathbb{R}",
+        "steps": [
+          [
+            "\\begin{cases} x + y + z = 6 \\\\ x - y = 0 \\\\ 2 \\cdot x + z = 6 \\end{cases}",
+            ""
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{\\textcolor{orange}{1} 1 1 6 } \\\\ \\text{II}\\vphantom{1 -1 0 0 \\text{II} - \\text{I}} \\\\ \\text{III}\\vphantom{2 0 1 6 \\text{III} - 2 \\cdot \\text{I}} \\end{array} \\left(\\begin{array}{ccc|c|l} \\textcolor{orange}{1} & 1 & 1 & 6 &  \\\\ 1 & -1 & 0 & 0 & \\text{II} - \\text{I} \\\\ 2 & 0 & 1 & 6 & \\text{III} - 2 \\cdot \\text{I} \\end{array}\\right)",
+            "Eliminate x from II and III"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 6 } \\\\ \\text{II}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-6} \\text{II}' : (-2)} \\\\ \\text{III}'\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{-2} \\textcolor{dodgerblue}{-1} \\textcolor{dodgerblue}{-6} } \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 1 & 1 & 6 &  \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-6} & \\text{II}' : (-2) \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-2} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-6} &  \\end{array}\\right)",
+            "Divide II′ by its pivot"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}\\vphantom{1 1 1 6 \\text{I} - \\text{II}''} \\\\ \\text{II}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{orange}{1} \\textcolor{dodgerblue}{\\frac{1}{2}} \\textcolor{dodgerblue}{3} } \\\\ \\text{III}'\\vphantom{0 -2 -1 -6 \\text{III}' + 2 \\cdot \\text{II}''} \\end{array} \\left(\\begin{array}{ccc|c|l} 1 & 1 & 1 & 6 & \\text{I} - \\text{II}'' \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{orange}{1} & \\textcolor{dodgerblue}{\\frac{1}{2}} & \\textcolor{dodgerblue}{3} &  \\\\ 0 & -2 & -1 & -6 & \\text{III}' + 2 \\cdot \\text{II}'' \\end{array}\\right)",
+            "Eliminate y from I and III′"
+          ],
+          [
+            "\\begin{array}{r} \\text{I}'\\vphantom{\\textcolor{dodgerblue}{1} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{\\frac{1}{2}} \\textcolor{dodgerblue}{3}} \\\\ \\text{II}''\\vphantom{0 1 \\frac{1}{2} 3} \\\\ \\text{III}''\\vphantom{\\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0} \\textcolor{dodgerblue}{0}} \\end{array} \\left(\\begin{array}{ccc|c} \\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{\\frac{1}{2}} & \\textcolor{dodgerblue}{3} \\\\ 0 & 1 & \\frac{1}{2} & 3 \\\\ \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{0} \\end{array}\\right)",
+            "The matrix is in reduced row echelon form"
+          ],
+          [
+            "x = 3 - \\frac{1}{2} \\cdot z \\land y = 3 - \\frac{1}{2} \\cdot z \\land z \\in \\mathbb{R}",
+            ""
+          ]
+        ]
+      },
+      "latex": "x + y + z = 6; x - y = 0; 2x + z = 6",
+      "name": "infinite, Gauss-Jordan, standard",
+      "stepDetail": "standard"
+    }
+  ]
+}
