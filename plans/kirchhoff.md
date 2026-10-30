@@ -130,7 +130,7 @@ Each phase is one or more commits on `dev`. Tick a box when its commit lands.
 ### Phase 3: solve and respond
 
 - [x] `Mode::Kirchhoff`, `api::kirchhoff`, steps, results, power balance, copy block.
-- [ ] `tests/kirchhoff.rs`: hand-worked references (two sources with three resistors,
+- [x] `tests/kirchhoff.rs`: hand-worked references (two sources with three resistors,
   Wheatstone); errors (unsupported part, missing value, open end, source loop).
 - [ ] Property test against `electro::solve`: the R/U/I circuits in `test/circuits/` and generated
   planar grid ladders give exactly the same currents; a flipped branch negates its current.
