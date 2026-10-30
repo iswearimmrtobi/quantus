@@ -1,13 +1,14 @@
 //! Feasibility spike: the engine on a classic ESP32 (no PSRAM), driven over serial. Each line
-//! typed into the monitor is evaluated like an input in the app, and the result is printed with
-//! its time and the heap and stack it left. No display, no keypad.
+//! typed into the monitor is evaluated like an input in the app's current mode, and the result is
+//! printed with its time and the heap and stack it left. No display, no keypad.
 
 use std::io::{self, Read, Write};
 use std::time::{Duration, Instant};
 
 use esp_idf_svc::sys;
-use quantus_core::api::{self, AnalysisRequest, CalculationRequest};
+use quantus_core::api::{self, AnalysisRequest, CalculationRequest, LinearSystemRequest};
 use quantus_core::session::SessionStore;
+use quantus_core::settings::{Mode, Settings};
 
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does.
 const ENGINE_STACK: usize = 32 * 1024;
@@ -30,10 +31,22 @@ const INPUTS: &[&str] = &[
 /// Curve sketching for `:bench`, the heaviest thing the engine does.
 const FUNCTIONS: &[&str] = &[r"f(x) = x^{3} - 3x", r"f(x) = \frac{x^{2} - 1}{x - 2}"];
 
+/// The app's modes that work as text. The electronics mode is a circuit editor.
+const MODES: &[(&str, Mode)] = &[
+    ("algebra", Mode::Algebra),
+    ("physics", Mode::Physics),
+    ("imaginary", Mode::Imaginary),
+    ("analysis", Mode::Analysis),
+    ("linear", Mode::Linear),
+];
+
 const HELP: &str = r"Type an input as LaTeX, e.g. \frac{3}{4} + 2\,\mathrm{m}.
 Variables need a subscript: r_1 = 5\,\mathrm{cm}, then 2 \cdot r_1.
-  :sketch <f(x) = ...>   curve sketching
-  :bench                 run the fixed inputs
+  :mode [name]           show or switch the mode: algebra, physics, imaginary,
+                         analysis (each line a curve sketch) or linear
+                         (2x + y = 5; x - y = 1)
+  :sketch <f(x) = ...>   curve sketching in any mode
+  :bench                 run the fixed inputs in physics
   :mem                   heap and stack
   :help                  this text
 Variables stay defined until the board is reset.";
@@ -56,11 +69,13 @@ fn prompt() {
     report_memory();
     let mut store = SessionStore::new();
     loop {
-        print!("> ");
+        print!("{}> ", mode_name(store.settings.mode));
         let line = read_line();
         let line = line.trim();
         if let Some(function) = line.strip_prefix(":sketch") {
             sketch(&store, function.trim());
+        } else if let Some(name) = line.strip_prefix(":mode") {
+            switch_mode(&mut store, name.trim());
         } else {
             match line {
                 "" => continue,
@@ -68,9 +83,36 @@ fn prompt() {
                 ":mem" => report_memory(),
                 ":bench" => bench(&mut store),
                 _ if line.starts_with(':') => println!("unknown command, :help lists them"),
-                _ => evaluate(&mut store, line),
+                _ => match store.settings.mode {
+                    Mode::Analysis => sketch(&store, line),
+                    Mode::Linear => solve_linear(&store, line),
+                    _ => evaluate(&mut store, line),
+                },
             }
         }
+    }
+}
+
+fn mode_name(mode: Mode) -> &'static str {
+    MODES.iter().find(|(_, m)| *m == mode).map_or("?", |(name, _)| name)
+}
+
+fn switch_mode(store: &mut SessionStore, name: &str) {
+    if !name.is_empty() {
+        let Some(&(_, mode)) = MODES.iter().find(|(n, _)| *n == name) else {
+            let names: Vec<_> = MODES.iter().map(|(n, _)| *n).collect();
+            println!("unknown mode, one of: {}", names.join(", "));
+            return;
+        };
+        set_mode(store, mode);
+    }
+    println!("mode: {}", mode_name(store.settings.mode));
+}
+
+fn set_mode(store: &mut SessionStore, mode: Mode) {
+    let settings = Settings { mode, ..store.settings.clone() };
+    if let Err(error) = api::set_settings(store, settings) {
+        println!("!!  {error}");
     }
 }
 
@@ -111,13 +153,29 @@ fn sketch(store: &SessionStore, latex: &str) {
     report_memory();
 }
 
+fn solve_linear(store: &SessionStore, latex: &str) {
+    let request = LinearSystemRequest::Equations(latex.into());
+    let started = Instant::now();
+    let outcome = api::linear_system(&store.settings, &request);
+    let elapsed = started.elapsed();
+    match outcome {
+        Ok(response) => println!("{:>8.1?}  {latex}  =>  {}", elapsed, response.result),
+        Err(error) => println!("{:>8.1?}  {latex}  !!  {error}", elapsed),
+    }
+    report_memory();
+}
+
+/// The fixed inputs are written for physics (units); the mode is put back afterwards.
 fn bench(store: &mut SessionStore) {
+    let mode = store.settings.mode;
+    set_mode(store, Mode::Physics);
     for &latex in INPUTS {
         evaluate(store, latex);
     }
     for &latex in FUNCTIONS {
         sketch(store, latex);
     }
+    set_mode(store, mode);
 }
 
 /// One line from the serial console, echoed as it is typed (the monitor does not echo).
