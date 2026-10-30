@@ -18,6 +18,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   - Its voltages and currents now sit beside their parts instead of piling up in the top left of
     the canvas. Ideal wires get no label; their values show in the inspector.
   - A changed precision or output setting shows in the circuit at once.
+  - The canvas moves: drag with the right or middle mouse button, or scroll; Home goes back.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 

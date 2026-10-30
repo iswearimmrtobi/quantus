@@ -1022,6 +1022,11 @@ select option {
   overflow: hidden;
   pointer-events: none;
 }
+.circuit-labels-drawing {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
 .part-label,
 .node-label {
   position: absolute;

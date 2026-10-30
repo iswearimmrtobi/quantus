@@ -34,7 +34,8 @@ type Drag =
   | { type: 'move'; from: Point; origins: Map<string, EditorElement> }
   | { type: 'end'; id: string; end: 'a' | 'b' }
   | { type: 'draw'; from: Point; to: Point }
-  | { type: 'marquee'; from: Point; to: Point };
+  | { type: 'marquee'; from: Point; to: Point }
+  | { type: 'pan'; from: Point; origin: Point };
 
 const PALETTE: EditorKind[] = [
   'voltageSource',
@@ -50,6 +51,8 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
   const { t } = useT();
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag | null>(null);
+  /** How far the drawing is moved against the canvas; positions stay in drawing coordinates. */
+  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [response, setResponse] = useState<CircuitResponse | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const canvas = useRef<SVGSVGElement>(null);
@@ -98,7 +101,10 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
 
   const add = (kind: EditorKind, at?: Point) => {
     // Without a drop position the part goes to a free spot, one row below the last one.
-    const spot = at ?? { x: 160 + (elements.length % 4) * 3 * GRID, y: 120 + Math.floor(elements.length / 4) * 3 * GRID };
+    const spot = at ?? {
+      x: 160 - pan.x + (elements.length % 4) * 3 * GRID,
+      y: 120 - pan.y + Math.floor(elements.length / 4) * 3 * GRID,
+    };
     const element = newElement(elements, kind, spot);
     onChange([...elements, element]);
     setSelection([element.id]);
@@ -140,12 +146,20 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
     );
   };
 
-  const toCanvas = (event: { clientX: number; clientY: number }): Point => {
+  /** The point under the pointer in drawing coordinates, unsnapped. */
+  const toDrawing = (event: { clientX: number; clientY: number }): Point => {
     const box = canvas.current!.getBoundingClientRect();
-    return { x: snap(event.clientX - box.left), y: snap(event.clientY - box.top) };
+    return { x: event.clientX - box.left - pan.x, y: event.clientY - box.top - pan.y };
   };
 
+  const toCanvas = (event: { clientX: number; clientY: number }): Point => {
+    const at = toDrawing(event);
+    return { x: snap(at.x), y: snap(at.y) };
+  };
+
+  // Only the left button works on parts; the others fall through to the canvas and move it.
   const startMove = (event: ReactPointerEvent, element: EditorElement) => {
+    if (event.button !== 0) return;
     event.stopPropagation();
     canvas.current?.setPointerCapture(event.pointerId);
     // Grabbing a part of the selection moves all of it; any other part becomes the selection.
@@ -159,6 +173,7 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
   };
 
   const startEnd = (event: ReactPointerEvent, element: EditorElement, end: 'a' | 'b') => {
+    if (event.button !== 0) return;
     event.stopPropagation();
     canvas.current?.setPointerCapture(event.pointerId);
     setSelection([element.id]);
@@ -166,25 +181,34 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
   };
 
   const startDraw = (event: ReactPointerEvent, from: Point) => {
+    if (event.button !== 0) return;
     event.stopPropagation();
     canvas.current?.setPointerCapture(event.pointerId);
     setDrag({ type: 'draw', from, to: from });
   };
 
-  const startMarquee = (event: ReactPointerEvent) => {
-    const box = canvas.current!.getBoundingClientRect();
-    const from = { x: event.clientX - box.left, y: event.clientY - box.top };
+  /** Left on empty canvas draws a selection rectangle; the middle or right button moves the canvas. */
+  const startCanvas = (event: ReactPointerEvent) => {
     canvas.current?.setPointerCapture(event.pointerId);
     canvas.current?.focus();
+    if (event.button === 1 || event.button === 2) {
+      event.preventDefault();
+      setDrag({ type: 'pan', from: { x: event.clientX, y: event.clientY }, origin: pan });
+      return;
+    }
+    const from = toDrawing(event);
     setSelection([]);
     setDrag({ type: 'marquee', from, to: from });
   };
 
   const onMove = (event: ReactPointerEvent) => {
     if (!drag) return;
+    if (drag.type === 'pan') {
+      setPan({ x: drag.origin.x + event.clientX - drag.from.x, y: drag.origin.y + event.clientY - drag.from.y });
+      return;
+    }
     if (drag.type === 'marquee') {
-      const box = canvas.current!.getBoundingClientRect();
-      setDrag({ ...drag, to: { x: event.clientX - box.left, y: event.clientY - box.top } });
+      setDrag({ ...drag, to: toDrawing(event) });
       return;
     }
     const at = toCanvas(event);
@@ -233,6 +257,8 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
       rotateSelected();
     } else if (event.key === 'Escape') {
       setSelection([]);
+    } else if (event.key === 'Home') {
+      setPan({ x: 0, y: 0 });
     } else {
       return;
     }
@@ -264,6 +290,9 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
         <p className="palette-hint">
           {t('circuit.hint')} <kbd>{t('key.space')}</kbd> {t('circuit.rotates')}, <kbd>{t('key.delete')}</kbd> {t('circuit.deletes')}.
         </p>
+        <p className="palette-hint">
+          {t('circuit.pan')} <kbd>{t('key.home')}</kbd> {t('circuit.home')}.
+        </p>
       </div>
 
       <div className="circuit-stage">
@@ -275,7 +304,14 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={() => setDrag(null)}
-          onPointerDown={startMarquee}
+          onPointerDown={startCanvas}
+          onContextMenu={(event) => event.preventDefault()}
+          onWheel={(event) => {
+            // A wheel scrolls up and down, with Shift sideways; a touchpad scrolls both ways.
+            const dx = event.shiftKey && event.deltaX === 0 ? event.deltaY : event.deltaX;
+            const dy = event.shiftKey && event.deltaX === 0 ? 0 : event.deltaY;
+            setPan((p) => ({ x: p.x - dx, y: p.y - dy }));
+          }}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -284,54 +320,64 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
           }}
         >
           <defs>
-            <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
+            <pattern
+              id="grid"
+              width={GRID}
+              height={GRID}
+              patternUnits="userSpaceOnUse"
+              patternTransform={`translate(${pan.x} ${pan.y})`}
+            >
               <circle cx="0" cy="0" r="0.8" className="grid-dot" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" pointerEvents="none" />
 
-          {elements.map((element) => (
-            <Part
-              key={element.id}
-              element={element}
-              selected={selection.includes(element.id)}
-              onPointerDown={(event) => startMove(event, element)}
-              onTerminal={(event, point) => startDraw(event, point)}
-              onEnd={(event, end) => startEnd(event, element, end)}
-            />
-          ))}
+          <g transform={`translate(${pan.x} ${pan.y})`}>
+            {elements.map((element) => (
+              <Part
+                key={element.id}
+                element={element}
+                selected={selection.includes(element.id)}
+                onPointerDown={(event) => startMove(event, element)}
+                onTerminal={(event, point) => startDraw(event, point)}
+                onEnd={(event, end) => startEnd(event, element, end)}
+              />
+            ))}
 
-          {drag?.type === 'marquee' && (
-            <rect
-              className="marquee"
-              x={Math.min(drag.from.x, drag.to.x)}
-              y={Math.min(drag.from.y, drag.to.y)}
-              width={Math.abs(drag.to.x - drag.from.x)}
-              height={Math.abs(drag.to.y - drag.from.y)}
-              pointerEvents="none"
-            />
-          )}
+            {drag?.type === 'marquee' && (
+              <rect
+                className="marquee"
+                x={Math.min(drag.from.x, drag.to.x)}
+                y={Math.min(drag.from.y, drag.to.y)}
+                width={Math.abs(drag.to.x - drag.from.x)}
+                height={Math.abs(drag.to.y - drag.from.y)}
+                pointerEvents="none"
+              />
+            )}
 
-          {drag?.type === 'draw' && (
-            <line className="wire-ghost" x1={drag.from.x} y1={drag.from.y} x2={drag.to.x} y2={drag.to.y} />
-          )}
+            {drag?.type === 'draw' && (
+              <line className="wire-ghost" x1={drag.from.x} y1={drag.from.y} x2={drag.to.x} y2={drag.to.y} />
+            )}
+          </g>
         </svg>
 
         {/* The values are HTML over the canvas, not foreignObject in it: WebKitGTK draws KaTeX's
             positioned spans inside a foreignObject at the origin of the SVG. */}
         <div className="circuit-labels">
-          {elements.map((element) => (
-            <PartLabel key={element.id} element={element} result={results.get(element.id)} />
-          ))}
-          {[...nodes.pointOf].map(([id, point]) => {
-            const voltage = voltages.get(id);
-            if (!voltage) return null;
-            return (
-              <div key={`node-${id}`} className="node-label" style={{ left: point.x + 6, top: point.y - 4 }}>
-                <Value label="φ" value={voltage} />
-              </div>
-            );
-          })}
+          <div className="circuit-labels-drawing" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
+            {elements.map((element) => (
+              <PartLabel key={element.id} element={element} result={results.get(element.id)} />
+            ))}
+            {[...nodes.pointOf].map(([id, point]) => {
+              const voltage = voltages.get(id);
+              if (!voltage) return null;
+              return (
+                <div key={`node-${id}`} className="node-label" style={{ left: point.x + 6, top: point.y - 4 }}>
+                  <Value label="φ" value={voltage} />
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {(failure || (elements.length > 0 && !nodes.grounded && nodes.byPoint.size > 0)) && (
