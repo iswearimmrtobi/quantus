@@ -13,6 +13,7 @@ The 2500 hand-checked algebra cases from before are in `algebra-simplification-c
 | `results/summary.md` | The last full run. `results/results.jsonl` (one line per case) is not committed. |
 | `results/failures.jsonl` | Every case of the last full run that did not pass, one JSON line each. Committed. |
 | `../crates/quantus-core/examples/run_cases.rs` | The runner. |
+| `circuits/` | Circuit files for the electronics mode, with their expected values ([README](circuits/README.md)). |
 
 ## Running
 

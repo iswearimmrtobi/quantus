@@ -402,3 +402,48 @@ fn a_linear_system_is_solved_through_the_command_without_session_variables() {
     let error = invoke(&w, "solve_linear_system", json!({ "request": { "matrix": { "rows": [["2", "m", "5"]] } } })).unwrap_err();
     assert!(error["error"].as_str().unwrap().starts_with("Row 1, entry 2:"));
 }
+
+/// The circuits in `test/circuits/`, loaded and solved the way the editor does it: the file goes
+/// through `load_circuit`, the ground symbols stay behind and the rest is the request.
+#[test]
+fn the_test_circuits_solve_to_their_documented_values() {
+    let w = window();
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    settings["precision"] = json!(6);
+    invoke(&w, "set_settings", json!({ "settings": settings })).unwrap();
+    let solve = |name: &str| {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test/circuits").join(format!("{name}.json"));
+        let mut request = invoke(&w, "load_circuit", json!({ "path": path })).unwrap();
+        request["elements"].as_array_mut().unwrap().retain(|e| e["kind"] != "ground");
+        invoke(&w, "solve_circuit", json!({ "request": request }))
+    };
+    // (circuit, element, quantity, result)
+    let expected = [
+        ("divider", "R1", "current", r"0{,}004\,\mathrm{A}"),
+        ("divider", "R2", "voltage", r"8\,\mathrm{V}"),
+        ("parallel", "R1", "current", r"0{,}1\,\mathrm{A}"),
+        ("parallel", "R2", "current", r"0{,}025\,\mathrm{A}"),
+        ("parallel", "V1", "current", r"-0{,}125\,\mathrm{A}"),
+        ("precision", "R1", "current", r"3{,}33333\,\mathrm{A}"),
+        ("current-source", "R1", "voltage", r"8\,\mathrm{V}"),
+        ("current-source", "R1", "current", r"1{,}6\,\mathrm{A}"),
+        ("current-source", "R2", "current", r"0{,}4\,\mathrm{A}"),
+        ("potentiometer", "R1", "voltage", r"6{,}31579\,\mathrm{V}"),
+        ("two-sources", "R3", "voltage", r"6{,}25\,\mathrm{V}"),
+        ("two-sources", "R1", "current", r"0{,}00375\,\mathrm{A}"),
+        ("two-sources", "R2", "current", r"0{,}000625\,\mathrm{A}"),
+        ("wheatstone", "R5", "current", r"0\,\mathrm{A}"),
+        ("wheatstone", "R1", "voltage", r"3{,}33333\,\mathrm{V}"),
+        ("cable", "L1", "power", r"2000\,\mathrm{W}"),
+        ("cable", "C1", "voltage", r"6{,}33116\,\mathrm{V}"),
+        ("relative", "R1", "voltage", r"25\,\%"),
+        ("relative", "R2", "voltage", r"75\,\%"),
+    ];
+    for (circuit, id, quantity, result) in expected {
+        let solved = solve(circuit).unwrap();
+        let element = solved["elements"].as_array().unwrap().iter().find(|e| e["id"] == id).unwrap();
+        assert_eq!(element[quantity]["result"], result, "{circuit}: {quantity} of {id}");
+    }
+    assert_eq!(solve("relative").unwrap()["elements"][2]["voltage"]["status"], "relative");
+    assert_eq!(solve("short-circuit").unwrap_err()["error"], "short circuit");
+}
