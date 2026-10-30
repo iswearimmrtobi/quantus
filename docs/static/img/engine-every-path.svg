@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 15272.0" width="2400" height="15272.0" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 16741" width="2400" height="16741" role="img" aria-labelledby="title">
 <title id="title">The Quantus engine, every path</title>
 <defs>
 <style>
@@ -46,7 +46,7 @@
 </style>
 <marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker>
 </defs>
-<rect x="0" y="0" width="2400" height="15272.0" class="bg"/>
+<rect x="0" y="0" width="2400" height="16741" class="bg"/>
 <text x="40.0" y="78.0" class="h0" text-anchor="start">The Quantus engine, every path</text>
 <text x="40.0" y="114.0" class="h0s" text-anchor="start">How quantus-core turns an input into a result, the working and the errors: all commands, all node types, all modes except Electronics.</text>
 <text x="40.0" y="140.0" class="h0s" text-anchor="start">Read each panel top to bottom. A circled letter jumps to the panel with that letter. Taken from the code on the dev branch.</text>
@@ -78,83 +78,97 @@
 <text x="68.0" y="277.0" class="pcl" text-anchor="middle">A</text>
 <text x="102.0" y="278.0" class="ph" text-anchor="start">Commands</text>
 <text x="102.0" y="304.0" class="ps" text-anchor="start">What a transport (the Tauri shell) calls in api.rs. Each one is a function without state of its own; the SessionStore holds sessions and settings.</text>
-<rect x="60.0" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
-<text x="193.8" y="357.5" class="tl" text-anchor="middle">evaluate</text>
-<path d="M193.8,374.0 L193.8,406.0" class="a" marker-end="url(#h)"/>
-<rect x="60.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
-<text x="74.0" y="432.0" class="b" text-anchor="start">The calculator: one input of</text>
-<text x="74.0" y="453.0" class="b" text-anchor="start">the session.</text>
-<text x="74.0" y="474.0" class="b" text-anchor="start">Algebra, Physics and</text>
-<text x="74.0" y="495.0" class="b" text-anchor="start">Imaginary mode.</text>
-<path d="M193.8,535.0 L193.8,565.0" class="a" marker-end="url(#h)"/>
-<circle cx="193.8" cy="582.0" r="17" class="cn"/>
-<text x="193.8" y="588.0" class="cnl" text-anchor="middle">B</text>
-<rect x="347.5" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
-<text x="481.2" y="357.5" class="tl" text-anchor="middle">define_variable</text>
-<path d="M481.2,374.0 L481.2,406.0" class="a" marker-end="url(#h)"/>
-<rect x="347.5" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
-<text x="361.5" y="434.0" class="b" text-anchor="start">Only through the API, the app</text>
-<text x="361.5" y="455.0" class="b" text-anchor="start">uses evaluate.</text>
-<text x="361.5" y="476.0" class="b" text-anchor="start">evaluate, then it must have</text>
-<text x="361.5" y="497.0" class="b" text-anchor="start">stored a variable, else</text>
-<text x="361.5" y="518.0" class="b" text-anchor="start">error.</text>
-<path d="M481.2,535.0 L481.2,565.0" class="a" marker-end="url(#h)"/>
-<circle cx="481.2" cy="582.0" r="17" class="cn"/>
-<text x="481.2" y="588.0" class="cnl" text-anchor="middle">B</text>
-<rect x="635.0" y="330" width="267.5" height="64" rx="22" class="term"/>
-<text x="768.8" y="356.0" class="tl" text-anchor="middle">list_variables ·</text>
-<text x="768.8" y="377.0" class="tl" text-anchor="middle">delete_variable</text>
-<path d="M768.8,394.0 L768.8,406.0" class="a" marker-end="url(#h)"/>
-<rect x="635.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
-<text x="649.0" y="432.0" class="b" text-anchor="start">The session&#x27;s variables in</text>
-<text x="649.0" y="453.0" class="b" text-anchor="start">the order they were defined.</text>
-<text x="649.0" y="474.0" class="b" text-anchor="start">Sessions are keyed by the id</text>
-<text x="649.0" y="495.0" class="b" text-anchor="start">the client sends.</text>
-<rect x="922.5" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
-<text x="1056.2" y="357.5" class="tl" text-anchor="middle">get_settings · set_settings</text>
-<path d="M1056.2,374.0 L1056.2,406.0" class="a" marker-end="url(#h)"/>
-<rect x="922.5" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
-<text x="936.5" y="432.0" class="b" text-anchor="start">Shared by all sessions.</text>
-<text x="936.5" y="453.0" class="b" text-anchor="start">set_settings checks the</text>
-<text x="936.5" y="474.0" class="b" text-anchor="start">precision: 1 … 10 000, else</text>
-<text x="936.5" y="495.0" class="b" text-anchor="start">error.</text>
-<rect x="1210.0" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
-<text x="1343.8" y="357.5" class="tl" text-anchor="middle">analyze</text>
-<path d="M1343.8,374.0 L1343.8,406.0" class="a" marker-end="url(#h)"/>
-<rect x="1210.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
-<text x="1224.0" y="432.0" class="b" text-anchor="start">Analysis mode: the whole</text>
-<text x="1224.0" y="453.0" class="b" text-anchor="start">curve sketch of one function.</text>
-<text x="1224.0" y="474.0" class="b" text-anchor="start">Stateless.</text>
-<path d="M1343.8,535.0 L1343.8,565.0" class="a" marker-end="url(#h)"/>
-<circle cx="1343.8" cy="582.0" r="17" class="cn"/>
-<text x="1343.8" y="588.0" class="cnl" text-anchor="middle">G</text>
-<rect x="1497.5" y="330" width="267.5" height="64" rx="22" class="term"/>
-<text x="1631.2" y="356.0" class="tl" text-anchor="middle">tangent · area_under_curve ·</text>
-<text x="1631.2" y="377.0" class="tl" text-anchor="middle">value_table</text>
-<path d="M1631.2,394.0 L1631.2,406.0" class="a" marker-end="url(#h)"/>
-<rect x="1497.5" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
-<text x="1511.5" y="432.0" class="b" text-anchor="start">The tasks beside the curve</text>
-<text x="1511.5" y="453.0" class="b" text-anchor="start">sketch. Stateless.</text>
-<path d="M1631.2,535.0 L1631.2,565.0" class="a" marker-end="url(#h)"/>
-<circle cx="1631.2" cy="582.0" r="17" class="cn"/>
-<text x="1631.2" y="588.0" class="cnl" text-anchor="middle">J</text>
-<rect x="1785.0" y="330.0" width="267.5" height="44" rx="22.0" class="term"/>
-<text x="1918.8" y="357.5" class="tl" text-anchor="middle">sample_function</text>
-<path d="M1918.8,374.0 L1918.8,406.0" class="a" marker-end="url(#h)"/>
-<rect x="1785.0" y="406.0" width="267.5" height="129.0" rx="9" class="p"/>
-<text x="1799.0" y="432.0" class="b" text-anchor="start">Fresh curve points when the</text>
-<text x="1799.0" y="453.0" class="b" text-anchor="start">plot is panned or zoomed.</text>
-<path d="M1918.8,535.0 L1918.8,565.0" class="a" marker-end="url(#h)"/>
-<circle cx="1918.8" cy="582.0" r="17" class="cn"/>
-<text x="1918.8" y="588.0" class="cnl" text-anchor="middle">J</text>
-<rect x="2072.5" y="330.0" width="267.5" height="44" rx="22.0" class="grey"/>
-<text x="2206.2" y="357.5" class="tg2" text-anchor="middle">solve_circuit</text>
-<path d="M2206.2,374.0 L2206.2,406.0" class="a" marker-end="url(#h)"/>
-<rect x="2072.5" y="406.0" width="267.5" height="129.0" rx="9" class="x"/>
-<text x="2086.5" y="432.0" class="b" text-anchor="start">Electronics mode: MNA solver,</text>
-<text x="2086.5" y="453.0" class="b" text-anchor="start">Newton iteration, reverse</text>
-<text x="2086.5" y="474.0" class="b" text-anchor="start">solving. Hidden in the app</text>
-<text x="2086.5" y="495.0" class="b" text-anchor="start">and not drawn here.</text>
+<rect x="60.0" y="330.0" width="237.3" height="44" rx="22.0" class="term"/>
+<text x="178.7" y="357.5" class="tl" text-anchor="middle">evaluate</text>
+<path d="M178.7,374 L178.7,406" class="a" marker-end="url(#h)"/>
+<rect x="60.0" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="74" y="432" class="b" text-anchor="start">The calculator: one input</text>
+<text x="74" y="453" class="b" text-anchor="start">of the session. Algebra,</text>
+<text x="74" y="474" class="b" text-anchor="start">Physics and Imaginary</text>
+<text x="74" y="495" class="b" text-anchor="start">mode.</text>
+<path d="M178.7,535 L178.7,565" class="a" marker-end="url(#h)"/>
+<circle cx="178.7" cy="582" r="17" class="cn"/>
+<text x="178.7" y="588" class="cnl" text-anchor="middle">B</text>
+<rect x="315.3" y="330.0" width="237.3" height="44" rx="22.0" class="term"/>
+<text x="434" y="357.5" class="tl" text-anchor="middle">define_variable</text>
+<path d="M434,374 L434,406" class="a" marker-end="url(#h)"/>
+<rect x="315.3" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="329.3" y="432" class="b" text-anchor="start">Only through the API, the</text>
+<text x="329.3" y="453" class="b" text-anchor="start">app uses evaluate.</text>
+<text x="329.3" y="474" class="b" text-anchor="start">evaluate, then it must</text>
+<text x="329.3" y="495" class="b" text-anchor="start">have stored a variable,</text>
+<text x="329.3" y="516" class="b" text-anchor="start">else error.</text>
+<path d="M434,535 L434,565" class="a" marker-end="url(#h)"/>
+<circle cx="434" cy="582" r="17" class="cn"/>
+<text x="434" y="588" class="cnl" text-anchor="middle">B</text>
+<rect x="570.7" y="330" width="237.3" height="64" rx="22" class="term"/>
+<text x="689.3" y="356" class="tl" text-anchor="middle">list_variables ·</text>
+<text x="689.3" y="377" class="tl" text-anchor="middle">delete_variable</text>
+<path d="M689.3,394 L689.3,406" class="a" marker-end="url(#h)"/>
+<rect x="570.7" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="584.7" y="432" class="b" text-anchor="start">The session&#x27;s variables in</text>
+<text x="584.7" y="453" class="b" text-anchor="start">the order they were</text>
+<text x="584.7" y="474" class="b" text-anchor="start">defined. Sessions are</text>
+<text x="584.7" y="495" class="b" text-anchor="start">keyed by the id the client</text>
+<text x="584.7" y="516" class="b" text-anchor="start">sends.</text>
+<rect x="826.0" y="330" width="237.3" height="64" rx="22" class="term"/>
+<text x="944.7" y="356" class="tl" text-anchor="middle">get_settings ·</text>
+<text x="944.7" y="377" class="tl" text-anchor="middle">set_settings</text>
+<path d="M944.7,394 L944.7,406" class="a" marker-end="url(#h)"/>
+<rect x="826.0" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="840" y="432" class="b" text-anchor="start">Shared by all sessions.</text>
+<text x="840" y="453" class="b" text-anchor="start">set_settings checks the</text>
+<text x="840" y="474" class="b" text-anchor="start">precision: 1 … 10 000,</text>
+<text x="840" y="495" class="b" text-anchor="start">else error.</text>
+<rect x="1081.3" y="330.0" width="237.3" height="44" rx="22.0" class="term"/>
+<text x="1200" y="357.5" class="tl" text-anchor="middle">analyze</text>
+<path d="M1200,374 L1200,406" class="a" marker-end="url(#h)"/>
+<rect x="1081.3" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="1095.3" y="432" class="b" text-anchor="start">Analysis mode: the whole</text>
+<text x="1095.3" y="453" class="b" text-anchor="start">curve sketch of one</text>
+<text x="1095.3" y="474" class="b" text-anchor="start">function. Stateless.</text>
+<path d="M1200,535 L1200,565" class="a" marker-end="url(#h)"/>
+<circle cx="1200" cy="582" r="17" class="cn"/>
+<text x="1200" y="588" class="cnl" text-anchor="middle">G</text>
+<rect x="1336.7" y="330" width="237.3" height="64" rx="22" class="term"/>
+<text x="1455.3" y="356" class="tl" text-anchor="middle">tangent · value_table ·</text>
+<text x="1455.3" y="377" class="tl" text-anchor="middle">area_under_curve</text>
+<path d="M1455.3,394 L1455.3,406" class="a" marker-end="url(#h)"/>
+<rect x="1336.7" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="1350.7" y="432" class="b" text-anchor="start">The tasks beside the</text>
+<text x="1350.7" y="453" class="b" text-anchor="start">curve sketch. Stateless.</text>
+<path d="M1455.3,535 L1455.3,565" class="a" marker-end="url(#h)"/>
+<circle cx="1455.3" cy="582" r="17" class="cn"/>
+<text x="1455.3" y="588" class="cnl" text-anchor="middle">J</text>
+<rect x="1592.0" y="330.0" width="237.3" height="44" rx="22.0" class="term"/>
+<text x="1710.7" y="357.5" class="tl" text-anchor="middle">sample_function</text>
+<path d="M1710.7,374 L1710.7,406" class="a" marker-end="url(#h)"/>
+<rect x="1592.0" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="1606" y="432" class="b" text-anchor="start">Fresh curve points when</text>
+<text x="1606" y="453" class="b" text-anchor="start">the plot is panned or</text>
+<text x="1606" y="474" class="b" text-anchor="start">zoomed.</text>
+<path d="M1710.7,535 L1710.7,565" class="a" marker-end="url(#h)"/>
+<circle cx="1710.7" cy="582" r="17" class="cn"/>
+<text x="1710.7" y="588" class="cnl" text-anchor="middle">J</text>
+<rect x="1847.3" y="330.0" width="237.3" height="44" rx="22.0" class="term"/>
+<text x="1966" y="357.5" class="tl" text-anchor="middle">solve_linear_system</text>
+<path d="M1966,374 L1966,406" class="a" marker-end="url(#h)"/>
+<rect x="1847.3" y="406.0" width="237.3" height="129.0" rx="9" class="p"/>
+<text x="1861.3" y="432" class="b" text-anchor="start">Linear systems mode: a</text>
+<text x="1861.3" y="453" class="b" text-anchor="start">system as equations or</text>
+<text x="1861.3" y="474" class="b" text-anchor="start">as [A | b], with its</text>
+<text x="1861.3" y="495" class="b" text-anchor="start">steps. Stateless.</text>
+<path d="M1966,535 L1966,565" class="a" marker-end="url(#h)"/>
+<circle cx="1966" cy="582" r="17" class="cn"/>
+<text x="1966" y="588" class="cnl" text-anchor="middle">K</text>
+<rect x="2102.7" y="330.0" width="237.3" height="44" rx="22.0" class="grey"/>
+<text x="2221.3" y="357.5" class="tg2" text-anchor="middle">solve_circuit</text>
+<path d="M2221.3,374 L2221.3,406" class="a" marker-end="url(#h)"/>
+<rect x="2102.7" y="406.0" width="237.3" height="129.0" rx="9" class="x"/>
+<text x="2116.7" y="432" class="b" text-anchor="start">Electronics mode: MNA</text>
+<text x="2116.7" y="453" class="b" text-anchor="start">solver, Newton iteration,</text>
+<text x="2116.7" y="474" class="b" text-anchor="start">reverse solving. Hidden in</text>
+<text x="2116.7" y="495" class="b" text-anchor="start">the app and not drawn here.</text>
 <rect x="30" y="669" width="2340" height="1449.0" rx="18" class="panel"/>
 <circle cx="600.0" cy="779.0" r="17" class="cn"/>
 <text x="600.0" y="785.0" class="cnl" text-anchor="middle">A</text>
@@ -280,7 +294,7 @@
 <text x="1397.2" y="1574.0" class="el" text-anchor="middle">6  otherwise: parse error naming the position</text>
 <path d="M1280.0,1527.0 L1280.0,1555.0" class="a" marker-end="url(#h)"/>
 <text x="1288.0" y="1547.0" class="lbl" text-anchor="start">no</text>
-<rect x="1190" y="1653" width="1140" height="286" rx="14" class="lane"/>
+<rect x="1190" y="1653" width="1140" height="322" rx="14" class="lane"/>
 <text x="1210.0" y="1685.0" class="lt" text-anchor="start">What the mode changes</text>
 <text x="2310.0" y="1685.0" class="ls" text-anchor="end">settings.rs · parse_options</text>
 <rect x="1220" y="1699" width="1080" height="36" class="row"/>
@@ -319,12 +333,19 @@
 <text x="2067.0" y="1867.0" class="b" text-anchor="start">error</text>
 <text x="2207.0" y="1867.0" class="b" text-anchor="start">analyze, tasks</text>
 <rect x="1220" y="1879" width="1080" height="36" class="row"/>
-<text x="1232.0" y="1903.0" class="th" text-anchor="start">Electronics</text>
-<text x="1422.0" y="1903.0" class="b" text-anchor="start">yes (read as Physics)</text>
-<text x="1657.0" y="1903.0" class="b" text-anchor="start">yes</text>
-<text x="1917.0" y="1903.0" class="b" text-anchor="start">a variable</text>
-<text x="2067.0" y="1903.0" class="b" text-anchor="start">error</text>
-<text x="2207.0" y="1903.0" class="b" text-anchor="start">solve_circuit</text>
+<text x="1232" y="1903" class="th" text-anchor="start">Linear systems</text>
+<text x="1422" y="1903" class="b" text-anchor="start">no: a unit in a cell is an error</text>
+<text x="1657" y="1903" class="b" text-anchor="start">no</text>
+<text x="1917" y="1903" class="b" text-anchor="start">unknown, or unit ⚙</text>
+<text x="2067" y="1903" class="b" text-anchor="start">⚙ linearComplex</text>
+<text x="2207" y="1903" class="b" text-anchor="start">panel K</text>
+<rect x="1220" y="1915" width="1080" height="36" class="row"/>
+<text x="1232.0" y="1939.0" class="th" text-anchor="start">Electronics</text>
+<text x="1422.0" y="1939.0" class="b" text-anchor="start">yes (read as Physics)</text>
+<text x="1657.0" y="1939.0" class="b" text-anchor="start">yes</text>
+<text x="1917.0" y="1939.0" class="b" text-anchor="start">a variable</text>
+<text x="2067.0" y="1939.0" class="b" text-anchor="start">error</text>
+<text x="2207.0" y="1939.0" class="b" text-anchor="start">solve_circuit</text>
 <!-- B end -->
 <circle cx="68" cy="709" r="20" class="pc"/>
 <text x="68.0" y="716.0" class="pcl" text-anchor="middle">B</text>
@@ -346,12 +367,14 @@
 <polygon points="1200.0,2328.0 1480.0,2383.0 1200.0,2438.0 920.0,2383.0" class="d"/>
 <text x="1200.0" y="2388.0" class="t" text-anchor="middle">What did the parser build?</text>
 <path d="M1200.0,2305.0 L1200.0,2328.0" class="a" marker-end="url(#h)"/>
-<rect x="90.0" y="2568.0" width="620.0" height="116.0" rx="9" class="p"/>
-<text x="104.0" y="2596.0" class="t" text-anchor="start">Collect the unknowns</text>
-<text x="104.0" y="2625.0" class="b" text-anchor="start">Letters without subscript and without a value, outside whatever binds</text>
-<text x="104.0" y="2646.0" class="b" text-anchor="start">them; sorted alphabetically: x, y, z.</text>
-<text x="104.0" y="2667.0" class="eb">✕</text>
-<text x="120.0" y="2667.0" class="eb" text-anchor="start">None: &#x27;The system has no unknown to solve for.&#x27;</text>
+<rect x="90" y="2568" width="620" height="137" rx="9" class="p"/>
+<text x="104" y="2596" class="t" text-anchor="start">Collect the unknowns</text>
+<text x="104" y="2625" class="b" text-anchor="start">Letters without a value, with or without a subscript (x_1), outside</text>
+<text x="104" y="2646" class="b" text-anchor="start">whatever binds them; ordered x, y, z, then a … w, subscripts by number</text>
+<text x="104" y="2667" class="b" text-anchor="start">(x_2 before x_10), Greek letters and longer names last.</text>
+<text x="104" y="2688" class="eb">✕</text>
+<text x="120" y="2688" class="eb" text-anchor="start">None: &#x27;The system has no unknown to solve for.&#x27;</text>
+<path d="M400,2705 L400,2720" class="a" marker-end="url(#h)"/>
 <rect x="90.0" y="2720.0" width="620.0" height="179.0" rx="9" class="p"/>
 <text x="104.0" y="2748.0" class="t" text-anchor="start">Read off one row per equation</text>
 <text x="104.0" y="2777.0" class="b" text-anchor="start">Residual r = left − right, evaluated exactly with the unknowns put in.</text>
@@ -364,41 +387,45 @@
 <text x="120.0" y="2861.0" class="eb" text-anchor="start">linear in x, y.</text>
 <text x="104.0" y="2882.0" class="eb">✕</text>
 <text x="120.0" y="2882.0" class="eb" text-anchor="start">A dimension mismatch or a variable without value: that error.</text>
-<path d="M400.0,2684.0 L400.0,2720.0" class="a" marker-end="url(#h)"/>
-<rect x="90.0" y="2935.0" width="620.0" height="116.0" rx="9" class="p"/>
-<text x="104.0" y="2963.0" class="t" text-anchor="start">Gauss–Jordan elimination, exact   linear.rs</text>
-<text x="104.0" y="2992.0" class="b" text-anchor="start">Column by column: swap rows to get a pivot, divide the row by its pivot,</text>
-<text x="104.0" y="3013.0" class="b" text-anchor="start">subtract multiples from the other rows. Every operation is logged with</text>
-<text x="104.0" y="3034.0" class="b" text-anchor="start">the matrix after it.</text>
-<path d="M400.0,2899.0 L400.0,2935.0" class="a" marker-end="url(#h)"/>
-<polygon points="400.0,3087.0 550.0,3137.0 400.0,3187.0 250.0,3137.0" class="d"/>
-<text x="400.0" y="3142.0" class="t" text-anchor="middle">Outcome?</text>
-<path d="M400.0,3051.0 L400.0,3087.0" class="a" marker-end="url(#h)"/>
-<rect x="90.0" y="3207.0" width="215.8" height="28" rx="14" class="err"/>
-<text x="197.9" y="3226.0" class="el" text-anchor="middle">contradiction: no solution</text>
-<path d="M250.0,3137.0 L130.0,3137.0 L130.0,3207.0" class="a" marker-end="url(#h)"/>
-<rect x="90.0" y="3265.0" width="620.0" height="137.0" rx="9" class="p"/>
-<text x="104.0" y="3293.0" class="t" text-anchor="start">Write the solution</text>
-<circle cx="109.0" cy="3317.0" r="2.6" class="dot"/>
-<text x="120.0" y="3322.0" class="b" text-anchor="start">one: <tspan class="mth">x = 2 ∧ y = 1</tspan></text>
-<circle cx="109.0" cy="3338.0" r="2.6" class="dot"/>
-<text x="120.0" y="3343.0" class="b" text-anchor="start">infinitely many: each pivot unknown in terms of the free ones, <tspan class="mth">x = 1 -</tspan></text>
-<text x="120.0" y="3364.0" class="b" text-anchor="start"><tspan class="mth">y ∧ y ∈ ℝ</tspan> (ℂ in Imaginary mode)</text>
-<text x="104.0" y="3385.0" class="b" text-anchor="start">Each value is presented as in panel D.</text>
-<path d="M400.0,3187.0 L400.0,3265.0" class="a" marker-end="url(#h)"/>
-<text x="408.0" y="3213.0" class="lbl" text-anchor="start">consistent</text>
-<rect x="90.0" y="3438.0" width="620.0" height="179.0" rx="9" class="k"/>
-<text x="104.0" y="3466.0" class="t" text-anchor="start">Working of a system</text>
-<text x="104.0" y="3495.0" class="b" text-anchor="start">SYMBOLIC: the system as typed</text>
-<text x="104.0" y="3516.0" class="b" text-anchor="start">SUBSTITUTED: when it uses session variables</text>
-<text x="103.0" y="3537.0" class="sb">⚙</text>
-<text x="120.0" y="3537.0" class="sb" text-anchor="start">Standard: the augmented matrix</text>
-<text x="103.0" y="3558.0" class="sb">⚙</text>
-<text x="120.0" y="3558.0" class="sb" text-anchor="start">Detailed: every row operation, <tspan class="mth">—II - 2 · I→</tspan></text>
-<text x="103.0" y="3579.0" class="sb">⚙</text>
-<text x="120.0" y="3579.0" class="sb" text-anchor="start">Standard only: the reduced matrix, &#x27;Eliminate column by column&#x27;</text>
-<text x="104.0" y="3600.0" class="b" text-anchor="start">RESULT</text>
-<path d="M400.0,3402.0 L400.0,3438.0" class="a" marker-end="url(#h)"/>
+<path d="M400,2899 L400,2935" class="a" marker-end="url(#h)"/>
+<rect x="90" y="2935" width="620" height="179" rx="9" class="p"/>
+<text x="104" y="2963" class="t" text-anchor="start">Reduce [A | b] exactly   linear.rs</text>
+<text x="103" y="2992" class="sb">⚙</text>
+<text x="120" y="2992" class="sb" text-anchor="start">elimination: Gauss (default): pivot the first non-zero entry, swapped up;</text>
+<text x="120" y="3013" class="sb" text-anchor="start">below it a·II − b·I, a and b divided by their gcd, so no fractions; a</text>
+<text x="120" y="3034" class="sb" text-anchor="start">factor all entries of a row share is divided out (II : 3). linear::gauss</text>
+<text x="103" y="3055" class="sb">⚙</text>
+<text x="120" y="3055" class="sb" text-anchor="start">Gauss–Jordan: each pivot divided to 1, its column cleared above and</text>
+<text x="120" y="3076" class="sb" text-anchor="start">below. linear::eliminate</text>
+<text x="104" y="3097" class="b" text-anchor="start">Every operation is logged with the matrix after it.</text>
+<path d="M400,3114 L400,3150" class="a" marker-end="url(#h)"/>
+<rect x="90" y="3150" width="620" height="200" rx="9" class="p"/>
+<text x="104" y="3178" class="t" text-anchor="start">Read the outcome and write the solution</text>
+<circle cx="109" cy="3202" r="2.6" class="dot"/>
+<text x="120" y="3207" class="b" text-anchor="start">one: x = 2 ∧ y = 1</text>
+<circle cx="109" cy="3223" r="2.6" class="dot"/>
+<text x="120" y="3228" class="b" text-anchor="start">infinitely many, Gauss: back-substitution from the bottom row up, the</text>
+<text x="120" y="3249" class="b" text-anchor="start">free unknowns set to λ, μ, … (skipping letters in use): x = 1 − λ ∧ y = λ ∧</text>
+<text x="120" y="3270" class="b" text-anchor="start">λ ∈ ℝ; Gauss–Jordan: x = 1 − y ∧ y ∈ ℝ (ℂ in Imaginary mode)</text>
+<circle cx="109" cy="3286" r="2.6" class="dot"/>
+<text x="120" y="3291" class="b" text-anchor="start">none: a row reads 0 = c with c ≠ 0; not an error, the result is &#x27;no</text>
+<text x="120" y="3312" class="b" text-anchor="start">solution&#x27; and the steps show the row</text>
+<text x="104" y="3333" class="b" text-anchor="start">Each value is presented as in panel D; the matrix entries exactly.</text>
+<path d="M400,3350 L400,3386" class="a" marker-end="url(#h)"/>
+<rect x="90" y="3386" width="620" height="221" rx="9" class="k"/>
+<text x="104" y="3414" class="t" text-anchor="start">Working of a system   eval/system_steps.rs</text>
+<text x="104" y="3443" class="b" text-anchor="start">SYMBOLIC: the system as typed; SUBSTITUTED: when it uses session variables</text>
+<text x="103" y="3464" class="sb">⚙</text>
+<text x="120" y="3464" class="sb" text-anchor="start">Brief: the start matrix and the triangle (or reduced) form</text>
+<text x="103" y="3485" class="sb">⚙</text>
+<text x="120" y="3485" class="sb" text-anchor="start">Standard: every matrix, the operation beside the row it changes</text>
+<text x="120" y="3506" class="sb" text-anchor="start">(III′ − 2 · II′), the pivot orange, the rows just changed blue and marked</text>
+<text x="120" y="3527" class="sb" text-anchor="start">II′; Gauss: the back-substitution as equations</text>
+<text x="103" y="3548" class="sb">⚙</text>
+<text x="120" y="3548" class="sb" text-anchor="start">Detailed: each changed row entry by entry, the gcd division on its own</text>
+<text x="103" y="3569" class="sb">⚙</text>
+<text x="120" y="3569" class="sb" text-anchor="start">Maximal: why each pivot or swap, the check in every equation</text>
+<text x="104" y="3590" class="b" text-anchor="start">RESULT</text>
 <rect x="800.0" y="2568.0" width="800.0" height="95.0" rx="9" class="p"/>
 <text x="814.0" y="2596.0" class="t" text-anchor="start">Find the one unknown</text>
 <text x="814.0" y="2625.0" class="b" text-anchor="start">A letter without subscript and without a value, outside whatever binds it.</text>
@@ -538,7 +565,7 @@
 <text x="1210.0" y="2468.0" class="lbl" text-anchor="start">an equation  x² − 5x + 6 = 0</text>
 <path d="M1480.0,2383.0 L2000.0,2383.0 L2000.0,2568.0" class="a" marker-end="url(#h)"/>
 <text x="1990.0" y="2371.0" class="lbl" text-anchor="end">an expression  F = 2 kg · 10 m/s²,  1/(x − 2) + …</text>
-<path d="M400.0,3617.0 L400.0,4046.0" class="a" marker-end="url(#h)"/>
+<path d="M400,3607 L400,4046" class="a" marker-end="url(#h)"/>
 <circle cx="400.0" cy="4063.0" r="17" class="cn"/>
 <text x="400.0" y="4069.0" class="cnl" text-anchor="middle">D</text>
 <path d="M1200.0,3963.0 L1200.0,4046.0" class="a" marker-end="url(#h)"/>
@@ -1503,4 +1530,95 @@
 <text x="68.0" y="14674.0" class="pcl" text-anchor="middle">J</text>
 <text x="102.0" y="14675.0" class="ph" text-anchor="start">The tasks beside the curve sketch</text>
 <text x="102.0" y="14701.0" class="ps" text-anchor="start">analysis/tasks.rs and analysis/plot.rs. Stateless, each with its own budget.</text>
+<rect x="30" y="15272" width="2340" height="1409" rx="18" class="panel"/>
+<circle cx="68" cy="15312" r="20" class="pc"/>
+<text x="68" y="15319" class="pcl" text-anchor="middle">K</text>
+<text x="102" y="15320" class="ph" text-anchor="start">Linear systems mode</text>
+<text x="102" y="15346" class="ps" text-anchor="start">eval/linear_system.rs. Stateless: the store&#x27;s settings, no session variables. Typed or as a matrix, both end in the elimination of panel C.</text>
+<circle cx="1200" cy="15402" r="17" class="cn"/>
+<text x="1200" y="15408" class="cnl" text-anchor="middle">A</text>
+<text x="1226" y="15407" class="lbl" text-anchor="start">from solve_linear_system</text>
+<path d="M1200,15419 L1200,15442" class="a" marker-end="url(#h)"/>
+<rect x="700" y="15442" width="1000" height="116" rx="9" class="p"/>
+<text x="714" y="15470" class="t" text-anchor="start">api::linear_system</text>
+<circle cx="719" cy="15494" r="2.6" class="dot"/>
+<text x="730" y="15499" class="b" text-anchor="start">Settings: the store&#x27;s, with the mode Linear and exact roots on, so every result is exact.</text>
+<text x="713" y="15520" class="sb">⚙</text>
+<text x="730" y="15520" class="sb" text-anchor="start">Evaluates as Algebra; with linearComplex as Imaginary, and i is the imaginary unit.</text>
+<circle cx="719" cy="15536" r="2.6" class="dot"/>
+<text x="730" y="15541" class="b" text-anchor="start">Variables: none. Every letter is an unknown, k_1 too.</text>
+<path d="M1200,15558 L1200,15588" class="a" marker-end="url(#h)"/>
+<polygon points="1200,15588 1400,15638 1200,15688 1000,15638" class="d"/>
+<text x="1200" y="15643" class="t" text-anchor="middle">Which request?</text>
+<path d="M1000,15638 L610,15638 L610,15788" class="a" marker-end="url(#h)"/>
+<text x="620" y="15626" class="lbl" text-anchor="start">equations  2x + y = 5; x − y = 1, or a cases block</text>
+<path d="M1400,15638 L1790,15638 L1790,15788" class="a" marker-end="url(#h)"/>
+<text x="1780" y="15626" class="lbl" text-anchor="end">matrix  rows of LaTeX cells, unknowns optional</text>
+<rect x="60" y="15728" width="1100" height="510" rx="14" class="lane"/>
+<text x="80" y="15762" class="lt" text-anchor="start">Equations</text>
+<text x="1140" y="15762" class="ls" text-anchor="end">latex/ · eval/system.rs</text>
+<rect x="1240" y="15728" width="1100" height="510" rx="14" class="lane"/>
+<text x="1260" y="15762" class="lt" text-anchor="start">Matrix</text>
+<text x="2320" y="15762" class="ls" text-anchor="end">eval/linear_system.rs</text>
+<rect x="90" y="15788" width="1040" height="137" rx="9" class="p"/>
+<text x="104" y="15816" class="t" text-anchor="start">Parse</text>
+<text x="104" y="15845" class="b" text-anchor="start">The calculator&#x27;s parser (panel B) with the settings of the mode: no units.</text>
+<text x="104" y="15866" class="b" text-anchor="start">A system as it is; one equation alone becomes a system of one.</text>
+<text x="104" y="15887" class="eb">✕</text>
+<text x="120" y="15887" class="eb" text-anchor="start">Anything else: &#x27;Type the system as equations, one per line.&#x27;</text>
+<text x="104" y="15908" class="eb">✕</text>
+<text x="120" y="15908" class="eb" text-anchor="start">A syntax error, with its position.</text>
+<path d="M610,15925 L610,15961" class="a" marker-end="url(#h)"/>
+<rect x="90" y="15961" width="1040" height="116" rx="9" class="p"/>
+<text x="104" y="15989" class="t" text-anchor="start">Collect the unknowns and read off the rows</text>
+<text x="104" y="16018" class="b" text-anchor="start">As in panel C. With no stored values every letter without a binding is an unknown;</text>
+<text x="104" y="16039" class="b" text-anchor="start">i is one unless linearComplex.</text>
+<text x="104" y="16060" class="eb">✕</text>
+<text x="120" y="16060" class="eb" text-anchor="start">No unknown, or not linear: the errors of panel C.</text>
+<rect x="1270" y="15788" width="1040" height="116" rx="9" class="p"/>
+<text x="1284" y="15816" class="t" text-anchor="start">Check the shape</text>
+<text x="1284" y="15845" class="b" text-anchor="start">Every row as long as the first, with at least one coefficient and the right-hand side.</text>
+<text x="1284" y="15866" class="eb">✕</text>
+<text x="1300" y="15866" class="eb" text-anchor="start">&#x27;The matrix has no rows.&#x27; · &#x27;A row needs at least one coefficient and the right-hand side.&#x27;</text>
+<text x="1284" y="15887" class="eb">✕</text>
+<text x="1300" y="15887" class="eb" text-anchor="start">&#x27;Row 2 has 3 entries, but row 1 has 4.&#x27;</text>
+<path d="M1790,15904 L1790,15940" class="a" marker-end="url(#h)"/>
+<rect x="1270" y="15940" width="1040" height="116" rx="9" class="p"/>
+<text x="1284" y="15968" class="t" text-anchor="start">Name the columns</text>
+<circle cx="1289" cy="15992" r="2.6" class="dot"/>
+<text x="1300" y="15997" class="b" text-anchor="start">Names given: each parsed as one variable (x_{1} is x_1), one per column, none twice.</text>
+<text x="1283" y="16018" class="sb">⚙</text>
+<text x="1300" y="16018" class="sb" text-anchor="start">None given: by unknownNames, x_1 … x_n, or x, y, z, a … w without e and i, then x_1, x_2, …</text>
+<text x="1284" y="16039" class="eb">✕</text>
+<text x="1300" y="16039" class="eb" text-anchor="start">Wrong count, not a variable, or a name twice: that error.</text>
+<path d="M1790,16056 L1790,16092" class="a" marker-end="url(#h)"/>
+<rect x="1270" y="16092" width="1040" height="116" rx="9" class="p"/>
+<text x="1284" y="16120" class="t" text-anchor="start">Evaluate each cell</text>
+<circle cx="1289" cy="16144" r="2.6" class="dot"/>
+<text x="1300" y="16149" class="b" text-anchor="start">Empty: 0. Otherwise parsed and evaluated exactly, without variables: \frac{1}{2}, \pi, \sqrt{2}.</text>
+<text x="1284" y="16170" class="eb">✕</text>
+<text x="1300" y="16170" class="eb" text-anchor="start">&#x27;Row r, entry c: …&#x27; for an equation, a letter (for i: turn on the imaginary unit),</text>
+<text x="1300" y="16191" class="eb" text-anchor="start">a unit (&#x27;the coefficients of a linear system have no units&#x27;) or a parse error.</text>
+<path d="M610,16077 L610,16318 L700,16318" class="a" marker-end="url(#h)"/>
+<path d="M1790,16208 L1790,16318 L1700,16318" class="a" marker-end="url(#h)"/>
+<rect x="700" y="16278" width="1000" height="74" rx="9" class="p"/>
+<text x="714" y="16306" class="t" text-anchor="start">solve_matrix   eval/system.rs</text>
+<text x="713" y="16335" class="sb">⚙</text>
+<text x="730" y="16335" class="sb" text-anchor="start">elimination: Gauss or Gauss–Jordan, the outcome and the solution, as in panel C.</text>
+<path d="M1200,16352 L1200,16388" class="a" marker-end="url(#h)"/>
+<rect x="600" y="16388" width="1200" height="179" rx="9" class="k"/>
+<text x="614" y="16416" class="t" text-anchor="start">The response</text>
+<circle cx="619" cy="16440" r="2.6" class="dot"/>
+<text x="630" y="16445" class="b" text-anchor="start">unknowns in LaTeX (x_{1}); the matrix [A | b] as exact LaTeX cells, for the tab switch</text>
+<circle cx="619" cy="16461" r="2.6" class="dot"/>
+<text x="630" y="16466" class="b" text-anchor="start">one equation per row, 2x - y = 3: zero coefficients left out, 1 and -1 without the number; a zero row</text>
+<text x="630" y="16487" class="b" text-anchor="start">reads 0 = c. Read back, it gives the same matrix.</text>
+<text x="613" y="16508" class="sb">⚙</text>
+<text x="630" y="16508" class="sb" text-anchor="start">steps: SYMBOLIC (as typed, or the rows as a cases block), the system steps of panel C, RESULT,</text>
+<text x="630" y="16529" class="sb" text-anchor="start">filtered by the step detail; the same steps as a copyable align* block</text>
+<circle cx="619" cy="16545" r="2.6" class="dot"/>
+<text x="630" y="16550" class="b" text-anchor="start">result: exact, as in panel C</text>
+<path d="M1200,16567 L1200,16597" class="a" marker-end="url(#h)"/>
+<rect x="1000" y="16597" width="400" height="44" rx="22.0" class="term"/>
+<text x="1200" y="16624.5" class="tl" text-anchor="middle">LinearSystemResponse</text>
 </svg>

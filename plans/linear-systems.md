@@ -89,7 +89,7 @@ specification; this list says in which order to build them and where.
 ### Phase 5: docs
 
 - [x] A user guide for the mode in `docs/docs/guides/`, and the settings in the reference.
-- [ ] Update the flowcharts in `docs/docs/contributing/solving.md` for the LGS path.
+- [x] Update the flowcharts in `docs/docs/contributing/solving.md` for the LGS path.
 - [ ] CHANGELOG entry for the mode; `npm run licenses` only if a dependency was added.
 
 ## 1. Indexed variables and the order of the unknowns
