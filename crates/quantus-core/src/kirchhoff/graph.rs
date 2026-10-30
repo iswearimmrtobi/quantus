@@ -498,3 +498,190 @@ impl Basis {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn part(id: &str, a: (i64, i64), b: (i64, i64)) -> Edge {
+        Edge { id: id.into(), a: Point::new(a.0, a.1), b: Point::new(b.0, b.1), wire: false }
+    }
+
+    fn wire(id: &str, a: (i64, i64), b: (i64, i64)) -> Edge {
+        Edge { wire: true, ..part(id, a, b) }
+    }
+
+    /// Each loop as `+ID`/`-ID` per part, in order.
+    fn loops(edges: &[Edge], graph: &Graph) -> Vec<Vec<String>> {
+        graph
+            .loops
+            .iter()
+            .map(|l| {
+                l.steps
+                    .iter()
+                    .map(|s| format!("{}{}", if s.forward { '+' } else { '-' }, edges[graph.links[s.link].edge].id))
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// Every loop returns to where it started.
+    fn assert_closed(graph: &Graph) {
+        for l in &graph.loops {
+            let mut balance = vec![0i64; graph.nodes.len()];
+            for s in &l.steps {
+                let link = &graph.links[s.link];
+                let (from, to) = if s.forward { (link.a, link.b) } else { (link.b, link.a) };
+                balance[from] -= 1;
+                balance[to] += 1;
+            }
+            assert!(balance.iter().all(|&b| b == 0), "{l:?} is not closed");
+        }
+    }
+
+    /// A source on the left, a resistor on top, wires right and below.
+    fn single() -> Vec<Edge> {
+        vec![
+            part("V1", (0, 4), (0, 0)),
+            part("R1", (0, 0), (4, 0)),
+            wire("W1", (4, 0), (4, 4)),
+            wire("W2", (4, 4), (0, 4)),
+        ]
+    }
+
+    #[test]
+    fn a_single_loop_runs_clockwise() {
+        let edges = single();
+        let graph = Graph::build(&edges).unwrap();
+        assert!(graph.planar);
+        assert_eq!(graph.parts, 1);
+        assert_eq!(graph.nodes.len(), 2);
+        assert_eq!(graph.nodes[0].points, [Point::new(0, 0)]);
+        assert_eq!(graph.nodes[1].points, [Point::new(4, 0), Point::new(0, 4), Point::new(4, 4)]);
+        assert_eq!(loops(&edges, &graph), [["+V1", "+R1"]]);
+        assert_eq!(graph.loops[0].anchor, Anchor { x: 2.0, y: 2.0 });
+    }
+
+    #[test]
+    fn a_ladder_has_one_loop_per_window() {
+        let edges = vec![
+            part("V1", (0, 4), (0, 0)),
+            part("R1", (0, 0), (4, 0)),
+            part("R2", (4, 0), (4, 4)),
+            part("R3", (4, 0), (8, 0)),
+            part("R4", (8, 0), (8, 4)),
+            wire("W1", (0, 4), (4, 4)),
+            wire("W2", (4, 4), (8, 4)),
+        ];
+        let graph = Graph::build(&edges).unwrap();
+        assert!(graph.planar);
+        assert_eq!(graph.nodes.len(), 4);
+        assert_eq!(loops(&edges, &graph), [vec!["+V1", "+R1", "+R2"], vec!["-R2", "+R3", "+R4"]]);
+        assert_eq!(graph.loops[0].anchor, Anchor { x: 2.0, y: 2.0 });
+        assert_eq!(graph.loops[1].anchor, Anchor { x: 6.0, y: 2.0 });
+        assert_closed(&graph);
+    }
+
+    #[test]
+    fn a_wheatstone_bridge_has_three_windows() {
+        let edges = vec![
+            part("R1", (0, 0), (4, 0)),
+            part("R2", (4, 0), (8, 0)),
+            part("R3", (0, 8), (4, 8)),
+            part("R4", (4, 8), (8, 8)),
+            part("R5", (4, 2), (4, 6)),
+            part("V1", (2, 12), (6, 12)),
+            wire("W1", (4, 0), (4, 2)),
+            wire("W2", (4, 6), (4, 8)),
+            wire("W3", (0, 0), (0, 8)),
+            wire("W4", (0, 8), (0, 12)),
+            wire("W5", (0, 12), (2, 12)),
+            wire("W6", (6, 12), (8, 12)),
+            wire("W7", (8, 12), (8, 8)),
+            wire("W8", (8, 8), (8, 0)),
+        ];
+        let graph = Graph::build(&edges).unwrap();
+        assert!(graph.planar);
+        assert_eq!(graph.nodes.len(), 4);
+        assert_eq!(graph.links.len(), 6);
+        assert_eq!(
+            loops(&edges, &graph),
+            [vec!["+R1", "+R5", "-R3"], vec!["+R2", "-R4", "-R5"], vec!["+R3", "+R4", "-V1"]]
+        );
+        assert_eq!(graph.loops[0].anchor, Anchor { x: 2.0, y: 4.0 });
+        assert_eq!(graph.loops[2].anchor, Anchor { x: 4.0, y: 10.0 });
+        assert_closed(&graph);
+    }
+
+    #[test]
+    fn crossing_wires_fall_back_to_a_spanning_tree() {
+        let mut edges = vec![
+            part("V1", (0, 4), (0, 0)),
+            part("R1", (0, 0), (4, 0)),
+            part("R2", (4, 0), (4, 4)),
+            part("R3", (4, 0), (8, 0)),
+            part("R4", (8, 0), (8, 4)),
+            wire("W1", (0, 4), (4, 4)),
+            wire("W2", (4, 4), (8, 4)),
+        ];
+        assert!(Graph::build(&edges).unwrap().planar);
+
+        edges.push(wire("W3", (2, -2), (2, 6)));
+        let graph = Graph::build(&edges).unwrap();
+        assert!(!graph.planar);
+        assert_eq!(graph.nodes.len(), 4);
+        assert_eq!(graph.loops.len(), 2);
+        assert_closed(&graph);
+
+        // A terminal in the middle of a wire is not connected to it.
+        edges.pop();
+        edges.push(wire("W3", (6, 0), (6, -4)));
+        assert!(!Graph::build(&edges).unwrap().planar);
+    }
+
+    #[test]
+    fn a_window_of_wires_only_is_no_loop() {
+        let mut edges = single();
+        edges.extend([wire("W3", (4, 0), (8, 0)), wire("W4", (8, 0), (8, 4)), wire("W5", (8, 4), (4, 4))]);
+        let graph = Graph::build(&edges).unwrap();
+        assert!(graph.planar);
+        assert_eq!(graph.nodes.len(), 2);
+        assert_eq!(loops(&edges, &graph), [["+V1", "+R1"]]);
+
+        // A resistor across a window of wires splits it into two faces that are the same loop.
+        let mut edges = single();
+        edges.extend([
+            wire("W3", (4, 0), (8, 0)),
+            wire("W4", (8, 0), (12, 0)),
+            wire("W5", (12, 0), (12, 4)),
+            wire("W6", (12, 4), (8, 4)),
+            wire("W7", (8, 4), (4, 4)),
+        ]);
+        edges.push(part("R2", (8, 0), (8, 4)));
+        let graph = Graph::build(&edges).unwrap();
+        assert_eq!(graph.nodes.len(), 2);
+        assert_eq!(loops(&edges, &graph), [vec!["+V1", "+R1"], vec!["+R2"]]);
+        assert_closed(&graph);
+    }
+
+    #[test]
+    fn an_open_end_names_the_part() {
+        let mut edges = single();
+        edges.push(part("R2", (4, 0), (8, 0)));
+        let error = Graph::build(&edges).unwrap_err().to_string();
+        assert!(error.contains("R2"), "{error}");
+    }
+
+    #[test]
+    fn separate_circuits_are_separate_parts() {
+        let mut edges = single();
+        edges.extend(single().into_iter().map(|e| Edge {
+            id: format!("{}b", e.id),
+            a: Point::new(e.a.x + 10, e.a.y),
+            b: Point::new(e.b.x + 10, e.b.y),
+            ..e
+        }));
+        let graph = Graph::build(&edges).unwrap();
+        assert_eq!(graph.parts, 2);
+        assert_eq!(graph.loops.iter().map(|l| l.part).collect::<Vec<_>>(), [0, 1]);
+    }
+}

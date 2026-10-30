@@ -118,7 +118,7 @@ Each phase is one or more commits on `dev`. Tick a box when its commit lands.
 ### Phase 1: graph
 
 - [x] `graph.rs`: the drawing graph, crossings, faces, contraction, spanning-tree fallback.
-- [ ] Unit tests: single loop, ladder, Wheatstone (planar, 3 inner faces), crossing wires
+- [x] Unit tests: single loop, ladder, Wheatstone (planar, 3 inner faces), crossing wires
   (fallback), wire-only loop, open end.
 
 ### Phase 2: branches and equations
