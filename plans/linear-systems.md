@@ -33,10 +33,13 @@ specification; this list says in which order to build them and where.
   `eliminate` agree on every system in the tests. *Check:* how fraction-free steps look with `π`.
   Result: `π·II − I`, no gcd, as intended; but the matrix showed `π` as a 50-digit decimal
   unless *exact roots* is on, so the step block writes entries exactly.
-- [ ] `eval/calculator.rs`: rewrite the step block (`augmented`, `row_operation`) for both methods:
+- [x] `eval/calculator.rs`: rewrite the step block (`augmented`, `row_operation`) for both methods:
   row labels with marks (`II'`), the annotation column, the coloured pivot and changed row, the
   levels from the table in section 3 (entry-by-entry arithmetic at Detailed, the check at
   Maximal). *Check:* a KaTeX row background inside `array`, in both themes.
+  Result: KaTeX 0.16 has no `\rowcolor`/`\cellcolor` and `\colorbox` is text mode only, so the
+  changed row is coloured text (`dodgerblue`, the pivot `orange`), readable in both themes. The
+  builder lives in `eval/system_steps.rs`.
 - [ ] `design/step-detail.md`: a *Linear systems* section with a worked 3×3 example per level.
   Golden cases for unique, inconsistent and infinite, with both settings.
 - [ ] CHANGELOG entry. Visible now in Algebra with `;`.

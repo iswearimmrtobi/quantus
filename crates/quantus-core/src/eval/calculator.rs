@@ -7,10 +7,10 @@
 
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
-use super::system::{Reduction, Solution};
+use super::system::Solution;
+use super::system_steps::unknown_latex;
 use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
-use crate::linear::RowOperation;
-use crate::num::{Decimal, DEFAULT_PRECISION};
+use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::settings::{BinomialForm, Mode, Settings, StepDetail};
 use crate::units::registry;
@@ -141,7 +141,7 @@ impl StepKind {
 pub struct LatexCalculator {
     precision: usize,
     /// How inputs are read and algebraic results written; its precision is not used here.
-    settings: Settings,
+    pub(super) settings: Settings,
 }
 
 impl Default for LatexCalculator {
@@ -317,20 +317,14 @@ impl LatexCalculator {
     }
 
     /// `x = 2 \land y = 1`, or with infinitely many solutions the bound unknowns in terms of the
-    /// free ones: `x = 1 - y \land y \in \mathbb{R}`. The steps show the augmented matrix, each
-    /// row operation (Detailed) and the reduced matrix.
+    /// free ones: `x = 1 - y \land y \in \mathbb{R}` after Gauss–Jordan, in terms of parameters
+    /// after Gauss: `x = 1 - \lambda \land y = \lambda \land \lambda \in \mathbb{R}`. A system
+    /// that contradicts itself has no solution; its steps end in the row `0 = c`. The steps are
+    /// built in `system_steps`.
     fn evaluate_system(&self, evaluator: &Evaluator, formula: Formula, variables: &Variables) -> Result<Calculation> {
         let system = evaluator.solve_system(&formula.expression, self.settings.elimination)?;
-        let system_names: Vec<String> = system
-            .unknowns
-            .iter()
-            .map(|key| {
-                let (name, index) = key.split_once('_').unwrap_or((key, ""));
-                serializer::expression(&Node::Variable { name: name.to_string(), index: index.to_string(), position: 0 })
-            })
-            .collect();
+        let names: Vec<String> = system.unknowns.iter().map(|key| unknown_latex(key)).collect();
 
-        let names = &system_names;
         let mut parts = Vec::new();
         let mut first = None;
         match &system.solution {
@@ -342,46 +336,32 @@ impl LatexCalculator {
                     first.get_or_insert((quantity, value, imaginary));
                 }
             }
-            Solution::Inconsistent { .. } => {
-                return Err(crate::QuantusError::other("The system has no solution: its equations contradict each other."));
-            }
+            Solution::Inconsistent { .. } => parts.push(msg!("\\text{{no solution}}", "\\text{{keine Lösung}}")),
             Solution::Parametric { free, bound, parameters } => {
                 // After the Gauss method the free unknowns are parameters: `y = λ`.
-                let mut names = names.clone();
+                let mut shown = names.clone();
                 for (f, parameter) in free.iter().zip(parameters) {
-                    names[*f] = parameter.clone();
+                    shown[*f] = parameter.clone();
                 }
-                let mut lines: Vec<(usize, String)> = Vec::new();
+                let mut lines = Vec::new();
                 for (column, constant, terms) in bound {
-                    let mut right = if constant.is_zero() && !terms.is_empty() { String::new() } else { self.entry(constant)? };
-                    for (free, coefficient) in terms {
-                        // `x + k·y = c` is `x = c - k·y`.
-                        let negative = !coefficient.is_negative()?;
-                        let size = if coefficient.is_negative()? { coefficient.neg() } else { coefficient.clone() };
-                        let term =
-                            if size.is_one() { names[*free].clone() } else { format!("{} \\cdot {}", self.entry(&size)?, names[*free]) };
-                        right = match (right.is_empty(), negative) {
-                            (true, true) => format!("-{term}"),
-                            (true, false) => term,
-                            (false, true) => format!("{right} - {term}"),
-                            (false, false) => format!("{right} + {term}"),
-                        };
-                    }
-                    lines.push((*column, format!("{} = {right}", system_names[*column])));
+                    // `x + k·y = c` is `x = c - k·y`.
+                    let terms: Vec<(&str, Value)> = terms.iter().map(|(f, k)| (shown[*f].as_str(), k.neg())).collect();
+                    lines.push((*column, format!("{} = {}", names[*column], self.combination(constant, &terms, |v| self.entry(v))?)));
                 }
                 if !parameters.is_empty() {
-                    lines.extend(free.iter().map(|f| (*f, format!("{} = {}", system_names[*f], names[*f]))));
+                    lines.extend(free.iter().map(|f| (*f, format!("{} = {}", names[*f], shown[*f]))));
                     lines.sort_by_key(|(column, _)| *column);
                 }
                 parts.extend(lines.into_iter().map(|(_, line)| line));
                 let numbers = if self.settings.mode == Mode::Imaginary { "\\mathbb{C}" } else { "\\mathbb{R}" };
-                let free: Vec<&str> = free.iter().map(|f| names[*f].as_str()).collect();
+                let free: Vec<&str> = free.iter().map(|f| shown[*f].as_str()).collect();
                 parts.push(format!("{} \\in {numbers}", free.join(", ")));
             }
         }
         let result = parts.join(" \\land ");
         let (quantity, value, imaginary) =
-            first.unwrap_or_else(|| (PhysicalQuantity::dimensionless(crate::num::Value::zero()), Decimal::from_i64(0), None));
+            first.unwrap_or_else(|| (PhysicalQuantity::dimensionless(Value::zero()), Decimal::from_i64(0), None));
 
         let symbolic = serializer::expression(&formula.expression);
         let mut steps = vec![Step::new(StepKind::Symbolic, symbolic.clone())];
@@ -391,40 +371,7 @@ impl LatexCalculator {
                 steps.push(Step::new(StepKind::Substituted, substituted));
             }
         }
-        steps.push(
-            Step::algebraic(
-                self.augmented(&system.matrix)?,
-                None,
-                msg!("Write the system as an augmented matrix", "Das System als erweiterte Koeffizientenmatrix schreiben"),
-                None,
-                None,
-            )
-            .with_level(StepDetail::Standard),
-        );
-        let (log, reduced) = match &system.reduction {
-            Reduction::Gauss { echelon, .. } => (&echelon.log, &echelon.matrix),
-            Reduction::GaussJordan(elimination) => (&elimination.log, &elimination.matrix),
-        };
-        for crate::linear::Logged { operation, matrix, .. } in log {
-            let (operation, explanation) = self.row_operation(operation)?;
-            steps.push(
-                Step::algebraic(format!("\\xrightarrow{{{operation}}} {}", self.augmented(matrix)?), None, explanation, None, None)
-                    .with_level(StepDetail::Detailed),
-            );
-        }
-        if !log.is_empty() {
-            steps.push(
-                Step::algebraic(
-                    self.augmented(reduced)?,
-                    None,
-                    msg!("Eliminate column by column", "Spalte für Spalte eliminieren"),
-                    None,
-                    None,
-                )
-                .with_level(StepDetail::Standard)
-                .until(StepDetail::Detailed),
-            );
-        }
+        steps.extend(self.system_steps(&system, &names)?);
         steps.push(Step::new(StepKind::Result, result.clone()));
 
         Ok(Calculation {
@@ -443,65 +390,31 @@ impl LatexCalculator {
         })
     }
 
-    /// A matrix entry or coefficient: a rational as a whole number or fraction (`\frac{1}{2}`,
-    /// not `0{,}5`), anything else as the result would show it.
-    fn entry(&self, value: &crate::num::Value) -> Result<String> {
+    /// A coefficient in a result: a rational as a whole number or fraction (`\frac{1}{2}`, not
+    /// `0{,}5`), anything else as the result would show it.
+    fn entry(&self, value: &Value) -> Result<String> {
         match value.as_rational() {
             Some(rational) => Ok(serializer::expression(&fraction_node(rational))),
             None => Ok(self.present(&PhysicalQuantity::dimensionless(value.clone()))?.2),
         }
     }
 
-    /// `\left(\begin{array}{cc|c} 2 & 1 & 5 \\ 1 & -1 & 1 \end{array}\right)`.
-    fn augmented(&self, matrix: &[Vec<crate::num::Value>]) -> Result<String> {
-        let columns = matrix.first().map_or(1, Vec::len);
-        let mut rows = Vec::new();
-        for row in matrix {
-            let cells: Vec<String> = row.iter().map(|v| self.entry(v)).collect::<Result<_>>()?;
-            rows.push(cells.join(" & "));
+    /// `c + k_1 \cdot y_1 - …`, leaving out a zero constant and factors of 1; `number` writes
+    /// the constant and the factors.
+    pub(super) fn combination(&self, constant: &Value, terms: &[(&str, Value)], number: impl Fn(&Value) -> Result<String>) -> Result<String> {
+        let mut out = if constant.is_zero() && !terms.is_empty() { String::new() } else { number(constant)? };
+        for (name, coefficient) in terms {
+            let negative = coefficient.is_negative()?;
+            let size = if negative { coefficient.neg() } else { coefficient.clone() };
+            let term = if size.is_one() { name.to_string() } else { format!("{} \\cdot {name}", number(&size)?) };
+            out = match (out.is_empty(), negative) {
+                (true, true) => format!("-{term}"),
+                (true, false) => term,
+                (false, true) => format!("{out} - {term}"),
+                (false, false) => format!("{out} + {term}"),
+            };
         }
-        Ok(format!(
-            "\\left(\\begin{{array}}{{{}|c}} {} \\end{{array}}\\right)",
-            "c".repeat(columns - 1),
-            rows.join(" \\\\ ")
-        ))
-    }
-
-    /// The operation in LaTeX (`\text{II} - 2 \cdot \text{I}`) and the explanation of the step.
-    fn row_operation(&self, operation: &RowOperation) -> Result<(String, String)> {
-        let row = |r: usize| format!("\\text{{{}}}", roman(r + 1));
-        Ok(match operation {
-            RowOperation::Swap(a, b) => (
-                format!("{} \\leftrightarrow {}", row(*a), row(*b)),
-                msg!("Swap the rows to get a pivot", "Zeilen tauschen, um ein Pivotelement zu bekommen"),
-            ),
-            RowOperation::Divide { row: r, divisor } => (
-                format!("{} : {}", row(*r), self.signed(divisor)?),
-                msg!("Divide the row by its pivot", "Die Zeile durch ihr Pivotelement teilen"),
-            ),
-            RowOperation::Subtract { target, source, factor } => {
-                let (sign, size) = if factor.is_negative()? { ("+", factor.neg()) } else { ("-", factor.clone()) };
-                let multiple = if size.is_one() { row(*source) } else { format!("{} \\cdot {}", self.entry(&size)?, row(*source)) };
-                (
-                    format!("{} {sign} {multiple}", row(*target)),
-                    msg!("Eliminate the unknown from the other row", "Die Unbekannte aus der anderen Zeile eliminieren"),
-                )
-            }
-            RowOperation::Combine { target, a, source, b } => (
-                format!("{} \\cdot {} - {} \\cdot {}", self.entry(a)?, row(*target), self.signed(b)?, row(*source)),
-                msg!("Eliminate the unknown from the other row", "Die Unbekannte aus der anderen Zeile eliminieren"),
-            ),
-            RowOperation::Scale { row: r, divisor } => (
-                format!("{} : {}", row(*r), self.signed(divisor)?),
-                msg!("Divide out the common factor", "Den gemeinsamen Faktor herausteilen"),
-            ),
-        })
-    }
-
-    /// An entry that follows an operator: in brackets if it is negative.
-    fn signed(&self, value: &crate::num::Value) -> Result<String> {
-        let shown = self.entry(value)?;
-        Ok(if value.is_negative()? { format!("({shown})") } else { shown })
+        Ok(out)
     }
 
     /// The decimal value and its LaTeX. A complex value is only shown in imaginary mode, as
@@ -587,7 +500,7 @@ impl LatexCalculator {
 
 /// A number as a node: a terminating decimal as itself, any other fraction as a fraction.
 /// A row number as a Roman numeral, as rows of a system are named: I, II, III, IV.
-fn roman(mut n: usize) -> String {
+pub(super) fn roman(mut n: usize) -> String {
     const NUMERALS: [(usize, &str); 13] = [
         (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"),
         (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
@@ -603,7 +516,7 @@ fn roman(mut n: usize) -> String {
 }
 
 /// A rational as a whole number or a fraction, never as a decimal.
-fn fraction_node(value: &dashu::rational::RBig) -> Node {
+pub(super) fn fraction_node(value: &dashu::rational::RBig) -> Node {
     use dashu::base::{Abs, Signed};
     use dashu::integer::{IBig, UBig};
     if value.denominator() == &UBig::ONE {
@@ -846,7 +759,10 @@ mod tests {
         let c = system("2x + y = 5; x - y = 1", StepDetail::Brief);
         assert_eq!(c.result, "x = 2 \\land y = 1");
         assert_eq!(c.value.to_string(), "2");
-        assert_eq!(c.steps.iter().map(|s| s.kind).collect::<Vec<_>>(), [StepKind::Symbolic, StepKind::Result]);
+        assert_eq!(
+            c.steps.iter().map(|s| s.kind).collect::<Vec<_>>(),
+            [StepKind::Symbolic, StepKind::Algebraic, StepKind::Algebraic, StepKind::Result]
+        );
         assert_eq!(system("x + y = 1; x - y = 0", StepDetail::Brief).result, "x = 0{,}5 \\land y = 0{,}5");
         assert_eq!(system("a + x = 3; a - x = 1", StepDetail::Brief).result, "x = 1 \\land a = 2");
     }
@@ -891,27 +807,134 @@ mod tests {
         );
     }
 
-    #[test]
-    fn a_system_shows_its_matrices_by_detail_level() {
-        let latex = |detail| system_with("2x + y = 5; x - y = 1", detail, Elimination::GaussJordan).steps.into_iter().map(|s| s.latex).collect::<Vec<_>>();
-        let standard = latex(StepDetail::Standard);
-        assert_eq!(standard.len(), 4, "{standard:?}");
-        assert_eq!(standard[1], "\\left(\\begin{array}{cc|c} 2 & 1 & 5 \\\\ 1 & -1 & 1 \\end{array}\\right)");
-        assert_eq!(standard[2], "\\left(\\begin{array}{cc|c} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\end{array}\\right)");
-        let detailed = latex(StepDetail::Detailed);
-        assert!(detailed[2].starts_with("\\xrightarrow{\\text{I} : 2}"), "{detailed:?}");
-        assert!(detailed[2].ends_with("1 & \\frac{1}{2} & \\frac{5}{2} \\\\ 1 & -1 & 1 \\end{array}\\right)"), "{detailed:?}");
-        assert!(detailed[3].starts_with("\\xrightarrow{\\text{II} - \\text{I}}"), "{detailed:?}");
-        assert_eq!(detailed.last().unwrap(), "x = 2 \\land y = 1");
-        // The last row operation already shows the reduced matrix.
-        assert!(!detailed.contains(&standard[2]), "{detailed:?}");
+    fn latex(c: &Calculation) -> Vec<String> {
+        c.steps.iter().map(|s| s.latex.clone()).collect()
+    }
+
+    fn texts(c: &Calculation) -> Vec<String> {
+        c.steps.iter().map(|s| s.explanation.clone().unwrap_or_default()).collect()
     }
 
     #[test]
-    fn a_contradictory_system_is_an_error() {
-        let settings = Settings::default();
-        let error = LatexCalculator::default().with_settings(settings).evaluate("x + y = 1; x + y = 2", &Variables::new());
-        assert!(error.unwrap_err().to_string().contains("no solution"));
+    fn brief_gauss_shows_the_start_matrix_and_the_triangle_form() {
+        let c = system("2x + y = 5; x - y = 1", StepDetail::Brief);
+        assert_eq!(
+            latex(&c)[1..],
+            [
+                "\\left(\\begin{array}{cc|c} 2 & 1 & 5 \\\\ 1 & -1 & 1 \\end{array}\\right)",
+                "\\left(\\begin{array}{cc|c} 2 & 1 & 5 \\\\ 0 & -1 & -1 \\end{array}\\right)",
+                "x = 2 \\land y = 1",
+            ]
+        );
+    }
+
+    #[test]
+    fn standard_gauss_writes_the_operations_next_to_the_rows() {
+        let c = system("2x + y = 5; x - y = 1", StepDetail::Standard);
+        let steps = latex(&c);
+        assert_eq!(steps.len(), 6, "{steps:?}");
+        // The pivot in colour, the operation and the division by 3 next to row II.
+        assert!(
+            steps[1].contains("\\textcolor{orange}{2} & 1 & 5 &  \\\\ 1 & -1 & 1 & \\left(2 \\cdot \\text{II} - \\text{I}\\right) : 3"),
+            "{}",
+            steps[1]
+        );
+        assert!(steps[1].starts_with("\\begin{array}{r} \\text{I}\\vphantom"), "{}", steps[1]);
+        // The changed row is marked and coloured.
+        assert!(steps[2].contains("\\text{II}'\\vphantom"), "{}", steps[2]);
+        assert!(steps[2].contains("\\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{-1} & \\textcolor{dodgerblue}{-1}"), "{}", steps[2]);
+        assert_eq!(steps[3], "-y = -1 \\quad\\Rightarrow\\quad y = 1");
+        assert_eq!(steps[4], "2x + 1 = 5 \\quad\\Rightarrow\\quad x = 2");
+        assert_eq!(
+            texts(&c)[1..5],
+            [
+                "Eliminate x from II, then divide out the common factor",
+                "The matrix is in triangle form",
+                "Solve II′ for y",
+                "Put y into I and solve for x"
+            ]
+        );
+    }
+
+    #[test]
+    fn detailed_gauss_works_out_each_row_and_divides_in_a_step_of_its_own() {
+        let c = system("2x + y = 5; x - y = 1", StepDetail::Detailed);
+        let steps = latex(&c);
+        assert!(steps[1].ends_with("1 & -1 & 1 & 2 \\cdot \\text{II} - \\text{I} \\end{array}\\right)"), "{}", steps[1]);
+        assert_eq!(steps[2], "\\text{II}': \\; 2 \\cdot 1 - 2 = 0, \\quad 2 \\cdot \\left(-1\\right) - 1 = -3, \\quad 2 \\cdot 1 - 5 = -3");
+        assert!(steps[3].contains("& \\text{II}' : 3 \\end{array}"), "{}", steps[3]);
+        assert!(steps[4].contains("\\text{II}''\\vphantom"), "{}", steps[4]);
+        assert!(!steps.iter().any(|s| s.contains("checkmark")), "{steps:?}");
+    }
+
+    #[test]
+    fn maximal_gauss_explains_the_swap_and_checks_the_solution() {
+        let c = system("y = 3; x + y = 4", StepDetail::Maximal);
+        let (steps, texts) = (latex(&c), texts(&c));
+        assert!(steps[1].contains("\\text{I} \\leftrightarrow \\text{II}"), "{}", steps[1]);
+        assert!(texts[1].starts_with("The entry of x in I is zero, so swap I with II"), "{}", texts[1]);
+        // After the swap the rows keep their names: II stands first.
+        assert!(steps[2].starts_with("\\begin{array}{r} \\text{II}\\vphantom"), "{}", steps[2]);
+        let checks: Vec<&String> = steps.iter().filter(|s| s.contains("checkmark")).collect();
+        assert_eq!(checks, ["\\text{I}: \\; 3 = 3 \\; \\checkmark", "\\text{II}: \\; 1 + 3 = 4 \\; \\checkmark"]);
+    }
+
+    #[test]
+    fn gauss_jordan_divides_every_pivot_to_one() {
+        let c = system_with("2x + y = 5; x - y = 1", StepDetail::Standard, Elimination::GaussJordan);
+        let (steps, texts) = (latex(&c), texts(&c));
+        assert!(steps[1].contains("& \\text{I} : 2 \\\\"), "{}", steps[1]);
+        assert_eq!(texts[1], "Divide I by its pivot");
+        let reduced = &steps[steps.len() - 2];
+        assert!(
+            reduced.ends_with("\\textcolor{dodgerblue}{1} & \\textcolor{dodgerblue}{0} & \\textcolor{dodgerblue}{2} \\\\ 0 & 1 & 1 \\end{array}\\right)"),
+            "{reduced}"
+        );
+        assert_eq!(texts[texts.len() - 2], "The matrix is in reduced row echelon form");
+        // No back-substitution: the solution is read off.
+        assert!(!steps.iter().any(|s| s.contains("Rightarrow")), "{steps:?}");
+    }
+
+    #[test]
+    fn free_unknowns_are_set_to_parameters_in_the_steps() {
+        let c = system("x + z = 1; y - z = 2", StepDetail::Standard);
+        let steps = latex(&c);
+        let at = steps.iter().position(|s| s == "z = \\lambda").expect("the parameter step");
+        assert_eq!(texts(&c)[at], "z is free: set it to a parameter");
+        assert_eq!(steps[at + 1], "y - \\lambda = 2 \\quad\\Rightarrow\\quad y = 2 + \\lambda");
+        assert_eq!(texts(&c)[at + 1], "Put λ into II and solve for y");
+    }
+
+    #[test]
+    fn a_contradictory_system_shows_the_row_that_contradicts() {
+        for elimination in [Elimination::Gauss, Elimination::GaussJordan] {
+            let c = system_with("x + y = 1; 2x + 2y = 3", StepDetail::Standard, elimination);
+            assert_eq!(c.result, "\\text{no solution}");
+            let steps = latex(&c);
+            let last = steps.len() - 2;
+            assert_eq!(steps[last], "\\text{II}': \\; 0 = 1", "{elimination:?}");
+            assert!(steps[last - 1].contains("\\textcolor{orange}{0} & \\textcolor{orange}{0} & \\textcolor{orange}{1}"));
+            assert_eq!(texts(&c)[last], "Row II′ reads 0 = 1, a contradiction: the system has no solution");
+        }
+        // At Brief no named matrix is shown, so the row has no mark.
+        let c = system("x + y = 1; 2x + 2y = 3", StepDetail::Brief);
+        assert_eq!(latex(&c)[3], "\\text{II}: \\; 0 = 1");
+    }
+
+    #[test]
+    fn the_steps_of_a_system_follow_the_language() {
+        let _german = crate::text::Scope::new(crate::settings::Language::De);
+        let c = system("2x + y = 5; x - y = 1", StepDetail::Standard);
+        assert_eq!(texts(&c)[1], "x aus II eliminieren, dann den gemeinsamen Faktor herausteilen");
+        assert_eq!(texts(&c)[4], "y in I einsetzen und nach x auflösen");
+    }
+
+    #[test]
+    fn symbolic_entries_stay_exact_in_the_matrix() {
+        let c = system("\\pi x + y = 1; x + \\pi y = 2", StepDetail::Standard);
+        let steps = latex(&c);
+        assert!(steps[1].contains("\\pi \\cdot \\text{II} - \\text{I}"), "{}", steps[1]);
+        assert!(steps[2].contains("-1 + \\pi^{2}"), "{}", steps[2]);
     }
 
     fn exact(input: &str) -> String {

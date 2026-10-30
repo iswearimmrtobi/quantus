@@ -6,6 +6,7 @@ pub mod evaluator;
 pub mod solver;
 pub mod substitution;
 pub mod system;
+mod system_steps;
 
 pub use calculator::{Calculation, LatexCalculator, Step, StepKind};
 pub use evaluator::{Evaluator, Variables};
