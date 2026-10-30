@@ -239,3 +239,205 @@ fn a_drawing_without_parts_is_an_error() {
     assert!(error(vec![]).contains("no parts"));
     assert!(error(vec![part("W1", "", (0, 0), (4, 0))]).contains("no parts"));
 }
+
+// The same circuits through the electronics solver (modified nodal analysis) give exactly the same
+// voltages, currents and powers; the reference directions change none of them.
+
+use quantus_core::api::{solve_circuit, CircuitRequest};
+
+/// A part's terminals `a` and `b`, in grid steps.
+type Ends = ((i64, i64), (i64, i64));
+
+/// Where an editor element's terminals sit, in grid steps: a part is four steps long and turned by
+/// quarter turns, as `terminals` in `desktop/src/circuit.ts` places it.
+fn terminals(element: &Value) -> Ends {
+    let at = |key: &str| element[key].as_i64().unwrap_or(0);
+    let (x, y) = (at("x"), at("y"));
+    if element["kind"] == "wire" {
+        let end = |key: &str, or: i64| element[key].as_i64().unwrap_or(or);
+        return ((x / 20, y / 20), (end("x2", x) / 20, end("y2", y) / 20));
+    }
+    let (dx, dy) = match at("rotation").rem_euclid(4) {
+        1 => (0, -40),
+        2 => (40, 0),
+        3 => (0, 40),
+        _ => (-40, 0),
+    };
+    (((x + dx) / 20, (y + dy) / 20), ((x - dx) / 20, (y - dy) / 20))
+}
+
+/// An electronics request, with node numbers, as the Kirchhoff mode's: the same parts with their
+/// terminal points and the given `reversed` flags.
+fn as_kirchhoff(circuit: &Value, points: &[Ends], reversed: &[bool]) -> KirchhoffRequest {
+    let elements: Vec<Value> = circuit["elements"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(points)
+        .zip(reversed)
+        .map(|((element, &(a, b)), &reversed)| {
+            let mut element = element.clone();
+            element["pa"] = json!({ "x": a.0, "y": a.1 });
+            element["pb"] = json!({ "x": b.0, "y": b.1 });
+            element["reversed"] = json!(reversed);
+            element
+        })
+        .collect();
+    serde_json::from_value(json!({ "elements": elements })).unwrap()
+}
+
+/// Every part's U, I, P and R from the Kirchhoff mode equals the electronics mode's, for every
+/// choice of reference directions.
+fn assert_same_as_electronics(name: &str, circuit: &Value, points: &[Ends]) {
+    let settings = Settings::default();
+    let mut electronic = circuit.clone();
+    electronic["elements"].as_array_mut().unwrap().retain(|e| e["kind"] != "ground");
+    let request: CircuitRequest = serde_json::from_value(electronic).unwrap();
+    let expected = solve_circuit(&settings, &request).unwrap_or_else(|e| panic!("{name}: {e}"));
+
+    let n = points.len();
+    let mut seed = n as u64;
+    for round in 0..4 {
+        // All forward, then pseudo-random flags.
+        let reversed: Vec<bool> = (0..n).map(|_| round > 0 && next(&mut seed).is_multiple_of(2)).collect();
+        let solved = kirchhoff(&settings, &as_kirchhoff(circuit, points, &reversed)).unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert_eq!(solved.error, None, "{name}");
+        assert!(!solved.elements.is_empty(), "{name}");
+        for element in &solved.elements {
+            let reference = expected.elements.iter().find(|e| e.id == element.id).unwrap();
+            assert_eq!(element, reference, "{name}, {}, reversed {reversed:?}", element.id);
+        }
+        let balance = solved.power_balance.unwrap();
+        assert_eq!(balance.generated, balance.consumed, "{name}");
+    }
+}
+
+/// A linear congruential generator, so the generated circuits are the same on every run.
+fn next(seed: &mut u64) -> u64 {
+    *seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+    *seed >> 33
+}
+
+#[test]
+fn the_test_circuits_match_the_electronics_mode() {
+    let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test/circuits");
+    for name in ["divider", "parallel", "precision", "current-source", "two-sources", "wheatstone"] {
+        let text = std::fs::read_to_string(directory.join(format!("{name}.json"))).unwrap();
+        let circuit: Value = serde_json::from_str(&text).unwrap();
+        let points: Vec<_> = circuit["elements"].as_array().unwrap().iter().map(terminals).collect();
+        assert_same_as_electronics(name, &circuit, &points);
+    }
+}
+
+/// A ladder of `columns` columns: a part down each column from the top rail to the bottom wire,
+/// and a part along the top between neighbouring columns. Column 0 holds a voltage source, the
+/// others resistors or current sources; along the top run resistors and now and then a voltage
+/// source. Parts point either way, some sources with an internal resistance or conductance.
+fn ladder(columns: i64, seed: &mut u64) -> (Value, Vec<Ends>) {
+    let mut elements = Vec::new();
+    let mut points = Vec::new();
+    let mut wires = 0;
+    let mut wire = |a: (i64, i64), b: (i64, i64), elements: &mut Vec<Value>, points: &mut Vec<_>| {
+        wires += 1;
+        elements.push(json!({ "id": format!("W{wires}"), "kind": "wire" }));
+        points.push((a, b));
+    };
+    // Either way round.
+    let turned = |a: (i64, i64), b: (i64, i64), seed: &mut u64| if next(seed).is_multiple_of(2) { (b, a) } else { (a, b) };
+    for k in 0..columns {
+        let x = 4 * k;
+        let down = match (k, next(seed) % 4) {
+            (0, choice) => {
+                let mut source = json!({ "id": "V1", "kind": "voltageSource", "u": format!("{}V", 1 + next(seed) % 24) });
+                if choice == 0 {
+                    source["internalResistance"] = json!(format!("{}\\Omega", 1 + next(seed) % 9));
+                }
+                source
+            }
+            (_, 0) => {
+                let mut source = json!({ "id": format!("I{k}"), "kind": "currentSource", "i": format!("{}A", 1 + next(seed) % 5) });
+                if next(seed).is_multiple_of(2) {
+                    source["internalConductance"] = json!(format!("{}S", 1 + next(seed) % 4));
+                }
+                source
+            }
+            _ => json!({ "id": format!("R{k}"), "kind": "resistor", "r": format!("{}\\Omega", 1 + next(seed) % 1000) }),
+        };
+        elements.push(down);
+        points.push(turned((x, 2), (x, 6), seed));
+        wire((x, 0), (x, 2), &mut elements, &mut points);
+        wire((x, 6), (x, 8), &mut elements, &mut points);
+        if k + 1 < columns {
+            let along = if next(seed).is_multiple_of(5) {
+                json!({ "id": format!("V{}", k + 2), "kind": "voltageSource", "u": format!("{}V", 1 + next(seed) % 12) })
+            } else {
+                json!({ "id": format!("R{}", 100 + k), "kind": "resistor", "r": format!("{}\\Omega", 1 + next(seed) % 1000) })
+            };
+            elements.push(along);
+            points.push(turned((x, 0), (x + 4, 0), seed));
+            wire((x, 8), (x + 4, 8), &mut elements, &mut points);
+        }
+    }
+    // A node per grid point, as the editor numbers them; the bottom left corner is ground.
+    let mut nodes: Vec<(i64, i64)> = vec![(0, 8)];
+    for (element, &(a, b)) in elements.iter_mut().zip(&points) {
+        for (terminal, point) in [("a", a), ("b", b)] {
+            let node = nodes.iter().position(|&p| p == point).unwrap_or_else(|| {
+                nodes.push(point);
+                nodes.len() - 1
+            });
+            element[terminal] = json!(node);
+        }
+    }
+    (json!({ "nodes": (0..nodes.len()).collect::<Vec<_>>(), "elements": elements }), points)
+}
+
+#[test]
+fn generated_ladders_match_the_electronics_mode() {
+    let mut seed = 7;
+    let mut seen = std::collections::BTreeSet::new();
+    for columns in 2..=7 {
+        for round in 0..6 {
+            let (circuit, points) = ladder(columns, &mut seed);
+            for element in circuit["elements"].as_array().unwrap() {
+                seen.extend(["internalResistance", "internalConductance"].into_iter().filter(|key| element.get(key).is_some()).map(String::from));
+                if element["id"] != "V1" && element["kind"] == "voltageSource" || element["kind"] == "currentSource" {
+                    seen.insert(element["kind"].as_str().unwrap().to_string());
+                }
+            }
+            assert_same_as_electronics(&format!("ladder {columns}/{round}"), &circuit, &points);
+        }
+    }
+    assert_eq!(seen.len(), 4, "{seen:?}");
+}
+
+#[test]
+fn a_flipped_branch_negates_its_current() {
+    let (circuit, points) = ladder(4, &mut 3);
+    let n = points.len();
+    let settings = Settings::default();
+    let forward = kirchhoff(&settings, &as_kirchhoff(&circuit, &points, &vec![false; n])).unwrap();
+    for (k, branch) in forward.branches.iter().enumerate() {
+        // A current source's branch has its voltage as the unknown, which no direction changes.
+        if !branch.current.starts_with("I_{") || branch.current.starts_with("I_{q") {
+            continue;
+        }
+        let lead = circuit["elements"].as_array().unwrap().iter().position(|e| e["id"] == branch.lead.as_str()).unwrap();
+        let mut reversed = vec![false; n];
+        reversed[lead] = true;
+        let flipped = kirchhoff(&settings, &as_kirchhoff(&circuit, &points, &reversed)).unwrap();
+        for (j, (before, after)) in forward.result.iter().zip(&flipped.result).enumerate() {
+            if j != k {
+                assert_eq!(before, after);
+                continue;
+            }
+            let negated = match before.split_once("= -") {
+                Some((name, size)) => format!("{name}= {size}"),
+                None => before.replacen("= ", "= -", 1),
+            };
+            let zero = before.ends_with("= 0\\,\\mathrm{A}");
+            assert_eq!(after, if zero { before } else { &negated }, "{}", branch.lead);
+        }
+        assert_eq!(flipped.elements, forward.elements);
+    }
+}
