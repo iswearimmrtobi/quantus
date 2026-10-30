@@ -65,6 +65,13 @@ interface Props {
   onLatexRequested(seed: string): void;
   /** LaTeX the empty editor shows greyed out. */
   placeholder?: string;
+  /** Whether the field takes the focus when it appears; off for the many fields of a list or grid. */
+  autoFocus?: boolean;
+  /** Backspace in the empty field, where it has nothing to delete. */
+  onBackspaceEmpty?(): void;
+  /** Up or Down that did not move the cursor inside the formula: on to the line above or below. */
+  onLeaveLine?(direction: -1 | 1): void;
+  className?: string;
   ref?: Ref<MathFieldHandle>;
 }
 
@@ -88,17 +95,28 @@ export function toReadableLatex(latex: string): string {
  * The element is created imperatively rather than as JSX — it is a custom element with a
  * property-based API, and React would only ever set attributes.
  */
-export function MathField({ value, onChange, onEnter, onLatexRequested, placeholder, ref }: Props) {
+export function MathField({
+  value,
+  onChange,
+  onEnter,
+  onLatexRequested,
+  placeholder,
+  autoFocus = true,
+  onBackspaceEmpty,
+  onLeaveLine,
+  className,
+  ref,
+}: Props) {
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
-  const callbacks = useRef({ onChange, onEnter, onLatexRequested });
-  callbacks.current = { onChange, onEnter, onLatexRequested };
+  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine });
+  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine };
   /** Der zuletzt aus dem Feld gemeldete Wert — alles andere kommt von außen. */
   const reported = useRef(value);
 
   useEffect(() => {
     const mathfield = new MathfieldElement();
-    mathfield.className = 'math-input';
+    mathfield.className = className ? `math-input ${className}` : 'math-input';
     // No virtual keyboard: the desktop workflow is physical keys and the numpad (F10).
     mathfield.mathVirtualKeyboardPolicy = 'manual';
     mathfield.smartMode = false;
@@ -132,6 +150,24 @@ export function MathField({ value, onChange, onEnter, onLatexRequested, placehol
         return;
       }
 
+      if (event.key === 'Backspace' && mathfield.value === '' && callbacks.current.onBackspaceEmpty) {
+        event.preventDefault();
+        event.stopPropagation();
+        callbacks.current.onBackspaceEmpty();
+        return;
+      }
+
+      // Inside a fraction Up and Down move between numerator and denominator; only when the
+      // cursor stays where it was is there no line in the formula left to go to.
+      if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && callbacks.current.onLeaveLine) {
+        const before = mathfield.position;
+        const direction = event.key === 'ArrowUp' ? -1 : 1;
+        window.setTimeout(() => {
+          if (mathfield.position === before) callbacks.current.onLeaveLine?.(direction);
+        });
+        return;
+      }
+
       if (event.key !== 'Enter') return;
       // Beim Tippen eines Befehls (`\frac`) steht das Feld im Latex-Modus, und Enter ist dort
       // die Taste, die den Befehl abschließt. Nähme die App sie an sich, käme der Nutzer aus
@@ -160,7 +196,7 @@ export function MathField({ value, onChange, onEnter, onLatexRequested, placehol
 
     host.current?.appendChild(mathfield);
     field.current = mathfield;
-    mathfield.focus();
+    if (autoFocus) mathfield.focus();
 
     return () => {
       mathfield.removeEventListener('input', onInput);

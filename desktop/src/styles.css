@@ -1547,6 +1547,40 @@ select option {
   color: var(--text-muted);
 }
 
+.linear-bar + .system-field,
+.linear-bar + .matrix-input {
+  margin-top: 4px;
+}
+
+/* The lines of a system as one block with a bracket in front, like the brace of a written system. */
+.system-field {
+  position: relative;
+}
+.system-field.multiline {
+  padding-left: 12px;
+}
+.system-field.multiline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 7px;
+  border: 1.5px solid var(--text-muted);
+  border-right: none;
+  border-radius: 7px 0 0 7px;
+}
+.system-line + .system-line {
+  border-top-color: var(--hairline);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: -1px;
+}
+.system-line:has(+ .system-line) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .linear-result {
   margin-top: 14px;
 }

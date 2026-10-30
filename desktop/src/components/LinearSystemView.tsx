@@ -5,6 +5,7 @@ import { copyText } from '../shell';
 import type { TextKey } from '../i18n/en';
 import { asError, ErrorRow, Steps } from './AnalysisView';
 import { Katex } from './Katex';
+import { SystemField } from './SystemField';
 
 export type LinearTab = 'equations' | 'matrix';
 
@@ -125,10 +126,15 @@ export function LinearSystemView({ settings, onSettingsChange, input, onInputCha
     window.setTimeout(() => setCopied(false), 1200);
   };
 
+  /** Updates `latest` at once, so a solve right after a change sees it. */
+  const update = (next: LinearInput) => {
+    latest.current = next;
+    onInputChange(next);
+  };
+
   const changeTab = (tab: LinearTab) => {
     if (tab === input.tab) return;
-    latest.current = { ...input, tab };
-    onInputChange(latest.current);
+    update({ ...input, tab });
     void solve();
   };
 
@@ -152,6 +158,14 @@ export function LinearSystemView({ settings, onSettingsChange, input, onInputCha
             <span>{t('linear.complex')}</span>
           </label>
         </div>
+
+        {input.tab === 'equations' && (
+          <SystemField
+            lines={input.lines}
+            onChange={(lines) => update({ ...latest.current, lines })}
+            onSubmit={() => void solve()}
+          />
+        )}
 
         {error && <ErrorRow error={error} soft />}
         {!solution && !error && <p className="analysis-empty">{t(input.tab === 'equations' ? 'linear.empty.equations' : 'linear.empty.matrix')}</p>}

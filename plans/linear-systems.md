@@ -78,7 +78,7 @@ specification; this list says in which order to build them and where.
   the last tab survive a mode switch (like `circuit`).
 - [x] `components/LinearSystemView.tsx`, built like `AnalysisView`: the tabs, the `i` toggle, `Steps`,
   the error in grey for incomplete input, copy.
-- [ ] `components/SystemField.tsx`: the multiline field from the spike.
+- [x] `components/SystemField.tsx`: the multiline field from the spike.
 - [ ] `components/MatrixGrid.tsx`: n and m (m defaults to n, both ≤ 10), the cell `MathField`s,
   Tab/Shift+Tab/Enter, empty = 0, resizing keeps entries, column headers by `unknown_names`.
 - [ ] JSON input: paste and a load button; up to 10 × 10 it fills the grid, above that a read-only
