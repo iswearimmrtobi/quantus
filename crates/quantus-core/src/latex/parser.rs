@@ -1070,6 +1070,10 @@ impl Parser<'_> {
         let (first, rest) = token.text.split_at(1);
         self.tokens[self.index] =
             Token { kind: TokenType::Identifier, text: rest.to_string(), position: token.position + 1 };
+        // `iy` is `i \cdot y` where `i` is the imaginary unit.
+        if first == "i" && self.options.imaginary_i {
+            return Node::Constant { name: first.to_string(), position: token.position };
+        }
         Node::Variable { name: first.to_string(), index: String::new(), position: token.position }
     }
 

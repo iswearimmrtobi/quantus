@@ -7,12 +7,12 @@
 
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
-use super::system::Solution;
-use super::system_steps::unknown_latex;
+use super::system::{Solution, SystemSolution};
+use super::system_steps::{negative, unknown_latex};
 use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
-use crate::settings::{BinomialForm, Settings, StepDetail};
+use crate::settings::{BinomialForm, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
@@ -325,43 +325,7 @@ impl LatexCalculator {
         let system = evaluator.solve_system(&formula.expression, self.settings.elimination)?;
         let names: Vec<String> = system.unknowns.iter().map(|key| unknown_latex(key)).collect();
 
-        let mut parts = Vec::new();
-        let mut first = None;
-        match &system.solution {
-            Solution::Unique(values) => {
-                for (name, value) in names.iter().zip(values) {
-                    let quantity = PhysicalQuantity::dimensionless(value.clone());
-                    let (value, imaginary, shown) = self.present(&quantity)?;
-                    parts.push(format!("{name} = {shown}"));
-                    first.get_or_insert((quantity, value, imaginary));
-                }
-            }
-            Solution::Inconsistent { .. } => parts.push(msg!("\\text{{no solution}}", "\\text{{keine Lösung}}")),
-            Solution::Parametric { free, bound, parameters } => {
-                // After the Gauss method the free unknowns are parameters: `y = λ`.
-                let mut shown = names.clone();
-                for (f, parameter) in free.iter().zip(parameters) {
-                    shown[*f] = parameter.clone();
-                }
-                let mut lines = Vec::new();
-                for (column, constant, terms) in bound {
-                    // `x + k·y = c` is `x = c - k·y`.
-                    let terms: Vec<(&str, Value)> = terms.iter().map(|(f, k)| (shown[*f].as_str(), k.neg())).collect();
-                    lines.push((*column, format!("{} = {}", names[*column], self.combination(constant, &terms, |v| self.entry(v))?)));
-                }
-                if !parameters.is_empty() {
-                    lines.extend(free.iter().map(|f| (*f, format!("{} = {}", names[*f], shown[*f]))));
-                    lines.sort_by_key(|(column, _)| *column);
-                }
-                parts.extend(lines.into_iter().map(|(_, line)| line));
-                let numbers = if self.settings.complex() { "\\mathbb{C}" } else { "\\mathbb{R}" };
-                let free: Vec<&str> = free.iter().map(|f| shown[*f].as_str()).collect();
-                parts.push(format!("{} \\in {numbers}", free.join(", ")));
-            }
-        }
-        let result = parts.join(" \\land ");
-        let (quantity, value, imaginary) =
-            first.unwrap_or_else(|| (PhysicalQuantity::dimensionless(Value::zero()), Decimal::from_i64(0), None));
+        let (result, quantity, value, imaginary) = self.system_result(&system, &names)?;
 
         let symbolic = serializer::expression(&formula.expression);
         let mut steps = vec![Step::new(StepKind::Symbolic, symbolic.clone())];
@@ -390,9 +354,55 @@ impl LatexCalculator {
         })
     }
 
+    /// The solution of a system as one line, with the first unknown's value as the quantity.
+    pub(super) fn system_result(&self, system: &SystemSolution, names: &[String]) -> Result<(String, PhysicalQuantity, Decimal, Option<Decimal>)> {
+        let mut parts = Vec::new();
+        let mut first = None;
+        match &system.solution {
+            Solution::Unique(values) => {
+                for (name, value) in names.iter().zip(values) {
+                    let quantity = PhysicalQuantity::dimensionless(value.clone());
+                    let (decimal, imaginary, mut shown) = self.present(&quantity)?;
+                    // The linear systems mode writes the solution exactly: `\frac{1}{2}`, not `0{,}5`.
+                    if self.settings.mode == Mode::Linear {
+                        shown = self.entry(value)?;
+                    }
+                    parts.push(format!("{name} = {shown}"));
+                    first.get_or_insert((quantity, decimal, imaginary));
+                }
+            }
+            Solution::Inconsistent { .. } => parts.push(msg!("\\text{{no solution}}", "\\text{{keine Lösung}}")),
+            Solution::Parametric { free, bound, parameters } => {
+                // After the Gauss method the free unknowns are parameters: `y = λ`.
+                let mut shown = names.to_vec();
+                for (f, parameter) in free.iter().zip(parameters) {
+                    shown[*f] = parameter.clone();
+                }
+                let mut lines = Vec::new();
+                for (column, constant, terms) in bound {
+                    // `x + k·y = c` is `x = c - k·y`.
+                    let terms: Vec<(&str, Value)> = terms.iter().map(|(f, k)| (shown[*f].as_str(), k.neg())).collect();
+                    lines.push((*column, format!("{} = {}", names[*column], self.combination(constant, &terms, |v| self.entry(v))?)));
+                }
+                if !parameters.is_empty() {
+                    lines.extend(free.iter().map(|f| (*f, format!("{} = {}", names[*f], shown[*f]))));
+                    lines.sort_by_key(|(column, _)| *column);
+                }
+                parts.extend(lines.into_iter().map(|(_, line)| line));
+                let numbers = if self.settings.complex() { "\\mathbb{C}" } else { "\\mathbb{R}" };
+                let free: Vec<&str> = free.iter().map(|f| shown[*f].as_str()).collect();
+                parts.push(format!("{} \\in {numbers}", free.join(", ")));
+            }
+        }
+        let result = parts.join(" \\land ");
+        let (quantity, value, imaginary) =
+            first.unwrap_or_else(|| (PhysicalQuantity::dimensionless(Value::zero()), Decimal::from_i64(0), None));
+        Ok((result, quantity, value, imaginary))
+    }
+
     /// A coefficient in a result: a rational as a whole number or fraction (`\frac{1}{2}`, not
     /// `0{,}5`), anything else as the result would show it.
-    fn entry(&self, value: &Value) -> Result<String> {
+    pub(super) fn entry(&self, value: &Value) -> Result<String> {
         match value.as_rational() {
             Some(rational) => Ok(serializer::expression(&fraction_node(rational))),
             None => Ok(self.present(&PhysicalQuantity::dimensionless(value.clone()))?.2),
@@ -404,7 +414,7 @@ impl LatexCalculator {
     pub(super) fn combination(&self, constant: &Value, terms: &[(&str, Value)], number: impl Fn(&Value) -> Result<String>) -> Result<String> {
         let mut out = if constant.is_zero() && !terms.is_empty() { String::new() } else { number(constant)? };
         for (name, coefficient) in terms {
-            let negative = coefficient.is_negative()?;
+            let negative = negative(coefficient);
             let size = if negative { coefficient.neg() } else { coefficient.clone() };
             let term = if size.is_one() { name.to_string() } else { format!("{} \\cdot {name}", number(&size)?) };
             out = match (out.is_empty(), negative) {

@@ -260,7 +260,7 @@ impl LatexCalculator {
     /// `a \cdot \text{II} - b \cdot \text{I}`, without the factors that are 1.
     fn combination_of_rows(&self, target: Label, a: &Value, source: Label, b: &Value) -> Result<String> {
         let target = if a.is_one() { target.latex() } else { format!("{} \\cdot {}", self.factor(a)?, target.latex()) };
-        let (sign, size) = if b.is_negative()? { ("+", b.neg()) } else { ("-", b.clone()) };
+        let (sign, size) = if negative(b) { ("+", b.neg()) } else { ("-", b.clone()) };
         let source = if size.is_one() { source.latex() } else { format!("{} \\cdot {}", self.factor(&size)?, source.latex()) };
         Ok(format!("{target} {sign} {source}"))
     }
@@ -387,7 +387,7 @@ impl LatexCalculator {
     /// One summand `k \cdot v` of a sum, with its sign: ` - 3 \cdot (-1)`, or at the start
     /// without a leading `+`. `v` is put in brackets if it is negative or a sum.
     fn term(&self, first: bool, coefficient: &Value, value: &str, compound: bool) -> Result<String> {
-        let negative = coefficient.is_negative()?;
+        let negative = negative(coefficient);
         let size = if negative { coefficient.neg() } else { coefficient.clone() };
         let bare = first && !negative && size.is_one();
         let value = if compound || (value.starts_with('-') && !bare) { format!("\\left({value}\\right)") } else { value.to_string() };
@@ -463,7 +463,7 @@ impl LatexCalculator {
     /// An entry that follows an operator: in brackets if it is negative.
     fn signed(&self, value: &Value) -> Result<String> {
         let shown = self.factor(value)?;
-        Ok(if value.is_negative()? { format!("({shown})") } else { shown })
+        Ok(if negative(value) { format!("({shown})") } else { shown })
     }
 }
 
@@ -503,6 +503,18 @@ fn changed_row(operation: &RowOperation) -> Option<usize> {
         RowOperation::Swap(..) => None,
         RowOperation::Combine { target, .. } | RowOperation::Subtract { target, .. } => Some(*target),
         RowOperation::Scale { row, .. } | RowOperation::Divide { row, .. } => Some(*row),
+    }
+}
+
+/// Whether an entry is written with a minus sign: a negative real, or a complex number whose
+/// real part is negative, or zero with a negative imaginary part (`-i`, `-1 + i`).
+pub(super) fn negative(value: &Value) -> bool {
+    match value.is_negative() {
+        Ok(negative) => negative,
+        Err(_) => value.re_im().is_some_and(|(re, im)| {
+            let leading = if re.is_zero() { im } else { re };
+            leading.is_negative().unwrap_or(false)
+        }),
     }
 }
 

@@ -3,6 +3,7 @@
 pub mod calculator;
 pub mod derivative;
 pub mod evaluator;
+pub mod linear_system;
 pub mod solver;
 pub mod substitution;
 pub mod system;

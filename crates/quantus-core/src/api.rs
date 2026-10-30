@@ -200,6 +200,14 @@ pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableR
     Ok(crate::analysis::interface::value_table(settings, request)?)
 }
 
+pub use crate::eval::linear_system::{LinearSystemRequest, LinearSystemResponse};
+
+/// A system of linear equations, typed or as a matrix (linear systems mode). It uses no session
+/// variables, so like `analyze` it needs the settings only.
+pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Result<LinearSystemResponse, ApiError> {
+    Ok(crate::eval::linear_system::linear_system(settings, request)?)
+}
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }

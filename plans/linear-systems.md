@@ -48,7 +48,7 @@ specification; this list says in which order to build them and where.
 
 - [x] `Mode::Linear` in `settings.rs` and `'linear'` in `api.ts`; settings `unknown_names`
   (`Indexed` default, `Letters`) and `linear_complex` (default off).
-- [ ] `crates/quantus-core/src/api.rs`: `linear_system(settings, LinearSystemRequest)`. The request is
+- [x] `crates/quantus-core/src/api.rs`: `linear_system(settings, LinearSystemRequest)`. The request is
   `Equations(latex)` or `Matrix { unknowns, rows }` (JSON input is parsed into `Matrix` by the
   frontend, the engine validates it). It evaluates without session variables; with
   `linear_complex` off, `i` is an unknown. Empty cells are 0. Cells with units are an error.

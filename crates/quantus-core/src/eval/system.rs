@@ -85,25 +85,7 @@ impl Evaluator<'_> {
         for equation in equations {
             matrix.push(self.coefficients(equation, &unknowns)?);
         }
-        let n = unknowns.len();
-        let (reduction, solution) = match method {
-            Method::Gauss => {
-                let echelon = linear::gauss(matrix.clone(), n)?;
-                if let Some(row) = echelon.contradiction() {
-                    (Reduction::Gauss { echelon, back: Vec::new() }, Solution::Inconsistent { row })
-                } else {
-                    let back = back_substitute(&echelon, n)?;
-                    let solution = gauss_solution(&echelon, &back, &unknowns);
-                    (Reduction::Gauss { echelon, back }, solution)
-                }
-            }
-            Method::GaussJordan => {
-                let elimination = linear::eliminate(matrix.clone(), n, true)?;
-                let solution = jordan_solution(&elimination, n);
-                (Reduction::GaussJordan(elimination), solution)
-            }
-        };
-        Ok(SystemSolution { unknowns, matrix, reduction, solution })
+        solve_matrix(unknowns, matrix, method)
     }
 
     /// The row `a_1 … a_n | b` of a linear equation `a·x = b` in the given unknowns.
@@ -155,6 +137,30 @@ impl Evaluator<'_> {
         row.push(constant.neg());
         Ok(row)
     }
+}
+
+/// Reduces `[A | b]` in the given unknowns by the method and solves it. A typed system and a
+/// matrix from the linear systems mode both end here.
+pub(crate) fn solve_matrix(unknowns: Vec<String>, matrix: Vec<Vec<Value>>, method: Method) -> Result<SystemSolution> {
+    let n = unknowns.len();
+    let (reduction, solution) = match method {
+        Method::Gauss => {
+            let echelon = linear::gauss(matrix.clone(), n)?;
+            if let Some(row) = echelon.contradiction() {
+                (Reduction::Gauss { echelon, back: Vec::new() }, Solution::Inconsistent { row })
+            } else {
+                let back = back_substitute(&echelon, n)?;
+                let solution = gauss_solution(&echelon, &back, &unknowns);
+                (Reduction::Gauss { echelon, back }, solution)
+            }
+        }
+        Method::GaussJordan => {
+            let elimination = linear::eliminate(matrix.clone(), n, true)?;
+            let solution = jordan_solution(&elimination, n);
+            (Reduction::GaussJordan(elimination), solution)
+        }
+    };
+    Ok(SystemSolution { unknowns, matrix, reduction, solution })
 }
 
 /// The solution read off the reduced row echelon form.
