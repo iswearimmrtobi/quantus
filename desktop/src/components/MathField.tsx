@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref } from 'react';
 import { MathfieldElement } from 'mathlive';
 
 // MathLive fetches its fonts by URL; the copy in public/fonts is what it finds (see
@@ -236,6 +236,12 @@ export function MathField({
     // Only on mount: the field owns its content from here on, `value` syncs below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // WebKit fires no blur when a focused element is removed, so MathLive would keep a removed
+  // field as the focused one and crash blurring it once another field takes the focus (a new
+  // line of a system). A layout cleanup runs before React removes the element, while MathLive
+  // can still blur it; the cleanup above runs after, when the field is already disposed.
+  useLayoutEffect(() => () => field.current?.blur(), []);
 
   /**
    * Änderungen von außen — Verlauf, neue Rechnung, eingefügte Variablen — ins Feld schreiben.
