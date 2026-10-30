@@ -1,4 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { api, ApiError, type CircuitResponse, type CircuitValue, type Settings } from '../api';
 import {
   FIELDS,
@@ -21,6 +31,7 @@ import {
   type Terminal,
 } from '../circuit';
 import { useT } from '../i18n';
+import { body, nearest, obstacles, placeLabels, type LabelRequest, type Placement, type Side } from '../labelLayout';
 import { Katex } from './Katex';
 
 interface Props {
@@ -109,6 +120,59 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
 
   const results = useMemo(() => new Map(response?.elements.map((e) => [e.id, e])), [response]);
   const voltages = useMemo(() => new Map(response?.nodes.map((n) => [n.id, n.voltage])), [response]);
+
+  // The labels are laid out from their real sizes, which only the browser knows once KaTeX has
+  // set them. Offset sizes ignore the zoom transform, so they are already in drawing units.
+  const [sizes, setSizes] = useState<Map<string, { w: number; h: number }>>(() => new Map());
+  const [observer] = useState(
+    () =>
+      new ResizeObserver((entries) =>
+        setSizes((previous) => {
+          let next = previous;
+          for (const entry of entries) {
+            const target = entry.target as HTMLElement;
+            const id = target.dataset.label!;
+            const size = { w: target.offsetWidth, h: target.offsetHeight };
+            const old = previous.get(id);
+            if (old && old.w === size.w && old.h === size.h) continue;
+            if (next === previous) next = new Map(previous);
+            next.set(id, size);
+          }
+          return next;
+        }),
+      ),
+  );
+  const measure = useCallback(
+    (label: HTMLDivElement | null) => {
+      if (!label) return;
+      observer.observe(label);
+      return () => observer.unobserve(label);
+    },
+    [observer],
+  );
+
+  /** Part labels first, in drawing order, then the node voltages, which give way to them. */
+  const labels = useMemo(() => {
+    const list: (Place & { id: string; element?: EditorElement; voltage?: CircuitValue })[] = [];
+    for (const element of elements) {
+      const place = partPlace(element);
+      if (place) list.push({ ...place, id: element.id, element });
+    }
+    for (const [id, point] of nodes.pointOf) {
+      const voltage = voltages.get(id);
+      if (voltage) list.push({ ...nodePlace(point), id: `node-${id}`, voltage });
+    }
+    return list;
+  }, [elements, nodes, voltages]);
+
+  const placements = useMemo(() => {
+    const requests: LabelRequest[] = [];
+    for (const label of labels) {
+      const size = sizes.get(label.id);
+      if (size) requests.push({ ...label, ...size });
+    }
+    return placeLabels(requests, obstacles(elements));
+  }, [labels, sizes, elements]);
 
   const update = (id: string, change: Partial<EditorElement>) =>
     onChange(elements.map((e) => (e.id === id ? { ...e, ...change } : e)));
@@ -382,6 +446,15 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
               />
             ))}
 
+            {labels.map((label) => {
+              const placement = placements.get(label.id);
+              if (!placement?.displaced) return null;
+              const centre = { x: placement.x + placement.w / 2, y: placement.y + placement.h / 2 };
+              const from = label.element ? nearest(body(label.element), centre) : label.anchor;
+              const to = nearest(placement, from);
+              return <line key={label.id} className="label-leader" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
+            })}
+
             {drag?.type === 'marquee' && (
               <rect
                 className="marquee"
@@ -420,18 +493,28 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
             className="circuit-labels-drawing"
             style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}
           >
-            {elements.map((element) => (
-              <PartLabel key={element.id} element={element} result={results.get(element.id)} shown={shown} />
-            ))}
-            {[...nodes.pointOf].map(([id, point]) => {
-              const voltage = voltages.get(id);
-              if (!voltage) return null;
-              return (
-                <div key={`node-${id}`} className="node-label" style={{ left: point.x + 6, top: point.y - 4 }}>
-                  <Value label="φ" value={voltage} />
+            {labels.map((label) =>
+              label.element ? (
+                <PartLabel
+                  key={label.id}
+                  element={label.element}
+                  result={results.get(label.element.id)}
+                  shown={shown}
+                  style={labelStyle(placements.get(label.id), label.anchor)}
+                  measure={measure}
+                />
+              ) : (
+                <div
+                  key={label.id}
+                  className="node-label"
+                  style={labelStyle(placements.get(label.id), label.anchor)}
+                  ref={measure}
+                  data-label={label.id}
+                >
+                  <Value label="φ" value={label.voltage!} />
                 </div>
-              );
-            })}
+              ),
+            )}
           </div>
         </div>
 
@@ -558,52 +641,62 @@ function Part({ element, selected, onPointerDown, onTerminal, onEnd }: PartProps
   );
 }
 
-type Side = 'below' | 'above' | 'right' | 'left';
-
-/** Where a label sits against its point, so the block grows away from the part. */
-const SIDES: Record<Side, string> = {
-  below: 'translate(-50%, 0)',
-  above: 'translate(-50%, -100%)',
-  right: 'translate(0, -50%)',
-  left: 'translate(-100%, -50%)',
-};
+type Place = Pick<LabelRequest, 'anchor' | 'sides' | 'gap' | 'corner'>;
 
 /**
- * The ID and the voltage and current of a part, beside it: under a horizontal part, right of a
- * vertical one, on the other side if a potentiometer's wiper is there. An ideal wire has no drop,
- * so it only gets a label once it has a material or a resistance; the inspector shows the rest.
+ * Where a part's label would like to sit: under a horizontal part, right of a vertical one, on the
+ * other side if a potentiometer's wiper is there; the layout takes the next free spot if that one
+ * is not. An ideal wire has no drop, so it only gets a label once it has a material or a
+ * resistance; the inspector shows the rest.
  */
+function partPlace(element: EditorElement): Place | null {
+  if (element.kind === 'ground') return null;
+  if (element.kind === 'wire') {
+    if (!element.material && !element.rOverride?.trim()) return null;
+    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
+    const anchor = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const across = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
+    return { anchor, gap: 8, sides: across ? ['above', 'below', 'right', 'left'] : ['right', 'left', 'above', 'below'] };
+  }
+  const vertical = element.rotation % 2 === 1;
+  const wiper = terminals(element).wiper;
+  const flipped = wiper !== undefined && (vertical ? wiper.x > element.x : wiper.y > element.y);
+  let sides: Side[] = vertical ? ['right', 'left', 'below', 'above'] : ['below', 'above', 'right', 'left'];
+  if (flipped) sides = [sides[1], sides[0], sides[2], sides[3]];
+  return { anchor: { x: element.x, y: element.y }, gap: 18, sides };
+}
+
+/** A node's voltage sits above and right of its point, clear of the wires that meet there. */
+const nodePlace = (point: Point): Place => ({
+  anchor: point,
+  gap: 8,
+  corner: true,
+  sides: ['above', 'below', 'right', 'left'],
+});
+
+/** Where a label is drawn: at its placement once measured, until then hidden at its anchor. */
+function labelStyle(placement: Placement | undefined, anchor: Point): CSSProperties {
+  return placement
+    ? { left: placement.x, top: placement.y }
+    : { left: anchor.x, top: anchor.y, visibility: 'hidden' };
+}
+
+/** The ID and the chosen results of a part. */
 function PartLabel({
   element,
   result,
   shown,
+  style,
+  measure,
 }: {
   element: EditorElement;
   result: CircuitResponse['elements'][number] | undefined;
   shown: Shown;
+  style: CSSProperties;
+  measure: Ref<HTMLDivElement>;
 }) {
-  if (element.kind === 'ground') return null;
-  let at: Point;
-  let side: Side;
-  if (element.kind === 'wire') {
-    if (!element.material && !element.rOverride?.trim()) return null;
-    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
-    at = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    side = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y) ? 'above' : 'right';
-    at = side === 'above' ? { x: at.x, y: at.y - 8 } : { x: at.x + 10, y: at.y };
-  } else {
-    const vertical = element.rotation % 2 === 1;
-    const wiper = terminals(element).wiper;
-    side = vertical ? 'right' : 'below';
-    if (wiper && (vertical ? wiper.x > element.x : wiper.y > element.y)) side = vertical ? 'left' : 'above';
-    const gap = 18;
-    at = {
-      x: element.x + (side === 'right' ? gap : side === 'left' ? -gap : 0),
-      y: element.y + (side === 'below' ? gap : side === 'above' ? -gap : 0),
-    };
-  }
   return (
-    <div className="part-label" style={{ left: at.x, top: at.y, transform: SIDES[side] }}>
+    <div className="part-label" style={style} ref={measure} data-label={element.id}>
       <span className="part-id">{element.id}</span>
       {result &&
         QUANTITIES.map(({ key, symbol }) => {

@@ -1009,6 +1009,12 @@ select option {
 .part .end:hover {
   fill: var(--cyan);
 }
+.label-leader {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
 .wire-ghost {
   stroke: var(--cyan);
   stroke-width: 2;
@@ -1051,7 +1057,6 @@ select option {
   background: color-mix(in srgb, var(--bg) 82%, transparent);
 }
 .node-label {
-  transform: translate(0, -100%);
   font-size: 10px;
   opacity: 0.8;
 }
