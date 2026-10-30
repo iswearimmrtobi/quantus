@@ -12,7 +12,7 @@ use super::system_steps::unknown_latex;
 use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
-use crate::settings::{BinomialForm, Mode, Settings, StepDetail};
+use crate::settings::{BinomialForm, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
@@ -163,7 +163,7 @@ impl LatexCalculator {
         let formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
-            .with_mode(self.settings.mode);
+            .with_mode(self.settings.evaluation_mode());
         if let Node::System { .. } = formula.expression {
             return self.evaluate_system(&evaluator, formula, variables);
         }
@@ -354,7 +354,7 @@ impl LatexCalculator {
                     lines.sort_by_key(|(column, _)| *column);
                 }
                 parts.extend(lines.into_iter().map(|(_, line)| line));
-                let numbers = if self.settings.mode == Mode::Imaginary { "\\mathbb{C}" } else { "\\mathbb{R}" };
+                let numbers = if self.settings.complex() { "\\mathbb{C}" } else { "\\mathbb{R}" };
                 let free: Vec<&str> = free.iter().map(|f| shown[*f].as_str()).collect();
                 parts.push(format!("{} \\in {numbers}", free.join(", ")));
             }
@@ -429,7 +429,7 @@ impl LatexCalculator {
                 };
                 Ok((value, None, result))
             }
-            Err(crate::QuantusError::NotReal(message)) if self.settings.mode == Mode::Imaginary => {
+            Err(crate::QuantusError::NotReal(message)) if self.settings.complex() => {
                 let not_real = || crate::QuantusError::NotReal(message.clone());
                 let (re, im) = quantity.value.re_im().ok_or_else(not_real)?;
                 let exact = self.settings.exact_roots.then(|| exact::format_complex(&re, &im)).flatten();
@@ -465,7 +465,7 @@ impl LatexCalculator {
         }
         // The working between the input and the result, as far as the levels ask for it.
         if self.settings.step_detail > StepDetail::Brief && !matches!(expression, Node::Equation { .. }) {
-            let evaluator = Evaluator::new(variables).with_precision(self.precision).with_mode(self.settings.mode);
+            let evaluator = Evaluator::new(variables).with_precision(self.precision).with_mode(self.settings.evaluation_mode());
             steps.extend(common_unit_line(&expression, &evaluator, prefix));
             // Each part evaluated once more: only where it is shown.
             if self.settings.step_detail == StepDetail::Maximal {

@@ -72,6 +72,8 @@ export const DEFAULT_SETTINGS: Settings = {
   stepDetail: 'standard',
   cancelMarks: true,
   elimination: 'gauss',
+  unknownNames: 'indexed',
+  linearComplex: false,
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {

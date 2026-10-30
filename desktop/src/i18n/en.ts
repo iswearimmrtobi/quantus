@@ -127,6 +127,8 @@ export const en = {
   'settings.language': 'Language',
   'mode.analysis': 'Analysis',
   'mode.analysis.hint': 'Curve sketch of a function f(x): letters are variables, as in Algebra.',
+  'mode.linear': 'Linear systems',
+  'mode.linear.hint': 'Systems of linear equations, typed or as a matrix, solved exactly. Letters are unknowns; session variables are not used.',
   'analysis.tab.sketch': 'Curve sketch',
   'analysis.tab.tangent': 'Tangent / normal',
   'analysis.tab.area': 'Area',

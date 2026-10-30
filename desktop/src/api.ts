@@ -134,13 +134,14 @@ export interface CircuitResponse {
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
-export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis';
+export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 export type ConditionalIdentities = 'withCondition' | 'alwaysValid';
 export type StepDetail = 'none' | 'brief' | 'standard' | 'detailed' | 'maximal';
 export type Elimination = 'gauss' | 'gaussJordan';
+export type UnknownNames = 'indexed' | 'letters';
 
 /** What `quantus_core::settings::Settings` serialises to. */
 export interface Settings {
@@ -164,6 +165,10 @@ export interface Settings {
   cancelMarks: boolean;
   /** How the steps reduce a system of linear equations: school Gauss or Gauss–Jordan. */
   elimination: Elimination;
+  /** How the linear systems mode names the unknowns of a matrix: `x_1 … x_n` or `x, y, z, a, …`. */
+  unknownNames: UnknownNames;
+  /** Whether `i` is the imaginary unit in the linear systems mode rather than an unknown. */
+  linearComplex: boolean;
 }
 
 /** A segment of the graph: points in order, broken at poles and gaps. */

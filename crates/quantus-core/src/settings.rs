@@ -96,6 +96,17 @@ pub enum Elimination {
     GaussJordan,
 }
 
+/// How the linear systems mode names the unknowns of a matrix.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum UnknownNames {
+    /// `x_1, x_2, …, x_n`.
+    #[default]
+    Indexed,
+    /// `x, y, z, a, b, …, w` in the order of the unknowns, then `x_1, x_2, …`.
+    Letters,
+}
+
 /// What the calculator is used for. It decides which symbols mean something on their own.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -111,6 +122,9 @@ pub enum Mode {
     Electronics,
     /// The curve sketch of a function of one variable. Inputs are read as in `Algebra`.
     Analysis,
+    /// Systems of linear equations, typed or as a matrix. Inputs are read as in `Algebra`, or as
+    /// in `Imaginary` with `linear_complex`.
+    Linear,
 }
 
 /// The language of the texts the engine writes itself (the electronics notes and errors).
@@ -147,6 +161,9 @@ pub struct Settings {
     /// Whether a cancelled factor is struck through (`\cancel`) rather than coloured.
     pub cancel_marks: bool,
     pub elimination: Elimination,
+    pub unknown_names: UnknownNames,
+    /// Whether `i` is the imaginary unit in the linear systems mode rather than an unknown.
+    pub linear_complex: bool,
 }
 
 impl Default for Settings {
@@ -167,6 +184,8 @@ impl Default for Settings {
             step_detail: StepDetail::Standard,
             cancel_marks: true,
             elimination: Elimination::Gauss,
+            unknown_names: UnknownNames::Indexed,
+            linear_complex: false,
         }
     }
 }
@@ -187,8 +206,23 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis),
-            imaginary_i: self.mode == Mode::Imaginary,
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear),
+            imaginary_i: self.complex(),
+        }
+    }
+
+    /// Whether `i` is the imaginary unit and results may be complex.
+    pub fn complex(&self) -> bool {
+        self.mode == Mode::Imaginary || (self.mode == Mode::Linear && self.linear_complex)
+    }
+
+    /// The mode the evaluator works in: the linear systems mode evaluates as `Algebra`, or as
+    /// `Imaginary` with `linear_complex`.
+    pub fn evaluation_mode(&self) -> Mode {
+        match self.mode {
+            Mode::Linear if self.linear_complex => Mode::Imaginary,
+            Mode::Linear => Mode::Algebra,
+            mode => mode,
         }
     }
 
@@ -252,7 +286,9 @@ mod tests {
                 "quadraticFormula": "auto",
                 "stepDetail": "standard",
                 "cancelMarks": true,
-                "elimination": "gauss"
+                "elimination": "gauss",
+                "unknownNames": "indexed",
+                "linearComplex": false
             })
         );
     }
@@ -266,6 +302,18 @@ mod tests {
         assert_eq!((options(Mode::Electronics).units, options(Mode::Electronics).imaginary_i), (true, false));
         assert_eq!((options(Mode::Analysis).units, options(Mode::Analysis).imaginary_i), (false, false));
         assert_eq!(serde_json::to_value(Mode::Analysis).unwrap(), json!("analysis"));
+    }
+
+    #[test]
+    fn the_linear_mode_reads_i_by_its_toggle() {
+        let linear = |linear_complex| Settings { mode: Mode::Linear, linear_complex, ..Settings::default() };
+        assert_eq!((linear(false).parse_options().units, linear(false).parse_options().imaginary_i), (false, false));
+        assert!(linear(true).parse_options().imaginary_i && linear(true).complex());
+        // The toggle belongs to the linear systems mode only.
+        assert!(!Settings { linear_complex: true, ..Settings::default() }.complex());
+        assert_eq!((linear(false).evaluation_mode(), linear(true).evaluation_mode()), (Mode::Algebra, Mode::Imaginary));
+        let parsed: Settings = serde_json::from_value(json!({ "mode": "linear", "unknownNames": "letters" })).unwrap();
+        assert_eq!((parsed.mode, parsed.unknown_names), (Mode::Linear, UnknownNames::Letters));
     }
 
     #[test]

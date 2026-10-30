@@ -128,6 +128,8 @@ export const de: Record<TextKey, string> = {
   'settings.language': 'Sprache',
   'mode.analysis': 'Analysis',
   'mode.analysis.hint': 'Kurvendiskussion einer Funktion f(x): Buchstaben sind Variablen, wie in Algebra.',
+  'mode.linear': 'LGS',
+  'mode.linear.hint': 'Lineare Gleichungssysteme, als Gleichungen oder als Matrix, exakt gelöst. Buchstaben sind Unbekannte; Sitzungsvariablen werden nicht verwendet.',
   'analysis.tab.sketch': 'Kurvendiskussion',
   'analysis.tab.tangent': 'Tangente / Normale',
   'analysis.tab.area': 'Fläche',

@@ -46,7 +46,7 @@ specification; this list says in which order to build them and where.
 
 ### Phase 3: LGS engine and API (section 2, backend)
 
-- [ ] `Mode::Linear` in `settings.rs` and `'linear'` in `api.ts`; settings `unknown_names`
+- [x] `Mode::Linear` in `settings.rs` and `'linear'` in `api.ts`; settings `unknown_names`
   (`Indexed` default, `Letters`) and `linear_complex` (default off).
 - [ ] `crates/quantus-core/src/api.rs`: `linear_system(settings, LinearSystemRequest)`. The request is
   `Equations(latex)` or `Matrix { unknowns, rows }` (JSON input is parsed into `Matrix` by the
