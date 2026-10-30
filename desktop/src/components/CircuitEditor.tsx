@@ -165,14 +165,21 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
     return list;
   }, [elements, nodes, voltages]);
 
+  // While parts are dragged, every label keeps its spot as long as it stays free, so the labels do
+  // not jump about under the pointer; dropping lays them out afresh.
+  const dragging = drag?.type === 'move' || drag?.type === 'end';
+  const lastPlacements = useRef<Map<string, Placement>>(new Map());
   const placements = useMemo(() => {
     const requests: LabelRequest[] = [];
     for (const label of labels) {
       const size = sizes.get(label.id);
       if (size) requests.push({ ...label, ...size });
     }
-    return placeLabels(requests, obstacles(elements));
-  }, [labels, sizes, elements]);
+    return placeLabels(requests, obstacles(elements), dragging ? lastPlacements.current : undefined);
+  }, [labels, sizes, elements, dragging]);
+  useEffect(() => {
+    lastPlacements.current = placements;
+  }, [placements]);
 
   const update = (id: string, change: Partial<EditorElement>) =>
     onChange(elements.map((e) => (e.id === id ? { ...e, ...change } : e)));

@@ -30,6 +30,8 @@ export interface LabelRequest {
 export interface Placement extends Rect {
   /** Whether the label had to move away from its anchor, so a line should lead to it. */
   displaced: boolean;
+  /** The top left corner relative to the anchor, so the spot can be kept when the anchor moves. */
+  offset: Point;
 }
 
 /** Space kept free around every label. */
@@ -82,38 +84,59 @@ function bounds(rects: Rect[]): { x0: number; y0: number; x1: number; y1: number
  * Greedy, in the order given: each label takes the first free candidate, trying ring after ring
  * outwards and on each ring every side and slide. Beyond the bounding box of everything placed so
  * far every candidate is free, so the search always ends, at the latest just outside that box.
+ *
+ * With `previous`, a label whose size has not changed first tries the spot it had there, at the
+ * same offset from its anchor, so it moves along with its part and stays put while others move.
+ * Those that keep their spot are placed before the rest, which then search around them.
  */
-export function placeLabels(labels: LabelRequest[], obstacles: Rect[]): Map<string, Placement> {
+export function placeLabels(
+  labels: LabelRequest[],
+  obstacles: Rect[],
+  previous?: Map<string, Placement>,
+): Map<string, Placement> {
   const taken: Rect[] = [...obstacles];
   const placed = new Map<string, Placement>();
+  const free = (r: Rect) => !taken.some((t) => overlaps(r, t));
+  const take = (label: LabelRequest, r: Rect, displaced: boolean) => {
+    const placement = { ...r, displaced, offset: { x: r.x - label.anchor.x, y: r.y - label.anchor.y } };
+    taken.push(placement);
+    placed.set(label.id, placement);
+  };
+
   for (const label of labels) {
-    const free = (r: Rect) => !taken.some((t) => overlaps(r, t));
+    const before = previous?.get(label.id);
+    if (!before || before.w !== label.w || before.h !== label.h) continue;
+    const spot = { x: label.anchor.x + before.offset.x, y: label.anchor.y + before.offset.y, w: label.w, h: label.h };
+    if (free(spot)) take(label, spot, before.displaced);
+  }
+
+  for (const label of labels) {
+    if (placed.has(label.id)) continue;
     const all = bounds([...taken, { x: label.anchor.x, y: label.anchor.y, w: 0, h: 0 }]);
     // The distance at which a box on any side has left the bounding box completely.
     const reach =
       Math.max(label.anchor.x - all.x0, all.x1 - label.anchor.x, label.anchor.y - all.y0, all.y1 - label.anchor.y) +
       MARGIN +
       1;
-    let found: Placement | null = null;
+    let found: { box: Rect; displaced: boolean } | null = null;
     for (let ring = 0; !found; ring += 1) {
       const d = label.gap + ring * STEP;
       if (d > reach) {
-        found = { ...box(label, label.sides[0], Math.max(d, reach), 0), displaced: true };
+        found = { box: box(label, label.sides[0], d, 0), displaced: true };
         break;
       }
       for (const side of label.sides) {
         for (const slide of slides(label, side)) {
           const candidate = box(label, side, d, slide);
           if (free(candidate)) {
-            found = { ...candidate, displaced: ring > 0 };
+            found = { box: candidate, displaced: ring > 0 };
             break;
           }
         }
         if (found) break;
       }
     }
-    taken.push(found);
-    placed.set(label.id, found);
+    take(label, found.box, found.displaced);
   }
   return placed;
 }
