@@ -1581,6 +1581,59 @@ select option {
   border-bottom-right-radius: 0;
 }
 
+.matrix-input {
+  display: grid;
+  gap: 12px;
+}
+
+.matrix-size {
+  width: 64px;
+}
+
+/* n coefficient columns and the right-hand side, a bar between them as in `[A | b]`. */
+.matrix-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(64px, 1fr)) minmax(64px, 1fr);
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.matrix-head {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.matrix-cell {
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-raised);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  min-width: 0;
+}
+.matrix-cell:focus-within {
+  border-color: var(--cyan-dim);
+}
+.matrix-cell.rhs,
+.matrix-head.rhs {
+  margin-left: 10px;
+  position: relative;
+}
+.matrix-cell.rhs::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: -2px;
+  bottom: -2px;
+  border-left: 1.5px solid var(--text-muted);
+}
+
+.cell-input {
+  font-size: 16px;
+  text-align: center;
+}
+
 .linear-result {
   margin-top: 14px;
 }

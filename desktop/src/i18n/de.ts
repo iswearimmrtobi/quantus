@@ -181,4 +181,6 @@ export const de: Record<TextKey, string> = {
   'linear.empty.equations': 'Eine Gleichung pro Zeile; Enter beginnt die nächste Zeile und löst.',
   'linear.empty.matrix': 'Koeffizienten und rechte Seite eintragen; leere Felder sind 0. Enter löst.',
   'linear.copy.hint': 'Ergebnis und Rechenweg als align*-Block',
+  'linear.unknowns': 'Unbekannte',
+  'linear.equations': 'Gleichungen',
 };

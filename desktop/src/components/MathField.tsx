@@ -61,8 +61,11 @@ interface Props {
   value: string;
   onChange(latex: string): void;
   onEnter(): void;
-  /** Der Nutzer hat `\` getippt und will LaTeX schreiben — [seed] ist der Text für das Quelltextfeld. */
-  onLatexRequested(seed: string): void;
+  /**
+   * Der Nutzer hat `\` getippt und will LaTeX schreiben — [seed] ist der Text für das Quelltextfeld.
+   * Without it MathLive takes the key itself, for a command name such as `\pi` (the matrix cells).
+   */
+  onLatexRequested?(seed: string): void;
   /** LaTeX the empty editor shows greyed out. */
   placeholder?: string;
   /** Whether the field takes the focus when it appears; off for the many fields of a list or grid. */
@@ -71,6 +74,8 @@ interface Props {
   onBackspaceEmpty?(): void;
   /** Up or Down that did not move the cursor inside the formula: on to the line above or below. */
   onLeaveLine?(direction: -1 | 1): void;
+  /** Tab or Shift+Tab with no placeholder left to jump to in that direction: on to the next field. */
+  onTab?(direction: -1 | 1): void;
   className?: string;
   ref?: Ref<MathFieldHandle>;
 }
@@ -104,13 +109,14 @@ export function MathField({
   autoFocus = true,
   onBackspaceEmpty,
   onLeaveLine,
+  onTab,
   className,
   ref,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
-  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine });
-  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine };
+  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab });
+  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab };
   /** Der zuletzt aus dem Feld gemeldete Wert — alles andere kommt von außen. */
   const reported = useRef(value);
 
@@ -141,7 +147,7 @@ export function MathField({
       // Der Backslash ist die Tür zum Quelltext (F2). MathLive hätte hier seinen eigenen
       // Latex-Modus angeboten, in dem aber nur der Befehlsname steht und nicht die Formel —
       // Argumente, Klammern und alles Verschachtelte gehen dort nicht von Hand zu tippen.
-      if (event.key === '\\' && mathfield.mode !== 'latex') {
+      if (event.key === '\\' && mathfield.mode !== 'latex' && callbacks.current.onLatexRequested) {
         // stopPropagation, nicht nur preventDefault: MathLive verarbeitet die Taste im
         // Inneren des Elements und würde sonst trotzdem seinen eigenen Latex-Modus öffnen.
         event.preventDefault();
@@ -165,6 +171,16 @@ export function MathField({
         window.setTimeout(() => {
           if (mathfield.position === before) callbacks.current.onLeaveLine?.(direction);
         });
+        return;
+      }
+
+      if (event.key === 'Tab' && callbacks.current.onTab) {
+        event.preventDefault();
+        event.stopPropagation();
+        const before = mathfield.position;
+        const direction = event.shiftKey ? -1 : 1;
+        mathfield.executeCommand(direction === 1 ? 'moveToNextPlaceholder' : 'moveToPreviousPlaceholder');
+        if (mathfield.position === before) callbacks.current.onTab(direction);
         return;
       }
 

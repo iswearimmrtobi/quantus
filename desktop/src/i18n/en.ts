@@ -180,6 +180,8 @@ export const en = {
   'linear.empty.equations': 'Type one equation per line; Enter starts the next line and solves.',
   'linear.empty.matrix': 'Fill in the coefficients and the right-hand side; empty cells are 0. Enter solves.',
   'linear.copy.hint': 'Result and steps as an align* block',
+  'linear.unknowns': 'Unknowns',
+  'linear.equations': 'Equations',
 };
 
 export type TextKey = keyof typeof en;
