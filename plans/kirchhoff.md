@@ -149,7 +149,7 @@ Each phase is one or more commits on `dev`. Tick a box when its commit lands.
 ### Phase 6: Kirchhoff page
 
 - [x] Mode switch entry, `KirchhoffView`, separate circuit state in `App.tsx`, load and save.
-- [ ] Overlay: junction names, current arrows that flip on click, loop arrows, highlight on hover.
+- [x] Overlay: junction names, current arrows that flip on click, loop arrows, highlight on hover.
 - [ ] Working panel under the canvas with a splitter, copy, all strings in `en.ts` and `de.ts`.
 - [ ] Check in the running app (`npm run dev`).
 

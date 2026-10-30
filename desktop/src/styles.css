@@ -1086,6 +1086,73 @@ select option {
   color: var(--amber);
 }
 
+/* ---------- Kirchhoff: marks over the schematic ---------- */
+
+.part.highlighted .symbol,
+.part.highlighted .wire {
+  stroke: var(--point-saddle);
+}
+.kirchhoff-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 12;
+}
+.kirchhoff-loop path {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+.kirchhoff-loop polygon {
+  fill: var(--text-muted);
+}
+.kirchhoff-loop.active path {
+  stroke: var(--point-saddle);
+}
+.kirchhoff-loop.active polygon,
+.kirchhoff-loop.active .kirchhoff-loop-name {
+  fill: var(--point-saddle);
+}
+.kirchhoff-loop-name {
+  fill: var(--text-muted);
+  font-family: 'KaTeX_Math', serif;
+  font-style: italic;
+  font-size: 12px;
+  pointer-events: none;
+}
+.kirchhoff-current {
+  cursor: pointer;
+}
+.kirchhoff-current line:not(.kirchhoff-hit) {
+  stroke: var(--point-zero);
+  stroke-width: 1.5;
+}
+.kirchhoff-current polygon {
+  fill: var(--point-zero);
+}
+.kirchhoff-current:hover line:not(.kirchhoff-hit) {
+  stroke-width: 2.5;
+}
+.kirchhoff-junction {
+  fill: var(--text);
+  pointer-events: none;
+}
+.kirchhoff-junction.active {
+  fill: var(--point-saddle);
+}
+.kirchhoff-label {
+  position: absolute;
+  padding: 0 3px;
+  font-size: 11px;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.kirchhoff-current-name {
+  color: var(--point-zero);
+}
+.kirchhoff-junction-name {
+  color: var(--text-muted);
+}
+
 .circuit-note {
   position: absolute;
   left: 12px;

@@ -138,6 +138,7 @@ export const de: Record<TextKey, string> = {
   'mode.kirchhoff': 'Kirchhoff',
   'mode.kirchhoff.hint': 'Widerstandsnetze nach Knoten- und Maschenregel, mit den Gleichungen und ihren Gauß-Schritten. Eingaben werden wie in Physik gelesen.',
   'kirchhoff.empty': 'Ein Netz aus Quellen, Widerständen und Leitungen zeichnen; Knoten- und Maschenregeln werden darunter aufgestellt.',
+  'kirchhoff.flip': 'Klicken kehrt die Zählrichtung um; ein negativer Strom fließt andersherum.',
   'analysis.tab.sketch': 'Kurvendiskussion',
   'analysis.tab.tangent': 'Tangente / Normale',
   'analysis.tab.area': 'Fläche',

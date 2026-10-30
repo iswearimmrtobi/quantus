@@ -137,6 +137,7 @@ export const en = {
   'mode.kirchhoff': 'Kirchhoff',
   'mode.kirchhoff.hint': 'Resistor networks by the junction and loop rules, with the equations and their Gauss steps. Inputs are read as in Physics.',
   'kirchhoff.empty': 'Draw a network of sources, resistors and wires; the junction and loop rules are worked out below.',
+  'kirchhoff.flip': 'Click to reverse the reference direction; a negative current runs the other way.',
   'analysis.tab.sketch': 'Curve sketch',
   'analysis.tab.tangent': 'Tangent / normal',
   'analysis.tab.area': 'Area',

@@ -67,6 +67,8 @@ interface Props {
   labels?: ExtraLabel[];
   /** Places the labels must keep clear of, besides the parts, such as what `overlay` draws. */
   reserved?: Rect[];
+  /** Parts drawn emphasised, as those of the loop under the pointer. */
+  highlight?: string[];
   /** Which results the parts show on the canvas. */
   shown: Shown;
   onShownChange(next: Shown): void;
@@ -114,6 +116,7 @@ export function CircuitEditor({
   overlay,
   labels: extraLabels,
   reserved,
+  highlight,
   shown,
   onShownChange,
   toolbar,
@@ -457,6 +460,7 @@ export function CircuitEditor({
                 key={element.id}
                 element={element}
                 selected={selection.includes(element.id)}
+                highlighted={highlight?.includes(element.id) ?? false}
                 onPointerDown={(event) => startMove(event, element)}
                 onTerminal={(event, point) => startDraw(event, point)}
                 onEnd={(event, end) => startEnd(event, element, end)}
@@ -623,14 +627,15 @@ function Symbol({ kind }: { kind: EditorKind }) {
 interface PartProps {
   element: EditorElement;
   selected: boolean;
+  highlighted: boolean;
   onPointerDown(event: ReactPointerEvent): void;
   onTerminal(event: ReactPointerEvent, point: Point): void;
   onEnd(event: ReactPointerEvent, end: 'a' | 'b'): void;
 }
 
-function Part({ element, selected, onPointerDown, onTerminal, onEnd }: PartProps) {
+function Part({ element, selected, highlighted, onPointerDown, onTerminal, onEnd }: PartProps) {
   const places = terminals(element);
-  const className = selected ? 'part selected' : 'part';
+  const className = ['part', selected && 'selected', highlighted && 'highlighted'].filter(Boolean).join(' ');
 
   if (element.kind === 'wire') {
     const { a, b } = places as Record<'a' | 'b', Point>;
