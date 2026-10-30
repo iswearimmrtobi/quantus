@@ -1,8 +1,9 @@
-//! Feasibility spike: runs a fixed set of inputs through the engine on a classic ESP32 (no PSRAM)
-//! and prints each result with its time, plus heap and stack figures, over serial. No display, no
-//! keypad.
+//! Feasibility spike: the engine on a classic ESP32 (no PSRAM), driven over serial. Each line
+//! typed into the monitor is evaluated like an input in the app, and the result is printed with
+//! its time and the heap and stack it left. No display, no keypad.
 
-use std::time::Instant;
+use std::io::{self, Read, Write};
+use std::time::{Duration, Instant};
 
 use esp_idf_svc::sys;
 use quantus_core::api::{self, AnalysisRequest, CalculationRequest};
@@ -11,7 +12,7 @@ use quantus_core::session::SessionStore;
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does.
 const ENGINE_STACK: usize = 32 * 1024;
 
-/// One or two inputs per category of the generated test set (`test/cases`).
+/// What `:bench` runs: one or two inputs per category of the generated test set (`test/cases`).
 const INPUTS: &[&str] = &[
     r"20{,}5 + (-65{,}6)",
     r"(-16) \cdot (-12) \times 19 \cdot 9",
@@ -26,8 +27,16 @@ const INPUTS: &[&str] = &[
     r"e^{4i\pi/2}",
 ];
 
-/// Curve sketching, the heaviest thing the engine does.
+/// Curve sketching for `:bench`, the heaviest thing the engine does.
 const FUNCTIONS: &[&str] = &[r"f(x) = x^{3} - 3x", r"f(x) = \frac{x^{2} - 1}{x - 2}"];
+
+const HELP: &str = r"Type an input as LaTeX, e.g. \frac{3}{4} + 2\,\mathrm{m}.
+Variables need a subscript: r_1 = 5\,\mathrm{cm}, then 2 \cdot r_1.
+  :sketch <f(x) = ...>   curve sketching
+  :bench                 run the fixed inputs
+  :mem                   heap and stack
+  :help                  this text
+Variables stay defined until the board is reset.";
 
 fn main() {
     sys::link_patches();
@@ -35,49 +44,122 @@ fn main() {
 
     let engine = std::thread::Builder::new()
         .stack_size(ENGINE_STACK)
-        .spawn(run)
+        .spawn(prompt)
         .expect("engine thread");
     if engine.join().is_err() {
         println!("engine thread panicked");
     }
-    println!("done");
 }
 
-fn run() {
+fn prompt() {
+    println!("\nQuantus on the ESP32. :help lists the commands.");
     report_memory();
     let mut store = SessionStore::new();
-    for &latex in INPUTS {
-        let request = CalculationRequest { latex: latex.into(), ..Default::default() };
-        let started = Instant::now();
-        let outcome = api::evaluate(&mut store, &request);
-        let elapsed = started.elapsed();
-        match outcome {
-            Ok(response) => println!("{:>8.1?}  {latex}  =>  {}", elapsed, response.result),
-            Err(error) => println!("{:>8.1?}  {latex}  !!  {error}", elapsed),
+    loop {
+        print!("> ");
+        let line = read_line();
+        let line = line.trim();
+        if let Some(function) = line.strip_prefix(":sketch") {
+            sketch(&store, function.trim());
+        } else {
+            match line {
+                "" => continue,
+                ":help" => println!("{HELP}"),
+                ":mem" => report_memory(),
+                ":bench" => bench(&mut store),
+                _ if line.starts_with(':') => println!("unknown command, :help lists them"),
+                _ => evaluate(&mut store, line),
+            }
         }
-        report_memory();
-    }
-    for &latex in FUNCTIONS {
-        let request = AnalysisRequest { latex: latex.into(), variable: None, precision: None };
-        let started = Instant::now();
-        let outcome = api::analyze(&store.settings, &request);
-        let elapsed = started.elapsed();
-        match outcome {
-            Ok(response) => println!(
-                "{:>8.1?}  {latex}  =>  {} sections, {} points, {} asymptotes",
-                elapsed,
-                response.sections.len(),
-                response.points.len(),
-                response.asymptotes.len()
-            ),
-            Err(error) => println!("{:>8.1?}  {latex}  !!  {error}", elapsed),
-        }
-        report_memory();
     }
 }
 
-/// After each input: the most stack this thread has used, and the heap. On a chip without PSRAM
-/// the largest free block matters as much as the total, since big numbers want contiguous memory.
+fn evaluate(store: &mut SessionStore, latex: &str) {
+    let request = CalculationRequest { latex: latex.into(), ..Default::default() };
+    let started = Instant::now();
+    let outcome = api::evaluate(store, &request);
+    let elapsed = started.elapsed();
+    match outcome {
+        Ok(response) => println!("{:>8.1?}  {latex}  =>  {}", elapsed, response.result),
+        Err(error) => println!("{:>8.1?}  {latex}  !!  {error}", elapsed),
+    }
+    report_memory();
+}
+
+fn sketch(store: &SessionStore, latex: &str) {
+    let request = AnalysisRequest { latex: latex.into(), variable: None, precision: None };
+    let started = Instant::now();
+    let outcome = api::analyze(&store.settings, &request);
+    let elapsed = started.elapsed();
+    match outcome {
+        Ok(response) => {
+            println!("{:>8.1?}  {latex}", elapsed);
+            for section in &response.sections {
+                let result = section.result.as_deref().or(section.message.as_deref()).unwrap_or("");
+                let status = if section.status == "ok" { String::new() } else { format!(" ({})", section.status) };
+                println!("          {}{status}: {result}", section.title);
+            }
+            for point in &response.points {
+                println!("          {}: {}", point.kind, point.latex);
+            }
+            for asymptote in &response.asymptotes {
+                println!("          {} asymptote: {}", asymptote.kind, asymptote.latex);
+            }
+        }
+        Err(error) => println!("{:>8.1?}  {latex}  !!  {error}", elapsed),
+    }
+    report_memory();
+}
+
+fn bench(store: &mut SessionStore) {
+    for &latex in INPUTS {
+        evaluate(store, latex);
+    }
+    for &latex in FUNCTIONS {
+        sketch(store, latex);
+    }
+}
+
+/// One line from the serial console, echoed as it is typed (the monitor does not echo).
+/// The console's stdin does not block, so an empty read means "nothing yet".
+fn read_line() -> String {
+    let _ = io::stdout().flush();
+    let mut line = Vec::new();
+    let mut byte = [0u8; 1];
+    loop {
+        match io::stdin().read(&mut byte) {
+            Ok(1) => {}
+            _ => {
+                std::thread::sleep(Duration::from_millis(10));
+                continue;
+            }
+        }
+        match byte[0] {
+            b'\r' | b'\n' => {
+                println!();
+                return String::from_utf8_lossy(&line).into_owned();
+            }
+            // Backspace and delete
+            0x08 | 0x7f => {
+                if line.pop().is_some() {
+                    // Drop the rest of a multi-byte character too.
+                    while line.last().is_some_and(|b| b & 0xc0 == 0x80) {
+                        line.pop();
+                    }
+                    print!("\x08 \x08");
+                }
+            }
+            b => {
+                line.push(b);
+                let _ = io::stdout().write_all(&[b]);
+            }
+        }
+        let _ = io::stdout().flush();
+    }
+}
+
+/// The most stack the engine thread has used, and the heap. On a chip without PSRAM the largest
+/// free block matters as much as the total, since big numbers want contiguous memory.
 fn report_memory() {
     // SAFETY: a null handle means the calling task; the rest are plain reads of allocator counters.
     let (unused, free, minimum, largest) = unsafe {
