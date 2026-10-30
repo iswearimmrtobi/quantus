@@ -118,6 +118,36 @@
         ]
       },
       "expect": {"elements": [{"id": "R1", "current": {"result": "1\\,\\mathrm{A}"}}]}
+    },
+    {
+      "name": "results get the prefix that puts the number between 1 and 1000",
+      "request": {
+        "nodes": [0, 1, 2],
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "12V"},
+          {"id": "R1", "kind": "resistor", "a": 1, "b": 0, "r": "3k\\Omega"},
+          {"id": "V2", "kind": "voltageSource", "a": 2, "b": 0, "u": "230V"},
+          {"id": "R2", "kind": "resistor", "a": 2, "b": 0, "r": "10m\\Omega"}
+        ]
+      },
+      "expect": {
+        "elements": [
+          {"id": "R1", "voltage": {"result": "12\\,\\mathrm{V}"}, "current": {"result": "4\\,\\mathrm{mA}", "unit": "mA"}, "power": {"result": "48\\,\\mathrm{mW}"}},
+          {"id": "R2", "current": {"result": "23\\,\\mathrm{kA}"}, "power": {"result": "5{,}29\\,\\mathrm{MW}"}}
+        ]
+      }
+    },
+    {
+      "name": "the prefix follows the rounded number",
+      "request": {
+        "nodes": [0, 1],
+        "precision": 3,
+        "elements": [
+          {"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": "10V"},
+          {"id": "R1", "kind": "resistor", "a": 1, "b": 0, "r": "10001\\Omega"}
+        ]
+      },
+      "expect": {"elements": [{"id": "R1", "current": {"result": "1\\,\\mathrm{mA}"}}]}
     }
   ]
 }

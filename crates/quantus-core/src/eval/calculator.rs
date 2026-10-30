@@ -164,6 +164,10 @@ impl LatexCalculator {
         LatexCalculator { settings, ..self }
     }
 
+    pub(crate) fn precision(&self) -> usize {
+        self.precision
+    }
+
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
         let formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let evaluator = Evaluator::new(variables)

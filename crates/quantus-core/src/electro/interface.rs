@@ -10,6 +10,7 @@ use crate::eval::{LatexCalculator, Variables};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
 use crate::settings::Settings;
+use crate::units::{Atom, Kind, Prefix, Unit};
 
 use super::circuit::{Circuit, Element, ElementKind};
 use super::materials::Material;
@@ -300,7 +301,7 @@ fn respond(
 }
 
 fn known(calculator: &LatexCalculator, q: &PhysicalQuantity) -> Result<ValueResponse> {
-    let q = q.simplify()?;
+    let q = with_prefix(q.simplify()?, calculator.precision())?;
     let (value, _, result) = calculator.present(&q)?;
     Ok(ValueResponse {
         status: "known".into(),
@@ -310,6 +311,32 @@ fn known(calculator: &LatexCalculator, q: &PhysicalQuantity) -> Result<ValueResp
         source: None,
         text: None,
     })
+}
+
+/// The electrical units a result is shown with a prefix in.
+const PREFIXED: [Kind; 5] = [Kind::Volt, Kind::Ampere, Kind::Watt, Kind::Ohm, Kind::Siemens];
+/// The prefixes from pico to tera, a power of a thousand apart, by that power: `m` is −1.
+const THOUSANDS: [&str; 9] = ["p", "n", "\u{b5}", "m", "", "k", "M", "G", "T"];
+
+/// A result in V, A, W, Ω or S gets the metric prefix that puts its number between 1 and 1000:
+/// 0,004 A is 4 mA. The size is read from the number as it is rounded, so 0,9999996 mA at six
+/// digits becomes 1 mA rather than 1000 µA. Zero, complex values and any other unit stay as they are.
+fn with_prefix(q: PhysicalQuantity, precision: usize) -> Result<PhysicalQuantity> {
+    let Some(atom) = q.unit.as_atom().filter(|a| a.prefix().is_none() && PREFIXED.contains(&a.kind())) else {
+        return Ok(q);
+    };
+    let Ok(rounded) = q.decimal(precision) else { return Ok(q) };
+    if rounded.is_zero() {
+        return Ok(q);
+    }
+    let digits = rounded.unscaled().to_string().trim_start_matches('-').len() as i64;
+    let thousands = (digits - 1 - rounded.scale()).div_euclid(3).clamp(-4, 4);
+    if thousands == 0 {
+        return Ok(q);
+    }
+    let symbol = THOUSANDS[(thousands + 4) as usize];
+    let prefix = Prefix::METRIC.iter().find(|p| p.symbol == symbol).expect("a metric prefix");
+    q.to(&Unit::from(Atom::prefixed(atom.kind(), *prefix)))
 }
 
 fn value_of(calculator: &LatexCalculator, circuit: &Circuit, output: &Output) -> Result<ValueResponse> {
@@ -329,7 +356,7 @@ fn value_of(calculator: &LatexCalculator, circuit: &Circuit, output: &Output) ->
             } else {
                 value.clone()
             };
-            let (number, _, result) = calculator.present(&shown.simplify()?)?;
+            let (number, _, result) = calculator.present(&with_prefix(shown.simplify()?, calculator.precision())?)?;
             let result = if value.is_dimensionless() { format!("{result}\\,\\%") } else { result };
             let reading = result.replace("{,}", ",").replace("\\,\\mathrm{", " ").replace("\\,\\%", " %").replace('}', "");
             Ok(ValueResponse {

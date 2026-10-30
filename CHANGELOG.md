@@ -18,6 +18,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   - Its voltages and currents now sit beside their parts instead of piling up in the top left of
     the canvas. Ideal wires get no label; their values show in the inspector.
   - A changed precision or output setting shows in the circuit at once.
+  - Voltages, currents, powers, resistances and conductances get a unit prefix: `4 mA` instead of
+    `0,004 A`, `2 kW` instead of `2000 W`.
   - The canvas moves (drag with the right or middle mouse button, or scroll) and zooms (Ctrl and
     scroll, or pinch); Home goes back.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
