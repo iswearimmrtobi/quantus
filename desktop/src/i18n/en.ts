@@ -113,7 +113,7 @@ export const en = {
   'circuit.hint': 'Dragging from a terminal draws a wire. Dragging on empty canvas selects several parts.',
   'circuit.rotates': 'rotates',
   'circuit.deletes': 'deletes',
-  'circuit.pan': 'Dragging with the right or middle mouse button, or scrolling, moves the canvas.',
+  'circuit.pan': 'Dragging with the right or middle mouse button, or scrolling, moves the canvas; Ctrl and scrolling zooms.',
   'circuit.home': 'goes back to the start',
   'key.home': 'Home',
   'key.space': 'Space',

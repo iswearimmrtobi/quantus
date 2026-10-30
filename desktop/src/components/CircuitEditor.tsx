@@ -35,7 +35,18 @@ type Drag =
   | { type: 'end'; id: string; end: 'a' | 'b' }
   | { type: 'draw'; from: Point; to: Point }
   | { type: 'marquee'; from: Point; to: Point }
-  | { type: 'pan'; from: Point; origin: Point };
+  | { type: 'pan'; from: Point; origin: View };
+
+/** The drawing is shown scaled by `zoom` and then moved by (x, y) on the canvas. */
+interface View {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+const HOME: View = { x: 0, y: 0, zoom: 1 };
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 4;
 
 const PALETTE: EditorKind[] = [
   'voltageSource',
@@ -51,8 +62,8 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
   const { t } = useT();
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag | null>(null);
-  /** How far the drawing is moved against the canvas; positions stay in drawing coordinates. */
-  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  /** How the drawing lies on the canvas; positions stay in drawing coordinates. */
+  const [view, setView] = useState<View>(HOME);
   const [response, setResponse] = useState<CircuitResponse | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const canvas = useRef<SVGSVGElement>(null);
@@ -102,8 +113,8 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
   const add = (kind: EditorKind, at?: Point) => {
     // Without a drop position the part goes to a free spot, one row below the last one.
     const spot = at ?? {
-      x: 160 - pan.x + (elements.length % 4) * 3 * GRID,
-      y: 120 - pan.y + Math.floor(elements.length / 4) * 3 * GRID,
+      x: (160 - view.x) / view.zoom + (elements.length % 4) * 3 * GRID,
+      y: (120 - view.y) / view.zoom + Math.floor(elements.length / 4) * 3 * GRID,
     };
     const element = newElement(elements, kind, spot);
     onChange([...elements, element]);
@@ -149,8 +160,36 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
   /** The point under the pointer in drawing coordinates, unsnapped. */
   const toDrawing = (event: { clientX: number; clientY: number }): Point => {
     const box = canvas.current!.getBoundingClientRect();
-    return { x: event.clientX - box.left - pan.x, y: event.clientY - box.top - pan.y };
+    return { x: (event.clientX - box.left - view.x) / view.zoom, y: (event.clientY - box.top - view.y) / view.zoom };
   };
+
+  // A wheel scrolls up and down, with Shift sideways; a touchpad scrolls both ways. With Ctrl (and
+  // a touchpad pinch, which arrives as one) it zooms about the pointer. React's wheel handler is
+  // passive and could not keep the webview from zooming the whole page, so this one is native.
+  useEffect(() => {
+    const svg = canvas.current;
+    if (!svg) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : 1;
+      if (event.ctrlKey) {
+        const box = svg.getBoundingClientRect();
+        const at = { x: event.clientX - box.left, y: event.clientY - box.top };
+        setView((v) => {
+          const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.zoom * Math.exp(-event.deltaY * unit * 0.002)));
+          // The drawing point under the pointer stays under it.
+          return { zoom, x: at.x - ((at.x - v.x) * zoom) / v.zoom, y: at.y - ((at.y - v.y) * zoom) / v.zoom };
+        });
+        return;
+      }
+      const sideways = event.shiftKey && event.deltaX === 0;
+      const dx = (sideways ? event.deltaY : event.deltaX) * unit;
+      const dy = (sideways ? 0 : event.deltaY) * unit;
+      setView((v) => ({ ...v, x: v.x - dx, y: v.y - dy }));
+    };
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, []);
 
   const toCanvas = (event: { clientX: number; clientY: number }): Point => {
     const at = toDrawing(event);
@@ -193,7 +232,7 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
     canvas.current?.focus();
     if (event.button === 1 || event.button === 2) {
       event.preventDefault();
-      setDrag({ type: 'pan', from: { x: event.clientX, y: event.clientY }, origin: pan });
+      setDrag({ type: 'pan', from: { x: event.clientX, y: event.clientY }, origin: view });
       return;
     }
     const from = toDrawing(event);
@@ -204,7 +243,7 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
   const onMove = (event: ReactPointerEvent) => {
     if (!drag) return;
     if (drag.type === 'pan') {
-      setPan({ x: drag.origin.x + event.clientX - drag.from.x, y: drag.origin.y + event.clientY - drag.from.y });
+      setView({ ...drag.origin, x: drag.origin.x + event.clientX - drag.from.x, y: drag.origin.y + event.clientY - drag.from.y });
       return;
     }
     if (drag.type === 'marquee') {
@@ -258,7 +297,7 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
     } else if (event.key === 'Escape') {
       setSelection([]);
     } else if (event.key === 'Home') {
-      setPan({ x: 0, y: 0 });
+      setView(HOME);
     } else {
       return;
     }
@@ -306,12 +345,6 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
           onPointerCancel={() => setDrag(null)}
           onPointerDown={startCanvas}
           onContextMenu={(event) => event.preventDefault()}
-          onWheel={(event) => {
-            // A wheel scrolls up and down, with Shift sideways; a touchpad scrolls both ways.
-            const dx = event.shiftKey && event.deltaX === 0 ? event.deltaY : event.deltaX;
-            const dy = event.shiftKey && event.deltaX === 0 ? 0 : event.deltaY;
-            setPan((p) => ({ x: p.x - dx, y: p.y - dy }));
-          }}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -325,14 +358,14 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
               width={GRID}
               height={GRID}
               patternUnits="userSpaceOnUse"
-              patternTransform={`translate(${pan.x} ${pan.y})`}
+              patternTransform={`translate(${view.x} ${view.y}) scale(${view.zoom})`}
             >
               <circle cx="0" cy="0" r="0.8" className="grid-dot" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" pointerEvents="none" />
 
-          <g transform={`translate(${pan.x} ${pan.y})`}>
+          <g transform={`translate(${view.x} ${view.y}) scale(${view.zoom})`}>
             {elements.map((element) => (
               <Part
                 key={element.id}
@@ -364,7 +397,10 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
         {/* The values are HTML over the canvas, not foreignObject in it: WebKitGTK draws KaTeX's
             positioned spans inside a foreignObject at the origin of the SVG. */}
         <div className="circuit-labels">
-          <div className="circuit-labels-drawing" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
+          <div
+            className="circuit-labels-drawing"
+            style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}
+          >
             {elements.map((element) => (
               <PartLabel key={element.id} element={element} result={results.get(element.id)} />
             ))}

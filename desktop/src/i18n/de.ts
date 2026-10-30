@@ -114,7 +114,7 @@ export const de: Record<TextKey, string> = {
   'circuit.hint': 'Von einer Klemme ziehen zeichnet eine Leitung. Auf freier Fläche ziehen wählt mehrere Bauteile.',
   'circuit.rotates': 'dreht',
   'circuit.deletes': 'löscht',
-  'circuit.pan': 'Ziehen mit der rechten oder mittleren Maustaste oder Scrollen verschiebt die Fläche.',
+  'circuit.pan': 'Ziehen mit der rechten oder mittleren Maustaste oder Scrollen verschiebt die Fläche, Strg und Scrollen zoomt.',
   'circuit.home': 'springt zum Anfang zurück',
   'key.home': 'Pos1',
   'key.space': 'Leertaste',
