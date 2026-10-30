@@ -235,12 +235,27 @@ export function toKirchhoffRequest(elements: EditorElement[]): KirchhoffRequest 
 }
 
 /**
- * Where a junction's dot belongs: of the points of the node at `anchor`, the one where the most
- * terminals and wires meet, the first in reading order of those. The engine names a node by its
- * first point, which may be the end of a part rather than the fork of the wires.
+ * Where a junction's dot belongs: of the points joined to `anchor` by ideal wires, the one where
+ * the most terminals and wires meet, the first in reading order of those. The engine names a node
+ * by its first point, which may be the end of a part rather than the fork of the wires.
  */
 export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: Point): Point {
-  const node = nodes.byPoint.get(pointKey(anchor));
+  // `nodes` keeps the two ends of a wire apart, as the electronics mode needs; here they are one.
+  const parent = new Map<number, number>();
+  const root = (n: number): number => {
+    while (parent.has(n)) n = parent.get(n)!;
+    return n;
+  };
+  for (const wire of elements.filter(isIdealWire)) {
+    const { a, b } = terminals(wire);
+    const [p, q] = [nodes.byPoint.get(pointKey(a!)), nodes.byPoint.get(pointKey(b!))];
+    if (p !== undefined && q !== undefined && root(p) !== root(q)) parent.set(root(p), root(q));
+  }
+  const nodeOf = (point: Point) => {
+    const n = nodes.byPoint.get(pointKey(point));
+    return n === undefined ? undefined : root(n);
+  };
+  const node = nodeOf(anchor);
   if (node === undefined) return anchor;
   const degree = new Map<string, number>();
   const count = (point: Point, by: number) => degree.set(pointKey(point), (degree.get(pointKey(point)) ?? 0) + by);
@@ -260,7 +275,7 @@ export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: P
   }
   let best = anchor;
   for (const point of points) {
-    if (nodes.byPoint.get(pointKey(point)) !== node) continue;
+    if (nodeOf(point) !== node) continue;
     const [d, e] = [degree.get(pointKey(point))!, degree.get(pointKey(best)) ?? 0];
     if (d > e || (d === e && (point.y < best.y || (point.y === best.y && point.x < best.x)))) best = point;
   }
