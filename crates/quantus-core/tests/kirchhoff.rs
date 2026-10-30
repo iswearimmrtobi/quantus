@@ -441,3 +441,34 @@ fn a_flipped_branch_negates_its_current() {
         assert_eq!(flipped.elements, forward.elements);
     }
 }
+
+/// The `kirchhoff-*.json` files in `test/circuits/`, for trying the mode by hand, give the
+/// values `test/circuits/README.md` documents.
+#[test]
+fn the_kirchhoff_test_circuits_solve_to_their_documented_values() {
+    let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test/circuits");
+    let load = |name: &str| {
+        let text = std::fs::read_to_string(directory.join(format!("kirchhoff-{name}.json"))).unwrap();
+        let circuit: Value = serde_json::from_str(&text).unwrap();
+        let points: Vec<_> = circuit["elements"].as_array().unwrap().iter().map(terminals).collect();
+        let reversed = vec![false; points.len()];
+        kirchhoff(&Settings { precision: 6, ..Settings::default() }, &as_kirchhoff(&circuit, &points, &reversed))
+    };
+
+    let source = load("current-source").unwrap();
+    assert_eq!(source.error, None);
+    assert_eq!(shown(&source, "R1", "current"), r"333{,}333\,\mathrm{mA}");
+    assert_eq!(shown(&source, "R2", "voltage"), r"9{,}33333\,\mathrm{V}");
+    assert_eq!(shown(&source, "R2", "current"), r"2{,}33333\,\mathrm{A}");
+    assert!(source.unknowns.contains(&"U_{q,1}".to_string()), "{:?}", source.unknowns);
+
+    let crossing = load("crossing").unwrap();
+    assert!(crossing.notes[0].contains("spanning tree"), "{:?}", crossing.notes);
+    assert_eq!(shown(&crossing, "R1", "current"), r"3\,\mathrm{A}");
+    assert_eq!(shown(&crossing, "R2", "current"), r"1\,\mathrm{A}");
+    assert_eq!(shown(&crossing, "V1", "current"), r"-4\,\mathrm{A}");
+
+    let sources = load("source-loop").unwrap();
+    assert!(sources.error.unwrap().starts_with("The equations contradict each other"));
+    assert!(sources.elements.is_empty() && !sources.steps.is_empty());
+}

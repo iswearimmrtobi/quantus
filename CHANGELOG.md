@@ -30,6 +30,14 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     While parts are dragged, the labels keep their spots as long as those stay free, and settle
     again when the parts are dropped.
   - A wire or part ending in the middle of an ideal wire is now connected to it (a T-junction).
+- A seventh mode, **Kirchhoff**, for resistor networks worked out by the junction and loop rules.
+  Draw voltage sources, current sources, resistors and ideal wires; the canvas shows the
+  junctions, an arrow for each branch current and a clockwise arrow in each loop. Clicking a
+  current arrow reverses it. Under the canvas, in a panel whose height can be dragged, are the
+  junction and loop rules (with names, then with values), the matrix with its Gauss steps, the
+  exact currents and the power balance; **Copy** gives the working as an `align*` block. Hovering
+  a loop or a rule highlights its parts. The circuit is separate from the Electronics one but
+  uses the same files, which now also keep the reversed current arrows.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 
