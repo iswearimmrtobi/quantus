@@ -451,3 +451,43 @@ fn the_test_circuits_solve_to_their_documented_values() {
     assert!(solve("divider").unwrap()["elements"][0]["resistance"].is_null(), "a source has no resistance");
     assert_eq!(solve("short-circuit").unwrap_err()["error"], "short circuit");
 }
+
+/// One source and one resistor in a square, as the editor sends it: terminal points in grid steps.
+fn square(reversed: bool) -> Value {
+    json!({ "elements": [
+        { "id": "V1", "kind": "voltageSource", "u": "10V", "pa": { "x": 0, "y": 4 }, "pb": { "x": 0, "y": 0 }, "reversed": reversed },
+        { "id": "R1", "kind": "resistor", "r": "5\\Omega", "pa": { "x": 0, "y": 0 }, "pb": { "x": 4, "y": 0 } },
+        { "id": "W1", "kind": "wire", "pa": { "x": 4, "y": 0 }, "pb": { "x": 4, "y": 4 } },
+        { "id": "W2", "kind": "wire", "pa": { "x": 4, "y": 4 }, "pb": { "x": 0, "y": 4 } },
+        { "id": "GND1", "kind": "ground", "pa": { "x": 0, "y": 4 }, "pb": { "x": 0, "y": 4 } },
+    ] })
+}
+
+#[test]
+fn a_kirchhoff_network_is_solved_through_the_command() {
+    let w = window();
+    let solved = invoke(&w, "solve_kirchhoff", json!({ "request": square(false) })).unwrap();
+    assert_eq!(solved["result"], json!(["I_{1} = 2\\,\\mathrm{A}"]));
+    assert_eq!(solved["loops"][0]["name"], "L_{1}");
+    assert_eq!(solved["branches"][0]["lead"], "V1");
+    assert!(solved["error"].is_null());
+    let flipped = invoke(&w, "solve_kirchhoff", json!({ "request": square(true) })).unwrap();
+    assert_eq!(flipped["result"], json!(["I_{1} = -2\\,\\mathrm{A}"]));
+
+    let mut missing = square(false);
+    missing["elements"][1]["r"] = json!("");
+    let error = invoke(&w, "solve_kirchhoff", json!({ "request": missing })).unwrap_err();
+    assert!(error["error"].as_str().unwrap().contains("R1"), "{error}");
+}
+
+#[test]
+fn a_circuit_file_may_carry_a_flipped_current() {
+    let mut circuit = saved_circuit();
+    circuit["elements"][0]["reversed"] = json!(true);
+    assert!(super::commands::validate_circuit(&circuit, Language::En).is_ok());
+    circuit["elements"][0]["reversed"] = json!("yes");
+    assert_eq!(
+        super::commands::validate_circuit(&circuit, Language::En).unwrap_err().error,
+        "V1: “reversed” must be true or false."
+    );
+}

@@ -137,9 +137,9 @@ Each phase is one or more commits on `dev`. Tick a box when its commit lands.
 
 ### Phase 4: command and API
 
-- [ ] `solve_kirchhoff` in `commands.rs`, types and wrapper in `api.ts`, `reversed` accepted by
+- [x] `solve_kirchhoff` in `commands.rs`, types and wrapper in `api.ts`, `reversed` accepted by
   `validate_circuit`.
-- [ ] Command test in `desktop/src-tauri/src/tests.rs`.
+- [x] Command test in `desktop/src-tauri/src/tests.rs`.
 
 ### Phase 5: editor refactor
 
