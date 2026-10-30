@@ -66,8 +66,13 @@ specification; this list says in which order to build them and where.
 
 ### Phase 4: LGS page (section 2, frontend)
 
-- [ ] *Check first:* a spike of MathLive editing inside `cases` (Enter → `addRowAfter`, Backspace →
+- [x] *Check first:* a spike of MathLive editing inside `cases` (Enter → `addRowAfter`, Backspace →
   `removeRow`, paste, undo). It decides between the single field and one field per line.
+  Result (MathLive 0.110, headless Chromium): Enter → `addRowAfter`, Up/Down and undo work, but
+  Home/End leave the block and the next Backspace deletes the whole system; Backspace at the
+  start of a row does nothing, and `removeRow` removes the row the cursor offset belongs to,
+  which is the next one after moving right from an empty row; pasting a `cases` block nests it.
+  So one field per line, drawn as a single block.
 - [ ] Mode switch: `modeChoices` gets "Linear systems" / "LGS", shown as "… + $i$" when
   `linear_complex` is on. `App.tsx` renders the new view and holds its state, so the input and
   the last tab survive a mode switch (like `circuit`).
