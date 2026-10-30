@@ -5,6 +5,13 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Systems of equations accept subscripted unknowns such as `x_1, x_2` when they have no value;
+  a subscripted variable with a value stays a coefficient. Single equations are unchanged.
+- The unknowns of a system are ordered `x, y, z`, then `a … w`, with subscripts by number
+  (`x_2` before `x_10`) and Greek letters last, instead of alphabetically.
+
 ## [0.1.0] - 2026-10-29
 
 The first release.

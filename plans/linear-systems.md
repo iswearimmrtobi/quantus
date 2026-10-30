@@ -18,7 +18,7 @@ specification; this list says in which order to build them and where.
   index counts as an unknown if it has no value. Single equations pass the flag off.
 - [x] Tests in `system.rs` and golden cases: `x_1 + x_2 = 3`, mixed `x, a, b`, `x_10` vs `x_2`, the
   physics case `v_1 = s_1/t_1` with `s_1 = 4 m`.
-- [ ] CHANGELOG entry.
+- [x] CHANGELOG entry.
 
 ### Phase 2: Gauss steps (section 3)
 
