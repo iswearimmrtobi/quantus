@@ -4,6 +4,79 @@ Three ideas around systems of linear equations. Today (`crates/quantus-core/src/
 `linear.rs`) the unknowns are the free variables **without** a subscript, sorted alphabetically,
 and the working is a plain list of row operations from `linear::eliminate`.
 
+## Implementation plan
+
+Five phases, each one a commit (or a few) on `dev` that leaves `cargo test --workspace`,
+`cargo clippy --workspace --all-targets` and `npm run typecheck` green. Sections 1–3 below are the
+specification; this list says in which order to build them and where.
+
+### Phase 1: order of the unknowns and indexed unknowns (section 1)
+
+- [ ] `crates/quantus-core/src/eval/system.rs`: a `variable_order` key (`x, y, z`, then `a … w`,
+  subscripts numerically, Greek and multi-letter names last) replaces `unknowns.sort()`.
+- [ ] `eval/solver.rs`, `collect_unknowns`: take a flag for systems; with it, a `Node::Variable` with an
+  index counts as an unknown if it has no value. Single equations pass the flag off.
+- [ ] Tests in `system.rs` and golden cases: `x_1 + x_2 = 3`, mixed `x, a, b`, `x_10` vs `x_2`, the
+  physics case `v_1 = s_1/t_1` with `s_1 = 4 m`.
+- [ ] CHANGELOG entry.
+
+### Phase 2: Gauss steps (section 3)
+
+- [ ] Setting `elimination` (`Gauss` default, `GaussJordan`) in `crates/quantus-core/src/settings.rs`
+  next to `step_detail`; type in `desktop/src/api.ts`, drop-down in `SettingsPanel.tsx`, strings in
+  `en.ts` and `de.ts`.
+- [ ] `linear.rs`: `gauss(matrix, unknowns) -> Echelon` with the log; new `RowOperation` variants
+  `Combine { target, a, source, b }` and `Scale { row, divisor }`, and a reason enum.
+  `eliminate` keeps its behaviour for the circuit solver and `solve_square`.
+- [ ] `system.rs`: back-substitution from the echelon form, the outcome (unique, `0 = c`, free
+  unknowns), Greek parameters `λ, μ, ν, …` skipping letters in use. A test that `gauss` and
+  `eliminate` agree on every system in the tests. *Check:* how fraction-free steps look with `π`.
+- [ ] `eval/calculator.rs`: rewrite the step block (`augmented`, `row_operation`) for both methods:
+  row labels with marks (`II'`), the annotation column, the coloured pivot and changed row, the
+  levels from the table in section 3 (entry-by-entry arithmetic at Detailed, the check at
+  Maximal). *Check:* a KaTeX row background inside `array`, in both themes.
+- [ ] `design/step-detail.md`: a *Linear systems* section with a worked 3×3 example per level.
+  Golden cases for unique, inconsistent and infinite, with both settings.
+- [ ] CHANGELOG entry. Visible now in Algebra with `;`.
+
+### Phase 3: LGS engine and API (section 2, backend)
+
+- [ ] `Mode::Linear` in `settings.rs` and `'linear'` in `api.ts`; settings `unknown_names`
+  (`Indexed` default, `Letters`) and `linear_complex` (default off).
+- [ ] `crates/quantus-core/src/api.rs`: `linear_system(settings, LinearSystemRequest)`. The request is
+  `Equations(latex)` or `Matrix { unknowns, rows }` (JSON input is parsed into `Matrix` by the
+  frontend, the engine validates it). It evaluates without session variables; with
+  `linear_complex` off, `i` is an unknown. Empty cells are 0. Cells with units are an error.
+- [ ] The response: unknowns, matrix cells as LaTeX, the system as equations LaTeX (for the tab
+  switch, named by `unknown_names`), steps, the exact result, the copy block (`align*`).
+- [ ] Tauri command `solve_linear_system` in `desktop/src-tauri/src/commands.rs`, wrapper in `api.ts`.
+- [ ] Tests: `crates/quantus-core/tests/linear_systems.rs` (equations, matrix, both methods, with and
+  without `i`, m ≠ n, the round trip equations → matrix → equations) and LGS cases for
+  `run_cases`.
+
+### Phase 4: LGS page (section 2, frontend)
+
+- [ ] *Check first:* a spike of MathLive editing inside `cases` (Enter → `addRowAfter`, Backspace →
+  `removeRow`, paste, undo). It decides between the single field and one field per line.
+- [ ] Mode switch: `modeChoices` gets "Linear systems" / "LGS", shown as "… + $i$" when
+  `linear_complex` is on. `App.tsx` renders the new view and holds its state, so the input and
+  the last tab survive a mode switch (like `circuit`).
+- [ ] `components/LinearSystemView.tsx`, built like `AnalysisView`: the tabs, the `i` toggle, `Steps`,
+  the error in grey for incomplete input, copy.
+- [ ] `components/SystemField.tsx`: the multiline field from the spike.
+- [ ] `components/MatrixGrid.tsx`: n and m (m defaults to n, both ≤ 10), the cell `MathField`s,
+  Tab/Shift+Tab/Enter, empty = 0, resizing keeps entries, column headers by `unknown_names`.
+- [ ] JSON input: paste and a load button; up to 10 × 10 it fills the grid, above that a read-only
+  preview of the matrix.
+- [ ] Tab switch converts through the API response. All strings in `en.ts` and `de.ts`.
+- [ ] Check in the running app (`npm run dev`).
+
+### Phase 5: docs
+
+- [ ] A user guide for the mode in `docs/docs/guides/`, and the settings in the reference.
+- [ ] Update the flowcharts in `docs/docs/contributing/solving.md` for the LGS path.
+- [ ] CHANGELOG entry for the mode; `npm run licenses` only if a dependency was added.
+
 ## 1. Indexed variables and the order of the unknowns
 
 **Idea.** `x_1, x_2, x_3` are valid unknowns, and the unknowns are ordered `x, y, z, a, b, c, … w`
@@ -148,17 +221,3 @@ layer in both languages and not in `linear.rs`. The step builder (`row_operation
 in `eval/calculator.rs`) renders the annotation column and the colours. Add a *Linear systems*
 section to `step-detail.md` with one worked 3×3 example per level, and golden cases for unique,
 inconsistent and infinite.
-
-## Order
-
-1. Section 1 (ordering, indexed unknowns). It is small, and the matrix headers need it.
-2. Section 3 engine part: `linear::gauss`, the new `RowOperation`s and the steps. This is visible
-   at once in Algebra with `;`.
-3. Section 2: the spike on MathLive environments first, then the mode, the API, the equations tab,
-   the matrix tab, the conversion between the two tabs and JSON input.
-
-## Checks during implementation
-
-- MathLive editing inside `cases` (the spike before section 2).
-- A KaTeX row background inside `array`, in both themes.
-- How fraction-free steps look with symbolic entries.
