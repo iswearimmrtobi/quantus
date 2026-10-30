@@ -1,6 +1,7 @@
 //! Systems of linear equations: `2x + y = 5; x - y = 1`.
 //!
-//! The unknowns are the free variables without a subscript, in alphabetical order. Each
+//! The unknowns are the free variables without a subscript, in the order `x, y, z, a, b, … w`
+//! (see [`variable_order`]). Each
 //! equation's coefficients are read off by evaluating its residual `left - right` at zero and at
 //! each unit vector, as the single-equation solver does for polynomials, and checked at other
 //! points: a residual that misses them is not linear. That also covers `\pi x`, fractions and
@@ -44,7 +45,7 @@ impl Evaluator<'_> {
                 "The system has no unknown to solve for. Use letters such as x and y without a value.",
             ));
         }
-        unknowns.sort();
+        unknowns.sort_by_cached_key(|key| variable_order(key));
 
         let mut matrix = Vec::new();
         for equation in equations {
@@ -128,6 +129,24 @@ impl Evaluator<'_> {
     }
 }
 
+/// The sort key of an unknown, as textbooks write systems: `x, y, z`, then `a … w`, then Greek
+/// letters and longer names alphabetically. A subscript sorts after the bare letter, numbers by
+/// value (`x_2` before `x_10`) and other subscripts after them.
+pub(crate) fn variable_order(key: &str) -> (u8, String, u8, u64, String) {
+    let (name, index) = key.split_once('_').unwrap_or((key, ""));
+    let group = match name.as_bytes() {
+        [b'x' | b'y' | b'z'] => 0,
+        [c] if c.is_ascii_alphabetic() => 1,
+        _ => 2,
+    };
+    let (kind, number) = match index.parse::<u64>() {
+        _ if index.is_empty() => (0, 0),
+        Ok(number) => (1, number),
+        Err(_) => (2, 0),
+    };
+    (group, name.to_string(), kind, number, index.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -167,6 +186,15 @@ mod tests {
         assert_eq!(solution.unknowns, ["x", "y"]);
         assert_eq!(solution.matrix[0], [Value::int(-2), Value::int(1), Value::int(0)]);
         assert!(matches!(solution.solution, Solution::Unique(values) if values == [Value::int(1), Value::int(2)]));
+    }
+
+    #[test]
+    fn unknowns_are_ordered_x_y_z_then_a_to_w() {
+        assert_eq!(solve("a + x = 3; a - x = 1").unwrap().unknowns, ["x", "a"]);
+        assert_eq!(solve("b + a + y + x = 4; a = 1; b = 1; x - y = 0").unwrap().unknowns, ["x", "y", "a", "b"]);
+        let mut keys = ["\\alpha", "b", "x_10", "z", "x", "x_2", "x_i", "a"];
+        keys.sort_by_cached_key(|key| variable_order(key));
+        assert_eq!(keys, ["x", "x_2", "x_10", "x_i", "z", "a", "b", "\\alpha"]);
     }
 
     #[test]

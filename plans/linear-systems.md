@@ -12,7 +12,7 @@ specification; this list says in which order to build them and where.
 
 ### Phase 1: order of the unknowns and indexed unknowns (section 1)
 
-- [ ] `crates/quantus-core/src/eval/system.rs`: a `variable_order` key (`x, y, z`, then `a … w`,
+- [x] `crates/quantus-core/src/eval/system.rs`: a `variable_order` key (`x, y, z`, then `a … w`,
   subscripts numerically, Greek and multi-letter names last) replaces `unknowns.sort()`.
 - [ ] `eval/solver.rs`, `collect_unknowns`: take a flag for systems; with it, a `Node::Variable` with an
   index counts as an unknown if it has no value. Single equations pass the flag off.

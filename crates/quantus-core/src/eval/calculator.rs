@@ -813,6 +813,7 @@ mod tests {
         assert_eq!(c.value.to_string(), "2");
         assert_eq!(c.steps.iter().map(|s| s.kind).collect::<Vec<_>>(), [StepKind::Symbolic, StepKind::Result]);
         assert_eq!(system("x + y = 1; x - y = 0", StepDetail::Brief).result, "x = 0{,}5 \\land y = 0{,}5");
+        assert_eq!(system("a + x = 3; a - x = 1", StepDetail::Brief).result, "x = 1 \\land a = 2");
     }
 
     #[test]
