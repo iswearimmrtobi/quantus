@@ -84,7 +84,8 @@ interface Props {
 type Drag =
   | { type: 'move'; from: Point; origins: Map<string, EditorElement> }
   | { type: 'end'; id: string; end: 'a' | 'b' }
-  | { type: 'draw'; from: Point; to: Point }
+  /** `across`: whether the wire leaves sideways first, decided by the first step of the pointer. */
+  | { type: 'draw'; from: Point; to: Point; across: boolean | null }
   | { type: 'marquee'; from: Point; to: Point }
   | { type: 'pan'; from: Point; origin: View };
 
@@ -96,6 +97,10 @@ interface View {
 }
 
 const HOME: View = { x: 0, y: 0, zoom: 1 };
+
+/** Where a wire drawn from `from` to `to` turns: wires run only across and down, so a slant is an L. */
+const corner = (from: Point, to: Point, across: boolean | null): Point =>
+  across === false ? { x: from.x, y: to.y } : { x: to.x, y: from.y };
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 
@@ -319,7 +324,7 @@ export function CircuitEditor({
     if (event.button !== 0) return;
     event.stopPropagation();
     canvas.current?.setPointerCapture(event.pointerId);
-    setDrag({ type: 'draw', from, to: from });
+    setDrag({ type: 'draw', from, to: from, across: null });
   };
 
   /** Left on empty canvas draws a selection rectangle; the middle or right button moves the canvas. */
@@ -348,9 +353,18 @@ export function CircuitEditor({
     }
     const at = toCanvas(event);
     if (drag.type === 'draw') {
-      if (at.x !== drag.to.x || at.y !== drag.to.y) setDrag({ ...drag, to: at });
+      if (at.x === drag.to.x && at.y === drag.to.y) return;
+      const dx = Math.abs(at.x - drag.from.x);
+      const dy = Math.abs(at.y - drag.from.y);
+      const across = dx === 0 && dy === 0 ? null : (drag.across ?? dx >= dy);
+      setDrag({ ...drag, to: at, across });
     } else if (drag.type === 'end') {
-      update(drag.id, drag.end === 'a' ? { x: at.x, y: at.y } : { x2: at.x, y2: at.y });
+      // The end moves along the axis it is pulled most, so the wire stays across or down.
+      const wire = elements.find((e) => e.id === drag.id);
+      if (!wire) return;
+      const other = drag.end === 'a' ? { x: wire.x2 ?? wire.x, y: wire.y2 ?? wire.y } : { x: wire.x, y: wire.y };
+      const end = Math.abs(at.x - other.x) >= Math.abs(at.y - other.y) ? { x: at.x, y: other.y } : { x: other.x, y: at.y };
+      update(drag.id, drag.end === 'a' ? end : { x2: end.x, y2: end.y });
     } else {
       const dx = at.x - drag.from.x;
       const dy = at.y - drag.from.y;
@@ -368,9 +382,17 @@ export function CircuitEditor({
 
   const onUp = () => {
     if (drag?.type === 'draw' && pointKey(drag.from) !== pointKey(drag.to)) {
-      const wire = { ...newElement(elements, 'wire', drag.from), x2: drag.to.x, y2: drag.to.y };
-      onChange([...elements, wire]);
-      setSelection([wire.id]);
+      const bend = corner(drag.from, drag.to, drag.across);
+      const next = [...elements];
+      for (const [from, to] of [
+        [drag.from, bend],
+        [bend, drag.to],
+      ]) {
+        if (pointKey(from) === pointKey(to)) continue;
+        next.push({ ...newElement(next, 'wire', from), x2: to.x, y2: to.y });
+      }
+      onChange(next);
+      setSelection(next.slice(elements.length).map((e) => e.id));
     } else if (drag?.type === 'marquee') {
       const [x0, x1] = [Math.min(drag.from.x, drag.to.x), Math.max(drag.from.x, drag.to.x)];
       const [y0, y1] = [Math.min(drag.from.y, drag.to.y), Math.max(drag.from.y, drag.to.y)];
@@ -499,7 +521,10 @@ export function CircuitEditor({
             )}
 
             {drag?.type === 'draw' && (
-              <line className="wire-ghost" x1={drag.from.x} y1={drag.from.y} x2={drag.to.x} y2={drag.to.y} />
+              <polyline
+                className="wire-ghost"
+                points={[drag.from, corner(drag.from, drag.to, drag.across), drag.to].map((p) => `${p.x},${p.y}`).join(' ')}
+              />
             )}
           </g>
         </svg>

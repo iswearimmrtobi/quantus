@@ -1030,6 +1030,7 @@ select option {
   pointer-events: none;
 }
 .wire-ghost {
+  fill: none;
   stroke: var(--cyan);
   stroke-width: 2;
   stroke-dasharray: 4 4;
