@@ -13,7 +13,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   of up to 10 × 10 formula cells, empty cells being 0, or any size as JSON, pasted or loaded from a
   file. Switching tabs converts the system. The mode uses no session variables; the switch
   **Imaginary unit i** makes `i` the imaginary unit and allows complex coefficients. The setting
-  **Unknown names** names the matrix columns `x_1, x_2, …` or `x, y, z, …`.
+  **Unknown names** names the matrix columns `x_1, x_2, …` or `x, y, z, …`. The result and the steps are
+  set in display style, so fractions stand at full size.
 - The **Electronics** mode is back in the mode selector.
   - Its voltages and currents now sit beside their parts instead of piling up in the top left of
     the canvas. Ideal wires get no label; their values show in the inspector.

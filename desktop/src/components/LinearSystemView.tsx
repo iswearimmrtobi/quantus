@@ -5,7 +5,7 @@ import { useT } from '../i18n';
 import { copyText } from '../shell';
 import type { TextKey } from '../i18n/en';
 import { asError, ErrorRow, Steps } from './AnalysisView';
-import { Katex } from './Katex';
+import { displayStyle, Katex } from './Katex';
 import { MatrixGrid } from './MatrixGrid';
 import { MatrixJson } from './MatrixJson';
 import { SystemField } from './SystemField';
@@ -157,12 +157,12 @@ export function LinearSystemView({ settings, onSettingsChange, input, onInputCha
         {solution && (
           <section className="section-card linear-result">
             <div className="linear-result-head">
-              <Katex className="section-result" latex={solution.result} />
+              <Katex className="section-result" latex={displayStyle(solution.result)} />
               <button className="copy-btn" title={t('linear.copy.hint')} onClick={() => void copyAll()}>
                 {copied ? t('copied') : t('copy')}
               </button>
             </div>
-            <Steps steps={solution.steps} hidden={stepDetail === 'none'} />
+            <Steps steps={solution.steps} hidden={stepDetail === 'none'} display />
           </section>
         )}
       </div>

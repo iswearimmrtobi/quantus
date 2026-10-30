@@ -15,7 +15,7 @@ import { useT } from '../i18n';
 import { copyText } from '../shell';
 import type { TextKey } from '../i18n/en';
 import { FunctionPlot } from './FunctionPlot';
-import { Katex, latexLines } from './Katex';
+import { displayStyle, Katex, latexLines } from './Katex';
 import { LatexInput, type LatexInputHandle } from './LatexInput';
 import { MathField, toReadableLatex, type MathFieldHandle } from './MathField';
 
@@ -30,14 +30,15 @@ const TABS: { id: Tab; label: TextKey }[] = [
 
 const PLACEHOLDER = 'f(x) = x^3 - 3x';
 
-export function Steps({ steps, hidden }: { steps: Step[]; hidden: boolean }) {
+/** `display`: the formulas in display style, so fractions stand at full size. */
+export function Steps({ steps, hidden, display = false }: { steps: Step[]; hidden: boolean; display?: boolean }) {
   if (hidden) return null;
   return (
     <div className="analysis-steps">
       {steps.map((step, index) => (
         <div className="analysis-step" key={index}>
           {step.explanation && <span className="step-explanation">{step.explanation}</span>}
-          {step.latex && <Katex className="step-latex" latex={step.latex} />}
+          {step.latex && <Katex className="step-latex" latex={display ? displayStyle(step.latex) : step.latex} />}
         </div>
       ))}
     </div>
