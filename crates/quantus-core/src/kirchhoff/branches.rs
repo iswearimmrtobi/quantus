@@ -2,8 +2,9 @@
 //!
 //! A junction is an electrical node with three or more connections. A branch is a chain of parts
 //! between two junctions, with one current through all of them; a connected part without a
-//! junction is a single branch that closes on itself. Each branch's reference direction comes
-//! from its lead part, the first by kind (voltage source, current source, resistor), then by ID.
+//! junction is a single branch that closes on itself. Each branch's first reference direction comes
+//! from its lead part, the first by kind (voltage source, current source, resistor), then by ID;
+//! the Kirchhoff mode then turns it along the real current (`interface::orient`).
 //!
 //! A source's internal resistance is part of the circuit too: a voltage source's lies in series in
 //! its branch, a current source's (`1/G`) parallel to it, as a branch and a loop of its own.
@@ -213,6 +214,19 @@ impl Network {
     }
 }
 
+impl Network {
+    /// Turns the reference direction of branch `b` round; the loops keep passing the same parts.
+    pub fn reverse_branch(&mut self, b: usize) {
+        let branch = &mut self.branches[b];
+        branch.reverse();
+        let last = branch.members.len() - 1;
+        for turn in self.loops.iter_mut().flat_map(|l| &mut l.turns).filter(|t| t.branch == b) {
+            turn.member = last - turn.member;
+            turn.along = !turn.along;
+        }
+    }
+}
+
 /// A walk from a node to a node over connections, each `true` if walked from `a` to `b`.
 type Chain = (usize, Vec<(usize, bool)>, usize);
 
@@ -394,6 +408,28 @@ mod tests {
         assert_eq!(net.junctions.len(), 2);
         assert_eq!(branches(&parts, &net), ["+I1", "+iI1", "+R1"]);
         assert_eq!(loops(&parts, &net), ["+I1 -iI1", "+I1 +R1"]);
+    }
+
+    #[test]
+    fn reversing_a_branch_turns_its_members_and_loop_signs() {
+        let edges = vec![
+            edge("V1", (0, 4), (0, 0)),
+            edge("R1", (0, 0), (4, 0)),
+            edge("R2", (4, 0), (4, 4)),
+            edge("R3", (4, 0), (8, 0)),
+            edge("R4", (8, 0), (8, 4)),
+            edge("W1", (0, 4), (4, 4)),
+            edge("W2", (4, 4), (8, 4)),
+        ];
+        let parts = parts(&edges);
+        let original = network(&edges, &parts);
+        let mut net = original.clone();
+        net.reverse_branch(2);
+        assert_eq!(branches(&parts, &net), ["-R1 -V1", "+R2", "-R4 -R3"]);
+        assert_eq!((net.branches[2].from, net.branches[2].to), (3, 1));
+        assert_eq!(loops(&parts, &net), ["-V1 -R1 +R2", "-R2 -R3 -R4"]);
+        net.reverse_branch(2);
+        assert_eq!(net, original);
     }
 
     #[test]

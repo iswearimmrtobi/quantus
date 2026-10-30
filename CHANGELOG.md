@@ -32,8 +32,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   - A wire or part ending in the middle of an ideal wire is now connected to it (a T-junction).
 - A seventh mode, **Kirchhoff**, for resistor networks worked out by the junction and loop rules.
   Draw voltage sources, current sources, resistors and ideal wires; the canvas shows the
-  junctions, an arrow for each branch current and a clockwise arrow in each loop. Clicking a
-  current arrow reverses it. Under the canvas, in a panel whose height can be dragged, are the
+  junctions, an arrow for each branch current, a voltage arrow beside each part while U is
+  shown, and a clockwise arrow in each loop. The current arrows follow the real current, so the
+  currents come out positive; clicking one reverses it and its current turns negative. The
+  values of the parts follow the arrows: a resistor's power is what it takes, a source's what it
+  delivers. Under the canvas, in a panel whose height can be dragged, are the
   junction and loop rules (with names, then with values), the matrix with its Gauss steps, the
   exact currents and the power balance; **Copy** gives the working as an `align*` block. Hovering
   a loop or a rule highlights its parts. The circuit is separate from the Electronics one but

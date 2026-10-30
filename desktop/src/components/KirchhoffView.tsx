@@ -12,7 +12,7 @@ import {
 } from '../circuit';
 import { useT } from '../i18n';
 import { CircuitEditor } from './CircuitEditor';
-import { currentArrows, KirchhoffOverlay, overlayLabels, overlayReserved, type Hover } from './KirchhoffOverlay';
+import { currentArrows, KirchhoffOverlay, overlayLabels, overlayReserved, voltageArrows, type Hover } from './KirchhoffOverlay';
 import { KirchhoffWorking } from './KirchhoffWorking';
 
 const PALETTE: EditorKind[] = ['voltageSource', 'currentSource', 'resistor', 'wire'];
@@ -85,8 +85,15 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       point: junctionPoint(elements, nodes, { x: junction.anchor.x * GRID, y: junction.anchor.y * GRID }),
     }));
     const arrows = currentArrows(solution, elements);
-    return { junctions, arrows, labels: overlayLabels(solution, junctions, arrows), reserved: overlayReserved(solution, arrows) };
-  }, [solution, elements, nodes]);
+    const voltages = shown.voltage ? voltageArrows(solution, elements) : [];
+    return {
+      junctions,
+      arrows,
+      voltages,
+      labels: overlayLabels(solution, junctions, arrows),
+      reserved: overlayReserved(solution, [...arrows, ...voltages]),
+    };
+  }, [solution, elements, nodes, shown.voltage]);
 
   /** The parts of the loop under the pointer. */
   const highlight = useMemo(() => {
@@ -121,6 +128,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
             solution={solution}
             junctions={marks.junctions}
             arrows={marks.arrows}
+            voltages={marks.voltages}
             hover={hover}
             onHover={setHover}
             onFlip={flip}

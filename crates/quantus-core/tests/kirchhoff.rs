@@ -98,22 +98,22 @@ fn two_sources_with_three_resistors() {
     assert_eq!(solved.loops.len(), 2);
     assert_eq!(solved.matrix.len(), 3);
     assert_eq!(solved.branches.iter().map(|b| b.lead.as_str()).collect::<Vec<_>>(), ["V1", "V2", "R3"]);
-    // I_1 out of V1's `+`, I_2 out of V2's `+`, against the 0.625 mA that flows into it.
+    // Every arrow follows its current: I_2 runs into V2's `+`, so no current is negative.
     assert_eq!(
         solved.result,
         [
             "I_{1} = \\frac{3}{800}\\,\\mathrm{A}",
-            "I_{2} = -\\frac{1}{1600}\\,\\mathrm{A}",
+            "I_{2} = \\frac{1}{1600}\\,\\mathrm{A}",
             "I_{3} = \\frac{1}{320}\\,\\mathrm{A}"
         ]
     );
     assert_eq!(shown(&solved, "R1", "current"), "3{,}75\\,\\mathrm{mA}");
     assert_eq!(shown(&solved, "R2", "current"), "625\\,\\mathrm{\\mu A}");
     assert_eq!(shown(&solved, "R3", "voltage"), "6{,}25\\,\\mathrm{V}");
-    // As in the electronics mode: a source that delivers has a negative current and power.
-    assert_eq!(shown(&solved, "V1", "current"), "-3{,}75\\,\\mathrm{mA}");
-    assert_eq!(shown(&solved, "V1", "power"), "-37{,}5\\,\\mathrm{mW}");
-    assert_eq!(shown(&solved, "V2", "power"), "3{,}125\\,\\mathrm{mW}");
+    // A source's I is what it delivers, so V2, which is charged, delivers a negative power.
+    assert_eq!(shown(&solved, "V1", "current"), "3{,}75\\,\\mathrm{mA}");
+    assert_eq!(shown(&solved, "V1", "power"), "37{,}5\\,\\mathrm{mW}");
+    assert_eq!(shown(&solved, "V2", "power"), "-3{,}125\\,\\mathrm{mW}");
     // 37.5 mW − 3.125 mW go into the resistors.
     let balance = solved.power_balance.unwrap();
     assert_eq!(balance.generated, balance.consumed);
@@ -133,12 +133,56 @@ fn a_balanced_wheatstone_bridge() {
     assert_eq!(shown(&solved, "R5", "current"), "0\\,\\mathrm{A}");
     assert_eq!(shown(&solved, "R1", "voltage"), "3{,}33333\\,\\mathrm{V}");
     assert_eq!(shown(&solved, "R4", "current"), "3{,}33333\\,\\mathrm{mA}");
-    assert_eq!(shown(&solved, "V1", "current"), "-6{,}66667\\,\\mathrm{mA}");
+    assert_eq!(shown(&solved, "V1", "current"), "6{,}66667\\,\\mathrm{mA}");
     assert_eq!(solved.power_balance.unwrap().consumed.result.as_deref(), Some("66{,}6667\\,\\mathrm{mW}"));
     // Each loop's members, clockwise: the first window is R1, R5 and R3.
     let first: Vec<&str> = solved.loops[0].members.iter().map(|m| m.id.as_str()).collect();
     assert_eq!(first, ["R1", "R5", "R3"]);
     assert_eq!(solved.loops[0].symbolic, "R_{1} I_{2} + R_{5} I_{6} - R_{3} I_{4} = 0");
+}
+
+/// 100 V, R1 in series with R2 ∥ R3, all 1 kΩ; R1 and R2 are drawn turned round, from right to
+/// left, so the current runs through them from `b` to `a`.
+fn turned_round(reversed: &str) -> Vec<Value> {
+    let mut parts = vec![
+        part("V1", "100V", (32, 16), (36, 16)),
+        part("R1", "1k\\Omega", (32, 11), (28, 11)),
+        part("R2", "1k\\Omega", (39, 7), (35, 7)),
+        part("R3", "1k\\Omega", (35, 11), (39, 11)),
+        part("W1", "", (35, 7), (35, 11)),
+        part("W2", "", (35, 11), (32, 11)),
+        part("W3", "", (39, 7), (39, 16)),
+        part("W4", "", (28, 11), (28, 16)),
+        part("W5", "", (32, 16), (28, 16)),
+        part("W6", "", (36, 16), (39, 16)),
+    ];
+    for part in parts.iter_mut().filter(|p| p["id"] == reversed) {
+        part["reversed"] = json!(true);
+    }
+    parts
+}
+
+/// The arrows follow the real current whichever way the parts are drawn, so every current and
+/// every resistor's U, I and P is positive; a flipped arrow shows its current negative.
+#[test]
+fn the_arrows_follow_the_current() {
+    let solved = solve(turned_round(""));
+    assert_eq!(solved.error, None);
+    assert!(solved.result.iter().all(|r| !r.contains("= -")), "{:?}", solved.result);
+    for id in ["R1", "R2", "R3", "V1"] {
+        for what in ["voltage", "current", "power"] {
+            assert!(!shown(&solved, id, what).starts_with('-'), "{id} {what}");
+        }
+    }
+    assert_eq!(shown(&solved, "R1", "current"), "66{,}6667\\,\\mathrm{mA}");
+    assert_eq!(shown(&solved, "R2", "current"), "33{,}3333\\,\\mathrm{mA}");
+    assert_eq!(shown(&solved, "V1", "power"), "6{,}66667\\,\\mathrm{W}");
+
+    let flipped = solve(turned_round("R2"));
+    let k = flipped.branches.iter().position(|b| b.lead == "R2").unwrap();
+    assert!(flipped.result[k].contains("= -"), "{:?}", flipped.result);
+    assert_eq!(shown(&flipped, "R2", "current"), "-33{,}3333\\,\\mathrm{mA}");
+    assert_eq!(shown(&flipped, "R2", "power"), "1{,}11111\\,\\mathrm{W}");
 }
 
 #[test]
@@ -244,6 +288,7 @@ fn a_drawing_without_parts_is_an_error() {
 // voltages, currents and powers; the reference directions change none of them.
 
 use quantus_core::api::{solve_circuit, CircuitRequest};
+use quantus_core::electro::interface::{ElementResponse, ValueResponse};
 
 /// A part's terminals `a` and `b`, in grid steps.
 type Ends = ((i64, i64), (i64, i64));
@@ -286,8 +331,38 @@ fn as_kirchhoff(circuit: &Value, points: &[Ends], reversed: &[bool]) -> Kirchhof
     serde_json::from_value(json!({ "elements": elements })).unwrap()
 }
 
-/// Every part's U, I, P and R from the Kirchhoff mode equals the electronics mode's, for every
-/// choice of reference directions.
+/// The same value with the other sign; zero stays as it is.
+fn negated(value: &ValueResponse) -> ValueResponse {
+    let flip = |text: &String| match text.strip_prefix('-') {
+        Some(rest) => rest.to_string(),
+        None if text.starts_with('0') => text.clone(),
+        None => format!("-{text}"),
+    };
+    ValueResponse { result: value.result.as_ref().map(flip), value: value.value.as_ref().map(flip), ..value.clone() }
+}
+
+/// A part as the electronics mode gives it, from `a` to `b` and positive for a consumer, turned
+/// to the Kirchhoff mode's arrows: a resistor's along its branch current, a source delivering.
+fn along_arrows(response: &KirchhoffResponse, element: &ElementResponse) -> ElementResponse {
+    let member = response.branches.iter().flat_map(|b| &b.members).find(|m| m.id == element.id && !m.internal).unwrap();
+    let mut turned = element.clone();
+    match &element.id[..1] {
+        "V" => turned.current = negated(&element.current),
+        "I" => turned.voltage = negated(&element.voltage),
+        _ => {
+            if !member.forward {
+                turned.voltage = negated(&element.voltage);
+                turned.current = negated(&element.current);
+            }
+            return turned;
+        }
+    }
+    turned.power = negated(&element.power);
+    turned
+}
+
+/// Every part's U, I, P and R from the Kirchhoff mode equals the electronics mode's, turned to its
+/// arrows, for every choice of reference directions.
 fn assert_same_as_electronics(name: &str, circuit: &Value, points: &[Ends]) {
     let settings = Settings::default();
     let mut electronic = circuit.clone();
@@ -305,7 +380,7 @@ fn assert_same_as_electronics(name: &str, circuit: &Value, points: &[Ends]) {
         assert!(!solved.elements.is_empty(), "{name}");
         for element in &solved.elements {
             let reference = expected.elements.iter().find(|e| e.id == element.id).unwrap();
-            assert_eq!(element, reference, "{name}, {}, reversed {reversed:?}", element.id);
+            assert_eq!(element, &along_arrows(&solved, reference), "{name}, {}, reversed {reversed:?}", element.id);
         }
         let balance = solved.power_balance.unwrap();
         assert_eq!(balance.generated, balance.consumed, "{name}");
@@ -438,7 +513,16 @@ fn a_flipped_branch_negates_its_current() {
             let zero = before.ends_with("= 0\\,\\mathrm{A}");
             assert_eq!(after, if zero { before } else { &negated }, "{}", branch.lead);
         }
-        assert_eq!(flipped.elements, forward.elements);
+        // The flipped branch's resistors show U and I against their arrows now, the same power.
+        for (before, after) in forward.elements.iter().zip(&flipped.elements) {
+            let resistor = before.resistance.is_some() && forward.branches[k].members.iter().any(|m| m.id == before.id);
+            let expected = if resistor {
+                ElementResponse { voltage: negated(&before.voltage), current: negated(&before.current), ..before.clone() }
+            } else {
+                before.clone()
+            };
+            assert_eq!(after, &expected, "{}", branch.lead);
+        }
     }
 }
 
@@ -466,7 +550,7 @@ fn the_kirchhoff_test_circuits_solve_to_their_documented_values() {
     assert!(crossing.notes[0].contains("spanning tree"), "{:?}", crossing.notes);
     assert_eq!(shown(&crossing, "R1", "current"), r"3\,\mathrm{A}");
     assert_eq!(shown(&crossing, "R2", "current"), r"1\,\mathrm{A}");
-    assert_eq!(shown(&crossing, "V1", "current"), r"-4\,\mathrm{A}");
+    assert_eq!(shown(&crossing, "V1", "current"), r"4\,\mathrm{A}");
 
     let sources = load("source-loop").unwrap();
     assert!(sources.error.unwrap().starts_with("The equations contradict each other"));

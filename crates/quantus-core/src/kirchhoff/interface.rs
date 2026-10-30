@@ -12,7 +12,7 @@ use crate::api::StepResponse;
 use crate::electro::interface::{element_of, known, ElementRequest, ElementResponse, ValueResponse};
 use crate::electro::ElementKind;
 use crate::eval::calculator::{align_block, shown_steps};
-use crate::eval::system::{solve_matrix, Solution};
+use crate::eval::system::{solve_matrix, Solution, SystemSolution};
 use crate::eval::{LatexCalculator, Step, StepKind};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
@@ -43,7 +43,7 @@ pub struct KirchhoffElement {
     /// The terminals `a` and `b`, in grid steps.
     pub pa: Point,
     pub pb: Point,
-    /// Flips the reference direction of the branch this part leads.
+    /// Turns the branch this part leads against its real current.
     pub reversed: bool,
 }
 
@@ -156,9 +156,7 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
         )));
     }
     let graph = Graph::build(&edges)?;
-    let network = Network::build(&graph, &parts, &edges);
-    let equations = Equations::build(&network, &parts, &calculator)?;
-    let system = solve_matrix(equations.keys.clone(), equations.matrix(), settings.elimination)?;
+    let (network, equations, system) = orient(&graph, &parts, &edges, &calculator, &settings)?;
 
     let junctions: Vec<JunctionResponse> = equations
         .junctions
@@ -296,6 +294,46 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
     Ok(response)
 }
 
+/// The network with every branch's reference direction along its real current, solved. A part's
+/// `reversed` flag turns the branch it leads against that; a current source's branch keeps the
+/// source's direction unless flagged. If the circuit has no single solution, only the flags count.
+fn orient(
+    graph: &Graph,
+    parts: &[Part],
+    edges: &[Edge],
+    calculator: &LatexCalculator,
+    settings: &Settings,
+) -> Result<(Network, Equations, SystemSolution)> {
+    let plain: Vec<Part> = parts.iter().map(|p| Part { reversed: false, ..p.clone() }).collect();
+    let mut network = Network::build(graph, &plain, edges);
+    let equations = Equations::build(&network, parts, calculator)?;
+    let system = solve_matrix(equations.keys.clone(), equations.matrix(), settings.elimination)?;
+    let values = match &system.solution {
+        Solution::Unique(values) => Some(values),
+        _ => None,
+    };
+    let turned: Vec<usize> = (0..network.branches.len())
+        .filter(|&b| {
+            let branch = &network.branches[b];
+            let flagged = parts[branch.members[branch.lead].part].reversed;
+            let negative = match (&equations.currents[b], values) {
+                (Current::Unknown(column), Some(values)) => is_negative(&values[*column]),
+                _ => false,
+            };
+            negative != flagged
+        })
+        .collect();
+    if turned.is_empty() {
+        return Ok((network, equations, system));
+    }
+    for b in turned {
+        network.reverse_branch(b);
+    }
+    let equations = Equations::build(&network, parts, calculator)?;
+    let system = solve_matrix(equations.keys.clone(), equations.matrix(), settings.elimination)?;
+    Ok((network, equations, system))
+}
+
 /// A part of the drawing with its value in Ω, V or A, or `None` for a ground symbol.
 fn part_of(calculator: &LatexCalculator, element: &KirchhoffElement) -> Result<Option<Part>> {
     let e = &element.element;
@@ -368,7 +406,9 @@ struct Solved<'a> {
     values: &'a [Value],
 }
 
-/// U in V, I in A from `a` to `b`, and P = U·I in W, positive for a consumer.
+/// U in V and I in A along the part's arrows, so P = U·I. A resistor's U runs with its branch
+/// current, P ≥ 0 when the arrow follows the current. A source's U runs from `+` to `−` (against
+/// a current source's drive), its I is what it delivers, and P > 0 when it delivers.
 struct PartResult {
     voltage: Value,
     current: Value,
@@ -403,15 +443,20 @@ impl<'a> Solved<'a> {
         let part = &parts[n];
         let main = self.current(n, false).unwrap_or_else(Value::zero);
         match part.kind {
-            Kind::Resistor => PartResult { voltage: part.value.mul(&main), current: main },
+            Kind::Resistor => {
+                let current = self.place(n, false).map_or_else(Value::zero, |(b, _)| self.currents[b].clone());
+                PartResult { voltage: part.value.mul(&current), current }
+            }
             Kind::VoltageSource => {
-                let drop = part.internal.as_ref().map_or_else(Value::zero, |r| r.mul(&main));
-                PartResult { voltage: part.value.add(&drop), current: main }
+                // Out of `+`, so from `b` to `a` inside; the internal resistance takes its share.
+                let current = main.neg();
+                let drop = part.internal.as_ref().map_or_else(Value::zero, |r| r.mul(&current));
+                PartResult { voltage: part.value.sub(&drop), current }
             }
             Kind::CurrentSource => {
                 let voltage = self.place(n, false).map_or_else(Value::zero, |(b, _)| self.values[b].clone());
                 let parallel = self.current(n, true).unwrap_or_else(Value::zero);
-                PartResult { voltage, current: part.value.add(&parallel) }
+                PartResult { voltage: voltage.neg(), current: part.value.add(&parallel) }
             }
             Kind::Wire => PartResult { voltage: Value::zero(), current: Value::zero() },
         }
@@ -446,8 +491,9 @@ impl<'a> Solved<'a> {
                 Kind::Resistor => consumed = consumed.add(&heat(&part.value, &main)),
                 Kind::VoltageSource => generated = generated.sub(&part.value.mul(&main)),
                 Kind::CurrentSource => {
+                    // Its U runs against its drive, so U·I is what it delivers.
                     let voltage = self.part(parts, n).voltage;
-                    generated = generated.sub(&voltage.mul(&part.value));
+                    generated = generated.add(&voltage.mul(&part.value));
                 }
                 Kind::Wire => {}
             }

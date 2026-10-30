@@ -24,13 +24,15 @@ from `a` to `b`. A source therefore shows a negative current when it delivers po
 The circuits above without a potentiometer, a power load or a cable also work in the Kirchhoff
 mode and give the same values (`the_test_circuits_match_the_electronics_mode` in
 `crates/quantus-core/tests/kirchhoff.rs`); `two-sources.json` and `wheatstone.json` show the most.
+There the values follow the arrows instead of `a → b`: a resistor's along its current, a source's
+as what it delivers, so a delivering source shows a positive current and power.
 These are for what only the Kirchhoff mode has, and
 `the_kirchhoff_test_circuits_solve_to_their_documented_values` in the same file checks them:
 
 | File | What it tests | Expected |
 |---|---|---|
 | `kirchhoff-current-source.json` | A current source as a known branch current; the voltage across it is an unknown instead | 10 V with 2 Ω, 2 A into the junction, 4 Ω to the bottom: I(R1) = 1/3 A, I(R2) = 7/3 A, U(R2) = 28/3 V |
-| `kirchhoff-crossing.json` | Wires that cross without a connection: loops from a spanning tree, with a note | 12 V across 4 Ω ‖ 12 Ω: I(R1) = 3 A, I(R2) = 1 A, I(V1) = −4 A |
+| `kirchhoff-crossing.json` | Wires that cross without a connection: loops from a spanning tree, with a note | 12 V across 4 Ω ‖ 12 Ω: I(R1) = 3 A, I(R2) = 1 A, I(V1) = 4 A |
 | `kirchhoff-source-loop.json` | Two voltage sources in parallel: the equations contradict each other | Error, with the rules and the steps up to the contradiction |
 
 The files were written by the editor's own `toFile` (`desktop/src/circuit.ts`), so the node

@@ -491,7 +491,7 @@ mod tests {
         assert_eq!(body["result"], json!(["I_{1} = 2\\,\\mathrm{A}"]));
         assert_eq!(body["loops"][0]["name"], "L_{1}");
         assert_eq!(body["branches"][0]["lead"], "V1");
-        assert_eq!(body["elements"][1]["current"]["result"], "-2\\,\\mathrm{A}");
+        assert_eq!(body["elements"][1]["current"]["result"], "2\\,\\mathrm{A}");
         assert_eq!(body["powerBalance"]["latex"], "\\sum P_{\\mathrm{gen}} = 20\\,\\mathrm{W} = \\sum P_{\\mathrm{cons}}");
         assert!(body["alignBlock"].as_str().unwrap().contains("P_{\\mathrm{gen}}"));
     }

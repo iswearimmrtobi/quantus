@@ -40,19 +40,28 @@ Once the circuit can be solved, the canvas gets the names the equations use:
 
 - **Junctions** $N_1, N_2, \dots$ (German $K_1, K_2, \dots$): a dot where three or more
   connections meet. Junctions are numbered from top to bottom, then left to right.
-- **Branch currents** $I_1, I_2, \dots$: a green arrow beside one part of each branch. Parts in
-  series between two junctions form one branch and share its current.
+- **Branch currents** $I_1, I_2, \dots$: a green arrow beside one part of each branch, its first
+  resistor if it has one. Parts in series between two junctions form one branch and share its
+  current.
+- **Voltages**: a blue arrow beside every part while **U** is on. A resistor's runs with its
+  current (consumer convention), a voltage source's from `+` to `−` and a current source's against
+  the current it drives (generator convention).
 - **Loops** $L_1, L_2, \dots$ (German $M_1, M_2, \dots$): a circular arrow in every window of the
   drawing, always clockwise. Hovering one highlights its parts.
 
 The buttons **U I P R** at the top right choose which values the parts show, as in Electronics.
+Here the values follow the arrows: a resistor's $U$ and $I$ along its arrows, so $P = U \cdot I$ is
+what it takes, and a source's $I$ is the current it delivers, so $P$ is what it gives. Their powers
+add up to the power balance below. (Electronics counts every part from its first terminal to its
+second instead.)
 
 ### Reference directions
 
-The current arrows are chosen for you: out of a source's `+` terminal, and through a resistor
-from its first terminal to its second. **Click an arrow to reverse it.** The equations, the matrix
-and the results change with it; a current that comes out negative simply flows against its arrow.
-The direction is saved with the circuit.
+The current arrows point the way the current really flows, from `+` to `−` outside the
+sources, so every current comes out positive. **Click an arrow to reverse it**, as if you had
+guessed that direction on paper: the equations, the matrix and the results change with it, and
+the current comes out negative, because it flows against its arrow. The reversal is saved with
+the circuit.
 
 ## The working
 
@@ -78,12 +87,14 @@ For the circuit with 10 V and 5 V, $R_1 = 1\,\mathrm{k\Omega}$, $R_2 = R_3 = 2\,
 
 | | |
 |---|---|
-| Junction rule | $N_1: I_1 + I_2 - I_3 = 0$ |
-| Loop rules | $L_1: R_1 I_1 + R_3 I_3 = U_1$, $L_2: -R_3 I_3 - R_2 I_2 = -U_2$ |
-| Currents | $I_1 = \frac{3}{800}\,\mathrm{A}$, $I_2 = -\frac{1}{1600}\,\mathrm{A}$, $I_3 = \frac{1}{320}\,\mathrm{A}$ |
+| Junction rule | $N_1: I_1 - I_2 - I_3 = 0$ |
+| Loop rules | $L_1: R_1 I_1 + R_3 I_3 = U_1$, $L_2: -R_3 I_3 + R_2 I_2 = -U_2$ |
+| Currents | $I_1 = \frac{3}{800}\,\mathrm{A}$, $I_2 = \frac{1}{1600}\,\mathrm{A}$, $I_3 = \frac{1}{320}\,\mathrm{A}$ |
 | Power balance | $\sum P_{\mathrm{gen}} = 34{,}375\,\mathrm{mW} = \sum P_{\mathrm{cons}}$ |
 
-$I_2$ is negative: the current through $R_2$ runs into the 5 V source, against its arrow.
+The current through $R_2$ runs into the `+` of the 5 V source, so its arrow points there, and the
+source shows $P = -3{,}125\,\mathrm{mW}$: it is charged rather than delivering. Click $I_2$ to see the
+same circuit with $I_2 = -\frac{1}{1600}\,\mathrm{A}$.
 
 ### Current sources
 

@@ -21,7 +21,7 @@ Decisions (from the questions):
 | Parts | Resistor, voltage source, current source, ideal wire. Ground symbols are ignored. Potentiometer, power load and cable wires (material/length/area) are an error naming the part |
 | Branches | A path between two junctions; series parts share one current `I_k` |
 | Loops | The windows of the drawing (planar faces), clockwise, drawn on the canvas. Spanning-tree loops if the drawing has crossings, with a note |
-| Directions | Automatic; clicking a branch's current arrow flips it. Negative results mean the opposite direction |
+| Directions | Along the real current (solved once with geometric guesses, then negative branches turned); clicking a branch's current arrow flips it against that, and its result turns negative. The arrow sits on the branch's first resistor. Part values follow the arrows: consumer convention for resistors, generator convention for sources. Voltage arrows show with the U toggle |
 | Values | Every value must be given; a missing one is an error naming the part |
 | Equations | First symbolic (`R_1 I_1 − R_2 I_2 = U_1`), then with values and units, then the matrix and the Gauss steps |
 | Results | U, I, P per part on the canvas (the existing U/I/P/R toggles), plus a power balance |
