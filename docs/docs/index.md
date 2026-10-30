@@ -23,7 +23,7 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 
 Every result can be copied as LaTeX.
 
-## Four modes
+## Five modes
 
 | Mode | What it is for |
 |---|---|
@@ -31,6 +31,7 @@ Every result can be copied as LaTeX.
 | **Algebra** | Every letter is a variable: simplify, factor and solve |
 | **Imaginary** | As Algebra, but $i$ is the imaginary unit and results may be complex |
 | **Analysis** | Enter $f(x) = \ldots$ and get the whole curve sketch beside a graph |
+| **Linear systems** | Type a system line by line or as a matrix and get the Gauss steps |
 
 ## Where to go next
 

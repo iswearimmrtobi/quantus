@@ -119,7 +119,8 @@ entry, and *Maximal* explains each swap and checks the solution in every equatio
 contradicts itself ends in the row $0 = c$.
 
 Coefficients may be fractions, $\pi$ or stored variables (`k_1 x + y = 7`); the unknowns
-themselves must appear linearly.
+themselves must appear linearly. For larger systems, one equation per line or a matrix, use
+[Linear systems](linear-systems.md) mode.
 
 ## When nothing happens
 

@@ -18,6 +18,7 @@ the product $2 \cdot g \cdot k$ in Algebra.
 | **Algebra** | variables | unknown | a variable |
 | **Imaginary** | variables | unknown | the imaginary unit |
 | **Analysis** | variables, as in Algebra | unknown | a variable |
+| **Linear systems** | unknowns; session variables are not used | unknown | an unknown, or the imaginary unit with the switch on |
 
 Switch the mode in the top bar or under **Settings → Mode**. An example under the empty input
 shows what fits the current mode.

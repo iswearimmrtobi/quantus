@@ -14,7 +14,7 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 
 | Setting | Key | Values | Default |
 |---|---|---|---|
-| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis` | `physics` |
+| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear` | `physics` |
 | **Language** | `language` | `en`, `de` | `en` |
 | **Precision** | `precision` | 1 to 10,000 significant digits | 50 |
 
@@ -45,7 +45,25 @@ off, a cancelled factor is shown in colour instead. See
 **Systems of equations** decides how the steps of a system (`2x + y = 5; x - y = 1`) reduce it:
 **Gauss** brings it to triangle form without fractions and then solves from the bottom up, as
 taught at school; **Gauss–Jordan** divides every pivot to 1 and clears its column above and below.
-The solution is the same.
+The solution is the same. It applies to systems typed with `;` and to
+[Linear systems](../guides/linear-systems.md) mode.
+
+## Linear systems
+
+These two are set in [Linear systems](../guides/linear-systems.md) mode: **Unknown names** in the
+settings, shown only there, and **Imaginary unit i** with the switch above the input.
+
+| Setting | Key | Values | Default |
+|---|---|---|---|
+| **Unknown names** | `unknownNames` | `indexed`, `letters` | `indexed` |
+| **Imaginary unit i** | `linearComplex` | on / off | off |
+
+**Unknown names** names the columns of the matrix, the equations written from it and the
+solution: *indexed* is $x_1, x_2, \dots$; *letters* is $x, y, z, a, \dots, w$ without $e$ and
+$i$, then $x_1, x_2, \dots$ Equations typed on the **Equations** tab keep the names you typed.
+
+**Imaginary unit i** on makes $i$ the imaginary unit, so coefficients may be complex, and the
+mode reads **Linear systems + 𝑖** in the top bar. Off, $i$ is an unknown.
 
 ## How results are written
 
