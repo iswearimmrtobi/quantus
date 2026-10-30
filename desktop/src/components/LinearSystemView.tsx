@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type LinearSystem, type Settings } from '../api';
-import { requestFor, type LinearInput, type LinearTab } from '../linear';
+import { matrixLatex, requestFor, withMatrix, type LinearInput, type LinearTab } from '../linear';
 import { useT } from '../i18n';
 import { copyText } from '../shell';
 import type { TextKey } from '../i18n/en';
 import { asError, ErrorRow, Steps } from './AnalysisView';
 import { Katex } from './Katex';
 import { MatrixGrid } from './MatrixGrid';
+import { MatrixJson } from './MatrixJson';
 import { SystemField } from './SystemField';
 
 const TABS: { id: LinearTab; label: TextKey }[] = [
@@ -109,12 +110,31 @@ export function LinearSystemView({ settings, onSettingsChange, input, onInputCha
           />
         )}
 
+        {input.tab === 'matrix' &&
+          (input.large ? (
+            <section className="section-card matrix-large">
+              <div className="task-inputs">
+                <span>{t('linear.large', { m: input.large.rows.length, n: input.large.rows[0].length - 1 })}</span>
+                <button className="palette-item" onClick={() => update({ ...latest.current, large: null })}>
+                  {t('linear.large.back')}
+                </button>
+              </div>
+              <Katex className="matrix-preview" latex={matrixLatex(input.large)} display />
+            </section>
+          ) : (
+            <MatrixGrid
+              grid={input.grid}
+              names={unknownNames}
+              onChange={(grid) => update({ ...latest.current, grid })}
+              onSubmit={() => void solve()}
+            />
+          ))}
         {input.tab === 'matrix' && (
-          <MatrixGrid
-            grid={input.grid}
-            names={unknownNames}
-            onChange={(grid) => update({ ...latest.current, grid })}
-            onSubmit={() => void solve()}
+          <MatrixJson
+            onLoad={(matrix) => {
+              update(withMatrix(latest.current, matrix));
+              void solve();
+            }}
           />
         )}
 

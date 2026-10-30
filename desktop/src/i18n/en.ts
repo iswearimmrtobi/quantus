@@ -182,6 +182,17 @@ export const en = {
   'linear.copy.hint': 'Result and steps as an align* block',
   'linear.unknowns': 'Unknowns',
   'linear.equations': 'Equations',
+  'linear.json': 'JSON input',
+  'linear.json.apply': 'Apply',
+  'linear.json.file': 'Load file…',
+  'linear.json.invalid': 'This is not valid JSON.',
+  'linear.json.shape': 'Expected the rows of [A | b] as an array of arrays, or an object with "rows".',
+  'linear.json.short': 'A row needs at least one coefficient and the right-hand side.',
+  'linear.json.width': 'Row {row} has {count} entries, but row 1 has {first}.',
+  'linear.json.entry': 'Row {row}, entry {column}: expected a number or a LaTeX string.',
+  'linear.json.names': '"unknowns" must be {count} names as strings, one per column of A.',
+  'linear.large': '{m} equations, {n} unknowns: too large for the grid, solved as loaded.',
+  'linear.large.back': 'Back to the grid',
 };
 
 export type TextKey = keyof typeof en;

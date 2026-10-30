@@ -1634,6 +1634,41 @@ select option {
   text-align: center;
 }
 
+.matrix-json {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.matrix-json summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+.matrix-json[open] {
+  display: grid;
+  gap: 8px;
+}
+.json-text {
+  font-size: 12.5px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+.json-text:focus {
+  border-color: var(--cyan-dim);
+}
+
+.matrix-large {
+  display: grid;
+  gap: 10px;
+}
+.matrix-preview {
+  overflow: auto;
+  max-height: 60vh;
+}
+
 .linear-result {
   margin-top: 14px;
 }
