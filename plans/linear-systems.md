@@ -90,7 +90,8 @@ specification; this list says in which order to build them and where.
 
 - [x] A user guide for the mode in `docs/docs/guides/`, and the settings in the reference.
 - [x] Update the flowcharts in `docs/docs/contributing/solving.md` for the LGS path.
-- [ ] CHANGELOG entry for the mode; `npm run licenses` only if a dependency was added.
+- [x] CHANGELOG entry for the mode; `npm run licenses` only if a dependency was added.
+  Result: no dependency was added, so the licenses stay as they are.
 
 ## 1. Indexed variables and the order of the unknowns
 

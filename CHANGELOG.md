@@ -7,6 +7,13 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A fifth mode, **Linear systems** (German **LGS**), for systems of linear equations, solved
+  exactly with their Gauss steps. The **Equations** tab takes one equation per line (Enter
+  solves, a second Enter or `\\` starts a new line). The **Matrix** tab takes `[A | b]` in a grid
+  of up to 10 × 10 formula cells, empty cells being 0, or any size as JSON, pasted or loaded from a
+  file. Switching tabs converts the system. The mode uses no session variables; the switch
+  **Imaginary unit i** makes `i` the imaginary unit and allows complex coefficients. The setting
+  **Unknown names** names the matrix columns `x_1, x_2, …` or `x, y, z, …`.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 
