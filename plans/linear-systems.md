@@ -25,7 +25,7 @@ specification; this list says in which order to build them and where.
 - [x] Setting `elimination` (`Gauss` default, `GaussJordan`) in `crates/quantus-core/src/settings.rs`
   next to `step_detail`; type in `desktop/src/api.ts`, drop-down in `SettingsPanel.tsx`, strings in
   `en.ts` and `de.ts`.
-- [ ] `linear.rs`: `gauss(matrix, unknowns) -> Echelon` with the log; new `RowOperation` variants
+- [x] `linear.rs`: `gauss(matrix, unknowns) -> Echelon` with the log; new `RowOperation` variants
   `Combine { target, a, source, b }` and `Scale { row, divisor }`, and a reason enum.
   `eliminate` keeps its behaviour for the circuit solver and `solve_square`.
 - [ ] `system.rs`: back-substitution from the echelon form, the outcome (unique, `0 = c`, free

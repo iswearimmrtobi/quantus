@@ -386,7 +386,7 @@ impl LatexCalculator {
             )
             .with_level(StepDetail::Standard),
         );
-        for (operation, matrix) in &system.elimination.log {
+        for crate::linear::Logged { operation, matrix, .. } in &system.elimination.log {
             let (operation, explanation) = self.row_operation(operation)?;
             steps.push(
                 Step::algebraic(format!("\\xrightarrow{{{operation}}} {}", self.augmented(matrix)?), None, explanation, None, None)
@@ -468,6 +468,14 @@ impl LatexCalculator {
                     msg!("Eliminate the unknown from the other row", "Die Unbekannte aus der anderen Zeile eliminieren"),
                 )
             }
+            RowOperation::Combine { target, a, source, b } => (
+                format!("{} \\cdot {} - {} \\cdot {}", self.entry(a)?, row(*target), self.signed(b)?, row(*source)),
+                msg!("Eliminate the unknown from the other row", "Die Unbekannte aus der anderen Zeile eliminieren"),
+            ),
+            RowOperation::Scale { row: r, divisor } => (
+                format!("{} : {}", row(*r), self.signed(divisor)?),
+                msg!("Divide out the common factor", "Den gemeinsamen Faktor herausteilen"),
+            ),
         })
     }
 
