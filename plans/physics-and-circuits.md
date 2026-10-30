@@ -46,15 +46,8 @@ solves `A·x = z` with exact arithmetic (`electro/solve.rs`, `linear.rs`). What 
 *explained* route, as a student does it: choose a tree, write the junction rule per node, the loop
 rule per mesh, then solve. Note the name: **Kirchhoff**.
 
-**Plan.**
-1. Generate the Kirchhoff equations from a `Circuit` as text (junction and loop rules with the
-   unknown currents `I_1, I_2, …`). Needs the indexed unknowns of linear-systems.md §1.
-2. Feed them into the system solver, so the steps are the same Gauss steps.
-3. Show it next to the circuit editor; result values written back to the elements.
-4. Property test against the existing MNA result: both must agree exactly.
-
-**Depends on.** Electronics mode being un-hidden (or at least its solver exposed), indexed unknowns,
-detailed Gauss steps. Do it last.
+**Plan.** Worked out as its own mode in [kirchhoff.md](kirchhoff.md). Its dependencies (the
+electronics mode back in the selector, indexed unknowns, Gauss steps) are done.
 
 ## Order
 
