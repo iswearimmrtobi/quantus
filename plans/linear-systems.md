@@ -54,7 +54,7 @@ specification; this list says in which order to build them and where.
   `linear_complex` off, `i` is an unknown. Empty cells are 0. Cells with units are an error.
 - [x] The response: unknowns, matrix cells as LaTeX, the system as equations LaTeX (for the tab
   switch, named by `unknown_names`), steps, the exact result, the copy block (`align*`).
-- [ ] Tauri command `solve_linear_system` in `desktop/src-tauri/src/commands.rs`, wrapper in `api.ts`.
+- [x] Tauri command `solve_linear_system` in `desktop/src-tauri/src/commands.rs`, wrapper in `api.ts`.
 - [ ] Tests: `crates/quantus-core/tests/linear_systems.rs` (equations, matrix, both methods, with and
   without `i`, m ≠ n, the round trip equations → matrix → equations) and LGS cases for
   `run_cases`.

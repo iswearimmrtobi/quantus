@@ -171,6 +171,26 @@ export interface Settings {
   linearComplex: boolean;
 }
 
+/** A linear system as typed (`2x + y = 5; x - y = 1` or a `cases` block) or as the rows of `[A | b]`. */
+export type LinearSystemRequest =
+  | { equations: string }
+  /** Entries in LaTeX, an empty one is 0; without `unknowns` the columns are named by `unknownNames`. */
+  | { matrix: { unknowns?: string[]; rows: string[][] } };
+
+/** What `quantus_core::api::LinearSystemResponse` serialises to. */
+export interface LinearSystem {
+  /** The unknowns in LaTeX, in the order of the columns: `x_{1}`. */
+  unknowns: string[];
+  /** `[A | b]` as LaTeX entries, one row per equation. */
+  matrix: string[][];
+  /** Each row as an equation in the unknowns, for the switch to the equations tab. */
+  equations: string[];
+  steps: Step[];
+  /** Exact: `x_{1} = \frac{1}{2} \land x_{2} = 4`. */
+  result: string;
+  alignBlock: string;
+}
+
 /** A segment of the graph: points in order, broken at poles and gaps. */
 export type Segment = [number, number][];
 
@@ -334,6 +354,9 @@ export const api = {
 
   valueTable: (latex: string, from: string, to: string, step: string) =>
     call<TableResult>('value_table', { request: { latex, from, to, step } }),
+
+  /** Solves a linear system; it uses no session variables. */
+  solveLinearSystem: (request: LinearSystemRequest) => call<LinearSystem>('solve_linear_system', { request }),
 
   variables: () => call<Variable[]>('list_variables', { sessionId: SESSION_ID }),
 

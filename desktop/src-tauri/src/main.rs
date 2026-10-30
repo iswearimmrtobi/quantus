@@ -27,6 +27,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::tangent,
             commands::area_under_curve,
             commands::value_table,
+            commands::solve_linear_system,
             commands::list_variables,
             commands::delete_variable,
             commands::get_settings,

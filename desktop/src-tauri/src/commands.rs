@@ -10,8 +10,9 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalculationResponse, CircuitRequest, CircuitResponse, SampleRequest, SampleResponse, TableRequest,
-    TableResponse, TangentRequest, TangentResponse, VariableResponse,
+    CalculationResponse, CircuitRequest, CircuitResponse, LinearSystemRequest, LinearSystemResponse,
+    SampleRequest, SampleResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
+    VariableResponse,
 };
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{Language, Settings};
@@ -134,6 +135,16 @@ pub fn solve_circuit(
 pub fn analyze(engine: State<Engine>, request: AnalysisRequest) -> Result<AnalysisResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::analyze(&settings, &request)
+}
+
+/// A system of linear equations, typed or as a matrix. Like `analyze` it touches no session.
+#[tauri::command]
+pub fn solve_linear_system(
+    engine: State<Engine>,
+    request: LinearSystemRequest,
+) -> Result<LinearSystemResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::linear_system(&settings, &request)
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.

@@ -379,3 +379,26 @@ fn the_analysis_follows_the_set_precision() {
     let area = invoke(&w, "area_under_curve", json!({ "request": { "latex": "e^{x^2}", "from": "0", "to": "1" } })).unwrap();
     assert_eq!(area["area"], "\\approx 1{,}46");
 }
+
+#[test]
+fn a_linear_system_is_solved_through_the_command_without_session_variables() {
+    let w = window();
+    // A stored k_1 is ignored by the linear systems mode: it stays an unknown.
+    invoke(&w, "evaluate", json!({ "request": { "latex": "k_1 = 5", "sessionId": "desktop" } })).unwrap();
+    let typed = invoke(&w, "solve_linear_system", json!({ "request": { "equations": "k_1 + x = 3; k_1 - x = 1" } })).unwrap();
+    assert_eq!(typed["result"], "x = 1 \\land k_{1} = 2");
+    assert_eq!(typed["matrix"], json!([["1", "1", "3"], ["-1", "1", "1"]]));
+
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    settings["mode"] = json!("linear");
+    settings["unknownNames"] = json!("letters");
+    let saved = invoke(&w, "set_settings", json!({ "settings": settings })).unwrap();
+    assert_eq!((saved["mode"].clone(), saved["linearComplex"].clone()), (json!("linear"), json!(false)));
+    let given = invoke(&w, "solve_linear_system", json!({ "request": { "matrix": { "rows": [["2", "1", "5"], ["1", "-1", ""]] } } })).unwrap();
+    assert_eq!(given["equations"], json!(["2x + y = 5", "x - y = 0"]));
+    assert_eq!(given["result"], "x = \\frac{5}{3} \\land y = \\frac{5}{3}");
+    assert!(given["alignBlock"].as_str().unwrap().starts_with("\\begin{align*}"));
+
+    let error = invoke(&w, "solve_linear_system", json!({ "request": { "matrix": { "rows": [["2", "m", "5"]] } } })).unwrap_err();
+    assert!(error["error"].as_str().unwrap().starts_with("Row 1, entry 2:"));
+}
