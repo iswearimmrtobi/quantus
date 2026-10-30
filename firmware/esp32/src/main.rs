@@ -9,7 +9,7 @@ use quantus_core::api::{self, AnalysisRequest, CalculationRequest};
 use quantus_core::session::SessionStore;
 
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does.
-const ENGINE_STACK: usize = 64 * 1024;
+const ENGINE_STACK: usize = 32 * 1024;
 
 /// One or two inputs per category of the generated test set (`test/cases`).
 const INPUTS: &[&str] = &[
@@ -40,11 +40,11 @@ fn main() {
     if engine.join().is_err() {
         println!("engine thread panicked");
     }
-    report_heap("end");
+    println!("done");
 }
 
 fn run() {
-    report_heap("start");
+    report_memory();
     let mut store = SessionStore::new();
     for &latex in INPUTS {
         let request = CalculationRequest { latex: latex.into(), ..Default::default() };
@@ -55,7 +55,7 @@ fn run() {
             Ok(response) => println!("{:>8.1?}  {latex}  =>  {}", elapsed, response.result),
             Err(error) => println!("{:>8.1?}  {latex}  !!  {error}", elapsed),
         }
-        report_stack();
+        report_memory();
     }
     for &latex in FUNCTIONS {
         let request = AnalysisRequest { latex: latex.into(), variable: None, precision: None };
@@ -72,19 +72,23 @@ fn run() {
             ),
             Err(error) => println!("{:>8.1?}  {latex}  !!  {error}", elapsed),
         }
-        report_stack();
+        report_memory();
     }
 }
 
-fn report_heap(label: &str) {
-    // SAFETY: plain reads of the allocator's counters.
-    let (free, minimum) = unsafe { (sys::esp_get_free_heap_size(), sys::esp_get_minimum_free_heap_size()) };
-    println!("heap {label}: {free} B free, {minimum} B lowest so far");
-}
-
-/// The least free stack this thread has had, in bytes (ESP-IDF counts bytes, not words).
-fn report_stack() {
-    // SAFETY: a null handle means the calling task.
-    let unused = unsafe { sys::uxTaskGetStackHighWaterMark(std::ptr::null_mut()) };
-    println!("          stack: {} of {ENGINE_STACK} B used at most", ENGINE_STACK as u32 - unused);
+/// After each input: the most stack this thread has used, and the heap. On a chip without PSRAM
+/// the largest free block matters as much as the total, since big numbers want contiguous memory.
+fn report_memory() {
+    // SAFETY: a null handle means the calling task; the rest are plain reads of allocator counters.
+    let (unused, free, minimum, largest) = unsafe {
+        (
+            sys::uxTaskGetStackHighWaterMark(std::ptr::null_mut()),
+            sys::esp_get_free_heap_size(),
+            sys::esp_get_minimum_free_heap_size(),
+            sys::heap_caps_get_largest_free_block(sys::MALLOC_CAP_8BIT),
+        )
+    };
+    // ESP-IDF counts stack in bytes, not words.
+    let stack = ENGINE_STACK as u32 - unused;
+    println!("          stack {stack} of {ENGINE_STACK} B; heap {free} B free, {minimum} B lowest, {largest} B largest block");
 }

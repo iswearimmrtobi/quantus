@@ -5,3 +5,6 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_ESP_TASK_WDT_EN=n
 CONFIG_PTHREAD_TASK_STACK_SIZE_DEFAULT=8192
+
+# Stop on a crash instead of restarting, so an out-of-memory abort shows once, not in a loop.
+CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y

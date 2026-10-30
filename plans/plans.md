@@ -52,8 +52,14 @@ Needed to ship it: document it in the README and the user docs.
 printing results, time, heap and stack over serial. See its [README](../firmware/esp32/README.md).
 
 - [x] Builds unchanged for `xtensa-esp32-espidf`; the release app is 1.9 MB of a 4 MB flash.
-- [ ] Flash it and record heap, stack and time per input. Do integrals and curve sketching fit
-  in 520 KB SRAM, or does it need an S3 with PSRAM?
+- [x] Flash it and record heap, stack and time per input. First run on a WROOM: 254 KB heap at
+  start. Arithmetic, units, equations and the derivative work in 11–76 ms, with at most 14 KB of
+  stack. Building the unit table (`units/lookup.rs`, ~1000 owned strings in two hash maps)
+  takes 154 KB. The integrals take 7–17 s and keep another ~80 KB; after them the heap is gone
+  and `e^{4i\pi/2}` aborts. `ln` and float formatting fail softly first (NaN, "could not read a
+  computed number") because `astro-float` reports failed allocations instead of aborting.
+- [ ] Shrink the unit table (e.g. replay the registrations on lookup instead of storing them),
+  then measure the integrals and curve sketching again. Otherwise: an S3 with PSRAM.
 - [ ] If so: a keypad that writes LaTeX and a display that renders the result.
 
 ## 5. Later
