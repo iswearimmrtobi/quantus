@@ -298,7 +298,6 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
               onPointerDown={(event) => startMove(event, element)}
               onTerminal={(event, point) => startDraw(event, point)}
               onEnd={(event, end) => startEnd(event, element, end)}
-              result={results.get(element.id)}
             />
           ))}
 
@@ -316,17 +315,24 @@ export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) 
           {drag?.type === 'draw' && (
             <line className="wire-ghost" x1={drag.from.x} y1={drag.from.y} x2={drag.to.x} y2={drag.to.y} />
           )}
+        </svg>
 
+        {/* The values are HTML over the canvas, not foreignObject in it: WebKitGTK draws KaTeX's
+            positioned spans inside a foreignObject at the origin of the SVG. */}
+        <div className="circuit-labels">
+          {elements.map((element) => (
+            <PartLabel key={element.id} element={element} result={results.get(element.id)} />
+          ))}
           {[...nodes.pointOf].map(([id, point]) => {
             const voltage = voltages.get(id);
             if (!voltage) return null;
             return (
-              <g key={`node-${id}`} transform={`translate(${point.x + 6} ${point.y - 8})`} pointerEvents="none">
-                <Value label="φ" value={voltage} small />
-              </g>
+              <div key={`node-${id}`} className="node-label" style={{ left: point.x + 6, top: point.y - 4 }}>
+                <Value label="φ" value={voltage} />
+              </div>
             );
           })}
-        </svg>
+        </div>
 
         {(failure || (elements.length > 0 && !nodes.grounded && nodes.byPoint.size > 0)) && (
           <div className={failure ? 'circuit-note error' : 'circuit-note'}>
@@ -408,37 +414,26 @@ function Symbol({ kind }: { kind: EditorKind }) {
 interface PartProps {
   element: EditorElement;
   selected: boolean;
-  result: CircuitResponse['elements'][number] | undefined;
   onPointerDown(event: ReactPointerEvent): void;
   onTerminal(event: ReactPointerEvent, point: Point): void;
   onEnd(event: ReactPointerEvent, end: 'a' | 'b'): void;
 }
 
-function Part({ element, selected, result, onPointerDown, onTerminal, onEnd }: PartProps) {
+function Part({ element, selected, onPointerDown, onTerminal, onEnd }: PartProps) {
   const places = terminals(element);
   const className = selected ? 'part selected' : 'part';
 
   if (element.kind === 'wire') {
     const { a, b } = places as Record<'a' | 'b', Point>;
-    const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     return (
       <g className={className}>
         <line className="hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} onPointerDown={onPointerDown} />
         <line className="wire" x1={a.x} y1={a.y} x2={b.x} y2={b.y} pointerEvents="none" />
         <circle className="end" cx={a.x} cy={a.y} r="5" onPointerDown={(event) => onEnd(event, 'a')} />
         <circle className="end" cx={b.x} cy={b.y} r="5" onPointerDown={(event) => onEnd(event, 'b')} />
-        <Label element={element} at={{ x: middle.x, y: middle.y - 12 }} result={result} anchor="middle" />
       </g>
     );
   }
-
-  const vertical = element.rotation % 2 === 1;
-  const labelAt =
-    element.kind === 'ground'
-      ? { x: element.x + 18, y: element.y + 14 }
-      : vertical
-        ? { x: element.x + 24, y: element.y - 8 }
-        : { x: element.x - HALF, y: element.y + 26 };
 
   return (
     <g className={className}>
@@ -458,59 +453,71 @@ function Part({ element, selected, result, onPointerDown, onTerminal, onEnd }: P
           onPointerDown={(event) => (element.kind === 'ground' ? onPointerDown(event) : onTerminal(event, point))}
         />
       ))}
-      <Label element={element} at={labelAt} result={result} anchor="start" />
     </g>
   );
 }
 
-/** The ID and the voltage and current of a part, beside it. */
-function Label({
-  element,
-  at,
-  result,
-  anchor,
-}: {
-  element: EditorElement;
-  at: Point;
-  result: CircuitResponse['elements'][number] | undefined;
-  anchor: 'start' | 'middle';
-}) {
+type Side = 'below' | 'above' | 'right' | 'left';
+
+/** Where a label sits against its point, so the block grows away from the part. */
+const SIDES: Record<Side, string> = {
+  below: 'translate(-50%, 0)',
+  above: 'translate(-50%, -100%)',
+  right: 'translate(0, -50%)',
+  left: 'translate(-100%, -50%)',
+};
+
+/**
+ * The ID and the voltage and current of a part, beside it: under a horizontal part, right of a
+ * vertical one, on the other side if a potentiometer's wiper is there. An ideal wire has no drop,
+ * so it only gets a label once it has a material or a resistance; the inspector shows the rest.
+ */
+function PartLabel({ element, result }: { element: EditorElement; result: CircuitResponse['elements'][number] | undefined }) {
   if (element.kind === 'ground') return null;
+  let at: Point;
+  let side: Side;
+  if (element.kind === 'wire') {
+    if (!element.material && !element.rOverride?.trim()) return null;
+    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
+    at = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    side = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y) ? 'above' : 'right';
+    at = side === 'above' ? { x: at.x, y: at.y - 8 } : { x: at.x + 10, y: at.y };
+  } else {
+    const vertical = element.rotation % 2 === 1;
+    const wiper = terminals(element).wiper;
+    side = vertical ? 'right' : 'below';
+    if (wiper && (vertical ? wiper.x > element.x : wiper.y > element.y)) side = vertical ? 'left' : 'above';
+    const gap = 18;
+    at = {
+      x: element.x + (side === 'right' ? gap : side === 'left' ? -gap : 0),
+      y: element.y + (side === 'below' ? gap : side === 'above' ? -gap : 0),
+    };
+  }
   return (
-    <g transform={`translate(${at.x} ${at.y})`} pointerEvents="none">
-      <text className="part-id" textAnchor={anchor}>
-        {element.id}
-      </text>
+    <div className="part-label" style={{ left: at.x, top: at.y, transform: SIDES[side] }}>
+      <span className="part-id">{element.id}</span>
       {result && (
-        <g transform={`translate(${anchor === 'middle' ? -60 : 0} 4)`}>
+        <>
           <Value label="U" value={result.voltage} />
-          <g transform="translate(0 20)">
-            <Value label="I" value={result.current} />
-          </g>
-        </g>
+          <Value label="I" value={result.current} />
+        </>
       )}
-    </g>
+    </div>
   );
 }
 
-/** A computed value on the canvas: set in KaTeX when known, greyed out when not. */
-function Value({ label, value, small = false }: { label: string; value: CircuitValue; small?: boolean }) {
-  const known = value.status === 'known' && value.result !== null;
-  const text = value.status === 'relative' ? (value.text ?? 'relativ') : null;
+/** A computed value on the canvas: set in KaTeX when known, amber when relative, greyed out when not. */
+function Value({ label, value }: { label: string; value: CircuitValue }) {
+  const shown = value.status !== 'unknown' && value.result !== null;
   return (
-    <foreignObject width={small ? 110 : 140} height={small ? 20 : 22} className="value-box">
-      <div className={small ? 'canvas-value small' : 'canvas-value'} title={value.text ?? undefined}>
-        {known ? (
-          <>
-            <span className="value-label">{label} =</span> <Katex latex={value.result!} />
-          </>
-        ) : text ? (
-          <span className="value-relative">{text}</span>
-        ) : (
-          <span className="value-unknown">{label} = ?</span>
-        )}
-      </div>
-    </foreignObject>
+    <div className="canvas-value" title={value.text ?? undefined}>
+      <span className="value-label">{label} =</span>{' '}
+      {shown ? (
+        <Katex latex={value.result!} className={value.status === 'relative' ? 'value-relative' : undefined} />
+      ) : (
+        <span className="value-unknown">?</span>
+      )}
+    </div>
   );
 }
 

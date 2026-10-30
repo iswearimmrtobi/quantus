@@ -1016,22 +1016,40 @@ select option {
   pointer-events: none;
 }
 
-.part-id {
-  fill: var(--amber);
-  font-family: var(--mono);
-  font-size: 12px;
+.circuit-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
-
-.value-box {
-  overflow: visible;
+.part-label,
+.node-label {
+  position: absolute;
+  padding: 1px 4px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.part-label {
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+}
+.node-label {
+  transform: translate(0, -100%);
+  font-size: 10px;
+  opacity: 0.8;
+}
+.part-id {
+  display: block;
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 11px;
 }
 .canvas-value {
-  font-size: 12px;
-  white-space: nowrap;
+  font-size: 11px;
   color: var(--text);
 }
-.canvas-value.small {
-  font-size: 11px;
+.node-label .canvas-value {
+  font-size: 10px;
   color: var(--text-muted);
 }
 .value-label {

@@ -15,6 +15,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   **Imaginary unit i** makes `i` the imaginary unit and allows complex coefficients. The setting
   **Unknown names** names the matrix columns `x_1, x_2, …` or `x, y, z, …`.
 - The **Electronics** mode is back in the mode selector.
+  - Its voltages and currents now sit beside their parts instead of piling up in the top left of
+    the canvas. Ideal wires get no label; their values show in the inspector.
+  - A changed precision or output setting shows in the circuit at once.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 
