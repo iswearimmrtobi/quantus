@@ -5,7 +5,23 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
+  (default), as taught at school, or **Gauss–Jordan**, as before.
+
 ### Changed
+
+- The steps of a system follow the school Gauss method: triangle form without fractions
+  (`2·II − 3·I`), common factors of a row divided out, then the unknowns found from the bottom
+  row up. Each matrix shows the operations next to the rows they change, the pivot in colour,
+  the rows just changed marked (`II′`) and coloured. Detailed works out each row entry by entry;
+  Maximal explains swaps and checks the solution in every equation.
+- With infinitely many solutions, the Gauss method sets the free unknowns to parameters
+  `λ, μ, …`: `x = 1 - λ ∧ y = λ ∧ λ ∈ ℝ`.
+- A system without a solution is no longer an error: its steps show the row `0 = c` that
+  contradicts, and the result reads "no solution".
+- Matrix entries with `π` or roots are written exactly in the steps, not as long decimals.
 
 - Systems of equations accept subscripted unknowns such as `x_1, x_2` when they have no value;
   a subscripted variable with a value stays a coefficient. Single equations are unchanged.

@@ -42,7 +42,7 @@ specification; this list says in which order to build them and where.
   builder lives in `eval/system_steps.rs`.
 - [x] `design/step-detail.md`: a *Linear systems* section with a worked 3×3 example per level.
   Golden cases for unique, inconsistent and infinite, with both settings.
-- [ ] CHANGELOG entry. Visible now in Algebra with `;`.
+- [x] CHANGELOG entry. Visible now in Algebra with `;`.
 
 ### Phase 3: LGS engine and API (section 2, backend)
 
