@@ -169,6 +169,17 @@ export const en = {
   'settings.elimination': 'Systems of equations',
   'settings.elimination.gauss.hint': 'Triangle form without fractions, then solved from the bottom up, as taught at school.',
   'settings.elimination.gaussJordan.hint': 'Every pivot divided to 1 and its column cleared above and below.',
+  'settings.unknownNames': 'Unknown names',
+  'settings.unknownNames.hint': 'How the columns of a matrix are named, in the equations and the solution: x₁, x₂, … or x, y, z, a, b, …',
+  'choice.indexed': 'x₁, x₂, …',
+  'choice.letters': 'x, y, z, …',
+  'linear.tab.equations': 'Equations',
+  'linear.tab.matrix': 'Matrix',
+  'linear.complex': 'Imaginary unit i',
+  'linear.complex.hint': 'On: i is the imaginary unit and coefficients may be complex. Off: i is an unknown.',
+  'linear.empty.equations': 'Type one equation per line; Enter starts the next line and solves.',
+  'linear.empty.matrix': 'Fill in the coefficients and the right-hand side; empty cells are 0. Enter solves.',
+  'linear.copy.hint': 'Result and steps as an align* block',
 };
 
 export type TextKey = keyof typeof en;

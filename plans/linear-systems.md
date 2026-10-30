@@ -73,10 +73,10 @@ specification; this list says in which order to build them and where.
   start of a row does nothing, and `removeRow` removes the row the cursor offset belongs to,
   which is the next one after moving right from an empty row; pasting a `cases` block nests it.
   So one field per line, drawn as a single block.
-- [ ] Mode switch: `modeChoices` gets "Linear systems" / "LGS", shown as "… + $i$" when
+- [x] Mode switch: `modeChoices` gets "Linear systems" / "LGS", shown as "… + $i$" when
   `linear_complex` is on. `App.tsx` renders the new view and holds its state, so the input and
   the last tab survive a mode switch (like `circuit`).
-- [ ] `components/LinearSystemView.tsx`, built like `AnalysisView`: the tabs, the `i` toggle, `Steps`,
+- [x] `components/LinearSystemView.tsx`, built like `AnalysisView`: the tabs, the `i` toggle, `Steps`,
   the error in grey for incomplete input, copy.
 - [ ] `components/SystemField.tsx`: the multiline field from the spike.
 - [ ] `components/MatrixGrid.tsx`: n and m (m defaults to n, both ≤ 10), the cell `MathField`s,

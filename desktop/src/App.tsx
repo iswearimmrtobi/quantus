@@ -5,6 +5,7 @@ import { Katex, latexLines } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { CircuitEditor } from './components/CircuitEditor';
 import { AnalysisView } from './components/AnalysisView';
+import { EMPTY_LINEAR, LinearSystemView, type LinearInput } from './components/LinearSystemView';
 import { fromFile, toFile, type EditorElement } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
@@ -55,6 +56,8 @@ export function App() {
   const [latexMode, setLatexMode] = useState(false);
   /** The schematic lives here so it survives a switch to another mode and back. */
   const [circuit, setCircuit] = useState<EditorElement[]>([]);
+  /** The linear system and its tab, kept here for the same reason. */
+  const [linear, setLinear] = useState<LinearInput>(EMPTY_LINEAR);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const language = settings.language;
@@ -183,8 +186,8 @@ export function App() {
         setSettings(saved);
         setPrecision(saved.precision);
         setSettingsError(null);
-        // The analysis view re-runs itself; the hidden calculator input need not.
-        if (saved.mode !== 'analysis' && (latest.current.calculation || latest.current.error)) await evaluate({ record: false });
+        // The analysis and linear systems views re-run themselves; the hidden calculator input need not.
+        if (saved.mode !== 'analysis' && saved.mode !== 'linear' && (latest.current.calculation || latest.current.error)) await evaluate({ record: false });
       } catch (failure) {
         setSettingsError(failure instanceof Error ? failure.message : String(failure));
       }
@@ -288,7 +291,7 @@ export function App() {
         <div className="topbar-right">
           <div className="mode-switch">
             <Segmented
-              choices={modeChoices(t)}
+              choices={modeChoices(t, settings.linearComplex)}
               value={settings.mode}
               onChange={(mode) => void changeSettings({ ...settings, mode })}
             />
@@ -302,6 +305,13 @@ export function App() {
 
       {settings.mode === 'analysis' ? (
         <AnalysisView settings={settings} />
+      ) : settings.mode === 'linear' ? (
+        <LinearSystemView
+          settings={settings}
+          onSettingsChange={(next) => void changeSettings(next)}
+          input={linear}
+          onInputChange={setLinear}
+        />
       ) : settings.mode === 'electronics' ? (
         <main className="workspace circuit-workspace">
           <CircuitEditor

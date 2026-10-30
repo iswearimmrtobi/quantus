@@ -438,6 +438,14 @@ code {
   color: var(--text);
   line-height: 1.5;
 }
+.error-row.soft {
+  border-color: var(--hairline);
+  border-left-color: var(--text-faint);
+}
+.error-row.soft .error-label,
+.error-row.soft .error-text {
+  color: var(--text-muted);
+}
 .error-position {
   font-family: var(--mono);
   font-size: 11.5px;
@@ -1518,3 +1526,34 @@ select option {
 
 .plot-point { fill: var(--point); }
 .point-swatch { background: var(--point); }
+
+/* ---- Linear systems mode ------------------------------------------------------------------ */
+
+.linear-panel {
+  max-width: 900px;
+}
+
+.linear-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linear-complex {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.linear-result {
+  margin-top: 14px;
+}
+
+.linear-result-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}

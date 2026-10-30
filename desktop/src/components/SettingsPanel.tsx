@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, ConditionalIdentities, DenominatorForm, Elimination, Language, Mode, QuadraticFormula, Settings, StepDetail } from '../api';
+import type { BinomialForm, ConditionalIdentities, DenominatorForm, Elimination, Language, Mode, QuadraticFormula, Settings, StepDetail, UnknownNames } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -7,11 +7,13 @@ interface Choice<T extends string> {
   label: string;
 }
 
-export const modeChoices = (t: Translate): Choice<Mode>[] => [
+/** With the imaginary unit switched on, the linear systems mode reads "… + 𝑖". */
+export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[] => [
   { value: 'algebra', label: t('mode.algebra') },
   { value: 'physics', label: t('mode.physics') },
   { value: 'imaginary', label: t('mode.imaginary') },
   { value: 'analysis', label: t('mode.analysis') },
+  { value: 'linear', label: linearComplex ? `${t('mode.linear')} + 𝑖` : t('mode.linear') },
 ];
 
 const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({
@@ -48,6 +50,11 @@ const detailChoices = (t: Translate): Choice<StepDetail>[] => [
   { value: 'standard', label: t('detail.standard') },
   { value: 'detailed', label: t('detail.detailed') },
   { value: 'maximal', label: t('detail.maximal') },
+];
+
+const unknownNameChoices = (t: Translate): Choice<UnknownNames>[] => [
+  { value: 'indexed', label: t('choice.indexed') },
+  { value: 'letters', label: t('choice.letters') },
 ];
 
 const eliminationChoices = (t: Translate): Choice<Elimination>[] => [
@@ -144,7 +151,7 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
 
       <section className="setting">
         <h3>{t('settings.mode')}</h3>
-        <Dropdown choices={modeChoices(t)} value={settings.mode} onChange={(v) => set('mode', v)} />
+        <Dropdown choices={modeChoices(t, settings.linearComplex)} value={settings.mode} onChange={(v) => set('mode', v)} />
         <p className="setting-hint">{t(`mode.${settings.mode}.hint`)}</p>
       </section>
 
@@ -181,6 +188,18 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
             onChange={(v) => set('elimination', v)}
           />
           <p className="setting-hint">{t(`settings.elimination.${settings.elimination}.hint`)}</p>
+        </section>
+      )}
+
+      {settings.mode === 'linear' && (
+        <section className="setting">
+          <h3>{t('settings.unknownNames')}</h3>
+          <Segmented
+            choices={unknownNameChoices(t)}
+            value={settings.unknownNames}
+            onChange={(v) => set('unknownNames', v)}
+          />
+          <p className="setting-hint">{t('settings.unknownNames.hint')}</p>
         </section>
       )}
 

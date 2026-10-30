@@ -30,7 +30,7 @@ const TABS: { id: Tab; label: TextKey }[] = [
 
 const PLACEHOLDER = 'f(x) = x^3 - 3x';
 
-function Steps({ steps, hidden }: { steps: Step[]; hidden: boolean }) {
+export function Steps({ steps, hidden }: { steps: Step[]; hidden: boolean }) {
   if (hidden) return null;
   return (
     <div className="analysis-steps">
@@ -44,10 +44,11 @@ function Steps({ steps, hidden }: { steps: Step[]; hidden: boolean }) {
   );
 }
 
-function ErrorRow({ error }: { error: ApiError }) {
+/** `soft`: grey instead of red, for input that is still being typed. */
+export function ErrorRow({ error, soft = false }: { error: ApiError; soft?: boolean }) {
   const { t } = useT();
   return (
-    <div className="error-row">
+    <div className={soft ? 'error-row soft' : 'error-row'}>
       <span className="error-label">{t('error')}</span>
       <span className="error-text">
         {error.message}
@@ -57,7 +58,7 @@ function ErrorRow({ error }: { error: ApiError }) {
   );
 }
 
-const asError = (failure: unknown) => (failure instanceof ApiError ? failure : new ApiError(String(failure)));
+export const asError = (failure: unknown) => (failure instanceof ApiError ? failure : new ApiError(String(failure)));
 
 /** Identifies a point across re-runs, unlike its index. */
 const pointKey = (point: MarkedPoint) => `${point.kind}|${point.x}|${point.y}`;
