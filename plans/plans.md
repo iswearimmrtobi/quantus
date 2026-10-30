@@ -68,6 +68,8 @@ printing results, time, heap and stack over serial. See its [README](../firmware
   `algebra/rational_roots.rs`), and the second curve sketch runs out of memory. A way to drop
   the caches between calculations would likely fix that.
 - [ ] If so: a keypad that writes LaTeX and a display that renders the result.
+- [ ] A handheld on an ESP32-P4: hardware requirements in
+  [calculator-hardware.md](../design/calculator-hardware.md).
 
 ## 5. Later
 
