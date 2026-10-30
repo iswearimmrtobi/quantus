@@ -6,6 +6,7 @@ pub mod api;
 pub mod error;
 pub mod electro;
 pub mod eval;
+pub mod kirchhoff;
 pub mod latex;
 pub(crate) mod linear;
 pub mod num;
