@@ -451,6 +451,20 @@ mod tests {
     }
 
     #[test]
+    fn the_linear_system_has_its_request_and_response_shape() {
+        let typed: LinearSystemRequest = serde_json::from_value(json!({ "equations": "x + y = 1; x - y = 0" })).unwrap();
+        let given: LinearSystemRequest = serde_json::from_value(json!({ "matrix": { "rows": [["1", "1", "1"], ["1", "-1", ""]] } })).unwrap();
+        let body = json_of(&linear_system(&Settings::default(), &given).unwrap());
+        let mut keys: Vec<_> = body.as_object().unwrap().keys().cloned().collect();
+        keys.sort();
+        assert_eq!(keys, ["alignBlock", "equations", "matrix", "result", "steps", "unknowns"]);
+        assert_eq!(body["unknowns"], json!(["x_{1}", "x_{2}"]));
+        assert_eq!(linear_system(&Settings::default(), &typed).unwrap().result, "x = \\frac{1}{2} \\land y = \\frac{1}{2}");
+        let error = linear_system(&Settings::default(), &LinearSystemRequest::Equations("x^2 = 1; y = 2".into())).unwrap_err();
+        assert!(error.error.contains("not linear") && error.position.is_none());
+    }
+
+    #[test]
     fn sessions_are_separate_through_the_api() {
         let mut store = SessionStore::new();
         let mut one = request("r_1 = 1m");

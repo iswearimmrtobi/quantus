@@ -130,13 +130,28 @@ impl Evaluator<'_> {
         for shift in 0..3 {
             let point: Vec<Value> = (0..n).map(|j| probes[(j + shift) % probes.len()].clone()).collect();
             let expected = row.iter().zip(&point).fold(constant.clone(), |sum, (a, x)| sum.add(&a.mul(x)));
-            if at(&mut residual, &point)? != expected {
+            if !same(&at(&mut residual, &point)?, &expected) {
                 return Err(not_linear());
             }
         }
         row.push(constant.neg());
         Ok(row)
     }
+}
+
+/// Whether two values computed by different routes are equal. Sums of different constants
+/// (`\sqrt{2} + \pi`) have no canonical form, so their difference is checked to vanish, the
+/// real and imaginary part each, as the elimination checks its zeros.
+fn same(a: &Value, b: &Value) -> bool {
+    if a == b {
+        return true;
+    }
+    let difference = a.sub(b);
+    let parts = difference.re_im().map_or_else(|| vec![difference.clone()], |(re, im)| vec![re, im]);
+    parts.into_iter().all(|mut part| {
+        linear::settle(&mut part);
+        part.is_zero()
+    })
 }
 
 /// Reduces `[A | b]` in the given unknowns by the method and solves it. A typed system and a
@@ -437,6 +452,11 @@ mod tests {
         };
         assert_eq!(free, [1]);
         assert_eq!(bound, [(0, Value::int(1), vec![(1, Value::int(1))])]);
+    }
+
+    #[test]
+    fn mixed_constants_are_linear_coefficients() {
+        assert_eq!(decimals(&solve("\\sqrt{2} y + z = -\\pi; y - z = 0").unwrap().solution).len(), 2);
     }
 
     #[test]

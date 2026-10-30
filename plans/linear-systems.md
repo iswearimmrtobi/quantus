@@ -52,7 +52,7 @@ specification; this list says in which order to build them and where.
   `Equations(latex)` or `Matrix { unknowns, rows }` (JSON input is parsed into `Matrix` by the
   frontend, the engine validates it). It evaluates without session variables; with
   `linear_complex` off, `i` is an unknown. Empty cells are 0. Cells with units are an error.
-- [ ] The response: unknowns, matrix cells as LaTeX, the system as equations LaTeX (for the tab
+- [x] The response: unknowns, matrix cells as LaTeX, the system as equations LaTeX (for the tab
   switch, named by `unknown_names`), steps, the exact result, the copy block (`align*`).
 - [ ] Tauri command `solve_linear_system` in `desktop/src-tauri/src/commands.rs`, wrapper in `api.ts`.
 - [ ] Tests: `crates/quantus-core/tests/linear_systems.rs` (equations, matrix, both methods, with and

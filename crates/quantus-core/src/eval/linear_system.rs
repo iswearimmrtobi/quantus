@@ -7,11 +7,12 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::calculator::LatexCalculator;
+use super::calculator::{align_block, shown_steps, LatexCalculator, Step, StepKind};
 use super::evaluator::{Evaluator, Variables};
 use super::system::{solve_matrix, SystemSolution};
-use super::system_steps::unknown_latex;
-use crate::latex::{parser, Node};
+use super::system_steps::{negative, unknown_latex};
+use crate::api::StepResponse;
+use crate::latex::{parser, serializer, Node};
 use crate::num::Value;
 use crate::settings::{Mode, Settings, UnknownNames};
 use crate::text::{msg, Scope};
@@ -43,8 +44,13 @@ pub struct LinearSystemResponse {
     pub unknowns: Vec<String>,
     /// `[A | b]` as LaTeX entries, one row per equation.
     pub matrix: Vec<Vec<String>>,
+    /// The rows of the matrix as equations in the unknowns: `2x_{1} - x_{2} = 3`.
+    pub equations: Vec<String>,
+    pub steps: Vec<StepResponse>,
     /// `x_{1} = 2 \land x_{2} = 1`, exact.
     pub result: String,
+    /// The steps as a copyable `align*` block.
+    pub align_block: String,
 }
 
 pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Result<LinearSystemResponse> {
@@ -53,7 +59,7 @@ pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Resu
     let settings = Settings { mode: Mode::Linear, exact_roots: true, ..settings.clone() };
     let variables = Variables::new();
     let evaluator = Evaluator::new(&variables).with_precision(settings.precision).with_mode(settings.evaluation_mode());
-    let system = match request {
+    let (system, typed) = match request {
         LinearSystemRequest::Equations(latex) => {
             let expression = parser::parse_with(latex, &settings.parse_options())?.expression;
             let system = match expression {
@@ -66,7 +72,7 @@ pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Resu
                     )))
                 }
             };
-            evaluator.solve_system(&system, settings.elimination)?
+            (evaluator.solve_system(&system, settings.elimination)?, Some(serializer::expression(&system)))
         }
         LinearSystemRequest::Matrix { unknowns, rows } => {
             let n = width(rows)? - 1;
@@ -74,22 +80,69 @@ pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Resu
                 Some(names) => given_names(names, n, &settings)?,
                 None => default_names(settings.unknown_names, n),
             };
-            solve_matrix(keys, read_matrix(rows, &settings, &evaluator)?, settings.elimination)?
+            (solve_matrix(keys, read_matrix(rows, &settings, &evaluator)?, settings.elimination)?, None)
         }
     };
     let calculator = LatexCalculator::new(settings.precision).with_settings(settings);
-    respond(&calculator, &system)
+    respond(&calculator, &system, typed)
 }
 
-fn respond(calculator: &LatexCalculator, system: &SystemSolution) -> Result<LinearSystemResponse> {
+/// The response for a solved system; `typed` is the system as typed, if it was.
+fn respond(calculator: &LatexCalculator, system: &SystemSolution, typed: Option<String>) -> Result<LinearSystemResponse> {
     let names: Vec<String> = system.unknowns.iter().map(|key| unknown_latex(key)).collect();
     let matrix = system
         .matrix
         .iter()
         .map(|row| row.iter().map(|value| calculator.entry(value)).collect::<Result<Vec<_>>>())
         .collect::<Result<_>>()?;
+    let equations: Vec<String> = system.matrix.iter().map(|row| equation(calculator, row, &names)).collect::<Result<_>>()?;
     let (result, ..) = calculator.system_result(system, &names)?;
-    Ok(LinearSystemResponse { unknowns: names, matrix, result })
+
+    let symbolic = typed.unwrap_or_else(|| format!("\\begin{{cases}} {} \\end{{cases}}", equations.join(" \\\\ ")));
+    let mut steps = vec![Step::new(StepKind::Symbolic, symbolic)];
+    steps.extend(calculator.system_steps(system, &names)?);
+    steps.push(Step::new(StepKind::Result, result.clone()));
+    let steps = shown_steps(&steps, calculator.settings.step_detail);
+    Ok(LinearSystemResponse {
+        unknowns: names,
+        matrix,
+        equations,
+        steps: steps.iter().map(StepResponse::of).collect(),
+        result,
+        align_block: align_block(&steps),
+    })
+}
+
+/// A row of `[A | b]` as an equation: `2x - y = 3`, without zero coefficients and without the
+/// number for 1 and -1. A row of zeros reads `0 = c`. The entries are exact, so the equation
+/// reads back as the same row.
+fn equation(calculator: &LatexCalculator, row: &[Value], names: &[String]) -> Result<String> {
+    let n = names.len();
+    let mut left = String::new();
+    for (coefficient, name) in row[..n].iter().zip(names).filter(|(a, _)| !a.is_zero()) {
+        let minus = negative(coefficient);
+        let size = if minus { coefficient.neg() } else { coefficient.clone() };
+        let term = if size.is_one() {
+            name.clone()
+        } else {
+            let number = calculator.entry(&size)?;
+            match size.as_rational() {
+                Some(_) => format!("{number}{name}"),
+                None if number.contains(" + ") || number.contains(" - ") => format!("\\left({number}\\right) \\cdot {name}"),
+                None => format!("{number} \\cdot {name}"),
+            }
+        };
+        left = match (left.is_empty(), minus) {
+            (true, false) => term,
+            (true, true) => format!("-{term}"),
+            (false, false) => format!("{left} + {term}"),
+            (false, true) => format!("{left} - {term}"),
+        };
+    }
+    if left.is_empty() {
+        left = "0".to_string();
+    }
+    Ok(format!("{left} = {}", calculator.entry(&row[n])?))
 }
 
 /// The number of entries per row, the same in every row and at least two: a coefficient and the
@@ -297,6 +350,47 @@ mod tests {
         assert_eq!(matrix(&settings, &[&["1", "1", "5"], &["1", "-1", "1"], &["1", "", "4"]]).unwrap().result, "\\text{no solution}");
         let under = matrix(&settings, &[&["1", "1", "1", "5"], &["1", "-1", "2", "1"]]).unwrap().result;
         assert_eq!(under, "x_{1} = 3 - \\frac{3}{2} \\cdot \\lambda \\land x_{2} = 2 + \\frac{1}{2} \\cdot \\lambda \\land x_{3} = \\lambda \\land \\lambda \\in \\mathbb{R}");
+    }
+
+    #[test]
+    fn a_row_is_written_as_an_equation() {
+        let settings = Settings::default();
+        let given = matrix(&settings, &[&["2", "-1", "", "3"], &["", "", "", "1"], &["-\\frac{1}{2}", "\\pi", "-1", ""]]).unwrap();
+        assert_eq!(given.equations, ["2x_{1} - x_{2} = 3", "0 = 1", "-\\frac{1}{2}x_{1} + \\pi \\cdot x_{2} - x_{3} = 0"]);
+        let complex = Settings { linear_complex: true, ..Settings::default() };
+        let given = matrix(&complex, &[&["1+i", "-i", "2"]]).unwrap();
+        assert_eq!(given.equations, ["\\left(1 + i\\right) \\cdot x_{1} - i \\cdot x_{2} = 2"]);
+    }
+
+    #[test]
+    fn the_equations_read_back_as_the_same_matrix() {
+        for complex in [false, true] {
+            let settings = Settings { linear_complex: complex, unknown_names: UnknownNames::Letters, ..Settings::default() };
+            let entries: &[&[&str]] = &[&["2", "-1", "\\frac{1}{3}", "3"], &["", "\\sqrt{2}", "1", "-\\pi"], &["-1", "", "", "1+i"]];
+            let entries = if complex { entries } else { &entries[..2] };
+            let given = matrix(&settings, entries).unwrap();
+            let typed = equations(&settings, &format!("\\begin{{cases}} {} \\end{{cases}}", given.equations.join(" \\\\ "))).unwrap();
+            assert_eq!((&typed.unknowns, &typed.matrix, &typed.equations), (&given.unknowns, &given.matrix, &given.equations));
+            assert_eq!(typed.result, given.result);
+        }
+    }
+
+    #[test]
+    fn the_steps_follow_the_detail_level_and_copy_as_a_block() {
+        let at = |step_detail| {
+            let settings = Settings { step_detail, ..Settings::default() };
+            matrix(&settings, &[&["2", "1", "5"], &["1", "-1", "1"]]).unwrap()
+        };
+        let brief = at(crate::settings::StepDetail::Brief);
+        let kinds: Vec<&str> = brief.steps.iter().map(|step| step.kind.as_str()).collect();
+        assert_eq!(kinds, ["symbolic", "algebraic", "algebraic", "result"]);
+        // A matrix starts from its rows as equations.
+        assert_eq!(brief.steps[0].latex, "\\begin{cases} 2x_{1} + x_{2} = 5 \\\\ x_{1} - x_{2} = 1 \\end{cases}");
+        assert!(at(crate::settings::StepDetail::Maximal).steps.len() > at(crate::settings::StepDetail::Standard).steps.len());
+        assert!(brief.align_block.starts_with("\\begin{align*}") && brief.align_block.contains(&brief.steps[1].latex));
+        // A typed system starts from what was typed.
+        let typed = equations(&Settings::default(), "2x + y = 5; x - y = 1").unwrap();
+        assert_eq!(typed.steps[0].latex, "\\begin{cases} 2 \\cdot x + y = 5 \\\\ x - y = 1 \\end{cases}");
     }
 }
 

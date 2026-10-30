@@ -40,9 +40,14 @@ pub struct Calculation {
 impl Calculation {
     /// The whole calculation as one copyable `align*` block (F7).
     pub fn align_block(&self) -> String {
-        let lines: Vec<String> = self.steps.iter().map(|step| format!("  {}", step.latex)).collect();
-        format!("\\begin{{align*}}\n{}\n\\end{{align*}}", lines.join(" \\\\\n"))
+        align_block(&self.steps)
     }
+}
+
+/// Steps as one copyable `align*` block, one line each.
+pub fn align_block(steps: &[Step]) -> String {
+    let lines: Vec<String> = steps.iter().map(|step| format!("  {}", step.latex)).collect();
+    format!("\\begin{{align*}}\n{}\n\\end{{align*}}", lines.join(" \\\\\n"))
 }
 
 /// One line of the presentation from F6.
