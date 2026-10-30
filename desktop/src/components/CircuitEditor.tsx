@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type Ref,
 } from 'react';
-import { api, ApiError, type CircuitResponse, type CircuitValue, type Settings } from '../api';
+import type { CircuitResponse, CircuitValue } from '../api';
 import {
   FIELDS,
   GRID,
@@ -18,27 +18,55 @@ import {
   MATERIALS,
   newElement,
   QUANTITIES,
-  numberNodes,
   pointKey,
   rotate,
   snap,
   terminals,
-  toRequest,
   type EditorElement,
   type EditorKind,
+  type Field,
   type Point,
   type Shown,
   type Terminal,
 } from '../circuit';
 import { useT } from '../i18n';
-import { body, nearest, obstacles, placeLabels, type LabelRequest, type Placement, type Side } from '../labelLayout';
+import { body, nearest, obstacles, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../labelLayout';
 import { Katex } from './Katex';
 
+type ElementResult = CircuitResponse['elements'][number];
+
+/** A label a mode adds to the canvas; it is laid out with the part labels and kept clear of them. */
+export interface ExtraLabel extends Place {
+  id: string;
+  className?: string;
+  content: ReactNode;
+}
+
+/**
+ * The schematic editor. It draws and edits the parts; what is computed from them comes in from
+ * the mode that uses it, as do the parts it offers and anything it draws on top.
+ */
 interface Props {
   elements: EditorElement[];
   onChange(next: EditorElement[]): void;
-  /** The solver reads the stored settings; these are watched so a change shows at once. */
-  settings: Settings;
+  /** The kinds of part the palette offers, in order. */
+  palette?: EditorKind[];
+  /** The inspector's fields per kind; a wire without fields is ideal and has no material choice either. */
+  fields?: Record<EditorKind, Field[]>;
+  /** U, I, P and R per part, shown on the canvas and in the inspector. */
+  results?: ElementResult[];
+  /** The potentials, each at one point of its node. */
+  voltages?: { point: Point; voltage: CircuitValue }[];
+  /** Why there are no results; shown as an error over the canvas. */
+  failure?: string | null;
+  /** A hint over the canvas when there is no failure. */
+  note?: string | null;
+  /** SVG drawn over the parts, in drawing coordinates. */
+  overlay?: ReactNode;
+  /** More labels, after the part labels and before the potentials. */
+  labels?: ExtraLabel[];
+  /** Places the labels must keep clear of, besides the parts, such as what `overlay` draws. */
+  reserved?: Rect[];
   /** Which results the parts show on the canvas. */
   shown: Shown;
   onShownChange(next: Shown): void;
@@ -64,7 +92,7 @@ const HOME: View = { x: 0, y: 0, zoom: 1 };
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 
-const PALETTE: EditorKind[] = [
+export const PALETTE: EditorKind[] = [
   'voltageSource',
   'currentSource',
   'resistor',
@@ -74,52 +102,30 @@ const PALETTE: EditorKind[] = [
   'ground',
 ];
 
-export function CircuitEditor({ elements, onChange, settings, shown, onShownChange, toolbar }: Props) {
+export function CircuitEditor({
+  elements,
+  onChange,
+  palette = PALETTE,
+  fields = FIELDS,
+  results: resultList,
+  voltages,
+  failure,
+  note,
+  overlay,
+  labels: extraLabels,
+  reserved,
+  shown,
+  onShownChange,
+  toolbar,
+}: Props) {
   const { t } = useT();
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag | null>(null);
   /** How the drawing lies on the canvas; positions stay in drawing coordinates. */
   const [view, setView] = useState<View>(HOME);
-  const [response, setResponse] = useState<CircuitResponse | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
   const canvas = useRef<SVGSVGElement>(null);
 
-  const nodes = useMemo(() => numberNodes(elements), [elements]);
-  const request = useMemo(() => toRequest(elements, nodes), [elements, nodes]);
-
-  // Every change recalculates, and so does a changed language, precision or output setting; the
-  // engine runs in the app, so a short debounce is enough to keep dragging smooth. A slow answer
-  // to an older circuit must not overwrite a newer one.
-  const { language, precision, exactRoots, letterProducts, extraUnitLetters, mode } = settings;
-  useEffect(() => {
-    let current = true;
-    const timer = window.setTimeout(() => {
-      if (request.elements.length === 0) {
-        setResponse(null);
-        setFailure(null);
-        return;
-      }
-      api.solveCircuit(request).then(
-        (solved) => {
-          if (!current) return;
-          setResponse(solved);
-          setFailure(null);
-        },
-        (error) => {
-          if (!current) return;
-          setResponse(null);
-          setFailure(error instanceof ApiError ? error.message : String(error));
-        },
-      );
-    }, 60);
-    return () => {
-      current = false;
-      window.clearTimeout(timer);
-    };
-  }, [request, language, precision, exactRoots, letterProducts, extraUnitLetters, mode]);
-
-  const results = useMemo(() => new Map(response?.elements.map((e) => [e.id, e])), [response]);
-  const voltages = useMemo(() => new Map(response?.nodes.map((n) => [n.id, n.voltage])), [response]);
+  const results = useMemo(() => new Map(resultList?.map((e) => [e.id, e])), [resultList]);
 
   // The labels are laid out from their real sizes, which only the browser knows once KaTeX has
   // set them. Offset sizes ignore the zoom transform, so they are already in drawing units.
@@ -151,19 +157,22 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
     [observer],
   );
 
-  /** Part labels first, in drawing order, then the node voltages, which give way to them. */
+  /**
+   * Part labels first, in drawing order, then the mode's own, then the node voltages, which give
+   * way to them.
+   */
   const labels = useMemo(() => {
-    const list: (Place & { id: string; element?: EditorElement; voltage?: CircuitValue })[] = [];
+    const list: (Place & { id: string; element?: EditorElement; voltage?: CircuitValue; extra?: ExtraLabel })[] = [];
     for (const element of elements) {
       const place = partPlace(element);
       if (place) list.push({ ...place, id: element.id, element });
     }
-    for (const [id, point] of nodes.pointOf) {
-      const voltage = voltages.get(id);
-      if (voltage) list.push({ ...nodePlace(point), id: `node-${id}`, voltage });
+    for (const extra of extraLabels ?? []) list.push({ ...extra, extra });
+    for (const { point, voltage } of voltages ?? []) {
+      list.push({ ...nodePlace(point), id: `node-${pointKey(point)}`, voltage });
     }
     return list;
-  }, [elements, nodes, voltages]);
+  }, [elements, extraLabels, voltages]);
 
   // While parts are dragged, every label keeps its spot as long as it stays free, so the labels do
   // not jump about under the pointer; dropping lays them out afresh.
@@ -175,8 +184,9 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
       const size = sizes.get(label.id);
       if (size) requests.push({ ...label, ...size });
     }
-    return placeLabels(requests, obstacles(elements), dragging ? lastPlacements.current : undefined);
-  }, [labels, sizes, elements, dragging]);
+    const blocked = [...obstacles(elements), ...(reserved ?? [])];
+    return placeLabels(requests, blocked, dragging ? lastPlacements.current : undefined);
+  }, [labels, sizes, elements, reserved, dragging]);
   useEffect(() => {
     lastPlacements.current = placements;
   }, [placements]);
@@ -386,7 +396,7 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
     <div className="circuit">
       <div className="circuit-palette">
         <div className="palette-title">{t('circuit.parts')}</div>
-        {PALETTE.map((kind) => (
+        {palette.map((kind) => (
           <button
             key={kind}
             className="palette-item"
@@ -425,7 +435,7 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
           onDrop={(event) => {
             event.preventDefault();
             const kind = event.dataTransfer.getData('text/plain') as EditorKind;
-            if (PALETTE.includes(kind)) add(kind, toCanvas(event));
+            if (palette.includes(kind)) add(kind, toCanvas(event));
           }}
         >
           <defs>
@@ -452,6 +462,8 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
                 onEnd={(event, end) => startEnd(event, element, end)}
               />
             ))}
+
+            {overlay}
 
             {labels.map((label) => {
               const placement = placements.get(label.id);
@@ -510,6 +522,16 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
                   style={labelStyle(placements.get(label.id), label.anchor)}
                   measure={measure}
                 />
+              ) : label.extra ? (
+                <div
+                  key={label.id}
+                  className={label.extra.className}
+                  style={labelStyle(placements.get(label.id), label.anchor)}
+                  ref={measure}
+                  data-label={label.id}
+                >
+                  {label.extra.content}
+                </div>
               ) : (
                 <div
                   key={label.id}
@@ -525,18 +547,14 @@ export function CircuitEditor({ elements, onChange, settings, shown, onShownChan
           </div>
         </div>
 
-        {(failure || (elements.length > 0 && !nodes.grounded && nodes.byPoint.size > 0)) && (
-          <div className={failure ? 'circuit-note error' : 'circuit-note'}>
-            {failure ??
-              t('circuit.noGround')}
-          </div>
-        )}
+        {(failure || note) && <div className={failure ? 'circuit-note error' : 'circuit-note'}>{failure ?? note}</div>}
       </div>
 
       <aside className="circuit-inspector">
         {chosen ? (
           <Inspector
             element={chosen}
+            fields={fields[chosen.kind]}
             result={results.get(chosen.id)}
             onChange={(change) => update(chosen.id, change)}
             onRemove={() => remove([chosen.id])}
@@ -648,7 +666,7 @@ function Part({ element, selected, onPointerDown, onTerminal, onEnd }: PartProps
   );
 }
 
-type Place = Pick<LabelRequest, 'anchor' | 'sides' | 'gap' | 'corner'>;
+export type Place = Pick<LabelRequest, 'anchor' | 'sides' | 'gap' | 'corner'>;
 
 /**
  * Where a part's label would like to sit: under a horizontal part, right of a vertical one, on the
@@ -697,7 +715,7 @@ function PartLabel({
   measure,
 }: {
   element: EditorElement;
-  result: CircuitResponse['elements'][number] | undefined;
+  result: ElementResult | undefined;
   shown: Shown;
   style: CSSProperties;
   measure: Ref<HTMLDivElement>;
@@ -731,12 +749,14 @@ function Value({ label, value }: { label: string; value: CircuitValue }) {
 
 function Inspector({
   element,
+  fields,
   result,
   onChange,
   onRemove,
 }: {
   element: EditorElement;
-  result: CircuitResponse['elements'][number] | undefined;
+  fields: Field[];
+  result: ElementResult | undefined;
   onChange(change: Partial<EditorElement>): void;
   onRemove(): void;
 }) {
@@ -752,7 +772,8 @@ function Inspector({
         </button>
       </div>
 
-      {element.kind === 'wire' && (
+      {/* A mode with ideal wires only still offers the material when one is set, to take it off. */}
+      {element.kind === 'wire' && (fields.length > 0 || element.material) && (
         <label className="field">
           <span>{t('field.material')}</span>
           <select
@@ -769,7 +790,7 @@ function Inspector({
         </label>
       )}
 
-      {FIELDS[element.kind].map((field) => (
+      {fields.map((field) => (
         <label className="field" key={field.key}>
           <span>{t(field.label)}</span>
           <input

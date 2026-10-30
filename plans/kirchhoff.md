@@ -143,7 +143,7 @@ Each phase is one or more commits on `dev`. Tick a box when its commit lands.
 
 ### Phase 5: editor refactor
 
-- [ ] Props-driven `CircuitEditor` (palette, fields, results, overlay) and `ElectronicsView`;
+- [x] Props-driven `CircuitEditor` (palette, fields, results, overlay) and `ElectronicsView`;
   Electronics behaves exactly as before.
 
 ### Phase 6: Kirchhoff page

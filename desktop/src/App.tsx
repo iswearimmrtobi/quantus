@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import { api, ApiError, type Calculation, type Mode, type Settings, type StepKind, type Variable } from './api';
 import { Katex, latexLines } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
-import { CircuitEditor } from './components/CircuitEditor';
+import { ElectronicsView } from './components/ElectronicsView';
 import { AnalysisView } from './components/AnalysisView';
 import { LinearSystemView } from './components/LinearSystemView';
 import { EMPTY_LINEAR, type LinearInput } from './linear';
@@ -313,7 +313,7 @@ export function App() {
         />
       ) : settings.mode === 'electronics' ? (
         <main className="workspace circuit-workspace">
-          <CircuitEditor
+          <ElectronicsView
             elements={circuit}
             onChange={setCircuit}
             settings={settings}
