@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { api, ApiError, type CircuitResponse, type CircuitValue } from '../api';
+import { api, ApiError, type CircuitResponse, type CircuitValue, type Settings } from '../api';
 import {
   FIELDS,
   GRID,
@@ -24,6 +24,8 @@ import { Katex } from './Katex';
 interface Props {
   elements: EditorElement[];
   onChange(next: EditorElement[]): void;
+  /** The solver reads the stored settings; these are watched so a change shows at once. */
+  settings: Settings;
   /** Extra controls for the palette column (load and save). */
   toolbar?: ReactNode;
 }
@@ -44,8 +46,8 @@ const PALETTE: EditorKind[] = [
   'ground',
 ];
 
-export function CircuitEditor({ elements, onChange, toolbar }: Props) {
-  const { t, language } = useT();
+export function CircuitEditor({ elements, onChange, settings, toolbar }: Props) {
+  const { t } = useT();
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [response, setResponse] = useState<CircuitResponse | null>(null);
@@ -55,8 +57,10 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
   const nodes = useMemo(() => numberNodes(elements), [elements]);
   const request = useMemo(() => toRequest(elements, nodes), [elements, nodes]);
 
-  // Every change recalculates; the engine runs in the app, so a short debounce is enough to keep
-  // dragging smooth. A slow answer to an older circuit must not overwrite a newer one.
+  // Every change recalculates, and so does a changed language, precision or output setting; the
+  // engine runs in the app, so a short debounce is enough to keep dragging smooth. A slow answer
+  // to an older circuit must not overwrite a newer one.
+  const { language, precision, exactRoots, letterProducts, extraUnitLetters, mode } = settings;
   useEffect(() => {
     let current = true;
     const timer = window.setTimeout(() => {
@@ -82,7 +86,7 @@ export function CircuitEditor({ elements, onChange, toolbar }: Props) {
       current = false;
       window.clearTimeout(timer);
     };
-  }, [request, language]);
+  }, [request, language, precision, exactRoots, letterProducts, extraUnitLetters, mode]);
 
   const results = useMemo(() => new Map(response?.elements.map((e) => [e.id, e])), [response]);
   const voltages = useMemo(() => new Map(response?.nodes.map((n) => [n.id, n.voltage])), [response]);

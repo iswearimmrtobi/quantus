@@ -314,6 +314,7 @@ export function App() {
           <CircuitEditor
             elements={circuit}
             onChange={setCircuit}
+            settings={settings}
             toolbar={
               <div className="file-buttons">
                 <div className="palette-title">{t('file.title')}</div>
