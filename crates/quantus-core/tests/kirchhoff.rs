@@ -341,16 +341,24 @@ fn negated(value: &ValueResponse) -> ValueResponse {
     ValueResponse { result: value.result.as_ref().map(flip), value: value.value.as_ref().map(flip), ..value.clone() }
 }
 
-/// A part as the electronics mode gives it, from `a` to `b` and positive for a consumer, turned
-/// to the Kirchhoff mode's arrows: a resistor's along its branch current, a source delivering.
-fn along_arrows(response: &KirchhoffResponse, element: &ElementResponse) -> ElementResponse {
-    let member = response.branches.iter().flat_map(|b| &b.members).find(|m| m.id == element.id && !m.internal).unwrap();
+/// A part as the electronics mode gives it, turned to the Kirchhoff mode's arrows. A resistor
+/// comes along its real current there, as its arrow does unless the branch is `flagged` or follows
+/// a current source that drives against it; a source comes from `a` to `b` and is turned to
+/// delivering.
+fn along_arrows(response: &KirchhoffResponse, element: &ElementResponse, flagged: &[String]) -> ElementResponse {
+    let branch = response.branches.iter().find(|b| b.members.iter().any(|m| m.id == element.id && !m.internal)).unwrap();
     let mut turned = element.clone();
     match &element.id[..1] {
         "V" => turned.current = negated(&element.current),
         "I" => turned.voltage = negated(&element.voltage),
         _ => {
-            if !member.forward {
+            let against = if branch.current.contains("I_{q") {
+                let solved = response.elements.iter().find(|e| e.id == element.id).unwrap();
+                solved.current.value.as_ref().is_some_and(|v| v.starts_with('-'))
+            } else {
+                flagged.contains(&branch.lead)
+            };
+            if against {
                 turned.voltage = negated(&element.voltage);
                 turned.current = negated(&element.current);
             }
@@ -375,12 +383,14 @@ fn assert_same_as_electronics(name: &str, circuit: &Value, points: &[Ends]) {
     for round in 0..4 {
         // All forward, then pseudo-random flags.
         let reversed: Vec<bool> = (0..n).map(|_| round > 0 && next(&mut seed).is_multiple_of(2)).collect();
-        let solved = kirchhoff(&settings, &as_kirchhoff(circuit, points, &reversed)).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let request = as_kirchhoff(circuit, points, &reversed);
+        let flagged: Vec<String> = request.elements.iter().filter(|e| e.reversed).map(|e| e.element.id.clone()).collect();
+        let solved = kirchhoff(&settings, &request).unwrap_or_else(|e| panic!("{name}: {e}"));
         assert_eq!(solved.error, None, "{name}");
         assert!(!solved.elements.is_empty(), "{name}");
         for element in &solved.elements {
             let reference = expected.elements.iter().find(|e| e.id == element.id).unwrap();
-            assert_eq!(element, &along_arrows(&solved, reference), "{name}, {}, reversed {reversed:?}", element.id);
+            assert_eq!(element, &along_arrows(&solved, reference, &flagged), "{name}, {}, reversed {reversed:?}", element.id);
         }
         let balance = solved.power_balance.unwrap();
         assert_eq!(balance.generated, balance.consumed, "{name}");

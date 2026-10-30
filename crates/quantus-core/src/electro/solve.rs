@@ -61,8 +61,9 @@ pub struct NodeResult {
     pub voltage: Output,
 }
 
-/// Voltage and current as defined at [`Element`](super::Element); the power is positive for a
-/// consumer and negative for a source that delivers.
+/// Voltage and current as defined at [`Element`](super::Element), except that a consumer's run
+/// along its real current, so they are not negative however the part is drawn; the power is
+/// positive for a consumer and negative for a source that delivers.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElementResult {
     pub id: String,
@@ -196,8 +197,8 @@ pub fn solve_at(circuit: &Circuit, precision: usize) -> Result<Solution> {
     let volt = unit("V");
     let amp = unit("A");
     let watt = unit("W");
-    let output = |n: usize, quantity: Kind| -> Result<Output> {
-        let value = base[n].clone();
+    let output = |n: usize, quantity: Kind, turned: bool| -> Result<Output> {
+        let value = if turned { base[n].neg() } else { base[n].clone() };
         if !depends[n].is_empty() {
             return Ok(Output::Unknown(Reason::DependsOn(depends[n].clone())));
         }
@@ -225,16 +226,21 @@ pub fn solve_at(circuit: &Circuit, precision: usize) -> Result<Solution> {
 
     let mut nodes = Vec::new();
     for (n, id) in circuit.nodes.iter().enumerate() {
-        nodes.push(NodeResult { id: *id, voltage: output(n, Kind::Voltage)? });
+        nodes.push(NodeResult { id: *id, voltage: output(n, Kind::Voltage, false)? });
     }
     let mut elements = Vec::new();
     for (n, element) in circuit.elements.iter().enumerate() {
         let at = circuit.nodes.len() + 3 * n;
+        // A consumer counts from `b` to `a` if its current flows that way (or, with none, its
+        // voltage points that way); P = U·I stays as it is.
+        let consumer = !matches!(element.kind, ElementKind::VoltageSource { .. } | ElementKind::CurrentSource { .. });
+        let [u, i, _] = &baseline.elements[n];
+        let turned = consumer && if i.is_zero() { u.is_negative()? } else { i.is_negative()? };
         elements.push(ElementResult {
             id: element.id.clone(),
-            voltage: output(at, Kind::Voltage)?,
-            current: output(at + 1, Kind::Current)?,
-            power: output(at + 2, Kind::Power)?,
+            voltage: output(at, Kind::Voltage, turned)?,
+            current: output(at + 1, Kind::Current, turned)?,
+            power: output(at + 2, Kind::Power, false)?,
             notes: model.notes[n].clone(),
         });
     }
@@ -740,6 +746,18 @@ mod tests {
         // The source delivers: negative current and power.
         assert_eq!(known(&result(&s, "U1").current), Value::ratio(-4, 1000));
         assert_eq!(known(&result(&s, "U1").power), Value::ratio(-48, 1000));
+    }
+
+    #[test]
+    fn a_consumer_drawn_backwards_counts_along_its_current() {
+        let c = circuit(&[0, 1, 2], vec![source("U1", 1, 0, Some(12)), resistor("R1", 2, 1, Some(1000)), resistor("R2", 0, 2, Some(2000))]);
+        let s = solve(&c).unwrap();
+        assert_eq!(known(&result(&s, "R1").voltage), Value::int(4));
+        assert_eq!(known(&result(&s, "R1").current), Value::ratio(4, 1000));
+        assert_eq!(known(&result(&s, "R2").voltage), Value::int(8));
+        assert_eq!(known(&result(&s, "R2").power), Value::ratio(32, 1000));
+        // A source stays from `a` to `b`.
+        assert_eq!(known(&result(&s, "U1").current), Value::ratio(-4, 1000));
     }
 
     #[test]

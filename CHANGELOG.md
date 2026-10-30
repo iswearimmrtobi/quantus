@@ -37,6 +37,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     the way the pointer first went; a dragged wire end stays in line with the other end.
   - The open dot at a terminal or wire end is gone once something is connected there; it shows
     again under the pointer, to drag from. This holds in the Kirchhoff mode too.
+  - Resistors, wires and power loads count their voltage and current along the real current, so
+    a part drawn the other way round no longer shows negative values.
 - A seventh mode, **Kirchhoff**, for resistor networks worked out by the junction and loop rules.
   Draw voltage sources, current sources, resistors and ideal wires; the canvas shows the
   junctions, an arrow for each branch current, a voltage arrow beside each part while U is
