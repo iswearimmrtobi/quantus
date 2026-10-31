@@ -13,6 +13,8 @@ Nothing runs automatically on `dev`; the *Check* workflow is started by hand.
 - `crates/quantus-core`: the engine, no UI. `eval/`, `electro/`, `linear`, `numeric`, `quantity`,
   `settings`, `session`, `text`, `api`. Tests are integration tests in `tests/`.
 - `desktop/`: the Tauri app. Rust shell in `src-tauri/`, frontend in `src/` (`i18n/en.ts` and `de.ts`).
+- `firmware/`: the handheld. `ui` (in the workspace) is its UI; `sim`, `handheld` and the engine
+  spike `esp32` are their own workspaces.
 - `docs/`: Docusaurus site; contributor pages in `docs/docs/contributing/`.
 - `design/`: specifications. `plans/plans.md`: open work. `test/`: the generated test set.
 

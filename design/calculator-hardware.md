@@ -60,8 +60,11 @@ About 53 keys in total.
 
 - The boot screen lives in flash, not on the SD card, and is drawn before the engine is touched.
   `CONFIG_SPIRAM_MEMTEST` is off.
-- A full framebuffer in PSRAM with partial redraws (LVGL). The UI and touch run on one core,
-  the engine on the other, so a long calculation does not freeze the screen.
+- The UI is Rust with embedded-graphics (`firmware/ui`), shared with a PC simulator
+  (`firmware/sim`). It draws the screen in bands of 480×32 pixels into a 30 KB buffer and sends
+  only the bands that changed, so it needs no framebuffer; with PSRAM the bands can grow. The UI
+  and touch run on one core, the engine on the other, so a long calculation does not freeze the
+  screen.
 - Off is deep sleep, entered with a key, so switching on is a wake-up rather than a cold boot.
 
 ## 6. Open questions

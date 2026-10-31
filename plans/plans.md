@@ -78,6 +78,9 @@ printing results, time, heap and stack over serial. See its [README](../firmware
   - [x] `firmware/sim`: the UI in a window, PC keys.
   - [x] `firmware/handheld`: the ILI9486 over SPI on the ESP32 (built; not yet tried on the board).
   - [x] Keys over the serial console on the board (built; not yet tried on the board).
+  - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
+  - [ ] Brackets that grow with what they hold; a larger Greek font than u8g2's bitmap ones
+    (π, μ and Ω are fine); German texts.
 
 ## 5. Later
 
