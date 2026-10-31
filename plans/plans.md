@@ -70,6 +70,14 @@ printing results, time, heap and stack over serial. See its [README](../firmware
 - [ ] If so: a keypad that writes LaTeX and a display that renders the result.
 - [ ] A handheld on an ESP32-P4: hardware requirements in
   [calculator-hardware.md](../design/calculator-hardware.md).
+- [ ] Its UI, until the P4 arrives on a classic ESP32 with the display, keys over serial and no
+  engine. Rust and embedded-graphics, shared by a PC simulator and the board:
+  - [x] `firmware/ui`: the input editor (a tree with a cursor, Casio-like templates) that writes
+    LaTeX, and a reader of LaTeX results.
+  - [ ] 2D layout of math, the screen, band-wise redraws, a stub backend.
+  - [ ] `firmware/sim`: the UI in a window, PC keys.
+  - [ ] `firmware/handheld`: the ILI9486 over SPI on the ESP32.
+  - [ ] Keys over the serial console on the board.
 
 ## 5. Later
 

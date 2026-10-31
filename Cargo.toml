@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/quantus-core", "desktop/src-tauri"]
+members = ["crates/quantus-core", "desktop/src-tauri", "firmware/ui"]
 
 [workspace.package]
 version = "0.1.0"
