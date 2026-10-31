@@ -3,7 +3,9 @@
 
 mod display;
 
-use std::time::Instant;
+use std::io::Read;
+use std::sync::mpsc::{self, RecvTimeoutError, Sender};
+use std::time::{Duration, Instant};
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -15,9 +17,10 @@ use esp_idf_svc::hal::spi::config::{Config, DriverConfig};
 use esp_idf_svc::hal::spi::{Dma, SpiDeviceDriver};
 use esp_idf_svc::hal::units::FromValueType;
 use esp_idf_svc::sys;
-use quantus_ui::app::App;
-use quantus_ui::backend::Stub;
+use quantus_ui::app::{App, Mode};
+use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::font::Scale;
+use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
 
 use display::Display;
@@ -57,13 +60,78 @@ fn main() {
     test_pattern(&mut display);
     FreeRtos::delay_ms(1500);
 
-    let app = App::new(Stub);
+    let mut app = App::new(Logged(Stub));
     let mut renderer = Renderer::new();
     let drawn = Instant::now();
     let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
     println!("first frame: {bands} bands in {} ms, {} ms after boot", drawn.elapsed().as_millis(), start.elapsed().as_millis());
+    println!("Type keys here; the README lists them.");
+
+    let (keys, received) = mpsc::channel();
+    std::thread::Builder::new().stack_size(8 * 1024).spawn(move || read_keys(keys)).expect("key thread");
     loop {
-        FreeRtos::delay_ms(1000);
+        let changed = match received.recv_timeout(Duration::from_millis(50)) {
+            Ok(key) => {
+                app.key(key);
+                true
+            }
+            Err(RecvTimeoutError::Timeout) => app.tick(start.elapsed().as_millis() as u64),
+            Err(RecvTimeoutError::Disconnected) => return,
+        };
+        if changed {
+            let drawn = Instant::now();
+            let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
+            if bands > 1 {
+                log::info!("{bands} bands in {} ms", drawn.elapsed().as_millis());
+            }
+        }
+    }
+}
+
+/// The stub, printing what it is asked over serial.
+struct Logged<B>(B);
+
+impl<B: Backend> Backend for Logged<B> {
+    fn evaluate(&mut self, mode: Mode, latex: &str) -> Result<String, String> {
+        let result = self.0.evaluate(mode, latex);
+        println!("{}: {latex}  =>  {result:?}", mode.name());
+        result
+    }
+}
+
+/// Turns the bytes typed into the serial monitor into keys: characters by `Key::from_char`,
+/// the arrows' escape sequences, and Delete (`ESC [ 3 ~`) as AC.
+fn read_keys(keys: Sender<Key>) {
+    let mut stdin = std::io::stdin();
+    let mut pending: Vec<u8> = Vec::new();
+    let mut byte = [0u8; 1];
+    loop {
+        if !matches!(stdin.read(&mut byte), Ok(1)) {
+            FreeRtos::delay_ms(10);
+            continue;
+        }
+        pending.push(byte[0]);
+        let key = match pending.as_slice() {
+            [0x1b] | [0x1b, b'['] | [0x1b, b'[', b'3'] => continue,
+            [0x1b, b'[', b'A'] => Some(Key::Up),
+            [0x1b, b'[', b'B'] => Some(Key::Down),
+            [0x1b, b'[', b'C'] => Some(Key::Right),
+            [0x1b, b'[', b'D'] => Some(Key::Left),
+            [0x1b, b'[', b'3', b'~'] => Some(Key::Ac),
+            [0x1b, ..] => None,
+            bytes => match std::str::from_utf8(bytes) {
+                Ok(text) => text.chars().next().and_then(Key::from_char),
+                // The start of a character of several bytes.
+                Err(error) if error.error_len().is_none() => continue,
+                Err(_) => None,
+            },
+        };
+        pending.clear();
+        if let Some(key) = key {
+            if keys.send(key).is_err() {
+                return;
+            }
+        }
     }
 }
 
