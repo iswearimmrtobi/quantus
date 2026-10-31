@@ -1,0 +1,28 @@
+[package]
+name = "quantus-handheld"
+description = "The handheld calculator's firmware: the UI on an ESP32 with an ILI9486 display"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Its own workspace: the Xtensa toolchain and ESP-IDF stay out of `cargo test --workspace`.
+[workspace]
+
+[dependencies]
+quantus-ui = { path = "../ui" }
+esp-idf-svc = "0.53"
+log = "0.4"
+embedded-graphics = "0.8.2"
+
+[build-dependencies]
+embuild = "0.33"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[profile.dev]
+opt-level = "s"
+debug = true
