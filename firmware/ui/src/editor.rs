@@ -132,6 +132,18 @@ impl Editor {
         *self = Self::default();
     }
 
+    /// Replaces the input, with the cursor at its end.
+    pub fn set(&mut self, row: Row) {
+        self.pos = row.0.len();
+        self.path.clear();
+        self.row = row;
+    }
+
+    /// Inserts a copy of `row` at the cursor.
+    pub fn paste(&mut self, row: &Row) {
+        row.0.iter().for_each(|node| self.insert(node.clone()));
+    }
+
     pub fn to_latex(&self) -> String {
         self.row.to_latex()
     }
