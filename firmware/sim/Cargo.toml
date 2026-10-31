@@ -1,0 +1,15 @@
+[package]
+name = "quantus-sim"
+description = "The handheld calculator's UI in a window on the PC"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Its own workspace: the simulator needs SDL2, which `cargo test --workspace` should not.
+[workspace]
+
+[dependencies]
+embedded-graphics = "0.8.2"
+embedded-graphics-simulator = "0.8.0"
+quantus-ui = { path = "../ui" }

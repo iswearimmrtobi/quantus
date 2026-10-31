@@ -81,9 +81,10 @@ fn layout_nested(row: &Row, scale: Scale, nested: bool) -> RowLayout {
     }
     let mut items: Vec<Item> = Vec::with_capacity(row.0.len());
     let mut x = 0;
-    for node in &row.0 {
+    for (index, node) in row.0.iter().enumerate() {
         let base_ascent = items.last().map_or(metrics.digit, |item| item.ascent);
-        let mut item = node_layout(node, scale, nested, base_ascent);
+        let unary = index == 0 || matches!(row.0[index - 1], Node::Char(c) if c == '(' || OPERATORS.contains(c));
+        let mut item = node_layout(node, scale, nested, base_ascent, unary);
         item.x = x;
         x += item.width;
         items.push(item);
@@ -109,14 +110,15 @@ fn text_item(text: String, dx: i32, width: i32, scale: Scale) -> Item {
     }
 }
 
-/// `base_ascent` is how far what comes before reaches up, for placing an exponent.
-fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32) -> Item {
+/// `base_ascent` is how far what comes before reaches up, for placing an exponent; `unary` says
+/// that an operator here is a sign and gets no gaps.
+fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary: bool) -> Item {
     let metrics = scale.metrics();
     let small = Scale::Small.metrics();
     match node {
         Node::Char(c) => {
             let text = c.to_string();
-            let gap = if OPERATORS.contains(*c) { metrics.digit / 4 } else { 0 };
+            let gap = if OPERATORS.contains(*c) && !unary { metrics.digit / 4 } else { 0 };
             let width = scale.width(&text) + 2 * gap;
             text_item(text, gap, width, scale)
         }

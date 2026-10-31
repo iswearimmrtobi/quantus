@@ -1,0 +1,100 @@
+//! The handheld's UI in a window, at twice its size, with the PC keyboard as the keypad (see the
+//! README). `--keys <text> --png <file>` types the text and saves the screen instead.
+
+use std::time::{Duration, Instant};
+
+use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::prelude::*;
+use embedded_graphics_simulator::sdl2::{Keycode, Mod};
+use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window};
+use quantus_ui::app::App;
+use quantus_ui::backend::Stub;
+use quantus_ui::key::Key;
+use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
+
+fn main() {
+    let mut display = SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT));
+    let mut app = App::new(Stub);
+    let mut renderer = Renderer::new();
+
+    let args: Vec<String> = std::env::args().collect();
+    let option = |name: &str| args.iter().position(|arg| arg == name).and_then(|i| args.get(i + 1));
+    if let (Some(keys), Some(png)) = (option("--keys"), option("--png")) {
+        // `\e` for Esc is not needed here: Ctrl+X clears. `\n` is EXE, `>`/`<` move the cursor.
+        for c in keys.replace("\\n", "\n").chars() {
+            let key = match c {
+                '>' => Some(Key::Right),
+                '<' => Some(Key::Left),
+                c => Key::from_char(c),
+            };
+            key.into_iter().for_each(|key| app.key(key));
+        }
+        renderer.render(&Frame::new(&app), &mut display).unwrap();
+        let settings = OutputSettingsBuilder::new().build();
+        display.to_rgb_output_image(&settings).save_png(png).expect("write the png");
+        return;
+    }
+
+    let settings = OutputSettingsBuilder::new().scale(2).build();
+    let mut window = Window::new("Quantus", &settings);
+    let start = Instant::now();
+    loop {
+        renderer.render(&Frame::new(&app), &mut display).unwrap();
+        window.update(&display);
+        for event in window.events() {
+            match event {
+                SimulatorEvent::Quit => return,
+                SimulatorEvent::KeyDown { keycode, keymod, .. } => {
+                    if let Some(key) = key(keycode, keymod) {
+                        app.key(key);
+                    }
+                }
+                _ => {}
+            }
+        }
+        app.tick(start.elapsed().as_millis() as u64);
+        std::thread::sleep(Duration::from_millis(15));
+    }
+}
+
+/// The key for a key press. SDL reports the key's unshifted character, so the shifted ones are
+/// those of a German layout.
+fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
+    let shift = keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD);
+    let ctrl = keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD);
+    match keycode {
+        Keycode::Left => return Some(Key::Left),
+        Keycode::Right => return Some(Key::Right),
+        Keycode::Up => return Some(Key::Up),
+        Keycode::Down => return Some(Key::Down),
+        Keycode::Escape | Keycode::Delete => return Some(Key::Ac),
+        Keycode::Return | Keycode::KpEnter => return Some(Key::Exe),
+        Keycode::F1 => return Some(Key::Shift),
+        Keycode::KpPlus => return Some(Key::Plus),
+        Keycode::KpMinus => return Some(Key::Minus),
+        Keycode::KpMultiply => return Some(Key::Times),
+        Keycode::KpDivide => return Some(Key::Fraction),
+        Keycode::KpComma | Keycode::KpPeriod => return Some(Key::Comma),
+        _ => {}
+    }
+    // Keypad digits.
+    match keycode.into_i32() - Keycode::Kp1.into_i32() {
+        offset @ 0..=8 => return Some(Key::Digit(offset as u8 + 1)),
+        9 => return Some(Key::Digit(0)),
+        _ => {}
+    }
+    let c = char::from_u32(keycode.into_i32() as u32)?;
+    let c = match c {
+        _ if ctrl && c.is_ascii_lowercase() => char::from(c as u8 - b'a' + 1),
+        _ if !shift => c,
+        '7' => '/',
+        '8' => '(',
+        '9' => ')',
+        '0' => '=',
+        '+' => '*',
+        '.' => ':',
+        '-' => '_',
+        c => c.to_uppercase().next()?,
+    };
+    Key::from_char(c)
+}

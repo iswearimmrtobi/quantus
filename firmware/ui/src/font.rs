@@ -1,6 +1,6 @@
 //! Text in two sizes: normal for the input and results, small for exponents, indices and the
-//! status bar. Each size is a Latin-1 font (FreeUniversal) with a Greek and a symbol font behind
-//! it for the characters it lacks.
+//! status bar. Each size is a Latin-1 font (FreeUniversal) with a symbol font (some Greek letters
+//! and math signs) and a full Greek font behind it for the characters it lacks.
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -15,14 +15,14 @@ pub enum Scale {
 
 static NORMAL: [FontRenderer; 3] = [
     FontRenderer::new::<fonts::u8g2_font_fur20_tf>(),
-    FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
     FontRenderer::new::<fonts::u8g2_font_fur20_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
 ];
 
 static SMALL: [FontRenderer; 3] = [
     FontRenderer::new::<fonts::u8g2_font_fur14_tf>(),
-    FontRenderer::new::<fonts::u8g2_font_cu12_t_greek>(),
     FontRenderer::new::<fonts::u8g2_font_fur14_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_cu12_t_greek>(),
 ];
 
 /// Vertical measures of a size, in pixels from the baseline.

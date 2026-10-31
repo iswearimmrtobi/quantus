@@ -75,7 +75,7 @@ printing results, time, heap and stack over serial. See its [README](../firmware
   - [x] `firmware/ui`: the input editor (a tree with a cursor, Casio-like templates) that writes
     LaTeX, and a reader of LaTeX results.
   - [x] 2D layout of math, the screen, band-wise redraws, a stub backend.
-  - [ ] `firmware/sim`: the UI in a window, PC keys.
+  - [x] `firmware/sim`: the UI in a window, PC keys.
   - [ ] `firmware/handheld`: the ILI9486 over SPI on the ESP32.
   - [ ] Keys over the serial console on the board.
 
