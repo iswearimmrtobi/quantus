@@ -34,7 +34,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Basis-N mode `baseN`: integers, DEC/HEX/BIN/OCT, d/h/b/o, and/or/xor/xnor/Not/Neg
 - [x] Matrices: values with + − ×, inverse, transpose, identity, det, powers, REF/RREF, exact,
       with steps
-- [ ] Stochastik: lists, one-variable statistics, the seven regressions, the distributions
+- [x] Stochastik: lists, one-variable statistics, the seven regressions, the distributions
 - [ ] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R
 - [ ] Constants: the 32 missing ones (CODATA 2018), in the Casio's six categories, usable in
       every mode

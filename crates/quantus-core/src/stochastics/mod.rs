@@ -1,10 +1,11 @@
 //! Stochastics: statistics of data lists ([`statistics`]) and probability distributions
-//! (`distributions`). Both are stateless calls with their inputs as LaTeX cells, like the
+//! ([`distributions`]). Both are stateless calls with their inputs as LaTeX cells, like the
 //! linear systems; the shells keep the lists.
 //!
 //! Values stay exact where the data are: the mean of whole numbers is a fraction, a standard
 //! deviation a root, a binomial probability a fraction. They are written as the settings say.
 
+pub mod distributions;
 pub mod statistics;
 
 use serde::{Deserialize, Serialize};

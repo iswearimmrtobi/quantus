@@ -150,7 +150,7 @@ fn factorize(mut n: u64) -> Vec<(u64, u32)> {
     let mut divisor = 2u64;
     while divisor * divisor <= n {
         let mut exponent = 0;
-        while n % divisor == 0 {
+        while n.is_multiple_of(divisor) {
             n /= divisor;
             exponent += 1;
         }

@@ -287,6 +287,14 @@ pub fn statistics(settings: &Settings, request: &StatisticsRequest) -> Result<St
     Ok(crate::stochastics::statistics::statistics(settings, request)?)
 }
 
+pub use crate::stochastics::distributions::{Distribution, DistributionRequest, DistributionResponse, DistributionResult};
+
+/// A probability of the normal, binomial or Poisson distribution (Verteilungen). Stateless.
+pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Result<DistributionResponse, ApiError> {
+    let _language = crate::text::Scope::new(settings.language);
+    Ok(crate::stochastics::distributions::distribution(settings, request)?)
+}
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }

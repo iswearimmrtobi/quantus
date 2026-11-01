@@ -92,6 +92,7 @@ pairs, split at poles and gaps.
 | Command | Arguments | Returns |
 |---|---|---|
 | `statistics` | `{ request: { x, y?, freq?, regression?, estimateX?, estimateY? } }` | `{ values, regression?, estimates? }` |
+| `distribution` | `{ request: { kind, x?, lower?, upper?, area?, sigma?, mu?, n?, p?, k } }` | `{ results: { k?, latex, value }[] }` |
 
 ```ts
 StatisticValue { key, symbol, latex, value }   // "mean", "\bar{x}", "2{,}5", "2.5"
@@ -111,6 +112,14 @@ squares, variances, standard deviations, minimum and maximum (`meanX`, `sumY2`, 
 `abExponential` (a b^x), `power` (a x^b) and `inverse` (a + b/x) and returns `a`, `b`, `c` for the
 quadratic, and `r` for the others. `estimateX` is a y for which `xHat` is wanted (`xHat1` and
 `xHat2` for the quadratic), `estimateY` an x for `yHat`.
+
+`distribution` takes its inputs as LaTeX cells too. `kind` is `normalDensity` (at `x`),
+`normalCumulative` (P(`lower` ≤ X ≤ `upper`); an empty bound or `\infty` is open),
+`inverseNormal` (the x with P(X ≤ x) = `area`), `binomialDensity` and `binomialCumulative` (`n`
+trials up to 10,000 with probability `p`), or `poissonDensity` and `poissonCumulative` (mean
+`mu`). `sigma` is 1 and `mu` 0 for the normal ones unless given. The discrete ones take a list of
+up to 45 values in `k` and answer one result per k; binomial probabilities are exact fractions for a
+rational p, Poisson ones exact multiples of $e^{-\mu}$.
 
 ## Circuits
 

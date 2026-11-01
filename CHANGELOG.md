@@ -34,6 +34,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   the data are. With pairs x, y: their sums and means, the seven regressions of a Casio (linear,
   quadratic, logarithmic, two exponential, power, inverse) with r, and the estimates x̂ and ŷ.
   Two new modes, `statistics` and `distributions`, for the shells to come.
+- The distributions of a Casio in the engine (`distribution`): normal density, cumulative and
+  inverse, binomial and Poisson density and cumulative for a list of k, the discrete ones exact.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

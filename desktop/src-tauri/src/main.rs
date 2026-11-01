@@ -21,6 +21,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::define_variable,
             commands::engineering,
             commands::statistics,
+            commands::distribution,
             commands::solve_circuit,
             commands::solve_kirchhoff,
             commands::load_circuit,

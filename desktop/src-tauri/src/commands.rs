@@ -10,7 +10,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalculationResponse, CircuitRequest, CircuitResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
+    CalculationResponse, CircuitRequest, CircuitResponse, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
     VariableResponse,
 };
@@ -169,6 +169,13 @@ pub fn engineering(engine: State<Engine>, request: EngineeringRequest) -> Result
 pub fn statistics(engine: State<Engine>, request: StatisticsRequest) -> Result<StatisticsResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::statistics(&settings, &request)
+}
+
+/// A probability of a distribution. It touches no session.
+#[tauri::command]
+pub fn distribution(engine: State<Engine>, request: DistributionRequest) -> Result<DistributionResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::distribution(&settings, &request)
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.
