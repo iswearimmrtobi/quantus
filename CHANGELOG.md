@@ -59,6 +59,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - An equation without an unknown is checked: `2 + 3 = 5` gives *true* (*wahr*). Comparisons
   `<`, `>`, `\le`, `\ge`, `\neq` and chains such as `1 < 2 \le 2` do the same, and a `verify`
   mode (Prüfen) checks every input.
+- Sessions in the engine: each keeps its variables and matrices, a history of up to 200
+  calculations, what the modes hold, a name ("Sitzung 2026-11-01 14:30") and its times, and
+  goes out and comes back as JSON with a format version (`export_session`, `import_session`);
+  new, list, rename, duplicate and delete. The values are saved by their definitions and exact
+  again after loading.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

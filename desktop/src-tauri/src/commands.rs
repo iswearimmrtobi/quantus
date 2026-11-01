@@ -10,7 +10,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalcRequest, CalculationResponse, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
+    CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
@@ -208,6 +208,63 @@ pub fn calc(engine: State<Engine>, request: CalcRequest) -> Result<CalculationRe
 #[tauri::command]
 pub fn solve_for(engine: State<Engine>, request: SolveRequest) -> Result<CalculationResponse, ApiError> {
     engine.with(|store| api::solve_for(store, &request))
+}
+
+/// A new session, named after the time unless a name is given.
+#[tauri::command]
+pub fn new_session(engine: State<Engine>, request: NewSessionRequest) -> SessionInfo {
+    engine.with(|store| api::new_session(store, &request))
+}
+
+#[tauri::command]
+pub fn list_sessions(engine: State<Engine>) -> Vec<SessionInfo> {
+    engine.with(|store| api::list_sessions(store))
+}
+
+#[tauri::command]
+pub fn rename_session(engine: State<Engine>, id: String, name: String) -> Result<SessionInfo, ApiError> {
+    engine.with(|store| api::rename_session(store, &id, &name))
+}
+
+#[tauri::command]
+pub fn duplicate_session(engine: State<Engine>, id: String, now: Option<i64>) -> Result<SessionInfo, ApiError> {
+    engine.with(|store| api::duplicate_session(store, &id, now))
+}
+
+#[tauri::command]
+pub fn delete_session(engine: State<Engine>, id: String) -> bool {
+    engine.with(|store| api::delete_session(store, &id))
+}
+
+/// The session as JSON, for the frontend to write to a file.
+#[tauri::command]
+pub fn export_session(engine: State<Engine>, session_id: Option<String>) -> String {
+    engine.with(|store| api::export_session(store, session_id.as_deref()))
+}
+
+#[tauri::command]
+pub fn import_session(engine: State<Engine>, json: String) -> Result<SessionInfo, ApiError> {
+    engine.with(|store| api::import_session(store, &json))
+}
+
+#[tauri::command]
+pub fn history(engine: State<Engine>, session_id: Option<String>) -> Vec<HistoryEntry> {
+    engine.with(|store| api::history(store, session_id.as_deref()))
+}
+
+#[tauri::command]
+pub fn clear_history(engine: State<Engine>, session_id: Option<String>) {
+    engine.with(|store| api::clear_history(store, session_id.as_deref()))
+}
+
+#[tauri::command]
+pub fn get_mode_inputs(engine: State<Engine>, session_id: Option<String>) -> ModeInputs {
+    engine.with(|store| api::get_mode_inputs(store, session_id.as_deref()))
+}
+
+#[tauri::command]
+pub fn set_mode_inputs(engine: State<Engine>, session_id: Option<String>, inputs: ModeInputs) {
+    engine.with(|store| api::set_mode_inputs(store, session_id.as_deref(), inputs))
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.

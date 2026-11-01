@@ -96,6 +96,41 @@ A point is `{ kind, name, x, y, latex, period? }`; an asymptote
 `{ kind, side?, x?, slope?, intercept?, latex, period? }`. Segments are arrays of `[x, y]`
 pairs, split at poles and gaps.
 
+## Sessions
+
+A session holds the variables (and matrices), the history of up to 200 calculations, what the
+modes with their own inputs hold (`modeInputs`: `linear`, `analysis`, `table`, `statistics`,
+`distribution`, each the request of that mode), its name and when it was created and last used.
+`evaluate` adds to the history of its session; pass `at` (milliseconds since 1970, UTC) in the
+request when the time is known. The engine touches no files: `export_session` hands the shell the
+JSON to save and `import_session` takes it back.
+
+| Command | Arguments | Returns |
+|---|---|---|
+| `new_session` | `{ request: { name?, now?, utcOffsetMinutes? } }` | `SessionInfo`; without a name "Session 2026-11-01 14:30" (German "Sitzung …") |
+| `list_sessions` | none | `SessionInfo[]`, the one used last first |
+| `rename_session` | `{ id, name }` | `SessionInfo` |
+| `duplicate_session` | `{ id, now? }` | `SessionInfo` of the copy, "… (copy)" |
+| `delete_session` | `{ id }` | whether there was one |
+| `export_session` | `{ sessionId? }` | the session file as JSON |
+| `import_session` | `{ json }` | `SessionInfo`; the id is kept unless taken |
+| `history`, `clear_history` | `{ sessionId? }` | `{ input, response: CalculationResponse, at? }[]`, nothing |
+| `get_mode_inputs`, `set_mode_inputs` | `{ sessionId? }`, `{ sessionId?, inputs }` | `ModeInputs`, nothing |
+
+```ts
+SessionInfo { id, name, created?, lastUsed?, entries }
+SessionFile {
+  version: 1, id, name, created?, lastUsed?,
+  variables: { key, definition, mode }[]   // worked out again on import, in order
+  matrices: { key, definition }[]
+  history: { input, response, at? }[]
+  modeInputs: { linear?, analysis?, table?, statistics?, distribution? }
+}
+```
+
+A variable is saved by the input that gives its value (`\frac{1}{3}\,\mathrm{m}`, `3 r_1`), so it
+is exact again after loading. A file of a newer format version is refused.
+
 ## Stochastics
 
 | Command | Arguments | Returns |

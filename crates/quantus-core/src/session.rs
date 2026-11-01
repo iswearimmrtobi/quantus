@@ -1,10 +1,21 @@
-//! Sessions (F5): the variables defined so far, and evaluation in their context.
+//! Sessions (F5): the variables defined so far, the history, what the modes hold, and
+//! evaluation in their context.
 //!
-//! Sessions live in memory only. Persistence across restarts is phase 6, together with the
-//! history. A [`SessionStore`] holds all of them keyed by id; a request without an id gets
-//! the default one.
+//! A [`SessionStore`] holds all of them keyed by id; a request without an id gets the default
+//! one. The core touches no files: a session goes out and comes back as JSON ([`SessionFile`],
+//! with a format version), and the shell stores it where it likes (the desktop's config
+//! directory, the handheld's SD card). Values are saved by the inputs that defined them and
+//! worked out again on loading, so they stay exact.
 
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
+use crate::api::CalculationResponse;
+use crate::eval::linear_system::LinearSystemRequest;
+use crate::analysis::interface::{AnalysisRequest, TableRequest};
+use crate::stochastics::distributions::DistributionRequest;
+use crate::stochastics::statistics::StatisticsRequest;
 
 use crate::eval::{Calculation, LatexCalculator, Variables};
 use crate::latex::serializer;
@@ -31,20 +42,71 @@ pub struct Variable {
     pub value: Decimal,
     pub unit: String,
     pub quantity: PhysicalQuantity,
+    /// The input that gives the value (`0{,}5\,\mathrm{m}`, or `2 r_1`), saved instead of it.
+    pub definition: String,
+    /// The mode `definition` is read in.
+    pub mode: Mode,
+}
+
+/// The longest history a session keeps.
+pub const HISTORY_LIMIT: usize = 200;
+
+/// One calculation of the history: the input as typed, the response, and when.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryEntry {
+    pub input: String,
+    pub response: CalculationResponse,
+    /// Milliseconds since 1970 (UTC), when the shell knew the time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+}
+
+/// What the modes with their own inputs hold, so a session reopens where it was left. The
+/// shells fill it; the core only keeps and saves it.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ModeInputs {
+    pub linear: Option<LinearSystemRequest>,
+    pub analysis: Option<AnalysisRequest>,
+    pub table: Option<TableRequest>,
+    pub statistics: Option<StatisticsRequest>,
+    pub distribution: Option<DistributionRequest>,
 }
 
 /// The variables defined so far, in definition order.
 #[derive(Debug)]
 pub struct Session {
     pub id: String,
+    /// "Sitzung 2026-11-01 14:30" until it is renamed.
+    pub name: String,
+    /// Milliseconds since 1970 (UTC), when the shell knew the time.
+    pub created: Option<i64>,
+    pub last_used: Option<i64>,
     definitions: Vec<Variable>,
-    /// The matrices of the matrix mode, by name.
+    /// The matrices of the matrix mode, by name, and their definitions in order.
     matrices: Matrices,
+    matrix_definitions: Vec<(String, String)>,
+    history: Vec<HistoryEntry>,
+    pub mode_inputs: ModeInputs,
 }
 
 impl Session {
     pub fn new(id: impl Into<String>) -> Self {
-        Session { id: id.into(), definitions: Vec::new(), matrices: Matrices::new() }
+        {
+        let id = id.into();
+        Session {
+            name: id.clone(),
+            id,
+            created: None,
+            last_used: None,
+            definitions: Vec::new(),
+            matrices: Matrices::new(),
+            matrix_definitions: Vec::new(),
+            history: Vec::new(),
+            mode_inputs: ModeInputs::default(),
+        }
+    }
     }
 
     pub fn variables(&self) -> &[Variable] {
@@ -73,6 +135,26 @@ impl Session {
     pub fn clear(&mut self) {
         self.definitions.clear();
         self.matrices.clear();
+        self.matrix_definitions.clear();
+    }
+
+    /// Adds a calculation to the history (the oldest goes beyond [`HISTORY_LIMIT`]).
+    pub fn record(&mut self, input: &str, response: CalculationResponse, at: Option<i64>) {
+        self.history.push(HistoryEntry { input: input.to_string(), response, at });
+        if self.history.len() > HISTORY_LIMIT {
+            self.history.remove(0);
+        }
+        if at.is_some() {
+            self.last_used = at;
+        }
+    }
+
+    pub fn history(&self) -> &[HistoryEntry] {
+        &self.history
+    }
+
+    pub fn clear_history(&mut self) {
+        self.history.clear();
     }
 
     /// The matrices defined in the matrix mode, by name.
@@ -99,6 +181,8 @@ impl Session {
         if settings.mode == Mode::Matrix {
             let (calculation, defined) = calculator.evaluate_matrix(latex, &self.quantities(), &self.matrices)?;
             if let Some((key, matrix)) = defined {
+                self.matrix_definitions.retain(|(k, _)| *k != key);
+                self.matrix_definitions.push((key.clone(), calculation.result.clone()));
                 self.matrices.insert(key, matrix);
             }
             return Ok((calculation, None));
@@ -113,6 +197,8 @@ impl Session {
                 value: calculation.value.clone(),
                 unit: calculation.unit.clone(),
                 quantity: calculation.quantity.clone(),
+                definition: serializer::expression(&calculation.formula.expression),
+                mode: stored_mode(settings),
             })
         });
         if let Some(variable) = &variable {
@@ -162,6 +248,8 @@ impl Session {
             value: calculation.value.clone(),
             unit: calculation.unit.clone(),
             quantity: calculation.quantity.clone(),
+            definition: latex.to_string(),
+            mode: stored_mode(settings),
         };
         self.define(variable.clone());
         Ok(variable)
@@ -183,6 +271,118 @@ impl Session {
     ) -> Result<Calculation> {
         let calculator = LatexCalculator::new(precision_or(precision, settings.precision)?).with_settings(settings.clone());
         calculator.solve_for(latex, &self.quantities(), variable, start)
+    }
+}
+
+/// The mode a definition is read in again: the reading modes as they are, the rest as Physics,
+/// which knows units and constants.
+fn stored_mode(settings: &Settings) -> Mode {
+    match settings.evaluation_mode() {
+        mode @ (Mode::Algebra | Mode::Imaginary | Mode::Physics) => mode,
+        _ => Mode::Physics,
+    }
+}
+
+/// The version of [`SessionFile`] this engine writes.
+pub const FORMAT_VERSION: u32 = 1;
+
+/// A saved variable or matrix: its key and the input that gives its value.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StoredDefinition {
+    pub key: String,
+    pub definition: String,
+    #[serde(default)]
+    pub mode: Mode,
+}
+
+/// A session as JSON: what a shell writes to a file and reads back.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionFile {
+    pub version: u32,
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub created: Option<i64>,
+    #[serde(default)]
+    pub last_used: Option<i64>,
+    #[serde(default)]
+    pub variables: Vec<StoredDefinition>,
+    #[serde(default)]
+    pub matrices: Vec<StoredDefinition>,
+    #[serde(default)]
+    pub history: Vec<HistoryEntry>,
+    #[serde(default)]
+    pub mode_inputs: ModeInputs,
+}
+
+impl Session {
+    pub fn to_file(&self) -> SessionFile {
+        SessionFile {
+            version: FORMAT_VERSION,
+            id: self.id.clone(),
+            name: self.name.clone(),
+            created: self.created,
+            last_used: self.last_used,
+            variables: self
+                .definitions
+                .iter()
+                .map(|v| StoredDefinition { key: v.key.clone(), definition: v.definition.clone(), mode: v.mode })
+                .collect(),
+            matrices: self
+                .matrix_definitions
+                .iter()
+                .map(|(key, latex)| StoredDefinition { key: key.clone(), definition: latex.clone(), mode: Mode::Matrix })
+                .collect(),
+            history: self.history.clone(),
+            mode_inputs: self.mode_inputs.clone(),
+        }
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(&self.to_file()).expect("a session serialises")
+    }
+
+    /// A session from its file: the variables and matrices worked out again, in order.
+    pub fn from_file(file: SessionFile, settings: &Settings) -> Result<Session> {
+        let file = migrate(file)?;
+        let mut session = Session::new(file.id);
+        session.name = file.name;
+        session.created = file.created;
+        session.last_used = file.last_used;
+        for stored in &file.variables {
+            let settings = Settings { mode: stored.mode, ..settings.clone() };
+            session.assign(&stored.key, &stored.definition, None, &settings).map_err(|e| {
+                QuantusError::other(format!("The variable {} could not be restored: {e}", stored.key))
+            })?;
+        }
+        let matrix_settings = Settings { mode: Mode::Matrix, ..settings.clone() };
+        for stored in &file.matrices {
+            session.evaluate_with(&format!("{} = {}", symbol_of(&stored.key), stored.definition), None, &matrix_settings).map_err(|e| {
+                QuantusError::other(format!("The matrix {} could not be restored: {e}", stored.key))
+            })?;
+        }
+        session.history = file.history;
+        session.mode_inputs = file.mode_inputs;
+        Ok(session)
+    }
+
+    pub fn from_json(json: &str, settings: &Settings) -> Result<Session> {
+        let file: SessionFile =
+            serde_json::from_str(json).map_err(|e| QuantusError::other(format!("This is no Quantus session file: {e}")))?;
+        Session::from_file(file, settings)
+    }
+}
+
+/// Brings an older file to [`FORMAT_VERSION`]; a newer one is refused.
+fn migrate(file: SessionFile) -> Result<SessionFile> {
+    match file.version {
+        FORMAT_VERSION => Ok(file),
+        version if version > FORMAT_VERSION => Err(QuantusError::other(format!(
+            "The session was saved by a newer Quantus (format {version}); this one reads up to format {FORMAT_VERSION}."
+        ))),
+        version => Err(QuantusError::other(format!("Unknown session format {version}."))),
     }
 }
 
@@ -214,6 +414,100 @@ impl SessionStore {
         let id = id.filter(|id| !id.trim().is_empty()).unwrap_or(DEFAULT_SESSION);
         self.sessions.entry(id.to_string()).or_insert_with(|| Session::new(id))
     }
+
+    /// The session of that id, if there is one.
+    pub fn get(&self, id: &str) -> Option<&Session> {
+        self.sessions.get(id)
+    }
+
+    pub fn get_mut(&mut self, id: &str) -> Option<&mut Session> {
+        self.sessions.get_mut(id)
+    }
+
+    /// All sessions, the one used last first.
+    pub fn sessions(&self) -> Vec<&Session> {
+        let mut all: Vec<&Session> = self.sessions.values().collect();
+        all.sort_by(|a, b| b.last_used.or(b.created).cmp(&a.last_used.or(a.created)).then(a.name.cmp(&b.name)));
+        all
+    }
+
+    /// An id no session has yet: `session-1`, `session-2`, …
+    fn fresh_id(&self) -> String {
+        (1..).map(|n| format!("session-{n}")).find(|id| !self.sessions.contains_key(id)).expect("ids are endless")
+    }
+
+    /// A new, empty session. Without a name it is called after the time: "Sitzung 2026-11-01
+    /// 14:30" (the shell's local time is `now` shifted by `utc_offset_minutes`).
+    pub fn create(&mut self, name: Option<&str>, now: Option<i64>, utc_offset_minutes: i32) -> &mut Session {
+        let id = self.fresh_id();
+        let mut session = Session::new(id.clone());
+        session.name = match name.map(str::trim).filter(|n| !n.is_empty()) {
+            Some(name) => name.to_string(),
+            None => default_name(now, utc_offset_minutes, self.settings.language),
+        };
+        session.created = now;
+        session.last_used = now;
+        self.sessions.insert(id.clone(), session);
+        self.sessions.get_mut(&id).expect("just inserted")
+    }
+
+    /// A copy under a new id, named "… (Kopie)" / "… (copy)".
+    pub fn duplicate(&mut self, id: &str, now: Option<i64>) -> Result<&mut Session> {
+        let source = self.sessions.get(id).ok_or_else(|| unknown_session(id))?;
+        let settings = self.settings.clone();
+        let copy_word = if settings.language == crate::settings::Language::De { "Kopie" } else { "copy" };
+        let mut file = source.to_file();
+        let new_id = self.fresh_id();
+        file.id = new_id.clone();
+        file.name = format!("{} ({copy_word})", file.name);
+        file.created = now.or(file.created);
+        let copy = Session::from_file(file, &settings)?;
+        self.sessions.insert(new_id.clone(), copy);
+        Ok(self.sessions.get_mut(&new_id).expect("just inserted"))
+    }
+
+    pub fn delete(&mut self, id: &str) -> bool {
+        self.sessions.remove(id).is_some()
+    }
+
+    /// Reads a session file; its id is kept unless a session already has it.
+    pub fn import(&mut self, json: &str) -> Result<&mut Session> {
+        let mut session = Session::from_json(json, &self.settings)?;
+        if self.sessions.contains_key(&session.id) {
+            session.id = self.fresh_id();
+        }
+        let id = session.id.clone();
+        self.sessions.insert(id.clone(), session);
+        Ok(self.sessions.get_mut(&id).expect("just inserted"))
+    }
+}
+
+pub(crate) fn unknown_session(id: &str) -> QuantusError {
+    QuantusError::other(format!("There is no session '{id}'."))
+}
+
+/// "Sitzung 2026-11-01 14:30" or "Session 2026-11-01 14:30"; without a time just the word.
+pub fn default_name(now: Option<i64>, utc_offset_minutes: i32, language: crate::settings::Language) -> String {
+    let word = if language == crate::settings::Language::De { "Sitzung" } else { "Session" };
+    let Some(now) = now else { return word.to_string() };
+    let minutes = now.div_euclid(60_000) + i64::from(utc_offset_minutes);
+    let (days, minute_of_day) = (minutes.div_euclid(1440), minutes.rem_euclid(1440));
+    let (year, month, day) = civil_from_days(days);
+    format!("{word} {year:04}-{month:02}-{day:02} {:02}:{:02}", minute_of_day / 60, minute_of_day % 60)
+}
+
+/// Days since 1970-01-01 to a date (Howard Hinnant's algorithm).
+fn civil_from_days(days: i64) -> (i64, u32, u32) {
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    (year, month, day)
 }
 
 #[cfg(test)]

@@ -20,6 +20,8 @@ pub struct CalculationRequest {
     pub session_id: Option<String>,
     /// Significant digits for this one call; `None` uses the default.
     pub precision: Option<i64>,
+    /// Milliseconds since 1970 (UTC), for the history; the shell sends it when it knows the time.
+    pub at: Option<i64>,
 }
 
 /// One evaluated input, ready for display: the steps of F6, the result in LaTeX and as a plain
@@ -166,7 +168,9 @@ pub fn evaluate(store: &mut SessionStore, request: &CalculationRequest) -> Resul
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
     let (calculation, variable) = session.evaluate_with(&request.latex, request.precision, &settings)?;
-    Ok(CalculationResponse::of(&calculation, variable.as_ref()))
+    let response = CalculationResponse::of(&calculation, variable.as_ref());
+    session.record(&request.latex, response.clone(), request.at);
+    Ok(response)
 }
 
 pub fn define_variable(store: &mut SessionStore, request: &CalculationRequest) -> Result<VariableResponse, ApiError> {
@@ -375,6 +379,96 @@ pub use crate::units::catalogue::UnitCategory;
 /// The units a conversion `▶` can aim at, by the Casio's categories, named in `language`.
 pub fn conversion_units(language: crate::settings::Language) -> Vec<UnitCategory> {
     crate::units::catalogue::catalogue(language)
+}
+
+pub use crate::session::{HistoryEntry, ModeInputs, SessionFile};
+
+/// A session as a menu lists it.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionInfo {
+    pub id: String,
+    pub name: String,
+    pub created: Option<i64>,
+    pub last_used: Option<i64>,
+    /// How many calculations its history holds.
+    pub entries: usize,
+}
+
+impl SessionInfo {
+    fn of(session: &crate::session::Session) -> Self {
+        SessionInfo {
+            id: session.id.clone(),
+            name: session.name.clone(),
+            created: session.created,
+            last_used: session.last_used,
+            entries: session.history().len(),
+        }
+    }
+}
+
+/// A new session: `name`, or one after the time `now` (UTC milliseconds) in the shell's time zone.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NewSessionRequest {
+    pub name: Option<String>,
+    pub now: Option<i64>,
+    pub utc_offset_minutes: i32,
+}
+
+pub fn new_session(store: &mut SessionStore, request: &NewSessionRequest) -> SessionInfo {
+    SessionInfo::of(store.create(request.name.as_deref(), request.now, request.utc_offset_minutes))
+}
+
+pub fn list_sessions(store: &SessionStore) -> Vec<SessionInfo> {
+    store.sessions().into_iter().map(SessionInfo::of).collect()
+}
+
+fn existing<'a>(store: &'a mut SessionStore, id: &str) -> Result<&'a mut crate::session::Session, ApiError> {
+    store.get_mut(id).ok_or_else(|| crate::session::unknown_session(id).into())
+}
+
+pub fn rename_session(store: &mut SessionStore, id: &str, name: &str) -> Result<SessionInfo, ApiError> {
+    let session = existing(store, id)?;
+    if name.trim().is_empty() {
+        return Err(QuantusError::other("A session needs a name.").into());
+    }
+    session.name = name.trim().to_string();
+    Ok(SessionInfo::of(session))
+}
+
+pub fn duplicate_session(store: &mut SessionStore, id: &str, now: Option<i64>) -> Result<SessionInfo, ApiError> {
+    Ok(SessionInfo::of(store.duplicate(id, now)?))
+}
+
+pub fn delete_session(store: &mut SessionStore, id: &str) -> bool {
+    store.delete(id)
+}
+
+/// The session as JSON, for the shell to save.
+pub fn export_session(store: &mut SessionStore, id: Option<&str>) -> String {
+    store.session(id).to_json()
+}
+
+/// A saved session read back; it keeps its id unless that is taken.
+pub fn import_session(store: &mut SessionStore, json: &str) -> Result<SessionInfo, ApiError> {
+    Ok(SessionInfo::of(store.import(json)?))
+}
+
+pub fn history(store: &mut SessionStore, id: Option<&str>) -> Vec<HistoryEntry> {
+    store.session(id).history().to_vec()
+}
+
+pub fn clear_history(store: &mut SessionStore, id: Option<&str>) {
+    store.session(id).clear_history();
+}
+
+pub fn get_mode_inputs(store: &mut SessionStore, id: Option<&str>) -> ModeInputs {
+    store.session(id).mode_inputs.clone()
+}
+
+pub fn set_mode_inputs(store: &mut SessionStore, id: Option<&str>, inputs: ModeInputs) {
+    store.session(id).mode_inputs = inputs;
 }
 
 pub fn get_settings(store: &SessionStore) -> Settings {

@@ -33,6 +33,7 @@ impl Backend for Engine {
             latex: latex.to_string(),
             session_id: None,
             precision: Some(settings.digits.into()),
+            ..Default::default()
         };
         let response = api::evaluate(&mut self.store, &request).map_err(|error| error.to_string())?;
         // A decimal with digits after the comma is rounded; mark it like the stub does.
