@@ -14,12 +14,15 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 
 | Setting | Key | Values | Default |
 |---|---|---|---|
-| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `kirchhoff` | `physics` |
+| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `kirchhoff`, `baseN` | `physics` |
+| **Number base** | `numberBase` | `dec`, `hex`, `bin`, `oct` | `dec` |
 | **Language** | `language` | `en`, `de` | `en` |
 | **Precision** | `precision` | 1 to 10,000 significant digits | 50 |
 | **Angle unit** | `angleUnit` | `degree`, `radian` | `radian` |
 
 **Mode** decides how letters are read, see [Concepts](../getting-started/concepts.md#modes-decide-how-letters-are-read).
+**Number base** is the base the Basis-N mode (`baseN`, engine only for now) reads and writes
+numbers in, see [Syntax](syntax.md#basis-n).
 **Angle unit** decides how a plain number in `\sin`, `\cos`, `\tan`, `\cot`, `\sec` and `\csc`
 is read and what `\arcsin`, `\arccos`, `\arctan` and `\arg` answer in: with *degree*
 $\sin 30 = 0{,}5$ and $\arctan 1 = 45$. A value that states its unit keeps it in either setting:

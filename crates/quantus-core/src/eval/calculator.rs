@@ -173,6 +173,9 @@ impl LatexCalculator {
     }
 
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
+        if self.settings.mode == Mode::BaseN {
+            return self.evaluate_base_n(latex);
+        }
         let formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
@@ -239,6 +242,28 @@ impl LatexCalculator {
                 }
             }
         }
+    }
+
+    /// Basis-N has its own little language (`1F`, `and`), so it bypasses the parser.
+    fn evaluate_base_n(&self, latex: &str) -> Result<Calculation> {
+        let result = crate::basen::evaluate(latex, self.settings.number_base)?;
+        let value = Value::int(i64::from(result.value));
+        let input = latex.trim().to_string();
+        Ok(Calculation {
+            formula: Formula { label: None, expression: Node::Number { value: Decimal::from_i64(result.value.into()), position: 0 }, source: latex.to_string() },
+            steps: vec![Step::new(StepKind::Symbolic, input.clone()), Step::new(StepKind::Result, result.latex.clone())],
+            input,
+            latex: result.latex.clone(),
+            result: result.latex,
+            value: Decimal::from_i64(result.value.into()),
+            imaginary: None,
+            unit: String::new(),
+            quantity_name: None,
+            quantity: PhysicalQuantity::dimensionless(value),
+            domain_restrictions: None,
+            warning: None,
+            forms: result.forms,
+        })
     }
 
     fn evaluate_algebraic(&self, formula: Formula) -> Result<Calculation> {

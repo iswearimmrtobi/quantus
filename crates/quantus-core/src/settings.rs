@@ -4,6 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::algebra::pipeline::{OutputStyle, PipelineConfig};
+pub use crate::basen::NumberBase;
 use crate::latex::numbers::Style;
 use crate::latex::parser::ParseOptions;
 use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
@@ -128,6 +129,10 @@ pub enum Mode {
     Linear,
     /// A resistor network solved by the junction and loop rules. Inputs are read as in `Physics`.
     Kirchhoff,
+    /// Whole numbers in decimal, hexadecimal, binary or octal with bitwise operations
+    /// ([`crate::basen`]), in the base `number_base`.
+    #[serde(rename = "baseN")]
+    BaseN,
 }
 
 /// The unit a plain number in a trigonometric function is read in, and inverse functions answer in.
@@ -227,6 +232,8 @@ pub struct Settings {
     /// Whether a result's forms include the recurring decimal, `0{,}\overline{3}`.
     pub recurring: bool,
     pub complex_form: ComplexForm,
+    /// The base Basis-N mode reads and writes numbers in.
+    pub number_base: NumberBase,
 }
 
 impl Default for Settings {
@@ -256,6 +263,7 @@ impl Default for Settings {
             fraction_form: FractionForm::Improper,
             recurring: true,
             complex_form: ComplexForm::Rectangular,
+            number_base: NumberBase::Dec,
         }
     }
 }
@@ -286,7 +294,7 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear),
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN),
             imaginary_i: self.complex(),
         }
     }
@@ -375,7 +383,8 @@ mod tests {
                 "digitGrouping": false,
                 "fractionForm": "improper",
                 "recurring": true,
-                "complexForm": "rectangular"
+                "complexForm": "rectangular",
+                "numberBase": "dec"
             })
         );
     }
@@ -391,6 +400,7 @@ mod tests {
         assert_eq!(serde_json::to_value(Mode::Analysis).unwrap(), json!("analysis"));
         assert_eq!((options(Mode::Kirchhoff).units, options(Mode::Kirchhoff).imaginary_i), (true, false));
         assert_eq!(serde_json::to_value(Mode::Kirchhoff).unwrap(), json!("kirchhoff"));
+        assert_eq!(serde_json::to_value(Mode::BaseN).unwrap(), json!("baseN"));
     }
 
     #[test]

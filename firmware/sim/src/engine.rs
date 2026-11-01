@@ -116,5 +116,7 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
             ui::ComplexForm::Cartesian => core::ComplexForm::Rectangular,
             ui::ComplexForm::Polar => core::ComplexForm::Polar,
         },
+        // The hui's Basis-N has no screen yet to choose the base.
+        number_base: core::NumberBase::Dec,
     }
 }

@@ -32,6 +32,11 @@ pub enum FormKind {
     Rectangular,
     /// A complex number as `r\angle\theta`.
     Polar,
+    /// A Basis-N value in decimal, hexadecimal, binary or octal.
+    Dec,
+    Hex,
+    Bin,
+    Oct,
 }
 
 /// One form of a result, as LaTeX.

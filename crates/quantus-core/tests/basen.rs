@@ -1,0 +1,23 @@
+use quantus_core::api::{self, CalculationRequest};
+use quantus_core::session::SessionStore;
+use quantus_core::settings::{Mode, NumberBase, Settings};
+
+#[test]
+fn the_mode_evaluates_in_the_set_base_with_the_others_as_forms() {
+    let mut store = SessionStore::new();
+    let settings = Settings { mode: Mode::BaseN, number_base: NumberBase::Hex, ..Settings::default() };
+    api::set_settings(&mut store, settings).unwrap();
+    let request = CalculationRequest { latex: r"\mathrm{1F} \cdot 2 \operatorname{and} FF".into(), ..Default::default() };
+    let response = api::evaluate(&mut store, &request).unwrap();
+    assert_eq!(response.result, r"\mathrm{3E}");
+    assert_eq!(response.value, "62");
+    let forms: Vec<_> = response.forms.iter().map(|f| (serde_json::to_value(f.kind).unwrap(), f.latex.clone())).collect();
+    assert_eq!(forms[0], (serde_json::json!("dec"), "62".to_string()));
+    assert_eq!(forms[1], (serde_json::json!("bin"), "111110".to_string()));
+}
+
+#[test]
+fn the_setting_names_the_mode_base_n() {
+    let settings: Settings = serde_json::from_value(serde_json::json!({ "mode": "baseN", "numberBase": "bin" })).unwrap();
+    assert_eq!((settings.mode, settings.number_base), (Mode::BaseN, NumberBase::Bin));
+}

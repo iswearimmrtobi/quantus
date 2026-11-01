@@ -115,6 +115,23 @@ and the variants `\varepsilon`, `\vartheta`, `\varphi`.
 
 The full list is in [Units and constants](units-and-constants.md).
 
+## Basis-N
+
+The mode `baseN` works with whole numbers in the [number base](settings.md#general) set, as
+32-bit two's complement: from −2147483648 to 2147483647 in decimal, any 32-bit pattern in the
+other bases (`FFFFFFFF` is −1). The result comes in the other three bases as its forms.
+
+| Input | Meaning |
+|---|---|
+| `1F`, `\mathrm{1F}` | a number in the set base; letters A–F in hexadecimal |
+| `\mathrm{h}1F`, `\mathrm{d}10`, `\mathrm{b}101`, `\mathrm{o}17` | one number in another base; plain `h1F` works where the letter is no digit of the set base |
+| `+`, `-`, `\cdot`, `\div`, `\frac{a}{b}` | arithmetic; division truncates toward zero |
+| `\operatorname{and}`, `or`, `xor`, `xnor` | bitwise operations, written plain or in `\operatorname{}` |
+| `\operatorname{Not}(x)`, `\operatorname{Neg}(x)` | bitwise not (one's complement), negation (two's complement) |
+
+Signs, `Not` and `Neg` bind first, then products, then sums, then `and`, then `or`, `xor` and
+`xnor`.
+
 ## Ignored layout
 
 `\displaystyle`, `\textstyle`, `\limits`, `\quad`, `\qquad` and `\,` are accepted and change
