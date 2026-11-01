@@ -4,9 +4,11 @@
 //! bands that changed, so no framebuffer is needed.
 
 use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::geometry::AngleUnit;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{
-    Circle, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, RoundedRectangle, StrokeAlignment, Triangle,
+    Arc, Circle, Polyline, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, RoundedRectangle, StrokeAlignment,
+    Triangle,
 };
 
 use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
@@ -79,6 +81,10 @@ pub enum Shape {
     Round(RoundedRectangle, Rgb565, Option<Rgb565>),
     Triangle(Triangle, Rgb565),
     Circle(Circle, Rgb565),
+    /// An arc, stroked with the width.
+    Arc(Arc, Rgb565, u32),
+    /// Lines through the points, stroked with the width.
+    Path(Vec<Point>, Rgb565, u32),
     /// Text with its baseline at the point.
     Text(Point, String, Scale, Rgb565),
     /// A laid out row with its origin at the point.
@@ -92,6 +98,10 @@ impl Shape {
             Shape::Round(round, _, _) => round.rectangle,
             Shape::Triangle(triangle, _) => triangle.bounding_box(),
             Shape::Circle(circle, _) => circle.bounding_box(),
+            Shape::Arc(arc, color, width) => arc.into_styled(PrimitiveStyle::with_stroke(*color, *width)).bounding_box(),
+            Shape::Path(points, color, width) => {
+                Polyline::new(points).into_styled(PrimitiveStyle::with_stroke(*color, *width)).bounding_box()
+            }
             Shape::Text(origin, text, scale, _) => {
                 let metrics = scale.metrics();
                 Rectangle::new(
@@ -123,6 +133,12 @@ impl Shape {
             }
             Shape::Circle(circle, color) => {
                 let _ = circle.into_styled(PrimitiveStyle::with_fill(*color)).draw(target);
+            }
+            Shape::Arc(arc, color, width) => {
+                let _ = arc.into_styled(PrimitiveStyle::with_stroke(*color, *width)).draw(target);
+            }
+            Shape::Path(points, color, width) => {
+                let _ = Polyline::new(points).into_styled(PrimitiveStyle::with_stroke(*color, *width)).draw(target);
             }
             Shape::Text(origin, text, scale, color) => scale.draw(text, *origin, *color, target),
             Shape::Math(origin, row, color) => {
@@ -157,8 +173,8 @@ fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
 }
 
 /// The top bar: the mode (or the menu's page) on the left; on the right SHIFT and ALPHA while
-/// they are on, the digits, exact or decimal, the angle unit, WLAN and Bluetooth when on, the
-/// exam mode and the battery.
+/// they are on, the digits, exact or decimal, the angle unit, the WLAN and Bluetooth icons when
+/// on, the exam mode and the battery.
 fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     shapes.push(Shape::Fill(full_width(0, BAR as u32), colors::CYAN_DIM));
     let baseline = BAR - 7;
@@ -173,24 +189,24 @@ fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     right -= battery(shapes, app.battery, Point::new(right, BAR / 2)) + 12;
     let settings = &app.settings;
     let lang = settings.language;
-    // The exam mode as a tag in the accent; the radios, the angle unit, the digits and the
-    // result form as text.
+    // The exam mode as a tag in the accent, the radios as icons; the angle unit, the digits and
+    // the result form as text.
     if settings.exam {
         right -= tag(shapes, right, text::EXAM.get(lang), colors::AMBER) + 8;
+    }
+    if settings.wlan {
+        right -= wlan(shapes, right) + 10;
+    }
+    if settings.bluetooth {
+        right -= bluetooth(shapes, right) + 10;
     }
     let angle = match settings.angle {
         Angle::Degrees => "D",
         Angle::Radians => "R",
     };
     let form = if settings.decimal { text::DECIMAL_SHORT } else { text::EXACT_SHORT };
-    let texts = [
-        settings.bluetooth.then_some("BT"),
-        settings.wlan.then(|| text::WLAN.get(lang)),
-        Some(angle),
-        Some(form.get(lang)),
-    ];
     let digits = format!("Sig {}", settings.digits);
-    for text in texts.into_iter().flatten().map(str::to_string).chain([digits]) {
+    for text in [angle, form.get(lang)].map(str::to_string).into_iter().chain([digits]) {
         let width = Scale::Small.width(&text);
         shapes.push(Shape::Text(Point::new(right - width, baseline), text, Scale::Small, colors::TEXT));
         right -= width + 12;
@@ -210,6 +226,34 @@ fn tag(shapes: &mut Vec<Shape>, right: i32, label: &str, color: Rgb565) -> i32 {
     let at = Point::new(right - width - 4, BAR - 7);
     shapes.push(Shape::Text(at, label.to_string(), Scale::Small, colors::BACKGROUND));
     width + 8
+}
+
+/// The WLAN icon, three arcs over a dot, ending at `right`; returns its width.
+fn wlan(shapes: &mut Vec<Shape>, right: i32) -> i32 {
+    let width = 18;
+    let base = Point::new(right - width / 2, BAR - 6);
+    for diameter in [9, 17, 25] {
+        let arc = Arc::with_center(base, diameter, (-135.0).deg(), 90.0.deg());
+        shapes.push(Shape::Arc(arc, colors::TEXT, 2));
+    }
+    shapes.push(Shape::Circle(Circle::with_center(base, 4), colors::TEXT));
+    width
+}
+
+/// The Bluetooth rune ending at `right`, centred in the bar; returns its width.
+fn bluetooth(shapes: &mut Vec<Shape>, right: i32) -> i32 {
+    let (width, top, bottom) = (9, 6, BAR - 6);
+    let (x, quarter) = (right - width / 2 - 1, (bottom - top) / 4);
+    let points = [
+        (x - 4, top + quarter),
+        (x + 4, bottom - quarter),
+        (x, bottom),
+        (x, top),
+        (x + 4, top + quarter),
+        (x - 4, bottom - quarter),
+    ];
+    shapes.push(Shape::Path(points.iter().map(|&(x, y)| Point::new(x, y)).collect(), colors::TEXT, 2));
+    width
 }
 
 /// A battery icon ending at `right`, centred on `center.y`, filled by the charge; returns its width.

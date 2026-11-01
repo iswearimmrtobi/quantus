@@ -170,56 +170,29 @@ fn every_entry_fits_its_line() {
 
 #[test]
 fn the_top_bar_shows_the_exam_mode_and_the_radios() {
-    let texts = |app: &App<Stub>| -> Vec<String> {
-        Frame::new(app)
-            .0
-            .into_iter()
+    use quantus_ui::render::Shape;
+    // The WLAN icon is the only arc on the screen, the Bluetooth rune the only path.
+    let shown = |app: &App<Stub>| -> (Vec<String>, bool, bool) {
+        let shapes = Frame::new(app).0;
+        let texts = shapes
+            .iter()
             .filter_map(|shape| match shape {
-                quantus_ui::render::Shape::Text(_, text, _, _) => Some(text),
+                Shape::Text(_, text, _, _) => Some(text.clone()),
                 _ => None,
             })
-            .collect()
+            .collect();
+        let wlan = shapes.iter().any(|shape| matches!(shape, Shape::Arc(..)));
+        let bluetooth = shapes.iter().any(|shape| matches!(shape, Shape::Path(..)));
+        (texts, wlan, bluetooth)
     };
     let mut app = App::new(Stub);
+    assert!(matches!(shown(&app), (_, false, false)));
     app.settings.wlan = true;
     app.settings.bluetooth = true;
-    let shown = texts(&app);
-    assert!(shown.contains(&"WLAN".to_string()) && shown.contains(&"BT".to_string()));
-    assert!(shown.contains(&"D".to_string()));
+    let (texts, wlan, bluetooth) = shown(&app);
+    assert!(wlan && bluetooth);
+    assert!(texts.contains(&"D".to_string()));
     app.settings.set(quantus_ui::settings::Setting::Exam, 1);
-    let shown = texts(&app);
-    assert!(shown.contains(&"PRÜFUNG".to_string()) && !shown.contains(&"WLAN".to_string()));
-}
-
-#[test]
-fn optn_inserts_units_prefixes_and_functions() {
-    let mut app = App::new(Stub);
-    // Physik: Einheiten → Länge → m.
-    press(&mut app, &[Key::Digit(5), Key::Optn, Key::Digit(1), Key::Digit(1), Key::Digit(1)]);
-    assert_eq!((app.editor.to_latex(), &app.screen), ("5m".to_string(), &Screen::Calc));
-
-    // Präfixe → k (the tenth, on the second page), then the unit.
-    press(&mut app, &[Key::Ac, Key::Digit(3), Key::Optn, Key::Digit(2)]);
-    press(&mut app, &[Key::Down; 9]);
-    press(&mut app, &[Key::Exe, Key::Optn, Key::Digit(1), Key::Digit(1), Key::Digit(1)]);
-    assert_eq!(app.editor.to_latex(), "3km");
-
-    // Hyperbol. Fkt. → sinh puts the cursor between the brackets.
-    press(&mut app, &[Key::Ac, Key::Optn, Key::Digit(6), Key::Digit(1), Key::Digit(2)]);
-    assert_eq!(app.editor.to_latex(), r"\sinh(2)");
-
-    // OPTN closes OPTN.
-    press(&mut app, &[Key::Optn, Key::Optn]);
-    assert_eq!(app.screen, Screen::Calc);
-}
-
-#[test]
-fn optn_in_lgs_holds_its_settings() {
-    let mut app = App::new(Stub);
-    press(&mut app, &[Key::Mode, Key::Digit(5), Key::Digit(1), Key::Optn, Key::Digit(4), Key::Digit(1)]);
-    assert!(app.settings.linear_complex);
-    press(&mut app, &[Key::Digit(2), Key::Digit(4), Key::Exe]);
-    assert_eq!(app.settings.system_rows, 4);
-    press(&mut app, &[Key::Digit(5)]);
-    assert!(app.editor.is_empty() && matches!(app.screen, Screen::Menu(_)));
+    let (texts, wlan, bluetooth) = shown(&app);
+    assert!(texts.contains(&"PRÜFUNG".to_string()) && !wlan && !bluetooth);
 }

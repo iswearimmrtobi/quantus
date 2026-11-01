@@ -47,6 +47,5 @@ pub const EXAM_BLOCKS: Text = t("Aus im Prüfungsmodus", "Off in exam mode");
 pub const DONE: Text = t("Erledigt", "Done");
 pub const NO_ENTRIES: Text = t("Keine Einträge", "No entries");
 pub const EXAM: Text = t("PRÜFUNG", "EXAM");
-pub const WLAN: Text = t("WLAN", "Wi-Fi");
 pub const EXACT_SHORT: Text = t("Exakt", "Exact");
 pub const DECIMAL_SHORT: Text = t("Dez", "Dec");
