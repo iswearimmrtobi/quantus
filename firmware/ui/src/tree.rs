@@ -1,4 +1,4 @@
-//! The menu tree of design/handheld-menus.md §7: SETUP (§7.2). Which entries work and which
+//! The menu tree of design/handheld-menus.md §7: SETUP (§7.2) and the Sitzungen tile (§6). Which entries work and which
 //! wait for the engine or the firmware is noted there.
 
 use crate::menu::{opt, Action, Entry, Info, Kind, Opt, Page, ON_OFF};
@@ -233,5 +233,17 @@ static BLUETOOTH: Page = Page {
         pending(t("Koppeln", "Pair")),
         pending(t("Gekoppelte Geräte", "Paired devices")),
         switch(t("Sichtbar", "Visible"), S::Visible),
+    ],
+};
+
+/// The Sitzungen tile of MODE (§6): sessions are not in the core yet.
+pub static SESSIONS: Page = Page {
+    title: t("Sitzungen", "Sessions"),
+    entries: &[
+        pending(t("Neu", "New")),
+        pending(t("Öffnen", "Open")),
+        pending(t("Umbenennen", "Rename")),
+        pending(t("Duplizieren", "Duplicate")),
+        pending(t("Löschen", "Delete")),
     ],
 };

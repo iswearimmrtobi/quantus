@@ -457,20 +457,26 @@ are German and English (`firmware/ui/src/text.rs`), German by default; *Sprache*
 
 ### 7.1 MODE (main menu)
 
+In the hui (`Mode` in `firmware/ui/src/app.rs`): all twelve tiles, ←/→ through all tiles, ↑/↓
+by a row and across the pages, a digit picks 1–9 and 10–12 need the cursor (section 9). A long
+name breaks at a soft hyphen, and goes small when a word is still too wide. A mode without the
+engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verfügbar*.
+
 - Page 1
-  1. Physik [C Berechnungen + Q], the default
-  2. Algebra [Q]
-  3. Komplex [C]
-  4. Kurvendiskussion [Q]
-  5. LGS [C Gleichungssyst. + Q]
-  6. Wertetabelle [C Tabellen, on the analysis code]
+  1. Physik [C Berechnungen + Q], the default ✓
+  2. Algebra [Q] ✓
+  3. Komplex [C] ✓
+  4. Kurvendiskussion [Q] ✓ (plain inputs; no screen for the sections yet)
+  5. LGS [C Gleichungssyst. + Q] ✓ (typed systems; no matrix editor yet)
+  6. Wertetabelle [C Tabellen, on the analysis code] ◌
 - Page 2
-  7. Matrizen [C, eng]
-  8. Basis-N [C, eng]
-  9. Statistik [C, eng]
-  10. Verteilungen [C, eng]
-  11. Prüfen [C Berechn prüf, eng]
-  12. Sitzungen [Q, fw]
+  7. Matrizen [C, eng] ◌
+  8. Basis-N [C, eng] ◌
+  9. Statistik [C, eng] ◌
+  10. Verteilungen [C, eng] ◌
+  11. Prüfen [C Berechn prüf, eng] ◌
+  12. Sitzungen [Q, fw] ◌: a page Neu, Öffnen, Umbenennen, Duplizieren, Löschen, each *Noch nicht
+      verfügbar* until the core has sessions (section 6)
 - Later: Ungleichungen [C, eng], Geometrie with the vectors [eng]
   ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)).
 - Not on the handheld: Tabellenkalk., Verhältnisse (typed in Algebra), Kirchhoff and

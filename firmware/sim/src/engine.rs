@@ -24,6 +24,8 @@ impl Backend for Engine {
             Mode::Imaginary => CoreMode::Imaginary,
             Mode::Analysis => CoreMode::Analysis,
             Mode::Linear => CoreMode::Linear,
+            // The app does not ask for these (`Mode::engine`).
+            _ => return Err("Noch nicht verfügbar".to_string()),
         };
         let core = core_settings(mode, settings);
         api::set_settings(&mut self.store, core).map_err(|error| error.to_string())?;

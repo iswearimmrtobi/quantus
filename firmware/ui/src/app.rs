@@ -4,33 +4,73 @@ use crate::backend::Backend;
 use crate::editor::{Editor, Row};
 use crate::key::Key;
 use crate::latex;
+use crate::text::{self, same, t, Lang, Text};
 use crate::tree;
 use crate::menu::{Action, Menu, Outcome};
 pub use crate::settings::Settings;
 
-/// The app's modes that work as text, in the order of the mode menu.
+/// The modes of the MODE menu (design/handheld-menus.md §7.1), in its order: two pages of six.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
-    Algebra,
     Physics,
+    Algebra,
     Imaginary,
     Analysis,
     Linear,
+    Table,
+    Matrix,
+    BaseN,
+    Statistics,
+    Distributions,
+    Verify,
+    /// Not a mode: the tile opens the sessions menu.
+    Sessions,
 }
 
 impl Mode {
-    pub const ALL: [Mode; 5] = [Mode::Algebra, Mode::Physics, Mode::Imaginary, Mode::Analysis, Mode::Linear];
+    pub const ALL: [Mode; 12] = [
+        Mode::Physics,
+        Mode::Algebra,
+        Mode::Imaginary,
+        Mode::Analysis,
+        Mode::Linear,
+        Mode::Table,
+        Mode::Matrix,
+        Mode::BaseN,
+        Mode::Statistics,
+        Mode::Distributions,
+        Mode::Verify,
+        Mode::Sessions,
+    ];
 
-    pub fn name(self) -> &'static str {
+    /// The name, with a soft hyphen where a tile may break it.
+    pub fn text(self) -> Text {
         match self {
-            Mode::Algebra => "Algebra",
-            Mode::Physics => "Physics",
-            Mode::Imaginary => "Complex",
-            Mode::Analysis => "Analysis",
-            Mode::Linear => "Linear systems",
+            Mode::Physics => t("Physik", "Physics"),
+            Mode::Algebra => same("Algebra"),
+            Mode::Imaginary => t("Komplex", "Complex"),
+            Mode::Analysis => t("Kurven\u{ad}diskussion", "Curve sketching"),
+            Mode::Linear => t("LGS", "Linear systems"),
+            Mode::Table => t("Werte\u{ad}tabelle", "Table"),
+            Mode::Matrix => t("Matrizen", "Matrices"),
+            Mode::BaseN => same("Basis-N"),
+            Mode::Statistics => t("Statistik", "Statistics"),
+            Mode::Distributions => t("Vertei\u{ad}lungen", "Distri\u{ad}butions"),
+            Mode::Verify => t("Prüfen", "Verify"),
+            Mode::Sessions => t("Sitzungen", "Sessions"),
         }
     }
 
+    /// The name on one line.
+    pub fn name(self, lang: Lang) -> String {
+        self.text().get(lang).replace('\u{ad}', "")
+    }
+
+    /// Whether the engine calculates in this mode; the others have their tile and their name
+    /// in the top bar, and EXE says they are not available yet.
+    pub fn engine(self) -> bool {
+        matches!(self, Mode::Physics | Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear)
+    }
 
     fn index(self) -> usize {
         Mode::ALL.iter().position(|&mode| mode == self).unwrap_or(0)
@@ -281,9 +321,10 @@ impl<B: Backend> App<B> {
         self.shown = None;
     }
 
+    /// The mode menu: ←/→ through the tiles of all pages, ↑/↓ by a row, across pages too; a
+    /// digit picks tiles 1–9, the others need the cursor.
     fn modes_key(&mut self, selected: usize, key: Key) {
         let count = Mode::ALL.len();
-        let row = selected % TILES_PER_PAGE / MENU_COLUMNS;
         let selected = match key {
             Key::Digit(digit @ 1..=9) if usize::from(digit) <= count => {
                 return self.choose(usize::from(digit) - 1);
@@ -292,18 +333,21 @@ impl<B: Backend> App<B> {
             Key::Ac | Key::Mode | Key::Del => return self.screen = Screen::Calc,
             Key::Left => selected.saturating_sub(1),
             Key::Right => (selected + 1).min(count - 1),
-            Key::Up if row > 0 => selected - MENU_COLUMNS,
-            Key::Down if row + 1 < TILES_PER_PAGE / MENU_COLUMNS => {
-                (selected + MENU_COLUMNS).min(count - 1)
-            }
+            Key::Up if selected >= MENU_COLUMNS => selected - MENU_COLUMNS,
+            Key::Down if selected + MENU_COLUMNS < count => selected + MENU_COLUMNS,
             _ => selected,
         };
         self.screen = Screen::Modes { selected };
     }
 
     fn choose(&mut self, index: usize) {
-        self.mode = Mode::ALL[index];
-        self.screen = Screen::Calc;
+        match Mode::ALL[index] {
+            Mode::Sessions => self.screen = Screen::Menu(Menu::new(&tree::SESSIONS)),
+            mode => {
+                self.mode = mode;
+                self.screen = Screen::Calc;
+            }
+        }
     }
 
     /// Shows the entry `index` places back from the newest, its input in the editor.
@@ -328,7 +372,11 @@ impl<B: Backend> App<B> {
         if self.editor.is_empty() {
             return;
         }
-        let result = self.backend.evaluate(self.mode, &self.settings, &self.editor.to_latex());
+        let result = if self.mode.engine() {
+            self.backend.evaluate(self.mode, &self.settings, &self.editor.to_latex())
+        } else {
+            Err(text::NOT_AVAILABLE.get(self.settings.language).to_string())
+        };
         let input = self.editor.row.clone();
         self.history.push(Entry {
             input: input.clone(),

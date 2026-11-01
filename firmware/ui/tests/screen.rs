@@ -88,13 +88,33 @@ fn swap_form_writes_the_result_as_a_decimal_and_back() {
 #[test]
 fn the_mode_menu_switches_the_mode() {
     let mut app = App::new(Stub);
-    // Physics is selected; ↓ goes to the second row of tiles.
+    // Physik is selected; ↓ goes to the second row of tiles.
     press(&mut app, &[Key::Mode, Key::Down, Key::Exe]);
-    assert_eq!((app.mode, &app.screen), (Mode::Linear, &Screen::Calc));
+    assert_eq!((app.mode, &app.screen), (Mode::Analysis, &Screen::Calc));
     press(&mut app, &[Key::Mode, Key::Left, Key::Left, Key::Ok]);
-    assert_eq!(app.mode, Mode::Imaginary);
-    press(&mut app, &[Key::Mode, Key::Digit(1)]);
     assert_eq!(app.mode, Mode::Algebra);
+    press(&mut app, &[Key::Mode, Key::Digit(5)]);
+    assert_eq!(app.mode, Mode::Linear);
+    // ↓ from the second row goes to the next page.
+    press(&mut app, &[Key::Mode, Key::Down, Key::Ok]);
+    assert_eq!(app.mode, Mode::BaseN);
+}
+
+#[test]
+fn a_mode_without_the_engine_says_so() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Mode, Key::Digit(7), Key::Digit(1), Key::Exe]);
+    assert_eq!(app.mode, Mode::Matrix);
+    assert_eq!(app.shown_entry().unwrap().result, Err("Noch nicht verfügbar".to_string()));
+}
+
+#[test]
+fn the_sessions_tile_opens_its_menu() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Mode, Key::Right, Key::Right, Key::Right, Key::Right, Key::Right]);
+    press(&mut app, &[Key::Down, Key::Down, Key::Down, Key::Ok]);
+    assert!(matches!(app.screen, Screen::Menu(_)));
+    assert_eq!(app.mode, Mode::Physics, "the mode stays");
 }
 
 #[test]
@@ -169,4 +189,17 @@ fn and_is_drawn_as_lines_and_the_integral_comes_from_the_font() {
     assert!(and.width > Scale::Normal.metrics().digit / 2);
     assert_eq!(Scale::Normal.width("∧"), 0);
     assert!(Scale::Normal.width("∫") > 0);
+}
+
+#[test]
+fn every_mode_name_fits_its_tile() {
+    use quantus_ui::text::Lang;
+    let room = (WIDTH as i32 - 2 * 10 - 2 * 8) / 3 - 18;
+    for mode in Mode::ALL {
+        for lang in [Lang::De, Lang::En] {
+            for word in mode.text().get(lang).replace('\u{ad}', "-\u{ad}").split([' ', '\u{ad}']) {
+                assert!(Scale::Small.width(word) <= room, "{word}");
+            }
+        }
+    }
 }

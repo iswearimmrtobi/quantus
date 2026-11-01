@@ -123,7 +123,7 @@ impl Frame {
         let mut shapes = Vec::new();
         match &app.screen {
             Screen::Calc => calculation(&mut shapes, app),
-            Screen::Modes { selected } => modes(&mut shapes, *selected),
+            Screen::Modes { selected } => modes(&mut shapes, *selected, app.settings.language),
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu),
         }
         bar(&mut shapes, app);
@@ -147,7 +147,7 @@ fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let baseline = BAR - 7;
     let title = match &app.screen {
         Screen::Menu(menu) => menu.title().get(app.settings.language),
-        _ => app.mode.name(),
+        _ => &app.mode.name(app.settings.language),
     };
     shapes.push(Shape::Text(Point::new(MARGIN, baseline), title.to_string(), Scale::Small, colors::TEXT));
 
@@ -264,7 +264,7 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
 }
 
 /// The mode menu: pages of tiles, numbered over all pages.
-fn modes(shapes: &mut Vec<Shape>, selected: usize) {
+fn modes(shapes: &mut Vec<Shape>, selected: usize, lang: text::Lang) {
     let gap = 8;
     let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
     let columns = MENU_COLUMNS as i32;
@@ -286,12 +286,18 @@ fn modes(shapes: &mut Vec<Shape>, selected: usize) {
         shapes.push(Shape::Round(rounded(at, size, 6), fill, chosen.then_some(colors::CYAN)));
         let number = (index + 1).to_string();
         shapes.push(Shape::Text(at + Point::new(12, 10 + small.ascent), number, Scale::Small, colors::TEXT));
-        // The name at the bottom, a word per line when it is too wide.
-        let room = tile_width - 24;
-        let name = mode.name();
-        let lines: Vec<&str> =
-            if Scale::Normal.width(name) <= room { vec![name] } else { name.split(' ').collect() };
-        let scale = Scale::Normal;
+        // The name at the bottom, a word per line when it is too wide, and small when a word is.
+        let room = tile_width - 18;
+        let name = mode.name(lang);
+        let lines: Vec<String> = if Scale::Normal.width(&name) <= room {
+            vec![name]
+        } else {
+            // At the spaces, and at the soft hyphens with a hyphen.
+            let hyphenated = mode.text().get(lang).replace('\u{ad}', "-\u{ad}");
+            hyphenated.split([' ', '\u{ad}']).map(str::to_string).collect()
+        };
+        let fits = lines.iter().all(|line| Scale::Normal.width(line) <= room);
+        let scale = if fits { Scale::Normal } else { Scale::Small };
         let metrics = scale.metrics();
         let line_height = metrics.ascent + metrics.descent - 2;
         let mut baseline = at.y + tile_height - 12 - metrics.descent;

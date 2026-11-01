@@ -68,7 +68,7 @@ struct Logged<B>(B);
 impl<B: Backend> Backend for Logged<B> {
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
         let result = self.0.evaluate(mode, settings, latex);
-        println!("{}: {latex}  =>  {result:?}", mode.name());
+        println!("{}: {latex}  =>  {result:?}", mode.name(quantus_ui::text::Lang::En));
         result
     }
 }
