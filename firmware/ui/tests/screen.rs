@@ -161,7 +161,7 @@ fn the_wallpaper_shows_where_the_setting_says() {
     press(&mut app, &[Key::Ac]);
     assert_eq!(shot(&app).at(margin), colors::BACKGROUND, "not behind the calculation");
     app.settings.wallpaper_on = WallpaperOn::Everywhere;
-    assert_eq!(shot(&app).at(margin), wallpaper.dim[0], "dimmed behind the calculation");
+    assert_eq!(shot(&app).at(margin), wallpaper.dim.get(0), "dimmed behind the calculation");
 
     app.wallpaper = None;
     assert_eq!(shot(&app).at(margin), colors::BACKGROUND);
@@ -171,7 +171,16 @@ fn the_wallpaper_shows_where_the_setting_says() {
 fn a_bmp_of_the_screen_size_is_read_and_others_are_not() {
     let wallpaper = Wallpaper::from_bmp(&bmp(WIDTH, HEIGHT)).unwrap();
     // The right way up: red at the top, blue at the bottom.
-    assert_eq!((wallpaper.full[0], wallpaper.full[wallpaper.full.len() - 1]), (Rgb565::RED, Rgb565::BLUE));
+    let last = (WIDTH * HEIGHT) as usize - 1;
+    assert_eq!((wallpaper.full.get(0), wallpaper.full.get(last)), (Rgb565::RED, Rgb565::BLUE));
+    // The same picture from raw pixels, as a board keeps it in flash.
+    let full: &'static [u8] = wallpaper.full.to_raw().leak();
+    let dim: &'static [u8] = wallpaper.dim.to_raw().leak();
+    let flash = Wallpaper::from_raw(full, dim).unwrap();
+    assert_eq!((flash.full.get(0), flash.full.get(last), flash.dim.get(0)), (Rgb565::RED, Rgb565::BLUE, wallpaper.dim.get(0)));
+    let mut row = [Rgb565::BLACK; 3];
+    flash.full.copy_to(last - 2, &mut row);
+    assert_eq!(row, [Rgb565::BLUE; 3]);
     assert!(Wallpaper::from_bmp(&bmp(100, 100)).is_none());
     assert!(Wallpaper::from_bmp(b"not a picture").is_none());
 }
@@ -197,6 +206,20 @@ fn bmp(width: u32, height: u32) -> Vec<u8> {
         bytes.extend(line);
     }
     bytes
+}
+
+#[test]
+fn another_picture_with_the_same_shapes_is_drawn_again() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Mode]);
+    let mut renderer = Renderer::new();
+    let mut display = Display::default();
+    app.wallpaper = Wallpaper::new(vec![Rgb565::RED; (WIDTH * HEIGHT) as usize]);
+    renderer.render(&Frame::new(&app), &mut display).unwrap();
+    assert_eq!(renderer.render(&Frame::new(&app), &mut display).unwrap(), 0);
+    // Same shapes, another picture: every band changes.
+    app.wallpaper = Wallpaper::new(vec![Rgb565::BLUE; (WIDTH * HEIGHT) as usize]);
+    assert_eq!(renderer.render(&Frame::new(&app), &mut display).unwrap(), HEIGHT.div_ceil(BAND) as usize);
 }
 
 /// Keeps the pixels the renderer sends.

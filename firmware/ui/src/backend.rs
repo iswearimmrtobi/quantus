@@ -1,6 +1,7 @@
 //! What computes the results. On the P4 this will be `quantus-core`; until then a stub.
 
 use crate::app::{Mode, Settings};
+use crate::wallpaper::Wallpaper;
 
 pub trait Backend {
     /// The result of `latex` in `mode`, written as `settings` say, as LaTeX, or an error message.
@@ -14,6 +15,12 @@ pub trait Backend {
     /// The file of the picture `name`.
     fn wallpaper(&mut self, _name: &str) -> Option<Vec<u8>> {
         None
+    }
+
+    /// The picture `name`, ready to draw: its file decoded into RAM, unless the board keeps
+    /// it in some other way (in flash, [`Wallpaper::from_raw`]).
+    fn picture(&mut self, name: &str) -> Option<Wallpaper> {
+        Wallpaper::from_bmp(&self.wallpaper(name)?)
     }
 }
 

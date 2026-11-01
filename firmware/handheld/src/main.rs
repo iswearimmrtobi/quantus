@@ -79,6 +79,10 @@ impl<B: Backend> Backend for Logged<B> {
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         self.0.wallpaper(name)
     }
+
+    fn picture(&mut self, name: &str) -> Option<quantus_ui::wallpaper::Wallpaper> {
+        self.0.picture(name)
+    }
 }
 
 /// Turns the bytes typed into the serial monitor into keys: characters by `Key::from_char`,

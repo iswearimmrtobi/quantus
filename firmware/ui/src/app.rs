@@ -265,7 +265,7 @@ impl<B: Backend> App<B> {
     /// Reads and decodes the wallpaper at `index` of the open list.
     fn picture(&mut self, menu: &Menu, index: usize) -> Option<Wallpaper> {
         let name = Self::picture_name(menu, index)?;
-        Wallpaper::from_bmp(&self.backend.wallpaper(&name)?)
+        self.backend.picture(&name)
     }
 
     /// Sets the wallpaper at `index` of the open list, or says why it cannot.

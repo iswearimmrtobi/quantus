@@ -19,6 +19,8 @@ embedded-graphics = "0.8.2"
 
 [build-dependencies]
 embuild = "0.33"
+# The tour's wallpaper, converted on the PC into the raw pixels the board reads from flash.
+quantus-ui = { path = "../ui" }
 
 [profile.release]
 opt-level = "s"

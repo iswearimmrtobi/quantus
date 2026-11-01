@@ -15,7 +15,7 @@ use embedded_graphics::primitives::{
 use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::menu::{self, Edit, Kind, Menu, ROWS};
 use crate::settings::{Angle, WallpaperOn};
-use crate::wallpaper::blend;
+use crate::wallpaper::{blend, Pixels};
 use crate::text;
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
@@ -76,7 +76,9 @@ pub mod colors {
 
 }
 
-/// Something to draw, at absolute screen coordinates.
+/// Something to draw, at absolute screen coordinates. Its `Debug` text says all that it draws:
+/// the renderer compares it to skip bands that stay the same.
+#[derive(Debug)]
 pub enum Shape {
     Fill(Rectangle, Rgb565),
     /// A rounded box, filled and with an optional outline drawn inside it.
@@ -95,7 +97,7 @@ pub enum Shape {
     /// A laid out row with its origin at the point.
     Math(Point, RowLayout, Rgb565),
     /// A screen-sized picture at half its size, its top left at the point.
-    Thumbnail(Point, std::sync::Arc<[Rgb565]>),
+    Thumbnail(Point, Pixels),
 }
 
 /// The size of a [`Shape::Thumbnail`].
@@ -156,10 +158,9 @@ impl Shape {
                 layout::draw(row, *origin, *color, colors::PLACEHOLDER, target);
             }
             Shape::Thumbnail(at, pixels) => {
-                let pixels = &**pixels;
                 let width = THUMBNAIL.width;
                 let colors = (0..THUMBNAIL.height)
-                    .flat_map(move |y| (0..width).map(move |x| pixels[(2 * y * WIDTH + 2 * x) as usize]));
+                    .flat_map(move |y| (0..width).map(move |x| pixels.get((2 * y * WIDTH + 2 * x) as usize)));
                 let _ = target.fill_contiguous(&Rectangle::new(*at, THUMBNAIL), colors);
             }
         }
@@ -168,7 +169,7 @@ impl Shape {
 
 /// The screen laid out, back to front, over the backdrop: the wallpaper's pixels if it shows,
 /// else the plain background.
-pub struct Frame(pub Vec<Shape>, pub Option<std::sync::Arc<[Rgb565]>>);
+pub struct Frame(pub Vec<Shape>, pub Option<Pixels>);
 
 impl Frame {
     pub fn new<B>(app: &App<B>) -> Frame {
@@ -187,7 +188,7 @@ impl Frame {
 
 /// The wallpaper under the screen, as SETUP → Gerät → Hintergrundbild → Anzeigen says: at full
 /// strength behind the mode tiles, dimmed where text stands on it.
-fn backdrop<B>(app: &App<B>) -> Option<std::sync::Arc<[Rgb565]>> {
+fn backdrop<B>(app: &App<B>) -> Option<Pixels> {
     let wallpaper = app.wallpaper()?;
     let on = app.settings.wallpaper_on;
     match app.screen {
@@ -646,11 +647,14 @@ fn fit(text: &str, room: i32, scale: Scale) -> String {
     format!("{cut}...")
 }
 
-/// Draws frames band by band and sends the bands that changed since the last frame.
+/// Draws frames band by band and sends the bands that changed since the last frame. A band
+/// whose shapes and backdrop are the same as last time is not even drawn.
 pub struct Renderer {
     band: Vec<Rgb565>,
     /// A hash of each band as last sent.
     sent: [Option<u64>; BANDS],
+    /// A hash of what each band was last drawn from: the backdrop and its shapes.
+    drawn: [Option<u64>; BANDS],
 }
 
 impl Default for Renderer {
@@ -661,12 +665,13 @@ impl Default for Renderer {
 
 impl Renderer {
     pub fn new() -> Self {
-        Renderer { band: vec![colors::BACKGROUND; (WIDTH * BAND) as usize], sent: [None; BANDS] }
+        Renderer { band: vec![colors::BACKGROUND; (WIDTH * BAND) as usize], sent: [None; BANDS], drawn: [None; BANDS] }
     }
 
     /// Draws the whole screen again on the next frame.
     pub fn invalidate(&mut self) {
         self.sent = [None; BANDS];
+        self.drawn = [None; BANDS];
     }
 
     /// Returns how many bands were sent.
@@ -676,18 +681,25 @@ impl Renderer {
         display: &mut D,
     ) -> Result<usize, D::Error> {
         let mut sent = 0;
+        let backdrop = fingerprint(&frame.1);
+        let shapes: Vec<(Rectangle, u64)> = frame.0.iter().map(|shape| (shape.bounds(), fingerprint(shape))).collect();
         for (index, last) in self.sent.iter_mut().enumerate() {
             let top = index as u32 * BAND;
             let area = Rectangle::new(
                 Point::new(0, top as i32),
                 Size::new(WIDTH, BAND.min(HEIGHT - top)),
             );
+            let inputs = shapes
+                .iter()
+                .filter(|(bounds, _)| !bounds.intersection(&area).is_zero_sized())
+                .fold(backdrop, |hash, &(_, shape)| mix(hash, shape));
+            if self.drawn[index] == Some(inputs) {
+                continue;
+            }
+            self.drawn[index] = Some(inputs);
             let pixels = &mut self.band[..(area.size.width * area.size.height) as usize];
             match &frame.1 {
-                Some(backdrop) => {
-                    let start = (top * WIDTH) as usize;
-                    pixels.copy_from_slice(&backdrop[start..start + pixels.len()]);
-                }
+                Some(backdrop) => backdrop.copy_to((top * WIDTH) as usize, pixels),
                 None => pixels.fill(colors::BACKGROUND),
             }
             let mut band = Band { pixels, area };
@@ -719,6 +731,24 @@ impl Renderer {
         }
         Ok(sent)
     }
+}
+
+/// FNV-1a over the `Debug` text of `value`.
+fn fingerprint(value: &impl core::fmt::Debug) -> u64 {
+    struct Fnv(u64);
+    impl core::fmt::Write for Fnv {
+        fn write_str(&mut self, text: &str) -> core::fmt::Result {
+            self.0 = text.bytes().fold(self.0, |hash, byte| (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3));
+            Ok(())
+        }
+    }
+    let mut fnv = Fnv(0xcbf2_9ce4_8422_2325);
+    let _ = core::fmt::write(&mut fnv, format_args!("{value:?}"));
+    fnv.0
+}
+
+fn mix(hash: u64, value: u64) -> u64 {
+    (hash ^ value).wrapping_mul(0x0100_0000_01b3).rotate_left(29)
 }
 
 /// FNV-1a over the pixels.
