@@ -13,5 +13,6 @@ pub mod menu;
 pub mod render;
 pub mod settings;
 pub mod text;
+pub mod tour;
 pub mod tree;
 pub mod wallpaper;

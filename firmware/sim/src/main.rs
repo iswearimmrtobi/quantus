@@ -8,6 +8,9 @@
 //!   `mirror` was built with another `QUANTUS_MIRROR_BAUD`.
 //! - `--charging`, `--busy`: start with the battery charging or the busy spinner turning; F9 and
 //!   F10 switch them in the window.
+//! - `--tour`: plays `quantus_ui::tour` in the window, with a person's pauses between the keys:
+//!   the first wallpaper everywhere, the SETUP pages, the mode tiles, OPTN and some
+//!   calculations. Works with `--mirror`.
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
 //!   the 480×320 BMP files in its `wallpapers` folder.
 
@@ -78,6 +81,9 @@ fn main() {
     let settings = OutputSettingsBuilder::new().scale(2).build();
     let mut window = Window::new("Quantus", &settings);
     let start = Instant::now();
+    let mut tour: std::collections::VecDeque<_> =
+        if args.iter().any(|arg| arg == "--tour") { quantus_ui::tour::tour().into() } else { Default::default() };
+    let mut last_step = Instant::now();
     // Draw only when something changed: a key, the caret, the spinner or a new mirror.
     let mut changed = true;
     loop {
@@ -113,6 +119,18 @@ fn main() {
                     }
                 }
                 _ => {}
+            }
+        }
+        if let Some(step) = tour.front().filter(|step| last_step.elapsed() >= Duration::from_millis(step.pause_ms.into())) {
+            if let Some(note) = step.note {
+                println!("tour: {note}");
+            }
+            app.key(step.key);
+            changed = true;
+            tour.pop_front();
+            last_step = Instant::now();
+            if tour.is_empty() {
+                println!("tour: done");
             }
         }
         changed |= app.tick(start.elapsed().as_millis() as u64);

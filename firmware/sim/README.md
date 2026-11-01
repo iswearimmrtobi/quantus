@@ -23,12 +23,20 @@ cargo run -- --stub                                 # the stub instead of the en
 cargo run -- --mirror /dev/ttyUSB0                  # also show the picture on the board
 cargo run -- --charging --busy                      # start charging, with the spinner turning
 cargo run -- --sd ~/quantus-sd                      # another folder as the SD card
+cargo run -- --tour                                 # a walk through the UI with the wallpaper
 ```
 
 The folder `sd` (or the one after `--sd`) stands for the SD card. Its `wallpapers` folder holds
 the pictures for SETUP → Gerät → Hintergrundbild: BMP files of exactly 480×320 (any BMP colour
 depth), for example from GIMP or `magick in.png -resize 480x320^ -gravity center -extent 480x320 out.bmp`.
 `sd/` is in `.gitignore`.
+
+`--tour` plays a walk through the UI with a person's pauses between the keys (about two
+minutes): it picks the first wallpaper and shows it everywhere, opens each SETUP page, goes over
+both pages of mode tiles, solves `2x+3=11` and `x²−5x+6=0`, adds `3/4+1/6` and switches it to a
+decimal, steps through the history, opens OPTN and calculates in Physik. The terminal names each
+part as it starts. With `--mirror` the board shows it too. `firmware/ui/tests/tour.rs` plays the
+same keys without the pauses.
 
 The PC has no battery or remote engine, so F9 and F10 switch the charging bolt and the busy
 spinner by hand.
