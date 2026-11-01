@@ -71,6 +71,14 @@ impl<B: Backend> Backend for Logged<B> {
         println!("{}: {latex}  =>  {result:?}", mode.name(quantus_ui::text::Lang::En));
         result
     }
+
+    fn wallpapers(&mut self) -> Vec<String> {
+        self.0.wallpapers()
+    }
+
+    fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
+        self.0.wallpaper(name)
+    }
 }
 
 /// Turns the bytes typed into the serial monitor into keys: characters by `Key::from_char`,

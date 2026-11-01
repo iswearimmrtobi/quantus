@@ -22,7 +22,13 @@ cargo run -- --keys '3/4>+2^3\n' --png screen.png   # type keys, save the screen
 cargo run -- --stub                                 # the stub instead of the engine
 cargo run -- --mirror /dev/ttyUSB0                  # also show the picture on the board
 cargo run -- --charging --busy                      # start charging, with the spinner turning
+cargo run -- --sd ~/quantus-sd                      # another folder as the SD card
 ```
+
+The folder `sd` (or the one after `--sd`) stands for the SD card. Its `wallpapers` folder holds
+the pictures for SETUP → Gerät → Hintergrundbild: BMP files of exactly 480×320 (any BMP colour
+depth), for example from GIMP or `magick in.png -resize 480x320^ -gravity center -extent 480x320 out.bmp`.
+`sd/` is in `.gitignore`.
 
 The PC has no battery or remote engine, so F9 and F10 switch the charging bolt and the busy
 spinner by hand.

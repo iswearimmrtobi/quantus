@@ -634,16 +634,16 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass: b
     }
 }
 
-/// `text`, cut short with an ellipsis to fit `room`.
+/// `text`, cut short with three dots to fit `room` (the fonts have no ellipsis).
 fn fit(text: &str, room: i32, scale: Scale) -> String {
     if scale.width(text) <= room {
         return text.to_string();
     }
     let mut cut: String = text.to_string();
-    while !cut.is_empty() && scale.width(&format!("{cut}…")) > room {
+    while !cut.is_empty() && scale.width(&format!("{cut}...")) > room {
         cut.pop();
     }
-    format!("{cut}…")
+    format!("{cut}...")
 }
 
 /// Draws frames band by band and sends the bands that changed since the last frame.

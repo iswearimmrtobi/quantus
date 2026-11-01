@@ -7,10 +7,13 @@
 //! - `--mirror <port>`: also shows the picture on the board.
 //! - `--charging`, `--busy`: start with the battery charging or the busy spinner turning; F9 and
 //!   F10 switch them in the window.
+//! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
+//!   the 480×320 BMP files in its `wallpapers` folder.
 
 mod engine;
 mod mirror;
 
+use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
@@ -28,8 +31,9 @@ use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 fn main() {
     let mut display = SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT));
     let args: Vec<String> = std::env::args().collect();
-    let backend = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::default()) };
-    let mut app = App::new(backend);
+    let answers = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::default()) };
+    let sd = args.iter().position(|arg| arg == "--sd").and_then(|i| args.get(i + 1)).map_or("sd", String::as_str);
+    let mut app = App::new(Sim { answers, sd: PathBuf::from(sd) });
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
     // What the board will report, shown on demand: F9 and F10 switch them in the window.
@@ -117,7 +121,7 @@ fn terminal_lines() -> Receiver<String> {
 /// LaTeX typed into the terminal, as the input on the screen, evaluated. The editor reads it the
 /// way it reads results, so the LaTeX that goes to the engine is printed: anything the editor
 /// does not know shows up there.
-fn evaluate_latex(app: &mut App<Answers>, latex: &str) {
+fn evaluate_latex(app: &mut App<Sim>, latex: &str) {
     app.key(Key::Ac);
     app.editor.set(quantus_ui::latex::parse(latex));
     println!("sent: {}", app.editor.to_latex());
@@ -130,12 +134,35 @@ enum Answers {
     Stub(Stub),
 }
 
-impl Backend for Answers {
+/// The answers, and a folder on the PC as the SD card.
+struct Sim {
+    answers: Answers,
+    sd: PathBuf,
+}
+
+impl Backend for Sim {
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
-        match self {
+        match &mut self.answers {
             Answers::Engine(engine) => engine.evaluate(mode, settings, latex),
             Answers::Stub(stub) => stub.evaluate(mode, settings, latex),
         }
+    }
+
+    fn wallpapers(&mut self) -> Vec<String> {
+        let Ok(files) = std::fs::read_dir(self.sd.join("wallpapers")) else { return Vec::new() };
+        let mut names: Vec<String> = files
+            .filter_map(|file| {
+                let path = file.ok()?.path();
+                let bmp = path.extension()?.eq_ignore_ascii_case("bmp");
+                bmp.then(|| path.file_stem()?.to_str().map(str::to_string)).flatten()
+            })
+            .collect();
+        names.sort();
+        names
+    }
+
+    fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
+        std::fs::read(self.sd.join("wallpapers").join(format!("{name}.bmp"))).ok()
     }
 }
 
