@@ -350,7 +350,7 @@ work the decisions call for, and where it goes (core, desktop, handheld), is in 
 
 ### 5.2 Settings
 
-From `docs/docs/reference/settings.md`; the firmware has only the first two so far.
+From `docs/docs/reference/settings.md`; the hui has all of them (section 7.2).
 
 | Setting | Key | Values |
 |---|---|---|
@@ -450,6 +450,11 @@ to be measured; they belong to the power question in
 **[C]** from the Casio, **[Q]** Quantus only, **[eng]** needs work in `quantus-core` first
 (section 8), which the desktop gets too, **[fw]** firmware only. Six entries per page, as the mode menu draws them.
 
+Status in the hui (`firmware/ui`), as implemented: **✓** works (the engine gets the setting
+through the `Backend`, or the hui does it itself), **◌** UI only (the value is kept, or the
+entry says *Noch nicht verfügbar*) until the engine or the firmware can do it. The hui's texts
+are German and English (`firmware/ui/src/text.rs`), German by default; *Sprache* switches them.
+
 ### 7.1 MODE (main menu)
 
 - Page 1
@@ -473,30 +478,42 @@ to be measured; they belong to the power question in
 
 ### 7.2 SETUP (SHIFT + MODE)
 
-- **Allgemein**: Sprache · Winkeleinheit Grad/Bogenmaß [eng] · Signifikante Stellen ·
-  Zahlenformat Norm 1/Norm 2/Fix n/Sci n [eng] · Dezimalpräfixe [eng] · 1000er-Trennung [eng]
-- **Ergebnis**: exakt/dezimal · Bruch d/c, ab/c [eng] · Periodisch [eng] · Komplex a+bi/r∠θ
-  [eng] · Quadratische Gleichungen pq/abc
-- **Rechenweg**: Rechenweg (5 levels) · Kürzungen durchstreichen · Gleichungssysteme
-  Gauß/Gauß–Jordan
-- **Algebra**: Binomische Formeln · Quadratische Ergänzung · Nenner · Identitäten mit Bedingung
-- **Eingabe**: a und y als Variablen · Buchstabenfolge als Produkt · t, u und in als Einheiten ·
-  Unbekannte (LGS)
-- **Gerät** [fw]: Helligkeit · Schriftgröße normal/klein · Automatisch aus 10/60 min ·
-  Zurücksetzen → Einstellungen / Speicher / Alles (each with Ja)
+**Every entry opens a submenu** in which its value is changed: a list of its values (↑/↓ or the
+digit, OK), or a number typed with the digit keys (DEL deletes, − for a sign, OK stores it if it
+is in range, else the range shown below turns red). ←/→ do not step values. A digit picks the
+numbered entry of a page, ↑/↓ move and scroll (six lines per page), OK/EXE/→ open, ← or DEL go
+back one level, AC closes SETUP. The tree is `firmware/ui/src/tree.rs`, the machinery
+`menu.rs`, the values `settings.rs`; the simulator's engine (`firmware/sim/src/engine.rs`)
+maps every setting the core has.
+
+- **Allgemein**: Sprache ✓ (the hui's texts and the engine's) · Winkeleinheit Grad/Bogenmaß
+  [eng] ◌ · Signifikante Stellen ✓ (typed, 1–15) · Zahlenformat Norm 1/Norm 2/Fix n/Sci n [eng] ◌
+  (Fix and Sci ask for n, 0–9) · Dezimalpräfixe [eng] ◌ · 1000er-Trennung [eng] ◌
+- **Ergebnis**: exakt/dezimal ✓ · Brüche d/c, ab/c [eng] ◌ · Periodisch [eng] ◌ · Komplexe
+  Zahlen a+bi/Polar (r, θ) [eng] ◌ (the fonts have no ∠) · Quadratische Gleichungen Auto/pq/abc ✓
+- **Rechenweg**: Rechenweg (5 levels) ✓ · Kürzungen durchstreichen ✓ · Gleichungssysteme
+  Gauß/Gauß-Jordan ✓ (the hui has no step list yet; the engine gets them)
+- **Algebra**: Binomformeln ✓ · Quadratische Ergänzung ✓ · Nenner ✓ · Identitäten mit Bedingung ✓
+- **Eingabe**: a und y als Variablen ✓ · Buchstaben als Produkt ✓ · t, u, in als Einheiten ✓ ·
+  Unbekannte (LGS) ✓
+- **Gerät** [fw]: Helligkeit ◌ (typed, 1–10) · Schriftgröße normal/klein ◌ · Automatisch aus
+  10/60 min ◌ · Zurücksetzen → Einstellungen / Speicher / Alles, each with *Ja* ✓ (the settings to
+  their defaults; the history, Ans and the input cleared; both)
 - **Verbindungen** [fw], section 7.5:
-  - **Prüfungsmodus**: ein · aus. On, WLAN and Bluetooth are off and cannot be switched on until
-    it is turned off again; the top bar shows it.
-  - **WLAN**: ein · aus · Netzwerke (scan, connect, password) · Gespeicherte Netzwerke (forget) ·
-    Status (network, IP, signal)
-  - **Rechnen im Netz**: aus · ab 500 ms (hand long calculations to a Quantus engine on the desktop
-    or a server) · Adresse
-  - **Sitzungen abgleichen**: with the desktop app over WLAN or Bluetooth · now / automatically
-  - **Uhrzeit**: from the network (NTP) · by hand · time zone
-  - **Firmware-Update**: installed version · suchen · installieren (the latest GitHub release,
-    over WLAN); updating from the desktop app works too, section 7.5
-  - **Bluetooth**: ein · aus · Koppeln (desktop app, phone, keyboard) · Gekoppelte Geräte
-    (forget) · Sichtbar ein/aus
+  - **Prüfungsmodus**: ein · aus ✓ in the hui: on switches WLAN and Bluetooth off, and their
+    *Ein* then says *Aus im Prüfungsmodus*; the top bar shows it. No radio is touched yet.
+  - **WLAN**: ein · aus ◌ · Netzwerke (scan, connect, password) ◌ · Gespeicherte Netzwerke
+    (forget) ◌ · Status (network, IP, signal) ◌
+  - **Rechnen im Netz**: aus · ab 500 ms ◌ (hand long calculations to a Quantus engine on the
+    desktop or a server) · Adresse ◌ (needs text input)
+  - **Sitzungen abgleichen**: with the desktop app over WLAN or Bluetooth · jetzt ◌ ·
+    automatisch ◌
+  - **Uhrzeit**: Quelle Netzwerk (NTP) / von Hand ◌ · Stunde, Minute ◌ (typed) · Zeitzone ◌
+    (typed, −12 to +14)
+  - **Firmware-Update**: installierte Version ✓ (the crate's version) · suchen ◌ · installieren ◌
+    (the latest GitHub release, over WLAN); updating from the desktop app works too, section 7.5
+  - **Bluetooth**: ein · aus ◌ · Koppeln (desktop app, phone, keyboard) ◌ · Gekoppelte Geräte
+    (forget) ◌ · Sichtbar ein/aus ◌
 
 ### 7.3 OPTN per mode
 

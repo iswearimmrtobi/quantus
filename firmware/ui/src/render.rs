@@ -1,4 +1,4 @@
-//! The screen: a top bar over one calculation, the mode menu or the setup page, in the
+//! The screen: a top bar over one calculation, the mode menu or a menu list (SETUP, OPTN), in the
 //! desktop's dark palette with its purple accents (design/handheld-menus.md §7.6). A [`Frame`] is the screen
 //! laid out once; the [`Renderer`] draws it band by band into a small buffer and sends only the
 //! bands that changed, so no framebuffer is needed.
@@ -10,6 +10,8 @@ use embedded_graphics::primitives::{
 };
 
 use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
+use crate::menu::{self, Edit, Kind, Menu, ROWS};
+use crate::text;
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
 
@@ -118,10 +120,10 @@ pub struct Frame(pub Vec<Shape>);
 impl Frame {
     pub fn new<B>(app: &App<B>) -> Frame {
         let mut shapes = Vec::new();
-        match app.screen {
+        match &app.screen {
             Screen::Calc => calculation(&mut shapes, app),
-            Screen::Menu { selected } => menu(&mut shapes, selected),
-            Screen::Setup { selected } => setup(&mut shapes, app, selected),
+            Screen::Modes { selected } => modes(&mut shapes, *selected),
+            Screen::Menu(menu) => menu_screen(&mut shapes, app, menu),
         }
         bar(&mut shapes, app);
         Frame(shapes)
@@ -139,10 +141,12 @@ fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
 /// The top bar: the mode on the left; on the right SHIFT and ALPHA while
 /// they are on, the digits, exact or decimal and the battery.
 fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
-    let setup = matches!(app.screen, Screen::Setup { .. });
     shapes.push(Shape::Fill(full_width(0, BAR as u32), colors::CYAN_DIM));
     let baseline = BAR - 7;
-    let title = if setup { "Setup" } else { app.mode.name() };
+    let title = match &app.screen {
+        Screen::Menu(menu) => menu.title().get(app.settings.language),
+        _ => app.mode.name(),
+    };
     shapes.push(Shape::Text(Point::new(MARGIN, baseline), title.to_string(), Scale::Small, colors::TEXT));
 
     // From the right edge inwards.
@@ -237,7 +241,7 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
 }
 
 /// The mode menu: pages of tiles, numbered over all pages.
-fn menu(shapes: &mut Vec<Shape>, selected: usize) {
+fn modes(shapes: &mut Vec<Shape>, selected: usize) {
     let gap = 8;
     let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
     let columns = MENU_COLUMNS as i32;
@@ -287,52 +291,143 @@ fn menu(shapes: &mut Vec<Shape>, selected: usize) {
     }
 }
 
-/// The setup page: a line per setting, ←/→ change the selected one.
-fn setup<B>(shapes: &mut Vec<Shape>, app: &App<B>, selected: usize) {
-    let line = 44;
-    let gap = 8;
-    let metrics = Scale::Normal.metrics();
-    let rows = [
-        ("Significant digits", app.settings.digits.to_string()),
-        ("Results", if app.settings.decimal { "Decimal" } else { "Exact" }.to_string()),
-    ];
-    for (index, (label, value)) in rows.into_iter().enumerate() {
-        let y = BAR + 12 + index as i32 * (line + gap);
-        let size = Size::new(WIDTH - 2 * MARGIN as u32, line as u32);
+/// A line of a menu list.
+struct Line {
+    label: String,
+    value: Option<String>,
+    /// What stands at the right end.
+    mark: Mark,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mark {
+    None,
+    /// Opens a further page.
+    Arrow,
+    /// The value set now, in a list of choices.
+    Dot,
+}
+
+const LINE: i32 = 40;
+const LINE_GAP: i32 = 6;
+
+/// SETUP or OPTN: the page on the screen, or the submenu open over it.
+fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu) {
+    let lang = app.settings.language;
+    match &menu.edit {
+        None => {
+            let level = menu.level();
+            let lines = level.page.entries.iter().map(|entry| Line {
+                label: entry.label.get(lang).to_string(),
+                value: menu::value(entry, &app.settings, lang),
+                mark: if matches!(entry.kind, Kind::Page(_)) { Mark::Arrow } else { Mark::None },
+            });
+            lines_page(shapes, lines.collect(), level.selected);
+        }
+        Some(Edit::Choice { entry, selected }) => {
+            let Kind::Choice(setting, opts) = &entry.kind else { return };
+            let value = app.settings.get(*setting);
+            let lines = opts.iter().map(|opt| Line {
+                label: opt.text.get(lang).to_string(),
+                value: None,
+                mark: if opt.value == value { Mark::Dot } else { Mark::None },
+            });
+            lines_page(shapes, lines.collect(), *selected);
+        }
+        Some(Edit::Confirm { .. }) => {
+            let yes = Line { label: text::YES.get(lang).to_string(), value: None, mark: Mark::None };
+            lines_page(shapes, vec![yes], 0);
+        }
+        Some(Edit::Number { setting, min, max, typed, error, .. }) => {
+            let top = BAR + 30;
+            let height = 60;
+            let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
+            shapes.push(Shape::Round(rounded(Point::new(MARGIN, top), size, 6), colors::SURFACE, Some(colors::CYAN)));
+            let metrics = Scale::Normal.metrics();
+            let baseline = top + (height + metrics.digit) / 2;
+            let x = MARGIN + 16;
+            if typed.is_empty() {
+                // The value set now, until a digit is typed.
+                let now = app.settings.get(*setting).to_string();
+                shapes.push(Shape::Text(Point::new(x + 6, baseline), now, Scale::Normal, colors::FAINT));
+            } else {
+                shapes.push(Shape::Text(Point::new(x, baseline), typed.clone(), Scale::Normal, colors::TEXT));
+            }
+            if app.caret_on {
+                let caret_x = if typed.is_empty() { x } else { x + Scale::Normal.width(typed) + 2 };
+                let caret = Rectangle::new(Point::new(caret_x, baseline - metrics.ascent + 4), Size::new(2, metrics.ascent as u32));
+                shapes.push(Shape::Fill(caret, colors::CYAN));
+            }
+            let hint = format!("{}: {min} {} {max}", text::RANGE.get(lang), text::TO.get(lang));
+            let color = if *error { colors::ERROR } else { colors::MUTED };
+            let at = Point::new(MARGIN + 4, top + height + 28);
+            shapes.push(Shape::Text(at, hint, Scale::Small, color));
+        }
+        Some(Edit::Message { message, .. }) => {
+            let text = message.get(lang);
+            let x = (WIDTH as i32 - Scale::Normal.width(text)) / 2;
+            let y = BAR + (HEIGHT as i32 - BAR) / 2;
+            shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), Scale::Normal, colors::MUTED));
+        }
+    }
+}
+
+/// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
+/// there are more.
+fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize) {
+    let first = selected / ROWS * ROWS;
+    let normal = Scale::Normal.metrics();
+    let small = Scale::Small.metrics();
+    let scrolls = lines.len() > ROWS;
+    let right = WIDTH as i32 - MARGIN - if scrolls { 8 } else { 0 };
+    for (offset, line) in lines.iter().skip(first).take(ROWS).enumerate() {
+        let index = first + offset;
+        let y = BAR + 8 + offset as i32 * (LINE + LINE_GAP);
         let chosen = index == selected;
         let fill = if chosen { colors::CYAN_DIM } else { colors::SURFACE };
+        let size = Size::new((right - MARGIN) as u32, LINE as u32);
         shapes.push(Shape::Round(rounded(Point::new(MARGIN, y), size, 6), fill, None));
-        let baseline = y + (line + metrics.digit) / 2;
-        let number = (index + 1).to_string();
-        shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Normal, colors::MUTED));
-        shapes.push(Shape::Text(Point::new(MARGIN + 40, baseline), label.to_string(), Scale::Normal, colors::TEXT));
+        let baseline = y + (LINE + normal.digit) / 2;
+        let number = (offset + 1).to_string();
+        shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::MUTED));
+        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), line.label.clone(), Scale::Normal, colors::TEXT));
 
-        // The value at the right, between arrows on the selected line.
-        let width = Scale::Normal.width(&value);
-        let right = WIDTH as i32 - MARGIN - 14;
-        let middle = y + line / 2;
-        let color = if chosen { colors::TEXT } else { colors::MUTED };
-        if chosen {
-            let (left_tip, right_tip) = (right - width - 22, right + 2);
-            shapes.push(Shape::Triangle(
-                Triangle::new(
-                    Point::new(left_tip, middle),
-                    Point::new(left_tip + 7, middle - 6),
-                    Point::new(left_tip + 7, middle + 6),
-                ),
-                colors::MUTED,
-            ));
-            shapes.push(Shape::Triangle(
-                Triangle::new(
-                    Point::new(right_tip + 7, middle),
-                    Point::new(right_tip, middle - 6),
-                    Point::new(right_tip, middle + 6),
-                ),
-                colors::MUTED,
-            ));
+        let middle = y + LINE / 2;
+        let mut end = right - 14;
+        match line.mark {
+            Mark::Arrow => {
+                let arrow = Triangle::new(
+                    Point::new(end, middle),
+                    Point::new(end - 7, middle - 6),
+                    Point::new(end - 7, middle + 6),
+                );
+                shapes.push(Shape::Triangle(arrow, colors::MUTED));
+                end -= 16;
+            }
+            Mark::Dot => {
+                let dot = 10;
+                shapes.push(Shape::Circle(Circle::new(Point::new(end - dot, middle - dot / 2), dot as u32), colors::CYAN));
+                end -= dot + 8;
+            }
+            Mark::None => {}
         }
-        let x = right - width - if chosen { 6 } else { 0 };
-        shapes.push(Shape::Text(Point::new(x, baseline), value, Scale::Normal, color));
+        if let Some(value) = &line.value {
+            let width = Scale::Small.width(value);
+            let color = if chosen { colors::TEXT } else { colors::MUTED };
+            let at = Point::new(end - width, y + (LINE + small.digit) / 2);
+            shapes.push(Shape::Text(at, value.clone(), Scale::Small, color));
+        }
+    }
+    if scrolls {
+        let top = BAR + 8;
+        let height = ROWS as i32 * (LINE + LINE_GAP) - LINE_GAP;
+        let x = WIDTH as i32 - MARGIN - 3;
+        shapes.push(Shape::Fill(Rectangle::new(Point::new(x, top), Size::new(3, height as u32)), colors::HAIRLINE));
+        let pages = lines.len().div_ceil(ROWS) as i32;
+        let thumb = height / pages;
+        let page = (first / ROWS) as i32;
+        let at = Point::new(x, top + page * thumb);
+        shapes.push(Shape::Fill(Rectangle::new(at, Size::new(3, thumb as u32)), colors::CYAN));
     }
 }
 

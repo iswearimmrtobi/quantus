@@ -4,6 +4,8 @@ use crate::backend::Backend;
 use crate::editor::{Editor, Row};
 use crate::key::Key;
 use crate::latex;
+use crate::tree;
+use crate::menu::{Action, Menu, Outcome};
 pub use crate::settings::Settings;
 
 /// The app's modes that work as text, in the order of the mode menu.
@@ -35,20 +37,18 @@ impl Mode {
     }
 }
 
-/// The lines of the setup page.
-pub const SETUP_ROWS: usize = 2;
-
 /// Tiles per page of the mode menu, in [`MENU_COLUMNS`] columns.
 pub const TILES_PER_PAGE: usize = 6;
 pub const MENU_COLUMNS: usize = 3;
 
 /// What fills the screen below the top bar.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Screen {
     Calc,
     /// The mode menu, with the selected tile counted over all pages.
-    Menu { selected: usize },
-    Setup { selected: usize },
+    Modes { selected: usize },
+    /// SETUP or OPTN.
+    Menu(Menu),
 }
 
 /// A calculation in the history.
@@ -123,19 +123,52 @@ impl<B: Backend> App<B> {
         self.caret_on = true;
         let shift = std::mem::take(&mut self.shift);
         let alpha = std::mem::take(&mut self.alpha);
-        match self.screen {
-            Screen::Menu { selected } => self.menu_key(selected, key),
-            Screen::Setup { selected } => self.setup_key(selected, key),
+        match std::mem::replace(&mut self.screen, Screen::Calc) {
+            Screen::Modes { selected } => self.modes_key(selected, key),
+            Screen::Menu(mut menu) => match menu.key(key, &mut self.settings) {
+                Outcome::Stay => self.screen = Screen::Menu(menu),
+                Outcome::Close => {}
+                Outcome::Insert(latex) => self.insert(latex),
+                Outcome::Act(action) => {
+                    self.act(action);
+                    self.screen = Screen::Menu(menu);
+                }
+            },
             Screen::Calc => self.calc_key(key, shift, alpha),
         }
+    }
+
+    /// Does what a menu entry asks for.
+    fn act(&mut self, action: Action) {
+        match action {
+            Action::ResetSettings => self.settings = Settings::default(),
+            Action::ResetMemory => {
+                self.history.clear();
+                self.reset();
+            }
+            Action::ResetAll => {
+                self.settings = Settings::default();
+                self.history.clear();
+                self.reset();
+            }
+            Action::ClearInput => self.reset(),
+        }
+    }
+
+    /// Puts LaTeX from a menu into the input, as if typed: a shown result is left first.
+    fn insert(&mut self, latex: &str) {
+        if self.shown.is_some() {
+            self.reset();
+        }
+        self.editor.paste(&latex::parse(latex));
     }
 
     fn calc_key(&mut self, key: Key, shift: bool, alpha: bool) {
         match key {
             Key::Shift => return self.shift = !shift,
             Key::Alpha => return self.alpha = !alpha,
-            Key::Mode if shift => return self.screen = Screen::Setup { selected: 0 },
-            Key::Mode => return self.screen = Screen::Menu { selected: self.mode.index() },
+            Key::Mode if shift => return self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
+            Key::Mode => return self.screen = Screen::Modes { selected: self.mode.index() },
             _ => {}
         }
         if self.shown.is_some() && !self.leave_result(key) {
@@ -248,7 +281,7 @@ impl<B: Backend> App<B> {
         self.shown = None;
     }
 
-    fn menu_key(&mut self, selected: usize, key: Key) {
+    fn modes_key(&mut self, selected: usize, key: Key) {
         let count = Mode::ALL.len();
         let row = selected % TILES_PER_PAGE / MENU_COLUMNS;
         let selected = match key {
@@ -265,40 +298,12 @@ impl<B: Backend> App<B> {
             }
             _ => selected,
         };
-        self.screen = Screen::Menu { selected };
+        self.screen = Screen::Modes { selected };
     }
 
     fn choose(&mut self, index: usize) {
         self.mode = Mode::ALL[index];
         self.screen = Screen::Calc;
-    }
-
-    fn setup_key(&mut self, selected: usize, key: Key) {
-        let settings = &mut self.settings;
-        let step = match key {
-            Key::Left => -1,
-            Key::Right => 1,
-            _ => 0,
-        };
-        let selected = match key {
-            Key::Digit(digit @ 1..=2) => usize::from(digit) - 1,
-            Key::Up => (selected + SETUP_ROWS - 1) % SETUP_ROWS,
-            Key::Down => (selected + 1) % SETUP_ROWS,
-            Key::Ac | Key::Mode | Key::Del | Key::Ok | Key::Exe => {
-                return self.screen = Screen::Calc;
-            }
-            _ => selected,
-        };
-        if step != 0 {
-            match selected {
-                0 => {
-                    let digits = i16::from(settings.digits) + step;
-                    settings.digits = digits.clamp(1, i16::from(Settings::MAX_DIGITS)) as u8;
-                }
-                _ => settings.decimal = !settings.decimal,
-            }
-        }
-        self.screen = Screen::Setup { selected };
     }
 
     /// Shows the entry `index` places back from the newest, its input in the editor.

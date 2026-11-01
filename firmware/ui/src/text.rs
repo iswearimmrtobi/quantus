@@ -42,6 +42,7 @@ pub const OFF: Text = t("Aus", "Off");
 pub const YES: Text = t("Ja", "Yes");
 pub const NOT_AVAILABLE: Text = t("Noch nicht verfügbar", "Not available yet");
 pub const RANGE: Text = t("Bereich", "Range");
+pub const TO: Text = t("bis", "to");
 pub const EXAM_BLOCKS: Text = t("Aus im Prüfungsmodus", "Off in exam mode");
 pub const DONE: Text = t("Erledigt", "Done");
 pub const NO_ENTRIES: Text = t("Keine Einträge", "No entries");

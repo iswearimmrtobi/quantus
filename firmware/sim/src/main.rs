@@ -136,7 +136,8 @@ impl Backend for Answers {
 const KEYS: &str = "\
 Quantus simulator keys
   MODE (mode tiles)    Tab, then 1-5 or arrows and Enter
-  Setup (SHIFT+MODE)   F1, then Tab; Up/Down pick a line, Left/Right change it
+  Setup (SHIFT+MODE)   F1, then Tab; a digit or Up/Down and Enter open an entry,
+                       Left goes back, Esc closes
   SHIFT / ALPHA        F1 or Ctrl+F / F2 or Ctrl+K
   S<=>D                F3 or Ctrl+D
   EXE / DEL / AC       Enter / Backspace / Esc, Delete or Ctrl+X

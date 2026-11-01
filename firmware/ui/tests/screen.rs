@@ -90,21 +90,11 @@ fn the_mode_menu_switches_the_mode() {
     let mut app = App::new(Stub);
     // Physics is selected; ↓ goes to the second row of tiles.
     press(&mut app, &[Key::Mode, Key::Down, Key::Exe]);
-    assert_eq!((app.mode, app.screen), (Mode::Linear, Screen::Calc));
+    assert_eq!((app.mode, &app.screen), (Mode::Linear, &Screen::Calc));
     press(&mut app, &[Key::Mode, Key::Left, Key::Left, Key::Ok]);
     assert_eq!(app.mode, Mode::Imaginary);
     press(&mut app, &[Key::Mode, Key::Digit(1)]);
     assert_eq!(app.mode, Mode::Algebra);
-}
-
-#[test]
-fn shift_mode_opens_the_setup() {
-    let mut app = App::new(Stub);
-    press(&mut app, &[Key::Shift, Key::Mode]);
-    assert_eq!(app.screen, Screen::Setup { selected: 0 });
-    press(&mut app, &[Key::Left, Key::Left, Key::Down, Key::Right, Key::Ac]);
-    assert_eq!((app.settings.digits, app.settings.decimal), (8, true));
-    assert_eq!(app.screen, Screen::Calc);
 }
 
 #[test]

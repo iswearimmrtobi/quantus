@@ -63,7 +63,7 @@ The characters are the same over the board's serial console (`firmware/handheld`
 | Backspace | | DEL |
 | Esc, Delete, Ctrl+X | | AC |
 | Tab | | MODE: the mode tiles (then 1–5, or the arrows and Enter) |
-| F1 then Tab | | SHIFT+MODE: setup (↑/↓ choose a line, ←/→ change it) |
+| F1 then Tab | | SHIFT+MODE: setup. A digit or ↑/↓ and Enter open an entry; each entry opens a submenu: a list of values or a number typed with the digits. ← or Backspace go back, Esc closes |
 | arrows | | cursor; ↑/↓ outside a fraction step through earlier calculations |
 | F1, Ctrl+F | | SHIFT (SHIFT, then √ is the n-th root) |
 | F2, Ctrl+K | | ALPHA (only shown for now) |
