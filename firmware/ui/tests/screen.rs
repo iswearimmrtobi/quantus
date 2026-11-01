@@ -151,3 +151,22 @@ impl DrawTarget for Display {
         Ok(())
     }
 }
+
+#[test]
+fn brackets_grow_around_a_fraction_but_not_around_digits() {
+    let parens = |latex: &str| {
+        let row = layout::layout(&quantus_ui::latex::parse(latex), Scale::Normal);
+        let grown: Vec<_> = row.items.iter().filter(|item| matches!(item.kind, Kind::Paren { .. })).map(|item| item.ascent).collect();
+        (row, grown)
+    };
+    assert!(parens("(1+2)").1.is_empty());
+    assert!(parens("(2^{3})").1.is_empty(), "an exponent alone keeps them");
+    let (row, grown) = parens(r"(\frac{3}{4}+1)^{2}");
+    assert_eq!(grown.len(), 2);
+    assert!(grown[0] > Scale::Normal.metrics().ascent);
+    // The exponent sits above the grown bracket.
+    let exponent = row.items.last().unwrap();
+    assert!(exponent.ascent > grown[1]);
+    // A bracket not yet closed reaches to the end of the input.
+    assert_eq!(parens(r"2(\frac{1}{2}").1.len(), 1);
+}

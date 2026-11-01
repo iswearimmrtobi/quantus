@@ -83,8 +83,8 @@ printing results, time, heap and stack over serial. See its [README](../firmware
     a setup page (SHIFT+MODE) for significant digits and exact or decimal, S⇔D.
   - [ ] ALPHA letters on the keys, once the keypad's legend is fixed.
   - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
-  - [ ] Brackets that grow with what they hold; a larger Greek font than u8g2's bitmap ones
-    (π, μ and Ω are fine); German texts.
+  - [x] Brackets that grow with what they hold.
+  - [ ] A larger Greek font than u8g2's bitmap ones (π, μ and Ω are fine); German texts.
 
 ## 5. Later
 

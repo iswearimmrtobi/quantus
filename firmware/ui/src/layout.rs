@@ -42,6 +42,8 @@ pub enum Kind {
     Sign([Point; 4]),
     /// Only its slot: an exponent or index.
     Script,
+    /// A bracket drawn as a curve over the item's height, grown to what it holds.
+    Paren { open: bool },
 }
 
 impl RowLayout {
@@ -81,6 +83,8 @@ fn layout_nested(row: &Row, scale: Scale, nested: bool) -> RowLayout {
     }
     let mut items: Vec<Item> = Vec::with_capacity(row.0.len());
     let mut x = 0;
+    // The items of the brackets still open.
+    let mut open = Vec::new();
     for (index, node) in row.0.iter().enumerate() {
         let base_ascent = items.last().map_or(metrics.digit, |item| item.ascent);
         let unary = index == 0 || matches!(row.0[index - 1], Node::Char(c) if c == '(' || OPERATORS.contains(c));
@@ -88,6 +92,20 @@ fn layout_nested(row: &Row, scale: Scale, nested: bool) -> RowLayout {
         item.x = x;
         x += item.width;
         items.push(item);
+        // A closed bracket grows before what follows it, so an exponent sits above it.
+        match node {
+            Node::Char('(') => open.push(index),
+            Node::Char(')') => {
+                let start = open.pop().unwrap_or(0);
+                grow(&mut items, start, index, scale);
+            }
+            _ => {}
+        }
+    }
+    // Open brackets reach to the end of the row.
+    while let Some(start) = open.pop() {
+        let last = items.len() - 1;
+        grow(&mut items, start, last, scale);
     }
     RowLayout {
         scale,
@@ -95,6 +113,36 @@ fn layout_nested(row: &Row, scale: Scale, nested: bool) -> RowLayout {
         ascent: items.iter().map(|item| item.ascent).max().unwrap_or(0).max(metrics.digit),
         descent: items.iter().map(|item| item.descent).max().unwrap_or(0),
         items,
+    }
+}
+
+/// Makes the brackets among `items[first]` and `items[last]` as tall as what lies between them,
+/// when that is taller than the font's bracket.
+fn grow(items: &mut [Item], first: usize, last: usize, scale: Scale) {
+    let metrics = scale.metrics();
+    // Brackets and scripts do not count: an exponent may stick out, as after a single digit.
+    let counts = |item: &Item| match &item.kind {
+        Kind::Text { text, .. } => text != "(" && text != ")",
+        Kind::Paren { .. } | Kind::Script => false,
+        _ => true,
+    };
+    let inner = || items[first..=last].iter().filter(|item| counts(item));
+    let ascent = inner().map(|item| item.ascent).max().unwrap_or(0);
+    let descent = inner().map(|item| item.descent).max().unwrap_or(0);
+    if ascent <= metrics.ascent + 2 && descent <= metrics.descent + 2 {
+        return;
+    }
+    let (ascent, descent) = (ascent.max(metrics.ascent) + 1, descent.max(metrics.descent) + 1);
+    for index in [first, last] {
+        let item = &mut items[index];
+        let open = match &item.kind {
+            Kind::Text { text, .. } if text == "(" || text == ")" => text == "(",
+            Kind::Paren { open } => *open,
+            _ => continue,
+        };
+        item.kind = Kind::Paren { open };
+        item.ascent = ascent;
+        item.descent = descent;
     }
 }
 
@@ -243,9 +291,35 @@ pub fn draw<D: DrawTarget<Color = Rgb565>>(
                 let _ = line.into_styled(PrimitiveStyle::with_stroke(color, 1)).draw(target);
             }
             Kind::Script => {}
+            Kind::Paren { open } => paren(*open, item, at, row.scale, color, target),
         }
         for (offset, slot) in &item.slots {
             draw(slot, at + *offset, color, placeholder, target);
         }
     }
+}
+
+/// A bracket over the item's whole height: a flat parabola, thickest in the middle like the font's.
+fn paren<D: DrawTarget<Color = Rgb565>>(
+    open: bool,
+    item: &Item,
+    at: Point,
+    scale: Scale,
+    color: Rgb565,
+    target: &mut D,
+) {
+    const STEPS: i32 = 16;
+    let top = at.y - item.ascent + 1;
+    let height = item.ascent + item.descent - 2;
+    let (inner, outer) = (at.x + 1, at.x + item.width - 2);
+    let (inner, outer) = if open { (inner, outer) } else { (outer, inner) };
+    let points: Vec<Point> = (0..=STEPS)
+        .map(|step| {
+            let t = 2 * step - STEPS;
+            let x = inner + (outer - inner) * t * t / (STEPS * STEPS);
+            Point::new(x, top + height * step / STEPS)
+        })
+        .collect();
+    let width = if scale == Scale::Normal { 2 } else { 1 };
+    let _ = Polyline::new(&points).into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
 }
