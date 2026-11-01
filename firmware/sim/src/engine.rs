@@ -112,5 +112,9 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
             ui::FractionForm::Mixed => core::FractionForm::Mixed,
         },
         recurring: settings.recurring,
+        complex_form: match settings.complex {
+            ui::ComplexForm::Cartesian => core::ComplexForm::Rectangular,
+            ui::ComplexForm::Polar => core::ComplexForm::Polar,
+        },
     }
 }

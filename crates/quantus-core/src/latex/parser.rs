@@ -323,6 +323,20 @@ impl Parser<'_> {
                 TokenType::Divide => Operator::Divide,
                 TokenType::Command if MULTIPLICATION_COMMANDS.contains(&token.text.as_str()) => Operator::Times,
                 TokenType::Command if token.text == "\\div" => Operator::Divide,
+                TokenType::Command if token.text == "\\angle" => {
+                    // `r\angle\theta`: a complex number in polar form.
+                    let position = left.position();
+                    self.advance();
+                    // The angle runs to the next explicit operator: `2\angle\pi\,\mathrm{rad}`.
+                    let mut angle = self.parse_unary()?;
+                    while self.starts_atom() {
+                        let right = self.parse_unary()?;
+                        let at = angle.position();
+                        angle = Node::binary(Operator::ImplicitTimes, angle, right, at);
+                    }
+                    left = Node::Call { name: "polar".into(), arguments: vec![left, angle], position };
+                    continue;
+                }
                 TokenType::Command if token.text == "\\bmod" => {
                     let position = self.advance().position;
                     let right = self.parse_unary()?;

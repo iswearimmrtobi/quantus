@@ -404,6 +404,19 @@ impl<'a> Evaluator<'a> {
     fn call(&self, name: &str, arguments: &[Node]) -> Result<PhysicalQuantity> {
         let real = |q: &PhysicalQuantity| -> Result<RBig> { Ok(q.value.decimal(self.precision + 10)?.to_rational()) };
         match (name, arguments) {
+            ("polar", [r, theta]) => {
+                if !self.complex() {
+                    return Err(QuantusError::other("r\\angle\\theta is a complex number; it needs the complex mode."));
+                }
+                let modulus = self.evaluate(r)?;
+                let mut angle = self.plain_number(theta, "The angle of r\\angle\\theta")?;
+                if self.degrees() && !angles::is_marked(theta) {
+                    angle = angles::to_radians(&angle)?;
+                }
+                let (cos, sin) = (angle.apply(MathFunction::Cos)?, angle.apply(MathFunction::Sin)?);
+                let direction = cos.add(&sin.mul(&Value::I));
+                Ok(PhysicalQuantity::new(modulus.value.mul(&direction), modulus.unit))
+            }
             ("factorial", [n]) => {
                 let n = self.whole_number(n, "factorial")?;
                 if n > 10_000 {

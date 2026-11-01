@@ -167,6 +167,17 @@ pub enum FractionForm {
     Mixed,
 }
 
+/// How a complex result is written.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ComplexForm {
+    /// `a + bi`.
+    #[default]
+    Rectangular,
+    /// `r\angle\theta`, the angle in the angle unit.
+    Polar,
+}
+
 /// The language of the texts the engine writes itself (the electronics notes and errors).
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -215,6 +226,7 @@ pub struct Settings {
     pub fraction_form: FractionForm,
     /// Whether a result's forms include the recurring decimal, `0{,}\overline{3}`.
     pub recurring: bool,
+    pub complex_form: ComplexForm,
 }
 
 impl Default for Settings {
@@ -243,6 +255,7 @@ impl Default for Settings {
             digit_grouping: false,
             fraction_form: FractionForm::Improper,
             recurring: true,
+            complex_form: ComplexForm::Rectangular,
         }
     }
 }
@@ -361,7 +374,8 @@ mod tests {
                 "decimalPrefixes": false,
                 "digitGrouping": false,
                 "fractionForm": "improper",
-                "recurring": true
+                "recurring": true,
+                "complexForm": "rectangular"
             })
         );
     }

@@ -55,7 +55,8 @@ before sums.
 | `\max(a; b)`, `\min(a; b)` | separate the arguments with `;`, since `,` is the decimal comma |
 | `\binom{n}{k}`, `\dbinom`, `\tbinom` | exact; non-negative whole numbers |
 | `\det\begin{pmatrix} … \end{pmatrix}`, `vmatrix` | determinant, exact, up to 8×8 |
-| `\Re`, `\Im`, `\arg`, `\overline{z}` | Imaginary mode: real part, imaginary part, argument, conjugate |
+| `\Re`, `\Im`, `\arg`, `\overline{z}` | Imaginary mode: real part, imaginary part, argument (in the angle unit), conjugate |
+| `r \angle \theta` | Imaginary mode: the complex number with modulus r and angle θ, in the angle unit unless marked (`2\angle 60^\circ`); the angle runs to the next operator |
 
 ## Calculus
 

@@ -28,6 +28,10 @@ pub enum FormKind {
     PrimeFactors,
     /// Degrees, minutes and seconds: `2^{\circ}20'30''`.
     Sexagesimal,
+    /// A complex number as `a + bi`.
+    Rectangular,
+    /// A complex number as `r\angle\theta`.
+    Polar,
 }
 
 /// One form of a result, as LaTeX.

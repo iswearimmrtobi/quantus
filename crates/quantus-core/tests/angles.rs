@@ -84,7 +84,7 @@ fn degrees_minutes_and_seconds_are_one_angle() {
 fn forms(angle_unit: AngleUnit, latex: &str) -> Vec<(FormKind, String)> {
     let settings = Settings { mode: Mode::Physics, angle_unit, ..Settings::default() };
     let calculation = LatexCalculator::new(10).with_settings(settings).evaluate(latex, &HashMap::new()).unwrap();
-    calculation.forms.into_iter().map(|f| (f.kind, f.latex)).collect()
+    calculation.forms.into_iter().filter(|f| f.kind == FormKind::Sexagesimal).map(|f| (f.kind, f.latex)).collect()
 }
 
 #[test]

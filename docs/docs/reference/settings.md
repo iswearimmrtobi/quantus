@@ -82,6 +82,7 @@ mode reads **Linear systems + 𝑖** in the top bar. Off, $i$ is an unknown.
 | **Identities with a condition** | `conditionalIdentities` | `withCondition`, `alwaysValid` | `withCondition` |
 | **Exact as a root** | `exactRoots` | on / off | off |
 | **Fractions** | `fractionForm` | `improper`, `mixed` | `improper` |
+| **Complex numbers** | `complexForm` | `rectangular`, `polar` | `rectangular` |
 | **Recurring decimals** | `recurring` | on / off | on |
 | **Digit grouping** | `digitGrouping` | on / off | off |
 | **Decimal prefixes** | `decimalPrefixes` | on / off | off |
@@ -121,6 +122,9 @@ $2{,}\overline{3}$ and as the decimal; a whole number or fraction in prime facto
 ($120 = 2^{3} \cdot 3 \cdot 5$, up to $10^{15}$); a root or π exact and as the decimal.
 **Fractions** decides whether the improper or the mixed fraction comes first; **Recurring
 decimals** off leaves the recurring decimal out.
+
+**Complex numbers** writes a complex result as $a + bi$ or as $r \angle \theta$ with the angle in
+the angle unit ($5 \angle 53{,}13^{\circ}$); the other one is among its forms.
 
 **Digit grouping** separates the digits before the decimal comma in groups of three by a thin
 space once there are five or more: $12\,345{,}6$, but $1234$.

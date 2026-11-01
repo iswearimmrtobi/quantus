@@ -206,6 +206,11 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         },
         Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
+            ("polar", [r, theta]) => format!(
+                "{} \\angle {}",
+                render(r, PRECEDENCE_MULTIPLICATIVE, mode),
+                render(theta, PRECEDENCE_POWER, mode)
+            ),
             ("floor", [x]) => format!("\\lfloor {} \\rfloor", expression_with_mode(x, mode)),
             ("ceil", [x]) => format!("\\lceil {} \\rceil", expression_with_mode(x, mode)),
             (crate::algebra::display::BRACKET, [x]) => {

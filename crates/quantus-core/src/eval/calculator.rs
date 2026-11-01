@@ -14,7 +14,7 @@ use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::forms::{self, FormKind, ResultForm};
-use crate::settings::{AngleUnit, BinomialForm, FractionForm, Mode, Settings, StepDetail};
+use crate::settings::{AngleUnit, BinomialForm, ComplexForm, FractionForm, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
@@ -469,16 +469,45 @@ impl LatexCalculator {
             Err(crate::QuantusError::NotReal(message)) if self.settings.complex() => {
                 let not_real = || crate::QuantusError::NotReal(message.clone());
                 let (re, im) = quantity.value.re_im().ok_or_else(not_real)?;
-                let exact = self.settings.exact_roots.then(|| exact::format_complex(&re, &im)).flatten();
-                let (re, im) = (re.decimal(self.precision)?, im.decimal(self.precision)?);
-                let result = match exact {
-                    Some((exact_re, exact_im)) => serializer::exact_complex_quantity(&exact_re, &exact_im, &quantity.unit),
-                    None => serializer::complex_quantity_styled(&re, &im, &quantity.unit, &self.settings.number_style()),
+                let result = match self.settings.complex_form {
+                    ComplexForm::Rectangular => self.rectangular(&re, &im, &quantity.unit)?,
+                    ComplexForm::Polar => self.polar(&re, &im, &quantity.unit)?,
                 };
-                Ok((re, Some(im), result))
+                Ok((re.decimal(self.precision)?, Some(im.decimal(self.precision)?), result))
             }
             Err(error) => Err(error),
         }
+    }
+
+    /// `a + bi`, exact or decimal as the settings say.
+    fn rectangular(&self, re: &Value, im: &Value, unit: &crate::units::Unit) -> Result<String> {
+        if let Some((exact_re, exact_im)) = self.settings.exact_roots.then(|| exact::format_complex(re, im)).flatten() {
+            return Ok(serializer::exact_complex_quantity(&exact_re, &exact_im, unit));
+        }
+        let (re, im) = (re.decimal(self.precision)?, im.decimal(self.precision)?);
+        Ok(serializer::complex_quantity_styled(&re, &im, unit, &self.settings.number_style()))
+    }
+
+    /// `r\angle\theta`, the angle in the angle unit (`5 \angle 53{,}13^{\circ}`).
+    fn polar(&self, re: &Value, im: &Value, unit: &crate::units::Unit) -> Result<String> {
+        let z = re.add(&im.mul(&Value::I));
+        let not_complex = || crate::QuantusError::other("The value is not of the form a + bi.");
+        let modulus = z.modulus().ok_or_else(not_complex)??;
+        let mut angle = z.argument().ok_or_else(not_complex)??;
+        let degrees = self.settings.angle_unit == AngleUnit::Degree;
+        if degrees {
+            angle = angles::to_degrees(&angle)?;
+        }
+        let number = |value: &Value| -> Result<String> {
+            if let Some(exact) = self.settings.exact_roots.then(|| exact::format(value)).flatten() {
+                return Ok(exact);
+            }
+            Ok(crate::latex::numbers::format_with(&value.decimal(self.precision)?, &self.settings.number_style()))
+        };
+        let angle = number(&angle)?;
+        let angle = if degrees { format!("{angle}^{{\\circ}}") } else if exact::is_sum(&angle) { format!("({angle})") } else { angle };
+        let polar = format!("{} \\angle {angle}", number(&modulus)?);
+        Ok(if unit.is_one() { polar } else { format!("\\left({polar}\\right)\\,{}", crate::units::latex::format(unit)) })
     }
 
     /// The other forms of a result that S⇔D cycles through, each once and none equal to `shown`.
@@ -525,6 +554,16 @@ impl LatexCalculator {
             } else if let Some(latex) = exact::format(&quantity.value) {
                 push(FormKind::Exact, serializer::exact_quantity(&latex, unit));
                 push(FormKind::Decimal, decimal());
+            }
+        }
+        if imaginary.is_some() {
+            if let Some((re, im)) = quantity.value.re_im() {
+                if let Ok(latex) = self.rectangular(&re, &im, unit) {
+                    push(FormKind::Rectangular, latex);
+                }
+                if let Ok(latex) = self.polar(&re, &im, unit) {
+                    push(FormKind::Polar, latex);
+                }
             }
         }
         let in_degrees = self.settings.angle_unit == AngleUnit::Degree && self.settings.evaluation_mode() != Mode::Analysis;

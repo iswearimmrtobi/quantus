@@ -30,7 +30,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Digit grouping (1000er-Trennung) with a thin space
 - [x] Result forms carried by each result: mixed fractions (`fractionForm` ab/c, d/c),
       recurring decimals (`recurring`) and their input, prime factors (FACT)
-- [ ] Complex polar form: `complexForm` a+bi / r∠θ, ▶r∠θ / ▶a+bi, ∠ input
+- [x] Complex polar form: `complexForm` a+bi / r∠θ, ▶r∠θ / ▶a+bi, ∠ input
 - [ ] Basis-N mode `baseN`: integers, DEC/HEX/BIN/OCT, d/h/b/o, and/or/xor/xnor/Not/Neg
 - [ ] Matrices: values with + − ×, inverse, transpose, identity, det, powers, REF/RREF, exact,
       with steps
@@ -579,7 +579,7 @@ maps every setting the core has.
   ✓ (the simulator passes it on) · Signifikante Stellen ✓ (typed, 1–15) · Zahlenformat Norm 1/Norm 2/Fix n/Sci n ✓
   (Fix and Sci ask for n, 0–9) · Dezimalpräfixe ✓ · 1000er-Trennung ✓
 - **Ergebnis**: exakt/dezimal ✓ · Brüche d/c, ab/c ✓ · Periodisch ✓ · Komplexe
-  Zahlen a+bi/Polar (r, θ) [eng] ◌ (the fonts have no ∠) · Quadratische Gleichungen Auto/pq/abc ✓
+  Zahlen a+bi/Polar (r, θ) ✓ (the fonts have no ∠ yet) · Quadratische Gleichungen Auto/pq/abc ✓
 - **Rechenweg**: Rechenweg (5 levels) ✓ · Kürzungen durchstreichen ✓ · Gleichungssysteme
   Gauß/Gauß-Jordan ✓ (the hui has no step list yet; the engine gets them)
 - **Algebra**: Binomformeln ✓ · Quadratische Ergänzung ✓ · Nenner ✓ · Identitäten mit Bedingung ✓

@@ -56,7 +56,7 @@ VariableResponse { key, symbol, latex, value, unit }
 
 `forms` lists the other ways to write the result, which a form switch (S⇔D on the handheld)
 steps through without another call. `kind` is `fraction`, `mixedFraction`, `recurring`,
-`decimal`, `exact` (roots and π), `primeFactors` or `sexagesimal` (degrees, minutes, seconds; for
+`decimal`, `exact` (roots and π), `primeFactors`, `rectangular`, `polar` or `sexagesimal` (degrees, minutes, seconds; for
 an angle with the angle unit on degrees). No form repeats `result` or another form.
 
 `engineering` writes a result in engineering notation for ENG: pass its `value`, `imaginary` and
