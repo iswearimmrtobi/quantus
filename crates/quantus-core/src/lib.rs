@@ -16,6 +16,7 @@ pub(crate) mod linear;
 pub mod num;
 pub(crate) mod numeric;
 pub mod quantity;
+pub mod remote;
 pub mod session;
 pub mod settings;
 pub mod stochastics;

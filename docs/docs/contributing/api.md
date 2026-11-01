@@ -132,6 +132,32 @@ SessionFile {
 A variable is saved by the input that gives its value (`\frac{1}{3}\,\mathrm{m}`, `3 r_1`), so it
 is exact again after loading. A file of a newer format version is refused.
 
+## Remote format
+
+A handheld can hand a calculation to a Quantus engine elsewhere (the desktop app, a server). The
+transport is the shells'; the engine defines the messages and answers them with
+`api::dispatch(store, json) -> json` (`crate::remote`).
+
+```ts
+RemoteRequest {
+  version: 1
+  id?: any                 // echoed in the response
+  method: string           // an engine call, see below
+  params?: object          // that call's own request, as for the desktop
+  settings?: Settings      // the caller's settings for this call
+  session?: SessionFile    // the caller's session to compute in
+}
+RemoteResponse { version: 1, id, result?: any, error?: { error, position? }, session?: SessionFile }
+```
+
+The methods are `evaluate`, `defineVariable`, `freeVariables`, `calc`, `solveFor`,
+`listVariables`, `history`, `engineering`, `analyze`, `sampleFunction`, `tangent`, `area`,
+`valueTable`, `linearSystem`, `kirchhoff`, `solveCircuit`, `statistics`, `distribution`,
+`constants`, `conversionUnits`, `getSettings` and `ping`. With a `session` or `settings` the call
+runs on its own engine, not on the listener's, and the response carries the session as it is
+afterwards (its new history entry, variables and Ans), for the caller to keep. A request of a
+newer version is refused.
+
 ## Stochastics
 
 | Command | Arguments | Returns |

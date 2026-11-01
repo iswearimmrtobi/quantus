@@ -471,6 +471,9 @@ pub fn set_mode_inputs(store: &mut SessionStore, id: Option<&str>, inputs: ModeI
     store.session(id).mode_inputs = inputs;
 }
 
+/// The remote engine: a request as JSON answered as JSON, see [`crate::remote`].
+pub use crate::remote::dispatch;
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }

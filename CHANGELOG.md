@@ -66,6 +66,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   again after loading.
 - `\mathrm{Ans}` and `\mathrm{PreAns}`: the last numeric result of a session and the one before,
   saved with the session.
+- A request and response format for a remote engine (`api::dispatch`): a handheld can send any
+  engine call as JSON, with its own settings and session, and gets the result and its updated
+  session back.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

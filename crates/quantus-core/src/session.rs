@@ -487,6 +487,11 @@ impl SessionStore {
         self.sessions.entry(id.to_string()).or_insert_with(|| Session::new(id))
     }
 
+    /// Adds a session under its id, replacing one of the same id.
+    pub fn insert(&mut self, session: Session) {
+        self.sessions.insert(session.id.clone(), session);
+    }
+
     /// The session of that id, if there is one.
     pub fn get(&self, id: &str) -> Option<&Session> {
         self.sessions.get(id)

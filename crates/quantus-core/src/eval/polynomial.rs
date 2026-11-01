@@ -274,7 +274,7 @@ fn quartic(coefficients: &[RBig], complex: bool, digits: usize) -> Result<Vec<Va
                 roots.push(back(Value::zero()));
                 continue;
             }
-            let real = z.re_im().map_or(true, |(_, im)| im.is_zero());
+            let real = z.re_im().is_none_or(|(_, im)| im.is_zero());
             if real && !z.is_negative()? {
                 let y = z.pow(&Value::ratio(1, 2))?;
                 roots.extend([back(y.neg()), back(y)]);
