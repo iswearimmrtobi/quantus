@@ -17,6 +17,19 @@ quantus-mirror = { path = "../mirror" }
 quantus-ui = { path = "../ui" }
 serialport = "4.10.1"
 
+# The UI and the graphics crates: drawing a frame with a wallpaper and decoding a picture take
+# 20 to 60 ms unoptimised and about 1 ms optimised, as on the board (always built optimised).
+[profile.dev.package.quantus-ui]
+opt-level = 3
+[profile.dev.package.tinybmp]
+opt-level = 3
+[profile.dev.package.embedded-graphics]
+opt-level = 3
+[profile.dev.package.embedded-graphics-core]
+opt-level = 3
+[profile.dev.package.embedded-graphics-simulator]
+opt-level = 3
+
 # As in the main workspace: the number crates are several times slower unoptimised.
 [profile.dev.package.astro-float-num]
 opt-level = 3

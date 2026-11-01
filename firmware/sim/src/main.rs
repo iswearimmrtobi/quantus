@@ -76,30 +76,44 @@ fn main() {
     let settings = OutputSettingsBuilder::new().scale(2).build();
     let mut window = Window::new("Quantus", &settings);
     let start = Instant::now();
+    // Draw only when something changed: a key, the caret, the spinner or a new mirror.
+    let mut changed = true;
     loop {
         if let Ok(line) = latex.try_recv() {
             evaluate_latex(&mut app, &line);
+            changed = true;
         }
         if mirror.as_ref().is_some_and(Mirror::take_ready) {
             renderer.invalidate();
+            changed = true;
         }
-        let mut target = Tee { display: &mut display, mirror: mirror.as_mut() };
-        renderer.render(&Frame::new(&app), &mut target).unwrap();
+        if changed {
+            let mut target = Tee { display: &mut display, mirror: mirror.as_mut() };
+            renderer.render(&Frame::new(&app), &mut target).unwrap();
+        }
         window.update(&display);
+        changed = false;
         for event in window.events() {
             match event {
                 SimulatorEvent::Quit => return,
-                SimulatorEvent::KeyDown { keycode: Keycode::F9, .. } => app.charging = !app.charging,
-                SimulatorEvent::KeyDown { keycode: Keycode::F10, .. } => app.busy = !app.busy,
+                SimulatorEvent::KeyDown { keycode: Keycode::F9, .. } => {
+                    app.charging = !app.charging;
+                    changed = true;
+                }
+                SimulatorEvent::KeyDown { keycode: Keycode::F10, .. } => {
+                    app.busy = !app.busy;
+                    changed = true;
+                }
                 SimulatorEvent::KeyDown { keycode, keymod, .. } => {
                     if let Some(key) = key(keycode, keymod) {
                         app.key(key);
+                        changed = true;
                     }
                 }
                 _ => {}
             }
         }
-        app.tick(start.elapsed().as_millis() as u64);
+        changed |= app.tick(start.elapsed().as_millis() as u64);
         std::thread::sleep(Duration::from_millis(15));
     }
 }
