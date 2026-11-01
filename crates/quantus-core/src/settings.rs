@@ -136,6 +136,10 @@ pub enum Mode {
     /// Matrices as values ([`crate::matrix`]), stored in the session under any name. Inputs are
     /// read as in `Algebra`.
     Matrix,
+    /// Statistics of data lists ([`crate::stochastics::statistics`]). Inputs are read as in `Algebra`.
+    Statistics,
+    /// Probability distributions ([`crate::stochastics`]). Inputs are read as in `Algebra`.
+    Distributions,
 }
 
 /// The unit a plain number in a trigonometric function is read in, and inverse functions answer in.
@@ -297,7 +301,7 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix),
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions),
             imaginary_i: self.complex(),
         }
     }
@@ -405,6 +409,7 @@ mod tests {
         assert_eq!(serde_json::to_value(Mode::Kirchhoff).unwrap(), json!("kirchhoff"));
         assert_eq!(serde_json::to_value(Mode::BaseN).unwrap(), json!("baseN"));
         assert_eq!(serde_json::to_value(Mode::Matrix).unwrap(), json!("matrix"));
+        assert_eq!(serde_json::to_value(Mode::Distributions).unwrap(), json!("distributions"));
     }
 
     #[test]

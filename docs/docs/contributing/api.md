@@ -87,6 +87,23 @@ A point is `{ kind, name, x, y, latex, period? }`; an asymptote
 `{ kind, side?, x?, slope?, intercept?, latex, period? }`. Segments are arrays of `[x, y]`
 pairs, split at poles and gaps.
 
+## Stochastics
+
+| Command | Arguments | Returns |
+|---|---|---|
+| `statistics` | `{ request: { x, freq? } }` | `{ values: StatisticValue[] }` |
+
+```ts
+StatisticValue { key, symbol, latex, value }   // "mean", "\bar{x}", "2{,}5", "2.5"
+```
+
+The cells are LaTeX; empty rows are skipped, and a frequency is a whole number from 0 on.
+`values` holds, in this order, `n`, `mean`, `sumX`, `sumX2`, `populationVariance`,
+`populationSd`, `sampleVariance` and `sampleSd` (from two values on), `min`, `q1`, `median`, `q3`
+(from two values on) and `max`. The quartiles are the medians of the lower and upper half, the
+middle value left out when n is odd, as on a Casio. Values are exact where the data are and
+written as the settings say.
+
 ## Circuits
 
 The electronics mode that uses these commands is not in the app yet; the commands are.

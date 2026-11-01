@@ -11,7 +11,7 @@ use std::{fs, io};
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
     CalculationResponse, CircuitRequest, CircuitResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
-    LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
+    LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
     VariableResponse,
 };
 use quantus_core::session::SessionStore;
@@ -162,6 +162,13 @@ pub fn solve_linear_system(
 pub fn engineering(engine: State<Engine>, request: EngineeringRequest) -> Result<EngineeringResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::engineering(&settings, &request)
+}
+
+/// The statistics of a data list. It touches no session.
+#[tauri::command]
+pub fn statistics(engine: State<Engine>, request: StatisticsRequest) -> Result<StatisticsResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::statistics(&settings, &request)
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.

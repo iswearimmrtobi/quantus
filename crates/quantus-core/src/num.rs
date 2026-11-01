@@ -233,6 +233,8 @@ pub enum MathFunction {
     Arcsin,
     Arccos,
     Arctan,
+    /// The error function, for the normal distribution.
+    Erf,
 }
 
 impl MathFunction {
@@ -253,6 +255,7 @@ impl MathFunction {
             "arcsin" => MathFunction::Arcsin,
             "arccos" => MathFunction::Arccos,
             "arctan" => MathFunction::Arctan,
+            "erf" => MathFunction::Erf,
             _ => return None,
         })
     }
@@ -274,6 +277,7 @@ impl MathFunction {
             MathFunction::Arcsin => "ArcSin",
             MathFunction::Arccos => "ArcCos",
             MathFunction::Arctan => "ArcTan",
+            MathFunction::Erf => "Erf",
         }
     }
 }
@@ -579,6 +583,14 @@ impl Value {
                     return Ok(exact);
                 }
             }
+            MathFunction::Erf => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                if self.is_zero() {
+                    return Ok(Value::zero());
+                }
+            }
         }
         Ok(Value::Func(function, Box::new(self.clone())))
     }
@@ -757,6 +769,7 @@ impl Value {
                     MathFunction::Cot => x.tan(bits, rm, consts).reciprocal(bits, rm),
                     MathFunction::Sec => x.cos(bits, rm, consts).reciprocal(bits, rm),
                     MathFunction::Csc => x.sin(bits, rm, consts).reciprocal(bits, rm),
+                    MathFunction::Erf => erf(&x, bits, consts),
                 };
                 if result.is_nan() || result.is_inf() {
                     return Err(self.not_real());
@@ -1142,6 +1155,47 @@ fn rational_digits(value: &RBig, digits: usize) -> Decimal {
     decimal
 }
 
+/// `erf x = 2/√π · Σ (-1)^n x^(2n+1) / (n! (2n+1))`. The terms grow to about `e^(x²)` before
+/// they fall, so the sum runs with that many extra bits; beyond the point where `1 - |erf x|`
+/// drops below the precision it is ±1.
+fn erf(x: &BigFloat, bits: usize, consts: &mut Consts) -> BigFloat {
+    let rm = RoundingMode::ToEven;
+    if x.is_zero() {
+        return BigFloat::from_u8(0, bits);
+    }
+    // |x| < 2^e, so x² < 4^e.
+    let e = i64::from(x.exponent().unwrap_or(0)).max(0);
+    let square_bound = 4f64.powi(e as i32);
+    // 1 - erf x < e^(-x²) < 2^(-bits) once x² > bits · ln 2.
+    if e > 0 && 4f64.powi(e as i32 - 1) > bits as f64 * std::f64::consts::LN_2 + 2.0 {
+        let one = BigFloat::from_u8(1, bits);
+        return if x.is_negative() { one.neg() } else { one };
+    }
+    let p = bits + (square_bound * std::f64::consts::LOG2_E).ceil() as usize + 64;
+    let mut x = x.clone();
+    // Only grows the mantissa, so it cannot fail.
+    let _ = x.set_precision(p, rm);
+    let minus_square = x.mul(&x, p, rm).neg();
+    let mut power = x.clone();
+    let mut sum = x.clone();
+    let mut n: u64 = 0;
+    loop {
+        n += 1;
+        power = power.mul(&minus_square, p, rm).div(&BigFloat::from_u64(n, p), p, rm);
+        let term = power.div(&BigFloat::from_u64(2 * n + 1, p), p, rm);
+        sum = sum.add(&term, p, rm);
+        let small = match (term.exponent(), sum.exponent()) {
+            (Some(t), Some(s)) => i64::from(t) < i64::from(s) - p as i64,
+            _ => term.is_zero(),
+        };
+        if small || n > 1_000_000 {
+            break;
+        }
+    }
+    let two_over_root_pi = BigFloat::from_u8(2, p).div(&consts.pi(p, rm).sqrt(p, rm), p, rm);
+    sum.mul(&two_over_root_pi, bits, rm)
+}
+
 fn bigfloat_from_int(value: &IBig, bits: usize, consts: &mut Consts) -> BigFloat {
     BigFloat::parse(&value.to_string(), Radix::Dec, bits, RoundingMode::ToEven, consts)
 }
@@ -1179,6 +1233,16 @@ mod tests {
 
     fn rat(text: &str) -> Value {
         Value::from_decimal(&dec(text))
+    }
+
+    #[test]
+    fn erf_has_its_known_values() {
+        let erf = |x: Value, digits| Value::Func(MathFunction::Erf, Box::new(x)).decimal(digits).unwrap().to_plain_string();
+        assert_eq!(erf(Value::one(), 20), "0.84270079294971486934");
+        assert_eq!(erf(Value::int(-2), 15), "-0.995322265018953");
+        assert_eq!(erf(Value::ratio(1, 2), 10), "0.5204998778");
+        assert_eq!(erf(Value::int(6), 10), "1");
+        assert_eq!(erf(Value::int(30), 10), "1");
     }
 
     #[test]

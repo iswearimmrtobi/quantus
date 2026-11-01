@@ -17,6 +17,7 @@ pub(crate) mod numeric;
 pub mod quantity;
 pub mod session;
 pub mod settings;
+pub mod stochastics;
 pub mod text;
 pub mod units;
 

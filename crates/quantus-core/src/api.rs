@@ -278,6 +278,15 @@ pub fn engineering(settings: &Settings, request: &EngineeringRequest) -> Result<
     Ok(EngineeringResponse { latex })
 }
 
+pub use crate::stochastics::statistics::{StatisticsRequest, StatisticsResponse};
+pub use crate::stochastics::StatisticValue;
+
+/// The statistics of a data list (Statistik). Stateless: the shell keeps the lists.
+pub fn statistics(settings: &Settings, request: &StatisticsRequest) -> Result<StatisticsResponse, ApiError> {
+    let _language = crate::text::Scope::new(settings.language);
+    Ok(crate::stochastics::statistics::statistics(settings, request)?)
+}
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }
