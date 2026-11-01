@@ -10,7 +10,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalculationResponse, CircuitRequest, CircuitResponse, KirchhoffRequest, KirchhoffResponse,
+    CalculationResponse, CircuitRequest, CircuitResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
     VariableResponse,
 };
@@ -155,6 +155,13 @@ pub fn solve_linear_system(
 ) -> Result<LinearSystemResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::linear_system(&settings, &request)
+}
+
+/// A result in engineering notation, one ENG or ←ENG step at a time. It touches no session.
+#[tauri::command]
+pub fn engineering(engine: State<Engine>, request: EngineeringRequest) -> Result<EngineeringResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::engineering(&settings, &request)
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.
