@@ -14,6 +14,76 @@ use crate::settings::NumberFormat;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Style {
     pub format: NumberFormat,
+    /// A plain number gets a decimal prefix: `4{,}7\,\mathrm{k}`.
+    pub prefixes: bool,
+}
+
+/// The Casio's decimal prefixes, by their power of ten.
+const PREFIXES: [(i64, &str); 11] = [
+    (-15, "f"),
+    (-12, "p"),
+    (-9, "n"),
+    (-6, "\\mu"),
+    (-3, "m"),
+    (3, "k"),
+    (6, "M"),
+    (9, "G"),
+    (12, "T"),
+    (15, "P"),
+    (18, "E"),
+];
+
+fn prefix(exponent: i64) -> Option<&'static str> {
+    PREFIXES.iter().find(|(e, _)| *e == exponent).map(|(_, symbol)| *symbol)
+}
+
+/// `value / 10^exponent`, exactly.
+fn shifted(value: &Decimal, exponent: i64) -> Decimal {
+    Decimal::new(value.unscaled().clone(), value.scale() + exponent).normalized()
+}
+
+/// A plain number with a decimal prefix where one fits (`4700` → `4{,}7\,\mathrm{k}`), the
+/// mantissa in the number format; without one, the number as [`format_with`] writes it.
+pub fn with_prefix(value: &Decimal, style: &Style) -> String {
+    let plain_style = Style { prefixes: false, ..*style };
+    let stripped = value.normalized();
+    if stripped.is_zero() {
+        return format_with(value, &plain_style);
+    }
+    let exponent = exponent_of(&stripped).div_euclid(3) * 3;
+    match prefix(exponent) {
+        Some(symbol) => {
+            let mantissa = shifted(&stripped, exponent);
+            // Fix keeps its places on the mantissa; Sci would undo the prefix.
+            let mantissa = match style.format {
+                NumberFormat::Sci { .. } => format(&mantissa),
+                _ => format_with(&mantissa, &plain_style),
+            };
+            format!("{mantissa}\\,\\mathrm{{{symbol}}}")
+        }
+        None => format_with(value, &plain_style),
+    }
+}
+
+/// Engineering notation: the exponent a multiple of three, moved by three per step (ENG, and
+/// ←ENG for negative steps): `1234` is `1{,}234 \cdot 10^{3}`, one step on `0{,}001234 \cdot 10^{6}`.
+/// With `prefixes` a prefix stands for the power where one exists.
+pub fn engineering(value: &Decimal, steps: i32, prefixes: bool) -> String {
+    let stripped = value.normalized();
+    if stripped.is_zero() {
+        return "0".to_string();
+    }
+    let exponent = exponent_of(&stripped).div_euclid(3) * 3 + 3 * i64::from(steps);
+    let mantissa = plain(&shifted(&stripped, exponent));
+    if prefixes {
+        if exponent == 0 {
+            return mantissa;
+        }
+        if let Some(symbol) = prefix(exponent) {
+            return format!("{mantissa}\\,\\mathrm{{{symbol}}}");
+        }
+    }
+    format!("{mantissa} \\cdot 10^{{{exponent}}}")
 }
 
 const DECIMAL_SEPARATOR: &str = "{,}";
@@ -143,7 +213,30 @@ mod tests {
     }
 
     fn styled(text: &str, format: NumberFormat) -> String {
-        format_with(&Decimal::parse(text).unwrap(), &Style { format })
+        format_with(&Decimal::parse(text).unwrap(), &Style { format, prefixes: false })
+    }
+
+    #[test]
+    fn prefixes_take_the_nearest_power_of_a_thousand_below() {
+        let prefixed = |text: &str, format| with_prefix(&Decimal::parse(text).unwrap(), &Style { format, prefixes: true });
+        assert_eq!(prefixed("4700", NumberFormat::Auto), "4{,}7\\,\\mathrm{k}");
+        assert_eq!(prefixed("0.5", NumberFormat::Auto), "500\\,\\mathrm{m}");
+        assert_eq!(prefixed("0.0000022", NumberFormat::Auto), "2{,}2\\,\\mathrm{\\mu}");
+        assert_eq!(prefixed("12.5", NumberFormat::Auto), "12{,}5");
+        assert_eq!(prefixed("-3300000", NumberFormat::Fix { digits: 2 }), "-3{,}30\\,\\mathrm{M}");
+        assert_eq!(prefixed("1e30", NumberFormat::Auto), "1 \\cdot 10^{30}");
+    }
+
+    #[test]
+    fn engineering_steps_by_three() {
+        let eng = |text: &str, steps, prefixes| engineering(&Decimal::parse(text).unwrap(), steps, prefixes);
+        assert_eq!(eng("1234", 0, false), "1{,}234 \\cdot 10^{3}");
+        assert_eq!(eng("1234", 1, false), "0{,}001234 \\cdot 10^{6}");
+        assert_eq!(eng("1234", -1, false), "1234 \\cdot 10^{0}");
+        assert_eq!(eng("1234", -2, false), "1234000 \\cdot 10^{-3}");
+        assert_eq!(eng("0.00056", 0, false), "560 \\cdot 10^{-6}");
+        assert_eq!(eng("0.00056", 0, true), "560\\,\\mathrm{\\mu}");
+        assert_eq!(eng("56", 0, true), "56");
     }
 
     #[test]

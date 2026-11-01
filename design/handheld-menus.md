@@ -577,7 +577,7 @@ maps every setting the core has.
 
 - **Allgemein**: Sprache ✓ (the hui's texts and the engine's) · Winkeleinheit Grad/Bogenmaß
   ✓ (the simulator passes it on) · Signifikante Stellen ✓ (typed, 1–15) · Zahlenformat Norm 1/Norm 2/Fix n/Sci n ✓
-  (Fix and Sci ask for n, 0–9) · Dezimalpräfixe [eng] ◌ · 1000er-Trennung [eng] ◌
+  (Fix and Sci ask for n, 0–9) · Dezimalpräfixe ✓ · 1000er-Trennung [eng] ◌
 - **Ergebnis**: exakt/dezimal ✓ · Brüche d/c, ab/c [eng] ◌ · Periodisch [eng] ◌ · Komplexe
   Zahlen a+bi/Polar (r, θ) [eng] ◌ (the fonts have no ∠) · Quadratische Gleichungen Auto/pq/abc ✓
 - **Rechenweg**: Rechenweg (5 levels) ✓ · Kürzungen durchstreichen ✓ · Gleichungssysteme

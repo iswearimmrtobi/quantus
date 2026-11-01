@@ -196,6 +196,8 @@ pub struct Settings {
     /// Degrees or radians for `\sin 30` and `\arcsin`; the curve sketch always uses radians.
     pub angle_unit: AngleUnit,
     pub number_format: NumberFormat,
+    /// A decimal result without a unit is written with a decimal prefix: `4{,}7\,\mathrm{k}`.
+    pub decimal_prefixes: bool,
 }
 
 impl Default for Settings {
@@ -220,6 +222,7 @@ impl Default for Settings {
             linear_complex: false,
             angle_unit: AngleUnit::Radian,
             number_format: NumberFormat::Auto,
+            decimal_prefixes: false,
         }
     }
 }
@@ -242,7 +245,7 @@ impl Settings {
 
     /// How decimal results are written.
     pub fn number_style(&self) -> Style {
-        Style { format: self.number_format }
+        Style { format: self.number_format, prefixes: self.decimal_prefixes }
     }
 
     pub fn parse_options(&self) -> ParseOptions {
@@ -334,7 +337,8 @@ mod tests {
                 "unknownNames": "indexed",
                 "linearComplex": false,
                 "angleUnit": "radian",
-                "numberFormat": { "style": "auto" }
+                "numberFormat": { "style": "auto" },
+                "decimalPrefixes": false
             })
         );
     }

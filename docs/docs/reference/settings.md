@@ -81,6 +81,7 @@ mode reads **Linear systems + 𝑖** in the top bar. Off, $i$ is an unknown.
 | **Denominator** | `denominatorForm` | `auto`, `expanded`, `factored` | `auto` |
 | **Identities with a condition** | `conditionalIdentities` | `withCondition`, `alwaysValid` | `withCondition` |
 | **Exact as a root** | `exactRoots` | on / off | off |
+| **Decimal prefixes** | `decimalPrefixes` | on / off | off |
 | **Number format** | `numberFormat` | `{ style: "auto" }`, `norm1`, `norm2`, `{ style: "fix", digits }`, `{ style: "sci", digits }` | `auto` |
 | **Quadratic equations** | `quadraticFormula` | `auto`, `pq`, `abc` | `auto` |
 
@@ -107,6 +108,9 @@ $10^{-4}$ to below $10^{15}$; *Norm 1* from $10^{-2}$ and *Norm 2* from $10^{-9}
 $10^{10}$, as on a Casio. *Fix* writes `digits` decimal places (0 to 9, `2` gives $1{,}50$), *Sci*
 `digits` significant digits in scientific notation (1 to 9, 0 means 10; `3` gives
 $1{,}23 \cdot 10^{4}$). Exact results are not affected.
+
+**Decimal prefixes** writes a decimal result without a unit with the prefixes f, p, n, µ, m, k,
+M, G, T, P, E: $4700$ becomes $4{,}7\,\mathrm{k}$, $0{,}25$ becomes $250\,\mathrm{m}$.
 
 **Quadratic equations** chooses the formula in the analysis working: *Automatic* is the pq
 formula in German and the quadratic (abc) formula in English.

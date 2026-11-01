@@ -15,6 +15,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The setting **Number format** (`numberFormat`) for the engine: Norm 1 and Norm 2 as on a Casio,
   Fix with 0 to 9 decimal places and Sci with 1 to 10 significant digits. The default writes
   numbers as before.
+- The setting **Decimal prefixes** (`decimalPrefixes`) writes plain numbers with k, M, m, µ …:
+  `4{,}7\,\mathrm{k}`.
 - A fifth mode, **Linear systems** (German **LGS**), for systems of linear equations, solved
   exactly with their Gauss steps. The **Equations** tab takes one equation per line (Enter
   solves, a second Enter or `\\` starts a new line). The **Matrix** tab takes `[A | b]` in a grid

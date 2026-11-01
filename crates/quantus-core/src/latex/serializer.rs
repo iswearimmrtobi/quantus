@@ -59,10 +59,10 @@ pub fn quantity(value: &Decimal, unit: &Unit) -> String {
 
 /// A result in the user's number format.
 pub fn quantity_styled(value: &Decimal, unit: &Unit, style: &Style) -> String {
-    let number = numbers::format_with(value, style);
     if unit.is_one() {
-        return number;
+        return if style.prefixes { numbers::with_prefix(value, style) } else { numbers::format_with(value, style) };
     }
+    let number = numbers::format_with(value, style);
     format!("{number}\\,{}", unit_latex::format(unit))
 }
 

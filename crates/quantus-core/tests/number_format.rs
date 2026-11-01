@@ -37,3 +37,14 @@ fn the_value_keeps_its_full_precision() {
     let calculation = LatexCalculator::new(20).with_settings(settings).evaluate(r"\frac{2}{3}", &HashMap::new()).unwrap();
     assert_eq!(calculation.value.to_plain_string(), "0.66666666666666666667");
 }
+
+#[test]
+fn decimal_prefixes_apply_to_plain_numbers_only() {
+    let with = |latex: &str| {
+        let settings = Settings { decimal_prefixes: true, ..Settings::default() };
+        LatexCalculator::new(20).with_settings(settings).evaluate(latex, &HashMap::new()).unwrap().result
+    };
+    assert_eq!(with(r"4{,}7 \cdot 1000"), r"4{,}7\,\mathrm{k}");
+    assert_eq!(with(r"\frac{1}{4}"), r"250\,\mathrm{m}");
+    assert_eq!(with(r"4700\,\mathrm{m}"), r"4700\,\mathrm{m}");
+}
