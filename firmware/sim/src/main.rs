@@ -37,6 +37,7 @@ fn main() {
         return;
     }
 
+    print!("{KEYS}");
     let settings = OutputSettingsBuilder::new().scale(2).build();
     let mut window = Window::new("Quantus", &settings);
     let start = Instant::now();
@@ -58,6 +59,22 @@ fn main() {
         std::thread::sleep(Duration::from_millis(15));
     }
 }
+
+/// The PC keys for the calculator's, printed at start (the full table is in the README).
+const KEYS: &str = "\
+Quantus simulator keys
+  MODE (mode tiles)    Tab, then 1-5 or arrows and Enter
+  Setup (SHIFT+MODE)   F1, then Tab; Up/Down pick a line, Left/Right change it
+  SHIFT / ALPHA        F1 or Ctrl+F / F2 or Ctrl+K
+  S<=>D                F3 or Ctrl+D
+  EXE / DEL / AC       Enter / Backspace / Esc, Delete or Ctrl+X
+  fraction ^ index     /  ^  _
+  sqrt x^2 pi e        Ctrl+W  Ctrl+Q  Ctrl+P  Ctrl+E
+  sin cos tan          Ctrl+S  Ctrl+O  Ctrl+T
+  ln log Ans           Ctrl+L  Ctrl+G  Ctrl+A
+  history              Up/Down outside a fraction
+  Shifted characters follow a German layout (Shift+7 is /, Shift+0 is =).
+";
 
 /// The key for a key press. SDL reports the key's unshifted character, so the shifted ones are
 /// those of a German layout.
