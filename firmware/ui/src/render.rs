@@ -19,23 +19,38 @@ const BANDS: usize = HEIGHT.div_ceil(BAND) as usize;
 const STATUS_HEIGHT: i32 = 26;
 const MARGIN: i32 = 10;
 
+/// A dark, muted palette after the desktop app's: nothing bright.
 pub mod colors {
-    use embedded_graphics::pixelcolor::Rgb565;
+    use embedded_graphics::pixelcolor::{Rgb565, RgbColor};
 
-    const fn rgb(r: u8, g: u8, b: u8) -> Rgb565 {
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Rgb565 {
         Rgb565::new(r >> 3, g >> 2, b >> 3)
     }
 
-    pub const BACKGROUND: Rgb565 = rgb(0xf6, 0xf5, 0xf0);
-    pub const TEXT: Rgb565 = rgb(0x1a, 0x1a, 0x1a);
-    pub const RESULT: Rgb565 = rgb(0x12, 0x3c, 0x8c);
-    pub const ERROR: Rgb565 = rgb(0xb4, 0x1e, 0x1e);
-    pub const PLACEHOLDER: Rgb565 = rgb(0x9a, 0x9a, 0x9a);
-    pub const SEPARATOR: Rgb565 = rgb(0xd8, 0xd6, 0xce);
-    pub const STATUS: Rgb565 = rgb(0x2b, 0x33, 0x40);
-    pub const STATUS_TEXT: Rgb565 = rgb(0xf0, 0xf0, 0xf0);
-    pub const SHIFT: Rgb565 = rgb(0xe8, 0xa3, 0x17);
-    pub const SELECTION: Rgb565 = rgb(0xc9, 0xd8, 0xf2);
+    pub const BACKGROUND: Rgb565 = rgb(0x17, 0x16, 0x1d);
+    pub const SURFACE: Rgb565 = rgb(0x1e, 0x1d, 0x27);
+    pub const HAIRLINE: Rgb565 = rgb(0x32, 0x2f, 0x3f);
+    pub const TEXT: Rgb565 = rgb(0xed, 0xeb, 0xf3);
+    pub const MUTED: Rgb565 = rgb(0x8b, 0x87, 0xa3);
+    pub const FAINT: Rgb565 = rgb(0x55, 0x50, 0x6a);
+    pub const RESULT: Rgb565 = rgb(0xc9, 0xc4, 0xe0);
+    pub const ERROR: Rgb565 = rgb(0xc9, 0x8a, 0x96);
+    pub const SHIFT: Rgb565 = rgb(0xc9, 0xa4, 0x6a);
+    pub const ALPHA: Rgb565 = rgb(0x8f, 0xb3, 0xa0);
+    pub const PLACEHOLDER: Rgb565 = FAINT;
+
+    /// `color` mixed toward the background, `amount` of 255 parts.
+    pub fn darken(color: Rgb565, amount: u8) -> Rgb565 {
+        fn mix(from: u8, to: u8, amount: u8) -> u8 {
+            ((from as u16 * (255 - amount as u16) + to as u16 * amount as u16) / 255) as u8
+        }
+        let bg = BACKGROUND;
+        Rgb565::new(
+            mix(color.r(), bg.r(), amount),
+            mix(color.g(), bg.g(), amount),
+            mix(color.b(), bg.b(), amount),
+        )
+    }
 }
 
 /// Something to draw, at absolute screen coordinates.
@@ -96,7 +111,7 @@ impl Frame {
             origin.x -= overflow;
         }
         let caret = caret.translate(Point::new(origin.x - MARGIN, 0));
-        shapes.push(Shape::Fill(full_width(input_top, 1), colors::SEPARATOR));
+        shapes.push(Shape::Fill(full_width(input_top, 1), colors::HAIRLINE));
 
         // The history, newest at the bottom, as far up as there is room.
         let mut bottom = input_top - 6;
@@ -125,7 +140,7 @@ impl Frame {
             let height = entry_input.height();
             shapes.push(Shape::Math(Point::new(MARGIN, bottom - entry_input.descent), entry_input, colors::TEXT));
             bottom -= height + 6;
-            shapes.push(Shape::Fill(full_width(bottom, 1), colors::SEPARATOR));
+            shapes.push(Shape::Fill(full_width(bottom, 1), colors::HAIRLINE));
             bottom -= 5;
         }
 
@@ -137,10 +152,10 @@ impl Frame {
         }
 
         // The status bar over the history's top.
-        shapes.push(Shape::Fill(full_width(0, STATUS_HEIGHT as u32), colors::STATUS));
+        shapes.push(Shape::Fill(full_width(0, STATUS_HEIGHT as u32), colors::darken(app.mode.color(), 110)));
         let status_baseline = STATUS_HEIGHT - 7;
         let mode = app.mode.name().to_string();
-        shapes.push(Shape::Text(Point::new(MARGIN, status_baseline), mode, Scale::Small, colors::STATUS_TEXT));
+        shapes.push(Shape::Text(Point::new(MARGIN, status_baseline), mode, Scale::Small, colors::TEXT));
         if app.shift {
             let label = "SHIFT";
             let x = width - MARGIN - Scale::Small.width(label);
@@ -166,14 +181,14 @@ fn menu(shapes: &mut Vec<Shape>, selected: usize) {
         Point::new(60, top),
         Size::new(WIDTH - 120, (line * Mode::ALL.len() as i32 + 12) as u32),
     );
-    shapes.push(Shape::Fill(area, colors::STATUS));
+    shapes.push(Shape::Fill(area, colors::HAIRLINE));
     shapes.push(Shape::Fill(area.offset(-2), colors::BACKGROUND));
     let metrics = Scale::Normal.metrics();
     for (index, mode) in Mode::ALL.iter().enumerate() {
         let y = top + 6 + line * index as i32;
         if index == selected {
             let row = Rectangle::new(Point::new(62, y), Size::new(WIDTH - 124, line as u32));
-            shapes.push(Shape::Fill(row, colors::SELECTION));
+            shapes.push(Shape::Fill(row, colors::HAIRLINE));
         }
         let baseline = y + (line + metrics.digit) / 2;
         let label = format!("{}   {}", index + 1, mode.name());
