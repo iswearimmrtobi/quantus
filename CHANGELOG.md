@@ -56,6 +56,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   `calc` evaluates it with values given for them, and `solve_for` solves for a chosen letter
   (`F_1 = m_1 a_1` for `a_1`), from a start value with Newton's method where no exact way exists,
   ending with `L - R`.
+- An equation without an unknown is checked: `2 + 3 = 5` gives *true* (*wahr*). Comparisons
+  `<`, `>`, `\le`, `\ge`, `\neq` and chains such as `1 < 2 \le 2` do the same, and a `verify`
+  mode (Prüfen) checks every input.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

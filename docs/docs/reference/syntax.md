@@ -103,6 +103,19 @@ A **system of linear equations** has several unknowns and is the whole input:
 `&` for alignment (`2x + y &= 5`) is allowed. A comma cannot separate equations, it is the
 decimal separator.
 
+An equation **without an unknown** is checked instead: `2 + 3 = 5` gives $\text{true}$ (German
+$\text{wahr}$, value 1), `2 + 3 = 6` $\text{false}$ (0). Comparisons work the same way and chain:
+
+| Input | Result |
+|---|---|
+| `1 < 2`, `\pi > 3{,}2` | $\text{true}$, $\text{false}$ |
+| `\le`, `\leq`, `≤`, `\ge`, `≥`, `\neq`, `≠`, `\lt`, `\gt` | the other comparisons |
+| `1 < 2 \le 2 \neq 3`, `a = b = c` | a chain is true when every link is |
+
+Equal means equal to 40 digits, so $\sqrt{2}^2 = 2$ holds; both sides need the same dimension.
+The mode `verify` (Prüfen, engine only for now) checks every input this way, an equation too, and
+reads `a_1 = 3` as a comparison rather than a definition.
+
 ## Labels and variables
 
 | Input | Meaning |

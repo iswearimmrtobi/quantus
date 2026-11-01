@@ -89,7 +89,7 @@ impl<'a> Evaluator<'a> {
 
     /// The physical constant of that name, unless the mode has none.
     pub(super) fn physical_constant(&self, key: &str) -> Option<PhysicalQuantity> {
-        if matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions) { None } else { physical_constant(key) }
+        if matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify) { None } else { physical_constant(key) }
     }
 
     /// An evaluator that sees the same variables plus `scope`, which the caller updates between
@@ -221,6 +221,44 @@ impl<'a> Evaluator<'a> {
             Node::Determinant { operand, .. } => self.determinant(operand),
             Node::Call { name, arguments, .. } => self.call(name, arguments),
         }
+    }
+
+    /// Whether `left operator right` holds: `=`, `<`, `>`, `\le`, `\ge` or `\neq`. Both sides
+    /// must have the same dimension; equal means equal to 40 digits, so `\sqrt{2}^2 = 2` holds.
+    pub(crate) fn compare(&self, left: &Node, operator: &str, right: &Node) -> Result<bool> {
+        let left = self.evaluate(left)?;
+        let right = self.evaluate(right)?.to(&left.unit)?;
+        let difference = right.value.sub(&left.value);
+        let sign = match difference.as_rational() {
+            Some(exact) => if exact.is_zero() { 0 } else if *exact < RBig::ZERO { -1 } else { 1 },
+            None => match difference.decimal(40) {
+                Ok(decimal) => {
+                    let size = decimal.to_rational();
+                    let tiny = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(35));
+                    if size.clone().abs() < tiny { 0 } else if decimal.is_negative() { -1 } else { 1 }
+                }
+                // A complex difference: only equal or not.
+                Err(_) => {
+                    let zero = difference.re_im().is_some_and(|(re, im)| {
+                        [re, im].iter().all(|part| part.decimal(40).is_ok_and(|d| d.to_rational().abs() < RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(35))))
+                    });
+                    if !zero && !matches!(operator, "=" | "\\neq") {
+                        return Err(QuantusError::other("Complex numbers have no order; only = and ≠ compare them."));
+                    }
+                    if zero { 0 } else { 2 }
+                }
+            },
+        };
+        // sign is that of right - left.
+        Ok(match operator {
+            "=" => sign == 0,
+            "\\neq" => sign != 0,
+            "<" => sign == 1,
+            ">" => sign == -1,
+            "\\le" => sign >= 0 && sign != 2,
+            "\\ge" => sign <= 0,
+            other => return Err(QuantusError::other(format!("Unknown comparison '{other}'."))),
+        })
     }
 
     /// A dimensionless operand's value; `what` names the construct for the error.
@@ -450,6 +488,13 @@ impl<'a> Evaluator<'a> {
                 }
                 let product = (2..=n).fold(IBig::ONE, |p, k| p * IBig::from(k));
                 Ok(PhysicalQuantity::dimensionless(Value::Rat(RBig::from(product))))
+            }
+            (relation, operands) if relation.starts_with("relation ") => {
+                let mut holds = true;
+                for (operator, pair) in relation.split(' ').skip(1).zip(operands.windows(2)) {
+                    holds &= self.compare(&pair[0], operator, &pair[1])?;
+                }
+                Ok(PhysicalQuantity::dimensionless(Value::int(i64::from(holds))))
             }
             ("convert", [value, target]) => {
                 let value = self.evaluate(value)?;

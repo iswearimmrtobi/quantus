@@ -40,6 +40,8 @@ pub enum TokenType {
     Bang,
     /// `'` or `′`, the minutes of an angle; `″` lexes as two of them.
     Prime,
+    /// A comparison, its text one of `<`, `>`, `\le`, `\ge`, `\neq`.
+    Relation,
     End,
 }
 
@@ -227,7 +229,17 @@ impl Lexer<'_> {
         if matches!(text.as_str(), "\\left" | "\\right") && self.at(0) == Some('.') {
             self.index += 1;
         }
-        Ok(if IGNORED_COMMANDS.contains(&text.as_str()) {
+        let relation = match text.as_str() {
+            "\\lt" => Some("<"),
+            "\\gt" => Some(">"),
+            "\\le" | "\\leq" | "\\leqslant" => Some("\\le"),
+            "\\ge" | "\\geq" | "\\geqslant" => Some("\\ge"),
+            "\\neq" | "\\ne" => Some("\\neq"),
+            _ => None,
+        };
+        Ok(if let Some(relation) = relation {
+            Some(Token { kind: TokenType::Relation, text: relation.to_string(), position: start })
+        } else if IGNORED_COMMANDS.contains(&text.as_str()) {
             None
         } else if PIPE_COMMANDS.contains(&text.as_str()) {
             Some(Token { kind: TokenType::Pipe, text: "|".to_string(), position: start })
@@ -264,6 +276,10 @@ impl Lexer<'_> {
             ',' | ';' => TokenType::Comma,
             '!' => TokenType::Bang,
             '\'' | '\u{2032}' => TokenType::Prime,
+            '<' | '>' => TokenType::Relation,
+            '\u{2264}' => return Ok(Token { kind: TokenType::Relation, text: "\\le".into(), position: start }),
+            '\u{2265}' => return Ok(Token { kind: TokenType::Relation, text: "\\ge".into(), position: start }),
+            '\u{2260}' => return Ok(Token { kind: TokenType::Relation, text: "\\neq".into(), position: start }),
             _ => return Err(self.error(format!("Unexpected character '{c}'."), start)),
         };
         Ok(Token { kind, text: c.to_string(), position: start })

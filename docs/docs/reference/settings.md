@@ -14,7 +14,7 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 
 | Setting | Key | Values | Default |
 |---|---|---|---|
-| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `kirchhoff`, `baseN`, `matrix`, `statistics`, `distributions` | `physics` |
+| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `kirchhoff`, `baseN`, `matrix`, `statistics`, `distributions`, `verify` | `physics` |
 | **Number base** | `numberBase` | `dec`, `hex`, `bin`, `oct` | `dec` |
 | **Language** | `language` | `en`, `de` | `en` |
 | **Precision** | `precision` | 1 to 10,000 significant digits | 50 |

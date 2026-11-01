@@ -47,6 +47,9 @@ const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
 /// Functions written as `\operatorname{name}(…)` and parsed as a [`Node::Call`] of that name,
 /// ahead of the unit markup `\operatorname{}` otherwise is.
+/// The call a chain of comparisons becomes: `relation < \le` with the operands as arguments.
+pub(crate) const RELATION: &str = "relation";
+
 /// The call a conversion `value \blacktriangleright unit` becomes.
 pub(crate) const CONVERSION: &str = "convert";
 
@@ -231,15 +234,23 @@ impl Parser<'_> {
             let target = self.conversion_target()?;
             expression = Node::Call { name: CONVERSION.into(), arguments: vec![expression, target], position };
         }
-        if self.current().kind == TokenType::Equals {
-            // `x^2 - 5x + 6 = 0`: an equation to solve, not a label.
-            self.advance();
-            let right = self.parse_expression()?;
-            let position = expression.position();
-            expression = Node::Equation { left: Box::new(expression), right: Box::new(right), position };
+        // `x^2 - 5x + 6 = 0` is an equation to solve; `1 < 2 \le 2` and `a = b = c` a chain of
+        // comparisons that is true or false.
+        let position = expression.position();
+        let mut operators = Vec::new();
+        let mut operands = vec![expression];
+        while matches!(self.current().kind, TokenType::Equals | TokenType::Relation) {
+            let token = self.advance();
+            operators.push(if token.kind == TokenType::Equals { "=".to_string() } else { token.text });
+            operands.push(self.parse_expression()?);
         }
-        if self.current().kind == TokenType::Equals {
-            return Err(self.error("Only one '=' is allowed.", self.current().position));
+        let mut expression = operands.remove(0);
+        if operators.len() == 1 && operators[0] == "=" {
+            let right = operands.remove(0);
+            expression = Node::Equation { left: Box::new(expression), right: Box::new(right), position };
+        } else if !operators.is_empty() {
+            operands.insert(0, expression);
+            expression = Node::Call { name: format!("{RELATION} {}", operators.join(" ")), arguments: operands, position };
         }
         self.expect(TokenType::End, "the end of the input")?;
         Ok(Formula { label, expression: normalizer::normalize(expression), source: self.source.to_string() })

@@ -15,7 +15,7 @@ use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::forms::{self, FormKind, ResultForm};
 use crate::matrix::{Item, Matrices, Matrix, MatrixEvaluator};
-use crate::settings::{AngleUnit, BinomialForm, ComplexForm, FractionForm, Mode, Settings, StepDetail};
+use crate::settings::{AngleUnit, BinomialForm, ComplexForm, FractionForm, Language, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
@@ -183,7 +183,15 @@ impl LatexCalculator {
         if self.settings.mode == Mode::Matrix {
             return Ok(self.evaluate_matrix(latex, variables, &Matrices::new())?.0);
         }
-        let formula = parser::parse_with(latex, &self.settings.parse_options())?;
+        let mut formula = parser::parse_with(latex, &self.settings.parse_options())?;
+        if self.settings.mode == Mode::Verify {
+            // Checking defines nothing: `a_1 = 3` compares a_1 with 3.
+            if let Some(label) = formula.label.take() {
+                let position = label.position;
+                let name = Node::Variable { name: label.name, index: label.index.unwrap_or_default(), position };
+                formula.expression = Node::Equation { left: Box::new(name), right: Box::new(formula.expression), position };
+            }
+        }
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
             .with_mode(self.settings.evaluation_mode())
@@ -194,6 +202,15 @@ impl LatexCalculator {
         }
         match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
+            Node::Equation { left, right, .. } if self.settings.mode == Mode::Verify || !has_unknown(&formula.expression, &evaluator) => {
+                // Nothing to solve for: the equation is true or false.
+                let holds = evaluator.compare(left, "=", right)?;
+                Ok(self.truth(formula.clone(), holds))
+            }
+            Node::Call { name, .. } if name.starts_with("relation ") => {
+                let holds = !evaluator.evaluate(&formula.expression)?.value.is_zero();
+                Ok(self.truth(formula.clone(), holds))
+            }
             equation @ Node::Equation { .. } => {
                 let (quantity, value, imaginary, result) = self.solve(&evaluator, equation)?;
                 let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
@@ -324,6 +341,35 @@ impl LatexCalculator {
             warning: None,
             forms: Vec::new(),
         })
+    }
+
+    /// An (in)equality without unknowns: `\text{wahr}` or `\text{falsch}` (true, false), its
+    /// value 1 or 0 as on a Casio.
+    fn truth(&self, formula: Formula, holds: bool) -> Calculation {
+        let word = match (self.settings.language, holds) {
+            (Language::De, true) => "wahr",
+            (Language::De, false) => "falsch",
+            (_, true) => "true",
+            (_, false) => "false",
+        };
+        let result = format!("\\text{{{word}}}");
+        let input = serializer::formula(&formula);
+        let steps = vec![Step::new(StepKind::Symbolic, input.clone()), Step::new(StepKind::Result, result.clone())];
+        Calculation {
+            formula,
+            latex: result.clone(),
+            steps: shown_steps(&steps, self.settings.step_detail),
+            input,
+            result,
+            value: Decimal::from_i64(i64::from(holds)),
+            imaginary: None,
+            unit: String::new(),
+            quantity_name: None,
+            quantity: PhysicalQuantity::dimensionless(Value::int(i64::from(holds))),
+            domain_restrictions: None,
+            warning: None,
+            forms: Vec::new(),
+        }
     }
 
     /// `\operatorname{divR}(a; b)` as the whole input shows the remainder next to the quotient:
@@ -989,6 +1035,13 @@ fn common_unit_line(expression: &Node, evaluator: &Evaluator, prefix: &str) -> O
 fn has_free_algebraic_variables(node: &Node, evaluator: &Evaluator) -> bool {
     let mut bound = Vec::new();
     check_free_algebraic_variables(node, &mut bound, evaluator)
+}
+
+/// Whether an equation has a letter to solve for.
+fn has_unknown(equation: &Node, evaluator: &Evaluator) -> bool {
+    let mut found = Vec::new();
+    super::solver::collect_unknowns(equation, false, &mut Vec::new(), evaluator, &mut found);
+    !found.is_empty()
 }
 
 fn check_free_algebraic_variables(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator) -> bool {

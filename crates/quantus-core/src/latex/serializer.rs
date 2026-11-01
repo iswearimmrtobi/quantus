@@ -213,6 +213,13 @@ fn text(node: &Node, mode: SerializerMode) -> String {
             }
         }
         Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
+            (name, operands) if name.starts_with("relation ") => {
+                let mut out = expression_with_mode(&operands[0], mode);
+                for (operator, operand) in name.split(' ').skip(1).zip(&operands[1..]) {
+                    out.push_str(&format!(" {operator} {}", expression_with_mode(operand, mode)));
+                }
+                out
+            }
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
             ("convert", [value, unit]) => {
                 format!("{} \\blacktriangleright {}", expression_with_mode(value, mode), expression_with_mode(unit, mode))

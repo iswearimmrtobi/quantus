@@ -140,6 +140,9 @@ pub enum Mode {
     Statistics,
     /// Probability distributions ([`crate::stochastics`]). Inputs are read as in `Algebra`.
     Distributions,
+    /// Checks (in)equalities, chained as `1 < 2 \le 2`: true or false (Prüfen). Inputs are read
+    /// as in `Algebra`, and an equation is checked instead of solved.
+    Verify,
 }
 
 /// The unit a plain number in a trigonometric function is read in, and inverse functions answer in.
@@ -301,7 +304,7 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions),
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify),
             imaginary_i: self.complex(),
         }
     }
@@ -410,6 +413,7 @@ mod tests {
         assert_eq!(serde_json::to_value(Mode::BaseN).unwrap(), json!("baseN"));
         assert_eq!(serde_json::to_value(Mode::Matrix).unwrap(), json!("matrix"));
         assert_eq!(serde_json::to_value(Mode::Distributions).unwrap(), json!("distributions"));
+        assert_eq!(serde_json::to_value(Mode::Verify).unwrap(), json!("verify"));
     }
 
     #[test]

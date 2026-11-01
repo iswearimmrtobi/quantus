@@ -42,7 +42,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       hp, °F …)
 - [x] Exact cubics and quartics (Cardano, Ferrari); drop the [−100, 100] limit
 - [x] API: the free variables of an expression (CALC), solve for a named variable (SOLVE)
-- [ ] wahr/falsch for an equation without unknowns, and a Prüfen mode with chaining
+- [x] wahr/falsch for an equation without unknowns, and a Prüfen mode with chaining
 - [ ] Sessions: history, mode inputs, name and timestamps in `session.rs`, serde JSON with a
       format version
 - [ ] PreAns next to Ans in the session
