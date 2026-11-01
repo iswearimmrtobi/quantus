@@ -372,9 +372,74 @@ impl Parser<'_> {
             if let Some(celsius) = self.celsius_after_degree_sign() {
                 return Ok(Node::binary(Operator::ImplicitTimes, base, celsius, position));
             }
-            return Ok(Node::Degrees { operand: Box::new(base), position });
+            return self.sexagesimal(base, position);
         }
         Ok(Node::Power { base: Box::new(base), exponent: Box::new(self.parse_unary()?), position })
+    }
+
+    /// The minutes and seconds that may follow a degree sign: `2^\circ 20' 30''`. Each is a
+    /// number followed by one prime (minutes) or two (seconds), as `'`, `′`, `″` or
+    /// `^{\prime}`; the result is one angle in degrees.
+    fn sexagesimal(&mut self, degrees: Node, position: usize) -> Result<Node> {
+        let mut minutes = None;
+        let mut seconds = None;
+        while self.current().kind == TokenType::Number {
+            let Some((primes, consumed)) = self.primes_at(1) else { break };
+            let slot = if primes == 1 && minutes.is_none() && seconds.is_none() {
+                &mut minutes
+            } else if primes == 2 && seconds.is_none() {
+                &mut seconds
+            } else {
+                break;
+            };
+            let number = self.advance();
+            let value = Decimal::parse(&number.text)
+                .ok_or_else(|| self.error(&format!("'{}' is not a number.", number.text), number.position))?;
+            *slot = Some(value);
+            self.index += consumed;
+        }
+        if minutes.is_none() && seconds.is_none() {
+            return Ok(Node::Degrees { operand: Box::new(degrees), position, sexagesimal: None });
+        }
+        let Node::Number { value: whole, .. } = &degrees else {
+            return Err(self.error("Degrees, minutes and seconds must be plain numbers.", position));
+        };
+        let mut written = format!("{}^{{\\circ}}", super::numbers::format(whole));
+        let mut operand = degrees.clone();
+        for (part, per_degree, mark) in [(&minutes, 60, "'"), (&seconds, 3600, "''")] {
+            if let Some(value) = part {
+                written.push_str(&format!("{}{mark}", super::numbers::format(value)));
+                let number = Node::Number { value: value.clone(), position };
+                let share = Node::fraction(number, Node::Number { value: Decimal::from_i64(per_degree), position }, position);
+                operand = Node::binary(Operator::Plus, operand, share, position);
+            }
+        }
+        let operand = Node::Group { inner: Box::new(operand), position };
+        Ok(Node::Degrees { operand: Box::new(operand), position, sexagesimal: Some(written) })
+    }
+
+    /// The primes starting `offset` tokens ahead: how many (1 or 2) and how many tokens they take.
+    fn primes_at(&self, offset: usize) -> Option<(usize, usize)> {
+        let is = |o: usize, kind: TokenType| self.peek(o).kind == kind;
+        let is_prime = |o: usize| self.peek(o).kind == TokenType::Command && self.peek(o).text == "\\prime";
+        if is(offset, TokenType::Prime) {
+            return Some(if is(offset + 1, TokenType::Prime) { (2, 2) } else { (1, 1) });
+        }
+        if !is(offset, TokenType::Caret) {
+            return None;
+        }
+        if is_prime(offset + 1) {
+            return Some(if is_prime(offset + 2) { (2, 3) } else { (1, 2) });
+        }
+        if is(offset + 1, TokenType::LBrace) && is_prime(offset + 2) {
+            if is(offset + 3, TokenType::RBrace) {
+                return Some((1, 4));
+            }
+            if is_prime(offset + 3) && is(offset + 4, TokenType::RBrace) {
+                return Some((2, 5));
+            }
+        }
+        None
     }
 
     /// A `C` right after a degree sign, bare or as `\mathrm{C}` / `\text{C}`: the Celsius unit.

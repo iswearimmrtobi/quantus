@@ -17,6 +17,8 @@ editor produces the same LaTeX. Results in this page are from Physics mode unles
 | `20\%` | percent, a unit | $20\,\%$ |
 | `\pi`, `e` | the constants $\pi$ and $e$ | |
 | `i` | the imaginary unit, in Imaginary mode only | |
+| `30^\circ`, `30°` | an angle in degrees | $30$ with degrees, $\frac{\pi}{6}$ with radians |
+| `2^\circ 20' 30''`, `2°20′30″` | degrees, minutes, seconds (also `^{\prime}`, `^{\prime\prime}`) | $2{,}341\overline{6}$ with degrees |
 
 :::caution
 `1.5e3` is **not** scientific notation: it is $1{,}5 \cdot e \cdot 3$. Write `1.5 \times 10^3`.

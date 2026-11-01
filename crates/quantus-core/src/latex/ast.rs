@@ -34,8 +34,9 @@ pub enum Node {
     Abs { operand: Box<Node>, position: usize },
     /// `\binom{n}{k}`.
     Binomial { n: Box<Node>, k: Box<Node>, position: usize },
-    /// `x^\circ`: an angle in degrees.
-    Degrees { operand: Box<Node>, position: usize },
+    /// `x^\circ`: an angle in degrees. Typed as degrees, minutes and seconds (`2^\circ 20' 30''`),
+    /// `operand` is their sum in degrees and `sexagesimal` the input as written.
+    Degrees { operand: Box<Node>, position: usize, sexagesimal: Option<String> },
     /// `\sum_{i=from}^{to} body`.
     Sum { index: String, from: Box<Node>, to: Box<Node>, body: Box<Node>, position: usize },
     /// `\int_{lower}^{upper} body \, dx`.
@@ -133,7 +134,9 @@ impl Node {
             }
             Node::Negation { operand, position } => Node::Negation { operand: b(operand), position },
             Node::Abs { operand, position } => Node::Abs { operand: b(operand), position },
-            Node::Degrees { operand, position } => Node::Degrees { operand: b(operand), position },
+            Node::Degrees { operand, position, sexagesimal } => {
+                Node::Degrees { operand: b(operand), position, sexagesimal: sexagesimal.clone() }
+            }
             Node::Determinant { operand, position } => Node::Determinant { operand: b(operand), position },
             Node::Group { inner, position } => Node::Group { inner: b(inner), position },
             Node::Function { name, argument, position } => Node::Function { name, argument: b(argument), position },

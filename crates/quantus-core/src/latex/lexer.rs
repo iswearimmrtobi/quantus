@@ -38,6 +38,8 @@ pub enum TokenType {
     Comma,
     /// `!`, the factorial.
     Bang,
+    /// `'` or `′`, the minutes of an angle; `″` lexes as two of them.
+    Prime,
     End,
 }
 
@@ -89,6 +91,16 @@ impl Lexer<'_> {
             };
             if c.is_ascii_digit() {
                 tokens.push(self.number());
+            } else if c == DEGREE && !self.at(1).is_some_and(char::is_alphabetic) {
+                // A lone `°` is the degree sign, as `^\circ`.
+                tokens.push(Token { kind: TokenType::Caret, text: "^".to_string(), position: self.index });
+                tokens.push(Token { kind: TokenType::Command, text: "\\circ".to_string(), position: self.index });
+                self.index += 1;
+            } else if c == '\u{2033}' {
+                for _ in 0..2 {
+                    tokens.push(Token { kind: TokenType::Prime, text: "'".to_string(), position: self.index });
+                }
+                self.index += 1;
             } else if c.is_alphabetic() || c == DEGREE {
                 tokens.push(self.identifier());
             } else if c == '%' {
@@ -240,6 +252,7 @@ impl Lexer<'_> {
             ']' => TokenType::RBracket,
             ',' | ';' => TokenType::Comma,
             '!' => TokenType::Bang,
+            '\'' | '\u{2032}' => TokenType::Prime,
             _ => return Err(self.error(format!("Unexpected character '{c}'."), start)),
         };
         Ok(Token { kind, text: c.to_string(), position: start })

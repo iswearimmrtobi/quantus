@@ -214,6 +214,7 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         },
         Node::Abs { operand, .. } => format!("\\left|{}\\right|", expression_with_mode(operand, mode)),
         Node::Binomial { n, k, .. } => format!("\\binom{{{}}}{{{}}}", expression_with_mode(n, mode), expression_with_mode(k, mode)),
+        Node::Degrees { sexagesimal: Some(written), .. } => written.clone(),
         Node::Degrees { operand, .. } => format!("{}^{{\\circ}}", render(operand, PRECEDENCE_ATOM, mode)),
         Node::Sum { index, from, to, body, .. } => format!(
             "\\sum_{{{index}={}}}^{{{}}} {}",

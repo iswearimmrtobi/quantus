@@ -160,7 +160,9 @@ impl<'a> Evaluator<'a> {
             }
             Node::Degrees { operand, .. } => {
                 let angle = self.plain_number(operand, "An angle in degrees")?;
-                Ok(PhysicalQuantity::dimensionless(angle.mul(&Value::Pi).div(&Value::int(180))?))
+                // Degree mode computes in degrees, so the sign changes nothing there.
+                let angle = if self.degrees() { angle } else { angles::to_radians(&angle)? };
+                Ok(PhysicalQuantity::dimensionless(angle))
             }
             Node::Binomial { n, k, .. } => {
                 let n = self.whole_number(n, "binom")?;

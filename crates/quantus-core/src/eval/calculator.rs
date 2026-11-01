@@ -5,6 +5,7 @@
 //! when there is something to substitute, i.e. when the input uses session variables;
 //! otherwise symbolic and substituted would be the same line twice.
 
+use super::angles;
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
 use super::system::{Solution, SystemSolution};
@@ -12,7 +13,8 @@ use super::system_steps::{negative, unknown_latex};
 use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
-use crate::settings::{BinomialForm, Mode, Settings, StepDetail};
+use crate::forms::{self, FormKind, ResultForm};
+use crate::settings::{AngleUnit, BinomialForm, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
@@ -35,6 +37,8 @@ pub struct Calculation {
     pub domain_restrictions: Option<Vec<String>>,
     /// A note that does not stop the result, e.g. that an expression kept as typed has free variables.
     pub warning: Option<String>,
+    /// The result written other ways, for S⇔D: °′″ and so on.
+    pub forms: Vec<ResultForm>,
 }
 
 impl Calculation {
@@ -195,6 +199,7 @@ impl LatexCalculator {
                     formula,
                     domain_restrictions: None,
                     warning: None,
+                    forms: Vec::new(),
                 })
             }
             expression => {
@@ -205,6 +210,7 @@ impl LatexCalculator {
                     Ok(raw_qty) => {
                         let quantity = raw_qty.simplify()?;
                         let (value, imaginary, result) = self.present(&quantity)?;
+                        let forms = self.forms(expression, &quantity, &value, imaginary.as_ref());
                         let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
                         Ok(Calculation {
                             input: serializer::formula(&formula),
@@ -219,6 +225,7 @@ impl LatexCalculator {
                             formula,
                             domain_restrictions: None,
                     warning: None,
+                    forms,
                         })
                     }
                     Err(crate::QuantusError::UnresolvedVariable(name)) => {
@@ -303,6 +310,7 @@ impl LatexCalculator {
             formula,
             domain_restrictions,
             warning,
+            forms: Vec::new(),
         })
     }
 
@@ -361,6 +369,7 @@ impl LatexCalculator {
             formula,
             domain_restrictions: None,
             warning: None,
+                    forms: Vec::new(),
         })
     }
 
@@ -470,6 +479,17 @@ impl LatexCalculator {
             }
             Err(error) => Err(error),
         }
+    }
+
+    /// The other forms of a result that S⇔D cycles through.
+    fn forms(&self, expression: &Node, quantity: &PhysicalQuantity, value: &Decimal, imaginary: Option<&Decimal>) -> Vec<ResultForm> {
+        let mut forms = Vec::new();
+        let real_number = imaginary.is_none() && quantity.is_dimensionless();
+        let in_degrees = self.settings.angle_unit == AngleUnit::Degree && self.settings.evaluation_mode() != Mode::Analysis;
+        if real_number && in_degrees && angles::gives_degrees(expression) {
+            forms.push(ResultForm::new(FormKind::Sexagesimal, forms::sexagesimal(value)));
+        }
+        forms
     }
 
     /// `raw` is the value as evaluated, before its unit is simplified.

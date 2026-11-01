@@ -1,6 +1,7 @@
 //! The angle unit: in degree mode a plain number in `\sin` is read in degrees and `\arcsin`
-//! answers in degrees. A value marked with `^\circ` or `\mathrm{rad}` keeps its own unit, so
-//! `\sin(\pi\,\mathrm{rad})` is 0 in either setting.
+//! answers in degrees. Each mode computes in its own unit: `30^\circ` is `30` in degree mode and
+//! `\frac{\pi}{6}` in radian mode, so the degree sign works in both. A value marked with
+//! `\mathrm{rad}` is radians either way, so `\sin(\pi\,\mathrm{rad})` is 0 in both.
 
 use std::cell::Cell;
 
@@ -14,16 +15,24 @@ pub(crate) fn takes_angle(name: &str) -> bool {
     matches!(name, "sin" | "cos" | "tan" | "cot" | "sec" | "csc")
 }
 
+/// Whether `node` gives an angle that the °′″ form suits: it has a degree sign or an inverse
+/// trigonometric function, or takes the argument of a complex number.
+pub(crate) fn gives_degrees(node: &Node) -> bool {
+    match node {
+        Node::Degrees { .. } => true,
+        Node::Function { name, .. } if gives_angle(name) || name == "arg" => true,
+        other => other.children().into_iter().any(gives_degrees),
+    }
+}
+
 /// Functions that give an angle.
 pub(crate) fn gives_angle(name: &str) -> bool {
     matches!(name, "arcsin" | "arccos" | "arctan")
 }
 
-/// Whether `node` states its own angle unit: a `^\circ` or a `\mathrm{rad}` outside any
-/// nested function.
+/// Whether `node` is marked as radians, by a `\mathrm{rad}` outside any nested function.
 pub(crate) fn is_marked(node: &Node) -> bool {
     match node {
-        Node::Degrees { .. } => true,
         Node::Unit { unit, .. } => unit.factors().iter().any(|factor| factor.item.kind() == Kind::Radian),
         Node::Function { .. } | Node::Call { .. } | Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. }
         | Node::Derivative { .. } => false,

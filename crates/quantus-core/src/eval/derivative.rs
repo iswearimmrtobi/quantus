@@ -92,6 +92,7 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
             Node::fraction(multiply(u.clone(), inner, position), Node::Abs { operand: Box::new(u), position }, position)
         }
         // x° is x π / 180
+        Node::Degrees { operand, .. } if angles::in_degrees() => d(operand)?,
         Node::Degrees { operand, .. } => {
             let inner = d(operand)?;
             let factor = Node::fraction(Node::Constant { name: "\\pi".into(), position }, number(180, position), position);

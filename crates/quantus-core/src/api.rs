@@ -6,6 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::electro::interface;
+use crate::forms::ResultForm;
 use crate::eval::{Calculation, Step};
 use crate::session::{SessionStore, Variable};
 use crate::settings::Settings;
@@ -53,6 +54,9 @@ pub struct CalculationResponse {
     /// Set when the result is shown as typed because its variables have no value.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub warning: Option<String>,
+    /// The result written other ways than `result` (°′″, …), for a form switch.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub forms: Vec<ResultForm>,
 }
 
 impl CalculationResponse {
@@ -71,6 +75,7 @@ impl CalculationResponse {
             variable: variable.map(VariableResponse::of),
             domain_restrictions: calculation.domain_restrictions.clone(),
             warning: calculation.warning.clone(),
+            forms: calculation.forms.clone(),
         }
     }
 }
