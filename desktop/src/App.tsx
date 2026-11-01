@@ -18,9 +18,9 @@ import { SessionsPanel } from './components/SessionsPanel';
 import { ToolDialog, type ToolKind } from './components/ToolDialog';
 import { I18nContext, makeTranslate } from './i18n';
 import type { TextKey } from './i18n/en';
-import { DEFAULT_SETTINGS, modeChoices, Segmented, SettingsPanel } from './components/SettingsPanel';
+import { DEFAULT_SETTINGS, modeChoices, Segmented, SettingsDialog } from './components/SettingsDialog';
 
-type Panel = 'history' | 'variables' | 'library' | 'sessions' | 'settings' | null;
+type Panel = 'history' | 'variables' | 'library' | 'sessions' | null;
 
 const STEP_LABELS: Record<StepKind, TextKey> = {
   symbolic: 'step.symbolic',
@@ -89,6 +89,7 @@ export function App() {
   const [tool, setTool] = useState<ToolKind | null>(null);
   const [stepsOpen, setStepsOpen] = useState(true);
   const [panel, setPanel] = useState<Panel>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [precision, setPrecision] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -414,18 +415,19 @@ export function App() {
           toggleLatexMode();
           break;
         case 'toggle-settings':
-          togglePanel('settings');
+          setSettingsOpen((open) => !open);
           break;
       }
     });
   }, [copy, evaluate, reset, togglePanel, toggleLatexMode, openTool, nextForm, engineering, newSession]);
 
-  // Escape closes the panel everywhere; the Ctrl combos only stand in for the menu when the
+  // Escape closes the panel and the settings everywhere; the Ctrl combos only stand in for the menu when the
   // UI runs in a plain browser (`npm run dev:renderer`).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setPanel(null);
+        setSettingsOpen(false);
         editor()?.focus();
         return;
       }
@@ -445,7 +447,7 @@ export function App() {
         togglePanel('variables');
       } else if (key === '.') {
         event.preventDefault();
-        togglePanel('settings');
+        setSettingsOpen((open) => !open);
       } else if (key === 'k') {
         event.preventDefault();
         togglePanel('library');
@@ -798,9 +800,9 @@ export function App() {
           </svg>
         </button>
         <button
-          className={panel === 'settings' ? 'rail-btn active' : 'rail-btn'}
+          className={settingsOpen ? 'rail-btn rail-settings active' : 'rail-btn rail-settings'}
           title={`${t('settings')} (${ctrl}+.)`}
-          onClick={() => togglePanel('settings')}
+          onClick={() => setSettingsOpen((open) => !open)}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
             <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
@@ -835,12 +837,6 @@ export function App() {
             onClick={() => setPanel('sessions')}
           >
             {t('sessions')}
-          </button>
-          <button
-            className={panel === 'settings' ? 'panel-tab active' : 'panel-tab'}
-            onClick={() => setPanel('settings')}
-          >
-            {t('settings')}
           </button>
           {/* Das Panel liegt über der Leiste, deren Knöpfe es sonst schließen würden. */}
           <button
@@ -914,10 +910,6 @@ export function App() {
               onDelete={(id) => void deleteSession(id)}
             />
           )}
-
-          {panel === 'settings' && (
-            <SettingsPanel settings={settings} error={settingsError} onChange={(next) => void changeSettings(next)} />
-          )}
         </div>
       </aside>
 
@@ -929,6 +921,18 @@ export function App() {
           {t('footer.counts', { variables: variables.length, history: history.length })}
         </span>
       </footer>
+
+      {settingsOpen && (
+        <SettingsDialog
+          settings={settings}
+          error={settingsError}
+          onChange={(next) => void changeSettings(next)}
+          onClose={() => {
+            setSettingsOpen(false);
+            editor()?.focus();
+          }}
+        />
+      )}
 
       {tool && (
         <ToolDialog

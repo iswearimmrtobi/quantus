@@ -1,24 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StepDetail, UnknownNames } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
   value: T;
   label: string;
+  /** Shown on hover. */
+  hint?: string;
 }
 
 /** With the imaginary unit switched on, the linear systems mode reads "… + 𝑖". */
-export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[] => [
-  { value: 'algebra', label: t('mode.algebra') },
-  { value: 'physics', label: t('mode.physics') },
-  { value: 'imaginary', label: t('mode.imaginary') },
-  { value: 'electronics', label: t('mode.electronics') },
-  { value: 'analysis', label: t('mode.analysis') },
-  { value: 'linear', label: linearComplex ? `${t('mode.linear')} + 𝑖` : t('mode.linear') },
-  { value: 'kirchhoff', label: t('mode.kirchhoff') },
-  { value: 'baseN', label: t('mode.baseN') },
-  { value: 'verify', label: t('mode.verify') },
-];
+export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[] =>
+  (['algebra', 'physics', 'imaginary', 'electronics', 'analysis', 'linear', 'kirchhoff', 'baseN', 'verify'] as const).map(
+    (value) => ({
+      value,
+      label: value === 'linear' && linearComplex ? `${t('mode.linear')} + 𝑖` : t(`mode.${value}`),
+      hint: t(`mode.${value}.hint`),
+    }),
+  );
 
 const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({
   value,
@@ -132,6 +131,7 @@ export function Segmented<T extends string>(props: { choices: Choice<T>[]; value
         <button
           key={choice.value}
           className={choice.value === props.value ? 'segment active' : 'segment'}
+          title={choice.hint}
           onClick={() => props.onChange(choice.value)}
         >
           {choice.label}
@@ -141,7 +141,7 @@ export function Segmented<T extends string>(props: { choices: Choice<T>[]; value
   );
 }
 
-/** A dropdown for choices too many or too long to fit side by side in the panel. */
+/** A dropdown for choices too many or too long to fit side by side. */
 function Dropdown<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
   return (
     <select className="setting-select" value={props.value} onChange={(event) => props.onChange(event.target.value as T)}>
@@ -166,14 +166,45 @@ function Toggle(props: { checked: boolean; label: string; hint: string; onChange
   );
 }
 
+type Category = 'general' | 'numbers' | 'algebra' | 'steps' | 'input';
+
+const CATEGORIES: Category[] = ['general', 'numbers', 'algebra', 'steps', 'input'];
+
+/** The category the dialog was left on; only a convenience, so a blocked storage is fine. */
+const CATEGORY_KEY = 'quantus.settingsCategory';
+
+function storedCategory(): Category {
+  try {
+    const stored = localStorage.getItem(CATEGORY_KEY);
+    return CATEGORIES.includes(stored as Category) ? (stored as Category) : 'general';
+  } catch {
+    return 'general';
+  }
+}
+
 /**
- * Wie Eingaben gelesen und Ergebnisse geschrieben werden. Jede Änderung geht sofort an die
- * Engine, die sie prüft und speichert; ein Fehler bleibt hier im Panel stehen.
+ * Wie Eingaben gelesen und Ergebnisse geschrieben werden, nach Bereichen getrennt. Jede Änderung
+ * geht sofort an die Engine, die sie prüft und speichert; ein Fehler bleibt hier im Dialog stehen.
  */
-export function SettingsPanel(props: { settings: Settings; error: string | null; onChange: (settings: Settings) => void }) {
+export function SettingsDialog(props: {
+  settings: Settings;
+  error: string | null;
+  onChange: (settings: Settings) => void;
+  onClose: () => void;
+}) {
   const { settings, onChange } = props;
   const { t } = useT();
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => onChange({ ...settings, [key]: value });
+
+  const [category, setCategory] = useState(storedCategory);
+  const choose = (next: Category) => {
+    setCategory(next);
+    try {
+      localStorage.setItem(CATEGORY_KEY, next);
+    } catch {
+      // Then it opens on General next time.
+    }
+  };
 
   // Die Genauigkeit wird erst beim Verlassen des Feldes übernommen, nicht bei jeder Ziffer.
   const [precision, setPrecision] = useState(String(settings.precision));
@@ -195,66 +226,15 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
     else setDigits(String(format.digits));
   };
 
-  return (
-    <div className="settings">
+  /** Settings that only one mode reads say which. */
+  const onlyIn = (mode: Mode) => <span className="setting-only">{t('settings.onlyIn', { mode: t(`mode.${mode}`) })}</span>;
+
+  const general = (
+    <>
       <section className="setting">
         <h3>{t('settings.language')}</h3>
         <Segmented choices={LANGUAGE_CHOICES} value={settings.language} onChange={(v) => set('language', v)} />
       </section>
-
-      <section className="setting">
-        <h3>{t('settings.mode')}</h3>
-        <Dropdown choices={modeChoices(t, settings.linearComplex)} value={settings.mode} onChange={(v) => set('mode', v)} />
-        <p className="setting-hint">{t(`mode.${settings.mode}.hint`)}</p>
-      </section>
-
-      <section className="setting">
-        <h3>{t('settings.detail')}</h3>
-        <Dropdown choices={detailChoices(t)} value={settings.stepDetail} onChange={(v) => set('stepDetail', v)} />
-        <p className="setting-hint">{t(`detail.${settings.stepDetail}.hint`)}</p>
-        <Toggle
-          checked={settings.cancelMarks}
-          label={t('settings.cancel')}
-          hint={t('settings.cancel.hint')}
-          onChange={(v) => set('cancelMarks', v)}
-        />
-      </section>
-
-      {settings.mode === 'analysis' && (
-        <section className="setting">
-          <h3>{t('settings.quadratic')}</h3>
-          <Segmented
-            choices={quadraticChoices(t)}
-            value={settings.quadraticFormula}
-            onChange={(v) => set('quadraticFormula', v)}
-          />
-          <p className="setting-hint">{t('settings.quadratic.hint')}</p>
-        </section>
-      )}
-
-      {settings.mode !== 'analysis' && (
-        <section className="setting">
-          <h3>{t('settings.elimination')}</h3>
-          <Segmented
-            choices={eliminationChoices(t)}
-            value={settings.elimination}
-            onChange={(v) => set('elimination', v)}
-          />
-          <p className="setting-hint">{t(`settings.elimination.${settings.elimination}.hint`)}</p>
-        </section>
-      )}
-
-      {settings.mode === 'linear' && (
-        <section className="setting">
-          <h3>{t('settings.unknownNames')}</h3>
-          <Segmented
-            choices={unknownNameChoices(t)}
-            value={settings.unknownNames}
-            onChange={(v) => set('unknownNames', v)}
-          />
-          <p className="setting-hint">{t('settings.unknownNames.hint')}</p>
-        </section>
-      )}
 
       <section className="setting">
         <h3>{t('settings.precision')}</h3>
@@ -277,7 +257,11 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
         <Segmented choices={angleChoices(t)} value={settings.angleUnit} onChange={(v) => set('angleUnit', v)} />
         <p className="setting-hint">{t('settings.angle.hint')}</p>
       </section>
+    </>
+  );
 
+  const numbers = (
+    <>
       <section className="setting">
         <h3>{t('settings.format')}</h3>
         <Segmented
@@ -326,20 +310,22 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
         />
       </section>
 
-      {settings.mode === 'imaginary' && (
-        <section className="setting">
-          <h3>{t('settings.complex')}</h3>
-          <Segmented choices={COMPLEX_CHOICES} value={settings.complexForm} onChange={(v) => set('complexForm', v)} />
-          <p className="setting-hint">{t('settings.complex.hint')}</p>
-        </section>
-      )}
+      <section className="setting">
+        <h3>{t('settings.complex')}</h3>
+        <Segmented choices={COMPLEX_CHOICES} value={settings.complexForm} onChange={(v) => set('complexForm', v)} />
+        <p className="setting-hint">
+          {t('settings.complex.hint')} {onlyIn('imaginary')}
+        </p>
+      </section>
+    </>
+  );
 
+  const algebra = (
+    <>
       <section className="setting">
         <h3>{t('settings.binomial')}</h3>
         <Segmented choices={binomialChoices(t)} value={settings.binomialForm} onChange={(v) => set('binomialForm', v)} />
-        <p className="setting-hint">
-          {t('settings.binomial.hint')}
-        </p>
+        <p className="setting-hint">{t('settings.binomial.hint')}</p>
         <Toggle
           checked={settings.completeSquare}
           label={t('settings.square')}
@@ -377,34 +363,122 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
           onChange={(v) => set('exactRoots', v)}
         />
       </section>
+    </>
+  );
 
+  const steps = (
+    <>
       <section className="setting">
-        <h3>{t('settings.input')}</h3>
+        <h3>{t('settings.detail')}</h3>
+        <Dropdown choices={detailChoices(t)} value={settings.stepDetail} onChange={(v) => set('stepDetail', v)} />
+        <p className="setting-hint">{t(`detail.${settings.stepDetail}.hint`)}</p>
         <Toggle
-          checked={settings.aAndYAsVariables}
-          label={t('settings.ay')}
-          hint={t('settings.ay.hint')}
-          onChange={(v) => set('aAndYAsVariables', v)}
-        />
-        <Toggle
-          checked={settings.letterProducts}
-          label={t('settings.products')}
-          hint={t('settings.products.hint')}
-          onChange={(v) => set('letterProducts', v)}
-        />
-        <Toggle
-          checked={settings.extraUnitLetters}
-          label={t('settings.letters')}
-          hint={t('settings.letters.hint')}
-          onChange={(v) => set('extraUnitLetters', v)}
+          checked={settings.cancelMarks}
+          label={t('settings.cancel')}
+          hint={t('settings.cancel.hint')}
+          onChange={(v) => set('cancelMarks', v)}
         />
       </section>
 
-      {props.error && <p className="setting-error">{props.error}</p>}
+      <section className="setting">
+        <h3>{t('settings.elimination')}</h3>
+        <Segmented choices={eliminationChoices(t)} value={settings.elimination} onChange={(v) => set('elimination', v)} />
+        <p className="setting-hint">{t(`settings.elimination.${settings.elimination}.hint`)}</p>
+      </section>
 
-      <button className="setting-reset" onClick={() => onChange({ ...DEFAULT_SETTINGS, language: settings.language })}>
-        {t('settings.reset')}
-      </button>
+      <section className="setting">
+        <h3>{t('settings.quadratic')}</h3>
+        <Segmented
+          choices={quadraticChoices(t)}
+          value={settings.quadraticFormula}
+          onChange={(v) => set('quadraticFormula', v)}
+        />
+        <p className="setting-hint">
+          {t('settings.quadratic.hint')} {onlyIn('analysis')}
+        </p>
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.unknownNames')}</h3>
+        <Segmented
+          choices={unknownNameChoices(t)}
+          value={settings.unknownNames}
+          onChange={(v) => set('unknownNames', v)}
+        />
+        <p className="setting-hint">
+          {t('settings.unknownNames.hint')} {onlyIn('linear')}
+        </p>
+      </section>
+    </>
+  );
+
+  const input = (
+    <section className="setting">
+      <Toggle
+        checked={settings.aAndYAsVariables}
+        label={t('settings.ay')}
+        hint={t('settings.ay.hint')}
+        onChange={(v) => set('aAndYAsVariables', v)}
+      />
+      <Toggle
+        checked={settings.letterProducts}
+        label={t('settings.products')}
+        hint={t('settings.products.hint')}
+        onChange={(v) => set('letterProducts', v)}
+      />
+      <Toggle
+        checked={settings.extraUnitLetters}
+        label={t('settings.letters')}
+        hint={t('settings.letters.hint')}
+        onChange={(v) => set('extraUnitLetters', v)}
+      />
+    </section>
+  );
+
+  const pages: Record<Category, ReactNode> = { general, numbers, algebra, steps, input };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      props.onClose();
+    }
+  };
+
+  return (
+    <div className="dialog-backdrop" onMouseDown={props.onClose}>
+      <div
+        className="dialog settings-dialog"
+        role="dialog"
+        aria-label={t('settings')}
+        onMouseDown={(event) => event.stopPropagation()}
+        onKeyDown={onKeyDown}
+      >
+        <div className="settings-head">
+          <h3>{t('settings')}</h3>
+          <button className="settings-close" title={t('settings.close')} onClick={props.onClose}>
+            ✕
+          </button>
+        </div>
+        <nav className="settings-nav">
+          {CATEGORIES.map((name) => (
+            <button
+              key={name}
+              autoFocus={name === category}
+              className={name === category ? 'settings-cat active' : 'settings-cat'}
+              onClick={() => choose(name)}
+            >
+              {t(`settings.cat.${name}`)}
+            </button>
+          ))}
+        </nav>
+        <div className="settings-body">{pages[category]}</div>
+        <div className="settings-foot">
+          {props.error && <p className="setting-error">{props.error}</p>}
+          <button className="setting-reset" onClick={() => onChange({ ...DEFAULT_SETTINGS, language: settings.language })}>
+            {t('settings.reset')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

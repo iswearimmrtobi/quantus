@@ -135,6 +135,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The settings moved out of the side panel into their own window (Ctrl+.), grouped into General,
+  Numbers, Algebra, Steps and Input. Settings for a single mode are always shown and say which
+  mode reads them; the mode itself is switched in the top bar only, its description shows on
+  hover there.
 - The steps of a system follow the school Gauss method: triangle form without fractions
   (`2·II − 3·I`), common factors of a row divided out, then the unknowns found from the bottom
   row up. Each matrix shows the operations next to the rows they change, the pivot in colour,

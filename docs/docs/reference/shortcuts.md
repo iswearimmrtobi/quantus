@@ -31,7 +31,7 @@ Everything except typing is reachable from the keyboard. Press <kbd>F10</kbd> to
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> | Variables panel |
 | <kbd>Ctrl</kbd>+<kbd>H</kbd> | History panel |
 | <kbd>Ctrl</kbd>+<kbd>K</kbd> | Library panel: constants and unit conversions |
-| <kbd>Ctrl</kbd>+<kbd>.</kbd> | Settings panel |
+| <kbd>Ctrl</kbd>+<kbd>.</kbd> | Settings window |
 | <kbd>Esc</kbd> | Leave the LaTeX source, or close the panel |
 | <kbd>Ctrl</kbd>+<kbd>0</kbd> / <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>-</kbd> | Reset zoom / zoom in / zoom out |
 | <kbd>F11</kbd> | Full screen |

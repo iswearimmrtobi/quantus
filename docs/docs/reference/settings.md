@@ -5,7 +5,9 @@ title: Settings
 
 # Settings
 
-Open the settings with <kbd>Ctrl</kbd>+<kbd>.</kbd>. Every change applies to the next
+Open the settings window with <kbd>Ctrl</kbd>+<kbd>.</kbd> or the slider button at the bottom of the right edge;
+its categories are General, Numbers, Algebra, Steps and Input. The mode is switched in the top
+bar, not there. Every change applies to the next
 calculation and is saved in `settings.json` in the app's config directory. **Restore defaults**
 resets all of them. The *Key* column is the name in `settings.json` and in the
 [engine API](../contributing/api.md).
