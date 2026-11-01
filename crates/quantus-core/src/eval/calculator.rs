@@ -14,6 +14,7 @@ use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::forms::{self, FormKind, ResultForm};
+use crate::matrix::{Item, Matrices, Matrix, MatrixEvaluator};
 use crate::settings::{AngleUnit, BinomialForm, ComplexForm, FractionForm, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
@@ -176,6 +177,9 @@ impl LatexCalculator {
         if self.settings.mode == Mode::BaseN {
             return self.evaluate_base_n(latex);
         }
+        if self.settings.mode == Mode::Matrix {
+            return Ok(self.evaluate_matrix(latex, variables, &Matrices::new())?.0);
+        }
         let formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
@@ -242,6 +246,65 @@ impl LatexCalculator {
                 }
             }
         }
+    }
+
+    /// An input of the matrix mode, and the matrix it defines (`A = …`) with its key.
+    pub fn evaluate_matrix(&self, latex: &str, variables: &Variables, matrices: &Matrices) -> Result<(Calculation, Option<(String, Matrix)>)> {
+        // `A^{\top}` is the transpose like `A^{T}`.
+        let source = latex.replace("\\top", "T");
+        let formula = parser::parse_with(&source, &self.settings.parse_options())?;
+        let evaluator = Evaluator::new(variables)
+            .with_precision(self.precision)
+            .with_mode(self.settings.evaluation_mode())
+            .with_angle_unit(self.settings.angle_unit);
+        let matrix_evaluator = MatrixEvaluator::new(&evaluator, matrices);
+        let item = matrix_evaluator.evaluate(&formula.expression)?;
+        let label = formula.label.as_ref();
+        let prefix = label.map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
+        let input = serializer::formula(&formula);
+        let symbolic = format!("{prefix}{}", serializer::expression(&formula.expression));
+        let (result, quantity, value, defined) = match item {
+            Item::Scalar(quantity) => {
+                let quantity = quantity.simplify()?;
+                let (value, _, result) = self.present(&quantity)?;
+                (result, quantity, value, None)
+            }
+            Item::Matrix(matrix) => {
+                let result = self.matrix_latex(&matrix.rows)?;
+                let key = label.map(|l| Node::variable_key(&l.name, l.index.as_deref().unwrap_or("")));
+                (result, PhysicalQuantity::dimensionless(Value::zero()), Decimal::from_i64(0), key.map(|key| (key, matrix)))
+            }
+        };
+        let mut steps = vec![Step::new(StepKind::Symbolic, symbolic.clone())];
+        let line = format!("{prefix}{result}");
+        if line != symbolic {
+            steps.push(Step::new(StepKind::Result, line.clone()));
+        }
+        let calculation = Calculation {
+            formula,
+            input,
+            latex: line,
+            steps: shown_steps(&steps, self.settings.step_detail),
+            unit: String::new(),
+            quantity_name: None,
+            result,
+            value,
+            imaginary: None,
+            quantity,
+            domain_restrictions: None,
+            warning: None,
+            forms: Vec::new(),
+        };
+        Ok((calculation, defined))
+    }
+
+    /// `\begin{pmatrix} … \end{pmatrix}` with exact entries.
+    pub(crate) fn matrix_latex(&self, rows: &[Vec<Value>]) -> Result<String> {
+        let rows = rows
+            .iter()
+            .map(|row| Ok(row.iter().map(|entry| self.entry(entry)).collect::<Result<Vec<_>>>()?.join(" & ")))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(format!("\\begin{{pmatrix}} {} \\end{{pmatrix}}", rows.join(" \\\\ ")))
     }
 
     /// Basis-N has its own little language (`1F`, `and`), so it bypasses the parser.

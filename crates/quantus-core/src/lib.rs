@@ -10,6 +10,7 @@ pub mod electro;
 pub mod eval;
 pub mod kirchhoff;
 pub mod latex;
+pub mod matrix;
 pub(crate) mod linear;
 pub mod num;
 pub(crate) mod numeric;

@@ -10,7 +10,8 @@ use crate::eval::{Calculation, LatexCalculator, Variables};
 use crate::latex::serializer;
 use crate::num::{Decimal, MAX_PRECISION};
 use crate::quantity::PhysicalQuantity;
-use crate::settings::Settings;
+use crate::matrix::Matrices;
+use crate::settings::{Mode, Settings};
 use crate::{QuantusError, Result};
 
 pub const DEFAULT_SESSION: &str = "default";
@@ -37,11 +38,13 @@ pub struct Variable {
 pub struct Session {
     pub id: String,
     definitions: Vec<Variable>,
+    /// The matrices of the matrix mode, by name.
+    matrices: Matrices,
 }
 
 impl Session {
     pub fn new(id: impl Into<String>) -> Self {
-        Session { id: id.into(), definitions: Vec::new() }
+        Session { id: id.into(), definitions: Vec::new(), matrices: Matrices::new() }
     }
 
     pub fn variables(&self) -> &[Variable] {
@@ -69,6 +72,12 @@ impl Session {
 
     pub fn clear(&mut self) {
         self.definitions.clear();
+        self.matrices.clear();
+    }
+
+    /// The matrices defined in the matrix mode, by name.
+    pub fn matrices(&self) -> &Matrices {
+        &self.matrices
     }
 
     /// Evaluates `latex` against this session. An input that is itself a definition
@@ -87,6 +96,13 @@ impl Session {
         settings: &Settings,
     ) -> Result<(Calculation, Option<Variable>)> {
         let calculator = LatexCalculator::new(precision_or(precision, settings.precision)?).with_settings(settings.clone());
+        if settings.mode == Mode::Matrix {
+            let (calculation, defined) = calculator.evaluate_matrix(latex, &self.quantities(), &self.matrices)?;
+            if let Some((key, matrix)) = defined {
+                self.matrices.insert(key, matrix);
+            }
+            return Ok((calculation, None));
+        }
         let calculation = calculator.evaluate(latex, &self.quantities())?;
         let variable = calculation.formula.label.as_ref().and_then(|label| {
             let key = label.key()?;

@@ -45,6 +45,9 @@ use crate::{QuantusError, Result};
 
 const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
+/// Functions written as `\operatorname{name}(…)` and parsed as a [`Node::Call`] of that name,
+/// ahead of the unit markup `\operatorname{}` otherwise is.
+pub(crate) const NAMED_CALLS: [&str; 3] = ["Identity", "ref", "rref"];
 
 /// Commands that take one argument and evaluate through `MathFunction`.
 const FUNCTION_COMMANDS: [&str; 20] = [
@@ -542,6 +545,33 @@ impl Parser<'_> {
         Ok(Node::Group { inner: Box::new(fraction), position })
     }
 
+    /// The arguments of a call in brackets, separated by `;` (or `,` with a space after it).
+    fn call_arguments(&mut self, written: &str) -> Result<Vec<Node>> {
+        let closing = match self.current().kind {
+            TokenType::LParen => TokenType::RParen,
+            TokenType::LBrace => TokenType::RBrace,
+            TokenType::LBracket => TokenType::RBracket,
+            _ => return Err(self.error(&format!("'{written}' needs its arguments in brackets: {written}(a; b)."), self.current().position)),
+        };
+        self.advance();
+        let mut arguments = vec![self.parse_expression()?];
+        while self.current().kind == TokenType::Comma {
+            self.advance();
+            arguments.push(self.parse_expression()?);
+        }
+        self.expect(closing, "a closing bracket")?;
+        Ok(arguments)
+    }
+
+    /// `\operatorname{name}` (or `\mathrm{name}`) where `name` is one of [`NAMED_CALLS`].
+    fn named_call(&self) -> Option<&'static str> {
+        if self.peek(1).kind != TokenType::LBrace || self.peek(2).kind != TokenType::Identifier || self.peek(3).kind != TokenType::RBrace {
+            return None;
+        }
+        let name = self.peek(2).text.as_str();
+        NAMED_CALLS.iter().find(|call| **call == name).copied()
+    }
+
     fn parse_abs(&mut self) -> Result<Node> {
         let open = self.advance();
         self.abs_depth += 1;
@@ -594,20 +624,14 @@ impl Parser<'_> {
             }
             "\\max" | "\\min" => {
                 self.advance();
-                let closing = match self.current().kind {
-                    TokenType::LParen => TokenType::RParen,
-                    TokenType::LBrace => TokenType::RBrace,
-                    TokenType::LBracket => TokenType::RBracket,
-                    _ => return Err(self.error(&format!("'{}' needs its arguments in brackets: {}(a, b).", token.text, token.text), self.current().position)),
-                };
-                self.advance();
-                let mut arguments = vec![self.parse_expression()?];
-                while self.current().kind == TokenType::Comma {
-                    self.advance();
-                    arguments.push(self.parse_expression()?);
-                }
-                self.expect(closing, "a closing bracket")?;
+                let arguments = self.call_arguments(&token.text)?;
                 Ok(Node::Call { name: token.text.trim_start_matches('\\').to_string(), arguments, position })
+            }
+            "\\operatorname" | "\\mathrm" if self.named_call().is_some() => {
+                let name = self.named_call().expect("checked").to_string();
+                self.index += 4;
+                let arguments = self.call_arguments(&format!("\\operatorname{{{name}}}"))?;
+                Ok(Node::Call { name, arguments, position })
             }
             "\\begin" => self.parse_matrix(token),
             "\\det" => {
