@@ -493,7 +493,8 @@ to be measured; they belong to the power question in
     or a server) · Adresse
   - **Sitzungen abgleichen**: with the desktop app over WLAN or Bluetooth · now / automatically
   - **Uhrzeit**: from the network (NTP) · by hand · time zone
-  - **Firmware-Update**: suchen · installieren (OTA over WLAN) · installed version
+  - **Firmware-Update**: installed version · suchen · installieren (the latest GitHub release,
+    over WLAN); updating from the desktop app works too, section 7.5
   - **Bluetooth**: ein · aus · Koppeln (desktop app, phone, keyboard) · Gekoppelte Geräte
     (forget) · Sichtbar ein/aus
 
@@ -562,8 +563,16 @@ The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hos
 - **Bluetooth** (BLE) is for: a link to the desktop app (sessions and results, and the handheld as
   a keypad for the app), a phone companion (share results and sessions, set up WLAN), and an
   external keyboard.
-- **Prüfungsmodus** turns both off and keeps them off, for exams. Neither radio is on unless it
-  is switched on; the defaults are off.
+- **Prüfungsmodus** turns both off and keeps them off, for exams: a switch in SETUP and the icon
+  in the top bar, nothing more. Neither radio is on unless it is switched on; the defaults are
+  off.
+- **Bluetooth over ESP-Hosted**: the board advertises Bluetooth 5, so the P4 can use the C6's
+  BLE; how ESP-Hosted exposes it is a firmware detail.
+- **Firmware updates**: the images are assets of the GitHub releases. The desktop app has an
+  updater for the handheld: it takes the image from the releases page and uploads it to the
+  handheld directly (USB, or the WLAN/Bluetooth link). The handheld can also fetch the same
+  release itself over WLAN. The release workflow ([RELEASING.md](../RELEASING.md)) then has to
+  attach the firmware image.
 - **Top bar**: icons for WLAN, Bluetooth and the exam mode, next to the battery.
 
 ### 7.6 Colours
@@ -598,7 +607,8 @@ Roughly in the order agreed; each would go into `plans/plans.md` as its own item
 | 10 | Sessions with history and mode inputs, as JSON (section 6) | `session.rs`: history, mode inputs, names, serde | files in the config directory, session menu | files on the SD card, Sitzungen menu |
 | 11 | PreAns, STO, VARS | Ans and PreAns in the session | already has the variables panel | keys and VARS screen |
 | 12 | Remote engine and the link to the desktop: LaTeX in, LaTeX out, sessions | the request and response format (the JSON of `api.rs`), the session files | a listener the handheld can reach over WLAN and Bluetooth, pairing | client, Verbindungen page |
-| 13 | Later: inequalities; vectors with Geometrie | solver, Geometrie module | – | – |
+| 13 | Firmware updates | – | an updater for the handheld: the image from the GitHub releases, uploaded over USB or the link | receive and install an image (from the desktop or over WLAN); the release workflow attaches it |
+| 14 | Later: inequalities; vectors with Geometrie | solver, Geometrie module | – | – |
 
 Firmware only, because they concern the device: UNDO/REDO, INS, selection, copy and paste in the
 editor (the desktop's MathLive has them), brightness, font size, auto-off, RESET, the QR code,
@@ -617,9 +627,4 @@ and the external keyboard, and the exam mode.
 - **Desktop settings dialog**: it grows by about six settings (angle unit, number format,
   prefixes, fraction form, complex form, recurring decimals); maybe a new group for them.
 - **Power**: measure deep sleep on the real board before choosing the battery.
-- **Bluetooth over ESP-Hosted**: check that the P4 can use the C6's BLE through ESP-Hosted, not
-  only its Wi-Fi.
-- **Exam mode**: is a switch in SETUP enough, or does it need proof for the teacher (a lit icon,
-  a reset that clears the sessions, like the exam modes of graphing calculators)?
-- **Phone companion**: an app, or a web page the handheld serves?
-- **Firmware updates**: where the images come from (GitHub releases?) and how they are signed.
+- **Phone companion**: an app, or a web page the handheld serves? Not decided yet, on purpose.
