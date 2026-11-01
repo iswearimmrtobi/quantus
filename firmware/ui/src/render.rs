@@ -735,14 +735,31 @@ struct Band<'a> {
 }
 
 impl Band<'_> {
-    /// Lays `fill` over the pixels inside `round`.
+    /// Lays `fill` over the pixels inside `round`: whole rows at a time, with the costly test
+    /// for the rounding only in the corners.
     fn glass(&mut self, round: &RoundedRectangle, fill: Rgb565, alpha: u16) {
         let area = round.rectangle.intersection(&self.area);
+        let Some(bottom_right) = area.bottom_right() else { return };
+        let outer = round.rectangle;
+        let corner = round.corners.top_left;
+        let (corner_width, corner_height) = (corner.width as i32, corner.height as i32);
+        let inner_left = outer.top_left.x + corner_width;
+        let inner_right = outer.top_left.x + outer.size.width as i32 - corner_width;
+        let inner_top = outer.top_left.y + corner_height;
+        let inner_bottom = outer.top_left.y + outer.size.height as i32 - corner_height;
         let width = self.area.size.width as i32;
         let top = self.area.top_left.y;
-        for point in area.points().filter(|&point| round.contains(point)) {
-            let pixel = &mut self.pixels[((point.y - top) * width + point.x) as usize];
-            *pixel = blend(*pixel, fill, alpha);
+        for y in area.top_left.y..=bottom_right.y {
+            let start = ((y - top) * width) as usize;
+            let row = &mut self.pixels[start..start + width as usize];
+            let rounded = y < inner_top || y >= inner_bottom;
+            for x in area.top_left.x..=bottom_right.x {
+                if rounded && (x < inner_left || x >= inner_right) && !round.contains(Point::new(x, y)) {
+                    continue;
+                }
+                let pixel = &mut row[x as usize];
+                *pixel = blend(*pixel, fill, alpha);
+            }
         }
     }
 }
