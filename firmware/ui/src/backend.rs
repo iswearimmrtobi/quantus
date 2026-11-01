@@ -5,6 +5,16 @@ use crate::app::{Mode, Settings};
 pub trait Backend {
     /// The result of `latex` in `mode`, written as `settings` say, as LaTeX, or an error message.
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String>;
+
+    /// The pictures in `/wallpapers/` on the SD card: their names without `.bmp`, sorted.
+    fn wallpapers(&mut self) -> Vec<String> {
+        Vec::new()
+    }
+
+    /// The file of the picture `name`.
+    fn wallpaper(&mut self, _name: &str) -> Option<Vec<u8>> {
+        None
+    }
 }
 
 /// Answers with the input itself, so the way back from LaTeX shows on the screen. An input with

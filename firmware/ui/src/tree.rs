@@ -163,7 +163,7 @@ static DEVICE: Page = Page {
 static WALLPAPER: Page = Page {
     title: t("Hintergrundbild", "Wallpaper"),
     entries: &[
-        pending(t("Bild", "Picture")),
+        entry(t("Bild", "Picture"), Kind::Wallpapers),
         entry(
             t("Anzeigen", "Show on"),
             Kind::Choice(

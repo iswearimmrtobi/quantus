@@ -6,7 +6,7 @@ use crate::key::Key;
 use crate::latex;
 use crate::text::{self, same, t, Lang, Text};
 use crate::tree;
-use crate::menu::{Action, Menu, Outcome};
+use crate::menu::{Action, Edit, Menu, Outcome};
 use crate::wallpaper::Wallpaper;
 pub use crate::settings::Settings;
 
@@ -132,8 +132,13 @@ pub struct App<B> {
     /// The spinner's step, 0 to 7.
     pub spin: u8,
     pub caret_on: bool,
-    /// The picture behind the screens, read from the SD card by the shell.
+    /// The picture behind the screens, read from the SD card through the backend.
     pub wallpaper: Option<Wallpaper>,
+    /// Its name in `/wallpapers/`.
+    pub wallpaper_name: Option<String>,
+    /// While the list of wallpapers is open: the place in it of the picture shown instead, and
+    /// that picture (`None` for none, or one that could not be read).
+    pub preview: Option<(usize, Option<Wallpaper>)>,
     last_blink: u64,
     last_spin: u64,
 }
@@ -141,7 +146,10 @@ pub struct App<B> {
 impl<B> App<B> {
     /// The picture to show behind the screen.
     pub fn wallpaper(&self) -> Option<&Wallpaper> {
-        self.wallpaper.as_ref()
+        match &self.preview {
+            Some((_, preview)) => preview.as_ref(),
+            None => self.wallpaper.as_ref(),
+        }
     }
 
     /// The entry whose result is on the screen.
@@ -168,6 +176,8 @@ impl<B: Backend> App<B> {
             spin: 0,
             caret_on: true,
             wallpaper: None,
+            wallpaper_name: None,
+            preview: None,
             last_blink: 0,
             last_spin: 0,
         }
@@ -195,15 +205,25 @@ impl<B: Backend> App<B> {
         let alpha = std::mem::take(&mut self.alpha);
         match std::mem::replace(&mut self.screen, Screen::Calc) {
             Screen::Modes { selected } => self.modes_key(selected, key),
-            Screen::Menu(mut menu) => match menu.key(key, &mut self.settings) {
-                Outcome::Stay => self.screen = Screen::Menu(menu),
-                Outcome::Close => {}
-                Outcome::Insert(latex) => self.insert(latex),
-                Outcome::Act(action) => {
-                    self.act(action);
-                    self.screen = Screen::Menu(menu);
+            Screen::Menu(mut menu) => {
+                match menu.key(key, &mut self.settings) {
+                    Outcome::Stay => {}
+                    Outcome::Close => {
+                        self.preview = None;
+                        return;
+                    }
+                    Outcome::Insert(latex) => return self.insert(latex),
+                    Outcome::Act(action) => self.act(action),
+                    Outcome::Pictures(label) => self.open_pictures(&mut menu, label),
+                    Outcome::Preview(index) => {
+                        let picture = self.picture(&menu, index);
+                        self.preview = Some((index, picture));
+                    }
+                    Outcome::Keep(index) => self.keep_picture(&mut menu, index),
+                    Outcome::Restore => self.preview = None,
                 }
-            },
+                self.screen = Screen::Menu(menu);
+            }
             Screen::Calc => self.calc_key(key, shift, alpha),
         }
     }
@@ -223,6 +243,45 @@ impl<B: Backend> App<B> {
             }
             Action::ClearInput => self.reset(),
         }
+    }
+
+    /// Opens the list of wallpapers on the SD card, on the one set now.
+    fn open_pictures(&mut self, menu: &mut Menu, label: Text) {
+        let names = self.backend.wallpapers();
+        if names.is_empty() {
+            menu.edit = Some(Edit::Message { label, message: text::NO_PICTURES });
+            return;
+        }
+        let selected = self.wallpaper_name.as_ref().and_then(|name| names.iter().position(|n| n == name)).map_or(0, |i| i + 1);
+        menu.edit = Some(Edit::Pictures { label, names, selected });
+    }
+
+    /// The name at `index` of the open list of wallpapers; 0 is none.
+    fn picture_name(menu: &Menu, index: usize) -> Option<String> {
+        let Some(Edit::Pictures { names, .. }) = &menu.edit else { return None };
+        names.get(index.checked_sub(1)?).cloned()
+    }
+
+    /// Reads and decodes the wallpaper at `index` of the open list.
+    fn picture(&mut self, menu: &Menu, index: usize) -> Option<Wallpaper> {
+        let name = Self::picture_name(menu, index)?;
+        Wallpaper::from_bmp(&self.backend.wallpaper(&name)?)
+    }
+
+    /// Sets the wallpaper at `index` of the open list, or says why it cannot.
+    fn keep_picture(&mut self, menu: &mut Menu, index: usize) {
+        let name = Self::picture_name(menu, index);
+        let picture = match self.preview.take() {
+            Some((shown, picture)) if shown == index => picture,
+            _ => self.picture(menu, index),
+        };
+        let Some(Edit::Pictures { label, .. }) = menu.edit.take() else { return };
+        if name.is_some() && picture.is_none() {
+            menu.edit = Some(Edit::Message { label, message: text::BAD_PICTURE });
+            return;
+        }
+        self.wallpaper = picture;
+        self.wallpaper_name = name;
     }
 
     /// Puts LaTeX from a menu into the input, as if typed: a shown result is left first.

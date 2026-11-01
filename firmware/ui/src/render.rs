@@ -94,7 +94,12 @@ pub enum Shape {
     Text(Point, String, Scale, Rgb565),
     /// A laid out row with its origin at the point.
     Math(Point, RowLayout, Rgb565),
+    /// A screen-sized picture at half its size, its top left at the point.
+    Thumbnail(Point, std::sync::Arc<[Rgb565]>),
 }
+
+/// The size of a [`Shape::Thumbnail`].
+const THUMBNAIL: Size = Size::new(WIDTH / 2, HEIGHT / 2);
 
 impl Shape {
     fn bounds(&self) -> Rectangle {
@@ -115,6 +120,7 @@ impl Shape {
                 )
             }
             Shape::Math(origin, row, _) => row.bounds(*origin),
+            Shape::Thumbnail(at, _) => Rectangle::new(*at, THUMBNAIL),
         }
     }
 
@@ -148,6 +154,13 @@ impl Shape {
             Shape::Text(origin, text, scale, color) => scale.draw(text, *origin, *color, target),
             Shape::Math(origin, row, color) => {
                 layout::draw(row, *origin, *color, colors::PLACEHOLDER, target);
+            }
+            Shape::Thumbnail(at, pixels) => {
+                let pixels = &**pixels;
+                let width = THUMBNAIL.width;
+                let colors = (0..THUMBNAIL.height)
+                    .flat_map(move |y| (0..width).map(move |x| pixels[(2 * y * WIDTH + 2 * x) as usize]));
+                let _ = target.fill_contiguous(&Rectangle::new(*at, THUMBNAIL), colors);
             }
         }
     }
@@ -475,7 +488,10 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
             let level = menu.level();
             let lines = level.page.entries.iter().map(|entry| Line {
                 label: entry.label.get(lang).to_string(),
-                value: menu::value(entry, &app.settings, lang),
+                value: match entry.kind {
+                    Kind::Wallpapers => Some(app.wallpaper_name.clone().unwrap_or_else(|| text::NONE.get(lang).to_string())),
+                    _ => menu::value(entry, &app.settings, lang),
+                },
                 mark: if matches!(entry.kind, Kind::Page(_)) { Mark::Arrow } else { Mark::None },
             });
             lines_page(shapes, lines.collect(), level.selected, glass);
@@ -519,6 +535,31 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
             let at = Point::new(MARGIN + 4, top + height + 28);
             shapes.push(Shape::Text(at, hint, Scale::Small, color));
         }
+        Some(Edit::Pictures { names, selected, .. }) => {
+            let set = app.wallpaper_name.as_ref().and_then(|name| names.iter().position(|n| n == name)).map_or(0, |i| i + 1);
+            let lines = [text::NONE.get(lang).to_string()].into_iter().chain(names.iter().cloned()).enumerate();
+            let lines = lines.map(|(index, label)| Line {
+                label,
+                value: None,
+                mark: if index == set { Mark::Dot } else { Mark::None },
+            });
+            let x = WIDTH as i32 - MARGIN - THUMBNAIL.width as i32;
+            lines_in(shapes, lines.collect(), *selected, glass, x - 10);
+            // The picture under the cursor, or why there is none.
+            let at = Point::new(x, BAR + (HEIGHT as i32 - BAR - THUMBNAIL.height as i32) / 2);
+            let frame = Rectangle::new(at - Point::new(2, 2), THUMBNAIL + Size::new(4, 4));
+            shapes.push(Shape::Round(RoundedRectangle::with_equal_corners(frame, Size::new(4, 4)), colors::HAIRLINE, None));
+            match app.wallpaper() {
+                Some(wallpaper) => shapes.push(Shape::Thumbnail(at, wallpaper.full.clone())),
+                None => {
+                    shapes.push(Shape::Fill(Rectangle::new(at, THUMBNAIL), colors::BACKGROUND));
+                    let message = if *selected == 0 { text::NONE } else { text::BAD_PICTURE }.get(lang);
+                    let message = fit(message, THUMBNAIL.width as i32 - 16, Scale::Small);
+                    let middle = at + Point::new((THUMBNAIL.width as i32 - Scale::Small.width(&message)) / 2, THUMBNAIL.height as i32 / 2);
+                    shapes.push(Shape::Text(middle, message, Scale::Small, colors::MUTED));
+                }
+            }
+        }
         Some(Edit::Message { message, .. }) => {
             let text = message.get(lang);
             let x = (WIDTH as i32 - Scale::Normal.width(text)) / 2;
@@ -531,11 +572,16 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
 /// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
 /// there are more.
 fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass: bool) {
+    lines_in(shapes, lines, selected, glass, WIDTH as i32 - MARGIN);
+}
+
+/// [`lines_page`] with the lines ending at `edge`; a label too long for them is cut short.
+fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass: bool, edge: i32) {
     let first = selected / ROWS * ROWS;
     let normal = Scale::Normal.metrics();
     let small = Scale::Small.metrics();
     let scrolls = lines.len() > ROWS;
-    let right = WIDTH as i32 - MARGIN - if scrolls { 8 } else { 0 };
+    let right = edge - if scrolls { 8 } else { 0 };
     for (offset, line) in lines.iter().skip(first).take(ROWS).enumerate() {
         let index = first + offset;
         let y = BAR + 8 + offset as i32 * (LINE + LINE_GAP);
@@ -546,7 +592,8 @@ fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass:
         let baseline = y + (LINE + normal.digit) / 2;
         let number = (offset + 1).to_string();
         shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::MUTED));
-        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), line.label.clone(), Scale::Normal, colors::TEXT));
+        let label = fit(&line.label, right - MARGIN - 34 - 14, Scale::Normal);
+        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, colors::TEXT));
 
         let middle = y + LINE / 2;
         let mut end = right - 14;
@@ -577,7 +624,7 @@ fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass:
     if scrolls {
         let top = BAR + 8;
         let height = ROWS as i32 * (LINE + LINE_GAP) - LINE_GAP;
-        let x = WIDTH as i32 - MARGIN - 3;
+        let x = edge - 3;
         shapes.push(Shape::Fill(Rectangle::new(Point::new(x, top), Size::new(3, height as u32)), colors::HAIRLINE));
         let pages = lines.len().div_ceil(ROWS) as i32;
         let thumb = height / pages;
@@ -585,6 +632,18 @@ fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass:
         let at = Point::new(x, top + page * thumb);
         shapes.push(Shape::Fill(Rectangle::new(at, Size::new(3, thumb as u32)), colors::CYAN));
     }
+}
+
+/// `text`, cut short with an ellipsis to fit `room`.
+fn fit(text: &str, room: i32, scale: Scale) -> String {
+    if scale.width(text) <= room {
+        return text.to_string();
+    }
+    let mut cut: String = text.to_string();
+    while !cut.is_empty() && scale.width(&format!("{cut}…")) > room {
+        cut.pop();
+    }
+    format!("{cut}…")
 }
 
 /// Draws frames band by band and sends the bands that changed since the last frame.

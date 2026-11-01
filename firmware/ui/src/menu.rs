@@ -40,6 +40,8 @@ pub enum Kind {
     Info(Info),
     /// LaTeX for the input (OPTN).
     Insert(&'static str),
+    /// The list of wallpapers on the SD card, which the app fills in.
+    Wallpapers,
     /// Waits for the engine or the firmware: says so.
     Pending,
 }
@@ -103,6 +105,8 @@ pub enum Edit {
     Confirm { entry: &'static Entry, action: Action },
     /// A line to read; any key goes back.
     Message { label: Text, message: Text },
+    /// The wallpapers: *Keins* first, then `names`. The app shows the selected one as a preview.
+    Pictures { label: Text, names: Vec<String>, selected: usize },
 }
 
 /// A menu open on the screen.
@@ -120,6 +124,14 @@ pub enum Outcome {
     Close,
     Insert(&'static str),
     Act(Action),
+    /// Open the list of wallpapers over the page.
+    Pictures(Text),
+    /// The cursor is on the wallpaper at this place of the list (0 for none): show it.
+    Preview(usize),
+    /// Keep the wallpaper at this place of the list.
+    Keep(usize),
+    /// Back from the list: show the wallpaper set before.
+    Restore,
 }
 
 impl Menu {
@@ -135,7 +147,7 @@ impl Menu {
     pub fn title(&self) -> Text {
         match &self.edit {
             Some(Edit::Choice { entry, .. } | Edit::Confirm { entry, .. }) => entry.label,
-            Some(Edit::Number { label, .. } | Edit::Message { label, .. }) => *label,
+            Some(Edit::Number { label, .. } | Edit::Message { label, .. } | Edit::Pictures { label, .. }) => *label,
             None => self.level().page.title,
         }
     }
@@ -197,6 +209,7 @@ impl Menu {
             &Kind::Do(action) => return Outcome::Act(action),
             Kind::Info(_) => {}
             Kind::Insert(latex) => return Outcome::Insert(latex),
+            Kind::Wallpapers => return Outcome::Pictures(entry.label),
             Kind::Pending => {
                 self.edit = Some(Edit::Message { label: entry.label, message: text::NOT_AVAILABLE });
             }
@@ -280,6 +293,35 @@ impl Menu {
                 _ if back => {}
                 _ => self.edit = Some(Edit::Confirm { entry, action }),
             },
+            Edit::Pictures { label, names, selected } => {
+                let count = names.len() + 1;
+                let chosen = match key {
+                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
+                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+                        if index >= count {
+                            self.edit = Some(Edit::Pictures { label, names, selected });
+                            return Outcome::Stay;
+                        }
+                        index
+                    }
+                    Key::Ok | Key::Exe | Key::Right => selected,
+                    Key::Up | Key::Down => {
+                        let step = if key == Key::Up { count - 1 } else { 1 };
+                        let selected = (selected + step) % count;
+                        self.edit = Some(Edit::Pictures { label, names, selected });
+                        return Outcome::Preview(selected);
+                    }
+                    Key::Del => return Outcome::Restore,
+                    _ if back => return Outcome::Restore,
+                    _ => {
+                        self.edit = Some(Edit::Pictures { label, names, selected });
+                        return Outcome::Stay;
+                    }
+                };
+                // The app reads the name from it, then closes it.
+                self.edit = Some(Edit::Pictures { label, names, selected: chosen });
+                return Outcome::Keep(chosen);
+            }
             // Any key reads on.
             Edit::Message { .. } => {}
         }

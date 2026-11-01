@@ -48,4 +48,7 @@ pub const DONE: Text = t("Erledigt", "Done");
 pub const NO_ENTRIES: Text = t("Keine Einträge", "No entries");
 pub const EXAM: Text = t("PRÜFUNG", "EXAM");
 pub const EXACT_SHORT: Text = t("Exakt", "Exact");
+pub const NONE: Text = t("Keins", "None");
+pub const NO_PICTURES: Text = t("Keine Bilder auf der SD-Karte", "No pictures on the SD card");
+pub const BAD_PICTURE: Text = t("Bild muss 480×320 BMP sein", "Picture must be a 480×320 BMP");
 pub const DECIMAL_SHORT: Text = t("Dez", "Dec");
