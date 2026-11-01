@@ -82,8 +82,12 @@ printing results, time, heap and stack over serial. See its [README](../firmware
     one calculation (input top left, result bottom right), the mode menu as coloured tiles,
     a setup page (SHIFT+MODE) for significant digits and exact or decimal, S⇔D.
   - [ ] ALPHA letters on the keys, once the keypad's legend is fixed.
-  - [ ] The menus (MODE, SETUP, OPTN, CONST, CONV), modelled on the Casio fx-991DE X:
-    [handheld-menus.md](../design/handheld-menus.md).
+  - [x] The menus of the handheld tree, modelled on the Casio fx-991DE X
+    ([handheld-menus.md](../design/handheld-menus.md) §7, which marks each entry as working or
+    UI only): MODE with twelve tiles, SETUP with a submenu per entry (a list of values or a typed
+    number), OPTN per mode, German and English texts, the top bar's indicators, the purple
+    palette. Entries that wait for the engine or the firmware say so.
+  - [ ] CONST and CONV, and the keys still missing in §7.4 (ENG, STO, VARS, CALC, SOLVE, UNDO …).
   - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
   - [x] Brackets that grow with what they hold.
   - [x] For testing: the simulator with the real engine, and its picture mirrored to the board
