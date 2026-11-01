@@ -163,3 +163,26 @@ fn every_entry_fits_its_line() {
     }
     assert!(wide.is_empty(), "too wide: {wide:?}");
 }
+
+#[test]
+fn the_top_bar_shows_the_exam_mode_and_the_radios() {
+    let texts = |app: &App<Stub>| -> Vec<String> {
+        Frame::new(app)
+            .0
+            .into_iter()
+            .filter_map(|shape| match shape {
+                quantus_ui::render::Shape::Text(_, text, _, _) => Some(text),
+                _ => None,
+            })
+            .collect()
+    };
+    let mut app = App::new(Stub);
+    app.settings.wlan = true;
+    app.settings.bluetooth = true;
+    let shown = texts(&app);
+    assert!(shown.contains(&"WLAN".to_string()) && shown.contains(&"BT".to_string()));
+    assert!(shown.contains(&"D".to_string()));
+    app.settings.set(quantus_ui::settings::Setting::Exam, 1);
+    let shown = texts(&app);
+    assert!(shown.contains(&"PRÜFUNG".to_string()) && !shown.contains(&"WLAN".to_string()));
+}

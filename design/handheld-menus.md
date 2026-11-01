@@ -590,7 +590,9 @@ The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hos
   handheld directly (USB, or the WLAN/Bluetooth link). The handheld can also fetch the same
   release itself over WLAN. The release workflow ([RELEASING.md](../RELEASING.md)) then has to
   attach the firmware image.
-- **Top bar**: icons for WLAN, Bluetooth and the exam mode, next to the battery.
+- **Top bar**: icons for WLAN, Bluetooth and the exam mode, next to the battery. *Implemented*
+  in the hui as text: *WLAN* and *BT* while on, a *PRÜFUNG* tag in the accent, and D/R for the
+  angle unit (section 8, item 1) next to the digits and *Exakt*/*Dez*.
 
 ### 7.6 Colours
 

@@ -6,8 +6,8 @@ engine (`quantus-core`) answers. With `--stub` the stub answers instead, as on t
 input itself (with `≈` in front as a decimal), and an input with a `?` gives an error. Analysis
 and Linear only evaluate plain inputs for now; curve sketches and systems have no screen yet.
 
-The screen works like a Casio: a top bar in the mode's color (mode, SHIFT/ALPHA, significant
-digits, exact or decimal, battery), the input from the top left and, after EXE, its result at the
+The screen works like a Casio: a top bar (mode, SHIFT/ALPHA, significant
+digits, exact or decimal, angle unit, WLAN, Bluetooth, exam mode, battery), the input from the top left and, after EXE, its result at the
 bottom right. After a result, an operator goes on with it, ←/→/DEL edit the input again and any
 other key starts a new one.
 

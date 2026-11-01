@@ -11,6 +11,7 @@ use embedded_graphics::primitives::{
 
 use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::menu::{self, Edit, Kind, Menu, ROWS};
+use crate::settings::Angle;
 use crate::text;
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
@@ -138,8 +139,9 @@ fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
     RoundedRectangle::with_equal_corners(Rectangle::new(top_left, size), Size::new(radius, radius))
 }
 
-/// The top bar: the mode on the left; on the right SHIFT and ALPHA while
-/// they are on, the digits, exact or decimal and the battery.
+/// The top bar: the mode (or the menu's page) on the left; on the right SHIFT and ALPHA while
+/// they are on, the digits, exact or decimal, the angle unit, WLAN and Bluetooth when on, the
+/// exam mode and the battery.
 fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     shapes.push(Shape::Fill(full_width(0, BAR as u32), colors::CYAN_DIM));
     let baseline = BAR - 7;
@@ -152,24 +154,45 @@ fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     // From the right edge inwards.
     let mut right = WIDTH as i32 - MARGIN;
     right -= battery(shapes, app.battery, Point::new(right, BAR / 2)) + 12;
-    let form = if app.settings.decimal { "Dec" } else { "Exact" };
-    let digits = format!("Sig {}", app.settings.digits);
-    for text in [form.to_string(), digits] {
+    let settings = &app.settings;
+    let lang = settings.language;
+    // The exam mode as a tag in the accent; the radios, the angle unit, the digits and the
+    // result form as text.
+    if settings.exam {
+        right -= tag(shapes, right, text::EXAM.get(lang), colors::AMBER) + 8;
+    }
+    let angle = match settings.angle {
+        Angle::Degrees => "D",
+        Angle::Radians => "R",
+    };
+    let form = if settings.decimal { text::DECIMAL_SHORT } else { text::EXACT_SHORT };
+    let texts = [
+        settings.bluetooth.then_some("BT"),
+        settings.wlan.then(|| text::WLAN.get(lang)),
+        Some(angle),
+        Some(form.get(lang)),
+    ];
+    let digits = format!("Sig {}", settings.digits);
+    for text in texts.into_iter().flatten().map(str::to_string).chain([digits]) {
         let width = Scale::Small.width(&text);
         shapes.push(Shape::Text(Point::new(right - width, baseline), text, Scale::Small, colors::TEXT));
         right -= width + 12;
     }
     for (on, label, color) in [(app.alpha, "ALPHA", colors::ALPHA), (app.shift, "SHIFT", colors::SHIFT)] {
-        if !on {
-            continue;
+        if on {
+            right -= tag(shapes, right, label, color) + 8;
         }
-        let width = Scale::Small.width(label);
-        let tag = rounded(Point::new(right - width - 8, 4), Size::new(width as u32 + 8, BAR as u32 - 8), 3);
-        shapes.push(Shape::Round(tag, color, None));
-        let at = Point::new(right - width - 4, baseline);
-        shapes.push(Shape::Text(at, label.to_string(), Scale::Small, colors::BACKGROUND));
-        right -= width + 8 + 8;
     }
+}
+
+/// A label on a coloured tag in the top bar, ending at `right`; returns its width.
+fn tag(shapes: &mut Vec<Shape>, right: i32, label: &str, color: Rgb565) -> i32 {
+    let width = Scale::Small.width(label);
+    let tag = rounded(Point::new(right - width - 8, 4), Size::new(width as u32 + 8, BAR as u32 - 8), 3);
+    shapes.push(Shape::Round(tag, color, None));
+    let at = Point::new(right - width - 4, BAR - 7);
+    shapes.push(Shape::Text(at, label.to_string(), Scale::Small, colors::BACKGROUND));
+    width + 8
 }
 
 /// A battery icon ending at `right`, centred on `center.y`, filled by the charge; returns its width.
