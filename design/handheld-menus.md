@@ -1,8 +1,10 @@
 # Handheld menus
 
 The menu structure for the handheld (`firmware/ui`), modelled on the Casio fx-991DE X. Section 3
-replicates the Casio's menus; sections 4 and 5 map them to Quantus and add what Quantus can do
-that the Casio cannot; section 6 is the merged tree the firmware should implement.
+replicates the Casio's menus. Section 4 maps each entry to Quantus with the decision taken for
+it, section 5 adds what Quantus can do that the Casio cannot, section 6 describes sessions,
+section 7 is the merged tree the firmware should implement and section 8 the engine work it
+needs.
 
 Today the firmware has a MODE tile menu with five modes and a two-row setup (SHIFT+MODE) for
 significant digits and exact or decimal results (`firmware/ui/src/app.rs`). The keypad is
@@ -272,63 +274,65 @@ directions.
 
 ## 4. Casio entries mapped to Quantus
 
-**Keep**: the engine does it. **Adapt**: the engine does it differently. **Gap**: the engine
-cannot do it yet. **Drop**: not wanted on the handheld.
+*Today* is what Quantus does now. *Decision* is what was agreed on 2026-11-01, entry by entry.
+Rows the engine already covers are marked **keep**; **drop** means not on the handheld. The
+engine work the decisions call for is collected in section 8.
 
-| Casio | Quantus | Status |
+| Casio | Today in Quantus | Decision |
 |---|---|---|
 | Main menu, digit or cursor + OK | MODE tiles, 6 per page (`render.rs`) | keep |
-| Berechnungen | Physik (the default mode: numbers with units and constants) | adapt |
+| Berechnungen | Physik (numbers with units and constants) | Physik stays the default mode and tile 1 |
 | Komplexe Zahlen | Komplex (`imaginary`) | keep |
-| Basis-N | – | gap |
-| Matrizen | only `\det` up to 8×8 (`syntax.md`); Gauss steps in LGS | gap (operations), keep (det) |
-| Vektorrechnung | – (Geometrie with vectors: `plans/new-areas-and-themes.md`) | gap |
-| Statistik, Verteilungsfkt. | – (Stochastik: `plans/new-areas-and-themes.md`) | gap |
+| Basis-N | – | own mode, soon: integers, DEC/HEX/BIN/OCT, d/h/b/o, and/or/xor/xnor/Not/Neg |
+| Matrizen | only `\det` up to 8×8; Gauss steps in LGS | the full Casio set, exact and with steps: + − ×, inverse, transpose, identity, det, powers, REF/RREF; any variable name instead of MatA–D |
+| Vektorrechnung | – | goes into the future Geometrie area, not its own mode |
+| Statistik, Verteilungsfkt. | – | one Stochastik module in the engine, two tiles (Statistik, Verteilungen), as in `plans/new-areas-and-themes.md` |
 | Tabellenkalk. | – | drop |
-| Tabellen | Kurvendiskussion → Wertetabelle (one function, ≤ 201 rows) | adapt |
-| Gleichung/Funkt: Gleichungssyst. | LGS mode, or `;` / `cases` in any mode; exact, with steps | adapt |
-| Gleichung/Funkt: Polynom-Gleich. | Algebra: `=` with one unknown; degree ≤ 2 exact, higher numeric on [−100, 100] | adapt |
-| Ungleichungen | – | gap |
-| Berechn prüf | – (Algebra simplifies both sides, but gives no true/false) | gap |
-| Verhältnisse | Algebra: type `\frac{3}{8} = \frac{x}{12}` | adapt (no mode) |
-| SETUP Eingabe/Ausgabe Math/Lin. | input is always 2D; output exact or decimal | adapt |
-| SETUP Winkeleinheit | radians; degrees written `30^\circ`; no setting | gap |
-| SETUP Zahlenformat Fix/Sci/Norm | significant digits (`precision`, firmware 1–15) | adapt, Fix/Sci gap |
-| SETUP Dezimalpräfixe, ENG | Physik writes units with prefixes; no ENG on plain numbers | gap |
-| SETUP Bruchergebnis ab/c, d/c | improper fractions only | gap (mixed) |
-| SETUP Komplexe Zahlen r∠θ | a+bi only (`limits.md`) | gap |
-| SETUP Statistik, Tabellenkalk. | follow their modes | drop / gap |
-| SETUP Gleichung/Funkt complex | `linearComplex` in LGS; Komplex mode gives complex roots | adapt |
-| SETUP Tabellen f(x), g(x) | – | drop |
-| SETUP Period. Darst. | – | gap |
-| SETUP 1000er-Trennung | – | gap (display only) |
-| SETUP Mehrzeilengröße | – | drop (no linear mode) |
-| SETUP QR Code | – | drop |
-| SETUP Automat Aus | deep sleep ([calculator-hardware.md](calculator-hardware.md) §5) | keep (firmware) |
-| SETUP Kontrast | backlight brightness instead | adapt (firmware) |
-| RESET | settings / memory / all | keep (firmware) |
-| Hyperbol. Fkt. | sinh, cosh, tanh; no inverses | keep, gap (inverses) |
-| Winkeleinheit °, r, g | `^\circ`; no r, g | keep (°), gap |
-| ∫, d/dx | `\int_a^b` numerical to at most 30 digits, exact values recognised; d/dx at a point | keep |
-| Σ, Π | `\sum` exact up to 10⁶ terms; no `\prod` | keep, gap (Π) |
-| lim | – on the Casio | Quantus extra, see 5.3 |
-| x!, nCr | `n!`, `\binom{n}{k}` | keep |
-| nPr, GCD, LCM, Ran#, RanInt, Rnd, RndFix, Int, Intg, ÷R, FACT | `\bmod`, ⌊⌋, ⌈⌉, max, min exist; the rest do not | gap |
-| % | `20\%` | keep |
-| Pol, Rec | – | gap |
-| Sexagesimal °′″ | – | gap |
-| CALC | session variables `x_1 = …`, then evaluate | adapt |
-| SOLVE | Algebra `=` solves exactly where it can | adapt |
+| Tabellen | Kurvendiskussion → Wertetabelle (one function, ≤ 201 rows) | its own tile, Wertetabelle, on the analysis code; g(x) as a second column |
+| Gleichung/Funkt: Gleichungssyst. | LGS mode, or `;` / `cases`; exact, with steps | LGS tile; OPTN switches between typing equations and the coefficient editor [A\|b] |
+| Gleichung/Funkt: Polynom-Gleich. | Algebra `=`: degree ≤ 2 exact, higher numeric on [−100, 100] | no coefficient form: typed in Algebra. The engine gets exact roots for degree 3 and 4 (Cardano, Ferrari) and loses the [−100, 100] limit |
+| Vertex after a quadratic | extrema in Kurvendiskussion | Kurvendiskussion is enough |
+| Ungleichungen | – | later, low priority |
+| Berechn prüf | – | both: Algebra answers wahr/falsch for an equation without unknowns, and a Prüfen tile with the Casio's chaining |
+| Verhältnisse | Algebra: `\frac{3}{8} = \frac{x}{12}` | drop, Algebra does it |
+| SETUP Eingabe/Ausgabe | 2D input; exact or decimal | only Ergebnis exakt/dezimal; no one-line input |
+| SETUP Winkeleinheit | radians; degrees as `30^\circ` | engine setting Grad/Bogenmaß (no gon); degrees by default on the handheld; D/R in the top bar |
+| SETUP Zahlenformat | significant digits (handheld 1–15) | Norm 1/2, Fix 0–9, Sci 0–9 as on the Casio; significant digits stay the internal precision |
+| SETUP Dezimalpräfixe, ENG | prefixes on units in Physik only | SETUP Dezimalpräfixe (prefixes on plain numbers too) and an ENG / ←ENG key that steps the exponent or prefix by 3 |
+| SETUP Bruchergebnis | improper fractions only | setting ab/c / d/c, and S⇔D toggles between them |
+| SETUP Komplexe Zahlen, ▶r∠θ, ▶a+bi | a+bi only | setting a+bi / r∠θ, OPTN ▶r∠θ / ▶a+bi for one result, ∠ to type polar values, in the angle unit set |
+| SETUP Gleichung/Funkt (complex roots) | Komplex gives complex roots; LGS has its i switch | per mode, no global switch |
+| SETUP Statistik (Freq), Tabellen f/g | – | with their modes: Freq column in the Statistik editor; g(x) in Wertetabelle |
+| SETUP Period. Darst. | – | recurring decimals in the S⇔D cycle, and a template to type a period |
+| SETUP 1000er-Trennung | – | yes: a thin space (the comma is the decimal mark) |
+| SETUP Mehrzeilengröße | – | a font size setting, normal or small, for long results and the step list |
+| SETUP QR Code | – | a QR code of the result or the steps (LaTeX, for the desktop); no version setting |
+| SETUP Automat Aus | deep sleep | keep (firmware) |
+| SETUP Kontrast | – | backlight brightness |
+| RESET | – | keep (firmware): settings / memory / all |
+| Hyperbol. Fkt. | sinh, cosh, tanh | add arsinh, arcosh, artanh (and coth) |
+| Winkeleinheit °, r, g in input | `^\circ` | ° and rad mark a value regardless of the setting; no gon |
+| ∫, d/dx | numeric ∫ to 30 digits, exact values recognised; d/dx at a point | keep |
+| Σ | `\sum`, exact, up to 10⁶ terms | keep |
+| Π | – | add `\prod`, like `\sum` |
+| x!, nCr, %, Abs | `n!`, `\binom`, `\%`, `\|x\|` | keep |
+| nPr, GCD, LCM | – | add |
+| FACT | – | add: prime factors as a result form |
+| Int, Intg, Rnd, RndFix, ÷R | ⌊⌋, ⌈⌉, mod | add |
+| Ran#, RanInt | – | drop |
+| Pol, Rec | – | none of their own: x+yi ▶r∠θ in Komplex does the job |
+| Sexagesimal °′″ | – | input 2°20′30″, and °′″ as a result form on S⇔D |
+| CALC | session variables | a CALC prompt: asks for each free variable of the expression on screen, then evaluates (with the SUBSTITUTED step); the values become session variables |
+| SOLVE | Algebra `=` | SOLVE for a chosen variable (F = m·a for a); the others from session variables or asked as in CALC; exact, numeric with an optional start value |
 | Komplex OPTN Arg, Conjg, ReP, ImP | `\arg`, `\overline{z}`, `\Re`, `\Im`, `\|z\|` | keep |
-| Komplex ▶r∠θ, ▶a+bi | – | gap |
-| CONST (47, CODATA 2010) | 15 constants, CODATA 2018, Physik only | adapt (see 5.4) |
-| CONV (`cm▶in`) | units are part of the value; convert by dividing by the target unit | adapt (see 5.4) |
+| CONST (47, CODATA 2010) | 15, CODATA 2018, Physik only | all 47, CODATA 2018, in the Casio's categories; inserted from CONST they work in every mode |
+| CONV (`cm▶in`) | divide by the target unit | an engine operator "▶ unit" that writes the result in that unit; CONV lists target units by the Casio's categories; add the missing units (ft, yd, lb, oz, gal, psi, Btu, hp, °F …) |
 | Ans | Ans key | keep |
-| PreAns | – | gap (history has the value) |
-| A–F, M, x, y; STO, RECALL | any indexed name (`m_1`, `v_{max}`) as a session variable | adapt |
+| PreAns | – | add |
+| A–F, M, x, y; STO, RECALL | session variables with any name | STO stores Ans under any name; VARS lists the session's variables to insert, edit or delete |
 | M+, M− | – | drop |
-| History ↑/↓, replay ←/→ | the same, 50 entries (firmware) | keep |
-| UNDO, INS | – | gap (firmware editor) |
+| History ↑/↓, replay ←/→ | the same, 50 entries | keep; saved with the session (section 6) |
+| UNDO, INS | – | UNDO/REDO, INS (wrap the previous item in the next template), select with SHIFT+←/→, copy and paste |
 
 ## 5. What Quantus adds
 
@@ -381,16 +385,16 @@ From `docs/docs/reference/settings.md`; the firmware has only the first two so f
 - **Systems**: `;` between equations (`Key::Semicolon`), and `cases`.
 - **Infinity** as an integral bound and limit target.
 
+
 ### 5.4 CONST and CONV in Quantus
 
-- **CONST**: the 15 Quantus constants, in Casio's categories so the menu feels the same.
-  Univers.: c₀ (`c_0`), h (`h_P`), ħ, ε₀, μ₀, G (`G_N`). E-magn.: e (`e_0`).
-  Atom./Nuk.: m_e, m_p, m_n. Phys/Chem.: N_A, k (`k_B`), R (`R_m`), σ (`\sigma_SB`).
-  Übernomm.: g (`g_n`). Casio's other 32 are a gap; the most asked for (u, F, Z₀, a₀, α, R∞,
-  μ_B, Φ₀) first.
-- **CONV**: no command. The menu inserts `/\mathrm{unit}` so the result reads in that unit, by
-  the same categories as 3.17 where Quantus knows the unit (in, mile, h, km/h, mph, atm, bar,
-  Torr, eV, cal, kWh, °C, ly, AU, Å …). A real "▶ unit" command in the engine would be better.
+- **CONST**: all 47 of the Casio's constants with CODATA 2018 values, in its six categories.
+  Quantus has 15 of them today: Univers. c₀ (`c_0`), h (`h_P`), ħ, ε₀, μ₀, G (`G_N`); E-magn.
+  e (`e_0`); Atom./Nuk. m_e, m_p, m_n; Phys/Chem. N_A, k (`k_B`), R (`R_m`), σ (`\sigma_SB`);
+  Übernomm. g (`g_n`). The menu inserts a constant by its name, so it works outside Physik too.
+- **CONV**: a "▶ unit" operator in the engine, `5\,\mathrm{cm} ▶ \mathrm{in}`, that writes the
+  result in the target unit (compatible dimension, else an error). The menu lists the target
+  units in the Casio's 21 categories (3.17), only those Quantus knows.
 
 ### 5.5 On the result screen
 
@@ -399,84 +403,162 @@ From `docs/docs/reference/settings.md`; the firmware has only the first two so f
 - The quantity name in Physik.
 - Kurvendiskussion: one page per section, ←/→ between sections.
 - LGS: the Gauss steps row by row.
-- S⇔D as today; FORMAT (Casio CW) is not needed while the only forms are exact and decimal.
+- S⇔D cycles through the forms a result has: exact, d/c or ab/c, recurring decimal, decimal,
+  and °′″ for angles. Prime factors (FACT), ENG and the polar form come from OPTN or their keys.
+- A QR code of the result or the steps.
 
-## 6. The handheld tree
+## 6. Sessions
 
-**[C]** from the Casio, **[Q]** Quantus only, **[gap]** needs the engine first, **[fw]**
-firmware only. Six entries per page, as the mode menu draws them.
+The handheld always works in a session. A session holds:
 
-### 6.1 MODE (main menu)
+- the session variables,
+- the history,
+- what the modes hold: the LGS matrix, the Kurvendiskussion function, the Wertetabelle range,
+  the Statistik lists, the matrices.
+
+The mode and the settings are not part of a session; they stay global.
+
+- **Names**: a new session starts as "Sitzung 2026-11-01 14:30" and can be renamed.
+- **Menu** (*Sitzungen*, from MODE or SHIFT + a key): the sessions by last use, with Öffnen,
+  Neu, Umbenennen, Duplizieren, Löschen.
+- **Storage**: one JSON file per session on the SD card, in a format the desktop app can open as
+  well, so sessions move between the two over the card or USB. The desktop does not keep
+  sessions yet (`plans/plans.md` §5, "Later").
+- **When it is written**: after every calculation and before deep sleep, so a power loss
+  loses at most the last input. The handheld opens the last session on wake-up.
+
+Deep sleep does not keep the RAM: on the ESP32-P4 the main SRAM and the PSRAM are off, and only
+the small low-power memory survives. That is why sessions go to the SD card and are not kept
+in RAM. How long deep sleep lasts depends less on the chip (tens of µA) than on the rest of the
+board: the dev board's regulator, USB bridge and LED and the display module's regulator and
+shift registers can draw 1–10 mA unless they can be switched off, and the backlight needs a
+switch. At 5 mA a 2000 mAh LiPo lasts about 2½ weeks; at 50 µA, years. These are estimates,
+to be measured; they belong to the power question in
+[calculator-hardware.md](calculator-hardware.md) §6.
+
+## 7. The handheld tree
+
+**[C]** from the Casio, **[Q]** Quantus only, **[eng]** needs engine work first (section 8),
+**[fw]** firmware only. Six entries per page, as the mode menu draws them.
+
+### 7.1 MODE (main menu)
 
 - Page 1
-  1. Physik [C Berechnungen + Q]
+  1. Physik [C Berechnungen + Q], the default
   2. Algebra [Q]
   3. Komplex [C]
-  4. Kurvendiskussion [Q, replaces Tabellen]
+  4. Kurvendiskussion [Q]
   5. LGS [C Gleichungssyst. + Q]
-  6. Gleichungen [C Gleichung/Funkt: Polynom-Gleich., via Algebra]
-- Page 2, each [gap] until the engine has it
-  7. Matrizen
-  8. Vektoren
-  9. Statistik
-  10. Verteilungen
-  11. Ungleichungen
-  12. Basis-N
-- Later: Berechn prüf [gap], Geometrie and Formelsammlung ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)).
-  Not on the handheld: Tabellenkalk., Verhältnisse (Algebra does it), Kirchhoff, Elektronik.
+  6. Wertetabelle [C Tabellen, on the analysis code]
+- Page 2
+  7. Matrizen [C, eng]
+  8. Basis-N [C, eng]
+  9. Statistik [C, eng]
+  10. Verteilungen [C, eng]
+  11. Prüfen [C Berechn prüf, eng]
+  12. Sitzungen [Q, fw]
+- Later: Ungleichungen [C, eng], Geometrie with the vectors [eng]
+  ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)).
+- Not on the handheld: Tabellenkalk., Verhältnisse (typed in Algebra), Kirchhoff and
+  Elektronik (they need a drawn circuit).
 
-### 6.2 SETUP (SHIFT + MODE)
+### 7.2 SETUP (SHIFT + MODE)
 
-- **Allgemein**: Sprache · Signifikante Stellen · Winkeleinheit [gap] · Zahlenformat Norm/Fix/Sci
-  [gap] · Dezimalpräfixe [gap] · 1000er-Trennung [gap]
-- **Ergebnis**: exakt/dezimal · Bruch d/c, ab/c [gap] · Periodisch [gap] · Komplex a+bi/r∠θ
-  [gap] · Quadratische Gleichungen pq/abc
-- **Rechenweg**: Rechenweg (5 levels) · Kürzungen durchstreichen · Gleichungssysteme Gauß/Gauß–Jordan
+- **Allgemein**: Sprache · Winkeleinheit Grad/Bogenmaß [eng] · Signifikante Stellen ·
+  Zahlenformat Norm 1/Norm 2/Fix n/Sci n [eng] · Dezimalpräfixe [eng] · 1000er-Trennung [eng]
+- **Ergebnis**: exakt/dezimal · Bruch d/c, ab/c [eng] · Periodisch [eng] · Komplex a+bi/r∠θ
+  [eng] · Quadratische Gleichungen pq/abc
+- **Rechenweg**: Rechenweg (5 levels) · Kürzungen durchstreichen · Gleichungssysteme
+  Gauß/Gauß–Jordan
 - **Algebra**: Binomische Formeln · Quadratische Ergänzung · Nenner · Identitäten mit Bedingung
 - **Eingabe**: a und y als Variablen · Buchstabenfolge als Produkt · t, u und in als Einheiten ·
-  Unbekannte (LGS) · Imaginäre Einheit i (LGS)
-- **Gerät** [fw]: Helligkeit · Automatisch aus 10/60 min · Zurücksetzen → Einstellungen /
-  Speicher / Alles (each with Ja)
+  Unbekannte (LGS)
+- **Gerät** [fw]: Helligkeit · Schriftgröße normal/klein · Automatisch aus 10/60 min ·
+  Zurücksetzen → Einstellungen / Speicher / Alles (each with Ja)
 
-### 6.3 OPTN per mode
+### 7.3 OPTN per mode
 
-- **Physik**: Einheiten (by quantity) [Q] · Präfixe [Q] · Konstanten (= CONST) · Winkel ° [C] ·
-  Hyperbol. Fkt. [C] · Analysis: ∫, d/dx, Σ, lim [C + Q] · Zahl: |x|, n!, binom, mod, ⌊⌋, ⌈⌉,
-  max, min, % [C + Q]
-- **Algebra**: Gleichungssystem (`;`, `cases`) [Q] · Griechisch [Q] · Analysis · Zahl ·
-  Hyperbol. Fkt.
-- **Komplex**: Argument, Konjugierte, Realteil, Imaginärteil, Betrag [C] · ▶r∠θ, ▶a+bi [gap] ·
+Shared groups, used by several modes:
+
+- **Analysis**: ∫, d/dx, Σ, Π [eng], lim
+- **Zahl**: |x|, n!, nCr, nPr [eng], ggT, kgV [eng], Int, Intg, Rnd, RndFix, ÷R [eng], mod,
+  ⌊⌋, ⌈⌉, max, min, %
+- **Hyperbol. Fkt.**: sinh, cosh, tanh, arsinh, arcosh, artanh [eng]
+- **Winkel**: °, rad, °′″ [eng]
+- **Griechisch**: α β γ δ ε θ λ μ ρ σ τ φ ω Δ Ω
+- **Werkzeuge**: CALC [eng], SOLVE [eng], ▶ Einheit [eng]
+
+Per mode:
+
+- **Physik**: Einheiten (by quantity) [Q] · Präfixe [Q] · Analysis · Zahl · Winkel ·
+  Hyperbol. Fkt. · Werkzeuge
+- **Algebra**: Gleichungssystem (`;`, `cases`) [Q] · Griechisch · Analysis · Zahl ·
+  Hyperbol. Fkt. · Werkzeuge
+- **Komplex**: Argument, Konjugierte, Realteil, Imaginärteil, Betrag [C] · ▶r∠θ, ▶a+bi, ∠ [eng] ·
   Analysis · Zahl
-- **Kurvendiskussion**: Kurvendiskussion (the sections) · Tangente/Normale · Fläche ·
-  Wertetabelle (von, bis, Schritt) [Q]; the result pages as in 5.5
-- **LGS**: Eingabe Gleichungen / Matrix [A|b] · Größe (m × n, up to 10) · Alles löschen [Q]
-- **Gleichungen**: Polynom Grad 2 · 3 · 4 → coefficient editor [C]; the solutions go to the
-  Algebra solver, so the result is exact with steps
+- **Kurvendiskussion**: the sections · Tangente/Normale · Fläche · Wertetabelle [Q]
+- **Wertetabelle**: f(x) · g(x) · von, bis, Schritt [C]
+- **LGS**: Eingabe Gleichungen / Matrix [A|b] · Größe (m × n, up to 10) · Imaginäre Einheit i ·
+  Alles löschen [Q]
+- **Matrizen**: Definieren, Bearbeiten · the matrix variables · Ans · Determinante,
+  Transponierte, Inverse, Einheitsmatrix, REF, RREF [C, eng]
+- **Basis-N**: DEC, HEX, BIN, OCT · d, h, b, o · and, or, xor, xnor, Not, Neg [C, eng]
+- **Statistik**: Typ (1 Variable and the 7 regressions) · Editor: Zeile einfügen, Alles löschen ·
+  Summen, Kennwerte, Min/Max/Quartile, Regression [C, eng]
+- **Verteilungen**: Normal-Dichte, Kumul. Normal-V, Inv. Normal-V, Binomial-Dichte, Kumul.
+  Binom.-V, Poisson-Dichte, Kumul. Poisson-V · Liste/Variable [C, eng]
+- **Prüfen**: =, ≠, <, >, ≤, ≥ [C, eng]
 
-### 6.4 Keys
+### 7.4 Keys
 
-| Casio | Handheld | Status in `key.rs` |
+| Function | Handheld | Status in `key.rs` |
 |---|---|---|
-| MENU | MODE | exists |
-| SHIFT + MENU (SETUP) | SHIFT + MODE | exists |
+| Main menu | MODE | exists |
+| SETUP | SHIFT + MODE | exists |
 | OPTN | OPTN | missing |
-| CONST | SHIFT + a key | missing |
-| CONV | SHIFT + a key | missing |
+| CONST, CONV | own key or SHIFT + a key | missing |
 | S⇔D | S⇔D | exists (`SwapForm`) |
-| STO, RECALL | STO (SHIFT + a key) for `name = Ans`, VARS to list the session variables | missing |
-| CALC, SOLVE | not needed (5.4, section 4) | – |
+| ENG, ←ENG | a key and SHIFT + it | missing |
+| STO, VARS | SHIFT + a key, and a key | missing |
+| CALC, SOLVE | a key and SHIFT + it, or OPTN → Werkzeuge | missing |
+| Sitzungen | SHIFT + a key, or the MODE tile | missing |
+| PreAns | SHIFT + Ans | missing |
+| ∠ | SHIFT + a key in Komplex | missing |
+| UNDO/REDO, INS | SHIFT + DEL, SHIFT + another key | missing |
+| Select, copy, paste | SHIFT + ←/→, then a copy and a paste key | missing |
 | ∫, d/dx, Σ | own keys or OPTN → Analysis | missing |
 | x⁻¹, x³, ⁿ√, 10ˣ, eˣ | SHIFT layers | partly (`Root` with SHIFT is ⁿ√) |
 | ALPHA letters | ALPHA + key | `Alpha` exists, legend open |
 
-## 7. Open questions
+## 8. Engine work the decisions need
 
-- **Angle unit**: add a degree/radian setting to the engine, or keep radians and offer ° only in
-  OPTN? The Casio defaults to degrees, which school users will expect.
-- **Number format**: significant digits only, or Fix/Sci/Norm as the Casio has them?
-- **Order of the gaps**: Matrizen and Statistik are the ones most missed against the Casio;
-  Basis-N and Ungleichungen are small.
-- **Keys**: which of OPTN, CONST, CONV, STO, ∫ and d/dx get their own key in the 53, and which go
-  through menus.
+Roughly in the order agreed; each would go into `plans/plans.md` as its own item.
+
+1. **Angle unit setting** Grad/Bogenmaß, ° and rad as markers in the input; °′″ input and
+   result form.
+2. **Number format** Norm/Fix/Sci, Dezimalpräfixe on plain numbers, ENG steps, digit grouping.
+3. **Result forms**: mixed fractions, recurring decimals (and their input), prime factors,
+   complex r∠θ with ∠ input and the conversions.
+4. **Basis-N**: an integer mode with bases and bitwise operations.
+5. **Matrices**: matrix values and their operations, exact, with steps; reuses the LGS Gauss code.
+6. **Stochastik**: lists, statistics, regressions, distributions.
+7. **Functions**: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix,
+   ÷R, PreAns.
+8. **Constants and units**: the 32 missing constants, the ▶ unit operator, the missing
+   imperial units.
+9. **Solving**: exact cubics and quartics (Cardano, Ferrari), no [−100, 100] limit; SOLVE for a
+   chosen variable; true/false for equations without unknowns.
+10. **Sessions**: a session file format shared with the desktop.
+11. Later: inequalities; vectors with Geometrie.
+
+## 9. Open questions
+
+- **Keys**: which of OPTN, CONST, CONV, ENG, STO, VARS, CALC, SOLVE, ∫ and d/dx get their own
+  key among the 53, and which go through OPTN.
 - **More than nine entries** in a menu: the Casio picks with digits; past 9 the handheld needs the
   cursor, or letters.
+- **Cardano and Ferrari** give long nested roots: show them only when they simplify, or always
+  with the decimal next to them?
+- **Session format**: JSON as proposed, or the desktop's existing state, once the desktop keeps
+  sessions.
+- **Power**: measure deep sleep on the real board before choosing the battery.

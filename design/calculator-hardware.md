@@ -70,7 +70,10 @@ About 53 keys in total.
 ## 6. Open questions
 
 - **Power**: USB-C only, or a LiPo with a charger that has a power path (e.g. BQ24074) and a
-  battery gauge (e.g. MAX17048).
+  battery gauge (e.g. MAX17048). Deep sleep turns the SRAM and PSRAM off, so what must survive
+  goes to the SD card ([handheld-menus.md](handheld-menus.md) §6). Its current is set less by
+  the P4 (tens of µA) than by the board's regulator, USB bridge, LEDs and the display module;
+  to be measured, and the backlight needs a switch.
 - **Display mounting**: solder the RPi module by its header (about 10 mm tall, simple), or a bare
   ILI9486 panel on a flex cable with the XPT2046 on our PCB (thinnest, more design work). This
   decides how well R1 is met.
