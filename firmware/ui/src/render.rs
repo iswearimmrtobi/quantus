@@ -186,7 +186,7 @@ fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
 
     // From the right edge inwards.
     let mut right = WIDTH as i32 - MARGIN;
-    right -= battery(shapes, app.battery, Point::new(right, BAR / 2)) + 12;
+    right -= battery(shapes, app.battery, app.charging, Point::new(right, BAR / 2)) + 12;
     let settings = &app.settings;
     let lang = settings.language;
     // The exam mode as a tag in the accent, the radios as icons; the angle unit, the digits and
@@ -256,8 +256,9 @@ fn bluetooth(shapes: &mut Vec<Shape>, right: i32) -> i32 {
     width
 }
 
-/// A battery icon ending at `right`, centred on `center.y`, filled by the charge; returns its width.
-fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, right_center: Point) -> i32 {
+/// A battery icon ending at `right`, centred on `center.y`, filled by the charge, in green with a
+/// bolt in front while charging; returns its width.
+fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, charging: bool, right_center: Point) -> i32 {
     let (width, height) = (22, 11);
     let top_left = Point::new(right_center.x - width, right_center.y - height / 2);
     let nub = Rectangle::new(Point::new(right_center.x - 2, right_center.y - 2), Size::new(2, 5));
@@ -268,10 +269,23 @@ fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, right_center: Point) -> 
     if let Some(charge) = charge {
         let inner = body.offset(-2);
         let filled = inner.size.width * u32::from(charge.min(100)) / 100;
-        let color = if charge < 15 { colors::ERROR } else { colors::TEXT };
+        let color = match (charging, charge < 15) {
+            (true, _) => colors::ALPHA,
+            (false, true) => colors::ERROR,
+            (false, false) => colors::TEXT,
+        };
         shapes.push(Shape::Fill(Rectangle::new(inner.top_left, Size::new(filled, inner.size.height)), color));
     }
-    width
+    if !charging {
+        return width;
+    }
+    // The bolt: a wedge pointing up and one pointing down, overlapping in the middle.
+    let x = right_center.x - width - 14;
+    let y = right_center.y - 6;
+    let at = |dx, dy| Point::new(x + dx, y + dy);
+    shapes.push(Shape::Triangle(Triangle::new(at(9, 0), at(0, 8), at(6, 8)), colors::TEXT));
+    shapes.push(Shape::Triangle(Triangle::new(at(3, 5), at(10, 5), at(1, 13)), colors::TEXT));
+    width + 14
 }
 
 /// One calculation, as on a Casio: the input from the top left, its result at the bottom right.

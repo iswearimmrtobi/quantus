@@ -607,7 +607,9 @@ The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hos
   attach the firmware image.
 - **Top bar**: icons for WLAN, Bluetooth and the exam mode, next to the battery. *Implemented*
   in the hui: a Wi-Fi fan and the Bluetooth rune while on, a *PRÜFUNG* tag in the accent, and
-  D/R for the angle unit (section 8, item 1) next to the digits and *Exakt*/*Dez*.
+  D/R for the angle unit (section 8, item 1) next to the digits and *Exakt*/*Dez*. While USB
+  power is in, a bolt stands before the battery and its fill turns green (`App::charging`, set by
+  the board).
 
 ### 7.6 Colours
 

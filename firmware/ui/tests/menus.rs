@@ -196,3 +196,15 @@ fn the_top_bar_shows_the_exam_mode_and_the_radios() {
     let (texts, wlan, bluetooth) = shown(&app);
     assert!(texts.contains(&"PRÜFUNG".to_string()) && !wlan && !bluetooth);
 }
+
+#[test]
+fn the_battery_shows_a_bolt_while_charging() {
+    let triangles = |app: &App<Stub>| {
+        Frame::new(app).0.iter().filter(|shape| matches!(shape, quantus_ui::render::Shape::Triangle(..))).count()
+    };
+    let mut app = App::new(Stub);
+    app.battery = Some(40);
+    let before = triangles(&app);
+    app.charging = true;
+    assert_eq!(triangles(&app), before + 2);
+}

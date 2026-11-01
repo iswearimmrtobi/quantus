@@ -120,6 +120,8 @@ pub struct App<B> {
     pub shown: Option<usize>,
     /// The charge in percent, if the board can tell.
     pub battery: Option<u8>,
+    /// Whether the battery is charging, set by the board while USB power is in.
+    pub charging: bool,
     pub caret_on: bool,
     last_blink: u64,
 }
@@ -144,6 +146,7 @@ impl<B: Backend> App<B> {
             history: Vec::new(),
             shown: None,
             battery: None,
+            charging: false,
             caret_on: true,
             last_blink: 0,
         }
