@@ -524,7 +524,7 @@ board: the dev board's regulator, USB bridge and LED and the display module's re
 shift registers can draw 1–10 mA unless they can be switched off, and the backlight needs a
 switch. At 5 mA a 2000 mAh LiPo lasts about 2½ weeks; at 50 µA, years. These are estimates,
 to be measured; they belong to the power question in
-[calculator-hardware.md](calculator-hardware.md) §6.
+[calculator-hardware.md](calculator-hardware.md) §7.
 
 ## 7. The handheld tree
 
