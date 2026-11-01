@@ -5,6 +5,8 @@
 //!   optional) and saves the screen instead of opening the window.
 //! - `--stub`: the stub answers instead of the engine.
 //! - `--mirror <port>`: also shows the picture on the board.
+//! - `--charging`, `--busy`: start with the battery charging or the busy spinner turning; F9 and
+//!   F10 switch them in the window.
 
 mod engine;
 mod mirror;
@@ -30,6 +32,9 @@ fn main() {
     let mut app = App::new(backend);
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
+    // What the board will report, shown on demand: F9 and F10 switch them in the window.
+    app.charging = args.iter().any(|arg| arg == "--charging");
+    app.busy = args.iter().any(|arg| arg == "--busy");
     let mut renderer = Renderer::new();
 
     let option = |name: &str| args.iter().position(|arg| arg == name).and_then(|i| args.get(i + 1));
@@ -80,6 +85,8 @@ fn main() {
         for event in window.events() {
             match event {
                 SimulatorEvent::Quit => return,
+                SimulatorEvent::KeyDown { keycode: Keycode::F9, .. } => app.charging = !app.charging,
+                SimulatorEvent::KeyDown { keycode: Keycode::F10, .. } => app.busy = !app.busy,
                 SimulatorEvent::KeyDown { keycode, keymod, .. } => {
                     if let Some(key) = key(keycode, keymod) {
                         app.key(key);
@@ -148,6 +155,7 @@ Quantus simulator keys
   ln log Ans           Ctrl+L  Ctrl+G  Ctrl+A
   ;                    Shift+, (between equations and arguments)
   history              Up/Down outside a fraction
+  charging / busy      F9 / F10 (what the board will report)
   Shifted characters follow a German layout (Shift+7 is /, Shift+0 is =).
 LaTeX: type it here in the terminal and press Enter; it becomes the input and is evaluated.
 ";

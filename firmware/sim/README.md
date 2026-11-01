@@ -6,8 +6,9 @@ engine (`quantus-core`) answers. With `--stub` the stub answers instead, as on t
 input itself (with `≈` in front as a decimal), and an input with a `?` gives an error. Analysis
 and Linear only evaluate plain inputs for now; curve sketches and systems have no screen yet.
 
-The screen works like a Casio: a top bar (mode, SHIFT/ALPHA, significant
-digits, exact or decimal, angle unit, WLAN, Bluetooth, exam mode, battery), the input from the top left and, after EXE, its result at the
+The screen works like a Casio: a top bar (mode, a spinner while busy, SHIFT/ALPHA, significant
+digits, exact or decimal, angle unit, WLAN, Bluetooth, exam mode, battery with a bolt while
+charging), the input from the top left and, after EXE, its result at the
 bottom right. After a result, an operator goes on with it, ←/→/DEL edit the input again and any
 other key starts a new one.
 
@@ -20,7 +21,11 @@ cargo run
 cargo run -- --keys '3/4>+2^3\n' --png screen.png   # type keys, save the screen
 cargo run -- --stub                                 # the stub instead of the engine
 cargo run -- --mirror /dev/ttyUSB0                  # also show the picture on the board
+cargo run -- --charging --busy                      # start charging, with the spinner turning
 ```
+
+The PC has no battery or remote engine, so F9 and F10 switch the charging bolt and the busy
+spinner by hand.
 
 The keys are printed when the window opens.
 
@@ -76,6 +81,8 @@ The characters are the same over the board's serial console (`firmware/handheld`
 | Ctrl+S, Ctrl+O, Ctrl+T | | sin, cos, tan |
 | Ctrl+L, Ctrl+G | | ln, log |
 | Ctrl+A | | Ans |
+| F9 | | simulator only: charging on/off |
+| F10 | | simulator only: busy spinner on/off |
 
 SDL reports only the unshifted key, so the shifted characters in the window follow a German
 layout (Shift+7 is `/`, Shift+8 `(`, Shift+0 `=`, Shift++ `*`). The number pad works on any
