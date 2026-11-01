@@ -161,6 +161,10 @@ impl Lexer<'_> {
             return None;
         }
         if !self.at(0).is_some_and(|c| c.is_ascii_digit()) {
+            // `0{,}\overline{3}`: the period follows the separator at once.
+            if self.chars[self.index..].starts_with(&['\\', 'o', 'v', 'e', 'r', 'l', 'i', 'n', 'e']) {
+                return Some(String::new());
+            }
             self.index = start; // a lone separator is not part of the number
             return None;
         }

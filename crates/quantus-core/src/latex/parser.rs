@@ -485,6 +485,9 @@ impl Parser<'_> {
         match token.kind {
             TokenType::Number => {
                 self.advance();
+                if token.text.contains('.') && self.at_period() {
+                    return self.recurring(&token);
+                }
                 Ok(Node::Number { value: self.decimal(&token.text, token.position)?, position: token.position })
             }
             TokenType::Identifier => self.parse_identifier(),
@@ -495,6 +498,34 @@ impl Parser<'_> {
             TokenType::Command => self.parse_command(&token),
             _ => Err(self.error("Expected a number, a unit or a variable here.", token.position)),
         }
+    }
+
+    /// `\overline{digits}` right after a decimal's digits: its period.
+    fn at_period(&self) -> bool {
+        self.current().kind == TokenType::Command
+            && self.current().text == "\\overline"
+            && self.peek(1).kind == TokenType::LBrace
+            && self.peek(2).kind == TokenType::Number
+            && !self.peek(2).text.contains('.')
+            && self.peek(3).kind == TokenType::RBrace
+    }
+
+    /// A recurring decimal, `0{,}1\overline{6}`, as the exact fraction it stands for (`\frac{1}{6}`).
+    fn recurring(&mut self, number: &Token) -> Result<Node> {
+        let period = self.peek(2).text.clone();
+        self.index += 4;
+        let (whole, fixed) = number.text.split_once('.').unwrap_or((&number.text, ""));
+        let ten = |n: usize| dashu::integer::IBig::from(10).pow(n);
+        let digits = |text: &str| text.parse::<dashu::integer::IBig>().unwrap_or_default();
+        // x = whole + (fixed·period − fixed) / (10^|fixed| · (10^|period| − 1))
+        let denominator = ten(fixed.len()) * (ten(period.len()) - dashu::integer::IBig::ONE);
+        let numerator = digits(whole) * &denominator + digits(&format!("{fixed}{period}")) - digits(fixed);
+        let value = dashu::rational::RBig::from_parts(numerator, dashu::base::UnsignedAbs::unsigned_abs(denominator));
+        let position = number.position;
+        let integer = |n: dashu::integer::IBig| Node::Number { value: Decimal::new(n, 0), position };
+        let (top, bottom) = value.into_parts();
+        let fraction = Node::fraction(integer(top), integer(bottom.into()), position);
+        Ok(Node::Group { inner: Box::new(fraction), position })
     }
 
     fn parse_abs(&mut self) -> Result<Node> {

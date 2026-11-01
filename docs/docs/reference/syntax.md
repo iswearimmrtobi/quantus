@@ -17,6 +17,7 @@ editor produces the same LaTeX. Results in this page are from Physics mode unles
 | `20\%` | percent, a unit | $20\,\%$ |
 | `\pi`, `e` | the constants $\pi$ and $e$ | |
 | `i` | the imaginary unit, in Imaginary mode only | |
+| `0{,}1\overline{6}`, `0{,}\overline{3}` | a recurring decimal, the period overlined; exact | $\frac{1}{6}$, $\frac{1}{3}$ |
 | `30^\circ`, `30°` | an angle in degrees | $30$ with degrees, $\frac{\pi}{6}$ with radians |
 | `2^\circ 20' 30''`, `2°20′30″` | degrees, minutes, seconds (also `^{\prime}`, `^{\prime\prime}`) | $2{,}341\overline{6}$ with degrees |
 
