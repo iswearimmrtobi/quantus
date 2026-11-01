@@ -4,7 +4,7 @@ use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::menu::{self, Edit, Kind, Page};
 use quantus_ui::render::{Frame, WIDTH};
-use quantus_ui::settings::{Settings, StepDetail};
+use quantus_ui::settings::{Settings, StepDetail, WallpaperOn};
 use quantus_ui::text::Lang;
 use quantus_ui::tree;
 
@@ -71,7 +71,7 @@ fn reset_memory_empties_the_history() {
     let mut app = setup();
     press(&mut app, &[Key::Ac, Key::Digit(7), Key::Exe]);
     assert_eq!(app.history.len(), 1);
-    press(&mut app, &[Key::Shift, Key::Mode, Key::Digit(6), Key::Digit(4), Key::Digit(2), Key::Exe]);
+    press(&mut app, &[Key::Shift, Key::Mode, Key::Digit(6), Key::Digit(5), Key::Digit(2), Key::Exe]);
     assert!(app.history.is_empty() && app.editor.is_empty());
 
     app.settings.digits = 3;
@@ -222,4 +222,14 @@ fn a_spinner_turns_in_the_top_bar_while_busy() {
     let spin = app.spin;
     assert!(app.tick(400));
     assert_ne!(app.spin, spin);
+}
+
+#[test]
+fn the_wallpaper_page_sets_where_it_shows() {
+    let mut app = setup();
+    // Gerät → Hintergrundbild → Anzeigen → Überall.
+    press(&mut app, &[Key::Digit(6), Key::Digit(3), Key::Digit(2), Key::Digit(3)]);
+    assert_eq!(app.settings.wallpaper_on, WallpaperOn::Everywhere);
+    press(&mut app, &[Key::Digit(2), Key::Up, Key::Up, Key::Exe]);
+    assert_eq!(app.settings.wallpaper_on, WallpaperOn::Modes);
 }

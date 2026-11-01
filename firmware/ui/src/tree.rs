@@ -150,11 +150,27 @@ static DEVICE: Page = Page {
             t("Schriftgröße", "Font size"),
             Kind::Choice(S::FontSize, &[opt(same("Normal"), 0), opt(t("Klein", "Small"), 1)]),
         ),
+        entry(t("Hintergrundbild", "Wallpaper"), Kind::Page(&WALLPAPER)),
         entry(
             t("Automatisch aus", "Auto power off"),
             Kind::Choice(S::AutoOff, &[opt(same("10 min"), 10), opt(same("60 min"), 60)]),
         ),
         entry(t("Zurücksetzen", "Reset"), Kind::Page(&RESET)),
+    ],
+};
+
+/// A picture from the SD card behind the screens (design/handheld-menus.md §7.6).
+static WALLPAPER: Page = Page {
+    title: t("Hintergrundbild", "Wallpaper"),
+    entries: &[
+        pending(t("Bild", "Picture")),
+        entry(
+            t("Anzeigen", "Show on"),
+            Kind::Choice(
+                S::WallpaperOn,
+                &[opt(t("Hauptmenü", "Main menu"), 0), opt(t("Menüs", "Menus"), 1), opt(t("Überall", "Everywhere"), 2)],
+            ),
+        ),
     ],
 };
 

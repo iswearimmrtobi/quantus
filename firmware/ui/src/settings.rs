@@ -53,6 +53,11 @@ choice!(
     SystemInput { Equations, Matrix }
 );
 choice!(FontSize { Normal, Small });
+choice!(
+    /// Where the wallpaper shows: behind the mode tiles, also behind the menus, or also behind
+    /// the calculation.
+    WallpaperOn { Modes, Menus, Everywhere }
+);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Settings {
@@ -95,6 +100,7 @@ pub struct Settings {
     // Gerät
     pub brightness: u8,
     pub font_size: FontSize,
+    pub wallpaper_on: WallpaperOn,
     /// Minutes until the handheld switches itself off.
     pub auto_off: u8,
     // Verbindungen
@@ -148,6 +154,7 @@ impl Default for Settings {
             system_columns: 2,
             brightness: 8,
             font_size: FontSize::Normal,
+            wallpaper_on: WallpaperOn::Modes,
             auto_off: 10,
             exam: false,
             wlan: false,
@@ -195,6 +202,7 @@ pub enum Setting {
     SystemColumns,
     Brightness,
     FontSize,
+    WallpaperOn,
     AutoOff,
     Exam,
     Wlan,
@@ -241,6 +249,7 @@ impl Settings {
             S::SystemColumns => self.system_columns.into(),
             S::Brightness => self.brightness.into(),
             S::FontSize => self.font_size.index(),
+            S::WallpaperOn => self.wallpaper_on.index(),
             S::AutoOff => self.auto_off.into(),
             S::Exam => self.exam.into(),
             S::Wlan => self.wlan.into(),
@@ -292,6 +301,7 @@ impl Settings {
             S::SystemColumns => self.system_columns = small,
             S::Brightness => self.brightness = small,
             S::FontSize => self.font_size = FontSize::from_index(value),
+            S::WallpaperOn => self.wallpaper_on = WallpaperOn::from_index(value),
             S::AutoOff => self.auto_off = small,
             S::Exam => {
                 self.exam = on;
