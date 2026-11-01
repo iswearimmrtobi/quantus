@@ -29,6 +29,7 @@ fn keys_write_the_latex_the_engine_reads() {
     assert_eq!(latex_of("2*π*x"), r"2\cdot\pi\cdot x");
     assert_eq!(latex_of("2πx"), r"2\pi x");
     assert_eq!(latex_of("x^2>/3"), r"\frac{x^{2}}{3}");
+    assert_eq!(latex_of("x+y=3;x-y=1"), r"x+y=3;x-y=1");
 
     let mut editor = Editor::new();
     editor.function("sin");

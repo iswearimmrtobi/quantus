@@ -177,6 +177,7 @@ impl<B: Backend> App<B> {
             Key::Digit(digit) => editor.char(char::from(b'0' + digit.min(9))),
             Key::Letter(c) => editor.char(c),
             Key::Comma => editor.char(','),
+            Key::Semicolon => editor.char(';'),
             Key::Plus => editor.char('+'),
             Key::Minus => editor.char('-'),
             Key::Times => editor.char('×'),

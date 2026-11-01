@@ -8,6 +8,8 @@ pub enum Key {
     Letter(char),
     /// The decimal comma.
     Comma,
+    /// Between the equations of a system, and between arguments.
+    Semicolon,
     Plus,
     Minus,
     Times,
@@ -74,6 +76,7 @@ impl Key {
         Some(match c {
             '0'..='9' => Key::Digit(c as u8 - b'0'),
             ',' | '.' => Key::Comma,
+            ';' => Key::Semicolon,
             '+' => Key::Plus,
             '-' => Key::Minus,
             '*' => Key::Times,
