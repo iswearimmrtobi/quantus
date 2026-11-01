@@ -32,7 +32,16 @@ fn main() {
     sys::link_patches();
     let peripherals = Peripherals::take().expect("peripherals");
     let mut display = open_display!(peripherals);
-    println!("bench: SPI at {} MHz, {}×{} pixels", display::SPI_MHZ, WIDTH, HEIGHT);
+    println!(
+        "bench: SPI asked {} MHz, runs at {} kHz, {}×{} pixels",
+        display::SPI_MHZ,
+        display.actual_khz(),
+        WIDTH,
+        HEIGHT
+    );
+    // One band of photo-like pixels, sent at every band's place: what the link costs, without
+    // working the pixels out.
+    let photo_band: Vec<Rgb565> = (0..BAND).flat_map(|y| (0..WIDTH).map(move |x| photo(x, y, 0))).collect();
 
     let mut app = App::new(Stub);
     app.key(Key::Mode);
@@ -44,8 +53,11 @@ fn main() {
         FreeRtos::delay_ms(3000);
 
         let start = Instant::now();
-        for frame in 0..FRAMES {
-            draw_bands(&mut display, |x, y| photo(x, y, frame));
+        for _ in 0..FRAMES {
+            for top in (0..HEIGHT).step_by(BAND as usize) {
+                let area = Rectangle::new(Point::new(0, top as i32), Size::new(WIDTH, BAND.min(HEIGHT - top)));
+                display.fill_contiguous(&area, photo_band.iter().copied()).expect("draw");
+            }
         }
         report("photo-like full screens", start);
 
