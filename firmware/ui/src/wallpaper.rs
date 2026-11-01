@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::image::ImageDrawable;
 use embedded_graphics::prelude::*;
 use tinybmp::Bmp;
 
@@ -36,13 +37,34 @@ impl Wallpaper {
         if bmp.size() != Size::new(WIDTH, HEIGHT) {
             return None;
         }
-        let mut pixels = vec![colors::BACKGROUND; (WIDTH * HEIGHT) as usize];
-        for Pixel(point, color) in bmp.pixels() {
-            if let Some(pixel) = pixels.get_mut((point.y * WIDTH as i32 + point.x) as usize) {
-                *pixel = color;
+        // Drawn rather than read with `Bmp::pixels`, which in tinybmp 0.7 turns a bottom-up
+        // file (the usual kind) upside down.
+        let mut screen = Screen(vec![colors::BACKGROUND; (WIDTH * HEIGHT) as usize]);
+        bmp.draw(&mut screen).ok()?;
+        Wallpaper::new(screen.0)
+    }
+}
+
+/// The screen's pixels as a draw target.
+struct Screen(Vec<Rgb565>);
+
+impl OriginDimensions for Screen {
+    fn size(&self) -> Size {
+        Size::new(WIDTH, HEIGHT)
+    }
+}
+
+impl DrawTarget for Screen {
+    type Color = Rgb565;
+    type Error = core::convert::Infallible;
+
+    fn draw_iter<I: IntoIterator<Item = Pixel<Rgb565>>>(&mut self, pixels: I) -> Result<(), Self::Error> {
+        for Pixel(point, color) in pixels {
+            if (0..WIDTH as i32).contains(&point.x) && (0..HEIGHT as i32).contains(&point.y) {
+                self.0[(point.y * WIDTH as i32 + point.x) as usize] = color;
             }
         }
-        Wallpaper::new(pixels)
+        Ok(())
     }
 }
 

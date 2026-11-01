@@ -169,12 +169,14 @@ fn the_wallpaper_shows_where_the_setting_says() {
 
 #[test]
 fn a_bmp_of_the_screen_size_is_read_and_others_are_not() {
-    assert_eq!(Wallpaper::from_bmp(&bmp(WIDTH, HEIGHT)).map(|wallpaper| wallpaper.full[0]), Some(Rgb565::new(31, 0, 0)));
+    let wallpaper = Wallpaper::from_bmp(&bmp(WIDTH, HEIGHT)).unwrap();
+    // The right way up: red at the top, blue at the bottom.
+    assert_eq!((wallpaper.full[0], wallpaper.full[wallpaper.full.len() - 1]), (Rgb565::RED, Rgb565::BLUE));
     assert!(Wallpaper::from_bmp(&bmp(100, 100)).is_none());
     assert!(Wallpaper::from_bmp(b"not a picture").is_none());
 }
 
-/// A red 24-bit BMP.
+/// A 24-bit BMP, bottom-up as usual: red above, blue below.
 fn bmp(width: u32, height: u32) -> Vec<u8> {
     let row = (width * 3).div_ceil(4) * 4;
     let size = 54 + row * height;
@@ -187,8 +189,10 @@ fn bmp(width: u32, height: u32) -> Vec<u8> {
     for value in [0, row * height, 2835, 2835, 0, 0] {
         bytes.extend(value.to_le_bytes());
     }
-    for _ in 0..height {
-        let mut line: Vec<u8> = (0..width).flat_map(|_| [0, 0, 255]).collect();
+    // From the bottom row up; the bytes are blue, green, red.
+    for y in (0..height).rev() {
+        let pixel = if y < height / 2 { [0, 0, 255] } else { [255, 0, 0] };
+        let mut line: Vec<u8> = (0..width).flat_map(|_| pixel).collect();
         line.resize(row as usize, 0);
         bytes.extend(line);
     }
