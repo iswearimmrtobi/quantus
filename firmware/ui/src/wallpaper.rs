@@ -3,7 +3,7 @@
 //! tiles and dimmed for the menus and the calculation, where text stands on it. A board without
 //! the RAM for that keeps both forms in flash instead, as raw pixels ([`Wallpaper::from_raw`]).
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
 use embedded_graphics::pixelcolor::raw::RawU16;
@@ -21,7 +21,7 @@ const DIM: u16 = 80;
 #[derive(Clone, PartialEq, Eq)]
 pub enum Pixels {
     /// Decoded into RAM, with a number no other picture gets.
-    Ram(Arc<[Rgb565]>, u64),
+    Ram(Arc<[Rgb565]>, u32),
     /// Raw RGB565, two bytes a pixel, little-endian: in flash, read while drawing.
     Raw(&'static [u8]),
 }
@@ -37,7 +37,7 @@ impl core::fmt::Debug for Pixels {
 }
 
 /// Numbers the pictures decoded into RAM.
-static DECODED: AtomicU64 = AtomicU64::new(0);
+static DECODED: AtomicU32 = AtomicU32::new(0);
 
 fn ram(pixels: Vec<Rgb565>) -> Pixels {
     Pixels::Ram(pixels.into(), DECODED.fetch_add(1, Ordering::Relaxed))
