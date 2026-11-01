@@ -38,6 +38,9 @@ pub struct Display<'d> {
     spi: SpiDeviceDriver<'d, SpiDriver<'d>>,
     /// Low for a command, high for data.
     dc: PinDriver<'d, Output>,
+    /// Kept so the pin stays driven high: dropping a `PinDriver` resets the GPIO to a floating
+    /// input, and the panel then resets itself at random and turns white.
+    _reset: PinDriver<'d, Output>,
     buffer: Vec<u8>,
 }
 
@@ -52,7 +55,7 @@ impl<'d> Display<'d> {
         FreeRtos::delay_ms(10);
         reset.set_high()?;
         FreeRtos::delay_ms(120);
-        let mut display = Display { spi, dc, buffer: Vec::with_capacity(CHUNK) };
+        let mut display = Display { spi, dc, _reset: reset, buffer: Vec::with_capacity(CHUNK) };
         for &(command, parameters, pause) in INIT {
             display.command(command, parameters)?;
             if pause > 0 {
