@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use quantus_core::eval::LatexCalculator;
+use quantus_core::forms::FormKind;
 use quantus_core::settings::{AngleUnit, Mode, Settings};
 
 fn evaluate(mode: Mode, angle_unit: AngleUnit, latex: &str) -> String {
@@ -78,4 +79,18 @@ fn degrees_minutes_and_seconds_are_one_angle() {
         .unwrap()
         .input;
     assert_eq!(input, r"2^{\circ}20'30''");
+}
+
+fn forms(angle_unit: AngleUnit, latex: &str) -> Vec<(FormKind, String)> {
+    let settings = Settings { mode: Mode::Physics, angle_unit, ..Settings::default() };
+    let calculation = LatexCalculator::new(10).with_settings(settings).evaluate(latex, &HashMap::new()).unwrap();
+    calculation.forms.into_iter().map(|f| (f.kind, f.latex)).collect()
+}
+
+#[test]
+fn an_angle_in_degrees_has_a_sexagesimal_form() {
+    assert_eq!(forms(AngleUnit::Degree, r"2^\circ 20' 30''"), [(FormKind::Sexagesimal, "2^{\\circ}20'30''".to_string())]);
+    assert_eq!(forms(AngleUnit::Degree, r"\arctan\frac{1}{2}")[0].1, "26^{\\circ}33'54{,}1842''");
+    assert!(forms(AngleUnit::Radian, r"\arctan 1").is_empty());
+    assert!(forms(AngleUnit::Degree, r"2+3").is_empty());
 }

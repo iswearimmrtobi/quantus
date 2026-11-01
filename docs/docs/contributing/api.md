@@ -46,10 +46,15 @@ CalculationResponse {
   variable?: VariableResponse   // set when the input defined one
   domainRestrictions?: string[] // "x \neq 1"
   warning?: string
+  forms?: { kind, latex }[]     // the result written other ways, for a form switch
 }
 
 VariableResponse { key, symbol, latex, value, unit }
 ```
+
+`forms` lists the other ways to write the result, which a form switch (S⇔D on the handheld)
+steps through without another call. `kind` is `sexagesimal` (degrees, minutes, seconds; for an
+angle with the angle unit on degrees).
 
 Step `kind` is `symbolic`, `substituted`, `algebraic`, `result` or `note`. `before` and `after`
 hold the expression around a cancellation, for the strike-through.

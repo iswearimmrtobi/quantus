@@ -24,7 +24,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 ### Core (`quantus-core`)
 
 - [x] Angle unit: setting `angleUnit` Grad/Bogenmaß; ° and rad mark a value regardless of it
-- [ ] Sexagesimal °′″: input and result form
+- [x] Sexagesimal °′″: input and result form
 - [ ] Number format: Norm 1/2, Fix 0–9, Sci 0–9 in the formatter
 - [ ] Dezimalpräfixe on plain numbers, and ENG / ←ENG steps of three
 - [ ] Digit grouping (1000er-Trennung) with a thin space
