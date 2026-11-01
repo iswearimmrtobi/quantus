@@ -78,3 +78,27 @@ fn rename_duplicate_delete_and_newer_formats() {
     let newer = api::export_session(&mut store, Some(&copy.id)).replace("\"version\": 1", "\"version\": 7");
     assert!(api::import_session(&mut store, &newer).unwrap_err().error.contains("newer Quantus"));
 }
+
+#[test]
+fn ans_and_pre_ans_are_the_last_two_results() {
+    let mut store = SessionStore::new();
+    run(&mut store, "default", r"2\,\mathrm{m} \cdot 3");
+    run(&mut store, "default", "10");
+    // Ans is 10, PreAns 6 m: they do not add.
+    assert!(run(&mut store, "default", r"\mathrm{Ans} + \mathrm{PreAns}").starts_with("error: Incompatible units"));
+    let mut store = SessionStore::new();
+    run(&mut store, "default", "4");
+    run(&mut store, "default", "6");
+    assert_eq!(run(&mut store, "default", r"\mathrm{Ans} \cdot \mathrm{PreAns}"), "24");
+    // Ans is now 24, PreAns 6.
+    assert_eq!(run(&mut store, "default", r"\operatorname{Ans} - \operatorname{PreAns}"), "18");
+    // An algebraic result leaves them alone.
+    store.settings = Settings { mode: Mode::Algebra, ..Settings::default() };
+    run(&mut store, "default", "a + a");
+    assert_eq!(run(&mut store, "default", r"\mathrm{Ans}"), "18");
+    // Saved with the session.
+    let json = api::export_session(&mut store, None);
+    let mut other = SessionStore::new();
+    let id = api::import_session(&mut other, &json).unwrap().id;
+    assert_eq!(run(&mut other, &id, r"\mathrm{PreAns}"), "18");
+}

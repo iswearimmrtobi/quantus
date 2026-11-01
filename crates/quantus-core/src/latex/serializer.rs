@@ -163,6 +163,9 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         Node::Number { value, .. } => numbers::format(value),
         Node::Unit { symbol, .. } => unit_latex::symbol(symbol),
         Node::Constant { name, .. } => name.clone(),
+        Node::Variable { name, index, .. } if index.is_empty() && matches!(name.as_str(), "Ans" | "PreAns") => {
+            format!("\\mathrm{{{name}}}")
+        }
         Node::Variable { name, index, .. } if index.is_empty() => name.clone(),
         Node::Variable { name, index, .. } => format!("{name}_{{{index}}}"),
         Node::Negation { operand, .. } => format!("-{}", render(operand, PRECEDENCE_MULTIPLICATIVE, mode)),

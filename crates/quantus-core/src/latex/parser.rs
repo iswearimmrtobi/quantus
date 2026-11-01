@@ -647,6 +647,18 @@ impl Parser<'_> {
         Ok(arguments)
     }
 
+    /// `Ans` or `PreAns` in `\mathrm{}`, `\operatorname{}` or `\text{}`.
+    fn answer(&self) -> Option<&'static str> {
+        if self.peek(1).kind != TokenType::LBrace || self.peek(2).kind != TokenType::Identifier || self.peek(3).kind != TokenType::RBrace {
+            return None;
+        }
+        match self.peek(2).text.as_str() {
+            "Ans" => Some("Ans"),
+            "PreAns" => Some("PreAns"),
+            _ => None,
+        }
+    }
+
     /// `\operatorname{arsinh}` and the like: the function's name, from [`OPERATOR_FUNCTIONS`].
     fn operator_function(&self) -> Option<&'static str> {
         if self.peek(1).kind != TokenType::LBrace || self.peek(2).kind != TokenType::Identifier || self.peek(3).kind != TokenType::RBrace {
@@ -719,6 +731,12 @@ impl Parser<'_> {
                 self.advance();
                 let arguments = self.call_arguments(&token.text)?;
                 Ok(Node::Call { name: token.text.trim_start_matches('\\').to_string(), arguments, position })
+            }
+            "\\operatorname" | "\\mathrm" | "\\text" if self.answer().is_some() => {
+                // `\mathrm{Ans}`, `\mathrm{PreAns}`: the last results of the session.
+                let name = self.answer().expect("checked").to_string();
+                self.index += 4;
+                Ok(Node::Variable { name, index: String::new(), position })
             }
             "\\operatorname" | "\\mathrm" if self.operator_function().is_some() => {
                 let name = self.operator_function().expect("checked");

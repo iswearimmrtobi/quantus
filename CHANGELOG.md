@@ -64,6 +64,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   goes out and comes back as JSON with a format version (`export_session`, `import_session`);
   new, list, rename, duplicate and delete. The values are saved by their definitions and exact
   again after loading.
+- `\mathrm{Ans}` and `\mathrm{PreAns}`: the last numeric result of a session and the one before,
+  saved with the session.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

@@ -89,7 +89,15 @@ pub struct Session {
     matrix_definitions: Vec<(String, String)>,
     history: Vec<HistoryEntry>,
     pub mode_inputs: ModeInputs,
+    /// The last result and the one before (`\mathrm{Ans}`, `\mathrm{PreAns}`), with how to
+    /// write them for the file.
+    ans: Option<(PhysicalQuantity, StoredDefinition)>,
+    pre_ans: Option<(PhysicalQuantity, StoredDefinition)>,
 }
+
+/// The names the last two results go by.
+pub const ANS: &str = "Ans";
+pub const PRE_ANS: &str = "PreAns";
 
 impl Session {
     pub fn new(id: impl Into<String>) -> Self {
@@ -105,6 +113,8 @@ impl Session {
             matrix_definitions: Vec::new(),
             history: Vec::new(),
             mode_inputs: ModeInputs::default(),
+            ans: None,
+            pre_ans: None,
         }
     }
     }
@@ -115,7 +125,38 @@ impl Session {
 
     /// The values as quantities, which is what the evaluator needs.
     pub fn quantities(&self) -> Variables {
-        self.definitions.iter().map(|v| (v.key.clone(), v.quantity.clone())).collect()
+        let mut quantities: Variables = self.definitions.iter().map(|v| (v.key.clone(), v.quantity.clone())).collect();
+        for (name, value) in [(ANS, &self.ans), (PRE_ANS, &self.pre_ans)] {
+            if let Some((quantity, _)) = value {
+                quantities.insert(name.to_string(), quantity.clone());
+            }
+        }
+        quantities
+    }
+
+    /// The last result, `\mathrm{Ans}`.
+    pub fn ans(&self) -> Option<&PhysicalQuantity> {
+        self.ans.as_ref().map(|(q, _)| q)
+    }
+
+    /// The result before it, `\mathrm{PreAns}`.
+    pub fn pre_ans(&self) -> Option<&PhysicalQuantity> {
+        self.pre_ans.as_ref().map(|(q, _)| q)
+    }
+
+    /// A numeric result becomes Ans, and Ans PreAns. Results kept as typed (algebra) and
+    /// matrices are not numbers and leave both as they are.
+    fn remember(&mut self, calculation: &Calculation) {
+        // An algebraic result carries the value 0; a real zero shows as one.
+        let shown = calculation.result.rsplit(" = ").next().unwrap_or_default();
+        let zero = shown == "0" || shown.starts_with("0\\,");
+        if (calculation.value.is_zero() && !zero) || calculation.result.contains("\\begin{pmatrix}") {
+            return;
+        }
+        let quantity = calculation.quantity.clone();
+        let Some(stored) = stored_quantity(&quantity) else { return };
+        self.pre_ans = self.ans.take();
+        self.ans = Some((quantity, stored));
     }
 
     /// Defines a variable, replacing an earlier definition of the same name in place.
@@ -204,6 +245,7 @@ impl Session {
         if let Some(variable) = &variable {
             self.define(variable.clone());
         }
+        self.remember(&calculation);
         Ok((calculation, variable))
     }
 
@@ -283,6 +325,20 @@ fn stored_mode(settings: &Settings) -> Mode {
     }
 }
 
+/// A quantity written so it can be read again: its decimal value (to the precision it was computed
+/// to) and unit; a complex one in the imaginary mode.
+fn stored_quantity(quantity: &PhysicalQuantity) -> Option<StoredDefinition> {
+    let unit = if quantity.unit.is_one() { String::new() } else { format!("\\,{}", crate::units::latex::format(&quantity.unit)) };
+    let digits = 60;
+    if let Ok(value) = quantity.value.decimal(digits) {
+        return Some(StoredDefinition { key: String::new(), definition: format!("{}{unit}", value.to_plain_string()), mode: Mode::Physics });
+    }
+    let (re, im) = quantity.value.re_im()?;
+    let (re, im) = (re.decimal(digits).ok()?, im.decimal(digits).ok()?);
+    let definition = format!("({} + ({})i){unit}", re.to_plain_string(), im.to_plain_string());
+    Some(StoredDefinition { key: String::new(), definition, mode: Mode::Imaginary })
+}
+
 /// The version of [`SessionFile`] this engine writes.
 pub const FORMAT_VERSION: u32 = 1;
 
@@ -315,6 +371,11 @@ pub struct SessionFile {
     pub history: Vec<HistoryEntry>,
     #[serde(default)]
     pub mode_inputs: ModeInputs,
+    /// The last two results.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ans: Option<StoredDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_ans: Option<StoredDefinition>,
 }
 
 impl Session {
@@ -337,6 +398,8 @@ impl Session {
                 .collect(),
             history: self.history.clone(),
             mode_inputs: self.mode_inputs.clone(),
+            ans: self.ans.as_ref().map(|(_, stored)| stored.clone()),
+            pre_ans: self.pre_ans.as_ref().map(|(_, stored)| stored.clone()),
         }
     }
 
@@ -365,6 +428,15 @@ impl Session {
         }
         session.history = file.history;
         session.mode_inputs = file.mode_inputs;
+        let restore = |stored: &Option<StoredDefinition>| -> Result<Option<(PhysicalQuantity, StoredDefinition)>> {
+            let Some(stored) = stored else { return Ok(None) };
+            let settings = Settings { mode: stored.mode, ..settings.clone() };
+            let calculator = LatexCalculator::new(settings.precision).with_settings(settings);
+            let quantity = calculator.evaluate(&stored.definition, &Variables::new())?.quantity;
+            Ok(Some((quantity, stored.clone())))
+        };
+        session.ans = restore(&file.ans)?;
+        session.pre_ans = restore(&file.pre_ans)?;
         Ok(session)
     }
 

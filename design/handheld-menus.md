@@ -45,7 +45,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] wahr/falsch for an equation without unknowns, and a Prüfen mode with chaining
 - [x] Sessions: history, mode inputs, name and timestamps in `session.rs`, serde JSON with a
       format version
-- [ ] PreAns next to Ans in the session
+- [x] PreAns next to Ans in the session
 - [ ] Remote engine: the request and response format (the JSON of `api.rs`)
 - [ ] Later: polynomial inequalities; vectors with Geometrie
 

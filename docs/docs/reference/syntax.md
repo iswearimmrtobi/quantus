@@ -123,6 +123,7 @@ reads `a_1 = 3` as a comparison rather than a definition.
 | `m_1 = 2kg` | defines the session variable $m_1$ |
 | `F = m_1 \cdot g_n` | names the line $F$ |
 | `\omega_0`, `v_{max}` | any letter or Greek letter with an index is a variable name |
+| `\mathrm{Ans}`, `\mathrm{PreAns}` | the last numeric result of the session and the one before it, in every mode (also in `\operatorname{}`) |
 
 Greek letters: `\alpha` … `\omega`, the capitals that differ from Latin ones (`\Gamma`,
 `\Delta`, `\Theta`, `\Lambda`, `\Xi`, `\Pi`, `\Sigma`, `\Upsilon`, `\Phi`, `\Psi`, `\Omega`)

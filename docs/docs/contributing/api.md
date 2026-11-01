@@ -125,6 +125,7 @@ SessionFile {
   matrices: { key, definition }[]
   history: { input, response, at? }[]
   modeInputs: { linear?, analysis?, table?, statistics?, distribution? }
+  ans?, preAns?: { definition, mode }     // the last two results
 }
 ```
 
