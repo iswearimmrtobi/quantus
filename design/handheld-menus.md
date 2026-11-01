@@ -618,8 +618,9 @@ and surfaces the hui already shares with the desktop (`firmware/ui/src/render.rs
 mode in `firmware/ui/src/app.rs` (green, brown, teal, slate) go; the mode shows by its name in
 the top bar and on its tile.
 
-*Implemented* in the hui: `render::colors::{CYAN, AMBER, CYAN_DIM, AMBER_DIM}`; the bar and
-the tiles in `CYAN_DIM`, the chosen tile in `AMBER_DIM` with a `CYAN` outline, the caret in `CYAN`.
+*Implemented* in the hui: `render::colors::{CYAN, AMBER, CYAN_DIM, AMBER_DIM}`; the bar in
+`CYAN_DIM`, the caret in `CYAN`. Each mode tile has its own muted colour (`colors::TILES`), the
+chosen tile a lighter form of it with a `TEXT` outline; a result shows in a soft purple `#bfa0f2`.
 
 ## 8. Where the work goes
 

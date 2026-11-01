@@ -40,7 +40,8 @@ pub mod colors {
     pub const TEXT: Rgb565 = rgb(0xed, 0xeb, 0xf3);
     pub const MUTED: Rgb565 = rgb(0x8b, 0x87, 0xa3);
     pub const FAINT: Rgb565 = rgb(0x55, 0x50, 0x6a);
-    pub const RESULT: Rgb565 = rgb(0xc9, 0xc4, 0xe0);
+    /// A result, in a soft purple.
+    pub const RESULT: Rgb565 = rgb(0xbf, 0xa0, 0xf2);
     pub const ERROR: Rgb565 = rgb(0xc9, 0x8a, 0x96);
     pub const SHIFT: Rgb565 = rgb(0xc9, 0xa4, 0x6a);
     pub const ALPHA: Rgb565 = rgb(0x8f, 0xb3, 0xa0);
@@ -52,6 +53,22 @@ pub mod colors {
     /// Their dim forms, for fills: the top bar, the tiles, the selected line.
     pub const CYAN_DIM: Rgb565 = rgb(0x42, 0x3a, 0x63);
     pub const AMBER_DIM: Rgb565 = rgb(0x4e, 0x3c, 0x63);
+
+    /// A muted colour per mode tile, in the order of `Mode::ALL`: (the tile, the chosen tile).
+    pub const TILES: [(Rgb565, Rgb565); 12] = [
+        (rgb(0x4a, 0x3d, 0x6b), rgb(0x63, 0x52, 0x8e)), // purple
+        (rgb(0x34, 0x44, 0x6b), rgb(0x46, 0x59, 0x8c)), // blue
+        (rgb(0x2f, 0x55, 0x60), rgb(0x3e, 0x6f, 0x7d)), // teal
+        (rgb(0x35, 0x57, 0x4a), rgb(0x46, 0x72, 0x62)), // green
+        (rgb(0x4d, 0x55, 0x36), rgb(0x66, 0x6f, 0x47)), // olive
+        (rgb(0x62, 0x51, 0x3a), rgb(0x80, 0x6a, 0x4c)), // amber
+        (rgb(0x64, 0x3f, 0x35), rgb(0x83, 0x53, 0x46)), // rust
+        (rgb(0x5e, 0x36, 0x40), rgb(0x7b, 0x47, 0x54)), // red
+        (rgb(0x5c, 0x37, 0x56), rgb(0x78, 0x48, 0x71)), // plum
+        (rgb(0x3a, 0x3a, 0x6e), rgb(0x4d, 0x4d, 0x90)), // indigo
+        (rgb(0x2f, 0x4f, 0x6a), rgb(0x3e, 0x67, 0x8b)), // steel
+        (rgb(0x45, 0x4a, 0x5a), rgb(0x5c, 0x62, 0x76)), // slate
+    ];
 
 }
 
@@ -282,8 +299,9 @@ fn modes(shapes: &mut Vec<Shape>, selected: usize, lang: text::Lang) {
         let at = Point::new(MARGIN + column * (tile_width + gap), top + row * (tile_height + gap));
         let size = Size::new(tile_width as u32, tile_height as u32);
         let chosen = index == selected;
-        let fill = if chosen { colors::AMBER_DIM } else { colors::CYAN_DIM };
-        shapes.push(Shape::Round(rounded(at, size, 6), fill, chosen.then_some(colors::CYAN)));
+        let (tile, lit) = colors::TILES[index % colors::TILES.len()];
+        let fill = if chosen { lit } else { tile };
+        shapes.push(Shape::Round(rounded(at, size, 6), fill, chosen.then_some(colors::TEXT)));
         let number = (index + 1).to_string();
         shapes.push(Shape::Text(at + Point::new(12, 10 + small.ascent), number, Scale::Small, colors::TEXT));
         // The name at the bottom, a word per line when it is too wide, and small when a word is.
