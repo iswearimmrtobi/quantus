@@ -49,7 +49,8 @@ before sums.
 |---|---|
 | `\sin`, `\cos`, `\tan`, `\cot`, `\sec`, `\csc` | in the [angle unit](settings.md#general), or marked: `30^\circ` in degrees, `2\,\mathrm{rad}` in radians; exact where the value is rational ($\sin 30^\circ = 0{,}5$) |
 | `\arcsin`, `\arccos`, `\arctan`, `\sin^{-1}` | result in the angle unit |
-| `\sinh`, `\cosh`, `\tanh` | |
+| `\sinh`, `\cosh`, `\tanh`, `\coth` | |
+| `\operatorname{arsinh}`, `\operatorname{arcosh}`, `\operatorname{artanh}`, `\sinh^{-1}` | the area functions; also `arcsinh`, `asinh` and so on |
 | `\exp`, `e^{x}` | |
 | `\ln`, `\log` (base 10), `\lg`, `\log_b` | arguments must be positive; $\log_2 8 = 3$ |
 | `\max(a; b)`, `\min(a; b)` | separate the arguments with `;`, since `,` is the decimal comma |

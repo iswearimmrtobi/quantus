@@ -235,6 +235,11 @@ pub enum MathFunction {
     Arctan,
     /// The error function, for the normal distribution.
     Erf,
+    Coth,
+    /// The area functions, the inverses of sinh, cosh and tanh.
+    Arsinh,
+    Arcosh,
+    Artanh,
 }
 
 impl MathFunction {
@@ -256,6 +261,10 @@ impl MathFunction {
             "arccos" => MathFunction::Arccos,
             "arctan" => MathFunction::Arctan,
             "erf" => MathFunction::Erf,
+            "coth" => MathFunction::Coth,
+            "arsinh" => MathFunction::Arsinh,
+            "arcosh" => MathFunction::Arcosh,
+            "artanh" => MathFunction::Artanh,
             _ => return None,
         })
     }
@@ -278,6 +287,10 @@ impl MathFunction {
             MathFunction::Arccos => "ArcCos",
             MathFunction::Arctan => "ArcTan",
             MathFunction::Erf => "Erf",
+            MathFunction::Coth => "Coth",
+            MathFunction::Arsinh => "ArSinh",
+            MathFunction::Arcosh => "ArCosh",
+            MathFunction::Artanh => "ArTanh",
         }
     }
 }
@@ -583,6 +596,37 @@ impl Value {
                     return Ok(exact);
                 }
             }
+            MathFunction::Coth => {
+                let sinh = self.apply(MathFunction::Sinh)?;
+                if sinh.is_zero() {
+                    return Err(QuantusError::other("Coth is undefined at 0."));
+                }
+                return self.apply(MathFunction::Cosh)?.div(&sinh);
+            }
+            // The area functions as logarithms, so their exact values come from ln.
+            MathFunction::Arsinh | MathFunction::Arcosh | MathFunction::Artanh => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                let half = Value::ratio(1, 2);
+                let one = Value::one();
+                return match function {
+                    MathFunction::Arsinh => self.add(&self.mul(self).add(&one).pow(&half)?).apply(MathFunction::Ln),
+                    MathFunction::Arcosh => {
+                        if self.sub(&one).is_negative()? {
+                            return Err(QuantusError::other(format!("ArCosh is only defined from 1 on, but the argument was '{self}'.")));
+                        }
+                        self.add(&self.mul(self).sub(&one).pow(&half)?).apply(MathFunction::Ln)
+                    }
+                    _ => {
+                        let inside = one.sub(&self.mul(self));
+                        if inside.is_zero() || inside.is_negative()? {
+                            return Err(QuantusError::other(format!("ArTanh is only defined between -1 and 1, but the argument was '{self}'.")));
+                        }
+                        Ok(half.mul(&one.add(self).div(&one.sub(self))?.apply(MathFunction::Ln)?))
+                    }
+                };
+            }
             MathFunction::Erf => {
                 if self.contains_imaginary() {
                     return Err(self.not_real());
@@ -770,6 +814,11 @@ impl Value {
                     MathFunction::Sec => x.cos(bits, rm, consts).reciprocal(bits, rm),
                     MathFunction::Csc => x.sin(bits, rm, consts).reciprocal(bits, rm),
                     MathFunction::Erf => erf(&x, bits, consts),
+                    // Built from ln and exp by `apply`, so never wrapped.
+                    MathFunction::Coth => x.tanh(bits, rm, consts).reciprocal(bits, rm),
+                    MathFunction::Arsinh => x.asinh(bits, rm, consts),
+                    MathFunction::Arcosh => x.acosh(bits, rm, consts),
+                    MathFunction::Artanh => x.atanh(bits, rm, consts),
                 };
                 if result.is_nan() || result.is_inf() {
                     return Err(self.not_real());

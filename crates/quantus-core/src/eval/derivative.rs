@@ -78,6 +78,20 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
                     if name == "arccos" { negate(derivative, position) } else { derivative }
                 }
                 "arctan" => Node::fraction(number(1, position), add(number(1, position), square(u, position), position), position),
+                "coth" => negate(
+                    Node::fraction(number(1, position), square(function("sinh", u, position), position), position),
+                    position,
+                ),
+                "arsinh" | "arcosh" => {
+                    let radicand = if name == "arsinh" {
+                        add(square(u, position), number(1, position), position)
+                    } else {
+                        subtract(square(u, position), number(1, position), position)
+                    };
+                    let root = Node::Root { radicand: Box::new(radicand), degree: None, position };
+                    Node::fraction(number(1, position), root, position)
+                }
+                "artanh" => Node::fraction(number(1, position), subtract(number(1, position), square(u, position), position), position),
                 other => return Err(QuantusError::other(format!("Cannot differentiate \\{other}."))),
             };
             multiply(outer, inner, position)

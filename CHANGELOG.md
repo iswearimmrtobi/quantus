@@ -36,6 +36,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   Two new modes, `statistics` and `distributions`, for the shells to come.
 - The distributions of a Casio in the engine (`distribution`): normal density, cumulative and
   inverse, binomial and Poisson density and cumulative for a list of k, the discrete ones exact.
+- The functions `\coth` and `\operatorname{arsinh}`, `arcosh`, `artanh` (also `\sinh^{-1}`), in
+  every mode and in derivatives and the curve sketch.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

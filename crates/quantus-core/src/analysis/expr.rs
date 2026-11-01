@@ -216,6 +216,20 @@ impl Expr {
                     "cosh" => f(Fn::Cosh),
                     "log" | "lg" => Expr::Product(vec![f(Fn::Ln), Expr::recip(Expr::func(Fn::Ln, Expr::int(10)))]),
                     "tanh" => Expr::Product(vec![f(Fn::Sinh), Expr::recip(f(Fn::Cosh))]),
+                    "coth" => Expr::Product(vec![f(Fn::Cosh), Expr::recip(f(Fn::Sinh))]),
+                    // The area functions as the logarithms they are.
+                    "arsinh" | "arcosh" => {
+                        let one = if name == "arsinh" { Expr::int(1) } else { Expr::int(-1) };
+                        let root = Expr::pow(Expr::sum(vec![Expr::pow(u.clone(), Expr::int(2)), one]), Expr::ratio(1, 2));
+                        Expr::func(Fn::Ln, Expr::sum(vec![u.clone(), root]))
+                    }
+                    "artanh" => {
+                        let ratio = Expr::product(vec![
+                            Expr::sum(vec![Expr::int(1), u.clone()]),
+                            Expr::recip(Expr::sum(vec![Expr::int(1), Expr::neg(u.clone())])),
+                        ]);
+                        Expr::product(vec![Expr::ratio(1, 2), Expr::func(Fn::Ln, ratio)])
+                    }
                     "cot" => Expr::Product(vec![f(Fn::Cos), Expr::recip(f(Fn::Sin))]),
                     "sec" => Expr::recip(f(Fn::Cos)),
                     "csc" => Expr::recip(f(Fn::Sin)),

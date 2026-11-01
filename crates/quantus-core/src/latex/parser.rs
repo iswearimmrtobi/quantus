@@ -49,9 +49,23 @@ const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
 /// ahead of the unit markup `\operatorname{}` otherwise is.
 pub(crate) const NAMED_CALLS: [&str; 3] = ["Identity", "ref", "rref"];
 
+/// One-argument functions LaTeX has no command for, written `\operatorname{arsinh}`, with the
+/// name they get.
+const OPERATOR_FUNCTIONS: [(&str, &str); 9] = [
+    ("arsinh", "arsinh"),
+    ("arcosh", "arcosh"),
+    ("artanh", "artanh"),
+    ("arcsinh", "arsinh"),
+    ("arccosh", "arcosh"),
+    ("arctanh", "artanh"),
+    ("asinh", "arsinh"),
+    ("acosh", "arcosh"),
+    ("atanh", "artanh"),
+];
+
 /// Commands that take one argument and evaluate through `MathFunction`.
-const FUNCTION_COMMANDS: [&str; 20] = [
-    "\\sin", "\\cos", "\\tan", "\\ln", "\\log", "\\lg", "\\exp", "\\sinh", "\\cosh", "\\tanh", "\\cot",
+const FUNCTION_COMMANDS: [&str; 21] = [
+    "\\sin", "\\cos", "\\tan", "\\ln", "\\log", "\\lg", "\\exp", "\\sinh", "\\cosh", "\\tanh", "\\coth", "\\cot",
     "\\sec", "\\csc", "\\arcsin", "\\arccos", "\\arctan",
     // Of a complex number (imaginary mode): real part, imaginary part, argument, conjugate.
     "\\Re", "\\Im", "\\arg", "\\overline",
@@ -563,6 +577,15 @@ impl Parser<'_> {
         Ok(arguments)
     }
 
+    /// `\operatorname{arsinh}` and the like: the function's name, from [`OPERATOR_FUNCTIONS`].
+    fn operator_function(&self) -> Option<&'static str> {
+        if self.peek(1).kind != TokenType::LBrace || self.peek(2).kind != TokenType::Identifier || self.peek(3).kind != TokenType::RBrace {
+            return None;
+        }
+        let written = self.peek(2).text.as_str();
+        OPERATOR_FUNCTIONS.iter().find(|(spelling, _)| *spelling == written).map(|(_, name)| *name)
+    }
+
     /// `\operatorname{name}` (or `\mathrm{name}`) where `name` is one of [`NAMED_CALLS`].
     fn named_call(&self) -> Option<&'static str> {
         if self.peek(1).kind != TokenType::LBrace || self.peek(2).kind != TokenType::Identifier || self.peek(3).kind != TokenType::RBrace {
@@ -626,6 +649,12 @@ impl Parser<'_> {
                 self.advance();
                 let arguments = self.call_arguments(&token.text)?;
                 Ok(Node::Call { name: token.text.trim_start_matches('\\').to_string(), arguments, position })
+            }
+            "\\operatorname" | "\\mathrm" if self.operator_function().is_some() => {
+                let name = self.operator_function().expect("checked");
+                // Stand on the closing brace, which `parse_function` steps over like a command.
+                self.index += 3;
+                self.parse_function(&Token { kind: TokenType::Command, text: format!("\\{name}"), position })
             }
             "\\operatorname" | "\\mathrm" if self.named_call().is_some() => {
                 let name = self.named_call().expect("checked").to_string();
@@ -709,14 +738,15 @@ impl Parser<'_> {
                 || matches!(&exponent, Node::Group { inner, .. } if matches!(**inner, Node::Negation { .. }));
             if negative {
                 // \sin^{-1} is the inverse function, arcsin; any other negative power is ambiguous.
-                let inverse = matches!(name.as_str(), "sin" | "cos" | "tan") && is_minus_one(&exponent);
+                let inverse = matches!(name.as_str(), "sin" | "cos" | "tan" | "sinh" | "cosh" | "tanh") && is_minus_one(&exponent);
                 if !inverse {
                     return Err(self.error(
                         &format!("{}^{{-n}} is ambiguous; write 1/{} x or \\arc… instead.", token.text, token.text),
                         caret.position,
                     ));
                 }
-                name = format!("arc{name}");
+                // \sinh^{-1} is the area function arsinh.
+                name = if name.ends_with('h') { format!("ar{name}") } else { format!("arc{name}") };
                 None
             } else {
                 Some(exponent)

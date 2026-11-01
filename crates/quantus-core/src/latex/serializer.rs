@@ -200,10 +200,18 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Binary { operator, left, right, .. } => binary(*operator, left, right, mode),
         Node::Group { inner, .. } => expression_with_mode(inner, mode),
-        Node::Function { name, argument, .. } => match mode {
-            SerializerMode::Standard => format!("\\{name}{{{}}}", expression_with_mode(argument, mode)),
-            SerializerMode::Algebraic => format!("\\{name}{}", function_argument(argument)),
-        },
+        Node::Function { name, argument, .. } => {
+            // The area functions have no LaTeX command of their own.
+            let command = if matches!(name.as_str(), "arsinh" | "arcosh" | "artanh") {
+                format!("\\operatorname{{{name}}}")
+            } else {
+                format!("\\{name}")
+            };
+            match mode {
+                SerializerMode::Standard => format!("{command}{{{}}}", expression_with_mode(argument, mode)),
+                SerializerMode::Algebraic => format!("{command}{}", function_argument(argument)),
+            }
+        }
         Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
             ("polar", [r, theta]) => format!(
