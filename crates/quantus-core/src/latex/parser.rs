@@ -47,7 +47,31 @@ const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
 /// Functions written as `\operatorname{name}(…)` and parsed as a [`Node::Call`] of that name,
 /// ahead of the unit markup `\operatorname{}` otherwise is.
-pub(crate) const NAMED_CALLS: [&str; 3] = ["Identity", "ref", "rref"];
+/// Each is `(spelling, name)`: `ggT` and `gcd` are both the call `gcd`.
+pub(crate) const NAMED_CALLS: [(&str, &str); 13] = [
+    ("Identity", "Identity"),
+    ("ref", "ref"),
+    ("rref", "rref"),
+    ("nPr", "nPr"),
+    ("ggT", "gcd"),
+    ("gcd", "gcd"),
+    ("kgV", "lcm"),
+    ("lcm", "lcm"),
+    ("Int", "Int"),
+    // Intg is the floor.
+    ("Intg", "floor"),
+    ("Rnd", "Rnd"),
+    ("RndFix", "RndFix"),
+    ("divR", "divR"),
+];
+
+/// How a call from [`NAMED_CALLS`] is written back, `None` for the ones with a command of their own.
+pub(crate) fn named_call_spelling(name: &str) -> Option<&'static str> {
+    if matches!(name, "gcd" | "floor") {
+        return None;
+    }
+    NAMED_CALLS.iter().find(|(_, call)| *call == name).map(|(spelling, _)| *spelling)
+}
 
 /// One-argument functions LaTeX has no command for, written `\operatorname{arsinh}`, with the
 /// name they get.
@@ -592,7 +616,7 @@ impl Parser<'_> {
             return None;
         }
         let name = self.peek(2).text.as_str();
-        NAMED_CALLS.iter().find(|call| **call == name).copied()
+        NAMED_CALLS.iter().find(|(spelling, _)| *spelling == name).map(|(_, call)| *call)
     }
 
     fn parse_abs(&mut self) -> Result<Node> {
@@ -645,7 +669,7 @@ impl Parser<'_> {
                 self.advance();
                 Ok(Node::Call { name: name.into(), arguments: vec![inner], position })
             }
-            "\\max" | "\\min" => {
+            "\\max" | "\\min" | "\\gcd" => {
                 self.advance();
                 let arguments = self.call_arguments(&token.text)?;
                 Ok(Node::Call { name: token.text.trim_start_matches('\\').to_string(), arguments, position })

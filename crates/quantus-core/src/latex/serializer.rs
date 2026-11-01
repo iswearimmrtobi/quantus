@@ -230,8 +230,9 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 format!("\\textcolor{{orange}}{{{}}}", render(x, PRECEDENCE_MULTIPLICATIVE, mode))
             }
             ("mod", [a, b]) => format!("{} \\bmod {}", render(a, PRECEDENCE_ATOM, mode), render(b, PRECEDENCE_ATOM, mode)),
-            (name, arguments) if super::parser::NAMED_CALLS.contains(&name) => format!(
-                "\\operatorname{{{name}}}\\left({}\\right)",
+            (name, arguments) if super::parser::named_call_spelling(name).is_some() => format!(
+                "\\operatorname{{{}}}\\left({}\\right)",
+                super::parser::named_call_spelling(name).expect("checked"),
                 arguments.iter().map(|a| expression_with_mode(a, mode)).collect::<Vec<_>>().join("; ")
             ),
             (name, arguments) => format!(

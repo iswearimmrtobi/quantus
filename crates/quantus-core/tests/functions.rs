@@ -55,3 +55,32 @@ fn products_multiply_their_terms() {
     let input = LatexCalculator::new(10).with_settings(settings).evaluate(r"\prod_{i=1}^{4} i", &HashMap::new()).unwrap().input;
     assert_eq!(input, r"\prod_{i=1}^{4} i");
 }
+
+#[test]
+fn integer_functions() {
+    assert_eq!(physics(r"\operatorname{nPr}(5; 2)"), "20");
+    assert_eq!(physics(r"\operatorname{ggT}(12; 18)"), "6");
+    assert_eq!(physics(r"\gcd(12; 18; 8)"), "2");
+    assert_eq!(physics(r"\operatorname{kgV}(4; 6)"), "12");
+    assert_eq!(physics(r"\operatorname{lcm}(4; 6; 10)"), "60");
+    assert_eq!(physics(r"\operatorname{Int}(-2{,}7)"), "-2");
+    assert_eq!(physics(r"\operatorname{Intg}(-2{,}7)"), "-3");
+    assert_eq!(physics(r"\operatorname{RndFix}(\pi; 3)"), "3{,}142");
+    // Rnd keeps the ten digits Norm shows, so the product is not 2 again.
+    assert_eq!(physics(r"\operatorname{Rnd}(\frac{2}{3}) \cdot 3"), "2{,}0000000001");
+    assert_eq!(physics(r"\operatorname{divR}(13; 4)"), r"Q = 3,\; R = 1");
+    assert_eq!(physics(r"\operatorname{divR}(13; 4) + 1"), "4");
+    assert!(physics(r"\operatorname{nPr}(2; 5)").starts_with("error"));
+}
+
+#[test]
+fn rnd_follows_the_number_format() {
+    let settings = Settings { number_format: quantus_core::settings::NumberFormat::Fix { digits: 2 }, ..Settings::default() };
+    let result = LatexCalculator::new(20)
+        .with_settings(settings)
+        .evaluate(r"\operatorname{Rnd}(\frac{1}{3}) \cdot 3", &HashMap::new())
+        .unwrap()
+        .value
+        .to_plain_string();
+    assert_eq!(result, "0.99");
+}

@@ -35,7 +35,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Matrices: values with + − ×, inverse, transpose, identity, det, powers, REF/RREF, exact,
       with steps
 - [x] Stochastik: lists, one-variable statistics, the seven regressions, the distributions
-- [ ] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R
+- [x] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R
 - [ ] Constants: the 32 missing ones (CODATA 2018), in the Casio's six categories, usable in
       every mode
 - [ ] Units: the ▶ unit operator, and the missing imperial units (ft, yd, lb, oz, gal, psi, Btu,

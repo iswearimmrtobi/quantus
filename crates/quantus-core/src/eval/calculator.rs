@@ -184,7 +184,8 @@ impl LatexCalculator {
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
             .with_mode(self.settings.evaluation_mode())
-            .with_angle_unit(self.settings.angle_unit);
+            .with_angle_unit(self.settings.angle_unit)
+            .with_number_format(self.settings.number_format);
         if let Node::System { .. } = formula.expression {
             return self.evaluate_system(&evaluator, formula, variables);
         }
@@ -218,6 +219,7 @@ impl LatexCalculator {
                         let quantity = raw_qty.simplify()?;
                         let (value, imaginary, result) = self.present(&quantity)?;
                         let forms = self.forms(expression, &quantity, &value, imaginary.as_ref(), &result);
+                        let result = self.with_remainder(&evaluator, expression, result)?;
                         let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
                         Ok(Calculation {
                             input: serializer::formula(&formula),
@@ -248,6 +250,19 @@ impl LatexCalculator {
         }
     }
 
+    /// `\operatorname{divR}(a; b)` as the whole input shows the remainder next to the quotient:
+    /// `Q = 4,\; R = 1`. Inside a calculation it is the quotient alone.
+    fn with_remainder(&self, evaluator: &Evaluator, expression: &Node, quotient: String) -> Result<String> {
+        let Node::Call { name, arguments, .. } = expression else { return Ok(quotient) };
+        let [a, b] = arguments.as_slice() else { return Ok(quotient) };
+        if name != "divR" {
+            return Ok(quotient);
+        }
+        let whole = |node: &Node| evaluator.evaluate(node).ok().and_then(|q| q.value.to_i64());
+        let (Some(a), Some(b)) = (whole(a), whole(b)) else { return Ok(quotient) };
+        Ok(format!("Q = {quotient},\\; R = {}", a % b))
+    }
+
     /// An input of the matrix mode, and the matrix it defines (`A = …`) with its key.
     pub fn evaluate_matrix(&self, latex: &str, variables: &Variables, matrices: &Matrices) -> Result<(Calculation, Option<(String, Matrix)>)> {
         // `A^{\top}` is the transpose like `A^{T}`.
@@ -256,7 +271,8 @@ impl LatexCalculator {
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
             .with_mode(self.settings.evaluation_mode())
-            .with_angle_unit(self.settings.angle_unit);
+            .with_angle_unit(self.settings.angle_unit)
+            .with_number_format(self.settings.number_format);
         let matrix_evaluator = MatrixEvaluator::new(&evaluator, matrices);
         let item = matrix_evaluator.evaluate(&formula.expression)?;
         let label = formula.label.as_ref();
@@ -688,7 +704,8 @@ impl LatexCalculator {
             let evaluator = Evaluator::new(variables)
                 .with_precision(self.precision)
                 .with_mode(self.settings.evaluation_mode())
-                .with_angle_unit(self.settings.angle_unit);
+                .with_angle_unit(self.settings.angle_unit)
+            .with_number_format(self.settings.number_format);
             steps.extend(common_unit_line(&expression, &evaluator, prefix));
             // Each part evaluated once more: only where it is shown.
             if self.settings.step_detail == StepDetail::Maximal {

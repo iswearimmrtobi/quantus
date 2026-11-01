@@ -39,6 +39,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The functions `\coth` and `\operatorname{arsinh}`, `arcosh`, `artanh` (also `\sinh^{-1}`), in
   every mode and in derivatives and the curve sketch.
 - Products `\prod_{i=1}^{n}`, written like sums.
+- The Casio's number functions: `nPr`, `\gcd` and `ggT`, `lcm` and `kgV`, `Int`, `Intg`, `Rnd`,
+  `RndFix` and `divR` (division with remainder), each as `\operatorname{…}(a; b)`.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

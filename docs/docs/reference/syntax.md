@@ -55,6 +55,13 @@ before sums.
 | `\ln`, `\log` (base 10), `\lg`, `\log_b` | arguments must be positive; $\log_2 8 = 3$ |
 | `\max(a; b)`, `\min(a; b)` | separate the arguments with `;`, since `,` is the decimal comma |
 | `\binom{n}{k}`, `\dbinom`, `\tbinom` | exact; non-negative whole numbers |
+| `\operatorname{nPr}(n; r)` | permutations, $\frac{n!}{(n-r)!}$ |
+| `\gcd(a; b)`, `\operatorname{ggT}(a; b)` | greatest common divisor of whole numbers, any number of arguments |
+| `\operatorname{lcm}(a; b)`, `\operatorname{kgV}(a; b)` | least common multiple |
+| `\operatorname{Int}(x)`, `\operatorname{Intg}(x)` | the whole part toward zero; the floor, like `\lfloor x \rfloor` |
+| `\operatorname{Rnd}(x)` | rounded to what the [number format](settings.md#how-results-are-written) shows: Fix and Sci digits, ten digits otherwise |
+| `\operatorname{RndFix}(x; n)` | rounded to n decimal places |
+| `\operatorname{divR}(a; b)` | whole-number division; as the whole input `Q = 3,\; R = 1`, inside a calculation the quotient |
 | `\det\begin{pmatrix} … \end{pmatrix}`, `vmatrix` | determinant, exact, up to 8×8 |
 | `\Re`, `\Im`, `\arg`, `\overline{z}` | Imaginary mode: real part, imaginary part, argument (in the angle unit), conjugate |
 | `r \angle \theta` | Imaginary mode: the complex number with modulus r and angle θ, in the angle unit unless marked (`2\angle 60^\circ`); the angle runs to the next operator |

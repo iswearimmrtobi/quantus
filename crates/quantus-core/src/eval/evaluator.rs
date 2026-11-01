@@ -16,7 +16,7 @@ use crate::latex::{Node, Operator};
 use crate::num::{Decimal, MathFunction, Value, DEFAULT_PRECISION, MAX_PRECISION};
 use super::{angles, derivative};
 use crate::numeric;
-use crate::settings::{AngleUnit, Mode};
+use crate::settings::{AngleUnit, Mode, NumberFormat};
 use crate::quantity::PhysicalQuantity;
 use crate::{QuantusError, Result};
 
@@ -34,6 +34,8 @@ pub struct Evaluator<'a> {
     mode: Mode,
     /// Whether a plain number in `\sin` is read in degrees (the angle unit setting).
     degrees: bool,
+    /// What `\operatorname{Rnd}` rounds to: the number format's digits.
+    rounding: NumberFormat,
 }
 
 /// Longest sum that is worth adding up term by term.
@@ -51,7 +53,7 @@ const MAX_NUMERIC_DIGITS: usize = 30;
 
 impl<'a> Evaluator<'a> {
     pub fn new(variables: &'a Variables) -> Self {
-        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS), mode: Mode::default(), degrees: false }
+        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS), mode: Mode::default(), degrees: false, rounding: NumberFormat::Auto }
     }
 
     pub fn with_precision(mut self, precision: usize) -> Self {
@@ -71,6 +73,12 @@ impl<'a> Evaluator<'a> {
         self
     }
 
+    /// `\operatorname{Rnd}` rounds to the digits this format shows.
+    pub fn with_number_format(mut self, format: NumberFormat) -> Self {
+        self.rounding = format;
+        self
+    }
+
     pub(super) fn degrees(&self) -> bool {
         self.degrees && self.mode != Mode::Analysis
     }
@@ -87,7 +95,7 @@ impl<'a> Evaluator<'a> {
     /// An evaluator that sees the same variables plus `scope`, which the caller updates between
     /// samples.
     fn scoped<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
-        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, mode: self.mode, degrees: self.degrees }
+        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, mode: self.mode, degrees: self.degrees, rounding: self.rounding }
     }
 
     pub(super) fn scoped_over<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
@@ -104,6 +112,7 @@ impl<'a> Evaluator<'a> {
             numeric_digits: self.numeric_digits + NESTING_DIGITS,
             mode: self.mode,
             degrees: self.degrees,
+            rounding: self.rounding,
         }
     }
 
@@ -441,6 +450,71 @@ impl<'a> Evaluator<'a> {
                 }
                 let product = (2..=n).fold(IBig::ONE, |p, k| p * IBig::from(k));
                 Ok(PhysicalQuantity::dimensionless(Value::Rat(RBig::from(product))))
+            }
+            ("nPr", [n, r]) => {
+                let (n, r) = (self.whole_number(n, "nPr")?, self.whole_number(r, "nPr")?);
+                if r > n {
+                    return Err(QuantusError::other(format!("nPr needs r ≤ n, but r = {r} and n = {n}.")));
+                }
+                if n > 10_000 {
+                    return Err(QuantusError::other(format!("nPr of {n} is too large to compute exactly.")));
+                }
+                let product = (n - r + 1..=n).fold(IBig::ONE, |p, k| p * IBig::from(k));
+                Ok(PhysicalQuantity::dimensionless(Value::Rat(RBig::from(product))))
+            }
+            ("gcd" | "lcm", [first, rest @ ..]) => {
+                let whole = |node: &Node| -> Result<IBig> {
+                    let value = self.plain_number(node, &format!("An argument of {name}"))?;
+                    value.to_i64().map(IBig::from).ok_or_else(|| {
+                        QuantusError::other(format!("The arguments of {name} must be whole numbers, but one was '{value}'."))
+                    })
+                };
+                let mut result = dashu::base::UnsignedAbs::unsigned_abs(whole(first)?);
+                for argument in rest {
+                    let next = dashu::base::UnsignedAbs::unsigned_abs(whole(argument)?);
+                    result = if name == "gcd" {
+                        dashu::base::Gcd::gcd(result, next)
+                    } else if result == UBig::ZERO || next == UBig::ZERO {
+                        UBig::ZERO
+                    } else {
+                        let divisor = dashu::base::Gcd::gcd(result.clone(), next.clone());
+                        result / divisor * next
+                    };
+                }
+                Ok(PhysicalQuantity::dimensionless(Value::Rat(RBig::from(IBig::from(result)))))
+            }
+            ("Int", [x]) => {
+                // Toward zero, keeping the unit.
+                let q = self.evaluate(x)?;
+                let r = match q.value.as_rational() {
+                    Some(r) => r.clone(),
+                    None => real(&q)?,
+                };
+                Ok(PhysicalQuantity::new(Value::Rat(RBig::from(r.trunc())), q.unit))
+            }
+            ("Rnd" | "RndFix", [x, places @ ..]) => {
+                let q = self.evaluate(x)?;
+                let decimal = q.value.decimal(self.precision + 10)?;
+                let rounded = match (name, places, self.rounding) {
+                    ("RndFix", [places], _) => {
+                        let places = self.whole_number(places, "RndFix")?;
+                        crate::latex::numbers::to_places(&decimal, places.min(1000))
+                    }
+                    ("RndFix", _, _) => return Err(QuantusError::other("RndFix takes a value and a number of places: RndFix(x; 2).")),
+                    (_, [], NumberFormat::Fix { digits }) => crate::latex::numbers::to_places(&decimal, i64::from(digits)),
+                    (_, [], NumberFormat::Sci { digits }) => decimal.round(if digits == 0 { 10 } else { usize::from(digits) }),
+                    // Norm rounds to the ten digits the display shows.
+                    (_, [], _) => decimal.round(10),
+                    _ => return Err(QuantusError::other("Rnd takes one value: Rnd(x).")),
+                };
+                Ok(PhysicalQuantity::new(Value::Rat(rounded.to_rational()), q.unit))
+            }
+            ("divR", [a, b]) => {
+                let (a, b) = (self.whole_integer(a, "The dividend of ÷R")?, self.whole_integer(b, "The divisor of ÷R")?);
+                if b == 0 {
+                    return Err(QuantusError::other("Division by zero."));
+                }
+                Ok(PhysicalQuantity::dimensionless(Value::int(a / b)))
             }
             ("floor" | "ceil", [x]) => {
                 let q = self.evaluate(x)?;
