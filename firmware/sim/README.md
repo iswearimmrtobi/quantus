@@ -1,9 +1,10 @@
 # Quantus handheld simulator
 
 The handheld's UI (`firmware/ui`) in a window on the PC, at twice the display's 480×320. It uses
-the same band renderer as the board, so the window shows what the display will show. There is no
-engine yet: the stub answers with the input itself (with `≈` in front as a decimal), and an
-input with a `?` gives an error.
+the same band renderer as the board, so the window shows what the display will show. The real
+engine (`quantus-core`) answers. With `--stub` the stub answers instead, as on the board: the
+input itself (with `≈` in front as a decimal), and an input with a `?` gives an error. Analysis
+and Linear only evaluate plain inputs for now; curve sketches and systems have no screen yet.
 
 The screen works like a Casio: a top bar in the mode's color (mode, SHIFT/ALPHA, significant
 digits, exact or decimal, battery), the input from the top left and, after EXE, its result at the
@@ -17,7 +18,26 @@ Needs SDL2 (`sdl2` on Arch, `libsdl2-dev` on Debian). Its own Cargo workspace, s
 cd firmware/sim
 cargo run
 cargo run -- --keys '3/4>+2^3\n' --png screen.png   # type keys, save the screen
+cargo run -- --stub                                 # the stub instead of the engine
+cargo run -- --mirror /dev/ttyUSB0                  # also show the picture on the board
 ```
+
+The keys are printed when the window opens.
+
+## On the board (testing only)
+
+With `--mirror <port>` the board is the simulator's screen: the UI and the engine run on the PC,
+you type into the window, and each band that changed goes over serial to the board, so the
+display shows exactly what the window shows. Flash the board's `mirror` binary first and close
+the serial monitor, since the port takes only one user:
+
+```sh
+cd firmware/handheld && cargo run --release --bin mirror   # flash, then quit the monitor
+cd firmware/sim && cargo run -- --mirror /dev/ttyUSB0
+```
+
+The link runs at 921600 baud; a full screen is a few KB. When the board resets it says
+`READY` and gets the whole screen again. The protocol is in `firmware/mirror`.
 
 In `--keys`, `\n` is EXE and `>`/`<` move the cursor.
 

@@ -48,3 +48,10 @@ prints when the display was ready and how long the first frame took.
 Type into the serial monitor; the keys are those of the simulator, see its
 [key table](../sim/README.md#keys) (Ctrl+F then Tab for the setup). The arrows work as arrows, Delete clears like AC. Ctrl+C
 and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
+
+## Mirror (testing only)
+
+`cargo run --release --bin mirror` flashes a second binary that only shows what the simulator
+on the PC sends: the UI and the real engine run there, and the board is its screen. See
+[On the board](../sim/README.md#on-the-board-testing-only). `cargo run --release` flashes the
+normal firmware again.

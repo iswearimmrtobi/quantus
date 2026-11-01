@@ -84,6 +84,8 @@ printing results, time, heap and stack over serial. See its [README](../firmware
   - [ ] ALPHA letters on the keys, once the keypad's legend is fixed.
   - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
   - [x] Brackets that grow with what they hold.
+  - [x] For testing: the simulator with the real engine, and its picture mirrored to the board
+    over serial (`--mirror`, the handheld's `mirror` binary; not yet tried on the board).
   - [ ] A larger Greek font than u8g2's bitmap ones (π, μ and Ω are fine); German texts.
 
 ## 5. Later
