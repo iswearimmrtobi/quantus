@@ -90,10 +90,58 @@ printing results, time, heap and stack over serial. See its [README](../firmware
     over serial (`--mirror`, the handheld's `mirror` binary; not yet tried on the board).
   - [ ] A larger Greek font than u8g2's bitmap ones (π, μ and Ω are fine); German texts.
 
-## 5. Later
+## 5. Features modelled on the Casio fx-991DE X
 
-- Physical constants (c, h, G) and the remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md).
-- History and persistence of calculations.
+Decided entry by entry in [handheld-menus.md](../design/handheld-menus.md) §4; who does what in
+§8 there. The maths, the data and the state go into `quantus-core`, so the desktop gets each item
+as well as the handheld: a new setting goes into the desktop's settings dialog, `en.ts`, `de.ts`
+and `docs/docs/reference/settings.md`, a new function into the syntax reference.
+
+- [ ] Angle unit: a setting Grad/Bogenmaß (degrees by default on the handheld, radians on the
+  desktop), ° and rad as markers on a value, °′″ as input and as a result form.
+- [ ] Number format: Norm 1/2, Fix 0–9 and Sci 0–9 for the display, with the significant digits
+  as the internal precision; decimal prefixes on plain numbers; ENG steps of 3; digit grouping
+  with a thin space.
+- [ ] Result forms: mixed fractions (setting ab/c, d/c), recurring decimals (and a template to
+  type a period), prime factors, complex r∠θ (setting, conversion of one result, ∠ input). Each
+  result carries its alternative forms, so S⇔D on the handheld and a form switch on the desktop
+  read them from the core.
+- [ ] Basis-N: a mode for integers in DEC/HEX/BIN/OCT, the prefixes d, h, b, o and the bitwise
+  operations and, or, xor, xnor, Not, Neg.
+- [ ] Matrices: matrix values with + − ×, inverse, transpose, identity, det, powers, REF and
+  RREF, exact and with steps, reusing the LGS Gauss code; any variable name instead of MatA–D.
+- [ ] Stochastik: lists, one-variable statistics, the regressions, the distributions (normal,
+  binomial, Poisson; density, cumulative, inverse normal). Two tiles on the handheld, a mode
+  with a data editor on the desktop.
+- [ ] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix,
+  ÷R.
+- [ ] Constants and units: the 32 constants the Casio has and Quantus lacks (CODATA 2018, the
+  Casio's six categories), usable outside Physik when inserted by name; a "▶ unit" operator
+  that writes a result in a target unit; the missing imperial units (ft, yd, lb, oz, gal, psi,
+  Btu, hp, °F …).
+- [ ] Solving: exact cubics and quartics (Cardano, Ferrari) without the [−100, 100] limit; SOLVE
+  for a chosen variable; CALC (the free variables of an expression, then substitute);
+  wahr/falsch for an equation without unknowns, and a Prüfen mode.
+- [ ] Sessions: history, mode inputs, a name and timestamps in `session.rs`, serialised to JSON
+  with a format version. The desktop keeps them in its config directory with a session menu and
+  opens the last one on start; the handheld keeps them on the SD card.
+- [ ] Ans and PreAns in the session; STO and VARS on the handheld.
+- [ ] The link between handheld and desktop: the request and response format (the JSON of
+  `api.rs`) and the session files from the core; on the desktop a listener reachable over WLAN
+  and Bluetooth, with pairing; on the handheld the client (remote engine, session sync).
+- [ ] Firmware updates: an updater in the desktop app that takes the image from the GitHub
+  releases and uploads it to the handheld (USB or the link); the handheld can fetch it over
+  WLAN itself; the release workflow ([RELEASING.md](../RELEASING.md)) attaches the image.
+- [ ] Later: polynomial inequalities; vectors with a Geometrie area
+  ([new-areas-and-themes.md](new-areas-and-themes.md)).
+
+The handheld's own part (menus, keys, the purple palette, WLAN and Bluetooth, the exam mode) is
+in [handheld-menus.md](../design/handheld-menus.md) §7.
+
+## 6. Later
+
+- The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
+  history are now in §5).
 - Partial derivatives and `dx` notation: the largest group of failing cases in the generated test
   set (`test/results/failures.jsonl`).
 - Optional: a thin `quantus-server` crate (axum) over `quantus-core`, if self-hosting is wanted.

@@ -429,7 +429,7 @@ The mode and the settings are not part of a session; they stay global.
   and takes it back.
 - **Desktop**: stores one file per session in the app's config directory, next to
   `settings.json`; a session menu (open, new, rename, duplicate, delete) and opening the last
-  session on start. This replaces "keep sessions" under "Later" in `plans/plans.md` §5.
+  session on start. Tracked in `plans/plans.md` §5.
 - **Handheld**: stores the same files on the SD card, after every calculation and before deep
   sleep, so a power loss loses at most the last input; the *Sitzungen* menu from MODE or
   SHIFT + a key; the last session reopens on wake-up.
@@ -591,7 +591,7 @@ get it alike; the shells add only their UI and their storage. The desktop then g
 setting in its settings dialog (`docs/docs/reference/settings.md`, `en.ts` and `de.ts`) and every
 new function in its syntax, not just the handheld.
 
-Roughly in the order agreed; each would go into `plans/plans.md` as its own item.
+Roughly in the order agreed; each is an item in `plans/plans.md` §5.
 
 | # | Work | Core | Desktop | Handheld |
 |---|---|---|---|---|
