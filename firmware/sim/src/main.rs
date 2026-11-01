@@ -1,11 +1,15 @@
 //! The handheld's UI in a window, at twice its size, with the PC keyboard as the keypad (see the
-//! README), and the real engine answering. `--keys <text> --png <file>` types the text and saves
-//! the screen instead; `--stub` answers with the stub instead of the engine; `--mirror <port>`
-//! also shows the picture on the board.
+//! README), and the real engine answering; LaTeX typed into the terminal is evaluated too.
+//!
+//! - `--keys <text> --latex <latex> --png <file>`: types the keys, evaluates the LaTeX (both
+//!   optional) and saves the screen instead of opening the window.
+//! - `--stub`: the stub answers instead of the engine.
+//! - `--mirror <port>`: also shows the picture on the board.
 
 mod engine;
 mod mirror;
 
+use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
 use embedded_graphics::pixelcolor::Rgb565;
@@ -29,7 +33,8 @@ fn main() {
     let mut renderer = Renderer::new();
 
     let option = |name: &str| args.iter().position(|arg| arg == name).and_then(|i| args.get(i + 1));
-    if let (Some(keys), Some(png)) = (option("--keys"), option("--png")) {
+    if let Some(png) = option("--png") {
+        let keys = option("--keys").map_or("", String::as_str);
         // `\e` for Esc is not needed here: Ctrl+X clears. `\n` is EXE, `>`/`<` move the cursor.
         for c in keys.replace("\\n", "\n").chars() {
             let key = match c {
@@ -38,6 +43,9 @@ fn main() {
                 c => Key::from_char(c),
             };
             key.into_iter().for_each(|key| app.key(key));
+        }
+        if let Some(latex) = option("--latex") {
+            evaluate_latex(&mut app, latex);
         }
         renderer.render(&Frame::new(&app), &mut display).unwrap();
         let settings = OutputSettingsBuilder::new().build();
@@ -55,10 +63,14 @@ fn main() {
     };
 
     print!("{KEYS}");
+    let latex = terminal_lines();
     let settings = OutputSettingsBuilder::new().scale(2).build();
     let mut window = Window::new("Quantus", &settings);
     let start = Instant::now();
     loop {
+        if let Ok(line) = latex.try_recv() {
+            evaluate_latex(&mut app, &line);
+        }
         if mirror.as_ref().is_some_and(Mirror::take_ready) {
             renderer.invalidate();
         }
@@ -79,6 +91,30 @@ fn main() {
         app.tick(start.elapsed().as_millis() as u64);
         std::thread::sleep(Duration::from_millis(15));
     }
+}
+
+/// The lines typed into the terminal, read in the background.
+fn terminal_lines() -> Receiver<String> {
+    let (sender, receiver) = mpsc::channel();
+    std::thread::spawn(move || {
+        for line in std::io::stdin().lines() {
+            let Ok(line) = line else { return };
+            if !line.trim().is_empty() && sender.send(line.trim().to_string()).is_err() {
+                return;
+            }
+        }
+    });
+    receiver
+}
+
+/// LaTeX typed into the terminal, as the input on the screen, evaluated. The editor reads it the
+/// way it reads results, so the LaTeX that goes to the engine is printed: anything the editor
+/// does not know shows up there.
+fn evaluate_latex(app: &mut App<Answers>, latex: &str) {
+    app.key(Key::Ac);
+    app.editor.set(quantus_ui::latex::parse(latex));
+    println!("sent: {}", app.editor.to_latex());
+    app.key(Key::Exe);
 }
 
 /// What answers: the engine, or the stub with `--stub`.
@@ -108,8 +144,10 @@ Quantus simulator keys
   sqrt x^2 pi e        Ctrl+W  Ctrl+Q  Ctrl+P  Ctrl+E
   sin cos tan          Ctrl+S  Ctrl+O  Ctrl+T
   ln log Ans           Ctrl+L  Ctrl+G  Ctrl+A
+  ;                    Shift+, (between equations and arguments)
   history              Up/Down outside a fraction
   Shifted characters follow a German layout (Shift+7 is /, Shift+0 is =).
+LaTeX: type it here in the terminal and press Enter; it becomes the input and is evaluated.
 ";
 
 /// The key for a key press. SDL reports the key's unshifted character, so the shifted ones are
@@ -150,6 +188,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         '0' => '=',
         '+' => '*',
         '.' => ':',
+        ',' => ';',
         '-' => '_',
         c => c.to_uppercase().next()?,
     };

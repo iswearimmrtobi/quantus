@@ -24,6 +24,11 @@ cargo run -- --mirror /dev/ttyUSB0                  # also show the picture on t
 
 The keys are printed when the window opens.
 
+LaTeX typed into the terminal (then Enter) becomes the input and is evaluated, for what the keys
+cannot type yet. The editor reads it like a result, and the terminal shows the LaTeX that went to
+the engine, so anything the editor does not know shows up there. With `--png`, `--latex <text>`
+does the same after the keys.
+
 ## On the board (testing only)
 
 With `--mirror <port>` the board is the simulator's screen: the UI and the engine run on the PC,
@@ -49,6 +54,7 @@ The characters are the same over the board's serial console (`firmware/handheld`
 |---|---|---|
 | `0`–`9`, letters | as typed | digits, variables |
 | `,` `.` | either | decimal comma |
+| `;` | Shift+, | between equations (`x+y=3;x-y=1` in Linear) and arguments |
 | `+` `-` `*` `:` `=` `(` `)` | as typed | operators, `×`, `÷` |
 | `/` | | fraction; a number before it becomes the numerator |
 | `^` | | exponent |
