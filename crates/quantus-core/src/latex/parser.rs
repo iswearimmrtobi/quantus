@@ -497,10 +497,13 @@ impl Parser<'_> {
         None
     }
 
-    /// A `C` right after a degree sign, bare or as `\mathrm{C}` / `\text{C}`: the Celsius unit.
+    /// A `C` or `F` right after a degree sign, bare or as `\mathrm{C}` / `\text{C}`: degrees
+    /// Celsius or Fahrenheit.
     fn celsius_after_degree_sign(&mut self) -> Option<Node> {
-        let is_c = |t: &Token| t.kind == TokenType::Identifier && t.text == "C";
+        let is_c = |t: &Token| t.kind == TokenType::Identifier && matches!(t.text.as_str(), "C" | "F");
         let position = self.current().position;
+        let letter = |t: &Token| if t.text == "F" { "°F" } else { "°C" };
+        let symbol = if is_c(self.current()) { letter(self.current()) } else { letter(self.peek(2)) };
         let consumed = if is_c(self.current()) {
             1
         } else if self.current().kind == TokenType::Command
@@ -513,9 +516,9 @@ impl Parser<'_> {
         } else {
             return None;
         };
-        let unit = units::find("°C")?;
+        let unit = units::find(symbol)?;
         self.index += consumed;
-        Some(Node::Unit { unit, symbol: "°C".to_string(), position })
+        Some(Node::Unit { unit, symbol: symbol.to_string(), position })
     }
 
     /// `\circ` or `{\circ}` after a `^`; consumes it when present.

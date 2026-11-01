@@ -187,6 +187,39 @@ impl<F: FnMut(Registration)> Registrar<F> {
         t.label(plain(Kind::Tonne), "t");
         t.alias_atom(plain(Kind::Dalton), "u");
         t.label(plain(Kind::Inch), "in");
+        t.label(plain(Kind::Foot), "ft");
+        t.label(plain(Kind::Yard), "yd");
+        t.label(plain(Kind::Mile), "mi");
+        t.label(plain(Kind::NauticalMile), "nmi");
+        t.label(plain(Kind::Mil), "mil");
+        t.label(plain(Kind::Fathom), "fath");
+        t.label(plain(Kind::Chain), "ch");
+        t.label(plain(Kind::Parsec), "pc");
+        t.label(plain(Kind::Acre), "acre");
+        t.label(plain(Kind::Gallon), "gal");
+        t.label(plain(Kind::Bushel), "bu");
+        t.label(plain(Kind::Barrel), "bbl");
+        t.label(plain(Kind::Pound), "lb");
+        t.label(plain(Kind::Ounce), "oz");
+        t.label(plain(Kind::Carat), "ct");
+        t.label(plain(Kind::ShortTon), "ton");
+        t.label(plain(Kind::Knot), "kn");
+        t.label(plain(Kind::Gal), "Gal");
+        t.label(plain(Kind::Dyne), "dyn");
+        t.label(plain(Kind::PoundForce), "lbf");
+        t.label(plain(Kind::KilogramForce), "kgf");
+        t.label(plain(Kind::Psi), "psi");
+        t.label(plain(Kind::MillimetreOfMercury), "mmHg");
+        t.label(plain(Kind::InchOfMercury), "inHg");
+        t.label(plain(Kind::Erg), "erg");
+        t.label(plain(Kind::Btu), "Btu");
+        t.label(plain(Kind::Horsepower), "hp");
+        t.label(plain(Kind::Stokes), "St");
+        t.label(plain(Kind::Maxwell), "Mx");
+        t.label(plain(Kind::Curie), "Ci");
+        t.label(plain(Kind::Rem), "rem");
+        t.label(plain(Kind::Fahrenheit), Kind::Fahrenheit.symbol());
+        t.alias_atom(plain(Kind::Fahrenheit), "°F");
     }
 }
 

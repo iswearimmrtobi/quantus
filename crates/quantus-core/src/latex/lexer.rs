@@ -106,6 +106,9 @@ impl Lexer<'_> {
             } else if c == '%' {
                 tokens.push(Token { kind: TokenType::Identifier, text: "%".to_string(), position: self.index });
                 self.index += 1;
+            } else if c == '\u{2109}' {
+                tokens.push(Token { kind: TokenType::Identifier, text: "°F".to_string(), position: self.index });
+                self.index += 1;
             } else if c == '\u{2103}' {
                 // The one-character degree Celsius sign reads like `°C`.
                 tokens.push(Token { kind: TokenType::Identifier, text: "°C".to_string(), position: self.index });

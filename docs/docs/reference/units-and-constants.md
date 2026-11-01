@@ -62,6 +62,26 @@ or `\mu` (`3\mu F`); `u` is not micro but the dalton.
 | percent | `\%` | |
 | tonne, inch | `t`, `in` (see below) | |
 
+Imperial and US units, and the rest of the conversions of a Casio fx-991DE X (NIST SP 811):
+
+| Quantity | Unit | Symbol |
+|---|---|---|
+| length | foot, yard, mile, nautical mile, mil, fathom, chain, parsec | `ft`, `yd`, `mi`, `nmi`, `mil`, `fath`, `ch`, `pc` |
+| area | acre | `acre` |
+| volume | US gallon, US bushel, oil barrel | `gal`, `bu`, `bbl` |
+| mass | pound, ounce, carat, short ton | `lb`, `oz`, `ct`, `ton` |
+| speed, acceleration | knot, gal | `kn`, `Gal` |
+| force | dyne, pound-force, kilogram-force | `dyn`, `lbf`, `kgf` |
+| pressure | pound per square inch, millimetre and inch of mercury | `psi`, `mmHg`, `inHg` |
+| energy, power | erg, British thermal unit, horsepower | `erg`, `Btu`, `hp` |
+| temperature | degree Fahrenheit | `°F`, `^\circ\mathrm{F}` |
+| kinematic viscosity | stokes | `St` |
+| magnetic flux, activity, dose | maxwell, curie, rem | `Mx`, `Ci`, `rem` |
+
+Left out because the letter is a common variable or the symbol is taken: barn (`b`), poise
+(`P`), gauss (`G`), röntgen (`R`), are (`a`), rad as a dose (`rad` is the radian), the Imperial
+gallon, the long ton, and the oersted and the IT and 15 °C calories.
+
 Some letters are variables by default because they are more often meant that way. Two settings
 under **Settings → Input** turn them into units:
 

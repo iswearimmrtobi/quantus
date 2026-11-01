@@ -74,9 +74,42 @@ pub enum Kind {
     // read as units only with `extra_unit_letters`, since the letters are common variables
     Tonne,
     Inch,
+    // imperial and US units, and the rest of the Casio's conversions (NIST SP 811)
+    Foot,
+    Yard,
+    Mile,
+    NauticalMile,
+    Mil,
+    Fathom,
+    Chain,
+    Parsec,
+    Acre,
+    Gallon,
+    Bushel,
+    Barrel,
+    Pound,
+    Ounce,
+    Carat,
+    ShortTon,
+    Knot,
+    Gal,
+    Dyne,
+    PoundForce,
+    KilogramForce,
+    Psi,
+    MillimetreOfMercury,
+    InchOfMercury,
+    Erg,
+    Btu,
+    Horsepower,
+    Fahrenheit,
+    Stokes,
+    Maxwell,
+    Curie,
+    Rem,
 }
 
-const KIND_COUNT: usize = Kind::Inch as usize + 1;
+const KIND_COUNT: usize = Kind::Rem as usize + 1;
 
 /// How a kind relates to the rest.
 enum Origin {
@@ -141,6 +174,38 @@ impl Kind {
             Kind::Percent => "%",
             Kind::Tonne => "t",
             Kind::Inch => "in",
+            Kind::Foot => "ft",
+            Kind::Yard => "yd",
+            Kind::Mile => "mi",
+            Kind::NauticalMile => "nmi",
+            Kind::Mil => "mil",
+            Kind::Fathom => "fath",
+            Kind::Chain => "ch",
+            Kind::Parsec => "pc",
+            Kind::Acre => "acre",
+            Kind::Gallon => "gal",
+            Kind::Bushel => "bu",
+            Kind::Barrel => "bbl",
+            Kind::Pound => "lb",
+            Kind::Ounce => "oz",
+            Kind::Carat => "ct",
+            Kind::ShortTon => "ton",
+            Kind::Knot => "kn",
+            Kind::Gal => "Gal",
+            Kind::Dyne => "dyn",
+            Kind::PoundForce => "lbf",
+            Kind::KilogramForce => "kgf",
+            Kind::Psi => "psi",
+            Kind::MillimetreOfMercury => "mmHg",
+            Kind::InchOfMercury => "inHg",
+            Kind::Erg => "erg",
+            Kind::Btu => "Btu",
+            Kind::Horsepower => "hp",
+            Kind::Fahrenheit => "\u{2109}",
+            Kind::Stokes => "St",
+            Kind::Maxwell => "Mx",
+            Kind::Curie => "Ci",
+            Kind::Rem => "rem",
         }
     }
 
@@ -191,6 +256,38 @@ impl Kind {
             Kind::MilePerHour => Origin::Of(m().divide(&s())),
             Kind::Dalton | Kind::Tonne => Origin::Of(Kind::Kilogram.unit()),
             Kind::Percent => Origin::Of(one),
+            Kind::Foot => Origin::Of(m()),
+            Kind::Yard => Origin::Of(m()),
+            Kind::Mile => Origin::Of(m()),
+            Kind::NauticalMile => Origin::Of(m()),
+            Kind::Mil => Origin::Of(m()),
+            Kind::Fathom => Origin::Of(m()),
+            Kind::Chain => Origin::Of(m()),
+            Kind::Parsec => Origin::Of(m()),
+            Kind::Acre => Origin::Of(m().pow(2)),
+            Kind::Gallon => Origin::Of(m().pow(3)),
+            Kind::Bushel => Origin::Of(m().pow(3)),
+            Kind::Barrel => Origin::Of(m().pow(3)),
+            Kind::Pound => Origin::Of(Kind::Kilogram.unit()),
+            Kind::Ounce => Origin::Of(Kind::Kilogram.unit()),
+            Kind::Carat => Origin::Of(Kind::Kilogram.unit()),
+            Kind::ShortTon => Origin::Of(Kind::Kilogram.unit()),
+            Kind::Knot => Origin::Of(m().divide(&s())),
+            Kind::Gal => Origin::Of(m().divide(&s().pow(2))),
+            Kind::Dyne => Origin::Of(Kind::Newton.unit()),
+            Kind::PoundForce => Origin::Of(Kind::Newton.unit()),
+            Kind::KilogramForce => Origin::Of(Kind::Newton.unit()),
+            Kind::Psi => Origin::Of(Kind::Pascal.unit()),
+            Kind::MillimetreOfMercury => Origin::Of(Kind::Pascal.unit()),
+            Kind::InchOfMercury => Origin::Of(Kind::Pascal.unit()),
+            Kind::Erg => Origin::Of(Kind::Joule.unit()),
+            Kind::Btu => Origin::Of(Kind::Joule.unit()),
+            Kind::Horsepower => Origin::Of(Kind::Watt.unit()),
+            Kind::Fahrenheit => Origin::Of(Kind::Kelvin.unit()),
+            Kind::Stokes => Origin::Of(m().pow(2).divide(&s())),
+            Kind::Maxwell => Origin::Of(Kind::Weber.unit()),
+            Kind::Curie => Origin::Of(Kind::Becquerel.unit()),
+            Kind::Rem => Origin::Of(Kind::Sievert.unit()),
         }
     }
 
@@ -233,6 +330,39 @@ impl Kind {
             Kind::Percent => (rat(1, 100), RBig::ZERO),
             Kind::Tonne => (rat(1000, 1), RBig::ZERO),
             Kind::Inch => (rat(254, 10_000), RBig::ZERO),
+            Kind::Foot => (rat(3048, 10_000), RBig::ZERO),
+            Kind::Yard => (rat(9144, 10_000), RBig::ZERO),
+            Kind::Mile => (rat(1_609_344, 1000), RBig::ZERO),
+            Kind::NauticalMile => (rat(1852, 1), RBig::ZERO),
+            Kind::Mil => (rat(254, 10_000_000), RBig::ZERO),
+            Kind::Fathom => (rat(18_288, 10_000), RBig::ZERO),
+            Kind::Chain => (rat(201_168, 10_000), RBig::ZERO),
+            Kind::Parsec => (rat(30_856_775_814_913_673, 1), RBig::ZERO),
+            Kind::Acre => (decimal("4046.8564224"), RBig::ZERO),
+            Kind::Gallon => (decimal("3.785411784e-3"), RBig::ZERO),
+            Kind::Bushel => (decimal("35.23907016688e-3"), RBig::ZERO),
+            Kind::Barrel => (decimal("158.987294928e-3"), RBig::ZERO),
+            Kind::Pound => (decimal("0.45359237"), RBig::ZERO),
+            Kind::Ounce => (decimal("0.028349523125"), RBig::ZERO),
+            Kind::Carat => (decimal("0.0002"), RBig::ZERO),
+            Kind::ShortTon => (decimal("907.18474"), RBig::ZERO),
+            Kind::Knot => (rat(1852, 3600), RBig::ZERO),
+            Kind::Gal => (rat(1, 100), RBig::ZERO),
+            Kind::Dyne => (decimal("1e-5"), RBig::ZERO),
+            Kind::PoundForce => (pound_force(), RBig::ZERO),
+            Kind::KilogramForce => (decimal("9.80665"), RBig::ZERO),
+            Kind::Psi => (pound_force() / decimal("0.00064516"), RBig::ZERO),
+            Kind::MillimetreOfMercury => (decimal("133.322387415"), RBig::ZERO),
+            Kind::InchOfMercury => (decimal("133.322387415") * decimal("25.4"), RBig::ZERO),
+            Kind::Erg => (decimal("1e-7"), RBig::ZERO),
+            Kind::Btu => (decimal("1055.05585262"), RBig::ZERO),
+            Kind::Horsepower => (pound_force() * decimal("0.3048") * rat(550, 1), RBig::ZERO),
+            Kind::Stokes => (decimal("1e-4"), RBig::ZERO),
+            Kind::Maxwell => (decimal("1e-8"), RBig::ZERO),
+            Kind::Curie => (decimal("3.7e10"), RBig::ZERO),
+            Kind::Rem => (rat(1, 100), RBig::ZERO),
+            // K = °F · 5/9 + 459,67 · 5/9
+            Kind::Fahrenheit => (rat(5, 9), rat(45_967, 180)),
             _ => (RBig::ONE, RBig::ZERO),
         };
         AffineConversion { factor, offset }
@@ -241,6 +371,11 @@ impl Kind {
 
 fn decimal(text: &str) -> RBig {
     crate::num::Decimal::parse(text).expect("a valid decimal").to_rational()
+}
+
+/// The pound-force, 0,45359237 kg times standard gravity, exactly.
+fn pound_force() -> RBig {
+    decimal("0.45359237") * decimal("9.80665")
 }
 
 fn rat(numerator: i64, denominator: u64) -> RBig {

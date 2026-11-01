@@ -44,6 +44,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - All 47 physical constants of a Casio fx-991DE X in Physics mode (CODATA 2018), from the
   impedance of vacuum `Z_0` to the Rydberg constant `R_{inf}`, and a list of them by category
   for a picker (`constants`).
+- Imperial and US units and the other conversions of a Casio: `ft`, `yd`, `mi`, `nmi`, `lb`,
+  `oz`, `gal`, `psi`, `Btu`, `hp`, `°F`, `kn`, `lbf`, `mmHg` and more.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.
