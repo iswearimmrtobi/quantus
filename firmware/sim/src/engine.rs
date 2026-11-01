@@ -3,9 +3,11 @@
 
 use quantus_core::api::{self, CalculationRequest};
 use quantus_core::session::SessionStore;
-use quantus_core::settings::Mode as CoreMode;
+use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
 use quantus_ui::backend::Backend;
+use quantus_ui::settings as ui;
+use quantus_ui::text::Lang;
 
 #[derive(Default)]
 pub struct Engine {
@@ -23,11 +25,7 @@ impl Backend for Engine {
             Mode::Analysis => CoreMode::Analysis,
             Mode::Linear => CoreMode::Linear,
         };
-        let core = quantus_core::settings::Settings {
-            mode,
-            exact_roots: !settings.decimal,
-            ..self.store.settings.clone()
-        };
+        let core = core_settings(mode, settings);
         api::set_settings(&mut self.store, core).map_err(|error| error.to_string())?;
         let request = CalculationRequest {
             latex: latex.to_string(),
@@ -41,5 +39,59 @@ impl Backend for Engine {
         } else {
             Ok(response.result)
         }
+    }
+}
+
+/// The engine's settings for the hui's: every setting the engine has. The others (angle unit,
+/// number format, the device and the connections) wait for the engine or the firmware.
+fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
+    core::Settings {
+        mode,
+        precision: settings.digits.into(),
+        binomial_form: match settings.binomial_form {
+            ui::BinomialForm::Auto => core::BinomialForm::Auto,
+            ui::BinomialForm::Expanded => core::BinomialForm::Expanded,
+            ui::BinomialForm::Binomial => core::BinomialForm::Binomial,
+        },
+        complete_square: settings.complete_square,
+        denominator_form: match settings.denominator_form {
+            ui::DenominatorForm::Auto => core::DenominatorForm::Auto,
+            ui::DenominatorForm::Expanded => core::DenominatorForm::Expanded,
+            ui::DenominatorForm::Factored => core::DenominatorForm::Factored,
+        },
+        conditional_identities: match settings.conditional_identities {
+            ui::ConditionalIdentities::WithCondition => core::ConditionalIdentities::WithCondition,
+            ui::ConditionalIdentities::AlwaysValid => core::ConditionalIdentities::AlwaysValid,
+        },
+        exact_roots: !settings.decimal,
+        a_and_y_as_variables: settings.a_and_y_as_variables,
+        letter_products: settings.letter_products,
+        extra_unit_letters: settings.extra_unit_letters,
+        language: match settings.language {
+            Lang::De => core::Language::De,
+            Lang::En => core::Language::En,
+        },
+        quadratic_formula: match settings.quadratic_formula {
+            ui::QuadraticFormula::Auto => core::QuadraticFormula::Auto,
+            ui::QuadraticFormula::Pq => core::QuadraticFormula::Pq,
+            ui::QuadraticFormula::Abc => core::QuadraticFormula::Abc,
+        },
+        step_detail: match settings.step_detail {
+            ui::StepDetail::None => core::StepDetail::None,
+            ui::StepDetail::Brief => core::StepDetail::Brief,
+            ui::StepDetail::Standard => core::StepDetail::Standard,
+            ui::StepDetail::Detailed => core::StepDetail::Detailed,
+            ui::StepDetail::Maximal => core::StepDetail::Maximal,
+        },
+        cancel_marks: settings.cancel_marks,
+        elimination: match settings.elimination {
+            ui::Elimination::Gauss => core::Elimination::Gauss,
+            ui::Elimination::GaussJordan => core::Elimination::GaussJordan,
+        },
+        unknown_names: match settings.unknown_names {
+            ui::UnknownNames::Indexed => core::UnknownNames::Indexed,
+            ui::UnknownNames::Letters => core::UnknownNames::Letters,
+        },
+        linear_complex: settings.linear_complex,
     }
 }

@@ -4,6 +4,7 @@ use crate::backend::Backend;
 use crate::editor::{Editor, Row};
 use crate::key::Key;
 use crate::latex;
+pub use crate::settings::Settings;
 
 /// The app's modes that work as text, in the order of the mode menu.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -31,25 +32,6 @@ impl Mode {
 
     fn index(self) -> usize {
         Mode::ALL.iter().position(|&mode| mode == self).unwrap_or(0)
-    }
-}
-
-/// How results are written, set on the setup page.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Settings {
-    /// Significant digits of decimal results, 1 to [`Settings::MAX_DIGITS`].
-    pub digits: u8,
-    /// Decimals instead of exact fractions and roots.
-    pub decimal: bool,
-}
-
-impl Settings {
-    pub const MAX_DIGITS: u8 = 15;
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Settings { digits: 10, decimal: false }
     }
 }
 

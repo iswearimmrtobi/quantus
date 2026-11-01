@@ -10,3 +10,5 @@ pub mod key;
 pub mod latex;
 pub mod layout;
 pub mod render;
+pub mod settings;
+pub mod text;
