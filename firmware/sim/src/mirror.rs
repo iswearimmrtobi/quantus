@@ -9,6 +9,8 @@ use std::time::Duration;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
+use quantus_mirror::Shadow;
+use quantus_ui::render::{HEIGHT, WIDTH};
 use serialport::SerialPort;
 
 /// Must match the board's.
@@ -18,6 +20,8 @@ pub struct Mirror {
     port: Box<dyn SerialPort>,
     /// Set when the board said `READY`: it was reset and needs the whole screen.
     ready: Arc<AtomicBool>,
+    /// What the board shows, so only what changed in a band goes out.
+    shadow: Shadow,
 }
 
 impl Mirror {
@@ -49,23 +53,24 @@ impl Mirror {
                 }
             }
         });
-        Ok(Mirror { port, ready })
+        Ok(Mirror { port, ready, shadow: Shadow::new(WIDTH as u16, HEIGHT as u16) })
     }
 
-    /// Whether the board was reset since the last call.
-    pub fn take_ready(&self) -> bool {
-        self.ready.swap(false, Ordering::Relaxed)
+    /// Whether the board was reset since the last call; then it gets everything again.
+    pub fn take_ready(&mut self) -> bool {
+        let ready = self.ready.swap(false, Ordering::Relaxed);
+        if ready {
+            self.shadow.forget();
+        }
+        ready
     }
 
+    /// Sends the part of the band that differs from what the board shows.
     fn send(&mut self, area: &Rectangle, pixels: &[Rgb565]) {
         let size = area.size;
-        let frame = quantus_mirror::encode(
-            area.top_left.x as u16,
-            area.top_left.y as u16,
-            size.width as u16,
-            size.height as u16,
-            pixels.iter().map(|color| color.into_storage()),
-        );
+        let raw: Vec<u16> = pixels.iter().map(|color| color.into_storage()).collect();
+        let (x, y) = (area.top_left.x as u16, area.top_left.y as u16);
+        let Some(frame) = self.shadow.update(x, y, size.width as u16, size.height as u16, &raw) else { return };
         if let Err(error) = self.port.write_all(&frame) {
             eprintln!("mirror: {error}");
         }

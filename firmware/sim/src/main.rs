@@ -83,7 +83,7 @@ fn main() {
             evaluate_latex(&mut app, &line);
             changed = true;
         }
-        if mirror.as_ref().is_some_and(Mirror::take_ready) {
+        if mirror.as_mut().is_some_and(Mirror::take_ready) {
             renderer.invalidate();
             changed = true;
         }

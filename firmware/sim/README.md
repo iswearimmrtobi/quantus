@@ -43,7 +43,7 @@ does the same after the keys.
 ## On the board (testing only)
 
 With `--mirror <port>` the board is the simulator's screen: the UI and the engine run on the PC,
-you type into the window, and each band that changed goes over serial to the board, so the
+you type into the window, and the part of each band that changed goes over serial to the board, so the
 display shows exactly what the window shows. Flash the board's `mirror` binary first and close
 the serial monitor, since the port takes only one user:
 
@@ -52,8 +52,10 @@ cd firmware/handheld && cargo run --release --bin mirror   # flash, then quit th
 cd firmware/sim && cargo run -- --mirror /dev/ttyUSB0
 ```
 
-The link runs at 921600 baud; a full screen is a few KB. When the board resets it says
-`READY` and gets the whole screen again. The protocol is in `firmware/mirror`.
+The link runs at 921600 baud, about 90 KB/s. A full screen of the plain UI is a few KB; with a
+wallpaper it is about 300 KB (2 bytes a pixel), so about 3 s, while a caret blink or a key is a
+small rectangle. The real board draws to the display directly and is not slowed by this. When the
+board resets it says `READY` and gets the whole screen again. The protocol is in `firmware/mirror`.
 
 In `--keys`, `\n` is EXE and `>`/`<` move the cursor.
 
