@@ -462,7 +462,7 @@ impl LatexCalculator {
                 let exact = self.settings.exact_roots.then(|| exact::format(&quantity.value)).flatten();
                 let result = match exact {
                     Some(exact) => serializer::exact_quantity(&exact, &quantity.unit),
-                    None => serializer::quantity(&value, &quantity.unit),
+                    None => serializer::quantity_styled(&value, &quantity.unit, &self.settings.number_style()),
                 };
                 Ok((value, None, result))
             }
@@ -473,7 +473,7 @@ impl LatexCalculator {
                 let (re, im) = (re.decimal(self.precision)?, im.decimal(self.precision)?);
                 let result = match exact {
                     Some((exact_re, exact_im)) => serializer::exact_complex_quantity(&exact_re, &exact_im, &quantity.unit),
-                    None => serializer::complex_quantity(&re, &im, &quantity.unit),
+                    None => serializer::complex_quantity_styled(&re, &im, &quantity.unit, &self.settings.number_style()),
                 };
                 Ok((re, Some(im), result))
             }

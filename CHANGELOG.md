@@ -12,6 +12,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   `2\,\mathrm{rad}` keep their own unit in either setting. Radians stay the default.
 - Angles in degrees, minutes and seconds: `2^\circ 20' 30''` or `2°20′30″`. A result that is an
   angle in degrees also comes in this form, in the new `forms` of the engine's response.
+- The setting **Number format** (`numberFormat`) for the engine: Norm 1 and Norm 2 as on a Casio,
+  Fix with 0 to 9 decimal places and Sci with 1 to 10 significant digits. The default writes
+  numbers as before.
 - A fifth mode, **Linear systems** (German **LGS**), for systems of linear equations, solved
   exactly with their Gauss steps. The **Equations** tab takes one equation per line (Enter
   solves, a second Enter or `\\` starts a new line). The **Matrix** tab takes `[A | b]` in a grid

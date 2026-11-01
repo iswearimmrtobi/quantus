@@ -4,6 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::algebra::pipeline::{OutputStyle, PipelineConfig};
+use crate::latex::numbers::Style;
 use crate::latex::parser::ParseOptions;
 use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
 use crate::{QuantusError, Result};
@@ -139,6 +140,22 @@ pub enum AngleUnit {
     Radian,
 }
 
+/// How a decimal result is written. `digits` is the decimal places of `fix` and the significant
+/// digits of `sci` (0 to 9; `sci` with 0 means 10). The precision stays what is computed.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(tag = "style", rename_all = "camelCase")]
+pub enum NumberFormat {
+    /// Plain from 10⁻⁴ to below 10¹⁵, scientific outside.
+    #[default]
+    Auto,
+    /// Plain from 10⁻² to below 10¹⁰, as the Casio's Norm 1.
+    Norm1,
+    /// Plain from 10⁻⁹ to below 10¹⁰, as the Casio's Norm 2.
+    Norm2,
+    Fix { digits: u8 },
+    Sci { digits: u8 },
+}
+
 /// The language of the texts the engine writes itself (the electronics notes and errors).
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -178,6 +195,7 @@ pub struct Settings {
     pub linear_complex: bool,
     /// Degrees or radians for `\sin 30` and `\arcsin`; the curve sketch always uses radians.
     pub angle_unit: AngleUnit,
+    pub number_format: NumberFormat,
 }
 
 impl Default for Settings {
@@ -201,6 +219,7 @@ impl Default for Settings {
             unknown_names: UnknownNames::Indexed,
             linear_complex: false,
             angle_unit: AngleUnit::Radian,
+            number_format: NumberFormat::Auto,
         }
     }
 }
@@ -213,7 +232,17 @@ impl Settings {
                 self.precision
             )));
         }
+        if let NumberFormat::Fix { digits } | NumberFormat::Sci { digits } = self.number_format {
+            if digits > 9 {
+                return Err(QuantusError::other(format!("The number format takes 0 to 9 digits, but was {digits}.")));
+            }
+        }
         Ok(())
+    }
+
+    /// How decimal results are written.
+    pub fn number_style(&self) -> Style {
+        Style { format: self.number_format }
     }
 
     pub fn parse_options(&self) -> ParseOptions {
@@ -304,7 +333,8 @@ mod tests {
                 "elimination": "gauss",
                 "unknownNames": "indexed",
                 "linearComplex": false,
-                "angleUnit": "radian"
+                "angleUnit": "radian",
+                "numberFormat": { "style": "auto" }
             })
         );
     }
@@ -366,6 +396,15 @@ mod tests {
         let parsed: Settings = serde_json::from_value(json!({ "elimination": "gaussJordan" })).unwrap();
         assert_eq!(parsed.elimination, Elimination::GaussJordan);
         assert_eq!(Settings::default().elimination, Elimination::Gauss);
+    }
+
+    #[test]
+    fn the_number_format_is_tagged_by_its_style() {
+        let parsed: Settings = serde_json::from_value(json!({ "numberFormat": { "style": "fix", "digits": 2 } })).unwrap();
+        assert_eq!(parsed.number_format, NumberFormat::Fix { digits: 2 });
+        let norm: Settings = serde_json::from_value(json!({ "numberFormat": { "style": "norm1" } })).unwrap();
+        assert_eq!(norm.number_format, NumberFormat::Norm1);
+        assert!(Settings { number_format: NumberFormat::Sci { digits: 10 }, ..Settings::default() }.validate().is_err());
     }
 
     #[test]

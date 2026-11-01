@@ -6,7 +6,7 @@
 //! (`2\,\mathrm{kg}`) instead of a `\cdot`.
 
 use super::ast::{Formula, Label, Node, Operator};
-use super::numbers;
+use super::numbers::{self, Style};
 use crate::num::Decimal;
 use dashu::base::UnsignedAbs;
 use dashu::integer::IBig;
@@ -54,7 +54,12 @@ pub fn algebraic_expression(node: &Node) -> String {
 
 /// A result: value and unit, e.g. `20\,\mathrm{N}`.
 pub fn quantity(value: &Decimal, unit: &Unit) -> String {
-    let number = numbers::format(value);
+    quantity_styled(value, unit, &Style::default())
+}
+
+/// A result in the user's number format.
+pub fn quantity_styled(value: &Decimal, unit: &Unit, style: &Style) -> String {
+    let number = numbers::format_with(value, style);
     if unit.is_one() {
         return number;
     }
@@ -99,7 +104,12 @@ pub fn exact_complex_quantity(re: &str, im: &str, unit: &Unit) -> String {
 
 /// A complex result, `3 + 4i` or `-2i`, with its unit after the parenthesised number.
 pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
-    let magnitude = |value: &Decimal| match numbers::format(&Decimal::new(IBig::from(value.unscaled().clone().unsigned_abs()), value.scale())).as_str() {
+    complex_quantity_styled(re, im, unit, &Style::default())
+}
+
+/// A complex result in the user's number format.
+pub fn complex_quantity_styled(re: &Decimal, im: &Decimal, unit: &Unit, style: &Style) -> String {
+    let magnitude = |value: &Decimal| match numbers::format_with(&Decimal::new(IBig::from(value.unscaled().clone().unsigned_abs()), value.scale()), style).as_str() {
         "1" => String::new(),
         other => other.to_string(),
     };
@@ -108,7 +118,7 @@ pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
         if im.is_negative() { format!("-{imaginary}") } else { imaginary }
     } else {
         let sign = if im.is_negative() { '-' } else { '+' };
-        format!("{} {sign} {imaginary}", numbers::format(re))
+        format!("{} {sign} {imaginary}", numbers::format_with(re, style))
     };
     if unit.is_one() {
         return number;

@@ -44,7 +44,8 @@ impl Backend for Engine {
     }
 }
 
-/// The engine's settings for the hui's: every setting the engine has. The others (number format, the device and the connections) wait for the engine or the firmware.
+/// The engine's settings for the hui's: every setting the engine has. The others (the device,
+/// the connections, and what the engine does not have yet) wait for the engine or the firmware.
 fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
     core::Settings {
         mode,
@@ -97,6 +98,12 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
         angle_unit: match settings.angle {
             ui::Angle::Degrees => core::AngleUnit::Degree,
             ui::Angle::Radians => core::AngleUnit::Radian,
+        },
+        number_format: match settings.format {
+            ui::NumberFormat::Norm1 => core::NumberFormat::Norm1,
+            ui::NumberFormat::Norm2 => core::NumberFormat::Norm2,
+            ui::NumberFormat::Fix => core::NumberFormat::Fix { digits: settings.format_digits },
+            ui::NumberFormat::Sci => core::NumberFormat::Sci { digits: settings.format_digits },
         },
     }
 }

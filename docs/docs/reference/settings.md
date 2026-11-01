@@ -81,6 +81,7 @@ mode reads **Linear systems + 𝑖** in the top bar. Off, $i$ is an unknown.
 | **Denominator** | `denominatorForm` | `auto`, `expanded`, `factored` | `auto` |
 | **Identities with a condition** | `conditionalIdentities` | `withCondition`, `alwaysValid` | `withCondition` |
 | **Exact as a root** | `exactRoots` | on / off | off |
+| **Number format** | `numberFormat` | `{ style: "auto" }`, `norm1`, `norm2`, `{ style: "fix", digits }`, `{ style: "sci", digits }` | `auto` |
 | **Quadratic equations** | `quadraticFormula` | `auto`, `pq`, `abc` | `auto` |
 
 Examples in Algebra mode:
@@ -99,6 +100,13 @@ Examples in Algebra mode:
 | Identities *With condition* | `\sqrt{a}\sqrt{b}` | $\sqrt{a \cdot b}$ for $a \geq 0$, $b \geq 0$ |
 | Identities *Only always valid* | `\sqrt{a}\sqrt{b}` | $\sqrt{a} \cdot \sqrt{b}$ |
 | Exact as a root *on* | `\sqrt{12}` | $2\sqrt{3}$ instead of $3{,}4641\ldots$ |
+
+**Number format** decides how a decimal result is written; **Precision** stays the number of
+digits computed, and the engine's `value` keeps all of them. *Auto* writes numbers plainly from
+$10^{-4}$ to below $10^{15}$; *Norm 1* from $10^{-2}$ and *Norm 2* from $10^{-9}$, both to below
+$10^{10}$, as on a Casio. *Fix* writes `digits` decimal places (0 to 9, `2` gives $1{,}50$), *Sci*
+`digits` significant digits in scientific notation (1 to 9, 0 means 10; `3` gives
+$1{,}23 \cdot 10^{4}$). Exact results are not affected.
 
 **Quadratic equations** chooses the formula in the analysis working: *Automatic* is the pq
 formula in German and the quadratic (abc) formula in English.
