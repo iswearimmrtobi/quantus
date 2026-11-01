@@ -44,12 +44,23 @@ as the formula with the values put in or a factor written out before it is cance
 When a factor is cancelled, the step before shows which one. With
 **Strike out cancelled factors** on, it is struck through; off, it is shown in colour.
 
+## Forms of a result and ENG
+
+Under the result, buttons switch between the forms it has: a fraction as $\frac{7}{3}$, mixed
+as $2\frac{1}{3}$, as the recurring decimal $2{,}\overline{3}$ and as the decimal; a whole
+number in prime factors (**FACT**); a root or π exact and as the decimal; a complex number as
+$a + bi$ and $r \angle \theta$; an angle in degrees, minutes and seconds; in Basis-N the other
+three bases. <kbd>Ctrl</kbd>+<kbd>D</kbd> steps to the next one. **ENG** (<kbd>Ctrl</kbd>+<kbd>E</kbd>)
+writes a decimal result with an exponent that is a multiple of three, each further press moves
+it by three; **←ENG** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) moves it the other way.
+Which form comes first is set in [Settings](../reference/settings.md#how-results-are-written).
+
 ## Copy
 
 | Key | Copies |
 |---|---|
 | **copy** under the input | the input as LaTeX |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | the result as LaTeX |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | the result as LaTeX, in the form chosen |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> | the whole calculation as an `align*` block |
 
 The `align*` block of the first calculation in [Your first calculation](../getting-started/first-calculation.md):

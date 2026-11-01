@@ -24,6 +24,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::calc,
             commands::solve_for,
             commands::new_session,
+            commands::open_session,
             commands::list_sessions,
             commands::rename_session,
             commands::duplicate_session,
@@ -63,9 +64,10 @@ fn main() {
         shell::focus_main(app);
     });
     app(tauri::Builder::default().plugin(single_instance))
-        // Here rather than in `app()`, so the tests never read or write the user's settings.
+        // Here rather than in `app()`, so the tests never read or write the user's settings and sessions.
         .setup(|app| {
             commands::restore_settings(app.handle());
+            commands::restore_sessions(app.handle());
             shell::set_menu_language(app.handle(), app.state::<commands::Engine>().language());
             Ok(())
         })

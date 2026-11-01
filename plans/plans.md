@@ -105,6 +105,10 @@ Decided entry by entry in [handheld-menus.md](../design/handheld-menus.md) §4; 
 as well as the handheld: a new setting goes into the desktop's settings dialog, `en.ts`, `de.ts`
 and `docs/docs/reference/settings.md`, a new function into the syntax reference.
 
+The engine has every item below but the last; the desktop has its part of all of them except
+Matrizen, Stochastik, the link and the updater. What is open per shell is listed in
+handheld-menus.md, *What is missing*.
+
 - [ ] Angle unit: a setting Grad/Bogenmaß (degrees by default on the handheld, radians on the
   desktop), ° and rad as markers on a value, °′″ as input and as a result form.
 - [ ] Number format: Norm 1/2, Fix 0–9 and Sci 0–9 for the display, with the significant digits

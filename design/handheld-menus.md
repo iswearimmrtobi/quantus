@@ -82,14 +82,15 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 
 ### Desktop UI (`desktop/`)
 
-- [ ] Settings dialog for the new settings (angle unit, number format, prefixes, fraction form,
+- [x] Settings dialog for the new settings (angle unit, number format, prefixes, fraction form,
       complex form, recurring decimals, digit grouping)
-- [ ] A form switch on the result; ENG on a result
-- [ ] The modes Basis-N, Matrizen (input and output), Stochastik (with a data editor), Prüfen
-- [ ] A constants and units picker
-- [ ] SOLVE and CALC in the input's context menu
-- [ ] Sessions: one file per session in the config directory, the session menu, the last one
-      opened on start
+- [x] A form switch on the result; ENG on a result
+- [x] The modes Basis-N, Prüfen
+- [ ] The modes Matrizen (input and output), Stochastik (with a data editor)
+- [x] A constants and units picker
+- [x] SOLVE and CALC in the input's context menu
+- [x] Sessions: one file per session in the config directory, the session menu, the last one
+      opened on start (the Kurvendiskussion function is not kept in the session yet)
 - [ ] A listener the handheld reaches over WLAN and Bluetooth, with pairing
 - [ ] A handheld updater: the image from the GitHub releases, uploaded over USB or the link
 - [ ] The release workflow attaches the firmware image ([RELEASING.md](../RELEASING.md))

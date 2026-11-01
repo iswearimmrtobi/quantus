@@ -7,6 +7,21 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The desktop app shows the Casio features of the engine:
+  - Settings for the angle unit, the number format (Norm 1/2, Fix, Sci), decimal prefixes, digit
+    grouping, fractions, recurring decimals and complex numbers.
+  - Buttons under the result switch between its forms (fraction, mixed, recurring, decimal,
+    exact, prime factors, °′″, a + bi and r∠θ, the other bases), also with Ctrl+D; ENG and ←ENG
+    (Ctrl+E, Ctrl+Shift+E) write it in engineering notation.
+  - The modes **Base-N** (Basis-N), with a DEC/HEX/BIN/OCT switch and keys for the logic and the
+    prefixes, and **Verify** (Prüfen), with keys for the relations.
+  - A **Library** panel (Ctrl+K) with the 47 constants and the units to convert to, by category.
+  - **CALC** and **SOLVE** in the input's context menu and the Calculation menu.
+  - **Sessions**: each saved as a file in the config directory after every change, with its
+    variables, history and linear system; a session panel (Ctrl+O) to open, create, rename,
+    duplicate and delete them, and the last one opened again on start. The history now keeps
+    200 entries and can be cleared.
+
 - The setting **Angle unit** (`angleUnit`, degrees or radians) for the engine: with degrees,
   `\sin 30 = 0{,}5` and `\arctan 1 = 45`, and derivatives and `\arg` follow. `30^\circ` and
   `2\,\mathrm{rad}` keep their own unit in either setting. Radians stay the default.

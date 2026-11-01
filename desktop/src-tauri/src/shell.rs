@@ -14,9 +14,17 @@ use tauri::{AppHandle, Emitter, Manager, Runtime};
 pub const SHORTCUT_EVENT: &str = "quantus://shortcut";
 
 /// Menu ids that the renderer handles itself. Mirrored by `Shortcut` in the UI.
-pub const FORWARDED: [&str; 9] = [
+pub const FORWARDED: [&str; 17] = [
     "new",
     "evaluate",
+    "calc",
+    "solve",
+    "switch-form",
+    "eng",
+    "eng-back",
+    "new-session",
+    "toggle-sessions",
+    "toggle-library",
     "toggle-steps",
     "copy-result",
     "copy-all",
@@ -57,9 +65,18 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>, language: Language) -> tauri::
         .item(&item(app, "new", l("New calculation", "Neue Rechnung"), Some("CmdOrCtrl+N"))?)
         .item(&item(app, "evaluate", l("Evaluate", "Auswerten"), Some("CmdOrCtrl+Enter"))?)
         .item(&item(app, "toggle-latex", l("Write LaTeX", "LaTeX schreiben"), Some("CmdOrCtrl+L"))?)
+        .item(&item(app, "calc", l("CALC: put in values…", "CALC: Werte einsetzen …"), Some("CmdOrCtrl+Shift+K"))?)
+        .item(&item(app, "solve", l("SOLVE for a variable…", "SOLVE: nach Variable lösen …"), Some("CmdOrCtrl+Shift+S"))?)
+        .separator()
+        .item(&item(app, "switch-form", l("Next result form", "Nächste Ergebnisform"), Some("CmdOrCtrl+D"))?)
+        .item(&item(app, "eng", l("ENG", "ENG"), Some("CmdOrCtrl+E"))?)
+        .item(&item(app, "eng-back", l("←ENG", "←ENG"), Some("CmdOrCtrl+Shift+E"))?)
         .separator()
         .item(&item(app, "copy-result", l("Copy result", "Ergebnis kopieren"), Some("CmdOrCtrl+Shift+C"))?)
         .item(&item(app, "copy-all", l("Copy whole calculation", "Ganze Rechnung kopieren"), Some("CmdOrCtrl+Alt+C"))?)
+        .separator()
+        .item(&item(app, "new-session", l("New session", "Neue Sitzung"), Some("CmdOrCtrl+Shift+N"))?)
+        .item(&item(app, "toggle-sessions", l("Sessions", "Sitzungen"), Some("CmdOrCtrl+O"))?)
         .separator()
         .item(&PredefinedMenuItem::quit(app, Some(l("Quit", "Beenden")))?)
         .build()?;
@@ -78,6 +95,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>, language: Language) -> tauri::
         .item(&item(app, "toggle-steps", l("Steps", "Rechenweg"), Some("CmdOrCtrl+J"))?)
         .item(&item(app, "toggle-variables", l("Variables", "Variablen"), Some("CmdOrCtrl+,"))?)
         .item(&item(app, "toggle-history", l("History", "Verlauf"), Some("CmdOrCtrl+H"))?)
+        .item(&item(app, "toggle-library", l("Constants and units", "Konstanten und Einheiten"), Some("CmdOrCtrl+K"))?)
         .item(&item(app, "toggle-settings", l("Settings", "Einstellungen"), Some("CmdOrCtrl+."))?)
         .separator()
         .item(&item(app, "zoom-reset", l("Reset zoom", "Zoom zurücksetzen"), Some("CmdOrCtrl+0"))?)

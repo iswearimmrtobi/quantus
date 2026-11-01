@@ -36,6 +36,87 @@ export interface Calculation {
   variable: Variable | null;
   domainRestrictions?: string[];
   warning?: string;
+  /** The unit of the result in LaTeX, empty for a plain number; what ENG keeps after the value. */
+  unitLatex: string;
+  /** The other ways to write the result, for the form switch; absent when there are none. */
+  forms?: ResultForm[];
+}
+
+export type FormKind =
+  | 'fraction'
+  | 'mixedFraction'
+  | 'recurring'
+  | 'decimal'
+  | 'exact'
+  | 'primeFactors'
+  | 'sexagesimal'
+  | 'rectangular'
+  | 'polar'
+  | 'dec'
+  | 'hex'
+  | 'bin'
+  | 'oct';
+
+/** What `quantus_core::forms::ResultForm` serialises to. */
+export interface ResultForm {
+  kind: FormKind;
+  latex: string;
+}
+
+/** A letter of an input that has no value yet (CALC, SOLVE). */
+export interface FreeVariable {
+  key: string;
+  symbol: string;
+}
+
+/** A value for a letter, in LaTeX. */
+export interface Assignment {
+  key: string;
+  latex: string;
+}
+
+export interface ConstantInfo {
+  key: string;
+  /** What the picker inserts: `c_{0}`. */
+  latex: string;
+  name: string;
+  /** The value with its unit in LaTeX, to 12 digits. */
+  value: string;
+}
+
+export interface ConstantCategory {
+  category: string;
+  name: string;
+  constants: ConstantInfo[];
+}
+
+/** Units a conversion can aim at; each entry is the LaTeX after `\blacktriangleright`. */
+export interface UnitCategory {
+  name: string;
+  units: string[];
+}
+
+/** A session as the session menu lists it; times are UTC milliseconds. */
+export interface SessionInfo {
+  id: string;
+  name: string;
+  created: number | null;
+  lastUsed: number | null;
+  /** How many calculations its history holds. */
+  entries: number;
+}
+
+/** What a session keeps of the modes with their own input; the desktop fills `linear`. */
+export interface ModeInputs {
+  linear?: LinearSystemRequest | null;
+  [mode: string]: unknown;
+}
+
+/** One calculation of a session's history, oldest first. */
+export interface HistoryEntry {
+  input: string;
+  response: Calculation;
+  at?: number;
 }
 
 export type ElementKind =
@@ -187,7 +268,7 @@ export interface Kirchhoff {
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
-export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff';
+export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff' | 'baseN' | 'verify';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
@@ -195,6 +276,13 @@ export type ConditionalIdentities = 'withCondition' | 'alwaysValid';
 export type StepDetail = 'none' | 'brief' | 'standard' | 'detailed' | 'maximal';
 export type Elimination = 'gauss' | 'gaussJordan';
 export type UnknownNames = 'indexed' | 'letters';
+export type AngleUnit = 'degree' | 'radian';
+export type NumberFormat =
+  | { style: 'auto' | 'norm1' | 'norm2' }
+  | { style: 'fix' | 'sci'; digits: number };
+export type FractionForm = 'improper' | 'mixed';
+export type ComplexForm = 'rectangular' | 'polar';
+export type NumberBase = 'dec' | 'hex' | 'bin' | 'oct';
 
 /** What `quantus_core::settings::Settings` serialises to. */
 export interface Settings {
@@ -222,6 +310,22 @@ export interface Settings {
   unknownNames: UnknownNames;
   /** Whether `i` is the imaginary unit in the linear systems mode rather than an unknown. */
   linearComplex: boolean;
+  /** What sin, cos and tan take and their inverses give; ° and rad on a value hold in either. */
+  angleUnit: AngleUnit;
+  /** How numbers are written: as before (`auto`), Norm 1/2, Fix or Sci with 0–9 digits. */
+  numberFormat: NumberFormat;
+  /** Plain numbers with k, M, m, µ …: `4{,}7\,\mathrm{k}`. */
+  decimalPrefixes: boolean;
+  /** Thousands separated by a thin space. */
+  digitGrouping: boolean;
+  /** Which fraction comes first: 7/3 or 2 1/3. */
+  fractionForm: FractionForm;
+  /** Whether a recurring decimal is among a result's forms. */
+  recurring: boolean;
+  /** Complex results as a + bi or r∠θ. */
+  complexForm: ComplexForm;
+  /** The base the Basis-N mode reads and writes. */
+  numberBase: NumberBase;
 }
 
 /** A linear system as typed (`2x + y = 5; x - y = 1` or a `cases` block) or as the rows of `[A | b]`. */
@@ -359,8 +463,12 @@ export class ApiError extends Error {
   }
 }
 
-/** One session per running app; the engine keeps its variables for as long as the app lives. */
-const SESSION_ID = 'desktop';
+/** The open session; every call that reads or changes session state goes to it. */
+let sessionId = '';
+
+export function setSessionId(id: string): void {
+  sessionId = id;
+}
 
 /** What `quantus_core::api::ApiError` serialises to. */
 interface ErrorPayload {
@@ -383,7 +491,53 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 export const api = {
   info: () => call<EngineInfo>('engine_info'),
 
-  evaluate: (latex: string) => call<Calculation>('evaluate', { request: { latex, sessionId: SESSION_ID } }),
+  evaluate: (latex: string) => call<Calculation>('evaluate', { request: { latex, sessionId, at: Date.now() } }),
+
+  /** One ENG (steps ≥ 0) or ←ENG (steps < 0) step of a result; 0 is the first press. */
+  engineering: (calculation: Calculation, steps: number) =>
+    call<{ latex: string }>('engineering', {
+      request: { value: calculation.value, imaginary: calculation.imaginary ?? null, unitLatex: calculation.unitLatex, steps },
+    }),
+
+  /** The letters of an input that have no value in the session. */
+  freeVariables: (latex: string) => call<FreeVariable[]>('free_variables', { request: { latex, sessionId } }),
+
+  /** CALC: the values become session variables, then the input is evaluated. */
+  calc: (latex: string, values: Assignment[]) => call<Calculation>('calc', { request: { latex, values, sessionId } }),
+
+  /** SOLVE the input for one letter; the others from `values` or the session. */
+  solveFor: (latex: string, variable: string, values: Assignment[], start: string | null) =>
+    call<Calculation>('solve_for', { request: { latex, variable, values, start, sessionId } }),
+
+  /** The physical constants by category, in the language of the settings. */
+  constants: () => call<ConstantCategory[]>('constants'),
+
+  /** The units `\blacktriangleright` can convert to, by category. */
+  conversionUnits: () => call<UnitCategory[]>('conversion_units'),
+
+  sessions: () => call<SessionInfo[]>('list_sessions'),
+
+  /** A new session, named after the local time. */
+  newSession: () =>
+    call<SessionInfo>('new_session', { request: { now: Date.now(), utcOffsetMinutes: -new Date().getTimezoneOffset() } }),
+
+  /** Marks a session as used now, so the next start opens it. */
+  openSession: (id: string) => call<SessionInfo>('open_session', { id, now: Date.now() }),
+
+  renameSession: (id: string, name: string) => call<SessionInfo>('rename_session', { id, name }),
+
+  duplicateSession: (id: string) => call<SessionInfo>('duplicate_session', { id, now: Date.now() }),
+
+  deleteSession: (id: string) => call<boolean>('delete_session', { id }),
+
+  history: () => call<HistoryEntry[]>('history', { sessionId }),
+
+  clearHistory: () => call<void>('clear_history', { sessionId }),
+
+  /** What the modes of the open session hold. */
+  modeInputs: () => call<ModeInputs>('get_mode_inputs', { sessionId }),
+
+  saveModeInputs: (inputs: ModeInputs) => call<void>('set_mode_inputs', { sessionId, inputs }),
 
   solveCircuit: (request: CircuitRequest) => call<CircuitResponse>('solve_circuit', { request }),
 
@@ -414,9 +568,9 @@ export const api = {
   /** Solves a linear system; it uses no session variables. */
   solveLinearSystem: (request: LinearSystemRequest) => call<LinearSystem>('solve_linear_system', { request }),
 
-  variables: () => call<Variable[]>('list_variables', { sessionId: SESSION_ID }),
+  variables: () => call<Variable[]>('list_variables', { sessionId }),
 
-  forget: (key: string) => call<void>('delete_variable', { key, sessionId: SESSION_ID }),
+  forget: (key: string) => call<void>('delete_variable', { key, sessionId }),
 
   settings: () => call<Settings>('get_settings'),
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BinomialForm, ConditionalIdentities, DenominatorForm, Elimination, Language, Mode, QuadraticFormula, Settings, StepDetail, UnknownNames } from '../api';
+import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StepDetail, UnknownNames } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -16,6 +16,8 @@ export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[
   { value: 'analysis', label: t('mode.analysis') },
   { value: 'linear', label: linearComplex ? `${t('mode.linear')} + 𝑖` : t('mode.linear') },
   { value: 'kirchhoff', label: t('mode.kirchhoff') },
+  { value: 'baseN', label: t('mode.baseN') },
+  { value: 'verify', label: t('mode.verify') },
 ];
 
 const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({
@@ -64,6 +66,36 @@ const eliminationChoices = (t: Translate): Choice<Elimination>[] => [
   { value: 'gaussJordan', label: t('choice.gaussJordan') },
 ];
 
+const angleChoices = (t: Translate): Choice<AngleUnit>[] => [
+  { value: 'degree', label: t('choice.degree') },
+  { value: 'radian', label: t('choice.radian') },
+];
+
+type FormatStyle = NumberFormat['style'];
+
+const formatChoices = (t: Translate): Choice<FormatStyle>[] => [
+  { value: 'auto', label: t('choice.auto') },
+  { value: 'norm1', label: 'Norm 1' },
+  { value: 'norm2', label: 'Norm 2' },
+  { value: 'fix', label: 'Fix' },
+  { value: 'sci', label: 'Sci' },
+];
+
+const fractionChoices = (t: Translate): Choice<FractionForm>[] => [
+  { value: 'improper', label: t('choice.improper') },
+  { value: 'mixed', label: t('choice.mixed') },
+];
+
+/** Notation, the same in every language. */
+const COMPLEX_CHOICES: Choice<ComplexForm>[] = [
+  { value: 'rectangular', label: 'a + bi' },
+  { value: 'polar', label: 'r∠θ' },
+];
+
+/** Fix and Sci keep the digits they had, or start at 2. */
+const withStyle = (format: NumberFormat, style: FormatStyle): NumberFormat =>
+  style === 'fix' || style === 'sci' ? { style, digits: 'digits' in format ? format.digits : 2 } : { style };
+
 /** So sieht die Engine ohne Einstellungsdatei aus. */
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'physics',
@@ -83,6 +115,14 @@ export const DEFAULT_SETTINGS: Settings = {
   elimination: 'gauss',
   unknownNames: 'indexed',
   linearComplex: false,
+  angleUnit: 'radian',
+  numberFormat: { style: 'auto' },
+  decimalPrefixes: false,
+  digitGrouping: false,
+  fractionForm: 'improper',
+  recurring: true,
+  complexForm: 'rectangular',
+  numberBase: 'dec',
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
@@ -142,6 +182,17 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
     const value = Number(precision);
     if (precision.trim() !== '' && Number.isInteger(value) && value !== settings.precision) set('precision', value);
     else setPrecision(String(settings.precision));
+  };
+
+  // The digits of Fix and Sci, taken over the same way.
+  const format = settings.numberFormat;
+  const [digits, setDigits] = useState('digits' in format ? String(format.digits) : '');
+  useEffect(() => setDigits('digits' in format ? String(format.digits) : ''), [format]);
+  const commitDigits = () => {
+    const value = Number(digits);
+    if (!('digits' in format)) return;
+    if (digits.trim() !== '' && Number.isInteger(value) && value !== format.digits) set('numberFormat', { ...format, digits: value });
+    else setDigits(String(format.digits));
   };
 
   return (
@@ -220,6 +271,68 @@ export function SettingsPanel(props: { settings: Settings; error: string | null;
           <span className="setting-hint">{t('settings.digits')}</span>
         </div>
       </section>
+
+      <section className="setting">
+        <h3>{t('settings.angle')}</h3>
+        <Segmented choices={angleChoices(t)} value={settings.angleUnit} onChange={(v) => set('angleUnit', v)} />
+        <p className="setting-hint">{t('settings.angle.hint')}</p>
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.format')}</h3>
+        <Segmented
+          choices={formatChoices(t)}
+          value={format.style}
+          onChange={(v) => set('numberFormat', withStyle(format, v))}
+        />
+        {'digits' in format && (
+          <div className="setting-precision">
+            <input
+              type="number"
+              min={0}
+              max={9}
+              value={digits}
+              onChange={(event) => setDigits(event.target.value)}
+              onBlur={commitDigits}
+              onKeyDown={(event) => event.key === 'Enter' && commitDigits()}
+            />
+            <span className="setting-hint">{t(format.style === 'fix' ? 'settings.format.places' : 'settings.format.significant')}</span>
+          </div>
+        )}
+        <p className="setting-hint">{t(`settings.format.${format.style}.hint`)}</p>
+        <Toggle
+          checked={settings.decimalPrefixes}
+          label={t('settings.prefixes')}
+          hint={t('settings.prefixes.hint')}
+          onChange={(v) => set('decimalPrefixes', v)}
+        />
+        <Toggle
+          checked={settings.digitGrouping}
+          label={t('settings.grouping')}
+          hint={t('settings.grouping.hint')}
+          onChange={(v) => set('digitGrouping', v)}
+        />
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.fractions')}</h3>
+        <Segmented choices={fractionChoices(t)} value={settings.fractionForm} onChange={(v) => set('fractionForm', v)} />
+        <p className="setting-hint">{t('settings.fractions.hint')}</p>
+        <Toggle
+          checked={settings.recurring}
+          label={t('settings.recurring')}
+          hint={t('settings.recurring.hint')}
+          onChange={(v) => set('recurring', v)}
+        />
+      </section>
+
+      {settings.mode === 'imaginary' && (
+        <section className="setting">
+          <h3>{t('settings.complex')}</h3>
+          <Segmented choices={COMPLEX_CHOICES} value={settings.complexForm} onChange={(v) => set('complexForm', v)} />
+          <p className="setting-hint">{t('settings.complex.hint')}</p>
+        </section>
+      )}
 
       <section className="setting">
         <h3>{t('settings.binomial')}</h3>

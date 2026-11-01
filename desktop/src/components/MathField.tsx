@@ -1,6 +1,9 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref } from 'react';
 import { MathfieldElement } from 'mathlive';
 
+/** MathLive does not export the type of its menu entries. */
+type MenuItem = MathfieldElement['menuItems'][number];
+
 // MathLive fetches its fonts by URL; the copy in public/fonts is what it finds (see
 // scripts/copy-mathlive-fonts.mjs). Sounds are off — this is a calculator, not a game.
 MathfieldElement.fontsDirectory = './fonts';
@@ -50,6 +53,12 @@ function completeCommand(mathfield: MathfieldElement): void {
   mathfield.insert(SKELETONS[command], { focus: true, selectionMode: 'placeholder' });
 }
 
+/** An entry of the context menu that the app handles. */
+export interface Tool {
+  label: string;
+  run(): void;
+}
+
 export interface MathFieldHandle {
   focus(): void;
   setValue(latex: string): void;
@@ -78,6 +87,8 @@ interface Props {
   onTab?(direction: -1 | 1): void;
   /** Pasted text; returning true means it was taken care of and MathLive does not paste it. */
   onPasteText?(text: string): boolean;
+  /** Entries put at the top of the field's context menu, above MathLive's own (CALC, SOLVE). */
+  tools?: Tool[];
   className?: string;
   ref?: Ref<MathFieldHandle>;
 }
@@ -113,6 +124,7 @@ export function MathField({
   onLeaveLine,
   onTab,
   onPasteText,
+  tools,
   className,
   ref,
 }: Props) {
@@ -236,6 +248,23 @@ export function MathField({
     // Only on mount: the field owns its content from here on, `value` syncs below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // MathLive's own entries stay below the app's; they are read once, before anything is added.
+  const ownMenu = useRef<readonly MenuItem[] | null>(null);
+  useEffect(() => {
+    const mathfield = field.current;
+    if (!mathfield) return;
+    ownMenu.current ??= mathfield.menuItems;
+    if (!tools?.length) {
+      mathfield.menuItems = ownMenu.current;
+      return;
+    }
+    mathfield.menuItems = [
+      ...tools.map((tool): MenuItem => ({ label: tool.label, onMenuSelect: () => tool.run() })),
+      { type: 'divider' },
+      ...ownMenu.current,
+    ];
+  }, [tools]);
 
   // WebKit fires no blur when a focused element is removed, so MathLive would keep a removed
   // field as the focused one and crash blurring it once another field takes the focus (a new

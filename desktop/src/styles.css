@@ -34,7 +34,7 @@
   --sans: system-ui, 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
   --radius: 3px;
   --rail-w: 44px;
-  --panel-w: 300px;
+  --panel-w: 340px;
 }
 
 * {
@@ -562,6 +562,67 @@ code {
   border-color: var(--hairline-strong);
 }
 
+
+/* The forms of a result (S⇔D) and ENG, under the result. */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 4px;
+}
+.form-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.form-chip:hover {
+  color: var(--text);
+  border-color: var(--cyan-dim);
+}
+.form-chip.active {
+  color: var(--amber);
+  border-color: var(--amber-dim);
+  background: var(--surface-raised);
+}
+
+/* Keys a mode needs above its input: the bases and logic of Basis-N, the relations of Prüfen. */
+.mode-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.mode-tools .segmented {
+  flex: 0 0 auto;
+}
+.mode-tools .segment {
+  padding: 5px 10px;
+}
+.insert-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.insert-key {
+  min-width: 30px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.insert-key:hover {
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+  background: var(--surface-hover);
+}
+
 /* ---------- Side rail and panel ---------- */
 
 .side-rail {
@@ -624,13 +685,17 @@ code {
   font-size: 11.5px;
 }
 .panel-tab {
-  flex: 1;
-  padding: 10px 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 3px;
   text-align: center;
   color: var(--text-muted);
   border-bottom: 2px solid transparent;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .panel-tab.active {
   color: var(--text);
@@ -869,6 +934,236 @@ select option {
   background: var(--surface);
 }
 
+
+.history-clear {
+  margin: 10px 6px;
+}
+
+/* ---------- Library: constants and units ---------- */
+
+.library {
+  padding: 6px 6px 14px;
+  font-size: 12px;
+}
+.library-head {
+  padding: 4px 4px 8px;
+}
+.library-filter {
+  width: 100%;
+  margin-top: 8px;
+  padding: 5px 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.library-filter:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.library-filter:disabled {
+  opacity: 0.5;
+}
+.library-group h3 {
+  margin: 12px 4px 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.library-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  width: 100%;
+  padding: 6px;
+  text-align: left;
+  border-radius: var(--radius);
+}
+.library-item:hover {
+  background: var(--surface-hover);
+}
+.library-symbol {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.library-symbol .katex {
+  color: var(--cyan);
+  font-size: 14px;
+}
+.library-name {
+  color: var(--text);
+  font-size: 11.5px;
+}
+.library-value {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.library-value .katex {
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+.library-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 4px;
+}
+.library-unit {
+  padding: 3px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+.library-unit .katex {
+  color: var(--text);
+  font-size: 12px;
+}
+.library-unit:hover {
+  border-color: var(--cyan-dim);
+  background: var(--surface-hover);
+}
+
+/* ---------- Sessions ---------- */
+
+.sessions {
+  padding: 6px 6px 14px;
+}
+.sessions-new {
+  margin: 4px 4px 10px;
+}
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  border-radius: var(--radius);
+  border-left: 2px solid transparent;
+}
+.session-item:hover {
+  background: var(--surface-hover);
+}
+.session-item.active {
+  border-left-color: var(--cyan);
+  background: var(--surface-raised);
+}
+.session-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  text-align: left;
+}
+.session-name {
+  color: var(--text);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.session-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.session-action {
+  color: var(--text-faint);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+}
+.session-action:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.session-action.danger {
+  color: var(--danger);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+/* ---------- CALC and SOLVE ---------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgba(10, 9, 14, 0.6);
+}
+.dialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.dialog h3 {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+}
+.dialog-input {
+  display: block;
+  margin-bottom: 10px;
+  overflow-x: auto;
+  font-size: 15px;
+}
+.dialog-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.dialog-row input[type='radio'] {
+  accent-color: var(--cyan);
+}
+.dialog-row .library-filter {
+  margin-top: 0;
+  flex: 1;
+}
+.dialog-letter {
+  min-width: 48px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.dialog-letter .katex {
+  color: var(--cyan);
+  font-size: 14px;
+}
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.setting-reset.primary {
+  color: var(--text);
+  background: var(--cyan-dim);
+  border-color: var(--cyan-dim);
+}
+.setting-reset:disabled {
+  opacity: 0.5;
+}
+
 /* ---------- Footer ---------- */
 
 .statusbar {
@@ -884,6 +1179,16 @@ select option {
   font-size: 10.5px;
   color: var(--text-faint);
   z-index: 3;
+}
+.statusbar-session {
+  font: inherit;
+  color: inherit;
+  padding: 2px 4px;
+  border-radius: var(--radius);
+}
+.statusbar-session:hover {
+  color: var(--text);
+  background: var(--surface-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {

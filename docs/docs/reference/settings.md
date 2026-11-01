@@ -21,8 +21,9 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 | **Angle unit** | `angleUnit` | `degree`, `radian` | `radian` |
 
 **Mode** decides how letters are read, see [Concepts](../getting-started/concepts.md#modes-decide-how-letters-are-read).
-**Number base** is the base the Basis-N mode (`baseN`, engine only for now) reads and writes
-numbers in, see [Syntax](syntax.md#basis-n).
+**Number base** is the base the Basis-N mode (`baseN`) reads and writes numbers in, see
+[Syntax](syntax.md#basis-n). The app sets it with the DEC/HEX/BIN/OCT switch above the input in
+that mode. The modes `matrix`, `statistics` and `distributions` are engine only for now.
 **Angle unit** decides how a plain number in `\sin`, `\cos`, `\tan`, `\cot`, `\sec` and `\csc`
 is read and what `\arcsin`, `\arccos`, `\arctan` and `\arg` answer in: with *degree*
 $\sin 30 = 0{,}5$ and $\arctan 1 = 45$. A value that states its unit keeps it in either setting:
@@ -119,8 +120,8 @@ $1{,}23 \cdot 10^{4}$). Exact results are not affected.
 **Decimal prefixes** writes a decimal result without a unit with the prefixes f, p, n, µ, m, k,
 M, G, T, P, E: $4700$ becomes $4{,}7\,\mathrm{k}$, $0{,}25$ becomes $250\,\mathrm{m}$.
 
-Each result also comes in its other forms, which the form switch (S⇔D on the handheld) steps
-through: a fraction as $\frac{7}{3}$ and $2\frac{1}{3}$, as the recurring decimal
+Each result also comes in its other forms, which the form switch steps through (the buttons
+under the result, or <kbd>Ctrl</kbd>+<kbd>D</kbd>; S⇔D on the handheld): a fraction as $\frac{7}{3}$ and $2\frac{1}{3}$, as the recurring decimal
 $2{,}\overline{3}$ and as the decimal; a whole number or fraction in prime factors
 ($120 = 2^{3} \cdot 3 \cdot 5$, up to $10^{15}$); a root or π exact and as the decimal.
 **Fractions** decides whether the improper or the mixed fraction comes first; **Recurring

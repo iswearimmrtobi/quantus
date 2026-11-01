@@ -113,7 +113,7 @@ $\text{wahr}$, value 1), `2 + 3 = 6` $\text{false}$ (0). Comparisons work the sa
 | `1 < 2 \le 2 \neq 3`, `a = b = c` | a chain is true when every link is |
 
 Equal means equal to 40 digits, so $\sqrt{2}^2 = 2$ holds; both sides need the same dimension.
-The mode `verify` (Prüfen, engine only for now) checks every input this way, an equation too, and
+The mode `verify` (**Verify**, Prüfen) checks every input this way, an equation too, and
 reads `a_1 = 3` as a comparison rather than a definition.
 
 ## Labels and variables
@@ -163,7 +163,8 @@ later inputs use it by that name.
 
 The mode `baseN` works with whole numbers in the [number base](settings.md#general) set, as
 32-bit two's complement: from −2147483648 to 2147483647 in decimal, any 32-bit pattern in the
-other bases (`FFFFFFFF` is −1). The result comes in the other three bases as its forms.
+other bases (`FFFFFFFF` is −1). The result comes in the other three bases as its forms. In the
+app, the switch above the input sets the base, and keys put in the logic and the prefixes.
 
 | Input | Meaning |
 |---|---|

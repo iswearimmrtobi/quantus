@@ -1,30 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { api, ApiError, type Calculation, type Mode, type Settings, type StepKind, type Variable } from './api';
+import { api, ApiError, setSessionId, type Calculation, type FormKind, type HistoryEntry, type ModeInputs, type Mode, type NumberBase, type SessionInfo, type Settings, type StepKind, type Variable } from './api';
 import { Katex, latexLines } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { ElectronicsView } from './components/ElectronicsView';
 import { KirchhoffView } from './components/KirchhoffView';
 import { AnalysisView } from './components/AnalysisView';
 import { LinearSystemView } from './components/LinearSystemView';
-import { EMPTY_LINEAR, type LinearInput } from './linear';
+import { EMPTY_LINEAR, inputFor, requestFor, type LinearInput } from './linear';
 import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
-import { MathField, toReadableLatex, type MathFieldHandle } from './components/MathField';
+import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
+import { InsertBar, type InsertKey } from './components/InsertBar';
+import { LibraryPanel } from './components/LibraryPanel';
+import { SessionsPanel } from './components/SessionsPanel';
+import { ToolDialog, type ToolKind } from './components/ToolDialog';
 import { I18nContext, makeTranslate } from './i18n';
 import type { TextKey } from './i18n/en';
 import { DEFAULT_SETTINGS, modeChoices, Segmented, SettingsPanel } from './components/SettingsPanel';
 
-interface HistoryEntry {
-  id: number;
-  /** The canonical input, as the backend re-rendered it. */
-  latex: string;
-  result: string;
-  at: Date;
-}
-
-type Panel = 'history' | 'variables' | 'settings' | null;
+type Panel = 'history' | 'variables' | 'library' | 'sessions' | 'settings' | null;
 
 const STEP_LABELS: Record<StepKind, TextKey> = {
   symbolic: 'step.symbolic',
@@ -39,14 +35,58 @@ const PLACEHOLDERS: Partial<Record<Mode, string>> = {
   algebra: '\\frac{x^2 - 1}{x + 1}',
   physics: 'F = 2kg \\cdot 10\\frac{m}{s^2}',
   imaginary: '(2 + 3i)(1 - i)',
+  baseN: '1010 \\operatorname{and} 0110',
+  verify: '2^{10} > 10^{3}',
 };
+
+/** The modes that know units and natural constants, as `Settings::parse_options` has them. */
+const UNIT_MODES: Mode[] = ['physics', 'electronics', 'kirchhoff'];
+
+const BASE_CHOICES: { value: NumberBase; label: string }[] = [
+  { value: 'dec', label: 'DEC' },
+  { value: 'hex', label: 'HEX' },
+  { value: 'bin', label: 'BIN' },
+  { value: 'oct', label: 'OCT' },
+];
+
+/** The logic of Basis-N and the prefixes that read one number in another base. */
+const BASE_KEYS: InsertKey[] = [
+  ...['and', 'or', 'xor', 'xnor'].map((word) => ({ label: word, latex: ` \\operatorname{${word}} ` })),
+  ...['Not', 'Neg'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?\\right)` })),
+  ...['d', 'h', 'b', 'o'].map((prefix) => ({ label: prefix, latex: `\\mathrm{${prefix}}` })),
+];
+
+/** The relations Prüfen checks, chained as on a Casio: `1 < 2 < 3`. */
+const VERIFY_KEYS: InsertKey[] = ['=', '\\ne', '<', '>', '\\le', '\\ge'].map((latex) => ({ label: latex, latex, math: true }));
+
+/**
+ * The forms the result can be switched between: its `forms`, and the result as the engine wrote
+ * it when that is none of them (a decimal whose fractions are the forms).
+ */
+function formChoices(calculation: Calculation | null): { kind: FormKind | 'result'; latex: string }[] {
+  if (!calculation?.forms?.length) return [];
+  const { forms, result } = calculation;
+  return forms.some((form) => form.latex === result) ? forms : [{ kind: 'result', latex: result }, ...forms];
+}
+
+/** Whether ENG has a number to work on: a decimal value, not a Basis-N or true/false result. */
+const engineeringApplies = (calculation: Calculation, mode: Mode) =>
+  mode !== 'baseN' && mode !== 'verify' && calculation.value !== '' && !Number.isNaN(Number(calculation.value));
 
 export function App() {
   const [input, setInput] = useState('');
   const [calculation, setCalculation] = useState<Calculation | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [variables, setVariables] = useState<Variable[]>([]);
+  /** The open session's history, oldest first, as the engine keeps it. */
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [sessionId, setCurrentSession] = useState('');
+  /** Which of `formChoices` is shown; null is the result as the engine wrote it. */
+  const [formIndex, setFormIndex] = useState<number | null>(null);
+  /** The result after ENG or ←ENG, with the steps taken so far. */
+  const [eng, setEng] = useState<{ steps: number; latex: string } | null>(null);
+  const [tool, setTool] = useState<ToolKind | null>(null);
   const [stepsOpen, setStepsOpen] = useState(true);
   const [panel, setPanel] = useState<Panel>(null);
   const [precision, setPrecision] = useState<number | null>(null);
@@ -122,8 +162,10 @@ export function App() {
   const latexField = useRef<LatexInputHandle>(null);
   const editor = () => (latexMode ? latexField.current : field.current);
   // The menu shortcuts fire from outside React's render cycle and must not see stale state.
-  const latest = useRef({ input, calculation, error });
-  latest.current = { input, calculation, error };
+  const latest = useRef({ input, calculation, error, formIndex, eng, mode: settings.mode });
+  latest.current = { input, calculation, error, formIndex, eng, mode: settings.mode };
+  /** What the open session keeps of the modes; the linear system is written back into it. */
+  const modeInputs = useRef<ModeInputs>({});
 
   const refreshVariables = useCallback(async () => {
     try {
@@ -133,25 +175,96 @@ export function App() {
     }
   }, []);
 
-  /** `record: false` rechnet nur neu (nach geänderten Einstellungen), ohne Verlaufseintrag. */
+  const refreshSessions = useCallback(async () => {
+    try {
+      setSessions(await api.sessions());
+    } catch {
+      /* as above */
+    }
+  }, []);
+
+  /** A new result, shown in the form the engine wrote it. */
+  const show = useCallback((result: Calculation | null) => {
+    setCalculation(result);
+    setFormIndex(null);
+    setEng(null);
+  }, []);
+
+  /**
+   * `record: false` rechnet nur neu (nach geänderten Einstellungen), ohne Verlaufseintrag: CALC
+   * without values evaluates the same way and leaves the history alone.
+   */
   const evaluate = useCallback(async ({ record = true } = {}) => {
     const latex = latest.current.input.trim();
     if (!latex) return;
     try {
-      const result = await api.evaluate(latex);
-      setCalculation(result);
+      const result = record ? await api.evaluate(latex) : await api.calc(latex, []);
+      show(result);
       setError(null);
       if (record) {
-        setHistory((entries) =>
-          [{ id: Date.now(), latex: result.input, result: result.result, at: new Date() }, ...entries].slice(0, 50),
-        );
+        setHistory(await api.history());
+        void refreshSessions();
       }
       if (result.variable) await refreshVariables();
     } catch (failure) {
-      setCalculation(null);
+      show(null);
       setError(failure instanceof ApiError ? failure : new ApiError(String(failure)));
     }
-  }, [refreshVariables]);
+  }, [refreshVariables, refreshSessions, show]);
+
+  /** Opens a session: its history, variables and linear system replace what is shown. */
+  const openSession = useCallback(
+    async (id: string) => {
+      setSessionId(id);
+      setCurrentSession(id);
+      show(null);
+      setError(null);
+      try {
+        await api.openSession(id);
+        const [entries, inputs] = await Promise.all([api.history(), api.modeInputs()]);
+        setHistory(entries);
+        modeInputs.current = inputs;
+        setLinear(inputFor(inputs.linear));
+      } catch {
+        setHistory([]);
+      }
+      await Promise.all([refreshVariables(), refreshSessions()]);
+    },
+    [refreshVariables, refreshSessions, show],
+  );
+
+  const newSession = useCallback(async () => {
+    const created = await api.newSession();
+    await openSession(created.id);
+  }, [openSession]);
+
+  /** The result in the form chosen: ENG, one of its forms, or as the engine wrote it. */
+  const forms = formChoices(calculation);
+  const shownResult = calculation ? (eng?.latex ?? (formIndex !== null ? forms[formIndex].latex : calculation.result)) : '';
+  const activeForm = eng ? -1 : (formIndex ?? forms.findIndex((form) => form.latex === calculation?.result));
+
+  /** S⇔D: on to the next form of the result, round to the first. */
+  const nextForm = useCallback(() => {
+    const { calculation: current, formIndex: index, eng: engineering } = latest.current;
+    const all = formChoices(current);
+    if (!current || all.length === 0) return;
+    const at = engineering ? -1 : (index ?? all.findIndex((form) => form.latex === current.result));
+    setEng(null);
+    setFormIndex((at + 1) % all.length);
+  }, []);
+
+  /** ENG (+1) or ←ENG (−1): the first press writes the result in engineering notation. */
+  const engineering = useCallback(async (direction: 1 | -1) => {
+    const { calculation: current, eng: before, mode } = latest.current;
+    if (!current || !engineeringApplies(current, mode)) return;
+    const steps = before === null ? (direction === 1 ? 0 : -1) : before.steps + direction;
+    try {
+      const { latex } = await api.engineering(current, steps);
+      setEng({ steps, latex });
+    } catch {
+      /* a value the engine cannot step stays as it is */
+    }
+  }, []);
 
   const copy = useCallback(async (text: string, marker: string) => {
     await copyText(text);
@@ -189,12 +302,43 @@ export function App() {
     });
   }, []);
 
-  // The engine runs inside the app, so there is nothing to wait for.
+  // The engine runs inside the app, so there is nothing to wait for. The session used last opens
+  // again; on the first start there is none, and a new one is made.
   useEffect(() => {
     api.info().then((info) => setPrecision(info.precision), () => {});
     api.settings().then(setSettings, () => {}).finally(() => setSettingsLoaded(true));
-    void refreshVariables();
-  }, [refreshVariables]);
+    const start = async () => {
+      const saved = await api.sessions();
+      if (saved.length) await openSession(saved[0].id);
+      else await newSession();
+    };
+    start().catch(() => {});
+  }, [openSession, newSession]);
+
+  // The linear system goes into the session, a moment after the last change.
+  useEffect(() => {
+    if (!sessionId) return;
+    const timer = window.setTimeout(() => {
+      const request = requestFor(linear);
+      if (JSON.stringify(request ?? null) === JSON.stringify(modeInputs.current.linear ?? null)) return;
+      modeInputs.current = { ...modeInputs.current, linear: request };
+      api.saveModeInputs(modeInputs.current).catch(() => {});
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [linear, sessionId]);
+
+  /** CALC or SOLVE on what the input holds. */
+  const openTool = useCallback((kind: ToolKind) => {
+    if (latest.current.input.trim()) setTool(kind);
+  }, []);
+
+  const tools = useMemo<Tool[]>(
+    () => [
+      { label: t('tool.calc.menu'), run: () => openTool('calc') },
+      { label: t('tool.solve.menu'), run: () => openTool('solve') },
+    ],
+    [t, openTool],
+  );
 
   /** Speichert sofort und rechnet die angezeigte Eingabe neu, damit man die Wirkung sieht. */
   const changeSettings = useCallback(
@@ -227,8 +371,35 @@ export function App() {
         case 'toggle-steps':
           setStepsOpen((open) => !open);
           break;
-        case 'copy-result':
-          if (current) void copy(current.latex, 'result');
+        case 'copy-result': {
+          // A form or ENG chosen on the result is what is copied; otherwise the whole line.
+          const { formIndex: index, eng: engineered } = latest.current;
+          if (current) void copy(engineered?.latex ?? (index !== null ? formChoices(current)[index].latex : current.latex), 'result');
+          break;
+        }
+        case 'calc':
+          openTool('calc');
+          break;
+        case 'solve':
+          openTool('solve');
+          break;
+        case 'switch-form':
+          nextForm();
+          break;
+        case 'eng':
+          void engineering(1);
+          break;
+        case 'eng-back':
+          void engineering(-1);
+          break;
+        case 'new-session':
+          void newSession();
+          break;
+        case 'toggle-sessions':
+          togglePanel('sessions');
+          break;
+        case 'toggle-library':
+          togglePanel('library');
           break;
         case 'copy-all':
           if (current) void copy(current.alignBlock, 'all');
@@ -247,7 +418,7 @@ export function App() {
           break;
       }
     });
-  }, [copy, evaluate, reset, togglePanel, toggleLatexMode]);
+  }, [copy, evaluate, reset, togglePanel, toggleLatexMode, openTool, nextForm, engineering, newSession]);
 
   // Escape closes the panel everywhere; the Ctrl combos only stand in for the menu when the
   // UI runs in a plain browser (`npm run dev:renderer`).
@@ -275,18 +446,56 @@ export function App() {
       } else if (key === '.') {
         event.preventDefault();
         togglePanel('settings');
+      } else if (key === 'k') {
+        event.preventDefault();
+        togglePanel('library');
+      } else if (key === 'o') {
+        event.preventDefault();
+        togglePanel('sessions');
+      } else if (key === 'd') {
+        event.preventDefault();
+        nextForm();
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
     // `editor()` liest nur Refs und braucht deshalb nicht in die Abhängigkeiten.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [togglePanel, toggleLatexMode]);
+  }, [togglePanel, toggleLatexMode, nextForm]);
 
   const forget = async (key: string) => {
     await api.forget(key);
     await refreshVariables();
   };
+
+  const clearHistory = async () => {
+    await api.clearHistory();
+    setHistory([]);
+    void refreshSessions();
+  };
+
+  const renameSession = async (id: string, name: string) => {
+    await api.renameSession(id, name).catch(() => {});
+    await refreshSessions();
+  };
+
+  const duplicateSession = async (id: string) => {
+    const copy = await api.duplicateSession(id);
+    await openSession(copy.id);
+  };
+
+  /** Deleting the open session opens the next one, or a new one when it was the last. */
+  const deleteSession = async (id: string) => {
+    await api.deleteSession(id);
+    const rest = await api.sessions();
+    if (id !== sessionId) setSessions(rest);
+    else if (rest.length) await openSession(rest[0].id);
+    else await newSession();
+  };
+
+  // The source field has no placeholders to jump between, so `#?` is left out there.
+  const insert = (latex: string) => editor()?.insert(latexMode ? latex.replaceAll('#?', '') : latex);
+  const sessionName = sessions.find((session) => session.id === sessionId)?.name;
 
   if (!settingsLoaded) return null;
 
@@ -355,6 +564,21 @@ export function App() {
       ) : (
       <main className="workspace">
         <div className="calc-panel">
+          {settings.mode === 'baseN' && (
+            <div className="mode-tools">
+              <Segmented
+                choices={BASE_CHOICES}
+                value={settings.numberBase}
+                onChange={(numberBase) => void changeSettings({ ...settings, numberBase })}
+              />
+              <InsertBar keys={BASE_KEYS} onInsert={insert} />
+            </div>
+          )}
+          {settings.mode === 'verify' && (
+            <div className="mode-tools">
+              <InsertBar keys={VERIFY_KEYS} onInsert={insert} />
+            </div>
+          )}
           <div className={latexMode ? 'input-row latex' : 'input-row'}>
             {latexMode ? (
               <LatexInput
@@ -372,6 +596,7 @@ export function App() {
                 onChange={setInput}
                 onEnter={() => void evaluate()}
                 onLatexRequested={(seed) => toggleLatexMode(seed)}
+                tools={tools}
               />
             )}
             <button
@@ -419,7 +644,7 @@ export function App() {
                 <div className="result-main">
                   <span className="result-eq">=</span>
                   {calculation ? (
-                    <Katex className="result-value" latex={calculation.result} />
+                    <Katex className="result-value" latex={shownResult} />
                   ) : (
                     <span className="result-value">–</span>
                   )}
@@ -434,6 +659,34 @@ export function App() {
                   </button>
                 )}
               </div>
+              {calculation && (forms.length > 1 || engineeringApplies(calculation, settings.mode)) && (
+                <div className="form-row">
+                  {forms.length > 1 &&
+                    forms.map((form, index) => (
+                      <button
+                        key={form.kind}
+                        className={index === activeForm ? 'form-chip active' : 'form-chip'}
+                        title={`${t('form.next')} (${ctrl}+D)`}
+                        onClick={() => {
+                          setEng(null);
+                          setFormIndex(index);
+                        }}
+                      >
+                        {form.kind === 'result' ? '=' : t(`form.${form.kind}`)}
+                      </button>
+                    ))}
+                  {engineeringApplies(calculation, settings.mode) && (
+                    <>
+                      <button className={eng ? 'form-chip active' : 'form-chip'} title={`${ctrl}+E`} onClick={() => void engineering(1)}>
+                        ENG
+                      </button>
+                      <button className="form-chip" title={`${ctrl}+Shift+E`} onClick={() => void engineering(-1)}>
+                        ←ENG
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
               {calculation?.warning && (
                 <div className="domain-row warning-row">
                   <span className="domain-label">{t('note')}</span>
@@ -525,6 +778,26 @@ export function App() {
           </svg>
         </button>
         <button
+          className={panel === 'library' ? 'rail-btn active' : 'rail-btn'}
+          title={`${t('library')} (${ctrl}+K)`}
+          onClick={() => togglePanel('library')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M5 4.5h4v15H5zM10.5 4.5h4v15h-4z" />
+            <path d="M16 5.5l3.6-1 3 14.6-3.6 1z" />
+          </svg>
+        </button>
+        <button
+          className={panel === 'sessions' ? 'rail-btn active' : 'rail-btn'}
+          title={`${t('sessions')} (${ctrl}+O)`}
+          onClick={() => togglePanel('sessions')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M4 7.5h6l2 2h8v9.5H4z" />
+            <path d="M4 7.5V5h6l2 2" />
+          </svg>
+        </button>
+        <button
           className={panel === 'settings' ? 'rail-btn active' : 'rail-btn'}
           title={`${t('settings')} (${ctrl}+.)`}
           onClick={() => togglePanel('settings')}
@@ -552,6 +825,18 @@ export function App() {
             {t('variables')}
           </button>
           <button
+            className={panel === 'library' ? 'panel-tab active' : 'panel-tab'}
+            onClick={() => setPanel('library')}
+          >
+            {t('library')}
+          </button>
+          <button
+            className={panel === 'sessions' ? 'panel-tab active' : 'panel-tab'}
+            onClick={() => setPanel('sessions')}
+          >
+            {t('sessions')}
+          </button>
+          <button
             className={panel === 'settings' ? 'panel-tab active' : 'panel-tab'}
             onClick={() => setPanel('settings')}
           >
@@ -576,15 +861,25 @@ export function App() {
             (history.length === 0 ? (
               <p className="panel-empty">{t('history.empty')}</p>
             ) : (
-              history.map((entry) => (
-                <div className="hist-item" key={entry.id} onClick={() => load(entry.latex)}>
-                  <Katex className="hist-latex" latex={entry.latex} />
-                  <div className="hist-meta">
-                    <span>{entry.at.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}</span>
-                    <Katex className="val" latex={entry.result} />
-                  </div>
-                </div>
-              ))
+              <>
+                {history
+                  .map((entry, index) => (
+                    <div className="hist-item" key={index} onClick={() => load(entry.response.input)}>
+                      <Katex className="hist-latex" latex={entry.response.input} />
+                      <div className="hist-meta">
+                        <span>
+                          {entry.at !== undefined &&
+                            new Date(entry.at).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <Katex className="val" latex={entry.response.result} />
+                      </div>
+                    </div>
+                  ))
+                  .reverse()}
+                <button className="setting-reset history-clear" onClick={() => void clearHistory()}>
+                  {t('history.clear')}
+                </button>
+              </>
             ))}
 
           {panel === 'variables' &&
@@ -595,7 +890,7 @@ export function App() {
             ) : (
               variables.map((variable) => (
                 <div className="var-item" key={variable.key}>
-                  <button className="var-insert" onClick={() => editor()?.insert(variable.symbol)}>
+                  <button className="var-insert" onClick={() => insert(variable.symbol)}>
                     <Katex className="var-name" latex={variable.symbol} />
                     <Katex className="var-val" latex={variable.latex} />
                   </button>
@@ -606,6 +901,20 @@ export function App() {
               ))
             ))}
 
+          {panel === 'library' && <LibraryPanel onInsert={insert} unitsKnown={UNIT_MODES.includes(settings.mode)} />}
+
+          {panel === 'sessions' && (
+            <SessionsPanel
+              sessions={sessions}
+              current={sessionId}
+              onOpen={(id) => void openSession(id)}
+              onNew={() => void newSession()}
+              onRename={(id, name) => void renameSession(id, name)}
+              onDuplicate={(id) => void duplicateSession(id)}
+              onDelete={(id) => void deleteSession(id)}
+            />
+          )}
+
           {panel === 'settings' && (
             <SettingsPanel settings={settings} error={settingsError} onChange={(next) => void changeSettings(next)} />
           )}
@@ -613,11 +922,31 @@ export function App() {
       </aside>
 
       <footer className="statusbar">
-        <span>{t('footer.session')}</span>
+        <button className="statusbar-session" title={`${t('sessions')} (${ctrl}+O)`} onClick={() => togglePanel('sessions')}>
+          {sessionName ?? t('footer.session')}
+        </button>
         <span>
           {t('footer.counts', { variables: variables.length, history: history.length })}
         </span>
       </footer>
+
+      {tool && (
+        <ToolDialog
+          kind={tool}
+          latex={input.trim()}
+          onClose={() => {
+            setTool(null);
+            editor()?.focus();
+          }}
+          onDone={(result) => {
+            setTool(null);
+            show(result);
+            setError(null);
+            void refreshVariables();
+            editor()?.focus();
+          }}
+        />
+      )}
     </div>
     </I18nContext.Provider>
   );

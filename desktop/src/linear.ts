@@ -144,3 +144,16 @@ export function matrixLatex(matrix: MatrixInput): string {
   const body = matrix.rows.map((row) => row.map((entry) => entry.trim() || '0').join(' & ')).join(' \\\\ ');
   return `\\left[\\begin{array}{${'c'.repeat(n)}|c} ${body} \\end{array}\\right]`;
 }
+
+/** The page for a system saved in a session: the inverse of [requestFor]. */
+export function inputFor(request: LinearSystemRequest | null | undefined): LinearInput {
+  if (!request) return EMPTY_LINEAR;
+  if ('equations' in request) {
+    const body = request.equations.replace(/^\s*\\begin\{cases\}/, '').replace(/\\end\{cases\}\s*$/, '');
+    const lines = body.split('\\\\').map((line) => line.trim()).filter(Boolean);
+    return { ...EMPTY_LINEAR, lines: lines.length ? lines : [''] };
+  }
+  const { unknowns, rows } = request.matrix;
+  if (!rows.length || !rows[0].length) return EMPTY_LINEAR;
+  return withMatrix({ ...EMPTY_LINEAR, tab: 'matrix' }, { unknowns: unknowns ?? null, rows });
+}

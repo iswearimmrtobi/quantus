@@ -205,6 +205,30 @@ fn settings_files_are_written_and_read_back() {
     std::fs::remove_dir_all(dir).unwrap();
 }
 
+#[test]
+fn session_files_are_written_read_back_and_need_a_plain_id() {
+    use quantus_core::api::{self, CalculationRequest, NewSessionRequest};
+    use quantus_core::session::SessionStore;
+    let dir = std::env::temp_dir().join(format!("quantus-sessions-{}", std::process::id()));
+    let mut store = SessionStore::new();
+    let id = api::new_session(&mut store, &NewSessionRequest { name: Some("Lab".into()), ..Default::default() }).id;
+    let request = CalculationRequest { latex: "m_1 = 2kg".into(), session_id: Some(id.clone()), ..Default::default() };
+    api::evaluate(&mut store, &request).unwrap();
+    super::commands::save_session(&dir, &mut store, &id).unwrap();
+    // A session the store does not have, and an id that is no file name, write nothing.
+    super::commands::save_session(&dir, &mut store, "missing").unwrap();
+    assert!(super::commands::session_path(&dir, "../settings").is_none());
+    std::fs::write(dir.join("broken.json"), "{").unwrap();
+
+    let mut fresh = SessionStore::new();
+    super::commands::load_sessions(&dir, &mut fresh);
+    let sessions = api::list_sessions(&fresh);
+    assert_eq!(sessions.len(), 1);
+    assert_eq!((sessions[0].id.as_str(), sessions[0].name.as_str(), sessions[0].entries), (id.as_str(), "Lab", 1));
+    assert_eq!(api::list_variables(&mut fresh, Some(&id))[0].key, "m_1");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
 fn cable() -> Value {
     json!({
         "nodes": [0, 1, 2, 3],

@@ -2,7 +2,9 @@
 //! keeps no thread-local state, so only the store needs the mutex.
 //!
 //! The settings live in the store as well and are kept in a JSON file in the app's config
-//! directory, which [`restore_settings`] reads at startup and `set_settings` rewrites.
+//! directory, which [`restore_settings`] reads at startup and `set_settings` rewrites. Each
+//! session is a file of its own in `sessions/` next to it: [`restore_sessions`] reads them all,
+//! and every command that changes a session writes its file again.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -14,7 +16,7 @@ use quantus_core::api::{
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
-use quantus_core::session::SessionStore;
+use quantus_core::session::{SessionStore, DEFAULT_SESSION};
 use quantus_core::settings::{Language, Settings};
 use serde::Serialize;
 use serde_json::Value;
@@ -35,6 +37,8 @@ pub struct Engine {
     store: Mutex<SessionStore>,
     /// Where the settings are saved; unset (as in the tests) means they are not saved at all.
     settings_file: OnceLock<PathBuf>,
+    /// Where the sessions are saved, one file each; unset means they are kept in memory only.
+    sessions_dir: OnceLock<PathBuf>,
 }
 
 impl Engine {
@@ -50,6 +54,60 @@ impl Engine {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         f(&mut store)
     }
+
+    /// Like [`Engine::with`], then writes the session `id` (the default one for `None`) to its file.
+    fn with_saved<T>(&self, id: Option<&str>, f: impl FnOnce(&mut SessionStore) -> T) -> T {
+        self.with(|store| {
+            let result = f(store);
+            if let Some(dir) = self.sessions_dir.get() {
+                let id = id.filter(|id| !id.trim().is_empty()).unwrap_or(DEFAULT_SESSION);
+                if let Err(error) = save_session(dir, store, id) {
+                    eprintln!("Quantus: the session {id} could not be saved: {error}");
+                }
+            }
+            result
+        })
+    }
+}
+
+/// The file of session `id` in `dir`, or `None` for an id that is no plain file name.
+pub fn session_path(dir: &Path, id: &str) -> Option<PathBuf> {
+    let plain = !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    plain.then(|| dir.join(format!("{id}.json")))
+}
+
+/// Writes session `id` to its file; a session the store does not have is left alone.
+pub fn save_session(dir: &Path, store: &mut SessionStore, id: &str) -> io::Result<()> {
+    let Some(path) = session_path(dir, id) else { return Ok(()) };
+    if store.get(id).is_none() {
+        return Ok(());
+    }
+    fs::create_dir_all(dir)?;
+    fs::write(path, api::export_session(store, Some(id)))
+}
+
+/// Reads every session file in `dir` into the store; a broken one is reported and skipped.
+pub fn load_sessions(dir: &Path, store: &mut SessionStore) {
+    let Ok(entries) = fs::read_dir(dir) else { return };
+    for path in entries.flatten().map(|entry| entry.path()) {
+        if path.extension().is_none_or(|extension| extension != "json") {
+            continue;
+        }
+        let read = fs::read_to_string(&path).map_err(|e| e.to_string());
+        if let Err(error) = read.and_then(|json| api::import_session(store, &json).map_err(|e| e.error)) {
+            eprintln!("Quantus: ignoring {}: {error}", path.display());
+        }
+    }
+}
+
+/// Loads the saved sessions and remembers their directory for later saves. Call it after
+/// [`restore_settings`]: reading a session evaluates its variables with the settings.
+pub fn restore_sessions<R: Runtime>(app: &AppHandle<R>) {
+    let Ok(dir) = app.path().app_config_dir() else { return };
+    let dir = dir.join("sessions");
+    let engine = app.state::<Engine>();
+    engine.with(|store| load_sessions(&dir, store));
+    let _ = engine.sessions_dir.set(dir);
 }
 
 /// Reads the settings file; a missing file means the defaults.
@@ -108,7 +166,7 @@ pub fn evaluate(
     engine: State<Engine>,
     request: CalculationRequest,
 ) -> Result<CalculationResponse, ApiError> {
-    engine.with(|store| api::evaluate(store, &request))
+    engine.with_saved(request.session_id.as_deref(), |store| api::evaluate(store, &request))
 }
 
 #[tauri::command]
@@ -116,7 +174,7 @@ pub fn define_variable(
     engine: State<Engine>,
     request: CalculationRequest,
 ) -> Result<VariableResponse, ApiError> {
-    engine.with(|store| api::define_variable(store, &request))
+    engine.with_saved(request.session_id.as_deref(), |store| api::define_variable(store, &request))
 }
 
 /// The solver is stateless, so only the settings are taken from the store; the lock is not held
@@ -201,19 +259,32 @@ pub fn free_variables(engine: State<Engine>, request: CalculationRequest) -> Res
 /// CALC: the values become session variables, then the input is evaluated.
 #[tauri::command]
 pub fn calc(engine: State<Engine>, request: CalcRequest) -> Result<CalculationResponse, ApiError> {
-    engine.with(|store| api::calc(store, &request))
+    engine.with_saved(request.session_id.as_deref(), |store| api::calc(store, &request))
 }
 
 /// SOLVE for a named letter.
 #[tauri::command]
 pub fn solve_for(engine: State<Engine>, request: SolveRequest) -> Result<CalculationResponse, ApiError> {
-    engine.with(|store| api::solve_for(store, &request))
+    engine.with_saved(request.session_id.as_deref(), |store| api::solve_for(store, &request))
 }
 
 /// A new session, named after the time unless a name is given.
 #[tauri::command]
 pub fn new_session(engine: State<Engine>, request: NewSessionRequest) -> SessionInfo {
-    engine.with(|store| api::new_session(store, &request))
+    let info = engine.with(|store| api::new_session(store, &request));
+    engine.with_saved(Some(&info.id), |_| info.clone())
+}
+
+/// Marks a session as the one in use, so the next start opens it.
+#[tauri::command]
+pub fn open_session(engine: State<Engine>, id: String, now: Option<i64>) -> Result<SessionInfo, ApiError> {
+    engine.with_saved(Some(&id), |store| {
+        let session = store.get_mut(&id).ok_or_else(|| ApiError { error: format!("There is no session '{id}'."), position: None })?;
+        if now.is_some() {
+            session.last_used = now;
+        }
+        Ok(api::list_sessions(store).into_iter().find(|info| info.id == id).expect("the session exists"))
+    })
 }
 
 #[tauri::command]
@@ -223,17 +294,22 @@ pub fn list_sessions(engine: State<Engine>) -> Vec<SessionInfo> {
 
 #[tauri::command]
 pub fn rename_session(engine: State<Engine>, id: String, name: String) -> Result<SessionInfo, ApiError> {
-    engine.with(|store| api::rename_session(store, &id, &name))
+    engine.with_saved(Some(&id), |store| api::rename_session(store, &id, &name))
 }
 
 #[tauri::command]
 pub fn duplicate_session(engine: State<Engine>, id: String, now: Option<i64>) -> Result<SessionInfo, ApiError> {
-    engine.with(|store| api::duplicate_session(store, &id, now))
+    let info = engine.with(|store| api::duplicate_session(store, &id, now))?;
+    Ok(engine.with_saved(Some(&info.id), |_| info.clone()))
 }
 
 #[tauri::command]
 pub fn delete_session(engine: State<Engine>, id: String) -> bool {
-    engine.with(|store| api::delete_session(store, &id))
+    let deleted = engine.with(|store| api::delete_session(store, &id));
+    if let Some(path) = engine.sessions_dir.get().and_then(|dir| session_path(dir, &id)) {
+        let _ = fs::remove_file(path);
+    }
+    deleted
 }
 
 /// The session as JSON, for the frontend to write to a file.
@@ -244,7 +320,8 @@ pub fn export_session(engine: State<Engine>, session_id: Option<String>) -> Stri
 
 #[tauri::command]
 pub fn import_session(engine: State<Engine>, json: String) -> Result<SessionInfo, ApiError> {
-    engine.with(|store| api::import_session(store, &json))
+    let info = engine.with(|store| api::import_session(store, &json))?;
+    Ok(engine.with_saved(Some(&info.id), |_| info.clone()))
 }
 
 #[tauri::command]
@@ -254,7 +331,7 @@ pub fn history(engine: State<Engine>, session_id: Option<String>) -> Vec<History
 
 #[tauri::command]
 pub fn clear_history(engine: State<Engine>, session_id: Option<String>) {
-    engine.with(|store| api::clear_history(store, session_id.as_deref()))
+    engine.with_saved(session_id.as_deref(), |store| api::clear_history(store, session_id.as_deref()))
 }
 
 #[tauri::command]
@@ -264,7 +341,7 @@ pub fn get_mode_inputs(engine: State<Engine>, session_id: Option<String>) -> Mod
 
 #[tauri::command]
 pub fn set_mode_inputs(engine: State<Engine>, session_id: Option<String>, inputs: ModeInputs) {
-    engine.with(|store| api::set_mode_inputs(store, session_id.as_deref(), inputs))
+    engine.with_saved(session_id.as_deref(), |store| api::set_mode_inputs(store, session_id.as_deref(), inputs))
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.
@@ -299,7 +376,7 @@ pub fn list_variables(engine: State<Engine>, session_id: Option<String>) -> Vec<
 
 #[tauri::command]
 pub fn delete_variable(engine: State<Engine>, key: String, session_id: Option<String>) {
-    engine.with(|store| api::delete_variable(store, &key, session_id.as_deref()))
+    engine.with_saved(session_id.as_deref(), |store| api::delete_variable(store, &key, session_id.as_deref()))
 }
 
 #[tauri::command]
