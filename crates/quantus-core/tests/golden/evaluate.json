@@ -278,7 +278,7 @@
     {"name": "error: no solution", "latex": "x + 1 = x + 2", "errorContains": "no solution"},
     {"name": "error: every number", "latex": "x + 0 = x", "errorContains": "Every number"},
     {"name": "error: two unknowns", "latex": "x + z = 3", "errorContains": "more than one unknown"},
-    {"name": "error: no unknown", "latex": "3 = 3", "errorContains": "no unknown"},
+    {"name": "an equation without unknowns is checked", "latex": "3 = 3", "expect": {"result": "\\text{true}"}},
     {"name": "error: pole is no root", "latex": "\\frac{1}{x} = 0", "errorContains": "No solution"},
     {"name": "error: equation sides differ in unit", "latex": "x\\,m = 3s", "errorContains": "Incompatible"},
 
