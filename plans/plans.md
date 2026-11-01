@@ -92,6 +92,10 @@ printing results, time, heap and stack over serial. See its [README](../firmware
   - [x] Brackets that grow with what they hold.
   - [x] For testing: the simulator with the real engine, and its picture mirrored to the board
     over serial (`--mirror`, the handheld's `mirror` binary; not yet tried on the board).
+  - [x] A wallpaper from the SD card behind the mode tiles, the menus or everything, picked in
+    SETUP → Gerät → Hintergrundbild (§7.6; the simulator reads `sd/wallpapers/`).
+  - [ ] The SD card on the board: `wallpapers()` and `wallpaper()` of the backend from
+    `/wallpapers/`, and the picture set kept across restarts (also for the sessions, §6).
   - [ ] A larger Greek font than u8g2's bitmap ones (π, μ and Ω are fine); German texts.
 
 ## 5. Features modelled on the Casio fx-991DE X

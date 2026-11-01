@@ -502,8 +502,10 @@ maps every setting the core has.
 - **Algebra**: Binomformeln ✓ · Quadratische Ergänzung ✓ · Nenner ✓ · Identitäten mit Bedingung ✓
 - **Eingabe**: a und y als Variablen ✓ · Buchstaben als Produkt ✓ · t, u, in als Einheiten ✓ ·
   Unbekannte (LGS) ✓
-- **Gerät** [fw]: Helligkeit ◌ (typed, 1–10) · Schriftgröße normal/klein ◌ · Automatisch aus
-  10/60 min ◌ · Zurücksetzen → Einstellungen / Speicher / Alles, each with *Ja* ✓ (the settings to
+- **Gerät** [fw]: Helligkeit ◌ (typed, 1–10) · Schriftgröße normal/klein ◌ · Hintergrundbild →
+  Bild (Keins, then the BMP files in `/wallpapers/` on the SD card, with a preview beside the
+  list) / Anzeigen Hauptmenü/Menüs/Überall ✓ in the hui and the simulator, section 7.6 ·
+  Automatisch aus 10/60 min ◌ · Zurücksetzen → Einstellungen / Speicher / Alles, each with *Ja* ✓ (the settings to
   their defaults; the history, Ans and the input cleared; both)
 - **Verbindungen** [fw], section 7.5:
   - **Prüfungsmodus**: ein · aus ✓ in the hui: on switches WLAN and Bluetooth off, and their
@@ -624,6 +626,16 @@ the top bar and on its tile.
 *Implemented* in the hui: `render::colors::{CYAN, AMBER, CYAN_DIM, AMBER_DIM}`; the bar in
 `CYAN_DIM`, the caret in `CYAN`. Each mode tile has its own muted colour (`colors::TILES`), the
 chosen tile a lighter form of it with a `TEXT` outline; a result shows in a soft purple `#bfa0f2`.
+
+**Wallpaper** (`firmware/ui/src/wallpaper.rs`): a picture of the screen's size, 480×320, from
+`/wallpapers/` on the SD card, as a BMP (`tinybmp` reads every BMP colour depth). The backend lists
+and reads the files; the hui decodes the picture once into two copies, one at full strength and one
+mixed 70 % into the background. The full copy lies behind the mode tiles. With *Anzeigen* on
+*Menüs* or *Überall*, the dimmed copy also lies behind SETUP/OPTN or behind the calculation as
+well, where text stands on it. Over a picture, the tiles and menu lines are glass (`Shape::Glass`,
+200 of 256 of their colour), so it shows through. The renderer starts each band from the
+picture's rows instead of the background colour; a still picture changes no band, so it costs
+no transfers. The two copies take 600 KB, which goes in the P4's PSRAM.
 
 ## 8. Where the work goes
 
