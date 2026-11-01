@@ -91,7 +91,7 @@ pairs, split at poles and gaps.
 
 | Command | Arguments | Returns |
 |---|---|---|
-| `statistics` | `{ request: { x, freq? } }` | `{ values: StatisticValue[] }` |
+| `statistics` | `{ request: { x, y?, freq?, regression?, estimateX?, estimateY? } }` | `{ values, regression?, estimates? }` |
 
 ```ts
 StatisticValue { key, symbol, latex, value }   // "mean", "\bar{x}", "2{,}5", "2.5"
@@ -103,6 +103,14 @@ The cells are LaTeX; empty rows are skipped, and a frequency is a whole number f
 (from two values on) and `max`. The quartiles are the medians of the lower and upper half, the
 middle value left out when n is odd, as on a Casio. Values are exact where the data are and
 written as the settings say.
+
+With a `y` column the values are those of pairs: `n`, then for x and for y the mean, sum, sum of
+squares, variances, standard deviations, minimum and maximum (`meanX`, `sumY2`, `sampleSdY`,
+`maxX`, …), then `sumXY`, `sumX3`, `sumX2Y` and `sumX4`. `regression` fits one of `linear`
+(a + bx), `quadratic` (a + bx + cx²), `logarithmic` (a + b ln x), `eExponential` (a e^(bx)),
+`abExponential` (a b^x), `power` (a x^b) and `inverse` (a + b/x) and returns `a`, `b`, `c` for the
+quadratic, and `r` for the others. `estimateX` is a y for which `xHat` is wanted (`xHat1` and
+`xHat2` for the quadratic), `estimateY` an x for `yHat`.
 
 ## Circuits
 

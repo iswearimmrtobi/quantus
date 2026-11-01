@@ -31,7 +31,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   echelon forms, exact and with the elimination as steps.
 - Statistics of a data list in the engine (`statistics`), with an optional frequency column: n,
   mean, sums, variances, standard deviations, minimum, quartiles, median and maximum, exact where
-  the data are. Two new modes, `statistics` and `distributions`, for the shells to come.
+  the data are. With pairs x, y: their sums and means, the seven regressions of a Casio (linear,
+  quadratic, logarithmic, two exponential, power, inverse) with r, and the estimates x̂ and ŷ.
+  Two new modes, `statistics` and `distributions`, for the shells to come.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.
