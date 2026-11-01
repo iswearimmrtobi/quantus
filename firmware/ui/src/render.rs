@@ -271,11 +271,11 @@ fn bluetooth(shapes: &mut Vec<Shape>, right: i32) -> i32 {
 }
 
 /// A battery icon ending at `right`, centred on `center.y`, filled by the charge, in green with a
-/// bolt in front while charging; returns its width.
+/// bolt inside while charging; returns its width.
 fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, charging: bool, right_center: Point) -> i32 {
-    let (width, height) = (22, 11);
+    let (width, height) = (26, 14);
     let top_left = Point::new(right_center.x - width, right_center.y - height / 2);
-    let nub = Rectangle::new(Point::new(right_center.x - 2, right_center.y - 2), Size::new(2, 5));
+    let nub = Rectangle::new(Point::new(right_center.x - 2, right_center.y - 3), Size::new(2, 6));
     shapes.push(Shape::Fill(nub, colors::TEXT));
     let body = Rectangle::new(top_left, Size::new(width as u32 - 2, height as u32));
     shapes.push(Shape::Fill(body, colors::TEXT));
@@ -290,16 +290,20 @@ fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, charging: bool, right_ce
         };
         shapes.push(Shape::Fill(Rectangle::new(inner.top_left, Size::new(filled, inner.size.height)), color));
     }
-    if !charging {
-        return width;
+    if charging {
+        // The bolt in the middle, as pixels: per row, where it starts and how wide it is. A dark rim
+        // around it lets it show on the fill and on the empty part alike.
+        const BOLT: [(i32, u32); 8] = [(3, 2), (2, 2), (1, 2), (0, 6), (3, 2), (2, 2), (1, 2), (1, 1)];
+        let origin = Point::new(right_center.x - width / 2 - 4, right_center.y - 4);
+        let rim = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+        for ((dx, dy), color) in rim.iter().map(|&o| (o, colors::BACKGROUND)).chain([((0, 0), colors::TEXT)]) {
+            for (row, &(start, len)) in BOLT.iter().enumerate() {
+                let at = origin + Point::new(start + dx, row as i32 + dy);
+                shapes.push(Shape::Fill(Rectangle::new(at, Size::new(len, 1)), color));
+            }
+        }
     }
-    // The bolt: a wedge pointing up and one pointing down, overlapping in the middle.
-    let x = right_center.x - width - 14;
-    let y = right_center.y - 6;
-    let at = |dx, dy| Point::new(x + dx, y + dy);
-    shapes.push(Shape::Triangle(Triangle::new(at(9, 0), at(0, 8), at(6, 8)), colors::TEXT));
-    shapes.push(Shape::Triangle(Triangle::new(at(3, 5), at(10, 5), at(1, 13)), colors::TEXT));
-    width + 14
+    width
 }
 
 /// One calculation, as on a Casio: the input from the top left, its result at the bottom right.
