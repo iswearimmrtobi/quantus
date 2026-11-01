@@ -1,7 +1,8 @@
 //! The screen: a top bar over one calculation, the mode menu or a menu list (SETUP, OPTN), in the
 //! desktop's dark palette with its purple accents (design/handheld-menus.md §7.6). A [`Frame`] is the screen
 //! laid out once; the [`Renderer`] draws it band by band into a small buffer and sends only the
-//! bands that changed, so no framebuffer is needed.
+//! bands that changed, so no framebuffer is needed. A wallpaper, if one is set, lies under it
+//! all, and the tiles and menu lines let it shine through.
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::geometry::AngleUnit;
@@ -13,7 +14,8 @@ use embedded_graphics::primitives::{
 
 use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::menu::{self, Edit, Kind, Menu, ROWS};
-use crate::settings::Angle;
+use crate::settings::{Angle, WallpaperOn};
+use crate::wallpaper::blend;
 use crate::text;
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
@@ -79,6 +81,9 @@ pub enum Shape {
     Fill(Rectangle, Rgb565),
     /// A rounded box, filled and with an optional outline drawn inside it.
     Round(RoundedRectangle, Rgb565, Option<Rgb565>),
+    /// A rounded box laid over what is under it, `alpha` of 256 of its colour showing; drawn
+    /// as a [`Shape::Round`] on targets that cannot be read back.
+    Glass(RoundedRectangle, Rgb565, u16, Option<Rgb565>),
     Triangle(Triangle, Rgb565),
     Circle(Circle, Rgb565),
     /// An arc, stroked with the width.
@@ -95,7 +100,7 @@ impl Shape {
     fn bounds(&self) -> Rectangle {
         match self {
             Shape::Fill(area, _) => *area,
-            Shape::Round(round, _, _) => round.rectangle,
+            Shape::Round(round, _, _) | Shape::Glass(round, ..) => round.rectangle,
             Shape::Triangle(triangle, _) => triangle.bounding_box(),
             Shape::Circle(circle, _) => circle.bounding_box(),
             Shape::Arc(arc, color, width) => arc.into_styled(PrimitiveStyle::with_stroke(*color, *width)).bounding_box(),
@@ -118,7 +123,7 @@ impl Shape {
             Shape::Fill(area, color) => {
                 let _ = area.into_styled(PrimitiveStyle::with_fill(*color)).draw(target);
             }
-            Shape::Round(round, fill, outline) => {
+            Shape::Round(round, fill, outline) | Shape::Glass(round, fill, _, outline) => {
                 let mut style = PrimitiveStyleBuilder::new().fill_color(*fill);
                 if let Some(outline) = outline {
                     style = style
@@ -148,19 +153,47 @@ impl Shape {
     }
 }
 
-/// The screen laid out, back to front.
-pub struct Frame(pub Vec<Shape>);
+/// The screen laid out, back to front, over the backdrop: the wallpaper's pixels if it shows,
+/// else the plain background.
+pub struct Frame(pub Vec<Shape>, pub Option<std::sync::Arc<[Rgb565]>>);
 
 impl Frame {
     pub fn new<B>(app: &App<B>) -> Frame {
         let mut shapes = Vec::new();
+        let backdrop = backdrop(app);
+        let glass = backdrop.is_some();
         match &app.screen {
             Screen::Calc => calculation(&mut shapes, app),
-            Screen::Modes { selected } => modes(&mut shapes, *selected, app.settings.language),
-            Screen::Menu(menu) => menu_screen(&mut shapes, app, menu),
+            Screen::Modes { selected } => modes(&mut shapes, *selected, app.settings.language, glass),
+            Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
         }
         bar(&mut shapes, app);
-        Frame(shapes)
+        Frame(shapes, backdrop)
+    }
+}
+
+/// The wallpaper under the screen, as SETUP → Gerät → Hintergrundbild → Anzeigen says: at full
+/// strength behind the mode tiles, dimmed where text stands on it.
+fn backdrop<B>(app: &App<B>) -> Option<std::sync::Arc<[Rgb565]>> {
+    let wallpaper = app.wallpaper()?;
+    let on = app.settings.wallpaper_on;
+    match app.screen {
+        Screen::Modes { .. } => Some(wallpaper.full.clone()),
+        Screen::Menu(_) if on != WallpaperOn::Modes => Some(wallpaper.dim.clone()),
+        Screen::Calc if on == WallpaperOn::Everywhere => Some(wallpaper.dim.clone()),
+        _ => None,
+    }
+}
+
+/// How much of a tile or menu line covers the wallpaper, out of 256.
+const GLASS: u16 = 200;
+
+/// A box, of glass over a wallpaper.
+fn panel(shape: RoundedRectangle, fill: Rgb565, outline: Option<Rgb565>, glass: bool) -> Shape {
+    if glass {
+        Shape::Glass(shape, fill, GLASS, outline)
+    } else {
+        Shape::Round(shape, fill, outline)
     }
 }
 
@@ -357,7 +390,7 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
 }
 
 /// The mode menu: pages of tiles, numbered over all pages.
-fn modes(shapes: &mut Vec<Shape>, selected: usize, lang: text::Lang) {
+fn modes(shapes: &mut Vec<Shape>, selected: usize, lang: text::Lang, glass: bool) {
     let gap = 8;
     let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
     let columns = MENU_COLUMNS as i32;
@@ -377,7 +410,7 @@ fn modes(shapes: &mut Vec<Shape>, selected: usize, lang: text::Lang) {
         let chosen = index == selected;
         let (tile, lit) = colors::TILES[index % colors::TILES.len()];
         let fill = if chosen { lit } else { tile };
-        shapes.push(Shape::Round(rounded(at, size, 6), fill, chosen.then_some(colors::TEXT)));
+        shapes.push(panel(rounded(at, size, 6), fill, chosen.then_some(colors::TEXT), glass));
         let number = (index + 1).to_string();
         shapes.push(Shape::Text(at + Point::new(12, 10 + small.ascent), number, Scale::Small, colors::TEXT));
         // The name at the bottom, a word per line when it is too wide, and small when a word is.
@@ -435,7 +468,7 @@ const LINE: i32 = 40;
 const LINE_GAP: i32 = 6;
 
 /// SETUP or OPTN: the page on the screen, or the submenu open over it.
-fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu) {
+fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: bool) {
     let lang = app.settings.language;
     match &menu.edit {
         None => {
@@ -445,7 +478,7 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu) {
                 value: menu::value(entry, &app.settings, lang),
                 mark: if matches!(entry.kind, Kind::Page(_)) { Mark::Arrow } else { Mark::None },
             });
-            lines_page(shapes, lines.collect(), level.selected);
+            lines_page(shapes, lines.collect(), level.selected, glass);
         }
         Some(Edit::Choice { entry, selected }) => {
             let Kind::Choice(setting, opts) = &entry.kind else { return };
@@ -455,17 +488,17 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu) {
                 value: None,
                 mark: if opt.value == value { Mark::Dot } else { Mark::None },
             });
-            lines_page(shapes, lines.collect(), *selected);
+            lines_page(shapes, lines.collect(), *selected, glass);
         }
         Some(Edit::Confirm { .. }) => {
             let yes = Line { label: text::YES.get(lang).to_string(), value: None, mark: Mark::None };
-            lines_page(shapes, vec![yes], 0);
+            lines_page(shapes, vec![yes], 0, glass);
         }
         Some(Edit::Number { setting, min, max, typed, error, .. }) => {
             let top = BAR + 30;
             let height = 60;
             let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
-            shapes.push(Shape::Round(rounded(Point::new(MARGIN, top), size, 6), colors::SURFACE, Some(colors::CYAN)));
+            shapes.push(panel(rounded(Point::new(MARGIN, top), size, 6), colors::SURFACE, Some(colors::CYAN), glass));
             let metrics = Scale::Normal.metrics();
             let baseline = top + (height + metrics.digit) / 2;
             let x = MARGIN + 16;
@@ -497,7 +530,7 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu) {
 
 /// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
 /// there are more.
-fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize) {
+fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass: bool) {
     let first = selected / ROWS * ROWS;
     let normal = Scale::Normal.metrics();
     let small = Scale::Small.metrics();
@@ -509,7 +542,7 @@ fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize) {
         let chosen = index == selected;
         let fill = if chosen { colors::CYAN_DIM } else { colors::SURFACE };
         let size = Size::new((right - MARGIN) as u32, LINE as u32);
-        shapes.push(Shape::Round(rounded(Point::new(MARGIN, y), size, 6), fill, None));
+        shapes.push(panel(rounded(Point::new(MARGIN, y), size, 6), fill, None, glass));
         let baseline = y + (LINE + normal.digit) / 2;
         let number = (offset + 1).to_string();
         shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::MUTED));
@@ -591,11 +624,31 @@ impl Renderer {
                 Size::new(WIDTH, BAND.min(HEIGHT - top)),
             );
             let pixels = &mut self.band[..(area.size.width * area.size.height) as usize];
-            pixels.fill(colors::BACKGROUND);
+            match &frame.1 {
+                Some(backdrop) => {
+                    let start = (top * WIDTH) as usize;
+                    pixels.copy_from_slice(&backdrop[start..start + pixels.len()]);
+                }
+                None => pixels.fill(colors::BACKGROUND),
+            }
             let mut band = Band { pixels, area };
             for shape in &frame.0 {
-                if !shape.bounds().intersection(&area).is_zero_sized() {
-                    shape.draw(&mut band);
+                if shape.bounds().intersection(&area).is_zero_sized() {
+                    continue;
+                }
+                match shape {
+                    Shape::Glass(round, fill, alpha, outline) => {
+                        band.glass(round, *fill, *alpha);
+                        if let Some(outline) = outline {
+                            let style = PrimitiveStyleBuilder::new()
+                                .stroke_color(*outline)
+                                .stroke_width(2)
+                                .stroke_alignment(StrokeAlignment::Inside)
+                                .build();
+                            let _ = round.into_styled(style).draw(&mut band);
+                        }
+                    }
+                    shape => shape.draw(&mut band),
                 }
             }
             let hash = hash(band.pixels);
@@ -620,6 +673,19 @@ fn hash(pixels: &[Rgb565]) -> u64 {
 struct Band<'a> {
     pixels: &'a mut [Rgb565],
     area: Rectangle,
+}
+
+impl Band<'_> {
+    /// Lays `fill` over the pixels inside `round`.
+    fn glass(&mut self, round: &RoundedRectangle, fill: Rgb565, alpha: u16) {
+        let area = round.rectangle.intersection(&self.area);
+        let width = self.area.size.width as i32;
+        let top = self.area.top_left.y;
+        for point in area.points().filter(|&point| round.contains(point)) {
+            let pixel = &mut self.pixels[((point.y - top) * width + point.x) as usize];
+            *pixel = blend(*pixel, fill, alpha);
+        }
+    }
 }
 
 impl Dimensions for Band<'_> {

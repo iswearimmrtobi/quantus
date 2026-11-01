@@ -14,3 +14,4 @@ pub mod render;
 pub mod settings;
 pub mod text;
 pub mod tree;
+pub mod wallpaper;

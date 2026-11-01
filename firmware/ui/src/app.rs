@@ -7,6 +7,7 @@ use crate::latex;
 use crate::text::{self, same, t, Lang, Text};
 use crate::tree;
 use crate::menu::{Action, Menu, Outcome};
+use crate::wallpaper::Wallpaper;
 pub use crate::settings::Settings;
 
 /// The modes of the MODE menu (design/handheld-menus.md §7.1), in its order: two pages of six.
@@ -131,11 +132,18 @@ pub struct App<B> {
     /// The spinner's step, 0 to 7.
     pub spin: u8,
     pub caret_on: bool,
+    /// The picture behind the screens, read from the SD card by the shell.
+    pub wallpaper: Option<Wallpaper>,
     last_blink: u64,
     last_spin: u64,
 }
 
 impl<B> App<B> {
+    /// The picture to show behind the screen.
+    pub fn wallpaper(&self) -> Option<&Wallpaper> {
+        self.wallpaper.as_ref()
+    }
+
     /// The entry whose result is on the screen.
     pub fn shown_entry(&self) -> Option<&Entry> {
         self.history.iter().rev().nth(self.shown?)
@@ -159,6 +167,7 @@ impl<B: Backend> App<B> {
             busy: false,
             spin: 0,
             caret_on: true,
+            wallpaper: None,
             last_blink: 0,
             last_spin: 0,
         }

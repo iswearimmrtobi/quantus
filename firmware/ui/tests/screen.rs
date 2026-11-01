@@ -7,7 +7,9 @@ use quantus_ui::editor::Editor;
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::layout::{self, Kind};
-use quantus_ui::render::{Frame, Renderer, BAND, HEIGHT, WIDTH};
+use quantus_ui::render::{colors, Frame, Renderer, BAND, HEIGHT, WIDTH};
+use quantus_ui::settings::WallpaperOn;
+use quantus_ui::wallpaper::Wallpaper;
 
 fn press(app: &mut App<Stub>, keys: &[Key]) {
     keys.iter().for_each(|&key| app.key(key));
@@ -134,6 +136,96 @@ fn only_changed_bands_are_sent() {
     // Each band goes out whole, one pixel per point of its area.
     let (area, pixels) = display.writes.last().unwrap();
     assert_eq!((area.size.width, *pixels), (WIDTH, (WIDTH * area.size.height) as usize));
+}
+
+#[test]
+fn the_wallpaper_shows_where_the_setting_says() {
+    let red = Rgb565::RED;
+    let mut app = App::new(Stub);
+    app.wallpaper = Wallpaper::new(vec![red; (WIDTH * HEIGHT) as usize]);
+    let wallpaper = app.wallpaper.clone().unwrap();
+    // Left of the first tile, and inside it.
+    let margin = Point::new(4, 100);
+    let tile = Point::new(60, 100);
+    let shot = |app: &App<Stub>| {
+        let mut screen = Screen565::default();
+        Renderer::new().render(&Frame::new(app), &mut screen).unwrap();
+        screen
+    };
+
+    press(&mut app, &[Key::Mode]);
+    let modes = shot(&app);
+    assert_eq!(modes.at(margin), red, "full strength behind the tiles");
+    assert!(![red, colors::BACKGROUND].contains(&modes.at(tile)), "the tile lets it shine through");
+
+    press(&mut app, &[Key::Ac]);
+    assert_eq!(shot(&app).at(margin), colors::BACKGROUND, "not behind the calculation");
+    app.settings.wallpaper_on = WallpaperOn::Everywhere;
+    assert_eq!(shot(&app).at(margin), wallpaper.dim[0], "dimmed behind the calculation");
+
+    app.wallpaper = None;
+    assert_eq!(shot(&app).at(margin), colors::BACKGROUND);
+}
+
+#[test]
+fn a_bmp_of_the_screen_size_is_read_and_others_are_not() {
+    assert_eq!(Wallpaper::from_bmp(&bmp(WIDTH, HEIGHT)).map(|wallpaper| wallpaper.full[0]), Some(Rgb565::new(31, 0, 0)));
+    assert!(Wallpaper::from_bmp(&bmp(100, 100)).is_none());
+    assert!(Wallpaper::from_bmp(b"not a picture").is_none());
+}
+
+/// A red 24-bit BMP.
+fn bmp(width: u32, height: u32) -> Vec<u8> {
+    let row = (width * 3).div_ceil(4) * 4;
+    let size = 54 + row * height;
+    let mut bytes = b"BM".to_vec();
+    for value in [size, 0, 54, 40, width, height] {
+        bytes.extend(value.to_le_bytes());
+    }
+    bytes.extend(1u16.to_le_bytes());
+    bytes.extend(24u16.to_le_bytes());
+    for value in [0, row * height, 2835, 2835, 0, 0] {
+        bytes.extend(value.to_le_bytes());
+    }
+    for _ in 0..height {
+        let mut line: Vec<u8> = (0..width).flat_map(|_| [0, 0, 255]).collect();
+        line.resize(row as usize, 0);
+        bytes.extend(line);
+    }
+    bytes
+}
+
+/// Keeps the pixels the renderer sends.
+struct Screen565(Vec<Rgb565>);
+
+impl Default for Screen565 {
+    fn default() -> Self {
+        Screen565(vec![Rgb565::BLACK; (WIDTH * HEIGHT) as usize])
+    }
+}
+
+impl Screen565 {
+    fn at(&self, point: Point) -> Rgb565 {
+        self.0[(point.y as u32 * WIDTH + point.x as u32) as usize]
+    }
+}
+
+impl OriginDimensions for Screen565 {
+    fn size(&self) -> Size {
+        Size::new(WIDTH, HEIGHT)
+    }
+}
+
+impl DrawTarget for Screen565 {
+    type Color = Rgb565;
+    type Error = core::convert::Infallible;
+
+    fn draw_iter<I: IntoIterator<Item = Pixel<Rgb565>>>(&mut self, pixels: I) -> Result<(), Self::Error> {
+        for Pixel(point, color) in pixels {
+            self.0[(point.y as u32 * WIDTH + point.x as u32) as usize] = color;
+        }
+        Ok(())
+    }
 }
 
 /// Records what the renderer sends.
