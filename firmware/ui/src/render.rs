@@ -1,5 +1,5 @@
-//! The screen: a top bar in the mode's color over one calculation, the mode menu or the setup
-//! page, in a dark and muted palette. A [`Frame`] is the screen
+//! The screen: a top bar over one calculation, the mode menu or the setup page, in the
+//! desktop's dark palette with its purple accents (design/handheld-menus.md §7.6). A [`Frame`] is the screen
 //! laid out once; the [`Renderer`] draws it band by band into a small buffer and sends only the
 //! bands that changed, so no framebuffer is needed.
 
@@ -23,9 +23,9 @@ const BANDS: usize = HEIGHT.div_ceil(BAND) as usize;
 const BAR: i32 = 26;
 const MARGIN: i32 = 10;
 
-/// A dark, muted palette after the desktop app's: nothing bright.
+/// The desktop app's dark palette (`desktop/src/styles.css`): nothing bright.
 pub mod colors {
-    use embedded_graphics::pixelcolor::{Rgb565, RgbColor};
+    use embedded_graphics::pixelcolor::Rgb565;
 
     pub const fn rgb(r: u8, g: u8, b: u8) -> Rgb565 {
         Rgb565::new(r >> 3, g >> 2, b >> 3)
@@ -42,19 +42,14 @@ pub mod colors {
     pub const SHIFT: Rgb565 = rgb(0xc9, 0xa4, 0x6a);
     pub const ALPHA: Rgb565 = rgb(0x8f, 0xb3, 0xa0);
     pub const PLACEHOLDER: Rgb565 = FAINT;
+    /// The desktop's `--cyan`, a lavender: the caret, the menu highlight, the chosen tile.
+    pub const CYAN: Rgb565 = rgb(0x91, 0x86, 0xe8);
+    /// The desktop's `--amber`, the accent.
+    pub const AMBER: Rgb565 = rgb(0xd8, 0xa9, 0xff);
+    /// Their dim forms, for fills: the top bar, the tiles, the selected line.
+    pub const CYAN_DIM: Rgb565 = rgb(0x42, 0x3a, 0x63);
+    pub const AMBER_DIM: Rgb565 = rgb(0x4e, 0x3c, 0x63);
 
-    /// `color` mixed toward the background, `amount` of 255 parts.
-    pub fn darken(color: Rgb565, amount: u8) -> Rgb565 {
-        fn mix(from: u8, to: u8, amount: u8) -> u8 {
-            ((from as u16 * (255 - amount as u16) + to as u16 * amount as u16) / 255) as u8
-        }
-        let bg = BACKGROUND;
-        Rgb565::new(
-            mix(color.r(), bg.r(), amount),
-            mix(color.g(), bg.g(), amount),
-            mix(color.b(), bg.b(), amount),
-        )
-    }
 }
 
 /// Something to draw, at absolute screen coordinates.
@@ -141,12 +136,11 @@ fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
     RoundedRectangle::with_equal_corners(Rectangle::new(top_left, size), Size::new(radius, radius))
 }
 
-/// The top bar, in the mode's color: the mode on the left; on the right SHIFT and ALPHA while
+/// The top bar: the mode on the left; on the right SHIFT and ALPHA while
 /// they are on, the digits, exact or decimal and the battery.
 fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let setup = matches!(app.screen, Screen::Setup { .. });
-    let fill = if setup { colors::HAIRLINE } else { colors::darken(app.mode.color(), 110) };
-    shapes.push(Shape::Fill(full_width(0, BAR as u32), fill));
+    shapes.push(Shape::Fill(full_width(0, BAR as u32), colors::CYAN_DIM));
     let baseline = BAR - 7;
     let title = if setup { "Setup" } else { app.mode.name() };
     shapes.push(Shape::Text(Point::new(MARGIN, baseline), title.to_string(), Scale::Small, colors::TEXT));
@@ -210,7 +204,7 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         shapes.push(Shape::Math(origin, input, colors::TEXT));
     }
     if app.caret_on && app.shown.is_none() {
-        shapes.push(Shape::Fill(caret, colors::TEXT));
+        shapes.push(Shape::Fill(caret, colors::CYAN));
     }
 
     if let Some(entry) = app.shown_entry() {
@@ -242,7 +236,7 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     }
 }
 
-/// The mode menu: pages of coloured tiles, numbered over all pages.
+/// The mode menu: pages of tiles, numbered over all pages.
 fn menu(shapes: &mut Vec<Shape>, selected: usize) {
     let gap = 8;
     let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
@@ -260,8 +254,9 @@ fn menu(shapes: &mut Vec<Shape>, selected: usize) {
         let row = (offset / MENU_COLUMNS) as i32;
         let at = Point::new(MARGIN + column * (tile_width + gap), top + row * (tile_height + gap));
         let size = Size::new(tile_width as u32, tile_height as u32);
-        let outline = (index == selected).then_some(colors::TEXT);
-        shapes.push(Shape::Round(rounded(at, size, 6), mode.color(), outline));
+        let chosen = index == selected;
+        let fill = if chosen { colors::AMBER_DIM } else { colors::CYAN_DIM };
+        shapes.push(Shape::Round(rounded(at, size, 6), fill, chosen.then_some(colors::CYAN)));
         let number = (index + 1).to_string();
         shapes.push(Shape::Text(at + Point::new(12, 10 + small.ascent), number, Scale::Small, colors::TEXT));
         // The name at the bottom, a word per line when it is too wide.
@@ -305,7 +300,7 @@ fn setup<B>(shapes: &mut Vec<Shape>, app: &App<B>, selected: usize) {
         let y = BAR + 12 + index as i32 * (line + gap);
         let size = Size::new(WIDTH - 2 * MARGIN as u32, line as u32);
         let chosen = index == selected;
-        let fill = if chosen { colors::HAIRLINE } else { colors::SURFACE };
+        let fill = if chosen { colors::CYAN_DIM } else { colors::SURFACE };
         shapes.push(Shape::Round(rounded(Point::new(MARGIN, y), size, 6), fill, None));
         let baseline = y + (line + metrics.digit) / 2;
         let number = (index + 1).to_string();

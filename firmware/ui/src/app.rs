@@ -1,12 +1,9 @@
 //! The calculator's state and what each key does to it.
 
-use embedded_graphics::pixelcolor::Rgb565;
-
 use crate::backend::Backend;
 use crate::editor::{Editor, Row};
 use crate::key::Key;
 use crate::latex;
-use crate::render::colors::rgb;
 
 /// The app's modes that work as text, in the order of the mode menu.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -31,16 +28,6 @@ impl Mode {
         }
     }
 
-    /// The mode's color in the menu and, darkened, in the top bar: muted, never bright.
-    pub fn color(self) -> Rgb565 {
-        match self {
-            Mode::Algebra => rgb(0x5b, 0x6e, 0x9a),
-            Mode::Physics => rgb(0x6e, 0x8a, 0x6a),
-            Mode::Imaginary => rgb(0x85, 0x70, 0x9e),
-            Mode::Analysis => rgb(0xa3, 0x73, 0x5a),
-            Mode::Linear => rgb(0x5a, 0x8a, 0x8c),
-        }
-    }
 
     fn index(self) -> usize {
         Mode::ALL.iter().position(|&mode| mode == self).unwrap_or(0)
