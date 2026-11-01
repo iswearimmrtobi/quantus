@@ -28,6 +28,9 @@ Every command that can fail returns
 |---|---|---|
 | `evaluate` | `{ request: { latex, sessionId?, precision? } }` | `CalculationResponse` |
 | `define_variable` | `{ request: { latex, sessionId?, precision? } }` | `VariableResponse` |
+| `free_variables` | `{ request: { latex, sessionId? } }` | `{ key, symbol }[]`, the letters without a value, in order (CALC) |
+| `calc` | `{ request: { latex, values: { key, latex }[], sessionId?, precision? } }` | `CalculationResponse`; the values become session variables first |
+| `solve_for` | `{ request: { latex, variable, values?, start?, sessionId?, precision? } }` | `CalculationResponse` with the solutions for `variable` and a last step `L - R` |
 | `engineering` | `{ request: { value, imaginary?, unitLatex, steps } }` | `{ latex }` |
 | `list_variables` | `{ sessionId? }` | `VariableResponse[]` |
 | `delete_variable` | `{ key, sessionId? }` | nothing |
@@ -58,6 +61,12 @@ VariableResponse { key, symbol, latex, value, unit }
 steps through without another call. `kind` is `fraction`, `mixedFraction`, `recurring`,
 `decimal`, `exact` (roots and π), `primeFactors`, `rectangular`, `polar` or `sexagesimal` (degrees, minutes, seconds; for
 an angle with the angle unit on degrees). No form repeats `result` or another form.
+
+`solve_for` (SOLVE) takes an equation, an expression (solved as `= 0`) or a labelled formula
+(`F_1 = m_1 a_1`, the label then one more letter). Every letter but `variable` needs a value, from
+`values` or the session; `variable` gets the unit that makes both sides agree. Polynomials are
+solved exactly; otherwise `start` runs Newton's method from there, and without it the equation is
+scanned.
 
 `engineering` writes a result in engineering notation for ENG: pass its `value`, `imaginary` and
 `unitLatex`; `steps` is 0 for the first press, +1 per further ENG and −1 per ←ENG, each moving

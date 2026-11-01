@@ -52,6 +52,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Cubic and quartic equations are solved exactly (rational roots, Cardano, Ferrari), and
   polynomial equations of any degree up to 12 numerically on the whole real line instead of on
   [-100, 100]; the curve sketch finds polynomial zeros the same way.
+- CALC and SOLVE in the engine: `free_variables` lists the letters of an input without a value,
+  `calc` evaluates it with values given for them, and `solve_for` solves for a chosen letter
+  (`F_1 = m_1 a_1` for `a_1`), from a start value with Newton's method where no exact way exists,
+  ending with `L - R`.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

@@ -46,3 +46,62 @@ fn the_golden_cubic_cases_still_hold() {
     assert_eq!(calculator.evaluate("x^3 = 8", &HashMap::new()).unwrap().result, "x = 2");
     assert!(calculator.evaluate("x^3 - 2 = 0", &HashMap::new()).unwrap().result.starts_with("x = 1{,}25992104989487316476"));
 }
+
+mod calc_and_solve {
+    use quantus_core::api::{self, Assignment, CalcRequest, CalculationRequest, SolveRequest};
+    use quantus_core::session::SessionStore;
+    use quantus_core::settings::{Mode, Settings, StepDetail};
+
+    fn store(mode: Mode) -> SessionStore {
+        let mut store = SessionStore::new();
+        api::set_settings(&mut store, Settings { mode, step_detail: StepDetail::Standard, exact_roots: true, ..Settings::default() }).unwrap();
+        store
+    }
+
+    fn assign(key: &str, latex: &str) -> Assignment {
+        Assignment { key: key.into(), latex: latex.into() }
+    }
+
+    #[test]
+    fn calc_asks_for_the_free_letters_and_substitutes_them() {
+        let mut store = store(Mode::Algebra);
+        let free = api::free_variables(&mut store, &CalculationRequest { latex: "a x^2 + b".into(), ..Default::default() }).unwrap();
+        let keys: Vec<_> = free.iter().map(|f| f.key.as_str()).collect();
+        assert_eq!(keys, ["a", "x", "b"]);
+        let request = CalcRequest {
+            latex: "a x^2 + b".into(),
+            values: vec![assign("a", "2"), assign("x", "3"), assign("b", "1")],
+            ..Default::default()
+        };
+        let response = api::calc(&mut store, &request).unwrap();
+        assert_eq!(response.result, "19");
+        assert!(response.steps.iter().any(|s| s.kind == "substituted"), "{:?}", response.steps);
+        // The values stay in the session.
+        let free = api::free_variables(&mut store, &CalculationRequest { latex: "a x + c".into(), ..Default::default() }).unwrap();
+        assert_eq!(free.iter().map(|f| f.key.as_str()).collect::<Vec<_>>(), ["c"]);
+    }
+
+    #[test]
+    fn solve_for_a_named_letter_with_the_others_given() {
+        let mut store = store(Mode::Physics);
+        let request = SolveRequest {
+            latex: r"F_1 = m_1 a_1".into(),
+            variable: "a_1".into(),
+            values: vec![assign("F_1", r"10\,\mathrm{N}"), assign("m_1", r"2\,\mathrm{kg}")],
+            ..Default::default()
+        };
+        let response = api::solve_for(&mut store, &request).unwrap();
+        assert_eq!(response.result, r"a_1 = 5\,\frac{\mathrm{N}}{\mathrm{kg}}");
+        assert!(response.steps.iter().any(|s| s.latex.starts_with("L - R = 0")), "{:?}", response.steps);
+    }
+
+    #[test]
+    fn solve_needs_the_other_letters_and_takes_a_start_value() {
+        let mut store = store(Mode::Algebra);
+        let missing = SolveRequest { latex: "a x = 6".into(), variable: "x".into(), ..Default::default() };
+        assert!(api::solve_for(&mut store, &missing).unwrap_err().error.contains("Give a value to a"));
+        // An expression is solved as = 0; cos x = x has no exact method, so Newton runs from 1.
+        let newton = SolveRequest { latex: r"\cos x - x".into(), variable: "x".into(), start: Some("1".into()), ..Default::default() };
+        assert!(api::solve_for(&mut store, &newton).unwrap().result.starts_with("x = 0{,}73908513321516064165"));
+    }
+}

@@ -175,6 +175,74 @@ pub fn define_variable(store: &mut SessionStore, request: &CalculationRequest) -
     Ok(VariableResponse::of(&session.define_from_with(&request.latex, request.precision, &settings)?))
 }
 
+/// A letter of an input and its LaTeX: `{ key: "m_1", symbol: "m_{1}" }`.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FreeVariable {
+    pub key: String,
+    pub symbol: String,
+}
+
+/// The letters of the input that have no value yet: what CALC asks for, in order.
+pub fn free_variables(store: &mut SessionStore, request: &CalculationRequest) -> Result<Vec<FreeVariable>, ApiError> {
+    let settings = store.settings.clone();
+    let session = store.session(request.session_id.as_deref());
+    let keys = session.free_variables(&request.latex, &settings)?;
+    Ok(keys.into_iter().map(|key| FreeVariable { symbol: crate::session::symbol_of(&key), key }).collect())
+}
+
+/// A value given to a letter: `{ key: "x", latex: "3" }`.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Assignment {
+    pub key: String,
+    pub latex: String,
+}
+
+/// CALC: the values first become session variables, then the input is evaluated with them, so
+/// the steps show them substituted.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CalcRequest {
+    pub latex: String,
+    pub values: Vec<Assignment>,
+    pub session_id: Option<String>,
+    pub precision: Option<i64>,
+}
+
+pub fn calc(store: &mut SessionStore, request: &CalcRequest) -> Result<CalculationResponse, ApiError> {
+    let settings = store.settings.clone();
+    let session = store.session(request.session_id.as_deref());
+    for value in &request.values {
+        session.assign(&value.key, &value.latex, request.precision, &settings)?;
+    }
+    let (calculation, variable) = session.evaluate_with(&request.latex, request.precision, &settings)?;
+    Ok(CalculationResponse::of(&calculation, variable.as_ref()))
+}
+
+/// SOLVE: the input solved for `variable`, the other letters from `values` and the session.
+/// `start` begins Newton's method where no exact method applies.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SolveRequest {
+    pub latex: String,
+    pub variable: String,
+    pub values: Vec<Assignment>,
+    pub start: Option<String>,
+    pub session_id: Option<String>,
+    pub precision: Option<i64>,
+}
+
+pub fn solve_for(store: &mut SessionStore, request: &SolveRequest) -> Result<CalculationResponse, ApiError> {
+    let settings = store.settings.clone();
+    let session = store.session(request.session_id.as_deref());
+    for value in &request.values {
+        session.assign(&value.key, &value.latex, request.precision, &settings)?;
+    }
+    let calculation = session.solve_for(&request.latex, &request.variable, request.start.as_deref(), request.precision, &settings)?;
+    Ok(CalculationResponse::of(&calculation, None))
+}
+
 pub use crate::electro::interface::{CircuitRequest, CircuitResponse};
 
 /// Solves a circuit. It touches no session, so it needs the settings only, not the store.

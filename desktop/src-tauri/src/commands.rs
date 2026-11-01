@@ -10,7 +10,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalculationResponse, CircuitRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
+    CalcRequest, CalculationResponse, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
@@ -190,6 +190,24 @@ pub fn constants(engine: State<Engine>) -> Vec<ConstantCategory> {
 pub fn conversion_units(engine: State<Engine>) -> Vec<UnitCategory> {
     let settings = engine.with(|store| api::get_settings(store));
     api::conversion_units(settings.language)
+}
+
+/// The letters of an input that have no value yet (CALC).
+#[tauri::command]
+pub fn free_variables(engine: State<Engine>, request: CalculationRequest) -> Result<Vec<FreeVariable>, ApiError> {
+    engine.with(|store| api::free_variables(store, &request))
+}
+
+/// CALC: the values become session variables, then the input is evaluated.
+#[tauri::command]
+pub fn calc(engine: State<Engine>, request: CalcRequest) -> Result<CalculationResponse, ApiError> {
+    engine.with(|store| api::calc(store, &request))
+}
+
+/// SOLVE for a named letter.
+#[tauri::command]
+pub fn solve_for(engine: State<Engine>, request: SolveRequest) -> Result<CalculationResponse, ApiError> {
+    engine.with(|store| api::solve_for(store, &request))
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.

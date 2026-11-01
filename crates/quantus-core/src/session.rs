@@ -138,6 +138,54 @@ impl Session {
     }
 }
 
+/// `m_1` as LaTeX, `m_{1}`.
+pub fn symbol_of(key: &str) -> String {
+    match key.split_once('_') {
+        Some((name, index)) => format!("{name}_{{{index}}}"),
+        None => key.to_string(),
+    }
+}
+
+impl Session {
+    /// Gives `key` the value of `latex` (CALC, SOLVE): any letter may be set this way, with or
+    /// without a subscript.
+    pub fn assign(&mut self, key: &str, latex: &str, precision: Option<i64>, settings: &Settings) -> Result<Variable> {
+        let calculator = LatexCalculator::new(precision_or(precision, settings.precision)?).with_settings(settings.clone());
+        let calculation = calculator.evaluate(latex, &self.quantities())?;
+        if matches!(calculation.formula.expression, crate::latex::Node::Equation { .. } | crate::latex::Node::System { .. }) {
+            return Err(QuantusError::other(format!("The value of {key} must be a number, not an equation.")));
+        }
+        let variable = Variable {
+            key: key.to_string(),
+            symbol: symbol_of(key),
+            latex: calculation.result.clone(),
+            value: calculation.value.clone(),
+            unit: calculation.unit.clone(),
+            quantity: calculation.quantity.clone(),
+        };
+        self.define(variable.clone());
+        Ok(variable)
+    }
+
+    /// The letters of `latex` without a value (CALC asks for them).
+    pub fn free_variables(&self, latex: &str, settings: &Settings) -> Result<Vec<String>> {
+        LatexCalculator::new(settings.precision).with_settings(settings.clone()).free_variables(latex, &self.quantities())
+    }
+
+    /// SOLVE for `variable`, the other letters from the session.
+    pub fn solve_for(
+        &mut self,
+        latex: &str,
+        variable: &str,
+        start: Option<&str>,
+        precision: Option<i64>,
+        settings: &Settings,
+    ) -> Result<Calculation> {
+        let calculator = LatexCalculator::new(precision_or(precision, settings.precision)?).with_settings(settings.clone());
+        calculator.solve_for(latex, &self.quantities(), variable, start)
+    }
+}
+
 fn precision_or(requested: Option<i64>, default: usize) -> Result<usize> {
     let Some(precision) = requested else { return Ok(default) };
     match usize::try_from(precision) {

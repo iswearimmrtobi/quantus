@@ -255,6 +255,77 @@ impl LatexCalculator {
         }
     }
 
+    /// The letters of an input that have no value yet, by session key (`x`, `m_1`), in the
+    /// order they appear: what a CALC prompt asks for.
+    pub fn free_variables(&self, latex: &str, variables: &Variables) -> Result<Vec<String>> {
+        let formula = parser::parse_with(latex, &self.settings.parse_options())?;
+        let evaluator = Evaluator::new(variables).with_mode(self.settings.evaluation_mode());
+        let mut found = Vec::new();
+        super::solver::collect_unknowns(&formula.expression, true, &mut Vec::new(), &evaluator, &mut found);
+        // `F = m_1 a_1`: the label is a letter too.
+        if let Some(label) = &formula.label {
+            let key = Node::variable_key(&label.name, label.index.as_deref().unwrap_or(""));
+            if !variables.contains_key(&key) && !found.contains(&key) {
+                found.insert(0, key);
+            }
+        }
+        Ok(found)
+    }
+
+    /// SOLVE: the equation (or an expression, as `= 0`) solved for `variable`, the other letters
+    /// from `variables`. `start` is where Newton's method begins when there is no exact way.
+    /// The steps end with `L - R`, the two sides' difference at the first solution.
+    pub fn solve_for(&self, latex: &str, variables: &Variables, variable: &str, start: Option<&str>) -> Result<Calculation> {
+        let mut formula = parser::parse_with(latex, &self.settings.parse_options())?;
+        let position = formula.expression.position();
+        if let Some(label) = formula.label.take() {
+            // `F = m_1 a_1` read as an equation, so F can be solved for or given.
+            let name = Node::Variable { name: label.name, index: label.index.unwrap_or_default(), position };
+            formula.expression = Node::Equation { left: Box::new(name), right: Box::new(formula.expression), position };
+        } else if !matches!(formula.expression, Node::Equation { .. }) {
+            let zero = Node::Number { value: Decimal::from_i64(0), position };
+            formula.expression = Node::Equation { left: Box::new(formula.expression), right: Box::new(zero), position };
+        }
+        let evaluator = Evaluator::new(variables)
+            .with_precision(self.precision)
+            .with_mode(self.settings.evaluation_mode())
+            .with_angle_unit(self.settings.angle_unit)
+            .with_number_format(self.settings.number_format);
+        let start = match start.map(str::trim).filter(|s| !s.is_empty()) {
+            Some(start) => Some(evaluator.evaluate(&parser::parse_with(start, &self.settings.parse_options())?.expression)?.value),
+            None => None,
+        };
+        let solutions = evaluator.solve_for(&formula.expression, Some(variable), start.as_ref())?;
+        let unknown = solutions.variable.clone();
+        let (quantity, value, imaginary, result) = self.present_solutions(solutions)?;
+        let mut steps = self.steps(&formula, "", &result, variables, None);
+        if let Node::Equation { left, right, .. } = &formula.expression {
+            let mut scope = variables.clone();
+            scope.insert(unknown, quantity.clone());
+            let at = evaluator.scoped_over(&scope);
+            if let Ok(difference) = at.evaluate(left).and_then(|l| l.sub(&at.evaluate(right)?)) {
+                if let Ok((_, _, shown)) = self.present(&difference.simplify()?) {
+                    steps.push(Step::new(StepKind::Note, format!("L - R = {shown}")));
+                }
+            }
+        }
+        Ok(Calculation {
+            input: serializer::formula(&formula),
+            latex: result.clone(),
+            steps: shown_steps(&steps, self.settings.step_detail),
+            unit: registry::format(&quantity.unit),
+            quantity_name: quantity.quantity_name().map(str::to_string),
+            result,
+            value,
+            imaginary,
+            quantity,
+            formula,
+            domain_restrictions: None,
+            warning: None,
+            forms: Vec::new(),
+        })
+    }
+
     /// `\operatorname{divR}(a; b)` as the whole input shows the remainder next to the quotient:
     /// `Q = 4,\; R = 1`. Inside a calculation it is the quotient alone.
     fn with_remainder(&self, evaluator: &Evaluator, expression: &Node, quotient: String) -> Result<String> {
@@ -432,7 +503,10 @@ impl LatexCalculator {
         evaluator: &Evaluator,
         equation: &Node,
     ) -> Result<(PhysicalQuantity, Decimal, Option<Decimal>, String)> {
-        let solutions = evaluator.solve(equation)?;
+        self.present_solutions(evaluator.solve(equation)?)
+    }
+
+    fn present_solutions(&self, solutions: super::solver::Solutions) -> Result<(PhysicalQuantity, Decimal, Option<Decimal>, String)> {
         let mut parts = Vec::new();
         let mut first = None;
         for quantity in &solutions.values {

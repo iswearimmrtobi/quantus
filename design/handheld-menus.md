@@ -41,7 +41,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Units: the ▶ unit operator, and the missing imperial units (ft, yd, lb, oz, gal, psi, Btu,
       hp, °F …)
 - [x] Exact cubics and quartics (Cardano, Ferrari); drop the [−100, 100] limit
-- [ ] API: the free variables of an expression (CALC), solve for a named variable (SOLVE)
+- [x] API: the free variables of an expression (CALC), solve for a named variable (SOLVE)
 - [ ] wahr/falsch for an equation without unknowns, and a Prüfen mode with chaining
 - [ ] Sessions: history, mode inputs, name and timestamps in `session.rs`, serde JSON with a
       format version

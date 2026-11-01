@@ -22,6 +22,7 @@ use super::polynomial;
 use crate::latex::Node;
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
+use crate::units::Unit;
 use crate::{QuantusError, Result};
 
 const SCAN_LIMIT: i64 = 100;
@@ -39,14 +40,36 @@ pub struct Solutions {
 
 impl Evaluator<'_> {
     pub fn solve(&self, equation: &Node) -> Result<Solutions> {
+        self.solve_for(equation, None, None)
+    }
+
+    /// Solves for `target`, or for the one unknown when it is `None`. Every other letter must
+    /// have a value. Without an exact method, a `start` value runs Newton's method from there
+    /// instead of the scan.
+    pub fn solve_for(&self, equation: &Node, target: Option<&str>, start: Option<&Value>) -> Result<Solutions> {
         let Node::Equation { left, right, .. } = equation else {
             return Err(QuantusError::other("Only an equation can be solved."));
         };
-        let variable = self.unknown(equation)?;
+        let variable = match target {
+            None => self.unknown(equation)?,
+            Some(target) => {
+                let mut found = Vec::new();
+                collect_unknowns(equation, true, &mut Vec::new(), self, &mut found);
+                let others: Vec<&String> = found.iter().filter(|key| key.as_str() != target).collect();
+                if !others.is_empty() {
+                    let names: Vec<&str> = others.iter().map(|key| key.as_str()).collect();
+                    return Err(QuantusError::other(format!("Give a value to {} first.", names.join(", "))));
+                }
+                target.to_string()
+            }
+        };
 
+        // A letter solved for by name may carry a unit (F = m a for a): the one that makes the
+        // two sides agree.
+        let unit = if target.is_some() { self.unit_of_unknown(&variable, left, right) } else { Unit::ONE };
         let mut scope = self.variables.clone();
         let mut residual = |x: Value| -> Result<PhysicalQuantity> {
-            scope.insert(variable.clone(), PhysicalQuantity::dimensionless(x));
+            scope.insert(variable.clone(), PhysicalQuantity::new(x, unit.clone()));
             let evaluator = self.scoped_over(&scope);
             evaluator.evaluate(left)?.sub(&evaluator.evaluate(right)?)
         };
@@ -61,10 +84,64 @@ impl Evaluator<'_> {
                     }
                     roots
                 }
-                None => self.numeric_roots(&mut residual, &variable)?,
+                None => match start {
+                    Some(start) => vec![self.newton(&mut residual, &variable, start)?],
+                    None => self.numeric_roots(&mut residual, &variable)?,
+                },
             },
         };
-        Ok(Solutions { variable, values: roots.into_iter().map(PhysicalQuantity::dimensionless).collect() })
+        Ok(Solutions { variable, values: roots.into_iter().map(|root| PhysicalQuantity::new(root, unit.clone())).collect() })
+    }
+
+    /// The unit that makes both sides of the equation compatible when `variable` carries it:
+    /// none, or the quotient of the sides' units either way round.
+    fn unit_of_unknown(&self, variable: &str, left: &Node, right: &Node) -> Unit {
+        let sides = |unit: &Unit| -> Option<(PhysicalQuantity, PhysicalQuantity)> {
+            let mut scope = self.variables.clone();
+            scope.insert(variable.to_string(), PhysicalQuantity::new(Value::one(), unit.clone()));
+            let evaluator = self.scoped_over(&scope);
+            Some((evaluator.evaluate(left).ok()?, evaluator.evaluate(right).ok()?))
+        };
+        let Some((l, r)) = sides(&Unit::ONE) else { return Unit::ONE };
+        if l.unit.is_compatible(&r.unit) {
+            return Unit::ONE;
+        }
+        for candidate in [l.unit.divide(&r.unit), r.unit.divide(&l.unit)] {
+            if let Some((l, r)) = sides(&candidate) {
+                if l.unit.is_compatible(&r.unit) {
+                    return candidate;
+                }
+            }
+        }
+        Unit::ONE
+    }
+
+    /// Newton's method from `start`, with the slope from a central difference.
+    fn newton(&self, residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>, variable: &str, start: &Value) -> Result<Value> {
+        let digits = self.precision + 10;
+        let number = |q: PhysicalQuantity| -> Result<RBig> { Ok(q.value.decimal(digits)?.to_rational()) };
+        let mut x = start.decimal(digits)?.to_rational();
+        let h = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits / 2 + 2));
+        let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.precision + 3));
+        let failed = || QuantusError::other(format!("Newton's method found no solution for {variable} from this start value."));
+        for _ in 0..200 {
+            let f = number(residual(Value::Rat(x.clone()))?)?;
+            if f == RBig::ZERO {
+                return Ok(Value::from_decimal(&Value::Rat(x).decimal(self.precision)?));
+            }
+            let up = number(residual(Value::Rat(&x + &h))?)?;
+            let down = number(residual(Value::Rat(&x - &h))?)?;
+            let slope = (up - down) / (RBig::from(2) * &h);
+            if slope == RBig::ZERO {
+                return Err(failed());
+            }
+            let step = &f / &slope;
+            x = Value::Rat(&x - &step).decimal(digits)?.to_rational();
+            if step.abs() < tolerance {
+                return Ok(Value::from_decimal(&Value::Rat(x).decimal(self.precision)?));
+            }
+        }
+        Err(failed())
     }
 
     /// The one free, unindexed variable of the equation.
