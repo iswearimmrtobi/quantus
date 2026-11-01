@@ -115,6 +115,13 @@ pub struct App<B> {
     last_blink: u64,
 }
 
+impl<B> App<B> {
+    /// The entry whose result is on the screen.
+    pub fn shown_entry(&self) -> Option<&Entry> {
+        self.history.iter().rev().nth(self.shown?)
+    }
+}
+
 impl<B: Backend> App<B> {
     pub fn new(backend: B) -> Self {
         App {
@@ -131,11 +138,6 @@ impl<B: Backend> App<B> {
             caret_on: true,
             last_blink: 0,
         }
-    }
-
-    /// The entry whose result is on the screen.
-    pub fn shown_entry(&self) -> Option<&Entry> {
-        self.history.iter().rev().nth(self.shown?)
     }
 
     /// Blinks the caret; returns whether the screen changed.

@@ -15,6 +15,8 @@ use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 fn main() {
     let mut display = SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT));
     let mut app = App::new(Stub);
+    // The PC has no battery to read; show a full one.
+    app.battery = Some(100);
     let mut renderer = Renderer::new();
 
     let args: Vec<String> = std::env::args().collect();
