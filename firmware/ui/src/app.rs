@@ -1,7 +1,7 @@
 //! The calculator's state and what each key does to it.
 
 use crate::backend::Backend;
-use crate::editor::{Editor, Row};
+use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
 use crate::text::{self, same, t, Lang, Text};
@@ -200,7 +200,12 @@ impl<B: Backend> App<B> {
         if self.shown.is_some() {
             self.reset();
         }
-        self.editor.paste(&latex::parse(latex));
+        let row = latex::parse(latex);
+        self.editor.paste(&row);
+        // Into a pair of brackets or bars: `\sinh(|)`, `|x|`.
+        if matches!(row.0.last(), Some(Node::Char(')' | '|'))) && row.0.len() > 1 {
+            self.editor.left();
+        }
     }
 
     fn calc_key(&mut self, key: Key, shift: bool, alpha: bool) {
@@ -209,6 +214,7 @@ impl<B: Backend> App<B> {
             Key::Alpha => return self.alpha = !alpha,
             Key::Mode if shift => return self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
             Key::Mode => return self.screen = Screen::Modes { selected: self.mode.index() },
+            Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             _ => {}
         }
         if self.shown.is_some() && !self.leave_result(key) {
@@ -262,7 +268,7 @@ impl<B: Backend> App<B> {
             Key::Del => editor.delete(),
             Key::Ac => editor.clear(),
             Key::Ok | Key::Exe => self.evaluate(),
-            Key::SwapForm | Key::Shift | Key::Alpha | Key::Mode => {}
+            Key::SwapForm | Key::Shift | Key::Alpha | Key::Mode | Key::Optn => {}
         }
     }
 

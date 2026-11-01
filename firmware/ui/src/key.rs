@@ -44,6 +44,8 @@ pub enum Key {
     /// The next key types its letter.
     Alpha,
     Mode,
+    /// The mode's option menu.
+    Optn,
     /// S⇔D: the shown result as a decimal or exact.
     SwapForm,
 }
@@ -58,6 +60,7 @@ pub const CONTROLS: &[(char, Key)] = &[
     ('\u{07}', Key::Log),       // Ctrl+G
     ('\u{0b}', Key::Alpha),     // Ctrl+K
     ('\u{0c}', Key::Ln),        // Ctrl+L
+    ('\u{0e}', Key::Optn),      // Ctrl+N
     ('\u{0f}', Key::Cos),       // Ctrl+O
     ('\u{10}', Key::Pi),        // Ctrl+P
     ('\u{11}', Key::Square),    // Ctrl+Q

@@ -140,6 +140,7 @@ Quantus simulator keys
                        Left goes back, Esc closes
   SHIFT / ALPHA        F1 or Ctrl+F / F2 or Ctrl+K
   S<=>D                F3 or Ctrl+D
+  OPTN (mode's options) F4 or Ctrl+N
   EXE / DEL / AC       Enter / Backspace / Esc, Delete or Ctrl+X
   fraction ^ index     /  ^  _
   sqrt x^2 pi e        Ctrl+W  Ctrl+Q  Ctrl+P  Ctrl+E
@@ -166,6 +167,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::F1 => return Some(Key::Shift),
         Keycode::F2 => return Some(Key::Alpha),
         Keycode::F3 => return Some(Key::SwapForm),
+        Keycode::F4 => return Some(Key::Optn),
         Keycode::KpPlus => return Some(Key::Plus),
         Keycode::KpMinus => return Some(Key::Minus),
         Keycode::KpMultiply => return Some(Key::Times),

@@ -1,6 +1,8 @@
-//! The menu tree of design/handheld-menus.md §7: SETUP (§7.2) and the Sitzungen tile (§6). Which entries work and which
+//! The menu tree of design/handheld-menus.md §7: SETUP (§7.2), OPTN per mode (§7.3) and the
+//! Sitzungen tile (§6). Which entries work and which
 //! wait for the engine or the firmware is noted there.
 
+use crate::app::Mode;
 use crate::menu::{opt, Action, Entry, Info, Kind, Opt, Page, ON_OFF};
 use crate::settings::Setting as S;
 use crate::text::{same, t, Text};
@@ -245,5 +247,348 @@ pub static SESSIONS: Page = Page {
         pending(t("Umbenennen", "Rename")),
         pending(t("Duplizieren", "Duplicate")),
         pending(t("Löschen", "Delete")),
+    ],
+};
+
+// OPTN (§7.3): the mode's page of groups. An entry the editor can write inserts its LaTeX; one
+// that waits for the engine ([eng]) or for a template the editor lacks says so.
+
+const fn ins(label: Text, latex: &'static str) -> Entry {
+    entry(label, Kind::Insert(latex))
+}
+
+const fn group(label: Text, page: &'static Page) -> Entry {
+    entry(label, Kind::Page(page))
+}
+
+/// The OPTN page of a mode.
+pub fn optn(mode: Mode) -> &'static Page {
+    match mode {
+        Mode::Physics => &OPTN_PHYSICS,
+        Mode::Algebra => &OPTN_ALGEBRA,
+        Mode::Imaginary => &OPTN_COMPLEX,
+        Mode::Analysis => &OPTN_ANALYSIS,
+        Mode::Linear => &OPTN_LINEAR,
+        Mode::Table => &OPTN_TABLE,
+        Mode::Matrix => &OPTN_MATRIX,
+        Mode::BaseN => &OPTN_BASE_N,
+        Mode::Statistics => &OPTN_STATISTICS,
+        Mode::Distributions => &OPTN_DISTRIBUTIONS,
+        Mode::Verify => &OPTN_VERIFY,
+        // The tile opens the sessions menu; OPTN never sees it as the mode.
+        Mode::Sessions => &OPTN_PHYSICS,
+    }
+}
+
+const ANALYSIS_GROUP: Entry = group(same("Analysis"), &ANALYSIS);
+const NUMBER_GROUP: Entry = group(t("Zahl", "Number"), &NUMBER);
+const HYPERBOLIC_GROUP: Entry = group(t("Hyperbol. Fkt.", "Hyperbolic"), &HYPERBOLIC);
+const ANGLE_GROUP: Entry = group(t("Winkel", "Angle"), &ANGLE);
+const GREEK_GROUP: Entry = group(t("Griechisch", "Greek"), &GREEK);
+const TOOLS_GROUP: Entry = group(t("Werkzeuge", "Tools"), &TOOLS);
+
+static ANALYSIS: Page = Page {
+    title: same("Analysis"),
+    entries: &[
+        ins(t("∫ Integral", "∫ Integral"), r"\int_{}^{}"),
+        ins(t("d/dx Ableitung", "d/dx Derivative"), r"\frac{d}{dx}"),
+        ins(t("∑ Summe", "∑ Sum"), r"\sum_{}^{}"),
+        pending(t("∏ Produkt", "∏ Product")),
+        ins(t("lim Grenzwert", "lim Limit"), r"\lim_{x\to}"),
+    ],
+};
+
+static NUMBER: Page = Page {
+    title: t("Zahl", "Number"),
+    entries: &[
+        ins(t("|x| Betrag", "|x| Absolute value"), "||"),
+        ins(t("n! Fakultät", "n! Factorial"), "!"),
+        pending(same("nCr")),
+        pending(same("nPr")),
+        pending(t("ggT", "gcd")),
+        pending(t("kgV", "lcm")),
+        pending(same("Int")),
+        pending(same("Intg")),
+        pending(same("Rnd")),
+        pending(same("RndFix")),
+        pending(t("÷R Rest", "÷R Remainder")),
+        ins(same("mod"), r"\bmod "),
+        ins(t("Abrunden (floor)", "Floor"), r"\lfloor\rfloor"),
+        ins(t("Aufrunden (ceil)", "Ceiling"), r"\lceil\rceil"),
+        ins(same("max"), r"\max(;)"),
+        ins(same("min"), r"\min(;)"),
+        ins(same("%"), r"\%"),
+    ],
+};
+
+static HYPERBOLIC: Page = Page {
+    title: t("Hyperbol. Fkt.", "Hyperbolic"),
+    entries: &[
+        ins(same("sinh"), r"\sinh()"),
+        ins(same("cosh"), r"\cosh()"),
+        ins(same("tanh"), r"\tanh()"),
+        pending(same("arsinh")),
+        pending(same("arcosh")),
+        pending(same("artanh")),
+    ],
+};
+
+static ANGLE: Page = Page {
+    title: t("Winkel", "Angle"),
+    entries: &[
+        ins(t("° Grad", "° Degrees"), "°"),
+        ins(t("rad Bogenmaß", "rad Radians"), r"\,\mathrm{rad}"),
+        pending(t("Grad, Minuten, Sekunden", "Degrees, minutes, seconds")),
+    ],
+};
+
+static GREEK: Page = Page {
+    title: t("Griechisch", "Greek"),
+    entries: &[
+        ins(same("α"), r"\alpha"),
+        ins(same("β"), r"\beta"),
+        ins(same("γ"), r"\gamma"),
+        ins(same("δ"), r"\delta"),
+        ins(same("ε"), r"\varepsilon"),
+        ins(same("θ"), r"\theta"),
+        ins(same("λ"), r"\lambda"),
+        ins(same("μ"), r"\mu"),
+        ins(same("ρ"), r"\rho"),
+        ins(same("σ"), r"\sigma"),
+        ins(same("τ"), r"\tau"),
+        ins(same("φ"), r"\varphi"),
+        ins(same("ω"), r"\omega"),
+        ins(same("Δ"), r"\Delta"),
+        ins(same("Ω"), r"\Omega"),
+    ],
+};
+
+static TOOLS: Page = Page {
+    title: t("Werkzeuge", "Tools"),
+    entries: &[pending(same("CALC")), pending(same("SOLVE")), pending(t("In Einheit", "To unit"))],
+};
+
+static OPTN_PHYSICS: Page = Page {
+    title: t("Physik", "Physics"),
+    entries: &[
+        group(t("Einheiten", "Units"), &UNITS),
+        group(t("Präfixe", "Prefixes"), &PREFIXES),
+        ANALYSIS_GROUP,
+        NUMBER_GROUP,
+        ANGLE_GROUP,
+        HYPERBOLIC_GROUP,
+        TOOLS_GROUP,
+    ],
+};
+
+/// A page of units for one quantity, inserted as letters: Physik reads letters after a number
+/// as units, and a prefix from [`PREFIXES`] goes in front.
+macro_rules! units {
+    ($name:ident, $title:expr, [$($unit:literal),+ $(,)?]) => {
+        static $name: Page = Page { title: $title, entries: &[$(ins(same($unit), $unit)),+] };
+    };
+}
+
+units!(LENGTH, t("Länge", "Length"), ["m", "Å", "AU", "ly"]);
+units!(MASS, t("Masse", "Mass"), ["g", "t", "Da"]);
+units!(TIME, t("Zeit", "Time"), ["s", "min", "h", "d", "wk", "mo", "yr"]);
+units!(CURRENT, t("Strom", "Current"), ["A"]);
+units!(TEMPERATURE, t("Temperatur", "Temperature"), ["K", "°C"]);
+units!(FORCE, t("Kraft", "Force"), ["N"]);
+units!(PRESSURE, t("Druck", "Pressure"), ["Pa", "bar", "atm", "Torr"]);
+units!(ENERGY, t("Energie", "Energy"), ["J", "eV", "cal", "Wh"]);
+units!(POWER, t("Leistung", "Power"), ["W"]);
+units!(CHARGE, t("Ladung", "Charge"), ["C"]);
+units!(VOLTAGE, t("Spannung", "Voltage"), ["V"]);
+units!(RESISTANCE, t("Widerstand", "Resistance"), ["Ω"]);
+units!(CAPACITANCE, t("Kapazität", "Capacitance"), ["F"]);
+units!(AREA_VOLUME, t("Fläche, Volumen", "Area, volume"), ["ha", "l"]);
+units!(SPEED, t("Geschwindigkeit", "Speed"), ["mph"]);
+
+static UNITS: Page = Page {
+    title: t("Einheiten", "Units"),
+    entries: &[
+        group(t("Länge", "Length"), &LENGTH),
+        group(t("Masse", "Mass"), &MASS),
+        group(t("Zeit", "Time"), &TIME),
+        group(t("Strom", "Current"), &CURRENT),
+        group(t("Temperatur", "Temperature"), &TEMPERATURE),
+        group(t("Kraft", "Force"), &FORCE),
+        group(t("Druck", "Pressure"), &PRESSURE),
+        group(t("Energie", "Energy"), &ENERGY),
+        group(t("Leistung", "Power"), &POWER),
+        group(t("Ladung", "Charge"), &CHARGE),
+        group(t("Spannung", "Voltage"), &VOLTAGE),
+        group(t("Widerstand", "Resistance"), &RESISTANCE),
+        group(t("Kapazität", "Capacitance"), &CAPACITANCE),
+        group(t("Fläche, Volumen", "Area, volume"), &AREA_VOLUME),
+        group(t("Geschwindigkeit", "Speed"), &SPEED),
+    ],
+};
+
+/// All 24 prefixes, q to Q; micro as `\mu`, since `u` is the dalton.
+static PREFIXES: Page = Page {
+    title: t("Präfixe", "Prefixes"),
+    entries: &[
+        ins(same("Q  quetta"), "Q"),
+        ins(same("R  ronna"), "R"),
+        ins(same("Y  yotta"), "Y"),
+        ins(same("Z  zetta"), "Z"),
+        ins(same("E  exa"), "E"),
+        ins(same("P  peta"), "P"),
+        ins(same("T  tera"), "T"),
+        ins(same("G  giga"), "G"),
+        ins(same("M  mega"), "M"),
+        ins(same("k  kilo"), "k"),
+        ins(same("h  hekto"), "h"),
+        ins(same("da  deka"), "da"),
+        ins(same("d  dezi"), "d"),
+        ins(same("c  zenti"), "c"),
+        ins(same("m  milli"), "m"),
+        ins(same("μ  mikro"), r"\mu "),
+        ins(same("n  nano"), "n"),
+        ins(same("p  piko"), "p"),
+        ins(same("f  femto"), "f"),
+        ins(same("a  atto"), "a"),
+        ins(same("z  zepto"), "z"),
+        ins(same("y  yokto"), "y"),
+        ins(same("r  ronto"), "r"),
+        ins(same("q  quekto"), "q"),
+    ],
+};
+
+static OPTN_ALGEBRA: Page = Page {
+    title: same("Algebra"),
+    entries: &[
+        group(t("Gleichungssystem", "System of equations"), &SYSTEM),
+        GREEK_GROUP,
+        ANALYSIS_GROUP,
+        NUMBER_GROUP,
+        HYPERBOLIC_GROUP,
+        TOOLS_GROUP,
+    ],
+};
+
+static SYSTEM: Page = Page {
+    title: t("Gleichungssystem", "System of equations"),
+    entries: &[ins(t("; zwischen Gleichungen", "; between equations"), ";"), pending(same("cases"))],
+};
+
+static OPTN_COMPLEX: Page = Page {
+    title: t("Komplex", "Complex"),
+    entries: &[
+        ins(t("Argument", "Argument"), r"\arg()"),
+        pending(t("Konjugierte", "Conjugate")),
+        ins(t("Realteil", "Real part"), r"\Re()"),
+        ins(t("Imaginärteil", "Imaginary part"), r"\Im()"),
+        ins(t("Betrag", "Absolute value"), "||"),
+        pending(t("In Polarform", "To polar form")),
+        pending(t("In a+bi", "To a+bi")),
+        pending(t("Winkel-Eingabe", "Angle input")),
+        ANALYSIS_GROUP,
+        NUMBER_GROUP,
+    ],
+};
+
+static OPTN_ANALYSIS: Page = Page {
+    title: t("Kurvendiskussion", "Curve sketching"),
+    entries: &[
+        pending(t("Abschnitte", "Sections")),
+        pending(t("Tangente, Normale", "Tangent, normal")),
+        pending(t("Fläche", "Area")),
+        pending(t("Wertetabelle", "Table")),
+    ],
+};
+
+static OPTN_TABLE: Page = Page {
+    title: t("Wertetabelle", "Table"),
+    entries: &[
+        pending(same("f(x)")),
+        pending(same("g(x)")),
+        pending(t("Von, bis, Schritt", "From, to, step")),
+    ],
+};
+
+static OPTN_LINEAR: Page = Page {
+    title: t("LGS", "Linear systems"),
+    entries: &[
+        entry(
+            t("Eingabe", "Input"),
+            Kind::Choice(S::SystemInput, &[opt(t("Gleichungen", "Equations"), 0), opt(same("Matrix [A|b]"), 1)]),
+        ),
+        entry(t("Zeilen", "Rows"), Kind::Number(S::SystemRows, 1, 10)),
+        entry(t("Spalten", "Columns"), Kind::Number(S::SystemColumns, 1, 10)),
+        switch(t("Imaginäre Einheit i", "Imaginary unit i"), S::LinearComplex),
+        entry(t("Alles löschen", "Clear all"), Kind::Do(Action::ClearInput)),
+    ],
+};
+
+static OPTN_MATRIX: Page = Page {
+    title: t("Matrizen", "Matrices"),
+    entries: &[
+        pending(t("Definieren", "Define")),
+        pending(t("Bearbeiten", "Edit")),
+        pending(same("Ans")),
+        pending(t("Determinante", "Determinant")),
+        pending(t("Transponierte", "Transpose")),
+        pending(t("Inverse", "Inverse")),
+        pending(t("Einheitsmatrix", "Identity")),
+        pending(same("REF")),
+        pending(same("RREF")),
+    ],
+};
+
+static OPTN_BASE_N: Page = Page {
+    title: same("Basis-N"),
+    entries: &[
+        pending(same("DEC")),
+        pending(same("HEX")),
+        pending(same("BIN")),
+        pending(same("OCT")),
+        pending(t("Präfixe d, h, b, o", "Prefixes d, h, b, o")),
+        pending(same("and")),
+        pending(same("or")),
+        pending(same("xor")),
+        pending(same("xnor")),
+        pending(same("Not")),
+        pending(same("Neg")),
+    ],
+};
+
+static OPTN_STATISTICS: Page = Page {
+    title: t("Statistik", "Statistics"),
+    entries: &[
+        pending(t("Typ", "Type")),
+        pending(same("Editor")),
+        pending(t("Summen", "Sums")),
+        pending(t("Kennwerte", "Measures")),
+        pending(t("Min, Max, Quartile", "Min, max, quartiles")),
+        pending(same("Regression")),
+    ],
+};
+
+static OPTN_DISTRIBUTIONS: Page = Page {
+    title: t("Verteilungen", "Distributions"),
+    entries: &[
+        pending(t("Normal-Dichte", "Normal PD")),
+        pending(t("Kumul. Normal-V.", "Normal CD")),
+        pending(t("Inv. Normal-V.", "Inverse normal")),
+        pending(t("Binomial-Dichte", "Binomial PD")),
+        pending(t("Kumul. Binom.-V.", "Binomial CD")),
+        pending(t("Poisson-Dichte", "Poisson PD")),
+        pending(t("Kumul. Poisson-V.", "Poisson CD")),
+        pending(t("Liste, Variable", "List, variable")),
+    ],
+};
+
+static OPTN_VERIFY: Page = Page {
+    title: t("Prüfen", "Verify"),
+    entries: &[
+        ins(same("="), "="),
+        ins(same("≠"), r"\neq "),
+        ins(same("<"), "<"),
+        ins(same(">"), ">"),
+        ins(same("≤"), r"\le "),
+        ins(same("≥"), r"\ge "),
     ],
 };

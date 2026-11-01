@@ -152,7 +152,7 @@ impl Menu {
 
     fn list_key(&mut self, key: Key, settings: &mut Settings) -> Outcome {
         let level = self.level();
-        let count = level.page.entries.len();
+        let count = level.page.entries.len().max(1);
         let selected = match key {
             Key::Digit(digit @ 1..=9) => {
                 let index = level.selected / ROWS * ROWS + usize::from(digit) - 1;
@@ -167,7 +167,7 @@ impl Menu {
                 self.stack.pop();
                 return if self.stack.is_empty() { Outcome::Close } else { Outcome::Stay };
             }
-            Key::Mode => return Outcome::Close,
+            Key::Mode | Key::Optn => return Outcome::Close,
             Key::Up => (level.selected + count - 1) % count,
             Key::Down => (level.selected + 1) % count,
             _ => level.selected,
@@ -205,7 +205,7 @@ impl Menu {
     }
 
     fn edit_key(&mut self, edit: Edit, key: Key, settings: &mut Settings) -> Outcome {
-        let back = matches!(key, Key::Left | Key::Mode);
+        let back = matches!(key, Key::Left | Key::Mode | Key::Optn);
         match edit {
             Edit::Choice { entry, selected } => {
                 let Kind::Choice(setting, opts) = &entry.kind else { return Outcome::Stay };

@@ -19,6 +19,7 @@ pub const GREEK: &[(char, &str)] = &[
 const SYMBOLS: &[(char, &str)] = &[
     ('×', "cdot"), ('÷', "div"), ('±', "pm"), ('∞', "infty"), ('→', "to"), ('≈', "approx"),
     ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"), ('∧', "land"), ('∫', "int"),
+    ('∑', "sum"),
 ];
 
 #[derive(Clone, Debug, Default, PartialEq)]

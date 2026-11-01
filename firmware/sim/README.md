@@ -62,12 +62,13 @@ The characters are the same over the board's serial console (`firmware/handheld`
 | Enter | | EXE |
 | Backspace | | DEL |
 | Esc, Delete, Ctrl+X | | AC |
-| Tab | | MODE: the mode tiles (then 1–5, or the arrows and Enter) |
+| Tab | | MODE: the twelve mode tiles on two pages (then 1–9, or the arrows and Enter) |
 | F1 then Tab | | SHIFT+MODE: setup. A digit or ↑/↓ and Enter open an entry; each entry opens a submenu: a list of values or a number typed with the digits. ← or Backspace go back, Esc closes |
 | arrows | | cursor; ↑/↓ outside a fraction step through earlier calculations |
 | F1, Ctrl+F | | SHIFT (SHIFT, then √ is the n-th root) |
 | F2, Ctrl+K | | ALPHA (only shown for now) |
 | F3, Ctrl+D | | S⇔D: the result exact or as a decimal |
+| F4, Ctrl+N | | OPTN: the mode's options (units, prefixes, functions, …), menus as in the setup |
 | Ctrl+W | | √ |
 | Ctrl+Q | | x² |
 | Ctrl+P | | π |

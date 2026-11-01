@@ -128,6 +128,10 @@ fn every_entry_fits_its_line() {
     }
     let mut pages = Vec::new();
     walk(&tree::SETUP, &mut pages);
+    walk(&tree::SESSIONS, &mut pages);
+    for mode in quantus_ui::app::Mode::ALL {
+        walk(tree::optn(mode), &mut pages);
+    }
     let settings = Settings::default();
     let mut wide = Vec::new();
     for lang in [Lang::De, Lang::En] {
@@ -185,4 +189,37 @@ fn the_top_bar_shows_the_exam_mode_and_the_radios() {
     app.settings.set(quantus_ui::settings::Setting::Exam, 1);
     let shown = texts(&app);
     assert!(shown.contains(&"PRÜFUNG".to_string()) && !shown.contains(&"WLAN".to_string()));
+}
+
+#[test]
+fn optn_inserts_units_prefixes_and_functions() {
+    let mut app = App::new(Stub);
+    // Physik: Einheiten → Länge → m.
+    press(&mut app, &[Key::Digit(5), Key::Optn, Key::Digit(1), Key::Digit(1), Key::Digit(1)]);
+    assert_eq!((app.editor.to_latex(), &app.screen), ("5m".to_string(), &Screen::Calc));
+
+    // Präfixe → k (the tenth, on the second page), then the unit.
+    press(&mut app, &[Key::Ac, Key::Digit(3), Key::Optn, Key::Digit(2)]);
+    press(&mut app, &[Key::Down; 9]);
+    press(&mut app, &[Key::Exe, Key::Optn, Key::Digit(1), Key::Digit(1), Key::Digit(1)]);
+    assert_eq!(app.editor.to_latex(), "3km");
+
+    // Hyperbol. Fkt. → sinh puts the cursor between the brackets.
+    press(&mut app, &[Key::Ac, Key::Optn, Key::Digit(6), Key::Digit(1), Key::Digit(2)]);
+    assert_eq!(app.editor.to_latex(), r"\sinh(2)");
+
+    // OPTN closes OPTN.
+    press(&mut app, &[Key::Optn, Key::Optn]);
+    assert_eq!(app.screen, Screen::Calc);
+}
+
+#[test]
+fn optn_in_lgs_holds_its_settings() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Mode, Key::Digit(5), Key::Digit(1), Key::Optn, Key::Digit(4), Key::Digit(1)]);
+    assert!(app.settings.linear_complex);
+    press(&mut app, &[Key::Digit(2), Key::Digit(4), Key::Exe]);
+    assert_eq!(app.settings.system_rows, 4);
+    press(&mut app, &[Key::Digit(5)]);
+    assert!(app.editor.is_empty() && matches!(app.screen, Screen::Menu(_)));
 }

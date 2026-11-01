@@ -14,6 +14,7 @@ const SYMBOLS: &[(&str, char)] = &[
     ("to", '→'), ("approx", '≈'), ("le", '≤'), ("leq", '≤'), ("ge", '≥'), ("geq", '≥'),
     ("neq", '≠'), ("hbar", 'ℏ'), ("vert", '|'), ("lvert", '|'), ("rvert", '|'), ("{", '{'),
     ("}", '}'), ("%", '%'), ("land", '∧'), ("wedge", '∧'), ("int", '∫'),
+    ("sum", '∑'),
 ];
 
 pub fn parse(latex: &str) -> Row {

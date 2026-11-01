@@ -523,36 +523,45 @@ maps every setting the core has.
 
 ### 7.3 OPTN per mode
 
+In the hui: the OPTN key (`Key::Optn`; F4 or Ctrl+N in the simulator and over serial) opens the
+mode's page in the same menus as SETUP (`tree::optn`); OPTN or AC closes it. An entry inserts
+its LaTeX at the cursor (✓, through `latex::parse`; into the brackets for `sinh(`, between the
+bars for |x|), or says *Noch nicht verfügbar* (◌). The fonts lack →, ⌊⌋, ⌈⌉ and µ: lim shows
+no arrow, floor and ceiling show as their names (`lfloor`), micro is inserted as μ (`\mu`).
+
 Shared groups, used by several modes:
 
-- **Analysis**: ∫, d/dx, Σ, Π [eng], lim
-- **Zahl**: |x|, n!, nCr, nPr [eng], ggT, kgV [eng], Int, Intg, Rnd, RndFix, ÷R [eng], mod,
-  ⌊⌋, ⌈⌉, max, min, %
-- **Hyperbol. Fkt.**: sinh, cosh, tanh, arsinh, arcosh, artanh [eng]
-- **Winkel**: °, rad, °′″ [eng]
-- **Griechisch**: α β γ δ ε θ λ μ ρ σ τ φ ω Δ Ω
-- **Werkzeuge**: CALC [eng], SOLVE [eng], ▶ Einheit [eng]
+- **Analysis**: ∫ ✓ (`\int_{}^{}`), d/dx ✓, Σ ✓ (`\sum`, now drawn as ∑), Π [eng] ◌, lim ✓
+- **Zahl**: |x| ✓, n! ✓, nCr ◌ (the engine has `\binom`, the editor no template), nPr [eng] ◌,
+  ggT, kgV [eng] ◌, Int, Intg, Rnd, RndFix, ÷R [eng] ◌, mod ✓ (`\bmod`), ⌊⌋, ⌈⌉ ✓, max, min ✓
+  (`\max(;)`), % ✓
+- **Hyperbol. Fkt.**: sinh, cosh, tanh ✓, arsinh, arcosh, artanh [eng] ◌
+- **Winkel**: ° ✓, rad ✓, °′″ [eng] ◌
+- **Griechisch**: α β γ δ ε θ λ μ ρ σ τ φ ω Δ Ω ✓
+- **Werkzeuge**: CALC [eng] ◌, SOLVE [eng] ◌, ▶ Einheit [eng] ◌
 
 Per mode:
 
-- **Physik**: Einheiten (by quantity) [Q] · Präfixe [Q] · Analysis · Zahl · Winkel ·
-  Hyperbol. Fkt. · Werkzeuge
-- **Algebra**: Gleichungssystem (`;`, `cases`) [Q] · Griechisch · Analysis · Zahl ·
-  Hyperbol. Fkt. · Werkzeuge
-- **Komplex**: Argument, Konjugierte, Realteil, Imaginärteil, Betrag [C] · ▶r∠θ, ▶a+bi, ∠ [eng] ·
-  Analysis · Zahl
-- **Kurvendiskussion**: the sections · Tangente/Normale · Fläche · Wertetabelle [Q]
-- **Wertetabelle**: f(x) · g(x) · von, bis, Schritt [C]
-- **LGS**: Eingabe Gleichungen / Matrix [A|b] · Größe (m × n, up to 10) · Imaginäre Einheit i ·
-  Alles löschen [Q]
+- **Physik**: Einheiten (by quantity) [Q] ✓ (the units of section 5.3 in 15 quantities,
+  inserted as letters) · Präfixe [Q] ✓ (all 24, as letters, μ as `\mu`) · Analysis · Zahl ·
+  Winkel · Hyperbol. Fkt. · Werkzeuge
+- **Algebra**: Gleichungssystem (`;` ✓, `cases` ◌, no template) [Q] · Griechisch · Analysis ·
+  Zahl · Hyperbol. Fkt. · Werkzeuge
+- **Komplex**: Argument, Realteil, Imaginärteil, Betrag ✓, Konjugierte ◌ (no `\overline`
+  template) [C] · ▶r∠θ, ▶a+bi, ∠ [eng] ◌ · Analysis · Zahl
+- **Kurvendiskussion**: the sections · Tangente/Normale · Fläche · Wertetabelle [Q], all ◌ until
+  the mode has its screens
+- **Wertetabelle**: f(x) · g(x) · von, bis, Schritt [C] ◌
+- **LGS**: Eingabe Gleichungen / Matrix [A|b] ◌ (kept) · Größe as Zeilen and Spalten, typed,
+  up to 10 ◌ (kept) · Imaginäre Einheit i ✓ (`linearComplex`) · Alles löschen ✓ [Q]
 - **Matrizen**: Definieren, Bearbeiten · the matrix variables · Ans · Determinante,
-  Transponierte, Inverse, Einheitsmatrix, REF, RREF [C, eng]
-- **Basis-N**: DEC, HEX, BIN, OCT · d, h, b, o · and, or, xor, xnor, Not, Neg [C, eng]
+  Transponierte, Inverse, Einheitsmatrix, REF, RREF [C, eng] ◌
+- **Basis-N**: DEC, HEX, BIN, OCT · d, h, b, o · and, or, xor, xnor, Not, Neg [C, eng] ◌
 - **Statistik**: Typ (1 Variable and the 7 regressions) · Editor: Zeile einfügen, Alles löschen ·
-  Summen, Kennwerte, Min/Max/Quartile, Regression [C, eng]
+  Summen, Kennwerte, Min/Max/Quartile, Regression [C, eng] ◌
 - **Verteilungen**: Normal-Dichte, Kumul. Normal-V, Inv. Normal-V, Binomial-Dichte, Kumul.
-  Binom.-V, Poisson-Dichte, Kumul. Poisson-V · Liste/Variable [C, eng]
-- **Prüfen**: =, ≠, <, >, ≤, ≥ [C, eng]
+  Binom.-V, Poisson-Dichte, Kumul. Poisson-V · Liste/Variable [C, eng] ◌
+- **Prüfen**: =, ≠, <, >, ≤, ≥ [C, eng] ✓ as inserts; the mode itself waits for the engine
 
 ### 7.4 Keys
 
@@ -560,7 +569,7 @@ Per mode:
 |---|---|---|
 | Main menu | MODE | exists |
 | SETUP | SHIFT + MODE | exists |
-| OPTN | OPTN | missing |
+| OPTN | OPTN | exists (`Optn`; F4, Ctrl+N) |
 | CONST, CONV | own key or SHIFT + a key | missing |
 | S⇔D | S⇔D | exists (`SwapForm`) |
 | ENG, ←ENG | a key and SHIFT + it | missing |
