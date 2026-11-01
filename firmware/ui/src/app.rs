@@ -102,6 +102,9 @@ pub struct Entry {
 /// How long the caret stays on and off.
 const BLINK_MS: u64 = 500;
 
+/// How long the busy spinner takes per step; eight steps make a turn.
+const SPIN_MS: u64 = 125;
+
 /// Older entries are dropped.
 const HISTORY: usize = 50;
 
@@ -122,8 +125,14 @@ pub struct App<B> {
     pub battery: Option<u8>,
     /// Whether the battery is charging, set by the board while USB power is in.
     pub charging: bool,
+    /// Whether a calculation is running elsewhere (the remote engine over WLAN): a spinner turns
+    /// in the top bar. Set by whoever sends the request.
+    pub busy: bool,
+    /// The spinner's step, 0 to 7.
+    pub spin: u8,
     pub caret_on: bool,
     last_blink: u64,
+    last_spin: u64,
 }
 
 impl<B> App<B> {
@@ -147,19 +156,28 @@ impl<B: Backend> App<B> {
             shown: None,
             battery: None,
             charging: false,
+            busy: false,
+            spin: 0,
             caret_on: true,
             last_blink: 0,
+            last_spin: 0,
         }
     }
 
-    /// Blinks the caret; returns whether the screen changed.
+    /// Blinks the caret and turns the spinner while busy; returns whether the screen changed.
     pub fn tick(&mut self, now_ms: u64) -> bool {
-        if now_ms.saturating_sub(self.last_blink) < BLINK_MS {
-            return false;
+        let mut changed = false;
+        if self.busy && now_ms.saturating_sub(self.last_spin) >= SPIN_MS {
+            self.last_spin = now_ms;
+            self.spin = (self.spin + 1) % 8;
+            changed = true;
         }
-        self.last_blink = now_ms;
-        self.caret_on = !self.caret_on;
-        true
+        if now_ms.saturating_sub(self.last_blink) >= BLINK_MS {
+            self.last_blink = now_ms;
+            self.caret_on = !self.caret_on;
+            changed = true;
+        }
+        changed
     }
 
     pub fn key(&mut self, key: Key) {

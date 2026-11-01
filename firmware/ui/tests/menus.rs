@@ -208,3 +208,18 @@ fn the_battery_shows_a_bolt_while_charging() {
     app.charging = true;
     assert_eq!(triangles(&app), before + 2);
 }
+
+#[test]
+fn a_spinner_turns_in_the_top_bar_while_busy() {
+    let dots = |app: &App<Stub>| {
+        Frame::new(app).0.iter().filter(|shape| matches!(shape, quantus_ui::render::Shape::Circle(..))).count()
+    };
+    let mut app = App::new(Stub);
+    let idle = dots(&app);
+    assert!(!app.tick(200), "the spinner stands still while idle");
+    app.busy = true;
+    assert_eq!(dots(&app), idle + 8);
+    let spin = app.spin;
+    assert!(app.tick(400));
+    assert_ne!(app.spin, spin);
+}

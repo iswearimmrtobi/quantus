@@ -172,7 +172,7 @@ fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
     RoundedRectangle::with_equal_corners(Rectangle::new(top_left, size), Size::new(radius, radius))
 }
 
-/// The top bar: the mode (or the menu's page) on the left; on the right SHIFT and ALPHA while
+/// The top bar: the mode (or the menu's page) on the left, followed by a spinner while busy; on the right SHIFT and ALPHA while
 /// they are on, the digits, exact or decimal, the angle unit, the WLAN and Bluetooth icons when
 /// on, the exam mode and the battery.
 fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
@@ -183,6 +183,20 @@ fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         _ => &app.mode.name(app.settings.language),
     };
     shapes.push(Shape::Text(Point::new(MARGIN, baseline), title.to_string(), Scale::Small, colors::TEXT));
+    if app.busy {
+        // Eight dots on a ring; the bright one moves on a step each tick, with a trail behind it.
+        let center = Point::new(MARGIN + Scale::Small.width(title) + 18, BAR / 2);
+        for dot in 0..8u8 {
+            let angle = f32::from(dot) * core::f32::consts::FRAC_PI_4;
+            let at = center + Point::new((7.0 * angle.cos()).round() as i32, (7.0 * angle.sin()).round() as i32);
+            let color = match (app.spin + 8 - dot) % 8 {
+                0 => colors::TEXT,
+                1 => colors::MUTED,
+                _ => colors::FAINT,
+            };
+            shapes.push(Shape::Circle(Circle::with_center(at, 4), color));
+        }
+    }
 
     // From the right edge inwards.
     let mut right = WIDTH as i32 - MARGIN;
