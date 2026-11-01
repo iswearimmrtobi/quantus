@@ -50,3 +50,32 @@ fn sizes_and_singular_matrices_are_errors() {
     assert!(run(&mut store, r"A + \begin{pmatrix} 1 \end{pmatrix}").contains("same size"));
     assert!(run(&mut store, "A + 1").starts_with("error"));
 }
+
+fn steps(latex: &str, detail: StepDetail) -> Vec<(String, String)> {
+    let mut store = SessionStore::new();
+    api::set_settings(&mut store, Settings { mode: Mode::Matrix, step_detail: detail, ..Settings::default() }).unwrap();
+    let request = CalculationRequest { latex: latex.into(), ..Default::default() };
+    api::evaluate(&mut store, &request)
+        .unwrap()
+        .steps
+        .into_iter()
+        .map(|step| (step.latex, step.explanation.unwrap_or_default()))
+        .collect()
+}
+
+#[test]
+fn the_inverse_shows_the_elimination_of_a_beside_i() {
+    let steps = steps(r"\begin{pmatrix} 2 & 1 \\ 1 & 1 \end{pmatrix}^{-1}", StepDetail::Standard);
+    // Symbolic, the stages, the end form, the result.
+    assert!(steps.len() >= 4, "{steps:?}");
+    assert!(steps[1].0.contains("{cc|cc|l}"), "{}", steps[1].0);
+    assert!(steps.iter().any(|(_, text)| text.contains("right half is the inverse")));
+    assert!(steps.last().unwrap().0.ends_with(r"\begin{pmatrix} 1 & -1 \\ -1 & 2 \end{pmatrix}"), "{:?}", steps.last());
+}
+
+#[test]
+fn the_determinant_is_the_product_of_the_pivots() {
+    let steps = steps(r"\det\begin{pmatrix} 0 & 2 \\ 3 & 1 \end{pmatrix}", StepDetail::Brief);
+    let product = steps.iter().find(|(latex, _)| latex.starts_with(r"\det =")).unwrap();
+    assert_eq!(product.0, r"\det = (-1) \cdot 3 \cdot 2 = -6");
+}

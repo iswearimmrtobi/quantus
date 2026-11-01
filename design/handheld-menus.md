@@ -32,7 +32,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       recurring decimals (`recurring`) and their input, prime factors (FACT)
 - [x] Complex polar form: `complexForm` a+bi / r∠θ, ▶r∠θ / ▶a+bi, ∠ input
 - [x] Basis-N mode `baseN`: integers, DEC/HEX/BIN/OCT, d/h/b/o, and/or/xor/xnor/Not/Neg
-- [ ] Matrices: values with + − ×, inverse, transpose, identity, det, powers, REF/RREF, exact,
+- [x] Matrices: values with + − ×, inverse, transpose, identity, det, powers, REF/RREF, exact,
       with steps
 - [ ] Stochastik: lists, one-variable statistics, the seven regressions, the distributions
 - [ ] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R

@@ -14,6 +14,7 @@ use super::calculator::{fraction_node, gaussian, roman, LatexCalculator, Step};
 use super::system::{Affine, Back, Reduction, Solution, SystemSolution};
 use crate::latex::{exact, serializer, Node};
 use crate::linear::{Logged, Reason, RowOperation};
+use crate::matrix::{Operation, Working};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
 use crate::settings::StepDetail;
@@ -51,6 +52,8 @@ struct Marking<'a> {
     pivot: Option<(usize, usize)>,
     changed: &'a [usize],
     contradiction: Option<usize>,
+    /// The columns left of the bar; `None` puts it before the last column, as in `[A | b]`.
+    split: Option<usize>,
 }
 
 impl LatexCalculator {
@@ -81,7 +84,7 @@ impl LatexCalculator {
         let mut changed = Vec::new();
         for stage in stages(log, detail < StepDetail::Detailed) {
             if standard {
-                let (latex, text) = self.stage(before, stage, &labels, &changed, &plain_names)?;
+                let (latex, text) = self.stage(before, stage, &labels, &changed, &plain_names, None)?;
                 steps.push(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Standard));
             }
             changed = Vec::new();
@@ -166,6 +169,104 @@ impl LatexCalculator {
         Ok(steps)
     }
 
+    /// The working of `\det`, `A^{-1}`, `ref` and `rref` in the matrix mode: the matrix, each
+    /// stage of the elimination as for a system, and what the end form means.
+    pub(crate) fn matrix_steps(&self, working: &Working, result: &Value) -> Result<Vec<Step>> {
+        let detail = self.settings.step_detail;
+        let standard = detail >= StepDetail::Standard;
+        let start = &working.start;
+        let columns = start.first().map_or(0, Vec::len);
+        let split = Some(working.split.unwrap_or(columns));
+        let names: Vec<String> = (1..=columns).map(|c| msg!("column {}", "Spalte {}", c)).collect();
+        let mut steps = Vec::new();
+        let write = match working.what {
+            Operation::Inverse => msg!("Write the matrix next to the identity matrix", "Die Matrix neben die Einheitsmatrix schreiben"),
+            _ => msg!("Eliminate column by column", "Spalte für Spalte eliminieren"),
+        };
+        if !standard || working.log.is_empty() {
+            steps.push(Step::algebraic(self.matrix(start, &Marking { split, ..Marking::default() })?, None, write, None, None));
+        }
+
+        let mut labels: Vec<Label> = (0..start.len()).map(|number| Label { number, marks: 0 }).collect();
+        let mut before = start;
+        let mut changed = Vec::new();
+        for stage in stages(&working.log, detail < StepDetail::Detailed) {
+            if standard {
+                let (latex, text) = self.stage(before, stage, &labels, &changed, &names, split)?;
+                steps.push(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Standard));
+            }
+            changed = Vec::new();
+            for entry in stage {
+                match entry.operation {
+                    RowOperation::Swap(a, b) => {
+                        labels.swap(a, b);
+                        changed.extend([a, b]);
+                    }
+                    ref operation => {
+                        let row = changed_row(operation).expect("only a swap changes no single row");
+                        if !changed.contains(&row) {
+                            labels[row].marks += 1;
+                            changed.push(row);
+                        }
+                    }
+                }
+            }
+            if detail >= StepDetail::Detailed {
+                for entry in stage {
+                    steps.extend(self.arithmetic(before, entry, &labels)?);
+                }
+            }
+            before = &stage.last().expect("a stage has an operation").matrix;
+        }
+
+        if !working.log.is_empty() {
+            let text = match working.what {
+                Operation::Determinant => msg!("The matrix is reduced", "Die Matrix ist reduziert"),
+                Operation::Inverse => msg!(
+                    "The left half is the identity matrix, so the right half is the inverse",
+                    "Links steht die Einheitsmatrix, also rechts die Inverse"
+                ),
+                Operation::RowEchelon => msg!("The matrix is in triangle form", "Die Matrix hat Stufenform"),
+                Operation::ReducedRowEchelon => msg!("The matrix is in reduced row echelon form", "Die Matrix hat reduzierte Stufenform"),
+            };
+            let marking = Marking { labels: standard.then_some(labels.as_slice()), changed: &changed, split, ..Marking::default() };
+            steps.push(Step::algebraic(self.matrix(before, &marking)?, None, text, None, None));
+        }
+
+        if working.what == Operation::Determinant {
+            // det A is the product of the pivots divided to 1, with a sign for each swap.
+            let mut factors = Vec::new();
+            let mut swaps = 0;
+            for logged in &working.log {
+                match &logged.operation {
+                    RowOperation::Swap(..) => swaps += 1,
+                    RowOperation::Divide { divisor, .. } => factors.push(self.factor(divisor)?),
+                    _ => {}
+                }
+            }
+            let reduced_to_identity = before.iter().enumerate().all(|(r, row)| row[r].is_one());
+            let text = if reduced_to_identity {
+                msg!(
+                    "The determinant is the product of the pivots, with a sign change for each swap",
+                    "Die Determinante ist das Produkt der Pivotelemente, mit einem Vorzeichenwechsel je Tausch"
+                )
+            } else {
+                msg!("A row of zeros: the determinant is 0", "Eine Nullzeile: die Determinante ist 0")
+            };
+            let mut product = if factors.is_empty() { vec!["1".to_string()] } else { factors };
+            if swaps % 2 == 1 {
+                product.insert(0, "(-1)".to_string());
+            }
+            let latex = if reduced_to_identity {
+                format!("\\det = {} = {}", product.join(" \\cdot "), self.cell(result)?)
+            } else {
+                "\\det = 0".to_string()
+            };
+            steps.push(Step::algebraic(latex, None, text, None, None));
+        }
+        Ok(steps)
+    }
+
     /// The matrix before a stage with the stage's operations next to the rows, and what the
     /// stage does.
     fn stage(
@@ -175,6 +276,7 @@ impl LatexCalculator {
         labels: &[Label],
         changed: &[usize],
         names: &[String],
+        split: Option<usize>,
     ) -> Result<(String, String)> {
         let mut annotations = vec![String::new(); before.len()];
         for entry in stage {
@@ -205,7 +307,7 @@ impl LatexCalculator {
             (RowOperation::Divide { row, .. }, Reason::UnitPivot { column }) => Some((*row, column)),
             _ => None,
         };
-        let marking = Marking { labels: Some(labels), annotations: Some(annotations), pivot, changed, contradiction: None };
+        let marking = Marking { labels: Some(labels), annotations: Some(annotations), pivot, changed, contradiction: None, split };
         let latex = self.matrix(before, &marking)?;
 
         let maximal = self.settings.step_detail == StepDetail::Maximal;
@@ -430,11 +532,13 @@ impl LatexCalculator {
             rows.push(cells.join(" & "));
         }
         let annotation = if marking.annotations.is_some() { "|l" } else { "" };
-        let body = format!(
-            "\\left(\\begin{{array}}{{{}|c{annotation}}} {} \\end{{array}}\\right)",
-            "c".repeat(columns - 1),
-            rows.join(" \\\\ ")
-        );
+        let left = marking.split.unwrap_or(columns - 1).min(columns);
+        let layout = if left == columns {
+            "c".repeat(columns)
+        } else {
+            format!("{}|{}", "c".repeat(left), "c".repeat(columns - left))
+        };
+        let body = format!("\\left(\\begin{{array}}{{{layout}{annotation}}} {} \\end{{array}}\\right)", rows.join(" \\\\ "));
         let Some(labels) = marking.labels else { return Ok(body) };
         let names: Vec<String> =
             labels.iter().zip(&phantoms).map(|(label, phantom)| format!("{}\\vphantom{{{phantom}}}", label.latex())).collect();

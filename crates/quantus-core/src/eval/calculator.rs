@@ -276,6 +276,9 @@ impl LatexCalculator {
             }
         };
         let mut steps = vec![Step::new(StepKind::Symbolic, symbolic.clone())];
+        if let Some(working) = matrix_evaluator.working.borrow().as_ref() {
+            steps.extend(self.matrix_steps(working, &quantity.value)?);
+        }
         let line = format!("{prefix}{result}");
         if line != symbolic {
             steps.push(Step::new(StepKind::Result, line.clone()));

@@ -115,6 +115,24 @@ and the variants `\varepsilon`, `\vartheta`, `\varphi`.
 
 The full list is in [Units and constants](units-and-constants.md).
 
+## Matrices
+
+The mode `matrix` (engine only for now) computes with matrices as values, exactly, up to 10 × 10.
+`A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}` stores a matrix under any name (`A`, `M_1`);
+later inputs use it by that name.
+
+| Input | Meaning |
+|---|---|
+| `A + B`, `A - B` | sum and difference of matrices of the same size |
+| `A \cdot B`, `AB`, `2A`, `\frac{A}{2}` | matrix product, a number times a matrix |
+| `A^{2}`, `A^{0}`, `A^{-2}` | powers of a square matrix; a negative power is one of the inverse |
+| `A^{-1}` | the inverse, by Gauss–Jordan on $[A \mid I]$, with its steps |
+| `A^{T}`, `A^{\top}` | the transpose |
+| `\det A` | the determinant, as the product of the pivots, with its steps |
+| `\operatorname{Identity}(n)` | the $n \times n$ identity matrix |
+| `\operatorname{ref}(A)`, `\operatorname{rref}(A)` | a row echelon form (by the school method, without fractions) and the reduced one, with their steps |
+| `\|A\|` | the absolute value of each entry |
+
 ## Basis-N
 
 The mode `baseN` works with whole numbers in the [number base](settings.md#general) set, as

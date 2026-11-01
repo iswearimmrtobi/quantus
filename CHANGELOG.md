@@ -26,6 +26,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - A Basis-N mode in the engine (`baseN`): whole numbers in decimal, hexadecimal, binary or octal
   (setting `numberBase`), 32-bit two's complement, the prefixes d, h, b, o and the bitwise
   operations and, or, xor, xnor, Not and Neg. The result comes in all four bases.
+- A matrix mode in the engine (`matrix`): matrices up to 10 × 10 stored under any name, with
+  sums, products, powers, the transpose, the inverse, the determinant, the identity and the row
+  echelon forms, exact and with the elimination as steps.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.
