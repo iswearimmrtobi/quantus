@@ -5,6 +5,7 @@ pub mod calculator;
 pub mod derivative;
 pub mod evaluator;
 pub mod linear_system;
+pub(crate) mod polynomial;
 pub mod solver;
 pub mod substitution;
 pub mod system;

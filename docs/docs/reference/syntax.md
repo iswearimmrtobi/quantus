@@ -86,9 +86,11 @@ functions use [Curve sketching](../guides/analysis.md).
 |---|---|
 | `2x + 3 = 11` | $x = 4$ |
 | `x^2 = 4` | $x = -2 \lor x = 2$ |
-| `x^3 - 2x - 5 = 0` | $x = 2{,}0945514815\ldots$ (numerical) |
+| `x^3 - 2x - 5 = 0` | $x = 2{,}0945514815\ldots$ (by Cardano) |
+| `x^4 - 5x^2 + 4 = 0` | $x = -2 \lor x = -1 \lor x = 1 \lor x = 2$ |
 
-One unknown per equation. Degree up to 2 is solved exactly, higher degrees numerically on
+One unknown per equation. Polynomials with rational coefficients are solved exactly up to degree
+4 and numerically on the whole real line beyond; other equations numerically on
 $[-100, 100]$.
 
 A **system of linear equations** has several unknowns and is the whole input:

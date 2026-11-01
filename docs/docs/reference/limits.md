@@ -21,8 +21,11 @@ app.
   wins in the body.
 - **The unknown of an equation is a plain number.** `3x = 6m` is a dimension error;
   `3x\,\mathrm{m} = 6\,\mathrm{m}` works.
-- **One unknown per equation.** Degree up to 2 is solved exactly, higher degrees numerically on
-  $[-100, 100]$. Several unknowns need a system of equations.
+- **One unknown per equation.** Polynomials are solved exactly up to degree 4 (rational roots,
+  then Cardano and Ferrari) when their coefficients are rational, and numerically on the whole
+  real line beyond that; an exact solution longer than 80 characters is shown as a decimal.
+  Other equations are scanned numerically on $[-100, 100]$. Several unknowns need a system of
+  equations.
 - **Systems must be linear.** `x^2 + y = 1; x - y = 0` is refused; there is no numerical
   solver for non-linear systems. A system is always the whole input and cannot be part of a
   calculation, and its unknowns are plain numbers like those of a single equation.

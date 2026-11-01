@@ -20,6 +20,9 @@ use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
 
+/// The longest exact solution of an equation, in LaTeX characters, before the decimal is shown.
+const MAX_EXACT_SOLUTION: usize = 80;
+
 /// One evaluated input. `input` is the canonical re-rendering of what was typed (with `/`
 /// turned into `\frac{}{}`), `latex` the finished line including the label.
 #[derive(Clone, Debug)]
@@ -434,7 +437,12 @@ impl LatexCalculator {
         let mut first = None;
         for quantity in &solutions.values {
             let quantity = quantity.simplify()?;
-            let (value, imaginary, shown) = self.present(&quantity)?;
+            let (value, imaginary, mut shown) = self.present(&quantity)?;
+            // Cardano's nested roots are shown only when they stay short.
+            if shown.len() > MAX_EXACT_SOLUTION {
+                let decimal = LatexCalculator::new(self.precision).with_settings(Settings { exact_roots: false, ..self.settings.clone() });
+                shown = decimal.present(&quantity)?.2;
+            }
             parts.push(format!("{} = {shown}", solutions.variable));
             first.get_or_insert((quantity, value, imaginary));
         }

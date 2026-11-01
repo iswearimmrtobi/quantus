@@ -49,6 +49,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Conversion to a unit with `▶` (`\blacktriangleright`): `5\,\mathrm{cm} ▶ \mathrm{in}`, in every
   mode, temperatures with their offset; and a list of the targets by the Casio's categories
   (`conversion_units`).
+- Cubic and quartic equations are solved exactly (rational roots, Cardano, Ferrari), and
+  polynomial equations of any degree up to 12 numerically on the whole real line instead of on
+  [-100, 100]; the curve sketch finds polynomial zeros the same way.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

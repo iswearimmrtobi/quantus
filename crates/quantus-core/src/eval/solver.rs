@@ -5,17 +5,20 @@
 //!
 //! Polynomials up to degree two are solved exactly. The coefficients are read off by
 //! evaluating at a few points and checked at others, which also covers `\pi x = 3` and
-//! `\sqrt{2} x^2 = 4`. Anything else is solved numerically: the equation is scanned on
-//! [-100, 100], each sign change is refined by bisection and each interior minimum of the
-//! residual's magnitude by a shrinking-interval search, which finds roots the residual only
-//! touches (`|x - 2| = 0`). A point where the equation is undefined (`1/x` at 0) is sampled
-//! just beside it, so a root next to it is still bracketed.
+//! `\sqrt{2} x^2 = 4`. Polynomials of higher degree with rational coefficients go to
+//! [`super::polynomial`]: exact up to degree four, and numerically beyond that, on the whole
+//! real line. Anything else is solved numerically: the equation is scanned on [-100, 100], each
+//! sign change is refined by bisection and each interior minimum of the residual's magnitude by
+//! a shrinking-interval search, which finds roots the residual only touches (`|x - 2| = 0`). A
+//! point where the equation is undefined (`1/x` at 0) is sampled just beside it, so a root next
+//! to it is still bracketed.
 
 use dashu::base::Abs;
 use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use super::evaluator::Evaluator;
+use super::polynomial;
 use crate::latex::Node;
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
@@ -50,7 +53,16 @@ impl Evaluator<'_> {
 
         let roots = match polynomial_roots(&mut residual, self.complex())? {
             Some(roots) => roots,
-            None => self.numeric_roots(&mut residual, &variable)?,
+            None => match higher_polynomial(&mut residual)? {
+                Some(coefficients) => {
+                    let roots = polynomial::roots(&coefficients, self.complex(), self.precision)?;
+                    if roots.is_empty() {
+                        return Err(QuantusError::other("This equation has no real solution."));
+                    }
+                    roots
+                }
+                None => self.numeric_roots(&mut residual, &variable)?,
+            },
         };
         Ok(Solutions { variable, values: roots.into_iter().map(PhysicalQuantity::dimensionless).collect() })
     }
@@ -254,6 +266,19 @@ fn touch(
     let root = (lo + &hi) / &two;
     let Some((_, magnitude)) = sample(&root)? else { return Ok(None) };
     Ok((magnitude <= *accept).then_some(root))
+}
+
+/// The coefficients when the residual is a polynomial of degree three to
+/// [`polynomial::MAX_DEGREE`] with rational coefficients.
+fn higher_polynomial(residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>) -> Result<Option<Vec<RBig>>> {
+    let mut at = |x: &RBig| -> Result<Option<RBig>> {
+        match residual(Value::Rat(x.clone())) {
+            Ok(q) => Ok(q.value.as_rational().cloned()),
+            Err(e @ (QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_))) => Err(e),
+            Err(_) => Ok(None),
+        }
+    };
+    Ok(polynomial::fit(&mut at)?.filter(|coefficients| coefficients.len() > 3))
 }
 
 /// Exact roots when the residual is a polynomial of degree at most two, `None` otherwise.

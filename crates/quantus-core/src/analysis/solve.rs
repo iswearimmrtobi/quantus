@@ -24,8 +24,6 @@ use super::simplify::{display, is_zero, simplify};
 use crate::algebra::domain::has_no_real_roots;
 use crate::algebra::poly::{Monomial, Poly, Term};
 use crate::algebra::rational_roots::{find_rational_root, square_free};
-use crate::algebra::verify::eval_poly;
-use crate::eval::solver::{scan_roots, Sample};
 use crate::eval::Step;
 use crate::settings::{Settings, StepDetail};
 use crate::text::msg;
@@ -609,32 +607,10 @@ impl Solver<'_> {
         let x = Expr::poly_variable();
         let simple = square_free(p, x).unwrap_or_else(|| p.clone());
         let degree = simple.degree_of(x);
-        let lead = simple.coeff_of(&Monomial::single(x, degree));
-        let bound = simple
-            .terms
-            .iter()
-            .map(|t| (t.coeff.clone() / &lead).abs())
-            .max()
-            .unwrap_or(RBig::ONE)
-            + RBig::ONE;
-        let bound = bound.ceil();
-        let span = u64::try_from((&bound).unsigned_abs()).unwrap_or(u64::MAX).max(1);
-        let steps_per_unit = (2000 / (2 * span)).max(1);
-        let mut sample = |v: &RBig| -> crate::Result<Option<Sample>> {
-            // Out of time, the rest of the scan sees nothing and ends quickly.
-            if super::budget::exceeded() {
-                return Ok(None);
-            }
-            let mut env = std::collections::BTreeMap::new();
-            env.insert(x.to_string(), v.clone());
-            let y = eval_poly(&simple, &env);
-            let sign = if y == RBig::ZERO { 0 } else if y.is_negative() { -1 } else { 1 };
-            Ok(Some((sign, y.abs())))
-        };
-        let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.ctx.digits + 5));
-        let accept = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.ctx.digits + 2));
-        let bound = RBig::from(bound);
-        let found = scan_roots(&mut sample, &-bound.clone(), &bound, steps_per_unit, &tolerance, &accept).unwrap_or_default();
+        // Between consecutive critical points a polynomial is monotonic, so its real roots are
+        // isolated exactly, however close together or far out they lie.
+        let coefficients: Vec<RBig> = (0..=degree).map(|k| simple.coeff_of(&Monomial::single(x, k))).collect();
+        let found = crate::eval::polynomial::real_roots(&coefficients, self.ctx.digits).unwrap_or_default();
         let points: Vec<Point> = found
             .into_iter()
             .map(|r| Point { exact: None, approx: r.to_f64().value(), refined: Some(r) })
