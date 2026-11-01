@@ -9,7 +9,7 @@ use crate::editor::{Node, Row};
 use crate::font::Scale;
 
 /// Characters that get a gap on both sides.
-const OPERATORS: &str = "+-=×÷±→≈≤≥≠";
+const OPERATORS: &str = "+-=×÷±→≈≤≥≠∧";
 
 #[derive(Clone, Debug)]
 pub struct RowLayout {
@@ -38,7 +38,7 @@ pub enum Kind {
     Text { text: String, dx: i32 },
     /// A fraction bar.
     Bar(Rectangle),
-    /// The lines of a root sign.
+    /// The lines of a root sign, or of `∧`, which the fonts lack.
     Sign([Point; 4]),
     /// Only its slot: an exponent or index.
     Script,
@@ -164,6 +164,21 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
     let metrics = scale.metrics();
     let small = Scale::Small.metrics();
     match node {
+        Node::Char('∧') => {
+            let gap = metrics.digit / 2;
+            let height = metrics.digit * 4 / 5;
+            let half = height / 2;
+            let bottom = -metrics.axis + height / 2;
+            let (left, apex, right) = (Point::new(gap, bottom), Point::new(gap + half, bottom - height), Point::new(gap + 2 * half, bottom));
+            Item {
+                x: 0,
+                width: 2 * half + 2 * gap + 1,
+                ascent: metrics.ascent,
+                descent: metrics.descent,
+                kind: Kind::Sign([left, apex, right, right]),
+                slots: Vec::new(),
+            }
+        }
         Node::Char(c) => {
             let text = c.to_string();
             let gap = if OPERATORS.contains(*c) && !unary { metrics.digit / 4 } else { 0 };

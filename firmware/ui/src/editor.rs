@@ -18,7 +18,7 @@ pub const GREEK: &[(char, &str)] = &[
 /// Characters written as a LaTeX command other than a Greek letter.
 const SYMBOLS: &[(char, &str)] = &[
     ('×', "cdot"), ('÷', "div"), ('±', "pm"), ('∞', "infty"), ('→', "to"), ('≈', "approx"),
-    ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"),
+    ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"), ('∧', "land"), ('∫', "int"),
 ];
 
 #[derive(Clone, Debug, Default, PartialEq)]

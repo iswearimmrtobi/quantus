@@ -170,3 +170,13 @@ fn brackets_grow_around_a_fraction_but_not_around_digits() {
     // A bracket not yet closed reaches to the end of the input.
     assert_eq!(parens(r"2(\frac{1}{2}").1.len(), 1);
 }
+
+#[test]
+fn and_is_drawn_as_lines_and_the_integral_comes_from_the_font() {
+    let row = layout::layout(&quantus_ui::latex::parse(r"x = 2 \land y = 1"), Scale::Normal);
+    let and = &row.items[3];
+    assert!(matches!(and.kind, Kind::Sign(_)), "the fonts have no ∧");
+    assert!(and.width > Scale::Normal.metrics().digit / 2);
+    assert_eq!(Scale::Normal.width("∧"), 0);
+    assert!(Scale::Normal.width("∫") > 0);
+}
