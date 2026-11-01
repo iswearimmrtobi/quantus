@@ -1,5 +1,8 @@
 //! The handheld's UI in a window, at twice its size, with the PC keyboard as the keypad (see the
-//! README). `--keys <text> --png <file>` types the text and saves the screen instead.
+//! README), and the real engine answering. `--keys <text> --png <file>` types the text and saves
+//! the screen instead; `--stub` answers with the stub instead of the engine.
+
+mod engine;
 
 use std::time::{Duration, Instant};
 
@@ -8,18 +11,21 @@ use embedded_graphics::prelude::*;
 use embedded_graphics_simulator::sdl2::{Keycode, Mod};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window};
 use quantus_ui::app::App;
-use quantus_ui::backend::Stub;
+use quantus_ui::app::{Mode, Settings};
+use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::key::Key;
+use engine::Engine;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 
 fn main() {
     let mut display = SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT));
-    let mut app = App::new(Stub);
+    let args: Vec<String> = std::env::args().collect();
+    let backend = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::default()) };
+    let mut app = App::new(backend);
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
     let mut renderer = Renderer::new();
 
-    let args: Vec<String> = std::env::args().collect();
     let option = |name: &str| args.iter().position(|arg| arg == name).and_then(|i| args.get(i + 1));
     if let (Some(keys), Some(png)) = (option("--keys"), option("--png")) {
         // `\e` for Esc is not needed here: Ctrl+X clears. `\n` is EXE, `>`/`<` move the cursor.
@@ -57,6 +63,21 @@ fn main() {
         }
         app.tick(start.elapsed().as_millis() as u64);
         std::thread::sleep(Duration::from_millis(15));
+    }
+}
+
+/// What answers: the engine, or the stub with `--stub`.
+enum Answers {
+    Engine(Engine),
+    Stub(Stub),
+}
+
+impl Backend for Answers {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+        match self {
+            Answers::Engine(engine) => engine.evaluate(mode, settings, latex),
+            Answers::Stub(stub) => stub.evaluate(mode, settings, latex),
+        }
     }
 }
 

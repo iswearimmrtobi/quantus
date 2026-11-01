@@ -12,4 +12,19 @@ publish = false
 [dependencies]
 embedded-graphics = "0.8.2"
 embedded-graphics-simulator = "0.8.0"
+quantus-core = { path = "../../crates/quantus-core" }
 quantus-ui = { path = "../ui" }
+
+# As in the main workspace: the number crates are several times slower unoptimised.
+[profile.dev.package.astro-float-num]
+opt-level = 3
+[profile.dev.package.astro-float]
+opt-level = 3
+[profile.dev.package.dashu-int]
+opt-level = 3
+[profile.dev.package.dashu-ratio]
+opt-level = 3
+[profile.dev.package.dashu-float]
+opt-level = 3
+[profile.dev.package.dashu-base]
+opt-level = 3
