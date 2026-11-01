@@ -5,6 +5,7 @@
 //! needless `0 + …` or `1 · …` are folded as they are made: besides keeping the tree small, a
 //! literal `0` would not add to a quantity with a unit.
 
+use super::angles;
 use crate::latex::{Node, Operator};
 use crate::num::Decimal;
 use crate::{QuantusError, Result};
@@ -36,6 +37,17 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
                 return Ok(inner);
             }
             let u = (**argument).clone();
+            // In degree mode sin x is sin(x π/180): the chain rule adds π/180, and arcsin's
+            // value in degrees carries 180/π.
+            let pi = || Node::Constant { name: "\\pi".into(), position };
+            let degrees = angles::in_degrees();
+            let inner = if degrees && angles::takes_angle(name) && !angles::is_marked(argument) {
+                multiply(inner, Node::fraction(pi(), number(180, position), position), position)
+            } else if degrees && angles::gives_angle(name) {
+                multiply(inner, Node::fraction(number(180, position), pi(), position), position)
+            } else {
+                inner
+            };
             let outer = match name.as_str() {
                 "sin" => function("cos", u, position),
                 "cos" => negate(function("sin", u, position), position),

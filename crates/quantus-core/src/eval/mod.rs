@@ -1,5 +1,6 @@
 //! Evaluation: AST to quantity, variable substitution, and the calculator with its steps.
 
+pub(crate) mod angles;
 pub mod calculator;
 pub mod derivative;
 pub mod evaluator;

@@ -23,7 +23,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 
 ### Core (`quantus-core`)
 
-- [ ] Angle unit: setting `angleUnit` Grad/Bogenmaß; ° and rad mark a value regardless of it
+- [x] Angle unit: setting `angleUnit` Grad/Bogenmaß; ° and rad mark a value regardless of it
 - [ ] Sexagesimal °′″: input and result form
 - [ ] Number format: Norm 1/2, Fix 0–9, Sci 0–9 in the formatter
 - [ ] Dezimalpräfixe on plain numbers, and ENG / ←ENG steps of three
@@ -576,7 +576,7 @@ back one level, AC closes SETUP. The tree is `firmware/ui/src/tree.rs`, the mach
 maps every setting the core has.
 
 - **Allgemein**: Sprache ✓ (the hui's texts and the engine's) · Winkeleinheit Grad/Bogenmaß
-  [eng] ◌ · Signifikante Stellen ✓ (typed, 1–15) · Zahlenformat Norm 1/Norm 2/Fix n/Sci n [eng] ◌
+  ✓ (the simulator passes it on) · Signifikante Stellen ✓ (typed, 1–15) · Zahlenformat Norm 1/Norm 2/Fix n/Sci n [eng] ◌
   (Fix and Sci ask for n, 0–9) · Dezimalpräfixe [eng] ◌ · 1000er-Trennung [eng] ◌
 - **Ergebnis**: exakt/dezimal ✓ · Brüche d/c, ab/c [eng] ◌ · Periodisch [eng] ◌ · Komplexe
   Zahlen a+bi/Polar (r, θ) [eng] ◌ (the fonts have no ∠) · Quadratische Gleichungen Auto/pq/abc ✓

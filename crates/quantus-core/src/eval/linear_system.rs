@@ -58,7 +58,7 @@ pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Resu
     // The mode decides how `i` is read, whichever mode the call comes from; results are exact.
     let settings = Settings { mode: Mode::Linear, exact_roots: true, ..settings.clone() };
     let variables = Variables::new();
-    let evaluator = Evaluator::new(&variables).with_precision(settings.precision).with_mode(settings.evaluation_mode());
+    let evaluator = Evaluator::new(&variables).with_precision(settings.precision).with_mode(settings.evaluation_mode()).with_angle_unit(settings.angle_unit);
     let (system, typed) = match request {
         LinearSystemRequest::Equations(latex) => {
             let expression = parser::parse_with(latex, &settings.parse_options())?.expression;

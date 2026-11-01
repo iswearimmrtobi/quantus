@@ -7,6 +7,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The setting **Angle unit** (`angleUnit`, degrees or radians) for the engine: with degrees,
+  `\sin 30 = 0{,}5` and `\arctan 1 = 45`, and derivatives and `\arg` follow. `30^\circ` and
+  `2\,\mathrm{rad}` keep their own unit in either setting. Radians stay the default.
 - A fifth mode, **Linear systems** (German **LGS**), for systems of linear equations, solved
   exactly with their Gauss steps. The **Equations** tab takes one equation per line (Enter
   solves, a second Enter or `\\` starts a new line). The **Matrix** tab takes `[A | b]` in a grid

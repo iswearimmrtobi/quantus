@@ -172,7 +172,8 @@ impl LatexCalculator {
         let formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let evaluator = Evaluator::new(variables)
             .with_precision(self.precision)
-            .with_mode(self.settings.evaluation_mode());
+            .with_mode(self.settings.evaluation_mode())
+            .with_angle_unit(self.settings.angle_unit);
         if let Node::System { .. } = formula.expression {
             return self.evaluate_system(&evaluator, formula, variables);
         }
@@ -492,7 +493,10 @@ impl LatexCalculator {
         }
         // The working between the input and the result, as far as the levels ask for it.
         if self.settings.step_detail > StepDetail::Brief && !matches!(expression, Node::Equation { .. }) {
-            let evaluator = Evaluator::new(variables).with_precision(self.precision).with_mode(self.settings.evaluation_mode());
+            let evaluator = Evaluator::new(variables)
+                .with_precision(self.precision)
+                .with_mode(self.settings.evaluation_mode())
+                .with_angle_unit(self.settings.angle_unit);
             steps.extend(common_unit_line(&expression, &evaluator, prefix));
             // Each part evaluated once more: only where it is shown.
             if self.settings.step_detail == StepDetail::Maximal {

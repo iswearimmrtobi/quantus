@@ -129,6 +129,16 @@ pub enum Mode {
     Kirchhoff,
 }
 
+/// The unit a plain number in a trigonometric function is read in, and inverse functions answer in.
+/// A value marked with `^\circ` or `\mathrm{rad}` keeps its own unit either way.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum AngleUnit {
+    Degree,
+    #[default]
+    Radian,
+}
+
 /// The language of the texts the engine writes itself (the electronics notes and errors).
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -166,6 +176,8 @@ pub struct Settings {
     pub unknown_names: UnknownNames,
     /// Whether `i` is the imaginary unit in the linear systems mode rather than an unknown.
     pub linear_complex: bool,
+    /// Degrees or radians for `\sin 30` and `\arcsin`; the curve sketch always uses radians.
+    pub angle_unit: AngleUnit,
 }
 
 impl Default for Settings {
@@ -188,6 +200,7 @@ impl Default for Settings {
             elimination: Elimination::Gauss,
             unknown_names: UnknownNames::Indexed,
             linear_complex: false,
+            angle_unit: AngleUnit::Radian,
         }
     }
 }
@@ -290,7 +303,8 @@ mod tests {
                 "cancelMarks": true,
                 "elimination": "gauss",
                 "unknownNames": "indexed",
-                "linearComplex": false
+                "linearComplex": false,
+                "angleUnit": "radian"
             })
         );
     }

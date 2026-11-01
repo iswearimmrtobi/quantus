@@ -44,8 +44,8 @@ before sums.
 
 | Input | Notes |
 |---|---|
-| `\sin`, `\cos`, `\tan`, `\cot`, `\sec`, `\csc` | radians, or degrees with `30^\circ`; exact where the value is rational ($\sin 30^\circ = 0{,}5$) |
-| `\arcsin`, `\arccos`, `\arctan`, `\sin^{-1}` | result in radians |
+| `\sin`, `\cos`, `\tan`, `\cot`, `\sec`, `\csc` | in the [angle unit](settings.md#general), or marked: `30^\circ` in degrees, `2\,\mathrm{rad}` in radians; exact where the value is rational ($\sin 30^\circ = 0{,}5$) |
+| `\arcsin`, `\arccos`, `\arctan`, `\sin^{-1}` | result in the angle unit |
 | `\sinh`, `\cosh`, `\tanh` | |
 | `\exp`, `e^{x}` | |
 | `\ln`, `\log` (base 10), `\lg`, `\log_b` | arguments must be positive; $\log_2 8 = 3$ |

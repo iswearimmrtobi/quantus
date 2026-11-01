@@ -14,9 +14,9 @@ use dashu::rational::RBig;
 
 use crate::latex::{Node, Operator};
 use crate::num::{Decimal, MathFunction, Value, DEFAULT_PRECISION, MAX_PRECISION};
-use super::derivative;
+use super::{angles, derivative};
 use crate::numeric;
-use crate::settings::Mode;
+use crate::settings::{AngleUnit, Mode};
 use crate::quantity::PhysicalQuantity;
 use crate::{QuantusError, Result};
 
@@ -32,6 +32,8 @@ pub struct Evaluator<'a> {
     /// Algebra and analysis mode know no physical constants (`c_0`, `h_P`, ...); imaginary mode computes
     /// with complex numbers where the other modes report an error.
     mode: Mode,
+    /// Whether a plain number in `\sin` is read in degrees (the angle unit setting).
+    degrees: bool,
 }
 
 /// Longest sum that is worth adding up term by term.
@@ -49,7 +51,7 @@ const MAX_NUMERIC_DIGITS: usize = 30;
 
 impl<'a> Evaluator<'a> {
     pub fn new(variables: &'a Variables) -> Self {
-        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS), mode: Mode::default() }
+        Evaluator { variables, precision: DEFAULT_PRECISION, numeric_digits: DEFAULT_PRECISION.min(MAX_NUMERIC_DIGITS), mode: Mode::default(), degrees: false }
     }
 
     pub fn with_precision(mut self, precision: usize) -> Self {
@@ -61,6 +63,16 @@ impl<'a> Evaluator<'a> {
     pub fn with_mode(mut self, mode: Mode) -> Self {
         self.mode = mode;
         self
+    }
+
+    /// Reads plain numbers in trigonometric functions in this unit. The curve sketch ignores it.
+    pub fn with_angle_unit(mut self, unit: AngleUnit) -> Self {
+        self.degrees = unit == AngleUnit::Degree;
+        self
+    }
+
+    pub(super) fn degrees(&self) -> bool {
+        self.degrees && self.mode != Mode::Analysis
     }
 
     pub(super) fn complex(&self) -> bool {
@@ -75,7 +87,7 @@ impl<'a> Evaluator<'a> {
     /// An evaluator that sees the same variables plus `scope`, which the caller updates between
     /// samples.
     fn scoped<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
-        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, mode: self.mode }
+        Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, mode: self.mode, degrees: self.degrees }
     }
 
     pub(super) fn scoped_over<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
@@ -91,6 +103,7 @@ impl<'a> Evaluator<'a> {
             precision: (self.precision + NESTING_DIGITS).min(MAX_PRECISION),
             numeric_digits: self.numeric_digits + NESTING_DIGITS,
             mode: self.mode,
+            degrees: self.degrees,
         }
     }
 
@@ -157,20 +170,28 @@ impl<'a> Evaluator<'a> {
             Node::Function { name, argument, .. } if self.complex() && is_complex_function(name) => {
                 let argument = self.plain_number(argument, &format!("The argument of \\{name}"))?;
                 let unknown = || QuantusError::other(format!("\\{name} needs a number of the form a + bi."));
-                match name.as_str() {
-                    "Re" => argument.real_part().ok_or_else(unknown),
-                    "Im" => argument.imaginary_part().ok_or_else(unknown),
-                    "overline" => argument.conjugate().ok_or_else(unknown),
-                    _ => argument.argument().ok_or_else(unknown)?,
-                }
-                .map(PhysicalQuantity::dimensionless)
+                let value = match name.as_str() {
+                    "Re" => argument.real_part().ok_or_else(unknown)?,
+                    "Im" => argument.imaginary_part().ok_or_else(unknown)?,
+                    "overline" => argument.conjugate().ok_or_else(unknown)?,
+                    _ if self.degrees() => angles::to_degrees(&argument.argument().ok_or_else(unknown)??)?,
+                    _ => argument.argument().ok_or_else(unknown)??,
+                };
+                Ok(PhysicalQuantity::dimensionless(value))
             }
             Node::Function { name, argument, .. } => {
                 let function = MathFunction::from_command(name)
                     .ok_or_else(|| QuantusError::other(format!("Unknown function '\\{name}'.")))?;
-                let argument = self.plain_number(argument, &format!("The argument of \\{name}"))?;
-                let applied = if self.complex() { argument.apply_complex(function) } else { argument.apply(function) };
-                applied.map(PhysicalQuantity::dimensionless)
+                let in_degrees = self.degrees() && angles::takes_angle(name) && !angles::is_marked(argument);
+                let mut argument = self.plain_number(argument, &format!("The argument of \\{name}"))?;
+                if in_degrees {
+                    argument = angles::to_radians(&argument)?;
+                }
+                let mut applied = if self.complex() { argument.apply_complex(function) } else { argument.apply(function) }?;
+                if self.degrees() && angles::gives_angle(name) {
+                    applied = angles::to_degrees(&applied)?;
+                }
+                Ok(PhysicalQuantity::dimensionless(applied))
             }
             Node::Sum { index, from, to, body, .. } => self.sum(index, from, to, body),
             Node::Integral { variable, lower, upper, body, .. } => self.integral(variable, lower, upper, body),
@@ -525,7 +546,10 @@ impl<'a> Evaluator<'a> {
     /// Differentiates symbolically, then evaluates the result at `at`, or with whatever the
     /// variable already stands for.
     fn derivative(&self, variable: &str, body: &Node, at: Option<&Node>) -> Result<PhysicalQuantity> {
-        let derived = derivative::differentiate(body, variable)?;
+        let derived = {
+            let _unit = angles::DegreeScope::new(self.degrees());
+            derivative::differentiate(body, variable)?
+        };
         let mut scope = self.variables.clone();
         match at {
             Some(at) => {
