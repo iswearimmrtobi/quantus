@@ -6,7 +6,7 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
 
-use crate::app::{App, Mode};
+use crate::app::{App, Mode, Screen};
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
 
@@ -147,7 +147,7 @@ impl Frame {
         if !app.editor.is_empty() {
             shapes.push(Shape::Math(origin, input, colors::TEXT));
         }
-        if app.caret_on && app.menu.is_none() {
+        if app.caret_on && app.screen == Screen::Calc && app.shown.is_none() {
             shapes.push(Shape::Fill(caret, colors::TEXT));
         }
 
@@ -162,7 +162,7 @@ impl Frame {
             shapes.push(Shape::Text(Point::new(x, status_baseline), label.to_string(), Scale::Small, colors::SHIFT));
         }
 
-        if let Some(selected) = app.menu {
+        if let Screen::Menu { selected } = app.screen {
             menu(&mut shapes, selected);
         }
         Frame(shapes)

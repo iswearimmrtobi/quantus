@@ -47,10 +47,47 @@ impl Mode {
     }
 }
 
+/// How results are written, set on the setup page.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Settings {
+    /// Significant digits of decimal results, 1 to [`Settings::MAX_DIGITS`].
+    pub digits: u8,
+    /// Decimals instead of exact fractions and roots.
+    pub decimal: bool,
+}
+
+impl Settings {
+    pub const MAX_DIGITS: u8 = 15;
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings { digits: 10, decimal: false }
+    }
+}
+
+/// The lines of the setup page.
+pub const SETUP_ROWS: usize = 2;
+
+/// Tiles per page of the mode menu, in [`MENU_COLUMNS`] columns.
+pub const TILES_PER_PAGE: usize = 6;
+pub const MENU_COLUMNS: usize = 3;
+
+/// What fills the screen below the top bar.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Screen {
+    Calc,
+    /// The mode menu, with the selected tile counted over all pages.
+    Menu { selected: usize },
+    Setup { selected: usize },
+}
+
 /// A calculation in the history.
 pub struct Entry {
     pub input: Row,
     pub result: Result<Row, String>,
+    /// Whether the result is written as a decimal; S⇔D flips it.
+    pub decimal: bool,
 }
 
 /// How long the caret stays on and off.
@@ -62,14 +99,18 @@ const HISTORY: usize = 50;
 pub struct App<B> {
     backend: B,
     pub mode: Mode,
+    pub settings: Settings,
+    pub screen: Screen,
     pub shift: bool,
+    pub alpha: bool,
     pub editor: Editor,
     /// Oldest first.
     pub history: Vec<Entry>,
-    /// The entry whose input ↑ brought back, counted from the newest.
-    recalled: Option<usize>,
-    /// The selected line while the mode menu is open.
-    pub menu: Option<usize>,
+    /// The entry on the screen, counted from the newest: the editor holds its input and its
+    /// result is shown. `None` while an input is being typed.
+    pub shown: Option<usize>,
+    /// The charge in percent, if the board can tell.
+    pub battery: Option<u8>,
     pub caret_on: bool,
     last_blink: u64,
 }
@@ -79,14 +120,22 @@ impl<B: Backend> App<B> {
         App {
             backend,
             mode: Mode::Physics,
+            settings: Settings::default(),
+            screen: Screen::Calc,
             shift: false,
+            alpha: false,
             editor: Editor::new(),
             history: Vec::new(),
-            recalled: None,
-            menu: None,
+            shown: None,
+            battery: None,
             caret_on: true,
             last_blink: 0,
         }
+    }
+
+    /// The entry whose result is on the screen.
+    pub fn shown_entry(&self) -> Option<&Entry> {
+        self.history.iter().rev().nth(self.shown?)
     }
 
     /// Blinks the caret; returns whether the screen changed.
@@ -101,11 +150,26 @@ impl<B: Backend> App<B> {
 
     pub fn key(&mut self, key: Key) {
         self.caret_on = true;
-        if let Some(selected) = self.menu {
-            self.menu_key(selected, key);
+        let shift = std::mem::take(&mut self.shift);
+        let alpha = std::mem::take(&mut self.alpha);
+        match self.screen {
+            Screen::Menu { selected } => self.menu_key(selected, key),
+            Screen::Setup { selected } => self.setup_key(selected, key),
+            Screen::Calc => self.calc_key(key, shift, alpha),
+        }
+    }
+
+    fn calc_key(&mut self, key: Key, shift: bool, alpha: bool) {
+        match key {
+            Key::Shift => return self.shift = !shift,
+            Key::Alpha => return self.alpha = !alpha,
+            Key::Mode if shift => return self.screen = Screen::Setup { selected: 0 },
+            Key::Mode => return self.screen = Screen::Menu { selected: self.mode.index() },
+            _ => {}
+        }
+        if self.shown.is_some() && !self.leave_result(key) {
             return;
         }
-        let shift = std::mem::take(&mut self.shift);
         let editor = &mut self.editor;
         match key {
             Key::Digit(digit) => editor.char(char::from(b'0' + digit.min(9))),
@@ -144,66 +208,160 @@ impl<B: Backend> App<B> {
             }
             Key::Up => {
                 if !editor.up() {
-                    self.recall(self.recalled.map_or(0, |index| index + 1));
+                    self.recall(0);
                 }
             }
             Key::Down => {
-                if !editor.down() {
-                    match self.recalled {
-                        Some(0) | None => {
-                            self.recalled = None;
-                            self.editor.clear();
-                        }
-                        Some(index) => self.recall(index - 1),
-                    }
-                }
+                editor.down();
             }
             Key::Del => editor.delete(),
-            Key::Ac => {
-                editor.clear();
-                self.recalled = None;
-            }
+            Key::Ac => editor.clear(),
             Key::Ok | Key::Exe => self.evaluate(),
-            Key::Shift => self.shift = !shift,
-            Key::Mode => self.menu = Some(self.mode.index()),
+            Key::SwapForm | Key::Shift | Key::Alpha | Key::Mode => {}
         }
+    }
+
+    /// A key pressed while a result is shown, as on a Casio: an operator goes on with the result,
+    /// ←/→/DEL edit the input again, ↑/↓ step through the history, other keys start afresh.
+    /// Returns whether the key still goes to the editor.
+    fn leave_result(&mut self, key: Key) -> bool {
+        let Some(shown) = self.shown else { return true };
+        match key {
+            Key::Up => {
+                self.recall(shown + 1);
+                false
+            }
+            Key::Down => {
+                match shown {
+                    0 => self.reset(),
+                    _ => self.recall(shown - 1),
+                }
+                false
+            }
+            Key::Ok | Key::Exe => false,
+            Key::SwapForm => {
+                self.swap_form(shown);
+                false
+            }
+            Key::Left | Key::Right => {
+                self.shown = None;
+                false
+            }
+            Key::Del => {
+                self.shown = None;
+                true
+            }
+            Key::Ac => {
+                self.reset();
+                false
+            }
+            Key::Plus | Key::Minus | Key::Times | Key::Divide | Key::Power | Key::Square | Key::Fraction => {
+                let result = self.shown_entry().and_then(|entry| entry.result.as_ref().ok()).cloned();
+                self.reset();
+                if let Some(result) = result {
+                    self.editor.paste(&result);
+                }
+                true
+            }
+            _ => {
+                self.reset();
+                true
+            }
+        }
+    }
+
+    /// An empty input, no result.
+    fn reset(&mut self) {
+        self.editor.clear();
+        self.shown = None;
     }
 
     fn menu_key(&mut self, selected: usize, key: Key) {
         let count = Mode::ALL.len();
-        match key {
-            Key::Digit(digit @ 1..=5) => self.choose(usize::from(digit) - 1),
-            Key::Up => self.menu = Some((selected + count - 1) % count),
-            Key::Down => self.menu = Some((selected + 1) % count),
-            Key::Ok | Key::Exe => self.choose(selected),
-            Key::Ac | Key::Mode | Key::Del => self.menu = None,
-            _ => {}
-        }
+        let row = selected % TILES_PER_PAGE / MENU_COLUMNS;
+        let selected = match key {
+            Key::Digit(digit @ 1..=9) if usize::from(digit) <= count => {
+                return self.choose(usize::from(digit) - 1);
+            }
+            Key::Ok | Key::Exe => return self.choose(selected),
+            Key::Ac | Key::Mode | Key::Del => return self.screen = Screen::Calc,
+            Key::Left => selected.saturating_sub(1),
+            Key::Right => (selected + 1).min(count - 1),
+            Key::Up if row > 0 => selected - MENU_COLUMNS,
+            Key::Down if row + 1 < TILES_PER_PAGE / MENU_COLUMNS => {
+                (selected + MENU_COLUMNS).min(count - 1)
+            }
+            _ => selected,
+        };
+        self.screen = Screen::Menu { selected };
     }
 
     fn choose(&mut self, index: usize) {
         self.mode = Mode::ALL[index];
-        self.menu = None;
+        self.screen = Screen::Calc;
     }
 
-    /// Puts the input of the entry `index` places back from the newest into the editor.
+    fn setup_key(&mut self, selected: usize, key: Key) {
+        let settings = &mut self.settings;
+        let step = match key {
+            Key::Left => -1,
+            Key::Right => 1,
+            _ => 0,
+        };
+        let selected = match key {
+            Key::Digit(digit @ 1..=2) => usize::from(digit) - 1,
+            Key::Up => (selected + SETUP_ROWS - 1) % SETUP_ROWS,
+            Key::Down => (selected + 1) % SETUP_ROWS,
+            Key::Ac | Key::Mode | Key::Del | Key::Ok | Key::Exe => {
+                return self.screen = Screen::Calc;
+            }
+            _ => selected,
+        };
+        if step != 0 {
+            match selected {
+                0 => {
+                    let digits = i16::from(settings.digits) + step;
+                    settings.digits = digits.clamp(1, i16::from(Settings::MAX_DIGITS)) as u8;
+                }
+                _ => settings.decimal = !settings.decimal,
+            }
+        }
+        self.screen = Screen::Setup { selected };
+    }
+
+    /// Shows the entry `index` places back from the newest, its input in the editor.
     fn recall(&mut self, index: usize) {
         let Some(entry) = self.history.iter().rev().nth(index) else { return };
         self.editor.set(entry.input.clone());
-        self.recalled = Some(index);
+        self.shown = Some(index);
+    }
+
+    /// Evaluates the shown entry again, as a decimal if it was exact and the other way round.
+    fn swap_form(&mut self, shown: usize) {
+        let index = self.history.len() - 1 - shown;
+        let entry = &self.history[index];
+        let settings = Settings { decimal: !entry.decimal, ..self.settings };
+        let result = self.backend.evaluate(self.mode, &settings, &entry.input.to_latex());
+        let entry = &mut self.history[index];
+        entry.result = result.map(|latex| latex::parse(&latex));
+        entry.decimal = settings.decimal;
     }
 
     fn evaluate(&mut self) {
         if self.editor.is_empty() {
             return;
         }
-        let result = self.backend.evaluate(self.mode, &self.editor.to_latex());
-        let input = std::mem::take(&mut self.editor.row);
-        self.history.push(Entry { input, result: result.map(|latex| latex::parse(&latex)) });
+        let result = self.backend.evaluate(self.mode, &self.settings, &self.editor.to_latex());
+        let input = self.editor.row.clone();
+        self.history.push(Entry {
+            input: input.clone(),
+            result: result.map(|latex| latex::parse(&latex)),
+            decimal: self.settings.decimal,
+        });
         if self.history.len() > HISTORY {
             self.history.remove(0);
         }
-        self.editor.clear();
-        self.recalled = None;
+        self.editor.set(input);
+        self.shown = Some(0);
     }
 }

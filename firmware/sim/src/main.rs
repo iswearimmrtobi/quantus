@@ -70,6 +70,8 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::Escape | Keycode::Delete => return Some(Key::Ac),
         Keycode::Return | Keycode::KpEnter => return Some(Key::Exe),
         Keycode::F1 => return Some(Key::Shift),
+        Keycode::F2 => return Some(Key::Alpha),
+        Keycode::F3 => return Some(Key::SwapForm),
         Keycode::KpPlus => return Some(Key::Plus),
         Keycode::KpMinus => return Some(Key::Minus),
         Keycode::KpMultiply => return Some(Key::Times),

@@ -1,7 +1,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
-use quantus_ui::app::{App, Mode};
+use quantus_ui::app::{App, Mode, Screen};
 use quantus_ui::backend::Stub;
 use quantus_ui::editor::Editor;
 use quantus_ui::font::Scale;
@@ -40,41 +40,78 @@ fn the_caret_follows_the_cursor_into_a_denominator() {
 }
 
 #[test]
-fn exe_moves_the_input_into_the_history() {
+fn exe_shows_the_result_and_up_steps_through_the_history() {
     let mut app = App::new(Stub);
     press(&mut app, &[Key::Digit(3), Key::Fraction, Key::Digit(4), Key::Right, Key::Plus, Key::Digit(1), Key::Exe]);
-    assert!(app.editor.is_empty());
-    let entry = &app.history[0];
+    let entry = app.shown_entry().unwrap();
     assert_eq!(entry.input.to_latex(), r"\frac{3}{4}+1");
     assert_eq!(entry.result.as_ref().unwrap().to_latex(), r"\frac{3}{4}+1");
+    assert_eq!(app.editor.to_latex(), r"\frac{3}{4}+1", "the input stays on the screen");
 
-    press(&mut app, &[Key::Letter('?'), Key::Exe]);
-    assert!(app.history[1].result.is_err());
+    // A digit starts afresh.
+    press(&mut app, &[Key::Digit(2), Key::Letter('?'), Key::Exe]);
+    assert!(app.shown_entry().unwrap().result.is_err());
 
-    // ↑ brings inputs back, ↓ goes forward again.
-    press(&mut app, &[Key::Up, Key::Up]);
-    assert_eq!(app.editor.to_latex(), r"\frac{3}{4}+1");
+    // ↑ brings the earlier calculation back with its result, ↓ goes forward to an empty input.
+    press(&mut app, &[Key::Up]);
+    assert_eq!((app.shown, app.editor.to_latex()), (Some(1), r"\frac{3}{4}+1".to_string()));
     press(&mut app, &[Key::Down, Key::Down]);
-    assert!(app.editor.is_empty());
+    assert!(app.editor.is_empty() && app.shown.is_none());
 
     press(&mut app, &[Key::Ans]);
     assert!(app.editor.is_empty(), "the last result was an error");
 }
 
 #[test]
+fn an_operator_after_a_result_goes_on_with_it() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Digit(7), Key::Exe, Key::Times, Key::Digit(2)]);
+    assert_eq!((app.shown, app.editor.to_latex()), (None, r"7\cdot2".to_string()));
+
+    // ← edits the input again.
+    press(&mut app, &[Key::Exe, Key::Left, Key::Digit(1)]);
+    assert_eq!(app.editor.to_latex(), r"7\cdot21");
+}
+
+#[test]
+fn swap_form_writes_the_result_as_a_decimal_and_back() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Digit(5), Key::Exe, Key::SwapForm]);
+    let entry = app.shown_entry().unwrap();
+    assert!(entry.decimal);
+    assert_eq!(entry.result.as_ref().unwrap().to_latex(), r"\approx5");
+    press(&mut app, &[Key::SwapForm]);
+    assert!(!app.shown_entry().unwrap().decimal);
+    assert!(!app.settings.decimal, "the setting stays");
+}
+
+#[test]
 fn the_mode_menu_switches_the_mode() {
     let mut app = App::new(Stub);
-    press(&mut app, &[Key::Mode, Key::Down, Key::Down, Key::Exe]);
-    assert_eq!((app.mode, app.menu), (Mode::Analysis, None));
+    // Physics is selected; ↓ goes to the second row of tiles.
+    press(&mut app, &[Key::Mode, Key::Down, Key::Exe]);
+    assert_eq!((app.mode, app.screen), (Mode::Linear, Screen::Calc));
+    press(&mut app, &[Key::Mode, Key::Left, Key::Left, Key::Ok]);
+    assert_eq!(app.mode, Mode::Imaginary);
     press(&mut app, &[Key::Mode, Key::Digit(1)]);
     assert_eq!(app.mode, Mode::Algebra);
+}
+
+#[test]
+fn shift_mode_opens_the_setup() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Shift, Key::Mode]);
+    assert_eq!(app.screen, Screen::Setup { selected: 0 });
+    press(&mut app, &[Key::Left, Key::Left, Key::Down, Key::Right, Key::Ac]);
+    assert_eq!((app.settings.digits, app.settings.decimal), (8, true));
+    assert_eq!(app.screen, Screen::Calc);
 }
 
 #[test]
 fn only_changed_bands_are_sent() {
     let mut app = App::new(Stub);
     let mut renderer = Renderer::new();
-    let mut display = Screen::default();
+    let mut display = Display::default();
     let bands = HEIGHT.div_ceil(BAND) as usize;
     assert_eq!(renderer.render(&Frame::new(&app), &mut display).unwrap(), bands);
     assert_eq!(renderer.render(&Frame::new(&app), &mut display).unwrap(), 0);
@@ -91,17 +128,17 @@ fn only_changed_bands_are_sent() {
 
 /// Records what the renderer sends.
 #[derive(Default)]
-struct Screen {
+struct Display {
     writes: Vec<(Rectangle, usize)>,
 }
 
-impl OriginDimensions for Screen {
+impl OriginDimensions for Display {
     fn size(&self) -> Size {
         Size::new(WIDTH, HEIGHT)
     }
 }
 
-impl DrawTarget for Screen {
+impl DrawTarget for Display {
     type Color = Rgb565;
     type Error = core::convert::Infallible;
 

@@ -39,16 +39,22 @@ pub enum Key {
     Ac,
     Exe,
     Shift,
+    /// The next key types its letter.
+    Alpha,
     Mode,
+    /// S⇔D: the shown result as a decimal or exact.
+    SwapForm,
 }
 
 /// Control characters for the keys that have no character of their own: Ctrl and a letter in a
 /// terminal. Ctrl+C and Ctrl+R are left out, the serial monitor uses them.
 pub const CONTROLS: &[(char, Key)] = &[
     ('\u{01}', Key::Ans),       // Ctrl+A
+    ('\u{04}', Key::SwapForm),  // Ctrl+D
     ('\u{05}', Key::E),         // Ctrl+E
     ('\u{06}', Key::Shift),     // Ctrl+F
     ('\u{07}', Key::Log),       // Ctrl+G
+    ('\u{0b}', Key::Alpha),     // Ctrl+K
     ('\u{0c}', Key::Ln),        // Ctrl+L
     ('\u{0f}', Key::Cos),       // Ctrl+O
     ('\u{10}', Key::Pi),        // Ctrl+P

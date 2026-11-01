@@ -17,7 +17,7 @@ use esp_idf_svc::hal::spi::config::{Config, DriverConfig};
 use esp_idf_svc::hal::spi::{Dma, SpiDeviceDriver};
 use esp_idf_svc::hal::units::FromValueType;
 use esp_idf_svc::sys;
-use quantus_ui::app::{App, Mode};
+use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
@@ -92,8 +92,8 @@ fn main() {
 struct Logged<B>(B);
 
 impl<B: Backend> Backend for Logged<B> {
-    fn evaluate(&mut self, mode: Mode, latex: &str) -> Result<String, String> {
-        let result = self.0.evaluate(mode, latex);
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+        let result = self.0.evaluate(mode, settings, latex);
         println!("{}: {latex}  =>  {result:?}", mode.name());
         result
     }
