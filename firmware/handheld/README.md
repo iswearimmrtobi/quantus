@@ -46,5 +46,5 @@ prints when the display was ready and how long the first frame took.
 ## Keys
 
 Type into the serial monitor; the keys are those of the simulator, see its
-[key table](../sim/README.md#keys). The arrows work as arrows, Delete clears like AC. Ctrl+C
+[key table](../sim/README.md#keys) (Ctrl+F then Tab for the setup). The arrows work as arrows, Delete clears like AC. Ctrl+C
 and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
