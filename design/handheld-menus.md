@@ -484,6 +484,18 @@ to be measured; they belong to the power question in
   Unbekannte (LGS)
 - **Gerät** [fw]: Helligkeit · Schriftgröße normal/klein · Automatisch aus 10/60 min ·
   Zurücksetzen → Einstellungen / Speicher / Alles (each with Ja)
+- **Verbindungen** [fw], section 7.5:
+  - **Prüfungsmodus**: ein · aus. On, WLAN and Bluetooth are off and cannot be switched on until
+    it is turned off again; the top bar shows it.
+  - **WLAN**: ein · aus · Netzwerke (scan, connect, password) · Gespeicherte Netzwerke (forget) ·
+    Status (network, IP, signal)
+  - **Rechnen im Netz**: aus · ab 500 ms (hand long calculations to a Quantus engine on the desktop
+    or a server) · Adresse
+  - **Sitzungen abgleichen**: with the desktop app over WLAN or Bluetooth · now / automatically
+  - **Uhrzeit**: from the network (NTP) · by hand · time zone
+  - **Firmware-Update**: suchen · installieren (OTA over WLAN) · installed version
+  - **Bluetooth**: ein · aus · Koppeln (desktop app, phone, keyboard) · Gekoppelte Geräte
+    (forget) · Sichtbar ein/aus
 
 ### 7.3 OPTN per mode
 
@@ -539,6 +551,30 @@ Per mode:
 | x⁻¹, x³, ⁿ√, 10ˣ, eˣ | SHIFT layers | partly (`Root` with SHIFT is ⁿ√) |
 | ALPHA letters | ALPHA + key | `Alpha` exists, legend open |
 
+### 7.5 Connections
+
+The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hosted
+([calculator-hardware.md](calculator-hardware.md) §3).
+
+- **WLAN** is for: the remote engine (calculations over about 500 ms, the goal in
+  calculator-hardware.md §1), session sync with the desktop app, firmware updates over the air,
+  and the clock (NTP; there is no RTC battery, and sessions carry timestamps).
+- **Bluetooth** (BLE) is for: a link to the desktop app (sessions and results, and the handheld as
+  a keypad for the app), a phone companion (share results and sessions, set up WLAN), and an
+  external keyboard.
+- **Prüfungsmodus** turns both off and keeps them off, for exams. Neither radio is on unless it
+  is switched on; the defaults are off.
+- **Top bar**: icons for WLAN, Bluetooth and the exam mode, next to the battery.
+
+### 7.6 Colours
+
+The hui uses the desktop's purple palette everywhere (`desktop/src/styles.css`): the top bar,
+the mode tiles, the menu highlight and the cursor in lavender `#9186e8` (`--cyan`) and the accent
+`#d8a9ff` (`--amber`), their dim forms `#423a63` and `#4e3c63` for fills, on the background
+and surfaces the hui already shares with the desktop (`firmware/ui/src/render.rs`). The colours per
+mode in `firmware/ui/src/app.rs` (green, brown, teal, slate) go; the mode shows by its name in
+the top bar and on its tile.
+
 ## 8. Where the work goes
 
 The rule: what is maths, data or state goes into `quantus-core`, so the desktop and the handheld
@@ -561,10 +597,13 @@ Roughly in the order agreed; each would go into `plans/plans.md` as its own item
 | 9 | Solving: exact cubics and quartics, no [−100, 100] limit; SOLVE for a chosen variable; CALC (free variables, substitute); true/false for equations without unknowns | solver and API calls: free variables of an expression, solve for a named variable | SOLVE and CALC in the input's context menu; Prüfen mode | SOLVE, CALC, Prüfen tile |
 | 10 | Sessions with history and mode inputs, as JSON (section 6) | `session.rs`: history, mode inputs, names, serde | files in the config directory, session menu | files on the SD card, Sitzungen menu |
 | 11 | PreAns, STO, VARS | Ans and PreAns in the session | already has the variables panel | keys and VARS screen |
-| 12 | Later: inequalities; vectors with Geometrie | solver, Geometrie module | – | – |
+| 12 | Remote engine and the link to the desktop: LaTeX in, LaTeX out, sessions | the request and response format (the JSON of `api.rs`), the session files | a listener the handheld can reach over WLAN and Bluetooth, pairing | client, Verbindungen page |
+| 13 | Later: inequalities; vectors with Geometrie | solver, Geometrie module | – | – |
 
 Firmware only, because they concern the device: UNDO/REDO, INS, selection, copy and paste in the
-editor (the desktop's MathLive has them), brightness, font size, auto-off, RESET, the QR code.
+editor (the desktop's MathLive has them), brightness, font size, auto-off, RESET, the QR code,
+the purple palette (7.6), the WLAN and Bluetooth stacks, OTA updates, NTP, the phone companion
+and the external keyboard, and the exam mode.
 
 ## 9. Open questions
 
@@ -578,3 +617,9 @@ editor (the desktop's MathLive has them), brightness, font size, auto-off, RESET
 - **Desktop settings dialog**: it grows by about six settings (angle unit, number format,
   prefixes, fraction form, complex form, recurring decimals); maybe a new group for them.
 - **Power**: measure deep sleep on the real board before choosing the battery.
+- **Bluetooth over ESP-Hosted**: check that the P4 can use the C6's BLE through ESP-Hosted, not
+  only its Wi-Fi.
+- **Exam mode**: is a switch in SETUP enough, or does it need proof for the teacher (a lit icon,
+  a reset that clears the sessions, like the exam modes of graphing calculators)?
+- **Phone companion**: an app, or a web page the handheld serves?
+- **Firmware updates**: where the images come from (GitHub releases?) and how they are signed.
