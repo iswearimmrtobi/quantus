@@ -198,6 +198,8 @@ pub struct Settings {
     pub number_format: NumberFormat,
     /// A decimal result without a unit is written with a decimal prefix: `4{,}7\,\mathrm{k}`.
     pub decimal_prefixes: bool,
+    /// Long integer parts are grouped by three with a thin space: `12\,345{,}6`.
+    pub digit_grouping: bool,
 }
 
 impl Default for Settings {
@@ -223,6 +225,7 @@ impl Default for Settings {
             angle_unit: AngleUnit::Radian,
             number_format: NumberFormat::Auto,
             decimal_prefixes: false,
+            digit_grouping: false,
         }
     }
 }
@@ -245,7 +248,7 @@ impl Settings {
 
     /// How decimal results are written.
     pub fn number_style(&self) -> Style {
-        Style { format: self.number_format, prefixes: self.decimal_prefixes }
+        Style { format: self.number_format, prefixes: self.decimal_prefixes, grouping: self.digit_grouping }
     }
 
     pub fn parse_options(&self) -> ParseOptions {
@@ -338,7 +341,8 @@ mod tests {
                 "linearComplex": false,
                 "angleUnit": "radian",
                 "numberFormat": { "style": "auto" },
-                "decimalPrefixes": false
+                "decimalPrefixes": false,
+                "digitGrouping": false
             })
         );
     }

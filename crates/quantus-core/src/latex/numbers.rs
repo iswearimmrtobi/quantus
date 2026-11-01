@@ -16,6 +16,30 @@ pub struct Style {
     pub format: NumberFormat,
     /// A plain number gets a decimal prefix: `4{,}7\,\mathrm{k}`.
     pub prefixes: bool,
+    /// The digits before the decimal comma are grouped by three with a thin space, from five
+    /// digits on: `12\,345{,}6`.
+    pub grouping: bool,
+}
+
+/// Integer parts this long or longer are grouped.
+const GROUPED_FROM: usize = 5;
+
+/// The leading digits of `latex` (after a sign) grouped by three with `\,`.
+fn grouped(latex: String) -> String {
+    let (sign, rest) = latex.strip_prefix('-').map_or(("", latex.as_str()), |rest| ("-", rest));
+    let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
+    if digits < GROUPED_FROM {
+        return latex;
+    }
+    let (whole, tail) = rest.split_at(digits);
+    let mut out = String::from(sign);
+    for (i, digit) in whole.chars().enumerate() {
+        if i > 0 && (digits - i) % 3 == 0 {
+            out.push_str("\\,");
+        }
+        out.push(digit);
+    }
+    out + tail
 }
 
 /// The Casio's decimal prefixes, by their power of ten.
@@ -107,13 +131,14 @@ pub fn format(value: &Decimal) -> String {
 /// Norm 2, a fixed number of decimal places, or scientific notation with a number of significant
 /// digits.
 pub fn format_with(value: &Decimal, style: &Style) -> String {
-    match style.format {
+    let latex = match style.format {
         NumberFormat::Auto => format(value),
         NumberFormat::Norm1 => normal(value, -2),
         NumberFormat::Norm2 => normal(value, -9),
         NumberFormat::Fix { digits } => fixed(value, i64::from(digits.min(9))),
         NumberFormat::Sci { digits } => sci(value, if digits == 0 { 10 } else { usize::from(digits.min(9)) }),
-    }
+    };
+    if style.grouping { grouped(latex) } else { latex }
 }
 
 /// Plain for exponents from `smallest` to 9, scientific outside.
@@ -213,12 +238,22 @@ mod tests {
     }
 
     fn styled(text: &str, format: NumberFormat) -> String {
-        format_with(&Decimal::parse(text).unwrap(), &Style { format, prefixes: false })
+        format_with(&Decimal::parse(text).unwrap(), &Style { format, prefixes: false, grouping: false })
+    }
+
+    #[test]
+    fn grouping_splits_long_integer_parts_by_three() {
+        let grouped = |text: &str, format| format_with(&Decimal::parse(text).unwrap(), &Style { format, prefixes: false, grouping: true });
+        assert_eq!(grouped("12345.678", NumberFormat::Auto), "12\\,345{,}678");
+        assert_eq!(grouped("-1234567", NumberFormat::Auto), "-1\\,234\\,567");
+        assert_eq!(grouped("1234", NumberFormat::Auto), "1234");
+        assert_eq!(grouped("100000", NumberFormat::Fix { digits: 1 }), "100\\,000{,}0");
+        assert_eq!(grouped("1e20", NumberFormat::Auto), "1 \\cdot 10^{20}");
     }
 
     #[test]
     fn prefixes_take_the_nearest_power_of_a_thousand_below() {
-        let prefixed = |text: &str, format| with_prefix(&Decimal::parse(text).unwrap(), &Style { format, prefixes: true });
+        let prefixed = |text: &str, format| with_prefix(&Decimal::parse(text).unwrap(), &Style { format, prefixes: true, grouping: false });
         assert_eq!(prefixed("4700", NumberFormat::Auto), "4{,}7\\,\\mathrm{k}");
         assert_eq!(prefixed("0.5", NumberFormat::Auto), "500\\,\\mathrm{m}");
         assert_eq!(prefixed("0.0000022", NumberFormat::Auto), "2{,}2\\,\\mathrm{\\mu}");

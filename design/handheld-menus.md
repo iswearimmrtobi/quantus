@@ -27,7 +27,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Sexagesimal °′″: input and result form
 - [x] Number format: Norm 1/2, Fix 0–9, Sci 0–9 in the formatter
 - [x] Dezimalpräfixe on plain numbers, and ENG / ←ENG steps of three
-- [ ] Digit grouping (1000er-Trennung) with a thin space
+- [x] Digit grouping (1000er-Trennung) with a thin space
 - [ ] Result forms carried by each result: mixed fractions (`fractionForm` ab/c, d/c),
       recurring decimals (`recurring`) and their input, prime factors (FACT)
 - [ ] Complex polar form: `complexForm` a+bi / r∠θ, ▶r∠θ / ▶a+bi, ∠ input
@@ -577,7 +577,7 @@ maps every setting the core has.
 
 - **Allgemein**: Sprache ✓ (the hui's texts and the engine's) · Winkeleinheit Grad/Bogenmaß
   ✓ (the simulator passes it on) · Signifikante Stellen ✓ (typed, 1–15) · Zahlenformat Norm 1/Norm 2/Fix n/Sci n ✓
-  (Fix and Sci ask for n, 0–9) · Dezimalpräfixe ✓ · 1000er-Trennung [eng] ◌
+  (Fix and Sci ask for n, 0–9) · Dezimalpräfixe ✓ · 1000er-Trennung ✓
 - **Ergebnis**: exakt/dezimal ✓ · Brüche d/c, ab/c [eng] ◌ · Periodisch [eng] ◌ · Komplexe
   Zahlen a+bi/Polar (r, θ) [eng] ◌ (the fonts have no ∠) · Quadratische Gleichungen Auto/pq/abc ✓
 - **Rechenweg**: Rechenweg (5 levels) ✓ · Kürzungen durchstreichen ✓ · Gleichungssysteme

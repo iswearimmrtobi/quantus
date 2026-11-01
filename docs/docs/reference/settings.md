@@ -81,6 +81,7 @@ mode reads **Linear systems + 𝑖** in the top bar. Off, $i$ is an unknown.
 | **Denominator** | `denominatorForm` | `auto`, `expanded`, `factored` | `auto` |
 | **Identities with a condition** | `conditionalIdentities` | `withCondition`, `alwaysValid` | `withCondition` |
 | **Exact as a root** | `exactRoots` | on / off | off |
+| **Digit grouping** | `digitGrouping` | on / off | off |
 | **Decimal prefixes** | `decimalPrefixes` | on / off | off |
 | **Number format** | `numberFormat` | `{ style: "auto" }`, `norm1`, `norm2`, `{ style: "fix", digits }`, `{ style: "sci", digits }` | `auto` |
 | **Quadratic equations** | `quadraticFormula` | `auto`, `pq`, `abc` | `auto` |
@@ -111,6 +112,9 @@ $1{,}23 \cdot 10^{4}$). Exact results are not affected.
 
 **Decimal prefixes** writes a decimal result without a unit with the prefixes f, p, n, µ, m, k,
 M, G, T, P, E: $4700$ becomes $4{,}7\,\mathrm{k}$, $0{,}25$ becomes $250\,\mathrm{m}$.
+
+**Digit grouping** separates the digits before the decimal comma in groups of three by a thin
+space once there are five or more: $12\,345{,}6$, but $1234$.
 
 **Quadratic equations** chooses the formula in the analysis working: *Automatic* is the pq
 formula in German and the quadratic (abc) formula in English.

@@ -106,5 +106,6 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
             ui::NumberFormat::Sci => core::NumberFormat::Sci { digits: settings.format_digits },
         },
         decimal_prefixes: settings.prefixes,
+        digit_grouping: settings.grouping,
     }
 }
