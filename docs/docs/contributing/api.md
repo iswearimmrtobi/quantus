@@ -28,6 +28,7 @@ Every command that can fail returns
 |---|---|---|
 | `evaluate` | `{ request: { latex, sessionId?, precision? } }` | `CalculationResponse` |
 | `define_variable` | `{ request: { latex, sessionId?, precision? } }` | `VariableResponse` |
+| `engineering` | `{ request: { value, imaginary?, unitLatex, steps } }` | `{ latex }` |
 | `list_variables` | `{ sessionId? }` | `VariableResponse[]` |
 | `delete_variable` | `{ key, sessionId? }` | nothing |
 
@@ -41,6 +42,7 @@ CalculationResponse {
   value: string            // plain decimal of the (real part of the) result
   imaginary?: string       // the imaginary part, Imaginary mode
   unit: string
+  unitLatex: string        // the unit in LaTeX, "" for a plain number
   quantityName?: string    // "force", "velocity", …
   dimension: string
   variable?: VariableResponse   // set when the input defined one
@@ -55,6 +57,11 @@ VariableResponse { key, symbol, latex, value, unit }
 `forms` lists the other ways to write the result, which a form switch (S⇔D on the handheld)
 steps through without another call. `kind` is `sexagesimal` (degrees, minutes, seconds; for an
 angle with the angle unit on degrees).
+
+`engineering` writes a result in engineering notation for ENG: pass its `value`, `imaginary` and
+`unitLatex`; `steps` is 0 for the first press, +1 per further ENG and −1 per ←ENG, each moving
+the exponent by three (`1234` → $1{,}234 \cdot 10^{3}$ → $0{,}001234 \cdot 10^{6}$). With
+**Decimal prefixes** on, a plain number gets a prefix instead of the power.
 
 Step `kind` is `symbolic`, `substituted`, `algebraic`, `result` or `note`. `before` and `after`
 hold the expression around a cancellation, for the strike-through.

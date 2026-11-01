@@ -26,7 +26,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Angle unit: setting `angleUnit` Grad/Bogenmaß; ° and rad mark a value regardless of it
 - [x] Sexagesimal °′″: input and result form
 - [x] Number format: Norm 1/2, Fix 0–9, Sci 0–9 in the formatter
-- [ ] Dezimalpräfixe on plain numbers, and ENG / ←ENG steps of three
+- [x] Dezimalpräfixe on plain numbers, and ENG / ←ENG steps of three
 - [ ] Digit grouping (1000er-Trennung) with a thin space
 - [ ] Result forms carried by each result: mixed fractions (`fractionForm` ab/c, d/c),
       recurring decimals (`recurring`) and their input, prime factors (FACT)

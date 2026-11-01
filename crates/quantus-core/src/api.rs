@@ -42,6 +42,9 @@ pub struct CalculationResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub imaginary: Option<String>,
     pub unit: String,
+    /// The unit in LaTeX, `\mathrm{N}`, empty for a plain number: what follows the number in
+    /// another form of the result (ENG).
+    pub unit_latex: String,
     /// The informational name of the quantity (F11), e.g. "force".
     pub quantity_name: Option<String>,
     /// The dimension as Indriya wrote it, e.g. `[M]·[L]/[T]²`.
@@ -70,6 +73,11 @@ impl CalculationResponse {
             value: calculation.value.to_plain_string(),
             imaginary: calculation.imaginary.as_ref().map(|im| im.to_plain_string()),
             unit: calculation.unit.clone(),
+            unit_latex: if calculation.quantity.unit.is_one() {
+                String::new()
+            } else {
+                crate::units::latex::format(&calculation.quantity.unit)
+            },
             quantity_name: calculation.quantity_name.clone(),
             dimension: calculation.quantity.dimension().to_string(),
             variable: variable.map(VariableResponse::of),
@@ -221,6 +229,55 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
     Ok(crate::kirchhoff::interface::kirchhoff(settings, request)?)
 }
 
+/// An ENG or ←ENG step on a result: its `value` (and `imaginary`) from the
+/// [`CalculationResponse`], `steps` presses of ENG (negative for ←ENG; 0 is the first press).
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct EngineeringRequest {
+    pub value: String,
+    pub imaginary: Option<String>,
+    /// `unitLatex` of the response, appended after the number.
+    pub unit_latex: String,
+    pub steps: i32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct EngineeringResponse {
+    pub latex: String,
+}
+
+/// A result in engineering notation: the exponent a multiple of three, moved by three per step,
+/// or a decimal prefix with the setting on.
+pub fn engineering(settings: &Settings, request: &EngineeringRequest) -> Result<EngineeringResponse, ApiError> {
+    use crate::latex::numbers;
+    use crate::num::Decimal;
+    let parse = |text: &str| {
+        Decimal::parse(text).ok_or_else(|| ApiError { error: format!("'{text}' is not a number."), position: None })
+    };
+    let prefixes = settings.decimal_prefixes && request.unit_latex.is_empty();
+    let real = parse(&request.value)?;
+    let number = match &request.imaginary {
+        None => numbers::engineering(&real, request.steps, prefixes),
+        Some(imaginary) => {
+            let imaginary = parse(imaginary)?;
+            let (sign, magnitude) = if imaginary.is_negative() { ("-", Decimal::new(-imaginary.unscaled().clone(), imaginary.scale())) } else { ("+", imaginary) };
+            let im = numbers::engineering(&magnitude, request.steps, false);
+            if real.is_zero() {
+                format!("{}({im})i", if sign == "-" { "-" } else { "" })
+            } else {
+                format!("{} {sign} ({im})i", numbers::engineering(&real, request.steps, false))
+            }
+        }
+    };
+    let latex = match (request.unit_latex.as_str(), &request.imaginary) {
+        ("", _) => number,
+        (unit, None) => format!("{number}\\,{unit}"),
+        (unit, Some(_)) => format!("\\left({number}\\right)\\,{unit}"),
+    };
+    Ok(EngineeringResponse { latex })
+}
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }
@@ -276,8 +333,26 @@ mod tests {
         keys.sort();
         assert_eq!(
             keys,
-            ["alignBlock", "dimension", "input", "latex", "quantityName", "result", "steps", "unit", "value", "variable"]
+            ["alignBlock", "dimension", "input", "latex", "quantityName", "result", "steps", "unit", "unitLatex", "value", "variable"]
         );
+    }
+
+    #[test]
+    fn eng_steps_a_result_by_three() {
+        let mut store = SessionStore::new();
+        let body = evaluate(&mut store, &request("1234\\,\\mathrm{m}")).unwrap();
+        assert_eq!(body.unit_latex, "\\mathrm{m}");
+        let eng = |steps, settings: &Settings| {
+            let request = EngineeringRequest { value: body.value.clone(), unit_latex: body.unit_latex.clone(), steps, ..Default::default() };
+            engineering(settings, &request).unwrap().latex
+        };
+        assert_eq!(eng(0, &Settings::default()), "1{,}234 \\cdot 10^{3}\\,\\mathrm{m}");
+        assert_eq!(eng(-1, &Settings::default()), "1234 \\cdot 10^{0}\\,\\mathrm{m}");
+        let prefixes = Settings { decimal_prefixes: true, ..Settings::default() };
+        let plain = EngineeringRequest { value: "0.047".into(), steps: 0, ..Default::default() };
+        assert_eq!(engineering(&prefixes, &plain).unwrap().latex, "47\\,\\mathrm{m}");
+        let complex = EngineeringRequest { value: "1500".into(), imaginary: Some("-2".into()), steps: 0, ..Default::default() };
+        assert_eq!(engineering(&Settings::default(), &complex).unwrap().latex, "1{,}5 \\cdot 10^{3} - (2 \\cdot 10^{0})i");
     }
 
     #[test]

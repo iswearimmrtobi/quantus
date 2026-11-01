@@ -17,6 +17,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   numbers as before.
 - The setting **Decimal prefixes** (`decimalPrefixes`) writes plain numbers with k, M, m, µ …:
   `4{,}7\,\mathrm{k}`.
+- Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
+  three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.
 - A fifth mode, **Linear systems** (German **LGS**), for systems of linear equations, solved
   exactly with their Gauss steps. The **Equations** tab takes one equation per line (Enter
   solves, a second Enter or `\\` starts a new line). The **Matrix** tab takes `[A | b]` in a grid
