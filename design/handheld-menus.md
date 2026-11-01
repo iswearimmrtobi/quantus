@@ -3,8 +3,8 @@
 The menu structure for the handheld (`firmware/ui`), modelled on the Casio fx-991DE X. Section 3
 replicates the Casio's menus. Section 4 maps each entry to Quantus with the decision taken for
 it, section 5 adds what Quantus can do that the Casio cannot, section 6 describes sessions,
-section 7 is the merged tree the firmware should implement and section 8 the engine work it
-needs.
+section 7 is the merged tree the firmware should implement and section 8 where the work goes:
+mostly into `quantus-core`, for the desktop as well.
 
 Today the firmware has a MODE tile menu with five modes and a two-row setup (SHIFT+MODE) for
 significant digits and exact or decimal results (`firmware/ui/src/app.rs`). The keypad is
@@ -276,7 +276,7 @@ directions.
 
 *Today* is what Quantus does now. *Decision* is what was agreed on 2026-11-01, entry by entry.
 Rows the engine already covers are marked **keep**; **drop** means not on the handheld. The
-engine work the decisions call for is collected in section 8.
+work the decisions call for, and where it goes (core, desktop, handheld), is in section 8.
 
 | Casio | Today in Quantus | Decision |
 |---|---|---|
@@ -409,27 +409,36 @@ From `docs/docs/reference/settings.md`; the firmware has only the first two so f
 
 ## 6. Sessions
 
-The handheld always works in a session. A session holds:
+Sessions are a feature of `quantus-core`, used by the desktop and the handheld alike. The core
+already has them in memory (`crates/quantus-core/src/session.rs`: `Session` with the variables,
+`SessionStore` by id); the history is kept twice today, in the desktop frontend and in
+`firmware/ui/src/app.rs`. Both move into the core session.
+
+A session holds:
 
 - the session variables,
 - the history,
 - what the modes hold: the LGS matrix, the Kurvendiskussion function, the Wertetabelle range,
-  the Statistik lists, the matrices.
+  the Statistik lists, the matrices,
+- its name, and when it was created and last used.
 
 The mode and the settings are not part of a session; they stay global.
 
+- **Core**: the session type above, serialised to and from JSON (serde, as `Settings` already
+  is), with a format version. The core does not touch files; it hands the JSON to the shell
+  and takes it back.
+- **Desktop**: stores one file per session in the app's config directory, next to
+  `settings.json`; a session menu (open, new, rename, duplicate, delete) and opening the last
+  session on start. This replaces "keep sessions" under "Later" in `plans/plans.md` §5.
+- **Handheld**: stores the same files on the SD card, after every calculation and before deep
+  sleep, so a power loss loses at most the last input; the *Sitzungen* menu from MODE or
+  SHIFT + a key; the last session reopens on wake-up.
+- **Exchange**: the files are the same on both, so a session moves over the card or USB.
 - **Names**: a new session starts as "Sitzung 2026-11-01 14:30" and can be renamed.
-- **Menu** (*Sitzungen*, from MODE or SHIFT + a key): the sessions by last use, with Öffnen,
-  Neu, Umbenennen, Duplizieren, Löschen.
-- **Storage**: one JSON file per session on the SD card, in a format the desktop app can open as
-  well, so sessions move between the two over the card or USB. The desktop does not keep
-  sessions yet (`plans/plans.md` §5, "Later").
-- **When it is written**: after every calculation and before deep sleep, so a power loss
-  loses at most the last input. The handheld opens the last session on wake-up.
 
 Deep sleep does not keep the RAM: on the ESP32-P4 the main SRAM and the PSRAM are off, and only
-the small low-power memory survives. That is why sessions go to the SD card and are not kept
-in RAM. How long deep sleep lasts depends less on the chip (tens of µA) than on the rest of the
+the small low-power memory survives. That is why the handheld writes sessions to the SD card.
+How long deep sleep lasts depends less on the chip (tens of µA) than on the rest of the
 board: the dev board's regulator, USB bridge and LED and the display module's regulator and
 shift registers can draw 1–10 mA unless they can be switched off, and the backlight needs a
 switch. At 5 mA a 2000 mAh LiPo lasts about 2½ weeks; at 50 µA, years. These are estimates,
@@ -438,8 +447,8 @@ to be measured; they belong to the power question in
 
 ## 7. The handheld tree
 
-**[C]** from the Casio, **[Q]** Quantus only, **[eng]** needs engine work first (section 8),
-**[fw]** firmware only. Six entries per page, as the mode menu draws them.
+**[C]** from the Casio, **[Q]** Quantus only, **[eng]** needs work in `quantus-core` first
+(section 8), which the desktop gets too, **[fw]** firmware only. Six entries per page, as the mode menu draws them.
 
 ### 7.1 MODE (main menu)
 
@@ -530,26 +539,32 @@ Per mode:
 | x⁻¹, x³, ⁿ√, 10ˣ, eˣ | SHIFT layers | partly (`Root` with SHIFT is ⁿ√) |
 | ALPHA letters | ALPHA + key | `Alpha` exists, legend open |
 
-## 8. Engine work the decisions need
+## 8. Where the work goes
+
+The rule: what is maths, data or state goes into `quantus-core`, so the desktop and the handheld
+get it alike; the shells add only their UI and their storage. The desktop then gets every new
+setting in its settings dialog (`docs/docs/reference/settings.md`, `en.ts` and `de.ts`) and every
+new function in its syntax, not just the handheld.
 
 Roughly in the order agreed; each would go into `plans/plans.md` as its own item.
 
-1. **Angle unit setting** Grad/Bogenmaß, ° and rad as markers in the input; °′″ input and
-   result form.
-2. **Number format** Norm/Fix/Sci, Dezimalpräfixe on plain numbers, ENG steps, digit grouping.
-3. **Result forms**: mixed fractions, recurring decimals (and their input), prime factors,
-   complex r∠θ with ∠ input and the conversions.
-4. **Basis-N**: an integer mode with bases and bitwise operations.
-5. **Matrices**: matrix values and their operations, exact, with steps; reuses the LGS Gauss code.
-6. **Stochastik**: lists, statistics, regressions, distributions.
-7. **Functions**: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix,
-   ÷R, PreAns.
-8. **Constants and units**: the 32 missing constants, the ▶ unit operator, the missing
-   imperial units.
-9. **Solving**: exact cubics and quartics (Cardano, Ferrari), no [−100, 100] limit; SOLVE for a
-   chosen variable; true/false for equations without unknowns.
-10. **Sessions**: a session file format shared with the desktop.
-11. Later: inequalities; vectors with Geometrie.
+| # | Work | Core | Desktop | Handheld |
+|---|---|---|---|---|
+| 1 | Angle unit Grad/Bogenmaß; ° and rad markers; °′″ input and result form | setting `angleUnit`, parser, result form | settings dialog, top bar | SETUP, D/R in the top bar |
+| 2 | Number format Norm/Fix/Sci; Dezimalpräfixe on plain numbers; ENG steps; digit grouping | settings and the number formatter | settings dialog; ENG on a result | SETUP, ENG key |
+| 3 | Result forms: mixed fractions, recurring decimals (and their input), prime factors, complex r∠θ with ∠ input | each result carries its alternative forms; settings `fractionForm`, `complexForm`, `recurring` | a form switch on the result | S⇔D cycle, OPTN |
+| 4 | Basis-N | a mode `baseN`: integers, bases, bitwise operations | a mode | a tile |
+| 5 | Matrices | matrix values and operations, exact, with steps (reusing the LGS Gauss code) | matrix input and output | Matrizen tile and editor |
+| 6 | Stochastik | lists, statistics, regressions, distributions | a mode with a data editor | Statistik and Verteilungen tiles |
+| 7 | Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R | parser and evaluator | syntax reference | OPTN groups |
+| 8 | Constants and units: the 32 missing constants (CODATA 2018), the ▶ unit operator, the missing imperial units | constant and unit tables, the operator | a constants and units picker | CONST, CONV |
+| 9 | Solving: exact cubics and quartics, no [−100, 100] limit; SOLVE for a chosen variable; CALC (free variables, substitute); true/false for equations without unknowns | solver and API calls: free variables of an expression, solve for a named variable | SOLVE and CALC in the input's context menu; Prüfen mode | SOLVE, CALC, Prüfen tile |
+| 10 | Sessions with history and mode inputs, as JSON (section 6) | `session.rs`: history, mode inputs, names, serde | files in the config directory, session menu | files on the SD card, Sitzungen menu |
+| 11 | PreAns, STO, VARS | Ans and PreAns in the session | already has the variables panel | keys and VARS screen |
+| 12 | Later: inequalities; vectors with Geometrie | solver, Geometrie module | – | – |
+
+Firmware only, because they concern the device: UNDO/REDO, INS, selection, copy and paste in the
+editor (the desktop's MathLive has them), brightness, font size, auto-off, RESET, the QR code.
 
 ## 9. Open questions
 
@@ -559,6 +574,7 @@ Roughly in the order agreed; each would go into `plans/plans.md` as its own item
   cursor, or letters.
 - **Cardano and Ferrari** give long nested roots: show them only when they simplify, or always
   with the decimal next to them?
-- **Session format**: JSON as proposed, or the desktop's existing state, once the desktop keeps
-  sessions.
+- **Session format**: how mode inputs are stored, and how the format version is migrated.
+- **Desktop settings dialog**: it grows by about six settings (angle unit, number format,
+  prefixes, fraction form, complex form, recurring decimals); maybe a new group for them.
 - **Power**: measure deep sleep on the real board before choosing the battery.
