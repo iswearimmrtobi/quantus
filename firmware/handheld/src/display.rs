@@ -12,6 +12,36 @@ use esp_idf_svc::hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::sys::EspError;
 use quantus_ui::render::{HEIGHT, WIDTH};
 
+/// The SPI clock. The shift registers manage more; raise it once the picture is stable.
+pub const SPI_MHZ: u32 = 16;
+
+/// The display on VSPI of a WROOM (see the README for the wiring), from the fields of a
+/// `Peripherals`, which stays usable for the other pins. Panics if a driver cannot be set up.
+macro_rules! open_display {
+    ($peripherals:ident) => {{
+        use esp_idf_svc::hal::gpio::PinDriver;
+        use esp_idf_svc::hal::spi::config::{Config, DriverConfig};
+        use esp_idf_svc::hal::spi::{Dma, SpiDeviceDriver};
+        use esp_idf_svc::hal::units::FromValueType;
+        let bus = DriverConfig::new().dma(Dma::Auto(4096));
+        let config = Config::new().baudrate(display::SPI_MHZ.MHz().into());
+        let spi = SpiDeviceDriver::new_single(
+            $peripherals.spi3,
+            $peripherals.pins.gpio18,       // SCLK
+            $peripherals.pins.gpio23,       // MOSI
+            Some($peripherals.pins.gpio19), // MISO, for the touch controller later
+            Some($peripherals.pins.gpio5),  // LCD_CS
+            &bus,
+            &config,
+        )
+        .expect("spi");
+        let dc = PinDriver::output($peripherals.pins.gpio21).expect("LCD_RS");
+        let reset = PinDriver::output($peripherals.pins.gpio22).expect("RST");
+        let touch_cs = PinDriver::output($peripherals.pins.gpio4).expect("TP_CS");
+        display::Display::new(spi, dc, reset, touch_cs).expect("display")
+    }};
+}
+
 /// Memory access control: rows and columns swapped for landscape, BGR order. 0xE8 turns the
 /// picture by 180°.
 const MADCTL: u8 = 0x28;
@@ -41,6 +71,8 @@ pub struct Display<'d> {
     /// Kept so the pin stays driven high: dropping a `PinDriver` resets the GPIO to a floating
     /// input, and the panel then resets itself at random and turns white.
     _reset: PinDriver<'d, Output>,
+    /// The touch controller shares the bus and must stay deselected; kept for the same reason.
+    _touch_cs: PinDriver<'d, Output>,
     buffer: Vec<u8>,
 }
 
@@ -50,12 +82,14 @@ impl<'d> Display<'d> {
         spi: SpiDeviceDriver<'d, SpiDriver<'d>>,
         dc: PinDriver<'d, Output>,
         mut reset: PinDriver<'d, Output>,
+        mut touch_cs: PinDriver<'d, Output>,
     ) -> Result<Self, EspError> {
+        touch_cs.set_high()?;
         reset.set_low()?;
         FreeRtos::delay_ms(10);
         reset.set_high()?;
         FreeRtos::delay_ms(120);
-        let mut display = Display { spi, dc, _reset: reset, buffer: Vec::with_capacity(CHUNK) };
+        let mut display = Display { spi, dc, _reset: reset, _touch_cs: touch_cs, buffer: Vec::with_capacity(CHUNK) };
         for &(command, parameters, pause) in INIT {
             display.command(command, parameters)?;
             if pause > 0 {

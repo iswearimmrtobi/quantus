@@ -5,11 +5,13 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 publish = false
+default-run = "quantus-handheld"
 
 # Its own workspace: the Xtensa toolchain and ESP-IDF stay out of `cargo test --workspace`.
 [workspace]
 
 [dependencies]
+quantus-mirror = { path = "../mirror" }
 quantus-ui = { path = "../ui" }
 esp-idf-svc = "0.53"
 log = "0.4"

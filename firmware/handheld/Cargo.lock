@@ -1068,8 +1068,13 @@ dependencies = [
  "embuild",
  "esp-idf-svc",
  "log",
+ "quantus-mirror",
  "quantus-ui",
 ]
+
+[[package]]
+name = "quantus-mirror"
+version = "0.1.0"
 
 [[package]]
 name = "quantus-ui"

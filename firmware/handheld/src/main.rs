@@ -1,6 +1,7 @@
 //! The handheld's firmware on a classic ESP32 with the 3.5" ILI9486 display, until the ESP32-P4
 //! arrives: the UI of `quantus-ui` with a stub instead of the engine. See the README.
 
+#[macro_use]
 mod display;
 
 use std::io::Read;
@@ -11,11 +12,7 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
 use esp_idf_svc::hal::delay::FreeRtos;
-use esp_idf_svc::hal::gpio::PinDriver;
 use esp_idf_svc::hal::peripherals::Peripherals;
-use esp_idf_svc::hal::spi::config::{Config, DriverConfig};
-use esp_idf_svc::hal::spi::{Dma, SpiDeviceDriver};
-use esp_idf_svc::hal::units::FromValueType;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Stub};
@@ -25,36 +22,13 @@ use quantus_ui::render::{Frame, Renderer, WIDTH};
 
 use display::Display;
 
-/// The SPI clock. The shift registers manage more; raise it once the picture is stable.
-const SPI_MHZ: u32 = 16;
-
 fn main() {
     sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
     let start = Instant::now();
 
-    // Pins: VSPI on a WROOM; see the README for the wiring.
     let peripherals = Peripherals::take().expect("peripherals");
-    let pins = peripherals.pins;
-    let bus = DriverConfig::new().dma(Dma::Auto(4096));
-    let config = Config::new().baudrate(SPI_MHZ.MHz().into());
-    let spi = SpiDeviceDriver::new_single(
-        peripherals.spi3,
-        pins.gpio18,       // SCLK
-        pins.gpio23,       // MOSI
-        Some(pins.gpio19), // MISO, for the touch controller later
-        Some(pins.gpio5),  // LCD_CS
-        &bus,
-        &config,
-    )
-    .expect("spi");
-    let dc = PinDriver::output(pins.gpio21).expect("LCD_RS");
-    let reset = PinDriver::output(pins.gpio22).expect("RST");
-    // The touch controller shares the bus and must stay deselected.
-    let mut touch_cs = PinDriver::output(pins.gpio4).expect("TP_CS");
-    touch_cs.set_high().expect("TP_CS");
-
-    let mut display = Display::new(spi, dc, reset).expect("display");
+    let mut display = open_display!(peripherals);
     println!("display ready after {} ms", start.elapsed().as_millis());
 
     test_pattern(&mut display);
