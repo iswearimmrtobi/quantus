@@ -41,6 +41,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Products `\prod_{i=1}^{n}`, written like sums.
 - The Casio's number functions: `nPr`, `\gcd` and `ggT`, `lcm` and `kgV`, `Int`, `Intg`, `Rnd`,
   `RndFix` and `divR` (division with remainder), each as `\operatorname{…}(a; b)`.
+- All 47 physical constants of a Casio fx-991DE X in Physics mode (CODATA 2018), from the
+  impedance of vacuum `Z_0` to the Rydberg constant `R_{inf}`, and a list of them by category
+  for a picker (`constants`).
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

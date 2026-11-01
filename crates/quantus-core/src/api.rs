@@ -295,6 +295,13 @@ pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Resul
     Ok(crate::stochastics::distributions::distribution(settings, request)?)
 }
 
+pub use crate::constants::{ConstantCategory, ConstantInfo};
+
+/// The physical constants by category, for a CONST menu or a picker, named in `language`.
+pub fn constants(language: crate::settings::Language) -> Vec<ConstantCategory> {
+    crate::constants::catalogue(language)
+}
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }

@@ -36,8 +36,8 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       with steps
 - [x] Stochastik: lists, one-variable statistics, the seven regressions, the distributions
 - [x] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R
-- [ ] Constants: the 32 missing ones (CODATA 2018), in the Casio's six categories, usable in
-      every mode
+- [x] Constants: the 32 missing ones (CODATA 2018), in the Casio's six categories (Physik only,
+      decided 2026-11-01)
 - [ ] Units: the ▶ unit operator, and the missing imperial units (ft, yd, lb, oz, gal, psi, Btu,
       hp, °F …)
 - [ ] Exact cubics and quartics (Cardano, Ferrari); drop the [−100, 100] limit
@@ -408,7 +408,7 @@ work the decisions call for, and where it goes (core, desktop, handheld), is in 
 | CALC | session variables | a CALC prompt: asks for each free variable of the expression on screen, then evaluates (with the SUBSTITUTED step); the values become session variables |
 | SOLVE | Algebra `=` | SOLVE for a chosen variable (F = m·a for a); the others from session variables or asked as in CALC; exact, numeric with an optional start value |
 | Komplex OPTN Arg, Conjg, ReP, ImP | `\arg`, `\overline{z}`, `\Re`, `\Im`, `\|z\|` | keep |
-| CONST (47, CODATA 2010) | 15, CODATA 2018, Physik only | all 47, CODATA 2018, in the Casio's categories; inserted from CONST they work in every mode |
+| CONST (47, CODATA 2010) | all 47, CODATA 2018, Physik only | all 47, CODATA 2018, in the Casio's categories; Physik only, like the other constants |
 | CONV (`cm▶in`) | divide by the target unit | an engine operator "▶ unit" that writes the result in that unit; CONV lists target units by the Casio's categories; add the missing units (ft, yd, lb, oz, gal, psi, Btu, hp, °F …) |
 | Ans | Ans key | keep |
 | PreAns | – | add |
@@ -470,10 +470,9 @@ From `docs/docs/reference/settings.md`; the hui has all of them (section 7.2).
 
 ### 5.4 CONST and CONV in Quantus
 
-- **CONST**: all 47 of the Casio's constants with CODATA 2018 values, in its six categories.
-  Quantus has 15 of them today: Univers. c₀ (`c_0`), h (`h_P`), ħ, ε₀, μ₀, G (`G_N`); E-magn.
-  e (`e_0`); Atom./Nuk. m_e, m_p, m_n; Phys/Chem. N_A, k (`k_B`), R (`R_m`), σ (`\sigma_SB`);
-  Übernomm. g (`g_n`). The menu inserts a constant by its name, so it works outside Physik too.
+- **CONST**: all 47 of the Casio's constants with CODATA 2018 values, in its six categories
+  (`crate::constants`, listed by the engine's `constants` call). The menu inserts a constant by
+  its key; constants are known in Physik only.
 - **CONV**: a "▶ unit" operator in the engine, `5\,\mathrm{cm} ▶ \mathrm{in}`, that writes the
   result in the target unit (compatible dimension, else an error). The menu lists the target
   units in the Casio's 21 categories (3.17), only those Quantus knows.

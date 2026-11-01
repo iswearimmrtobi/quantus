@@ -4,6 +4,7 @@ pub mod algebra;
 pub mod analysis;
 pub mod api;
 pub mod basen;
+pub mod constants;
 pub mod error;
 pub mod forms;
 pub mod electro;

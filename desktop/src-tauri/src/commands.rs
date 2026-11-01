@@ -10,7 +10,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalculationResponse, CircuitRequest, CircuitResponse, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
+    CalculationResponse, CircuitRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
     VariableResponse,
 };
@@ -176,6 +176,13 @@ pub fn statistics(engine: State<Engine>, request: StatisticsRequest) -> Result<S
 pub fn distribution(engine: State<Engine>, request: DistributionRequest) -> Result<DistributionResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::distribution(&settings, &request)
+}
+
+/// The physical constants by category, named in the user's language.
+#[tauri::command]
+pub fn constants(engine: State<Engine>) -> Vec<ConstantCategory> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::constants(settings.language)
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.

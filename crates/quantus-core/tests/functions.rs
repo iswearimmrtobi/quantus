@@ -84,3 +84,11 @@ fn rnd_follows_the_number_format() {
         .to_plain_string();
     assert_eq!(result, "0.99");
 }
+
+#[test]
+fn the_casio_constants_work_in_physics_only() {
+    assert_eq!(physics(r"Z_{0}"), r"376{,}730313668\,\mathrm{\Omega }");
+    assert_eq!(physics(r"\frac{m_{p}}{m_{e}}"), "1836{,}15267344");
+    assert_eq!(physics(r"\alpha_{f}"), "0{,}0072973525693");
+    assert!(evaluate(Mode::Algebra, r"Z_{0} + 1").contains("Z"));
+}

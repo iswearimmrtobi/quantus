@@ -82,20 +82,38 @@ error messages use too: *m (length) and s (time) cannot be added.*
 
 ## Physical constants
 
-Physics mode only (CODATA 2018). A session variable with the same name wins.
+Physics mode only (and the circuit modes), CODATA 2018: the 47 constants of a Casio fx-991DE X
+in its six categories. A session variable with the same name wins. Each is typed by its key,
+with the subscript in braces or without (`\mu_{N}` or `\mu_N`).
 
-| Constant | Input | Value |
+| Category | Constant | Input |
 |---|---|---|
-| speed of light | `c_0` | $299792458\,\mathrm{m/s}$ |
-| Planck constant | `h_P` | $6{,}62607015 \cdot 10^{-34}\,\mathrm{J \cdot s}$ |
-| reduced Planck constant | `\hbar` | $h_P / 2\pi$ |
-| Boltzmann constant | `k_B` | $1{,}380649 \cdot 10^{-23}\,\mathrm{J/K}$ |
-| Avogadro constant | `N_A` | $6{,}02214076 \cdot 10^{23}\,\mathrm{mol^{-1}}$ |
-| molar gas constant | `R_m` | $8{,}31446261815324\,\mathrm{J/(mol \cdot K)}$ |
-| elementary charge | `e_0` | $1{,}602176634 \cdot 10^{-19}\,\mathrm{C}$ |
-| vacuum permittivity | `\varepsilon_0`, `\epsilon_0` | $8{,}8541878128 \cdot 10^{-12}\,\mathrm{F/m}$ |
-| vacuum permeability | `\mu_0` | $1{,}25663706212 \cdot 10^{-6}\,\mathrm{N/A^2}$ |
-| electron, proton, neutron mass | `m_e`, `m_p`, `m_n` | $9{,}109\ldots \cdot 10^{-31}\,\mathrm{kg}$, … |
-| Stefan–Boltzmann constant | `\sigma_SB` | $5{,}670374419 \cdot 10^{-8}\,\mathrm{W/(m^2 \cdot K^4)}$ |
-| standard gravity | `g_n` | $9{,}80665\,\mathrm{m/s^2}$ |
-| gravitational constant | `G_N` | $6{,}67430 \cdot 10^{-11}\,\mathrm{m^3/(kg \cdot s^2)}$ |
+| Universal | Planck constant, reduced ($h_P/2\pi$) | `h_P`, `\hbar` |
+| | speed of light in vacuum | `c_0` |
+| | vacuum permittivity, permeability | `\varepsilon_0` (`\epsilon_0`), `\mu_0` |
+| | characteristic impedance of vacuum | `Z_0` |
+| | gravitational constant | `G_N` |
+| | Planck length, Planck time | `l_P`, `t_P` |
+| Electromagnetic | nuclear magneton, Bohr magneton | `\mu_N`, `\mu_B` |
+| | elementary charge | `e_0` |
+| | magnetic flux quantum, conductance quantum | `\Phi_0`, `G_0` |
+| | Josephson constant, von Klitzing constant | `K_J`, `R_K` |
+| Atomic and nuclear | proton, neutron, electron, muon, tau mass | `m_p`, `m_n`, `m_e`, `m_\mu`, `m_\tau` |
+| | Bohr radius, classical electron radius | `a_0`, `r_e` |
+| | fine-structure constant | `\alpha_f` |
+| | Compton wavelength (electron, proton, neutron) | `\lambda_C`, `\lambda_{Cp}`, `\lambda_{Cn}` |
+| | proton gyromagnetic ratio | `\gamma_p` |
+| | Rydberg constant | `R_{inf}` |
+| | magnetic moment of proton, electron, neutron, muon | `\mu_p`, `\mu_e`, `\mu_n`, `\mu_\mu` |
+| Physico-chemical | atomic mass constant | `m_u` |
+| | Faraday constant | `F_{Fa}` |
+| | Avogadro, Boltzmann, molar gas constant | `N_A`, `k_B`, `R_m` |
+| | molar volume of an ideal gas (273,15 K, 101,325 kPa) | `V_m` |
+| | first and second radiation constant | `c_1`, `c_2` |
+| | Stefan–Boltzmann constant | `\sigma_{SB}` |
+| Adopted values | standard gravity, standard atmosphere | `g_n`, `p_{atm}` |
+| | conventional von Klitzing and Josephson constant (1990) | `R_{K90}`, `K_{J90}` |
+| Other | 0 °C in kelvin | `T_0` |
+
+The engine lists them with their values for a picker (`constants`, see the
+[engine API](../contributing/api.md#settings-and-info)).
