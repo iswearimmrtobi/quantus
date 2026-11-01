@@ -13,7 +13,9 @@ publish = false
 embedded-graphics = "0.8.2"
 embedded-graphics-simulator = "0.8.0"
 quantus-core = { path = "../../crates/quantus-core" }
+quantus-mirror = { path = "../mirror" }
 quantus-ui = { path = "../ui" }
+serialport = "4.10.1"
 
 # As in the main workspace: the number crates are several times slower unoptimised.
 [profile.dev.package.astro-float-num]

@@ -1,8 +1,10 @@
 //! The handheld's UI in a window, at twice its size, with the PC keyboard as the keypad (see the
 //! README), and the real engine answering. `--keys <text> --png <file>` types the text and saves
-//! the screen instead; `--stub` answers with the stub instead of the engine.
+//! the screen instead; `--stub` answers with the stub instead of the engine; `--mirror <port>`
+//! also shows the picture on the board.
 
 mod engine;
+mod mirror;
 
 use std::time::{Duration, Instant};
 
@@ -10,11 +12,11 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics_simulator::sdl2::{Keycode, Mod};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window};
-use quantus_ui::app::App;
-use quantus_ui::app::{Mode, Settings};
+use engine::Engine;
+use mirror::{Mirror, Tee};
+use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::key::Key;
-use engine::Engine;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 
 fn main() {
@@ -43,12 +45,25 @@ fn main() {
         return;
     }
 
+    let mut mirror = match option("--mirror").map(|port| Mirror::open(port)) {
+        Some(Ok(mirror)) => Some(mirror),
+        Some(Err(error)) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        None => None,
+    };
+
     print!("{KEYS}");
     let settings = OutputSettingsBuilder::new().scale(2).build();
     let mut window = Window::new("Quantus", &settings);
     let start = Instant::now();
     loop {
-        renderer.render(&Frame::new(&app), &mut display).unwrap();
+        if mirror.as_ref().is_some_and(Mirror::take_ready) {
+            renderer.invalidate();
+        }
+        let mut target = Tee { display: &mut display, mirror: mirror.as_mut() };
+        renderer.render(&Frame::new(&app), &mut target).unwrap();
         window.update(&display);
         for event in window.events() {
             match event {
