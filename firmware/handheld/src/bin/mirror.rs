@@ -19,8 +19,7 @@ use esp_idf_svc::sys;
 use quantus_mirror::Decoder;
 use quantus_ui::render::{BAND, WIDTH};
 
-/// Must match the simulator's.
-const BAUD: u32 = 921_600;
+use quantus_mirror::BAUD;
 
 fn main() {
     sys::link_patches();

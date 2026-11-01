@@ -1081,6 +1081,7 @@ name = "quantus-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "tinybmp",
  "u8g2-fonts",
 ]
 
@@ -1402,6 +1403,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+]
+
+[[package]]
+name = "tinybmp"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acb540c3e6f049f914d9c3eaf86ca415e264cf42d2b25bb5c24241af1a1e3aea"
+dependencies = [
+ "embedded-graphics",
 ]
 
 [[package]]

@@ -13,9 +13,6 @@ use quantus_mirror::Shadow;
 use quantus_ui::render::{HEIGHT, WIDTH};
 use serialport::SerialPort;
 
-/// Must match the board's.
-const BAUD: u32 = 921_600;
-
 pub struct Mirror {
     port: Box<dyn SerialPort>,
     /// Set when the board said `READY`: it was reset and needs the whole screen.
@@ -25,8 +22,9 @@ pub struct Mirror {
 }
 
 impl Mirror {
-    pub fn open(path: &str) -> Result<Mirror, String> {
-        let mut port = serialport::new(path, BAUD)
+    /// Opens `path` at `baud`, which must match the board's ([`quantus_mirror::BAUD`]).
+    pub fn open(path: &str, baud: u32) -> Result<Mirror, String> {
+        let mut port = serialport::new(path, baud)
             .timeout(Duration::from_secs(2))
             .open()
             .map_err(|error| format!("{path}: {error} (is the serial monitor still open?)"))?;

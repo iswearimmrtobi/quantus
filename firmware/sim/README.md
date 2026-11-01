@@ -52,7 +52,9 @@ cd firmware/handheld && cargo run --release --bin mirror   # flash, then quit th
 cd firmware/sim && cargo run -- --mirror /dev/ttyUSB0
 ```
 
-The link runs at 921600 baud, about 90 KB/s. A full screen of the plain UI is a few KB; with a
+The link runs at 921600 baud, about 90 KB/s, unless the board's `mirror` was built with
+`QUANTUS_MIRROR_BAUD=2000000` (then pass `--baud 2000000` here too). `QUANTUS_SPI_MHZ` sets the
+board's display clock (16 MHz by default) when trying faster ones. A full screen of the plain UI is a few KB; with a
 wallpaper it is about 300 KB (2 bytes a pixel), so about 3 s, while a caret blink or a key is a
 small rectangle. The real board draws to the display directly and is not slowed by this. When the
 board resets it says `READY` and gets the whole screen again. The protocol is in `firmware/mirror`.

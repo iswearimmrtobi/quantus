@@ -20,6 +20,24 @@
 
 pub const MAGIC: [u8; 2] = [0xA5, 0x5B];
 
+/// The serial speed of both ends: 921600, or `QUANTUS_MIRROR_BAUD` at build time (the board's
+/// CH340 manages 2000000). The simulator's `--baud` overrides it on the PC side.
+pub const BAUD: u32 = number(option_env!("QUANTUS_MIRROR_BAUD"), 921_600);
+
+/// The decimal number in `text`, or `default` without one; a build-time setting.
+pub const fn number(text: Option<&str>, default: u32) -> u32 {
+    let Some(text) = text else { return default };
+    let bytes = text.as_bytes();
+    let mut value: u32 = 0;
+    let mut i = 0;
+    while i < bytes.len() {
+        assert!(bytes[i].is_ascii_digit(), "not a decimal number");
+        value = value * 10 + (bytes[i] - b'0') as u32;
+        i += 1;
+    }
+    value
+}
+
 /// The longest run or literal piece.
 const MAX_PIECE: usize = 0x7FFF;
 /// Marks a literal piece.

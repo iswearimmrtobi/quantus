@@ -12,8 +12,9 @@ use esp_idf_svc::hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::sys::EspError;
 use quantus_ui::render::{HEIGHT, WIDTH};
 
-/// The SPI clock. The shift registers manage more; raise it once the picture is stable.
-pub const SPI_MHZ: u32 = 16;
+/// The SPI clock: 16 MHz, or `QUANTUS_SPI_MHZ` at build time to try more. The ESP32's VSPI
+/// pins manage 40 MHz and more; the display's shift registers set the limit.
+pub const SPI_MHZ: u32 = quantus_mirror::number(option_env!("QUANTUS_SPI_MHZ"), 16);
 
 /// The display on VSPI of a WROOM (see the README for the wiring), from the fields of a
 /// `Peripherals`, which stays usable for the other pins. Panics if a driver cannot be set up.

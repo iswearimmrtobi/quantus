@@ -4,7 +4,8 @@
 //! - `--keys <text> --latex <latex> --png <file>`: types the keys, evaluates the LaTeX (both
 //!   optional) and saves the screen instead of opening the window.
 //! - `--stub`: the stub answers instead of the engine.
-//! - `--mirror <port>`: also shows the picture on the board.
+//! - `--mirror <port>`: also shows the picture on the board; `--baud <n>` if the board's
+//!   `mirror` was built with another `QUANTUS_MIRROR_BAUD`.
 //! - `--charging`, `--busy`: start with the battery charging or the busy spinner turning; F9 and
 //!   F10 switch them in the window.
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
@@ -62,7 +63,8 @@ fn main() {
         return;
     }
 
-    let mut mirror = match option("--mirror").map(|port| Mirror::open(port)) {
+    let baud = option("--baud").and_then(|baud| baud.parse().ok()).unwrap_or(quantus_mirror::BAUD);
+    let mut mirror = match option("--mirror").map(|port| Mirror::open(port, baud)) {
         Some(Ok(mirror)) => Some(mirror),
         Some(Err(error)) => {
             eprintln!("{error}");
