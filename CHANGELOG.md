@@ -17,6 +17,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   numbers as before.
 - The setting **Decimal prefixes** (`decimalPrefixes`) writes plain numbers with k, M, m, µ …:
   `4{,}7\,\mathrm{k}`.
+- Results come in their other forms for a form switch: improper and mixed fraction, recurring
+  decimal, decimal, exact root or π, and prime factors. The settings **Fractions**
+  (`fractionForm`) and **Recurring decimals** (`recurring`) choose the order and whether the
+  recurring decimal is offered. A recurring decimal can be typed as `0{,}1\overline{6}`.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

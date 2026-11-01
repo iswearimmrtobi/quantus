@@ -14,7 +14,7 @@ use crate::latex::{exact, parser, serializer, Formula, Node, Operator};
 use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::forms::{self, FormKind, ResultForm};
-use crate::settings::{AngleUnit, BinomialForm, Mode, Settings, StepDetail};
+use crate::settings::{AngleUnit, BinomialForm, FractionForm, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
@@ -210,7 +210,7 @@ impl LatexCalculator {
                     Ok(raw_qty) => {
                         let quantity = raw_qty.simplify()?;
                         let (value, imaginary, result) = self.present(&quantity)?;
-                        let forms = self.forms(expression, &quantity, &value, imaginary.as_ref());
+                        let forms = self.forms(expression, &quantity, &value, imaginary.as_ref(), &result);
                         let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
                         Ok(Calculation {
                             input: serializer::formula(&formula),
@@ -481,13 +481,55 @@ impl LatexCalculator {
         }
     }
 
-    /// The other forms of a result that S⇔D cycles through.
-    fn forms(&self, expression: &Node, quantity: &PhysicalQuantity, value: &Decimal, imaginary: Option<&Decimal>) -> Vec<ResultForm> {
-        let mut forms = Vec::new();
-        let real_number = imaginary.is_none() && quantity.is_dimensionless();
+    /// The other forms of a result that S⇔D cycles through, each once and none equal to `shown`.
+    fn forms(
+        &self,
+        expression: &Node,
+        quantity: &PhysicalQuantity,
+        value: &Decimal,
+        imaginary: Option<&Decimal>,
+        shown: &str,
+    ) -> Vec<ResultForm> {
+        let mut forms: Vec<ResultForm> = Vec::new();
+        let mut push = |kind: FormKind, latex: String| {
+            if latex != shown && !forms.iter().any(|form| form.latex == latex) {
+                forms.push(ResultForm::new(kind, latex));
+            }
+        };
+        let unit = &quantity.unit;
+        let decimal = || serializer::quantity_styled(value, unit, &self.settings.number_style());
+        if imaginary.is_none() {
+            if let Value::Rat(rational) = &quantity.value {
+                let improper = (FormKind::Fraction, forms::fraction(rational));
+                let mixed = (FormKind::MixedFraction, forms::mixed_fraction(rational));
+                let fractions = match self.settings.fraction_form {
+                    FractionForm::Improper => [improper, mixed],
+                    FractionForm::Mixed => [mixed, improper],
+                };
+                for (kind, latex) in fractions {
+                    if let Some(latex) = latex {
+                        push(kind, serializer::exact_quantity(&latex, unit));
+                    }
+                }
+                if self.settings.recurring {
+                    if let Some(latex) = forms::recurring(rational) {
+                        push(FormKind::Recurring, serializer::exact_quantity(&latex, unit));
+                    }
+                }
+                push(FormKind::Decimal, decimal());
+                if unit.is_one() {
+                    if let Some(latex) = forms::prime_factors(rational) {
+                        push(FormKind::PrimeFactors, latex);
+                    }
+                }
+            } else if let Some(latex) = exact::format(&quantity.value) {
+                push(FormKind::Exact, serializer::exact_quantity(&latex, unit));
+                push(FormKind::Decimal, decimal());
+            }
+        }
         let in_degrees = self.settings.angle_unit == AngleUnit::Degree && self.settings.evaluation_mode() != Mode::Analysis;
-        if real_number && in_degrees && angles::gives_degrees(expression) {
-            forms.push(ResultForm::new(FormKind::Sexagesimal, forms::sexagesimal(value)));
+        if imaginary.is_none() && quantity.is_dimensionless() && in_degrees && angles::gives_degrees(expression) {
+            push(FormKind::Sexagesimal, forms::sexagesimal(value));
         }
         forms
     }

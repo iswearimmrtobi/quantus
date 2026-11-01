@@ -81,6 +81,8 @@ mode reads **Linear systems + 𝑖** in the top bar. Off, $i$ is an unknown.
 | **Denominator** | `denominatorForm` | `auto`, `expanded`, `factored` | `auto` |
 | **Identities with a condition** | `conditionalIdentities` | `withCondition`, `alwaysValid` | `withCondition` |
 | **Exact as a root** | `exactRoots` | on / off | off |
+| **Fractions** | `fractionForm` | `improper`, `mixed` | `improper` |
+| **Recurring decimals** | `recurring` | on / off | on |
 | **Digit grouping** | `digitGrouping` | on / off | off |
 | **Decimal prefixes** | `decimalPrefixes` | on / off | off |
 | **Number format** | `numberFormat` | `{ style: "auto" }`, `norm1`, `norm2`, `{ style: "fix", digits }`, `{ style: "sci", digits }` | `auto` |
@@ -112,6 +114,13 @@ $1{,}23 \cdot 10^{4}$). Exact results are not affected.
 
 **Decimal prefixes** writes a decimal result without a unit with the prefixes f, p, n, µ, m, k,
 M, G, T, P, E: $4700$ becomes $4{,}7\,\mathrm{k}$, $0{,}25$ becomes $250\,\mathrm{m}$.
+
+Each result also comes in its other forms, which the form switch (S⇔D on the handheld) steps
+through: a fraction as $\frac{7}{3}$ and $2\frac{1}{3}$, as the recurring decimal
+$2{,}\overline{3}$ and as the decimal; a whole number or fraction in prime factors
+($120 = 2^{3} \cdot 3 \cdot 5$, up to $10^{15}$); a root or π exact and as the decimal.
+**Fractions** decides whether the improper or the mixed fraction comes first; **Recurring
+decimals** off leaves the recurring decimal out.
 
 **Digit grouping** separates the digits before the decimal comma in groups of three by a thin
 space once there are five or more: $12\,345{,}6$, but $1234$.

@@ -107,5 +107,10 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
         },
         decimal_prefixes: settings.prefixes,
         digit_grouping: settings.grouping,
+        fraction_form: match settings.fraction {
+            ui::FractionForm::Improper => core::FractionForm::Improper,
+            ui::FractionForm::Mixed => core::FractionForm::Mixed,
+        },
+        recurring: settings.recurring,
     }
 }

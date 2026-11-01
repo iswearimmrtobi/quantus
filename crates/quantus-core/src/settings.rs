@@ -156,6 +156,17 @@ pub enum NumberFormat {
     Sci { digits: u8 },
 }
 
+/// Which fraction a result's forms offer first.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum FractionForm {
+    /// `\frac{7}{3}`.
+    #[default]
+    Improper,
+    /// `2\frac{1}{3}`.
+    Mixed,
+}
+
 /// The language of the texts the engine writes itself (the electronics notes and errors).
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -200,6 +211,10 @@ pub struct Settings {
     pub decimal_prefixes: bool,
     /// Long integer parts are grouped by three with a thin space: `12\,345{,}6`.
     pub digit_grouping: bool,
+    /// Whether a result's forms put the mixed or the improper fraction first.
+    pub fraction_form: FractionForm,
+    /// Whether a result's forms include the recurring decimal, `0{,}\overline{3}`.
+    pub recurring: bool,
 }
 
 impl Default for Settings {
@@ -226,6 +241,8 @@ impl Default for Settings {
             number_format: NumberFormat::Auto,
             decimal_prefixes: false,
             digit_grouping: false,
+            fraction_form: FractionForm::Improper,
+            recurring: true,
         }
     }
 }
@@ -342,7 +359,9 @@ mod tests {
                 "angleUnit": "radian",
                 "numberFormat": { "style": "auto" },
                 "decimalPrefixes": false,
-                "digitGrouping": false
+                "digitGrouping": false,
+                "fractionForm": "improper",
+                "recurring": true
             })
         );
     }
