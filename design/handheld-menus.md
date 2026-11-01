@@ -1,15 +1,98 @@
 # Handheld menus
 
-The menu structure for the handheld (`firmware/ui`), modelled on the Casio fx-991DE X. Section 3
-replicates the Casio's menus. Section 4 maps each entry to Quantus with the decision taken for
-it, section 5 adds what Quantus can do that the Casio cannot, section 6 describes sessions,
-section 7 is the merged tree the firmware should implement and section 8 where the work goes:
-mostly into `quantus-core`, for the desktop as well.
+The menu structure for the handheld (`firmware/ui`, the hui), modelled on the Casio fx-991DE X.
 
-Today the firmware has a MODE tile menu with five modes and a two-row setup (SHIFT+MODE) for
-significant digits and exact or decimal results (`firmware/ui/src/app.rs`). The keypad is
-"modelled on the Casio fx-DE line, not a copy" ([calculator-hardware.md](calculator-hardware.md)
-§4) and its legend is not fixed yet ([plans.md](../plans/plans.md) §4).
+- **What is missing** (below): the open work, by where it goes.
+- **Section 1–3**: the sources, and the Casio's menus as they are.
+- **Section 4**: each Casio entry mapped to Quantus, with the decision taken for it.
+- **Section 5**: what Quantus can do that the Casio cannot.
+- **Section 6**: sessions.
+- **Section 7**: the merged tree the hui implements, with its status.
+- **Section 8**: where the work goes, mostly into `quantus-core`, for the desktop as well.
+- **Section 9**: open questions.
+
+The keypad is "modelled on the Casio fx-DE line, not a copy"
+([calculator-hardware.md](calculator-hardware.md) §4) and its legend is not fixed yet
+([plans.md](../plans/plans.md) §4).
+
+## What is missing
+
+Compared with the code on 2026-11-01. **Core** is `quantus-core` (the desktop and the hui get it
+alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where noted),
+**Desktop** the desktop UI. A hui or desktop entry often waits for the core entry above it.
+
+### Core (`quantus-core`)
+
+- [ ] Angle unit: setting `angleUnit` Grad/Bogenmaß; ° and rad mark a value regardless of it
+- [ ] Sexagesimal °′″: input and result form
+- [ ] Number format: Norm 1/2, Fix 0–9, Sci 0–9 in the formatter
+- [ ] Dezimalpräfixe on plain numbers, and ENG / ←ENG steps of three
+- [ ] Digit grouping (1000er-Trennung) with a thin space
+- [ ] Result forms carried by each result: mixed fractions (`fractionForm` ab/c, d/c),
+      recurring decimals (`recurring`) and their input, prime factors (FACT)
+- [ ] Complex polar form: `complexForm` a+bi / r∠θ, ▶r∠θ / ▶a+bi, ∠ input
+- [ ] Basis-N mode `baseN`: integers, DEC/HEX/BIN/OCT, d/h/b/o, and/or/xor/xnor/Not/Neg
+- [ ] Matrices: values with + − ×, inverse, transpose, identity, det, powers, REF/RREF, exact,
+      with steps
+- [ ] Stochastik: lists, one-variable statistics, the seven regressions, the distributions
+- [ ] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R
+- [ ] Constants: the 32 missing ones (CODATA 2018), in the Casio's six categories, usable in
+      every mode
+- [ ] Units: the ▶ unit operator, and the missing imperial units (ft, yd, lb, oz, gal, psi, Btu,
+      hp, °F …)
+- [ ] Exact cubics and quartics (Cardano, Ferrari); drop the [−100, 100] limit
+- [ ] API: the free variables of an expression (CALC), solve for a named variable (SOLVE)
+- [ ] wahr/falsch for an equation without unknowns, and a Prüfen mode with chaining
+- [ ] Sessions: history, mode inputs, name and timestamps in `session.rs`, serde JSON with a
+      format version
+- [ ] PreAns next to Ans in the session
+- [ ] Remote engine: the request and response format (the JSON of `api.rs`)
+- [ ] Later: polynomial inequalities; vectors with Geometrie
+
+### Handheld UI (`firmware/ui` and the board)
+
+- [ ] Kurvendiskussion: a screen per section, Tangente/Normale, Fläche, Wertetabelle
+- [ ] LGS: the matrix editor [A|b] and its size
+- [ ] Wertetabelle mode, with g(x) as a second column
+- [ ] The modes Matrizen (with editor), Basis-N, Statistik (with editor), Verteilungen, Prüfen
+- [ ] The step list (Rechenweg) on the result screen
+- [ ] S⇔D through all forms of a result; OPTN for FACT, ENG and the polar form
+- [ ] The ◌ SETUP entries once the core has them: Winkeleinheit, Zahlenformat,
+      Dezimalpräfixe, 1000er-Trennung, Brüche, Periodisch, Komplexe Zahlen
+- [ ] The ◌ OPTN entries once the core has them (section 7.3)
+- [ ] Editor templates: nCr (`\binom`), Konjugierte (`\overline`), `cases`
+- [ ] Font glyphs: ∠, →, ⌊⌋, ⌈⌉, µ
+- [ ] Keys: CONST, CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, Sitzungen, PreAns, ∠, ∫, d/dx, Σ,
+      x⁻¹, x³, 10ˣ, eˣ, and the ALPHA legend (section 7.4)
+- [ ] CONST and CONV menus by category
+- [ ] CALC prompt and SOLVE screen
+- [ ] VARS screen: insert, edit, delete session variables
+- [ ] Editing: UNDO/REDO, INS, selection with SHIFT+←/→, copy and paste
+- [ ] Sitzungen: the menu, files on the SD card, the last session reopened on wake-up
+- [ ] Gerät: brightness, font size, auto-off (firmware)
+- [ ] QR code of the result or the steps
+- [ ] Prüfungsmodus actually switching the radios off
+- [ ] WLAN: on/off, networks, saved networks, status
+- [ ] Bluetooth: on/off, pairing, paired devices, visibility
+- [ ] Remote engine client and its Rechnen im Netz settings
+- [ ] Session sync with the desktop
+- [ ] Clock: NTP or by hand, time zone
+- [ ] Firmware update: search and install over WLAN, receive an image from the desktop
+- [ ] Measure deep sleep on the real board (section 6)
+
+### Desktop UI (`desktop/`)
+
+- [ ] Settings dialog for the new settings (angle unit, number format, prefixes, fraction form,
+      complex form, recurring decimals, digit grouping)
+- [ ] A form switch on the result; ENG on a result
+- [ ] The modes Basis-N, Matrizen (input and output), Stochastik (with a data editor), Prüfen
+- [ ] A constants and units picker
+- [ ] SOLVE and CALC in the input's context menu
+- [ ] Sessions: one file per session in the config directory, the session menu, the last one
+      opened on start
+- [ ] A listener the handheld reaches over WLAN and Bluetooth, with pairing
+- [ ] A handheld updater: the image from the GitHub releases, uploaded over USB or the link
+- [ ] The release workflow attaches the firmware image ([RELEASING.md](../RELEASING.md))
 
 ## 1. Sources
 
@@ -385,7 +468,6 @@ From `docs/docs/reference/settings.md`; the hui has all of them (section 7.2).
 - **Systems**: `;` between equations (`Key::Semicolon`), and `cases`.
 - **Infinity** as an integral bound and limit target.
 
-
 ### 5.4 CONST and CONV in Quantus
 
 - **CONST**: all 47 of the Casio's constants with CODATA 2018 values, in its six categories.
@@ -448,7 +530,8 @@ to be measured; they belong to the power question in
 ## 7. The handheld tree
 
 **[C]** from the Casio, **[Q]** Quantus only, **[eng]** needs work in `quantus-core` first
-(section 8), which the desktop gets too, **[fw]** firmware only. Six entries per page, as the mode menu draws them.
+(section 8), which the desktop gets too, **[fw]** firmware only. Six entries per page, as the
+mode menu draws them.
 
 Status in the hui (`firmware/ui`), as implemented: **✓** works (the engine gets the setting
 through the `Backend`, or the hui does it itself), **◌** UI only (the value is kept, or the
@@ -502,11 +585,15 @@ maps every setting the core has.
 - **Algebra**: Binomformeln ✓ · Quadratische Ergänzung ✓ · Nenner ✓ · Identitäten mit Bedingung ✓
 - **Eingabe**: a und y als Variablen ✓ · Buchstaben als Produkt ✓ · t, u, in als Einheiten ✓ ·
   Unbekannte (LGS) ✓
-- **Gerät** [fw]: Helligkeit ◌ (typed, 1–10) · Schriftgröße normal/klein ◌ · Hintergrundbild →
-  Bild (Keins, then the BMP files in `/wallpapers/` on the SD card, with a preview beside the
-  list) / Anzeigen Hauptmenü/Menüs/Überall ✓ in the hui and the simulator, section 7.6 ·
-  Automatisch aus 10/60 min ◌ · Zurücksetzen → Einstellungen / Speicher / Alles, each with *Ja* ✓ (the settings to
-  their defaults; the history, Ans and the input cleared; both)
+- **Gerät** [fw]:
+  - Helligkeit ◌ (typed, 1–10)
+  - Schriftgröße normal/klein ◌
+  - Hintergrundbild ✓ in the hui and the simulator (section 7.6): Bild (Keins, then the BMP
+    files in `/wallpapers/` on the SD card, with a preview beside the list) · Anzeigen
+    Hauptmenü/Menüs/Überall
+  - Automatisch aus 10/60 min ◌
+  - Zurücksetzen → Einstellungen / Speicher / Alles, each with *Ja* ✓ (the settings to their
+    defaults; the history, Ans and the input cleared; both)
 - **Verbindungen** [fw], section 7.5:
   - **Prüfungsmodus**: ein · aus ✓ in the hui: on switches WLAN and Bluetooth off, and their
     *Ein* then says *Aus im Prüfungsmodus*; the top bar shows it. No radio is touched yet.
@@ -608,11 +695,13 @@ The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hos
   release itself over WLAN. The release workflow ([RELEASING.md](../RELEASING.md)) then has to
   attach the firmware image.
 - **Top bar**: icons for WLAN, Bluetooth and the exam mode, next to the battery. *Implemented*
-  in the hui: a Wi-Fi fan and the Bluetooth rune while on, a *PRÜFUNG* tag in the accent, and
-  D/R for the angle unit (section 8, item 1) next to the digits and *Exakt*/*Dez*. While USB
-  power is in, a bolt shows inside the battery and its fill turns green (`App::charging`, set by
-  the board). While a calculation runs elsewhere (the remote engine), a ring of dots turns after
-  the mode's name (`App::busy`, set by the client sending the request).
+  in the hui:
+  - a Wi-Fi fan and the Bluetooth rune while on, a *PRÜFUNG* tag in the accent;
+  - D/R for the angle unit (section 8, item 1) next to the digits and *Exakt*/*Dez*;
+  - while USB power is in, a bolt inside the battery and a green fill (`App::charging`, set by
+    the board);
+  - while a calculation runs elsewhere (the remote engine), a ring of dots turning after the
+    mode's name (`App::busy`, set by the client sending the request).
 
 ### 7.6 Colours
 
