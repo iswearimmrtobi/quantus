@@ -38,6 +38,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   inverse, binomial and Poisson density and cumulative for a list of k, the discrete ones exact.
 - The functions `\coth` and `\operatorname{arsinh}`, `arcosh`, `artanh` (also `\sinh^{-1}`), in
   every mode and in derivatives and the curve sketch.
+- Products `\prod_{i=1}^{n}`, written like sums.
 - The setting **Digit grouping** (`digitGrouping`) writes long numbers as `12\,345{,}6`.
 - Engineering notation for ENG and ←ENG in the engine (`engineering`): the exponent a multiple of
   three, moved by three per step. Responses carry the unit in LaTeX as `unitLatex`.

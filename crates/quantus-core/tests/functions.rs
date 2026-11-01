@@ -43,3 +43,15 @@ fn the_input_is_written_back_with_operatorname() {
     let calculation = LatexCalculator::new(10).with_settings(settings).evaluate(r"\cosh^{-1}(3)", &HashMap::new()).unwrap();
     assert_eq!(calculation.input, r"\operatorname{arcosh}{3}");
 }
+
+#[test]
+fn products_multiply_their_terms() {
+    assert_eq!(physics(r"\prod_{i=1}^{5} i"), "120");
+    assert_eq!(physics(r"\prod_{k=1}^{3} \frac{k}{k+1}"), "0{,}25");
+    assert_eq!(physics(r"\prod_{i=1}^{0} i"), "1");
+    assert_eq!(physics(r"\prod_{i=1}^{2} 2\,\mathrm{m}"), r"4\,\mathrm{m}^{2}");
+    assert_eq!(physics(r"\sum_{i=1}^{3} i + \prod_{i=1}^{3} i"), "12");
+    let settings = Settings { mode: Mode::Physics, ..Settings::default() };
+    let input = LatexCalculator::new(10).with_settings(settings).evaluate(r"\prod_{i=1}^{4} i", &HashMap::new()).unwrap().input;
+    assert_eq!(input, r"\prod_{i=1}^{4} i");
+}

@@ -64,6 +64,7 @@ before sums.
 | Input | Notes |
 |---|---|
 | `\sum_{k=1}^{10} k` | exact, up to 1,000,000 terms. The body is one term: `\sum k + 1` is $(\sum k) + 1$ |
+| `\prod_{k=1}^{5} k` | the product of the terms, like `\sum`; an empty product is 1 |
 | `\int_0^1 x^2\,dx` | numerical, at most 30 digits. Differentials `dx`, `d x`, `\mathrm{d}x` |
 | `\int_1^{\infty} \frac{1}{x^2}\,dx` | improper integrals with `\infty` bounds |
 | `\lim_{x \to 0} f`, `\lim_{x \to 0^+} f`, `\lim_{x \to \infty} f` | two-sided, one-sided, at infinity; `\rightarrow` works too |

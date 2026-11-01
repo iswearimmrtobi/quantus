@@ -195,7 +195,8 @@ impl<'a> Evaluator<'a> {
                 }
                 Ok(PhysicalQuantity::dimensionless(applied))
             }
-            Node::Sum { index, from, to, body, .. } => self.sum(index, from, to, body),
+            Node::Sum { index, from, to, body, product: false, .. } => self.sum(index, from, to, body),
+            Node::Sum { index, from, to, body, product: true, .. } => self.product(index, from, to, body),
             Node::Integral { variable, lower, upper, body, .. } => self.integral(variable, lower, upper, body),
             Node::Limit { variable, target, body, side, .. } => self.limit(variable, target, body, *side),
             Node::Derivative { variable, body, at, .. } => self.derivative(variable, body, at.as_deref()),
@@ -255,6 +256,22 @@ impl<'a> Evaluator<'a> {
             });
         }
         Ok(total.unwrap_or_else(|| PhysicalQuantity::dimensionless(Value::zero())))
+    }
+
+    /// `\prod`: the terms multiplied, units and all; an empty product is 1.
+    fn product(&self, index: &str, from: &Node, to: &Node, body: &Node) -> Result<PhysicalQuantity> {
+        let from = self.whole_integer(from, "The lower limit of a product")?;
+        let to = self.whole_integer(to, "The upper limit of a product")?;
+        if to.saturating_sub(from) >= MAX_SUM_TERMS {
+            return Err(QuantusError::other(format!("A product is limited to {MAX_SUM_TERMS} factors.")));
+        }
+        let mut scope = self.variables.clone();
+        let mut total = PhysicalQuantity::dimensionless(Value::one());
+        for i in from..=to {
+            scope.insert(index.to_string(), PhysicalQuantity::dimensionless(Value::int(i)));
+            total = total.mul(&self.scoped(&scope).evaluate(body)?);
+        }
+        Ok(total)
     }
 
     /// Numerical, to the calculator's precision. The variable carries the unit of the limits,

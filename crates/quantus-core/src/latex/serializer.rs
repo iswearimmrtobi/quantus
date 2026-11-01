@@ -243,8 +243,9 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         Node::Binomial { n, k, .. } => format!("\\binom{{{}}}{{{}}}", expression_with_mode(n, mode), expression_with_mode(k, mode)),
         Node::Degrees { sexagesimal: Some(written), .. } => written.clone(),
         Node::Degrees { operand, .. } => format!("{}^{{\\circ}}", render(operand, PRECEDENCE_ATOM, mode)),
-        Node::Sum { index, from, to, body, .. } => format!(
-            "\\sum_{{{index}={}}}^{{{}}} {}",
+        Node::Sum { index, from, to, body, product, .. } => format!(
+            "\\{}_{{{index}={}}}^{{{}}} {}",
+            if *product { "prod" } else { "sum" },
             expression_with_mode(from, mode),
             expression_with_mode(to, mode),
             render(body, PRECEDENCE_MULTIPLICATIVE, mode)

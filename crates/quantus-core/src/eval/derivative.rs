@@ -112,6 +112,12 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
             let factor = Node::fraction(Node::Constant { name: "\\pi".into(), position }, number(180, position), position);
             multiply(inner, factor, position)
         }
+        Node::Sum { index, product: true, body, .. } => {
+            if index == var || !depends_on(body, var) {
+                return Ok(number(0, position));
+            }
+            return Err(QuantusError::other("A product \\prod cannot be differentiated; write it out."));
+        }
         Node::Sum { index, from, to, body, .. } => {
             require_independent([from, to], var, "the limits of a sum")?;
             if index == var {
@@ -121,7 +127,7 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
             if is_zero(&body) {
                 return Ok(body);
             }
-            Node::Sum { index: index.clone(), from: from.clone(), to: to.clone(), body: Box::new(body), position }
+            Node::Sum { index: index.clone(), from: from.clone(), to: to.clone(), body: Box::new(body), position, product: false }
         }
         Node::Integral { variable, lower, upper, body, .. } => {
             require_independent([lower, upper], var, "the limits of an integral")?;

@@ -37,8 +37,8 @@ pub enum Node {
     /// `x^\circ`: an angle in degrees. Typed as degrees, minutes and seconds (`2^\circ 20' 30''`),
     /// `operand` is their sum in degrees and `sexagesimal` the input as written.
     Degrees { operand: Box<Node>, position: usize, sexagesimal: Option<String> },
-    /// `\sum_{i=from}^{to} body`.
-    Sum { index: String, from: Box<Node>, to: Box<Node>, body: Box<Node>, position: usize },
+    /// `\sum_{i=from}^{to} body`, or with `product` `\prod_{i=from}^{to} body`.
+    Sum { index: String, from: Box<Node>, to: Box<Node>, body: Box<Node>, position: usize, product: bool },
     /// `\int_{lower}^{upper} body \, dx`.
     Integral { variable: String, lower: Box<Node>, upper: Box<Node>, body: Box<Node>, position: usize },
     /// `\lim_{x \to target} body`.
@@ -147,8 +147,8 @@ impl Node {
                 Node::System { equations: equations.into_iter().map(&mut *f).collect(), position }
             }
             Node::Binomial { n, k, position } => Node::Binomial { n: b(n), k: b(k), position },
-            Node::Sum { index, from, to, body, position } => {
-                Node::Sum { index, from: b(from), to: b(to), body: b(body), position }
+            Node::Sum { index, from, to, body, position, product } => {
+                Node::Sum { index, from: b(from), to: b(to), body: b(body), position, product }
             }
             Node::Integral { variable, lower, upper, body, position } => {
                 Node::Integral { variable, lower: b(lower), upper: b(upper), body: b(body), position }

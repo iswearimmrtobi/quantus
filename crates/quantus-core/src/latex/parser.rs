@@ -668,7 +668,7 @@ impl Parser<'_> {
                 let operand = self.parse_atom()?;
                 Ok(Node::Determinant { operand: Box::new(operand), position })
             }
-            "\\sum" => self.parse_sum(token),
+            "\\sum" | "\\prod" => self.parse_sum(token),
             "\\int" => self.parse_integral(token),
             "\\lim" => self.parse_limit(token),
             "\\binom" | "\\dbinom" | "\\tbinom" => {
@@ -801,17 +801,18 @@ impl Parser<'_> {
         Ok(operand)
     }
 
-    /// `\sum_{i=1}^{n} body`. The body is a whole term, so `\sum_{i=1}^{3} i \cdot 2` sums the
-    /// product and a following `+` ends it.
+    /// `\sum_{i=1}^{n} body`, and `\prod` alike. The body is a whole term, so
+    /// `\sum_{i=1}^{3} i \cdot 2` sums the product and a following `+` ends it.
     fn parse_sum(&mut self, token: &Token) -> Result<Node> {
+        let command = token.text.as_str();
         self.advance();
-        self.expect(TokenType::Underscore, "'_' with the index, as in \\sum_{i=1}^{n}")?;
+        self.expect(TokenType::Underscore, &format!("'_' with the index, as in {command}_{{i=1}}^{{n}}"))?;
         self.expect(TokenType::LBrace, "'{'")?;
-        let index = self.parse_bound_name("\\sum")?;
-        self.expect(TokenType::Equals, "'=' after the summation index")?;
+        let index = self.parse_bound_name(command)?;
+        self.expect(TokenType::Equals, "'=' after the index")?;
         let from = self.parse_expression()?;
         self.expect(TokenType::RBrace, "'}'")?;
-        self.expect(TokenType::Caret, "'^' with the upper limit, as in \\sum_{i=1}^{n}")?;
+        self.expect(TokenType::Caret, &format!("'^' with the upper limit, as in {command}_{{i=1}}^{{n}}"))?;
         let to = self.parse_argument(&token.text)?;
         let body = self.with_bound(&index, |p| p.parse_term())?;
         Ok(Node::Sum {
@@ -820,6 +821,7 @@ impl Parser<'_> {
             to: Box::new(to),
             body: Box::new(body),
             position: token.position,
+            product: command == "\\prod",
         })
     }
 
