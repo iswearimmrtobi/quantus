@@ -87,8 +87,10 @@ pub(crate) enum Outcome {
     Infinite { free: Vec<usize> },
 }
 
-/// Reduces `matrix`, whose rows have `unknowns` coefficients followed by the right-hand side.
-/// With `record`, every row operation is logged with the matrix after it.
+/// Reduces `matrix`, whose rows have `unknowns` coefficients followed by the right-hand side:
+/// one column for a system, several for `[A | I]`, none for a matrix of its own. Pivots are
+/// sought in the first `unknowns` columns only. With `record`, every row operation is logged
+/// with the matrix after it.
 pub(crate) fn eliminate(mut matrix: Vec<Vec<Value>>, unknowns: usize, record: bool) -> Result<Elimination> {
     for entry in matrix.iter_mut().flatten() {
         settle(entry);
@@ -110,8 +112,9 @@ pub(crate) fn eliminate(mut matrix: Vec<Vec<Value>>, unknowns: usize, record: bo
             note(RowOperation::Swap(row, pivot), Reason::ZeroPivot { column }, &matrix);
         }
         let divisor = matrix[row][column].clone();
+        let width = matrix[row].len();
         if divisor != Value::one() {
-            for c in column..=unknowns {
+            for c in column..width {
                 matrix[row][c] = matrix[row][c].div(&divisor)?;
             }
             note(RowOperation::Divide { row, divisor }, Reason::UnitPivot { column }, &matrix);
@@ -121,7 +124,7 @@ pub(crate) fn eliminate(mut matrix: Vec<Vec<Value>>, unknowns: usize, record: bo
                 continue;
             }
             let factor = matrix[target][column].clone();
-            for c in column..=unknowns {
+            for c in column..width {
                 let delta = factor.mul(&matrix[row][c]);
                 matrix[target][c] = matrix[target][c].sub(&delta);
                 settle(&mut matrix[target][c]);
@@ -163,7 +166,7 @@ pub(crate) fn gauss(mut matrix: Vec<Vec<Value>>, unknowns: usize) -> Result<Eche
                 continue;
             }
             let (a, b) = multipliers(&matrix[row][column], &matrix[target][column])?;
-            for c in column..=unknowns {
+            for c in column..matrix[target].len() {
                 let entry = a.mul(&matrix[target][c]).sub(&b.mul(&matrix[row][c]));
                 matrix[target][c] = entry;
                 settle(&mut matrix[target][c]);
@@ -284,6 +287,18 @@ mod tests {
     fn outcome(rows: &[&[i64]]) -> Outcome {
         let unknowns = rows[0].len() - 1;
         eliminate(matrix(rows), unknowns, false).unwrap().outcome()
+    }
+
+    #[test]
+    fn several_right_hand_columns_are_carried_along() {
+        // [A | I] to [I | A⁻¹] for A = (2 1; 1 1), whose inverse is (1 -1; -1 2).
+        let elimination = eliminate(matrix(&[&[2, 1, 1, 0], &[1, 1, 0, 1]]), 2, false).unwrap();
+        assert_eq!(elimination.matrix, matrix(&[&[1, 0, 1, -1], &[0, 1, -1, 2]]));
+        let echelon = gauss(matrix(&[&[2, 1, 1, 0], &[1, 1, 0, 1]]), 2).unwrap();
+        assert_eq!(echelon.matrix[1], vec![Value::zero(), Value::int(1), Value::int(-1), Value::int(2)]);
+        // A matrix without a right-hand side.
+        let plain = eliminate(matrix(&[&[1, 2], &[2, 4]]), 2, false).unwrap();
+        assert_eq!((plain.matrix, plain.pivots), (matrix(&[&[1, 2], &[0, 0]]), vec![0]));
     }
 
     #[test]
