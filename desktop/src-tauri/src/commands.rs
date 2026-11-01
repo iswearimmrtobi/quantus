@@ -11,7 +11,7 @@ use std::{fs, io};
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
     CalculationResponse, CircuitRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
-    LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse,
+    LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
 use quantus_core::session::SessionStore;
@@ -183,6 +183,13 @@ pub fn distribution(engine: State<Engine>, request: DistributionRequest) -> Resu
 pub fn constants(engine: State<Engine>) -> Vec<ConstantCategory> {
     let settings = engine.with(|store| api::get_settings(store));
     api::constants(settings.language)
+}
+
+/// The units a conversion can aim at, by category.
+#[tauri::command]
+pub fn conversion_units(engine: State<Engine>) -> Vec<UnitCategory> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::conversion_units(settings.language)
 }
 
 /// Fresh curve segments while the graph is panned or zoomed.

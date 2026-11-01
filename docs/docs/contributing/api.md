@@ -174,6 +174,7 @@ Each value is
 | Command | Arguments | Returns |
 |---|---|---|
 | `constants` | none | `{ category, name, constants: { key, latex, name, value }[] }[]`, the physical constants by category in the user's language |
+| `conversion_units` | none | `{ name, units: string[] }[]`, the units a conversion `▶` can aim at, by the Casio's categories, as LaTeX |
 | `get_settings` | none | `Settings`, see [Settings](../reference/settings.md) for the keys |
 | `set_settings` | `{ settings }` | the saved `Settings` |
 | `engine_info` | none | `{ application, precision }` |

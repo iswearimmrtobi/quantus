@@ -302,6 +302,13 @@ pub fn constants(language: crate::settings::Language) -> Vec<ConstantCategory> {
     crate::constants::catalogue(language)
 }
 
+pub use crate::units::catalogue::UnitCategory;
+
+/// The units a conversion `▶` can aim at, by the Casio's categories, named in `language`.
+pub fn conversion_units(language: crate::settings::Language) -> Vec<UnitCategory> {
+    crate::units::catalogue::catalogue(language)
+}
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }

@@ -216,7 +216,9 @@ impl LatexCalculator {
                 }
                 match evaluator.evaluate(expression) {
                     Ok(raw_qty) => {
-                        let quantity = raw_qty.simplify()?;
+                        // A conversion keeps the unit it asked for.
+                        let converted = matches!(expression, Node::Call { name, .. } if name == parser::CONVERSION);
+                        let quantity = if converted { raw_qty.clone() } else { raw_qty.simplify()? };
                         let (value, imaginary, result) = self.present(&quantity)?;
                         let forms = self.forms(expression, &quantity, &value, imaginary.as_ref(), &result);
                         let result = self.with_remainder(&evaluator, expression, result)?;

@@ -451,6 +451,14 @@ impl<'a> Evaluator<'a> {
                 let product = (2..=n).fold(IBig::ONE, |p, k| p * IBig::from(k));
                 Ok(PhysicalQuantity::dimensionless(Value::Rat(RBig::from(product))))
             }
+            ("convert", [value, target]) => {
+                let value = self.evaluate(value)?;
+                let target = self.evaluate(target)?;
+                if !target.value.as_rational().is_some_and(|r| *r == RBig::ONE) || target.unit.is_one() {
+                    return Err(QuantusError::other("After ▶ comes a unit alone, such as \\mathrm{in} or \\frac{\\mathrm{km}}{\\mathrm{h}}."));
+                }
+                value.to(&target.unit)
+            }
             ("nPr", [n, r]) => {
                 let (n, r) = (self.whole_number(n, "nPr")?, self.whole_number(r, "nPr")?);
                 if r > n {

@@ -106,6 +106,10 @@ impl Lexer<'_> {
             } else if c == '%' {
                 tokens.push(Token { kind: TokenType::Identifier, text: "%".to_string(), position: self.index });
                 self.index += 1;
+            } else if c == '\u{25b6}' || c == '\u{25ba}' {
+                // `▶`, the conversion arrow.
+                tokens.push(Token { kind: TokenType::Command, text: "\\blacktriangleright".to_string(), position: self.index });
+                self.index += 1;
             } else if c == '\u{2109}' {
                 tokens.push(Token { kind: TokenType::Identifier, text: "°F".to_string(), position: self.index });
                 self.index += 1;

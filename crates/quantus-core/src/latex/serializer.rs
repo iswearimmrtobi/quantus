@@ -214,6 +214,9 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
+            ("convert", [value, unit]) => {
+                format!("{} \\blacktriangleright {}", expression_with_mode(value, mode), expression_with_mode(unit, mode))
+            }
             ("polar", [r, theta]) => format!(
                 "{} \\angle {}",
                 render(r, PRECEDENCE_MULTIPLICATIVE, mode),

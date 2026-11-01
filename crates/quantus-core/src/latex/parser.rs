@@ -47,6 +47,9 @@ const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
 /// Functions written as `\operatorname{name}(…)` and parsed as a [`Node::Call`] of that name,
 /// ahead of the unit markup `\operatorname{}` otherwise is.
+/// The call a conversion `value \blacktriangleright unit` becomes.
+pub(crate) const CONVERSION: &str = "convert";
+
 /// Each is `(spelling, name)`: `ggT` and `gcd` are both the call `gcd`.
 pub(crate) const NAMED_CALLS: [(&str, &str); 13] = [
     ("Identity", "Identity"),
@@ -221,6 +224,13 @@ impl Parser<'_> {
         }
         let label = self.parse_label()?;
         let mut expression = self.parse_expression()?;
+        if self.at_conversion() {
+            // `5\,\mathrm{cm} \blacktriangleright \mathrm{in}`: the value written in the unit after it.
+            let position = expression.position();
+            self.advance();
+            let target = self.conversion_target()?;
+            expression = Node::Call { name: CONVERSION.into(), arguments: vec![expression, target], position };
+        }
         if self.current().kind == TokenType::Equals {
             // `x^2 - 5x + 6 = 0`: an equation to solve, not a label.
             self.advance();
@@ -233,6 +243,28 @@ impl Parser<'_> {
         }
         self.expect(TokenType::End, "the end of the input")?;
         Ok(Formula { label, expression: normalizer::normalize(expression), source: self.source.to_string() })
+    }
+
+    /// The unit after `▶`; `^\circ\mathrm{C}` and `^\circ F` stand alone there.
+    fn conversion_target(&mut self) -> Result<Node> {
+        if self.current().kind == TokenType::LBrace && self.peek(1).kind == TokenType::RBrace {
+            self.index += 2;
+        }
+        if self.current().kind == TokenType::Caret {
+            let position = self.advance().position;
+            if self.at_degree_sign() {
+                if let Some(unit) = self.celsius_after_degree_sign() {
+                    return Ok(unit);
+                }
+            }
+            return Err(self.error("After ▶ comes a unit, such as \\mathrm{in} or ^\\circ\\mathrm{C}.", position));
+        }
+        self.in_unit_context(|p| p.parse_expression())
+    }
+
+    /// The conversion arrow `\blacktriangleright` (`▶`), or `\triangleright`.
+    fn at_conversion(&self) -> bool {
+        self.current().kind == TokenType::Command && matches!(self.current().text.as_str(), "\\blacktriangleright" | "\\triangleright")
     }
 
     // ---- structure -------------------------------------------------------------------
@@ -1345,7 +1377,10 @@ impl Parser<'_> {
             TokenType::Pipe => self.abs_depth == 0 && self.peek(1).kind != TokenType::Underscore,
             TokenType::Command => {
                 !MULTIPLICATION_COMMANDS.contains(&token.text.as_str())
-                    && !matches!(token.text.as_str(), "\\div" | "\\end" | "\\bmod" | "\\rfloor" | "\\rceil")
+                    && !matches!(
+                        token.text.as_str(),
+                        "\\div" | "\\end" | "\\bmod" | "\\rfloor" | "\\rceil" | "\\blacktriangleright" | "\\triangleright"
+                    )
             }
             _ => false,
         }

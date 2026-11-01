@@ -34,3 +34,21 @@ fn fahrenheit_is_an_offset_unit_like_celsius() {
     // Like Celsius, it does not multiply.
     assert!(physics(r"\frac{50\,^\circ\mathrm{F}}{1\,\mathrm{K}}").starts_with("error"));
 }
+
+#[test]
+fn the_arrow_writes_a_value_in_the_unit_after_it() {
+    assert_eq!(physics(r"254\,\mathrm{cm} \blacktriangleright \mathrm{in}"), r"100\,\mathrm{in}");
+    assert_eq!(physics(r"1\,\mathrm{mi} ▶ \mathrm{km}"), r"1{,}609344\,\mathrm{km}");
+    assert_eq!(physics(r"36\,\frac{\mathrm{km}}{\mathrm{h}} \blacktriangleright \frac{\mathrm{m}}{\mathrm{s}}"), r"10\,\frac{\mathrm{m}}{\mathrm{s}}");
+    assert_eq!(physics(r"50\,^\circ\mathrm{F} \blacktriangleright ^\circ\mathrm{C}"), r"10\,^\circ\mathrm{C}");
+    assert_eq!(physics(r"100\,^\circ\mathrm{C} ▶ °F"), r"212\,^\circ\mathrm{F}");
+    assert_eq!(physics(r"2\,\mathrm{m} \cdot 3\,\mathrm{m} \blacktriangleright \mathrm{ft}^{2}"), r"64{,}5834625003\,\mathrm{ft}^{2}");
+    assert!(physics(r"1\,\mathrm{m} \blacktriangleright \mathrm{s}").starts_with("error: Cannot convert"));
+}
+
+#[test]
+fn units_convert_in_the_algebra_mode_too() {
+    let settings = Settings { mode: Mode::Algebra, ..Settings::default() };
+    let result = LatexCalculator::new(12).with_settings(settings).evaluate(r"3\,\mathrm{ft} \blacktriangleright \mathrm{m}", &HashMap::new()).unwrap().result;
+    assert_eq!(result, r"0{,}9144\,\mathrm{m}");
+}

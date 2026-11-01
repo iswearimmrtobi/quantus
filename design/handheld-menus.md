@@ -38,7 +38,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R
 - [x] Constants: the 32 missing ones (CODATA 2018), in the Casio's six categories (Physik only,
       decided 2026-11-01)
-- [ ] Units: the ▶ unit operator, and the missing imperial units (ft, yd, lb, oz, gal, psi, Btu,
+- [x] Units: the ▶ unit operator, and the missing imperial units (ft, yd, lb, oz, gal, psi, Btu,
       hp, °F …)
 - [ ] Exact cubics and quartics (Cardano, Ferrari); drop the [−100, 100] limit
 - [ ] API: the free variables of an expression (CALC), solve for a named variable (SOLVE)
