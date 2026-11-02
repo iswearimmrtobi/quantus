@@ -129,6 +129,8 @@ pub struct App<B> {
     backend: B,
     pub mode: Mode,
     pub settings: Settings,
+    /// The settings the backend was last given, to notice a change.
+    used: Settings,
     pub screen: Screen,
     pub shift: bool,
     pub alpha: bool,
@@ -207,12 +209,16 @@ impl<B> App<B> {
 }
 
 impl<B: Backend> App<B> {
-    /// The app on the session the backend has open, with its history.
-    pub fn new(backend: B) -> Self {
+    /// The app with the settings kept from the last run, on the session the backend has open,
+    /// with its history.
+    pub fn new(mut backend: B) -> Self {
+        let settings = backend.load_settings().unwrap_or_default();
+        backend.use_settings(&settings);
         let mut app = App {
             backend,
             mode: Mode::Physics,
-            settings: Settings::default(),
+            settings,
+            used: settings,
             screen: Screen::Calc,
             shift: false,
             alpha: false,
@@ -295,10 +301,14 @@ impl<B: Backend> App<B> {
         menu.edit = Some(Edit::Sessions { label, sessions, selected: open.unwrap_or(0) });
     }
 
-    /// Takes an answer the backend has finished, blinks the caret and turns the spinner while
+    /// Hands changed settings to the backend, takes an answer it has finished, blinks the caret and turns the spinner while
     /// busy; returns whether the screen changed.
     pub fn tick(&mut self, now_ms: u64) -> bool {
         let mut changed = false;
+        if self.settings != self.used {
+            self.used = self.settings;
+            self.backend.use_settings(&self.settings);
+        }
         if self.pending.is_some() {
             if let Some(result) = self.backend.poll() {
                 self.finish(result);

@@ -328,3 +328,84 @@ impl Settings {
         self.exam && matches!(setting, Setting::Wlan | Setting::Bluetooth)
     }
 }
+
+/// The first line of [`Settings::to_text`]; a later format gets a new number.
+const HEADER: &str = "quantus-settings 1";
+
+/// Every setting with the key it is kept under. The exam mode comes before the radios, so a
+/// saved exam mode keeps them off.
+const KEYS: &[(&str, Setting)] = {
+    use Setting as S;
+    &[
+        ("language", S::Language),
+        ("angle", S::Angle),
+        ("digits", S::Digits),
+        ("format", S::Format),
+        ("format_digits", S::FormatDigits),
+        ("prefixes", S::Prefixes),
+        ("grouping", S::Grouping),
+        ("decimal", S::Decimal),
+        ("fraction", S::Fraction),
+        ("recurring", S::Recurring),
+        ("complex", S::Complex),
+        ("quadratic_formula", S::QuadraticFormula),
+        ("step_detail", S::StepDetail),
+        ("cancel_marks", S::CancelMarks),
+        ("elimination", S::Elimination),
+        ("binomial_form", S::BinomialForm),
+        ("complete_square", S::CompleteSquare),
+        ("denominator_form", S::DenominatorForm),
+        ("conditional_identities", S::ConditionalIdentities),
+        ("a_and_y_as_variables", S::AAndYAsVariables),
+        ("letter_products", S::LetterProducts),
+        ("extra_unit_letters", S::ExtraUnitLetters),
+        ("unknown_names", S::UnknownNames),
+        ("linear_complex", S::LinearComplex),
+        ("system_input", S::SystemInput),
+        ("system_rows", S::SystemRows),
+        ("system_columns", S::SystemColumns),
+        ("brightness", S::Brightness),
+        ("font_size", S::FontSize),
+        ("wallpaper_on", S::WallpaperOn),
+        ("auto_off", S::AutoOff),
+        ("exam", S::Exam),
+        ("wlan", S::Wlan),
+        ("remote", S::Remote),
+        ("sync_auto", S::SyncAuto),
+        ("time_from_network", S::TimeFromNetwork),
+        ("hour", S::Hour),
+        ("minute", S::Minute),
+        ("time_zone", S::TimeZone),
+        ("bluetooth", S::Bluetooth),
+        ("visible", S::Visible),
+    ]
+};
+
+impl Settings {
+    /// The settings as lines of `key=value`, for the board's NVS and the simulator's SD folder.
+    pub fn to_text(&self) -> String {
+        let mut text = format!("{HEADER}\n");
+        for &(key, setting) in KEYS {
+            text += &format!("{key}={}\n", self.get(setting));
+        }
+        text
+    }
+
+    /// The settings [`to_text`](Settings::to_text) wrote. A key that is missing, unknown or not
+    /// a number keeps its default, so an older or newer file still loads.
+    pub fn from_text(text: &str) -> Settings {
+        let mut settings = Settings::default();
+        let mut lines = text.lines();
+        if lines.next().map(str::trim) != Some(HEADER) {
+            return settings;
+        }
+        for line in lines {
+            let Some((key, value)) = line.split_once('=') else { continue };
+            let Some(&(_, setting)) = KEYS.iter().find(|(name, _)| *name == key.trim()) else { continue };
+            if let Ok(value) = value.trim().parse() {
+                settings.set(setting, value);
+            }
+        }
+        settings
+    }
+}

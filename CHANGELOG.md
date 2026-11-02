@@ -152,6 +152,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   renames, duplicates and deletes them, each a JSON file in `sessions/` on the SD card, written
   after every calculation. The session open last comes back with its history and variables after
   a restart, and the files are the desktop's, so a session can be copied between the two.
+- The handheld keeps its **settings** across a restart, in flash (`settings.txt` in the
+  simulator's SD folder).
 
 ### Changed
 

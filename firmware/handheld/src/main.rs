@@ -14,6 +14,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
 use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
+use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Storage};
@@ -24,7 +25,8 @@ use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
 
 use quantus_handheld::display::Display;
-use quantus_handheld::touch::{Store, TouchPanel};
+use quantus_handheld::store::Store;
+use quantus_handheld::touch::TouchPanel;
 use quantus_handheld::{keyboard, open_display, sd};
 use quantus_ui::touch::Touch;
 
@@ -67,9 +69,15 @@ fn main() {
     };
     FreeRtos::delay_ms(1500u32.saturating_sub(shown.elapsed().as_millis() as u32));
 
-    // The touch calibration and the wallpaper's name from flash.
-    let store = Store::open().map_err(|error| log::warn!("no NVS for the touch calibration: {error}")).ok();
+    // The touch calibration, the wallpaper's name and the settings from flash.
+    let nvs = EspDefaultNvsPartition::take().map_err(|error| log::warn!("no NVS partition: {error}")).ok();
+    let open = || {
+        let store = Store::open(nvs.clone()?);
+        store.map_err(|error| log::warn!("no NVS for the settings: {error}")).ok()
+    };
+    let store = open();
     let mut board = Board {
+        store: open(),
         #[cfg(feature = "engine")]
         engine: engine::Worker::start(card.is_some().then(|| std::path::PathBuf::from(sd::SESSIONS))),
         card,
@@ -151,6 +159,8 @@ fn main() {
 /// card.
 struct Board {
     card: Option<sd::SdCard>,
+    /// Where the settings are kept.
+    store: Option<Store>,
     #[cfg(feature = "engine")]
     engine: engine::Worker,
 }
@@ -208,6 +218,16 @@ impl Backend for Board {
 
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         self.card.as_ref().and_then(|_| sd::wallpaper(name))
+    }
+
+    fn load_settings(&mut self) -> Option<Settings> {
+        self.store.as_ref()?.load_settings()
+    }
+
+    fn use_settings(&mut self, settings: &Settings) {
+        if let Some(Err(error)) = self.store.as_ref().map(|store| store.save_settings(settings)) {
+            println!("settings not kept: {error}");
+        }
     }
 
     fn storage(&mut self) -> Option<Storage> {

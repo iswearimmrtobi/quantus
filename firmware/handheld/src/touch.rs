@@ -1,15 +1,14 @@
 //! The display's XPT2046 resistive touch controller, on the display's SPI bus with its own chip
 //! select. It is polled, and a press is told by its pressure, so TP_IRQ is not needed. It reports
 //! the panel's raw readings; the hui turns them into screen points with the calibration it made
-//! on its calibration screen, which is kept in flash (NVS) here.
+//! on its calibration screen, which is kept in flash (`store.rs`).
 //!
 //! On jumper wires a reading is now and then garbage (all zeros, or more than 12 bits): such a
 //! poll says nothing, neither pressed nor lifted, so it neither starts nor ends a touch.
 
 use embedded_graphics::prelude::Point;
-use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
 use esp_idf_svc::sys::EspError;
-use quantus_ui::touch::{Calibration, Touch};
+use quantus_ui::touch::Touch;
 
 use crate::display::Bus;
 
@@ -165,41 +164,3 @@ fn median(mut samples: Vec<u16>) -> Option<u16> {
     let quarter = samples.len() / 4;
     (samples[samples.len() - 1 - quarter] - samples[quarter] <= SPREAD).then(|| samples[samples.len() / 2])
 }
-
-/// Where the calibration and the wallpaper's name are kept: a namespace in the NVS partition.
-pub struct Store(EspDefaultNvs);
-
-const NAMESPACE: &str = "quantus";
-const KEY: &str = "touch_cal";
-
-impl Store {
-    pub fn open() -> Result<Store, EspError> {
-        Ok(Store(EspDefaultNvs::new(EspDefaultNvsPartition::take()?, NAMESPACE, true)?))
-    }
-
-    pub fn load(&self) -> Option<Calibration> {
-        let mut buffer = [0u8; 24];
-        let bytes = self.0.get_blob(KEY, &mut buffer).ok()??;
-        Calibration::from_bytes(bytes)
-    }
-
-    pub fn save(&self, calibration: &Calibration) -> Result<(), EspError> {
-        self.0.set_blob(KEY, &calibration.to_bytes())
-    }
-
-    /// The name of the wallpaper set, if any.
-    pub fn load_wallpaper(&self) -> Option<String> {
-        let mut buffer = [0u8; 256];
-        self.0.get_str(WALLPAPER, &mut buffer).ok()?.map(str::to_string)
-    }
-
-    /// Keeps the wallpaper `name`, or forgets it for `None`.
-    pub fn save_wallpaper(&self, name: Option<&str>) -> Result<(), EspError> {
-        match name {
-            Some(name) => self.0.set_str(WALLPAPER, name),
-            None => self.0.remove(WALLPAPER).map(|_| ()),
-        }
-    }
-}
-
-const WALLPAPER: &str = "wallpaper";

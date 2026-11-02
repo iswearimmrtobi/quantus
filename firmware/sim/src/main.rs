@@ -14,7 +14,8 @@
 //! - The mouse is the finger: a click taps, a drag moves a list or the mode tiles.
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
 //!   the 480×320 BMP files in its `wallpapers` folder, the sessions the JSON files in its
-//!   `sessions` folder (with `--png` they are kept in memory, so a screenshot changes nothing).
+//!   `sessions` folder (with `--png` they are kept in memory, so a screenshot changes nothing),
+//!   the settings `settings.txt` in it.
 
 mod mirror;
 
@@ -39,8 +40,9 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let sd = args.iter().position(|arg| arg == "--sd").and_then(|i| args.get(i + 1)).map_or("sd", String::as_str);
     let sessions = (!args.iter().any(|arg| arg == "--png")).then(|| Path::new(sd).join("sessions"));
+    let keep = sessions.is_some();
     let answers = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::new(sessions)) };
-    let mut app = App::new(Sim { answers, sd: PathBuf::from(sd) });
+    let mut app = App::new(Sim { answers, sd: PathBuf::from(sd), keep });
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
     // What the board will report, shown on demand: F9 and F10 switch them in the window.
@@ -186,6 +188,8 @@ const SD_CAPACITY: u64 = 32_000_000_000;
 struct Sim {
     answers: Answers,
     sd: PathBuf,
+    /// Whether changes are written to the folder; not for a `--png` screenshot.
+    keep: bool,
 }
 
 impl Backend for Sim {
@@ -214,6 +218,21 @@ impl Backend for Sim {
         match &mut self.answers {
             Answers::Engine(engine) => engine.session(command, settings),
             Answers::Stub(stub) => stub.session(command, settings),
+        }
+    }
+
+    /// `settings.txt` in the SD folder.
+    fn load_settings(&mut self) -> Option<Settings> {
+        std::fs::read_to_string(self.sd.join("settings.txt")).ok().map(|text| Settings::from_text(&text))
+    }
+
+    fn use_settings(&mut self, settings: &Settings) {
+        let path = self.sd.join("settings.txt");
+        let text = settings.to_text();
+        if self.keep && std::fs::read_to_string(&path).ok().as_deref() != Some(text.as_str()) {
+            if let Err(error) = std::fs::create_dir_all(&self.sd).and_then(|()| std::fs::write(&path, text)) {
+                eprintln!("settings not kept in {}: {error}", path.display());
+            }
         }
     }
 

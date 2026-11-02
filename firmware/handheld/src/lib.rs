@@ -4,4 +4,5 @@
 pub mod display;
 pub mod keyboard;
 pub mod sd;
+pub mod store;
 pub mod touch;

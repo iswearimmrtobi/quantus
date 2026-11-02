@@ -60,6 +60,15 @@ pub trait Backend {
     fn storage(&mut self) -> Option<Storage> {
         None
     }
+
+    /// The settings kept from the last run, if any.
+    fn load_settings(&mut self) -> Option<Settings> {
+        None
+    }
+
+    /// The settings in force: given once at the start and again after every change, so the
+    /// board can keep them and switch what they control (the radios, the clock).
+    fn use_settings(&mut self, _settings: &Settings) {}
 }
 
 /// A session as the menus show it.
