@@ -34,19 +34,26 @@ after a failed mount (no card, or not FAT), it shuts down the whole controller, 
 
 ## The C6's firmware
 
-The kit's C6 came with an older ESP-Hosted firmware that reports version 0.0.0. With host 3.0.10
-the log shows this error:
+The C6 runs ESP-Hosted's co-processor firmware, built from [firmware/c6](../c6/README.md) with
+the same ESP-Hosted version as the host side (3.0.10). The kit came with an older one that
+reports 0.0.0 and does not answer the version request; Wi-Fi worked with it, but the host logs
+`major version mismatch — OTA coprocessor from host`.
 
-```
-E (2640) eh_init_evt: major version mismatch — OTA coprocessor from host
-```
+The handheld updates the C6 itself (`firmware/handheld/src/c6.rs`, ESP-Hosted's co-processor
+OTA):
 
-Scanning and connecting still work with it (tried on 2026-11-02). If something fails that the log
-puts down to the C6, update the C6's firmware to the same ESP-Hosted version. Either:
-- ESP-Hosted's co-processor OTA from the P4 (`esp_hosted_slave_ota`), or
-- flash the C6 directly through its UART header (dev-kit.md).
+1. The image goes into the P4's flash, partition `c6_fw` at 0x800000 (2 MB):
+   `espflash write-bin --port /dev/ttyACM0 0x800000 firmware/c6/build/quantus_c6.bin`.
+2. At the next boot, before the UI, the P4 reads the image's version and asks the C6 for its
+   own (a firmware too old to answer counts as 0.0.0). If they differ, it sends the image over
+   SDIO, showing *WLAN-Chip wird aktualisiert: n %* at the bottom of the start screen, and
+   restarts. The C6 writes it into its other OTA slot, so a failed transfer leaves its old
+   firmware running.
+3. Each image is sent once: its version and size are kept in NVS (`c6_tried`). An image that is
+   already running, or was tried, costs no time at boot.
 
-The firmware does neither yet.
+On 2026-11-02 this took the kit's C6 from 0.0.0 to 3.0.10 in 10 s; the log then says
+`esp-hosted fw versions: host=3.0.10 coprocessor=3.0.10 (match)`.
 
 ## What the firmware does
 
@@ -79,6 +86,8 @@ The serial log says what WLAN does: `WLAN: Searching`, `WLAN: 10 networks in 252
 
 - **`no Wi-Fi driver`** at boot: the link to the C6 did not come up. Look for `eh_sdio` errors
   further up in the log, and see *The C6's firmware*.
+- **`C6: update failed`**: the C6 keeps its firmware; the image is not sent again at the next
+  boot. To retry, build a new image or erase NVS.
 - **`E system_api: 0 mac type is incorrect`** at the first start of Wi-Fi: harmless. The P4 has no
   Wi-Fi MAC of its own; the C6's is used.
 - **A network is refused** (`Keine Verbindung mit …`): the password is wrong, or the network uses

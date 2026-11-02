@@ -167,6 +167,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The handheld's **WLAN** works on the dev kit, through its ESP32-C6: it joins the strongest saved
   network by itself, keeps up to 8 networks with their passwords, is off in the exam mode, and
   sets the **clock from the network** (NTP) while connected.
+- The handheld **updates the firmware of its Wi-Fi chip** (the ESP32-C6) itself at boot, from an
+  image in its flash (`firmware/c6`), when the chip runs another ESP-Hosted version.
 
 ### Changed
 

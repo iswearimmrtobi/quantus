@@ -23,3 +23,4 @@ The crates:
 | [`handheld`](../handheld/README.md) | The firmware for the dev kit: the UI with the engine |
 | [`esp32`](../esp32/README.md) | The engine spike: `quantus-core` over serial, no UI |
 | [`mirror`](../mirror) | The protocol that sends the simulator's picture to the board |
+| [`c6`](../c6/README.md) | The ESP32-C6's firmware (ESP-Hosted, Wi-Fi), which the handheld sends to it |

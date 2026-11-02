@@ -26,6 +26,7 @@ use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
 
 use quantus_handheld::display::Display;
+use quantus_handheld::c6;
 use quantus_handheld::store::Store;
 use quantus_handheld::wlan::Wlan;
 use quantus_handheld::touch::TouchPanel;
@@ -78,6 +79,7 @@ fn main() {
         store.map_err(|error| log::warn!("no NVS for the settings: {error}")).ok()
     };
     let store = open();
+    update_c6(store.as_ref(), &mut display);
     // WLAN through the C6; off until the settings switch it on.
     let wlan = match (EspSystemEventLoop::take(), nvs.clone()) {
         (Ok(sysloop), Some(nvs)) => Some(Wlan::start(peripherals.modem, sysloop, nvs)),
@@ -298,6 +300,58 @@ impl Backend for Board {
         let storage = sd::storage();
         println!("SD card: {storage:?} in {} ms", asked.elapsed().as_millis());
         storage
+    }
+}
+
+/// Sends the C6 the image in the `c6_fw` partition if it runs another version and the image was
+/// not tried before, saying so on the screen; restarts after a success (src/c6.rs).
+fn update_c6(store: Option<&Store>, display: &mut Display) {
+    let Some(image) = c6::Image::find() else { return };
+    let tried = store.and_then(Store::c6_tried);
+    if tried.as_deref() == Some(image.id().as_str()) {
+        return;
+    }
+    let Some(running) = c6::version() else {
+        println!("C6: no link, its firmware not checked");
+        return;
+    };
+    if running == image.version {
+        println!("C6: firmware {running} is current");
+        if let Some(store) = store {
+            let _ = store.set_c6_tried(&image.id());
+        }
+        return;
+    }
+    println!("C6: firmware {running}, sending {} ({} bytes)", image.version, image.size);
+    if let Some(Err(error)) = store.map(|store| store.set_c6_tried(&image.id())) {
+        // Without a note it would be tried at every boot: better not at all.
+        println!("C6: not updated, the attempt could not be noted: {error}");
+        return;
+    }
+    let message = |display: &mut Display, text: &str| {
+        let line = Rectangle::new(Point::new(0, 280), Size::new(WIDTH, 40));
+        let _ = line.into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK)).draw(display);
+        Scale::Small.draw(text, Point::new(10, 306), Rgb565::WHITE, display);
+    };
+    let started = Instant::now();
+    let mut shown = u8::MAX;
+    let sent = c6::send(&image, &running, |percent| {
+        if percent / 10 != shown / 10 {
+            shown = percent;
+            message(display, &format!("WLAN-Chip wird aktualisiert: {percent} %"));
+        }
+    });
+    match sent {
+        Ok(()) => {
+            println!("C6: sent in {} s, restarting", started.elapsed().as_secs());
+            message(display, "WLAN-Chip aktualisiert, Neustart ...");
+            c6::restart();
+        }
+        Err(error) => {
+            println!("C6: update failed: {error}; it keeps firmware {running}");
+            message(display, "WLAN-Chip nicht aktualisiert");
+            FreeRtos::delay_ms(1500);
+        }
     }
 }
 

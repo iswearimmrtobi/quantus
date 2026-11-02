@@ -1,5 +1,5 @@
 //! What the handheld keeps in flash: a namespace in the NVS partition with the touch
-//! calibration, the wallpaper's name and the settings.
+//! calibration, the wallpaper's name, the settings and the C6 image sent last.
 
 use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
 use esp_idf_svc::sys::EspError;
@@ -12,6 +12,7 @@ const NAMESPACE: &str = "quantus";
 const CALIBRATION: &str = "touch_cal";
 const WALLPAPER: &str = "wallpaper";
 const SETTINGS: &str = "settings";
+const C6_TRIED: &str = "c6_tried";
 
 impl Store {
     /// The namespace in `partition`; several stores may be open on it at once.
@@ -56,5 +57,15 @@ impl Store {
             return Ok(());
         }
         self.0.set_str(SETTINGS, &settings.to_text())
+    }
+
+    /// The C6 image sent last (`c6::Image::id`), so it is not sent again.
+    pub fn c6_tried(&self) -> Option<String> {
+        let mut buffer = [0u8; 64];
+        self.0.get_str(C6_TRIED, &mut buffer).ok()?.map(str::to_string)
+    }
+
+    pub fn set_c6_tried(&self, id: &str) -> Result<(), EspError> {
+        self.0.set_str(C6_TRIED, id)
     }
 }

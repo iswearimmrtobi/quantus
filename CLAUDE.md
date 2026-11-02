@@ -15,7 +15,8 @@ Nothing runs automatically on `dev`; the *Check* workflow is started by hand.
 - `desktop/`: the Tauri app. Rust shell in `src-tauri/`, frontend in `src/` (`i18n/en.ts` and `de.ts`).
 - `firmware/`: the handheld. `ui` (in the workspace) is its UI; `sim`, `handheld` and the engine
   spike `esp32` (the engine over serial, no UI) are their own workspaces; both firmwares target
-  the ESP32-P4 dev kit. `mirror` (in the workspace, testing only) sends the
+  the ESP32-P4 dev kit. `c6` is the ESP-IDF (C) firmware of the kit's ESP32-C6 (Wi-Fi through
+  ESP-Hosted), which the handheld sends to it. `mirror` (in the workspace, testing only) sends the
   simulator's picture to the board. `docs/` holds the hardware documentation (product, dev kit,
   setup, display, SD card, mirror); the crates' READMEs link there.
 - `docs/`: Docusaurus site; contributor pages in `docs/docs/contributing/`.
