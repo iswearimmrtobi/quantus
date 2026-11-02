@@ -32,6 +32,7 @@ pub type Bus<'d> = SpiDeviceDriver<'d, Rc<SpiDriver<'d>>>;
 /// stays usable for the other pins: `(display, touch)`.
 /// Keep the touch device even when it is not read: dropping it gives up its chip select, and
 /// the controller may then talk over the display. Panics if a driver cannot be set up.
+#[macro_export]
 macro_rules! open_display {
     ($peripherals:ident) => {{
         use esp_idf_svc::hal::gpio::PinDriver;
@@ -51,15 +52,15 @@ macro_rules! open_display {
         );
         // The touch controller first: adding it drives its chip select high before the display
         // is reset.
-        let config = Config::new().baudrate(display::TOUCH_MHZ.MHz().into());
+        let config = Config::new().baudrate($crate::display::TOUCH_MHZ.MHz().into());
         let touch = SpiDeviceDriver::new(std::rc::Rc::clone(&driver), Some($peripherals.pins.gpio32), &config)
             .expect("TP_CS"); // Pi pin 26
         // Two transfers in flight: one sent by DMA while the next is filled.
-        let config = Config::new().baudrate(display::SPI_MHZ.MHz().into()).queue_size(2);
+        let config = Config::new().baudrate($crate::display::SPI_MHZ.MHz().into()).queue_size(2);
         let spi = SpiDeviceDriver::new(driver, Some($peripherals.pins.gpio36), &config).expect("LCD_CS"); // Pi pin 24
         let dc = PinDriver::output($peripherals.pins.gpio4).expect("LCD_RS"); // Pi pin 18
         let reset = PinDriver::output($peripherals.pins.gpio1).expect("RST"); // Pi pin 22
-        (display::Display::new(spi, dc, reset).expect("display"), touch)
+        ($crate::display::Display::new(spi, dc, reset).expect("display"), touch)
     }};
 }
 
@@ -149,7 +150,6 @@ impl<'d> Display<'d> {
 
     /// The SPI clock the driver chose, in kHz: the ESP32 divides 80 MHz, so it can differ from
     /// [`SPI_MHZ`].
-    #[allow(dead_code)] // only the benchmark asks
     pub fn actual_khz(&self) -> i32 {
         let mut khz = 0;
         // SAFETY: the handle is the driver's open device.

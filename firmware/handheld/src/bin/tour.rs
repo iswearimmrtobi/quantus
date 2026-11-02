@@ -4,15 +4,12 @@
 //! answers. The wallpaper sits in flash as raw pixels (see `build.rs`); the tour starts again
 //! when it is done, after a summary.
 
-#[path = "../display.rs"]
-#[macro_use]
-mod display;
-
 use std::time::{Duration, Instant};
 
 use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::sys;
+use quantus_handheld::open_display;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::render::{Frame, Renderer};

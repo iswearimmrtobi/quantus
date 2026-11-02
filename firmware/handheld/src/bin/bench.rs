@@ -9,10 +9,6 @@
 //!
 //! Each round prints the milliseconds per screen and the frames per second, then starts again.
 
-#[path = "../display.rs"]
-#[macro_use]
-mod display;
-
 use std::time::Instant;
 
 use embedded_graphics::pixelcolor::Rgb565;
@@ -21,6 +17,7 @@ use embedded_graphics::primitives::Rectangle;
 use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::sys;
+use quantus_handheld::{display, open_display};
 use quantus_ui::app::App;
 use quantus_ui::backend::Stub;
 use quantus_ui::key::Key;

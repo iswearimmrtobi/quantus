@@ -2,10 +2,6 @@
 //! <port>` in `firmware/sim`), which runs the UI and the real engine and sends each band that
 //! changed over serial (see `quantus-mirror`). The normal firmware is `src/main.rs`.
 
-#[path = "../display.rs"]
-#[macro_use]
-mod display;
-
 use embedded_graphics::pixelcolor::raw::RawU16;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -16,6 +12,7 @@ use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::hal::uart::{config, UartDriver};
 use esp_idf_svc::hal::units::Hertz;
 use esp_idf_svc::sys;
+use quantus_handheld::open_display;
 use quantus_mirror::Decoder;
 use quantus_ui::render::{BAND, WIDTH};
 

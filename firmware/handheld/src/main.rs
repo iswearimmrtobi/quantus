@@ -2,11 +2,6 @@
 //! `quantus-ui` with a stub instead of the engine, keys from the serial monitor and the
 //! display's touch panel. See the README.
 
-#[macro_use]
-mod display;
-mod sd;
-mod touch;
-
 use std::io::Read;
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
@@ -23,9 +18,10 @@ use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
 
-use display::Display;
+use quantus_handheld::display::Display;
+use quantus_handheld::touch::{Store, TouchPanel};
+use quantus_handheld::{open_display, sd};
 use quantus_ui::touch::Touch;
-use touch::{Store, TouchPanel};
 
 /// Prints the touch controller's raw state four times a second (`QUANTUS_TOUCH_DEBUG=1`).
 const DEBUG_TOUCH: bool = option_env!("QUANTUS_TOUCH_DEBUG").is_some();
