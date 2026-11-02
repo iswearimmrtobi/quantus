@@ -5,6 +5,7 @@
 
 pub mod app;
 pub mod backend;
+pub mod clock;
 pub mod editor;
 pub mod font;
 pub mod hid;

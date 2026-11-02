@@ -54,6 +54,10 @@ choice!(
 );
 choice!(FontSize { Normal, Small });
 choice!(
+    /// The time zones the clock knows, each with its summer time (`clock.rs`).
+    Zone { Utc, London, Berlin, Helsinki, Moscow, Dubai, India, China, Tokyo, Sydney, NewYork, Chicago, Denver, LosAngeles }
+);
+choice!(
     /// Where the wallpaper shows: behind the mode tiles, also behind the menus, or also behind
     /// the calculation.
     WallpaperOn { Modes, Menus, Everywhere }
@@ -109,11 +113,9 @@ pub struct Settings {
     /// Hand calculations over 500 ms to a remote engine.
     pub remote: bool,
     pub sync_auto: bool,
+    /// The clock from the network (NTP) instead of set by hand.
     pub time_from_network: bool,
-    pub hour: u8,
-    pub minute: u8,
-    /// Hours from UTC.
-    pub time_zone: i8,
+    pub zone: Zone,
     pub bluetooth: bool,
     pub visible: bool,
 }
@@ -161,9 +163,7 @@ impl Default for Settings {
             remote: false,
             sync_auto: false,
             time_from_network: true,
-            hour: 12,
-            minute: 0,
-            time_zone: 1,
+            zone: Zone::Berlin,
             bluetooth: false,
             visible: false,
         }
@@ -209,9 +209,7 @@ pub enum Setting {
     Remote,
     SyncAuto,
     TimeFromNetwork,
-    Hour,
-    Minute,
-    TimeZone,
+    Zone,
     Bluetooth,
     Visible,
 }
@@ -256,9 +254,7 @@ impl Settings {
             S::Remote => self.remote.into(),
             S::SyncAuto => self.sync_auto.into(),
             S::TimeFromNetwork => self.time_from_network.into(),
-            S::Hour => self.hour.into(),
-            S::Minute => self.minute.into(),
-            S::TimeZone => self.time_zone.into(),
+            S::Zone => self.zone.index(),
             S::Bluetooth => self.bluetooth.into(),
             S::Visible => self.visible.into(),
         }
@@ -315,9 +311,7 @@ impl Settings {
             S::Remote => self.remote = on,
             S::SyncAuto => self.sync_auto = on,
             S::TimeFromNetwork => self.time_from_network = on,
-            S::Hour => self.hour = small.min(23),
-            S::Minute => self.minute = small.min(59),
-            S::TimeZone => self.time_zone = value.clamp(-12, 14) as i8,
+            S::Zone => self.zone = Zone::from_index(value),
             S::Bluetooth => self.bluetooth = on && !self.exam,
             S::Visible => self.visible = on,
         }
@@ -373,9 +367,7 @@ const KEYS: &[(&str, Setting)] = {
         ("remote", S::Remote),
         ("sync_auto", S::SyncAuto),
         ("time_from_network", S::TimeFromNetwork),
-        ("hour", S::Hour),
-        ("minute", S::Minute),
-        ("time_zone", S::TimeZone),
+        ("zone", S::Zone),
         ("bluetooth", S::Bluetooth),
         ("visible", S::Visible),
     ]

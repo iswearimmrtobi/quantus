@@ -231,11 +231,27 @@ static CLOCK: Page = Page {
             t("Quelle", "Source"),
             Kind::Choice(S::TimeFromNetwork, &[opt(t("Netzwerk (NTP)", "Network (NTP)"), 1), opt(t("Von Hand", "By hand"), 0)]),
         ),
-        entry(t("Stunde", "Hour"), Kind::Number(S::Hour, 0, 23)),
-        entry(same("Minute"), Kind::Number(S::Minute, 0, 59)),
-        entry(t("Zeitzone (UTC)", "Time zone (UTC)"), Kind::Number(S::TimeZone, -12, 14)),
+        entry(t("Zeitzone", "Time zone"), Kind::Choice(S::Zone, &ZONES)),
     ],
 };
+
+/// In the order of [`crate::settings::Zone::ALL`].
+const ZONES: [Opt; 14] = [
+    opt(same("UTC"), 0),
+    opt(t("London (UTC+0)", "London (UTC+0)"), 1),
+    opt(t("Berlin (UTC+1)", "Berlin (UTC+1)"), 2),
+    opt(t("Helsinki (UTC+2)", "Helsinki (UTC+2)"), 3),
+    opt(t("Moskau (UTC+3)", "Moscow (UTC+3)"), 4),
+    opt(t("Dubai (UTC+4)", "Dubai (UTC+4)"), 5),
+    opt(t("Indien (UTC+5:30)", "India (UTC+5:30)"), 6),
+    opt(t("China (UTC+8)", "China (UTC+8)"), 7),
+    opt(t("Tokio (UTC+9)", "Tokyo (UTC+9)"), 8),
+    opt(t("Sydney (UTC+10)", "Sydney (UTC+10)"), 9),
+    opt(t("New York (UTC−5)", "New York (UTC−5)"), 10),
+    opt(t("Chicago (UTC−6)", "Chicago (UTC−6)"), 11),
+    opt(t("Denver (UTC−7)", "Denver (UTC−7)"), 12),
+    opt(t("Los Angeles (UTC−8)", "Los Angeles (UTC−8)"), 13),
+];
 
 static FIRMWARE: Page = Page {
     title: same("Firmware-Update"),
