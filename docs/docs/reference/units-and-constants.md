@@ -135,7 +135,16 @@ with the subscript in braces or without (`\mu_{N}` or `\mu_N`).
 | | conventional von Klitzing and Josephson constant (1990) | `R_{K90}`, `K_{J90}` |
 | Other | 0 °C in kelvin | `T_0` |
 
-The app's **Library** panel (<kbd>Ctrl</kbd>+<kbd>K</kbd>) lists them with their values; a
-click puts one in at the cursor. Its **Convert** tab lists the units `▶` converts to: a click
-puts in `▶` and the unit, with <kbd>Alt</kbd> the unit alone. The engine gives both lists
-(`constants`, `conversion_units`, see the [engine API](../contributing/api.md#settings-and-info)).
+The app's **Library** window (<kbd>Ctrl</kbd>+<kbd>K</kbd>) lists them with their values; a
+click puts one in at the cursor and closes the window, with <kbd>Shift</kbd> it stays open. Its
+**Convert** tab lists the units `▶` converts to: a click puts in `▶` and the unit, with
+<kbd>Alt</kbd> the unit alone.
+
+Faster is the **quick search** (<kbd>Ctrl</kbd>+<kbd>F</kbd>): type part of a name, in the set
+language or in English, or a symbol, and <kbd>Enter</kbd> puts in the first hit. `steff` finds
+the Stefan–Boltzmann constant, `zoll` or `inch` the inch, `c` the speed of light; a typo or two
+in a longer word is forgiven. <kbd>↑</kbd>/<kbd>↓</kbd> choose another hit, and
+<kbd>Alt</kbd>+<kbd>Enter</kbd> puts a unit in without `▶`.
+
+The engine gives the lists and the search (`constants`, `conversion_units`, `search_library`, see
+the [engine API](../contributing/api.md#settings-and-info)).

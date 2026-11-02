@@ -15,13 +15,19 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     (Ctrl+E, Ctrl+Shift+E) write it in engineering notation.
   - The modes **Base-N** (Basis-N), with a DEC/HEX/BIN/OCT switch and keys for the logic and the
     prefixes, and **Verify** (Prüfen), with keys for the relations.
-  - A **Library** panel (Ctrl+K) with the 47 constants and the units to convert to, by category.
+  - A **Library** window (Ctrl+K) with the 47 constants and the units to convert to, by category.
+  - A **quick search** (Ctrl+F) for constants and units: type part of the name (`steff`), Enter
+    puts the first hit in at the cursor. It finds by symbol, by name in the set language or in
+    English, and forgives a typo or two.
   - **CALC** and **SOLVE** in the input's context menu and the Calculation menu.
   - **Sessions**: each saved as a file in the config directory after every change, with its
     variables, history and linear system; a session panel (Ctrl+O) to open, create, rename,
     duplicate and delete them, and the last one opened again on start. The history now keeps
     200 entries and can be cleared.
 
+- `search_library` in the engine API: the constants and conversion units that fit a query, ranked.
+  The conversion units now carry their names in English and German (`conversion_units` returns
+  `{ latex, name }` per unit instead of the bare LaTeX).
 - The setting **Angle unit** (`angleUnit`, degrees or radians) for the engine: with degrees,
   `\sin 30 = 0{,}5` and `\arctan 1 = 45`, and derivatives and `\arg` follow. `30^\circ` and
   `2\,\mathrm{rad}` keep their own unit in either setting. Radians stay the default.

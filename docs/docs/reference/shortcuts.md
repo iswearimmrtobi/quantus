@@ -30,9 +30,10 @@ Everything except typing is reachable from the keyboard. Press <kbd>F10</kbd> to
 | <kbd>Ctrl</kbd>+<kbd>J</kbd> | Show or hide the steps |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> | Variables panel |
 | <kbd>Ctrl</kbd>+<kbd>H</kbd> | History panel |
-| <kbd>Ctrl</kbd>+<kbd>K</kbd> | Library panel: constants and unit conversions |
+| <kbd>Ctrl</kbd>+<kbd>K</kbd> | Library window: constants and unit conversions |
+| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Quick search: type part of a constant's or unit's name, <kbd>Enter</kbd> puts the first hit in (<kbd>Alt</kbd>+<kbd>Enter</kbd>: a unit alone) |
 | <kbd>Ctrl</kbd>+<kbd>.</kbd> | Settings window |
-| <kbd>Esc</kbd> | Leave the LaTeX source, or close the panel |
+| <kbd>Esc</kbd> | Leave the LaTeX source, or close the panel or window |
 | <kbd>Ctrl</kbd>+<kbd>0</kbd> / <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>-</kbd> | Reset zoom / zoom in / zoom out |
 | <kbd>F11</kbd> | Full screen |
 
