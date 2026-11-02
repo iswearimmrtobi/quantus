@@ -65,3 +65,84 @@ fn a_measured_value_gives_a_fraction_too_as_on_a_casio() {
     let result = engine.evaluate(Mode::Physics, &Settings::default(), latex);
     assert_eq!(result, Ok(r"\frac{458}{675}\,\mathrm{J}".to_string()));
 }
+
+mod sessions {
+    use std::path::PathBuf;
+
+    use quantus_engine::{Engine, CURRENT};
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::backend::{Backend, SessionCommand};
+
+    /// An empty folder of its own for each test.
+    fn folder(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("quantus-engine-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        dir
+    }
+
+    fn files(dir: &PathBuf) -> usize {
+        std::fs::read_dir(dir).unwrap().filter(|f| f.as_ref().unwrap().path().extension().is_some_and(|e| e == "json")).count()
+    }
+
+    #[test]
+    fn sessions_are_kept_in_files_and_the_open_one_comes_back() {
+        let dir = folder("files");
+        let settings = Settings::default();
+        let first = {
+            let mut engine = Engine::new(Some(dir.clone()));
+            assert_eq!(engine.session(SessionCommand::Current, &settings).unwrap().info.name, "Sitzung 1");
+            engine.evaluate(Mode::Physics, &settings, "m_1 = 2kg").unwrap();
+            let first = engine.current().to_string();
+            let second = engine.session(SessionCommand::New, &settings).unwrap();
+            assert_eq!(second.info.name, "Sitzung 2");
+            assert!(second.history.is_empty());
+            engine.session(SessionCommand::Rename("Labor".into()), &settings).unwrap();
+            engine.session(SessionCommand::Open(first.clone()), &settings).unwrap();
+            first
+        };
+        assert_eq!(files(&dir), 2);
+        assert_eq!(std::fs::read_to_string(dir.join(CURRENT)).unwrap(), first);
+
+        let mut engine = Engine::new(Some(dir.clone()));
+        let opened = engine.session(SessionCommand::Current, &settings).unwrap();
+        assert_eq!(opened.info.id, first);
+        assert_eq!(opened.history.len(), 1);
+        assert_eq!(opened.history[0].0, "m_1 = 2kg");
+        // The variable was worked out again.
+        assert_eq!(engine.evaluate(Mode::Physics, &settings, r"m_1 \cdot 3"), Ok(r"6\,\mathrm{kg}".to_string()));
+        let names: Vec<String> = engine.sessions().into_iter().map(|s| s.name).collect();
+        assert!(names.contains(&"Labor".to_string()), "{names:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn deleting_the_open_session_opens_another_or_a_new_one() {
+        let dir = folder("delete");
+        let settings = Settings::default();
+        let mut engine = Engine::new(Some(dir.clone()));
+        let first = engine.current().to_string();
+        let copy = engine.session(SessionCommand::Duplicate, &settings).unwrap();
+        assert_eq!(copy.info.name, "Sitzung 1 (Kopie)");
+        assert_eq!(files(&dir), 2);
+        let next = engine.session(SessionCommand::Delete, &settings).unwrap();
+        assert_eq!(next.info.id, first);
+        assert_eq!(files(&dir), 1);
+        engine.evaluate(Mode::Algebra, &settings, "1+1").unwrap();
+        let fresh = engine.session(SessionCommand::Delete, &settings).unwrap();
+        assert!(fresh.history.is_empty());
+        assert_eq!(fresh.info.name, "Sitzung 1");
+        assert_eq!(files(&dir), 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn s_d_does_not_record_and_clearing_empties_the_history() {
+        let mut engine = Engine::default();
+        let settings = Settings::default();
+        engine.evaluate(Mode::Algebra, &settings, r"\frac{1}{3}").unwrap();
+        let decimal = Settings { decimal: true, ..settings };
+        assert!(engine.recalculate(Mode::Algebra, &decimal, r"\frac{1}{3}").unwrap().unwrap().starts_with(r"\approx"));
+        assert_eq!(engine.session(SessionCommand::Current, &settings).unwrap().history.len(), 1);
+        assert!(engine.session(SessionCommand::ClearHistory, &settings).unwrap().history.is_empty());
+    }
+}

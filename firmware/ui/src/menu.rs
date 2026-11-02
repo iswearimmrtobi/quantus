@@ -6,7 +6,7 @@
 //! back one level, AC closes the menu. Touch: a tap opens a line, a drag pages ([`Menu::tap`],
 //! [`Menu::page`], [`Menu::step`]).
 
-use crate::backend::Storage;
+use crate::backend::{SessionInfo, Storage};
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
 use crate::text::{self, Lang, Text};
@@ -46,6 +46,10 @@ pub enum Kind {
     Wallpapers,
     /// How full the SD card is, which the app asks the board.
     Storage,
+    /// The list of sessions, which the app fills in; choosing one opens it.
+    Sessions,
+    /// A new name for the open session, typed.
+    Rename,
     /// Waits for the engine or the firmware: says so.
     Pending,
 }
@@ -78,6 +82,19 @@ pub enum Action {
     ClearInput,
     /// The touch calibration screen.
     Calibrate,
+    /// A new session, opened.
+    NewSession,
+    /// A copy of the open session, opened.
+    DuplicateSession,
+    /// The open session deleted; the next one opens.
+    DeleteSession,
+}
+
+impl Action {
+    /// Whether it changes the open session: the app closes the menu afterwards.
+    pub fn session(self) -> bool {
+        matches!(self, Action::NewSession | Action::DuplicateSession | Action::DeleteSession)
+    }
 }
 
 /// Values a menu shows but cannot change.
@@ -115,7 +132,14 @@ pub enum Edit {
     Pictures { label: Text, names: Vec<String>, selected: usize },
     /// The SD card's size and room, `None` without one; any key goes back.
     Storage { label: Text, storage: Option<Storage> },
+    /// The sessions; the app opens the chosen one.
+    Sessions { label: Text, sessions: Vec<SessionInfo>, selected: usize },
+    /// A name being typed; `error` marks an empty one.
+    Name { label: Text, typed: String, error: bool },
 }
+
+/// The longest name a session can be given on the handheld.
+pub const NAME_LENGTH: usize = 24;
 
 /// A menu open on the screen.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -142,6 +166,14 @@ pub enum Outcome {
     Restore,
     /// Show how full the SD card is.
     Storage(Text),
+    /// Open the list of sessions over the page.
+    Sessions(Text),
+    /// Open the session at this place of the list.
+    OpenSession(usize),
+    /// Open the name entry over the page, with the open session's name.
+    NameOf(Text),
+    /// Give the open session the name typed (the app reads it from the edit).
+    Rename,
 }
 
 impl Menu {
@@ -161,7 +193,9 @@ impl Menu {
                 Edit::Number { label, .. }
                 | Edit::Message { label, .. }
                 | Edit::Pictures { label, .. }
-                | Edit::Storage { label, .. },
+                | Edit::Storage { label, .. }
+                | Edit::Sessions { label, .. }
+                | Edit::Name { label, .. },
             ) => *label,
             None => self.level().page.title,
         }
@@ -264,6 +298,7 @@ impl Menu {
                 _ => None,
             },
             Some(Edit::Pictures { names, selected, .. }) => Some((*selected, names.len() + 1)),
+            Some(Edit::Sessions { sessions, selected, .. }) => Some((*selected, sessions.len())),
             _ => None,
         }
     }
@@ -280,6 +315,7 @@ impl Menu {
                 Some((selected, opts.len()))
             }
             Some(Edit::Pictures { names, selected, .. }) => Some((selected, names.len() + 1)),
+            Some(Edit::Sessions { sessions, selected, .. }) => Some((selected, sessions.len())),
             _ => None,
         }
     }
@@ -307,6 +343,8 @@ impl Menu {
             Kind::Insert(latex) => return Outcome::Insert(latex),
             Kind::Wallpapers => return Outcome::Pictures(entry.label),
             Kind::Storage => return Outcome::Storage(entry.label),
+            Kind::Sessions => return Outcome::Sessions(entry.label),
+            Kind::Rename => return Outcome::NameOf(entry.label),
             Kind::Pending => {
                 self.edit = Some(Edit::Message { label: entry.label, message: text::NOT_AVAILABLE });
             }
@@ -418,6 +456,64 @@ impl Menu {
                 // The app reads the name from it, then closes it.
                 self.edit = Some(Edit::Pictures { label, names, selected: chosen });
                 return Outcome::Keep(chosen);
+            }
+            Edit::Sessions { label, sessions, selected } => {
+                let count = sessions.len();
+                let chosen = match key {
+                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
+                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+                        if index >= count {
+                            self.edit = Some(Edit::Sessions { label, sessions, selected });
+                            return Outcome::Stay;
+                        }
+                        index
+                    }
+                    Key::Ok | Key::Exe | Key::Right if selected < count => selected,
+                    Key::Up | Key::Down if count > 0 => {
+                        let step = if key == Key::Up { count - 1 } else { 1 };
+                        let selected = (selected + step) % count;
+                        self.edit = Some(Edit::Sessions { label, sessions, selected });
+                        return Outcome::Stay;
+                    }
+                    Key::Del => return Outcome::Stay,
+                    _ if back => return Outcome::Stay,
+                    _ => {
+                        self.edit = Some(Edit::Sessions { label, sessions, selected });
+                        return Outcome::Stay;
+                    }
+                };
+                // The app reads the id from it, then closes the menu.
+                self.edit = Some(Edit::Sessions { label, sessions, selected: chosen });
+                return Outcome::OpenSession(chosen);
+            }
+            Edit::Name { label, mut typed, .. } => {
+                let c = match key {
+                    Key::Letter(c) => Some(c),
+                    Key::Digit(digit) => Some(char::from(b'0' + digit.min(9))),
+                    Key::Comma => Some(','),
+                    Key::Minus => Some('-'),
+                    Key::Plus => Some('+'),
+                    Key::Space => Some(' '),
+                    Key::Subscript => Some('_'),
+                    Key::OpenParen => Some('('),
+                    Key::CloseParen => Some(')'),
+                    Key::Del if !typed.is_empty() => {
+                        typed.pop();
+                        None
+                    }
+                    Key::Del => return Outcome::Stay,
+                    Key::Ok | Key::Exe => {
+                        let error = typed.trim().is_empty();
+                        self.edit = Some(Edit::Name { label, typed, error });
+                        return if error { Outcome::Stay } else { Outcome::Rename };
+                    }
+                    _ if back => return Outcome::Stay,
+                    _ => None,
+                };
+                if let Some(c) = c.filter(|_| typed.chars().count() < NAME_LENGTH) {
+                    typed.push(c);
+                }
+                self.edit = Some(Edit::Name { label, typed, error: false });
             }
             // Any key reads on.
             Edit::Message { .. } | Edit::Storage { .. } => {}

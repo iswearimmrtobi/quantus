@@ -13,7 +13,8 @@
 //!   calculations. Works with `--mirror`.
 //! - The mouse is the finger: a click taps, a drag moves a list or the mode tiles.
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
-//!   the 480×320 BMP files in its `wallpapers` folder.
+//!   the 480×320 BMP files in its `wallpapers` folder, the sessions the JSON files in its
+//!   `sessions` folder (with `--png` they are kept in memory, so a screenshot changes nothing).
 
 mod mirror;
 
@@ -28,7 +29,7 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Simul
 use mirror::{Mirror, Tee};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Storage, Stub};
+use quantus_ui::backend::{Backend, Opened, SessionCommand, SessionInfo, Storage, Stub};
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 use quantus_ui::touch::Touch;
@@ -36,8 +37,9 @@ use quantus_ui::touch::Touch;
 fn main() {
     let mut display = SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT));
     let args: Vec<String> = std::env::args().collect();
-    let answers = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::default()) };
     let sd = args.iter().position(|arg| arg == "--sd").and_then(|i| args.get(i + 1)).map_or("sd", String::as_str);
+    let sessions = (!args.iter().any(|arg| arg == "--png")).then(|| Path::new(sd).join("sessions"));
+    let answers = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::new(sessions)) };
     let mut app = App::new(Sim { answers, sd: PathBuf::from(sd) });
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
@@ -191,6 +193,27 @@ impl Backend for Sim {
         match &mut self.answers {
             Answers::Engine(engine) => engine.evaluate(mode, settings, latex),
             Answers::Stub(stub) => stub.evaluate(mode, settings, latex),
+        }
+    }
+
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.recalculate(mode, settings, latex),
+            Answers::Stub(stub) => stub.recalculate(mode, settings, latex),
+        }
+    }
+
+    fn sessions(&mut self) -> Vec<SessionInfo> {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.sessions(),
+            Answers::Stub(stub) => stub.sessions(),
+        }
+    }
+
+    fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.session(command, settings),
+            Answers::Stub(stub) => stub.session(command, settings),
         }
     }
 

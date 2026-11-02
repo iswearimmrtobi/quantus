@@ -1,22 +1,113 @@
 //! The engine behind the UI: `quantus-core` as the UI's `Backend`. The simulator calls it
 //! directly; the handheld runs it on a thread of its own, so the screen stays live meanwhile.
+//!
+//! The engine keeps the sessions. Given a folder (`sessions/` on the SD card), it reads every
+//! session file in it at start and writes a session's file again after each change, the same
+//! files the desktop keeps in its config directory. `current.txt` there names the session that
+//! was open, which opens again on the next start.
 
-use quantus_core::api::{self, CalculationRequest};
+use std::collections::HashSet;
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+
+use quantus_core::api::{self, CalcRequest, CalculationRequest, CalculationResponse, NewSessionRequest};
 use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::Backend;
+use quantus_ui::backend::{Backend, Opened, SessionCommand, SessionInfo};
 use quantus_ui::settings as ui;
 use quantus_ui::text::Lang;
 
-#[derive(Default)]
+/// The file in the sessions folder that names the open session.
+pub const CURRENT: &str = "current.txt";
+
 pub struct Engine {
     store: SessionStore,
+    /// The id of the open session: calculations go into it.
+    current: String,
+    /// Where the session files are; `None` keeps them in memory only.
+    dir: Option<PathBuf>,
 }
 
-impl Backend for Engine {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+/// Sessions in memory only.
+impl Default for Engine {
+    fn default() -> Self {
+        Engine::new(None)
+    }
+}
+
+impl Engine {
+    /// The engine with the sessions in `dir`, on the one open last; the first in the list if
+    /// that one is gone, a new one if there is none.
+    pub fn new(dir: Option<PathBuf>) -> Self {
+        // The handheld's settings until the first calculation brings the user's: German, so the
+        // first session is a "Sitzung".
+        let mut store = SessionStore::new();
+        store.settings = core_settings(CoreMode::Physics, &Settings::default());
+        if let Some(dir) = &dir {
+            load_sessions(dir, &mut store);
+        }
+        let remembered = dir
+            .as_ref()
+            .and_then(|dir| fs::read_to_string(dir.join(CURRENT)).ok())
+            .map(|id| id.trim().to_string())
+            .filter(|id| store.get(id).is_some());
+        let first = store.sessions().first().map(|session| session.id.clone());
+        let mut engine = Engine { store, current: String::new(), dir };
+        engine.current = match remembered.or(first) {
+            Some(id) => id,
+            None => engine.create(),
+        };
+        engine.keep_current();
+        engine
+    }
+
+    /// The id of the open session.
+    pub fn current(&self) -> &str {
+        &self.current
+    }
+
+    /// A new, empty session, "Sitzung 3" with the lowest number free (the handheld has no clock
+    /// for the desktop's "Sitzung 2026-11-01 14:30"), saved; returns its id.
+    fn create(&mut self) -> String {
+        let word = if self.store.settings.language == core::Language::De { "Sitzung" } else { "Session" };
+        let names: HashSet<String> = self.store.sessions().into_iter().map(|session| session.name.clone()).collect();
+        let name = (1..).map(|n| format!("{word} {n}")).find(|name| !names.contains(name)).expect("numbers are endless");
+        let request = NewSessionRequest { name: Some(name), ..Default::default() };
+        let id = api::new_session(&mut self.store, &request).id;
+        self.save(&id);
+        id
+    }
+
+    /// Writes the file of session `id`; a failure is reported, the session stays in memory.
+    fn save(&self, id: &str) {
+        let Some(dir) = &self.dir else { return };
+        if let Err(error) = save_session(dir, &self.store, id) {
+            eprintln!("the session {id} could not be saved: {error}");
+        }
+    }
+
+    /// Notes the open session in [`CURRENT`].
+    fn keep_current(&self) {
+        let Some(dir) = &self.dir else { return };
+        if let Err(error) = fs::create_dir_all(dir).and_then(|()| fs::write(dir.join(CURRENT), &self.current)) {
+            eprintln!("the open session could not be noted: {error}");
+        }
+    }
+
+    /// The open session and its history, the results written as `settings` say.
+    fn opened(&self, settings: &Settings) -> Opened {
+        let session = self.store.get(&self.current).expect("the open session exists");
+        Opened {
+            info: SessionInfo { id: session.id.clone(), name: session.name.clone() },
+            history: session.history().iter().map(|entry| (entry.input.clone(), shown(&entry.response, settings))).collect(),
+        }
+    }
+
+    /// Evaluates `latex` in the open session; `record` puts it into the history (S⇔D does not).
+    fn calculate(&mut self, mode: Mode, settings: &Settings, latex: &str, record: bool) -> Result<String, String> {
         // Analysis and Linear have their own calls (curve sketch, systems) and no screen for them
         // yet; here they evaluate plain inputs.
         let mode = match mode {
@@ -30,25 +121,119 @@ impl Backend for Engine {
         };
         let core = core_settings(mode, settings);
         api::set_settings(&mut self.store, core).map_err(|error| error.to_string())?;
-        let request = CalculationRequest {
-            latex: latex.to_string(),
-            session_id: None,
-            precision: Some(settings.digits.into()),
-            ..Default::default()
+        let (latex, session_id, precision) = (latex.to_string(), Some(self.current.clone()), Some(settings.digits.into()));
+        let response = if record {
+            let request = CalculationRequest { latex, session_id, precision, ..Default::default() };
+            api::evaluate(&mut self.store, &request)
+        } else {
+            api::calc(&mut self.store, &CalcRequest { latex, values: Vec::new(), session_id, precision })
         };
-        let response = api::evaluate(&mut self.store, &request).map_err(|error| error.to_string())?;
-        // The engine writes a rational as a decimal and gives the fraction among its forms;
-        // exact, the handheld shows the fraction, as a Casio does.
-        if !settings.decimal {
-            if let Some(fraction) = fraction(&response.forms) {
-                return Ok(fraction.to_string());
+        let response = response.map_err(|error| error.to_string())?;
+        // A definition and Ans changed, and the history if recorded.
+        self.save(&self.current);
+        Ok(shown(&response, settings))
+    }
+}
+
+impl Backend for Engine {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+        self.calculate(mode, settings, latex, true)
+    }
+
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+        Some(self.calculate(mode, settings, latex, false))
+    }
+
+    fn sessions(&mut self) -> Vec<SessionInfo> {
+        api::list_sessions(&self.store).into_iter().map(|info| SessionInfo { id: info.id, name: info.name }).collect()
+    }
+
+    fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
+        // The language names a new session and a copy.
+        api::set_settings(&mut self.store, core_settings(CoreMode::Physics, settings)).map_err(|error| error.to_string())?;
+        let current = self.current.clone();
+        match command {
+            SessionCommand::Current => {}
+            SessionCommand::New => self.current = self.create(),
+            SessionCommand::Open(id) => {
+                if self.store.get(&id).is_none() {
+                    return Err(format!("There is no session '{id}'."));
+                }
+                self.current = id;
+            }
+            SessionCommand::Rename(name) => {
+                api::rename_session(&mut self.store, &current, &name).map_err(|error| error.error)?;
+                self.save(&current);
+            }
+            SessionCommand::Duplicate => {
+                let copy = api::duplicate_session(&mut self.store, &current, None).map_err(|error| error.error)?;
+                self.save(&copy.id);
+                self.current = copy.id;
+            }
+            SessionCommand::Delete => {
+                api::delete_session(&mut self.store, &current);
+                if let Some(path) = self.dir.as_ref().and_then(|dir| session_path(dir, &current)) {
+                    if let Err(error) = fs::remove_file(&path) {
+                        eprintln!("{} could not be deleted: {error}", path.display());
+                    }
+                }
+                let next = self.store.sessions().first().map(|session| session.id.clone());
+                self.current = match next {
+                    Some(id) => id,
+                    None => self.create(),
+                };
+            }
+            SessionCommand::ClearHistory => {
+                api::clear_history(&mut self.store, Some(&current));
+                self.save(&current);
             }
         }
-        // A decimal with digits after the comma is rounded; mark it like the stub does.
-        if settings.decimal && response.result.contains("{,}") {
-            Ok(format!(r"\approx {}", response.result))
-        } else {
-            Ok(response.result)
+        if self.current != current {
+            self.keep_current();
+        }
+        Ok(self.opened(settings))
+    }
+}
+
+/// A response as the handheld shows it. The engine writes a rational as a decimal and gives the
+/// fraction among its forms; exact, the handheld shows the fraction, as a Casio does.
+fn shown(response: &CalculationResponse, settings: &Settings) -> String {
+    if !settings.decimal {
+        if let Some(fraction) = fraction(&response.forms) {
+            return fraction.to_string();
+        }
+    }
+    // A decimal with digits after the comma is rounded; mark it like the stub does.
+    if settings.decimal && response.result.contains("{,}") {
+        format!(r"\approx {}", response.result)
+    } else {
+        response.result.clone()
+    }
+}
+
+/// The file of session `id` in `dir`, or `None` for an id that is no plain file name.
+pub fn session_path(dir: &Path, id: &str) -> Option<PathBuf> {
+    let plain = !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    plain.then(|| dir.join(format!("{id}.json")))
+}
+
+/// Writes session `id` to its file; a session the store does not have is left alone.
+fn save_session(dir: &Path, store: &SessionStore, id: &str) -> io::Result<()> {
+    let (Some(path), Some(session)) = (session_path(dir, id), store.get(id)) else { return Ok(()) };
+    fs::create_dir_all(dir)?;
+    fs::write(path, session.to_json())
+}
+
+/// Reads every session file in `dir` into the store; a broken one is reported and skipped.
+fn load_sessions(dir: &Path, store: &mut SessionStore) {
+    let Ok(entries) = fs::read_dir(dir) else { return };
+    for path in entries.flatten().map(|entry| entry.path()) {
+        if path.extension().is_none_or(|extension| !extension.eq_ignore_ascii_case("json")) {
+            continue;
+        }
+        let read = fs::read_to_string(&path).map_err(|error| error.to_string());
+        if let Err(error) = read.and_then(|json| api::import_session(store, &json).map_err(|error| error.error)) {
+            eprintln!("ignoring {}: {error}", path.display());
         }
     }
 }

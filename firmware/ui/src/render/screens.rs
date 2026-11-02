@@ -245,6 +245,40 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                 }
             }
         }
+        Some(Edit::Sessions { sessions, selected, .. }) => {
+            let open = app.session.as_ref().map(|session| session.id.as_str());
+            let lines = sessions.iter().map(|session| Line {
+                label: session.name.clone(),
+                value: None,
+                mark: if Some(session.id.as_str()) == open { Mark::Dot } else { Mark::None },
+            });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
+        Some(Edit::Name { typed, error, .. }) => {
+            let top = BAR + 30;
+            let height = 60;
+            let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
+            shapes.push(panel(rounded(Point::new(MARGIN, top), size, 6), colors::SURFACE, Some(colors::CYAN), glass));
+            let metrics = Scale::Normal.metrics();
+            let baseline = top + (height + metrics.digit) / 2;
+            let x = MARGIN + 16;
+            let room = WIDTH as i32 - 2 * MARGIN - 40;
+            // The end of a long name, where the caret is.
+            let mut shown = typed.as_str();
+            while Scale::Normal.width(shown) > room {
+                let mut chars = shown.chars();
+                chars.next();
+                shown = chars.as_str();
+            }
+            shapes.push(Shape::Text(Point::new(x, baseline), shown.to_string(), Scale::Normal, colors::TEXT));
+            if app.caret_on {
+                let caret_x = x + Scale::Normal.width(shown) + 2;
+                let caret = Rectangle::new(Point::new(caret_x, baseline - metrics.ascent + 4), Size::new(2, metrics.ascent as u32));
+                shapes.push(Shape::Fill(caret, colors::CYAN));
+            }
+            let (hint, color) = if *error { (text::EMPTY_NAME, colors::ERROR) } else { (text::NAME_HINT, colors::MUTED) };
+            shapes.push(Shape::Text(Point::new(MARGIN + 4, top + height + 28), hint.get(lang).to_string(), Scale::Small, color));
+        }
         Some(Edit::Storage { storage: Some(storage), .. }) => storage_screen(shapes, *storage, lang, glass),
         Some(Edit::Storage { storage: None, .. }) => centred(shapes, text::NO_CARD.get(lang)),
         Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),

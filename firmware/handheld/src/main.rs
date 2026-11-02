@@ -17,6 +17,8 @@ use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Storage};
+#[cfg(feature = "engine")]
+use quantus_ui::backend::{Opened, SessionCommand, SessionInfo};
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
@@ -68,9 +70,9 @@ fn main() {
     // The touch calibration and the wallpaper's name from flash.
     let store = Store::open().map_err(|error| log::warn!("no NVS for the touch calibration: {error}")).ok();
     let mut board = Board {
-        card,
         #[cfg(feature = "engine")]
-        engine: engine::Worker::start(),
+        engine: engine::Worker::start(card.is_some().then(|| std::path::PathBuf::from(sd::SESSIONS))),
+        card,
     };
     // The wallpaper set before the last restart, if the card still has it.
     let wallpaper = store.as_ref().and_then(Store::load_wallpaper).and_then(|name| match board.picture(&name) {
@@ -156,7 +158,7 @@ struct Board {
 impl Backend for Board {
     #[cfg(feature = "engine")]
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
-        self.engine.send(mode, settings, latex);
+        self.engine.send(mode, settings, latex, true);
         self.engine.wait()
     }
 
@@ -170,8 +172,24 @@ impl Backend for Board {
     /// The engine calculates on its thread; `poll` brings the answer.
     #[cfg(feature = "engine")]
     fn start(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
-        self.engine.send(mode, settings, latex);
+        self.engine.send(mode, settings, latex, true);
         None
+    }
+
+    #[cfg(feature = "engine")]
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+        self.engine.send(mode, settings, latex, false);
+        None
+    }
+
+    #[cfg(feature = "engine")]
+    fn sessions(&mut self) -> Vec<SessionInfo> {
+        self.engine.sessions()
+    }
+
+    #[cfg(feature = "engine")]
+    fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
+        self.engine.session(command, settings)
     }
 
     #[cfg(feature = "engine")]

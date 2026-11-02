@@ -256,15 +256,16 @@ static BLUETOOTH: Page = Page {
     ],
 };
 
-/// The Sitzungen tile of MODE (§6): sessions are not in the core yet.
+/// The Sitzungen tile of MODE (§6). Renaming, duplicating and deleting act on the open session;
+/// the backend keeps them, on the SD card when there is one.
 pub static SESSIONS: Page = Page {
     title: t("Sitzungen", "Sessions"),
     entries: &[
-        pending(t("Neu", "New")),
-        pending(t("Öffnen", "Open")),
-        pending(t("Umbenennen", "Rename")),
-        pending(t("Duplizieren", "Duplicate")),
-        pending(t("Löschen", "Delete")),
+        entry(t("Neu", "New"), Kind::Do(Action::NewSession)),
+        entry(t("Öffnen", "Open"), Kind::Sessions),
+        entry(t("Umbenennen", "Rename"), Kind::Rename),
+        entry(t("Duplizieren", "Duplicate"), Kind::Do(Action::DuplicateSession)),
+        entry(t("Löschen", "Delete"), Kind::Confirm(Action::DeleteSession)),
     ],
 };
 

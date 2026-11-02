@@ -38,7 +38,7 @@ The hardware, setup and wiring are in [firmware/docs](../docs/README.md):
 - [Setup, build and flash](../docs/setup.md), including the serial port on Linux
 - [The dev kit and the display's pins](../docs/dev-kit.md#the-35-rpi-display-on-the-header)
 - [Display and touch](../docs/display-and-touch.md): first start, colours, calibration, test binaries
-- [SD card](../docs/sd-card.md): formatting and wallpapers
+- [SD card](../docs/sd-card.md): formatting, wallpapers and sessions
 - [Mirror](../docs/mirror.md): the board as the simulator's screen
 
 ## Keys

@@ -27,8 +27,9 @@ cargo run -- --tour                                 # a walk through the UI with
 ```
 
 The folder `sd` (or the one after `--sd`) stands for the SD card; its `wallpapers` folder holds
-the pictures for SETUP → Gerät → Hintergrundbild, as on the board
-([sd-card.md](../docs/sd-card.md#what-goes-on-the-card)). `sd/` is in `.gitignore`.
+the pictures for SETUP → Gerät → Hintergrundbild and its `sessions` folder the sessions, as on
+the board ([sd-card.md](../docs/sd-card.md#what-goes-on-the-card)). With `--png` the sessions are
+read but not written. `sd/` is in `.gitignore`.
 
 `--tour` plays a walk through the UI with a person's pauses between the keys (about two
 minutes): it picks the first wallpaper and shows it everywhere, opens each SETUP page, goes over

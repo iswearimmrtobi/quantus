@@ -101,8 +101,8 @@ dev kit. See its [README](../firmware/esp32/README.md).
   - [x] A wallpaper from the SD card behind the mode tiles, the menus or everything, picked in
     SETUP → Gerät → Hintergrundbild (§7.6; the simulator reads `sd/wallpapers/`).
   - [x] The SD card on the board: `wallpapers()` and `wallpaper()` of the backend from
-    `/wallpapers/`, and the picture set kept across restarts (its name in NVS). Sessions on the
-    card come with §6.
+    `/wallpapers/`, and the picture set kept across restarts (its name in NVS).
+  - [x] Sessions on the card in `/sessions/` (§6), the Sitzungen menu, the last one reopened.
   - [ ] A larger Greek font than u8g2's bitmap ones (π, μ and Ω are fine); German texts.
 
 ## 5. Features modelled on the Casio fx-991DE X
@@ -141,7 +141,7 @@ handheld-menus.md, *What is missing*.
 - [ ] Solving: exact cubics and quartics (Cardano, Ferrari) without the [−100, 100] limit; SOLVE
   for a chosen variable; CALC (the free variables of an expression, then substitute);
   wahr/falsch for an equation without unknowns, and a Prüfen mode.
-- [ ] Sessions: history, mode inputs, a name and timestamps in `session.rs`, serialised to JSON
+- [x] Sessions: history, mode inputs, a name and timestamps in `session.rs`, serialised to JSON
   with a format version. The desktop keeps them in its config directory with a session menu and
   opens the last one on start; the handheld keeps them on the SD card.
 - [ ] Ans and PreAns in the session; STO and VARS on the handheld.

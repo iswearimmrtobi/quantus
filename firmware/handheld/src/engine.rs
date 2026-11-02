@@ -1,14 +1,16 @@
 //! The engine on a thread of its own, so the screen, the keys and the touch panel stay live while
 //! it calculates: an integral takes seconds. One calculation at a time; one dropped with AC runs
-//! to its end, and the next waits for it.
+//! to its end, and the next waits for it. The sessions live on this thread too, in the engine;
+//! the session menu's requests wait behind a running calculation.
 
+use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::time::Instant;
 
 use esp_idf_svc::sys;
 use quantus_engine::Engine;
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::Backend;
+use quantus_ui::backend::{Backend, Opened, SessionCommand, SessionInfo};
 use quantus_ui::text::Lang;
 
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does. The
@@ -17,11 +19,11 @@ const ENGINE_STACK: usize = 64 * 1024;
 
 type Answer = Result<String, String>;
 
-struct Job {
-    generation: u32,
-    mode: Mode,
-    settings: Settings,
-    latex: String,
+enum Job {
+    Calculate { generation: u32, mode: Mode, settings: Settings, latex: String, record: bool },
+    /// The sessions, answered on a channel of their own.
+    Sessions(Sender<Vec<SessionInfo>>),
+    Session(SessionCommand, Settings, Sender<Result<Opened, String>>),
 }
 
 pub struct Worker {
@@ -32,26 +34,39 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub fn start() -> Self {
+    /// The engine thread, with the session files in `sessions` (none without an SD card).
+    pub fn start(sessions: Option<PathBuf>) -> Self {
         let (jobs, received) = mpsc::channel::<Job>();
         let (answer, answers) = mpsc::channel();
         std::thread::Builder::new()
             .name("engine".into())
             .stack_size(ENGINE_STACK)
             .spawn(move || {
-                let mut engine = Engine::default();
+                let loaded = Instant::now();
+                // Reading a session works its variables out again: here, on the big stack.
+                let mut engine = Engine::new(sessions);
+                println!("sessions read in {} ms, open: {}", loaded.elapsed().as_millis(), engine.current());
                 for job in received {
-                    let started = Instant::now();
-                    let result = engine.evaluate(job.mode, &job.settings, &job.latex);
-                    println!(
-                        "{}: {}  =>  {result:?}  ({} ms)",
-                        job.mode.name(Lang::En),
-                        job.latex,
-                        started.elapsed().as_millis()
-                    );
-                    report_memory();
-                    if answer.send((job.generation, result)).is_err() {
-                        return;
+                    match job {
+                        Job::Calculate { generation, mode, settings, latex, record } => {
+                            let started = Instant::now();
+                            let result = match record {
+                                true => engine.evaluate(mode, &settings, &latex),
+                                false => engine.recalculate(mode, &settings, &latex).expect("the engine answers at once"),
+                            };
+                            println!("{}: {latex}  =>  {result:?}  ({} ms)", mode.name(Lang::En), started.elapsed().as_millis());
+                            report_memory();
+                            if answer.send((generation, result)).is_err() {
+                                return;
+                            }
+                        }
+                        Job::Sessions(reply) => {
+                            let _ = reply.send(engine.sessions());
+                        }
+                        Job::Session(command, settings, reply) => {
+                            println!("session: {command:?}");
+                            let _ = reply.send(engine.session(command, &settings));
+                        }
                     }
                 }
             })
@@ -60,12 +75,30 @@ impl Worker {
     }
 
     /// Sends a calculation to the engine; its answer comes from [`poll`](Worker::poll).
-    pub fn send(&mut self, mode: Mode, settings: &Settings, latex: &str) {
+    /// `record: false` leaves the history alone (S⇔D).
+    pub fn send(&mut self, mode: Mode, settings: &Settings, latex: &str, record: bool) {
         self.generation = self.generation.wrapping_add(1);
-        let job = Job { generation: self.generation, mode, settings: *settings, latex: latex.to_string() };
+        let job = Job::Calculate { generation: self.generation, mode, settings: *settings, latex: latex.to_string(), record };
         if self.jobs.send(job).is_err() {
             println!("the engine thread has stopped");
         }
+    }
+
+    /// The sessions, waiting for a running calculation to end first.
+    pub fn sessions(&mut self) -> Vec<SessionInfo> {
+        let (reply, answer) = mpsc::channel();
+        if self.jobs.send(Job::Sessions(reply)).is_err() {
+            return Vec::new();
+        }
+        answer.recv().unwrap_or_default()
+    }
+
+    /// Does `command` to the sessions, waiting like [`sessions`](Worker::sessions).
+    pub fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
+        let (reply, answer) = mpsc::channel();
+        let stopped = || "the engine thread has stopped".to_string();
+        self.jobs.send(Job::Session(command, *settings, reply)).map_err(|_| stopped())?;
+        answer.recv().map_err(|_| stopped())?
     }
 
     /// The answer to the last calculation sent, once it is there.

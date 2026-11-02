@@ -148,6 +148,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   uses the same files, which now also keep the reversed current arrows.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
+- The handheld keeps **sessions**, as the desktop app does: MODE → Sitzungen creates, opens,
+  renames, duplicates and deletes them, each a JSON file in `sessions/` on the SD card, written
+  after every calculation. The session open last comes back with its history and variables after
+  a restart, and the files are the desktop's, so a session can be copied between the two.
 
 ### Changed
 

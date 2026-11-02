@@ -1,7 +1,9 @@
 //! The SD card of the ESP32-P4 dev kit, mounted at [`MOUNT`] so `std::fs` reads it: SDMMC slot 0,
 //! 4 bits wide, on its fixed pins (CLK 43, CMD 44, D0–D3 39–42, firmware/docs/dev-kit.md).
 //! Those pins are in the P4's I/O domain fed by the on-chip LDO 4, which must be set to 3.3 V
-//! first; GPIO45 switches the card's own supply. The card is FAT32 on an MBR partition table:
+//! first; GPIO45 switches the card's own supply. The clock is 10 MHz: at the driver's 20 MHz
+//! reads work but every write times out (0x107), with only the internal pull-ups on the data
+//! lines. `QUANTUS_SD_KHZ` at build time sets another. The card is FAT32 on an MBR partition table:
 //! ESP-IDF's FatFs has neither exFAT nor GPT.
 
 use esp_idf_svc::fs::fatfs::Fatfs;
@@ -14,6 +16,9 @@ use quantus_ui::backend::Storage;
 
 /// Where the card appears in the file system.
 pub const MOUNT: &str = "/sd";
+
+/// The session files (`quantus_engine::Engine`), one JSON file each, as on the desktop.
+pub const SESSIONS: &str = "/sd/sessions";
 
 /// The mounted card. Dropping it unmounts the card and switches its supply off.
 pub struct SdCard {
@@ -50,7 +55,9 @@ impl SdCard {
             Option::<Gpio45>::None,
             &SdMmcHostConfiguration::new(),
         )?;
-        let card = SdCardDriver::new_mmc(host, &SdCardConfiguration::new())?;
+        let mut config = SdCardConfiguration::new();
+        config.speed_khz = option_env!("QUANTUS_SD_KHZ").and_then(|khz| khz.parse().ok()).unwrap_or(10_000);
+        let card = SdCardDriver::new_mmc(host, &config)?;
         let mounted = MountedFatfs::mount(Fatfs::new_sdcard(0, card)?, MOUNT, 4)?;
         Ok(SdCard { _mounted: mounted, _power: power })
     }

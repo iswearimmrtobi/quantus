@@ -6,6 +6,8 @@ before powering on or press RESET after inserting it.
 
 The slot sits on GPIO39–44, in the domain powered by an LDO that defaults to 1.8 V; the firmware
 sets it to 3.3 V and drives GPIO45 low to power the card ([dev-kit.md](dev-kit.md#onboard-gpio-use)).
+The bus runs at 10 MHz: at 20 MHz the card reads fine but every write times out
+(`sdmmc_write_blocks failed (0x107)`). `QUANTUS_SD_KHZ` at build time picks another clock.
 
 ## Formatting
 
@@ -29,6 +31,12 @@ Windows' own format dialog offers only exFAT above 32 GB; use a tool such as *Ru
   `magick in.png -resize 480x320^ -gravity center -extent 480x320 out.bmp`. Long names and
   umlauts are fine. The picture set is kept in flash (NVS) by name and comes back after a
   restart if the card still has it.
+- `sessions/`: the sessions of MODE → Sitzungen, one JSON file each (`session-1.json`, …),
+  written after every calculation and every change in the menu; `current.txt` names the one
+  open, which opens again after a restart. They are the same files as the desktop app's
+  `sessions/` in its config directory, so a session can be copied from one to the other (an id
+  already in use gets a new one when read). Without a card, sessions are kept until the next
+  restart only.
 
 SETUP → Gerät → Speicherplatz shows how full the card is.
 

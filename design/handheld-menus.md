@@ -68,7 +68,8 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [ ] CALC prompt and SOLVE screen
 - [ ] VARS screen: insert, edit, delete session variables
 - [ ] Editing: UNDO/REDO, INS, selection with SHIFT+←/→, copy and paste
-- [ ] Sitzungen: the menu, files on the SD card, the last session reopened on wake-up
+- [x] Sitzungen: the menu, files on the SD card, the last session reopened on wake-up (from the
+      MODE tile; the SHIFT key waits for the keypad)
 - [ ] Gerät: brightness, font size, auto-off (firmware)
 - [ ] QR code of the result or the steps
 - [ ] Prüfungsmodus actually switching the radios off
@@ -555,8 +556,9 @@ engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verf�
   9. Statistik [C, eng] ◌
   10. Verteilungen [C, eng] ◌
   11. Prüfen [C Berechn prüf, eng] ◌
-  12. Sitzungen [Q, fw] ◌: a page Neu, Öffnen, Umbenennen, Duplizieren, Löschen, each *Noch nicht
-      verfügbar* until the core has sessions (section 6)
+  12. Sitzungen [Q, fw] ✓: a page Neu, Öffnen, Umbenennen, Duplizieren, Löschen (section 6).
+      Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. Without
+      a clock a new one is "Sitzung 2", the lowest number free.
 - Later: Ungleichungen [C, eng], Geometrie with the vectors [eng]
   ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)).
 - Not on the handheld: Tabellenkalk., Verhältnisse (typed in Algebra), Kirchhoff and
@@ -664,7 +666,7 @@ Per mode:
 | ENG, ←ENG | a key and SHIFT + it | missing |
 | STO, VARS | SHIFT + a key, and a key | missing |
 | CALC, SOLVE | a key and SHIFT + it, or OPTN → Werkzeuge | missing |
-| Sitzungen | SHIFT + a key, or the MODE tile | missing |
+| Sitzungen | SHIFT + a key, or the MODE tile | the MODE tile |
 | PreAns | SHIFT + Ans | missing |
 | ∠ | SHIFT + a key in Komplex | missing |
 | UNDO/REDO, INS | SHIFT + DEL, SHIFT + another key | missing |

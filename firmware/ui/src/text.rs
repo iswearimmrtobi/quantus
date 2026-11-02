@@ -60,3 +60,5 @@ pub const DECIMAL_SHORT: Text = t("Dez", "Dec");
 pub const CALIBRATE: Text = t("Touch kalibrieren", "Calibrate touch");
 pub const CALIBRATE_HINT: Text = t("Kreuz berühren und kurz halten", "Touch the cross and hold briefly");
 pub const CALIBRATE_RETRY: Text = t("Zu ungenau, bitte noch einmal", "Too far off, once more please");
+pub const EMPTY_NAME: Text = t("Der Name darf nicht leer sein", "The name must not be empty");
+pub const NAME_HINT: Text = t("Namen tippen, OK übernimmt ihn", "Type a name, OK sets it");

@@ -20,8 +20,25 @@ pub trait Backend {
         None
     }
 
+    /// [`start`](Backend::start) for an input that is already in the history, in the other form
+    /// (S⇔D): the session does not record it a second time.
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+        self.start(mode, settings, latex)
+    }
+
     /// Forgets the running calculation: its answer never comes from [`poll`](Backend::poll).
     fn drop_pending(&mut self) {}
+
+    /// The sessions there are, in the order the session list shows them.
+    fn sessions(&mut self) -> Vec<SessionInfo> {
+        Vec::new()
+    }
+
+    /// Does `command` to the sessions and returns the one open afterwards, or why it failed. A
+    /// backend without sessions (the stub) has none.
+    fn session(&mut self, _command: SessionCommand, _settings: &Settings) -> Result<Opened, String> {
+        Err("no sessions".to_string())
+    }
 
     /// The pictures in `/wallpapers/` on the SD card: their names without `.bmp`, sorted.
     fn wallpapers(&mut self) -> Vec<String> {
@@ -43,6 +60,37 @@ pub trait Backend {
     fn storage(&mut self) -> Option<Storage> {
         None
     }
+}
+
+/// A session as the menus show it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SessionInfo {
+    pub id: String,
+    pub name: String,
+}
+
+/// What the Sitzungen menu asks of the backend. Rename, Duplicate, Delete and ClearHistory act on
+/// the open session.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SessionCommand {
+    /// Nothing: just the open session, at start.
+    Current,
+    New,
+    Open(String),
+    Rename(String),
+    /// A copy, which is opened.
+    Duplicate,
+    /// Deletes the open session and opens the next one, or a new one after the last.
+    Delete,
+    ClearHistory,
+}
+
+/// The open session and its history, oldest first: each input and its result as LaTeX, the
+/// result written as the settings say.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Opened {
+    pub info: SessionInfo,
+    pub history: Vec<(String, String)>,
 }
 
 /// The size of a card and the room left on it, in bytes.

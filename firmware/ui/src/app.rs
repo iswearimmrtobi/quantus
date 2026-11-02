@@ -1,6 +1,6 @@
 //! The calculator's state and what each key does to it.
 
-use crate::backend::Backend;
+use crate::backend::{Backend, Opened, SessionCommand, SessionInfo};
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
@@ -156,6 +156,8 @@ pub struct App<B> {
     /// While the list of wallpapers is open: the place in it of the picture shown instead, and
     /// that picture (`None` for none, or one that could not be read).
     pub preview: Option<(usize, Option<Wallpaper>)>,
+    /// The session open now, whose history is shown; `None` for a backend without sessions.
+    pub session: Option<SessionInfo>,
     /// Turns the panel's readings into screen points; set by the board from what it stored.
     pub calibration: Calibration,
     /// A calibration just made, for the board to store.
@@ -205,8 +207,9 @@ impl<B> App<B> {
 }
 
 impl<B: Backend> App<B> {
+    /// The app on the session the backend has open, with its history.
     pub fn new(backend: B) -> Self {
-        App {
+        let mut app = App {
             backend,
             mode: Mode::Physics,
             settings: Settings::default(),
@@ -224,6 +227,7 @@ impl<B: Backend> App<B> {
             wallpaper: None,
             wallpaper_name: None,
             preview: None,
+            session: None,
             calibration: Calibration::default(),
             calibrated: None,
             pending: None,
@@ -231,7 +235,64 @@ impl<B: Backend> App<B> {
             pressed: None,
             last_blink: 0,
             last_spin: 0,
+        };
+        let settings = app.settings;
+        if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
+            app.load(opened);
         }
+        app
+    }
+
+    /// Shows the session `opened`: its history, an empty input.
+    fn load(&mut self, opened: Opened) {
+        self.cancel();
+        let skip = opened.history.len().saturating_sub(HISTORY);
+        let decimal = self.settings.decimal;
+        self.history = opened
+            .history
+            .into_iter()
+            .skip(skip)
+            .map(|(input, result)| Entry { input: latex::parse(&input), result: Ok(latex::parse(&result)), decimal })
+            .collect();
+        self.session = Some(opened.info);
+        self.reset();
+    }
+
+    /// Sends `command` to the backend. A session opened goes to the calculation screen, a renamed
+    /// one stays in the menu; a failure says so in the menu.
+    fn session_command(&mut self, mut menu: Menu, command: SessionCommand) {
+        let rename = matches!(command, SessionCommand::Rename(_));
+        if !rename {
+            self.cancel();
+        }
+        let label = menu.title();
+        let settings = self.settings;
+        match self.backend.session(command, &settings) {
+            Ok(opened) if rename => {
+                self.session = Some(opened.info);
+                menu.edit = None;
+                self.screen = Screen::Menu(menu);
+            }
+            Ok(opened) => {
+                self.load(opened);
+                self.screen = Screen::Calc;
+            }
+            Err(_) => {
+                menu.edit = Some(Edit::Message { label, message: text::NOT_AVAILABLE });
+                self.screen = Screen::Menu(menu);
+            }
+        }
+    }
+
+    /// Opens the list of sessions, on the one open now.
+    fn open_sessions(&mut self, menu: &mut Menu, label: Text) {
+        let sessions = self.backend.sessions();
+        if sessions.is_empty() {
+            menu.edit = Some(Edit::Message { label, message: text::NOT_AVAILABLE });
+            return;
+        }
+        let open = self.session.as_ref().and_then(|open| sessions.iter().position(|s| s.id == open.id));
+        menu.edit = Some(Edit::Sessions { label, sessions, selected: open.unwrap_or(0) });
     }
 
     /// Takes an answer the backend has finished, blinks the caret and turns the spinner while
@@ -429,7 +490,30 @@ impl<B: Backend> App<B> {
                 self.screen = Screen::Menu(menu);
                 return self.calibrate();
             }
+            Outcome::Act(action) if action.session() => {
+                let command = match action {
+                    Action::NewSession => SessionCommand::New,
+                    Action::DuplicateSession => SessionCommand::Duplicate,
+                    _ => SessionCommand::Delete,
+                };
+                return self.session_command(menu, command);
+            }
             Outcome::Act(action) => self.act(action),
+            Outcome::Sessions(label) => self.open_sessions(&mut menu, label),
+            Outcome::OpenSession(index) => {
+                let Some(Edit::Sessions { sessions, .. }) = &menu.edit else { return };
+                let Some(id) = sessions.get(index).map(|session| session.id.clone()) else { return };
+                return self.session_command(menu, SessionCommand::Open(id));
+            }
+            Outcome::NameOf(label) => {
+                let typed = self.session.as_ref().map(|session| session.name.clone()).unwrap_or_default();
+                menu.edit = Some(Edit::Name { label, typed, error: false });
+            }
+            Outcome::Rename => {
+                let Some(Edit::Name { typed, .. }) = &menu.edit else { return };
+                let name = typed.trim().to_string();
+                return self.session_command(menu, SessionCommand::Rename(name));
+            }
             Outcome::Pictures(label) => self.open_pictures(&mut menu, label),
             Outcome::Preview(index) => {
                 let picture = self.picture(&menu, index);
@@ -446,20 +530,25 @@ impl<B: Backend> App<B> {
     fn act(&mut self, action: Action) {
         match action {
             Action::ResetSettings => self.settings = Settings::default(),
-            Action::ResetMemory => {
-                self.cancel();
-                self.history.clear();
-                self.reset();
-            }
+            Action::ResetMemory => self.clear_memory(),
             Action::ResetAll => {
-                self.cancel();
                 self.settings = Settings::default();
-                self.history.clear();
-                self.reset();
+                self.clear_memory();
             }
             Action::ClearInput => self.reset(),
-            // Opened by `outcome`, which knows the menu to come back to.
-            Action::Calibrate => {}
+            // Done by `outcome`, which knows the menu to come back to.
+            Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
+        }
+    }
+
+    /// The history cleared, in the open session too, and the input.
+    fn clear_memory(&mut self) {
+        self.cancel();
+        self.history.clear();
+        self.reset();
+        let settings = self.settings;
+        if let Ok(opened) = self.backend.session(SessionCommand::ClearHistory, &settings) {
+            self.session = Some(opened.info);
         }
     }
 
@@ -586,7 +675,7 @@ impl<B: Backend> App<B> {
             Key::Del => editor.delete(),
             Key::Ac => editor.clear(),
             Key::Ok | Key::Exe => self.evaluate(),
-            Key::SwapForm | Key::Shift | Key::Alpha | Key::Mode | Key::Optn => {}
+            Key::SwapForm | Key::Space | Key::Shift | Key::Alpha | Key::Mode | Key::Optn => {}
         }
     }
 
@@ -706,8 +795,12 @@ impl<B: Backend> App<B> {
 
     /// Asks the backend; the answer goes where `pending` says, now or when `tick` gets it.
     fn start(&mut self, pending: Pending, settings: &Settings, latex: &str) {
+        let answer = match pending {
+            Pending::New { .. } => self.backend.start(self.mode, settings, latex),
+            Pending::Swap { .. } => self.backend.recalculate(self.mode, settings, latex),
+        };
         self.pending = Some(pending);
-        match self.backend.start(self.mode, settings, latex) {
+        match answer {
             Some(result) => self.finish(result),
             None => self.busy = true,
         }
