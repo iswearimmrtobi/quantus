@@ -166,7 +166,7 @@ fn median(mut samples: Vec<u16>) -> Option<u16> {
     (samples[samples.len() - 1 - quarter] - samples[quarter] <= SPREAD).then(|| samples[samples.len() / 2])
 }
 
-/// Where the calibration is kept: a namespace in the NVS partition.
+/// Where the calibration and the wallpaper's name are kept: a namespace in the NVS partition.
 pub struct Store(EspDefaultNvs);
 
 const NAMESPACE: &str = "quantus";
@@ -186,4 +186,20 @@ impl Store {
     pub fn save(&self, calibration: &Calibration) -> Result<(), EspError> {
         self.0.set_blob(KEY, &calibration.to_bytes())
     }
+
+    /// The name of the wallpaper set, if any.
+    pub fn load_wallpaper(&self) -> Option<String> {
+        let mut buffer = [0u8; 256];
+        self.0.get_str(WALLPAPER, &mut buffer).ok()?.map(str::to_string)
+    }
+
+    /// Keeps the wallpaper `name`, or forgets it for `None`.
+    pub fn save_wallpaper(&self, name: Option<&str>) -> Result<(), EspError> {
+        match name {
+            Some(name) => self.0.set_str(WALLPAPER, name),
+            None => self.0.remove(WALLPAPER).map(|_| ()),
+        }
+    }
 }
+
+const WALLPAPER: &str = "wallpaper";

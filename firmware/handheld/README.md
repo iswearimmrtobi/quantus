@@ -73,6 +73,32 @@ survives flashing new firmware. Each press prints its raw reading and where it l
 (`touch: raw x …, y … at …`). `QUANTUS_TOUCH_DEBUG=1 cargo run --release` also prints the raw
 readings four times a second, pressed or not.
 
+## SD card
+
+The dev kit's TF slot is mounted at `/sd` at boot (`src/sd.rs`); the serial monitor prints
+`SD card mounted` or `no SD card: …`. The card is read only at boot, so insert it before
+powering on or press RESET after inserting it.
+
+The card needs an **MBR** partition table with **one FAT32 partition**. ESP-IDF's FAT driver
+reads neither exFAT, which cards over 32 GB come with, nor GPT. Any size works, 128 GB included.
+On Linux, with the card at `/dev/sdX` (check with `lsblk`; this erases the card):
+
+```sh
+sudo wipefs -a /dev/sdX
+echo 'type=c' | sudo sfdisk --label dos /dev/sdX   # one partition over the whole card, type W95 FAT32 (LBA)
+sudo mkfs.fat -F 32 -n QUANTUS /dev/sdX1
+```
+
+Windows' own format dialog offers only exFAT above 32 GB; use a tool such as *Rufus* or
+*guiformat* for FAT32 there.
+
+What goes on the card:
+
+- `wallpapers/`: the pictures for SETUP → Gerät → Hintergrundbild, BMP files of exactly
+  480×320, as for the simulator ([firmware/sim](../sim/README.md)). Long names and umlauts are
+  fine. The picture set is kept in flash (NVS) by name and comes back after a restart if the
+  card still has it.
+
 ## Mirror (testing only)
 
 `cargo run --release --bin mirror` flashes a second binary that only shows what the simulator

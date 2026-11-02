@@ -78,7 +78,8 @@ below). Leave those pins alone unless the onboard part is not needed.
 | CHIP_PU | RESET button |
 
 The SD card sits on GPIO39–48, the domain powered by an LDO that defaults to 1.8 V; firmware sets
-it to 3.3 V (see calculator-hardware.md). GPIO24/25 being the USB Serial/JTAG port confirms the
+it to 3.3 V (LDO channel 4, see calculator-hardware.md) and drives GPIO45 low to power the card
+(`firmware/handheld/src/sd.rs`). These are SDMMC slot 0's fixed IOMUX pins. GPIO24/25 being the USB Serial/JTAG port confirms the
 choice for our own PCB.
 
 ## The 3.5" RPi display on the header

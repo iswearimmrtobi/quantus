@@ -4,6 +4,7 @@
 
 #[macro_use]
 mod display;
+mod sd;
 mod touch;
 
 use std::io::Read;
@@ -40,15 +41,53 @@ fn main() {
     println!("display ready after {} ms", start.elapsed().as_millis());
 
     test_pattern(&mut display);
-    FreeRtos::delay_ms(1500);
+    let shown = Instant::now();
 
-    let mut app = App::new(Logged(Stub));
-    // The touch calibration from flash; without one, the calibration screen comes first.
+    let mounted = Instant::now();
+    let card = sd::SdCard::mount(
+        peripherals.sdmmc0,
+        peripherals.pins.gpio43,
+        peripherals.pins.gpio44,
+        peripherals.pins.gpio39,
+        peripherals.pins.gpio40,
+        peripherals.pins.gpio41,
+        peripherals.pins.gpio42,
+        peripherals.pins.gpio45,
+    );
+    let card = match card {
+        Ok(card) => {
+            println!("SD card mounted at {} in {} ms", sd::MOUNT, mounted.elapsed().as_millis());
+            Some(card)
+        }
+        Err(error) => {
+            println!("no SD card: {error}");
+            None
+        }
+    };
+    FreeRtos::delay_ms(1500u32.saturating_sub(shown.elapsed().as_millis() as u32));
+
+    // The touch calibration and the wallpaper's name from flash.
     let store = Store::open().map_err(|error| log::warn!("no NVS for the touch calibration: {error}")).ok();
+    let mut board = Board { card };
+    // The wallpaper set before the last restart, if the card still has it.
+    let wallpaper = store.as_ref().and_then(Store::load_wallpaper).and_then(|name| match board.picture(&name) {
+        Some(picture) => Some((name, picture)),
+        None => {
+            println!("wallpaper {name:?} not on the SD card");
+            None
+        }
+    });
+    let mut app = App::new(board);
+    if let Some((name, picture)) = wallpaper {
+        app.wallpaper = Some(picture);
+        app.wallpaper_name = Some(name);
+    }
+    // Without a calibration, the calibration screen comes first.
     match store.as_ref().and_then(Store::load) {
         Some(calibration) => app.calibration = calibration,
         None => app.calibrate(),
     }
+    let mut kept_wallpaper = app.wallpaper_name.clone();
     let mut renderer = Renderer::new();
     let drawn = Instant::now();
     let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
@@ -85,6 +124,12 @@ fn main() {
                 _ => println!("touch calibration in use, but not saved"),
             }
         }
+        if app.wallpaper_name != kept_wallpaper {
+            kept_wallpaper = app.wallpaper_name.clone();
+            if let Some(Err(error)) = store.as_ref().map(|store| store.save_wallpaper(kept_wallpaper.as_deref())) {
+                println!("wallpaper not kept: {error}");
+            }
+        }
         changed |= app.tick(start.elapsed().as_millis() as u64);
         if changed {
             let drawn = Instant::now();
@@ -96,26 +141,24 @@ fn main() {
     }
 }
 
-/// The stub, printing what it is asked over serial.
-struct Logged<B>(B);
+/// The stub, printing what it is asked over serial, and the SD card.
+struct Board {
+    card: Option<sd::SdCard>,
+}
 
-impl<B: Backend> Backend for Logged<B> {
+impl Backend for Board {
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
-        let result = self.0.evaluate(mode, settings, latex);
+        let result = Stub.evaluate(mode, settings, latex);
         println!("{}: {latex}  =>  {result:?}", mode.name(quantus_ui::text::Lang::En));
         result
     }
 
     fn wallpapers(&mut self) -> Vec<String> {
-        self.0.wallpapers()
+        if self.card.is_some() { sd::wallpapers() } else { Vec::new() }
     }
 
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
-        self.0.wallpaper(name)
-    }
-
-    fn picture(&mut self, name: &str) -> Option<quantus_ui::wallpaper::Wallpaper> {
-        self.0.picture(name)
+        self.card.as_ref().and_then(|_| sd::wallpaper(name))
     }
 }
 
