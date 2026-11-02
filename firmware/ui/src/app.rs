@@ -6,7 +6,8 @@ use crate::key::Key;
 use crate::latex;
 use crate::text::{self, same, t, Lang, Text};
 use crate::tree;
-use crate::menu::{Action, Edit, Menu, Outcome};
+use crate::clock;
+use crate::menu::{self, Action, Edit, Kind, Menu, Outcome, TimeField};
 use crate::render;
 use crate::touch::{self, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
 use crate::wallpaper::Wallpaper;
@@ -171,6 +172,8 @@ pub struct App<B> {
     pressed: Option<Target>,
     last_blink: u64,
     last_spin: u64,
+    /// The minute the clock showed at the last tick, to redraw a page that shows it.
+    minute: Option<i64>,
 }
 
 impl<B> App<B> {
@@ -241,6 +244,7 @@ impl<B: Backend> App<B> {
             pressed: None,
             last_blink: 0,
             last_spin: 0,
+            minute: None,
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -314,6 +318,11 @@ impl<B: Backend> App<B> {
                 self.finish(result);
                 changed = true;
             }
+        }
+        let minute = clock::now().map(|now| now / 60_000);
+        if minute != self.minute {
+            self.minute = minute;
+            changed |= self.shows_clock();
         }
         if self.busy && now_ms.saturating_sub(self.last_spin) >= SPIN_MS {
             self.last_spin = now_ms;
@@ -475,6 +484,12 @@ impl<B: Backend> App<B> {
         }
     }
 
+    /// Whether the screen shows the time: a menu page with the date or the time on it.
+    fn shows_clock(&self) -> bool {
+        let Screen::Menu(menu) = &self.screen else { return false };
+        menu.edit.is_none() && menu.level().page.entries.iter().any(|entry| matches!(entry.kind, Kind::Time(_)))
+    }
+
     /// The mode menu on the first tile of `page`, if there is one.
     fn show_page(&mut self, page: usize) {
         let selected = page * TILES_PER_PAGE;
@@ -529,8 +544,37 @@ impl<B: Backend> App<B> {
             Outcome::Keep(index) => self.keep_picture(&mut menu, index),
             Outcome::Restore => self.preview = None,
             Outcome::Storage(label) => menu.edit = Some(Edit::Storage { label, storage: self.backend.storage() }),
+            Outcome::SetTime(field) => self.set_time(&mut menu, field),
         }
         self.screen = Screen::Menu(menu);
+    }
+
+    /// Sets the clock to the date or the time typed in `menu`, keeping the other from the clock
+    /// as it is now (noon for a date typed before the clock was set). Typed by hand, the time
+    /// comes from now on from the hand, not the network.
+    fn set_time(&mut self, menu: &mut Menu, field: TimeField) {
+        let Some(Edit::Time { label, typed, .. }) = &menu.edit else { return };
+        let zone = self.settings.zone;
+        let now = clock::now().map(|now| clock::local(now, zone));
+        let utc = match field {
+            TimeField::Date => {
+                let Some((year, month, day)) = menu::typed_date(typed) else { return };
+                let (hour, minute) = now.map_or((12, 0), |now| (now.hour, now.minute));
+                clock::to_utc(year, month, day, hour, minute, zone)
+            }
+            TimeField::Clock => {
+                let Some((hour, minute)) = menu::typed_clock(typed) else { return };
+                let Some(now) = now else {
+                    menu.edit = Some(Edit::Message { label: *label, message: text::DATE_FIRST });
+                    return;
+                };
+                clock::to_utc(now.year, now.month, now.day, hour, minute, zone)
+            }
+        };
+        self.backend.set_time(utc);
+        self.settings.time_from_network = false;
+        self.minute = clock::now().map(|now| now / 60_000);
+        menu.edit = None;
     }
 
     /// Does what a menu entry asks for.

@@ -62,3 +62,12 @@ pub const CALIBRATE_HINT: Text = t("Kreuz berühren und kurz halten", "Touch the
 pub const CALIBRATE_RETRY: Text = t("Zu ungenau, bitte noch einmal", "Too far off, once more please");
 pub const EMPTY_NAME: Text = t("Der Name darf nicht leer sein", "The name must not be empty");
 pub const NAME_HINT: Text = t("Namen tippen, OK übernimmt ihn", "Type a name, OK sets it");
+pub const NOT_SET: Text = t("Nicht gestellt", "Not set");
+pub const DATE_HINT: Text = t("TT.MM.JJJJ tippen, OK stellt die Uhr", "Type DD.MM.YYYY, OK sets the clock");
+pub const CLOCK_HINT: Text = t("HH:MM tippen, OK stellt die Uhr", "Type HH:MM, OK sets the clock");
+pub const BAD_DATE: Text = t("Kein gültiges Datum", "Not a valid date");
+pub const BAD_CLOCK: Text = t("Keine gültige Uhrzeit", "Not a valid time");
+pub const DATE_FIRST: Text = t("Erst das Datum stellen", "Set the date first");
+/// Monday first.
+pub const WEEKDAYS: [Text; 7] =
+    [t("Mo", "Mon"), t("Di", "Tue"), t("Mi", "Wed"), t("Do", "Thu"), t("Fr", "Fri"), t("Sa", "Sat"), t("So", "Sun")];

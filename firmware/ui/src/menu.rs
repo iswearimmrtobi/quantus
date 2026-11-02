@@ -7,6 +7,7 @@
 //! [`Menu::page`], [`Menu::step`]).
 
 use crate::backend::{SessionInfo, Storage};
+use crate::clock::{self, Local};
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
 use crate::text::{self, Lang, Text};
@@ -50,6 +51,8 @@ pub enum Kind {
     Sessions,
     /// A new name for the open session, typed.
     Rename,
+    /// The date or the time of day, typed: sets the clock.
+    Time(TimeField),
     /// Waits for the engine or the firmware: says so.
     Pending,
 }
@@ -112,6 +115,80 @@ impl Info {
     }
 }
 
+/// A part of the clock that is typed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TimeField {
+    /// TT.MM.JJJJ
+    Date,
+    /// HH:MM
+    Clock,
+}
+
+/// The years a date may be typed in.
+const YEARS: std::ops::RangeInclusive<i32> = 2025..=2099;
+
+impl TimeField {
+    fn digits(self) -> usize {
+        match self {
+            TimeField::Date => 8,
+            TimeField::Clock => 4,
+        }
+    }
+
+    /// `typed` in the field's form, `_` for the digits still to come: `02.11.____`.
+    pub fn show(self, typed: &str) -> String {
+        let form = match self {
+            TimeField::Date => "__.__.____",
+            TimeField::Clock => "__:__",
+        };
+        let mut digits = typed.chars();
+        form.chars().map(|c| if c == '_' { digits.next().unwrap_or('_') } else { c }).collect()
+    }
+
+    /// The hint under the field, and what an invalid entry is told.
+    pub fn hint(self, error: bool) -> Text {
+        match (self, error) {
+            (TimeField::Date, false) => text::DATE_HINT,
+            (TimeField::Date, true) => text::BAD_DATE,
+            (TimeField::Clock, false) => text::CLOCK_HINT,
+            (TimeField::Clock, true) => text::BAD_CLOCK,
+        }
+    }
+
+    /// The local time `now` in this field's form; the date with its weekday.
+    pub fn format(self, now: &Local, lang: Lang) -> String {
+        match self {
+            TimeField::Date => {
+                let weekday = text::WEEKDAYS[usize::from(now.weekday)].get(lang);
+                format!("{weekday} {:02}.{:02}.{}", now.day, now.month, now.year)
+            }
+            TimeField::Clock => format!("{:02}:{:02}", now.hour, now.minute),
+        }
+    }
+}
+
+/// A date typed as TT.MM.JJJJ: year, month and day, if it is a real one.
+pub fn typed_date(typed: &str) -> Option<(i32, u8, u8)> {
+    if typed.len() != 8 {
+        return None;
+    }
+    let day: u8 = typed[0..2].parse().ok()?;
+    let month: u8 = typed[2..4].parse().ok()?;
+    let year: i32 = typed[4..8].parse().ok()?;
+    let real = YEARS.contains(&year) && (1..=clock::days_in_month(year, month)).contains(&day);
+    real.then_some((year, month, day))
+}
+
+/// A time typed as HH:MM: hour and minute, if it is a real one.
+pub fn typed_clock(typed: &str) -> Option<(u8, u8)> {
+    if typed.len() != 4 {
+        return None;
+    }
+    let hour: u8 = typed[0..2].parse().ok()?;
+    let minute: u8 = typed[2..4].parse().ok()?;
+    (hour < 24 && minute < 60).then_some((hour, minute))
+}
+
 /// A page on the way down, and its selected entry.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Level {
@@ -136,6 +213,8 @@ pub enum Edit {
     Sessions { label: Text, sessions: Vec<SessionInfo>, selected: usize },
     /// A name being typed; `error` marks an empty one.
     Name { label: Text, typed: String, error: bool },
+    /// The digits of a date or a time being typed; `error` marks one that does not exist.
+    Time { label: Text, field: TimeField, typed: String, error: bool },
 }
 
 /// The longest name a session can be given on the handheld.
@@ -174,6 +253,9 @@ pub enum Outcome {
     NameOf(Text),
     /// Give the open session the name typed (the app reads it from the edit).
     Rename,
+    /// Set the clock to the date or time typed, which is a real one (the app reads it from the
+    /// edit).
+    SetTime(TimeField),
 }
 
 impl Menu {
@@ -195,7 +277,8 @@ impl Menu {
                 | Edit::Pictures { label, .. }
                 | Edit::Storage { label, .. }
                 | Edit::Sessions { label, .. }
-                | Edit::Name { label, .. },
+                | Edit::Name { label, .. }
+                | Edit::Time { label, .. },
             ) => *label,
             None => self.level().page.title,
         }
@@ -345,6 +428,9 @@ impl Menu {
             Kind::Storage => return Outcome::Storage(entry.label),
             Kind::Sessions => return Outcome::Sessions(entry.label),
             Kind::Rename => return Outcome::NameOf(entry.label),
+            &Kind::Time(field) => {
+                self.edit = Some(Edit::Time { label: entry.label, field, typed: String::new(), error: false });
+            }
             Kind::Pending => {
                 self.edit = Some(Edit::Message { label: entry.label, message: text::NOT_AVAILABLE });
             }
@@ -358,7 +444,15 @@ impl Menu {
             Edit::Choice { entry, selected } => {
                 let Kind::Choice(setting, opts) = &entry.kind else { return Outcome::Stay };
                 let chosen = match key {
-                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= opts.len() => usize::from(digit) - 1,
+                    // The numbered line of the page on the screen, as in the other lists.
+                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
+                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+                        if index >= opts.len() {
+                            self.edit = Some(Edit::Choice { entry, selected });
+                            return Outcome::Stay;
+                        }
+                        index
+                    }
                     Key::Ok | Key::Exe | Key::Right => selected,
                     Key::Up | Key::Down => {
                         let step = if key == Key::Up { opts.len() - 1 } else { 1 };
@@ -515,6 +609,26 @@ impl Menu {
                 }
                 self.edit = Some(Edit::Name { label, typed, error: false });
             }
+            Edit::Time { label, field, mut typed, .. } => {
+                match key {
+                    Key::Digit(digit) if typed.len() < field.digits() => typed.push(char::from(b'0' + digit.min(9))),
+                    Key::Del if !typed.is_empty() => {
+                        typed.pop();
+                    }
+                    Key::Del => return Outcome::Stay,
+                    Key::Ok | Key::Exe => {
+                        let real = match field {
+                            TimeField::Date => typed_date(&typed).is_some(),
+                            TimeField::Clock => typed_clock(&typed).is_some(),
+                        };
+                        self.edit = Some(Edit::Time { label, field, typed, error: !real });
+                        return if real { Outcome::SetTime(field) } else { Outcome::Stay };
+                    }
+                    _ if back => return Outcome::Stay,
+                    _ => {}
+                }
+                self.edit = Some(Edit::Time { label, field, typed, error: false });
+            }
             // Any key reads on.
             Edit::Message { .. } | Edit::Storage { .. } => {}
         }
@@ -543,6 +657,10 @@ pub fn value(entry: &Entry, settings: &Settings, lang: Lang) -> Option<String> {
             Some(if *min < 0 && value > 0 { format!("+{value}") } else { value.to_string() })
         }
         Kind::Info(info) => Some(info.value()),
+        &Kind::Time(field) => Some(match clock::now() {
+            Some(now) => field.format(&clock::local(now, settings.zone), lang),
+            None => text::NOT_SET.get(lang).to_string(),
+        }),
         _ => None,
     }
 }

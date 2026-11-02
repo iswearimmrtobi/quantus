@@ -3,7 +3,7 @@
 //! wait for the engine or the firmware is noted there.
 
 use crate::app::Mode;
-use crate::menu::{opt, Action, Entry, Info, Kind, Opt, Page, ON_OFF};
+use crate::menu::{opt, Action, Entry, Info, Kind, Opt, Page, TimeField, ON_OFF};
 use crate::settings::Setting as S;
 use crate::text::{same, t, Text};
 
@@ -227,6 +227,8 @@ static SYNC: Page = Page {
 static CLOCK: Page = Page {
     title: t("Uhrzeit", "Clock"),
     entries: &[
+        entry(t("Datum", "Date"), Kind::Time(TimeField::Date)),
+        entry(t("Uhrzeit", "Time"), Kind::Time(TimeField::Clock)),
         entry(
             t("Quelle", "Source"),
             Kind::Choice(S::TimeFromNetwork, &[opt(t("Netzwerk (NTP)", "Network (NTP)"), 1), opt(t("Von Hand", "By hand"), 0)]),

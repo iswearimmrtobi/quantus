@@ -3,7 +3,7 @@
 //! worked out here for the zone set in SETUP, so the board needs no `TZ` and the simulator shows
 //! the same as the board.
 
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub use crate::settings::Zone;
@@ -14,13 +14,17 @@ const DAY_MS: i64 = 86_400_000;
 /// Before this (2025-01-01 UTC) the clock has not been set: the board starts at 1970.
 const SET_SINCE: i64 = 1_735_689_600_000;
 
-/// Added to the system clock, by [`set`].
-static OFFSET: AtomicI64 = AtomicI64::new(0);
+/// Added to the system clock, by [`set`]. A mutex: the board's RISC-V has no 64-bit atomics.
+static OFFSET: Mutex<i64> = Mutex::new(0);
+
+fn offset() -> std::sync::MutexGuard<'static, i64> {
+    OFFSET.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 /// Now, in milliseconds since 1970 (UTC), or `None` while the clock is not set.
 pub fn now() -> Option<i64> {
     let system = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_millis() as i64;
-    let now = system + OFFSET.load(Ordering::Relaxed);
+    let now = system + *offset();
     (now >= SET_SINCE).then_some(now)
 }
 
@@ -28,7 +32,7 @@ pub fn now() -> Option<i64> {
 /// instead (and network time then keeps it right).
 pub fn set(utc_ms: i64) {
     let system = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |since| since.as_millis() as i64);
-    OFFSET.store(utc_ms - system, Ordering::Relaxed);
+    *offset() = utc_ms - system;
 }
 
 /// When summer time applies.

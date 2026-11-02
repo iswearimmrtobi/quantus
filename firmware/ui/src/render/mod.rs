@@ -279,7 +279,9 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Confirm { .. }) => Some(1),
         Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
         Some(Edit::Sessions { sessions, .. }) => Some(sessions.len()),
-        Some(Edit::Number { .. } | Edit::Message { .. } | Edit::Storage { .. } | Edit::Name { .. }) => None,
+        Some(Edit::Number { .. } | Edit::Message { .. } | Edit::Storage { .. } | Edit::Name { .. } | Edit::Time { .. }) => {
+            None
+        }
     }
 }
 

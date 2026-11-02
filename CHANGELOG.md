@@ -154,6 +154,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   a restart, and the files are the desktop's, so a session can be copied between the two.
 - The handheld keeps its **settings** across a restart, in flash (`settings.txt` in the
   simulator's SD folder).
+- The handheld has a **clock**: SETUP → Verbindungen → Uhrzeit shows the date and the time, which
+  can be typed by hand (TT.MM.JJJJ, HH:MM), and a time zone from a list (Berlin by default),
+  each with its summer time, instead of a whole-hour offset.
 
 ### Changed
 

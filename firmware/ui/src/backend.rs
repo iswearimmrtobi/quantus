@@ -1,6 +1,7 @@
 //! What computes the results: `quantus-core` (the `quantus-engine` crate), or a stub.
 
 use crate::app::{Mode, Settings};
+use crate::clock;
 use crate::wallpaper::Wallpaper;
 
 pub trait Backend {
@@ -69,6 +70,12 @@ pub trait Backend {
     /// The settings in force: given once at the start and again after every change, so the
     /// board can keep them and switch what they control (the radios, the clock).
     fn use_settings(&mut self, _settings: &Settings) {}
+
+    /// Sets the clock to `utc_ms` (milliseconds since 1970, UTC), typed by hand. A board that
+    /// can set its system clock does that instead of moving [`clock::now`].
+    fn set_time(&mut self, utc_ms: i64) {
+        clock::set(utc_ms);
+    }
 }
 
 /// A session as the menus show it.

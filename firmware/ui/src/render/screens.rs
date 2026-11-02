@@ -250,34 +250,43 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             lines_page(shapes, lines.collect(), *selected, &list);
         }
         Some(Edit::Name { typed, error, .. }) => {
-            let top = BAR + 30;
-            let height = 60;
-            let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
-            shapes.push(panel(rounded(Point::new(MARGIN, top), size, 6), colors::SURFACE, Some(colors::CYAN), glass));
-            let metrics = Scale::Normal.metrics();
-            let baseline = top + (height + metrics.digit) / 2;
-            let x = MARGIN + 16;
-            let room = WIDTH as i32 - 2 * MARGIN - 40;
-            // The end of a long name, where the caret is.
-            let mut shown = typed.as_str();
-            while Scale::Normal.width(shown) > room {
-                let mut chars = shown.chars();
-                chars.next();
-                shown = chars.as_str();
-            }
-            shapes.push(Shape::Text(Point::new(x, baseline), shown.to_string(), Scale::Normal, colors::TEXT));
-            if app.caret_on {
-                let caret_x = x + Scale::Normal.width(shown) + 2;
-                let caret = Rectangle::new(Point::new(caret_x, baseline - metrics.ascent + 4), Size::new(2, metrics.ascent as u32));
-                shapes.push(Shape::Fill(caret, colors::CYAN));
-            }
             let (hint, color) = if *error { (text::EMPTY_NAME, colors::ERROR) } else { (text::NAME_HINT, colors::MUTED) };
-            shapes.push(Shape::Text(Point::new(MARGIN + 4, top + height + 28), hint.get(lang).to_string(), Scale::Small, color));
+            typed_field(shapes, typed, app.caret_on, hint.get(lang), color, glass);
+        }
+        Some(Edit::Time { field, typed, error, .. }) => {
+            let color = if *error { colors::ERROR } else { colors::MUTED };
+            typed_field(shapes, &field.show(typed), false, field.hint(*error).get(lang), color, glass);
         }
         Some(Edit::Storage { storage: Some(storage), .. }) => storage_screen(shapes, *storage, lang, glass),
         Some(Edit::Storage { storage: None, .. }) => centred(shapes, text::NO_CARD.get(lang)),
         Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),
     }
+}
+
+/// A line of text being typed in a panel, its end shown if it is long, with the caret after it
+/// while `caret` is on, and a hint under it in `color`.
+fn typed_field(shapes: &mut Vec<Shape>, typed: &str, caret: bool, hint: &str, color: Rgb565, glass: bool) {
+    let top = BAR + 30;
+    let height = 60;
+    let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
+    shapes.push(panel(rounded(Point::new(MARGIN, top), size, 6), colors::SURFACE, Some(colors::CYAN), glass));
+    let metrics = Scale::Normal.metrics();
+    let baseline = top + (height + metrics.digit) / 2;
+    let x = MARGIN + 16;
+    let room = WIDTH as i32 - 2 * MARGIN - 40;
+    let mut shown = typed;
+    while Scale::Normal.width(shown) > room {
+        let mut chars = shown.chars();
+        chars.next();
+        shown = chars.as_str();
+    }
+    shapes.push(Shape::Text(Point::new(x, baseline), shown.to_string(), Scale::Normal, colors::TEXT));
+    if caret {
+        let caret_x = x + Scale::Normal.width(shown) + 2;
+        let caret = Rectangle::new(Point::new(caret_x, baseline - metrics.ascent + 4), Size::new(2, metrics.ascent as u32));
+        shapes.push(Shape::Fill(caret, colors::CYAN));
+    }
+    shapes.push(Shape::Text(Point::new(MARGIN + 4, top + height + 28), hint.to_string(), Scale::Small, color));
 }
 
 /// A muted line in the middle of the screen under the top bar.
