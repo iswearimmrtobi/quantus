@@ -167,6 +167,7 @@ impl Driver {
         if let Err(error) = esp!(unsafe { sys::usb_host_device_open(self.client, address, &mut handle) }) {
             return log::warn!("USB device {address} not opened: {error}");
         }
+        describe(address, handle);
         match self.set_up(handle) {
             Ok(Some(device)) => {
                 log::info!("USB keyboard on interface {}", device.interface.number);
@@ -383,4 +384,41 @@ unsafe extern "C" fn report_done(transfer: *mut sys::usb_transfer_t) {
     if let Err(error) = device.listen() {
         log::warn!("USB keyboard stopped: {error}");
     }
+}
+
+/// Logs what a device says it is: vendor and product id, speed, and its name strings.
+fn describe(address: u8, handle: sys::usb_device_handle_t) {
+    let mut descriptor: *const sys::usb_device_desc_t = ptr::null();
+    let mut info: sys::usb_device_info_t = Default::default();
+    // SAFETY: `handle` is open; both out values are valid while it is.
+    let ok = unsafe {
+        esp!(sys::usb_host_get_device_descriptor(handle, &mut descriptor)).is_ok()
+            && esp!(sys::usb_host_device_info(handle, &mut info)).is_ok()
+    };
+    if !ok || descriptor.is_null() {
+        return log::info!("USB device {address}: no descriptor");
+    }
+    // SAFETY: a string descriptor is its length, its type, then UTF-16LE code units.
+    let text = |string: *const sys::usb_str_desc_t| -> String {
+        if string.is_null() {
+            return String::new();
+        }
+        unsafe {
+            let start = string.cast::<u8>();
+            let length = usize::from(*start);
+            let units: Vec<u16> = (2..length).step_by(2).map(|i| u16::from_le_bytes([*start.add(i), *start.add(i + 1)])).collect();
+            String::from_utf16_lossy(&units)
+        }
+    };
+    // SAFETY: checked for null above; valid while the device is open.
+    let (vendor, product) = unsafe { ((*descriptor).__bindgen_anon_1.idVendor, (*descriptor).__bindgen_anon_1.idProduct) };
+    log::info!(
+        "USB device {address}: {vendor:04x}:{product:04x}, speed {}, parent hub {:?} port {}, {:?} {:?} {:?}",
+        info.speed,
+        info.parent.dev_hdl,
+        info.parent.port_num,
+        text(info.str_desc_manufacturer),
+        text(info.str_desc_product),
+        text(info.str_desc_serial_num),
+    );
 }
