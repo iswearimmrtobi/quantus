@@ -7,6 +7,7 @@ pub mod app;
 pub mod backend;
 pub mod editor;
 pub mod font;
+pub mod hid;
 pub mod key;
 pub mod latex;
 pub mod layout;

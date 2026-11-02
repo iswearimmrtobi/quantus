@@ -1,7 +1,7 @@
 # Quantus handheld firmware
 
 The handheld's UI (`firmware/ui`) on the Waveshare ESP32-P4-Module-DEV-KIT with the 3.5" RPi
-display, with keys typed into the serial monitor or the touch panel, and a stub instead of the
+display, with keys typed into the serial monitor or on a USB keyboard, or the touch panel, and a stub instead of the
 engine: the stub answers with the input itself, and an input with a `?` gives an error. Each
 calculation is also printed over serial, with the LaTeX the editor wrote.
 
@@ -26,6 +26,13 @@ The hardware, setup and wiring are in [firmware/docs](../docs/README.md):
 Type into the serial monitor; the keys are those of the simulator, see its
 [key table](../sim/README.md#keys) (Ctrl+F then Tab for the setup). The arrows work as arrows,
 Delete clears like AC. Ctrl+C and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
+
+A USB keyboard in the board's USB-A port types the same keys, with a German (QWERTZ) layout as
+in the simulator: F1–F4 are SHIFT, ALPHA, S⇔D and OPTN, Tab is MODE, the keypad works, AltGr
+types nothing. The arrows and Backspace repeat while held. It is a HID boot keyboard
+(`src/keyboard.rs`, the layout in `firmware/ui/src/hid.rs`); one at a time, plugged in before or
+after the start, and the serial monitor keeps working beside it. Its hookup is in
+[dev-kit.md](../docs/dev-kit.md#usb-keyboard).
 
 ## Touch
 

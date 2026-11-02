@@ -14,7 +14,8 @@ product uses. Copied from the official guide (as of 2026-11), so it need not be 
   and **USB** (the P4's own USB). Both power the board and can flash it.
 - 40-pin header in the Raspberry Pi layout, 28 free GPIOs, 3.3 V logic.
 - MIPI-DSI (2-lane, for Waveshare's 5–10.1" DSI screens) and MIPI-CSI (2-lane) connectors.
-- TF slot (SDIO 3.0), 100 Mbit Ethernet (RJ45), USB-A OTG 2.0 HS (jumper for host mode).
+- TF slot (SDIO 3.0), 100 Mbit Ethernet (RJ45), USB-A OTG 2.0 HS (jumper for host mode; the
+  firmware takes a keyboard there, see [below](#usb-keyboard)).
 - Audio codec with amplifier, onboard microphone, speaker header (MX1.25 2P, 8 Ω 2 W).
 - I²C and I³C connectors, ESP32-C6 UART header, 5 V input (SH1.0 2P), RTC battery
   (rechargeable only), PoE module socket.
@@ -132,3 +133,12 @@ table); pins marked – are not connected on the display.
 None of these collide with an onboard part. LCD_CS on GPIO36 is a strapping pin; the display
 holds its chip select high when idle, which is the safe level. The display does not use pins 27
 and 28, so the **USB** port keeps working with the display plugged on.
+
+## USB keyboard
+
+The USB-A port is the P4's high-speed USB OTG controller on its own pins (no GPIO), which the
+firmware runs as a USB host (ESP-IDF's USB Host Library, `firmware/handheld/src/keyboard.rs`).
+A keyboard plugged in there types into the UI; the keys are in the handheld's
+[README](../handheld/README.md#keys). The serial log shows `USB keyboard on interface …` when it
+is recognised. Waveshare's guide names a jumper for host mode; on our board a keyboard works with
+the jumpers as they came.

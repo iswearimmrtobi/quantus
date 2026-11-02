@@ -1,6 +1,6 @@
 //! The handheld's firmware on the ESP32-P4 dev kit with the 3.5" ILI9486 display: the UI of
-//! `quantus-ui` with a stub instead of the engine, keys from the serial monitor and the
-//! display's touch panel. See the README.
+//! `quantus-ui` with a stub instead of the engine, keys from the serial monitor or a USB
+//! keyboard, and the display's touch panel. See the README.
 
 use std::io::Read;
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
@@ -20,7 +20,7 @@ use quantus_ui::render::{Frame, Renderer, WIDTH};
 
 use quantus_handheld::display::Display;
 use quantus_handheld::touch::{Store, TouchPanel};
-use quantus_handheld::{open_display, sd};
+use quantus_handheld::{keyboard, open_display, sd};
 use quantus_ui::touch::Touch;
 
 /// Prints the touch controller's raw state four times a second (`QUANTUS_TOUCH_DEBUG=1`).
@@ -88,9 +88,10 @@ fn main() {
     let drawn = Instant::now();
     let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
     println!("first frame: {bands} bands in {} ms, {} ms after boot", drawn.elapsed().as_millis(), start.elapsed().as_millis());
-    println!("Type keys here, or touch the screen; the README lists them.");
+    println!("Type keys here or on a USB keyboard, or touch the screen; the README lists them.");
 
     let (keys, received) = mpsc::channel();
+    keyboard::start(keys.clone());
     std::thread::Builder::new().stack_size(8 * 1024).spawn(move || read_keys(keys)).expect("key thread");
     let mut last_debug = Instant::now();
     loop {

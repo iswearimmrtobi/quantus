@@ -62,7 +62,8 @@ In `--keys`, `\n` is EXE and `>`/`<` move the cursor.
 
 ## Keys
 
-The characters are the same over the board's serial console (`firmware/handheld`).
+The characters are the same over the board's serial console (`firmware/handheld`), and a USB
+keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 
 | Key | PC | Calculator |
 |---|---|---|
