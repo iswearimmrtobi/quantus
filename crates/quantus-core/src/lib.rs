@@ -23,6 +23,7 @@ pub mod settings;
 pub mod stochastics;
 pub mod text;
 pub mod units;
+pub mod writeup;
 
 pub use error::{QuantusError, Result};
 pub use quantity::PhysicalQuantity;
