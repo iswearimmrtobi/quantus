@@ -46,7 +46,8 @@ pub fn start(keys: Sender<Key>) {
             let mut flags = 0;
             // SAFETY: the library is installed and only this thread handles its events; the
             // timeout is portMAX_DELAY, waiting for ever.
-            unsafe { sys::usb_host_lib_handle_events(u32::MAX, &mut flags) };
+            let result = unsafe { sys::usb_host_lib_handle_events(u32::MAX, &mut flags) };
+            log::info!("DEBUG usb host lib events: {result} flags {flags:#x}");
             if flags & sys::USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS != 0 {
                 // SAFETY: no client is left, so every device may be freed.
                 unsafe { sys::usb_host_device_free_all() };
@@ -306,6 +307,7 @@ unsafe extern "C" fn client_event(message: *const sys::usb_host_client_event_msg
     // SAFETY: `arg` is the driver from `run`, not borrowed while events are handled; the
     // message is valid for the call.
     let (driver, message) = unsafe { (&mut *arg.cast::<Driver>(), &*message) };
+    log::info!("DEBUG usb client event {}", message.event);
     match message.event {
         sys::usb_host_client_event_t_USB_HOST_CLIENT_EVENT_NEW_DEV => {
             // SAFETY: the union holds `new_dev` for this event.
