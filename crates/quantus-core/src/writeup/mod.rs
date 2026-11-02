@@ -32,6 +32,8 @@ pub struct Writeup {
     pub given: Vec<String>,
     pub wanted: Vec<String>,
     pub blocks: Vec<Block>,
+    /// The whole writeup as LaTeX to copy, see [`Writeup::to_latex`].
+    pub latex: String,
 }
 
 /// The solution of one quantity.
@@ -87,7 +89,65 @@ pub fn build(session: &Session, settings: &Settings) -> Writeup {
     if !matches!(settings.mode, Mode::Physics | Mode::Electronics | Mode::Kirchhoff) {
         settings.mode = Mode::Physics;
     }
-    Builder::new(session, settings).run(session)
+    let mut writeup = Builder::new(session, settings).run(session);
+    writeup.latex = writeup.to_latex();
+    writeup
+}
+
+impl Writeup {
+    /// The writeup as LaTeX that compiles in any document with `amsmath`: given and wanted side
+    /// by side, then each block as an `align*` with its sentences as `\intertext`. The headings
+    /// are in the current language.
+    pub fn to_latex(&self) -> String {
+        let column = |title: String, body: String| {
+            format!("\\begin{{minipage}}[t]{{0.48\\textwidth}}\n\\textbf{{{title}}}\n{body}\n\\end{{minipage}}")
+        };
+        let given = if self.given.is_empty() {
+            "--".to_string()
+        } else {
+            let rows: Vec<String> = self.given.iter().map(|g| aligned(g)).collect();
+            format!("\\begin{{align*}}\n{}\n\\end{{align*}}", rows.join("\\\\\n"))
+        };
+        let wanted = if self.wanted.is_empty() {
+            "--".to_string()
+        } else {
+            let names: Vec<String> = self.wanted.iter().map(|w| format!("${w}$")).collect();
+            format!("\\par {}", names.join(", "))
+        };
+        let mut latex = format!(
+            "\\noindent\n{}\\hfill\n{}\n\n\\medskip\n\\noindent\\textbf{{{}}}\n",
+            column(msg!("Given:", "Gegeben:"), given),
+            column(msg!("Wanted:", "Gesucht:"), wanted),
+            msg!("Solution:", "Lösung:"),
+        );
+        for block in &self.blocks {
+            let mut rows = Vec::new();
+            for line in &block.lines {
+                if let Some(text) = &line.text {
+                    rows.push(format!("\\intertext{{{text}}}"));
+                }
+                rows.push(aligned(&line.latex));
+            }
+            // `\intertext` comes after a `\\`, so every equation but the last ends a row.
+            let mut body = String::new();
+            for (i, row) in rows.iter().enumerate() {
+                body.push_str(row);
+                if i + 1 < rows.len() {
+                    if !row.starts_with("\\intertext") {
+                        body.push_str("\\\\");
+                    }
+                    body.push('\n');
+                }
+            }
+            latex.push_str(&format!("\\begin{{align*}}\n{body}\n\\end{{align*}}\n"));
+        }
+        latex
+    }
+}
+
+/// An equation aligned at its first `=`.
+fn aligned(equation: &str) -> String {
+    equation.replacen(" = ", " &= ", 1)
 }
 
 struct Builder {
@@ -560,7 +620,7 @@ fn unit_check(target: &str, root: u32, parts: &[Part], target_unit: Option<Unit>
     if combined == result {
         return None;
     }
-    Some(format!("[{target}] = {combined} = {result}"))
+    Some(format!("\\left[{target}\\right] = {combined} = {result}"))
 }
 
 #[cfg(test)]

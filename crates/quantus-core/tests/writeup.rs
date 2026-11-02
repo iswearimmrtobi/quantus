@@ -32,7 +32,7 @@ fn ohms_law_with_the_values_typed_in() {
     assert_eq!(lines[3].0, LineKind::Result);
     assert!(lines[3].2.starts_with("R = 20"), "{}", lines[3].2);
     assert_eq!(lines[4].0, LineKind::UnitCheck);
-    assert!(lines[4].2.starts_with("[R] = \\frac{1\\,\\mathrm{V}}{1\\,\\mathrm{A}} = 1\\,"), "{}", lines[4].2);
+    assert!(lines[4].2.starts_with("\\left[R\\right] = \\frac{1\\,\\mathrm{V}}{1\\,\\mathrm{A}} = 1\\,"), "{}", lines[4].2);
 }
 
 #[test]
@@ -74,7 +74,7 @@ fn ans_refers_to_the_last_result() {
 fn the_unit_check_is_in_si_units_whatever_the_prefixes() {
     let w = writeup_of(&["R = \\frac{12kV}{3mA}"], Language::De);
     let check = lines(&w, 0).last().unwrap().2.clone();
-    assert!(check.starts_with("[R] = \\frac{1\\,\\mathrm{V}}{1\\,\\mathrm{A}}"), "{check}");
+    assert!(check.starts_with("\\left[R\\right] = \\frac{1\\,\\mathrm{V}}{1\\,\\mathrm{A}}"), "{check}");
 }
 
 #[test]
@@ -124,4 +124,13 @@ fn a_part_that_fits_a_law_of_its_own_is_split_off() {
     assert_eq!(lines(&w, 1)[0].1.as_deref(), Some("Für den Druck gilt:"));
     assert_eq!(lines(&w, 1)[1].2, "p = \\frac{F_{G}}{A}");
     assert_eq!(w.wanted, ["p"]);
+}
+
+#[test]
+fn the_latex_has_both_columns_and_a_block_per_quantity() {
+    let w = writeup_of(&["R = \\frac{10V}{0{,}5A}", "P = 10V \\cdot 0{,}5A"], Language::De);
+    assert!(w.latex.contains("\\textbf{Gegeben:}"));
+    assert!(w.latex.contains("\\textbf{Gesucht:}\n\\par $R$, $P$"));
+    assert!(w.latex.contains("\\intertext{Nach dem Ohm'schen Gesetz gilt:}\nU &= R \\cdot I\\\\\n"));
+    assert_eq!(w.latex.matches("\\begin{align*}").count(), 3);
 }
