@@ -3,3 +3,4 @@
 //! and a unit check.
 
 pub mod laws;
+pub mod matching;
