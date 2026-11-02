@@ -48,8 +48,9 @@ Needed to ship it: document it in the README and the user docs.
 
 ## 4. Quantus on an ESP32 (spike)
 
-`firmware/esp32`: the engine on a classic ESP32 (WROOM, no PSRAM), running fixed inputs and
-printing results, time, heap and stack over serial. See its [README](../firmware/esp32/README.md).
+`firmware/esp32`: the engine driven over serial, printing results, time, heap and stack. It
+started on a classic ESP32 (WROOM, no PSRAM; the numbers below) and now builds for the ESP32-P4
+dev kit. See its [README](../firmware/esp32/README.md).
 
 - [x] Builds unchanged for `xtensa-esp32-espidf`; the release app is 1.9 MB of a 4 MB flash.
 - [x] Flash it and record heap, stack and time per input. First run on a WROOM: 254 KB heap at
@@ -67,16 +68,17 @@ printing results, time, heap and stack over serial. See its [README](../firmware
   `numeric.rs`; also `RATIONAL_CACHE` in `analysis/simplify.rs`, `CACHE` in
   `algebra/rational_roots.rs`), and the second curve sketch runs out of memory. A way to drop
   the caches between calculations would likely fix that.
+- [ ] Run `:bench` on the P4 and record time, heap and internal RAM against the WROOM numbers.
 - [ ] If so: a keypad that writes LaTeX and a display that renders the result.
 - [ ] A handheld on an ESP32-P4: hardware requirements in
-  [calculator-hardware.md](../design/calculator-hardware.md).
-- [ ] Its UI, until the P4 arrives on a classic ESP32 with the display, keys over serial and no
-  engine. Rust and embedded-graphics, shared by a PC simulator and the board:
+  [hardware.md](../firmware/docs/hardware.md).
+- [ ] Its UI, on the ESP32-P4 dev kit (before that a classic ESP32) with the display, keys over
+  serial and no engine. Rust and embedded-graphics, shared by a PC simulator and the board:
   - [x] `firmware/ui`: the input editor (a tree with a cursor, Casio-like templates) that writes
     LaTeX, and a reader of LaTeX results.
   - [x] 2D layout of math, the screen, band-wise redraws, a stub backend.
   - [x] `firmware/sim`: the UI in a window, PC keys.
-  - [x] `firmware/handheld`: the ILI9486 over SPI on the ESP32 (built; not yet tried on the board).
+  - [x] `firmware/handheld`: the ILI9486 over SPI on the ESP32-P4.
   - [x] Keys over the serial console on the board (built; not yet tried on the board).
   - [x] The screen like a Casio, in the desktop's dark palette: a top bar in the mode's colour,
     one calculation (input top left, result bottom right), the mode menu as coloured tiles,

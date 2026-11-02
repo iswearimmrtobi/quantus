@@ -28,7 +28,7 @@ pub const TOUCH_MHZ: u32 = 1;
 pub type Bus<'d> = SpiDeviceDriver<'d, Rc<SpiDriver<'d>>>;
 
 /// The display and its touch controller on SPI3, plugged onto the Pi-layout header of the
-/// ESP32-P4 dev kit (`design/esp32-p4-dev-kit.md`), from the fields of a `Peripherals`, which
+/// ESP32-P4 dev kit (`firmware/docs/dev-kit.md`), from the fields of a `Peripherals`, which
 /// stays usable for the other pins: `(display, touch)`.
 /// Keep the touch device even when it is not read: dropping it gives up its chip select, and
 /// the controller may then talk over the display. Panics if a driver cannot be set up.

@@ -26,10 +26,9 @@ cargo run -- --sd ~/quantus-sd                      # another folder as the SD c
 cargo run -- --tour                                 # a walk through the UI with the wallpaper
 ```
 
-The folder `sd` (or the one after `--sd`) stands for the SD card. Its `wallpapers` folder holds
-the pictures for SETUP → Gerät → Hintergrundbild: BMP files of exactly 480×320 (any BMP colour
-depth), for example from GIMP or `magick in.png -resize 480x320^ -gravity center -extent 480x320 out.bmp`.
-`sd/` is in `.gitignore`.
+The folder `sd` (or the one after `--sd`) stands for the SD card; its `wallpapers` folder holds
+the pictures for SETUP → Gerät → Hintergrundbild, as on the board
+([sd-card.md](../docs/sd-card.md#what-goes-on-the-card)). `sd/` is in `.gitignore`.
 
 `--tour` plays a walk through the UI with a person's pauses between the keys (about two
 minutes): it picks the first wallpaper and shows it everywhere, opens each SETUP page, goes over
@@ -55,22 +54,9 @@ does the same after the keys.
 
 ## On the board (testing only)
 
-With `--mirror <port>` the board is the simulator's screen: the UI and the engine run on the PC,
-you type into the window, and the part of each band that changed goes over serial to the board, so the
-display shows exactly what the window shows. Flash the board's `mirror` binary first and close
-the serial monitor, since the port takes only one user:
-
-```sh
-cd firmware/handheld && cargo run --release --bin mirror   # flash, then quit the monitor
-cd firmware/sim && cargo run -- --mirror /dev/ttyUSB0
-```
-
-The link runs at 921600 baud, about 90 KB/s, unless the board's `mirror` was built with
-`QUANTUS_MIRROR_BAUD=2000000` (then pass `--baud 2000000` here too). `QUANTUS_SPI_MHZ` sets the
-board's display clock (16 MHz by default) when trying faster ones. A full screen of the plain UI is a few KB; with a
-wallpaper it is about 300 KB (2 bytes a pixel), so about 3 s, while a caret blink or a key is a
-small rectangle. The real board draws to the display directly and is not slowed by this. When the
-board resets it says `READY` and gets the whole screen again. The protocol is in `firmware/mirror`.
+With `--mirror <port>` the board is the simulator's screen: the UI and the engine run on the PC
+and the display shows what the window shows. The board needs its `mirror` binary first; see
+[mirror.md](../docs/mirror.md).
 
 In `--keys`, `\n` is EXE and `>`/`<` move the cursor.
 

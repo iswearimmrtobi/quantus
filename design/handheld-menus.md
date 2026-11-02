@@ -12,7 +12,7 @@ The menu structure for the handheld (`firmware/ui`, the hui), modelled on the Ca
 - **Section 9**: open questions.
 
 The keypad is "modelled on the Casio fx-DE line, not a copy"
-([calculator-hardware.md](calculator-hardware.md) §4) and its legend is not fixed yet
+([hardware.md](../firmware/docs/hardware.md) §4) and its legend is not fixed yet
 ([plans.md](../plans/plans.md) §4).
 
 ## What is missing
@@ -522,7 +522,7 @@ The mode and the settings are not part of a session; they stay global.
 Switching off cuts the 3.3 V rail, so nothing in the ESP32-P4 survives. That is why the handheld
 writes sessions to the SD card. Off draws about 15–35 µA, so the cell lasts as long as its own
 self-discharge allows. These are estimates, to be measured; they belong to the power question
-in [calculator-hardware.md](calculator-hardware.md) §7.
+in [hardware.md](../firmware/docs/hardware.md) §7.
 
 ## 7. The handheld tree
 
@@ -676,10 +676,10 @@ Per mode:
 ### 7.5 Connections
 
 The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hosted
-([calculator-hardware.md](calculator-hardware.md) §3).
+([hardware.md](../firmware/docs/hardware.md) §3).
 
 - **WLAN** is for: the remote engine (calculations over about 500 ms, the goal in
-  calculator-hardware.md §1), session sync with the desktop app, firmware updates over the air,
+  hardware.md §1), session sync with the desktop app, firmware updates over the air,
   and the clock (NTP; there is no RTC battery, and sessions carry timestamps).
 - **Bluetooth** (BLE) is for: a link to the desktop app (sessions and results, and the handheld as
   a keypad for the app), a phone companion (share results and sessions, set up WLAN), and an
@@ -796,5 +796,5 @@ and the external keyboard, and the exam mode.
 - **Desktop settings dialog**: it grows by about six settings (angle unit, number format,
   prefixes, fraction form, complex form, recurring decimals); maybe a new group for them.
 - **Power**: measure the real currents on the board, see
-  [calculator-hardware.md](calculator-hardware.md) §7.
+  [hardware.md](../firmware/docs/hardware.md) §7.
 - **Phone companion**: an app, or a web page the handheld serves? Not decided yet, on purpose.

@@ -5,25 +5,18 @@ is a prompt over serial: each line typed into the monitor is evaluated like an i
 current mode, and the result is printed with its time, the heap and the engine thread's stack use. There is no
 display and no keypad yet. `quantus-core` is built with its `small-memory` feature.
 
-Target: a classic ESP32 (WROOM, 4 MB flash, 520 KB SRAM, no PSRAM), on Rust `std` via ESP-IDF.
-For an ESP32-S3, change the target and `MCU` in `.cargo/config.toml`.
+Target: the Waveshare ESP32-P4-Module-DEV-KIT (16 MB flash, 32 MB PSRAM,
+[dev-kit.md](../docs/dev-kit.md)), the same board as the [handheld](../handheld/README.md).
+Toolchain, flashing and the serial port: [setup.md](../docs/setup.md).
 
-This crate is its own Cargo workspace, so `cargo test --workspace` and the desktop build don't
-change.
-
-## Setup (once)
-
-```sh
-cargo install espup espflash ldproxy --locked
-espup install --targets esp32
-```
-
-## Build and flash
+Until the P4 arrived this ran on a classic ESP32 (WROOM, 4 MB flash, 520 KB SRAM, no PSRAM,
+target `xtensa-esp32-espidf`); its numbers are in [plans.md](../../plans/plans.md) §4 and git
+history has that build setup. To compare with them, `:mem` and each result also print the
+internal RAM alone.
 
 ```sh
-. ~/export-esp.sh            # every new shell
+. ~/export-esp.sh
 cd firmware/esp32
-cargo build --release        # first build downloads and compiles ESP-IDF (~1 GB, several minutes)
 cargo run --release          # flash and open the serial monitor
 ```
 
@@ -39,6 +32,8 @@ imaginary> e^{4i\pi/2}
   24.3ms  e^{4i\pi/2}  =>  1
 ```
 
+(Output from the classic ESP32; the P4 adds a line with the internal RAM.)
+
 Inputs are LaTeX, as the app's editor writes them. Variables need a subscript and stay defined
 until the board is reset. Commands:
 
@@ -52,4 +47,4 @@ until the board is reset. Commands:
 
 The largest free block matters as much as the free heap: big numbers need contiguous memory.
 When an allocation fails the board prints `memory allocation of … failed` and halts instead of
-restarting; press EN or run `espflash reset`.
+restarting; press RESET or run `espflash reset`.

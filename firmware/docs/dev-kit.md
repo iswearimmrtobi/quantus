@@ -1,7 +1,7 @@
 # ESP32-P4-Module-DEV-KIT
 
 The Waveshare dev board used to bring up the handheld on the ESP32-P4 before our own PCB
-([calculator-hardware.md](calculator-hardware.md)). It carries the same ESP32-P4-Module the
+([hardware.md](hardware.md)). It carries the same ESP32-P4-Module the
 product uses. Copied from the official guide (as of 2026-11), so it need not be looked up again:
 <https://docs.waveshare.com/ESP32-P4-Module-DEV-KIT>. The schematic is linked from its
 *Resources* page.
@@ -78,27 +78,30 @@ below). Leave those pins alone unless the onboard part is not needed.
 | CHIP_PU | RESET button |
 
 The SD card sits on GPIO39–48, the domain powered by an LDO that defaults to 1.8 V; firmware sets
-it to 3.3 V (LDO channel 4, see calculator-hardware.md) and drives GPIO45 low to power the card
+it to 3.3 V (LDO channel 4, see [hardware.md](hardware.md) §3; [sd-card.md](sd-card.md)) and drives GPIO45 low to power the card
 (`firmware/handheld/src/sd.rs`). These are SDMMC slot 0's fixed IOMUX pins. GPIO24/25 being the USB Serial/JTAG port confirms the
 choice for our own PCB.
 
 ## The 3.5" RPi display on the header
 
-Because the header has the Pi layout, the display (Waveshare (A) layout, see
-[firmware/handheld](../firmware/handheld/README.md#wiring)) plugs on directly or with jumpers pin
-for pin. Its signals then land on these P4 GPIOs:
+Because the header has the Pi layout, the display (Waveshare (A) layout) plugs on directly or
+with jumpers pin for pin. Its signals then land on these P4 GPIOs; the firmware sets them in
+`open_display!` in `firmware/handheld/src/display.rs`:
 
 | Display signal | Pi header | P4 GPIO |
 |---|---|---|
-| SCLK | pin 23 | 0 |
-| MOSI | pin 19 | 3 |
-| MISO | pin 21 | 2 |
-| LCD_CS | pin 24 | 36 |
-| TP_CS | pin 26 | 32 |
-| LCD_RS | pin 18 | 4 |
-| RST | pin 22 | 1 |
-| TP_IRQ | pin 11 | 21 |
+| SCLK | GPIO 11 (pin 23) | 0 |
+| MOSI | GPIO 10 (pin 19) | 3 |
+| MISO | GPIO 9 (pin 21) | 2 |
+| LCD_CS | GPIO 8 (pin 24) | 36 |
+| TP_CS | GPIO 7 (pin 26) | 32 |
+| LCD_RS | GPIO 24 (pin 18) | 4 |
+| RST | GPIO 25 (pin 22) | 1 |
+| TP_IRQ | GPIO 17 (pin 11) | 21 (not used, see [display-and-touch.md](display-and-touch.md)) |
 | 5 V, 3.3 V, GND | pins 2/4, 1/17, 6 … | |
+
+Until the P4 arrived the handheld ran on a classic ESP32 (WROOM, VSPI: SCLK 18, MOSI 23, MISO 19,
+LCD_CS 5, TP_CS 4, LCD_RS 21, RST 22); git history has that build setup.
 
 Every pin of the header with what the display connects to it (from the display's (A) pin
 table); pins marked – are not connected on the display.

@@ -1,4 +1,4 @@
-//! The keys of the handheld (design/calculator-hardware.md §4). The simulator and the serial
+//! The keys of the handheld (firmware/docs/hardware.md §4). The simulator and the serial
 //! console only map their input to these.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

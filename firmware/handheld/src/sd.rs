@@ -1,5 +1,5 @@
 //! The SD card of the ESP32-P4 dev kit, mounted at [`MOUNT`] so `std::fs` reads it: SDMMC slot 0,
-//! 4 bits wide, on its fixed pins (CLK 43, CMD 44, D0–D3 39–42, design/esp32-p4-dev-kit.md).
+//! 4 bits wide, on its fixed pins (CLK 43, CMD 44, D0–D3 39–42, firmware/docs/dev-kit.md).
 //! Those pins are in the P4's I/O domain fed by the on-chip LDO 4, which must be set to 3.3 V
 //! first; GPIO45 switches the card's own supply. The card is FAT32 on an MBR partition table:
 //! ESP-IDF's FatFs has neither exFAT nor GPT.

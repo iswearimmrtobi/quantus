@@ -1,7 +1,7 @@
 # Calculator hardware
 
 Requirements for a handheld calculator that runs `quantus-core` on an ESP32-P4. It follows the
-ESP32 spike (`firmware/esp32`, [plans.md](../plans/plans.md) §4), which ran out of RAM on a
+ESP32 spike (`firmware/esp32`, [plans.md](../../plans/plans.md) §4), which ran out of RAM on a
 classic ESP32.
 
 ## 1. Goal
@@ -44,7 +44,7 @@ long battery life second. Later, and optional: hand calculations that take longe
   calibration. The product uses what the chosen panel brings: the same chip on our PCB for a
   resistive panel, or a capacitive controller on I²C.
 - **Dev board**: until our PCB exists, a Waveshare ESP32-P4-Module-DEV-KIT; its pinout and the
-  display's pins on it are in [esp32-p4-dev-kit.md](esp32-p4-dev-kit.md).
+  display's pins on it are in [dev-kit.md](dev-kit.md).
 - **Display pins, prototype** (Waveshare (A) layout, to verify on the board):
 
   | Signal | Pi header | Purpose |
@@ -212,4 +212,4 @@ the cell at 3.0 V. When off, the cell's own self-discharge matters more than the
 - **Wi-Fi**: the C6 stays off unless the remote engine or an update needs it.
 - **Off**: the latch cuts the 3.3 V rail (§5), by the ON key or the auto-off setting. The module,
   display, keypad and SD card all lose power, so no load switches are needed, and what must
-  survive goes to the SD card ([handheld-menus.md](handheld-menus.md) §6).
+  survive goes to the SD card ([handheld-menus.md](../../design/handheld-menus.md) §6).
