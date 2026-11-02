@@ -222,11 +222,11 @@ fn hold<B: Backend>(app: &mut App<B>, raw: Point) {
 fn the_calibration_learns_the_panel() {
     let mut app = App::new(Stub);
     tap(&mut app, calc_button(1).center());
-    // Gerät, on the second page → Touch kalibrieren, its sixth line.
+    // Gerät, on the second page → Touch kalibrieren, its seventh line.
     swipe(&mut app, line(3), line(1));
     tap(&mut app, line(0));
     swipe(&mut app, line(3), line(1));
-    tap(&mut app, line(0));
+    tap(&mut app, line(1));
     assert!(matches!(app.screen, Screen::Calibrate(..)));
     for target in TARGETS {
         hold(&mut app, panel(target));

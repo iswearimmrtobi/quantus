@@ -6,6 +6,7 @@
 //! back one level, AC closes the menu. Touch: a tap opens a line, a drag pages ([`Menu::tap`],
 //! [`Menu::page`], [`Menu::step`]).
 
+use crate::backend::Storage;
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
 use crate::text::{self, Lang, Text};
@@ -43,6 +44,8 @@ pub enum Kind {
     Insert(&'static str),
     /// The list of wallpapers on the SD card, which the app fills in.
     Wallpapers,
+    /// How full the SD card is, which the app asks the board.
+    Storage,
     /// Waits for the engine or the firmware: says so.
     Pending,
 }
@@ -110,6 +113,8 @@ pub enum Edit {
     Message { label: Text, message: Text },
     /// The wallpapers: *Keins* first, then `names`. The app shows the selected one as a preview.
     Pictures { label: Text, names: Vec<String>, selected: usize },
+    /// The SD card's size and room, `None` without one; any key goes back.
+    Storage { label: Text, storage: Option<Storage> },
 }
 
 /// A menu open on the screen.
@@ -135,6 +140,8 @@ pub enum Outcome {
     Keep(usize),
     /// Back from the list: show the wallpaper set before.
     Restore,
+    /// Show how full the SD card is.
+    Storage(Text),
 }
 
 impl Menu {
@@ -150,7 +157,12 @@ impl Menu {
     pub fn title(&self) -> Text {
         match &self.edit {
             Some(Edit::Choice { entry, .. } | Edit::Confirm { entry, .. }) => entry.label,
-            Some(Edit::Number { label, .. } | Edit::Message { label, .. } | Edit::Pictures { label, .. }) => *label,
+            Some(
+                Edit::Number { label, .. }
+                | Edit::Message { label, .. }
+                | Edit::Pictures { label, .. }
+                | Edit::Storage { label, .. },
+            ) => *label,
             None => self.level().page.title,
         }
     }
@@ -294,6 +306,7 @@ impl Menu {
             Kind::Info(_) => {}
             Kind::Insert(latex) => return Outcome::Insert(latex),
             Kind::Wallpapers => return Outcome::Pictures(entry.label),
+            Kind::Storage => return Outcome::Storage(entry.label),
             Kind::Pending => {
                 self.edit = Some(Edit::Message { label: entry.label, message: text::NOT_AVAILABLE });
             }
@@ -407,7 +420,7 @@ impl Menu {
                 return Outcome::Keep(chosen);
             }
             // Any key reads on.
-            Edit::Message { .. } => {}
+            Edit::Message { .. } | Edit::Storage { .. } => {}
         }
         Outcome::Stay
     }

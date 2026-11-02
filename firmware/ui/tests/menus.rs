@@ -1,5 +1,5 @@
 use quantus_ui::app::{App, Screen};
-use quantus_ui::backend::Stub;
+use quantus_ui::backend::{bytes, Storage, Stub};
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::menu::{self, Edit, Kind, Page};
@@ -71,7 +71,8 @@ fn reset_memory_empties_the_history() {
     let mut app = setup();
     press(&mut app, &[Key::Ac, Key::Digit(7), Key::Exe]);
     assert_eq!(app.history.len(), 1);
-    press(&mut app, &[Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Digit(5), Key::Digit(2), Key::Exe]);
+    // Gerät → Zurücksetzen (both on the second page) → Speicher.
+    press(&mut app, &[Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Up, Key::Digit(1), Key::Digit(2), Key::Exe]);
     assert!(app.history.is_empty() && app.editor.is_empty());
 
     app.settings.digits = 3;
@@ -251,6 +252,10 @@ impl quantus_ui::backend::Backend for Card {
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         Some(if name == "Frieren" { bmp(480, 320) } else { bmp(10, 10) })
     }
+
+    fn storage(&mut self) -> Option<Storage> {
+        Some(Storage { total: 31_914_983_424, free: 20_000_000_000 })
+    }
 }
 
 /// A black 24-bit BMP.
@@ -311,4 +316,40 @@ fn without_pictures_the_list_says_so() {
     let mut app = setup();
     press(&mut app, &[Key::Up, Key::Digit(1), Key::Digit(3), Key::Digit(1)]);
     assert!(matches!(menu(&app).edit, Some(Edit::Message { .. })));
+}
+
+#[test]
+fn the_storage_screen_shows_the_card() {
+    let mut app = App::new(Card);
+    // SETUP → Gerät (on the second page) → Speicherplatz.
+    [Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Digit(4)].iter().for_each(|&key| app.key(key));
+    let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
+    let Some(Edit::Storage { storage: Some(storage), .. }) = &menu.edit else { panic!("no storage: {:?}", menu.edit) };
+    assert_eq!(storage.used(), 11_914_983_424);
+    assert_eq!(menu.title().de, "Speicherplatz");
+    let _ = Frame::new(&app);
+    // Any key goes back to Gerät.
+    app.key(Key::Digit(7));
+    let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
+    assert!(menu.edit.is_none());
+    assert_eq!(menu.level().page.title.de, "Gerät");
+}
+
+#[test]
+fn without_a_card_the_storage_screen_says_so() {
+    let mut app = setup();
+    press(&mut app, &[Key::Up, Key::Digit(1), Key::Digit(4)]);
+    assert!(matches!(menu(&app).edit, Some(Edit::Storage { storage: None, .. })));
+    let _ = Frame::new(&app);
+}
+
+#[test]
+fn bytes_are_written_in_decimal_units() {
+    assert_eq!(bytes(0, Lang::De), "0 B");
+    assert_eq!(bytes(999, Lang::En), "999 B");
+    assert_eq!(bytes(1_500_000, Lang::De), "1,5 MB");
+    assert_eq!(bytes(1_500_000, Lang::En), "1.5 MB");
+    assert_eq!(bytes(999_960, Lang::En), "1.0 MB");
+    assert_eq!(bytes(123_456_789, Lang::En), "123 MB");
+    assert_eq!(bytes(31_914_983_424, Lang::De), "31,9 GB");
 }

@@ -10,6 +10,7 @@ use esp_idf_svc::hal::sd::mmc::{SdMmcHostConfiguration, SdMmcHostDriver, SDMMC0}
 use esp_idf_svc::hal::sd::{SdCardConfiguration, SdCardDriver};
 use esp_idf_svc::io::vfs::MountedFatfs;
 use esp_idf_svc::sys::{self, esp, EspError};
+use quantus_ui::backend::Storage;
 
 /// Where the card appears in the file system.
 pub const MOUNT: &str = "/sd";
@@ -62,6 +63,15 @@ fn io_at_3v3() -> Result<(), EspError> {
     let mut channel: sys::esp_ldo_channel_handle_t = core::ptr::null_mut();
     // SAFETY: plain C call with a valid config and out pointer.
     esp!(unsafe { sys::esp_ldo_acquire_channel(&config, &mut channel) })
+}
+
+/// The card's size and free space, from the FAT. The first call after mounting counts the free
+/// clusters, which takes a moment on a big card.
+pub fn storage() -> Option<Storage> {
+    let (mut total, mut free) = (0u64, 0u64);
+    // SAFETY: plain C call with a NUL-terminated path and valid out pointers.
+    esp!(unsafe { sys::esp_vfs_fat_info(c"/sd".as_ptr(), &mut total, &mut free) }).ok()?;
+    Some(Storage { total, free })
 }
 
 /// The 480×320 BMP files in `/wallpapers/` on the card: their names without `.bmp`, sorted.

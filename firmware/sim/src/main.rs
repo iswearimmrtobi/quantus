@@ -18,7 +18,7 @@
 mod engine;
 mod mirror;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
@@ -29,7 +29,7 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Simul
 use engine::Engine;
 use mirror::{Mirror, Tee};
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Stub};
+use quantus_ui::backend::{Backend, Storage, Stub};
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 use quantus_ui::touch::Touch;
@@ -178,6 +178,9 @@ enum Answers {
     Stub(Stub),
 }
 
+/// The size of the card the SD folder stands for.
+const SD_CAPACITY: u64 = 32_000_000_000;
+
 /// The answers, and a folder on the PC as the SD card.
 struct Sim {
     answers: Answers,
@@ -207,6 +210,24 @@ impl Backend for Sim {
 
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         std::fs::read(self.sd.join("wallpapers").join(format!("{name}.bmp"))).ok()
+    }
+
+    /// The folder as a card of [`SD_CAPACITY`]: what its files take is used.
+    fn storage(&mut self) -> Option<Storage> {
+        fn size(path: &Path) -> u64 {
+            let Ok(files) = std::fs::read_dir(path) else { return 0 };
+            files
+                .filter_map(Result::ok)
+                .map(|file| match file.file_type() {
+                    Ok(kind) if kind.is_dir() => size(&file.path()),
+                    _ => file.metadata().map_or(0, |metadata| metadata.len()),
+                })
+                .sum()
+        }
+        self.sd.is_dir().then(|| {
+            let used = size(&self.sd).min(SD_CAPACITY);
+            Storage { total: SD_CAPACITY, free: SD_CAPACITY - used }
+        })
     }
 }
 

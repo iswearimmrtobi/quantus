@@ -418,6 +418,7 @@ impl<B: Backend> App<B> {
             }
             Outcome::Keep(index) => self.keep_picture(&mut menu, index),
             Outcome::Restore => self.preview = None,
+            Outcome::Storage(label) => menu.edit = Some(Edit::Storage { label, storage: self.backend.storage() }),
         }
         self.screen = Screen::Menu(menu);
     }

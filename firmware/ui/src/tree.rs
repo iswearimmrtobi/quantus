@@ -151,6 +151,7 @@ static DEVICE: Page = Page {
             Kind::Choice(S::FontSize, &[opt(same("Normal"), 0), opt(t("Klein", "Small"), 1)]),
         ),
         entry(t("Hintergrundbild", "Wallpaper"), Kind::Page(&WALLPAPER)),
+        entry(t("Speicherplatz", "Storage"), Kind::Storage),
         entry(
             t("Automatisch aus", "Auto power off"),
             Kind::Choice(S::AutoOff, &[opt(same("10 min"), 10), opt(same("60 min"), 60)]),

@@ -588,6 +588,9 @@ maps every setting the core has.
   - Hintergrundbild ✓ in the hui and the simulator (section 7.6): Bild (Keins, then the BMP
     files in `/wallpapers/` on the SD card, with a preview beside the list) · Anzeigen
     Hauptmenü/Menüs/Überall
+  - Speicherplatz ✓: how full the SD card is, as a bar with the percentage, and the space
+    used, free and in all (decimal units, as cards are sold); *Keine SD-Karte* without one. The
+    simulator counts its SD folder as a 32 GB card
   - Automatisch aus 10/60 min ◌
   - Zurücksetzen → Einstellungen / Speicher / Alles, each with *Ja* ✓ (the settings to their
     defaults; the history, Ans and the input cleared; both)

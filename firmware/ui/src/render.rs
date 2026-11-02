@@ -13,6 +13,7 @@ use embedded_graphics::primitives::{
 };
 
 use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
+use crate::backend::Storage;
 use crate::menu::{self, Edit, Kind, Menu, ROWS};
 use crate::settings::{Angle, WallpaperOn};
 use crate::wallpaper::{blend, Pixels};
@@ -619,12 +620,54 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
                 }
             }
         }
-        Some(Edit::Message { message, .. }) => {
-            let text = message.get(lang);
-            let x = (WIDTH as i32 - Scale::Normal.width(text)) / 2;
-            let y = BAR + (HEIGHT as i32 - BAR) / 2;
-            shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), Scale::Normal, colors::MUTED));
-        }
+        Some(Edit::Storage { storage: Some(storage), .. }) => storage_screen(shapes, *storage, lang, glass),
+        Some(Edit::Storage { storage: None, .. }) => centred(shapes, text::NO_CARD.get(lang)),
+        Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),
+    }
+}
+
+/// A muted line in the middle of the screen under the top bar.
+fn centred(shapes: &mut Vec<Shape>, text: &str) {
+    let x = (WIDTH as i32 - Scale::Normal.width(text)) / 2;
+    let y = BAR + (HEIGHT as i32 - BAR) / 2;
+    shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), Scale::Normal, colors::MUTED));
+}
+
+/// SETUP → Gerät → Speicherplatz: the card's name and how full it is in percent, a bar of the
+/// space used, and the space used, free and in all.
+fn storage_screen(shapes: &mut Vec<Shape>, storage: Storage, lang: text::Lang, glass: bool) {
+    let top = BAR + 14;
+    let size = Size::new(WIDTH - 2 * MARGIN as u32, HEIGHT - top as u32 - 14);
+    shapes.push(panel(rounded(Point::new(MARGIN, top), size, 8), colors::SURFACE, Some(colors::HAIRLINE), glass));
+    let (left, right) = (MARGIN + 20, WIDTH as i32 - MARGIN - 20);
+    let right_aligned = |text: &str, scale: Scale| right - scale.width(text);
+
+    let heading = top + 38;
+    shapes.push(Shape::Text(Point::new(left, heading), text::SD_CARD.get(lang).to_string(), Scale::Normal, colors::TEXT));
+    // A thousandth, so a nearly full card does not show 100 %.
+    let permille = match storage.total {
+        0 => 0,
+        total => (u128::from(storage.used()) * 1000 / u128::from(total)) as u32,
+    };
+    let percent = format!("{} %", permille / 10);
+    let color = if permille >= 900 { colors::ERROR } else { colors::RESULT };
+    shapes.push(Shape::Text(Point::new(right_aligned(&percent, Scale::Normal), heading), percent, Scale::Normal, color));
+
+    let (bar_top, bar_height, width) = (heading + 18, 22, right - left);
+    shapes.push(Shape::Round(rounded(Point::new(left, bar_top), Size::new(width as u32, bar_height), 6), colors::BACKGROUND, Some(colors::HAIRLINE)));
+    // At least a sliver while anything is used, inside the outline.
+    let filled = ((width - 4) as u32 * permille / 1000).max(u32::from(storage.used() > 0) * 6);
+    if filled > 0 {
+        let fill = if permille >= 900 { colors::ERROR } else { colors::CYAN };
+        shapes.push(Shape::Round(rounded(Point::new(left + 2, bar_top + 2), Size::new(filled, bar_height - 4), 4), fill, None));
+    }
+
+    let rows = [(text::USED, storage.used()), (text::FREE, storage.free), (text::TOTAL, storage.total)];
+    for (index, (label, value)) in rows.into_iter().enumerate() {
+        let baseline = bar_top + bar_height as i32 + 44 + index as i32 * 40;
+        shapes.push(Shape::Text(Point::new(left, baseline), label.get(lang).to_string(), Scale::Small, colors::MUTED));
+        let value = crate::backend::bytes(value, lang);
+        shapes.push(Shape::Text(Point::new(right_aligned(&value, Scale::Normal), baseline), value, Scale::Normal, colors::TEXT));
     }
 }
 
@@ -730,7 +773,7 @@ fn list_len(menu: &Menu) -> Option<usize> {
         },
         Some(Edit::Confirm { .. }) => Some(1),
         Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
-        Some(Edit::Number { .. } | Edit::Message { .. }) => None,
+        Some(Edit::Number { .. } | Edit::Message { .. } | Edit::Storage { .. }) => None,
     }
 }
 
@@ -796,7 +839,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             (0..PAGES).find(|&index| around(dot_rect(index)).contains(point)).map(Target::Page)
         }
         Screen::Menu(menu) => {
-            if let Some(Edit::Message { .. }) = menu.edit {
+            if let Some(Edit::Message { .. } | Edit::Storage { .. }) = menu.edit {
                 return Some(Target::Anywhere);
             }
             if let Some(Edit::Number { .. }) = menu.edit {

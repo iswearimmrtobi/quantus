@@ -18,7 +18,7 @@ use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Stub};
+use quantus_ui::backend::{Backend, Storage, Stub};
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
@@ -159,6 +159,14 @@ impl Backend for Board {
 
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         self.card.as_ref().and_then(|_| sd::wallpaper(name))
+    }
+
+    fn storage(&mut self) -> Option<Storage> {
+        self.card.as_ref()?;
+        let asked = Instant::now();
+        let storage = sd::storage();
+        println!("SD card: {storage:?} in {} ms", asked.elapsed().as_millis());
+        storage
     }
 }
 

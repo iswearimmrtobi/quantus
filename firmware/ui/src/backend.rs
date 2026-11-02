@@ -22,6 +22,43 @@ pub trait Backend {
     fn picture(&mut self, name: &str) -> Option<Wallpaper> {
         Wallpaper::from_bmp(&self.wallpaper(name)?)
     }
+
+    /// How full the SD card is; `None` without a card.
+    fn storage(&mut self) -> Option<Storage> {
+        None
+    }
+}
+
+/// The size of a card and the room left on it, in bytes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Storage {
+    pub total: u64,
+    pub free: u64,
+}
+
+impl Storage {
+    pub fn used(self) -> u64 {
+        self.total.saturating_sub(self.free)
+    }
+}
+
+/// `bytes` in decimal units, as cards are sold: `12,3 GB` in German, `12.3 GB` in English; one
+/// decimal below 100 of a unit.
+pub fn bytes(bytes: u64, lang: crate::text::Lang) -> String {
+    const UNITS: [&str; 5] = ["kB", "MB", "GB", "TB", "PB"];
+    if bytes < 1000 {
+        return format!("{bytes} B");
+    }
+    let mut value = bytes as f64 / 1000.0;
+    let mut unit = 0;
+    // Rounded first, so 999 950 is 1,0 MB and not 1000,0 kB.
+    while unit + 1 < UNITS.len() && (value * 10.0).round() / 10.0 >= 1000.0 {
+        value /= 1000.0;
+        unit += 1;
+    }
+    let text = if value < 99.95 { format!("{value:.1}") } else { format!("{value:.0}") };
+    let text = if lang == crate::text::Lang::De { text.replace('.', ",") } else { text };
+    format!("{text} {}", UNITS[unit])
 }
 
 /// Answers with the input itself, so the way back from LaTeX shows on the screen. An input with
