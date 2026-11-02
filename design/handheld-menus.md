@@ -72,12 +72,14 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       MODE tile; the SHIFT key waits for the keypad)
 - [ ] Gerät: brightness, font size, auto-off (firmware)
 - [ ] QR code of the result or the steps
-- [ ] Prüfungsmodus actually switching the radios off
-- [ ] WLAN: on/off, networks, saved networks, status
+- [ ] Prüfungsmodus actually switching the radios off (WLAN does; Bluetooth waits for its stack)
+- [x] WLAN: on/off, networks, saved networks, status (`firmware/handheld/src/wlan.rs`,
+      [wlan.md](../firmware/docs/wlan.md))
 - [ ] Bluetooth: on/off, pairing, paired devices, visibility
 - [ ] Remote engine client and its Rechnen im Netz settings
 - [ ] Session sync with the desktop
-- [ ] Clock: NTP or by hand, time zone
+- [x] Clock: NTP or by hand, time zone (`firmware/ui/src/clock.rs`); no clock in the top bar
+- [x] The settings kept across a restart (NVS on the board, `settings.txt` in the simulator)
 - [ ] Firmware update: search and install over WLAN, receive an image from the desktop
 - [ ] Measure the current when off and in use on the real board (section 6)
 
@@ -556,8 +558,9 @@ engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verf�
   10. Verteilungen [C, eng] ◌
   11. Prüfen [C Berechn prüf, eng] ◌
   12. Sitzungen [Q, fw] ✓: a page Neu, Öffnen, Umbenennen, Duplizieren, Löschen (section 6).
-      Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. Without
-      a clock a new one is "Sitzung 2", the lowest number free.
+      Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. A new one is
+      named after the local time as on the desktop ("Sitzung 2026-11-02 14:30"); before the
+      clock is set, "Sitzung 2", the lowest number free.
 - Later: Ungleichungen [C, eng], Geometrie with the vectors [eng]
   ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)).
 - Not on the handheld: Tabellenkalk., Verhältnisse (typed in Algebra), Kirchhoff and
@@ -597,15 +600,23 @@ maps every setting the core has.
     defaults; the history, Ans and the input cleared; both)
 - **Verbindungen** [fw], section 7.5:
   - **Prüfungsmodus**: ein · aus ✓ in the hui: on switches WLAN and Bluetooth off, and their
-    *Ein* then says *Aus im Prüfungsmodus*; the top bar shows it. No radio is touched yet.
-  - **WLAN**: ein · aus ◌ · Netzwerke (scan, connect, password) ◌ · Gespeicherte Netzwerke
-    (forget) ◌ · Status (network, IP, signal) ◌
+    *Ein* then says *Aus im Prüfungsmodus*; the top bar shows it. The board switches WLAN off
+    with it; Bluetooth has no stack yet.
+  - **WLAN** ✓ ([wlan.md](../firmware/docs/wlan.md)): ein · aus · Netzwerke (a scan; the
+    networks with signal bars, a lock and a dot for a saved one; a saved or open one connects,
+    a new secured one asks for its password, shown as stars until S⇔D) · Gespeicherte Netzwerke
+    (forget, after *Vergessen*) · Status (network, address, signal, or what the connection
+    does). Without WLAN on, Netzwerke says *Erst WLAN einschalten*. The board joins the
+    strongest saved network by itself; the simulator plays three made-up networks.
   - **Rechnen im Netz**: aus · ab 500 ms ◌ (hand long calculations to a Quantus engine on the
     desktop or a server) · Adresse ◌ (needs text input)
   - **Sitzungen abgleichen**: with the desktop app over WLAN or Bluetooth · jetzt ◌ ·
     automatisch ◌
-  - **Uhrzeit**: Quelle Netzwerk (NTP) / von Hand ◌ · Stunde, Minute ◌ (typed) · Zeitzone ◌
-    (typed, −12 to +14)
+  - **Uhrzeit** ✓: Datum (shown with its weekday, typed as TT.MM.JJJJ) · Uhrzeit (typed as
+    HH:MM) · Quelle Netzwerk (NTP) / von Hand (typing a date or a time sets the clock and the
+    source to von Hand) · Zeitzone (14 named zones from UTC to Los Angeles, each with its
+    summer time: EU, US or south-east Australian rules; Berlin by default). The page shows
+    *Nicht gestellt* until the clock is set; the time is not in the top bar.
   - **Firmware-Update**: installierte Version ✓ (the crate's version) · suchen ◌ · installieren ◌
     (the latest GitHub release, over WLAN); updating from the desktop app works too, section 7.5
   - **Bluetooth**: ein · aus ◌ · Koppeln (desktop app, phone, keyboard) ◌ · Gekoppelte Geräte
@@ -697,7 +708,8 @@ The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hos
   attach the firmware image.
 - **Top bar**: icons for WLAN, Bluetooth and the exam mode, next to the battery. *Implemented*
   in the hui:
-  - a Wi-Fi fan and the Bluetooth rune while on, a *PRÜFUNG* tag in the accent;
+  - a Wi-Fi fan and the Bluetooth rune while on, the fan dim until WLAN is connected, a
+    *PRÜFUNG* tag in the accent;
   - D/R for the angle unit (section 8, item 1) next to the digits and *Exakt*/*Dez*;
   - while USB power is in, a bolt inside the battery and a green fill (`App::charging`, set by
     the board);

@@ -103,6 +103,12 @@ dev kit. See its [README](../firmware/esp32/README.md).
   - [x] The SD card on the board: `wallpapers()` and `wallpaper()` of the backend from
     `/wallpapers/`, and the picture set kept across restarts (its name in NVS).
   - [x] Sessions on the card in `/sessions/` (§6), the Sitzungen menu, the last one reopened.
+  - [x] WLAN through the C6 (ESP-Hosted; [wlan.md](../firmware/docs/wlan.md)): networks,
+    passwords, saved networks, status, off in the exam mode; tried on the board up to an open
+    network. Still to try: a WPA2 network and NTP. The C6 has an old ESP-Hosted firmware (0.0.0
+    against host 3.0.10), which works for now; update it if something fails.
+  - [x] The clock: NTP or by hand, named time zones with summer time, session names and
+    timestamps from it; the settings kept across a restart.
   - [ ] A larger Greek font than u8g2's bitmap ones (π, μ and Ω are fine); German texts.
 
 ## 5. Features modelled on the Casio fx-991DE X
