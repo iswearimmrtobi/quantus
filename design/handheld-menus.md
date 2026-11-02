@@ -78,7 +78,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [ ] Session sync with the desktop
 - [ ] Clock: NTP or by hand, time zone
 - [ ] Firmware update: search and install over WLAN, receive an image from the desktop
-- [ ] Measure deep sleep on the real board (section 6)
+- [ ] Measure the current when off and in use on the real board (section 6)
 - [ ] Touch: the test buttons go once the keypad exists (section 7.7)
 
 ### Desktop UI (`desktop/`)
@@ -392,7 +392,7 @@ work the decisions call for, and where it goes (core, desktop, handheld), is in 
 | SETUP 1000er-Trennung | – | yes: a thin space (the comma is the decimal mark) |
 | SETUP Mehrzeilengröße | – | a font size setting, normal or small, for long results and the step list |
 | SETUP QR Code | – | a QR code of the result or the steps (LaTeX, for the desktop); no version setting |
-| SETUP Automat Aus | deep sleep | keep (firmware) |
+| SETUP Automat Aus | switches off | keep (firmware) |
 | SETUP Kontrast | – | backlight brightness |
 | RESET | – | keep (firmware): settings / memory / all |
 | Hyperbol. Fkt. | sinh, cosh, tanh | add arsinh, arcosh, artanh (and coth) |
@@ -513,20 +513,16 @@ The mode and the settings are not part of a session; they stay global.
 - **Desktop**: stores one file per session in the app's config directory, next to
   `settings.json`; a session menu (open, new, rename, duplicate, delete) and opening the last
   session on start. Tracked in `plans/plans.md` §5.
-- **Handheld**: stores the same files on the SD card, after every calculation and before deep
-  sleep, so a power loss loses at most the last input; the *Sitzungen* menu from MODE or
-  SHIFT + a key; the last session reopens on wake-up.
+- **Handheld**: stores the same files on the SD card, after every calculation and before
+  switching off, so a power loss loses at most the last input; the *Sitzungen* menu from MODE or
+  SHIFT + a key; the last session reopens on the next start.
 - **Exchange**: the files are the same on both, so a session moves over the card or USB.
 - **Names**: a new session starts as "Sitzung 2026-11-01 14:30" and can be renamed.
 
-Deep sleep does not keep the RAM: on the ESP32-P4 the main SRAM and the PSRAM are off, and only
-the small low-power memory survives. That is why the handheld writes sessions to the SD card.
-How long deep sleep lasts depends less on the chip (tens of µA) than on the rest of the
-board: the dev board's regulator, USB bridge and LED and the display module's regulator and
-shift registers can draw 1–10 mA unless they can be switched off, and the backlight needs a
-switch. At 5 mA a 2000 mAh LiPo lasts about 2½ weeks; at 50 µA, years. These are estimates,
-to be measured; they belong to the power question in
-[calculator-hardware.md](calculator-hardware.md) §7.
+Switching off cuts the 3.3 V rail, so nothing in the ESP32-P4 survives. That is why the handheld
+writes sessions to the SD card. Off draws about 15–35 µA, so the cell lasts as long as its own
+self-discharge allows. These are estimates, to be measured; they belong to the power question
+in [calculator-hardware.md](calculator-hardware.md) §7.
 
 ## 7. The handheld tree
 
@@ -796,5 +792,6 @@ and the external keyboard, and the exam mode.
 - **Session format**: how mode inputs are stored, and how the format version is migrated.
 - **Desktop settings dialog**: it grows by about six settings (angle unit, number format,
   prefixes, fraction form, complex form, recurring decimals); maybe a new group for them.
-- **Power**: measure deep sleep on the real board before choosing the battery.
+- **Power**: measure the real currents on the board, see
+  [calculator-hardware.md](calculator-hardware.md) §7.
 - **Phone companion**: an app, or a web page the handheld serves? Not decided yet, on purpose.
