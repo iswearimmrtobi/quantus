@@ -365,7 +365,7 @@ work the decisions call for, and where it goes (core, desktop, handheld), is in 
 
 | Casio | Today in Quantus | Decision |
 |---|---|---|
-| Main menu, digit or cursor + OK | MODE tiles, 6 per page (`render.rs`) | keep |
+| Main menu, digit or cursor + OK | MODE tiles, 6 per page (`render/screens.rs`) | keep |
 | Berechnungen | Physik (numbers with units and constants) | Physik stays the default mode and tile 1 |
 | Komplexe Zahlen | Komplex (`imaginary`) | keep |
 | Basis-N | – | own mode, soon: integers, DEC/HEX/BIN/OCT, d/h/b/o, and/or/xor/xnor/Not/Neg |
@@ -708,7 +708,7 @@ The ESP32-P4 has no radio; the ESP32-C6 on the board provides both, over ESP-Hos
 The hui uses the desktop's purple palette everywhere (`desktop/src/styles.css`): the top bar,
 the mode tiles, the menu highlight and the cursor in lavender `#9186e8` (`--cyan`) and the accent
 `#d8a9ff` (`--amber`), their dim forms `#423a63` and `#4e3c63` for fills, on the background
-and surfaces the hui already shares with the desktop (`firmware/ui/src/render.rs`). The colours per
+and surfaces the hui already shares with the desktop (`firmware/ui/src/render/mod.rs`). The colours per
 mode in `firmware/ui/src/app.rs` (green, brown, teal, slate) go; the mode shows by its name in
 the top bar and on its tile.
 

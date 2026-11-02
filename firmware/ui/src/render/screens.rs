@@ -1,0 +1,409 @@
+//! The screens under the top bar: one calculation, the mode tiles, the menu lists and the
+//! number entry, the storage page and the touch calibration.
+
+use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::prelude::*;
+use embedded_graphics::primitives::{Circle, Rectangle, RoundedRectangle, Triangle};
+
+use super::{
+    calc_button, colors, dot_rect, fit, line_rect, list_edge, number_button, panel, rounded, tile_rect, Shape, BAR,
+    CALC_BUTTONS, HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, PAGES, THUMBNAIL, WIDTH,
+};
+use crate::app::{App, Mode, TILES_PER_PAGE};
+use crate::backend::Storage;
+use crate::font::Scale;
+use crate::layout;
+use crate::menu::{self, Edit, Kind, Menu, ROWS};
+use crate::text;
+use crate::touch::{self, Calibrating, Target};
+
+/// One calculation, as on a Casio: the input from the top left, its result at the bottom right,
+/// over the test buttons.
+pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>, glass: bool) {
+    let width = WIDTH as i32;
+
+    let input = layout::layout(&app.editor.row, Scale::Normal);
+    let mut origin = Point::new(MARGIN, BAR + 12 + input.ascent);
+    let caret = layout::caret(&input, origin, app.editor.path(), app.editor.pos());
+    // Scroll a long input so the caret stays on the screen.
+    let overflow = caret.top_left.x - (width - MARGIN);
+    if overflow > 0 {
+        origin.x -= overflow;
+    }
+    let caret = caret.translate(Point::new(origin.x - MARGIN, 0));
+    if !app.editor.is_empty() {
+        shapes.push(Shape::Math(origin, input, colors::TEXT));
+    }
+    if app.caret_on && app.shown.is_none() {
+        shapes.push(Shape::Fill(caret, colors::CYAN));
+    }
+
+    for (index, (button_, label)) in CALC_BUTTONS.iter().enumerate() {
+        let lit = app.pressed() == Some(Target::Button(*button_));
+        button(shapes, calc_button(index), label, lit, glass);
+    }
+    let bottom = calc_button(0).top_left.y - 8;
+    if let Some(entry) = app.shown_entry() {
+        match &entry.result {
+            Ok(result) => {
+                let result = layout::layout(result, Scale::Normal);
+                let x = (width - MARGIN - result.width).max(MARGIN);
+                shapes.push(Shape::Math(Point::new(x, bottom - result.descent), result, colors::RESULT));
+            }
+            Err(message) => {
+                let metrics = Scale::Normal.metrics();
+                let x = (width - MARGIN - Scale::Normal.width(message)).max(MARGIN);
+                let at = Point::new(x, bottom - metrics.descent);
+                shapes.push(Shape::Text(at, message.to_string(), Scale::Normal, colors::ERROR));
+            }
+        }
+    }
+
+    // How many calculations ↑ can bring back.
+    let earlier = app.history.len() - app.shown.map_or(0, |shown| shown + 1);
+    if earlier > 0 {
+        let baseline = bottom - 2;
+        let tip = Point::new(MARGIN + 5, baseline - 10);
+        let arrow = Triangle::new(tip, Point::new(MARGIN, baseline), Point::new(MARGIN + 10, baseline));
+        shapes.push(Shape::Triangle(arrow, colors::FAINT));
+        let count = earlier.to_string();
+        shapes.push(Shape::Text(Point::new(MARGIN + 15, baseline), count, Scale::Small, colors::FAINT));
+    }
+}
+
+/// The mode menu: pages of tiles, numbered over all pages. While a finger drags them, the page
+/// moves with it and its neighbour comes in.
+pub(super) fn modes<B>(shapes: &mut Vec<Shape>, app: &App<B>, selected: usize, glass: bool) {
+    let lang = app.settings.language;
+    let page = selected / TILES_PER_PAGE;
+    let dx = app.drag().map_or(0, |drag| drag.x);
+    let pages = if dx == 0 { page..=page } else { page.saturating_sub(1)..=(page + 1).min(PAGES - 1) };
+    for shown in pages {
+        let shift = Point::new((shown as i32 - page as i32) * WIDTH as i32 + dx, 0);
+        tiles(shapes, shown, selected, app.pressed(), shift, lang, glass);
+    }
+
+    if PAGES > 1 {
+        for index in 0..PAGES {
+            let color = if index == page { colors::TEXT } else { colors::FAINT };
+            let dot = dot_rect(index);
+            shapes.push(Shape::Circle(Circle::new(dot.top_left, dot.size.width), color));
+        }
+    }
+}
+
+/// The tiles of mode page `page`, moved by `shift`.
+fn tiles(
+    shapes: &mut Vec<Shape>,
+    page: usize,
+    selected: usize,
+    pressed: Option<Target>,
+    shift: Point,
+    lang: text::Lang,
+    glass: bool,
+) {
+    let first = page * TILES_PER_PAGE;
+    let modes = &Mode::ALL[first..(first + TILES_PER_PAGE).min(Mode::ALL.len())];
+    let small = Scale::Small.metrics();
+    for (offset, mode) in modes.iter().enumerate() {
+        let index = first + offset;
+        let Rectangle { top_left: at, size } = tile_rect(offset).translate(shift);
+        let (tile_width, tile_height) = (size.width as i32, size.height as i32);
+        let chosen = index == selected;
+        let (tile, lit) = colors::TILES[index % colors::TILES.len()];
+        let fill = if chosen || pressed == Some(Target::Tile(index)) { lit } else { tile };
+        shapes.push(panel(rounded(at, size, 6), fill, chosen.then_some(colors::TEXT), glass));
+        let number = (index + 1).to_string();
+        shapes.push(Shape::Text(at + Point::new(12, 10 + small.ascent), number, Scale::Small, colors::TEXT));
+        // The name at the bottom, a word per line when it is too wide, and small when a word is.
+        let room = tile_width - 18;
+        let name = mode.name(lang);
+        let lines: Vec<String> = if Scale::Normal.width(&name) <= room {
+            vec![name]
+        } else {
+            // At the spaces, and at the soft hyphens with a hyphen.
+            let hyphenated = mode.text().get(lang).replace('\u{ad}', "-\u{ad}");
+            hyphenated.split([' ', '\u{ad}']).map(str::to_string).collect()
+        };
+        let fits = lines.iter().all(|line| Scale::Normal.width(line) <= room);
+        let scale = if fits { Scale::Normal } else { Scale::Small };
+        let metrics = scale.metrics();
+        let line_height = metrics.ascent + metrics.descent - 2;
+        let mut baseline = at.y + tile_height - 12 - metrics.descent;
+        for line in lines.iter().rev() {
+            shapes.push(Shape::Text(Point::new(at.x + 12, baseline), line.to_string(), scale, colors::TEXT));
+            baseline -= line_height;
+        }
+    }
+}
+
+/// A line of a menu list.
+struct Line {
+    label: String,
+    value: Option<String>,
+    /// What stands at the right end.
+    mark: Mark,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mark {
+    None,
+    /// Opens a further page.
+    Arrow,
+    /// The value set now, in a list of choices.
+    Dot,
+}
+
+/// SETUP or OPTN: the page on the screen, or the submenu open over it.
+pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: bool) {
+    let lang = app.settings.language;
+    let list = List {
+        scroll: app.drag().map_or(0, |drag| drag.y),
+        pressed: match app.pressed() {
+            Some(Target::Line(offset)) => Some(offset),
+            _ => None,
+        },
+        glass,
+    };
+    match &menu.edit {
+        None => {
+            let level = menu.level();
+            let lines = level.page.entries.iter().map(|entry| Line {
+                label: entry.label.get(lang).to_string(),
+                value: match entry.kind {
+                    Kind::Wallpapers => Some(app.wallpaper_name.clone().unwrap_or_else(|| text::NONE.get(lang).to_string())),
+                    _ => menu::value(entry, &app.settings, lang),
+                },
+                mark: if matches!(entry.kind, Kind::Page(_)) { Mark::Arrow } else { Mark::None },
+            });
+            lines_page(shapes, lines.collect(), level.selected, &list);
+        }
+        Some(Edit::Choice { entry, selected }) => {
+            let Kind::Choice(setting, opts) = &entry.kind else { return };
+            let value = app.settings.get(*setting);
+            let lines = opts.iter().map(|opt| Line {
+                label: opt.text.get(lang).to_string(),
+                value: None,
+                mark: if opt.value == value { Mark::Dot } else { Mark::None },
+            });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
+        Some(Edit::Confirm { .. }) => {
+            let yes = Line { label: text::YES.get(lang).to_string(), value: None, mark: Mark::None };
+            lines_page(shapes, vec![yes], 0, &list);
+        }
+        Some(Edit::Number { setting, min, max, typed, error, .. }) => {
+            let top = BAR + 30;
+            let height = 60;
+            let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
+            shapes.push(panel(rounded(Point::new(MARGIN, top), size, 6), colors::SURFACE, Some(colors::CYAN), glass));
+            let metrics = Scale::Normal.metrics();
+            let baseline = top + (height + metrics.digit) / 2;
+            let x = MARGIN + 16;
+            if typed.is_empty() {
+                // The value set now, until a digit is typed.
+                let now = app.settings.get(*setting).to_string();
+                shapes.push(Shape::Text(Point::new(x + 6, baseline), now, Scale::Normal, colors::FAINT));
+            } else {
+                shapes.push(Shape::Text(Point::new(x, baseline), typed.clone(), Scale::Normal, colors::TEXT));
+            }
+            if app.caret_on {
+                let caret_x = if typed.is_empty() { x } else { x + Scale::Normal.width(typed) + 2 };
+                let caret = Rectangle::new(Point::new(caret_x, baseline - metrics.ascent + 4), Size::new(2, metrics.ascent as u32));
+                shapes.push(Shape::Fill(caret, colors::CYAN));
+            }
+            let hint = format!("{}: {min} {} {max}", text::RANGE.get(lang), text::TO.get(lang));
+            let color = if *error { colors::ERROR } else { colors::MUTED };
+            let at = Point::new(MARGIN + 4, top + height + 28);
+            shapes.push(Shape::Text(at, hint, Scale::Small, color));
+            for (index, (target, label)) in NUMBER_BUTTONS.iter().enumerate() {
+                button(shapes, number_button(index), label, app.pressed() == Some(*target), glass);
+            }
+        }
+        Some(Edit::Pictures { names, selected, .. }) => {
+            let set = app.wallpaper_name.as_ref().and_then(|name| names.iter().position(|n| n == name)).map_or(0, |i| i + 1);
+            let lines = [text::NONE.get(lang).to_string()].into_iter().chain(names.iter().cloned()).enumerate();
+            let lines = lines.map(|(index, label)| Line {
+                label,
+                value: None,
+                mark: if index == set { Mark::Dot } else { Mark::None },
+            });
+            let x = WIDTH as i32 - MARGIN - THUMBNAIL.width as i32;
+            lines_in(shapes, lines.collect(), *selected, &list, list_edge(menu));
+            // The picture under the cursor, or why there is none.
+            let at = Point::new(x, BAR + (HEIGHT as i32 - BAR - THUMBNAIL.height as i32) / 2);
+            let frame = Rectangle::new(at - Point::new(2, 2), THUMBNAIL + Size::new(4, 4));
+            shapes.push(Shape::Round(RoundedRectangle::with_equal_corners(frame, Size::new(4, 4)), colors::HAIRLINE, None));
+            match app.wallpaper() {
+                Some(wallpaper) => shapes.push(Shape::Thumbnail(at, wallpaper.full.clone())),
+                None => {
+                    shapes.push(Shape::Fill(Rectangle::new(at, THUMBNAIL), colors::BACKGROUND));
+                    let message = if *selected == 0 { text::NONE } else { text::BAD_PICTURE }.get(lang);
+                    let message = fit(message, THUMBNAIL.width as i32 - 16, Scale::Small);
+                    let middle = at + Point::new((THUMBNAIL.width as i32 - Scale::Small.width(&message)) / 2, THUMBNAIL.height as i32 / 2);
+                    shapes.push(Shape::Text(middle, message, Scale::Small, colors::MUTED));
+                }
+            }
+        }
+        Some(Edit::Storage { storage: Some(storage), .. }) => storage_screen(shapes, *storage, lang, glass),
+        Some(Edit::Storage { storage: None, .. }) => centred(shapes, text::NO_CARD.get(lang)),
+        Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),
+    }
+}
+
+/// A muted line in the middle of the screen under the top bar.
+fn centred(shapes: &mut Vec<Shape>, text: &str) {
+    let x = (WIDTH as i32 - Scale::Normal.width(text)) / 2;
+    let y = BAR + (HEIGHT as i32 - BAR) / 2;
+    shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), Scale::Normal, colors::MUTED));
+}
+
+/// SETUP → Gerät → Speicherplatz: the card's name and how full it is in percent, a bar of the
+/// space used, and the space used, free and in all.
+fn storage_screen(shapes: &mut Vec<Shape>, storage: Storage, lang: text::Lang, glass: bool) {
+    let top = BAR + 14;
+    let size = Size::new(WIDTH - 2 * MARGIN as u32, HEIGHT - top as u32 - 14);
+    shapes.push(panel(rounded(Point::new(MARGIN, top), size, 8), colors::SURFACE, Some(colors::HAIRLINE), glass));
+    let (left, right) = (MARGIN + 20, WIDTH as i32 - MARGIN - 20);
+    let right_aligned = |text: &str, scale: Scale| right - scale.width(text);
+
+    let heading = top + 38;
+    shapes.push(Shape::Text(Point::new(left, heading), text::SD_CARD.get(lang).to_string(), Scale::Normal, colors::TEXT));
+    // A thousandth, so a nearly full card does not show 100 %.
+    let permille = match storage.total {
+        0 => 0,
+        total => (u128::from(storage.used()) * 1000 / u128::from(total)) as u32,
+    };
+    let percent = format!("{} %", permille / 10);
+    let color = if permille >= 900 { colors::ERROR } else { colors::RESULT };
+    shapes.push(Shape::Text(Point::new(right_aligned(&percent, Scale::Normal), heading), percent, Scale::Normal, color));
+
+    let (bar_top, bar_height, width) = (heading + 18, 22, right - left);
+    shapes.push(Shape::Round(rounded(Point::new(left, bar_top), Size::new(width as u32, bar_height), 6), colors::BACKGROUND, Some(colors::HAIRLINE)));
+    // At least a sliver while anything is used, inside the outline.
+    let filled = ((width - 4) as u32 * permille / 1000).max(u32::from(storage.used() > 0) * 6);
+    if filled > 0 {
+        let fill = if permille >= 900 { colors::ERROR } else { colors::CYAN };
+        shapes.push(Shape::Round(rounded(Point::new(left + 2, bar_top + 2), Size::new(filled, bar_height - 4), 4), fill, None));
+    }
+
+    let rows = [(text::USED, storage.used()), (text::FREE, storage.free), (text::TOTAL, storage.total)];
+    for (index, (label, value)) in rows.into_iter().enumerate() {
+        let baseline = bar_top + bar_height as i32 + 44 + index as i32 * 40;
+        shapes.push(Shape::Text(Point::new(left, baseline), label.get(lang).to_string(), Scale::Small, colors::MUTED));
+        let value = crate::backend::bytes(value, lang);
+        shapes.push(Shape::Text(Point::new(right_aligned(&value, Scale::Normal), baseline), value, Scale::Normal, colors::TEXT));
+    }
+}
+
+/// How a list is shown: moved by a dragging finger, the line under it lit.
+struct List {
+    scroll: i32,
+    /// The line the finger is on, counted on the page.
+    pressed: Option<usize>,
+    glass: bool,
+}
+
+/// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
+/// there are more.
+fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List) {
+    lines_in(shapes, lines, selected, list, WIDTH as i32 - MARGIN);
+}
+
+/// [`lines_page`] with the lines ending at `edge`; a label too long for them is cut short. The
+/// lines lie one under the other, the page of `selected` at the top, so a drag shows the pages
+/// before and after it moving in.
+fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List, edge: i32) {
+    let first = selected / ROWS * ROWS;
+    let normal = Scale::Normal.metrics();
+    let small = Scale::Small.metrics();
+    let scrolls = lines.len() > ROWS;
+    let right = edge - if scrolls { 8 } else { 0 };
+    for (index, line) in lines.iter().enumerate() {
+        let place = index as i32 - first as i32;
+        let area = line_rect(0, right).translate(Point::new(0, place * (LINE + LINE_GAP) + list.scroll));
+        let y = area.top_left.y;
+        if y + LINE <= BAR || y >= HEIGHT as i32 {
+            continue;
+        }
+        let chosen = index == selected || (list.scroll == 0 && list.pressed.is_some_and(|offset| first + offset == index));
+        let fill = if chosen { colors::CYAN_DIM } else { colors::SURFACE };
+        shapes.push(panel(RoundedRectangle::with_equal_corners(area, Size::new(6, 6)), fill, None, list.glass));
+        let baseline = y + (LINE + normal.digit) / 2;
+        let number = (index % ROWS + 1).to_string();
+        shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::MUTED));
+        let label = fit(&line.label, right - MARGIN - 34 - 14, Scale::Normal);
+        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, colors::TEXT));
+
+        let middle = y + LINE / 2;
+        let mut end = right - 14;
+        match line.mark {
+            Mark::Arrow => {
+                let arrow = Triangle::new(
+                    Point::new(end, middle),
+                    Point::new(end - 7, middle - 6),
+                    Point::new(end - 7, middle + 6),
+                );
+                shapes.push(Shape::Triangle(arrow, colors::MUTED));
+                end -= 16;
+            }
+            Mark::Dot => {
+                let dot = 10;
+                shapes.push(Shape::Circle(Circle::new(Point::new(end - dot, middle - dot / 2), dot as u32), colors::CYAN));
+                end -= dot + 8;
+            }
+            Mark::None => {}
+        }
+        if let Some(value) = &line.value {
+            let width = Scale::Small.width(value);
+            let color = if chosen { colors::TEXT } else { colors::MUTED };
+            let at = Point::new(end - width, y + (LINE + small.digit) / 2);
+            shapes.push(Shape::Text(at, value.clone(), Scale::Small, color));
+        }
+    }
+    if scrolls {
+        let top = BAR + 8;
+        let height = ROWS as i32 * (LINE + LINE_GAP) - LINE_GAP;
+        let x = edge - 3;
+        shapes.push(Shape::Fill(Rectangle::new(Point::new(x, top), Size::new(3, height as u32)), colors::HAIRLINE));
+        let pages = lines.len().div_ceil(ROWS) as i32;
+        let thumb = height / pages;
+        let page = (first / ROWS) as i32;
+        let at = Point::new(x, top + page * thumb);
+        shapes.push(Shape::Fill(Rectangle::new(at, Size::new(3, thumb as u32)), colors::CYAN));
+    }
+}
+
+/// A button with its label in the middle, lit while a finger is on it.
+fn button(shapes: &mut Vec<Shape>, area: Rectangle, label: &str, lit: bool, glass: bool) {
+    let round = RoundedRectangle::with_equal_corners(area, Size::new(6, 6));
+    let fill = if lit { colors::CYAN_DIM } else { colors::SURFACE };
+    shapes.push(panel(round, fill, Some(colors::HAIRLINE), glass));
+    let digit = Scale::Small.metrics().digit;
+    let x = (area.size.width as i32 - Scale::Small.width(label)) / 2;
+    let at = area.top_left + Point::new(x, (area.size.height as i32 + digit) / 2);
+    shapes.push(Shape::Text(at, label.to_string(), Scale::Small, colors::TEXT));
+}
+
+/// The touch calibration: a cross at the target in turn, filled while it is pressed, and what
+/// to do in the middle of the screen.
+pub(super) fn calibration(shapes: &mut Vec<Shape>, state: &Calibrating, lang: text::Lang) {
+    let step = state.readings.len().min(touch::TARGETS.len() - 1);
+    let at = touch::TARGETS[step];
+    let pressed = state.sum.2 > 0;
+    for (from, to) in [(Point::new(-16, 0), Point::new(16, 0)), (Point::new(0, -16), Point::new(0, 16))] {
+        shapes.push(Shape::Path(vec![at + from, at + to], colors::TEXT, 2));
+    }
+    let ring = if pressed { colors::CYAN } else { colors::AMBER };
+    shapes.push(Shape::Circle(Circle::with_center(at, 10), ring));
+    let centred = |shapes: &mut Vec<Shape>, y: i32, text: &str, scale: Scale, color: Rgb565| {
+        let x = (WIDTH as i32 - scale.width(text)) / 2;
+        shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), scale, color));
+    };
+    centred(shapes, 115, text::CALIBRATE_HINT.get(lang), Scale::Normal, colors::TEXT);
+    let count = format!("{} / {}", step + 1, touch::TARGETS.len());
+    centred(shapes, 220, &count, Scale::Small, colors::MUTED);
+    if state.retry {
+        centred(shapes, 245, text::CALIBRATE_RETRY.get(lang), Scale::Small, colors::ERROR);
+    }
+}
