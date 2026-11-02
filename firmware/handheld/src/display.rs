@@ -27,8 +27,9 @@ pub const TOUCH_MHZ: u32 = 1;
 /// A device on the shared bus.
 pub type Bus<'d> = SpiDeviceDriver<'d, Rc<SpiDriver<'d>>>;
 
-/// The display and its touch controller on VSPI of a WROOM (see the README for the wiring), from
-/// the fields of a `Peripherals`, which stays usable for the other pins: `(display, touch)`.
+/// The display and its touch controller on SPI3, plugged onto the Pi-layout header of the
+/// ESP32-P4 dev kit (`design/esp32-p4-dev-kit.md`), from the fields of a `Peripherals`, which
+/// stays usable for the other pins: `(display, touch)`.
 /// Keep the touch device even when it is not read: dropping it gives up its chip select, and
 /// the controller may then talk over the display. Panics if a driver cannot be set up.
 macro_rules! open_display {
@@ -41,9 +42,9 @@ macro_rules! open_display {
         let driver = std::rc::Rc::new(
             SpiDriver::new(
                 $peripherals.spi3,
-                $peripherals.pins.gpio18,       // SCLK
-                $peripherals.pins.gpio23,       // MOSI
-                Some($peripherals.pins.gpio19), // MISO, for the touch controller
+                $peripherals.pins.gpio0,       // SCLK, Pi pin 23
+                $peripherals.pins.gpio3,       // MOSI, Pi pin 19
+                Some($peripherals.pins.gpio2), // MISO, Pi pin 21, for the touch controller
                 &bus,
             )
             .expect("spi"),
@@ -51,13 +52,13 @@ macro_rules! open_display {
         // The touch controller first: adding it drives its chip select high before the display
         // is reset.
         let config = Config::new().baudrate(display::TOUCH_MHZ.MHz().into());
-        let touch = SpiDeviceDriver::new(std::rc::Rc::clone(&driver), Some($peripherals.pins.gpio4), &config)
-            .expect("TP_CS");
+        let touch = SpiDeviceDriver::new(std::rc::Rc::clone(&driver), Some($peripherals.pins.gpio32), &config)
+            .expect("TP_CS"); // Pi pin 26
         // Two transfers in flight: one sent by DMA while the next is filled.
         let config = Config::new().baudrate(display::SPI_MHZ.MHz().into()).queue_size(2);
-        let spi = SpiDeviceDriver::new(driver, Some($peripherals.pins.gpio5), &config).expect("LCD_CS");
-        let dc = PinDriver::output($peripherals.pins.gpio21).expect("LCD_RS");
-        let reset = PinDriver::output($peripherals.pins.gpio22).expect("RST");
+        let spi = SpiDeviceDriver::new(driver, Some($peripherals.pins.gpio36), &config).expect("LCD_CS"); // Pi pin 24
+        let dc = PinDriver::output($peripherals.pins.gpio4).expect("LCD_RS"); // Pi pin 18
+        let reset = PinDriver::output($peripherals.pins.gpio1).expect("RST"); // Pi pin 22
         (display::Display::new(spi, dc, reset).expect("display"), touch)
     }};
 }

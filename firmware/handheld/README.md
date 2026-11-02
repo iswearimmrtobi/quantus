@@ -1,8 +1,8 @@
 # Quantus handheld firmware
 
 The handheld's UI (`firmware/ui`) on a board with the 3.5" RPi display
-([calculator-hardware.md](../../design/calculator-hardware.md)). Until the ESP32-P4 arrives it
-runs on a classic ESP32 (WROOM, no PSRAM), with keys typed into the serial monitor or the touch
+([calculator-hardware.md](../../design/calculator-hardware.md)), here the Waveshare
+ESP32-P4-Module-DEV-KIT, with keys typed into the serial monitor or the touch
 panel, and a stub instead of the engine: the stub answers with the input itself, and an input
 with a `?` gives an error. Each calculation is also printed over serial, with the LaTeX the editor wrote.
 
@@ -10,20 +10,27 @@ The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 
 ## Wiring
 
-The display's Pi header to the WROOM; the pins are constants at the top of `src/main.rs`.
+The dev kit's 40-pin header has the Raspberry Pi layout, so the display plugs onto it pin for
+pin (all 40 pins: [esp32-p4-dev-kit.md](../../design/esp32-p4-dev-kit.md)). The pins are set in
+`open_display!` in `src/display.rs`.
 
-| Display signal | Pi header | ESP32 |
+| Display signal | Pi header | ESP32-P4 |
 |---|---|---|
-| SCLK | GPIO 11 (pin 23) | GPIO 18 |
-| MOSI | GPIO 10 (pin 19) | GPIO 23 |
-| MISO | GPIO 9 (pin 21) | GPIO 19 |
-| LCD_CS | GPIO 8 (pin 24) | GPIO 5 |
-| TP_CS | GPIO 7 (pin 26) | GPIO 4 |
-| LCD_RS | GPIO 24 (pin 18) | GPIO 21 |
-| RST | GPIO 25 (pin 22) | GPIO 22 |
-| 5 V | pin 2 | 5 V (VIN) |
-| 3.3 V | pin 1 | 3V3 |
-| GND | pin 6 | GND |
+| SCLK | GPIO 11 (pin 23) | GPIO 0 |
+| MOSI | GPIO 10 (pin 19) | GPIO 3 |
+| MISO | GPIO 9 (pin 21) | GPIO 2 |
+| LCD_CS | GPIO 8 (pin 24) | GPIO 36 |
+| TP_CS | GPIO 7 (pin 26) | GPIO 32 |
+| LCD_RS | GPIO 24 (pin 18) | GPIO 4 |
+| RST | GPIO 25 (pin 22) | GPIO 1 |
+| 5 V | pin 2 | 5V (pin 2) |
+| 3.3 V | pin 1 | 3V3 (pin 1) |
+| GND | pin 6 | GND (pin 6) |
+
+Flash and monitor over the port marked **USB TO UART** (UART0, the console).
+
+Until the P4 arrived this ran on a classic ESP32 (WROOM, VSPI: SCLK 18, MOSI 23, MISO 19,
+LCD_CS 5, TP_CS 4, LCD_RS 21, RST 22); git history has that build setup.
 
 The touch controller (XPT2046) shares SCLK, MOSI and MISO with the display and runs at 1 MHz.
 It is polled and a press is told by its pressure, so TP_IRQ is not needed. A loose MISO wire

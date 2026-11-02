@@ -1,13 +1,13 @@
 [package]
 name = "quantus-handheld"
-description = "The handheld calculator's firmware: the UI on an ESP32 with an ILI9486 display"
+description = "The handheld calculator's firmware: the UI on an ESP32-P4 with an ILI9486 display"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 publish = false
 default-run = "quantus-handheld"
 
-# Its own workspace: the Xtensa toolchain and ESP-IDF stay out of `cargo test --workspace`.
+# Its own workspace: the ESP toolchain and ESP-IDF stay out of `cargo test --workspace`.
 [workspace]
 
 [dependencies]

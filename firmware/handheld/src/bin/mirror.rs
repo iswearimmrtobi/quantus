@@ -32,8 +32,8 @@ fn main() {
     let config = config::Config::new().baudrate(Hertz(BAUD)).rx_fifo_size(4096);
     let uart = UartDriver::new(
         peripherals.uart0,
-        peripherals.pins.gpio1,
-        peripherals.pins.gpio3,
+        peripherals.pins.gpio37, // TX, the dev kit's USB TO UART port
+        peripherals.pins.gpio38, // RX
         Option::<AnyIOPin>::None,
         Option::<AnyIOPin>::None,
         &config,

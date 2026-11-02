@@ -1,6 +1,6 @@
-//! The handheld's firmware on a classic ESP32 with the 3.5" ILI9486 display, until the ESP32-P4
-//! arrives: the UI of `quantus-ui` with a stub instead of the engine, keys from the serial
-//! monitor and the display's touch panel. See the README.
+//! The handheld's firmware on the ESP32-P4 dev kit with the 3.5" ILI9486 display: the UI of
+//! `quantus-ui` with a stub instead of the engine, keys from the serial monitor and the
+//! display's touch panel. See the README.
 
 #[macro_use]
 mod display;
