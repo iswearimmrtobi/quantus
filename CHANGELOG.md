@@ -19,12 +19,20 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   - A **quick search** (Ctrl+F) for constants and units: type part of the name (`steff`), Enter
     puts the first hit in at the cursor. It finds by symbol, by name in the set language or in
     English, and forgives a typo or two.
+  - A **Writeup** window (Ctrl+G) writes the session up as a physics solution: given values
+    and wanted quantities side by side, then for each quantity the law it follows ("Nach dem
+    Ohm'schen Gesetz gilt …"), the rearrangement, the values put in, the result and a unit
+    check. Values used twice are given once, and results used by a later line are intermediate
+    steps. **Copy as LaTeX** puts it on the clipboard for amsmath.
   - **CALC** and **SOLVE** in the input's context menu and the Calculation menu.
   - **Sessions**: each saved as a file in the config directory after every change, with its
     variables, history and linear system; a session panel (Ctrl+O) to open, create, rename,
     duplicate and delete them, and the last one opened again on start. The history now keeps
     200 entries and can be cleared.
 
+- `writeup` in the engine API: the history of a session as given, wanted and solution blocks.
+  It recognises about twenty school laws by their units, rearranges them exactly, and splits
+  sums and parts with a law of their own into steps of their own.
 - `search_library` in the engine API: the constants and conversion units that fit a query, ranked.
   The conversion units now carry their names in English and German (`conversion_units` returns
   `{ latex, name }` per unit instead of the bare LaTeX).

@@ -115,6 +115,7 @@ JSON to save and `import_session` takes it back.
 | `export_session` | `{ sessionId? }` | the session file as JSON |
 | `import_session` | `{ json }` | `SessionInfo`; the id is kept unless taken |
 | `history`, `clear_history` | `{ sessionId? }` | `{ input, response: CalculationResponse, at? }[]`, nothing |
+| `writeup` | `{ sessionId? }` | `{ given: string[], wanted: string[], blocks: { target, intermediate, lines: { kind, text?, latex }[] }[], latex }`. The history written up as given, wanted and solution. `kind` is `law`, `rearranged`, `substituted`, `result` or `unitCheck`. `latex` is the whole writeup for amsmath |
 | `get_mode_inputs`, `set_mode_inputs` | `{ sessionId? }`, `{ sessionId?, inputs }` | `ModeInputs`, nothing |
 
 ```ts

@@ -32,6 +32,11 @@ making the *physics* steps complete and tidy: given values, formula, rearranging
 with units, result. The calculator part of [step-detail.md](../design/step-detail.md) ("numbers and
 units written apart, rearranged equation") is exactly the missing piece.
 
+**Status.** Partly done: the writeup window (Ctrl+G, `writeup` in the API) writes the session up
+as given, wanted and solution, with the law, the rearrangement, the values, the result and a unit
+check. It can be copied as LaTeX, which compiles with amsmath. Plain text and Markdown copies are
+still open, and so are the Standard/Detailed rows in the calculator's own steps.
+
 **Plan.** Finish those rows first. Then copy formats: LaTeX `align*` (today), plain text, and
 optionally Markdown. Check that the copied block compiles standalone in a LaTeX document.
 
