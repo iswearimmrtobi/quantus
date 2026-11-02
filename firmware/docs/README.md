@@ -10,6 +10,7 @@ how to flash and use it. The crates' READMEs cover the software and link here.
 - [display-and-touch.md](display-and-touch.md): first start, display colours and orientation,
   the touch controller and its calibration.
 - [sd-card.md](sd-card.md): formatting the card and what goes on it.
+- [wlan.md](wlan.md): Wi-Fi through the C6 (ESP-Hosted), saved networks, network time.
 - [mirror.md](mirror.md): the board as the simulator's screen (testing only).
 
 The crates:

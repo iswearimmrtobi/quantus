@@ -24,6 +24,11 @@ S⇔D switches to the decimal and back. The simulator does the same.
 faster for work on the UI: it answers with the input itself, and an input with a `?` gives an
 error.
 
+WLAN goes through the C6 on a thread of its own ([wlan.md](../docs/wlan.md)): SETUP →
+Verbindungen → WLAN switches it, finds networks, keeps their passwords and shows the connection;
+the clock comes from the network (SETUP → Verbindungen → Uhrzeit), or is set there by hand. The
+settings are kept in flash.
+
 The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 
 ```sh
@@ -39,6 +44,7 @@ The hardware, setup and wiring are in [firmware/docs](../docs/README.md):
 - [The dev kit and the display's pins](../docs/dev-kit.md#the-35-rpi-display-on-the-header)
 - [Display and touch](../docs/display-and-touch.md): first start, colours, calibration, test binaries
 - [SD card](../docs/sd-card.md): formatting, wallpapers and sessions
+- [WLAN](../docs/wlan.md): Wi-Fi through the C6, saved networks, network time
 - [Mirror](../docs/mirror.md): the board as the simulator's screen
 
 ## Keys
@@ -49,7 +55,7 @@ Delete clears like AC. Ctrl+C and Ctrl+R are the monitor's own (exit, reset) and
 
 A USB keyboard in the board's USB-A port types the same keys, with a German (QWERTZ) layout as
 in the simulator: F1–F4 are SHIFT, ALPHA, S⇔D and OPTN, Tab is MODE, the keypad works, AltGr
-types nothing. The arrows and Backspace repeat while held. It is a HID boot keyboard
+types `@`, braces, brackets, `\`, `~` and `|` for a WLAN password. The arrows and Backspace repeat while held. It is a HID boot keyboard
 (`src/keyboard.rs`, the layout in `firmware/ui/src/hid.rs`); one at a time, plugged in before or
 after the start, and the serial monitor keeps working beside it. Its hookup is in
 [dev-kit.md](../docs/dev-kit.md#usb-keyboard).

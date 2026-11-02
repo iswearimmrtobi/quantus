@@ -14,10 +14,11 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
 use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
+use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Storage};
+use quantus_ui::backend::{Backend, Network, Storage, WlanStatus};
 #[cfg(feature = "engine")]
 use quantus_ui::backend::{Opened, SessionCommand, SessionInfo};
 use quantus_ui::font::Scale;
@@ -26,6 +27,7 @@ use quantus_ui::render::{Frame, Renderer, WIDTH};
 
 use quantus_handheld::display::Display;
 use quantus_handheld::store::Store;
+use quantus_handheld::wlan::Wlan;
 use quantus_handheld::touch::TouchPanel;
 use quantus_handheld::{keyboard, open_display, sd};
 use quantus_ui::touch::Touch;
@@ -76,8 +78,19 @@ fn main() {
         store.map_err(|error| log::warn!("no NVS for the settings: {error}")).ok()
     };
     let store = open();
+    // WLAN through the C6; off until the settings switch it on.
+    let wlan = match (EspSystemEventLoop::take(), nvs.clone()) {
+        (Ok(sysloop), Some(nvs)) => Some(Wlan::start(peripherals.modem, sysloop, nvs)),
+        (Err(error), _) => {
+            println!("no WLAN: {error}");
+            None
+        }
+        (_, None) => None,
+    };
     let mut board = Board {
         store: open(),
+        wlan,
+        radio: None,
         #[cfg(feature = "engine")]
         engine: engine::Worker::start(card.is_some().then(|| std::path::PathBuf::from(sd::SESSIONS))),
         card,
@@ -161,6 +174,9 @@ struct Board {
     card: Option<sd::SdCard>,
     /// Where the settings are kept.
     store: Option<Store>,
+    wlan: Option<Wlan>,
+    /// Whether the radio was last switched on; `None` before the settings came.
+    radio: Option<bool>,
     #[cfg(feature = "engine")]
     engine: engine::Worker,
 }
@@ -225,8 +241,54 @@ impl Backend for Board {
     }
 
     fn use_settings(&mut self, settings: &Settings) {
+        if let Some(wlan) = &self.wlan {
+            if self.radio != Some(settings.wlan) {
+                self.radio = Some(settings.wlan);
+                wlan.radio(settings.wlan);
+            }
+            wlan.ntp(settings.time_from_network);
+        }
         if let Some(Err(error)) = self.store.as_ref().map(|store| store.save_settings(settings)) {
             println!("settings not kept: {error}");
+        }
+    }
+
+    fn wlan_status(&mut self) -> WlanStatus {
+        self.wlan.as_ref().map_or(WlanStatus::Off, Wlan::status)
+    }
+
+    fn scan(&mut self) {
+        if let Some(wlan) = &self.wlan {
+            wlan.scan();
+        }
+    }
+
+    fn networks(&mut self) -> Option<Vec<Network>> {
+        self.wlan.as_ref().map_or(Some(Vec::new()), Wlan::networks)
+    }
+
+    fn connect(&mut self, ssid: &str, password: Option<&str>) {
+        if let Some(wlan) = &self.wlan {
+            wlan.connect(ssid, password);
+        }
+    }
+
+    fn saved_networks(&mut self) -> Vec<String> {
+        self.wlan.as_ref().map_or(Vec::new(), Wlan::saved)
+    }
+
+    fn forget(&mut self, ssid: &str) {
+        if let Some(wlan) = &self.wlan {
+            wlan.forget(ssid);
+        }
+    }
+
+    /// The system clock itself, which network time then keeps right.
+    fn set_time(&mut self, utc_ms: i64) {
+        let time = sys::timeval { tv_sec: utc_ms.div_euclid(1000) as _, tv_usec: (utc_ms.rem_euclid(1000) * 1000) as _ };
+        // SAFETY: plain C call with a valid timeval and no time zone.
+        if unsafe { sys::settimeofday(&time, core::ptr::null()) } != 0 {
+            println!("the clock could not be set");
         }
     }
 

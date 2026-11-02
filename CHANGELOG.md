@@ -164,6 +164,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   until S⇔D), lists the **saved networks** to forget one, and shows the **status** (network,
   address, signal). The fan in the top bar is dim until connected. The simulator plays three
   made-up networks.
+- The handheld's **WLAN** works on the dev kit, through its ESP32-C6: it joins the strongest saved
+  network by itself, keeps up to 8 networks with their passwords, is off in the exam mode, and
+  sets the **clock from the network** (NTP) while connected.
 
 ### Changed
 
