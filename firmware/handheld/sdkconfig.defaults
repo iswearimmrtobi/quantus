@@ -15,3 +15,10 @@ CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y
 CONFIG_FATFS_LFN_HEAP=y
 CONFIG_FATFS_MAX_LFN=255
 CONFIG_FATFS_API_ENCODING_UTF_8=y
+
+# Wi-Fi through the ESP32-C6 (ESP-Hosted over SDIO, firmware/docs/wlan.md). The transport, the
+# slot and the pins are ESP-Hosted's defaults for the P4 with a C6, which the dev kit follows.
+CONFIG_ESP_HOSTED_HOST_TRANSPORT_BUS_SDIO=y
+CONFIG_ESP_HOSTED_CP_TARGET_ESP32C6=y
+CONFIG_ESP_HOSTED_SDIO_SLOT_1=y
+CONFIG_ESP_HOSTED_HOST_RESET_GPIO=54

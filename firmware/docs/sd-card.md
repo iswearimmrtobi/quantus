@@ -9,6 +9,10 @@ sets it to 3.3 V and drives GPIO45 low to power the card ([dev-kit.md](dev-kit.m
 The bus runs at 10 MHz: at 20 MHz the card reads fine but every write times out
 (`sdmmc_write_blocks failed (0x107)`). `QUANTUS_SD_KHZ` at build time picks another clock.
 
+The card is on slot 0 of the SDMMC controller whose slot 1 links the P4 to the C6 for WLAN. It is
+mounted through ESP-IDF's `esp_vfs_fat_sdmmc_mount`, which frees only its own slot when a mount
+fails, so a missing card leaves WLAN working ([wlan.md](wlan.md#sharing-the-sdmmc-controller-with-the-sd-card)).
+
 ## Formatting
 
 The card needs an **MBR** partition table with **one FAT32 partition**. ESP-IDF's FAT driver

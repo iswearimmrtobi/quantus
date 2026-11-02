@@ -37,3 +37,12 @@ codegen-units = 1
 [profile.dev]
 opt-level = "s"
 debug = true
+
+# Wi-Fi: the P4 has no radio; the ESP32-C6 on the board is its Wi-Fi over SDIO (ESP-Hosted), and
+# esp_wifi_remote gives it the usual esp_wifi API, which esp-idf-svc then wraps
+# (firmware/docs/wlan.md).
+[[package.metadata.esp-idf-sys.extra_components]]
+remote_component = { name = "espressif/esp_wifi_remote", version = "1.6.5" }
+
+[[package.metadata.esp-idf-sys.extra_components]]
+remote_component = { name = "espressif/esp_hosted", version = "3.0.10" }
