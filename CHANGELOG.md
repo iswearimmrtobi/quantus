@@ -159,6 +159,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   each with its summer time, instead of a whole-hour offset.
 - Once its clock is set, the handheld names a new session after the local time, as the desktop
   does ("Sitzung 2026-11-02 14:30"), and its sessions note when they were made and last used.
+- SETUP → Verbindungen → WLAN on the handheld lists the **networks** in reach (signal, lock,
+  saved), asks for a new one's password (typed on a USB keyboard or over serial, shown as stars
+  until S⇔D), lists the **saved networks** to forget one, and shows the **status** (network,
+  address, signal). The fan in the top bar is dim until connected. The simulator plays three
+  made-up networks.
 
 ### Changed
 

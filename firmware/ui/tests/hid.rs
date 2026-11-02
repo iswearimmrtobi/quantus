@@ -38,7 +38,11 @@ fn shifted_characters_are_those_of_the_simulator() {
     assert_eq!(key(0x36, SHIFT), Some(Key::Semicolon));
     assert_eq!(key(0x38, SHIFT), Some(Key::Subscript));
     assert_eq!(key(0x35, 0), Some(Key::Power));
-    assert_eq!(key(0x1F, SHIFT), None); // "
+    // No key stands for these: they are for text fields; the point is the comma elsewhere.
+    assert_eq!(key(0x1F, SHIFT), Some(Key::Char('"')));
+    assert_eq!(key(0x37, 0), Some(Key::Char('.')));
+    assert_eq!(Key::Char('.').plain(), Some(Key::Comma));
+    assert_eq!(Key::Char('"').plain(), None);
 }
 
 #[test]
@@ -63,7 +67,9 @@ fn ctrl_and_alt_gr() {
     assert_eq!(key(0x1B, CTRL), Some(Key::Ac)); // Ctrl+X
     assert_eq!(key(0x16, CTRL), Some(Key::Sin)); // Ctrl+S
     assert_eq!(key(0x06, CTRL), None); // Ctrl+C belongs to the serial monitor
-    assert_eq!(key(0x14, ALT_GR), None); // AltGr+Q: @
+    assert_eq!(key(0x14, ALT_GR), Some(Key::Char('@'))); // AltGr+Q
+    assert_eq!(key(0x64, ALT_GR), Some(Key::Char('|')));
+    assert_eq!(key(0x08, ALT_GR), None); // AltGr+E: €, not ASCII
 }
 
 #[test]

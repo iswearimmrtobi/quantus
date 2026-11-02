@@ -78,11 +78,11 @@ fn rename_starts_from_the_name_and_refuses_an_empty_one() {
     let (mut app, backend) = sessions_menu();
     press(&mut app, &[Key::Digit(3)]);
     let Screen::Menu(menu) = &app.screen else { panic!() };
-    assert!(matches!(&menu.edit, Some(Edit::Name { typed, .. }) if typed == "Sitzung 1"));
+    assert!(matches!(&menu.edit, Some(Edit::Text { typed, .. }) if typed == "Sitzung 1"));
     press(&mut app, &[Key::Del; 9]);
     press(&mut app, &[Key::Ok]);
     let Screen::Menu(menu) = &app.screen else { panic!() };
-    assert!(matches!(&menu.edit, Some(Edit::Name { error: true, .. })));
+    assert!(matches!(&menu.edit, Some(Edit::Text { error: true, .. })));
     press(&mut app, &[Key::Letter('L'), Key::Letter('a'), Key::Space, Key::Digit(2), Key::Ok]);
     assert_eq!(backend.0.borrow().last(), Some(&SessionCommand::Rename("La 2".into())));
     assert_eq!(app.session.as_ref().unwrap().name, "La 2");

@@ -71,3 +71,17 @@ pub const DATE_FIRST: Text = t("Erst das Datum stellen", "Set the date first");
 /// Monday first.
 pub const WEEKDAYS: [Text; 7] =
     [t("Mo", "Mon"), t("Di", "Tue"), t("Mi", "Wed"), t("Do", "Thu"), t("Fr", "Fri"), t("Sa", "Sat"), t("So", "Sun")];
+pub const WLAN_OFF: Text = t("Erst WLAN einschalten", "Switch Wi-Fi on first");
+pub const SEARCHING: Text = t("Suche Netzwerke ...", "Looking for networks ...");
+pub const NO_NETWORKS: Text = t("Keine Netzwerke gefunden", "No networks found");
+pub const NO_SAVED_NETWORKS: Text = t("Keine gespeicherten Netzwerke", "No saved networks");
+pub const FORGET: Text = t("Vergessen", "Forget");
+pub const PASSWORD_HINT: Text = t("Passwort tippen, S-D zeigt es", "Type the password, S-D shows it");
+pub const PASSWORD_LENGTH: Text = t("8 bis 63 Zeichen", "8 to 63 characters");
+pub const NETWORK: Text = t("Netzwerk", "Network");
+pub const ADDRESS: Text = t("Adresse", "Address");
+pub const SIGNAL: Text = t("Signal", "Signal");
+pub const WLAN_IS_OFF: Text = t("WLAN ist aus", "Wi-Fi is off");
+pub const WLAN_SEARCHING: Text = t("Kein gespeichertes Netzwerk in Reichweite", "No saved network in reach");
+pub const CONNECTING: Text = t("Verbinde mit", "Connecting to");
+pub const FAILED: Text = t("Keine Verbindung mit", "Could not connect to");

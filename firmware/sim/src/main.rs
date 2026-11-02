@@ -15,7 +15,8 @@
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
 //!   the 480×320 BMP files in its `wallpapers` folder, the sessions the JSON files in its
 //!   `sessions` folder (with `--png` they are kept in memory, so a screenshot changes nothing),
-//!   the settings `settings.txt` in it.
+//!   the settings `settings.txt` in it, the saved WLAN networks `wlan.txt`. WLAN is played: three
+//!   made-up networks, any password taken.
 
 mod mirror;
 
@@ -30,7 +31,7 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Simul
 use mirror::{Mirror, Tee};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Opened, SessionCommand, SessionInfo, Storage, Stub};
+use quantus_ui::backend::{Backend, Network, Opened, SessionCommand, SessionInfo, Storage, Stub, WlanStatus};
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 use quantus_ui::touch::Touch;
@@ -42,7 +43,8 @@ fn main() {
     let sessions = (!args.iter().any(|arg| arg == "--png")).then(|| Path::new(sd).join("sessions"));
     let keep = sessions.is_some();
     let answers = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::new(sessions)) };
-    let mut app = App::new(Sim { answers, sd: PathBuf::from(sd), keep });
+    let wlan = FakeWlan::load(Path::new(sd));
+    let mut app = App::new(Sim { answers, sd: PathBuf::from(sd), keep, wlan });
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
     // What the board will report, shown on demand: F9 and F10 switch them in the window.
@@ -190,6 +192,45 @@ struct Sim {
     sd: PathBuf,
     /// Whether changes are written to the folder; not for a `--png` screenshot.
     keep: bool,
+    wlan: FakeWlan,
+}
+
+/// The networks the simulator pretends to find: name, signal, whether it needs a password.
+const NETWORKS: [(&str, i8, bool); 3] = [("Quantus-Labor", -45, true), ("FRITZ!Box 7590", -63, true), ("Café Gast", -79, false)];
+
+/// How long a scan and a connection take, as on the board.
+const SCAN: Duration = Duration::from_millis(1500);
+const CONNECT: Duration = Duration::from_millis(1000);
+
+/// WLAN as the simulator plays it: the networks of [`NETWORKS`], any password taken, the saved
+/// ones in `wlan.txt` in the SD folder (a name and a password per line, split by a tab).
+struct FakeWlan {
+    on: bool,
+    saved: Vec<(String, String)>,
+    scanned: Option<Instant>,
+    /// The network and since when it is being joined.
+    joined: Option<(String, Instant)>,
+}
+
+impl FakeWlan {
+    fn load(sd: &Path) -> FakeWlan {
+        let text = std::fs::read_to_string(sd.join("wlan.txt")).unwrap_or_default();
+        let saved = text.lines().filter_map(|line| line.split_once('\t')).map(|(s, p)| (s.to_string(), p.to_string())).collect();
+        FakeWlan { on: false, saved, scanned: None, joined: None }
+    }
+
+    fn keep(&self, sd: &Path) {
+        let text: String = self.saved.iter().map(|(ssid, password)| format!("{ssid}\t{password}\n")).collect();
+        if let Err(error) = std::fs::create_dir_all(sd).and_then(|()| std::fs::write(sd.join("wlan.txt"), text)) {
+            eprintln!("saved networks not kept: {error}");
+        }
+    }
+
+    /// Joins the first saved network in reach.
+    fn join_saved(&mut self) {
+        let saved = NETWORKS.iter().find(|(ssid, ..)| self.saved.iter().any(|(name, _)| name == ssid));
+        self.joined = saved.map(|(ssid, ..)| (ssid.to_string(), Instant::now()));
+    }
 }
 
 impl Backend for Sim {
@@ -226,7 +267,63 @@ impl Backend for Sim {
         std::fs::read_to_string(self.sd.join("settings.txt")).ok().map(|text| Settings::from_text(&text))
     }
 
+    fn wlan_status(&mut self) -> WlanStatus {
+        match &self.wlan.joined {
+            _ if !self.wlan.on => WlanStatus::Off,
+            None => WlanStatus::Searching,
+            Some((ssid, since)) if since.elapsed() < CONNECT => WlanStatus::Connecting(ssid.clone()),
+            Some((ssid, _)) => {
+                let rssi = NETWORKS.iter().find(|(name, ..)| name == ssid).map_or(-70, |network| network.1);
+                WlanStatus::Connected { ssid: ssid.clone(), ip: "192.168.178.42".to_string(), rssi }
+            }
+        }
+    }
+
+    fn scan(&mut self) {
+        self.wlan.scanned = Some(Instant::now());
+    }
+
+    fn networks(&mut self) -> Option<Vec<Network>> {
+        if self.wlan.scanned.is_some_and(|since| since.elapsed() < SCAN) {
+            return None;
+        }
+        let saved = |ssid: &str| self.wlan.saved.iter().any(|(name, _)| name == ssid);
+        let found = NETWORKS.iter().map(|&(ssid, rssi, secured)| Network { ssid: ssid.to_string(), rssi, secured, saved: saved(ssid) });
+        Some(found.collect())
+    }
+
+    fn connect(&mut self, ssid: &str, password: Option<&str>) {
+        if let Some(password) = password {
+            self.wlan.saved.retain(|(name, _)| name != ssid);
+            self.wlan.saved.push((ssid.to_string(), password.to_string()));
+            if self.keep {
+                self.wlan.keep(&self.sd);
+            }
+        }
+        self.wlan.joined = Some((ssid.to_string(), Instant::now()));
+    }
+
+    fn saved_networks(&mut self) -> Vec<String> {
+        self.wlan.saved.iter().map(|(ssid, _)| ssid.clone()).collect()
+    }
+
+    fn forget(&mut self, ssid: &str) {
+        self.wlan.saved.retain(|(name, _)| name != ssid);
+        if self.keep {
+            self.wlan.keep(&self.sd);
+        }
+        if self.wlan.joined.as_ref().is_some_and(|(name, _)| name == ssid) {
+            self.wlan.join_saved();
+        }
+    }
+
     fn use_settings(&mut self, settings: &Settings) {
+        if settings.wlan != self.wlan.on {
+            self.wlan.on = settings.wlan;
+            if settings.wlan {
+                self.wlan.join_saved();
+            }
+        }
         let path = self.sd.join("settings.txt");
         let text = settings.to_text();
         if self.keep && std::fs::read_to_string(&path).ok().as_deref() != Some(text.as_str()) {

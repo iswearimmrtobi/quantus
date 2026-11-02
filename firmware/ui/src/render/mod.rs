@@ -279,9 +279,17 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Confirm { .. }) => Some(1),
         Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
         Some(Edit::Sessions { sessions, .. }) => Some(sessions.len()),
-        Some(Edit::Number { .. } | Edit::Message { .. } | Edit::Storage { .. } | Edit::Name { .. } | Edit::Time { .. }) => {
-            None
-        }
+        Some(Edit::Forget { .. }) => Some(1),
+        Some(Edit::Networks { networks, .. }) => networks.as_ref().map(Vec::len),
+        Some(Edit::Saved { names, .. }) => Some(names.len()),
+        Some(
+            Edit::Number { .. }
+            | Edit::Message { .. }
+            | Edit::Storage { .. }
+            | Edit::Text { .. }
+            | Edit::Time { .. }
+            | Edit::WlanStatus { .. },
+        ) => None,
     }
 }
 
@@ -323,7 +331,9 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             (0..PAGES).find(|&index| around(dot_rect(index)).contains(point)).map(Target::Page)
         }
         Screen::Menu(menu) => {
-            if let Some(Edit::Message { .. } | Edit::Storage { .. }) = menu.edit {
+            if let Some(Edit::Message { .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. }) =
+                menu.edit
+            {
                 return Some(Target::Anywhere);
             }
             if let Some(Edit::Number { .. }) = menu.edit {

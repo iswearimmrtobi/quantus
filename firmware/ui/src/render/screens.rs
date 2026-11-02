@@ -10,10 +10,10 @@ use super::{
     HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, PAGES, THUMBNAIL, WIDTH,
 };
 use crate::app::{App, Mode, TILES_PER_PAGE};
-use crate::backend::Storage;
+use crate::backend::{Storage, WlanStatus};
 use crate::font::Scale;
 use crate::layout;
-use crate::menu::{self, Edit, Kind, Menu, ROWS};
+use crate::menu::{self, Edit, Kind, Menu, TextFor, ROWS};
 use crate::text;
 use crate::touch::{self, Calibrating, Target};
 
@@ -147,6 +147,8 @@ enum Mark {
     Arrow,
     /// The value set now, in a list of choices.
     Dot,
+    /// A network: its signal as bars, a lock if it needs a password, a dot if it is saved.
+    Signal { bars: u8, secured: bool, saved: bool },
 }
 
 /// SETUP or OPTN: the page on the screen, or the submenu open over it.
@@ -249,9 +251,15 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
-        Some(Edit::Name { typed, error, .. }) => {
-            let (hint, color) = if *error { (text::EMPTY_NAME, colors::ERROR) } else { (text::NAME_HINT, colors::MUTED) };
-            typed_field(shapes, typed, app.caret_on, hint.get(lang), color, glass);
+        Some(Edit::Text { purpose, typed, error, plain, .. }) => {
+            let (hint, color) = match (purpose, error) {
+                (TextFor::Name, false) => (text::NAME_HINT.get(lang).to_string(), colors::MUTED),
+                (TextFor::Name, true) => (text::EMPTY_NAME.get(lang).to_string(), colors::ERROR),
+                (TextFor::Password(ssid), false) => (format!("{ssid}: {}", text::PASSWORD_HINT.get(lang)), colors::MUTED),
+                (TextFor::Password(_), true) => (text::PASSWORD_LENGTH.get(lang).to_string(), colors::ERROR),
+            };
+            let shown = if *plain { typed.clone() } else { "*".repeat(typed.chars().count()) };
+            typed_field(shapes, &shown, app.caret_on, &fit(&hint, WIDTH as i32 - 2 * MARGIN - 8, Scale::Small), color, glass);
         }
         Some(Edit::Time { field, typed, error, .. }) => {
             let color = if *error { colors::ERROR } else { colors::MUTED };
@@ -260,6 +268,27 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
         Some(Edit::Storage { storage: Some(storage), .. }) => storage_screen(shapes, *storage, lang, glass),
         Some(Edit::Storage { storage: None, .. }) => centred(shapes, text::NO_CARD.get(lang)),
         Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),
+        Some(Edit::Networks { networks: None, .. }) => centred(shapes, text::SEARCHING.get(lang)),
+        Some(Edit::Networks { networks: Some(networks), .. }) if networks.is_empty() => {
+            centred(shapes, text::NO_NETWORKS.get(lang))
+        }
+        Some(Edit::Networks { networks: Some(networks), selected, .. }) => {
+            let lines = networks.iter().map(|network| Line {
+                label: network.ssid.clone(),
+                value: None,
+                mark: Mark::Signal { bars: network.bars(), secured: network.secured, saved: network.saved },
+            });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
+        Some(Edit::Saved { names, selected, .. }) => {
+            let lines = names.iter().map(|name| Line { label: name.clone(), value: None, mark: Mark::None });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
+        Some(Edit::Forget { ssid, .. }) => {
+            let label = format!("{}: {ssid}", text::FORGET.get(lang));
+            lines_page(shapes, vec![Line { label, value: None, mark: Mark::None }], 0, &list);
+        }
+        Some(Edit::WlanStatus { status, .. }) => wlan_screen(shapes, status, lang, glass),
     }
 }
 
@@ -287,6 +316,43 @@ fn typed_field(shapes: &mut Vec<Shape>, typed: &str, caret: bool, hint: &str, co
         shapes.push(Shape::Fill(caret, colors::CYAN));
     }
     shapes.push(Shape::Text(Point::new(MARGIN + 4, top + height + 28), hint.to_string(), Scale::Small, color));
+}
+
+/// A padlock 10 wide and 16 high with its top left at `at`: a shackle of three bars over a body.
+fn lock(shapes: &mut Vec<Shape>, at: Point) {
+    let color = colors::MUTED;
+    shapes.push(Shape::Fill(Rectangle::new(at + Point::new(2, 0), Size::new(6, 2)), color));
+    shapes.push(Shape::Fill(Rectangle::new(at + Point::new(1, 1), Size::new(2, 7)), color));
+    shapes.push(Shape::Fill(Rectangle::new(at + Point::new(7, 1), Size::new(2, 7)), color));
+    shapes.push(Shape::Fill(Rectangle::new(at + Point::new(0, 7), Size::new(10, 9)), color));
+}
+
+/// SETUP → Verbindungen → WLAN → Status: the network, the address and the signal, or what the
+/// connection is doing.
+fn wlan_screen(shapes: &mut Vec<Shape>, status: &WlanStatus, lang: text::Lang, glass: bool) {
+    let (ssid, ip, rssi) = match status {
+        WlanStatus::Connected { ssid, ip, rssi } => (ssid, ip, *rssi),
+        WlanStatus::Off => return centred(shapes, text::WLAN_IS_OFF.get(lang)),
+        WlanStatus::Searching => return centred(shapes, text::WLAN_SEARCHING.get(lang)),
+        WlanStatus::Connecting(ssid) => return centred(shapes, &format!("{} {ssid} ...", text::CONNECTING.get(lang))),
+        WlanStatus::Failed(ssid) => return centred(shapes, &format!("{} {ssid}", text::FAILED.get(lang))),
+    };
+    let top = BAR + 14;
+    let size = Size::new(WIDTH - 2 * MARGIN as u32, HEIGHT - top as u32 - 14);
+    shapes.push(panel(rounded(Point::new(MARGIN, top), size, 8), colors::SURFACE, Some(colors::HAIRLINE), glass));
+    let (left, right) = (MARGIN + 20, WIDTH as i32 - MARGIN - 20);
+    let rows = [
+        (text::NETWORK, ssid.clone()),
+        (text::ADDRESS, ip.clone()),
+        (text::SIGNAL, format!("{rssi} dBm")),
+    ];
+    for (index, (label, value)) in rows.into_iter().enumerate() {
+        let baseline = top + 50 + index as i32 * 56;
+        shapes.push(Shape::Text(Point::new(left, baseline), label.get(lang).to_string(), Scale::Small, colors::MUTED));
+        let value = fit(&value, right - left - 110, Scale::Normal);
+        let at = Point::new(right - Scale::Normal.width(&value), baseline);
+        shapes.push(Shape::Text(at, value, Scale::Normal, colors::TEXT));
+    }
 }
 
 /// A muted line in the middle of the screen under the top bar.
@@ -389,6 +455,24 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
                 let dot = 10;
                 shapes.push(Shape::Circle(Circle::new(Point::new(end - dot, middle - dot / 2), dot as u32), colors::CYAN));
                 end -= dot + 8;
+            }
+            Mark::Signal { bars, secured, saved } => {
+                // Four bars rising to the right, the ones beyond the signal faint.
+                for bar in 0..4 {
+                    let height = 5 + 4 * bar;
+                    let at = Point::new(end - 4 * 5 + bar * 5 + 1, middle + 8 - height);
+                    let color = if bar < i32::from(bars) { colors::TEXT } else { colors::FAINT };
+                    shapes.push(Shape::Fill(Rectangle::new(at, Size::new(3, height as u32)), color));
+                }
+                end -= 4 * 5 + 8;
+                if secured {
+                    lock(shapes, Point::new(end - 10, middle - 8));
+                }
+                end -= 18;
+                if saved {
+                    let dot = 10;
+                    shapes.push(Shape::Circle(Circle::new(Point::new(end - dot, middle - dot / 2), dot as u32), colors::CYAN));
+                }
             }
             Mark::None => {}
         }

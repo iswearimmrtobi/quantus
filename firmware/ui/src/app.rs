@@ -1,13 +1,13 @@
 //! The calculator's state and what each key does to it.
 
-use crate::backend::{Backend, Opened, SessionCommand, SessionInfo};
+use crate::backend::{Backend, Opened, SessionCommand, SessionInfo, WlanStatus};
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
 use crate::text::{self, same, t, Lang, Text};
 use crate::tree;
 use crate::clock;
-use crate::menu::{self, Action, Edit, Kind, Menu, Outcome, TimeField};
+use crate::menu::{self, Action, Edit, Kind, Menu, Outcome, TextFor, TimeField};
 use crate::render;
 use crate::touch::{self, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
 use crate::wallpaper::Wallpaper;
@@ -120,6 +120,9 @@ const BLINK_MS: u64 = 500;
 /// How long the busy spinner takes per step; eight steps make a turn.
 const SPIN_MS: u64 = 125;
 
+/// How often the WLAN connection is asked for.
+const WLAN_MS: u64 = 500;
+
 /// Older entries are dropped.
 const HISTORY: usize = 50;
 
@@ -174,6 +177,10 @@ pub struct App<B> {
     last_spin: u64,
     /// The minute the clock showed at the last tick, to redraw a page that shows it.
     minute: Option<i64>,
+    /// Whether WLAN is connected: the fan in the top bar is lit, not dim.
+    pub wlan_connected: bool,
+    /// When the connection was asked for last; `None` asks at the next tick.
+    last_wlan: Option<u64>,
 }
 
 impl<B> App<B> {
@@ -245,6 +252,8 @@ impl<B: Backend> App<B> {
             last_blink: 0,
             last_spin: 0,
             minute: None,
+            wlan_connected: false,
+            last_wlan: None,
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -312,6 +321,7 @@ impl<B: Backend> App<B> {
         if self.settings != self.used {
             self.used = self.settings;
             self.backend.use_settings(&self.settings);
+            self.last_wlan = None;
         }
         if self.pending.is_some() {
             if let Some(result) = self.backend.poll() {
@@ -319,6 +329,7 @@ impl<B: Backend> App<B> {
                 changed = true;
             }
         }
+        changed |= self.wlan_tick(now_ms);
         let minute = clock::now().map(|now| now / 60_000);
         if minute != self.minute {
             self.minute = minute;
@@ -338,6 +349,8 @@ impl<B: Backend> App<B> {
     }
 
     pub fn key(&mut self, key: Key) {
+        let typing = matches!(&self.screen, Screen::Menu(menu) if matches!(menu.edit, Some(Edit::Text { .. })));
+        let Some(key) = (if typing { Some(key) } else { key.plain() }) else { return };
         self.caret_on = true;
         let shift = std::mem::take(&mut self.shift);
         let alpha = std::mem::take(&mut self.alpha);
@@ -484,6 +497,36 @@ impl<B: Backend> App<B> {
         }
     }
 
+    /// Fills in the networks once the board has found them, and follows the connection, on its
+    /// page and in the top bar, twice a second; returns whether the screen changed.
+    fn wlan_tick(&mut self, now_ms: u64) -> bool {
+        let mut changed = false;
+        if let Screen::Menu(menu) = &mut self.screen {
+            if let Some(Edit::Networks { networks: networks @ None, .. }) = &mut menu.edit {
+                *networks = self.backend.networks();
+                changed |= networks.is_some();
+            }
+        }
+        if self.last_wlan.is_some_and(|last| now_ms.saturating_sub(last) < WLAN_MS) {
+            return changed;
+        }
+        self.last_wlan = Some(now_ms);
+        let status = if self.settings.wlan { self.backend.wlan_status() } else { WlanStatus::Off };
+        if status.connected() != self.wlan_connected {
+            self.wlan_connected = status.connected();
+            changed = true;
+        }
+        if let Screen::Menu(menu) = &mut self.screen {
+            if let Some(Edit::WlanStatus { status: shown, .. }) = &mut menu.edit {
+                if *shown != status {
+                    *shown = status;
+                    changed = true;
+                }
+            }
+        }
+        changed
+    }
+
     /// Whether the screen shows the time: a menu page with the date or the time on it.
     fn shows_clock(&self) -> bool {
         let Screen::Menu(menu) = &self.screen else { return false };
@@ -529,10 +572,10 @@ impl<B: Backend> App<B> {
             }
             Outcome::NameOf(label) => {
                 let typed = self.session.as_ref().map(|session| session.name.clone()).unwrap_or_default();
-                menu.edit = Some(Edit::Name { label, typed, error: false });
+                menu.edit = Some(Edit::Text { label, purpose: TextFor::Name, typed, error: false, plain: true });
             }
             Outcome::Rename => {
-                let Some(Edit::Name { typed, .. }) = &menu.edit else { return };
+                let Some(Edit::Text { typed, .. }) = &menu.edit else { return };
                 let name = typed.trim().to_string();
                 return self.session_command(menu, SessionCommand::Rename(name));
             }
@@ -545,6 +588,46 @@ impl<B: Backend> App<B> {
             Outcome::Restore => self.preview = None,
             Outcome::Storage(label) => menu.edit = Some(Edit::Storage { label, storage: self.backend.storage() }),
             Outcome::SetTime(field) => self.set_time(&mut menu, field),
+            Outcome::Networks(label) if !self.settings.wlan => {
+                menu.edit = Some(Edit::Message { label, message: text::WLAN_OFF });
+            }
+            Outcome::Networks(label) => {
+                self.backend.scan();
+                menu.edit = Some(Edit::Networks { label, networks: None, selected: 0 });
+            }
+            Outcome::Network(index) => {
+                let Some(Edit::Networks { label, networks: Some(networks), .. }) = &menu.edit else { return };
+                let (label, network) = (*label, networks[index].clone());
+                if network.saved || !network.secured {
+                    self.backend.connect(&network.ssid, None);
+                    menu.edit = Some(Edit::WlanStatus { label, status: self.backend.wlan_status() });
+                } else {
+                    let purpose = TextFor::Password(network.ssid);
+                    menu.edit = Some(Edit::Text { label, purpose, typed: String::new(), error: false, plain: false });
+                }
+            }
+            Outcome::Connect => {
+                let Some(Edit::Text { label, purpose: TextFor::Password(ssid), typed, .. }) = &menu.edit else { return };
+                let label = *label;
+                self.backend.connect(ssid, Some(typed));
+                menu.edit = Some(Edit::WlanStatus { label, status: self.backend.wlan_status() });
+            }
+            Outcome::SavedNetworks(label) => {
+                let names = self.backend.saved_networks();
+                menu.edit = Some(match names.is_empty() {
+                    true => Edit::Message { label, message: text::NO_SAVED_NETWORKS },
+                    false => Edit::Saved { label, names, selected: 0 },
+                });
+            }
+            Outcome::Forget => {
+                let Some(Edit::Forget { label, ssid }) = &menu.edit else { return };
+                let label = *label;
+                self.backend.forget(ssid);
+                menu.edit = Some(Edit::Message { label, message: text::DONE });
+            }
+            Outcome::WlanStatus(label) => {
+                menu.edit = Some(Edit::WlanStatus { label, status: self.backend.wlan_status() });
+            }
         }
         self.screen = Screen::Menu(menu);
     }
@@ -682,6 +765,8 @@ impl<B: Backend> App<B> {
         match key {
             Key::Digit(digit) => editor.char(char::from(b'0' + digit.min(9))),
             Key::Letter(c) => editor.char(c),
+            // `Key::plain` keeps these out of the calculation.
+            Key::Char(_) => {}
             Key::Comma => editor.char(','),
             Key::Semicolon => editor.char(';'),
             Key::Plus => editor.char('+'),

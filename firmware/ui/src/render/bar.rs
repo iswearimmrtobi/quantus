@@ -57,7 +57,7 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         right -= tag(shapes, right, text::EXAM.get(lang), colors::AMBER) + 8;
     }
     if settings.wlan {
-        right -= wlan(shapes, right) + 10;
+        right -= wlan(shapes, right, app.wlan_connected) + 10;
     }
     if settings.bluetooth {
         right -= bluetooth(shapes, right) + 10;
@@ -90,15 +90,17 @@ fn tag(shapes: &mut Vec<Shape>, right: i32, label: &str, color: Rgb565) -> i32 {
     width + 8
 }
 
-/// The WLAN icon, three arcs over a dot, ending at `right`; returns its width.
-fn wlan(shapes: &mut Vec<Shape>, right: i32) -> i32 {
+/// The WLAN icon, three arcs over a dot, ending at `right`, dim while not `connected`; returns
+/// its width.
+fn wlan(shapes: &mut Vec<Shape>, right: i32, connected: bool) -> i32 {
     let width = 18;
     let base = Point::new(right - width / 2, BAR - 6);
+    let color = if connected { colors::TEXT } else { colors::FAINT };
     for diameter in [9, 17, 25] {
         let arc = Arc::with_center(base, diameter, (-135.0).deg(), 90.0.deg());
-        shapes.push(Shape::Arc(arc, colors::TEXT, 2));
+        shapes.push(Shape::Arc(arc, color, 2));
     }
-    shapes.push(Shape::Circle(Circle::with_center(base, 4), colors::TEXT));
+    shapes.push(Shape::Circle(Circle::with_center(base, 4), color));
     width
 }
 

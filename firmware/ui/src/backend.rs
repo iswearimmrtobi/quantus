@@ -71,10 +71,83 @@ pub trait Backend {
     /// board can keep them and switch what they control (the radios, the clock).
     fn use_settings(&mut self, _settings: &Settings) {}
 
+    /// The WLAN connection now. Asked often: an answer from memory, not from the radio.
+    fn wlan_status(&mut self) -> WlanStatus {
+        WlanStatus::Off
+    }
+
+    /// Starts looking for networks; [`networks`](Backend::networks) has them when done.
+    fn scan(&mut self) {}
+
+    /// The networks the last [`scan`](Backend::scan) found, strongest first, once it is done.
+    fn networks(&mut self) -> Option<Vec<Network>> {
+        Some(Vec::new())
+    }
+
+    /// Connects to the network `ssid`, with `password` for a new one that needs it (the board
+    /// saves it once the connection stands), or the saved one.
+    fn connect(&mut self, _ssid: &str, _password: Option<&str>) {}
+
+    /// The networks saved, in the order they were saved.
+    fn saved_networks(&mut self) -> Vec<String> {
+        Vec::new()
+    }
+
+    /// Forgets the saved network `ssid` and its password, and leaves it if connected.
+    fn forget(&mut self, _ssid: &str) {}
+
     /// Sets the clock to `utc_ms` (milliseconds since 1970, UTC), typed by hand. A board that
     /// can set its system clock does that instead of moving [`clock::now`].
     fn set_time(&mut self, utc_ms: i64) {
         clock::set(utc_ms);
+    }
+}
+
+/// The WLAN connection.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum WlanStatus {
+    Off,
+    /// On, but connected to none: no saved network is in reach.
+    Searching,
+    Connecting(String),
+    /// `ip` written out, `rssi` in dBm.
+    Connected { ssid: String, ip: String, rssi: i8 },
+    /// The network `ssid` did not take the connection: the password was wrong, or it went away.
+    Failed(String),
+}
+
+impl WlanStatus {
+    pub fn connected(&self) -> bool {
+        matches!(self, WlanStatus::Connected { .. })
+    }
+}
+
+/// A network found by a scan.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Network {
+    pub ssid: String,
+    /// In dBm.
+    pub rssi: i8,
+    /// Whether it needs a password.
+    pub secured: bool,
+    /// Whether it is saved, with its password.
+    pub saved: bool,
+}
+
+impl Network {
+    /// The signal as 1 to 4 bars.
+    pub fn bars(&self) -> u8 {
+        bars(self.rssi)
+    }
+}
+
+/// The signal `rssi` (dBm) as 1 to 4 bars.
+pub fn bars(rssi: i8) -> u8 {
+    match rssi {
+        -55.. => 4,
+        -67.. => 3,
+        -78.. => 2,
+        _ => 1,
     }
 }
 

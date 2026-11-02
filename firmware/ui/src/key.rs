@@ -50,6 +50,10 @@ pub enum Key {
     Optn,
     /// S⇔D: the shown result as a decimal or exact.
     SwapForm,
+    /// A character from a keyboard that no key stands for (`@`, `!`, …), and the point, which
+    /// the calculator takes as its comma ([`Key::plain`]): only a text field (a name, a
+    /// password) takes it as it is.
+    Char(char),
 }
 
 /// Control characters for the keys that have no character of their own: Ctrl and a letter in a
@@ -80,7 +84,8 @@ impl Key {
         }
         Some(match c {
             '0'..='9' => Key::Digit(c as u8 - b'0'),
-            ',' | '.' => Key::Comma,
+            ',' => Key::Comma,
+            '.' => Key::Char('.'),
             ' ' => Key::Space,
             ';' => Key::Semicolon,
             '+' => Key::Plus,
@@ -97,6 +102,38 @@ impl Key {
             '\u{08}' | '\u{7f}' => Key::Del,
             '\t' => Key::Mode,
             c if c.is_alphabetic() || c == '?' => Key::Letter(c),
+            c if !c.is_control() => Key::Char(c),
+            _ => return None,
+        })
+    }
+
+    /// The key outside a text field: the point is the comma, other characters do nothing.
+    pub fn plain(self) -> Option<Key> {
+        match self {
+            Key::Char('.') => Some(Key::Comma),
+            Key::Char(_) => None,
+            key => Some(key),
+        }
+    }
+
+    /// The character the key types into a text field, if any.
+    pub fn text(self) -> Option<char> {
+        Some(match self {
+            Key::Letter(c) | Key::Char(c) => c,
+            Key::Digit(digit) => char::from(b'0' + digit.min(9)),
+            Key::Comma => ',',
+            Key::Space => ' ',
+            Key::Semicolon => ';',
+            Key::Plus => '+',
+            Key::Minus => '-',
+            Key::Times => '*',
+            Key::Divide => ':',
+            Key::Equals => '=',
+            Key::OpenParen => '(',
+            Key::CloseParen => ')',
+            Key::Fraction => '/',
+            Key::Power => '^',
+            Key::Subscript => '_',
             _ => return None,
         })
     }

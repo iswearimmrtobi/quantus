@@ -202,9 +202,9 @@ static WLAN: Page = Page {
     title: t("WLAN", "Wi-Fi"),
     entries: &[
         switch(t("WLAN", "Wi-Fi"), S::Wlan),
-        pending(t("Netzwerke", "Networks")),
-        pending(t("Gespeicherte Netzwerke", "Saved networks")),
-        pending(same("Status")),
+        entry(t("Netzwerke", "Networks"), Kind::Networks),
+        entry(t("Gespeicherte Netzwerke", "Saved networks"), Kind::SavedNetworks),
+        entry(same("Status"), Kind::WlanStatus),
     ],
 };
 

@@ -45,9 +45,9 @@ pub fn key(usage: u8, modifiers: u8) -> Option<Key> {
     if named.is_some() {
         return named;
     }
-    // AltGr types @, €, braces and the like, none of them a key.
+    // AltGr types @, braces and the like, none of them a key: for text fields.
     if modifiers & ALT_GR != 0 {
-        return None;
+        return alt_gr(usage).map(Key::Char);
     }
     let c = character(usage, modifiers & SHIFT != 0)?;
     let c = if modifiers & CTRL != 0 && c.is_ascii_alphabetic() {
@@ -89,6 +89,21 @@ fn character(usage: u8, shift: bool) -> Option<char> {
         _ => return None,
     };
     Some(if shift { shifted } else { plain })
+}
+
+/// The character AltGr and a key type on a German keyboard, if it is ASCII.
+fn alt_gr(usage: u8) -> Option<char> {
+    Some(match usage {
+        0x14 => '@',
+        0x24 => '{',
+        0x25 => '[',
+        0x26 => ']',
+        0x27 => '}',
+        0x2D => '\\',
+        0x30 => '~',
+        0x64 => '|',
+        _ => return None,
+    })
 }
 
 /// The keys that repeat while held, as on a calculator: the arrows and DEL.

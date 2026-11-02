@@ -6,7 +6,7 @@
 //! back one level, AC closes the menu. Touch: a tap opens a line, a drag pages ([`Menu::tap`],
 //! [`Menu::page`], [`Menu::step`]).
 
-use crate::backend::{SessionInfo, Storage};
+use crate::backend::{Network, SessionInfo, Storage, WlanStatus};
 use crate::clock::{self, Local};
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
@@ -53,6 +53,12 @@ pub enum Kind {
     Rename,
     /// The date or the time of day, typed: sets the clock.
     Time(TimeField),
+    /// The WLAN networks in reach, which the app has the board look for; choosing one connects.
+    Networks,
+    /// The networks connected to before, with their passwords; choosing one forgets it.
+    SavedNetworks,
+    /// The WLAN connection: the network, the address, the signal.
+    WlanStatus,
     /// Waits for the engine or the firmware: says so.
     Pending,
 }
@@ -211,14 +217,52 @@ pub enum Edit {
     Storage { label: Text, storage: Option<Storage> },
     /// The sessions; the app opens the chosen one.
     Sessions { label: Text, sessions: Vec<SessionInfo>, selected: usize },
-    /// A name being typed; `error` marks an empty one.
-    Name { label: Text, typed: String, error: bool },
+    /// A line of text being typed, for `purpose`; `error` marks one it does not take, `plain`
+    /// shows a password as typed (S⇔D) instead of stars.
+    Text { label: Text, purpose: TextFor, typed: String, error: bool, plain: bool },
+    /// The networks found, `None` while the board still looks.
+    Networks { label: Text, networks: Option<Vec<Network>>, selected: usize },
+    /// The networks saved.
+    Saved { label: Text, names: Vec<String>, selected: usize },
+    /// *Vergessen* for the saved network `ssid`.
+    Forget { label: Text, ssid: String },
+    /// The connection as the board has it now; any key goes back.
+    WlanStatus { label: Text, status: WlanStatus },
     /// The digits of a date or a time being typed; `error` marks one that does not exist.
     Time { label: Text, field: TimeField, typed: String, error: bool },
 }
 
 /// The longest name a session can be given on the handheld.
 pub const NAME_LENGTH: usize = 24;
+
+/// A WPA password's length.
+pub const PASSWORD_LENGTH: std::ops::RangeInclusive<usize> = 8..=63;
+
+/// What a text field is for.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TextFor {
+    /// The open session's new name.
+    Name,
+    /// The password of the network `ssid`.
+    Password(String),
+}
+
+impl TextFor {
+    fn longest(&self) -> usize {
+        match self {
+            TextFor::Name => NAME_LENGTH,
+            TextFor::Password(_) => *PASSWORD_LENGTH.end(),
+        }
+    }
+
+    /// Whether `typed` is taken: a name not empty, a password of WPA's length.
+    fn takes(&self, typed: &str) -> bool {
+        match self {
+            TextFor::Name => !typed.trim().is_empty(),
+            TextFor::Password(_) => PASSWORD_LENGTH.contains(&typed.chars().count()),
+        }
+    }
+}
 
 /// A menu open on the screen.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -253,6 +297,18 @@ pub enum Outcome {
     NameOf(Text),
     /// Give the open session the name typed (the app reads it from the edit).
     Rename,
+    /// Look for networks and list them over the page.
+    Networks(Text),
+    /// Connect to the network at this place of the list.
+    Network(usize),
+    /// Connect with the password typed (the app reads it and the network from the edit).
+    Connect,
+    /// Open the list of saved networks over the page.
+    SavedNetworks(Text),
+    /// Forget the saved network of the edit.
+    Forget,
+    /// Show the connection.
+    WlanStatus(Text),
     /// Set the clock to the date or time typed, which is a real one (the app reads it from the
     /// edit).
     SetTime(TimeField),
@@ -277,8 +333,12 @@ impl Menu {
                 | Edit::Pictures { label, .. }
                 | Edit::Storage { label, .. }
                 | Edit::Sessions { label, .. }
-                | Edit::Name { label, .. }
-                | Edit::Time { label, .. },
+                | Edit::Text { label, .. }
+                | Edit::Time { label, .. }
+                | Edit::Networks { label, .. }
+                | Edit::Saved { label, .. }
+                | Edit::Forget { label, .. }
+                | Edit::WlanStatus { label, .. },
             ) => *label,
             None => self.level().page.title,
         }
@@ -323,7 +383,7 @@ impl Menu {
     /// A tap on the line `offset` of the list on the screen: opens or chooses it, as OK does.
     /// On the wallpapers a tap on another line only shows it, a second one keeps it.
     pub fn tap(&mut self, offset: usize, settings: &mut Settings) -> Outcome {
-        if matches!(self.edit, Some(Edit::Confirm { .. })) {
+        if matches!(self.edit, Some(Edit::Confirm { .. } | Edit::Forget { .. })) {
             return if offset == 0 { self.key(Key::Ok, settings) } else { Outcome::Stay };
         }
         let pictures = matches!(self.edit, Some(Edit::Pictures { .. }));
@@ -382,6 +442,8 @@ impl Menu {
             },
             Some(Edit::Pictures { names, selected, .. }) => Some((*selected, names.len() + 1)),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((*selected, sessions.len())),
+            Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
+            Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
             _ => None,
         }
     }
@@ -399,6 +461,8 @@ impl Menu {
             }
             Some(Edit::Pictures { names, selected, .. }) => Some((selected, names.len() + 1)),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((selected, sessions.len())),
+            Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
+            Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
             _ => None,
         }
     }
@@ -428,6 +492,9 @@ impl Menu {
             Kind::Storage => return Outcome::Storage(entry.label),
             Kind::Sessions => return Outcome::Sessions(entry.label),
             Kind::Rename => return Outcome::NameOf(entry.label),
+            Kind::Networks => return Outcome::Networks(entry.label),
+            Kind::SavedNetworks => return Outcome::SavedNetworks(entry.label),
+            Kind::WlanStatus => return Outcome::WlanStatus(entry.label),
             &Kind::Time(field) => {
                 self.edit = Some(Edit::Time { label: entry.label, field, typed: String::new(), error: false });
             }
@@ -580,35 +647,61 @@ impl Menu {
                 self.edit = Some(Edit::Sessions { label, sessions, selected: chosen });
                 return Outcome::OpenSession(chosen);
             }
-            Edit::Name { label, mut typed, .. } => {
-                let c = match key {
-                    Key::Letter(c) => Some(c),
-                    Key::Digit(digit) => Some(char::from(b'0' + digit.min(9))),
-                    Key::Comma => Some(','),
-                    Key::Minus => Some('-'),
-                    Key::Plus => Some('+'),
-                    Key::Space => Some(' '),
-                    Key::Subscript => Some('_'),
-                    Key::OpenParen => Some('('),
-                    Key::CloseParen => Some(')'),
+            Edit::Text { label, purpose, mut typed, plain, .. } => {
+                match key {
                     Key::Del if !typed.is_empty() => {
                         typed.pop();
-                        None
                     }
                     Key::Del => return Outcome::Stay,
+                    Key::SwapForm => {
+                        self.edit = Some(Edit::Text { label, purpose, typed, error: false, plain: !plain });
+                        return Outcome::Stay;
+                    }
                     Key::Ok | Key::Exe => {
-                        let error = typed.trim().is_empty();
-                        self.edit = Some(Edit::Name { label, typed, error });
-                        return if error { Outcome::Stay } else { Outcome::Rename };
+                        let error = !purpose.takes(&typed);
+                        let outcome = match purpose {
+                            _ if error => Outcome::Stay,
+                            TextFor::Name => Outcome::Rename,
+                            TextFor::Password(_) => Outcome::Connect,
+                        };
+                        self.edit = Some(Edit::Text { label, purpose, typed, error, plain });
+                        return outcome;
                     }
                     _ if back => return Outcome::Stay,
-                    _ => None,
-                };
-                if let Some(c) = c.filter(|_| typed.chars().count() < NAME_LENGTH) {
-                    typed.push(c);
+                    _ => {
+                        if let Some(c) = key.text().filter(|_| typed.chars().count() < purpose.longest()) {
+                            typed.push(c);
+                        }
+                    }
                 }
-                self.edit = Some(Edit::Name { label, typed, error: false });
+                self.edit = Some(Edit::Text { label, purpose, typed, error: false, plain });
             }
+            Edit::Networks { label, networks: Some(networks), selected } => {
+                match pick(key, selected, networks.len()) {
+                    Pick::Move(selected) => self.edit = Some(Edit::Networks { label, networks: Some(networks), selected }),
+                    Pick::Chosen(chosen) => {
+                        // The app reads the network from it.
+                        self.edit = Some(Edit::Networks { label, networks: Some(networks), selected: chosen });
+                        return Outcome::Network(chosen);
+                    }
+                    Pick::Back => {}
+                }
+            }
+            Edit::Saved { label, names, selected } => match pick(key, selected, names.len()) {
+                Pick::Move(selected) => self.edit = Some(Edit::Saved { label, names, selected }),
+                Pick::Chosen(chosen) => self.edit = Some(Edit::Forget { label, ssid: names[chosen].clone() }),
+                Pick::Back => {}
+            },
+            Edit::Forget { label, ssid } => match key {
+                Key::Ok | Key::Exe | Key::Digit(1) => {
+                    // The app reads the network from it.
+                    self.edit = Some(Edit::Forget { label, ssid });
+                    return Outcome::Forget;
+                }
+                Key::Del => {}
+                _ if back => {}
+                _ => self.edit = Some(Edit::Forget { label, ssid }),
+            },
             Edit::Time { label, field, mut typed, .. } => {
                 match key {
                     Key::Digit(digit) if typed.len() < field.digits() => typed.push(char::from(b'0' + digit.min(9))),
@@ -629,10 +722,36 @@ impl Menu {
                 }
                 self.edit = Some(Edit::Time { label, field, typed, error: false });
             }
-            // Any key reads on.
-            Edit::Message { .. } | Edit::Storage { .. } => {}
+            // Any key reads on; so it does while the board looks for networks.
+            Edit::Message { .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. } => {}
         }
         Outcome::Stay
+    }
+}
+
+/// What a key does in a list the app filled in.
+enum Pick {
+    /// The cursor moved to here, or stays.
+    Move(usize),
+    Chosen(usize),
+    Back,
+}
+
+/// A key in a list of `count` lines with the cursor on `selected`: a digit picks the numbered
+/// line of the page, OK the one under the cursor, ↑/↓ move, ← and DEL go back.
+fn pick(key: Key, selected: usize, count: usize) -> Pick {
+    match key {
+        Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
+            let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+            if index < count { Pick::Chosen(index) } else { Pick::Move(selected) }
+        }
+        Key::Ok | Key::Exe | Key::Right if selected < count => Pick::Chosen(selected),
+        Key::Up | Key::Down if count > 0 => {
+            let step = if key == Key::Up { count - 1 } else { 1 };
+            Pick::Move((selected + step) % count)
+        }
+        Key::Del | Key::Left | Key::Mode | Key::Optn => Pick::Back,
+        _ => Pick::Move(selected),
     }
 }
 
