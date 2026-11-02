@@ -1,0 +1,6 @@
+dependencies:
+  # The same version as the handheld's host side (firmware/handheld/Cargo.toml).
+  espressif/esp_hosted:
+    version: "3.0.10"
+  idf:
+    version: ">=5.5"
