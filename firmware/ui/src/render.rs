@@ -19,6 +19,7 @@ use crate::wallpaper::{blend, Pixels};
 use crate::text;
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
+use crate::touch::{self, Button, Calibrating, Target};
 
 pub const WIDTH: u32 = 480;
 pub const HEIGHT: u32 = 320;
@@ -177,9 +178,10 @@ impl Frame {
         let backdrop = backdrop(app);
         let glass = backdrop.is_some();
         match &app.screen {
-            Screen::Calc => calculation(&mut shapes, app),
-            Screen::Modes { selected } => modes(&mut shapes, *selected, app.settings.language, glass),
+            Screen::Calc => calculation(&mut shapes, app, glass),
+            Screen::Modes { selected } => modes(&mut shapes, app, *selected, glass),
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
+            Screen::Calibrate(state, _) => calibration(&mut shapes, state, app.settings.language),
         }
         bar(&mut shapes, app);
         Frame(shapes, backdrop)
@@ -227,12 +229,21 @@ fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let baseline = BAR - 7;
     let title = match &app.screen {
         Screen::Menu(menu) => menu.title().get(app.settings.language),
+        Screen::Calibrate(..) => text::CALIBRATE.get(app.settings.language),
         _ => &app.mode.name(app.settings.language),
     };
-    shapes.push(Shape::Text(Point::new(MARGIN, baseline), title.to_string(), Scale::Small, colors::TEXT));
+    let mut left = MARGIN;
+    if goes_back(&app.screen) {
+        // ‹ before the title: a tap on the left of the bar goes back.
+        let (x, middle) = (MARGIN + 1, BAR / 2);
+        let points = vec![Point::new(x + 6, middle - 6), Point::new(x, middle), Point::new(x + 6, middle + 6)];
+        shapes.push(Shape::Path(points, colors::TEXT, 2));
+        left += 16;
+    }
+    shapes.push(Shape::Text(Point::new(left, baseline), title.to_string(), Scale::Small, colors::TEXT));
     if app.busy {
         // Eight dots on a ring; the bright one moves on a step each tick, with a trail behind it.
-        let center = Point::new(MARGIN + Scale::Small.width(title) + 18, BAR / 2);
+        let center = Point::new(left + Scale::Small.width(title) + 18, BAR / 2);
         for dot in 0..8u8 {
             let angle = f32::from(dot) * core::f32::consts::FRAC_PI_4;
             let at = center + Point::new((7.0 * angle.cos()).round() as i32, (7.0 * angle.sin()).round() as i32);
@@ -353,10 +364,10 @@ fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, charging: bool, right_ce
     width
 }
 
-/// One calculation, as on a Casio: the input from the top left, its result at the bottom right.
-fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
+/// One calculation, as on a Casio: the input from the top left, its result at the bottom right,
+/// over the test buttons.
+fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>, glass: bool) {
     let width = WIDTH as i32;
-    let height = HEIGHT as i32;
 
     let input = layout::layout(&app.editor.row, Scale::Normal);
     let mut origin = Point::new(MARGIN, BAR + 12 + input.ascent);
@@ -374,8 +385,12 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         shapes.push(Shape::Fill(caret, colors::CYAN));
     }
 
+    for (index, (button_, label)) in CALC_BUTTONS.iter().enumerate() {
+        let lit = app.pressed() == Some(Target::Button(*button_));
+        button(shapes, calc_button(index), label, lit, glass);
+    }
+    let bottom = calc_button(0).top_left.y - 8;
     if let Some(entry) = app.shown_entry() {
-        let bottom = height - MARGIN;
         match &entry.result {
             Ok(result) => {
                 let result = layout::layout(result, Scale::Normal);
@@ -394,7 +409,7 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     // How many calculations ↑ can bring back.
     let earlier = app.history.len() - app.shown.map_or(0, |shown| shown + 1);
     if earlier > 0 {
-        let baseline = height - MARGIN - 2;
+        let baseline = bottom - 2;
         let tip = Point::new(MARGIN + 5, baseline - 10);
         let arrow = Triangle::new(tip, Point::new(MARGIN, baseline), Point::new(MARGIN + 10, baseline));
         shapes.push(Shape::Triangle(arrow, colors::FAINT));
@@ -403,27 +418,47 @@ fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     }
 }
 
-/// The mode menu: pages of tiles, numbered over all pages.
-fn modes(shapes: &mut Vec<Shape>, selected: usize, lang: text::Lang, glass: bool) {
-    let gap = 8;
-    let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
-    let columns = MENU_COLUMNS as i32;
-    let tile_width = (WIDTH as i32 - 2 * MARGIN - (columns - 1) * gap) / columns;
-    let tile_height = 116;
-    let top = BAR + 10;
+/// The mode menu: pages of tiles, numbered over all pages. While a finger drags them, the page
+/// moves with it and its neighbour comes in.
+fn modes<B>(shapes: &mut Vec<Shape>, app: &App<B>, selected: usize, glass: bool) {
+    let lang = app.settings.language;
     let page = selected / TILES_PER_PAGE;
+    let dx = app.drag().map_or(0, |drag| drag.x);
+    let pages = if dx == 0 { page..=page } else { page.saturating_sub(1)..=(page + 1).min(PAGES - 1) };
+    for shown in pages {
+        let shift = Point::new((shown as i32 - page as i32) * WIDTH as i32 + dx, 0);
+        tiles(shapes, shown, selected, app.pressed(), shift, lang, glass);
+    }
+
+    if PAGES > 1 {
+        for index in 0..PAGES {
+            let color = if index == page { colors::TEXT } else { colors::FAINT };
+            let dot = dot_rect(index);
+            shapes.push(Shape::Circle(Circle::new(dot.top_left, dot.size.width), color));
+        }
+    }
+}
+
+/// The tiles of mode page `page`, moved by `shift`.
+fn tiles(
+    shapes: &mut Vec<Shape>,
+    page: usize,
+    selected: usize,
+    pressed: Option<Target>,
+    shift: Point,
+    lang: text::Lang,
+    glass: bool,
+) {
     let first = page * TILES_PER_PAGE;
     let modes = &Mode::ALL[first..(first + TILES_PER_PAGE).min(Mode::ALL.len())];
     let small = Scale::Small.metrics();
     for (offset, mode) in modes.iter().enumerate() {
         let index = first + offset;
-        let column = (offset % MENU_COLUMNS) as i32;
-        let row = (offset / MENU_COLUMNS) as i32;
-        let at = Point::new(MARGIN + column * (tile_width + gap), top + row * (tile_height + gap));
-        let size = Size::new(tile_width as u32, tile_height as u32);
+        let Rectangle { top_left: at, size } = tile_rect(offset).translate(shift);
+        let (tile_width, tile_height) = (size.width as i32, size.height as i32);
         let chosen = index == selected;
         let (tile, lit) = colors::TILES[index % colors::TILES.len()];
-        let fill = if chosen { lit } else { tile };
+        let fill = if chosen || pressed == Some(Target::Tile(index)) { lit } else { tile };
         shapes.push(panel(rounded(at, size, 6), fill, chosen.then_some(colors::TEXT), glass));
         let number = (index + 1).to_string();
         shapes.push(Shape::Text(at + Point::new(12, 10 + small.ascent), number, Scale::Small, colors::TEXT));
@@ -447,18 +482,30 @@ fn modes(shapes: &mut Vec<Shape>, selected: usize, lang: text::Lang, glass: bool
             baseline -= line_height;
         }
     }
+}
 
-    let pages = Mode::ALL.len().div_ceil(TILES_PER_PAGE);
-    if pages > 1 {
-        let y = top + rows * (tile_height + gap) + 10;
-        let dot = 8;
-        let start = (WIDTH as i32 - (pages as i32 * (dot + 8) - 8)) / 2;
-        for index in 0..pages {
-            let color = if index == page { colors::TEXT } else { colors::FAINT };
-            let circle = Circle::new(Point::new(start + index as i32 * (dot + 8), y), dot as u32);
-            shapes.push(Shape::Circle(circle, color));
-        }
-    }
+const TILE_GAP: i32 = 8;
+const TILE_HEIGHT: i32 = 116;
+/// The pages of the mode menu.
+const PAGES: usize = Mode::ALL.len().div_ceil(TILES_PER_PAGE);
+
+/// The tile `offset` of a page of the mode menu.
+pub fn tile_rect(offset: usize) -> Rectangle {
+    let columns = MENU_COLUMNS as i32;
+    let width = (WIDTH as i32 - 2 * MARGIN - (columns - 1) * TILE_GAP) / columns;
+    let column = (offset % MENU_COLUMNS) as i32;
+    let row = (offset / MENU_COLUMNS) as i32;
+    let at = Point::new(MARGIN + column * (width + TILE_GAP), BAR + 10 + row * (TILE_HEIGHT + TILE_GAP));
+    Rectangle::new(at, Size::new(width as u32, TILE_HEIGHT as u32))
+}
+
+/// The dot of page `index` under the tiles.
+pub fn dot_rect(index: usize) -> Rectangle {
+    let dot = 8;
+    let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
+    let y = BAR + 10 + rows * (TILE_HEIGHT + TILE_GAP) + 10;
+    let start = (WIDTH as i32 - (PAGES as i32 * (dot + 8) - 8)) / 2;
+    Rectangle::new(Point::new(start + index as i32 * (dot + 8), y), Size::new(dot as u32, dot as u32))
 }
 
 /// A line of a menu list.
@@ -478,12 +525,20 @@ enum Mark {
     Dot,
 }
 
-const LINE: i32 = 40;
+const LINE: i32 = 50;
 const LINE_GAP: i32 = 6;
 
 /// SETUP or OPTN: the page on the screen, or the submenu open over it.
 fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: bool) {
     let lang = app.settings.language;
+    let list = List {
+        scroll: app.drag().map_or(0, |drag| drag.y),
+        pressed: match app.pressed() {
+            Some(Target::Line(offset)) => Some(offset),
+            _ => None,
+        },
+        glass,
+    };
     match &menu.edit {
         None => {
             let level = menu.level();
@@ -495,7 +550,7 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
                 },
                 mark: if matches!(entry.kind, Kind::Page(_)) { Mark::Arrow } else { Mark::None },
             });
-            lines_page(shapes, lines.collect(), level.selected, glass);
+            lines_page(shapes, lines.collect(), level.selected, &list);
         }
         Some(Edit::Choice { entry, selected }) => {
             let Kind::Choice(setting, opts) = &entry.kind else { return };
@@ -505,11 +560,11 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
                 value: None,
                 mark: if opt.value == value { Mark::Dot } else { Mark::None },
             });
-            lines_page(shapes, lines.collect(), *selected, glass);
+            lines_page(shapes, lines.collect(), *selected, &list);
         }
         Some(Edit::Confirm { .. }) => {
             let yes = Line { label: text::YES.get(lang).to_string(), value: None, mark: Mark::None };
-            lines_page(shapes, vec![yes], 0, glass);
+            lines_page(shapes, vec![yes], 0, &list);
         }
         Some(Edit::Number { setting, min, max, typed, error, .. }) => {
             let top = BAR + 30;
@@ -535,6 +590,9 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
             let color = if *error { colors::ERROR } else { colors::MUTED };
             let at = Point::new(MARGIN + 4, top + height + 28);
             shapes.push(Shape::Text(at, hint, Scale::Small, color));
+            for (index, (target, label)) in NUMBER_BUTTONS.iter().enumerate() {
+                button(shapes, number_button(index), label, app.pressed() == Some(*target), glass);
+            }
         }
         Some(Edit::Pictures { names, selected, .. }) => {
             let set = app.wallpaper_name.as_ref().and_then(|name| names.iter().position(|n| n == name)).map_or(0, |i| i + 1);
@@ -545,7 +603,7 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
                 mark: if index == set { Mark::Dot } else { Mark::None },
             });
             let x = WIDTH as i32 - MARGIN - THUMBNAIL.width as i32;
-            lines_in(shapes, lines.collect(), *selected, glass, x - 10);
+            lines_in(shapes, lines.collect(), *selected, &list, list_edge(menu));
             // The picture under the cursor, or why there is none.
             let at = Point::new(x, BAR + (HEIGHT as i32 - BAR - THUMBNAIL.height as i32) / 2);
             let frame = Rectangle::new(at - Point::new(2, 2), THUMBNAIL + Size::new(4, 4));
@@ -570,28 +628,41 @@ fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu, glass: boo
     }
 }
 
-/// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
-/// there are more.
-fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass: bool) {
-    lines_in(shapes, lines, selected, glass, WIDTH as i32 - MARGIN);
+/// How a list is shown: moved by a dragging finger, the line under it lit.
+struct List {
+    scroll: i32,
+    /// The line the finger is on, counted on the page.
+    pressed: Option<usize>,
+    glass: bool,
 }
 
-/// [`lines_page`] with the lines ending at `edge`; a label too long for them is cut short.
-fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass: bool, edge: i32) {
+/// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
+/// there are more.
+fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List) {
+    lines_in(shapes, lines, selected, list, WIDTH as i32 - MARGIN);
+}
+
+/// [`lines_page`] with the lines ending at `edge`; a label too long for them is cut short. The
+/// lines lie one under the other, the page of `selected` at the top, so a drag shows the pages
+/// before and after it moving in.
+fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List, edge: i32) {
     let first = selected / ROWS * ROWS;
     let normal = Scale::Normal.metrics();
     let small = Scale::Small.metrics();
     let scrolls = lines.len() > ROWS;
     let right = edge - if scrolls { 8 } else { 0 };
-    for (offset, line) in lines.iter().skip(first).take(ROWS).enumerate() {
-        let index = first + offset;
-        let y = BAR + 8 + offset as i32 * (LINE + LINE_GAP);
-        let chosen = index == selected;
+    for (index, line) in lines.iter().enumerate() {
+        let place = index as i32 - first as i32;
+        let area = line_rect(0, right).translate(Point::new(0, place * (LINE + LINE_GAP) + list.scroll));
+        let y = area.top_left.y;
+        if y + LINE <= BAR || y >= HEIGHT as i32 {
+            continue;
+        }
+        let chosen = index == selected || (list.scroll == 0 && list.pressed.is_some_and(|offset| first + offset == index));
         let fill = if chosen { colors::CYAN_DIM } else { colors::SURFACE };
-        let size = Size::new((right - MARGIN) as u32, LINE as u32);
-        shapes.push(panel(rounded(Point::new(MARGIN, y), size, 6), fill, None, glass));
+        shapes.push(panel(RoundedRectangle::with_equal_corners(area, Size::new(6, 6)), fill, None, list.glass));
         let baseline = y + (LINE + normal.digit) / 2;
-        let number = (offset + 1).to_string();
+        let number = (index % ROWS + 1).to_string();
         shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::MUTED));
         let label = fit(&line.label, right - MARGIN - 34 - 14, Scale::Normal);
         shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, colors::TEXT));
@@ -632,6 +703,142 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, glass: b
         let page = (first / ROWS) as i32;
         let at = Point::new(x, top + page * thumb);
         shapes.push(Shape::Fill(Rectangle::new(at, Size::new(3, thumb as u32)), colors::CYAN));
+    }
+}
+
+/// The line `offset` of a page of a list, ending at `right`.
+pub fn line_rect(offset: usize, right: i32) -> Rectangle {
+    let y = BAR + 8 + offset as i32 * (LINE + LINE_GAP);
+    Rectangle::new(Point::new(MARGIN, y), Size::new((right - MARGIN) as u32, LINE as u32))
+}
+
+/// Where the lists of `menu` may reach: the edge, or the wallpaper's preview.
+fn list_edge(menu: &Menu) -> i32 {
+    match menu.edit {
+        Some(Edit::Pictures { .. }) => WIDTH as i32 - MARGIN - THUMBNAIL.width as i32 - 10,
+        _ => WIDTH as i32 - MARGIN,
+    }
+}
+
+/// How many lines the list on the screen has, if a list is.
+fn list_len(menu: &Menu) -> Option<usize> {
+    match &menu.edit {
+        None => Some(menu.level().page.entries.len()),
+        Some(Edit::Choice { entry, .. }) => match &entry.kind {
+            Kind::Choice(_, opts) => Some(opts.len()),
+            _ => None,
+        },
+        Some(Edit::Confirm { .. }) => Some(1),
+        Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
+        Some(Edit::Number { .. } | Edit::Message { .. }) => None,
+    }
+}
+
+/// The test buttons of the calculation screen, until the keypad exists.
+pub const CALC_BUTTONS: [(Button, &str); 3] = [(Button::Menu, "MENU"), (Button::Setup, "SETUP"), (Button::Optn, "OPTN")];
+
+/// The buttons under a number being entered: it is stepped, there is no keyboard on the screen.
+pub const NUMBER_BUTTONS: [(Target, &str); 3] = [(Target::Step(-1), "−"), (Target::Step(1), "+"), (Target::Ok, "OK")];
+
+/// The calculation screen's button `index`, in a row along the bottom.
+pub fn calc_button(index: usize) -> Rectangle {
+    let height = 32;
+    button_rect(HEIGHT as i32 - MARGIN - height, height as u32, CALC_BUTTONS.len(), index)
+}
+
+/// The number entry's button `index`, under the range.
+pub fn number_button(index: usize) -> Rectangle {
+    button_rect(BAR + 140, 48, NUMBER_BUTTONS.len(), index)
+}
+
+/// The left of the top bar, where a tap goes back, reaching a little below it for the finger.
+pub fn back_area() -> Rectangle {
+    Rectangle::new(Point::zero(), Size::new(WIDTH / 2, BAR as u32 + 4))
+}
+
+/// Button `index` of `count` side by side between the margins.
+fn button_rect(top: i32, height: u32, count: usize, index: usize) -> Rectangle {
+    let (gap, count) = (8, count as i32);
+    let width = (WIDTH as i32 - 2 * MARGIN - (count - 1) * gap) / count;
+    Rectangle::new(Point::new(MARGIN + index as i32 * (width + gap), top), Size::new(width as u32, height))
+}
+
+/// A button with its label in the middle, lit while a finger is on it.
+fn button(shapes: &mut Vec<Shape>, area: Rectangle, label: &str, lit: bool, glass: bool) {
+    let round = RoundedRectangle::with_equal_corners(area, Size::new(6, 6));
+    let fill = if lit { colors::CYAN_DIM } else { colors::SURFACE };
+    shapes.push(panel(round, fill, Some(colors::HAIRLINE), glass));
+    let digit = Scale::Small.metrics().digit;
+    let x = (area.size.width as i32 - Scale::Small.width(label)) / 2;
+    let at = area.top_left + Point::new(x, (area.size.height as i32 + digit) / 2);
+    shapes.push(Shape::Text(at, label.to_string(), Scale::Small, colors::TEXT));
+}
+
+/// What a tap at `point` hits on the screen as `app` shows it.
+pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
+    if goes_back(&app.screen) && back_area().contains(point) {
+        return Some(Target::Back);
+    }
+    match &app.screen {
+        Screen::Calibrate(..) => None,
+        Screen::Calc => {
+            let index = (0..CALC_BUTTONS.len()).find(|&index| calc_button(index).contains(point))?;
+            Some(Target::Button(CALC_BUTTONS[index].0))
+        }
+        Screen::Modes { selected } => {
+            let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
+            let on_page = (Mode::ALL.len() - first).min(TILES_PER_PAGE);
+            if let Some(offset) = (0..on_page).find(|&offset| tile_rect(offset).contains(point)) {
+                return Some(Target::Tile(first + offset));
+            }
+            // Half the gap to the next dot on each side, more above and below for the finger.
+            let around = |dot: Rectangle| Rectangle::new(dot.top_left - Point::new(4, 12), dot.size + Size::new(8, 24));
+            (0..PAGES).find(|&index| around(dot_rect(index)).contains(point)).map(Target::Page)
+        }
+        Screen::Menu(menu) => {
+            if let Some(Edit::Message { .. }) = menu.edit {
+                return Some(Target::Anywhere);
+            }
+            if let Some(Edit::Number { .. }) = menu.edit {
+                let index = (0..NUMBER_BUTTONS.len()).find(|&index| number_button(index).contains(point))?;
+                return Some(NUMBER_BUTTONS[index].0);
+            }
+            list_len(menu)?;
+            // The whole width, and half the gap above and below: a finger is not precise.
+            let around = |line: Rectangle| {
+                Rectangle::new(line.top_left - Point::new(MARGIN, LINE_GAP / 2), line.size + Size::new(2 * MARGIN as u32, LINE_GAP as u32))
+            };
+            let edge = list_edge(menu);
+            (0..ROWS).find(|&offset| around(line_rect(offset, edge)).contains(point)).map(Target::Line)
+        }
+    }
+}
+
+/// Whether the screen has ‹ in the top bar.
+fn goes_back(screen: &Screen) -> bool {
+    matches!(screen, Screen::Modes { .. } | Screen::Menu(_))
+}
+
+/// The touch calibration: a cross at the target in turn, filled while it is pressed, and what
+/// to do in the middle of the screen.
+fn calibration(shapes: &mut Vec<Shape>, state: &Calibrating, lang: text::Lang) {
+    let step = state.readings.len().min(touch::TARGETS.len() - 1);
+    let at = touch::TARGETS[step];
+    let pressed = state.sum.2 > 0;
+    for (from, to) in [(Point::new(-16, 0), Point::new(16, 0)), (Point::new(0, -16), Point::new(0, 16))] {
+        shapes.push(Shape::Path(vec![at + from, at + to], colors::TEXT, 2));
+    }
+    let ring = if pressed { colors::CYAN } else { colors::AMBER };
+    shapes.push(Shape::Circle(Circle::with_center(at, 10), ring));
+    let centred = |shapes: &mut Vec<Shape>, y: i32, text: &str, scale: Scale, color: Rgb565| {
+        let x = (WIDTH as i32 - scale.width(text)) / 2;
+        shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), scale, color));
+    };
+    centred(shapes, 115, text::CALIBRATE_HINT.get(lang), Scale::Normal, colors::TEXT);
+    let count = format!("{} / {}", step + 1, touch::TARGETS.len());
+    centred(shapes, 220, &count, Scale::Small, colors::MUTED);
+    if state.retry {
+        centred(shapes, 245, text::CALIBRATE_RETRY.get(lang), Scale::Small, colors::ERROR);
     }
 }
 

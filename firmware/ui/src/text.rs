@@ -52,3 +52,6 @@ pub const NONE: Text = t("Keins", "None");
 pub const NO_PICTURES: Text = t("Keine Bilder auf der SD-Karte", "No pictures on the SD card");
 pub const BAD_PICTURE: Text = t("Bild muss 480×320 BMP sein", "Picture must be a 480×320 BMP");
 pub const DECIMAL_SHORT: Text = t("Dez", "Dec");
+pub const CALIBRATE: Text = t("Touch kalibrieren", "Calibrate touch");
+pub const CALIBRATE_HINT: Text = t("Kreuz berühren und kurz halten", "Touch the cross and hold briefly");
+pub const CALIBRATE_RETRY: Text = t("Zu ungenau, bitte noch einmal", "Too far off, once more please");

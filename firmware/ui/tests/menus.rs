@@ -71,7 +71,7 @@ fn reset_memory_empties_the_history() {
     let mut app = setup();
     press(&mut app, &[Key::Ac, Key::Digit(7), Key::Exe]);
     assert_eq!(app.history.len(), 1);
-    press(&mut app, &[Key::Shift, Key::Mode, Key::Digit(6), Key::Digit(5), Key::Digit(2), Key::Exe]);
+    press(&mut app, &[Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Digit(5), Key::Digit(2), Key::Exe]);
     assert!(app.history.is_empty() && app.editor.is_empty());
 
     app.settings.digits = 3;
@@ -82,8 +82,8 @@ fn reset_memory_empties_the_history() {
 #[test]
 fn the_exam_mode_keeps_the_radios_off() {
     let mut app = setup();
-    // Verbindungen → WLAN → WLAN → Ein.
-    press(&mut app, &[Key::Up, Key::Digit(1), Key::Digit(2), Key::Digit(1), Key::Digit(1)]);
+    // Verbindungen (↑ wraps to the second page) → WLAN → WLAN → Ein.
+    press(&mut app, &[Key::Up, Key::Digit(2), Key::Digit(2), Key::Digit(1), Key::Digit(1)]);
     assert!(app.settings.wlan);
     // Back, Prüfungsmodus → Ein switches it off and keeps it off.
     press(&mut app, &[Key::Left, Key::Digit(1), Key::Digit(1)]);
@@ -155,9 +155,11 @@ fn every_entry_fits_its_line() {
                     _ => menu::value(entry, &settings, lang).map_or(0, |value| Scale::Small.width(&value)),
                 };
                 // As `lines_page` draws it: the label at 34 from the margin, the value 14 before the
-                // scroll bar, an arrow for a page, and a gap of 12 between them.
+                // scroll strip, an arrow for a page, and a gap of 12 between them.
                 let arrow = if matches!(entry.kind, Kind::Page(_)) { 16 } else { 0 };
-                let room = WIDTH as i32 - 2 * 10 - 8 - 34 - 14 - arrow - 12;
+                // The scroll strip only on a page with more lines than fit.
+                let strip = if page.entries.len() > menu::ROWS { 24 } else { 0 };
+                let room = WIDTH as i32 - 2 * 10 - strip - 34 - 14 - arrow - 12;
                 let width = Scale::Normal.width(label) + value;
                 if width > room {
                     wide.push(format!("{label:?} by {}", width - room));
@@ -227,8 +229,8 @@ fn a_spinner_turns_in_the_top_bar_while_busy() {
 #[test]
 fn the_wallpaper_page_sets_where_it_shows() {
     let mut app = setup();
-    // Gerät → Hintergrundbild → Anzeigen → Überall.
-    press(&mut app, &[Key::Digit(6), Key::Digit(3), Key::Digit(2), Key::Digit(3)]);
+    // Gerät (↑ wraps to the second page) → Hintergrundbild → Anzeigen → Überall.
+    press(&mut app, &[Key::Up, Key::Digit(1), Key::Digit(3), Key::Digit(2), Key::Digit(3)]);
     assert_eq!(app.settings.wallpaper_on, WallpaperOn::Everywhere);
     press(&mut app, &[Key::Digit(2), Key::Up, Key::Up, Key::Exe]);
     assert_eq!(app.settings.wallpaper_on, WallpaperOn::Modes);
@@ -271,8 +273,8 @@ fn bmp(width: u32, height: u32) -> Vec<u8> {
 fn the_picture_list_previews_keeps_and_restores() {
     let mut app = App::new(Card);
     let press = |app: &mut App<Card>, keys: &[Key]| keys.iter().for_each(|&key| app.key(key));
-    // SETUP → Gerät → Hintergrundbild → Bild.
-    press(&mut app, &[Key::Shift, Key::Mode, Key::Digit(6), Key::Digit(3), Key::Digit(1)]);
+    // SETUP → Gerät (on the second page) → Hintergrundbild → Bild.
+    press(&mut app, &[Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Digit(3), Key::Digit(1)]);
     let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
     assert!(matches!(&menu.edit, Some(Edit::Pictures { names, selected: 0, .. }) if names.len() == 2));
 
@@ -300,13 +302,13 @@ fn the_picture_list_previews_keeps_and_restores() {
     assert!(app.preview.is_none() && app.wallpaper().is_some());
 
     // Keins clears it.
-    press(&mut app, &[Key::Shift, Key::Mode, Key::Digit(6), Key::Digit(3), Key::Digit(1), Key::Digit(1)]);
+    press(&mut app, &[Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Digit(3), Key::Digit(1), Key::Digit(1)]);
     assert!(app.wallpaper.is_none() && app.wallpaper_name.is_none());
 }
 
 #[test]
 fn without_pictures_the_list_says_so() {
     let mut app = setup();
-    press(&mut app, &[Key::Digit(6), Key::Digit(3), Key::Digit(1)]);
+    press(&mut app, &[Key::Up, Key::Digit(1), Key::Digit(3), Key::Digit(1)]);
     assert!(matches!(menu(&app).edit, Some(Edit::Message { .. })));
 }

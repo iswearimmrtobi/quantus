@@ -41,7 +41,12 @@ same keys without the pauses.
 The PC has no battery or remote engine, so F9 and F10 switch the charging bolt and the busy
 spinner by hand.
 
-The keys are printed when the window opens.
+The keys are printed when the window opens. The mouse is the finger: a click taps, a drag
+scrolls. Every menu works by touch: a tap opens a line or picks a tile, ‹ at the left of the top
+bar goes back, a list follows the finger up and down and turns its page when let go, the mode
+tiles do the same sideways, and a number is set with − and + and OK. SETUP → Gerät → Touch
+kalibrieren shows the board's calibration screen; in the window the mouse needs none. For testing,
+until the keypad exists, the calculation screen has MENU, SETUP and OPTN buttons along the bottom.
 
 LaTeX typed into the terminal (then Enter) becomes the input and is evaluated, for what the keys
 cannot type yet. The editor reads it like a result, and the terminal shows the LaTeX that went to

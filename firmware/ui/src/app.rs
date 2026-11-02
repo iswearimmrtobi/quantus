@@ -7,7 +7,10 @@ use crate::latex;
 use crate::text::{self, same, t, Lang, Text};
 use crate::tree;
 use crate::menu::{Action, Edit, Menu, Outcome};
+use crate::render;
+use crate::touch::{self, Button, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
 use crate::wallpaper::Wallpaper;
+use embedded_graphics::prelude::Point;
 pub use crate::settings::Settings;
 
 /// The modes of the MODE menu (design/handheld-menus.md §7.1), in its order: two pages of six.
@@ -90,6 +93,8 @@ pub enum Screen {
     Modes { selected: usize },
     /// SETUP or OPTN.
     Menu(Menu),
+    /// The touch calibration, and the screen to go back to.
+    Calibrate(Calibrating, Box<Screen>),
 }
 
 /// A calculation in the history.
@@ -108,6 +113,9 @@ const SPIN_MS: u64 = 125;
 
 /// Older entries are dropped.
 const HISTORY: usize = 50;
+
+/// A drag this far, in pixels, turns the page; a shorter one springs back.
+const TURN: i32 = 40;
 
 pub struct App<B> {
     backend: B,
@@ -139,6 +147,13 @@ pub struct App<B> {
     /// While the list of wallpapers is open: the place in it of the picture shown instead, and
     /// that picture (`None` for none, or one that could not be read).
     pub preview: Option<(usize, Option<Wallpaper>)>,
+    /// Turns the panel's readings into screen points; set by the board from what it stored.
+    pub calibration: Calibration,
+    /// A calibration just made, for the board to store.
+    calibrated: Option<Calibration>,
+    touch: Tracker,
+    /// What the finger is on, lit until it lifts or drags.
+    pressed: Option<Target>,
     last_blink: u64,
     last_spin: u64,
 }
@@ -155,6 +170,26 @@ impl<B> App<B> {
     /// The entry whose result is on the screen.
     pub fn shown_entry(&self) -> Option<&Entry> {
         self.history.iter().rev().nth(self.shown?)
+    }
+
+    /// What the finger is on, while it is down and has not moved away.
+    pub fn pressed(&self) -> Option<Target> {
+        self.pressed
+    }
+
+    /// How far a finger drags the screen: across the mode tiles, along a menu list.
+    pub fn drag(&self) -> Option<Point> {
+        let moved = self.touch.drag()?;
+        match &self.screen {
+            Screen::Modes { .. } => Some(Point::new(moved.x, 0)),
+            Screen::Menu(menu) if menu.list().is_some() => Some(Point::new(0, moved.y)),
+            _ => None,
+        }
+    }
+
+    /// A calibration made since the last call, to be stored.
+    pub fn take_calibration(&mut self) -> Option<Calibration> {
+        self.calibrated.take()
     }
 }
 
@@ -178,6 +213,10 @@ impl<B: Backend> App<B> {
             wallpaper: None,
             wallpaper_name: None,
             preview: None,
+            calibration: Calibration::default(),
+            calibrated: None,
+            touch: Tracker::default(),
+            pressed: None,
             last_blink: 0,
             last_spin: 0,
         }
@@ -206,26 +245,181 @@ impl<B: Backend> App<B> {
         match std::mem::replace(&mut self.screen, Screen::Calc) {
             Screen::Modes { selected } => self.modes_key(selected, key),
             Screen::Menu(mut menu) => {
-                match menu.key(key, &mut self.settings) {
-                    Outcome::Stay => {}
-                    Outcome::Close => {
-                        self.preview = None;
-                        return;
-                    }
-                    Outcome::Insert(latex) => return self.insert(latex),
-                    Outcome::Act(action) => self.act(action),
-                    Outcome::Pictures(label) => self.open_pictures(&mut menu, label),
-                    Outcome::Preview(index) => {
-                        let picture = self.picture(&menu, index);
-                        self.preview = Some((index, picture));
-                    }
-                    Outcome::Keep(index) => self.keep_picture(&mut menu, index),
-                    Outcome::Restore => self.preview = None,
-                }
-                self.screen = Screen::Menu(menu);
+                let outcome = menu.key(key, &mut self.settings);
+                self.outcome(menu, outcome);
             }
             Screen::Calc => self.calc_key(key, shift, alpha),
+            // AC or ← leaves it with the calibration as it was.
+            Screen::Calibrate(state, back) => match key {
+                Key::Ac | Key::Left => self.screen = *back,
+                _ => self.screen = Screen::Calibrate(state, back),
+            },
         }
+    }
+
+    /// The touch calibration screen, back to this screen afterwards.
+    pub fn calibrate(&mut self) {
+        let back = std::mem::replace(&mut self.screen, Screen::Calc);
+        self.screen = Screen::Calibrate(Calibrating::default(), Box::new(back));
+    }
+
+    /// What the finger did, as the panel reads it; returns whether the screen may have changed.
+    /// What it is on lights up as it comes down; a tap does what the key for its target does, a
+    /// drag moves a list or the mode tiles with the finger and turns the page when it lifts.
+    pub fn touch(&mut self, touch: Touch) -> bool {
+        if let Screen::Calibrate(..) = self.screen {
+            return self.calibration_touch(touch);
+        }
+        let touch = match touch {
+            Touch::Press(raw) => Touch::Press(self.calibration.map(raw)),
+            Touch::Drag(raw) => Touch::Drag(self.calibration.map(raw)),
+            Touch::Release => Touch::Release,
+        };
+        let dragged = self.drag();
+        let gesture = self.touch.feed(touch);
+        match touch {
+            Touch::Press(point) => {
+                self.pressed = render::target(self, point);
+                return self.pressed.is_some();
+            }
+            Touch::Drag(_) => {
+                let drag = self.drag();
+                let unlit = self.touch.drag().is_some() && self.pressed.take().is_some();
+                return unlit || drag != dragged;
+            }
+            Touch::Release => self.pressed = None,
+        }
+        self.caret_on = true;
+        match gesture {
+            Some(Gesture::Tap(point)) => {
+                if let Some(target) = render::target(self, point) {
+                    self.tap(target);
+                }
+            }
+            Some(Gesture::Drag(moved)) => self.turn(moved),
+            None => {}
+        }
+        true
+    }
+
+    /// A drag let go: the next page or the one before when it went far enough.
+    fn turn(&mut self, moved: Point) {
+        match std::mem::replace(&mut self.screen, Screen::Calc) {
+            Screen::Modes { selected } => {
+                self.screen = Screen::Modes { selected };
+                let page = selected / TILES_PER_PAGE;
+                if moved.x <= -TURN {
+                    self.show_page(page + 1);
+                } else if moved.x >= TURN && page > 0 {
+                    self.show_page(page - 1);
+                }
+            }
+            Screen::Menu(mut menu) => {
+                let outcome = match moved.y {
+                    y if y <= -TURN => menu.page(true),
+                    y if y >= TURN => menu.page(false),
+                    _ => Outcome::Stay,
+                };
+                self.outcome(menu, outcome);
+            }
+            screen => self.screen = screen,
+        }
+    }
+
+    /// The calibration screen: each press is averaged over while it lasts, and when the finger
+    /// lifts the next cross comes; after the last one the readings are fitted, and done again if
+    /// they are too far off.
+    fn calibration_touch(&mut self, touch: Touch) -> bool {
+        let Screen::Calibrate(state, _) = &mut self.screen else { return false };
+        match touch {
+            Touch::Press(raw) | Touch::Drag(raw) => {
+                let first = state.sum.2 == 0;
+                state.sum = (state.sum.0 + raw.x, state.sum.1 + raw.y, state.sum.2 + 1);
+                first
+            }
+            Touch::Release => {
+                let (x, y, count) = std::mem::take(&mut state.sum);
+                if count == 0 {
+                    return false;
+                }
+                state.readings.push(Point::new(x / count, y / count));
+                if state.readings.len() < touch::TARGETS.len() {
+                    return true;
+                }
+                let pairs: Vec<(Point, Point)> = state.readings.iter().copied().zip(touch::TARGETS).collect();
+                match Calibration::fit(&pairs) {
+                    Some((calibration, error)) if error <= touch::CALIBRATION_ERROR => {
+                        self.calibration = calibration;
+                        self.calibrated = Some(calibration);
+                        let Screen::Calibrate(_, back) = std::mem::replace(&mut self.screen, Screen::Calc) else {
+                            return true;
+                        };
+                        self.screen = *back;
+                    }
+                    _ => *state = Calibrating { retry: true, ..Calibrating::default() },
+                }
+                true
+            }
+        }
+    }
+
+    fn tap(&mut self, target: Target) {
+        match target {
+            Target::Back if matches!(self.screen, Screen::Modes { .. }) => self.key(Key::Ac),
+            Target::Back => self.key(Key::Left),
+            Target::Ok | Target::Anywhere => self.key(Key::Ok),
+            Target::Button(Button::Menu) => self.key(Key::Mode),
+            Target::Button(Button::Setup) => self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
+            Target::Button(Button::Optn) => self.key(Key::Optn),
+            Target::Tile(index) => self.choose(index),
+            Target::Page(page) => self.show_page(page),
+            Target::Line(_) | Target::Step(_) => {
+                let Screen::Menu(mut menu) = std::mem::replace(&mut self.screen, Screen::Calc) else { return };
+                let outcome = match target {
+                    Target::Line(offset) => menu.tap(offset, &mut self.settings),
+                    Target::Step(delta) => {
+                        menu.step(delta, &self.settings);
+                        Outcome::Stay
+                    }
+                    _ => Outcome::Stay,
+                };
+                self.outcome(menu, outcome);
+            }
+        }
+    }
+
+    /// The mode menu on the first tile of `page`, if there is one.
+    fn show_page(&mut self, page: usize) {
+        let selected = page * TILES_PER_PAGE;
+        if matches!(self.screen, Screen::Modes { .. }) && selected < Mode::ALL.len() {
+            self.screen = Screen::Modes { selected };
+        }
+    }
+
+    /// Does what the open menu asks for after a key or a tap, and puts it back on the screen
+    /// unless it closed.
+    fn outcome(&mut self, mut menu: Menu, outcome: Outcome) {
+        match outcome {
+            Outcome::Stay => {}
+            Outcome::Close => {
+                self.preview = None;
+                return;
+            }
+            Outcome::Insert(latex) => return self.insert(latex),
+            Outcome::Act(Action::Calibrate) => {
+                self.screen = Screen::Menu(menu);
+                return self.calibrate();
+            }
+            Outcome::Act(action) => self.act(action),
+            Outcome::Pictures(label) => self.open_pictures(&mut menu, label),
+            Outcome::Preview(index) => {
+                let picture = self.picture(&menu, index);
+                self.preview = Some((index, picture));
+            }
+            Outcome::Keep(index) => self.keep_picture(&mut menu, index),
+            Outcome::Restore => self.preview = None,
+        }
+        self.screen = Screen::Menu(menu);
     }
 
     /// Does what a menu entry asks for.
@@ -242,6 +436,8 @@ impl<B: Backend> App<B> {
                 self.reset();
             }
             Action::ClearInput => self.reset(),
+            // Opened by `outcome`, which knows the menu to come back to.
+            Action::Calibrate => {}
         }
     }
 

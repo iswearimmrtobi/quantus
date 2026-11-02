@@ -1,6 +1,9 @@
 //! The 3.5" RPi display (Waveshare (A) layout): an ILI9486 behind shift registers that turn SPI
 //! into a 16-bit bus. Every command and parameter goes out as a 16-bit word, pixels as RGB565
 //! words, and every transfer must be a whole number of words. The display cannot be read back.
+//! Its touch controller sits on the same bus with its own chip select.
+
+use std::rc::Rc;
 
 use embedded_graphics::pixelcolor::raw::ToBytes;
 use embedded_graphics::pixelcolor::Rgb565;
@@ -17,31 +20,45 @@ use quantus_ui::render::{HEIGHT, WIDTH};
 /// the display's shift registers take cleanly; 40 MHz (80/2) garbles the picture.
 pub const SPI_MHZ: u32 = quantus_mirror::number(option_env!("QUANTUS_SPI_MHZ"), 27);
 
-/// The display on VSPI of a WROOM (see the README for the wiring), from the fields of a
-/// `Peripherals`, which stays usable for the other pins. Panics if a driver cannot be set up.
+/// The touch controller's clock: the XPT2046 takes up to about 2 MHz, but on jumper wires
+/// 1 MHz reads cleaner.
+pub const TOUCH_MHZ: u32 = 1;
+
+/// A device on the shared bus.
+pub type Bus<'d> = SpiDeviceDriver<'d, Rc<SpiDriver<'d>>>;
+
+/// The display and its touch controller on VSPI of a WROOM (see the README for the wiring), from
+/// the fields of a `Peripherals`, which stays usable for the other pins: `(display, touch)`.
+/// Keep the touch device even when it is not read: dropping it gives up its chip select, and
+/// the controller may then talk over the display. Panics if a driver cannot be set up.
 macro_rules! open_display {
     ($peripherals:ident) => {{
         use esp_idf_svc::hal::gpio::PinDriver;
         use esp_idf_svc::hal::spi::config::{Config, DriverConfig};
-        use esp_idf_svc::hal::spi::{Dma, SpiDeviceDriver};
+        use esp_idf_svc::hal::spi::{Dma, SpiDeviceDriver, SpiDriver};
         use esp_idf_svc::hal::units::FromValueType;
         let bus = DriverConfig::new().dma(Dma::Auto(4096));
+        let driver = std::rc::Rc::new(
+            SpiDriver::new(
+                $peripherals.spi3,
+                $peripherals.pins.gpio18,       // SCLK
+                $peripherals.pins.gpio23,       // MOSI
+                Some($peripherals.pins.gpio19), // MISO, for the touch controller
+                &bus,
+            )
+            .expect("spi"),
+        );
+        // The touch controller first: adding it drives its chip select high before the display
+        // is reset.
+        let config = Config::new().baudrate(display::TOUCH_MHZ.MHz().into());
+        let touch = SpiDeviceDriver::new(std::rc::Rc::clone(&driver), Some($peripherals.pins.gpio4), &config)
+            .expect("TP_CS");
         // Two transfers in flight: one sent by DMA while the next is filled.
         let config = Config::new().baudrate(display::SPI_MHZ.MHz().into()).queue_size(2);
-        let spi = SpiDeviceDriver::new_single(
-            $peripherals.spi3,
-            $peripherals.pins.gpio18,       // SCLK
-            $peripherals.pins.gpio23,       // MOSI
-            Some($peripherals.pins.gpio19), // MISO, for the touch controller later
-            Some($peripherals.pins.gpio5),  // LCD_CS
-            &bus,
-            &config,
-        )
-        .expect("spi");
+        let spi = SpiDeviceDriver::new(driver, Some($peripherals.pins.gpio5), &config).expect("LCD_CS");
         let dc = PinDriver::output($peripherals.pins.gpio21).expect("LCD_RS");
         let reset = PinDriver::output($peripherals.pins.gpio22).expect("RST");
-        let touch_cs = PinDriver::output($peripherals.pins.gpio4).expect("TP_CS");
-        display::Display::new(spi, dc, reset, touch_cs).expect("display")
+        (display::Display::new(spi, dc, reset).expect("display"), touch)
     }};
 }
 
@@ -68,14 +85,12 @@ const INIT: &[(u8, &[u8], u32)] = &[
 const CHUNK: usize = 4096;
 
 pub struct Display<'d> {
-    spi: SpiDeviceDriver<'d, SpiDriver<'d>>,
+    spi: Bus<'d>,
     /// Low for a command, high for data.
     dc: PinDriver<'d, Output>,
     /// Kept so the pin stays driven high: dropping a `PinDriver` resets the GPIO to a floating
     /// input, and the panel then resets itself at random and turns white.
     _reset: PinDriver<'d, Output>,
-    /// The touch controller shares the bus and must stay deselected; kept for the same reason.
-    _touch_cs: PinDriver<'d, Output>,
     /// Two buffers of pixel bytes: DMA sends one while the other is filled.
     buffers: [Vec<u8>; 2],
     /// The transfers of the buffers, boxed so they stay put while queued.
@@ -85,12 +100,10 @@ pub struct Display<'d> {
 impl<'d> Display<'d> {
     /// Resets the display and sends the init sequence.
     pub fn new(
-        spi: SpiDeviceDriver<'d, SpiDriver<'d>>,
+        spi: Bus<'d>,
         dc: PinDriver<'d, Output>,
         mut reset: PinDriver<'d, Output>,
-        mut touch_cs: PinDriver<'d, Output>,
     ) -> Result<Self, EspError> {
-        touch_cs.set_high()?;
         reset.set_low()?;
         FreeRtos::delay_ms(10);
         reset.set_high()?;
@@ -99,7 +112,6 @@ impl<'d> Display<'d> {
             spi,
             dc,
             _reset: reset,
-            _touch_cs: touch_cs,
             buffers: [Vec::with_capacity(CHUNK), Vec::with_capacity(CHUNK)],
             transfers: Box::new([sys::spi_transaction_t::default(); 2]),
         };

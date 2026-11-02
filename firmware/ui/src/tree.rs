@@ -156,6 +156,7 @@ static DEVICE: Page = Page {
             Kind::Choice(S::AutoOff, &[opt(same("10 min"), 10), opt(same("60 min"), 60)]),
         ),
         entry(t("Zurücksetzen", "Reset"), Kind::Page(&RESET)),
+        entry(t("Touch kalibrieren", "Calibrate touch"), Kind::Do(Action::Calibrate)),
     ],
 };
 

@@ -3,14 +3,15 @@
 //! number typed with the digit keys. The tree itself is in [`crate::tree`].
 //!
 //! Keys: a digit picks the numbered entry of the page, ↑/↓ move, OK/EXE/→ open, ← or DEL go
-//! back one level, AC closes the menu.
+//! back one level, AC closes the menu. Touch: a tap opens a line, a drag pages ([`Menu::tap`],
+//! [`Menu::page`], [`Menu::step`]).
 
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
 use crate::text::{self, Lang, Text};
 
-/// Entries per page on the screen.
-pub const ROWS: usize = 6;
+/// Entries per page on the screen: few enough that a line is easy to hit with a finger.
+pub const ROWS: usize = 5;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Page {
@@ -72,6 +73,8 @@ pub enum Action {
     ResetAll,
     /// The input cleared.
     ClearInput,
+    /// The touch calibration screen.
+    Calibrate,
 }
 
 /// Values a menu shows but cannot change.
@@ -186,6 +189,87 @@ impl Menu {
         };
         self.select(selected);
         Outcome::Stay
+    }
+
+    /// A tap on the line `offset` of the list on the screen: opens or chooses it, as OK does.
+    /// On the wallpapers a tap on another line only shows it, a second one keeps it.
+    pub fn tap(&mut self, offset: usize, settings: &mut Settings) -> Outcome {
+        if matches!(self.edit, Some(Edit::Confirm { .. })) {
+            return if offset == 0 { self.key(Key::Ok, settings) } else { Outcome::Stay };
+        }
+        let pictures = matches!(self.edit, Some(Edit::Pictures { .. }));
+        let Some((selected, count)) = self.list_mut() else { return Outcome::Stay };
+        let index = *selected / ROWS * ROWS + offset;
+        if offset >= ROWS || index >= count {
+            return Outcome::Stay;
+        }
+        let again = *selected == index;
+        *selected = index;
+        if pictures && !again {
+            return Outcome::Preview(index);
+        }
+        self.key(Key::Ok, settings)
+    }
+
+    /// The next page of the list on the screen, or the one before, on its first line.
+    pub fn page(&mut self, forward: bool) -> Outcome {
+        let pictures = matches!(self.edit, Some(Edit::Pictures { .. }));
+        let Some((selected, count)) = self.list_mut() else { return Outcome::Stay };
+        let first = *selected / ROWS * ROWS;
+        let first = match forward {
+            true => first + ROWS,
+            false => match first.checked_sub(ROWS) {
+                Some(first) => first,
+                None => return Outcome::Stay,
+            },
+        };
+        if first >= count {
+            return Outcome::Stay;
+        }
+        *selected = first;
+        if pictures {
+            Outcome::Preview(first)
+        } else {
+            Outcome::Stay
+        }
+    }
+
+    /// Steps the number being entered by `delta`, from the value set now if nothing is typed,
+    /// kept in its range; OK sets it.
+    pub fn step(&mut self, delta: i32, settings: &Settings) {
+        let Some(Edit::Number { setting, min, max, typed, error, .. }) = &mut self.edit else { return };
+        let now = typed.parse::<i32>().unwrap_or_else(|_| settings.get(*setting));
+        *typed = now.saturating_add(delta).clamp(*min, *max).to_string();
+        *error = false;
+    }
+
+    /// The cursor and the length of the list on the screen, if a list is.
+    pub fn list(&self) -> Option<(usize, usize)> {
+        match &self.edit {
+            None => Some((self.level().selected, self.level().page.entries.len())),
+            Some(Edit::Choice { entry, selected }) => match &entry.kind {
+                Kind::Choice(_, opts) => Some((*selected, opts.len())),
+                _ => None,
+            },
+            Some(Edit::Pictures { names, selected, .. }) => Some((*selected, names.len() + 1)),
+            _ => None,
+        }
+    }
+
+    /// [`Menu::list`], to move the cursor.
+    fn list_mut(&mut self) -> Option<(&mut usize, usize)> {
+        match &mut self.edit {
+            None => {
+                let level = self.stack.last_mut()?;
+                Some((&mut level.selected, level.page.entries.len()))
+            }
+            Some(Edit::Choice { entry, selected }) => {
+                let Kind::Choice(_, opts) = &entry.kind else { return None };
+                Some((selected, opts.len()))
+            }
+            Some(Edit::Pictures { names, selected, .. }) => Some((selected, names.len() + 1)),
+            _ => None,
+        }
     }
 
     fn select(&mut self, selected: usize) {

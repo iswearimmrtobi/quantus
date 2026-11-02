@@ -1,8 +1,10 @@
 //! The handheld's firmware on a classic ESP32 with the 3.5" ILI9486 display, until the ESP32-P4
-//! arrives: the UI of `quantus-ui` with a stub instead of the engine. See the README.
+//! arrives: the UI of `quantus-ui` with a stub instead of the engine, keys from the serial
+//! monitor and the display's touch panel. See the README.
 
 #[macro_use]
 mod display;
+mod touch;
 
 use std::io::Read;
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
@@ -21,6 +23,11 @@ use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
 
 use display::Display;
+use quantus_ui::touch::Touch;
+use touch::{Store, TouchPanel};
+
+/// Prints the touch controller's raw state four times a second (`QUANTUS_TOUCH_DEBUG=1`).
+const DEBUG_TOUCH: bool = option_env!("QUANTUS_TOUCH_DEBUG").is_some();
 
 fn main() {
     sys::link_patches();
@@ -28,30 +35,57 @@ fn main() {
     let start = Instant::now();
 
     let peripherals = Peripherals::take().expect("peripherals");
-    let mut display = open_display!(peripherals);
+    let (mut display, touch) = open_display!(peripherals);
+    let mut touch = TouchPanel::new(touch);
     println!("display ready after {} ms", start.elapsed().as_millis());
 
     test_pattern(&mut display);
     FreeRtos::delay_ms(1500);
 
     let mut app = App::new(Logged(Stub));
+    // The touch calibration from flash; without one, the calibration screen comes first.
+    let store = Store::open().map_err(|error| log::warn!("no NVS for the touch calibration: {error}")).ok();
+    match store.as_ref().and_then(Store::load) {
+        Some(calibration) => app.calibration = calibration,
+        None => app.calibrate(),
+    }
     let mut renderer = Renderer::new();
     let drawn = Instant::now();
     let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
     println!("first frame: {bands} bands in {} ms, {} ms after boot", drawn.elapsed().as_millis(), start.elapsed().as_millis());
-    println!("Type keys here; the README lists them.");
+    println!("Type keys here, or touch the screen; the README lists them.");
 
     let (keys, received) = mpsc::channel();
     std::thread::Builder::new().stack_size(8 * 1024).spawn(move || read_keys(keys)).expect("key thread");
+    let mut last_debug = Instant::now();
     loop {
-        let changed = match received.recv_timeout(Duration::from_millis(50)) {
+        // Short enough that the touch panel follows a finger.
+        let mut changed = match received.recv_timeout(Duration::from_millis(20)) {
             Ok(key) => {
                 app.key(key);
                 true
             }
-            Err(RecvTimeoutError::Timeout) => app.tick(start.elapsed().as_millis() as u64),
+            Err(RecvTimeoutError::Timeout) => false,
             Err(RecvTimeoutError::Disconnected) => return,
         };
+        if DEBUG_TOUCH && last_debug.elapsed() >= Duration::from_millis(250) {
+            last_debug = Instant::now();
+            touch.debug();
+        }
+        if let Some(report) = touch.poll() {
+            if let Touch::Press(raw) = report {
+                let at = app.calibration.map(raw);
+                log::info!("touch: raw x {}, y {} at {}, {}", raw.x, raw.y, at.x, at.y);
+            }
+            changed |= app.touch(report);
+        }
+        if let Some(calibration) = app.take_calibration() {
+            match store.as_ref().map(|store| store.save(&calibration)) {
+                Some(Ok(())) => println!("touch calibration saved: {:?}", calibration.0),
+                _ => println!("touch calibration in use, but not saved"),
+            }
+        }
+        changed |= app.tick(start.elapsed().as_millis() as u64);
         if changed {
             let drawn = Instant::now();
             let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");

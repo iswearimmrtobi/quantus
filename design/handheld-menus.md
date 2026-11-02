@@ -79,6 +79,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [ ] Clock: NTP or by hand, time zone
 - [ ] Firmware update: search and install over WLAN, receive an image from the desktop
 - [ ] Measure deep sleep on the real board (section 6)
+- [ ] Touch: the test buttons go once the keypad exists (section 7.7)
 
 ### Desktop UI (`desktop/`)
 
@@ -725,6 +726,33 @@ well, where text stands on it. Over a picture, the tiles and menu lines are glas
 200 of 256 of their colour), so it shows through. The renderer starts each band from the
 picture's rows instead of the background colour; a still picture changes no band, so it costs
 no transfers. The two copies take 600 KB, which goes in the P4's PSRAM.
+
+### 7.7 Touch
+
+Every menu works with the finger alone, with no keyboard on the screen (`firmware/ui/src/touch.rs`).
+A tap does what the key for its target does, so the menus keep one logic:
+
+- what the finger comes down on lights up at once;
+- a tap on a line opens or chooses it, like its digit; a tap on a mode tile picks it, also tiles
+  10–12;
+- ‹ at the left of the top bar (a tap anywhere on the bar's left half) goes back one level, like
+  ←; at the root it closes the menu;
+- a list follows a dragging finger up and down, with the next page moving in, and turns the
+  page when it is let go after 40 px or more, else springs back; the mode tiles do the same
+  sideways, and a tap on a page dot shows that page. Lists have five lines to a page, 50 px high;
+- a number (significant digits, brightness) is set with − and + and OK under it;
+- on the wallpaper list the first tap on a line shows the picture, a second one keeps it;
+- a message closes with a tap anywhere.
+
+A movement under 20 px is a tap where the finger came down; resistive panels jitter. The hit
+areas come from the same geometry the renderer draws with (`render::target`), a line's with the
+gaps around it. Until the keypad exists, the calculation screen has MENU, SETUP and OPTN buttons
+along the bottom, for testing.
+
+The panel reports raw readings; the hui maps them to the screen with an affine calibration
+(`touch::Calibration`), fitted by least squares to five crosses on the calibration screen
+(SETUP → Gerät → Touch kalibrieren, and at the first start). A fit more than 20 px off at a
+cross is done again. The board keeps it in flash.
 
 ## 8. Where the work goes
 

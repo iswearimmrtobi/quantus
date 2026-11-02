@@ -11,6 +11,7 @@
 //! - `--tour`: plays `quantus_ui::tour` in the window, with a person's pauses between the keys:
 //!   the first wallpaper everywhere, the SETUP pages, the mode tiles, OPTN and some
 //!   calculations. Works with `--mirror`.
+//! - The mouse is the finger: a click taps, a drag moves a list or the mode tiles.
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
 //!   the 480×320 BMP files in its `wallpapers` folder.
 
@@ -23,7 +24,7 @@ use std::time::{Duration, Instant};
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
-use embedded_graphics_simulator::sdl2::{Keycode, Mod};
+use embedded_graphics_simulator::sdl2::{Keycode, Mod, MouseButton};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window};
 use engine::Engine;
 use mirror::{Mirror, Tee};
@@ -31,6 +32,7 @@ use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
+use quantus_ui::touch::Touch;
 
 fn main() {
     let mut display = SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT));
@@ -117,6 +119,14 @@ fn main() {
                         app.key(key);
                         changed = true;
                     }
+                }
+                // The mouse is the finger.
+                SimulatorEvent::MouseButtonDown { mouse_btn: MouseButton::Left, point } => {
+                    changed |= app.touch(Touch::Press(point));
+                }
+                SimulatorEvent::MouseMove { point } => changed |= app.touch(Touch::Drag(point)),
+                SimulatorEvent::MouseButtonUp { mouse_btn: MouseButton::Left, .. } => {
+                    changed |= app.touch(Touch::Release);
                 }
                 _ => {}
             }
@@ -217,6 +227,8 @@ Quantus simulator keys
   ;                    Shift+, (between equations and arguments)
   history              Up/Down outside a fraction
   charging / busy      F9 / F10 (what the board will report)
+  touch                the mouse is the finger: click to tap, drag to scroll; MENU, SETUP and
+                       OPTN are buttons on the screen
   Shifted characters follow a German layout (Shift+7 is /, Shift+0 is =).
 LaTeX: type it here in the terminal and press Enter; it becomes the input and is evaluated.
 ";

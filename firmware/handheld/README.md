@@ -2,9 +2,9 @@
 
 The handheld's UI (`firmware/ui`) on a board with the 3.5" RPi display
 ([calculator-hardware.md](../../design/calculator-hardware.md)). Until the ESP32-P4 arrives it
-runs on a classic ESP32 (WROOM, no PSRAM), with keys typed into the serial monitor and a stub
-instead of the engine: the stub answers with the input itself, and an input with a `?` gives an
-error. Each calculation is also printed over serial, with the LaTeX the editor wrote.
+runs on a classic ESP32 (WROOM, no PSRAM), with keys typed into the serial monitor or the touch
+panel, and a stub instead of the engine: the stub answers with the input itself, and an input
+with a `?` gives an error. Each calculation is also printed over serial, with the LaTeX the editor wrote.
 
 The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 
@@ -18,14 +18,16 @@ The display's Pi header to the WROOM; the pins are constants at the top of `src/
 | MOSI | GPIO 10 (pin 19) | GPIO 23 |
 | MISO | GPIO 9 (pin 21) | GPIO 19 |
 | LCD_CS | GPIO 8 (pin 24) | GPIO 5 |
-| TP_CS | GPIO 7 (pin 26) | GPIO 4, held high |
+| TP_CS | GPIO 7 (pin 26) | GPIO 4 |
 | LCD_RS | GPIO 24 (pin 18) | GPIO 21 |
 | RST | GPIO 25 (pin 22) | GPIO 22 |
 | 5 V | pin 2 | 5 V (VIN) |
 | 3.3 V | pin 1 | 3V3 |
 | GND | pin 6 | GND |
 
-Touch (TP_IRQ) is not used yet.
+The touch controller (XPT2046) shares SCLK, MOSI and MISO with the display and runs at 1 MHz.
+It is polled and a press is told by its pressure, so TP_IRQ is not needed. A loose MISO wire
+shows as readings of 0; the firmware skips them, but touch then feels hesitant.
 
 ## Build and flash
 
@@ -48,6 +50,21 @@ prints when the display was ready and how long the first frame took.
 Type into the serial monitor; the keys are those of the simulator, see its
 [key table](../sim/README.md#keys) (Ctrl+F then Tab for the setup). The arrows work as arrows, Delete clears like AC. Ctrl+C
 and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
+
+## Touch
+
+Every menu works by touch, as in the simulator ([firmware/sim](../sim/README.md)): a tap opens a
+line or picks a tile, ‹ at the left of the top bar goes back, a list follows the finger up and
+down and turns its page when let go, the mode tiles do the same sideways, and a number is set
+with − and + and OK. Until the keypad exists, the calculation screen has MENU, SETUP and
+OPTN buttons along the bottom.
+
+The panel needs calibrating once: at the first start the calibration screen comes up by itself,
+later it is in SETUP → Gerät → Touch kalibrieren. Touch each cross and hold it briefly; if the
+result is more than 20 px off, it starts again. The calibration is kept in flash (NVS) and
+survives flashing new firmware. Each press prints its raw reading and where it landed
+(`touch: raw x …, y … at …`). `QUANTUS_TOUCH_DEBUG=1 cargo run --release` also prints the raw
+readings four times a second, pressed or not.
 
 ## Mirror (testing only)
 

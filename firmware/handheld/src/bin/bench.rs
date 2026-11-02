@@ -31,7 +31,7 @@ const FRAMES: u32 = 30;
 fn main() {
     sys::link_patches();
     let peripherals = Peripherals::take().expect("peripherals");
-    let mut display = open_display!(peripherals);
+    let (mut display, _touch) = open_display!(peripherals);
     println!(
         "bench: SPI asked {} MHz, runs at {} kHz, {}×{} pixels",
         display::SPI_MHZ,
