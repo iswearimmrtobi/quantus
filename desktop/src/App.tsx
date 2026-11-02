@@ -13,14 +13,14 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
-import { LibraryPanel } from './components/LibraryPanel';
+import { LibraryDialog } from './components/LibraryDialog';
 import { SessionsPanel } from './components/SessionsPanel';
 import { ToolDialog, type ToolKind } from './components/ToolDialog';
 import { I18nContext, makeTranslate } from './i18n';
 import type { TextKey } from './i18n/en';
 import { DEFAULT_SETTINGS, modeChoices, Segmented, SettingsDialog } from './components/SettingsDialog';
 
-type Panel = 'history' | 'variables' | 'library' | 'sessions' | null;
+type Panel = 'history' | 'variables' | 'sessions' | null;
 
 const STEP_LABELS: Record<StepKind, TextKey> = {
   symbolic: 'step.symbolic',
@@ -90,6 +90,7 @@ export function App() {
   const [stepsOpen, setStepsOpen] = useState(true);
   const [panel, setPanel] = useState<Panel>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [precision, setPrecision] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -400,7 +401,7 @@ export function App() {
           togglePanel('sessions');
           break;
         case 'toggle-library':
-          togglePanel('library');
+          setLibraryOpen((open) => !open);
           break;
         case 'copy-all':
           if (current) void copy(current.alignBlock, 'all');
@@ -428,6 +429,7 @@ export function App() {
       if (event.key === 'Escape') {
         setPanel(null);
         setSettingsOpen(false);
+        setLibraryOpen(false);
         editor()?.focus();
         return;
       }
@@ -450,7 +452,7 @@ export function App() {
         setSettingsOpen((open) => !open);
       } else if (key === 'k') {
         event.preventDefault();
-        togglePanel('library');
+        setLibraryOpen((open) => !open);
       } else if (key === 'o') {
         event.preventDefault();
         togglePanel('sessions');
@@ -780,9 +782,9 @@ export function App() {
           </svg>
         </button>
         <button
-          className={panel === 'library' ? 'rail-btn active' : 'rail-btn'}
+          className={libraryOpen ? 'rail-btn active' : 'rail-btn'}
           title={`${t('library')} (${ctrl}+K)`}
-          onClick={() => togglePanel('library')}
+          onClick={() => setLibraryOpen((open) => !open)}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
             <path d="M5 4.5h4v15H5zM10.5 4.5h4v15h-4z" />
@@ -825,12 +827,6 @@ export function App() {
             onClick={() => setPanel('variables')}
           >
             {t('variables')}
-          </button>
-          <button
-            className={panel === 'library' ? 'panel-tab active' : 'panel-tab'}
-            onClick={() => setPanel('library')}
-          >
-            {t('library')}
           </button>
           <button
             className={panel === 'sessions' ? 'panel-tab active' : 'panel-tab'}
@@ -897,8 +893,6 @@ export function App() {
               ))
             ))}
 
-          {panel === 'library' && <LibraryPanel onInsert={insert} unitsKnown={UNIT_MODES.includes(settings.mode)} />}
-
           {panel === 'sessions' && (
             <SessionsPanel
               sessions={sessions}
@@ -929,6 +923,21 @@ export function App() {
           onChange={(next) => void changeSettings(next)}
           onClose={() => {
             setSettingsOpen(false);
+            editor()?.focus();
+          }}
+        />
+      )}
+
+      {libraryOpen && (
+        <LibraryDialog
+          unitsKnown={UNIT_MODES.includes(settings.mode)}
+          onInsert={(latex, keepOpen) => {
+            if (!keepOpen) setLibraryOpen(false);
+            insert(latex);
+            if (!keepOpen) editor()?.focus();
+          }}
+          onClose={() => {
+            setLibraryOpen(false);
             editor()?.focus();
           }}
         />

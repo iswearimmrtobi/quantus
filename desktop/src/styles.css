@@ -1102,6 +1102,88 @@ select option {
   background: var(--surface-hover);
 }
 
+/* The library as a window: the body scrolls under a filter that stays put. */
+.library-dialog .settings-body {
+  grid-row: 2 / 4;
+  padding: 0 14px 14px;
+}
+.library-dialog .library-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 4px 6px;
+  background: var(--surface);
+}
+.library-constants {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.library-unit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.library-unit-name {
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+/* A hit of the search, in the library and in the quick search. */
+.hits {
+  display: flex;
+  flex-direction: column;
+}
+.hit {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  border-radius: var(--radius);
+}
+.hit:hover,
+.hit.selected {
+  background: var(--surface-hover);
+}
+.hit.selected {
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+.hit-symbol {
+  grid-row: 1 / 3;
+  align-self: center;
+  overflow: hidden;
+}
+.hit-symbol .katex {
+  color: var(--cyan);
+  font-size: 14px;
+}
+.hit-name {
+  color: var(--text);
+  font-size: 12px;
+}
+.hit-kind {
+  grid-row: 1 / 3;
+  grid-column: 3;
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.hit-detail {
+  grid-column: 2;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+.hit-detail .katex {
+  font-size: 10.5px;
+}
+
 /* ---------- Sessions ---------- */
 
 .sessions {
