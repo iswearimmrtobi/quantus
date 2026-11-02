@@ -153,8 +153,10 @@ A formula that is not in the list starts with *It holds:* instead.
 
 **Copy as LaTeX** copies the whole writeup. It compiles in any document that loads `amsmath`.
 **Copy as Markdown** uses simpler LaTeX for notes that render math, such as Obsidian, GitHub or
-Typora. Given and wanted become a table, and each equation is its own `$$…$$` formula. It has no
-`align*` and no `\left( \right)`.
+Typora. Given and wanted become a table. Each solution block is one `$$…$$` formula with an
+`aligned` environment, so the equations line up at their `=`, and the sentences are `\text`
+rows. It has no `align*` and no `\left( \right)`. In both copies the result is underlined
+twice, as in the window.
 The unit check always uses SI units, even when the values have prefixes such as kV or mA.
 
 ## See also

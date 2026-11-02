@@ -127,9 +127,9 @@ impl Writeup {
             let mut rows = Vec::new();
             for line in &block.lines {
                 if let Some(text) = &line.text {
-                    rows.push(format!("\\intertext{{{text}}}"));
+                    rows.push(format!("\\intertext{{{}}}", sentence(text, &block.target, text_mode, "$")));
                 }
-                rows.push(aligned(&line.latex));
+                rows.push(row(line));
             }
             // `\intertext` comes after a `\\`, so every equation but the last ends a row.
             let mut body = String::new();
@@ -151,7 +151,7 @@ impl Writeup {
 impl Writeup {
     /// The writeup as Markdown, for notes and chats that render `$…$` and `$$…$$` with KaTeX or
     /// MathJax (GitHub, Obsidian, Typora …). It uses no environments: given and wanted are a
-    /// table, each equation is a display formula of its own, sentences are plain text, and
+    /// table, each block is one `aligned` formula with its sentences as `\text` rows, and
     /// `\left( \right)` become plain brackets.
     pub fn to_markdown(&self) -> String {
         let given_title = msg!("Given:", "Gegeben:");
@@ -163,21 +163,62 @@ impl Writeup {
             markdown.push_str(&format!("| {} | {} |\n", cell(&self.given, i), cell(&self.wanted, i)));
         }
         markdown.push_str(&format!("\n**{}**\n", msg!("Solution:", "Lösung:")));
+        // One `aligned` per block, so the equations stand under each other at their `=`;
+        // Markdown renderers know no `\intertext`, so the sentences are `\text` rows.
         for block in &self.blocks {
+            let mut rows = Vec::new();
             for line in &block.lines {
                 if let Some(text) = &line.text {
-                    markdown.push_str(&format!("\n{text}\n"));
+                    rows.push(format!("&{}", sentence(text, &block.target, |t| format!("\\text{{{}}}", text_mode(t)), "")));
                 }
-                markdown.push_str(&format!("\n$${}$$\n", simple(&line.latex)));
+                rows.push(simple(&row(line)));
             }
+            markdown.push_str(&format!("\n$$\n\\begin{{aligned}}\n{}\n\\end{{aligned}}\n$$\n", rows.join(" \\\\\n")));
         }
         markdown
     }
 }
 
-/// LaTeX that every Markdown math renderer reads: no `\left`, `\right`.
+/// LaTeX that every Markdown math renderer reads: no `\left`, `\right`. A `[` at the start of
+/// a row would be taken for the spacing of `\\[…]`, so square brackets are spelled out.
 fn simple(latex: &str) -> String {
-    latex.replace("\\left(", "(").replace("\\right)", ")").replace("\\left[", "[").replace("\\right]", "]")
+    latex
+        .replace("\\left(", "(")
+        .replace("\\right)", ")")
+        .replace("\\left[", "\\lbrack ")
+        .replace("\\right]", "\\rbrack ")
+}
+
+/// A sentence with the block's quantity in it as math: "Umgestellt nach $R_{1}$:". `text`
+/// wraps the plain parts, `dollar` marks the math (empty inside a formula).
+fn sentence(text: &str, target: &str, wrap: impl Fn(&str) -> String, dollar: &str) -> String {
+    let name = plain(target);
+    match text.split_once(&format!(" {name}:")) {
+        Some((before, after)) => format!("{}{dollar}{target}{dollar}{}", wrap(&format!("{before} ")), wrap(&format!(":{after}"))),
+        None => wrap(text),
+    }
+}
+
+/// A line as a row aligned at its first `=`; the result underlined twice, as on paper.
+fn row(line: &Line) -> String {
+    match (line.kind, line.latex.split_once(" = ")) {
+        (LineKind::Result, Some((name, value))) => {
+            // The name as deep as the value, so both lines run straight under a fraction too.
+            format!("\\underline{{\\underline{{{name}\\vphantom{{{value}}}}}}} &\\underline{{\\underline{{{{}} = {value}}}}}")
+        }
+        _ => aligned(&line.latex),
+    }
+}
+
+/// A sentence inside `\text{}`, where `_` and the like need a backslash: `R_1` is `R\_1`.
+fn text_mode(text: &str) -> String {
+    text.chars().fold(String::new(), |mut out, c| {
+        if matches!(c, '_' | '#' | '%' | '&' | '$' | '{' | '}') {
+            out.push('\\');
+        }
+        out.push(c);
+        out
+    })
 }
 
 /// An equation aligned at its first `=`.

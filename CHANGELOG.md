@@ -24,7 +24,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     Ohm'schen Gesetz gilt …"), the rearrangement, the values put in, the result and a unit
     check. Values used twice are given once, and results used by a later line are intermediate
     steps. **Copy as LaTeX** puts it on the clipboard for amsmath, **Copy as Markdown** with
-    simpler LaTeX in `$…$` and `$$…$$` for notes such as Obsidian or GitHub.
+    simpler LaTeX (one `aligned` formula per block) for notes such as Obsidian or GitHub. The
+    result is underlined twice in both.
   - **CALC** and **SOLVE** in the input's context menu and the Calculation menu.
   - **Sessions**: each saved as a file in the config directory after every change, with its
     variables, history and linear system; a session panel (Ctrl+O) to open, create, rename,
