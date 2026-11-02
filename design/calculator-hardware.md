@@ -43,6 +43,8 @@ long battery life second. Later, and optional: hand calculations that take longe
   own chip select, at most ~2 MHz. Polled only while `TP_IRQ` is low. Needs a one-time
   calibration. The product uses what the chosen panel brings: the same chip on our PCB for a
   resistive panel, or a capacitive controller on I²C.
+- **Dev board**: until our PCB exists, a Waveshare ESP32-P4-Module-DEV-KIT; its pinout and the
+  display's pins on it are in [esp32-p4-dev-kit.md](esp32-p4-dev-kit.md).
 - **Display pins, prototype** (Waveshare (A) layout, to verify on the board):
 
   | Signal | Pi header | Purpose |
