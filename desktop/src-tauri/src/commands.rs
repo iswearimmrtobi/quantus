@@ -250,6 +250,13 @@ pub fn conversion_units(engine: State<Engine>) -> Vec<UnitCategory> {
     api::conversion_units(settings.language)
 }
 
+/// The constants and units that fit a quick-search query, best first.
+#[tauri::command]
+pub fn search_library(engine: State<Engine>, request: api::LibrarySearchRequest) -> Vec<api::LibraryHit> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::search_library(settings.language, &request)
+}
+
 /// The letters of an input that have no value yet (CALC).
 #[tauri::command]
 pub fn free_variables(engine: State<Engine>, request: CalculationRequest) -> Result<Vec<FreeVariable>, ApiError> {

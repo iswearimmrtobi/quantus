@@ -102,6 +102,15 @@ export interface UnitInfo {
   name: string;
 }
 
+/** A hit of the quick search: a unit goes in after `\blacktriangleright`, a constant as it is. */
+export interface LibraryHit {
+  kind: 'constant' | 'unit';
+  latex: string;
+  name: string;
+  /** The value with unit for a constant, the category for a unit. */
+  detail: string;
+}
+
 /** A session as the session menu lists it; times are UTC milliseconds. */
 export interface SessionInfo {
   id: string;
@@ -520,6 +529,9 @@ export const api = {
 
   /** The units `\blacktriangleright` can convert to, by category. */
   conversionUnits: () => call<UnitCategory[]>('conversion_units'),
+
+  /** Constants and units that fit `query`, best first. */
+  searchLibrary: (query: string, limit?: number) => call<LibraryHit[]>('search_library', { request: { query, limit } }),
 
   sessions: () => call<SessionInfo[]>('list_sessions'),
 

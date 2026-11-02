@@ -381,6 +381,23 @@ pub fn conversion_units(language: crate::settings::Language) -> Vec<UnitCategory
     crate::units::catalogue::catalogue(language)
 }
 
+pub use crate::library_search::{HitKind, LibraryHit};
+
+/// A quick search over the constants and conversion units.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LibrarySearchRequest {
+    pub query: String,
+    /// At most this many hits; 8 when left out.
+    #[serde(default)]
+    pub limit: Option<usize>,
+}
+
+/// The constants and units that fit a query, best first, named in `language`.
+pub fn search_library(language: crate::settings::Language, request: &LibrarySearchRequest) -> Vec<LibraryHit> {
+    crate::library_search::search(&request.query, language, request.limit.unwrap_or(8))
+}
+
 pub use crate::session::{HistoryEntry, ModeInputs, SessionFile};
 
 /// A session as a menu lists it.
