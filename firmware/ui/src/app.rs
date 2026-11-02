@@ -105,6 +105,14 @@ pub struct Entry {
     pub decimal: bool,
 }
 
+/// A calculation the backend is still working on, and where its answer goes.
+enum Pending {
+    /// A new entry for this input, written as a decimal or not.
+    New { input: Row, decimal: bool },
+    /// The other form of the entry at this place in the history (oldest first).
+    Swap { index: usize, decimal: bool },
+}
+
 /// How long the caret stays on and off.
 const BLINK_MS: u64 = 500;
 
@@ -134,8 +142,9 @@ pub struct App<B> {
     pub battery: Option<u8>,
     /// Whether the battery is charging, set by the board while USB power is in.
     pub charging: bool,
-    /// Whether a calculation is running elsewhere (the remote engine over WLAN): a spinner turns
-    /// in the top bar. Set by whoever sends the request.
+    /// Whether a calculation is running: a spinner turns in the top bar. Set while the backend
+    /// works on an answer (the engine on its own thread), and by the board for a calculation
+    /// elsewhere (the remote engine over WLAN).
     pub busy: bool,
     /// The spinner's step, 0 to 7.
     pub spin: u8,
@@ -151,6 +160,8 @@ pub struct App<B> {
     pub calibration: Calibration,
     /// A calibration just made, for the board to store.
     calibrated: Option<Calibration>,
+    /// The calculation the backend is working on.
+    pending: Option<Pending>,
     touch: Tracker,
     /// What the finger is on, lit until it lifts or drags.
     pressed: Option<Target>,
@@ -215,6 +226,7 @@ impl<B: Backend> App<B> {
             preview: None,
             calibration: Calibration::default(),
             calibrated: None,
+            pending: None,
             touch: Tracker::default(),
             pressed: None,
             last_blink: 0,
@@ -222,9 +234,16 @@ impl<B: Backend> App<B> {
         }
     }
 
-    /// Blinks the caret and turns the spinner while busy; returns whether the screen changed.
+    /// Takes an answer the backend has finished, blinks the caret and turns the spinner while
+    /// busy; returns whether the screen changed.
     pub fn tick(&mut self, now_ms: u64) -> bool {
         let mut changed = false;
+        if self.pending.is_some() {
+            if let Some(result) = self.backend.poll() {
+                self.finish(result);
+                changed = true;
+            }
+        }
         if self.busy && now_ms.saturating_sub(self.last_spin) >= SPIN_MS {
             self.last_spin = now_ms;
             self.spin = (self.spin + 1) % 8;
@@ -428,10 +447,12 @@ impl<B: Backend> App<B> {
         match action {
             Action::ResetSettings => self.settings = Settings::default(),
             Action::ResetMemory => {
+                self.cancel();
                 self.history.clear();
                 self.reset();
             }
             Action::ResetAll => {
+                self.cancel();
                 self.settings = Settings::default();
                 self.history.clear();
                 self.reset();
@@ -483,6 +504,10 @@ impl<B: Backend> App<B> {
 
     /// Puts LaTeX from a menu into the input, as if typed: a shown result is left first.
     fn insert(&mut self, latex: &str) {
+        // The input is kept as it was sent until the answer comes.
+        if self.pending.is_some() {
+            return;
+        }
         if self.shown.is_some() {
             self.reset();
         }
@@ -502,6 +527,13 @@ impl<B: Backend> App<B> {
             Key::Mode => return self.screen = Screen::Modes { selected: self.mode.index() },
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             _ => {}
+        }
+        // While the backend calculates, AC drops its answer and the other keys wait.
+        if self.pending.is_some() {
+            if key == Key::Ac {
+                self.cancel();
+            }
+            return;
         }
         if self.shown.is_some() && !self.leave_result(key) {
             return;
@@ -654,31 +686,61 @@ impl<B: Backend> App<B> {
         let index = self.history.len() - 1 - shown;
         let entry = &self.history[index];
         let settings = Settings { decimal: !entry.decimal, ..self.settings };
-        let result = self.backend.evaluate(self.mode, &settings, &entry.input.to_latex());
-        let entry = &mut self.history[index];
-        entry.result = result.map(|latex| latex::parse(&latex));
-        entry.decimal = settings.decimal;
+        let latex = entry.input.to_latex();
+        self.start(Pending::Swap { index, decimal: settings.decimal }, &settings, &latex);
     }
 
     fn evaluate(&mut self) {
         if self.editor.is_empty() {
             return;
         }
-        let result = if self.mode.engine() {
-            self.backend.evaluate(self.mode, &self.settings, &self.editor.to_latex())
+        let pending = Pending::New { input: self.editor.row.clone(), decimal: self.settings.decimal };
+        if self.mode.engine() {
+            let settings = self.settings;
+            self.start(pending, &settings, &self.editor.to_latex());
         } else {
-            Err(text::NOT_AVAILABLE.get(self.settings.language).to_string())
-        };
-        let input = self.editor.row.clone();
-        self.history.push(Entry {
-            input: input.clone(),
-            result: result.map(|latex| latex::parse(&latex)),
-            decimal: self.settings.decimal,
-        });
-        if self.history.len() > HISTORY {
-            self.history.remove(0);
+            self.pending = Some(pending);
+            self.finish(Err(text::NOT_AVAILABLE.get(self.settings.language).to_string()));
         }
-        self.editor.set(input);
-        self.shown = Some(0);
+    }
+
+    /// Asks the backend; the answer goes where `pending` says, now or when `tick` gets it.
+    fn start(&mut self, pending: Pending, settings: &Settings, latex: &str) {
+        self.pending = Some(pending);
+        match self.backend.start(self.mode, settings, latex) {
+            Some(result) => self.finish(result),
+            None => self.busy = true,
+        }
+    }
+
+    /// Writes the answer to the pending calculation into the history and shows it.
+    fn finish(&mut self, result: Result<String, String>) {
+        self.busy = false;
+        let result = result.map(|latex| latex::parse(&latex));
+        match self.pending.take() {
+            Some(Pending::New { input, decimal }) => {
+                self.history.push(Entry { input: input.clone(), result, decimal });
+                if self.history.len() > HISTORY {
+                    self.history.remove(0);
+                }
+                self.editor.set(input);
+                self.shown = Some(0);
+            }
+            Some(Pending::Swap { index, decimal }) => {
+                if let Some(entry) = self.history.get_mut(index) {
+                    entry.result = result;
+                    entry.decimal = decimal;
+                }
+            }
+            None => {}
+        }
+    }
+
+    /// Drops the pending calculation: its answer never shows, the input stays as it was.
+    fn cancel(&mut self) {
+        if self.pending.take().is_some() {
+            self.backend.drop_pending();
+            self.busy = false;
+        }
     }
 }

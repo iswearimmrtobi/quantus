@@ -1,9 +1,24 @@
 # Quantus handheld firmware
 
-The handheld's UI (`firmware/ui`) on the Waveshare ESP32-P4-Module-DEV-KIT with the 3.5" RPi
-display, with keys typed into the serial monitor or on a USB keyboard, or the touch panel, and a stub instead of the
-engine: the stub answers with the input itself, and an input with a `?` gives an error. Each
-calculation is also printed over serial, with the LaTeX the editor wrote.
+The handheld's UI (`firmware/ui`) and the engine (`quantus-core`, through `firmware/engine`) on
+the Waveshare ESP32-P4-Module-DEV-KIT with the 3.5" RPi display, with keys typed into the serial
+monitor or on a USB keyboard, or the touch panel.
+
+## The engine
+
+The engine runs on a thread of its own with a 64 KB stack, so the screen, the keys and the
+touch panel stay live while it calculates; the spinner turns in the top bar meanwhile. AC drops
+the calculation: the input stays, the answer is not shown. The engine still finishes it, and a
+calculation sent after the AC waits for that. The other keys wait until the answer is there;
+MODE, SETUP and OPTN still open.
+
+Each calculation is printed over serial: the mode, the LaTeX the editor wrote, the result and
+the time, then the most stack the engine thread has used and the heap (all of it and the
+internal RAM). The engine keeps its unit table, in PSRAM (no `small-memory`).
+
+`--no-default-features` builds the stub instead of the engine, which builds and flashes much
+faster for work on the UI: it answers with the input itself, and an input with a `?` gives an
+error.
 
 The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 
@@ -11,6 +26,7 @@ The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 . ~/export-esp.sh
 cd firmware/handheld
 cargo run --release          # flash and open the serial monitor
+cargo run --release --no-default-features   # the same with the stub instead of the engine
 ```
 
 The hardware, setup and wiring are in [firmware/docs](../docs/README.md):

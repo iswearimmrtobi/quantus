@@ -17,7 +17,8 @@ The crates:
 | Crate | What |
 |---|---|
 | [`ui`](../ui) | The handheld's UI, shared by the simulator and the board (in the main workspace) |
+| [`engine`](../engine) | `quantus-core` behind the UI, shared by the simulator and the board (in the main workspace) |
 | [`sim`](../sim/README.md) | The UI in a window on the PC, with the real engine |
-| [`handheld`](../handheld/README.md) | The firmware for the dev kit, with a stub engine for now |
+| [`handheld`](../handheld/README.md) | The firmware for the dev kit: the UI with the engine |
 | [`esp32`](../esp32/README.md) | The engine spike: `quantus-core` over serial, no UI |
 | [`mirror`](../mirror) | The protocol that sends the simulator's picture to the board |

@@ -15,7 +15,6 @@
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
 //!   the 480×320 BMP files in its `wallpapers` folder.
 
-mod engine;
 mod mirror;
 
 use std::path::{Path, PathBuf};
@@ -26,8 +25,8 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics_simulator::sdl2::{Keycode, Mod, MouseButton};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window};
-use engine::Engine;
 use mirror::{Mirror, Tee};
+use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Storage, Stub};
 use quantus_ui::key::Key;

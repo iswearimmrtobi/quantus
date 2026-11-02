@@ -1,5 +1,5 @@
-//! The real engine on the PC: `quantus-core` behind the UI's `Backend`, for testing the screen
-//! with real results before the engine runs on the board.
+//! The engine behind the UI: `quantus-core` as the UI's `Backend`. The simulator calls it
+//! directly; the handheld runs it on a thread of its own, so the screen stays live meanwhile.
 
 use quantus_core::api::{self, CalculationRequest};
 use quantus_core::session::SessionStore;

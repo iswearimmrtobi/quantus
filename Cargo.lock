@@ -3062,6 +3062,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "quantus-engine"
+version = "0.1.0"
+dependencies = [
+ "quantus-core",
+ "quantus-ui",
+]
+
+[[package]]
 name = "quantus-mirror"
 version = "0.1.0"
 

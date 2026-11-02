@@ -1,0 +1,11 @@
+[package]
+name = "quantus-engine"
+description = "The handheld's UI and the Quantus engine joined: quantus-core behind the UI's Backend"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+quantus-core = { path = "../../crates/quantus-core" }
+quantus-ui = { path = "../ui" }

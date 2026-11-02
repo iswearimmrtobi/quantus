@@ -559,6 +559,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "quantus-engine"
+version = "0.1.0"
+dependencies = [
+ "quantus-core",
+ "quantus-ui",
+]
+
+[[package]]
 name = "quantus-mirror"
 version = "0.1.0"
 
@@ -568,7 +576,7 @@ version = "0.1.0"
 dependencies = [
  "embedded-graphics",
  "embedded-graphics-simulator",
- "quantus-core",
+ "quantus-engine",
  "quantus-mirror",
  "quantus-ui",
  "serialport",

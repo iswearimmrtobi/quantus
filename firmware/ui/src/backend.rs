@@ -1,4 +1,4 @@
-//! What computes the results. On the P4 this will be `quantus-core`; until then a stub.
+//! What computes the results: `quantus-core` (the `quantus-engine` crate), or a stub.
 
 use crate::app::{Mode, Settings};
 use crate::wallpaper::Wallpaper;
@@ -6,6 +6,22 @@ use crate::wallpaper::Wallpaper;
 pub trait Backend {
     /// The result of `latex` in `mode`, written as `settings` say, as LaTeX, or an error message.
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String>;
+
+    /// Starts a calculation. A backend that answers at once returns the answer; one that
+    /// calculates elsewhere (on a thread of its own) returns `None` and hands it to
+    /// [`poll`](Backend::poll) later. One calculation at a time: the app waits for the answer or
+    /// drops it before it starts the next.
+    fn start(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+        Some(self.evaluate(mode, settings, latex))
+    }
+
+    /// The answer to the last [`start`](Backend::start) that returned `None`, once it is there.
+    fn poll(&mut self) -> Option<Result<String, String>> {
+        None
+    }
+
+    /// Forgets the running calculation: its answer never comes from [`poll`](Backend::poll).
+    fn drop_pending(&mut self) {}
 
     /// The pictures in `/wallpapers/` on the SD card: their names without `.bmp`, sorted.
     fn wallpapers(&mut self) -> Vec<String> {

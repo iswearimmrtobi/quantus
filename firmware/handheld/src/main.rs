@@ -1,6 +1,9 @@
 //! The handheld's firmware on the ESP32-P4 dev kit with the 3.5" ILI9486 display: the UI of
-//! `quantus-ui` with a stub instead of the engine, keys from the serial monitor or a USB
-//! keyboard, and the display's touch panel. See the README.
+//! `quantus-ui` with the engine (`quantus-core`, or a stub without the `engine` feature), keys
+//! from the serial monitor or a USB keyboard, and the display's touch panel. See the README.
+
+#[cfg(feature = "engine")]
+mod engine;
 
 use std::io::Read;
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
@@ -13,7 +16,7 @@ use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Storage, Stub};
+use quantus_ui::backend::{Backend, Storage};
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
@@ -64,7 +67,11 @@ fn main() {
 
     // The touch calibration and the wallpaper's name from flash.
     let store = Store::open().map_err(|error| log::warn!("no NVS for the touch calibration: {error}")).ok();
-    let mut board = Board { card };
+    let mut board = Board {
+        card,
+        #[cfg(feature = "engine")]
+        engine: engine::Worker::start(),
+    };
     // The wallpaper set before the last restart, if the card still has it.
     let wallpaper = store.as_ref().and_then(Store::load_wallpaper).and_then(|name| match board.picture(&name) {
         Some(picture) => Some((name, picture)),
@@ -138,16 +145,43 @@ fn main() {
     }
 }
 
-/// The stub, printing what it is asked over serial, and the SD card.
+/// The engine on its thread (or the stub), printing what it is asked over serial, and the SD
+/// card.
 struct Board {
     card: Option<sd::SdCard>,
+    #[cfg(feature = "engine")]
+    engine: engine::Worker,
 }
 
 impl Backend for Board {
+    #[cfg(feature = "engine")]
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
-        let result = Stub.evaluate(mode, settings, latex);
+        self.engine.send(mode, settings, latex);
+        self.engine.wait()
+    }
+
+    #[cfg(not(feature = "engine"))]
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+        let result = quantus_ui::backend::Stub.evaluate(mode, settings, latex);
         println!("{}: {latex}  =>  {result:?}", mode.name(quantus_ui::text::Lang::En));
         result
+    }
+
+    /// The engine calculates on its thread; `poll` brings the answer.
+    #[cfg(feature = "engine")]
+    fn start(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+        self.engine.send(mode, settings, latex);
+        None
+    }
+
+    #[cfg(feature = "engine")]
+    fn poll(&mut self) -> Option<Result<String, String>> {
+        self.engine.poll()
+    }
+
+    #[cfg(feature = "engine")]
+    fn drop_pending(&mut self) {
+        self.engine.drop_pending();
     }
 
     fn wallpapers(&mut self) -> Vec<String> {

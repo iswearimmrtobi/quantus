@@ -12,7 +12,7 @@ publish = false
 [dependencies]
 embedded-graphics = "0.8.2"
 embedded-graphics-simulator = "0.8.0"
-quantus-core = { path = "../../crates/quantus-core" }
+quantus-engine = { path = "../engine" }
 quantus-mirror = { path = "../mirror" }
 quantus-ui = { path = "../ui" }
 serialport = "4.10.1"

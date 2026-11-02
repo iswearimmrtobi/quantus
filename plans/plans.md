@@ -60,7 +60,7 @@ dev kit. See its [README](../firmware/esp32/README.md).
   and `e^{4i\pi/2}` aborts. `ln` and float formatting fail softly first (NaN, "could not read a
   computed number") because `astro-float` reports failed allocations instead of aborting.
 - [x] Shrink the unit table: with the `small-memory` feature of `quantus-core` (on in the
-  firmware), `units/lookup.rs` replays the registrations on every lookup instead of keeping
+  spike, off on the handheld, which has PSRAM), `units/lookup.rs` replays the registrations on every lookup instead of keeping
   the two maps (last match wins, same answers for all 2345 tried spellings). Units then cost no
   heap; all three integrals are right (7–20 s each) and `x^3 - 3x` sketches in 2.1 s. The
   desktop keeps the maps; with the feature a lookup costs ~34 µs in a debug build.
@@ -69,7 +69,14 @@ dev kit. See its [README](../firmware/esp32/README.md).
   `algebra/rational_roots.rs`), and the second curve sketch runs out of memory. A way to drop
   the caches between calculations would likely fix that.
 - [ ] Run `:bench` on the P4 and record time, heap and internal RAM against the WROOM numbers.
-- [ ] If so: a keypad that writes LaTeX and a display that renders the result.
+- [x] The engine on the handheld (`firmware/handheld`, through `firmware/engine`): on a thread
+  of its own with a 64 KB stack, the spinner turning meanwhile, AC dropping the answer. First
+  run on the P4 (2026-11-02): `2+3`, `2^{10}` and S⇔D in 6–15 ms, `2x+3=7` in 43 ms,
+  `\int_0^1 \ln x\,dx` in 3.1 s (2.5 s the second time) with at most 16 KB of stack; 33 MB of
+  heap free, of it 380–440 KB internal RAM.
+- [ ] Plain rationals come back as decimals in exact mode (`\frac{1}{2}+\frac{1}{3}` gives
+  `0{,}8333333333`, without ≈); the fraction is among the response's `forms`. The handheld
+  should show it, as the desktop's form switch does.
 - [ ] A handheld on an ESP32-P4: hardware requirements in
   [hardware.md](../firmware/docs/hardware.md).
 - [ ] Its UI, on the ESP32-P4 dev kit (before that a classic ESP32) with the display, keys over
