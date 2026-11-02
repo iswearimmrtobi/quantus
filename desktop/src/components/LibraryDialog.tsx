@@ -23,7 +23,7 @@ export function LibraryDialog(props: {
   const [constants, setConstants] = useState<ConstantCategory[]>([]);
   const [units, setUnits] = useState<UnitCategory[]>([]);
   const [filter, setFilter] = useState('');
-  const hits = useLibrarySearch(filter, 40);
+  const { hits } = useLibrarySearch(filter, 40);
 
   useEffect(() => {
     api.constants().then(setConstants, () => {});

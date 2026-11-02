@@ -14,7 +14,7 @@ use tauri::{AppHandle, Emitter, Manager, Runtime};
 pub const SHORTCUT_EVENT: &str = "quantus://shortcut";
 
 /// Menu ids that the renderer handles itself. Mirrored by `Shortcut` in the UI.
-pub const FORWARDED: [&str; 17] = [
+pub const FORWARDED: [&str; 18] = [
     "new",
     "evaluate",
     "calc",
@@ -25,6 +25,7 @@ pub const FORWARDED: [&str; 17] = [
     "new-session",
     "toggle-sessions",
     "toggle-library",
+    "quick-search",
     "toggle-steps",
     "copy-result",
     "copy-all",
@@ -96,6 +97,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>, language: Language) -> tauri::
         .item(&item(app, "toggle-variables", l("Variables", "Variablen"), Some("CmdOrCtrl+,"))?)
         .item(&item(app, "toggle-history", l("History", "Verlauf"), Some("CmdOrCtrl+H"))?)
         .item(&item(app, "toggle-library", l("Constants and units", "Konstanten und Einheiten"), Some("CmdOrCtrl+K"))?)
+        .item(&item(app, "quick-search", l("Quick search…", "Schnellsuche …"), Some("CmdOrCtrl+F"))?)
         .item(&item(app, "toggle-settings", l("Settings", "Einstellungen"), Some("CmdOrCtrl+."))?)
         .separator()
         .item(&item(app, "zoom-reset", l("Reset zoom", "Zoom zurücksetzen"), Some("CmdOrCtrl+0"))?)

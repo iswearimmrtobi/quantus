@@ -14,6 +14,7 @@ import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
 import { LibraryDialog } from './components/LibraryDialog';
+import { QuickSearch } from './components/QuickSearch';
 import { SessionsPanel } from './components/SessionsPanel';
 import { ToolDialog, type ToolKind } from './components/ToolDialog';
 import { I18nContext, makeTranslate } from './i18n';
@@ -91,6 +92,7 @@ export function App() {
   const [panel, setPanel] = useState<Panel>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
   const [precision, setPrecision] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -403,6 +405,9 @@ export function App() {
         case 'toggle-library':
           setLibraryOpen((open) => !open);
           break;
+        case 'quick-search':
+          setQuickOpen((open) => !open);
+          break;
         case 'copy-all':
           if (current) void copy(current.alignBlock, 'all');
           break;
@@ -430,6 +435,7 @@ export function App() {
         setPanel(null);
         setSettingsOpen(false);
         setLibraryOpen(false);
+        setQuickOpen(false);
         editor()?.focus();
         return;
       }
@@ -453,6 +459,9 @@ export function App() {
       } else if (key === 'k') {
         event.preventDefault();
         setLibraryOpen((open) => !open);
+      } else if (key === 'f') {
+        event.preventDefault();
+        setQuickOpen((open) => !open);
       } else if (key === 'o') {
         event.preventDefault();
         togglePanel('sessions');
@@ -938,6 +947,20 @@ export function App() {
           }}
           onClose={() => {
             setLibraryOpen(false);
+            editor()?.focus();
+          }}
+        />
+      )}
+
+      {quickOpen && (
+        <QuickSearch
+          onInsert={(latex) => {
+            setQuickOpen(false);
+            insert(latex);
+            editor()?.focus();
+          }}
+          onClose={() => {
+            setQuickOpen(false);
             editor()?.focus();
           }}
         />

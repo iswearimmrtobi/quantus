@@ -13,6 +13,7 @@ export type Shortcut =
   | 'new-session'
   | 'toggle-sessions'
   | 'toggle-library'
+  | 'quick-search'
   | 'toggle-steps'
   | 'copy-result'
   | 'copy-all'

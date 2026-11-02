@@ -10,19 +10,22 @@ export const CONVERT = ' \\blacktriangleright ';
 export const hitLatex = (hit: LibraryHit, unitAlone: boolean) =>
   hit.kind === 'unit' && !unitAlone ? CONVERT + hit.latex : hit.latex;
 
-/** The engine's ranked hits for `query`, again whenever it or the language changes. */
-export function useLibrarySearch(query: string, limit?: number): LibraryHit[] {
+/**
+ * The engine's ranked hits for `query`, again whenever it or the language changes, with the
+ * query they belong to: right after a keystroke they are still the last query's.
+ */
+export function useLibrarySearch(query: string, limit?: number): { hits: LibraryHit[]; forQuery: string } {
   const { language } = useT();
-  const [hits, setHits] = useState<LibraryHit[]>([]);
+  const [found, setFound] = useState<{ hits: LibraryHit[]; forQuery: string }>({ hits: [], forQuery: '' });
   useEffect(() => {
     let current = true;
-    if (!query.trim()) setHits([]);
-    else api.searchLibrary(query, limit).then((found) => current && setHits(found), () => {});
+    if (!query.trim()) setFound({ hits: [], forQuery: query });
+    else api.searchLibrary(query, limit).then((hits) => current && setFound({ hits, forQuery: query }), () => {});
     return () => {
       current = false;
     };
   }, [query, limit, language]);
-  return hits;
+  return found;
 }
 
 /** One hit: symbol, name, value or category, and whether it is a constant or a unit. */

@@ -1128,6 +1128,40 @@ select option {
   font-size: 10.5px;
 }
 
+/* The quick search: a launcher line near the top. */
+.quick-backdrop {
+  padding-top: 14vh;
+  background: rgba(10, 9, 14, 0.35);
+}
+.dialog.quick-search {
+  width: min(560px, calc(100vw - 32px));
+  padding: 8px;
+}
+.quick-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+}
+.quick-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.quick-search .hits {
+  margin-top: 6px;
+}
+.quick-empty,
+.quick-hint {
+  margin: 8px 4px 2px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
 /* A hit of the search, in the library and in the quick search. */
 .hits {
   display: flex;
