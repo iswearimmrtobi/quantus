@@ -89,7 +89,7 @@ mod sessions {
         let dir = folder("files");
         let settings = Settings::default();
         let first = {
-            let mut engine = Engine::new(Some(dir.clone()));
+            let mut engine = Engine::with_clock(Some(dir.clone()), || None);
             assert_eq!(engine.session(SessionCommand::Current, &settings).unwrap().info.name, "Sitzung 1");
             engine.evaluate(Mode::Physics, &settings, "m_1 = 2kg").unwrap();
             let first = engine.current().to_string();
@@ -103,7 +103,7 @@ mod sessions {
         assert_eq!(files(&dir), 2);
         assert_eq!(std::fs::read_to_string(dir.join(CURRENT)).unwrap(), first);
 
-        let mut engine = Engine::new(Some(dir.clone()));
+        let mut engine = Engine::with_clock(Some(dir.clone()), || None);
         let opened = engine.session(SessionCommand::Current, &settings).unwrap();
         assert_eq!(opened.info.id, first);
         assert_eq!(opened.history.len(), 1);
@@ -119,7 +119,7 @@ mod sessions {
     fn deleting_the_open_session_opens_another_or_a_new_one() {
         let dir = folder("delete");
         let settings = Settings::default();
-        let mut engine = Engine::new(Some(dir.clone()));
+        let mut engine = Engine::with_clock(Some(dir.clone()), || None);
         let first = engine.current().to_string();
         let copy = engine.session(SessionCommand::Duplicate, &settings).unwrap();
         assert_eq!(copy.info.name, "Sitzung 1 (Kopie)");
@@ -144,5 +144,21 @@ mod sessions {
         assert!(engine.recalculate(Mode::Algebra, &decimal, r"\frac{1}{3}").unwrap().unwrap().starts_with(r"\approx"));
         assert_eq!(engine.session(SessionCommand::Current, &settings).unwrap().history.len(), 1);
         assert!(engine.session(SessionCommand::ClearHistory, &settings).unwrap().history.is_empty());
+    }
+
+    /// 2026-11-02 13:30 UTC.
+    fn monday() -> Option<i64> {
+        Some(1_793_629_800_000 - 3_600_000)
+    }
+
+    #[test]
+    fn with_the_clock_set_a_new_session_is_named_after_the_local_time() {
+        let mut engine = Engine::with_clock(None, monday);
+        let settings = Settings::default();
+        assert_eq!(engine.session(SessionCommand::Current, &settings).unwrap().info.name, "Sitzung 2026-11-02 14:30");
+        let london = Settings { zone: quantus_ui::settings::Zone::London, ..settings };
+        assert_eq!(engine.session(SessionCommand::New, &london).unwrap().info.name, "Sitzung 2026-11-02 13:30");
+        let english = Settings { language: quantus_ui::text::Lang::En, ..settings };
+        assert_eq!(engine.session(SessionCommand::New, &english).unwrap().info.name, "Session 2026-11-02 14:30");
     }
 }

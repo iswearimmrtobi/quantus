@@ -17,6 +17,7 @@ use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
 use quantus_ui::backend::{Backend, Opened, SessionCommand, SessionInfo};
+use quantus_ui::clock;
 use quantus_ui::settings as ui;
 use quantus_ui::text::Lang;
 
@@ -29,6 +30,10 @@ pub struct Engine {
     current: String,
     /// Where the session files are; `None` keeps them in memory only.
     dir: Option<PathBuf>,
+    /// The time zone of the last settings given, for the names of new sessions.
+    zone: ui::Zone,
+    /// Now, in milliseconds since 1970 (UTC), if the clock is set: [`clock::now`].
+    clock: fn() -> Option<i64>,
 }
 
 /// Sessions in memory only.
@@ -42,6 +47,12 @@ impl Engine {
     /// The engine with the sessions in `dir`, on the one open last; the first in the list if
     /// that one is gone, a new one if there is none.
     pub fn new(dir: Option<PathBuf>) -> Self {
+        Engine::with_clock(dir, clock::now)
+    }
+
+    /// [`Engine::new`] with another clock than the handheld's, for tests: `|| None` for one not
+    /// set.
+    pub fn with_clock(dir: Option<PathBuf>, clock: fn() -> Option<i64>) -> Self {
         // The handheld's settings until the first calculation brings the user's: German, so the
         // first session is a "Sitzung".
         let mut store = SessionStore::new();
@@ -55,7 +66,7 @@ impl Engine {
             .map(|id| id.trim().to_string())
             .filter(|id| store.get(id).is_some());
         let first = store.sessions().first().map(|session| session.id.clone());
-        let mut engine = Engine { store, current: String::new(), dir };
+        let mut engine = Engine { store, current: String::new(), dir, zone: Settings::default().zone, clock };
         engine.current = match remembered.or(first) {
             Some(id) => id,
             None => engine.create(),
@@ -69,13 +80,22 @@ impl Engine {
         &self.current
     }
 
-    /// A new, empty session, "Sitzung 3" with the lowest number free (the handheld has no clock
-    /// for the desktop's "Sitzung 2026-11-01 14:30"), saved; returns its id.
+    /// A new, empty session, saved; returns its id. Named after the local time like the
+    /// desktop's ("Sitzung 2026-11-02 14:30") once the clock is set, before that "Sitzung 3"
+    /// with the lowest number free.
     fn create(&mut self) -> String {
-        let word = if self.store.settings.language == core::Language::De { "Sitzung" } else { "Session" };
-        let names: HashSet<String> = self.store.sessions().into_iter().map(|session| session.name.clone()).collect();
-        let name = (1..).map(|n| format!("{word} {n}")).find(|name| !names.contains(name)).expect("numbers are endless");
-        let request = NewSessionRequest { name: Some(name), ..Default::default() };
+        let request = match (self.clock)() {
+            Some(now) => {
+                let utc_offset_minutes = self.zone.offset_minutes(now);
+                NewSessionRequest { name: None, now: Some(now), utc_offset_minutes }
+            }
+            None => {
+                let word = if self.store.settings.language == core::Language::De { "Sitzung" } else { "Session" };
+                let names: HashSet<String> = self.store.sessions().into_iter().map(|session| session.name.clone()).collect();
+                let name = (1..).map(|n| format!("{word} {n}")).find(|name| !names.contains(name)).expect("numbers are endless");
+                NewSessionRequest { name: Some(name), ..Default::default() }
+            }
+        };
         let id = api::new_session(&mut self.store, &request).id;
         self.save(&id);
         id
@@ -119,11 +139,12 @@ impl Engine {
             // The app does not ask for these (`Mode::engine`).
             _ => return Err("Noch nicht verfügbar".to_string()),
         };
+        self.zone = settings.zone;
         let core = core_settings(mode, settings);
         api::set_settings(&mut self.store, core).map_err(|error| error.to_string())?;
         let (latex, session_id, precision) = (latex.to_string(), Some(self.current.clone()), Some(settings.digits.into()));
         let response = if record {
-            let request = CalculationRequest { latex, session_id, precision, ..Default::default() };
+            let request = CalculationRequest { latex, session_id, precision, at: (self.clock)() };
             api::evaluate(&mut self.store, &request)
         } else {
             api::calc(&mut self.store, &CalcRequest { latex, values: Vec::new(), session_id, precision })
@@ -149,7 +170,8 @@ impl Backend for Engine {
     }
 
     fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
-        // The language names a new session and a copy.
+        // The language and the time zone name a new session and a copy.
+        self.zone = settings.zone;
         api::set_settings(&mut self.store, core_settings(CoreMode::Physics, settings)).map_err(|error| error.to_string())?;
         let current = self.current.clone();
         match command {
@@ -166,7 +188,7 @@ impl Backend for Engine {
                 self.save(&current);
             }
             SessionCommand::Duplicate => {
-                let copy = api::duplicate_session(&mut self.store, &current, None).map_err(|error| error.error)?;
+                let copy = api::duplicate_session(&mut self.store, &current, (self.clock)()).map_err(|error| error.error)?;
                 self.save(&copy.id);
                 self.current = copy.id;
             }

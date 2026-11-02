@@ -157,6 +157,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The handheld has a **clock**: SETUP → Verbindungen → Uhrzeit shows the date and the time, which
   can be typed by hand (TT.MM.JJJJ, HH:MM), and a time zone from a list (Berlin by default),
   each with its summer time, instead of a whole-hour offset.
+- Once its clock is set, the handheld names a new session after the local time, as the desktop
+  does ("Sitzung 2026-11-02 14:30"), and its sessions note when they were made and last used.
 
 ### Changed
 
