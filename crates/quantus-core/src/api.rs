@@ -374,7 +374,7 @@ pub fn constants(language: crate::settings::Language) -> Vec<ConstantCategory> {
     crate::constants::catalogue(language)
 }
 
-pub use crate::units::catalogue::UnitCategory;
+pub use crate::units::catalogue::{UnitCategory, UnitInfo};
 
 /// The units a conversion `▶` can aim at, by the Casio's categories, named in `language`.
 pub fn conversion_units(language: crate::settings::Language) -> Vec<UnitCategory> {

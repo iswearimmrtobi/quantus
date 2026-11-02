@@ -90,10 +90,16 @@ export interface ConstantCategory {
   constants: ConstantInfo[];
 }
 
-/** Units a conversion can aim at; each entry is the LaTeX after `\blacktriangleright`. */
+/** Units a conversion can aim at, by category. */
 export interface UnitCategory {
   name: string;
-  units: string[];
+  units: UnitInfo[];
+}
+
+/** A target unit: the LaTeX after `\blacktriangleright` and its name in the set language. */
+export interface UnitInfo {
+  latex: string;
+  name: string;
 }
 
 /** A session as the session menu lists it; times are UTC milliseconds. */

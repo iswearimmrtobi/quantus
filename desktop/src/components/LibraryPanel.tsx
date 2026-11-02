@@ -41,7 +41,7 @@ export function LibraryPanel(props: { onInsert: (latex: string) => void; unitsKn
         .map((category) =>
           !needle || category.name.toLowerCase().includes(needle)
             ? category
-            : { ...category, units: category.units.filter((unit) => unit.toLowerCase().includes(needle)) },
+            : { ...category, units: category.units.filter((unit) => unit.name.toLowerCase().includes(needle)) },
         )
         .filter((category) => category.units.length > 0),
     [units, needle],
@@ -93,11 +93,11 @@ export function LibraryPanel(props: { onInsert: (latex: string) => void; unitsKn
                 {category.units.map((unit) => (
                   <button
                     className="library-unit"
-                    key={unit}
-                    title={t('library.unit.title')}
-                    onClick={(event) => props.onInsert(event.altKey ? unit : CONVERT + unit)}
+                    key={unit.latex}
+                    title={`${unit.name}: ${t('library.unit.title')}`}
+                    onClick={(event) => props.onInsert(event.altKey ? unit.latex : CONVERT + unit.latex)}
                   >
-                    <Katex latex={unit} />
+                    <Katex latex={unit.latex} />
                   </button>
                 ))}
               </div>
