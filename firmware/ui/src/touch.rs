@@ -29,17 +29,8 @@ pub enum Target {
     Step(i32),
     /// OK under a number.
     Ok,
-    Button(Button),
     /// Anywhere on a message.
     Anywhere,
-}
-
-/// The buttons on the calculation screen, for testing until the keypad exists.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Button {
-    Menu,
-    Setup,
-    Optn,
 }
 
 /// What the finger did, once it lifted.

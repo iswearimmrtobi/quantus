@@ -270,8 +270,7 @@ Quantus simulator keys
   ;                    Shift+, (between equations and arguments)
   history              Up/Down outside a fraction
   charging / busy      F9 / F10 (what the board will report)
-  touch                the mouse is the finger: click to tap, drag to scroll; MENU, SETUP and
-                       OPTN are buttons on the screen
+  touch                the mouse is the finger: click to tap, drag to scroll
   Shifted characters follow a German layout (Shift+7 is /, Shift+0 is =).
 LaTeX: type it here in the terminal and press Enter; it becomes the input and is evaluated.
 ";

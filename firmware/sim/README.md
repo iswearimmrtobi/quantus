@@ -45,8 +45,7 @@ The keys are printed when the window opens. The mouse is the finger: a click tap
 scrolls. Every menu works by touch: a tap opens a line or picks a tile, ‹ at the left of the top
 bar goes back, a list follows the finger up and down and turns its page when let go, the mode
 tiles do the same sideways, and a number is set with − and + and OK. SETUP → Gerät → Touch
-kalibrieren shows the board's calibration screen; in the window the mouse needs none. For testing,
-until the keypad exists, the calculation screen has MENU, SETUP and OPTN buttons along the bottom.
+kalibrieren shows the board's calibration screen; in the window the mouse needs none.
 
 LaTeX typed into the terminal (then Enter) becomes the input and is evaluated, for what the keys
 cannot type yet. The editor reads it like a result, and the terminal shows the LaTeX that went to

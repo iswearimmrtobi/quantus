@@ -8,7 +8,7 @@ use crate::text::{self, same, t, Lang, Text};
 use crate::tree;
 use crate::menu::{Action, Edit, Menu, Outcome};
 use crate::render;
-use crate::touch::{self, Button, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
+use crate::touch::{self, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
 use crate::wallpaper::Wallpaper;
 use embedded_graphics::prelude::Point;
 pub use crate::settings::Settings;
@@ -448,9 +448,6 @@ impl<B: Backend> App<B> {
             Target::Back if matches!(self.screen, Screen::Modes { .. }) => self.key(Key::Ac),
             Target::Back => self.key(Key::Left),
             Target::Ok | Target::Anywhere => self.key(Key::Ok),
-            Target::Button(Button::Menu) => self.key(Key::Mode),
-            Target::Button(Button::Setup) => self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
-            Target::Button(Button::Optn) => self.key(Key::Optn),
             Target::Tile(index) => self.choose(index),
             Target::Page(page) => self.show_page(page),
             Target::Line(_) | Target::Step(_) => {

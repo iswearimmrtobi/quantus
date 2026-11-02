@@ -22,7 +22,7 @@ use crate::font::Scale;
 use crate::layout::{self, RowLayout};
 use crate::menu::{Edit, Kind, Menu, ROWS};
 use crate::settings::WallpaperOn;
-use crate::touch::{Button, Target};
+use crate::touch::Target;
 use crate::wallpaper::Pixels;
 use bar::bar;
 use screens::{calculation, calibration, menu_screen, modes};
@@ -184,7 +184,7 @@ impl Frame {
         let backdrop = backdrop(app);
         let glass = backdrop.is_some();
         match &app.screen {
-            Screen::Calc => calculation(&mut shapes, app, glass),
+            Screen::Calc => calculation(&mut shapes, app),
             Screen::Modes { selected } => modes(&mut shapes, app, *selected, glass),
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
             Screen::Calibrate(state, _) => calibration(&mut shapes, state, app.settings.language),
@@ -283,17 +283,8 @@ fn list_len(menu: &Menu) -> Option<usize> {
     }
 }
 
-/// The test buttons of the calculation screen, until the keypad exists.
-pub const CALC_BUTTONS: [(Button, &str); 3] = [(Button::Menu, "MENU"), (Button::Setup, "SETUP"), (Button::Optn, "OPTN")];
-
 /// The buttons under a number being entered: it is stepped, there is no keyboard on the screen.
 pub const NUMBER_BUTTONS: [(Target, &str); 3] = [(Target::Step(-1), "−"), (Target::Step(1), "+"), (Target::Ok, "OK")];
-
-/// The calculation screen's button `index`, in a row along the bottom.
-pub fn calc_button(index: usize) -> Rectangle {
-    let height = 32;
-    button_rect(HEIGHT as i32 - MARGIN - height, height as u32, CALC_BUTTONS.len(), index)
-}
 
 /// The number entry's button `index`, under the range.
 pub fn number_button(index: usize) -> Rectangle {
@@ -318,11 +309,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
         return Some(Target::Back);
     }
     match &app.screen {
-        Screen::Calibrate(..) => None,
-        Screen::Calc => {
-            let index = (0..CALC_BUTTONS.len()).find(|&index| calc_button(index).contains(point))?;
-            Some(Target::Button(CALC_BUTTONS[index].0))
-        }
+        Screen::Calibrate(..) | Screen::Calc => None,
         Screen::Modes { selected } => {
             let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
             let on_page = (Mode::ALL.len() - first).min(TILES_PER_PAGE);

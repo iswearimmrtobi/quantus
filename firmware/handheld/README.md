@@ -58,6 +58,5 @@ after the start, and the serial monitor keeps working beside it. Its hookup is i
 
 Every menu works by touch, as in the simulator: a tap opens a line or picks a tile, ‹ at the
 left of the top bar goes back, a list follows the finger up and down and turns its page when let
-go, the mode tiles do the same sideways, and a number is set with − and + and OK. Until the
-keypad exists, the calculation screen has MENU, SETUP and OPTN buttons along the bottom. The
+go, the mode tiles do the same sideways, and a number is set with − and + and OK. The
 panel is calibrated once ([display-and-touch.md](../docs/display-and-touch.md#calibration)).

@@ -80,7 +80,6 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [ ] Clock: NTP or by hand, time zone
 - [ ] Firmware update: search and install over WLAN, receive an image from the desktop
 - [ ] Measure the current when off and in use on the real board (section 6)
-- [ ] Touch: the test buttons go once the keypad exists (section 7.7)
 
 ### Desktop UI (`desktop/`)
 
@@ -747,8 +746,7 @@ A tap does what the key for its target does, so the menus keep one logic:
 
 A movement under 20 px is a tap where the finger came down; resistive panels jitter. The hit
 areas come from the same geometry the renderer draws with (`render::target`), a line's with the
-gaps around it. Until the keypad exists, the calculation screen has MENU, SETUP and OPTN buttons
-along the bottom, for testing.
+gaps around it. The calculation screen has no buttons; MODE, SETUP and OPTN are keys.
 
 The panel reports raw readings; the hui maps them to the screen with an affine calibration
 (`touch::Calibration`), fitted by least squares to five crosses on the calibration screen

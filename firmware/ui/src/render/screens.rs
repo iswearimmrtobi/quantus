@@ -6,8 +6,8 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Circle, Rectangle, RoundedRectangle, Triangle};
 
 use super::{
-    calc_button, colors, dot_rect, fit, line_rect, list_edge, number_button, panel, rounded, tile_rect, Shape, BAR,
-    CALC_BUTTONS, HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, PAGES, THUMBNAIL, WIDTH,
+    colors, dot_rect, fit, line_rect, list_edge, number_button, panel, rounded, tile_rect, Shape, BAR,
+    HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, PAGES, THUMBNAIL, WIDTH,
 };
 use crate::app::{App, Mode, TILES_PER_PAGE};
 use crate::backend::Storage;
@@ -17,9 +17,8 @@ use crate::menu::{self, Edit, Kind, Menu, ROWS};
 use crate::text;
 use crate::touch::{self, Calibrating, Target};
 
-/// One calculation, as on a Casio: the input from the top left, its result at the bottom right,
-/// over the test buttons.
-pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>, glass: bool) {
+/// One calculation, as on a Casio: the input from the top left, its result at the bottom right.
+pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let width = WIDTH as i32;
 
     let input = layout::layout(&app.editor.row, Scale::Normal);
@@ -38,11 +37,7 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>, glass: bool)
         shapes.push(Shape::Fill(caret, colors::CYAN));
     }
 
-    for (index, (button_, label)) in CALC_BUTTONS.iter().enumerate() {
-        let lit = app.pressed() == Some(Target::Button(*button_));
-        button(shapes, calc_button(index), label, lit, glass);
-    }
-    let bottom = calc_button(0).top_left.y - 8;
+    let bottom = HEIGHT as i32 - MARGIN;
     if let Some(entry) = app.shown_entry() {
         match &entry.result {
             Ok(result) => {

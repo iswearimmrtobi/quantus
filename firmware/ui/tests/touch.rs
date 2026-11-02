@@ -2,9 +2,10 @@ use embedded_graphics::prelude::*;
 use quantus_ui::app::{App, Mode, Screen};
 use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::menu::{Edit, Menu};
-use quantus_ui::render::{back_area, calc_button, dot_rect, line_rect, number_button, tile_rect, Frame, HEIGHT, WIDTH};
+use quantus_ui::render::{back_area, dot_rect, line_rect, number_button, tile_rect, Frame, HEIGHT, WIDTH};
 use quantus_ui::settings::Settings;
-use quantus_ui::touch::{Button, Target, Touch, TARGETS};
+use quantus_ui::key::Key;
+use quantus_ui::touch::{Target, Touch, TARGETS};
 use quantus_ui::wallpaper::Wallpaper;
 
 fn tap<B: Backend>(app: &mut App<B>, point: Point) {
@@ -36,10 +37,16 @@ fn menu<B>(app: &App<B>) -> &Menu {
 
 const BACK: Point = Point::new(20, 12);
 
+/// SHIFT, MODE: the setup.
+fn setup<B: Backend>(app: &mut App<B>) {
+    app.key(Key::Shift);
+    app.key(Key::Mode);
+}
+
 #[test]
-fn the_setup_button_opens_setup_and_back_closes_it() {
+fn back_closes_the_setup() {
     let mut app = App::new(Stub);
-    tap(&mut app, calc_button(1).center());
+    setup(&mut app);
     assert_eq!(menu(&app).level().page.title.de, "Setup");
     // Allgemein, and back.
     tap(&mut app, line(0));
@@ -57,7 +64,7 @@ fn the_setup_button_opens_setup_and_back_closes_it() {
 #[test]
 fn a_choice_is_tapped() {
     let mut app = App::new(Stub);
-    tap(&mut app, calc_button(1).center());
+    setup(&mut app);
     // Allgemein → Winkeleinheit → Bogenmaß.
     tap(&mut app, line(0));
     tap(&mut app, line(1));
@@ -71,7 +78,7 @@ fn a_choice_is_tapped() {
 fn a_number_is_stepped_and_set() {
     let mut app = App::new(Stub);
     let digits = Settings::default().digits;
-    tap(&mut app, calc_button(1).center());
+    setup(&mut app);
     // Allgemein → Signifikante Stellen (1 to 15).
     tap(&mut app, line(0));
     tap(&mut app, line(2));
@@ -96,7 +103,7 @@ fn a_number_is_stepped_and_set() {
 #[test]
 fn the_mode_tiles_page_by_swipe_and_by_dot() {
     let mut app = App::new(Stub);
-    tap(&mut app, calc_button(0).center());
+    app.key(Key::Mode);
     assert_eq!(app.screen, Screen::Modes { selected: 0 });
     let middle = Point::new(WIDTH as i32 / 2, HEIGHT as i32 / 2);
     swipe(&mut app, middle, middle - Point::new(120, 0));
@@ -109,13 +116,13 @@ fn the_mode_tiles_page_by_swipe_and_by_dot() {
     tap(&mut app, tile_rect(4).center());
     assert_eq!((app.mode, &app.screen), (Mode::Verify, &Screen::Calc));
     // The last tile opens the sessions; back closes the tiles.
-    tap(&mut app, calc_button(0).center());
+    app.key(Key::Mode);
     tap(&mut app, dot_rect(1).center());
     tap(&mut app, tile_rect(5).center());
     assert_eq!(menu(&app).level().page.title.de, "Sitzungen");
     tap(&mut app, BACK);
     assert_eq!(app.screen, Screen::Calc);
-    tap(&mut app, calc_button(0).center());
+    app.key(Key::Mode);
     assert!(matches!(app.screen, Screen::Modes { .. }));
     tap(&mut app, BACK);
     assert_eq!(app.screen, Screen::Calc);
@@ -124,7 +131,7 @@ fn the_mode_tiles_page_by_swipe_and_by_dot() {
 #[test]
 fn a_long_list_follows_the_finger_and_turns_the_page() {
     let mut app = App::new(Stub);
-    tap(&mut app, calc_button(1).center());
+    setup(&mut app);
     // SETUP has seven entries, five to a page. A short drag springs back.
     swipe(&mut app, line(3), line(3) - Point::new(0, 25));
     assert_eq!(menu(&app).level().selected, 0);
@@ -146,19 +153,20 @@ fn a_long_list_follows_the_finger_and_turns_the_page() {
 #[test]
 fn what_the_finger_is_on_lights_up_until_it_drags_away() {
     let mut app = App::new(Stub);
-    let menu_button = calc_button(0).center();
-    app.touch(Touch::Press(menu_button));
-    assert_eq!(app.pressed(), Some(Target::Button(Button::Menu)));
-    app.touch(Touch::Drag(menu_button + Point::new(0, -60)));
+    app.key(Key::Mode);
+    let tile = tile_rect(0).center();
+    app.touch(Touch::Press(tile));
+    assert_eq!(app.pressed(), Some(Target::Tile(0)));
+    app.touch(Touch::Drag(tile + Point::new(0, -60)));
     assert_eq!(app.pressed(), None);
     app.touch(Touch::Release);
-    assert_eq!(app.screen, Screen::Calc, "a drag is no tap");
+    assert_eq!(app.screen, Screen::Modes { selected: 0 }, "a drag is no tap");
 }
 
 #[test]
 fn optn_inserts_a_function() {
     let mut app = App::new(Stub);
-    tap(&mut app, calc_button(2).center());
+    app.key(Key::Optn);
     // Hyperbol. Fkt., the first line of the second page → sinh.
     swipe(&mut app, line(3), line(1));
     tap(&mut app, line(0));
@@ -188,7 +196,7 @@ impl Backend for Card {
 #[test]
 fn a_wallpaper_is_shown_on_the_first_tap_and_kept_on_the_second() {
     let mut app = App::new(Card);
-    tap(&mut app, calc_button(1).center());
+    setup(&mut app);
     // Gerät, the first line of the second page → Hintergrundbild → Bild.
     swipe(&mut app, line(3), line(1));
     tap(&mut app, line(0));
@@ -221,7 +229,7 @@ fn hold<B: Backend>(app: &mut App<B>, raw: Point) {
 #[test]
 fn the_calibration_learns_the_panel() {
     let mut app = App::new(Stub);
-    tap(&mut app, calc_button(1).center());
+    setup(&mut app);
     // Gerät, on the second page → Touch kalibrieren, its seventh line.
     swipe(&mut app, line(3), line(1));
     tap(&mut app, line(0));
@@ -241,8 +249,9 @@ fn the_calibration_learns_the_panel() {
     tap(&mut app, panel(Point::new(20, 12)));
     tap(&mut app, panel(Point::new(20, 12)));
     assert_eq!(app.screen, Screen::Calc);
-    tap(&mut app, panel(calc_button(0).center()));
-    assert!(matches!(app.screen, Screen::Modes { .. }));
+    app.key(Key::Mode);
+    tap(&mut app, panel(dot_rect(1).center()));
+    assert_eq!(app.screen, Screen::Modes { selected: 6 });
 }
 
 #[test]
