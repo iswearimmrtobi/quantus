@@ -134,6 +134,29 @@ export interface HistoryEntry {
   at?: number;
 }
 
+/** One line of a solution block: an optional sentence and an equation. */
+export interface WriteupLine {
+  kind: 'law' | 'rearranged' | 'substituted' | 'result' | 'unitCheck';
+  text?: string;
+  latex: string;
+}
+
+export interface WriteupBlock {
+  target: string;
+  /** A later calculation uses it: a step on the way, not wanted. */
+  intermediate: boolean;
+  lines: WriteupLine[];
+}
+
+/** The session written up as given, wanted and solution (Gegeben / Gesucht / Lösung). */
+export interface Writeup {
+  given: string[];
+  wanted: string[];
+  blocks: WriteupBlock[];
+  /** All of it as LaTeX for amsmath, to copy. */
+  latex: string;
+}
+
 export type ElementKind =
   | 'resistor'
   | 'wire'
@@ -587,6 +610,9 @@ export const api = {
   solveLinearSystem: (request: LinearSystemRequest) => call<LinearSystem>('solve_linear_system', { request }),
 
   variables: () => call<Variable[]>('list_variables', { sessionId }),
+
+  /** The session's history written up as given, wanted and solution. */
+  writeup: () => call<Writeup>('writeup', { sessionId }),
 
   forget: (key: string) => call<void>('delete_variable', { key, sessionId }),
 

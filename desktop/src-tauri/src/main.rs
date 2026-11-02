@@ -51,6 +51,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::value_table,
             commands::solve_linear_system,
             commands::list_variables,
+            commands::writeup,
             commands::delete_variable,
             commands::get_settings,
             commands::set_settings,

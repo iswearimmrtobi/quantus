@@ -476,6 +476,12 @@ pub fn history(store: &mut SessionStore, id: Option<&str>) -> Vec<HistoryEntry> 
     store.session(id).history().to_vec()
 }
 
+/// The session written up as given, wanted and solution, see [`crate::writeup`].
+pub fn writeup(store: &mut SessionStore, id: Option<&str>) -> crate::writeup::Writeup {
+    let settings = store.settings.clone();
+    crate::writeup::build(store.session(id), &settings)
+}
+
 pub fn clear_history(store: &mut SessionStore, id: Option<&str>) {
     store.session(id).clear_history();
 }

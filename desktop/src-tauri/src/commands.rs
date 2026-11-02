@@ -337,6 +337,11 @@ pub fn history(engine: State<Engine>, session_id: Option<String>) -> Vec<History
 }
 
 #[tauri::command]
+pub fn writeup(engine: State<Engine>, session_id: Option<String>) -> quantus_core::writeup::Writeup {
+    engine.with(|store| api::writeup(store, session_id.as_deref()))
+}
+
+#[tauri::command]
 pub fn clear_history(engine: State<Engine>, session_id: Option<String>) {
     engine.with_saved(session_id.as_deref(), |store| api::clear_history(store, session_id.as_deref()))
 }
