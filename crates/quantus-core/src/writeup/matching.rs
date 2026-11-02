@@ -231,6 +231,60 @@ pub fn is_literal(node: &Node) -> bool {
     }
 }
 
+/// The parts of a node that could be worked out on their own: groups, numerators and
+/// denominators and the bases of powers, outermost first. Values and names are left out.
+pub fn candidates(node: &Node) -> Vec<&Node> {
+    fn visit<'n>(node: &'n Node, top: bool, out: &mut Vec<&'n Node>) {
+        if is_literal(node) || matches!(node, Node::Number { .. } | Node::Variable { .. } | Node::Unit { .. }) {
+            return;
+        }
+        let worth = !top && !matches!(node, Node::Group { .. });
+        if worth {
+            out.push(node);
+        }
+        match node {
+            Node::Group { inner, .. } => visit(inner, false, out),
+            Node::Fraction { numerator, denominator, .. } => {
+                visit(numerator, false, out);
+                visit(denominator, false, out);
+            }
+            Node::Power { base, .. } => visit(base, false, out),
+            Node::Root { radicand, .. } if top => visit(radicand, true, out),
+            Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, .. } => {
+                let mut factors = Vec::new();
+                product_factors(node, Operator::Times, &mut factors);
+                for (_, factor) in factors {
+                    visit(factor, false, out);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    visit(node, true, &mut out);
+    out
+}
+
+/// The terms of a sum with whether each is subtracted: `a + b - c`. `None` for anything else.
+pub fn sum_terms(node: &Node) -> Option<Vec<(bool, &Node)>> {
+    fn visit<'n>(node: &'n Node, negative: bool, out: &mut Vec<(bool, &'n Node)>) {
+        match node {
+            Node::Binary { operator: operator @ (Operator::Plus | Operator::Minus), left, right, .. } => {
+                visit(left, negative, out);
+                visit(right, negative ^ (*operator == Operator::Minus), out);
+            }
+            _ => out.push((negative, node)),
+        }
+    }
+    let node = strip(node);
+    if !matches!(node, Node::Binary { operator: Operator::Plus | Operator::Minus, .. }) {
+        return None;
+    }
+    let mut out = Vec::new();
+    visit(node, false, &mut out);
+    Some(out)
+}
+
 /// The first law that fits `monomial` with its left side, or any other symbol, as the result.
 pub fn find_law(monomial: &Monomial, result: &Dimension, precision: usize) -> Option<Match> {
     for law in LAWS {
@@ -284,7 +338,7 @@ fn fits(symbol: &laws::Symbol, leaf: &Leaf, precision: usize) -> bool {
         .ok()
         .and_then(|q| q.decimal(precision).ok())
         .and_then(|d| d.to_plain_string().parse::<f64>().ok());
-    value.is_some_and(|v| laws::near(&symbol, v))
+    value.is_some_and(|v| laws::near(symbol, v))
 }
 
 /// A rational as a fraction of two integers, for display: `(1, 2)`.

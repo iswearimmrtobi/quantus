@@ -100,6 +100,8 @@ struct Builder {
     sources: HashMap<String, Source>,
     ans: Option<Source>,
     pre_ans: Option<Source>,
+    /// Whether given values get an index even when their symbol is free (inside a sum).
+    numbered: bool,
 }
 
 /// One factor of a calculation as the writeup shows it.
@@ -119,6 +121,7 @@ impl Builder {
             sources: HashMap::new(),
             ans: None,
             pre_ans: None,
+            numbered: false,
             settings,
         };
         // Variables defined outside the history (in the variables panel) are given too.
@@ -161,7 +164,8 @@ impl Builder {
             return;
         }
         let evaluator = self.evaluator(&variables);
-        let Some(monomial) = matching::monomial(&formula.expression, &evaluator, &HashSet::new()) else { return };
+        let dimension = calculation.quantity.dimension();
+        let Some(monomial) = self.monomial(&formula.expression, &evaluator, &dimension) else { return };
         let label = formula.label.as_ref().map(serializer::label);
         let key = formula.label.as_ref().and_then(|l| l.key());
 
@@ -175,13 +179,94 @@ impl Builder {
                 None => Source::Unnamed { value: calculation.result.clone() },
             }
         } else {
-            let block = self.block(&monomial, label, &calculation.result, &calculation.quantity.dimension(), &variables);
+            let block = self.block(&monomial, label, &calculation.result, &dimension, &variables);
             Source::Block(block)
         };
         if let Some(key) = key {
             self.sources.insert(key, source.clone());
         }
         self.pre_ans = self.ans.replace(source);
+    }
+
+    /// `node` as a monomial. When no law fits it as a whole, parts that fit a law of their own
+    /// are split off, so `\frac{2kg \cdot 9{,}81\frac{m}{s^2}}{0{,}5m^2}` is a weight first and
+    /// then a pressure.
+    fn monomial(&self, node: &Node, evaluator: &Evaluator, dimension: &Dimension) -> Option<Monomial> {
+        let precision = self.settings.precision;
+        let mut split = HashSet::new();
+        let mut monomial = matching::monomial(node, evaluator, &split)?;
+        if is_value(&monomial) || matching::find_law(&monomial, dimension, precision).is_some() {
+            return Some(monomial);
+        }
+        for candidate in matching::candidates(node) {
+            let Some(part) = matching::monomial(candidate, evaluator, &HashSet::new()) else { continue };
+            let Ok(quantity) = evaluator.evaluate(candidate) else { continue };
+            if part.leaves.len() < 2 || matching::find_law(&part, &quantity.dimension(), precision).is_none() {
+                continue;
+            }
+            split.insert(matching::node_id(candidate));
+            monomial = matching::monomial(node, evaluator, &split)?;
+            if matching::find_law(&monomial, dimension, precision).is_some() {
+                break;
+            }
+        }
+        Some(monomial)
+    }
+
+    /// A part worked out in a block of its own: a sum (`R_{ges} = R_1 + R_2`) or a part split
+    /// off. Returns its name and value.
+    fn composite(&mut self, leaf: &matching::Leaf, base: &str, variables: &Variables) -> Option<(String, String)> {
+        let result = self.shown(&leaf.node, variables)?;
+        let dimension = leaf.quantity.dimension();
+        let block = match matching::sum_terms(&leaf.node) {
+            Some(terms) => self.sum_block(&terms, base, &result, variables)?,
+            None => {
+                let evaluator = self.evaluator(variables);
+                let sub = self.monomial(&leaf.node, &evaluator, &dimension)?;
+                let opaque = matches!(sub.leaves.as_slice(), [only] if only.kind == LeafKind::Composite && only.exponent == 1) && sub.root == 1;
+                if opaque || is_value(&sub) {
+                    return None;
+                }
+                self.block(&sub, None, &result, &dimension, variables)
+            }
+        };
+        self.writeup.blocks[block].intermediate = true;
+        Some((self.writeup.blocks[block].target.clone(), result))
+    }
+
+    /// The block of a sum: `R_{ges} = R_{1} + R_{2}`, the values, the result.
+    fn sum_block(&mut self, terms: &[(bool, &Node)], base: &str, result: &str, variables: &Variables) -> Option<usize> {
+        let evaluator = self.evaluator(variables);
+        let mut monomials = Vec::new();
+        for (negative, term) in terms {
+            let dimension = evaluator.evaluate(term).ok()?.dimension();
+            monomials.push((*negative, self.monomial(term, &evaluator, &dimension)?));
+        }
+        let target = self.fresh(&indexed(base, "ges"));
+        let numbered = std::mem::replace(&mut self.numbered, true);
+        let mut named = String::new();
+        let mut valued = String::new();
+        for (i, (negative, monomial)) in monomials.iter().enumerate() {
+            let parts: Vec<Part> = monomial.leaves.iter().map(|leaf| self.part(leaf, None, variables)).collect();
+            let names: Vec<(String, i32)> = parts.iter().map(|p| (p.name.clone(), p.exponent)).collect();
+            let values: Vec<(String, i32)> = parts.iter().map(|p| (bracketed(&p.value), p.exponent)).collect();
+            let sign = match (i, negative) {
+                (0, false) => "",
+                (0, true) => "-",
+                (_, false) => " + ",
+                (_, true) => " - ",
+            };
+            named.push_str(&format!("{sign}{}", render(&monomial.coefficient, monomial.root, &names)));
+            valued.push_str(&format!("{sign}{}", render(&monomial.coefficient, monomial.root, &values)));
+        }
+        self.numbered = numbered;
+        let lines = vec![
+            Line { kind: LineKind::Law, text: Some(msg!("It holds:", "Es gilt:")), latex: format!("{target} = {named}") },
+            Line { kind: LineKind::Substituted, text: Some(msg!("Inserting the values:", "Einsetzen der Werte:")), latex: format!("{target} = {valued}") },
+            Line { kind: LineKind::Result, text: None, latex: format!("{target} = {result}") },
+        ];
+        self.writeup.blocks.push(Block { target, intermediate: true, lines });
+        Some(self.writeup.blocks.len() - 1)
     }
 
     fn evaluator<'v>(&self, variables: &'v Variables) -> Evaluator<'v> {
@@ -273,6 +358,11 @@ impl Builder {
             Some(fallback.map(|s| s.si_unit()).or_else(|| registry::preferred_unit(&dimension)).unwrap_or_else(|| leaf.quantity.unit.clone()))
         };
         let base = fallback.map_or("x", |s| s.latex);
+        if leaf.kind == LeafKind::Composite && !dimension.is_none() {
+            if let Some((name, value)) = self.composite(leaf, base, variables) {
+                return Part { name, value, exponent: leaf.exponent, unit };
+            }
+        }
         let source = match &leaf.kind {
             LeafKind::Variable(key) if key == ANS => self.ans.clone(),
             LeafKind::Variable(key) if key == PRE_ANS => self.pre_ans.clone(),
@@ -335,7 +425,10 @@ impl Builder {
     /// A given value named after its symbol: the name it already has if the same value was
     /// given before, else the symbol, with an index if that is taken.
     fn given_named(&mut self, base: &str, value: &str) -> String {
-        let candidates = std::iter::once(base.to_string()).chain((2..).map(|n| indexed(base, n)));
+        // Inside a sum every part is numbered: `R_{1} + R_{2}`.
+        let first = if self.numbered { 1 } else { 2 };
+        let bare = (!self.numbered).then(|| base.to_string());
+        let candidates = bare.into_iter().chain((first..).map(|n| indexed(base, n)));
         for name in candidates {
             match self.names.iter().find(|(n, _)| *n == name) {
                 Some((_, Some(v))) if v == value => return name,
@@ -371,7 +464,7 @@ fn is_value(monomial: &Monomial) -> bool {
 }
 
 /// `U` with index `n`: `U_{2}`; `F_{G}` becomes `F_{G,2}`.
-fn indexed(base: &str, n: usize) -> String {
+fn indexed(base: &str, n: impl std::fmt::Display) -> String {
     match base.strip_suffix('}').and_then(|b| b.split_once("_{")) {
         Some((name, index)) => format!("{name}_{{{index},{n}}}"),
         None => format!("{base}_{{{n}}}"),
@@ -380,7 +473,7 @@ fn indexed(base: &str, n: usize) -> String {
 
 /// A name as plain text, for a sentence: `R_{1}` is `R_1`, `\rho` is `ρ`.
 fn plain(latex: &str) -> String {
-    let mut text = latex.replace("_{", "_").replace('}', "").replace('{', "");
+    let mut text = latex.replace("_{", "_").replace(['}', '{'], "");
     for (command, letter) in [("\\rho", "ρ"), ("\\lambda", "λ"), ("\\Delta ", "Δ"), ("\\Delta", "Δ"), ("\\eta", "η")] {
         text = text.replace(command, letter);
     }

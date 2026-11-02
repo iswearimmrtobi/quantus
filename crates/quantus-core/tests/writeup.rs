@@ -105,3 +105,23 @@ fn a_variable_from_the_panel_is_given_once_it_is_used() {
     let w = writeup::build(store.session(None), &settings);
     assert_eq!(w.given, ["U_{1} = 10\\,\\mathrm{V}", "I = 0{,}5\\,\\mathrm{A}"]);
 }
+
+#[test]
+fn a_sum_is_worked_out_first() {
+    let w = writeup_of(&["I = \\frac{230V}{10\\Omega + 20\\Omega}"], Language::De);
+    assert_eq!(w.given, ["U = 230\\,\\mathrm{V}", "R_{1} = 10\\,\\mathrm{\\Omega }", "R_{2} = 20\\,\\mathrm{\\Omega }"]);
+    assert_eq!(w.wanted, ["I"]);
+    assert_eq!(lines(&w, 0)[0].2, "R_{ges} = R_{1} + R_{2}");
+    assert!(lines(&w, 0)[2].2.starts_with("R_{ges} = 30"));
+    assert_eq!(lines(&w, 1)[1].2, "I = \\frac{U}{R_{ges}}");
+}
+
+#[test]
+fn a_part_that_fits_a_law_of_its_own_is_split_off() {
+    let w = writeup_of(&["p = \\frac{2kg \\cdot 9{,}81\\frac{m}{s^2}}{0{,}5m^2}"], Language::De);
+    assert_eq!(w.blocks.len(), 2);
+    assert_eq!(lines(&w, 0)[0].1.as_deref(), Some("Für die Gewichtskraft gilt:"));
+    assert_eq!(lines(&w, 1)[0].1.as_deref(), Some("Für den Druck gilt:"));
+    assert_eq!(lines(&w, 1)[1].2, "p = \\frac{F_{G}}{A}");
+    assert_eq!(w.wanted, ["p"]);
+}
