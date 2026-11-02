@@ -1,4 +1,4 @@
-//! Feasibility spike: the engine on a classic ESP32 (no PSRAM), driven over serial. Each line
+//! Feasibility spike: the engine on the ESP32-P4, driven over serial. Each line
 //! typed into the monitor is evaluated like an input in the app's current mode, and the result is
 //! printed with its time and the heap and stack it left. No display, no keypad.
 
@@ -65,7 +65,7 @@ fn main() {
 }
 
 fn prompt() {
-    println!("\nQuantus on the ESP32. :help lists the commands.");
+    println!("\nQuantus on the ESP32-P4. :help lists the commands.");
     report_memory();
     let mut store = SessionStore::new();
     loop {
@@ -216,19 +216,24 @@ fn read_line() -> String {
     }
 }
 
-/// The most stack the engine thread has used, and the heap. On a chip without PSRAM the largest
+/// The most stack the engine thread has used, and the heap: all of it (internal RAM and PSRAM),
+/// then the internal RAM alone, which compares with the classic ESP32 without PSRAM. The largest
 /// free block matters as much as the total, since big numbers want contiguous memory.
 fn report_memory() {
     // SAFETY: a null handle means the calling task; the rest are plain reads of allocator counters.
-    let (unused, free, minimum, largest) = unsafe {
+    let (unused, free, minimum, largest, internal, internal_minimum, internal_largest) = unsafe {
         (
             sys::uxTaskGetStackHighWaterMark(std::ptr::null_mut()),
             sys::esp_get_free_heap_size(),
             sys::esp_get_minimum_free_heap_size(),
             sys::heap_caps_get_largest_free_block(sys::MALLOC_CAP_8BIT),
+            sys::heap_caps_get_free_size(sys::MALLOC_CAP_INTERNAL),
+            sys::heap_caps_get_minimum_free_size(sys::MALLOC_CAP_INTERNAL),
+            sys::heap_caps_get_largest_free_block(sys::MALLOC_CAP_INTERNAL),
         )
     };
     // ESP-IDF counts stack in bytes, not words.
     let stack = ENGINE_STACK as u32 - unused;
     println!("          stack {stack} of {ENGINE_STACK} B; heap {free} B free, {minimum} B lowest, {largest} B largest block");
+    println!("          internal RAM {internal} B free, {internal_minimum} B lowest, {internal_largest} B largest block");
 }

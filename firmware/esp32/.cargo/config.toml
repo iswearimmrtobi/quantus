@@ -1,13 +1,16 @@
 [build]
-target = "xtensa-esp32-espidf"
+target = "riscv32imafc-esp-espidf"
 
-[target.xtensa-esp32-espidf]
+[target.riscv32imafc-esp-espidf]
 linker = "ldproxy"
-runner = "espflash flash --monitor --flash-size 4mb --partition-table partitions.csv"
+runner = "espflash flash --monitor --flash-size 16mb --partition-table partitions.csv"
 rustflags = ["--cfg", "espidf_time64"]
 
 [unstable]
 build-std = ["std", "panic_abort"]
 
 [env]
-MCU = "esp32"
+MCU = "esp32p4"
+# The ESP-IDF tools go to ~/.espressif, shared with the handheld, instead of a second download
+# into this crate.
+ESP_IDF_TOOLS_INSTALL_DIR = "global"

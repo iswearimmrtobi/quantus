@@ -1,12 +1,12 @@
 [package]
 name = "quantus-esp32"
-description = "Feasibility spike: the Quantus engine on an ESP32"
+description = "Feasibility spike: the Quantus engine on the ESP32-P4, driven over serial"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 publish = false
 
-# Its own workspace: the Xtensa toolchain and ESP-IDF stay out of `cargo test --workspace`.
+# Its own workspace: the ESP toolchain and ESP-IDF stay out of `cargo test --workspace`.
 [workspace]
 
 [dependencies]

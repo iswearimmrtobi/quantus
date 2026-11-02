@@ -1204,6 +1204,7 @@ dependencies = [
  "astro-float",
  "dashu",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
