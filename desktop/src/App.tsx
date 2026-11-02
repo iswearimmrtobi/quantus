@@ -14,6 +14,7 @@ import { copyText, inShell, onShortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
 import { LibraryDialog } from './components/LibraryDialog';
+import { WriteupDialog } from './components/WriteupDialog';
 import { QuickSearch } from './components/QuickSearch';
 import { SessionsPanel } from './components/SessionsPanel';
 import { ToolDialog, type ToolKind } from './components/ToolDialog';
@@ -92,6 +93,7 @@ export function App() {
   const [panel, setPanel] = useState<Panel>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [writeupOpen, setWriteupOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [precision, setPrecision] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -405,6 +407,9 @@ export function App() {
         case 'toggle-library':
           setLibraryOpen((open) => !open);
           break;
+        case 'toggle-writeup':
+          setWriteupOpen((open) => !open);
+          break;
         case 'quick-search':
           setQuickOpen((open) => !open);
           break;
@@ -435,6 +440,7 @@ export function App() {
         setPanel(null);
         setSettingsOpen(false);
         setLibraryOpen(false);
+        setWriteupOpen(false);
         setQuickOpen(false);
         editor()?.focus();
         return;
@@ -459,6 +465,9 @@ export function App() {
       } else if (key === 'k') {
         event.preventDefault();
         setLibraryOpen((open) => !open);
+      } else if (key === 'g') {
+        event.preventDefault();
+        setWriteupOpen((open) => !open);
       } else if (key === 'f') {
         event.preventDefault();
         setQuickOpen((open) => !open);
@@ -801,6 +810,16 @@ export function App() {
           </svg>
         </button>
         <button
+          className={writeupOpen ? 'rail-btn active' : 'rail-btn'}
+          title={`${t('writeup')} (${ctrl}+G)`}
+          onClick={() => setWriteupOpen((open) => !open)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M6 3.5h9l3 3v14H6z" />
+            <path d="M12 3.5v6M6 9.5h12M9 13.5h6M9 16.5h4" />
+          </svg>
+        </button>
+        <button
           className={panel === 'sessions' ? 'rail-btn active' : 'rail-btn'}
           title={`${t('sessions')} (${ctrl}+O)`}
           onClick={() => togglePanel('sessions')}
@@ -947,6 +966,15 @@ export function App() {
           }}
           onClose={() => {
             setLibraryOpen(false);
+            editor()?.focus();
+          }}
+        />
+      )}
+
+      {writeupOpen && (
+        <WriteupDialog
+          onClose={() => {
+            setWriteupOpen(false);
             editor()?.focus();
           }}
         />

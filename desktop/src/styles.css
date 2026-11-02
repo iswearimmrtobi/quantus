@@ -1128,6 +1128,75 @@ select option {
   font-size: 10.5px;
 }
 
+/* The writeup: given and wanted side by side, the solution below. */
+.dialog.settings-dialog.writeup-dialog {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  height: min(720px, 86vh);
+}
+.writeup-dialog .settings-head {
+  grid-column: 1;
+}
+.writeup-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.writeup-dialog .settings-body {
+  padding: 4px 22px 18px;
+}
+.writeup h4 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.writeup-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.writeup-row {
+  display: block;
+  padding: 3px 0;
+  font-size: 14px;
+}
+.writeup-none {
+  margin: 0;
+  color: var(--text-faint);
+}
+.writeup-block {
+  padding: 6px 0 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.writeup-block:last-child {
+  border-bottom: none;
+}
+.writeup-text {
+  margin: 10px 0 2px;
+  color: var(--text-muted);
+}
+.writeup-math {
+  display: block;
+  font-size: 14px;
+}
+.writeup-math .katex-display {
+  margin: 4px 0;
+  text-align: left;
+}
+.writeup-math .katex-display > .katex {
+  display: inline-block;
+  margin-left: 24px;
+  text-align: left;
+}
+/* The result underlined twice, as on paper. */
+.writeup-result .writeup-math .katex-display > .katex {
+  padding-bottom: 2px;
+  border-bottom: 3px double var(--text-muted);
+}
+
 /* The quick search: a launcher line near the top. */
 .quick-backdrop {
   padding-top: 14vh;
