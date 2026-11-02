@@ -146,3 +146,12 @@ fn units_written_apart_from_their_number_still_make_one_given_value() {
     let w = writeup_of(&["F = 2kg \\cdot \\frac{3m}{s^2}"], Language::De);
     assert_eq!(w.given, ["m = 2\\,\\mathrm{kg}", "a = 3\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}"]);
 }
+
+#[test]
+fn the_markdown_has_a_table_and_one_formula_per_line() {
+    let w = writeup_of(&["R_1 = \\frac{10V}{0{,}5A}", "P = \\frac{(10V)^2}{R_1}"], Language::De);
+    assert!(w.markdown.starts_with("| Gegeben: | Gesucht: |\n|---|---|\n| $U = 10\\,\\mathrm{V}$ | $P$ |\n"), "{}", w.markdown);
+    assert!(w.markdown.contains("\nNach dem Ohm'schen Gesetz gilt:\n\n$$U = R \\cdot I$$\n"));
+    assert!(w.markdown.contains("$$P = \\frac{(10\\,\\mathrm{V})^{2}}{20\\,\\mathrm{\\Omega }}$$"), "{}", w.markdown);
+    assert!(!w.markdown.contains("\\left") && !w.markdown.contains("align"));
+}

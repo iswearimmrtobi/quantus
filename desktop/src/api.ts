@@ -155,6 +155,8 @@ export interface Writeup {
   blocks: WriteupBlock[];
   /** All of it as LaTeX for amsmath, to copy. */
   latex: string;
+  /** All of it as Markdown with `$…$` math, to copy. */
+  markdown: string;
 }
 
 export type ElementKind =

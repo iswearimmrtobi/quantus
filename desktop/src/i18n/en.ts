@@ -266,6 +266,8 @@ export const en = {
   'writeup.wanted': 'Wanted:',
   'writeup.solution': 'Solution:',
   'writeup.copy': 'Copy as LaTeX',
+  'writeup.copyMarkdown': 'Copy as Markdown',
+  'writeup.copyMarkdown.title': 'Simple LaTeX in $…$ and $$…$$, for Markdown (Obsidian, GitHub, Typora …)',
   'writeup.empty': 'Nothing to write up yet. Calculate something in this session first, such as 10 V divided by 0.5 A.',
   'writeup.failed': 'The writeup could not be made.',
   'library': 'Library',

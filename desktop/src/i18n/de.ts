@@ -267,6 +267,8 @@ export const de: Record<TextKey, string> = {
   'writeup.wanted': 'Gesucht:',
   'writeup.solution': 'Lösung:',
   'writeup.copy': 'Als LaTeX kopieren',
+  'writeup.copyMarkdown': 'Als Markdown kopieren',
+  'writeup.copyMarkdown.title': 'Einfaches LaTeX in $…$ und $$…$$, für Markdown (Obsidian, GitHub, Typora …)',
   'writeup.empty': 'Noch nichts aufzuschreiben. Erst in dieser Sitzung etwas rechnen, etwa 10 V geteilt durch 0,5 A.',
   'writeup.failed': 'Der Lösungsweg ließ sich nicht erstellen.',
   'library': 'Bibliothek',

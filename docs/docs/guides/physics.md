@@ -149,9 +149,12 @@ A formula that is not in the list starts with *It holds:* instead.
   part comes first. $\frac{2kg \cdot 9{,}81\frac{m}{s^2}}{0{,}5m^2}$ is a weight first, then a
   pressure.
 
-### Copy as LaTeX
+### Copy as LaTeX or Markdown
 
 **Copy as LaTeX** copies the whole writeup. It compiles in any document that loads `amsmath`.
+**Copy as Markdown** uses simpler LaTeX for notes that render math, such as Obsidian, GitHub or
+Typora. Given and wanted become a table, and each equation is its own `$$…$$` formula. It has no
+`align*` and no `\left( \right)`.
 The unit check always uses SI units, even when the values have prefixes such as kV or mA.
 
 ## See also

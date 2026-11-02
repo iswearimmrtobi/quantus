@@ -23,7 +23,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     and wanted quantities side by side, then for each quantity the law it follows ("Nach dem
     Ohm'schen Gesetz gilt …"), the rearrangement, the values put in, the result and a unit
     check. Values used twice are given once, and results used by a later line are intermediate
-    steps. **Copy as LaTeX** puts it on the clipboard for amsmath.
+    steps. **Copy as LaTeX** puts it on the clipboard for amsmath, **Copy as Markdown** with
+    simpler LaTeX in `$…$` and `$$…$$` for notes such as Obsidian or GitHub.
   - **CALC** and **SOLVE** in the input's context menu and the Calculation menu.
   - **Sessions**: each saved as a file in the config directory after every change, with its
     variables, history and linear system; a session panel (Ctrl+O) to open, create, rename,

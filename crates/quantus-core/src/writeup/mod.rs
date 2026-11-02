@@ -34,6 +34,8 @@ pub struct Writeup {
     pub blocks: Vec<Block>,
     /// The whole writeup as LaTeX to copy, see [`Writeup::to_latex`].
     pub latex: String,
+    /// The whole writeup as Markdown with `$…$` math, see [`Writeup::to_markdown`].
+    pub markdown: String,
 }
 
 /// The solution of one quantity.
@@ -91,6 +93,7 @@ pub fn build(session: &Session, settings: &Settings) -> Writeup {
     }
     let mut writeup = Builder::new(session, settings).run(session);
     writeup.latex = writeup.to_latex();
+    writeup.markdown = writeup.to_markdown();
     writeup
 }
 
@@ -143,6 +146,38 @@ impl Writeup {
         }
         latex
     }
+}
+
+impl Writeup {
+    /// The writeup as Markdown, for notes and chats that render `$…$` and `$$…$$` with KaTeX or
+    /// MathJax (GitHub, Obsidian, Typora …). It uses no environments: given and wanted are a
+    /// table, each equation is a display formula of its own, sentences are plain text, and
+    /// `\left( \right)` become plain brackets.
+    pub fn to_markdown(&self) -> String {
+        let given_title = msg!("Given:", "Gegeben:");
+        let wanted_title = msg!("Wanted:", "Gesucht:");
+        let rows = self.given.len().max(self.wanted.len()).max(1);
+        let cell = |list: &[String], i: usize| list.get(i).map(|m| format!("${}$", simple(m))).unwrap_or_default();
+        let mut markdown = format!("| {given_title} | {wanted_title} |\n|---|---|\n");
+        for i in 0..rows {
+            markdown.push_str(&format!("| {} | {} |\n", cell(&self.given, i), cell(&self.wanted, i)));
+        }
+        markdown.push_str(&format!("\n**{}**\n", msg!("Solution:", "Lösung:")));
+        for block in &self.blocks {
+            for line in &block.lines {
+                if let Some(text) = &line.text {
+                    markdown.push_str(&format!("\n{text}\n"));
+                }
+                markdown.push_str(&format!("\n$${}$$\n", simple(&line.latex)));
+            }
+        }
+        markdown
+    }
+}
+
+/// LaTeX that every Markdown math renderer reads: no `\left`, `\right`.
+fn simple(latex: &str) -> String {
+    latex.replace("\\left(", "(").replace("\\right)", ")").replace("\\left[", "[").replace("\\right]", "]")
 }
 
 /// An equation aligned at its first `=`.

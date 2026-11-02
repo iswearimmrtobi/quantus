@@ -8,13 +8,13 @@ import { displayStyle, Katex } from './Katex';
  * The session written up the way school physics wants it: given values top left, wanted
  * quantities top right, and below them the solution, one block per quantity with the law, the
  * rearrangement, the values put in, the result and the unit check. Built by the engine from the
- * whole history of the session; the button copies it as LaTeX.
+ * whole history of the session; the buttons copy it as LaTeX (amsmath) or as Markdown with `$…$` math.
  */
 export function WriteupDialog(props: { onClose: () => void }) {
   const { t, language } = useT();
   const [writeup, setWriteup] = useState<Writeup | null>(null);
   const [failed, setFailed] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'latex' | 'markdown' | null>(null);
 
   useEffect(() => {
     api.writeup().then(setWriteup, () => setFailed(true));
@@ -27,11 +27,11 @@ export function WriteupDialog(props: { onClose: () => void }) {
     }
   };
 
-  const copy = async () => {
+  const copy = async (format: 'latex' | 'markdown') => {
     if (!writeup) return;
-    await copyText(writeup.latex);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
+    await copyText(format === 'latex' ? writeup.latex : writeup.markdown);
+    setCopied(format);
+    window.setTimeout(() => setCopied((current) => (current === format ? null : current)), 1200);
   };
 
   const empty = writeup !== null && writeup.blocks.length === 0;
@@ -49,8 +49,16 @@ export function WriteupDialog(props: { onClose: () => void }) {
         <div className="settings-head">
           <h3>{t('writeup')}</h3>
           <div className="writeup-actions">
-            <button className="copy-btn" disabled={!writeup || empty} onClick={() => void copy()}>
-              {copied ? t('copied') : t('writeup.copy')}
+            <button className="copy-btn" disabled={!writeup || empty} onClick={() => void copy('latex')}>
+              {copied === 'latex' ? t('copied') : t('writeup.copy')}
+            </button>
+            <button
+              className="copy-btn"
+              title={t('writeup.copyMarkdown.title')}
+              disabled={!writeup || empty}
+              onClick={() => void copy('markdown')}
+            >
+              {copied === 'markdown' ? t('copied') : t('writeup.copyMarkdown')}
             </button>
             <button className="settings-close" title={t('settings.close')} onClick={props.onClose}>
               ✕
