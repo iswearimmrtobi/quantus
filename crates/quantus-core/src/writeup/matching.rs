@@ -97,7 +97,7 @@ impl Builder<'_, '_> {
         if self.split.contains(&node_id(node)) {
             return self.leaf(node, exponent, LeafKind::Composite);
         }
-        if is_literal(node) {
+        if is_literal(node) || is_single_value(node) {
             return self.leaf(node, exponent, LeafKind::Literal);
         }
         match node {
@@ -220,6 +220,27 @@ fn is_unit(node: &Node) -> bool {
         Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, left, right, .. } => is_unit(left) && is_unit(right),
         _ => false,
     }
+}
+
+/// One number with units around it, however it is written: `\frac{3m}{s^2}`, `3m \cdot s^{-2}`.
+/// The units belong to the number; they are not quantities of their own.
+pub fn is_single_value(node: &Node) -> bool {
+    fn numbers(node: &Node) -> Option<usize> {
+        match node {
+            Node::Number { .. } => Some(1),
+            Node::Unit { .. } => Some(0),
+            Node::Group { inner, .. } | Node::Negation { operand: inner, .. } => numbers(inner),
+            Node::Fraction { numerator, denominator, .. } => Some(numbers(numerator)? + numbers(denominator)?),
+            Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, left, right, .. } => {
+                Some(numbers(left)? + numbers(right)?)
+            }
+            // A power of units (`s^2`) belongs to the value; a power of the value itself
+            // (`(10V)^2`) is a factor of the formula.
+            Node::Power { base, exponent, .. } if integer(exponent).is_some() && numbers(base) == Some(0) => Some(0),
+            _ => None,
+        }
+    }
+    numbers(node) == Some(1) && !matches!(strip(node), Node::Number { .. } | Node::Negation { .. })
 }
 
 /// A number with a unit: `10V`, `-3\,\mathrm{m}`, `9{,}81\frac{m}{s^2}`.

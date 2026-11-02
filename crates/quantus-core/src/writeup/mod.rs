@@ -451,7 +451,7 @@ impl Builder {
             None => {
                 // A value typed in place, or a physical constant.
                 let value = match &leaf.kind {
-                    LeafKind::Literal => serializer::expression(&leaf.node),
+                    LeafKind::Literal if matching::is_literal(&leaf.node) => serializer::expression(&leaf.node),
                     _ => self.shown(&leaf.node, variables).unwrap_or_else(|| serializer::expression(&leaf.node)),
                 };
                 let name = self.given_named(base, &value);

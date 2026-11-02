@@ -134,3 +134,15 @@ fn the_latex_has_both_columns_and_a_block_per_quantity() {
     assert!(w.latex.contains("\\intertext{Nach dem Ohm'schen Gesetz gilt:}\nU &= R \\cdot I\\\\\n"));
     assert_eq!(w.latex.matches("\\begin{align*}").count(), 3);
 }
+
+#[test]
+fn units_written_apart_from_their_number_still_make_one_given_value() {
+    for definition in ["a_1 = \\frac{3m}{s^2}", "a_1 = 3m/s^2"] {
+        let w = writeup_of(&[definition, "m_1 = 2kg", "F = m_1 a_1"], Language::De);
+        assert_eq!(w.given, ["a_{1} = 3\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}", "m_{1} = 2\\,\\mathrm{kg}"], "{definition}");
+        assert_eq!(w.blocks.len(), 1, "{definition}");
+        assert_eq!(w.wanted, ["F"]);
+    }
+    let w = writeup_of(&["F = 2kg \\cdot \\frac{3m}{s^2}"], Language::De);
+    assert_eq!(w.given, ["m = 2\\,\\mathrm{kg}", "a = 3\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}"]);
+}
