@@ -74,9 +74,6 @@ dev kit. See its [README](../firmware/esp32/README.md).
   run on the P4 (2026-11-02): `2+3`, `2^{10}` and S⇔D in 6–15 ms, `2x+3=7` in 43 ms,
   `\int_0^1 \ln x\,dx` in 3.1 s (2.5 s the second time) with at most 16 KB of stack; 33 MB of
   heap free, of it 380–440 KB internal RAM.
-- [ ] Plain rationals come back as decimals in exact mode (`\frac{1}{2}+\frac{1}{3}` gives
-  `0{,}8333333333`, without ≈); the fraction is among the response's `forms`. The handheld
-  should show it, as the desktop's form switch does.
 - [ ] A handheld on an ESP32-P4: hardware requirements in
   [hardware.md](../firmware/docs/hardware.md).
 - [ ] Its UI, on the ESP32-P4 dev kit (before that a classic ESP32) with the display, keys over

@@ -2,6 +2,7 @@
 //! directly; the handheld runs it on a thread of its own, so the screen stays live meanwhile.
 
 use quantus_core::api::{self, CalculationRequest};
+use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
@@ -36,6 +37,13 @@ impl Backend for Engine {
             ..Default::default()
         };
         let response = api::evaluate(&mut self.store, &request).map_err(|error| error.to_string())?;
+        // The engine writes a rational as a decimal and gives the fraction among its forms;
+        // exact, the handheld shows the fraction, as a Casio does.
+        if !settings.decimal {
+            if let Some(fraction) = fraction(&response.forms) {
+                return Ok(fraction.to_string());
+            }
+        }
         // A decimal with digits after the comma is rounded; mark it like the stub does.
         if settings.decimal && response.result.contains("{,}") {
             Ok(format!(r"\approx {}", response.result))
@@ -43,6 +51,20 @@ impl Backend for Engine {
             Ok(response.result)
         }
     }
+}
+
+/// A fraction with more digits than this is shown as a decimal, as on a Casio:
+/// `\frac{1}{7}+\frac{1}{123456}` gives `0{,}14…`, not a fraction of twelve digits.
+const FRACTION_DIGITS: usize = 10;
+
+/// The fraction among a result's forms, improper or mixed as the setting says (the engine puts
+/// that one first), if it is short enough to read.
+fn fraction(forms: &[ResultForm]) -> Option<&str> {
+    let form = forms.iter().find(|form| matches!(form.kind, FormKind::Fraction | FormKind::MixedFraction))?;
+    // The number alone, without the unit after `\,`, whose exponents are digits too.
+    let number = form.latex.split("\\,").next().unwrap_or_default();
+    let digits = number.chars().filter(char::is_ascii_digit).count();
+    (digits <= FRACTION_DIGITS).then_some(form.latex.as_str())
 }
 
 /// The engine's settings for the hui's: every setting the engine has. The others (the device,

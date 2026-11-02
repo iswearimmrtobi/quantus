@@ -16,6 +16,10 @@ Each calculation is printed over serial: the mode, the LaTeX the editor wrote, t
 the time, then the most stack the engine thread has used and the heap (all of it and the
 internal RAM). The engine keeps its unit table, in PSRAM (no `small-memory`).
 
+Exact, a rational result is a fraction, improper or mixed as SETUP says, as long as it has at
+most ten digits (`\frac{5}{6}`, `\frac{458}{675}\,\mathrm{J}`); a longer one is a decimal.
+S⇔D switches to the decimal and back. The simulator does the same.
+
 `--no-default-features` builds the stub instead of the engine, which builds and flashes much
 faster for work on the UI: it answers with the input itself, and an input with a `?` gives an
 error.
