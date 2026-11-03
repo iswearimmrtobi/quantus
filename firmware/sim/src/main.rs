@@ -55,11 +55,14 @@ fn main() {
     let option = |name: &str| args.iter().position(|arg| arg == name).and_then(|i| args.get(i + 1));
     if let Some(png) = option("--png") {
         let keys = option("--keys").map_or("", String::as_str);
-        // `\e` for Esc is not needed here: Ctrl+X clears. `\n` is EXE, `>`/`<` move the cursor.
+        // `\e` for Esc is not needed here: Ctrl+X clears. `\n` is EXE, `>`/`<` and `↑`/`↓` move the
+        // cursor.
         for c in keys.replace("\\n", "\n").chars() {
             let key = match c {
                 '>' => Some(Key::Right),
                 '<' => Some(Key::Left),
+                '↓' => Some(Key::Down),
+                '↑' => Some(Key::Up),
                 c => Key::from_char(c),
             };
             key.into_iter().for_each(|key| app.key(key));

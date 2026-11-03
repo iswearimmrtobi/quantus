@@ -1,6 +1,7 @@
 //! Kurvendiskussion on the screen: a page per section of the sketch, its steps and then its
 //! result, under a line with the section's title and where it stands among the pages.
 
+use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Rectangle, Triangle};
 
@@ -26,7 +27,7 @@ pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analys
     match answer.page.checked_sub(1).and_then(|page| analysis.pages.get(page)) {
         Some(page) => {
             title(shapes, &page.title, page.status, answer.page, pages, lang);
-            section(shapes, page.message.as_deref(), &page.lines, &page.result, answer.scroll);
+            section(shapes, page.message.as_deref(), &page.lines, &page.result, answer.scroll, lang);
         }
         None => graph_page(shapes, &analysis.function, &analysis.graph, 0, pages, lang),
     }
@@ -40,7 +41,7 @@ pub(super) fn task(shapes: &mut Vec<Shape>, answer: &Answer, task: &Task, lang: 
         (Some(graph), 1) => graph_page(shapes, &format!("f(x) = {}", task.function), graph, 1, pages, lang),
         _ => {
             title(shapes, &task.title, Status::Ok, 0, pages, lang);
-            section(shapes, None, &task.lines, &task.result, answer.scroll);
+            section(shapes, None, &task.lines, &task.result, answer.scroll, lang);
         }
     }
     sides(shapes, answer.page, pages);
@@ -100,9 +101,18 @@ fn title(shapes: &mut Vec<Shape>, title: &str, status: Status, page: usize, page
 
 /// What a section says: why it is not complete, its steps, and its result, from the line
 /// `scroll` on.
-fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], result: &[Line], scroll: usize) {
+fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], result: &[Line], scroll: usize, lang: Lang) {
     let mut y = TOP;
-    let mut more = false;
+    // The result alone first: why it is not complete, the result, and that the working is
+    // below. A page without working scrolls through its result.
+    let (lines, skip, hint): (Vec<(&Line, Rgb565)>, usize, bool) = match (steps.is_empty(), scroll) {
+        (true, _) => (result.iter().map(|line| (line, colors::RESULT)).collect(), scroll, false),
+        (false, 0) => (result.iter().map(|line| (line, colors::RESULT)).collect(), 0, true),
+        (false, _) => {
+            let working = steps.iter().map(|line| (line, colors::TEXT));
+            (working.chain(result.iter().map(|line| (line, colors::RESULT))).collect(), scroll - 1, false)
+        }
+    };
     if scroll == 0 {
         if let Some(message) = message {
             let small = Scale::Small.metrics();
@@ -113,12 +123,11 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
             y += 4;
         }
     }
-    let count = steps.len();
-    let steps = steps.iter().map(|line| (line, colors::TEXT));
-    let result = result.iter().map(|line| (line, colors::RESULT));
-    for (index, (line, color)) in steps.chain(result).enumerate().skip(scroll) {
-        // A line between the steps and the result.
-        if index == count && index > 0 {
+    // In the working, a short rule before the result.
+    let rule_at = (!hint && !steps.is_empty() && scroll > 0).then_some(steps.len());
+    let mut more = false;
+    for (index, &(line, color)) in lines.iter().enumerate().skip(skip) {
+        if Some(index) == rule_at && index > 0 {
             if y + 6 > BOTTOM {
                 more = true;
                 break;
@@ -127,7 +136,7 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
             shapes.push(Shape::Fill(rule, colors::HAIRLINE));
             y += 6;
         }
-        let drawn = lines(line, color);
+        let drawn = lines_of(line, color);
         let height: i32 = drawn.iter().map(Drawn::height).sum();
         // A line taller than the page still shows at its top.
         if y + height > BOTTOM && y > TOP {
@@ -137,6 +146,14 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
         for drawn in drawn {
             y += drawn.draw(shapes, y);
         }
+    }
+    if hint {
+        // ▼ Rechenweg, under the result.
+        let small = Scale::Small.metrics();
+        let baseline = (y + 10 + small.ascent).min(BOTTOM - small.descent);
+        let tip = Point::new(MARGIN + 5, baseline);
+        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -7), tip + Point::new(5, -7)), colors::FAINT));
+        shapes.push(Shape::Text(Point::new(MARGIN + 16, baseline), text::WORKING.get(lang).to_string(), Scale::Small, colors::FAINT));
     }
     if more {
         let tip = Point::new(WIDTH as i32 - MARGIN - 6, HEIGHT as i32 - 4);
@@ -218,7 +235,7 @@ fn row_height(row: &[RowLayout]) -> i32 {
 /// `line` as it fits the screen: a long equation broken before its `=`, `≈` or `⇒`, the
 /// rest right-aligned below as on a Casio, or small when it still does not fit; a sign table
 /// turned on its side when it is too wide.
-fn lines(line: &Line, color: embedded_graphics::pixelcolor::Rgb565) -> Vec<Drawn> {
+fn lines_of(line: &Line, color: Rgb565) -> Vec<Drawn> {
     match line {
         Line::Note(note) => wrap(note, ROOM, Scale::Small).into_iter().map(Drawn::Note).collect(),
         Line::Math(latex) => broken(&latex::parse(latex), color),

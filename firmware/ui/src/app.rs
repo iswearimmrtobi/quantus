@@ -156,13 +156,29 @@ impl Answer {
         }
     }
 
-    /// The lines or rows of the page shown, the steps of its scrolling.
-    pub fn lines(&self) -> usize {
+    /// The steps and the result lines of the page shown, if it is a section of a sketch or the
+    /// working of a task.
+    pub fn working(&self) -> Option<(usize, usize)> {
         match &self.reply {
-            Ok(Reply::Analysis(analysis)) => self.page.checked_sub(1).and_then(|page| analysis.pages.get(page)).map_or(0, |page| page.len()),
-            Ok(Reply::Task(_)) if self.page > 0 => 0,
-            Ok(reply) => reply.len(),
-            Err(_) => 0,
+            Ok(Reply::Analysis(analysis)) => {
+                let page = analysis.pages.get(self.page.checked_sub(1)?)?;
+                Some((page.lines.len(), page.result.len()))
+            }
+            Ok(Reply::Task(task)) if self.page == 0 => Some((task.lines.len(), task.result.len())),
+            _ => None,
+        }
+    }
+
+    /// The lines or rows of the page shown, the steps of its scrolling. A page with working
+    /// opens on its result alone (scroll 0); from 1 on it shows the working, the result again
+    /// at its end.
+    pub fn lines(&self) -> usize {
+        match (self.working(), &self.reply) {
+            (Some((0, result)), _) => result,
+            (Some((steps, result)), _) => 1 + steps + result,
+            (None, Ok(Reply::Analysis(_) | Reply::Task(_))) => 0,
+            (None, Ok(reply)) => reply.len(),
+            (None, Err(_)) => 0,
         }
     }
 

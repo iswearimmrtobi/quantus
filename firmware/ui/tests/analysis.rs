@@ -317,3 +317,32 @@ fn the_function_a_session_kept_comes_back_into_the_input() {
     assert_eq!(app.mode, Mode::Analysis);
     assert_eq!(app.editor.to_latex(), "x^{2}-1");
 }
+
+#[test]
+fn a_section_opens_on_its_result_and_down_shows_the_working() {
+    let (mut app, _) = app();
+    type_text(&mut app, "x^2");
+    app.key(Key::Exe);
+    app.key(Key::Right);
+    // The stub's section: a note as its working, f as its result.
+    let answer = app.answer.as_ref().unwrap();
+    assert_eq!((answer.scroll, answer.working(), answer.lines()), (0, Some((1, 1)), 3));
+    let shown = texts(&app);
+    assert!(shown.iter().any(|text| text == "Rechenweg") && !shown.iter().any(|text| text == "f"), "{shown:?}");
+    // DOWN: the working from its start, without the hint.
+    app.key(Key::Down);
+    let shown = texts(&app);
+    assert!(shown.iter().any(|text| text == "f") && !shown.iter().any(|text| text == "Rechenweg"), "{shown:?}");
+    // Further down there is no more; UP goes back to the result alone.
+    app.key(Key::Down);
+    app.key(Key::Down);
+    assert_eq!(app.answer.as_ref().unwrap().scroll, 2);
+    app.key(Key::Up);
+    app.key(Key::Up);
+    assert!(texts(&app).iter().any(|text| text == "Rechenweg"));
+    // Turning the page comes back to the result view.
+    app.key(Key::Down);
+    app.key(Key::Right);
+    app.key(Key::Left);
+    assert_eq!(app.answer.as_ref().unwrap().scroll, 0);
+}
