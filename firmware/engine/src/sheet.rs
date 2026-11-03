@@ -90,7 +90,14 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
             let core = core_settings(CoreMode::Analysis);
             analysis::sketch(&core, f, Some(usize::from(settings.digits).min(6))).map(Reply::Analysis)
         }
-        Request::Tangent { .. } | Request::Area { .. } => Err("Noch nicht verfügbar".to_string()),
+        Request::Tangent { f, x0 } => {
+            let core = core_settings(CoreMode::Analysis);
+            analysis::tangent(&core, f, x0, Some(usize::from(settings.digits).min(6))).map(Reply::Task)
+        }
+        Request::Area { f, from, to } => {
+            let core = core_settings(CoreMode::Analysis);
+            analysis::area(&core, f, from, to, Some(usize::from(settings.digits).min(6))).map(Reply::Task)
+        }
     }
 }
 

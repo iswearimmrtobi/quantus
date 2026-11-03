@@ -1,10 +1,12 @@
 //! Kurvendiskussion: the core's curve sketch and its tasks turned into what the hui shows, a
 //! page per section with its steps and result, and the graph with its marks.
 
-use quantus_core::analysis::interface::{AnalysisRequest, AnalysisResponse, AsymptoteResponse, PointResponse};
+use quantus_core::analysis::interface::{
+    AnalysisRequest, AnalysisResponse, AreaRequest, AsymptoteResponse, LineResponse, PointResponse, TangentRequest,
+};
 use quantus_core::api::{self, StepResponse};
 use quantus_core::settings::Settings as CoreSettings;
-use quantus_ui::backend::{Analysis, Graph, Line, Mark, MarkKind, Overlay, Page, Status, Straight, Window};
+use quantus_ui::backend::{Analysis, Graph, Line, Mark, MarkKind, Overlay, Page, Region, Status, Straight, Task, Window};
 
 use crate::sheet::{inside, plain};
 
@@ -91,7 +93,7 @@ pub fn steps(steps: &[StepResponse]) -> Vec<Line> {
     let mut lines = Vec::new();
     for step in steps {
         if let Some(note) = step.explanation.as_ref().or(step.rule.as_ref()) {
-            lines.push(Line::Note(plain(note)));
+            lines.push(Line::Note(note_text(note)));
         }
         match grid(&step.latex) {
             Some(grid) => lines.push(grid),
@@ -99,6 +101,11 @@ pub fn steps(steps: &[StepResponse]) -> Vec<Line> {
         }
     }
     lines
+}
+
+/// An explanation as plain text: the bits of LaTeX in some (`x_0`, `9 \cdot x`) written out.
+fn note_text(note: &str) -> String {
+    plain(&note.replace("\\cdot", "·").replace("x_0", "x0").replace("x_{0}", "x0"))
 }
 
 /// `\begin{array}{c|c} x & ]-\infty; 0] \\ \hline f'(x) & + \end{array}` as its cells.
@@ -148,6 +155,50 @@ fn split_quads(latex: &str) -> Vec<String> {
         .collect()
 }
 
+/// The tangent and the normal to `f` at `x0`.
+pub fn tangent(core: &CoreSettings, f: &str, x0: &str, precision: Option<usize>) -> Result<Task, String> {
+    let request = TangentRequest { latex: f.to_string(), variable: None, x0: x0.to_string(), precision };
+    let response = api::tangent(core, &request).map_err(|error| error.error)?;
+    let mut lines = steps(&response.steps);
+    lines.push(Line::Note(if german(core) { "Ergebnis" } else { "Result" }.to_string()));
+    lines.extend(math_lines(&response.tangent.latex));
+    lines.extend(math_lines(&response.normal.latex));
+    let overlay = Overlay {
+        tangent: straight(&response.tangent),
+        normal: straight(&response.normal),
+        point: Some(Mark { kind: MarkKind::Touch, ..mark(&response.point) }),
+        regions: Vec::new(),
+    };
+    Ok(Task { function: f.to_string(), lines, overlay })
+}
+
+fn straight(line: &LineResponse) -> Option<Straight> {
+    match line.kind.as_str() {
+        "vertical" => Some(Straight::Vertical(line.x? as f32)),
+        _ => Some(Straight::Sloped { slope: line.slope? as f32, intercept: line.intercept? as f32 }),
+    }
+}
+
+/// The area between `f` and the x-axis from `from` to `to`, or between the outer zeros.
+pub fn area(core: &CoreSettings, f: &str, from: &str, to: &str, precision: Option<usize>) -> Result<Task, String> {
+    let bound = |bound: &str| (!bound.trim().is_empty()).then(|| bound.to_string());
+    let request = AreaRequest { latex: f.to_string(), variable: None, from: bound(from), to: bound(to), precision };
+    let response = api::area(core, &request).map_err(|error| error.error)?;
+    let mut lines = steps(&response.steps);
+    lines.push(Line::Note(if german(core) { "Ergebnis" } else { "Result" }.to_string()));
+    lines.push(Line::Math(format!("A = {}", response.area)));
+    lines.push(Line::Math(format!("\\int f(x)\\,dx = {}", response.signed)));
+    let regions = response
+        .regions
+        .iter()
+        .map(|region| Region {
+            positive: region.positive,
+            curve: region.segments.iter().flatten().map(|&[x, y]| (x as f32, y as f32)).collect(),
+        })
+        .collect();
+    Ok(Task { function: f.to_string(), lines, overlay: Overlay { regions, ..Overlay::default() } })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,6 +210,12 @@ mod tests {
         assert_eq!(split_quads(r"H\left(1 \mid 2\right)"), [r"H\left(1 \mid 2\right)"]);
         assert_eq!(split_quads(r"\text{a \quad b}, \quad c"), [r"\text{a \quad b}", "c"]);
         assert_eq!(split_quads(r"a \qquad b"), [r"a \qquad b"]);
+    }
+
+    #[test]
+    fn an_explanation_loses_its_latex() {
+        assert_eq!(note_text(r"Distribute 9 across (x - 2) to obtain 9 \cdot x - 18"), "Distribute 9 across (x - 2) to obtain 9 · x - 18");
+        assert_eq!(note_text("t(x) = f'(x_0)(x - x_0)"), "t(x) = f'(x0)(x - x0)");
     }
 
     #[test]

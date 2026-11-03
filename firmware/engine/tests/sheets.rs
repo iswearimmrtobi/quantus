@@ -136,6 +136,48 @@ fn a_sketch_of_two_variables_says_why_not() {
     assert!(engine.solve(&Settings::default(), &Request::Analysis { f: "x+y".into() }).is_err());
 }
 
+fn task(reply: Reply) -> quantus_ui::backend::Task {
+    match reply {
+        Reply::Task(task) => task,
+        other => panic!("a task expected: {other:?}"),
+    }
+}
+
+#[test]
+fn a_tangent_gives_its_steps_and_both_lines() {
+    use quantus_ui::backend::Straight;
+    let mut engine = Engine::default();
+    let request = Request::Tangent { f: "x^3-3x".into(), x0: "2".into() };
+    let task = task(engine.solve(&Settings::default(), &request).unwrap());
+    let math = math(&task.lines);
+    assert!(math.ends_with(&["t(x) = 9x - 16", r"n(x) = -\frac{1}{9}x + \frac{20}{9}"]), "{math:?}");
+    assert_eq!(task.overlay.tangent, Some(Straight::Sloped { slope: 9.0, intercept: -16.0 }));
+    assert!(task.overlay.normal.is_some());
+    let point = task.overlay.point.unwrap();
+    assert_eq!((point.x, point.y), (2.0, 2.0));
+}
+
+#[test]
+fn an_area_between_the_outer_zeros() {
+    let mut engine = Engine::default();
+    let request = Request::Area { f: "x^3-3x".into(), from: "".into(), to: "".into() };
+    let task = task(engine.solve(&Settings::default(), &request).unwrap());
+    assert!(math(&task.lines).contains(&r"A = \frac{9}{2}"));
+    let regions = &task.overlay.regions;
+    assert_eq!(regions.len(), 2);
+    assert!(regions[0].positive && !regions[1].positive);
+    assert!(!regions[0].curve.is_empty());
+}
+
+#[test]
+fn a_task_off_the_curve_says_why() {
+    let mut engine = Engine::default();
+    let tangent = Request::Tangent { f: r"\sqrt{x}".into(), x0: "-1".into() };
+    assert!(engine.solve(&Settings::default(), &tangent).is_err());
+    let area = Request::Area { f: "x^2+1".into(), from: "".into(), to: "".into() };
+    assert!(engine.solve(&Settings::default(), &area).is_err());
+}
+
 #[test]
 fn an_error_comes_back_as_text() {
     let mut engine = Engine::default();
