@@ -18,6 +18,10 @@ impl Backend for Card {
         Stub.evaluate(mode, settings, latex)
     }
 
+    fn solve(&mut self, settings: &Settings, request: &quantus_ui::backend::Request) -> Result<quantus_ui::backend::Reply, String> {
+        Stub.solve(settings, request)
+    }
+
     fn wallpapers(&mut self) -> Vec<String> {
         vec!["Abend".to_string(), "Morgen".to_string()]
     }

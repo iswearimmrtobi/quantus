@@ -537,14 +537,18 @@ static OPTN_ANALYSIS: Page = Page {
     ],
 };
 
+/// f(x), g(x), von, bis and Schritt are the rows of the form; OPTN clears it and brings the
+/// functions.
 static OPTN_TABLE: Page = Page {
     title: t("Wertetabelle", "Table"),
     entries: &[
-        pending(same("f(x)")),
-        pending(same("g(x)")),
-        pending(t("Von, bis, Schritt", "From, to, step")),
+        entry(CLEAR_ALL, Kind::Do(Action::ClearInput)),
+        NUMBER_GROUP,
+        HYPERBOLIC_GROUP,
     ],
 };
+
+const CLEAR_ALL: Text = t("Alles löschen", "Clear all");
 
 static OPTN_LINEAR: Page = Page {
     title: t("LGS", "Linear systems"),
@@ -556,7 +560,7 @@ static OPTN_LINEAR: Page = Page {
         entry(t("Zeilen", "Rows"), Kind::Number(S::SystemRows, 1, 10)),
         entry(t("Spalten", "Columns"), Kind::Number(S::SystemColumns, 1, 10)),
         switch(t("Imaginäre Einheit i", "Imaginary unit i"), S::LinearComplex),
-        entry(t("Alles löschen", "Clear all"), Kind::Do(Action::ClearInput)),
+        entry(CLEAR_ALL, Kind::Do(Action::ClearInput)),
     ],
 };
 
@@ -592,31 +596,49 @@ static OPTN_BASE_N: Page = Page {
     ],
 };
 
+/// The sums, the measures, min, max, the quartiles and the regression are all on the answer
+/// EXE brings.
 static OPTN_STATISTICS: Page = Page {
     title: t("Statistik", "Statistics"),
     entries: &[
-        pending(t("Typ", "Type")),
-        pending(same("Editor")),
-        pending(t("Summen", "Sums")),
-        pending(t("Kennwerte", "Measures")),
-        pending(t("Min, Max, Quartile", "Min, max, quartiles")),
-        pending(same("Regression")),
+        entry(t("Typ", "Type"), Kind::Choice(S::StatisticsType, &STATISTICS_TYPES)),
+        switch(t("Häufigkeit", "Frequency"), S::StatisticsFreq),
+        entry(t("Zeile einfügen", "Insert row"), Kind::Do(Action::InsertRow)),
+        entry(t("Zeile löschen", "Delete row"), Kind::Do(Action::DeleteRow)),
+        entry(CLEAR_ALL, Kind::Do(Action::ClearInput)),
     ],
 };
 
+static STATISTICS_TYPES: [Opt; 8] = [
+    opt(t("1 Variable", "1 variable"), 0),
+    opt(same("y = a + bx"), 1),
+    opt(same("y = a + bx + cx²"), 2),
+    opt(same("y = a + b·ln(x)"), 3),
+    opt(same("y = a·e^(bx)"), 4),
+    opt(same("y = a·b^x"), 5),
+    opt(same("y = a·x^b"), 6),
+    opt(same("y = a + b/x"), 7),
+];
+
+/// k takes one value or several, separated by `;`: there is no list to switch to.
 static OPTN_DISTRIBUTIONS: Page = Page {
     title: t("Verteilungen", "Distributions"),
     entries: &[
-        pending(t("Normal-Dichte", "Normal PD")),
-        pending(t("Kumul. Normal-V.", "Normal CD")),
-        pending(t("Inv. Normal-V.", "Inverse normal")),
-        pending(t("Binomial-Dichte", "Binomial PD")),
-        pending(t("Kumul. Binom.-V.", "Binomial CD")),
-        pending(t("Poisson-Dichte", "Poisson PD")),
-        pending(t("Kumul. Poisson-V.", "Poisson CD")),
-        pending(t("Liste, Variable", "List, variable")),
+        entry(t("Typ", "Type"), Kind::Choice(S::Distribution, &DISTRIBUTIONS)),
+        entry(CLEAR_ALL, Kind::Do(Action::ClearInput)),
+        GREEK_GROUP,
     ],
 };
+
+static DISTRIBUTIONS: [Opt; 7] = [
+    opt(t("Normal-Dichte", "Normal PD"), 0),
+    opt(t("Kumul. Normal-V.", "Normal CD"), 1),
+    opt(t("Inv. Normal-V.", "Inverse normal"), 2),
+    opt(t("Binomial-Dichte", "Binomial PD"), 3),
+    opt(t("Kumul. Binom.-V.", "Binomial CD"), 4),
+    opt(t("Poisson-Dichte", "Poisson PD"), 5),
+    opt(t("Kumul. Poisson-V.", "Poisson CD"), 6),
+];
 
 static OPTN_VERIFY: Page = Page {
     title: t("Prüfen", "Verify"),

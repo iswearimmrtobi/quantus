@@ -31,7 +31,7 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Simul
 use mirror::{Mirror, Tee};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Network, Opened, SessionCommand, SessionInfo, Storage, Stub, WlanStatus};
+use quantus_ui::backend::{Backend, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stub, WlanStatus};
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 use quantus_ui::touch::Touch;
@@ -255,6 +255,13 @@ impl Backend for Sim {
         }
     }
 
+    fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.solve(settings, request),
+            Answers::Stub(stub) => stub.solve(settings, request),
+        }
+    }
+
     fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
         match &mut self.answers {
             Answers::Engine(engine) => engine.session(command, settings),
@@ -378,6 +385,7 @@ Quantus simulator keys
   SHIFT / ALPHA        F1 or Ctrl+F / F2 or Ctrl+K
   S<=>D                F3 or Ctrl+D
   OPTN (mode's options) F4 or Ctrl+N
+  OK                   F5 (on a sheet: edits the cell as it is; Enter works it out)
   EXE / DEL / AC       Enter / Backspace / Esc, Delete or Ctrl+X
   fraction ^ index     /  ^  _
   sqrt x^2 pi e        Ctrl+W  Ctrl+Q  Ctrl+P  Ctrl+E
@@ -407,6 +415,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::F2 => return Some(Key::Alpha),
         Keycode::F3 => return Some(Key::SwapForm),
         Keycode::F4 => return Some(Key::Optn),
+        Keycode::F5 => return Some(Key::Ok),
         Keycode::KpPlus => return Some(Key::Plus),
         Keycode::KpMinus => return Some(Key::Minus),
         Keycode::KpMultiply => return Some(Key::Times),

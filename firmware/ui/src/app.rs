@@ -1,6 +1,6 @@
 //! The calculator's state and what each key does to it.
 
-use crate::backend::{Backend, Opened, SessionCommand, SessionInfo, WlanStatus};
+use crate::backend::{Backend, Opened, Reply, Request, SessionCommand, SessionInfo, WlanStatus};
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
@@ -9,6 +9,8 @@ use crate::tree;
 use crate::clock;
 use crate::menu::{self, Action, Edit, Kind, Menu, Outcome, TextFor, TimeField};
 use crate::render;
+use crate::settings::SystemInput;
+use crate::sheet::{self, Sheets};
 use crate::touch::{self, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
 use crate::wallpaper::Wallpaper;
 use embedded_graphics::prelude::Point;
@@ -77,6 +79,18 @@ impl Mode {
         matches!(self, Mode::Physics | Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear)
     }
 
+    /// The sheet the mode shows instead of the input line, if it has one: LGS with its input
+    /// set to the matrix, Wertetabelle, Statistik and Verteilungen.
+    pub fn sheet(self, settings: &Settings) -> Option<sheet::Kind> {
+        match self {
+            Mode::Linear if settings.system_input == SystemInput::Matrix => Some(sheet::Kind::Linear),
+            Mode::Table => Some(sheet::Kind::Table),
+            Mode::Statistics => Some(sheet::Kind::Statistics),
+            Mode::Distributions => Some(sheet::Kind::Distribution),
+            _ => None,
+        }
+    }
+
     fn index(self) -> usize {
         Mode::ALL.iter().position(|&mode| mode == self).unwrap_or(0)
     }
@@ -112,7 +126,22 @@ enum Pending {
     New { input: Row, decimal: bool },
     /// The other form of the entry at this place in the history (oldest first).
     Swap { index: usize, decimal: bool },
+    /// The answer to a sheet.
+    Sheet,
 }
+
+/// A sheet worked out, shown over it until AC.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Answer {
+    pub reply: Result<Reply, String>,
+    /// The first line or row on the screen.
+    pub scroll: usize,
+    /// How far it is moved to the left, in pixels, to see a wide matrix or table.
+    pub shift: i32,
+}
+
+/// How far ←/→ move a wide answer.
+const SHIFT_STEP: i32 = 80;
 
 /// How long the caret stays on and off.
 const BLINK_MS: u64 = 500;
@@ -164,6 +193,10 @@ pub struct App<B> {
     pub preview: Option<(usize, Option<Wallpaper>)>,
     /// The session open now, whose history is shown; `None` for a backend without sessions.
     pub session: Option<SessionInfo>,
+    /// What LGS, Wertetabelle, Statistik and Verteilungen hold.
+    pub sheets: Sheets,
+    /// The answer to the sheet on the screen, shown over it.
+    pub answer: Option<Answer>,
     /// Turns the panel's readings into screen points; set by the board from what it stored.
     pub calibration: Calibration,
     /// A calibration just made, for the board to store.
@@ -208,6 +241,7 @@ impl<B> App<B> {
         match &self.screen {
             Screen::Modes { .. } => Some(Point::new(moved.x, 0)),
             Screen::Menu(menu) if menu.list().is_some() => Some(Point::new(0, moved.y)),
+            Screen::Calc if self.answer.is_some() && self.mode.sheet(&self.settings).is_some() => Some(Point::new(0, moved.y)),
             _ => None,
         }
     }
@@ -244,6 +278,8 @@ impl<B: Backend> App<B> {
             wallpaper_name: None,
             preview: None,
             session: None,
+            sheets: Sheets::new(&settings),
+            answer: None,
             calibration: Calibration::default(),
             calibrated: None,
             pending: None,
@@ -275,6 +311,37 @@ impl<B: Backend> App<B> {
             .collect();
         self.session = Some(opened.info);
         self.reset();
+        // The sheets as the session left them, laid out as they were.
+        self.answer = None;
+        self.sheets = Sheets::new(&self.settings);
+        for request in &opened.inputs {
+            let settings = &mut self.settings;
+            match request {
+                Request::Linear { rows } => {
+                    let width = rows.first().map_or(2, Vec::len);
+                    settings.system_rows = rows.len().clamp(1, 10) as u8;
+                    settings.system_columns = width.saturating_sub(1).clamp(1, 10) as u8;
+                }
+                Request::Statistics { kind, freq, .. } => {
+                    settings.statistics_type = *kind;
+                    settings.statistics_freq = freq.is_some();
+                }
+                Request::Distribution { kind, .. } => settings.distribution = *kind,
+                Request::Table { .. } => {}
+            }
+            self.sheets.fill(request, &self.settings);
+        }
+        self.fit_sheets();
+    }
+
+    /// Lays the sheets out as the settings say, and scrolls the one on the screen to its cursor.
+    fn fit_sheets(&mut self) {
+        self.sheets.fit(&self.settings);
+        if let Some(kind) = self.mode.sheet(&self.settings) {
+            let sheet = self.sheets.get_mut(kind);
+            let (_, columns) = sheet::columns_shown(sheet.columns(), kind.form());
+            sheet.follow(sheet::ROWS_SHOWN, columns);
+        }
     }
 
     /// Sends `command` to the backend. A session opened goes to the calculation screen, a renamed
@@ -323,11 +390,20 @@ impl<B: Backend> App<B> {
             self.backend.use_settings(&self.settings);
             self.last_wlan = None;
         }
-        if self.pending.is_some() {
-            if let Some(result) = self.backend.poll() {
-                self.finish(result);
-                changed = true;
+        match self.pending {
+            Some(Pending::Sheet) => {
+                if let Some(reply) = self.backend.poll_solve() {
+                    self.finish_sheet(reply);
+                    changed = true;
+                }
             }
+            Some(_) => {
+                if let Some(result) = self.backend.poll() {
+                    self.finish(result);
+                    changed = true;
+                }
+            }
+            None => {}
         }
         changed |= self.wlan_tick(now_ms);
         let minute = clock::now().map(|now| now / 60_000);
@@ -367,6 +443,7 @@ impl<B: Backend> App<B> {
                 _ => self.screen = Screen::Calibrate(state, back),
             },
         }
+        self.fit_sheets();
     }
 
     /// The touch calibration screen, back to this screen afterwards.
@@ -411,6 +488,7 @@ impl<B: Backend> App<B> {
             Some(Gesture::Drag(moved)) => self.turn(moved),
             None => {}
         }
+        self.fit_sheets();
         true
     }
 
@@ -433,6 +511,18 @@ impl<B: Backend> App<B> {
                     _ => Outcome::Stay,
                 };
                 self.outcome(menu, outcome);
+            }
+            Screen::Calc => {
+                if let Some(answer) = &mut self.answer {
+                    let page = sheet::ROWS_SHOWN as isize;
+                    let by = match moved.y {
+                        y if y <= -TURN => page,
+                        y if y >= TURN => -page,
+                        _ => 0,
+                    };
+                    let last = answer.reply.as_ref().map_or(0, |reply| reply.len().saturating_sub(1));
+                    answer.scroll = answer.scroll.saturating_add_signed(by).min(last);
+                }
             }
             screen => self.screen = screen,
         }
@@ -477,7 +567,17 @@ impl<B: Backend> App<B> {
 
     fn tap(&mut self, target: Target) {
         match target {
-            Target::Back if matches!(self.screen, Screen::Modes { .. }) => self.key(Key::Ac),
+            Target::Back if matches!(self.screen, Screen::Modes { .. } | Screen::Calc) => self.key(Key::Ac),
+            Target::Cell(row, column) => {
+                let Some(kind) = self.mode.sheet(&self.settings) else { return };
+                let sheet = self.sheets.get_mut(kind);
+                // A tap on the cell under the cursor edits it, one on another cell moves there.
+                if sheet.cursor == (row, column) {
+                    sheet.edit();
+                } else {
+                    sheet.select(row, column);
+                }
+            }
             Target::Back => self.key(Key::Left),
             Target::Ok | Target::Anywhere => self.key(Key::Ok),
             Target::Tile(index) => self.choose(index),
@@ -562,6 +662,13 @@ impl<B: Backend> App<B> {
                     _ => SessionCommand::Delete,
                 };
                 return self.session_command(menu, command);
+            }
+            // What is done to a sheet closes OPTN, to show it.
+            Outcome::Act(action @ (Action::ClearInput | Action::InsertRow | Action::DeleteRow))
+                if self.mode.sheet(&self.settings).is_some() =>
+            {
+                self.act(action);
+                return;
             }
             Outcome::Act(action) => self.act(action),
             Outcome::Sessions(label) => self.open_sessions(&mut menu, label),
@@ -669,7 +776,23 @@ impl<B: Backend> App<B> {
                 self.settings = Settings::default();
                 self.clear_memory();
             }
-            Action::ClearInput => self.reset(),
+            Action::ClearInput => match self.mode.sheet(&self.settings) {
+                Some(kind) => {
+                    self.sheets.get_mut(kind).clear();
+                    self.answer = None;
+                }
+                None => self.reset(),
+            },
+            Action::InsertRow | Action::DeleteRow => {
+                if let Some(kind) = self.mode.sheet(&self.settings) {
+                    let sheet = self.sheets.get_mut(kind);
+                    match action {
+                        Action::InsertRow => sheet.insert_row(),
+                        _ => sheet.delete_row(),
+                    }
+                    self.answer = None;
+                }
+            }
             // Done by `outcome`, which knows the menu to come back to.
             Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
         }
@@ -731,14 +854,26 @@ impl<B: Backend> App<B> {
         if self.pending.is_some() {
             return;
         }
-        if self.shown.is_some() {
-            self.reset();
-        }
         let row = latex::parse(latex);
-        self.editor.paste(&row);
+        // Into the cell at the cursor, on a sheet.
+        let editor = match self.mode.sheet(&self.settings) {
+            Some(kind) => {
+                self.answer = None;
+                let sheet = self.sheets.get_mut(kind);
+                sheet.edit();
+                sheet.editing.as_mut().expect("the cell is being edited")
+            }
+            None => {
+                if self.shown.is_some() {
+                    self.reset();
+                }
+                &mut self.editor
+            }
+        };
+        editor.paste(&row);
         // Into a pair of brackets or bars: `\sinh(|)`, `|x|`.
         if matches!(row.0.last(), Some(Node::Char(')' | '|'))) && row.0.len() > 1 {
-            self.editor.left();
+            editor.left();
         }
     }
 
@@ -758,37 +893,17 @@ impl<B: Backend> App<B> {
             }
             return;
         }
+        if let Some(kind) = self.mode.sheet(&self.settings) {
+            return self.sheet_key(kind, key, shift);
+        }
         if self.shown.is_some() && !self.leave_result(key) {
             return;
         }
         let editor = &mut self.editor;
+        if editor.key(key, shift) {
+            return;
+        }
         match key {
-            Key::Digit(digit) => editor.char(char::from(b'0' + digit.min(9))),
-            Key::Letter(c) => editor.char(c),
-            // `Key::plain` keeps these out of the calculation.
-            Key::Char(_) => {}
-            Key::Comma => editor.char(','),
-            Key::Semicolon => editor.char(';'),
-            Key::Plus => editor.char('+'),
-            Key::Minus => editor.char('-'),
-            Key::Times => editor.char('×'),
-            Key::Divide => editor.char('÷'),
-            Key::Equals => editor.char('='),
-            Key::OpenParen => editor.char('('),
-            Key::CloseParen => editor.char(')'),
-            Key::Pi => editor.char('π'),
-            Key::E => editor.char('e'),
-            Key::Fraction => editor.fraction(),
-            Key::Power => editor.power(),
-            Key::Square => editor.square(),
-            Key::Root if shift => editor.root(),
-            Key::Root => editor.sqrt(),
-            Key::Subscript => editor.subscript(),
-            Key::Sin => editor.function("sin"),
-            Key::Cos => editor.function("cos"),
-            Key::Tan => editor.function("tan"),
-            Key::Ln => editor.function("ln"),
-            Key::Log => editor.function("log"),
             Key::Ans => {
                 if let Some(Entry { result: Ok(result), .. }) = self.history.last() {
                     editor.paste(result);
@@ -811,7 +926,41 @@ impl<B: Backend> App<B> {
             Key::Del => editor.delete(),
             Key::Ac => editor.clear(),
             Key::Ok | Key::Exe => self.evaluate(),
-            Key::SwapForm | Key::Space | Key::Shift | Key::Alpha | Key::Mode | Key::Optn => {}
+            _ => {}
+        }
+    }
+
+    /// A key on a sheet, or on its answer: there ↑/↓ scroll, ←/→ move a wide one sideways,
+    /// and AC, DEL, OK or EXE go back to the sheet.
+    fn sheet_key(&mut self, kind: sheet::Kind, key: Key, shift: bool) {
+        if let Some(answer) = &mut self.answer {
+            let last = answer.reply.as_ref().map_or(0, |reply| reply.len().saturating_sub(1));
+            match key {
+                Key::Up => answer.scroll = answer.scroll.saturating_sub(1),
+                Key::Down => answer.scroll = (answer.scroll + 1).min(last),
+                Key::Left => answer.shift = (answer.shift - SHIFT_STEP).max(0),
+                Key::Right => answer.shift += SHIFT_STEP,
+                Key::Ac | Key::Del | Key::Ok | Key::Exe => self.answer = None,
+                _ => {}
+            }
+            return;
+        }
+        if self.sheets.get_mut(kind).key(key, shift) == sheet::Outcome::Calculate {
+            let request = self.sheets.request(kind);
+            let settings = self.settings;
+            self.pending = Some(Pending::Sheet);
+            match self.backend.start_solve(&settings, &request) {
+                Some(reply) => self.finish_sheet(reply),
+                None => self.busy = true,
+            }
+        }
+    }
+
+    /// Shows the answer to the sheet.
+    fn finish_sheet(&mut self, reply: Result<Reply, String>) {
+        self.busy = false;
+        if let Some(Pending::Sheet) = self.pending.take() {
+            self.answer = Some(Answer { reply, scroll: 0, shift: 0 });
         }
     }
 
@@ -893,6 +1042,9 @@ impl<B: Backend> App<B> {
         match Mode::ALL[index] {
             Mode::Sessions => self.screen = Screen::Menu(Menu::new(&tree::SESSIONS)),
             mode => {
+                if mode != self.mode {
+                    self.answer = None;
+                }
                 self.mode = mode;
                 self.screen = Screen::Calc;
             }
@@ -933,7 +1085,7 @@ impl<B: Backend> App<B> {
     fn start(&mut self, pending: Pending, settings: &Settings, latex: &str) {
         let answer = match pending {
             Pending::New { .. } => self.backend.start(self.mode, settings, latex),
-            Pending::Swap { .. } => self.backend.recalculate(self.mode, settings, latex),
+            Pending::Swap { .. } | Pending::Sheet => self.backend.recalculate(self.mode, settings, latex),
         };
         self.pending = Some(pending);
         match answer {
@@ -961,7 +1113,7 @@ impl<B: Backend> App<B> {
                     entry.decimal = decimal;
                 }
             }
-            None => {}
+            Some(Pending::Sheet) | None => {}
         }
     }
 

@@ -2,6 +2,8 @@
 
 use crate::app::{Mode, Settings};
 use crate::clock;
+use crate::settings::{DistributionKind, StatisticsType};
+use crate::text;
 use crate::wallpaper::Wallpaper;
 
 pub trait Backend {
@@ -27,8 +29,27 @@ pub trait Backend {
         self.start(mode, settings, latex)
     }
 
-    /// Forgets the running calculation: its answer never comes from [`poll`](Backend::poll).
+    /// Forgets the running calculation: its answer never comes from [`poll`](Backend::poll) or
+    /// [`poll_solve`](Backend::poll_solve).
     fn drop_pending(&mut self) {}
+
+    /// What a mode with a sheet (LGS, Wertetabelle, Statistik, Verteilungen) asks for, worked
+    /// out, or an error message. The backend keeps the request in the open session, so the
+    /// sheet is filled again when the session is opened.
+    fn solve(&mut self, _settings: &Settings, _request: &Request) -> Result<Reply, String> {
+        Err(text::NOT_AVAILABLE.de.to_string())
+    }
+
+    /// [`solve`](Backend::solve) as [`start`](Backend::start) does it: the answer now, or
+    /// `None` and later from [`poll_solve`](Backend::poll_solve).
+    fn start_solve(&mut self, settings: &Settings, request: &Request) -> Option<Result<Reply, String>> {
+        Some(self.solve(settings, request))
+    }
+
+    /// The answer to the last [`start_solve`](Backend::start_solve) that returned `None`.
+    fn poll_solve(&mut self) -> Option<Result<Reply, String>> {
+        None
+    }
 
     /// The sessions there are, in the order the session list shows them.
     fn sessions(&mut self) -> Vec<SessionInfo> {
@@ -152,7 +173,7 @@ pub fn bars(rssi: i8) -> u8 {
 }
 
 /// A session as the menus show it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SessionInfo {
     pub id: String,
     pub name: String,
@@ -175,11 +196,117 @@ pub enum SessionCommand {
 }
 
 /// The open session and its history, oldest first: each input and its result as LaTeX, the
-/// result written as the settings say.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// result written as the settings say; and what the sheets held, as their requests.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Opened {
     pub info: SessionInfo,
     pub history: Vec<(String, String)>,
+    pub inputs: Vec<Request>,
+}
+
+/// What a sheet asks the engine, its cells as LaTeX (an empty one is left out or 0).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Request {
+    /// The rows of `[A | b]`.
+    Linear { rows: Vec<Vec<String>> },
+    /// f(x), and g(x) beside it if given, from `from` to `to` in steps of `step`.
+    Table { f: String, g: Option<String>, from: String, to: String, step: String },
+    /// The data; `y` for pairs (a regression), `freq` how often each row counts.
+    Statistics { kind: StatisticsType, x: Vec<String>, y: Option<Vec<String>>, freq: Option<Vec<String>> },
+    /// The fields the distribution reads; `k` one value or several.
+    Distribution { kind: DistributionKind, fields: Vec<(Field, String)>, k: Vec<String> },
+}
+
+/// An input of a distribution.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Field {
+    X,
+    Lower,
+    Upper,
+    Area,
+    Sigma,
+    Mu,
+    N,
+    P,
+    K,
+}
+
+impl Field {
+    pub const ALL: [Field; 9] =
+        [Field::X, Field::Lower, Field::Upper, Field::Area, Field::Sigma, Field::Mu, Field::N, Field::P, Field::K];
+
+    /// The fields `kind` reads, in the order its form shows them.
+    pub fn of(kind: DistributionKind) -> &'static [Field] {
+        use DistributionKind as D;
+        match kind {
+            D::NormalDensity => &[Field::X, Field::Sigma, Field::Mu],
+            D::NormalCumulative => &[Field::Lower, Field::Upper, Field::Sigma, Field::Mu],
+            D::InverseNormal => &[Field::Area, Field::Sigma, Field::Mu],
+            D::BinomialDensity | D::BinomialCumulative => &[Field::K, Field::N, Field::P],
+            D::PoissonDensity | D::PoissonCumulative => &[Field::K, Field::Mu],
+        }
+    }
+
+    pub fn label(self) -> text::Text {
+        use text::{same, t};
+        match self {
+            Field::X => same("x"),
+            Field::Lower => t("Untere", "Lower"),
+            Field::Upper => t("Obere", "Upper"),
+            Field::Area => t("Fläche", "Area"),
+            Field::Sigma => same("σ"),
+            Field::Mu => same("μ"),
+            Field::N => same("n"),
+            Field::P => same("p"),
+            Field::K => same("k"),
+        }
+    }
+}
+
+/// What the engine answers a sheet: lines to read (LGS, Statistik, one probability), or a table
+/// (Wertetabelle, probabilities for several k).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Reply {
+    Lines(Vec<Line>),
+    /// The column heads and the rows, as LaTeX; an empty cell shows as a dash.
+    Table { header: Vec<String>, rows: Vec<Vec<String>> },
+}
+
+impl Reply {
+    /// How many lines or rows it has, the steps of its scrolling.
+    pub fn len(&self) -> usize {
+        match self {
+            Reply::Lines(lines) => lines.len(),
+            Reply::Table { rows, .. } => rows.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+/// A line of an answer.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Line {
+    /// LaTeX: `x_{1} = 2`, `\bar{x} = 3`.
+    Math(String),
+    /// Plain text, a heading or what a step does.
+    Note(String),
+    /// A step of the elimination: the matrix `[A | b]`.
+    Matrix(Matrix),
+}
+
+/// An augmented matrix as a step shows it, its cells as LaTeX.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Matrix {
+    /// The rows' names left of the matrix (I, II, …), if any.
+    pub names: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+    /// The columns left of the bar.
+    pub split: usize,
+    /// What was done to each row, right of the matrix (`2 \cdot \text{II} - \text{I}`), if anything.
+    pub notes: Vec<String>,
 }
 
 /// The size of a card and the room left on it, in bytes.
@@ -227,5 +354,22 @@ impl Backend for Stub {
         } else {
             Ok(latex.to_string())
         }
+    }
+
+    /// The cells back: the first row of an LGS, the table's f(x) for x = from, the x column of
+    /// the data, a distribution's fields; enough to see the result page without the engine.
+    fn solve(&mut self, _settings: &Settings, request: &Request) -> Result<Reply, String> {
+        let math = |cells: &[String]| Line::Math(cells.join("; "));
+        Ok(match request {
+            Request::Linear { rows } => Reply::Lines(rows.iter().map(|row| math(row)).collect()),
+            Request::Table { f, from, .. } => {
+                Reply::Table { header: vec!["x".into(), "f(x)".into()], rows: vec![vec![from.clone(), f.clone()]] }
+            }
+            Request::Statistics { x, .. } => Reply::Lines(vec![Line::Math(format!("n = {}", x.len())), math(x)]),
+            Request::Distribution { fields, k, .. } => {
+                let fields: Vec<String> = fields.iter().map(|(_, cell)| cell.clone()).collect();
+                Reply::Lines(vec![math(&fields), math(k)])
+            }
+        })
     }
 }

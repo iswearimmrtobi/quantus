@@ -31,6 +31,8 @@ pub enum Target {
     Ok,
     /// Anywhere on a message.
     Anywhere,
+    /// A cell of a sheet: its row and column.
+    Cell(usize, usize),
 }
 
 /// What the finger did, once it lifted.

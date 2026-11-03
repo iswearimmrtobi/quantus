@@ -11,7 +11,7 @@ use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::sys;
 use quantus_handheld::open_display;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Stub};
+use quantus_ui::backend::{Backend, Reply, Request, Stub};
 use quantus_ui::render::{Frame, Renderer};
 use quantus_ui::tour::tour;
 use quantus_ui::wallpaper::Wallpaper;
@@ -26,6 +26,10 @@ struct Board;
 impl Backend for Board {
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
         Stub.evaluate(mode, settings, latex)
+    }
+
+    fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        Stub.solve(settings, request)
     }
 
     fn wallpapers(&mut self) -> Vec<String> {

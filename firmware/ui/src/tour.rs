@@ -95,6 +95,21 @@ pub fn tour() -> Vec<Step> {
     tour.read(1000);
     tour.press(&[Ac]);
 
+    tour.note("LGS: x + y + z = 6, x − y = 0, 2z = 6 in the matrix, its solution and steps");
+    tour.press(&[Mode]);
+    tour.read(700);
+    tour.press(&[Digit(5)]);
+    tour.read(1000);
+    tour.typed(&[Digit(1), Exe, Digit(1), Exe, Digit(1), Exe, Digit(6), Exe]);
+    tour.typed(&[Digit(1), Exe, Minus, Digit(1), Exe]);
+    // The empty cells are 0: past them to the third row.
+    tour.look(&[Right, Down, Left]);
+    tour.typed(&[Digit(2), Exe, Digit(6), Exe]);
+    tour.result();
+    tour.look(&[Down, Down, Down, Down]);
+    tour.read(1200);
+    tour.press(&[Ac]);
+
     tour.note("Physics: 3,5 × 4 and √2");
     tour.press(&[Mode]);
     tour.read(700);

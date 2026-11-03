@@ -1,4 +1,4 @@
-//! Everything SETUP (and OPTN in LGS) can change. The settings the engine has
+//! Everything SETUP (and OPTN in LGS, Statistik and Verteilungen) can change. The settings the engine has
 //! (`quantus-core/src/settings.rs`) go to the backend with every calculation; the others are
 //! kept here until the engine or the firmware can use them (design/handheld-menus.md §7.2 says
 //! which is which).
@@ -52,6 +52,22 @@ choice!(
     /// How a linear system is typed in LGS.
     SystemInput { Equations, Matrix }
 );
+choice!(
+    /// What Statistik works out: one list, or pairs with one of the Casio's regressions.
+    StatisticsType { OneVariable, Linear, Quadratic, Logarithmic, EExponential, AbExponential, Power, Inverse }
+);
+choice!(
+    /// The distribution Verteilungen works out.
+    DistributionKind {
+        NormalDensity,
+        NormalCumulative,
+        InverseNormal,
+        BinomialDensity,
+        BinomialCumulative,
+        PoissonDensity,
+        PoissonCumulative,
+    }
+);
 choice!(FontSize { Normal, Small });
 choice!(
     /// The time zones the clock knows, each with its summer time (`clock.rs`).
@@ -100,7 +116,13 @@ pub struct Settings {
     pub linear_complex: bool,
     pub system_input: SystemInput,
     pub system_rows: u8,
+    /// The unknowns: the matrix has one column more, the right-hand side.
     pub system_columns: u8,
+    // Statistik and Verteilungen (in their OPTN)
+    pub statistics_type: StatisticsType,
+    /// A Häufigkeit column next to the data.
+    pub statistics_freq: bool,
+    pub distribution: DistributionKind,
     // Gerät
     pub brightness: u8,
     pub font_size: FontSize,
@@ -151,9 +173,12 @@ impl Default for Settings {
             extra_unit_letters: false,
             unknown_names: UnknownNames::Indexed,
             linear_complex: false,
-            system_input: SystemInput::Equations,
-            system_rows: 2,
-            system_columns: 2,
+            system_input: SystemInput::Matrix,
+            system_rows: 3,
+            system_columns: 3,
+            statistics_type: StatisticsType::OneVariable,
+            statistics_freq: false,
+            distribution: DistributionKind::NormalDensity,
             brightness: 8,
             font_size: FontSize::Normal,
             wallpaper_on: WallpaperOn::Modes,
@@ -200,6 +225,9 @@ pub enum Setting {
     SystemInput,
     SystemRows,
     SystemColumns,
+    StatisticsType,
+    StatisticsFreq,
+    Distribution,
     Brightness,
     FontSize,
     WallpaperOn,
@@ -245,6 +273,9 @@ impl Settings {
             S::SystemInput => self.system_input.index(),
             S::SystemRows => self.system_rows.into(),
             S::SystemColumns => self.system_columns.into(),
+            S::StatisticsType => self.statistics_type.index(),
+            S::StatisticsFreq => self.statistics_freq.into(),
+            S::Distribution => self.distribution.index(),
             S::Brightness => self.brightness.into(),
             S::FontSize => self.font_size.index(),
             S::WallpaperOn => self.wallpaper_on.index(),
@@ -295,6 +326,9 @@ impl Settings {
             S::SystemInput => self.system_input = SystemInput::from_index(value),
             S::SystemRows => self.system_rows = small,
             S::SystemColumns => self.system_columns = small,
+            S::StatisticsType => self.statistics_type = StatisticsType::from_index(value),
+            S::StatisticsFreq => self.statistics_freq = on,
+            S::Distribution => self.distribution = DistributionKind::from_index(value),
             S::Brightness => self.brightness = small,
             S::FontSize => self.font_size = FontSize::from_index(value),
             S::WallpaperOn => self.wallpaper_on = WallpaperOn::from_index(value),
@@ -355,9 +389,14 @@ const KEYS: &[(&str, Setting)] = {
         ("extra_unit_letters", S::ExtraUnitLetters),
         ("unknown_names", S::UnknownNames),
         ("linear_complex", S::LinearComplex),
-        ("system_input", S::SystemInput),
+        // Renamed when the matrix became the default, so a value kept from before (equations,
+        // the old default) does not hide the matrix.
+        ("system_input_2", S::SystemInput),
         ("system_rows", S::SystemRows),
         ("system_columns", S::SystemColumns),
+        ("statistics_type", S::StatisticsType),
+        ("statistics_freq", S::StatisticsFreq),
+        ("distribution", S::Distribution),
         ("brightness", S::Brightness),
         ("font_size", S::FontSize),
         ("wallpaper_on", S::WallpaperOn),

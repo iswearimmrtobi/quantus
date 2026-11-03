@@ -7,6 +7,7 @@
 mod bar;
 mod renderer;
 mod screens;
+mod sheet;
 
 pub use renderer::Renderer;
 
@@ -184,7 +185,10 @@ impl Frame {
         let backdrop = backdrop(app);
         let glass = backdrop.is_some();
         match &app.screen {
-            Screen::Calc => calculation(&mut shapes, app),
+            Screen::Calc => match app.mode.sheet(&app.settings) {
+                Some(kind) => sheet::sheet(&mut shapes, app, kind, glass),
+                None => calculation(&mut shapes, app),
+            },
             Screen::Modes { selected } => modes(&mut shapes, app, *selected, glass),
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
             Screen::Calibrate(state, _) => calibration(&mut shapes, state, app.settings.language),
@@ -315,11 +319,19 @@ fn button_rect(top: i32, height: u32, count: usize, index: usize) -> Rectangle {
 
 /// What a tap at `point` hits on the screen as `app` shows it.
 pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
-    if goes_back(&app.screen) && back_area().contains(point) {
+    if goes_back(app) && back_area().contains(point) {
         return Some(Target::Back);
     }
     match &app.screen {
-        Screen::Calibrate(..) | Screen::Calc => None,
+        Screen::Calc => {
+            let kind = app.mode.sheet(&app.settings)?;
+            if app.answer.is_some() {
+                return None;
+            }
+            let (row, column) = sheet::cell_at(kind, app.sheets.get(kind), point)?;
+            Some(Target::Cell(row, column))
+        }
+        Screen::Calibrate(..) => None,
         Screen::Modes { selected } => {
             let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
             let on_page = (Mode::ALL.len() - first).min(TILES_PER_PAGE);
@@ -351,9 +363,13 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
     }
 }
 
-/// Whether the screen has ‹ in the top bar.
-fn goes_back(screen: &Screen) -> bool {
-    matches!(screen, Screen::Modes { .. } | Screen::Menu(_))
+/// Whether the screen has ‹ in the top bar: a menu, and the answer to a sheet.
+fn goes_back<B>(app: &App<B>) -> bool {
+    match app.screen {
+        Screen::Modes { .. } | Screen::Menu(_) => true,
+        Screen::Calc => app.answer.is_some() && app.mode.sheet(&app.settings).is_some(),
+        Screen::Calibrate(..) => false,
+    }
 }
 
 /// `text`, cut short with three dots to fit `room` (the fonts have no ellipsis).

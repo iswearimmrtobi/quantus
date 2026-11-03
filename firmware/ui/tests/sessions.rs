@@ -29,10 +29,10 @@ impl Backend for Two {
     fn session(&mut self, command: SessionCommand, _settings: &Settings) -> Result<Opened, String> {
         self.0.borrow_mut().push(command.clone());
         Ok(match command {
-            SessionCommand::Open(id) if id == "b" => Opened { info: info("b", "Labor"), history: vec![("1+2".into(), "3".into())] },
-            SessionCommand::Rename(name) => Opened { info: info("a", &name), history: Vec::new() },
-            SessionCommand::New => Opened { info: info("c", "Sitzung 2"), history: Vec::new() },
-            _ => Opened { info: info("a", "Sitzung 1"), history: vec![("2+2".into(), "4".into())] },
+            SessionCommand::Open(id) if id == "b" => Opened { info: info("b", "Labor"), history: vec![("1+2".into(), "3".into())], ..Opened::default() },
+            SessionCommand::Rename(name) => Opened { info: info("a", &name), history: Vec::new(), ..Opened::default() },
+            SessionCommand::New => Opened { info: info("c", "Sitzung 2"), history: Vec::new(), ..Opened::default() },
+            _ => Opened { info: info("a", "Sitzung 1"), history: vec![("2+2".into(), "4".into())], ..Opened::default() },
         })
     }
 }

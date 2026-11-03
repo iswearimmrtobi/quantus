@@ -87,8 +87,12 @@ pub enum Action {
     ResetMemory,
     /// Both.
     ResetAll,
-    /// The input cleared.
+    /// The input cleared, or the sheet on the screen.
     ClearInput,
+    /// An empty row above the cursor of a list (Statistik).
+    InsertRow,
+    /// The cursor's row of a list taken out.
+    DeleteRow,
     /// The touch calibration screen.
     Calibrate,
     /// A new session, opened.

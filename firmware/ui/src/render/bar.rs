@@ -23,7 +23,7 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         _ => &app.mode.name(app.settings.language),
     };
     let mut left = MARGIN;
-    if goes_back(&app.screen) {
+    if goes_back(app) {
         // ‹ before the title: a tap on the left of the bar goes back.
         let (x, middle) = (MARGIN + 1, BAR / 2);
         let points = vec![Point::new(x + 6, middle - 6), Point::new(x, middle), Point::new(x + 6, middle + 6)];

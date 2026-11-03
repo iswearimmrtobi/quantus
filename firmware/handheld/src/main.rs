@@ -18,7 +18,7 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Network, Storage, WlanStatus};
+use quantus_ui::backend::{Backend, Network, Reply, Request, Storage, WlanStatus};
 #[cfg(feature = "engine")]
 use quantus_ui::backend::{Opened, SessionCommand, SessionInfo};
 use quantus_ui::font::Scale;
@@ -223,6 +223,29 @@ impl Backend for Board {
     #[cfg(feature = "engine")]
     fn poll(&mut self) -> Option<Result<String, String>> {
         self.engine.poll()
+    }
+
+    #[cfg(feature = "engine")]
+    fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        self.engine.solve(settings, request);
+        self.engine.wait_solve()
+    }
+
+    #[cfg(not(feature = "engine"))]
+    fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        quantus_ui::backend::Stub.solve(settings, request)
+    }
+
+    /// The engine works the sheet out on its thread; `poll_solve` brings the answer.
+    #[cfg(feature = "engine")]
+    fn start_solve(&mut self, settings: &Settings, request: &Request) -> Option<Result<Reply, String>> {
+        self.engine.solve(settings, request);
+        None
+    }
+
+    #[cfg(feature = "engine")]
+    fn poll_solve(&mut self) -> Option<Result<Reply, String>> {
+        self.engine.poll_solve()
     }
 
     #[cfg(feature = "engine")]

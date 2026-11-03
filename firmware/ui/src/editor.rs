@@ -22,6 +22,8 @@ const SYMBOLS: &[(char, &str)] = &[
     ('∑', "sum"),
 ];
 
+use crate::key::Key;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Row(pub Vec<Node>);
 
@@ -326,6 +328,41 @@ impl Editor {
         self.path.truncate(depth + 1);
         self.path[depth].1 = to;
         self.pos = len;
+        true
+    }
+}
+
+impl Editor {
+    /// Types what an input key stands for: a character, a template or a function. Returns
+    /// false for the other keys (the cursor, DEL, AC, EXE, menus), which the caller handles.
+    pub fn key(&mut self, key: Key, shift: bool) -> bool {
+        match key {
+            Key::Digit(digit) => self.char(char::from(b'0' + digit.min(9))),
+            Key::Letter(c) => self.char(c),
+            Key::Comma => self.char(','),
+            Key::Semicolon => self.char(';'),
+            Key::Plus => self.char('+'),
+            Key::Minus => self.char('-'),
+            Key::Times => self.char('×'),
+            Key::Divide => self.char('÷'),
+            Key::Equals => self.char('='),
+            Key::OpenParen => self.char('('),
+            Key::CloseParen => self.char(')'),
+            Key::Pi => self.char('π'),
+            Key::E => self.char('e'),
+            Key::Fraction => self.fraction(),
+            Key::Power => self.power(),
+            Key::Square => self.square(),
+            Key::Root if shift => self.root(),
+            Key::Root => self.sqrt(),
+            Key::Subscript => self.subscript(),
+            Key::Sin => self.function("sin"),
+            Key::Cos => self.function("cos"),
+            Key::Tan => self.function("tan"),
+            Key::Ln => self.function("ln"),
+            Key::Log => self.function("log"),
+            _ => return false,
+        }
         true
     }
 }

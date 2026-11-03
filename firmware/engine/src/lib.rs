@@ -16,10 +16,12 @@ use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Opened, SessionCommand, SessionInfo};
+use quantus_ui::backend::{Backend, Opened, Reply, Request, SessionCommand, SessionInfo};
 use quantus_ui::clock;
 use quantus_ui::settings as ui;
 use quantus_ui::text::Lang;
+
+mod sheet;
 
 /// The file in the sessions folder that names the open session.
 pub const CURRENT: &str = "current.txt";
@@ -123,13 +125,14 @@ impl Engine {
         Opened {
             info: SessionInfo { id: session.id.clone(), name: session.name.clone() },
             history: session.history().iter().map(|entry| (entry.input.clone(), shown(&entry.response, settings))).collect(),
+            inputs: sheet::kept(&session.mode_inputs),
         }
     }
 
     /// Evaluates `latex` in the open session; `record` puts it into the history (S⇔D does not).
     fn calculate(&mut self, mode: Mode, settings: &Settings, latex: &str, record: bool) -> Result<String, String> {
-        // Analysis and Linear have their own calls (curve sketch, systems) and no screen for them
-        // yet; here they evaluate plain inputs.
+        // Analysis has its own call (the curve sketch) and no screen for it yet; here it, and
+        // Linear with typed equations, evaluate plain inputs. The sheets go through `solve`.
         let mode = match mode {
             Mode::Algebra => CoreMode::Algebra,
             Mode::Physics => CoreMode::Physics,
@@ -163,6 +166,17 @@ impl Backend for Engine {
 
     fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
         Some(self.calculate(mode, settings, latex, false))
+    }
+
+    /// Keeps the sheet in the open session, then works it out.
+    fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        self.zone = settings.zone;
+        let current = Some(self.current.as_str());
+        let mut inputs = api::get_mode_inputs(&mut self.store, current);
+        sheet::keep(&mut inputs, request);
+        api::set_mode_inputs(&mut self.store, current, inputs);
+        self.save(&self.current);
+        sheet::solve(settings, request, |mode| core_settings(mode, settings))
     }
 
     fn sessions(&mut self) -> Vec<SessionInfo> {

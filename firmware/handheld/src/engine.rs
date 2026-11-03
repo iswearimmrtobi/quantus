@@ -10,7 +10,7 @@ use std::time::Instant;
 use esp_idf_svc::sys;
 use quantus_engine::Engine;
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Opened, SessionCommand, SessionInfo};
+use quantus_ui::backend::{Backend, Opened, Reply, Request, SessionCommand, SessionInfo};
 use quantus_ui::text::Lang;
 
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does. The
@@ -19,8 +19,16 @@ const ENGINE_STACK: usize = 64 * 1024;
 
 type Answer = Result<String, String>;
 
+/// What the engine thread hands back: a calculation's LaTeX, or a sheet's answer.
+enum Done {
+    Latex(Answer),
+    Sheet(Result<Reply, String>),
+}
+
 enum Job {
     Calculate { generation: u32, mode: Mode, settings: Settings, latex: String, record: bool },
+    /// A sheet (LGS, Wertetabelle, Statistik, Verteilungen), answered like a calculation.
+    Solve { generation: u32, settings: Settings, request: Request },
     /// The sessions, answered on a channel of their own.
     Sessions(Sender<Vec<SessionInfo>>),
     Session(SessionCommand, Settings, Sender<Result<Opened, String>>),
@@ -28,7 +36,7 @@ enum Job {
 
 pub struct Worker {
     jobs: Sender<Job>,
-    answers: Receiver<(u32, Answer)>,
+    answers: Receiver<(u32, Done)>,
     /// Counts the calculations started and dropped; an answer of an older one is thrown away.
     generation: u32,
 }
@@ -56,7 +64,17 @@ impl Worker {
                             };
                             println!("{}: {latex}  =>  {result:?}  ({} ms)", mode.name(Lang::En), started.elapsed().as_millis());
                             report_memory();
-                            if answer.send((generation, result)).is_err() {
+                            if answer.send((generation, Done::Latex(result))).is_err() {
+                                return;
+                            }
+                        }
+                        Job::Solve { generation, settings, request } => {
+                            let started = Instant::now();
+                            let reply = engine.solve(&settings, &request);
+                            let outcome = if reply.is_ok() { "ok" } else { "error" };
+                            println!("sheet: {request:?}  =>  {outcome}  ({} ms)", started.elapsed().as_millis());
+                            report_memory();
+                            if answer.send((generation, Done::Sheet(reply))).is_err() {
                                 return;
                             }
                         }
@@ -84,6 +102,15 @@ impl Worker {
         }
     }
 
+    /// Sends a sheet to the engine; its answer comes from [`poll_solve`](Worker::poll_solve).
+    pub fn solve(&mut self, settings: &Settings, request: &Request) {
+        self.generation = self.generation.wrapping_add(1);
+        let job = Job::Solve { generation: self.generation, settings: *settings, request: request.clone() };
+        if self.jobs.send(job).is_err() {
+            println!("the engine thread has stopped");
+        }
+    }
+
     /// The sessions, waiting for a running calculation to end first.
     pub fn sessions(&mut self) -> Vec<SessionInfo> {
         let (reply, answer) = mpsc::channel();
@@ -103,9 +130,19 @@ impl Worker {
 
     /// The answer to the last calculation sent, once it is there.
     pub fn poll(&mut self) -> Option<Answer> {
-        while let Ok((generation, answer)) = self.answers.try_recv() {
-            if generation == self.generation {
+        while let Ok((generation, done)) = self.answers.try_recv() {
+            if let (true, Done::Latex(answer)) = (generation == self.generation, done) {
                 return Some(answer);
+            }
+        }
+        None
+    }
+
+    /// The answer to the last sheet sent, once it is there.
+    pub fn poll_solve(&mut self) -> Option<Result<Reply, String>> {
+        while let Ok((generation, done)) = self.answers.try_recv() {
+            if let (true, Done::Sheet(reply)) = (generation == self.generation, done) {
+                return Some(reply);
             }
         }
         None
@@ -115,7 +152,18 @@ impl Worker {
     pub fn wait(&mut self) -> Answer {
         loop {
             match self.answers.recv() {
-                Ok((generation, answer)) if generation == self.generation => return answer,
+                Ok((generation, Done::Latex(answer))) if generation == self.generation => return answer,
+                Ok(_) => {}
+                Err(_) => return Err("the engine thread has stopped".to_string()),
+            }
+        }
+    }
+
+    /// The answer to the last sheet sent, waiting for it.
+    pub fn wait_solve(&mut self) -> Result<Reply, String> {
+        loop {
+            match self.answers.recv() {
+                Ok((generation, Done::Sheet(reply))) if generation == self.generation => return reply,
                 Ok(_) => {}
                 Err(_) => return Err("the engine thread has stopped".to_string()),
             }

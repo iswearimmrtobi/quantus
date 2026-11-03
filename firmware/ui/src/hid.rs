@@ -32,6 +32,7 @@ pub fn key(usage: u8, modifiers: u8) -> Option<Key> {
         0x3B => Some(Key::Alpha),
         0x3C => Some(Key::SwapForm),
         0x3D => Some(Key::Optn),
+        0x3E => Some(Key::Ok),
         0x54 => Some(Key::Fraction),
         0x55 => Some(Key::Times),
         0x56 => Some(Key::Minus),
