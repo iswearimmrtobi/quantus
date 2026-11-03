@@ -217,6 +217,12 @@ pub struct App<B> {
 }
 
 impl<B> App<B> {
+    /// The sheet the screen shows instead of the input line, if any: the mode's own
+    /// ([`Mode::sheet`]).
+    pub fn sheet_kind(&self) -> Option<sheet::Kind> {
+        self.mode.sheet(&self.settings)
+    }
+
     /// The picture to show behind the screen.
     pub fn wallpaper(&self) -> Option<&Wallpaper> {
         match &self.preview {
@@ -241,7 +247,7 @@ impl<B> App<B> {
         match &self.screen {
             Screen::Modes { .. } => Some(Point::new(moved.x, 0)),
             Screen::Menu(menu) if menu.list().is_some() => Some(Point::new(0, moved.y)),
-            Screen::Calc if self.answer.is_some() && self.mode.sheet(&self.settings).is_some() => Some(Point::new(0, moved.y)),
+            Screen::Calc if self.answer.is_some() && self.sheet_kind().is_some() => Some(Point::new(0, moved.y)),
             _ => None,
         }
     }
@@ -337,7 +343,7 @@ impl<B: Backend> App<B> {
     /// Lays the sheets out as the settings say, and scrolls the one on the screen to its cursor.
     fn fit_sheets(&mut self) {
         self.sheets.fit(&self.settings);
-        if let Some(kind) = self.mode.sheet(&self.settings) {
+        if let Some(kind) = self.sheet_kind() {
             let sheet = self.sheets.get_mut(kind);
             let (_, columns) = sheet::columns_shown(sheet.columns(), kind.form());
             sheet.follow(sheet::ROWS_SHOWN, columns);
@@ -569,7 +575,7 @@ impl<B: Backend> App<B> {
         match target {
             Target::Back if matches!(self.screen, Screen::Modes { .. } | Screen::Calc) => self.key(Key::Ac),
             Target::Cell(row, column) => {
-                let Some(kind) = self.mode.sheet(&self.settings) else { return };
+                let Some(kind) = self.sheet_kind() else { return };
                 let sheet = self.sheets.get_mut(kind);
                 // A tap on the cell under the cursor edits it, one on another cell moves there.
                 if sheet.cursor == (row, column) {
@@ -665,7 +671,7 @@ impl<B: Backend> App<B> {
             }
             // What is done to a sheet closes OPTN, to show it.
             Outcome::Act(action @ (Action::ClearInput | Action::InsertRow | Action::DeleteRow))
-                if self.mode.sheet(&self.settings).is_some() =>
+                if self.sheet_kind().is_some() =>
             {
                 self.act(action);
                 return;
@@ -776,7 +782,7 @@ impl<B: Backend> App<B> {
                 self.settings = Settings::default();
                 self.clear_memory();
             }
-            Action::ClearInput => match self.mode.sheet(&self.settings) {
+            Action::ClearInput => match self.sheet_kind() {
                 Some(kind) => {
                     self.sheets.get_mut(kind).clear();
                     self.answer = None;
@@ -784,7 +790,7 @@ impl<B: Backend> App<B> {
                 None => self.reset(),
             },
             Action::InsertRow | Action::DeleteRow => {
-                if let Some(kind) = self.mode.sheet(&self.settings) {
+                if let Some(kind) = self.sheet_kind() {
                     let sheet = self.sheets.get_mut(kind);
                     match action {
                         Action::InsertRow => sheet.insert_row(),
@@ -856,7 +862,7 @@ impl<B: Backend> App<B> {
         }
         let row = latex::parse(latex);
         // Into the cell at the cursor, on a sheet.
-        let editor = match self.mode.sheet(&self.settings) {
+        let editor = match self.sheet_kind() {
             Some(kind) => {
                 self.answer = None;
                 let sheet = self.sheets.get_mut(kind);
@@ -893,7 +899,7 @@ impl<B: Backend> App<B> {
             }
             return;
         }
-        if let Some(kind) = self.mode.sheet(&self.settings) {
+        if let Some(kind) = self.sheet_kind() {
             return self.sheet_key(kind, key, shift);
         }
         if self.shown.is_some() && !self.leave_result(key) {

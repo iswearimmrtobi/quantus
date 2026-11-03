@@ -185,7 +185,7 @@ impl Frame {
         let backdrop = backdrop(app);
         let glass = backdrop.is_some();
         match &app.screen {
-            Screen::Calc => match app.mode.sheet(&app.settings) {
+            Screen::Calc => match app.sheet_kind() {
                 Some(kind) => sheet::sheet(&mut shapes, app, kind, glass),
                 None => calculation(&mut shapes, app),
             },
@@ -324,7 +324,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
     }
     match &app.screen {
         Screen::Calc => {
-            let kind = app.mode.sheet(&app.settings)?;
+            let kind = app.sheet_kind()?;
             if app.answer.is_some() {
                 return None;
             }
@@ -367,7 +367,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
 fn goes_back<B>(app: &App<B>) -> bool {
     match app.screen {
         Screen::Modes { .. } | Screen::Menu(_) => true,
-        Screen::Calc => app.answer.is_some() && app.mode.sheet(&app.settings).is_some(),
+        Screen::Calc => app.answer.is_some() && app.sheet_kind().is_some(),
         Screen::Calibrate(..) => false,
     }
 }

@@ -88,7 +88,7 @@ fn lgs_opens_on_a_three_by_three_matrix() {
     assert_eq!(app.settings.system_input, SystemInput::Matrix);
     let sheet = &app.sheets.linear;
     assert_eq!((sheet.rows(), sheet.columns()), (3, 4), "three unknowns and the right-hand side");
-    assert_eq!(app.mode.sheet(&app.settings), Some(quantus_ui::sheet::Kind::Linear));
+    assert_eq!(app.sheet_kind(), Some(quantus_ui::sheet::Kind::Linear));
 }
 
 #[test]
