@@ -51,7 +51,8 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 
 ### Handheld UI (`firmware/ui` and the board)
 
-- [ ] Kurvendiskussion: a screen per section, Tangente/Normale, Fläche, Wertetabelle
+- [x] Kurvendiskussion: a screen per section and the graph, Tangente/Normale, Fläche, Wertetabelle
+      (`firmware/ui/src/render/analysis.rs`, `graph.rs`; section 7.3)
 - [x] LGS: the matrix editor [A|b] and its size, the Gauss steps on the answer
       (`firmware/ui/src/sheet.rs`, section 7.3)
 - [x] Wertetabelle mode, with g(x) as a second column
@@ -63,7 +64,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       Dezimalpräfixe, 1000er-Trennung, Brüche, Periodisch, Komplexe Zahlen
 - [ ] The ◌ OPTN entries once the core has them (section 7.3)
 - [ ] Editor templates: nCr (`\binom`), Konjugierte (`\overline`), `cases`
-- [ ] Font glyphs: ∠, →, ⌊⌋, ⌈⌉, µ
+- [ ] Font glyphs: ∠, ⌊⌋, ⌈⌉, µ (→ and the set signs are drawn as lines)
 - [ ] Keys: CONST, CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, Sitzungen, PreAns, ∠, ∫, d/dx, Σ,
       x⁻¹, x³, 10ˣ, eˣ, and the ALPHA legend (section 7.4)
 - [ ] CONST and CONV menus by category
@@ -488,7 +489,10 @@ From `docs/docs/reference/settings.md`; the hui has all of them (section 7.2).
 - The step list (Rechenweg), scrollable, at the level of `stepDetail`.
 - The DOMAIN line for fractions in Algebra.
 - The quantity name in Physik.
-- Kurvendiskussion: one page per section, ←/→ between sections.
+- Kurvendiskussion: one page per section, ←/→ between sections. *Implemented*: the graph first
+  (grid, axes, curve, dashed asymptotes, the marked points named), then each section's title, its
+  steps and its result; a long line breaks before =, ≈ or ⇒ or after a list's colon and commas,
+  a sign table is a grid. A finger swipes or taps the edges to turn the page.
 - LGS: the Gauss steps row by row. *Implemented*: the solution, then each step's explanation and
   its matrix (row names, the bar before b, what was done to each row), scrolled with ↑/↓ and moved
   sideways with ←/→.
@@ -552,7 +556,7 @@ engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verf�
   1. Physik [C Berechnungen + Q], the default ✓
   2. Algebra [Q] ✓
   3. Komplex [C] ✓
-  4. Kurvendiskussion [Q] ✓ (plain inputs; no screen for the sections yet)
+  4. Kurvendiskussion [Q] ✓ (EXE sketches f(x): the graph and a page per section)
   5. LGS [C Gleichungssyst. + Q] ✓ (the matrix [A|b], or typed equations)
   6. Wertetabelle [C Tabellen, on the analysis code] ✓
 - Page 2
@@ -631,8 +635,9 @@ maps every setting the core has.
 In the hui: the OPTN key (`Key::Optn`; F4 or Ctrl+N in the simulator and over serial) opens the
 mode's page in the same menus as SETUP (`tree::optn`); OPTN or AC closes it. An entry inserts
 its LaTeX at the cursor (✓, through `latex::parse`; into the brackets for `sinh(`, between the
-bars for |x|), or says *Noch nicht verfügbar* (◌). The fonts lack →, ⌊⌋, ⌈⌉ and µ: lim shows
-no arrow, floor and ceiling show as their names (`lfloor`), micro is inserted as μ (`\mu`).
+bars for |x|), or says *Noch nicht verfügbar* (◌). The fonts lack ⌊⌋, ⌈⌉ and µ: floor and
+ceiling show as their names (`lfloor`), micro is inserted as μ (`\mu`); → and the other signs
+of a curve sketch are drawn as lines.
 
 Shared groups, used by several modes:
 
@@ -654,8 +659,12 @@ Per mode:
   Zahl · Hyperbol. Fkt. · Werkzeuge
 - **Komplex**: Argument, Realteil, Imaginärteil, Betrag ✓, Konjugierte ◌ (no `\overline`
   template) [C] · ▶r∠θ, ▶a+bi, ∠ [eng] ◌ · Analysis · Zahl
-- **Kurvendiskussion**: the sections · Tangente/Normale · Fläche · Wertetabelle [Q], all ◌ until
-  the mode has its screens
+- **Kurvendiskussion**: Abschnitte ✓ (the pages of the last sketch, the graph first; *Erst f(x)
+  eingeben und EXE* before one) · Tangente/Normale ✓ · Fläche ✓ · Wertetabelle ✓ [Q] · Analysis ·
+  Zahl · Hyperbol. Fkt. The three tasks open a form over the input with f(x) on top (x₀; a and
+  b, both empty for the outer zeros; von, bis, Schritt); EXE on its last field works it out, AC
+  leaves it. After a sketch of the same f the answer has a second page: the graph with the
+  tangent and normal, or the area hatched. The session keeps f(x), not x₀ or the bounds.
 - **Wertetabelle**: Alles löschen · Zahl · Hyperbol. Fkt. [C] ✓. f(x), g(x), von, bis and
   Schritt are the rows of the mode's form, not OPTN entries.
 - **LGS**: Eingabe Gleichungen / Matrix [A|b] ✓ (Matrix by default) · Zeilen and Spalten (the

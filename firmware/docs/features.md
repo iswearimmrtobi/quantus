@@ -6,7 +6,7 @@ documents this list is drawn from: [plans.md](../../plans/plans.md) §4–5,
 [hardware.md](hardware.md). Ideas that are not planned yet are in
 [feature-ideas.md](feature-ideas.md).
 
-State on 2026-11-02.
+State on 2026-11-03.
 
 - `[x]` works: on the board, or in the hui and the simulator where the board has no part in it
 - `[~]` partly: what is missing follows the dash
@@ -75,7 +75,7 @@ State on 2026-11-02.
 - [x] Wallpaper behind the mode tiles, the menus or everything, with glass tiles over it
 - [x] Brackets that grow with what they hold
 - [x] 2D layout of fractions, roots, powers, integrals, sums, limits
-- [~] Fonts — u8g2 bitmap fonts; Greek beyond π, μ, Ω is small; ∠, →, ⌊⌋, ⌈⌉, µ missing
+- [~] Fonts — u8g2 bitmap fonts; Greek beyond π, μ, Ω is small; ∠, ⌊⌋, ⌈⌉, µ missing (∈, ∪, ∖, →, ⇒, ⇔, ↗, ↘, ∅, ℝ, ℤ and the others the fonts lack are drawn as lines)
 - [ ] Font size normal/small (the SETUP entry exists, UI only)
 - [x] German and English texts, German by default
 - [ ] The step list (Rechenweg) on the result screen
@@ -105,7 +105,7 @@ State on 2026-11-02.
 - [x] 1 Physik: numbers with units and constants, the default
 - [x] 2 Algebra: simplify, factor, solve, systems
 - [x] 3 Komplex: a+bi, complex roots
-- [~] 4 Kurvendiskussion — plain inputs work; no screen per section, no Tangente/Normale, Fläche, Wertetabelle
+- [x] 4 Kurvendiskussion: EXE sketches f(x), the graph and a page per section; OPTN has the sections, Tangente/Normale, Fläche, Wertetabelle
 - [x] 5 LGS: the matrix [A|b] up to 10 × 10, or typed equations
 - [x] 6 Wertetabelle, with g(x) as a second column
 - [ ] 7 Matrizen, with an editor (the core has the maths)
@@ -129,7 +129,8 @@ State on 2026-11-02.
 - [x] Number format Norm 1/2, Fix, Sci; prefixes; digit grouping (through the engine)
 - [ ] The DOMAIN line for fractions in Algebra
 - [ ] The quantity name in Physik
-- [ ] Kurvendiskussion results, one page per section
+- [x] Kurvendiskussion results, one page per section, ←/→ between them, the graph first
+- [x] The graph: grid, axes, the curve, asymptotes dashed, the points named; a task's tangent, normal or area on it
 - [x] LGS: the Gauss steps with their matrices
 
 ## Maths
@@ -175,7 +176,8 @@ in yet.
 - [x] OPTN Physik: Einheiten by quantity, Präfixe
 - [x] OPTN Komplex: Argument, Realteil, Imaginärteil, Betrag
 - [ ] OPTN Werkzeuge: CALC, SOLVE, ▶ Einheit
-- [ ] OPTN for Kurvendiskussion, Matrizen, Basis-N
+- [x] OPTN for Kurvendiskussion: Abschnitte, Tangente/Normale, Fläche, Wertetabelle
+- [ ] OPTN for Matrizen, Basis-N
 - [x] OPTN Wertetabelle, Statistik (Typ, Häufigkeit, rows), Verteilungen (Typ)
 - [x] OPTN LGS: Eingabe, Zeilen, Spalten, Imaginäre Einheit, Alles löschen
 - [ ] CONST and CONV menus by category
@@ -190,8 +192,8 @@ in yet.
 - [x] The last session reopened at the start
 - [x] The same session files as the desktop (exchange over the card)
 - [ ] Session sync with the desktop over WLAN or Bluetooth
-- [~] Mode inputs in the session — LGS, Wertetabelle (without g(x)), Statistik and Verteilungen
-  are kept; Kurvendiskussion is not
+- [~] Mode inputs in the session — LGS, Wertetabelle (without g(x)), Statistik, Verteilungen
+  and the function of Kurvendiskussion are kept; not x₀ or the bounds of its tasks
 
 ## Connectivity
 

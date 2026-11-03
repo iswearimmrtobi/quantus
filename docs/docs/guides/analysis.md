@@ -109,6 +109,23 @@ shown as *undef.*
 |---|---|---|---|---|---|
 | $f(x)$ | $-2$ | $2$ | $0$ | $-2$ | $2$ |
 
+## On the handheld
+
+Choose **Kurvendiskussion** (tile 4) and type the function on the input line; **EXE** sketches
+it. The first page is the graph, with the points named as above; each section follows on a page
+of its own. **←**/**→** (or a swipe) turn the pages, **↑**/**↓** scroll one, **AC** goes back to
+the input.
+
+**OPTN** has the rest:
+
+- **Abschnitte** lists the pages of the last sketch, to jump to one.
+- **Tangente, Normale**, **Fläche** and **Wertetabelle** open a small form under the function:
+  x₀; a and b (both empty for the outer zeros); von, bis, Schritt. **EXE** on its last field
+  works it out. After a sketch of the same function, → shows the tangent and normal, or the
+  area, on its graph.
+
+The session keeps the function, so it is back on the input line when the session is opened again.
+
 ## Settings that matter here
 
 - **Quadratic equations**: pq formula or abc formula in the working (*Automatic*: pq in German).
