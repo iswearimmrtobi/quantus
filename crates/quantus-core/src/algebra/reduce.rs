@@ -47,14 +47,14 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
             position: 0,
         };
         let rule = RuleId::NormalizeExpression;
-        let explanation = "Zero divided by any non-zero expression is 0".to_string();
+        let explanation = crate::text::msg!("Zero divided by any non-zero expression is 0", "Null geteilt durch einen Term ungleich null ist 0");
         return simple(zero_node, rule, explanation);
     }
 
     // 2. Denominator is 1: P / 1 -> P
     if is_constant_one(den) {
         let rule = RuleId::NormalizeExpression;
-        let explanation = "Division by 1 leaves the expression unchanged".to_string();
+        let explanation = crate::text::msg!("Division by 1 leaves the expression unchanged", "Teilen durch 1 ändert den Term nicht");
         return simple(num.clone(), rule, explanation);
     }
 
@@ -69,7 +69,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
                 position: 0,
             };
             let rule = RuleId::CancelCommonFactors;
-            let explanation = "Cancel identical numerator and denominator to get 1".to_string();
+            let explanation = crate::text::msg!("Cancel identical numerator and denominator to get 1", "Gleichen Zähler und Nenner zu 1 kürzen");
             return simple(one_node, rule, explanation);
         }
 
@@ -83,7 +83,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
                 position: 0,
             };
             let rule = RuleId::CancelCommonFactors;
-            let explanation = "Cancel opposite terms to get -1".to_string();
+            let explanation = crate::text::msg!("Cancel opposite terms to get -1", "Entgegengesetzte Terme zu -1 kürzen");
             return simple(neg_one_node, rule, explanation);
         }
     }
@@ -128,8 +128,8 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
         } else {
             RuleId::FactorPolynomial
         };
-        let explanation = format!(
-            "Factor numerator to identify common factors: {}",
+        let explanation = crate::text::msg!(
+            "Factor numerator to identify common factors: {}", "Den Zähler faktorisieren, um gemeinsame Faktoren zu finden: {}",
             serializer::expression(&fact_num.to_node())
         );
         let step = AlgebraStep::new(node.clone(), new_frac, explanation, Some(rule));
@@ -158,19 +158,19 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
 
     let rule = RuleId::CancelCommonFactors;
     let common = serializer::expression(&gcd.to_node());
-    let explanation = format!("Cancel common factor {common} from numerator and denominator");
+    let explanation = crate::text::msg!("Cancel common factor {common} from numerator and denominator", "Den gemeinsamen Faktor {common} in Zähler und Nenner kürzen");
     let mut working = Vec::new();
     if let Some(difference) = exponent_difference(num, den) {
-        working.push(AlgebraStep::line(node, difference, "Divide powers of the same base: subtract the exponents", StepDetail::Standard));
+        working.push(AlgebraStep::line(node, difference, crate::text::msg!("Divide powers of the same base: subtract the exponents", "Potenzen mit gleicher Basis teilen: die Exponenten subtrahieren"), StepDetail::Standard));
     } else {
         let marked = make_fraction(mark_cancelled(num, &mut gcd.factors.clone()), mark_cancelled(den, &mut gcd.factors.clone()));
         if serializer::expression(&marked) != serializer::expression(unwrapped) {
-            working.push(AlgebraStep::line(node, marked, "Mark the common factor", StepDetail::Detailed));
+            working.push(AlgebraStep::line(node, marked, crate::text::msg!("Mark the common factor", "Den gemeinsamen Faktor markieren"), StepDetail::Detailed));
         }
     }
     let notes = gcd.factors.iter().map(|f| AlgebraStep::note(res_node.clone(), zero_note(&f.base), None, StepDetail::Maximal)).collect();
     let step = AlgebraStep::new(node.clone(), res_node, explanation, Some(rule));
-    Some(step.with_working(working, format!("Cancel {common}")).with_notes(notes))
+    Some(step.with_working(working, crate::text::msg!("Cancel {common}", "{common} kürzen")).with_notes(notes))
 }
 
 /// `x^{5 - 2}` for `\frac{x^5}{x^2}`, or `\frac{1}{x^{5 - 2}}` the other way round: a power over a
