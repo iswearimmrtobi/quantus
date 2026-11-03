@@ -175,6 +175,31 @@ fn dashed(shapes: &mut Vec<Shape>, a: (f32, f32), b: (f32, f32), color: Rgb565) 
     }
 }
 
+/// Upright lines every few pixels between `curve` and the x-axis.
+fn hatch(shapes: &mut Vec<Shape>, plot: &Plot, curve: &[(f32, f32)], color: Rgb565) {
+    const EVERY: usize = 3;
+    let screen: Vec<(f32, f32)> = curve.iter().map(|&(x, y)| plot.screen(x, y)).filter(|(x, y)| x.is_finite() && y.is_finite()).collect();
+    let axis = plot.screen(0.0, 0.0).1;
+    let (Some(first), Some(last)) = (screen.first(), screen.last()) else { return };
+    let (from, to) = (first.0.max(plot.left()).ceil() as i32, last.0.min(plot.right()).floor() as i32);
+    let mut at = 0;
+    for x in (from..=to).step_by(EVERY) {
+        // The curve's height at x, between the samples around it.
+        while at + 1 < screen.len() && screen[at + 1].0 < x as f32 {
+            at += 1;
+        }
+        let (a, b) = (screen[at], screen[(at + 1).min(screen.len() - 1)]);
+        let t = if b.0 > a.0 { (x as f32 - a.0) / (b.0 - a.0) } else { 0.0 };
+        let y = a.1 + t.clamp(0.0, 1.0) * (b.1 - a.1);
+        let Some((top, bottom)) = plot.clip((x as f32, y), (x as f32, axis)) else { continue };
+        let (top, bottom) = (top.1.round() as i32, bottom.1.round() as i32);
+        let (top, bottom) = (top.min(bottom), top.max(bottom));
+        if bottom > top {
+            shapes.push(Shape::Fill(Rectangle::new(Point::new(x, top), Size::new(1, (bottom - top) as u32)), color));
+        }
+    }
+}
+
 /// Draws `graph` into `area`.
 pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang) {
     let window = graph.window;
@@ -227,6 +252,12 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
         shapes.push(Shape::Text(Point::new(sx, sy), text, Scale::Small, colors::FAINT));
     }
 
+    // An area as upright hatching down to the axis, in a tint per side.
+    for region in &graph.overlay.regions {
+        let color = if region.positive { colors::CYAN_DIM } else { colors::AMBER_DIM };
+        hatch(shapes, &plot, &region.curve, color);
+    }
+
     // The asymptotes, then the curve over them.
     for &asymptote in &graph.asymptotes {
         if let Some((a, b)) = plot.across(asymptote) {
@@ -239,10 +270,17 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
         }
     }
 
+    // A task's tangent and normal over the curve.
+    for (line, color) in [(graph.overlay.tangent, colors::SHIFT), (graph.overlay.normal, colors::ALPHA)] {
+        let Some((a, b)) = line.and_then(|line| plot.across(line)) else { continue };
+        let round = |(x, y): (f32, f32)| Point::new(x.round() as i32, y.round() as i32);
+        shapes.push(Shape::Path(vec![round(a), round(b)], color, 1));
+    }
+
     // The points with their names, a hole as a ring; a name that would cover one already
     // written is left out (N₂, W and S_y at the origin).
     let mut written: Vec<Rectangle> = Vec::new();
-    for mark in &graph.points {
+    for mark in graph.overlay.point.iter().chain(&graph.points) {
         let Some(at) = plot.point(mark.x, mark.y) else { continue };
         let color = mark_color(mark.kind);
         shapes.push(Shape::Circle(Circle::with_center(at, 7), color));

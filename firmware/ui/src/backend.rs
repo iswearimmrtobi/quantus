@@ -297,7 +297,7 @@ impl Reply {
             Reply::Lines(lines) => lines.len(),
             Reply::Table { rows, .. } => rows.len(),
             Reply::Analysis(analysis) => analysis.pages.len(),
-            Reply::Task(task) => task.lines.len(),
+            Reply::Task(task) => task.lines.len() + task.result.len(),
         }
     }
 
@@ -448,13 +448,18 @@ pub struct Region {
     pub curve: Vec<(f32, f32)>,
 }
 
-/// The answer to a task on the curve: its steps and what it adds to the graph.
+/// The answer to a task on the curve: its steps, its result and what it adds to the graph.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Task {
-    /// f, as the task read it.
+    /// f, as the task was given it.
     pub function: String,
+    /// What the task is: Tangente, Normale; Fläche.
+    pub title: String,
     pub lines: Vec<Line>,
+    pub result: Vec<Line>,
     pub overlay: Overlay,
+    /// The sketch's graph with the overlay on it, when the app has a sketch of the same f.
+    pub graph: Option<Graph>,
 }
 
 /// An augmented matrix as a step shows it, its cells as LaTeX.
@@ -548,12 +553,14 @@ impl Backend for Stub {
             Request::Tangent { f, x0 } => {
                 let tangent = Straight::Sloped { slope: 1.0, intercept: 0.0 };
                 let overlay = Overlay { tangent: Some(tangent), ..Overlay::default() };
-                Reply::Task(Task { function: f.clone(), lines: vec![Line::Math(format!("x_0 = {x0}"))], overlay })
+                let result = vec![Line::Math(format!("x_0 = {x0}"))];
+                Reply::Task(Task { function: f.clone(), title: "t".into(), lines: Vec::new(), result, overlay, graph: None })
             }
             Request::Area { f, from, to } => {
                 let curve = (0..=10).map(|i| (i as f32 / 10.0, (i as f32 / 10.0).powi(2))).collect();
                 let overlay = Overlay { regions: vec![Region { positive: true, curve }], ..Overlay::default() };
-                Reply::Task(Task { function: f.clone(), lines: vec![Line::Math(format!("{from}; {to}"))], overlay })
+                let result = vec![Line::Math(format!("{from}; {to}"))];
+                Reply::Task(Task { function: f.clone(), title: "A".into(), lines: Vec::new(), result, overlay, graph: None })
             }
         })
     }

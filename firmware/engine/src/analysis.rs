@@ -159,17 +159,17 @@ fn split_quads(latex: &str) -> Vec<String> {
 pub fn tangent(core: &CoreSettings, f: &str, x0: &str, precision: Option<usize>) -> Result<Task, String> {
     let request = TangentRequest { latex: f.to_string(), variable: None, x0: x0.to_string(), precision };
     let response = api::tangent(core, &request).map_err(|error| error.error)?;
-    let mut lines = steps(&response.steps);
-    lines.push(Line::Note(if german(core) { "Ergebnis" } else { "Result" }.to_string()));
-    lines.extend(math_lines(&response.tangent.latex));
-    lines.extend(math_lines(&response.normal.latex));
+    let lines = steps(&response.steps);
+    let mut result = math_lines(&response.tangent.latex);
+    result.extend(math_lines(&response.normal.latex));
+    let title = if german(core) { "Tangente, Normale" } else { "Tangent, normal" }.to_string();
     let overlay = Overlay {
         tangent: straight(&response.tangent),
         normal: straight(&response.normal),
         point: Some(Mark { kind: MarkKind::Touch, ..mark(&response.point) }),
         regions: Vec::new(),
     };
-    Ok(Task { function: f.to_string(), lines, overlay })
+    Ok(Task { function: f.to_string(), title, lines, result, overlay, graph: None })
 }
 
 fn straight(line: &LineResponse) -> Option<Straight> {
@@ -184,10 +184,9 @@ pub fn area(core: &CoreSettings, f: &str, from: &str, to: &str, precision: Optio
     let bound = |bound: &str| (!bound.trim().is_empty()).then(|| bound.to_string());
     let request = AreaRequest { latex: f.to_string(), variable: None, from: bound(from), to: bound(to), precision };
     let response = api::area(core, &request).map_err(|error| error.error)?;
-    let mut lines = steps(&response.steps);
-    lines.push(Line::Note(if german(core) { "Ergebnis" } else { "Result" }.to_string()));
-    lines.push(Line::Math(format!("A = {}", response.area)));
-    lines.push(Line::Math(format!("\\int f(x)\\,dx = {}", response.signed)));
+    let lines = steps(&response.steps);
+    let result = vec![Line::Math(format!("A = {}", response.area)), Line::Math(format!("\\int f(x)\\,dx = {}", response.signed))];
+    let title = if german(core) { "Fläche" } else { "Area" }.to_string();
     let regions = response
         .regions
         .iter()
@@ -196,7 +195,7 @@ pub fn area(core: &CoreSettings, f: &str, from: &str, to: &str, precision: Optio
             curve: region.segments.iter().flatten().map(|&[x, y]| (x as f32, y as f32)).collect(),
         })
         .collect();
-    Ok(Task { function: f.to_string(), lines, overlay: Overlay { regions, ..Overlay::default() } })
+    Ok(Task { function: f.to_string(), title, lines, result, overlay: Overlay { regions, ..Overlay::default() }, graph: None })
 }
 
 #[cfg(test)]

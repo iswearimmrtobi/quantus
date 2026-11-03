@@ -7,7 +7,7 @@ use embedded_graphics::primitives::{Rectangle, Triangle};
 use super::sheet::wrap;
 use super::{colors, fit, Shape, BAR, HEIGHT, MARGIN, WIDTH};
 use crate::app::Answer;
-use crate::backend::{Analysis, Line, Page, Status};
+use crate::backend::{Analysis, Graph, Line, Status, Task};
 use crate::editor::{Node, Row};
 use crate::font::Scale;
 use crate::latex;
@@ -26,24 +26,43 @@ pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analys
     match answer.page.checked_sub(1).and_then(|page| analysis.pages.get(page)) {
         Some(page) => {
             title(shapes, &page.title, page.status, answer.page, pages, lang);
-            section(shapes, page, answer.scroll);
+            section(shapes, page.message.as_deref(), &page.lines, &page.result, answer.scroll);
         }
-        None => {
-            // The function in the title's place.
-            title(shapes, "", Status::Ok, 0, pages, lang);
-            let function = layout::layout(&latex::parse(&analysis.function), Scale::Small);
-            let baseline = BAR + 6 + Scale::Small.metrics().ascent;
-            shapes.push(Shape::Math(Point::new(MARGIN, baseline), function, colors::AMBER));
-            super::graph::graph(shapes, &analysis.graph, graph_area(), lang);
+        None => graph_page(shapes, &analysis.function, &analysis.graph, 0, pages, lang),
+    }
+    sides(shapes, answer.page, pages);
+}
+
+/// The answer to a task: its steps and result, and then the graph with what it adds.
+pub(super) fn task(shapes: &mut Vec<Shape>, answer: &Answer, task: &Task, lang: Lang) {
+    let pages = answer.pages();
+    match (&task.graph, answer.page) {
+        (Some(graph), 1) => graph_page(shapes, &format!("f(x) = {}", task.function), graph, 1, pages, lang),
+        _ => {
+            title(shapes, &task.title, Status::Ok, 0, pages, lang);
+            section(shapes, None, &task.lines, &task.result, answer.scroll);
         }
     }
-    // Triangles at the sides: there are pages before or after.
+    sides(shapes, answer.page, pages);
+}
+
+/// The graph, with the function in the title's place.
+fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, page: usize, pages: usize, lang: Lang) {
+    title(shapes, "", Status::Ok, page, pages, lang);
+    let function = layout::layout(&latex::parse(function), Scale::Small);
+    let baseline = BAR + 6 + Scale::Small.metrics().ascent;
+    shapes.push(Shape::Math(Point::new(MARGIN, baseline), function, colors::AMBER));
+    super::graph::graph(shapes, graph, graph_area(), lang);
+}
+
+/// Triangles at the sides: there are pages before or after.
+fn sides(shapes: &mut Vec<Shape>, answer_page: usize, pages: usize) {
     let middle = (BAR + HEIGHT as i32) / 2;
-    if answer.page > 0 {
+    if answer_page > 0 {
         let tip = Point::new(1, middle);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(5, -6), tip + Point::new(5, 6)), colors::FAINT));
     }
-    if answer.page + 1 < pages {
+    if answer_page + 1 < pages {
         let tip = Point::new(WIDTH as i32 - 2, middle);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -6), tip + Point::new(-5, 6)), colors::FAINT));
     }
@@ -81,11 +100,11 @@ fn title(shapes: &mut Vec<Shape>, title: &str, status: Status, page: usize, page
 
 /// What a section says: why it is not complete, its steps, and its result, from the line
 /// `scroll` on.
-fn section(shapes: &mut Vec<Shape>, page: &Page, scroll: usize) {
+fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], result: &[Line], scroll: usize) {
     let mut y = TOP;
     let mut more = false;
     if scroll == 0 {
-        if let Some(message) = &page.message {
+        if let Some(message) = message {
             let small = Scale::Small.metrics();
             for line in wrap(message, ROOM, Scale::Small) {
                 shapes.push(Shape::Text(Point::new(MARGIN, y + small.ascent), line, Scale::Small, colors::ERROR));
@@ -94,11 +113,12 @@ fn section(shapes: &mut Vec<Shape>, page: &Page, scroll: usize) {
             y += 4;
         }
     }
-    let steps = page.lines.iter().map(|line| (line, colors::TEXT));
-    let result = page.result.iter().map(|line| (line, colors::RESULT));
+    let count = steps.len();
+    let steps = steps.iter().map(|line| (line, colors::TEXT));
+    let result = result.iter().map(|line| (line, colors::RESULT));
     for (index, (line, color)) in steps.chain(result).enumerate().skip(scroll) {
         // A line between the steps and the result.
-        if index == page.lines.len() && index > 0 {
+        if index == count && index > 0 {
             if y + 6 > BOTTOM {
                 more = true;
                 break;

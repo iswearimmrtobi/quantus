@@ -1,6 +1,6 @@
 //! The calculator's state and what each key does to it.
 
-use crate::backend::{Backend, Opened, Reply, Request, SessionCommand, SessionInfo, WlanStatus};
+use crate::backend::{Backend, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, WlanStatus};
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
@@ -151,6 +151,7 @@ impl Answer {
     pub fn pages(&self) -> usize {
         match &self.reply {
             Ok(Reply::Analysis(analysis)) => 1 + analysis.pages.len(),
+            Ok(Reply::Task(task)) if task.graph.is_some() => 2,
             _ => 1,
         }
     }
@@ -159,6 +160,7 @@ impl Answer {
     pub fn lines(&self) -> usize {
         match &self.reply {
             Ok(Reply::Analysis(analysis)) => self.page.checked_sub(1).and_then(|page| analysis.pages.get(page)).map_or(0, |page| page.len()),
+            Ok(Reply::Task(_)) if self.page > 0 => 0,
             Ok(reply) => reply.len(),
             Err(_) => 0,
         }
@@ -238,8 +240,11 @@ pub struct App<B> {
     pub answer: Option<Answer>,
     /// The form of Kurvendiskussion open over the input: the tangent's, the area's, the table's.
     pub task: Option<sheet::Kind>,
-    /// The last curve sketch, for OPTN → Abschnitte.
-    pub sketch: Option<crate::backend::Analysis>,
+    /// The last curve sketch and the input it is of, for OPTN → Abschnitte and to draw a
+    /// task's lines on its graph.
+    pub sketch: Option<(String, crate::backend::Analysis)>,
+    /// The function of the request the backend works on.
+    asked: Option<String>,
     /// Turns the panel's readings into screen points; set by the board from what it stored.
     pub calibration: Calibration,
     /// A calibration just made, for the board to store.
@@ -335,6 +340,7 @@ impl<B: Backend> App<B> {
             answer: None,
             task: None,
             sketch: None,
+            asked: None,
             calibration: Calibration::default(),
             calibrated: None,
             pending: None,
@@ -738,7 +744,7 @@ impl<B: Backend> App<B> {
                 return;
             }
             Outcome::Sections(label) => match &self.sketch {
-                Some(sketch) => {
+                Some((_, sketch)) => {
                     let lang = self.settings.language;
                     let titles = std::iter::once(text::GRAPH.get(lang).to_string()).chain(sketch.pages.iter().map(|page| page.title.clone()));
                     let selected = self.answer.as_ref().filter(|answer| answer.pages() > 1).map_or(0, |answer| answer.page);
@@ -747,7 +753,7 @@ impl<B: Backend> App<B> {
                 None => menu.edit = Some(Edit::Message { label, message: text::SKETCH_FIRST }),
             },
             Outcome::Section(page) => {
-                let Some(sketch) = self.sketch.clone() else { return };
+                let Some((_, sketch)) = self.sketch.clone() else { return };
                 self.task = None;
                 let mut answer = Answer::new(Ok(Reply::Analysis(sketch)));
                 answer.turn_to(page);
@@ -1032,9 +1038,17 @@ impl<B: Backend> App<B> {
     /// and AC, DEL, OK or EXE go back to the sheet.
     fn sheet_key(&mut self, kind: sheet::Kind, key: Key, shift: bool) {
         if let Some(answer) = &mut self.answer {
+            let pages = answer.pages() > 1;
             match key {
                 Key::Up => answer.scroll_by(-1),
                 Key::Down => answer.scroll_by(1),
+                // A task's answer has its graph on a second page.
+                Key::Left if pages => {
+                    answer.turn_to(answer.page.saturating_sub(1));
+                }
+                Key::Right if pages => {
+                    answer.turn_to(answer.page + 1);
+                }
                 Key::Left => answer.shift = (answer.shift - SHIFT_STEP).max(0),
                 Key::Right => answer.shift += SHIFT_STEP,
                 Key::Ac | Key::Del | Key::Ok | Key::Exe => self.answer = None,
@@ -1056,6 +1070,7 @@ impl<B: Backend> App<B> {
     /// Asks the backend to work `request` out; the answer comes now or when `tick` gets it.
     fn solve(&mut self, request: &Request) {
         let settings = self.settings;
+        self.asked = request.function().map(String::from);
         self.pending = Some(Pending::Sheet);
         match self.backend.start_solve(&settings, request) {
             Some(reply) => self.finish_sheet(reply),
@@ -1090,8 +1105,17 @@ impl<B: Backend> App<B> {
     fn finish_sheet(&mut self, reply: Result<Reply, String>) {
         self.busy = false;
         if let Some(Pending::Sheet) = self.pending.take() {
-            if let Ok(Reply::Analysis(sketch)) = &reply {
-                self.sketch = Some(sketch.clone());
+            let mut reply = reply;
+            let asked = self.asked.take().unwrap_or_default();
+            match &mut reply {
+                Ok(Reply::Analysis(sketch)) => self.sketch = Some((asked, sketch.clone())),
+                // A task on the function sketched last is drawn on its graph.
+                Ok(Reply::Task(task)) => {
+                    if let Some((_, sketch)) = self.sketch.as_ref().filter(|(function, _)| *function == task.function) {
+                        task.graph = Some(Graph { overlay: task.overlay.clone(), ..sketch.graph.clone() });
+                    }
+                }
+                _ => {}
             }
             self.answer = Some(Answer::new(reply));
         }

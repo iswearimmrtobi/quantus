@@ -274,8 +274,10 @@ fn arrow(shapes: &mut Vec<Shape>, tip: Point, up: bool) {
 /// The answer, from its first line or row on: lines of math and the matrices of the steps, or a
 /// table; an error in its colour, broken into lines.
 pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, lang: Lang) {
-    if let Ok(Reply::Analysis(analysis)) = &answer.reply {
-        return super::analysis::sketch(shapes, answer, analysis, lang);
+    match &answer.reply {
+        Ok(Reply::Analysis(analysis)) => return super::analysis::sketch(shapes, answer, analysis, lang),
+        Ok(Reply::Task(task)) => return super::analysis::task(shapes, answer, task, lang),
+        _ => {}
     }
     let bottom = HEIGHT as i32 - 6;
     let x = MARGIN - answer.shift;

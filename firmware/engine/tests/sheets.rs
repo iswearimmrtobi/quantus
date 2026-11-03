@@ -149,8 +149,8 @@ fn a_tangent_gives_its_steps_and_both_lines() {
     let mut engine = Engine::default();
     let request = Request::Tangent { f: "x^3-3x".into(), x0: "2".into() };
     let task = task(engine.solve(&Settings::default(), &request).unwrap());
-    let math = math(&task.lines);
-    assert!(math.ends_with(&["t(x) = 9x - 16", r"n(x) = -\frac{1}{9}x + \frac{20}{9}"]), "{math:?}");
+    assert_eq!(math(&task.result), ["t(x) = 9x - 16", r"n(x) = -\frac{1}{9}x + \frac{20}{9}"]);
+    assert_eq!(task.title, "Tangente, Normale");
     assert_eq!(task.overlay.tangent, Some(Straight::Sloped { slope: 9.0, intercept: -16.0 }));
     assert!(task.overlay.normal.is_some());
     let point = task.overlay.point.unwrap();
@@ -162,7 +162,7 @@ fn an_area_between_the_outer_zeros() {
     let mut engine = Engine::default();
     let request = Request::Area { f: "x^3-3x".into(), from: "".into(), to: "".into() };
     let task = task(engine.solve(&Settings::default(), &request).unwrap());
-    assert!(math(&task.lines).contains(&r"A = \frac{9}{2}"));
+    assert_eq!(math(&task.result)[0], r"A = \frac{9}{2}");
     let regions = &task.overlay.regions;
     assert_eq!(regions.len(), 2);
     assert!(regions[0].positive && !regions[1].positive);

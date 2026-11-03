@@ -262,3 +262,39 @@ fn abschnitte_lists_the_pages_of_the_last_sketch() {
     assert!(matches!(app.screen, quantus_ui::app::Screen::Calc));
     assert_eq!(app.answer.as_ref().unwrap().page, 2);
 }
+
+#[test]
+fn a_task_on_the_function_sketched_has_its_graph_on_a_second_page() {
+    let (mut app, _) = app();
+    type_text(&mut app, "x^2");
+    // Without a sketch: the steps only.
+    app.key(Key::Optn);
+    app.key(Key::Digit(2));
+    type_text(&mut app, "1\n\n");
+    assert_eq!(app.answer.as_ref().unwrap().pages(), 1);
+    app.key(Key::Ac);
+    app.key(Key::Ac);
+
+    // After the sketch: its graph with the tangent on it, a page further.
+    app.key(Key::Exe);
+    app.key(Key::Ac);
+    app.key(Key::Optn);
+    app.key(Key::Digit(2));
+    app.key(Key::Exe);
+    let answer = app.answer.as_ref().unwrap();
+    assert_eq!(answer.pages(), 2);
+    let Ok(Reply::Task(task)) = &answer.reply else { panic!("a task") };
+    let graph = task.graph.as_ref().unwrap();
+    assert!(graph.overlay.tangent.is_some() && !graph.points.is_empty());
+    app.key(Key::Right);
+    assert_eq!(app.answer.as_ref().unwrap().page, 1);
+    // A sketch of another function does not lend its graph.
+    app.key(Key::Ac);
+    app.key(Key::Ac);
+    app.key(Key::Del);
+    type_text(&mut app, "3");
+    app.key(Key::Optn);
+    app.key(Key::Digit(2));
+    app.key(Key::Exe);
+    assert_eq!(app.answer.as_ref().unwrap().pages(), 1);
+}
