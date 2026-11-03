@@ -256,6 +256,9 @@ fn arrow(shapes: &mut Vec<Shape>, tip: Point, up: bool) {
 /// The answer, from its first line or row on: lines of math and the matrices of the steps, or a
 /// table; an error in its colour, broken into lines.
 pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, lang: Lang) {
+    if let Ok(Reply::Analysis(analysis)) = &answer.reply {
+        return super::analysis::sketch(shapes, answer, analysis, lang);
+    }
     let bottom = HEIGHT as i32 - 6;
     let x = MARGIN - answer.shift;
     let mut y = BAR + 8;
@@ -359,7 +362,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, lang: Lang) 
 }
 
 /// `text` broken into lines of at most `room` pixels, at spaces.
-fn wrap(text: &str, room: i32, scale: Scale) -> Vec<String> {
+pub(super) fn wrap(text: &str, room: i32, scale: Scale) -> Vec<String> {
     let mut lines: Vec<String> = Vec::new();
     for word in text.split_whitespace() {
         match lines.last_mut() {

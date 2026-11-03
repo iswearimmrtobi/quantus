@@ -107,8 +107,8 @@ fn a_curve_sketch_has_a_page_per_section_and_its_graph() {
     assert_eq!(titles[..3], ["Ableitungen", "Definitionsbereich", "Symmetrie"]);
     assert!(sketch.pages.iter().all(|page| page.status == Status::Ok && !page.lines.is_empty()));
     // The derivatives' result, a line each.
-    let derivatives = math(&sketch.pages[0].lines);
-    assert!(derivatives.ends_with(&["f'(x) = 3x^{2} - 3", "f''(x) = 6x", "f'''(x) = 6"]), "{derivatives:?}");
+    let derivatives = math(&sketch.pages[0].result);
+    assert_eq!(derivatives, ["f'(x) = 3x^{2} - 3", "f''(x) = 6x", "f'''(x) = 6"]);
     // The monotony has its sign table.
     let monotony = sketch.pages.iter().find(|page| page.title == "Monotonie").unwrap();
     assert!(monotony.lines.iter().any(|line| matches!(line, Line::Grid(rows) if rows.len() == 3)));

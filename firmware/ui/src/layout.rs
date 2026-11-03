@@ -5,7 +5,7 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Polyline, PrimitiveStyle, Rectangle};
 
-use crate::editor::{Accent, Node, Row};
+use crate::editor::{Accent, Node, Row, THIN_SPACE};
 use crate::font::Scale;
 
 /// Characters that get a gap on both sides.
@@ -89,7 +89,8 @@ fn layout_nested(row: &Row, scale: Scale, nested: bool) -> RowLayout {
     let mut open = Vec::new();
     for (index, node) in row.0.iter().enumerate() {
         let base_ascent = items.last().map_or(metrics.digit, |item| item.ascent);
-        let unary = index == 0 || matches!(row.0[index - 1], Node::Char(c) if c == '(' || OPERATORS.contains(c));
+        // After an interval's bracket or a separator, a minus is a sign: `]-∞; -1]`.
+        let unary = index == 0 || matches!(row.0[index - 1], Node::Char(c) if "([];,".contains(c) || OPERATORS.contains(c));
         let mut item = node_layout(node, scale, nested, base_ascent, unary);
         item.x = x;
         x += item.width;
@@ -268,6 +269,8 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
     let small = Scale::Small.metrics();
     match node {
         Node::Char(c) if DRAWN.contains(*c) => drawn(*c, scale, unary),
+        // The fonts have no thin space: a gap of its width.
+        Node::Char(THIN_SPACE) => text_item(String::new(), 0, metrics.digit / 3, scale),
         Node::Char(c) => {
             let text = c.to_string();
             let gap = if OPERATORS.contains(*c) && !unary { metrics.digit / 4 } else { 0 };

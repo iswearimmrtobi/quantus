@@ -14,29 +14,26 @@ use crate::sheet::{inside, plain};
 pub fn sketch(core: &CoreSettings, f: &str, precision: Option<usize>) -> Result<Analysis, String> {
     let request = AnalysisRequest { latex: f.to_string(), variable: None, precision };
     let response = api::analyze(core, &request).map_err(|error| error.error)?;
-    Ok(analysis(&response, german(core)))
+    Ok(analysis(&response))
 }
 
 fn german(core: &CoreSettings) -> bool {
     core.language == quantus_core::settings::Language::De
 }
 
-fn analysis(response: &AnalysisResponse, german: bool) -> Analysis {
+fn analysis(response: &AnalysisResponse) -> Analysis {
     let pages = response
         .sections
         .iter()
         .map(|section| {
-            let mut lines = steps(&section.steps);
-            if let Some(result) = &section.result {
-                lines.push(Line::Note(if german { "Ergebnis" } else { "Result" }.to_string()));
-                lines.extend(math_lines(result));
-            }
+            let lines = steps(&section.steps);
+            let result = section.result.as_deref().map(math_lines).unwrap_or_default();
             let status = match section.status.as_str() {
                 "partial" => Status::Partial,
                 "failed" => Status::Failed,
                 _ => Status::Ok,
             };
-            Page { title: section.title.clone(), status, message: section.message.as_deref().map(plain), lines }
+            Page { title: section.title.clone(), status, message: section.message.as_deref().map(plain), lines, result }
         })
         .collect();
     let plot = &response.plot;
@@ -122,7 +119,10 @@ fn grid(latex: &str) -> Option<Line> {
 
 /// A line of the engine's LaTeX as lines on the screen: `a, \quad b` gives two.
 pub fn math_lines(latex: &str) -> Vec<Line> {
-    split_quads(latex).into_iter().map(Line::Math).collect()
+    // The spaces after a lead in words (`\text{fallend auf}: [1; 2]`) and between intervals,
+    // which math mode drops.
+    let spaced = |line: String| line.replace("}: ", "}:\\ ").replace("], ", "],\\ ").replace("[, ", "[,\\ ");
+    split_quads(latex).into_iter().map(|line| Line::Math(spaced(line))).collect()
 }
 
 /// `latex` cut at each `\quad` outside braces, a comma before it dropped.

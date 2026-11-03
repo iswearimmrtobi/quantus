@@ -158,7 +158,7 @@ impl Answer {
     /// The lines or rows of the page shown, the steps of its scrolling.
     pub fn lines(&self) -> usize {
         match &self.reply {
-            Ok(Reply::Analysis(analysis)) => self.page.checked_sub(1).and_then(|page| analysis.pages.get(page)).map_or(0, |page| page.lines.len()),
+            Ok(Reply::Analysis(analysis)) => self.page.checked_sub(1).and_then(|page| analysis.pages.get(page)).map_or(0, |page| page.len()),
             Ok(reply) => reply.len(),
             Err(_) => 0,
         }

@@ -4,6 +4,7 @@
 //! bands that changed, so no framebuffer is needed. A wallpaper, if one is set, lies under it
 //! all, and the tiles and menu lines let it shine through.
 
+mod analysis;
 mod bar;
 mod renderer;
 mod screens;

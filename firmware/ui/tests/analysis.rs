@@ -117,3 +117,25 @@ fn another_mode_leaves_the_sketch() {
     assert_eq!(app.mode, Mode::Algebra);
     assert!(app.answer.is_none());
 }
+
+/// Every text drawn on the screen.
+fn texts(app: &App<Asked>) -> Vec<String> {
+    let frame = quantus_ui::render::Frame::new(app);
+    let debug = format!("{:?}", frame.0);
+    debug.split("Text(").skip(1).filter_map(|part| part.split('"').nth(1).map(String::from)).collect()
+}
+
+#[test]
+fn a_section_page_shows_its_title_and_where_it_stands() {
+    let (mut app, _) = app();
+    type_text(&mut app, "x");
+    app.key(Key::Exe);
+    assert!(texts(&app).iter().any(|text| text == "1/3"));
+    app.key(Key::Right);
+    let shown = texts(&app);
+    assert!(shown.iter().any(|text| text == "f(x)") && shown.iter().any(|text| text == "2/3"), "{shown:?}");
+    // The stub's second section failed: it says so, and why.
+    app.key(Key::Right);
+    let shown = texts(&app);
+    assert!(shown.iter().any(|text| text == "fehlgeschlagen") && shown.iter().any(|text| text == "Stub"), "{shown:?}");
+}

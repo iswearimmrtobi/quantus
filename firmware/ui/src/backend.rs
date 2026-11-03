@@ -335,8 +335,21 @@ pub struct Page {
     pub status: Status,
     /// Why it is partial or failed.
     pub message: Option<String>,
-    /// The steps, then the result.
+    /// The steps.
     pub lines: Vec<Line>,
+    /// What the section finds, after its steps.
+    pub result: Vec<Line>,
+}
+
+impl Page {
+    /// The steps and the result, each line in turn.
+    pub fn len(&self) -> usize {
+        self.lines.len() + self.result.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 /// How far the engine got with a section.
@@ -527,8 +540,8 @@ impl Backend for Stub {
             Request::Analysis { f } => Reply::Analysis(Analysis {
                 function: format!("f(x) = {f}"),
                 pages: vec![
-                    Page { title: "f(x)".into(), status: Status::Ok, message: None, lines: vec![Line::Math(f.clone())] },
-                    Page { title: "?".into(), status: Status::Failed, message: Some("Stub".into()), lines: Vec::new() },
+                    Page { title: "f(x)".into(), status: Status::Ok, message: None, lines: vec![Line::Note("f".into())], result: vec![Line::Math(f.clone())] },
+                    Page { title: "?".into(), status: Status::Failed, message: Some("Stub".into()), lines: Vec::new(), result: Vec::new() },
                 ],
                 graph: parabola(),
             }),
