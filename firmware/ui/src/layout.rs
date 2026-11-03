@@ -5,7 +5,7 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Polyline, PrimitiveStyle, Rectangle};
 
-use crate::editor::{Node, Row};
+use crate::editor::{Accent, Node, Row};
 use crate::font::Scale;
 
 /// Characters that get a gap on both sides.
@@ -219,6 +219,30 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
             let index = layout_nested(index, Scale::Small, nested);
             root(Some(index), layout_nested(radicand, scale, nested), scale)
         }
+        Node::Accent(accent, row) => accent_item(*accent, layout_nested(row, scale, nested)),
+    }
+}
+
+/// A bar or a hat over `row`, just above a small letter's height.
+fn accent_item(accent: Accent, row: RowLayout) -> Item {
+    let metrics = row.scale.metrics();
+    // Over a lower-case letter: about the height of a digit's upper part.
+    let top = -(metrics.digit * 4 / 5) - 3;
+    let (left, right) = (1, row.width.max(4));
+    let points = match accent {
+        Accent::Bar => [Point::new(left, top), Point::new(right, top), Point::new(right, top), Point::new(right, top)],
+        Accent::Hat => {
+            let middle = (left + right) / 2;
+            [Point::new(left, top + 1), Point::new(middle, top - 2), Point::new(right, top + 1), Point::new(right, top + 1)]
+        }
+    };
+    Item {
+        x: 0,
+        width: row.width + 1,
+        ascent: row.ascent.max(-top + 3),
+        descent: row.descent,
+        kind: Kind::Sign(points),
+        slots: vec![(Point::zero(), row)],
     }
 }
 

@@ -1,7 +1,7 @@
 //! Reads LaTeX back into a [`Row`], to show the engine's results the way inputs are shown. Only
 //! what the layout can draw is understood; any other command shows as its name.
 
-use crate::editor::{Node, Row, GREEK, THIN_SPACE};
+use crate::editor::{Accent, Node, Row, GREEK, THIN_SPACE};
 
 /// Commands shown as a function name.
 const FUNCTIONS: &[&str] = &[
@@ -105,6 +105,8 @@ impl Parser {
                     nodes.push(Node::Sqrt(self.argument()));
                 }
             }
+            "bar" | "overline" => nodes.push(Node::Accent(Accent::Bar, self.argument())),
+            "hat" | "widehat" => nodes.push(Node::Accent(Accent::Hat, self.argument())),
             "mathrm" | "text" | "operatorname" | "mathit" => {
                 let content = self.argument();
                 if content.0.iter().all(|node| matches!(node, Node::Char(_))) {

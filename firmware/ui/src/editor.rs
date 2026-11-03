@@ -41,6 +41,17 @@ pub enum Node {
     Sqrt(Row),
     /// The index, then the radicand.
     Root(Row, Row),
+    /// A mark over what it holds: x̄, ŷ. Only results have it; no key types it.
+    Accent(Accent, Row),
+}
+
+/// The marks of [`Node::Accent`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Accent {
+    /// `\bar`: a mean.
+    Bar,
+    /// `\hat`: an estimate.
+    Hat,
 }
 
 impl Node {
@@ -48,14 +59,14 @@ impl Node {
     pub fn slot_count(&self) -> usize {
         match self {
             Node::Char(_) | Node::Func(_) | Node::Upright(_) => 0,
-            Node::Pow(_) | Node::Sub(_) | Node::Sqrt(_) => 1,
+            Node::Pow(_) | Node::Sub(_) | Node::Sqrt(_) | Node::Accent(..) => 1,
             Node::Frac(..) | Node::Root(..) => 2,
         }
     }
 
     pub fn slot(&self, index: usize) -> &Row {
         match (self, index) {
-            (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row), 0) => row,
+            (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row), 0) => row,
             (Node::Frac(first, _) | Node::Root(first, _), 0) => first,
             (Node::Frac(_, second) | Node::Root(_, second), 1) => second,
             _ => panic!("{self:?} has no slot {index}"),
@@ -64,7 +75,7 @@ impl Node {
 
     pub fn slot_mut(&mut self, index: usize) -> &mut Row {
         match (self, index) {
-            (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row), 0) => row,
+            (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row), 0) => row,
             (Node::Frac(first, _) | Node::Root(first, _), 0) => first,
             (Node::Frac(_, second) | Node::Root(_, second), 1) => second,
             (node, _) => panic!("{node:?} has no slot {index}"),
@@ -74,7 +85,7 @@ impl Node {
     fn into_slots(self) -> Vec<Row> {
         match self {
             Node::Char(_) | Node::Func(_) | Node::Upright(_) => Vec::new(),
-            Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) => vec![row],
+            Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row) => vec![row],
             Node::Frac(first, second) | Node::Root(first, second) => vec![first, second],
         }
     }
@@ -84,7 +95,7 @@ impl Node {
     fn is_operand(&self) -> bool {
         match self {
             Node::Char(c) => c.is_alphanumeric() || *c == ',',
-            Node::Pow(_) | Node::Sub(_) | Node::Upright(_) => true,
+            Node::Pow(_) | Node::Sub(_) | Node::Upright(_) | Node::Accent(..) => true,
             _ => false,
         }
     }
@@ -386,6 +397,13 @@ impl Latex {
                 Node::Sqrt(radicand) => {
                     self.command("sqrt");
                     self.group(radicand);
+                }
+                Node::Accent(accent, row) => {
+                    self.command(match accent {
+                        Accent::Bar => "bar",
+                        Accent::Hat => "hat",
+                    });
+                    self.group(row);
                 }
                 Node::Root(index, radicand) => {
                     self.command("sqrt");
