@@ -185,9 +185,10 @@ impl Frame {
         let backdrop = backdrop(app);
         let glass = backdrop.is_some();
         match &app.screen {
-            Screen::Calc => match app.sheet_kind() {
-                Some(kind) => sheet::sheet(&mut shapes, app, kind, glass),
-                None => calculation(&mut shapes, app),
+            Screen::Calc => match (app.sheet_kind(), &app.answer) {
+                (Some(kind), _) => sheet::sheet(&mut shapes, app, kind, glass),
+                (None, Some(answer)) => sheet::answer_page(&mut shapes, answer, app.settings.language),
+                (None, None) => calculation(&mut shapes, app),
             },
             Screen::Modes { selected } => modes(&mut shapes, app, *selected, glass),
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),

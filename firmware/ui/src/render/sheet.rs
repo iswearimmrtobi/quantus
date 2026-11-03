@@ -255,7 +255,7 @@ fn arrow(shapes: &mut Vec<Shape>, tip: Point, up: bool) {
 
 /// The answer, from its first line or row on: lines of math and the matrices of the steps, or a
 /// table; an error in its colour, broken into lines.
-fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, lang: Lang) {
+pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, lang: Lang) {
     let bottom = HEIGHT as i32 - 6;
     let x = MARGIN - answer.shift;
     let mut y = BAR + 8;

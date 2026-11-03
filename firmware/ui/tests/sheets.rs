@@ -416,7 +416,7 @@ fn every_sheet_and_answer_draws() {
             press(&mut app, &[Key::Exe, Key::Down, Key::Down, Key::Down, Key::Down, Key::Pi]);
         }
         press(&mut app, &[Key::Digit(1), Key::Fraction, Key::Digit(2), Key::Exe, Key::Digit(3)]);
-        app.answer = reply.map(|reply| quantus_ui::app::Answer { reply, scroll: 0, shift: 0 });
+        app.answer = reply.map(quantus_ui::app::Answer::new);
         let mut screen = Picture(vec![Rgb565::BLACK; (WIDTH * HEIGHT) as usize]);
         Renderer::new().render(&Frame::new(&app), &mut screen).unwrap();
         if let Ok(dir) = std::env::var("QUANTUS_SHOTS") {

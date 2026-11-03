@@ -138,6 +138,45 @@ pub struct Answer {
     pub scroll: usize,
     /// How far it is moved to the left, in pixels, to see a wide matrix or table.
     pub shift: i32,
+    /// The page shown, of a curve sketch: 0 the graph, then a page per section.
+    pub page: usize,
+}
+
+impl Answer {
+    pub fn new(reply: Result<Reply, String>) -> Self {
+        Answer { reply, scroll: 0, shift: 0, page: 0 }
+    }
+
+    /// How many pages it has: the graph and the sections of a sketch, one otherwise.
+    pub fn pages(&self) -> usize {
+        match &self.reply {
+            Ok(Reply::Analysis(analysis)) => 1 + analysis.pages.len(),
+            _ => 1,
+        }
+    }
+
+    /// The lines or rows of the page shown, the steps of its scrolling.
+    pub fn lines(&self) -> usize {
+        match &self.reply {
+            Ok(Reply::Analysis(analysis)) => self.page.checked_sub(1).and_then(|page| analysis.pages.get(page)).map_or(0, |page| page.lines.len()),
+            Ok(reply) => reply.len(),
+            Err(_) => 0,
+        }
+    }
+
+    /// Scrolls by `lines`, staying on the page.
+    pub fn scroll_by(&mut self, lines: isize) {
+        self.scroll = self.scroll.saturating_add_signed(lines).min(self.lines().saturating_sub(1));
+    }
+
+    /// Turns to the page `page`, from its top; false if there is none.
+    pub fn turn_to(&mut self, page: usize) -> bool {
+        if page >= self.pages() || page == self.page {
+            return false;
+        }
+        (self.page, self.scroll, self.shift) = (page, 0, 0);
+        true
+    }
 }
 
 /// How far ←/→ move a wide answer.
@@ -526,8 +565,7 @@ impl<B: Backend> App<B> {
                         y if y >= TURN => -page,
                         _ => 0,
                     };
-                    let last = answer.reply.as_ref().map_or(0, |reply| reply.len().saturating_sub(1));
-                    answer.scroll = answer.scroll.saturating_add_signed(by).min(last);
+                    answer.scroll_by(by);
                 }
             }
             screen => self.screen = screen,
@@ -902,6 +940,9 @@ impl<B: Backend> App<B> {
         if let Some(kind) = self.sheet_kind() {
             return self.sheet_key(kind, key, shift);
         }
+        if self.answer.is_some() && !self.sketch_key(key) {
+            return;
+        }
         if self.shown.is_some() && !self.leave_result(key) {
             return;
         }
@@ -940,10 +981,9 @@ impl<B: Backend> App<B> {
     /// and AC, DEL, OK or EXE go back to the sheet.
     fn sheet_key(&mut self, kind: sheet::Kind, key: Key, shift: bool) {
         if let Some(answer) = &mut self.answer {
-            let last = answer.reply.as_ref().map_or(0, |reply| reply.len().saturating_sub(1));
             match key {
-                Key::Up => answer.scroll = answer.scroll.saturating_sub(1),
-                Key::Down => answer.scroll = (answer.scroll + 1).min(last),
+                Key::Up => answer.scroll_by(-1),
+                Key::Down => answer.scroll_by(1),
                 Key::Left => answer.shift = (answer.shift - SHIFT_STEP).max(0),
                 Key::Right => answer.shift += SHIFT_STEP,
                 Key::Ac | Key::Del | Key::Ok | Key::Exe => self.answer = None,
@@ -953,20 +993,48 @@ impl<B: Backend> App<B> {
         }
         if self.sheets.get_mut(kind).key(key, shift) == sheet::Outcome::Calculate {
             let request = self.sheets.request(kind);
-            let settings = self.settings;
-            self.pending = Some(Pending::Sheet);
-            match self.backend.start_solve(&settings, &request) {
-                Some(reply) => self.finish_sheet(reply),
-                None => self.busy = true,
+            self.solve(&request);
+        }
+    }
+
+    /// Asks the backend to work `request` out; the answer comes now or when `tick` gets it.
+    fn solve(&mut self, request: &Request) {
+        let settings = self.settings;
+        self.pending = Some(Pending::Sheet);
+        match self.backend.start_solve(&settings, request) {
+            Some(reply) => self.finish_sheet(reply),
+            None => self.busy = true,
+        }
+    }
+
+    /// A key on a curve sketch: ←/→ turn its pages, ↑/↓ scroll one, AC, DEL, OK and EXE go
+    /// back to the input. Another key leaves it too and goes on to the input; returns whether
+    /// it does.
+    fn sketch_key(&mut self, key: Key) -> bool {
+        let Some(answer) = &mut self.answer else { return true };
+        match key {
+            Key::Left => {
+                answer.turn_to(answer.page.saturating_sub(1));
+            }
+            Key::Right => {
+                answer.turn_to(answer.page + 1);
+            }
+            Key::Up => answer.scroll_by(-1),
+            Key::Down => answer.scroll_by(1),
+            Key::Ac | Key::Del | Key::Ok | Key::Exe => self.answer = None,
+            _ => {
+                self.answer = None;
+                return true;
             }
         }
+        false
     }
 
     /// Shows the answer to the sheet.
     fn finish_sheet(&mut self, reply: Result<Reply, String>) {
         self.busy = false;
         if let Some(Pending::Sheet) = self.pending.take() {
-            self.answer = Some(Answer { reply, scroll: 0, shift: 0 });
+            self.answer = Some(Answer::new(reply));
         }
     }
 
@@ -1076,6 +1144,11 @@ impl<B: Backend> App<B> {
     fn evaluate(&mut self) {
         if self.editor.is_empty() {
             return;
+        }
+        // Kurvendiskussion sketches the function, a page per section.
+        if self.mode == Mode::Analysis {
+            let request = Request::Analysis { f: self.editor.to_latex() };
+            return self.solve(&request);
         }
         let pending = Pending::New { input: self.editor.row.clone(), decimal: self.settings.decimal };
         if self.mode.engine() {
