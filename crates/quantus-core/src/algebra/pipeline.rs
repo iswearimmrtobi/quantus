@@ -1082,7 +1082,7 @@ fn canonical_explanation(root: &Node) -> (String, RuleId) {
     let den = split_fraction(inner).and_then(|(_, den)| Poly::from_node(den).ok());
     if let Some(den) = den.as_ref().filter(|den| den.is_constant()) {
         if splits_a_sum(root) {
-            return (crate::text::msg!("Split the fraction", "Den Bruch aufteilen").into(), RuleId::NormalizeExpression);
+            return (crate::text::msg!("Split the fraction", "Den Bruch aufteilen"), RuleId::NormalizeExpression);
         }
         return (
             crate::text::msg!("Write the division by {} as a coefficient", "Die Division durch {} als Koeffizienten schreiben", serializer::expression(&den.to_node())),
@@ -1092,33 +1092,32 @@ fn canonical_explanation(root: &Node) -> (String, RuleId) {
     if let Ok(poly) = Poly::from_node(unwrapped) {
         return match unwrapped {
             Node::Power { base, .. } if matches!(unwrap_group(base), Node::Power { .. }) => {
-                (crate::text::msg!("Power of a power: multiply the exponents", "Potenz einer Potenz: die Exponenten multiplizieren").into(), RuleId::NestPowers)
+                (crate::text::msg!("Power of a power: multiply the exponents", "Potenz einer Potenz: die Exponenten multiplizieren"), RuleId::NestPowers)
             }
             Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, .. }
                 if is_power_product(unwrapped) =>
             {
-                (crate::text::msg!("Same base: add the exponents", "Gleiche Basis: die Exponenten addieren").into(), RuleId::MergePowers)
+                (crate::text::msg!("Same base: add the exponents", "Gleiche Basis: die Exponenten addieren"), RuleId::MergePowers)
             }
             _ if crate::algebra::expand::is_term_reordering(unwrapped) => {
-                (crate::text::msg!("Order the terms by descending powers", "Die Terme nach absteigenden Potenzen ordnen").into(), RuleId::NormalizeExpression)
+                (crate::text::msg!("Order the terms by descending powers", "Die Terme nach absteigenden Potenzen ordnen"), RuleId::NormalizeExpression)
             }
             _ if poly.terms.len() == 1 => {
-                (crate::text::msg!("Multiply the factors into one term", "Die Faktoren zu einem Term multiplizieren").into(), RuleId::NormalizeExpression)
+                (crate::text::msg!("Multiply the factors into one term", "Die Faktoren zu einem Term multiplizieren"), RuleId::NormalizeExpression)
             }
             _ => (
-                crate::text::msg!("Write the polynomial expanded, terms in descending powers", "Das Polynom ausmultipliziert schreiben, nach absteigenden Potenzen").into(),
+                crate::text::msg!("Write the polynomial expanded, terms in descending powers", "Das Polynom ausmultipliziert schreiben, nach absteigenden Potenzen"),
                 RuleId::NormalizeExpression,
             ),
         };
     }
     match den {
         Some(den) if den.leading_coeff().is_negative() => (
-            crate::text::msg!("Multiply numerator and denominator by -1, so the denominator starts with a positive term", "Zähler und Nenner mit -1 multiplizieren, damit der Nenner mit einem positiven Term beginnt")
-                .into(),
+            crate::text::msg!("Multiply numerator and denominator by -1, so the denominator starts with a positive term", "Zähler und Nenner mit -1 multiplizieren, damit der Nenner mit einem positiven Term beginnt"),
             RuleId::NormalizeExpression,
         ),
         _ => (
-            crate::text::msg!("Write the result in canonical form: numerator expanded, denominator factored", "Das Ergebnis in Normalform schreiben: Zähler ausmultipliziert, Nenner faktorisiert").into(),
+            crate::text::msg!("Write the result in canonical form: numerator expanded, denominator factored", "Das Ergebnis in Normalform schreiben: Zähler ausmultipliziert, Nenner faktorisiert"),
             RuleId::NormalizeExpression,
         ),
     }
