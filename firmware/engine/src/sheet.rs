@@ -3,7 +3,7 @@
 //! and the matrices of the elimination taken apart from their `array` into cells.
 
 use quantus_core::api::{self, LinearSystemRequest, StatisticsRequest, StepResponse};
-use quantus_core::analysis::interface::TableRequest;
+use quantus_core::analysis::interface::{AnalysisRequest, TableRequest};
 use quantus_core::session::ModeInputs;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_core::stochastics::distributions::{Distribution, DistributionRequest};
@@ -295,7 +295,8 @@ fn distribution_request(request: &Request) -> DistributionRequest {
 }
 
 /// Keeps `request` in the session's mode inputs, as the desktop keeps its own. Wertetabelle
-/// keeps f(x) only: the session has room for one function.
+/// keeps f(x) only: the session has room for one function. Kurvendiskussion keeps f(x), from
+/// the sketch and from its tasks; x₀ and the bounds are not kept.
 pub fn keep(inputs: &mut ModeInputs, request: &Request) {
     match request {
         Request::Linear { rows } => inputs.linear = Some(LinearSystemRequest::Matrix { unknowns: None, rows: rows.clone() }),
@@ -304,13 +305,18 @@ pub fn keep(inputs: &mut ModeInputs, request: &Request) {
         }
         Request::Statistics { .. } => inputs.statistics = Some(statistics_request(request)),
         Request::Distribution { .. } => inputs.distribution = Some(distribution_request(request)),
-        Request::Analysis { .. } | Request::Tangent { .. } | Request::Area { .. } => {}
+        Request::Analysis { f } | Request::Tangent { f, .. } | Request::Area { f, .. } => {
+            inputs.analysis = Some(AnalysisRequest { latex: f.clone(), ..AnalysisRequest::default() })
+        }
     }
 }
 
 /// The sheets a session kept, as the hui's requests.
 pub fn kept(inputs: &ModeInputs) -> Vec<Request> {
     let mut requests = Vec::new();
+    if let Some(analysis) = &inputs.analysis {
+        requests.push(Request::Analysis { f: analysis.latex.clone() });
+    }
     if let Some(LinearSystemRequest::Matrix { rows, .. }) = &inputs.linear {
         requests.push(Request::Linear { rows: rows.clone() });
     }

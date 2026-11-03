@@ -207,6 +207,11 @@ fn the_session_keeps_the_sheets() {
     let opened = engine.session(SessionCommand::Current, &settings).unwrap();
     assert_eq!(opened.inputs, [linear.clone(), statistics, distribution]);
 
+    // The function of a curve sketch is kept, also from a task on it.
+    engine.solve(&settings, &Request::Tangent { f: "x^2".into(), x0: "1".into() }).unwrap();
+    let opened = engine.session(SessionCommand::Current, &settings).unwrap();
+    assert_eq!(opened.inputs[0], Request::Analysis { f: "x^2".into() });
+
     // A new session starts without them.
     let fresh = engine.session(SessionCommand::New, &settings).unwrap();
     assert!(fresh.inputs.is_empty());
