@@ -153,8 +153,45 @@ fn the_first_page_draws_the_graph_with_its_points() {
     assert!(texts(&app).iter().any(|text| text == "1/3"));
     // Its points stay on the screen.
     for shape in &frame.0 {
+        // The ‹ in the top bar aside.
         if let quantus_ui::render::Shape::Path(points, ..) = shape {
+            if points.iter().all(|p| p.y < 26) {
+                continue;
+            }
             assert!(points.iter().all(|p| (0..480).contains(&p.x) && (26..320).contains(&p.y)), "{points:?}");
         }
     }
+}
+
+fn tap(app: &mut App<Asked>, point: embedded_graphics::prelude::Point) {
+    use quantus_ui::touch::Touch;
+    app.touch(Touch::Press(point));
+    app.touch(Touch::Release);
+}
+
+#[test]
+fn a_finger_turns_the_pages_and_the_bar_goes_back() {
+    use embedded_graphics::prelude::Point;
+    use quantus_ui::touch::Touch;
+    let (mut app, _) = app();
+    type_text(&mut app, "x");
+    app.key(Key::Exe);
+    // A swipe to the left: the next page.
+    app.touch(Touch::Press(Point::new(300, 200)));
+    for x in [260, 220, 180] {
+        app.touch(Touch::Drag(Point::new(x, 205)));
+    }
+    app.touch(Touch::Release);
+    assert_eq!(app.answer.as_ref().unwrap().page, 1);
+    // A tap at the right edge, then the left one.
+    tap(&mut app, Point::new(470, 200));
+    assert_eq!(app.answer.as_ref().unwrap().page, 2);
+    tap(&mut app, Point::new(470, 200));
+    assert_eq!(app.answer.as_ref().unwrap().page, 2, "there is no page after the last");
+    tap(&mut app, Point::new(10, 200));
+    assert_eq!(app.answer.as_ref().unwrap().page, 1);
+    // ‹ in the top bar: back to the input.
+    tap(&mut app, Point::new(20, 12));
+    assert!(app.answer.is_none());
+    assert_eq!(app.editor.to_latex(), "x");
 }

@@ -287,6 +287,7 @@ impl<B> App<B> {
             Screen::Modes { .. } => Some(Point::new(moved.x, 0)),
             Screen::Menu(menu) if menu.list().is_some() => Some(Point::new(0, moved.y)),
             Screen::Calc if self.answer.is_some() && self.sheet_kind().is_some() => Some(Point::new(0, moved.y)),
+            Screen::Calc if self.answer.is_some() => Some(moved),
             _ => None,
         }
     }
@@ -558,6 +559,14 @@ impl<B: Backend> App<B> {
                 self.outcome(menu, outcome);
             }
             Screen::Calc => {
+                // Sideways across a curve sketch: the next page or the one before.
+                if let Some(answer) = self.answer.as_mut().filter(|answer| answer.pages() > 1) {
+                    if moved.x.abs() >= TURN && moved.x.abs() > moved.y.abs() {
+                        let page = if moved.x < 0 { answer.page + 1 } else { answer.page.saturating_sub(1) };
+                        answer.turn_to(page);
+                        return;
+                    }
+                }
                 if let Some(answer) = &mut self.answer {
                     let page = sheet::ROWS_SHOWN as isize;
                     let by = match moved.y {
@@ -623,6 +632,7 @@ impl<B: Backend> App<B> {
                 }
             }
             Target::Back => self.key(Key::Left),
+            Target::Side(next) => self.key(if next { Key::Right } else { Key::Left }),
             Target::Ok | Target::Anywhere => self.key(Key::Ok),
             Target::Tile(index) => self.choose(index),
             Target::Page(page) => self.show_page(page),

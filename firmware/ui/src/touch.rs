@@ -33,6 +33,8 @@ pub enum Target {
     Anywhere,
     /// A cell of a sheet: its row and column.
     Cell(usize, usize),
+    /// An edge of a curve sketch: the next page (true) or the one before.
+    Side(bool),
 }
 
 /// What the finger did, once it lifted.

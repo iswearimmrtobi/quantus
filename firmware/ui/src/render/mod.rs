@@ -327,6 +327,14 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
     }
     match &app.screen {
         Screen::Calc => {
+            // The edges of a curve sketch turn its pages.
+            if let Some(answer) = app.answer.as_ref().filter(|answer| answer.pages() > 1) {
+                return match point.x {
+                    x if x < SIDE => (answer.page > 0).then_some(Target::Side(false)),
+                    x if x >= WIDTH as i32 - SIDE => (answer.page + 1 < answer.pages()).then_some(Target::Side(true)),
+                    _ => None,
+                };
+            }
             let kind = app.sheet_kind()?;
             if app.answer.is_some() {
                 return None;
@@ -366,11 +374,14 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
     }
 }
 
-/// Whether the screen has ‹ in the top bar: a menu, and the answer to a sheet.
+/// How far in from the left and the right a tap turns the page of a curve sketch.
+const SIDE: i32 = 40;
+
+/// Whether the screen has ‹ in the top bar: a menu, and the answer to a sheet or a sketch.
 fn goes_back<B>(app: &App<B>) -> bool {
     match app.screen {
         Screen::Modes { .. } | Screen::Menu(_) => true,
-        Screen::Calc => app.answer.is_some() && app.sheet_kind().is_some(),
+        Screen::Calc => app.answer.is_some(),
         Screen::Calibrate(..) => false,
     }
 }
