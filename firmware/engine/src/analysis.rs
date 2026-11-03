@@ -6,7 +6,7 @@ use quantus_core::analysis::interface::{
 };
 use quantus_core::api::{self, StepResponse};
 use quantus_core::settings::Settings as CoreSettings;
-use quantus_ui::backend::{Analysis, Graph, Line, Mark, MarkKind, Overlay, Page, Region, Status, Straight, Task, Window};
+use quantus_ui::backend::{Analysis, Asymptote, Graph, Line, Mark, MarkKind, Overlay, Page, Region, Status, Straight, Task, Window};
 
 use crate::sheet::{inside, plain};
 
@@ -39,31 +39,20 @@ fn analysis(response: &AnalysisResponse) -> Analysis {
     let plot = &response.plot;
     let window = Window { x_min: plot.x_min as f32, x_max: plot.x_max as f32, y_min: plot.y_min as f32, y_max: plot.y_max as f32 };
     let curve = plot.segments.iter().map(|segment| segment.iter().map(|&[x, y]| (x as f32, y as f32)).collect()).collect();
-    let mut points = Vec::new();
-    for point in &response.points {
-        repeat(point.x, point.period, window, |x| points.push(Mark { x, ..mark(point) }));
-    }
-    let mut asymptotes = Vec::new();
-    for asymptote in &response.asymptotes {
-        match asymptote.x {
-            Some(x) => repeat(x, asymptote.period, window, |x| asymptotes.push(Straight::Vertical(x))),
-            None => asymptotes.extend(sloped(asymptote)),
-        }
-    }
+    // Periodic families keep their period: the graph repeats them across any window.
+    let points = response.points.iter().map(mark).collect();
+    let asymptotes = response
+        .asymptotes
+        .iter()
+        .filter_map(|asymptote| {
+            let line = match asymptote.x {
+                Some(x) => Straight::Vertical(x as f32),
+                None => sloped(asymptote)?,
+            };
+            Some(Asymptote { line, period: asymptote.period.map(|period| period as f32) })
+        })
+        .collect();
     Analysis { function: response.function.clone(), pages, graph: Graph { window, curve, points, asymptotes, overlay: Overlay::default() } }
-}
-
-/// Calls `put` with `x`, and with every member of its periodic family in the window.
-fn repeat(x: f64, period: Option<f64>, window: Window, mut put: impl FnMut(f32)) {
-    let Some(period) = period.filter(|period| *period > 0.0) else { return put(x as f32) };
-    let (low, high) = (f64::from(window.x_min), f64::from(window.x_max));
-    let first = x + ((low - x) / period).ceil() * period;
-    let mut at = first;
-    // A few hundred at most, however small the period.
-    while at <= high && at < first + 400.0 * period {
-        put(at as f32);
-        at += period;
-    }
 }
 
 fn sloped(asymptote: &AsymptoteResponse) -> Option<Straight> {
@@ -82,7 +71,7 @@ fn mark(point: &PointResponse) -> Mark {
         "tangent" => MarkKind::Touch,
         _ => MarkKind::Boundary,
     };
-    Mark { kind, name: point.name.clone(), x: point.x as f32, y: point.y as f32 }
+    Mark { kind, name: point.name.clone(), x: point.x as f32, y: point.y as f32, period: point.period.map(|period| period as f32) }
 }
 
 /// The steps as lines: what each does, then its LaTeX; a sign table as a grid.
@@ -226,14 +215,4 @@ mod tests {
         assert_eq!(rows[2], ["f", r"\frown", r"\smile"]);
     }
 
-    #[test]
-    fn a_periodic_point_repeats_across_the_window() {
-        let window = Window { x_min: -7.0, x_max: 7.0, y_min: -1.0, y_max: 1.0 };
-        let mut xs = Vec::new();
-        repeat(0.0, Some(std::f64::consts::PI), window, |x| xs.push(x));
-        assert_eq!(xs.len(), 5);
-        let mut one = Vec::new();
-        repeat(2.0, None, window, |x| one.push(x));
-        assert_eq!(one, [2.0]);
-    }
 }

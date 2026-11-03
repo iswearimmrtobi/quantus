@@ -368,7 +368,7 @@ pub struct Graph {
     /// The curve, in pieces that break at poles and gaps.
     pub curve: Vec<Vec<(f32, f32)>>,
     pub points: Vec<Mark>,
-    pub asymptotes: Vec<Straight>,
+    pub asymptotes: Vec<Asymptote>,
     /// A task's tangent, normal or area, drawn over it.
     pub overlay: Overlay,
 }
@@ -396,6 +396,15 @@ pub struct Mark {
     pub name: String,
     pub x: f32,
     pub y: f32,
+    /// For a member of a periodic family: the distance to the next; the graph marks them all.
+    pub period: Option<f32>,
+}
+
+/// An asymptote; a vertical one with a period stands for all the poles of its family (tan).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Asymptote {
+    pub line: Straight,
+    pub period: Option<f32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -509,7 +518,7 @@ pub fn bytes(bytes: u64, lang: crate::text::Lang) -> String {
 /// y = x² from −3 to 3, with its vertex: the stub's graph.
 fn parabola() -> Graph {
     let curve = vec![(-30..=30).map(|i| (i as f32 / 10.0, (i as f32 / 10.0).powi(2))).collect()];
-    let vertex = Mark { kind: MarkKind::Min, name: "T".into(), x: 0.0, y: 0.0 };
+    let vertex = Mark { kind: MarkKind::Min, name: "T".into(), x: 0.0, y: 0.0, period: None };
     Graph { window: Window { x_min: -3.0, x_max: 3.0, y_min: -1.0, y_max: 9.0 }, curve, points: vec![vertex], ..Graph::default() }
 }
 

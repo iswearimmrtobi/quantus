@@ -6,7 +6,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Circle, Rectangle};
 
 use super::{colors, Shape};
-use crate::backend::{Graph, MarkKind, Straight, Window};
+use crate::backend::{Graph, Mark, MarkKind, Straight, Window};
 use crate::font::Scale;
 use crate::latex;
 use crate::layout;
@@ -156,6 +156,18 @@ fn mark_color(kind: MarkKind) -> Rgb565 {
     }
 }
 
+/// Calls `put` with `x`, and with every member of its periodic family between `low` and
+/// `high` (a few hundred at most, however small the period).
+pub fn repeat(x: f32, period: Option<f32>, low: f32, high: f32, mut put: impl FnMut(f32)) {
+    let Some(period) = period.filter(|period| *period > 0.0 && period.is_finite()) else { return put(x) };
+    let first = x + ((low - x) / period).ceil() * period;
+    let mut at = first;
+    while at <= high && at < first + 400.0 * period {
+        put(at);
+        at += period;
+    }
+}
+
 /// A line of short dashes from `a` to `b`.
 fn dashed(shapes: &mut Vec<Shape>, a: (f32, f32), b: (f32, f32), color: Rgb565) {
     const DASH: f32 = 6.0;
@@ -277,9 +289,19 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
     }
 
     // The asymptotes, then the curve over them.
-    for &asymptote in &graph.asymptotes {
-        if let Some((a, b)) = plot.across(asymptote) {
-            dashed(shapes, a, b, colors::MUTED);
+    for asymptote in &graph.asymptotes {
+        let lines: Vec<Straight> = match asymptote.line {
+            Straight::Vertical(x) => {
+                let mut xs = Vec::new();
+                repeat(x, asymptote.period, window.x_min, window.x_max, |x| xs.push(Straight::Vertical(x)));
+                xs
+            }
+            line => vec![line],
+        };
+        for line in lines {
+            if let Some((a, b)) = plot.across(line) {
+                dashed(shapes, a, b, colors::MUTED);
+            }
         }
     }
     for piece in &graph.curve {
@@ -298,12 +320,33 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
     // The points with their names, a hole as a ring; a name that would cover one already
     // written is left out (N₂, W and S_y at the origin).
     let mut written: Vec<Rectangle> = Vec::new();
-    for mark in graph.overlay.point.iter().chain(&graph.points) {
-        let Some(at) = plot.point(mark.x, mark.y) else { continue };
+    // The points as the sketch lists them, then the other members of their periodic families
+    // in the window, each place once (H_2 of the sine is also a member of H_1's family). Only
+    // the listed ones are named.
+    let mut members: Vec<(Point, &Mark, bool)> = Vec::new();
+    let marks: Vec<&Mark> = graph.overlay.point.iter().chain(&graph.points).collect();
+    for &mark in &marks {
+        if let Some(at) = plot.point(mark.x, mark.y) {
+            members.push((at, mark, true));
+        }
+    }
+    for &mark in &marks {
+        repeat(mark.x, mark.period, window.x_min, window.x_max, |x| {
+            let Some(at) = plot.point(x, mark.y) else { return };
+            let taken = members.iter().any(|(other, kind, _)| kind.kind == mark.kind && (other.x - at.x).abs() <= 2 && (other.y - at.y).abs() <= 2);
+            if !taken {
+                members.push((at, mark, false));
+            }
+        });
+    }
+    for (at, mark, listed) in members {
         let color = mark_color(mark.kind);
         shapes.push(Shape::Circle(Circle::with_center(at, 7), color));
         if mark.kind == MarkKind::Hole {
             shapes.push(Shape::Circle(Circle::with_center(at, 3), colors::BACKGROUND));
+        }
+        if !listed {
+            continue;
         }
         let name = layout::layout(&latex::parse(&mark.name), Scale::Small);
         let x = if at.x + 6 + name.width > area.top_left.x + area.size.width as i32 { at.x - 6 - name.width } else { at.x + 6 };
@@ -334,6 +377,39 @@ mod tests {
         assert_eq!(tick_label(2.0, 1.0, Lang::De), "2");
         assert_eq!(tick_label(-0.5, 0.5, Lang::De), "-0,5");
         assert_eq!(tick_label(0.4, 0.2, Lang::En), "0.4");
+    }
+
+    #[test]
+    fn a_periodic_point_repeats_across_the_window() {
+        let mut xs = Vec::new();
+        repeat(0.0, Some(std::f32::consts::PI), -7.0, 7.0, |x| xs.push(x));
+        assert_eq!(xs.len(), 5);
+        let mut one = Vec::new();
+        repeat(2.0, None, -7.0, 7.0, |x| one.push(x));
+        assert_eq!(one, [2.0]);
+    }
+
+    /// The sine's maximum at π/2, listed once with its period, and its poles' family of tan.
+    fn periodic() -> Graph {
+        use crate::backend::Asymptote;
+        let max = Mark { kind: MarkKind::Max, name: "H".into(), x: std::f32::consts::FRAC_PI_2, y: 1.0, period: Some(std::f32::consts::TAU) };
+        let pole = Asymptote { line: Straight::Vertical(std::f32::consts::FRAC_PI_2), period: Some(std::f32::consts::PI) };
+        Graph { points: vec![max], asymptotes: vec![pole], ..Graph::default() }
+    }
+
+    #[test]
+    fn a_family_is_marked_in_any_window() {
+        let area = Rectangle::new(Point::new(10, 50), Size::new(460, 260));
+        let count = |window: Window| {
+            let mut shapes = Vec::new();
+            graph(&mut shapes, &Graph { window, ..periodic() }, area, Lang::De);
+            let dots = shapes.iter().filter(|shape| matches!(shape, Shape::Circle(..))).count();
+            let names = shapes.iter().filter(|shape| matches!(shape, Shape::Math(..))).count();
+            (dots, names)
+        };
+        // Far from where it was listed: two maxima, 4π apart, without a name.
+        assert_eq!(count(Window { x_min: 20.0, x_max: 30.0, y_min: -2.0, y_max: 2.0 }), (2, 0));
+        assert_eq!(count(Window { x_min: -1.0, x_max: 2.0, y_min: -2.0, y_max: 2.0 }), (1, 1));
     }
 
     #[test]
