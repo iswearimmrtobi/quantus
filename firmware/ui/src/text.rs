@@ -90,3 +90,4 @@ pub const SECTION_FAILED: Text = t("fehlgeschlagen", "failed");
 pub const SKETCH_FIRST: Text = t("Erst f(x) eingeben und EXE", "Type f(x) and EXE first");
 pub const GRAPH: Text = t("Graph", "Graph");
 pub const WORKING: Text = t("Rechenweg", "Working");
+pub const MOVING: Text = t("Bewegen", "Move");

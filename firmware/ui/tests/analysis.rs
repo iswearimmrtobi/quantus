@@ -346,3 +346,67 @@ fn a_section_opens_on_its_result_and_down_shows_the_working() {
     app.key(Key::Left);
     assert_eq!(app.answer.as_ref().unwrap().scroll, 0);
 }
+
+fn window(app: &App<Asked>) -> quantus_ui::backend::Window {
+    app.answer.as_ref().unwrap().graph().expect("a graph page").window
+}
+
+#[test]
+fn ok_moves_the_graph_with_the_arrows_and_zooms_it_with_plus_and_minus() {
+    use quantus_ui::backend::Window;
+    let (mut app, backend) = app();
+    type_text(&mut app, "x^2");
+    app.key(Key::Exe);
+    let home = window(&app);
+    assert_eq!(home, Window { x_min: -3.0, x_max: 3.0, y_min: -1.0, y_max: 9.0 });
+    // Before OK the arrows turn the pages.
+    app.key(Key::Ok);
+    assert!(app.answer.as_ref().unwrap().moving);
+    app.key(Key::Right);
+    assert_eq!(app.answer.as_ref().unwrap().page, 0, "moving, → does not turn the page");
+    assert_eq!(window(&app), Window { x_min: -1.5, x_max: 4.5, ..home });
+    // The curve is sampled for the new window.
+    let Some(Request::Sample { f, window: asked }) = backend.0.borrow().asked.last().cloned() else { panic!("a sample") };
+    assert_eq!((f.as_str(), asked), ("f(x) = x^{2}", window(&app)));
+    let graph = app.answer.as_ref().unwrap().graph().unwrap();
+    assert_eq!(graph.curve[0].first().map(|point| point.0), Some(-1.5));
+    // + halves the window around its middle, − doubles it, 0 goes home.
+    app.key(Key::Plus);
+    assert_eq!(window(&app), Window { x_min: 0.0, x_max: 3.0, y_min: 1.5, y_max: 6.5 });
+    app.key(Key::Minus);
+    app.key(Key::Minus);
+    assert_eq!(window(&app), Window { x_min: -4.5, x_max: 7.5, y_min: -6.0, y_max: 14.0 });
+    app.key(Key::Digit(0));
+    assert_eq!(window(&app), home);
+    app.key(Key::Up);
+    // AC stops moving and keeps the sketch; → turns the page again, and the window stays.
+    app.key(Key::Ac);
+    let answer = app.answer.as_ref().unwrap();
+    assert!(!answer.moving);
+    app.key(Key::Right);
+    app.key(Key::Left);
+    assert_eq!(window(&app), Window { y_min: 1.5, y_max: 11.5, ..home });
+}
+
+#[test]
+fn moving_while_the_curve_is_sampled_asks_once_more_at_the_end() {
+    let (mut app, backend) = app();
+    type_text(&mut app, "x");
+    app.key(Key::Exe);
+    backend.0.borrow_mut().later = true;
+    app.key(Key::Ok);
+    app.key(Key::Right);
+    app.key(Key::Right);
+    app.key(Key::Right);
+    // One sample asked; the graph moved on meanwhile.
+    let samples = |backend: &Asked| backend.0.borrow().asked.iter().filter(|request| matches!(request, Request::Sample { .. })).count();
+    assert_eq!(samples(&backend), 1);
+    app.tick(100);
+    // The first came back: the last window is asked for.
+    assert_eq!(samples(&backend), 2);
+    let Some(Request::Sample { window: asked, .. }) = backend.0.borrow().asked.last().cloned() else { panic!("a sample") };
+    assert_eq!(asked, window(&app));
+    app.tick(200);
+    assert_eq!(samples(&backend), 2);
+    assert!(!app.busy);
+}

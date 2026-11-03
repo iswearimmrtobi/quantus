@@ -56,13 +56,14 @@ fn main() {
     if let Some(png) = option("--png") {
         let keys = option("--keys").map_or("", String::as_str);
         // `\e` for Esc is not needed here: Ctrl+X clears. `\n` is EXE, `>`/`<` and `↑`/`↓` move the
-        // cursor.
+        // cursor, `✓` is OK.
         for c in keys.replace("\\n", "\n").chars() {
             let key = match c {
                 '>' => Some(Key::Right),
                 '<' => Some(Key::Left),
                 '↓' => Some(Key::Down),
                 '↑' => Some(Key::Up),
+                '✓' => Some(Key::Ok),
                 c => Key::from_char(c),
             };
             key.into_iter().for_each(|key| app.key(key));

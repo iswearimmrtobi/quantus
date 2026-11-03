@@ -1,6 +1,6 @@
 //! The calculator's state and what each key does to it.
 
-use crate::backend::{Backend, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, WlanStatus};
+use crate::backend::{Backend, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, Window, WlanStatus};
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
@@ -128,6 +128,8 @@ enum Pending {
     Swap { index: usize, decimal: bool },
     /// The answer to a sheet.
     Sheet,
+    /// The curve of the graph on the screen, moved or zoomed.
+    Curve,
 }
 
 /// A sheet worked out, shown over it until AC.
@@ -140,11 +142,15 @@ pub struct Answer {
     pub shift: i32,
     /// The page shown, of a curve sketch: 0 the graph, then a page per section.
     pub page: usize,
+    /// Whether the arrows move the graph on the screen, + and − zoom it.
+    pub moving: bool,
+    /// The graph's window before it was first moved, for 0.
+    pub home: Option<Window>,
 }
 
 impl Answer {
     pub fn new(reply: Result<Reply, String>) -> Self {
-        Answer { reply, scroll: 0, shift: 0, page: 0 }
+        Answer { reply, scroll: 0, shift: 0, page: 0, moving: false, home: None }
     }
 
     /// How many pages it has: the graph and the sections of a sketch, one otherwise.
@@ -180,6 +186,40 @@ impl Answer {
             (None, Ok(reply)) => reply.len(),
             (None, Err(_)) => 0,
         }
+    }
+
+    /// The graph on the page shown, if the page is one: a sketch's first, a task's second.
+    pub fn graph(&self) -> Option<&Graph> {
+        match &self.reply {
+            Ok(Reply::Analysis(analysis)) if self.page == 0 => Some(&analysis.graph),
+            Ok(Reply::Task(task)) if self.page == 1 => task.graph.as_ref(),
+            _ => None,
+        }
+    }
+
+    fn graph_mut(&mut self) -> Option<&mut Graph> {
+        match &mut self.reply {
+            Ok(Reply::Analysis(analysis)) if self.page == 0 => Some(&mut analysis.graph),
+            Ok(Reply::Task(task)) if self.page == 1 => task.graph.as_mut(),
+            _ => None,
+        }
+    }
+
+    /// The function the graph is of, as the engine reads it.
+    fn function(&self) -> Option<String> {
+        match &self.reply {
+            Ok(Reply::Analysis(analysis)) => Some(analysis.function.clone()),
+            Ok(Reply::Task(task)) => Some(task.function.clone()),
+            _ => None,
+        }
+    }
+
+    /// Moves the graph's window to `window`; returns whether it is a graph page.
+    pub fn move_to(&mut self, window: Window) -> bool {
+        let Some(graph) = self.graph_mut() else { return false };
+        let old = std::mem::replace(&mut graph.window, window);
+        self.home.get_or_insert(old);
+        true
     }
 
     /// Scrolls by `lines`, staying on the page.
@@ -261,6 +301,8 @@ pub struct App<B> {
     pub sketch: Option<(String, crate::backend::Analysis)>,
     /// The function of the request the backend works on.
     asked: Option<String>,
+    /// Whether the graph moved while its curve was sampled: it is asked for again.
+    resample_again: bool,
     /// The function of Kurvendiskussion the open session kept, for the input when the mode is
     /// chosen.
     kept_function: Option<Row>,
@@ -360,6 +402,7 @@ impl<B: Backend> App<B> {
             task: None,
             sketch: None,
             asked: None,
+            resample_again: false,
             kept_function: None,
             calibration: Calibration::default(),
             calibrated: None,
@@ -487,6 +530,12 @@ impl<B: Backend> App<B> {
             Some(Pending::Sheet) => {
                 if let Some(reply) = self.backend.poll_solve() {
                     self.finish_sheet(reply);
+                    changed = true;
+                }
+            }
+            Some(Pending::Curve) => {
+                if let Some(reply) = self.backend.poll_solve() {
+                    self.finish_curve(reply);
                     changed = true;
                 }
             }
@@ -1019,8 +1068,9 @@ impl<B: Backend> App<B> {
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             _ => {}
         }
-        // While the backend calculates, AC drops its answer and the other keys wait.
-        if self.pending.is_some() {
+        // While the backend calculates, AC drops its answer and the other keys wait; the graph
+        // can be moved on while its curve is sampled.
+        if self.pending.is_some() && !matches!(self.pending, Some(Pending::Curve)) {
             if key == Key::Ac {
                 self.cancel();
             }
@@ -1069,6 +1119,9 @@ impl<B: Backend> App<B> {
     /// A key on a sheet, or on its answer: there ↑/↓ scroll, ←/→ move a wide one sideways,
     /// and AC, DEL, OK or EXE go back to the sheet.
     fn sheet_key(&mut self, kind: sheet::Kind, key: Key, shift: bool) {
+        if self.graph_key(key) {
+            return;
+        }
         if let Some(answer) = &mut self.answer {
             let pages = answer.pages() > 1;
             match key {
@@ -1101,6 +1154,10 @@ impl<B: Backend> App<B> {
 
     /// Asks the backend to work `request` out; the answer comes now or when `tick` gets it.
     fn solve(&mut self, request: &Request) {
+        // A curve still being sampled is not wanted any more.
+        if matches!(self.pending, Some(Pending::Curve)) {
+            self.cancel();
+        }
         let settings = self.settings;
         self.asked = request.function().map(String::from);
         self.pending = Some(Pending::Sheet);
@@ -1114,6 +1171,9 @@ impl<B: Backend> App<B> {
     /// back to the input. Another key leaves it too and goes on to the input; returns whether
     /// it does.
     fn sketch_key(&mut self, key: Key) -> bool {
+        if self.graph_key(key) {
+            return false;
+        }
         let Some(answer) = &mut self.answer else { return true };
         match key {
             Key::Left => {
@@ -1131,6 +1191,88 @@ impl<B: Backend> App<B> {
             }
         }
         false
+    }
+
+    /// A key on a graph page: OK starts moving the graph; then the arrows move it by a quarter
+    /// of the window, + and − zoom in and out around its middle, 0 goes back to where it was,
+    /// and OK or AC stop. Returns whether the key was for the graph.
+    fn graph_key(&mut self, key: Key) -> bool {
+        let Some(answer) = self.answer.as_mut().filter(|answer| answer.graph().is_some()) else { return false };
+        if !answer.moving {
+            if key == Key::Ok {
+                answer.moving = true;
+                return true;
+            }
+            return false;
+        }
+        let Some(window) = answer.graph().map(|graph| graph.window) else { return false };
+        let (width, height) = (window.x_max - window.x_min, window.y_max - window.y_min);
+        let shift = |dx: f32, dy: f32| Window {
+            x_min: window.x_min + dx * width,
+            x_max: window.x_max + dx * width,
+            y_min: window.y_min + dy * height,
+            y_max: window.y_max + dy * height,
+        };
+        let zoom = |by: f32| {
+            let (cx, cy) = ((window.x_min + window.x_max) / 2.0, (window.y_min + window.y_max) / 2.0);
+            let (w, h) = ((width * by).clamp(1e-3, 1e6) / 2.0, (height * by).clamp(1e-3, 1e6) / 2.0);
+            Window { x_min: cx - w, x_max: cx + w, y_min: cy - h, y_max: cy + h }
+        };
+        let moved = match key {
+            Key::Left => shift(-0.25, 0.0),
+            Key::Right => shift(0.25, 0.0),
+            Key::Up => shift(0.0, 0.25),
+            Key::Down => shift(0.0, -0.25),
+            Key::Plus => zoom(0.5),
+            Key::Minus => zoom(2.0),
+            Key::Digit(0) => match answer.home {
+                Some(home) => home,
+                None => return true,
+            },
+            Key::Ok | Key::Ac | Key::Exe => {
+                answer.moving = false;
+                return true;
+            }
+            // Nothing else while moving.
+            _ => return true,
+        };
+        answer.move_to(moved);
+        self.resample();
+        true
+    }
+
+    /// Asks for the curve in the window the graph shows now; one at a time, the last window
+    /// asked again when the one before comes back.
+    fn resample(&mut self) {
+        match self.pending {
+            Some(Pending::Curve) => self.resample_again = true,
+            Some(_) => {}
+            None => {
+                let Some(answer) = &self.answer else { return };
+                let (Some(f), Some(graph)) = (answer.function(), answer.graph()) else { return };
+                let request = Request::Sample { f, window: graph.window };
+                let settings = self.settings;
+                self.pending = Some(Pending::Curve);
+                match self.backend.start_solve(&settings, &request) {
+                    Some(reply) => self.finish_curve(reply),
+                    None => self.busy = true,
+                }
+            }
+        }
+    }
+
+    /// Puts the curve sampled into the graph on the screen, and asks again if it moved since.
+    fn finish_curve(&mut self, reply: Result<Reply, String>) {
+        self.busy = false;
+        if !matches!(self.pending.take(), Some(Pending::Curve)) {
+            return;
+        }
+        if let (Ok(Reply::Curve(curve)), Some(graph)) = (reply, self.answer.as_mut().and_then(Answer::graph_mut)) {
+            graph.curve = curve;
+        }
+        if std::mem::take(&mut self.resample_again) {
+            self.resample();
+        }
     }
 
     /// Shows the answer to the sheet.
@@ -1281,7 +1423,7 @@ impl<B: Backend> App<B> {
     fn start(&mut self, pending: Pending, settings: &Settings, latex: &str) {
         let answer = match pending {
             Pending::New { .. } => self.backend.start(self.mode, settings, latex),
-            Pending::Swap { .. } | Pending::Sheet => self.backend.recalculate(self.mode, settings, latex),
+            Pending::Swap { .. } | Pending::Sheet | Pending::Curve => self.backend.recalculate(self.mode, settings, latex),
         };
         self.pending = Some(pending);
         match answer {
@@ -1309,7 +1451,7 @@ impl<B: Backend> App<B> {
                     entry.decimal = decimal;
                 }
             }
-            Some(Pending::Sheet) | None => {}
+            Some(Pending::Sheet | Pending::Curve) | None => {}
         }
     }
 

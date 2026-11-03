@@ -29,7 +29,7 @@ pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analys
             title(shapes, &page.title, page.status, answer.page, pages, lang);
             section(shapes, page.message.as_deref(), &page.lines, &page.result, answer.scroll, lang);
         }
-        None => graph_page(shapes, &analysis.function, &analysis.graph, 0, pages, lang),
+        None => graph_page(shapes, &analysis.function, &analysis.graph, 0, pages, answer.moving, lang),
     }
     sides(shapes, answer.page, pages);
 }
@@ -38,7 +38,7 @@ pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analys
 pub(super) fn task(shapes: &mut Vec<Shape>, answer: &Answer, task: &Task, lang: Lang) {
     let pages = answer.pages();
     match (&task.graph, answer.page) {
-        (Some(graph), 1) => graph_page(shapes, &format!("f(x) = {}", task.function), graph, 1, pages, lang),
+        (Some(graph), 1) => graph_page(shapes, &format!("f(x) = {}", task.function), graph, 1, pages, answer.moving, lang),
         _ => {
             title(shapes, &task.title, Status::Ok, 0, pages, lang);
             section(shapes, None, &task.lines, &task.result, answer.scroll, lang);
@@ -48,8 +48,16 @@ pub(super) fn task(shapes: &mut Vec<Shape>, answer: &Answer, task: &Task, lang: 
 }
 
 /// The graph, with the function in the title's place.
-fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, page: usize, pages: usize, lang: Lang) {
+fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, page: usize, pages: usize, moving: bool, lang: Lang) {
     title(shapes, "", Status::Ok, page, pages, lang);
+    // While the arrows move it, the title says so, before the page count.
+    if moving {
+        let small = Scale::Small.metrics();
+        let count = Scale::Small.width(&format!("{}/{}", page + 1, pages));
+        let word = text::MOVING.get(lang).to_string();
+        let x = WIDTH as i32 - MARGIN - count - 12 - Scale::Small.width(&word);
+        shapes.push(Shape::Text(Point::new(x, BAR + 6 + small.ascent), word, Scale::Small, colors::SHIFT));
+    }
     let function = layout::layout(&latex::parse(function), Scale::Small);
     let baseline = BAR + 6 + Scale::Small.metrics().ascent;
     shapes.push(Shape::Math(Point::new(MARGIN, baseline), function, colors::AMBER));
