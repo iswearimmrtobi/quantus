@@ -176,7 +176,13 @@ impl LatexCalculator {
         self.precision
     }
 
+    /// Keeps the settings' language for the texts written during a call (the steps).
+    fn language(&self) -> crate::text::Scope {
+        crate::text::Scope::new(self.settings.language)
+    }
+
     pub fn evaluate(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
+        let _language = self.language();
         if self.settings.mode == Mode::BaseN {
             return self.evaluate_base_n(latex);
         }
@@ -293,6 +299,7 @@ impl LatexCalculator {
     /// from `variables`. `start` is where Newton's method begins when there is no exact way.
     /// The steps end with `L - R`, the two sides' difference at the first solution.
     pub fn solve_for(&self, latex: &str, variables: &Variables, variable: &str, start: Option<&str>) -> Result<Calculation> {
+        let _language = self.language();
         let mut formula = parser::parse_with(latex, &self.settings.parse_options())?;
         let position = formula.expression.position();
         if let Some(label) = formula.label.take() {
@@ -387,6 +394,7 @@ impl LatexCalculator {
 
     /// An input of the matrix mode, and the matrix it defines (`A = …`) with its key.
     pub fn evaluate_matrix(&self, latex: &str, variables: &Variables, matrices: &Matrices) -> Result<(Calculation, Option<(String, Matrix)>)> {
+        let _language = self.language();
         // `A^{\top}` is the transpose like `A^{T}`.
         let source = latex.replace("\\top", "T");
         let formula = parser::parse_with(&source, &self.settings.parse_options())?;
@@ -1320,8 +1328,8 @@ mod tests {
 
     #[test]
     fn the_steps_of_a_system_follow_the_language() {
-        let _german = crate::text::Scope::new(crate::settings::Language::De);
-        let c = system("2x + y = 5; x - y = 1", StepDetail::Standard);
+        let settings = Settings { step_detail: StepDetail::Standard, language: crate::settings::Language::De, ..Settings::default() };
+        let c = LatexCalculator::default().with_settings(settings).evaluate("2x + y = 5; x - y = 1", &Variables::new()).unwrap();
         assert_eq!(texts(&c)[1], "x aus II eliminieren, dann den gemeinsamen Faktor herausteilen");
         assert_eq!(texts(&c)[4], "y in I einsetzen und nach x auflösen");
     }

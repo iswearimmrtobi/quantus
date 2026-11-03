@@ -18,6 +18,11 @@ use crate::algebra::display::{bracket, signed_terms_sum};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::settings::StepDetail;
 use crate::latex::ast::{Node, Operator};
+
+/// The line of the working that groups like terms; the last line then only adds coefficients.
+fn like_terms_together() -> String {
+    "Put like terms next to each other".to_string()
+}
 use crate::latex::serializer;
 
 /// The most products of terms a multiplied-out pair of sums is written with.
@@ -385,7 +390,7 @@ fn like_term_lines(node: &Node, terms: &[(bool, Node)]) -> Vec<AlgebraStep> {
         many => (true, bracket(signed_terms_sum(many.to_vec()).expect("a group has terms"))),
     });
     if let Some(grouped) = signed_terms_sum(grouped) {
-        push(grouped, "Put like terms next to each other", StepDetail::Detailed, &mut current);
+        push(grouped, &like_terms_together(), StepDetail::Detailed, &mut current);
     }
     // Groups that add up to zero.
     let sum = |group: &[(bool, Node)]| {
@@ -479,7 +484,7 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
                 let step = AlgebraStep::new(node.clone(), canonical_node.clone(), explanation.clone(), Some(RuleId::CollectLikeTerms))
                     .with_level(level);
                 let working = collect_working(node);
-                let last = if working.iter().any(|line| line.explanation == "Put like terms next to each other") {
+                let last = if working.iter().any(|line| line.explanation == like_terms_together()) {
                     "Add the coefficients".to_string()
                 } else {
                     explanation
