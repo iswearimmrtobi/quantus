@@ -246,9 +246,9 @@ fn zero_note(base: &Poly) -> String {
         (true, 1, Some(var)) => {
             let root = -base.coeff_of(&Monomial::one()) / base.coeff_of(&Monomial::from_var(&var));
             let root = serializer::expression(&rational_to_node(&root));
-            format!("Note: {var} ≠ {root}: the cancelled factor {factor} is zero there, so the input is undefined at {var} = {root}")
+            crate::text::msg!("Note: {var} ≠ {root}: the cancelled factor {factor} is zero there, so the input is undefined at {var} = {root}", "Hinweis: {var} ≠ {root}: der gekürzte Faktor {factor} ist dort null, die Eingabe ist bei {var} = {root} nicht definiert")
         }
-        _ => format!("Note: {factor} ≠ 0: where the cancelled factor is zero, the input is undefined"),
+        _ => crate::text::msg!("Note: {factor} ≠ 0: where the cancelled factor is zero, the input is undefined", "Hinweis: {factor} ≠ 0: wo der gekürzte Faktor null ist, ist die Eingabe nicht definiert"),
     }
 }
 

@@ -78,7 +78,7 @@ fn symmetry(index: usize, ctx: &mut Context) -> Option<Local> {
 
 /// `\sin(-x) = -\sin x`, `\cos(-x) = \cos x`.
 pub fn symmetric_arguments(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, "Use the symmetry", RuleId::TrigSymmetry, symmetry)
+    each_atom(node, ctx, &crate::text::msg!("Use the symmetry", "Die Symmetrie nutzen"), RuleId::TrigSymmetry, symmetry)
 }
 
 // ---- tan and cot ------------------------------------------------------------------------------
@@ -145,7 +145,7 @@ pub fn tan_as_quotient(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let node = substitute_tan(node, ctx.atoms, &arguments, &mut details);
     (!details.is_empty()).then(|| Rewrite {
         node,
-        explanation: format!("Write as sine and cosine: {}", details.join(", ")),
+        explanation: crate::text::msg!("Write as sine and cosine: {}", "Mit Sinus und Kosinus schreiben: {}", details.join(", ")),
         rule: RuleId::TrigQuotient,
         conditions: Vec::new(),
         working: Vec::new(),
@@ -191,7 +191,7 @@ fn quotient_as_tan(node: &Node, ctx: &mut Context) -> Option<Local> {
 }
 
 pub fn quotients_as_tan(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    let rewrite = everywhere(node, ctx, "Write the quotient as a tangent", RuleId::TrigQuotient, quotient_as_tan)?;
+    let rewrite = everywhere(node, ctx, &crate::text::msg!("Write the quotient as a tangent", "Den Quotienten als Tangens schreiben"), RuleId::TrigQuotient, quotient_as_tan)?;
     // A tangent next to a sine or cosine of its argument would be written as a quotient again.
     let mut shared = BTreeSet::new();
     shared_products(&rewrite.node, ctx.atoms, &mut shared);
@@ -251,7 +251,7 @@ pub fn pythagorean(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let node = each_poly(node, ctx, pythagorean_poly, &mut details, &mut conditions);
     (!details.is_empty()).then(|| Rewrite {
         node,
-        explanation: format!("Use the Pythagorean identity: {}", details.join(", ")),
+        explanation: crate::text::msg!("Use the Pythagorean identity: {}", "Den trigonometrischen Pythagoras nutzen: {}", details.join(", ")),
         rule: RuleId::Pythagorean,
         conditions,
         working: Vec::new(),
@@ -285,7 +285,7 @@ fn tan_square(node: &Node, ctx: &mut Context) -> Option<Local> {
 }
 
 pub fn tan_squares(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    everywhere(node, ctx, "Use the Pythagorean identity", RuleId::Pythagorean, tan_square)
+    everywhere(node, ctx, &crate::text::msg!("Use the Pythagorean identity", "Den trigonometrischen Pythagoras nutzen"), RuleId::Pythagorean, tan_square)
 }
 
 fn double_angle(node: &Node, ctx: &mut Context) -> Option<Local> {
@@ -332,7 +332,7 @@ fn double_angle(node: &Node, ctx: &mut Context) -> Option<Local> {
                 let half = (&Poly::from_const(factor) * &merged).to_node();
                 let identity = format!("{} = {}", latex_of(&form), serializer::expression(&half));
                 let line = Node::binary(Operator::Times, quotient.to_node(), half, 0);
-                return Some(local.with_working(vec![(line, identity, StepDetail::Detailed)], "Multiply the numbers"));
+                return Some(local.with_working(vec![(line, identity, StepDetail::Detailed)], crate::text::msg!("Multiply the numbers", "Die Zahlen multiplizieren")));
             }
             return Some(local);
         }
@@ -342,5 +342,5 @@ fn double_angle(node: &Node, ctx: &mut Context) -> Option<Local> {
 
 /// `2 \sin x \cos x = \sin(2x)`, `\cos^2 x - \sin^2 x = \cos(2x)`.
 pub fn double_angles(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    everywhere(node, ctx, "Use the double angle", RuleId::DoubleAngle, double_angle)
+    everywhere(node, ctx, &crate::text::msg!("Use the double angle", "Die Doppelwinkelformel nutzen"), RuleId::DoubleAngle, double_angle)
 }

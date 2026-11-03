@@ -55,3 +55,15 @@ fn binomials_roots_and_powers_are_german() {
     let texts = explanations(r"\sqrt{a}\sqrt{b}", Language::De);
     assert!(texts.iter().any(|text| text.starts_with("Unter einer Wurzel multiplizieren") && text.contains(", für ")), "{texts:?}");
 }
+
+#[test]
+fn completing_the_square_and_fractions_are_german() {
+    for (input, wanted) in [
+        (r"\frac{1}{x} + \frac{1}{x+1}", "Hauptnenner"),
+        (r"\frac{x^2-1}{x-1}", "Hinweis: x ≠ 1"),
+        (r"\sin^2(x) + \cos^2(x)", "Pythagoras"),
+    ] {
+        let texts = explanations(input, Language::De);
+        assert!(texts.iter().any(|text| text.contains(wanted)), "{input}: {wanted} in {texts:?}");
+    }
+}
