@@ -120,3 +120,20 @@ fn results_read_back_into_rows() {
     assert_eq!(latex::parse(r"x = 2 \land y = 1").to_latex(), r"x=2\land y=1");
     assert_eq!(latex::parse(r"\int_0^1 x^2 dx").to_latex(), r"\int_{0}^{1}x^{2}dx");
 }
+
+#[test]
+fn the_signs_of_a_curve_sketch_read_back() {
+    for latex in [
+        r"x\in \mathbb{R}\setminus \{2\}",
+        r"x>0\Rightarrow x\in ]0;∞[",
+        r"k\in \mathbb{Z}",
+        r"x<-1\lor x>1",
+        r"f\nearrow ",
+        r"\emptyset ",
+    ] {
+        let row = latex::parse(latex);
+        assert_eq!(latex::parse(&row.to_latex()), row, "{latex}");
+    }
+    assert_eq!(latex::parse(r"\mathbb{R}").0, [Node::Char('ℝ')]);
+    assert_eq!(latex::parse(r"x \mid k").0[1], Node::Char('|'));
+}

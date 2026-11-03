@@ -29,6 +29,22 @@ fn a_fraction_is_taller_and_an_exponent_higher_than_a_digit() {
     assert_eq!(nested.items[0].slots[0].1.items[0].slots[0].1.scale, Scale::Small);
 }
 
+/// The signs the fonts lack are drawn as lines inside their item, in both sizes.
+#[test]
+fn the_drawn_signs_stay_inside_their_place() {
+    for scale in [Scale::Normal, Scale::Small] {
+        for c in layout::DRAWN.chars() {
+            let row = layout::layout(&quantus_ui::editor::Row(vec![quantus_ui::editor::Node::Char('x'), quantus_ui::editor::Node::Char(c)]), scale);
+            let item = &row.items[1];
+            let Kind::Strokes { lines, .. } = &item.kind else { panic!("{c} is drawn") };
+            for point in lines.iter().flatten() {
+                assert!((0..item.width).contains(&point.x), "{c} {point:?} in {}", item.width);
+                assert!((-item.ascent..=item.descent).contains(&point.y), "{c} {point:?}");
+            }
+        }
+    }
+}
+
 #[test]
 fn the_caret_follows_the_cursor_into_a_denominator() {
     let mut editor = Editor::new();
@@ -304,7 +320,7 @@ fn brackets_grow_around_a_fraction_but_not_around_digits() {
 fn and_is_drawn_as_lines_and_the_integral_comes_from_the_font() {
     let row = layout::layout(&quantus_ui::latex::parse(r"x = 2 \land y = 1"), Scale::Normal);
     let and = &row.items[3];
-    assert!(matches!(and.kind, Kind::Sign(_)), "the fonts have no ∧");
+    assert!(matches!(and.kind, Kind::Strokes { text: None, .. }), "the fonts have no ∧");
     assert!(and.width > Scale::Normal.metrics().digit / 2);
     assert_eq!(Scale::Normal.width("∧"), 0);
     assert!(Scale::Normal.width("∫") > 0);

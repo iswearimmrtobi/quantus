@@ -19,7 +19,9 @@ pub const GREEK: &[(char, &str)] = &[
 const SYMBOLS: &[(char, &str)] = &[
     ('×', "cdot"), ('÷', "div"), ('±', "pm"), ('∞', "infty"), ('→', "to"), ('≈', "approx"),
     ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"), ('∧', "land"), ('∫', "int"),
-    ('∑', "sum"),
+    ('∑', "sum"), ('∨', "lor"), ('∈', "in"), ('∉', "notin"), ('∪', "cup"), ('∖', "setminus"),
+    ('⇒', "Rightarrow"), ('↗', "nearrow"), ('↘', "searrow"), ('∅', "emptyset"), ('{', "{"),
+    ('}', "}"),
 ];
 
 use crate::key::Key;
@@ -400,6 +402,8 @@ impl Latex {
         match c {
             ',' => self.text("{,}"),
             THIN_SPACE => self.command(","),
+            'ℝ' => self.text(r"\mathbb{R}"),
+            'ℤ' => self.text(r"\mathbb{Z}"),
             _ => match GREEK.iter().chain(SYMBOLS).find(|(symbol, _)| *symbol == c) {
                 Some((_, name)) => self.command(name),
                 None => self.text(c.encode_utf8(&mut [0; 4])),

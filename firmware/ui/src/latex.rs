@@ -14,7 +14,9 @@ const SYMBOLS: &[(&str, char)] = &[
     ("to", '→'), ("approx", '≈'), ("le", '≤'), ("leq", '≤'), ("ge", '≥'), ("geq", '≥'),
     ("neq", '≠'), ("hbar", 'ℏ'), ("vert", '|'), ("lvert", '|'), ("rvert", '|'), ("{", '{'),
     ("}", '}'), ("%", '%'), ("land", '∧'), ("wedge", '∧'), ("int", '∫'),
-    ("sum", '∑'),
+    ("sum", '∑'), ("lor", '∨'), ("vee", '∨'), ("in", '∈'), ("notin", '∉'), ("cup", '∪'),
+    ("setminus", '∖'), ("mid", '|'), ("Rightarrow", '⇒'), ("implies", '⇒'), ("rightarrow", '→'),
+    ("nearrow", '↗'), ("searrow", '↘'), ("emptyset", '∅'), ("varnothing", '∅'), ("colon", ':'),
 ];
 
 pub fn parse(latex: &str) -> Row {
@@ -118,6 +120,15 @@ impl Parser {
                 } else {
                     nodes.extend(content.0);
                 }
+            }
+            // ℝ and ℤ; the other letters as they are.
+            "mathbb" => {
+                let content = self.argument();
+                nodes.extend(content.0.into_iter().map(|node| match node {
+                    Node::Char('R') => Node::Char('ℝ'),
+                    Node::Char('Z') => Node::Char('ℤ'),
+                    node => node,
+                }));
             }
             "left" | "right" => {
                 self.skip_spaces();

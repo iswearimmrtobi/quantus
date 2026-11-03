@@ -9,7 +9,7 @@ use crate::editor::{Accent, Node, Row};
 use crate::font::Scale;
 
 /// Characters that get a gap on both sides.
-const OPERATORS: &str = "+-=×÷±→≈≤≥≠∧";
+const OPERATORS: &str = "+-=×÷±→⇒≈≤≥≠∧∨∈∉∪∖";
 
 #[derive(Clone, Debug)]
 pub struct RowLayout {
@@ -38,8 +38,10 @@ pub enum Kind {
     Text { text: String, dx: i32 },
     /// A fraction bar.
     Bar(Rectangle),
-    /// The lines of a root sign, or of `∧`, which the fonts lack.
+    /// The lines of a root sign or an accent.
     Sign([Point; 4]),
+    /// A sign the fonts lack, drawn as lines (`∈`, `⇒`, `→`), over a letter for `ℝ` and `ℤ`.
+    Strokes { text: Option<String>, lines: Vec<Vec<Point>> },
     /// Only its slot: an exponent or index.
     Script,
     /// A bracket drawn as a curve over the item's height, grown to what it holds.
@@ -146,6 +148,94 @@ fn grow(items: &mut [Item], first: usize, last: usize, scale: Scale) {
     }
 }
 
+/// The signs [`drawn`] draws.
+pub const DRAWN: &str = "∧∨∈∉∪∖→⇒↗↘∅ℝℤ";
+
+/// A sign the fonts lack, drawn as lines around the math axis, about as tall as a digit.
+fn drawn(c: char, scale: Scale, unary: bool) -> Item {
+    let metrics = scale.metrics();
+    let gap = if OPERATORS.contains(c) && !unary { metrics.digit / 4 + 1 } else { 1 };
+    let height = metrics.digit * 4 / 5;
+    let (top, middle, bottom) = (-metrics.axis - height / 2, -metrics.axis, -metrics.axis + height / 2);
+    let p = Point::new;
+    // A half circle of radius r around (cx, cy), from the angle `from` through `sweep`, in degrees.
+    let arc = |cx: i32, cy: i32, r: i32, from: f32, sweep: f32| -> Vec<Point> {
+        (0..=8)
+            .map(|step| {
+                let angle = (from + sweep * step as f32 / 8.0).to_radians();
+                p(cx + (r as f32 * angle.cos()).round() as i32, cy - (r as f32 * angle.sin()).round() as i32)
+            })
+            .collect()
+    };
+    let half = height / 2;
+    let arrow = |length: i32| -> Vec<Vec<Point>> {
+        let (start, end) = (gap, gap + length);
+        vec![vec![p(start, middle), p(end, middle)], vec![p(end - 4, middle - 4), p(end, middle), p(end - 4, middle + 4)]]
+    };
+    let (text, width, lines) = match c {
+        '∧' => (None, 2 * half, vec![vec![p(gap, bottom), p(gap + half, top), p(gap + 2 * half, bottom)]]),
+        '∨' => (None, 2 * half, vec![vec![p(gap, top), p(gap + half, bottom), p(gap + 2 * half, top)]]),
+        '∈' | '∉' => {
+            let width = half * 3 / 2;
+            let mut lines = vec![
+                [vec![p(gap + width, top)], arc(gap + half, middle, half, 90.0, 180.0), vec![p(gap + width, bottom)]].concat(),
+                vec![p(gap, middle), p(gap + width - 1, middle)],
+            ];
+            if c == '∉' {
+                lines.push(vec![p(gap + width - 1, top - 2), p(gap + 1, bottom + 2)]);
+            }
+            (None, width, lines)
+        }
+        '∪' => {
+            let line = [vec![p(gap, top)], arc(gap + half, middle, half, 180.0, 180.0), vec![p(gap + 2 * half, top)]].concat();
+            (None, 2 * half, vec![line])
+        }
+        '∖' => (None, half, vec![vec![p(gap, top), p(gap + half, bottom)]]),
+        '→' => (None, metrics.digit, arrow(metrics.digit)),
+        '⇒' => {
+            let (start, end) = (gap, gap + metrics.digit);
+            let lines = vec![
+                vec![p(start, middle - 2), p(end - 3, middle - 2)],
+                vec![p(start, middle + 2), p(end - 3, middle + 2)],
+                vec![p(end - 5, middle - 5), p(end, middle), p(end - 5, middle + 5)],
+            ];
+            (None, metrics.digit, lines)
+        }
+        '↗' | '↘' => {
+            let (from, to) = match c {
+                '↗' => (p(gap, bottom), p(gap + height, top)),
+                _ => (p(gap, top), p(gap + height, bottom)),
+            };
+            let back = if c == '↗' { 1 } else { -1 };
+            let head = vec![p(to.x - 5, to.y), to, p(to.x, to.y + 5 * back)];
+            (None, height, vec![vec![from, to], head])
+        }
+        '∅' => {
+            let circle = arc(gap + half, middle, half, 0.0, 360.0);
+            (None, 2 * half, vec![circle, vec![p(gap + 2 * half, top - 2), p(gap, bottom + 2)]])
+        }
+        // A capital with a second stroke beside its stem, or along its diagonal.
+        _ => {
+            let letter = if c == 'ℝ' { "R" } else { "Z" };
+            let width = scale.width(letter);
+            let cap = -metrics.digit;
+            let line = match c {
+                'ℝ' => vec![p(6, cap + 1), p(6, -1)],
+                _ => vec![p(width - 3, cap + 1), p(2, -1)],
+            };
+            (Some(letter.to_string()), width - 2 * gap, vec![line])
+        }
+    };
+    Item {
+        x: 0,
+        width: width + 2 * gap + 1,
+        ascent: metrics.ascent,
+        descent: metrics.descent,
+        kind: Kind::Strokes { text, lines },
+        slots: Vec::new(),
+    }
+}
+
 fn text_item(text: String, dx: i32, width: i32, scale: Scale) -> Item {
     let metrics = scale.metrics();
     Item {
@@ -164,21 +254,7 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
     let metrics = scale.metrics();
     let small = Scale::Small.metrics();
     match node {
-        Node::Char('∧') => {
-            let gap = metrics.digit / 2;
-            let height = metrics.digit * 4 / 5;
-            let half = height / 2;
-            let bottom = -metrics.axis + height / 2;
-            let (left, apex, right) = (Point::new(gap, bottom), Point::new(gap + half, bottom - height), Point::new(gap + 2 * half, bottom));
-            Item {
-                x: 0,
-                width: 2 * half + 2 * gap + 1,
-                ascent: metrics.ascent,
-                descent: metrics.descent,
-                kind: Kind::Sign([left, apex, right, right]),
-                slots: Vec::new(),
-            }
-        }
+        Node::Char(c) if DRAWN.contains(*c) => drawn(*c, scale, unary),
         Node::Char(c) => {
             let text = c.to_string();
             let gap = if OPERATORS.contains(*c) && !unary { metrics.digit / 4 } else { 0 };
@@ -328,6 +404,17 @@ pub fn draw<D: DrawTarget<Color = Rgb565>>(
             Kind::Sign(points) => {
                 let line = Polyline::new(points).translate(at);
                 let _ = line.into_styled(PrimitiveStyle::with_stroke(color, 1)).draw(target);
+            }
+            Kind::Strokes { text, lines } => {
+                if let Some(text) = text {
+                    row.scale.draw(text, at, color, target);
+                }
+                // As thick as the font's strokes.
+                let width = if row.scale == Scale::Normal { 2 } else { 1 };
+                for line in lines {
+                    let line = Polyline::new(line).translate(at);
+                    let _ = line.into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
+                }
             }
             Kind::Script => {}
             Kind::Paren { open } => paren(*open, item, at, row.scale, color, target),
