@@ -43,3 +43,15 @@ fn adding_fractions_is_german() {
     let texts = explanations(r"\frac{1}{x} + \frac{1}{x+1}", Language::De);
     assert!(texts.iter().any(|text| text == "Die Zähler über dem gemeinsamen Nenner addieren"), "{texts:?}");
 }
+
+#[test]
+fn binomials_roots_and_powers_are_german() {
+    let texts = explanations("(x+1)^2", Language::De);
+    assert!(texts.iter().any(|text| text.ends_with("mit a = x, b = 1")) && texts.contains(&"Die Terme ausrechnen".to_string()), "{texts:?}");
+    let texts = explanations(r"\sqrt{8a}", Language::De);
+    assert!(texts[0].starts_with("Potenzen aus der Wurzel ziehen"), "{texts:?}");
+    let texts = explanations(r"\frac{1}{\sqrt{a}}", Language::De);
+    assert!(texts.contains(&r"Mit \sqrt{a} erweitern".to_string()), "{texts:?}");
+    let texts = explanations(r"\sqrt{a}\sqrt{b}", Language::De);
+    assert!(texts.iter().any(|text| text.starts_with("Unter einer Wurzel multiplizieren") && text.contains(", für ")), "{texts:?}");
+}

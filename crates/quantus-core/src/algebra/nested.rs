@@ -299,20 +299,20 @@ fn nested_fraction_step(node: &Node) -> Option<AlgebraStep> {
         if let Some((over, text)) = write_over_denominator(side) {
             lines.push((place(over, &num_now, &den_now), text));
         }
-        lines.push((place(combined.clone(), &num_now, &den_now), "Combine the inner fractions".to_string()));
+        lines.push((place(combined.clone(), &num_now, &den_now), crate::text::msg!("Combine the inner fractions", "Die inneren Brüche zusammenfassen")));
         if numerator_side { num_now = combined } else { den_now = combined }
     }
     let last = if let Some((c, d)) = split_fraction(&den_now) {
         let reciprocal = if is_constant_one(c) { d.clone() } else { make_fraction(d.clone(), c.clone()) };
-        let text = format!(
-            "Dividing by {} is multiplying by its reciprocal {}",
+        let text = crate::text::msg!(
+            "Dividing by {} is multiplying by its reciprocal {}", "Durch {} teilen heißt mit dem Kehrwert {} multiplizieren",
             serializer::expression(&den_now),
             serializer::expression(&reciprocal)
         );
         lines.push((Node::binary(Operator::Times, num_now, reciprocal, 0), text));
-        "Multiply numerators and denominators"
+        crate::text::msg!("Multiply numerators and denominators", "Zähler und Nenner multiplizieren")
     } else {
-        "Multiply the denominators"
+        crate::text::msg!("Multiply the denominators", "Die Nenner multiplizieren")
     };
     let mut before = node.clone();
     let working = lines
@@ -334,7 +334,7 @@ fn write_over_denominator(sum: &Node) -> Option<(Node, String)> {
         return None;
     };
     let over = |term: &Node, d: &Node| make_fraction(make_product(term.clone(), d.clone()), d.clone());
-    let text = |term: &Node, d: &Node| format!("Write {} over the denominator {}", serializer::expression(term), serializer::expression(d));
+    let text = |term: &Node, d: &Node| crate::text::msg!("Write {} over the denominator {}", "{} auf den Nenner {} bringen", serializer::expression(term), serializer::expression(d));
     let (left_frac, right_frac) = (split_fraction(left), split_fraction(right));
     let (written, text) = match (left_frac, right_frac) {
         (None, Some((_, d))) => (Node::binary(*operator, over(left, d), (**right).clone(), 0), text(left, d)),
@@ -375,7 +375,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = "Apply the reciprocal rule: divide fractions by multiplying by the reciprocal".to_string();
+            let explanation = crate::text::msg!("Apply the reciprocal rule: divide fractions by multiplying by the reciprocal", "Durch einen Bruch teilen: mit dem Kehrwert multiplizieren");
             Some((res, rule, explanation))
         }
 
@@ -389,7 +389,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = "Apply the reciprocal rule: divide by a fraction by multiplying by its reciprocal".to_string();
+            let explanation = crate::text::msg!("Apply the reciprocal rule: divide by a fraction by multiplying by its reciprocal", "Durch einen Bruch teilen: mit seinem Kehrwert multiplizieren");
             Some((res, rule, explanation))
         }
 
@@ -403,7 +403,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::SimplifyNestedFraction;
-            let explanation = "Simplify complex fraction by multiplying the denominators".to_string();
+            let explanation = crate::text::msg!("Simplify complex fraction by multiplying the denominators", "Den Doppelbruch vereinfachen: die Nenner multiplizieren");
             Some((res, rule, explanation))
         }
 

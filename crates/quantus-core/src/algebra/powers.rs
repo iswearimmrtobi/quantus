@@ -81,7 +81,7 @@ fn rational_exponent(index: usize, ctx: &mut Context) -> Option<Local> {
 
 /// `a^{\frac{p}{q}} = \sqrt[q]{a^{p}}`.
 pub fn rational_exponents(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, "Write the rational exponent as a root", RuleId::RationalExponent, rational_exponent)
+    each_atom(node, ctx, &crate::text::msg!("Write the rational exponent as a root", "Den gebrochenen Exponenten als Wurzel schreiben"), RuleId::RationalExponent, rational_exponent)
 }
 
 // ---- powers of one base -----------------------------------------------------------------------
@@ -179,7 +179,7 @@ pub fn merge_powers(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let merged = each_poly(node, ctx, merge_poly, &mut details, &mut conditions);
     (!details.is_empty()).then(|| Rewrite {
         node: merged,
-        explanation: format!("Add the exponents: {}", details.join(", ")),
+        explanation: crate::text::msg!("Add the exponents: {}", "Die Exponenten addieren: {}", details.join(", ")),
         rule: RuleId::MergePowers,
         conditions,
         working: Vec::new(),
@@ -240,7 +240,7 @@ fn divide_at(node: &Node, ctx: &mut Context) -> Option<Local> {
 }
 
 pub fn divide_powers(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    everywhere(node, ctx, "Subtract the exponents", RuleId::MergePowers, divide_at)
+    everywhere(node, ctx, &crate::text::msg!("Subtract the exponents", "Die Exponenten subtrahieren"), RuleId::MergePowers, divide_at)
 }
 
 // ---- powers of powers, powers with one exponent -----------------------------------------------
@@ -263,13 +263,13 @@ fn nest_power(index: usize, ctx: &mut Context) -> Option<Local> {
     // The product of the exponents written out: (a^{x})^{2} = a^{x \cdot 2}.
     let product = Node::binary(crate::latex::ast::Operator::Times, inner.to_node(), outer.to_node(), 0);
     let written = Node::Power { base: Box::new(inner_base.clone()), exponent: Box::new(product), position: 0 };
-    let working = vec![(written, "Power of a power: multiply the exponents".to_string(), crate::settings::StepDetail::Standard)];
-    Some(Local::new(merged, detail).with([Condition::Positive(inner_base)]).with_working(working, "Work out the exponent"))
+    let working = vec![(written, crate::text::msg!("Power of a power: multiply the exponents", "Potenz einer Potenz: die Exponenten multiplizieren"), crate::settings::StepDetail::Standard)];
+    Some(Local::new(merged, detail).with([Condition::Positive(inner_base)]).with_working(working, crate::text::msg!("Work out the exponent", "Den Exponenten ausrechnen")))
 }
 
 /// `(a^{x})^{y} = a^{xy}`.
 pub fn nest_powers(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, "Multiply the exponents", RuleId::NestPowers, nest_power)
+    each_atom(node, ctx, &crate::text::msg!("Multiply the exponents", "Die Exponenten multiplizieren"), RuleId::NestPowers, nest_power)
 }
 
 /// `a^{x} b^{x} = (ab)^{x}` in every term of `poly`.
@@ -309,7 +309,7 @@ pub fn merge_bases(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let merged = each_poly(node, ctx, merge_bases_poly, &mut details, &mut conditions);
     (!details.is_empty()).then(|| Rewrite {
         node: merged,
-        explanation: format!("Multiply the bases: {}", details.join(", ")),
+        explanation: crate::text::msg!("Multiply the bases: {}", "Die Basen multiplizieren: {}", details.join(", ")),
         rule: RuleId::MergeBases,
         conditions,
         working: Vec::new(),
