@@ -131,6 +131,23 @@ fn a_cell_is_edited_with_templates_and_left_with_the_arrows() {
 }
 
 #[test]
+fn exe_goes_from_cell_to_cell_and_works_the_sheet_out_on_the_last() {
+    let (mut app, backend) = app(Mode::Distributions);
+    press(&mut app, &[Key::Exe]);
+    assert_eq!(app.sheets.distribution.cursor, (1, 0));
+    press(&mut app, &[Key::Exe]);
+    assert_eq!(app.sheets.distribution.cursor, (2, 0));
+    assert!(backend.0.borrow().asked.is_empty(), "nothing worked out yet");
+    press(&mut app, &[Key::Exe]);
+    assert!(app.answer.is_some());
+
+    // The LGS goes along the row, then on to the next one.
+    let (mut app, _) = self::app(Mode::Linear);
+    press(&mut app, &[Key::Exe, Key::Exe, Key::Exe, Key::Exe]);
+    assert_eq!(app.sheets.linear.cursor, (1, 0));
+}
+
+#[test]
 fn ok_edits_a_cell_as_it_is_and_a_key_starts_it_afresh() {
     let (mut app, _) = app(Mode::Linear);
     press(&mut app, &[Key::Digit(4), Key::Digit(2), Key::Exe, Key::Left]);
@@ -182,8 +199,8 @@ fn a_long_lgs_scrolls_to_the_cursor() {
 fn the_table_form_sends_f_g_and_the_range() {
     let (mut app, backend) = app(Mode::Table);
     use Key::{Digit as D, Exe};
-    // ↓ passes g(x) by; EXE on a cell not being edited works the form out.
-    press(&mut app, &[Key::Letter('x'), Key::Square, Exe, Key::Down, D(0), Exe, D(5), Exe, D(1), Exe, Exe]);
+    // EXE passes g(x) by; on the last field it works the form out.
+    press(&mut app, &[Key::Letter('x'), Key::Square, Exe, Exe, D(0), Exe, D(5), Exe, D(1), Exe, Exe]);
     assert_eq!(
         asked(&backend),
         Request::Table { f: "x^{2}".into(), g: None, from: "0".into(), to: "5".into(), step: "1".into() }
@@ -288,6 +305,7 @@ fn optn_inserts_into_the_cell() {
 fn the_spinner_turns_until_the_answer_comes_and_ac_drops_it() {
     let (mut app, backend) = app(Mode::Linear);
     backend.0.borrow_mut().later = true;
+    app.sheets.linear.select(2, 3);
     press(&mut app, &[Key::Exe]);
     assert!(app.busy && app.answer.is_none());
     // Keys wait meanwhile.
@@ -307,7 +325,9 @@ fn the_spinner_turns_until_the_answer_comes_and_ac_drops_it() {
 fn the_answer_scrolls() {
     let (mut app, _) = app(Mode::Linear);
     app.settings.system_rows = 4;
-    press(&mut app, &[Key::Ac, Key::Exe]);
+    press(&mut app, &[Key::Ac]);
+    app.sheets.linear.select(3, 3);
+    press(&mut app, &[Key::Exe]);
     press(&mut app, &[Key::Down, Key::Down, Key::Down, Key::Down, Key::Down]);
     assert_eq!(app.answer.as_ref().unwrap().scroll, 3, "no further than the last line");
     press(&mut app, &[Key::Up, Key::Right]);

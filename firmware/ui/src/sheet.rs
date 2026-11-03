@@ -5,8 +5,8 @@
 //!
 //! Keys: the arrows move from cell to cell; an input key starts the cell afresh, OK edits it as
 //! it is; while a cell is edited the keys go to its editor, and EXE, OK, ↑/↓ (and ←/→ at its
-//! ends) keep it and move on, AC drops the edit. DEL empties a cell, EXE on a cell not being
-//! edited works the sheet out.
+//! ends) keep it and move on, AC drops the edit. DEL empties a cell. EXE on a cell not being
+//! edited goes to the next one too; on the last cell it works the sheet out.
 
 use crate::backend::{Field, Request};
 use crate::editor::{Editor, Row};
@@ -262,7 +262,15 @@ impl Sheet {
                 self.tidy();
             }
             Key::Ok => self.edit(),
-            Key::Exe => return Outcome::Calculate,
+            // To the next cell, as after typing one; from the last one, where there is no next,
+            // the sheet is worked out.
+            Key::Exe => {
+                let at = self.cursor;
+                self.advance();
+                if self.cursor == at {
+                    return Outcome::Calculate;
+                }
+            }
             _ => {
                 let mut editor = Editor::new();
                 if editor.key(key, shift) {
