@@ -151,6 +151,10 @@ fn a_tangent_gives_its_steps_and_both_lines() {
     let task = task(engine.solve(&Settings::default(), &request).unwrap());
     assert_eq!(math(&task.result), ["t(x) = 9x - 16", r"n(x) = -\frac{1}{9}x + \frac{20}{9}"]);
     assert_eq!(task.title, "Tangente, Normale");
+    // Every note German: the working of t(x) comes from the algebra pipeline.
+    let notes: Vec<&str> = task.lines.iter().filter_map(|line| if let Line::Note(note) = line { Some(note.as_str()) } else { None }).collect();
+    assert!(notes.iter().any(|note| note.contains("ausmultiplizieren")), "{notes:?}");
+    assert!(!notes.iter().any(|note| note.contains("Distribute") || note.contains(" the ")), "{notes:?}");
     assert_eq!(task.overlay.tangent, Some(Straight::Sloped { slope: 9.0, intercept: -16.0 }));
     assert!(task.overlay.normal.is_some());
     let point = task.overlay.point.unwrap();
