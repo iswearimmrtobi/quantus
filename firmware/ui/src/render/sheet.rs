@@ -371,7 +371,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, lang: Lang) 
                 y += line;
             }
         }
-        Reply::Analysis(_) | Reply::Task(_) => {}
+        Reply::Analysis(_) | Reply::Task(_) | Reply::Curve(_) => {}
     }
     if answer.scroll > 0 {
         arrow(shapes, Point::new(WIDTH as i32 - MARGIN - 6, BAR + 4), true);

@@ -197,7 +197,7 @@ pub enum SessionCommand {
 
 /// The open session and its history, oldest first: each input and its result as LaTeX, the
 /// result written as the settings say; and what the sheets held, as their requests.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Opened {
     pub info: SessionInfo,
     pub history: Vec<(String, String)>,
@@ -205,7 +205,7 @@ pub struct Opened {
 }
 
 /// What a sheet asks the engine, its cells as LaTeX (an empty one is left out or 0).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Request {
     /// The rows of `[A | b]`.
     Linear { rows: Vec<Vec<String>> },
@@ -221,6 +221,8 @@ pub enum Request {
     Tangent { f: String, x0: String },
     /// The area between f and the x-axis from `from` to `to`; both empty for the outer zeros.
     Area { f: String, from: String, to: String },
+    /// The curve of f in `window`, for a graph moved or zoomed.
+    Sample { f: String, window: Window },
 }
 
 impl Request {
@@ -288,6 +290,8 @@ pub enum Reply {
     Table { header: Vec<String>, rows: Vec<Vec<String>> },
     Analysis(Analysis),
     Task(Task),
+    /// The curve of a [`Request::Sample`], in pieces.
+    Curve(Vec<Vec<(f32, f32)>>),
 }
 
 impl Reply {
@@ -298,6 +302,7 @@ impl Reply {
             Reply::Table { rows, .. } => rows.len(),
             Reply::Analysis(analysis) => analysis.pages.len(),
             Reply::Task(task) => task.lines.len() + task.result.len(),
+            Reply::Curve(pieces) => pieces.len(),
         }
     }
 
@@ -564,6 +569,10 @@ impl Backend for Stub {
                 let overlay = Overlay { tangent: Some(tangent), ..Overlay::default() };
                 let result = vec![Line::Math(format!("x_0 = {x0}"))];
                 Reply::Task(Task { function: f.clone(), title: "t".into(), lines: Vec::new(), result, overlay, graph: None })
+            }
+            Request::Sample { window, .. } => {
+                let (low, high) = (window.x_min, window.x_max);
+                Reply::Curve(vec![(0..=20).map(|i| low + (high - low) * i as f32 / 20.0).map(|x| (x, x * x)).collect()])
             }
             Request::Area { f, from, to } => {
                 let curve = (0..=10).map(|i| (i as f32 / 10.0, (i as f32 / 10.0).powi(2))).collect();

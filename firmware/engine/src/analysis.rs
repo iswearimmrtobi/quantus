@@ -2,7 +2,7 @@
 //! page per section with its steps and result, and the graph with its marks.
 
 use quantus_core::analysis::interface::{
-    AnalysisRequest, AnalysisResponse, AreaRequest, AsymptoteResponse, LineResponse, PointResponse, TangentRequest,
+    AnalysisRequest, AnalysisResponse, AreaRequest, AsymptoteResponse, LineResponse, PointResponse, SampleRequest, TangentRequest,
 };
 use quantus_core::api::{self, StepResponse};
 use quantus_core::settings::Settings as CoreSettings;
@@ -142,6 +142,24 @@ fn split_quads(latex: &str) -> Vec<String> {
         .map(|part| part.trim().trim_end_matches(',').trim_end_matches("\\,").trim().to_string())
         .filter(|part| !part.is_empty())
         .collect()
+}
+
+/// Samples across the screen's width, for a graph moved or zoomed.
+const SAMPLES: usize = 480;
+
+/// The curve of `f` in `window`, clipped near its poles.
+pub fn sample(core: &CoreSettings, f: &str, window: Window) -> Result<Vec<Vec<(f32, f32)>>, String> {
+    let request = SampleRequest {
+        latex: f.to_string(),
+        variable: None,
+        x_min: f64::from(window.x_min),
+        x_max: f64::from(window.x_max),
+        samples: SAMPLES,
+        y_min: Some(f64::from(window.y_min)),
+        y_max: Some(f64::from(window.y_max)),
+    };
+    let response = api::sample_function(core, &request).map_err(|error| error.error)?;
+    Ok(response.segments.iter().map(|segment| segment.iter().map(|&[x, y]| (x as f32, y as f32)).collect()).collect())
 }
 
 /// The tangent and the normal to `f` at `x0`.

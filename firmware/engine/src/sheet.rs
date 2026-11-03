@@ -94,6 +94,7 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
             let core = core_settings(CoreMode::Analysis);
             analysis::tangent(&core, f, x0, Some(usize::from(settings.digits).min(6))).map(Reply::Task)
         }
+        Request::Sample { f, window } => analysis::sample(&core_settings(CoreMode::Analysis), f, *window).map(Reply::Curve),
         Request::Area { f, from, to } => {
             let core = core_settings(CoreMode::Analysis);
             analysis::area(&core, f, from, to, Some(usize::from(settings.digits).min(6))).map(Reply::Task)
@@ -305,6 +306,8 @@ pub fn keep(inputs: &mut ModeInputs, request: &Request) {
         }
         Request::Statistics { .. } => inputs.statistics = Some(statistics_request(request)),
         Request::Distribution { .. } => inputs.distribution = Some(distribution_request(request)),
+        // The curve of a graph moved changes nothing kept.
+        Request::Sample { .. } => {}
         Request::Analysis { f } | Request::Tangent { f, .. } | Request::Area { f, .. } => {
             inputs.analysis = Some(AnalysisRequest { latex: f.clone(), ..AnalysisRequest::default() })
         }

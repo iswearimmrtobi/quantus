@@ -183,6 +183,28 @@ fn a_task_off_the_curve_says_why() {
 }
 
 #[test]
+fn a_moved_window_gets_its_curve() {
+    use quantus_ui::backend::Window;
+    let mut engine = Engine::default();
+    // 1/x between 2 and 6: one piece, every sample inside the window.
+    let window = Window { x_min: 2.0, x_max: 6.0, y_min: 0.0, y_max: 1.0 };
+    let Reply::Curve(pieces) = engine.solve(&Settings::default(), &Request::Sample { f: r"\frac{1}{x}".into(), window }).unwrap() else {
+        panic!("a curve")
+    };
+    assert_eq!(pieces.len(), 1);
+    assert!(pieces[0].len() >= 400);
+    assert!(pieces[0].iter().all(|&(x, y)| (2.0..=6.0).contains(&x) && (y - 1.0 / x).abs() < 1e-4));
+    // Across the pole the curve breaks.
+    let around = Window { x_min: -2.0, x_max: 2.0, y_min: -5.0, y_max: 5.0 };
+    let Reply::Curve(pieces) = engine.solve(&Settings::default(), &Request::Sample { f: r"\frac{1}{x}".into(), window: around }).unwrap() else {
+        panic!("a curve")
+    };
+    assert_eq!(pieces.len(), 2);
+    // A curve asked for does not change the session.
+    assert!(engine.session(SessionCommand::Current, &Settings::default()).unwrap().inputs.is_empty());
+}
+
+#[test]
 fn an_error_comes_back_as_text() {
     let mut engine = Engine::default();
     let request = Request::Table { f: "x".into(), g: None, from: "".into(), to: "".into(), step: "".into() };
