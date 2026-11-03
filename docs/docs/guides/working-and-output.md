@@ -1,5 +1,5 @@
 ---
-sidebar_position: 9
+sidebar_position: 11
 title: Working and output
 ---
 
@@ -53,7 +53,7 @@ $a + bi$ and $r \angle \theta$; an angle in degrees, minutes and seconds; in Bas
 three bases. <kbd>Ctrl</kbd>+<kbd>D</kbd> steps to the next one. **ENG** (<kbd>Ctrl</kbd>+<kbd>E</kbd>)
 writes a decimal result with an exponent that is a multiple of three, each further press moves
 it by three; **←ENG** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) moves it the other way.
-Which form comes first is set in [Settings](../reference/settings.md#how-results-are-written).
+Which form comes first is set in [Settings](../reference/settings.md#numbers).
 
 ## Copy
 

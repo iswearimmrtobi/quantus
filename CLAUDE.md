@@ -22,8 +22,6 @@ Nothing runs automatically on `dev`; the *Check* workflow is started by hand.
 - `docs/`: Docusaurus site; contributor pages in `docs/docs/contributing/`.
 - `design/`: specifications. `plans/plans.md`: open work. `test/`: the generated test set.
 
-The electronics mode is implemented but hidden in the UI (see `plans/plans.md`).
-
 ## Commands
 
 ```sh

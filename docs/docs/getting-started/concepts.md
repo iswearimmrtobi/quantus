@@ -19,10 +19,13 @@ the product $2 \cdot g \cdot k$ in Algebra.
 | **Imaginary** | variables | unknown | the imaginary unit |
 | **Analysis** | variables, as in Algebra | unknown | a variable |
 | **Linear systems** | unknowns; session variables are not used | unknown | an unknown, or the imaginary unit with the switch on |
+| **Electronics** | values typed into the circuit's parts, read as in Physics | known | a variable |
 | **Kirchhoff** | values typed into the circuit's parts, read as in Physics | known | a variable |
+| **Base-N** | hexadecimal digits A–F, the logic words and the prefixes d, h, b, o | unknown | not used |
+| **Verify** | variables, as in Algebra | unknown | a variable |
 
-Switch the mode in the top bar or under **Settings → Mode**. An example under the empty input
-shows what fits the current mode.
+Switch the mode in the top bar; hovering a mode shows what it does. An example under the empty
+input shows what fits the current mode.
 
 ## Variables carry an index
 

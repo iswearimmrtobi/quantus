@@ -54,3 +54,15 @@ need no escaping. Inside a table, write `\|` for a `|` in maths.
 Update the page that describes the behaviour in the same commit: a new setting goes into
 [Settings](../reference/settings.md), a new command into [Syntax](../reference/syntax.md) and
 the guide of its mode, a removed limit out of [Known limits](../reference/limits.md).
+
+## Last synced
+
+The user docs describe `dev` up to commit `c136814` (2026-11-03). The handheld firmware
+(`firmware/`) is not documented here. To see what changed since, and what may need a page:
+
+```sh
+git log --oneline c136814..dev -- . ':!firmware'
+git diff c136814..dev -- CHANGELOG.md
+```
+
+Move the commit forward here whenever the docs are brought up to date.

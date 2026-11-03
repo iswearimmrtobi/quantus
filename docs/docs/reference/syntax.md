@@ -59,7 +59,7 @@ before sums.
 | `\gcd(a; b)`, `\operatorname{ggT}(a; b)` | greatest common divisor of whole numbers, any number of arguments |
 | `\operatorname{lcm}(a; b)`, `\operatorname{kgV}(a; b)` | least common multiple |
 | `\operatorname{Int}(x)`, `\operatorname{Intg}(x)` | the whole part toward zero; the floor, like `\lfloor x \rfloor` |
-| `\operatorname{Rnd}(x)` | rounded to what the [number format](settings.md#how-results-are-written) shows: Fix and Sci digits, ten digits otherwise |
+| `\operatorname{Rnd}(x)` | rounded to what the [number format](settings.md#numbers) shows: Fix and Sci digits, ten digits otherwise |
 | `\operatorname{RndFix}(x; n)` | rounded to n decimal places |
 | `\operatorname{divR}(a; b)` | whole-number division; as the whole input `Q = 3,\; R = 1`, inside a calculation the quotient |
 | `\det\begin{pmatrix} … \end{pmatrix}`, `vmatrix` | determinant, exact, up to 8×8 |
@@ -161,7 +161,7 @@ later inputs use it by that name.
 
 ## Basis-N
 
-The mode `baseN` works with whole numbers in the [number base](settings.md#general) set, as
+The mode `baseN` works with whole numbers in the [number base](settings.md#outside-the-window) set, as
 32-bit two's complement: from −2147483648 to 2147483647 in decimal, any 32-bit pattern in the
 other bases (`FFFFFFFF` is −1). The result comes in the other three bases as its forms. In the
 app, the switch above the input sets the base, and keys put in the logic and the prefixes.

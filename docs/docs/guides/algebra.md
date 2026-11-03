@@ -42,7 +42,7 @@ $$
 *Write as a binomial: Difference of squares.* A quadratic without a binomial form is written by
 completing the square: `x^2 - 6x + 3` becomes $(x - 3)^{2} - 6$. The settings
 **Binomial formulas** and **Completing the square** decide which form you get, see
-[Settings](../reference/settings.md#how-results-are-written).
+[Settings](../reference/settings.md#algebra).
 
 ## Fractions and their domain
 

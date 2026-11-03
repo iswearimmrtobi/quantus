@@ -23,7 +23,7 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 
 Every result can be copied as LaTeX.
 
-## Five modes
+## Nine modes
 
 | Mode | What it is for |
 |---|---|
@@ -32,6 +32,10 @@ Every result can be copied as LaTeX.
 | **Imaginary** | As Algebra, but $i$ is the imaginary unit and results may be complex |
 | **Analysis** | Enter $f(x) = \ldots$ and get the whole curve sketch beside a graph |
 | **Linear systems** | Type a system line by line or as a matrix and get the Gauss steps |
+| **Electronics** | Draw a DC circuit and see every part's voltage, current and power |
+| **Kirchhoff** | Draw a resistor network and get the junction and loop rules, solved step by step |
+| **Base-N** | Whole numbers in decimal, hexadecimal, binary and octal, with bitwise logic |
+| **Verify** | Check an equation or comparison: true or false |
 
 ## Where to go next
 

@@ -62,8 +62,12 @@ Everything except typing is reachable from the keyboard. Press <kbd>F10</kbd> to
 | <kbd>Space</kbd> or <kbd>R</kbd> | Rotate the selected parts |
 | <kbd>Del</kbd> or <kbd>Backspace</kbd> | Delete the selected parts |
 | <kbd>Esc</kbd> | Clear the selection |
-| Drag from a terminal | Draw a wire |
+| Drag from a terminal, or from a grid point on a wire | Draw a wire |
 | Drag on empty canvas | Select several parts |
+| Drag with the right or middle button, or scroll | Move the canvas |
+| <kbd>Ctrl</kbd>+wheel, or pinch | Zoom |
+| <kbd>Home</kbd> | Back to the start view |
+| Click a current arrow (Kirchhoff) | Reverse it |
 
 ## In the analysis graph
 

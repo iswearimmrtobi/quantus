@@ -140,7 +140,7 @@ The **Imaginary unit i** switch above the input decides what $i$ is:
 ## Settings that matter here
 
 - **Systems of equations**: Gauss or Gauss–Jordan steps.
-- **Unknown names**: how the matrix columns are named, shown only in this mode.
+- **Unknown names**: how the matrix columns are named (read only in this mode).
 - **Step detail**: how much of the working is shown.
 
 See [Settings](../reference/settings.md).

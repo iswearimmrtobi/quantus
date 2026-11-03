@@ -434,7 +434,7 @@ impl<'a> Model<'a> {
             return self.run_linear(values, &HashMap::new());
         }
 
-        let no_solution = || QuantusError::other(msg!("no solution: the load is too large", "no solution: the load is too large"));
+        let no_solution = || QuantusError::other(msg!("no solution: the load is too large", "keine Lösung: die Last ist zu groß"));
         let tolerance = convergence_tolerance(precision)?;
         let two = Value::int(2);
         let mut tangents = HashMap::new();

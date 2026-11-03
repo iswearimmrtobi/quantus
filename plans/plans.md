@@ -44,7 +44,7 @@ Verified in code and unit tests, but not yet by eye in the running app:
 
 Implemented (`crates/quantus-core/src/electro/`, `tests/electro.rs`, the circuit editor in the
 frontend) and selectable again in the mode selector. Spec: [electronics-module.md](../design/electronics-module.md).
-Needed to ship it: document it in the README and the user docs.
+Documented in the README and the user docs (`docs/docs/guides/electronics.md`).
 
 ## 4. Quantus on an ESP32 (spike)
 

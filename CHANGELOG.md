@@ -211,6 +211,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 - In Imaginary mode `iy` is `i · y`; it was read as the variable `i` times `y`.
 - A system whose coefficients mix roots and `π` (`\sqrt{2} y + z = -\pi`) was refused as not linear.
+- In German, a power load too large for its circuit is reported as *keine Lösung: die Last ist zu
+  groß* instead of in English.
 
 ## [0.1.0] - 2026-10-29
 
