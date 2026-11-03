@@ -527,13 +527,17 @@ static OPTN_COMPLEX: Page = Page {
     ],
 };
 
+/// The pages of the last sketch, and the forms of the three tasks on the function typed.
 static OPTN_ANALYSIS: Page = Page {
     title: t("Kurvendiskussion", "Curve sketching"),
     entries: &[
-        pending(t("Abschnitte", "Sections")),
-        pending(t("Tangente, Normale", "Tangent, normal")),
-        pending(t("Fläche", "Area")),
-        pending(t("Wertetabelle", "Table")),
+        entry(t("Abschnitte", "Sections"), Kind::Sections),
+        entry(t("Tangente, Normale", "Tangent, normal"), Kind::Do(Action::TangentForm)),
+        entry(t("Fläche", "Area"), Kind::Do(Action::AreaForm)),
+        entry(t("Wertetabelle", "Table"), Kind::Do(Action::PointsForm)),
+        ANALYSIS_GROUP,
+        NUMBER_GROUP,
+        HYPERBOLIC_GROUP,
     ],
 };
 

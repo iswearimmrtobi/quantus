@@ -286,6 +286,7 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Confirm { .. }) => Some(1),
         Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
         Some(Edit::Sessions { sessions, .. }) => Some(sessions.len()),
+        Some(Edit::Sections { titles, .. }) => Some(titles.len()),
         Some(Edit::Forget { .. }) => Some(1),
         Some(Edit::Networks { networks, .. }) => networks.as_ref().map(Vec::len),
         Some(Edit::Saved { names, .. }) => Some(names.len()),

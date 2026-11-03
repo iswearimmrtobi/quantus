@@ -49,6 +49,8 @@ pub enum Kind {
     Storage,
     /// The list of sessions, which the app fills in; choosing one opens it.
     Sessions,
+    /// The pages of the last curve sketch, which the app fills in; choosing one shows it.
+    Sections,
     /// A new name for the open session, typed.
     Rename,
     /// The date or the time of day, typed: sets the clock.
@@ -101,6 +103,12 @@ pub enum Action {
     DuplicateSession,
     /// The open session deleted; the next one opens.
     DeleteSession,
+    /// Kurvendiskussion's form for the tangent and the normal at x₀.
+    TangentForm,
+    /// Its form for the area between a and b.
+    AreaForm,
+    /// Its form for a table of values.
+    PointsForm,
 }
 
 impl Action {
@@ -221,6 +229,8 @@ pub enum Edit {
     Storage { label: Text, storage: Option<Storage> },
     /// The sessions; the app opens the chosen one.
     Sessions { label: Text, sessions: Vec<SessionInfo>, selected: usize },
+    /// The pages of the last curve sketch by their titles; the app shows the chosen one.
+    Sections { label: Text, titles: Vec<String>, selected: usize },
     /// A line of text being typed, for `purpose`; `error` marks one it does not take, `plain`
     /// shows a password as typed (S⇔D) instead of stars.
     Text { label: Text, purpose: TextFor, typed: String, error: bool, plain: bool },
@@ -297,6 +307,10 @@ pub enum Outcome {
     Sessions(Text),
     /// Open the session at this place of the list.
     OpenSession(usize),
+    /// Open the list of the sketch's pages over the page.
+    Sections(Text),
+    /// Show the page of the sketch at this place of the list.
+    Section(usize),
     /// Open the name entry over the page, with the open session's name.
     NameOf(Text),
     /// Give the open session the name typed (the app reads it from the edit).
@@ -337,6 +351,7 @@ impl Menu {
                 | Edit::Pictures { label, .. }
                 | Edit::Storage { label, .. }
                 | Edit::Sessions { label, .. }
+                | Edit::Sections { label, .. }
                 | Edit::Text { label, .. }
                 | Edit::Time { label, .. }
                 | Edit::Networks { label, .. }
@@ -446,6 +461,7 @@ impl Menu {
             },
             Some(Edit::Pictures { names, selected, .. }) => Some((*selected, names.len() + 1)),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((*selected, sessions.len())),
+            Some(Edit::Sections { titles, selected, .. }) => Some((*selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
             _ => None,
@@ -465,6 +481,7 @@ impl Menu {
             }
             Some(Edit::Pictures { names, selected, .. }) => Some((selected, names.len() + 1)),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((selected, sessions.len())),
+            Some(Edit::Sections { titles, selected, .. }) => Some((selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
             _ => None,
@@ -495,6 +512,7 @@ impl Menu {
             Kind::Wallpapers => return Outcome::Pictures(entry.label),
             Kind::Storage => return Outcome::Storage(entry.label),
             Kind::Sessions => return Outcome::Sessions(entry.label),
+            Kind::Sections => return Outcome::Sections(entry.label),
             Kind::Rename => return Outcome::NameOf(entry.label),
             Kind::Networks => return Outcome::Networks(entry.label),
             Kind::SavedNetworks => return Outcome::SavedNetworks(entry.label),
@@ -650,6 +668,26 @@ impl Menu {
                 // The app reads the id from it, then closes the menu.
                 self.edit = Some(Edit::Sessions { label, sessions, selected: chosen });
                 return Outcome::OpenSession(chosen);
+            }
+            Edit::Sections { label, titles, selected } => {
+                let count = titles.len();
+                let chosen = match key {
+                    Key::Digit(digit @ 1..=9) if selected / ROWS * ROWS + usize::from(digit) - 1 < count => {
+                        selected / ROWS * ROWS + usize::from(digit) - 1
+                    }
+                    Key::Ok | Key::Exe | Key::Right if selected < count => selected,
+                    Key::Up | Key::Down if count > 0 => {
+                        let step = if key == Key::Up { count - 1 } else { 1 };
+                        self.edit = Some(Edit::Sections { label, titles, selected: (selected + step) % count });
+                        return Outcome::Stay;
+                    }
+                    _ if back || key == Key::Del => return Outcome::Stay,
+                    _ => {
+                        self.edit = Some(Edit::Sections { label, titles, selected });
+                        return Outcome::Stay;
+                    }
+                };
+                return Outcome::Section(chosen);
             }
             Edit::Text { label, purpose, mut typed, plain, .. } => {
                 match key {

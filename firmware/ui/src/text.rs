@@ -87,3 +87,5 @@ pub const CONNECTING: Text = t("Verbinde mit", "Connecting to");
 pub const FAILED: Text = t("Keine Verbindung mit", "Could not connect to");
 pub const SECTION_PARTIAL: Text = t("teilweise", "partial");
 pub const SECTION_FAILED: Text = t("fehlgeschlagen", "failed");
+pub const SKETCH_FIRST: Text = t("Erst f(x) eingeben und EXE", "Type f(x) and EXE first");
+pub const GRAPH: Text = t("Graph", "Graph");

@@ -304,12 +304,22 @@ pub enum Kind {
     Table,
     Statistics,
     Distribution,
+    /// Kurvendiskussion's forms, for a task on the function typed: x₀ of the tangent; a and b
+    /// of the area; von, bis and Schritt of a table.
+    Tangent,
+    Area,
+    Points,
 }
 
 impl Kind {
     /// Whether the sheet is a form: one column with a label beside each row.
     pub fn form(self) -> bool {
-        matches!(self, Kind::Table | Kind::Distribution)
+        !matches!(self, Kind::Linear | Kind::Statistics)
+    }
+
+    /// Whether it is a form of Kurvendiskussion, for a task on the function typed.
+    pub fn task(self) -> bool {
+        matches!(self, Kind::Tangent | Kind::Area | Kind::Points)
     }
 }
 
@@ -343,6 +353,9 @@ pub struct Sheets {
     pub table: Sheet,
     pub statistics: Sheet,
     pub distribution: Sheet,
+    pub tangent: Sheet,
+    pub area: Sheet,
+    pub points: Sheet,
     /// The Statistik columns as laid out now, and the cells of x, y and Freq kept while one
     /// of them is not shown.
     columns: Vec<Column>,
@@ -363,6 +376,9 @@ impl Sheets {
             table: Sheet::new(TABLE_FIELDS, 1, Flow::Down),
             statistics: Sheet::list(columns.len()),
             distribution: Sheet::new(Field::of(settings.distribution).len(), 1, Flow::Down),
+            tangent: Sheet::new(1, 1, Flow::Down),
+            area: Sheet::new(2, 1, Flow::Down),
+            points: Sheet::new(3, 1, Flow::Down),
             columns,
             kept: Default::default(),
             regression: settings.statistics_type,
@@ -379,6 +395,9 @@ impl Sheets {
             Kind::Table => &self.table,
             Kind::Statistics => &self.statistics,
             Kind::Distribution => &self.distribution,
+            Kind::Tangent => &self.tangent,
+            Kind::Area => &self.area,
+            Kind::Points => &self.points,
         }
     }
 
@@ -388,6 +407,9 @@ impl Sheets {
             Kind::Table => &mut self.table,
             Kind::Statistics => &mut self.statistics,
             Kind::Distribution => &mut self.distribution,
+            Kind::Tangent => &mut self.tangent,
+            Kind::Area => &mut self.area,
+            Kind::Points => &mut self.points,
         }
     }
 
@@ -445,8 +467,9 @@ impl Sheets {
         }
     }
 
-    /// The request for the sheet of `kind`, from its cells.
-    pub fn request(&self, kind: Kind) -> Request {
+    /// The request for the sheet of `kind`, from its cells; a task of Kurvendiskussion is on
+    /// `function`.
+    pub fn request(&self, kind: Kind, function: &str) -> Request {
         let sheet = self.get(kind);
         let cell = |row: usize| sheet.latex(row, 0);
         match kind {
@@ -482,6 +505,9 @@ impl Sheets {
                 }
                 Request::Distribution { kind: self.kind, fields, k }
             }
+            Kind::Tangent => Request::Tangent { f: function.to_string(), x0: cell(0) },
+            Kind::Area => Request::Area { f: function.to_string(), from: cell(0), to: cell(1) },
+            Kind::Points => Request::Table { f: function.to_string(), g: None, from: cell(0), to: cell(1), step: cell(2) },
         }
     }
 

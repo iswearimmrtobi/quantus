@@ -251,6 +251,10 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
+        Some(Edit::Sections { titles, selected, .. }) => {
+            let lines = titles.iter().map(|title| Line { label: title.clone(), value: None, mark: Mark::None });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
         Some(Edit::Text { purpose, typed, error, plain, .. }) => {
             let (hint, color) = match (purpose, error) {
                 (TextFor::Name, false) => (text::NAME_HINT.get(lang).to_string(), colors::MUTED),

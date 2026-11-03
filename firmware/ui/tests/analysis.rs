@@ -195,3 +195,70 @@ fn a_finger_turns_the_pages_and_the_bar_goes_back() {
     assert!(app.answer.is_none());
     assert_eq!(app.editor.to_latex(), "x");
 }
+
+#[test]
+fn optn_opens_the_tangent_form_on_the_function_typed() {
+    let (mut app, backend) = app();
+    type_text(&mut app, "x^2");
+    app.key(Key::Optn);
+    app.key(Key::Digit(2));
+    assert_eq!(app.sheet_kind(), Some(quantus_ui::sheet::Kind::Tangent));
+    assert!(matches!(app.screen, quantus_ui::app::Screen::Calc));
+    // x₀ = 3, kept with EXE; EXE on the last field works it out.
+    app.key(Key::Digit(3));
+    app.key(Key::Exe);
+    app.key(Key::Exe);
+    assert_eq!(backend.0.borrow().asked.last(), Some(&Request::Tangent { f: "x^{2}".into(), x0: "3".into() }));
+    assert!(matches!(app.answer.as_ref().unwrap().reply, Ok(Reply::Task(_))));
+    // AC: back to the form, then to the input.
+    app.key(Key::Ac);
+    assert!(app.answer.is_none() && app.sheet_kind().is_some());
+    app.key(Key::Ac);
+    assert_eq!(app.sheet_kind(), None);
+    assert_eq!(app.editor.to_latex(), "x^{2}");
+}
+
+#[test]
+fn the_area_and_the_table_forms_send_their_fields() {
+    let (mut app, backend) = app();
+    type_text(&mut app, "x");
+    app.key(Key::Optn);
+    app.key(Key::Digit(3));
+    // Both bounds empty: EXE, EXE goes to b, then works it out.
+    app.key(Key::Exe);
+    app.key(Key::Exe);
+    assert_eq!(backend.0.borrow().asked.last(), Some(&Request::Area { f: "x".into(), from: "".into(), to: "".into() }));
+    app.key(Key::Ac);
+    app.key(Key::Ac);
+    app.key(Key::Optn);
+    app.key(Key::Digit(4));
+    type_text(&mut app, "0\n2\n1\n");
+    app.key(Key::Exe);
+    let table = Request::Table { f: "x".into(), g: None, from: "0".into(), to: "2".into(), step: "1".into() };
+    assert_eq!(backend.0.borrow().asked.last(), Some(&table));
+}
+
+#[test]
+fn abschnitte_lists_the_pages_of_the_last_sketch() {
+    use quantus_ui::menu::Edit;
+    let (mut app, _) = app();
+    // Before a sketch there is nothing to list.
+    app.key(Key::Optn);
+    app.key(Key::Digit(1));
+    let quantus_ui::app::Screen::Menu(menu) = &app.screen else { panic!("OPTN is open") };
+    assert!(matches!(menu.edit, Some(Edit::Message { .. })));
+    app.key(Key::Ac);
+
+    type_text(&mut app, "x");
+    app.key(Key::Exe);
+    app.key(Key::Ac);
+    app.key(Key::Optn);
+    app.key(Key::Digit(1));
+    let quantus_ui::app::Screen::Menu(menu) = &app.screen else { panic!("OPTN is open") };
+    let Some(Edit::Sections { titles, .. }) = &menu.edit else { panic!("the sections") };
+    assert_eq!(titles, &["Graph", "f(x)", "?"]);
+    // The third: the stub's second section.
+    app.key(Key::Digit(3));
+    assert!(matches!(app.screen, quantus_ui::app::Screen::Calc));
+    assert_eq!(app.answer.as_ref().unwrap().page, 2);
+}

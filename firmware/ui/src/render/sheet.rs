@@ -29,12 +29,12 @@ const EDIT_TOP: i32 = GRID_TOP + ROWS_SHOWN as i32 * ROW + 6;
 const LETTERS: [&str; 24] =
     ["x", "y", "z", "a", "b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w"];
 
-/// The top of the first row of cells.
+/// The top of the first row of cells: a task's form leaves a row for its function.
 fn top(kind: Kind) -> i32 {
-    if kind.form() {
-        FORM_TOP
-    } else {
-        GRID_TOP
+    match kind {
+        _ if kind.task() => FORM_TOP + ROW,
+        _ if kind.form() => FORM_TOP,
+        _ => GRID_TOP,
     }
 }
 
@@ -94,11 +94,12 @@ fn heads<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> Vec<Row> {
                 Column::Freq => latex::parse(&format!("\\mathrm{{{}}}", FREQ.get(lang))),
             })
             .collect(),
-        Kind::Table | Kind::Distribution => Vec::new(),
+        _ => Vec::new(),
     }
 }
 
 const FREQ: text::Text = t("Häuf.", "Freq");
+const OUTER_ZEROS: text::Text = t("a und b leer: zwischen den äußeren Nullstellen", "a and b empty: between the outer zeros");
 
 /// The labels of a form's rows.
 fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
@@ -115,6 +116,9 @@ fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
         .map(|label| label.get(lang).to_string())
         .collect(),
         Kind::Distribution => app.sheets.distribution_fields().iter().map(|field| field.label().get(lang).to_string()).collect(),
+        Kind::Tangent => vec!["x0".to_string()],
+        Kind::Area => vec!["a".to_string(), "b".to_string()],
+        Kind::Points => [t("Von", "From"), t("Bis", "To"), t("Schritt", "Step")].iter().map(|label| label.get(lang).to_string()).collect(),
         Kind::Linear | Kind::Statistics => Vec::new(),
     }
 }
@@ -126,7 +130,7 @@ fn cursor_name<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> String {
     match kind {
         Kind::Linear => format!("{} {}", t("Gl.", "Eq.").get(lang), row + 1),
         Kind::Statistics => format!("{} {}", t("Zeile", "Row").get(lang), row + 1),
-        Kind::Table | Kind::Distribution => labels(app, kind).get(row).cloned().unwrap_or_default(),
+        _ => labels(app, kind).get(row).cloned().unwrap_or_default(),
     }
 }
 
@@ -148,6 +152,20 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
             let rows = (sheet.rows() - sheet.top).min(ROWS_SHOWN) as u32;
             let line = Rectangle::new(area.top_left - Point::new(3, 0), Size::new(1, rows * ROW as u32 - 4));
             shapes.push(Shape::Fill(line, colors::HAIRLINE));
+        }
+    }
+
+    // The function a task is on, and what an empty area's bounds mean.
+    if kind.task() {
+        let function = format!("f(x) = {}", app.editor.to_latex());
+        let laid = layout::layout(&latex::parse(&function), Scale::Normal);
+        let baseline = FORM_TOP + (ROW - 4 + laid.ascent - laid.descent) / 2;
+        let x = MARGIN;
+        shapes.push(Shape::Math(Point::new(x, baseline), laid, colors::AMBER));
+        if kind == Kind::Area {
+            let hint = OUTER_ZEROS.get(app.settings.language).to_string();
+            let y = top(kind) + 2 * ROW + Scale::Small.metrics().ascent + 4;
+            shapes.push(Shape::Text(Point::new(MARGIN, y), hint, Scale::Small, colors::FAINT));
         }
     }
 

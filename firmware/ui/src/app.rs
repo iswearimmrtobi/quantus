@@ -236,6 +236,10 @@ pub struct App<B> {
     pub sheets: Sheets,
     /// The answer to the sheet on the screen, shown over it.
     pub answer: Option<Answer>,
+    /// The form of Kurvendiskussion open over the input: the tangent's, the area's, the table's.
+    pub task: Option<sheet::Kind>,
+    /// The last curve sketch, for OPTN → Abschnitte.
+    pub sketch: Option<crate::backend::Analysis>,
     /// Turns the panel's readings into screen points; set by the board from what it stored.
     pub calibration: Calibration,
     /// A calibration just made, for the board to store.
@@ -257,9 +261,12 @@ pub struct App<B> {
 
 impl<B> App<B> {
     /// The sheet the screen shows instead of the input line, if any: the mode's own
-    /// ([`Mode::sheet`]).
+    /// ([`Mode::sheet`]), or in Kurvendiskussion the form of a task.
     pub fn sheet_kind(&self) -> Option<sheet::Kind> {
-        self.mode.sheet(&self.settings)
+        match self.mode {
+            Mode::Analysis => self.task,
+            mode => mode.sheet(&self.settings),
+        }
     }
 
     /// The picture to show behind the screen.
@@ -326,6 +333,8 @@ impl<B: Backend> App<B> {
             session: None,
             sheets: Sheets::new(&settings),
             answer: None,
+            task: None,
+            sketch: None,
             calibration: Calibration::default(),
             calibrated: None,
             pending: None,
@@ -724,6 +733,27 @@ impl<B: Backend> App<B> {
                 self.act(action);
                 return;
             }
+            Outcome::Act(action @ (Action::TangentForm | Action::AreaForm | Action::PointsForm)) => {
+                self.act(action);
+                return;
+            }
+            Outcome::Sections(label) => match &self.sketch {
+                Some(sketch) => {
+                    let lang = self.settings.language;
+                    let titles = std::iter::once(text::GRAPH.get(lang).to_string()).chain(sketch.pages.iter().map(|page| page.title.clone()));
+                    let selected = self.answer.as_ref().filter(|answer| answer.pages() > 1).map_or(0, |answer| answer.page);
+                    menu.edit = Some(Edit::Sections { label, titles: titles.collect(), selected });
+                }
+                None => menu.edit = Some(Edit::Message { label, message: text::SKETCH_FIRST }),
+            },
+            Outcome::Section(page) => {
+                let Some(sketch) = self.sketch.clone() else { return };
+                self.task = None;
+                let mut answer = Answer::new(Ok(Reply::Analysis(sketch)));
+                answer.turn_to(page);
+                self.answer = Some(answer);
+                return;
+            }
             Outcome::Act(action) => self.act(action),
             Outcome::Sessions(label) => self.open_sessions(&mut menu, label),
             Outcome::OpenSession(index) => {
@@ -846,6 +876,17 @@ impl<B: Backend> App<B> {
                     }
                     self.answer = None;
                 }
+            }
+            // A task's form over the input, on its first field.
+            Action::TangentForm | Action::AreaForm | Action::PointsForm => {
+                let kind = match action {
+                    Action::TangentForm => sheet::Kind::Tangent,
+                    Action::AreaForm => sheet::Kind::Area,
+                    _ => sheet::Kind::Points,
+                };
+                self.answer = None;
+                self.task = Some(kind);
+                self.sheets.get_mut(kind).select(0, 0);
             }
             // Done by `outcome`, which knows the menu to come back to.
             Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
@@ -1001,8 +1042,13 @@ impl<B: Backend> App<B> {
             }
             return;
         }
+        // AC on a task's form, not in a cell: back to the input.
+        if kind.task() && key == Key::Ac && self.sheets.get(kind).editing.is_none() {
+            self.task = None;
+            return;
+        }
         if self.sheets.get_mut(kind).key(key, shift) == sheet::Outcome::Calculate {
-            let request = self.sheets.request(kind);
+            let request = self.sheets.request(kind, &self.editor.to_latex());
             self.solve(&request);
         }
     }
@@ -1044,6 +1090,9 @@ impl<B: Backend> App<B> {
     fn finish_sheet(&mut self, reply: Result<Reply, String>) {
         self.busy = false;
         if let Some(Pending::Sheet) = self.pending.take() {
+            if let Ok(Reply::Analysis(sketch)) = &reply {
+                self.sketch = Some(sketch.clone());
+            }
             self.answer = Some(Answer::new(reply));
         }
     }
@@ -1128,6 +1177,7 @@ impl<B: Backend> App<B> {
             mode => {
                 if mode != self.mode {
                     self.answer = None;
+                    self.task = None;
                 }
                 self.mode = mode;
                 self.screen = Screen::Calc;
