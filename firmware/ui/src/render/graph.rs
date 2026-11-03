@@ -175,6 +175,24 @@ fn dashed(shapes: &mut Vec<Shape>, a: (f32, f32), b: (f32, f32), color: Rgb565) 
     }
 }
 
+/// Points of a line drawn as one shape: the band renderer draws a shape in every band its
+/// bounds touch, so a curve across the screen is cut into short pieces.
+const PIECE: usize = 12;
+
+/// `line` in short pieces, 1 px wide; `wide` draws it again a pixel to the right and down,
+/// which is far cheaper than a 2 px stroke (a curve of 600 points took 7 s on the board).
+fn stroke(shapes: &mut Vec<Shape>, line: &[Point], color: Rgb565, wide: bool) {
+    let offsets: &[Point] = if wide { &[Point::zero(), Point::new(1, 0), Point::new(0, 1)] } else { &[Point::zero()] };
+    for piece in line.chunks(PIECE - 1).enumerate().map(|(index, _)| &line[index * (PIECE - 1)..((index + 1) * (PIECE - 1) + 1).min(line.len())]) {
+        if piece.len() < 2 {
+            continue;
+        }
+        for &offset in offsets {
+            shapes.push(Shape::Path(piece.iter().map(|&point| point + offset).collect(), color, 1));
+        }
+    }
+}
+
 /// Upright lines every few pixels between `curve` and the x-axis.
 fn hatch(shapes: &mut Vec<Shape>, plot: &Plot, curve: &[(f32, f32)], color: Rgb565) {
     const EVERY: usize = 3;
@@ -266,7 +284,7 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
     }
     for piece in &graph.curve {
         for line in plot.polylines(piece) {
-            shapes.push(Shape::Path(line, colors::RESULT, 2));
+            stroke(shapes, &line, colors::RESULT, true);
         }
     }
 

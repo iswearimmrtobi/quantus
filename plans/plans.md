@@ -74,6 +74,13 @@ dev kit. See its [README](../firmware/esp32/README.md).
   run on the P4 (2026-11-02): `2+3`, `2^{10}` and S⇔D in 6–15 ms, `2x+3=7` in 43 ms,
   `\int_0^1 \ln x\,dx` in 3.1 s (2.5 s the second time) with at most 16 KB of stack; 33 MB of
   heap free, of it 380–440 KB internal RAM.
+- [x] Kurvendiskussion on the P4 (2026-11-03): the sketch of `x^3-3x` in 0.3–0.7 s, `\sin(x)`
+  0.4 s, `xe^{-x}` 0.8 s, `\frac{x^2-1}{x-2}` 1.9 s (all sections ok, under the 3 s budget);
+  the tangent at 2 in 0.23 s, the area between the outer zeros in 0.2 s. At most 25 KB of
+  stack, 33 MB heap free throughout, internal RAM down to 116 KB free at its lowest. Eight
+  sketches and tasks in a row did not run short (the WROOM's second sketch did). The graph page
+  first took 7 s to draw (a 2 px polyline of 600 points across all ten bands); drawn in short
+  1 px pieces a full screen takes at most 218 ms.
 - [ ] A handheld on an ESP32-P4: hardware requirements in
   [hardware.md](../firmware/docs/hardware.md).
 - [ ] Its UI, on the ESP32-P4 dev kit (before that a classic ESP32) with the display, keys over
