@@ -12,17 +12,11 @@ fn explanations(input: &str, language: Language) -> Vec<String> {
 }
 
 /// Words that give an English text away.
-const ENGLISH: &[&str] = &[" the ", "Combine", "Expand", "Distribute", "Factor", "Cancel", "Order ", "Add ", "Write ", "Multiply"];
-
-#[allow(dead_code)]
-fn assert_german(input: &str) -> Vec<String> {
-    let texts = explanations(input, Language::De);
-    assert!(!texts.is_empty(), "{input} has steps");
-    for text in &texts {
-        assert!(!ENGLISH.iter().any(|word| text.contains(word)), "{input}: English step '{text}' in {texts:?}");
-    }
-    texts
-}
+const ENGLISH: &[&str] = &[
+    " the ", " as ", " and ", "Combine", "Expand", "Distribute", "Factor", "Cancel", "Order ", "Add ", "Write ", "Multiply", "Use ",
+    "Take ", "Apply", "Simplify", "Note:", "Solve", "Subtract", "Divide", "Try ", "Split", "Rationalize", "Evaluate", "Recognise",
+    "Group", "Raise", "Rewrite", "Extend", "Find ", "Complete", "Half", "Negative", "Power of", "Same base", "Square", "Cube",
+];
 
 #[test]
 fn expanding_and_collecting_is_german() {
@@ -65,5 +59,43 @@ fn completing_the_square_and_fractions_are_german() {
     ] {
         let texts = explanations(input, Language::De);
         assert!(texts.iter().any(|text| text.contains(wanted)), "{input}: {wanted} in {texts:?}");
+    }
+}
+
+/// Inputs across the pipeline and the solver: none of their steps is English.
+#[test]
+fn no_step_is_english() {
+    for input in [
+        "2(x+3) + (x+1)(x-1)",
+        r"\frac{x^2-1}{x-1}",
+        r"\frac{1}{x} + \frac{1}{x+1}",
+        "(x+1)^2",
+        "(x-2)^3",
+        "x^2 + 4x + 1",
+        r"\sqrt{8a}",
+        r"\frac{1}{\sqrt{a}}",
+        r"\sqrt{a}\sqrt{b}",
+        r"\frac{\frac{1}{x}}{\frac{2}{x^2}}",
+        r"\sin^2(x) + \cos^2(x)",
+        r"\ln(a) + \ln(b)",
+        "|a||b|",
+        "a^2 a^3",
+        "2x+3=7",
+        "x^2-5x+6=0",
+        "x^3-6x^2+11x-6=0",
+        r"\frac{x}{x-1} = 2",
+        "2x + y = 5; x - y = 1",
+        r"\sqrt{x+1} = 3",
+    ] {
+        let texts = explanations(input, Language::De);
+        if std::env::var("SHOW_STEPS").is_ok() {
+            for text in &texts {
+                eprintln!("STEP {input} | {text}");
+            }
+            continue;
+        }
+        for text in &texts {
+            assert!(!ENGLISH.iter().any(|word| text.contains(word)), "{input}: English step '{text}'");
+        }
     }
 }

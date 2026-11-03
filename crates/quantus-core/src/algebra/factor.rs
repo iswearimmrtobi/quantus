@@ -456,7 +456,7 @@ fn squares_line(poly: &Poly) -> Option<Line> {
                 exponent: Box::new(rational_node(&RBig::from(2))),
                 position: 0,
             };
-            changed.push(format!("{} as {}", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
+            changed.push(crate::text::msg!("{} as {}", "{} als {}", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
             square
         };
         written.push((!term.coeff.is_negative(), node));
@@ -464,7 +464,8 @@ fn squares_line(poly: &Poly) -> Option<Line> {
     if changed.is_empty() {
         return None;
     }
-    Some(Line::new(signed_terms_sum(written)?, format!("Write {}", changed.join(" and ")), StepDetail::Detailed))
+    let changed = changed.join(&crate::text::msg!(" and ", " und "));
+    Some(Line::new(signed_terms_sum(written)?, crate::text::msg!("Write {}", "{} schreiben", changed), StepDetail::Detailed))
 }
 
 /// Whether the square of `root` already reads as a square: `x^2`, `y^4`.
