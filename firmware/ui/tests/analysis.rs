@@ -178,19 +178,14 @@ fn tap(app: &mut App<Asked>, point: embedded_graphics::prelude::Point) {
 #[test]
 fn a_finger_turns_the_pages_and_the_bar_goes_back() {
     use embedded_graphics::prelude::Point;
-    use quantus_ui::touch::Touch;
     let (mut app, _) = app();
     type_text(&mut app, "x");
     app.key(Key::Exe);
-    // A swipe to the left: the next page.
-    app.touch(Touch::Press(Point::new(300, 200)));
-    for x in [260, 220, 180] {
-        app.touch(Touch::Drag(Point::new(x, 205)));
-    }
-    app.touch(Touch::Release);
-    assert_eq!(app.answer.as_ref().unwrap().page, 1);
-    // A tap at the right edge, then the left one.
+    // A tap at the right edge: the first section.
     tap(&mut app, Point::new(470, 200));
+    assert_eq!(app.answer.as_ref().unwrap().page, 1);
+    // A swipe to the left on a section: the next page.
+    swipe(&mut app, Point::new(300, 200), Point::new(180, 205));
     assert_eq!(app.answer.as_ref().unwrap().page, 2);
     tap(&mut app, Point::new(470, 200));
     assert_eq!(app.answer.as_ref().unwrap().page, 2, "there is no page after the last");
@@ -200,6 +195,33 @@ fn a_finger_turns_the_pages_and_the_bar_goes_back() {
     tap(&mut app, Point::new(20, 12));
     assert!(app.answer.is_none());
     assert_eq!(app.editor.to_latex(), "x");
+}
+
+fn swipe(app: &mut App<Asked>, from: embedded_graphics::prelude::Point, to: embedded_graphics::prelude::Point) {
+    use quantus_ui::touch::Touch;
+    app.touch(Touch::Press(from));
+    for step in 1..=4 {
+        app.touch(Touch::Drag(from + (to - from) * step / 4));
+        let _ = quantus_ui::render::Frame::new(app);
+    }
+    app.touch(Touch::Release);
+}
+
+#[test]
+fn a_finger_drags_the_graph_and_its_curve_follows() {
+    use embedded_graphics::prelude::Point;
+    let (mut app, backend) = app();
+    type_text(&mut app, "x^2");
+    app.key(Key::Exe);
+    let home = window(&app);
+    // 115 px to the left is a quarter of the graph's width: the window moves right by 1.5.
+    let area = quantus_ui::render::graph_area();
+    let quarter = area.size.width as i32 / 4;
+    swipe(&mut app, Point::new(300, 200), Point::new(300 - quarter, 200));
+    let moved = window(&app);
+    assert_eq!(app.answer.as_ref().unwrap().page, 0, "a swipe on the graph does not turn the page");
+    assert!((moved.x_min - (home.x_min + 1.5)).abs() < 0.01 && moved.y_min == home.y_min, "{moved:?}");
+    assert!(matches!(backend.0.borrow().asked.last(), Some(Request::Sample { .. })));
 }
 
 #[test]

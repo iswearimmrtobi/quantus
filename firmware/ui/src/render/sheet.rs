@@ -136,7 +136,7 @@ fn cursor_name<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> String {
 
 pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass: bool) {
     if let Some(answer) = &app.answer {
-        return answer_page(shapes, answer, app.settings.language);
+        return answer_page(shapes, answer, app.drag(), app.settings.language);
     }
     let sheet = app.sheets.get(kind);
 
@@ -273,10 +273,10 @@ fn arrow(shapes: &mut Vec<Shape>, tip: Point, up: bool) {
 
 /// The answer, from its first line or row on: lines of math and the matrices of the steps, or a
 /// table; an error in its colour, broken into lines.
-pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, lang: Lang) {
+pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option<Point>, lang: Lang) {
     match &answer.reply {
-        Ok(Reply::Analysis(analysis)) => return super::analysis::sketch(shapes, answer, analysis, lang),
-        Ok(Reply::Task(task)) => return super::analysis::task(shapes, answer, task, lang),
+        Ok(Reply::Analysis(analysis)) => return super::analysis::sketch(shapes, answer, analysis, drag, lang),
+        Ok(Reply::Task(task)) => return super::analysis::task(shapes, answer, task, drag, lang),
         _ => {}
     }
     let bottom = HEIGHT as i32 - 6;

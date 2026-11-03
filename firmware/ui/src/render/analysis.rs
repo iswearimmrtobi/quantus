@@ -8,7 +8,7 @@ use embedded_graphics::primitives::{Rectangle, Triangle};
 use super::sheet::wrap;
 use super::{colors, fit, Shape, BAR, HEIGHT, MARGIN, WIDTH};
 use crate::app::Answer;
-use crate::backend::{Analysis, Graph, Line, Status, Task};
+use crate::backend::{Analysis, Graph, Line, Status, Task, Window};
 use crate::editor::{Node, Row};
 use crate::font::Scale;
 use crate::latex;
@@ -22,23 +22,23 @@ const BOTTOM: i32 = HEIGHT as i32 - 6;
 const ROOM: i32 = WIDTH as i32 - 2 * MARGIN;
 
 /// The page of the sketch the answer is on.
-pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analysis, lang: Lang) {
+pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analysis, drag: Option<Point>, lang: Lang) {
     let pages = answer.pages();
     match answer.page.checked_sub(1).and_then(|page| analysis.pages.get(page)) {
         Some(page) => {
             title(shapes, &page.title, page.status, answer.page, pages, lang);
             section(shapes, page.message.as_deref(), &page.lines, &page.result, answer.scroll, lang);
         }
-        None => graph_page(shapes, &analysis.function, &analysis.graph, 0, pages, answer.moving, lang),
+        None => graph_page(shapes, &analysis.function, &analysis.graph, drag, 0, pages, answer.moving, lang),
     }
     sides(shapes, answer.page, pages);
 }
 
 /// The answer to a task: its steps and result, and then the graph with what it adds.
-pub(super) fn task(shapes: &mut Vec<Shape>, answer: &Answer, task: &Task, lang: Lang) {
+pub(super) fn task(shapes: &mut Vec<Shape>, answer: &Answer, task: &Task, drag: Option<Point>, lang: Lang) {
     let pages = answer.pages();
     match (&task.graph, answer.page) {
-        (Some(graph), 1) => graph_page(shapes, &format!("f(x) = {}", task.function), graph, 1, pages, answer.moving, lang),
+        (Some(graph), 1) => graph_page(shapes, &format!("f(x) = {}", task.function), graph, drag, 1, pages, answer.moving, lang),
         _ => {
             title(shapes, &task.title, Status::Ok, 0, pages, lang);
             section(shapes, None, &task.lines, &task.result, answer.scroll, lang);
@@ -48,7 +48,8 @@ pub(super) fn task(shapes: &mut Vec<Shape>, answer: &Answer, task: &Task, lang: 
 }
 
 /// The graph, with the function in the title's place.
-fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, page: usize, pages: usize, moving: bool, lang: Lang) {
+#[allow(clippy::too_many_arguments)]
+fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, drag: Option<Point>, page: usize, pages: usize, moving: bool, lang: Lang) {
     title(shapes, "", Status::Ok, page, pages, lang);
     // While the arrows move it, the title says so, before the page count.
     if moving {
@@ -61,7 +62,11 @@ fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, page: usiz
     let function = layout::layout(&latex::parse(function), Scale::Small);
     let baseline = BAR + 6 + Scale::Small.metrics().ascent;
     shapes.push(Shape::Math(Point::new(MARGIN, baseline), function, colors::AMBER));
-    super::graph::graph(shapes, graph, graph_area(), lang);
+    // While a finger drags it, the graph moves with it.
+    match drag {
+        Some(by) => super::graph::graph(shapes, &Graph { window: dragged(graph.window, by), ..graph.clone() }, graph_area(), lang),
+        None => super::graph::graph(shapes, graph, graph_area(), lang),
+    }
 }
 
 /// Triangles at the sides: there are pages before or after.
@@ -75,6 +80,14 @@ fn sides(shapes: &mut Vec<Shape>, answer_page: usize, pages: usize) {
         let tip = Point::new(WIDTH as i32 - 2, middle);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -6), tip + Point::new(-5, 6)), colors::FAINT));
     }
+}
+
+/// `window` moved with a finger dragged `by` pixels across the graph: the plane follows it.
+pub fn dragged(window: Window, by: Point) -> Window {
+    let area = graph_area();
+    let dx = -(by.x as f32) * (window.x_max - window.x_min) / area.size.width as f32;
+    let dy = (by.y as f32) * (window.y_max - window.y_min) / area.size.height as f32;
+    Window { x_min: window.x_min + dx, x_max: window.x_max + dx, y_min: window.y_min + dy, y_max: window.y_max + dy }
 }
 
 /// Where the graph is drawn: under the title, between the triangles that turn the page.

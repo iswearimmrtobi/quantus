@@ -11,6 +11,7 @@ mod renderer;
 mod screens;
 mod sheet;
 
+pub use analysis::{dragged, graph_area};
 pub use renderer::Renderer;
 
 use embedded_graphics::pixelcolor::Rgb565;
@@ -189,7 +190,7 @@ impl Frame {
         match &app.screen {
             Screen::Calc => match (app.sheet_kind(), &app.answer) {
                 (Some(kind), _) => sheet::sheet(&mut shapes, app, kind, glass),
-                (None, Some(answer)) => sheet::answer_page(&mut shapes, answer, app.settings.language),
+                (None, Some(answer)) => sheet::answer_page(&mut shapes, answer, app.drag(), app.settings.language),
                 (None, None) => calculation(&mut shapes, app),
             },
             Screen::Modes { selected } => modes(&mut shapes, app, *selected, glass),

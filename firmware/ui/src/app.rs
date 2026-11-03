@@ -359,6 +359,8 @@ impl<B> App<B> {
         match &self.screen {
             Screen::Modes { .. } => Some(Point::new(moved.x, 0)),
             Screen::Menu(menu) if menu.list().is_some() => Some(Point::new(0, moved.y)),
+            // A graph moves with the finger either way.
+            Screen::Calc if self.answer.as_ref().is_some_and(|answer| answer.graph().is_some()) => Some(moved),
             Screen::Calc if self.answer.is_some() && self.sheet_kind().is_some() => Some(Point::new(0, moved.y)),
             Screen::Calc if self.answer.is_some() => Some(moved),
             _ => None,
@@ -655,6 +657,13 @@ impl<B: Backend> App<B> {
                 self.outcome(menu, outcome);
             }
             Screen::Calc => {
+                // Across a graph: it moves with the finger, and its curve is sampled anew.
+                if let Some(answer) = self.answer.as_mut().filter(|answer| answer.graph().is_some()) {
+                    let window = answer.graph().expect("a graph page").window;
+                    answer.move_to(render::dragged(window, moved));
+                    self.resample();
+                    return;
+                }
                 // Sideways across a curve sketch: the next page or the one before.
                 if let Some(answer) = self.answer.as_mut().filter(|answer| answer.pages() > 1) {
                     if moved.x.abs() >= TURN && moved.x.abs() > moved.y.abs() {
