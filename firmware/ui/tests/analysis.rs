@@ -139,3 +139,22 @@ fn a_section_page_shows_its_title_and_where_it_stands() {
     let shown = texts(&app);
     assert!(shown.iter().any(|text| text == "fehlgeschlagen") && shown.iter().any(|text| text == "Stub"), "{shown:?}");
 }
+
+#[test]
+fn the_first_page_draws_the_graph_with_its_points() {
+    let (mut app, _) = app();
+    type_text(&mut app, "x^2");
+    app.key(Key::Exe);
+    let frame = quantus_ui::render::Frame::new(&app);
+    let shapes = format!("{:?}", frame.0);
+    // The stub's parabola, and its vertex named T.
+    assert!(shapes.matches("Path(").count() >= 1);
+    assert!(shapes.contains("Circle("));
+    assert!(texts(&app).iter().any(|text| text == "1/3"));
+    // Its points stay on the screen.
+    for shape in &frame.0 {
+        if let quantus_ui::render::Shape::Path(points, ..) = shape {
+            assert!(points.iter().all(|p| (0..480).contains(&p.x) && (26..320).contains(&p.y)), "{points:?}");
+        }
+    }
+}

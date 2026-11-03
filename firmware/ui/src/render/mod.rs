@@ -6,6 +6,7 @@
 
 mod analysis;
 mod bar;
+mod graph;
 mod renderer;
 mod screens;
 mod sheet;

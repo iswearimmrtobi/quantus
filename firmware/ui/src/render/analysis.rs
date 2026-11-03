@@ -29,9 +29,12 @@ pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analys
             section(shapes, page, answer.scroll);
         }
         None => {
-            title(shapes, text::GRAPH.get(lang), Status::Ok, 0, pages, lang);
-            let function = layout::layout(&latex::parse(&analysis.function), Scale::Normal);
-            shapes.push(Shape::Math(Point::new(MARGIN, TOP + function.ascent), function, colors::TEXT));
+            // The function in the title's place.
+            title(shapes, "", Status::Ok, 0, pages, lang);
+            let function = layout::layout(&latex::parse(&analysis.function), Scale::Small);
+            let baseline = BAR + 6 + Scale::Small.metrics().ascent;
+            shapes.push(Shape::Math(Point::new(MARGIN, baseline), function, colors::AMBER));
+            super::graph::graph(shapes, &analysis.graph, graph_area(), lang);
         }
     }
     // Triangles at the sides: there are pages before or after.
@@ -44,6 +47,11 @@ pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analys
         let tip = Point::new(WIDTH as i32 - 2, middle);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -6), tip + Point::new(-5, 6)), colors::FAINT));
     }
+}
+
+/// Where the graph is drawn: under the title, between the triangles that turn the page.
+pub fn graph_area() -> Rectangle {
+    Rectangle::new(Point::new(MARGIN, TOP - 2), Size::new(WIDTH - 2 * MARGIN as u32, (HEIGHT as i32 - TOP - 4) as u32))
 }
 
 /// The line on top: the section's title, a word for a section the engine did not finish, and
