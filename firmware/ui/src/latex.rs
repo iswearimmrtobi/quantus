@@ -2,6 +2,7 @@
 //! what the layout can draw is understood; any other command shows as its name.
 
 use crate::editor::{Accent, Node, Row, GREEK, THIN_SPACE};
+use crate::layout::DRAWN;
 
 /// Commands shown as a function name.
 const FUNCTIONS: &[&str] = &[
@@ -17,6 +18,7 @@ const SYMBOLS: &[(&str, char)] = &[
     ("sum", '∑'), ("lor", '∨'), ("vee", '∨'), ("in", '∈'), ("notin", '∉'), ("cup", '∪'),
     ("setminus", '∖'), ("mid", '|'), ("Rightarrow", '⇒'), ("implies", '⇒'), ("rightarrow", '→'),
     ("nearrow", '↗'), ("searrow", '↘'), ("emptyset", '∅'), ("varnothing", '∅'), ("colon", ':'),
+    ("Leftrightarrow", '⇔'), ("iff", '⇔'), ("smile", '⌣'), ("frown", '⌢'), ("circ", '°'),
 ];
 
 pub fn parse(latex: &str) -> Row {
@@ -78,6 +80,42 @@ impl Parser {
         }
     }
 
+    /// The group after `\text`, as upright text with its spaces; a sign the fonts lack becomes
+    /// its own node, to be drawn, and a command in it (`\ `, `\{`) its character.
+    fn text(&mut self, nodes: &mut Vec<Node>) {
+        self.skip_spaces();
+        if self.peek() != Some('{') {
+            return nodes.extend(self.argument().0);
+        }
+        self.at += 1;
+        let mut text = String::new();
+        let mut depth = 0;
+        let flush = |text: &mut String, nodes: &mut Vec<Node>| {
+            if !text.is_empty() {
+                nodes.push(Node::Upright(std::mem::take(text)));
+            }
+        };
+        while let Some(c) = self.next() {
+            match c {
+                '{' => depth += 1,
+                '}' if depth == 0 => break,
+                '}' => depth -= 1,
+                '\\' => {
+                    let name = self.name();
+                    if name.chars().count() == 1 {
+                        text.push_str(&name);
+                    }
+                }
+                c if DRAWN.contains(c) => {
+                    flush(&mut text, nodes);
+                    nodes.push(Node::Char(c));
+                }
+                c => text.push(c),
+            }
+        }
+        flush(&mut text, nodes);
+    }
+
     /// The name after a backslash: letters, or one other character.
     fn name(&mut self) -> String {
         let start = self.at;
@@ -109,7 +147,9 @@ impl Parser {
             }
             "bar" | "overline" => nodes.push(Node::Accent(Accent::Bar, self.argument())),
             "hat" | "widehat" => nodes.push(Node::Accent(Accent::Hat, self.argument())),
-            "mathrm" | "text" | "operatorname" | "mathit" => {
+            // Text keeps its spaces.
+            "text" | "textrm" | "mbox" => self.text(nodes),
+            "mathrm" | "operatorname" | "mathit" => {
                 let content = self.argument();
                 if content.0.iter().all(|node| matches!(node, Node::Char(_))) {
                     let text = content.0.iter().map(|node| match node {
@@ -121,6 +161,7 @@ impl Parser {
                     nodes.extend(content.0);
                 }
             }
+            "dots" | "ldots" | "cdots" => nodes.extend("...".chars().map(Node::Char)),
             // ℝ and ℤ; the other letters as they are.
             "mathbb" => {
                 let content = self.argument();

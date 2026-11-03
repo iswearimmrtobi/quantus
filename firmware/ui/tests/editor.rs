@@ -136,4 +136,11 @@ fn the_signs_of_a_curve_sketch_read_back() {
     }
     assert_eq!(latex::parse(r"\mathbb{R}").0, [Node::Char('ℝ')]);
     assert_eq!(latex::parse(r"x \mid k").0[1], Node::Char('|'));
+    // A sign inside text is drawn too.
+    assert_eq!(
+        latex::parse(r"\text{(für x → ∞)}").0,
+        [Node::Upright("(für x ".into()), Node::Char('→'), Node::Upright(" ∞)".into())],
+    );
+    assert_eq!(latex::parse(r"f \smile \frown").0, [Node::Char('f'), Node::Char('⌣'), Node::Char('⌢')]);
+    assert_eq!(latex::parse(r"a \Leftrightarrow b").0[1], Node::Char('⇔'));
 }

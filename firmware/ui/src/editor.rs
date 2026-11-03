@@ -20,7 +20,8 @@ const SYMBOLS: &[(char, &str)] = &[
     ('×', "cdot"), ('÷', "div"), ('±', "pm"), ('∞', "infty"), ('→', "to"), ('≈', "approx"),
     ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"), ('∧', "land"), ('∫', "int"),
     ('∑', "sum"), ('∨', "lor"), ('∈', "in"), ('∉', "notin"), ('∪', "cup"), ('∖', "setminus"),
-    ('⇒', "Rightarrow"), ('↗', "nearrow"), ('↘', "searrow"), ('∅', "emptyset"), ('{', "{"),
+    ('⇒', "Rightarrow"), ('↗', "nearrow"), ('↘', "searrow"), ('∅', "emptyset"), ('⇔', "Leftrightarrow"),
+    ('⌣', "smile"), ('⌢', "frown"), ('{', "{"),
     ('}', "}"),
 ];
 

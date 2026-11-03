@@ -9,7 +9,7 @@ use crate::editor::{Accent, Node, Row};
 use crate::font::Scale;
 
 /// Characters that get a gap on both sides.
-const OPERATORS: &str = "+-=×÷±→⇒≈≤≥≠∧∨∈∉∪∖";
+const OPERATORS: &str = "+-=×÷±→⇒⇔≈≤≥≠∧∨∈∉∪∖";
 
 #[derive(Clone, Debug)]
 pub struct RowLayout {
@@ -149,7 +149,7 @@ fn grow(items: &mut [Item], first: usize, last: usize, scale: Scale) {
 }
 
 /// The signs [`drawn`] draws.
-pub const DRAWN: &str = "∧∨∈∉∪∖→⇒↗↘∅ℝℤ";
+pub const DRAWN: &str = "∧∨∈∉∪∖→⇒⇔↗↘∅⌣⌢ℝℤ";
 
 /// A sign the fonts lack, drawn as lines around the math axis, about as tall as a digit.
 fn drawn(c: char, scale: Scale, unary: bool) -> Item {
@@ -201,6 +201,19 @@ fn drawn(c: char, scale: Scale, unary: bool) -> Item {
             ];
             (None, metrics.digit, lines)
         }
+        '⇔' => {
+            let (start, end) = (gap, gap + metrics.digit + 4);
+            let lines = vec![
+                vec![p(start + 3, middle - 2), p(end - 3, middle - 2)],
+                vec![p(start + 3, middle + 2), p(end - 3, middle + 2)],
+                vec![p(start + 5, middle - 5), p(start, middle), p(start + 5, middle + 5)],
+                vec![p(end - 5, middle - 5), p(end, middle), p(end - 5, middle + 5)],
+            ];
+            (None, metrics.digit + 4, lines)
+        }
+        // A smile and a frown: curved to the left and to the right, in a sign table.
+        '⌣' => (None, 2 * half, vec![arc(gap + half, middle - half / 2, half, 200.0, 140.0)]),
+        '⌢' => (None, 2 * half, vec![arc(gap + half, middle + half / 2, half, 20.0, 140.0)]),
         '↗' | '↘' => {
             let (from, to) = match c {
                 '↗' => (p(gap, bottom), p(gap + height, top)),
