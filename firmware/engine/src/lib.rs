@@ -21,6 +21,7 @@ use quantus_ui::clock;
 use quantus_ui::settings as ui;
 use quantus_ui::text::Lang;
 
+mod analysis;
 mod sheet;
 
 /// The file in the sessions folder that names the open session.

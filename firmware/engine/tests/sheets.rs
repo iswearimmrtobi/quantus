@@ -90,6 +90,52 @@ fn a_binomial_probability_one_k_and_several() {
     assert_eq!(rows, [["0", "0{,}0625"], ["1", "0{,}25"]]);
 }
 
+fn sketch(reply: Reply) -> quantus_ui::backend::Analysis {
+    match reply {
+        Reply::Analysis(analysis) => analysis,
+        other => panic!("a sketch expected: {other:?}"),
+    }
+}
+
+#[test]
+fn a_curve_sketch_has_a_page_per_section_and_its_graph() {
+    use quantus_ui::backend::{MarkKind, Status};
+    let mut engine = Engine::default();
+    let sketch = sketch(engine.solve(&Settings::default(), &Request::Analysis { f: "x^3-3x".into() }).unwrap());
+    assert_eq!(sketch.function, "f(x) = x^{3} - 3x");
+    let titles: Vec<&str> = sketch.pages.iter().map(|page| page.title.as_str()).collect();
+    assert_eq!(titles[..3], ["Ableitungen", "Definitionsbereich", "Symmetrie"]);
+    assert!(sketch.pages.iter().all(|page| page.status == Status::Ok && !page.lines.is_empty()));
+    // The derivatives' result, a line each.
+    let derivatives = math(&sketch.pages[0].lines);
+    assert!(derivatives.ends_with(&["f'(x) = 3x^{2} - 3", "f''(x) = 6x", "f'''(x) = 6"]), "{derivatives:?}");
+    // The monotony has its sign table.
+    let monotony = sketch.pages.iter().find(|page| page.title == "Monotonie").unwrap();
+    assert!(monotony.lines.iter().any(|line| matches!(line, Line::Grid(rows) if rows.len() == 3)));
+    // H(−1 | 2) and T(1 | −2) are marked on the curve.
+    let graph = &sketch.graph;
+    let max = graph.points.iter().find(|mark| mark.kind == MarkKind::Max).unwrap();
+    let min = graph.points.iter().find(|mark| mark.kind == MarkKind::Min).unwrap();
+    assert_eq!((max.x, max.y, min.x, min.y), (-1.0, 2.0, 1.0, -2.0));
+    assert!(graph.window.x_min < -1.0 && graph.window.x_max > 1.0);
+    assert_eq!(graph.curve.len(), 1);
+}
+
+#[test]
+fn a_periodic_sketch_marks_every_extremum_in_the_window() {
+    use quantus_ui::backend::MarkKind;
+    let mut engine = Engine::default();
+    let sketch = sketch(engine.solve(&Settings::default(), &Request::Analysis { f: r"\sin(x)".into() }).unwrap());
+    let maxima = sketch.graph.points.iter().filter(|mark| mark.kind == MarkKind::Max).count();
+    assert!(maxima >= 2, "{maxima}");
+}
+
+#[test]
+fn a_sketch_of_two_variables_says_why_not() {
+    let mut engine = Engine::default();
+    assert!(engine.solve(&Settings::default(), &Request::Analysis { f: "x+y".into() }).is_err());
+}
+
 #[test]
 fn an_error_comes_back_as_text() {
     let mut engine = Engine::default();

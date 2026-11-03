@@ -14,6 +14,8 @@ use quantus_ui::backend::{Field, Line, Matrix, Reply, Request};
 use quantus_ui::settings::{DistributionKind, StatisticsType};
 use quantus_ui::text::Lang;
 
+use crate::analysis;
+
 /// Works `request` out with the core, its settings made from the hui's by `core_settings`.
 pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(CoreMode) -> core::Settings) -> Result<Reply, String> {
     let error = |error: api::ApiError| error.error;
@@ -84,7 +86,11 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
             }
             Ok(Reply::Lines(response.results.into_iter().map(|result| Line::Math(format!("{name} = {}", result.latex))).collect()))
         }
-        Request::Analysis { .. } | Request::Tangent { .. } | Request::Area { .. } => Err("Noch nicht verfügbar".to_string()),
+        Request::Analysis { f } => {
+            let core = core_settings(CoreMode::Analysis);
+            analysis::sketch(&core, f, Some(usize::from(settings.digits).min(6))).map(Reply::Analysis)
+        }
+        Request::Tangent { .. } | Request::Area { .. } => Err("Noch nicht verfügbar".to_string()),
     }
 }
 
@@ -117,7 +123,7 @@ fn math_lines(latex: &str) -> impl Iterator<Item = Line> + '_ {
 }
 
 /// An explanation in the characters the fonts have: `x₁` as `x1`, `II′` as `II'`.
-fn plain(note: &str) -> String {
+pub(crate) fn plain(note: &str) -> String {
     note.chars()
         .map(|c| match c {
             '₀'..='₉' => char::from_digit(c as u32 - '₀' as u32, 10).unwrap_or(c),
@@ -167,7 +173,7 @@ fn environment<'a>(latex: &'a str, name: &str) -> Option<(&'a str, &'a str)> {
     Some((spec, &rest[..end]))
 }
 
-fn inside<'a>(latex: &'a str, name: &str) -> Option<&'a str> {
+pub(crate) fn inside<'a>(latex: &'a str, name: &str) -> Option<&'a str> {
     environment(latex, name).map(|(_, body)| body)
 }
 
