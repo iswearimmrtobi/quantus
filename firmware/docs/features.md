@@ -129,8 +129,10 @@ State on 2026-11-03.
 - [x] Number format Norm 1/2, Fix, Sci; prefixes; digit grouping (through the engine)
 - [ ] The DOMAIN line for fractions in Algebra
 - [ ] The quantity name in Physik
-- [x] Kurvendiskussion results, one page per section, ←/→ between them, the graph first
+- [x] Kurvendiskussion results, one page per section, ←/→ between them, the graph first; each page opens on its result, ↓ shows the working
 - [x] The graph: grid, axes, the curve, asymptotes dashed, the points named; a task's tangent, normal or area on it
+- [x] Moving the graph: OK, then the arrows pan, + and − zoom, 0 goes back; a finger drags it
+- [x] German step texts in Algebra and in the curve sketch's working
 - [x] LGS: the Gauss steps with their matrices
 
 ## Maths

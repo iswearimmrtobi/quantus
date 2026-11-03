@@ -113,8 +113,13 @@ shown as *undef.*
 
 Choose **Kurvendiskussion** (tile 4) and type the function on the input line; **EXE** sketches
 it. The first page is the graph, with the points named as above; each section follows on a page
-of its own. **←**/**→** (or a swipe) turn the pages, **↑**/**↓** scroll one, **AC** goes back to
-the input.
+of its own. **←**/**→** turn the pages, **AC** goes back to the input.
+
+Each section opens on its result alone. **↓** shows the working from its start, with the result
+again at its end; **↑** goes back to the result.
+
+**OK** on the graph starts moving it: the arrows move it, **+** and **−** zoom in and out, **0**
+goes back to the first view, and **OK** or **AC** stop. A finger drags the graph at any time.
 
 **OPTN** has the rest:
 

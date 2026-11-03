@@ -184,14 +184,20 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   x̄ and ŷ. F5 is OK in the simulator and on a USB keyboard: it edits a cell as it is.
 - The handheld does **Kurvendiskussion**: EXE sketches the function typed, with the graph on the
   first page (grid, axes, the curve, dashed asymptotes, the zeros, extrema and inflection points
-  named) and a page per section after it (Ableitungen, Definitionsbereich, Symmetrie, …, each
-  with its steps, sign tables and result), turned with ←/→ or a swipe. OPTN lists the sections
+  named) and a page per section after it (Ableitungen, Definitionsbereich, Symmetrie, …),
+  turned with ←/→. Each page opens on its **result** alone; ↓ shows the working, with its sign
+  tables, and the result again at its end. OK on the graph starts **moving** it: the arrows
+  pan, + and − zoom, 0 goes back; a finger drags it too. OPTN lists the sections
   and opens forms for the **tangent and normal** at x₀, the **area** between a and b (or the
   outer zeros) and a **table of values**; after a sketch of the same function the tangent,
   the normal or the hatched area is drawn on its graph. The session keeps the function. On the
   ESP32-P4 a sketch takes 0.3 to 2 s.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ and ℤ, so a limit shows its arrow; `\text` keeps its spaces.
+- The steps of Algebra and of the curve sketch's working are **German** when the language is
+  German: every explanation of the algebra pipeline has its German text ("2 mit (x + 3)
+  ausmultiplizieren", "Jeden Bruch auf den Hauptnenner bringen", "Erste binomische Formel").
+  Before, only the steps of the LGS, the analysis and the electronics were.
 
 ### Changed
 

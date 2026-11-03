@@ -118,6 +118,12 @@ pub fn tour() -> Vec<Step> {
     tour.typed(&[Letter('x'), Power, Digit(3), Right, Minus, Digit(3), Letter('x')]);
     tour.result();
     tour.read(1200);
+    tour.note("Kurvendiskussion: the graph moved and zoomed, then the sections, result first");
+    tour.press(&[Ok]);
+    tour.look(&[Right, Right, Plus]);
+    tour.read(1200);
+    tour.look(&[Digit(0)]);
+    tour.press(&[Ok]);
     tour.look(&[Right]);
     tour.read(1500);
     tour.look(&[Right, Right, Right, Right, Right]);

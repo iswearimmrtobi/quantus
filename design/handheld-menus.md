@@ -490,9 +490,13 @@ From `docs/docs/reference/settings.md`; the hui has all of them (section 7.2).
 - The DOMAIN line for fractions in Algebra.
 - The quantity name in Physik.
 - Kurvendiskussion: one page per section, ←/→ between sections. *Implemented*: the graph first
-  (grid, axes, curve, dashed asymptotes, the marked points named), then each section's title, its
-  steps and its result; a long line breaks before =, ≈ or ⇒ or after a list's colon and commas,
-  a sign table is a grid. A finger swipes or taps the edges to turn the page.
+  (grid, axes, curve, dashed asymptotes, the marked points named; periodic ones in any window),
+  then each section's title and its result alone, with *Rechenweg* under it; ↓ shows the
+  working from its start, the result again at its end, ↑ from its top goes back. A long line
+  breaks before =, ≈ or ⇒ or after a list's colon and commas, a sign table is a grid. A finger
+  swipes a section or taps the edges to turn the page. OK on the graph starts *Bewegen*: the
+  arrows move it by a quarter, + and − zoom around the middle, 0 goes back, OK or AC stop; a
+  finger drags it at any time, and the curve is sampled anew for the window.
 - LGS: the Gauss steps row by row. *Implemented*: the solution, then each step's explanation and
   its matrix (row names, the bar before b, what was done to each row), scrolled with ↑/↓ and moved
   sideways with ←/→.
