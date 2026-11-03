@@ -52,9 +52,11 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 ### Handheld UI (`firmware/ui` and the board)
 
 - [ ] Kurvendiskussion: a screen per section, Tangente/Normale, Fläche, Wertetabelle
-- [ ] LGS: the matrix editor [A|b] and its size
-- [ ] Wertetabelle mode, with g(x) as a second column
-- [ ] The modes Matrizen (with editor), Basis-N, Statistik (with editor), Verteilungen, Prüfen
+- [x] LGS: the matrix editor [A|b] and its size, the Gauss steps on the answer
+      (`firmware/ui/src/sheet.rs`, section 7.3)
+- [x] Wertetabelle mode, with g(x) as a second column
+- [x] Statistik (with its data editor) and Verteilungen; not yet x̂ and ŷ for a given value
+- [ ] The modes Matrizen (with editor), Basis-N, Prüfen
 - [ ] The step list (Rechenweg) on the result screen
 - [ ] S⇔D through all forms of a result; OPTN for FACT, ENG and the polar form
 - [ ] The ◌ SETUP entries once the core has them: Winkeleinheit, Zahlenformat,
@@ -487,7 +489,9 @@ From `docs/docs/reference/settings.md`; the hui has all of them (section 7.2).
 - The DOMAIN line for fractions in Algebra.
 - The quantity name in Physik.
 - Kurvendiskussion: one page per section, ←/→ between sections.
-- LGS: the Gauss steps row by row.
+- LGS: the Gauss steps row by row. *Implemented*: the solution, then each step's explanation and
+  its matrix (row names, the bar before b, what was done to each row), scrolled with ↑/↓ and moved
+  sideways with ←/→.
 - S⇔D cycles through the forms a result has: exact, d/c or ab/c, recurring decimal, decimal,
   and °′″ for angles. Prime factors (FACT), ENG and the polar form come from OPTN or their keys.
 - A QR code of the result or the steps.
@@ -549,13 +553,13 @@ engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verf�
   2. Algebra [Q] ✓
   3. Komplex [C] ✓
   4. Kurvendiskussion [Q] ✓ (plain inputs; no screen for the sections yet)
-  5. LGS [C Gleichungssyst. + Q] ✓ (typed systems; no matrix editor yet)
-  6. Wertetabelle [C Tabellen, on the analysis code] ◌
+  5. LGS [C Gleichungssyst. + Q] ✓ (the matrix [A|b], or typed equations)
+  6. Wertetabelle [C Tabellen, on the analysis code] ✓
 - Page 2
   7. Matrizen [C, eng] ◌
   8. Basis-N [C, eng] ◌
-  9. Statistik [C, eng] ◌
-  10. Verteilungen [C, eng] ◌
+  9. Statistik [C, eng] ✓
+  10. Verteilungen [C, eng] ✓
   11. Prüfen [C Berechn prüf, eng] ◌
   12. Sitzungen [Q, fw] ✓: a page Neu, Öffnen, Umbenennen, Duplizieren, Löschen (section 6).
       Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. A new one is
@@ -652,17 +656,44 @@ Per mode:
   template) [C] · ▶r∠θ, ▶a+bi, ∠ [eng] ◌ · Analysis · Zahl
 - **Kurvendiskussion**: the sections · Tangente/Normale · Fläche · Wertetabelle [Q], all ◌ until
   the mode has its screens
-- **Wertetabelle**: f(x) · g(x) · von, bis, Schritt [C] ◌
-- **LGS**: Eingabe Gleichungen / Matrix [A|b] ◌ (kept) · Größe as Zeilen and Spalten, typed,
-  up to 10 ◌ (kept) · Imaginäre Einheit i ✓ (`linearComplex`) · Alles löschen ✓ [Q]
+- **Wertetabelle**: Alles löschen · Zahl · Hyperbol. Fkt. [C] ✓. f(x), g(x), von, bis and
+  Schritt are the rows of the mode's form, not OPTN entries.
+- **LGS**: Eingabe Gleichungen / Matrix [A|b] ✓ (Matrix by default) · Zeilen and Spalten (the
+  unknowns), typed, up to 10 ✓ · Imaginäre Einheit i ✓ (`linearComplex`) · Alles löschen ✓ [Q]
 - **Matrizen**: Definieren, Bearbeiten · the matrix variables · Ans · Determinante,
   Transponierte, Inverse, Einheitsmatrix, REF, RREF [C, eng] ◌
 - **Basis-N**: DEC, HEX, BIN, OCT · d, h, b, o · and, or, xor, xnor, Not, Neg [C, eng] ◌
-- **Statistik**: Typ (1 Variable and the 7 regressions) · Editor: Zeile einfügen, Alles löschen ·
-  Summen, Kennwerte, Min/Max/Quartile, Regression [C, eng] ◌
-- **Verteilungen**: Normal-Dichte, Kumul. Normal-V, Inv. Normal-V, Binomial-Dichte, Kumul.
-  Binom.-V, Poisson-Dichte, Kumul. Poisson-V · Liste/Variable [C, eng] ◌
+- **Statistik**: Typ (1 Variable and the 7 regressions) ✓ · Häufigkeit ein/aus ✓ · Zeile
+  einfügen, Zeile löschen, Alles löschen ✓ [C]. The sums, the measures, min/max/quartiles and the
+  regression are all on the answer EXE brings, so they have no entries of their own.
+- **Verteilungen**: Typ (Normal-Dichte, Kumul. Normal-V, Inv. Normal-V, Binomial-Dichte, Kumul.
+  Binom.-V, Poisson-Dichte, Kumul. Poisson-V) ✓ · Alles löschen · Griechisch [C]. There is no
+  Liste/Variable switch: k takes one value or several separated by `;`.
 - **Prüfen**: =, ≠, <, >, ≤, ≥ [C, eng] ✓ as inserts; the mode itself waits for the engine
+
+### 7.3a Sheets
+
+LGS (with Eingabe on Matrix), Wertetabelle, Statistik and Verteilungen show a sheet instead of
+the input line (`firmware/ui/src/sheet.rs`, drawn by `render/sheet.rs`): cells in rows under
+their heads (x₁ … xₙ and = for LGS; x, y, Häuf. for Statistik), or a form with a label beside
+each field (Wertetabelle; Verteilungen, whose fields follow the type). Five rows show; the sheet
+scrolls to the cursor, sideways too for a wide LGS. Along the bottom the cell at the cursor
+stands in full size, with what it is (Gl. 2, Zeile 3, σ).
+
+- An input key starts the cell afresh, OK edits it as it is. While a cell is edited the keys go
+  to its editor; EXE and OK keep it and move on (along the row in LGS, down the column
+  elsewhere), ↑/↓ and ←/→ at the editor's ends keep it and move, AC drops the edit.
+- DEL empties a cell. A Statistik list always ends in an empty row to type into.
+- EXE on a cell not being edited goes on to the next cell, as after typing one; on the last
+  cell, with no next one, it works the sheet out (`Backend::solve`); the spinner turns
+  meanwhile and AC drops it. The answer lies over the sheet: ↑/↓ scroll it, ←/→ move a wide one
+  sideways, AC, DEL, OK, EXE or ‹ in the top bar go back to the sheet.
+- OPTN entries insert into the cell at the cursor.
+- Touch: a tap selects a cell, a tap on the selected one edits it; the answer scrolls with the
+  finger.
+- The session keeps what the sheets hold (`ModeInputs` in the core); opening a session fills
+  them again and sets the size of the LGS, the Statistik type and the distribution to match.
+  Wertetabelle keeps f(x) and its range; the session has no room for g(x).
 
 ### 7.4 Keys
 

@@ -169,6 +169,19 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   sets the **clock from the network** (NTP) while connected.
 - The handheld **updates the firmware of its Wi-Fi chip** (the ESP32-C6) itself at boot, from an
   image in its flash (`firmware/c6`), when the chip runs another ESP-Hosted version.
+- The handheld has **sheets** for the modes that need more than one input line, each cell typed
+  with fractions and roots like the input, moved through with the arrows and EXE, which goes on
+  to the next cell and works the sheet out from the last one:
+  - **LGS** opens on the matrix `[A | b]` (3 × 3 to start; OPTN sets the rows and the columns up
+    to 10, or switches back to typing equations). EXE gives the solution and the Gauss steps with
+    their matrices, scrolled with ↑/↓ and ←/→.
+  - **Wertetabelle** asks for f(x), g(x) (optional), from, to and step, and shows the table.
+  - **Statistik** takes the data in columns x, y (for the seven regressions) and a frequency
+    column; EXE gives n, the mean, the sums, the deviations, the quartiles and the regression.
+  - **Verteilungen** shows the fields of the chosen distribution (OPTN → Typ); k takes one value
+    or several separated by `;`, which gives a table.
+  The session keeps what the sheets hold (Wertetabelle its f(x) and range). A result can show
+  x̄ and ŷ. F5 is OK in the simulator and on a USB keyboard: it edits a cell as it is.
 
 ### Changed
 
