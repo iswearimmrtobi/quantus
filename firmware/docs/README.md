@@ -12,6 +12,8 @@ how to flash and use it. The crates' READMEs cover the software and link here.
 - [sd-card.md](sd-card.md): formatting the card and what goes on it.
 - [wlan.md](wlan.md): Wi-Fi through the C6 (ESP-Hosted), saved networks, network time.
 - [mirror.md](mirror.md): the board as the simulator's screen (testing only).
+- [features.md](features.md): every feature of the handheld, with its state.
+- [feature-ideas.md](feature-ideas.md): ideas not planned yet, for the handheld and the desktop.
 
 The crates:
 
