@@ -131,7 +131,7 @@ enum Pending {
 }
 
 /// A sheet worked out, shown over it until AC.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Answer {
     pub reply: Result<Reply, String>,
     /// The first line or row on the screen.
@@ -327,7 +327,7 @@ impl<B: Backend> App<B> {
                     settings.statistics_freq = freq.is_some();
                 }
                 Request::Distribution { kind, .. } => settings.distribution = *kind,
-                Request::Table { .. } => {}
+                Request::Table { .. } | Request::Analysis { .. } | Request::Tangent { .. } | Request::Area { .. } => {}
             }
             self.sheets.fill(request, &self.settings);
         }

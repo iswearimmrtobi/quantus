@@ -84,6 +84,7 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
             }
             Ok(Reply::Lines(response.results.into_iter().map(|result| Line::Math(format!("{name} = {}", result.latex))).collect()))
         }
+        Request::Analysis { .. } | Request::Tangent { .. } | Request::Area { .. } => Err("Noch nicht verfügbar".to_string()),
     }
 }
 
@@ -290,6 +291,7 @@ pub fn keep(inputs: &mut ModeInputs, request: &Request) {
         }
         Request::Statistics { .. } => inputs.statistics = Some(statistics_request(request)),
         Request::Distribution { .. } => inputs.distribution = Some(distribution_request(request)),
+        Request::Analysis { .. } | Request::Tangent { .. } | Request::Area { .. } => {}
     }
 }
 

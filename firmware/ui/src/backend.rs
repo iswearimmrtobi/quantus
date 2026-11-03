@@ -215,6 +215,22 @@ pub enum Request {
     Statistics { kind: StatisticsType, x: Vec<String>, y: Option<Vec<String>>, freq: Option<Vec<String>> },
     /// The fields the distribution reads; `k` one value or several.
     Distribution { kind: DistributionKind, fields: Vec<(Field, String)>, k: Vec<String> },
+    /// The curve sketch of f(x), section by section, with its graph.
+    Analysis { f: String },
+    /// The tangent and the normal to f at `x0`.
+    Tangent { f: String, x0: String },
+    /// The area between f and the x-axis from `from` to `to`; both empty for the outer zeros.
+    Area { f: String, from: String, to: String },
+}
+
+impl Request {
+    /// The function a request of Kurvendiskussion is about.
+    pub fn function(&self) -> Option<&str> {
+        match self {
+            Request::Analysis { f } | Request::Tangent { f, .. } | Request::Area { f, .. } => Some(f),
+            _ => None,
+        }
+    }
 }
 
 /// An input of a distribution.
@@ -263,21 +279,25 @@ impl Field {
     }
 }
 
-/// What the engine answers a sheet: lines to read (LGS, Statistik, one probability), or a table
-/// (Wertetabelle, probabilities for several k).
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// What the engine answers a sheet: lines to read (LGS, Statistik, one probability), a table
+/// (Wertetabelle, probabilities for several k), a curve sketch, or a task on the curve.
+#[derive(Clone, Debug, PartialEq)]
 pub enum Reply {
     Lines(Vec<Line>),
     /// The column heads and the rows, as LaTeX; an empty cell shows as a dash.
     Table { header: Vec<String>, rows: Vec<Vec<String>> },
+    Analysis(Analysis),
+    Task(Task),
 }
 
 impl Reply {
-    /// How many lines or rows it has, the steps of its scrolling.
+    /// How many lines or rows it has, the steps of its scrolling; the pages of a sketch.
     pub fn len(&self) -> usize {
         match self {
             Reply::Lines(lines) => lines.len(),
             Reply::Table { rows, .. } => rows.len(),
+            Reply::Analysis(analysis) => analysis.pages.len(),
+            Reply::Task(task) => task.lines.len(),
         }
     }
 
@@ -295,6 +315,133 @@ pub enum Line {
     Note(String),
     /// A step of the elimination: the matrix `[A | b]`.
     Matrix(Matrix),
+    /// A sign table: rows of cells as LaTeX, the first row the heads (the x intervals).
+    Grid(Vec<Vec<String>>),
+}
+
+/// A curve sketch: f, a page per section, and the graph.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Analysis {
+    /// `f(x) = …`, as LaTeX.
+    pub function: String,
+    pub pages: Vec<Page>,
+    pub graph: Graph,
+}
+
+/// A section of the sketch: Ableitungen, Definitionsbereich, Nullstellen …
+#[derive(Clone, Debug, PartialEq)]
+pub struct Page {
+    pub title: String,
+    pub status: Status,
+    /// Why it is partial or failed.
+    pub message: Option<String>,
+    /// The steps, then the result.
+    pub lines: Vec<Line>,
+}
+
+/// How far the engine got with a section.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Status {
+    #[default]
+    Ok,
+    Partial,
+    Failed,
+}
+
+/// The graph of f in its window, and what is marked on it.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Graph {
+    pub window: Window,
+    /// The curve, in pieces that break at poles and gaps.
+    pub curve: Vec<Vec<(f32, f32)>>,
+    pub points: Vec<Mark>,
+    pub asymptotes: Vec<Straight>,
+    /// A task's tangent, normal or area, drawn over it.
+    pub overlay: Overlay,
+}
+
+/// The part of the plane a graph shows.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Window {
+    pub x_min: f32,
+    pub x_max: f32,
+    pub y_min: f32,
+    pub y_max: f32,
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Window { x_min: -5.0, x_max: 5.0, y_min: -5.0, y_max: 5.0 }
+    }
+}
+
+/// A point marked on the graph.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Mark {
+    pub kind: MarkKind,
+    /// Its name as LaTeX: `H`, `N_{1}`, `S_y`.
+    pub name: String,
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MarkKind {
+    Zero,
+    YIntercept,
+    Max,
+    Min,
+    Inflection,
+    Saddle,
+    /// A gap in the curve, drawn as a ring.
+    Hole,
+    /// The highest or lowest point at an end of the domain.
+    Boundary,
+    /// Where a tangent touches.
+    Touch,
+}
+
+/// A straight line: an asymptote, a tangent, a normal.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Straight {
+    Vertical(f32),
+    Sloped { slope: f32, intercept: f32 },
+}
+
+impl Straight {
+    /// y at `x`; `None` for a vertical line.
+    pub fn at(self, x: f32) -> Option<f32> {
+        match self {
+            Straight::Vertical(_) => None,
+            Straight::Sloped { slope, intercept } => Some(slope * x + intercept),
+        }
+    }
+}
+
+/// What a task adds to the graph.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Overlay {
+    pub tangent: Option<Straight>,
+    pub normal: Option<Straight>,
+    pub point: Option<Mark>,
+    pub regions: Vec<Region>,
+}
+
+/// A piece of an area: the curve over it, from one zero or bound to the next.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Region {
+    /// Above the x-axis.
+    pub positive: bool,
+    pub curve: Vec<(f32, f32)>,
+}
+
+/// The answer to a task on the curve: its steps and what it adds to the graph.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Task {
+    /// f, as the task read it.
+    pub function: String,
+    pub lines: Vec<Line>,
+    pub overlay: Overlay,
 }
 
 /// An augmented matrix as a step shows it, its cells as LaTeX.
@@ -341,6 +488,13 @@ pub fn bytes(bytes: u64, lang: crate::text::Lang) -> String {
     format!("{text} {}", UNITS[unit])
 }
 
+/// y = x² from −3 to 3, with its vertex: the stub's graph.
+fn parabola() -> Graph {
+    let curve = vec![(-30..=30).map(|i| (i as f32 / 10.0, (i as f32 / 10.0).powi(2))).collect()];
+    let vertex = Mark { kind: MarkKind::Min, name: "T".into(), x: 0.0, y: 0.0 };
+    Graph { window: Window { x_min: -3.0, x_max: 3.0, y_min: -1.0, y_max: 9.0 }, curve, points: vec![vertex], ..Graph::default() }
+}
+
 /// Answers with the input itself, so the way back from LaTeX shows on the screen. An input with
 /// a `?` gives an error; a decimal result is marked with `≈`.
 pub struct Stub;
@@ -369,6 +523,24 @@ impl Backend for Stub {
             Request::Distribution { fields, k, .. } => {
                 let fields: Vec<String> = fields.iter().map(|(_, cell)| cell.clone()).collect();
                 Reply::Lines(vec![math(&fields), math(k)])
+            }
+            Request::Analysis { f } => Reply::Analysis(Analysis {
+                function: format!("f(x) = {f}"),
+                pages: vec![
+                    Page { title: "f(x)".into(), status: Status::Ok, message: None, lines: vec![Line::Math(f.clone())] },
+                    Page { title: "?".into(), status: Status::Failed, message: Some("Stub".into()), lines: Vec::new() },
+                ],
+                graph: parabola(),
+            }),
+            Request::Tangent { f, x0 } => {
+                let tangent = Straight::Sloped { slope: 1.0, intercept: 0.0 };
+                let overlay = Overlay { tangent: Some(tangent), ..Overlay::default() };
+                Reply::Task(Task { function: f.clone(), lines: vec![Line::Math(format!("x_0 = {x0}"))], overlay })
+            }
+            Request::Area { f, from, to } => {
+                let curve = (0..=10).map(|i| (i as f32 / 10.0, (i as f32 / 10.0).powi(2))).collect();
+                let overlay = Overlay { regions: vec![Region { positive: true, curve }], ..Overlay::default() };
+                Reply::Task(Task { function: f.clone(), lines: vec![Line::Math(format!("{from}; {to}"))], overlay })
             }
         })
     }
