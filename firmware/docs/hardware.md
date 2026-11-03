@@ -36,6 +36,16 @@ long battery life second. Later, and optional: hand calculations that take longe
 - **Display, product**: a bare 3.5" 480×320 SPI panel on a flex cable with `LED+` and `LED−` on
   the cable, and a datasheet for its backlight. Many of these use an ST7796S, not an ILI9486,
   which is a small driver change. The exact panel is still to be chosen.
+  - Why SPI and not DPI (RGB parallel): the panel keeps the picture in its own RAM, so a static
+    screen costs the P4 nothing and a keypress only sends the bands that changed (about 9 ms
+    each). A DPI panel needs a framebuffer scanned out about 60 times a second from PSRAM. That
+    costs current all the time and needs about 20 GPIOs instead of 5. For a bigger or sharper
+    screen, MIPI-DSI would be the better step, not DPI.
+  - Pick a panel whose flex brings out `TE` (sometimes called `FMARK`), and wire it to a GPIO,
+    so full redraws can wait for it and don't tear. The prototype's RPi board doesn't bring it
+    out, so the prototype can tear.
+  - Without the prototype's shift registers, the SPI clock can probably go above 26.67 MHz
+    (40–80 MHz) and needs measuring.
 - **Display, prototype**: an RPi display with an ILI9486 over SPI, no HDMI, or any display with
   a separate backlight pin. These boards often put shift registers in front of the controller,
   so commands and data go out as 16-bit words. The display RAM cannot be read back.

@@ -95,6 +95,8 @@ dev kit. See its [README](../firmware/esp32/README.md).
     palette. Entries that wait for the engine or the firmware say so.
   - [ ] CONST and CONV, and the keys still missing in §7.4 (ENG, STO, VARS, CALC, SOLVE, UNDO …).
   - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
+  - [ ] On a bare ST7796S panel, measure `bench` at 40, 60 and 80 MHz and wire `TE` against
+    tearing ([hardware.md](../firmware/docs/hardware.md) §3).
   - [x] Brackets that grow with what they hold.
   - [x] For testing: the simulator with the real engine, and its picture mirrored to the board
     over serial (`--mirror`, the handheld's `mirror` binary; not yet tried on the board).
