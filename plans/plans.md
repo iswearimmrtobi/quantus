@@ -81,6 +81,10 @@ dev kit. See its [README](../firmware/esp32/README.md).
   sketches and tasks in a row did not run short (the WROOM's second sketch did). The graph page
   first took 7 s to draw (a 2 px polyline of 600 points across all ten bands); drawn in short
   1 px pieces a full screen takes at most 218 ms.
+- [x] Moving the graph on the P4 (2026-11-03): the curve for a new window (480 samples) in
+  33–41 ms for `\sin(x)`, 59–63 ms for `x^3-3x`; a full redraw of the moved graph 134–204 ms.
+  Once, right after a boot (WLAN connecting, clock being set), keys sent over serial came in
+  late and bunched, so OK closed the sketch instead of starting the move; not seen again.
 - [ ] A handheld on an ESP32-P4: hardware requirements in
   [hardware.md](../firmware/docs/hardware.md).
 - [ ] Its UI, on the ESP32-P4 dev kit (before that a classic ESP32) with the display, keys over

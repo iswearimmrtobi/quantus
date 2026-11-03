@@ -379,7 +379,8 @@ fn update_c6(store: Option<&Store>, display: &mut Display) {
 }
 
 /// Turns the bytes typed into the serial monitor into keys: characters by `Key::from_char`,
-/// the arrows' escape sequences, and Delete (`ESC [ 3 ~`) as AC.
+/// the arrows' escape sequences, Delete (`ESC [ 3 ~`) as AC and F5 (`ESC [ 1 5 ~`) as OK, as on
+/// a USB keyboard.
 fn read_keys(keys: Sender<Key>) {
     let mut stdin = std::io::stdin();
     let mut pending: Vec<u8> = Vec::new();
@@ -391,12 +392,13 @@ fn read_keys(keys: Sender<Key>) {
         }
         pending.push(byte[0]);
         let key = match pending.as_slice() {
-            [0x1b] | [0x1b, b'['] | [0x1b, b'[', b'3'] => continue,
+            [0x1b] | [0x1b, b'['] | [0x1b, b'[', b'3'] | [0x1b, b'[', b'1'] | [0x1b, b'[', b'1', b'5'] => continue,
             [0x1b, b'[', b'A'] => Some(Key::Up),
             [0x1b, b'[', b'B'] => Some(Key::Down),
             [0x1b, b'[', b'C'] => Some(Key::Right),
             [0x1b, b'[', b'D'] => Some(Key::Left),
             [0x1b, b'[', b'3', b'~'] => Some(Key::Ac),
+            [0x1b, b'[', b'1', b'5', b'~'] => Some(Key::Ok),
             [0x1b, ..] => None,
             bytes => match std::str::from_utf8(bytes) {
                 Ok(text) => text.chars().next().and_then(Key::from_char),
