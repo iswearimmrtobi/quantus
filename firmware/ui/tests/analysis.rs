@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Reply, Request, Stub};
+use quantus_ui::backend::{Backend, Opened, Reply, Request, SessionCommand, Stub};
 use quantus_ui::key::Key;
 
 /// Keeps what it was asked and answers as the stub does, now or later.
@@ -17,6 +17,8 @@ struct State {
     asked: Vec<Request>,
     later: bool,
     ready: Option<Result<Reply, String>>,
+    /// What the session opened at the start holds.
+    inputs: Vec<Request>,
 }
 
 impl Backend for Asked {
@@ -41,6 +43,10 @@ impl Backend for Asked {
 
     fn drop_pending(&mut self) {
         self.0.borrow_mut().ready = None;
+    }
+
+    fn session(&mut self, _command: SessionCommand, _settings: &Settings) -> Result<Opened, String> {
+        Ok(Opened { inputs: self.0.borrow().inputs.clone(), ..Opened::default() })
     }
 }
 
@@ -297,4 +303,17 @@ fn a_task_on_the_function_sketched_has_its_graph_on_a_second_page() {
     app.key(Key::Digit(2));
     app.key(Key::Exe);
     assert_eq!(app.answer.as_ref().unwrap().pages(), 1);
+}
+
+#[test]
+fn the_function_a_session_kept_comes_back_into_the_input() {
+    let backend = Asked::default();
+    backend.0.borrow_mut().inputs = vec![Request::Analysis { f: "x^{2}-1".into() }];
+    let mut app = App::new(backend);
+    // Not into another mode's input.
+    assert!(app.editor.is_empty());
+    app.key(Key::Mode);
+    app.key(Key::Digit(4));
+    assert_eq!(app.mode, Mode::Analysis);
+    assert_eq!(app.editor.to_latex(), "x^{2}-1");
 }

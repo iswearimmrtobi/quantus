@@ -245,6 +245,9 @@ pub struct App<B> {
     pub sketch: Option<(String, crate::backend::Analysis)>,
     /// The function of the request the backend works on.
     asked: Option<String>,
+    /// The function of Kurvendiskussion the open session kept, for the input when the mode is
+    /// chosen.
+    kept_function: Option<Row>,
     /// Turns the panel's readings into screen points; set by the board from what it stored.
     pub calibration: Calibration,
     /// A calibration just made, for the board to store.
@@ -341,6 +344,7 @@ impl<B: Backend> App<B> {
             task: None,
             sketch: None,
             asked: None,
+            kept_function: None,
             calibration: Calibration::default(),
             calibrated: None,
             pending: None,
@@ -374,6 +378,7 @@ impl<B: Backend> App<B> {
         self.reset();
         // The sheets as the session left them, laid out as they were.
         self.answer = None;
+        (self.task, self.sketch, self.kept_function) = (None, None, None);
         self.sheets = Sheets::new(&self.settings);
         for request in &opened.inputs {
             let settings = &mut self.settings;
@@ -388,11 +393,22 @@ impl<B: Backend> App<B> {
                     settings.statistics_freq = freq.is_some();
                 }
                 Request::Distribution { kind, .. } => settings.distribution = *kind,
-                Request::Table { .. } | Request::Analysis { .. } | Request::Tangent { .. } | Request::Area { .. } => {}
+                Request::Analysis { f } => self.kept_function = Some(latex::parse(f)),
+                Request::Table { .. } | Request::Tangent { .. } | Request::Area { .. } => {}
             }
             self.sheets.fill(request, &self.settings);
         }
         self.fit_sheets();
+        self.restore_function();
+    }
+
+    /// In Kurvendiskussion with nothing typed, the function the session kept goes into the input.
+    fn restore_function(&mut self) {
+        if self.mode == Mode::Analysis && self.editor.is_empty() && self.shown.is_none() {
+            if let Some(function) = self.kept_function.take() {
+                self.editor.set(function);
+            }
+        }
     }
 
     /// Lays the sheets out as the settings say, and scrolls the one on the screen to its cursor.
@@ -1205,6 +1221,7 @@ impl<B: Backend> App<B> {
                 }
                 self.mode = mode;
                 self.screen = Screen::Calc;
+                self.restore_function();
             }
         }
     }

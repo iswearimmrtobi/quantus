@@ -1,6 +1,6 @@
 //! A walk through the UI as a person would take it, with a wallpaper behind everything: it
 //! picks the first picture on the SD card and shows it everywhere, browses the SETUP pages, the
-//! mode tiles and OPTN, and works a few calculations. The simulator plays it with `--tour`, in
+//! mode tiles and OPTN, works a few calculations and sketches a curve. The simulator plays it with `--tour`, in
 //! the window and on the board with `--mirror`; `tests/tour.rs` plays it without the pauses.
 
 use crate::key::Key;
@@ -109,6 +109,35 @@ pub fn tour() -> Vec<Step> {
     tour.look(&[Down, Down, Down, Down]);
     tour.read(1200);
     tour.press(&[Ac]);
+
+    tour.note("Kurvendiskussion: x³ − 3x, the graph and some sections");
+    tour.press(&[Mode]);
+    tour.read(700);
+    tour.press(&[Digit(4)]);
+    tour.read(800);
+    tour.typed(&[Letter('x'), Power, Digit(3), Right, Minus, Digit(3), Letter('x')]);
+    tour.result();
+    tour.read(1200);
+    tour.look(&[Right]);
+    tour.read(1500);
+    tour.look(&[Right, Right, Right, Right, Right]);
+    tour.read(1200);
+    tour.look(&[Down, Down]);
+    tour.read(1200);
+    tour.look(&[Right, Right]);
+    tour.read(1500);
+    tour.press(&[Ac]);
+
+    tour.note("Kurvendiskussion: the tangent at x₀ = 2, on the graph");
+    tour.press(&[Optn]);
+    tour.read(800);
+    tour.press(&[Digit(2)]);
+    tour.typed(&[Digit(2), Exe]);
+    tour.result();
+    tour.look(&[Down, Down, Down]);
+    tour.press(&[Right]);
+    tour.read(2000);
+    tour.press(&[Ac, Ac]);
 
     tour.note("Physics: 3,5 × 4 and √2");
     tour.press(&[Mode]);

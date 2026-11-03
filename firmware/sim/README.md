@@ -3,8 +3,9 @@
 The handheld's UI (`firmware/ui`) in a window on the PC, at twice the display's 480×320. It uses
 the same band renderer as the board, so the window shows what the display will show. The real
 engine (`quantus-core`, through `firmware/engine` as on the board) answers. With `--stub` the
-stub answers instead: the input itself (with `≈` in front as a decimal), and an input with a `?` gives an error. Analysis
-and Linear only evaluate plain inputs for now; curve sketches and systems have no screen yet.
+stub answers instead: the input itself (with `≈` in front as a decimal), and an input with a `?` gives an error. In
+Kurvendiskussion EXE sketches the function typed: the graph, then a page per section, ←/→
+between them; OPTN has the sections and the forms for the tangent, the area and a table.
 
 The screen works like a Casio: a top bar (mode, a spinner while busy, SHIFT/ALPHA, significant
 digits, exact or decimal, angle unit, WLAN, Bluetooth, exam mode, battery with a bolt while
