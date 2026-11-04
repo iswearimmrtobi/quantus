@@ -65,6 +65,7 @@ under the empty input shows what fits.
 | **Linear systems** | Type a system line by line or as a matrix and get it solved exactly with the Gauss steps |
 | **Electronics** | Draw a DC circuit and see every part's voltage, current, power and resistance |
 | **Kirchhoff** | Draw a resistor network and get the junction and loop rules, their Gauss steps, every current and a power balance |
+| **Geometry** | Points, vectors, lines, planes, spheres and circles drawn in 3D, with their relations, intersections, distances and angles worked out exactly and step by step |
 | **Base-N** | Whole numbers in decimal, hexadecimal, binary and octal, 32 bits, with bitwise logic |
 | **Verify** | Check an equation or comparison, also chained (`1 < 2 \le 2`): true or false |
 
@@ -190,6 +191,7 @@ tab. The packages are attached to the run as the `quantus-linux` and
 | `crates/quantus-core/src/analysis/` | The analysis mode: curve sketch, graph, tangent, area, table |
 | `crates/quantus-core/src/electro/` | The electronics mode: materials, wires, circuit solver |
 | `crates/quantus-core/src/kirchhoff/` | The Kirchhoff mode: drawing graph, branches, junction and loop rules |
+| `crates/quantus-core/src/geometry/` | The Geometry mode: vectors, lines, planes, spheres and circles, their relations, and the shared 3D view |
 | `crates/quantus-core/src/settings.rs` | User settings and modes |
 | `crates/quantus-core/src/session.rs`, `api.rs` | Session variables and the app's JSON types |
 | `crates/quantus-core/tests/` | Golden tests, carried over from the Kotlin tests |

@@ -24,9 +24,10 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 is read and what `\arcsin`, `\arccos`, `\arctan` and `\arg` answer in: with *degree*
 $\sin 30 = 0{,}5$ and $\arctan 1 = 45$. A value that states its unit keeps it in either setting:
 `30^\circ` is always degrees, `\pi\,\mathrm{rad}` always radians. Derivatives follow the setting;
-the curve sketch (Analysis mode) always works in radians.
+the curve sketch (Analysis mode) always works in radians. In [Geometry](../guides/geometry.md)
+mode the angles between vectors, lines and planes are given in the angle unit.
 **Language** changes the interface, the menu and the texts the engine writes itself (the
-analysis working). The parser and algebra messages are English only.
+analysis and geometry working). The parser and algebra messages are English only.
 
 ## Numbers
 
@@ -89,6 +90,8 @@ Examples in Algebra mode:
 | Identities *Only always valid* | `\sqrt{a}\sqrt{b}` | $\sqrt{a} \cdot \sqrt{b}$ |
 | Exact as a root *on* | `\sqrt{12}` | $2\sqrt{3}$ instead of $3{,}4641\ldots$ |
 
+Geometry mode always works as with **Exact as a root** on: a distance is $2\sqrt{2}$.
+
 ## Steps
 
 | Setting | Key | Values | Default |
@@ -140,7 +143,7 @@ These are set elsewhere in the app, but kept in `settings.json` with the others.
 
 | Setting | Key | Values | Default | Set with |
 |---|---|---|---|---|
-| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `electronics`, `kirchhoff`, `baseN`, `matrix`, `statistics`, `distributions`, `verify` | `physics` | the top bar |
+| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `electronics`, `kirchhoff`, `geometry`, `baseN`, `matrix`, `statistics`, `distributions`, `verify` | `physics` | the top bar |
 | **Number base** | `numberBase` | `dec`, `hex`, `bin`, `oct` | `dec` | the DEC/HEX/BIN/OCT switch in Base-N mode |
 | **Imaginary unit i** | `linearComplex` | on / off | off | the switch above the input in Linear systems mode |
 

@@ -21,6 +21,7 @@ the product $2 \cdot g \cdot k$ in Algebra.
 | **Linear systems** | unknowns; session variables are not used | unknown | an unknown, or the imaginary unit with the switch on |
 | **Electronics** | values typed into the circuit's parts, read as in Physics | known | a variable |
 | **Kirchhoff** | values typed into the circuit's parts, read as in Physics | known | a variable |
+| **Geometry** | variables, as in Algebra; points, vectors, lines and planes are named objects of their own | unknown | a variable |
 | **Base-N** | hexadecimal digits A–F, the logic words and the prefixes d, h, b, o | unknown | not used |
 | **Verify** | variables, as in Algebra | unknown | a variable |
 

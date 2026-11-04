@@ -96,11 +96,54 @@ A point is `{ kind, name, x, y, latex, period? }`; an asymptote
 `{ kind, side?, x?, slope?, intercept?, latex, period? }`. Segments are arrays of `[x, y]`
 pairs, split at poles and gaps.
 
+## Geometry
+
+Stateless as well; the shell keeps the scene (in the session's `modeInputs.geometry`). The spec
+is [`design/geometry.md`](https://github.com/iswearimmrtobi/quantus/blob/master/design/geometry.md).
+
+| Command | Arguments | Returns |
+|---|---|---|
+| `geometry` | `{ request: { scene: { objects[] }, task? } }` | `{ objects: { name, kind, latex, steps[], error? }[], task?: { result[], relation?, steps[], alignBlock, error? } }` |
+| `geometry_view` | `{ request: { scene, yaw, pitch, zoom, hatch } }` | `{ primitives[], objects: { name, kind }[], camera, bounds }` |
+
+The objects are built in order, so a later one can name an earlier point or vector. Each is
+`{ name, kind, … }` with `kind` one of `point { at }`, `vector { value }`,
+`line { support, direction }`, `lineThrough { a, b }`, `plane { support, u, v }`,
+`planeNormal { support, normal }`, `planeThrough { a, b, c }`, `planeCoordinate { a, b, c, d }`,
+`sphere { centre, radius }`, `sphereThrough { centre, point }`, `sphereFour { a, b, c, d }`,
+`circle { centre, radius, normal? }`, `circleCut { sphere, plane }` or `typed { latex }` (one line
+with the name in it, such as `g: X = A + \lambda \vec{u}`). A point or vector entry is an array of
+two or three LaTeX cells or one LaTeX string (`"A"`, `"B - A"`, `"(1|2|3)"`); numbers are LaTeX
+strings.
+
+```json
+{ "scene": { "objects": [
+    { "name": "A", "kind": "point", "at": ["1", "0", "0"] },
+    { "name": "g", "kind": "lineThrough", "a": "A", "b": "(3|2|0)" },
+    { "name": "E", "kind": "planeCoordinate", "a": "0", "b": "0", "c": "1", "d": "2" }
+  ] },
+  "task": { "kind": "distance", "a": "A", "b": "E" } }
+```
+
+A task is `relation { a, b }`, `distance { a, b }`, `angle { a, b }`,
+`convert { plane, form }` (`parameter`, `normal`, `coordinate`), `foot { point, onto }`,
+`reflect { point, mirror }`, `tangent { object, point }`, `midpoint { a, b }`,
+`measure { object, measure }` (`length`, `surface`, `volume`, `circumference`, `area`) or
+`evaluate { latex }`. Its `result` holds the lines shown at Brief (`["d = 2"]` above); `relation`
+names how two objects lie (`intersecting`, `skew`, `tangent`, `inside`, …). An object or task that
+fails has its `error` and leaves the rest standing.
+
+`geometry_view` returns the scene as 2D primitives, far to near, for the shell to draw:
+`segment { from, to, depth, stroke, object? }` (`stroke` `axis`, `tick`, `object`, `hatch` or
+`hidden`), `polygon { points, depth, object }`, `marker { at, depth, object }` and
+`label { at, depth, text, object? }`, in coordinates where the box fits the unit circle. `object`
+is an index into `objects`. `yaw` and `pitch` are in radians; `zoom` 1 shows the whole box.
+
 ## Sessions
 
 A session holds the variables (and matrices), the history of up to 200 calculations, what the
 modes with their own inputs hold (`modeInputs`: `linear`, `analysis`, `table`, `statistics`,
-`distribution`, each the request of that mode), its name and when it was created and last used.
+`distribution`, `geometry`, each the request of that mode), its name and when it was created and last used.
 `evaluate` adds to the history of its session; pass `at` (milliseconds since 1970, UTC) in the
 request when the time is known. The engine touches no files: `export_session` hands the shell the
 JSON to save and `import_session` takes it back.
@@ -125,7 +168,7 @@ SessionFile {
   variables: { key, definition, mode }[]   // worked out again on import, in order
   matrices: { key, definition }[]
   history: { input, response, at? }[]
-  modeInputs: { linear?, analysis?, table?, statistics?, distribution? }
+  modeInputs: { linear?, analysis?, table?, statistics?, distribution?, geometry? }
   ans?, preAns?: { definition, mode }     // the last two results
 }
 ```
