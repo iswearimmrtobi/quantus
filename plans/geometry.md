@@ -141,7 +141,7 @@ results, not errors. Each step below brings its tests.
 - [x] Reflection of a point in a point, a line and a plane.
 - [x] `Sphere`: from centre and radius, centre and a point, or four points; coordinate and vector
   form; point inside, on or outside, with its distance to the sphere; surface and volume.
-- [ ] Sphere × line (secant, tangent, passant, intersection points) and sphere × plane
+- [x] Sphere × line (secant, tangent, passant, intersection points) and sphere × plane
   (intersection circle, tangent, no contact, distance); tangent plane at a point.
 - [ ] Sphere × sphere: relation, intersection circle and Potenzebene.
 - [ ] `Circle` (centre, radius, normal): direct constructor, the "Kugel ∩ Ebene" constructor,

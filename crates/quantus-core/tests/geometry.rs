@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SpherePoint, Vector3, Working,
+    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -686,4 +686,50 @@ fn surface_and_volume_of_a_sphere() {
     let root = Sphere::new(&at([0, 0, 0]), sqrt(2)).unwrap();
     assert_eq!(decimal(&root.volume().result), decimal(&Value::ratio(8, 3).mul(&sqrt(2)).mul(&Value::Pi)));
     assert_eq!(root.surface().result, Value::int(8).mul(&Value::Pi));
+}
+
+#[test]
+fn a_sphere_and_a_line() {
+    let k = Sphere::new(&at([0, 0, 0]), Value::int(5)).unwrap();
+    // Along x at height 3: λ² - 16 = 0, through (±4|3|0).
+    let worked = k.meet_line(&line([0, 3, 0], [1, 0, 0])).unwrap();
+    let SphereLine::Secant { points, .. } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!(points, &[at([-4, 3, 0]), at([4, 3, 0])]);
+    assert_eq!(latex_at(&worked.working, StepDetail::Standard)[1], r"\lambda^2 - 16 = 0");
+    assert_eq!(k.meet_line(&line([0, 5, 0], [1, 0, 0])).unwrap().result, SphereLine::Tangent { point: at([0, 5, 0]), lambda: Value::zero() });
+    let worked = k.meet_line(&line([0, 6, 0], [1, 0, 0])).unwrap();
+    assert_eq!(worked.result, SphereLine::Passant);
+    assert_eq!(latex_at(&worked.working, StepDetail::Detailed)[2], r"D = b^2 - 4ac = 0^2 - 4 \cdot 1 \cdot 11 = -44");
+    // Irrational points: the unit sphere and the line along (1, 1, 0) through the origin.
+    let unit = Sphere::new(&at([0, 0, 0]), Value::one()).unwrap();
+    let worked = unit.meet_line(&line([0, 0, 0], [1, 1, 0])).unwrap();
+    let SphereLine::Secant { points, .. } = &worked.result else { panic!() };
+    assert_eq!(decimal(&points[1].coords[0]), decimal(&sqrt(2).mul(&Value::ratio(1, 2))));
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), [r"S_1 = (-\frac{\sqrt{2}}{2}|-\frac{\sqrt{2}}{2}|0), \quad S_2 = (\frac{\sqrt{2}}{2}|\frac{\sqrt{2}}{2}|0)"]);
+}
+
+#[test]
+fn a_sphere_and_a_plane() {
+    let k = Sphere::new(&at([1, 2, 3]), Value::int(5)).unwrap();
+    // z = 6 is 3 from the centre: the circle around (1|2|6) with radius 4.
+    let worked = k.meet_plane(&coordinate_plane(0, 0, 1, 6)).unwrap();
+    let SpherePlane::Circle { circle, distance } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!((&circle.centre, &circle.radius, distance), (&at([1, 2, 6]), &Value::int(4), &Value::int(3)));
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief).last().unwrap(), r"M' = (1|2|6), \quad \rho = 4");
+    assert_eq!(k.meet_plane(&coordinate_plane(0, 0, 1, 8)).unwrap().result, SpherePlane::Tangent { point: at([1, 2, 8]) });
+    assert_eq!(
+        k.meet_plane(&coordinate_plane(0, 0, -1, -10)).unwrap().result,
+        SpherePlane::Apart { distance: Value::int(7), gap: Value::int(2) }
+    );
+}
+
+#[test]
+fn the_tangent_plane_of_a_sphere() {
+    let k = Sphere::new(&at([1, 1, 1]), Value::int(3)).unwrap();
+    let worked = k.tangent_plane(&at([2, 3, 3])).unwrap();
+    assert_eq!(worked.result.normal, ints([1, 2, 2]));
+    assert_eq!(worked.result.equation_in(PlaneForm::Coordinate), "x + 2y + 2z = 14");
+    assert!(k.tangent_plane(&at([2, 3, 4])).is_err());
+    // The tangent plane touches the sphere in that point.
+    assert_eq!(k.meet_plane(&worked.result).unwrap().result, SpherePlane::Tangent { point: at([2, 3, 3]) });
 }

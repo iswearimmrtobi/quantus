@@ -7,7 +7,7 @@ use crate::{QuantusError, Result};
 
 use super::show;
 use super::working::{Worked, Working};
-use super::{equal, triple_product, Point, Vector3};
+use super::{equal, triple_product, Circle, Line, Plane, PlaneForm, Point, Vector3};
 
 /// A sphere around `centre` with the radius `radius` (> 0).
 #[derive(Clone, Debug, PartialEq)]
@@ -22,6 +22,28 @@ pub enum SpherePoint {
     Inside { distance: Value },
     On,
     Outside { distance: Value },
+}
+
+/// How a line lies to a sphere.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SphereLine {
+    /// Two common points (Sekante), at the parameters `lambdas` of the line.
+    Secant { points: [Point; 2], lambdas: [Value; 2] },
+    /// One common point (Tangente).
+    Tangent { point: Point, lambda: Value },
+    /// No common point (Passante).
+    Passant,
+}
+
+/// How a plane lies to a sphere, with the distance `d` of the centre to the plane.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SpherePlane {
+    /// They cut in a circle (Schnittkreis).
+    Circle { circle: Circle, distance: Value },
+    /// The plane touches the sphere in `point` (Tangentialebene).
+    Tangent { point: Point },
+    /// No contact; `gap` is the distance from the plane to the sphere.
+    Apart { distance: Value, gap: Value },
 }
 
 fn error(message: String) -> QuantusError {
@@ -186,5 +208,131 @@ impl Sphere {
         working.add(Detailed, msg!("The formula:", "Die Formel:"), format!("V = \\frac{{4}}{{3}} \\pi r^3 = \\frac{{4}}{{3}} \\pi \\cdot {}^3", show::factor(&self.radius)));
         working.add(Brief, msg!("The volume:", "Das Volumen:"), format!("V = {}", show::value(&volume)));
         Worked::new(volume, working)
+    }
+
+    /// How `line` lies to the sphere: put into the sphere equation, it gives a quadratic
+    /// equation in λ with two, one or no solutions.
+    pub fn meet_line(&self, line: &Line) -> Result<Worked<SphereLine>> {
+        let mut working = Working::default();
+        let (u, offset) = (&line.direction, self.centre.to(&line.support));
+        let offset = Vector3 { planar: false, ..offset };
+        working.add(
+            Standard,
+            msg!("Put the line into the vector form of the sphere:", "Die Gerade in die Vektorform der Kugel einsetzen:"),
+            format!("\\left({} + \\lambda {}\\right)^2 = {}", show::vector(&offset), show::vector(u), show::value(&self.radius_squared())),
+        );
+        let a = u.dot(u);
+        let b = Value::int(2).mul(&u.dot(&offset));
+        let c = offset.dot(&offset).sub(&self.radius_squared());
+        working.add(
+            Standard,
+            msg!("Multiplied out:", "Ausmultipliziert:"),
+            format!("{} = 0", show::combination(&[(&a, "\\lambda^2"), (&b, "\\lambda"), (&c, "")])),
+        );
+        let discriminant = b.mul(&b).sub(&Value::int(4).mul(&a).mul(&c));
+        working.add(
+            Detailed,
+            msg!("The discriminant:", "Die Diskriminante:"),
+            format!("D = b^2 - 4ac = {}^2 - 4 \\cdot {} \\cdot {} = {}", show::factor(&b), show::factor(&a), show::factor(&c), show::value(&discriminant)),
+        );
+        let twice = Value::int(2).mul(&a);
+        if equal(&discriminant, &Value::zero()) {
+            let lambda = b.neg().div(&twice)?;
+            let point = Point { planar: false, ..line.at(&lambda) };
+            working.add(Standard, msg!("One solution:", "Eine Lösung:"), format!("\\lambda = {}", show::value(&lambda)));
+            working.add(Brief, msg!("The line touches the sphere (tangent) in", "Die Gerade berührt die Kugel (Tangente) in"), format!("B = {}", show::point(&point)));
+            return Ok(Worked::new(SphereLine::Tangent { point, lambda }, working));
+        }
+        if discriminant.is_negative()? {
+            working.add(
+                Brief,
+                msg!("No solution: the line misses the sphere (passant).", "Keine Lösung: Die Gerade verfehlt die Kugel (Passante)."),
+                "D < 0",
+            );
+            return Ok(Worked::new(SphereLine::Passant, working));
+        }
+        let root = discriminant.pow(&Value::ratio(1, 2))?;
+        let lambdas = [b.neg().sub(&root).div(&twice)?, b.neg().add(&root).div(&twice)?];
+        working.add(
+            Standard,
+            msg!("Two solutions:", "Zwei Lösungen:"),
+            format!("\\lambda_1 = {}, \\quad \\lambda_2 = {}", show::value(&lambdas[0]), show::value(&lambdas[1])),
+        );
+        let points = [Point { planar: false, ..line.at(&lambdas[0]) }, Point { planar: false, ..line.at(&lambdas[1]) }];
+        working.add(
+            Brief,
+            msg!("The line cuts the sphere (secant) in", "Die Gerade schneidet die Kugel (Sekante) in"),
+            format!("S_1 = {}, \\quad S_2 = {}", show::point(&points[0]), show::point(&points[1])),
+        );
+        Ok(Worked::new(SphereLine::Secant { points, lambdas }, working))
+    }
+
+    /// How `plane` lies to the sphere, by the distance of the centre to it: a circle of
+    /// intersection, a tangent plane or no contact.
+    pub fn meet_plane(&self, plane: &Plane) -> Result<Worked<SpherePlane>> {
+        let Worked { result: distance, mut working } = plane.distance(&self.centre)?;
+        let (d2, r2) = (distance.mul(&distance), self.radius_squared());
+        if equal(&d2, &r2) {
+            let Worked { result: point, working: foot } = plane.foot(&self.centre)?;
+            working.extend(foot);
+            working.add(
+                Brief,
+                msg!("d = r: the plane touches the sphere in", "d = r: Die Ebene berührt die Kugel in"),
+                format!("B = {}", show::point(&point)),
+            );
+            return Ok(Worked::new(SpherePlane::Tangent { point }, working));
+        }
+        if r2.sub(&d2).is_negative()? {
+            let gap = distance.sub(&self.radius);
+            working.add(
+                Brief,
+                msg!("d > r: the plane does not touch the sphere.", "d > r: Die Ebene berührt die Kugel nicht."),
+                format!("{} > r = {}", show::value(&distance), show::value(&self.radius)),
+            );
+            working.add(Standard, msg!("The gap between them:", "Der Abstand zwischen ihnen:"), format!("d - r = {}", show::value(&gap)));
+            return Ok(Worked::new(SpherePlane::Apart { distance, gap }, working));
+        }
+        working.add(
+            Standard,
+            msg!("d < r: the plane cuts the sphere in a circle.", "d < r: Die Ebene schneidet die Kugel in einem Kreis."),
+            format!("{} < r = {}", show::value(&distance), show::value(&self.radius)),
+        );
+        let Worked { result: centre, working: foot } = plane.foot(&self.centre)?;
+        working.extend(foot);
+        let radius = r2.sub(&d2).pow(&Value::ratio(1, 2))?;
+        working.add(
+            Standard,
+            msg!("The radius of the circle, by Pythagoras:", "Der Radius des Kreises nach Pythagoras:"),
+            format!("\\rho = \\sqrt{{r^2 - d^2}} = \\sqrt{{{} - {}}} = {}", show::value(&r2), show::value(&d2), show::value(&radius)),
+        );
+        working.add(
+            Brief,
+            msg!("The circle of intersection:", "Der Schnittkreis:"),
+            format!("M' = {}, \\quad \\rho = {}", show::point(&centre), show::value(&radius)),
+        );
+        let circle = Circle { centre, radius, normal: plane.normal.clone() };
+        Ok(Worked::new(SpherePlane::Circle { circle, distance }, working))
+    }
+
+    /// The tangent plane at `p`, which must lie on the sphere: `\overrightarrow{MP}` is its normal.
+    pub fn tangent_plane(&self, p: &Point) -> Result<Worked<Plane>> {
+        let normal = self.centre.to(p);
+        if !equal(&normal.dot(&normal), &self.radius_squared()) {
+            return Err(error(msg!(
+                "The point does not lie on the sphere, so it has no tangent plane there.",
+                "Der Punkt liegt nicht auf der Kugel, dort gibt es also keine Tangentialebene."
+            )));
+        }
+        let mut working = Working::default();
+        let normal = Vector3 { planar: false, ..normal };
+        working.add(
+            Standard,
+            msg!("The radius to the point is the normal:", "Der Radius zum Punkt ist der Normalenvektor:"),
+            format!("\\vec{{n}} = \\overrightarrow{{MP}} = {}", show::vector(&normal)),
+        );
+        let plane = Plane::with_normal(p, &normal)?;
+        working.add(Brief, msg!("The tangent plane:", "Die Tangentialebene:"), plane.equation());
+        working.add(Standard, msg!("In coordinate form:", "In Koordinatenform:"), plane.equation_in(PlaneForm::Coordinate));
+        Ok(Worked::new(plane, working))
     }
 }

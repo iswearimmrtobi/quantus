@@ -44,9 +44,8 @@ impl Line {
 }
 
 impl Plane {
-    /// The reflection of `p` in the plane: along the perpendicular `\vec{x} = \vec{p} + \lambda \vec{n}`
-    /// to its foot.
-    pub fn reflect(&self, p: &Point) -> Result<Worked<Point>> {
+    /// The foot of the perpendicular from `p` onto the plane: along `\vec{x} = \vec{p} + \lambda \vec{n}`.
+    pub fn foot(&self, p: &Point) -> Result<Worked<Point>> {
         let mut working = Working::default();
         let plane = if self.form == PlaneForm::Coordinate {
             self.clone()
@@ -76,6 +75,12 @@ impl Plane {
         );
         let foot = Point { planar: false, ..p + &n.scale(&lambda) };
         working.add(Detailed, msg!("The foot of the perpendicular:", "Der Lotfußpunkt:"), format!("F = {}", show::point(&foot)));
+        Ok(Worked::new(foot, working))
+    }
+
+    /// The reflection of `p` in the plane: through the foot of the perpendicular.
+    pub fn reflect(&self, p: &Point) -> Result<Worked<Point>> {
+        let Worked { result: foot, mut working } = self.foot(p)?;
         let image = mirrored(&Point { planar: false, ..p.clone() }, &foot, "F", &mut working);
         Ok(Worked::new(image, working))
     }

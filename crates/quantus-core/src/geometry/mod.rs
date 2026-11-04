@@ -4,6 +4,7 @@
 //! a point plus a vector is a point, and vectors add and scale. A 2D input is z = 0 and keeps
 //! that it was 2D (`planar`), so that a result of 2D inputs can be written without z.
 
+mod circle;
 mod eval;
 mod line;
 mod plane;
@@ -13,11 +14,12 @@ mod show;
 mod sphere;
 mod working;
 
+pub use circle::Circle;
 pub use eval::{GeometryEvaluator, Item, Objects};
 pub use line::{Line, LineRelation};
 pub use plane::{Plane, PlaneForm};
 pub use relations::{LinePlane, PlanePlane};
-pub use sphere::{Sphere, SpherePoint};
+pub use sphere::{Sphere, SphereLine, SpherePlane, SpherePoint};
 pub use working::{Note, Worked, Working};
 
 use std::ops::{Add, Mul, Neg, Sub};
