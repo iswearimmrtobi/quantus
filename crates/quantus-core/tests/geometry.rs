@@ -1026,3 +1026,85 @@ fn the_api_answers_in_german_at_the_detail_setting() {
     let brief = Settings { step_detail: StepDetail::Brief, ..Settings::default() };
     assert_eq!(ask(scene, json!({ "kind": "distance", "a": "P", "b": "Q" }), &brief).task.unwrap().steps.len(), 1);
 }
+
+fn typed(lines: &[&str]) -> Vec<quantus_core::api::ObjectResponse> {
+    let objects: Vec<serde_json::Value> = lines.iter().map(|l| serde_json::json!({ "kind": "typed", "latex": l })).collect();
+    ask(serde_json::Value::Array(objects), serde_json::Value::Null, &Settings::default()).objects
+}
+
+#[test]
+fn typed_lines_name_their_objects() {
+    let objects = typed(&[
+        "A(1|2|3)",
+        "B = (0|1|0)",
+        r"\vec{u} = \begin{pmatrix} 1 \\ 0 \\ 2 \end{pmatrix}",
+        r"\vec{v}: B - A",
+        r"g: X = A + \lambda \vec{u}",
+        r"h\colon \vec{x} = \begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix} + \mu \begin{pmatrix} 0 \\ 1 \\ 0 \end{pmatrix}",
+        r"E: X = A + \lambda \vec{u} + \mu \vec{v}",
+        "P_1: (2|0)",
+    ]);
+    let shown: Vec<(&str, &str, &str)> = objects.iter().map(|o| (o.name.as_str(), o.kind.as_str(), o.latex.as_str())).collect();
+    assert_eq!(shown[0], ("A", "point", "A = (1|2|3)"));
+    assert_eq!(shown[1], ("B", "point", "B = (0|1|0)"));
+    assert_eq!(shown[2].1, "vector");
+    assert_eq!(shown[3], ("v", "vector", r"\vec{v} = \begin{pmatrix} -1 \\ -1 \\ -3 \end{pmatrix}"));
+    assert_eq!(shown[4], ("g", "line", r"g: \vec{x} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix} + \lambda \begin{pmatrix} 1 \\ 0 \\ 2 \end{pmatrix}"));
+    assert_eq!(shown[5].1, "line");
+    assert_eq!(shown[6].1, "plane");
+    assert!(shown[6].2.contains(r"\mu \begin{pmatrix} -1 \\ -1 \\ -3 \end{pmatrix}"));
+    assert_eq!(shown[7], ("P_1", "point", "P_{1} = (2|0)"));
+    assert!(objects.iter().all(|o| o.error.is_none()));
+}
+
+#[test]
+fn typed_equations_are_classified() {
+    let objects = typed(&[
+        "A(1|2|3)",
+        r"\vec{n} = \begin{pmatrix} 1 \\ 0 \\ 2 \end{pmatrix}",
+        "E: 2x + y - z = 3",
+        "F = y = 3 - 2x",
+        "G: x = 4",
+        r"N: \left(X - A\right) \cdot \vec{n} = 0",
+        "K: (x-1)^2+y^2+z^2=9",
+        "L: x^2 + y^2 + z^2 - 2x + 4y = 4",
+        r"M: \left|\vec{x} - \vec{n}\right| = 3",
+        "k: (x-1)^2 + (y+2)^2 = 4",
+    ]);
+    let shown: Vec<(&str, &str)> = objects.iter().map(|o| (o.kind.as_str(), o.latex.as_str())).collect();
+    assert_eq!(shown[2], ("plane", "E: 2x + y - z = 3"));
+    assert_eq!(shown[3], ("plane", "F: 2x + y = 3"));
+    assert_eq!(shown[4], ("plane", "G: x = 4"));
+    // The normal form stays the normal form, with the normal as typed.
+    assert_eq!(shown[5].0, "plane");
+    assert!(shown[5].1.starts_with(r"N: \left(\vec{x} - ") && shown[5].1.ends_with(r"\cdot \begin{pmatrix} 1 \\ 0 \\ 2 \end{pmatrix} = 0"), "{}", shown[5].1);
+    assert_eq!(shown[6], ("sphere", r"K: \left(x - 1\right)^2 + y^2 + z^2 = 9"));
+    assert_eq!(shown[7], ("sphere", r"L: \left(x - 1\right)^2 + \left(y + 2\right)^2 + z^2 = 9"));
+    assert_eq!(shown[8], ("sphere", r"M: \left(x - 1\right)^2 + y^2 + \left(z - 2\right)^2 = 9"));
+    assert_eq!(shown[9], ("circle", r"k: \left(x - 1\right)^2 + \left(y + 2\right)^2 = 4"));
+    assert!(objects.iter().all(|o| o.error.is_none()));
+}
+
+#[test]
+fn typed_lines_that_are_no_object_are_errors() {
+    let objects = typed(&[
+        "A(1|2|3)",
+        "Q: x^2 + 2y^2 = 1",
+        r"R: x \cdot y = 1",
+        "S: x^3 = 1",
+        "T: x^2+y^2+z^2 = -1",
+        r"U: X = A + \lambda^2 \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix}",
+        r"V: X = A",
+        "2x + y = 3",
+    ]);
+    let errors: Vec<(&str, &str)> = objects.iter().map(|o| (o.name.as_str(), o.error.as_deref().unwrap_or(""))).collect();
+    assert_eq!(errors[0].1, "");
+    for (name, e) in &errors[1..4] {
+        assert!(e.contains("neither a plane"), "{name}: {e}");
+    }
+    assert_eq!(errors[1].0, "Q", "a failing line keeps its name");
+    assert!(errors[4].1.contains("radius squared would be -1"));
+    assert!(errors[5].1.contains("linear in its parameters"));
+    assert!(errors[6].1.contains("one parameter"));
+    assert!(errors[7].1.contains("typed with its name"));
+}

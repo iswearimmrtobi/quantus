@@ -156,7 +156,7 @@ results, not errors. Each step below brings its tests.
 - [x] `api.rs`: `Scene { objects }`, `GeometryRequest` and the task enum (`Relation(a, b)`,
   `Distance(a, b)`, `Convert(plane, form)`, …) with `geometry(settings, request)` for the objects
   of Phase 2; the response holds the exact result, LaTeX, steps and the copy block (`align*`).
-- [ ] Typed input goes through the same entry and is parsed into objects by a reader of its own
+- [x] Typed input goes through the same entry and is parsed into objects by a reader of its own
   for `Name: …` and `Name = …` (the lexer drops `:`): `A(1|2|3)`, `g: X=A+\lambda(…)`,
   `K: (x-1)^2+y^2+z^2=9`. Equations are classified: linear in x, y, z is a plane; x², y², z² with
   the same coefficient and no mixed terms is a sphere; anything else is an error.

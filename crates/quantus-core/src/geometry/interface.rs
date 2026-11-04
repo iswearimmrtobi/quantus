@@ -3,6 +3,8 @@
 //! objects in order, so a later one can use an earlier point or vector by its name, and answers
 //! the task with its exact result, the steps at the detail setting and the `align*` copy block.
 
+mod typed;
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -56,12 +58,17 @@ pub enum Shape {
     Circle { centre: Entry, radius: String, normal: Option<Entry> },
     /// The circle where a sphere cuts a plane (Kugel ∩ Ebene), both named in the scene.
     CircleCut { sphere: String, plane: String },
+    /// One typed line with the name in it: `A(1|2|3)`, `g: X = A + \lambda \vec{u}`,
+    /// `E: 2x + y = 3`, `K: x^2 + y^2 + z^2 = 9`. The object's `name` is not used.
+    Typed { latex: String },
 }
 
 /// A named object of the scene: `A`, `P_1`, `g`, `E`, or `a` for the vector `\vec{a}`.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SceneObject {
+    /// Taken from the line for a typed object.
+    #[serde(default)]
     pub name: String,
     #[serde(flatten)]
     pub shape: Shape,
@@ -183,6 +190,17 @@ enum Object {
 }
 
 impl Object {
+    fn kind(&self) -> &'static str {
+        match self {
+            Object::Point(_) => "point",
+            Object::Vector(_) => "vector",
+            Object::Line(_) => "line",
+            Object::Plane(_) => "plane",
+            Object::Sphere(_) => "sphere",
+            Object::Circle(_) => "circle",
+        }
+    }
+
     /// The object with its name in LaTeX, `symbol`.
     fn latex(&self, symbol: &str) -> String {
         match self {
@@ -331,6 +349,7 @@ impl<'a> Builder<'a> {
                     "Ein Schnittkreis braucht eine Kugel und eine Ebene."
                 ))),
             },
+            Shape::Typed { .. } => unreachable!("a typed object is read by `typed`"),
         }
     }
 
@@ -338,14 +357,18 @@ impl<'a> Builder<'a> {
     fn scene(&mut self, scene: &Scene) -> Vec<ObjectResponse> {
         let mut responses = Vec::new();
         for SceneObject { name, shape } in &scene.objects {
-            let key = key_of(name);
-            let symbol = crate::session::symbol_of(&key);
-            let built = if key.is_empty() {
-                Err(error(msg!("An object needs a name.", "Ein Objekt braucht einen Namen.")))
-            } else {
-                self.build(shape)
+            let (name, built) = match shape {
+                Shape::Typed { latex } => match self.typed(latex) {
+                    Ok((key, object)) => (key, Ok(Worked::new(object, Working::default()))),
+                    Err(e) => (typed::name_in(latex).unwrap_or_else(|| name.clone()), Err(e)),
+                },
+                _ if key_of(name).is_empty() => (name.clone(), Err(error(msg!("An object needs a name.", "Ein Objekt braucht einen Namen.")))),
+                _ => (name.clone(), self.build(shape)),
             };
-            let mut response = ObjectResponse { name: name.clone(), kind: kind_of(shape).into(), latex: String::new(), steps: Vec::new(), error: None };
+            let key = key_of(&name);
+            let symbol = crate::session::symbol_of(&key);
+            let kind = built.as_ref().map_or(kind_of(shape), |w| w.result.kind());
+            let mut response = ObjectResponse { name, kind: kind.into(), latex: String::new(), steps: Vec::new(), error: None };
             match built {
                 Ok(Worked { result, working }) => {
                     response.latex = result.latex(&symbol);
@@ -379,6 +402,7 @@ fn kind_of(shape: &Shape) -> &'static str {
         Shape::Plane { .. } | Shape::PlaneNormal { .. } | Shape::PlaneThrough { .. } | Shape::PlaneCoordinate { .. } => "plane",
         Shape::Sphere { .. } | Shape::SphereThrough { .. } | Shape::SphereFour { .. } => "sphere",
         Shape::Circle { .. } | Shape::CircleCut { .. } => "circle",
+        Shape::Typed { .. } => "typed",
     }
 }
 
