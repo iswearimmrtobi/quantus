@@ -138,6 +138,10 @@ generator marks as gaps, listed one per line in `test/results/failures.jsonl`:
 The full breakdown is in `test/results/summary.md`. The linear-systems category was added after
 that run; on its own (2026-10-30) all 2,000 of its cases pass.
 
+Since that run, 78 `syntax` cases that expected `1 = 89 = 1` to be refused were replaced by
+`1 = = 89`: chains of comparisons are valid since the Verify mode. On its own (2026-11-04) all
+3,000 syntax cases pass.
+
 ### The newer modes
 
 Each category from `verify` on was run on its own when it was added (no full run since):

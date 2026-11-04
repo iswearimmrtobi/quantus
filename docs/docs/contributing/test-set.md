@@ -123,6 +123,8 @@ version of the engine; the nine from `verify` on cover the modes added since, an
 
 The first eleven categories were last run in full on 2026-10-28: all 100,646 cases for implemented
 features passed, and the 664 that did not are inputs the generator marks as not implemented.
+Since then, 78 `syntax` cases that expected the chain `1 = 89 = 1` to be refused were replaced by
+`1 = = 89`, as chains are valid since the Verify mode; on its own the category passes in full.
 The nine newer categories were each run on their own when they were added (2026-11-04):
 
 | Category | Passed | Not passing |

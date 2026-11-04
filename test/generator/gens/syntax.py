@@ -26,7 +26,7 @@ def malformed(rng, diff):
         (f"{a} \\cdot", "trailing \\cdot"),
         (f"{a} = ", "nothing after the equals sign"),
         (f"= {a}", "nothing before the equals sign"),
-        (f"{a} = {b} = {a}", "two equals signs"),
+        (f"{a} = = {b}", "two equals signs in a row"),
         (f"|{a}", "unclosed absolute value"),
         (f"\\begin{{pmatrix}} {a} & {b}", "unterminated matrix"),
         ("", "empty input"),
