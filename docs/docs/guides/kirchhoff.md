@@ -129,8 +129,10 @@ The working then reduces the network the way it is done by hand, one merge per l
   $R_{123} = R_1 + R_{23}$.
 
 Parallel resistors are merged first, then series ones, until one resistor between A and B is
-left: that is $R_{AB}$, exact. The merged resistor is named after the parts it stands for, and
-hovering a line highlights them on the canvas. The step detail decides how much each line
+left: that is $R_{AB}$, exact. The merged resistor is named after the parts it stands for. While
+the pointer is on a line, the canvas shows the network after that merge: the merged resistor sits
+in the place of the first one it stands for, a resistor in series with it becomes a wire, and one
+in parallel goes away. Moving the pointer off brings the drawing back. The step detail decides how much each line
 shows: the rule only (Brief), the formula (Standard), or also the values put in (Detailed).
 
 Parts that carry no current are left out, each with a note: a resistor with an open end, one

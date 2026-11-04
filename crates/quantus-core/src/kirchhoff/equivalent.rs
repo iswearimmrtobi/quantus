@@ -26,6 +26,8 @@ use super::graph::{split_wires, Edge, Point, UnionFind};
 pub struct Merge {
     pub symbol: String,
     pub parts: Vec<String>,
+    /// In series; otherwise in parallel.
+    pub series: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -188,15 +190,15 @@ pub fn equivalent(
         if resistors.len() == 1 {
             break;
         }
-        let step = if let Some(group) = parallel(&resistors) {
-            merge_parallel(&mut resistors, &group, calculator)?
+        let (step, in_series) = if let Some(group) = parallel(&resistors) {
+            (merge_parallel(&mut resistors, &group, calculator)?, false)
         } else if let Some((first, second, node)) = series(&resistors, node_a, node_b) {
-            merge_series(&mut resistors, first, second, node, calculator)?
+            (merge_series(&mut resistors, first, second, node, calculator)?, true)
         } else {
             break;
         };
         let merged = resistors.iter().find(|r| r.symbol == step.0).expect("the merged resistor is in the network");
-        merges.push(Merge { symbol: merged.symbol.clone(), parts: merged.parts.clone() });
+        merges.push(Merge { symbol: merged.symbol.clone(), parts: merged.parts.clone(), series: in_series });
         steps.extend(step.1);
     }
 

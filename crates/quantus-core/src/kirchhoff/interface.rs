@@ -91,7 +91,10 @@ pub struct EquivalentResponse {
 pub struct MergeResponse {
     /// `R_{23}`.
     pub symbol: String,
+    /// In the order of the merged resistors: the parts of the first one first.
     pub parts: Vec<String>,
+    /// In series; otherwise in parallel.
+    pub series: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -366,7 +369,7 @@ fn resistance_between(
         equivalent: Some(EquivalentResponse {
             latex: result.latex,
             resistance: known(calculator, &PhysicalQuantity::new(result.value, unit("Ω")))?,
-            merges: result.merges.into_iter().map(|m| MergeResponse { symbol: m.symbol, parts: m.parts }).collect(),
+            merges: result.merges.into_iter().map(|m| MergeResponse { symbol: m.symbol, parts: m.parts, series: m.series }).collect(),
         }),
     })
 }

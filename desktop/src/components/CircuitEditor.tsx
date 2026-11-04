@@ -73,6 +73,11 @@ interface Props {
   reserved?: Rect[];
   /** Parts drawn emphasised, as those of the loop under the pointer. */
   highlight?: string[];
+  /**
+   * Another drawing shown in place of `elements` for as long as it is set, such as the network
+   * after a merge of resistors. It is only looked at: nothing on the canvas can be edited then.
+   */
+  preview?: EditorElement[];
   /** Shown under the canvas, between the palette and the inspector. */
   below?: ReactNode;
   /** Which results the parts show on the canvas. */
@@ -128,6 +133,7 @@ export function CircuitEditor({
   labels: extraLabels,
   reserved,
   highlight,
+  preview,
   below,
   shown,
   onShownChange,
@@ -141,8 +147,10 @@ export function CircuitEditor({
   const canvas = useRef<SVGSVGElement>(null);
 
   const results = useMemo(() => new Map(resultList?.map((e) => [e.id, e])), [resultList]);
-  const connected = useMemo(() => connectedPoints(elements), [elements]);
-  const dots = useMemo(() => junctionDots(elements), [elements]);
+  /** What the canvas shows: the elements, or the preview while there is one. */
+  const drawn = preview ?? elements;
+  const connected = useMemo(() => connectedPoints(drawn), [drawn]);
+  const dots = useMemo(() => junctionDots(drawn), [drawn]);
 
   // The labels are laid out from their real sizes, which only the browser knows once KaTeX has
   // set them. Offset sizes ignore the zoom transform, so they are already in drawing units.
@@ -180,16 +188,17 @@ export function CircuitEditor({
    */
   const labels = useMemo(() => {
     const list: (Place & { id: string; element?: EditorElement; voltage?: CircuitValue; extra?: ExtraLabel })[] = [];
-    for (const element of elements) {
+    for (const element of drawn) {
       const place = partPlace(element);
       if (place) list.push({ ...place, id: element.id, element });
     }
+    if (preview) return list;
     for (const extra of extraLabels ?? []) list.push({ ...extra, extra });
     for (const { point, voltage } of voltages ?? []) {
       list.push({ ...nodePlace(point), id: `node-${pointKey(point)}`, voltage });
     }
     return list;
-  }, [elements, extraLabels, voltages]);
+  }, [drawn, preview, extraLabels, voltages]);
 
   // While parts are dragged, every label keeps its spot as long as it stays free, so the labels do
   // not jump about under the pointer; dropping lays them out afresh.
@@ -201,9 +210,9 @@ export function CircuitEditor({
       const size = sizes.get(label.id);
       if (size) requests.push({ ...label, ...size });
     }
-    const blocked = [...obstacles(elements), ...(reserved ?? [])];
+    const blocked = [...obstacles(drawn), ...(reserved ?? [])];
     return placeLabels(requests, blocked, dragging ? lastPlacements.current : undefined);
-  }, [labels, sizes, elements, reserved, dragging]);
+  }, [labels, sizes, drawn, reserved, dragging]);
   useEffect(() => {
     lastPlacements.current = placements;
   }, [placements]);
@@ -489,11 +498,12 @@ export function CircuitEditor({
           <rect width="100%" height="100%" fill="url(#grid)" pointerEvents="none" />
 
           <g transform={`translate(${view.x} ${view.y}) scale(${view.zoom})`}>
-            {elements.map((element) => (
+            <g pointerEvents={preview ? 'none' : undefined}>
+            {drawn.map((element) => (
               <Part
                 key={element.id}
                 element={element}
-                selected={selection.includes(element.id)}
+                selected={!preview && selection.includes(element.id)}
                 highlighted={highlight?.includes(element.id) ?? false}
                 connected={connected}
                 onPointerDown={(event) => startMove(event, element)}
@@ -501,12 +511,13 @@ export function CircuitEditor({
                 onEnd={(event, end) => startEnd(event, element, end)}
               />
             ))}
+            </g>
 
             {dots.map((point) => (
               <circle key={pointKey(point)} className="junction-dot" cx={point.x} cy={point.y} r="3.5" />
             ))}
 
-            {overlay}
+            {!preview && overlay}
 
             {labels.map((label) => {
               const placement = placements.get(label.id);

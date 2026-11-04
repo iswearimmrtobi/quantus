@@ -151,7 +151,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The Kirchhoff mode works out the **resistance between two points**: place the terminals A and
   B on a drawing of resistors and wires, and the working merges resistors in series and in
   parallel one step at a time (`R_{23} = R_2 ∥ R_3`, then `R_{123} = R_1 + R_{23}`) until
-  `R_AB` is left, exact. Hovering a step highlights the resistors it merges. Parts that carry no
+  `R_AB` is left, exact. While the pointer is on a step, the canvas shows the network after that
+  merge, the merged resistor in place of the first one it stands for. Parts that carry no
   current (an open end, shorted, not connected to A and B) are left out with a note. A network
   that is not built from series and parallel, such as a bridge, is finished with the node rule
   and a test current of 1 A.

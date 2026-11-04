@@ -5,6 +5,7 @@ import {
   IDEAL_FIELDS,
   junctionPoint,
   numberNodes,
+  reducedDrawing,
   terminalParts,
   toKirchhoffRequest,
   type EditorElement,
@@ -99,9 +100,16 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
   }, [solution, elements, nodes, shown.voltage]);
 
   /** The parts of the loop under the pointer. */
+  /** While a merge step is under the pointer, the network as it stands after that merge. */
+  const reduced = useMemo(() => {
+    const merges = solution?.equivalent?.merges;
+    if (hover?.kind !== 'merge' || !merges?.[hover.index]) return null;
+    return reducedDrawing(elements, merges, hover.index);
+  }, [hover, solution, elements]);
+
   const highlight = useMemo(() => {
     if (!solution) return undefined;
-    if (hover?.kind === 'merge') return solution.equivalent?.merges[hover.index]?.parts;
+    if (reduced) return [reduced.merged];
     if (hover?.kind !== 'loop') return undefined;
     return solution.loops[hover.index]?.members.map((m) => m.id);
   }, [hover, solution]);
@@ -146,6 +154,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       labels={marks?.labels}
       reserved={marks?.reserved}
       highlight={highlight}
+      preview={reduced?.elements}
       failure={shownFailure ?? solution?.error}
       below={
         <>

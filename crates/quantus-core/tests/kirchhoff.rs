@@ -616,6 +616,7 @@ fn a_series_resistor_before_a_parallel_pair() {
     let merges: Vec<(&str, Vec<&str>)> =
         equivalent.merges.iter().map(|m| (m.symbol.as_str(), m.parts.iter().map(String::as_str).collect())).collect();
     assert_eq!(merges, [("R_{23}", vec!["R2", "R3"]), ("R_{123}", vec!["R1", "R2", "R3"])]);
+    assert_eq!(equivalent.merges.iter().map(|m| m.series).collect::<Vec<_>>(), [false, true]);
     assert!(response.steps.iter().any(|s| s.latex.contains("\\frac{R_{2} \\cdot R_{3}}{R_{2} + R_{3}}")));
     assert!(response.junctions.is_empty() && response.matrix.is_empty());
 }

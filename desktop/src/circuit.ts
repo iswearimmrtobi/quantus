@@ -454,3 +454,69 @@ export function fromFile(file: unknown): EditorElement[] {
     rotation: typeof rotation === 'number' ? rotation : 0,
   }));
 }
+
+/** A merge of the resistance between A and B, as `api.Kirchhoff['equivalent']` lists them. */
+export interface MergeStep {
+  symbol: string;
+  parts: string[];
+  series: boolean;
+}
+
+/** `R_{23}` as `R23`, `R_{\mathrm{X},2}` as `RX,2`: the name a merged resistor shows on the canvas. */
+const plainSymbol = (symbol: string) => symbol.replace(/\\mathrm/g, '').replace(/[_{}]/g, '');
+
+/**
+ * The drawing after the merges up to and including `upTo`, drawn from the original one: a merged
+ * resistor takes the place of the first resistor it stands for, under its new name. Of the others,
+ * one in series becomes a wire, since its current runs on through the merged one; one in parallel
+ * goes, and the wires that led only to it go with it. `merged` is the ID of the last merge's
+ * resistor, to mark it.
+ */
+export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], upTo: number): { elements: EditorElement[]; merged: string } {
+  const drawn = new Map(elements.map((e) => [e.id, e]));
+  /** The resistors drawn now, by the ID of the part whose place they take, with the parts they stand for. */
+  const groups = new Map<string, string[]>(elements.filter((e) => e.kind === 'resistor').map((e) => [e.id, [e.id]]));
+  let merged = '';
+  for (const merge of merges.slice(0, upTo + 1)) {
+    const members = [...groups].filter(([, parts]) => parts.every((p) => merge.parts.includes(p)));
+    members.sort(([, p], [, q]) => merge.parts.indexOf(p[0]) - merge.parts.indexOf(q[0]));
+    if (members.length < 2) continue;
+    const [keep] = members[0];
+    for (const [place] of members.slice(1)) {
+      const element = drawn.get(place)!;
+      drawn.delete(place);
+      groups.delete(place);
+      if (merge.series) {
+        const { a, b } = terminals(element);
+        drawn.set(place, { id: `~${place}`, kind: 'wire', x: a!.x, y: a!.y, x2: b!.x, y2: b!.y, rotation: 0 });
+      }
+    }
+    groups.set(keep, members.flatMap(([, parts]) => parts));
+    merged = plainSymbol(merge.symbol);
+    drawn.set(keep, { ...drawn.get(keep)!, id: merged });
+  }
+
+  // Wires that end in nothing led only to a part that went.
+  let result = [...drawn.values()];
+  for (;;) {
+    const count = new Map<string, number>();
+    for (const element of result) {
+      for (const point of Object.values(terminals(element)) as Point[]) count.set(pointKey(point), (count.get(pointKey(point)) ?? 0) + 1);
+    }
+    for (const wire of result.filter(isIdealWire)) {
+      const { a, b } = terminals(wire);
+      for (const element of result) {
+        for (const point of Object.values(terminals(element)) as Point[]) {
+          if (inside(a!, b!, point)) count.set(pointKey(point), (count.get(pointKey(point)) ?? 0) + 1);
+        }
+      }
+    }
+    const loose = result.find((e) => {
+      if (e.kind !== 'wire') return false;
+      const { a, b } = terminals(e);
+      return count.get(pointKey(a!)) === 1 || count.get(pointKey(b!)) === 1;
+    });
+    if (!loose) return { elements: result, merged };
+    result = result.filter((e) => e !== loose);
+  }
+}

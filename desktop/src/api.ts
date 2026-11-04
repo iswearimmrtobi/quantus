@@ -308,7 +308,7 @@ export interface Kirchhoff {
   /** The equations have no single solution; the steps end where that shows. */
   error: string | null;
   /** The resistance between A and B; each merge names the parts it stands for, in step order. */
-  equivalent: { latex: string; resistance: CircuitValue; merges: { symbol: string; parts: string[] }[] } | null;
+  equivalent: { latex: string; resistance: CircuitValue; merges: { symbol: string; parts: string[]; series: boolean }[] } | null;
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
