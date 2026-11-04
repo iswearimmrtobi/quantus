@@ -148,6 +148,13 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   exact currents and the power balance; **Copy** gives the working as an `align*` block. Hovering
   a loop or a rule highlights its parts. The circuit is separate from the Electronics one but
   uses the same files, which now also keep the reversed current arrows.
+- The Kirchhoff mode works out the **resistance between two points**: place the terminals A and
+  B on a drawing of resistors and wires, and the working merges resistors in series and in
+  parallel one step at a time (`R_{23} = R_2 ∥ R_3`, then `R_{123} = R_1 + R_{23}`) until
+  `R_AB` is left, exact. Hovering a step highlights the resistors it merges. Parts that carry no
+  current (an open end, shorted, not connected to A and B) are left out with a note. A network
+  that is not built from series and parallel, such as a bridge, is finished with the node rule
+  and a test current of 1 A.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 - The handheld keeps **sessions**, as the desktop app does: MODE → Sitzungen creates, opens,

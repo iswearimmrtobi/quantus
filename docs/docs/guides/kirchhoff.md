@@ -114,6 +114,38 @@ When wires cross without being connected, the windows of the drawing are not the
 circuit. The loops then come from a spanning tree, one for each branch outside the tree, and a
 note above the working says so. The loop arrows are drawn as usual.
 
+## Resistance between two points
+
+To find the resistance of a network between two points, draw only resistors and wires, and
+place the parts **Terminal A/B** from the palette: the first one is A, the second B. Each sits
+on a grid point, the end of a resistor or a point on a wire. While only one is placed, the
+working waits for the other.
+
+The working then reduces the network the way it is done by hand, one merge per line:
+
+- **In parallel**: resistors between the same two nodes, $R_{23} = \frac{R_2 \cdot R_3}{R_2 + R_3}$,
+  for three or more as the reciprocal of the sum of reciprocals.
+- **In series**: two resistors that meet at a node where nothing else branches off,
+  $R_{123} = R_1 + R_{23}$.
+
+Parallel resistors are merged first, then series ones, until one resistor between A and B is
+left: that is $R_{AB}$, exact. The merged resistor is named after the parts it stands for, and
+hovering a line highlights them on the canvas. The step detail decides how much each line
+shows: the rule only (Brief), the formula (Standard), or also the values put in (Detailed).
+
+Parts that carry no current are left out, each with a note: a resistor with an open end, one
+whose terminals are joined by a wire, and parts not connected to A and B. If A and B are joined
+by a wire, $R_{AB} = 0\,\Omega$.
+
+Some networks, such as a Wheatstone bridge, can't be reduced by series and parallel alone. After
+the merges that are possible, the rest is solved with the node rule: a test current
+$I = 1\,\mathrm{A}$ flows in at A and out at B, B is at $0\,\mathrm{V}$, the potentials
+$\varphi$ of the other nodes come from the node equations and their Gauss steps, and
+$R_{AB} = \varphi_A / I$.
+
+Sources can't be part of such a drawing: remove them, or remove the terminals to work out the
+currents.
+
 ## What is refused
 
 | Input | Message |
@@ -122,6 +154,9 @@ note above the working says so. The loop arrows are drawn as usual.
 | A part without its value | *The value … of R1 is missing.* |
 | A terminal connected to nothing | *R1 has an open end: nothing is connected to one of its terminals.* |
 | Voltage sources alone in a loop, or current sources alone at a junction | *The equations contradict each other: …* or *The equations leave the currents open: …* |
+| A source together with the terminals A and B | *V1 is a source; the resistance between A and B is worked out for resistors and wires only, …* |
+| A and B with no resistor path between them | *No resistor path leads from A to B, so no current can flow: R_AB is infinite.* |
+| A terminal on no part and no wire | *B is not connected: put it on the terminal of a resistor or on a wire.* |
 
 The last kind still shows the equations and the steps, up to the row that shows the
 contradiction. Ground symbols in a loaded Electronics file are ignored.

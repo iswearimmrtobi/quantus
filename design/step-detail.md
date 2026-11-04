@@ -937,6 +937,25 @@ in the plane of the circle with the sphere of the same centre and radius.
 Built: all of the above. Tests: `tests/geometry.rs`, with every operation checked at every level
 (each has a Brief line, Standard adds to it) and in both languages.
 
+## Kirchhoff mode: resistance between A and B
+
+Code in `crates/quantus-core/src/kirchhoff/equivalent.rs`. Each merge of resistors is one line
+whose explanation names the rule (in parallel: between the same two nodes; in series: nothing
+branches off between them). The line grows with the level; the shorter one gives way to it:
+
+| Level | Line of a merge | Example |
+|---|---|---|
+| Brief | The rule by name and the result | $R_{23} = R_2 \parallel R_3 = \frac{6}{5}\,\Omega$ |
+| Standard | The formula and the result | $R_{23} = \frac{R_2 \cdot R_3}{R_2 + R_3} = \frac{6}{5}\,\Omega$ |
+| Detailed, Maximal | Also the values put in | $R_{23} = \frac{R_2 \cdot R_3}{R_2 + R_3} = \frac{2\,\Omega \cdot 3\,\Omega}{2\,\Omega + 3\,\Omega} = \frac{6}{5}\,\Omega$ |
+
+The last line is the result, $R_{AB} = R_{123} = \frac{11}{5}\,\Omega$. A network that does not
+reduce gets the node equations (with names, then with values), the Gauss steps of the
+Kirchhoff mode's systems, and $R_{AB} = \varphi_A / I$.
+
+Built: all of the above. Tests: `tests/kirchhoff.rs` (both languages, Brief and Detailed) and
+the unit tests in `equivalent.rs`.
+
 ---
 
 ## Fixed along the way
