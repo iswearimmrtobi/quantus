@@ -21,7 +21,7 @@ const SYMBOLS: &[(char, &str)] = &[
     ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"), ('∧', "land"), ('∫', "int"),
     ('∑', "sum"), ('∏', "prod"), ('∨', "lor"), ('∈', "in"), ('∉', "notin"), ('∪', "cup"), ('∖', "setminus"),
     ('⇒', "Rightarrow"), ('↗', "nearrow"), ('↘', "searrow"), ('∅', "emptyset"), ('⇔', "Leftrightarrow"),
-    ('⌣', "smile"), ('⌢', "frown"), ('{', "{"),
+    ('⌣', "smile"), ('⌢', "frown"), ('▶', "blacktriangleright"), ('{', "{"),
     ('}', "}"),
 ];
 

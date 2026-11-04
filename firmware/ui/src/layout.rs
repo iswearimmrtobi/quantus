@@ -9,7 +9,7 @@ use crate::editor::{Accent, Node, Row, THIN_SPACE};
 use crate::font::Scale;
 
 /// Characters that get a gap on both sides.
-const OPERATORS: &str = "+-=×÷±→⇒⇔≈≤≥≠∧∨∈∉∪∖";
+const OPERATORS: &str = "+-=×÷±→⇒⇔≈≤≥≠∧∨∈∉∪∖▶";
 
 #[derive(Clone, Debug)]
 pub struct RowLayout {
@@ -152,7 +152,7 @@ fn grow(items: &mut [Item], first: usize, last: usize, scale: Scale) {
 }
 
 /// The signs [`drawn`] draws.
-pub const DRAWN: &str = "∧∨∈∉∪∖→⇒⇔↗↘∅⌣⌢ℝℤℏ";
+pub const DRAWN: &str = "∧∨∈∉∪∖→⇒⇔↗↘∅⌣⌢ℝℤℏ▶";
 
 /// A sign the fonts lack, drawn as lines around the math axis, about as tall as a digit.
 fn drawn(c: char, scale: Scale, unary: bool) -> Item {
@@ -225,6 +225,17 @@ fn drawn(c: char, scale: Scale, unary: bool) -> Item {
             let back = if c == '↗' { 1 } else { -1 };
             let head = vec![p(to.x - 5, to.y), to, p(to.x, to.y + 5 * back)];
             (None, height, vec![vec![from, to], head])
+        }
+        // The conversion to a unit: a triangle pointing right, filled with upright strokes.
+        '▶' => {
+            let width = half * 3 / 2;
+            let lines = (0..=width)
+                .map(|x| {
+                    let reach = half * (width - x) / width;
+                    vec![p(gap + x, middle - reach), p(gap + x, middle + reach)]
+                })
+                .collect();
+            (None, width, lines)
         }
         '∅' => {
             let circle = arc(gap + half, middle, half, 0.0, 360.0);

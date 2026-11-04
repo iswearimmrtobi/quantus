@@ -198,7 +198,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The handheld has a **CONST** key (F6 in the simulator, Ctrl+U over serial) and OPTN →
   Konstanten in Physik: the 47 constants in their six categories, each with its symbol.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
-  ∅, ⌣, ⌢, ℝ, ℤ and ℏ, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
+  ∅, ⌣, ⌢, ℝ, ℤ, ℏ and the conversion arrow ▶, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree
   written as a power (`30^\circ`, `^\circ\mathrm{C}`) is read as the sign °.
 - The steps of Algebra and of the curve sketch's working are **German** when the language is

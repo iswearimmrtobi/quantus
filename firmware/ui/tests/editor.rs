@@ -178,3 +178,11 @@ fn hbar_is_drawn_as_an_h_with_a_bar() {
     assert!(Scale::Normal.width("ℏ") == 0);
     assert!(layout::layout(&row, Scale::Normal).width >= Scale::Normal.width("h"));
 }
+
+#[test]
+fn the_conversion_arrow_is_a_drawn_sign() {
+    let row = latex::parse(r"5\,\mathrm{cm} \blacktriangleright \mathrm{in}");
+    assert_eq!(row.0[3], Node::Char('▶'));
+    assert_eq!(row.to_latex(), r"5\,\mathrm{cm}\blacktriangleright\mathrm{in}");
+    assert_eq!(latex::parse("5cm▶in").to_latex(), r"5cm\blacktriangleright in");
+}
