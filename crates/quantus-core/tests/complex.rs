@@ -134,6 +134,16 @@ fn inverse_trigonometric_functions_of_complex_numbers() {
 }
 
 #[test]
+fn integrals_of_complex_functions() {
+    assert_eq!(imaginary(r"\int_0^{4} (-3x - 4i)\,dx"), "-24 - 16i");
+    assert_eq!(imaginary(r"\int_0^{\pi} e^{ix}\,dx"), "2i");
+    assert_eq!(imaginary(r"\int_0^1 |x - \frac{1}{2}| i\,dx"), "0{,}25i");
+    assert_eq!(imaginary(r"\int_{-\infty}^{\infty} \frac{1+i}{x^2 + 1}\,dx"), "3{,}14159265358979323846264338328 + 3{,}14159265358979323846264338328i");
+    // A real integrand stays real
+    assert_eq!(imaginary(r"\int_0^2 x\,dx"), "2");
+}
+
+#[test]
 fn a_variable_can_hold_a_complex_number() {
     use quantus_core::session::Session;
 

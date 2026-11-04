@@ -75,7 +75,10 @@ In imaginary mode:
 - Equations of degree three to twelve have all their complex roots: exact up to degree four,
   numerical (Durand–Kerner, then Newton to the full precision) beyond.
 
-Not covered: integrals of complex functions, and complex units
+- Integrals of complex functions with real bounds: the real and the imaginary part are
+  integrated in two passes; the second runs only when a sample was complex.
+
+Not covered: integrals with complex bounds (paths in the complex plane), and complex units
 (`2i\,\mathrm{m}` works, `\mathrm{m}` is not a complex quantity). Odd roots of negative
 numbers keep their real value: `\sqrt[3]{-8}` is -2. The algebraic simplifier leaves `i` alone,
 so `(x+i)(x-i)` with a free `x` is shown as typed.

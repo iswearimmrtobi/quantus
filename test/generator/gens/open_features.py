@@ -189,22 +189,22 @@ def complex_integral(rng, diff):
         body = f"{'' if c == 1 else '-' if c == -1 else c}x {'+' if b > 0 else '-'} {'' if abs(b) == 1 else abs(b)}i"
         return case("complex-integral", diff, f"\\int_0^{{{a}}} ({body})\\,dx",
                     expect_complex(F(c * a * a, 2), F(b * a), TOL_NUMERIC), "polynomial with an imaginary part",
-                    gap=True, settings=IMAGINARY)
+                    gap=False, settings=IMAGINARY)
     if kind == 1:  # ∫_0^a e^{kix} dx = sin(ka)/k + i (1 - cos(ka))/k
         k = rng.randint(1, 4)
         ka = dec(k * a)
         return case("complex-integral", diff, f"\\int_0^{{{a}}} e^{{{'' if k == 1 else k}ix}}\\,dx",
-                    expect_complex(d_sin(ka) / k, (1 - d_cos(ka)) / k, TOL_NUMERIC), "e^{ikx}", gap=True,
+                    expect_complex(d_sin(ka) / k, (1 - d_cos(ka)) / k, TOL_NUMERIC), "e^{ikx}", gap=False,
                     settings=IMAGINARY)
     if kind == 2:  # ∫_0^π e^{ix} dx = 2i
         return case("complex-integral", diff, "\\int_0^{\\pi} e^{ix}\\,dx", expect_complex(F(0), F(2), TOL_NUMERIC),
-                    "e^{ix} over [0, π]", gap=True, settings=IMAGINARY)
+                    "e^{ix} over [0, π]", gap=False, settings=IMAGINARY)
     # ∫_0^a 1/(x + bi) dx = ln(a + bi) - ln(bi)
     b = rng.choice([n for n in range(-5, 6) if n != 0])
     top, bottom = c_ln((dec(a), dec(b))), c_ln((D(0), dec(b)))
     return case("complex-integral", diff, f"\\int_0^{{{a}}} \\frac{{1}}{{x {'+' if b > 0 else '-'} "
                 f"{'' if abs(b) == 1 else abs(b)}i}}\\,dx",
-                expect_complex(top[0] - bottom[0], top[1] - bottom[1], TOL_NUMERIC), "1/(x + bi)", gap=True,
+                expect_complex(top[0] - bottom[0], top[1] - bottom[1], TOL_NUMERIC), "1/(x + bi)", gap=False,
                 settings=IMAGINARY)
 
 

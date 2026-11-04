@@ -285,6 +285,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - In Imaginary mode `\arcsin`, `\arccos` and `\arctan` take complex arguments, and real ones beyond
   ±1: `\arcsin(3+i)`, `\arcsin 2 = \frac{\pi}{2} + 1{,}317i`. On a branch cut the value is the one C
   and Python give.
+- In Imaginary mode an integral of a complex function has a complex value:
+  `\int_0^{\pi} e^{ix}\,dx = 2i`.
 
 ### Changed
 

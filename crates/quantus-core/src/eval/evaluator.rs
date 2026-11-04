@@ -344,35 +344,81 @@ impl<'a> Evaluator<'a> {
         let digits = self.numeric_digits + 8;
         let (a, b) = (lower.value.decimal(digits)?, upper.value.decimal(digits)?);
 
-        let mut scope = self.variables.clone();
-        let mut integrand_unit = None;
-        let mut sample = |x: &Decimal| -> Result<Decimal> {
-            scope.insert(
-                variable.to_string(),
-                PhysicalQuantity::new(Value::from_decimal(x), lower.unit.clone()),
-            );
-            let y = self.scoped_deeper(&scope).evaluate(body)?;
-            let y = match &integrand_unit {
-                None => {
-                    integrand_unit = Some(y.unit.clone());
-                    y
-                }
-                Some(unit) => y.to(unit)?,
-            };
-            y.value.decimal(digits + 10)
-        };
         // A kink (|x - 1| at 1) slows tanh-sinh to a crawl; integrating up to it and on from it
         // keeps every piece smooth.
         let mut points = vec![a.clone()];
         points.extend(self.kinks(variable, body, &lower, &a, &b, digits)?);
         points.push(b.clone());
-        let mut result = RBig::ZERO;
-        for piece in points.windows(2) {
-            result += numeric::integrate(&piece[0], &piece[1], digits, &mut sample)?.to_rational();
+        let mut integrand_unit = None;
+        let mut parts = Vec::new();
+        let mut complex_seen = false;
+        // The real part, and the imaginary part if a sample had one (Imaginary mode only).
+        for part in [Part::Real, Part::Imaginary] {
+            if part == Part::Imaginary && !complex_seen {
+                break;
+            }
+            let mut scope = self.variables.clone();
+            let mut sample = |x: &Decimal| -> Result<Decimal> {
+                scope.insert(variable.to_string(), PhysicalQuantity::new(Value::from_decimal(x), lower.unit.clone()));
+                let y = self.scoped_deeper(&scope).evaluate(body)?;
+                let y = match &integrand_unit {
+                    None => {
+                        integrand_unit = Some(y.unit.clone());
+                        y
+                    }
+                    Some(unit) => y.to(unit)?,
+                };
+                self.integrand_part(&y.value, part, digits + 10, &mut complex_seen)
+            };
+            let mut result = RBig::ZERO;
+            for piece in points.windows(2) {
+                result += numeric::integrate(&piece[0], &piece[1], digits, &mut sample)?.to_rational();
+            }
+            parts.push(result);
         }
         let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
-        let value = Value::from_decimal(&Value::Rat(result).decimal(self.numeric_digits)?);
+        let value = self.integral_value(parts)?;
         Ok(PhysicalQuantity::new(value, unit).mul(&PhysicalQuantity::new(Value::one(), lower.unit)))
+    }
+
+    /// The part of an integrand's sample that is being integrated. Outside Imaginary mode the
+    /// value must be real; in it, a sample with an imaginary part sets `complex_seen`, so the
+    /// imaginary part is integrated in a second pass.
+    fn integrand_part(&self, value: &Value, part: Part, digits: usize, complex_seen: &mut bool) -> Result<Decimal> {
+        if !self.complex() || !value.contains_imaginary() {
+            return match part {
+                Part::Real => value.decimal(digits),
+                Part::Imaginary => Ok(Decimal::from_i64(0)),
+            };
+        }
+        let Some((re, im)) = value.re_im() else { return value.decimal(digits) };
+        if !im.is_zero() {
+            *complex_seen = true;
+        }
+        match part {
+            Part::Real => re.decimal(digits),
+            Part::Imaginary => im.decimal(digits),
+        }
+    }
+
+    /// The integral's value from its real part and, if there is one, its imaginary part. Both
+    /// come from one integral whose precision is relative to its modulus, so a part below that
+    /// precision next to the other is 0 (the real part of `\int_0^{\pi} e^{ix}\,dx`).
+    fn integral_value(&self, parts: Vec<RBig>) -> Result<Value> {
+        let rounded = |r: RBig| -> Result<Value> { Ok(Value::from_decimal(&Value::Rat(r).decimal(self.numeric_digits)?)) };
+        let mut parts = parts.into_iter();
+        let re = parts.next().unwrap_or(RBig::ZERO);
+        let Some(im) = parts.next() else { return rounded(re) };
+        let noise = |part: &RBig, other: &RBig| {
+            let scale = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.numeric_digits));
+            part.clone().abs() < other.clone().abs() * scale
+        };
+        let (re, im) = match (noise(&re, &im), noise(&im, &re)) {
+            (true, _) => (RBig::ZERO, im),
+            (_, true) => (re, RBig::ZERO),
+            _ => (re, im),
+        };
+        Ok(rounded(re)?.add(&rounded(im)?.mul(&Value::I)))
     }
 
     /// An integral with an infinite bound, mapped onto a finite interval: x = a + t/(1-t) on
@@ -413,57 +459,63 @@ impl<'a> Evaluator<'a> {
         let one = RBig::ONE;
         let far = RBig::from(IBig::from(10).pow(20));
 
-        let mut scope = self.variables.clone();
         let mut integrand_unit = None;
-        let mut sample = |t: &Decimal| -> Result<Decimal> {
-            let t = t.to_rational();
-            let (x, jacobian) = match (lower_inf, upper_inf) {
-                (None, Some(_)) => {
-                    let s = &one - &t;
-                    (&anchor + &t / &s, &one / (&s * &s))
-                }
-                (Some(_), None) => {
-                    let s = &one - &t;
-                    (&anchor - &t / &s, &one / (&s * &s))
-                }
-                _ => {
-                    let s = &one - &t * &t;
-                    (&t / &s, (&one + &t * &t) / (&s * &s))
-                }
+        let mut parts = Vec::new();
+        let mut complex_seen = false;
+        for part in [Part::Real, Part::Imaginary] {
+            if part == Part::Imaginary && !complex_seen {
+                break;
+            }
+            let mut scope = self.variables.clone();
+            let mut sample = |t: &Decimal| -> Result<Decimal> {
+                let t = t.to_rational();
+                let (x, jacobian) = match (lower_inf, upper_inf) {
+                    (None, Some(_)) => {
+                        let s = &one - &t;
+                        (&anchor + &t / &s, &one / (&s * &s))
+                    }
+                    (Some(_), None) => {
+                        let s = &one - &t;
+                        (&anchor - &t / &s, &one / (&s * &s))
+                    }
+                    _ => {
+                        let s = &one - &t * &t;
+                        (&t / &s, (&one + &t * &t) / (&s * &s))
+                    }
+                };
+                scope.insert(
+                    variable.to_string(),
+                    PhysicalQuantity::new(Value::Rat(x.clone()), variable_unit.clone()),
+                );
+                let y = match self.scoped_deeper(&scope).evaluate(body) {
+                    Ok(y) => y,
+                    Err(_) if x.clone().abs() > far => return Ok(Decimal::from_i64(0)),
+                    Err(e) => return Err(e),
+                };
+                let y = match &integrand_unit {
+                    None => {
+                        integrand_unit = Some(y.unit.clone());
+                        y
+                    }
+                    Some(unit) => y.to(unit)?,
+                };
+                let value = match self.integrand_part(&y.value, part, digits + 10, &mut complex_seen) {
+                    Ok(v) => v.to_rational(),
+                    Err(_) if x.clone().abs() > far => RBig::ZERO,
+                    Err(e) => return Err(e),
+                };
+                Value::Rat(value * jacobian).decimal(digits + 10)
             };
-            scope.insert(
-                variable.to_string(),
-                PhysicalQuantity::new(Value::Rat(x.clone()), variable_unit.clone()),
-            );
-            let y = match self.scoped_deeper(&scope).evaluate(body) {
-                Ok(y) => y,
-                Err(_) if x.clone().abs() > far => return Ok(Decimal::from_i64(0)),
-                Err(e) => return Err(e),
+            let (a, b) = match (lower_inf, upper_inf) {
+                (Some(_), Some(_)) => (Decimal::from_i64(-1), Decimal::from_i64(1)),
+                (None, Some(_)) => (Decimal::from_i64(0), Decimal::from_i64(1)),
+                // x = anchor - t/(1-t) runs from -∞ (t → 1) to the anchor (t = 0).
+                _ => (Decimal::from_i64(0), Decimal::from_i64(1)),
             };
-            let y = match &integrand_unit {
-                None => {
-                    integrand_unit = Some(y.unit.clone());
-                    y
-                }
-                Some(unit) => y.to(unit)?,
-            };
-            let value = match y.value.decimal(digits + 10) {
-                Ok(v) => v.to_rational(),
-                Err(_) if x.clone().abs() > far => RBig::ZERO,
-                Err(e) => return Err(e),
-            };
-            Value::Rat(value * jacobian).decimal(digits + 10)
-        };
-        let (a, b) = match (lower_inf, upper_inf) {
-            (Some(_), Some(_)) => (Decimal::from_i64(-1), Decimal::from_i64(1)),
-            (None, Some(_)) => (Decimal::from_i64(0), Decimal::from_i64(1)),
-            // x = anchor - t/(1-t) runs from -∞ (t → 1) to the anchor (t = 0).
-            _ => (Decimal::from_i64(0), Decimal::from_i64(1)),
-        };
-        let result =
-            numeric::integrate(&a, &b, digits, &mut sample)?.to_rational() * RBig::from(sign);
+            parts.push(numeric::integrate(&a, &b, digits, &mut sample)?.to_rational() * RBig::from(sign));
+        }
         let unit = integrand_unit.unwrap_or(crate::units::Unit::ONE);
-        let value = Value::from_decimal(&Value::Rat(result).decimal(self.numeric_digits)?);
+        let value = self.integral_value(parts)?;
         Ok(PhysicalQuantity::new(value, unit)
             .mul(&PhysicalQuantity::new(Value::one(), variable_unit)))
     }
@@ -950,4 +1002,11 @@ mod tests {
         let zero = eval("\\sqrt[0]{4}", &Variables::new()).unwrap_err();
         assert!(zero.to_string().contains("positive whole number, but was '0'"));
     }
+}
+
+/// The part of a complex integrand that one pass of a numerical integral takes.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Part {
+    Real,
+    Imaginary,
 }
