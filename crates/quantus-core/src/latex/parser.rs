@@ -101,6 +101,15 @@ const FUNCTION_COMMANDS: [&str; 21] = [
     "\\Re", "\\Im", "\\arg", "\\overline",
 ];
 
+/// `body` differentiated `order` times by `variable`, the point on the outermost derivative.
+fn nested_derivative(variable: &str, body: Node, order: u32, at: Option<Box<Node>>, position: usize) -> Node {
+    let mut node = body;
+    for _ in 1..order {
+        node = Node::Derivative { variable: variable.to_string(), body: Box::new(node), at: None, position };
+    }
+    Node::Derivative { variable: variable.to_string(), body: Box::new(node), at, position }
+}
+
 /// One letter or one Greek command: the spelling of an unindexed variable.
 fn is_single_letter(text: &str) -> bool {
     text.starts_with('\\') || text.chars().count() == 1
@@ -1183,54 +1192,75 @@ impl Parser<'_> {
         Ok(name.text)
     }
 
-    /// `{d}{dx}` right after a `\frac`: the variable and the token index after the header.
-    fn derivative_header(&self) -> Option<(String, usize)> {
-        let kind = |i: usize| self.peek(i - self.index).kind;
-        let text = |i: usize| self.peek(i - self.index).text.as_str();
+    /// `{d}{dx}` right after a `\frac`: the variable, the order and the token index after the
+    /// header. Also `{d^2}{dx^2}` for a higher order, `\mathrm{d}` for `d`, and `\partial` for
+    /// both `d`s, which with a single variable is the same derivative.
+    fn derivative_header(&self) -> Option<(String, u32, usize)> {
+        let kind = |i: usize| self.tokens[i.min(self.tokens.len() - 1)].kind;
+        let text = |i: usize| self.tokens[i.min(self.tokens.len() - 1)].text.as_str();
         let mut i = self.index + 1;
         if kind(i) != TokenType::LBrace {
             return None;
         }
         i += 1;
-        if kind(i) == TokenType::Identifier && text(i) == "d" && kind(i + 1) == TokenType::RBrace {
-            i += 2;
+        let partial = kind(i) == TokenType::Command && text(i) == "\\partial";
+        if partial || (kind(i) == TokenType::Identifier && text(i) == "d") {
+            i += 1;
         } else if kind(i) == TokenType::Command
             && text(i) == "\\mathrm"
             && kind(i + 1) == TokenType::LBrace
             && text(i + 2) == "d"
             && kind(i + 3) == TokenType::RBrace
-            && kind(i + 4) == TokenType::RBrace
         {
-            i += 5;
+            i += 4;
         } else {
             return None;
         }
-        if kind(i) != TokenType::LBrace {
+        let order = self.derivative_order(&mut i)?;
+        if kind(i) != TokenType::RBrace || kind(i + 1) != TokenType::LBrace {
             return None;
         }
-        let (name, length) = self.differential_at(i + 1)?;
-        (kind(i + 1 + length) == TokenType::RBrace).then_some((name, i + 2 + length))
+        i += 2;
+        let (name, length) = if partial {
+            let named = kind(i) == TokenType::Command
+                && text(i) == "\\partial"
+                && kind(i + 1) == TokenType::Identifier
+                && is_single_letter(text(i + 1));
+            named.then(|| (text(i + 1).to_string(), 2))?
+        } else {
+            self.differential_at(i)?
+        };
+        i += length;
+        if self.derivative_order(&mut i)? != order || kind(i) != TokenType::RBrace {
+            return None;
+        }
+        Some((name, order, i + 1))
     }
 
-    /// `\frac{d}{dx} body`, and `\left.\frac{d}{dx} body\right|_{x=a}` for the value at a point.
+    /// The order after a `d` or `dx` at token `i`: `^2` or `^{2}`, moving `i` past it, or 1
+    /// without a power. `None` for a power that is not a whole number from 1 to 9.
+    fn derivative_order(&self, i: &mut usize) -> Option<u32> {
+        let token = |i: usize| &self.tokens[i.min(self.tokens.len() - 1)];
+        if token(*i).kind != TokenType::Caret {
+            return Some(1);
+        }
+        let braced = token(*i + 1).kind == TokenType::LBrace;
+        let number = token(*i + 1 + usize::from(braced));
+        if number.kind != TokenType::Number || (braced && token(*i + 3).kind != TokenType::RBrace) {
+            return None;
+        }
+        let order = number.text.parse::<u32>().ok().filter(|n| (1..=9).contains(n))?;
+        *i += 2 + 2 * usize::from(braced);
+        Some(order)
+    }
+
+    /// `\frac{d}{dx} body`, and `\left.\frac{d}{dx} body\right|_{x=a}` for the value at a point;
+    /// `\frac{d^n}{dx^n}` is the derivative taken n times.
     fn parse_derivative(&mut self, token: &Token) -> Result<Node> {
-        let (variable, after_header) = self.derivative_header().expect("checked by the caller");
+        let (variable, order, after_header) = self.derivative_header().expect("checked by the caller");
         self.index = after_header;
         let body = self.with_bound(&variable, |p| p.parse_term())?;
-        let at = if self.current().kind == TokenType::Pipe && self.peek(1).kind == TokenType::Underscore {
-            self.index += 2;
-            self.expect(TokenType::LBrace, "'{'")?;
-            let named = self.parse_bound_name("the evaluation point")?;
-            if named != variable {
-                return Err(self.error(&format!("The point has to be given for {variable}, as in _{{{variable}=2}}."), self.current().position));
-            }
-            self.expect(TokenType::Equals, "'='")?;
-            let at = self.parse_expression()?;
-            self.expect(TokenType::RBrace, "'}'")?;
-            Some(Box::new(at))
-        } else {
-            None
-        };
+        let at = self.parse_derivative_point(&variable)?;
         // In `\frac{d}{dx}\frac{d}{dx} f |_{x=2}` the inner derivative has already taken the
         // point; it belongs to the outermost one.
         let (body, at) = match (body, at) {
@@ -1239,7 +1269,24 @@ impl Parser<'_> {
             }
             other => other,
         };
-        Ok(Node::Derivative { variable, body: Box::new(body), at, position: token.position })
+        Ok(nested_derivative(&variable, body, order, at, token.position))
+    }
+
+    /// The point `|_{x=a}` after a derivative's body, if there is one; it has to name `variable`.
+    fn parse_derivative_point(&mut self, variable: &str) -> Result<Option<Box<Node>>> {
+        if self.current().kind != TokenType::Pipe || self.peek(1).kind != TokenType::Underscore {
+            return Ok(None);
+        }
+        self.index += 2;
+        self.expect(TokenType::LBrace, "'{'")?;
+        let named = self.parse_bound_name("the evaluation point")?;
+        if named != variable {
+            return Err(self.error(&format!("The point has to be given for {variable}, as in _{{{variable}=2}}."), self.current().position));
+        }
+        self.expect(TokenType::Equals, "'='")?;
+        let at = self.parse_expression()?;
+        self.expect(TokenType::RBrace, "'}'")?;
+        Ok(Some(Box::new(at)))
     }
 
     /// The single-letter name a sum, limit or integral binds.

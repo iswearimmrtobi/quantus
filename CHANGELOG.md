@@ -32,6 +32,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
     duplicate and delete them, and the last one opened again on start. The history now keeps
     200 entries and can be cleared.
 
+- Higher derivatives in one step, `\left.\frac{d^2}{dx^2} f\right|_{x=1}` (also `\mathrm{d}^2` and
+  braced powers), and the partial-derivative sign, `\frac{\partial}{\partial x}` and
+  `\frac{\partial^2}{\partial x^2}`, which with one variable is the ordinary derivative.
 - `writeup` in the engine API: the history of a session as given, wanted and solution blocks.
   It recognises about twenty school laws by their units, rearranges them exactly, and splits
   sums and parts with a law of their own into steps of their own.
