@@ -2479,6 +2479,11 @@ select option {
   height: 460px;
 }
 
+.geometry-plot-buttons {
+  display: flex;
+  gap: 6px;
+}
+
 .geometry-axis {
   stroke: var(--text-faint);
   stroke-width: 1.2;

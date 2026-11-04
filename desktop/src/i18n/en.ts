@@ -228,6 +228,8 @@ export const en = {
   'mode.geometry': 'Geometry',
   'mode.geometry.hint': 'Points, vectors, lines, planes, spheres and circles in space, drawn in 3D, with their relations, distances and angles worked out exactly. Inputs are read as in Algebra; objects have names of their own, apart from the variables.',
   'geometry.empty': 'The scene is empty. Add a point, a vector, a line, a plane, a sphere or a circle.',
+  'geometry.plot.hint': 'Drag to turn, scroll to zoom',
+  'geometry.plot.above': 'View from above',
   'choice.degree': 'Degrees',
   'choice.radian': 'Radians',
   'choice.improper': 'd/c',

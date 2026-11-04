@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type GeometryObject, type GeometryViewResponse, type ViewPoint } from '../api';
+import { useT } from '../i18n';
 
 interface Props {
   /** The scene to draw; the engine builds and projects it. */
@@ -13,16 +14,37 @@ export const DEFAULT_PITCH = (20 * Math.PI) / 180;
 const FILL = 0.92;
 /** How far a label sits from its anchor, in pixels. */
 const LABEL_OFFSET = 6;
+/** Radians of turn per pixel dragged. */
+const TURN = 0.01;
+const ZOOM_STEP = 1.15;
+/** The zoom on top of the fit stays in this range. */
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 50;
+const HALF_PI = Math.PI / 2;
+
+/** How the scene is looked at; `zoom` is on top of the fit, so 1 shows the whole box. */
+interface Look {
+  yaw: number;
+  pitch: number;
+  zoom: number;
+}
+
+const START: Look = { yaw: DEFAULT_YAW, pitch: DEFAULT_PITCH, zoom: 1 };
+/** From above: x to the right, y up, as `Camera::from_above`. */
+const ABOVE: Omit<Look, 'zoom'> = { yaw: -HALF_PI, pitch: HALF_PI };
 
 /**
  * The 3D view of the scene as a hand-drawn SVG, like `FunctionPlot`: the engine projects the
- * scene into flat primitives, far to near, and this only draws them in that order.
+ * scene into flat primitives, far to near, and this only draws them in that order. Dragging
+ * turns the scene, the wheel zooms.
  */
 export function GeometryPlot({ objects }: Props) {
+  const { t } = useT();
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 460 });
   const [view, setView] = useState<GeometryViewResponse | null>(null);
-  const request = useRef(0);
+  const [look, setLook] = useState<Look>(START);
+  const drag = useRef<{ x: number; y: number; look: Look } | null>(null);
 
   useEffect(() => {
     const element = host.current;
@@ -35,16 +57,72 @@ export function GeometryPlot({ objects }: Props) {
     return () => observer.disconnect();
   }, []);
 
+  // One request at a time: while the engine projects, moves only update `wanted`, and the
+  // answer asks again for the latest of them. A drag thus never queues up stale pictures.
+  const wanted = useRef({ objects, look });
+  wanted.current = { objects, look };
+  const busy = useRef(false);
+  const stale = useRef(false);
+  const alive = useRef(true);
   useEffect(() => {
-    const id = ++request.current;
-    api.geometryView({ scene: { objects }, yaw: DEFAULT_YAW, pitch: DEFAULT_PITCH, zoom: 1 }).then(
-      (next) => {
-        if (id === request.current) setView(next);
-      },
-      // The last picture stays; the next change asks again.
-      () => {},
-    );
-  }, [objects]);
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const project = useCallback(() => {
+    if (busy.current) {
+      stale.current = true;
+      return;
+    }
+    busy.current = true;
+    stale.current = false;
+    const { objects: scene, look: at } = wanted.current;
+    api
+      .geometryView({ scene: { objects: scene }, ...at })
+      .then(
+        (next) => {
+          if (alive.current) setView(next);
+        },
+        // The last picture stays; the next change asks again.
+        () => {},
+      )
+      .finally(() => {
+        busy.current = false;
+        if (stale.current && alive.current) project();
+      });
+  }, []);
+  useEffect(() => project(), [objects, look, project]);
+
+  // Zoom with the wheel. A native listener, since React's wheel listeners are passive and could
+  // not keep the page from scrolling along.
+  useEffect(() => {
+    const element = host.current;
+    if (!element) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const factor = event.deltaY > 0 ? 1 / ZOOM_STEP : ZOOM_STEP;
+      setLook((l) => ({ ...l, zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, l.zoom * factor)) }));
+    };
+    element.addEventListener('wheel', onWheel, { passive: false });
+    return () => element.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const onPointerDown = (event: React.PointerEvent) => {
+    drag.current = { x: event.clientX, y: event.clientY, look };
+    (event.currentTarget as Element).setPointerCapture(event.pointerId);
+  };
+  // Dragging right turns the scene to the right, dragging down tips it towards the viewer.
+  const onPointerMove = (event: React.PointerEvent) => {
+    const start = drag.current;
+    if (!start) return;
+    const yaw = start.look.yaw - (event.clientX - start.x) * TURN;
+    const pitch = Math.min(HALF_PI, Math.max(-HALF_PI, start.look.pitch + (event.clientY - start.y) * TURN));
+    setLook({ ...start.look, yaw, pitch });
+  };
+  const onPointerUp = () => {
+    drag.current = null;
+  };
 
   const { width, height } = size;
   const scale = (Math.min(width, height) / 2) * FILL;
@@ -57,7 +135,14 @@ export function GeometryPlot({ objects }: Props) {
 
   return (
     <div className="plot geometry-plot">
-      <div className="plot-canvas" ref={host}>
+      <div
+        className="plot-canvas"
+        ref={host}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+      >
         <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
           {view?.primitives.map((primitive, i) => {
             switch (primitive.kind) {
@@ -84,6 +169,17 @@ export function GeometryPlot({ objects }: Props) {
             }
           })}
         </svg>
+      </div>
+      <div className="plot-footer">
+        <span className="plot-hint">{t('geometry.plot.hint')}</span>
+        <span className="geometry-plot-buttons">
+          <button className="copy-btn" onClick={() => setLook((l) => ({ ...l, ...ABOVE }))}>
+            {t('geometry.plot.above')}
+          </button>
+          <button className="copy-btn" onClick={() => setLook(START)}>
+            {t('analysis.reset')}
+          </button>
+        </span>
       </div>
     </div>
   );
