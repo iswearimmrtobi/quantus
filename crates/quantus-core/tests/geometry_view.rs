@@ -1,5 +1,5 @@
 use quantus_core::geometry::view::{project, Bounds, Camera, Figure, Primitive, Shown, Stroke};
-use quantus_core::geometry::Point;
+use quantus_core::geometry::{Line, Point, Vector3};
 
 fn close(a: f64, b: f64) -> bool {
     (a - b).abs() < 1e-9
@@ -132,4 +132,67 @@ fn the_fitted_camera_keeps_the_box_in_the_unit_circle() {
         let centre = [0, 1, 2].map(|i| (bounds.min[i] + bounds.max[i]) / 2.0);
         assert!(close2(camera.project(centre).0, [0.0, 0.0]));
     }
+}
+
+fn segments(primitives: &[Primitive], of: usize) -> Vec<([f64; 2], [f64; 2])> {
+    primitives
+        .iter()
+        .filter_map(|p| match p {
+            Primitive::Segment { from, to, object: Some(o), .. } if *o == of => Some((*from, *to)),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_line_is_clipped_to_the_box() {
+    let bounds = unit_box();
+    let (a, b) = bounds.clip([0.0, 0.0, 0.0], [1.0, 1.0, 0.0]).unwrap();
+    assert_eq!((a, b), ([-2.0, -2.0, 0.0], [2.0, 2.0, 0.0]));
+    let (a, b) = bounds.clip([0.0, 1.0, 5.0], [0.0, 0.0, -2.0]).unwrap();
+    assert_eq!((a, b), ([0.0, 1.0, 2.0], [0.0, 1.0, -2.0]));
+    // Parallel to a face outside the box, and past a corner.
+    assert_eq!(bounds.clip([0.0, 3.0, 0.0], [1.0, 0.0, 0.0]), None);
+    assert_eq!(bounds.clip([5.0, 0.0, 0.0], [1.0, 1.0, 0.0]), None);
+}
+
+#[test]
+fn a_line_is_one_segment_with_its_name_at_the_end() {
+    let g = Line::new(Point::from_ints(0, 0, 1), Vector3::from_ints(1, 0, 0)).unwrap();
+    let figure = Figure::line(&g).unwrap();
+    assert_eq!(figure, Figure::Line { support: [0.0, 0.0, 1.0], direction: [1.0, 0.0, 0.0] });
+    let camera = Camera::default().from_above();
+    let primitives = project(&[shown("g", figure)], &camera, &unit_box());
+    let lines = segments(&primitives, 0);
+    assert_eq!(lines.len(), 1);
+    assert!(close2(lines[0].0, [-2.0, 0.0]) && close2(lines[0].1, [2.0, 0.0]), "{lines:?}");
+    assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, at, .. } if text == "g" && close2(*at, [2.0, 0.0]))));
+
+    let outside = Figure::Line { support: [0.0, 5.0, 0.0], direction: [1.0, 0.0, 0.0] };
+    assert!(segments(&project(&[shown("h", outside)], &camera, &unit_box()), 0).is_empty());
+}
+
+#[test]
+fn a_vector_is_an_arrow_from_the_origin() {
+    let figure = Figure::vector(&Vector3::from_ints(1, 0, 0)).unwrap();
+    let camera = Camera::default().from_above();
+    let primitives = project(&[shown("a", figure)], &camera, &unit_box());
+    let strokes = segments(&primitives, 0);
+    assert_eq!(strokes.len(), 3);
+    assert!(close2(strokes[0].0, [0.0, 0.0]) && close2(strokes[0].1, [1.0, 0.0]));
+    // The head points back from the tip, one stroke to each side.
+    for (from, to) in &strokes[1..] {
+        assert!(close2(*from, [1.0, 0.0]) && to[0] < 1.0);
+    }
+    assert!(strokes[1].1[1] * strokes[2].1[1] < 0.0);
+}
+
+#[test]
+fn the_box_takes_the_support_of_a_line_and_the_tip_of_a_vector() {
+    let figures = [
+        shown("g", Figure::Line { support: [10.0, 0.0, 0.0], direction: [0.0, 1.0, 0.0] }),
+        shown("a", Figure::Vector([0.0, 0.0, -10.0])),
+    ];
+    let bounds = Bounds::fit(&figures);
+    assert!(close(bounds.max[0], 10.5) && close(bounds.min[2], -10.5), "{bounds:?}");
 }

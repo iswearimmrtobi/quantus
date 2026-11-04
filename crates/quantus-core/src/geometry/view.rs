@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::num::Value;
 
-use super::Point;
+use super::{Line, Point, Vector3};
 
 /// A point or vector in plain floats.
 pub type V3 = [f64; 3];
@@ -19,6 +19,14 @@ pub type V2 = [f64; 2];
 
 fn sub(a: V3, b: V3) -> V3 {
     [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+fn add(a: V3, b: V3) -> V3 {
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+}
+
+fn scale(k: f64, a: V3) -> V3 {
+    [k * a[0], k * a[1], k * a[2]]
 }
 
 fn dot(a: V3, b: V3) -> f64 {
@@ -36,6 +44,8 @@ fn approx3(coords: &[Value; 3]) -> Option<V3> {
 
 /// The length of a tick on the screen, in view units.
 pub const TICK: f64 = 0.02;
+/// The length of the two strokes of an arrow head on the screen, in view units.
+pub const ARROW: f64 = 0.04;
 
 /// Where the scene is looked at from. The viewer sits in the direction of yaw (around z, from
 /// the x axis towards y) and pitch (up from the x-y plane), looking at `centre`; `zoom` is view
@@ -116,7 +126,8 @@ impl Bounds {
         };
         for shown in figures {
             match &shown.figure {
-                Figure::Point(p) => take(*p),
+                Figure::Point(p) | Figure::Vector(p) => take(*p),
+                Figure::Line { support, .. } => take(*support),
             }
         }
         for i in 0..3 {
@@ -133,11 +144,22 @@ impl Bounds {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Figure {
     Point(V3),
+    /// Drawn from the origin to this tip.
+    Vector(V3),
+    Line { support: V3, direction: V3 },
 }
 
 impl Figure {
     pub fn point(p: &Point) -> Option<Figure> {
         approx3(&p.coords).map(Figure::Point)
+    }
+
+    pub fn vector(v: &Vector3) -> Option<Figure> {
+        approx3(&v.coords).map(Figure::Vector)
+    }
+
+    pub fn line(g: &Line) -> Option<Figure> {
+        Some(Figure::Line { support: approx3(&g.support.coords)?, direction: approx3(&g.direction.coords)? })
     }
 }
 
@@ -167,6 +189,27 @@ pub enum Primitive {
     Marker { at: V2, depth: f64, object: usize },
     /// A name, an axis or a tick number, placed next to `at`.
     Label { at: V2, depth: f64, text: String, object: Option<usize> },
+}
+
+impl Bounds {
+    /// The part of the line `support + t · direction` inside the box, as its two ends; `None`
+    /// if the line misses the box (Liang–Barsky).
+    pub fn clip(&self, support: V3, direction: V3) -> Option<(V3, V3)> {
+        let (mut lo, mut hi) = (f64::NEG_INFINITY, f64::INFINITY);
+        for i in 0..3 {
+            if direction[i].abs() < 1e-12 {
+                if support[i] < self.min[i] || support[i] > self.max[i] {
+                    return None;
+                }
+                continue;
+            }
+            let a = (self.min[i] - support[i]) / direction[i];
+            let b = (self.max[i] - support[i]) / direction[i];
+            lo = lo.max(a.min(b));
+            hi = hi.min(a.max(b));
+        }
+        (lo.is_finite() && lo <= hi).then(|| (add(support, scale(lo, direction)), add(support, scale(hi, direction))))
+    }
 }
 
 /// A step of 1, 2 or 5 times a power of ten that gives about five ticks over `length`.
@@ -237,6 +280,28 @@ fn axes(camera: &Camera, bounds: &Bounds, out: &mut Vec<Primitive>) {
     }
 }
 
+/// A vector as an arrow from the origin to `tip`, its head two strokes on the screen, its name
+/// at the middle.
+fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, out: &mut Vec<Primitive>) {
+    out.push(segment(camera, [0.0; 3], tip, Stroke::Object, Some(object)));
+    let (start, _) = camera.project([0.0; 3]);
+    let (end, depth) = camera.project(tip);
+    let shaft = [end[0] - start[0], end[1] - start[1]];
+    let length = shaft[0].hypot(shaft[1]);
+    if length > 1e-12 {
+        let back = [-shaft[0] / length * ARROW, -shaft[1] / length * ARROW];
+        for side in [1.0, -1.0] {
+            // Back along the shaft, turned by ±30°.
+            let (sin, cos) = (side * 0.5f64, 0.75f64.sqrt());
+            let to = [end[0] + back[0] * cos - back[1] * sin, end[1] + back[0] * sin + back[1] * cos];
+            out.push(Primitive::Segment { from: end, to, depth, stroke: Stroke::Object, object: Some(object) });
+        }
+    }
+    let middle = scale(0.5, tip);
+    let (at, depth) = camera.project(middle);
+    out.push(Primitive::Label { at, depth, text: name.to_owned(), object: Some(object) });
+}
+
 /// The primitives of the scene as `camera` sees it, with the axes over `bounds`.
 pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds) -> Vec<Primitive> {
     let mut out = Vec::new();
@@ -247,6 +312,14 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds) -> Vec<Primi
                 let (at, depth) = camera.project(*p);
                 out.push(Primitive::Marker { at, depth, object });
                 out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
+            }
+            Figure::Vector(tip) => arrow(camera, *tip, &shown.name, object, &mut out),
+            Figure::Line { support, direction } => {
+                if let Some((a, b)) = bounds.clip(*support, *direction) {
+                    out.push(segment(camera, a, b, Stroke::Object, Some(object)));
+                    let (at, depth) = camera.project(b);
+                    out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
+                }
             }
         }
     }

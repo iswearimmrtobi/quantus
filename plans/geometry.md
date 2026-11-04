@@ -173,7 +173,7 @@ its tests.
 - [x] `geometry/view.rs`: `Camera` (yaw, pitch, zoom, centre), `Primitive`, and `project` for axes
   with ticks and labels and for points.
 - [x] Auto-fit 3D box for the scene.
-- [ ] Line segments clipped to the box.
+- [x] Line segments clipped to the box (and vectors as arrows from the origin).
 - [ ] Plane polygons from the cut with the box (outline plus optional hatch).
 - [ ] Sphere (outline circle plus latitude and longitude rings) and circle polylines.
 - [ ] Depth order across all primitives, with plane polygons split along their intersection lines.
