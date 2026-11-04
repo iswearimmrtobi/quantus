@@ -59,8 +59,8 @@ replace the SVG one later without touching the engine.
 
 ## Concepts (English, German names to confirm)
 
-The glossary goes into the design spec once the German names are settled.
-Proposed: Punkt (point), Vektor (vector), Gerade (line), Ebene (plane), Stützvektor (position
+The glossary is in [design/geometry.md](../design/geometry.md) §2, with the names the app uses.
+Proposed at first: Punkt (point), Vektor (vector), Gerade (line), Ebene (plane), Stützvektor (position
 vector), Richtungsvektor (direction), Normalenvektor (normal), Parameterform, Normalenform,
 Koordinatenform, Kugel (sphere), Kreis (circle), Mittelpunkt, Radius, Tangente, Tangentialebene,
 Abstand (distance), Schnittpunkt / Schnittgerade (intersection), Schnittwinkel
@@ -199,7 +199,7 @@ its tests.
 
 ### Phase 6: docs
 
-- [ ] Spec `design/geometry.md` (glossary, operations, step layouts).
+- [x] Spec `design/geometry.md` (glossary, operations, step layouts).
 - [ ] Guide in `docs/docs/guides/` and the settings reference.
 - [ ] `CHANGELOG.md` under `[Unreleased]`; remove the "Later" lines for Geometrie in `plans.md` §5,
   `new-areas-and-themes.md`, `firmware/docs/features.md` and `design/handheld-menus.md` (the
@@ -216,7 +216,8 @@ its tests.
 
 ## Open points
 
-1. German names: to be confirmed (the operation list is settled for the first version).
+1. German names: settled as in the glossary of [design/geometry.md](../design/geometry.md) §2,
+   which are those of `de.ts`.
 
 ## Verification
 
