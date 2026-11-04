@@ -215,7 +215,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   inserted, gets a new value in the form of CALC, or is deleted.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ, ℤ, ℏ and the conversion arrow ▶, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
-  shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree
+  shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A matrix (`pmatrix`,
+  `bmatrix`, `vmatrix`) shows as its cells in brackets. A degree
   written as a power (`30^\circ`, `^\circ\mathrm{C}`) is read as the sign °.
 - The steps of Algebra and of the curve sketch's working are **German** when the language is
   German: every explanation of the algebra pipeline has its German text ("2 mit (x + 3)

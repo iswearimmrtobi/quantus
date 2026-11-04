@@ -342,12 +342,49 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
                 slots: vec![(n_at, n), (r_at, r)],
             }
         }
+        Node::Matrix(rows) => matrix(rows, if nested { Scale::Small } else { scale }, metrics),
         Node::Sqrt(radicand) => root(None, layout_nested(radicand, scale, nested), scale),
         Node::Root(index, radicand) => {
             let index = layout_nested(index, Scale::Small, nested);
             root(Some(index), layout_nested(radicand, scale, nested), scale)
         }
         Node::Accent(accent, row) => accent_item(*accent, layout_nested(row, scale, nested)),
+    }
+}
+
+/// A matrix: its cells centred in their columns, its rows one under the other around the math
+/// axis, in brackets as tall as it is. The slots are the cells, row by row.
+fn matrix(rows: &[Vec<Row>], part: Scale, metrics: crate::font::Metrics) -> Item {
+    const GAP: i32 = 12;
+    let cells: Vec<Vec<RowLayout>> = rows.iter().map(|row| row.iter().map(|cell| layout_nested(cell, part, true)).collect()).collect();
+    let columns = cells.iter().map(Vec::len).max().unwrap_or(0);
+    let widths: Vec<i32> = (0..columns).map(|j| cells.iter().filter_map(|row| row.get(j)).map(|cell| cell.width).max().unwrap_or(0)).collect();
+    let heights: Vec<(i32, i32)> = cells
+        .iter()
+        .map(|row| (row.iter().map(|cell| cell.ascent).max().unwrap_or(0), row.iter().map(|cell| cell.descent).max().unwrap_or(0)))
+        .collect();
+    let height = heights.iter().map(|(ascent, descent)| ascent + descent).sum::<i32>() + 2 * (heights.len() as i32 - 1).max(0);
+    let top = -metrics.axis - height / 2;
+    let bracket = metrics.digit / 2 + 2;
+    let inner = widths.iter().sum::<i32>() + GAP * (columns as i32 - 1).max(0);
+    let mut slots = Vec::new();
+    let mut y = top;
+    for (row, &(ascent, descent)) in cells.into_iter().zip(&heights) {
+        let mut x = bracket + 3;
+        for (cell, &width) in row.into_iter().zip(&widths) {
+            let at = Point::new(x + (width - cell.width) / 2, y + ascent);
+            slots.push((at, cell));
+            x += width + GAP;
+        }
+        y += ascent + descent + 2;
+    }
+    Item {
+        x: 0,
+        width: inner + 2 * bracket + 6,
+        ascent: -top + 1,
+        descent: top + height + 1,
+        kind: Kind::Brackets { width: bracket },
+        slots,
     }
 }
 

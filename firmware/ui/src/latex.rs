@@ -53,21 +53,69 @@ impl Parser {
     fn row(&mut self, end: Option<char>) -> Row {
         let mut nodes = Vec::new();
         while let Some(c) = self.next() {
-            match c {
-                _ if Some(c) == end => break,
-                ' ' => {}
-                '{' => nodes.extend(self.row(Some('}')).0),
-                // A degree is written as a power, `30^\circ`, but is a sign of its own.
-                '^' => match self.argument() {
-                    row if row.0 == [Node::Char('°')] => nodes.push(Node::Char('°')),
-                    row => nodes.push(Node::Pow(row)),
-                },
-                '_' => nodes.push(Node::Sub(self.argument())),
-                '\\' => self.command(&mut nodes),
-                c => nodes.push(Node::Char(c)),
+            if Some(c) == end {
+                break;
             }
+            self.push(c, &mut nodes);
         }
         Row(nodes)
+    }
+
+    /// What the character `c`, just read, and what follows it stand for.
+    fn push(&mut self, c: char, nodes: &mut Vec<Node>) {
+        match c {
+            ' ' => {}
+            '{' => nodes.extend(self.row(Some('}')).0),
+            // A degree is written as a power, `30^\circ`, but is a sign of its own.
+            '^' => match self.argument() {
+                row if row.0 == [Node::Char('°')] => nodes.push(Node::Char('°')),
+                row => nodes.push(Node::Pow(row)),
+            },
+            '_' => nodes.push(Node::Sub(self.argument())),
+            '\\' => self.command(nodes),
+            c => nodes.push(Node::Char(c)),
+        }
+    }
+
+    /// Whether the text goes on with `text`; it is read if it does.
+    fn take(&mut self, text: &str) -> bool {
+        let found = text.chars().enumerate().all(|(offset, c)| self.chars.get(self.at + offset) == Some(&c));
+        if found {
+            self.at += text.chars().count();
+        }
+        found
+    }
+
+    /// The cells of a matrix after its `\begin{…}`, up to its `\end{…}`: `&` between cells,
+    /// `\\` between rows.
+    fn matrix(&mut self) -> Vec<Vec<Row>> {
+        let mut rows = vec![Vec::new()];
+        let mut cell = Vec::new();
+        loop {
+            let done = self.peek().is_none() || self.take(r"\end");
+            if done || self.take(r"\\") || self.peek() == Some('&') {
+                let row = rows.last_mut().expect("a row");
+                row.push(Row(std::mem::take(&mut cell)));
+                if done {
+                    // The environment's name.
+                    self.argument();
+                    break;
+                }
+                if self.peek() == Some('&') {
+                    self.at += 1;
+                } else {
+                    rows.push(Vec::new());
+                }
+                continue;
+            }
+            let c = self.next().expect("not at the end");
+            self.push(c, &mut cell);
+        }
+        // `a \\ b \\` ends in an empty row.
+        if rows.len() > 1 && rows.last().is_some_and(|row| row.iter().all(Row::is_empty)) {
+            rows.pop();
+        }
+        rows
     }
 
     /// A group in braces, or a single character or command.
@@ -139,6 +187,17 @@ impl Parser {
             "frac" | "dfrac" | "tfrac" => {
                 let numerator = self.argument();
                 nodes.push(Node::Frac(numerator, self.argument()));
+            }
+            "begin" => {
+                let environment = self.argument();
+                let name: String = environment.0.iter().filter_map(|node| match node {
+                    Node::Char(c) => Some(*c),
+                    _ => None,
+                }).collect();
+                match name.as_str() {
+                    "pmatrix" | "bmatrix" | "vmatrix" | "matrix" => nodes.push(Node::Matrix(self.matrix())),
+                    _ => nodes.push(Node::Func(name)),
+                }
             }
             "binom" | "dbinom" | "tbinom" => {
                 let n = self.argument();

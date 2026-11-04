@@ -74,7 +74,7 @@ State on 2026-11-03.
 - [x] Wallpaper from the SD card (BMP), with a preview in the list
 - [x] Wallpaper behind the mode tiles, the menus or everything, with glass tiles over it
 - [x] Brackets that grow with what they hold
-- [x] 2D layout of fractions, roots, powers, integrals, sums, limits
+- [x] 2D layout of fractions, roots, powers, integrals, sums, limits, nCr, matrices
 - [~] Fonts — u8g2 bitmap fonts; Greek beyond π, μ, Ω is small; ∠, ⌊⌋, ⌈⌉, µ missing (∈, ∪, ∖, →, ⇒, ⇔, ↗, ↘, ∅, ℝ, ℤ, ℏ, ▶ and the others the fonts lack are drawn as lines)
 - [ ] Font size normal/small (the SETUP entry exists, UI only)
 - [x] German and English texts, German by default

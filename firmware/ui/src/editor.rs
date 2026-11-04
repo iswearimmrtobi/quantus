@@ -48,6 +48,9 @@ pub enum Node {
     Root(Row, Row),
     /// The binomial coefficient nCr: n over r in brackets.
     Binom(Row, Row),
+    /// A matrix: its rows of cells, in round brackets. The cursor goes through the cells row
+    /// by row.
+    Matrix(Vec<Vec<Row>>),
     /// A mark over what it holds: x̄, ŷ. Only results have it; no key types it.
     Accent(Accent, Row),
 }
@@ -68,6 +71,7 @@ impl Node {
             Node::Char(_) | Node::Func(_) | Node::Upright(_) => 0,
             Node::Pow(_) | Node::Sub(_) | Node::Sqrt(_) | Node::Accent(..) => 1,
             Node::Frac(..) | Node::Root(..) | Node::Binom(..) => 2,
+            Node::Matrix(rows) => rows.iter().map(Vec::len).sum(),
         }
     }
 
@@ -76,6 +80,7 @@ impl Node {
             (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row), 0) => row,
             (Node::Frac(first, _) | Node::Root(first, _) | Node::Binom(first, _), 0) => first,
             (Node::Frac(_, second) | Node::Root(_, second) | Node::Binom(_, second), 1) => second,
+            (Node::Matrix(rows), index) => rows.iter().flatten().nth(index).unwrap_or_else(|| panic!("no cell {index}")),
             _ => panic!("{self:?} has no slot {index}"),
         }
     }
@@ -85,6 +90,7 @@ impl Node {
             (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row), 0) => row,
             (Node::Frac(first, _) | Node::Root(first, _) | Node::Binom(first, _), 0) => first,
             (Node::Frac(_, second) | Node::Root(_, second) | Node::Binom(_, second), 1) => second,
+            (Node::Matrix(rows), index) => rows.iter_mut().flatten().nth(index).unwrap_or_else(|| panic!("no cell {index}")),
             (node, _) => panic!("{node:?} has no slot {index}"),
         }
     }
@@ -94,6 +100,7 @@ impl Node {
             Node::Char(_) | Node::Func(_) | Node::Upright(_) => Vec::new(),
             Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row) => vec![row],
             Node::Frac(first, second) | Node::Root(first, second) | Node::Binom(first, second) => vec![first, second],
+            Node::Matrix(rows) => rows.into_iter().flatten().collect(),
         }
     }
 
@@ -439,6 +446,21 @@ impl Latex {
                     self.command("binom");
                     self.group(n);
                     self.group(r);
+                }
+                Node::Matrix(rows) => {
+                    self.text(r"\begin{pmatrix}");
+                    for (index, cells) in rows.iter().enumerate() {
+                        if index > 0 {
+                            self.text(r"\\");
+                        }
+                        for (column, cell) in cells.iter().enumerate() {
+                            if column > 0 {
+                                self.text("&");
+                            }
+                            self.row(cell);
+                        }
+                    }
+                    self.text(r"\end{pmatrix}");
                 }
                 Node::Pow(exponent) => {
                     self.text("^");

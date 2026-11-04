@@ -186,3 +186,21 @@ fn the_conversion_arrow_is_a_drawn_sign() {
     assert_eq!(row.to_latex(), r"5\,\mathrm{cm}\blacktriangleright\mathrm{in}");
     assert_eq!(latex::parse("5cm▶in").to_latex(), r"5cm\blacktriangleright in");
 }
+
+#[test]
+fn a_matrix_reads_back_into_its_cells() {
+    let row = latex::parse(r"\begin{pmatrix} 1 & 2 \\ \frac{3}{2} & -\frac{1}{2} \end{pmatrix}");
+    let Node::Matrix(rows) = &row.0[0] else { panic!("a matrix: {row:?}") };
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1][0].to_latex(), r"\frac{3}{2}");
+    assert_eq!(row.to_latex(), r"\begin{pmatrix}1&2\\\frac{3}{2}&-\frac{1}{2}\end{pmatrix}");
+    assert_eq!(latex::parse(&row.to_latex()), row);
+    // A row vector, and what comes after it.
+    let row = latex::parse(r"\begin{bmatrix}1&2&3\end{bmatrix}^{T}");
+    assert!(matches!(&row.0[..], [Node::Matrix(rows), Node::Pow(_)] if rows.len() == 1 && rows[0].len() == 3));
+    // The cursor goes through the cells.
+    let mut editor = Editor::new();
+    editor.set(latex::parse(r"\begin{pmatrix}1&2\\3&4\end{pmatrix}"));
+    editor.left();
+    assert_eq!((editor.path(), editor.pos()), (&[(0, 3)][..], 1), "at the end of the last cell");
+}
