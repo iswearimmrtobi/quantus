@@ -4,6 +4,7 @@ import type { TextKey } from '../i18n/en';
 import { formKindOf, freeName, plainBars, newObject, switchVariant, VARIANTS, type FormKind, type Variant } from '../geometry';
 import { colourStyle } from './GeometryPlot';
 import { Katex } from './Katex';
+import { Steps } from './AnalysisView';
 import { MathField } from './MathField';
 import { Segmented } from './SettingsDialog';
 
@@ -54,6 +55,8 @@ interface Props {
   /** The engine's answer to the scene, in the same order: each object as built, or its error. */
   built: Geometry['objects'] | null;
   onChange(objects: GeometryObject[]): void;
+  /** At the detail level `none` the steps of a construction are hidden. */
+  hideSteps: boolean;
 }
 
 /** The colour index of each object in the view: built objects are drawn in scene order. */
@@ -255,7 +258,7 @@ function VariantSwitch({ object, onChange }: { object: GeometryObject; onChange(
  * The scene as a list of forms, one per object, in the colour the view draws it in: its name,
  * its entries, and below them the object as the engine read it, or why it could not.
  */
-export function GeometryObjects({ objects, built, onChange }: Props) {
+export function GeometryObjects({ objects, built, onChange, hideSteps }: Props) {
   const { t } = useT();
   const colours = colourIndices(built);
   const replace = (index: number, object: GeometryObject) => onChange(objects.map((o, i) => (i === index ? object : o)));
@@ -298,6 +301,13 @@ export function GeometryObjects({ objects, built, onChange }: Props) {
               <span className="geometry-error">{answer.error}</span>
             ) : (
               answer?.latex && <Katex className="geometry-built" latex={answer.latex} />
+            )}
+            {/* How a line through two points, a plane through three or a cut circle came about. */}
+            {!hideSteps && answer && !answer.error && answer.steps.length > 0 && (
+              <details className="geometry-object-steps">
+                <summary>{t('steps')}</summary>
+                <Steps steps={answer.steps} hidden={false} display />
+              </details>
             )}
           </div>
         );

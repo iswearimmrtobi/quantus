@@ -70,9 +70,20 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
         {input.objects.length > 0 && <GeometryPlot objects={input.objects} />}
         {error && <ErrorRow error={error} soft />}
         {!input.objects.length && <p className="analysis-empty">{t('geometry.empty')}</p>}
-        <GeometryObjects objects={input.objects} built={answer?.objects ?? null} onChange={(objects) => onInputChange({ ...input, objects })} />
+        <GeometryObjects
+          objects={input.objects}
+          built={answer?.objects ?? null}
+          onChange={(objects) => onInputChange({ ...input, objects })}
+          hideSteps={stepDetail === 'none'}
+        />
         {input.objects.length > 0 && (
-          <GeometryTaskPanel task={input.task} built={answer?.objects ?? null} answer={answer?.task ?? null} onChange={(task) => onInputChange({ ...input, task })} />
+          <GeometryTaskPanel
+            task={input.task}
+            built={answer?.objects ?? null}
+            answer={answer?.task ?? null}
+            onChange={(task) => onInputChange({ ...input, task })}
+            hideSteps={stepDetail === 'none'}
+          />
         )}
       </div>
     </main>

@@ -2710,6 +2710,24 @@ select option {
   gap: 6px;
 }
 
+.geometry-answer-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.geometry-object-steps {
+  padding-left: 18px;
+}
+.geometry-object-steps summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 .geometry-relation {
   align-self: flex-start;
   font-family: var(--mono);

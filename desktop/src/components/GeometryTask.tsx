@@ -2,6 +2,9 @@ import type { Geometry, GeometryKind, GeometryMeasure, GeometryTask, PlaneForm }
 import { useT } from '../i18n';
 import type { TextKey } from '../i18n/en';
 import { taskOfKind, TASK_KINDS, type TaskKind } from '../geometry';
+import { useState } from 'react';
+import { copyText } from '../shell';
+import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
 import { MathField } from './MathField';
 
@@ -156,11 +159,20 @@ interface Props {
   /** The engine's answer to the task. */
   answer: Geometry['task'];
   onChange(task: GeometryTask | null): void;
+  /** At the detail level `none` the steps are hidden. */
+  hideSteps: boolean;
 }
 
-/** The task on the scene: what is asked, about which objects, and the exact answer. */
-export function GeometryTaskPanel({ task, built, answer, onChange }: Props) {
+/** The task on the scene: what is asked, about which objects, and the exact answer with its steps. */
+export function GeometryTaskPanel({ task, built, answer, onChange, hideSteps }: Props) {
   const { t } = useT();
+  const [copied, setCopied] = useState(false);
+  const copyAll = async () => {
+    if (!answer?.alignBlock) return;
+    await copyText(answer.alignBlock);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  };
   return (
     <section className="section-card geometry-task">
       <div className="geometry-task-form">
@@ -181,10 +193,20 @@ export function GeometryTaskPanel({ task, built, answer, onChange }: Props) {
       {answer?.error && <span className="geometry-error">{answer.error}</span>}
       {answer && !answer.error && (
         <div className="geometry-answer">
-          {answer.relation && <span className="geometry-relation">{t(`geometry.relation.${answer.relation}` as TextKey)}</span>}
-          {answer.result.map((line, i) => (
-            <Katex key={i} className="section-result" latex={displayStyle(line)} />
-          ))}
+          <div className="linear-result-head">
+            <div className="geometry-answer-lines">
+              {answer.relation && <span className="geometry-relation">{t(`geometry.relation.${answer.relation}` as TextKey)}</span>}
+              {answer.result.map((line, i) => (
+                <Katex key={i} className="section-result" latex={displayStyle(line)} />
+              ))}
+            </div>
+            {answer.alignBlock && (
+              <button className="copy-btn" title={t('linear.copy.hint')} onClick={() => void copyAll()}>
+                {copied ? t('copied') : t('copy')}
+              </button>
+            )}
+          </div>
+          <Steps steps={answer.steps} hidden={hideSteps} display />
         </div>
       )}
     </section>
