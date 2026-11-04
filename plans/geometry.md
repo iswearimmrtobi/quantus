@@ -184,7 +184,7 @@ its tests.
 - [x] `GeometryView.tsx` shell, built like `LinearSystemView`: state in `App.tsx`, saved in the
   session, survives a mode switch; `modeChoices` in `SettingsDialog.tsx`, `PLACEHOLDERS`, the
   `mode.geometry` strings in `en.ts` and `de.ts`.
-- [ ] `GeometryPlot.tsx`: SVG like `FunctionPlot.tsx`, drawing the primitives of a fixed demo
+- [x] `GeometryPlot.tsx`: SVG like `FunctionPlot.tsx`, drawing the primitives of a fixed demo
   scene with axes.
 - [ ] Plot interaction: drag rotates, wheel zooms, a reset button and a "view from above" button.
 - [ ] Plot labels and a colour per object, fed from the real scene.

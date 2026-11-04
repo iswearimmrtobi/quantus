@@ -20,6 +20,7 @@ use crate::{QuantusError, Result};
 
 use super::eval::{GeometryEvaluator, Item, Objects};
 use super::show;
+use super::view::{self, Bounds, Camera, Figure, Primitive, Shown};
 use super::working::{Worked, Working};
 use super::{
     Circle, CircleLine, CirclePlane, Line, LinePlane, LineRelation, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine,
@@ -201,6 +202,18 @@ impl Object {
         }
     }
 
+    /// The object in floats for the view; `None` if a coordinate is not real.
+    fn figure(&self) -> Option<Figure> {
+        match self {
+            Object::Point(p) => Figure::point(p),
+            Object::Vector(v) => Figure::vector(v),
+            Object::Line(g) => Figure::line(g),
+            Object::Plane(e) => Figure::plane(e),
+            Object::Sphere(k) => Figure::sphere(k),
+            Object::Circle(k) => Figure::circle(k),
+        }
+    }
+
     /// The object with its name in LaTeX, `symbol`.
     fn latex(&self, symbol: &str) -> String {
         match self {
@@ -247,12 +260,14 @@ struct Builder<'a> {
     evaluator: Evaluator<'a>,
     objects: Objects,
     built: HashMap<String, Object>,
+    /// What was built, in scene order, for the view.
+    shown: Vec<Shown>,
 }
 
 impl<'a> Builder<'a> {
     fn new(settings: &'a Settings, variables: &'a Variables) -> Self {
         let evaluator = Evaluator::new(variables).with_precision(settings.precision).with_mode(Mode::Geometry).with_angle_unit(settings.angle_unit);
-        Builder { settings, evaluator, objects: Objects::default(), built: HashMap::new() }
+        Builder { settings, evaluator, objects: Objects::default(), built: HashMap::new(), shown: Vec::new() }
     }
 
     fn read(&self, latex: &str) -> Result<Item> {
@@ -381,6 +396,9 @@ impl<'a> Builder<'a> {
                             self.objects.vectors.insert(key.clone(), v.clone());
                         }
                         _ => {}
+                    }
+                    if let Some(figure) = result.figure() {
+                        self.shown.push(Shown { name: key.clone(), figure });
                     }
                     // Vectors have a namespace of their own.
                     let stored = if matches!(result, Object::Vector(_)) { format!("\\vec{key}") } else { key };
@@ -686,4 +704,51 @@ pub fn geometry(settings: &Settings, request: &GeometryRequest) -> Result<Geomet
         Err(e) => TaskResponse { error: Some(e.to_string()), ..TaskResponse::default() },
     });
     Ok(GeometryResponse { objects, task })
+}
+
+/// The scene and how it is looked at: the camera's angles in radians and a zoom on top of the
+/// fit (1 shows the whole box).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ViewRequest {
+    pub scene: Scene,
+    pub yaw: f64,
+    pub pitch: f64,
+    pub zoom: f64,
+    /// Hatch the planes.
+    pub hatch: bool,
+}
+
+impl Default for ViewRequest {
+    fn default() -> ViewRequest {
+        let camera = Camera::default();
+        ViewRequest { scene: Scene::default(), yaw: camera.yaw, pitch: camera.pitch, zoom: 1.0, hatch: false }
+    }
+}
+
+/// The scene drawn: the primitives far to near, then the labels. A primitive's `object` is an
+/// index into `names`, the objects that could be drawn in scene order.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ViewResponse {
+    pub primitives: Vec<Primitive>,
+    pub names: Vec<String>,
+    pub camera: Camera,
+    pub bounds: Bounds,
+}
+
+/// Builds the scene and projects it; an object that fails is left out, as in [`geometry`].
+pub fn geometry_view(settings: &Settings, request: &ViewRequest) -> Result<ViewResponse> {
+    let _language = Scope::new(settings.language);
+    let settings = Settings { mode: Mode::Geometry, exact_roots: true, step_detail: StepDetail::None, ..settings.clone() };
+    let variables = Variables::new();
+    let mut builder = Builder::new(&settings, &variables);
+    builder.scene(&request.scene);
+    let bounds = Bounds::fit(&builder.shown);
+    let fitted = Camera { yaw: request.yaw, pitch: request.pitch, ..Camera::default() }.fit(&bounds);
+    let zoom = if request.zoom.is_finite() && request.zoom > 0.0 { request.zoom } else { 1.0 };
+    let camera = Camera { zoom: fitted.zoom * zoom, ..fitted };
+    let primitives = view::project(&builder.shown, &camera, &bounds, &view::Options { hatch: request.hatch });
+    let names = builder.shown.iter().map(|shown| shown.name.clone()).collect();
+    Ok(ViewResponse { primitives, names, camera, bounds })
 }

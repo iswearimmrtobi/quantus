@@ -2471,6 +2471,69 @@ select option {
   max-width: 1280px;
 }
 
+.geometry-plot {
+  margin: 14px 0;
+}
+
+.geometry-plot .plot-canvas {
+  height: 460px;
+}
+
+.geometry-axis {
+  stroke: var(--text-faint);
+  stroke-width: 1.2;
+}
+
+.geometry-tick {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+}
+
+.geometry-object {
+  stroke: var(--cyan);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.geometry-hatch {
+  stroke: var(--cyan);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+
+.geometry-hidden {
+  stroke: var(--cyan);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.geometry-face {
+  fill: var(--cyan);
+  fill-opacity: 0.14;
+  stroke: var(--cyan);
+  stroke-opacity: 0.5;
+  stroke-width: 1;
+}
+
+.geometry-marker {
+  fill: var(--cyan);
+  stroke: var(--bg);
+  stroke-width: 1.5;
+}
+
+.geometry-label {
+  fill: var(--text);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.geometry-tick-label {
+  fill: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
 .geometry-objects {
   display: flex;
   flex-direction: column;

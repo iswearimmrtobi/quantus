@@ -302,13 +302,19 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
 }
 
 pub use crate::geometry::interface::{
-    Entry, Form, GeometryRequest, GeometryResponse, Measure, ObjectResponse, Scene, SceneObject, Shape, Task, TaskResponse,
+    Entry, Form, GeometryRequest, GeometryResponse, Measure, ObjectResponse, Scene, SceneObject, Shape, Task, TaskResponse, ViewRequest,
+    ViewResponse,
 };
 
 /// A scene of points, vectors, lines, planes, spheres and circles and a task on it (Geometry
 /// mode). Stateless: the shell keeps the scene.
 pub fn geometry(settings: &Settings, request: &GeometryRequest) -> Result<GeometryResponse, ApiError> {
     Ok(crate::geometry::interface::geometry(settings, request)?)
+}
+
+/// The scene projected for the 3D view: the primitives a shell draws, far to near.
+pub fn geometry_view(settings: &Settings, request: &ViewRequest) -> Result<ViewResponse, ApiError> {
+    Ok(crate::geometry::interface::geometry_view(settings, request)?)
 }
 
 /// An ENG or ←ENG step on a result: its `value` (and `imaginary`) from the

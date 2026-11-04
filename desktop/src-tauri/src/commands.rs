@@ -12,7 +12,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, GeometryRequest, GeometryResponse, KirchhoffRequest, KirchhoffResponse,
+    CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, GeometryRequest, GeometryResponse, ViewRequest, ViewResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
@@ -193,6 +193,13 @@ pub fn solve_circuit(
 pub fn geometry(engine: State<Engine>, request: GeometryRequest) -> Result<GeometryResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::geometry(&settings, &request)
+}
+
+/// The Geometry scene projected for the 3D view, at the camera's angles and zoom.
+#[tauri::command]
+pub fn geometry_view(engine: State<Engine>, request: ViewRequest) -> Result<ViewResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::geometry_view(&settings, &request)
 }
 
 /// A resistor network by the junction and loop rules. Stateless like `solve_circuit`.

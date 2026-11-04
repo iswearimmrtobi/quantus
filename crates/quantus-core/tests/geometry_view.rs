@@ -386,3 +386,24 @@ fn a_line_and_the_axes_are_cut_where_they_pass_through_a_plane() {
     let axes = primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Axis, .. })).count();
     assert_eq!(axes, 4);
 }
+
+#[test]
+fn the_api_projects_a_scene_with_the_objects_that_could_be_built() {
+    use quantus_core::api::{geometry_view, Entry, Scene, SceneObject, Shape, ViewRequest};
+    use quantus_core::settings::Settings;
+    let objects = vec![
+        SceneObject { name: "A".into(), shape: Shape::Point { at: Entry::Coordinates(vec!["4".into(), "0".into(), "0".into()]) } },
+        SceneObject { name: "B".into(), shape: Shape::Point { at: Entry::Latex("x".into()) } },
+        SceneObject { name: String::new(), shape: Shape::Typed { latex: "E: z = 1".into() } },
+    ];
+    let request = ViewRequest { scene: Scene { objects }, zoom: 2.0, ..ViewRequest::default() };
+    let view = geometry_view(&Settings::default(), &request).unwrap();
+    // B is not a point and is left out; the indices of the primitives follow `names`.
+    assert_eq!(view.names, ["A", "E"]);
+    assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Marker { object: 0, .. })));
+    assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Polygon { object: 1, .. })));
+    // The zoom is on top of the fit, which puts the box into the unit circle.
+    let fitted = Camera::default().fit(&view.bounds);
+    assert!(close(view.camera.zoom, 2.0 * fitted.zoom));
+    assert!(close(view.camera.yaw, Camera::default().yaw));
+}

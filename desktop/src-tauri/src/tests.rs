@@ -521,6 +521,19 @@ fn a_geometry_scene_is_answered_through_the_command() {
 }
 
 #[test]
+fn a_geometry_scene_is_projected_through_the_command() {
+    let w = window();
+    let request = json!({
+        "scene": { "objects": [{ "name": "A", "kind": "point", "at": ["1", "2", "3"] }] },
+        "yaw": 0.5, "pitch": 0.3, "zoom": 1
+    });
+    let view = invoke(&w, "geometry_view", json!({ "request": request })).unwrap();
+    assert_eq!(view["names"], json!(["A"]));
+    let kinds: Vec<&str> = view["primitives"].as_array().unwrap().iter().map(|p| p["kind"].as_str().unwrap()).collect();
+    assert!(kinds.contains(&"marker") && kinds.contains(&"segment") && kinds.contains(&"label"), "{kinds:?}");
+}
+
+#[test]
 fn a_circuit_file_may_carry_a_flipped_current() {
     let mut circuit = saved_circuit();
     circuit["elements"][0]["reversed"] = json!(true);

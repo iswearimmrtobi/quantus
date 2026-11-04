@@ -374,6 +374,35 @@ export interface Geometry {
   } | null;
 }
 
+/** A request for the 3D view: the camera's angles in radians, and a zoom on top of the fit. */
+export interface GeometryViewRequest {
+  scene: { objects: GeometryObject[] };
+  yaw: number;
+  pitch: number;
+  zoom: number;
+  hatch?: boolean;
+}
+
+/** A point on the screen in view units, y up; the fitted box lies inside the unit circle. */
+export type ViewPoint = [number, number];
+export type ViewStroke = 'axis' | 'tick' | 'object' | 'hatch' | 'hidden';
+
+/** What `quantus_core::geometry::view::Primitive` serialises to; `object` indexes `names`. */
+export type ViewPrimitive =
+  | { kind: 'segment'; from: ViewPoint; to: ViewPoint; depth: number; stroke: ViewStroke; object: number | null }
+  | { kind: 'polygon'; points: ViewPoint[]; depth: number; object: number }
+  | { kind: 'marker'; at: ViewPoint; depth: number; object: number }
+  | { kind: 'label'; at: ViewPoint; depth: number; text: string; object: number | null };
+
+/** The scene drawn: far to near, then the labels. */
+export interface GeometryViewResponse {
+  primitives: ViewPrimitive[];
+  /** The objects that could be drawn, in scene order. */
+  names: string[];
+  camera: { yaw: number; pitch: number; zoom: number; centre: [number, number, number] };
+  bounds: { min: [number, number, number]; max: [number, number, number] };
+}
+
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
 export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff' | 'baseN' | 'verify' | 'geometry';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
@@ -656,6 +685,8 @@ export const api = {
 
   /** Builds a Geometry scene and answers its task, with the steps at the detail setting. */
   geometry: (request: GeometryRequest) => call<Geometry>('geometry', { request }),
+  /** The scene projected for the 3D view. */
+  geometryView: (request: GeometryViewRequest) => call<GeometryViewResponse>('geometry_view', { request }),
 
   /** Reads a circuit file; a broken one is an `ApiError` and nothing is returned. */
   loadCircuit: (path: string) => call<unknown>('load_circuit', { path }),
