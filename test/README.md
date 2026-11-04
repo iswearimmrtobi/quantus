@@ -1,6 +1,6 @@
 # Engine test set
 
-112,040 generated cases that put the engine through arithmetic, elementary functions, equations,
+112,540 generated cases that put the engine through arithmetic, elementary functions, equations,
 derivatives, integrals, limits, algebraic simplification, physics with units, parser robustness,
 complex numbers, the linear systems mode and the modes added after it (from `verify` on in the
 table below).
@@ -47,10 +47,11 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 ```
 
 - `difficulty`: `easy`, `medium`, `hard` or `very-hard`, in a 40/30/20/10 split.
-- `gap: true` marks inputs that `design/unsupported-inputs.md` lists as not implemented, such as
-  one-sided limits, `\infty`, `\arcsin`, `\log_b`, named constants like `c`, and units like `eV` or
-  `atm`. These cases make up about 3% of the set. They count like any other case, but the summary
-  reports them separately.
+- `gap: true` marks inputs that were not implemented when the case was written, such as one-sided
+  limits, `\infty`, `\arcsin`, `\log_b` or units like `eV`. Most of them have been implemented
+  since and pass. The `open-features` category holds the gaps that are still open in
+  `plans/plans.md`. Gap cases make up about 2% of the set (2,092). They count like any other case,
+  but the summary reports them separately.
 - `settings` (optional) overrides `Settings` fields (`a_and_y_as_variables`, `letter_products`, `extra_unit_letters`, `mode`: `algebra`, `physics` (the default), `imaginary` or `linear`, and for `linear` also `linear_complex`, `elimination` and `unknown_names`). Any other key is a field of `Settings` under its JSON name, such as `mode: "verify"`, `language`, `angleUnit` or `numberBase`.
 - `api` (optional) names the API function of a mode with its own request, such as `statistics`; `request` is then what that mode's shell sends to it.
 - `request` (linear systems only) is what the mode sends to `api::linear_system`: `{"equations": latex}` or `{"matrix": {"rows": [[latex, …], …], "unknowns"?: [latex, …]}}`. `latex` then shows the system for the report.
@@ -62,6 +63,7 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 | `number` | The result is dimensionless and `value` matches within `rel_tol`. |
 | `quantity` | The result's dimension equals `dim` (base exponents `L M T I Θ N J`) and its value, converted to the coherent SI unit (°C becomes K), matches `value`. `unit`, if given, is only compared for a note. |
 | `solutions` | The solver's real solutions equal `values` as a set, with SI values and `dim`. |
+| `inequality` | The result is read as the solver writes an equation's roots: pieces joined by `\lor` (after a `\Leftrightarrow`, if the input is restated), each a chain such as `-2 < x \le 3`. Each piece is evaluated in the Verify mode with `var` replaced by sample points: every bound in `intervals` (`[lo, hi, lo_closed, hi_closed]`, `null` for an infinite end), a thousandth either side of it, the midpoints and one beyond each end. A point must be in the result's set exactly when it is in `intervals`. |
 | `algebra` | The result equals `simplified` at 8 sample points (exact rationals), is fully reduced (`Poly::gcd` of numerator and denominator is constant), and its restrictions equal `restrictions` (values per variable) plus `poly_restrictions`. |
 | `complex` | The result's real part (`value`) and imaginary part match `re` and `im` within `rel_tol`; a real result has the imaginary part 0. Used with `settings.mode` set to `imaginary`. |
 | `complex-solutions` | The solver's roots, each split into real and imaginary part, equal `values` (`{re, im}` pairs) as a set. |
@@ -92,7 +94,7 @@ factoring.
 ## Outcomes
 
 `PASS`; `FAIL(reason)` with reason `wrong-value`, `wrong-dimension`, `not-reduced`, `restrictions`,
-`solutions`, `wrong-error`, `not-evaluated` (returned as typed with free variables),
+`solutions`, `inequality`, `wrong-error`, `not-evaluated` (returned as typed with free variables),
 `unit-not-convertible` (the result's unit has no SI conversion) or `result-unparsable`; `ERROR`
 (engine error); `UNEXPECTED_OK` (an error was expected); `PANIC`; `TIMEOUT`; and `GENERATOR`. A
 `GENERATOR` outcome means the algebra input and its expected form disagree at a sample point, so
@@ -122,38 +124,21 @@ the case itself is wrong.
 | geometry | 1,000 | Geometry mode through `api::geometry`, angles in degrees, every object in one of its forms (points as cells, `(x\|y\|z)` or typed `A(…)`, lines by point and direction or two points, planes in coordinate, normal, three-point or parameter form, spheres by centre and radius or a point on them): distance and midpoint of two points; distance, foot, image and lying on for a point and a line or a plane; two lines identical, parallel (distance), intersecting (point, angle) or skew (distance), and their angle; line and plane intersecting (point, angle), parallel (distance) or contained; two planes identical, parallel (distance) or intersecting (angle); a sphere and a point (inside, on, outside, distance), a plane (circle, tangent, apart) or a line (secant, tangent, passant); volume, surface, circumference and area; and the errors |
 | electronics | 20 | Electronics mode through `api::solve_circuit`, one circuit per template with drawn E12-style values and prefixes (`2{,}2k\Omega`, `500mA`): series chains of 2–4 resistors, 2–4 in parallel, a loaded divider, a current source, two sources, an unbalanced and a balanced bridge, a source with inner resistance, a three-stage ladder, and a short circuit as the error. Solved by nodal analysis over fractions |
 | kirchhoff | 20 | Kirchhoff mode through `api::kirchhoff`, the parts placed on grid points where no three nodes lie on a line: eight source circuits (series, parallel, loaded divider, two sources, bridge, ladder, current source) with every part's U, I and P along the arrows; ten resistances between A and B for series-parallel, ladder and bridge networks under each `starDelta` setting (node rule, Δ → Y, Y → Δ), all giving the same value; and the errors: two voltage sources in parallel, a part without a value |
+| open-features | 500 | Features still open in `plans/plans.md`, every case a gap: linear, quadratic and cubic inequalities with `<`, `>`, `\le`, `\ge` and rational bounds (§5); in imaginary mode, the complex roots of `x^4 + a` and of biquadratics without a real root, `\arcsin`, `\arccos` and `\arctan` of a complex number off the branch cuts, and integrals of complex functions (`x + bi`, `e^{kix}`, `1/(x + bi)`) (§6, the gaps of `design/unsupported-inputs.md`); partial derivatives at a point in two variables, mixed and second partials (§6). Values at 80 digits, checked against `cmath`, numerical quadrature and finite differences when written |
 
 ## Latest results
 
-Full run (2026-10-28, 8 workers, 5 s limit, 80 s): **102,336 of 103,000 pass (99.36%)**. All 100,646
-cases for implemented features pass. The 664 that do not are all `not-implemented` cases that the
-generator marks as gaps, listed one per line in `test/results/failures.jsonl`:
+Full run (2026-11-04, 4 workers, 5 s limit, 196 s): **all 112,040 cases pass**, including the
+1,592 gap cases written before the features they test were implemented. The `open-features`
+category was added after that run. On its own (2026-11-04), none of its 500 cases pass; every one
+is an engine error for a feature that is still open:
 
-| Category | Outcome | Cases |
-|---|---|---:|
-| derivatives | ERROR (partial derivatives, `dx` notation not parsed) | 252 |
-| equations | ERROR | 263 |
-| integrals | ERROR | 149 |
+| Subcategory | Cases | Engine error |
+|---|---:|---|
+| inequality | 175 | the variable has no value (no solver for inequalities) |
+| partial-derivative | 100 | a point in two variables is not read; mixed partials are not parsed |
+| complex-roots | 75 | no real solution (complex roots of quartics only when they are rational or purely imaginary) |
+| complex-inverse-trig | 75 | a complex argument is not a real number |
+| complex-integral | 75 | a complex integrand is not a real number |
 
-The full breakdown is in `test/results/summary.md`. The linear-systems category was added after
-that run; on its own (2026-10-30) all 2,000 of its cases pass.
-
-Since that run, 78 `syntax` cases that expected `1 = 89 = 1` to be refused were replaced by
-`1 = = 89`: chains of comparisons are valid since the Verify mode. On its own (2026-11-04) all
-3,000 syntax cases pass.
-
-### The newer modes
-
-Each category from `verify` on was run on its own when it was added (no full run since):
-
-| Category | Run | Passed | What does not pass |
-|---|---|---:|---|
-| verify | 2026-11-04 | 1,000 / 1,000 | |
-| base-n | 2026-11-04 | 1,000 / 1,000 | |
-| matrix | 2026-11-04 | 1,000 / 1,000 | |
-| statistics | 2026-11-04 | 1,000 / 1,000 | |
-| distributions | 2026-11-04 | 1,000 / 1,000 | |
-| analysis | 2026-11-04 | 1,000 / 1,000 | |
-| geometry | 2026-11-04 | 1,000 / 1,000 | |
-| electronics | 2026-11-04 | 20 / 20 | |
-| kirchhoff | 2026-11-04 | 20 / 20 | |
+The full breakdown of the full run is in `test/results/summary.md`.

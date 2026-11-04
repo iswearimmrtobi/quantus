@@ -12,7 +12,7 @@ Every test Quantus has, and how many of each, as of 2026-11-04. How to run them 
 | Kind | Count | Where | Run with |
 |---|---:|---|---|
 | Unit and integration tests | 1,088 | `#[test]` functions in the workspace | `cargo test --workspace` |
-| Generated cases | 112,040 | `test/cases/`, 20 categories | `cargo run --release -p quantus-core --example run_cases` |
+| Generated cases | 112,540 | `test/cases/`, 21 categories | `cargo run --release -p quantus-core --example run_cases` |
 | Hand-checked algebra table | 2,500 | `test/algebra-simplification-cases.md` | not run; the generator's algebra cases follow it |
 | Circuit files | 13 | `test/circuits/` | solved by two of the integration tests |
 
@@ -91,10 +91,11 @@ The golden tests among them (`golden.rs`, `latex_golden.rs`, `quantity_golden.rs
 
 ## The generated test set
 
-112,040 cases in 20 categories. Every expected value is computed by the Python generator in
+112,540 cases in 21 categories. Every expected value is computed by the Python generator in
 `test/generator/`, independently of the engine. The first eleven categories go back to the first
 version of the engine; the nine from `verify` on cover the modes added since, and two of them,
-`electronics` and `kirchhoff`, are kept to a handful of circuits.
+`electronics` and `kirchhoff`, are kept to a handful of circuits. The last, `open-features`, holds
+only gaps: the features still open in `plans/plans.md`.
 
 | Category | Cases | Mode | Into the engine through |
 |---|---:|---|---|
@@ -118,26 +119,13 @@ version of the engine; the nine from `verify` on cover the modes added since, an
 | geometry | 1,000 | Geometry | `api::geometry` |
 | electronics | 20 | Electronics | `api::solve_circuit` |
 | kirchhoff | 20 | Kirchhoff | `api::kirchhoff` |
+| open-features | 500 | Physics, Imaginary | `evaluate` |
 
 ### Latest results
 
-The first eleven categories were last run in full on 2026-10-28: all 100,646 cases for implemented
-features passed, and the 664 that did not are inputs the generator marks as not implemented.
-Since then, 78 `syntax` cases that expected the chain `1 = 89 = 1` to be refused were replaced by
-`1 = = 89`, as chains are valid since the Verify mode; on its own the category passes in full.
-The nine newer categories were each run on their own when they were added (2026-11-04):
-
-| Category | Passed | Not passing |
-|---|---:|---|
-| verify | 1,000 / 1,000 | |
-| base-n | 1,000 / 1,000 | |
-| matrix | 1,000 / 1,000 | |
-| statistics | 1,000 / 1,000 | |
-| distributions | 1,000 / 1,000 | |
-| analysis | 1,000 / 1,000 | |
-| geometry | 1,000 / 1,000 | |
-| electronics | 20 / 20 | |
-| kirchhoff | 20 / 20 | |
+The first twenty categories were run in full on 2026-11-04: all 112,040 cases pass, including the
+1,592 gap cases written before the features they test were implemented. `open-features` was added
+after that run; on its own, none of its 500 cases pass yet, as expected for features still open.
 
 ### By category and subcategory
 
@@ -193,7 +181,7 @@ Checked as: `number` 9,579, `error` 421. 736 of them are marked as not implement
 
 ### equations (8,000)
 
-Checked as: `solutions` 7,209, `error` 791. 400 of them are marked as not implemented (`gap`).
+Checked as: `solutions` 7,209, `error` 791. 137 of them are marked as not implemented (`gap`).
 
 <details>
 <summary>Subcategories</summary>
@@ -205,13 +193,14 @@ Checked as: `solutions` 7,209, `error` 791. 400 of them are marked as not implem
 | higher-degree | 1,280 |
 | fractional | 1,120 |
 | special | 800 |
-| not-implemented | 400 |
+| unknown-with-unit | 263 |
+| not-implemented | 137 |
 
 </details>
 
 ### derivatives (7,000)
 
-Checked as: `number` 7,000. 350 of them are marked as not implemented (`gap`).
+Checked as: `number` 7,000.
 
 <details>
 <summary>Subcategories</summary>
@@ -223,13 +212,13 @@ Checked as: `number` 7,000. 350 of them are marked as not implemented (`gap`).
 | quotient-rule | 907 |
 | product-rule | 843 |
 | higher-by-nesting | 840 |
-| not-implemented | 350 |
+| notation | 350 |
 
 </details>
 
 ### integrals (7,000)
 
-Checked as: `number` 6,300, `quantity` 700. 420 of them are marked as not implemented (`gap`).
+Checked as: `number` 6,245, `quantity` 700, `error` 55. 271 of them are marked as not implemented (`gap`).
 
 <details>
 <summary>Subcategories</summary>
@@ -240,7 +229,8 @@ Checked as: `number` 6,300, `quantity` 700. 420 of them are marked as not implem
 | transcendental | 2,450 |
 | special | 980 |
 | with-units | 700 |
-| not-implemented | 420 |
+| not-implemented | 271 |
+| notation | 149 |
 
 </details>
 
@@ -655,6 +645,23 @@ Checked as: `equivalent` 10, `circuit` 8, `error` 2.
 | parallel | 1 |
 | series | 1 |
 | source-loop | 1 |
+
+</details>
+
+### open-features (500)
+
+Checked as: `inequality` 175, `complex` 150, `number` 100, `complex-solutions` 75. 500 of them are marked as not implemented (`gap`).
+
+<details>
+<summary>Subcategories</summary>
+
+| Subcategory | Cases |
+|---|---:|
+| inequality | 175 |
+| partial-derivative | 100 |
+| complex-integral | 75 |
+| complex-inverse-trig | 75 |
+| complex-roots | 75 |
 
 </details>
 

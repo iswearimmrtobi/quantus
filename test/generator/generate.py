@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gens import (algebra, analysis, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
-                  basen, circuits, distributions, geometry, matrix, statistics, verify)
+                  basen, circuits, distributions, geometry, matrix, open_features, statistics, verify)
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -53,6 +53,8 @@ CATEGORIES = {
     # A handful of circuits, one per template, instead of weighted generators.
     "electronics": ("el", 20, circuits.electronics_cases),
     "kirchhoff": ("kh", 20, circuits.kirchhoff_cases),
+    # Open features from plans/plans.md, every case a gap; appended so the seeds above stay the same.
+    "open-features": ("open", 500, open_features.GENERATORS),
 }
 
 
@@ -122,6 +124,11 @@ def check(all_cases):
                 _parse_value(e["re"])
                 _parse_value(e["im"])
                 float(e["rel_tol"])
+            elif e["kind"] == "inequality":
+                for lo, hi, lc, hc in e["intervals"]:
+                    [_parse_value(v) for v in (lo, hi) if v is not None]
+                    if not isinstance(lc, bool) or not isinstance(hc, bool):
+                        errors.append(f"{c['id']}: interval ends must say whether they are closed")
             elif e["kind"] == "complex-solutions":
                 [(_parse_value(v["re"]), _parse_value(v["im"])) for v in e["values"]]
             elif e["kind"] == "algebra":
