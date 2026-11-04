@@ -16,7 +16,7 @@ use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Opened, Reply, Request, SessionCommand, SessionInfo};
+use quantus_ui::backend::{Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo};
 use quantus_ui::clock;
 use quantus_ui::settings as ui;
 use quantus_ui::text::Lang;
@@ -178,6 +178,26 @@ impl Backend for Engine {
         api::set_mode_inputs(&mut self.store, current, inputs);
         self.save(&self.current);
         sheet::solve(settings, request, |mode| core_settings(mode, settings))
+    }
+
+    fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
+        let language = if lang == Lang::De { core::Language::De } else { core::Language::En };
+        match catalogue {
+            Catalogue::Constants => api::constants(language)
+                .into_iter()
+                .map(|category| Group {
+                    name: category.name,
+                    items: category.constants.into_iter().map(|c| Item { name: c.name, latex: c.latex }).collect(),
+                })
+                .collect(),
+            Catalogue::Units => api::conversion_units(language)
+                .into_iter()
+                .map(|category| Group {
+                    name: category.name,
+                    items: category.units.into_iter().map(|unit| Item { name: unit.name, latex: unit.latex }).collect(),
+                })
+                .collect(),
+        }
     }
 
     fn sessions(&mut self) -> Vec<SessionInfo> {

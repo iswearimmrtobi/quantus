@@ -31,7 +31,8 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Simul
 use mirror::{Mirror, Tee};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stub, WlanStatus};
+use quantus_ui::backend::{Backend, Catalogue, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stub, WlanStatus};
+use quantus_ui::text::Lang;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 use quantus_ui::touch::Touch;
@@ -256,6 +257,13 @@ impl Backend for Sim {
         match &mut self.answers {
             Answers::Engine(engine) => engine.sessions(),
             Answers::Stub(stub) => stub.sessions(),
+        }
+    }
+
+    fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.catalogue(catalogue, lang),
+            Answers::Stub(stub) => stub.catalogue(catalogue, lang),
         }
     }
 

@@ -217,3 +217,38 @@ mod optn {
         assert!(typed(Mode::Physics, r"\coth(1)").unwrap().contains("1{,}3130"));
     }
 }
+
+/// CONST and CONV list what the engine reads after the hui's editor has held it.
+mod catalogues {
+    use quantus_engine::Engine;
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::backend::{Backend, Catalogue};
+    use quantus_ui::latex;
+    use quantus_ui::text::Lang;
+
+    #[test]
+    fn every_constant_is_known_in_physik() {
+        let mut engine = Engine::default();
+        let groups = engine.catalogue(Catalogue::Constants, Lang::De);
+        assert_eq!(groups.len(), 6);
+        assert_eq!(groups.iter().map(|group| group.items.len()).sum::<usize>(), 47);
+        for item in groups.iter().flat_map(|group| &group.items) {
+            let typed = latex::parse(&item.latex).to_latex();
+            let result = engine.evaluate(Mode::Physics, &Settings::default(), &typed);
+            assert!(result.is_ok(), "{} ({typed}): {result:?}", item.name);
+        }
+    }
+
+    #[test]
+    fn every_unit_is_a_target_of_the_arrow() {
+        let mut engine = Engine::default();
+        let settings = Settings { extra_unit_letters: true, ..Settings::default() };
+        let groups = engine.catalogue(Catalogue::Units, Lang::En);
+        assert_eq!(groups[0].name, "Length");
+        for item in groups.iter().flat_map(|group| &group.items) {
+            let typed = latex::parse(&format!(r"1\,{0} \blacktriangleright {0}", item.latex)).to_latex();
+            let result = engine.evaluate(Mode::Physics, &settings, &typed);
+            assert!(result.is_ok(), "{} ({typed}): {result:?}", item.name);
+        }
+    }
+}

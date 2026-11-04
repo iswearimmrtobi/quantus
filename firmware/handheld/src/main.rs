@@ -18,7 +18,8 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Network, Reply, Request, Storage, WlanStatus};
+use quantus_ui::backend::{Backend, Catalogue, Group, Network, Reply, Request, Storage, WlanStatus};
+use quantus_ui::text::Lang;
 #[cfg(feature = "engine")]
 use quantus_ui::backend::{Opened, SessionCommand, SessionInfo};
 use quantus_ui::font::Scale;
@@ -218,6 +219,16 @@ impl Backend for Board {
     #[cfg(feature = "engine")]
     fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
         self.engine.session(command, settings)
+    }
+
+    #[cfg(feature = "engine")]
+    fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
+        self.engine.catalogue(catalogue, lang)
+    }
+
+    #[cfg(not(feature = "engine"))]
+    fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
+        quantus_ui::backend::Stub.catalogue(catalogue, lang)
     }
 
     #[cfg(feature = "engine")]

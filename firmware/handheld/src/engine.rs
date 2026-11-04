@@ -10,7 +10,7 @@ use std::time::Instant;
 use esp_idf_svc::sys;
 use quantus_engine::Engine;
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Opened, Reply, Request, SessionCommand, SessionInfo};
+use quantus_ui::backend::{Backend, Catalogue, Group, Opened, Reply, Request, SessionCommand, SessionInfo};
 use quantus_ui::text::Lang;
 
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does. The
@@ -32,6 +32,8 @@ enum Job {
     /// The sessions, answered on a channel of their own.
     Sessions(Sender<Vec<SessionInfo>>),
     Session(SessionCommand, Settings, Sender<Result<Opened, String>>),
+    /// CONST and CONV, answered like the sessions.
+    Catalogue(Catalogue, Lang, Sender<Vec<Group>>),
 }
 
 pub struct Worker {
@@ -85,6 +87,9 @@ impl Worker {
                             println!("session: {command:?}");
                             let _ = reply.send(engine.session(command, &settings));
                         }
+                        Job::Catalogue(catalogue, lang, reply) => {
+                            let _ = reply.send(engine.catalogue(catalogue, lang));
+                        }
                     }
                 }
             })
@@ -126,6 +131,15 @@ impl Worker {
         let stopped = || "the engine thread has stopped".to_string();
         self.jobs.send(Job::Session(command, *settings, reply)).map_err(|_| stopped())?;
         answer.recv().map_err(|_| stopped())?
+    }
+
+    /// The constants or the units, waiting like [`sessions`](Worker::sessions).
+    pub fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
+        let (reply, answer) = mpsc::channel();
+        if self.jobs.send(Job::Catalogue(catalogue, lang, reply)).is_err() {
+            return Vec::new();
+        }
+        answer.recv().unwrap_or_default()
     }
 
     /// The answer to the last calculation sent, once it is there.

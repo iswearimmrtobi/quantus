@@ -51,6 +51,12 @@ pub trait Backend {
         None
     }
 
+    /// The physical constants (CONST) or the units a value converts to (CONV), by category,
+    /// named in `lang`.
+    fn catalogue(&mut self, _catalogue: Catalogue, _lang: crate::text::Lang) -> Vec<Group> {
+        Vec::new()
+    }
+
     /// The sessions there are, in the order the session list shows them.
     fn sessions(&mut self) -> Vec<SessionInfo> {
         Vec::new()
@@ -122,6 +128,27 @@ pub trait Backend {
     fn set_time(&mut self, utc_ms: i64) {
         clock::set(utc_ms);
     }
+}
+
+/// What CONST and CONV list.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Catalogue {
+    Constants,
+    Units,
+}
+
+/// A category of a [`Catalogue`]: Universelle Konstanten, Länge.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Group {
+    pub name: String,
+    pub items: Vec<Item>,
+}
+
+/// A constant or a unit: its name, and the LaTeX that is inserted and shown beside the name.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Item {
+    pub name: String,
+    pub latex: String,
 }
 
 /// The WLAN connection.
@@ -539,6 +566,21 @@ impl Backend for Stub {
             Ok(format!(r"\approx {latex}"))
         } else {
             Ok(latex.to_string())
+        }
+    }
+
+    /// Two constants and two units, to see the menus without the engine.
+    fn catalogue(&mut self, catalogue: Catalogue, _lang: crate::text::Lang) -> Vec<Group> {
+        let item = |name: &str, latex: &str| Item { name: name.into(), latex: latex.into() };
+        match catalogue {
+            Catalogue::Constants => vec![Group {
+                name: "Universell".into(),
+                items: vec![item("Lichtgeschwindigkeit", "c_{0}"), item("Planck-Konstante", "h_{P}")],
+            }],
+            Catalogue::Units => vec![Group {
+                name: "Länge".into(),
+                items: vec![item("Meter", r"\mathrm{m}"), item("Zoll", r"\mathrm{in}")],
+            }],
         }
     }
 
