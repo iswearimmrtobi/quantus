@@ -12,6 +12,8 @@ const KINDS: { kind: FormKind; label: TextKey }[] = [
   { kind: 'vector', label: 'geometry.kind.vector' },
   { kind: 'line', label: 'geometry.kind.line' },
   { kind: 'plane', label: 'geometry.kind.plane' },
+  { kind: 'sphere', label: 'geometry.kind.sphere' },
+  { kind: 'circle', label: 'geometry.kind.circle' },
 ];
 
 /** The name of each way an object can be given, for the switch above its form. */
@@ -22,7 +24,30 @@ const VARIANT_LABELS: Partial<Record<Variant, TextKey>> = {
   planeNormal: 'geometry.variant.planeNormal',
   planeCoordinate: 'geometry.variant.planeCoordinate',
   planeThrough: 'geometry.variant.planeThrough',
+  sphere: 'geometry.variant.sphere',
+  sphereThrough: 'geometry.variant.sphereThrough',
+  sphereFour: 'geometry.variant.sphereFour',
+  circle: 'geometry.variant.circle',
+  circleCut: 'geometry.variant.circleCut',
 };
+
+/** A pick of an object of the scene by name, from those of `kind` that were built. */
+function ObjectPick({ value, kind, built, onChange }: { value: string; kind: string; built: Geometry['objects'] | null; onChange(name: string): void }) {
+  const { t } = useT();
+  const names = (built ?? []).filter((object) => object.kind === kind && !object.error).map((object) => object.name);
+  return (
+    <select className="setting-select geometry-pick" value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="">{t('geometry.pick')}</option>
+      {/* A name that is gone stays selectable, so the form shows what it holds. */}
+      {value && !names.includes(value) && <option value={value}>{value}</option>}
+      {names.map((name) => (
+        <option key={name} value={name}>
+          {name}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 interface Props {
   objects: GeometryObject[];
@@ -89,7 +114,8 @@ function EntryField({ entry, vector, onChange }: { entry: GeometryEntry; vector:
 const Text = ({ latex }: { latex: string }) => <Katex className="geometry-form-text" latex={latex} />;
 
 /** The form of one object, without its name, laid out as its equation is written. */
-function Form({ object, onChange }: { object: GeometryObject; onChange(object: GeometryObject): void }) {
+function Form({ object, built, onChange }: { object: GeometryObject; built: Geometry['objects'] | null; onChange(object: GeometryObject): void }) {
+  const { t } = useT();
   const point = (entry: GeometryEntry, set: (entry: GeometryEntry) => void) => <EntryField entry={entry} vector={false} onChange={set} />;
   const vector = (entry: GeometryEntry, set: (entry: GeometryEntry) => void) => <EntryField entry={entry} vector onChange={set} />;
   switch (object.kind) {
@@ -159,6 +185,56 @@ function Form({ object, onChange }: { object: GeometryObject; onChange(object: G
           {point(object.c, (c) => onChange({ ...object, c }))}
         </>
       );
+    case 'sphere':
+      return (
+        <>
+          <Text latex="M =" />
+          {point(object.centre, (centre) => onChange({ ...object, centre }))}
+          <Text latex="r =" />
+          <Cell value={object.radius} onChange={(radius) => onChange({ ...object, radius })} />
+        </>
+      );
+    case 'sphereThrough':
+      return (
+        <>
+          <Text latex="M =" />
+          {point(object.centre, (centre) => onChange({ ...object, centre }))}
+          <Text latex="P =" />
+          {point(object.point, (p) => onChange({ ...object, point: p }))}
+        </>
+      );
+    case 'sphereFour':
+      return (
+        <>
+          <Text latex="P =" />
+          {point(object.a, (a) => onChange({ ...object, a }))}
+          <Text latex="Q =" />
+          {point(object.b, (b) => onChange({ ...object, b }))}
+          <Text latex="R =" />
+          {point(object.c, (c) => onChange({ ...object, c }))}
+          <Text latex="S =" />
+          {point(object.d, (d) => onChange({ ...object, d }))}
+        </>
+      );
+    case 'circle':
+      return (
+        <>
+          <Text latex="M =" />
+          {point(object.centre, (centre) => onChange({ ...object, centre }))}
+          <Text latex="r =" />
+          <Cell value={object.radius} onChange={(radius) => onChange({ ...object, radius })} />
+          <Text latex="\vec{n} =" />
+          <span title={t('geometry.circle.normal.hint')}>{vector(object.normal ?? ['', '', ''], (normal) => onChange({ ...object, normal }))}</span>
+        </>
+      );
+    case 'circleCut':
+      return (
+        <>
+          <ObjectPick value={object.sphere} kind="sphere" built={built} onChange={(sphere) => onChange({ ...object, sphere })} />
+          <Text latex="\cap" />
+          <ObjectPick value={object.plane} kind="plane" built={built} onChange={(plane) => onChange({ ...object, plane })} />
+        </>
+      );
     default:
       return null;
   }
@@ -211,7 +287,7 @@ export function GeometryObjects({ objects, built, onChange }: Props) {
                   onChange={(event) => replace(index, { ...object, name: event.target.value })}
                 />
               )}
-              <Form object={object} onChange={(next) => replace(index, next)} />
+              <Form object={object} built={built} onChange={(next) => replace(index, next)} />
               <button className="copy-btn geometry-remove" title={t('geometry.remove')} onClick={() => remove(index)}>
                 ×
               </button>

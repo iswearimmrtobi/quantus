@@ -11,7 +11,7 @@ export interface GeometryInput {
 export const EMPTY_GEOMETRY: GeometryInput = { objects: [], task: null };
 
 /** The kinds of object a form can make. */
-export type FormKind = 'point' | 'vector' | 'line' | 'plane';
+export type FormKind = 'point' | 'vector' | 'line' | 'plane' | 'sphere' | 'circle';
 
 /** How an object of a form is given: the shape kinds of the engine, without the typed line. */
 export type Variant = Exclude<GeometryShape['kind'], 'typed'>;
@@ -22,6 +22,8 @@ export const VARIANTS: Record<FormKind, Variant[]> = {
   vector: ['vector'],
   line: ['line', 'lineThrough'],
   plane: ['plane', 'planeNormal', 'planeCoordinate', 'planeThrough'],
+  sphere: ['sphere', 'sphereThrough', 'sphereFour'],
+  circle: ['circle', 'circleCut'],
 };
 
 /** The kind of object a shape gives, or null for a typed line. */
@@ -94,14 +96,16 @@ export function switchVariant(object: GeometryObject, variant: Variant): Geometr
   return next as unknown as GeometryObject;
 }
 
-/** Upper case for points (A, B, …), lower case for vectors (a, b, …), g, h for lines and E, F for planes, as in school. */
+/** As in school: A, B for points, a, b for vectors, g, h for lines, E, F for planes, K, L for spheres and k for circles. */
 const LETTERS: Record<FormKind, string[]> = {
   point: 'ABCDPQRSTUVW'.split(''),
   vector: 'abcduvw'.split(''),
-  line: 'ghkl'.split(''),
+  line: 'gh'.split(''),
   plane: 'EFGH'.split(''),
+  sphere: 'KLM'.split(''),
+  circle: 'k'.split(''),
 };
-const BASES: Record<FormKind, string> = { point: 'P', vector: 'v', line: 'g', plane: 'E' };
+const BASES: Record<FormKind, string> = { point: 'P', vector: 'v', line: 'g', plane: 'E', sphere: 'K', circle: 'k' };
 
 /** The first name of its kind that the scene does not use yet, then `P_1`, `P_2`, … */
 export function freeName(kind: FormKind, objects: GeometryObject[]): string {
@@ -117,9 +121,12 @@ function entry(value: GeometryEntry): GeometryEntry {
   return Array.isArray(value) && value.length === 3 && !value[2].trim() ? value.slice(0, 2) : value;
 }
 
-/** The object as the engine takes it: its point and vector entries with an empty z dropped. */
+/** The object as the engine takes it: its point and vector entries with an empty z dropped, an empty normal left out. */
 function shapeRequest(object: GeometryObject): GeometryObject {
-  return mapEntries(object, entry);
+  const out = mapEntries(object, entry);
+  // A circle without a normal lies in the x-y plane.
+  if (out.kind === 'circle' && Array.isArray(out.normal) && out.normal.every((cell) => !cell.trim())) return { ...out, normal: null };
+  return out;
 }
 
 /** The object with `f` applied to each of its coordinate entries. */
@@ -132,6 +139,12 @@ function mapEntries(object: GeometryObject, f: (value: GeometryEntry) => Geometr
 /** A saved 2D entry gets its empty z cell back for the form. */
 const padded = (value: GeometryEntry): GeometryEntry => (Array.isArray(value) && value.length === 2 ? [...value, ''] : value);
 
+/** A saved object as the form shows it: 2D entries padded, a circle without normal with empty normal cells. */
+function formObject(object: GeometryObject): GeometryObject {
+  const out = mapEntries(object, padded);
+  return out.kind === 'circle' && !out.normal ? { ...out, normal: ['', '', ''] } : out;
+}
+
 /** The scene as a request, or null while it is empty. */
 export function geometryRequest(input: GeometryInput): GeometryRequest | null {
   if (!input.objects.length && !input.task) return null;
@@ -141,5 +154,5 @@ export function geometryRequest(input: GeometryInput): GeometryRequest | null {
 /** The input a session saved, or the empty one. */
 export function geometryInput(request: GeometryRequest | null | undefined): GeometryInput {
   if (!request) return EMPTY_GEOMETRY;
-  return { objects: (request.scene?.objects ?? []).map((object) => mapEntries(object, padded)), task: request.task ?? null };
+  return { objects: (request.scene?.objects ?? []).map(formObject), task: request.task ?? null };
 }

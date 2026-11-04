@@ -2655,6 +2655,10 @@ select option {
   color: var(--text-muted);
 }
 
+.geometry-pick {
+  width: auto;
+}
+
 .geometry-bar {
   color: var(--text-muted);
 }
