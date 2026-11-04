@@ -143,15 +143,22 @@ pub(crate) fn numeric_series(term: &mut dyn FnMut(i64) -> Result<RBig>, from: i6
 /// An alternating series from `start` on, the terms before it added as they are. The size of
 /// the terms must fall towards 0 at points far out.
 fn alternating(term: &mut dyn FnMut(i64) -> Result<RBig>, from: i64, start: i64, digits: usize) -> Result<RBig> {
-    let mut size = abs(&term(start)?);
+    let first_size = abs(&term(start)?);
+    // Below this the terms no longer matter, and further out they may not even be computable
+    // (`3^{1000000}`): the series falls geometrically.
+    let negligible = &first_size * RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits + 10));
+    let mut size = first_size.clone();
     for k in [start + 100, start + 10_000, start + 1_000_000] {
         let next = abs(&term(k)?);
         if next >= size {
             return Err(diverges("its terms do not tend to 0"));
         }
         size = next;
+        if size < negligible {
+            break;
+        }
     }
-    if size * RBig::from(100) > abs(&term(start)?) {
+    if size * RBig::from(100) > first_size {
         return Err(too_slow());
     }
     let mut head = RBig::ZERO;
@@ -232,6 +239,20 @@ mod tests {
         let s = numeric_series(&mut term, 1, 40).unwrap();
         let ln2 = RBig::from_parts("6931471805599453094172321214581765680755".parse::<IBig>().unwrap(), UBig::from(10u8).pow(40));
         assert!(abs(&(s - ln2)) < RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(35)));
+    }
+
+    #[test]
+    fn an_alternating_geometric_series_is_not_sampled_far_out() {
+        // Far out the terms (-1/3)^k would not be computable; 3/4 is reached long before.
+        let mut term = |k: i64| {
+            if k > 10_000 {
+                return Err(QuantusError::other("too large"));
+            }
+            Ok(RBig::from_parts(IBig::from(if k % 2 == 0 { 1 } else { -1 }), UBig::from(3u8).pow(k as usize)))
+        };
+        let s = numeric_series(&mut term, 0, 40).unwrap();
+        let three_quarters = RBig::from_parts(IBig::from(3), UBig::from(4u8));
+        assert!(abs(&(s - three_quarters)) < RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(35)));
     }
 
     #[test]
