@@ -187,3 +187,60 @@ fn vec_names_a_vector_of_the_scene() {
     // Outside the Geometry mode `\vec` means nothing.
     assert!(parse_with(r"\vec{a}", &Settings { mode: Mode::Algebra, ..Settings::default() }.parse_options()).is_err());
 }
+
+fn point(latex: &str) -> Point {
+    match read(latex, &Objects::default()) {
+        Ok(Item::Point(p)) => p,
+        other => panic!("{latex}: {other:?}"),
+    }
+}
+
+fn written(latex: &str) -> String {
+    parse_with(latex, &geometry_options()).map(|f| serializer::expression(&f.expression)).unwrap_or_else(|e| format!("error: {e}"))
+}
+
+#[test]
+fn points_are_written_with_bars_or_semicolons() {
+    for latex in ["(1|2|3)", "P(1|2|3)", "(1;2;3)", "P_1(1;2;3)", r"P\left(1|2|3\right)", "( 1 | 2 | 3 )"] {
+        assert_eq!(point(latex), Point::from_ints(1, 2, 3), "{latex}");
+    }
+    let planar = point("Q(3|-4)");
+    assert!(planar.planar && planar == Point::from_ints(3, -4, 0));
+    // A decimal comma is no separator.
+    assert_eq!(point("(1,5|2|3)").coords[0], Value::ratio(3, 2));
+    assert_eq!(point(r"(\frac{1}{2}|2+3|(1+1)^{2})"), Point::new(Value::ratio(1, 2), Value::int(5), Value::int(4)));
+    assert_eq!(written("P_1(1;2;3)"), "P_{1}(1|2|3)");
+    assert_eq!(written(r"(1|\frac{1}{2}|-3)"), r"(1|\frac{1}{2}|-3)");
+    // Without a bar or a semicolon the brackets are a plain group, and a letter before them a factor.
+    assert_eq!(read("(1+2)", &Objects::default()), Ok(Item::Scalar(Value::int(3))));
+    assert_eq!(written("a(1+2)"), r"a \cdot (1 + 2)");
+}
+
+#[test]
+fn bars_in_a_point_separate_unless_they_are_left_and_right() {
+    // An absolute value inside a coordinate is written \left|…\right| (or \lvert…\rvert).
+    assert_eq!(point(r"(1|\left|-2\right||3)"), Point::from_ints(1, 2, 3));
+    assert_eq!(point(r"(\lvert -1 \rvert|2|3)"), Point::from_ints(1, 2, 3));
+    assert_eq!(point(r"(\left|-1-\left|-4\right|\right||0|0)"), Point::from_ints(5, 0, 0));
+    assert_eq!(written(r"(1|\left|-2\right||3)"), r"(1|\left|-2\right||3)");
+    // A bar right after `(` or a separator starts no absolute value.
+    for latex in ["(|-1||2|3)", "(1||-2||3)", "(1|2|-|3|)"] {
+        assert!(written(latex).contains("separates the coordinates"), "{latex}");
+    }
+    assert!(written("(1|2;3)").contains("one separator"));
+    assert!(written("(1|2|3|4)").contains("two or three"));
+    // Outside brackets a bar is still the absolute value, and around a point too.
+    assert_eq!(read("|-4|", &Objects::default()), Ok(Item::Scalar(Value::int(4))));
+    assert_eq!(written("|(3|4|0)|"), r"\left|(3|4|0)\right|");
+    assert_eq!(written(r"|\vec{a}|"), r"\left|\vec{a}\right|");
+    // A coordinate is a number.
+    assert!(read("(x|1|2)", &Objects::default()).unwrap_err().contains("'x' has no value"));
+}
+
+#[test]
+fn other_modes_read_bars_as_before() {
+    let algebra = Settings { mode: Mode::Algebra, ..Settings::default() }.parse_options();
+    let as_algebra = |latex| serializer::expression(&parse_with(latex, &algebra).unwrap().expression);
+    assert_eq!(as_algebra("(1|2|3)"), as_algebra(r"(1\left|2\right|3)"));
+    assert_eq!(as_algebra(r"\left|x\right|+|y|"), r"\left|x\right| + \left|y\right|");
+}

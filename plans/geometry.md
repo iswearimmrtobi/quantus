@@ -116,7 +116,7 @@ green.
 - [x] Parser, Geometry mode only, *check first* how `MatrixEvaluator` in `matrix.rs` reads
   `pmatrix` and reuse that instead of duplicating it: `\begin{pmatrix}`, `\vec{a}` read as
   vectors, with tests.
-- [ ] Parser: points `P(1|2|3)` and `(1|2|3)`, `;` as a separator, the rule that tells `(a|b|c)`
+- [x] Parser: points `P(1|2|3)` and `(1|2|3)`, `;` as a separator, the rule that tells `(a|b|c)`
   from `|v|`, with tests (nested bars, `\left|…\right|` in a coordinate, `(1,5|2|3)` with a
   decimal comma).
 - [ ] Evaluator: `×` is the cross product, `\cdot` the dot product (scalar·vector the multiple),

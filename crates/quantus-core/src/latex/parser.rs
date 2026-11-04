@@ -194,6 +194,7 @@ pub fn parse_with(source: &str, options: &ParseOptions) -> Result<Formula> {
         abs_depth: 0,
         bound: Vec::new(),
         stops: Vec::new(),
+        in_point: false,
         options: *options,
     }
     .parse()
@@ -215,6 +216,8 @@ struct Parser<'a> {
     /// Token positions where an enclosing integral's differential starts: juxtaposition stops
     /// there, so `x\,dx` is not the product of `x` and a unit `dx`.
     stops: Vec<usize>,
+    /// Inside the coordinates of a point (Geometry mode), where a plain `|` separates them.
+    in_point: bool,
     options: ParseOptions,
 }
 
@@ -595,7 +598,12 @@ impl Parser<'_> {
                 Ok(Node::Number { value: self.decimal(&token.text, token.position)?, position: token.position })
             }
             TokenType::Identifier => self.parse_identifier(),
+            TokenType::Pipe if self.in_point && token.text == "|" => Err(self.error(
+                "In a point, '|' separates the coordinates; write an absolute value there as \\left|…\\right|.",
+                token.position,
+            )),
             TokenType::Pipe => self.parse_abs(),
+            TokenType::LParen if self.options.geometry && self.point_ahead(self.index) => self.parse_point(None),
             TokenType::LParen => self.parse_group(TokenType::RParen, ")"),
             TokenType::LBrace => self.parse_group(TokenType::RBrace, "}"),
             TokenType::LBracket => self.parse_group(TokenType::RBracket, "]"),
@@ -683,7 +691,9 @@ impl Parser<'_> {
     fn parse_abs(&mut self) -> Result<Node> {
         let open = self.advance();
         self.abs_depth += 1;
+        let in_point = std::mem::replace(&mut self.in_point, false);
         let operand = self.parse_expression();
+        self.in_point = in_point;
         self.abs_depth -= 1;
         let operand = operand?;
         if self.current().kind != TokenType::Pipe {
@@ -696,11 +706,74 @@ impl Parser<'_> {
     fn parse_group(&mut self, closing: TokenType, closing_text: &str) -> Result<Node> {
         let open = self.advance();
         let outer_abs_depth = std::mem::replace(&mut self.abs_depth, 0);
+        let in_point = std::mem::replace(&mut self.in_point, false);
         let inner = self.parse_expression();
         self.abs_depth = outer_abs_depth;
+        self.in_point = in_point;
         let inner = inner?;
         self.expect(closing, &format!("'{closing_text}'"))?;
         Ok(Node::Group { inner: Box::new(inner), position: open.position })
+    }
+
+    /// Whether the `(` at `index` opens a point (Geometry mode): a plain `|` or a `;` stands
+    /// between it and its `)` outside any inner bracket or `\left|…\right|`. A `|` right after
+    /// `(` or after a separator therefore starts no absolute value.
+    fn point_ahead(&self, index: usize) -> bool {
+        let mut depth = 0usize;
+        for token in &self.tokens[index + 1..] {
+            match token.kind {
+                TokenType::LParen | TokenType::LBrace | TokenType::LBracket => depth += 1,
+                TokenType::RParen | TokenType::RBrace | TokenType::RBracket if depth == 0 => return false,
+                TokenType::RParen | TokenType::RBrace | TokenType::RBracket => depth -= 1,
+                TokenType::Pipe if token.text == "\\left|" => depth += 1,
+                TokenType::Pipe if token.text == "\\right|" => depth = depth.saturating_sub(1),
+                TokenType::Pipe | TokenType::Comma if depth == 0 && token.text != "," => return true,
+                TokenType::End => return false,
+                _ => {}
+            }
+        }
+        false
+    }
+
+    /// `(1|2|3)`, `(1;2)` or, with `name`, `P(1|2|3)`: a point of the Geometry mode, as the call
+    /// `point` of its coordinates, or `named point` of the name and the coordinates.
+    fn parse_point(&mut self, name: Option<Node>) -> Result<Node> {
+        let open = self.advance();
+        let outer = (std::mem::replace(&mut self.abs_depth, 1), std::mem::replace(&mut self.in_point, true));
+        let coordinates = self.point_coordinates(open.position);
+        (self.abs_depth, self.in_point) = outer;
+        let coordinates = coordinates?;
+        let position = name.as_ref().map_or(open.position, Node::position);
+        Ok(match name {
+            Some(name) => Node::Call { name: "named point".into(), arguments: [vec![name], coordinates].concat(), position },
+            None => Node::Call { name: "point".into(), arguments: coordinates, position },
+        })
+    }
+
+    fn point_coordinates(&mut self, open: usize) -> Result<Vec<Node>> {
+        let mut coordinates = vec![self.parse_expression()?];
+        let mut separator: Option<String> = None;
+        loop {
+            let token = self.current().clone();
+            match token.kind {
+                TokenType::RParen => {
+                    self.advance();
+                    break;
+                }
+                TokenType::Pipe | TokenType::Comma if token.text == "|" || token.text == ";" => {
+                    if separator.get_or_insert_with(|| token.text.clone()) != &token.text {
+                        return Err(self.error("A point takes one separator between its coordinates: '|' or ';'.", token.position));
+                    }
+                    self.advance();
+                    coordinates.push(self.parse_expression()?);
+                }
+                _ => return Err(self.error("Expected '|', ';' or ')' in the point.", token.position)),
+            }
+        }
+        if !(2..=3).contains(&coordinates.len()) {
+            return Err(self.error("A point has two or three coordinates.", open));
+        }
+        Ok(coordinates)
     }
 
     fn parse_command(&mut self, token: &Token) -> Result<Node> {
@@ -1293,6 +1366,11 @@ impl Parser<'_> {
 
     fn parse_identifier(&mut self) -> Result<Node> {
         let token = self.current().clone();
+        if self.options.geometry && !self.unit_context && token.text.chars().count() == 1 {
+            if let Some(point) = self.named_point()? {
+                return Ok(point);
+            }
+        }
         if !self.unit_context && self.peek(1).kind == TokenType::Underscore {
             self.advance();
             self.advance();
@@ -1348,6 +1426,29 @@ impl Parser<'_> {
             format!("'{symbol}' is neither a unit nor a constant. A variable is a single letter or carries a subscript, e.g. x or v_1.{hint}")
         };
         Err(self.error(&reason, token.position))
+    }
+
+    /// `P(1|2|3)` or `P_1(1|2)`: a letter, perhaps with an index, right before a point.
+    fn named_point(&mut self) -> Result<Option<Node>> {
+        let start = self.index;
+        let token = self.advance();
+        let mut index = String::new();
+        if self.current().kind == TokenType::Underscore {
+            self.advance();
+            match self.parse_subscript() {
+                Ok(subscript) => index = subscript,
+                Err(_) => {
+                    self.index = start;
+                    return Ok(None);
+                }
+            }
+        }
+        if self.current().kind != TokenType::LParen || !self.point_ahead(self.index) {
+            self.index = start;
+            return Ok(None);
+        }
+        let name = Node::Variable { name: token.text, index, position: token.position };
+        self.parse_point(Some(name)).map(Some)
     }
 
     /// `ab` in `2ab` becomes the variable `a`, with `b` left behind as the next token to be read,

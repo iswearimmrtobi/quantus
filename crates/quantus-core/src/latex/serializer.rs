@@ -224,6 +224,10 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 out
             }
             ("vec", [name]) => format!("\\vec{{{}}}", expression_with_mode(name, mode)),
+            ("point", coordinates) => coordinate_list(coordinates, mode),
+            ("named point", [name, coordinates @ ..]) => {
+                format!("{}{}", expression_with_mode(name, mode), coordinate_list(coordinates, mode))
+            }
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
             ("convert", [value, unit]) => {
                 format!("{} \\blacktriangleright {}", expression_with_mode(value, mode), expression_with_mode(unit, mode))
@@ -581,4 +585,9 @@ mod tests {
         assert_eq!(round_trip("e \\cdot i"), "e \\cdot i");
         assert_eq!(round_trip("2 \\cdot \\pi"), "2 \\cdot \\pi");
     }
+}
+
+/// The coordinates of a point, `(1|2|3)`.
+fn coordinate_list(coordinates: &[Node], mode: SerializerMode) -> String {
+    format!("({})", coordinates.iter().map(|c| expression_with_mode(c, mode)).collect::<Vec<_>>().join("|"))
 }

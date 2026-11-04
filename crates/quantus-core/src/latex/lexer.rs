@@ -229,6 +229,12 @@ impl Lexer<'_> {
         if matches!(text.as_str(), "\\left" | "\\right") && self.at(0) == Some('.') {
             self.index += 1;
         }
+        // `\left|` and `\right|` are bars that open and close: the Geometry mode tells them from
+        // the bars that separate coordinates, `(1|\left|-2\right||3)`.
+        if matches!(text.as_str(), "\\left" | "\\right") && self.at(0) == Some('|') {
+            self.index += 1;
+            return Ok(Some(Token { kind: TokenType::Pipe, text: format!("{text}|"), position: start }));
+        }
         let relation = match text.as_str() {
             "\\lt" => Some("<"),
             "\\gt" => Some(">"),
@@ -242,7 +248,12 @@ impl Lexer<'_> {
         } else if IGNORED_COMMANDS.contains(&text.as_str()) {
             None
         } else if PIPE_COMMANDS.contains(&text.as_str()) {
-            Some(Token { kind: TokenType::Pipe, text: "|".to_string(), position: start })
+            let text = match text.as_str() {
+                "\\lvert" => "\\left|",
+                "\\rvert" => "\\right|",
+                _ => "|",
+            };
+            Some(Token { kind: TokenType::Pipe, text: text.to_string(), position: start })
         } else if text == "\\AA" {
             Some(Token { kind: TokenType::Identifier, text: "\u{c5}".to_string(), position: start })
         } else if GREEK_COMMANDS.contains(&text.as_str()) {
