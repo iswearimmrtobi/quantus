@@ -129,7 +129,7 @@ Every function returns the result and a `Working` log in the `msg!` bilingual st
 (`crate::text`), like `matrix.rs`. Degenerate cases (parallel, identical, skew, point on line) are
 results, not errors. Each step below brings its tests.
 
-- [ ] `Line`: from two points or point and direction; point on line?; distance point–line; foot of
+- [x] `Line`: from two points or point and direction; point on line?; distance point–line; foot of
   perpendicular.
 - [ ] `Line` × `Line`: identical, parallel, intersecting, skew, with intersection point, angle and
   distance.

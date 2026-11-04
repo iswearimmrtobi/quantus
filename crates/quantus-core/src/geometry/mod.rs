@@ -5,8 +5,13 @@
 //! that it was 2D (`planar`), so that a result of 2D inputs can be written without z.
 
 mod eval;
+mod line;
+mod show;
+mod working;
 
 pub use eval::{GeometryEvaluator, Item, Objects};
+pub use line::Line;
+pub use working::{Note, Worked, Working};
 
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -34,6 +39,13 @@ pub struct Point {
     pub coords: Coordinates,
     /// Entered with two coordinates (z = 0).
     pub planar: bool,
+}
+
+/// Whether two values are equal, with a difference below the rounding noise of roots taken as 0.
+fn equal(a: &Value, b: &Value) -> bool {
+    let mut difference = a.sub(b);
+    linear::settle(&mut difference);
+    difference.is_zero()
 }
 
 fn zip(a: &Coordinates, b: &Coordinates, f: impl Fn(&Value, &Value) -> Value) -> Coordinates {

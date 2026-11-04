@@ -1,12 +1,13 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Objects, Point, Vector3,
+    triple_product, GeometryEvaluator, Item, Line, Objects, Point, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
 use quantus_core::latex::serializer;
 use quantus_core::num::Value;
-use quantus_core::settings::{AngleUnit, Mode, Settings};
+use quantus_core::settings::{AngleUnit, Language, Mode, Settings, StepDetail};
+use quantus_core::text::Scope;
 
 #[test]
 fn points_and_vectors_have_their_own_arithmetic() {
@@ -309,4 +310,77 @@ fn points_and_vectors_add_up() {
     assert!(read(r"\vec{a} + 1", &scene()).unwrap_err().contains("cannot be added"));
     // The serializer writes \times back.
     assert_eq!(written(r"\vec{a} \times (\vec{b} \times \vec{a})"), r"\vec{a} \times (\vec{b} \times \vec{a})");
+}
+
+fn latex_at(working: &Working, detail: StepDetail) -> Vec<String> {
+    working.at(detail).map(|note| note.latex.clone()).collect()
+}
+
+fn texts(working: &Working) -> Vec<String> {
+    working.notes.iter().map(|note| note.text.clone()).collect()
+}
+
+#[test]
+fn a_line_through_two_points() {
+    let line = Line::through(&Point::from_ints(1, 2, 3), &Point::from_ints(3, 1, 3)).unwrap();
+    assert_eq!(line.result.support, Point::from_ints(1, 2, 3));
+    assert_eq!(line.result.direction, Vector3::from_ints(2, -1, 0));
+    assert_eq!(
+        latex_at(&line.working, StepDetail::Brief),
+        [r"\vec{x} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix} + \lambda \begin{pmatrix} 2 \\ -1 \\ 0 \end{pmatrix}"]
+    );
+    assert_eq!(line.working.at(StepDetail::Standard).count(), 2);
+    assert!(Line::through(&Point::from_ints(1, 1, 1), &Point::from_ints(1, 1, 1)).is_err());
+    assert!(Line::new(Point::origin(), Vector3::zero()).is_err());
+    // A line of 2D points stays 2D.
+    let p = |x, y| Point::planar(Value::int(x), Value::int(y));
+    let planar = Line::through(&p(0, 1), &p(2, 2)).unwrap();
+    assert!(planar.result.planar());
+    assert_eq!(planar.result.equation(), r"\vec{x} = \begin{pmatrix} 0 \\ 1 \end{pmatrix} + \lambda \begin{pmatrix} 2 \\ 1 \end{pmatrix}");
+}
+
+#[test]
+fn a_point_on_a_line() {
+    let g = Line::new(Point::from_ints(1, 2, 3), Vector3::from_ints(2, -1, 0)).unwrap();
+    let on = g.contains(&Point::from_ints(5, 0, 3));
+    assert_eq!(on.result, Some(Value::int(2)));
+    assert_eq!(latex_at(&on.working, StepDetail::Brief), [r"\lambda = 2"]);
+    assert_eq!(
+        latex_at(&on.working, StepDetail::Detailed)[1..],
+        [r"5 = 1 + 2\lambda \quad \Rightarrow \quad \lambda = 2", r"0 = 2 - \lambda \quad \Rightarrow \quad \lambda = 2", r"3 = 3 \quad (true)", r"\lambda = 2"]
+    );
+    // Different parameters, or a row without λ that fails.
+    let off = g.contains(&Point::from_ints(5, 1, 3));
+    assert_eq!(off.result, None);
+    assert_eq!(latex_at(&off.working, StepDetail::Brief), [r"\lambda = 2 \neq 1"]);
+    let off = g.contains(&Point::from_ints(5, 0, 4));
+    assert_eq!(latex_at(&off.working, StepDetail::Brief), [r"4 \neq 3"]);
+    // A fractional parameter.
+    assert_eq!(g.contains(&Point::from_ints(2, 2, 3)).result, None);
+    assert_eq!(g.contains(&Point::new(Value::int(2), Value::ratio(3, 2), Value::int(3))).result, Some(Value::ratio(1, 2)));
+    // The texts follow the language.
+    let _german = Scope::new(Language::De);
+    assert!(texts(&g.contains(&Point::from_ints(5, 1, 3)).working).last().unwrap().contains("nicht auf der Geraden"));
+}
+
+#[test]
+fn foot_of_the_perpendicular_and_distance_to_a_line() {
+    // The x axis and P(3|4|0): the foot is (3|0|0), the distance 4.
+    let x_axis = Line::new(Point::origin(), Vector3::from_ints(1, 0, 0)).unwrap();
+    assert_eq!(x_axis.foot(&Point::from_ints(3, 4, 0)).result, Point::from_ints(3, 0, 0));
+    assert_eq!(x_axis.distance(&Point::from_ints(3, 4, 0)).unwrap().result, Value::int(4));
+
+    let g = Line::new(Point::from_ints(1, 0, 2), Vector3::from_ints(1, 2, 2)).unwrap();
+    let p = Point::from_ints(4, 3, -1);
+    let foot = g.foot(&p);
+    // (PS + λu)·u = 0: (-3, -3, 3)·(1, 2, 2) + 9λ = 0, so λ = 1/3.
+    assert_eq!(foot.result, Point::new(Value::ratio(4, 3), Value::ratio(2, 3), Value::ratio(8, 3)));
+    assert_eq!(latex_at(&foot.working, StepDetail::Detailed)[2], r"-3 + 9\lambda = 0 \quad \Rightarrow \quad \lambda = \frac{1}{3}");
+    assert_eq!(latex_at(&foot.working, StepDetail::Maximal)[2], r"-3 \cdot 1 + \left(-3\right) \cdot 2 + 3 \cdot 2 + \lambda \left(1 \cdot 1 + 2 \cdot 2 + 2 \cdot 2\right) = 0");
+    let distance = g.distance(&p).unwrap();
+    // PF = (-8/3, -7/3, 11/3), |PF|² = 234/9 = 26.
+    assert_eq!(distance.result, sqrt(26));
+    assert_eq!(latex_at(&distance.working, StepDetail::Brief).last().unwrap(), r"d = \sqrt{26}");
+    // A point on the line has distance 0 and is its own foot.
+    assert_eq!(g.distance(&Point::from_ints(2, 2, 4)).unwrap().result, Value::zero());
 }

@@ -894,7 +894,7 @@ pub(super) fn roman(mut n: usize) -> String {
 }
 
 /// A rational as a whole number or a fraction, never as a decimal.
-pub(super) fn fraction_node(value: &dashu::rational::RBig) -> Node {
+pub(crate) fn fraction_node(value: &dashu::rational::RBig) -> Node {
     use dashu::base::{Abs, Signed};
     use dashu::integer::{IBig, UBig};
     if value.denominator() == &UBig::ONE {
