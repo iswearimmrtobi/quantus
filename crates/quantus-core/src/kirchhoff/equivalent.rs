@@ -4,6 +4,10 @@
 //! the node rule: a test current of 1 A goes in at A and out at B, B is at 0 V, and
 //! `R_AB = φ_A / I`.
 //!
+//! With the setting `star_delta`, a network that gets stuck is first reduced further by turning a
+//! delta of three resistors into a star, or a star into a delta, and merging on. Only if that does
+//! not end in one resistor either is the node rule used, from where series and parallel got stuck.
+//!
 //! Ideal wires and resistors of 0 Ω join their nodes. Parts that carry no current (an open end,
 //! both terminals on one node, not connected to A and B) are left out with a note.
 
@@ -12,7 +16,7 @@ use std::collections::HashMap;
 use crate::eval::system::{solve_matrix, Solution};
 use crate::eval::{LatexCalculator, Step, StepKind};
 use crate::num::Value;
-use crate::settings::{Settings, StepDetail};
+use crate::settings::{Settings, StarDelta, StepDetail};
 use crate::text::msg;
 use crate::units::Kind as UnitKind;
 use crate::{QuantusError, Result};
@@ -21,13 +25,39 @@ use super::branches::{Kind, Part};
 use super::equations::{index, quantity, with_decimal};
 use super::graph::{split_wires, Edge, Point, UnionFind};
 
-/// A merge of resistors: the new one's symbol and the parts it stands for.
+/// How a step of the reduction changes the network.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MergeKind {
+    Series,
+    Parallel,
+    /// Three resistors in a ring become three resistors from their corners to a new node.
+    DeltaToStar,
+    /// Three resistors that meet at a node become three resistors between their outer ends.
+    StarToDelta,
+}
+
+/// A step of the reduction: a merge of resistors into one, or a star–delta conversion.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Merge {
+    /// The merged resistor's symbol; empty for a conversion.
     pub symbol: String,
+    /// The parts it stands for; for a conversion, the parts of the three resistors it replaces.
     pub parts: Vec<String>,
-    /// In series; otherwise in parallel.
-    pub series: bool,
+    pub kind: MergeKind,
+    /// The three resistors a conversion makes; empty for a merge.
+    pub created: Vec<Created>,
+}
+
+/// A resistor made by a star–delta conversion. It stands for no drawn part, so it gets a part ID of
+/// its own, `~Y1` or `~Δ1`, which later merges list among their parts.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Created {
+    pub part: String,
+    /// `R_{\mathrm{Y}1}`, `R_{\Delta 1}`.
+    pub symbol: String,
+    /// Grid points on its two nodes, where a preview draws it: drawn points, or for the centre of a
+    /// star the point between its corners.
+    pub ends: [Point; 2],
 }
 
 #[derive(Clone, Debug)]
@@ -55,6 +85,11 @@ struct Resistor {
     value: Value,
     a: usize,
     b: usize,
+    /// Grid points on `a` and `b`, in that order: its terminals, for a merged one the ends of the
+    /// merge.
+    ends: [Point; 2],
+    /// The number of the conversion that made it, so the next conversion does not undo it.
+    origin: Option<usize>,
 }
 
 impl Resistor {
@@ -72,6 +107,20 @@ impl Resistor {
 
     fn pair(&self) -> (usize, usize) {
         (self.a.min(self.b), self.a.max(self.b))
+    }
+
+    /// Its grid point at `node`.
+    fn end_at(&self, node: usize) -> Point {
+        if self.a == node {
+            self.ends[0]
+        } else {
+            self.ends[1]
+        }
+    }
+
+    /// The node it shares with `other`, if any.
+    fn common(&self, other: &Resistor) -> Option<usize> {
+        [self.a, self.b].into_iter().find(|&n| other.touches(n))
     }
 }
 
@@ -95,6 +144,7 @@ pub fn equivalent(
         })
     };
     let ends: Vec<(usize, usize)> = split.iter().map(|e| (vertex(e.a), vertex(e.b))).collect();
+    let fresh_node = points.len();
     // The pieces of a split wire come after the drawn edges and are wires.
     let is_wire = |n: usize| n >= parts.len() || parts[n].kind == Kind::Wire || parts[n].value.is_zero();
 
@@ -159,6 +209,8 @@ pub fn equivalent(
             value: part.value.clone(),
             a,
             b,
+            ends: [split[n].a, split[n].b],
+            origin: None,
         });
     }
 
@@ -184,22 +236,45 @@ pub fn equivalent(
     }
     let mut resistors = kept;
 
-    let mut merges = Vec::new();
+    let mut merges: Vec<Merge> = Vec::new();
+    // Where series and parallel first got stuck, to go back to if the conversions do not reduce
+    // the network either; and a bound on them, since a delta and a star can turn into each other.
+    let mut stuck: Option<(Vec<Resistor>, usize, usize, usize)> = None;
+    let limit = 3 * resistors.len();
+    let (mut conversions, mut fresh) = (0, fresh_node);
     loop {
         prune(&mut resistors, node_a, node_b, &mut notes);
         if resistors.len() == 1 {
             break;
         }
-        let (step, in_series) = if let Some(group) = parallel(&resistors) {
-            (merge_parallel(&mut resistors, &group, calculator)?, false)
+        let (step, merge) = if let Some(group) = parallel(&resistors) {
+            merge_parallel(&mut resistors, &group, calculator)?
         } else if let Some((first, second, node)) = series(&resistors, node_a, node_b) {
-            (merge_series(&mut resistors, first, second, node, calculator)?, true)
+            merge_series(&mut resistors, first, second, node, calculator)?
+        } else if settings.star_delta != StarDelta::NodeRule && conversions < limit {
+            if stuck.is_none() {
+                stuck = Some((resistors.clone(), merges.len(), steps.len(), notes.len()));
+            }
+            let Some(converted) =
+                convert(&mut resistors, settings.star_delta, [node_a, node_b], &mut fresh, conversions, &merges, calculator)?
+            else {
+                break;
+            };
+            conversions += 1;
+            converted
         } else {
             break;
         };
-        let merged = resistors.iter().find(|r| r.symbol == step.0).expect("the merged resistor is in the network");
-        merges.push(Merge { symbol: merged.symbol.clone(), parts: merged.parts.clone(), series: in_series });
-        steps.extend(step.1);
+        merges.push(merge);
+        steps.extend(step);
+    }
+    if resistors.len() > 1 {
+        if let Some((kept, m, s, n)) = stuck {
+            resistors = kept;
+            merges.truncate(m);
+            steps.truncate(s);
+            notes.truncate(n);
+        }
     }
 
     if resistors.len() == 1 {
@@ -353,6 +428,8 @@ fn joined_indices(groups: &[&Resistor]) -> Vec<String> {
 fn plain(symbol: &str) -> String {
     symbol
         .replace("\\mathrm", "")
+        .replace("\\Delta ", "Δ")
+        .replace("\\Delta", "Δ")
         .chars()
         .filter(|c| !matches!(c, '_' | '{' | '}'))
         .map(|c| c.to_digit(10).and_then(|d| char::from_u32(0x2080 + d)).unwrap_or(c))
@@ -388,7 +465,7 @@ fn merge_steps(
     ]
 }
 
-fn merge_parallel(resistors: &mut Vec<Resistor>, group: &[usize], calculator: &LatexCalculator) -> Result<(String, Vec<Step>)> {
+fn merge_parallel(resistors: &mut Vec<Resistor>, group: &[usize], calculator: &LatexCalculator) -> Result<(Vec<Step>, Merge)> {
     let members: Vec<&Resistor> = group.iter().map(|&k| &resistors[k]).collect();
     let indices = joined_indices(&members);
     let target = symbol(&indices);
@@ -424,13 +501,16 @@ fn merge_parallel(resistors: &mut Vec<Resistor>, group: &[usize], calculator: &L
         value,
         a: members[0].a,
         b: members[0].b,
+        ends: members[0].ends,
+        origin: None,
     };
+    let merge = Merge { symbol: target, parts: merged.parts.clone(), kind: MergeKind::Parallel, created: Vec::new() };
     let first = group[0];
     for &k in group.iter().skip(1).rev() {
         resistors.remove(k);
     }
     resistors[first] = merged;
-    Ok((target, steps))
+    Ok((steps, merge))
 }
 
 fn merge_series(
@@ -439,7 +519,7 @@ fn merge_series(
     second: usize,
     node: usize,
     calculator: &LatexCalculator,
-) -> Result<(String, Vec<Step>)> {
+) -> Result<(Vec<Step>, Merge)> {
     let (p, q) = (&resistors[first], &resistors[second]);
     let indices = joined_indices(&[p, q]);
     let target = symbol(&indices);
@@ -460,11 +540,247 @@ fn merge_series(
         value,
         a: p.other(node),
         b: q.other(node),
+        ends: [p.end_at(p.other(node)), q.end_at(q.other(node))],
+        origin: None,
     };
+    let merge = Merge { symbol: target, parts: merged.parts.clone(), kind: MergeKind::Series, created: Vec::new() };
     let (keep, drop) = (first.min(second), first.max(second));
     resistors.remove(drop);
     resistors[keep] = merged;
-    Ok((target, steps))
+    Ok((steps, merge))
+}
+
+/// Whether the three resistors came out of one conversion together: turning them back would only
+/// undo it.
+fn one_origin(three: [&Resistor; 3]) -> bool {
+    three[0].origin.is_some() && three.iter().all(|r| r.origin == three[0].origin)
+}
+
+/// The first three resistors, in network order, that form a ring over three nodes.
+fn delta(resistors: &[Resistor]) -> Option<[usize; 3]> {
+    let n = resistors.len();
+    for i in 0..n {
+        for j in i + 1..n {
+            let Some(shared) = resistors[i].common(&resistors[j]) else { continue };
+            let (p, q) = (resistors[i].other(shared), resistors[j].other(shared));
+            if p == q {
+                continue;
+            }
+            let pair = (p.min(q), p.max(q));
+            let found = (0..n).find(|&k| k != i && k != j && resistors[k].pair() == pair);
+            if let Some(k) = found.filter(|&k| !one_origin([&resistors[i], &resistors[j], &resistors[k]])) {
+                return Some([i, j, k]);
+            }
+        }
+    }
+    None
+}
+
+/// The first node, in network order, other than A and B with exactly three resistors on it that
+/// lead to three different nodes: the centre of a star, and those three.
+fn star(resistors: &[Resistor], terminals: [usize; 2]) -> Option<(usize, [usize; 3])> {
+    resistors.iter().flat_map(|r| [r.a, r.b]).filter(|n| !terminals.contains(n)).find_map(|node| {
+        let on: Vec<usize> = (0..resistors.len()).filter(|&k| resistors[k].touches(node)).collect();
+        let [x, y, z] = on[..] else { return None };
+        let outer = [x, y, z].map(|k| resistors[k].other(node));
+        let distinct = outer[0] != outer[1] && outer[1] != outer[2] && outer[0] != outer[2];
+        (distinct && !one_origin([&resistors[x], &resistors[y], &resistors[z]])).then_some((node, [x, y, z]))
+    })
+}
+
+/// A star–delta conversion where series and parallel are stuck: the direction of the setting
+/// first, the other one if it does not apply. `None` if neither does.
+fn convert(
+    resistors: &mut Vec<Resistor>,
+    choice: StarDelta,
+    terminals: [usize; 2],
+    fresh: &mut usize,
+    number: usize,
+    merges: &[Merge],
+    calculator: &LatexCalculator,
+) -> Result<Option<(Vec<Step>, Merge)>> {
+    // The new resistors are numbered on from those of earlier conversions of the same kind.
+    let made = |kind: MergeKind| merges.iter().filter(|m| m.kind == kind).map(|m| m.created.len()).sum::<usize>();
+    let order = if choice == StarDelta::StarToDelta { [false, true] } else { [true, false] };
+    for to_star in order {
+        if to_star {
+            if let Some(ring) = delta(resistors) {
+                let centre = *fresh;
+                *fresh += 1;
+                return delta_to_star(resistors, ring, centre, number, made(MergeKind::DeltaToStar), calculator).map(Some);
+            }
+        } else if let Some((centre, arms)) = star(resistors, terminals) {
+            return star_to_delta(resistors, centre, arms, number, made(MergeKind::StarToDelta), calculator).map(Some);
+        }
+    }
+    Ok(None)
+}
+
+/// One line of a conversion: the new resistor, its formula with symbols and with values, its value.
+struct Line {
+    target: String,
+    formula: String,
+    substituted: String,
+    result: String,
+}
+
+/// The three new resistors as one step, so that a conversion is one line of the working like a
+/// merge, at the levels of [`merge_steps`]: the values (Brief), the formulas (Standard), the
+/// formulas with the values put in (Detailed).
+fn conversion_steps(lines: &[Line], explanation: String) -> Vec<Step> {
+    let block = |line: &dyn Fn(&Line) -> String| {
+        format!("\\begin{{aligned}} {} \\end{{aligned}}", lines.iter().map(line).collect::<Vec<_>>().join(" \\\\ "))
+    };
+    vec![
+        Step::algebraic(block(&|l| format!("{} &= {}", l.target, l.result)), None, explanation.clone(), None, None)
+            .until(StepDetail::Standard),
+        Step::algebraic(block(&|l| format!("{} &= {} = {}", l.target, l.formula, l.result)), None, explanation.clone(), None, None)
+            .with_level(StepDetail::Standard)
+            .until(StepDetail::Detailed),
+        Step::algebraic(
+            block(&|l| format!("{} &= {} = {} = {}", l.target, l.formula, l.substituted, l.result)),
+            None,
+            explanation,
+            None,
+            None,
+        )
+        .with_level(StepDetail::Detailed),
+    ]
+}
+
+/// Takes out the resistors at `old` and puts `new` in the place of the first of them.
+fn replace(resistors: &mut Vec<Resistor>, mut old: [usize; 3], new: Vec<Resistor>) {
+    old.sort_unstable();
+    for &k in old.iter().rev() {
+        resistors.remove(k);
+    }
+    resistors.splice(old[0]..old[0], new);
+}
+
+/// The ring `ring` becomes a star around the new node `centre`: the arm at the corner of two
+/// resistors is their product over the sum of all three.
+fn delta_to_star(
+    resistors: &mut Vec<Resistor>,
+    ring: [usize; 3],
+    centre: usize,
+    number: usize,
+    made: usize,
+    calculator: &LatexCalculator,
+) -> Result<(Vec<Step>, Merge)> {
+    let sides: Vec<Resistor> = ring.iter().map(|&k| resistors[k].clone()).collect();
+    let ohms = |value: &Value| quantity(calculator, value, UnitKind::Ohm);
+    // Corner n lies between side n and side n + 1.
+    let corners: Vec<usize> = (0..3).map(|n| sides[n].common(&sides[(n + 1) % 3]).expect("the sides form a ring")).collect();
+    let points: Vec<Point> = (0..3).map(|n| sides[n].end_at(corners[n])).collect();
+    let third = |sum: i64| (sum as f64 / 3.0).round() as i64;
+    let middle = Point::new(third(points.iter().map(|p| p.x).sum()), third(points.iter().map(|p| p.y).sum()));
+    let sum = sides.iter().fold(Value::zero(), |s, r| s.add(&r.value));
+    let symbol_sum = sides.iter().map(|r| r.symbol.clone()).collect::<Vec<_>>().join(" + ");
+    let value_sum = sides.iter().map(|r| ohms(&r.value)).collect::<Result<Vec<_>>>()?.join(" + ");
+
+    let (mut lines, mut new, mut created) = (Vec::new(), Vec::new(), Vec::new());
+    for n in 0..3 {
+        let (p, q) = (&sides[n], &sides[(n + 1) % 3]);
+        let value = p.value.mul(&q.value).div(&sum)?;
+        let index = format!("\\mathrm{{Y}}{}", made + n + 1);
+        let target = symbol(std::slice::from_ref(&index));
+        let part = format!("~Y{}", made + n + 1);
+        lines.push(Line {
+            target: target.clone(),
+            formula: format!("\\frac{{{} \\cdot {}}}{{{symbol_sum}}}", p.symbol, q.symbol),
+            substituted: format!("\\frac{{{} \\cdot {}}}{{{value_sum}}}", ohms(&p.value)?, ohms(&q.value)?),
+            result: with_decimal(calculator, &value, UnitKind::Ohm)?,
+        });
+        created.push(Created { part: part.clone(), symbol: target.clone(), ends: [points[n], middle] });
+        new.push(Resistor {
+            symbol: target,
+            indices: vec![index],
+            parts: vec![part],
+            value,
+            a: corners[n],
+            b: centre,
+            ends: [points[n], middle],
+            origin: Some(number),
+        });
+    }
+    let names = listing(&sides.iter().map(|r| plain(&r.symbol)).collect::<Vec<_>>());
+    let explanation = msg!(
+        "{names} form a delta: each lies between two of the same three nodes, and neither series nor parallel applies. Turned into a star around a new node, each corner gets the product of the two resistors at it over the sum of all three.",
+        "{names} bilden ein Dreieck: jeder liegt zwischen zwei derselben drei Knoten, und weder Reihe noch parallel trifft zu. In einen Stern um einen neuen Knoten umgewandelt, erhält jede Ecke das Produkt der beiden Widerstände an ihr geteilt durch die Summe aller drei."
+    );
+    let merge = Merge {
+        symbol: String::new(),
+        parts: sides.iter().flat_map(|r| r.parts.iter().cloned()).collect(),
+        kind: MergeKind::DeltaToStar,
+        created,
+    };
+    replace(resistors, ring, new);
+    Ok((conversion_steps(&lines, explanation), merge))
+}
+
+/// The star of `arms` around `centre` becomes a delta between their outer ends: the side between
+/// two arms is the sum of the products of two arms over the third.
+fn star_to_delta(
+    resistors: &mut Vec<Resistor>,
+    centre: usize,
+    arms: [usize; 3],
+    number: usize,
+    made: usize,
+    calculator: &LatexCalculator,
+) -> Result<(Vec<Step>, Merge)> {
+    let star: Vec<Resistor> = arms.iter().map(|&k| resistors[k].clone()).collect();
+    let ohms = |value: &Value| quantity(calculator, value, UnitKind::Ohm);
+    let outer: Vec<usize> = star.iter().map(|r| r.other(centre)).collect();
+    let points: Vec<Point> = (0..3).map(|n| star[n].end_at(outer[n])).collect();
+    let products = (0..3).fold(Value::zero(), |s, n| s.add(&star[n].value.mul(&star[(n + 1) % 3].value)));
+    let pairs = |text: &dyn Fn(&Resistor) -> Result<String>| -> Result<String> {
+        Ok((0..3)
+            .map(|n| Ok(format!("{} \\cdot {}", text(&star[n])?, text(&star[(n + 1) % 3])?)))
+            .collect::<Result<Vec<_>>>()?
+            .join(" + "))
+    };
+    let symbol_products = pairs(&|r| Ok(r.symbol.clone()))?;
+    let value_products = pairs(&|r| ohms(&r.value))?;
+
+    let (mut lines, mut new, mut created) = (Vec::new(), Vec::new(), Vec::new());
+    for n in 0..3 {
+        // The side between the ends of arm n and arm n + 1, over the third arm.
+        let (m, opposite) = ((n + 1) % 3, &star[(n + 2) % 3]);
+        let value = products.div(&opposite.value)?;
+        let index = format!("\\Delta {}", made + n + 1);
+        let target = symbol(std::slice::from_ref(&index));
+        let part = format!("~Δ{}", made + n + 1);
+        lines.push(Line {
+            target: target.clone(),
+            formula: format!("\\frac{{{symbol_products}}}{{{}}}", opposite.symbol),
+            substituted: format!("\\frac{{{value_products}}}{{{}}}", ohms(&opposite.value)?),
+            result: with_decimal(calculator, &value, UnitKind::Ohm)?,
+        });
+        created.push(Created { part: part.clone(), symbol: target.clone(), ends: [points[n], points[m]] });
+        new.push(Resistor {
+            symbol: target,
+            indices: vec![index],
+            parts: vec![part],
+            value,
+            a: outer[n],
+            b: outer[m],
+            ends: [points[n], points[m]],
+            origin: Some(number),
+        });
+    }
+    let names = listing(&star.iter().map(|r| plain(&r.symbol)).collect::<Vec<_>>());
+    let explanation = msg!(
+        "{names} form a star: they meet at a node where nothing else is connected, and neither series nor parallel applies. Turned into a delta between their outer ends, each side gets the sum of the products of two arms over the arm opposite it.",
+        "{names} bilden einen Stern: sie treffen sich an einem Knoten, an dem sonst nichts angeschlossen ist, und weder Reihe noch parallel trifft zu. In ein Dreieck zwischen ihren äußeren Enden umgewandelt, erhält jede Seite die Summe der Zweierprodukte geteilt durch den gegenüberliegenden Arm."
+    );
+    let merge = Merge {
+        symbol: String::new(),
+        parts: star.iter().flat_map(|r| r.parts.iter().cloned()).collect(),
+        kind: MergeKind::StarToDelta,
+        created,
+    };
+    replace(resistors, arms, new);
+    Ok((conversion_steps(&lines, explanation), merge))
 }
 
 #[cfg(test)]
@@ -479,10 +795,62 @@ mod tests {
     }
 
     fn reduce(drawing: Vec<(Edge, Part)>, a: (i64, i64), b: (i64, i64)) -> Equivalent {
+        reduce_with(drawing, a, b, StarDelta::NodeRule)
+    }
+
+    fn reduce_with(drawing: Vec<(Edge, Part)>, a: (i64, i64), b: (i64, i64), star_delta: StarDelta) -> Equivalent {
         let (edges, parts): (Vec<Edge>, Vec<Part>) = drawing.into_iter().unzip();
-        let settings = Settings::default();
+        let settings = Settings { star_delta, ..Settings::default() };
         let calculator = LatexCalculator::new(settings.precision).with_settings(settings.clone());
         equivalent(&edges, &parts, [Point::new(a.0, a.1), Point::new(b.0, b.1)], &calculator, &settings).unwrap()
+    }
+
+    /// A=(0,0), C=(4,-4), D=(4,4), B=(8,0); R5 from C to D.
+    fn bridge(values: [i64; 5]) -> Vec<(Edge, Part)> {
+        vec![
+            resistor("R1", values[0], (0, 0), (4, -4)),
+            resistor("R2", values[1], (0, 0), (4, 4)),
+            resistor("R3", values[2], (4, -4), (8, 0)),
+            resistor("R4", values[3], (4, 4), (8, 0)),
+            resistor("R5", values[4], (4, -4), (4, 4)),
+        ]
+    }
+
+    #[test]
+    fn both_conversions_give_the_node_rule_value() {
+        let expected = reduce(bridge([1, 2, 3, 4, 5]), (0, 0), (8, 0)).value;
+        for (choice, kind) in [(StarDelta::DeltaToStar, MergeKind::DeltaToStar), (StarDelta::StarToDelta, MergeKind::StarToDelta)] {
+            let r = reduce_with(bridge([1, 2, 3, 4, 5]), (0, 0), (8, 0), choice);
+            assert_eq!(r.value, expected, "{choice:?}");
+            assert!(r.unknowns.is_empty(), "{choice:?}");
+            assert_eq!(r.merges[0].kind, kind);
+            assert_eq!(r.merges[0].parts.len(), 3);
+            assert_eq!(r.steps.iter().filter(|s| s.level == StepDetail::Brief).count(), r.merges.len() + 1);
+        }
+    }
+
+    #[test]
+    fn a_star_is_converted_when_there_is_no_delta() {
+        // The cube between opposite corners, all 1 Ω: no triangle, R_AB = 5/6 Ω.
+        let (outer, inner) = ([(0, 0), (8, 0), (8, 8), (0, 8)], [(2, 2), (6, 2), (6, 6), (2, 6)]);
+        let mut cube = Vec::new();
+        for k in 0..4 {
+            cube.push(resistor(&format!("R{}", k + 1), 1, outer[k], outer[(k + 1) % 4]));
+            cube.push(resistor(&format!("R{}", k + 5), 1, inner[k], inner[(k + 1) % 4]));
+            cube.push(resistor(&format!("R{}", k + 9), 1, outer[k], inner[k]));
+        }
+        let r = reduce_with(cube.clone(), (0, 0), (6, 6), StarDelta::DeltaToStar);
+        assert_eq!(r.value, Value::ratio(5, 6));
+        assert!(r.unknowns.is_empty());
+        assert_eq!(r.merges[0].kind, MergeKind::StarToDelta);
+        assert_eq!(reduce(cube, (0, 0), (6, 6)).value, Value::ratio(5, 6));
+    }
+
+    #[test]
+    fn the_node_rule_stays_the_default() {
+        let r = reduce(bridge([1, 2, 3, 4, 5]), (0, 0), (8, 0));
+        assert!(r.merges.is_empty());
+        assert_eq!(r.unknowns.len(), 3);
     }
 
     #[test]

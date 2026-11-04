@@ -22,7 +22,7 @@ use crate::units::{find, Kind as UnitKind, Unit};
 use crate::{QuantusError, Result};
 
 use super::branches::{Kind, Member, Network, Part};
-use super::equivalent::equivalent;
+use super::equivalent::{equivalent, Merge, MergeKind};
 use super::equations::{is_negative, with_decimal, Current, Equation, Equations};
 use super::graph::{Anchor, Edge, Graph, Point};
 
@@ -82,19 +82,36 @@ pub struct EquivalentResponse {
     /// `R_{AB} = 7\,\mathrm{Ω}`.
     pub latex: String,
     pub resistance: ValueResponse,
-    /// Each merge in order: the new resistor's symbol and the parts it stands for.
+    /// Each step of the reduction in order, one per line of the working before the node rule: a
+    /// merge, or a star–delta conversion.
     pub merges: Vec<MergeResponse>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MergeResponse {
-    /// `R_{23}`.
+    /// `R_{23}`; empty for a conversion.
     pub symbol: String,
-    /// In the order of the merged resistors: the parts of the first one first.
+    /// In the order of the merged resistors: the parts of the first one first. For a conversion,
+    /// the parts of the three resistors it replaces.
     pub parts: Vec<String>,
-    /// In series; otherwise in parallel.
-    pub series: bool,
+    /// `series`, `parallel`, `deltaToStar` or `starToDelta`.
+    pub kind: String,
+    /// The three resistors a conversion makes; empty for a merge.
+    pub created: Vec<CreatedResponse>,
+}
+
+/// A resistor made by a star–delta conversion, between two grid points of the drawing (the
+/// centre of a new star lies between its corners).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatedResponse {
+    /// Its part ID in later merges: `~Y1`, `~Δ1`.
+    pub id: String,
+    /// `R_{\mathrm{Y}1}`.
+    pub symbol: String,
+    pub a: Point,
+    pub b: Point,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -369,9 +386,28 @@ fn resistance_between(
         equivalent: Some(EquivalentResponse {
             latex: result.latex,
             resistance: known(calculator, &PhysicalQuantity::new(result.value, unit("Ω")))?,
-            merges: result.merges.into_iter().map(|m| MergeResponse { symbol: m.symbol, parts: m.parts, series: m.series }).collect(),
+            merges: result.merges.into_iter().map(merge_response).collect(),
         }),
     })
+}
+
+fn merge_response(merge: Merge) -> MergeResponse {
+    let kind = match merge.kind {
+        MergeKind::Series => "series",
+        MergeKind::Parallel => "parallel",
+        MergeKind::DeltaToStar => "deltaToStar",
+        MergeKind::StarToDelta => "starToDelta",
+    };
+    MergeResponse {
+        symbol: merge.symbol,
+        parts: merge.parts,
+        kind: kind.into(),
+        created: merge
+            .created
+            .into_iter()
+            .map(|c| CreatedResponse { id: c.part, symbol: c.symbol, a: c.ends[0], b: c.ends[1] })
+            .collect(),
+    }
 }
 
 /// The network with every branch's reference direction along its real current, solved. A part's

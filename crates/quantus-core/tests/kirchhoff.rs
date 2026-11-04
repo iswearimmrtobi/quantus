@@ -618,7 +618,7 @@ fn a_series_resistor_before_a_parallel_pair() {
     let merges: Vec<(&str, Vec<&str>)> =
         equivalent.merges.iter().map(|m| (m.symbol.as_str(), m.parts.iter().map(String::as_str).collect())).collect();
     assert_eq!(merges, [("R_{23}", vec!["R2", "R3"]), ("R_{123}", vec!["R1", "R2", "R3"])]);
-    assert_eq!(equivalent.merges.iter().map(|m| m.series).collect::<Vec<_>>(), [false, true]);
+    assert_eq!(equivalent.merges.iter().map(|m| m.kind.as_str()).collect::<Vec<_>>(), ["parallel", "series"]);
     assert!(response.steps.iter().any(|s| s.latex.contains("\\frac{R_{2} \\cdot R_{3}}{R_{2} + R_{3}}")));
     assert!(response.junctions.is_empty() && response.matrix.is_empty());
 }
@@ -671,6 +671,34 @@ fn a_bridge_is_finished_with_the_node_rule() {
     unbalanced[1] = part("R2", "2\\Omega", (0, 4), (4, 8));
     unbalanced[3] = part("R4", "1\\Omega", (4, 8), (8, 4));
     assert_eq!(r_ab(unbalanced, (0, 4), (8, 4)), "1.4");
+}
+
+#[test]
+fn a_bridge_reduces_by_a_star_delta_conversion() {
+    use quantus_core::settings::StarDelta;
+    // 1, 2 on top, 2, 1 below, 1 across: R_AB = 7/5, as with the node rule.
+    let bridge = vec![
+        part("R1", "1\\Omega", (0, 4), (4, 0)),
+        part("R2", "2\\Omega", (0, 4), (4, 8)),
+        part("R3", "2\\Omega", (4, 0), (8, 4)),
+        part("R4", "1\\Omega", (4, 8), (8, 4)),
+        part("R5", "1\\Omega", (4, 0), (4, 8)),
+    ];
+    for (choice, kind) in [(StarDelta::DeltaToStar, "deltaToStar"), (StarDelta::StarToDelta, "starToDelta")] {
+        let response = between(bridge.clone(), (0, 4), (8, 4), &Settings { star_delta: choice, ..Settings::default() }).unwrap();
+        let equivalent = response.equivalent.as_ref().unwrap();
+        assert_eq!(equivalent.resistance.value.as_deref(), Some("1.4"), "{kind}");
+        assert!(response.unknowns.is_empty() && response.matrix.is_empty(), "{kind}");
+        assert!(!response.notes.iter().any(|n| n.contains("node rule")), "{kind}");
+        let first = &equivalent.merges[0];
+        assert_eq!((first.kind.as_str(), first.created.len()), (kind, 3));
+        // The conversion is one line of the working, like a merge.
+        assert_eq!(response.steps.len(), equivalent.merges.len() + 1, "{kind}");
+        assert!(response.steps[0].latex.starts_with("\\begin{aligned}"), "{}", response.steps[0].latex);
+        // Later merges stand for the new resistors by their own IDs.
+        let last = equivalent.merges.last().unwrap();
+        assert!(last.parts.iter().any(|p| p.starts_with('~')), "{:?}", last.parts);
+    }
 }
 
 #[test]

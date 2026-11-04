@@ -98,6 +98,20 @@ pub enum Elimination {
     GaussJordan,
 }
 
+/// What the resistance between A and B of the Kirchhoff mode does with a network that series and
+/// parallel merges don't reduce, such as a bridge.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum StarDelta {
+    /// The rest is solved with the node rule and a test current.
+    #[default]
+    NodeRule,
+    /// A delta of three resistors is turned into a star, or a star into a delta if there is no delta.
+    DeltaToStar,
+    /// A star is turned into a delta, or a delta into a star if there is no star.
+    StarToDelta,
+}
+
 /// How the linear systems mode names the unknowns of a matrix.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -230,6 +244,7 @@ pub struct Settings {
     /// Whether a cancelled factor is struck through (`\cancel`) rather than coloured.
     pub cancel_marks: bool,
     pub elimination: Elimination,
+    pub star_delta: StarDelta,
     pub unknown_names: UnknownNames,
     /// Whether `i` is the imaginary unit in the linear systems mode rather than an unknown.
     pub linear_complex: bool,
@@ -267,6 +282,7 @@ impl Default for Settings {
             step_detail: StepDetail::Standard,
             cancel_marks: true,
             elimination: Elimination::Gauss,
+            star_delta: StarDelta::NodeRule,
             unknown_names: UnknownNames::Indexed,
             linear_complex: false,
             angle_unit: AngleUnit::Radian,
@@ -389,6 +405,7 @@ mod tests {
                 "stepDetail": "standard",
                 "cancelMarks": true,
                 "elimination": "gauss",
+                "starDelta": "nodeRule",
                 "unknownNames": "indexed",
                 "linearComplex": false,
                 "angleUnit": "radian",

@@ -435,6 +435,8 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
             ui::Elimination::Gauss => core::Elimination::Gauss,
             ui::Elimination::GaussJordan => core::Elimination::GaussJordan,
         },
+        // The handheld has no Kirchhoff mode.
+        star_delta: core::StarDelta::NodeRule,
         unknown_names: match settings.unknown_names {
             ui::UnknownNames::Indexed => core::UnknownNames::Indexed,
             ui::UnknownNames::Letters => core::UnknownNames::Letters,
