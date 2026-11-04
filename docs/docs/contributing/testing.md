@@ -97,7 +97,7 @@ The symbolic simplification of rational expressions, built milestone by mileston
 | `analysis.rs` | 43 | The analysis mode end to end: each section's result and the marked points for every case of `design/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, a time check, and the working each detail level adds |
 | `complex.rs` | 10 | Complex results in imaginary mode |
 | `geometry.rs` | 15 | The Geometry mode's points and vectors: their arithmetic, dot and cross product, length, unit vector, angle in both angle units, triple product, collinear and coplanar tests, areas and volumes, all exact; reading columns, `\vec{a}` and points `P(1\|2\|3)` or `(1;2;3)` (bars that separate coordinates against `\left\|…\right\|`, decimal commas, 2D input), and the operator each pair of types makes |
-| `geometry_view.rs` | 7 | The shared 3D view of the Geometry mode: the camera's projection and depth (school view, view from above), the axes with round ticks and their numbers, points as markers with their names |
+| `geometry_view.rs` | 10 | The shared 3D view of the Geometry mode: the camera's projection and depth (school view, view from above), the auto-fit box and the camera that fits it, the axes with round ticks and their numbers, points as markers with their names |
 | `settings.rs` | 12 | Each user setting switches its reading or writing rule; the calculator's working by detail level |
 
 ## The generated test set (103,000 cases)

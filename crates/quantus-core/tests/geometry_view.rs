@@ -100,3 +100,36 @@ fn points_get_a_marker_and_their_name() {
     assert!(primitives.iter().any(|p| matches!(p, Primitive::Marker { at, object: 0, .. } if close2(*at, [2.0, 3.0]))));
     assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, object: Some(0), .. } if text == "A")));
 }
+
+#[test]
+fn the_box_takes_the_scene_and_the_origin_with_a_margin() {
+    let figures = [shown("A", Figure::Point([1.0, 2.0, 3.0])), shown("B", Figure::Point([5.0, -2.0, 3.0]))];
+    let bounds = Bounds::fit(&figures);
+    // x from 0 to 5, y from −2 to 2, z from 0 to 3, each widened by a tenth.
+    assert!(close(bounds.min[0], -0.25) && close(bounds.max[0], 5.25), "{bounds:?}");
+    assert!(close(bounds.min[1], -2.2) && close(bounds.max[1], 2.2), "{bounds:?}");
+    assert!(close(bounds.min[2], -0.15) && close(bounds.max[2], 3.15), "{bounds:?}");
+}
+
+#[test]
+fn an_empty_scene_gets_a_box_around_the_origin() {
+    let bounds = Bounds::fit(&[]);
+    assert_eq!(bounds, Bounds { min: [-1.0; 3], max: [1.0; 3] });
+}
+
+#[test]
+fn the_fitted_camera_keeps_the_box_in_the_unit_circle() {
+    let figures = [shown("A", Figure::Point([4.0, -3.0, 6.0])), shown("B", Figure::Point([-1.0, 2.0, 0.5]))];
+    let bounds = Bounds::fit(&figures);
+    for (yaw, pitch) in [(0.3, 0.2), (2.0, -1.0), (-1.2, 1.5)] {
+        let camera = Camera { yaw, pitch, ..Camera::default() }.fit(&bounds);
+        assert!(close(camera.yaw, yaw) && close(camera.pitch, pitch));
+        for corner in 0..8 {
+            let p = [0, 1, 2].map(|i| if corner >> i & 1 == 1 { bounds.max[i] } else { bounds.min[i] });
+            let (at, _) = camera.project(p);
+            assert!(at[0].hypot(at[1]) <= 1.0 + 1e-9, "{at:?}");
+        }
+        let centre = [0, 1, 2].map(|i| (bounds.min[i] + bounds.max[i]) / 2.0);
+        assert!(close2(camera.project(centre).0, [0.0, 0.0]));
+    }
+}

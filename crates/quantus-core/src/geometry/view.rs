@@ -3,7 +3,8 @@
 //! draws, as SVG on the desktop and as short 1 px lines on the handheld.
 //!
 //! Plain `f64`, no caches. Screen coordinates are in view units with the origin at the camera's
-//! centre, x to the right and y **up**; a shell scales them to its pixels and flips y.
+//! centre, x to the right and y **up**; a shell scales them to its pixels and flips y. With
+//! [`Camera::fit`] the box of [`Bounds::fit`] fits into the unit circle.
 
 use serde::{Deserialize, Serialize};
 
@@ -63,6 +64,14 @@ impl Camera {
         Camera { yaw: -std::f64::consts::FRAC_PI_2, pitch: std::f64::consts::FRAC_PI_2, ..self }
     }
 
+    /// This camera's angles, looking at the centre of `bounds` from far enough that the whole box
+    /// fits into the unit circle at any angle.
+    pub fn fit(self, bounds: &Bounds) -> Camera {
+        let centre = [0, 1, 2].map(|i| (bounds.min[i] + bounds.max[i]) / 2.0);
+        let radius = dot(sub(bounds.max, centre), sub(bounds.max, centre)).sqrt();
+        Camera { zoom: 1.0 / radius, centre, ..self }
+    }
+
     /// The unit vectors of the screen in the scene: right, up, and towards the viewer.
     fn basis(&self) -> [V3; 3] {
         let (sy, cy) = self.yaw.sin_cos();
@@ -87,6 +96,37 @@ impl Camera {
 pub struct Bounds {
     pub min: V3,
     pub max: V3,
+}
+
+/// The smallest half width of the box on each axis.
+const MIN_HALF: f64 = 1.0;
+/// The room around the scene, as a share of the box.
+const MARGIN: f64 = 0.1;
+
+impl Bounds {
+    /// The box around the scene and the origin, with a margin, at least 2 wide on each axis.
+    pub fn fit(figures: &[Shown]) -> Bounds {
+        let mut min = [0.0; 3];
+        let mut max = [0.0; 3];
+        let mut take = |p: V3| {
+            for i in 0..3 {
+                min[i] = f64::min(min[i], p[i]);
+                max[i] = f64::max(max[i], p[i]);
+            }
+        };
+        for shown in figures {
+            match &shown.figure {
+                Figure::Point(p) => take(*p),
+            }
+        }
+        for i in 0..3 {
+            let middle = (min[i] + max[i]) / 2.0;
+            let half = ((max[i] - min[i]) / 2.0 * (1.0 + MARGIN)).max(MIN_HALF);
+            min[i] = middle - half;
+            max[i] = middle + half;
+        }
+        Bounds { min, max }
+    }
 }
 
 /// An object of the scene in floats, for the view.
