@@ -177,6 +177,11 @@ mod optn {
     }
 
     #[test]
+    fn the_product() {
+        assert_eq!(typed(Mode::Physics, r"\prod_{k=1}^{5}k"), Ok("120".to_string()));
+    }
+
+    #[test]
     fn the_area_functions_and_coth() {
         assert!(typed(Mode::Physics, r"\operatorname{arsinh}(1)").unwrap().contains("0{,}8813"));
         assert!(typed(Mode::Physics, r"\operatorname{arcosh}(2)").unwrap().contains("1{,}3169"));

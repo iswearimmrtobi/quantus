@@ -38,6 +38,11 @@ fn inserted(path: &[&str]) -> String {
 }
 
 #[test]
+fn the_product_has_its_bounds_to_fill() {
+    assert_eq!(inserted(&["Analysis", "∏ Produkt"]), r"\prod_{}^{}");
+}
+
+#[test]
 fn the_area_functions_and_coth_go_into_their_brackets() {
     let mut app = app(Mode::Physics);
     optn(&mut app, &["Hyperbol. Fkt.", "arsinh"]);

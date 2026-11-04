@@ -330,7 +330,7 @@ static ANALYSIS: Page = Page {
         ins(t("∫ Integral", "∫ Integral"), r"\int_{}^{}"),
         ins(t("d/dx Ableitung", "d/dx Derivative"), r"\frac{d}{dx}"),
         ins(t("∑ Summe", "∑ Sum"), r"\sum_{}^{}"),
-        pending(t("∏ Produkt", "∏ Product")),
+        ins(t("∏ Produkt", "∏ Product"), r"\prod_{}^{}"),
         ins(t("lim Grenzwert", "lim Limit"), r"\lim_{x\to}"),
     ],
 };

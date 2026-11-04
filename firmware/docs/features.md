@@ -145,7 +145,7 @@ in yet.
 - [x] sinh, cosh, tanh
 - [x] arsinh, arcosh, artanh, coth (OPTN → Hyperbol. Fkt.)
 - [x] ∫ with bounds (also infinite), d/dx at a point, Σ, lim (a⁺, a⁻, ∞)
-- [~] Π (`\prod`) — in the engine; OPTN entry not wired
+- [x] Π (`\prod`, OPTN → Analysis)
 - [x] |x|, n!, mod, ⌊x⌋, ⌈x⌉, max, min, %
 - [~] nCr, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R — in the engine; no OPTN entries or template yet
 - [~] Sexagesimal °′″ — in the engine; not in OPTN
