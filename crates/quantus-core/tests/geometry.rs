@@ -412,7 +412,7 @@ fn intersecting_lines() {
     let LineRelation::Intersecting { point, lambda, mu, angle } = &worked.result else { panic!("{:?}", worked.result) };
     assert_eq!((point, lambda, mu), (&Point::from_ints(4, 3, 0), &Value::int(3), &Value::int(4)));
     assert_eq!(angle.value, Value::int(45));
-    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["S = (0|-1|0)", r"\varphi = 45^\circ"]);
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["S = (4|3|0)", r"\varphi = 45^\circ"]);
     let standard = latex_at(&worked.working, StepDetail::Detailed);
     assert!(standard.contains(&r"\begin{aligned} \lambda - \mu = -1 \\ \lambda = 3 \\ 0 = 0 \end{aligned}".to_string()), "{standard:#?}");
     assert!(standard.contains(&r"0 \cdot 3 + 0 \cdot 4 = 0 = 0".to_string()), "{standard:#?}");
