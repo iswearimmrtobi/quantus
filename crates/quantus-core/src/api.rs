@@ -302,8 +302,8 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
 }
 
 pub use crate::geometry::interface::{
-    Entry, Form, GeometryRequest, GeometryResponse, Measure, ObjectResponse, Scene, SceneObject, Shape, Task, TaskResponse, ViewRequest,
-    ViewResponse,
+    Entry, Form, GeometryRequest, GeometryResponse, Measure, ObjectResponse, Scene, SceneObject, Shape, Task, TaskResponse, ViewObject,
+    ViewRequest, ViewResponse,
 };
 
 /// A scene of points, vectors, lines, planes, spheres and circles and a task on it (Geometry

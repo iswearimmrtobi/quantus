@@ -398,8 +398,9 @@ fn the_api_projects_a_scene_with_the_objects_that_could_be_built() {
     ];
     let request = ViewRequest { scene: Scene { objects }, zoom: 2.0, ..ViewRequest::default() };
     let view = geometry_view(&Settings::default(), &request).unwrap();
-    // B is not a point and is left out; the indices of the primitives follow `names`.
-    assert_eq!(view.names, ["A", "E"]);
+    // B is not a point and is left out; the indices of the primitives follow `objects`.
+    let objects: Vec<(&str, &str)> = view.objects.iter().map(|o| (o.name.as_str(), o.kind.as_str())).collect();
+    assert_eq!(objects, [("A", "point"), ("E", "plane")]);
     assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Marker { object: 0, .. })));
     assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Polygon { object: 1, .. })));
     // The zoom is on top of the fit, which puts the box into the unit circle.

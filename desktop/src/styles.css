@@ -30,6 +30,15 @@
   --point-saddle: #ffd27f;
   --point-hole: var(--text);
   --point-tangent: var(--accent);
+  /* The objects of the Geometry view, one colour each in scene order. */
+  --geometry-0: #9186e8;
+  --geometry-1: #7fd1b9;
+  --geometry-2: #ff8fa8;
+  --geometry-3: #ffd27f;
+  --geometry-4: #8fb8ff;
+  --geometry-5: #d8a9ff;
+  --geometry-6: #f0a070;
+  --geometry-7: #b8e07a;
   --mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
   --sans: system-ui, 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
   --radius: 3px;
@@ -2495,42 +2504,46 @@ select option {
 }
 
 .geometry-object {
-  stroke: var(--cyan);
+  stroke: var(--object, var(--cyan));
   stroke-width: 1.8;
   stroke-linecap: round;
 }
 
 .geometry-hatch {
-  stroke: var(--cyan);
+  stroke: var(--object, var(--cyan));
   stroke-opacity: 0.35;
   stroke-width: 1;
 }
 
 .geometry-hidden {
-  stroke: var(--cyan);
+  stroke: var(--object, var(--cyan));
   stroke-opacity: 0.35;
   stroke-width: 1;
   stroke-dasharray: 3 3;
 }
 
 .geometry-face {
-  fill: var(--cyan);
+  fill: var(--object, var(--cyan));
   fill-opacity: 0.14;
-  stroke: var(--cyan);
+  stroke: var(--object, var(--cyan));
   stroke-opacity: 0.5;
   stroke-width: 1;
 }
 
 .geometry-marker {
-  fill: var(--cyan);
+  fill: var(--object, var(--cyan));
   stroke: var(--bg);
   stroke-width: 1.5;
 }
 
 .geometry-label {
-  fill: var(--text);
+  fill: var(--object, var(--text));
   font-size: 13px;
   font-style: italic;
+}
+
+.geometry-index {
+  font-size: 10px;
 }
 
 .geometry-tick-label {

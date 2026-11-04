@@ -187,7 +187,7 @@ its tests.
 - [x] `GeometryPlot.tsx`: SVG like `FunctionPlot.tsx`, drawing the primitives of a fixed demo
   scene with axes.
 - [x] Plot interaction: drag rotates, wheel zooms, a reset button and a "view from above" button.
-- [ ] Plot labels and a colour per object, fed from the real scene.
+- [x] Plot labels and a colour per object, fed from the real scene.
 - [ ] Object list with forms for Punkt and Vektor: MathLive cells for the coordinates (as in
   `MatrixGrid.tsx`), add and remove.
 - [ ] Forms for Gerade and Ebene, with the form switch (parameter, normal, coordinate).

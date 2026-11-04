@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError, type Geometry, type GeometryObject, type Settings } from '../api';
+import { api, ApiError, type Geometry, type Settings } from '../api';
 import { geometryRequest, type GeometryInput } from '../geometry';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { GeometryPlot } from './GeometryPlot';
 import { Katex } from './Katex';
 
-/** A fixed scene for the view until it draws the real one. */
-const DEMO: GeometryObject[] = [
-  { name: 'A', kind: 'point', at: ['2', '1', '3'] },
-  { name: 'a', kind: 'vector', value: ['1', '3', '1'] },
-  { kind: 'typed', latex: 'g: X = (0|0|1) + \\lambda \\begin{pmatrix} 1 \\\\ 1 \\\\ 0 \\end{pmatrix}' },
-  { kind: 'typed', latex: 'E: x + y + 2z = 4' },
-  { kind: 'typed', latex: 'K: (x - 1)^2 + (y + 1)^2 + z^2 = 1' },
-];
 
 interface Props {
   settings: Settings;
@@ -63,7 +55,7 @@ export function GeometryView({ settings, input }: Props) {
   return (
     <main className="workspace analysis-workspace">
       <div className="analysis-panel geometry-panel">
-        <GeometryPlot objects={DEMO} />
+        {input.objects.length > 0 && <GeometryPlot objects={input.objects} />}
         {error && <ErrorRow error={error} soft />}
         {!input.objects.length && <p className="analysis-empty">{t('geometry.empty')}</p>}
         {answer && answer.objects.length > 0 && (

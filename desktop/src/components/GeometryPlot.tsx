@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type GeometryObject, type GeometryViewResponse, type ViewPoint } from '../api';
+import type { CSSProperties } from 'react';
+import { api, type GeometryKind, type GeometryObject, type GeometryViewResponse, type ViewPoint } from '../api';
 import { useT } from '../i18n';
 
 interface Props {
@@ -21,6 +22,29 @@ const ZOOM_STEP = 1.15;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 50;
 const HALF_PI = Math.PI / 2;
+/** The number of object colours, `--geometry-0` … in the stylesheet; they repeat after that. */
+export const COLOURS = 8;
+
+/** The colour of the object at `index` of the view, as a style that sets `--object`. */
+export function colourStyle(index: number): CSSProperties {
+  return { '--object': `var(--geometry-${index % COLOURS})` } as CSSProperties;
+}
+
+/** A name as the engine keys it, `P_1` or `\alpha`, as SVG text: the index lowered, a vector with its arrow. */
+function Name({ name, kind }: { name: string; kind: GeometryKind | undefined }) {
+  const [base, index] = name.replace(/\\/g, '').split('_', 2);
+  return (
+    <>
+      {/* U+20D7, the combining arrow above, in the same run as the letter it sits on. */}
+      <tspan>{kind === 'vector' ? `${base}\u20D7` : base}</tspan>
+      {index && (
+        <tspan className="geometry-index" dy={4}>
+          {index}
+        </tspan>
+      )}
+    </>
+  );
+}
 
 /** How the scene is looked at; `zoom` is on top of the fit, so 1 shows the whole box. */
 interface Look {
@@ -149,20 +173,27 @@ export function GeometryPlot({ objects }: Props) {
               case 'segment': {
                 const [x1, y1] = px(primitive.from);
                 const [x2, y2] = px(primitive.to);
-                return <line key={i} className={`geometry-${primitive.stroke}`} x1={x1} y1={y1} x2={x2} y2={y2} />;
+                const style = primitive.object === null ? undefined : colourStyle(primitive.object);
+                return <line key={i} className={`geometry-${primitive.stroke}`} style={style} x1={x1} y1={y1} x2={x2} y2={y2} />;
               }
               case 'polygon':
-                return <polygon key={i} className="geometry-face" points={points(primitive.points)} />;
+                return <polygon key={i} className="geometry-face" style={colourStyle(primitive.object)} points={points(primitive.points)} />;
               case 'marker': {
                 const [cx, cy] = px(primitive.at);
-                return <circle key={i} className="geometry-marker" cx={cx} cy={cy} r={4} />;
+                return <circle key={i} className="geometry-marker" style={colourStyle(primitive.object)} cx={cx} cy={cy} r={4} />;
               }
               case 'label': {
                 const [x, y] = px(primitive.at);
-                const axis = primitive.object === null;
+                if (primitive.object === null) {
+                  return (
+                    <text key={i} className="geometry-tick-label" x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
+                      {primitive.text}
+                    </text>
+                  );
+                }
                 return (
-                  <text key={i} className={axis ? 'geometry-tick-label' : 'geometry-label'} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
-                    {primitive.text}
+                  <text key={i} className="geometry-label" style={colourStyle(primitive.object)} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
+                    <Name name={primitive.text} kind={view.objects[primitive.object]?.kind} />
                   </text>
                 );
               }

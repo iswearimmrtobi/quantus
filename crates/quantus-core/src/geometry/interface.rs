@@ -260,14 +260,15 @@ struct Builder<'a> {
     evaluator: Evaluator<'a>,
     objects: Objects,
     built: HashMap<String, Object>,
-    /// What was built, in scene order, for the view.
+    /// What was built, in scene order, for the view, and its name and kind.
     shown: Vec<Shown>,
+    drawn: Vec<ViewObject>,
 }
 
 impl<'a> Builder<'a> {
     fn new(settings: &'a Settings, variables: &'a Variables) -> Self {
         let evaluator = Evaluator::new(variables).with_precision(settings.precision).with_mode(Mode::Geometry).with_angle_unit(settings.angle_unit);
-        Builder { settings, evaluator, objects: Objects::default(), built: HashMap::new(), shown: Vec::new() }
+        Builder { settings, evaluator, objects: Objects::default(), built: HashMap::new(), shown: Vec::new(), drawn: Vec::new() }
     }
 
     fn read(&self, latex: &str) -> Result<Item> {
@@ -399,6 +400,7 @@ impl<'a> Builder<'a> {
                     }
                     if let Some(figure) = result.figure() {
                         self.shown.push(Shown { name: key.clone(), figure });
+                        self.drawn.push(ViewObject { name: key.clone(), kind: result.kind().into() });
                     }
                     // Vectors have a namespace of their own.
                     let stored = if matches!(result, Object::Vector(_)) { format!("\\vec{key}") } else { key };
@@ -726,13 +728,22 @@ impl Default for ViewRequest {
     }
 }
 
+/// An object of the view: its name as the evaluator keys it (`P_1`, `a` for `\vec{a}`) and its
+/// kind (`point`, `vector`, …).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ViewObject {
+    pub name: String,
+    pub kind: String,
+}
+
 /// The scene drawn: the primitives far to near, then the labels. A primitive's `object` is an
-/// index into `names`, the objects that could be drawn in scene order.
+/// index into `objects`, those that could be drawn, in scene order.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewResponse {
     pub primitives: Vec<Primitive>,
-    pub names: Vec<String>,
+    pub objects: Vec<ViewObject>,
     pub camera: Camera,
     pub bounds: Bounds,
 }
@@ -749,6 +760,5 @@ pub fn geometry_view(settings: &Settings, request: &ViewRequest) -> Result<ViewR
     let zoom = if request.zoom.is_finite() && request.zoom > 0.0 { request.zoom } else { 1.0 };
     let camera = Camera { zoom: fitted.zoom * zoom, ..fitted };
     let primitives = view::project(&builder.shown, &camera, &bounds, &view::Options { hatch: request.hatch });
-    let names = builder.shown.iter().map(|shown| shown.name.clone()).collect();
-    Ok(ViewResponse { primitives, names, camera, bounds })
+    Ok(ViewResponse { primitives, objects: builder.drawn, camera, bounds })
 }

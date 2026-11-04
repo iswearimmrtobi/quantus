@@ -387,7 +387,7 @@ export interface GeometryViewRequest {
 export type ViewPoint = [number, number];
 export type ViewStroke = 'axis' | 'tick' | 'object' | 'hatch' | 'hidden';
 
-/** What `quantus_core::geometry::view::Primitive` serialises to; `object` indexes `names`. */
+/** What `quantus_core::geometry::view::Primitive` serialises to; `object` indexes `objects`. */
 export type ViewPrimitive =
   | { kind: 'segment'; from: ViewPoint; to: ViewPoint; depth: number; stroke: ViewStroke; object: number | null }
   | { kind: 'polygon'; points: ViewPoint[]; depth: number; object: number }
@@ -397,8 +397,8 @@ export type ViewPrimitive =
 /** The scene drawn: far to near, then the labels. */
 export interface GeometryViewResponse {
   primitives: ViewPrimitive[];
-  /** The objects that could be drawn, in scene order. */
-  names: string[];
+  /** The objects that could be drawn, in scene order; `name` as keyed (`P_1`, `a` for `\vec{a}`). */
+  objects: { name: string; kind: GeometryKind }[];
   camera: { yaw: number; pitch: number; zoom: number; centre: [number, number, number] };
   bounds: { min: [number, number, number]; max: [number, number, number] };
 }

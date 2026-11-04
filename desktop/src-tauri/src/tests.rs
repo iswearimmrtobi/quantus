@@ -528,7 +528,7 @@ fn a_geometry_scene_is_projected_through_the_command() {
         "yaw": 0.5, "pitch": 0.3, "zoom": 1
     });
     let view = invoke(&w, "geometry_view", json!({ "request": request })).unwrap();
-    assert_eq!(view["names"], json!(["A"]));
+    assert_eq!(view["objects"], json!([{ "name": "A", "kind": "point" }]));
     let kinds: Vec<&str> = view["primitives"].as_array().unwrap().iter().map(|p| p["kind"].as_str().unwrap()).collect();
     assert!(kinds.contains(&"marker") && kinds.contains(&"segment") && kinds.contains(&"label"), "{kinds:?}");
 }
