@@ -38,6 +38,14 @@ fn inserted(path: &[&str]) -> String {
 }
 
 #[test]
+fn a_function_of_several_arguments_starts_at_the_first() {
+    let mut app = app(Mode::Physics);
+    optn(&mut app, &["Zahl", "max"]);
+    app.key(Key::Digit(2));
+    assert_eq!(app.editor.to_latex(), r"\max(2;)");
+}
+
+#[test]
 fn the_product_has_its_bounds_to_fill() {
     assert_eq!(inserted(&["Analysis", "∏ Produkt"]), r"\prod_{}^{}");
 }

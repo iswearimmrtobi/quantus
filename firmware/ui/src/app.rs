@@ -1062,10 +1062,16 @@ impl<B: Backend> App<B> {
             }
         };
         editor.paste(&row);
-        // Into a pair of brackets or bars: `\sinh(|)`, `|x|`.
-        if matches!(row.0.last(), Some(Node::Char(')' | '|'))) && row.0.len() > 1 {
+        // Into a pair of brackets or bars, at the first argument: `\sinh(|)`, `\max(|;)`, `|x|`.
+        let back = match row.0.last() {
+            _ if row.0.len() < 2 => 0,
+            Some(Node::Char(')')) => row.0.iter().rposition(|node| *node == Node::Char('(')).map_or(1, |open| row.0.len() - 1 - open),
+            Some(Node::Char('|')) => 1,
+            _ => 0,
+        };
+        (0..back).for_each(|_| {
             editor.left();
-        }
+        });
     }
 
     fn calc_key(&mut self, key: Key, shift: bool, alpha: bool) {

@@ -638,8 +638,8 @@ maps every setting the core has.
 
 In the hui: the OPTN key (`Key::Optn`; F4 or Ctrl+N in the simulator and over serial) opens the
 mode's page in the same menus as SETUP (`tree::optn`); OPTN or AC closes it. An entry inserts
-its LaTeX at the cursor (✓, through `latex::parse`; into the brackets for `sinh(`, between the
-bars for |x|), or says *Noch nicht verfügbar* (◌). The fonts lack ⌊⌋, ⌈⌉ and µ: floor and
+its LaTeX at the cursor (✓, through `latex::parse`; into the brackets for `sinh(`, at the first
+argument of `max(;)`, between the bars for |x|), or says *Noch nicht verfügbar* (◌). The fonts lack ⌊⌋, ⌈⌉ and µ: floor and
 ceiling show as their names (`lfloor`), micro is inserted as μ (`\mu`); → and the other signs
 of a curve sketch are drawn as lines.
 
