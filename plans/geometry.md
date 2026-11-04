@@ -137,7 +137,7 @@ results, not errors. Each step below brings its tests.
   parameter, normal and coordinate form (lines and planes keep the form they were given in);
   point on plane?
 - [x] Mixed line–plane: intersection point, angle, parallel (with distance), contained.
-- [ ] Mixed plane–plane: intersection line, angle, parallel (with distance); distance point–plane.
+- [x] Mixed plane–plane: intersection line, angle, parallel (with distance); distance point–plane.
 - [ ] Reflection of a point in a point, a line and a plane.
 - [ ] `Sphere`: from centre and radius, centre and a point, or four points; coordinate and vector
   form; point inside, on or outside, with its distance to the sphere; surface and volume.

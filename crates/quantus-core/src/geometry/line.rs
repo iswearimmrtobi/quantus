@@ -22,14 +22,20 @@ pub enum LineRelation {
 }
 
 /// The acute angle between two directions, `\cos\varphi = \frac{|\vec{u} \cdot \vec{v}|}{|\vec{u}| \cdot |\vec{v}|}`.
-pub(crate) fn acute_angle(u: &Vector3, v: &Vector3, unit: AngleUnit, precision: usize, working: &mut Working) -> Result<Angle> {
+/// With `normals`, `u` and `v` are the normals of two planes.
+pub(crate) fn acute_angle(u: &Vector3, v: &Vector3, normals: bool, unit: AngleUnit, precision: usize, working: &mut Working) -> Result<Angle> {
+    let (a, b) = if normals { ("n_1", "n_2") } else { ("u", "v") };
     let flipped = u.dot(v).is_negative()?;
     let angle = if flipped { u.angle(&-v, unit, precision)? } else { u.angle(v, unit, precision)? };
     working.add(
         Standard,
-        msg!("The angle between the directions:", "Der Winkel zwischen den Richtungsvektoren:"),
+        if normals {
+            msg!("The angle between the normals:", "Der Winkel zwischen den Normalenvektoren:")
+        } else {
+            msg!("The angle between the directions:", "Der Winkel zwischen den Richtungsvektoren:")
+        },
         format!(
-            "\\cos\\varphi = \\frac{{\\left|\\vec{{u}} \\cdot \\vec{{v}}\\right|}}{{\\left|\\vec{{u}}\\right| \\cdot \\left|\\vec{{v}}\\right|}} = \\frac{{{}}}{{{} \\cdot {}}} = {}",
+            "\\cos\\varphi = \\frac{{\\left|\\vec{{{a}}} \\cdot \\vec{{{b}}}\\right|}}{{\\left|\\vec{{{a}}}\\right| \\cdot \\left|\\vec{{{b}}}\\right|}} = \\frac{{{}}}{{{} \\cdot {}}} = {}",
             show::value(&super::abs(u.dot(v))?),
             show::value(&u.length()?),
             show::value(&v.length()?),
@@ -341,7 +347,7 @@ impl Line {
                 msg!("The lines intersect in the point", "Die Geraden schneiden sich im Punkt"),
                 format!("S = {}", show::point(&point)),
             );
-            let angle = acute_angle(u, v, unit, precision, &mut working)?;
+            let angle = acute_angle(u, v, false, unit, precision, &mut working)?;
             return Ok(Worked::new(LineRelation::Intersecting { point, lambda, mu, angle }, working));
         }
         working.add(
@@ -369,7 +375,7 @@ impl Line {
             ),
         );
         working.add(Brief, msg!("The distance:", "Der Abstand:"), format!("d = {}", show::value(&distance)));
-        let angle = acute_angle(u, v, unit, precision, &mut working)?;
+        let angle = acute_angle(u, v, false, unit, precision, &mut working)?;
         Ok(Worked::new(LineRelation::Skew { distance, angle }, working))
     }
 }

@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, Point, Vector3, Working,
+    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -581,4 +581,36 @@ fn a_line_and_a_plane() {
     assert_eq!(worked.result, LinePlane::Parallel { distance: Value::int(6).mul(&Value::int(3).pow(&Value::ratio(-1, 2)).unwrap()) });
     assert!(latex_at(&worked.working, StepDetail::Brief).contains(&r"d = 2\sqrt{3}".to_string()), "{:#?}", worked.working);
     assert_eq!(e.meet_line(&line([6, 0, 0], [1, -1, 0]), AngleUnit::Degree, 20).unwrap().result, LinePlane::Contained);
+}
+
+#[test]
+fn two_planes() {
+    let e = coordinate_plane(1, 1, 1, 6);
+    assert_eq!(e.meet_plane(&coordinate_plane(-2, -2, -2, -12), AngleUnit::Degree, 20).unwrap().result, PlanePlane::Identical);
+    let worked = e.meet_plane(&coordinate_plane(2, 2, 2, 3), AngleUnit::Degree, 20).unwrap();
+    // x + y + z = 6 and x + y + z = 3/2: (6 - 3/2) / √3 = 3√3/2.
+    let PlanePlane::Parallel { distance } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!(distance.mul(distance), Value::ratio(27, 4));
+    assert!(latex_at(&worked.working, StepDetail::Brief).contains(&r"E \parallel F".to_string()));
+
+    // x + y + z = 6 and x - y = 0: the line through (3|3|0) along n1 × n2 = (1, 1, -2).
+    let worked = e.meet_plane(&coordinate_plane(1, -1, 0, 0), AngleUnit::Degree, 20).unwrap();
+    let PlanePlane::Intersecting { line, angle } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!(line.direction, ints([1, 1, -2]));
+    assert_eq!(line.support, at([3, 3, 0]));
+    assert_eq!(angle.value, Value::int(90));
+    let standard = latex_at(&worked.working, StepDetail::Standard);
+    assert!(standard.contains(&r"\begin{aligned} x + y = 6 \\ x - y = 0 \end{aligned}".to_string()), "{standard:#?}");
+    // Both planes contain the line.
+    for plane in [&e, &coordinate_plane(1, -1, 0, 0)] {
+        assert_eq!(plane.meet_line(line, AngleUnit::Degree, 20).unwrap().result, LinePlane::Contained);
+    }
+    // Planes without z in the cross product: z = 0 does not work, y = 0 is set instead.
+    let PlanePlane::Intersecting { line, angle } = coordinate_plane(1, 0, 0, 2).meet_plane(&coordinate_plane(0, 0, 1, 5), AngleUnit::Degree, 20).unwrap().result else { panic!() };
+    assert_eq!((line.support, line.direction), (at([2, 0, 5]), ints([0, -1, 0])));
+    assert_eq!(angle.value, Value::int(90));
+    // An angle of 45° between z = 0 and y = z, the second in parameter form.
+    let f = Plane::through(&at([0, 0, 0]), &at([1, 0, 0]), &at([0, 1, 1])).unwrap().result;
+    let PlanePlane::Intersecting { angle, .. } = coordinate_plane(0, 0, 1, 0).meet_plane(&f, AngleUnit::Degree, 20).unwrap().result else { panic!() };
+    assert_eq!(angle.value, Value::int(45));
 }

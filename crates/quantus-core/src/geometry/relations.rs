@@ -6,9 +6,19 @@ use crate::settings::StepDetail::{Brief, Detailed, Standard};
 use crate::text::msg;
 use crate::Result;
 
+use super::line::{acute_angle, compare_directions};
 use super::show;
 use super::working::{Worked, Working};
 use super::{abs, equal, over_length, Angle, Line, Plane, PlaneForm, Point};
+
+/// How two planes lie to each other.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PlanePlane {
+    Identical,
+    Parallel { distance: Value },
+    /// They meet in `line` (Schnittgerade).
+    Intersecting { line: Line, angle: Angle },
+}
 
 /// How a line lies to a plane.
 #[derive(Clone, Debug, PartialEq)]
@@ -138,5 +148,63 @@ impl Plane {
         );
         working.add(Brief, msg!("The angle:", "Der Winkel:"), show::angle(&angle));
         Ok(Worked::new(LinePlane::Intersecting { point, lambda, angle }, working))
+    }
+
+    /// How the plane lies to `other`: identical, parallel (with the distance) or intersecting
+    /// (with the line and the angle). Both are put into the coordinate form.
+    pub fn meet_plane(&self, other: &Plane, unit: AngleUnit, precision: usize) -> Result<Worked<PlanePlane>> {
+        let mut working = Working::default();
+        let e = self.in_coordinates(&mut working);
+        let f = other.in_coordinates(&mut working);
+        let (n1, n2) = (&e.normal, &f.normal);
+        if compare_directions(n1, n2, &mut working).is_some() {
+            let Worked { result: on, working: test } = e.contains(&f.support)?;
+            working.extend(test);
+            if on {
+                working.add(Brief, msg!("The planes are identical.", "Die Ebenen sind identisch."), "E = F");
+                return Ok(Worked::new(PlanePlane::Identical, working));
+            }
+            working.add(Brief, msg!("The planes are parallel.", "Die Ebenen sind parallel."), "E \\parallel F");
+            let Worked { result: distance, working: part } = e.distance(&f.support)?;
+            working.extend(part);
+            return Ok(Worked::new(PlanePlane::Parallel { distance }, working));
+        }
+        let direction = n1.cross(n2);
+        working.add(
+            Standard,
+            msg!("The line of intersection is perpendicular to both normals:", "Die Schnittgerade steht senkrecht auf beiden Normalenvektoren:"),
+            format!("\\vec{{u}} = \\vec{{n_1}} \\times \\vec{{n_2}} = {} \\times {} = {}", show::vector(n1), show::vector(n2), show::vector(&direction)),
+        );
+        // A common point: one coordinate 0, where the other two have a non-zero determinant
+        // (the entry of the cross product there); z first, as at school.
+        let m = [2, 1, 0].into_iter().find(|&m| !direction.coords[m].is_zero()).expect("the normals are not collinear");
+        let (i, j) = match m {
+            0 => (1, 2),
+            1 => (0, 2),
+            _ => (0, 1),
+        };
+        let names = ["x", "y", "z"];
+        let (a, b, d1, d2) = (&n1.coords, &n2.coords, &e.constant, &f.constant);
+        let equations = [(a, d1), (b, d2)]
+            .map(|(c, d)| format!("{} = {}", show::combination(&[(&c[i], names[i]), (&c[j], names[j])]), show::value(d)));
+        working.add(
+            Standard,
+            msg!("A common point: set {} = 0 in both equations.", "Ein gemeinsamer Punkt: {} = 0 in beide Gleichungen einsetzen.", names[m]),
+            format!("\\begin{{aligned}} {} \\\\ {} \\end{{aligned}}", equations[0], equations[1]),
+        );
+        let determinant = a[i].mul(&b[j]).sub(&a[j].mul(&b[i]));
+        let mut coords = [Value::zero(), Value::zero(), Value::zero()];
+        coords[i] = d1.mul(&b[j]).sub(&a[j].mul(d2)).div(&determinant)?;
+        coords[j] = a[i].mul(d2).sub(&d1.mul(&b[i])).div(&determinant)?;
+        let point = Point::new(coords[0].clone(), coords[1].clone(), coords[2].clone());
+        working.add(
+            Detailed,
+            msg!("Solved:", "Gelöst:"),
+            format!("{} = {}, \\quad {} = {}", names[i], show::value(&point.coords[i]), names[j], show::value(&point.coords[j])),
+        );
+        let line = Line::new(point, direction)?;
+        working.add(Brief, msg!("The planes meet in the line", "Die Ebenen schneiden sich in der Geraden"), line.equation());
+        let angle = acute_angle(n1, n2, true, unit, precision, &mut working)?;
+        Ok(Worked::new(PlanePlane::Intersecting { line, angle }, working))
     }
 }
