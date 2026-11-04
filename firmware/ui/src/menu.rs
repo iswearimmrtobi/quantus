@@ -116,6 +116,10 @@ pub enum Action {
     Calc,
     /// SOLVE: the input solved for the letter whose field is left empty.
     Solve,
+    /// A matrix given a name, then its cells in a grid (Matrizen).
+    DefineMatrix,
+    /// The matrices among the variables, to change one.
+    EditMatrix,
 }
 
 impl Action {
@@ -277,6 +281,8 @@ pub enum TextFor {
     Password(String),
     /// The name a value is kept under (STO): the value as LaTeX.
     Variable(String),
+    /// The name of a matrix to define.
+    Matrix,
 }
 
 /// What VARS does to a variable chosen: inserts its name, changes its value, deletes it.
@@ -303,7 +309,7 @@ impl TextFor {
         match self {
             TextFor::Name => NAME_LENGTH,
             TextFor::Password(_) => *PASSWORD_LENGTH.end(),
-            TextFor::Variable(_) => VARIABLE_LENGTH,
+            TextFor::Variable(_) | TextFor::Matrix => VARIABLE_LENGTH,
         }
     }
 
@@ -312,7 +318,7 @@ impl TextFor {
         match self {
             TextFor::Name => !typed.trim().is_empty(),
             TextFor::Password(_) => PASSWORD_LENGTH.contains(&typed.chars().count()),
-            TextFor::Variable(_) => variable_name(typed),
+            TextFor::Variable(_) | TextFor::Matrix => variable_name(typed),
         }
     }
 }
@@ -375,6 +381,8 @@ pub enum Outcome {
     Item,
     /// Keep the value of the text field under the name typed (the app reads both from it).
     Store,
+    /// Open the grid for the matrix named in the text field.
+    Define,
     /// Do [`VARIABLE_ACTIONS`]`[action]` to the variable chosen (the app reads it from the edit).
     Variable(usize),
 }
@@ -770,6 +778,7 @@ impl Menu {
                             TextFor::Name => Outcome::Rename,
                             TextFor::Password(_) => Outcome::Connect,
                             TextFor::Variable(_) => Outcome::Store,
+                            TextFor::Matrix => Outcome::Define,
                         };
                         self.edit = Some(Edit::Text { label, purpose, typed, error, plain });
                         return outcome;

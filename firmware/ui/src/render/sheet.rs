@@ -94,6 +94,8 @@ fn heads<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> Vec<Row> {
                 Column::Freq => latex::parse(&format!("\\mathrm{{{}}}", FREQ.get(lang))),
             })
             .collect(),
+        // The columns numbered.
+        Kind::Matrix => (1..=sheet.columns()).map(|column| latex::parse(&column.to_string())).collect(),
         _ => Vec::new(),
     }
 }
@@ -121,7 +123,7 @@ fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
         Kind::Points => [t("Von", "From"), t("Bis", "To"), t("Schritt", "Step")].iter().map(|label| label.get(lang).to_string()).collect(),
         // As math: `m_{1}`.
         Kind::Formula => app.sheets.asked.iter().flat_map(|asked| &asked.variables).map(|variable| variable.symbol.clone()).collect(),
-        Kind::Linear | Kind::Statistics => Vec::new(),
+        Kind::Linear | Kind::Statistics | Kind::Matrix => Vec::new(),
     }
 }
 
@@ -132,6 +134,11 @@ fn cursor_name<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> String {
     match kind {
         Kind::Linear => format!("{} {}", t("Gl.", "Eq.").get(lang), row + 1),
         Kind::Statistics => format!("{} {}", t("Zeile", "Row").get(lang), row + 1),
+        // The matrix's name, and where in it the cursor is.
+        Kind::Matrix => {
+            let name = app.sheets.defining.clone().unwrap_or_default();
+            format!("{name}: {} {}, {} {}", t("Zeile", "Row").get(lang), row + 1, t("Spalte", "Column").get(lang), sheet.cursor.1 + 1)
+        }
         _ => labels(app, kind).get(row).cloned().unwrap_or_default(),
     }
 }

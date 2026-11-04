@@ -312,12 +312,14 @@ pub enum Kind {
     Points,
     /// CALC's or SOLVE's form over the input: a field for each letter that has no value.
     Formula,
+    /// The cells of a matrix being defined in Matrizen.
+    Matrix,
 }
 
 impl Kind {
     /// Whether the sheet is a form: one column with a label beside each row.
     pub fn form(self) -> bool {
-        !matches!(self, Kind::Linear | Kind::Statistics)
+        !matches!(self, Kind::Linear | Kind::Statistics | Kind::Matrix)
     }
 
     /// Whether it is a form of Kurvendiskussion, for a task on the function typed.
@@ -381,6 +383,9 @@ pub struct Sheets {
     /// CALC's fields, and what they are for while the form is open.
     pub formula: Sheet,
     pub asked: Option<Formula>,
+    /// The cells of the matrix being defined, and its name while the grid is open.
+    pub matrix: Sheet,
+    pub defining: Option<String>,
     /// The Statistik columns as laid out now, and the cells of x, y and Freq kept while one
     /// of them is not shown.
     columns: Vec<Column>,
@@ -406,6 +411,8 @@ impl Sheets {
             points: Sheet::new(3, 1, Flow::Down),
             formula: Sheet::new(1, 1, Flow::Down),
             asked: None,
+            matrix: Sheet::new(2, 2, Flow::Across),
+            defining: None,
             columns,
             kept: Default::default(),
             regression: settings.statistics_type,
@@ -426,6 +433,7 @@ impl Sheets {
             Kind::Area => &self.area,
             Kind::Points => &self.points,
             Kind::Formula => &self.formula,
+            Kind::Matrix => &self.matrix,
         }
     }
 
@@ -439,7 +447,38 @@ impl Sheets {
             Kind::Area => &mut self.area,
             Kind::Points => &mut self.points,
             Kind::Formula => &mut self.formula,
+            Kind::Matrix => &mut self.matrix,
         }
+    }
+
+    /// Opens the grid for the matrix `name`, empty in the size the settings say, or holding
+    /// `cells` (the app has set the size to theirs).
+    pub fn define(&mut self, name: String, cells: Option<&[Vec<Row>]>, settings: &Settings) {
+        self.matrix = Sheet::new(usize::from(settings.matrix_rows), usize::from(settings.matrix_columns), Flow::Across);
+        for (r, row) in cells.unwrap_or_default().iter().enumerate() {
+            for (c, cell) in row.iter().enumerate() {
+                self.matrix.set(r, c, cell.clone());
+            }
+        }
+        self.matrix.select(0, 0);
+        self.defining = Some(name);
+    }
+
+    /// The definition of the matrix in the grid, `A=\begin{pmatrix}…\end{pmatrix}`; an empty
+    /// cell is 0.
+    pub fn definition(&self) -> String {
+        let sheet = &self.matrix;
+        let cell = |row, column| match sheet.latex(row, column) {
+            latex if latex.is_empty() => "0".to_string(),
+            latex => latex,
+        };
+        let rows: Vec<String> = (0..sheet.rows()).map(|row| (0..sheet.columns()).map(|column| cell(row, column)).collect::<Vec<_>>().join("&")).collect();
+        // The name as LaTeX, its index in braces: `M_{1}`.
+        let name = match self.defining.as_deref().unwrap_or("A").split_once('_') {
+            Some((letters, index)) => format!("{letters}_{{{index}}}"),
+            None => self.defining.clone().unwrap_or_else(|| "A".to_string()),
+        };
+        format!("{name}=\\begin{{pmatrix}}{}\\end{{pmatrix}}", rows.join(r"\\"))
     }
 
     /// Opens CALC's or SOLVE's form for `formula`: an empty field per letter, the cursor on the
@@ -465,6 +504,7 @@ impl Sheets {
         let rows = usize::from(settings.system_rows.clamp(1, 10));
         let columns = usize::from(settings.system_columns.clamp(1, 10)) + 1;
         self.linear.resize(rows, columns);
+        self.matrix.resize(usize::from(settings.matrix_rows.clamp(1, 10)), usize::from(settings.matrix_columns.clamp(1, 10)));
 
         self.regression = settings.statistics_type;
         let wanted = statistics_columns(settings);
@@ -503,12 +543,13 @@ impl Sheets {
         }
     }
 
-    /// The request for the sheet of `kind`, from its cells; a task of Kurvendiskussion is on
-    /// `function`.
-    pub fn request(&self, kind: Kind, function: &str) -> Request {
+    /// The request for the sheet of `kind`, from its cells; a task of Kurvendiskussion and CALC
+    /// are on `function`. The matrix has none: its [`definition`](Sheets::definition) is an
+    /// input like any other.
+    pub fn request(&self, kind: Kind, function: &str) -> Option<Request> {
         let sheet = self.get(kind);
         let cell = |row: usize| sheet.latex(row, 0);
-        match kind {
+        Some(match kind {
             Kind::Linear => Request::Linear {
                 rows: (0..sheet.rows()).map(|row| (0..sheet.columns()).map(|column| sheet.latex(row, column)).collect()).collect(),
             },
@@ -550,7 +591,7 @@ impl Sheets {
                 let latex = function.to_string();
                 if !solve {
                     let values = variables.iter().enumerate().map(|(row, variable)| (variable.key.clone(), cell(row))).collect();
-                    return Request::Calc { mode, latex, values };
+                    return Some(Request::Calc { mode, latex, values });
                 }
                 // SOLVE finds the letter left empty; with all given, the one at the cursor,
                 // starting from its value.
@@ -564,7 +605,8 @@ impl Sheets {
                 let variable = variables.get(unknown).map(|variable| variable.key.clone()).unwrap_or_default();
                 Request::Solve { mode, latex, variable, values, start }
             }
-        }
+            Kind::Matrix => return None,
+        })
     }
 
     /// Fills a sheet with what a session kept. The app has set the settings to the request's

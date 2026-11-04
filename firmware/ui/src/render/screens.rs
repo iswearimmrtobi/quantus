@@ -271,7 +271,8 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                 (TextFor::Password(ssid), false) => (format!("{ssid}: {}", text::PASSWORD_HINT.get(lang)), colors::MUTED),
                 (TextFor::Password(_), true) => (text::PASSWORD_LENGTH.get(lang).to_string(), colors::ERROR),
                 (TextFor::Variable(_), false) => (text::STORE_HINT.get(lang).to_string(), colors::MUTED),
-                (TextFor::Variable(_), true) => (text::BAD_VARIABLE.get(lang).to_string(), colors::ERROR),
+                (TextFor::Matrix, false) => (text::MATRIX_HINT.get(lang).to_string(), colors::MUTED),
+                (TextFor::Variable(_) | TextFor::Matrix, true) => (text::BAD_VARIABLE.get(lang).to_string(), colors::ERROR),
             };
             let shown = if *plain { typed.clone() } else { "*".repeat(typed.chars().count()) };
             typed_field(shapes, &shown, app.caret_on, &fit(&hint, WIDTH as i32 - 2 * MARGIN - 8, Scale::Small), color, glass);

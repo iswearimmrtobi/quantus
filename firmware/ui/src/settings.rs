@@ -122,7 +122,10 @@ pub struct Settings {
     pub system_rows: u8,
     /// The unknowns: the matrix has one column more, the right-hand side.
     pub system_columns: u8,
-    // Basis-N (in its OPTN)
+    // Matrizen and Basis-N (in their OPTN)
+    /// The size of the matrix being defined.
+    pub matrix_rows: u8,
+    pub matrix_columns: u8,
     pub number_base: NumberBase,
     // Statistik and Verteilungen (in their OPTN)
     pub statistics_type: StatisticsType,
@@ -182,6 +185,8 @@ impl Default for Settings {
             system_input: SystemInput::Matrix,
             system_rows: 3,
             system_columns: 3,
+            matrix_rows: 2,
+            matrix_columns: 2,
             number_base: NumberBase::Dec,
             statistics_type: StatisticsType::OneVariable,
             statistics_freq: false,
@@ -232,6 +237,8 @@ pub enum Setting {
     SystemInput,
     SystemRows,
     SystemColumns,
+    MatrixRows,
+    MatrixColumns,
     NumberBase,
     StatisticsType,
     StatisticsFreq,
@@ -279,6 +286,8 @@ impl Settings {
             S::UnknownNames => self.unknown_names.index(),
             S::LinearComplex => self.linear_complex.into(),
             S::SystemInput => self.system_input.index(),
+            S::MatrixRows => self.matrix_rows.into(),
+            S::MatrixColumns => self.matrix_columns.into(),
             S::NumberBase => self.number_base.index(),
             S::SystemRows => self.system_rows.into(),
             S::SystemColumns => self.system_columns.into(),
@@ -336,6 +345,8 @@ impl Settings {
             S::NumberBase => self.number_base = NumberBase::from_index(value),
             S::SystemRows => self.system_rows = small,
             S::SystemColumns => self.system_columns = small,
+            S::MatrixRows => self.matrix_rows = small.clamp(1, 10),
+            S::MatrixColumns => self.matrix_columns = small.clamp(1, 10),
             S::StatisticsType => self.statistics_type = StatisticsType::from_index(value),
             S::StatisticsFreq => self.statistics_freq = on,
             S::Distribution => self.distribution = DistributionKind::from_index(value),
@@ -404,6 +415,8 @@ const KEYS: &[(&str, Setting)] = {
         ("system_input_2", S::SystemInput),
         ("system_rows", S::SystemRows),
         ("system_columns", S::SystemColumns),
+        ("matrix_rows", S::MatrixRows),
+        ("matrix_columns", S::MatrixColumns),
         ("number_base", S::NumberBase),
         ("statistics_type", S::StatisticsType),
         ("statistics_freq", S::StatisticsFreq),

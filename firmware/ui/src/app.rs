@@ -348,6 +348,9 @@ impl<B> App<B> {
         if self.sheets.asked.is_some() {
             return Some(sheet::Kind::Formula);
         }
+        if self.sheets.defining.is_some() {
+            return Some(sheet::Kind::Matrix);
+        }
         match self.mode {
             Mode::Analysis => self.task,
             mode => mode.sheet(&self.settings),
@@ -865,6 +868,19 @@ impl<B: Backend> App<B> {
                 self.act(action);
                 return;
             }
+            Outcome::Act(Action::DefineMatrix) => {
+                let purpose = TextFor::Matrix;
+                menu.edit = Some(Edit::Text { label: text::MATRIX_NAME, purpose, typed: String::new(), error: false, plain: true });
+            }
+            Outcome::Act(Action::EditMatrix) => return self.vars(),
+            Outcome::Define => {
+                let Some(Edit::Text { typed, .. }) = &menu.edit else { return };
+                let (name, settings) = (typed.clone(), self.settings);
+                self.reset();
+                self.answer = None;
+                self.sheets.define(name, None, &settings);
+                return;
+            }
             Outcome::Act(action @ (Action::TangentForm | Action::AreaForm | Action::PointsForm | Action::Calc | Action::Solve)) => {
                 self.act(action);
                 return;
@@ -1086,6 +1102,7 @@ impl<B: Backend> App<B> {
             Action::Calc => self.formula(false),
             Action::Solve => self.formula(true),
             // Done by `outcome`, which knows the menu to come back to.
+            Action::DefineMatrix | Action::EditMatrix => {}
             Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
         }
     }
@@ -1265,18 +1282,28 @@ impl<B: Backend> App<B> {
             return;
         }
         // AC on a form over the input, not in a cell: back to the input.
-        if kind.over_input() && key == Key::Ac && self.sheets.get(kind).editing.is_none() {
+        let over = kind.over_input() || kind == sheet::Kind::Matrix;
+        if over && key == Key::Ac && self.sheets.get(kind).editing.is_none() {
             match kind {
                 sheet::Kind::Formula => self.sheets.asked = None,
+                sheet::Kind::Matrix => self.sheets.defining = None,
                 _ => self.task = None,
             }
             return;
         }
         if self.sheets.get_mut(kind).key(key, shift) == sheet::Outcome::Calculate {
-            let request = self.sheets.request(kind, &self.editor.to_latex());
-            match kind {
-                sheet::Kind::Formula => self.ask(Pending::Formula { input: self.editor.row.clone() }, &request),
-                _ => self.solve(&request),
+            match (kind, self.sheets.request(kind, &self.editor.to_latex())) {
+                // The matrix is defined as if typed: `A = (…)`, into the history.
+                (sheet::Kind::Matrix, _) => {
+                    let definition = self.sheets.definition();
+                    self.sheets.defining = None;
+                    self.reset();
+                    self.editor.set(latex::parse(&definition));
+                    self.evaluate();
+                }
+                (sheet::Kind::Formula, Some(request)) => self.ask(Pending::Formula { input: self.editor.row.clone() }, &request),
+                (_, Some(request)) => self.solve(&request),
+                (_, None) => {}
             }
         }
     }
@@ -1315,13 +1342,22 @@ impl<B: Backend> App<B> {
         }
     }
 
-    /// Changes the value of `variable`: CALC's form with its one field, holding the value now.
+    /// Changes the value of `variable`: CALC's form with its one field, holding the value now;
+    /// a matrix's cells in the grid of Matrizen.
     fn change(&mut self, variable: crate::backend::Stored) {
         if self.pending.is_some() {
             return;
         }
         self.reset();
         self.answer = None;
+        if let [Node::Matrix(rows)] = &latex::parse(&variable.value).0[..] {
+            self.mode = Mode::Matrix;
+            self.settings.matrix_rows = rows.len().clamp(1, 10) as u8;
+            self.settings.matrix_columns = rows.iter().map(Vec::len).max().unwrap_or(1).clamp(1, 10) as u8;
+            let settings = self.settings;
+            self.sheets.define(variable.key, Some(rows), &settings);
+            return;
+        }
         self.editor.set(latex::parse(&variable.symbol));
         let mode = if self.mode.engine() { self.mode } else { Mode::Physics };
         let asked = crate::backend::Variable { key: variable.key, symbol: variable.symbol };

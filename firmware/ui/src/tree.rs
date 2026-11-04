@@ -587,12 +587,15 @@ static OPTN_LINEAR: Page = Page {
     ],
 };
 
+/// A matrix is defined under a name in a grid of the size set here, and edited in VARS; the
+/// last result is the Ans key's.
 static OPTN_MATRIX: Page = Page {
     title: t("Matrizen", "Matrices"),
     entries: &[
-        pending(t("Definieren", "Define")),
-        pending(t("Bearbeiten", "Edit")),
-        pending(same("Ans")),
+        entry(t("Definieren", "Define"), Kind::Do(Action::DefineMatrix)),
+        entry(t("Bearbeiten", "Edit"), Kind::Do(Action::EditMatrix)),
+        entry(t("Zeilen", "Rows"), Kind::Number(S::MatrixRows, 1, 10)),
+        entry(t("Spalten", "Columns"), Kind::Number(S::MatrixColumns, 1, 10)),
         pending(t("Determinante", "Determinant")),
         pending(t("Transponierte", "Transpose")),
         pending(t("Inverse", "Inverse")),

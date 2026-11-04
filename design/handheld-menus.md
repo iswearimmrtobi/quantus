@@ -58,7 +58,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Wertetabelle mode, with g(x) as a second column
 - [x] Statistik (with its data editor) and Verteilungen; not yet x̂ and ŷ for a given value
 - [x] The modes Prüfen, Basis-N
-- [ ] The mode Matrizen (with editor)
+- [x] The mode Matrizen, with its editor
 - [ ] The step list (Rechenweg) on the result screen
 - [ ] S⇔D through all forms of a result; OPTN for FACT, ENG and the polar form
 - [ ] The ◌ SETUP entries once the core has them: Winkeleinheit, Zahlenformat,
@@ -568,7 +568,8 @@ engine; the modes with a sheet work it out with EXE on its last cell.
   5. LGS [C Gleichungssyst. + Q] ✓ (the matrix [A|b], or typed equations)
   6. Wertetabelle [C Tabellen, on the analysis code] ✓
 - Page 2
-  7. Matrizen [C, eng] ✓ for typed inputs; the matrices are among VARS
+  7. Matrizen [C, eng] ✓: typed inputs, and a grid to define a matrix (`sheet::Kind::Matrix`);
+     the matrices are among VARS, whose *Wert ändern* opens a matrix in the grid
   8. Basis-N [C, eng] ✓ (the base in OPTN, kept with the settings)
   9. Statistik [C, eng] ✓
   10. Verteilungen [C, eng] ✓

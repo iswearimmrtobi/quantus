@@ -110,7 +110,7 @@ State on 2026-11-03.
 - [x] 4 Kurvendiskussion: EXE sketches f(x), the graph and a page per section; OPTN has the sections, Tangente/Normale, Fläche, Wertetabelle
 - [x] 5 LGS: the matrix [A|b] up to 10 × 10, or typed equations
 - [x] 6 Wertetabelle, with g(x) as a second column
-- [~] 7 Matrizen — typed inputs work (`A = (…)`, `A^{-1}`, `\det A`), the matrices are among VARS; the editor waits
+- [x] 7 Matrizen: typed inputs (`A^{-1}`, `\det A`), a matrix defined under a name in a grid (OPTN → Definieren, Zeilen, Spalten, up to 10 × 10), changed from VARS
 - [x] 8 Basis-N: 32-bit whole numbers in DEC, HEX, BIN or OCT (OPTN → Basis), the prefixes d, h, b, o and the logic in OPTN; A–F as letters
 - [~] 9 Statistik, with a data editor — x̂ and ŷ for a given value are missing
 - [x] 10 Verteilungen, one k or several
@@ -161,7 +161,7 @@ in yet.
 - [x] CALC: a form over the input asks for its free variables (F8, Ctrl+B, or OPTN → Werkzeuge); the values stay in the session
 - [x] STO and VARS: STO (SHIFT+VARS) keeps the shown result under any name typed; VARS lists the session's variables with their values, to insert one, change its value (in CALC's form) or delete it
 - [x] Basis-N, statistics, regressions, distributions
-- [~] Matrices — in the Matrizen mode, typed; no editor and no OPTN yet
+- [~] Matrices — the Matrizen mode with its editor; OPTN has no functions yet
 - [x] wahr/falsch for an equation without unknowns, and the Prüfen mode
 - [x] Step levels and the step settings passed to the engine (the list is not shown yet)
 
