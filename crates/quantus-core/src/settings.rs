@@ -143,7 +143,7 @@ pub enum Mode {
     /// Checks (in)equalities, chained as `1 < 2 \le 2`: true or false (Prüfen). Inputs are read
     /// as in `Algebra`, and an equation is checked instead of solved.
     Verify,
-    /// Vectors, points, lines, planes, spheres and circles in 3D. Inputs are read
+    /// Vectors, points, lines, planes, spheres and circles in 3D ([`crate::geometry`]). Inputs are read
     /// as in `Algebra`.
     Geometry,
 }

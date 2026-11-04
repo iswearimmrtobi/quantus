@@ -104,7 +104,7 @@ green.
 
 - [x] `Mode::Geometry` in `settings.rs` (read as in `Algebra`; also the `units:` match and the
   serde test); `'geometry'` in `desktop/src/api.ts`.
-- [ ] `geometry/` module (`pub` in `lib.rs`) with `Vector3 { [Value; 3] }` and a separate `Point`
+- [x] `geometry/` module (`pub` in `lib.rs`) with `Vector3 { [Value; 3] }` and a separate `Point`
   (2D input is z = 0, remembered for the output), built on `num::Value`; `Point − Point`,
   `Point + Vector`, `Vector ± Vector`, scalar multiple. Test file `tests/geometry.rs` created with
   these.

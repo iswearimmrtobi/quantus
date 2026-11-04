@@ -1,0 +1,155 @@
+//! Analytic geometry (the Geometry mode): points and vectors in 3D with exact coordinates.
+//!
+//! A [`Point`] and a [`Vector3`] are different types: the difference of two points is a vector,
+//! a point plus a vector is a point, and vectors add and scale. A 2D input is z = 0 and keeps
+//! that it was 2D (`planar`), so that a result of 2D inputs can be written without z.
+
+use std::ops::{Add, Mul, Neg, Sub};
+
+use crate::num::Value;
+
+/// The three coordinates, each exact.
+pub type Coordinates = [Value; 3];
+
+/// A vector in space. Equal when the coordinates are; `planar` only decides how it is written.
+#[derive(Clone, Debug)]
+pub struct Vector3 {
+    pub coords: Coordinates,
+    /// Entered with two coordinates (z = 0).
+    pub planar: bool,
+}
+
+/// A point in space. Equal when the coordinates are; `planar` only decides how it is written.
+#[derive(Clone, Debug)]
+pub struct Point {
+    pub coords: Coordinates,
+    /// Entered with two coordinates (z = 0).
+    pub planar: bool,
+}
+
+fn zip(a: &Coordinates, b: &Coordinates, f: impl Fn(&Value, &Value) -> Value) -> Coordinates {
+    [f(&a[0], &b[0]), f(&a[1], &b[1]), f(&a[2], &b[2])]
+}
+
+impl Vector3 {
+    pub fn new(x: Value, y: Value, z: Value) -> Vector3 {
+        Vector3 { coords: [x, y, z], planar: false }
+    }
+
+    /// A 2D vector, z = 0.
+    pub fn planar(x: Value, y: Value) -> Vector3 {
+        Vector3 { coords: [x, y, Value::zero()], planar: true }
+    }
+
+    pub fn from_ints(x: i64, y: i64, z: i64) -> Vector3 {
+        Vector3::new(Value::int(x), Value::int(y), Value::int(z))
+    }
+
+    pub fn zero() -> Vector3 {
+        Vector3::new(Value::zero(), Value::zero(), Value::zero())
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.coords.iter().all(Value::is_zero)
+    }
+
+    /// `factor · self`.
+    pub fn scale(&self, factor: &Value) -> Vector3 {
+        Vector3 { coords: self.coords.clone().map(|c| factor.mul(&c)), planar: self.planar }
+    }
+
+    /// The point this vector leads to from the origin.
+    pub fn to_point(&self) -> Point {
+        Point { coords: self.coords.clone(), planar: self.planar }
+    }
+}
+
+impl Point {
+    pub fn new(x: Value, y: Value, z: Value) -> Point {
+        Point { coords: [x, y, z], planar: false }
+    }
+
+    /// A 2D point, z = 0.
+    pub fn planar(x: Value, y: Value) -> Point {
+        Point { coords: [x, y, Value::zero()], planar: true }
+    }
+
+    pub fn from_ints(x: i64, y: i64, z: i64) -> Point {
+        Point::new(Value::int(x), Value::int(y), Value::int(z))
+    }
+
+    pub fn origin() -> Point {
+        Point::new(Value::zero(), Value::zero(), Value::zero())
+    }
+
+    /// The position vector (Ortsvektor) of the point.
+    pub fn position(&self) -> Vector3 {
+        Vector3 { coords: self.coords.clone(), planar: self.planar }
+    }
+
+    /// The vector from `self` to `other`: `other − self`.
+    pub fn to(&self, other: &Point) -> Vector3 {
+        other - self
+    }
+}
+
+impl PartialEq for Vector3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.coords == other.coords
+    }
+}
+
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.coords == other.coords
+    }
+}
+
+impl Sub for &Point {
+    type Output = Vector3;
+    fn sub(self, other: &Point) -> Vector3 {
+        Vector3 { coords: zip(&self.coords, &other.coords, Value::sub), planar: self.planar && other.planar }
+    }
+}
+
+impl Add<&Vector3> for &Point {
+    type Output = Point;
+    fn add(self, v: &Vector3) -> Point {
+        Point { coords: zip(&self.coords, &v.coords, Value::add), planar: self.planar && v.planar }
+    }
+}
+
+impl Sub<&Vector3> for &Point {
+    type Output = Point;
+    fn sub(self, v: &Vector3) -> Point {
+        Point { coords: zip(&self.coords, &v.coords, Value::sub), planar: self.planar && v.planar }
+    }
+}
+
+impl Add for &Vector3 {
+    type Output = Vector3;
+    fn add(self, other: &Vector3) -> Vector3 {
+        Vector3 { coords: zip(&self.coords, &other.coords, Value::add), planar: self.planar && other.planar }
+    }
+}
+
+impl Sub for &Vector3 {
+    type Output = Vector3;
+    fn sub(self, other: &Vector3) -> Vector3 {
+        Vector3 { coords: zip(&self.coords, &other.coords, Value::sub), planar: self.planar && other.planar }
+    }
+}
+
+impl Neg for &Vector3 {
+    type Output = Vector3;
+    fn neg(self) -> Vector3 {
+        self.scale(&Value::int(-1))
+    }
+}
+
+impl Mul<&Vector3> for &Value {
+    type Output = Vector3;
+    fn mul(self, v: &Vector3) -> Vector3 {
+        v.scale(self)
+    }
+}
