@@ -196,7 +196,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   under Hyperbol. Fkt., the product ∏ under Analysis, nCr, nPr, ggT, kgV,
   Int, Intg, Rnd, RndFix and ÷R under Zahl, minutes and seconds of an angle under Winkel.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
-  ∅, ⌣, ⌢, ℝ and ℤ, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
+  ∅, ⌣, ⌢, ℝ, ℤ and ℏ, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree
   written as a power (`30^\circ`, `^\circ\mathrm{C}`) is read as the sign °.
 - The steps of Algebra and of the curve sketch's working are **German** when the language is

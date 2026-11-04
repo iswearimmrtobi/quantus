@@ -166,3 +166,15 @@ fn ncr_is_a_template_of_two_rows() {
     (0..2).for_each(|_| editor.delete());
     assert_eq!(editor.to_latex(), "5");
 }
+
+#[test]
+fn hbar_is_drawn_as_an_h_with_a_bar() {
+    use quantus_ui::font::Scale;
+    use quantus_ui::layout;
+    let row = latex::parse(r"\hbar");
+    assert_eq!(row.0, [Node::Char('ℏ')]);
+    assert_eq!(row.to_latex(), r"\hbar");
+    // The fonts have no ℏ: it is a drawn sign, as wide as an h.
+    assert!(Scale::Normal.width("ℏ") == 0);
+    assert!(layout::layout(&row, Scale::Normal).width >= Scale::Normal.width("h"));
+}

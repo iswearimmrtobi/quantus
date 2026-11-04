@@ -152,7 +152,7 @@ fn grow(items: &mut [Item], first: usize, last: usize, scale: Scale) {
 }
 
 /// The signs [`drawn`] draws.
-pub const DRAWN: &str = "∧∨∈∉∪∖→⇒⇔↗↘∅⌣⌢ℝℤ";
+pub const DRAWN: &str = "∧∨∈∉∪∖→⇒⇔↗↘∅⌣⌢ℝℤℏ";
 
 /// A sign the fonts lack, drawn as lines around the math axis, about as tall as a digit.
 fn drawn(c: char, scale: Scale, unary: bool) -> Item {
@@ -230,14 +230,20 @@ fn drawn(c: char, scale: Scale, unary: bool) -> Item {
             let circle = arc(gap + half, middle, half, 0.0, 360.0);
             (None, 2 * half, vec![circle, vec![p(gap + 2 * half, top - 2), p(gap, bottom + 2)]])
         }
-        // A capital with a second stroke beside its stem, or along its diagonal.
+        // A capital with a second stroke beside its stem, or along its diagonal; an h with a bar
+        // through its stem.
         _ => {
-            let letter = if c == 'ℝ' { "R" } else { "Z" };
+            let letter = match c {
+                'ℝ' => "R",
+                'ℤ' => "Z",
+                _ => "h",
+            };
             let width = scale.width(letter);
             let cap = -metrics.digit;
             let line = match c {
                 'ℝ' => vec![p(6, cap + 1), p(6, -1)],
-                _ => vec![p(width - 3, cap + 1), p(2, -1)],
+                'ℤ' => vec![p(width - 3, cap + 1), p(2, -1)],
+                _ => vec![p(0, cap * 2 / 3 + 1), p(width * 2 / 3, cap * 4 / 5)],
             };
             (Some(letter.to_string()), width - 2 * gap, vec![line])
         }
