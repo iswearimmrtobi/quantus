@@ -57,6 +57,12 @@ pub trait Backend {
         Vec::new()
     }
 
+    /// Does `command` to the variables of the open session and returns them all afterwards, or
+    /// why it failed. A backend without sessions has none.
+    fn variables(&mut self, _command: VariableCommand, _settings: &Settings) -> Result<Vec<Stored>, String> {
+        Err(text::NOT_AVAILABLE.de.to_string())
+    }
+
     /// The sessions there are, in the order the session list shows them.
     fn sessions(&mut self) -> Vec<SessionInfo> {
         Vec::new()
@@ -128,6 +134,25 @@ pub trait Backend {
     fn set_time(&mut self, utc_ms: i64) {
         clock::set(utc_ms);
     }
+}
+
+/// What STO and VARS ask of the variables of the open session.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum VariableCommand {
+    /// Nothing: just the variables.
+    List,
+    /// The value of `latex`, worked out in `mode`, kept under the name `key` (`A`, `r_1`).
+    Store { mode: Mode, key: String, latex: String },
+    Delete(String),
+}
+
+/// A variable of the session: its key (`r_1`), its name as LaTeX (`r_{1}`) and its value with
+/// its unit, as LaTeX.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Stored {
+    pub key: String,
+    pub symbol: String,
+    pub value: String,
 }
 
 /// What CONST and CONV list.

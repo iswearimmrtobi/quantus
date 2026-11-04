@@ -21,7 +21,7 @@ use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Catalogue, Group, Network, Reply, Request, Storage, WlanStatus};
 use quantus_ui::text::Lang;
 #[cfg(feature = "engine")]
-use quantus_ui::backend::{Opened, SessionCommand, SessionInfo};
+use quantus_ui::backend::{Opened, SessionCommand, SessionInfo, Stored, VariableCommand};
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
@@ -224,6 +224,11 @@ impl Backend for Board {
     #[cfg(feature = "engine")]
     fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
         self.engine.catalogue(catalogue, lang)
+    }
+
+    #[cfg(feature = "engine")]
+    fn variables(&mut self, command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {
+        self.engine.variables(command, settings)
     }
 
     #[cfg(not(feature = "engine"))]

@@ -31,7 +31,10 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Simul
 use mirror::{Mirror, Tee};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Catalogue, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stub, WlanStatus};
+use quantus_ui::backend::{
+    Backend, Catalogue, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stored, Stub, VariableCommand,
+    WlanStatus,
+};
 use quantus_ui::text::Lang;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
@@ -257,6 +260,13 @@ impl Backend for Sim {
         match &mut self.answers {
             Answers::Engine(engine) => engine.sessions(),
             Answers::Stub(stub) => stub.sessions(),
+        }
+    }
+
+    fn variables(&mut self, command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.variables(command, settings),
+            Answers::Stub(stub) => stub.variables(command, settings),
         }
     }
 

@@ -16,7 +16,9 @@ use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Variable};
+use quantus_ui::backend::{
+    Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Variable, VariableCommand,
+};
 use quantus_ui::clock;
 use quantus_ui::settings as ui;
 use quantus_ui::text::Lang;
@@ -228,6 +230,28 @@ impl Backend for Engine {
                 })
                 .collect(),
         }
+    }
+
+    fn variables(&mut self, command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {
+        let current = Some(self.current.clone());
+        match command {
+            VariableCommand::List => {}
+            // Kept as CALC keeps a value: any name, not only one with an index.
+            VariableCommand::Store { mode, key, latex } => {
+                self.prepare(mode, settings)?;
+                let values = vec![Assignment { key: key.clone(), latex }];
+                let request = CalcRequest { latex: key, values, session_id: current.clone(), precision: Some(settings.digits.into()) };
+                let stored = api::calc(&mut self.store, &request).map(|_| ()).map_err(|error| error.error);
+                self.save(&self.current);
+                stored?;
+            }
+            VariableCommand::Delete(key) => {
+                api::delete_variable(&mut self.store, &key, current.as_deref());
+                self.save(&self.current);
+            }
+        }
+        let variables = api::list_variables(&mut self.store, current.as_deref());
+        Ok(variables.into_iter().map(|v| Stored { key: v.key, symbol: v.symbol, value: v.latex }).collect())
     }
 
     fn sessions(&mut self) -> Vec<SessionInfo> {

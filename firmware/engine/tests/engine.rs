@@ -306,3 +306,35 @@ mod solve {
         assert_eq!(result, "x = 0{,}6823278038");
     }
 }
+
+/// STO and VARS: the variables of the open session.
+mod variables {
+    use quantus_engine::Engine;
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::backend::{Backend, Stored, VariableCommand};
+
+    #[test]
+    fn a_value_is_stored_under_any_name_listed_and_deleted() {
+        let mut engine = Engine::default();
+        let settings = Settings::default();
+        engine.evaluate(Mode::Physics, &settings, r"2\,\mathrm{m}+1\,\mathrm{m}").expect("a result");
+        let store = |key: &str, latex: &str| VariableCommand::Store { mode: Mode::Physics, key: key.into(), latex: latex.into() };
+        let stored = engine.variables(store("A", r"\mathrm{Ans}"), &settings).expect("stored");
+        assert_eq!(stored, [Stored { key: "A".into(), symbol: "A".into(), value: r"3\,\mathrm{m}".into() }]);
+        let stored = engine.variables(store("r_1", r"\frac{1}{2}"), &settings).expect("stored");
+        assert_eq!(stored.iter().map(|v| v.symbol.as_str()).collect::<Vec<_>>(), ["A", "r_{1}"]);
+        // It is used in a calculation.
+        assert_eq!(engine.evaluate(Mode::Physics, &settings, r"2\cdot r_{1}"), Ok("1".to_string()));
+        let left = engine.variables(VariableCommand::Delete("A".into()), &settings).expect("deleted");
+        assert_eq!(left.len(), 1);
+        assert_eq!(engine.variables(VariableCommand::List, &settings).map(|v| v.len()), Ok(1));
+    }
+
+    #[test]
+    fn a_value_the_engine_cannot_read_is_not_stored() {
+        let mut engine = Engine::default();
+        let store = VariableCommand::Store { mode: Mode::Algebra, key: "A".into(), latex: "2+".into() };
+        assert!(engine.variables(store, &Settings::default()).is_err());
+        assert_eq!(engine.variables(VariableCommand::List, &Settings::default()), Ok(Vec::new()));
+    }
+}

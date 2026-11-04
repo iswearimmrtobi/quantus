@@ -81,7 +81,7 @@ Modelled on the Casio fx-DE line, not a copy:
 - a 4×6 block of function keys,
 - a 4×5 block of number and operator keys at the bottom.
 
-About 53 keys in total.
+About 53 keys in total. Typing units fast is planned in [unit-keys.md](unit-keys.md).
 
 ## 5. Firmware requirements that affect the hardware
 

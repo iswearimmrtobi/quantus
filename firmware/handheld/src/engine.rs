@@ -10,7 +10,7 @@ use std::time::Instant;
 use esp_idf_svc::sys;
 use quantus_engine::Engine;
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Catalogue, Group, Opened, Reply, Request, SessionCommand, SessionInfo};
+use quantus_ui::backend::{Backend, Catalogue, Group, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, VariableCommand};
 use quantus_ui::text::Lang;
 
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does. The
@@ -34,6 +34,8 @@ enum Job {
     Session(SessionCommand, Settings, Sender<Result<Opened, String>>),
     /// CONST and CONV, answered like the sessions.
     Catalogue(Catalogue, Lang, Sender<Vec<Group>>),
+    /// STO and VARS, answered like the sessions.
+    Variables(VariableCommand, Settings, Sender<Result<Vec<Stored>, String>>),
 }
 
 pub struct Worker {
@@ -90,6 +92,10 @@ impl Worker {
                         Job::Catalogue(catalogue, lang, reply) => {
                             let _ = reply.send(engine.catalogue(catalogue, lang));
                         }
+                        Job::Variables(command, settings, reply) => {
+                            println!("variables: {command:?}");
+                            let _ = reply.send(engine.variables(command, &settings));
+                        }
                     }
                 }
             })
@@ -140,6 +146,14 @@ impl Worker {
             return Vec::new();
         }
         answer.recv().unwrap_or_default()
+    }
+
+    /// Does `command` to the variables, waiting like [`sessions`](Worker::sessions).
+    pub fn variables(&mut self, command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {
+        let (reply, answer) = mpsc::channel();
+        let stopped = || "the engine thread has stopped".to_string();
+        self.jobs.send(Job::Variables(command, *settings, reply)).map_err(|_| stopped())?;
+        answer.recv().map_err(|_| stopped())?
     }
 
     /// The answer to the last calculation sent, once it is there.
