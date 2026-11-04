@@ -7,11 +7,14 @@
 //! each piece decides it exactly. Zeros of a denominator are never part of the solution, even
 //! where a factor cancels: `\frac{(x-1)^2}{x-1} \ge 0` is `x > 1`.
 
+use dashu::base::UnsignedAbs;
+use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use super::derivative::depends_on;
 use super::evaluator::Evaluator;
 use super::polynomial;
+use crate::algebra::poly::gcd_ubig;
 use crate::latex::{Node, Operator};
 use crate::num::Value;
 use crate::{QuantusError, Result};
@@ -35,22 +38,25 @@ pub(crate) struct Interval {
     pub hi_closed: bool,
 }
 
-/// What happens at a point of the sign chart.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Critical {
-    /// The left side minus the right side is 0 there.
-    Zero,
-    /// A denominator is 0 there: never part of the solution.
-    Pole,
+/// A point of the sign chart: a zero of the numerator, a pole (a zero of a denominator, never
+/// part of the solution), or both where a factor cancels.
+#[derive(Clone, Debug)]
+pub(crate) struct ChartPoint {
+    pub point: Point,
+    pub zero: bool,
+    pub pole: bool,
 }
 
-/// One relation's sign chart: its critical points in order and the sign of `left - right` on
-/// the pieces between them (`signs.len() == points.len() + 1`).
+/// One relation `left ⋚ right` as `P/Q ⋚ 0`, with `P` and `Q` scaled to whole coprime
+/// coefficients by a positive factor: its critical points in order and the signs of `P` and
+/// `Q` on the pieces between them (`signs.len() == points.len() + 1`).
 #[derive(Clone, Debug)]
 pub(crate) struct SignChart {
     pub relation: String,
-    pub points: Vec<(Point, Critical)>,
-    pub signs: Vec<i8>,
+    pub numerator: Vec<RBig>,
+    pub denominator: Vec<RBig>,
+    pub points: Vec<ChartPoint>,
+    pub signs: Vec<(i8, i8)>,
 }
 
 /// The solution of a chain of relations in `variable`: the intersection of each relation's
@@ -58,11 +64,6 @@ pub(crate) struct SignChart {
 pub(crate) struct Solution {
     pub intervals: Vec<Interval>,
     pub charts: Vec<SignChart>,
-}
-
-/// Whether a relation's text compares; `=` in a chain counts too.
-pub(crate) fn is_relation(text: &str) -> bool {
-    matches!(text, "<" | ">" | "\\le" | "\\ge" | "\\neq" | "=")
 }
 
 /// Solves `operands[0] op_1 operands[1] op_2 …` for `variable`.
@@ -86,37 +87,41 @@ fn sign_chart(evaluator: &Evaluator, left: &Node, right: &Node, relation: &str, 
     let (ln, ld) = rational_function(evaluator, left, variable, &mut poles)?;
     let (rn, rd) = rational_function(evaluator, right, variable, &mut poles)?;
     // ln/ld - rn/rd = (ln·rd - rn·ld) / (ld·rd)
-    let numerator = trim(sub(&mul(&ln, &rd), &mul(&rn, &ld)));
-    let denominator = mul(&ld, &rd);
+    let (mut numerator, denominator) = whole(trim(sub(&mul(&ln, &rd), &mul(&rn, &ld))), trim(mul(&ld, &rd)));
+    // `-x < 0` reads better as `x > 0`: without a denominator, the leading coefficient positive.
+    let mut relation = relation.to_string();
+    if denominator.len() == 1 && numerator.last().is_some_and(|c| *c < RBig::ZERO) {
+        numerator = scale(&numerator, &-RBig::ONE);
+        relation = flipped(&relation).to_string();
+    }
 
     let key = |value: &Value| -> Result<RBig> { Ok(value.decimal(digits + 20)?.to_rational()) };
-    let mut points: Vec<(Point, Critical)> = Vec::new();
-    let mut add = |value: Value, kind: Critical| -> Result<()> {
+    let mut points: Vec<ChartPoint> = Vec::new();
+    let mut add = |value: Value, zero: bool| -> Result<()> {
         let key = key(&value)?;
-        match points.iter_mut().find(|(p, _)| p.key == key) {
+        match points.iter_mut().find(|p| p.point.key == key) {
             Some(existing) => {
-                if kind == Critical::Pole {
-                    existing.1 = Critical::Pole;
-                }
+                existing.zero |= zero;
+                existing.pole |= !zero;
             }
-            None => points.push((Point { value, key }, kind)),
+            None => points.push(ChartPoint { point: Point { value, key }, zero, pole: !zero }),
         }
         Ok(())
     };
     for pole in &poles {
         for root in polynomial::roots(pole, false, digits + 10)? {
-            add(root, Critical::Pole)?;
+            add(root, false)?;
         }
     }
     if !is_zero(&numerator) {
         for root in polynomial::roots(&numerator, false, digits + 10)? {
-            add(root, Critical::Zero)?;
+            add(root, true)?;
         }
     }
-    points.sort_by(|a, b| a.0.key.cmp(&b.0.key));
+    points.sort_by(|a, b| a.point.key.cmp(&b.point.key));
 
     // A rational point inside each piece decides its sign.
-    let keys: Vec<RBig> = points.iter().map(|(p, _)| p.key.clone()).collect();
+    let keys: Vec<RBig> = points.iter().map(|p| p.point.key.clone()).collect();
     let mut samples = Vec::new();
     match (keys.first(), keys.last()) {
         (Some(first), Some(last)) => {
@@ -129,10 +134,66 @@ fn sign_chart(evaluator: &Evaluator, left: &Node, right: &Node, relation: &str, 
     let signs = samples
         .iter()
         .map(|t| {
-            sign(&polynomial::evaluate(&numerator, t)) * sign(&polynomial::evaluate(&denominator, t))
+            (sign(&polynomial::evaluate(&numerator, t)), sign(&polynomial::evaluate(&denominator, t)))
         })
         .collect();
-    Ok(SignChart { relation: relation.to_string(), points, signs })
+    Ok(SignChart { relation, numerator, denominator, points, signs })
+}
+
+/// `P/Q` with `P` and `Q` each scaled by a positive factor to whole, coprime coefficients; a
+/// constant `Q` only gives its sign. Only the sign of `P/Q` matters, and it does not change.
+fn whole(numerator: Coefficients, denominator: Coefficients) -> (Coefficients, Coefficients) {
+    if denominator.len() == 1 {
+        let numerator = if denominator[0] < RBig::ZERO { scale(&numerator, &-RBig::ONE) } else { numerator };
+        return (primitive(numerator), vec![RBig::ONE]);
+    }
+    (primitive(numerator), primitive(denominator))
+}
+
+/// The coefficients times a positive factor that makes them whole and coprime.
+fn primitive(c: Coefficients) -> Coefficients {
+    if is_zero(&c) {
+        return c;
+    }
+    let lcm = c.iter().fold(UBig::ONE, |l, x| {
+        let d = x.denominator();
+        let g = gcd_ubig(l.clone(), d.clone());
+        &l / g * d
+    });
+    let c = scale(&c, &RBig::from(IBig::from(lcm)));
+    let g = c.iter().filter(|x| **x != RBig::ZERO).fold(UBig::ZERO, |g, x| gcd_ubig(g, x.numerator().unsigned_abs()));
+    scale(&c, &RBig::from_parts(IBig::ONE, g))
+}
+
+/// A polynomial in `x` as LaTeX, the highest power first: `3x^{2} - 4x + \frac{1}{2}`.
+pub(crate) fn polynomial_latex(c: &[RBig], x: &str) -> String {
+    let mut out = String::new();
+    for k in (0..c.len()).rev().filter(|k| c[*k] != RBig::ZERO) {
+        let negative = c[k] < RBig::ZERO;
+        let magnitude = if negative { -c[k].clone() } else { c[k].clone() };
+        let number = crate::algebra::domain::format_rbig_latex(&magnitude);
+        let power = match k {
+            0 => String::new(),
+            1 => x.to_string(),
+            _ => format!("{x}^{{{k}}}"),
+        };
+        let term = match (k, magnitude == RBig::ONE) {
+            (0, _) => number,
+            (_, true) => power,
+            _ if number.starts_with("\\frac") => format!("{number} {power}"),
+            _ => format!("{number}{power}"),
+        };
+        if out.is_empty() {
+            out = if negative { format!("-{term}") } else { term };
+        } else {
+            out.push_str(if negative { " - " } else { " + " });
+            out.push_str(&term);
+        }
+    }
+    if out.is_empty() {
+        out.push('0');
+    }
+    out
 }
 
 fn sign(r: &RBig) -> i8 {
@@ -140,6 +201,17 @@ fn sign(r: &RBig) -> i8 {
         std::cmp::Ordering::Less => -1,
         std::cmp::Ordering::Equal => 0,
         std::cmp::Ordering::Greater => 1,
+    }
+}
+
+/// The relation after both sides are multiplied by -1.
+fn flipped(relation: &str) -> &str {
+    match relation {
+        "<" => ">",
+        ">" => "<",
+        "\\le" => "\\ge",
+        "\\ge" => "\\le",
+        other => other,
     }
 }
 
@@ -157,10 +229,10 @@ fn wanted(relation: &str, sign: i8) -> bool {
 
 /// The intervals a sign chart gives, adjacent pieces and points joined.
 fn solution_of(chart: &SignChart) -> Vec<Interval> {
-    let region_in: Vec<bool> = chart.signs.iter().map(|s| wanted(&chart.relation, *s)).collect();
-    let point_in: Vec<bool> = chart.points.iter().map(|(_, kind)| *kind == Critical::Zero && wanted(&chart.relation, 0)).collect();
+    let region_in: Vec<bool> = chart.signs.iter().map(|(n, d)| wanted(&chart.relation, n * d)).collect();
+    let point_in: Vec<bool> = chart.points.iter().map(|p| p.zero && !p.pole && wanted(&chart.relation, 0)).collect();
     let n = chart.points.len();
-    let point = |k: usize| Some(chart.points[k].0.clone());
+    let point = |k: usize| Some(chart.points[k].point.clone());
     let mut out = Vec::new();
     // The open interval being built: its lower end and whether that end is in it.
     let mut start: Option<(Option<Point>, bool)> = None;

@@ -109,6 +109,11 @@ $1{,}333\ldots$), since a rounded bound would put the wrong side of it into the 
 `|x|`, roots and functions of the unknown are not solved. In the Verify mode an inequality is
 checked, not solved.
 
+The working brings each relation to one side as $\frac{P}{Q} \gtrless 0$ (with a positive leading
+coefficient when there is no denominator), lists the zeros of $P$ and the values where a
+denominator is 0, and ends with a sign chart: a column for each piece and each point, a row for
+$P$, for $Q$ and for the fraction, where $\|$ marks a pole.
+
 ## Systems of linear equations
 
 Write several equations separated by `;`, or as `\begin{cases} … \end{cases}` in the LaTeX

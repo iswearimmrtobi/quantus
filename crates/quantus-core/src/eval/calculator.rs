@@ -602,10 +602,10 @@ impl LatexCalculator {
         let first = solution.intervals.iter().find_map(|i| i.lo.as_ref().or(i.hi.as_ref())).map(|p| p.value.clone());
         let quantity = PhysicalQuantity::dimensionless(first.unwrap_or_else(Value::zero));
         let value = quantity.decimal(self.precision)?;
-        let steps = vec![
-            Step::new(StepKind::Symbolic, serializer::expression(&formula.expression)),
-            Step::new(StepKind::Result, result.clone()),
-        ];
+        let symbolic = serializer::expression(&formula.expression);
+        let mut steps = vec![Step::new(StepKind::Symbolic, symbolic.clone())];
+        steps.extend(self.inequality_steps(&solution, &x, &symbolic)?);
+        steps.push(Step::new(StepKind::Result, result.clone()));
         Ok(Calculation {
             input: serializer::formula(formula),
             latex: result.clone(),
@@ -621,6 +621,90 @@ impl LatexCalculator {
             warning: None,
             forms: Vec::new(),
         })
+    }
+
+    /// The working of an inequality, for each relation of the chain: everything on one side as
+    /// `P/Q ⋚ 0`, the zeros of `P` and where a denominator is 0 (Standard), and the sign chart.
+    fn inequality_steps(&self, solution: &super::inequality::Solution, x: &str, symbolic: &str) -> Result<Vec<Step>> {
+        use super::inequality::polynomial_latex;
+        let sign = |s: i8| match s {
+            1 => "+",
+            -1 => "-",
+            _ => "0",
+        };
+        let mut steps = Vec::new();
+        for chart in &solution.charts {
+            let p = polynomial_latex(&chart.numerator, x);
+            let constant_q = chart.denominator.len() == 1;
+            let q = polynomial_latex(&chart.denominator, x);
+            let side = if constant_q { p.clone() } else { format!("\\frac{{{p}}}{{{q}}}") };
+            let one_side = format!("{side} {} 0", chart.relation);
+            if one_side != symbolic {
+                steps.push(Step::algebraic(one_side, None, msg!("Bring everything to one side", "Alles auf eine Seite bringen"), None, None));
+            }
+            let zeros: Vec<String> = chart
+                .points
+                .iter()
+                .filter(|c| c.zero)
+                .map(|c| Ok(format!("{x} = {}", self.shown_value(&c.point.value)?)))
+                .collect::<Result<_>>()?;
+            let (latex, text) = if zeros.is_empty() {
+                (format!("{p} \\neq 0"), msg!("No real zeros", "Keine reellen Nullstellen"))
+            } else {
+                (format!("{p} = 0 \\Rightarrow {}", zeros.join(" \\lor ")), msg!("The zeros", "Die Nullstellen"))
+            };
+            if !(zeros.is_empty() && chart.numerator.len() == 1) {
+                steps.push(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Standard));
+            }
+            let poles: Vec<String> = chart
+                .points
+                .iter()
+                .filter(|c| c.pole)
+                .map(|c| Ok(format!("{x} \\neq {}", self.shown_value(&c.point.value)?)))
+                .collect::<Result<_>>()?;
+            if !poles.is_empty() {
+                let text = msg!("A denominator is 0 there: never in the solution", "Dort ist ein Nenner 0: nie in der Lösung");
+                steps.push(Step::algebraic(poles.join(" \\land "), None, text, None, None).with_level(StepDetail::Standard));
+            }
+
+            // The sign chart: a column per piece and per point.
+            let n = chart.points.len();
+            let mut header = vec![x.to_string()];
+            let mut p_row = vec![p.clone()];
+            let mut q_row = vec![q.clone()];
+            let mut quotient = vec![side.clone()];
+            for k in 0..=n {
+                let lo = if k > 0 { Some(self.shown_value(&chart.points[k - 1].point.value)?) } else { None };
+                let hi = if k < n { Some(self.shown_value(&chart.points[k].point.value)?) } else { None };
+                header.push(match (&lo, &hi) {
+                    (None, None) => format!("{x} \\in \\mathbb{{R}}"),
+                    (None, Some(hi)) => format!("{x} < {hi}"),
+                    (Some(lo), None) => format!("{x} > {lo}"),
+                    (Some(lo), Some(hi)) => format!("{lo} < {x} < {hi}"),
+                });
+                let (sp, sq) = chart.signs[k];
+                p_row.push(sign(sp).to_string());
+                q_row.push(sign(sq).to_string());
+                quotient.push(sign(sp * sq).to_string());
+                if k < n {
+                    let point = &chart.points[k];
+                    header.push(format!("{x} = {}", hi.clone().unwrap_or_default()));
+                    p_row.push(if point.zero { "0".into() } else { sign(sp).to_string() });
+                    q_row.push(if point.pole { "0".into() } else { sign(sq).to_string() });
+                    quotient.push(if point.pole { "\\|".into() } else if point.zero { "0".into() } else { sign(sp * sq).to_string() });
+                }
+            }
+            let mut rows = vec![header.join(" & "), p_row.join(" & ")];
+            if !constant_q {
+                rows.push(q_row.join(" & "));
+                rows.push(format!("\\hline {}", quotient.join(" & ")));
+            }
+            let columns = format!("c|{}", vec!["c"; 2 * n + 1].join(""));
+            let table = format!("\\begin{{array}}{{{columns}}} {} \\end{{array}}", rows.join(" \\\\ \\hline "));
+            let table = table.replace("\\\\ \\hline \\hline", "\\\\ \\hline");
+            steps.push(Step::algebraic(table, None, msg!("Sign chart", "Vorzeichentabelle"), None, None));
+        }
+        Ok(steps)
     }
 
     /// An end of an inequality's solution: as the solutions show it, exact if short, else as a

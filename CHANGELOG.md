@@ -293,7 +293,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   the body, also one that is otherwise a unit (`t`, `y`).
 - Inequalities in one unknown are solved: `x^2 - x - 6 \ge 0` gives `x \le -2 \lor x \ge 3`.
   Polynomial and rational ones, with `<`, `>`, `\le`, `\ge`, `\neq` and chains such as
-  `1 < 2x + 1 \le 5`; a zero of a denominator is never part of the solution.
+  `1 < 2x + 1 \le 5`; a zero of a denominator is never part of the solution. The working
+  brings each relation to one side, lists the zeros and the poles, and shows a sign chart
+  (Vorzeichentabelle).
 
 ### Changed
 
