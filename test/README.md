@@ -1,6 +1,6 @@
 # Engine test set
 
-110,000 generated cases that put the engine through arithmetic, elementary functions, equations,
+111,000 generated cases that put the engine through arithmetic, elementary functions, equations,
 derivatives, integrals, limits, algebraic simplification, physics with units, parser robustness,
 complex numbers, the linear systems mode and the modes added after it (from `verify` on in the
 table below).
@@ -70,6 +70,10 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 | `matrix` | Matrix mode: the result is a `pmatrix` of the size of `rows`, and each entry read back equals the one in `rows` exactly. A determinant is a `number`. |
 | `statistics` | Statistics: `request` goes to `api::statistics`. The keys of the one- or two-variable values are exactly those of `values`; each value, and each of `regression` (a, b, c, r) and `estimates` (`xHat`, `yHat`), matches its `[value, rel_tol]`. |
 | `distribution` | Distributions: `request` goes to `api::distribution`; the results, one or one per k, match `values` (`[value, rel_tol]` each) in order. |
+| `analysis` | Analysis mode, `api::analyze`: for each point kind (`zero`, `yIntercept`, `max`, `min`, `saddle`, `inflection`, `hole`) the points equal `points[kind]` (none if absent), and the asymptotes equal `asymptotes` (kind, x or slope and intercept, and `side` if given), all to `tol` (the engine's points are floats). |
+| `tangent` | `api::tangent`: the point, the tangent's slope and intercept, and the normal's, or its `x` when it is vertical, to `tol`. |
+| `area` | `api::area`: `area` and `signed`, read back from the LaTeX (after a `\approx`), match exactly (1e-40). |
+| `table` | `api::value_table`: as many rows as `rows`, each x exact and y exact or empty (`null`, outside the domain). |
 | `error` | The engine refuses the input with a message containing `contains`. |
 
 The tolerances are `1e-45` for exact results (the engine prints 50 digits) and `1e-40` for exact
@@ -110,6 +114,7 @@ the case itself is wrong.
 | matrix | 1,000 | Matrix mode with inline `pmatrix` and `bmatrix` up to 5×5 and integer, fraction and decimal entries: sums and differences, a number times or over a matrix (`\cdot`, juxtaposed, `\div`, `\frac`), products and chains of them, transposes (`T`, `\top`), powers, inverses up to 4×4 and `A \cdot A^{-1}`, determinants up to 5×5 (also 0), `rref` with dependent rows, `A - k\,\operatorname{Identity}(n)`, combined inputs, and the errors: singular, sizes that do not fit for + and ·, matrix + number, det of a non-square matrix |
 | statistics | 1,000 | Statistics through `api::statistics`: one variable (1–200 values, integers, decimals, thirds, empty cells skipped) with n, mean, sums, both variances and standard deviations, min, the Casio quartiles, median and max; frequency columns (0 drops a row); two-variable values; all seven regressions on data near their curve with a, b, c, r and the estimates x̂ and ŷ; and the errors: regression without pairs, a frequency that is not whole, an empty list, equal x values, x = 0 for y = a + b/x, a short y column, a unit in a cell |
 | distributions | 1,000 | Distributions through `api::distribution`: the normal density, the cumulative between two bounds or with an open one (empty or `\infty`), the inverse normal, all with the standard or a given σ and μ; binomial density and cumulative lists up to N = 400 with exact fractions (and k > N); Poisson density and cumulative lists; and the errors for σ, the area, p, μ, k, N and a missing N. Φ is computed from a 120-digit erf series |
+| analysis | 1,000 | Analysis mode through `api::analyze`, `tangent`, `area` and `value_table`: polynomials of degree 2–5 from rational roots (double roots, irrational extrema, saddle points), rational functions with poles, holes and horizontal or oblique asymptotes, (ax + b)e^{cx}, a ln(x)/x^k and a x^k ln(x) with their asymptotes and sides, tangent and normal (also vertical), the area and signed area between bounds or the outermost zeros, tables of values with a pole, and the errors (an equation, two variables, unparsable input). Expected points come from Sturm sequences and a square-free decomposition |
 
 ## Latest results
 
@@ -137,3 +142,4 @@ Each category from `verify` on was run on its own when it was added (no full run
 | matrix | 2026-11-04 | 1,000 / 1,000 | |
 | statistics | 2026-11-04 | 1,000 / 1,000 | |
 | distributions | 2026-11-04 | 1,000 / 1,000 | |
+| analysis | 2026-11-04 | 1,000 / 1,000 | |

@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from gens import (algebra, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
+from gens import (algebra, analysis, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
                   basen, distributions, matrix, statistics, verify)
 
 SEED = 20261023
@@ -48,6 +48,7 @@ CATEGORIES = {
     "matrix": ("mat", 1000, matrix.GENERATORS),
     "statistics": ("stat", 1000, statistics.GENERATORS),
     "distributions": ("dist", 1000, distributions.GENERATORS),
+    "analysis": ("ana", 1000, analysis.GENERATORS),
 }
 
 
@@ -145,6 +146,13 @@ def check(all_cases):
                 for value, tol in e["values"]:
                     _parse_value(value)
                     float(tol)
+            elif e["kind"] in ("analysis", "tangent"):
+                float(e["tol"])
+            elif e["kind"] == "area":
+                _parse_value(e["area"])
+                _parse_value(e["signed"])
+            elif e["kind"] == "table":
+                [_parse_value(v) for row in e["rows"] for v in row if v is not None]
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001

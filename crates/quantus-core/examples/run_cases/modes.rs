@@ -5,6 +5,8 @@
 use super::*;
 use quantus_core::eval::Calculation;
 
+#[path = "analysis.rs"]
+mod analysis;
 #[path = "basen.rs"]
 mod basen;
 #[path = "distributions.rs"]
@@ -21,6 +23,7 @@ pub(super) fn run_api_case(api: &str, case: &Value) -> Outcome {
     match api {
         "statistics" => statistics::run(case),
         "distribution" => distributions::run(case),
+        "analyze" | "tangent" | "area" | "valueTable" => analysis::run(api, case),
         _ => generator(&format!("unknown api {api:?}")),
     }
 }
