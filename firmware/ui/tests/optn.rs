@@ -53,6 +53,15 @@ fn permutations_and_the_divisors_take_two_numbers() {
 }
 
 #[test]
+fn the_whole_parts_rounding_and_the_remainder() {
+    assert_eq!(inserted(&["Zahl", "Int"]), r"\mathrm{Int}()");
+    assert_eq!(inserted(&["Zahl", "Intg"]), r"\mathrm{Intg}()");
+    assert_eq!(inserted(&["Zahl", "Rnd"]), r"\mathrm{Rnd}()");
+    assert_eq!(inserted(&["Zahl", "RndFix"]), r"\mathrm{RndFix}(;)");
+    assert_eq!(inserted(&["Zahl", "÷R Rest"]), r"\mathrm{divR}(;)");
+}
+
+#[test]
 fn the_product_has_its_bounds_to_fill() {
     assert_eq!(inserted(&["Analysis", "∏ Produkt"]), r"\prod_{}^{}");
 }

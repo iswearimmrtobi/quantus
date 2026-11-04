@@ -184,6 +184,15 @@ mod optn {
     }
 
     #[test]
+    fn the_whole_parts_rounding_and_the_remainder() {
+        assert_eq!(typed(Mode::Physics, r"\operatorname{Int}(-2{,}5)"), Ok("-2".to_string()));
+        assert_eq!(typed(Mode::Physics, r"\operatorname{Intg}(-2{,}5)"), Ok("-3".to_string()));
+        assert!(typed(Mode::Physics, r"\operatorname{Rnd}(\frac{1}{3})").unwrap().contains("0{,}3333333333"));
+        assert!(typed(Mode::Physics, r"\operatorname{RndFix}(\pi;3)").unwrap().contains("3{,}142"));
+        assert_eq!(typed(Mode::Physics, r"\operatorname{divR}(7;2)"), Ok(r"Q = 3,\; R = 1".to_string()));
+    }
+
+    #[test]
     fn the_product() {
         assert_eq!(typed(Mode::Physics, r"\prod_{k=1}^{5}k"), Ok("120".to_string()));
     }
