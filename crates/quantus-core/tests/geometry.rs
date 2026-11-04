@@ -244,3 +244,69 @@ fn other_modes_read_bars_as_before() {
     assert_eq!(as_algebra("(1|2|3)"), as_algebra(r"(1\left|2\right|3)"));
     assert_eq!(as_algebra(r"\left|x\right|+|y|"), r"\left|x\right| + \left|y\right|");
 }
+
+fn scene() -> Objects {
+    let mut objects = Objects::default();
+    objects.vectors.insert("a".into(), Vector3::from_ints(1, 2, 2));
+    objects.vectors.insert("b".into(), Vector3::from_ints(3, 0, -1));
+    objects.points.insert("A".into(), Point::from_ints(1, 1, 1));
+    objects.points.insert("B".into(), Point::from_ints(2, 3, 5));
+    objects
+}
+
+fn value(latex: &str) -> Item {
+    read(latex, &scene()).unwrap_or_else(|e| panic!("{latex}: {e}"))
+}
+
+#[test]
+fn the_types_decide_the_operator() {
+    let vector = |x, y, z| Item::Vector(Vector3::from_ints(x, y, z));
+    // \times between vectors is the cross product, \cdot the dot product.
+    assert_eq!(value(r"\vec{a} \times \vec{b}"), vector(-2, 7, -6));
+    assert_eq!(value(r"\vec{a} × \vec{b}"), vector(-2, 7, -6));
+    assert_eq!(value(r"\vec{a} \cdot \vec{b}"), Item::Scalar(Value::int(1)));
+    assert_eq!(value(r"\vec{a} \vec{b}"), Item::Scalar(Value::int(1)));
+    assert_eq!(value(r"\begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} \times \begin{pmatrix} 0 \\ 1 \\ 0 \end{pmatrix}"), vector(0, 0, 1));
+    // A number and a vector: the multiple, on either side.
+    assert_eq!(value(r"2\vec{a}"), vector(2, 4, 4));
+    assert_eq!(value(r"\vec{a} \cdot 3"), vector(3, 6, 6));
+    assert_eq!(value(r"\frac{\vec{a}}{2}"), Item::Vector(Vector3::new(Value::ratio(1, 2), Value::one(), Value::one())));
+    assert_eq!(value(r"\vec{a} / 2"), value(r"\frac{1}{2} \vec{a}"));
+    // \times between numbers stays multiplication.
+    assert_eq!(value(r"2 \times 3"), Item::Scalar(Value::int(6)));
+    // The triple product reads left to right.
+    assert_eq!(value(r"(\vec{a} \times \vec{b}) \cdot \begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix}"), Item::Scalar(Value::int(-1)));
+    assert!(read(r"\vec{a} \cdot \vec{b} \times \vec{a}", &scene()).unwrap_err().contains("two vectors"));
+    assert!(read(r"2 \times \vec{a}", &scene()).unwrap_err().contains("\\cdot"));
+}
+
+#[test]
+fn bars_around_a_vector_are_its_length() {
+    assert_eq!(value(r"|\vec{a}|"), Item::Scalar(Value::int(3)));
+    assert_eq!(value(r"\left|\vec{a}\right|"), Item::Scalar(Value::int(3)));
+    assert_eq!(value(r"|(0|3|4) - (0|0|0)|"), Item::Scalar(Value::int(5)));
+    assert_eq!(value(r"|-2|\vec{a}"), Item::Vector(Vector3::from_ints(2, 4, 4)));
+    assert_eq!(value(r"2|\vec{a}|"), Item::Scalar(Value::int(6)));
+    assert_eq!(value(r"\vec{a}^2"), Item::Scalar(Value::int(9)));
+    // Numbers built from vectors go on as numbers.
+    assert_eq!(value(r"\sqrt{\vec{a} \cdot \vec{a}} + 1"), Item::Scalar(Value::int(4)));
+    assert_eq!(value(r"\frac{\vec{a} \cdot \vec{a}}{|\vec{a}|}"), Item::Scalar(Value::int(3)));
+    assert!(read(r"\sqrt{\vec{a}}", &scene()).unwrap_err().contains("vector"));
+    assert!(read(r"|A|", &scene()).unwrap_err().contains("no length"));
+}
+
+#[test]
+fn points_and_vectors_add_up() {
+    assert_eq!(value("B - A"), Item::Vector(Vector3::from_ints(1, 2, 4)));
+    assert_eq!(value(r"A + \vec{a}"), Item::Point(Point::from_ints(2, 3, 3)));
+    assert_eq!(value(r"A + 2(B - A)"), Item::Point(Point::from_ints(3, 5, 9)));
+    assert_eq!(value(r"(1|2|3) - \vec{a}"), Item::Point(Point::from_ints(0, 0, 1)));
+    assert_eq!(value(r"\vec{a} - \vec{b}"), Item::Vector(Vector3::from_ints(-2, 2, 3)));
+    assert_eq!(value(r"-\vec{a}"), Item::Vector(Vector3::from_ints(-1, -2, -2)));
+    assert_eq!(value("|B - A|"), Item::Scalar(Value::int(21).pow(&Value::ratio(1, 2)).unwrap()));
+    assert!(read("A + B", &scene()).unwrap_err().contains("Two points"));
+    assert!(read(r"2A", &scene()).unwrap_err().contains("cannot be multiplied"));
+    assert!(read(r"\vec{a} + 1", &scene()).unwrap_err().contains("cannot be added"));
+    // The serializer writes \times back.
+    assert_eq!(written(r"\vec{a} \times (\vec{b} \times \vec{a})"), r"\vec{a} \times (\vec{b} \times \vec{a})");
+}

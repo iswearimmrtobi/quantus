@@ -23,7 +23,7 @@ use crate::{QuantusError, Result};
 pub type Variables = HashMap<String, PhysicalQuantity>;
 
 pub struct Evaluator<'a> {
-    pub(super) variables: &'a Variables,
+    pub(crate) variables: &'a Variables,
     /// Significant digits that numerical results (integrals, limits) are computed to.
     pub(super) precision: usize,
     /// Digits an integral is computed to: `precision`, but capped, because the work of the
@@ -98,7 +98,7 @@ impl<'a> Evaluator<'a> {
         Evaluator { variables: scope, precision: self.precision, numeric_digits: self.numeric_digits, mode: self.mode, degrees: self.degrees, rounding: self.rounding }
     }
 
-    pub(super) fn scoped_over<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
+    pub(crate) fn scoped_over<'b>(&self, scope: &'b Variables) -> Evaluator<'b> {
         self.scoped(scope)
     }
 

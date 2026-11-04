@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use crate::eval::Evaluator;
-use crate::latex::Node;
+use crate::latex::{Node, Operator};
 use crate::matrix::{self, Matrices, MatrixEvaluator};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
@@ -30,6 +30,10 @@ pub struct Objects {
     pub points: HashMap<String, Point>,
 }
 
+/// The name of a number worked out from vectors, as [`GeometryEvaluator::through_scalars`]
+/// binds it; no input can spell it.
+const PART: &str = "#";
+
 fn error(message: impl Into<String>) -> QuantusError {
     QuantusError::other(message.into())
 }
@@ -45,17 +49,21 @@ impl<'a> GeometryEvaluator<'a> {
         GeometryEvaluator { evaluator, objects }
     }
 
-    /// Whether `node` involves a vector or a point anywhere.
-    fn has_geometry(node: &Node) -> bool {
+    /// Whether `node` involves a vector or a point anywhere, or a `\times`.
+    fn has_geometry(&self, node: &Node) -> bool {
         match node {
             Node::Matrix { .. } => true,
-            Node::Call { name, .. } if matches!(name.as_str(), "vec" | "point" | "named point") => true,
-            other => other.children().into_iter().any(Self::has_geometry),
+            Node::Call { name, .. } if matches!(name.as_str(), "vec" | "point" | "named point" | "cross") => true,
+            Node::Variable { name, index, .. } => self.objects.points.contains_key(&Node::variable_key(name, index)),
+            other => other.children().into_iter().any(|child| self.has_geometry(child)),
         }
     }
 
+    /// The types decide the operator: a number times a vector is its multiple, a vector times a
+    /// vector the dot product, `\times` of two vectors the cross product and `|\vec{a}|` the
+    /// length. Between numbers everything means what it means elsewhere.
     pub fn evaluate(&self, node: &Node) -> Result<Item> {
-        if !Self::has_geometry(node) {
+        if !self.has_geometry(node) {
             return Ok(Item::Scalar(self.number(&self.evaluator.evaluate(node)?)?));
         }
         match node {
@@ -72,11 +80,97 @@ impl<'a> GeometryEvaluator<'a> {
                 }
                 _ => Err(error("A vector is named by one letter, as in \\vec{a}.")),
             },
+            Node::Variable { name, index, .. } => Ok(Item::Point(self.objects.points[&Node::variable_key(name, index)].clone())),
             Node::Call { name, arguments, .. } if name == "point" => Ok(Item::Point(self.point(arguments)?)),
             Node::Call { name, arguments, .. } if name == "named point" => Ok(Item::Point(self.point(&arguments[1..])?)),
+            Node::Call { name, arguments, .. } if name == "cross" => match (self.evaluate(&arguments[0])?, self.evaluate(&arguments[1])?) {
+                (Item::Vector(a), Item::Vector(b)) => Ok(Item::Vector(a.cross(&b))),
+                (Item::Scalar(a), Item::Scalar(b)) => Ok(Item::Scalar(a.mul(&b))),
+                _ => Err(error(
+                    "\\times takes two vectors (the cross product) or two numbers; a number times a vector is written with \\cdot.",
+                )),
+            },
             Node::Group { inner, .. } => self.evaluate(inner),
-            _ => Err(error("This does not work with a vector.")),
+            Node::Negation { operand, .. } => match self.evaluate(operand)? {
+                Item::Scalar(value) => Ok(Item::Scalar(value.neg())),
+                Item::Vector(v) => Ok(Item::Vector(-&v)),
+                Item::Point(_) => Err(error("A point cannot be negated; -\\vec{OP} is the vector to it, reversed.")),
+            },
+            Node::Binary { operator, left, right, .. } => self.binary(*operator, self.evaluate(left)?, self.evaluate(right)?),
+            Node::Fraction { numerator, denominator, .. } => match (self.evaluate(numerator)?, self.evaluate(denominator)?) {
+                (Item::Vector(v), Item::Scalar(s)) => Ok(Item::Vector(v.scale(&Value::one().div(&s)?))),
+                (Item::Scalar(_), Item::Scalar(_)) => self.through_scalars(node),
+                _ => Err(error("Only a vector can be divided, and only by a number.")),
+            },
+            Node::Abs { operand, .. } => match self.evaluate(operand)? {
+                Item::Vector(v) => Ok(Item::Scalar(v.length()?)),
+                Item::Scalar(value) => Ok(Item::Scalar(if value.is_negative()? { value.neg() } else { value })),
+                Item::Point(_) => Err(error("A point has no length; the distance from the origin is |\\vec{OP}|.")),
+            },
+            // `\vec{a}^2` is `\vec{a} \cdot \vec{a}`, as in school.
+            Node::Power { base, exponent, .. } if self.has_geometry(base) => match (self.evaluate(base)?, self.evaluate(exponent)?) {
+                (Item::Vector(v), Item::Scalar(two)) if two == Value::int(2) => Ok(Item::Scalar(v.dot(&v))),
+                (Item::Scalar(_), Item::Scalar(_)) => self.through_scalars(node),
+                _ => Err(error("A vector has only the square, \\vec{a}^2 = \\vec{a} \\cdot \\vec{a}.")),
+            },
+            _ => self.through_scalars(node),
         }
+    }
+
+    fn binary(&self, operator: Operator, left: Item, right: Item) -> Result<Item> {
+        use Item::{Point as P, Scalar as S, Vector as V};
+        Ok(match (operator, left, right) {
+            (Operator::Plus, S(a), S(b)) => S(a.add(&b)),
+            (Operator::Minus, S(a), S(b)) => S(a.sub(&b)),
+            (Operator::Plus, V(a), V(b)) => V(&a + &b),
+            (Operator::Minus, V(a), V(b)) => V(&a - &b),
+            (Operator::Plus, P(p), V(v)) | (Operator::Plus, V(v), P(p)) => P(&p + &v),
+            (Operator::Minus, P(p), V(v)) => P(&p - &v),
+            (Operator::Minus, P(p), P(q)) => V(&p - &q),
+            (Operator::Plus, P(_), P(_)) => return Err(error("Two points cannot be added; a point plus a vector is a point.")),
+            (Operator::Plus | Operator::Minus, _, _) => return Err(error("A number and a vector or point cannot be added.")),
+            (Operator::Times | Operator::ImplicitTimes, S(a), S(b)) => S(a.mul(&b)),
+            (Operator::Times | Operator::ImplicitTimes, S(s), V(v)) | (Operator::Times | Operator::ImplicitTimes, V(v), S(s)) => {
+                V(v.scale(&s))
+            }
+            (Operator::Times | Operator::ImplicitTimes, V(a), V(b)) => S(a.dot(&b)),
+            (Operator::Divide, V(v), S(s)) => V(v.scale(&Value::one().div(&s)?)),
+            (Operator::Divide, S(a), S(b)) => S(a.div(&b)?),
+            (Operator::Divide, _, _) => return Err(error("Only a vector can be divided, and only by a number.")),
+            (_, P(_), _) | (_, _, P(_)) => return Err(error("A point cannot be multiplied; its position vector \\vec{OP} can.")),
+        })
+    }
+
+    /// A number built from vectors, like `\sqrt{\vec{a} \cdot \vec{a}}`: each part that holds a
+    /// vector is worked out first and must be a number, then the rest is evaluated as usual.
+    fn through_scalars(&self, node: &Node) -> Result<Item> {
+        let mut scope = self.evaluator.variables.clone();
+        let mut failure = None;
+        let rewritten = node.clone().map_children(&mut |child| {
+            if failure.is_some() || !self.has_geometry(&child) {
+                return child;
+            }
+            match self.evaluate(&child) {
+                Ok(Item::Scalar(value)) => {
+                    let index = scope.len().to_string();
+                    scope.insert(Node::variable_key(PART, &index), PhysicalQuantity::dimensionless(value));
+                    Node::Variable { name: PART.into(), index, position: child.position() }
+                }
+                Ok(_) => {
+                    failure = Some(error("This does not work with a vector or a point."));
+                    child
+                }
+                Err(e) => {
+                    failure = Some(e);
+                    child
+                }
+            }
+        });
+        if let Some(failure) = failure {
+            return Err(failure);
+        }
+        let quantity = self.evaluator.scoped_over(&scope).evaluate(&rewritten)?;
+        Ok(Item::Scalar(self.number(&quantity)?))
     }
 
     /// A column of two or three numbers as a vector, its entries read as in the matrix mode.

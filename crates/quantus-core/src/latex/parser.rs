@@ -155,7 +155,8 @@ pub struct ParseOptions {
     pub units: bool,
     /// `i` outside a binding is the imaginary unit rather than a variable.
     pub imaginary_i: bool,
-    /// The Geometry mode's notation: `\vec{a}` names a vector.
+    /// The Geometry mode's notation: `\vec{a}` names a vector, `(1|2|3)` is a point and
+    /// `\times` the cross product.
     pub geometry: bool,
 }
 
@@ -408,6 +409,14 @@ impl Parser<'_> {
         let mut left = self.parse_unary()?;
         loop {
             let token = self.current();
+            // The Geometry mode's `\times` is the cross product, which the types decide later.
+            if self.options.geometry && (token.text == "\\times" || token.text == "×") {
+                let position = left.position();
+                self.advance();
+                let right = self.parse_unary()?;
+                left = Node::Call { name: "cross".into(), arguments: vec![left, right], position };
+                continue;
+            }
             let operator = match token.kind {
                 TokenType::Times => Operator::Times,
                 TokenType::Divide => Operator::Divide,

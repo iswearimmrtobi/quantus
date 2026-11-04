@@ -224,6 +224,11 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 out
             }
             ("vec", [name]) => format!("\\vec{{{}}}", expression_with_mode(name, mode)),
+            ("cross", [a, b]) => format!(
+                "{} \\times {}",
+                render(a, PRECEDENCE_MULTIPLICATIVE, mode),
+                render(b, PRECEDENCE_POWER, mode)
+            ),
             ("point", coordinates) => coordinate_list(coordinates, mode),
             ("named point", [name, coordinates @ ..]) => {
                 format!("{}{}", expression_with_mode(name, mode), coordinate_list(coordinates, mode))
@@ -479,6 +484,7 @@ fn precedence(node: &Node) -> u8 {
     match node {
         Node::Binary { operator: Operator::Plus | Operator::Minus, .. } => PRECEDENCE_ADDITIVE,
         Node::Binary { .. } => PRECEDENCE_MULTIPLICATIVE,
+        Node::Call { name, .. } if name == "cross" => PRECEDENCE_MULTIPLICATIVE,
         Node::Negation { .. } => PRECEDENCE_ADDITIVE,
         // Their bodies reach as far right as a term, so they need brackets as a factor.
         Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. } | Node::Derivative { at: None, .. } => {

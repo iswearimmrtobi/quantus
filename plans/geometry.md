@@ -119,7 +119,7 @@ green.
 - [x] Parser: points `P(1|2|3)` and `(1|2|3)`, `;` as a separator, the rule that tells `(a|b|c)`
   from `|v|`, with tests (nested bars, `\left|…\right|` in a coordinate, `(1,5|2|3)` with a
   decimal comma).
-- [ ] Evaluator: `×` is the cross product, `\cdot` the dot product (scalar·vector the multiple),
+- [x] Evaluator: `×` is the cross product, `\cdot` the dot product (scalar·vector the multiple),
   `|v|` the length (as Casio §3.7), with tests.
 - [ ] Entry in `docs/docs/contributing/testing.md`.
 
