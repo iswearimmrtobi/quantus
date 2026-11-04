@@ -350,3 +350,15 @@ fn verify_answers_true_or_false() {
     // An equation with a letter is checked too, not solved.
     assert!(verify(&mut engine, "x=2").is_err());
 }
+
+/// Basis-N: whole numbers in the base set, the prefixes and the logic.
+#[test]
+fn base_n_reads_and_writes_the_base_set() {
+    use quantus_ui::settings::NumberBase;
+    let mut engine = Engine::default();
+    let base = |number_base| Settings { number_base, ..Settings::default() };
+    assert_eq!(engine.evaluate(Mode::BaseN, &base(NumberBase::Hex), r"\mathrm{1F}+1"), Ok("20".to_string()));
+    assert_eq!(engine.evaluate(Mode::BaseN, &base(NumberBase::Bin), r"101\operatorname{and}110"), Ok("100".to_string()));
+    assert_eq!(engine.evaluate(Mode::BaseN, &base(NumberBase::Dec), r"\mathrm{h}1F"), Ok("31".to_string()));
+    assert_eq!(engine.evaluate(Mode::BaseN, &base(NumberBase::Dec), r"\operatorname{Neg}(5)"), Ok("-5".to_string()));
+}

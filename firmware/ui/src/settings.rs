@@ -53,6 +53,10 @@ choice!(
     SystemInput { Equations, Matrix }
 );
 choice!(
+    /// The base Basis-N reads and writes whole numbers in.
+    NumberBase { Dec, Hex, Bin, Oct }
+);
+choice!(
     /// What Statistik works out: one list, or pairs with one of the Casio's regressions.
     StatisticsType { OneVariable, Linear, Quadratic, Logarithmic, EExponential, AbExponential, Power, Inverse }
 );
@@ -118,6 +122,8 @@ pub struct Settings {
     pub system_rows: u8,
     /// The unknowns: the matrix has one column more, the right-hand side.
     pub system_columns: u8,
+    // Basis-N (in its OPTN)
+    pub number_base: NumberBase,
     // Statistik and Verteilungen (in their OPTN)
     pub statistics_type: StatisticsType,
     /// A Häufigkeit column next to the data.
@@ -176,6 +182,7 @@ impl Default for Settings {
             system_input: SystemInput::Matrix,
             system_rows: 3,
             system_columns: 3,
+            number_base: NumberBase::Dec,
             statistics_type: StatisticsType::OneVariable,
             statistics_freq: false,
             distribution: DistributionKind::NormalDensity,
@@ -225,6 +232,7 @@ pub enum Setting {
     SystemInput,
     SystemRows,
     SystemColumns,
+    NumberBase,
     StatisticsType,
     StatisticsFreq,
     Distribution,
@@ -271,6 +279,7 @@ impl Settings {
             S::UnknownNames => self.unknown_names.index(),
             S::LinearComplex => self.linear_complex.into(),
             S::SystemInput => self.system_input.index(),
+            S::NumberBase => self.number_base.index(),
             S::SystemRows => self.system_rows.into(),
             S::SystemColumns => self.system_columns.into(),
             S::StatisticsType => self.statistics_type.index(),
@@ -324,6 +333,7 @@ impl Settings {
             S::UnknownNames => self.unknown_names = UnknownNames::from_index(value),
             S::LinearComplex => self.linear_complex = on,
             S::SystemInput => self.system_input = SystemInput::from_index(value),
+            S::NumberBase => self.number_base = NumberBase::from_index(value),
             S::SystemRows => self.system_rows = small,
             S::SystemColumns => self.system_columns = small,
             S::StatisticsType => self.statistics_type = StatisticsType::from_index(value),
@@ -394,6 +404,7 @@ const KEYS: &[(&str, Setting)] = {
         ("system_input_2", S::SystemInput),
         ("system_rows", S::SystemRows),
         ("system_columns", S::SystemColumns),
+        ("number_base", S::NumberBase),
         ("statistics_type", S::StatisticsType),
         ("statistics_freq", S::StatisticsFreq),
         ("distribution", S::Distribution),

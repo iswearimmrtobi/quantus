@@ -317,6 +317,7 @@ fn core_mode(mode: Mode) -> Option<CoreMode> {
         Mode::Analysis => CoreMode::Analysis,
         Mode::Linear => CoreMode::Linear,
         Mode::Verify => CoreMode::Verify,
+        Mode::BaseN => CoreMode::BaseN,
         // The app does not ask for these (`Mode::engine`).
         _ => return None,
     })
@@ -451,7 +452,11 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
             ui::ComplexForm::Cartesian => core::ComplexForm::Rectangular,
             ui::ComplexForm::Polar => core::ComplexForm::Polar,
         },
-        // The hui's Basis-N has no screen yet to choose the base.
-        number_base: core::NumberBase::Dec,
+        number_base: match settings.number_base {
+            ui::NumberBase::Dec => core::NumberBase::Dec,
+            ui::NumberBase::Hex => core::NumberBase::Hex,
+            ui::NumberBase::Bin => core::NumberBase::Bin,
+            ui::NumberBase::Oct => core::NumberBase::Oct,
+        },
     }
 }
