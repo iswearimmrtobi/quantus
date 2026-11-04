@@ -169,3 +169,18 @@ fn base_n_sets_the_base_and_inserts_prefixes_and_logic() {
     app.key(Key::Digit(5));
     assert_eq!(app.editor.to_latex(), r"\mathrm{Not}(5)");
 }
+
+#[test]
+fn the_top_bar_shows_the_base_in_basis_n() {
+    use quantus_ui::render::{Frame, Shape};
+    let texts = |app: &App<Stub>| -> Vec<String> {
+        Frame::new(app).0.iter().filter_map(|shape| match shape {
+            Shape::Text(_, text, _, _) => Some(text.clone()),
+            _ => None,
+        }).collect()
+    };
+    let mut app = app(Mode::BaseN);
+    app.settings.number_base = quantus_ui::settings::NumberBase::Hex;
+    assert!(texts(&app).contains(&"Hex".to_string()));
+    assert!(!texts(&app).contains(&"Exakt".to_string()));
+}

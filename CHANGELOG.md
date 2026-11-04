@@ -200,7 +200,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   key (F7, Ctrl+Y) and OPTN → Werkzeuge → In Einheit convert a value: the units by category,
   inserted after `▶`.
 - The handheld's **Basis-N** mode works: OPTN sets the base (DEC, HEX, BIN, OCT), kept with the
-  settings, and inserts the prefixes d, h, b, o and the logic and, or, xor, xnor, Not, Neg.
+  settings and shown in the top bar, and inserts the prefixes d, h, b, o and the logic and, or,
+  xor, xnor, Not, Neg.
 - The handheld's **Prüfen** mode works: an (in)equality or a chain of them is *wahr* or *falsch*.
 - **CALC** on the handheld (F8, Ctrl+B, OPTN → Werkzeuge): a form over the input asks for each
   letter that has no value, EXE works the input out with them; the values stay in the session.

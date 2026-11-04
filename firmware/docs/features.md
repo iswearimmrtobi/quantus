@@ -66,7 +66,7 @@ State on 2026-11-03.
 - [x] Band-wise redraws (480×32 bands), only the bands that changed
 - [~] Display colours, orientation and SPI clock — run on the board at 26.67 MHz; colours and orientation still to check by eye
 - [x] Casio-like calculation screen: input top left, result bottom right
-- [x] Top bar: mode name, significant digits, Exakt/Dez, D/R
+- [x] Top bar: mode name, significant digits, Exakt/Dez (the base in Basis-N), D/R
 - [x] Top bar: Wi-Fi fan (dim until connected), Bluetooth rune, *PRÜFUNG* tag
 - [x] Top bar: busy ring for a remote calculation (set by the client once it exists)
 - [ ] Top bar: clock

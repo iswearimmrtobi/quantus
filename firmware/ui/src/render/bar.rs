@@ -6,9 +6,9 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Arc, Circle, Rectangle};
 
 use super::{colors, full_width, goes_back, rounded, Shape, BAR, MARGIN, WIDTH};
-use crate::app::{App, Screen};
+use crate::app::{App, Mode, Screen};
 use crate::font::Scale;
-use crate::settings::Angle;
+use crate::settings::{Angle, NumberBase};
 use crate::text;
 
 /// The top bar: the mode (or the menu's page) on the left, followed by a spinner while busy; on the right SHIFT and ALPHA while
@@ -66,7 +66,17 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         Angle::Degrees => "D",
         Angle::Radians => "R",
     };
-    let form = if settings.decimal { text::DECIMAL_SHORT } else { text::EXACT_SHORT };
+    // Basis-N has whole numbers only: its base instead of exact or decimal.
+    let form = match (app.mode, settings.decimal) {
+        (Mode::BaseN, _) => text::same(match settings.number_base {
+            NumberBase::Dec => "Dec",
+            NumberBase::Hex => "Hex",
+            NumberBase::Bin => "Bin",
+            NumberBase::Oct => "Oct",
+        }),
+        (_, true) => text::DECIMAL_SHORT,
+        (_, false) => text::EXACT_SHORT,
+    };
     let digits = format!("Sig {}", settings.digits);
     for text in [angle, form.get(lang)].map(str::to_string).into_iter().chain([digits]) {
         let width = Scale::Small.width(&text);
