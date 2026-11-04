@@ -1,5 +1,5 @@
 //! The 3D view of a scene, shared by the shells: a [`Camera`] and [`project`], which turns the
-//! scene's [`Figure`]s into flat [`Primitive`]s (segments, markers, labels) that a shell only
+//! scene's [`Figure`]s into flat [`Primitive`]s (segments, polygons, markers, labels) that a shell only
 //! draws, as SVG on the desktop and as short 1 px lines on the handheld.
 //!
 //! Plain `f64`, no caches. Screen coordinates are in view units with the origin at the camera's
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::num::Value;
 
-use super::{Line, Point, Vector3};
+use super::{Line, Plane, Point, Vector3};
 
 /// A point or vector in plain floats.
 pub type V3 = [f64; 3];
@@ -31,6 +31,25 @@ fn scale(k: f64, a: V3) -> V3 {
 
 fn dot(a: V3, b: V3) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+fn cross(a: V3, b: V3) -> V3 {
+    [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+}
+
+fn unit(a: V3) -> V3 {
+    scale(1.0 / dot(a, a).sqrt(), a)
+}
+
+/// Two unit vectors that span the plane perpendicular to `n`, with `n` a right-handed frame.
+fn frame(n: V3) -> (V3, V3) {
+    let n = unit(n);
+    // The axis least along n gives the most stable perpendicular.
+    let axis = (0..3).min_by(|&i, &j| n[i].abs().total_cmp(&n[j].abs())).expect("three axes");
+    let mut e = [0.0; 3];
+    e[axis] = 1.0;
+    let first = unit(cross(n, e));
+    (first, cross(n, first))
 }
 
 /// An exact value as a float; `None` if it is not real.
@@ -127,7 +146,7 @@ impl Bounds {
         for shown in figures {
             match &shown.figure {
                 Figure::Point(p) | Figure::Vector(p) => take(*p),
-                Figure::Line { support, .. } => take(*support),
+                Figure::Line { support, .. } | Figure::Plane { support, .. } => take(*support),
             }
         }
         for i in 0..3 {
@@ -147,6 +166,8 @@ pub enum Figure {
     /// Drawn from the origin to this tip.
     Vector(V3),
     Line { support: V3, direction: V3 },
+    /// `normal · x = constant`, through `support`.
+    Plane { normal: V3, constant: f64, support: V3 },
 }
 
 impl Figure {
@@ -160,6 +181,10 @@ impl Figure {
 
     pub fn line(g: &Line) -> Option<Figure> {
         Some(Figure::Line { support: approx3(&g.support.coords)?, direction: approx3(&g.direction.coords)? })
+    }
+
+    pub fn plane(e: &Plane) -> Option<Figure> {
+        Some(Figure::Plane { normal: approx3(&e.normal.coords)?, constant: approx(&e.constant)?, support: approx3(&e.support.coords)? })
     }
 }
 
@@ -177,6 +202,8 @@ pub enum Stroke {
     Axis,
     Tick,
     Object,
+    /// The hatch of a plane.
+    Hatch,
 }
 
 /// What a shell draws. `depth` is larger nearer the viewer; `object` is the index of the
@@ -185,13 +212,73 @@ pub enum Stroke {
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum Primitive {
     Segment { from: V2, to: V2, depth: f64, stroke: Stroke, object: Option<usize> },
+    /// A piece of a plane: its outline, closed, to be filled translucent or drawn as lines.
+    Polygon { points: Vec<V2>, depth: f64, object: usize },
     /// The marker of a point.
     Marker { at: V2, depth: f64, object: usize },
     /// A name, an axis or a tick number, placed next to `at`.
     Label { at: V2, depth: f64, text: String, object: Option<usize> },
 }
 
+/// How the figures are drawn.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Options {
+    /// Hatch the planes, for a shell that draws them as outlines.
+    pub hatch: bool,
+}
+
+/// The number of hatch lines across the box's diagonal.
+const HATCHES: f64 = 24.0;
+
+/// The corners of the box joined by each of its twelve edges, as bits of x, y and z.
+const EDGES: [(usize, usize); 12] =
+    [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)];
+
 impl Bounds {
+    fn corner(&self, bits: usize) -> V3 {
+        [0, 1, 2].map(|i| if bits >> i & 1 == 1 { self.max[i] } else { self.min[i] })
+    }
+
+    fn diagonal(&self) -> f64 {
+        let d = sub(self.max, self.min);
+        dot(d, d).sqrt()
+    }
+
+    /// The polygon where the plane `normal · x = constant` cuts the box, its corners in order
+    /// around it; empty if it misses the box or only touches an edge or a corner.
+    pub fn cut(&self, normal: V3, constant: f64) -> Vec<V3> {
+        let eps = 1e-9 * self.diagonal();
+        let side = |p: V3| dot(normal, p) - constant;
+        let mut points: Vec<V3> = Vec::new();
+        let mut push = |p: V3| {
+            if !points.iter().any(|q| dot(sub(*q, p), sub(*q, p)).sqrt() < eps) {
+                points.push(p);
+            }
+        };
+        for (a, b) in EDGES {
+            let (a, b) = (self.corner(a), self.corner(b));
+            let (sa, sb) = (side(a), side(b));
+            if sa.abs() < eps * dot(normal, normal).sqrt() {
+                push(a);
+            }
+            if sb.abs() < eps * dot(normal, normal).sqrt() {
+                push(b);
+            }
+            if sa * sb < 0.0 {
+                push(add(a, scale(sa / (sa - sb), sub(b, a))));
+            }
+        }
+        if points.len() < 3 {
+            return Vec::new();
+        }
+        let centre = scale(1.0 / points.len() as f64, points.iter().fold([0.0; 3], |sum, p| add(sum, *p)));
+        let (e1, e2) = frame(normal);
+        let angle = |p: &V3| dot(sub(*p, centre), e2).atan2(dot(sub(*p, centre), e1));
+        points.sort_by(|p, q| angle(p).total_cmp(&angle(q)));
+        points
+    }
+
     /// The part of the line `support + t · direction` inside the box, as its two ends; `None`
     /// if the line misses the box (Liang–Barsky).
     pub fn clip(&self, support: V3, direction: V3) -> Option<(V3, V3)> {
@@ -280,6 +367,44 @@ fn axes(camera: &Camera, bounds: &Bounds, out: &mut Vec<Primitive>) {
     }
 }
 
+/// The two crossings of a convex polygon with the plane `normal · x = constant`, if it cuts it.
+fn crossing(polygon: &[V3], normal: V3, constant: f64) -> Option<(V3, V3)> {
+    let mut found = Vec::new();
+    for i in 0..polygon.len() {
+        let (a, b) = (polygon[i], polygon[(i + 1) % polygon.len()]);
+        let (sa, sb) = (dot(normal, a) - constant, dot(normal, b) - constant);
+        if (sa < 0.0) != (sb < 0.0) {
+            found.push(add(a, scale(sa / (sa - sb), sub(b, a))));
+        }
+    }
+    match found[..] {
+        [p, q] => Some((p, q)),
+        _ => None,
+    }
+}
+
+/// A piece of a plane, its outline and, with `hatch`, lines across it a fixed distance apart
+/// in the scene, along the diagonal of its frame.
+fn plane_piece(camera: &Camera, polygon: &[V3], normal: V3, spacing: f64, hatch: bool, object: usize, out: &mut Vec<Primitive>) {
+    let projected: Vec<(V2, f64)> = polygon.iter().map(|p| camera.project(*p)).collect();
+    let depth = projected.iter().map(|(_, d)| d).sum::<f64>() / projected.len() as f64;
+    out.push(Primitive::Polygon { points: projected.iter().map(|(p, _)| *p).collect(), depth, object });
+    if !hatch {
+        return;
+    }
+    let (e1, e2) = frame(normal);
+    // Lines along e1 + e2, so across e1 − e2.
+    let across = unit(sub(e1, e2));
+    let (lo, hi) = polygon.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), p| (lo.min(dot(across, *p)), hi.max(dot(across, *p))));
+    let mut c = (lo / spacing).floor() * spacing + spacing;
+    while c < hi {
+        if let Some((a, b)) = crossing(polygon, across, c) {
+            out.push(segment(camera, a, b, Stroke::Hatch, Some(object)));
+        }
+        c += spacing;
+    }
+}
+
 /// A vector as an arrow from the origin to `tip`, its head two strokes on the screen, its name
 /// at the middle.
 fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, out: &mut Vec<Primitive>) {
@@ -303,7 +428,7 @@ fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, out: &mut Vec<Prim
 }
 
 /// The primitives of the scene as `camera` sees it, with the axes over `bounds`.
-pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds) -> Vec<Primitive> {
+pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Options) -> Vec<Primitive> {
     let mut out = Vec::new();
     axes(camera, bounds, &mut out);
     for (object, shown) in figures.iter().enumerate() {
@@ -320,6 +445,20 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds) -> Vec<Primi
                     let (at, depth) = camera.project(b);
                     out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
                 }
+            }
+            Figure::Plane { normal, constant, .. } => {
+                let polygon = bounds.cut(*normal, *constant);
+                if polygon.is_empty() {
+                    continue;
+                }
+                plane_piece(camera, &polygon, *normal, bounds.diagonal() / HATCHES, options.hatch, object, &mut out);
+                // The name at the corner furthest up and to the right on the screen.
+                let (at, depth) = polygon
+                    .iter()
+                    .map(|p| camera.project(*p))
+                    .max_by(|(p, _), (q, _)| (p[0] + p[1]).total_cmp(&(q[0] + q[1])))
+                    .expect("a polygon has corners");
+                out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
             }
         }
     }

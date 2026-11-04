@@ -1,5 +1,6 @@
-use quantus_core::geometry::view::{project, Bounds, Camera, Figure, Primitive, Shown, Stroke};
-use quantus_core::geometry::{Line, Point, Vector3};
+use quantus_core::geometry::view::{project, Bounds, Camera, Figure, Options, Primitive, Shown, Stroke};
+use quantus_core::geometry::{Line, Plane, Point, Vector3};
+use quantus_core::num::Value;
 
 fn close(a: f64, b: f64) -> bool {
     (a - b).abs() < 1e-9
@@ -57,7 +58,7 @@ fn the_school_view_puts_x_to_the_lower_left() {
 
 #[test]
 fn axes_have_ticks_numbers_and_names() {
-    let primitives = project(&[], &Camera::default(), &unit_box());
+    let primitives = project(&[], &Camera::default(), &unit_box(), &Options::default());
     let axes = primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Axis, .. })).count();
     assert_eq!(axes, 3);
     let labels: Vec<&str> =
@@ -75,7 +76,7 @@ fn axes_have_ticks_numbers_and_names() {
 #[test]
 fn ticks_take_a_round_step() {
     let bounds = Bounds { min: [0.0; 3], max: [0.3, 40.0, 7.0] };
-    let primitives = project(&[], &Camera::default(), &bounds);
+    let primitives = project(&[], &Camera::default(), &bounds, &Options::default());
     let labels: Vec<&str> =
         primitives.iter().filter_map(|p| if let Primitive::Label { text, .. } = p { Some(text.as_str()) } else { None }).collect();
     for tick in ["0.05", "0.1", "0.3", "10", "40", "2", "6"] {
@@ -86,7 +87,7 @@ fn ticks_take_a_round_step() {
 #[test]
 fn an_axis_seen_end_on_has_no_ticks() {
     let above = Camera::default().from_above();
-    let primitives = project(&[], &above, &unit_box());
+    let primitives = project(&[], &above, &unit_box(), &Options::default());
     let ticks = primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Tick, .. })).count();
     assert_eq!(ticks, 8);
 }
@@ -96,7 +97,7 @@ fn points_get_a_marker_and_their_name() {
     let a = Figure::point(&Point::from_ints(1, 2, 3)).unwrap();
     assert_eq!(a, Figure::Point([1.0, 2.0, 3.0]));
     let camera = Camera { yaw: 0.0, pitch: 0.0, zoom: 1.0, centre: [0.0; 3] };
-    let primitives = project(&[shown("A", a)], &camera, &unit_box());
+    let primitives = project(&[shown("A", a)], &camera, &unit_box(), &Options::default());
     assert!(primitives.iter().any(|p| matches!(p, Primitive::Marker { at, object: 0, .. } if close2(*at, [2.0, 3.0]))));
     assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, object: Some(0), .. } if text == "A")));
 }
@@ -162,21 +163,21 @@ fn a_line_is_one_segment_with_its_name_at_the_end() {
     let figure = Figure::line(&g).unwrap();
     assert_eq!(figure, Figure::Line { support: [0.0, 0.0, 1.0], direction: [1.0, 0.0, 0.0] });
     let camera = Camera::default().from_above();
-    let primitives = project(&[shown("g", figure)], &camera, &unit_box());
+    let primitives = project(&[shown("g", figure)], &camera, &unit_box(), &Options::default());
     let lines = segments(&primitives, 0);
     assert_eq!(lines.len(), 1);
     assert!(close2(lines[0].0, [-2.0, 0.0]) && close2(lines[0].1, [2.0, 0.0]), "{lines:?}");
     assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, at, .. } if text == "g" && close2(*at, [2.0, 0.0]))));
 
     let outside = Figure::Line { support: [0.0, 5.0, 0.0], direction: [1.0, 0.0, 0.0] };
-    assert!(segments(&project(&[shown("h", outside)], &camera, &unit_box()), 0).is_empty());
+    assert!(segments(&project(&[shown("h", outside)], &camera, &unit_box(), &Options::default()), 0).is_empty());
 }
 
 #[test]
 fn a_vector_is_an_arrow_from_the_origin() {
     let figure = Figure::vector(&Vector3::from_ints(1, 0, 0)).unwrap();
     let camera = Camera::default().from_above();
-    let primitives = project(&[shown("a", figure)], &camera, &unit_box());
+    let primitives = project(&[shown("a", figure)], &camera, &unit_box(), &Options::default());
     let strokes = segments(&primitives, 0);
     assert_eq!(strokes.len(), 3);
     assert!(close2(strokes[0].0, [0.0, 0.0]) && close2(strokes[0].1, [1.0, 0.0]));
@@ -195,4 +196,74 @@ fn the_box_takes_the_support_of_a_line_and_the_tip_of_a_vector() {
     ];
     let bounds = Bounds::fit(&figures);
     assert!(close(bounds.max[0], 10.5) && close(bounds.min[2], -10.5), "{bounds:?}");
+}
+
+fn polygons(primitives: &[Primitive]) -> Vec<(Vec<[f64; 2]>, usize)> {
+    primitives
+        .iter()
+        .filter_map(|p| match p {
+            Primitive::Polygon { points, object, .. } => Some((points.clone(), *object)),
+            _ => None,
+        })
+        .collect()
+}
+
+fn hatches(primitives: &[Primitive]) -> usize {
+    primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Hatch, .. })).count()
+}
+
+#[test]
+fn a_plane_cuts_the_box_in_a_polygon() {
+    let bounds = unit_box();
+    // z = 1: a square.
+    let square = bounds.cut([0.0, 0.0, 1.0], 1.0);
+    assert_eq!(square.len(), 4);
+    assert!(square.iter().all(|p| close(p[2], 1.0) && close(p[0].abs(), 2.0) && close(p[1].abs(), 2.0)));
+    // x + y + z = 0: a regular hexagon through the middles of six edges.
+    let hexagon = bounds.cut([1.0, 1.0, 1.0], 0.0);
+    assert_eq!(hexagon.len(), 6);
+    for i in 0..6 {
+        let (p, q) = (hexagon[i], hexagon[(i + 1) % 6]);
+        let side = ((p[0] - q[0]).powi(2) + (p[1] - q[1]).powi(2) + (p[2] - q[2]).powi(2)).sqrt();
+        assert!(close(side, 2.0 * 2f64.sqrt()), "{hexagon:?}");
+    }
+    // x + y + z = 5: a triangle at the corner (2|2|2).
+    assert_eq!(bounds.cut([1.0, 1.0, 1.0], 5.0).len(), 3);
+    // Through a face, along an edge, or past the box.
+    assert_eq!(bounds.cut([1.0, 0.0, 0.0], 2.0).len(), 4);
+    assert!(bounds.cut([1.0, 1.0, 0.0], 4.0).is_empty());
+    assert!(bounds.cut([0.0, 0.0, 1.0], 3.0).is_empty());
+}
+
+#[test]
+fn a_plane_is_a_polygon_with_its_name_and_an_optional_hatch() {
+    let e = Plane::coordinate(Value::zero(), Value::zero(), Value::one(), Value::one()).unwrap();
+    let figure = Figure::plane(&e).unwrap();
+    assert_eq!(figure, Figure::Plane { normal: [0.0, 0.0, 1.0], constant: 1.0, support: [0.0, 0.0, 1.0] });
+    let camera = Camera::default().from_above();
+    let primitives = project(&[shown("E", figure.clone())], &camera, &unit_box(), &Options::default());
+    let pieces = polygons(&primitives);
+    assert_eq!(pieces.len(), 1);
+    assert_eq!(pieces[0].0.len(), 4);
+    assert_eq!(hatches(&primitives), 0);
+    assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, at, .. } if text == "E" && close2(*at, [2.0, 2.0]))));
+
+    let hatched = project(&[shown("E", figure)], &camera, &unit_box(), &Options { hatch: true });
+    assert!(hatches(&hatched) > 5, "{}", hatches(&hatched));
+    // Every hatch line runs inside the square.
+    for p in &hatched {
+        if let Primitive::Segment { from, to, stroke: Stroke::Hatch, .. } = p {
+            for end in [from, to] {
+                assert!(end[0].abs() <= 2.0 + 1e-9 && end[1].abs() <= 2.0 + 1e-9, "{end:?}");
+            }
+        }
+    }
+}
+
+#[test]
+fn a_plane_past_the_box_draws_nothing() {
+    let figure = Figure::Plane { normal: [0.0, 0.0, 1.0], constant: 9.0, support: [0.0, 0.0, 9.0] };
+    let primitives = project(&[shown("E", figure)], &Camera::default(), &unit_box(), &Options { hatch: true });
+    assert!(polygons(&primitives).is_empty());
+    assert!(!primitives.iter().any(|p| matches!(p, Primitive::Label { object: Some(0), .. })));
 }
