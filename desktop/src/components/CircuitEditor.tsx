@@ -212,6 +212,8 @@ export function CircuitEditor({
   const selected = selection.length === 1 ? selection[0] : null;
 
   const add = (kind: EditorKind, at?: Point) => {
+    // There are two terminals, A and B, and no third.
+    if (kind === 'terminal' && elements.filter((e) => e.kind === 'terminal').length >= 2) return;
     // Without a drop position the part goes to a free spot, one row below the last one.
     const spot = at ?? {
       x: (160 - view.x) / view.zoom + (elements.length % 4) * 3 * GRID,
@@ -655,6 +657,8 @@ function Symbol({ kind }: { kind: EditorKind }) {
       );
     case 'ground':
       return <path d="M0 0V8M-12 8H12M-8 13H8M-4 18H4" />;
+    case 'terminal':
+      return <circle r="8" />;
     case 'wire':
       return <path d={`M${-HALF} 0H${HALF}`} />;
   }
@@ -727,9 +731,16 @@ function Part({ element, selected, highlighted, connected, onPointerDown, onTerm
           cx={point.x}
           cy={point.y}
           r="5"
-          onPointerDown={(event) => (element.kind === 'ground' ? onPointerDown(event) : onTerminal(event, point))}
+          onPointerDown={(event) =>
+            element.kind === 'ground' || element.kind === 'terminal' ? onPointerDown(event) : onTerminal(event, point)
+          }
         />
       ))}
+      {element.kind === 'terminal' && (
+        <text className="terminal-name" x={element.x + 12} y={element.y - 10}>
+          {element.id}
+        </text>
+      )}
     </g>
   );
 }
@@ -743,7 +754,7 @@ export type Place = Pick<LabelRequest, 'anchor' | 'sides' | 'gap' | 'corner'>;
  * resistance; the inspector shows the rest.
  */
 function partPlace(element: EditorElement): Place | null {
-  if (element.kind === 'ground') return null;
+  if (element.kind === 'ground' || element.kind === 'terminal') return null;
   if (element.kind === 'wire') {
     if (!element.material && !element.rOverride?.trim()) return null;
     const { a, b } = terminals(element) as Record<'a' | 'b', Point>;

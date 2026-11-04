@@ -423,7 +423,7 @@ pub fn set_settings<R: Runtime>(
 /// The version of the circuit file this build writes and reads.
 const CIRCUIT_FILE_VERSION: u64 = 1;
 
-const ELEMENT_KINDS: [&str; 7] = [
+const ELEMENT_KINDS: [&str; 8] = [
     "resistor",
     "wire",
     "voltageSource",
@@ -431,6 +431,7 @@ const ELEMENT_KINDS: [&str; 7] = [
     "potentiometer",
     "powerLoad",
     "ground",
+    "terminal",
 ];
 
 fn file_error(message: impl std::fmt::Display) -> ApiError {

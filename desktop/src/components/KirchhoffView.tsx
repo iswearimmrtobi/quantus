@@ -5,6 +5,7 @@ import {
   IDEAL_FIELDS,
   junctionPoint,
   numberNodes,
+  terminalParts,
   toKirchhoffRequest,
   type EditorElement,
   type EditorKind,
@@ -15,7 +16,7 @@ import { CircuitEditor } from './CircuitEditor';
 import { currentArrows, KirchhoffOverlay, overlayLabels, overlayReserved, voltageArrows, type Hover } from './KirchhoffOverlay';
 import { KirchhoffWorking } from './KirchhoffWorking';
 
-const PALETTE: EditorKind[] = ['voltageSource', 'currentSource', 'resistor', 'wire'];
+const PALETTE: EditorKind[] = ['voltageSource', 'currentSource', 'resistor', 'wire', 'terminal'];
 
 /** The working panel's height in pixels: at first, and the least the splitter leaves it and the canvas. */
 const WORKING_HEIGHT = 280;
@@ -44,6 +45,8 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
   const resizing = useRef<{ y: number; height: number; room: number } | null>(null);
 
   const request = useMemo(() => toKirchhoffRequest(elements), [elements]);
+  /** A is placed but B is not yet, or the other way round. */
+  const halfTerminals = useMemo(() => terminalParts(elements).length === 1, [elements]);
 
   // As in the electronics mode: every change recalculates after a short debounce, and an answer
   // to an older circuit is dropped. The step settings change the working, so they count too.
@@ -51,7 +54,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
   useEffect(() => {
     let current = true;
     const timer = window.setTimeout(() => {
-      if (request.elements.length === 0) {
+      if (request.elements.length === 0 || halfTerminals) {
         setSolution(null);
         setFailure(null);
         return;
@@ -73,7 +76,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       current = false;
       window.clearTimeout(timer);
     };
-  }, [request, language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination]);
+  }, [request, halfTerminals, language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination]);
 
   const nodes = useMemo(() => numberNodes(elements), [elements]);
   // The overlay belongs to the drawing it was solved for; while a change is being solved the
@@ -97,7 +100,9 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
 
   /** The parts of the loop under the pointer. */
   const highlight = useMemo(() => {
-    if (hover?.kind !== 'loop' || !solution) return undefined;
+    if (!solution) return undefined;
+    if (hover?.kind === 'merge') return solution.equivalent?.merges[hover.index]?.parts;
+    if (hover?.kind !== 'loop') return undefined;
     return solution.loops[hover.index]?.members.map((m) => m.id);
   }, [hover, solution]);
 
@@ -111,6 +116,9 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
     if (!start) return;
     setHeight(Math.max(MIN_HEIGHT, Math.min(start.room, start.height - (event.clientY - start.y))));
   };
+
+  // A lone terminal waits for the other one rather than solving the drawing without it.
+  const shownFailure = halfTerminals && request.elements.length > 0 ? t('kirchhoff.terminal.missing') : failure;
 
   const flip = (lead: string) => onChange(elements.map((e) => (e.id === lead ? { ...e, reversed: !e.reversed } : e)));
 
@@ -138,7 +146,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       labels={marks?.labels}
       reserved={marks?.reserved}
       highlight={highlight}
-      failure={failure ?? solution?.error}
+      failure={shownFailure ?? solution?.error}
       below={
         <>
           <div
@@ -154,7 +162,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
           <section className="kirchhoff-working" style={{ height }} aria-label={t('kirchhoff.working')}>
             <KirchhoffWorking
               solution={solution}
-              failure={failure}
+              failure={shownFailure}
               empty={elements.length === 0}
               stepsHidden={stepDetail === 'none'}
               hover={hover}

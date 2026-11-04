@@ -174,6 +174,7 @@ export function body(element: EditorElement): Rect {
     return segment(a, b, 2);
   }
   if (element.kind === 'ground') return turned(element, [{ x: -12, y: 0 }, { x: 12, y: 19 }]);
+  if (element.kind === 'terminal') return turned(element, [{ x: -7, y: -7 }, { x: 22, y: 7 }]);
   const { along, across } = BODY[element.kind]!;
   return turned(element, [{ x: -along, y: -across }, { x: along, y: across }]);
 }
@@ -185,7 +186,7 @@ export function obstacles(elements: EditorElement[]): Rect[] {
     const places = terminals(element);
     for (const point of Object.values(places) as Point[]) rects.push(segment(point, point, 5));
     rects.push(body(element));
-    if (element.kind === 'wire' || element.kind === 'ground') continue;
+    if (element.kind === 'wire' || element.kind === 'ground' || element.kind === 'terminal') continue;
     rects.push(turned(element, [{ x: -HALF, y: -2 }, { x: HALF, y: 2 }]));
     if (places.wiper) rects.push(turned(element, [{ x: -4, y: -HALF }, { x: 4, y: 0 }]));
   }

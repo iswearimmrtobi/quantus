@@ -277,6 +277,8 @@ export interface KirchhoffElement extends Omit<CircuitElement, 'kind' | 'a' | 'b
 export interface KirchhoffRequest {
   elements: KirchhoffElement[];
   precision?: number | null;
+  /** The grid points of A and B: then the answer is the resistance between them. */
+  terminals?: [GridPoint, GridPoint] | null;
 }
 
 /** A part in a branch or loop; `forward` if it is passed from `a` to `b`. */
@@ -305,6 +307,8 @@ export interface Kirchhoff {
   alignBlock: string;
   /** The equations have no single solution; the steps end where that shows. */
   error: string | null;
+  /** The resistance between A and B; each merge names the parts it stands for, in step order. */
+  equivalent: { latex: string; resistance: CircuitValue; merges: { symbol: string; parts: string[] }[] } | null;
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';

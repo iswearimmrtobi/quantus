@@ -1565,6 +1565,15 @@ select option {
 .part.selected .wire {
   stroke: var(--cyan);
 }
+.part .terminal-name {
+  fill: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.part.selected .terminal-name {
+  fill: var(--cyan);
+}
 .part .hit {
   fill: transparent;
   stroke: transparent;
@@ -2060,6 +2069,9 @@ select option {
 
 .analysis-step .step-latex {
   font-size: 14px;
+}
+.analysis-step.active {
+  background: var(--surface-hover);
 }
 
 .task-inputs {

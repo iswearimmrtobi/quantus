@@ -39,6 +39,42 @@ export function KirchhoffWorking({ solution, failure, empty, stepsHidden, hover,
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
   };
+  if (solution.equivalent) {
+    const merges = solution.equivalent.merges.length;
+    // At every detail level the first steps are the merges, one line each.
+    return (
+      <div className="kirchhoff-sheet">
+        <div className="kirchhoff-head">
+          <div className="kirchhoff-notes">
+            {solution.notes.map((note) => (
+              <p className="kirchhoff-note" key={note}>
+                {note}
+              </p>
+            ))}
+          </div>
+          <button className="copy-btn" title={t('kirchhoff.copy.hint')} onClick={() => void copyAll()}>
+            {copied ? t('copied') : t('copy')}
+          </button>
+        </div>
+        <Section title="kirchhoff.resistance">
+          {solution.matrix.length > 0 && (
+            <>
+              <Katex className="kirchhoff-unknowns" latex={solution.unknowns.join(',\\ ')} />
+              <Katex latex={matrixLatex({ unknowns: solution.unknowns, rows: solution.matrix })} display />
+            </>
+          )}
+          <Steps
+            steps={solution.steps}
+            hidden={stepsHidden}
+            active={hover?.kind === 'merge' ? hover.index : null}
+            onHover={(index) => onHover(index !== null && index < merges ? { kind: 'merge', index } : null)}
+          />
+          <Katex className="kirchhoff-result" latex={solution.equivalent.latex} />
+        </Section>
+      </div>
+    );
+  }
+
   const active = (kind: 'loop' | 'junction', index: number) => hover?.kind === kind && hover.index === index;
   const hovering = (kind: 'loop' | 'junction', index: number) => ({
     onMouseEnter: () => onHover({ kind, index }),

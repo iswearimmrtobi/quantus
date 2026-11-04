@@ -31,12 +31,30 @@ const TABS: { id: Tab; label: TextKey }[] = [
 const PLACEHOLDER = 'f(x) = x^3 - 3x';
 
 /** `display`: the formulas in display style, so fractions stand at full size. */
-export function Steps({ steps, hidden, display = false }: { steps: Step[]; hidden: boolean; display?: boolean }) {
+export function Steps({
+  steps,
+  hidden,
+  display = false,
+  active,
+  onHover,
+}: {
+  steps: Step[];
+  hidden: boolean;
+  display?: boolean;
+  /** The step under the pointer, marked. */
+  active?: number | null;
+  onHover?(index: number | null): void;
+}) {
   if (hidden) return null;
   return (
     <div className="analysis-steps">
       {steps.map((step, index) => (
-        <div className="analysis-step" key={index}>
+        <div
+          className={index === active ? 'analysis-step active' : 'analysis-step'}
+          key={index}
+          onMouseEnter={onHover && (() => onHover(index))}
+          onMouseLeave={onHover && (() => onHover(null))}
+        >
           {step.explanation && <span className="step-explanation">{step.explanation}</span>}
           {step.latex && <Katex className="step-latex" latex={display ? displayStyle(step.latex) : step.latex} />}
         </div>

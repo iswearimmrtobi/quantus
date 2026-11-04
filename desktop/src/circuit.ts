@@ -10,8 +10,11 @@ import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, Kir
 
 export const GRID = 20;
 
-/** `ground` is the reference potential (node 0); the solver never sees it as an element. */
-export type EditorKind = ElementKind | 'ground';
+/**
+ * `ground` is the reference potential (node 0); the solver never sees it as an element. A
+ * `terminal` is A or B of the Kirchhoff mode's resistance between two points, likewise no part.
+ */
+export type EditorKind = ElementKind | 'ground' | 'terminal';
 
 /**
  * `a`, `b` and `wiper` are filled in by [`toRequest`]; what the editor stores is the position.
@@ -34,7 +37,7 @@ export interface Point {
   y: number;
 }
 
-export type Terminal = 'a' | 'b' | 'wiper' | 'ground';
+export type Terminal = 'a' | 'b' | 'wiper' | 'ground' | 'terminal';
 
 const PREFIX: Record<EditorKind, string> = {
   resistor: 'R',
@@ -44,6 +47,7 @@ const PREFIX: Record<EditorKind, string> = {
   potentiometer: 'P',
   powerLoad: 'L',
   ground: 'GND',
+  terminal: 'T',
 };
 
 export const KIND_LABELS: Record<EditorKind, TextKey> = {
@@ -54,6 +58,7 @@ export const KIND_LABELS: Record<EditorKind, TextKey> = {
   potentiometer: 'kind.potentiometer',
   powerLoad: 'kind.powerLoad',
   ground: 'kind.ground',
+  terminal: 'kind.terminal',
 };
 
 /** Half the length of a part along its axis, so its terminals are four grid steps apart. */
@@ -66,6 +71,7 @@ const LOCAL_TERMINALS: Record<Exclude<EditorKind, 'wire'>, Partial<Record<Termin
   powerLoad: { a: { x: -HALF, y: 0 }, b: { x: HALF, y: 0 } },
   potentiometer: { a: { x: -HALF, y: 0 }, b: { x: HALF, y: 0 }, wiper: { x: 0, y: -HALF } },
   ground: { ground: { x: 0, y: 0 } },
+  terminal: { terminal: { x: 0, y: 0 } },
 };
 
 export function snap(value: number): number {
@@ -161,6 +167,7 @@ export function numberNodes(elements: EditorElement[]): Nodes {
   const points = new Map<string, Point>();
   let ground: string | null = null;
   for (const element of elements) {
+    if (element.kind === 'terminal') continue;
     for (const [name, point] of Object.entries(terminals(element))) {
       const key = pointKey(point);
       if (!points.has(key)) points.set(key, point);
@@ -228,7 +235,7 @@ export function toRequest(elements: EditorElement[], nodes: Nodes, precision?: n
   const node = (point: Point | undefined) => (point ? (nodes.byPoint.get(pointKey(point)) ?? 0) : 0);
   const list: CircuitElement[] = [];
   for (const element of elements) {
-    if (element.kind === 'ground') continue;
+    if (element.kind === 'ground' || element.kind === 'terminal') continue;
     const places = terminals(element);
     const parameters = parametersOf(element);
     const entry = { ...parameters, kind: element.kind, a: node(places.a), b: node(places.b) } as CircuitElement;
@@ -239,20 +246,28 @@ export function toRequest(elements: EditorElement[], nodes: Nodes, precision?: n
   return { nodes: ids.length ? ids : [0], elements: list, precision: precision ?? null };
 }
 
+/** The terminals A and B of the drawing, in that order: by ID, so A before B. */
+export function terminalParts(elements: EditorElement[]): EditorElement[] {
+  return elements.filter((e) => e.kind === 'terminal').sort((p, q) => p.id.localeCompare(q.id));
+}
+
 /**
  * The Kirchhoff mode works the nodes out from the drawing itself, so it gets the terminals in grid
- * steps instead of node numbers. Ground symbols mean nothing there and stay behind.
+ * steps instead of node numbers. Ground symbols mean nothing there and stay behind. With both
+ * terminals A and B placed, the request asks for the resistance between them.
  */
 export function toKirchhoffRequest(elements: EditorElement[]): KirchhoffRequest {
   const grid = (point: Point) => ({ x: point.x / GRID, y: point.y / GRID });
   const list: KirchhoffElement[] = [];
   for (const element of elements) {
-    if (element.kind === 'ground') continue;
+    if (element.kind === 'ground' || element.kind === 'terminal') continue;
     const { a, b } = terminals(element);
     const entry = { ...parametersOf(element), kind: element.kind, pa: grid(a!), pb: grid(b!) } as KirchhoffElement;
     if (element.reversed) entry.reversed = true;
     list.push(entry);
   }
+  const ends = terminalParts(elements);
+  if (ends.length === 2) return { elements: list, terminals: [grid(ends[0]), grid(ends[1])] };
   return { elements: list };
 }
 
@@ -283,7 +298,7 @@ export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: P
   const count = (point: Point, by: number) => degree.set(pointKey(point), (degree.get(pointKey(point)) ?? 0) + by);
   const unique = new Map<string, Point>();
   for (const element of elements) {
-    if (element.kind === 'ground') continue;
+    if (element.kind === 'ground' || element.kind === 'terminal') continue;
     for (const point of Object.values(terminals(element)) as Point[]) {
       count(point, 1);
       unique.set(pointKey(point), point);
@@ -304,9 +319,13 @@ export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: P
   return best;
 }
 
-/** The next unused ID of a kind: R1, R2, … */
+/** The next unused ID of a kind: R1, R2, …; the terminals are A and B. */
 export function freshId(elements: EditorElement[], kind: EditorKind): string {
   const taken = new Set(elements.map((e) => e.id));
+  if (kind === 'terminal') {
+    const free = ['A', 'B'].find((id) => !taken.has(id));
+    if (free) return free;
+  }
   for (let n = 1; ; n += 1) {
     const id = `${PREFIX[kind]}${n}`;
     if (!taken.has(id)) return id;
@@ -361,6 +380,7 @@ export const FIELDS: Record<EditorKind, Field[]> = {
   ],
   powerLoad: [{ key: 'p', label: 'field.p', placeholder: '500W' }],
   ground: [],
+  terminal: [],
 };
 
 /** The Kirchhoff mode's wires are ideal, so they have no fields. */

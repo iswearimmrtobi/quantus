@@ -6,7 +6,8 @@ import type { ExtraLabel } from './CircuitEditor';
 import { Katex } from './Katex';
 
 /** What the pointer rests on, in the overlay or the working: its parts are highlighted. */
-export type Hover = { kind: 'loop' | 'junction'; index: number } | null;
+/** `merge`: a step of the resistance between A and B, by its index among the merges. */
+export type Hover = { kind: 'loop' | 'junction' | 'merge'; index: number } | null;
 
 /** The radius of a loop's circular arrow. */
 const LOOP_R = 14;
