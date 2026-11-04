@@ -95,7 +95,8 @@ The golden tests among them (`golden.rs`, `latex_golden.rs`, `quantity_golden.rs
 `test/generator/`, independently of the engine. The first eleven categories go back to the first
 version of the engine; the nine from `verify` on cover the modes added since, and two of them,
 `electronics` and `kirchhoff`, are kept to a handful of circuits. The last, `open-features`, holds
-only gaps: the features still open in `plans/plans.md`.
+the features that were open in `plans/plans.md` until 2026-11-04, written as gaps first and
+implemented since.
 
 | Category | Cases | Mode | Into the engine through |
 |---|---:|---|---|
@@ -125,7 +126,7 @@ only gaps: the features still open in `plans/plans.md`.
 
 The first twenty categories were run in full on 2026-11-04: all 112,040 cases pass, including the
 1,592 gap cases written before the features they test were implemented. `open-features` was added
-after that run; on its own, none of its 500 cases pass yet, as expected for features still open.
+after that run; on its own all 500 of its cases pass, now that its features are implemented.
 
 ### By category and subcategory
 
@@ -650,18 +651,21 @@ Checked as: `equivalent` 10, `circuit` 8, `error` 2.
 
 ### open-features (500)
 
-Checked as: `inequality` 175, `complex` 150, `number` 100, `complex-solutions` 75. 500 of them are marked as not implemented (`gap`).
+Checked as: `inequality` 175, `number` 137, `complex` 100, `complex-solutions` 75, `error` 13.
 
 <details>
 <summary>Subcategories</summary>
 
 | Subcategory | Cases |
 |---|---:|
-| inequality | 175 |
-| partial-derivative | 100 |
-| complex-integral | 75 |
-| complex-inverse-trig | 75 |
+| inequality | 125 |
 | complex-roots | 75 |
+| complex-integral | 50 |
+| complex-inverse-trig | 50 |
+| gamma | 50 |
+| infinite-sum | 50 |
+| partial-derivative | 50 |
+| rational-inequality | 50 |
 
 </details>
 

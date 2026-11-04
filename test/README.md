@@ -49,9 +49,10 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 - `difficulty`: `easy`, `medium`, `hard` or `very-hard`, in a 40/30/20/10 split.
 - `gap: true` marks inputs that were not implemented when the case was written, such as one-sided
   limits, `\infty`, `\arcsin`, `\log_b` or units like `eV`. Most of them have been implemented
-  since and pass. The `open-features` category holds the gaps that are still open in
-  `plans/plans.md`. Gap cases make up about 2% of the set (2,092). They count like any other case,
-  but the summary reports them separately.
+  since and pass. Gap cases make up about 1.4% of the set (1,592). They count like any other case,
+  but the summary reports them separately. The `open-features` category was written as gaps for
+  what `plans/plans.md` still listed and is implemented now; to track a new open feature, add
+  cases with `gap=True` there.
 - `settings` (optional) overrides `Settings` fields (`a_and_y_as_variables`, `letter_products`, `extra_unit_letters`, `mode`: `algebra`, `physics` (the default), `imaginary` or `linear`, and for `linear` also `linear_complex`, `elimination` and `unknown_names`). Any other key is a field of `Settings` under its JSON name, such as `mode: "verify"`, `language`, `angleUnit` or `numberBase`.
 - `api` (optional) names the API function of a mode with its own request, such as `statistics`; `request` is then what that mode's shell sends to it.
 - `request` (linear systems only) is what the mode sends to `api::linear_system`: `{"equations": latex}` or `{"matrix": {"rows": [[latex, …], …], "unknowns"?: [latex, …]}}`. `latex` then shows the system for the report.
@@ -124,21 +125,13 @@ the case itself is wrong.
 | geometry | 1,000 | Geometry mode through `api::geometry`, angles in degrees, every object in one of its forms (points as cells, `(x\|y\|z)` or typed `A(…)`, lines by point and direction or two points, planes in coordinate, normal, three-point or parameter form, spheres by centre and radius or a point on them): distance and midpoint of two points; distance, foot, image and lying on for a point and a line or a plane; two lines identical, parallel (distance), intersecting (point, angle) or skew (distance), and their angle; line and plane intersecting (point, angle), parallel (distance) or contained; two planes identical, parallel (distance) or intersecting (angle); a sphere and a point (inside, on, outside, distance), a plane (circle, tangent, apart) or a line (secant, tangent, passant); volume, surface, circumference and area; and the errors |
 | electronics | 20 | Electronics mode through `api::solve_circuit`, one circuit per template with drawn E12-style values and prefixes (`2{,}2k\Omega`, `500mA`): series chains of 2–4 resistors, 2–4 in parallel, a loaded divider, a current source, two sources, an unbalanced and a balanced bridge, a source with inner resistance, a three-stage ladder, and a short circuit as the error. Solved by nodal analysis over fractions |
 | kirchhoff | 20 | Kirchhoff mode through `api::kirchhoff`, the parts placed on grid points where no three nodes lie on a line: eight source circuits (series, parallel, loaded divider, two sources, bridge, ladder, current source) with every part's U, I and P along the arrows; ten resistances between A and B for series-parallel, ladder and bridge networks under each `starDelta` setting (node rule, Δ → Y, Y → Δ), all giving the same value; and the errors: two voltage sources in parallel, a part without a value |
-| open-features | 500 | Features still open in `plans/plans.md`, every case a gap: linear, quadratic and cubic inequalities with `<`, `>`, `\le`, `\ge` and rational bounds (§5); in imaginary mode, the complex roots of `x^4 + a` and of biquadratics without a real root, `\arcsin`, `\arccos` and `\arctan` of a complex number off the branch cuts, and integrals of complex functions (`x + bi`, `e^{kix}`, `1/(x + bi)`) (§6, the gaps of `design/unsupported-inputs.md`); partial derivatives at a point in two variables, mixed and second partials (§6). Values at 80 digits, checked against `cmath`, numerical quadrature and finite differences when written |
+| open-features | 500 | The features that were open in `plans/plans.md` until 2026-11-04, written as gaps first and implemented since: linear, quadratic and cubic inequalities and rational ones with `<`, `>`, `\le`, `\ge` and rational bounds; in imaginary mode, the complex roots of `x^4 + a`, of biquadratics without a real root and of `x^n + a` up to degree 8, `\arcsin`, `\arccos` and `\arctan` of a complex number and on the branch cuts, and integrals of complex functions (`x + bi`, `e^{kix}`, `1/(x + bi)`); partial derivatives at a point in two variables, mixed and second partials; sums to `\infty` (ζ(2), ζ(4), geometric, telescoping, exponential, alternating and divergent series); the Gamma function at whole numbers, halves and fractions, its poles, and factorials of halves. Values at 80 digits (Γ by the Stirling series), checked against `cmath`, numerical quadrature and finite differences when written |
 
 ## Latest results
 
 Full run (2026-11-04, 4 workers, 5 s limit, 196 s): **all 112,040 cases pass**, including the
 1,592 gap cases written before the features they test were implemented. The `open-features`
-category was added after that run. On its own (2026-11-04), none of its 500 cases pass; every one
-is an engine error for a feature that is still open:
-
-| Subcategory | Cases | Engine error |
-|---|---:|---|
-| inequality | 175 | the variable has no value (no solver for inequalities) |
-| partial-derivative | 100 | a point in two variables is not read; mixed partials are not parsed |
-| complex-roots | 75 | no real solution (complex roots of quartics only when they are rational or purely imaginary) |
-| complex-inverse-trig | 75 | a complex argument is not a real number |
-| complex-integral | 75 | a complex integrand is not a real number |
+category was added after that run, with every case failing as a gap; once its features were
+implemented, all 500 pass on their own (2026-11-04).
 
 The full breakdown of the full run is in `test/results/summary.md`.

@@ -108,8 +108,9 @@ The symbolic simplification of rational expressions, built milestone by mileston
 `test/` holds a large set of generated cases across arithmetic, functions, equations, derivatives,
 integrals, limits, algebra, physics with units, complex numbers, syntax errors, and every mode:
 linear systems, Verify, Base-N, Matrix, Statistics, Distributions, Analysis, Geometry, and a few
-circuits for Electronics and Kirchhoff. A last category, `open-features`, holds cases for features
-that are still open in `plans/plans.md`, so the set shows when one lands. Every expected
+circuits for Electronics and Kirchhoff. A last category, `open-features`, holds the features that
+were open in `plans/plans.md` until 2026-11-04, written as gaps first; new open features get gap
+cases there, so the set shows when one lands. Every expected
 value is computed by the Python generator, independently of the engine.
 
 ```sh
