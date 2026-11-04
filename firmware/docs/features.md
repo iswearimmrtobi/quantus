@@ -6,7 +6,7 @@ documents this list is drawn from: [plans.md](../../plans/plans.md) §4–5,
 [hardware.md](hardware.md). Ideas that are not planned yet are in
 [feature-ideas.md](feature-ideas.md).
 
-State on 2026-11-03.
+State on 2026-11-04.
 
 - `[x]` works: on the board, or in the hui and the simulator where the board has no part in it
 - `[~]` partly: what is missing follows the dash

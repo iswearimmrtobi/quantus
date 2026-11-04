@@ -104,7 +104,7 @@ dev kit. See its [README](../firmware/esp32/README.md).
     UI only): MODE with twelve tiles, SETUP with a submenu per entry (a list of values or a typed
     number), OPTN per mode, German and English texts, the top bar's indicators, the purple
     palette. Entries that wait for the engine or the firmware say so.
-  - [ ] CONST and CONV, and the keys still missing in §7.4 (ENG, STO, VARS, CALC, SOLVE, UNDO …).
+  - [ ] The keys still missing in §7.4 (ENG, PreAns, UNDO …).
   - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
   - [ ] On a bare ST7796S panel, measure `bench` at 40, 60 and 80 MHz and wire `TE` against
     tearing ([hardware.md](../firmware/docs/hardware.md) §3).
@@ -144,26 +144,16 @@ handheld-menus.md, *What is missing*.
   type a period), prime factors, complex r∠θ (setting, conversion of one result, ∠ input). Each
   result carries its alternative forms, so S⇔D on the handheld and a form switch on the desktop
   read them from the core.
-- [ ] Basis-N: a mode for integers in DEC/HEX/BIN/OCT, the prefixes d, h, b, o and the bitwise
-  operations and, or, xor, xnor, Not, Neg.
 - [ ] Matrices: matrix values with + − ×, inverse, transpose, identity, det, powers, REF and
   RREF, exact and with steps, reusing the LGS Gauss code; any variable name instead of MatA–D.
+  The handheld has the mode with its editor; the desktop's input and output are missing.
 - [ ] Stochastik: lists, one-variable statistics, the regressions, the distributions (normal,
   binomial, Poisson; density, cumulative, inverse normal). Two tiles on the handheld, a mode
   with a data editor on the desktop.
-- [ ] Functions: arsinh, arcosh, artanh, coth, `\prod`, nPr, ggT, kgV, Int, Intg, Rnd, RndFix,
-  ÷R.
-- [ ] Constants and units: the 32 constants the Casio has and Quantus lacks (CODATA 2018, the
-  Casio's six categories), usable outside Physik when inserted by name; a "▶ unit" operator
-  that writes a result in a target unit; the missing imperial units (ft, yd, lb, oz, gal, psi,
-  Btu, hp, °F …).
-- [ ] Solving: exact cubics and quartics (Cardano, Ferrari) without the [−100, 100] limit; SOLVE
-  for a chosen variable; CALC (the free variables of an expression, then substitute);
-  wahr/falsch for an equation without unknowns, and a Prüfen mode.
 - [x] Sessions: history, mode inputs, a name and timestamps in `session.rs`, serialised to JSON
   with a format version. The desktop keeps them in its config directory with a session menu and
   opens the last one on start; the handheld keeps them on the SD card.
-- [ ] Ans and PreAns in the session; STO and VARS on the handheld.
+- [ ] PreAns on a key of the handheld (the session has it; STO and VARS are done).
 - [ ] The link between handheld and desktop: the request and response format (the JSON of
   `api.rs`) and the session files from the core; on the desktop a listener reachable over WLAN
   and Bluetooth, with pairing; on the handheld the client (remote engine, session sync).
