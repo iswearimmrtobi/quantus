@@ -7,7 +7,8 @@ use crate::num::{Decimal, Value};
 use crate::settings::Language;
 use crate::text;
 
-use super::{Point, Vector3};
+use super::{Angle, Point, Vector3};
+use crate::settings::AngleUnit;
 
 /// A value exactly: a whole number or fraction, a root or multiple of `π`; anything else as a
 /// short decimal.
@@ -117,4 +118,19 @@ pub(crate) fn dot(a: &Vector3, b: &Vector3) -> String {
 fn factor_first(v: &Value) -> String {
     let shown = value(v);
     if is_sum(&shown) { format!("\\left({shown}\\right)") } else { shown }
+}
+
+/// An angle, `\varphi = 60^\circ` where it is exact, else `\varphi = \arccos\left(\frac{11}{15}\right) \approx 42.8334^\circ`.
+pub(crate) fn angle(angle: &Angle) -> String {
+    let degree = if angle.unit == AngleUnit::Degree { "^\\circ" } else { "" };
+    let exact = match angle.value.as_rational() {
+        Some(rational) => Some(serializer::expression(&fraction_node(rational))),
+        None => exact::format(&angle.value),
+    };
+    let approx = format!("\\approx {}{degree}", decimal(&angle.decimal));
+    match exact {
+        Some(exact) if angle.value.to_i64().is_some() => format!("\\varphi = {exact}{degree}"),
+        Some(exact) => format!("\\varphi = {exact}{degree} {approx}"),
+        None => format!("\\varphi = \\{}\\left({}\\right) {approx}", angle.function(), value(&angle.ratio)),
+    }
 }

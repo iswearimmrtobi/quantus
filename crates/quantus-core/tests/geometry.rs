@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, Objects, Point, Vector3, Working,
+    triple_product, GeometryEvaluator, Item, Line, LineRelation, Objects, Point, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -71,14 +71,14 @@ fn the_angle_follows_the_angle_unit() {
     let diagonal = Vector3::from_ints(1, 1, 0);
     let radians = x.angle(&diagonal, AngleUnit::Radian, 20).unwrap();
     assert_eq!(radians.value, Value::ratio(1, 4).mul(&Value::Pi));
-    assert_eq!(decimal(&radians.cosine), decimal(&Value::one().div(&sqrt(2)).unwrap()));
+    assert_eq!(decimal(&radians.ratio), decimal(&Value::one().div(&sqrt(2)).unwrap()));
     assert_eq!(x.angle(&diagonal, AngleUnit::Degree, 20).unwrap().value, Value::int(45));
     assert_eq!(x.angle(&Vector3::from_ints(-3, 0, 0), AngleUnit::Degree, 20).unwrap().value, Value::int(180));
     assert_eq!(x.angle(&Vector3::from_ints(0, 0, 7), AngleUnit::Degree, 20).unwrap().value, Value::int(90));
 
     // No closed form: the arccos stays, with the decimal beside it.
     let angle = Vector3::from_ints(1, 2, 2).angle(&Vector3::from_ints(3, 0, 4), AngleUnit::Degree, 20).unwrap();
-    assert_eq!(angle.cosine, Value::ratio(11, 15));
+    assert_eq!(angle.ratio, Value::ratio(11, 15));
     assert_eq!(angle.decimal.round(6).to_string(), "42.8334");
     assert!(x.angle(&Vector3::zero(), AngleUnit::Radian, 20).is_err());
 }
@@ -383,4 +383,65 @@ fn foot_of_the_perpendicular_and_distance_to_a_line() {
     assert_eq!(latex_at(&distance.working, StepDetail::Brief).last().unwrap(), r"d = \sqrt{26}");
     // A point on the line has distance 0 and is its own foot.
     assert_eq!(g.distance(&Point::from_ints(2, 2, 4)).unwrap().result, Value::zero());
+}
+
+fn line(support: [i64; 3], direction: [i64; 3]) -> Line {
+    Line::new(Point::from_ints(support[0], support[1], support[2]), Vector3::from_ints(direction[0], direction[1], direction[2])).unwrap()
+}
+
+fn relation(g: &Line, h: &Line) -> LineRelation {
+    g.relation(h, AngleUnit::Degree, 20).unwrap().result
+}
+
+#[test]
+fn identical_and_parallel_lines() {
+    let g = line([1, 0, 0], [1, 2, 3]);
+    assert_eq!(relation(&g, &line([3, 4, 6], [-2, -4, -6])), LineRelation::Identical);
+    // Parallel to the x axis, 5 away from it.
+    let x_axis = line([0, 0, 0], [1, 0, 0]);
+    assert_eq!(relation(&x_axis, &line([5, 3, 4], [2, 0, 0])), LineRelation::Parallel { distance: Value::int(5) });
+    let worked = x_axis.relation(&line([5, 3, 4], [2, 0, 0]), AngleUnit::Degree, 20).unwrap();
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), [r"3 \neq 0", "F = (5|0|0)", "d = 5", r"g \parallel h"]);
+}
+
+#[test]
+fn intersecting_lines() {
+    let g = line([1, 0, 0], [1, 1, 0]);
+    let h = line([0, 3, 0], [1, 0, 0]);
+    let worked = g.relation(&h, AngleUnit::Degree, 20).unwrap();
+    let LineRelation::Intersecting { point, lambda, mu, angle } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!((point, lambda, mu), (&Point::from_ints(4, 3, 0), &Value::int(3), &Value::int(4)));
+    assert_eq!(angle.value, Value::int(45));
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["S = (4|3|0)", r"\varphi = 45^\circ"]);
+    let standard = latex_at(&worked.working, StepDetail::Detailed);
+    assert!(standard.contains(&r"\begin{aligned} \lambda - \mu = -1 \\ \lambda = 3 \\ 0 = 0 \end{aligned}".to_string()), "{standard:#?}");
+    assert!(standard.contains(&r"0 \cdot 3 - 0 \cdot 4 = 0 = 0".to_string()), "{standard:#?}");
+    // An angle without a closed form keeps its arccos.
+    let worked = line([0, 0, 0], [1, 2, 2]).relation(&line([0, 0, 0], [3, 0, 4]), AngleUnit::Degree, 20).unwrap();
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief).last().unwrap(), r"\varphi = \arccos\left(\frac{11}{15}\right) \approx 42.8334^\circ");
+    // The acute angle: a direction pointing back gives the same.
+    let LineRelation::Intersecting { angle, .. } = relation(&line([0, 0, 0], [1, 0, 0]), &line([0, 0, 0], [-1, 1, 0])) else { panic!() };
+    assert_eq!(angle.value, Value::int(45));
+    // Two 2D lines that are not parallel always meet.
+    let p = |x, y| Point::planar(Value::int(x), Value::int(y));
+    let v = |x, y| Vector3::planar(Value::int(x), Value::int(y));
+    let LineRelation::Intersecting { point, .. } = relation(&Line::new(p(0, 0), v(1, 1)).unwrap(), &Line::new(p(4, 0), v(-1, 1)).unwrap()) else { panic!() };
+    assert!(point.planar && point == Point::from_ints(2, 2, 0));
+}
+
+#[test]
+fn skew_lines() {
+    // The x axis and a line along y, 2 above it.
+    let g = line([0, 0, 0], [1, 0, 0]);
+    let h = line([0, 1, 2], [0, 1, 0]);
+    let worked = g.relation(&h, AngleUnit::Degree, 20).unwrap();
+    let LineRelation::Skew { distance, angle } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!((distance, &angle.value), (&Value::int(2), &Value::int(90)));
+    let brief = latex_at(&worked.working, StepDetail::Brief);
+    assert_eq!(brief, [r"g \cap h = \emptyset", "d = 2", r"\varphi = 90^\circ"]);
+    // A distance with a root: n = (1,1,0) × (0,1,1) = (1,-1,1), w = (0,0,1), |w·n| / |n| = 1/√3.
+    let LineRelation::Skew { distance, .. } = relation(&line([0, 0, 0], [1, 1, 0]), &line([0, 0, 1], [0, 1, 1])) else { panic!() };
+    assert_eq!(distance.mul(&distance), Value::ratio(1, 3));
+    let worked = line([0, 0, 0], [1, 1, 0]).relation(&line([0, 0, 1], [0, 1, 1]), AngleUnit::Degree, 20).unwrap();
+    assert!(latex_at(&worked.working, StepDetail::Brief).contains(&r"d = \frac{\sqrt{3}}{3}".to_string()), "{:#?}", worked.working);
 }

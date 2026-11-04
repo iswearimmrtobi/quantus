@@ -10,7 +10,7 @@ mod show;
 mod working;
 
 pub use eval::{GeometryEvaluator, Item, Objects};
-pub use line::Line;
+pub use line::{Line, LineRelation};
 pub use working::{Note, Worked, Working};
 
 use std::ops::{Add, Mul, Neg, Sub};
@@ -106,13 +106,7 @@ impl Vector3 {
         }
         // One root over the product of the squared lengths keeps the cosine in its simplest form.
         let cosine = self.dot(other).mul(&self.dot(self).mul(&other.dot(other)).pow(&Value::ratio(-1, 2))?);
-        let radians = cosine.apply(MathFunction::Arccos)?;
-        let value = match unit {
-            AngleUnit::Radian => radians,
-            AngleUnit::Degree => degrees(&radians)?,
-        };
-        let decimal = value.decimal(precision)?;
-        Ok(Angle { cosine, value, unit, decimal })
+        Angle::of(cosine, false, unit, precision)
     }
 
     /// The cross product (Kreuzprodukt) `self × other`, by the cofactors of the first row of
@@ -163,6 +157,11 @@ pub fn points_coplanar(a: &Point, b: &Point, c: &Point, d: &Point) -> Result<boo
     coplanar(&a.to(b), &a.to(c), &a.to(d))
 }
 
+/// `value / |v|`, with the length as one power so that roots fold: `\frac{1}{\sqrt{3}}` squares to `\frac{1}{3}`.
+fn over_length(value: &Value, v: &Vector3) -> Result<Value> {
+    Ok(value.mul(&v.dot(v).pow(&Value::ratio(-1, 2))?))
+}
+
 fn abs(value: Value) -> Result<Value> {
     Ok(if value.is_negative()? { value.neg() } else { value })
 }
@@ -204,15 +203,34 @@ fn degrees(radians: &Value) -> Result<Value> {
     }
 }
 
-/// An angle between two vectors, `\arccos(cosine)`.
+/// An angle, `\arccos(ratio)` or, between a line and a plane, `\arcsin(ratio)`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Angle {
-    /// The exact cosine of the angle.
-    pub cosine: Value,
+    /// The exact cosine of the angle, or its sine if `sine`.
+    pub ratio: Value,
+    pub sine: bool,
     /// The exact angle in `unit`: `\frac{\pi}{3}` or `60` where it folds, else the `arccos`.
     pub value: Value,
     pub unit: AngleUnit,
     pub decimal: Decimal,
+}
+
+impl Angle {
+    /// The angle whose cosine (or sine) is `ratio`, in `unit`.
+    pub(crate) fn of(ratio: Value, sine: bool, unit: AngleUnit, precision: usize) -> Result<Angle> {
+        let radians = ratio.apply(if sine { MathFunction::Arcsin } else { MathFunction::Arccos })?;
+        let value = match unit {
+            AngleUnit::Radian => radians,
+            AngleUnit::Degree => degrees(&radians)?,
+        };
+        let decimal = value.decimal(precision)?;
+        Ok(Angle { ratio, sine, value, unit, decimal })
+    }
+
+    /// The name of the inverse function, `arccos` or `arcsin`.
+    pub fn function(&self) -> &'static str {
+        if self.sine { "arcsin" } else { "arccos" }
+    }
 }
 
 impl Point {
