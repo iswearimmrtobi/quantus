@@ -120,6 +120,9 @@ fn results_read_back_into_rows() {
     assert_eq!(latex::parse(r"x = 2 \land y = 1").to_latex(), r"x=2\land y=1");
     assert_eq!(latex::parse(r"\int_0^1 x^2 dx").to_latex(), r"\int_{0}^{1}x^{2}dx");
     assert_eq!(latex::parse(r"\prod_{k=1}^{5} k").0[0], Node::Char('∏'));
+    // A degree is a sign, not an exponent.
+    assert_eq!(latex::parse(r"2^\circ 20' 30''").to_latex(), "2°20'30''");
+    assert_eq!(latex::parse(r"^{\circ}\mathrm{C}").to_latex(), r"°\mathrm{C}");
     assert_eq!(latex::parse(r"\prod_{k=1}^{5} k").to_latex(), r"\prod_{k=1}^{5}k");
 }
 

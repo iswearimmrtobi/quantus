@@ -56,7 +56,11 @@ impl Parser {
                 _ if Some(c) == end => break,
                 ' ' => {}
                 '{' => nodes.extend(self.row(Some('}')).0),
-                '^' => nodes.push(Node::Pow(self.argument())),
+                // A degree is written as a power, `30^\circ`, but is a sign of its own.
+                '^' => match self.argument() {
+                    row if row.0 == [Node::Char('°')] => nodes.push(Node::Char('°')),
+                    row => nodes.push(Node::Pow(row)),
+                },
                 '_' => nodes.push(Node::Sub(self.argument())),
                 '\\' => self.command(&mut nodes),
                 c => nodes.push(Node::Char(c)),

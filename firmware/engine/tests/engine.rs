@@ -177,6 +177,13 @@ mod optn {
     }
 
     #[test]
+    fn degrees_minutes_and_seconds() {
+        let exact = |latex: &str| Engine::default().evaluate(Mode::Physics, &Settings::default(), &latex::parse(latex).to_latex());
+        assert_eq!(exact(r"2^\circ 20' 30''"), Ok(r"\frac{281}{120}".to_string()));
+        assert!(exact(r"50\,^\circ\mathrm{F} \blacktriangleright ^\circ\mathrm{C}").unwrap().starts_with("10"));
+    }
+
+    #[test]
     fn ncr() {
         assert_eq!(typed(Mode::Physics, r"\binom{5}{2}"), Ok("10".to_string()));
     }

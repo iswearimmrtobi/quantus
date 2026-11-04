@@ -197,7 +197,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   Int, Intg, Rnd, RndFix and ÷R under Zahl.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ and ℤ, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
-  shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor.
+  shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree
+  written as a power (`30^\circ`, `^\circ\mathrm{C}`) is read as the sign °.
 - The steps of Algebra and of the curve sketch's working are **German** when the language is
   German: every explanation of the algebra pipeline has its German text ("2 mit (x + 3)
   ausmultiplizieren", "Jeden Bruch auf den Hauptnenner bringen", "Erste binomische Formel").
