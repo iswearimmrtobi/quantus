@@ -292,14 +292,19 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 render(body, PRECEDENCE_MULTIPLICATIVE, mode)
             )
         }
-        Node::Derivative { variable, body, at: None, .. } => {
-            format!("\\frac{{d}}{{d{variable}}} {}", render(body, PRECEDENCE_MULTIPLICATIVE, mode))
+        Node::Derivative { variable, body, at: None, partial, .. } => {
+            format!("{} {}", derivative_operator(variable, *partial), render(body, PRECEDENCE_MULTIPLICATIVE, mode))
         }
-        Node::Derivative { variable, body, at: Some(at), .. } => format!(
-            "\\left.\\frac{{d}}{{d{variable}}} {}\\right|_{{{variable}={}}}",
-            render(body, PRECEDENCE_MULTIPLICATIVE, mode),
-            expression_with_mode(at, mode)
-        ),
+        Node::Derivative { variable, body, at: Some(at), given, partial, .. } => {
+            let mut point = vec![format!("{variable}={}", expression_with_mode(at, mode))];
+            point.extend(given.iter().map(|(name, value)| format!("{name}={}", expression_with_mode(value, mode))));
+            format!(
+                "\\left.{} {}\\right|_{{{}}}",
+                derivative_operator(variable, *partial),
+                render(body, PRECEDENCE_MULTIPLICATIVE, mode),
+                point.join(", ")
+            )
+        }
         Node::Matrix { rows, .. } => {
             let rows: Vec<String> =
                 rows.iter().map(|row| row.iter().map(|cell| expression_with_mode(cell, mode)).collect::<Vec<_>>().join(" & ")).collect();
@@ -508,6 +513,16 @@ fn is_unit_only(node: &Node) -> bool {
             !matches!(operator, Operator::Plus | Operator::Minus) && is_unit_only(left) && is_unit_only(right)
         }
         _ => false,
+    }
+}
+
+
+/// `\frac{d}{dx}`, or `\frac{\partial}{\partial x}` for a derivative typed with `\partial`.
+fn derivative_operator(variable: &str, partial: bool) -> String {
+    if partial {
+        format!("\\frac{{\\partial}}{{\\partial {variable}}}")
+    } else {
+        format!("\\frac{{d}}{{d{variable}}}")
     }
 }
 

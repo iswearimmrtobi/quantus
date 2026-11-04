@@ -287,6 +287,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   and Python give.
 - In Imaginary mode an integral of a complex function has a complex value:
   `\int_0^{\pi} e^{ix}\,dx = 2i`.
+- Partial derivatives in several variables: the point gives each of them,
+  `\left.\frac{\partial}{\partial x} (x^2 z)\right|_{x=2, z=3}`, in any order, and mixed partials
+  such as `\frac{\partial^2}{\partial x \partial z}`. A letter the point names is a variable in
+  the body, also one that is otherwise a unit (`t`, `y`).
 
 ### Changed
 

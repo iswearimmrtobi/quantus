@@ -45,7 +45,9 @@ pub enum Node {
     /// `side` is 0 for a two-sided limit, 1 from the right (`0^+`), -1 from the left (`0^-`).
     Limit { variable: String, target: Box<Node>, body: Box<Node>, side: i8, position: usize },
     /// `\frac{d}{dx} body`, optionally evaluated at a point: `\left.\frac{d}{dx} body\right|_{x=at}`.
-    Derivative { variable: String, body: Box<Node>, at: Option<Box<Node>>, position: usize },
+    /// `given` are the point's other variables, `|_{x=2, z=3}`, which the body is evaluated with;
+    /// `partial` says it was written with `\partial`.
+    Derivative { variable: String, body: Box<Node>, at: Option<Box<Node>>, given: Vec<(String, Node)>, partial: bool, position: usize },
     /// `\begin{pmatrix} … \end{pmatrix}`, row by row.
     Matrix { rows: Vec<Vec<Node>>, position: usize },
     /// `\det` of a matrix.
@@ -109,7 +111,9 @@ impl Node {
             Node::Sum { from, to, body, .. } => vec![from, to, body],
             Node::Integral { lower, upper, body, .. } => vec![lower, upper, body],
             Node::Limit { target, body, .. } => vec![target, body],
-            Node::Derivative { body, at, .. } => std::iter::once(&**body).chain(at.as_deref()).collect(),
+            Node::Derivative { body, at, given, .. } => {
+                std::iter::once(&**body).chain(at.as_deref()).chain(given.iter().map(|(_, value)| value)).collect()
+            }
             Node::Matrix { rows, .. } => rows.iter().flatten().collect(),
             Node::Call { arguments, .. } => arguments.iter().collect(),
             Node::System { equations, .. } => equations.iter().collect(),
@@ -156,9 +160,14 @@ impl Node {
             Node::Limit { variable, target, body, side, position } => {
                 Node::Limit { variable, target: b(target), body: b(body), side, position }
             }
-            Node::Derivative { variable, body, at, position } => {
-                Node::Derivative { variable, body: b(body), at: at.map(&mut b), position }
-            }
+            Node::Derivative { variable, body, at, given, partial, position } => Node::Derivative {
+                variable,
+                body: b(body),
+                at: at.map(&mut b),
+                given: given.into_iter().map(|(name, value)| (name, f(value))).collect(),
+                partial,
+                position,
+            },
             Node::Matrix { rows, position } => Node::Matrix {
                 rows: rows.into_iter().map(|row| row.into_iter().map(&mut *f).collect()).collect(),
                 position,

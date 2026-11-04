@@ -259,7 +259,7 @@ def partial_derivative(rng, diff):
         d, op, desc = _d2(_d2(p, "x"), "x"), "\\frac{\\partial^2}{\\partial x^2}", "second partial in x"
     latex = f"\\left.{op} ({_poly2_latex(p)})\\right|_{{{point}}}"
     return case("partial-derivative", diff, latex, {"kind": "number", "value": value_str(_at(d, x0, z0)),
-                                                     "rel_tol": TOL_EXACT}, desc, gap=True)
+                                                     "rel_tol": TOL_EXACT}, desc, gap=False)
 
 
 GENERATORS = [

@@ -447,8 +447,18 @@ pub(crate) fn collect_unknowns(
                 found.push(key);
             }
         }
-        Node::Sum { index: name, .. } | Node::Integral { variable: name, .. } | Node::Limit { variable: name, .. }
-        | Node::Derivative { variable: name, .. } => {
+        // The point's values belong to the outside; the body sees the variables they bind.
+        Node::Derivative { variable, body, at, given, .. } => {
+            for value in at.as_deref().into_iter().chain(given.iter().map(|(_, value)| value)) {
+                collect_unknowns(value, system, bound, evaluator, found);
+            }
+            let before = bound.len();
+            bound.push(variable.clone());
+            bound.extend(given.iter().map(|(name, _)| name.clone()));
+            collect_unknowns(body, system, bound, evaluator, found);
+            bound.truncate(before);
+        }
+        Node::Sum { index: name, .. } | Node::Integral { variable: name, .. } | Node::Limit { variable: name, .. } => {
             bound.push(name.clone());
             for child in node.children() {
                 collect_unknowns(child, system, bound, evaluator, found);

@@ -170,10 +170,7 @@ in [handheld-menus.md](../design/handheld-menus.md) §7.
 
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
-- Partial derivatives in several variables: a point such as `_{x=2, z=3}` and mixed partials
-  (`\partial` in one variable and the `d^n/dx^n` notation are done).
-- The generated test set has gap cases for this item, for the polynomial inequalities of §5 and
-  for the complex gaps of unsupported-inputs.md, in its `open-features` category; run them with
-  `--filter open-features`.
+- The generated test set has gap cases for the polynomial inequalities of §5 in its
+  `open-features` category; run them with `--filter open-features`.
 - Optional: a thin `quantus-server` crate (axum) over `quantus-core`, if self-hosting is wanted.
 - Optional: PKGBUILD or Flatpak, signing and updates.

@@ -101,13 +101,38 @@ const FUNCTION_COMMANDS: [&str; 21] = [
     "\\Re", "\\Im", "\\arg", "\\overline",
 ];
 
-/// `body` differentiated `order` times by `variable`, the point on the outermost derivative.
-fn nested_derivative(variable: &str, body: Node, order: u32, at: Option<Box<Node>>, position: usize) -> Node {
+/// The values a derivative's point gives, `|_{x=2, z=3}`, by variable.
+type Bindings = Vec<(String, Node)>;
+/// A point split into the value of the derivative's own variable and the others.
+type Point = (Box<Node>, Bindings);
+
+/// The `{d^n}{dx^n}` or `{\partial^2}{\partial x \partial z}` after a `\frac`.
+struct DerivativeHeader {
+    /// One entry per differentiation, outermost first: `[x, z]` for `\partial x \partial z`.
+    variables: Vec<String>,
+    partial: bool,
+    /// The token index after the header.
+    after: usize,
+}
+
+/// `body` differentiated by each of `variables`, the last one first, with the point on the
+/// outermost derivative: `at` for its variable and `given` for the others.
+fn nested_derivative(
+    variables: &[String],
+    body: Node,
+    point: Option<Point>,
+    partial: bool,
+    position: usize,
+) -> Node {
     let mut node = body;
-    for _ in 1..order {
-        node = Node::Derivative { variable: variable.to_string(), body: Box::new(node), at: None, position };
+    for variable in variables[1..].iter().rev() {
+        node = Node::Derivative { variable: variable.clone(), body: Box::new(node), at: None, given: Vec::new(), partial, position };
     }
-    Node::Derivative { variable: variable.to_string(), body: Box::new(node), at, position }
+    let (at, given) = match point {
+        Some((at, given)) => (Some(at), given),
+        None => (None, Vec::new()),
+    };
+    Node::Derivative { variable: variables[0].clone(), body: Box::new(node), at, given, partial, position }
 }
 
 /// One letter or one Greek command: the spelling of an unindexed variable.
@@ -739,8 +764,11 @@ impl Parser<'_> {
         let variable = self.prime_variable(close, close + 1 + consumed)?;
         let body = self.with_bound(&variable, |p| p.parse_group(TokenType::RParen, ")"))?;
         self.index += consumed;
-        let at = self.parse_derivative_point(&variable)?;
-        Ok(nested_derivative(&variable, body, order as u32, at, position))
+        let point = match self.parse_derivative_point()? {
+            Some((bindings, at)) => Some(self.split_point(bindings, &variable, at)?),
+            None => None,
+        };
+        Ok(nested_derivative(&vec![variable; order], body, point, false, position))
     }
 
     /// The token index of the `)` that closes the `(` at `open`.
@@ -1299,10 +1327,10 @@ impl Parser<'_> {
         Ok(name.text)
     }
 
-    /// `{d}{dx}` right after a `\frac`: the variable, the order and the token index after the
-    /// header. Also `{d^2}{dx^2}` for a higher order, `\mathrm{d}` for `d`, and `\partial` for
-    /// both `d`s, which with a single variable is the same derivative.
-    fn derivative_header(&self) -> Option<(String, u32, usize)> {
+    /// `{d}{dx}` right after a `\frac`. Also `{d^2}{dx^2}` for a higher order, `\mathrm{d}` for
+    /// `d`, and `\partial` for both `d`s, with one variable or several: `{\partial^2}{\partial x
+    /// \partial z}`, `{\partial^3}{\partial x^2 \partial z}`.
+    fn derivative_header(&self) -> Option<DerivativeHeader> {
         let kind = |i: usize| self.tokens[i.min(self.tokens.len() - 1)].kind;
         let text = |i: usize| self.tokens[i.min(self.tokens.len() - 1)].text.as_str();
         let mut i = self.index + 1;
@@ -1328,20 +1356,30 @@ impl Parser<'_> {
             return None;
         }
         i += 2;
-        let (name, length) = if partial {
-            let named = kind(i) == TokenType::Command
-                && text(i) == "\\partial"
-                && kind(i + 1) == TokenType::Identifier
-                && is_single_letter(text(i + 1));
-            named.then(|| (text(i + 1).to_string(), 2))?
+        let mut variables = Vec::new();
+        if partial {
+            // \partial x \partial z …, each with its own power, adding up to the order.
+            while kind(i) == TokenType::Command && text(i) == "\\partial" {
+                if kind(i + 1) != TokenType::Identifier || !is_single_letter(text(i + 1)) {
+                    return None;
+                }
+                let name = text(i + 1).to_string();
+                i += 2;
+                let count = self.derivative_order(&mut i)?;
+                variables.extend(std::iter::repeat_n(name, count as usize));
+            }
+            if variables.len() != order as usize || kind(i) != TokenType::RBrace {
+                return None;
+            }
         } else {
-            self.differential_at(i)?
-        };
-        i += length;
-        if self.derivative_order(&mut i)? != order || kind(i) != TokenType::RBrace {
-            return None;
+            let (name, length) = self.differential_at(i)?;
+            i += length;
+            if self.derivative_order(&mut i)? != order || kind(i) != TokenType::RBrace {
+                return None;
+            }
+            variables = vec![name; order as usize];
         }
-        Some((name, order, i + 1))
+        Some(DerivativeHeader { variables, partial, after: i + 1 })
     }
 
     /// The order after a `d` or `dx` at token `i`: `^2` or `^{2}`, moving `i` past it, or 1
@@ -1363,37 +1401,124 @@ impl Parser<'_> {
 
     /// `\frac{d}{dx} body`, and `\left.\frac{d}{dx} body\right|_{x=a}` for the value at a point;
     /// `\frac{d^n}{dx^n}` is the derivative taken n times.
+    ///
+    /// The point may give several variables, `|_{x=2, z=3}`: the derivative's own one and the
+    /// others it needs. Their letters are variables in the body, even one that is a unit (`t`).
     fn parse_derivative(&mut self, token: &Token) -> Result<Node> {
-        let (variable, order, after_header) = self.derivative_header().expect("checked by the caller");
-        self.index = after_header;
-        let body = self.with_bound(&variable, |p| p.parse_term())?;
-        let at = self.parse_derivative_point(&variable)?;
+        let header = self.derivative_header().expect("checked by the caller");
+        self.index = header.after;
+        let mut bound = header.variables.clone();
+        bound.extend(self.point_names_ahead());
+        let body = self.with_bounds(&bound, |p| p.parse_term())?;
+        let point = self.parse_derivative_point()?;
         // In `\frac{d}{dx}\frac{d}{dx} f |_{x=2}` the inner derivative has already taken the
         // point; it belongs to the outermost one.
-        let (body, at) = match (body, at) {
-            (Node::Derivative { variable, body, at: Some(point), position }, None) => {
-                (Node::Derivative { variable, body, at: None, position }, Some(point))
+        let (body, point) = match (body, point) {
+            (Node::Derivative { variable, body, at: Some(at), given, partial, position }, None) => {
+                let mut bindings = vec![(variable.clone(), *at)];
+                bindings.extend(given);
+                let inner = Node::Derivative { variable, body, at: None, given: Vec::new(), partial, position };
+                (inner, Some((bindings, position)))
             }
             other => other,
         };
-        Ok(nested_derivative(&variable, body, order, at, token.position))
+        let point = match point {
+            Some((bindings, position)) => Some(self.split_point(bindings, &header.variables[0], position)?),
+            None => None,
+        };
+        Ok(nested_derivative(&header.variables, body, point, header.partial, token.position))
     }
 
-    /// The point `|_{x=a}` after a derivative's body, if there is one; it has to name `variable`.
-    fn parse_derivative_point(&mut self, variable: &str) -> Result<Option<Box<Node>>> {
+    /// The bindings of a point as the value of `variable` and the rest; it has to name `variable`.
+    fn split_point(&self, bindings: Bindings, variable: &str, position: usize) -> Result<Point> {
+        let mut at = None;
+        let mut given = Vec::new();
+        for (name, value) in bindings {
+            if name == variable {
+                at = Some(Box::new(value));
+            } else {
+                given.push((name, value));
+            }
+        }
+        match at {
+            Some(at) => Ok((at, given)),
+            None => Err(self.error(&format!("The point has to be given for {variable}, as in _{{{variable}=2}}."), position)),
+        }
+    }
+
+    /// The point `|_{x=a}` or `|_{x=a, z=b}` after a derivative's body, if there is one, with
+    /// the position of its first name.
+    fn parse_derivative_point(&mut self) -> Result<Option<(Bindings, usize)>> {
         if self.current().kind != TokenType::Pipe || self.peek(1).kind != TokenType::Underscore {
             return Ok(None);
         }
         self.index += 2;
         self.expect(TokenType::LBrace, "'{'")?;
-        let named = self.parse_bound_name("the evaluation point")?;
-        if named != variable {
-            return Err(self.error(&format!("The point has to be given for {variable}, as in _{{{variable}=2}}."), self.current().position));
+        let position = self.current().position;
+        let mut bindings: Bindings = Vec::new();
+        loop {
+            let name_position = self.current().position;
+            let name = self.parse_bound_name("the evaluation point")?;
+            if bindings.iter().any(|(n, _)| *n == name) {
+                return Err(self.error(&format!("The point gives {name} twice."), name_position));
+            }
+            self.expect(TokenType::Equals, "'='")?;
+            bindings.push((name, self.parse_expression()?));
+            if self.current().kind != TokenType::Comma {
+                break;
+            }
+            self.advance();
         }
-        self.expect(TokenType::Equals, "'='")?;
-        let at = self.parse_expression()?;
         self.expect(TokenType::RBrace, "'}'")?;
-        Ok(Some(Box::new(at)))
+        Ok(Some((bindings, position)))
+    }
+
+    /// The letters a point `|_{x=…, z=…}` further on names, so the body reads them as variables.
+    /// Only a look ahead: the point itself is parsed after the body.
+    fn point_names_ahead(&self) -> Vec<String> {
+        let mut depth = 0_i32;
+        let mut i = self.index;
+        while i + 2 < self.tokens.len() {
+            match self.tokens[i].kind {
+                TokenType::LBrace | TokenType::LParen | TokenType::LBracket => depth += 1,
+                TokenType::RBrace | TokenType::RParen | TokenType::RBracket => {
+                    depth -= 1;
+                    if depth < 0 {
+                        return Vec::new();
+                    }
+                }
+                TokenType::End => return Vec::new(),
+                TokenType::Pipe
+                    if depth == 0
+                        && self.tokens[i + 1].kind == TokenType::Underscore
+                        && self.tokens[i + 2].kind == TokenType::LBrace =>
+                {
+                    let mut names = Vec::new();
+                    let mut j = i + 3;
+                    let mut inner = 0_i32;
+                    while j + 1 < self.tokens.len() && !(inner == 0 && self.tokens[j].kind == TokenType::RBrace) {
+                        let token = &self.tokens[j];
+                        match token.kind {
+                            TokenType::LBrace | TokenType::LParen => inner += 1,
+                            TokenType::RBrace | TokenType::RParen => inner -= 1,
+                            TokenType::Identifier
+                                if inner == 0
+                                    && is_single_letter(&token.text)
+                                    && self.tokens[j + 1].kind == TokenType::Equals =>
+                            {
+                                names.push(token.text.clone())
+                            }
+                            _ => {}
+                        }
+                        j += 1;
+                    }
+                    return names;
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        Vec::new()
     }
 
     /// The single-letter name a sum, limit or integral binds.
@@ -1404,6 +1529,14 @@ impl Parser<'_> {
         }
         self.advance();
         Ok(token.text)
+    }
+
+    fn with_bounds<T>(&mut self, names: &[String], block: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        let before = self.bound.len();
+        self.bound.extend(names.iter().cloned());
+        let result = block(self);
+        self.bound.truncate(before);
+        result
     }
 
     fn with_bound<T>(&mut self, name: &str, block: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {

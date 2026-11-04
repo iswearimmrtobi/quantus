@@ -1084,15 +1084,20 @@ fn check_free_algebraic_variables(node: &Node, bound: &mut Vec<String>, evaluato
             bound.pop();
             found
         }
-        Node::Derivative { variable, body, at, .. } => {
+        Node::Derivative { variable, body, at, given, .. } => {
             if let Some(at_node) = at {
                 if check_free_algebraic_variables(at_node, bound, evaluator) {
                     return true;
                 }
             }
+            if given.iter().any(|(_, value)| check_free_algebraic_variables(value, bound, evaluator)) {
+                return true;
+            }
+            let before = bound.len();
             bound.push(variable.clone());
+            bound.extend(given.iter().map(|(name, _)| name.clone()));
             let found = check_free_algebraic_variables(body, bound, evaluator);
-            bound.pop();
+            bound.truncate(before);
             found
         }
         _ => node.children().into_iter().any(|c| check_free_algebraic_variables(c, bound, evaluator)),

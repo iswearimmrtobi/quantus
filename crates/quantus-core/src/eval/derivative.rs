@@ -179,8 +179,10 @@ pub fn depends_on(node: &Node, var: &str) -> bool {
         }
         // Without a point the derivative is still a function of its variable.
         Node::Derivative { body, at: None, .. } => depends_on(body, var),
-        Node::Derivative { variable: bound, body, at: Some(at), .. } => {
-            depends_on(at, var) || (bound != var && depends_on(body, var))
+        Node::Derivative { variable: bound, body, at: Some(at), given, .. } => {
+            depends_on(at, var)
+                || given.iter().any(|(_, value)| depends_on(value, var))
+                || (bound != var && given.iter().all(|(name, _)| name != var) && depends_on(body, var))
         }
         other => other.children().into_iter().any(|child| depends_on(child, var)),
     }

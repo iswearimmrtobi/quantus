@@ -213,7 +213,7 @@ impl<'a> Evaluator<'a> {
             Node::Sum { index, from, to, body, product: true, .. } => self.product(index, from, to, body),
             Node::Integral { variable, lower, upper, body, .. } => self.integral(variable, lower, upper, body),
             Node::Limit { variable, target, body, side, .. } => self.limit(variable, target, body, *side),
-            Node::Derivative { variable, body, at, .. } => self.derivative(variable, body, at.as_deref()),
+            Node::Derivative { variable, body, at, given, .. } => self.derivative(variable, body, at.as_deref(), given),
             Node::Equation { .. } => {
                 self.solve(node)?.values.into_iter().next().ok_or_else(|| QuantusError::other("The equation has no solution."))
             }
@@ -761,12 +761,17 @@ impl<'a> Evaluator<'a> {
 
     /// Differentiates symbolically, then evaluates the result at `at`, or with whatever the
     /// variable already stands for.
-    fn derivative(&self, variable: &str, body: &Node, at: Option<&Node>) -> Result<PhysicalQuantity> {
+    /// `given` are the point's other variables (`|_{x=2, z=3}` for `\partial/\partial x`), taken
+    /// as fixed while differentiating and put in with the point.
+    fn derivative(&self, variable: &str, body: &Node, at: Option<&Node>, given: &[(String, Node)]) -> Result<PhysicalQuantity> {
         let derived = {
             let _unit = angles::DegreeScope::new(self.degrees());
             derivative::differentiate(body, variable)?
         };
         let mut scope = self.variables.clone();
+        for (name, value) in given {
+            scope.insert(name.clone(), self.evaluate(value)?);
+        }
         match at {
             Some(at) => {
                 scope.insert(variable.to_string(), self.evaluate(at)?);
