@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the 105,000-case engine test set into test/cases/<category>/<category>-NNN.json.
+"""Generates the engine test set into test/cases/<category>/<category>-NNN.json.
 
 Usage:
     python3 test/generator/generate.py            # write the cases
@@ -18,7 +18,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from gens import algebra, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax  # noqa: E402
+from gens import (algebra, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
+                  verify)
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -41,6 +42,8 @@ CATEGORIES = {
     "syntax": ("syn", 3000, syntax.GENERATORS),
     "complex": ("cplx", 3000, complex_numbers.GENERATORS),
     "linear-systems": ("lgs", 2000, linear_systems.GENERATORS),
+    # The modes added later, appended so the seeds of the categories above stay the same.
+    "verify": ("ver", 1000, verify.GENERATORS),
 }
 
 
@@ -118,6 +121,9 @@ def check(all_cases):
                     errors.append(f"{c['id']}: bad linear expectation")
                 if "request" not in c:
                     errors.append(f"{c['id']}: no request")
+            elif e["kind"] == "truth":
+                if not isinstance(e["value"], bool):
+                    errors.append(f"{c['id']}: truth without true or false")
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001

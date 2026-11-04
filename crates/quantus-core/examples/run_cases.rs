@@ -38,11 +38,15 @@ use quantus_core::api::{self, LinearSystemRequest, LinearSystemResponse};
 use quantus_core::eval::{Evaluator, LatexCalculator, Variables};
 use quantus_core::latex::{parser, Node};
 use quantus_core::num::{Decimal, Value as Number};
-use quantus_core::settings::{Elimination, Mode, Settings, UnknownNames};
+use quantus_core::settings::{Elimination, Settings, UnknownNames};
 use quantus_core::units::BaseDim;
 use quantus_core::PhysicalQuantity;
 
 const PRECISION: usize = 50;
+
+/// The checks of the modes added after the linear systems mode, one file each.
+#[path = "run_cases/modes.rs"]
+mod modes;
 
 struct Options {
     cases: PathBuf,
@@ -196,42 +200,43 @@ fn si_value(q: &PhysicalQuantity, displayed: &Decimal) -> Result<RBig, String> {
 
 // --- evaluation -------------------------------------------------------------------------------
 
+/// The case's `settings` on top of the defaults. The snake-case keys of the first categories are
+/// read here; every other key is a field of `Settings` as its JSON names it (`mode`, `numberBase`,
+/// `language`, `angleUnit`, `starDelta`, …).
 fn settings_of(case: &Value) -> Settings {
+    const LEGACY: [&str; 6] =
+        ["a_and_y_as_variables", "letter_products", "extra_unit_letters", "linear_complex", "elimination", "unknown_names"];
     let mut s = Settings::default();
-    if let Some(m) = case.get("settings").and_then(Value::as_object) {
-        if let Some(b) = m.get("a_and_y_as_variables").and_then(Value::as_bool) {
-            s.a_and_y_as_variables = b;
-        }
-        if let Some(b) = m.get("letter_products").and_then(Value::as_bool) {
-            s.letter_products = b;
-        }
-        if let Some(b) = m.get("extra_unit_letters").and_then(Value::as_bool) {
-            s.extra_unit_letters = b;
-        }
-        if let Some(mode) = m.get("mode").and_then(Value::as_str) {
-            s.mode = match mode {
-                "algebra" => Mode::Algebra,
-                "physics" => Mode::Physics,
-                "imaginary" => Mode::Imaginary,
-                "electronics" => Mode::Electronics,
-                "linear" => Mode::Linear,
-                other => panic!("unknown mode {other:?}"),
-            };
-        }
-        if let Some(b) = m.get("linear_complex").and_then(Value::as_bool) {
-            s.linear_complex = b;
-        }
-        if let Some(e) = m.get("elimination").and_then(Value::as_str) {
-            s.elimination = if e == "gaussJordan" { Elimination::GaussJordan } else { Elimination::Gauss };
-        }
-        if let Some(names) = m.get("unknown_names").and_then(Value::as_str) {
-            s.unknown_names = if names == "letters" { UnknownNames::Letters } else { UnknownNames::Indexed };
-        }
+    let Some(m) = case.get("settings").and_then(Value::as_object) else { return s };
+    if let Some(b) = m.get("a_and_y_as_variables").and_then(Value::as_bool) {
+        s.a_and_y_as_variables = b;
     }
-    s
+    if let Some(b) = m.get("letter_products").and_then(Value::as_bool) {
+        s.letter_products = b;
+    }
+    if let Some(b) = m.get("extra_unit_letters").and_then(Value::as_bool) {
+        s.extra_unit_letters = b;
+    }
+    if let Some(b) = m.get("linear_complex").and_then(Value::as_bool) {
+        s.linear_complex = b;
+    }
+    if let Some(e) = m.get("elimination").and_then(Value::as_str) {
+        s.elimination = if e == "gaussJordan" { Elimination::GaussJordan } else { Elimination::Gauss };
+    }
+    if let Some(names) = m.get("unknown_names").and_then(Value::as_str) {
+        s.unknown_names = if names == "letters" { UnknownNames::Letters } else { UnknownNames::Indexed };
+    }
+    let mut json = serde_json::to_value(&s).expect("settings to JSON");
+    for (key, value) in m.iter().filter(|(k, _)| !LEGACY.contains(&k.as_str())) {
+        json[key] = value.clone();
+    }
+    serde_json::from_value(json).unwrap_or_else(|e| panic!("unknown setting in {:?}: {e}", m))
 }
 
 fn run_case(case: &Value) -> Outcome {
+    if let Some(api) = case.get("api").and_then(Value::as_str) {
+        return modes::run_api_case(api, case);
+    }
     if case.get("request").is_some() {
         return run_linear_case(case);
     }
@@ -323,7 +328,7 @@ fn run_case(case: &Value) -> Outcome {
         "complex-solutions" => check_complex_solutions(latex, &settings, expect, &tol, calc.latex),
         "solutions" => check_solutions(latex, &settings, expect, &tol, calc.latex),
         "algebra" => check_algebra(latex, &settings, expect, calc.result),
-        _ => generator("unknown expectation kind"),
+        _ => modes::check_calculation(kind, &settings, expect, &calc),
     }
 }
 
