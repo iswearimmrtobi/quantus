@@ -1,4 +1,7 @@
-use quantus_core::geometry::{coplanar, points_collinear, points_coplanar, triple_product, Point, Vector3};
+use quantus_core::geometry::{
+    coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
+    triple_product, Point, Vector3,
+};
 use quantus_core::num::Value;
 use quantus_core::settings::AngleUnit;
 
@@ -111,4 +114,23 @@ fn collinear_and_coplanar() {
     assert!(!points_collinear(&p, &q, &Point::from_ints(3, 3, 2)));
     assert!(points_coplanar(&p, &Point::from_ints(1, 0, 0), &Point::from_ints(0, 1, 0), &Point::from_ints(5, -2, 0)).unwrap());
     assert!(!points_coplanar(&p, &Point::from_ints(1, 0, 0), &Point::from_ints(0, 1, 0), &Point::from_ints(0, 0, 1)).unwrap());
+}
+
+#[test]
+fn areas_and_volumes() {
+    let o = Point::origin();
+    let (a, b, c) = (Point::from_ints(4, 0, 0), Point::from_ints(0, 3, 0), Point::from_ints(0, 0, 6));
+    assert_eq!(triangle_area(&o, &a, &b).unwrap(), Value::int(6));
+    assert_eq!(parallelogram_area(&o.to(&a), &o.to(&b)).unwrap(), Value::int(12));
+    // The triangle ABC: |AB × AC| = |(18, 24, 12)| = 6√29.
+    let area = triangle_area(&a, &b, &c).unwrap();
+    assert_eq!(area.mul(&area), Value::int(261));
+    assert_eq!(parallelepiped_volume(&o.to(&a), &o.to(&b), &o.to(&c)).unwrap(), Value::int(72));
+    // The order of the edges changes the sign of the triple product, not the volume.
+    assert_eq!(parallelepiped_volume(&o.to(&b), &o.to(&a), &o.to(&c)).unwrap(), Value::int(72));
+    assert_eq!(tetrahedron_volume(&o, &a, &b, &c).unwrap(), Value::int(12));
+    assert_eq!(tetrahedron_volume(&o, &a, &b, &Point::from_ints(1, 1, 0)).unwrap(), Value::zero());
+    // A 2D triangle is the z = 0 case.
+    let p = |x, y| Point::planar(Value::int(x), Value::int(y));
+    assert_eq!(triangle_area(&p(0, 0), &p(2, 0), &p(1, 5)).unwrap(), Value::int(5));
 }

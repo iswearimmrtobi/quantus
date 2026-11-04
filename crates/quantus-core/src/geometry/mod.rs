@@ -147,6 +147,30 @@ pub fn points_coplanar(a: &Point, b: &Point, c: &Point, d: &Point) -> Result<boo
     coplanar(&a.to(b), &a.to(c), &a.to(d))
 }
 
+fn abs(value: Value) -> Result<Value> {
+    Ok(if value.is_negative()? { value.neg() } else { value })
+}
+
+/// The area of the parallelogram spanned by `a` and `b`: `|a × b|`.
+pub fn parallelogram_area(a: &Vector3, b: &Vector3) -> Result<Value> {
+    a.cross(b).length()
+}
+
+/// The area of the triangle ABC: `½ · |AB × AC|`.
+pub fn triangle_area(a: &Point, b: &Point, c: &Point) -> Result<Value> {
+    Ok(Value::ratio(1, 2).mul(&parallelogram_area(&a.to(b), &a.to(c))?))
+}
+
+/// The volume of the parallelepiped (Spat) spanned by `a`, `b` and `c`: `|(a × b) · c|`.
+pub fn parallelepiped_volume(a: &Vector3, b: &Vector3, c: &Vector3) -> Result<Value> {
+    abs(triple_product(a, b, c)?)
+}
+
+/// The volume of the tetrahedron (dreiseitige Pyramide) ABCD: `⅙ · |(AB × AC) · AD|`.
+pub fn tetrahedron_volume(a: &Point, b: &Point, c: &Point, d: &Point) -> Result<Value> {
+    Ok(Value::ratio(1, 6).mul(&parallelepiped_volume(&a.to(b), &a.to(c), &a.to(d))?))
+}
+
 /// `radians` in degrees; a rational multiple of π becomes a plain number.
 fn degrees(radians: &Value) -> Result<Value> {
     let multiple = match radians {
