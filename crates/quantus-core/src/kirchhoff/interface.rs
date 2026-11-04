@@ -23,7 +23,7 @@ use crate::{QuantusError, Result};
 
 use super::branches::{Kind, Member, Network, Part};
 use super::equivalent::equivalent;
-use super::equations::{is_negative, quantity, Current, Equation, Equations};
+use super::equations::{is_negative, with_decimal, Current, Equation, Equations};
 use super::graph::{Anchor, Edge, Graph, Point};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -290,7 +290,7 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
                 .zip(values)
                 .map(|((name, current), value)| {
                     let unit = if matches!(current, Current::Unknown(_)) { UnitKind::Ampere } else { UnitKind::Volt };
-                    Ok(format!("{name} = {}{}", if is_negative(value) { "-" } else { "" }, quantity(&calculator, value, unit)?))
+                    Ok(format!("{name} = {}", with_decimal(&calculator, value, unit)?))
                 })
                 .collect::<Result<_>>()?;
             steps.push(Step::new(StepKind::Result, response.result.join(", \\quad ")));

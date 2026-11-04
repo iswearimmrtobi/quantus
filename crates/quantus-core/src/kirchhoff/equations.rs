@@ -5,7 +5,11 @@
 //! current is known, and the voltage `U_{q,n}` across the source, `V(a) − V(b)`, is the unknown
 //! instead. Values are exact, in Ω, V and A.
 
+use dashu::integer::UBig;
+
+use crate::electro::interface::known;
 use crate::eval::LatexCalculator;
+use crate::quantity::PhysicalQuantity;
 use crate::num::Value;
 use crate::text::msg;
 use crate::units::{latex as unit_latex, Atom, Kind as UnitKind, Unit};
@@ -195,6 +199,47 @@ pub(super) fn index(id: &str) -> String {
     } else {
         format!("\\mathrm{{{id}}}")
     }
+}
+
+/// A result with its unit and sign: exact, and after a fraction its decimal, with `=` when the
+/// decimal is exact at the precision and `\approx` otherwise:
+/// `\frac{11}{5}\,\mathrm{\Omega} = 2.2\,\mathrm{\Omega}`.
+pub(super) fn with_decimal(calculator: &LatexCalculator, value: &Value, unit: UnitKind) -> Result<String> {
+    let minus = is_negative(value);
+    let sign = if minus { "-" } else { "" };
+    let exact = format!("{sign}{}", quantity(calculator, value, unit)?);
+    let Some(rational) = value.as_rational() else { return Ok(exact) };
+    if rational.denominator().is_one() {
+        return Ok(exact);
+    }
+    let size = signed(minus, value);
+    let decimal = known(calculator, &PhysicalQuantity::new(size, Unit::from(Atom::plain(unit))))?;
+    let Some(decimal) = decimal.result else { return Ok(exact) };
+    let relation = if terminates_within(rational.numerator().clone().into_parts().1, rational.denominator(), calculator.precision()) {
+        "="
+    } else {
+        "\\approx"
+    };
+    Ok(format!("{exact} {relation} {sign}{decimal}"))
+}
+
+/// Whether `numerator / denominator` is a decimal of at most `digits` significant digits.
+fn terminates_within(numerator: UBig, denominator: &UBig, digits: usize) -> bool {
+    let mut rest = denominator.clone();
+    let mut places = 0;
+    for factor in [2u8, 5] {
+        let mut count = 0;
+        while (&rest % UBig::from(factor)).is_zero() {
+            rest /= UBig::from(factor);
+            count += 1;
+        }
+        places = places.max(count);
+    }
+    if !rest.is_one() {
+        return false;
+    }
+    let scaled = numerator * UBig::from(10u8).pow(places) / denominator;
+    scaled.to_string().trim_end_matches('0').len() <= digits
 }
 
 pub(super) fn is_negative(value: &Value) -> bool {

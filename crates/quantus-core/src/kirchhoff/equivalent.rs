@@ -18,7 +18,7 @@ use crate::units::Kind as UnitKind;
 use crate::{QuantusError, Result};
 
 use super::branches::{Kind, Part};
-use super::equations::{index, quantity};
+use super::equations::{index, quantity, with_decimal};
 use super::graph::{split_wires, Edge, Point, UnionFind};
 
 /// A merge of resistors: the new one's symbol and the parts it stands for.
@@ -204,8 +204,9 @@ pub fn equivalent(
 
     if resistors.len() == 1 {
         let last = &resistors[0];
-        let latex = format!("R_{{AB}} = {}", ohms(&last.value)?);
-        steps.push(Step::new(StepKind::Result, format!("R_{{AB}} = {} = {}", last.symbol, ohms(&last.value)?)));
+        let result = with_decimal(calculator, &last.value, UnitKind::Ohm)?;
+        let latex = format!("R_{{AB}} = {result}");
+        steps.push(Step::new(StepKind::Result, format!("R_{{AB}} = {} = {result}", last.symbol)));
         return Ok(Equivalent {
             value: last.value.clone(),
             latex,
@@ -281,14 +282,14 @@ pub fn equivalent(
     };
     // φ_A in V for I = 1 A: R_AB in Ω has the same number.
     let value = values[0].clone();
-    let latex = format!("R_{{AB}} = {}", ohms(&value)?);
+    let latex = format!("R_{{AB}} = {}", with_decimal(calculator, &value, UnitKind::Ohm)?);
     steps.push(Step::new(
         StepKind::Result,
         format!(
             "R_{{AB}} = \\frac{{\\varphi_{{A}}}}{{I}} = \\frac{{{}}}{{{}}} = {}",
             quantity(calculator, &value, UnitKind::Volt)?,
             quantity(calculator, &Value::one(), UnitKind::Ampere)?,
-            ohms(&value)?
+            with_decimal(calculator, &value, UnitKind::Ohm)?
         ),
     ));
     Ok(Equivalent { value, latex, steps, merges, notes, unknowns: names, matrix })
@@ -415,7 +416,7 @@ fn merge_parallel(resistors: &mut Vec<Resistor>, group: &[usize], calculator: &L
         "{names} are in parallel: they lie between the same two nodes.",
         "{names} sind parallel: sie liegen zwischen denselben zwei Knoten."
     );
-    let steps = merge_steps(&target, symbols.join(" \\parallel "), formula, substituted, ohms(&value)?, explanation);
+    let steps = merge_steps(&target, symbols.join(" \\parallel "), formula, substituted, with_decimal(calculator, &value, UnitKind::Ohm)?, explanation);
     let merged = Resistor {
         symbol: target.clone(),
         indices,
@@ -451,7 +452,7 @@ fn merge_series(
         "{pn} and {qn} are in series: nothing else branches off between them, so the same current flows through both.",
         "{pn} und {qn} sind in Reihe: zwischen ihnen zweigt nichts ab, daher fließt durch beide derselbe Strom."
     );
-    let steps = merge_steps(&target, sum.clone(), sum, substituted, ohms(&value)?, explanation);
+    let steps = merge_steps(&target, sum.clone(), sum, substituted, with_decimal(calculator, &value, UnitKind::Ohm)?, explanation);
     let merged = Resistor {
         symbol: target.clone(),
         indices,

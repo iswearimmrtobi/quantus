@@ -102,9 +102,9 @@ fn two_sources_with_three_resistors() {
     assert_eq!(
         solved.result,
         [
-            "I_{1} = \\frac{3}{800}\\,\\mathrm{A}",
-            "I_{2} = \\frac{1}{1600}\\,\\mathrm{A}",
-            "I_{3} = \\frac{1}{320}\\,\\mathrm{A}"
+            "I_{1} = \\frac{3}{800}\\,\\mathrm{A} = 3{,}75\\,\\mathrm{mA}",
+            "I_{2} = \\frac{1}{1600}\\,\\mathrm{A} = 625\\,\\mathrm{\\mu A}",
+            "I_{3} = \\frac{1}{320}\\,\\mathrm{A} = 3{,}125\\,\\mathrm{mA}"
         ]
     );
     assert_eq!(shown(&solved, "R1", "current"), "3{,}75\\,\\mathrm{mA}");
@@ -516,9 +516,11 @@ fn a_flipped_branch_negates_its_current() {
                 assert_eq!(before, after);
                 continue;
             }
-            let negated = match before.split_once("= -") {
-                Some((name, size)) => format!("{name}= {size}"),
-                None => before.replacen("= ", "= -", 1),
+            // The exact value and its decimal both change sign.
+            let negated = if before.contains("= -") {
+                before.replace("= -", "= ").replace("\\approx -", "\\approx ")
+            } else {
+                before.replace("= ", "= -").replace("\\approx ", "\\approx -")
             };
             let zero = before.ends_with("= 0\\,\\mathrm{A}");
             assert_eq!(after, if zero { before } else { &negated }, "{}", branch.lead);
@@ -612,7 +614,7 @@ fn a_series_resistor_before_a_parallel_pair() {
     let response = between(r1_and_two_in_parallel(), (0, 0), (8, 0), &Settings::default()).unwrap();
     let equivalent = response.equivalent.unwrap();
     // 1 + 2·3/5 = 11/5.
-    assert_eq!(equivalent.latex, "R_{AB} = \\frac{11}{5}\\,\\mathrm{\\Omega }");
+    assert_eq!(equivalent.latex, "R_{AB} = \\frac{11}{5}\\,\\mathrm{\\Omega } = 2{,}2\\,\\mathrm{\\Omega }");
     let merges: Vec<(&str, Vec<&str>)> =
         equivalent.merges.iter().map(|m| (m.symbol.as_str(), m.parts.iter().map(String::as_str).collect())).collect();
     assert_eq!(merges, [("R_{23}", vec!["R2", "R3"]), ("R_{123}", vec!["R1", "R2", "R3"])]);
@@ -695,4 +697,20 @@ fn the_reduction_follows_the_detail_level_and_the_language() {
     let german = between(r1_and_two_in_parallel(), (0, 0), (8, 0), &Settings { language: Language::De, ..Settings::default() }).unwrap();
     assert_eq!(german.steps[0].explanation.as_deref(), Some("R₂ und R₃ sind parallel: sie liegen zwischen denselben zwei Knoten."));
     assert_eq!(german.steps[1].explanation.as_deref().map(|e| e.starts_with("R₁ und R₂₃ sind in Reihe")), Some(true));
+}
+
+#[test]
+fn a_fraction_that_does_not_end_gets_an_approximate_decimal() {
+    // 1 Ω ∥ 2 Ω = 2/3 Ω.
+    let parallel = vec![
+        part("R1", "1\\Omega", (0, 0), (4, 0)),
+        part("R2", "2\\Omega", (0, 4), (4, 4)),
+        part("W1", "", (0, 0), (0, 4)),
+        part("W2", "", (4, 0), (4, 4)),
+    ];
+    let response = between(parallel, (0, 2), (4, 2), &Settings { precision: 6, ..Settings::default() }).unwrap();
+    assert_eq!(
+        response.equivalent.unwrap().latex,
+        "R_{AB} = \\frac{2}{3}\\,\\mathrm{\\Omega } \\approx 666{,}667\\,\\mathrm{m\\Omega }"
+    );
 }

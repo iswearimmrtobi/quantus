@@ -129,7 +129,9 @@ The working then reduces the network the way it is done by hand, one merge per l
   $R_{123} = R_1 + R_{23}$.
 
 Parallel resistors are merged first, then series ones, until one resistor between A and B is
-left: that is $R_{AB}$, exact. The merged resistor is named after the parts it stands for. While
+left: that is $R_{AB}$, exact. A fraction is followed by its decimal, with $=$ if the decimal ends
+within the precision and $\approx$ if not: $R_{AB} = \frac{2}{3}\,\Omega \approx 666{,}667\,\mathrm{m}\Omega$.
+The currents of the junction and loop rules are written the same way. The merged resistor is named after the parts it stands for. While
 the pointer is on a line, the canvas shows the network after that merge: the merged resistor sits
 in the place of the first one it stands for, a resistor in series with it becomes a wire, and one
 in parallel goes away. Moving the pointer off brings the drawing back. The step detail decides how much each line
