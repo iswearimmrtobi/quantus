@@ -6,7 +6,7 @@
 //! back one level, AC closes the menu. Touch: a tap opens a line, a drag pages ([`Menu::tap`],
 //! [`Menu::page`], [`Menu::step`]).
 
-use crate::backend::{Catalogue, Group, Network, SessionInfo, Storage, WlanStatus};
+use crate::backend::{Catalogue, Group, Network, SessionInfo, Storage, Stored, WlanStatus};
 use crate::clock::{self, Local};
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
@@ -253,6 +253,10 @@ pub enum Edit {
     WlanStatus { label: Text, status: WlanStatus },
     /// The digits of a date or a time being typed; `error` marks one that does not exist.
     Time { label: Text, field: TimeField, typed: String, error: bool },
+    /// The session's variables (VARS).
+    Variables { label: Text, variables: Vec<Stored>, selected: usize },
+    /// What can be done to the variable `index` of `variables`: [`VARIABLE_ACTIONS`].
+    Variable { label: Text, variables: Vec<Stored>, index: usize, selected: usize },
     /// The categories of a catalogue, or the items of the category `group`; `close` says that
     /// leaving the categories closes the menu (opened by its key, not from a page).
     Catalogue { label: Text, catalogue: Catalogue, groups: Vec<Group>, group: Option<usize>, selected: usize, close: bool },
@@ -274,6 +278,13 @@ pub enum TextFor {
     /// The name a value is kept under (STO): the value as LaTeX.
     Variable(String),
 }
+
+/// What VARS does to a variable chosen: inserts its name, changes its value, deletes it.
+pub const VARIABLE_ACTIONS: [Text; 3] = [
+    crate::text::t("Einfügen", "Insert"),
+    crate::text::t("Wert ändern", "Change value"),
+    crate::text::t("Löschen", "Delete"),
+];
 
 /// The longest name of a variable typed for STO.
 pub const VARIABLE_LENGTH: usize = 12;
@@ -364,6 +375,8 @@ pub enum Outcome {
     Item,
     /// Keep the value of the text field under the name typed (the app reads both from it).
     Store,
+    /// Do [`VARIABLE_ACTIONS`]`[action]` to the variable chosen (the app reads it from the edit).
+    Variable(usize),
 }
 
 impl Menu {
@@ -393,6 +406,8 @@ impl Menu {
                 | Edit::Saved { label, .. }
                 | Edit::Forget { label, .. }
                 | Edit::WlanStatus { label, .. }
+                | Edit::Variables { label, .. }
+                | Edit::Variable { label, .. }
                 | Edit::Catalogue { label, .. },
             ) => *label,
             None => self.level().page.title,
@@ -507,6 +522,8 @@ impl Menu {
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
             Some(Edit::Catalogue { groups, group, selected, .. }) => Some((*selected, catalogue_len(groups, *group))),
+            Some(Edit::Variables { variables, selected, .. }) => Some((*selected, variables.len())),
+            Some(Edit::Variable { selected, .. }) => Some((*selected, VARIABLE_ACTIONS.len())),
             _ => None,
         }
     }
@@ -528,6 +545,8 @@ impl Menu {
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
             Some(Edit::Catalogue { groups, group, selected, .. }) => Some((selected, catalogue_len(groups, *group))),
+            Some(Edit::Variables { variables, selected, .. }) => Some((selected, variables.len())),
+            Some(Edit::Variable { selected, .. }) => Some((selected, VARIABLE_ACTIONS.len())),
             _ => None,
         }
     }
@@ -810,6 +829,20 @@ impl Menu {
                 }
                 self.edit = Some(Edit::Time { label, field, typed, error: false });
             }
+            Edit::Variables { label, variables, selected } => match pick(key, selected, variables.len()) {
+                Pick::Move(selected) => self.edit = Some(Edit::Variables { label, variables, selected }),
+                Pick::Chosen(index) => self.edit = Some(Edit::Variable { label, variables, index, selected: 0 }),
+                Pick::Back => {}
+            },
+            Edit::Variable { label, variables, index, selected } => match pick(key, selected, VARIABLE_ACTIONS.len()) {
+                Pick::Move(selected) => self.edit = Some(Edit::Variable { label, variables, index, selected }),
+                Pick::Chosen(action) => {
+                    // The app reads the variable from it.
+                    self.edit = Some(Edit::Variable { label, variables, index, selected: action });
+                    return Outcome::Variable(action);
+                }
+                Pick::Back => self.edit = Some(Edit::Variables { label, variables, selected: index }),
+            },
             Edit::Catalogue { label, catalogue, groups, group, selected, close } => {
                 let edit = |groups, group, selected| Some(Edit::Catalogue { label, catalogue, groups, group, selected, close });
                 match (pick(key, selected, catalogue_len(&groups, group)), group) {

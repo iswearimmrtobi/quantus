@@ -159,7 +159,7 @@ in yet.
 - [x] Exact cubics and quartics, no [−100, 100] limit
 - [x] SOLVE (SHIFT+CALC, OPTN → Werkzeuge): the form of CALC, solved for the letter left empty; with all given, for the one at the cursor, Newton starting from its value
 - [x] CALC: a form over the input asks for its free variables (F8, Ctrl+B, or OPTN → Werkzeuge); the values stay in the session
-- [~] STO and VARS — STO (SHIFT+VARS) keeps the shown result under any name typed; the VARS list waits
+- [x] STO and VARS: STO (SHIFT+VARS) keeps the shown result under any name typed; VARS lists the session's variables with their values, to insert one, change its value (in CALC's form) or delete it
 - [~] Basis-N, matrices, statistics, regressions, distributions — in the engine; no modes in the hui
 - [~] wahr/falsch for an equation without unknowns — in the engine; Prüfen not wired
 - [x] Step levels and the step settings passed to the engine (the list is not shown yet)

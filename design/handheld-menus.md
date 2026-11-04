@@ -72,7 +72,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] CONV menu by category
 - [x] CALC prompt: a form over the input, a field per letter
 - [x] SOLVE screen: CALC's form, solved for the letter left empty
-- [ ] VARS screen: insert, edit, delete session variables
+- [x] VARS screen: insert, edit (CALC's form with the one field), delete session variables; STO
 - [ ] Editing: UNDO/REDO, INS, selection with SHIFT+←/→, copy and paste
 - [x] Sitzungen: the menu, files on the SD card, the last session reopened on wake-up (from the
       MODE tile; the SHIFT key waits for the keypad)
@@ -723,7 +723,7 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | CONV | own key | `Conv` (F7, Ctrl+Y): the core's 19 categories, then the units; inserts `▶` and the unit, in every mode |
 | S⇔D | S⇔D | exists (`SwapForm`) |
 | ENG, ←ENG | a key and SHIFT + it | missing |
-| STO, VARS | SHIFT + a key, and a key | `Vars` (F11, Ctrl+V); SHIFT + it is STO: a name typed (`A`, `r_1`), the shown result kept under it (`Ans`, `PreAns` or the result as shown) |
+| STO, VARS | SHIFT + a key, and a key | `Vars` (F11, Ctrl+V); SHIFT + it is STO: a name typed (`A`, `r_1`), the shown result kept under it (`Ans`, `PreAns` or the result as shown). VARS alone lists the variables with their values: Einfügen, Wert ändern (CALC's form with its one field), Löschen |
 | CALC, SOLVE | a key and SHIFT + it, or OPTN → Werkzeuge | `Calc` (F8, Ctrl+B): a form over the input with a field per free letter (`sheet::Kind::Formula`); its answer goes into the history. SHIFT + it is SOLVE: the same form, solved for the letter left empty (all given: the one at the cursor, starting from its value) |
 | Sitzungen | SHIFT + a key, or the MODE tile | the MODE tile |
 | PreAns | SHIFT + Ans | missing |

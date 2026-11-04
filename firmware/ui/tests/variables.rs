@@ -1,7 +1,7 @@
 //! STO keeps a result under a name; VARS lists the session's variables.
 
 use quantus_ui::app::{App, Mode, Screen, Settings};
-use quantus_ui::backend::{Backend, Stored, Stub, VariableCommand};
+use quantus_ui::backend::{Backend, Reply, Request, Stored, Stub, VariableCommand};
 use quantus_ui::key::Key;
 use quantus_ui::menu::{Edit, TextFor};
 use quantus_ui::text;
@@ -16,6 +16,10 @@ struct Memory {
 impl Backend for Memory {
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
         Stub.evaluate(mode, settings, latex)
+    }
+
+    fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        Stub.solve(settings, request)
     }
 
     fn variables(&mut self, command: VariableCommand, _settings: &Settings) -> Result<Vec<Stored>, String> {
@@ -101,5 +105,53 @@ fn a_key_after_stored_goes_back_to_the_calculation() {
     press(&mut app, &[Key::Digit(7), Key::Exe, Key::Shift, Key::Vars]);
     typed(&mut app, "A");
     press(&mut app, &[Key::Ok, Key::Ok]);
+    assert_eq!(app.screen, Screen::Calc);
+}
+
+/// Two variables stored, A = 5 and B = 6, and VARS open on them.
+fn with_two() -> App<Memory> {
+    let mut memory = Memory::default();
+    for (key, value) in [("A", "5"), ("B", "6")] {
+        memory.variables.push(Stored { key: key.into(), symbol: key.into(), value: value.into() });
+    }
+    let mut app = App::new(memory);
+    app.key(Key::Vars);
+    assert!(matches!(edit(&app), Edit::Variables { variables, .. } if variables.len() == 2));
+    app
+}
+
+#[test]
+fn vars_inserts_a_variable() {
+    let mut app = with_two();
+    // B → Einfügen.
+    press(&mut app, &[Key::Down, Key::Exe, Key::Exe]);
+    assert_eq!(app.screen, Screen::Calc);
+    assert_eq!(app.editor.to_latex(), "B");
+}
+
+#[test]
+fn vars_changes_a_value_in_the_form_of_calc() {
+    let mut app = with_two();
+    // A → Wert ändern: the form holds 5; 7 instead, EXE twice.
+    press(&mut app, &[Key::Exe, Key::Down, Key::Exe]);
+    assert_eq!(app.sheet_kind(), Some(quantus_ui::sheet::Kind::Formula));
+    assert_eq!(app.sheets.formula.latex(0, 0), "5");
+    press(&mut app, &[Key::Digit(7), Key::Exe, Key::Exe]);
+    let entry = app.shown_entry().expect("the new value is shown");
+    assert_eq!(entry.result.as_ref().map(|row| row.to_latex()), Ok("A;A=7".to_string()));
+}
+
+#[test]
+fn vars_deletes_a_variable_and_lists_the_rest() {
+    let mut app = with_two();
+    press(&mut app, &[Key::Exe, Key::Down, Key::Down, Key::Exe]);
+    assert!(matches!(edit(&app), Edit::Variables { variables, .. } if variables.len() == 1 && variables[0].key == "B"));
+    press(&mut app, &[Key::Exe, Key::Up, Key::Exe]);
+    assert!(matches!(edit(&app), Edit::Message { message, .. } if *message == text::NO_VARIABLES));
+    // ← from the actions goes back to the list, ← from the list closes VARS.
+    let mut app = with_two();
+    press(&mut app, &[Key::Exe, Key::Left]);
+    assert!(matches!(edit(&app), Edit::Variables { .. }));
+    press(&mut app, &[Key::Left]);
     assert_eq!(app.screen, Screen::Calc);
 }

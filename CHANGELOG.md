@@ -205,6 +205,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   of them given, for the one at the cursor, starting from its value.
 - **STO** on the handheld (SHIFT+VARS; F1 then F11 in the simulator): the shown result is kept
   in the session under a name typed, any letter with letters, digits and an index after `_`.
+  **VARS** (F11, Ctrl+V) lists the session's variables with their values; one chosen is
+  inserted, gets a new value in the form of CALC, or is deleted.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ, ℤ, ℏ and the conversion arrow ▶, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree

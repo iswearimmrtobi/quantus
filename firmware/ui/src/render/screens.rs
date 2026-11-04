@@ -314,6 +314,18 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             lines_page(shapes, vec![Line { label, value: None, math: None, mark: Mark::None }], 0, &list);
         }
         Some(Edit::WlanStatus { status, .. }) => wlan_screen(shapes, status, lang, glass),
+        Some(Edit::Variables { variables, selected, .. }) => {
+            let lines = variables.iter().map(|variable| Line {
+                label: variable.key.clone(),
+                math: Some(crate::latex::parse(&variable.value)),
+                ..Line::default()
+            });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
+        Some(Edit::Variable { selected, .. }) => {
+            let lines = menu::VARIABLE_ACTIONS.iter().map(|action| Line { label: action.get(lang).to_string(), ..Line::default() });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
         Some(Edit::Catalogue { groups, group: None, selected, .. }) => {
             let lines = groups.iter().map(|group| Line { label: group.name.clone(), mark: Mark::Arrow, ..Line::default() });
             lines_page(shapes, lines.collect(), *selected, &list);

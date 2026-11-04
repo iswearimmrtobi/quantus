@@ -887,6 +887,22 @@ impl<B: Backend> App<B> {
                 let typed = self.session.as_ref().map(|session| session.name.clone()).unwrap_or_default();
                 menu.edit = Some(Edit::Text { label, purpose: TextFor::Name, typed, error: false, plain: true });
             }
+            Outcome::Variable(action) => {
+                let Some(Edit::Variable { variables, index, .. }) = &menu.edit else { return };
+                let Some(variable) = variables.get(*index).cloned() else { return };
+                match action {
+                    0 => return self.insert(&variable.symbol),
+                    1 => return self.change(variable),
+                    _ => match self.variables(VariableCommand::Delete(variable.key)) {
+                        // The list again, on the variable after the one deleted.
+                        Edit::Variables { label, variables, .. } => {
+                            let selected = (*index).min(variables.len() - 1);
+                            menu.edit = Some(Edit::Variables { label, variables, selected });
+                        }
+                        edit => menu.edit = Some(edit),
+                    },
+                }
+            }
             Outcome::Store => {
                 let Some(Edit::Text { label, purpose: TextFor::Variable(latex), typed, .. }) = &menu.edit else { return };
                 let (label, key, latex) = (*label, typed.clone(), latex.clone());
@@ -1162,6 +1178,7 @@ impl<B: Backend> App<B> {
             Key::Conv => return self.open_catalogue(Catalogue::Units),
             Key::Calc => return self.formula(shift),
             Key::Vars if shift => return self.sto(),
+            Key::Vars => return self.vars(),
             _ => {}
         }
         // While the backend calculates, AC drops its answer and the other keys wait; the graph
@@ -1267,6 +1284,39 @@ impl<B: Backend> App<B> {
             Some(reply) => self.finish_sheet(reply),
             None => self.busy = true,
         }
+    }
+
+    /// VARS: the session's variables, each with its value; choosing one offers to insert it,
+    /// change its value or delete it.
+    fn vars(&mut self) {
+        let mut menu = Menu::new(&tree::VARIABLES);
+        menu.edit = Some(self.variables(VariableCommand::List));
+        self.screen = Screen::Menu(menu);
+    }
+
+    /// Does `command` to the variables and lists them afterwards; a message if there are none.
+    fn variables(&mut self, command: VariableCommand) -> Edit {
+        let label = text::VARS;
+        let settings = self.settings;
+        match self.backend.variables(command, &settings) {
+            Ok(variables) if variables.is_empty() => Edit::Message { label, message: text::NO_VARIABLES },
+            Ok(variables) => Edit::Variables { label, variables, selected: 0 },
+            Err(note) => Edit::Note { label, note },
+        }
+    }
+
+    /// Changes the value of `variable`: CALC's form with its one field, holding the value now.
+    fn change(&mut self, variable: crate::backend::Stored) {
+        if self.pending.is_some() {
+            return;
+        }
+        self.reset();
+        self.answer = None;
+        self.editor.set(latex::parse(&variable.symbol));
+        let mode = if self.mode.engine() { self.mode } else { Mode::Physics };
+        let asked = crate::backend::Variable { key: variable.key, symbol: variable.symbol };
+        self.sheets.ask(sheet::Formula { mode, variables: vec![asked], solve: false });
+        self.sheets.formula.set(0, 0, latex::parse(&variable.value));
     }
 
     /// STO: asks for the name to keep the shown result under, the last one if none is shown.
