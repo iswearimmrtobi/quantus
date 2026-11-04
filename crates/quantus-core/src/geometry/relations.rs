@@ -32,7 +32,7 @@ pub enum LinePlane {
 
 impl Plane {
     /// The plane in coordinate form, with the working of the conversion if it was in another.
-    fn in_coordinates(&self, working: &mut Working) -> Plane {
+    pub(crate) fn in_coordinates(&self, working: &mut Working) -> Plane {
         if self.form == PlaneForm::Coordinate {
             return self.clone();
         }
@@ -169,42 +169,51 @@ impl Plane {
             working.extend(part);
             return Ok(Worked::new(PlanePlane::Parallel { distance }, working));
         }
-        let direction = n1.cross(n2);
-        working.add(
-            Standard,
-            msg!("The line of intersection is perpendicular to both normals:", "Die Schnittgerade steht senkrecht auf beiden Normalenvektoren:"),
-            format!("\\vec{{u}} = \\vec{{n_1}} \\times \\vec{{n_2}} = {} \\times {} = {}", show::vector(n1), show::vector(n2), show::vector(&direction)),
-        );
-        // A common point: one coordinate 0, where the other two have a non-zero determinant
-        // (the entry of the cross product there); z first, as at school.
-        let m = [2, 1, 0].into_iter().find(|&m| !direction.coords[m].is_zero()).expect("the normals are not collinear");
-        let (i, j) = match m {
-            0 => (1, 2),
-            1 => (0, 2),
-            _ => (0, 1),
-        };
-        let names = ["x", "y", "z"];
-        let (a, b, d1, d2) = (&n1.coords, &n2.coords, &e.constant, &f.constant);
-        let equations = [(a, d1), (b, d2)]
-            .map(|(c, d)| format!("{} = {}", show::combination(&[(&c[i], names[i]), (&c[j], names[j])]), show::value(d)));
-        working.add(
-            Standard,
-            msg!("A common point: set {} = 0 in both equations.", "Ein gemeinsamer Punkt: {} = 0 in beide Gleichungen einsetzen.", names[m]),
-            format!("\\begin{{aligned}} {} \\\\ {} \\end{{aligned}}", equations[0], equations[1]),
-        );
-        let determinant = a[i].mul(&b[j]).sub(&a[j].mul(&b[i]));
-        let mut coords = [Value::zero(), Value::zero(), Value::zero()];
-        coords[i] = d1.mul(&b[j]).sub(&a[j].mul(d2)).div(&determinant)?;
-        coords[j] = a[i].mul(d2).sub(&d1.mul(&b[i])).div(&determinant)?;
-        let point = Point::new(coords[0].clone(), coords[1].clone(), coords[2].clone());
-        working.add(
-            Detailed,
-            msg!("Solved:", "Gelöst:"),
-            format!("{} = {}, \\quad {} = {}", names[i], show::value(&point.coords[i]), names[j], show::value(&point.coords[j])),
-        );
-        let line = Line::new(point, direction)?;
-        working.add(Brief, msg!("The planes meet in the line", "Die Ebenen schneiden sich in der Geraden"), line.equation());
+        let line = cut_line(&e, &f, &mut working)?;
         let angle = acute_angle(n1, n2, true, unit, precision, &mut working)?;
         Ok(Worked::new(PlanePlane::Intersecting { line, angle }, working))
     }
+}
+
+/// The line where the planes `e` and `f` (in coordinate form, with normals that are not
+/// collinear) meet: along `\vec{n_1} \times \vec{n_2}`, through the common point with one
+/// coordinate 0.
+pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Line> {
+    let (n1, n2) = (&e.normal, &f.normal);
+    let direction = n1.cross(n2);
+    working.add(
+        Standard,
+        msg!("The line of intersection is perpendicular to both normals:", "Die Schnittgerade steht senkrecht auf beiden Normalenvektoren:"),
+        format!("\\vec{{u}} = \\vec{{n_1}} \\times \\vec{{n_2}} = {} \\times {} = {}", show::vector(n1), show::vector(n2), show::vector(&direction)),
+    );
+    // A common point: one coordinate 0, where the other two have a non-zero determinant
+    // (the entry of the cross product there); z first, as at school.
+    let m = [2, 1, 0].into_iter().find(|&m| !direction.coords[m].is_zero()).expect("the normals are not collinear");
+    let (i, j) = match m {
+        0 => (1, 2),
+        1 => (0, 2),
+        _ => (0, 1),
+    };
+    let names = ["x", "y", "z"];
+    let (a, b, d1, d2) = (&n1.coords, &n2.coords, &e.constant, &f.constant);
+    let equations = [(a, d1), (b, d2)]
+        .map(|(c, d)| format!("{} = {}", show::combination(&[(&c[i], names[i]), (&c[j], names[j])]), show::value(d)));
+    working.add(
+        Standard,
+        msg!("A common point: set {} = 0 in both equations.", "Ein gemeinsamer Punkt: {} = 0 in beide Gleichungen einsetzen.", names[m]),
+        format!("\\begin{{aligned}} {} \\\\ {} \\end{{aligned}}", equations[0], equations[1]),
+    );
+    let determinant = a[i].mul(&b[j]).sub(&a[j].mul(&b[i]));
+    let mut coords = [Value::zero(), Value::zero(), Value::zero()];
+    coords[i] = d1.mul(&b[j]).sub(&a[j].mul(d2)).div(&determinant)?;
+    coords[j] = a[i].mul(d2).sub(&d1.mul(&b[i])).div(&determinant)?;
+    let point = Point::new(coords[0].clone(), coords[1].clone(), coords[2].clone());
+    working.add(
+        Detailed,
+        msg!("Solved:", "Gelöst:"),
+        format!("{} = {}, \\quad {} = {}", names[i], show::value(&point.coords[i]), names[j], show::value(&point.coords[j])),
+    );
+    let line = Line::new(point, direction)?;
+    working.add(Brief, msg!("The planes meet in the line", "Die Ebenen schneiden sich in der Geraden"), line.equation());
+    Ok(line)
 }

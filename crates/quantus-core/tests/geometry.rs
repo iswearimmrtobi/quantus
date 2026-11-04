@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, Circle, CircleLine, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere, Vector3, Working,
+    triple_product, Circle, CircleLine, CirclePlane, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -844,4 +844,34 @@ fn the_tangent_of_a_circle() {
     let k = Circle::new(&at([0, 0, 1]), Value::int(2), &ints([1, 0, 0])).unwrap();
     let tangent = k.tangent(&at([0, 2, 1])).unwrap().result;
     assert_eq!(tangent.direction, ints([0, 0, 2]));
+}
+
+#[test]
+fn a_circle_and_a_plane() {
+    // The circle of radius 5 around the origin in z = 0.
+    let k = Circle::new(&at([0, 0, 0]), Value::int(5), &ints([0, 0, 1])).unwrap();
+    // y = 3 cuts it in (±4|3|0).
+    let worked = k.meet_plane(&coordinate_plane(0, 1, 0, 3)).unwrap();
+    let CirclePlane::Cut { points } = &worked.result else { panic!("{:?}", worked.result) };
+    let mut xs: Vec<String> = points.iter().map(|p| show(&p.coords[0])).collect();
+    xs.sort();
+    assert_eq!(xs, ["-4", "4"]);
+    assert!(points.iter().all(|p| p.coords[1] == Value::int(3) && p.coords[2].is_zero()));
+    // x = 5 touches it, x + y = 10 misses it.
+    let CirclePlane::Touch { point } = k.meet_plane(&coordinate_plane(1, 0, 0, 5)).unwrap().result else { panic!() };
+    assert_eq!(point, at([5, 0, 0]));
+    assert_eq!(k.meet_plane(&coordinate_plane(1, 1, 0, 10)).unwrap().result, CirclePlane::Miss);
+    // Its own plane, also as a multiple, and a parallel one.
+    assert_eq!(k.meet_plane(&coordinate_plane(0, 0, 2, 0)).unwrap().result, CirclePlane::Contained);
+    assert_eq!(k.meet_plane(&coordinate_plane(0, 0, 1, 1)).unwrap().result, CirclePlane::Parallel);
+    // An oblique plane through the centre cuts in two points at distance 5.
+    let CirclePlane::Cut { points } = k.meet_plane(&coordinate_plane(1, -1, 1, 0)).unwrap().result else { panic!() };
+    for p in &points {
+        let v = at([0, 0, 0]).to(p);
+        assert_eq!(decimal(&v.dot(&v)), decimal(&Value::int(25)));
+    }
+}
+
+fn show(value: &Value) -> String {
+    value.decimal(12).unwrap().round(6).to_string()
 }

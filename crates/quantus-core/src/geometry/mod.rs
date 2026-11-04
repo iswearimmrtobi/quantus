@@ -14,7 +14,7 @@ mod show;
 mod sphere;
 mod working;
 
-pub use circle::{Circle, CircleLine};
+pub use circle::{Circle, CircleLine, CirclePlane};
 pub use eval::{GeometryEvaluator, Item, Objects};
 pub use line::{Line, LineRelation};
 pub use plane::{Plane, PlaneForm};

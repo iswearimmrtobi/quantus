@@ -6,9 +6,11 @@ use crate::settings::StepDetail::{Brief, Detailed, Standard};
 use crate::text::msg;
 use crate::{QuantusError, Result};
 
+use super::line::multiple;
+use super::relations::cut_line;
 use super::show;
 use super::working::{Worked, Working};
-use super::{equal, Line, Plane, Point, Sphere, SphereLine, SpherePlane, Vector3};
+use super::{equal, Line, Plane, PlaneForm, Point, Sphere, SphereLine, SpherePlane, Vector3};
 
 /// A circle around `centre` with `radius` (> 0) in the plane through the centre perpendicular
 /// to `normal`.
@@ -32,6 +34,21 @@ pub enum CircleLine {
     Crossing { point: Point },
     /// No common point, and not in the plane of the circle.
     Apart,
+}
+
+/// How a plane lies to a circle.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CirclePlane {
+    /// The plane cuts the circle in two points.
+    Cut { points: [Point; 2] },
+    /// The plane touches the circle in one point.
+    Touch { point: Point },
+    /// The planes meet, but their line misses the circle.
+    Miss,
+    /// The circle lies in the plane.
+    Contained,
+    /// The plane is parallel to the circle's and not the same.
+    Parallel,
 }
 
 fn error(message: String) -> QuantusError {
@@ -258,5 +275,38 @@ impl Circle {
         let line = Line::new(Point { planar, ..p.clone() }, direction)?;
         working.add(Brief, msg!("The tangent:", "Die Tangente:"), line.equation());
         Ok(Worked::new(line, working))
+    }
+
+    /// How `plane` lies to the circle: the circle lies in it, it is parallel, or the two planes
+    /// meet in a line, which cuts, touches or misses the circle.
+    pub fn meet_plane(&self, plane: &Plane) -> Result<Worked<CirclePlane>> {
+        let mut working = Working::default();
+        let e = plane.in_coordinates(&mut working);
+        if multiple(&self.normal, &e.normal).is_some() {
+            let inside = equal(&e.normal.dot(&self.centre.position()), &e.constant);
+            working.add(
+                Standard,
+                msg!("The plane is parallel to the plane of the circle; is the centre in it?", "Die Ebene ist parallel zur Ebene des Kreises; liegt der Mittelpunkt in ihr?"),
+                format!("{} {} {}", show::dot(&e.normal, &Vector3 { planar: false, ..self.centre.position() }), if inside { "=" } else { "\\neq" }, show::value(&e.constant)),
+            );
+            if inside {
+                working.add(Brief, msg!("The circle lies in the plane.", "Der Kreis liegt in der Ebene."), "k \\subset E");
+                return Ok(Worked::new(CirclePlane::Contained, working));
+            }
+            working.add(Brief, msg!("The plane is parallel to the circle.", "Die Ebene ist parallel zum Kreis."), "k \\cap E = \\emptyset");
+            return Ok(Worked::new(CirclePlane::Parallel, working));
+        }
+        let own = self.plane().convert(PlaneForm::Coordinate).result;
+        working.add(Standard, msg!("The plane of the circle:", "Die Ebene des Kreises:"), own.equation());
+        let line = cut_line(&own, &e, &mut working)?;
+        let Worked { result, working: cut } = self.meet_line(&line)?;
+        working.extend(cut);
+        let relation = match result {
+            CircleLine::Secant { points } => CirclePlane::Cut { points },
+            CircleLine::Tangent { point } => CirclePlane::Touch { point },
+            CircleLine::Passant => CirclePlane::Miss,
+            CircleLine::Crossing { .. } | CircleLine::Apart => unreachable!("the line lies in the plane of the circle"),
+        };
+        Ok(Worked::new(relation, working))
     }
 }
