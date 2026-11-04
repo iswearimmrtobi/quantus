@@ -167,10 +167,13 @@ impl Session {
         }
     }
 
+    /// Removes the variable or the matrix `key`; returns whether there was one.
     pub fn remove(&mut self, key: &str) -> bool {
-        let before = self.definitions.len();
+        let before = self.definitions.len() + self.matrix_definitions.len();
         self.definitions.retain(|v| v.key != key);
-        self.definitions.len() != before
+        self.matrix_definitions.retain(|(k, _)| k != key);
+        self.matrices.remove(key);
+        self.definitions.len() + self.matrix_definitions.len() != before
     }
 
     pub fn clear(&mut self) {
@@ -201,6 +204,12 @@ impl Session {
     /// The matrices defined in the matrix mode, by name.
     pub fn matrices(&self) -> &Matrices {
         &self.matrices
+    }
+
+    /// The matrices defined in the matrix mode in the order they were defined: each key and
+    /// the matrix as LaTeX (`pmatrix`).
+    pub fn matrix_definitions(&self) -> &[(String, String)] {
+        &self.matrix_definitions
     }
 
     /// Evaluates `latex` against this session. An input that is itself a definition

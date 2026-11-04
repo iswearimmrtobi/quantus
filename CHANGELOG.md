@@ -59,7 +59,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   operations and, or, xor, xnor, Not and Neg. The result comes in all four bases.
 - A matrix mode in the engine (`matrix`): matrices up to 10 × 10 stored under any name, with
   sums, products, powers, the transpose, the inverse, the determinant, the identity and the row
-  echelon forms, exact and with the elimination as steps.
+  echelon forms, exact and with the elimination as steps. A session lists its matrices in the
+  order they were defined (`Session::matrix_definitions`), and `delete_variable` deletes a matrix
+  as well.
 - Statistics of a data list in the engine (`statistics`), with an optional frequency column: n,
   mean, sums, variances, standard deviations, minimum, quartiles, median and maximum, exact where
   the data are. With pairs x, y: their sums and means, the seven regressions of a Casio (linear,

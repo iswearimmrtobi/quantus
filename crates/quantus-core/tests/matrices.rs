@@ -79,3 +79,16 @@ fn the_determinant_is_the_product_of_the_pivots() {
     let product = steps.iter().find(|(latex, _)| latex.starts_with(r"\det =")).unwrap();
     assert_eq!(product.0, r"\det = (-1) \cdot 3 \cdot 2 = -6");
 }
+
+#[test]
+fn the_matrices_are_listed_in_their_order_and_deleted_like_a_variable() {
+    let mut store = store();
+    run(&mut store, r"B = \begin{pmatrix} 1 & 2 \end{pmatrix}");
+    run(&mut store, r"A = \begin{pmatrix} 1 \\ 2 \end{pmatrix}");
+    let keys = |store: &mut SessionStore| store.session(None).matrix_definitions().iter().map(|(key, _)| key.clone()).collect::<Vec<_>>();
+    assert_eq!(keys(&mut store), ["B", "A"]);
+    assert_eq!(store.session(None).matrix_definitions()[0].1, r"\begin{pmatrix} 1 & 2 \end{pmatrix}");
+    api::delete_variable(&mut store, "B", None);
+    assert_eq!(keys(&mut store), ["A"]);
+    assert!(run(&mut store, "2B").starts_with("error"), "B is gone");
+}
