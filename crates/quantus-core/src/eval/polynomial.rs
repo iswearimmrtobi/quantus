@@ -285,7 +285,7 @@ fn quartic(coefficients: &[RBig], complex: bool, digits: usize) -> Result<Vec<Va
                 roots.extend([back(y.neg()), back(y)]);
             } else if complex {
                 // A negative z, or a complex one when z² + p z + r has no real root (x⁴ + 1).
-                let y = complex_sqrt(&z)?;
+                let y = z.sqrt_complex()?;
                 roots.extend([back(y.neg()), back(y)]);
             }
         }
@@ -430,21 +430,6 @@ fn divide(a: &[RBig], b: &[RBig]) -> (Vec<RBig>, Vec<RBig>) {
         }
     }
     (q, r)
-}
-
-/// The principal square root of `a + bi`, by halves: `√((|z| + a)/2) + i·sgn(b)·√((|z| - a)/2)`,
-/// which keeps `√(2i) = 1 + i` exact where the polar form would give cosines of `π/4`.
-pub(crate) fn complex_sqrt(z: &Value) -> Result<Value> {
-    let half = Value::ratio(1, 2);
-    let Some((a, b)) = z.re_im() else { return z.pow(&half) };
-    if b.is_zero() {
-        return if a.is_negative()? { Ok(a.neg().pow(&half)?.mul(&Value::I)) } else { a.pow(&half) };
-    }
-    let modulus = a.mul(&a).add(&b.mul(&b)).pow(&half)?;
-    let re = modulus.add(&a).div(&Value::int(2))?.pow(&half)?;
-    let im = modulus.sub(&a).div(&Value::int(2))?.pow(&half)?;
-    let im = if b.is_negative()? { im.neg() } else { im };
-    Ok(re.add(&im.mul(&Value::I)))
 }
 
 /// The real roots of a polynomial with rational coefficients, to `digits` digits: between

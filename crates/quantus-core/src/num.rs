@@ -962,8 +962,82 @@ impl Value {
                     _ => Value::one().div(&sin),
                 }
             }
+            (MathFunction::Arcsin | MathFunction::Arccos | MathFunction::Arctan, Some((a, b))) => {
+                self.complex_arc(function, &a, &b)
+            }
             _ => self.apply(function),
         }
+    }
+
+    /// arcsin, arccos and arctan where they leave the reals: a complex argument, or a real one
+    /// beyond ±1 for arcsin and arccos. Principal values, `arcsin z = -i ln(iz + √(1 - z²))`,
+    /// `arccos z = π/2 - arcsin z`, `arctan z = i/2 (ln(1 - iz) - ln(1 + iz))`. On the branch cuts
+    /// the value is the one from the side where the other part is +0, as in C99 and Python:
+    /// `arcsin 2 = π/2 + i·arcosh 2`, `arctan 2i = π/2 + i/2·ln 3`.
+    fn complex_arc(&self, function: MathFunction, a: &Value, b: &Value) -> Result<Value> {
+        let one = Value::one();
+        let half_pi = Value::Pi.div(&Value::int(2))?;
+        let beyond_one = |x: &Value| -> Result<bool> {
+            let excess = x.mul(x).sub(&one);
+            Ok(!excess.is_zero() && !excess.is_negative()?)
+        };
+        if function == MathFunction::Arctan {
+            if !a.is_zero() || b.is_zero() {
+                if !self.contains_imaginary() {
+                    return self.apply(function);
+                }
+            } else if b.mul(b).sub(&one).is_zero() {
+                return Err(QuantusError::other("ArcTan is undefined at i and -i."));
+            } else if beyond_one(b)? {
+                // On the cut: π/2 + i/2·ln((y + 1)/(y - 1)).
+                let ln = b.add(&one).div(&b.sub(&one))?.apply(MathFunction::Ln)?;
+                return Ok(half_pi.add(&Value::I.mul(&ln.div(&Value::int(2))?)));
+            }
+            let iz = Value::I.mul(self);
+            let difference = one.sub(&iz).apply_complex(MathFunction::Ln)?.sub(&one.add(&iz).apply_complex(MathFunction::Ln)?);
+            return Value::I.div(&Value::int(2))?.mul(&difference).normalized_complex();
+        }
+        let arcsin = if b.is_zero() {
+            if !beyond_one(a)? {
+                return self.apply(function);
+            }
+            // On the cut: ±π/2 + i·arcosh|x|.
+            let x = if a.is_negative()? { a.neg() } else { a.clone() };
+            let arcosh = x.apply(MathFunction::Arcosh)?;
+            let side = if a.is_negative()? { half_pi.neg() } else { half_pi.clone() };
+            side.add(&Value::I.mul(&arcosh))
+        } else {
+            let root = one.sub(&self.mul(self)).sqrt_complex()?;
+            let ln = Value::I.mul(self).add(&root).apply_complex(MathFunction::Ln)?;
+            Value::I.neg().mul(&ln).normalized_complex()?
+        };
+        match function {
+            MathFunction::Arcsin => Ok(arcsin),
+            _ => half_pi.sub(&arcsin).normalized_complex(),
+        }
+    }
+
+    /// `a + b·i` with both parts gathered, for a value built from complex pieces.
+    fn normalized_complex(&self) -> Result<Value> {
+        match self.re_im() {
+            Some((a, b)) => Ok(a.add(&b.mul(&Value::I))),
+            None => Ok(self.clone()),
+        }
+    }
+
+    /// The principal square root of `a + b·i`, by halves: `√((|z| + a)/2) + i·sgn(b)·√((|z| - a)/2)`,
+    /// which keeps `√(2i) = 1 + i` exact where the polar form would give cosines of `π/4`.
+    pub fn sqrt_complex(&self) -> Result<Value> {
+        let half = Value::ratio(1, 2);
+        let Some((a, b)) = self.re_im() else { return self.pow(&half) };
+        if b.is_zero() {
+            return if a.is_negative()? { Ok(a.neg().pow(&half)?.mul(&Value::I)) } else { a.pow(&half) };
+        }
+        let modulus = a.mul(&a).add(&b.mul(&b)).pow(&half)?;
+        let re = modulus.add(&a).div(&Value::int(2))?.pow(&half)?;
+        let im = modulus.sub(&a).div(&Value::int(2))?.pow(&half)?;
+        let im = if b.is_negative()? { im.neg() } else { im };
+        Ok(re.add(&im.mul(&Value::I)))
     }
 
     /// `|z|` of `a + b·i`: `√(a² + b²)`.

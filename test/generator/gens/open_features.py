@@ -176,7 +176,7 @@ def complex_inverse_trig(rng, diff):
     else:
         w = c_atan(z)
     return case("complex-inverse-trig", diff, f"\\{name}({arg})", expect_complex(w[0], w[1], TOL_ROOT),
-                f"{name} of a complex number", gap=True, settings=IMAGINARY)
+                f"{name} of a complex number", gap=False, settings=IMAGINARY)
 
 
 # --- integrals of complex functions -------------------------------------------------------------

@@ -48,14 +48,15 @@ Exact: `i^n`, `\sqrt{-a}` (principal root $i\sqrt{a}$), sums, products, quotient
 powers of $a + bi$, so $(3+4i)(1-2i) = 11 - 2i$. Also supported: `e^{a+bi}`, `z^w` (principal
 branch), `\ln` and `\log` of negative or complex numbers, the trigonometric and hyperbolic
 functions of complex arguments, `|z|`, `\Re`, `\Im`, `\arg` (in $(-\pi, \pi]$) and
-`\overline{z}`. Quadratic equations with a negative discriminant have complex roots, and a
-variable can hold a complex number (`z_1 = 3+4i`).
+`\overline{z}`. `\arcsin`, `\arccos` and `\arctan` take complex arguments and real ones beyond
+±1, as principal values; on a branch cut the value is the one C and Python give, so
+$\arcsin 2 = \frac{\pi}{2} + 1{,}3170i$. With the angle unit set to degrees such a value is an
+error. Equations of every degree up to twelve have all their complex roots (exact up to degree
+four, numerical beyond), and a variable can hold a complex number (`z_1 = 3+4i`).
 
 Not covered:
 
-- `\arcsin`, `\arccos`, `\arctan` of a complex number
-- equations of degree above two with complex roots
-- derivatives and integrals of complex functions
+- integrals of complex functions
 - complex units: `2i\,\mathrm{m}` works, but $\mathrm{m}$ is not a complex quantity
 - odd roots of negative numbers keep their real value: $\sqrt[3]{-8} = -2$
 - the simplifier leaves $i$ alone, so `(x+i)(x-i)` with a free $x$ is shown as typed

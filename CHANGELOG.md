@@ -282,6 +282,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   ausmultiplizieren", "Jeden Bruch auf den Hauptnenner bringen", "Erste binomische Formel").
   Before, only the steps of the LGS, the analysis and the electronics were.
 
+- In Imaginary mode `\arcsin`, `\arccos` and `\arctan` take complex arguments, and real ones beyond
+  ±1: `\arcsin(3+i)`, `\arcsin 2 = \frac{\pi}{2} + 1{,}317i`. On a branch cut the value is the one C
+  and Python give.
+
 ### Changed
 
 - `\oint` is refused with *Closed-path integrals are not supported* instead of *Unsupported command*.

@@ -68,8 +68,14 @@ In imaginary mode:
 - Both parts of a result are given to the calculator's precision; the API reports the real part
   as `value` and the imaginary part as `imaginary`.
 
-Not covered: `\arcsin`, `\arccos` and `\arctan` of a complex number, equations of degree above
-two with complex roots, derivatives and integrals of complex functions, and complex units
+- `\arcsin`, `\arccos` and `\arctan` of a complex number, and of a real one beyond ±1, as
+  principal values. On a branch cut the value is the one from the side where the other part is
+  +0, as in C99 and Python: `\arcsin 2 = π/2 + i·arcosh 2`, `\arccos 2 = -i·arcosh 2`,
+  `\arctan 2i = π/2 + i/2·ln 3`. `\arctan(±i)` is an error, and so is a complex angle in degrees.
+- Equations of degree three to twelve have all their complex roots: exact up to degree four,
+  numerical (Durand–Kerner, then Newton to the full precision) beyond.
+
+Not covered: integrals of complex functions, and complex units
 (`2i\,\mathrm{m}` works, `\mathrm{m}` is not a complex quantity). Odd roots of negative
 numbers keep their real value: `\sqrt[3]{-8}` is -2. The algebraic simplifier leaves `i` alone,
 so `(x+i)(x-i)` with a free `x` is shown as typed.

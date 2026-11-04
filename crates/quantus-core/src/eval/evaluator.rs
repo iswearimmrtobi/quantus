@@ -200,6 +200,11 @@ impl<'a> Evaluator<'a> {
                 }
                 let mut applied = if self.complex() { argument.apply_complex(function) } else { argument.apply(function) }?;
                 if self.degrees() && angles::gives_angle(name) {
+                    if applied.contains_imaginary() {
+                        return Err(QuantusError::other(format!(
+                            "\\{name} has a complex value here, which is no angle in degrees. Switch the angle unit to radians."
+                        )));
+                    }
                     applied = angles::to_degrees(&applied)?;
                 }
                 Ok(PhysicalQuantity::dimensionless(applied))

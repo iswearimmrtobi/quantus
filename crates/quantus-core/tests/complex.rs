@@ -115,6 +115,25 @@ fn higher_degrees_have_all_their_complex_roots() {
 }
 
 #[test]
+fn inverse_trigonometric_functions_of_complex_numbers() {
+    assert_eq!(imaginary(r"\arcsin(3+i)"), "1{,}2330952175293440921461657915320660604746377796929 + 1{,}8241987021938827344196621590702233541547888175954i");
+    // On the cuts, the side where the other part is +0, as in C99 and Python
+    assert_eq!(imaginary(r"\arcsin 2"), "1{,}5707963267948966192313216916397514420985846996876 + 1{,}3169578969248167086250463473079684440269819714675i");
+    assert_eq!(imaginary(r"\arccos 2"), "-1{,}3169578969248167086250463473079684440269819714675i");
+    assert!(imaginary(r"\arcsin(-2)").starts_with("-1{,}5707963267948966192313216916397514420985846996876 + 1{,}316957896924816708625"));
+    assert_eq!(imaginary(r"\arctan(2i)"), "1{,}5707963267948966192313216916397514420985846996876 + 0{,}54930614433405484569762261846126285232374527891137i");
+    assert_eq!(imaginary(r"\arctan(\frac{i}{2})"), "0{,}54930614433405484569762261846126285232374527891137i");
+    // Real arguments inside the domain stay exact and real
+    assert_eq!(imaginary(r"\arcsin \frac{1}{2}"), imaginary(r"\frac{\pi}{6}"));
+    assert!(evaluate(Mode::Imaginary, r"\arctan(i)").unwrap_err().contains("undefined at i and -i"));
+    assert!(evaluate(Mode::Physics, r"\arcsin 2").unwrap_err().contains("between -1 and 1"));
+    let degrees = LatexCalculator::new(50)
+        .with_settings(Settings { mode: Mode::Imaginary, angle_unit: quantus_core::settings::AngleUnit::Degree, ..Settings::default() })
+        .evaluate(r"\arcsin 2", &HashMap::new());
+    assert!(degrees.unwrap_err().to_string().contains("radians"));
+}
+
+#[test]
 fn a_variable_can_hold_a_complex_number() {
     use quantus_core::session::Session;
 
