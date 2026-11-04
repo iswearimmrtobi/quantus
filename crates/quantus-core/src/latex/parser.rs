@@ -627,6 +627,7 @@ impl Parser<'_> {
             TokenType::LParen if self.options.geometry && self.point_ahead(self.index) => self.parse_point(None),
             TokenType::LParen => self.parse_bracket_or_prime_derivative(),
             TokenType::LBrace => self.parse_group(TokenType::RBrace, "}"),
+            TokenType::LBracket if self.evaluated_integral_ahead() => self.parse_evaluated_integral(),
             TokenType::LBracket => self.parse_group(TokenType::RBracket, "]"),
             TokenType::Command => self.parse_command(&token),
             _ => Err(self.error("Expected a number, a unit or a variable here.", token.position)),
@@ -1135,8 +1136,19 @@ impl Parser<'_> {
         let lower = self.parse_argument(&token.text)?;
         self.expect(TokenType::Caret, "'^' with the upper limit, as in \\int_{0}^{1}")?;
         let upper = self.parse_argument(&token.text)?;
+        let (variable, body) = self.parse_integrand(token.position)?;
+        Ok(Node::Integral {
+            variable,
+            lower: Box::new(lower),
+            upper: Box::new(upper),
+            body: Box::new(body),
+            position: token.position,
+        })
+    }
 
-        let (variable, stop, length) = self.find_differential(token.position)?;
+    /// The body of an integral up to and including its differential: the variable and the body.
+    fn parse_integrand(&mut self, position: usize) -> Result<(String, Node)> {
+        let (variable, stop, length) = self.find_differential(position)?;
         self.stops.push(stop);
         let body = self.with_bound(&variable, |p| p.parse_expression());
         self.stops.pop();
@@ -1145,12 +1157,38 @@ impl Parser<'_> {
             return Err(self.error(&format!("Expected 'd{variable}' here."), self.current().position));
         }
         self.index += length;
+        Ok((variable, body))
+    }
+
+    /// Whether the `[` here opens an antiderivative evaluated between limits, `[\int f\,dx]_a^b`.
+    fn evaluated_integral_ahead(&self) -> bool {
+        let int = self.peek(1);
+        int.kind == TokenType::Command && int.text == "\\int" && self.peek(2).kind != TokenType::Underscore
+    }
+
+    /// `\left[\int f\,dx\right]_a^b`: the antiderivative taken from a to b, the integral of f
+    /// from a to b.
+    fn parse_evaluated_integral(&mut self) -> Result<Node> {
+        self.advance();
+        let int = self.advance();
+        let outer_abs_depth = std::mem::replace(&mut self.abs_depth, 0);
+        let integrand = self.parse_integrand(int.position);
+        self.abs_depth = outer_abs_depth;
+        let (variable, body) = integrand?;
+        self.expect(TokenType::RBracket, "']' after the differential")?;
+        if self.current().kind != TokenType::Underscore {
+            return Err(self.error("The bracket needs the limits to evaluate at, as in \\left[\\int x\\,dx\\right]_{0}^{1}.", self.current().position));
+        }
+        self.advance();
+        let lower = self.parse_argument(&int.text)?;
+        self.expect(TokenType::Caret, "'^' with the upper limit, as in \\right]_{0}^{1}")?;
+        let upper = self.parse_argument(&int.text)?;
         Ok(Node::Integral {
             variable,
             lower: Box::new(lower),
             upper: Box::new(upper),
             body: Box::new(body),
-            position: token.position,
+            position: int.position,
         })
     }
 

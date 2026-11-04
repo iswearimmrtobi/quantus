@@ -37,6 +37,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   `\frac{\partial^2}{\partial x^2}`, which with one variable is the ordinary derivative.
 - Prime notation for the derivative of a bracket: `\left.(x^3 - x)'\right|_{x=2}`, and `''` for the
   second derivative. The point names the variable; without one, the bracket's only letter does.
+- An antiderivative evaluated between limits, `\left[\int x^2\,dx\right]_0^2`, is the definite integral
+  from 0 to 2. A bare `\int x\,dx` still asks for limits.
 - `writeup` in the engine API: the history of a session as given, wanted and solution blocks.
   It recognises about twenty school laws by their units, rearranges them exactly, and splits
   sums and parts with a law of their own into steps of their own.
