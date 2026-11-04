@@ -5,6 +5,8 @@
 //! when there is something to substitute, i.e. when the input uses session variables;
 //! otherwise symbolic and substituted would be the same line twice.
 
+use dashu::integer::UBig;
+
 use super::angles;
 use super::evaluator::{Evaluator, Variables};
 use super::substitution::substitute;
@@ -212,6 +214,12 @@ impl LatexCalculator {
                 // Nothing to solve for: the equation is true or false.
                 let holds = evaluator.compare(left, "=", right)?;
                 Ok(self.truth(formula.clone(), holds))
+            }
+            // `x^2 - 4 < 0`: an inequality to solve, unless checking.
+            Node::Call { name, arguments, .. }
+                if name.starts_with("relation ") && self.settings.mode != Mode::Verify && has_unknown(&formula.expression, &evaluator) =>
+            {
+                self.evaluate_inequality(&evaluator, &formula, name, arguments)
             }
             Node::Call { name, .. } if name.starts_with("relation ") => {
                 let holds = !evaluator.evaluate(&formula.expression)?.value.is_zero();
@@ -558,6 +566,85 @@ impl LatexCalculator {
         equation: &Node,
     ) -> Result<(PhysicalQuantity, Decimal, Option<Decimal>, String)> {
         self.present_solutions(evaluator.solve(equation)?)
+    }
+
+    /// An inequality or a chain of them in one unknown, solved by a sign chart: the solution set
+    /// as relations joined by `\lor`, `x < -2 \lor x \ge 3`.
+    fn evaluate_inequality(&self, evaluator: &Evaluator, formula: &Formula, name: &str, operands: &[Node]) -> Result<Calculation> {
+        let relations: Vec<&str> = name.trim_start_matches("relation ").split(' ').collect();
+        let mut unknowns = Vec::new();
+        super::solver::collect_unknowns(&formula.expression, false, &mut Vec::new(), evaluator, &mut unknowns);
+        if unknowns.len() > 1 {
+            return Err(crate::QuantusError::other(format!(
+                "The inequality has more than one unknown ({}); only one can be solved for.",
+                unknowns.join(", ")
+            )));
+        }
+        let variable = &unknowns[0];
+        let solution = super::inequality::solve(evaluator, operands, &relations, variable, self.precision)?;
+        let x = unknown_latex(variable);
+        let mut parts = Vec::new();
+        for interval in &solution.intervals {
+            let show = |point: &super::inequality::Point| self.shown_value(&point.value);
+            let (lo_op, hi_op) = (if interval.lo_closed { "\\le" } else { "<" }, if interval.hi_closed { "\\le" } else { "<" });
+            parts.push(match (&interval.lo, &interval.hi) {
+                (None, None) => format!("{x} \\in \\mathbb{{R}}"),
+                (None, Some(hi)) => format!("{x} {hi_op} {}", show(hi)?),
+                (Some(lo), None) => format!("{x} {} {}", if interval.lo_closed { "\\ge" } else { ">" }, show(lo)?),
+                (Some(lo), Some(hi)) if lo.key == hi.key => format!("{x} = {}", show(lo)?),
+                (Some(lo), Some(hi)) => format!("{} {lo_op} {x} {hi_op} {}", show(lo)?, show(hi)?),
+            });
+        }
+        if parts.is_empty() {
+            return Err(crate::QuantusError::other("This inequality has no solution."));
+        }
+        let result = parts.join(" \\lor ");
+        let first = solution.intervals.iter().find_map(|i| i.lo.as_ref().or(i.hi.as_ref())).map(|p| p.value.clone());
+        let quantity = PhysicalQuantity::dimensionless(first.unwrap_or_else(Value::zero));
+        let value = quantity.decimal(self.precision)?;
+        let steps = vec![
+            Step::new(StepKind::Symbolic, serializer::expression(&formula.expression)),
+            Step::new(StepKind::Result, result.clone()),
+        ];
+        Ok(Calculation {
+            input: serializer::formula(formula),
+            latex: result.clone(),
+            steps: shown_steps(&steps, self.settings.step_detail),
+            unit: String::new(),
+            quantity_name: None,
+            result,
+            value,
+            imaginary: None,
+            quantity,
+            formula: formula.clone(),
+            domain_restrictions: None,
+            warning: None,
+            forms: Vec::new(),
+        })
+    }
+
+    /// An end of an inequality's solution: as the solutions show it, exact if short, else as a
+    /// decimal; but a fraction whose decimal does not end is written as a fraction, since a
+    /// rounded bound would put the wrong side of it into the set.
+    fn shown_value(&self, value: &Value) -> Result<String> {
+        if let Some(r) = value.as_rational() {
+            let mut d = r.denominator().clone();
+            for p in [2u8, 5] {
+                while (&d % UBig::from(p)).is_zero() {
+                    d /= UBig::from(p);
+                }
+            }
+            if !d.is_one() {
+                return Ok(crate::algebra::domain::format_rbig_latex(r));
+            }
+        }
+        let quantity = PhysicalQuantity::dimensionless(value.clone()).simplify()?;
+        let shown = self.present(&quantity)?.2;
+        if shown.len() > MAX_EXACT_SOLUTION {
+            let decimal = LatexCalculator::new(self.precision).with_settings(Settings { exact_roots: false, ..self.settings.clone() });
+            return Ok(decimal.present(&quantity)?.2);
+        }
+        Ok(shown)
     }
 
     fn present_solutions(&self, solutions: super::solver::Solutions) -> Result<(PhysicalQuantity, Decimal, Option<Decimal>, String)> {

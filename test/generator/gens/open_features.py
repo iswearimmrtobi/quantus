@@ -77,7 +77,7 @@ def inequality(rng, diff):
     latex = f"{poly_latex(lhs, var)} {op} {poly_latex(shift, var) if shift else '0'}"
     desc = ["linear", "quadratic", "cubic"][degree - 1] + " inequality"
     return case("inequality", diff, latex, expect_inequality(_solution_set(roots, lead, positive, strict), var),
-                desc, gap=True)
+                desc, gap=False)
 
 
 # --- complex arithmetic at 80 digits -------------------------------------------------------------

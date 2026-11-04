@@ -88,6 +88,27 @@ Write an equation with one unknown:
 | `\sqrt{x+3} = x - 3` | $x = 6$ (squaring would also give $x = 1$, which does not fit) |
 | `x^2 + 1 = 0` | *This equation has no real solution.* — try Imaginary mode |
 
+### Inequalities
+
+An inequality with one unknown is solved too, if both sides are polynomials or fractions of them
+with rational coefficients. The answer is the solution set, written like the roots of an
+equation:
+
+| Input | Result |
+|---|---|
+| `x^2 - x - 6 \ge 0` | $x \le -2 \lor x \ge 3$ |
+| `\frac{x+1}{x-2} \ge 0` | $x \le -1 \lor x > 2$ (2 is never part of it) |
+| `1 < 2x + 1 \le 5` | $0 < x \le 2$, a chain is solved as a whole |
+| `x^2 \le 0` | $x = 0$ |
+| `x^2 + 1 > 0` | $x \in \mathbb{R}$ |
+| `x^2 + 1 < 0` | *This inequality has no solution.* |
+
+`<`, `>`, `\le`, `\ge` and `\neq` work. A zero of a denominator is never in the solution,
+even when the factor cancels. A bound that is a fraction is written as one ($\frac{4}{3}$, not
+$1{,}333\ldots$), since a rounded bound would put the wrong side of it into the set.
+`|x|`, roots and functions of the unknown are not solved. In the Verify mode an inequality is
+checked, not solved.
+
 ## Systems of linear equations
 
 Write several equations separated by `;`, or as `\begin{cases} … \end{cases}` in the LaTeX

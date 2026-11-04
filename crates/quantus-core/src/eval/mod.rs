@@ -4,6 +4,7 @@ pub(crate) mod angles;
 pub mod calculator;
 pub mod derivative;
 pub mod evaluator;
+pub(crate) mod inequality;
 pub mod linear_system;
 pub(crate) mod polynomial;
 pub mod solver;

@@ -160,8 +160,8 @@ handheld-menus.md, *What is missing*.
 - [ ] Firmware updates: an updater in the desktop app that takes the image from the GitHub
   releases and uploads it to the handheld (USB or the link); the handheld can fetch it over
   WLAN itself; the release workflow ([RELEASING.md](../RELEASING.md)) attaches the image.
-- [ ] Later: polynomial inequalities. (Vectors went into the Geometry mode, built in engine and
-  desktop; its handheld part is in [geometry.md](geometry.md) § Later.)
+- (Vectors went into the Geometry mode, built in engine and desktop; its handheld part is in
+  [geometry.md](geometry.md) § Later.)
 
 The handheld's own part (menus, keys, the purple palette, WLAN and Bluetooth, the exam mode) is
 in [handheld-menus.md](../design/handheld-menus.md) §7.
@@ -170,7 +170,5 @@ in [handheld-menus.md](../design/handheld-menus.md) §7.
 
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
-- The generated test set has gap cases for the polynomial inequalities of §5 in its
-  `open-features` category; run them with `--filter open-features`.
 - Optional: a thin `quantus-server` crate (axum) over `quantus-core`, if self-hosting is wanted.
 - Optional: PKGBUILD or Flatpak, signing and updates.

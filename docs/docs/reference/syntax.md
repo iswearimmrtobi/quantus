@@ -98,6 +98,15 @@ One unknown per equation. Polynomials with rational coefficients are solved exac
 4 and numerically on the whole real line beyond; other equations numerically on
 $[-100, 100]$.
 
+An **inequality** with one unknown, polynomial or rational, is solved by a sign chart; the
+solution set is written like the roots of an equation:
+
+| Input | Result |
+|---|---|
+| `x^2 - 4 < 0` | $-2 < x < 2$ |
+| `\frac{x+1}{x-2} \ge 0` | $x \le -1 \lor x > 2$ |
+| `1 < 2x + 1 \le 5` | $0 < x \le 2$ |
+
 A **system of linear equations** has several unknowns and is the whole input:
 
 | Input | Result |

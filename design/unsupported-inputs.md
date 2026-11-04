@@ -23,6 +23,7 @@ re-run as a set. What has been checked is the feature each one was waiting for.
 | Variables without an index | M4, M5 | A single letter that is not a unit or constant (`x`, `\theta`). |
 | Derivative `\frac{d}{dx}` | M10 | Symbolic; needs a point: `\left.\frac{d}{dx} f\right\|_{x=2}`. |
 | Equations | M4, M5 | `lhs = rhs` with one unknown. Degree ≤ 2 exactly, otherwise numerically on [-100, 100]. |
+| Inequalities | – | `<`, `>`, `\le`, `\ge`, `\neq` and chains of them in one unknown, polynomial or rational with rational coefficients, by a sign chart. The solution set is written like the roots of an equation (`x \le -2 \lor x \ge 3`); a pole is never in it. Not `\|x\|`, roots or functions of the unknown. |
 
 ## Limits worth knowing
 
