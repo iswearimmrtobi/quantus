@@ -46,6 +46,16 @@ fn a_function_of_several_arguments_starts_at_the_first() {
 }
 
 #[test]
+fn ncr_starts_at_n() {
+    let mut app = app(Mode::Physics);
+    optn(&mut app, &["Zahl", "nCr"]);
+    app.key(Key::Digit(5));
+    app.key(Key::Down);
+    app.key(Key::Digit(2));
+    assert_eq!(app.editor.to_latex(), r"\binom{5}{2}");
+}
+
+#[test]
 fn permutations_and_the_divisors_take_two_numbers() {
     assert_eq!(inserted(&["Zahl", "nPr"]), r"\mathrm{nPr}(;)");
     assert_eq!(inserted(&["Zahl", "ggT"]), r"\mathrm{ggT}(;)");

@@ -177,6 +177,11 @@ mod optn {
     }
 
     #[test]
+    fn ncr() {
+        assert_eq!(typed(Mode::Physics, r"\binom{5}{2}"), Ok("10".to_string()));
+    }
+
+    #[test]
     fn permutations_and_the_divisors() {
         assert_eq!(typed(Mode::Physics, r"\operatorname{nPr}(5;2)"), Ok("20".to_string()));
         assert_eq!(typed(Mode::Physics, r"\operatorname{ggT}(12;18)"), Ok("6".to_string()));

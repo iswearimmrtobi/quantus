@@ -340,7 +340,7 @@ static NUMBER: Page = Page {
     entries: &[
         ins(t("|x| Betrag", "|x| Absolute value"), "||"),
         ins(t("n! Fakultät", "n! Factorial"), "!"),
-        pending(same("nCr")),
+        ins(same("nCr"), r"\binom{}{}"),
         ins(same("nPr"), r"\operatorname{nPr}(;)"),
         ins(t("ggT", "gcd"), r"\operatorname{ggT}(;)"),
         ins(t("kgV", "lcm"), r"\operatorname{kgV}(;)"),

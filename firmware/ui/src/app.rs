@@ -1062,8 +1062,10 @@ impl<B: Backend> App<B> {
             }
         };
         editor.paste(&row);
-        // Into a pair of brackets or bars, at the first argument: `\sinh(|)`, `\max(|;)`, `|x|`.
+        // Into a pair of brackets or bars, at the first argument: `\sinh(|)`, `\max(|;)`, `|x|`;
+        // into n of nCr.
         let back = match row.0.last() {
+            Some(Node::Binom(..)) => 2,
             _ if row.0.len() < 2 => 0,
             Some(Node::Char(')')) => row.0.iter().rposition(|node| *node == Node::Char('(')).map_or(1, |open| row.0.len() - 1 - open),
             Some(Node::Char('|')) => 1,
