@@ -280,7 +280,7 @@
     {"name": "error: two unknowns", "latex": "x + z = 3", "errorContains": "more than one unknown"},
     {"name": "an equation without unknowns is checked", "latex": "3 = 3", "expect": {"result": "\\text{true}"}},
     {"name": "error: pole is no root", "latex": "\\frac{1}{x} = 0", "errorContains": "No solution"},
-    {"name": "error: equation sides differ in unit", "latex": "x\\,m = 3s", "errorContains": "Incompatible"},
+    {"name": "error: equation sides differ in unit", "latex": "x\\,m + 1\\,m = 3s", "errorContains": "Incompatible"},
 
     {"name": "determinant 2x2", "latex": "\\det\\begin{pmatrix}1 & 2 \\\\ 3 & 4\\end{pmatrix}", "expect": {"value": "-2"}},
     {"name": "determinant with vmatrix", "latex": "\\begin{vmatrix}1 & 2 \\\\ 3 & 4\\end{vmatrix}", "expect": {"value": "-2"}},

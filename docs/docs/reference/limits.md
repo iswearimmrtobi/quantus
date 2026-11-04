@@ -19,8 +19,9 @@ app.
 - **Units win over letters** in Physics mode: `m`, `s`, `g`, `h` and so on cannot be the
   unknown of an equation. Inside `\sum`, `\int`, `\lim` and `\frac{d}{dx}` the bound letter
   wins in the body.
-- **The unknown of an equation is a plain number.** `3x = 6m` is a dimension error;
-  `3x\,\mathrm{m} = 6\,\mathrm{m}` works.
+- **The unknown of an equation takes the unit that balances it.** `3x = 6\,\mathrm{m}` gives
+  `x = 2\,\mathrm{m}`; `x + 1 = 2\,\mathrm{m}` is a dimension error, since no unit of `x` makes
+  both sides agree.
 - **One unknown per equation.** Polynomials are solved exactly up to degree 4 (rational roots,
   then Cardano and Ferrari) when their coefficients are rational, and numerically on the whole
   real line beyond that; an exact solution longer than 80 characters is shown as a decimal.

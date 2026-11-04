@@ -32,8 +32,9 @@ re-run as a set. What has been checked is the feature each one was waiting for.
 - **Units win over letters.** `m`, `s`, `g`, `y`, `t` and so on are units, so they cannot be the
   unknown of an equation. Inside `\sum`, `\int`, `\lim` and `\frac{d}{dx}` the bound letter
   takes precedence in the body.
-- **The unknown of an equation is a plain number.** `3x = 6m` is a dimension error; `3x\,m = 6m`
-  is fine.
+- **The unknown of an equation takes the unit that balances it.** `9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}`
+  gives `x = 6 m/s²`; `3x = 6m` gives `x = 2 m`. An equation no unit balances (`x + 1 = 2m`) is a
+  dimension error.
 - **Integral differentials** (`dx`, `d x`, `\mathrm{d}x`) must be at the top level of the
   integrand, not inside `\frac{…}{…}`.
 - **Numerical results are marked by their digits.** An integral shows at most 30 digits, a root

@@ -277,6 +277,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The unknown of an equation takes the unit that makes both sides agree: `9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}`
+  gives `x = 6 N/kg` and `3x = 6\,\mathrm{m}` gives `x = 2 m`; both were dimension errors. An
+  equation no unit balances (`x + 1 = 2\,\mathrm{m}`) is still one.
 - The settings moved out of the side panel into their own window (Ctrl+.), grouped into General,
   Numbers, Algebra, Steps and Input. Settings for a single mode are always shown and say which
   mode reads them; the mode itself is switched in the top bar only, its description shows on

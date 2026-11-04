@@ -105,3 +105,13 @@ mod calc_and_solve {
         assert!(api::solve_for(&mut store, &newton).unwrap().result.starts_with("x = 0{,}73908513321516064165"));
     }
 }
+
+#[test]
+fn the_unknown_takes_the_unit_that_balances_the_equation() {
+    let settings = Settings { mode: Mode::Physics, ..Settings::default() };
+    let calculator = LatexCalculator::new(50).with_settings(settings);
+    let solve = |latex: &str| calculator.evaluate(latex, &HashMap::new()).map(|c| c.result).unwrap_or_else(|e| format!("error: {e}"));
+    assert_eq!(solve(r"9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}"), r"x = 6\,\frac{\mathrm{N}}{\mathrm{kg}}");
+    assert_eq!(solve(r"3x = 6\,\mathrm{m}"), r"x = 2\,\mathrm{m}");
+    assert!(solve(r"x + 1 = 2\,\mathrm{m}").contains("Incompatible units"));
+}

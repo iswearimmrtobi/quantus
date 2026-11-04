@@ -1,7 +1,9 @@
 //! Equations with one unknown: `x^2 - 5x + 6 = 0`.
 //!
-//! The unknown is the single variable without a subscript that has no value; it is a plain
-//! number, so an equation whose sides differ in dimension is an error as anywhere else.
+//! The unknown is the single variable without a subscript that has no value. It carries the
+//! unit that makes the two sides agree (`9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}` gives
+//! `x = 6\,\frac{\mathrm{m}}{\mathrm{s}^{2}}`), or none; an equation no such unit can balance
+//! (`x + 1 = 2\,\mathrm{m}`) is a dimension error as anywhere else.
 //!
 //! Polynomials up to degree two are solved exactly. The coefficients are read off by
 //! evaluating at a few points and checked at others, which also covers `\pi x = 3` and
@@ -64,9 +66,8 @@ impl Evaluator<'_> {
             }
         };
 
-        // A letter solved for by name may carry a unit (F = m a for a): the one that makes the
-        // two sides agree.
-        let unit = if target.is_some() { self.unit_of_unknown(&variable, left, right) } else { Unit::ONE };
+        // The unknown may carry a unit (F = m a for a): the one that makes the two sides agree.
+        let unit = self.unit_of_unknown(&variable, left, right);
         let mut scope = self.variables.clone();
         let mut residual = |x: Value| -> Result<PhysicalQuantity> {
             scope.insert(variable.clone(), PhysicalQuantity::new(x, unit.clone()));
