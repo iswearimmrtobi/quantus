@@ -66,10 +66,10 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Editor template nCr (`\binom`)
 - [ ] Editor templates: Konjugierte (`\overline`), `cases`
 - [ ] Font glyphs: ∠, ⌊⌋, ⌈⌉, µ (→ and the set signs are drawn as lines)
-- [ ] Keys: CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, Sitzungen, PreAns, ∠, ∫, d/dx, Σ,
+- [ ] Keys: ENG/←ENG, STO, VARS, CALC/SOLVE, Sitzungen, PreAns, ∠, ∫, d/dx, Σ,
       x⁻¹, x³, 10ˣ, eˣ, and the ALPHA legend (section 7.4)
 - [x] CONST menu by category (the core's catalogue, through `Backend::catalogue`)
-- [ ] CONV menu by category
+- [x] CONV menu by category
 - [ ] CALC prompt and SOLVE screen
 - [ ] VARS screen: insert, edit, delete session variables
 - [ ] Editing: UNDO/REDO, INS, selection with SHIFT+←/→, copy and paste
@@ -654,7 +654,7 @@ Shared groups, used by several modes:
 - **Hyperbol. Fkt.**: sinh, cosh, tanh ✓, arsinh, arcosh, artanh, coth ✓ (`\operatorname{arsinh}`)
 - **Winkel**: ° ✓, ′ and ″ ✓ (as ' and '', which the fonts have), rad ✓
 - **Griechisch**: α β γ δ ε θ λ μ ρ σ τ φ ω Δ Ω ✓
-- **Werkzeuge**: CALC [eng] ◌, SOLVE [eng] ◌, ▶ Einheit [eng] ◌
+- **Werkzeuge**: CALC [eng] ◌, SOLVE [eng] ◌, In Einheit ✓ (as the CONV key: `▶` and the unit)
 
 Per mode:
 
@@ -719,7 +719,7 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | SETUP | SHIFT + MODE | exists |
 | OPTN | OPTN | exists (`Optn`; F4, Ctrl+N) |
 | CONST | own key | `Const` (F6, Ctrl+U): the six categories of the core, then the constants with their symbols; Physik only |
-| CONV | own key or SHIFT + a key | missing |
+| CONV | own key | `Conv` (F7, Ctrl+Y): the core's 19 categories, then the units; inserts `▶` and the unit, in every mode |
 | S⇔D | S⇔D | exists (`SwapForm`) |
 | ENG, ←ENG | a key and SHIFT + it | missing |
 | STO, VARS | SHIFT + a key, and a key | missing |

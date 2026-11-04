@@ -94,8 +94,8 @@ State on 2026-11-03.
 - [x] USB keyboard, German QWERTZ layout, key repeat
 - [x] Touch: every menu by finger, taps, drag to scroll, page turns, − / + for numbers
 - [x] Touch calibration: five crosses, least squares, redone when off by more than 20 px
-- [x] CONST (F6, Ctrl+U)
-- [ ] Keys still missing: CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
+- [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y)
+- [ ] Keys still missing: ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
 - [ ] ALPHA letters on the keypad
 - [ ] UNDO/REDO
 - [ ] INS (wrap the previous item in the next template)
@@ -154,7 +154,7 @@ in yet.
 - [x] Units after numbers, by quantity in OPTN (15 quantities)
 - [x] All 24 prefixes, q to Q
 - [x] Constants (CODATA 2018, the Casio's 47): CONST or OPTN → Konstanten, by category, in Physik
-- [~] ▶ unit conversion and the imperial units — in the engine; no CONV menu
+- [x] ▶ unit conversion and the imperial units: CONV or OPTN → Werkzeuge → In Einheit, by category
 - [x] Equations and systems, exact
 - [x] Exact cubics and quartics, no [−100, 100] limit
 - [~] SOLVE for a chosen variable — in the engine; no SOLVE screen
@@ -179,13 +179,13 @@ in yet.
 - [x] OPTN groups Analysis, Zahl, Hyperbol. Fkt., Winkel, Griechisch (the working entries)
 - [x] OPTN Physik: Einheiten by quantity, Präfixe
 - [x] OPTN Komplex: Argument, Realteil, Imaginärteil, Betrag
-- [ ] OPTN Werkzeuge: CALC, SOLVE, ▶ Einheit
+- [~] OPTN Werkzeuge — In Einheit works; CALC, SOLVE wait
 - [x] OPTN for Kurvendiskussion: Abschnitte, Tangente/Normale, Fläche, Wertetabelle
 - [ ] OPTN for Matrizen, Basis-N
 - [x] OPTN Wertetabelle, Statistik (Typ, Häufigkeit, rows), Verteilungen (Typ)
 - [x] OPTN LGS: Eingabe, Zeilen, Spalten, Imaginäre Einheit, Alles löschen
 - [x] CONST menu by category, each constant with its symbol
-- [ ] CONV menu by category
+- [x] CONV menu by category, each unit with its name
 - [x] *Noch nicht verfügbar* for entries that wait for the engine or the firmware
 
 ## Storage and sessions

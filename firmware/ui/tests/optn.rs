@@ -128,3 +128,23 @@ fn const_says_the_constants_are_physiks() {
     let Screen::Menu(menu) = &app.screen else { panic!("CONST is open") };
     assert!(matches!(menu.edit, Some(quantus_ui::menu::Edit::Message { message, .. }) if message == quantus_ui::text::PHYSICS_ONLY));
 }
+
+#[test]
+fn conv_puts_the_arrow_and_the_unit_after_the_value() {
+    let mut app = app(Mode::Algebra);
+    app.key(Key::Digit(5));
+    app.key(Key::Conv);
+    // Länge → Zoll, the second.
+    app.key(Key::Exe);
+    app.key(Key::Down);
+    app.key(Key::Exe);
+    assert_eq!(app.screen, Screen::Calc);
+    assert_eq!(app.editor.to_latex(), r"5\blacktriangleright\mathrm{in}");
+    // OPTN → Werkzeuge → In Einheit too.
+    app.key(Key::Ac);
+    app.key(Key::Digit(1));
+    optn(&mut app, &["Werkzeuge", "In Einheit"]);
+    app.key(Key::Exe);
+    app.key(Key::Exe);
+    assert_eq!(app.editor.to_latex(), r"1\blacktriangleright\mathrm{m}");
+}

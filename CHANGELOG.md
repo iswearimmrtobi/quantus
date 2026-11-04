@@ -196,7 +196,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   under Hyperbol. Fkt., the product ∏ under Analysis, nCr, nPr, ggT, kgV,
   Int, Intg, Rnd, RndFix and ÷R under Zahl, minutes and seconds of an angle under Winkel.
 - The handheld has a **CONST** key (F6 in the simulator, Ctrl+U over serial) and OPTN →
-  Konstanten in Physik: the 47 constants in their six categories, each with its symbol.
+  Konstanten in Physik: the 47 constants in their six categories, each with its symbol. A **CONV**
+  key (F7, Ctrl+Y) and OPTN → Werkzeuge → In Einheit convert a value: the units by category,
+  inserted after `▶`.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ, ℤ, ℏ and the conversion arrow ▶, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree

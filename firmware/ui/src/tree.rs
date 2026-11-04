@@ -406,13 +406,19 @@ static GREEK: Page = Page {
 
 static TOOLS: Page = Page {
     title: t("Werkzeuge", "Tools"),
-    entries: &[pending(same("CALC")), pending(same("SOLVE")), pending(t("In Einheit", "To unit"))],
+    entries: &[pending(same("CALC")), pending(same("SOLVE")), CONVERSIONS_ENTRY],
 };
 
 const CONSTANTS_ENTRY: Entry = entry(t("Konstanten", "Constants"), Kind::Catalogue(Catalogue::Constants));
 
 /// What the CONST key opens: the constants by category; a message outside Physik.
 pub static CONSTANTS: Page = Page { title: t("Konstanten", "Constants"), entries: &[CONSTANTS_ENTRY] };
+
+/// A value converted to the unit chosen: `▶ unit`.
+const CONVERSIONS_ENTRY: Entry = entry(t("In Einheit", "To unit"), Kind::Catalogue(Catalogue::Units));
+
+/// What the CONV key opens: the units by category.
+pub static CONVERSIONS: Page = Page { title: t("Umrechnen", "Convert"), entries: &[CONVERSIONS_ENTRY] };
 
 static OPTN_PHYSICS: Page = Page {
     title: t("Physik", "Physics"),

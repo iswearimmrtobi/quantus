@@ -917,9 +917,13 @@ impl<B: Backend> App<B> {
             }
             Outcome::Catalogue(label, catalogue) => menu.edit = Some(self.catalogue(label, catalogue, false)),
             Outcome::Item => {
-                let Some(Edit::Catalogue { groups, group: Some(group), selected, .. }) = &menu.edit else { return };
+                let Some(Edit::Catalogue { catalogue, groups, group: Some(group), selected, .. }) = &menu.edit else { return };
                 let Some(item) = groups.get(*group).and_then(|group| group.items.get(*selected)) else { return };
-                let latex = item.latex.clone();
+                // A unit of CONV is what the value is converted to.
+                let latex = match catalogue {
+                    Catalogue::Constants => item.latex.clone(),
+                    Catalogue::Units => format!(r"\blacktriangleright {}", item.latex),
+                };
                 return self.insert(&latex);
             }
         }
@@ -927,9 +931,12 @@ impl<B: Backend> App<B> {
     }
 
     /// CONST or CONV, opened by its key: the catalogue's categories, which closes the menu when
-    /// left. The constants are Physik's only.
+    /// left. The constants are Physik's only; a value converts in every mode.
     fn open_catalogue(&mut self, catalogue: Catalogue) {
-        let page = &tree::CONSTANTS;
+        let page = match catalogue {
+            Catalogue::Constants => &tree::CONSTANTS,
+            Catalogue::Units => &tree::CONVERSIONS,
+        };
         let label = page.title;
         let mut menu = Menu::new(page);
         menu.edit = Some(match catalogue {
@@ -945,7 +952,7 @@ impl<B: Backend> App<B> {
         let groups = self.backend.catalogue(catalogue, self.settings.language);
         match groups.is_empty() {
             true => Edit::Message { label, message: text::NOT_AVAILABLE },
-            false => Edit::Catalogue { label, groups, group: None, selected: 0, close },
+            false => Edit::Catalogue { label, catalogue, groups, group: None, selected: 0, close },
         }
     }
 
@@ -1114,6 +1121,7 @@ impl<B: Backend> App<B> {
             Key::Mode => return self.screen = Screen::Modes { selected: self.mode.index() },
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             Key::Const => return self.open_catalogue(Catalogue::Constants),
+            Key::Conv => return self.open_catalogue(Catalogue::Units),
             _ => {}
         }
         // While the backend calculates, AC drops its answer and the other keys wait; the graph

@@ -93,6 +93,7 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | F4, Ctrl+N | | OPTN: the mode's options (units, prefixes, functions, …), menus as in the setup |
 | F5 | | OK: on a sheet, edits the cell as it is |
 | F6, Ctrl+U | | CONST: the physical constants by category (Physik) |
+| F7, Ctrl+Y | | CONV: `▶` and a unit to convert the value to, by category |
 | Ctrl+W | | √ |
 | Ctrl+Q | | x² |
 | Ctrl+P | | π |

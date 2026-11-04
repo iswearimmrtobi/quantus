@@ -249,7 +249,7 @@ pub enum Edit {
     Time { label: Text, field: TimeField, typed: String, error: bool },
     /// The categories of a catalogue, or the items of the category `group`; `close` says that
     /// leaving the categories closes the menu (opened by its key, not from a page).
-    Catalogue { label: Text, groups: Vec<Group>, group: Option<usize>, selected: usize, close: bool },
+    Catalogue { label: Text, catalogue: Catalogue, groups: Vec<Group>, group: Option<usize>, selected: usize, close: bool },
 }
 
 /// The longest name a session can be given on the handheld.
@@ -778,20 +778,17 @@ impl Menu {
                 }
                 self.edit = Some(Edit::Time { label, field, typed, error: false });
             }
-            Edit::Catalogue { label, groups, group, selected, close } => {
+            Edit::Catalogue { label, catalogue, groups, group, selected, close } => {
+                let edit = |groups, group, selected| Some(Edit::Catalogue { label, catalogue, groups, group, selected, close });
                 match (pick(key, selected, catalogue_len(&groups, group)), group) {
-                    (Pick::Move(selected), _) => self.edit = Some(Edit::Catalogue { label, groups, group, selected, close }),
-                    (Pick::Chosen(chosen), None) => {
-                        self.edit = Some(Edit::Catalogue { label, groups, group: Some(chosen), selected: 0, close });
-                    }
+                    (Pick::Move(selected), _) => self.edit = edit(groups, group, selected),
+                    (Pick::Chosen(chosen), None) => self.edit = edit(groups, Some(chosen), 0),
                     (Pick::Chosen(chosen), Some(_)) => {
                         // The app reads the item from it.
-                        self.edit = Some(Edit::Catalogue { label, groups, group, selected: chosen, close });
+                        self.edit = edit(groups, group, chosen);
                         return Outcome::Item;
                     }
-                    (Pick::Back, Some(index)) => {
-                        self.edit = Some(Edit::Catalogue { label, groups, group: None, selected: index, close });
-                    }
+                    (Pick::Back, Some(index)) => self.edit = edit(groups, None, index),
                     (Pick::Back, None) if close => return Outcome::Close,
                     (Pick::Back, None) => {}
                 }
