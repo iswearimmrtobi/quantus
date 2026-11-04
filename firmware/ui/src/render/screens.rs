@@ -315,10 +315,13 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
         }
         Some(Edit::WlanStatus { status, .. }) => wlan_screen(shapes, status, lang, glass),
         Some(Edit::Variables { variables, selected, .. }) => {
-            let lines = variables.iter().map(|variable| Line {
-                label: variable.key.clone(),
-                math: Some(crate::latex::parse(&variable.value)),
-                ..Line::default()
+            // A matrix is too tall for a line: its size instead.
+            let lines = variables.iter().map(|variable| match &crate::latex::parse(&variable.value).0[..] {
+                [crate::editor::Node::Matrix(rows)] => {
+                    let size = format!("{} {} × {}", text::MATRIX.get(lang), rows.len(), rows.first().map_or(0, Vec::len));
+                    Line { label: variable.key.clone(), value: Some(size), ..Line::default() }
+                }
+                _ => Line { label: variable.key.clone(), math: Some(crate::latex::parse(&variable.value)), ..Line::default() },
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }

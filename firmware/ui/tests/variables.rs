@@ -155,3 +155,15 @@ fn vars_deletes_a_variable_and_lists_the_rest() {
     press(&mut app, &[Key::Left]);
     assert_eq!(app.screen, Screen::Calc);
 }
+
+#[test]
+fn vars_shows_a_matrix_by_its_size() {
+    use quantus_ui::render::{Frame, Shape};
+    let mut memory = Memory::default();
+    let value = r"\begin{pmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \end{pmatrix}";
+    memory.variables.push(Stored { key: "A".into(), symbol: "A".into(), value: value.into() });
+    let mut app = App::new(memory);
+    app.key(Key::Vars);
+    let shown = Frame::new(&app).0.iter().any(|shape| matches!(shape, Shape::Text(_, text, _, _) if text == "Matrix 2 × 3"));
+    assert!(shown);
+}

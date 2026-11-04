@@ -94,6 +94,7 @@ pub const NO_UNKNOWN: Text = t("Keine Variable zum Auflösen", "No letter to sol
 pub const SOLVE_HINT: Text = t("Gesucht: das leere Feld", "Solved for: the empty field");
 pub const STO: Text = same("STO");
 pub const VARS: Text = same("VARS");
+pub const MATRIX: Text = t("Matrix", "Matrix");
 pub const NO_VARIABLES: Text = t("Keine Variablen", "No variables");
 pub const STORE_HINT: Text = t("Namen tippen (A, r_1), OK speichert", "Type a name (A, r_1), OK stores");
 pub const BAD_VARIABLE: Text = t("Ein Buchstabe, dann Buchstaben, Ziffern, _", "A letter, then letters, digits, _");
