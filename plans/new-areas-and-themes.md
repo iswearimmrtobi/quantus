@@ -10,11 +10,11 @@ can do exactly today (units, exact arithmetic, `π`, roots):
   cone, … with exact results (`\frac{4}{3}\pi r^3`) and units. Same mechanism as the physics formula
   collection ([physics-and-circuits.md](physics-and-circuits.md) §1), so build that first.
 - **Triangles:** solve from any three known of sides/angles (law of sines/cosines), with steps.
-- **Analytic geometry:** distance, lines, planes, vectors, cross and dot product. Needs vector
-  input, which does not exist yet.
+- **Analytic geometry:** done as the Geometry mode, see [geometry.md](geometry.md) and the spec
+  [design/geometry.md](../design/geometry.md).
 - **Drawn figures:** out of scope until the rest works.
 
-**Plan.** Start with shape formulas and triangle solving; decide on vectors separately.
+**Plan.** Shape formulas and triangle solving are still open.
 
 ## Stochastics
 

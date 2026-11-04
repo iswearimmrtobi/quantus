@@ -201,7 +201,7 @@ its tests.
 
 - [x] Spec `design/geometry.md` (glossary, operations, step layouts).
 - [x] Guide in `docs/docs/guides/` and the settings reference.
-- [ ] `CHANGELOG.md` under `[Unreleased]`; remove the "Later" lines for Geometrie in `plans.md` §5,
+- [x] `CHANGELOG.md` under `[Unreleased]`; remove the "Later" lines for Geometrie in `plans.md` §5,
   `new-areas-and-themes.md`, `firmware/docs/features.md` and `design/handheld-menus.md` (the
   open list, §8 and the feature table).
 

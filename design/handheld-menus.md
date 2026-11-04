@@ -47,7 +47,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       format version
 - [x] PreAns next to Ans in the session
 - [x] Remote engine: the request and response format (the JSON of `api.rs`)
-- [ ] Later: polynomial inequalities; vectors with Geometrie
+- [ ] Later: polynomial inequalities
 
 ### Handheld UI (`firmware/ui` and the board)
 
@@ -379,7 +379,7 @@ work the decisions call for, and where it goes (core, desktop, handheld), is in 
 | Komplexe Zahlen | Komplex (`imaginary`) | keep |
 | Basis-N | – | own mode, soon: integers, DEC/HEX/BIN/OCT, d/h/b/o, and/or/xor/xnor/Not/Neg |
 | Matrizen | only `\det` up to 8×8; Gauss steps in LGS | the full Casio set, exact and with steps: + − ×, inverse, transpose, identity, det, powers, REF/RREF; any variable name instead of MatA–D |
-| Vektorrechnung | – | goes into the future Geometrie area, not its own mode |
+| Vektorrechnung | Geometrie in the engine and on the desktop ([geometry.md](geometry.md)) | a Geometrie tile, not its own mode; the VctA–D editor of §3.7 |
 | Statistik, Verteilungsfkt. | – | one Stochastik module in the engine, two tiles (Statistik, Verteilungen), as in `plans/new-areas-and-themes.md` |
 | Tabellenkalk. | – | drop |
 | Tabellen | Kurvendiskussion → Wertetabelle (one function, ≤ 201 rows) | its own tile, Wertetabelle, on the analysis code; g(x) as a second column |
@@ -578,8 +578,9 @@ engine; the modes with a sheet work it out with EXE on its last cell.
       Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. A new one is
       named after the local time as on the desktop ("Sitzung 2026-11-02 14:30"); before the
       clock is set, "Sitzung 2", the lowest number free.
-- Later: Ungleichungen [C, eng], Geometrie with the vectors [eng]
-  ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)).
+- Later: Ungleichungen [C, eng] ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)),
+  Geometrie with the vectors [fw]: the engine has the mode, the tile is in
+  [plans/geometry.md](../plans/geometry.md) § Later.
 - Not on the handheld: Tabellenkalk., Verhältnisse (typed in Algebra), Kirchhoff and
   Elektronik (they need a drawn circuit).
 
@@ -843,7 +844,7 @@ Roughly in the order agreed; each is an item in `plans/plans.md` §5.
 | 11 | PreAns, STO, VARS | Ans and PreAns in the session | already has the variables panel | keys and VARS screen |
 | 12 | Remote engine and the link to the desktop: LaTeX in, LaTeX out, sessions | the request and response format (the JSON of `api.rs`), the session files | a listener the handheld can reach over WLAN and Bluetooth, pairing | client, Verbindungen page |
 | 13 | Firmware updates | – | an updater for the handheld: the image from the GitHub releases, uploaded over USB or the link | receive and install an image (from the desktop or over WLAN); the release workflow attaches it |
-| 14 | Later: inequalities; vectors with Geometrie | solver, Geometrie module | – | – |
+| 14 | Later: inequalities | solver | – | – |
 
 Firmware only, because they concern the device: UNDO/REDO, INS, selection, copy and paste in the
 editor (the desktop's MathLive has them), brightness, font size, auto-off, RESET, the QR code,

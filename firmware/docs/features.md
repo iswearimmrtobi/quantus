@@ -117,7 +117,8 @@ State on 2026-11-04.
 - [x] 11 Prüfen: wahr or falsch, chains like 1 < 2 ≤ 2; OPTN has the relations
 - [x] 12 Sitzungen (the tile opens the sessions menu)
 - [ ] Later: Ungleichungen
-- [ ] Later: Geometrie with vectors
+- [ ] Later: Geometrie: the engine and the 3D view are shared, the tiles and the drawing are in
+  [plans/geometry.md](../../plans/geometry.md) § Later
 
 ## Results
 

@@ -160,8 +160,8 @@ handheld-menus.md, *What is missing*.
 - [ ] Firmware updates: an updater in the desktop app that takes the image from the GitHub
   releases and uploads it to the handheld (USB or the link); the handheld can fetch it over
   WLAN itself; the release workflow ([RELEASING.md](../RELEASING.md)) attaches the image.
-- [ ] Later: polynomial inequalities; vectors with a Geometrie area
-  ([new-areas-and-themes.md](new-areas-and-themes.md)).
+- [ ] Later: polynomial inequalities. (Vectors went into the Geometry mode, built in engine and
+  desktop; its handheld part is in [geometry.md](geometry.md) § Later.)
 
 The handheld's own part (menus, keys, the purple palette, WLAN and Bluetooth, the exam mode) is
 in [handheld-menus.md](../design/handheld-menus.md) §7.

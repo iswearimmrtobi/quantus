@@ -161,6 +161,28 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   within the precision. This holds for the currents and for the resistance between A and B.
 - The circuit editor (Electronics and Kirchhoff) draws a filled **junction dot** where three or
   more wires and terminals meet, as a schematic does.
+- A new mode, **Geometry** (German **Geometrie**), for analytic geometry in space: points,
+  vectors, lines, planes, spheres and circles, worked out exactly with their steps.
+  - Objects are added with a form (a line by point and direction or by two points; a plane in
+    parameter, normal or coordinate form or by three points; a sphere by centre and radius,
+    centre and point or four points; a circle by centre, radius and normal or as a sphere cut by
+    a plane), with formula cells for the coordinates, or typed with their name:
+    `A(1|2|3)`, `g: X = A + \lambda \vec{u}`, `E: 2x + y - z = 4`, `K: (x-1)^2 + y^2 + z^2 = 9`.
+    A typed name already in the scene replaces that object where it stands.
+  - Objects have names of their own, apart from the variables. Points are written `(1|2|3)` or
+    `(1;2;3)`, vectors as `pmatrix` columns or `\vec{a}`; `×` of two vectors is the cross
+    product, `\cdot` the dot product, `|\vec{a}|` the length.
+  - A 3D view draws the scene, each object in its own colour with its name; drag turns it, the
+    wheel zooms, with *View from above* and *Reset*. The projection is computed in the engine, so
+    the handheld can draw the same picture later.
+  - Tasks: the relation of two objects (identical, parallel, intersecting, skew, contained,
+    secant, tangent, intersection circle, Potenzebene, …), distance, angle (in the angle unit),
+    foot of the perpendicular, reflection, midpoint, tangent and tangent plane, a plane in another
+    form, length, surface, volume, circumference and area, and an expression with the scene's
+    points and vectors. Answers are exact (`2\sqrt{2}`, `\arcsin(\frac{\sqrt{7}}{14}) ≈ 10.8934°`);
+    a 2D scene gives 2D results.
+  - The steps follow the step detail, in English and German, and **Copy** gives them as an
+    `align*` block. The scene and the task are kept in the session.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 - The handheld keeps **sessions**, as the desktop app does: MODE → Sitzungen creates, opens,
