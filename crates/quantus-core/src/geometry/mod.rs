@@ -4,6 +4,10 @@
 //! a point plus a vector is a point, and vectors add and scale. A 2D input is z = 0 and keeps
 //! that it was 2D (`planar`), so that a result of 2D inputs can be written without z.
 
+mod eval;
+
+pub use eval::{GeometryEvaluator, Item, Objects};
+
 use std::ops::{Add, Mul, Neg, Sub};
 
 use crate::eval::angles;

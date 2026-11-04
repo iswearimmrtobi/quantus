@@ -428,7 +428,7 @@ fn polynomial_roots(
 /// Variables without value and without index, outside whatever binds them, by session key. In a
 /// system (`system`) a variable with an index counts too: `x_1` is an unknown there, while a
 /// single equation leaves `v_1` and `t_1` to the physics.
-pub(super) fn collect_unknowns(
+pub(crate) fn collect_unknowns(
     node: &Node,
     system: bool,
     bound: &mut Vec<String>,

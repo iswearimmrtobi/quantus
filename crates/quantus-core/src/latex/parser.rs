@@ -155,6 +155,8 @@ pub struct ParseOptions {
     pub units: bool,
     /// `i` outside a binding is the imaginary unit rather than a variable.
     pub imaginary_i: bool,
+    /// The Geometry mode's notation: `\vec{a}` names a vector.
+    pub geometry: bool,
 }
 
 impl Default for ParseOptions {
@@ -165,6 +167,7 @@ impl Default for ParseOptions {
             extra_unit_letters: false,
             units: true,
             imaginary_i: true,
+            geometry: false,
         }
     }
 }
@@ -751,6 +754,7 @@ impl Parser<'_> {
                 Ok(Node::Call { name, arguments, position })
             }
             "\\begin" => self.parse_matrix(token),
+            "\\vec" if self.options.geometry => self.parse_vector_name(token),
             "\\det" => {
                 self.advance();
                 let operand = self.parse_atom()?;
@@ -1041,6 +1045,35 @@ impl Parser<'_> {
         } else {
             matrix
         })
+    }
+
+    /// `\vec{a}`, `\vec a`, `\vec{a_1}` and `\vec{a}_1`: a named vector of the Geometry mode,
+    /// as the call `vec` of the variable.
+    fn parse_vector_name(&mut self, token: &Token) -> Result<Node> {
+        self.advance();
+        let braced = self.current().kind == TokenType::LBrace;
+        if braced {
+            self.advance();
+        }
+        let letter = self.current().clone();
+        if letter.kind != TokenType::Identifier || letter.text.chars().count() != 1 {
+            return Err(self.error("A vector is named by one letter, as in \\vec{a} or \\vec{a}_1.", letter.position));
+        }
+        self.advance();
+        let mut index = String::new();
+        if self.current().kind == TokenType::Underscore {
+            self.advance();
+            index = self.parse_subscript()?;
+        }
+        if braced {
+            self.expect(TokenType::RBrace, "'}' after the name of the vector")?;
+            if index.is_empty() && self.current().kind == TokenType::Underscore {
+                self.advance();
+                index = self.parse_subscript()?;
+            }
+        }
+        let name = Node::Variable { name: letter.text, index, position: letter.position };
+        Ok(Node::Call { name: "vec".into(), arguments: vec![name], position: token.position })
     }
 
     fn skip_ampersand(&mut self) {

@@ -309,6 +309,7 @@ impl Settings {
             extra_unit_letters: self.extra_unit_letters,
             units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify | Mode::Geometry),
             imaginary_i: self.complex(),
+            geometry: self.mode == Mode::Geometry,
         }
     }
 

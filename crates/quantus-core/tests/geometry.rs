@@ -1,9 +1,12 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, Point, Vector3,
+    triple_product, GeometryEvaluator, Item, Objects, Point, Vector3,
 };
+use quantus_core::eval::{Evaluator, Variables};
+use quantus_core::latex::parser::{parse_with, ParseOptions};
+use quantus_core::latex::serializer;
 use quantus_core::num::Value;
-use quantus_core::settings::AngleUnit;
+use quantus_core::settings::{AngleUnit, Mode, Settings};
 
 #[test]
 fn points_and_vectors_have_their_own_arithmetic() {
@@ -133,4 +136,54 @@ fn areas_and_volumes() {
     // A 2D triangle is the z = 0 case.
     let p = |x, y| Point::planar(Value::int(x), Value::int(y));
     assert_eq!(triangle_area(&p(0, 0), &p(2, 0), &p(1, 5)).unwrap(), Value::int(5));
+}
+
+fn geometry_options() -> ParseOptions {
+    Settings { mode: Mode::Geometry, ..Settings::default() }.parse_options()
+}
+
+fn read(latex: &str, objects: &Objects) -> Result<Item, String> {
+    let formula = parse_with(latex, &geometry_options()).map_err(|e| e.to_string())?;
+    let variables = Variables::new();
+    let evaluator = Evaluator::new(&variables).with_mode(Mode::Geometry);
+    GeometryEvaluator::new(&evaluator, objects).evaluate(&formula.expression).map_err(|e| e.to_string())
+}
+
+#[test]
+fn a_column_is_a_vector() {
+    let objects = Objects::default();
+    let vector = |latex| match read(latex, &objects) {
+        Ok(Item::Vector(v)) => v,
+        other => panic!("{latex}: {other:?}"),
+    };
+    assert_eq!(vector(r"\begin{pmatrix} 1 \\ -2 \\ \frac{3}{4} \end{pmatrix}"), Vector3::new(Value::int(1), Value::int(-2), Value::ratio(3, 4)));
+    // The entries are read as in the matrix mode: decimal commas, roots, π.
+    assert_eq!(vector(r"\begin{pmatrix} 1{,}5 \\ \sqrt{4} \\ 0 \end{pmatrix}"), Vector3::new(Value::ratio(3, 2), Value::int(2), Value::zero()));
+    assert_eq!(vector(r"\begin{pmatrix} \pi \\ 2 \\ 1 \end{pmatrix}").coords[0], Value::Pi);
+    let planar = vector(r"\begin{pmatrix} 3 \\ 4 \end{pmatrix}");
+    assert!(planar.planar && planar == Vector3::from_ints(3, 4, 0));
+    assert!(read(r"\begin{pmatrix} 1 & 2 & 3 \end{pmatrix}", &objects).unwrap_err().contains("column of two or three"));
+    assert!(read(r"\begin{pmatrix} 1 \\ 2 \\ 3 \\ 4 \end{pmatrix}", &objects).is_err());
+    assert!(read(r"\begin{pmatrix} x \\ 2 \\ 3 \end{pmatrix}", &objects).unwrap_err().contains("'x' has no value"));
+    assert_eq!(read("2 + 3", &objects), Ok(Item::Scalar(Value::int(5))));
+}
+
+#[test]
+fn vec_names_a_vector_of_the_scene() {
+    let mut objects = Objects::default();
+    objects.vectors.insert("a".into(), Vector3::from_ints(1, 2, 3));
+    objects.vectors.insert("a_1".into(), Vector3::from_ints(0, 0, 1));
+    for latex in [r"\vec{a}", r"\vec a", r"(\vec{a})"] {
+        assert_eq!(read(latex, &objects), Ok(Item::Vector(Vector3::from_ints(1, 2, 3))), "{latex}");
+    }
+    for latex in [r"\vec{a_1}", r"\vec{a}_1", r"\vec{a}_{1}"] {
+        assert_eq!(read(latex, &objects), Ok(Item::Vector(Vector3::from_ints(0, 0, 1))), "{latex}");
+    }
+    assert!(read(r"\vec{b}", &objects).unwrap_err().contains("no vector"));
+    assert!(read(r"\vec{ab}", &objects).unwrap_err().contains("one letter"));
+    // The serializer writes it back as it was read.
+    let formula = parse_with(r"\vec a_1", &geometry_options()).unwrap();
+    assert_eq!(serializer::expression(&formula.expression), r"\vec{a_{1}}");
+    // Outside the Geometry mode `\vec` means nothing.
+    assert!(parse_with(r"\vec{a}", &Settings { mode: Mode::Algebra, ..Settings::default() }.parse_options()).is_err());
 }

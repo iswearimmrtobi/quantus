@@ -223,6 +223,7 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 }
                 out
             }
+            ("vec", [name]) => format!("\\vec{{{}}}", expression_with_mode(name, mode)),
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
             ("convert", [value, unit]) => {
                 format!("{} \\blacktriangleright {}", expression_with_mode(value, mode), expression_with_mode(unit, mode))

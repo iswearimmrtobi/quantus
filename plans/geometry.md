@@ -113,7 +113,7 @@ green.
 - [x] `cross` and the triple product (Spatprodukt) via the determinant in `matrix.rs`; `collinear`
   and `coplanar` tests.
 - [x] Areas and volumes: triangle, parallelogram, tetrahedron, parallelepiped.
-- [ ] Parser, Geometry mode only, *check first* how `MatrixEvaluator` in `matrix.rs` reads
+- [x] Parser, Geometry mode only, *check first* how `MatrixEvaluator` in `matrix.rs` reads
   `pmatrix` and reuse that instead of duplicating it: `\begin{pmatrix}`, `\vec{a}` read as
   vectors, with tests.
 - [ ] Parser: points `P(1|2|3)` and `(1|2|3)`, `;` as a separator, the rule that tells `(a|b|c)`
