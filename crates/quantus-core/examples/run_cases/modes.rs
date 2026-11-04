@@ -5,6 +5,8 @@
 use super::*;
 use quantus_core::eval::Calculation;
 
+#[path = "basen.rs"]
+mod basen;
 #[path = "verify.rs"]
 mod verify;
 
@@ -18,6 +20,7 @@ pub(super) fn run_api_case(api: &str, case: &Value) -> Outcome {
 pub(super) fn check_calculation(kind: &str, settings: &Settings, expect: &Value, calc: &Calculation) -> Outcome {
     match kind {
         "truth" => verify::check(settings, expect, calc),
+        "basen" => basen::check(expect, calc),
         _ => generator("unknown expectation kind"),
     }
 }

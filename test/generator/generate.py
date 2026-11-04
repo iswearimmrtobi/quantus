@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gens import (algebra, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
-                  verify)
+                  basen, verify)
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -44,6 +44,7 @@ CATEGORIES = {
     "linear-systems": ("lgs", 2000, linear_systems.GENERATORS),
     # The modes added later, appended so the seeds of the categories above stay the same.
     "verify": ("ver", 1000, verify.GENERATORS),
+    "base-n": ("bn", 1000, basen.GENERATORS),
 }
 
 
@@ -124,6 +125,10 @@ def check(all_cases):
             elif e["kind"] == "truth":
                 if not isinstance(e["value"], bool):
                     errors.append(f"{c['id']}: truth without true or false")
+            elif e["kind"] == "basen":
+                int(e["value"])
+                if len(e["forms"]) != 3:
+                    errors.append(f"{c['id']}: basen needs the three other forms")
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001
