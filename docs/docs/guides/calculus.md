@@ -67,6 +67,21 @@ When the two sides disagree, the two-sided limit is an error; ask for one side w
 Sums are exact and allow up to 1,000,000 terms. The body of a sum is one term: write
 `\sum_{k=1}^{3} (k + 1)` for $\sum (k+1)$.
 
+A sum can run to `\infty`. Like an integral it is numerical, with at most 30 digits:
+
+| Input | Result |
+|---|---|
+| `\sum_{k=1}^{\infty} \frac{1}{k^2}` | $1{,}644934066848\ldots$ $\left(= \frac{\pi^2}{6}\right)$ |
+| `\sum_{k=0}^{\infty} \frac{1}{2^k}` | $2$ |
+| `\sum_{k=1}^{\infty} \frac{(-1)^{k+1}}{k}` | $0{,}693147180559\ldots$ $(= \ln 2)$ |
+| `\sum_{k=1}^{\infty} \frac{1}{k}` | *The series diverges: its terms fall like 1/k, as in the harmonic series.* |
+
+Three kinds of terms are summed: a fraction of polynomials in $k$ (decided exactly: it converges
+when the denominator's degree is at least two above the numerator's), alternating terms that
+fall towards 0, and terms that fall at least geometrically, such as $\frac{k}{2^k}$ or
+$\frac{1}{k!}$. Other series, such as $\sum \frac{1}{\sqrt{k}}$, are refused instead of guessed: a
+series that diverges slowly looks convergent for millions of terms.
+
 ## Determinants
 
 ```latex

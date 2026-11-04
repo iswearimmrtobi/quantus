@@ -300,7 +300,7 @@ fn unsupported() -> QuantusError {
 
 /// `node` as a fraction of polynomials in `variable`. Every denominator that depends on the
 /// variable is pushed to `poles`, whose zeros are no part of the solution.
-fn rational_function(evaluator: &Evaluator, node: &Node, variable: &str, poles: &mut Vec<Coefficients>) -> Result<(Coefficients, Coefficients)> {
+pub(crate) fn rational_function(evaluator: &Evaluator, node: &Node, variable: &str, poles: &mut Vec<Coefficients>) -> Result<(Coefficients, Coefficients)> {
     if !depends_on(node, variable) {
         let quantity = evaluator.evaluate(node)?.simplify()?;
         if !quantity.unit.is_one() {

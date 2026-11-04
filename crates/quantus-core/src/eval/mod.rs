@@ -6,6 +6,7 @@ pub mod derivative;
 pub mod evaluator;
 pub(crate) mod inequality;
 pub mod linear_system;
+pub(crate) mod series;
 pub(crate) mod polynomial;
 pub mod solver;
 pub mod substitution;

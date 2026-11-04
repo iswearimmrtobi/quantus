@@ -14,7 +14,7 @@ use dashu::rational::RBig;
 
 use crate::latex::{Node, Operator};
 use crate::num::{Decimal, MathFunction, Value, DEFAULT_PRECISION, MAX_PRECISION};
-use super::{angles, derivative};
+use super::{angles, derivative, series};
 use crate::numeric;
 use crate::settings::{AngleUnit, Mode, NumberFormat};
 use crate::quantity::PhysicalQuantity;
@@ -292,6 +292,9 @@ impl<'a> Evaluator<'a> {
     // ---- constructs that bind a variable ------------------------------------------------
 
     fn sum(&self, index: &str, from: &Node, to: &Node, body: &Node) -> Result<PhysicalQuantity> {
+        if infinity_sign(to) == Some(1) {
+            return self.infinite_sum(index, from, body);
+        }
         let from = self.whole_integer(from, "The lower limit of a sum")?;
         let to = self.whole_integer(to, "The upper limit of a sum")?;
         if to.saturating_sub(from) >= MAX_SUM_TERMS {
@@ -308,6 +311,38 @@ impl<'a> Evaluator<'a> {
             });
         }
         Ok(total.unwrap_or_else(|| PhysicalQuantity::dimensionless(Value::zero())))
+    }
+
+    /// `\sum_{k=a}^{\infty}`, numerically to at most 30 digits like an integral; how depends on
+    /// the terms, see [`super::series`]. The terms must be numbers without a unit.
+    fn infinite_sum(&self, index: &str, from: &Node, body: &Node) -> Result<PhysicalQuantity> {
+        let from = self.whole_integer(from, "The lower limit of a sum")?;
+        let digits = self.numeric_digits + 10;
+        let total = match super::inequality::rational_function(self, body, index, &mut Vec::new()) {
+            Ok((p, _)) if p.iter().all(|c| *c == RBig::ZERO) => RBig::ZERO,
+            Ok((p, q)) => {
+                let n = series::rational_tail_start(&p, &q, from)?;
+                let head = series::rational_partial_sum(&p, &q, from, n)?;
+                let lower = Node::Number { value: Decimal::from_i64(n), position: 0 };
+                let upper = Node::Constant { name: "\\infty".into(), position: 0 };
+                let integral = self.integral(index, &lower, &upper, body)?.value.decimal(digits)?.to_rational();
+                head + integral + series::euler_maclaurin_correction(&p, &q, n)
+            }
+            Err(_) => {
+                let mut scope = self.variables.clone();
+                let mut term = |k: i64| -> Result<RBig> {
+                    scope.insert(index.to_string(), PhysicalQuantity::dimensionless(Value::int(k)));
+                    let quantity = self.scoped(&scope).evaluate(body)?;
+                    if !quantity.unit.is_one() {
+                        return Err(QuantusError::other("A sum to \\infty takes terms without a unit."));
+                    }
+                    Ok(quantity.value.decimal(digits + 10)?.to_rational())
+                };
+                series::numeric_series(&mut term, from, digits)?
+            }
+        };
+        let value = Value::from_decimal(&Value::Rat(total).decimal(self.numeric_digits)?);
+        Ok(PhysicalQuantity::dimensionless(value))
     }
 
     /// `\prod`: the terms multiplied, units and all; an empty product is 1.

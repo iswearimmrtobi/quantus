@@ -296,6 +296,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   `1 < 2x + 1 \le 5`; a zero of a denominator is never part of the solution. The working
   brings each relation to one side, lists the zeros and the poles, and shows a sign chart
   (Vorzeichentabelle).
+- Sums to infinity, `\sum_{k=1}^{\infty} \frac{1}{k^2}`, to 30 digits like an integral: terms that
+  are a fraction of polynomials in k, alternating terms and terms that fall geometrically. A
+  divergent series is reported as such, and one that cannot be judged safely is refused.
 
 ### Changed
 

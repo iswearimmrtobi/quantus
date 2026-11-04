@@ -16,7 +16,7 @@ re-run as a set. What has been checked is the feature each one was waiting for.
 | `\ln`, `\log` | M3 | `\log` is base 10. Arguments must be positive. No `\log_b`; write `\ln x / \ln b`. |
 | `\|x\|` | M8 | Also `\left\|…\right\|`, `\lvert…\rvert`. Keeps the unit. |
 | `\binom{n}{k}` | M7 | Exact; needs non-negative whole numbers. |
-| `\sum_{i=a}^{b}` | M6 | Exact, up to 1,000,000 terms. The body is a whole term: `\sum k + 1` is `(\sum k) + 1`. |
+| `\sum_{i=a}^{b}` | M6 | Exact, up to 1,000,000 terms. The body is a whole term: `\sum k + 1` is `(\sum k) + 1`. To `\infty`: numerical, at most 30 digits, for terms that are a rational function of the index (Euler–Maclaurin tail, convergence decided by the degrees), alternate (Cohen–Villegas–Zagier) or fall geometrically; other series are refused. |
 | `\int_a^b f\,dx` | M9, P6, P7, P8, U7, U8 | Numerical (tanh-sinh), at most 30 digits. The variable carries the unit of the limits. Nested integrals work but are slow. |
 | `\lim_{x \to a}` | M11 | Numerical and two-sided. Reports an error if the sides disagree or the values grow without bound. |
 | `\det`, `pmatrix` | M12 | Exact, up to 8×8. `vmatrix` is a determinant. A matrix on its own is an error. |
