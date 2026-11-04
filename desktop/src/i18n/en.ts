@@ -231,6 +231,7 @@ export const en = {
   'geometry.plot.hint': 'Drag to turn, scroll to zoom',
   'geometry.plot.above': 'View from above',
   'geometry.typed.hint': 'Type an object with its name and press Enter, such as A(1|2|3), g: X = A + \\lambda\\vec{u}, E: 2x + y - z = 4 or K: x^2 + y^2 + z^2 = 9. A name already in the scene is replaced.',
+  'geometry.copy.hint': 'Answer and steps as an align* block',
   'geometry.add': 'Add',
   'geometry.name': 'Name',
   'geometry.remove': 'Remove this object',

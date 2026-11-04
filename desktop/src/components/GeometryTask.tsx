@@ -201,7 +201,7 @@ export function GeometryTaskPanel({ task, built, answer, onChange, hideSteps }: 
               ))}
             </div>
             {answer.alignBlock && (
-              <button className="copy-btn" title={t('linear.copy.hint')} onClick={() => void copyAll()}>
+              <button className="copy-btn" title={t('geometry.copy.hint')} onClick={() => void copyAll()}>
                 {copied ? t('copied') : t('copy')}
               </button>
             )}
