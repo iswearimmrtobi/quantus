@@ -5,6 +5,7 @@ import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { GeometryObjects } from './GeometryObjects';
 import { GeometryPlot } from './GeometryPlot';
+import { GeometryTaskPanel } from './GeometryTask';
 import { MathField } from './MathField';
 
 
@@ -70,6 +71,9 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
         {error && <ErrorRow error={error} soft />}
         {!input.objects.length && <p className="analysis-empty">{t('geometry.empty')}</p>}
         <GeometryObjects objects={input.objects} built={answer?.objects ?? null} onChange={(objects) => onInputChange({ ...input, objects })} />
+        {input.objects.length > 0 && (
+          <GeometryTaskPanel task={input.task} built={answer?.objects ?? null} answer={answer?.task ?? null} onChange={(task) => onInputChange({ ...input, task })} />
+        )}
       </div>
     </main>
   );

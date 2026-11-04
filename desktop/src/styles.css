@@ -2685,6 +2685,43 @@ select option {
   padding-left: 18px;
 }
 
+.geometry-task {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.geometry-task-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.geometry-task-word {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.geometry-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.geometry-relation {
+  align-self: flex-start;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--amber-dim);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+}
+
 .geometry-error {
   color: var(--text-muted);
   font-size: 13px;

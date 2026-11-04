@@ -145,10 +145,66 @@ function formObject(object: GeometryObject): GeometryObject {
   return out.kind === 'circle' && !out.normal ? { ...out, normal: ['', '', ''] } : out;
 }
 
-/** The scene as a request, or null while it is empty. */
+export type TaskKind = GeometryTask['kind'];
+
+/** The tasks in the order the panel offers them. */
+export const TASK_KINDS: TaskKind[] = ['relation', 'distance', 'angle', 'foot', 'reflect', 'midpoint', 'tangent', 'convert', 'measure', 'evaluate'];
+
+/** A task of `kind`, with the objects of the previous task where they fit its slots. */
+export function taskOfKind(kind: TaskKind, previous: GeometryTask | null): GeometryTask {
+  const fields = (previous ?? {}) as Record<string, string>;
+  const [first, second] = (() => {
+    switch (previous?.kind) {
+      case 'relation':
+      case 'distance':
+      case 'angle':
+      case 'midpoint':
+        return [fields.a, fields.b];
+      case 'foot':
+        return [fields.point, fields.onto];
+      case 'reflect':
+        return [fields.point, fields.mirror];
+      case 'tangent':
+        return [fields.object, fields.point];
+      case 'convert':
+        return [fields.plane, ''];
+      case 'measure':
+        return [fields.object, ''];
+      default:
+        return ['', ''];
+    }
+  })().map((name) => name ?? '');
+  switch (kind) {
+    case 'relation':
+    case 'distance':
+    case 'angle':
+    case 'midpoint':
+      return { kind, a: first, b: second };
+    case 'foot':
+      return { kind, point: first, onto: second };
+    case 'reflect':
+      return { kind, point: first, mirror: second };
+    case 'tangent':
+      return { kind, object: first, point: second };
+    case 'convert':
+      return { kind, plane: first, form: 'coordinate' };
+    case 'measure':
+      return { kind, object: first, measure: 'length' };
+    case 'evaluate':
+      return { kind, latex: '' };
+  }
+}
+
+/** Whether every slot of the task is filled; until then it is not asked. */
+export function taskReady(task: GeometryTask): boolean {
+  return Object.entries(task).every(([key, value]) => key === 'kind' || (typeof value === 'string' && value.trim() !== ''));
+}
+
+/** The scene as a request, or null while it is empty. A task is sent once it is complete. */
 export function geometryRequest(input: GeometryInput): GeometryRequest | null {
-  if (!input.objects.length && !input.task) return null;
-  return { scene: { objects: input.objects.map(shapeRequest) }, task: input.task };
+  if (!input.objects.length) return null;
+  const task = input.task && taskReady(input.task) ? input.task : null;
+  return { scene: { objects: input.objects.map(shapeRequest) }, task };
 }
 
 /** `|` as MathLive may write it between coordinates, as the engine reads it. */

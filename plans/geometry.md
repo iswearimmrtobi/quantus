@@ -193,7 +193,7 @@ its tests.
 - [x] Forms for Gerade and Ebene, with the form switch (parameter, normal, coordinate).
 - [x] Forms for Kugel and Kreis (including the Kugel ∩ Ebene constructor).
 - [x] Typed-expression field that creates or updates the same objects.
-- [ ] Task panel: pick objects, pick relation or distance, show the result.
+- [x] Task panel: pick objects, pick relation or distance, show the result.
 - [ ] Task panel shows the `Steps`; the copy block.
 - [ ] `en.ts` and `de.ts`: remaining labels, checked for completeness.
 
