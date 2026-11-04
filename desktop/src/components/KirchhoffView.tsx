@@ -51,7 +51,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
 
   // As in the electronics mode: every change recalculates after a short debounce, and an answer
   // to an older circuit is dropped. The step settings change the working, so they count too.
-  const { language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination } = settings;
+  const { language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination, starDelta } = settings;
   useEffect(() => {
     let current = true;
     const timer = window.setTimeout(() => {
@@ -77,7 +77,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       current = false;
       window.clearTimeout(timer);
     };
-  }, [request, halfTerminals, language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination]);
+  }, [request, halfTerminals, language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination, starDelta]);
 
   const nodes = useMemo(() => numberNodes(elements), [elements]);
   // The overlay belongs to the drawing it was solved for; while a change is being solved the
@@ -99,8 +99,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
     };
   }, [solution, elements, nodes, shown.voltage]);
 
-  /** The parts of the loop under the pointer. */
-  /** While a merge step is under the pointer, the network as it stands after that merge. */
+  /** While a step of the reduction is under the pointer, the network as it stands after it. */
   const reduced = useMemo(() => {
     const merges = solution?.equivalent?.merges;
     if (hover?.kind !== 'merge' || !merges?.[hover.index]) return null;
@@ -109,10 +108,10 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
 
   const highlight = useMemo(() => {
     if (!solution) return undefined;
-    if (reduced) return [reduced.merged];
+    if (reduced) return reduced.merged;
     if (hover?.kind !== 'loop') return undefined;
     return solution.loops[hover.index]?.members.map((m) => m.id);
-  }, [hover, solution]);
+  }, [hover, solution, reduced]);
 
   const startResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);

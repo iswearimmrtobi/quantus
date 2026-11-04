@@ -309,7 +309,7 @@ export interface Kirchhoff {
   /** The equations have no single solution; the steps end where that shows. */
   error: string | null;
   /** The resistance between A and B; each merge names the parts it stands for, in step order. */
-  equivalent: { latex: string; resistance: CircuitValue; merges: { symbol: string; parts: string[]; series: boolean }[] } | null;
+  equivalent: { latex: string; resistance: CircuitValue; merges: MergeStep[] } | null;
 }
 
 /**
@@ -411,6 +411,20 @@ export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 export type ConditionalIdentities = 'withCondition' | 'alwaysValid';
 export type StepDetail = 'none' | 'brief' | 'standard' | 'detailed' | 'maximal';
 export type Elimination = 'gauss' | 'gaussJordan';
+/** What the resistance between A and B does where series and parallel get stuck: the node rule, or a star–delta conversion first. */
+export type StarDelta = 'nodeRule' | 'deltaToStar' | 'starToDelta';
+
+/**
+ * A step of the reduction between A and B: a merge (`symbol` the merged resistor, `parts` the
+ * parts it stands for) or a star–delta conversion (`parts` those of the three resistors it
+ * replaces, `created` the three new ones between grid points, with the IDs later merges use).
+ */
+export interface MergeStep {
+  symbol: string;
+  parts: string[];
+  kind: 'series' | 'parallel' | 'deltaToStar' | 'starToDelta';
+  created: { id: string; symbol: string; a: { x: number; y: number }; b: { x: number; y: number } }[];
+}
 export type UnknownNames = 'indexed' | 'letters';
 export type AngleUnit = 'degree' | 'radian';
 export type NumberFormat =
@@ -442,6 +456,8 @@ export interface Settings {
   cancelMarks: boolean;
   /** How the steps reduce a system of linear equations: school Gauss or Gauss–Jordan. */
   elimination: Elimination;
+  /** Kirchhoff mode, resistance between A and B: the node rule or a star–delta conversion where series and parallel get stuck. */
+  starDelta: StarDelta;
   /** How the linear systems mode names the unknowns of a matrix: `x_1 … x_n` or `x, y, z, a, …`. */
   unknownNames: UnknownNames;
   /** Whether `i` is the imaginary unit in the linear systems mode rather than an unknown. */

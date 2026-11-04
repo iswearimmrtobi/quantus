@@ -1,5 +1,5 @@
 import type { TextKey } from './i18n/en';
-import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, KirchhoffRequest } from './api';
+import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, KirchhoffRequest, MergeStep } from './api';
 
 /**
  * The schematic as the editor keeps it, and the pure functions that turn it into a
@@ -455,30 +455,105 @@ export function fromFile(file: unknown): EditorElement[] {
   }));
 }
 
-/** A merge of the resistance between A and B, as `api.Kirchhoff['equivalent']` lists them. */
-export interface MergeStep {
-  symbol: string;
-  parts: string[];
-  series: boolean;
+export type { MergeStep };
+
+/** `R_{23}` as `R23`, `R_{\mathrm{X},2}` as `RX,2`, `R_{\Delta 1}` as `RΔ1`: the name a merged resistor shows on the canvas. */
+const plainSymbol = (symbol: string) =>
+  symbol
+    .replace(/\\mathrm/g, '')
+    .replace(/\\Delta\s?/g, 'Δ')
+    .replace(/[_{}]/g, '');
+
+/**
+ * A resistor between two grid points that need not be four steps apart in a line: drawn in the
+ * middle along the longer direction, with a wire from each end to its point where needed.
+ */
+function resistorBetween(id: string, from: Point, to: Point): { resistor: EditorElement; wires: EditorElement[] } {
+  const horizontal = Math.abs(to.x - from.x) >= Math.abs(to.y - from.y);
+  const resistor: EditorElement = { id, kind: 'resistor', x: snap((from.x + to.x) / 2), y: snap((from.y + to.y) / 2), rotation: horizontal ? 0 : 1 };
+  const { a, b } = terminals(resistor) as Record<'a' | 'b', Point>;
+  const distance = (p: Point, q: Point) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
+  const [near, far] = distance(a, from) <= distance(b, from) ? [a, b] : [b, a];
+  const wires: EditorElement[] = [];
+  const wire = (key: string, p: Point, q: Point) => {
+    if (pointKey(p) !== pointKey(q)) wires.push({ id: `~${id}${key}`, kind: 'wire', x: p.x, y: p.y, x2: q.x, y2: q.y, rotation: 0 });
+  };
+  wire('a', from, near);
+  wire('b', far, to);
+  return { resistor, wires };
 }
 
-/** `R_{23}` as `R23`, `R_{\mathrm{X},2}` as `RX,2`: the name a merged resistor shows on the canvas. */
-const plainSymbol = (symbol: string) => symbol.replace(/\\mathrm/g, '').replace(/[_{}]/g, '');
+/**
+ * The arms of a star from its centre to the corners: each in its own one of the four directions,
+ * the one nearest its corner where it is free, so that no two lie on top of each other however
+ * close the corners are. An arm starts at the centre and a wire leads on to its corner.
+ */
+function starArms(arms: { id: string; corner: Point }[], centre: Point): { resistor: EditorElement; wires: EditorElement[] }[] {
+  const directions: Point[] = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+  ];
+  const choices = arms.flatMap((arm, k) => {
+    const dx = arm.corner.x - centre.x;
+    const dy = arm.corner.y - centre.y;
+    const length = Math.hypot(dx, dy) || 1;
+    return directions.map((d, n) => ({ k, n, score: (d.x * dx + d.y * dy) / length }));
+  });
+  choices.sort((p, q) => q.score - p.score);
+  const taken = new Map<number, number>();
+  const used = new Set<number>();
+  for (const { k, n } of choices) {
+    if (taken.has(k) || used.has(n)) continue;
+    taken.set(k, n);
+    used.add(n);
+  }
+  return arms.map((arm, k) => {
+    const d = directions[taken.get(k)!];
+    const resistor: EditorElement = { id: arm.id, kind: 'resistor', x: centre.x + d.x * HALF, y: centre.y + d.y * HALF, rotation: d.x !== 0 ? 0 : 1 };
+    const end = { x: centre.x + 2 * d.x * HALF, y: centre.y + 2 * d.y * HALF };
+    const wires: EditorElement[] =
+      pointKey(end) === pointKey(arm.corner) ? [] : [{ id: `~${arm.id}`, kind: 'wire', x: end.x, y: end.y, x2: arm.corner.x, y2: arm.corner.y, rotation: 0 }];
+    return { resistor, wires };
+  });
+}
 
 /**
  * The drawing after the merges up to and including `upTo`, drawn from the original one: a merged
  * resistor takes the place of the first resistor it stands for, under its new name. Of the others,
  * one in series becomes a wire, since its current runs on through the merged one; one in parallel
- * goes, and the wires that led only to it go with it. `merged` is the ID of the last merge's
- * resistor, to mark it.
+ * goes, and the wires that led only to it go with it. A star–delta conversion takes out its three
+ * resistors and draws the three new ones between the grid points the engine gives. `merged` holds
+ * the IDs of the last step's resistors, to mark them.
  */
-export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], upTo: number): { elements: EditorElement[]; merged: string } {
+export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], upTo: number): { elements: EditorElement[]; merged: string[] } {
   const drawn = new Map(elements.map((e) => [e.id, e]));
   /** The resistors drawn now, by the ID of the part whose place they take, with the parts they stand for. */
   const groups = new Map<string, string[]>(elements.filter((e) => e.kind === 'resistor').map((e) => [e.id, [e.id]]));
-  let merged = '';
+  let merged: string[] = [];
   for (const merge of merges.slice(0, upTo + 1)) {
     const members = [...groups].filter(([, parts]) => parts.every((p) => merge.parts.includes(p)));
+    if (merge.created.length > 0) {
+      for (const [place] of members) {
+        drawn.delete(place);
+        groups.delete(place);
+      }
+      const grid = (p: Point) => ({ x: p.x * GRID, y: p.y * GRID });
+      const names = merge.created.map((created) => plainSymbol(created.symbol));
+      // A new star shares its centre `b`; a new delta's sides run between drawn points.
+      const placed =
+        merge.kind === 'deltaToStar'
+          ? starArms(merge.created.map((c, k) => ({ id: names[k], corner: grid(c.a) })), grid(merge.created[0].b))
+          : merge.created.map((c, k) => resistorBetween(names[k], grid(c.a), grid(c.b)));
+      merge.created.forEach((created, k) => {
+        drawn.set(created.id, placed[k].resistor);
+        for (const wire of placed[k].wires) drawn.set(wire.id, wire);
+        groups.set(created.id, [created.id]);
+      });
+      merged = names;
+      continue;
+    }
     members.sort(([, p], [, q]) => merge.parts.indexOf(p[0]) - merge.parts.indexOf(q[0]));
     if (members.length < 2) continue;
     const [keep] = members[0];
@@ -486,14 +561,14 @@ export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], u
       const element = drawn.get(place)!;
       drawn.delete(place);
       groups.delete(place);
-      if (merge.series) {
+      if (merge.kind === 'series') {
         const { a, b } = terminals(element);
         drawn.set(place, { id: `~${place}`, kind: 'wire', x: a!.x, y: a!.y, x2: b!.x, y2: b!.y, rotation: 0 });
       }
     }
     groups.set(keep, members.flatMap(([, parts]) => parts));
-    merged = plainSymbol(merge.symbol);
-    drawn.set(keep, { ...drawn.get(keep)!, id: merged });
+    merged = [plainSymbol(merge.symbol)];
+    drawn.set(keep, { ...drawn.get(keep)!, id: merged[0] });
   }
 
   // Wires that end in nothing led only to a part that went. A wire is cut first where something

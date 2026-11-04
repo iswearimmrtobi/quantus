@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StepDetail, UnknownNames } from '../api';
+import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StarDelta, StepDetail, UnknownNames } from '../api';
 import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -65,6 +65,12 @@ const eliminationChoices = (t: Translate): Choice<Elimination>[] => [
   { value: 'gaussJordan', label: t('choice.gaussJordan') },
 ];
 
+const starDeltaChoices = (t: Translate): Choice<StarDelta>[] => [
+  { value: 'nodeRule', label: t('choice.nodeRule') },
+  { value: 'deltaToStar', label: t('choice.deltaToStar') },
+  { value: 'starToDelta', label: t('choice.starToDelta') },
+];
+
 const angleChoices = (t: Translate): Choice<AngleUnit>[] => [
   { value: 'degree', label: t('choice.degree') },
   { value: 'radian', label: t('choice.radian') },
@@ -112,6 +118,7 @@ export const DEFAULT_SETTINGS: Settings = {
   stepDetail: 'standard',
   cancelMarks: true,
   elimination: 'gauss',
+  starDelta: 'nodeRule',
   unknownNames: 'indexed',
   linearComplex: false,
   angleUnit: 'radian',
@@ -384,6 +391,14 @@ export function SettingsDialog(props: {
         <h3>{t('settings.elimination')}</h3>
         <Segmented choices={eliminationChoices(t)} value={settings.elimination} onChange={(v) => set('elimination', v)} />
         <p className="setting-hint">{t(`settings.elimination.${settings.elimination}.hint`)}</p>
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.starDelta')}</h3>
+        <Segmented choices={starDeltaChoices(t)} value={settings.starDelta} onChange={(v) => set('starDelta', v)} />
+        <p className="setting-hint">
+          {t(`settings.starDelta.${settings.starDelta}.hint`)} {onlyIn('kirchhoff')}
+        </p>
       </section>
 
       <section className="setting">
