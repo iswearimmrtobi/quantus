@@ -100,7 +100,7 @@ pub struct Graph {
 
 impl Graph {
     pub fn build(edges: &[Edge]) -> Result<Graph> {
-        let edges = &split_wires(edges);
+        let edges = &split_wires(edges, &[]);
         let mut points: Vec<Point> = Vec::new();
         let mut index: HashMap<Point, usize> = HashMap::new();
         let mut vertex = |p: Point| {
@@ -193,14 +193,14 @@ impl Graph {
     }
 }
 
-struct UnionFind(Vec<usize>);
+pub(super) struct UnionFind(Vec<usize>);
 
 impl UnionFind {
-    fn new(n: usize) -> Self {
+    pub(super) fn new(n: usize) -> Self {
         UnionFind((0..n).collect())
     }
 
-    fn find(&mut self, mut v: usize) -> usize {
+    pub(super) fn find(&mut self, mut v: usize) -> usize {
         while self.0[v] != v {
             self.0[v] = self.0[self.0[v]];
             v = self.0[v];
@@ -208,7 +208,7 @@ impl UnionFind {
         v
     }
 
-    fn union(&mut self, a: usize, b: usize) {
+    pub(super) fn union(&mut self, a: usize, b: usize) {
         let (a, b) = (self.find(a), self.find(b));
         self.0[a.max(b)] = a.min(b);
     }
@@ -244,10 +244,10 @@ fn clash(p: (Point, Point), q: (Point, Point)) -> bool {
         || (d4 == 0 && within(p.0, p.1, q.1))
 }
 
-/// The edges with every wire cut where a terminal sits in its middle. The pieces after the first
-/// are appended, so every other edge keeps its index.
-fn split_wires(edges: &[Edge]) -> Vec<Edge> {
-    let ends: Vec<Point> = edges.iter().flat_map(|e| [e.a, e.b]).collect();
+/// The edges with every wire cut where a terminal, or one of `taps`, sits in its middle. The
+/// pieces after the first are appended, so every other edge keeps its index.
+pub(super) fn split_wires(edges: &[Edge], taps: &[Point]) -> Vec<Edge> {
+    let ends: Vec<Point> = edges.iter().flat_map(|e| [e.a, e.b]).chain(taps.iter().copied()).collect();
     let mut split = edges.to_vec();
     for (n, edge) in edges.iter().enumerate().filter(|(_, e)| e.wire && e.a != e.b) {
         let mut taps: Vec<Point> = ends

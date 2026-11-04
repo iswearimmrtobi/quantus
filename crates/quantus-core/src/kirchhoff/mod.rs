@@ -3,10 +3,12 @@
 
 pub mod branches;
 pub mod equations;
+pub mod equivalent;
 pub mod graph;
 pub mod interface;
 
 pub use branches::{Branch, Kind, Member, Mesh, Network, Part, Turn};
 pub use equations::{Current, Equation, Equations, JunctionRule};
+pub use equivalent::{equivalent, Equivalent, Merge};
 pub use graph::{Edge, Graph, Point};
 pub use interface::{kirchhoff, KirchhoffElement, KirchhoffRequest, KirchhoffResponse};
