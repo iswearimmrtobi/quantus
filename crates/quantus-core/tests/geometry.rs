@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, LineRelation, Objects, Plane, PlaneForm, Point, Vector3, Working,
+    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, Point, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -534,4 +534,51 @@ fn a_point_on_a_plane() {
     // A 2D point lies in z = 0.
     let ground = Plane::coordinate(Value::zero(), Value::zero(), Value::one(), Value::zero()).unwrap();
     assert!(ground.contains(&Point::planar(Value::int(4), Value::int(-7))).unwrap().result);
+}
+
+fn coordinate_plane(a: i64, b: i64, c: i64, d: i64) -> Plane {
+    Plane::coordinate(Value::int(a), Value::int(b), Value::int(c), Value::int(d)).unwrap()
+}
+
+#[test]
+fn distance_from_a_point_to_a_plane() {
+    // 2x - y + 2z = 3 and P(1|2|5): |2 - 2 + 10 - 3| / 3 = 7/3.
+    let e = coordinate_plane(2, -1, 2, 3);
+    let worked = e.distance(&at([1, 2, 5])).unwrap();
+    assert_eq!(worked.result, Value::ratio(7, 3));
+    assert_eq!(
+        latex_at(&worked.working, StepDetail::Standard),
+        [r"d = \frac{\left|2 \cdot 1 + \left(-1\right) \cdot 2 + 2 \cdot 5 - 3\right|}{\sqrt{2^2 + \left(-1\right)^2 + 2^2}} = \frac{7}{3}", r"d = \frac{7}{3}"]
+    );
+    assert_eq!(e.distance(&at([0, -3, 0])).unwrap().result, Value::zero());
+    // A plane in another form is put into the coordinate form first.
+    let p = Plane::through(&at([0, 0, 0]), &at([1, 0, 0]), &at([0, 1, 0])).unwrap().result;
+    let worked = p.distance(&at([3, 4, -5])).unwrap();
+    assert_eq!(worked.result, Value::int(5));
+    assert!(latex_at(&worked.working, StepDetail::Brief).contains(&"z = 0".to_string()));
+}
+
+#[test]
+fn a_line_and_a_plane() {
+    let e = coordinate_plane(1, 1, 1, 6);
+    // Along z through the origin: meets in (0|0|6) at 90° minus the angle to n.
+    let worked = e.meet_line(&line([0, 0, 0], [0, 0, 1]), AngleUnit::Degree, 20).unwrap();
+    let LinePlane::Intersecting { point, lambda, angle } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!((point, lambda), (&at([0, 0, 6]), &Value::int(6)));
+    assert_eq!(angle.ratio.mul(&angle.ratio), Value::ratio(1, 3));
+    assert!(angle.sine);
+    assert_eq!(angle.decimal.round(6).to_string(), "35.2644");
+    let standard = latex_at(&worked.working, StepDetail::Standard);
+    assert_eq!(standard[0], r"0 + 0 + \lambda = 6");
+    let worked = coordinate_plane(2, -1, 3, 4).meet_line(&line([1, 2, 0], [1, 0, -1]), AngleUnit::Degree, 20).unwrap();
+    assert_eq!(latex_at(&worked.working, StepDetail::Standard)[0], r"2 \left(1 + \lambda\right) - 2 + 3 \left(-\lambda\right) = 4");
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["S = (-3|2|4)", r"\varphi = \arcsin\left(\frac{\sqrt{7}}{14}\right) \approx 10.8934^\circ"]);
+    // Perpendicular: 90°.
+    let LinePlane::Intersecting { angle, .. } = e.meet_line(&line([1, 1, 1], [2, 2, 2]), AngleUnit::Degree, 20).unwrap().result else { panic!() };
+    assert_eq!(angle.value, Value::int(90));
+    // Parallel, with the distance of the support; and in the plane.
+    let worked = e.meet_line(&line([0, 0, 0], [1, -1, 0]), AngleUnit::Degree, 20).unwrap();
+    assert_eq!(worked.result, LinePlane::Parallel { distance: Value::int(6).mul(&Value::int(3).pow(&Value::ratio(-1, 2)).unwrap()) });
+    assert!(latex_at(&worked.working, StepDetail::Brief).contains(&r"d = 2\sqrt{3}".to_string()), "{:#?}", worked.working);
+    assert_eq!(e.meet_line(&line([6, 0, 0], [1, -1, 0]), AngleUnit::Degree, 20).unwrap().result, LinePlane::Contained);
 }

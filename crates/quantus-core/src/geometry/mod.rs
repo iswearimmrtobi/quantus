@@ -7,12 +7,14 @@
 mod eval;
 mod line;
 mod plane;
+mod relations;
 mod show;
 mod working;
 
 pub use eval::{GeometryEvaluator, Item, Objects};
 pub use line::{Line, LineRelation};
 pub use plane::{Plane, PlaneForm};
+pub use relations::LinePlane;
 pub use working::{Note, Worked, Working};
 
 use std::ops::{Add, Mul, Neg, Sub};

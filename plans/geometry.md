@@ -136,7 +136,7 @@ results, not errors. Each step below brings its tests.
 - [x] `Plane`: from three points, point and two directions, point and normal; conversions between
   parameter, normal and coordinate form (lines and planes keep the form they were given in);
   point on plane?
-- [ ] Mixed line–plane: intersection point, angle, parallel (with distance), contained.
+- [x] Mixed line–plane: intersection point, angle, parallel (with distance), contained.
 - [ ] Mixed plane–plane: intersection line, angle, parallel (with distance); distance point–plane.
 - [ ] Reflection of a point in a point, a line and a plane.
 - [ ] `Sphere`: from centre and radius, centre and a point, or four points; coordinate and vector
