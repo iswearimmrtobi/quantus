@@ -77,64 +77,97 @@ green.
 
 ### Phase 1: vectors in the engine
 
-- [ ] `crates/quantus-core/src/geometry/` (new module, `pub` in `lib.rs`): `Vector3 { [Value; 3] }`
-  and a separate `Point` (2D input is z = 0), `dot`, `cross`, `length`, `unit`, `angle`, built on `num::Value`; reuse
-  `linear::gauss` and `matrix.rs` for solving and for determinants (Spatprodukt).
-- [ ] Vector syntax in the parser and evaluator for the typed path: `\begin{pmatrix}`, `(1|2|3)`
-  and `\vec{a}` for vectors, `(1,2,3)` for points; `×` is the cross product, `\cdot` the dot product, `|v|` the length (as Casio
-  §3.7). *Check first* how `MatrixEvaluator` in `matrix.rs` reads `pmatrix`, and extend that
-  instead of duplicating it.
-- [ ] Tests in `crates/quantus-core/tests/geometry.rs`; an entry in
-  `docs/docs/contributing/testing.md`.
+- [ ] `geometry/` module (`pub` in `lib.rs`) with `Vector3 { [Value; 3] }` and a separate `Point`
+  (2D input is z = 0), built on `num::Value`; `Point − Point`, `Point + Vector`, `Vector ± Vector`,
+  scalar multiple. Test file `tests/geometry.rs` created with these.
+- [ ] `dot`, `length`, `unit`, `angle` (in the `angle_unit` setting), exact in `Value`.
+- [ ] `cross` and the triple product (Spatprodukt) via the determinant in `matrix.rs`; `collinear`
+  and `coplanar` tests.
+- [ ] Areas and volumes: triangle, parallelogram, tetrahedron, parallelepiped.
+- [ ] Parser, *check first* how `MatrixEvaluator` in `matrix.rs` reads `pmatrix` and extend that
+  instead of duplicating it: `\begin{pmatrix}`, `(1|2|3)` and `\vec{a}` read as vectors, with tests.
+- [ ] Parser: points `(1,2,3)`, with tests.
+- [ ] Evaluator: `×` is the cross product, `\cdot` the dot product, `|v|` the length (as Casio §3.7),
+  with tests.
+- [ ] Entry in `docs/docs/contributing/testing.md`.
 
 ### Phase 2: objects and relations
 
-- [ ] `Point`, `Line`, `Plane`, `Sphere`, `Circle` (centre, radius, normal; built directly or from a sphere cut
-  by a plane; lines and planes keep the form they were given in, plus conversions); a function per operation above, each returning the result and a `Working` log in
-  the `msg!` bilingual style (`crate::text`), like `matrix.rs`.
-- [ ] Degenerate cases are results, not errors (parallel, identical, skew, point on line).
-- [ ] Steps at Brief, Standard, Detailed and Maximal; a *Geometry* section with worked examples in
-  `design/step-detail.md`.
+Every function returns the result and a `Working` log in the `msg!` bilingual style
+(`crate::text`), like `matrix.rs`. Degenerate cases (parallel, identical, skew, point on line) are
+results, not errors. Each step below brings its tests.
+
+- [ ] `Line`: from two points or point and direction; point on line?; distance point–line; foot of
+  perpendicular.
+- [ ] `Line` × `Line`: identical, parallel, intersecting, skew, with intersection point, angle and
+  distance.
+- [ ] `Plane`: from three points, point and two directions, point and normal; conversions between
+  parameter, normal and coordinate form (lines and planes keep the form they were given in);
+  point on plane?
+- [ ] Mixed line–plane: intersection point, angle, parallel, contained.
+- [ ] Mixed plane–plane: intersection line, angle; distance point–plane; reflection of a point.
+- [ ] `Sphere`: from centre and radius, centre and a point, or four points; coordinate and vector
+  form; point inside, on or outside; surface and volume.
+- [ ] Sphere × line (secant, tangent, passant, intersection points) and sphere × plane
+  (intersection circle, tangent, no contact); tangent plane at a point.
+- [ ] Sphere × sphere.
+- [ ] `Circle` (centre, radius, normal): direct constructor, the "Kugel ∩ Ebene" constructor,
+  circumference and area; the plain 2D circle as the z = 0 case.
+- [ ] Circle × line (intersection points, tangent).
+- [ ] Steps at Brief, Standard, Detailed and Maximal across all of the above, and a *Geometry*
+  section with worked examples in `design/step-detail.md`.
 
 ### Phase 3: API and session
 
 - [ ] `Mode::Geometry` in `settings.rs` (also the `units:` match and the serde test); `'geometry'`
   in `desktop/src/api.ts`.
-- [ ] `api.rs`: `geometry(settings, GeometryRequest)` with a `Scene { objects }` and a task
-  (`Relation(a, b)`, `Distance(a, b)`, `Convert(plane, form)`, …). The response holds the exact
-  result, LaTeX, steps and the copy block (`align*`). Typed input goes through the same entry and
-  is parsed into objects.
+- [ ] `api.rs`: `Scene { objects }`, `GeometryRequest` and the task enum (`Relation(a, b)`,
+  `Distance(a, b)`, `Convert(plane, form)`, …) with `geometry(settings, request)` for the objects
+  of Phase 2; the response holds the exact result, LaTeX, steps and the copy block (`align*`).
+- [ ] Typed input goes through the same entry and is parsed into objects (`A=(1,2,3)`,
+  `g: X=A+\lambda(…)`, `K: (x-1)^2+y^2+z^2=9`).
 - [ ] The scene is kept per session in `ModeInputs` (`session.rs`, `get_mode_inputs` and
   `set_mode_inputs`).
-- [ ] Tauri command in `desktop/src-tauri/src/commands.rs`, registered in `main.rs`.
+- [ ] Tauri command in `desktop/src-tauri/src/commands.rs`, registered in `main.rs`, and the
+  wrapper in `api.ts`.
 
 ### Phase 4: projection (shared drawing)
 
-- [ ] `geometry/view.rs`: `Camera` and `project(scene, camera, viewport) -> Vec<Primitive>`: axes
-  with ticks and labels, points, clipped line segments, plane polygons, sphere rings, circle polylines, depth order, an auto-fit
-  window for the scene. Plain `f64`, no caches (see the ESP32 memory notes in
-  [plans.md](plans.md) §4).
-- [ ] Tests: known projections, clipping, depth order.
+Plain `f64`, no caches (see the ESP32 memory notes in [plans.md](plans.md) §4). Each step brings
+its tests.
+
+- [ ] `geometry/view.rs`: `Camera` (yaw, pitch, zoom, centre), `Primitive`, and `project` for axes
+  with ticks and labels and for points.
+- [ ] Line segments clipped to the view.
+- [ ] Plane polygons (outline plus optional hatch).
+- [ ] Sphere (outline circle plus latitude and longitude rings) and circle polylines.
+- [ ] Depth order across all primitives.
+- [ ] Auto-fit window for the scene.
 
 ### Phase 5: desktop UI
 
-- [ ] `components/GeometryView.tsx`, built like `LinearSystemView` (state in `App.tsx`, saved in
-  the session, survives a mode switch), and `components/GeometryPlot.tsx` (SVG like
-  `FunctionPlot.tsx`: drag rotates, wheel zooms, a reset button, named labels, a colour per
-  object).
-- [ ] Object list with forms: add Punkt, Gerade, Ebene, Kugel or Kreis; MathLive cells for the coordinates (as in
-  `MatrixGrid.tsx`); a form switch for lines, planes and spheres. A typed-expression field as the shortcut
-  (`A=(1,2,3)`, `g: X=A+\lambda(…)`, `K: (x-1)^2+y^2+z^2=9`) that creates or updates the same objects.
-- [ ] Task panel: pick objects, pick relation, distance, …; shows the result and `Steps`.
-- [ ] `en.ts` and `de.ts` (all labels), `PLACEHOLDERS` in `App.tsx`, `modeChoices` in
-  `SettingsDialog.tsx`, the `mode.geometry` strings.
+- [ ] `GeometryView.tsx` shell, built like `LinearSystemView`: state in `App.tsx`, saved in the
+  session, survives a mode switch; `modeChoices` in `SettingsDialog.tsx`, `PLACEHOLDERS`, the
+  `mode.geometry` strings in `en.ts` and `de.ts`.
+- [ ] `GeometryPlot.tsx`: SVG like `FunctionPlot.tsx`, drawing the primitives of a fixed demo
+  scene with axes.
+- [ ] Plot interaction: drag rotates, wheel zooms, a reset button.
+- [ ] Plot labels and a colour per object, fed from the real scene.
+- [ ] Object list with forms for Punkt and Vektor: MathLive cells for the coordinates (as in
+  `MatrixGrid.tsx`), add and remove.
+- [ ] Forms for Gerade and Ebene, with the form switch (parameter, normal, coordinate).
+- [ ] Forms for Kugel and Kreis (including the Kugel ∩ Ebene constructor).
+- [ ] Typed-expression field that creates or updates the same objects.
+- [ ] Task panel: pick objects, pick relation or distance, show the result.
+- [ ] Task panel shows the `Steps`; the copy block.
+- [ ] `en.ts` and `de.ts`: remaining labels, checked for completeness.
 
 ### Phase 6: docs
 
-- [ ] Spec `design/geometry.md` (glossary, operations, step layouts); a guide in
-  `docs/docs/guides/`; the settings reference; `CHANGELOG.md` under `[Unreleased]`; remove the
-  "Later" lines for Geometrie in `plans.md` §5, `new-areas-and-themes.md` and
-  `firmware/docs/features.md`.
+- [ ] Spec `design/geometry.md` (glossary, operations, step layouts).
+- [ ] Guide in `docs/docs/guides/` and the settings reference.
+- [ ] `CHANGELOG.md` under `[Unreleased]`; remove the "Later" lines for Geometrie in `plans.md` §5,
+  `new-areas-and-themes.md` and `firmware/docs/features.md`.
 
 ### Later (separate plan)
 
