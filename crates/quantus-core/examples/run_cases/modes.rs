@@ -7,6 +7,8 @@ use quantus_core::eval::Calculation;
 
 #[path = "basen.rs"]
 mod basen;
+#[path = "matrix.rs"]
+mod matrix;
 #[path = "verify.rs"]
 mod verify;
 
@@ -21,6 +23,7 @@ pub(super) fn check_calculation(kind: &str, settings: &Settings, expect: &Value,
     match kind {
         "truth" => verify::check(settings, expect, calc),
         "basen" => basen::check(expect, calc),
+        "matrix" => matrix::check(settings, expect, calc),
         _ => generator("unknown expectation kind"),
     }
 }

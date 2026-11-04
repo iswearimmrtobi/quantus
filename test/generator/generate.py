@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gens import (algebra, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
-                  basen, verify)
+                  basen, matrix, verify)
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -45,6 +45,7 @@ CATEGORIES = {
     # The modes added later, appended so the seeds of the categories above stay the same.
     "verify": ("ver", 1000, verify.GENERATORS),
     "base-n": ("bn", 1000, basen.GENERATORS),
+    "matrix": ("mat", 1000, matrix.GENERATORS),
 }
 
 
@@ -129,6 +130,10 @@ def check(all_cases):
                 int(e["value"])
                 if len(e["forms"]) != 3:
                     errors.append(f"{c['id']}: basen needs the three other forms")
+            elif e["kind"] == "matrix":
+                [Fraction(v) for row in e["rows"] for v in row]
+                if len({len(row) for row in e["rows"]}) != 1:
+                    errors.append(f"{c['id']}: matrix rows of different lengths")
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001
