@@ -139,7 +139,7 @@ results, not errors. Each step below brings its tests.
 - [x] Mixed line–plane: intersection point, angle, parallel (with distance), contained.
 - [x] Mixed plane–plane: intersection line, angle, parallel (with distance); distance point–plane.
 - [x] Reflection of a point in a point, a line and a plane.
-- [ ] `Sphere`: from centre and radius, centre and a point, or four points; coordinate and vector
+- [x] `Sphere`: from centre and radius, centre and a point, or four points; coordinate and vector
   form; point inside, on or outside, with its distance to the sphere; surface and volume.
 - [ ] Sphere × line (secant, tangent, passant, intersection points) and sphere × plane
   (intersection circle, tangent, no contact, distance); tangent plane at a point.

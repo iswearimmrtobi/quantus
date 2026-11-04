@@ -10,12 +10,14 @@ mod plane;
 mod reflect;
 mod relations;
 mod show;
+mod sphere;
 mod working;
 
 pub use eval::{GeometryEvaluator, Item, Objects};
 pub use line::{Line, LineRelation};
 pub use plane::{Plane, PlaneForm};
 pub use relations::{LinePlane, PlanePlane};
+pub use sphere::{Sphere, SpherePoint};
 pub use working::{Note, Worked, Working};
 
 use std::ops::{Add, Mul, Neg, Sub};

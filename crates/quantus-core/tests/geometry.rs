@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Vector3, Working,
+    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SpherePoint, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -635,4 +635,55 @@ fn reflections() {
     let diagonal = Line::new(Point::planar(Value::zero(), Value::zero()), Vector3::planar(Value::one(), Value::one())).unwrap();
     let image = diagonal.reflect(&q).result;
     assert!(image.planar && image == at([2, 0, 0]));
+}
+
+#[test]
+fn a_sphere_and_its_equations() {
+    let k = Sphere::new(&at([1, -2, 0]), Value::int(3)).unwrap();
+    assert_eq!(k.equation(), r"\left(x - 1\right)^2 + \left(y + 2\right)^2 + z^2 = 9");
+    assert_eq!(k.vector_equation(), r"\left(\vec{x} - \begin{pmatrix} 1 \\ -2 \\ 0 \end{pmatrix}\right)^2 = 9");
+    assert!(Sphere::new(&at([0, 0, 0]), Value::zero()).is_err());
+    assert!(Sphere::new(&at([0, 0, 0]), Value::int(-1)).is_err());
+    // Through a point: r = |MP| = √26.
+    let worked = Sphere::through(&at([0, 0, 0]), &at([1, 3, 4])).unwrap();
+    assert_eq!(worked.result.radius, sqrt(26));
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), [r"x^2 + y^2 + z^2 = 26"]);
+    assert!(Sphere::through(&at([1, 1, 1]), &at([1, 1, 1])).is_err());
+}
+
+#[test]
+fn a_sphere_through_four_points() {
+    // The unit sphere around (1|1|1).
+    let worked = Sphere::through_four(&at([2, 1, 1]), &at([0, 1, 1]), &at([1, 2, 1]), &at([1, 1, 2])).unwrap();
+    assert_eq!(worked.result, Sphere { centre: at([1, 1, 1]), radius: Value::one() });
+    assert_eq!(latex_at(&worked.working, StepDetail::Standard)[0], r"\begin{aligned} -4m_1 = -4 \\ -2m_1 + 2m_2 = 0 \\ -2m_1 + 2m_3 = 0 \end{aligned}");
+    // Not a whole centre: through the origin and the three unit points, M = (½|½|½), r = √3/2.
+    let worked = Sphere::through_four(&at([0, 0, 0]), &at([1, 0, 0]), &at([0, 1, 0]), &at([0, 0, 1])).unwrap();
+    let half = Value::ratio(1, 2);
+    assert_eq!(worked.result.centre, Point::new(half.clone(), half.clone(), half));
+    assert_eq!(worked.result.radius_squared(), Value::ratio(3, 4));
+    assert!(Sphere::through_four(&at([0, 0, 0]), &at([1, 0, 0]), &at([0, 1, 0]), &at([1, 1, 0])).is_err());
+}
+
+#[test]
+fn a_point_and_a_sphere() {
+    let k = Sphere::new(&at([0, 0, 0]), Value::int(3)).unwrap();
+    assert_eq!(k.locate(&at([1, 2, 2])).unwrap().result, SpherePoint::On);
+    assert_eq!(k.locate(&at([1, 0, 0])).unwrap().result, SpherePoint::Inside { distance: Value::int(2) });
+    let worked = k.locate(&at([0, 4, 0])).unwrap();
+    assert_eq!(worked.result, SpherePoint::Outside { distance: Value::one() });
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["4 > r = 3", r"d = \left|\overrightarrow{MP}\right| - r = 1"]);
+    // A root distance: |MP| = √2.
+    let SpherePoint::Inside { distance } = k.locate(&at([1, 1, 0])).unwrap().result else { panic!() };
+    assert_eq!(distance, Value::int(3).sub(&sqrt(2)));
+}
+
+#[test]
+fn surface_and_volume_of_a_sphere() {
+    let k = Sphere::new(&at([0, 0, 0]), Value::int(3)).unwrap();
+    assert_eq!(latex_at(&k.surface().working, StepDetail::Brief), [r"O = 36\pi"]);
+    assert_eq!(latex_at(&k.volume().working, StepDetail::Detailed), [r"V = \frac{4}{3} \pi r^3 = \frac{4}{3} \pi \cdot 3^3", r"V = 36\pi"]);
+    let root = Sphere::new(&at([0, 0, 0]), sqrt(2)).unwrap();
+    assert_eq!(decimal(&root.volume().result), decimal(&Value::ratio(8, 3).mul(&sqrt(2)).mul(&Value::Pi)));
+    assert_eq!(root.surface().result, Value::int(8).mul(&Value::Pi));
 }
