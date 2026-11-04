@@ -27,8 +27,9 @@ middle and the selected part's values on the right.
 
 Drag a part onto the canvas or click it in the list. Dragging from a terminal, or from a grid
 point on a wire, draws a wire. Wires run only across and down: one drawn on a slant becomes two at
-a right angle. <kbd>Space</kbd> or <kbd>R</kbd> rotates the selection and <kbd>Del</kbd> deletes
-it; dragging on empty canvas selects several parts.
+a right angle. <kbd>Space</kbd> or <kbd>R</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a
+resistor by 45° (its terminals then sit on the grid two steps across and two down from its
+middle), and <kbd>Del</kbd> deletes it; dragging on empty canvas selects several parts.
 
 Two terminals are connected when they sit on the same grid point, or when one ends in the middle
 of an ideal wire (a T-junction). The open dot at a terminal disappears once something is

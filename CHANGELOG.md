@@ -163,6 +163,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   step of the working, and while the pointer is on it the canvas shows the new star or delta in
   place of the three resistors. *Node rule* (the default) keeps the test current, which also
   finishes a network that the conversions don't reduce.
+- The circuit editor (Electronics and Kirchhoff) has **resistors at 45°**: <kbd>Shift</kbd>+<kbd>R</kbd>
+  turns the selected resistors by 45° about their middle, and their terminals stay on the grid.
+  The preview of a star–delta conversion draws the new resistors at 45° where that reaches their
+  nodes, so a bridge's star or delta lies on its corners without extra wires.
 - The Kirchhoff mode writes a fraction in its results with the decimal after it:
   `\frac{11}{5}\,Ω = 2.2\,Ω`, or `\frac{2420}{799}\,Ω ≈ 3.02879\,Ω` when the decimal does not end
   within the precision. This holds for the currents and for the resistance between A and B.

@@ -19,7 +19,7 @@ export type EditorKind = ElementKind | 'ground' | 'terminal';
 /**
  * `a`, `b` and `wiper` are filled in by [`toRequest`]; what the editor stores is the position.
  * A wire runs from (x, y) to (x2, y2); every other part sits at (x, y), turned by
- * `rotation` quarter turns.
+ * `rotation` quarter turns. A resistor may also sit at 45°: then `rotation` ends in a half.
  */
 export interface EditorElement extends Omit<CircuitElement, 'kind' | 'a' | 'b'> {
   kind: EditorKind;
@@ -92,6 +92,16 @@ export function rotate(point: Point, quarterTurns: number): Point {
   }
 }
 
+/** Whether a part sits at 45° to the grid: its `rotation` ends in a half, 0.5 being 45°. */
+export const isDiagonal = (rotation: number) => !Number.isInteger(rotation);
+
+/**
+ * A resistor's turns in eighths: by 45° about its middle, or by a quarter. Only a resistor turns
+ * by 45°; its terminals then sit two grid steps across and two down from the middle, so they stay
+ * on the grid, and the symbol gets longer leads.
+ */
+export const turnedBy = (rotation: number, eighths: number) => (((rotation + eighths / 2) % 4) + 4) % 4;
+
 /** The terminals of an element at their places on the canvas. */
 export function terminals(element: EditorElement): Partial<Record<Terminal, Point>> {
   if (element.kind === 'wire') {
@@ -100,9 +110,12 @@ export function terminals(element: EditorElement): Partial<Record<Terminal, Poin
       b: { x: element.x2 ?? element.x, y: element.y2 ?? element.y },
     };
   }
+  const diagonal = isDiagonal(element.rotation);
   const placed: Partial<Record<Terminal, Point>> = {};
   for (const [name, local] of Object.entries(LOCAL_TERMINALS[element.kind])) {
-    const turned = rotate(local, element.rotation);
+    // At 45° the point turns by an eighth and grows by √2, which keeps it on the grid.
+    const start = diagonal ? { x: local.x - local.y, y: local.x + local.y } : local;
+    const turned = rotate(start, Math.floor(element.rotation));
     placed[name as Terminal] = { x: element.x + turned.x, y: element.y + turned.y };
   }
   return placed;
@@ -465,57 +478,105 @@ const plainSymbol = (symbol: string) =>
     .replace(/[_{}]/g, '');
 
 /**
- * A resistor between two grid points that need not be four steps apart in a line: drawn in the
- * middle along the longer direction, with a wire from each end to its point where needed.
+ * The eight ways a resistor can lie, from `a` to `b`, with its rotation: a quarter turn is 1,
+ * 45° is 0.5. A resistor lying along `d` reaches from a point `p` to `p + 2·HALF·d`.
  */
-function resistorBetween(id: string, from: Point, to: Point): { resistor: EditorElement; wires: EditorElement[] } {
-  const horizontal = Math.abs(to.x - from.x) >= Math.abs(to.y - from.y);
-  const resistor: EditorElement = { id, kind: 'resistor', x: snap((from.x + to.x) / 2), y: snap((from.y + to.y) / 2), rotation: horizontal ? 0 : 1 };
-  const { a, b } = terminals(resistor) as Record<'a' | 'b', Point>;
-  const distance = (p: Point, q: Point) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
-  const [near, far] = distance(a, from) <= distance(b, from) ? [a, b] : [b, a];
-  const wires: EditorElement[] = [];
-  const wire = (key: string, p: Point, q: Point) => {
-    if (pointKey(p) !== pointKey(q)) wires.push({ id: `~${id}${key}`, kind: 'wire', x: p.x, y: p.y, x2: q.x, y2: q.y, rotation: 0 });
-  };
-  wire('a', from, near);
-  wire('b', far, to);
-  return { resistor, wires };
+const DIRECTIONS = [
+  { x: 1, y: 0, rotation: 0 },
+  { x: 1, y: 1, rotation: 0.5 },
+  { x: 0, y: 1, rotation: 1 },
+  { x: -1, y: 1, rotation: 1.5 },
+  { x: -1, y: 0, rotation: 2 },
+  { x: -1, y: -1, rotation: 2.5 },
+  { x: 0, y: -1, rotation: 3 },
+  { x: 1, y: -1, rotation: 3.5 },
+];
+
+/** How well direction `d` points from `from` to `to`: the cosine of the angle between them. */
+const aim = (d: Point, from: Point, to: Point) => {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  return (d.x * dx + d.y * dy) / ((Math.hypot(dx, dy) || 1) * Math.hypot(d.x, d.y));
+};
+
+/** Wires from `p` to `q` as the editor draws them, across and down: one, or two at a right angle. */
+function wiresBetween(id: string, p: Point, q: Point): EditorElement[] {
+  if (pointKey(p) === pointKey(q)) return [];
+  const wire = (key: string, from: Point, to: Point): EditorElement => ({ id: `~${id}${key}`, kind: 'wire', x: from.x, y: from.y, x2: to.x, y2: to.y, rotation: 0 });
+  if (p.x === q.x || p.y === q.y) return [wire('', p, q)];
+  const turn = { x: q.x, y: p.y };
+  return [wire('', p, turn), wire('+', turn, q)];
 }
 
 /**
- * The arms of a star from its centre to the corners: each in its own one of the four directions,
- * the one nearest its corner where it is free, so that no two lie on top of each other however
- * close the corners are. An arm starts at the centre and a wire leads on to its corner.
+ * A resistor between two grid points, in the middle and in the one of the eight directions that
+ * points most nearly from one to the other, so that a side at 45° is drawn at 45°; wires lead from
+ * its ends to the points where they are not on them.
  */
-function starArms(arms: { id: string; corner: Point }[], centre: Point): { resistor: EditorElement; wires: EditorElement[] }[] {
-  const directions: Point[] = [
-    { x: 1, y: 0 },
-    { x: -1, y: 0 },
-    { x: 0, y: 1 },
-    { x: 0, y: -1 },
-  ];
-  const choices = arms.flatMap((arm, k) => {
-    const dx = arm.corner.x - centre.x;
-    const dy = arm.corner.y - centre.y;
-    const length = Math.hypot(dx, dy) || 1;
-    return directions.map((d, n) => ({ k, n, score: (d.x * dx + d.y * dy) / length }));
-  });
-  choices.sort((p, q) => q.score - p.score);
-  const taken = new Map<number, number>();
-  const used = new Set<number>();
-  for (const { k, n } of choices) {
-    if (taken.has(k) || used.has(n)) continue;
-    taken.set(k, n);
-    used.add(n);
+function resistorBetween(id: string, from: Point, to: Point): { resistor: EditorElement; wires: EditorElement[] } {
+  const best = DIRECTIONS.reduce((p, q) => (aim(q, from, to) > aim(p, from, to) ? q : p));
+  const resistor: EditorElement = { id, kind: 'resistor', x: snap((from.x + to.x) / 2), y: snap((from.y + to.y) / 2), rotation: best.rotation };
+  const { a, b } = terminals(resistor) as Record<'a' | 'b', Point>;
+  return { resistor, wires: [...wiresBetween(`${id}a`, from, a), ...wiresBetween(`${id}b`, b, to)] };
+}
+
+/** How far the preview looks around the engine's centre of a new star, in grid steps. */
+const STAR_REACH = 6;
+
+/**
+ * The arms of a star to its corners, each a resistor from the centre in its own one of the eight
+ * directions with wires on to its corner. The centre is the grid point near `centre` from which
+ * the arms reach their corners with the least wire, best right on them, without lying on what
+ * else is drawn: it is not put on a point the drawing covers (`taken`), and an arm crosses one
+ * only where nothing else is left.
+ */
+function starArms(
+  arms: { id: string; corner: Point }[],
+  centre: Point,
+  taken: Set<string>,
+): { resistor: EditorElement; wires: EditorElement[] }[] {
+  const reach = 2 * HALF;
+  const end = (c: Point, d: Point) => ({ x: c.x + d.x * reach, y: c.y + d.y * reach });
+  /**
+   * What an arm in direction `d` from `c` costs: the wire it needs, and much more for each point of
+   * the drawing it would lie on, other than its own corner.
+   */
+  const cost = (c: Point, d: Point, corner: Point) => {
+    const e = end(c, d);
+    const wire = Math.abs(e.x - corner.x) + Math.abs(e.y - corner.y);
+    let clashes = 0;
+    for (let k = 1; k <= reach / GRID; k++) {
+      const point = { x: c.x + d.x * k * GRID, y: c.y + d.y * k * GRID };
+      if (pointKey(point) !== pointKey(corner) && taken.has(pointKey(point))) clashes++;
+    }
+    return wire + clashes * 100 * reach;
+  };
+  let best: { cost: number; centre: Point; directions: number[] } | null = null;
+  for (let dy = -STAR_REACH; dy <= STAR_REACH; dy++) {
+    for (let dx = -STAR_REACH; dx <= STAR_REACH; dx++) {
+      const c = { x: centre.x + dx * GRID, y: centre.y + dy * GRID };
+      if (taken.has(pointKey(c)) || arms.some((arm) => pointKey(arm.corner) === pointKey(c))) continue;
+      // Every way of giving the three arms three different directions.
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+          for (let k = 0; k < 8; k++) {
+            if (i === j || j === k || i === k) continue;
+            const directions = [i, j, k];
+            const total =
+              arms.reduce((sum, arm, n) => sum + cost(c, DIRECTIONS[directions[n]], arm.corner), 0) +
+              // Of two equally good centres the one nearer the engine's wins.
+              (Math.abs(dx) + Math.abs(dy)) / 100;
+            if (!best || total < best.cost) best = { cost: total, centre: c, directions };
+          }
+        }
+      }
+    }
   }
-  return arms.map((arm, k) => {
-    const d = directions[taken.get(k)!];
-    const resistor: EditorElement = { id: arm.id, kind: 'resistor', x: centre.x + d.x * HALF, y: centre.y + d.y * HALF, rotation: d.x !== 0 ? 0 : 1 };
-    const end = { x: centre.x + 2 * d.x * HALF, y: centre.y + 2 * d.y * HALF };
-    const wires: EditorElement[] =
-      pointKey(end) === pointKey(arm.corner) ? [] : [{ id: `~${arm.id}`, kind: 'wire', x: end.x, y: end.y, x2: arm.corner.x, y2: arm.corner.y, rotation: 0 }];
-    return { resistor, wires };
+  const { centre: middle, directions } = best!;
+  return arms.map((arm, n) => {
+    const d = DIRECTIONS[directions[n]];
+    const resistor: EditorElement = { id: arm.id, kind: 'resistor', x: middle.x + d.x * HALF, y: middle.y + d.y * HALF, rotation: d.rotation };
+    return { resistor, wires: wiresBetween(arm.id, end(middle, d), arm.corner) };
   });
 }
 
@@ -539,12 +600,22 @@ export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], u
         drawn.delete(place);
         groups.delete(place);
       }
+      // The wires that led only to the three go now, so the new ones are placed in the room they
+      // leave; those to the points where the new ones attach stay.
       const grid = (p: Point) => ({ x: p.x * GRID, y: p.y * GRID });
+      const anchors = merge.created.flatMap((c) => (merge.kind === 'deltaToStar' ? [grid(c.a)] : [grid(c.a), grid(c.b)]));
+      const pruned = withoutLooseWires([...drawn.values()], anchors);
+      for (const [key, element] of [...drawn]) if (element.kind === 'wire') drawn.delete(key);
+      for (const element of pruned) if (element.kind === 'wire') drawn.set(element.id, element);
       const names = merge.created.map((created) => plainSymbol(created.symbol));
       // A new star shares its centre `b`; a new delta's sides run between drawn points.
       const placed =
         merge.kind === 'deltaToStar'
-          ? starArms(merge.created.map((c, k) => ({ id: names[k], corner: grid(c.a) })), grid(merge.created[0].b))
+          ? starArms(
+              merge.created.map((c, k) => ({ id: names[k], corner: grid(c.a) })),
+              grid(merge.created[0].b),
+              new Set([...drawn.values()].flatMap((e) => coveredPoints(e).map(pointKey))),
+            )
           : merge.created.map((c, k) => resistorBetween(names[k], grid(c.a), grid(c.b)));
       merge.created.forEach((created, k) => {
         drawn.set(created.id, placed[k].resistor);
@@ -571,11 +642,18 @@ export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], u
     drawn.set(keep, { ...drawn.get(keep)!, id: merged[0] });
   }
 
-  // Wires that end in nothing led only to a part that went. A wire is cut first where something
-  // meets it in its middle, so of a rail only the piece past the last part goes.
-  let result = splitAtJunctions([...drawn.values()]);
+  return { elements: withoutLooseWires([...drawn.values()]), merged };
+}
+
+/**
+ * The drawing without the wires that end in nothing: they led only to a part that went. A wire is
+ * cut first where something meets it in its middle, so of a rail only the piece past the last part goes.
+ * The `anchors` count as connected, for parts that are still to be drawn there.
+ */
+function withoutLooseWires(elements: EditorElement[], anchors: Point[] = []): EditorElement[] {
+  let result = splitAtJunctions(elements, anchors);
   for (;;) {
-    const count = new Map<string, number>();
+    const count = new Map<string, number>(anchors.map((p) => [pointKey(p), 1]));
     for (const element of result) {
       for (const point of Object.values(terminals(element)) as Point[]) count.set(pointKey(point), (count.get(pointKey(point)) ?? 0) + 1);
     }
@@ -584,14 +662,26 @@ export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], u
       const { a, b } = terminals(e);
       return count.get(pointKey(a!)) === 1 || count.get(pointKey(b!)) === 1;
     });
-    if (!loose) return { elements: result, merged };
+    if (!loose) return result;
     result = result.filter((e) => e !== loose);
   }
 }
 
-/** The drawing with every ideal wire cut into pieces where a terminal or wire end meets its middle. */
-function splitAtJunctions(elements: EditorElement[]): EditorElement[] {
-  const points = elements.flatMap((e) => Object.values(terminals(e)) as Point[]);
+/** Every grid point a part or wire covers, from one end to the other, across, down or at 45°. */
+function coveredPoints(element: EditorElement): Point[] {
+  const { a, b } = terminals(element);
+  if (!a || !b) return Object.values(terminals(element)) as Point[];
+  const steps = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y)) / GRID;
+  if (!Number.isInteger(steps) || (a.x !== b.x && a.y !== b.y && Math.abs(b.x - a.x) !== Math.abs(b.y - a.y))) return [a, b];
+  return Array.from({ length: steps + 1 }, (_, k) => ({ x: a.x + ((b.x - a.x) * k) / steps, y: a.y + ((b.y - a.y) * k) / steps }));
+}
+
+/**
+ * The drawing with every ideal wire cut into pieces where a terminal or wire end, or one of the
+ * `extra` points, meets its middle.
+ */
+function splitAtJunctions(elements: EditorElement[], extra: Point[] = []): EditorElement[] {
+  const points = [...elements.flatMap((e) => Object.values(terminals(e)) as Point[]), ...extra];
   return elements.flatMap((element) => {
     if (!isIdealWire(element)) return [element];
     const { a, b } = terminals(element) as Record<'a' | 'b', Point>;

@@ -17,6 +17,7 @@ import {
   HALF,
   inside,
   junctionDots,
+  isDiagonal,
   isIdealWire,
   KIND_LABELS,
   MATERIALS,
@@ -26,6 +27,7 @@ import {
   rotate,
   snap,
   terminals,
+  turnedBy,
   type EditorElement,
   type EditorKind,
   type Field,
@@ -266,9 +268,15 @@ export function CircuitEditor({
           const end = turn(e.x2 ?? e.x, e.y2 ?? e.y);
           return { ...e, x: start.x, y: start.y, x2: end.x, y2: end.y };
         }
-        return { ...e, x: start.x, y: start.y, rotation: (e.rotation + 1) % 4 };
+        return { ...e, x: start.x, y: start.y, rotation: turnedBy(e.rotation, 2) };
       }),
     );
+  };
+
+  /** Turns each selected resistor by 45° about its middle; other parts stay as they are. */
+  const tiltSelected = () => {
+    if (!elements.some((e) => selection.includes(e.id) && e.kind === 'resistor')) return;
+    onChange(elements.map((e) => (selection.includes(e.id) && e.kind === 'resistor' ? { ...e, rotation: turnedBy(e.rotation, 1) } : e)));
   };
 
   /** The point under the pointer in drawing coordinates, unsnapped. */
@@ -423,6 +431,8 @@ export function CircuitEditor({
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       remove(selection);
+    } else if (event.key.toLowerCase() === 'r' && event.shiftKey) {
+      tiltSelected();
     } else if (event.key === ' ' || event.key.toLowerCase() === 'r') {
       rotateSelected();
     } else if (event.key === 'Escape') {
@@ -458,7 +468,7 @@ export function CircuitEditor({
         ))}
         {toolbar}
         <p className="palette-hint">
-          {t('circuit.hint')} <kbd>{t('key.space')}</kbd> {t('circuit.rotates')}, <kbd>{t('key.delete')}</kbd> {t('circuit.deletes')}.
+          {t('circuit.hint')} <kbd>{t('key.space')}</kbd> {t('circuit.rotates')}, <kbd>{t('key.shiftR')}</kbd> {t('circuit.tilts')}, <kbd>{t('key.delete')}</kbd> {t('circuit.deletes')}.
         </p>
         <p className="palette-hint">
           {t('circuit.pan')} <kbd>{t('key.home')}</kbd> {t('circuit.home')}.
@@ -738,6 +748,8 @@ function Part({ element, selected, highlighted, connected, onPointerDown, onTerm
       <g transform={`translate(${element.x} ${element.y}) rotate(${element.rotation * 90})`}>
         <g className="symbol">
           <Symbol kind={element.kind} />
+          {/* At 45° the terminals are √2 times as far out, so the leads run on to them. */}
+          {isDiagonal(element.rotation) && <path d={`M${-HALF * Math.SQRT2} 0H${-HALF}M${HALF} 0H${HALF * Math.SQRT2}`} />}
         </g>
         <rect className="hit" x={-HALF + 8} y="-16" width={2 * HALF - 16} height="32" onPointerDown={onPointerDown} />
       </g>
@@ -779,7 +791,8 @@ function partPlace(element: EditorElement): Place | null {
     const across = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
     return { anchor, gap: 8, sides: across ? ['above', 'below', 'right', 'left'] : ['right', 'left', 'above', 'below'] };
   }
-  const vertical = element.rotation % 2 === 1;
+  // A part at 45° counts with the direction it leans more towards: 45° as across, 135° as down.
+  const vertical = Math.floor(element.rotation) % 2 === 1;
   const wiper = terminals(element).wiper;
   const flipped = wiper !== undefined && (vertical ? wiper.x > element.x : wiper.y > element.y);
   let sides: Side[] = vertical ? ['right', 'left', 'below', 'above'] : ['below', 'above', 'right', 'left'];

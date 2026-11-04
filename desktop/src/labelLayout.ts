@@ -1,4 +1,4 @@
-import { GRID, HALF, rotate, terminals, type EditorElement, type Point } from './circuit';
+import { GRID, HALF, isDiagonal, rotate, terminals, type EditorElement, type Point } from './circuit';
 
 /**
  * Places the labels on the circuit canvas so that none overlaps another label, a part or a wire.
@@ -143,7 +143,16 @@ export function placeLabels(
 
 /** The box around points turned with a part and moved to its place. */
 function turned(element: EditorElement, corners: Point[]): Rect {
-  const points = corners.map((p) => rotate(p, element.rotation)).map((p) => ({ x: element.x + p.x, y: element.y + p.y }));
+  // A rectangle turned by 45° is bounded by its four corners turned, not by the two given ones.
+  const all = isDiagonal(element.rotation)
+    ? [corners[0], corners[1], { x: corners[0].x, y: corners[1].y }, { x: corners[1].x, y: corners[0].y }]
+    : corners;
+  const angle = (element.rotation * Math.PI) / 2;
+  const turn = (p: Point) =>
+    isDiagonal(element.rotation)
+      ? { x: p.x * Math.cos(angle) - p.y * Math.sin(angle), y: p.x * Math.sin(angle) + p.y * Math.cos(angle) }
+      : rotate(p, element.rotation);
+  const points = all.map(turn).map((p) => ({ x: element.x + p.x, y: element.y + p.y }));
   const b = bounds(points.map((p) => ({ ...p, w: 0, h: 0 })));
   return { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 };
 }
@@ -187,7 +196,8 @@ export function obstacles(elements: EditorElement[]): Rect[] {
     for (const point of Object.values(places) as Point[]) rects.push(segment(point, point, 5));
     rects.push(body(element));
     if (element.kind === 'wire' || element.kind === 'ground' || element.kind === 'terminal') continue;
-    rects.push(turned(element, [{ x: -HALF, y: -2 }, { x: HALF, y: 2 }]));
+    const lead = isDiagonal(element.rotation) ? HALF * Math.SQRT2 : HALF;
+    rects.push(turned(element, [{ x: -lead, y: -2 }, { x: lead, y: 2 }]));
     if (places.wiper) rects.push(turned(element, [{ x: -4, y: -HALF }, { x: 4, y: 0 }]));
   }
   return rects;

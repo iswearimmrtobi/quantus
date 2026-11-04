@@ -23,7 +23,8 @@ middle, the selected part's values on the right, and the working under the canva
 | **Wire** | none: wires are ideal | |
 
 Drag a part onto the canvas or click it in the list. Dragging from a terminal draws a wire;
-<kbd>Space</kbd> rotates the selection and <kbd>Del</kbd> deletes it. Two terminals are connected
+<kbd>Space</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a resistor by 45° and
+<kbd>Del</kbd> deletes it. Two terminals are connected
 when they sit on the same grid point, or one ends in the middle of a wire. The canvas moves with
 the right or middle mouse button or by scrolling, and zooms with <kbd>Ctrl</kbd> and scrolling.
 
@@ -158,7 +159,8 @@ arm opposite it: $R_{\Delta 1} = \frac{R_1 R_2 + R_2 R_3 + R_3 R_1}{R_3}$.
 If the chosen form isn't in the network, the other one is used. The merging then goes on as
 before, and the new resistors count like drawn ones: $R_{5,\mathrm{Y}2} = R_{\mathrm{Y}2} + R_5$.
 A conversion is one line of the working. While the pointer is on that line, the canvas shows the
-three new resistors in place of the old ones. A network that the conversions don't reduce
+three new resistors in place of the old ones, across, down or at 45°, whichever reaches their
+nodes best. A new star's centre is put where its arms reach the corners with the least wire. A network that the conversions don't reduce
 either is finished with the node rule as above.
 
 Sources can't be part of such a drawing: remove them, or remove the terminals to work out the
