@@ -147,6 +147,20 @@ $I = 1\,\mathrm{A}$ flows in at A and out at B, B is at $0\,\mathrm{V}$, the pot
 $\varphi$ of the other nodes come from the node equations and their Gauss steps, and
 $R_{AB} = \varphi_A / I$.
 
+With the setting **Resistance between A and B** set to a star–delta conversion, such a network
+is reduced further instead. **Delta → star** takes three resistors that form a ring over three
+nodes and puts a star around a new node in their place. Each arm is the product of the two
+resistors at its corner over the sum of all three:
+$R_{\mathrm{Y}1} = \frac{R_1 \cdot R_2}{R_1 + R_2 + R_3}$.
+**Star → delta** takes three resistors that meet at a node where nothing else is connected and
+puts a ring between their outer ends. Each side is the sum of the products of two arms over the
+arm opposite it: $R_{\Delta 1} = \frac{R_1 R_2 + R_2 R_3 + R_3 R_1}{R_3}$.
+If the chosen form isn't in the network, the other one is used. The merging then goes on as
+before, and the new resistors count like drawn ones: $R_{5,\mathrm{Y}2} = R_{\mathrm{Y}2} + R_5$.
+A conversion is one line of the working. While the pointer is on that line, the canvas shows the
+three new resistors in place of the old ones. A network that the conversions don't reduce
+either is finished with the node rule as above.
+
 Sources can't be part of such a drawing: remove them, or remove the terminals to work out the
 currents.
 
@@ -169,6 +183,8 @@ contradiction. Ground symbols in a loaded Electronics file are ignored.
 
 - **Step detail**: how much of the Gauss working is shown.
 - **Systems of equations**: Gauss or Gauss–Jordan steps.
+- **Resistance between A and B**: the node rule, or a star–delta conversion where series and
+  parallel get stuck.
 - **Precision**: the significant digits of the values on the canvas. The currents in the working
   are exact.
 - **Language**: the names of junctions and loops and the notes.

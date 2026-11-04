@@ -156,6 +156,13 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   current (an open end, shorted, not connected to A and B) are left out with a note. A network
   that is not built from series and parallel, such as a bridge, is finished with the node rule
   and a test current of 1 A.
+- The setting **Resistance between A and B** (`starDelta`) lets such a network be reduced by a
+  **star–delta conversion** instead: *Delta → star* turns three resistors in a ring into a star
+  around a new node (`R_{Y1} = R_1·R_2 / (R_1 + R_2 + R_3)`), *Star → delta* turns three that meet
+  at a node into a ring, and the merging goes on until `R_AB` is left. Each conversion is one
+  step of the working, and while the pointer is on it the canvas shows the new star or delta in
+  place of the three resistors. *Node rule* (the default) keeps the test current, which also
+  finishes a network that the conversions don't reduce.
 - The Kirchhoff mode writes a fraction in its results with the decimal after it:
   `\frac{11}{5}\,Ω = 2.2\,Ω`, or `\frac{2420}{799}\,Ω ≈ 3.02879\,Ω` when the decimal does not end
   within the precision. This holds for the currents and for the resistance between A and B.

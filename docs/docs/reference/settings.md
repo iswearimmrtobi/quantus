@@ -99,6 +99,7 @@ Geometry mode always works as with **Exact as a root** on: a distance is $2\sqrt
 | **Step detail** | `stepDetail` | `none`, `brief`, `standard`, `detailed`, `maximal` | `standard` |
 | **Strike out cancelled factors** | `cancelMarks` | on / off | on |
 | **Systems of equations** | `elimination` | `gauss`, `gaussJordan` | `gauss` |
+| **Resistance between A and B** | `starDelta` | `nodeRule`, `deltaToStar`, `starToDelta` | `nodeRule` |
 | **Quadratic equations** | `quadraticFormula` | `auto`, `pq`, `abc` | `auto` |
 | **Unknown names** | `unknownNames` | `indexed`, `letters` | `indexed` |
 
@@ -120,6 +121,13 @@ taught at school; **Gauss–Jordan** divides every pivot to 1 and clears its col
 The solution is the same. It applies to systems typed with `;`, to
 [Linear systems](../guides/linear-systems.md) mode and to the equations of
 [Kirchhoff](../guides/kirchhoff.md) mode.
+
+**Resistance between A and B** decides what the [Kirchhoff](../guides/kirchhoff.md) mode does
+with a network between the terminals A and B that series and parallel merges don't reduce, such
+as a bridge. **Node rule** solves the rest with a test current. **Delta → star** turns three
+resistors in a ring into a star, or a star into a ring if there is no ring, and merges on.
+**Star → delta** does it the other way round. If the conversions don't reduce the network
+either, the node rule finishes it. The value of $R_{AB}$ is the same with every choice.
 
 **Quadratic equations** chooses the formula in the analysis working: *Automatic* is the pq
 formula in German and the quadratic (abc) formula in English. It is read only in Analysis mode.
