@@ -203,6 +203,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   letter that has no value, EXE works the input out with them; the values stay in the session.
   **SOLVE** (SHIFT+CALC) uses the same form and solves for the letter left empty, or, with all
   of them given, for the one at the cursor, starting from its value.
+- **STO** on the handheld (SHIFT+VARS; F1 then F11 in the simulator): the shown result is kept
+  in the session under a name typed, any letter with letters, digits and an index after `_`.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ, ℤ, ℏ and the conversion arrow ▶, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree

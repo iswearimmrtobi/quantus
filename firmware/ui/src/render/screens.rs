@@ -270,6 +270,8 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                 (TextFor::Name, true) => (text::EMPTY_NAME.get(lang).to_string(), colors::ERROR),
                 (TextFor::Password(ssid), false) => (format!("{ssid}: {}", text::PASSWORD_HINT.get(lang)), colors::MUTED),
                 (TextFor::Password(_), true) => (text::PASSWORD_LENGTH.get(lang).to_string(), colors::ERROR),
+                (TextFor::Variable(_), false) => (text::STORE_HINT.get(lang).to_string(), colors::MUTED),
+                (TextFor::Variable(_), true) => (text::BAD_VARIABLE.get(lang).to_string(), colors::ERROR),
             };
             let shown = if *plain { typed.clone() } else { "*".repeat(typed.chars().count()) };
             typed_field(shapes, &shown, app.caret_on, &fit(&hint, WIDTH as i32 - 2 * MARGIN - 8, Scale::Small), color, glass);
@@ -281,6 +283,15 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
         Some(Edit::Storage { storage: Some(storage), .. }) => storage_screen(shapes, *storage, lang, glass),
         Some(Edit::Storage { storage: None, .. }) => centred(shapes, text::NO_CARD.get(lang)),
         Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),
+        Some(Edit::Note { note, .. }) => {
+            let lines = super::sheet::wrap(note, WIDTH as i32 - 2 * MARGIN - 16, Scale::Small);
+            let height = Scale::Small.metrics().ascent + 6;
+            let top = BAR + (HEIGHT as i32 - BAR - lines.len() as i32 * height) / 2 + height;
+            for (index, line) in lines.into_iter().enumerate() {
+                let x = (WIDTH as i32 - Scale::Small.width(&line)) / 2;
+                shapes.push(Shape::Text(Point::new(x.max(MARGIN), top + index as i32 * height), line, Scale::Small, colors::ERROR));
+            }
+        }
         Some(Edit::Networks { networks: None, .. }) => centred(shapes, text::SEARCHING.get(lang)),
         Some(Edit::Networks { networks: Some(networks), .. }) if networks.is_empty() => {
             centred(shapes, text::NO_NETWORKS.get(lang))

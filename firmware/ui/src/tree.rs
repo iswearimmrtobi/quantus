@@ -414,6 +414,9 @@ const CONSTANTS_ENTRY: Entry = entry(t("Konstanten", "Constants"), Kind::Catalog
 /// What the CONST key opens: the constants by category; a message outside Physik.
 pub static CONSTANTS: Page = Page { title: t("Konstanten", "Constants"), entries: &[CONSTANTS_ENTRY] };
 
+/// What STO and VARS open over.
+pub static VARIABLES: Page = Page { title: t("Variablen", "Variables"), entries: &[] };
+
 /// A value converted to the unit chosen: `▶ unit`.
 const CONVERSIONS_ENTRY: Entry = entry(t("In Einheit", "To unit"), Kind::Catalogue(Catalogue::Units));
 

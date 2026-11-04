@@ -1,6 +1,8 @@
 //! The calculator's state and what each key does to it.
 
-use crate::backend::{Backend, Catalogue, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, Window, WlanStatus};
+use crate::backend::{
+    Backend, Catalogue, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, VariableCommand, Window, WlanStatus,
+};
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
@@ -372,6 +374,11 @@ impl<B> App<B> {
             Screen::Calc if self.answer.is_some() => Some(moved),
             _ => None,
         }
+    }
+
+    /// What computes the results.
+    pub fn backend(&self) -> &B {
+        &self.backend
     }
 
     /// A calibration made since the last call, to be stored.
@@ -880,6 +887,16 @@ impl<B: Backend> App<B> {
                 let typed = self.session.as_ref().map(|session| session.name.clone()).unwrap_or_default();
                 menu.edit = Some(Edit::Text { label, purpose: TextFor::Name, typed, error: false, plain: true });
             }
+            Outcome::Store => {
+                let Some(Edit::Text { label, purpose: TextFor::Variable(latex), typed, .. }) = &menu.edit else { return };
+                let (label, key, latex) = (*label, typed.clone(), latex.clone());
+                let mode = if self.mode.engine() { self.mode } else { Mode::Physics };
+                let settings = self.settings;
+                menu.edit = Some(match self.backend.variables(VariableCommand::Store { mode, key: key.clone(), latex }, &settings) {
+                    Ok(_) => Edit::Message { label, message: text::STORED },
+                    Err(note) => Edit::Note { label, note },
+                });
+            }
             Outcome::Rename => {
                 let Some(Edit::Text { typed, .. }) = &menu.edit else { return };
                 let name = typed.trim().to_string();
@@ -1144,6 +1161,7 @@ impl<B: Backend> App<B> {
             Key::Const => return self.open_catalogue(Catalogue::Constants),
             Key::Conv => return self.open_catalogue(Catalogue::Units),
             Key::Calc => return self.formula(shift),
+            Key::Vars if shift => return self.sto(),
             _ => {}
         }
         // While the backend calculates, AC drops its answer and the other keys wait; the graph
@@ -1249,6 +1267,26 @@ impl<B: Backend> App<B> {
             Some(reply) => self.finish_sheet(reply),
             None => self.busy = true,
         }
+    }
+
+    /// STO: asks for the name to keep the shown result under, the last one if none is shown.
+    fn sto(&mut self) {
+        let label = text::STO;
+        let mut menu = Menu::new(&tree::VARIABLES);
+        let index = self.shown.unwrap_or(0);
+        menu.edit = Some(match self.history.iter().rev().nth(index) {
+            Some(Entry { result: Ok(result), .. }) => {
+                // The last two results exactly as the session has them, an older one as shown.
+                let latex = match (index, result.to_latex()) {
+                    (0, _) => r"\mathrm{Ans}".to_string(),
+                    (1, _) => r"\mathrm{PreAns}".to_string(),
+                    (_, latex) => latex.trim_start_matches(r"\approx").trim().to_string(),
+                };
+                Edit::Text { label, purpose: TextFor::Variable(latex), typed: String::new(), error: false, plain: true }
+            }
+            _ => Edit::Message { label, message: text::NO_RESULT },
+        });
+        self.screen = Screen::Menu(menu);
     }
 
     /// CALC, or SOLVE with `solve`: asks the engine for the letters of the input that have no

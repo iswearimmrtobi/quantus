@@ -55,6 +55,8 @@ pub enum Key {
     /// CALC: the input worked out for values of its letters, asked for in a form; after SHIFT,
     /// SOLVE: solved for the letter left empty.
     Calc,
+    /// VARS: the session's variables; after SHIFT, STO: the result kept under a name.
+    Vars,
     /// S⇔D: the shown result as a decimal or exact.
     SwapForm,
     /// A character from a keyboard that no key stands for (`@`, `!`, …), and the point, which
@@ -82,6 +84,7 @@ pub const CONTROLS: &[(char, Key)] = &[
     ('\u{15}', Key::Const),     // Ctrl+U
     ('\u{19}', Key::Conv),      // Ctrl+Y
     ('\u{02}', Key::Calc),      // Ctrl+B
+    ('\u{16}', Key::Vars),      // Ctrl+V
     ('\u{17}', Key::Root),      // Ctrl+W
     ('\u{18}', Key::Ac),        // Ctrl+X
 ];

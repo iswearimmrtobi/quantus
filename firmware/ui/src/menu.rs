@@ -230,6 +230,8 @@ pub enum Edit {
     Confirm { entry: &'static Entry, action: Action },
     /// A line to read; any key goes back.
     Message { label: Text, message: Text },
+    /// A text to read that the app made, the engine's error: any key goes back.
+    Note { label: Text, note: String },
     /// The wallpapers: *Keins* first, then `names`. The app shows the selected one as a preview.
     Pictures { label: Text, names: Vec<String>, selected: usize },
     /// The SD card's size and room, `None` without one; any key goes back.
@@ -269,6 +271,20 @@ pub enum TextFor {
     Name,
     /// The password of the network `ssid`.
     Password(String),
+    /// The name a value is kept under (STO): the value as LaTeX.
+    Variable(String),
+}
+
+/// The longest name of a variable typed for STO.
+pub const VARIABLE_LENGTH: usize = 12;
+
+/// Whether `name` names a variable: a letter, then letters or digits, and an index after `_`.
+pub fn variable_name(name: &str) -> bool {
+    let (letters, index) = name.split_once('_').map_or((name, None), |(letters, index)| (letters, Some(index)));
+    let alphanumeric = |part: &str| part.chars().all(|c| c.is_ascii_alphanumeric());
+    letters.starts_with(|c: char| c.is_ascii_alphabetic())
+        && alphanumeric(letters)
+        && index.is_none_or(|index| !index.is_empty() && alphanumeric(index))
 }
 
 impl TextFor {
@@ -276,6 +292,7 @@ impl TextFor {
         match self {
             TextFor::Name => NAME_LENGTH,
             TextFor::Password(_) => *PASSWORD_LENGTH.end(),
+            TextFor::Variable(_) => VARIABLE_LENGTH,
         }
     }
 
@@ -284,6 +301,7 @@ impl TextFor {
         match self {
             TextFor::Name => !typed.trim().is_empty(),
             TextFor::Password(_) => PASSWORD_LENGTH.contains(&typed.chars().count()),
+            TextFor::Variable(_) => variable_name(typed),
         }
     }
 }
@@ -344,6 +362,8 @@ pub enum Outcome {
     Catalogue(Text, Catalogue),
     /// Insert the item under the cursor of the catalogue (the app reads it from the edit).
     Item,
+    /// Keep the value of the text field under the name typed (the app reads both from it).
+    Store,
 }
 
 impl Menu {
@@ -362,6 +382,7 @@ impl Menu {
             Some(
                 Edit::Number { label, .. }
                 | Edit::Message { label, .. }
+                | Edit::Note { label, .. }
                 | Edit::Pictures { label, .. }
                 | Edit::Storage { label, .. }
                 | Edit::Sessions { label, .. }
@@ -382,10 +403,16 @@ impl Menu {
         if key == Key::Ac {
             return Outcome::Close;
         }
-        match self.edit.take() {
+        let outcome = match self.edit.take() {
             Some(edit) => self.edit_key(edit, key, settings),
             None => self.list_key(key, settings),
+        };
+        // A page without entries only holds a submenu (STO's): leaving it closes the menu.
+        let bare = self.stack.last().is_some_and(|level| level.page.entries.is_empty());
+        if bare && self.edit.is_none() && outcome == Outcome::Stay {
+            return Outcome::Close;
         }
+        outcome
     }
 
     fn list_key(&mut self, key: Key, settings: &mut Settings) -> Outcome {
@@ -723,6 +750,7 @@ impl Menu {
                             _ if error => Outcome::Stay,
                             TextFor::Name => Outcome::Rename,
                             TextFor::Password(_) => Outcome::Connect,
+                            TextFor::Variable(_) => Outcome::Store,
                         };
                         self.edit = Some(Edit::Text { label, purpose, typed, error, plain });
                         return outcome;
@@ -798,7 +826,11 @@ impl Menu {
                 }
             }
             // Any key reads on; so it does while the board looks for networks.
-            Edit::Message { .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. } => {}
+            Edit::Message { .. }
+            | Edit::Note { .. }
+            | Edit::Storage { .. }
+            | Edit::WlanStatus { .. }
+            | Edit::Networks { networks: None, .. } => {}
         }
         Outcome::Stay
     }

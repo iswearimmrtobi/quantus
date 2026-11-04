@@ -298,6 +298,7 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(
             Edit::Number { .. }
             | Edit::Message { .. }
+            | Edit::Note { .. }
             | Edit::Storage { .. }
             | Edit::Text { .. }
             | Edit::Time { .. }

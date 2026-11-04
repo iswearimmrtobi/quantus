@@ -94,7 +94,7 @@ State on 2026-11-03.
 - [x] USB keyboard, German QWERTZ layout, key repeat
 - [x] Touch: every menu by finger, taps, drag to scroll, page turns, − / + for numbers
 - [x] Touch calibration: five crosses, least squares, redone when off by more than 20 px
-- [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y), CALC (F8, Ctrl+B) and SOLVE (SHIFT+CALC)
+- [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y), CALC (F8, Ctrl+B) and SOLVE (SHIFT+CALC), STO (SHIFT+VARS; VARS is F11, Ctrl+V)
 - [ ] Keys still missing: ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
 - [ ] ALPHA letters on the keypad
 - [ ] UNDO/REDO
@@ -159,7 +159,7 @@ in yet.
 - [x] Exact cubics and quartics, no [−100, 100] limit
 - [x] SOLVE (SHIFT+CALC, OPTN → Werkzeuge): the form of CALC, solved for the letter left empty; with all given, for the one at the cursor, Newton starting from its value
 - [x] CALC: a form over the input asks for its free variables (F8, Ctrl+B, or OPTN → Werkzeuge); the values stay in the session
-- [ ] STO and VARS: store under any name, list, edit, delete
+- [~] STO and VARS — STO (SHIFT+VARS) keeps the shown result under any name typed; the VARS list waits
 - [~] Basis-N, matrices, statistics, regressions, distributions — in the engine; no modes in the hui
 - [~] wahr/falsch for an equation without unknowns — in the engine; Prüfen not wired
 - [x] Step levels and the step settings passed to the engine (the list is not shown yet)
