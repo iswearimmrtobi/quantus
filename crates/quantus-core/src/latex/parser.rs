@@ -625,7 +625,7 @@ impl Parser<'_> {
             )),
             TokenType::Pipe => self.parse_abs(),
             TokenType::LParen if self.options.geometry && self.point_ahead(self.index) => self.parse_point(None),
-            TokenType::LParen => self.parse_group(TokenType::RParen, ")"),
+            TokenType::LParen => self.parse_bracket_or_prime_derivative(),
             TokenType::LBrace => self.parse_group(TokenType::RBrace, "}"),
             TokenType::LBracket => self.parse_group(TokenType::RBracket, "]"),
             TokenType::Command => self.parse_command(&token),
@@ -722,6 +722,71 @@ impl Parser<'_> {
         }
         self.advance();
         Ok(Node::Abs { operand: Box::new(operand), position: open.position })
+    }
+
+    /// `(…)`, or with primes after it the derivative of the bracket: `\left.(x^3 - x)'\right|_{x=2}`
+    /// once, `(…)''` twice. The variable is the one the point names, or else the only letter
+    /// in the bracket.
+    fn parse_bracket_or_prime_derivative(&mut self) -> Result<Node> {
+        let Some(close) = self.matching_paren(self.index) else {
+            return self.parse_group(TokenType::RParen, ")");
+        };
+        let Some((order, consumed)) = self.primes_at(close + 1 - self.index) else {
+            return self.parse_group(TokenType::RParen, ")");
+        };
+        let position = self.current().position;
+        let variable = self.prime_variable(close, close + 1 + consumed)?;
+        let body = self.with_bound(&variable, |p| p.parse_group(TokenType::RParen, ")"))?;
+        self.index += consumed;
+        let at = self.parse_derivative_point(&variable)?;
+        Ok(nested_derivative(&variable, body, order as u32, at, position))
+    }
+
+    /// The token index of the `)` that closes the `(` at `open`.
+    fn matching_paren(&self, open: usize) -> Option<usize> {
+        let mut depth = 0usize;
+        for (i, token) in self.tokens.iter().enumerate().skip(open) {
+            match token.kind {
+                TokenType::LParen => depth += 1,
+                TokenType::RParen => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(i);
+                    }
+                }
+                TokenType::End => return None,
+                _ => {}
+            }
+        }
+        None
+    }
+
+    /// What a prime after the bracket closing at `close` differentiates by: the letter of the
+    /// point `|_{x=…}` at `after`, or else the only single letter in the bracket other than `e`.
+    fn prime_variable(&self, close: usize, after: usize) -> Result<String> {
+        let token = |i: usize| &self.tokens[i.min(self.tokens.len() - 1)];
+        if token(after).kind == TokenType::Pipe
+            && token(after + 1).kind == TokenType::Underscore
+            && token(after + 2).kind == TokenType::LBrace
+            && token(after + 3).kind == TokenType::Identifier
+            && is_single_letter(&token(after + 3).text)
+        {
+            return Ok(token(after + 3).text.clone());
+        }
+        let mut letters: Vec<&str> = self.tokens[self.index + 1..close]
+            .iter()
+            .filter(|t| t.kind == TokenType::Identifier && t.text.chars().count() == 1 && t.text != "e")
+            .map(|t| t.text.as_str())
+            .collect();
+        letters.sort_unstable();
+        letters.dedup();
+        match letters.as_slice() {
+            [letter] => Ok((*letter).to_string()),
+            _ => Err(self.error(
+                "Say which variable the prime differentiates by with a point, as in \\left.(x^2)'\\right|_{x=1}.",
+                token(close + 1).position,
+            )),
+        }
     }
 
     fn parse_group(&mut self, closing: TokenType, closing_text: &str) -> Result<Node> {

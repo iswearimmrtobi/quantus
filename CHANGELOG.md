@@ -35,6 +35,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Higher derivatives in one step, `\left.\frac{d^2}{dx^2} f\right|_{x=1}` (also `\mathrm{d}^2` and
   braced powers), and the partial-derivative sign, `\frac{\partial}{\partial x}` and
   `\frac{\partial^2}{\partial x^2}`, which with one variable is the ordinary derivative.
+- Prime notation for the derivative of a bracket: `\left.(x^3 - x)'\right|_{x=2}`, and `''` for the
+  second derivative. The point names the variable; without one, the bracket's only letter does.
 - `writeup` in the engine API: the history of a session as given, wanted and solution blocks.
   It recognises about twenty school laws by their units, rearranges them exactly, and splits
   sums and parts with a law of their own into steps of their own.
