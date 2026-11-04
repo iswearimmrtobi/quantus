@@ -158,6 +158,31 @@ export function connectedPoints(elements: EditorElement[]): Set<string> {
 }
 
 /**
+ * The points where three or more lines meet: terminals and wire ends, a point in the middle of an
+ * ideal wire counting twice. That is where a schematic puts a filled junction dot; a corner of
+ * two lines gets none. The terminals A and B are marks, not lines, and do not count.
+ */
+export function junctionDots(elements: EditorElement[]): Point[] {
+  const count = new Map<string, number>();
+  const points = new Map<string, Point>();
+  const add = (point: Point, by: number) => {
+    const key = pointKey(point);
+    count.set(key, (count.get(key) ?? 0) + by);
+    points.set(key, point);
+  };
+  const lines = elements.filter((e) => e.kind !== 'terminal');
+  for (const element of lines) {
+    for (const point of Object.values(terminals(element)) as Point[]) add(point, 1);
+  }
+  const ends = [...points.values()];
+  for (const wire of lines.filter(isIdealWire)) {
+    const { a, b } = terminals(wire);
+    for (const point of ends) if (inside(a!, b!, point)) add(point, 2);
+  }
+  return [...points].filter(([key]) => count.get(key)! >= 3).map(([, point]) => point);
+}
+
+/**
  * Numbers the points where terminals sit. Ground is the point of a ground symbol; without one it
  * is the negative terminal of the first voltage source, so a drawn source-and-load circuit
  * works without ceremony. A terminal in the middle of an ideal wire is a junction and shares the

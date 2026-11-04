@@ -16,6 +16,7 @@ import {
   GRID,
   HALF,
   inside,
+  junctionDots,
   isIdealWire,
   KIND_LABELS,
   MATERIALS,
@@ -141,6 +142,7 @@ export function CircuitEditor({
 
   const results = useMemo(() => new Map(resultList?.map((e) => [e.id, e])), [resultList]);
   const connected = useMemo(() => connectedPoints(elements), [elements]);
+  const dots = useMemo(() => junctionDots(elements), [elements]);
 
   // The labels are laid out from their real sizes, which only the browser knows once KaTeX has
   // set them. Offset sizes ignore the zoom transform, so they are already in drawing units.
@@ -498,6 +500,10 @@ export function CircuitEditor({
                 onTerminal={(event, point) => startDraw(event, point)}
                 onEnd={(event, end) => startEnd(event, element, end)}
               />
+            ))}
+
+            {dots.map((point) => (
+              <circle key={pointKey(point)} className="junction-dot" cx={point.x} cy={point.y} r="3.5" />
             ))}
 
             {overlay}

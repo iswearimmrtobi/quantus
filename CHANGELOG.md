@@ -155,6 +155,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   current (an open end, shorted, not connected to A and B) are left out with a note. A network
   that is not built from series and parallel, such as a bridge, is finished with the node rule
   and a test current of 1 A.
+- The circuit editor (Electronics and Kirchhoff) draws a filled **junction dot** where three or
+  more wires and terminals meet, as a schematic does.
 - A setting **Systems of equations** chooses how the steps of a system are worked: **Gauss**
   (default), as taught at school, or **Gauss–Jordan**, as before.
 - The handheld keeps **sessions**, as the desktop app does: MODE → Sitzungen creates, opens,

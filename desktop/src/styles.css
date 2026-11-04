@@ -1565,6 +1565,10 @@ select option {
 .part.selected .wire {
   stroke: var(--cyan);
 }
+.junction-dot {
+  fill: var(--text);
+  pointer-events: none;
+}
 .part .terminal-name {
   fill: var(--text);
   font-size: 13px;
