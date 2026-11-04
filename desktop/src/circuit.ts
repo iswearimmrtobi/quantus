@@ -496,20 +496,13 @@ export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], u
     drawn.set(keep, { ...drawn.get(keep)!, id: merged });
   }
 
-  // Wires that end in nothing led only to a part that went.
-  let result = [...drawn.values()];
+  // Wires that end in nothing led only to a part that went. A wire is cut first where something
+  // meets it in its middle, so of a rail only the piece past the last part goes.
+  let result = splitAtJunctions([...drawn.values()]);
   for (;;) {
     const count = new Map<string, number>();
     for (const element of result) {
       for (const point of Object.values(terminals(element)) as Point[]) count.set(pointKey(point), (count.get(pointKey(point)) ?? 0) + 1);
-    }
-    for (const wire of result.filter(isIdealWire)) {
-      const { a, b } = terminals(wire);
-      for (const element of result) {
-        for (const point of Object.values(terminals(element)) as Point[]) {
-          if (inside(a!, b!, point)) count.set(pointKey(point), (count.get(pointKey(point)) ?? 0) + 1);
-        }
-      }
     }
     const loose = result.find((e) => {
       if (e.kind !== 'wire') return false;
@@ -519,4 +512,26 @@ export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], u
     if (!loose) return { elements: result, merged };
     result = result.filter((e) => e !== loose);
   }
+}
+
+/** The drawing with every ideal wire cut into pieces where a terminal or wire end meets its middle. */
+function splitAtJunctions(elements: EditorElement[]): EditorElement[] {
+  const points = elements.flatMap((e) => Object.values(terminals(e)) as Point[]);
+  return elements.flatMap((element) => {
+    if (!isIdealWire(element)) return [element];
+    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
+    const taps = points.filter((p) => inside(a, b, p));
+    if (taps.length === 0) return [element];
+    const distance = (p: Point) => Math.abs(p.x - a.x) + Math.abs(p.y - a.y);
+    const unique = [...new Map(taps.map((p) => [pointKey(p), p])).values()].sort((p, q) => distance(p) - distance(q));
+    const stops = [a, ...unique, b];
+    return stops.slice(1).map((to, k) => ({
+      ...element,
+      id: k === 0 ? element.id : `${element.id}#${k}`,
+      x: stops[k].x,
+      y: stops[k].y,
+      x2: to.x,
+      y2: to.y,
+    }));
+  });
 }
