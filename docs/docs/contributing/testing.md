@@ -51,7 +51,7 @@ next to the code they test, so the file you change is also where its tests are.
 | `crates/quantus-core/src/` (rest) | 29 | Sessions, settings, error messages, message language, algebra pipeline, rational roots, steps merged and filtered by detail level |
 | `desktop/src-tauri/src/tests.rs` | 20 | The Tauri commands through Tauri's own IPC layer with a mock runtime, as the renderer's `invoke` reaches them: evaluation, variables, error positions, settings and circuit files, the menu, the analysis commands at a set precision and with their errors |
 
-## Integration tests (248)
+## Integration tests (263)
 
 `crates/quantus-core/tests/*.rs`. Each file is its own test binary and uses only the public API of
 `quantus-core`.
@@ -96,6 +96,7 @@ The symbolic simplification of rational expressions, built milestone by mileston
 |---|---:|---|
 | `analysis.rs` | 43 | The analysis mode end to end: each section's result and the marked points for every case of `design/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, a time check, and the working each detail level adds |
 | `complex.rs` | 10 | Complex results in imaginary mode |
+| `geometry.rs` | 15 | The Geometry mode's points and vectors: their arithmetic, dot and cross product, length, unit vector, angle in both angle units, triple product, collinear and coplanar tests, areas and volumes, all exact; reading columns, `\vec{a}` and points `P(1\|2\|3)` or `(1;2;3)` (bars that separate coordinates against `\left\|…\right\|`, decimal commas, 2D input), and the operator each pair of types makes |
 | `settings.rs` | 12 | Each user setting switches its reading or writing rule; the calculator's working by detail level |
 
 ## The generated test set (103,000 cases)

@@ -121,7 +121,7 @@ green.
   decimal comma).
 - [x] Evaluator: `×` is the cross product, `\cdot` the dot product (scalar·vector the multiple),
   `|v|` the length (as Casio §3.7), with tests.
-- [ ] Entry in `docs/docs/contributing/testing.md`.
+- [x] Entry in `docs/docs/contributing/testing.md`.
 
 ### Phase 2: objects and relations
 
