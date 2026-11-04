@@ -5,6 +5,7 @@ derivatives, integrals, limits, algebraic simplification, physics with units, pa
 complex numbers, the linear systems mode and the modes added after it (from `verify` on in the
 table below).
 The 2500 hand-checked algebra cases from before are in `algebra-simplification-cases.md`.
+The [test inventory](../docs/docs/contributing/test-set.md) counts every test and case, by category and subcategory.
 
 | Path | What |
 |---|---|
