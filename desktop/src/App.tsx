@@ -7,6 +7,8 @@ import { ElectronicsView } from './components/ElectronicsView';
 import { KirchhoffView } from './components/KirchhoffView';
 import { AnalysisView } from './components/AnalysisView';
 import { LinearSystemView } from './components/LinearSystemView';
+import { GeometryView } from './components/GeometryView';
+import { EMPTY_GEOMETRY, geometryInput, geometryRequest, type GeometryInput } from './geometry';
 import { EMPTY_LINEAR, inputFor, requestFor, type LinearInput } from './linear';
 import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -39,6 +41,7 @@ const PLACEHOLDERS: Partial<Record<Mode, string>> = {
   imaginary: '(2 + 3i)(1 - i)',
   baseN: '1010 \\operatorname{and} 0110',
   verify: '2^{10} > 10^{3}',
+  geometry: 'A(1|2|3)',
 };
 
 /** The modes that know units and natural constants, as `Settings::parse_options` has them. */
@@ -110,6 +113,8 @@ export function App() {
   const [circuitShown, setCircuitShown] = useState<Shown>(SHOWN);
   /** The linear system and its tab, kept here for the same reason. */
   const [linear, setLinear] = useState<LinearInput>(EMPTY_LINEAR);
+  /** The Geometry scene and its task, kept here for the same reason. */
+  const [geometry, setGeometry] = useState<GeometryInput>(EMPTY_GEOMETRY);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const language = settings.language;
@@ -231,6 +236,7 @@ export function App() {
         setHistory(entries);
         modeInputs.current = inputs;
         setLinear(inputFor(inputs.linear));
+        setGeometry(geometryInput(inputs.geometry));
       } catch {
         setHistory([]);
       }
@@ -321,17 +327,18 @@ export function App() {
     start().catch(() => {});
   }, [openSession, newSession]);
 
-  // The linear system goes into the session, a moment after the last change.
+  // The linear system and the Geometry scene go into the session, a moment after the last change.
   useEffect(() => {
     if (!sessionId) return;
     const timer = window.setTimeout(() => {
-      const request = requestFor(linear);
-      if (JSON.stringify(request ?? null) === JSON.stringify(modeInputs.current.linear ?? null)) return;
-      modeInputs.current = { ...modeInputs.current, linear: request };
+      const next = { ...modeInputs.current, linear: requestFor(linear), geometry: geometryRequest(geometry) };
+      const same = (key: 'linear' | 'geometry') => JSON.stringify(next[key] ?? null) === JSON.stringify(modeInputs.current[key] ?? null);
+      if (same('linear') && same('geometry')) return;
+      modeInputs.current = next;
       api.saveModeInputs(modeInputs.current).catch(() => {});
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [linear, sessionId]);
+  }, [linear, geometry, sessionId]);
 
   /** CALC or SOLVE on what the input holds. */
   const openTool = useCallback((kind: ToolKind) => {
@@ -354,8 +361,8 @@ export function App() {
         setSettings(saved);
         setPrecision(saved.precision);
         setSettingsError(null);
-        // The analysis and linear systems views re-run themselves; the hidden calculator input need not.
-        if (saved.mode !== 'analysis' && saved.mode !== 'linear' && (latest.current.calculation || latest.current.error)) await evaluate({ record: false });
+        // The analysis, linear systems and Geometry views re-run themselves; the hidden calculator input need not.
+        if (!(['analysis', 'linear', 'geometry'] as Mode[]).includes(saved.mode) && (latest.current.calculation || latest.current.error)) await evaluate({ record: false });
       } catch (failure) {
         setSettingsError(failure instanceof Error ? failure.message : String(failure));
       }
@@ -561,6 +568,8 @@ export function App() {
           input={linear}
           onInputChange={setLinear}
         />
+      ) : settings.mode === 'geometry' ? (
+        <GeometryView settings={settings} input={geometry} onInputChange={setGeometry} placeholder={placeholder} />
       ) : settings.mode === 'electronics' ? (
         <main className="workspace circuit-workspace">
           <ElectronicsView

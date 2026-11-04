@@ -226,6 +226,8 @@ export const en = {
   'mode.verify': 'Verify',
   'mode.verify.hint': 'Checks an equation or inequality without unknowns, also chained (1 < 2 < 3): true or false.',
   'mode.geometry': 'Geometry',
+  'mode.geometry.hint': 'Points, vectors, lines, planes, spheres and circles in space, drawn in 3D, with their relations, distances and angles worked out exactly. Inputs are read as in Algebra; objects have names of their own, apart from the variables.',
+  'geometry.empty': 'The scene is empty. Add a point, a vector, a line, a plane, a sphere or a circle.',
   'choice.degree': 'Degrees',
   'choice.radian': 'Radians',
   'choice.improper': 'd/c',

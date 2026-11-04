@@ -227,6 +227,8 @@ export const de: Record<TextKey, string> = {
   'mode.verify': 'Prüfen',
   'mode.verify.hint': 'Prüft eine Gleichung oder Ungleichung ohne Unbekannte, auch verkettet (1 < 2 < 3): wahr oder falsch.',
   'mode.geometry': 'Geometrie',
+  'mode.geometry.hint': 'Punkte, Vektoren, Geraden, Ebenen, Kugeln und Kreise im Raum, in 3D gezeichnet, mit Lagebeziehungen, Abständen und Winkeln exakt berechnet. Eingaben werden wie in Algebra gelesen; Objekte haben eigene Namen, getrennt von den Variablen.',
+  'geometry.empty': 'Die Szene ist leer. Füge einen Punkt, einen Vektor, eine Gerade, eine Ebene, eine Kugel oder einen Kreis hinzu.',
   'choice.degree': 'Grad',
   'choice.radian': 'Bogenmaß',
   'choice.improper': 'd/c',

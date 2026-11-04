@@ -181,7 +181,7 @@ its tests.
 
 ### Phase 5: desktop UI
 
-- [ ] `GeometryView.tsx` shell, built like `LinearSystemView`: state in `App.tsx`, saved in the
+- [x] `GeometryView.tsx` shell, built like `LinearSystemView`: state in `App.tsx`, saved in the
   session, survives a mode switch; `modeChoices` in `SettingsDialog.tsx`, `PLACEHOLDERS`, the
   `mode.geometry` strings in `en.ts` and `de.ts`.
 - [ ] `GeometryPlot.tsx`: SVG like `FunctionPlot.tsx`, drawing the primitives of a fixed demo

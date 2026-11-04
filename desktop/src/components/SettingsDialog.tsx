@@ -11,7 +11,7 @@ interface Choice<T extends string> {
 
 /** With the imaginary unit switched on, the linear systems mode reads "… + 𝑖". */
 export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[] =>
-  (['algebra', 'physics', 'imaginary', 'electronics', 'analysis', 'linear', 'kirchhoff', 'baseN', 'verify'] as const).map(
+  (['algebra', 'physics', 'imaginary', 'electronics', 'analysis', 'linear', 'kirchhoff', 'geometry', 'baseN', 'verify'] as const).map(
     (value) => ({
       value,
       label: value === 'linear' && linearComplex ? `${t('mode.linear')} + 𝑖` : t(`mode.${value}`),

@@ -2464,3 +2464,20 @@ select option {
   justify-content: space-between;
   gap: 12px;
 }
+
+/* ---- Geometry mode ------------------------------------------------------------------------ */
+
+.geometry-panel {
+  max-width: 1280px;
+}
+
+.geometry-objects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.geometry-error {
+  color: var(--text-muted);
+  font-size: 13px;
+}
