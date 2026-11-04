@@ -492,92 +492,157 @@ const DIRECTIONS = [
   { x: 1, y: -1, rotation: 3.5 },
 ];
 
-/** How well direction `d` points from `from` to `to`: the cosine of the angle between them. */
-const aim = (d: Point, from: Point, to: Point) => {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  return (d.x * dx + d.y * dy) / ((Math.hypot(dx, dy) || 1) * Math.hypot(d.x, d.y));
+/** How far the preview looks for room for a new resistor, in grid steps. */
+const SEARCH = 6;
+/** The offsets searched, nearest first, so that a good layout is found early and the rest skipped. */
+const OFFSETS = Array.from({ length: (2 * SEARCH + 1) ** 2 }, (_, n) => ({ dx: (n % (2 * SEARCH + 1)) - SEARCH, dy: Math.floor(n / (2 * SEARCH + 1)) - SEARCH })).sort(
+  (p, q) => Math.abs(p.dx) + Math.abs(p.dy) - (Math.abs(q.dx) + Math.abs(q.dy)),
+);
+/** What touching the drawing costs a layout, against one grid step of wire. */
+const CLASH = 1000;
+
+/** The grid points from `p` to `q` on a straight line, across, down or at 45°, both ends included. */
+function straight(p: Point, q: Point): Point[] {
+  const steps = Math.max(Math.abs(q.x - p.x), Math.abs(q.y - p.y)) / GRID;
+  return Array.from({ length: steps + 1 }, (_, k) => ({ x: p.x + ((q.x - p.x) * k) / (steps || 1), y: p.y + ((q.y - p.y) * k) / (steps || 1) }));
+}
+
+/** The corner of a wire from `p` to `q` as the editor draws it, across first or down first. */
+const bend = (p: Point, q: Point, acrossFirst: boolean): Point => (acrossFirst ? { x: q.x, y: p.y } : { x: p.x, y: q.y });
+
+/** The grid points of a wire from `p` to `q`, across and down. */
+const wirePath = (p: Point, q: Point, acrossFirst: boolean) => {
+  const turn = bend(p, q, acrossFirst);
+  return [...straight(p, turn), ...straight(turn, q).slice(1)];
 };
 
-/** Wires from `p` to `q` as the editor draws them, across and down: one, or two at a right angle. */
-function wiresBetween(id: string, p: Point, q: Point): EditorElement[] {
-  if (pointKey(p) === pointKey(q)) return [];
+/** The wires from `p` to `q`: none, one, or two at a right angle. */
+function wiresOf(id: string, p: Point, q: Point, acrossFirst: boolean): EditorElement[] {
+  const turn = bend(p, q, acrossFirst);
   const wire = (key: string, from: Point, to: Point): EditorElement => ({ id: `~${id}${key}`, kind: 'wire', x: from.x, y: from.y, x2: to.x, y2: to.y, rotation: 0 });
-  if (p.x === q.x || p.y === q.y) return [wire('', p, q)];
-  const turn = { x: q.x, y: p.y };
-  return [wire('', p, turn), wire('+', turn, q)];
+  return [
+    ...(pointKey(p) === pointKey(turn) ? [] : [wire('', p, turn)]),
+    ...(pointKey(turn) === pointKey(q) ? [] : [wire('+', turn, q)]),
+  ];
 }
 
 /**
- * A resistor between two grid points, in the middle and in the one of the eight directions that
- * points most nearly from one to the other, so that a side at 45° is drawn at 45°; wires lead from
- * its ends to the points where they are not on them.
+ * How many points of `path` touch something they must not: what is drawn (`taken`) other than the
+ * points it is meant to join (`ends`), or the path itself a second time. Each would show as a
+ * connection that is not there, or hide one.
  */
-function resistorBetween(id: string, from: Point, to: Point): { resistor: EditorElement; wires: EditorElement[] } {
-  const best = DIRECTIONS.reduce((p, q) => (aim(q, from, to) > aim(p, from, to) ? q : p));
-  const resistor: EditorElement = { id, kind: 'resistor', x: snap((from.x + to.x) / 2), y: snap((from.y + to.y) / 2), rotation: best.rotation };
-  const { a, b } = terminals(resistor) as Record<'a' | 'b', Point>;
-  return { resistor, wires: [...wiresBetween(`${id}a`, from, a), ...wiresBetween(`${id}b`, b, to)] };
+function clashes(path: Point[], taken: Set<number>, ends: Set<number>): number {
+  const seen = new Set<number>();
+  let count = 0;
+  for (const point of path) {
+    const key = cell(point);
+    if (seen.has(key) || (!ends.has(key) && taken.has(key))) count++;
+    seen.add(key);
+  }
+  return count;
 }
 
-/** How far the preview looks around the engine's centre of a new star, in grid steps. */
-const STAR_REACH = 6;
+/** A grid point as one number, for the sets the layout searches through. */
+const cell = (p: Point) => Math.round(p.x / GRID) * 65536 + Math.round(p.y / GRID);
+
+const steps = (p: Point, q: Point) => (Math.abs(p.x - q.x) + Math.abs(p.y - q.y)) / GRID;
+
+/** A new resistor as drawn: the resistor, the wires that lead to it, and every grid point they cover. */
+interface Placed {
+  resistor: EditorElement;
+  wires: EditorElement[];
+  path: Point[];
+}
 
 /**
- * The arms of a star to its corners, each a resistor from the centre in its own one of the eight
- * directions with wires on to its corner. The centre is the grid point near `centre` from which
- * the arms reach their corners with the least wire, best right on them, without lying on what
- * else is drawn: it is not put on a point the drawing covers (`taken`), and an arm crosses one
- * only where nothing else is left.
+ * A resistor between the drawn points `from` and `to`: of the places near the middle and the eight
+ * directions, the one that needs the least wire without touching anything else on the way.
  */
-function starArms(
-  arms: { id: string; corner: Point }[],
-  centre: Point,
-  taken: Set<string>,
-): { resistor: EditorElement; wires: EditorElement[] }[] {
-  const reach = 2 * HALF;
-  const end = (c: Point, d: Point) => ({ x: c.x + d.x * reach, y: c.y + d.y * reach });
-  /**
-   * What an arm in direction `d` from `c` costs: the wire it needs, and much more for each point of
-   * the drawing it would lie on, other than its own corner.
-   */
-  const cost = (c: Point, d: Point, corner: Point) => {
-    const e = end(c, d);
-    const wire = Math.abs(e.x - corner.x) + Math.abs(e.y - corner.y);
-    let clashes = 0;
-    for (let k = 1; k <= reach / GRID; k++) {
-      const point = { x: c.x + d.x * k * GRID, y: c.y + d.y * k * GRID };
-      if (pointKey(point) !== pointKey(corner) && taken.has(pointKey(point))) clashes++;
-    }
-    return wire + clashes * 100 * reach;
-  };
-  let best: { cost: number; centre: Point; directions: number[] } | null = null;
-  for (let dy = -STAR_REACH; dy <= STAR_REACH; dy++) {
-    for (let dx = -STAR_REACH; dx <= STAR_REACH; dx++) {
-      const c = { x: centre.x + dx * GRID, y: centre.y + dy * GRID };
-      if (taken.has(pointKey(c)) || arms.some((arm) => pointKey(arm.corner) === pointKey(c))) continue;
-      // Every way of giving the three arms three different directions.
-      for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 8; j++) {
-          for (let k = 0; k < 8; k++) {
-            if (i === j || j === k || i === k) continue;
-            const directions = [i, j, k];
-            const total =
-              arms.reduce((sum, arm, n) => sum + cost(c, DIRECTIONS[directions[n]], arm.corner), 0) +
-              // Of two equally good centres the one nearer the engine's wins.
-              (Math.abs(dx) + Math.abs(dy)) / 100;
-            if (!best || total < best.cost) best = { cost: total, centre: c, directions };
+function placeBetween(id: string, from: Point, to: Point, taken: Set<number>): Placed {
+  const ends = new Set([cell(from), cell(to)]);
+  const middle = { x: snap((from.x + to.x) / 2), y: snap((from.y + to.y) / 2) };
+  let best: (Placed & { cost: number }) | null = null;
+  for (const { dx, dy } of OFFSETS) {
+    {
+      const centre = { x: middle.x + dx * GRID, y: middle.y + dy * GRID };
+      for (const d of DIRECTIONS) {
+        const resistor: EditorElement = { id, kind: 'resistor', x: centre.x, y: centre.y, rotation: d.rotation };
+        const { a, b } = terminals(resistor) as Record<'a' | 'b', Point>;
+        for (const [near, far] of [[a, b], [b, a]]) {
+          // The wire it needs at least; a layout that cannot beat the best one is not built.
+          if (best && steps(from, near) + steps(far, to) >= best.cost) continue;
+          for (const first of [true, false]) {
+            for (const second of [true, false]) {
+              const path = [...wirePath(from, near, first), ...straight(near, far).slice(1), ...wirePath(far, to, second).slice(1)];
+              const cost =
+                steps(from, near) + steps(far, to) + CLASH * clashes(path, taken, ends) + (Math.abs(dx) + Math.abs(dy)) / 100;
+              if (!best || cost < best.cost) {
+                best = { cost, resistor, path, wires: [...wiresOf(`${id}a`, from, near, first), ...wiresOf(`${id}b`, far, to, second)] };
+              }
+            }
           }
         }
       }
     }
   }
-  const { centre: middle, directions } = best!;
-  return arms.map((arm, n) => {
-    const d = DIRECTIONS[directions[n]];
-    const resistor: EditorElement = { id: arm.id, kind: 'resistor', x: middle.x + d.x * HALF, y: middle.y + d.y * HALF, rotation: d.rotation };
-    return { resistor, wires: wiresBetween(arm.id, end(middle, d), arm.corner) };
-  });
+  return best!;
+}
+
+/**
+ * The arms of a new star: each a resistor from the centre in its own one of the eight directions,
+ * with wires on to its corner. The centre is the free grid point near `centre` from which the
+ * arms reach their corners with the least wire, touching nothing else on the way nor each other.
+ */
+function placeStar(arms: { id: string; corner: Point }[], centre: Point, taken: Set<number>): { centre: Point; arms: Placed[] } {
+  const reach = 2 * HALF;
+  let best: { cost: number; centre: Point; arms: Placed[] } | null = null;
+  for (const { dx, dy } of OFFSETS) {
+    {
+      const c = { x: centre.x + dx * GRID, y: centre.y + dy * GRID };
+      if (taken.has(cell(c))) continue;
+      // The wire the arms need at least, each in its nearest direction; no better than the best, skip.
+      const reachable = (corner: Point) =>
+        Math.min(...DIRECTIONS.map((d) => steps({ x: c.x + d.x * reach, y: c.y + d.y * reach }, corner)));
+      if (best && arms.reduce((sum, arm) => sum + reachable(arm.corner), 0) >= best.cost) continue;
+      // The best arm in each direction for each corner, on its own.
+      const options = arms.map((arm) =>
+        DIRECTIONS.map((d) => {
+          const end = { x: c.x + d.x * reach, y: c.y + d.y * reach };
+          const resistor: EditorElement = { id: arm.id, kind: 'resistor', x: c.x + d.x * HALF, y: c.y + d.y * HALF, rotation: d.rotation };
+          const ends = new Set([cell(c), cell(arm.corner)]);
+          return [true, false]
+            .map((first) => {
+              const path = [...straight(c, end), ...wirePath(end, arm.corner, first).slice(1)];
+              return { cost: steps(end, arm.corner) + CLASH * clashes(path, taken, ends), placed: { resistor, path, wires: wiresOf(arm.id, end, arm.corner, first) } };
+            })
+            .reduce((p, q) => (q.cost < p.cost ? q : p));
+        }),
+      );
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+          for (let k = 0; k < 8; k++) {
+            if (i === j || j === k || i === k) continue;
+            const chosen = [options[0][i], options[1][j], options[2][k]];
+            // Arms that share a point other than the centre cross or overlap.
+            const base = chosen.reduce((sum, o) => sum + o.cost, 0);
+            if (best && base >= best.cost) continue;
+            const seen = new Set<number>();
+            let shared = 0;
+            for (const option of chosen) {
+              for (const point of option.placed.path.slice(1)) {
+                const key = cell(point);
+                if (seen.has(key)) shared++;
+                seen.add(key);
+              }
+            }
+            const cost = base + CLASH * shared + (Math.abs(dx) + Math.abs(dy)) / 100;
+            if (!best || cost < best.cost) best = { cost, centre: c, arms: chosen.map((o) => o.placed) };
+          }
+        }
+      }
+    }
+  }
+  return best!;
 }
 
 /**
@@ -585,64 +650,101 @@ function starArms(
  * resistor takes the place of the first resistor it stands for, under its new name. Of the others,
  * one in series becomes a wire, since its current runs on through the merged one; one in parallel
  * goes, and the wires that led only to it go with it. A star–delta conversion takes out its three
- * resistors and draws the three new ones between the grid points the engine gives. `merged` holds
- * the IDs of the last step's resistors, to mark them.
+ * resistors and draws the three new ones where they join their nodes without touching anything
+ * else. `merged` holds the IDs of the last step's resistors, to mark them.
  */
 export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], upTo: number): { elements: EditorElement[]; merged: string[] } {
+  return reducedDrawings(elements, merges.slice(0, upTo + 1))[upTo];
+}
+
+/** [`reducedDrawing`] for every step at once, in one pass: what the hover shows, step by step. */
+export function reducedDrawings(elements: EditorElement[], merges: MergeStep[]): { elements: EditorElement[]; merged: string[] }[] {
+  const shown: { elements: EditorElement[]; merged: string[] }[] = [];
   const drawn = new Map(elements.map((e) => [e.id, e]));
   /** The resistors drawn now, by the ID of the part whose place they take, with the parts they stand for. */
   const groups = new Map<string, string[]>(elements.filter((e) => e.kind === 'resistor').map((e) => [e.id, [e.id]]));
+  /** The wires drawn for a resistor of the preview: they go when it goes. */
+  const feeders = new Map<string, string[]>();
+  /** Where the preview drew the centre of a new star, by the engine's grid point for it. */
+  const moved = new Map<string, Point>();
+  const at = (p: Point) => moved.get(pointKey(p)) ?? { x: p.x * GRID, y: p.y * GRID };
+  const dropWire = (id: string) => {
+    for (const key of [...drawn.keys()]) if (key === id || key.startsWith(`${id}#`)) drawn.delete(key);
+  };
+  const drop = (place: string) => {
+    drawn.delete(place);
+    groups.delete(place);
+    for (const wire of feeders.get(place) ?? []) dropWire(wire);
+    feeders.delete(place);
+  };
   let merged: string[] = [];
-  for (const merge of merges.slice(0, upTo + 1)) {
+  for (const merge of merges) {
     const members = [...groups].filter(([, parts]) => parts.every((p) => merge.parts.includes(p)));
     if (merge.created.length > 0) {
-      for (const [place] of members) {
-        drawn.delete(place);
-        groups.delete(place);
-      }
+      for (const [place] of members) drop(place);
       // The wires that led only to the three go now, so the new ones are placed in the room they
       // leave; those to the points where the new ones attach stay.
-      const grid = (p: Point) => ({ x: p.x * GRID, y: p.y * GRID });
-      const anchors = merge.created.flatMap((c) => (merge.kind === 'deltaToStar' ? [grid(c.a)] : [grid(c.a), grid(c.b)]));
+      const anchors = merge.created.flatMap((c) => (merge.kind === 'deltaToStar' ? [at(c.a)] : [at(c.a), at(c.b)]));
       const pruned = withoutLooseWires([...drawn.values()], anchors);
       for (const [key, element] of [...drawn]) if (element.kind === 'wire') drawn.delete(key);
       for (const element of pruned) if (element.kind === 'wire') drawn.set(element.id, element);
+
+      const taken = new Set([...drawn.values()].flatMap((e) => coveredPoints(e).map(cell)));
       const names = merge.created.map((created) => plainSymbol(created.symbol));
-      // A new star shares its centre `b`; a new delta's sides run between drawn points.
-      const placed =
-        merge.kind === 'deltaToStar'
-          ? starArms(
-              merge.created.map((c, k) => ({ id: names[k], corner: grid(c.a) })),
-              grid(merge.created[0].b),
-              new Set([...drawn.values()].flatMap((e) => coveredPoints(e).map(pointKey))),
-            )
-          : merge.created.map((c, k) => resistorBetween(names[k], grid(c.a), grid(c.b)));
+      let placed: Placed[];
+      if (merge.kind === 'deltaToStar') {
+        // A new star shares its centre `b`.
+        const star = placeStar(
+          merge.created.map((c, k) => ({ id: names[k], corner: at(c.a) })),
+          at(merge.created[0].b),
+          taken,
+        );
+        moved.set(pointKey(merge.created[0].b), star.centre);
+        placed = star.arms;
+      } else {
+        placed = merge.created.map((c, k) => {
+          const side = placeBetween(names[k], at(c.a), at(c.b), taken);
+          for (const point of side.path) taken.add(cell(point));
+          return side;
+        });
+      }
       merge.created.forEach((created, k) => {
         drawn.set(created.id, placed[k].resistor);
         for (const wire of placed[k].wires) drawn.set(wire.id, wire);
         groups.set(created.id, [created.id]);
+        feeders.set(created.id, placed[k].wires.map((w) => w.id));
       });
       merged = names;
+      shown.push({ elements: withoutLooseWires([...drawn.values()]), merged });
       continue;
     }
     members.sort(([, p], [, q]) => merge.parts.indexOf(p[0]) - merge.parts.indexOf(q[0]));
-    if (members.length < 2) continue;
+    if (members.length < 2) {
+      shown.push({ elements: withoutLooseWires([...drawn.values()]), merged });
+      continue;
+    }
     const [keep] = members[0];
     for (const [place] of members.slice(1)) {
       const element = drawn.get(place)!;
-      drawn.delete(place);
-      groups.delete(place);
       if (merge.kind === 'series') {
+        // Its current runs on through the merged one, so it stays as a wire, which goes with it.
         const { a, b } = terminals(element);
-        drawn.set(place, { id: `~${place}`, kind: 'wire', x: a!.x, y: a!.y, x2: b!.x, y2: b!.y, rotation: 0 });
+        const wire: EditorElement = { id: `~${place}`, kind: 'wire', x: a!.x, y: a!.y, x2: b!.x, y2: b!.y, rotation: 0 };
+        drawn.delete(place);
+        groups.delete(place);
+        drawn.set(wire.id, wire);
+        feeders.set(keep, [...(feeders.get(keep) ?? []), ...(feeders.get(place) ?? []), wire.id]);
+        feeders.delete(place);
+      } else {
+        drop(place);
       }
     }
     groups.set(keep, members.flatMap(([, parts]) => parts));
     merged = [plainSymbol(merge.symbol)];
     drawn.set(keep, { ...drawn.get(keep)!, id: merged[0] });
+    shown.push({ elements: withoutLooseWires([...drawn.values()]), merged });
   }
-
-  return { elements: withoutLooseWires([...drawn.values()]), merged };
+  return shown;
 }
 
 /**

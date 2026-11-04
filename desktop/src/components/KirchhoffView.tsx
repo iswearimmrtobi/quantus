@@ -5,7 +5,7 @@ import {
   IDEAL_FIELDS,
   junctionPoint,
   numberNodes,
-  reducedDrawing,
+  reducedDrawings,
   terminalParts,
   toKirchhoffRequest,
   type EditorElement,
@@ -100,10 +100,14 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
   }, [solution, elements, nodes, shown.voltage]);
 
   /** While a step of the reduction is under the pointer, the network as it stands after it. */
+  // Worked out on the first hover over a step and kept for the solution, since placing a star or
+  // delta takes a search.
+  const previews = useRef<{ solution: Kirchhoff; drawings: ReturnType<typeof reducedDrawings> } | null>(null);
   const reduced = useMemo(() => {
     const merges = solution?.equivalent?.merges;
-    if (hover?.kind !== 'merge' || !merges?.[hover.index]) return null;
-    return reducedDrawing(elements, merges, hover.index);
+    if (hover?.kind !== 'merge' || !solution || !merges?.[hover.index]) return null;
+    if (previews.current?.solution !== solution) previews.current = { solution, drawings: reducedDrawings(elements, merges) };
+    return previews.current.drawings[hover.index] ?? null;
   }, [hover, solution, elements]);
 
   const highlight = useMemo(() => {
