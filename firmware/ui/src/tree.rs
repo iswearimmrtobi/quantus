@@ -596,12 +596,12 @@ static OPTN_MATRIX: Page = Page {
         entry(t("Bearbeiten", "Edit"), Kind::Do(Action::EditMatrix)),
         entry(t("Zeilen", "Rows"), Kind::Number(S::MatrixRows, 1, 10)),
         entry(t("Spalten", "Columns"), Kind::Number(S::MatrixColumns, 1, 10)),
-        pending(t("Determinante", "Determinant")),
-        pending(t("Transponierte", "Transpose")),
-        pending(t("Inverse", "Inverse")),
-        pending(t("Einheitsmatrix", "Identity")),
-        pending(same("REF")),
-        pending(same("RREF")),
+        ins(t("Determinante", "Determinant"), r"\det "),
+        ins(t("Transponierte", "Transpose"), "^{T}"),
+        ins(t("Inverse", "Inverse"), "^{-1}"),
+        ins(t("Einheitsmatrix", "Identity"), r"\operatorname{Identity}()"),
+        ins(same("REF"), r"\operatorname{ref}()"),
+        ins(same("RREF"), r"\operatorname{rref}()"),
     ],
 };
 

@@ -161,7 +161,7 @@ in yet.
 - [x] CALC: a form over the input asks for its free variables (F8, Ctrl+B, or OPTN → Werkzeuge); the values stay in the session
 - [x] STO and VARS: STO (SHIFT+VARS) keeps the shown result under any name typed; VARS lists the session's variables with their values, to insert one, change its value (in CALC's form) or delete it
 - [x] Basis-N, statistics, regressions, distributions
-- [~] Matrices — the Matrizen mode with its editor; OPTN has no functions yet
+- [x] Matrices: the Matrizen mode with its editor; OPTN → Determinante, Transponierte, Inverse, Einheitsmatrix, REF, RREF
 - [x] wahr/falsch for an equation without unknowns, and the Prüfen mode
 - [x] Step levels and the step settings passed to the engine (the list is not shown yet)
 
@@ -183,7 +183,7 @@ in yet.
 - [x] OPTN Werkzeuge: CALC, SOLVE, In Einheit
 - [x] OPTN for Kurvendiskussion: Abschnitte, Tangente/Normale, Fläche, Wertetabelle
 - [x] OPTN for Basis-N: Basis, Präfixe, and, or, xor, xnor, Not, Neg
-- [ ] OPTN for Matrizen
+- [x] OPTN for Matrizen: Definieren, Bearbeiten, Zeilen, Spalten, the functions
 - [x] OPTN Wertetabelle, Statistik (Typ, Häufigkeit, rows), Verteilungen (Typ)
 - [x] OPTN LGS: Eingabe, Zeilen, Spalten, Imaginäre Einheit, Alles löschen
 - [x] CONST menu by category, each constant with its symbol

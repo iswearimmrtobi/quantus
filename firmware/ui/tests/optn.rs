@@ -184,3 +184,24 @@ fn the_top_bar_shows_the_base_in_basis_n() {
     assert!(texts(&app).contains(&"Hex".to_string()));
     assert!(!texts(&app).contains(&"Exakt".to_string()));
 }
+
+#[test]
+fn matrizen_inserts_the_matrix_functions() {
+    let mut app = app(Mode::Matrix);
+    optn(&mut app, &["Determinante"]);
+    app.key(Key::Letter('A'));
+    app.key(Key::Plus);
+    optn(&mut app, &["RREF"]);
+    app.key(Key::Letter('B'));
+    app.key(Key::Right);
+    optn(&mut app, &["Inverse"]);
+    assert_eq!(app.editor.to_latex(), r"\det A+\mathrm{rref}(B)^{-1}");
+    let mut app = self::app(Mode::Matrix);
+    app.key(Key::Letter('A'));
+    optn(&mut app, &["Transponierte"]);
+    assert_eq!(app.editor.to_latex(), "A^{T}");
+    let mut app = self::app(Mode::Matrix);
+    optn(&mut app, &["Einheitsmatrix"]);
+    app.key(Key::Digit(3));
+    assert_eq!(app.editor.to_latex(), r"\mathrm{Identity}(3)");
+}

@@ -204,7 +204,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The handheld's **Matrizen** mode works: typed inputs like `A^{-1}` or `\det A`, and OPTN →
   Definieren asks for a name and opens a grid of the size set by OPTN → Zeilen and Spalten (up
   to 10 × 10); EXE on its last cell defines the matrix. VARS lists the matrices by their size and
-  opens one in the grid to change it.
+  opens one in the grid to change it. OPTN inserts the determinant, the transpose, the inverse,
+  the identity and the row echelon forms.
 - The handheld's **Basis-N** mode works: OPTN sets the base (DEC, HEX, BIN, OCT), kept with the
   settings and shown in the top bar, and inserts the prefixes d, h, b, o and the logic and, or,
   xor, xnor, Not, Neg.

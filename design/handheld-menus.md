@@ -679,8 +679,9 @@ Per mode:
   Schritt are the rows of the mode's form, not OPTN entries.
 - **LGS**: Eingabe Gleichungen / Matrix [A|b] ✓ (Matrix by default) · Zeilen and Spalten (the
   unknowns), typed, up to 10 ✓ · Imaginäre Einheit i ✓ (`linearComplex`) · Alles löschen ✓ [Q]
-- **Matrizen**: Definieren, Bearbeiten · the matrix variables · Ans · Determinante,
-  Transponierte, Inverse, Einheitsmatrix, REF, RREF [C, eng] ◌
+- **Matrizen**: Definieren (a name, then the grid) ✓ · Bearbeiten (VARS) ✓ · Zeilen, Spalten ✓ ·
+  Determinante, Transponierte, Inverse, Einheitsmatrix, REF, RREF ✓ [C, eng]. The matrices are
+  inserted from VARS, the last result with Ans.
 - **Basis-N**: Basis DEC/HEX/BIN/OCT ✓ (a choice, the setting `number_base`) · Präfixe d, h, b, o ✓
   (`\mathrm{h}`) · and, or, xor, xnor, Not, Neg ✓ (`\operatorname{and}`) [C, eng]
 - **Statistik**: Typ (1 Variable and the 7 regressions) ✓ · Häufigkeit ein/aus ✓ · Zeile
