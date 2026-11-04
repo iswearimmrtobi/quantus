@@ -192,7 +192,7 @@ its tests.
   `MatrixGrid.tsx`), add and remove.
 - [x] Forms for Gerade and Ebene, with the form switch (parameter, normal, coordinate).
 - [x] Forms for Kugel and Kreis (including the Kugel ∩ Ebene constructor).
-- [ ] Typed-expression field that creates or updates the same objects.
+- [x] Typed-expression field that creates or updates the same objects.
 - [ ] Task panel: pick objects, pick relation or distance, show the result.
 - [ ] Task panel shows the `Steps`; the copy block.
 - [ ] `en.ts` and `de.ts`: remaining labels, checked for completeness.

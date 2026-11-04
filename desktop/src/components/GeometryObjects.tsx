@@ -1,7 +1,7 @@
 import type { Geometry, GeometryEntry, GeometryObject } from '../api';
 import { useT } from '../i18n';
 import type { TextKey } from '../i18n/en';
-import { formKindOf, freeName, newObject, switchVariant, VARIANTS, type FormKind, type Variant } from '../geometry';
+import { formKindOf, freeName, plainBars, newObject, switchVariant, VARIANTS, type FormKind, type Variant } from '../geometry';
 import { colourStyle } from './GeometryPlot';
 import { Katex } from './Katex';
 import { MathField } from './MathField';
@@ -63,9 +63,9 @@ export function colourIndices(built: Geometry['objects'] | null): (number | null
 }
 
 /** One small formula field for a number. */
-function Cell({ value, onChange, wide = false }: { value: string; onChange(value: string): void; wide?: boolean }) {
+function Cell({ value, onChange, wide = false, line = false }: { value: string; onChange(value: string): void; wide?: boolean; line?: boolean }) {
   return (
-    <span className={wide ? 'matrix-cell geometry-cell wide' : 'matrix-cell geometry-cell'}>
+    <span className={`matrix-cell geometry-cell${wide ? ' wide' : ''}${line ? ' line' : ''}`}>
       <MathField className="cell-input" value={value} onChange={onChange} onEnter={() => {}} autoFocus={false} />
     </span>
   );
@@ -235,6 +235,8 @@ function Form({ object, built, onChange }: { object: GeometryObject; built: Geom
           <ObjectPick value={object.plane} kind="plane" built={built} onChange={(plane) => onChange({ ...object, plane })} />
         </>
       );
+    case 'typed':
+      return <Cell value={object.latex} onChange={(latex) => onChange({ ...object, latex: plainBars(latex) })} line />;
     default:
       return null;
   }

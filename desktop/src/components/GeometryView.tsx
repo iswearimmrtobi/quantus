@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type Geometry, type Settings } from '../api';
-import { geometryRequest, type GeometryInput } from '../geometry';
+import { geometryRequest, withTyped, type GeometryInput } from '../geometry';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { GeometryObjects } from './GeometryObjects';
 import { GeometryPlot } from './GeometryPlot';
+import { MathField } from './MathField';
 
 
 interface Props {
@@ -19,8 +20,15 @@ interface Props {
  * The Geometry mode: a scene of points, vectors, lines, planes, spheres and circles, drawn in a
  * 3D view, and a task on them answered exactly with its steps.
  */
-export function GeometryView({ settings, input, onInputChange }: Props) {
+export function GeometryView({ settings, input, onInputChange, placeholder }: Props) {
   const { t } = useT();
+  /** The typed line not yet entered. */
+  const [typed, setTyped] = useState('');
+  const enterTyped = () => {
+    if (!typed.trim()) return;
+    onInputChange({ ...input, objects: withTyped(input.objects, typed) });
+    setTyped('');
+  };
   const [answer, setAnswer] = useState<Geometry | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   /** The latest request; an answer to an older one is dropped. */
@@ -55,6 +63,9 @@ export function GeometryView({ settings, input, onInputChange }: Props) {
   return (
     <main className="workspace analysis-workspace">
       <div className="analysis-panel geometry-panel">
+        <div className="input-row geometry-typed" title={t('geometry.typed.hint')}>
+          <MathField value={typed} onChange={setTyped} onEnter={enterTyped} placeholder={placeholder} />
+        </div>
         {input.objects.length > 0 && <GeometryPlot objects={input.objects} />}
         {error && <ErrorRow error={error} soft />}
         {!input.objects.length && <p className="analysis-empty">{t('geometry.empty')}</p>}

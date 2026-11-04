@@ -2630,6 +2630,19 @@ select option {
   width: 120px;
 }
 
+.geometry-cell.line {
+  flex: 1;
+  min-width: 240px;
+}
+.geometry-cell.line .cell-input {
+  text-align: left;
+}
+
+.geometry-typed {
+  margin-top: 14px;
+  padding: 10px 14px;
+}
+
 .geometry-entry {
   display: inline-flex;
   align-items: center;

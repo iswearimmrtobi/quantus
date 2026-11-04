@@ -231,6 +231,7 @@ export const de: Record<TextKey, string> = {
   'geometry.empty': 'Die Szene ist leer. Füge einen Punkt, einen Vektor, eine Gerade, eine Ebene, eine Kugel oder einen Kreis hinzu.',
   'geometry.plot.hint': 'Ziehen dreht, Mausrad zoomt',
   'geometry.plot.above': 'Ansicht von oben',
+  'geometry.typed.hint': 'Ein Objekt mit Namen eingeben und Enter drücken, etwa A(1|2|3), g: X = A + \\lambda\\vec{u}, E: 2x + y - z = 4 oder K: x^2 + y^2 + z^2 = 9. Ein Name, den die Szene schon hat, wird ersetzt.',
   'geometry.add': 'Hinzufügen',
   'geometry.name': 'Name',
   'geometry.remove': 'Dieses Objekt entfernen',

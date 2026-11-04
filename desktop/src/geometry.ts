@@ -151,6 +151,46 @@ export function geometryRequest(input: GeometryInput): GeometryRequest | null {
   return { scene: { objects: input.objects.map(shapeRequest) }, task: input.task };
 }
 
+/** `|` as MathLive may write it between coordinates, as the engine reads it. */
+export function plainBars(latex: string): string {
+  return latex.replace(/\\middle\s*\|/g, '|').replace(/\\mid\b/g, '|');
+}
+
+/** A name without braces and spaces: `P_{1}` is `P_1`. */
+const plain = (name: string) => name.replace(/[{}\s]/g, '');
+
+/**
+ * The key of the object a typed line names, as the scene tells objects apart: `vec:a` for
+ * `\vec{a} = …`, `P_1` for `P_{1}(1|2)`, `g` for `g: X = …`, `E` for `E: x = 1`. Null if the line
+ * starts with no name.
+ */
+export function typedKey(latex: string): string | null {
+  const text = latex.trim();
+  const vector = /^\\vec\s*(?:\{\s*([A-Za-z](?:_\{?[A-Za-z0-9]+\}?)?)\s*\}|([A-Za-z]))\s*=/.exec(text);
+  if (vector) return `vec:${plain(vector[1] ?? vector[2])}`;
+  const named = /^([A-Za-z](?:_\{?[A-Za-z0-9]+\}?)?)\s*(?:\(|\\left\s*\(|:|=)/.exec(text);
+  return named ? plain(named[1]) : null;
+}
+
+/** The key of an object of the scene, in the namespaces of `typedKey`. */
+export function objectKey(object: GeometryObject): string | null {
+  if (object.kind === 'typed') return typedKey(object.latex);
+  const name = plain(object.name ?? '').replace(/^\\vec/, '');
+  if (!name) return null;
+  return object.kind === 'vector' ? `vec:${name}` : name;
+}
+
+/**
+ * The scene with a typed line: it replaces the object of the same name where that stands, so
+ * that later objects built on it still come after it; a new name goes at the end.
+ */
+export function withTyped(objects: GeometryObject[], latex: string): GeometryObject[] {
+  const typed: GeometryObject = { kind: 'typed', latex: plainBars(latex.trim()) };
+  const key = typedKey(typed.latex);
+  const index = key === null ? -1 : objects.findIndex((object) => objectKey(object) === key);
+  return index < 0 ? [...objects, typed] : objects.map((object, i) => (i === index ? typed : object));
+}
+
 /** The input a session saved, or the empty one. */
 export function geometryInput(request: GeometryRequest | null | undefined): GeometryInput {
   if (!request) return EMPTY_GEOMETRY;
