@@ -375,8 +375,10 @@ static ANGLE: Page = Page {
     title: t("Winkel", "Angle"),
     entries: &[
         ins(t("° Grad", "° Degrees"), "°"),
+        // ′ and ″ are not in the fonts; the engine reads ' and '' alike.
+        ins(t("' Minuten", "' Minutes"), "'"),
+        ins(t("'' Sekunden", "'' Seconds"), "''"),
         ins(t("rad Bogenmaß", "rad Radians"), r"\,\mathrm{rad}"),
-        pending(t("Grad, Minuten, Sekunden", "Degrees, minutes, seconds")),
     ],
 };
 

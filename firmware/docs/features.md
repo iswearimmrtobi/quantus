@@ -149,7 +149,7 @@ in yet.
 - [x] Π (`\prod`, OPTN → Analysis)
 - [x] |x|, n!, mod, ⌊x⌋, ⌈x⌉, max, min, %
 - [x] nCr, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R (OPTN → Zahl)
-- [~] Sexagesimal °′″ — in the engine; not in OPTN
+- [x] Sexagesimal °′″ (OPTN → Winkel: °, ', '')
 - [x] Units after numbers, by quantity in OPTN (15 quantities)
 - [x] All 24 prefixes, q to Q
 - [~] Constants — in the engine (CODATA 2018, the Casio's 47); no CONST menu

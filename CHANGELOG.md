@@ -194,7 +194,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   ESP32-P4 a sketch takes 0.3 to 2 s.
 - The handheld's OPTN inserts more of the engine's functions: arsinh, arcosh, artanh and coth
   under Hyperbol. Fkt., the product ∏ under Analysis, nCr, nPr, ggT, kgV,
-  Int, Intg, Rnd, RndFix and ÷R under Zahl.
+  Int, Intg, Rnd, RndFix and ÷R under Zahl, minutes and seconds of an angle under Winkel.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ and ℤ, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree

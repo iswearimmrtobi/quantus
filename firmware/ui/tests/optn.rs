@@ -46,6 +46,18 @@ fn a_function_of_several_arguments_starts_at_the_first() {
 }
 
 #[test]
+fn an_angle_in_degrees_minutes_and_seconds() {
+    let mut app = app(Mode::Physics);
+    app.key(Key::Digit(2));
+    optn(&mut app, &["Winkel", "° Grad"]);
+    app.key(Key::Digit(3));
+    optn(&mut app, &["Winkel", "' Minuten"]);
+    app.key(Key::Digit(4));
+    optn(&mut app, &["Winkel", "'' Sekunden"]);
+    assert_eq!(app.editor.to_latex(), "2°3'4''");
+}
+
+#[test]
 fn ncr_starts_at_n() {
     let mut app = app(Mode::Physics);
     optn(&mut app, &["Zahl", "nCr"]);

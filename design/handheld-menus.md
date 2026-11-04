@@ -651,7 +651,7 @@ Shared groups, used by several modes:
   ggT, kgV ✓ (`\operatorname{ggT}(;)`), Int, Intg, Rnd, RndFix, ÷R ✓ (`\operatorname{divR}(;)`), mod ✓ (`\bmod`), ⌊⌋, ⌈⌉ ✓, max, min ✓
   (`\max(;)`), % ✓
 - **Hyperbol. Fkt.**: sinh, cosh, tanh ✓, arsinh, arcosh, artanh, coth ✓ (`\operatorname{arsinh}`)
-- **Winkel**: ° ✓, rad ✓, °′″ [eng] ◌
+- **Winkel**: ° ✓, ′ and ″ ✓ (as ' and '', which the fonts have), rad ✓
 - **Griechisch**: α β γ δ ε θ λ μ ρ σ τ φ ω Δ Ω ✓
 - **Werkzeuge**: CALC [eng] ◌, SOLVE [eng] ◌, ▶ Einheit [eng] ◌
 
