@@ -233,7 +233,9 @@ impl Sphere {
     pub fn meet_line(&self, line: &Line) -> Result<Worked<SphereLine>> {
         let mut working = Working::default();
         let (u, offset) = (&line.direction, self.centre.to(&line.support));
-        let offset = Vector3 { planar: false, ..offset };
+        // Planar only for the 2D circle behind [`super::Circle::meet_line`]; a sphere is spatial.
+        let planar = line.planar() && self.centre.planar;
+        let offset = Vector3 { planar, ..offset };
         working.add(
             Standard,
             msg!("Put the line into the vector form of the sphere:", "Die Gerade in die Vektorform der Kugel einsetzen:"),
@@ -256,7 +258,7 @@ impl Sphere {
         let twice = Value::int(2).mul(&a);
         if equal(&discriminant, &Value::zero()) {
             let lambda = b.neg().div(&twice)?;
-            let point = Point { planar: false, ..line.at(&lambda) };
+            let point = Point { planar, ..line.at(&lambda) };
             working.add(Standard, msg!("One solution:", "Eine Lösung:"), format!("\\lambda = {}", show::value(&lambda)));
             working.add(Brief, msg!("The line touches the sphere (tangent) in", "Die Gerade berührt die Kugel (Tangente) in"), format!("B = {}", show::point(&point)));
             return Ok(Worked::new(SphereLine::Tangent { point, lambda }, working));
@@ -276,7 +278,7 @@ impl Sphere {
             msg!("Two solutions:", "Zwei Lösungen:"),
             format!("\\lambda_1 = {}, \\quad \\lambda_2 = {}", show::value(&lambdas[0]), show::value(&lambdas[1])),
         );
-        let points = [Point { planar: false, ..line.at(&lambdas[0]) }, Point { planar: false, ..line.at(&lambdas[1]) }];
+        let points = [Point { planar, ..line.at(&lambdas[0]) }, Point { planar, ..line.at(&lambdas[1]) }];
         working.add(
             Brief,
             msg!("The line cuts the sphere (secant) in", "Die Gerade schneidet die Kugel (Sekante) in"),

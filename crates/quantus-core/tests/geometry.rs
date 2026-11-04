@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, Circle, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere, Vector3, Working,
+    triple_product, Circle, CircleLine, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -805,4 +805,43 @@ fn a_circle_from_a_sphere_and_a_plane() {
     assert!(worked.result.contains(&at([5, 2, 6])).unwrap().result);
     assert!(Circle::cut(&k, &coordinate_plane(0, 0, 1, 8)).unwrap_err().to_string().contains("only touches"));
     assert!(Circle::cut(&k, &coordinate_plane(0, 0, 1, 9)).unwrap_err().to_string().contains("does not meet"));
+}
+
+#[test]
+fn a_circle_and_a_line() {
+    // The circle of radius 5 around the origin in z = 0.
+    let k = Circle::new(&at([0, 0, 0]), Value::int(5), &ints([0, 0, 1])).unwrap();
+    assert_eq!(k.meet_line(&line([0, 3, 0], [1, 0, 0])).unwrap().result, CircleLine::Secant { points: [at([-4, 3, 0]), at([4, 3, 0])] });
+    assert_eq!(k.meet_line(&line([5, 0, 0], [0, 1, 0])).unwrap().result, CircleLine::Tangent { point: at([5, 0, 0]) });
+    assert_eq!(k.meet_line(&line([6, 0, 0], [0, 1, 0])).unwrap().result, CircleLine::Passant);
+    // Through the plane: on the circle at (3|4|0), or inside it.
+    let worked = k.meet_line(&line([3, 4, -2], [0, 0, 1])).unwrap();
+    assert_eq!(worked.result, CircleLine::Crossing { point: at([3, 4, 0]) });
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["Q = (3|4|0)"]);
+    assert_eq!(k.meet_line(&line([1, 1, -2], [0, 0, 1])).unwrap().result, CircleLine::Apart);
+    // Parallel to the plane, above it.
+    assert_eq!(k.meet_line(&line([0, 0, 1], [1, 0, 0])).unwrap().result, CircleLine::Apart);
+    // A 2D circle and a 2D line give 2D points.
+    let p = |x, y| Point::planar(Value::int(x), Value::int(y));
+    let c = Circle::planar(&p(0, 0), Value::int(5)).unwrap();
+    let g = Line::new(p(0, 3), Vector3::planar(Value::one(), Value::zero())).unwrap();
+    let CircleLine::Secant { points } = c.meet_line(&g).unwrap().result else { panic!() };
+    assert!(points[0].planar && points[1].planar);
+    assert_eq!(latex_at(&c.meet_line(&g).unwrap().working, StepDetail::Brief), [r"S_1 = (-4|3), \quad S_2 = (4|3)"]);
+}
+
+#[test]
+fn the_tangent_of_a_circle() {
+    let p = |x, y| Point::planar(Value::int(x), Value::int(y));
+    let c = Circle::planar(&p(0, 0), Value::int(5)).unwrap();
+    let worked = c.tangent(&p(3, 4)).unwrap();
+    assert_eq!(worked.result.direction, Vector3::planar(Value::int(-4), Value::int(3)));
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), [r"\vec{x} = \begin{pmatrix} 3 \\ 4 \end{pmatrix} + \lambda \begin{pmatrix} -4 \\ 3 \end{pmatrix}"]);
+    assert!(c.tangent(&p(3, 3)).is_err());
+    // The tangent touches the circle.
+    assert_eq!(c.meet_line(&worked.result).unwrap().result, CircleLine::Tangent { point: p(3, 4) });
+    // In space: the circle around (0|0|1) in the plane x = 0.
+    let k = Circle::new(&at([0, 0, 1]), Value::int(2), &ints([1, 0, 0])).unwrap();
+    let tangent = k.tangent(&at([0, 2, 1])).unwrap().result;
+    assert_eq!(tangent.direction, ints([0, 0, 2]));
 }

@@ -8,7 +8,7 @@ use crate::{QuantusError, Result};
 
 use super::show;
 use super::working::{Worked, Working};
-use super::{equal, Plane, Point, Sphere, SpherePlane, Vector3};
+use super::{equal, Line, Plane, Point, Sphere, SphereLine, SpherePlane, Vector3};
 
 /// A circle around `centre` with `radius` (> 0) in the plane through the centre perpendicular
 /// to `normal`.
@@ -17,6 +17,21 @@ pub struct Circle {
     pub centre: Point,
     pub radius: Value,
     pub normal: Vector3,
+}
+
+/// How a line lies to a circle.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CircleLine {
+    /// In the plane of the circle, through two of its points (Sekante).
+    Secant { points: [Point; 2] },
+    /// In the plane of the circle, touching it (Tangente).
+    Tangent { point: Point },
+    /// In the plane of the circle, missing it (Passante).
+    Passant,
+    /// Through the plane of the circle in `point`, which lies on the circle.
+    Crossing { point: Point },
+    /// No common point, and not in the plane of the circle.
+    Apart,
 }
 
 fn error(message: String) -> QuantusError {
@@ -152,5 +167,96 @@ impl Circle {
         working.add(Detailed, msg!("The formula:", "Die Formel:"), format!("A = \\pi r^2 = \\pi \\cdot {}^2", show::factor(&self.radius)));
         working.add(Brief, msg!("The area:", "Der Flächeninhalt:"), format!("A = {}", show::value(&value)));
         Worked::new(value, working)
+    }
+
+    /// The sphere with the circle's centre and radius: the circle is where it meets the plane.
+    /// Its centre stays 2D for a plain circle, so that the working is written in 2D.
+    fn sphere(&self) -> Sphere {
+        Sphere { centre: Point { planar: self.is_planar(), ..self.centre.clone() }, radius: self.radius.clone() }
+    }
+
+    /// How `line` lies to the circle. In the plane of the circle it is a secant, tangent or
+    /// passant (as to the sphere with the same centre and radius); else it crosses the plane in
+    /// one point, which may lie on the circle.
+    pub fn meet_line(&self, line: &Line) -> Result<Worked<CircleLine>> {
+        let mut working = Working::default();
+        let n = &self.normal;
+        let (coefficient, offset) = (n.dot(&line.direction), n.dot(&self.centre.to(&line.support)));
+        let planar = self.is_planar() && line.planar();
+        let flat = |p: Point| Point { planar, ..p };
+        if equal(&coefficient, &Value::zero()) {
+            if !equal(&offset, &Value::zero()) {
+                working.add(
+                    Standard,
+                    msg!("The line is parallel to the plane of the circle and not in it:", "Die Gerade ist parallel zur Ebene des Kreises und liegt nicht in ihr:"),
+                    format!("\\vec{{n}} \\cdot \\vec{{u}} = 0, \\quad \\vec{{n}} \\cdot \\overrightarrow{{MP}} = {} \\neq 0", show::value(&offset)),
+                );
+                working.add(Brief, msg!("The line misses the circle.", "Die Gerade verfehlt den Kreis."), "g \\cap k = \\emptyset");
+                return Ok(Worked::new(CircleLine::Apart, working));
+            }
+            if !planar {
+                working.add(
+                    Standard,
+                    msg!("The line lies in the plane of the circle:", "Die Gerade liegt in der Ebene des Kreises:"),
+                    "\\vec{n} \\cdot \\vec{u} = 0, \\quad \\vec{n} \\cdot \\overrightarrow{MP} = 0",
+                );
+            }
+            let Worked { result, working: cut } = self.sphere().meet_line(line)?;
+            working.extend(cut);
+            let relation = match result {
+                SphereLine::Secant { points: [a, b], .. } => CircleLine::Secant { points: [flat(a), flat(b)] },
+                SphereLine::Tangent { point, .. } => CircleLine::Tangent { point: flat(point) },
+                SphereLine::Passant => CircleLine::Passant,
+            };
+            return Ok(Worked::new(relation, working));
+        }
+        let lambda = offset.neg().div(&coefficient)?;
+        let point = Point { planar: false, ..line.at(&lambda) };
+        working.add(
+            Standard,
+            msg!("The line crosses the plane of the circle where", "Die Gerade durchstößt die Ebene des Kreises, wo"),
+            format!(
+                "\\vec{{n}} \\cdot \\left(\\overrightarrow{{MP}} + \\lambda \\vec{{u}}\\right) = {} = 0 \\quad \\Rightarrow \\quad \\lambda = {}",
+                show::combination(&[(&offset, ""), (&coefficient, "\\lambda")]),
+                show::value(&lambda)
+            ),
+        );
+        working.add(Detailed, msg!("The point in the plane:", "Der Punkt in der Ebene:"), format!("Q = {}", show::point(&point)));
+        let mq = self.centre.to(&point);
+        let on = equal(&mq.dot(&mq), &self.radius_squared());
+        working.add(
+            Standard,
+            msg!("Its distance from the centre:", "Sein Abstand zum Mittelpunkt:"),
+            format!("\\left|\\overrightarrow{{MQ}}\\right| = {} {} r = {}", show::value(&mq.length()?), if on { "=" } else { "\\neq" }, show::value(&self.radius)),
+        );
+        if on {
+            working.add(Brief, msg!("The line goes through the circle in", "Die Gerade geht durch den Kreis in"), format!("Q = {}", show::point(&point)));
+            return Ok(Worked::new(CircleLine::Crossing { point }, working));
+        }
+        working.add(Brief, msg!("The line misses the circle.", "Die Gerade verfehlt den Kreis."), "g \\cap k = \\emptyset");
+        Ok(Worked::new(CircleLine::Apart, working))
+    }
+
+    /// The tangent at `p`, which must lie on the circle: perpendicular to the radius and to the
+    /// normal, along `\vec{n} \times \overrightarrow{MP}`.
+    pub fn tangent(&self, p: &Point) -> Result<Worked<Line>> {
+        if !self.contains(p)?.result {
+            return Err(error(msg!(
+                "The point does not lie on the circle, so it has no tangent there.",
+                "Der Punkt liegt nicht auf dem Kreis, dort gibt es also keine Tangente."
+            )));
+        }
+        let mut working = Working::default();
+        let planar = self.is_planar() && p.planar;
+        let mp = self.centre.to(p);
+        let direction = Vector3 { planar, ..self.normal.cross(&mp) };
+        working.add(
+            Standard,
+            msg!("The tangent is perpendicular to the radius and to the normal:", "Die Tangente steht senkrecht auf dem Radius und dem Normalenvektor:"),
+            format!("\\vec{{u}} = \\vec{{n}} \\times \\overrightarrow{{MP}} = {} \\times {} = {}", show::vector(&self.normal), show::vector(&Vector3 { planar: false, ..mp }), show::vector(&direction)),
+        );
+        let line = Line::new(Point { planar, ..p.clone() }, direction)?;
+        working.add(Brief, msg!("The tangent:", "Die Tangente:"), line.equation());
+        Ok(Worked::new(line, working))
     }
 }
