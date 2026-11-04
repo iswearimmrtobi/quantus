@@ -112,6 +112,8 @@ pub enum Action {
     AreaForm,
     /// Its form for a table of values.
     PointsForm,
+    /// CALC: the input worked out for values of its letters, asked for in a form.
+    Calc,
 }
 
 impl Action {

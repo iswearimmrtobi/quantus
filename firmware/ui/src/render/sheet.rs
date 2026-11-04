@@ -32,7 +32,7 @@ const LETTERS: [&str; 24] =
 /// The top of the first row of cells: a task's form leaves a row for its function.
 fn top(kind: Kind) -> i32 {
     match kind {
-        _ if kind.task() => FORM_TOP + ROW,
+        _ if kind.over_input() => FORM_TOP + ROW,
         _ if kind.form() => FORM_TOP,
         _ => GRID_TOP,
     }
@@ -48,7 +48,7 @@ fn columns(kind: Kind, sheet: &Sheet) -> (i32, i32) {
 pub fn cell_rect(kind: Kind, sheet: &Sheet, row: usize, column: usize) -> Option<Rectangle> {
     let (_, shown) = sheet::columns_shown(sheet.columns(), kind.form());
     let (row, column) = (row.checked_sub(sheet.top)?, column.checked_sub(sheet.left)?);
-    if row >= ROWS_SHOWN || column >= shown {
+    if row >= kind.rows_shown() || column >= shown {
         return None;
     }
     let (left, width) = columns(kind, sheet);
@@ -58,7 +58,7 @@ pub fn cell_rect(kind: Kind, sheet: &Sheet, row: usize, column: usize) -> Option
 
 /// The cell under `point`, counted over the whole sheet.
 pub fn cell_at(kind: Kind, sheet: &Sheet, point: Point) -> Option<(usize, usize)> {
-    let rows = sheet.top..(sheet.top + ROWS_SHOWN).min(sheet.rows());
+    let rows = sheet.top..(sheet.top + kind.rows_shown()).min(sheet.rows());
     let columns = sheet.left..sheet.columns();
     rows.flat_map(|row| columns.clone().map(move |column| (row, column)))
         .find(|&(row, column)| cell_rect(kind, sheet, row, column).is_some_and(|area| grown(area).contains(point)))
@@ -119,6 +119,8 @@ fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
         Kind::Tangent => vec!["x0".to_string()],
         Kind::Area => vec!["a".to_string(), "b".to_string()],
         Kind::Points => [t("Von", "From"), t("Bis", "To"), t("Schritt", "Step")].iter().map(|label| label.get(lang).to_string()).collect(),
+        // As math: `m_{1}`.
+        Kind::Formula => app.sheets.asked.iter().flat_map(|asked| &asked.variables).map(|variable| variable.symbol.clone()).collect(),
         Kind::Linear | Kind::Statistics => Vec::new(),
     }
 }
@@ -155,9 +157,12 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         }
     }
 
-    // The function a task is on, and what an empty area's bounds mean.
-    if kind.task() {
-        let function = format!("f(x) = {}", app.editor.to_latex());
+    // The function a task is on, and what an empty area's bounds mean; the input CALC asks for.
+    if kind.over_input() {
+        let function = match kind {
+            Kind::Formula => app.editor.to_latex(),
+            _ => format!("f(x) = {}", app.editor.to_latex()),
+        };
         let laid = layout::layout(&latex::parse(&function), Scale::Normal);
         let baseline = FORM_TOP + (ROW - 4 + laid.ascent - laid.descent) / 2;
         let x = MARGIN;
@@ -170,9 +175,14 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
     }
 
     // The labels of a form.
-    for (row, label) in labels(app, kind).iter().enumerate().skip(sheet.top).take(ROWS_SHOWN) {
+    for (row, label) in labels(app, kind).iter().enumerate().skip(sheet.top).take(kind.rows_shown()) {
         let y = top(kind) + (row - sheet.top) as i32 * ROW;
         let baseline = y + (ROW - 4 + Scale::Normal.metrics().digit) / 2;
+        if kind == Kind::Formula {
+            let laid = layout::layout(&latex::parse(label), Scale::Normal);
+            shapes.push(Shape::Math(Point::new(MARGIN, baseline), laid, colors::MUTED));
+            continue;
+        }
         let label = fit(label, LABEL_WIDTH - 8, Scale::Normal);
         shapes.push(Shape::Text(Point::new(MARGIN, baseline), label, Scale::Normal, colors::MUTED));
     }
@@ -199,7 +209,7 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         }
     }
     // How many rows a list has past the ones shown.
-    let below = sheet.rows().saturating_sub(sheet.top + ROWS_SHOWN);
+    let below = sheet.rows().saturating_sub(sheet.top + kind.rows_shown());
     if sheet.top > 0 {
         arrow(shapes, Point::new(WIDTH as i32 - MARGIN - 6, top(kind) - 4), true);
     }
@@ -211,7 +221,11 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
     shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, EDIT_TOP), Size::new(WIDTH - 2 * MARGIN as u32, 1)), colors::HAIRLINE));
     let name = cursor_name(app, kind, sheet);
     let normal = Scale::Normal.metrics();
-    shapes.push(Shape::Text(Point::new(MARGIN, EDIT_TOP + 6 + normal.ascent), name, Scale::Normal, colors::MUTED));
+    let at = Point::new(MARGIN, EDIT_TOP + 6 + normal.ascent);
+    match kind {
+        Kind::Formula => shapes.push(Shape::Math(at, layout::layout(&latex::parse(&name), Scale::Normal), colors::MUTED)),
+        _ => shapes.push(Shape::Text(at, name, Scale::Normal, colors::MUTED)),
+    }
     let (row, column) = sheet.cursor;
     let (content, editor) = match &sheet.editing {
         Some(editor) => (&editor.row, Some(editor)),

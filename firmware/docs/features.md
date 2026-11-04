@@ -94,7 +94,7 @@ State on 2026-11-03.
 - [x] USB keyboard, German QWERTZ layout, key repeat
 - [x] Touch: every menu by finger, taps, drag to scroll, page turns, − / + for numbers
 - [x] Touch calibration: five crosses, least squares, redone when off by more than 20 px
-- [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y)
+- [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y), CALC (F8, Ctrl+B)
 - [ ] Keys still missing: ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
 - [ ] ALPHA letters on the keypad
 - [ ] UNDO/REDO
@@ -158,7 +158,7 @@ in yet.
 - [x] Equations and systems, exact
 - [x] Exact cubics and quartics, no [−100, 100] limit
 - [~] SOLVE for a chosen variable — in the engine; no SOLVE screen
-- [~] CALC (ask for the free variables, then substitute) — in the engine; no CALC prompt
+- [x] CALC: a form over the input asks for its free variables (F8, Ctrl+B, or OPTN → Werkzeuge); the values stay in the session
 - [ ] STO and VARS: store under any name, list, edit, delete
 - [~] Basis-N, matrices, statistics, regressions, distributions — in the engine; no modes in the hui
 - [~] wahr/falsch for an equation without unknowns — in the engine; Prüfen not wired
@@ -179,7 +179,7 @@ in yet.
 - [x] OPTN groups Analysis, Zahl, Hyperbol. Fkt., Winkel, Griechisch (the working entries)
 - [x] OPTN Physik: Einheiten by quantity, Präfixe
 - [x] OPTN Komplex: Argument, Realteil, Imaginärteil, Betrag
-- [~] OPTN Werkzeuge — In Einheit works; CALC, SOLVE wait
+- [~] OPTN Werkzeuge — CALC and In Einheit work; SOLVE waits
 - [x] OPTN for Kurvendiskussion: Abschnitte, Tangente/Normale, Fläche, Wertetabelle
 - [ ] OPTN for Matrizen, Basis-N
 - [x] OPTN Wertetabelle, Statistik (Typ, Häufigkeit, rows), Verteilungen (Typ)

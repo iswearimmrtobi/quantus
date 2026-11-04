@@ -400,6 +400,7 @@ Quantus simulator keys
   OK                   F5 (on a sheet: edits the cell as it is; Enter works it out)
   CONST                F6 or Ctrl+U (the constants, in Physik)
   CONV                 F7 or Ctrl+Y (convert to a unit)
+  CALC                 F8 or Ctrl+B (values for the letters of the input)
   EXE / DEL / AC       Enter / Backspace / Esc, Delete or Ctrl+X
   fraction ^ index     /  ^  _
   sqrt x^2 pi e        Ctrl+W  Ctrl+Q  Ctrl+P  Ctrl+E
@@ -432,6 +433,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::F5 => return Some(Key::Ok),
         Keycode::F6 => return Some(Key::Const),
         Keycode::F7 => return Some(Key::Conv),
+        Keycode::F8 => return Some(Key::Calc),
         Keycode::KpPlus => return Some(Key::Plus),
         Keycode::KpMinus => return Some(Key::Minus),
         Keycode::KpMultiply => return Some(Key::Times),

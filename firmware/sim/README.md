@@ -94,6 +94,7 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | F5 | | OK: on a sheet, edits the cell as it is |
 | F6, Ctrl+U | | CONST: the physical constants by category (Physik) |
 | F7, Ctrl+Y | | CONV: `▶` and a unit to convert the value to, by category |
+| F8, Ctrl+B | | CALC: a form asks for the letters of the input, EXE works it out |
 | Ctrl+W | | √ |
 | Ctrl+Q | | x² |
 | Ctrl+P | | π |

@@ -8,7 +8,8 @@
 //! ends) keep it and move on, AC drops the edit. DEL empties a cell. EXE on a cell not being
 //! edited goes to the next one too; on the last cell it works the sheet out.
 
-use crate::backend::{Field, Request};
+use crate::app::Mode;
+use crate::backend::{Field, Request, Variable};
 use crate::editor::{Editor, Row};
 use crate::key::Key;
 use crate::latex;
@@ -309,6 +310,8 @@ pub enum Kind {
     Tangent,
     Area,
     Points,
+    /// CALC's form over the input: a field for each letter that has no value.
+    Formula,
 }
 
 impl Kind {
@@ -321,6 +324,23 @@ impl Kind {
     pub fn task(self) -> bool {
         matches!(self, Kind::Tangent | Kind::Area | Kind::Points)
     }
+
+    /// Whether it is a form over the input, which it shows above its fields: a task's, CALC's.
+    pub fn over_input(self) -> bool {
+        self.task() || self == Kind::Formula
+    }
+
+    /// How many rows show at a time: one fewer under the input.
+    pub fn rows_shown(self) -> usize {
+        if self.over_input() { ROWS_SHOWN - 1 } else { ROWS_SHOWN }
+    }
+}
+
+/// What CALC asks for over the input: the letters of an input in `mode` that have no value.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Formula {
+    pub mode: Mode,
+    pub variables: Vec<Variable>,
 }
 
 /// The fields of the Wertetabelle form, top to bottom.
@@ -356,6 +376,9 @@ pub struct Sheets {
     pub tangent: Sheet,
     pub area: Sheet,
     pub points: Sheet,
+    /// CALC's fields, and what they are for while the form is open.
+    pub formula: Sheet,
+    pub asked: Option<Formula>,
     /// The Statistik columns as laid out now, and the cells of x, y and Freq kept while one
     /// of them is not shown.
     columns: Vec<Column>,
@@ -379,6 +402,8 @@ impl Sheets {
             tangent: Sheet::new(1, 1, Flow::Down),
             area: Sheet::new(2, 1, Flow::Down),
             points: Sheet::new(3, 1, Flow::Down),
+            formula: Sheet::new(1, 1, Flow::Down),
+            asked: None,
             columns,
             kept: Default::default(),
             regression: settings.statistics_type,
@@ -398,6 +423,7 @@ impl Sheets {
             Kind::Tangent => &self.tangent,
             Kind::Area => &self.area,
             Kind::Points => &self.points,
+            Kind::Formula => &self.formula,
         }
     }
 
@@ -410,7 +436,14 @@ impl Sheets {
             Kind::Tangent => &mut self.tangent,
             Kind::Area => &mut self.area,
             Kind::Points => &mut self.points,
+            Kind::Formula => &mut self.formula,
         }
+    }
+
+    /// Opens CALC's form for `formula`: an empty field per letter, the cursor on the first.
+    pub fn ask(&mut self, formula: Formula) {
+        self.formula = Sheet::new(formula.variables.len(), 1, Flow::Down);
+        self.asked = Some(formula);
     }
 
     /// The Statistik columns as laid out now.
@@ -508,6 +541,11 @@ impl Sheets {
             Kind::Tangent => Request::Tangent { f: function.to_string(), x0: cell(0) },
             Kind::Area => Request::Area { f: function.to_string(), from: cell(0), to: cell(1) },
             Kind::Points => Request::Table { f: function.to_string(), g: None, from: cell(0), to: cell(1), step: cell(2) },
+            Kind::Formula => {
+                let (mode, variables) = self.asked.as_ref().map_or((Mode::Physics, &[][..]), |asked| (asked.mode, &asked.variables[..]));
+                let values = variables.iter().enumerate().map(|(row, variable)| (variable.key.clone(), cell(row))).collect();
+                Request::Calc { mode, latex: function.to_string(), values }
+            }
         }
     }
 

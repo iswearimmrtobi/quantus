@@ -130,6 +130,10 @@ enum Pending {
     Sheet,
     /// The curve of the graph on the screen, moved or zoomed.
     Curve,
+    /// The letters of the input, for CALC's form.
+    Variables { mode: Mode },
+    /// CALC's answer: a new entry for this input.
+    Formula { input: Row },
 }
 
 /// A sheet worked out, shown over it until AC.
@@ -329,6 +333,9 @@ impl<B> App<B> {
     /// The sheet the screen shows instead of the input line, if any: the mode's own
     /// ([`Mode::sheet`]), or in Kurvendiskussion the form of a task.
     pub fn sheet_kind(&self) -> Option<sheet::Kind> {
+        if self.sheets.asked.is_some() {
+            return Some(sheet::Kind::Formula);
+        }
         match self.mode {
             Mode::Analysis => self.task,
             mode => mode.sheet(&self.settings),
@@ -483,7 +490,7 @@ impl<B: Backend> App<B> {
         if let Some(kind) = self.sheet_kind() {
             let sheet = self.sheets.get_mut(kind);
             let (_, columns) = sheet::columns_shown(sheet.columns(), kind.form());
-            sheet.follow(sheet::ROWS_SHOWN, columns);
+            sheet.follow(kind.rows_shown(), columns);
         }
     }
 
@@ -543,6 +550,12 @@ impl<B: Backend> App<B> {
             Some(Pending::Curve) => {
                 if let Some(reply) = self.backend.poll_solve() {
                     self.finish_curve(reply);
+                    changed = true;
+                }
+            }
+            Some(Pending::Variables { .. } | Pending::Formula { .. }) => {
+                if let Some(reply) = self.backend.poll_solve() {
+                    self.finish_formula(reply);
                     changed = true;
                 }
             }
@@ -834,7 +847,7 @@ impl<B: Backend> App<B> {
                 self.act(action);
                 return;
             }
-            Outcome::Act(action @ (Action::TangentForm | Action::AreaForm | Action::PointsForm)) => {
+            Outcome::Act(action @ (Action::TangentForm | Action::AreaForm | Action::PointsForm | Action::Calc)) => {
                 self.act(action);
                 return;
             }
@@ -1026,6 +1039,7 @@ impl<B: Backend> App<B> {
                 self.task = Some(kind);
                 self.sheets.get_mut(kind).select(0, 0);
             }
+            Action::Calc => self.calc(),
             // Done by `outcome`, which knows the menu to come back to.
             Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
         }
@@ -1127,6 +1141,7 @@ impl<B: Backend> App<B> {
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             Key::Const => return self.open_catalogue(Catalogue::Constants),
             Key::Conv => return self.open_catalogue(Catalogue::Units),
+            Key::Calc => return self.calc(),
             _ => {}
         }
         // While the backend calculates, AC drops its answer and the other keys wait; the graph
@@ -1202,14 +1217,20 @@ impl<B: Backend> App<B> {
             }
             return;
         }
-        // AC on a task's form, not in a cell: back to the input.
-        if kind.task() && key == Key::Ac && self.sheets.get(kind).editing.is_none() {
-            self.task = None;
+        // AC on a form over the input, not in a cell: back to the input.
+        if kind.over_input() && key == Key::Ac && self.sheets.get(kind).editing.is_none() {
+            match kind {
+                sheet::Kind::Formula => self.sheets.asked = None,
+                _ => self.task = None,
+            }
             return;
         }
         if self.sheets.get_mut(kind).key(key, shift) == sheet::Outcome::Calculate {
             let request = self.sheets.request(kind, &self.editor.to_latex());
-            self.solve(&request);
+            match kind {
+                sheet::Kind::Formula => self.ask(Pending::Formula { input: self.editor.row.clone() }, &request),
+                _ => self.solve(&request),
+            }
         }
     }
 
@@ -1226,6 +1247,67 @@ impl<B: Backend> App<B> {
             Some(reply) => self.finish_sheet(reply),
             None => self.busy = true,
         }
+    }
+
+    /// CALC: asks the engine for the letters of the input that have no value, for a form with a
+    /// field for each; an input without any is worked out as it is.
+    fn calc(&mut self) {
+        if self.pending.is_some() || self.editor.is_empty() || !self.mode.engine() || self.sheet_kind().is_some() {
+            return;
+        }
+        let request = Request::Variables { mode: self.mode, latex: self.editor.to_latex() };
+        self.ask(Pending::Variables { mode: self.mode }, &request);
+    }
+
+    /// Sends a request of the calculation screen (CALC) to the backend, its answer to come in
+    /// `pending`.
+    fn ask(&mut self, pending: Pending, request: &Request) {
+        let settings = self.settings;
+        self.pending = Some(pending);
+        match self.backend.start_solve(&settings, request) {
+            Some(reply) => self.finish_formula(reply),
+            None => self.busy = true,
+        }
+    }
+
+    /// The letters asked for open CALC's form, none work the input out; CALC's answer becomes an
+    /// entry of the history.
+    fn finish_formula(&mut self, reply: Result<Reply, String>) {
+        self.busy = false;
+        let lang = self.settings.language;
+        let not_available = || text::NOT_AVAILABLE.get(lang).to_string();
+        match self.pending.take() {
+            Some(Pending::Variables { mode }) => match reply {
+                Ok(Reply::Variables(variables)) if variables.is_empty() => {
+                    self.shown = None;
+                    self.evaluate();
+                }
+                Ok(Reply::Variables(variables)) => {
+                    self.shown = None;
+                    self.sheets.ask(sheet::Formula { mode, variables });
+                }
+                Ok(_) => self.answer_entry(Err(not_available())),
+                Err(message) => self.answer_entry(Err(message)),
+            },
+            Some(Pending::Formula { input }) => {
+                self.sheets.asked = None;
+                self.editor.set(input.clone());
+                let result = match reply {
+                    Ok(Reply::Result(latex)) => Ok(latex),
+                    Ok(_) => Err(not_available()),
+                    Err(message) => Err(message),
+                };
+                self.pending = Some(Pending::New { input, decimal: self.settings.decimal });
+                self.finish(result);
+            }
+            _ => {}
+        }
+    }
+
+    /// Shows `result` for the input as a new entry of the history.
+    fn answer_entry(&mut self, result: Result<String, String>) {
+        self.pending = Some(Pending::New { input: self.editor.row.clone(), decimal: self.settings.decimal });
+        self.finish(result);
     }
 
     /// A key on a curve sketch: ←/→ turn its pages, ↑/↓ scroll one, AC, DEL, OK and EXE go
@@ -1484,7 +1566,7 @@ impl<B: Backend> App<B> {
     fn start(&mut self, pending: Pending, settings: &Settings, latex: &str) {
         let answer = match pending {
             Pending::New { .. } => self.backend.start(self.mode, settings, latex),
-            Pending::Swap { .. } | Pending::Sheet | Pending::Curve => self.backend.recalculate(self.mode, settings, latex),
+            _ => self.backend.recalculate(self.mode, settings, latex),
         };
         self.pending = Some(pending);
         match answer {
@@ -1512,7 +1594,7 @@ impl<B: Backend> App<B> {
                     entry.decimal = decimal;
                 }
             }
-            Some(Pending::Sheet | Pending::Curve) | None => {}
+            Some(Pending::Sheet | Pending::Curve | Pending::Variables { .. } | Pending::Formula { .. }) | None => {}
         }
     }
 

@@ -35,6 +35,7 @@ pub fn key(usage: u8, modifiers: u8) -> Option<Key> {
         0x3E => Some(Key::Ok),
         0x3F => Some(Key::Const),
         0x40 => Some(Key::Conv),
+        0x41 => Some(Key::Calc),
         0x54 => Some(Key::Fraction),
         0x55 => Some(Key::Times),
         0x56 => Some(Key::Minus),

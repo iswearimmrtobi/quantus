@@ -70,7 +70,8 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       x⁻¹, x³, 10ˣ, eˣ, and the ALPHA legend (section 7.4)
 - [x] CONST menu by category (the core's catalogue, through `Backend::catalogue`)
 - [x] CONV menu by category
-- [ ] CALC prompt and SOLVE screen
+- [x] CALC prompt: a form over the input, a field per letter
+- [ ] SOLVE screen
 - [ ] VARS screen: insert, edit, delete session variables
 - [ ] Editing: UNDO/REDO, INS, selection with SHIFT+←/→, copy and paste
 - [x] Sitzungen: the menu, files on the SD card, the last session reopened on wake-up (from the
@@ -654,7 +655,7 @@ Shared groups, used by several modes:
 - **Hyperbol. Fkt.**: sinh, cosh, tanh ✓, arsinh, arcosh, artanh, coth ✓ (`\operatorname{arsinh}`)
 - **Winkel**: ° ✓, ′ and ″ ✓ (as ' and '', which the fonts have), rad ✓
 - **Griechisch**: α β γ δ ε θ λ μ ρ σ τ φ ω Δ Ω ✓
-- **Werkzeuge**: CALC [eng] ◌, SOLVE [eng] ◌, In Einheit ✓ (as the CONV key: `▶` and the unit)
+- **Werkzeuge**: CALC ✓ (as the CALC key), SOLVE [eng] ◌, In Einheit ✓ (as the CONV key: `▶` and the unit)
 
 Per mode:
 
@@ -723,7 +724,7 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | S⇔D | S⇔D | exists (`SwapForm`) |
 | ENG, ←ENG | a key and SHIFT + it | missing |
 | STO, VARS | SHIFT + a key, and a key | missing |
-| CALC, SOLVE | a key and SHIFT + it, or OPTN → Werkzeuge | missing |
+| CALC, SOLVE | a key and SHIFT + it, or OPTN → Werkzeuge | `Calc` (F8, Ctrl+B): a form over the input with a field per free letter (`sheet::Kind::Formula`); its answer goes into the history |
 | Sitzungen | SHIFT + a key, or the MODE tile | the MODE tile |
 | PreAns | SHIFT + Ans | missing |
 | ∠ | SHIFT + a key in Komplex | missing |

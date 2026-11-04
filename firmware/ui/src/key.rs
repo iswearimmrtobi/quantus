@@ -52,6 +52,8 @@ pub enum Key {
     Const,
     /// CONV: a value converted to a unit, chosen by category.
     Conv,
+    /// CALC: the input worked out for values of its letters, asked for in a form.
+    Calc,
     /// S⇔D: the shown result as a decimal or exact.
     SwapForm,
     /// A character from a keyboard that no key stands for (`@`, `!`, …), and the point, which
@@ -78,6 +80,7 @@ pub const CONTROLS: &[(char, Key)] = &[
     ('\u{14}', Key::Tan),       // Ctrl+T
     ('\u{15}', Key::Const),     // Ctrl+U
     ('\u{19}', Key::Conv),      // Ctrl+Y
+    ('\u{02}', Key::Calc),      // Ctrl+B
     ('\u{17}', Key::Root),      // Ctrl+W
     ('\u{18}', Key::Ac),        // Ctrl+X
 ];

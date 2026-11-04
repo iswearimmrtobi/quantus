@@ -199,6 +199,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   Konstanten in Physik: the 47 constants in their six categories, each with its symbol. A **CONV**
   key (F7, Ctrl+Y) and OPTN → Werkzeuge → In Einheit convert a value: the units by category,
   inserted after `▶`.
+- **CALC** on the handheld (F8, Ctrl+B, OPTN → Werkzeuge): a form over the input asks for each
+  letter that has no value, EXE works the input out with them; the values stay in the session.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ, ℤ, ℏ and the conversion arrow ▶, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree
