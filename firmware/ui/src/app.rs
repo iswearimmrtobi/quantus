@@ -78,7 +78,7 @@ impl Mode {
     /// Whether the engine calculates in this mode; the others have their tile and their name
     /// in the top bar, and EXE says they are not available yet.
     pub fn engine(self) -> bool {
-        matches!(self, Mode::Physics | Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear)
+        matches!(self, Mode::Physics | Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::Verify)
     }
 
     /// The sheet the mode shows instead of the input line, if it has one: LGS with its input

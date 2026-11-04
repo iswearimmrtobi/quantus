@@ -316,6 +316,7 @@ fn core_mode(mode: Mode) -> Option<CoreMode> {
         Mode::Imaginary => CoreMode::Imaginary,
         Mode::Analysis => CoreMode::Analysis,
         Mode::Linear => CoreMode::Linear,
+        Mode::Verify => CoreMode::Verify,
         // The app does not ask for these (`Mode::engine`).
         _ => return None,
     })

@@ -338,3 +338,15 @@ mod variables {
         assert_eq!(engine.variables(VariableCommand::List, &Settings::default()), Ok(Vec::new()));
     }
 }
+
+/// Prüfen: true or false, chained.
+#[test]
+fn verify_answers_true_or_false() {
+    let mut engine = Engine::default();
+    let settings = Settings::default();
+    let verify = |engine: &mut Engine, latex: &str| engine.evaluate(Mode::Verify, &settings, latex);
+    assert_eq!(verify(&mut engine, "1<2\\le 2"), Ok(r"\text{wahr}".to_string()));
+    assert_eq!(verify(&mut engine, "2+3=6"), Ok(r"\text{falsch}".to_string()));
+    // An equation with a letter is checked too, not solved.
+    assert!(verify(&mut engine, "x=2").is_err());
+}

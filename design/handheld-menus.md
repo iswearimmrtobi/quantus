@@ -57,7 +57,8 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       (`firmware/ui/src/sheet.rs`, section 7.3)
 - [x] Wertetabelle mode, with g(x) as a second column
 - [x] Statistik (with its data editor) and Verteilungen; not yet x̂ and ŷ for a given value
-- [ ] The modes Matrizen (with editor), Basis-N, Prüfen
+- [x] The mode Prüfen
+- [ ] The modes Matrizen (with editor), Basis-N
 - [ ] The step list (Rechenweg) on the result screen
 - [ ] S⇔D through all forms of a result; OPTN for FACT, ENG and the polar form
 - [ ] The ◌ SETUP entries once the core has them: Winkeleinheit, Zahlenformat,
@@ -571,7 +572,7 @@ engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verf�
   8. Basis-N [C, eng] ◌
   9. Statistik [C, eng] ✓
   10. Verteilungen [C, eng] ✓
-  11. Prüfen [C Berechn prüf, eng] ◌
+  11. Prüfen [C Berechn prüf, eng] ✓ (wahr or falsch; a chain is one input)
   12. Sitzungen [Q, fw] ✓: a page Neu, Öffnen, Umbenennen, Duplizieren, Löschen (section 6).
       Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. A new one is
       named after the local time as on the desktop ("Sitzung 2026-11-02 14:30"); before the
@@ -686,7 +687,7 @@ Per mode:
 - **Verteilungen**: Typ (Normal-Dichte, Kumul. Normal-V, Inv. Normal-V, Binomial-Dichte, Kumul.
   Binom.-V, Poisson-Dichte, Kumul. Poisson-V) ✓ · Alles löschen · Griechisch [C]. There is no
   Liste/Variable switch: k takes one value or several separated by `;`.
-- **Prüfen**: =, ≠, <, >, ≤, ≥ [C, eng] ✓ as inserts; the mode itself waits for the engine
+- **Prüfen**: =, ≠, <, >, ≤, ≥ [C, eng] ✓
 
 ### 7.3a Sheets
 

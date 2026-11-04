@@ -199,6 +199,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   Konstanten in Physik: the 47 constants in their six categories, each with its symbol. A **CONV**
   key (F7, Ctrl+Y) and OPTN → Werkzeuge → In Einheit convert a value: the units by category,
   inserted after `▶`.
+- The handheld's **Prüfen** mode works: an (in)equality or a chain of them is *wahr* or *falsch*.
 - **CALC** on the handheld (F8, Ctrl+B, OPTN → Werkzeuge): a form over the input asks for each
   letter that has no value, EXE works the input out with them; the values stay in the session.
   **SOLVE** (SHIFT+CALC) uses the same form and solves for the letter left empty, or, with all

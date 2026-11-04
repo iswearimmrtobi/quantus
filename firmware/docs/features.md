@@ -114,7 +114,7 @@ State on 2026-11-03.
 - [ ] 8 Basis-N (the core has the mode)
 - [~] 9 Statistik, with a data editor — x̂ and ŷ for a given value are missing
 - [x] 10 Verteilungen, one k or several
-- [~] 11 Prüfen — the relation inserts work; the mode itself is not wired up
+- [x] 11 Prüfen: wahr or falsch, chains like 1 < 2 ≤ 2; OPTN has the relations
 - [x] 12 Sitzungen (the tile opens the sessions menu)
 - [ ] Later: Ungleichungen
 - [ ] Later: Geometrie with vectors
@@ -161,7 +161,7 @@ in yet.
 - [x] CALC: a form over the input asks for its free variables (F8, Ctrl+B, or OPTN → Werkzeuge); the values stay in the session
 - [x] STO and VARS: STO (SHIFT+VARS) keeps the shown result under any name typed; VARS lists the session's variables with their values, to insert one, change its value (in CALC's form) or delete it
 - [~] Basis-N, matrices, statistics, regressions, distributions — in the engine; no modes in the hui
-- [~] wahr/falsch for an equation without unknowns — in the engine; Prüfen not wired
+- [x] wahr/falsch for an equation without unknowns, and the Prüfen mode
 - [x] Step levels and the step settings passed to the engine (the list is not shown yet)
 
 ## Menus and settings
