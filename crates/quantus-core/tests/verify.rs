@@ -40,3 +40,13 @@ fn the_verify_mode_checks_rather_than_solves() {
     let input = LatexCalculator::new(10).with_settings(settings).evaluate(r"1 < 2 \le 3", &HashMap::new()).unwrap().input;
     assert_eq!(input, r"1 < 2 \le 3");
 }
+
+#[test]
+fn a_constant_on_the_left_is_compared_not_defined() {
+    assert_eq!(run(Mode::Verify, Language::En, r"\pi = 3"), r"\text{false} 0");
+    assert_eq!(run(Mode::Verify, Language::En, r"\pi = \frac{22}{7}"), r"\text{false} 0");
+    assert_eq!(run(Mode::Verify, Language::En, r"e = e^{1}"), r"\text{true} 1");
+    assert_eq!(run(Mode::Algebra, Language::De, r"\pi = \pi"), r"\text{wahr} 1");
+    // With a subscript it is still a name: e_1 has no value to compare.
+    assert!(run(Mode::Verify, Language::En, "e_1 = 5").starts_with("error"));
+}

@@ -386,7 +386,10 @@ impl Parser<'_> {
         } else {
             None
         };
-        if self.current().kind != TokenType::Equals {
+        // `\pi = 3` compares the constant with 3: a constant names nothing to define (`e_1 = 5`
+        // still does).
+        let constant = CONSTANTS.contains(&name.text.as_str()) && (name.text != "i" || self.options.imaginary_i);
+        if self.current().kind != TokenType::Equals || (subscript.is_none() && constant) {
             self.index = start;
             return Ok(None);
         }

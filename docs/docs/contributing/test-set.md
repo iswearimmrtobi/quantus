@@ -127,7 +127,7 @@ The nine newer categories were each run on their own when they were added (2026-
 
 | Category | Passed | Not passing |
 |---|---:|---|
-| verify | 993 / 1,000 | 7: `\pi = …` and `e = …` read the left side as a label, a variable without a value |
+| verify | 1,000 / 1,000 | |
 | base-n | 1,000 / 1,000 | |
 | matrix | 1,000 / 1,000 | |
 | statistics | 1,000 / 1,000 | |

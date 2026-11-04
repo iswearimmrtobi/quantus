@@ -144,7 +144,7 @@ Each category from `verify` on was run on its own when it was added (no full run
 
 | Category | Run | Passed | What does not pass |
 |---|---|---:|---|
-| verify | 2026-11-04 | 993 / 1,000 | 7 cases `\pi = …` and `e = …`: the left side is read as a label, a variable `\pi` or `e` to compare, which has no value (`\pi < 3` works) |
+| verify | 2026-11-04 | 1,000 / 1,000 | |
 | base-n | 2026-11-04 | 1,000 / 1,000 | |
 | matrix | 2026-11-04 | 1,000 / 1,000 | |
 | statistics | 2026-11-04 | 1,000 / 1,000 | |

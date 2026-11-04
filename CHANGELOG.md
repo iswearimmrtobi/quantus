@@ -305,6 +305,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - A system whose coefficients mix roots and `π` (`\sqrt{2} y + z = -\pi`) was refused as not linear.
 - In German, a power load too large for its circuit is reported as *keine Lösung: die Last ist zu
   groß* instead of in English.
+- `\pi = 3` and `e = 2{,}72` are compared and come out *false*; the constant on the left was read
+  as the name of a variable to define, which has no value. `e_1 = 5` still names a variable.
 
 ## [0.1.0] - 2026-10-29
 
