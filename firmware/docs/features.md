@@ -112,7 +112,7 @@ State on 2026-11-03.
 - [x] 6 Wertetabelle, with g(x) as a second column
 - [x] 7 Matrizen: typed inputs (`A^{-1}`, `\det A`), a matrix defined under a name in a grid (OPTN → Definieren, Zeilen, Spalten, up to 10 × 10), changed from VARS
 - [x] 8 Basis-N: 32-bit whole numbers in DEC, HEX, BIN or OCT (OPTN → Basis), the prefixes d, h, b, o and the logic in OPTN; A–F as letters
-- [~] 9 Statistik, with a data editor — x̂ and ŷ for a given value are missing
+- [x] 9 Statistik, with a data editor; OPTN → Schätzwerte: x̂ and ŷ for a given value
 - [x] 10 Verteilungen, one k or several
 - [x] 11 Prüfen: wahr or falsch, chains like 1 < 2 ≤ 2; OPTN has the relations
 - [x] 12 Sitzungen (the tile opens the sessions menu)

@@ -123,6 +123,8 @@ fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
         Kind::Points => [t("Von", "From"), t("Bis", "To"), t("Schritt", "Step")].iter().map(|label| label.get(lang).to_string()).collect(),
         // As math: `m_{1}`.
         Kind::Formula => app.sheets.asked.iter().flat_map(|asked| &asked.variables).map(|variable| variable.symbol.clone()).collect(),
+        // As math: the value given, then what is estimated at it.
+        Kind::Estimates => vec![r"x\to\hat{y}".to_string(), r"y\to\hat{x}".to_string()],
         Kind::Linear | Kind::Statistics | Kind::Matrix => Vec::new(),
     }
 }
@@ -192,7 +194,7 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
     for (row, label) in labels(app, kind).iter().enumerate().skip(sheet.top).take(kind.rows_shown()) {
         let y = top(kind) + (row - sheet.top) as i32 * ROW;
         let baseline = y + (ROW - 4 + Scale::Normal.metrics().digit) / 2;
-        if kind == Kind::Formula {
+        if matches!(kind, Kind::Formula | Kind::Estimates) {
             let laid = layout::layout(&latex::parse(label), Scale::Normal);
             shapes.push(Shape::Math(Point::new(MARGIN, baseline), laid, colors::MUTED));
             continue;
@@ -237,7 +239,7 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
     let normal = Scale::Normal.metrics();
     let at = Point::new(MARGIN, EDIT_TOP + 6 + normal.ascent);
     match kind {
-        Kind::Formula => shapes.push(Shape::Math(at, layout::layout(&latex::parse(&name), Scale::Normal), colors::MUTED)),
+        Kind::Formula | Kind::Estimates => shapes.push(Shape::Math(at, layout::layout(&latex::parse(&name), Scale::Normal), colors::MUTED)),
         _ => shapes.push(Shape::Text(at, name, Scale::Normal, colors::MUTED)),
     }
     let (row, column) = sheet.cursor;

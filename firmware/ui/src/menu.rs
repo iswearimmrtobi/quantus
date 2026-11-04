@@ -120,6 +120,8 @@ pub enum Action {
     DefineMatrix,
     /// The matrices among the variables, to change one.
     EditMatrix,
+    /// Statistik's form for where its regression estimates x̂ and ŷ.
+    Estimates,
 }
 
 impl Action {

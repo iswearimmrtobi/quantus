@@ -644,6 +644,7 @@ static OPTN_STATISTICS: Page = Page {
         entry(t("Zeile einfügen", "Insert row"), Kind::Do(Action::InsertRow)),
         entry(t("Zeile löschen", "Delete row"), Kind::Do(Action::DeleteRow)),
         entry(CLEAR_ALL, Kind::Do(Action::ClearInput)),
+        entry(t("Schätzwerte", "Estimates"), Kind::Do(Action::Estimates)),
     ],
 };
 

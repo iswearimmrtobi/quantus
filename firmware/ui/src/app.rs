@@ -351,6 +351,9 @@ impl<B> App<B> {
         if self.sheets.defining.is_some() {
             return Some(sheet::Kind::Matrix);
         }
+        if self.mode == Mode::Statistics && self.sheets.estimating {
+            return Some(sheet::Kind::Estimates);
+        }
         match self.mode {
             Mode::Analysis => self.task,
             mode => mode.sheet(&self.settings),
@@ -873,6 +876,13 @@ impl<B: Backend> App<B> {
                 menu.edit = Some(Edit::Text { label: text::MATRIX_NAME, purpose, typed: String::new(), error: false, plain: true });
             }
             Outcome::Act(Action::EditMatrix) => return self.vars(),
+            // The form over the data, on its first field.
+            Outcome::Act(Action::Estimates) => {
+                self.answer = None;
+                self.sheets.estimating = true;
+                self.sheets.estimates.select(0, 0);
+                return;
+            }
             Outcome::Define => {
                 let Some(Edit::Text { typed, .. }) = &menu.edit else { return };
                 let (name, settings) = (typed.clone(), self.settings);
@@ -1102,7 +1112,7 @@ impl<B: Backend> App<B> {
             Action::Calc => self.formula(false),
             Action::Solve => self.formula(true),
             // Done by `outcome`, which knows the menu to come back to.
-            Action::DefineMatrix | Action::EditMatrix => {}
+            Action::DefineMatrix | Action::EditMatrix | Action::Estimates => {}
             Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
         }
     }
@@ -1282,11 +1292,12 @@ impl<B: Backend> App<B> {
             return;
         }
         // AC on a form over the input, not in a cell: back to the input.
-        let over = kind.over_input() || kind == sheet::Kind::Matrix;
+        let over = kind.over_input() || matches!(kind, sheet::Kind::Matrix | sheet::Kind::Estimates);
         if over && key == Key::Ac && self.sheets.get(kind).editing.is_none() {
             match kind {
                 sheet::Kind::Formula => self.sheets.asked = None,
                 sheet::Kind::Matrix => self.sheets.defining = None,
+                sheet::Kind::Estimates => self.sheets.estimating = false,
                 _ => self.task = None,
             }
             return;

@@ -183,7 +183,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   - **Verteilungen** shows the fields of the chosen distribution (OPTN → Typ); k takes one value
     or several separated by `;`, which gives a table.
   The session keeps what the sheets hold (Wertetabelle its f(x) and range). A result can show
-  x̄ and ŷ. F5 is OK in the simulator and on a USB keyboard: it edits a cell as it is.
+  x̄ and ŷ. In Statistik, OPTN → Schätzwerte asks for an x and a y, and the regression's answer
+  ends with ŷ and x̂ for them. F5 is OK in the simulator and on a USB keyboard: it edits a cell as it is.
 - The handheld does **Kurvendiskussion**: EXE sketches the function typed, with the graph on the
   first page (grid, axes, the curve, dashed asymptotes, the zeros, extrema and inflection points
   named) and a page per section after it (Ableitungen, Definitionsbereich, Symmetrie, …),

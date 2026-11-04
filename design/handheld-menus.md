@@ -56,7 +56,7 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] LGS: the matrix editor [A|b] and its size, the Gauss steps on the answer
       (`firmware/ui/src/sheet.rs`, section 7.3)
 - [x] Wertetabelle mode, with g(x) as a second column
-- [x] Statistik (with its data editor) and Verteilungen; not yet x̂ and ŷ for a given value
+- [x] Statistik (with its data editor, and x̂ and ŷ for a given value) and Verteilungen
 - [x] The modes Prüfen, Basis-N
 - [x] The mode Matrizen, with its editor
 - [ ] The step list (Rechenweg) on the result screen
@@ -685,7 +685,8 @@ Per mode:
 - **Basis-N**: Basis DEC/HEX/BIN/OCT ✓ (a choice, the setting `number_base`) · Präfixe d, h, b, o ✓
   (`\mathrm{h}`) · and, or, xor, xnor, Not, Neg ✓ (`\operatorname{and}`) [C, eng]
 - **Statistik**: Typ (1 Variable and the 7 regressions) ✓ · Häufigkeit ein/aus ✓ · Zeile
-  einfügen, Zeile löschen, Alles löschen ✓ [C]. The sums, the measures, min/max/quartiles and the
+  einfügen, Zeile löschen, Alles löschen ✓ · Schätzwerte ✓ (a form for an x for ŷ and a y for x̂,
+  over the data; EXE works it out with them) [C]. The sums, the measures, min/max/quartiles and the
   regression are all on the answer EXE brings, so they have no entries of their own.
 - **Verteilungen**: Typ (Normal-Dichte, Kumul. Normal-V, Inv. Normal-V, Binomial-Dichte, Kumul.
   Binom.-V, Poisson-Dichte, Kumul. Poisson-V) ✓ · Alles löschen · Griechisch [C]. There is no

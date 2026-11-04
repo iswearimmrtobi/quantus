@@ -457,3 +457,26 @@ impl DrawTarget for Picture {
         Ok(())
     }
 }
+
+#[test]
+fn optn_opens_the_form_for_the_estimates_over_the_data() {
+    use quantus_ui::backend::Estimates;
+    use quantus_ui::sheet::Kind;
+    use Key::{Ac, Digit, Exe, Optn, Right, Up};
+    let (mut app, backend) = app(Mode::Statistics);
+    app.settings.statistics_type = StatisticsType::Linear;
+    // x 1 2, y 3 5.
+    press(&mut app, &[Digit(1), Exe, Digit(2), Exe, Right, Up, Up, Digit(3), Exe, Digit(5), Exe]);
+    // OPTN → Schätzwerte, the last entry: x = 4 for ŷ, nothing for x̂.
+    press(&mut app, &[Optn, Up, Exe]);
+    assert_eq!(app.sheet_kind(), Some(Kind::Estimates));
+    press(&mut app, &[Digit(4), Exe, Exe]);
+    let Request::Statistics { x, at, .. } = asked(&backend) else { panic!("the statistics") };
+    assert_eq!(x, strings(&["1", "2"]));
+    assert_eq!(at, Estimates { x_hat: None, y_hat: Some("4".into()) });
+    // The answer lies over the form; AC goes back to it, and AC again to the data.
+    press(&mut app, &[Ac]);
+    assert_eq!(app.sheet_kind(), Some(Kind::Estimates));
+    press(&mut app, &[Ac]);
+    assert_eq!(app.sheet_kind(), Some(Kind::Statistics));
+}

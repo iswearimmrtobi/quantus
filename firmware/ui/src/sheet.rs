@@ -9,7 +9,7 @@
 //! edited goes to the next one too; on the last cell it works the sheet out.
 
 use crate::app::Mode;
-use crate::backend::{Field, Request, Variable};
+use crate::backend::{Estimates, Field, Request, Variable};
 use crate::editor::{Editor, Row};
 use crate::key::Key;
 use crate::latex;
@@ -314,6 +314,8 @@ pub enum Kind {
     Formula,
     /// The cells of a matrix being defined in Matrizen.
     Matrix,
+    /// Where Statistik's regression estimates: an x for ŷ, a y for x̂.
+    Estimates,
 }
 
 impl Kind {
@@ -386,6 +388,9 @@ pub struct Sheets {
     /// The cells of the matrix being defined, and its name while the grid is open.
     pub matrix: Sheet,
     pub defining: Option<String>,
+    /// The x for ŷ and the y for x̂ of Statistik, and whether their form is open.
+    pub estimates: Sheet,
+    pub estimating: bool,
     /// The Statistik columns as laid out now, and the cells of x, y and Freq kept while one
     /// of them is not shown.
     columns: Vec<Column>,
@@ -413,6 +418,8 @@ impl Sheets {
             asked: None,
             matrix: Sheet::new(2, 2, Flow::Across),
             defining: None,
+            estimates: Sheet::new(2, 1, Flow::Down),
+            estimating: false,
             columns,
             kept: Default::default(),
             regression: settings.statistics_type,
@@ -434,6 +441,7 @@ impl Sheets {
             Kind::Points => &self.points,
             Kind::Formula => &self.formula,
             Kind::Matrix => &self.matrix,
+            Kind::Estimates => &self.estimates,
         }
     }
 
@@ -448,6 +456,7 @@ impl Sheets {
             Kind::Points => &mut self.points,
             Kind::Formula => &mut self.formula,
             Kind::Matrix => &mut self.matrix,
+            Kind::Estimates => &mut self.estimates,
         }
     }
 
@@ -607,6 +616,12 @@ impl Sheets {
                 Request::Solve { mode, latex, variable, values, start }
             }
             Kind::Matrix => return None,
+            // The data, with where to estimate.
+            Kind::Estimates => {
+                let given = |row: usize| Some(cell(row)).filter(|latex| !latex.is_empty());
+                let Some(Request::Statistics { kind, x, y, freq, .. }) = self.request(Kind::Statistics, function) else { return None };
+                Request::Statistics { kind, x, y, freq, at: Estimates { x_hat: given(1), y_hat: given(0) } }
+            }
         })
     }
 
