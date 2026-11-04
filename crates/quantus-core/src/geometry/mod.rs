@@ -7,6 +7,7 @@
 mod eval;
 mod line;
 mod plane;
+mod reflect;
 mod relations;
 mod show;
 mod working;

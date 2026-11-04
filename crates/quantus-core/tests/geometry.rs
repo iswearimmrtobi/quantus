@@ -614,3 +614,25 @@ fn two_planes() {
     let PlanePlane::Intersecting { angle, .. } = coordinate_plane(0, 0, 1, 0).meet_plane(&f, AngleUnit::Degree, 20).unwrap().result else { panic!() };
     assert_eq!(angle.value, Value::int(45));
 }
+
+#[test]
+fn reflections() {
+    let p = at([1, 2, 3]);
+    let worked = p.reflect_in_point(&at([2, 0, 1]));
+    assert_eq!(worked.result, at([3, -2, -1]));
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["P' = (3|-2|-1)"]);
+    // In the x axis: (1|-2|-3).
+    let x_axis = line([0, 0, 0], [1, 0, 0]);
+    assert_eq!(x_axis.reflect(&p).result, at([1, -2, -3]));
+    // In x + y + z = 0: λ = -2, F = (-1|0|1), P' = (-3|-2|-1).
+    let worked = coordinate_plane(1, 1, 1, 0).reflect(&p).unwrap();
+    assert_eq!(worked.result, at([-3, -2, -1]));
+    assert_eq!(latex_at(&worked.working, StepDetail::Detailed)[1], r"6 + 3\lambda = 0 \quad \Rightarrow \quad \lambda = -2");
+    assert_eq!(latex_at(&worked.working, StepDetail::Detailed)[2], "F = (-1|0|1)");
+    // A point in the mirror stays where it is; a 2D point in a 2D line stays 2D.
+    assert_eq!(coordinate_plane(0, 0, 1, 3).reflect(&at([5, 5, 3])).unwrap().result, at([5, 5, 3]));
+    let q = Point::planar(Value::int(0), Value::int(2));
+    let diagonal = Line::new(Point::planar(Value::zero(), Value::zero()), Vector3::planar(Value::one(), Value::one())).unwrap();
+    let image = diagonal.reflect(&q).result;
+    assert!(image.planar && image == at([2, 0, 0]));
+}
