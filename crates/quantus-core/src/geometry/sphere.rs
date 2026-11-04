@@ -7,6 +7,7 @@ use crate::{QuantusError, Result};
 
 use super::show;
 use super::working::{Worked, Working};
+use super::plane::shortening;
 use super::{equal, triple_product, Circle, Line, Plane, PlaneForm, Point, Vector3};
 
 /// A sphere around `centre` with the radius `radius` (> 0).
@@ -44,6 +45,23 @@ pub enum SpherePlane {
     Tangent { point: Point },
     /// No contact; `gap` is the distance from the plane to the sphere.
     Apart { distance: Value, gap: Value },
+}
+
+/// How two spheres lie to each other.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SphereSphere {
+    Identical,
+    /// The same centre, different radii: one inside the other, no contact.
+    Concentric,
+    /// Outside each other; `gap` is the shortest distance between them.
+    Apart { gap: Value },
+    /// One inside the other without contact.
+    Inside,
+    /// They touch in `point`, from outside or (`inside`) from within; `plane` is the common
+    /// tangent plane, their Potenzebene.
+    Touching { point: Point, inside: bool, plane: Plane },
+    /// They cut in `circle`, which lies in their Potenzebene `plane`.
+    Intersecting { circle: Circle, plane: Plane },
 }
 
 fn error(message: String) -> QuantusError {
@@ -334,5 +352,82 @@ impl Sphere {
         working.add(Brief, msg!("The tangent plane:", "Die Tangentialebene:"), plane.equation());
         working.add(Standard, msg!("In coordinate form:", "In Koordinatenform:"), plane.equation_in(PlaneForm::Coordinate));
         Ok(Worked::new(plane, working))
+    }
+
+    /// How the sphere lies to `other`, by the distance of the centres against the sum and the
+    /// difference of the radii. Where they meet, the difference of their equations is the
+    /// Potenzebene, and the circle (or point) is where it cuts this sphere.
+    pub fn meet_sphere(&self, other: &Sphere) -> Result<Worked<SphereSphere>> {
+        let mut working = Working::default();
+        let between = self.centre.to(&other.centre);
+        let d2 = between.dot(&between);
+        let distance = d2.pow(&Value::ratio(1, 2))?;
+        working.add(
+            Standard,
+            msg!("The distance of the centres:", "Der Abstand der Mittelpunkte:"),
+            format!("d = \\left|\\overrightarrow{{M_1 M_2}}\\right| = \\left|{}\\right| = {}", show::vector(&between), show::value(&distance)),
+        );
+        let (r1, r2) = (&self.radius, &other.radius);
+        if d2.is_zero() {
+            if equal(r1, r2) {
+                working.add(Brief, msg!("Same centre and radius: the spheres are identical.", "Gleicher Mittelpunkt und Radius: Die Kugeln sind identisch."), "K_1 = K_2");
+                return Ok(Worked::new(SphereSphere::Identical, working));
+            }
+            working.add(
+                Brief,
+                msg!("Same centre, different radii: one lies inside the other.", "Gleicher Mittelpunkt, verschiedene Radien: Eine liegt in der anderen."),
+                format!("r_1 = {} \\neq r_2 = {}", show::value(r1), show::value(r2)),
+            );
+            return Ok(Worked::new(SphereSphere::Concentric, working));
+        }
+        let sum = r1.add(r2);
+        let difference = super::abs(r1.sub(r2))?;
+        working.add(
+            Standard,
+            msg!("Compare with the sum and the difference of the radii:", "Mit Summe und Differenz der Radien vergleichen:"),
+            format!("r_1 + r_2 = {}, \\quad \\left|r_1 - r_2\\right| = {}", show::value(&sum), show::value(&difference)),
+        );
+        if sum.mul(&sum).sub(&d2).is_negative()? && !equal(&sum.mul(&sum), &d2) {
+            let gap = distance.sub(&sum);
+            working.add(
+                Brief,
+                msg!("d > r₁ + r₂: the spheres lie apart.", "d > r₁ + r₂: Die Kugeln liegen außerhalb voneinander."),
+                format!("{} > {}", show::value(&distance), show::value(&sum)),
+            );
+            working.add(Standard, msg!("The gap between them:", "Der Abstand zwischen ihnen:"), format!("d - r_1 - r_2 = {}", show::value(&gap)));
+            return Ok(Worked::new(SphereSphere::Apart { gap }, working));
+        }
+        if d2.sub(&difference.mul(&difference)).is_negative()? && !equal(&difference.mul(&difference), &d2) {
+            working.add(
+                Brief,
+                msg!("d < |r₁ − r₂|: one sphere lies inside the other.", "d < |r₁ − r₂|: Eine Kugel liegt in der anderen."),
+                format!("{} < {}", show::value(&distance), show::value(&difference)),
+            );
+            return Ok(Worked::new(SphereSphere::Inside, working));
+        }
+        // The Potenzebene: the difference of the equations, 2(m₂ − m₁)·x = r₁² − r₂² − m₁² + m₂².
+        let (m1, m2) = (self.centre.position(), other.centre.position());
+        let normal = between.scale(&Value::int(2));
+        let constant = self.radius_squared().sub(&other.radius_squared()).sub(&m1.dot(&m1)).add(&m2.dot(&m2));
+        let (normal, constant) = match shortening(&normal) {
+            Some(factor) => (normal.scale(&factor), constant.mul(&factor)),
+            None => (normal, constant),
+        };
+        let [a, b, c] = normal.coords.clone();
+        let plane = Plane::coordinate(a, b, c, constant)?;
+        working.add(
+            Standard,
+            msg!("Subtract the equations of the spheres; x², y² and z² cancel:", "Die Kugelgleichungen subtrahieren; x², y² und z² fallen weg:"),
+            "2 \\left(\\vec{m_2} - \\vec{m_1}\\right) \\cdot \\vec{x} = r_1^2 - r_2^2 - \\vec{m_1}^2 + \\vec{m_2}^2",
+        );
+        working.add(Brief, msg!("The Potenzebene:", "Die Potenzebene:"), plane.equation());
+        let Worked { result, working: cut } = self.meet_plane(&plane)?;
+        working.extend(cut);
+        let relation = match result {
+            SpherePlane::Circle { circle, .. } => SphereSphere::Intersecting { circle, plane },
+            SpherePlane::Tangent { point } => SphereSphere::Touching { point, inside: equal(&difference.mul(&difference), &d2), plane },
+            SpherePlane::Apart { .. } => unreachable!("the distance lies between the difference and the sum of the radii"),
+        };
+        Ok(Worked::new(relation, working))
     }
 }

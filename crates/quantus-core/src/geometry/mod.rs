@@ -19,7 +19,7 @@ pub use eval::{GeometryEvaluator, Item, Objects};
 pub use line::{Line, LineRelation};
 pub use plane::{Plane, PlaneForm};
 pub use relations::{LinePlane, PlanePlane};
-pub use sphere::{Sphere, SphereLine, SpherePlane, SpherePoint};
+pub use sphere::{Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere};
 pub use working::{Note, Worked, Working};
 
 use std::ops::{Add, Mul, Neg, Sub};

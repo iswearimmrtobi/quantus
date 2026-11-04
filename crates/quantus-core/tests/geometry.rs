@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, Vector3, Working,
+    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -732,4 +732,38 @@ fn the_tangent_plane_of_a_sphere() {
     assert!(k.tangent_plane(&at([2, 3, 4])).is_err());
     // The tangent plane touches the sphere in that point.
     assert_eq!(k.meet_plane(&worked.result).unwrap().result, SpherePlane::Tangent { point: at([2, 3, 3]) });
+}
+
+fn ball(centre: [i64; 3], radius: i64) -> Sphere {
+    Sphere::new(&at(centre), Value::int(radius)).unwrap()
+}
+
+#[test]
+fn two_spheres() {
+    // Centres 6 apart with radii 5 and 5: the Potenzebene x = 3, the circle of radius 4.
+    let worked = ball([0, 0, 0], 5).meet_sphere(&ball([6, 0, 0], 5)).unwrap();
+    let SphereSphere::Intersecting { circle, plane } = &worked.result else { panic!("{:?}", worked.result) };
+    assert_eq!(plane.equation(), "x = 3");
+    assert_eq!((&circle.centre, &circle.radius), (&at([3, 0, 0]), &Value::int(4)));
+    let brief = latex_at(&worked.working, StepDetail::Brief);
+    assert_eq!(brief.first().unwrap(), "x = 3");
+    assert_eq!(brief.last().unwrap(), r"M' = (3|0|0), \quad \rho = 4");
+    // Different radii: 13 and 15 at distance 14 cut in a circle of radius 12 around (5|0|0).
+    let SphereSphere::Intersecting { circle, plane } = ball([0, 0, 0], 13).meet_sphere(&ball([14, 0, 0], 15)).unwrap().result else { panic!() };
+    assert_eq!((circle.centre, circle.radius), (at([5, 0, 0]), Value::int(12)));
+    assert_eq!(plane.equation(), "x = 5");
+    // Touching from outside and from within.
+    let SphereSphere::Touching { point, inside: false, plane } = ball([0, 0, 0], 2).meet_sphere(&ball([0, 0, 5], 3)).unwrap().result else { panic!() };
+    assert_eq!((point, plane.equation()), (at([0, 0, 2]), "z = 2".to_string()));
+    let SphereSphere::Touching { point, inside: true, .. } = ball([0, 0, 0], 5).meet_sphere(&ball([0, 3, 0], 2)).unwrap().result else { panic!() };
+    assert_eq!(point, at([0, 5, 0]));
+    // No contact.
+    assert_eq!(ball([0, 0, 0], 1).meet_sphere(&ball([0, 0, 5], 2)).unwrap().result, SphereSphere::Apart { gap: Value::int(2) });
+    assert_eq!(ball([0, 0, 0], 5).meet_sphere(&ball([1, 0, 0], 1)).unwrap().result, SphereSphere::Inside);
+    assert_eq!(ball([1, 1, 1], 5).meet_sphere(&ball([1, 1, 1], 2)).unwrap().result, SphereSphere::Concentric);
+    assert_eq!(ball([1, 1, 1], 5).meet_sphere(&ball([1, 1, 1], 5)).unwrap().result, SphereSphere::Identical);
+    // An oblique Potenzebene: centres (0|0|0) and (2|2|0), radii 2: 4x + 4y = 8, shortened to x + y = 2.
+    let SphereSphere::Intersecting { plane, circle } = ball([0, 0, 0], 2).meet_sphere(&ball([2, 2, 0], 2)).unwrap().result else { panic!() };
+    assert_eq!(plane.equation(), "x + y = 2");
+    assert_eq!((circle.centre, circle.radius.mul(&circle.radius)), (at([1, 1, 0]), Value::int(2)));
 }

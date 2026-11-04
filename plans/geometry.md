@@ -143,7 +143,7 @@ results, not errors. Each step below brings its tests.
   form; point inside, on or outside, with its distance to the sphere; surface and volume.
 - [x] Sphere × line (secant, tangent, passant, intersection points) and sphere × plane
   (intersection circle, tangent, no contact, distance); tangent plane at a point.
-- [ ] Sphere × sphere: relation, intersection circle and Potenzebene.
+- [x] Sphere × sphere: relation, intersection circle and Potenzebene.
 - [ ] `Circle` (centre, radius, normal): direct constructor, the "Kugel ∩ Ebene" constructor,
   point on circle?, circumference and area; the plain 2D circle as the z = 0 case.
 - [ ] Circle × line (intersection points, tangent) and the tangent at a point of the circle.
