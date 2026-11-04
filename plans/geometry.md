@@ -14,6 +14,13 @@ first, with the maths and the 3D projection in `quantus-core` so the handheld ca
 Decisions so far: desktop first; objects entered through forms **and** typed expressions; results
 exact, with steps at the existing `step_detail` levels.
 
+- Typed syntax: vectors `(1|2|3)`, `\begin{pmatrix}`, `\vec{a}`; points `(1,2,3)`. `|v|` stays the
+  length; the parser tells `(a|b|c)` from `|v|` by the parentheses.
+- `Point` and `Vector3` are separate types (Point − Point = Vector, Point + Vector = Point).
+- Angles follow the existing `angle_unit` setting (`AngleUnit` in `settings.rs`).
+- A `Circle` is stored as centre, radius and normal; "Kugel ∩ Ebene" is a constructor that
+  converts into it.
+
 ## 3D view and the handheld
 
 One system for both, but not three.js: it needs a browser, and the handheld has only
@@ -39,7 +46,7 @@ vector), Richtungsvektor (direction), Normalenvektor (normal), Parameterform, No
 Koordinatenform, Kugel (sphere), Kreis (circle), Mittelpunkt, Radius, Tangente, Tangentialebene,
 Abstand (distance), Schnittpunkt / Schnittgerade (intersection), Schnittwinkel
 (angle), Skalarprodukt (dot), Kreuzprodukt (cross), Betrag (length), Lotfußpunkt (foot of
-perpendicular), windschief (skew), parallel, identisch, Spiegelung (reflection), Mittelpunkt.
+perpendicular), windschief (skew), parallel, identisch, Spiegelung (reflection).
 
 Operations of the first version:
 
@@ -61,8 +68,7 @@ Operations of the first version:
   line, angle), distance point–line, point–plane, line–line (skew), foot of perpendicular,
   reflection of a point.
 
-All exact in `Value` (fractions, roots, `π`). The angle unit follows the planned Grad/Bogenmaß
-setting.
+All exact in `Value` (fractions, roots, `π`). The angle unit follows the `angle_unit` setting.
 
 ## Implementation plan
 
@@ -72,10 +78,10 @@ green.
 ### Phase 1: vectors in the engine
 
 - [ ] `crates/quantus-core/src/geometry/` (new module, `pub` in `lib.rs`): `Vector3 { [Value; 3] }`
-  (2D input is z = 0), `dot`, `cross`, `length`, `unit`, `angle`, built on `num::Value`; reuse
+  and a separate `Point` (2D input is z = 0), `dot`, `cross`, `length`, `unit`, `angle`, built on `num::Value`; reuse
   `linear::gauss` and `matrix.rs` for solving and for determinants (Spatprodukt).
 - [ ] Vector syntax in the parser and evaluator for the typed path: `\begin{pmatrix}`, `(1|2|3)`
-  and `\vec{a}`; `×` is the cross product, `\cdot` the dot product, `|v|` the length (as Casio
+  and `\vec{a}` for vectors, `(1,2,3)` for points; `×` is the cross product, `\cdot` the dot product, `|v|` the length (as Casio
   §3.7). *Check first* how `MatrixEvaluator` in `matrix.rs` reads `pmatrix`, and extend that
   instead of duplicating it.
 - [ ] Tests in `crates/quantus-core/tests/geometry.rs`; an entry in
@@ -83,8 +89,8 @@ green.
 
 ### Phase 2: objects and relations
 
-- [ ] `Point`, `Line`, `Plane`, `Sphere`, `Circle` (lines and planes keep the form they were given in, plus
-  conversions); a function per operation above, each returning the result and a `Working` log in
+- [ ] `Point`, `Line`, `Plane`, `Sphere`, `Circle` (centre, radius, normal; built directly or from a sphere cut
+  by a plane; lines and planes keep the form they were given in, plus conversions); a function per operation above, each returning the result and a `Working` log in
   the `msg!` bilingual style (`crate::text`), like `matrix.rs`.
 - [ ] Degenerate cases are results, not errors (parallel, identical, skew, point on line).
 - [ ] Steps at Brief, Standard, Detailed and Maximal; a *Geometry* section with worked examples in
@@ -140,7 +146,7 @@ green.
 
 ## Open points
 
-1. German names and the operation list above: to be corrected and extended.
+1. German names: to be confirmed (the operation list is settled for the first version).
 2. Decided: Kugel and Kreis belong to the first version (Phase 2, 4 and 5 below).
 
 ## Verification
