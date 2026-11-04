@@ -1108,3 +1108,21 @@ fn typed_lines_that_are_no_object_are_errors() {
     assert!(errors[6].1.contains("one parameter"));
     assert!(errors[7].1.contains("typed with its name"));
 }
+
+#[test]
+fn the_foot_on_a_plane_is_the_result_in_every_form() {
+    use serde_json::json;
+    let task = json!({ "kind": "foot", "point": "P", "onto": "E" });
+    let point = json!({ "name": "P", "kind": "point", "at": "(3|4|-5)" });
+    let coordinate = ask(json!([point, { "name": "E", "kind": "planeCoordinate", "a": "0", "b": "0", "c": "1", "d": "0" }]), task.clone(), &Settings::default());
+    assert_eq!(coordinate.task.unwrap().result, ["F = (3|4|0)"]);
+    // In another form the plane is converted first; the foot is still the last result line.
+    for plane in [
+        json!({ "name": "E", "kind": "planeThrough", "a": "(0|0|0)", "b": "(1|0|0)", "c": "(0|1|0)" }),
+        json!({ "name": "E", "kind": "planeNormal", "support": "(0|0|0)", "normal": ["0", "0", "2"] }),
+        json!({ "name": "E", "kind": "plane", "support": "(1|1|0)", "u": ["1", "0", "0"], "v": ["0", "1", "0"] }),
+    ] {
+        let result = ask(json!([point, plane]), task.clone(), &Settings::default()).task.unwrap().result;
+        assert_eq!(result.last().map(String::as_str), Some("F = (3|4|0)"), "{result:?}");
+    }
+}

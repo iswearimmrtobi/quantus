@@ -307,6 +307,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   groß* instead of in English.
 - `\pi = 3` and `e = 2{,}72` are compared and come out *false*; the constant on the left was read
   as the name of a variable to define, which has no value. `e_1 = 5` still names a variable.
+- In Geometry mode the foot of a perpendicular onto a plane given by a point and normal, three
+  points or a parameter form ends on `F = …`; the answer stopped at the plane's coordinate form.
 
 ## [0.1.0] - 2026-10-29
 

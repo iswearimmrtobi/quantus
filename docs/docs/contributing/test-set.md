@@ -133,7 +133,7 @@ The nine newer categories were each run on their own when they were added (2026-
 | statistics | 1,000 / 1,000 | |
 | distributions | 1,000 / 1,000 | |
 | analysis | 1,000 / 1,000 | |
-| geometry | 976 / 1,000 | 24: the foot of a perpendicular onto a plane not in coordinate form ends without `F = …` |
+| geometry | 1,000 / 1,000 | |
 | electronics | 20 / 20 | |
 | kirchhoff | 20 / 20 | |
 

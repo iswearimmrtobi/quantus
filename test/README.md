@@ -150,6 +150,6 @@ Each category from `verify` on was run on its own when it was added (no full run
 | statistics | 2026-11-04 | 1,000 / 1,000 | |
 | distributions | 2026-11-04 | 1,000 / 1,000 | |
 | analysis | 2026-11-04 | 1,000 / 1,000 | |
-| geometry | 2026-11-04 | 976 / 1,000 | 24 cases of the foot of a perpendicular onto a plane given in normal, three-point or parameter form: the answer ends on the converted coordinate form, without the line `F = …` (the conversion's result line keeps the foot from becoming the result) |
+| geometry | 2026-11-04 | 1,000 / 1,000 | |
 | electronics | 2026-11-04 | 20 / 20 | |
 | kirchhoff | 2026-11-04 | 20 / 20 | |

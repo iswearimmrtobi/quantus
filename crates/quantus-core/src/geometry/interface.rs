@@ -643,7 +643,15 @@ impl Builder<'_> {
             },
             Task::Foot { point, onto } => match (self.get(point)?, self.get(onto)?) {
                 (Object::Point(p), Object::Line(g)) => Ok(Answer::plain(g.foot(p))),
-                (Object::Point(p), Object::Plane(e)) => Ok(Answer::plain(e.foot(p)?)),
+                (Object::Point(p), Object::Plane(e)) => {
+                    // The foot ends on its point. A plane in another form brings the result line
+                    // of its conversion along, so that point is made a result line here too.
+                    let mut worked = e.foot(p)?;
+                    if let Some(last) = worked.working.notes.last_mut() {
+                        last.level = Brief;
+                    }
+                    Ok(Answer::plain(worked))
+                }
                 _ => Err(not_for(&msg!("A foot of the perpendicular", "Ein Lotfußpunkt"))),
             },
             Task::Reflect { point, mirror } => match (self.get(point)?, self.get(mirror)?) {
