@@ -96,6 +96,14 @@ fn quadratics_with_a_negative_discriminant_have_complex_roots() {
 }
 
 #[test]
+fn quartics_without_a_real_root_have_four_complex_ones() {
+    assert_eq!(imaginary(r"x^4+4=0"), r"x = -1 - i \lor x = -1 + i \lor x = 1 - i \lor x = 1 + i");
+    assert_eq!(imaginary(r"x^4+1=0").matches(r"\lor").count(), 3);
+    assert_eq!(imaginary(r"x^4 + 5x^2 + 13 = 0").matches(r"\lor").count(), 3);
+    assert!(evaluate(Mode::Physics, r"x^4+1=0").unwrap_err().contains("no real solution"));
+}
+
+#[test]
 fn a_variable_can_hold_a_complex_number() {
     use quantus_core::session::Session;
 

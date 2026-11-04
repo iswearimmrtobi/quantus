@@ -145,7 +145,7 @@ def complex_roots(rng, diff):
         h = d_sqrt(d_sqrt(dec(a))) / d_sqrt(dec(2))
         roots = [(s * h, t * h) for s in (1, -1) for t in (1, -1)]
         return case("complex-roots", diff, f"x^{{4}} + {a} = 0", _expect_roots(roots), "x^4 + a, four complex roots",
-                    gap=True, settings=IMAGINARY)
+                    gap=False, settings=IMAGINARY)
     # x^4 + b x^2 + c with b^2 < 4c: x = ±sqrt(y), y complex. (Cubics with an irrational real root
     # and biquadratics with purely imaginary roots are solved already, so they are not here.)
     b = rng.randint(-6, 6)
@@ -156,7 +156,7 @@ def complex_roots(rng, diff):
         r = c_sqrt(y)
         roots += [r, (-r[0], -r[1])]
     return case("complex-roots", diff, f"{poly_latex({4: F(1), 2: F(b), 0: F(c)})} = 0", _expect_roots(roots),
-                "biquadratic without a real root", gap=True, settings=IMAGINARY)
+                "biquadratic without a real root", gap=False, settings=IMAGINARY)
 
 
 # --- inverse trigonometric functions of a complex number ----------------------------------------

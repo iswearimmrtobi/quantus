@@ -278,8 +278,9 @@ fn quartic(coefficients: &[RBig], complex: bool, digits: usize) -> Result<Vec<Va
             if real && !z.is_negative()? {
                 let y = z.pow(&Value::ratio(1, 2))?;
                 roots.extend([back(y.neg()), back(y)]);
-            } else if real && complex {
-                let y = z.neg().pow(&Value::ratio(1, 2))?.mul(&Value::I);
+            } else if complex {
+                // A negative z, or a complex one when z² + p z + r has no real root (x⁴ + 1).
+                let y = complex_sqrt(&z)?;
                 roots.extend([back(y.neg()), back(y)]);
             }
         }
@@ -299,6 +300,21 @@ fn quartic(coefficients: &[RBig], complex: bool, digits: usize) -> Result<Vec<Va
     roots.extend(quadratic(&[base.add(&offset), s.neg(), Value::one()], complex)?.into_iter().map(&back));
     roots.extend(quadratic(&[base.sub(&offset), s.clone(), Value::one()], complex)?.into_iter().map(&back));
     Ok(roots)
+}
+
+/// The principal square root of `a + bi`, by halves: `√((|z| + a)/2) + i·sgn(b)·√((|z| - a)/2)`,
+/// which keeps `√(2i) = 1 + i` exact where the polar form would give cosines of `π/4`.
+pub(crate) fn complex_sqrt(z: &Value) -> Result<Value> {
+    let half = Value::ratio(1, 2);
+    let Some((a, b)) = z.re_im() else { return z.pow(&half) };
+    if b.is_zero() {
+        return if a.is_negative()? { Ok(a.neg().pow(&half)?.mul(&Value::I)) } else { a.pow(&half) };
+    }
+    let modulus = a.mul(&a).add(&b.mul(&b)).pow(&half)?;
+    let re = modulus.add(&a).div(&Value::int(2))?.pow(&half)?;
+    let im = modulus.sub(&a).div(&Value::int(2))?.pow(&half)?;
+    let im = if b.is_negative()? { im.neg() } else { im };
+    Ok(re.add(&im.mul(&Value::I)))
 }
 
 /// The real roots of a polynomial with rational coefficients, to `digits` digits: between
@@ -407,6 +423,29 @@ mod tests {
         assert!(roots(&poly(&[1, 1, 0, 0, 1]), false, 20).unwrap().is_empty());
         let r = roots(&poly(&[-1, -2, 0, 0, 1]), false, 20).unwrap();
         assert_eq!(decimals(&r), ["-0.4746266176", "1.395336994"]);
+    }
+
+    #[test]
+    fn quartics_without_real_roots_have_four_complex_ones() {
+        let parts = |values: &[Value]| -> Vec<(String, String)> {
+            values
+                .iter()
+                .map(|v| {
+                    let (re, im) = v.re_im().unwrap();
+                    (re.decimal(10).unwrap().to_plain_string(), im.decimal(10).unwrap().to_plain_string())
+                })
+                .collect()
+        };
+        // x⁴ + 4 = (x² + 2x + 2)(x² - 2x + 2): ±1 ± i, exactly
+        let r = roots(&poly(&[4, 0, 0, 0, 1]), true, 20).unwrap();
+        assert_eq!(parts(&r), [("-1", "-1"), ("-1", "1"), ("1", "-1"), ("1", "1")].map(|(a, b)| (a.to_string(), b.to_string())));
+        // x⁴ + 1: ±√½ ± i√½
+        let r = roots(&poly(&[1, 0, 0, 0, 1]), true, 20).unwrap();
+        assert_eq!(r.len(), 4);
+        assert!(parts(&r).iter().all(|(re, im)| re.trim_start_matches('-') == "0.7071067812" && im.trim_start_matches('-') == "0.7071067812"));
+        // x⁴ + 5x² + 13: y² = (-5 ± i√27)/2
+        assert_eq!(roots(&poly(&[13, 0, 5, 0, 1]), true, 20).unwrap().len(), 4);
+        assert!(roots(&poly(&[13, 0, 5, 0, 1]), false, 20).unwrap().is_empty());
     }
 
     #[test]
