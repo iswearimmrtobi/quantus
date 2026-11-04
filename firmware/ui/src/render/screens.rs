@@ -138,7 +138,7 @@ fn tiles(
 struct Line {
     label: String,
     value: Option<String>,
-    /// Math at the right end, small: a constant's symbol, a unit.
+    /// Math at the right end: a constant's symbol, a unit; small if it is too tall for the line.
     math: Option<Row>,
     /// What stands at the right end.
     mark: Mark,
@@ -465,7 +465,10 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
         shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::MUTED));
         let middle = y + LINE / 2;
         let mut end = right - 14;
-        let math = line.math.as_ref().map(|row| layout::layout(row, Scale::Small));
+        let math = line.math.as_ref().map(|row| match layout::layout(row, Scale::Normal) {
+            math if math.height() > LINE - 8 => layout::layout(row, Scale::Small),
+            math => math,
+        });
         let math_width = math.as_ref().map_or(0, |math| math.width + 12);
         let label = fit(&line.label, right - MARGIN - 34 - 14 - math_width, Scale::Normal);
         shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, colors::TEXT));
