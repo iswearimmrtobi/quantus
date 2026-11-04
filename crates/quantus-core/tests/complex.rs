@@ -104,6 +104,17 @@ fn quartics_without_a_real_root_have_four_complex_ones() {
 }
 
 #[test]
+fn higher_degrees_have_all_their_complex_roots() {
+    // -1 and the four other fifth roots of -1, to the full precision
+    let roots = imaginary(r"x^5+1=0");
+    assert_eq!(roots.matches(r"\lor").count(), 4);
+    assert!(roots.starts_with("x = -1 \\lor x = -0{,}30901699437494742410229341718281905886015458990288 - 0{,}95105651629515357211643933337938214340569863412575i"));
+    // one real root beside two pairs, and only the real one outside Imaginary mode
+    assert_eq!(imaginary(r"x^5 - x + 1 = 0").matches(r"\lor").count(), 4);
+    assert_eq!(evaluate(Mode::Physics, r"x^5 - x + 1 = 0").unwrap().matches(r"\lor").count(), 0);
+}
+
+#[test]
 fn a_variable_can_hold_a_complex_number() {
     use quantus_core::session::Session;
 

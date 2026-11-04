@@ -314,6 +314,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 - In Imaginary mode a quartic without a real root, such as `x^4 + 1 = 0` or
   `x^4 + 5x^2 + 13 = 0`, has its four complex roots; it was reported as having no real solution.
+- In Imaginary mode an equation of degree five to twelve, such as `x^5 + 1 = 0`, has all its
+  complex roots, found numerically to the full precision; only the real ones were shown.
 - A power with an exponent such as `2^{-\frac{89{,}1\,\mathrm{h}}{9\,\mathrm{yr}}}` (a decay over
   hours with a half-life in years) gave no result: the search for an exact form with a root
   tried to build a radicand of millions of digits. Such a power now comes out as a decimal at once.

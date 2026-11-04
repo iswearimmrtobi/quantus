@@ -101,7 +101,12 @@ pub(crate) fn roots(coefficients: &[RBig], complex: bool, digits: usize) -> Resu
         1 | 2 => found.extend(quadratic(&values(&pad(&rest, 3)), complex)?),
         3 => found.extend(cubic(&values(&rest), complex)?),
         4 => found.extend(quartic(&rest, complex, digits)?),
-        _ => found.extend(real_roots(&rest, digits)?.into_iter().map(Value::Rat)),
+        _ => {
+            found.extend(real_roots(&rest, digits)?.into_iter().map(Value::Rat));
+            if complex {
+                found.extend(complex_pairs(&rest, digits));
+            }
+        }
     }
     sort_and_dedupe(found)
 }
@@ -302,6 +307,131 @@ fn quartic(coefficients: &[RBig], complex: bool, digits: usize) -> Result<Vec<Va
     Ok(roots)
 }
 
+/// The non-real roots of a polynomial of degree five and more, to `digits` digits, in conjugate
+/// pairs: located in `f64` by the Durand–Kerner iteration on the square-free part (whose roots
+/// are simple), then polished by Newton's method in rationals rounded to the working precision.
+fn complex_pairs(coefficients: &[RBig], digits: usize) -> Vec<Value> {
+    let simple = square_free(coefficients);
+    let n = simple.len() - 1;
+    let lead = simple[n].to_f64().value();
+    let c: Vec<f64> = simple.iter().map(|a| a.to_f64().value() / lead).collect();
+    let bound = 1.0 + c[..n].iter().fold(0.0_f64, |m, a| m.max(a.abs()));
+    let (mul, div) = (
+        |a: (f64, f64), b: (f64, f64)| (a.0 * b.0 - a.1 * b.1, a.0 * b.1 + a.1 * b.0),
+        |a: (f64, f64), b: (f64, f64)| {
+            let d = b.0 * b.0 + b.1 * b.1;
+            ((a.0 * b.0 + a.1 * b.1) / d, (a.1 * b.0 - a.0 * b.1) / d)
+        },
+    );
+    let at = |z: (f64, f64)| c.iter().rev().fold((0.0, 0.0), |s, a| {
+        let p = mul(s, z);
+        (p.0 + a, p.1)
+    });
+    // Start on a circle, turned so that no start is real or symmetric to another.
+    let mut z: Vec<(f64, f64)> = (0..n)
+        .map(|k| {
+            let angle = 0.4 + std::f64::consts::TAU * k as f64 / n as f64;
+            (bound * angle.cos(), bound * angle.sin())
+        })
+        .collect();
+    for _ in 0..1000 {
+        let mut moved = 0.0_f64;
+        for i in 0..n {
+            let mut denominator = (1.0, 0.0);
+            for j in (0..n).filter(|j| *j != i) {
+                denominator = mul(denominator, (z[i].0 - z[j].0, z[i].1 - z[j].1));
+            }
+            let step = div(at(z[i]), denominator);
+            z[i] = (z[i].0 - step.0, z[i].1 - step.1);
+            moved = moved.max(step.0.hypot(step.1));
+        }
+        if moved < 1e-14 * bound {
+            break;
+        }
+    }
+    let mut out = Vec::new();
+    for start in z.into_iter().filter(|z| z.1 > 1e-9 * bound.max(1.0)) {
+        if let Some((re, im)) = polish(&simple, start, digits) {
+            if im > RBig::ZERO {
+                let (re, im) = (Value::Rat(re), Value::Rat(im));
+                out.push(re.sub(&im.mul(&Value::I)));
+                out.push(re.add(&im.mul(&Value::I)));
+            }
+        }
+    }
+    out
+}
+
+/// Newton's method on a complex start in rationals, rounded to `digits + 10` digits each step.
+fn polish(coefficients: &[RBig], start: (f64, f64), digits: usize) -> Option<(RBig, RBig)> {
+    let scale = UBig::from(10u8).pow(digits + 10);
+    let round = |r: RBig| RBig::from_parts((r.numerator() * IBig::from(scale.clone())) / IBig::from(r.denominator().clone()), scale.clone());
+    let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits + 5));
+    let (mut re, mut im) = (RBig::try_from(start.0).ok()?, RBig::try_from(start.1).ok()?);
+    let derivative: Vec<RBig> = (1..coefficients.len()).map(|k| &coefficients[k] * RBig::from(k as i64)).collect();
+    let horner = |c: &[RBig], re: &RBig, im: &RBig| {
+        c.iter().rev().fold((RBig::ZERO, RBig::ZERO), |(a, b), k| (&a * re - &b * im + k, &a * im + &b * re))
+    };
+    for _ in 0..100 {
+        let (pr, pi) = horner(coefficients, &re, &im);
+        let (dr, di) = horner(&derivative, &re, &im);
+        let norm = &dr * &dr + &di * &di;
+        if norm == RBig::ZERO {
+            return None;
+        }
+        let (sr, si) = ((&pr * &dr + &pi * &di) / &norm, (&pi * &dr - &pr * &di) / &norm);
+        re = round(&re - &sr);
+        im = round(&im - &si);
+        if sr.abs() < tolerance && si.abs() < tolerance {
+            return Some((re, im));
+        }
+    }
+    None
+}
+
+/// `p / gcd(p, p')`: the same roots, each simple.
+fn square_free(p: &[RBig]) -> Vec<RBig> {
+    let derivative: Vec<RBig> = (1..p.len()).map(|k| &p[k] * RBig::from(k as i64)).collect();
+    let g = gcd(p.to_vec(), derivative);
+    if g.len() <= 1 {
+        return p.to_vec();
+    }
+    divide(p, &g).0
+}
+
+fn gcd(mut a: Vec<RBig>, mut b: Vec<RBig>) -> Vec<RBig> {
+    while b.iter().any(|c| *c != RBig::ZERO) {
+        let r = divide(&a, &b).1;
+        a = b;
+        b = r;
+    }
+    a
+}
+
+/// Quotient and remainder of polynomial division.
+fn divide(a: &[RBig], b: &[RBig]) -> (Vec<RBig>, Vec<RBig>) {
+    let b = trim(b.to_vec());
+    let mut r = trim(a.to_vec());
+    if r.len() < b.len() {
+        return (vec![RBig::ZERO], r);
+    }
+    let mut q = vec![RBig::ZERO; r.len() - b.len() + 1];
+    while r.len() >= b.len() && !(r.len() == 1 && r[0] == RBig::ZERO) {
+        let shift = r.len() - b.len();
+        let factor = &r[r.len() - 1] / &b[b.len() - 1];
+        for (k, c) in b.iter().enumerate() {
+            r[k + shift] -= &factor * c;
+        }
+        q[shift] = factor;
+        r.pop();
+        r = trim(r);
+        if r.len() < b.len() {
+            break;
+        }
+    }
+    (q, r)
+}
+
 /// The principal square root of `a + bi`, by halves: `√((|z| + a)/2) + i·sgn(b)·√((|z| - a)/2)`,
 /// which keeps `√(2i) = 1 + i` exact where the polar form would give cosines of `π/4`.
 pub(crate) fn complex_sqrt(z: &Value) -> Result<Value> {
@@ -446,6 +576,24 @@ mod tests {
         // x⁴ + 5x² + 13: y² = (-5 ± i√27)/2
         assert_eq!(roots(&poly(&[13, 0, 5, 0, 1]), true, 20).unwrap().len(), 4);
         assert!(roots(&poly(&[13, 0, 5, 0, 1]), false, 20).unwrap().is_empty());
+    }
+
+    #[test]
+    fn higher_degrees_have_their_complex_roots_in_pairs() {
+        // x⁵ + 1: -1 and e^{±iπ/5}, e^{±3iπ/5}
+        let r = roots(&poly(&[1, 0, 0, 0, 0, 1]), true, 30).unwrap();
+        assert_eq!(r.len(), 5);
+        let cos = |v: &Value| v.re_im().unwrap().0.decimal(12).unwrap().to_plain_string();
+        let mut re: Vec<String> = r.iter().map(cos).collect();
+        re.sort();
+        assert_eq!(re, ["-0.309016994375", "-0.309016994375", "-1", "0.809016994375", "0.809016994375"]);
+        // (x² + 1)² (x² - 2) = x⁶ - 3x² - 2: the double pair ±i counts once, beside ±√2
+        let r = roots(&poly(&[-2, 0, -3, 0, 0, 0, 1]), true, 30).unwrap();
+        assert_eq!(r.len(), 4);
+        assert_eq!(decimals(&[r[0].clone(), r[3].clone()]), ["-1.414213562", "1.414213562"]);
+        assert_eq!(r[1].re_im().unwrap().1.decimal(20).unwrap().to_plain_string(), "-1");
+        // Real roots only when not complex
+        assert_eq!(roots(&poly(&[1, 0, 0, 0, 0, 1]), false, 30).unwrap().len(), 1);
     }
 
     #[test]
