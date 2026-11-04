@@ -175,7 +175,7 @@ its tests.
 - [x] Auto-fit 3D box for the scene.
 - [x] Line segments clipped to the box (and vectors as arrows from the origin).
 - [x] Plane polygons from the cut with the box (outline plus optional hatch).
-- [ ] Sphere (outline circle plus latitude and longitude rings) and circle polylines.
+- [x] Sphere (outline circle plus latitude and longitude rings) and circle polylines.
 - [ ] Depth order across all primitives, with plane polygons split along their intersection lines.
 
 ### Phase 5: desktop UI

@@ -1,5 +1,5 @@
-use quantus_core::geometry::view::{project, Bounds, Camera, Figure, Options, Primitive, Shown, Stroke};
-use quantus_core::geometry::{Line, Plane, Point, Vector3};
+use quantus_core::geometry::view::{project, Bounds, Camera, Figure, Options, Primitive, Shown, Stroke, RING};
+use quantus_core::geometry::{Circle, Line, Plane, Point, Sphere, Vector3};
 use quantus_core::num::Value;
 
 fn close(a: f64, b: f64) -> bool {
@@ -266,4 +266,68 @@ fn a_plane_past_the_box_draws_nothing() {
     let primitives = project(&[shown("E", figure)], &Camera::default(), &unit_box(), &Options { hatch: true });
     assert!(polygons(&primitives).is_empty());
     assert!(!primitives.iter().any(|p| matches!(p, Primitive::Label { object: Some(0), .. })));
+}
+
+fn strokes(primitives: &[Primitive], stroke: Stroke) -> Vec<([f64; 2], [f64; 2])> {
+    primitives
+        .iter()
+        .filter_map(|p| match p {
+            Primitive::Segment { from, to, stroke: s, object: Some(_), .. } if *s == stroke => Some((*from, *to)),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_sphere_is_an_outline_with_rings_their_far_halves_hidden() {
+    let k = Sphere::new(&Point::from_ints(1, 0, 0), Value::int(2)).unwrap();
+    let figure = Figure::sphere(&k).unwrap();
+    assert_eq!(figure, Figure::Sphere { centre: [1.0, 0.0, 0.0], radius: 2.0 });
+    let camera = Camera { zoom: 0.5, ..Camera::default() };
+    let primitives = project(&[shown("K", figure)], &camera, &unit_box(), &Options::default());
+    let outline = polygons(&primitives);
+    assert_eq!(outline.len(), 1);
+    let (middle, _) = camera.project([1.0, 0.0, 0.0]);
+    for p in &outline[0].0 {
+        assert!(close((p[0] - middle[0]).hypot(p[1] - middle[1]), 1.0), "{p:?}");
+    }
+    // Three latitudes and four meridians, each a ring of short segments inside the outline.
+    let front = strokes(&primitives, Stroke::Object);
+    let back = strokes(&primitives, Stroke::Hidden);
+    assert_eq!(front.len() + back.len(), 7 * RING);
+    assert!(!front.is_empty() && !back.is_empty());
+    for (from, to) in front.iter().chain(&back) {
+        for end in [from, to] {
+            assert!((end[0] - middle[0]).hypot(end[1] - middle[1]) <= 1.0 + 1e-9);
+        }
+    }
+    assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, .. } if text == "K")));
+}
+
+#[test]
+fn a_circle_is_a_ring_of_segments_in_its_plane() {
+    let k = Circle::new(&Point::from_ints(0, 0, 1), Value::int(2), &Vector3::from_ints(0, 0, 3)).unwrap();
+    let figure = Figure::circle(&k).unwrap();
+    let camera = Camera::default().from_above();
+    let primitives = project(&[shown("k", figure)], &camera, &unit_box(), &Options::default());
+    let ring = strokes(&primitives, Stroke::Object);
+    assert_eq!(ring.len(), RING);
+    assert!(strokes(&primitives, Stroke::Hidden).is_empty());
+    // From above, a circle in a horizontal plane is a circle of radius 2 on the screen, closed.
+    for (from, _) in &ring {
+        assert!(close(from[0].hypot(from[1]), 2.0), "{from:?}");
+    }
+    assert!(close2(ring[RING - 1].1, ring[0].0));
+}
+
+#[test]
+fn the_box_takes_spheres_and_circles_whole() {
+    let figures = [
+        shown("K", Figure::Sphere { centre: [0.0, 0.0, 0.0], radius: 10.0 }),
+        shown("k", Figure::Circle { centre: [0.0, 0.0, 20.0], radius: 10.0, normal: [0.0, 0.0, 1.0] }),
+    ];
+    let bounds = Bounds::fit(&figures);
+    // x and y from −10 to 10, z from −10 to 20 (the circle lies flat there), with a tenth more.
+    assert!(close(bounds.max[0], 11.0) && close(bounds.min[1], -11.0), "{bounds:?}");
+    assert!(close(bounds.min[2], -11.5) && close(bounds.max[2], 21.5), "{bounds:?}");
 }

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::num::Value;
 
-use super::{Line, Plane, Point, Vector3};
+use super::{Circle, Line, Plane, Point, Sphere, Vector3};
 
 /// A point or vector in plain floats.
 pub type V3 = [f64; 3];
@@ -65,6 +65,11 @@ fn approx3(coords: &[Value; 3]) -> Option<V3> {
 pub const TICK: f64 = 0.02;
 /// The length of the two strokes of an arrow head on the screen, in view units.
 pub const ARROW: f64 = 0.04;
+/// The number of segments of a ring.
+pub const RING: usize = 48;
+/// The latitudes of the rings drawn on a sphere, in degrees, and the number of its meridians.
+const LATITUDES: [f64; 3] = [-45.0, 0.0, 45.0];
+const MERIDIANS: usize = 4;
 
 /// Where the scene is looked at from. The viewer sits in the direction of yaw (around z, from
 /// the x axis towards y) and pitch (up from the x-y plane), looking at `centre`; `zoom` is view
@@ -147,6 +152,17 @@ impl Bounds {
             match &shown.figure {
                 Figure::Point(p) | Figure::Vector(p) => take(*p),
                 Figure::Line { support, .. } | Figure::Plane { support, .. } => take(*support),
+                Figure::Sphere { centre, radius } => {
+                    take(add(*centre, [*radius; 3]));
+                    take(sub(*centre, [*radius; 3]));
+                }
+                Figure::Circle { centre, radius, normal } => {
+                    // Along each axis a circle reaches r · √(1 − n²) with n its unit normal.
+                    let n = unit(*normal);
+                    let reach = n.map(|c| radius * (1.0 - c * c).max(0.0).sqrt());
+                    take(add(*centre, reach));
+                    take(sub(*centre, reach));
+                }
             }
         }
         for i in 0..3 {
@@ -168,6 +184,8 @@ pub enum Figure {
     Line { support: V3, direction: V3 },
     /// `normal · x = constant`, through `support`.
     Plane { normal: V3, constant: f64, support: V3 },
+    Sphere { centre: V3, radius: f64 },
+    Circle { centre: V3, radius: f64, normal: V3 },
 }
 
 impl Figure {
@@ -185,6 +203,14 @@ impl Figure {
 
     pub fn plane(e: &Plane) -> Option<Figure> {
         Some(Figure::Plane { normal: approx3(&e.normal.coords)?, constant: approx(&e.constant)?, support: approx3(&e.support.coords)? })
+    }
+
+    pub fn sphere(k: &Sphere) -> Option<Figure> {
+        Some(Figure::Sphere { centre: approx3(&k.centre.coords)?, radius: approx(&k.radius)? })
+    }
+
+    pub fn circle(k: &Circle) -> Option<Figure> {
+        Some(Figure::Circle { centre: approx3(&k.centre.coords)?, radius: approx(&k.radius)?, normal: approx3(&k.normal.coords)? })
     }
 }
 
@@ -204,6 +230,8 @@ pub enum Stroke {
     Object,
     /// The hatch of a plane.
     Hatch,
+    /// A ring on the far side of a sphere, hidden by it.
+    Hidden,
 }
 
 /// What a shell draws. `depth` is larger nearer the viewer; `object` is the index of the
@@ -212,7 +240,8 @@ pub enum Stroke {
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum Primitive {
     Segment { from: V2, to: V2, depth: f64, stroke: Stroke, object: Option<usize> },
-    /// A piece of a plane: its outline, closed, to be filled translucent or drawn as lines.
+    /// A piece of a plane or the outline of a sphere, closed, to be filled translucent or drawn
+    /// as lines.
     Polygon { points: Vec<V2>, depth: f64, object: usize },
     /// The marker of a point.
     Marker { at: V2, depth: f64, object: usize },
@@ -405,6 +434,64 @@ fn plane_piece(camera: &Camera, polygon: &[V3], normal: V3, spacing: f64, hatch:
     }
 }
 
+/// The ring around `centre` with `radius` perpendicular to `normal`, `RING` points in order.
+fn ring(centre: V3, radius: f64, normal: V3) -> Vec<V3> {
+    let (e1, e2) = frame(normal);
+    (0..RING)
+        .map(|k| {
+            let (sin, cos) = (std::f64::consts::TAU * k as f64 / RING as f64).sin_cos();
+            add(centre, add(scale(radius * cos, e1), scale(radius * sin, e2)))
+        })
+        .collect()
+}
+
+/// A closed ring as short segments, each with its own depth; with `behind`, those beyond that
+/// depth are [`Stroke::Hidden`].
+fn polyline(camera: &Camera, points: &[V3], behind: Option<f64>, object: usize, out: &mut Vec<Primitive>) {
+    for i in 0..points.len() {
+        let piece = segment(camera, points[i], points[(i + 1) % points.len()], Stroke::Object, Some(object));
+        out.push(match (piece, behind) {
+            (Primitive::Segment { from, to, depth, object, .. }, Some(limit)) if depth < limit => {
+                Primitive::Segment { from, to, depth, stroke: Stroke::Hidden, object }
+            }
+            (piece, _) => piece,
+        });
+    }
+}
+
+/// The point furthest up and to the right on the screen, where a name goes.
+fn top_right(camera: &Camera, points: &[V3]) -> (V2, f64) {
+    points
+        .iter()
+        .map(|p| camera.project(*p))
+        .max_by(|(p, _), (q, _)| (p[0] + p[1]).total_cmp(&(q[0] + q[1])))
+        .expect("a figure has points")
+}
+
+/// A sphere: its outline, a circle on the screen, and rings of latitude and longitude, their
+/// far halves hidden.
+fn sphere(camera: &Camera, centre: V3, radius: f64, object: usize, out: &mut Vec<Primitive>) {
+    let (middle, depth) = camera.project(centre);
+    let r = camera.zoom * radius;
+    let points = (0..RING)
+        .map(|k| {
+            let (sin, cos) = (std::f64::consts::TAU * k as f64 / RING as f64).sin_cos();
+            [middle[0] + r * cos, middle[1] + r * sin]
+        })
+        .collect();
+    out.push(Primitive::Polygon { points, depth, object });
+    for latitude in LATITUDES {
+        let (sin, cos) = latitude.to_radians().sin_cos();
+        let points = ring(add(centre, [0.0, 0.0, radius * sin]), radius * cos, [0.0, 0.0, 1.0]);
+        polyline(camera, &points, Some(depth), object, out);
+    }
+    for k in 0..MERIDIANS {
+        let (sin, cos) = (std::f64::consts::PI * k as f64 / MERIDIANS as f64).sin_cos();
+        let points = ring(centre, radius, [-sin, cos, 0.0]);
+        polyline(camera, &points, Some(depth), object, out);
+    }
+}
+
 /// A vector as an arrow from the origin to `tip`, its head two strokes on the screen, its name
 /// at the middle.
 fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, out: &mut Vec<Primitive>) {
@@ -452,12 +539,19 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Op
                     continue;
                 }
                 plane_piece(camera, &polygon, *normal, bounds.diagonal() / HATCHES, options.hatch, object, &mut out);
-                // The name at the corner furthest up and to the right on the screen.
-                let (at, depth) = polygon
-                    .iter()
-                    .map(|p| camera.project(*p))
-                    .max_by(|(p, _), (q, _)| (p[0] + p[1]).total_cmp(&(q[0] + q[1])))
-                    .expect("a polygon has corners");
+                let (at, depth) = top_right(camera, &polygon);
+                out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
+            }
+            Figure::Sphere { centre, radius } => {
+                sphere(camera, *centre, *radius, object, &mut out);
+                let (middle, depth) = camera.project(*centre);
+                let r = camera.zoom * radius / std::f64::consts::SQRT_2;
+                out.push(Primitive::Label { at: [middle[0] + r, middle[1] + r], depth, text: shown.name.clone(), object: Some(object) });
+            }
+            Figure::Circle { centre, radius, normal } => {
+                let points = ring(*centre, *radius, *normal);
+                polyline(camera, &points, None, object, &mut out);
+                let (at, depth) = top_right(camera, &points);
                 out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
             }
         }
