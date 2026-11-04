@@ -250,6 +250,11 @@ pub enum Request {
     Area { f: String, from: String, to: String },
     /// The curve of f in `window`, for a graph moved or zoomed.
     Sample { f: String, window: Window },
+    /// The letters of `latex` that have no value yet: what CALC asks for.
+    Variables { mode: Mode, latex: String },
+    /// CALC: `latex` worked out in `mode` with the letters given these values, each a key
+    /// and its value as LaTeX. The values stay in the session's variables.
+    Calc { mode: Mode, latex: String, values: Vec<(String, String)> },
 }
 
 impl Request {
@@ -319,6 +324,10 @@ pub enum Reply {
     Task(Task),
     /// The curve of a [`Request::Sample`], in pieces.
     Curve(Vec<Vec<(f32, f32)>>),
+    /// The letters a [`Request::Variables`] found.
+    Variables(Vec<Variable>),
+    /// A result as LaTeX, written as the settings say: a calculation's (CALC).
+    Result(String),
 }
 
 impl Reply {
@@ -330,12 +339,22 @@ impl Reply {
             Reply::Analysis(analysis) => analysis.pages.len(),
             Reply::Task(task) => task.lines.len() + task.result.len(),
             Reply::Curve(pieces) => pieces.len(),
+            Reply::Variables(variables) => variables.len(),
+            Reply::Result(_) => 1,
         }
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+}
+
+/// A letter of an input: the key the session knows it by (`m_1`), and how it is written
+/// (`m_{1}`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Variable {
+    pub key: String,
+    pub symbol: String,
 }
 
 /// A line of an answer.
@@ -615,6 +634,31 @@ impl Backend for Stub {
             Request::Sample { window, .. } => {
                 let (low, high) = (window.x_min, window.x_max);
                 Reply::Curve(vec![(0..=20).map(|i| low + (high - low) * i as f32 / 20.0).map(|x| (x, x * x)).collect()])
+            }
+            // The single letters, in order, each once; a command's name is not one.
+            Request::Variables { latex, .. } => {
+                let mut variables: Vec<Variable> = Vec::new();
+                let mut command = false;
+                for c in latex.chars() {
+                    command = match c {
+                        '\\' => true,
+                        c if c.is_ascii_alphabetic() && command => true,
+                        c if c.is_ascii_alphabetic() => {
+                            let key = c.to_string();
+                            if !variables.iter().any(|variable| variable.key == key) {
+                                variables.push(Variable { symbol: key.clone(), key });
+                            }
+                            false
+                        }
+                        _ => false,
+                    };
+                }
+                Reply::Variables(variables)
+            }
+            // The values given, after the input.
+            Request::Calc { latex, values, .. } => {
+                let values: Vec<String> = values.iter().map(|(key, value)| format!("{key}={value}")).collect();
+                Reply::Result(format!("{latex}; {}", values.join("; ")))
             }
             Request::Area { f, from, to } => {
                 let curve = (0..=10).map(|i| (i as f32 / 10.0, (i as f32 / 10.0).powi(2))).collect();

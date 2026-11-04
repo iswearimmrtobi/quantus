@@ -558,7 +558,12 @@ impl Sheets {
                     sheet.set(row, 0, parse(&latex));
                 }
             }
-            Request::Analysis { .. } | Request::Tangent { .. } | Request::Area { .. } | Request::Sample { .. } => {}
+            Request::Analysis { .. }
+            | Request::Tangent { .. }
+            | Request::Area { .. }
+            | Request::Sample { .. }
+            | Request::Variables { .. }
+            | Request::Calc { .. } => {}
         }
     }
 }

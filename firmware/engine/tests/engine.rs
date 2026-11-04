@@ -252,3 +252,33 @@ mod catalogues {
         }
     }
 }
+
+/// CALC: the letters of an input, then their values.
+mod calc {
+    use quantus_engine::Engine;
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::backend::{Backend, Reply, Request, Variable};
+
+    #[test]
+    fn the_free_letters_are_asked_for_and_their_values_used() {
+        let mut engine = Engine::default();
+        let settings = Settings::default();
+        let latex = r"\frac{1}{2}m\cdot v^{2}".to_string();
+        let asked = engine.solve(&settings, &Request::Variables { mode: Mode::Algebra, latex: latex.clone() });
+        let variable = |key: &str| Variable { key: key.into(), symbol: key.into() };
+        assert_eq!(asked, Ok(Reply::Variables(vec![variable("m"), variable("v")])));
+        let values = vec![("m".to_string(), "2".to_string()), ("v".to_string(), "3".to_string())];
+        let result = engine.solve(&settings, &Request::Calc { mode: Mode::Algebra, latex, values });
+        assert_eq!(result, Ok(Reply::Result("9".to_string())));
+        // The values are the session's now: m has one, v too.
+        let asked = engine.solve(&settings, &Request::Variables { mode: Mode::Algebra, latex: "m+v+w".into() });
+        assert_eq!(asked, Ok(Reply::Variables(vec![variable("w")])));
+    }
+
+    #[test]
+    fn an_input_the_engine_cannot_read_says_why() {
+        let mut engine = Engine::default();
+        let asked = engine.solve(&Settings::default(), &Request::Variables { mode: Mode::Algebra, latex: "2+".into() });
+        assert!(asked.is_err());
+    }
+}

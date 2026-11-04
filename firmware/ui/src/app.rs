@@ -455,7 +455,12 @@ impl<B: Backend> App<B> {
                 }
                 Request::Distribution { kind, .. } => settings.distribution = *kind,
                 Request::Analysis { f } => self.kept_function = Some(latex::parse(f)),
-                Request::Table { .. } | Request::Tangent { .. } | Request::Area { .. } | Request::Sample { .. } => {}
+                Request::Table { .. }
+                | Request::Tangent { .. }
+                | Request::Area { .. }
+                | Request::Sample { .. }
+                | Request::Variables { .. }
+                | Request::Calc { .. } => {}
             }
             self.sheets.fill(request, &self.settings);
         }

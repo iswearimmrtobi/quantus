@@ -371,7 +371,8 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
                 y += line;
             }
         }
-        Reply::Analysis(_) | Reply::Task(_) | Reply::Curve(_) => {}
+        // A calculation's answer goes into the history, not over a sheet.
+        Reply::Analysis(_) | Reply::Task(_) | Reply::Curve(_) | Reply::Variables(_) | Reply::Result(_) => {}
     }
     if answer.scroll > 0 {
         arrow(shapes, Point::new(WIDTH as i32 - MARGIN - 6, BAR + 4), true);

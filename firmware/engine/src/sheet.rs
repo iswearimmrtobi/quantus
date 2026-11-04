@@ -99,6 +99,8 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
             let core = core_settings(CoreMode::Analysis);
             analysis::area(&core, f, from, to, Some(usize::from(settings.digits).min(6))).map(Reply::Task)
         }
+        // They need a session: the engine works them out itself.
+        Request::Variables { .. } | Request::Calc { .. } => Err("Noch nicht verfügbar".to_string()),
     }
 }
 
@@ -306,8 +308,8 @@ pub fn keep(inputs: &mut ModeInputs, request: &Request) {
         }
         Request::Statistics { .. } => inputs.statistics = Some(statistics_request(request)),
         Request::Distribution { .. } => inputs.distribution = Some(distribution_request(request)),
-        // The curve of a graph moved changes nothing kept.
-        Request::Sample { .. } => {}
+        // The curve of a graph moved changes nothing kept, nor does a calculation.
+        Request::Sample { .. } | Request::Variables { .. } | Request::Calc { .. } => {}
         Request::Analysis { f } | Request::Tangent { f, .. } | Request::Area { f, .. } => {
             inputs.analysis = Some(AnalysisRequest { latex: f.clone(), ..AnalysisRequest::default() })
         }

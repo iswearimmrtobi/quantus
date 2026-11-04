@@ -11,12 +11,12 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use quantus_core::api::{self, CalcRequest, CalculationRequest, CalculationResponse, NewSessionRequest};
+use quantus_core::api::{self, Assignment, CalcRequest, CalculationRequest, CalculationResponse, NewSessionRequest};
 use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo};
+use quantus_ui::backend::{Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Variable};
 use quantus_ui::clock;
 use quantus_ui::settings as ui;
 use quantus_ui::text::Lang;
@@ -130,22 +130,39 @@ impl Engine {
         }
     }
 
+    /// The engine's settings for `mode` set in the store, for a call on the open session.
+    fn prepare(&mut self, mode: Mode, settings: &Settings) -> Result<(), String> {
+        let mode = core_mode(mode).ok_or_else(|| "Noch nicht verfügbar".to_string())?;
+        self.zone = settings.zone;
+        api::set_settings(&mut self.store, core_settings(mode, settings)).map(|_| ()).map_err(|error| error.to_string())
+    }
+
+    /// What the calculation screen asks of the open session: the letters of an input, CALC.
+    fn formula(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        let (session_id, precision) = (Some(self.current.clone()), Some(i64::from(settings.digits)));
+        match request {
+            Request::Variables { mode, latex } => {
+                self.prepare(*mode, settings)?;
+                let request = CalculationRequest { latex: latex.clone(), session_id, ..Default::default() };
+                let variables = api::free_variables(&mut self.store, &request).map_err(|error| error.error)?;
+                Ok(Reply::Variables(variables.into_iter().map(|v| Variable { key: v.key, symbol: v.symbol }).collect()))
+            }
+            Request::Calc { mode, latex, values } => {
+                self.prepare(*mode, settings)?;
+                let values = values.iter().map(|(key, latex)| Assignment { key: key.clone(), latex: latex.clone() }).collect();
+                let request = CalcRequest { latex: latex.clone(), values, session_id, precision };
+                let response = api::calc(&mut self.store, &request).map_err(|error| error.error);
+                // The values given are variables of the session now.
+                self.save(&self.current);
+                Ok(Reply::Result(shown(&response?, settings)))
+            }
+            _ => Err("Noch nicht verfügbar".to_string()),
+        }
+    }
+
     /// Evaluates `latex` in the open session; `record` puts it into the history (S⇔D does not).
     fn calculate(&mut self, mode: Mode, settings: &Settings, latex: &str, record: bool) -> Result<String, String> {
-        // Analysis has its own call (the curve sketch) and no screen for it yet; here it, and
-        // Linear with typed equations, evaluate plain inputs. The sheets go through `solve`.
-        let mode = match mode {
-            Mode::Algebra => CoreMode::Algebra,
-            Mode::Physics => CoreMode::Physics,
-            Mode::Imaginary => CoreMode::Imaginary,
-            Mode::Analysis => CoreMode::Analysis,
-            Mode::Linear => CoreMode::Linear,
-            // The app does not ask for these (`Mode::engine`).
-            _ => return Err("Noch nicht verfügbar".to_string()),
-        };
-        self.zone = settings.zone;
-        let core = core_settings(mode, settings);
-        api::set_settings(&mut self.store, core).map_err(|error| error.to_string())?;
+        self.prepare(mode, settings)?;
         let (latex, session_id, precision) = (latex.to_string(), Some(self.current.clone()), Some(settings.digits.into()));
         let response = if record {
             let request = CalculationRequest { latex, session_id, precision, at: (self.clock)() };
@@ -169,8 +186,12 @@ impl Backend for Engine {
         Some(self.calculate(mode, settings, latex, false))
     }
 
-    /// Keeps the sheet in the open session, then works it out.
+    /// Keeps the sheet in the open session, then works it out; or what the calculation screen
+    /// asks of the session.
     fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
+        if matches!(request, Request::Variables { .. } | Request::Calc { .. }) {
+            return self.formula(settings, request);
+        }
         self.zone = settings.zone;
         let current = Some(self.current.as_str());
         let mut inputs = api::get_mode_inputs(&mut self.store, current);
@@ -250,6 +271,21 @@ impl Backend for Engine {
         }
         Ok(self.opened(settings))
     }
+}
+
+/// The engine's mode for a mode of the hui's that evaluates inputs. Analysis has its own call
+/// (the curve sketch), and so do the sheets; here it and Linear with typed equations evaluate
+/// plain inputs.
+fn core_mode(mode: Mode) -> Option<CoreMode> {
+    Some(match mode {
+        Mode::Algebra => CoreMode::Algebra,
+        Mode::Physics => CoreMode::Physics,
+        Mode::Imaginary => CoreMode::Imaginary,
+        Mode::Analysis => CoreMode::Analysis,
+        Mode::Linear => CoreMode::Linear,
+        // The app does not ask for these (`Mode::engine`).
+        _ => return None,
+    })
 }
 
 /// A response as the handheld shows it. The engine writes a rational as a decimal and gives the
