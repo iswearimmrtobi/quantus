@@ -38,7 +38,7 @@ use quantus_core::api::{self, LinearSystemRequest, LinearSystemResponse};
 use quantus_core::eval::{Evaluator, LatexCalculator, Variables};
 use quantus_core::latex::{parser, Node};
 use quantus_core::num::{Decimal, Value as Number};
-use quantus_core::settings::{Elimination, Settings, UnknownNames};
+use quantus_core::settings::{Elimination, Mode, Settings, UnknownNames};
 use quantus_core::units::BaseDim;
 use quantus_core::PhysicalQuantity;
 
@@ -327,6 +327,7 @@ fn run_case(case: &Value) -> Outcome {
         }
         "complex-solutions" => check_complex_solutions(latex, &settings, expect, &tol, calc.latex),
         "solutions" => check_solutions(latex, &settings, expect, &tol, calc.latex),
+        "inequality" => check_inequality(expect, calc.latex),
         "algebra" => check_algebra(latex, &settings, expect, calc.result),
         _ => modes::check_calculation(kind, &settings, expect, &calc),
     }
@@ -596,6 +597,103 @@ fn check_complex_solutions(latex: &str, settings: &Settings, expect: &Value, tol
     } else {
         Outcome::fail("solutions", format!("missing [{}], unexpected [{}]", missing.join(", "), extra.join(", ")), shown)
     }
+}
+
+/// The solution set of an inequality, read from the result as the solver writes the roots of an
+/// equation: pieces joined by `\lor`, each a chain such as `-2 < x \le 3` or `x > 1` (after a
+/// `\Leftrightarrow`, if the result restates the input). Each piece is evaluated in the Verify
+/// mode with the variable replaced by sample points: every bound, a thousandth either side of it,
+/// the midpoints between them and one beyond each end. A point is in the set if a piece is true there, and that must agree with
+/// `intervals` (`[lo, hi, lo_closed, hi_closed]`, `null` for an infinite end).
+fn check_inequality(expect: &Value, shown: String) -> Outcome {
+    type Interval = (Option<RBig>, Option<RBig>, bool, bool);
+    let var = expect["var"].as_str().unwrap_or("x");
+    let bound = |v: &Value| if v.is_null() { Some(None) } else { v.as_str().and_then(parse_rational).map(Some) };
+    let intervals: Option<Vec<Interval>> = expect["intervals"].as_array().and_then(|a| {
+        a.iter()
+            .map(|i| Some((bound(&i[0])?, bound(&i[1])?, i[2].as_bool()?, i[3].as_bool()?)))
+            .collect()
+    });
+    let Some(intervals) = intervals else { return generator("unparsable intervals") };
+    let inside = |t: &RBig| {
+        intervals.iter().any(|(lo, hi, lc, hc)| {
+            let above = lo.as_ref().is_none_or(|lo| if *lc { t >= lo } else { t > lo });
+            let below = hi.as_ref().is_none_or(|hi| if *hc { t <= hi } else { t < hi });
+            above && below
+        })
+    };
+
+    let mut bounds: Vec<RBig> = intervals.iter().flat_map(|(lo, hi, _, _)| [lo.clone(), hi.clone()]).flatten().collect();
+    bounds.sort();
+    bounds.dedup();
+    let mut points = bounds.clone();
+    let step = RBig::from_parts(IBig::ONE, UBig::from(1000u32));
+    points.extend(bounds.iter().flat_map(|b| [b - &step, b + &step]));
+    points.extend(bounds.windows(2).map(|w| (&w[0] + &w[1]) / RBig::from(2)));
+    match (bounds.first(), bounds.last()) {
+        (Some(first), Some(last)) => points.extend([first - RBig::ONE, last + RBig::ONE]),
+        _ => points.push(RBig::ZERO),
+    }
+
+    let set = shown.rsplit("\\Leftrightarrow").next().unwrap_or(&shown).trim();
+    let pieces: Vec<&str> = set.split("\\lor").flat_map(|p| p.split("\\vee")).map(str::trim).collect();
+    if pieces.iter().any(|p| !mentions(p, var)) {
+        return Outcome::fail("inequality", format!("not a chain in {var} joined by \\lor"), shown);
+    }
+    let verify = LatexCalculator::new(PRECISION).with_settings(Settings { mode: Mode::Verify, ..Settings::default() });
+    let vars = Variables::new();
+    for t in &points {
+        let mut found = false;
+        for piece in &pieces {
+            let text = substitute(piece, var, &format!("({})", rational_latex(t)));
+            match verify.evaluate(&text, &vars) {
+                Ok(calc) if calc.value.to_rational() == RBig::ONE => found = true,
+                Ok(_) => {}
+                Err(e) => return Outcome::fail("inequality", format!("cannot check '{text}': {e}"), shown),
+            }
+        }
+        if found != inside(t) {
+            let (want, got) = if inside(t) { ("in", "out of") } else { ("out of", "in") };
+            return Outcome::fail("inequality", format!("{var} = {} should be {want} the set, the result has it {got} it", show(t)), shown);
+        }
+    }
+    Outcome::pass(shown)
+}
+
+/// Whether `var` appears in `text` as a letter of its own (not inside a command or a longer name).
+fn mentions(text: &str, var: &str) -> bool {
+    substitute(text, var, "\u{0}").contains('\u{0}')
+}
+
+/// `text` with every standalone `var` replaced by `with`.
+fn substitute(text: &str, var: &str, with: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let v: Vec<char> = var.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let matches = chars[i..].starts_with(&v);
+        let before_ok = i == 0 || !(chars[i - 1].is_alphabetic() || chars[i - 1] == '\\');
+        let after_ok = chars.get(i + v.len()).is_none_or(|c| !c.is_alphabetic());
+        if matches && before_ok && after_ok {
+            out.push_str(with);
+            i += v.len();
+        } else {
+            out.push(chars[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// A rational as LaTeX: `3`, `-\frac{3}{7}`.
+fn rational_latex(r: &RBig) -> String {
+    let (n, d) = (r.numerator(), r.denominator());
+    if *d == UBig::ONE {
+        return n.to_string();
+    }
+    let sign = if *n < IBig::ZERO { "-" } else { "" };
+    format!("{sign}\\frac{{{}}}{{{d}}}", n.abs())
 }
 
 /// Small deterministic generator for sample points.
@@ -1169,4 +1267,30 @@ fn summarize(records: &[Record], wall: Duration, opts: &Options) -> String {
         );
     }
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn outside_two() -> Value {
+        json!({"kind": "inequality", "var": "x", "intervals": [[null, "-2", false, false], ["5/2", null, false, false]]})
+    }
+
+    #[test]
+    fn an_inequality_is_read_as_typed() {
+        let expect = outside_two();
+        assert_eq!(check_inequality(&expect, r"x < -2 \lor x > \frac{5}{2}".into()).status, "PASS");
+        assert_eq!(check_inequality(&expect, r"x^2 > 4 \Leftrightarrow x < -2 \lor x > 2{,}5".into()).status, "PASS");
+        let inside = json!({"kind": "inequality", "var": "z", "intervals": [["-2", "3", true, false]]});
+        assert_eq!(check_inequality(&inside, r"-2 \le z < 3".into()).status, "PASS");
+    }
+
+    #[test]
+    fn a_wrong_bound_or_end_fails() {
+        let expect = outside_two();
+        assert_ne!(check_inequality(&expect, r"x \le -2 \lor x > \frac{5}{2}".into()).status, "PASS");
+        assert_ne!(check_inequality(&expect, r"x < -2 \lor x > 3".into()).status, "PASS");
+        assert_ne!(check_inequality(&expect, r"x \in (-\infty, -2) \cup (2{,}5, \infty)".into()).status, "PASS");
+    }
 }
