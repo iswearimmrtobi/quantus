@@ -15,7 +15,7 @@ const SYMBOLS: &[(&str, char)] = &[
     ("to", '→'), ("approx", '≈'), ("le", '≤'), ("leq", '≤'), ("ge", '≥'), ("geq", '≥'),
     ("neq", '≠'), ("hbar", 'ℏ'), ("vert", '|'), ("lvert", '|'), ("rvert", '|'), ("{", '{'),
     ("}", '}'), ("%", '%'), ("land", '∧'), ("wedge", '∧'), ("int", '∫'),
-    ("sum", '∑'), ("lor", '∨'), ("vee", '∨'), ("in", '∈'), ("notin", '∉'), ("cup", '∪'),
+    ("sum", '∑'), ("prod", '∏'), ("lor", '∨'), ("vee", '∨'), ("in", '∈'), ("notin", '∉'), ("cup", '∪'),
     ("setminus", '∖'), ("mid", '|'), ("Rightarrow", '⇒'), ("implies", '⇒'), ("rightarrow", '→'),
     ("nearrow", '↗'), ("searrow", '↘'), ("emptyset", '∅'), ("varnothing", '∅'), ("colon", ':'),
     ("Leftrightarrow", '⇔'), ("iff", '⇔'), ("smile", '⌣'), ("frown", '⌢'), ("circ", '°'),

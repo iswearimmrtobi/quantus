@@ -19,7 +19,7 @@ pub const GREEK: &[(char, &str)] = &[
 const SYMBOLS: &[(char, &str)] = &[
     ('×', "cdot"), ('÷', "div"), ('±', "pm"), ('∞', "infty"), ('→', "to"), ('≈', "approx"),
     ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"), ('∧', "land"), ('∫', "int"),
-    ('∑', "sum"), ('∨', "lor"), ('∈', "in"), ('∉', "notin"), ('∪', "cup"), ('∖', "setminus"),
+    ('∑', "sum"), ('∏', "prod"), ('∨', "lor"), ('∈', "in"), ('∉', "notin"), ('∪', "cup"), ('∖', "setminus"),
     ('⇒', "Rightarrow"), ('↗', "nearrow"), ('↘', "searrow"), ('∅', "emptyset"), ('⇔', "Leftrightarrow"),
     ('⌣', "smile"), ('⌢', "frown"), ('{', "{"),
     ('}', "}"),

@@ -195,7 +195,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - The handheld's OPTN inserts more of the engine's functions: arsinh, arcosh, artanh and coth
   under Hyperbol. Fkt.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
-  ∅, ⌣, ⌢, ℝ and ℤ, so a limit shows its arrow; `\text` keeps its spaces.
+  ∅, ⌣, ⌢, ℝ and ℤ, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
+  shows as ∏.
 - The steps of Algebra and of the curve sketch's working are **German** when the language is
   German: every explanation of the algebra pipeline has its German text ("2 mit (x + 3)
   ausmultiplizieren", "Jeden Bruch auf den Hauptnenner bringen", "Erste binomische Formel").
