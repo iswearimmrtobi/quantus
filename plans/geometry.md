@@ -108,7 +108,7 @@ green.
   (2D input is z = 0, remembered for the output), built on `num::Value`; `Point − Point`,
   `Point + Vector`, `Vector ± Vector`, scalar multiple. Test file `tests/geometry.rs` created with
   these.
-- [ ] `dot`, `length`, `unit`, `angle` (exact `\arccos` plus decimal, in the `angle_unit` setting),
+- [x] `dot`, `length`, `unit`, `angle` (exact `\arccos` plus decimal, in the `angle_unit` setting),
   exact in `Value`.
 - [ ] `cross` and the triple product (Spatprodukt) via the determinant in `matrix.rs`; `collinear`
   and `coplanar` tests.

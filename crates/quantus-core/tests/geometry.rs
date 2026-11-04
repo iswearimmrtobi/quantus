@@ -1,5 +1,6 @@
 use quantus_core::geometry::{Point, Vector3};
 use quantus_core::num::Value;
+use quantus_core::settings::AngleUnit;
 
 #[test]
 fn points_and_vectors_have_their_own_arithmetic() {
@@ -33,4 +34,44 @@ fn a_2d_input_is_z_zero_and_stays_2d_only_with_2d_partners() {
     let r = Point::planar(root.clone(), Value::ratio(1, 3));
     assert_eq!((&r - &r).coords, [Value::zero(), Value::zero(), Value::zero()]);
     assert_eq!((&r - &p).coords[0], root.sub(&Value::one()));
+}
+
+fn sqrt(n: i64) -> Value {
+    Value::int(n).pow(&Value::ratio(1, 2)).unwrap()
+}
+
+fn decimal(value: &Value) -> String {
+    value.decimal(12).unwrap().round(10).to_string()
+}
+
+#[test]
+fn dot_length_and_unit_vector_are_exact() {
+    let u = Vector3::from_ints(1, 2, 2);
+    let v = Vector3::from_ints(2, -1, 0);
+    assert_eq!(u.dot(&v), Value::zero());
+    assert_eq!(u.dot(&u), Value::int(9));
+    assert_eq!(u.length().unwrap(), Value::int(3));
+    assert_eq!(v.length().unwrap(), sqrt(5));
+    assert_eq!(u.unit().unwrap(), Vector3::new(Value::ratio(1, 3), Value::ratio(2, 3), Value::ratio(2, 3)));
+    let w = v.unit().unwrap();
+    assert_eq!(w.dot(&w), Value::one());
+    assert!(Vector3::zero().unit().is_err());
+}
+
+#[test]
+fn the_angle_follows_the_angle_unit() {
+    let x = Vector3::from_ints(1, 0, 0);
+    let diagonal = Vector3::from_ints(1, 1, 0);
+    let radians = x.angle(&diagonal, AngleUnit::Radian, 20).unwrap();
+    assert_eq!(radians.value, Value::ratio(1, 4).mul(&Value::Pi));
+    assert_eq!(decimal(&radians.cosine), decimal(&Value::one().div(&sqrt(2)).unwrap()));
+    assert_eq!(x.angle(&diagonal, AngleUnit::Degree, 20).unwrap().value, Value::int(45));
+    assert_eq!(x.angle(&Vector3::from_ints(-3, 0, 0), AngleUnit::Degree, 20).unwrap().value, Value::int(180));
+    assert_eq!(x.angle(&Vector3::from_ints(0, 0, 7), AngleUnit::Degree, 20).unwrap().value, Value::int(90));
+
+    // No closed form: the arccos stays, with the decimal beside it.
+    let angle = Vector3::from_ints(1, 2, 2).angle(&Vector3::from_ints(3, 0, 4), AngleUnit::Degree, 20).unwrap();
+    assert_eq!(angle.cosine, Value::ratio(11, 15));
+    assert_eq!(angle.decimal.round(6).to_string(), "42.8334");
+    assert!(x.angle(&Vector3::zero(), AngleUnit::Radian, 20).is_err());
 }

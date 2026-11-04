@@ -6,7 +6,10 @@
 
 use std::ops::{Add, Mul, Neg, Sub};
 
-use crate::num::Value;
+use crate::eval::angles;
+use crate::num::{Decimal, MathFunction, Value};
+use crate::settings::AngleUnit;
+use crate::{QuantusError, Result};
 
 /// The three coordinates, each exact.
 pub type Coordinates = [Value; 3];
@@ -58,10 +61,74 @@ impl Vector3 {
         Vector3 { coords: self.coords.clone().map(|c| factor.mul(&c)), planar: self.planar }
     }
 
+    /// The dot product (Skalarprodukt) `self · other`.
+    pub fn dot(&self, other: &Vector3) -> Value {
+        self.coords.iter().zip(&other.coords).fold(Value::zero(), |sum, (a, b)| sum.add(&a.mul(b)))
+    }
+
+    /// The length (Betrag) `|self|`, exact: `√(x² + y² + z²)`.
+    pub fn length(&self) -> Result<Value> {
+        self.dot(self).pow(&Value::ratio(1, 2))
+    }
+
+    /// The unit vector (Einheitsvektor) `self / |self|`; the zero vector has none.
+    pub fn unit(&self) -> Result<Vector3> {
+        if self.is_zero() {
+            return Err(QuantusError::other("The zero vector has no unit vector."));
+        }
+        // `|v|^{-1}` as one power, so that its square folds back to a fraction.
+        Ok(self.scale(&self.dot(self).pow(&Value::ratio(-1, 2))?))
+    }
+
+    /// The angle between `self` and `other`, from 0 to π (or 180°), in `unit`; the zero vector
+    /// makes none.
+    pub fn angle(&self, other: &Vector3, unit: AngleUnit, precision: usize) -> Result<Angle> {
+        if self.is_zero() || other.is_zero() {
+            return Err(QuantusError::other("The zero vector makes no angle."));
+        }
+        // One root over the product of the squared lengths keeps the cosine in its simplest form.
+        let cosine = self.dot(other).mul(&self.dot(self).mul(&other.dot(other)).pow(&Value::ratio(-1, 2))?);
+        let radians = cosine.apply(MathFunction::Arccos)?;
+        let value = match unit {
+            AngleUnit::Radian => radians,
+            AngleUnit::Degree => degrees(&radians)?,
+        };
+        let decimal = value.decimal(precision)?;
+        Ok(Angle { cosine, value, unit, decimal })
+    }
+
     /// The point this vector leads to from the origin.
     pub fn to_point(&self) -> Point {
         Point { coords: self.coords.clone(), planar: self.planar }
     }
+}
+
+/// `radians` in degrees; a rational multiple of π becomes a plain number.
+fn degrees(radians: &Value) -> Result<Value> {
+    let multiple = match radians {
+        Value::Pi => Some(Value::one()),
+        Value::Mul(factors) => match factors.as_slice() {
+            [r @ Value::Rat(_), Value::Pi] | [Value::Pi, r @ Value::Rat(_)] => Some(r.clone()),
+            _ => None,
+        },
+        r @ Value::Rat(_) if r.is_zero() => Some(Value::zero()),
+        _ => None,
+    };
+    match multiple {
+        Some(multiple) => Ok(multiple.mul(&Value::int(180))),
+        None => angles::to_degrees(radians),
+    }
+}
+
+/// An angle between two vectors, `\arccos(cosine)`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Angle {
+    /// The exact cosine of the angle.
+    pub cosine: Value,
+    /// The exact angle in `unit`: `\frac{\pi}{3}` or `60` where it folds, else the `arccos`.
+    pub value: Value,
+    pub unit: AngleUnit,
+    pub decimal: Decimal,
 }
 
 impl Point {
