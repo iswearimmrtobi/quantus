@@ -180,7 +180,7 @@ its tests.
 ## Open points
 
 1. German names: to be confirmed (the operation list is settled for the first version).
-2. Decided: Kugel and Kreis belong to the first version (Phase 2, 4 and 5 below).
+2. Decided: Kugel and Kreis belong to the first version (Phase 2, 4 and 5 above).
 
 ## Verification
 
