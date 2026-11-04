@@ -291,6 +291,10 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Forget { .. }) => Some(1),
         Some(Edit::Networks { networks, .. }) => networks.as_ref().map(Vec::len),
         Some(Edit::Saved { names, .. }) => Some(names.len()),
+        Some(Edit::Catalogue { groups, group, .. }) => Some(match group {
+            None => groups.len(),
+            Some(index) => groups.get(*index).map_or(0, |group| group.items.len()),
+        }),
         Some(
             Edit::Number { .. }
             | Edit::Message { .. }

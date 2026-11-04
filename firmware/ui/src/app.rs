@@ -1,6 +1,6 @@
 //! The calculator's state and what each key does to it.
 
-use crate::backend::{Backend, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, Window, WlanStatus};
+use crate::backend::{Backend, Catalogue, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, Window, WlanStatus};
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
@@ -915,8 +915,25 @@ impl<B: Backend> App<B> {
             Outcome::WlanStatus(label) => {
                 menu.edit = Some(Edit::WlanStatus { label, status: self.backend.wlan_status() });
             }
+            Outcome::Catalogue(label, catalogue) => menu.edit = Some(self.catalogue(label, catalogue, false)),
+            Outcome::Item => {
+                let Some(Edit::Catalogue { groups, group: Some(group), selected, .. }) = &menu.edit else { return };
+                let Some(item) = groups.get(*group).and_then(|group| group.items.get(*selected)) else { return };
+                let latex = item.latex.clone();
+                return self.insert(&latex);
+            }
         }
         self.screen = Screen::Menu(menu);
+    }
+
+    /// The list of a catalogue the backend has, or a message if it has none; `close` for one
+    /// opened by its key, which closes the menu when it is left.
+    fn catalogue(&mut self, label: Text, catalogue: Catalogue, close: bool) -> Edit {
+        let groups = self.backend.catalogue(catalogue, self.settings.language);
+        match groups.is_empty() {
+            true => Edit::Message { label, message: text::NOT_AVAILABLE },
+            false => Edit::Catalogue { label, groups, group: None, selected: 0, close },
+        }
     }
 
     /// Sets the clock to the date or the time typed in `menu`, keeping the other from the clock

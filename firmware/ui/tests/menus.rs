@@ -353,3 +353,32 @@ fn bytes_are_written_in_decimal_units() {
     assert_eq!(bytes(123_456_789, Lang::En), "123 MB");
     assert_eq!(bytes(31_914_983_424, Lang::De), "31,9 GB");
 }
+
+#[test]
+fn a_catalogue_goes_from_its_categories_to_their_items_and_back() {
+    use quantus_ui::backend::{Backend, Catalogue};
+    use quantus_ui::menu::{Entry, Outcome};
+    use quantus_ui::text::same;
+    static PAGE: Page = Page { title: same("Test"), entries: &[Entry { label: same("Konstanten"), kind: Kind::Catalogue(Catalogue::Constants) }] };
+    let mut settings = Settings::default();
+    let mut menu = menu::Menu::new(&PAGE);
+    let label = same("Konstanten");
+    assert_eq!(menu.key(Key::Exe, &mut settings), Outcome::Catalogue(label, Catalogue::Constants));
+    let groups = Stub.catalogue(Catalogue::Constants, Lang::De);
+    menu.edit = Some(Edit::Catalogue { label, groups, group: None, selected: 0, close: false });
+    // Into the first category, down to its second item, chosen.
+    assert_eq!(menu.key(Key::Exe, &mut settings), Outcome::Stay);
+    assert!(matches!(menu.edit, Some(Edit::Catalogue { group: Some(0), selected: 0, .. })));
+    assert_eq!(menu.key(Key::Down, &mut settings), Outcome::Stay);
+    assert_eq!(menu.key(Key::Exe, &mut settings), Outcome::Item);
+    assert!(matches!(menu.edit, Some(Edit::Catalogue { group: Some(0), selected: 1, .. })));
+    // ← goes back to the categories, on the one left, and again off the list.
+    menu.key(Key::Left, &mut settings);
+    assert!(matches!(menu.edit, Some(Edit::Catalogue { group: None, selected: 0, .. })));
+    assert_eq!(menu.key(Key::Left, &mut settings), Outcome::Stay);
+    assert_eq!(menu.edit, None);
+    // Opened by its key, leaving the categories closes the menu.
+    let groups = Stub.catalogue(Catalogue::Constants, Lang::De);
+    menu.edit = Some(Edit::Catalogue { label, groups, group: None, selected: 0, close: true });
+    assert_eq!(menu.key(Key::Left, &mut settings), Outcome::Close);
+}

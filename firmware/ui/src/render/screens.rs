@@ -11,6 +11,7 @@ use super::{
 };
 use crate::app::{App, Mode, TILES_PER_PAGE};
 use crate::backend::{Storage, WlanStatus};
+use crate::editor::Row;
 use crate::font::Scale;
 use crate::layout;
 use crate::menu::{self, Edit, Kind, Menu, TextFor, ROWS};
@@ -133,15 +134,19 @@ fn tiles(
 }
 
 /// A line of a menu list.
+#[derive(Default)]
 struct Line {
     label: String,
     value: Option<String>,
+    /// Math at the right end, small: a constant's symbol, a unit.
+    math: Option<Row>,
     /// What stands at the right end.
     mark: Mark,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum Mark {
+    #[default]
     None,
     /// Opens a further page.
     Arrow,
@@ -171,6 +176,7 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                     Kind::Wallpapers => Some(app.wallpaper_name.clone().unwrap_or_else(|| text::NONE.get(lang).to_string())),
                     _ => menu::value(entry, &app.settings, lang),
                 },
+                math: None,
                 mark: if matches!(entry.kind, Kind::Page(_)) { Mark::Arrow } else { Mark::None },
             });
             lines_page(shapes, lines.collect(), level.selected, &list);
@@ -181,12 +187,13 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             let lines = opts.iter().map(|opt| Line {
                 label: opt.text.get(lang).to_string(),
                 value: None,
+                math: None,
                 mark: if opt.value == value { Mark::Dot } else { Mark::None },
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
         Some(Edit::Confirm { .. }) => {
-            let yes = Line { label: text::YES.get(lang).to_string(), value: None, mark: Mark::None };
+            let yes = Line { label: text::YES.get(lang).to_string(), value: None, math: None, mark: Mark::None };
             lines_page(shapes, vec![yes], 0, &list);
         }
         Some(Edit::Number { setting, min, max, typed, error, .. }) => {
@@ -223,6 +230,7 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             let lines = lines.map(|(index, label)| Line {
                 label,
                 value: None,
+                math: None,
                 mark: if index == set { Mark::Dot } else { Mark::None },
             });
             let x = WIDTH as i32 - MARGIN - THUMBNAIL.width as i32;
@@ -247,12 +255,13 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             let lines = sessions.iter().map(|session| Line {
                 label: session.name.clone(),
                 value: None,
+                math: None,
                 mark: if Some(session.id.as_str()) == open { Mark::Dot } else { Mark::None },
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
         Some(Edit::Sections { titles, selected, .. }) => {
-            let lines = titles.iter().map(|title| Line { label: title.clone(), value: None, mark: Mark::None });
+            let lines = titles.iter().map(|title| Line { label: title.clone(), value: None, math: None, mark: Mark::None });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
         Some(Edit::Text { purpose, typed, error, plain, .. }) => {
@@ -280,19 +289,33 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             let lines = networks.iter().map(|network| Line {
                 label: network.ssid.clone(),
                 value: None,
+                math: None,
                 mark: Mark::Signal { bars: network.bars(), secured: network.secured, saved: network.saved },
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
         Some(Edit::Saved { names, selected, .. }) => {
-            let lines = names.iter().map(|name| Line { label: name.clone(), value: None, mark: Mark::None });
+            let lines = names.iter().map(|name| Line { label: name.clone(), value: None, math: None, mark: Mark::None });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
         Some(Edit::Forget { ssid, .. }) => {
             let label = format!("{}: {ssid}", text::FORGET.get(lang));
-            lines_page(shapes, vec![Line { label, value: None, mark: Mark::None }], 0, &list);
+            lines_page(shapes, vec![Line { label, value: None, math: None, mark: Mark::None }], 0, &list);
         }
         Some(Edit::WlanStatus { status, .. }) => wlan_screen(shapes, status, lang, glass),
+        Some(Edit::Catalogue { groups, group: None, selected, .. }) => {
+            let lines = groups.iter().map(|group| Line { label: group.name.clone(), mark: Mark::Arrow, ..Line::default() });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
+        Some(Edit::Catalogue { groups, group: Some(group), selected, .. }) => {
+            let items = groups.get(*group).map_or(&[][..], |group| &group.items);
+            let lines = items.iter().map(|item| Line {
+                label: item.name.clone(),
+                math: Some(crate::latex::parse(&item.latex)),
+                ..Line::default()
+            });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
     }
 }
 
@@ -440,11 +463,18 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
         let baseline = y + (LINE + normal.digit) / 2;
         let number = (index % ROWS + 1).to_string();
         shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::MUTED));
-        let label = fit(&line.label, right - MARGIN - 34 - 14, Scale::Normal);
-        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, colors::TEXT));
-
         let middle = y + LINE / 2;
         let mut end = right - 14;
+        let math = line.math.as_ref().map(|row| layout::layout(row, Scale::Small));
+        let math_width = math.as_ref().map_or(0, |math| math.width + 12);
+        let label = fit(&line.label, right - MARGIN - 34 - 14 - math_width, Scale::Normal);
+        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, colors::TEXT));
+        if let Some(math) = math {
+            let at = Point::new(end - math.width, middle + (math.ascent - math.descent) / 2);
+            let color = if chosen { colors::TEXT } else { colors::RESULT };
+            shapes.push(Shape::Math(at, math, color));
+            end -= math_width;
+        }
         match line.mark {
             Mark::Arrow => {
                 let arrow = Triangle::new(

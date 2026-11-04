@@ -6,7 +6,7 @@
 //! back one level, AC closes the menu. Touch: a tap opens a line, a drag pages ([`Menu::tap`],
 //! [`Menu::page`], [`Menu::step`]).
 
-use crate::backend::{Network, SessionInfo, Storage, WlanStatus};
+use crate::backend::{Catalogue, Group, Network, SessionInfo, Storage, WlanStatus};
 use crate::clock::{self, Local};
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
@@ -61,6 +61,9 @@ pub enum Kind {
     SavedNetworks,
     /// The WLAN connection: the network, the address, the signal.
     WlanStatus,
+    /// The constants or the units by category, which the app asks the backend for; choosing
+    /// one inserts it.
+    Catalogue(Catalogue),
     /// Waits for the engine or the firmware: says so.
     Pending,
 }
@@ -244,6 +247,9 @@ pub enum Edit {
     WlanStatus { label: Text, status: WlanStatus },
     /// The digits of a date or a time being typed; `error` marks one that does not exist.
     Time { label: Text, field: TimeField, typed: String, error: bool },
+    /// The categories of a catalogue, or the items of the category `group`; `close` says that
+    /// leaving the categories closes the menu (opened by its key, not from a page).
+    Catalogue { label: Text, groups: Vec<Group>, group: Option<usize>, selected: usize, close: bool },
 }
 
 /// The longest name a session can be given on the handheld.
@@ -330,6 +336,10 @@ pub enum Outcome {
     /// Set the clock to the date or time typed, which is a real one (the app reads it from the
     /// edit).
     SetTime(TimeField),
+    /// Open a catalogue over the page.
+    Catalogue(Text, Catalogue),
+    /// Insert the item under the cursor of the catalogue (the app reads it from the edit).
+    Item,
 }
 
 impl Menu {
@@ -357,7 +367,8 @@ impl Menu {
                 | Edit::Networks { label, .. }
                 | Edit::Saved { label, .. }
                 | Edit::Forget { label, .. }
-                | Edit::WlanStatus { label, .. },
+                | Edit::WlanStatus { label, .. }
+                | Edit::Catalogue { label, .. },
             ) => *label,
             None => self.level().page.title,
         }
@@ -464,6 +475,7 @@ impl Menu {
             Some(Edit::Sections { titles, selected, .. }) => Some((*selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
+            Some(Edit::Catalogue { groups, group, selected, .. }) => Some((*selected, catalogue_len(groups, *group))),
             _ => None,
         }
     }
@@ -484,6 +496,7 @@ impl Menu {
             Some(Edit::Sections { titles, selected, .. }) => Some((selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
+            Some(Edit::Catalogue { groups, group, selected, .. }) => Some((selected, catalogue_len(groups, *group))),
             _ => None,
         }
     }
@@ -517,6 +530,7 @@ impl Menu {
             Kind::Networks => return Outcome::Networks(entry.label),
             Kind::SavedNetworks => return Outcome::SavedNetworks(entry.label),
             Kind::WlanStatus => return Outcome::WlanStatus(entry.label),
+            &Kind::Catalogue(catalogue) => return Outcome::Catalogue(entry.label, catalogue),
             &Kind::Time(field) => {
                 self.edit = Some(Edit::Time { label: entry.label, field, typed: String::new(), error: false });
             }
@@ -764,6 +778,24 @@ impl Menu {
                 }
                 self.edit = Some(Edit::Time { label, field, typed, error: false });
             }
+            Edit::Catalogue { label, groups, group, selected, close } => {
+                match (pick(key, selected, catalogue_len(&groups, group)), group) {
+                    (Pick::Move(selected), _) => self.edit = Some(Edit::Catalogue { label, groups, group, selected, close }),
+                    (Pick::Chosen(chosen), None) => {
+                        self.edit = Some(Edit::Catalogue { label, groups, group: Some(chosen), selected: 0, close });
+                    }
+                    (Pick::Chosen(chosen), Some(_)) => {
+                        // The app reads the item from it.
+                        self.edit = Some(Edit::Catalogue { label, groups, group, selected: chosen, close });
+                        return Outcome::Item;
+                    }
+                    (Pick::Back, Some(index)) => {
+                        self.edit = Some(Edit::Catalogue { label, groups, group: None, selected: index, close });
+                    }
+                    (Pick::Back, None) if close => return Outcome::Close,
+                    (Pick::Back, None) => {}
+                }
+            }
             // Any key reads on; so it does while the board looks for networks.
             Edit::Message { .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. } => {}
         }
@@ -794,6 +826,14 @@ fn pick(key: Key, selected: usize, count: usize) -> Pick {
         }
         Key::Del | Key::Left | Key::Mode | Key::Optn => Pick::Back,
         _ => Pick::Move(selected),
+    }
+}
+
+/// The lines of a catalogue: its categories, or the items of the category `group`.
+fn catalogue_len(groups: &[Group], group: Option<usize>) -> usize {
+    match group {
+        None => groups.len(),
+        Some(index) => groups.get(index).map_or(0, |group| group.items.len()),
     }
 }
 
