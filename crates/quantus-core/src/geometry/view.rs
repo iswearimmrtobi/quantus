@@ -2,6 +2,10 @@
 //! scene's [`Figure`]s into flat [`Primitive`]s (segments, polygons, markers, labels) that a shell only
 //! draws, as SVG on the desktop and as short 1 px lines on the handheld.
 //!
+//! [`project`] returns the primitives far to near, the labels last, so that a shell draws them
+//! in order; planes are split along their intersection lines, and lines and axes where they
+//! pass through a plane, so that the order stays right.
+//!
 //! Plain `f64`, no caches. Screen coordinates are in view units with the origin at the camera's
 //! centre, x to the right and y **up**; a shell scales them to its pixels and flips y. With
 //! [`Camera::fit`] the box of [`Bounds::fit`] fits into the unit circle.
@@ -328,6 +332,82 @@ impl Bounds {
     }
 }
 
+impl Primitive {
+    /// How near the viewer it is.
+    pub fn depth(&self) -> f64 {
+        match self {
+            Primitive::Segment { depth, .. }
+            | Primitive::Polygon { depth, .. }
+            | Primitive::Marker { depth, .. }
+            | Primitive::Label { depth, .. } => *depth,
+        }
+    }
+}
+
+/// A plane that splits what passes through it, `normal · x = constant` with a unit normal.
+#[derive(Clone, Copy)]
+struct Cutter {
+    normal: V3,
+    constant: f64,
+}
+
+impl Cutter {
+    fn side(&self, p: V3) -> f64 {
+        dot(self.normal, p) - self.constant
+    }
+}
+
+/// A convex polygon split by `cutter` into its pieces on either side, or itself whole if the
+/// cutter does not pass through it; `eps` is what counts as on the cutter.
+fn split_polygon(polygon: Vec<V3>, cutter: Cutter, eps: f64) -> Vec<Vec<V3>> {
+    let sides: Vec<f64> = polygon.iter().map(|p| cutter.side(*p)).collect();
+    if sides.iter().all(|s| *s > -eps) || sides.iter().all(|s| *s < eps) {
+        return vec![polygon];
+    }
+    let (mut front, mut back) = (Vec::new(), Vec::new());
+    for i in 0..polygon.len() {
+        let j = (i + 1) % polygon.len();
+        let (a, b, sa, sb) = (polygon[i], polygon[j], sides[i], sides[j]);
+        if sa >= -eps {
+            front.push(a);
+        }
+        if sa <= eps {
+            back.push(a);
+        }
+        if (sa > eps && sb < -eps) || (sa < -eps && sb > eps) {
+            let p = add(a, scale(sa / (sa - sb), sub(b, a)));
+            front.push(p);
+            back.push(p);
+        }
+    }
+    [front, back].into_iter().filter(|piece| piece.len() >= 3).collect()
+}
+
+/// The segment from `a` to `b` in pieces, cut where it passes through each cutter.
+fn split_segment(a: V3, b: V3, cutters: &[Cutter]) -> Vec<(V3, V3)> {
+    let mut cuts: Vec<f64> = cutters
+        .iter()
+        .filter_map(|c| {
+            let (sa, sb) = (c.side(a), c.side(b));
+            let t = sa / (sa - sb);
+            ((sa < 0.0) != (sb < 0.0) && t > 1e-9 && t < 1.0 - 1e-9).then_some(t)
+        })
+        .collect();
+    cuts.sort_by(f64::total_cmp);
+    let at = |t: f64| add(a, scale(t, sub(b, a)));
+    let mut ends = vec![0.0];
+    ends.extend(cuts);
+    ends.push(1.0);
+    ends.windows(2).map(|w| (at(w[0]), at(w[1]))).collect()
+}
+
+/// A segment, in pieces where it passes through a plane.
+fn segments(camera: &Camera, a: V3, b: V3, stroke: Stroke, object: Option<usize>, cutters: &[Cutter], out: &mut Vec<Primitive>) {
+    for (a, b) in split_segment(a, b, cutters) {
+        out.push(segment(camera, a, b, stroke, object));
+    }
+}
+
 /// A step of 1, 2 or 5 times a power of ten that gives about five ticks over `length`.
 fn tick_step(length: f64) -> f64 {
     let rough = length / 5.0;
@@ -360,7 +440,7 @@ fn segment(camera: &Camera, a: V3, b: V3, stroke: Stroke, object: Option<usize>)
 
 /// The three axes over the box (each through the origin, reaching 0 if the box does not), with
 /// a tick and its number at each step but 0, and the axis name at the end.
-fn axes(camera: &Camera, bounds: &Bounds, out: &mut Vec<Primitive>) {
+fn axes(camera: &Camera, bounds: &Bounds, cutters: &[Cutter], out: &mut Vec<Primitive>) {
     for axis in 0..3 {
         let lo = bounds.min[axis].min(0.0);
         let hi = bounds.max[axis].max(0.0);
@@ -369,7 +449,7 @@ fn axes(camera: &Camera, bounds: &Bounds, out: &mut Vec<Primitive>) {
             p[axis] = t;
             p
         };
-        out.push(segment(camera, along(lo), along(hi), Stroke::Axis, None));
+        segments(camera, along(lo), along(hi), Stroke::Axis, None, cutters, out);
         let (start, _) = camera.project(along(lo));
         let (end, end_depth) = camera.project(along(hi));
         let direction = [end[0] - start[0], end[1] - start[1]];
@@ -494,8 +574,8 @@ fn sphere(camera: &Camera, centre: V3, radius: f64, object: usize, out: &mut Vec
 
 /// A vector as an arrow from the origin to `tip`, its head two strokes on the screen, its name
 /// at the middle.
-fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, out: &mut Vec<Primitive>) {
-    out.push(segment(camera, [0.0; 3], tip, Stroke::Object, Some(object)));
+fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, cutters: &[Cutter], out: &mut Vec<Primitive>) {
+    segments(camera, [0.0; 3], tip, Stroke::Object, Some(object), cutters, out);
     let (start, _) = camera.project([0.0; 3]);
     let (end, depth) = camera.project(tip);
     let shaft = [end[0] - start[0], end[1] - start[1]];
@@ -514,10 +594,24 @@ fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, out: &mut Vec<Prim
     out.push(Primitive::Label { at, depth, text: name.to_owned(), object: Some(object) });
 }
 
-/// The primitives of the scene as `camera` sees it, with the axes over `bounds`.
+/// The primitives of the scene as `camera` sees it, with the axes over `bounds`: far to near,
+/// the labels last.
 pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Options) -> Vec<Primitive> {
+    let eps = 1e-9 * bounds.diagonal();
+    let planes: Vec<(usize, Cutter)> = figures
+        .iter()
+        .enumerate()
+        .filter_map(|(object, shown)| match shown.figure {
+            Figure::Plane { normal, constant, .. } => {
+                let length = dot(normal, normal).sqrt();
+                Some((object, Cutter { normal: scale(1.0 / length, normal), constant: constant / length }))
+            }
+            _ => None,
+        })
+        .collect();
+    let cutters: Vec<Cutter> = planes.iter().map(|(_, c)| *c).collect();
     let mut out = Vec::new();
-    axes(camera, bounds, &mut out);
+    axes(camera, bounds, &cutters, &mut out);
     for (object, shown) in figures.iter().enumerate() {
         match &shown.figure {
             Figure::Point(p) => {
@@ -525,10 +619,10 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Op
                 out.push(Primitive::Marker { at, depth, object });
                 out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
             }
-            Figure::Vector(tip) => arrow(camera, *tip, &shown.name, object, &mut out),
+            Figure::Vector(tip) => arrow(camera, *tip, &shown.name, object, &cutters, &mut out),
             Figure::Line { support, direction } => {
                 if let Some((a, b)) = bounds.clip(*support, *direction) {
-                    out.push(segment(camera, a, b, Stroke::Object, Some(object)));
+                    segments(camera, a, b, Stroke::Object, Some(object), &cutters, &mut out);
                     let (at, depth) = camera.project(b);
                     out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
                 }
@@ -538,7 +632,16 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Op
                 if polygon.is_empty() {
                     continue;
                 }
-                plane_piece(camera, &polygon, *normal, bounds.diagonal() / HATCHES, options.hatch, object, &mut out);
+                // Split along the line where each other plane cuts it.
+                let mut pieces = vec![polygon.clone()];
+                for (other, cutter) in &planes {
+                    if *other != object {
+                        pieces = pieces.into_iter().flat_map(|piece| split_polygon(piece, *cutter, eps)).collect();
+                    }
+                }
+                for piece in &pieces {
+                    plane_piece(camera, piece, *normal, bounds.diagonal() / HATCHES, options.hatch, object, &mut out);
+                }
                 let (at, depth) = top_right(camera, &polygon);
                 out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
             }
@@ -556,5 +659,10 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Op
             }
         }
     }
+    // Stable, so that what lies at one depth keeps the order it was drawn in.
+    out.sort_by(|p, q| {
+        let label = |p: &Primitive| matches!(p, Primitive::Label { .. });
+        label(p).cmp(&label(q)).then(p.depth().total_cmp(&q.depth()))
+    });
     out
 }

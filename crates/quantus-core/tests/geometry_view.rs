@@ -135,7 +135,7 @@ fn the_fitted_camera_keeps_the_box_in_the_unit_circle() {
     }
 }
 
-fn segments(primitives: &[Primitive], of: usize) -> Vec<([f64; 2], [f64; 2])> {
+fn object_segments(primitives: &[Primitive], of: usize) -> Vec<([f64; 2], [f64; 2])> {
     primitives
         .iter()
         .filter_map(|p| match p {
@@ -164,13 +164,13 @@ fn a_line_is_one_segment_with_its_name_at_the_end() {
     assert_eq!(figure, Figure::Line { support: [0.0, 0.0, 1.0], direction: [1.0, 0.0, 0.0] });
     let camera = Camera::default().from_above();
     let primitives = project(&[shown("g", figure)], &camera, &unit_box(), &Options::default());
-    let lines = segments(&primitives, 0);
+    let lines = object_segments(&primitives, 0);
     assert_eq!(lines.len(), 1);
     assert!(close2(lines[0].0, [-2.0, 0.0]) && close2(lines[0].1, [2.0, 0.0]), "{lines:?}");
     assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, at, .. } if text == "g" && close2(*at, [2.0, 0.0]))));
 
     let outside = Figure::Line { support: [0.0, 5.0, 0.0], direction: [1.0, 0.0, 0.0] };
-    assert!(segments(&project(&[shown("h", outside)], &camera, &unit_box(), &Options::default()), 0).is_empty());
+    assert!(object_segments(&project(&[shown("h", outside)], &camera, &unit_box(), &Options::default()), 0).is_empty());
 }
 
 #[test]
@@ -178,7 +178,7 @@ fn a_vector_is_an_arrow_from_the_origin() {
     let figure = Figure::vector(&Vector3::from_ints(1, 0, 0)).unwrap();
     let camera = Camera::default().from_above();
     let primitives = project(&[shown("a", figure)], &camera, &unit_box(), &Options::default());
-    let strokes = segments(&primitives, 0);
+    let strokes = object_segments(&primitives, 0);
     assert_eq!(strokes.len(), 3);
     assert!(close2(strokes[0].0, [0.0, 0.0]) && close2(strokes[0].1, [1.0, 0.0]));
     // The head points back from the tip, one stroke to each side.
@@ -317,7 +317,8 @@ fn a_circle_is_a_ring_of_segments_in_its_plane() {
     for (from, _) in &ring {
         assert!(close(from[0].hypot(from[1]), 2.0), "{from:?}");
     }
-    assert!(close2(ring[RING - 1].1, ring[0].0));
+    // Closed: every segment ends where another one starts.
+    assert!(ring.iter().all(|(_, to)| ring.iter().any(|(from, _)| close2(*from, *to))));
 }
 
 #[test]
@@ -330,4 +331,58 @@ fn the_box_takes_spheres_and_circles_whole() {
     // x and y from −10 to 10, z from −10 to 20 (the circle lies flat there), with a tenth more.
     assert!(close(bounds.max[0], 11.0) && close(bounds.min[1], -11.0), "{bounds:?}");
     assert!(close(bounds.min[2], -11.5) && close(bounds.max[2], 21.5), "{bounds:?}");
+}
+
+fn plane(normal: [f64; 3], constant: f64) -> Figure {
+    Figure::Plane { normal, constant, support: [0.0; 3] }
+}
+
+#[test]
+fn primitives_come_far_to_near_with_the_labels_last() {
+    let figures = [
+        shown("A", Figure::Point([1.0, 1.0, 1.0])),
+        shown("g", Figure::Line { support: [0.0; 3], direction: [1.0, 2.0, 0.5] }),
+        shown("E", plane([0.0, 1.0, 1.0], 0.5)),
+        shown("K", Figure::Sphere { centre: [0.0; 3], radius: 1.0 }),
+    ];
+    let primitives = project(&figures, &Camera::default(), &unit_box(), &Options { hatch: true });
+    let first_label = primitives.iter().position(|p| matches!(p, Primitive::Label { .. })).unwrap();
+    assert!(primitives[first_label..].iter().all(|p| matches!(p, Primitive::Label { .. })));
+    for part in [&primitives[..first_label], &primitives[first_label..]] {
+        assert!(part.windows(2).all(|w| w[0].depth() <= w[1].depth()));
+    }
+}
+
+#[test]
+fn crossing_planes_are_split_along_their_intersection_line() {
+    let figures = [shown("E", plane([1.0, 0.0, 0.0], 0.0)), shown("F", plane([0.0, 2.0, 0.0], 0.0))];
+    let primitives = project(&figures, &Camera::default(), &unit_box(), &Options::default());
+    let pieces = polygons(&primitives);
+    assert_eq!(pieces.len(), 4);
+    assert_eq!(pieces.iter().filter(|(_, o)| *o == 0).count(), 2);
+    assert!(pieces.iter().all(|(points, _)| points.len() == 4));
+    // Each piece is half of its square, two corners on the intersection line, the z axis.
+    let camera = Camera::default();
+    let (top, _) = camera.project([0.0, 0.0, 2.0]);
+    let (bottom, _) = camera.project([0.0, 0.0, -2.0]);
+    for (points, _) in &pieces {
+        assert!(points.iter().any(|p| close2(*p, top)) && points.iter().any(|p| close2(*p, bottom)), "{points:?}");
+    }
+}
+
+#[test]
+fn parallel_and_identical_planes_are_not_split() {
+    let figures = [shown("E", plane([0.0, 0.0, 1.0], 0.0)), shown("F", plane([0.0, 0.0, 1.0], 1.0)), shown("G", plane([0.0, 0.0, 2.0], 0.0))];
+    let primitives = project(&figures, &Camera::default(), &unit_box(), &Options::default());
+    assert_eq!(polygons(&primitives).len(), 3);
+}
+
+#[test]
+fn a_line_and_the_axes_are_cut_where_they_pass_through_a_plane() {
+    let figures = [shown("g", Figure::Line { support: [0.0, 0.5, 0.5], direction: [1.0, 0.0, 0.0] }), shown("E", plane([1.0, 0.0, 0.0], 1.0))];
+    let primitives = project(&figures, &Camera::default(), &unit_box(), &Options::default());
+    assert_eq!(object_segments(&primitives, 0).len(), 2);
+    // The x axis passes through x = 1 too; y and z lie beside it.
+    let axes = primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Axis, .. })).count();
+    assert_eq!(axes, 4);
 }

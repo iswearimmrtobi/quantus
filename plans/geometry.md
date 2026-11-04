@@ -176,7 +176,8 @@ its tests.
 - [x] Line segments clipped to the box (and vectors as arrows from the origin).
 - [x] Plane polygons from the cut with the box (outline plus optional hatch).
 - [x] Sphere (outline circle plus latitude and longitude rings) and circle polylines.
-- [ ] Depth order across all primitives, with plane polygons split along their intersection lines.
+- [x] Depth order across all primitives, with plane polygons split along their intersection lines
+  (and lines and axes cut where they pass through a plane).
 
 ### Phase 5: desktop UI
 
