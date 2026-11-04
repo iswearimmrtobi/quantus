@@ -143,6 +143,9 @@ pub enum Mode {
     /// Checks (in)equalities, chained as `1 < 2 \le 2`: true or false (Prüfen). Inputs are read
     /// as in `Algebra`, and an equation is checked instead of solved.
     Verify,
+    /// Vectors, points, lines, planes, spheres and circles in 3D. Inputs are read
+    /// as in `Algebra`.
+    Geometry,
 }
 
 /// The unit a plain number in a trigonometric function is read in, and inverse functions answer in.
@@ -304,7 +307,7 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify),
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify | Mode::Geometry),
             imaginary_i: self.complex(),
         }
     }
@@ -414,6 +417,8 @@ mod tests {
         assert_eq!(serde_json::to_value(Mode::Matrix).unwrap(), json!("matrix"));
         assert_eq!(serde_json::to_value(Mode::Distributions).unwrap(), json!("distributions"));
         assert_eq!(serde_json::to_value(Mode::Verify).unwrap(), json!("verify"));
+        assert_eq!((options(Mode::Geometry).units, options(Mode::Geometry).imaginary_i), (false, false));
+        assert_eq!(serde_json::to_value(Mode::Geometry).unwrap(), json!("geometry"));
     }
 
     #[test]

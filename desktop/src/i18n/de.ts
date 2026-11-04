@@ -223,6 +223,7 @@ export const de: Record<TextKey, string> = {
   'mode.baseN.hint': 'Ganze Zahlen dezimal, hexadezimal, binär oder oktal, 32 Bit im Zweierkomplement, mit and, or, xor, xnor, Not und Neg.',
   'mode.verify': 'Prüfen',
   'mode.verify.hint': 'Prüft eine Gleichung oder Ungleichung ohne Unbekannte, auch verkettet (1 < 2 < 3): wahr oder falsch.',
+  'mode.geometry': 'Geometrie',
   'choice.degree': 'Grad',
   'choice.radian': 'Bogenmaß',
   'choice.improper': 'd/c',

@@ -308,7 +308,7 @@ export interface Kirchhoff {
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
-export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff' | 'baseN' | 'verify';
+export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff' | 'baseN' | 'verify' | 'geometry';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 export type Language = 'en' | 'de';
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';

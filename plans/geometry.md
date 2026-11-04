@@ -102,7 +102,7 @@ green.
 
 ### Phase 1: vectors in the engine
 
-- [ ] `Mode::Geometry` in `settings.rs` (read as in `Algebra`; also the `units:` match and the
+- [x] `Mode::Geometry` in `settings.rs` (read as in `Algebra`; also the `units:` match and the
   serde test); `'geometry'` in `desktop/src/api.ts`.
 - [ ] `geometry/` module (`pub` in `lib.rs`) with `Vector3 { [Value; 3] }` and a separate `Point`
   (2D input is z = 0, remembered for the output), built on `num::Value`; `Point − Point`,

@@ -222,6 +222,7 @@ export const en = {
   'mode.baseN.hint': 'Whole numbers in decimal, hexadecimal, binary or octal, 32 bits in two’s complement, with and, or, xor, xnor, Not and Neg.',
   'mode.verify': 'Verify',
   'mode.verify.hint': 'Checks an equation or inequality without unknowns, also chained (1 < 2 < 3): true or false.',
+  'mode.geometry': 'Geometry',
   'choice.degree': 'Degrees',
   'choice.radian': 'Radians',
   'choice.improper': 'd/c',
