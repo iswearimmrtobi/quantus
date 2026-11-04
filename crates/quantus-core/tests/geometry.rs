@@ -412,7 +412,7 @@ fn intersecting_lines() {
     let LineRelation::Intersecting { point, lambda, mu, angle } = &worked.result else { panic!("{:?}", worked.result) };
     assert_eq!((point, lambda, mu), (&Point::from_ints(4, 3, 0), &Value::int(3), &Value::int(4)));
     assert_eq!(angle.value, Value::int(45));
-    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["S = (4|3|0)", r"\varphi = 45^\circ"]);
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["S = (0|-1|0)", r"\varphi = 45^\circ"]);
     let standard = latex_at(&worked.working, StepDetail::Detailed);
     assert!(standard.contains(&r"\begin{aligned} \lambda - \mu = -1 \\ \lambda = 3 \\ 0 = 0 \end{aligned}".to_string()), "{standard:#?}");
     assert!(standard.contains(&r"0 \cdot 3 + 0 \cdot 4 = 0 = 0".to_string()), "{standard:#?}");
@@ -952,4 +952,77 @@ fn every_working_is_written_in_both_languages() {
             assert_ne!(a.text, b.text, "{name}: the text has no German");
         }
     }
+}
+
+fn ask(scene: serde_json::Value, task: serde_json::Value, settings: &Settings) -> quantus_core::api::GeometryResponse {
+    let request: quantus_core::api::GeometryRequest = serde_json::from_value(serde_json::json!({ "scene": { "objects": scene }, "task": task })).unwrap();
+    quantus_core::api::geometry(settings, &request).unwrap()
+}
+
+#[test]
+fn the_api_builds_a_scene_from_forms_and_names() {
+    use serde_json::json;
+    let scene = json!([
+        { "name": "A", "kind": "point", "at": ["1", "0", "0"] },
+        { "name": "B", "kind": "point", "at": "(3|2|0)" },
+        { "name": "u", "kind": "vector", "value": ["0", "\\frac{1}{2}", ""] },
+        { "name": "g", "kind": "lineThrough", "a": "A", "b": "B" },
+        { "name": "h", "kind": "line", "support": "(0|3|0)", "direction": "\\vec{u}" },
+        { "name": "E", "kind": "planeCoordinate", "a": "0", "b": "0", "c": "1", "d": "2" },
+        { "name": "K", "kind": "sphere", "centre": "A", "radius": "3" },
+        { "name": "k", "kind": "circleCut", "sphere": "K", "plane": "E" },
+        { "name": "x", "kind": "line", "support": "A", "direction": ["0", "0", "0"] }
+    ]);
+    let response = ask(scene.clone(), serde_json::Value::Null, &Settings::default());
+    assert!(response.task.is_none());
+    let latex: Vec<&str> = response.objects.iter().map(|o| o.latex.as_str()).collect();
+    assert_eq!(latex[0], "A = (1|0|0)");
+    assert_eq!(latex[2], r"\vec{u} = \begin{pmatrix} 0 \\ \frac{1}{2} \\ 0 \end{pmatrix}");
+    assert_eq!(latex[3], r"g: \vec{x} = \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} + \lambda \begin{pmatrix} 2 \\ 2 \\ 0 \end{pmatrix}");
+    assert_eq!(latex[5], "E: z = 2");
+    assert_eq!(response.objects[7].kind, "circle");
+    assert!(!response.objects[3].steps.is_empty(), "a line through two points has its working");
+    // A failing object is reported on its own; the others stand.
+    assert!(response.objects[8].error.as_deref().unwrap().contains("zero vector"));
+    assert!(response.objects[8].latex.is_empty());
+
+    let settings = Settings { angle_unit: AngleUnit::Degree, ..Settings::default() };
+    let task = |task| ask(scene.clone(), task, &settings).task.unwrap();
+    let relation = task(json!({ "kind": "relation", "a": "g", "b": "h" }));
+    assert_eq!(relation.relation.as_deref(), Some("intersecting"));
+    assert!(relation.result.contains(&"S = (0|-1|0)".to_string()), "{:?}", relation.result);
+    assert!(relation.result.contains(&r"\varphi = 45^\circ".to_string()));
+    assert!(relation.align_block.starts_with("\\begin{align*}"));
+
+    assert_eq!(task(json!({ "kind": "relation", "a": "K", "b": "E" })).relation.as_deref(), Some("circle"));
+    assert_eq!(task(json!({ "kind": "relation", "a": "B", "b": "g" })).relation.as_deref(), Some("on"));
+    assert_eq!(task(json!({ "kind": "distance", "a": "A", "b": "B" })).result, [r"d = 2\sqrt{2}"]);
+    assert_eq!(task(json!({ "kind": "distance", "a": "A", "b": "E" })).result, ["d = 2"]);
+    assert_eq!(task(json!({ "kind": "midpoint", "a": "A", "b": "B" })).result, ["M = (2|1|0)"]);
+    assert_eq!(task(json!({ "kind": "foot", "point": "A", "onto": "E" })).result.last().unwrap(), "F = (1|0|2)");
+    assert_eq!(task(json!({ "kind": "measure", "object": "\\vec{u}", "measure": "length" })).result, [r"\left|\vec{a}\right| = \frac{1}{2}"]);
+    assert_eq!(task(json!({ "kind": "measure", "object": "K", "measure": "volume" })).result, [r"V = 36\pi"]);
+    assert_eq!(task(json!({ "kind": "evaluate", "latex": "\\vec{u} \\times \\begin{pmatrix} 1 \\\\ 0 \\\\ 0 \\end{pmatrix}" })).result.len(), 1);
+    assert_eq!(task(json!({ "kind": "convert", "plane": "E", "form": "normal" })).result.len(), 1);
+
+    let wrong = task(json!({ "kind": "angle", "a": "A", "b": "K" }));
+    assert!(wrong.error.unwrap().contains("does not work"));
+    assert!(task(json!({ "kind": "relation", "a": "x", "b": "g" })).error.unwrap().contains("no object x"));
+}
+
+#[test]
+fn the_api_answers_in_german_at_the_detail_setting() {
+    use serde_json::json;
+    let scene = json!([
+        { "name": "P", "kind": "point", "at": ["1", "2"] },
+        { "name": "Q", "kind": "point", "at": ["4", "6"] }
+    ]);
+    let german = Settings { language: Language::De, step_detail: StepDetail::Standard, ..Settings::default() };
+    let task = ask(scene.clone(), json!({ "kind": "distance", "a": "P", "b": "Q" }), &german).task.unwrap();
+    assert_eq!(task.result, ["d = 5"]);
+    assert_eq!(task.steps.len(), 2);
+    assert_eq!(task.steps[1].explanation.as_deref(), Some("Der Abstand:"));
+    assert_eq!(task.steps[1].kind, "result");
+    let brief = Settings { step_detail: StepDetail::Brief, ..Settings::default() };
+    assert_eq!(ask(scene, json!({ "kind": "distance", "a": "P", "b": "Q" }), &brief).task.unwrap().steps.len(), 1);
 }

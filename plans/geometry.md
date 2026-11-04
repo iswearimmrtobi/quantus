@@ -153,7 +153,7 @@ results, not errors. Each step below brings its tests.
 
 ### Phase 3: API and session
 
-- [ ] `api.rs`: `Scene { objects }`, `GeometryRequest` and the task enum (`Relation(a, b)`,
+- [x] `api.rs`: `Scene { objects }`, `GeometryRequest` and the task enum (`Relation(a, b)`,
   `Distance(a, b)`, `Convert(plane, form)`, …) with `geometry(settings, request)` for the objects
   of Phase 2; the response holds the exact result, LaTeX, steps and the copy block (`align*`).
 - [ ] Typed input goes through the same entry and is parsed into objects by a reader of its own

@@ -301,6 +301,16 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
     Ok(crate::kirchhoff::interface::kirchhoff(settings, request)?)
 }
 
+pub use crate::geometry::interface::{
+    Entry, Form, GeometryRequest, GeometryResponse, Measure, ObjectResponse, Scene, SceneObject, Shape, Task, TaskResponse,
+};
+
+/// A scene of points, vectors, lines, planes, spheres and circles and a task on it (Geometry
+/// mode). Stateless: the shell keeps the scene.
+pub fn geometry(settings: &Settings, request: &GeometryRequest) -> Result<GeometryResponse, ApiError> {
+    Ok(crate::geometry::interface::geometry(settings, request)?)
+}
+
 /// An ENG or ←ENG step on a result: its `value` (and `imaginary`) from the
 /// [`CalculationResponse`], `steps` presses of ENG (negative for ←ENG; 0 is the first press).
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

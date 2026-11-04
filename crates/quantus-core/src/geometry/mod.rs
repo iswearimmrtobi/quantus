@@ -6,6 +6,7 @@
 
 mod circle;
 mod eval;
+pub mod interface;
 mod line;
 mod plane;
 mod reflect;
