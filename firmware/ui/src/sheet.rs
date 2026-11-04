@@ -310,7 +310,7 @@ pub enum Kind {
     Tangent,
     Area,
     Points,
-    /// CALC's form over the input: a field for each letter that has no value.
+    /// CALC's or SOLVE's form over the input: a field for each letter that has no value.
     Formula,
 }
 
@@ -336,11 +336,13 @@ impl Kind {
     }
 }
 
-/// What CALC asks for over the input: the letters of an input in `mode` that have no value.
+/// What CALC or SOLVE (`solve`) asks for over the input: the letters of an input in `mode`
+/// that have no value.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Formula {
     pub mode: Mode,
     pub variables: Vec<Variable>,
+    pub solve: bool,
 }
 
 /// The fields of the Wertetabelle form, top to bottom.
@@ -440,7 +442,8 @@ impl Sheets {
         }
     }
 
-    /// Opens CALC's form for `formula`: an empty field per letter, the cursor on the first.
+    /// Opens CALC's or SOLVE's form for `formula`: an empty field per letter, the cursor on the
+    /// first.
     pub fn ask(&mut self, formula: Formula) {
         self.formula = Sheet::new(formula.variables.len(), 1, Flow::Down);
         self.asked = Some(formula);
@@ -542,9 +545,24 @@ impl Sheets {
             Kind::Area => Request::Area { f: function.to_string(), from: cell(0), to: cell(1) },
             Kind::Points => Request::Table { f: function.to_string(), g: None, from: cell(0), to: cell(1), step: cell(2) },
             Kind::Formula => {
-                let (mode, variables) = self.asked.as_ref().map_or((Mode::Physics, &[][..]), |asked| (asked.mode, &asked.variables[..]));
-                let values = variables.iter().enumerate().map(|(row, variable)| (variable.key.clone(), cell(row))).collect();
-                Request::Calc { mode, latex: function.to_string(), values }
+                let (mode, variables, solve) =
+                    self.asked.as_ref().map_or((Mode::Physics, &[][..], false), |asked| (asked.mode, &asked.variables[..], asked.solve));
+                let latex = function.to_string();
+                if !solve {
+                    let values = variables.iter().enumerate().map(|(row, variable)| (variable.key.clone(), cell(row))).collect();
+                    return Request::Calc { mode, latex, values };
+                }
+                // SOLVE finds the letter left empty; with all given, the one at the cursor,
+                // starting from its value.
+                let empty = (0..variables.len()).find(|&row| sheet.cell(row, 0).is_empty());
+                let unknown = empty.unwrap_or(sheet.cursor.0.min(variables.len().saturating_sub(1)));
+                let start = (empty.is_none()).then(|| cell(unknown));
+                let values = (0..variables.len())
+                    .filter(|&row| row != unknown && !sheet.cell(row, 0).is_empty())
+                    .map(|row| (variables[row].key.clone(), cell(row)))
+                    .collect();
+                let variable = variables.get(unknown).map(|variable| variable.key.clone()).unwrap_or_default();
+                Request::Solve { mode, latex, variable, values, start }
             }
         }
     }

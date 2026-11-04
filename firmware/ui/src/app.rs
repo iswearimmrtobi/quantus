@@ -130,8 +130,8 @@ enum Pending {
     Sheet,
     /// The curve of the graph on the screen, moved or zoomed.
     Curve,
-    /// The letters of the input, for CALC's form.
-    Variables { mode: Mode },
+    /// The letters of the input, for CALC's or SOLVE's form.
+    Variables { mode: Mode, solve: bool },
     /// CALC's answer: a new entry for this input.
     Formula { input: Row },
 }
@@ -848,7 +848,7 @@ impl<B: Backend> App<B> {
                 self.act(action);
                 return;
             }
-            Outcome::Act(action @ (Action::TangentForm | Action::AreaForm | Action::PointsForm | Action::Calc)) => {
+            Outcome::Act(action @ (Action::TangentForm | Action::AreaForm | Action::PointsForm | Action::Calc | Action::Solve)) => {
                 self.act(action);
                 return;
             }
@@ -1040,7 +1040,8 @@ impl<B: Backend> App<B> {
                 self.task = Some(kind);
                 self.sheets.get_mut(kind).select(0, 0);
             }
-            Action::Calc => self.calc(),
+            Action::Calc => self.formula(false),
+            Action::Solve => self.formula(true),
             // Done by `outcome`, which knows the menu to come back to.
             Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
         }
@@ -1142,7 +1143,7 @@ impl<B: Backend> App<B> {
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             Key::Const => return self.open_catalogue(Catalogue::Constants),
             Key::Conv => return self.open_catalogue(Catalogue::Units),
-            Key::Calc => return self.calc(),
+            Key::Calc => return self.formula(shift),
             _ => {}
         }
         // While the backend calculates, AC drops its answer and the other keys wait; the graph
@@ -1250,14 +1251,14 @@ impl<B: Backend> App<B> {
         }
     }
 
-    /// CALC: asks the engine for the letters of the input that have no value, for a form with a
-    /// field for each; an input without any is worked out as it is.
-    fn calc(&mut self) {
+    /// CALC, or SOLVE with `solve`: asks the engine for the letters of the input that have no
+    /// value, for a form with a field for each. CALC works an input without any out as it is.
+    fn formula(&mut self, solve: bool) {
         if self.pending.is_some() || self.editor.is_empty() || !self.mode.engine() || self.sheet_kind().is_some() {
             return;
         }
         let request = Request::Variables { mode: self.mode, latex: self.editor.to_latex() };
-        self.ask(Pending::Variables { mode: self.mode }, &request);
+        self.ask(Pending::Variables { mode: self.mode, solve }, &request);
     }
 
     /// Sends a request of the calculation screen (CALC) to the backend, its answer to come in
@@ -1278,14 +1279,17 @@ impl<B: Backend> App<B> {
         let lang = self.settings.language;
         let not_available = || text::NOT_AVAILABLE.get(lang).to_string();
         match self.pending.take() {
-            Some(Pending::Variables { mode }) => match reply {
+            Some(Pending::Variables { mode, solve }) => match reply {
+                Ok(Reply::Variables(variables)) if variables.is_empty() && solve => {
+                    self.answer_entry(Err(text::NO_UNKNOWN.get(lang).to_string()));
+                }
                 Ok(Reply::Variables(variables)) if variables.is_empty() => {
                     self.shown = None;
                     self.evaluate();
                 }
                 Ok(Reply::Variables(variables)) => {
                     self.shown = None;
-                    self.sheets.ask(sheet::Formula { mode, variables });
+                    self.sheets.ask(sheet::Formula { mode, variables, solve });
                 }
                 Ok(_) => self.answer_entry(Err(not_available())),
                 Err(message) => self.answer_entry(Err(message)),

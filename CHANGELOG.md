@@ -201,6 +201,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   inserted after `▶`.
 - **CALC** on the handheld (F8, Ctrl+B, OPTN → Werkzeuge): a form over the input asks for each
   letter that has no value, EXE works the input out with them; the values stay in the session.
+  **SOLVE** (SHIFT+CALC) uses the same form and solves for the letter left empty, or, with all
+  of them given, for the one at the cursor, starting from its value.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ, ℤ, ℏ and the conversion arrow ▶, so a limit shows its arrow; `\text` keeps its spaces. A product `\prod`
   shows as ∏, and nCr (`\binom`) as n over r in brackets, a template of its own in the editor. A degree

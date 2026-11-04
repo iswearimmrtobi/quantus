@@ -157,7 +157,8 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         }
     }
 
-    // The function a task is on, and what an empty area's bounds mean; the input CALC asks for.
+    // The function a task is on, and what an empty area's bounds mean; the input CALC or SOLVE
+    // asks for.
     if kind.over_input() {
         let function = match kind {
             Kind::Formula => app.editor.to_latex(),
@@ -165,12 +166,18 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         };
         let laid = layout::layout(&latex::parse(&function), Scale::Normal);
         let baseline = FORM_TOP + (ROW - 4 + laid.ascent - laid.descent) / 2;
-        let x = MARGIN;
+        let (x, width) = (MARGIN, laid.width);
         shapes.push(Shape::Math(Point::new(x, baseline), laid, colors::AMBER));
         if kind == Kind::Area {
             let hint = OUTER_ZEROS.get(app.settings.language).to_string();
             let y = top(kind) + 2 * ROW + Scale::Small.metrics().ascent + 4;
             shapes.push(Shape::Text(Point::new(MARGIN, y), hint, Scale::Small, colors::FAINT));
+        }
+        // Along the right of the input, which letter SOLVE solves for.
+        if app.sheets.asked.as_ref().is_some_and(|asked| asked.solve) {
+            let hint = text::SOLVE_HINT.get(app.settings.language).to_string();
+            let x = WIDTH as i32 - MARGIN - Scale::Small.width(&hint);
+            shapes.push(Shape::Text(Point::new(x.max(MARGIN + width + 12), baseline), hint, Scale::Small, colors::FAINT));
         }
     }
 

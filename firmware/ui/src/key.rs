@@ -52,7 +52,8 @@ pub enum Key {
     Const,
     /// CONV: a value converted to a unit, chosen by category.
     Conv,
-    /// CALC: the input worked out for values of its letters, asked for in a form.
+    /// CALC: the input worked out for values of its letters, asked for in a form; after SHIFT,
+    /// SOLVE: solved for the letter left empty.
     Calc,
     /// S⇔D: the shown result as a decimal or exact.
     SwapForm,

@@ -114,6 +114,8 @@ pub enum Action {
     PointsForm,
     /// CALC: the input worked out for values of its letters, asked for in a form.
     Calc,
+    /// SOLVE: the input solved for the letter whose field is left empty.
+    Solve,
 }
 
 impl Action {

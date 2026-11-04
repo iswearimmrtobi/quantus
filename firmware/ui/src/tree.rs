@@ -406,7 +406,7 @@ static GREEK: Page = Page {
 
 static TOOLS: Page = Page {
     title: t("Werkzeuge", "Tools"),
-    entries: &[entry(same("CALC"), Kind::Do(Action::Calc)), pending(same("SOLVE")), CONVERSIONS_ENTRY],
+    entries: &[entry(same("CALC"), Kind::Do(Action::Calc)), entry(same("SOLVE"), Kind::Do(Action::Solve)), CONVERSIONS_ENTRY],
 };
 
 const CONSTANTS_ENTRY: Entry = entry(t("Konstanten", "Constants"), Kind::Catalogue(Catalogue::Constants));
