@@ -467,7 +467,8 @@ impl<B: Backend> App<B> {
                 | Request::Area { .. }
                 | Request::Sample { .. }
                 | Request::Variables { .. }
-                | Request::Calc { .. } => {}
+                | Request::Calc { .. }
+                | Request::Solve { .. } => {}
             }
             self.sheets.fill(request, &self.settings);
         }

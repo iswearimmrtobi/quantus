@@ -282,3 +282,27 @@ mod calc {
         assert!(asked.is_err());
     }
 }
+
+/// SOLVE: an equation solved for one letter, the others given.
+mod solve {
+    use quantus_engine::Engine;
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::backend::{Backend, Reply, Request};
+
+    fn solve(latex: &str, variable: &str, values: &[(&str, &str)], start: Option<&str>) -> Result<Reply, String> {
+        let values = values.iter().map(|(key, value)| (key.to_string(), value.to_string())).collect();
+        let request = Request::Solve { mode: Mode::Algebra, latex: latex.into(), variable: variable.into(), values, start: start.map(String::from) };
+        Engine::default().solve(&Settings::default(), &request)
+    }
+
+    #[test]
+    fn for_the_letter_left_open() {
+        assert_eq!(solve(r"F=m\cdot a", "a", &[("F", "10"), ("m", "2")], None), Ok(Reply::Result("a = 5".to_string())));
+    }
+
+    #[test]
+    fn newton_starts_where_it_is_told_with_the_digits_set() {
+        let Ok(Reply::Result(result)) = solve(r"x^{3}+x=1", "x", &[], Some("1")) else { panic!("a result") };
+        assert_eq!(result, "x = 0{,}6823278038");
+    }
+}

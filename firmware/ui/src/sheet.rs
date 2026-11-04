@@ -601,7 +601,8 @@ impl Sheets {
             | Request::Area { .. }
             | Request::Sample { .. }
             | Request::Variables { .. }
-            | Request::Calc { .. } => {}
+            | Request::Calc { .. }
+            | Request::Solve { .. } => {}
         }
     }
 }

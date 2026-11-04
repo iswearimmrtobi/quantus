@@ -255,6 +255,9 @@ pub enum Request {
     /// CALC: `latex` worked out in `mode` with the letters given these values, each a key
     /// and its value as LaTeX. The values stay in the session's variables.
     Calc { mode: Mode, latex: String, values: Vec<(String, String)> },
+    /// SOLVE: `latex` solved for the letter `variable`, the others given `values`; `start`
+    /// begins Newton's method where no exact method applies.
+    Solve { mode: Mode, latex: String, variable: String, values: Vec<(String, String)>, start: Option<String> },
 }
 
 impl Request {
@@ -326,7 +329,8 @@ pub enum Reply {
     Curve(Vec<Vec<(f32, f32)>>),
     /// The letters a [`Request::Variables`] found.
     Variables(Vec<Variable>),
-    /// A result as LaTeX, written as the settings say: a calculation's (CALC).
+    /// A result as LaTeX, written as the settings say: a calculation's (CALC), the solutions of
+    /// an equation (SOLVE).
     Result(String),
 }
 
@@ -660,6 +664,7 @@ impl Backend for Stub {
                 let values: Vec<String> = values.iter().map(|(key, value)| format!("{key}={value}")).collect();
                 Reply::Result(format!("{latex}; {}", values.join("; ")))
             }
+            Request::Solve { variable, start, .. } => Reply::Result(format!("{variable}={}", start.as_deref().unwrap_or("?"))),
             Request::Area { f, from, to } => {
                 let curve = (0..=10).map(|i| (i as f32 / 10.0, (i as f32 / 10.0).powi(2))).collect();
                 let overlay = Overlay { regions: vec![Region { positive: true, curve }], ..Overlay::default() };

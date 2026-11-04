@@ -11,7 +11,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use quantus_core::api::{self, Assignment, CalcRequest, CalculationRequest, CalculationResponse, NewSessionRequest};
+use quantus_core::api::{self, Assignment, CalcRequest, CalculationRequest, CalculationResponse, NewSessionRequest, SolveRequest};
 use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
@@ -137,7 +137,8 @@ impl Engine {
         api::set_settings(&mut self.store, core_settings(mode, settings)).map(|_| ()).map_err(|error| error.to_string())
     }
 
-    /// What the calculation screen asks of the open session: the letters of an input, CALC.
+    /// What the calculation screen asks of the open session: the letters of an input, CALC,
+    /// SOLVE.
     fn formula(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
         let (session_id, precision) = (Some(self.current.clone()), Some(i64::from(settings.digits)));
         match request {
@@ -155,6 +156,14 @@ impl Engine {
                 // The values given are variables of the session now.
                 self.save(&self.current);
                 Ok(Reply::Result(shown(&response?, settings)))
+            }
+            Request::Solve { mode, latex, variable, values, start } => {
+                self.prepare(*mode, settings)?;
+                let values = values.iter().map(|(key, latex)| Assignment { key: key.clone(), latex: latex.clone() }).collect();
+                let request = SolveRequest { latex: latex.clone(), variable: variable.clone(), values, start: start.clone(), session_id, precision };
+                let response = api::solve_for(&mut self.store, &request).map_err(|error| error.error);
+                self.save(&self.current);
+                Ok(Reply::Result(response?.result))
             }
             _ => Err("Noch nicht verfügbar".to_string()),
         }
@@ -189,7 +198,7 @@ impl Backend for Engine {
     /// Keeps the sheet in the open session, then works it out; or what the calculation screen
     /// asks of the session.
     fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
-        if matches!(request, Request::Variables { .. } | Request::Calc { .. }) {
+        if matches!(request, Request::Variables { .. } | Request::Calc { .. } | Request::Solve { .. }) {
             return self.formula(settings, request);
         }
         self.zone = settings.zone;
