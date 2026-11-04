@@ -12,12 +12,29 @@ first, with the maths and the 3D projection in `quantus-core` so the handheld ca
 (shells only add UI and storage).
 
 Decisions so far: desktop first; objects entered through forms **and** typed expressions; results
-exact, with steps at the existing `step_detail` levels.
+exact, with steps at the existing `step_detail` levels; Kugel and Kreis belong to the first
+version.
 
-- Typed syntax: vectors `(1|2|3)`, `\begin{pmatrix}`, `\vec{a}`; points `(1,2,3)`. `|v|` stays the
-  length; the parser tells `(a|b|c)` from `|v|` by the parentheses.
-- `Point` and `Vector3` are separate types (Point − Point = Vector, Point + Vector = Point).
-- Angles follow the existing `angle_unit` setting (`AngleUnit` in `settings.rs`).
+- Typed syntax in school notation: points `P(1|2|3)` (or `(1|2|3)` in a point field), vectors
+  `\begin{pmatrix}` or `\vec{a}`; `;` is accepted as a separator too. No `(1,2,3)`: `1,2` is
+  already a decimal number (`latex/lexer.rs`). `|v|` stays the length; a `|` right after `(` or
+  after a coordinate separator starts no absolute value, and an absolute value inside a coordinate
+  is written `\left|…\right|`.
+- The new syntax applies only in Geometry mode. Inputs are read as in `Algebra`; `\lambda`, `\mu`,
+  `\sigma`, `\tau` are parameters there, not the micro prefix.
+- `Point` and `Vector3` are their own types (Point − Point = Vector, Point + Vector = Point), not
+  3×1 matrices. Matrix mode stays unchanged (no `\times` or `|v|` there); `matrix.rs` lends its
+  determinant.
+- The types decide the operator: scalar·vector is the scalar multiple, vector·vector the dot
+  product, vector×vector the cross product; `\times` between scalars stays multiplication.
+- Named objects (`A`, `g`, `E`, `K`, `\vec{a}`) live only in the scene (`ModeInputs`), in their
+  own namespace like the matrices of matrix mode: not in the variable list, and a variable may
+  share a name with an object. `x`, `y`, `z` in a coordinate equation are always coordinates.
+- Coordinates are numbers only; a free variable in a coordinate is a clear error (sets like `E_a`
+  come later).
+- Angles follow the existing `angle_unit` setting (`AngleUnit` in `settings.rs`), shown as the
+  exact `\arccos(…)` form plus the decimal.
+- Results drop z when every input was 2D; the view stays 3D, with a "view from above" button.
 - A `Circle` is stored as centre, radius and normal; "Kugel ∩ Ebene" is a constructor that
   converts into it.
 
@@ -26,17 +43,19 @@ exact, with steps at the existing `step_detail` levels.
 One system for both, but not three.js: it needs a browser, and the handheld has only
 embedded-graphics. The shared part is **a camera and a projection in `quantus-core`**: the engine
 takes the scene (points, lines, planes) and a camera (yaw, pitch, zoom, centre) and returns 2D
-primitives (axes with ticks, point markers, line segments clipped to the view, plane patches as
-polygon outlines plus an optional hatch, spheres as an outline circle with a few latitude and
-longitude rings, circles as a polyline of short segments). Each shell only draws them:
+primitives (axes with ticks, point markers, line segments, plane patches as polygon outlines plus
+an optional hatch, spheres as an outline circle with a few latitude and longitude rings, circles as
+a polyline of short segments). Each shell only draws them:
 
 - desktop: SVG, like `FunctionPlot.tsx` (drag rotates, wheel zooms, no new dependency);
 - handheld: short 1 px lines (a long 2 px polyline took 7 s, short 1 px pieces at most 218 ms, see
   [plans.md](plans.md) §4), keys rotate.
 
-Planes are translucent polygons on the desktop and outlines on the handheld, both from the same
-primitives. Depth sorting happens in the core. A WebGL view can replace the SVG one later without
-touching the engine.
+The window is a 3D box around the scene (auto-fit); lines are clipped to it, and a plane is drawn
+as the polygon where it cuts the box. Planes are translucent polygons on the desktop and outlines
+on the handheld, both from the same primitives. Depth sorting happens in the core, and plane
+polygons are split along their intersection lines so the order stays right. A WebGL view can
+replace the SVG one later without touching the engine.
 
 ## Concepts (English, German names to confirm)
 
@@ -46,7 +65,8 @@ vector), Richtungsvektor (direction), Normalenvektor (normal), Parameterform, No
 Koordinatenform, Kugel (sphere), Kreis (circle), Mittelpunkt, Radius, Tangente, Tangentialebene,
 Abstand (distance), Schnittpunkt / Schnittgerade (intersection), Schnittwinkel
 (angle), Skalarprodukt (dot), Kreuzprodukt (cross), Betrag (length), Lotfußpunkt (foot of
-perpendicular), windschief (skew), parallel, identisch, Spiegelung (reflection).
+perpendicular), windschief (skew), parallel, identisch, Spiegelung (reflection), Schnittkreis
+(intersection circle), Potenzebene (plane of the intersection of two spheres).
 
 Operations of the first version:
 
@@ -54,19 +74,24 @@ Operations of the first version:
   cross, angle, collinear and coplanar test, triple product (Spatprodukt), area of triangle and
   parallelogram, volume of tetrahedron and parallelepiped.
 - **Line:** from two points or point and direction; point on line?; relation of two lines
-  (identical, parallel, intersecting, skew) with intersection point and angle.
+  (identical, parallel, intersecting, skew) with intersection point, angle and distance.
 - **Plane:** from three points, point and two directions, point and normal; convert between
   parameter, normal and coordinate form; point on plane?
 - **Sphere (Kugel):** from centre and radius, centre and a point, or four points; equation in
-  coordinate and vector form; point inside, on or outside; relation to a line (secant, tangent,
-  passant, with the intersection points); relation to a plane (intersection circle, tangent, no
-  contact); tangent plane at a point on the sphere; relation of two spheres; surface and volume.
+  coordinate and vector form; point inside, on or outside, and its distance to the sphere; relation
+  to a line (secant, tangent, passant, with the intersection points); relation to a plane
+  (intersection circle, tangent, no contact, with the distance); tangent plane at a point on the
+  sphere; relation of two spheres with the intersection circle and the Potenzebene; surface and
+  volume.
 - **Circle (Kreis):** in a plane in 3D, as a sphere cut by a plane (centre, radius and plane from
-  the cut) or from centre, radius and normal; relation to a line (intersection points, tangent);
-  circumference and area. Plain 2D circles (`(x-a)²+(y-b)²=r²`) are the z = 0 case.
-- **Mixed:** line–plane (intersection point, angle, parallel, contained), plane–plane (intersection
-  line, angle), distance point–line, point–plane, line–line (skew), foot of perpendicular,
-  reflection of a point.
+  the cut) or from centre, radius and normal; point on circle?; relation to a line (intersection
+  points, tangent); tangent at a point of the circle; relation to a plane (intersection points,
+  contained, no contact); circumference and area. Plain 2D circles (`(x-a)²+(y-b)²=r²`) are the
+  z = 0 case.
+- **Mixed:** line–plane (intersection point, angle, parallel with distance, contained),
+  plane–plane (intersection line, angle, parallel with distance), distance point–line,
+  point–plane, line–line (skew), foot of perpendicular, reflection of a point in a point, a line
+  or a plane.
 
 All exact in `Value` (fractions, roots, `π`). The angle unit follows the `angle_unit` setting.
 
@@ -77,18 +102,25 @@ green.
 
 ### Phase 1: vectors in the engine
 
+- [ ] `Mode::Geometry` in `settings.rs` (read as in `Algebra`; also the `units:` match and the
+  serde test); `'geometry'` in `desktop/src/api.ts`.
 - [ ] `geometry/` module (`pub` in `lib.rs`) with `Vector3 { [Value; 3] }` and a separate `Point`
-  (2D input is z = 0), built on `num::Value`; `Point − Point`, `Point + Vector`, `Vector ± Vector`,
-  scalar multiple. Test file `tests/geometry.rs` created with these.
-- [ ] `dot`, `length`, `unit`, `angle` (in the `angle_unit` setting), exact in `Value`.
+  (2D input is z = 0, remembered for the output), built on `num::Value`; `Point − Point`,
+  `Point + Vector`, `Vector ± Vector`, scalar multiple. Test file `tests/geometry.rs` created with
+  these.
+- [ ] `dot`, `length`, `unit`, `angle` (exact `\arccos` plus decimal, in the `angle_unit` setting),
+  exact in `Value`.
 - [ ] `cross` and the triple product (Spatprodukt) via the determinant in `matrix.rs`; `collinear`
   and `coplanar` tests.
 - [ ] Areas and volumes: triangle, parallelogram, tetrahedron, parallelepiped.
-- [ ] Parser, *check first* how `MatrixEvaluator` in `matrix.rs` reads `pmatrix` and extend that
-  instead of duplicating it: `\begin{pmatrix}`, `(1|2|3)` and `\vec{a}` read as vectors, with tests.
-- [ ] Parser: points `(1,2,3)`, with tests.
-- [ ] Evaluator: `×` is the cross product, `\cdot` the dot product, `|v|` the length (as Casio §3.7),
-  with tests.
+- [ ] Parser, Geometry mode only, *check first* how `MatrixEvaluator` in `matrix.rs` reads
+  `pmatrix` and reuse that instead of duplicating it: `\begin{pmatrix}`, `\vec{a}` read as
+  vectors, with tests.
+- [ ] Parser: points `P(1|2|3)` and `(1|2|3)`, `;` as a separator, the rule that tells `(a|b|c)`
+  from `|v|`, with tests (nested bars, `\left|…\right|` in a coordinate, `(1,5|2|3)` with a
+  decimal comma).
+- [ ] Evaluator: `×` is the cross product, `\cdot` the dot product (scalar·vector the multiple),
+  `|v|` the length (as Casio §3.7), with tests.
 - [ ] Entry in `docs/docs/contributing/testing.md`.
 
 ### Phase 2: objects and relations
@@ -104,30 +136,32 @@ results, not errors. Each step below brings its tests.
 - [ ] `Plane`: from three points, point and two directions, point and normal; conversions between
   parameter, normal and coordinate form (lines and planes keep the form they were given in);
   point on plane?
-- [ ] Mixed line–plane: intersection point, angle, parallel, contained.
-- [ ] Mixed plane–plane: intersection line, angle; distance point–plane; reflection of a point.
+- [ ] Mixed line–plane: intersection point, angle, parallel (with distance), contained.
+- [ ] Mixed plane–plane: intersection line, angle, parallel (with distance); distance point–plane.
+- [ ] Reflection of a point in a point, a line and a plane.
 - [ ] `Sphere`: from centre and radius, centre and a point, or four points; coordinate and vector
-  form; point inside, on or outside; surface and volume.
+  form; point inside, on or outside, with its distance to the sphere; surface and volume.
 - [ ] Sphere × line (secant, tangent, passant, intersection points) and sphere × plane
-  (intersection circle, tangent, no contact); tangent plane at a point.
-- [ ] Sphere × sphere.
+  (intersection circle, tangent, no contact, distance); tangent plane at a point.
+- [ ] Sphere × sphere: relation, intersection circle and Potenzebene.
 - [ ] `Circle` (centre, radius, normal): direct constructor, the "Kugel ∩ Ebene" constructor,
-  circumference and area; the plain 2D circle as the z = 0 case.
-- [ ] Circle × line (intersection points, tangent).
+  point on circle?, circumference and area; the plain 2D circle as the z = 0 case.
+- [ ] Circle × line (intersection points, tangent) and the tangent at a point of the circle.
+- [ ] Circle × plane (intersection points, contained, no contact).
 - [ ] Steps at Brief, Standard, Detailed and Maximal across all of the above, and a *Geometry*
   section with worked examples in `design/step-detail.md`.
 
 ### Phase 3: API and session
 
-- [ ] `Mode::Geometry` in `settings.rs` (also the `units:` match and the serde test); `'geometry'`
-  in `desktop/src/api.ts`.
 - [ ] `api.rs`: `Scene { objects }`, `GeometryRequest` and the task enum (`Relation(a, b)`,
   `Distance(a, b)`, `Convert(plane, form)`, …) with `geometry(settings, request)` for the objects
   of Phase 2; the response holds the exact result, LaTeX, steps and the copy block (`align*`).
-- [ ] Typed input goes through the same entry and is parsed into objects (`A=(1,2,3)`,
-  `g: X=A+\lambda(…)`, `K: (x-1)^2+y^2+z^2=9`).
+- [ ] Typed input goes through the same entry and is parsed into objects by a reader of its own
+  for `Name: …` and `Name = …` (the lexer drops `:`): `A(1|2|3)`, `g: X=A+\lambda(…)`,
+  `K: (x-1)^2+y^2+z^2=9`. Equations are classified: linear in x, y, z is a plane; x², y², z² with
+  the same coefficient and no mixed terms is a sphere; anything else is an error.
 - [ ] The scene is kept per session in `ModeInputs` (`session.rs`, `get_mode_inputs` and
-  `set_mode_inputs`).
+  `set_mode_inputs`), as its own namespace.
 - [ ] Tauri command in `desktop/src-tauri/src/commands.rs`, registered in `main.rs`, and the
   wrapper in `api.ts`.
 
@@ -138,11 +172,11 @@ its tests.
 
 - [ ] `geometry/view.rs`: `Camera` (yaw, pitch, zoom, centre), `Primitive`, and `project` for axes
   with ticks and labels and for points.
-- [ ] Line segments clipped to the view.
-- [ ] Plane polygons (outline plus optional hatch).
+- [ ] Auto-fit 3D box for the scene.
+- [ ] Line segments clipped to the box.
+- [ ] Plane polygons from the cut with the box (outline plus optional hatch).
 - [ ] Sphere (outline circle plus latitude and longitude rings) and circle polylines.
-- [ ] Depth order across all primitives.
-- [ ] Auto-fit window for the scene.
+- [ ] Depth order across all primitives, with plane polygons split along their intersection lines.
 
 ### Phase 5: desktop UI
 
@@ -151,7 +185,7 @@ its tests.
   `mode.geometry` strings in `en.ts` and `de.ts`.
 - [ ] `GeometryPlot.tsx`: SVG like `FunctionPlot.tsx`, drawing the primitives of a fixed demo
   scene with axes.
-- [ ] Plot interaction: drag rotates, wheel zooms, a reset button.
+- [ ] Plot interaction: drag rotates, wheel zooms, a reset button and a "view from above" button.
 - [ ] Plot labels and a colour per object, fed from the real scene.
 - [ ] Object list with forms for Punkt and Vektor: MathLive cells for the coordinates (as in
   `MatrixGrid.tsx`), add and remove.
@@ -167,20 +201,21 @@ its tests.
 - [ ] Spec `design/geometry.md` (glossary, operations, step layouts).
 - [ ] Guide in `docs/docs/guides/` and the settings reference.
 - [ ] `CHANGELOG.md` under `[Unreleased]`; remove the "Later" lines for Geometrie in `plans.md` §5,
-  `new-areas-and-themes.md` and `firmware/docs/features.md`.
+  `new-areas-and-themes.md`, `firmware/docs/features.md` and `design/handheld-menus.md` (the
+  open list, §8 and the feature table).
 
 ### Later (separate plan)
 
 - The handheld: Geometrie tiles and OPTN (`firmware/ui/src/tree.rs`, `app.rs`,
   `firmware/engine/src/lib.rs` `core_mode`), drawing the shared primitives, the VctA–D editor from
   handheld-menus.md §3.7.
+- Sets of lines and planes with a parameter (`E_a`), which need symbolic coordinates.
 - Shape formulas and triangle solving from [new-areas-and-themes.md](new-areas-and-themes.md)
   (separate from analytic geometry).
 
 ## Open points
 
 1. German names: to be confirmed (the operation list is settled for the first version).
-2. Decided: Kugel and Kreis belong to the first version (Phase 2, 4 and 5 above).
 
 ## Verification
 
