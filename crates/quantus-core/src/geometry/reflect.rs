@@ -58,7 +58,7 @@ impl Plane {
         let position = Vector3 { coords: p.coords.clone(), planar: false };
         working.add(
             Standard,
-            msg!("The perpendicular through P along the normal:", "Die Lotgerade durch P in Richtung des Normalenvektors:"),
+            msg!("The perpendicular through the point along the normal:", "Die Lotgerade durch den Punkt in Richtung des Normalenvektors:"),
             format!("\\vec{{x}} = {} + \\lambda {}", show::vector(&position), show::vector(n)),
         );
         let (constant, coefficient) = (n.dot(&position), n.dot(n));

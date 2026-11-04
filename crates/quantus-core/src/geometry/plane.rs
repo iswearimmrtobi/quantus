@@ -195,6 +195,7 @@ impl Plane {
                 msg!("A normal is the cross product of the directions:", "Ein Normalenvektor ist das Kreuzprodukt der Richtungsvektoren:"),
                 format!("\\vec{{n}} = {} \\times {} = {}", show::vector(u), show::vector(v), show::vector(&cross)),
             );
+            working.add(Detailed, msg!("Component by component:", "Komponentenweise:"), format!("\\vec{{n}} = {} = {}", show::cross(u, v), show::vector(&cross)));
             if let Some(factor) = shortening(&cross) {
                 working.add(
                     Standard,

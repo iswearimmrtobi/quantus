@@ -114,6 +114,15 @@ pub(crate) fn dot(a: &Vector3, b: &Vector3) -> String {
     products.join(" + ")
 }
 
+/// The cross product of `a` and `b` written out by its components,
+/// `\begin{pmatrix} 2 \cdot 4 - 3 \cdot 0 \\ … \end{pmatrix}`.
+pub(crate) fn cross(a: &Vector3, b: &Vector3) -> String {
+    let entry = |i: usize, j: usize| {
+        format!("{} \\cdot {} - {} \\cdot {}", factor_first(&a.coords[i]), factor(&b.coords[j]), factor(&a.coords[j]), factor(&b.coords[i]))
+    };
+    format!("\\begin{{pmatrix}} {} \\\\ {} \\\\ {} \\end{{pmatrix}}", entry(1, 2), entry(2, 0), entry(0, 1))
+}
+
 /// A value as the first factor of a product: brackets only around a sum.
 fn factor_first(v: &Value) -> String {
     let shown = value(v);

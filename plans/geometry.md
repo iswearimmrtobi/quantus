@@ -148,7 +148,7 @@ results, not errors. Each step below brings its tests.
   point on circle?, circumference and area; the plain 2D circle as the z = 0 case.
 - [x] Circle × line (intersection points, tangent) and the tangent at a point of the circle.
 - [x] Circle × plane (intersection points, contained, no contact).
-- [ ] Steps at Brief, Standard, Detailed and Maximal across all of the above, and a *Geometry*
+- [x] Steps at Brief, Standard, Detailed and Maximal across all of the above, and a *Geometry*
   section with worked examples in `design/step-detail.md`.
 
 ### Phase 3: API and session

@@ -875,3 +875,81 @@ fn a_circle_and_a_plane() {
 fn show(value: &Value) -> String {
     value.decimal(12).unwrap().round(6).to_string()
 }
+
+/// Every operation of the Geometry mode once, with its working.
+fn every_working() -> Vec<(&'static str, Working)> {
+    let degree = AngleUnit::Degree;
+    let g = line([1, 0, 0], [1, 1, 0]);
+    let e = coordinate_plane(2, -1, 3, 4);
+    let p = Plane::through(&at([1, 0, 0]), &at([0, 2, 0]), &at([0, 0, 3])).unwrap().result;
+    let k = ball([1, 2, 3], 5);
+    let c = Circle::new(&at([0, 0, 0]), Value::int(5), &ints([0, 0, 1])).unwrap();
+    vec![
+        ("line through", Line::through(&at([1, 2, 3]), &at([3, 1, 3])).unwrap().working),
+        ("point on line", g.contains(&at([3, 2, 0])).working),
+        ("point off line", g.contains(&at([3, 2, 1])).working),
+        ("distance to line", g.distance(&at([0, 3, 4])).unwrap().working),
+        ("identical lines", g.relation(&line([3, 2, 0], [-1, -1, 0]), degree, 20).unwrap().working),
+        ("parallel lines", g.relation(&line([0, 0, 1], [2, 2, 0]), degree, 20).unwrap().working),
+        ("intersecting lines", g.relation(&line([0, 3, 0], [1, 0, 0]), degree, 20).unwrap().working),
+        ("skew lines", g.relation(&line([0, 0, 3], [0, 1, 1]), degree, 20).unwrap().working),
+        ("plane through", Plane::through(&at([1, 0, 0]), &at([0, 2, 0]), &at([0, 0, 3])).unwrap().working),
+        ("parameter to coordinate", p.convert(PlaneForm::Coordinate).working),
+        ("coordinate to parameter", e.convert(PlaneForm::Parameter).working),
+        ("point in plane", p.contains(&at([0, 1, 0])).unwrap().working),
+        ("distance to plane", e.distance(&at([1, 2, 5])).unwrap().working),
+        ("line meets plane", e.meet_line(&line([1, 2, 0], [1, 0, -1]), degree, 20).unwrap().working),
+        ("line parallel to plane", e.meet_line(&line([0, 0, 0], [1, 2, 0]), degree, 20).unwrap().working),
+        ("planes meet", e.meet_plane(&p, degree, 20).unwrap().working),
+        ("parallel planes", e.meet_plane(&coordinate_plane(4, -2, 6, 1), degree, 20).unwrap().working),
+        ("reflect in point", at([1, 2, 3]).reflect_in_point(&at([0, 0, 0])).working),
+        ("reflect in line", g.reflect(&at([0, 3, 4])).working),
+        ("reflect in plane", e.reflect(&at([1, 2, 5])).unwrap().working),
+        ("sphere through point", Sphere::through(&at([0, 0, 0]), &at([1, 3, 4])).unwrap().working),
+        ("sphere through four", Sphere::through_four(&at([2, 1, 1]), &at([0, 1, 1]), &at([1, 2, 1]), &at([1, 1, 2])).unwrap().working),
+        ("point and sphere", k.locate(&at([0, 0, 0])).unwrap().working),
+        ("surface", k.surface().working),
+        ("volume", k.volume().working),
+        ("sphere and line", k.meet_line(&line([1, 2, 0], [0, 0, 1])).unwrap().working),
+        ("sphere and plane", k.meet_plane(&coordinate_plane(0, 0, 1, 6)).unwrap().working),
+        ("tangent plane", k.tangent_plane(&at([1, 2, 8])).unwrap().working),
+        ("two spheres", k.meet_sphere(&ball([1, 2, 9], 5)).unwrap().working),
+        ("point on circle", c.contains(&at([3, 4, 0])).unwrap().working),
+        ("circumference", c.circumference().working),
+        ("area", c.area().working),
+        ("circle and line", c.meet_line(&line([0, 3, 0], [1, 0, 0])).unwrap().working),
+        ("tangent of circle", c.tangent(&at([3, 4, 0])).unwrap().working),
+        ("circle and plane", c.meet_plane(&coordinate_plane(0, 1, 0, 3)).unwrap().working),
+    ]
+}
+
+#[test]
+fn every_working_has_a_result_line_and_grows_with_the_level() {
+    let levels = [StepDetail::Brief, StepDetail::Standard, StepDetail::Detailed, StepDetail::Maximal];
+    for (name, working) in every_working() {
+        let counts: Vec<usize> = levels.iter().map(|&level| working.at(level).count()).collect();
+        assert!(counts[0] >= 1, "{name}: no Brief line");
+        assert!(counts.windows(2).all(|pair| pair[0] <= pair[1]), "{name}: {counts:?}");
+        // Brief is the result; from Standard on there is a working, except for the plain formulas.
+        if !matches!(name, "surface" | "volume" | "circumference" | "area") {
+            assert!(counts[1] > counts[0], "{name}: Standard adds nothing");
+        }
+        assert_eq!(working.at(StepDetail::None).count(), counts[0], "{name}: None shows what Brief shows");
+        assert!(working.notes.iter().all(|note| !note.latex.is_empty() && !note.text.is_empty()), "{name}");
+    }
+}
+
+#[test]
+fn every_working_is_written_in_both_languages() {
+    let english = every_working();
+    let german = {
+        let _german = Scope::new(Language::De);
+        every_working()
+    };
+    for ((name, en), (_, de)) in english.iter().zip(&german) {
+        assert_eq!(en.notes.len(), de.notes.len(), "{name}");
+        for (a, b) in en.notes.iter().zip(&de.notes) {
+            assert_ne!(a.text, b.text, "{name}: the text has no German");
+        }
+    }
+}

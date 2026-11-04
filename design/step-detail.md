@@ -11,8 +11,8 @@ The "Now" rows are real output of the engine (default settings), after the fixes
 "Proposed" rows are worked by hand; each row follows from the one before it.
 
 **Status:** built, in the order of [Order of work](#order-of-work). The tables are the
-specification; the tests in `tests/algebra_milestone5.rs`, `tests/analysis.rs` and
-`tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
+specification; the tests in `tests/algebra_milestone5.rs`, `tests/analysis.rs`,
+`tests/geometry.rs` and `tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
 section says so under **Built**. Rows not built: the Maximal $+(-2) = -2$ of the tangent, the
 merged family $x^2 = k\pi$ of the inverse functions, a Standard block per summand that needs the
 product or chain rule inside a sum, factoring out $e^{2x}$ after the product rule (the algebra
@@ -839,6 +839,103 @@ with them skip the gcd. An entry with no exact form is a six-digit decimal.
 Built: all of the above. Tests: `tests/linear_systems.rs` with `tests/golden/systems.json` (this
 example at every level, plus one inconsistent and one infinite system with both methods), and the
 unit tests in `eval/calculator.rs`, `eval/system.rs` and `linear.rs`.
+
+---
+
+## Geometry mode
+
+Code in `crates/quantus-core/src/geometry/`. Every operation returns its result with a `Working`:
+a list of notes, each a text (through `msg!`, English and German), a formula and the lowest level
+it shows at. Degenerate cases (parallel, identical, skew, a point off a line) are results with
+their own working, not errors. The levels mean:
+
+- **Brief:** the result lines only: the point, the equation, the angle, the distance, the relation.
+- **Standard:** the school method: the equation that is set up, the vector that is computed, the
+  values that come out, the check of a third row.
+- **Detailed:** the formula with the values put in: the system of equations written out, the
+  cross product component by component, the discriminant, the foot of a perpendicular as a point.
+- **Maximal:** the checks of a result (the intersection point in the other object, the other
+  points of a sphere through four) and the dot products row by row.
+
+A plane in another form is put into the coordinate form first, and that conversion is part of the
+working. Points and vectors of 2D inputs are written without z. Exact values stay exact
+(fractions, roots, `π`); an angle without a closed form is written as its `\arccos` or `\arcsin`
+with a six-digit decimal.
+
+### Two lines (`line.rs`, `relation`)
+
+$g: \vec{x} = (1|0|0) + \lambda (1, 1, 0)$ and $h: \vec{x} = (0|3|0) + \mu (1, 0, 0)$, angle in degrees.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | The vectors are not multiples of each other | $\begin{pmatrix} 1 \\ 1 \\ 0 \end{pmatrix} \neq k \cdot \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix}$ |
+| Standard | Set the line equations equal | $\begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} + \lambda \begin{pmatrix} 1 \\ 1 \\ 0 \end{pmatrix} = \begin{pmatrix} 0 \\ 3 \\ 0 \end{pmatrix} + \mu \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix}$ |
+| Detailed | As a system of equations | $\begin{aligned} \lambda - \mu = -1 \\ \lambda = 3 \\ 0 = 0 \end{aligned}$ |
+| Standard | Rows 1 and 2 give | $\lambda = 3, \quad \mu = 4$ |
+| Standard | Check in row 3 | $0 \cdot 3 + 0 \cdot 4 = 0 = 0$ |
+| Brief | The lines intersect in the point | $S = (4\|3\|0)$ |
+| Maximal | Check: μ in the second line gives the same point | $\begin{pmatrix} 0 \\ 3 \\ 0 \end{pmatrix} + 4 \cdot \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} = \begin{pmatrix} 4 \\ 3 \\ 0 \end{pmatrix}$ |
+| Standard | The angle between the directions | $\cos\varphi = \frac{\left\|\vec{u} \cdot \vec{v}\right\|}{\left\|\vec{u}\right\| \cdot \left\|\vec{v}\right\|} = \frac{1}{\sqrt{2} \cdot 1} = \frac{\sqrt{2}}{2}$ |
+| Brief | The angle | $\varphi = 45^\circ$ |
+
+Parallel lines show the point test of $h$'s support on $g$ and then the distance through the foot
+of the perpendicular; skew lines show the failing check, $\vec{n} = \vec{u} \times \vec{v}$ and
+$d = \frac{|\overrightarrow{PQ} \cdot \vec{n}|}{|\vec{n}|}$, then the angle.
+
+### A plane from parameter to coordinate form (`plane.rs`, `convert`)
+
+$E: \vec{x} = (1|1|1) + \lambda (1, 2, 3) + \mu (-2, 0, 4)$.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | A normal is the cross product of the directions | $\vec{n} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix} \times \begin{pmatrix} -2 \\ 0 \\ 4 \end{pmatrix} = \begin{pmatrix} 8 \\ -10 \\ 4 \end{pmatrix}$ |
+| Detailed | Component by component | $\vec{n} = \begin{pmatrix} 2 \cdot 4 - 3 \cdot 0 \\ 3 \cdot (-2) - 1 \cdot 4 \\ 1 \cdot 0 - 2 \cdot (-2) \end{pmatrix}$ |
+| Standard | Shortened | $\vec{n} = \frac{1}{2} \cdot \begin{pmatrix} 8 \\ -10 \\ 4 \end{pmatrix} = \begin{pmatrix} 4 \\ -5 \\ 2 \end{pmatrix}$ |
+| Standard | The constant is the normal times the support | $d = 4 \cdot 1 + (-5) \cdot 1 + 2 \cdot 1 = 1$ |
+| Brief | The coordinate form | $4x - 5y + 2z = 1$ |
+
+The way back (coordinate to parameter form) reads the normal off, picks the point on the first
+axis the plane is not parallel to, and two directions perpendicular to the normal; Detailed adds
+their check $\vec{n} \cdot \vec{u} = 0$.
+
+### A line and a plane (`relations.rs`, `meet_line`)
+
+$E: 2x - y + 3z = 4$ and $g: \vec{x} = (1|2|0) + \lambda (1, 0, -1)$.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | Put the line into the coordinate form | $2 (1 + \lambda) - 2 + 3 (-\lambda) = 4$ |
+| Detailed | Solve for λ | $-\lambda = 4 \Rightarrow \lambda = -4$ |
+| Standard | Put λ into the line | $\vec{s} = \begin{pmatrix} 1 \\ 2 \\ 0 \end{pmatrix} + (-4) \cdot \begin{pmatrix} 1 \\ 0 \\ -1 \end{pmatrix}$ |
+| Brief | The line meets the plane in the point | $S = (-3\|2\|4)$ |
+| Maximal | Check: S lies in the plane | $2 \cdot (-3) + (-1) \cdot 2 + 3 \cdot 4 = 4$ |
+| Standard | The angle between line and plane | $\sin\varphi = \frac{\|\vec{n} \cdot \vec{u}\|}{\|\vec{n}\| \cdot \|\vec{u}\|} = \frac{1}{\sqrt{14} \cdot \sqrt{2}} = \frac{\sqrt{7}}{14}$ |
+| Brief | The angle | $\varphi = \arcsin\left(\frac{\sqrt{7}}{14}\right) \approx 10.8934^\circ$ |
+
+When λ drops out, Standard shows the remaining equation with "(true)" (the line lies in the plane)
+or "(false)" (parallel, followed by the Hesse distance of the support).
+
+### A sphere and a plane (`sphere.rs`, `meet_plane`)
+
+$K: (x - 1)^2 + (y - 2)^2 + (z - 3)^2 = 25$ and $E: z = 6$.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | Put the point into the Hesse normal form | $d = \frac{\|1 \cdot 3 - 6\|}{\sqrt{0^2 + 0^2 + 1^2}} = 3$ |
+| Brief | The distance | $d = 3$ |
+| Standard | d < r: the plane cuts the sphere in a circle | $3 < r = 5$ |
+| Standard | The perpendicular through the point along the normal | $\vec{x} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix} + \lambda \begin{pmatrix} 0 \\ 0 \\ 1 \end{pmatrix}$ |
+| Standard | Put it into the coordinate form and solve for λ | $3 + \lambda = 6 \Rightarrow \lambda = 3$ |
+| Detailed | The foot of the perpendicular | $F = (1\|2\|6)$ |
+| Standard | The radius of the circle, by Pythagoras | $\rho = \sqrt{r^2 - d^2} = \sqrt{25 - 9} = 4$ |
+| Brief | The circle of intersection | $M' = (1\|2\|6), \quad \rho = 4$ |
+
+Two spheres build on this: the difference of their equations is the Potenzebene (Brief), and the
+circle or the touching point is where it cuts the first sphere. A circle and a line or plane work
+in the plane of the circle with the sphere of the same centre and radius.
+
+Built: all of the above. Tests: `tests/geometry.rs`, with every operation checked at every level
+(each has a Brief line, Standard adds to it) and in both languages.
 
 ---
 

@@ -347,6 +347,11 @@ impl Line {
                 msg!("The lines intersect in the point", "Die Geraden schneiden sich im Punkt"),
                 format!("S = {}", show::point(&point)),
             );
+            working.add(
+                Maximal,
+                msg!("Check: μ in the second line gives the same point.", "Probe: μ in die zweite Gerade eingesetzt ergibt denselben Punkt."),
+                format!("{} + {} \\cdot {} = {}", show::vector(&other.support.position()), show::factor(&mu), show::vector(v), show::vector(&other.at(&mu).position())),
+            );
             let angle = acute_angle(u, v, false, unit, precision, &mut working)?;
             return Ok(Worked::new(LineRelation::Intersecting { point, lambda, mu, angle }, working));
         }

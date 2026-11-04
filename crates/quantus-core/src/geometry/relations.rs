@@ -2,7 +2,7 @@
 
 use crate::num::Value;
 use crate::settings::AngleUnit;
-use crate::settings::StepDetail::{Brief, Detailed, Standard};
+use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 use crate::text::msg;
 use crate::Result;
 
@@ -57,16 +57,18 @@ impl Plane {
             .enumerate()
             .map(|(i, (a, x))| format!("{} \\cdot {}", if i == 0 { show::value(a) } else { show::factor(a) }, show::factor(x)))
             .collect();
+        let length = n.length()?;
+        // `\frac{3}{1}` is just 3.
+        let quotient = if length.is_one() { show::value(&abs(offset.clone())?) } else { format!("\\frac{{{}}}{{{}}}", show::value(&abs(offset)?), show::value(&length)) };
         working.add(
             Standard,
             msg!("Put the point into the Hesse normal form:", "Den Punkt in die Hessesche Normalenform einsetzen:"),
             format!(
-                "d = \\frac{{\\left|{} - {}\\right|}}{{{}}} = \\frac{{{}}}{{{}}}",
+                "d = \\frac{{\\left|{} - {}\\right|}}{{{}}} = {}",
                 products.join(" + "),
                 show::factor(&plane.constant),
                 show::length(n),
-                show::value(&abs(offset)?),
-                show::value(&n.length()?)
+                quotient
             ),
         );
         working.add(Brief, msg!("The distance:", "Der Abstand:"), format!("d = {}", show::value(&distance)));
@@ -132,6 +134,11 @@ impl Plane {
             format!("\\vec{{s}} = {} + {} \\cdot {}", show::vector(&s), show::factor(&lambda), show::vector(u)),
         );
         working.add(Brief, msg!("The line meets the plane in the point", "Die Gerade schneidet die Ebene im Punkt"), format!("S = {}", show::point(&point)));
+        working.add(
+            Maximal,
+            msg!("Check: S lies in the plane.", "Probe: S liegt in der Ebene."),
+            format!("{} = {}", show::dot(n, &point.position()), show::value(&n.dot(&point.position()))),
+        );
         // The angle to the plane is 90° minus the angle to the normal: its sine is that cosine.
         let ratio = over_length(&over_length(&abs(coefficient.clone())?, n)?, u)?;
         let angle = Angle::of(ratio, true, unit, precision)?;
@@ -212,6 +219,17 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
         Detailed,
         msg!("Solved:", "Gelöst:"),
         format!("{} = {}, \\quad {} = {}", names[i], show::value(&point.coords[i]), names[j], show::value(&point.coords[j])),
+    );
+    working.add(
+        Maximal,
+        msg!("Check: the point lies in both planes.", "Probe: Der Punkt liegt in beiden Ebenen."),
+        format!(
+            "{} = {}, \\quad {} = {}",
+            show::dot(n1, &point.position()),
+            show::value(&n1.dot(&point.position())),
+            show::dot(n2, &point.position()),
+            show::value(&n2.dot(&point.position()))
+        ),
     );
     let line = Line::new(point, direction)?;
     working.add(Brief, msg!("The planes meet in the line", "Die Ebenen schneiden sich in der Geraden"), line.equation());

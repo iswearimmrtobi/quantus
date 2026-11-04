@@ -1,7 +1,7 @@
 //! Spheres (Kugeln): centre and radius.
 
 use crate::num::Value;
-use crate::settings::StepDetail::{Brief, Detailed, Standard};
+use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 use crate::text::msg;
 use crate::{QuantusError, Result};
 
@@ -166,6 +166,11 @@ impl Sphere {
             msg!("The radius is the distance to A:", "Der Radius ist der Abstand zu A:"),
             format!("r = \\left|\\overrightarrow{{MA}}\\right| = {} = {}", show::length(&ma), show::value(&radius)),
         );
+        let checks: Vec<String> = [("B", b), ("C", c), ("D", d)]
+            .iter()
+            .map(|(name, p)| Ok(format!("\\left|\\overrightarrow{{M{name}}}\\right| = {}", show::value(&centre.to(p).length()?))))
+            .collect::<Result<_>>()?;
+        working.add(Maximal, msg!("Check: the other points are as far away.", "Probe: Die anderen Punkte sind gleich weit entfernt."), checks.join(", \\quad "));
         let sphere = Sphere::new(&centre, radius)?;
         working.add(Brief, msg!("The sphere:", "Die Kugel:"), sphere.equation());
         Ok(Worked::new(sphere, working))
