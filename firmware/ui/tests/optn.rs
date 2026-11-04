@@ -148,3 +148,24 @@ fn conv_puts_the_arrow_and_the_unit_after_the_value() {
     app.key(Key::Exe);
     assert_eq!(app.editor.to_latex(), r"1\blacktriangleright\mathrm{m}");
 }
+
+#[test]
+fn base_n_sets_the_base_and_inserts_prefixes_and_logic() {
+    use quantus_ui::settings::NumberBase;
+    let mut app = app(Mode::BaseN);
+    // Basis → HEX.
+    optn(&mut app, &["Basis"]);
+    app.key(Key::Down);
+    app.key(Key::Exe);
+    assert_eq!(app.settings.number_base, NumberBase::Hex);
+    app.key(Key::Ac);
+    app.key(Key::Digit(1));
+    optn(&mut app, &["and"]);
+    optn(&mut app, &["Präfixe d, h, b, o", "b binär"]);
+    app.key(Key::Digit(1));
+    assert_eq!(app.editor.to_latex(), r"1\mathrm{and}\mathrm{b}1");
+    let mut app = self::app(Mode::BaseN);
+    optn(&mut app, &["Not"]);
+    app.key(Key::Digit(5));
+    assert_eq!(app.editor.to_latex(), r"\mathrm{Not}(5)");
+}

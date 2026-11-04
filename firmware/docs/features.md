@@ -111,7 +111,7 @@ State on 2026-11-03.
 - [x] 5 LGS: the matrix [A|b] up to 10 × 10, or typed equations
 - [x] 6 Wertetabelle, with g(x) as a second column
 - [ ] 7 Matrizen, with an editor (the core has the maths)
-- [ ] 8 Basis-N (the core has the mode)
+- [x] 8 Basis-N: 32-bit whole numbers in DEC, HEX, BIN or OCT (OPTN → Basis), the prefixes d, h, b, o and the logic in OPTN; A–F as letters
 - [~] 9 Statistik, with a data editor — x̂ and ŷ for a given value are missing
 - [x] 10 Verteilungen, one k or several
 - [x] 11 Prüfen: wahr or falsch, chains like 1 < 2 ≤ 2; OPTN has the relations
@@ -160,7 +160,8 @@ in yet.
 - [x] SOLVE (SHIFT+CALC, OPTN → Werkzeuge): the form of CALC, solved for the letter left empty; with all given, for the one at the cursor, Newton starting from its value
 - [x] CALC: a form over the input asks for its free variables (F8, Ctrl+B, or OPTN → Werkzeuge); the values stay in the session
 - [x] STO and VARS: STO (SHIFT+VARS) keeps the shown result under any name typed; VARS lists the session's variables with their values, to insert one, change its value (in CALC's form) or delete it
-- [~] Basis-N, matrices, statistics, regressions, distributions — in the engine; no modes in the hui
+- [x] Basis-N, statistics, regressions, distributions
+- [~] Matrices — in the engine; no mode in the hui
 - [x] wahr/falsch for an equation without unknowns, and the Prüfen mode
 - [x] Step levels and the step settings passed to the engine (the list is not shown yet)
 
@@ -181,7 +182,8 @@ in yet.
 - [x] OPTN Komplex: Argument, Realteil, Imaginärteil, Betrag
 - [x] OPTN Werkzeuge: CALC, SOLVE, In Einheit
 - [x] OPTN for Kurvendiskussion: Abschnitte, Tangente/Normale, Fläche, Wertetabelle
-- [ ] OPTN for Matrizen, Basis-N
+- [x] OPTN for Basis-N: Basis, Präfixe, and, or, xor, xnor, Not, Neg
+- [ ] OPTN for Matrizen
 - [x] OPTN Wertetabelle, Statistik (Typ, Häufigkeit, rows), Verteilungen (Typ)
 - [x] OPTN LGS: Eingabe, Zeilen, Spalten, Imaginäre Einheit, Alles löschen
 - [x] CONST menu by category, each constant with its symbol

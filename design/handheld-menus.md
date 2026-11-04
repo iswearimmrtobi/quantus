@@ -57,8 +57,8 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
       (`firmware/ui/src/sheet.rs`, section 7.3)
 - [x] Wertetabelle mode, with g(x) as a second column
 - [x] Statistik (with its data editor) and Verteilungen; not yet x̂ and ŷ for a given value
-- [x] The mode Prüfen
-- [ ] The modes Matrizen (with editor), Basis-N
+- [x] The modes Prüfen, Basis-N
+- [ ] The mode Matrizen (with editor)
 - [ ] The step list (Rechenweg) on the result screen
 - [ ] S⇔D through all forms of a result; OPTN for FACT, ENG and the polar form
 - [ ] The ◌ SETUP entries once the core has them: Winkeleinheit, Zahlenformat,
@@ -569,7 +569,7 @@ engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verf�
   6. Wertetabelle [C Tabellen, on the analysis code] ✓
 - Page 2
   7. Matrizen [C, eng] ◌
-  8. Basis-N [C, eng] ◌
+  8. Basis-N [C, eng] ✓ (the base in OPTN, kept with the settings)
   9. Statistik [C, eng] ✓
   10. Verteilungen [C, eng] ✓
   11. Prüfen [C Berechn prüf, eng] ✓ (wahr or falsch; a chain is one input)
@@ -680,7 +680,8 @@ Per mode:
   unknowns), typed, up to 10 ✓ · Imaginäre Einheit i ✓ (`linearComplex`) · Alles löschen ✓ [Q]
 - **Matrizen**: Definieren, Bearbeiten · the matrix variables · Ans · Determinante,
   Transponierte, Inverse, Einheitsmatrix, REF, RREF [C, eng] ◌
-- **Basis-N**: DEC, HEX, BIN, OCT · d, h, b, o · and, or, xor, xnor, Not, Neg [C, eng] ◌
+- **Basis-N**: Basis DEC/HEX/BIN/OCT ✓ (a choice, the setting `number_base`) · Präfixe d, h, b, o ✓
+  (`\mathrm{h}`) · and, or, xor, xnor, Not, Neg ✓ (`\operatorname{and}`) [C, eng]
 - **Statistik**: Typ (1 Variable and the 7 regressions) ✓ · Häufigkeit ein/aus ✓ · Zeile
   einfügen, Zeile löschen, Alles löschen ✓ [C]. The sums, the measures, min/max/quartiles and the
   regression are all on the answer EXE brings, so they have no entries of their own.

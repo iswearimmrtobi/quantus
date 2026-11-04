@@ -602,20 +602,32 @@ static OPTN_MATRIX: Page = Page {
     ],
 };
 
+/// The base numbers are typed and shown in, a prefix for one number in another, and the
+/// bitwise logic; A–F are letters.
 static OPTN_BASE_N: Page = Page {
     title: same("Basis-N"),
     entries: &[
-        pending(same("DEC")),
-        pending(same("HEX")),
-        pending(same("BIN")),
-        pending(same("OCT")),
-        pending(t("Präfixe d, h, b, o", "Prefixes d, h, b, o")),
-        pending(same("and")),
-        pending(same("or")),
-        pending(same("xor")),
-        pending(same("xnor")),
-        pending(same("Not")),
-        pending(same("Neg")),
+        entry(
+            t("Basis", "Base"),
+            Kind::Choice(S::NumberBase, &[opt(same("DEC"), 0), opt(same("HEX"), 1), opt(same("BIN"), 2), opt(same("OCT"), 3)]),
+        ),
+        group(t("Präfixe d, h, b, o", "Prefixes d, h, b, o"), &BASE_PREFIXES),
+        ins(same("and"), r"\operatorname{and}"),
+        ins(same("or"), r"\operatorname{or}"),
+        ins(same("xor"), r"\operatorname{xor}"),
+        ins(same("xnor"), r"\operatorname{xnor}"),
+        ins(same("Not"), r"\operatorname{Not}()"),
+        ins(same("Neg"), r"\operatorname{Neg}()"),
+    ],
+};
+
+static BASE_PREFIXES: Page = Page {
+    title: t("Präfixe", "Prefixes"),
+    entries: &[
+        ins(t("d dezimal", "d decimal"), r"\mathrm{d}"),
+        ins(t("h hexadezimal", "h hexadecimal"), r"\mathrm{h}"),
+        ins(t("b binär", "b binary"), r"\mathrm{b}"),
+        ins(t("o oktal", "o octal"), r"\mathrm{o}"),
     ],
 };
 
