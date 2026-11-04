@@ -102,3 +102,32 @@ fn ans_and_pre_ans_are_the_last_two_results() {
     let id = api::import_session(&mut other, &json).unwrap().id;
     assert_eq!(run(&mut other, &id, r"\mathrm{PreAns}"), "18");
 }
+
+#[test]
+fn the_geometry_scene_is_kept_per_session_apart_from_the_variables() {
+    use quantus_core::api::GeometryRequest;
+    let mut store = SessionStore::new();
+    let id = api::new_session(&mut store, &NewSessionRequest { name: Some("Geo".into()), ..Default::default() }).id;
+    run(&mut store, &id, "A_1 = 5");
+    let scene: GeometryRequest = serde_json::from_value(serde_json::json!({
+        "scene": { "objects": [
+            { "name": "A_1", "kind": "point", "at": ["1", "2", "3"] },
+            { "kind": "typed", "latex": "E: x + y + z = 1" }
+        ] },
+        "task": { "kind": "distance", "a": "A_1", "b": "E" }
+    }))
+    .unwrap();
+    api::set_mode_inputs(&mut store, Some(&id), ModeInputs { geometry: Some(scene.clone()), ..Default::default() });
+
+    let mut other = SessionStore::new();
+    api::import_session(&mut other, &api::export_session(&mut store, Some(&id))).unwrap();
+    let kept = api::get_mode_inputs(&mut other, Some(&id)).geometry.unwrap();
+    assert_eq!(kept, scene);
+    // The point A_1 is not the variable A_1, and the variable list has no point in it.
+    assert_eq!(run(&mut other, &id, "A_1"), "5");
+    assert_eq!(api::list_variables(&mut other, Some(&id)).len(), 1);
+    let answer = api::geometry(&other.settings, &kept).unwrap().task.unwrap();
+    assert_eq!(answer.result.last().unwrap(), r"d = \frac{5\sqrt{3}}{3}");
+    // Another session has no scene.
+    assert!(api::get_mode_inputs(&mut other, Some("fresh")).geometry.is_none());
+}

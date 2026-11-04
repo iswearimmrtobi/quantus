@@ -160,7 +160,7 @@ results, not errors. Each step below brings its tests.
   for `Name: …` and `Name = …` (the lexer drops `:`): `A(1|2|3)`, `g: X=A+\lambda(…)`,
   `K: (x-1)^2+y^2+z^2=9`. Equations are classified: linear in x, y, z is a plane; x², y², z² with
   the same coefficient and no mixed terms is a sphere; anything else is an error.
-- [ ] The scene is kept per session in `ModeInputs` (`session.rs`, `get_mode_inputs` and
+- [x] The scene is kept per session in `ModeInputs` (`session.rs`, `get_mode_inputs` and
   `set_mode_inputs`), as its own namespace.
 - [ ] Tauri command in `desktop/src-tauri/src/commands.rs`, registered in `main.rs`, and the
   wrapper in `api.ts`.
