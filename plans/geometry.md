@@ -162,7 +162,7 @@ results, not errors. Each step below brings its tests.
   the same coefficient and no mixed terms is a sphere; anything else is an error.
 - [x] The scene is kept per session in `ModeInputs` (`session.rs`, `get_mode_inputs` and
   `set_mode_inputs`), as its own namespace.
-- [ ] Tauri command in `desktop/src-tauri/src/commands.rs`, registered in `main.rs`, and the
+- [x] Tauri command in `desktop/src-tauri/src/commands.rs`, registered in `main.rs`, and the
   wrapper in `api.ts`.
 
 ### Phase 4: projection (shared drawing)

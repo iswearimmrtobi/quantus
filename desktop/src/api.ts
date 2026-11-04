@@ -124,6 +124,7 @@ export interface SessionInfo {
 /** What a session keeps of the modes with their own input; the desktop fills `linear`. */
 export interface ModeInputs {
   linear?: LinearSystemRequest | null;
+  geometry?: GeometryRequest | null;
   [mode: string]: unknown;
 }
 
@@ -309,6 +310,68 @@ export interface Kirchhoff {
   error: string | null;
   /** The resistance between A and B; each merge names the parts it stands for, in step order. */
   equivalent: { latex: string; resistance: CircuitValue; merges: { symbol: string; parts: string[]; series: boolean }[] } | null;
+}
+
+/**
+ * A point or vector in a form: its coordinate cells (two or three, an empty one is 0), or one
+ * LaTeX entry such as `A`, `(1|2|3)`, `\vec{a}` or `B - A`.
+ */
+export type GeometryEntry = string[] | string;
+
+/** How an object of the Geometry scene is given; numbers are LaTeX, `sphere`/`plane` of a cut are names. */
+export type GeometryShape =
+  | { kind: 'point'; at: GeometryEntry }
+  | { kind: 'vector'; value: GeometryEntry }
+  | { kind: 'line'; support: GeometryEntry; direction: GeometryEntry }
+  | { kind: 'lineThrough'; a: GeometryEntry; b: GeometryEntry }
+  | { kind: 'plane'; support: GeometryEntry; u: GeometryEntry; v: GeometryEntry }
+  | { kind: 'planeNormal'; support: GeometryEntry; normal: GeometryEntry }
+  | { kind: 'planeThrough'; a: GeometryEntry; b: GeometryEntry; c: GeometryEntry }
+  | { kind: 'planeCoordinate'; a: string; b: string; c: string; d: string }
+  | { kind: 'sphere'; centre: GeometryEntry; radius: string }
+  | { kind: 'sphereThrough'; centre: GeometryEntry; point: GeometryEntry }
+  | { kind: 'sphereFour'; a: GeometryEntry; b: GeometryEntry; c: GeometryEntry; d: GeometryEntry }
+  | { kind: 'circle'; centre: GeometryEntry; radius: string; normal?: GeometryEntry | null }
+  | { kind: 'circleCut'; sphere: string; plane: string }
+  /** One typed line with its name: `A(1|2|3)`, `g: X = A + \lambda \vec{u}`, `E: 2x + y = 3`. */
+  | { kind: 'typed'; latex: string };
+
+/** A named object; a typed one takes its name from the line. */
+export type GeometryObject = GeometryShape & { name?: string };
+
+export type GeometryMeasure = 'length' | 'surface' | 'volume' | 'circumference' | 'area';
+export type PlaneForm = 'parameter' | 'normal' | 'coordinate';
+
+/** What is asked about the scene; objects by name, a vector also as `\vec{a}`. */
+export type GeometryTask =
+  | { kind: 'relation' | 'distance' | 'angle' | 'midpoint'; a: string; b: string }
+  | { kind: 'convert'; plane: string; form: PlaneForm }
+  | { kind: 'foot'; point: string; onto: string }
+  | { kind: 'reflect'; point: string; mirror: string }
+  | { kind: 'tangent'; object: string; point: string }
+  | { kind: 'measure'; object: string; measure: GeometryMeasure }
+  | { kind: 'evaluate'; latex: string };
+
+export interface GeometryRequest {
+  scene: { objects: GeometryObject[] };
+  task?: GeometryTask | null;
+}
+
+export type GeometryKind = 'point' | 'vector' | 'line' | 'plane' | 'sphere' | 'circle';
+
+/** What `quantus_core::api::GeometryResponse` serialises to. */
+export interface Geometry {
+  /** In scene order; `kind` is `typed` for a typed line that could not be read. */
+  objects: { name: string; kind: GeometryKind | 'typed'; latex: string; steps: Step[]; error: string | null }[];
+  task: {
+    /** The result lines: the point, the equation, the relation, the angle. */
+    result: string[];
+    /** For a relation: `intersecting`, `skew`, `parallel`, `tangent`, `inside`, `on`, … */
+    relation: string | null;
+    steps: Step[];
+    alignBlock: string;
+    error: string | null;
+  } | null;
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
@@ -590,6 +653,9 @@ export const api = {
 
   /** A resistor network by the junction and loop rules, with all the working. */
   solveKirchhoff: (request: KirchhoffRequest) => call<Kirchhoff>('solve_kirchhoff', { request }),
+
+  /** Builds a Geometry scene and answers its task, with the steps at the detail setting. */
+  geometry: (request: GeometryRequest) => call<Geometry>('geometry', { request }),
 
   /** Reads a circuit file; a broken one is an `ApiError` and nothing is returned. */
   loadCircuit: (path: string) => call<unknown>('load_circuit', { path }),

@@ -12,7 +12,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, KirchhoffRequest, KirchhoffResponse,
+    CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, GeometryRequest, GeometryResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
@@ -186,6 +186,13 @@ pub fn solve_circuit(
 ) -> Result<CircuitResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::solve_circuit(&settings, &request)
+}
+
+/// A Geometry scene and a task on it. Stateless: the scene is saved with the mode inputs.
+#[tauri::command]
+pub fn geometry(engine: State<Engine>, request: GeometryRequest) -> Result<GeometryResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::geometry(&settings, &request)
 }
 
 /// A resistor network by the junction and loop rules. Stateless like `solve_circuit`.

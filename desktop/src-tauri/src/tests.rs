@@ -505,6 +505,22 @@ fn a_kirchhoff_network_is_solved_through_the_command() {
 }
 
 #[test]
+fn a_geometry_scene_is_answered_through_the_command() {
+    let w = window();
+    let request = json!({
+        "scene": { "objects": [
+            { "name": "A", "kind": "point", "at": ["1", "2", "3"] },
+            { "kind": "typed", "latex": "E: x + y + z = 0" }
+        ] },
+        "task": { "kind": "foot", "point": "A", "onto": "E" }
+    });
+    let answered = invoke(&w, "geometry", json!({ "request": request })).unwrap();
+    assert_eq!(answered["objects"][1]["latex"], "E: x + y + z = 0");
+    assert_eq!(answered["task"]["result"], json!(["F = (-1|0|1)"]));
+    assert!(answered["task"]["error"].is_null());
+}
+
+#[test]
 fn a_circuit_file_may_carry_a_flipped_current() {
     let mut circuit = saved_circuit();
     circuit["elements"][0]["reversed"] = json!(true);
