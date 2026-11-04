@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use dashu::base::{Abs, Sign, UnsignedAbs};
+use dashu::base::{Abs, BitTest, Sign, UnsignedAbs};
 use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
@@ -16,6 +16,10 @@ use crate::num::Value;
 const TRIAL_DIVISION_LIMIT: u32 = 10_000;
 /// A power bigger than this is left to the decimal rather than expanded into a huge radicand.
 const MAX_EXPONENT: u32 = 64;
+/// A radicand longer than this many bits is left to the decimal: it would be unreadable, and
+/// building it and searching it for factors could take minutes (`2^(-53/438300)` would need one
+/// of 23 million bits).
+const MAX_RADICAND_BITS: u64 = 1024;
 
 /// A radical part: the `index`-th root of an integer radicand, without a repeated factor
 /// that is a full `index`-th power (as far as it was searched for).
@@ -127,6 +131,12 @@ fn power(base: &RBig, exponent: &RBig) -> Option<(RBig, u32, UBig)> {
     }
     let numerator = base.numerator().clone().abs();
     let denominator = IBig::from(base.denominator().clone());
+    let bits = (count as u64).saturating_mul(
+        (base.numerator().unsigned_abs().bit_len() as u64).saturating_add((u64::from(index) - 1).saturating_mul(base.denominator().bit_len() as u64)),
+    );
+    if bits > MAX_RADICAND_BITS {
+        return None;
+    }
     let count = count as usize;
     // (a/b)^(p/q) = (a^p · b^((q-1)p))^(1/q) / b^p
     let radicand = numerator.pow(count) * denominator.pow((index as usize - 1) * count);
@@ -257,6 +267,18 @@ mod tests {
         assert!(format(&Value::ratio(1, 2)).is_none());
         assert!(format(&Value::E).is_none());
         assert!(format(&root(4, 2)).is_none());
+    }
+
+    #[test]
+    fn a_root_of_huge_degree_is_left_to_the_decimal_at_once() {
+        // 2^(-53/438300), from a decay over hours with a half-life in years: the radicand
+        // 2^(438299·53) would have 23 million bits.
+        let start = std::time::Instant::now();
+        let value = Value::int(2).pow(&Value::ratio(-53, 438_300)).unwrap();
+        assert!(format(&value).is_none());
+        assert!(start.elapsed() < std::time::Duration::from_secs(1));
+        // A high degree of a small radicand still has its exact form.
+        assert_eq!(format(&root(2, 100)).unwrap(), "\\sqrt[100]{2}");
     }
 
     #[test]

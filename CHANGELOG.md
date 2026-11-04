@@ -301,6 +301,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A power with an exponent such as `2^{-\frac{89{,}1\,\mathrm{h}}{9\,\mathrm{yr}}}` (a decay over
+  hours with a half-life in years) gave no result: the search for an exact form with a root
+  tried to build a radicand of millions of digits. Such a power now comes out as a decimal at once.
 - In Imaginary mode `iy` is `i · y`; it was read as the variable `i` times `y`.
 - A system whose coefficients mix roots and `π` (`\sqrt{2} y + z = -\pi`) was refused as not linear.
 - In German, a power load too large for its circuit is reported as *keine Lösung: die Last ist zu
