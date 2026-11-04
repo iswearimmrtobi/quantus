@@ -574,6 +574,15 @@ impl<'a> Evaluator<'a> {
                 Ok(PhysicalQuantity::new(modulus.value.mul(&direction), modulus.unit))
             }
             ("factorial", [n]) => {
+                // Not whole: Γ(n + 1), so (½)! = √π/2.
+                let value = self.plain_number(n, "The argument of the factorial")?;
+                if !value.as_rational().is_some_and(|r| *r.denominator() == UBig::ONE) {
+                    let gamma = value.add(&Value::one()).apply(MathFunction::Gamma)?;
+                    return Ok(PhysicalQuantity::dimensionless(gamma));
+                }
+                if value.is_negative()? {
+                    return Err(QuantusError::other(format!("{value}! is undefined: the factorial has poles at the negative whole numbers.")));
+                }
                 let n = self.whole_number(n, "factorial")?;
                 if n > 10_000 {
                     return Err(QuantusError::other(format!("{n}! is too large to compute exactly.")));

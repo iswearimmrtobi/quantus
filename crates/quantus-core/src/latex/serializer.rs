@@ -203,6 +203,14 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Binary { operator, left, right, .. } => binary(*operator, left, right, mode),
         Node::Group { inner, .. } => expression_with_mode(inner, mode),
+        // Γ takes its bracket: without it, `\Gamma` is read as the letter.
+        Node::Function { name, argument, .. } if name == "Gamma" => {
+            let argument = match &**argument {
+                Node::Group { inner, .. } => &**inner,
+                other => other,
+            };
+            format!("\\Gamma\\left({}\\right)", expression_with_mode(argument, mode))
+        }
         Node::Function { name, argument, .. } => {
             // The area functions have no LaTeX command of their own.
             let command = if matches!(name.as_str(), "arsinh" | "arcosh" | "artanh") {

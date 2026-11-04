@@ -34,7 +34,7 @@ editor produces the same LaTeX. Results in this page are from Physics mode unles
 | `/`, `\div`, `\frac{a}{b}`, `\dfrac`, `\tfrac` | quotient |
 | `a^b`, `a^{b}` | power |
 | `\sqrt{x}`, `\sqrt[n]{x}` | square root, n-th root |
-| `n!` | factorial |
+| `n!` | factorial; for an $n$ that is not whole $\Gamma(n + 1)$, so $(\frac{1}{2})! = \frac{\sqrt{\pi}}{2}$ |
 | `a \bmod b` | remainder |
 | `( )`, `[ ]`, `\left( \right)` | brackets |
 | `\|x\|`, `\left\|x\right\|`, `\lvert x \rvert` | absolute value (keeps the unit) |
@@ -55,6 +55,7 @@ before sums.
 | `\ln`, `\log` (base 10), `\lg`, `\log_b` | arguments must be positive; $\log_2 8 = 3$ |
 | `\max(a; b)`, `\min(a; b)` | separate the arguments with `;`, since `,` is the decimal comma |
 | `\binom{n}{k}`, `\dbinom`, `\tbinom` | exact; non-negative whole numbers |
+| `\Gamma(x)` | the Gamma function, with a bracket right after it (`\Gamma` alone is a letter): exact at whole numbers and halves ($\Gamma(\frac{5}{2}) = \frac{3}{4}\sqrt{\pi}$), otherwise to the full precision; poles at $0, -1, -2, \ldots$ |
 | `\operatorname{nPr}(n; r)` | permutations, $\frac{n!}{(n-r)!}$ |
 | `\gcd(a; b)`, `\operatorname{ggT}(a; b)` | greatest common divisor of whole numbers, any number of arguments |
 | `\operatorname{lcm}(a; b)`, `\operatorname{kgV}(a; b)` | least common multiple |

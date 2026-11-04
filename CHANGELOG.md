@@ -299,6 +299,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Sums to infinity, `\sum_{k=1}^{\infty} \frac{1}{k^2}`, to 30 digits like an integral: terms that
   are a fraction of polynomials in k, alternating terms and terms that fall geometrically. A
   divergent series is reported as such, and one that cannot be judged safely is refused.
+- The Gamma function, `\Gamma(x)`, exact at whole numbers and halves and otherwise to the full
+  precision, and the factorial of numbers that are not whole: `(\frac{1}{2})! = \frac{\sqrt{\pi}}{2}`.
 
 ### Changed
 
@@ -330,6 +332,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `\Gamma(5)` was read as the letter Γ times 5. `\Gamma` followed by a bracket is now the Gamma
+  function; on its own it is still a letter.
 - In Imaginary mode a quartic without a real root, such as `x^4 + 1 = 0` or
   `x^4 + 5x^2 + 13 = 0`, has its four complex roots; it was reported as having no real solution.
 - In Imaginary mode an equation of degree five to twelve, such as `x^5 + 1 = 0`, has all its

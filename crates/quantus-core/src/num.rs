@@ -240,6 +240,8 @@ pub enum MathFunction {
     Arsinh,
     Arcosh,
     Artanh,
+    /// The Gamma function, `\Gamma(x)`; also `x!` for an x that is not whole, as `Γ(x + 1)`.
+    Gamma,
 }
 
 impl MathFunction {
@@ -265,6 +267,7 @@ impl MathFunction {
             "arsinh" => MathFunction::Arsinh,
             "arcosh" => MathFunction::Arcosh,
             "artanh" => MathFunction::Artanh,
+            "Gamma" => MathFunction::Gamma,
             _ => return None,
         })
     }
@@ -291,6 +294,7 @@ impl MathFunction {
             MathFunction::Arsinh => "ArSinh",
             MathFunction::Arcosh => "ArCosh",
             MathFunction::Artanh => "ArTanh",
+            MathFunction::Gamma => "Gamma",
         }
     }
 }
@@ -635,8 +639,50 @@ impl Value {
                     return Ok(Value::zero());
                 }
             }
+            MathFunction::Gamma => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                if let Some(exact) = self.exact_gamma()? {
+                    return Ok(exact);
+                }
+            }
         }
         Ok(Value::Func(function, Box::new(self.clone())))
+    }
+
+    /// Γ where it has a closed form: `(n - 1)!` at a whole number n, a rational multiple of `√π`
+    /// halfway between two (`Γ(½) = √π`, `Γ(5/2) = ¾√π`). Its poles, 0, -1, -2, …, are errors.
+    fn exact_gamma(&self) -> Result<Option<Value>> {
+        const LIMIT: i64 = 10_000;
+        let Some(r) = self.as_rational() else { return Ok(None) };
+        let whole = |r: &RBig| -> Option<i64> { (*r.denominator() == UBig::ONE).then(|| i64::try_from(r.numerator().clone()).ok()).flatten() };
+        if let Some(n) = whole(r).or_else(|| (*r.denominator() == UBig::ONE).then_some(i64::MAX)) {
+            if n <= 0 {
+                return Err(QuantusError::other(format!("The Gamma function has a pole at {n}: Γ is undefined at 0, -1, -2, …")));
+            }
+            if n > LIMIT {
+                return Ok(None);
+            }
+            return Ok(Some(Value::Rat(RBig::from((2..n).fold(IBig::ONE, |p, k| p * IBig::from(k))))));
+        }
+        if *r.denominator() != UBig::from(2u8) {
+            return Ok(None);
+        }
+        // Γ(z + 1) = z Γ(z), from Γ(½) = √π up or down to r.
+        let (mut z, mut factor) = (RBig::from_parts(IBig::ONE, UBig::from(2u8)), RBig::ONE);
+        if (r - &z).clone().abs() > RBig::from(LIMIT) {
+            return Ok(None);
+        }
+        while &z < r {
+            factor *= &z;
+            z += RBig::ONE;
+        }
+        while &z > r {
+            z -= RBig::ONE;
+            factor /= &z;
+        }
+        Ok(Some(Value::Rat(factor).mul(&Value::Pi.pow(&Value::ratio(1, 2))?)))
     }
 
     /// arcsin, arccos and arctan at the values where they are a rational multiple of π, by
@@ -819,6 +865,7 @@ impl Value {
                     MathFunction::Arsinh => x.asinh(bits, rm, consts),
                     MathFunction::Arcosh => x.acosh(bits, rm, consts),
                     MathFunction::Artanh => x.atanh(bits, rm, consts),
+                    MathFunction::Gamma => gamma(&x, bits, consts),
                 };
                 if result.is_nan() || result.is_inf() {
                     return Err(self.not_real());
@@ -1319,6 +1366,75 @@ fn erf(x: &BigFloat, bits: usize, consts: &mut Consts) -> BigFloat {
     sum.mul(&two_over_root_pi, bits, rm)
 }
 
+/// Γ(x) by the Stirling series: x is moved up to z = x + n, far enough that the series' terms
+/// fall below the precision before they start to grow, `ln Γ(z) = (z - ½) ln z - z + ½ ln 2π +
+/// Σ B_{2k} / (2k (2k - 1) z^{2k-1})`, and Γ(x) = Γ(z) / (x (x + 1) … (x + n - 1)). Below ½ the
+/// reflection `Γ(x) Γ(1 - x) = π / sin πx`. NaN at a pole.
+fn gamma(x: &BigFloat, bits: usize, consts: &mut Consts) -> BigFloat {
+    let rm = RoundingMode::ToEven;
+    let p = bits + 64;
+    let half = BigFloat::from_f64(0.5, p);
+    let one = BigFloat::from_u8(1, p);
+    if x.cmp(&half).is_some_and(|o| o < 0) {
+        let pi = consts.pi(p, rm);
+        let sine = pi.mul(x, p, rm).sin(p, rm, consts);
+        if sine.is_zero() {
+            return BigFloat::nan(None);
+        }
+        let reflected = gamma(&one.sub(x, p, rm), bits, consts);
+        return pi.div(&sine.mul(&reflected, p, rm), bits, rm);
+    }
+    // e^{-2πz} < 2^{-p}: z > p ln 2 / 2π ≈ 0.11 p.
+    let target = BigFloat::from_f64((0.11 * p as f64).ceil() + 8.0, p);
+    let mut z = x.clone();
+    let mut product = one.clone();
+    while z.cmp(&target).is_some_and(|o| o < 0) {
+        product = product.mul(&z, p, rm);
+        z = z.add(&one, p, rm);
+    }
+    let ln_z = z.ln(p, rm, consts);
+    let two_pi = consts.pi(p, rm).mul(&BigFloat::from_u8(2, p), p, rm);
+    let mut ln_gamma = z.sub(&half, p, rm).mul(&ln_z, p, rm).sub(&z, p, rm).add(&two_pi.ln(p, rm, consts).mul(&half, p, rm), p, rm);
+    let z_squared = z.mul(&z, p, rm);
+    let mut power = z.clone(); // z^{2k-1}
+    for k in 1..=(4 * p as u64) {
+        let b = Value::Rat(bernoulli_even(k as usize)).eval_float(p, consts).unwrap_or_else(|_| BigFloat::from_u8(0, p));
+        let term = b.div(&BigFloat::from_u64(2 * k * (2 * k - 1), p).mul(&power, p, rm), p, rm);
+        ln_gamma = ln_gamma.add(&term, p, rm);
+        let small = match (term.exponent(), ln_gamma.exponent()) {
+            (Some(t), Some(s)) => i64::from(t) < i64::from(s) - p as i64,
+            _ => term.is_zero(),
+        };
+        if small {
+            break;
+        }
+        power = power.mul(&z_squared, p, rm);
+    }
+    ln_gamma.exp(p, rm, consts).div(&product, bits, rm)
+}
+
+/// B_{2k}, k ≥ 1, from a table that grows as far as it is asked for:
+/// `B_m = -1/(m + 1) Σ_{j<m} C(m + 1, j) B_j`.
+fn bernoulli_even(k: usize) -> RBig {
+    static TABLE: std::sync::Mutex<Vec<RBig>> = std::sync::Mutex::new(Vec::new());
+    let mut table = TABLE.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    if table.is_empty() {
+        table.push(RBig::ONE);
+    }
+    while table.len() <= 2 * k {
+        let m = table.len();
+        // C(m + 1, j) for j = 0, 1, …
+        let mut binomial = IBig::ONE;
+        let mut sum = RBig::ZERO;
+        for (j, b) in table.iter().enumerate() {
+            sum += RBig::from(binomial.clone()) * b;
+            binomial = binomial * IBig::from(m + 1 - j) / IBig::from(j + 1);
+        }
+        table.push(-sum / RBig::from(m as i64 + 1));
+    }
+    table[2 * k].clone()
+}
+
 fn bigfloat_from_int(value: &IBig, bits: usize, consts: &mut Consts) -> BigFloat {
     BigFloat::parse(&value.to_string(), Radix::Dec, bits, RoundingMode::ToEven, consts)
 }
@@ -1437,6 +1553,13 @@ mod tests {
         let c = Value::int(299_792_458);
         let squared = c.pow(&Value::int(2)).unwrap();
         assert_eq!(squared.decimal(50).unwrap().to_plain_string(), "89875517873681764");
+    }
+
+    #[test]
+    fn bernoulli_numbers() {
+        assert_eq!(bernoulli_even(1), RBig::from_parts(IBig::ONE, UBig::from(6u8)));
+        assert_eq!(bernoulli_even(6), RBig::from_parts(IBig::from(-691), UBig::from(2730u16)));
+        assert_eq!(bernoulli_even(10), RBig::from_parts(IBig::from(-174611), UBig::from(330u16)));
     }
 
     #[test]

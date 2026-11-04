@@ -1682,6 +1682,14 @@ impl Parser<'_> {
             return Ok(Node::Variable { name: token.text, index: String::new(), position: token.position });
         }
 
+        // `\Gamma(x)` with a bracket right after it is the Gamma function; `\Gamma` alone stays a
+        // letter, as it is in physics.
+        if !self.unit_context && token.text == "\\Gamma" && self.peek(1).kind == TokenType::LParen {
+            self.advance();
+            let argument = self.parse_group(TokenType::RParen, ")")?;
+            return Ok(Node::Function { name: "Gamma".into(), argument: Box::new(argument), position: token.position });
+        }
+
         // The whole run has to resolve as one symbol: `m s` is the millisecond, and a product
         // of units is only ever written with an explicit \cdot.
         let run = self.identifier_run();
