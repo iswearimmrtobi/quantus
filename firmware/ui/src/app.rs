@@ -75,12 +75,19 @@ impl Mode {
         self.text().get(lang).replace('\u{ad}', "")
     }
 
-    /// Whether the engine calculates in this mode; the others have their tile and their name
-    /// in the top bar, and EXE says they are not available yet.
+    /// Whether the engine evaluates the input line in this mode; the others show a sheet
+    /// instead ([`Mode::sheet`]), worked out by [`Backend::solve`].
     pub fn engine(self) -> bool {
         matches!(
             self,
-            Mode::Physics | Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Verify
+            Mode::Physics
+                | Mode::Algebra
+                | Mode::Imaginary
+                | Mode::Analysis
+                | Mode::Linear
+                | Mode::Matrix
+                | Mode::BaseN
+                | Mode::Verify
         )
     }
 

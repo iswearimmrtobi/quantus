@@ -119,11 +119,13 @@ fn the_mode_menu_switches_the_mode() {
 }
 
 #[test]
-fn a_mode_without_the_engine_says_so() {
-    let mut app = App::new(Stub);
-    press(&mut app, &[Key::Mode, Key::Digit(7), Key::Digit(1), Key::Exe]);
-    assert_eq!(app.mode, Mode::Matrix);
-    assert_eq!(app.shown_entry().unwrap().result, Err("Noch nicht verfügbar".to_string()));
+fn every_mode_with_an_input_line_calculates() {
+    for (digit, mode) in [(7, Mode::Matrix), (8, Mode::BaseN)] {
+        let mut app = App::new(Stub);
+        press(&mut app, &[Key::Mode, Key::Digit(digit), Key::Digit(1), Key::Exe]);
+        assert_eq!(app.mode, mode);
+        assert_eq!(app.shown_entry().unwrap().result.as_ref().map(|row| row.to_latex()), Ok("1".to_string()));
+    }
 }
 
 #[test]

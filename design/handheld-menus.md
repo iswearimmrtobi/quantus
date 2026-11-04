@@ -557,8 +557,8 @@ are German and English (`firmware/ui/src/text.rs`), German by default; *Sprache*
 
 In the hui (`Mode` in `firmware/ui/src/app.rs`): all twelve tiles, ←/→ through all tiles, ↑/↓
 by a row and across the pages, a digit picks 1–9 and 10–12 need the cursor (section 9). A long
-name breaks at a soft hyphen, and goes small when a word is still too wide. A mode without the
-engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verfügbar*.
+name breaks at a soft hyphen, and goes small when a word is still too wide. Every mode has the
+engine; the modes with a sheet work it out with EXE on its last cell.
 
 - Page 1
   1. Physik [C Berechnungen + Q], the default ✓
@@ -568,7 +568,7 @@ engine (◌) can be chosen and shows its name, and EXE answers *Noch nicht verf�
   5. LGS [C Gleichungssyst. + Q] ✓ (the matrix [A|b], or typed equations)
   6. Wertetabelle [C Tabellen, on the analysis code] ✓
 - Page 2
-  7. Matrizen [C, eng] ◌
+  7. Matrizen [C, eng] ✓ for typed inputs; the matrices are among VARS
   8. Basis-N [C, eng] ✓ (the base in OPTN, kept with the settings)
   9. Statistik [C, eng] ✓
   10. Verteilungen [C, eng] ✓

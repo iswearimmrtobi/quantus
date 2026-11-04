@@ -21,7 +21,7 @@ fn a_decimal_result_is_marked() {
 #[test]
 fn modes_without_the_engine_say_so() {
     let mut engine = Engine::default();
-    assert!(engine.evaluate(Mode::Matrix, &Settings::default(), "1").is_err());
+    assert!(engine.evaluate(Mode::Table, &Settings::default(), "1").is_err());
 }
 
 #[test]
@@ -361,4 +361,21 @@ fn base_n_reads_and_writes_the_base_set() {
     assert_eq!(engine.evaluate(Mode::BaseN, &base(NumberBase::Bin), r"101\operatorname{and}110"), Ok("100".to_string()));
     assert_eq!(engine.evaluate(Mode::BaseN, &base(NumberBase::Dec), r"\mathrm{h}1F"), Ok("31".to_string()));
     assert_eq!(engine.evaluate(Mode::BaseN, &base(NumberBase::Dec), r"\operatorname{Neg}(5)"), Ok("-5".to_string()));
+}
+
+/// Matrizen: matrices stored under a name, worked with, listed among the variables.
+#[test]
+fn matrices_are_defined_used_and_listed() {
+    use quantus_ui::backend::VariableCommand;
+    let mut engine = Engine::default();
+    let settings = Settings::default();
+    let matrix = |engine: &mut Engine, latex: &str| engine.evaluate(Mode::Matrix, &settings, latex);
+    let a = r"\begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}";
+    assert_eq!(matrix(&mut engine, &format!("A={a}")), Ok(a.to_string()));
+    assert_eq!(matrix(&mut engine, r"\det A"), Ok("-2".to_string()));
+    assert_eq!(matrix(&mut engine, "A^{T}"), Ok(r"\begin{pmatrix} 1 & 3 \\ 2 & 4 \end{pmatrix}".to_string()));
+    let listed = engine.variables(VariableCommand::List, &settings).expect("the variables");
+    assert_eq!(listed.iter().map(|v| (v.key.as_str(), v.value.as_str())).collect::<Vec<_>>(), [("A", a)]);
+    engine.variables(VariableCommand::Delete("A".into()), &settings).expect("deleted");
+    assert!(matrix(&mut engine, r"\det A").is_err());
 }

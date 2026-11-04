@@ -251,7 +251,15 @@ impl Backend for Engine {
             }
         }
         let variables = api::list_variables(&mut self.store, current.as_deref());
-        Ok(variables.into_iter().map(|v| Stored { key: v.key, symbol: v.symbol, value: v.latex }).collect())
+        let variables = variables.into_iter().map(|v| Stored { key: v.key, symbol: v.symbol, value: v.latex });
+        // The matrices of Matrizen after them.
+        let session = self.store.session(current.as_deref());
+        let matrices = session.matrix_definitions().iter().map(|(key, latex)| Stored {
+            key: key.clone(),
+            symbol: quantus_core::session::symbol_of(key),
+            value: latex.clone(),
+        });
+        Ok(variables.chain(matrices.collect::<Vec<_>>()).collect())
     }
 
     fn sessions(&mut self) -> Vec<SessionInfo> {
@@ -318,6 +326,7 @@ fn core_mode(mode: Mode) -> Option<CoreMode> {
         Mode::Linear => CoreMode::Linear,
         Mode::Verify => CoreMode::Verify,
         Mode::BaseN => CoreMode::BaseN,
+        Mode::Matrix => CoreMode::Matrix,
         // The app does not ask for these (`Mode::engine`).
         _ => return None,
     })
