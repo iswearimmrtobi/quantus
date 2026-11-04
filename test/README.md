@@ -1,6 +1,6 @@
 # Engine test set
 
-112,000 generated cases that put the engine through arithmetic, elementary functions, equations,
+112,020 generated cases that put the engine through arithmetic, elementary functions, equations,
 derivatives, integrals, limits, algebraic simplification, physics with units, parser robustness,
 complex numbers, the linear systems mode and the modes added after it (from `verify` on in the
 table below).
@@ -75,6 +75,7 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 | `area` | `api::area`: `area` and `signed`, read back from the LaTeX (after a `\approx`), match exactly (1e-40). |
 | `table` | `api::value_table`: as many rows as `rows`, each x exact and y exact or empty (`null`, outside the domain). |
 | `geometry` | Geometry mode, `api::geometry`: the task's `relation` equals the expected one (if given), and for each of `values` (`[name, value, rel_tol]`) and `points` (`[name, [x, y, z]]`, exact) there is a result line `name = … = value` that matches. An angle is compared by its decimal after `\approx`. A task answered with `error` counts as refused. |
+| `circuit` | Electronics (`api::solve_circuit`) and Kirchhoff (`api::kirchhoff`): for each part in `elements`, its voltage, current and power (`[U, I, P]` in SI units), read back from the LaTeX with its unit, match to 1e-40. A source counts from a to b, so a delivering one has a negative current; a resistor counts along its current. |
 | `error` | The engine refuses the input with a message containing `contains`. |
 
 The tolerances are `1e-45` for exact results (the engine prints 50 digits) and `1e-40` for exact
@@ -117,6 +118,7 @@ the case itself is wrong.
 | distributions | 1,000 | Distributions through `api::distribution`: the normal density, the cumulative between two bounds or with an open one (empty or `\infty`), the inverse normal, all with the standard or a given σ and μ; binomial density and cumulative lists up to N = 400 with exact fractions (and k > N); Poisson density and cumulative lists; and the errors for σ, the area, p, μ, k, N and a missing N. Φ is computed from a 120-digit erf series |
 | analysis | 1,000 | Analysis mode through `api::analyze`, `tangent`, `area` and `value_table`: polynomials of degree 2–5 from rational roots (double roots, irrational extrema, saddle points), rational functions with poles, holes and horizontal or oblique asymptotes, (ax + b)e^{cx}, a ln(x)/x^k and a x^k ln(x) with their asymptotes and sides, tangent and normal (also vertical), the area and signed area between bounds or the outermost zeros, tables of values with a pole, and the errors (an equation, two variables, unparsable input). Expected points come from Sturm sequences and a square-free decomposition |
 | geometry | 1,000 | Geometry mode through `api::geometry`, angles in degrees, every object in one of its forms (points as cells, `(x\|y\|z)` or typed `A(…)`, lines by point and direction or two points, planes in coordinate, normal, three-point or parameter form, spheres by centre and radius or a point on them): distance and midpoint of two points; distance, foot, image and lying on for a point and a line or a plane; two lines identical, parallel (distance), intersecting (point, angle) or skew (distance), and their angle; line and plane intersecting (point, angle), parallel (distance) or contained; two planes identical, parallel (distance) or intersecting (angle); a sphere and a point (inside, on, outside, distance), a plane (circle, tangent, apart) or a line (secant, tangent, passant); volume, surface, circumference and area; and the errors |
+| electronics | 20 | Electronics mode through `api::solve_circuit`, one circuit per template with drawn E12-style values and prefixes (`2{,}2k\Omega`, `500mA`): series chains of 2–4 resistors, 2–4 in parallel, a loaded divider, a current source, two sources, an unbalanced and a balanced bridge, a source with inner resistance, a three-stage ladder, and a short circuit as the error. Solved by nodal analysis over fractions |
 
 ## Latest results
 
@@ -146,3 +148,4 @@ Each category from `verify` on was run on its own when it was added (no full run
 | distributions | 2026-11-04 | 1,000 / 1,000 | |
 | analysis | 2026-11-04 | 1,000 / 1,000 | |
 | geometry | 2026-11-04 | 976 / 1,000 | 24 cases of the foot of a perpendicular onto a plane given in normal, three-point or parameter form: the answer ends on the converted coordinate form, without the line `F = …` (the conversion's result line keeps the foot from becoming the result) |
+| electronics | 2026-11-04 | 20 / 20 | |

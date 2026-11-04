@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gens import (algebra, analysis, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
-                  basen, distributions, geometry, matrix, statistics, verify)
+                  basen, circuits, distributions, geometry, matrix, statistics, verify)
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -50,6 +50,8 @@ CATEGORIES = {
     "distributions": ("dist", 1000, distributions.GENERATORS),
     "analysis": ("ana", 1000, analysis.GENERATORS),
     "geometry": ("geo", 1000, geometry.GENERATORS),
+    # A handful of circuits, one per template, instead of weighted generators.
+    "electronics": ("el", 20, circuits.electronics_cases),
 }
 
 
@@ -67,6 +69,10 @@ def weighted_schedule(rng, generators, n):
 def generate_category(index, name, prefix, n, generators):
     from gens.common import pick_difficulty
     rng = random.Random(SEED * 100 + index)
+    if callable(generators):
+        cases = [{"id": f"{prefix}-{i + 1:06d}", "category": name, **c} for i, c in enumerate(generators(rng))]
+        assert len(cases) == n, f"{name}: {len(cases)} cases, expected {n}"
+        return cases
     seen = set()
     cases = []
     for i, gen in enumerate(weighted_schedule(rng, generators, n)):
@@ -159,6 +165,8 @@ def check(all_cases):
                     _parse_value(value)
                     float(tol)
                 [_parse_value(x) for _, p in e["points"] for x in p]
+            elif e["kind"] == "circuit":
+                [_parse_value(v) for values in e["elements"].values() for v in values]
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001

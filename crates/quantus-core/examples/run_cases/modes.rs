@@ -9,6 +9,8 @@ use quantus_core::eval::Calculation;
 mod analysis;
 #[path = "basen.rs"]
 mod basen;
+#[path = "circuits.rs"]
+mod circuits;
 #[path = "distributions.rs"]
 mod distributions;
 #[path = "geometry.rs"]
@@ -26,6 +28,7 @@ pub(super) fn run_api_case(api: &str, case: &Value) -> Outcome {
         "statistics" => statistics::run(case),
         "distribution" => distributions::run(case),
         "geometry" => geometry::run(case),
+        "solve_circuit" | "kirchhoff" => circuits::run(api, case),
         "analyze" | "tangent" | "area" | "valueTable" => analysis::run(api, case),
         _ => generator(&format!("unknown api {api:?}")),
     }
