@@ -22,6 +22,7 @@ use crate::units::{find, Kind as UnitKind, Unit};
 use crate::{QuantusError, Result};
 
 use super::branches::{Kind, Member, Network, Part};
+use super::equivalent::equivalent;
 use super::equations::{is_negative, quantity, Current, Equation, Equations};
 use super::graph::{Anchor, Edge, Graph, Point};
 
@@ -31,6 +32,9 @@ pub struct KirchhoffRequest {
     pub elements: Vec<KirchhoffElement>,
     /// Significant digits for this one call; `None` uses the setting.
     pub precision: Option<i64>,
+    /// The grid points of A and B. If set, the drawing is a resistor network and the answer is
+    /// the resistance between them instead of the currents.
+    pub terminals: Option<[Point; 2]>,
 }
 
 /// A part as the electronics mode takes it, plus where its terminals sit. The node numbers `a`
@@ -68,6 +72,26 @@ pub struct KirchhoffResponse {
     pub align_block: String,
     /// Set when the equations have no single solution; the steps then end where that shows.
     pub error: Option<String>,
+    /// The resistance between A and B, for a request with `terminals`.
+    pub equivalent: Option<EquivalentResponse>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EquivalentResponse {
+    /// `R_{AB} = 7\,\mathrm{Ω}`.
+    pub latex: String,
+    pub resistance: ValueResponse,
+    /// Each merge in order: the new resistor's symbol and the parts it stands for.
+    pub merges: Vec<MergeResponse>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MergeResponse {
+    /// `R_{23}`.
+    pub symbol: String,
+    pub parts: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -148,6 +172,9 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
             edges.push(Edge { id: part.id.clone(), a: element.pa, b: element.pb, wire: part.kind == Kind::Wire });
             parts.push(part);
         }
+    }
+    if let Some(terminals) = request.terminals {
+        return resistance_between(&edges, &parts, terminals, &calculator, &settings);
     }
     if parts.iter().all(|p| p.kind == Kind::Wire) {
         return Err(QuantusError::other(msg!(
@@ -247,6 +274,7 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
         notes,
         align_block: String::new(),
         error: None,
+        equivalent: None,
     };
 
     let shown = match &system.solution {
@@ -292,6 +320,55 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
     };
     response.steps = shown.iter().map(StepResponse::of).collect();
     Ok(response)
+}
+
+/// The resistance between A and B of a drawing of resistors and wires.
+fn resistance_between(
+    edges: &[Edge],
+    parts: &[Part],
+    terminals: [Point; 2],
+    calculator: &LatexCalculator,
+    settings: &Settings,
+) -> Result<KirchhoffResponse> {
+    if let Some(source) = parts.iter().find(|p| matches!(p.kind, Kind::VoltageSource | Kind::CurrentSource)) {
+        let id = &source.id;
+        return Err(QuantusError::other(msg!(
+            "{id} is a source; the resistance between A and B is worked out for resistors and wires only, so remove the sources or the terminals A and B.",
+            "{id} ist eine Quelle; der Widerstand zwischen A und B wird nur für Widerstände und Leitungen bestimmt, daher die Quellen oder die Anschlüsse A und B entfernen."
+        )));
+    }
+    if parts.iter().all(|p| p.kind == Kind::Wire) {
+        return Err(QuantusError::other(msg!(
+            "The network has no resistors: draw resistors between A and B.",
+            "Das Netzwerk hat keine Widerstände: Widerstände zwischen A und B zeichnen."
+        )));
+    }
+    let result = equivalent(edges, parts, terminals, calculator, settings)?;
+    let shown = shown_steps(&result.steps, settings.step_detail);
+    let matrix = result
+        .matrix
+        .iter()
+        .map(|row| row.iter().map(|value| calculator.entry(value)).collect::<Result<Vec<_>>>())
+        .collect::<Result<_>>()?;
+    Ok(KirchhoffResponse {
+        junctions: Vec::new(),
+        loops: Vec::new(),
+        branches: Vec::new(),
+        unknowns: result.unknowns,
+        matrix,
+        steps: shown.iter().map(StepResponse::of).collect(),
+        result: vec![result.latex.clone()],
+        elements: Vec::new(),
+        power_balance: None,
+        notes: result.notes,
+        align_block: align_block(&shown),
+        error: None,
+        equivalent: Some(EquivalentResponse {
+            latex: result.latex,
+            resistance: known(calculator, &PhysicalQuantity::new(result.value, unit("Ω")))?,
+            merges: result.merges.into_iter().map(|m| MergeResponse { symbol: m.symbol, parts: m.parts }).collect(),
+        }),
+    })
 }
 
 /// The network with every branch's reference direction along its real current, solved. A part's

@@ -566,3 +566,132 @@ fn the_kirchhoff_test_circuits_solve_to_their_documented_values() {
     assert!(sources.error.unwrap().starts_with("The equations contradict each other"));
     assert!(sources.elements.is_empty() && !sources.steps.is_empty());
 }
+
+/// The resistance between A at `a` and B at `b` of a drawing of resistors and wires.
+fn between(parts: Vec<Value>, a: (i64, i64), b: (i64, i64), settings: &Settings) -> Result<KirchhoffResponse, String> {
+    let request: KirchhoffRequest = serde_json::from_value(json!({
+        "elements": parts,
+        "terminals": [{ "x": a.0, "y": a.1 }, { "x": b.0, "y": b.1 }],
+    }))
+    .unwrap();
+    kirchhoff(settings, &request).map_err(|e| e.error)
+}
+
+fn r_ab(parts: Vec<Value>, a: (i64, i64), b: (i64, i64)) -> String {
+    let response = between(parts, a, b, &Settings::default()).unwrap();
+    response.equivalent.unwrap().resistance.value.unwrap()
+}
+
+#[test]
+fn resistors_in_series_and_in_parallel() {
+    let series = vec![part("R1", "3\\Omega", (0, 0), (4, 0)), part("R2", "4\\Omega", (4, 0), (8, 0))];
+    assert_eq!(r_ab(series, (0, 0), (8, 0)), "7");
+    // Two parallel resistors drawn as a rectangle: wires on the left and right.
+    let parallel = vec![
+        part("R1", "6\\Omega", (0, 0), (4, 0)),
+        part("R2", "3\\Omega", (0, 4), (4, 4)),
+        part("W1", "", (0, 0), (0, 4)),
+        part("W2", "", (4, 0), (4, 4)),
+    ];
+    assert_eq!(r_ab(parallel, (0, 2), (4, 2)), "2");
+}
+
+/// R1 from A to X, R2 and R3 from X to B, side by side.
+fn r1_and_two_in_parallel() -> Vec<Value> {
+    vec![
+        part("R1", "1\\Omega", (0, 0), (4, 0)),
+        part("R2", "2\\Omega", (4, 0), (8, 0)),
+        part("R3", "3\\Omega", (4, 4), (8, 4)),
+        part("W1", "", (4, 0), (4, 4)),
+        part("W2", "", (8, 0), (8, 4)),
+    ]
+}
+
+#[test]
+fn a_series_resistor_before_a_parallel_pair() {
+    let response = between(r1_and_two_in_parallel(), (0, 0), (8, 0), &Settings::default()).unwrap();
+    let equivalent = response.equivalent.unwrap();
+    // 1 + 2·3/5 = 11/5.
+    assert_eq!(equivalent.latex, "R_{AB} = \\frac{11}{5}\\,\\mathrm{\\Omega }");
+    let merges: Vec<(&str, Vec<&str>)> =
+        equivalent.merges.iter().map(|m| (m.symbol.as_str(), m.parts.iter().map(String::as_str).collect())).collect();
+    assert_eq!(merges, [("R_{23}", vec!["R2", "R3"]), ("R_{123}", vec!["R1", "R2", "R3"])]);
+    assert!(response.steps.iter().any(|s| s.latex.contains("\\frac{R_{2} \\cdot R_{3}}{R_{2} + R_{3}}")));
+    assert!(response.junctions.is_empty() && response.matrix.is_empty());
+}
+
+#[test]
+fn a_ladder_reduces_from_its_far_end() {
+    // Rungs R2, R4, R6 down to the bottom rail; R1, R3, R5 along the top. All 1 Ω.
+    let mut parts = vec![
+        part("R1", "1\\Omega", (0, 0), (4, 0)),
+        part("R3", "1\\Omega", (4, 0), (8, 0)),
+        part("R5", "1\\Omega", (8, 0), (12, 0)),
+        part("R2", "1\\Omega", (4, 0), (4, 4)),
+        part("R4", "1\\Omega", (8, 0), (8, 4)),
+        part("R6", "1\\Omega", (12, 0), (12, 4)),
+    ];
+    parts.push(part("W1", "", (0, 4), (12, 4)));
+    // 1 + 1 ∥ (1 + 1 ∥ 2) = 1 + 1 ∥ 5/3 = 1 + 5/8 = 13/8.
+    assert_eq!(r_ab(parts, (0, 0), (0, 4)), "1.625");
+}
+
+#[test]
+fn parts_without_current_are_left_out_with_a_note() {
+    let mut parts = r1_and_two_in_parallel();
+    parts.push(part("R4", "9\\Omega", (0, 0), (0, 4)));
+    parts.push(part("R5", "9\\Omega", (20, 0), (24, 0)));
+    let response = between(parts, (0, 0), (8, 0), &Settings::default()).unwrap();
+    assert_eq!(response.equivalent.unwrap().resistance.value.as_deref(), Some("2.2"));
+    assert!(response.notes.iter().any(|n| n.starts_with("R4 has an open end")), "{:?}", response.notes);
+    assert!(response.notes.iter().any(|n| n.starts_with("R5 is not connected")), "{:?}", response.notes);
+}
+
+#[test]
+fn a_bridge_is_finished_with_the_node_rule() {
+    let bridge = |r5: &str| {
+        vec![
+            part("R1", "1\\Omega", (0, 4), (4, 0)),
+            part("R2", "1\\Omega", (0, 4), (4, 8)),
+            part("R3", "2\\Omega", (4, 0), (8, 4)),
+            part("R4", "2\\Omega", (4, 8), (8, 4)),
+            part("R5", r5, (4, 0), (4, 8)),
+        ]
+    };
+    // Balanced: R5 carries no current, so R_AB = 3 ∥ 3.
+    let balanced = between(bridge("5\\Omega"), (0, 4), (8, 4), &Settings::default()).unwrap();
+    assert_eq!(balanced.equivalent.as_ref().unwrap().resistance.value.as_deref(), Some("1.5"));
+    assert_eq!(balanced.unknowns, ["\\varphi_{A}", "\\varphi_{1}", "\\varphi_{2}"]);
+    assert!(balanced.notes.iter().any(|n| n.contains("node rule")));
+    // Unbalanced: 1, 2 on top, 2, 1 below, 1 across: R_AB = 7/5.
+    let mut unbalanced = bridge("1\\Omega");
+    unbalanced[1] = part("R2", "2\\Omega", (0, 4), (4, 8));
+    unbalanced[3] = part("R4", "1\\Omega", (4, 8), (8, 4));
+    assert_eq!(r_ab(unbalanced, (0, 4), (8, 4)), "1.4");
+}
+
+#[test]
+fn shorts_open_networks_and_sources() {
+    let shorted = vec![part("R1", "3\\Omega", (0, 0), (4, 0)), part("W1", "", (0, 0), (4, 0))];
+    assert_eq!(r_ab(shorted, (0, 0), (4, 0)), "0");
+    let apart = vec![part("R1", "3\\Omega", (0, 0), (4, 0)), part("R2", "3\\Omega", (8, 0), (12, 0))];
+    assert!(between(apart, (0, 0), (12, 0), &Settings::default()).unwrap_err().contains("infinite"));
+    let off = vec![part("R1", "3\\Omega", (0, 0), (4, 0))];
+    assert!(between(off, (0, 0), (9, 9), &Settings::default()).unwrap_err().starts_with("B is not connected"));
+    let source = vec![part("R1", "3\\Omega", (0, 0), (4, 0)), part("V1", "5V", (4, 0), (8, 0))];
+    assert!(between(source, (0, 0), (8, 0), &Settings::default()).unwrap_err().starts_with("V1 is a source"));
+}
+
+#[test]
+fn the_reduction_follows_the_detail_level_and_the_language() {
+    use quantus_core::settings::StepDetail;
+    let at = |step_detail| between(r1_and_two_in_parallel(), (0, 0), (8, 0), &Settings { step_detail, ..Settings::default() }).unwrap();
+    let brief = at(StepDetail::Brief);
+    assert!(brief.steps[0].latex.starts_with("R_{23} = R_{2} \\parallel R_{3} ="), "{}", brief.steps[0].latex);
+    let detailed = at(StepDetail::Detailed);
+    assert!(detailed.steps[0].latex.contains("\\frac{2\\,\\mathrm{\\Omega } \\cdot 3\\,\\mathrm{\\Omega }}"), "{}", detailed.steps[0].latex);
+    assert_eq!(brief.steps.len(), detailed.steps.len());
+    let german = between(r1_and_two_in_parallel(), (0, 0), (8, 0), &Settings { language: Language::De, ..Settings::default() }).unwrap();
+    assert_eq!(german.steps[0].explanation.as_deref(), Some("R₂ und R₃ sind parallel: sie liegen zwischen denselben zwei Knoten."));
+    assert_eq!(german.steps[1].explanation.as_deref().map(|e| e.starts_with("R₁ und R₂₃ sind in Reihe")), Some(true));
+}

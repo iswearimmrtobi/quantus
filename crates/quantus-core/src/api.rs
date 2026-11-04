@@ -785,7 +785,7 @@ mod tests {
         keys.sort();
         assert_eq!(
             keys,
-            ["alignBlock", "branches", "elements", "error", "junctions", "loops", "matrix", "notes", "powerBalance", "result", "steps", "unknowns"]
+            ["alignBlock", "branches", "elements", "equivalent", "error", "junctions", "loops", "matrix", "notes", "powerBalance", "result", "steps", "unknowns"]
         );
         assert_eq!(body["result"], json!(["I_{1} = 2\\,\\mathrm{A}"]));
         assert_eq!(body["loops"][0]["name"], "L_{1}");
