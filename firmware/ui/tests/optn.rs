@@ -98,3 +98,33 @@ fn the_area_functions_and_coth_go_into_their_brackets() {
     assert_eq!(inserted(&["Hyperbol. Fkt.", "artanh"]), r"\mathrm{artanh}()");
     assert_eq!(inserted(&["Hyperbol. Fkt.", "coth"]), r"\coth()");
 }
+
+#[test]
+fn const_lists_the_constants_by_category_in_physik() {
+    let mut app = app(Mode::Physics);
+    app.key(Key::Digit(2));
+    app.key(Key::Const);
+    // The first category, its first constant.
+    app.key(Key::Exe);
+    app.key(Key::Exe);
+    assert_eq!(app.screen, Screen::Calc);
+    assert_eq!(app.editor.to_latex(), "2c_{0}");
+    // ← from the categories closes CONST.
+    app.key(Key::Const);
+    app.key(Key::Left);
+    assert_eq!(app.screen, Screen::Calc);
+    // OPTN has them too.
+    optn(&mut app, &["Konstanten"]);
+    app.key(Key::Exe);
+    app.key(Key::Down);
+    app.key(Key::Exe);
+    assert_eq!(app.editor.to_latex(), "2c_{0}h_{P}");
+}
+
+#[test]
+fn const_says_the_constants_are_physiks() {
+    let mut app = app(Mode::Algebra);
+    app.key(Key::Const);
+    let Screen::Menu(menu) = &app.screen else { panic!("CONST is open") };
+    assert!(matches!(menu.edit, Some(quantus_ui::menu::Edit::Message { message, .. }) if message == quantus_ui::text::PHYSICS_ONLY));
+}

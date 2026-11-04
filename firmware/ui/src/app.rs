@@ -926,6 +926,19 @@ impl<B: Backend> App<B> {
         self.screen = Screen::Menu(menu);
     }
 
+    /// CONST or CONV, opened by its key: the catalogue's categories, which closes the menu when
+    /// left. The constants are Physik's only.
+    fn open_catalogue(&mut self, catalogue: Catalogue) {
+        let page = &tree::CONSTANTS;
+        let label = page.title;
+        let mut menu = Menu::new(page);
+        menu.edit = Some(match catalogue {
+            Catalogue::Constants if self.mode != Mode::Physics => Edit::Message { label, message: text::PHYSICS_ONLY },
+            _ => self.catalogue(label, catalogue, true),
+        });
+        self.screen = Screen::Menu(menu);
+    }
+
     /// The list of a catalogue the backend has, or a message if it has none; `close` for one
     /// opened by its key, which closes the menu when it is left.
     fn catalogue(&mut self, label: Text, catalogue: Catalogue, close: bool) -> Edit {
@@ -1100,6 +1113,7 @@ impl<B: Backend> App<B> {
             Key::Mode if shift => return self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
             Key::Mode => return self.screen = Screen::Modes { selected: self.mode.index() },
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
+            Key::Const => return self.open_catalogue(Catalogue::Constants),
             _ => {}
         }
         // While the backend calculates, AC drops its answer and the other keys wait; the graph

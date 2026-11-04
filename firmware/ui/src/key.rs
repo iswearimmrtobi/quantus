@@ -48,6 +48,8 @@ pub enum Key {
     Mode,
     /// The mode's option menu.
     Optn,
+    /// CONST: the physical constants by category.
+    Const,
     /// S⇔D: the shown result as a decimal or exact.
     SwapForm,
     /// A character from a keyboard that no key stands for (`@`, `!`, …), and the point, which
@@ -72,6 +74,7 @@ pub const CONTROLS: &[(char, Key)] = &[
     ('\u{11}', Key::Square),    // Ctrl+Q
     ('\u{13}', Key::Sin),       // Ctrl+S
     ('\u{14}', Key::Tan),       // Ctrl+T
+    ('\u{15}', Key::Const),     // Ctrl+U
     ('\u{17}', Key::Root),      // Ctrl+W
     ('\u{18}', Key::Ac),        // Ctrl+X
 ];

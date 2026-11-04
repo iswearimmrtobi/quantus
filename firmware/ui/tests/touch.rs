@@ -167,9 +167,9 @@ fn what_the_finger_is_on_lights_up_until_it_drags_away() {
 fn optn_inserts_a_function() {
     let mut app = App::new(Stub);
     app.key(Key::Optn);
-    // Hyperbol. Fkt., the first line of the second page → sinh.
+    // Hyperbol. Fkt., the second line of the second page → sinh.
     swipe(&mut app, line(3), line(1));
-    tap(&mut app, line(0));
+    tap(&mut app, line(1));
     tap(&mut app, line(0));
     assert_eq!(app.screen, Screen::Calc);
     assert_eq!(app.editor.to_latex(), r"\sinh()");

@@ -3,6 +3,7 @@
 //! wait for the engine or the firmware is noted there.
 
 use crate::app::Mode;
+use crate::backend::Catalogue;
 use crate::menu::{opt, Action, Entry, Info, Kind, Opt, Page, TimeField, ON_OFF};
 use crate::settings::Setting as S;
 use crate::text::{same, t, Text};
@@ -408,11 +409,17 @@ static TOOLS: Page = Page {
     entries: &[pending(same("CALC")), pending(same("SOLVE")), pending(t("In Einheit", "To unit"))],
 };
 
+const CONSTANTS_ENTRY: Entry = entry(t("Konstanten", "Constants"), Kind::Catalogue(Catalogue::Constants));
+
+/// What the CONST key opens: the constants by category; a message outside Physik.
+pub static CONSTANTS: Page = Page { title: t("Konstanten", "Constants"), entries: &[CONSTANTS_ENTRY] };
+
 static OPTN_PHYSICS: Page = Page {
     title: t("Physik", "Physics"),
     entries: &[
         group(t("Einheiten", "Units"), &UNITS),
         group(t("Präfixe", "Prefixes"), &PREFIXES),
+        CONSTANTS_ENTRY,
         ANALYSIS_GROUP,
         NUMBER_GROUP,
         ANGLE_GROUP,

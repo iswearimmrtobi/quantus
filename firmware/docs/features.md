@@ -94,7 +94,8 @@ State on 2026-11-03.
 - [x] USB keyboard, German QWERTZ layout, key repeat
 - [x] Touch: every menu by finger, taps, drag to scroll, page turns, − / + for numbers
 - [x] Touch calibration: five crosses, least squares, redone when off by more than 20 px
-- [ ] Keys still missing: CONST, CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
+- [x] CONST (F6, Ctrl+U)
+- [ ] Keys still missing: CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
 - [ ] ALPHA letters on the keypad
 - [ ] UNDO/REDO
 - [ ] INS (wrap the previous item in the next template)
@@ -152,7 +153,7 @@ in yet.
 - [x] Sexagesimal °′″ (OPTN → Winkel: °, ', '')
 - [x] Units after numbers, by quantity in OPTN (15 quantities)
 - [x] All 24 prefixes, q to Q
-- [~] Constants — in the engine (CODATA 2018, the Casio's 47); no CONST menu
+- [x] Constants (CODATA 2018, the Casio's 47): CONST or OPTN → Konstanten, by category, in Physik
 - [~] ▶ unit conversion and the imperial units — in the engine; no CONV menu
 - [x] Equations and systems, exact
 - [x] Exact cubics and quartics, no [−100, 100] limit
@@ -183,7 +184,8 @@ in yet.
 - [ ] OPTN for Matrizen, Basis-N
 - [x] OPTN Wertetabelle, Statistik (Typ, Häufigkeit, rows), Verteilungen (Typ)
 - [x] OPTN LGS: Eingabe, Zeilen, Spalten, Imaginäre Einheit, Alles löschen
-- [ ] CONST and CONV menus by category
+- [x] CONST menu by category, each constant with its symbol
+- [ ] CONV menu by category
 - [x] *Noch nicht verfügbar* for entries that wait for the engine or the firmware
 
 ## Storage and sessions

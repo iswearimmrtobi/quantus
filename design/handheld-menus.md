@@ -66,9 +66,10 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [x] Editor template nCr (`\binom`)
 - [ ] Editor templates: Konjugierte (`\overline`), `cases`
 - [ ] Font glyphs: ∠, ⌊⌋, ⌈⌉, µ (→ and the set signs are drawn as lines)
-- [ ] Keys: CONST, CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, Sitzungen, PreAns, ∠, ∫, d/dx, Σ,
+- [ ] Keys: CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, Sitzungen, PreAns, ∠, ∫, d/dx, Σ,
       x⁻¹, x³, 10ˣ, eˣ, and the ALPHA legend (section 7.4)
-- [ ] CONST and CONV menus by category
+- [x] CONST menu by category (the core's catalogue, through `Backend::catalogue`)
+- [ ] CONV menu by category
 - [ ] CALC prompt and SOLVE screen
 - [ ] VARS screen: insert, edit, delete session variables
 - [ ] Editing: UNDO/REDO, INS, selection with SHIFT+←/→, copy and paste
@@ -658,7 +659,8 @@ Shared groups, used by several modes:
 Per mode:
 
 - **Physik**: Einheiten (by quantity) [Q] ✓ (the units of section 5.3 in 15 quantities,
-  inserted as letters) · Präfixe [Q] ✓ (all 24, as letters, μ as `\mu`) · Analysis · Zahl ·
+  inserted as letters) · Präfixe [Q] ✓ (all 24, as letters, μ as `\mu`) · Konstanten [C] ✓
+  (as the CONST key) · Analysis · Zahl ·
   Winkel · Hyperbol. Fkt. · Werkzeuge
 - **Algebra**: Gleichungssystem (`;` ✓, `cases` ◌, no template) [Q] · Griechisch · Analysis ·
   Zahl · Hyperbol. Fkt. · Werkzeuge
@@ -716,7 +718,8 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | Main menu | MODE | exists |
 | SETUP | SHIFT + MODE | exists |
 | OPTN | OPTN | exists (`Optn`; F4, Ctrl+N) |
-| CONST, CONV | own key or SHIFT + a key | missing |
+| CONST | own key | `Const` (F6, Ctrl+U): the six categories of the core, then the constants with their symbols; Physik only |
+| CONV | own key or SHIFT + a key | missing |
 | S⇔D | S⇔D | exists (`SwapForm`) |
 | ENG, ←ENG | a key and SHIFT + it | missing |
 | STO, VARS | SHIFT + a key, and a key | missing |
