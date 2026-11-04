@@ -177,6 +177,13 @@ mod optn {
     }
 
     #[test]
+    fn permutations_and_the_divisors() {
+        assert_eq!(typed(Mode::Physics, r"\operatorname{nPr}(5;2)"), Ok("20".to_string()));
+        assert_eq!(typed(Mode::Physics, r"\operatorname{ggT}(12;18)"), Ok("6".to_string()));
+        assert_eq!(typed(Mode::Physics, r"\operatorname{kgV}(4;6)"), Ok("12".to_string()));
+    }
+
+    #[test]
     fn the_product() {
         assert_eq!(typed(Mode::Physics, r"\prod_{k=1}^{5}k"), Ok("120".to_string()));
     }

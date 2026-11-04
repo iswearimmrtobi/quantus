@@ -646,8 +646,8 @@ of a curve sketch are drawn as lines.
 Shared groups, used by several modes:
 
 - **Analysis**: ∫ ✓ (`\int_{}^{}`), d/dx ✓, Σ ✓ (`\sum`, now drawn as ∑), Π ✓ (`\prod`, drawn as ∏), lim ✓
-- **Zahl**: |x| ✓, n! ✓, nCr ◌ (the engine has `\binom`, the editor no template), nPr [eng] ◌,
-  ggT, kgV [eng] ◌, Int, Intg, Rnd, RndFix, ÷R [eng] ◌, mod ✓ (`\bmod`), ⌊⌋, ⌈⌉ ✓, max, min ✓
+- **Zahl**: |x| ✓, n! ✓, nCr ◌ (the engine has `\binom`, the editor no template), nPr ✓,
+  ggT, kgV ✓ (`\operatorname{ggT}(;)`), Int, Intg, Rnd, RndFix, ÷R [eng] ◌, mod ✓ (`\bmod`), ⌊⌋, ⌈⌉ ✓, max, min ✓
   (`\max(;)`), % ✓
 - **Hyperbol. Fkt.**: sinh, cosh, tanh ✓, arsinh, arcosh, artanh, coth ✓ (`\operatorname{arsinh}`)
 - **Winkel**: ° ✓, rad ✓, °′″ [eng] ◌

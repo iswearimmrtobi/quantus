@@ -46,6 +46,13 @@ fn a_function_of_several_arguments_starts_at_the_first() {
 }
 
 #[test]
+fn permutations_and_the_divisors_take_two_numbers() {
+    assert_eq!(inserted(&["Zahl", "nPr"]), r"\mathrm{nPr}(;)");
+    assert_eq!(inserted(&["Zahl", "ggT"]), r"\mathrm{ggT}(;)");
+    assert_eq!(inserted(&["Zahl", "kgV"]), r"\mathrm{kgV}(;)");
+}
+
+#[test]
 fn the_product_has_its_bounds_to_fill() {
     assert_eq!(inserted(&["Analysis", "∏ Produkt"]), r"\prod_{}^{}");
 }

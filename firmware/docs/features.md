@@ -147,7 +147,8 @@ in yet.
 - [x] ∫ with bounds (also infinite), d/dx at a point, Σ, lim (a⁺, a⁻, ∞)
 - [x] Π (`\prod`, OPTN → Analysis)
 - [x] |x|, n!, mod, ⌊x⌋, ⌈x⌉, max, min, %
-- [~] nCr, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R — in the engine; no OPTN entries or template yet
+- [x] nPr, ggT, kgV (OPTN → Zahl)
+- [~] nCr, Int, Intg, Rnd, RndFix, ÷R — in the engine; no OPTN entries or template yet
 - [~] Sexagesimal °′″ — in the engine; not in OPTN
 - [x] Units after numbers, by quantity in OPTN (15 quantities)
 - [x] All 24 prefixes, q to Q
