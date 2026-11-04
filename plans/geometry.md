@@ -144,7 +144,7 @@ results, not errors. Each step below brings its tests.
 - [x] Sphere × line (secant, tangent, passant, intersection points) and sphere × plane
   (intersection circle, tangent, no contact, distance); tangent plane at a point.
 - [x] Sphere × sphere: relation, intersection circle and Potenzebene.
-- [ ] `Circle` (centre, radius, normal): direct constructor, the "Kugel ∩ Ebene" constructor,
+- [x] `Circle` (centre, radius, normal): direct constructor, the "Kugel ∩ Ebene" constructor,
   point on circle?, circumference and area; the plain 2D circle as the z = 0 case.
 - [ ] Circle × line (intersection points, tangent) and the tangent at a point of the circle.
 - [ ] Circle × plane (intersection points, contained, no contact).

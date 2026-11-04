@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere, Vector3, Working,
+    triple_product, Circle, GeometryEvaluator, Item, Line, LinePlane, LineRelation, Objects, Plane, PlaneForm, PlanePlane, Point, Sphere, SphereLine, SpherePlane, SpherePoint, SphereSphere, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -766,4 +766,43 @@ fn two_spheres() {
     let SphereSphere::Intersecting { plane, circle } = ball([0, 0, 0], 2).meet_sphere(&ball([2, 2, 0], 2)).unwrap().result else { panic!() };
     assert_eq!(plane.equation(), "x + y = 2");
     assert_eq!((circle.centre, circle.radius.mul(&circle.radius)), (at([1, 1, 0]), Value::int(2)));
+}
+
+#[test]
+fn a_circle_in_space_and_in_the_plane() {
+    let k = Circle::new(&at([1, 2, 3]), Value::int(2), &ints([0, 0, 1])).unwrap();
+    assert!(Circle::new(&at([0, 0, 0]), Value::zero(), &ints([0, 0, 1])).is_err());
+    assert!(Circle::new(&at([0, 0, 0]), Value::one(), &Vector3::zero()).is_err());
+    assert_eq!(
+        k.equation(),
+        r"\left(\vec{x} - \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix}\right)^2 = 4, \quad \left(\vec{x} - \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix}\right) \cdot \begin{pmatrix} 0 \\ 0 \\ 1 \end{pmatrix} = 0"
+    );
+    assert!(k.contains(&at([3, 2, 3])).unwrap().result);
+    let worked = k.contains(&at([3, 2, 4])).unwrap();
+    assert!(!worked.result);
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), [r"P \notin k"]);
+    // In the plane, but at the wrong distance.
+    let worked = k.contains(&at([2, 2, 3])).unwrap();
+    assert!(!worked.result);
+    assert_eq!(latex_at(&worked.working, StepDetail::Standard)[1], r"\left|\overrightarrow{MP}\right| = \sqrt{1^2 + 0^2 + 0^2} = 1 \neq r = 2");
+
+    // A plain 2D circle is the case z = 0.
+    let c = Circle::planar(&Point::planar(Value::int(1), Value::int(-1)), Value::int(5)).unwrap();
+    assert!(c.is_planar());
+    assert_eq!(c.equation(), r"\left(x - 1\right)^2 + \left(y + 1\right)^2 = 25");
+    let worked = c.contains(&Point::planar(Value::int(4), Value::int(3))).unwrap();
+    assert!(worked.result);
+    assert_eq!(latex_at(&worked.working, StepDetail::Standard), [r"\left|\overrightarrow{MP}\right| = \sqrt{3^2 + 4^2} = 5 = r = 5", r"P \in k"]);
+    assert_eq!(latex_at(&c.circumference().working, StepDetail::Brief), [r"U = 10\pi"]);
+    assert_eq!(latex_at(&c.area().working, StepDetail::Detailed), [r"A = \pi r^2 = \pi \cdot 5^2", r"A = 25\pi"]);
+}
+
+#[test]
+fn a_circle_from_a_sphere_and_a_plane() {
+    let k = ball([1, 2, 3], 5);
+    let worked = Circle::cut(&k, &coordinate_plane(0, 0, 1, 6)).unwrap();
+    assert_eq!((&worked.result.centre, &worked.result.radius, &worked.result.normal), (&at([1, 2, 6]), &Value::int(4), &ints([0, 0, 1])));
+    assert!(worked.result.contains(&at([5, 2, 6])).unwrap().result);
+    assert!(Circle::cut(&k, &coordinate_plane(0, 0, 1, 8)).unwrap_err().to_string().contains("only touches"));
+    assert!(Circle::cut(&k, &coordinate_plane(0, 0, 1, 9)).unwrap_err().to_string().contains("does not meet"));
 }
