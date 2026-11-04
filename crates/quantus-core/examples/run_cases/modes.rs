@@ -9,13 +9,17 @@ use quantus_core::eval::Calculation;
 mod basen;
 #[path = "matrix.rs"]
 mod matrix;
+#[path = "statistics.rs"]
+mod statistics;
 #[path = "verify.rs"]
 mod verify;
 
 /// A case with `api`: the request goes to that API function.
 pub(super) fn run_api_case(api: &str, case: &Value) -> Outcome {
-    let _ = case;
-    generator(&format!("unknown api {api:?}"))
+    match api {
+        "statistics" => statistics::run(case),
+        _ => generator(&format!("unknown api {api:?}")),
+    }
 }
 
 /// The expectation kinds of the new modes that `evaluate` answers.
@@ -29,7 +33,6 @@ pub(super) fn check_calculation(kind: &str, settings: &Settings, expect: &Value,
 }
 
 /// The outcome of an API call that should have failed with a message containing `contains`.
-#[allow(dead_code)]
 pub(super) fn expect_error<T>(result: Result<T, api::ApiError>, expect: &Value, shown: impl Fn(&T) -> String) -> Outcome {
     let contains = expect["contains"].as_str().unwrap_or_default();
     match result {

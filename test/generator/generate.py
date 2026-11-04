@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gens import (algebra, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
-                  basen, matrix, verify)
+                  basen, matrix, statistics, verify)
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -46,6 +46,7 @@ CATEGORIES = {
     "verify": ("ver", 1000, verify.GENERATORS),
     "base-n": ("bn", 1000, basen.GENERATORS),
     "matrix": ("mat", 1000, matrix.GENERATORS),
+    "statistics": ("stat", 1000, statistics.GENERATORS),
 }
 
 
@@ -134,10 +135,17 @@ def check(all_cases):
                 [Fraction(v) for row in e["rows"] for v in row]
                 if len({len(row) for row in e["rows"]}) != 1:
                     errors.append(f"{c['id']}: matrix rows of different lengths")
+            elif e["kind"] == "statistics":
+                for group in ("values", "regression", "estimates"):
+                    for value, tol in e.get(group, {}).values():
+                        _parse_value(value)
+                        float(tol)
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001
             errors.append(f"{c['id']}: bad expectation {e}: {ex}")
+        if "api" in c and not isinstance(c.get("request"), dict):
+            errors.append(f"{c['id']}: api {c['api']} without a request")
         if not isinstance(c["latex"], str):
             errors.append(f"{c['id']}: latex is not a string")
     errors += check_units()

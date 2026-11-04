@@ -1,6 +1,6 @@
 # Engine test set
 
-108,000 generated cases that put the engine through arithmetic, elementary functions, equations,
+109,000 generated cases that put the engine through arithmetic, elementary functions, equations,
 derivatives, integrals, limits, algebraic simplification, physics with units, parser robustness,
 complex numbers, the linear systems mode and the modes added after it (from `verify` on in the
 table below).
@@ -68,6 +68,7 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 | `truth` | Verify mode: the value is 1 for `true` and 0 for `false`, and the result is `\text{true}` or `\text{false}` (`\text{wahr}`, `\text{falsch}` with `language: "de"`). |
 | `basen` | Base-N mode: the value equals the signed `value`, the result is `result` as written in the set base, and the three other bases are the result's forms (`forms`, by `dec`, `hex`, `bin`, `oct`). |
 | `matrix` | Matrix mode: the result is a `pmatrix` of the size of `rows`, and each entry read back equals the one in `rows` exactly. A determinant is a `number`. |
+| `statistics` | Statistics: `request` goes to `api::statistics`. The keys of the one- or two-variable values are exactly those of `values`; each value, and each of `regression` (a, b, c, r) and `estimates` (`xHat`, `yHat`), matches its `[value, rel_tol]`. |
 | `error` | The engine refuses the input with a message containing `contains`. |
 
 The tolerances are `1e-45` for exact results (the engine prints 50 digits) and `1e-40` for exact
@@ -106,6 +107,7 @@ the case itself is wrong.
 | verify | 1,000 | Verify mode: equations of fractions, sums and products, recurring decimals against their fraction, powers and roots, inequalities, chains of up to five relations, sin, cos and tan at special angles in radians and degrees, π, e, √2 and √3 against nearby fractions, logarithms, German answers, and a free variable as the error |
 | base-n | 1,000 | Base-N mode in all four bases: single numbers up to the ends of the 32-bit range and full patterns (`FFFFFFFF` = −1), + − · ÷ with truncating division, and/or/xor/xnor written plain, as `\operatorname` or `\land`/`\lor`/`\oplus`, `Not` and `Neg`, mixed precedence levels, numbers with a prefix in another base (`\mathrm{h}1F`), and results or intermediate values outside 32 bits and division by zero as errors |
 | matrix | 1,000 | Matrix mode with inline `pmatrix` and `bmatrix` up to 5×5 and integer, fraction and decimal entries: sums and differences, a number times or over a matrix (`\cdot`, juxtaposed, `\div`, `\frac`), products and chains of them, transposes (`T`, `\top`), powers, inverses up to 4×4 and `A \cdot A^{-1}`, determinants up to 5×5 (also 0), `rref` with dependent rows, `A - k\,\operatorname{Identity}(n)`, combined inputs, and the errors: singular, sizes that do not fit for + and ·, matrix + number, det of a non-square matrix |
+| statistics | 1,000 | Statistics through `api::statistics`: one variable (1–200 values, integers, decimals, thirds, empty cells skipped) with n, mean, sums, both variances and standard deviations, min, the Casio quartiles, median and max; frequency columns (0 drops a row); two-variable values; all seven regressions on data near their curve with a, b, c, r and the estimates x̂ and ŷ; and the errors: regression without pairs, a frequency that is not whole, an empty list, equal x values, x = 0 for y = a + b/x, a short y column, a unit in a cell |
 
 ## Latest results
 
@@ -131,3 +133,4 @@ Each category from `verify` on was run on its own when it was added (no full run
 | verify | 2026-11-04 | 993 / 1,000 | 7 cases `\pi = …` and `e = …`: the left side is read as a label, a variable `\pi` or `e` to compare, which has no value (`\pi < 3` works) |
 | base-n | 2026-11-04 | 1,000 / 1,000 | |
 | matrix | 2026-11-04 | 1,000 / 1,000 | |
+| statistics | 2026-11-04 | 1,000 / 1,000 | |
