@@ -7,6 +7,8 @@ use quantus_core::eval::Calculation;
 
 #[path = "basen.rs"]
 mod basen;
+#[path = "distributions.rs"]
+mod distributions;
 #[path = "matrix.rs"]
 mod matrix;
 #[path = "statistics.rs"]
@@ -18,6 +20,7 @@ mod verify;
 pub(super) fn run_api_case(api: &str, case: &Value) -> Outcome {
     match api {
         "statistics" => statistics::run(case),
+        "distribution" => distributions::run(case),
         _ => generator(&format!("unknown api {api:?}")),
     }
 }
