@@ -3,8 +3,8 @@ import { api, ApiError, type Geometry, type Settings } from '../api';
 import { geometryRequest, type GeometryInput } from '../geometry';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
+import { GeometryObjects } from './GeometryObjects';
 import { GeometryPlot } from './GeometryPlot';
-import { Katex } from './Katex';
 
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
  * The Geometry mode: a scene of points, vectors, lines, planes, spheres and circles, drawn in a
  * 3D view, and a task on them answered exactly with its steps.
  */
-export function GeometryView({ settings, input }: Props) {
+export function GeometryView({ settings, input, onInputChange }: Props) {
   const { t } = useT();
   const [answer, setAnswer] = useState<Geometry | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -58,15 +58,7 @@ export function GeometryView({ settings, input }: Props) {
         {input.objects.length > 0 && <GeometryPlot objects={input.objects} />}
         {error && <ErrorRow error={error} soft />}
         {!input.objects.length && <p className="analysis-empty">{t('geometry.empty')}</p>}
-        {answer && answer.objects.length > 0 && (
-          <section className="section-card geometry-objects">
-            {answer.objects.map((object, index) => (
-              <div key={index} className="geometry-object">
-                {object.error ? <span className="geometry-error">{object.name}: {object.error}</span> : <Katex latex={object.latex} />}
-              </div>
-            ))}
-          </section>
-        )}
+        <GeometryObjects objects={input.objects} built={answer?.objects ?? null} onChange={(objects) => onInputChange({ ...input, objects })} />
       </div>
     </main>
   );

@@ -188,7 +188,7 @@ its tests.
   scene with axes.
 - [x] Plot interaction: drag rotates, wheel zooms, a reset button and a "view from above" button.
 - [x] Plot labels and a colour per object, fed from the real scene.
-- [ ] Object list with forms for Punkt and Vektor: MathLive cells for the coordinates (as in
+- [x] Object list with forms for Punkt and Vektor: MathLive cells for the coordinates (as in
   `MatrixGrid.tsx`), add and remove.
 - [ ] Forms for Gerade and Ebene, with the form switch (parameter, normal, coordinate).
 - [ ] Forms for Kugel and Kreis (including the Kugel ∩ Ebene constructor).

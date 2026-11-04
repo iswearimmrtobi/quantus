@@ -2555,7 +2555,88 @@ select option {
 .geometry-objects {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.geometry-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+}
+
+.geometry-add-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-right: 4px;
+}
+
+.geometry-object-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.geometry-object-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.geometry-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--object, var(--text-faint));
+  flex: none;
+}
+
+.geometry-name {
+  width: 64px;
+}
+
+.geometry-cells {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A vector as a column, as it is written. */
+.geometry-cells.vector {
+  flex-direction: column;
+  padding: 0 6px;
+  border-left: 1.5px solid var(--text-muted);
+  border-right: 1.5px solid var(--text-muted);
+  border-radius: 8px;
+}
+
+.geometry-cell-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.geometry-cell {
+  width: 72px;
+}
+
+.geometry-bar {
+  color: var(--text-muted);
+}
+
+.geometry-remove {
+  margin-left: auto;
+}
+
+.geometry-built {
+  font-size: 14px;
+  padding-left: 18px;
 }
 
 .geometry-error {
