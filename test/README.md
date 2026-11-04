@@ -105,8 +105,8 @@ the case itself is wrong.
 | arithmetic | 15,000 | Integer sums and products, numbers with up to 200 digits, fractions, nested fractions, decimals with `{,}` and `.`, powers, roots, scientific notation, precedence traps, absolute values, long chains |
 | functions | 10,000 | Trig at special angles (degrees and multiples of π) and in radians, identities, `\ln`, `\log`, `\binom`, `\sum` (closed forms, telescoping, nested), determinants up to 8×8, domain errors |
 | equations | 8,000 | Linear, quadratic (rational, irrational, double and no real roots), degree 3–6 with integer roots, a quintic, fractional, root, exponential, logarithmic and absolute-value equations, unknowns next to units |
-| derivatives | 7,000 | Polynomials, product and quotient rule, chain rule with sin, cos, exp, ln and roots, `x^x`, higher derivatives by nesting |
-| integrals | 7,000 | Polynomials, trig, exp, `1/x`, arctan, by parts, singular ends, kinks, reversed and equal bounds, double integrals, integrals with units |
+| derivatives | 7,000 | Polynomials, product and quotient rule, chain rule with sin, cos, exp, ln and roots, `x^x`, higher derivatives by nesting, as `d^n/dx^n` and in prime notation, `\partial` |
+| integrals | 7,000 | Polynomials, trig, exp, `1/x`, arctan, by parts, singular ends, kinks, reversed and equal bounds, double integrals, integrals with units, evaluation brackets `[\int f\,dx]_a^b`, `\oint` refused |
 | limits | 8,000 | Removable singularities, standard limits (`sin x / x`, `(1 + kx)^{1/x}`, …), continuous points, divergent limits |
 | algebra | 20,000 | Rational functions of order 1–40 in categories like those of the 2500-case table, plus continued fractions, binomials, geometric sums, multivariate and negative exponents |
 | physics | 22,000 | Mechanics, gravitation, fluids, thermodynamics (°C), waves and optics, circuits, modern and nuclear physics (Bq, Gy, Sv, decay), photometry (cd, lm, lx, sr), chemistry (mol, kat), and niche cases: extreme prefixes (ym … Ym), calendar units, mixed prefixes, named-unit collapse, radians, `\qty`, dimension errors |

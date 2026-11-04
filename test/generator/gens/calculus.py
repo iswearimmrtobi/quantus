@@ -160,8 +160,8 @@ def eq_quintic(rng, diff):
 def eq_gaps(rng, diff):
     a, b = rng.randint(1, 9), rng.randint(1, 9)
     if rng.random() < 0.6:
-        return case("not-implemented", diff, f"{a}\\,\\mathrm{{kg}} \\cdot x = {a * b}\\,\\mathrm{{N}}",
-                    expect_solutions([F(b)], TOL_TRANSC, {"L": 1, "T": -2}), "unknown carrying a unit", gap=True)
+        return case("unknown-with-unit", diff, f"{a}\\,\\mathrm{{kg}} \\cdot x = {a * b}\\,\\mathrm{{N}}",
+                    expect_solutions([F(b)], TOL_TRANSC, {"L": 1, "T": -2}), "unknown carrying a unit")
     return case("not-implemented", diff, f"x + z = {a}", expect_error(), "two unknowns, should be refused", gap=True)
 
 
@@ -256,7 +256,7 @@ def der_gaps(rng, diff):
          poly_eval(poly_deriv(p), x0), "partial derivative symbol"),
     ]
     latex, val, desc = rng.choice(options)
-    return case("not-implemented", diff, latex, expect_number(val), desc, gap=True)
+    return case("notation", diff, latex, expect_number(val), desc)
 
 
 # --- integrals --------------------------------------------------------------------------------
@@ -353,9 +353,13 @@ def int_gaps(rng, diff):
         ("\\int_{-\\infty}^{\\infty} e^{-x^2}\\,dx", d_sqrt(PI), "Gaussian integral"),
         ("\\int_{-\\infty}^{\\infty} \\frac{1}{1 + x^2}\\,dx", PI, "Cauchy distribution"),
         (f"\\left[\\int x^{{{k}}}\\,dx\\right]_0^2", dec(2) ** (k + 1) / (k + 1), "indefinite integral, then bounds"),
-        ("\\oint_0^1 x\\,dx", dec(F(1, 2)), "contour integral sign"),
+        ("\\oint_0^1 x\\,dx", None, "contour integral sign, refused"),
     ]
     latex, val, desc = rng.choice(options)
+    if val is None:
+        return case("notation", diff, latex, expect_error("Closed-path"), desc)
+    if latex.startswith("\\left["):
+        return case("notation", diff, latex, expect_number(val, TOL_LIMIT), desc)
     return case("not-implemented", diff, latex, expect_number(val, TOL_LIMIT), desc, gap=True)
 
 

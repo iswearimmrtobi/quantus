@@ -39,8 +39,8 @@ re-run as a set. What has been checked is the feature each one was waiting for.
   integrand, not inside `\frac{…}{…}`.
 - **Numerical results are marked by their digits.** An integral shows at most 30 digits, a root
   found numerically as many as the precision.
-- **Not implemented:** one-sided limits, limits at infinity, indefinite integrals, higher
-  derivatives other than by nesting, `\arcsin` and friends, `\sin^{-1}`, matrix results
+- **Not implemented:** one-sided limits, limits at infinity, indefinite integrals on their own
+  (`\left[\int f\,dx\right]_a^b` works), closed-path integrals (`\oint`), `\arcsin` and friends, `\sin^{-1}`, matrix results
   (only `\det`), equations with several unknowns.
 
 ## Modes and complex numbers

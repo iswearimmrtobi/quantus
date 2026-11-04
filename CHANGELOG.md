@@ -284,6 +284,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `\oint` is refused with *Closed-path integrals are not supported* instead of *Unsupported command*.
 - The unknown of an equation takes the unit that makes both sides agree: `9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}`
   gives `x = 6 N/kg` and `3x = 6\,\mathrm{m}` gives `x = 2 m`; both were dimension errors. An
   equation no unit balances (`x + 1 = 2\,\mathrm{m}`) is still one.

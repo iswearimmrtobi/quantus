@@ -959,6 +959,10 @@ impl Parser<'_> {
                 let unit = self.in_unit_context(|p| p.parse_argument(&token.text))?;
                 Ok(Node::binary(Operator::ImplicitTimes, value, unit, position))
             }
+            "\\oint" | "\\oiint" | "\\oiiint" => Err(self.error(
+                &format!("Closed-path integrals ({}) are not supported; an integral over an interval is \\int_a^b.", token.text),
+                position,
+            )),
             other => Err(self.error(&format!("Unsupported command '{other}'."), position)),
         }
     }

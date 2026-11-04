@@ -74,10 +74,13 @@ before sums.
 | `\prod_{k=1}^{5} k` | the product of the terms, like `\sum`; an empty product is 1 |
 | `\int_0^1 x^2\,dx` | numerical, at most 30 digits. Differentials `dx`, `d x`, `\mathrm{d}x` |
 | `\int_1^{\infty} \frac{1}{x^2}\,dx` | improper integrals with `\infty` bounds |
+| `\left[\int x^2\,dx\right]_0^2` | an antiderivative evaluated between limits: the integral from 0 to 2 |
 | `\lim_{x \to 0} f`, `\lim_{x \to 0^+} f`, `\lim_{x \to \infty} f` | two-sided, one-sided, at infinity; `\rightarrow` works too |
-| `\left.\frac{d}{dx} x^3\right\|_{x=2}` | derivative at a point, symbolic |
+| `\left.\frac{d}{dx} x^3\right\|_{x=2}` | derivative at a point, symbolic; also `\mathrm{d}` and `\partial` |
+| `\left.\frac{d^2}{dx^2} x^3\right\|_{x=2}` | higher derivatives, up to the 9th |
+| `\left.(x^3 - x)'\right\|_{x=2}` | prime notation for the derivative of a bracket, `''` for the second |
 
-An integral needs bounds and a derivative needs a point; for antiderivatives and derivatives as
+An integral needs bounds (`\oint` is refused) and a derivative needs a point; for antiderivatives and derivatives as
 functions use [Curve sketching](../guides/analysis.md).
 
 ## Equations

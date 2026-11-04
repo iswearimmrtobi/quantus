@@ -29,12 +29,14 @@ app.
   equations.
 - **Systems must be linear.** `x^2 + y = 1; x - y = 0` is refused; there is no numerical
   solver for non-linear systems. A system is always the whole input and cannot be part of a
-  calculation, and its unknowns are plain numbers like those of a single equation.
-- **Integrals need bounds** and are numerical (tanh-sinh), with at most 30 digits. Nested
+  calculation, and its unknowns are plain numbers.
+- **Integrals need bounds**, given at `\int` or after an evaluation bracket
+  (`\left[\int x\,dx\right]_0^1`), and are numerical (tanh-sinh), with at most 30 digits. Nested
   integrals work but are slow; improper integrals of exponentials take about a second.
   Differentials must stand at the top level of the integrand, not inside `\frac{…}{…}`.
-- **Derivatives need a point**: `\left.\frac{d}{dx} f\right|_{x=2}`. No `\frac{d^2}{dx^2}`, no
-  partial derivatives.
+- **Derivatives need a point**: `\left.\frac{d}{dx} f\right|_{x=2}`. A partial derivative
+  `\frac{\partial}{\partial x}` is the ordinary one, since an input has a single variable.
+- **No closed-path integrals** (`\oint`).
 - **Limits** are numerical; a limit whose two sides disagree is an error, use `0^+` or `0^-`.
 - **Matrices** only inside `\det`, up to 8×8.
 - **No `\operatorname{…}`** functions beyond those in [Syntax](syntax.md).
