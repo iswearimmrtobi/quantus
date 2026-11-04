@@ -218,7 +218,7 @@ fn a_list_grows_as_values_are_typed_and_sends_its_columns() {
     press(&mut app, &[Exe]);
     assert_eq!(
         asked(&backend),
-        Request::Statistics { kind: StatisticsType::OneVariable, x: strings(&["1", "2", "4"]), y: None, freq: None }
+        Request::Statistics { kind: StatisticsType::OneVariable, x: strings(&["1", "2", "4"]), y: None, freq: None, at: Default::default() }
     );
 
     // Pairs with a frequency column: the x values stay.
@@ -235,6 +235,7 @@ fn a_list_grows_as_values_are_typed_and_sends_its_columns() {
             x: strings(&["1", "2", "4"]),
             y: Some(strings(&["3", "5", "9"])),
             freq: Some(strings(&["", "", "2"])),
+            at: Default::default(),
         }
     );
 
@@ -340,7 +341,7 @@ fn a_session_brings_its_sheets_back_with_their_layout() {
     let backend = Sheets::default();
     backend.0.borrow_mut().inputs = vec![
         Request::Linear { rows: vec![strings(&["2", "1", "5"]), strings(&["1", "-1", "1"])] },
-        Request::Statistics { kind: StatisticsType::Power, x: strings(&["1", "2"]), y: Some(strings(&["3", "4"])), freq: None },
+        Request::Statistics { kind: StatisticsType::Power, x: strings(&["1", "2"]), y: Some(strings(&["3", "4"])), freq: None, at: Default::default() },
         Request::Distribution { kind: DistributionKind::BinomialCumulative, fields: vec![(Field::N, "10".into())], k: strings(&["1", "2"]) },
         Request::Table { f: "x".into(), g: None, from: "1".into(), to: "2".into(), step: "1".into() },
     ];

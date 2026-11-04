@@ -56,7 +56,7 @@ fn a_table_of_values_with_g_beside_f() {
 fn the_statistics_of_a_list() {
     let mut engine = Engine::default();
     let x = ["1", "2", "3", "4", "5"].map(String::from).to_vec();
-    let request = Request::Statistics { kind: StatisticsType::OneVariable, x, y: None, freq: None };
+    let request = Request::Statistics { kind: StatisticsType::OneVariable, x, y: None, freq: None, at: Default::default() };
     let lines = lines(engine.solve(&Settings::default(), &request).unwrap());
     let math = math(&lines);
     assert!(math.contains(&"n = 5"), "{math:?}");
@@ -68,10 +68,23 @@ fn a_regression_comes_after_the_values() {
     let mut engine = Engine::default();
     let x = ["1", "2", "3"].map(String::from).to_vec();
     let y = Some(["3", "5", "7"].map(String::from).to_vec());
-    let request = Request::Statistics { kind: StatisticsType::Linear, x, y, freq: None };
+    let request = Request::Statistics { kind: StatisticsType::Linear, x, y, freq: None, at: Default::default() };
     let lines = lines(engine.solve(&Settings::default(), &request).unwrap());
     let heading = lines.iter().position(|line| *line == Line::Note("Regression".into())).expect("a heading");
     assert_eq!(math(&lines[heading..])[..2], ["a = 1", "b = 2"]);
+}
+
+#[test]
+fn the_regression_estimates_x_hat_and_y_hat_after_it() {
+    use quantus_ui::backend::Estimates;
+    let mut engine = Engine::default();
+    let x = ["1", "2", "3"].map(String::from).to_vec();
+    let y = Some(["3", "5", "7"].map(String::from).to_vec());
+    let at = Estimates { x_hat: Some("9".into()), y_hat: Some("10".into()) };
+    let request = Request::Statistics { kind: StatisticsType::Linear, x, y, freq: None, at };
+    let lines = lines(engine.solve(&Settings::default(), &request).unwrap());
+    let heading = lines.iter().position(|line| *line == Line::Note("Schätzwerte".into())).expect("a heading");
+    assert_eq!(math(&lines[heading..]), ["\\hat{x} = 4", "\\hat{y} = 21"]);
 }
 
 #[test]
@@ -221,6 +234,7 @@ fn the_session_keeps_the_sheets() {
         x: vec!["1".into(), "2".into()],
         y: Some(vec!["2".into(), "4".into()]),
         freq: None,
+        at: Default::default(),
     };
     let distribution = Request::Distribution {
         kind: DistributionKind::PoissonCumulative,

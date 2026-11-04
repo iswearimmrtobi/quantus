@@ -263,8 +263,9 @@ pub enum Request {
     Linear { rows: Vec<Vec<String>> },
     /// f(x), and g(x) beside it if given, from `from` to `to` in steps of `step`.
     Table { f: String, g: Option<String>, from: String, to: String, step: String },
-    /// The data; `y` for pairs (a regression), `freq` how often each row counts.
-    Statistics { kind: StatisticsType, x: Vec<String>, y: Option<Vec<String>>, freq: Option<Vec<String>> },
+    /// The data; `y` for pairs (a regression), `freq` how often each row counts; where the
+    /// regression is to estimate x̂ and ŷ.
+    Statistics { kind: StatisticsType, x: Vec<String>, y: Option<Vec<String>>, freq: Option<Vec<String>>, at: Estimates },
     /// The fields the distribution reads; `k` one value or several.
     Distribution { kind: DistributionKind, fields: Vec<(Field, String)>, k: Vec<String> },
     /// The curve sketch of f(x), section by section, with its graph.
@@ -293,6 +294,13 @@ impl Request {
             _ => None,
         }
     }
+}
+
+/// The values a regression estimates at: a y for x̂, an x for ŷ.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Estimates {
+    pub x_hat: Option<String>,
+    pub y_hat: Option<String>,
 }
 
 /// An input of a distribution.

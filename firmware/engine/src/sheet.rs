@@ -74,6 +74,10 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
                 lines.push(Line::Note("Regression".to_string()));
                 lines.extend(response.regression.iter().map(value_line));
             }
+            if !response.estimates.is_empty() {
+                lines.push(Line::Note(if german { "Schätzwerte" } else { "Estimates" }.to_string()));
+                lines.extend(response.estimates.iter().map(value_line));
+            }
             Ok(Reply::Lines(lines))
         }
         Request::Distribution { kind, k, .. } => {
@@ -257,7 +261,7 @@ fn matrix(latex: &str) -> Option<Matrix> {
 }
 
 fn statistics_request(request: &Request) -> StatisticsRequest {
-    let Request::Statistics { kind, x, y, freq } = request else { return StatisticsRequest::default() };
+    let Request::Statistics { kind, x, y, freq, at } = request else { return StatisticsRequest::default() };
     let regression = match kind {
         StatisticsType::OneVariable => None,
         StatisticsType::Linear => Some(Regression::Linear),
@@ -269,7 +273,8 @@ fn statistics_request(request: &Request) -> StatisticsRequest {
         StatisticsType::Inverse => Some(Regression::Inverse),
     };
     let y = regression.and(y.clone());
-    StatisticsRequest { x: x.clone(), y, freq: freq.clone(), regression, estimate_x: None, estimate_y: None }
+    let (estimate_x, estimate_y) = (at.x_hat.clone(), at.y_hat.clone());
+    StatisticsRequest { x: x.clone(), y, freq: freq.clone(), regression, estimate_x, estimate_y }
 }
 
 fn distribution_request(request: &Request) -> DistributionRequest {
@@ -306,7 +311,9 @@ pub fn keep(inputs: &mut ModeInputs, request: &Request) {
         Request::Table { f, from, to, step, .. } => {
             inputs.table = Some(TableRequest { latex: f.clone(), from: from.clone(), to: to.clone(), step: step.clone(), ..TableRequest::default() })
         }
-        Request::Statistics { .. } => inputs.statistics = Some(statistics_request(request)),
+        Request::Statistics { .. } => {
+            inputs.statistics = Some(StatisticsRequest { estimate_x: None, estimate_y: None, ..statistics_request(request) })
+        }
         Request::Distribution { .. } => inputs.distribution = Some(distribution_request(request)),
         // The curve of a graph moved changes nothing kept, nor does a calculation.
         Request::Sample { .. } | Request::Variables { .. } | Request::Calc { .. } | Request::Solve { .. } => {}
@@ -341,7 +348,8 @@ pub fn kept(inputs: &ModeInputs) -> Vec<Request> {
             (None, None) => StatisticsType::OneVariable,
         };
         let (x, y, freq) = (statistics.x.clone(), statistics.y.clone(), statistics.freq.clone());
-        requests.push(Request::Statistics { kind, x, y, freq });
+        // The values estimated at are not kept.
+        requests.push(Request::Statistics { kind, x, y, freq, at: Default::default() });
     }
     if let Some(distribution) = &inputs.distribution {
         let kind = match distribution.kind {

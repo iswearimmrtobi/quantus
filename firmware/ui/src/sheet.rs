@@ -567,7 +567,8 @@ impl Sheets {
                     true => self.regression,
                     false => StatisticsType::OneVariable,
                 };
-                Request::Statistics { kind, x: column(Column::X).unwrap_or_default(), y: column(Column::Y), freq: column(Column::Freq) }
+                let (x, y, freq) = (column(Column::X).unwrap_or_default(), column(Column::Y), column(Column::Freq));
+                Request::Statistics { kind, x, y, freq, at: Default::default() }
             }
             Kind::Distribution => {
                 let mut fields = Vec::new();
