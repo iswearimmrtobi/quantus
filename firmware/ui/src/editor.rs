@@ -46,6 +46,8 @@ pub enum Node {
     Sqrt(Row),
     /// The index, then the radicand.
     Root(Row, Row),
+    /// The binomial coefficient nCr: n over r in brackets.
+    Binom(Row, Row),
     /// A mark over what it holds: x̄, ŷ. Only results have it; no key types it.
     Accent(Accent, Row),
 }
@@ -65,15 +67,15 @@ impl Node {
         match self {
             Node::Char(_) | Node::Func(_) | Node::Upright(_) => 0,
             Node::Pow(_) | Node::Sub(_) | Node::Sqrt(_) | Node::Accent(..) => 1,
-            Node::Frac(..) | Node::Root(..) => 2,
+            Node::Frac(..) | Node::Root(..) | Node::Binom(..) => 2,
         }
     }
 
     pub fn slot(&self, index: usize) -> &Row {
         match (self, index) {
             (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row), 0) => row,
-            (Node::Frac(first, _) | Node::Root(first, _), 0) => first,
-            (Node::Frac(_, second) | Node::Root(_, second), 1) => second,
+            (Node::Frac(first, _) | Node::Root(first, _) | Node::Binom(first, _), 0) => first,
+            (Node::Frac(_, second) | Node::Root(_, second) | Node::Binom(_, second), 1) => second,
             _ => panic!("{self:?} has no slot {index}"),
         }
     }
@@ -81,8 +83,8 @@ impl Node {
     pub fn slot_mut(&mut self, index: usize) -> &mut Row {
         match (self, index) {
             (Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row), 0) => row,
-            (Node::Frac(first, _) | Node::Root(first, _), 0) => first,
-            (Node::Frac(_, second) | Node::Root(_, second), 1) => second,
+            (Node::Frac(first, _) | Node::Root(first, _) | Node::Binom(first, _), 0) => first,
+            (Node::Frac(_, second) | Node::Root(_, second) | Node::Binom(_, second), 1) => second,
             (node, _) => panic!("{node:?} has no slot {index}"),
         }
     }
@@ -91,7 +93,7 @@ impl Node {
         match self {
             Node::Char(_) | Node::Func(_) | Node::Upright(_) => Vec::new(),
             Node::Pow(row) | Node::Sub(row) | Node::Sqrt(row) | Node::Accent(_, row) => vec![row],
-            Node::Frac(first, second) | Node::Root(first, second) => vec![first, second],
+            Node::Frac(first, second) | Node::Root(first, second) | Node::Binom(first, second) => vec![first, second],
         }
     }
 
@@ -229,6 +231,11 @@ impl Editor {
         self.insert_template(Node::Root(Row::default(), Row::default()), 0);
     }
 
+    /// nCr, with the cursor at n.
+    pub fn binom(&mut self) {
+        self.insert_template(Node::Binom(Row::default(), Row::default()), 0);
+    }
+
     /// Deletes what is left of the cursor. Right after a fraction, root or exponent the cursor
     /// goes into it instead; at the start of one of its rows the template goes and its content
     /// stays.
@@ -305,8 +312,8 @@ impl Editor {
         true
     }
 
-    /// From a denominator to its numerator, or from a radicand to its index. Returns false if
-    /// the cursor is in neither.
+    /// From a denominator to its numerator, from a radicand to its index, or from r to n of
+    /// nCr. Returns false if the cursor is in none of them.
     pub fn up(&mut self) -> bool {
         self.switch_slot(1, 0)
     }
@@ -427,6 +434,11 @@ impl Latex {
                     self.command("frac");
                     self.group(numerator);
                     self.group(denominator);
+                }
+                Node::Binom(n, r) => {
+                    self.command("binom");
+                    self.group(n);
+                    self.group(r);
                 }
                 Node::Pow(exponent) => {
                     self.text("^");

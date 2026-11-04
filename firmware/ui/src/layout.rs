@@ -46,6 +46,8 @@ pub enum Kind {
     Script,
     /// A bracket drawn as a curve over the item's height, grown to what it holds.
     Paren { open: bool },
+    /// A bracket `width` wide at each side of the item, around its slots: nCr.
+    Brackets { width: i32 },
 }
 
 impl RowLayout {
@@ -306,6 +308,23 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
                 slots: vec![(numerator_at, numerator), (denominator_at, denominator)],
             }
         }
+        Node::Binom(n, r) => {
+            let part = if nested { Scale::Small } else { scale };
+            let (n, r) = (layout_nested(n, part, true), layout_nested(r, part, true));
+            let bracket = metrics.digit / 2 + 2;
+            let inner = n.width.max(r.width) + 4;
+            let middle = -metrics.axis;
+            let n_at = Point::new(bracket + (inner - n.width) / 2, middle - 2 - n.descent);
+            let r_at = Point::new(bracket + (inner - r.width) / 2, middle + 2 + r.ascent);
+            Item {
+                x: 0,
+                width: inner + 2 * bracket,
+                ascent: n.ascent - n_at.y + 1,
+                descent: r_at.y + r.descent + 1,
+                kind: Kind::Brackets { width: bracket },
+                slots: vec![(n_at, n), (r_at, r)],
+            }
+        }
         Node::Sqrt(radicand) => root(None, layout_nested(radicand, scale, nested), scale),
         Node::Root(index, radicand) => {
             let index = layout_nested(index, Scale::Small, nested);
@@ -434,6 +453,11 @@ pub fn draw<D: DrawTarget<Color = Rgb565>>(
             }
             Kind::Script => {}
             Kind::Paren { open } => paren(*open, item, at, row.scale, color, target),
+            &Kind::Brackets { width } => {
+                let side = Item { width, kind: Kind::Script, slots: Vec::new(), ..*item };
+                paren(true, &side, at, row.scale, color, target);
+                paren(false, &side, at + Point::new(item.width - width, 0), row.scale, color, target);
+            }
         }
         for (offset, slot) in &item.slots {
             draw(slot, at + *offset, color, placeholder, target);

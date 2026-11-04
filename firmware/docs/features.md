@@ -85,7 +85,8 @@ State on 2026-11-03.
 
 - [x] Editor: a tree with a cursor, writing LaTeX
 - [x] Casio-like templates: fraction, root, ⁿ√, power, subscript, log, ln, |x|, ∫, d/dx, Σ, lim
-- [ ] Templates: nCr (`\binom`), conjugate (`\overline`), `cases`
+- [x] Template nCr (`\binom`): n over r in brackets
+- [ ] Templates: conjugate (`\overline`), `cases`
 - [x] History with ↑/↓, replaying an input
 - [x] Ans
 - [ ] PreAns (the core has it; no key yet)

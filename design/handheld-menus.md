@@ -63,7 +63,8 @@ alike), **hui** the handheld UI in `firmware/ui` (with the board firmware where 
 - [ ] The ◌ SETUP entries once the core has them: Winkeleinheit, Zahlenformat,
       Dezimalpräfixe, 1000er-Trennung, Brüche, Periodisch, Komplexe Zahlen
 - [ ] The ◌ OPTN entries once the core has them (section 7.3)
-- [ ] Editor templates: nCr (`\binom`), Konjugierte (`\overline`), `cases`
+- [x] Editor template nCr (`\binom`)
+- [ ] Editor templates: Konjugierte (`\overline`), `cases`
 - [ ] Font glyphs: ∠, ⌊⌋, ⌈⌉, µ (→ and the set signs are drawn as lines)
 - [ ] Keys: CONST, CONV, ENG/←ENG, STO, VARS, CALC/SOLVE, Sitzungen, PreAns, ∠, ∫, d/dx, Σ,
       x⁻¹, x³, 10ˣ, eˣ, and the ALPHA legend (section 7.4)

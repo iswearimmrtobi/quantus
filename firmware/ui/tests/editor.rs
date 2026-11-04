@@ -146,3 +146,20 @@ fn the_signs_of_a_curve_sketch_read_back() {
     assert_eq!(latex::parse(r"f \smile \frown").0, [Node::Char('f'), Node::Char('⌣'), Node::Char('⌢')]);
     assert_eq!(latex::parse(r"a \Leftrightarrow b").0[1], Node::Char('⇔'));
 }
+
+#[test]
+fn ncr_is_a_template_of_two_rows() {
+    let mut editor = Editor::new();
+    editor.binom();
+    type_text(&mut editor, "5");
+    assert!(editor.down(), "from n down to r");
+    type_text(&mut editor, "2");
+    assert!(editor.up(), "and up again");
+    assert_eq!(editor.to_latex(), r"\binom{5}{2}");
+    assert_eq!(latex::parse(r"\binom{5}{2}"), editor.row);
+    assert_eq!(latex::parse(r"\dbinom{n}{k}").to_latex(), r"\binom{n}{k}");
+    // DEL empties r, then takes the template away and keeps n.
+    editor.down();
+    (0..2).for_each(|_| editor.delete());
+    assert_eq!(editor.to_latex(), "5");
+}

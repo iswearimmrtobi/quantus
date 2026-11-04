@@ -135,6 +135,10 @@ impl Parser {
                 let numerator = self.argument();
                 nodes.push(Node::Frac(numerator, self.argument()));
             }
+            "binom" | "dbinom" | "tbinom" => {
+                let n = self.argument();
+                nodes.push(Node::Binom(n, self.argument()));
+            }
             "sqrt" => {
                 self.skip_spaces();
                 if self.peek() == Some('[') {
