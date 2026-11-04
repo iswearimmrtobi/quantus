@@ -190,7 +190,7 @@ its tests.
 - [x] Plot labels and a colour per object, fed from the real scene.
 - [x] Object list with forms for Punkt and Vektor: MathLive cells for the coordinates (as in
   `MatrixGrid.tsx`), add and remove.
-- [ ] Forms for Gerade and Ebene, with the form switch (parameter, normal, coordinate).
+- [x] Forms for Gerade and Ebene, with the form switch (parameter, normal, coordinate).
 - [ ] Forms for Kugel and Kreis (including the Kugel ∩ Ebene constructor).
 - [ ] Typed-expression field that creates or updates the same objects.
 - [ ] Task panel: pick objects, pick relation or distance, show the result.

@@ -2626,6 +2626,35 @@ select option {
   width: 72px;
 }
 
+.geometry-cell.wide {
+  width: 120px;
+}
+
+.geometry-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Switches an entry between coordinate cells and a name or expression. */
+.geometry-entry-switch {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.geometry-entry-switch:hover {
+  color: var(--text);
+}
+
+.geometry-form-text {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
 .geometry-bar {
   color: var(--text-muted);
 }
