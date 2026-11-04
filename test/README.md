@@ -1,6 +1,6 @@
 # Engine test set
 
-111,000 generated cases that put the engine through arithmetic, elementary functions, equations,
+112,000 generated cases that put the engine through arithmetic, elementary functions, equations,
 derivatives, integrals, limits, algebraic simplification, physics with units, parser robustness,
 complex numbers, the linear systems mode and the modes added after it (from `verify` on in the
 table below).
@@ -74,6 +74,7 @@ Each file is `{"category", "generator_version", "seed", "count", "cases": [...]}
 | `tangent` | `api::tangent`: the point, the tangent's slope and intercept, and the normal's, or its `x` when it is vertical, to `tol`. |
 | `area` | `api::area`: `area` and `signed`, read back from the LaTeX (after a `\approx`), match exactly (1e-40). |
 | `table` | `api::value_table`: as many rows as `rows`, each x exact and y exact or empty (`null`, outside the domain). |
+| `geometry` | Geometry mode, `api::geometry`: the task's `relation` equals the expected one (if given), and for each of `values` (`[name, value, rel_tol]`) and `points` (`[name, [x, y, z]]`, exact) there is a result line `name = … = value` that matches. An angle is compared by its decimal after `\approx`. A task answered with `error` counts as refused. |
 | `error` | The engine refuses the input with a message containing `contains`. |
 
 The tolerances are `1e-45` for exact results (the engine prints 50 digits) and `1e-40` for exact
@@ -115,6 +116,7 @@ the case itself is wrong.
 | statistics | 1,000 | Statistics through `api::statistics`: one variable (1–200 values, integers, decimals, thirds, empty cells skipped) with n, mean, sums, both variances and standard deviations, min, the Casio quartiles, median and max; frequency columns (0 drops a row); two-variable values; all seven regressions on data near their curve with a, b, c, r and the estimates x̂ and ŷ; and the errors: regression without pairs, a frequency that is not whole, an empty list, equal x values, x = 0 for y = a + b/x, a short y column, a unit in a cell |
 | distributions | 1,000 | Distributions through `api::distribution`: the normal density, the cumulative between two bounds or with an open one (empty or `\infty`), the inverse normal, all with the standard or a given σ and μ; binomial density and cumulative lists up to N = 400 with exact fractions (and k > N); Poisson density and cumulative lists; and the errors for σ, the area, p, μ, k, N and a missing N. Φ is computed from a 120-digit erf series |
 | analysis | 1,000 | Analysis mode through `api::analyze`, `tangent`, `area` and `value_table`: polynomials of degree 2–5 from rational roots (double roots, irrational extrema, saddle points), rational functions with poles, holes and horizontal or oblique asymptotes, (ax + b)e^{cx}, a ln(x)/x^k and a x^k ln(x) with their asymptotes and sides, tangent and normal (also vertical), the area and signed area between bounds or the outermost zeros, tables of values with a pole, and the errors (an equation, two variables, unparsable input). Expected points come from Sturm sequences and a square-free decomposition |
+| geometry | 1,000 | Geometry mode through `api::geometry`, angles in degrees, every object in one of its forms (points as cells, `(x\|y\|z)` or typed `A(…)`, lines by point and direction or two points, planes in coordinate, normal, three-point or parameter form, spheres by centre and radius or a point on them): distance and midpoint of two points; distance, foot, image and lying on for a point and a line or a plane; two lines identical, parallel (distance), intersecting (point, angle) or skew (distance), and their angle; line and plane intersecting (point, angle), parallel (distance) or contained; two planes identical, parallel (distance) or intersecting (angle); a sphere and a point (inside, on, outside, distance), a plane (circle, tangent, apart) or a line (secant, tangent, passant); volume, surface, circumference and area; and the errors |
 
 ## Latest results
 
@@ -143,3 +145,4 @@ Each category from `verify` on was run on its own when it was added (no full run
 | statistics | 2026-11-04 | 1,000 / 1,000 | |
 | distributions | 2026-11-04 | 1,000 / 1,000 | |
 | analysis | 2026-11-04 | 1,000 / 1,000 | |
+| geometry | 2026-11-04 | 976 / 1,000 | 24 cases of the foot of a perpendicular onto a plane given in normal, three-point or parameter form: the answer ends on the converted coordinate form, without the line `F = …` (the conversion's result line keeps the foot from becoming the result) |

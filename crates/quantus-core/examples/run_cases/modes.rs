@@ -11,6 +11,8 @@ mod analysis;
 mod basen;
 #[path = "distributions.rs"]
 mod distributions;
+#[path = "geometry.rs"]
+mod geometry;
 #[path = "matrix.rs"]
 mod matrix;
 #[path = "statistics.rs"]
@@ -23,6 +25,7 @@ pub(super) fn run_api_case(api: &str, case: &Value) -> Outcome {
     match api {
         "statistics" => statistics::run(case),
         "distribution" => distributions::run(case),
+        "geometry" => geometry::run(case),
         "analyze" | "tangent" | "area" | "valueTable" => analysis::run(api, case),
         _ => generator(&format!("unknown api {api:?}")),
     }
