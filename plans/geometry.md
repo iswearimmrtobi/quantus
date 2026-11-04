@@ -110,7 +110,7 @@ green.
   these.
 - [x] `dot`, `length`, `unit`, `angle` (exact `\arccos` plus decimal, in the `angle_unit` setting),
   exact in `Value`.
-- [ ] `cross` and the triple product (Spatprodukt) via the determinant in `matrix.rs`; `collinear`
+- [x] `cross` and the triple product (Spatprodukt) via the determinant in `matrix.rs`; `collinear`
   and `coplanar` tests.
 - [ ] Areas and volumes: triangle, parallelogram, tetrahedron, parallelepiped.
 - [ ] Parser, Geometry mode only, *check first* how `MatrixEvaluator` in `matrix.rs` reads

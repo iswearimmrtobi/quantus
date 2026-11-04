@@ -7,6 +7,8 @@
 use std::ops::{Add, Mul, Neg, Sub};
 
 use crate::eval::angles;
+use crate::linear;
+use crate::matrix::Matrix;
 use crate::num::{Decimal, MathFunction, Value};
 use crate::settings::AngleUnit;
 use crate::{QuantusError, Result};
@@ -97,10 +99,52 @@ impl Vector3 {
         Ok(Angle { cosine, value, unit, decimal })
     }
 
+    /// The cross product (Kreuzprodukt) `self × other`, by the cofactors of the first row of
+    /// the 3×3 determinant with the unit vectors there.
+    pub fn cross(&self, other: &Vector3) -> Vector3 {
+        let [a1, a2, a3] = &self.coords;
+        let [b1, b2, b3] = &other.coords;
+        let minor = |p: &Value, q: &Value, r: &Value, s: &Value| {
+            let mut entry = p.mul(q).sub(&r.mul(s));
+            linear::settle(&mut entry);
+            entry
+        };
+        Vector3::new(minor(a2, b3, a3, b2), minor(a3, b1, a1, b3), minor(a1, b2, a2, b1))
+    }
+
+    /// Whether `self` and `other` are collinear (linear abhängig): their cross product is zero.
+    /// The zero vector is collinear with every vector.
+    pub fn is_collinear(&self, other: &Vector3) -> bool {
+        self.cross(other).is_zero()
+    }
+
     /// The point this vector leads to from the origin.
     pub fn to_point(&self) -> Point {
         Point { coords: self.coords.clone(), planar: self.planar }
     }
+}
+
+/// The triple product (Spatprodukt) `(a × b) · c`, the determinant of the matrix with the
+/// rows a, b and c: the signed volume of the parallelepiped they span.
+pub fn triple_product(a: &Vector3, b: &Vector3, c: &Vector3) -> Result<Value> {
+    let mut determinant = Matrix::new(vec![a.coords.to_vec(), b.coords.to_vec(), c.coords.to_vec()])?.determinant()?.matrix;
+    linear::settle(&mut determinant);
+    Ok(determinant)
+}
+
+/// Whether `a`, `b` and `c` are coplanar (lie in one plane): their triple product is zero.
+pub fn coplanar(a: &Vector3, b: &Vector3, c: &Vector3) -> Result<bool> {
+    Ok(triple_product(a, b, c)?.is_zero())
+}
+
+/// Whether three points lie on one line.
+pub fn points_collinear(a: &Point, b: &Point, c: &Point) -> bool {
+    a.to(b).is_collinear(&a.to(c))
+}
+
+/// Whether four points lie in one plane.
+pub fn points_coplanar(a: &Point, b: &Point, c: &Point, d: &Point) -> Result<bool> {
+    coplanar(&a.to(b), &a.to(c), &a.to(d))
 }
 
 /// `radians` in degrees; a rational multiple of π becomes a plain number.

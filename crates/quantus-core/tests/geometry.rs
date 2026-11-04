@@ -1,4 +1,4 @@
-use quantus_core::geometry::{Point, Vector3};
+use quantus_core::geometry::{coplanar, points_collinear, points_coplanar, triple_product, Point, Vector3};
 use quantus_core::num::Value;
 use quantus_core::settings::AngleUnit;
 
@@ -74,4 +74,41 @@ fn the_angle_follows_the_angle_unit() {
     assert_eq!(angle.cosine, Value::ratio(11, 15));
     assert_eq!(angle.decimal.round(6).to_string(), "42.8334");
     assert!(x.angle(&Vector3::zero(), AngleUnit::Radian, 20).is_err());
+}
+
+#[test]
+fn cross_and_triple_product() {
+    let x = Vector3::from_ints(1, 0, 0);
+    let y = Vector3::from_ints(0, 1, 0);
+    assert_eq!(x.cross(&y), Vector3::from_ints(0, 0, 1));
+    assert_eq!(y.cross(&x), Vector3::from_ints(0, 0, -1));
+    let a = Vector3::from_ints(1, 2, 3);
+    let b = Vector3::from_ints(-2, 0, 4);
+    let n = a.cross(&b);
+    assert_eq!(n, Vector3::from_ints(8, -10, 4));
+    assert_eq!((n.dot(&a), n.dot(&b)), (Value::zero(), Value::zero()));
+
+    let c = Vector3::from_ints(3, 1, -1);
+    assert_eq!(triple_product(&a, &b, &c).unwrap(), n.dot(&c));
+    assert_eq!(triple_product(&x, &y, &Vector3::from_ints(0, 0, 1)).unwrap(), Value::one());
+    assert_eq!(triple_product(&y, &x, &Vector3::from_ints(0, 0, 1)).unwrap(), Value::int(-1));
+    // Exact with roots: (√2, 1, 0) × (1, √2/2, 0) is the zero vector.
+    let r = Vector3::new(sqrt(2), Value::one(), Value::zero());
+    assert!(r.is_collinear(&Vector3::new(Value::one(), sqrt(2).mul(&Value::ratio(1, 2)), Value::zero())));
+}
+
+#[test]
+fn collinear_and_coplanar() {
+    let a = Vector3::from_ints(1, 2, 3);
+    assert!(a.is_collinear(&Vector3::from_ints(-2, -4, -6)));
+    assert!(a.is_collinear(&Vector3::zero()));
+    assert!(!a.is_collinear(&Vector3::from_ints(1, 2, 4)));
+    assert!(coplanar(&a, &Vector3::from_ints(0, 1, 0), &Vector3::from_ints(1, 3, 3)).unwrap());
+    assert!(!coplanar(&a, &Vector3::from_ints(0, 1, 0), &Vector3::from_ints(0, 0, 1)).unwrap());
+
+    let (p, q) = (Point::from_ints(0, 0, 0), Point::from_ints(1, 1, 1));
+    assert!(points_collinear(&p, &q, &Point::from_ints(3, 3, 3)));
+    assert!(!points_collinear(&p, &q, &Point::from_ints(3, 3, 2)));
+    assert!(points_coplanar(&p, &Point::from_ints(1, 0, 0), &Point::from_ints(0, 1, 0), &Point::from_ints(5, -2, 0)).unwrap());
+    assert!(!points_coplanar(&p, &Point::from_ints(1, 0, 0), &Point::from_ints(0, 1, 0), &Point::from_ints(0, 0, 1)).unwrap());
 }
