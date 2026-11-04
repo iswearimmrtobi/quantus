@@ -1,6 +1,6 @@
 # Geometry mode (Geometrie)
 
-Vectors, points, lines and planes with a 3D coordinate system. Replaces the "Analytic geometry"
+Vectors, points, lines, planes, spheres and circles with a 3D coordinate system. Replaces the "Analytic geometry"
 bullet of [new-areas-and-themes.md](new-areas-and-themes.md) and the "Geometrie" lines in
 [plans.md](plans.md) §5 and [handheld-menus.md](../design/handheld-menus.md) §3.7/§8 (the Casio
 Vektorrechnung goes here, not into its own mode).
@@ -20,7 +20,8 @@ One system for both, but not three.js: it needs a browser, and the handheld has 
 embedded-graphics. The shared part is **a camera and a projection in `quantus-core`**: the engine
 takes the scene (points, lines, planes) and a camera (yaw, pitch, zoom, centre) and returns 2D
 primitives (axes with ticks, point markers, line segments clipped to the view, plane patches as
-polygon outlines plus an optional hatch). Each shell only draws them:
+polygon outlines plus an optional hatch, spheres as an outline circle with a few latitude and
+longitude rings, circles as a polyline of short segments). Each shell only draws them:
 
 - desktop: SVG, like `FunctionPlot.tsx` (drag rotates, wheel zooms, no new dependency);
 - handheld: short 1 px lines (a long 2 px polyline took 7 s, short 1 px pieces at most 218 ms, see
@@ -35,7 +36,8 @@ touching the engine.
 The glossary goes into the design spec once the German names are settled.
 Proposed: Punkt (point), Vektor (vector), Gerade (line), Ebene (plane), Stützvektor (position
 vector), Richtungsvektor (direction), Normalenvektor (normal), Parameterform, Normalenform,
-Koordinatenform, Abstand (distance), Schnittpunkt / Schnittgerade (intersection), Schnittwinkel
+Koordinatenform, Kugel (sphere), Kreis (circle), Mittelpunkt, Radius, Tangente, Tangentialebene,
+Abstand (distance), Schnittpunkt / Schnittgerade (intersection), Schnittwinkel
 (angle), Skalarprodukt (dot), Kreuzprodukt (cross), Betrag (length), Lotfußpunkt (foot of
 perpendicular), windschief (skew), parallel, identisch, Spiegelung (reflection), Mittelpunkt.
 
@@ -48,6 +50,13 @@ Operations of the first version:
   (identical, parallel, intersecting, skew) with intersection point and angle.
 - **Plane:** from three points, point and two directions, point and normal; convert between
   parameter, normal and coordinate form; point on plane?
+- **Sphere (Kugel):** from centre and radius, centre and a point, or four points; equation in
+  coordinate and vector form; point inside, on or outside; relation to a line (secant, tangent,
+  passant, with the intersection points); relation to a plane (intersection circle, tangent, no
+  contact); tangent plane at a point on the sphere; relation of two spheres; surface and volume.
+- **Circle (Kreis):** in a plane in 3D, as a sphere cut by a plane (centre, radius and plane from
+  the cut) or from centre, radius and normal; relation to a line (intersection points, tangent);
+  circumference and area. Plain 2D circles (`(x-a)²+(y-b)²=r²`) are the z = 0 case.
 - **Mixed:** line–plane (intersection point, angle, parallel, contained), plane–plane (intersection
   line, angle), distance point–line, point–plane, line–line (skew), foot of perpendicular,
   reflection of a point.
@@ -74,7 +83,7 @@ green.
 
 ### Phase 2: objects and relations
 
-- [ ] `Point`, `Line`, `Plane` (lines and planes keep the form they were given in, plus
+- [ ] `Point`, `Line`, `Plane`, `Sphere`, `Circle` (lines and planes keep the form they were given in, plus
   conversions); a function per operation above, each returning the result and a `Working` log in
   the `msg!` bilingual style (`crate::text`), like `matrix.rs`.
 - [ ] Degenerate cases are results, not errors (parallel, identical, skew, point on line).
@@ -96,7 +105,7 @@ green.
 ### Phase 4: projection (shared drawing)
 
 - [ ] `geometry/view.rs`: `Camera` and `project(scene, camera, viewport) -> Vec<Primitive>`: axes
-  with ticks and labels, points, clipped line segments, plane polygons, depth order, an auto-fit
+  with ticks and labels, points, clipped line segments, plane polygons, sphere rings, circle polylines, depth order, an auto-fit
   window for the scene. Plain `f64`, no caches (see the ESP32 memory notes in
   [plans.md](plans.md) §4).
 - [ ] Tests: known projections, clipping, depth order.
@@ -107,9 +116,9 @@ green.
   the session, survives a mode switch), and `components/GeometryPlot.tsx` (SVG like
   `FunctionPlot.tsx`: drag rotates, wheel zooms, a reset button, named labels, a colour per
   object).
-- [ ] Object list with forms: add Punkt, Gerade or Ebene; MathLive cells for the coordinates (as in
-  `MatrixGrid.tsx`); a form switch for lines and planes. A typed-expression field as the shortcut
-  (`A=(1,2,3)`, `g: X=A+\lambda(…)`) that creates or updates the same objects.
+- [ ] Object list with forms: add Punkt, Gerade, Ebene, Kugel or Kreis; MathLive cells for the coordinates (as in
+  `MatrixGrid.tsx`); a form switch for lines, planes and spheres. A typed-expression field as the shortcut
+  (`A=(1,2,3)`, `g: X=A+\lambda(…)`, `K: (x-1)^2+y^2+z^2=9`) that creates or updates the same objects.
 - [ ] Task panel: pick objects, pick relation, distance, …; shows the result and `Steps`.
 - [ ] `en.ts` and `de.ts` (all labels), `PLACEHOLDERS` in `App.tsx`, `modeChoices` in
   `SettingsDialog.tsx`, the `mode.geometry` strings.
@@ -127,12 +136,12 @@ green.
   `firmware/engine/src/lib.rs` `core_mode`), drawing the shared primitives, the VctA–D editor from
   handheld-menus.md §3.7.
 - Shape formulas and triangle solving from [new-areas-and-themes.md](new-areas-and-themes.md)
-  (separate from analytic geometry); spheres and circles (Kugel, Kreis) as further object types.
+  (separate from analytic geometry).
 
 ## Open points
 
 1. German names and the operation list above: to be corrected and extended.
-2. Whether Kugel and Kreis belong in the first version (currently: later).
+2. Decided: Kugel and Kreis belong to the first version (Phase 2, 4 and 5 below).
 
 ## Verification
 
