@@ -649,7 +649,7 @@ Shared groups, used by several modes:
 - **Zahl**: |x| ✓, n! ✓, nCr ◌ (the engine has `\binom`, the editor no template), nPr [eng] ◌,
   ggT, kgV [eng] ◌, Int, Intg, Rnd, RndFix, ÷R [eng] ◌, mod ✓ (`\bmod`), ⌊⌋, ⌈⌉ ✓, max, min ✓
   (`\max(;)`), % ✓
-- **Hyperbol. Fkt.**: sinh, cosh, tanh ✓, arsinh, arcosh, artanh [eng] ◌
+- **Hyperbol. Fkt.**: sinh, cosh, tanh ✓, arsinh, arcosh, artanh, coth ✓ (`\operatorname{arsinh}`)
 - **Winkel**: ° ✓, rad ✓, °′″ [eng] ◌
 - **Griechisch**: α β γ δ ε θ λ μ ρ σ τ φ ω Δ Ω ✓
 - **Werkzeuge**: CALC [eng] ◌, SOLVE [eng] ◌, ▶ Einheit [eng] ◌

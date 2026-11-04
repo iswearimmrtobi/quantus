@@ -364,9 +364,10 @@ static HYPERBOLIC: Page = Page {
         ins(same("sinh"), r"\sinh()"),
         ins(same("cosh"), r"\cosh()"),
         ins(same("tanh"), r"\tanh()"),
-        pending(same("arsinh")),
-        pending(same("arcosh")),
-        pending(same("artanh")),
+        ins(same("arsinh"), r"\operatorname{arsinh}()"),
+        ins(same("arcosh"), r"\operatorname{arcosh}()"),
+        ins(same("artanh"), r"\operatorname{artanh}()"),
+        ins(same("coth"), r"\coth()"),
     ],
 };
 

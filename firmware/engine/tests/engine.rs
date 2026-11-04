@@ -162,3 +162,25 @@ mod sessions {
         assert_eq!(engine.session(SessionCommand::New, &english).unwrap().info.name, "Session 2026-11-02 14:30");
     }
 }
+
+/// What OPTN inserts, as the editor writes it back, is what the engine reads.
+mod optn {
+    use quantus_engine::Engine;
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::backend::Backend;
+    use quantus_ui::latex;
+
+    /// `latex` as the hui's editor holds and writes it, worked out in `mode`.
+    pub fn typed(mode: Mode, latex: &str) -> Result<String, String> {
+        let edited = latex::parse(latex).to_latex();
+        Engine::default().evaluate(mode, &Settings { decimal: true, ..Settings::default() }, &edited)
+    }
+
+    #[test]
+    fn the_area_functions_and_coth() {
+        assert!(typed(Mode::Physics, r"\operatorname{arsinh}(1)").unwrap().contains("0{,}8813"));
+        assert!(typed(Mode::Physics, r"\operatorname{arcosh}(2)").unwrap().contains("1{,}3169"));
+        assert!(typed(Mode::Physics, r"\operatorname{artanh}(0{,}5)").unwrap().contains("0{,}5493"));
+        assert!(typed(Mode::Physics, r"\coth(1)").unwrap().contains("1{,}3130"));
+    }
+}

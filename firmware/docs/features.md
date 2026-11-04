@@ -143,7 +143,7 @@ in yet.
 - [x] Exact arithmetic, fractions, roots, π, e
 - [x] Trigonometry and inverses in degrees or radians; ° and rad markers
 - [x] sinh, cosh, tanh
-- [~] arsinh, arcosh, artanh, coth — in the engine; the OPTN entries say *Noch nicht verfügbar*
+- [x] arsinh, arcosh, artanh, coth (OPTN → Hyperbol. Fkt.)
 - [x] ∫ with bounds (also infinite), d/dx at a point, Σ, lim (a⁺, a⁻, ∞)
 - [~] Π (`\prod`) — in the engine; OPTN entry not wired
 - [x] |x|, n!, mod, ⌊x⌋, ⌈x⌉, max, min, %

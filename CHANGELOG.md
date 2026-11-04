@@ -192,6 +192,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   outer zeros) and a **table of values**; after a sketch of the same function the tangent,
   the normal or the hatched area is drawn on its graph. The session keeps the function. On the
   ESP32-P4 a sketch takes 0.3 to 2 s.
+- The handheld's OPTN inserts more of the engine's functions: arsinh, arcosh, artanh and coth
+  under Hyperbol. Fkt.
 - The handheld's screen draws the signs its fonts lack as lines: ∈, ∉, ∪, ∖, →, ⇒, ⇔, ∨, ↗, ↘,
   ∅, ⌣, ⌢, ℝ and ℤ, so a limit shows its arrow; `\text` keeps its spaces.
 - The steps of Algebra and of the curve sketch's working are **German** when the language is
