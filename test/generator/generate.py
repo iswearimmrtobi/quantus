@@ -52,6 +52,7 @@ CATEGORIES = {
     "geometry": ("geo", 1000, geometry.GENERATORS),
     # A handful of circuits, one per template, instead of weighted generators.
     "electronics": ("el", 20, circuits.electronics_cases),
+    "kirchhoff": ("kh", 20, circuits.kirchhoff_cases),
 }
 
 
@@ -165,6 +166,8 @@ def check(all_cases):
                     _parse_value(value)
                     float(tol)
                 [_parse_value(x) for _, p in e["points"] for x in p]
+            elif e["kind"] == "equivalent":
+                _parse_value(e["resistance"])
             elif e["kind"] == "circuit":
                 [_parse_value(v) for values in e["elements"].values() for v in values]
             elif e["kind"] != "error":

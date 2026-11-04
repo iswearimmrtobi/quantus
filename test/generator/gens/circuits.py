@@ -214,3 +214,113 @@ def electronics_cases(rng):
     c["request"] = short
     cases.append(c)
     return cases
+
+
+# --- Kirchhoff mode ---------------------------------------------------------------------------------
+#
+# The parts are segments between grid points, joined where their ends meet. Node k sits at
+# (4k | 4k²), so no three nodes are on a line and no part passes through another's end.
+
+def grid(node):
+    return {"x": 4 * node, "y": 4 * node * node}
+
+
+def kirchhoff_element(e):
+    out = request_element(e)
+    out["pa"], out["pb"] = grid(e["a"]), grid(e["b"])
+    return out
+
+
+def kirchhoff_values(els):
+    """The values along the arrows: a resistor along its current, a source as what it delivers."""
+    solved = solve(els)
+    out = {}
+    for e in els:
+        u, i, p = solved[e["id"]]
+        if e["kind"] == "voltageSource":
+            out[e["id"]] = (u, -i, -p)
+        elif e["kind"] == "currentSource":
+            out[e["id"]] = (-u, i, -p)
+        else:
+            out[e["id"]] = (u, i, p)
+    return out
+
+
+def resistance_between(els, a, b):
+    """R_AB: 1 A into A, B grounded."""
+    renamed = []
+    for e in els:
+        ren = dict(e)
+        for k in ("a", "b"):
+            ren[k] = 0 if e[k] == b else e[k]
+        renamed.append(ren)
+    renamed.append({"id": "I", "kind": "currentSource", "a": 0, "b": a if a != b else a, "I": F(1)})
+    solved = solve(renamed)
+    # The source's voltage is φ(0) − φ(A) = −R_AB.
+    return -solved["I"][0]
+
+
+def network(rng, shape):
+    """Resistor networks between A (node 1) and B (node 2)."""
+    if shape == "series-parallel":
+        return [{"id": "R1", "kind": "resistor", "a": 1, "b": 3, "R": R(rng)},
+                {"id": "R2", "kind": "resistor", "a": 3, "b": 2, "R": R(rng)},
+                {"id": "R3", "kind": "resistor", "a": 3, "b": 2, "R": R(rng)},
+                {"id": "R4", "kind": "resistor", "a": 1, "b": 2, "R": R(rng)}]
+    if shape == "ladder":
+        return [{"id": "R1", "kind": "resistor", "a": 1, "b": 3, "R": R(rng)},
+                {"id": "R2", "kind": "resistor", "a": 3, "b": 2, "R": R(rng)},
+                {"id": "R3", "kind": "resistor", "a": 3, "b": 4, "R": R(rng)},
+                {"id": "R4", "kind": "resistor", "a": 4, "b": 2, "R": R(rng)},
+                {"id": "R5", "kind": "resistor", "a": 4, "b": 5, "R": R(rng)},
+                {"id": "R6", "kind": "resistor", "a": 5, "b": 2, "R": R(rng)}]
+    # A bridge: series and parallel get stuck.
+    return [{"id": "R1", "kind": "resistor", "a": 1, "b": 3, "R": R(rng)},
+            {"id": "R2", "kind": "resistor", "a": 1, "b": 4, "R": R(rng)},
+            {"id": "R3", "kind": "resistor", "a": 3, "b": 4, "R": R(rng)},
+            {"id": "R4", "kind": "resistor", "a": 3, "b": 2, "R": R(rng)},
+            {"id": "R5", "kind": "resistor", "a": 4, "b": 2, "R": R(rng)}]
+
+
+def kirchhoff_cases(rng):
+    cases = []
+    templates = [series, parallel, loaded_divider, two_sources, two_sources, bridge, ladder, current_source]
+    for template in templates:
+        name, els = template(rng)
+        request = {"elements": [kirchhoff_element(e) for e in els]}
+        latex = "; ".join(f"{e['id']} = {list(request_element(e).values())[-1]}" for e in els)
+        c = case(name, "medium", latex, expect_circuit(kirchhoff_values(els)), "junction and loop rules",
+                 settings={"mode": "kirchhoff"})
+        c["api"] = "kirchhoff"
+        c["request"] = request
+        cases.append(c)
+    shapes = [("series-parallel", "nodeRule"), ("series-parallel", "nodeRule"), ("ladder", "nodeRule"), ("ladder", "deltaToStar"),
+              ("bridge", "nodeRule"), ("bridge", "deltaToStar"), ("bridge", "starToDelta"),
+              ("bridge", "nodeRule"), ("bridge", "deltaToStar"), ("bridge", "starToDelta")]
+    for shape, rule in shapes:
+        els = network(rng, shape)
+        request = {"elements": [kirchhoff_element(e) for e in els], "terminals": [grid(1), grid(2)]}
+        latex = "R_{AB}: " + "; ".join(f"{e['id']} = {unit_text(e['R'], 'Ω')}" for e in els)
+        expect = {"kind": "equivalent", "resistance": value_str(resistance_between(els, 1, 2))}
+        c = case(f"resistance-{shape}", "medium", latex, expect, f"R_AB, {rule}",
+                 settings={"mode": "kirchhoff", "starDelta": rule})
+        c["api"] = "kirchhoff"
+        c["request"] = request
+        cases.append(c)
+    loop = {"elements": [kirchhoff_element({"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "U": F(10)}),
+                         kirchhoff_element({"id": "V2", "kind": "voltageSource", "a": 1, "b": 0, "U": F(5)}),
+                         kirchhoff_element({"id": "R1", "kind": "resistor", "a": 1, "b": 0, "R": F(100)})]}
+    c = case("source-loop", "easy", "V1 = 10V ∥ V2 = 5V", expect_error(""), "two voltage sources in parallel contradict each other",
+             settings={"mode": "kirchhoff"})
+    c["api"] = "kirchhoff"
+    c["request"] = loop
+    cases.append(c)
+    # A part with a value missing.
+    missing = {"elements": [kirchhoff_element({"id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "U": F(10)}),
+                            {**kirchhoff_element({"id": "R1", "kind": "resistor", "a": 1, "b": 0, "R": F(1)}), "r": ""}]}
+    c = case("missing-value", "easy", "R1 without a value", expect_error("R1"), "every part needs its value",
+             settings={"mode": "kirchhoff"})
+    c["api"] = "kirchhoff"
+    c["request"] = missing
+    cases.append(c)
+    return cases
