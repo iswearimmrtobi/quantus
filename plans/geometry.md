@@ -170,7 +170,7 @@ results, not errors. Each step below brings its tests.
 Plain `f64`, no caches (see the ESP32 memory notes in [plans.md](plans.md) §4). Each step brings
 its tests.
 
-- [ ] `geometry/view.rs`: `Camera` (yaw, pitch, zoom, centre), `Primitive`, and `project` for axes
+- [x] `geometry/view.rs`: `Camera` (yaw, pitch, zoom, centre), `Primitive`, and `project` for axes
   with ticks and labels and for points.
 - [ ] Auto-fit 3D box for the scene.
 - [ ] Line segments clipped to the box.

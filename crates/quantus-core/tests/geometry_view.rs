@@ -1,0 +1,102 @@
+use quantus_core::geometry::view::{project, Bounds, Camera, Figure, Primitive, Shown, Stroke};
+use quantus_core::geometry::Point;
+
+fn close(a: f64, b: f64) -> bool {
+    (a - b).abs() < 1e-9
+}
+
+fn close2(a: [f64; 2], b: [f64; 2]) -> bool {
+    close(a[0], b[0]) && close(a[1], b[1])
+}
+
+fn shown(name: &str, figure: Figure) -> Shown {
+    Shown { name: name.to_owned(), figure }
+}
+
+fn unit_box() -> Bounds {
+    Bounds { min: [-2.0; 3], max: [2.0; 3] }
+}
+
+#[test]
+fn the_camera_projects_onto_the_screen_with_depth() {
+    let front = Camera { yaw: 0.0, pitch: 0.0, zoom: 2.0, centre: [0.0; 3] };
+    // From +x: y to the right, z up, x towards the viewer.
+    let (at, depth) = front.project([3.0, 1.0, 2.0]);
+    assert!(close2(at, [2.0, 4.0]));
+    assert!(close(depth, 3.0));
+
+    let above = Camera::default().from_above();
+    let (at, depth) = above.project([1.0, 2.0, 5.0]);
+    assert!(close2(at, [1.0, 2.0]), "{at:?}");
+    assert!(close(depth, 5.0));
+
+    let moved = Camera { centre: [1.0, 1.0, 1.0], ..front };
+    let (at, _) = moved.project([1.0, 1.0, 1.0]);
+    assert!(close2(at, [0.0, 0.0]));
+}
+
+#[test]
+fn the_view_from_above_has_x_to_the_right_and_y_up() {
+    let above = Camera::default().from_above();
+    let (x, _) = above.project([1.0, 0.0, 0.0]);
+    let (y, _) = above.project([0.0, 1.0, 0.0]);
+    assert!(close2(x, [1.0, 0.0]), "x: {x:?}");
+    assert!(close2(y, [0.0, 1.0]), "y: {y:?}");
+}
+
+#[test]
+fn the_school_view_puts_x_to_the_lower_left() {
+    let camera = Camera::default();
+    let (x, _) = camera.project([1.0, 0.0, 0.0]);
+    let (y, _) = camera.project([0.0, 1.0, 0.0]);
+    let (z, _) = camera.project([0.0, 0.0, 1.0]);
+    assert!(x[0] < 0.0 && x[1] < 0.0, "{x:?}");
+    assert!(y[0] > 0.0, "{y:?}");
+    assert!(close(z[0], 0.0) && z[1] > 0.0, "{z:?}");
+}
+
+#[test]
+fn axes_have_ticks_numbers_and_names() {
+    let primitives = project(&[], &Camera::default(), &unit_box());
+    let axes = primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Axis, .. })).count();
+    assert_eq!(axes, 3);
+    let labels: Vec<&str> =
+        primitives.iter().filter_map(|p| if let Primitive::Label { text, .. } = p { Some(text.as_str()) } else { None }).collect();
+    for name in ["x", "y", "z"] {
+        assert!(labels.contains(&name), "{labels:?}");
+    }
+    // From −2 to 2 in steps of 1, without 0: four ticks per axis.
+    let ticks = primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Tick, .. })).count();
+    assert_eq!(ticks, 12);
+    assert_eq!(labels.iter().filter(|l| **l == "-2").count(), 3);
+    assert!(!labels.contains(&"0"));
+}
+
+#[test]
+fn ticks_take_a_round_step() {
+    let bounds = Bounds { min: [0.0; 3], max: [0.3, 40.0, 7.0] };
+    let primitives = project(&[], &Camera::default(), &bounds);
+    let labels: Vec<&str> =
+        primitives.iter().filter_map(|p| if let Primitive::Label { text, .. } = p { Some(text.as_str()) } else { None }).collect();
+    for tick in ["0.05", "0.1", "0.3", "10", "40", "2", "6"] {
+        assert!(labels.contains(&tick), "{tick} in {labels:?}");
+    }
+}
+
+#[test]
+fn an_axis_seen_end_on_has_no_ticks() {
+    let above = Camera::default().from_above();
+    let primitives = project(&[], &above, &unit_box());
+    let ticks = primitives.iter().filter(|p| matches!(p, Primitive::Segment { stroke: Stroke::Tick, .. })).count();
+    assert_eq!(ticks, 8);
+}
+
+#[test]
+fn points_get_a_marker_and_their_name() {
+    let a = Figure::point(&Point::from_ints(1, 2, 3)).unwrap();
+    assert_eq!(a, Figure::Point([1.0, 2.0, 3.0]));
+    let camera = Camera { yaw: 0.0, pitch: 0.0, zoom: 1.0, centre: [0.0; 3] };
+    let primitives = project(&[shown("A", a)], &camera, &unit_box());
+    assert!(primitives.iter().any(|p| matches!(p, Primitive::Marker { at, object: 0, .. } if close2(*at, [2.0, 3.0]))));
+    assert!(primitives.iter().any(|p| matches!(p, Primitive::Label { text, object: Some(0), .. } if text == "A")));
+}

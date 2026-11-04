@@ -13,6 +13,7 @@ mod reflect;
 mod relations;
 mod show;
 mod sphere;
+pub mod view;
 mod working;
 
 pub use circle::{Circle, CircleLine, CirclePlane};
