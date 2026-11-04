@@ -40,6 +40,52 @@ pub(crate) fn acute_angle(u: &Vector3, v: &Vector3, unit: AngleUnit, precision: 
     Ok(angle)
 }
 
+/// Solves `\lambda \vec{u} + \mu \vec{v} = \vec{w}` row by row in the working: two rows with a
+/// non-zero determinant fix λ and μ (Cramer's rule), the third must agree. `None` if no two
+/// rows fix them (`u` and `v` collinear); else λ, μ and whether the check held.
+pub(crate) fn two_parameters(u: &Vector3, v: &Vector3, w: &Vector3, rows: usize, working: &mut Working) -> Result<Option<(Value, Value, bool)>> {
+    let row = |i: usize| format!("{} = {}", show::combination(&[(&u.coords[i], "\\lambda"), (&v.coords[i], "\\mu")]), show::value(&w.coords[i]));
+    let system: Vec<String> = (0..rows).map(row).collect();
+    working.add(
+        Detailed,
+        msg!("As a system of equations:", "Als Gleichungssystem:"),
+        format!("\\begin{{aligned}} {} \\end{{aligned}}", system.join(" \\\\ ")),
+    );
+    let determinant = |i: usize, j: usize| u.coords[i].mul(&v.coords[j]).sub(&v.coords[i].mul(&u.coords[j]));
+    let Some((i, j)) = [(0, 1), (0, 2), (1, 2)].into_iter().filter(|&(_, j)| j < rows).find(|&(i, j)| !equal(&determinant(i, j), &Value::zero())) else {
+        return Ok(None);
+    };
+    let d = determinant(i, j);
+    let lambda = w.coords[i].mul(&v.coords[j]).sub(&v.coords[i].mul(&w.coords[j])).div(&d)?;
+    let mu = u.coords[i].mul(&w.coords[j]).sub(&w.coords[i].mul(&u.coords[j])).div(&d)?;
+    working.add(
+        Standard,
+        msg!("Rows {} and {} give:", "Aus den Zeilen {} und {}:", i + 1, j + 1),
+        format!("\\lambda = {}, \\quad \\mu = {}", show::value(&lambda), show::value(&mu)),
+    );
+    let k = 3 - i - j;
+    if k >= rows {
+        return Ok(Some((lambda, mu, true)));
+    }
+    let left = u.coords[k].mul(&lambda).add(&v.coords[k].mul(&mu));
+    let fits = equal(&left, &w.coords[k]);
+    working.add(
+        Standard,
+        msg!("Check in row {}:", "Probe in Zeile {}:", k + 1),
+        format!(
+            "{} \\cdot {} + {} \\cdot {} = {} {} {}",
+            show::factor(&u.coords[k]),
+            show::factor(&lambda),
+            show::factor(&v.coords[k]),
+            show::factor(&mu),
+            show::value(&left),
+            if fits { "=" } else { "\\neq" },
+            show::value(&w.coords[k])
+        ),
+    );
+    Ok(Some((lambda, mu, fits)))
+}
+
 /// Whether `u` is a multiple of `v` (both not zero), with the factor.
 pub(crate) fn multiple(u: &Vector3, v: &Vector3) -> Option<Value> {
     if !u.is_collinear(v) {
@@ -285,47 +331,9 @@ impl Line {
         );
         let w = self.support.to(&other.support);
         let rows = if self.planar() && other.planar() { 2 } else { 3 };
-        let negated = -v;
-        let row = |i: usize| format!("{} = {}", show::combination(&[(&u.coords[i], "\\lambda"), (&negated.coords[i], "\\mu")]), show::value(&w.coords[i]));
-        let system: Vec<String> = (0..rows).map(row).collect();
-        working.add(
-            Detailed,
-            msg!("As a system of equations:", "Als Gleichungssystem:"),
-            format!("\\begin{{aligned}} {} \\end{{aligned}}", system.join(" \\\\ ")),
-        );
-        // Two rows with a non-zero determinant fix λ and μ (Cramer's rule); the third must agree.
-        let determinant = |i: usize, j: usize| v.coords[i].mul(&u.coords[j]).sub(&u.coords[i].mul(&v.coords[j]));
-        let (i, j) = [(0, 1), (0, 2), (1, 2)]
-            .into_iter()
-            .find(|&(i, j)| !equal(&determinant(i, j), &Value::zero()))
-            .expect("the directions are not collinear");
-        let d = determinant(i, j);
-        let lambda = v.coords[i].mul(&w.coords[j]).sub(&w.coords[i].mul(&v.coords[j])).div(&d)?;
-        let mu = u.coords[i].mul(&w.coords[j]).sub(&w.coords[i].mul(&u.coords[j])).div(&d)?;
-        working.add(
-            Standard,
-            msg!("Rows {} and {} give:", "Aus den Zeilen {} und {}:", i + 1, j + 1),
-            format!("\\lambda = {}, \\quad \\mu = {}", show::value(&lambda), show::value(&mu)),
-        );
-        let k = 3 - i - j;
-        let fits = k >= rows || equal(&u.coords[k].mul(&lambda).sub(&v.coords[k].mul(&mu)), &w.coords[k]);
-        if k < rows {
-            let left = u.coords[k].mul(&lambda).sub(&v.coords[k].mul(&mu));
-            working.add(
-                Standard,
-                msg!("Check in row {}:", "Probe in Zeile {}:", k + 1),
-                format!(
-                    "{} \\cdot {} - {} \\cdot {} = {} {} {}",
-                    show::factor(&u.coords[k]),
-                    show::factor(&lambda),
-                    show::factor(&v.coords[k]),
-                    show::factor(&mu),
-                    show::value(&left),
-                    if fits { "=" } else { "\\neq" },
-                    show::value(&w.coords[k])
-                ),
-            );
-        }
+        let Some((lambda, mu, fits)) = two_parameters(u, &-v, &w, rows, &mut working)? else {
+            unreachable!("the directions are not collinear")
+        };
         if fits {
             let point = self.at(&lambda);
             working.add(

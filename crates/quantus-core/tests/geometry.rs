@@ -1,6 +1,6 @@
 use quantus_core::geometry::{
     coplanar, parallelepiped_volume, parallelogram_area, points_collinear, points_coplanar, tetrahedron_volume, triangle_area,
-    triple_product, GeometryEvaluator, Item, Line, LineRelation, Objects, Point, Vector3, Working,
+    triple_product, GeometryEvaluator, Item, Line, LineRelation, Objects, Plane, PlaneForm, Point, Vector3, Working,
 };
 use quantus_core::eval::{Evaluator, Variables};
 use quantus_core::latex::parser::{parse_with, ParseOptions};
@@ -415,7 +415,7 @@ fn intersecting_lines() {
     assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["S = (4|3|0)", r"\varphi = 45^\circ"]);
     let standard = latex_at(&worked.working, StepDetail::Detailed);
     assert!(standard.contains(&r"\begin{aligned} \lambda - \mu = -1 \\ \lambda = 3 \\ 0 = 0 \end{aligned}".to_string()), "{standard:#?}");
-    assert!(standard.contains(&r"0 \cdot 3 - 0 \cdot 4 = 0 = 0".to_string()), "{standard:#?}");
+    assert!(standard.contains(&r"0 \cdot 3 + 0 \cdot 4 = 0 = 0".to_string()), "{standard:#?}");
     // An angle without a closed form keeps its arccos.
     let worked = line([0, 0, 0], [1, 2, 2]).relation(&line([0, 0, 0], [3, 0, 4]), AngleUnit::Degree, 20).unwrap();
     assert_eq!(latex_at(&worked.working, StepDetail::Brief).last().unwrap(), r"\varphi = \arccos\left(\frac{11}{15}\right) \approx 42.8334^\circ");
@@ -444,4 +444,94 @@ fn skew_lines() {
     assert_eq!(distance.mul(&distance), Value::ratio(1, 3));
     let worked = line([0, 0, 0], [1, 1, 0]).relation(&line([0, 0, 1], [0, 1, 1]), AngleUnit::Degree, 20).unwrap();
     assert!(latex_at(&worked.working, StepDetail::Brief).contains(&r"d = \frac{\sqrt{3}}{3}".to_string()), "{:#?}", worked.working);
+}
+
+fn ints(values: [i64; 3]) -> Vector3 {
+    Vector3::from_ints(values[0], values[1], values[2])
+}
+
+fn at(values: [i64; 3]) -> Point {
+    Point::from_ints(values[0], values[1], values[2])
+}
+
+#[test]
+fn a_plane_through_three_points() {
+    let worked = Plane::through(&at([1, 0, 0]), &at([0, 2, 0]), &at([0, 0, 3])).unwrap();
+    let plane = &worked.result;
+    assert_eq!(plane.form, PlaneForm::Parameter);
+    assert_eq!(plane.spans, [ints([-1, 2, 0]), ints([-1, 0, 3])]);
+    // AB × AC = (6, 3, 2), already as short as it gets; 6x + 3y + 2z = 6.
+    assert_eq!((&plane.normal, &plane.constant), (&ints([6, 3, 2]), &Value::int(6)));
+    assert_eq!(plane.equation_in(PlaneForm::Coordinate), "6x + 3y + 2z = 6");
+    assert_eq!(
+        latex_at(&worked.working, StepDetail::Brief),
+        [r"\vec{x} = \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} + \lambda \begin{pmatrix} -1 \\ 2 \\ 0 \end{pmatrix} + \mu \begin{pmatrix} -1 \\ 0 \\ 3 \end{pmatrix}"]
+    );
+    assert!(Plane::through(&at([0, 0, 0]), &at([1, 1, 1]), &at([2, 2, 2])).is_err());
+    assert!(Plane::parametric(&at([0, 0, 0]), &ints([1, 2, 3]), &ints([2, 4, 6])).is_err());
+    assert!(Plane::with_normal(&at([0, 0, 0]), &Vector3::zero()).is_err());
+    assert!(Plane::coordinate(Value::zero(), Value::zero(), Value::zero(), Value::one()).is_err());
+}
+
+#[test]
+fn converting_between_the_forms_of_a_plane() {
+    // The cross product (8, -10, 4) is shortened to (4, -5, 2).
+    let plane = Plane::parametric(&at([1, 1, 1]), &ints([1, 2, 3]), &ints([-2, 0, 4])).unwrap();
+    assert_eq!(plane.normal, ints([4, -5, 2]));
+    let normal = plane.convert(PlaneForm::Normal);
+    assert_eq!(
+        latex_at(&normal.working, StepDetail::Standard),
+        [
+            r"\vec{n} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix} \times \begin{pmatrix} -2 \\ 0 \\ 4 \end{pmatrix} = \begin{pmatrix} 8 \\ -10 \\ 4 \end{pmatrix}",
+            r"\vec{n} = \frac{1}{2} \cdot \begin{pmatrix} 8 \\ -10 \\ 4 \end{pmatrix} = \begin{pmatrix} 4 \\ -5 \\ 2 \end{pmatrix}",
+            r"\left(\vec{x} - \begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix}\right) \cdot \begin{pmatrix} 4 \\ -5 \\ 2 \end{pmatrix} = 0",
+        ]
+    );
+    let coordinate = normal.result.convert(PlaneForm::Coordinate);
+    assert_eq!(latex_at(&coordinate.working, StepDetail::Brief), ["4x - 5y + 2z = 1"]);
+    assert!(latex_at(&coordinate.working, StepDetail::Standard).contains(
+        &r"d = \begin{pmatrix} 4 \\ -5 \\ 2 \end{pmatrix} \cdot \begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix} = 4 \cdot 1 + \left(-5\right) \cdot 1 + 2 \cdot 1 = 1".to_string()
+    ));
+    // From the coordinate form back to a parameter form: the directions are perpendicular to n.
+    let e = Plane::coordinate(Value::int(2), Value::int(-1), Value::int(3), Value::int(6)).unwrap();
+    assert_eq!(e.support, at([3, 0, 0]));
+    let parameter = e.convert(PlaneForm::Parameter).result;
+    assert_eq!(parameter.spans, [ints([1, 2, 0]), ints([-3, 0, 2])]);
+    for span in &parameter.spans {
+        assert_eq!(span.dot(&e.normal), Value::zero());
+    }
+    // A plane without x: the support lies on the y axis.
+    let f = Plane::coordinate(Value::zero(), Value::int(2), Value::int(1), Value::int(3)).unwrap();
+    assert_eq!(f.support, Point::new(Value::zero(), Value::ratio(3, 2), Value::zero()));
+    assert_eq!(f.equation(), "2y + z = 3");
+    // A fractional normal of a cross product becomes whole.
+    let g = Plane::parametric(&at([0, 0, 0]), &Vector3::new(Value::ratio(1, 2), Value::zero(), Value::zero()), &Vector3::new(Value::zero(), Value::ratio(1, 3), Value::zero())).unwrap();
+    assert_eq!(g.normal, ints([0, 0, 1]));
+}
+
+#[test]
+fn a_point_on_a_plane() {
+    let e = Plane::coordinate(Value::int(2), Value::int(-1), Value::int(3), Value::int(6)).unwrap();
+    let on = e.contains(&at([1, -1, 1])).unwrap();
+    assert!(on.result);
+    assert_eq!(latex_at(&on.working, StepDetail::Standard), [r"2 \cdot 1 + \left(-1\right) \cdot \left(-1\right) + 3 \cdot 1 = 6 = 6", r"P \in E"]);
+    let off = e.contains(&at([1, 1, 1])).unwrap();
+    assert!(!off.result);
+    assert_eq!(latex_at(&off.working, StepDetail::Standard)[0], r"2 \cdot 1 + \left(-1\right) \cdot 1 + 3 \cdot 1 = 4 \neq 6");
+    // The normal form puts in the vector from the support.
+    let normal = e.convert(PlaneForm::Normal).result;
+    assert!(normal.contains(&at([1, -1, 1])).unwrap().result);
+    assert_eq!(
+        latex_at(&normal.contains(&at([1, 1, 1])).unwrap().working, StepDetail::Standard)[0],
+        r"\begin{pmatrix} -2 \\ 1 \\ 1 \end{pmatrix} \cdot \begin{pmatrix} 2 \\ -1 \\ 3 \end{pmatrix} = -2 \neq 0"
+    );
+    // The parameter form solves for λ and μ.
+    let p = Plane::through(&at([1, 0, 0]), &at([0, 2, 0]), &at([0, 0, 3])).unwrap().result;
+    assert!(p.contains(&Point::new(Value::zero(), Value::one(), Value::ratio(3, 2))).unwrap().result);
+    let off = p.contains(&at([1, 1, 1])).unwrap();
+    assert!(!off.result);
+    assert_eq!(latex_at(&off.working, StepDetail::Brief), [r"P \notin E"]);
+    // A 2D point lies in z = 0.
+    let ground = Plane::coordinate(Value::zero(), Value::zero(), Value::one(), Value::zero()).unwrap();
+    assert!(ground.contains(&Point::planar(Value::int(4), Value::int(-7))).unwrap().result);
 }

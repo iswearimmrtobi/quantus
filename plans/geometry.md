@@ -133,7 +133,7 @@ results, not errors. Each step below brings its tests.
   perpendicular.
 - [x] `Line` × `Line`: identical, parallel, intersecting, skew, with intersection point, angle and
   distance.
-- [ ] `Plane`: from three points, point and two directions, point and normal; conversions between
+- [x] `Plane`: from three points, point and two directions, point and normal; conversions between
   parameter, normal and coordinate form (lines and planes keep the form they were given in);
   point on plane?
 - [ ] Mixed line–plane: intersection point, angle, parallel (with distance), contained.
