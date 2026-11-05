@@ -1,5 +1,5 @@
-//! Checks of `texts/texts.json`: every text in every language, the same placeholders, no text
-//! nobody uses.
+//! Checks of `locales/`: every text in every language and no text English lacks, the same
+//! placeholders, no text nobody uses.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -10,26 +10,33 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-fn file() -> (Vec<String>, Map<String, Value>) {
-    let text = std::fs::read_to_string(root().join("texts/texts.json")).unwrap();
-    let json: Value = serde_json::from_str(&text).unwrap();
-    let languages = json["languages"].as_object().unwrap().keys().cloned().collect();
-    (languages, json["texts"].as_object().unwrap().clone())
+/// Every language's code and texts, English first.
+fn locales() -> Vec<(String, Map<String, Value>)> {
+    let mut locales: Vec<(String, Map<String, Value>)> = std::fs::read_dir(root().join("locales"))
+        .unwrap()
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            let code = path.file_stem()?.to_str()?.to_string();
+            (path.extension()? == "json").then_some(())?;
+            let json: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            Some((code, json["texts"].as_object().unwrap().clone()))
+        })
+        .collect();
+    locales.sort_by_key(|(code, _)| (code != "en", code.clone()));
+    assert_eq!(locales[0].0, "en");
+    locales
 }
 
 #[test]
 fn every_text_is_in_every_language() {
-    let (languages, texts) = file();
-    let gaps: Vec<String> = texts
-        .iter()
-        .flat_map(|(key, entry)| {
-            languages
-                .iter()
-                .filter(|l| entry.get(l.as_str()).and_then(Value::as_str).is_none_or(str::is_empty))
-                .map(move |l| format!("{key}: {l}"))
-        })
-        .collect();
-    assert!(gaps.is_empty(), "{} texts are missing a language:\n{}", gaps.len(), gaps.join("\n"));
+    let locales = locales();
+    let english = &locales[0].1;
+    let mut wrong = Vec::new();
+    for (code, texts) in &locales[1..] {
+        wrong.extend(english.keys().filter(|key| texts.get(*key).and_then(Value::as_str).is_none_or(str::is_empty)).map(|key| format!("{code} lacks {key}")));
+        wrong.extend(texts.keys().filter(|key| !english.contains_key(*key)).map(|key| format!("{code} has {key}, which English lacks")));
+    }
+    assert!(wrong.is_empty(), "{} texts are missing or extra:\n{}", wrong.len(), wrong.join("\n"));
 }
 
 /// The `{name}` and `{}` placeholders of a text; `{{` is a brace.
@@ -58,15 +65,13 @@ fn placeholders(text: &str) -> BTreeSet<String> {
 
 #[test]
 fn every_language_has_the_same_placeholders() {
-    let (_, texts) = file();
+    let locales = locales();
     let mut wrong = Vec::new();
-    for (key, entry) in &texts {
-        let english = placeholders(entry["en"].as_str().unwrap());
-        for (language, text) in entry.as_object().unwrap() {
-            if let Some(text) = text.as_str().filter(|t| !t.is_empty()) {
-                if placeholders(text) != english {
-                    wrong.push(format!("{key}: {language}"));
-                }
+    for (key, english) in &locales[0].1 {
+        let wanted = placeholders(english.as_str().unwrap());
+        for (code, texts) in &locales[1..] {
+            if texts.get(key).and_then(Value::as_str).is_some_and(|text| placeholders(text) != wanted) {
+                wrong.push(format!("{key}: {code}"));
             }
         }
     }
@@ -90,7 +95,7 @@ fn sources(dir: &Path, out: &mut String) {
 
 #[test]
 fn every_text_is_used() {
-    let (_, texts) = file();
+    let texts = locales().swap_remove(0).1;
     let mut code = String::new();
     for dir in ["crates", "desktop/src", "desktop/src-tauri/src", "firmware"] {
         sources(&root().join(dir), &mut code);

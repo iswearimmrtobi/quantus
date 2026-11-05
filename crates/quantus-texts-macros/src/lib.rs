@@ -1,8 +1,8 @@
-//! The macros of `quantus-texts`. They read `texts/texts.json` while compiling, so the programs
+//! The macros of `quantus-texts`. They read `locales/*.json` while compiling, so the programs
 //! (the handheld among them) get plain string literals and `format!` calls: no JSON at run time.
 //!
-//! The file is `include_str!`ed, so cargo rebuilds this crate, and everything using it, when the
-//! texts change.
+//! `build.rs` lists the files as `include_str!`s, so cargo rebuilds this crate, and everything
+//! using it, when a text changes or a language is added.
 
 use std::collections::HashSet;
 use std::sync::OnceLock;
@@ -10,29 +10,33 @@ use std::sync::OnceLock;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use serde_json::{Map, Value};
 
-const JSON: &str = include_str!("../../../texts/texts.json");
+include!(concat!(env!("OUT_DIR"), "/locales.rs"));
 
 struct Language {
     code: String,
     variant: String,
-}
-
-struct Texts {
-    languages: Vec<Language>,
+    /// The file's `language` object: name, decimal separator, …
+    details: Map<String, Value>,
     texts: Map<String, Value>,
 }
 
-fn file() -> &'static Result<Texts, String> {
-    static TEXTS: OnceLock<Result<Texts, String>> = OnceLock::new();
-    TEXTS.get_or_init(|| {
-        let root: Value = serde_json::from_str(JSON).map_err(|e| format!("texts/texts.json: {e}"))?;
-        let languages = root["languages"].as_object().ok_or("texts/texts.json: no `languages` object")?;
-        let languages = languages.keys().map(|code| Language { code: code.clone(), variant: variant(code) }).collect::<Vec<_>>();
+fn file() -> &'static Result<Vec<Language>, String> {
+    static LANGUAGES: OnceLock<Result<Vec<Language>, String>> = OnceLock::new();
+    LANGUAGES.get_or_init(|| {
+        let languages = LOCALES
+            .iter()
+            .map(|(code, json)| {
+                let root: Value = serde_json::from_str(json).map_err(|e| format!("locales/{code}.json: {e}"))?;
+                let object = |name: &str| {
+                    root.get(name).and_then(Value::as_object).cloned().ok_or(format!("locales/{code}.json: no `{name}` object"))
+                };
+                Ok(Language { code: code.to_string(), variant: variant(code), details: object("language")?, texts: object("texts")? })
+            })
+            .collect::<Result<Vec<_>, String>>()?;
         if languages.first().map(|l| l.code.as_str()) != Some("en") {
-            return Err("texts/texts.json: the first language must be `en`, the fallback".into());
+            return Err("locales/en.json is missing; English is the fallback".into());
         }
-        let texts = root["texts"].as_object().ok_or("texts/texts.json: no `texts` object")?.clone();
-        Ok(Texts { languages, texts })
+        Ok(languages)
     })
 }
 
@@ -46,16 +50,11 @@ fn variant(code: &str) -> String {
         .collect()
 }
 
-/// The text of `key` in every language, in the order of `languages`; English where one is missing.
+/// The text of `key` in every language, in the order of `LOCALES`; English where one is missing.
 fn lookup(key: &str) -> Result<Vec<String>, String> {
-    let texts = file().as_ref()?;
-    let entry = texts.texts.get(key).ok_or_else(|| format!("no text `{key}` in texts/texts.json"))?;
-    let english = entry.get("en").and_then(Value::as_str).ok_or_else(|| format!("text `{key}` has no English"))?;
-    Ok(texts
-        .languages
-        .iter()
-        .map(|language| entry.get(&language.code).and_then(Value::as_str).unwrap_or(english).to_string())
-        .collect())
+    let languages = file().as_ref()?;
+    let english = languages[0].texts.get(key).and_then(Value::as_str).ok_or_else(|| format!("no text `{key}` in locales/en.json"))?;
+    Ok(languages.iter().map(|language| language.texts.get(key).and_then(Value::as_str).unwrap_or(english).to_string()).collect())
 }
 
 fn error(message: &str, span: Span) -> TokenStream {
@@ -142,7 +141,7 @@ pub fn tr(input: TokenStream) -> TokenStream {
         Ok(values) => values,
         Err(message) => return error(&message, span),
     };
-    let languages = &file().as_ref().unwrap().languages;
+    let languages = file().as_ref().unwrap();
     let given: HashSet<String> = parts[2..].iter().filter_map(|p| argument_name(p)).collect();
 
     let mut arms = TokenStream::new();
@@ -199,37 +198,32 @@ pub fn texts(input: TokenStream) -> TokenStream {
     TokenTree::Group(Group::new(Delimiter::Bracket, items)).into()
 }
 
-/// `language_enum!()`: `pub enum Language` with a variant per entry of `languages`, and its table.
+/// `language_enum!()`: `pub enum Language` with a variant per file of `locales/`, and its table.
 #[proc_macro]
 pub fn language_enum(_input: TokenStream) -> TokenStream {
-    let texts = match file() {
-        Ok(texts) => texts,
+    let languages = match file() {
+        Ok(languages) => languages,
         Err(message) => return error(message, Span::call_site()),
     };
-    let root: Value = serde_json::from_str(JSON).unwrap();
-    let table = root["languages"].as_object().unwrap();
-    let field = |code: &str, name: &str| -> String {
-        let value = table[code].get(name).and_then(Value::as_str).unwrap_or("");
-        format!("{value:?}")
-    };
+    let field = |language: &Language, name: &str| format!("{:?}", language.details.get(name).and_then(Value::as_str).unwrap_or(""));
 
     let mut code = String::new();
-    code.push_str("/// A language of the texts, as `texts/texts.json` lists them; English is the fallback.\n");
+    code.push_str("/// A language of the texts, one per file of `locales/`; English is the fallback.\n");
     code.push_str("#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]\n");
     code.push_str("#[cfg_attr(feature = \"serde\", derive(::serde::Serialize, ::serde::Deserialize))]\n");
     code.push_str("#[repr(usize)]\npub enum Language {\n");
-    for (i, language) in texts.languages.iter().enumerate() {
+    for (i, language) in languages.iter().enumerate() {
         if i == 0 {
             code.push_str("#[default]\n");
         }
         code.push_str(&format!("#[cfg_attr(feature = \"serde\", serde(rename = {:?}))]\n{},\n", language.code, language.variant));
     }
     code.push_str("}\n");
-    let list = |f: &dyn Fn(&Language) -> String| texts.languages.iter().map(f).collect::<Vec<_>>().join(", ");
-    code.push_str(&format!("impl Language {{\n/// Every language, in the order of the file.\npub const ALL: [Language; {}] = [{}];\n", texts.languages.len(), list(&|l| format!("Language::{}", l.variant))));
-    code.push_str(&format!("const CODES: [&'static str; {}] = [{}];\n", texts.languages.len(), list(&|l| format!("{:?}", l.code))));
+    let list = |f: &dyn Fn(&Language) -> String| languages.iter().map(f).collect::<Vec<_>>().join(", ");
+    code.push_str(&format!("impl Language {{\n/// Every language, in the order of the file.\npub const ALL: [Language; {}] = [{}];\n", languages.len(), list(&|l| format!("Language::{}", l.variant))));
+    code.push_str(&format!("const CODES: [&'static str; {}] = [{}];\n", languages.len(), list(&|l| format!("{:?}", l.code))));
     for (name, doc) in [("name", "Its own name for itself, shown the same in every language."), ("decimal", "The decimal separator."), ("intervals", "How it writes intervals: `round` `(0, 1)` or `reversed` `]0; 1[`."), ("quadratic", "The formula its schools teach for quadratic equations: `abc` or `pq`.")] {
-        code.push_str(&format!("const {}: [&'static str; {}] = [{}];\n", name.to_uppercase(), texts.languages.len(), list(&|l| field(&l.code, name))));
+        code.push_str(&format!("const {}: [&'static str; {}] = [{}];\n", name.to_uppercase(), languages.len(), list(&|l| field(l, name))));
         code.push_str(&format!("#[doc = {doc:?}]\npub const fn {name}(self) -> &'static str {{ Self::{}[self as usize] }}\n", name.to_uppercase()));
     }
     code.push_str("}\n");

@@ -19,7 +19,7 @@ Nothing runs automatically on `dev`; the *Check* workflow is started by hand.
   ESP-Hosted), which the handheld sends to it. `mirror` (in the workspace, testing only) sends the
   simulator's picture to the board. `docs/` holds the hardware documentation (product, dev kit,
   setup, display, SD card, mirror); the crates' READMEs link there.
-- `texts/texts.json`: every text in every language, read by `crates/quantus-texts` (compile time)
+- `locales/`: every text, one JSON file per language, read by `crates/quantus-texts` (compile time)
   and the frontend.
 - `docs/`: Docusaurus site; contributor pages in `docs/docs/contributing/`.
 - `design/`: specifications. `plans/plans.md`: open work. `test/`: the generated test set.
@@ -39,5 +39,5 @@ Details: `docs/docs/contributing/building.md` and `testing.md`.
 ## Conventions
 
 - Add user-visible changes to `## [Unreleased]` in `CHANGELOG.md`.
-- Texts go into `texts/texts.json`, with every language (`cargo test -p quantus-texts` checks it).
+- Texts go into every file of `locales/` (`cargo test -p quantus-texts` checks them).
 - After changing a dependency, regenerate `THIRD-PARTY-LICENSES.md` (`npm run licenses` in `desktop/`).

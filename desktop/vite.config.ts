@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    // The texts are one file for every program, `texts/texts.json` next to `desktop/`.
+    // The texts are shared by every program, in `locales/` next to `desktop/`.
     fs: { allow: ['..'] },
   },
   build: {

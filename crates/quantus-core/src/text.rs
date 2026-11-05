@@ -30,7 +30,7 @@ impl Drop for Scope {
     }
 }
 
-/// `format!` of the text `key` of `texts/texts.json` in the current language.
+/// `format!` of the text `key` of `locales/` in the current language.
 macro_rules! msg {
     ($key:tt $($rest:tt)*) => {
         ::quantus_texts::tr!($crate::text::language(), $key $($rest)*)

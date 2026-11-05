@@ -304,8 +304,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Every text is in one file, `texts/texts.json`, for the desktop app, the engine and the handheld;
-  a new language is one more entry per text there. On the handheld the language list starts with
+- Every text is in `locales/`, one file per language, for the desktop app, the engine and the
+  handheld; a new language is one more file there. On the handheld the language list starts with
   English, and the language has to be chosen again once.
 - `\oint` is refused with *Closed-path integrals are not supported* instead of *Unsupported command*.
 - The unknown of an equation takes the unit that makes both sides agree: `9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}`

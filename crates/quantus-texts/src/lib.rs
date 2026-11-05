@@ -1,6 +1,7 @@
-//! Every text of Quantus in every language. They live in one file, `texts/texts.json`, which the
-//! macros read while compiling: the engine, the desktop shell and the handheld get string literals
-//! and `format!` calls, the desktop frontend imports the same file.
+//! Every text of Quantus in every language. They live in `locales/`, one file per language
+//! (`en.json`, `de.json`), which the macros read while compiling: the engine, the desktop shell
+//! and the handheld get string literals and `format!` calls, the desktop frontend imports the
+//! same files.
 //!
 //! - [`tr!`]`(language, "key", arguments…)`: a text through `format!`.
 //! - [`texts!`]`("key")`: a text in every language, for a [`Text`] in a `const`.
@@ -15,7 +16,7 @@ pub use quantus_texts_macros::{texts, tr};
 quantus_texts_macros::language_enum!();
 
 impl Language {
-    /// Its code in `texts/texts.json`, as the settings store it: `en`, `de`.
+    /// Its code, the name of its file in `locales/` and what the settings store: `en`, `de`.
     pub const fn code(self) -> &'static str {
         Self::CODES[self as usize]
     }

@@ -38,7 +38,7 @@ plans are not part of the site; they stay in `design/` and `plans/`.
   (Standard step detail, precision 50), not from a hand calculation. Say so when a setting
   changes it.
 - **Take facts from the code.** Settings come from `settings.rs`, shortcuts from `shell.rs` and
-  `App.tsx`, labels from the `app.` texts of `texts/texts.json`, units from `units/lookup.rs`.
+  `App.tsx`, labels from the `app.` texts of `locales/en.json`, units from `units/lookup.rs`.
 - **Name UI elements in bold**, exactly as the English interface spells them: **Settings → Step
   detail**. Keys as `<kbd>Ctrl</kbd>+<kbd>J</kbd>`.
 - **Guides are short.** A goal, the steps, the result, then *See also* into the reference.

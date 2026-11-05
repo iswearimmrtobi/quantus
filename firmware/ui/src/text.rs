@@ -1,13 +1,13 @@
 //! The hui's texts in German and English. SETUP → Allgemein → Sprache picks one; it also sets
 //! the language of the engine's own texts.
 
-/// The language of the texts, one of `texts/texts.json`. The hui's settings start in German:
+/// The language of the texts, one per file of `locales/`. The hui's settings start in German:
 /// the handheld follows the Casio fx-991DE X.
 pub use quantus_texts::Language as Lang;
 /// A text in every language.
 pub use quantus_texts::Text;
 
-/// The text `key` of `texts/texts.json`, a [`Text`] usable in a `const`.
+/// The text `key` of `locales/`, a [`Text`] usable in a `const`.
 macro_rules! tx {
     ($key:tt) => {
         $crate::text::Text(::quantus_texts::texts!($key))

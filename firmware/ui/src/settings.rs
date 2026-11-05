@@ -386,7 +386,7 @@ const HEADER: &str = "quantus-settings 1";
 const KEYS: &[(&str, Setting)] = {
     use Setting as S;
     &[
-        // Renamed when the value became the position in `texts/texts.json` (English first), so a
+        // Renamed when the value became the position in `Lang::ALL` (English first), so a
         // value kept from before (0 was German) does not switch the language.
         ("language_2", S::Language),
         ("angle", S::Angle),

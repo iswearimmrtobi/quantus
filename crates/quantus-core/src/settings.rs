@@ -211,7 +211,7 @@ pub enum ComplexForm {
     Polar,
 }
 
-/// The language of the texts the engine writes itself, from `texts/texts.json`.
+/// The language of the texts the engine writes itself, from `locales/`.
 pub use quantus_texts::Language;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]

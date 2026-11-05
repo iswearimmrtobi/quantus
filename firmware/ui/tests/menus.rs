@@ -98,7 +98,7 @@ fn the_exam_mode_keeps_the_radios_off() {
 fn the_language_switches_the_texts() {
     let mut app = setup();
     assert_eq!(menu(&app).title().get(app.settings.language), "Setup");
-    // Allgemein → Sprache → English, first as in `texts/texts.json`.
+    // Allgemein → Sprache → English, first as in `Lang::ALL`.
     press(&mut app, &[Key::Digit(1), Key::Digit(1), Key::Digit(1)]);
     assert_eq!(app.settings.language, Lang::En);
     assert_eq!(menu(&app).title().get(app.settings.language), "General");

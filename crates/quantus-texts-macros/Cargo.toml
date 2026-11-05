@@ -1,6 +1,6 @@
 [package]
 name = "quantus-texts-macros"
-description = "Reads texts/texts.json at compile time for quantus-texts"
+description = "Reads locales/*.json at compile time for quantus-texts"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,5 +12,4 @@ publish = false
 proc-macro = true
 
 [dependencies]
-# `preserve_order`: the order of `languages` is the order of the `Language` variants.
-serde_json = { version = "1", features = ["preserve_order"] }
+serde_json = "1"

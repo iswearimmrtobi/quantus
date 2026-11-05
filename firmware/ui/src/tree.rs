@@ -36,7 +36,7 @@ pub static SETUP: Page = Page {
     ],
 };
 
-/// Every language of `texts/texts.json`, each by its own name.
+/// Every language of `locales/`, each by its own name.
 const LANGUAGES: [Opt; Lang::ALL.len()] = {
     const NONE: Opt = opt(same(""), 0);
     let mut opts = [NONE; Lang::ALL.len()];
