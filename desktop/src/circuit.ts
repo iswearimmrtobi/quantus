@@ -1,4 +1,4 @@
-import type { TextKey } from './i18n/en';
+import type { TextKey } from './i18n';
 import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, KirchhoffRequest, MergeStep } from './api';
 
 /**

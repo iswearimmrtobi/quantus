@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ApiError, type Kirchhoff } from '../api';
 import { useT } from '../i18n';
-import type { TextKey } from '../i18n/en';
+import type { TextKey } from '../i18n';
 import { matrixLatex } from '../linear';
 import { copyText } from '../shell';
 import { ErrorRow, Steps } from './AnalysisView';

@@ -13,7 +13,7 @@ import {
 } from '../api';
 import { useT } from '../i18n';
 import { copyText } from '../shell';
-import type { TextKey } from '../i18n/en';
+import type { TextKey } from '../i18n';
 import { FunctionPlot } from './FunctionPlot';
 import { displayStyle, Katex, latexLines } from './Katex';
 import { LatexInput, type LatexInputHandle } from './LatexInput';

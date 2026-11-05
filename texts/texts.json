@@ -14,6 +14,1606 @@
     }
   },
   "texts": {
+    "app.analysis.area": {
+      "en": "AREA",
+      "de": "FLÄCHE"
+    },
+    "app.analysis.area.hint": {
+      "en": "Leave both bounds empty for the area between the outermost zeros.",
+      "de": "Ohne Grenzen: die Fläche zwischen der ersten und der letzten Nullstelle."
+    },
+    "app.analysis.compute": {
+      "en": "Compute",
+      "de": "Berechnen"
+    },
+    "app.analysis.empty": {
+      "en": "Enter a function such as f(x) = x^3 - 3x and press Enter.",
+      "de": "Gib eine Funktion wie f(x) = x^3 - 3x ein und drücke Enter."
+    },
+    "app.analysis.from": {
+      "en": "from",
+      "de": "von"
+    },
+    "app.analysis.input.copy": {
+      "en": "copy",
+      "de": "kopieren"
+    },
+    "app.analysis.input.function": {
+      "en": "Function f(x)",
+      "de": "Funktion f(x)"
+    },
+    "app.analysis.period": {
+      "en": "Period",
+      "de": "Periode"
+    },
+    "app.analysis.reset": {
+      "en": "Reset view",
+      "de": "Ansicht zurücksetzen"
+    },
+    "app.analysis.signed": {
+      "en": "INTEGRAL",
+      "de": "INTEGRAL"
+    },
+    "app.analysis.status.failed": {
+      "en": "FAILED",
+      "de": "FEHLGESCHLAGEN"
+    },
+    "app.analysis.status.partial": {
+      "en": "PARTIAL",
+      "de": "TEILWEISE"
+    },
+    "app.analysis.step": {
+      "en": "step",
+      "de": "Schritt"
+    },
+    "app.analysis.tab.area": {
+      "en": "Area",
+      "de": "Fläche"
+    },
+    "app.analysis.tab.sketch": {
+      "en": "Curve sketch",
+      "de": "Kurvendiskussion"
+    },
+    "app.analysis.tab.table": {
+      "en": "Value table",
+      "de": "Wertetabelle"
+    },
+    "app.analysis.tab.tangent": {
+      "en": "Tangent / normal",
+      "de": "Tangente / Normale"
+    },
+    "app.analysis.to": {
+      "en": "to",
+      "de": "bis"
+    },
+    "app.analysis.undefined": {
+      "en": "undef.",
+      "de": "n. d."
+    },
+    "app.analysis.x0": {
+      "en": "at x₀ =",
+      "de": "an der Stelle x₀ ="
+    },
+    "app.choice.abc": {
+      "en": "abc formula",
+      "de": "abc-Formel"
+    },
+    "app.choice.alwaysValid": {
+      "en": "Only always valid",
+      "de": "Nur immer gültige"
+    },
+    "app.choice.auto": {
+      "en": "Automatic",
+      "de": "Automatisch"
+    },
+    "app.choice.binomial": {
+      "en": "As binomial",
+      "de": "Als Binom"
+    },
+    "app.choice.degree": {
+      "en": "Degrees",
+      "de": "Grad"
+    },
+    "app.choice.deltaToStar": {
+      "en": "Delta → star",
+      "de": "Dreieck → Stern"
+    },
+    "app.choice.expanded": {
+      "en": "Expanded",
+      "de": "Ausmultipliziert"
+    },
+    "app.choice.factored": {
+      "en": "Factored",
+      "de": "Faktorisiert"
+    },
+    "app.choice.gauss": {
+      "en": "Gauss",
+      "de": "Gauß"
+    },
+    "app.choice.gaussJordan": {
+      "en": "Gauss–Jordan",
+      "de": "Gauß–Jordan"
+    },
+    "app.choice.improper": {
+      "en": "d/c",
+      "de": "d/c"
+    },
+    "app.choice.indexed": {
+      "en": "x₁, x₂, …",
+      "de": "x₁, x₂, …"
+    },
+    "app.choice.letters": {
+      "en": "x, y, z, …",
+      "de": "x, y, z, …"
+    },
+    "app.choice.mixed": {
+      "en": "a b/c",
+      "de": "a b/c"
+    },
+    "app.choice.nodeRule": {
+      "en": "Node rule",
+      "de": "Knotenregel"
+    },
+    "app.choice.pq": {
+      "en": "pq formula",
+      "de": "pq-Formel"
+    },
+    "app.choice.radian": {
+      "en": "Radians",
+      "de": "Bogenmaß"
+    },
+    "app.choice.starToDelta": {
+      "en": "Star → delta",
+      "de": "Stern → Dreieck"
+    },
+    "app.choice.withCondition": {
+      "en": "With condition",
+      "de": "Mit Bedingung"
+    },
+    "app.circuit.choose": {
+      "en": "Choose a part to enter its values.",
+      "de": "Ein Bauteil wählen, um seine Werte einzugeben."
+    },
+    "app.circuit.delete": {
+      "en": "Delete",
+      "de": "Löschen"
+    },
+    "app.circuit.deletes": {
+      "en": "deletes",
+      "de": "löscht"
+    },
+    "app.circuit.drag": {
+      "en": "Drag onto the canvas or click",
+      "de": "Auf die Zeichenfläche ziehen oder klicken"
+    },
+    "app.circuit.empty": {
+      "en": "Drag parts from the palette onto the canvas, then connect terminals with wires.",
+      "de": "Bauteile aus der Palette auf die Fläche ziehen, dann Klemmen mit Leitungen verbinden."
+    },
+    "app.circuit.hint": {
+      "en": "Dragging from a terminal, or from a point on a wire, draws a wire. Dragging on empty canvas selects several parts.",
+      "de": "Von einer Klemme oder einem Punkt auf einer Leitung ziehen zeichnet eine Leitung. Auf freier Fläche ziehen wählt mehrere Bauteile."
+    },
+    "app.circuit.home": {
+      "en": "goes back to the start",
+      "de": "springt zum Anfang zurück"
+    },
+    "app.circuit.ideal": {
+      "en": "— ideal —",
+      "de": "— ideal —"
+    },
+    "app.circuit.noGround": {
+      "en": "No ground set: the reference potential is the negative terminal of the first voltage source.",
+      "de": "Keine Masse gesetzt: Bezugspotential ist der Minuspol der ersten Spannungsquelle."
+    },
+    "app.circuit.pan": {
+      "en": "Dragging with the right or middle mouse button, or scrolling, moves the canvas; Ctrl and scrolling zooms.",
+      "de": "Ziehen mit der rechten oder mittleren Maustaste oder Scrollen verschiebt die Fläche, Strg und Scrollen zoomt."
+    },
+    "app.circuit.parts": {
+      "en": "PARTS",
+      "de": "BAUTEILE"
+    },
+    "app.circuit.rotates": {
+      "en": "rotates",
+      "de": "dreht"
+    },
+    "app.circuit.show": {
+      "en": "Show on the canvas",
+      "de": "Auf der Fläche zeigen"
+    },
+    "app.circuit.tilts": {
+      "en": "turns a resistor by 45°",
+      "de": "dreht einen Widerstand um 45°"
+    },
+    "app.copied": {
+      "en": "copied",
+      "de": "kopiert"
+    },
+    "app.copy": {
+      "en": "copy",
+      "de": "copy"
+    },
+    "app.detail.brief": {
+      "en": "Brief",
+      "de": "Knapp"
+    },
+    "app.detail.brief.hint": {
+      "en": "One step per rule.",
+      "de": "Ein Schritt je Regel."
+    },
+    "app.detail.detailed": {
+      "en": "Detailed",
+      "de": "Ausführlich"
+    },
+    "app.detail.detailed.hint": {
+      "en": "Every intermediate line: the formula with the values put in, the factor written out before it is cancelled.",
+      "de": "Jede Zwischenzeile: die Formel mit eingesetzten Werten, der Faktor ausgeschrieben, bevor er gekürzt wird."
+    },
+    "app.detail.maximal": {
+      "en": "Maximal",
+      "de": "Maximal"
+    },
+    "app.detail.maximal.hint": {
+      "en": "Also the bookkeeping: signs, the order of terms, domain notes, plain arithmetic.",
+      "de": "Auch das Drumherum: Vorzeichen, Reihenfolge der Terme, Definitionslücken, reines Rechnen."
+    },
+    "app.detail.none": {
+      "en": "None",
+      "de": "Keine"
+    },
+    "app.detail.none.hint": {
+      "en": "Only the result, the step list is hidden.",
+      "de": "Nur das Ergebnis, die Schrittliste ist ausgeblendet."
+    },
+    "app.detail.standard": {
+      "en": "Standard",
+      "de": "Standard"
+    },
+    "app.detail.standard.hint": {
+      "en": "What you would write in your notebook: the line that shows the idea of each rule.",
+      "de": "Was man ins Heft schreibt: die Zeile, die die Idee jeder Regel zeigt."
+    },
+    "app.domain": {
+      "en": "DOMAIN",
+      "de": "DEFINITIONSBEREICH"
+    },
+    "app.domain.for": {
+      "en": "for",
+      "de": "für"
+    },
+    "app.editor.back": {
+      "en": "Back to the formula editor (Esc)",
+      "de": "Zurück zum Formeleditor (Esc)"
+    },
+    "app.editor.latex": {
+      "en": "Write LaTeX (\\ or {ctrl}+L)",
+      "de": "LaTeX schreiben (\\ oder {ctrl}+L)"
+    },
+    "app.error": {
+      "en": "ERROR",
+      "de": "FEHLER"
+    },
+    "app.field.area": {
+      "en": "Cross-section",
+      "de": "Querschnitt"
+    },
+    "app.field.i": {
+      "en": "Current",
+      "de": "Strom"
+    },
+    "app.field.internalConductance": {
+      "en": "Internal conductance",
+      "de": "Innenleitwert"
+    },
+    "app.field.internalResistance": {
+      "en": "Internal resistance",
+      "de": "Innenwiderstand"
+    },
+    "app.field.length": {
+      "en": "Length",
+      "de": "Länge"
+    },
+    "app.field.material": {
+      "en": "Material",
+      "de": "Material"
+    },
+    "app.field.p": {
+      "en": "Power",
+      "de": "Leistung"
+    },
+    "app.field.position": {
+      "en": "Position (0 to 1)",
+      "de": "Stellung (0 bis 1)"
+    },
+    "app.field.r": {
+      "en": "Resistance",
+      "de": "Widerstand"
+    },
+    "app.field.rOverride": {
+      "en": "Resistance (fixed)",
+      "de": "Widerstand (fest)"
+    },
+    "app.field.rTotal": {
+      "en": "Total resistance",
+      "de": "Gesamtwiderstand"
+    },
+    "app.field.temp": {
+      "en": "Temperature",
+      "de": "Temperatur"
+    },
+    "app.field.u": {
+      "en": "Voltage",
+      "de": "Spannung"
+    },
+    "app.file.default": {
+      "en": "circuit.json",
+      "de": "schaltung.json"
+    },
+    "app.file.filter": {
+      "en": "Circuit",
+      "de": "Schaltung"
+    },
+    "app.file.load": {
+      "en": "Load",
+      "de": "Laden"
+    },
+    "app.file.save": {
+      "en": "Save",
+      "de": "Speichern"
+    },
+    "app.file.title": {
+      "en": "FILE",
+      "de": "DATEI"
+    },
+    "app.footer.counts": {
+      "en": "{variables} variables · {history} history entries",
+      "de": "{variables} Variablen · {history} Einträge im Verlauf"
+    },
+    "app.footer.session": {
+      "en": "Session active",
+      "de": "Session aktiv"
+    },
+    "app.form.bin": {
+      "en": "BIN",
+      "de": "BIN"
+    },
+    "app.form.dec": {
+      "en": "DEC",
+      "de": "DEC"
+    },
+    "app.form.decimal": {
+      "en": "decimal",
+      "de": "dezimal"
+    },
+    "app.form.exact": {
+      "en": "exact",
+      "de": "exakt"
+    },
+    "app.form.fraction": {
+      "en": "d/c",
+      "de": "d/c"
+    },
+    "app.form.hex": {
+      "en": "HEX",
+      "de": "HEX"
+    },
+    "app.form.mixedFraction": {
+      "en": "a b/c",
+      "de": "a b/c"
+    },
+    "app.form.next": {
+      "en": "Next form",
+      "de": "Nächste Form"
+    },
+    "app.form.oct": {
+      "en": "OCT",
+      "de": "OCT"
+    },
+    "app.form.polar": {
+      "en": "r∠θ",
+      "de": "r∠θ"
+    },
+    "app.form.primeFactors": {
+      "en": "FACT",
+      "de": "FACT"
+    },
+    "app.form.rectangular": {
+      "en": "a+bi",
+      "de": "a+bi"
+    },
+    "app.form.recurring": {
+      "en": "recurring",
+      "de": "periodisch"
+    },
+    "app.form.sexagesimal": {
+      "en": "°′″",
+      "de": "°′″"
+    },
+    "app.geometry.add": {
+      "en": "Add",
+      "de": "Hinzufügen"
+    },
+    "app.geometry.circle.normal.hint": {
+      "en": "The normal of the circle’s plane; empty for a circle in the x-y plane",
+      "de": "Der Normalenvektor der Kreisebene; leer für einen Kreis in der x-y-Ebene"
+    },
+    "app.geometry.copy.hint": {
+      "en": "Answer and steps as an align* block",
+      "de": "Antwort und Rechenweg als align*-Block"
+    },
+    "app.geometry.empty": {
+      "en": "The scene is empty. Add a point, a vector, a line, a plane, a sphere or a circle.",
+      "de": "Die Szene ist leer. Füge einen Punkt, einen Vektor, eine Gerade, eine Ebene, eine Kugel oder einen Kreis hinzu."
+    },
+    "app.geometry.entry.cells": {
+      "en": "Enter the coordinates instead",
+      "de": "Stattdessen die Koordinaten eingeben"
+    },
+    "app.geometry.entry.name": {
+      "en": "Enter a name or an expression instead, such as A, \\vec{a} or B - A",
+      "de": "Stattdessen einen Namen oder Ausdruck eingeben, etwa A, \\vec{a} oder B - A"
+    },
+    "app.geometry.form.coordinate": {
+      "en": "coordinate form",
+      "de": "Koordinatenform"
+    },
+    "app.geometry.form.normal": {
+      "en": "normal form",
+      "de": "Normalenform"
+    },
+    "app.geometry.form.parameter": {
+      "en": "parameter form",
+      "de": "Parameterform"
+    },
+    "app.geometry.kind.circle": {
+      "en": "Circle",
+      "de": "Kreis"
+    },
+    "app.geometry.kind.line": {
+      "en": "Line",
+      "de": "Gerade"
+    },
+    "app.geometry.kind.plane": {
+      "en": "Plane",
+      "de": "Ebene"
+    },
+    "app.geometry.kind.point": {
+      "en": "Point",
+      "de": "Punkt"
+    },
+    "app.geometry.kind.sphere": {
+      "en": "Sphere",
+      "de": "Kugel"
+    },
+    "app.geometry.kind.vector": {
+      "en": "Vector",
+      "de": "Vektor"
+    },
+    "app.geometry.measure.area": {
+      "en": "area",
+      "de": "Flächeninhalt"
+    },
+    "app.geometry.measure.circumference": {
+      "en": "circumference",
+      "de": "Umfang"
+    },
+    "app.geometry.measure.length": {
+      "en": "length",
+      "de": "Länge"
+    },
+    "app.geometry.measure.surface": {
+      "en": "surface",
+      "de": "Oberfläche"
+    },
+    "app.geometry.measure.volume": {
+      "en": "volume",
+      "de": "Volumen"
+    },
+    "app.geometry.name": {
+      "en": "Name",
+      "de": "Name"
+    },
+    "app.geometry.pick": {
+      "en": "choose…",
+      "de": "wählen…"
+    },
+    "app.geometry.plot.above": {
+      "en": "View from above",
+      "de": "Ansicht von oben"
+    },
+    "app.geometry.plot.hint": {
+      "en": "Drag to turn, scroll to zoom",
+      "de": "Ziehen dreht, Mausrad zoomt"
+    },
+    "app.geometry.relation.apart": {
+      "en": "no common point",
+      "de": "kein gemeinsamer Punkt"
+    },
+    "app.geometry.relation.circle": {
+      "en": "intersection circle",
+      "de": "Schnittkreis"
+    },
+    "app.geometry.relation.concentric": {
+      "en": "concentric",
+      "de": "konzentrisch"
+    },
+    "app.geometry.relation.contained": {
+      "en": "contained",
+      "de": "enthalten"
+    },
+    "app.geometry.relation.crossing": {
+      "en": "crosses the circle’s plane",
+      "de": "durchstößt die Kreisebene"
+    },
+    "app.geometry.relation.cut": {
+      "en": "cut",
+      "de": "schneidend"
+    },
+    "app.geometry.relation.identical": {
+      "en": "identical",
+      "de": "identisch"
+    },
+    "app.geometry.relation.inside": {
+      "en": "inside",
+      "de": "innerhalb"
+    },
+    "app.geometry.relation.intersecting": {
+      "en": "intersecting",
+      "de": "schneidend"
+    },
+    "app.geometry.relation.miss": {
+      "en": "no common point",
+      "de": "kein gemeinsamer Punkt"
+    },
+    "app.geometry.relation.off": {
+      "en": "not on it",
+      "de": "liegt nicht darauf"
+    },
+    "app.geometry.relation.on": {
+      "en": "on it",
+      "de": "liegt darauf"
+    },
+    "app.geometry.relation.outside": {
+      "en": "outside",
+      "de": "außerhalb"
+    },
+    "app.geometry.relation.parallel": {
+      "en": "parallel",
+      "de": "parallel"
+    },
+    "app.geometry.relation.passant": {
+      "en": "no common point",
+      "de": "Passante"
+    },
+    "app.geometry.relation.secant": {
+      "en": "secant",
+      "de": "Sekante"
+    },
+    "app.geometry.relation.skew": {
+      "en": "skew",
+      "de": "windschief"
+    },
+    "app.geometry.relation.tangent": {
+      "en": "tangent",
+      "de": "Tangente"
+    },
+    "app.geometry.relation.touch": {
+      "en": "touching",
+      "de": "berührend"
+    },
+    "app.geometry.relation.touching": {
+      "en": "touching",
+      "de": "berührend"
+    },
+    "app.geometry.remove": {
+      "en": "Remove this object",
+      "de": "Dieses Objekt entfernen"
+    },
+    "app.geometry.task.angle": {
+      "en": "Angle",
+      "de": "Winkel"
+    },
+    "app.geometry.task.at": {
+      "en": "at",
+      "de": "in"
+    },
+    "app.geometry.task.choose": {
+      "en": "Choose a task…",
+      "de": "Aufgabe wählen…"
+    },
+    "app.geometry.task.convert": {
+      "en": "Convert a plane",
+      "de": "Ebene umformen"
+    },
+    "app.geometry.task.distance": {
+      "en": "Distance",
+      "de": "Abstand"
+    },
+    "app.geometry.task.evaluate": {
+      "en": "Expression",
+      "de": "Ausdruck"
+    },
+    "app.geometry.task.evaluate.hint": {
+      "en": "An expression with the scene’s points and vectors, such as \\vec{a} \\times \\vec{b} or |B - A|",
+      "de": "Ein Ausdruck mit den Punkten und Vektoren der Szene, etwa \\vec{a} \\times \\vec{b} oder |B - A|"
+    },
+    "app.geometry.task.foot": {
+      "en": "Foot of the perpendicular",
+      "de": "Lotfußpunkt"
+    },
+    "app.geometry.task.in": {
+      "en": "in",
+      "de": "an"
+    },
+    "app.geometry.task.into": {
+      "en": "into",
+      "de": "in die"
+    },
+    "app.geometry.task.measure": {
+      "en": "Length, area, volume",
+      "de": "Länge, Fläche, Volumen"
+    },
+    "app.geometry.task.midpoint": {
+      "en": "Midpoint",
+      "de": "Mittelpunkt"
+    },
+    "app.geometry.task.onto": {
+      "en": "onto",
+      "de": "auf"
+    },
+    "app.geometry.task.reflect": {
+      "en": "Reflection",
+      "de": "Spiegelung"
+    },
+    "app.geometry.task.relation": {
+      "en": "Relation",
+      "de": "Lagebeziehung"
+    },
+    "app.geometry.task.tangent": {
+      "en": "Tangent",
+      "de": "Tangente"
+    },
+    "app.geometry.typed.hint": {
+      "en": "Type an object with its name and press Enter, such as A(1|2|3), g: X = A + \\lambda\\vec{u}, E: 2x + y - z = 4 or K: x^2 + y^2 + z^2 = 9. A name already in the scene is replaced.",
+      "de": "Ein Objekt mit Namen eingeben und Enter drücken, etwa A(1|2|3), g: X = A + \\lambda\\vec{u}, E: 2x + y - z = 4 oder K: x^2 + y^2 + z^2 = 9. Ein Name, den die Szene schon hat, wird ersetzt."
+    },
+    "app.geometry.variant.circle": {
+      "en": "Centre, radius and normal",
+      "de": "Mittelpunkt, Radius und Normale"
+    },
+    "app.geometry.variant.circle.hint": {
+      "en": "The circle around M with radius r in the plane with normal n",
+      "de": "Der Kreis um M mit Radius r in der Ebene mit Normalenvektor n"
+    },
+    "app.geometry.variant.circleCut": {
+      "en": "Sphere ∩ plane",
+      "de": "Kugel ∩ Ebene"
+    },
+    "app.geometry.variant.circleCut.hint": {
+      "en": "The circle where a sphere of the scene cuts a plane of the scene",
+      "de": "Der Schnittkreis einer Kugel und einer Ebene der Szene"
+    },
+    "app.geometry.variant.line": {
+      "en": "Point and direction",
+      "de": "Punkt und Richtung"
+    },
+    "app.geometry.variant.line.hint": {
+      "en": "Parameter form: a position vector and a direction",
+      "de": "Parameterform: ein Stützvektor und ein Richtungsvektor"
+    },
+    "app.geometry.variant.lineThrough": {
+      "en": "Two points",
+      "de": "Zwei Punkte"
+    },
+    "app.geometry.variant.lineThrough.hint": {
+      "en": "The line through two points",
+      "de": "Die Gerade durch zwei Punkte"
+    },
+    "app.geometry.variant.plane": {
+      "en": "Parameter form",
+      "de": "Parameterform"
+    },
+    "app.geometry.variant.plane.hint": {
+      "en": "A position vector and two directions",
+      "de": "Ein Stützvektor und zwei Richtungsvektoren"
+    },
+    "app.geometry.variant.planeCoordinate": {
+      "en": "Coordinate form",
+      "de": "Koordinatenform"
+    },
+    "app.geometry.variant.planeCoordinate.hint": {
+      "en": "ax + by + cz = d",
+      "de": "ax + by + cz = d"
+    },
+    "app.geometry.variant.planeNormal": {
+      "en": "Normal form",
+      "de": "Normalenform"
+    },
+    "app.geometry.variant.planeNormal.hint": {
+      "en": "A position vector and a normal vector",
+      "de": "Ein Stützvektor und ein Normalenvektor"
+    },
+    "app.geometry.variant.planeThrough": {
+      "en": "Three points",
+      "de": "Drei Punkte"
+    },
+    "app.geometry.variant.planeThrough.hint": {
+      "en": "The plane through three points",
+      "de": "Die Ebene durch drei Punkte"
+    },
+    "app.geometry.variant.sphere": {
+      "en": "Centre and radius",
+      "de": "Mittelpunkt und Radius"
+    },
+    "app.geometry.variant.sphere.hint": {
+      "en": "The sphere around a centre M with radius r",
+      "de": "Die Kugel um den Mittelpunkt M mit Radius r"
+    },
+    "app.geometry.variant.sphereFour": {
+      "en": "Four points",
+      "de": "Vier Punkte"
+    },
+    "app.geometry.variant.sphereFour.hint": {
+      "en": "The sphere through four points not in one plane",
+      "de": "Die Kugel durch vier Punkte, die nicht in einer Ebene liegen"
+    },
+    "app.geometry.variant.sphereThrough": {
+      "en": "Centre and point",
+      "de": "Mittelpunkt und Punkt"
+    },
+    "app.geometry.variant.sphereThrough.hint": {
+      "en": "The sphere around M through a point P",
+      "de": "Die Kugel um M durch einen Punkt P"
+    },
+    "app.history": {
+      "en": "History",
+      "de": "Verlauf"
+    },
+    "app.history.clear": {
+      "en": "Clear history",
+      "de": "Verlauf löschen"
+    },
+    "app.history.empty": {
+      "en": "Nothing calculated yet.",
+      "de": "Noch nichts gerechnet."
+    },
+    "app.key.ctrl": {
+      "en": "Ctrl",
+      "de": "Strg"
+    },
+    "app.key.delete": {
+      "en": "Del",
+      "de": "Entf"
+    },
+    "app.key.home": {
+      "en": "Home",
+      "de": "Pos1"
+    },
+    "app.key.shiftR": {
+      "en": "Shift+R",
+      "de": "Umschalt+R"
+    },
+    "app.key.space": {
+      "en": "Space",
+      "de": "Leertaste"
+    },
+    "app.kind.currentSource": {
+      "en": "Current source",
+      "de": "Stromquelle"
+    },
+    "app.kind.ground": {
+      "en": "Ground",
+      "de": "Masse"
+    },
+    "app.kind.potentiometer": {
+      "en": "Potentiometer",
+      "de": "Potentiometer"
+    },
+    "app.kind.powerLoad": {
+      "en": "Power load",
+      "de": "Leistungslast"
+    },
+    "app.kind.resistor": {
+      "en": "Resistor",
+      "de": "Widerstand"
+    },
+    "app.kind.terminal": {
+      "en": "Terminal A/B",
+      "de": "Anschluss A/B"
+    },
+    "app.kind.voltageSource": {
+      "en": "Voltage source",
+      "de": "Spannungsquelle"
+    },
+    "app.kind.wire": {
+      "en": "Wire",
+      "de": "Leitung"
+    },
+    "app.kirchhoff.copy.hint": {
+      "en": "The working as an align* block",
+      "de": "Rechenweg als align*-Block"
+    },
+    "app.kirchhoff.dropped": {
+      "en": "Follows from the other junction rules, so it is left out.",
+      "de": "Folgt aus den anderen Knotenregeln und entfällt."
+    },
+    "app.kirchhoff.empty": {
+      "en": "Draw a network of sources, resistors and wires; the junction and loop rules are worked out below. Place terminals A and B instead of sources for the resistance between them.",
+      "de": "Ein Netz aus Quellen, Widerständen und Leitungen zeichnen; Knoten- und Maschenregeln werden darunter aufgestellt. Statt Quellen die Anschlüsse A und B setzen für den Widerstand zwischen ihnen."
+    },
+    "app.kirchhoff.flip": {
+      "en": "Click to reverse the reference direction; a negative current runs the other way.",
+      "de": "Klicken kehrt die Zählrichtung um; ein negativer Strom fließt andersherum."
+    },
+    "app.kirchhoff.junctions": {
+      "en": "JUNCTION RULES",
+      "de": "KNOTENREGELN"
+    },
+    "app.kirchhoff.loops": {
+      "en": "LOOP RULES",
+      "de": "MASCHENREGELN"
+    },
+    "app.kirchhoff.matrix": {
+      "en": "MATRIX",
+      "de": "MATRIX"
+    },
+    "app.kirchhoff.power": {
+      "en": "POWER BALANCE",
+      "de": "LEISTUNGSBILANZ"
+    },
+    "app.kirchhoff.resistance": {
+      "en": "RESISTANCE BETWEEN A AND B",
+      "de": "WIDERSTAND ZWISCHEN A UND B"
+    },
+    "app.kirchhoff.resize": {
+      "en": "Drag to change the height of the working",
+      "de": "Ziehen ändert die Höhe des Rechenwegs"
+    },
+    "app.kirchhoff.results": {
+      "en": "CURRENTS",
+      "de": "STRÖME"
+    },
+    "app.kirchhoff.terminal.missing": {
+      "en": "Place terminal B as well; the resistance between A and B is worked out once both are there.",
+      "de": "Auch Anschluss B setzen; der Widerstand zwischen A und B wird bestimmt, sobald beide da sind."
+    },
+    "app.kirchhoff.waiting": {
+      "en": "Solving …",
+      "de": "Wird gelöst …"
+    },
+    "app.kirchhoff.working": {
+      "en": "Working",
+      "de": "Rechenweg"
+    },
+    "app.library": {
+      "en": "Library",
+      "de": "Bibliothek"
+    },
+    "app.library.constants": {
+      "en": "Constants",
+      "de": "Konstanten"
+    },
+    "app.library.filter": {
+      "en": "Filter …",
+      "de": "Filtern …"
+    },
+    "app.library.physicsOnly": {
+      "en": "Constants and units are known in Physics; this mode reads them as letters.",
+      "de": "Konstanten und Einheiten kennt der Modus Physik; dieser Modus liest sie als Buchstaben."
+    },
+    "app.library.shift": {
+      "en": "A click puts it in and closes the window; with Shift it stays open.",
+      "de": "Ein Klick fügt ein und schließt das Fenster; mit Umschalt bleibt es offen."
+    },
+    "app.library.unit.title": {
+      "en": "Convert to this unit (Alt: the unit alone)",
+      "de": "In diese Einheit umrechnen (Alt: nur die Einheit)"
+    },
+    "app.library.units": {
+      "en": "Convert",
+      "de": "Umrechnen"
+    },
+    "app.library.units.hint": {
+      "en": "A click converts the result to the unit (▶); with Alt it puts the unit in alone.",
+      "de": "Ein Klick rechnet das Ergebnis in die Einheit um (▶); mit Alt kommt nur die Einheit ins Feld."
+    },
+    "app.linear.complex": {
+      "en": "Imaginary unit i",
+      "de": "Imaginäre Einheit i"
+    },
+    "app.linear.complex.hint": {
+      "en": "On: i is the imaginary unit and coefficients may be complex. Off: i is an unknown.",
+      "de": "An: i ist die imaginäre Einheit, Koeffizienten dürfen komplex sein. Aus: i ist eine Unbekannte."
+    },
+    "app.linear.copy.hint": {
+      "en": "Result and steps as an align* block",
+      "de": "Ergebnis und Rechenweg als align*-Block"
+    },
+    "app.linear.empty.equations": {
+      "en": "Type one equation per line. Enter solves; Enter twice, \\\\ or a line break starts the next line.",
+      "de": "Eine Gleichung pro Zeile. Enter löst; zweimal Enter, \\\\ oder ein Zeilenumbruch beginnt die nächste Zeile."
+    },
+    "app.linear.empty.matrix": {
+      "en": "Fill in the coefficients and the right-hand side; empty cells are 0. Enter solves.",
+      "de": "Koeffizienten und rechte Seite eintragen; leere Felder sind 0. Enter löst."
+    },
+    "app.linear.equations": {
+      "en": "Equations",
+      "de": "Gleichungen"
+    },
+    "app.linear.json": {
+      "en": "JSON input",
+      "de": "JSON-Eingabe"
+    },
+    "app.linear.json.apply": {
+      "en": "Apply",
+      "de": "Übernehmen"
+    },
+    "app.linear.json.entry": {
+      "en": "Row {row}, entry {column}: expected a number or a LaTeX string.",
+      "de": "Zeile {row}, Eintrag {column}: erwartet wird eine Zahl oder ein LaTeX-String."
+    },
+    "app.linear.json.file": {
+      "en": "Load file…",
+      "de": "Datei laden…"
+    },
+    "app.linear.json.invalid": {
+      "en": "This is not valid JSON.",
+      "de": "Das ist kein gültiges JSON."
+    },
+    "app.linear.json.names": {
+      "en": "\"unknowns\" must be {count} names as strings, one per column of A.",
+      "de": "\"unknowns\" müssen {count} Namen als Strings sein, einer pro Spalte von A."
+    },
+    "app.linear.json.shape": {
+      "en": "Expected the rows of [A | b] as an array of arrays, or an object with \"rows\".",
+      "de": "Erwartet werden die Zeilen von [A | b] als Array von Arrays oder ein Objekt mit \"rows\"."
+    },
+    "app.linear.json.short": {
+      "en": "A row needs at least one coefficient and the right-hand side.",
+      "de": "Eine Zeile braucht mindestens einen Koeffizienten und die rechte Seite."
+    },
+    "app.linear.json.width": {
+      "en": "Row {row} has {count} entries, but row 1 has {first}.",
+      "de": "Zeile {row} hat {count} Einträge, Zeile 1 aber {first}."
+    },
+    "app.linear.large": {
+      "en": "{m} equations, {n} unknowns: too large for the grid, solved as loaded.",
+      "de": "{m} Gleichungen, {n} Unbekannte: zu groß für das Raster, gelöst wie geladen."
+    },
+    "app.linear.large.back": {
+      "en": "Back to the grid",
+      "de": "Zurück zum Raster"
+    },
+    "app.linear.tab.equations": {
+      "en": "Equations",
+      "de": "Gleichungen"
+    },
+    "app.linear.tab.matrix": {
+      "en": "Matrix",
+      "de": "Matrix"
+    },
+    "app.linear.unknowns": {
+      "en": "Unknowns",
+      "de": "Unbekannte"
+    },
+    "app.material.aluminium": {
+      "en": "Aluminium",
+      "de": "Aluminium"
+    },
+    "app.material.brass": {
+      "en": "Brass",
+      "de": "Messing"
+    },
+    "app.material.constantan": {
+      "en": "Constantan",
+      "de": "Konstantan"
+    },
+    "app.material.copper": {
+      "en": "Copper",
+      "de": "Kupfer"
+    },
+    "app.material.gold": {
+      "en": "Gold",
+      "de": "Gold"
+    },
+    "app.material.iron": {
+      "en": "Iron",
+      "de": "Eisen"
+    },
+    "app.material.silver": {
+      "en": "Silver",
+      "de": "Silber"
+    },
+    "app.mode.algebra": {
+      "en": "Algebra",
+      "de": "Algebra"
+    },
+    "app.mode.algebra.hint": {
+      "en": "Letters are variables: no units, no natural constants, i is a variable.",
+      "de": "Buchstaben sind Variablen: keine Einheiten, keine Naturkonstanten, i ist eine Variable."
+    },
+    "app.mode.analysis": {
+      "en": "Analysis",
+      "de": "Analysis"
+    },
+    "app.mode.analysis.hint": {
+      "en": "Curve sketch of a function f(x): letters are variables, as in Algebra.",
+      "de": "Kurvendiskussion einer Funktion f(x): Buchstaben sind Variablen, wie in Algebra."
+    },
+    "app.mode.baseN": {
+      "en": "Base-N",
+      "de": "Basis-N"
+    },
+    "app.mode.baseN.hint": {
+      "en": "Whole numbers in decimal, hexadecimal, binary or octal, 32 bits in two’s complement, with and, or, xor, xnor, Not and Neg.",
+      "de": "Ganze Zahlen dezimal, hexadezimal, binär oder oktal, 32 Bit im Zweierkomplement, mit and, or, xor, xnor, Not und Neg."
+    },
+    "app.mode.electronics": {
+      "en": "Electronics",
+      "de": "Elektronik"
+    },
+    "app.mode.electronics.hint": {
+      "en": "Circuit calculator: inputs are read as in Physics.",
+      "de": "Schaltungsrechner: Eingaben werden wie in Physik gelesen."
+    },
+    "app.mode.geometry": {
+      "en": "Geometry",
+      "de": "Geometrie"
+    },
+    "app.mode.geometry.hint": {
+      "en": "Points, vectors, lines, planes, spheres and circles in space, drawn in 3D, with their relations, distances and angles worked out exactly. Inputs are read as in Algebra; objects have names of their own, apart from the variables.",
+      "de": "Punkte, Vektoren, Geraden, Ebenen, Kugeln und Kreise im Raum, in 3D gezeichnet, mit Lagebeziehungen, Abständen und Winkeln exakt berechnet. Eingaben werden wie in Algebra gelesen; Objekte haben eigene Namen, getrennt von den Variablen."
+    },
+    "app.mode.imaginary": {
+      "en": "Imaginary",
+      "de": "Imaginär"
+    },
+    "app.mode.imaginary.hint": {
+      "en": "As in Algebra, but i is the imaginary unit, results may be complex.",
+      "de": "Wie Algebra, aber i ist die imaginäre Einheit, Ergebnisse dürfen komplex sein."
+    },
+    "app.mode.kirchhoff": {
+      "en": "Kirchhoff",
+      "de": "Kirchhoff"
+    },
+    "app.mode.kirchhoff.hint": {
+      "en": "Resistor networks by the junction and loop rules, with the equations and their Gauss steps, or the resistance between two terminals A and B. Inputs are read as in Physics.",
+      "de": "Widerstandsnetze nach Knoten- und Maschenregel, mit den Gleichungen und ihren Gauß-Schritten, oder der Widerstand zwischen zwei Anschlüssen A und B. Eingaben werden wie in Physik gelesen."
+    },
+    "app.mode.linear": {
+      "en": "Linear systems",
+      "de": "LGS"
+    },
+    "app.mode.linear.hint": {
+      "en": "Systems of linear equations, typed or as a matrix, solved exactly. Letters are unknowns; session variables are not used.",
+      "de": "Lineare Gleichungssysteme, als Gleichungen oder als Matrix, exakt gelöst. Buchstaben sind Unbekannte; Sitzungsvariablen werden nicht verwendet."
+    },
+    "app.mode.physics": {
+      "en": "Physics",
+      "de": "Physik"
+    },
+    "app.mode.physics.hint": {
+      "en": "Units and natural constants are known; i is a variable.",
+      "de": "Einheiten und Naturkonstanten sind bekannt; i ist eine Variable."
+    },
+    "app.mode.verify": {
+      "en": "Verify",
+      "de": "Prüfen"
+    },
+    "app.mode.verify.hint": {
+      "en": "Checks an equation or inequality without unknowns, also chained (1 < 2 < 3): true or false.",
+      "de": "Prüft eine Gleichung oder Ungleichung ohne Unbekannte, auch verkettet (1 < 2 < 3): wahr oder falsch."
+    },
+    "app.note": {
+      "en": "NOTE",
+      "de": "HINWEIS"
+    },
+    "app.panel.collapse": {
+      "en": "Collapse the sidebar (Esc)",
+      "de": "Seitenleiste einklappen (Esc)"
+    },
+    "app.plot.hint": {
+      "en": "Scroll to zoom, drag to move",
+      "de": "Mausrad zoomt, Ziehen verschiebt"
+    },
+    "app.point.boundaryMax": {
+      "en": "Boundary maximum",
+      "de": "Randmaximum"
+    },
+    "app.point.boundaryMin": {
+      "en": "Boundary minimum",
+      "de": "Randminimum"
+    },
+    "app.point.hole": {
+      "en": "Removable gap",
+      "de": "Lücke"
+    },
+    "app.point.inflection": {
+      "en": "Inflection point",
+      "de": "Wendepunkt"
+    },
+    "app.point.max": {
+      "en": "Maximum",
+      "de": "Hochpunkt"
+    },
+    "app.point.min": {
+      "en": "Minimum",
+      "de": "Tiefpunkt"
+    },
+    "app.point.saddle": {
+      "en": "Saddle point",
+      "de": "Sattelpunkt"
+    },
+    "app.point.tangent": {
+      "en": "Point of contact",
+      "de": "Berührpunkt"
+    },
+    "app.point.yIntercept": {
+      "en": "y-intercept",
+      "de": "y-Achsenabschnitt"
+    },
+    "app.point.zero": {
+      "en": "Zero",
+      "de": "Nullstelle"
+    },
+    "app.position": {
+      "en": "Position {n}",
+      "de": "Position {n}"
+    },
+    "app.quick": {
+      "en": "Quick search",
+      "de": "Schnellsuche"
+    },
+    "app.quick.constant": {
+      "en": "constant",
+      "de": "Konstante"
+    },
+    "app.quick.empty": {
+      "en": "Nothing found.",
+      "de": "Nichts gefunden."
+    },
+    "app.quick.hint": {
+      "en": "↵ insert · Alt+↵ unit alone · ↑↓ choose · Esc close",
+      "de": "↵ einfügen · Alt+↵ nur die Einheit · ↑↓ wählen · Esc schließen"
+    },
+    "app.quick.placeholder": {
+      "en": "Constant or unit …",
+      "de": "Konstante oder Einheit …"
+    },
+    "app.quick.unit": {
+      "en": "unit",
+      "de": "Einheit"
+    },
+    "app.result.current": {
+      "en": "Current",
+      "de": "Strom"
+    },
+    "app.result.power": {
+      "en": "Power",
+      "de": "Leistung"
+    },
+    "app.result.resistance": {
+      "en": "Resistance",
+      "de": "Widerstand"
+    },
+    "app.result.unknown": {
+      "en": "Unknown",
+      "de": "Unbekannt"
+    },
+    "app.result.voltage": {
+      "en": "Voltage",
+      "de": "Spannung"
+    },
+    "app.sessions": {
+      "en": "Sessions",
+      "de": "Sitzungen"
+    },
+    "app.sessions.cancel": {
+      "en": "Cancel",
+      "de": "Abbrechen"
+    },
+    "app.sessions.confirmDelete": {
+      "en": "Delete",
+      "de": "Löschen"
+    },
+    "app.sessions.delete": {
+      "en": "Delete",
+      "de": "Löschen"
+    },
+    "app.sessions.duplicate": {
+      "en": "Duplicate",
+      "de": "Duplizieren"
+    },
+    "app.sessions.entries": {
+      "en": "{n} calculations",
+      "de": "{n} Rechnungen"
+    },
+    "app.sessions.new": {
+      "en": "New session",
+      "de": "Neue Sitzung"
+    },
+    "app.sessions.rename": {
+      "en": "Rename",
+      "de": "Umbenennen"
+    },
+    "app.settings": {
+      "en": "Settings",
+      "de": "Einstellungen"
+    },
+    "app.settings.angle": {
+      "en": "Angle unit",
+      "de": "Winkeleinheit"
+    },
+    "app.settings.angle.hint": {
+      "en": "What sin, cos and tan take and their inverses give. 30° and 2 rad keep their own unit in either.",
+      "de": "Was sin, cos und tan nehmen und ihre Umkehrungen liefern. 30° und 2 rad behalten in beiden ihre Einheit."
+    },
+    "app.settings.ay": {
+      "en": "a and y as variables",
+      "de": "a und y als Variablen"
+    },
+    "app.settings.ay.hint": {
+      "en": "otherwise the unit year (a, y)",
+      "de": "sonst die Einheiten Jahr (a, y)"
+    },
+    "app.settings.binomial": {
+      "en": "Binomial formulas",
+      "de": "Binomische Formeln"
+    },
+    "app.settings.binomial.hint": {
+      "en": "Automatic: as a binomial, unless the input already was one — then expanded.",
+      "de": "Automatisch: als Binom, außer die Eingabe war schon eins — dann ausmultipliziert."
+    },
+    "app.settings.cancel": {
+      "en": "Strike out cancelled factors",
+      "de": "Gekürzte Faktoren durchstreichen"
+    },
+    "app.settings.cancel.hint": {
+      "en": "otherwise the common factor is shown in colour",
+      "de": "sonst wird der gemeinsame Faktor farbig markiert"
+    },
+    "app.settings.cat.algebra": {
+      "en": "Algebra",
+      "de": "Algebra"
+    },
+    "app.settings.cat.general": {
+      "en": "General",
+      "de": "Allgemein"
+    },
+    "app.settings.cat.input": {
+      "en": "Input",
+      "de": "Eingabe"
+    },
+    "app.settings.cat.numbers": {
+      "en": "Numbers",
+      "de": "Zahlen"
+    },
+    "app.settings.cat.steps": {
+      "en": "Steps",
+      "de": "Rechenweg"
+    },
+    "app.settings.close": {
+      "en": "Close (Esc)",
+      "de": "Schließen (Esc)"
+    },
+    "app.settings.complex": {
+      "en": "Complex numbers",
+      "de": "Komplexe Zahlen"
+    },
+    "app.settings.complex.hint": {
+      "en": "Results as a + bi or in polar form r∠θ, in the angle unit set.",
+      "de": "Ergebnisse als a + bi oder in Polarform r∠θ, in der eingestellten Winkeleinheit."
+    },
+    "app.settings.conditions": {
+      "en": "Identities with a condition",
+      "de": "Umformungen mit Bedingung"
+    },
+    "app.settings.conditions.hint": {
+      "en": "√a · √b = √(ab) holds for a, b ≥ 0: apply it and add the condition, or only where it holds anyway (√2 · √3 = √6).",
+      "de": "√a · √b = √(ab) gilt für a, b ≥ 0: anwenden und die Bedingung angeben, oder nur dort, wo sie ohnehin gilt (√2 · √3 = √6)."
+    },
+    "app.settings.denominator": {
+      "en": "Denominator",
+      "de": "Nenner"
+    },
+    "app.settings.denominator.hint": {
+      "en": "Automatic: factored when it splits into several factors.",
+      "de": "Automatisch: faktorisiert, wenn er in mehrere Faktoren zerfällt."
+    },
+    "app.settings.detail": {
+      "en": "Step detail",
+      "de": "Ausführlichkeit der Schritte"
+    },
+    "app.settings.digits": {
+      "en": "significant digits",
+      "de": "signifikante Stellen"
+    },
+    "app.settings.elimination": {
+      "en": "Systems of equations",
+      "de": "Gleichungssysteme"
+    },
+    "app.settings.elimination.gauss.hint": {
+      "en": "Triangle form without fractions, then solved from the bottom up, as taught at school.",
+      "de": "Stufenform ohne Brüche, dann von unten nach oben gelöst, wie in der Schule."
+    },
+    "app.settings.elimination.gaussJordan.hint": {
+      "en": "Every pivot divided to 1 and its column cleared above and below.",
+      "de": "Jedes Pivotelement auf 1 geteilt und seine Spalte oben und unten ausgeräumt."
+    },
+    "app.settings.exact": {
+      "en": "Exact values",
+      "de": "Exakte Werte"
+    },
+    "app.settings.format": {
+      "en": "Number format",
+      "de": "Zahlenformat"
+    },
+    "app.settings.format.auto.hint": {
+      "en": "Up to the precision, without needless zeros.",
+      "de": "Bis zur Genauigkeit, ohne überflüssige Nullen."
+    },
+    "app.settings.format.fix.hint": {
+      "en": "A fixed number of decimal places.",
+      "de": "Eine feste Zahl von Nachkommastellen."
+    },
+    "app.settings.format.norm1.hint": {
+      "en": "As on a Casio: powers of ten below 0.01 and from 10¹⁰.",
+      "de": "Wie beim Casio: Zehnerpotenzen unter 0,01 und ab 10¹⁰."
+    },
+    "app.settings.format.norm2.hint": {
+      "en": "As on a Casio: powers of ten below 10⁻⁹ and from 10¹⁰.",
+      "de": "Wie beim Casio: Zehnerpotenzen unter 10⁻⁹ und ab 10¹⁰."
+    },
+    "app.settings.format.places": {
+      "en": "decimal places",
+      "de": "Nachkommastellen"
+    },
+    "app.settings.format.sci.hint": {
+      "en": "Always as a power of ten, with a fixed number of significant digits.",
+      "de": "Immer als Zehnerpotenz, mit einer festen Zahl signifikanter Stellen."
+    },
+    "app.settings.format.significant": {
+      "en": "significant digits (0 means 10)",
+      "de": "signifikante Stellen (0 heißt 10)"
+    },
+    "app.settings.fractions": {
+      "en": "Fractions",
+      "de": "Brüche"
+    },
+    "app.settings.fractions.hint": {
+      "en": "Improper (7/3) or mixed (2 1/3) first; the other is among the result’s forms.",
+      "de": "Unecht (7/3) oder gemischt (2 1/3) zuerst; die andere Form steht bei den Formen des Ergebnisses."
+    },
+    "app.settings.grouping": {
+      "en": "Digit grouping",
+      "de": "1000er-Trennung"
+    },
+    "app.settings.grouping.hint": {
+      "en": "thousands separated by a thin space",
+      "de": "Tausender durch ein schmales Leerzeichen getrennt"
+    },
+    "app.settings.language": {
+      "en": "Language",
+      "de": "Sprache"
+    },
+    "app.settings.letters": {
+      "en": "t, u and in as units",
+      "de": "t, u und in als Einheiten"
+    },
+    "app.settings.letters.hint": {
+      "en": "tonne, atomic mass unit and inch instead of variables",
+      "de": "Tonne, atomare Masseneinheit und Zoll statt Variablen"
+    },
+    "app.settings.onlyIn": {
+      "en": "Only in the {mode} mode.",
+      "de": "Nur im Modus {mode}."
+    },
+    "app.settings.precision": {
+      "en": "Precision",
+      "de": "Genauigkeit"
+    },
+    "app.settings.prefixes": {
+      "en": "Decimal prefixes",
+      "de": "Dezimalpräfixe"
+    },
+    "app.settings.prefixes.hint": {
+      "en": "plain numbers with k, M, m, µ …: 4.7 k",
+      "de": "reine Zahlen mit k, M, m, µ …: 4,7 k"
+    },
+    "app.settings.products": {
+      "en": "Letter runs as a product",
+      "de": "Buchstabenfolgen als Produkt"
+    },
+    "app.settings.products.hint": {
+      "en": "2ab is read as 2 · a · b",
+      "de": "2ab wird als 2 · a · b gelesen"
+    },
+    "app.settings.quadratic": {
+      "en": "Quadratic equations",
+      "de": "Quadratische Gleichungen"
+    },
+    "app.settings.quadratic.hint": {
+      "en": "Automatic: the pq formula in German, the quadratic formula in English.",
+      "de": "Automatisch: pq-Formel auf Deutsch, Mitternachtsformel auf Englisch."
+    },
+    "app.settings.recurring": {
+      "en": "Recurring decimals",
+      "de": "Periodische Dezimalzahlen"
+    },
+    "app.settings.recurring.hint": {
+      "en": "1/6 also as 0.1(6), among the result’s forms",
+      "de": "1/6 auch als 0,1(6), bei den Formen des Ergebnisses"
+    },
+    "app.settings.reset": {
+      "en": "Restore defaults",
+      "de": "Standard wiederherstellen"
+    },
+    "app.settings.roots": {
+      "en": "Exact as a root",
+      "de": "Exakt als Wurzel"
+    },
+    "app.settings.roots.hint": {
+      "en": "√2 instead of 1.414… and π/2 instead of 1.570…",
+      "de": "√2 statt 1,414… und π/2 statt 1,570…"
+    },
+    "app.settings.square": {
+      "en": "Completing the square",
+      "de": "Quadratische Ergänzung"
+    },
+    "app.settings.square.hint": {
+      "en": "x² + 8x + 11 becomes (x + 4)² − 5",
+      "de": "x² + 8x + 11 wird zu (x + 4)² − 5"
+    },
+    "app.settings.starDelta": {
+      "en": "Resistance between A and B",
+      "de": "Widerstand zwischen A und B"
+    },
+    "app.settings.starDelta.deltaToStar.hint": {
+      "en": "Where series and parallel get stuck, a delta of three resistors is turned into a star (a star into a delta if there is no delta), and the merging goes on.",
+      "de": "Wo Reihe und parallel nicht weiterkommen, wird ein Dreieck aus drei Widerständen in einen Stern umgewandelt (ohne Dreieck ein Stern in ein Dreieck), und das Zusammenfassen geht weiter."
+    },
+    "app.settings.starDelta.nodeRule.hint": {
+      "en": "Where series and parallel get stuck, as in a bridge, the rest is solved with the node rule and a test current.",
+      "de": "Wo Reihe und parallel nicht weiterkommen, etwa bei einer Brücke, wird der Rest mit der Knotenregel und einem Prüfstrom gelöst."
+    },
+    "app.settings.starDelta.starToDelta.hint": {
+      "en": "Where series and parallel get stuck, a star of three resistors is turned into a delta (a delta into a star if there is no star), and the merging goes on.",
+      "de": "Wo Reihe und parallel nicht weiterkommen, wird ein Stern aus drei Widerständen in ein Dreieck umgewandelt (ohne Stern ein Dreieck in einen Stern), und das Zusammenfassen geht weiter."
+    },
+    "app.settings.unknownNames": {
+      "en": "Unknown names",
+      "de": "Namen der Unbekannten"
+    },
+    "app.settings.unknownNames.hint": {
+      "en": "How the columns of a matrix are named, in the equations and the solution: x₁, x₂, … or x, y, z, a, b, …",
+      "de": "Wie die Spalten einer Matrix heißen, in den Gleichungen und in der Lösung: x₁, x₂, … oder x, y, z, a, b, …"
+    },
+    "app.status.ready": {
+      "en": "ready",
+      "de": "bereit"
+    },
+    "app.step.algebraic": {
+      "en": "STEP",
+      "de": "SCHRITT"
+    },
+    "app.step.result": {
+      "en": "RESULT",
+      "de": "ERGEBNIS"
+    },
+    "app.step.substituted": {
+      "en": "SUBSTITUTED",
+      "de": "EINGESETZT"
+    },
+    "app.step.symbolic": {
+      "en": "SYMBOLIC",
+      "de": "SYMBOLISCH"
+    },
+    "app.steps": {
+      "en": "Steps",
+      "de": "Rechenweg"
+    },
+    "app.tool.calc": {
+      "en": "CALC",
+      "de": "CALC"
+    },
+    "app.tool.calc.menu": {
+      "en": "CALC: put in values …",
+      "de": "CALC: Werte einsetzen …"
+    },
+    "app.tool.calc.run": {
+      "en": "Calculate",
+      "de": "Berechnen"
+    },
+    "app.tool.fromSession": {
+      "en": "from the session",
+      "de": "aus der Sitzung"
+    },
+    "app.tool.noLetters": {
+      "en": "The input has no letter without a value.",
+      "de": "Die Eingabe hat keinen Buchstaben ohne Wert."
+    },
+    "app.tool.solve": {
+      "en": "SOLVE",
+      "de": "SOLVE"
+    },
+    "app.tool.solve.hint": {
+      "en": "Choose the letter to solve for; the others take the values below or those of the session.",
+      "de": "Wähle den Buchstaben, nach dem gelöst wird; die anderen nehmen die Werte unten oder die der Sitzung."
+    },
+    "app.tool.solve.menu": {
+      "en": "SOLVE for a variable …",
+      "de": "SOLVE: nach Variable lösen …"
+    },
+    "app.tool.solve.run": {
+      "en": "Solve",
+      "de": "Lösen"
+    },
+    "app.tool.start": {
+      "en": "Start value",
+      "de": "Startwert"
+    },
+    "app.tool.start.hint": {
+      "en": "optional, for a numeric solution",
+      "de": "optional, für eine numerische Lösung"
+    },
+    "app.total": {
+      "en": "TOTAL",
+      "de": "GESAMT"
+    },
+    "app.total.hint": {
+      "en": "as an align* block · {ctrl}+Alt+C",
+      "de": "als align*-Block · {ctrl}+Alt+C"
+    },
+    "app.variable.forget": {
+      "en": "Delete variable",
+      "de": "Variable löschen"
+    },
+    "app.variables": {
+      "en": "Variables",
+      "de": "Variablen"
+    },
+    "app.variables.empty": {
+      "en": "No variables yet. Define one with",
+      "de": "Noch keine Variablen. Definiere eine mit"
+    },
+    "app.writeup": {
+      "en": "Writeup",
+      "de": "Lösungsweg"
+    },
+    "app.writeup.copy": {
+      "en": "Copy as LaTeX",
+      "de": "Als LaTeX kopieren"
+    },
+    "app.writeup.copyMarkdown": {
+      "en": "Copy as Markdown",
+      "de": "Als Markdown kopieren"
+    },
+    "app.writeup.copyMarkdown.title": {
+      "en": "Simple LaTeX in $…$ and $$…$$, for Markdown (Obsidian, GitHub, Typora …)",
+      "de": "Einfaches LaTeX in $…$ und $$…$$, für Markdown (Obsidian, GitHub, Typora …)"
+    },
+    "app.writeup.empty": {
+      "en": "Nothing to write up yet. Calculate something in this session first, such as 10 V divided by 0.5 A.",
+      "de": "Noch nichts aufzuschreiben. Erst in dieser Sitzung etwas rechnen, etwa 10 V geteilt durch 0,5 A."
+    },
+    "app.writeup.failed": {
+      "en": "The writeup could not be made.",
+      "de": "Der Lösungsweg ließ sich nicht erstellen."
+    },
+    "app.writeup.given": {
+      "en": "Given:",
+      "de": "Gegeben:"
+    },
+    "app.writeup.solution": {
+      "en": "Solution:",
+      "de": "Lösung:"
+    },
+    "app.writeup.wanted": {
+      "en": "Wanted:",
+      "de": "Gesucht:"
+    },
     "constant.0_c_kelvin": {
       "en": "0 °C in kelvin",
       "de": "0 °C in Kelvin"

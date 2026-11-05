@@ -3,7 +3,7 @@ import { api, ApiError, type LinearSystem, type Settings } from '../api';
 import { matrixLatex, requestFor, withMatrix, type LinearInput, type LinearTab } from '../linear';
 import { useT } from '../i18n';
 import { copyText } from '../shell';
-import type { TextKey } from '../i18n/en';
+import type { TextKey } from '../i18n';
 import { asError, ErrorRow, Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
 import { MatrixGrid } from './MatrixGrid';

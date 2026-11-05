@@ -1,6 +1,6 @@
 import type { Geometry, GeometryKind, GeometryMeasure, GeometryTask, PlaneForm } from '../api';
 import { useT } from '../i18n';
-import type { TextKey } from '../i18n/en';
+import type { TextKey } from '../i18n';
 import { taskOfKind, TASK_KINDS, type TaskKind } from '../geometry';
 import { useState } from 'react';
 import { copyText } from '../shell';

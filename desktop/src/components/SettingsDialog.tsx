@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StarDelta, StepDetail, UnknownNames } from '../api';
-import { LANGUAGE_NAMES, useT, type Translate } from '../i18n';
+import { LANGUAGES, LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
   value: T;
@@ -19,7 +19,7 @@ export const modeChoices = (t: Translate, linearComplex: boolean): Choice<Mode>[
     }),
   );
 
-const LANGUAGE_CHOICES: Choice<Language>[] = (['en', 'de'] as const).map((value) => ({
+const LANGUAGE_CHOICES: Choice<Language>[] = LANGUAGES.map((value) => ({
   value,
   label: LANGUAGE_NAMES[value],
 }));

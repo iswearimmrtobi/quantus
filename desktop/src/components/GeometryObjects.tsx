@@ -1,6 +1,6 @@
 import type { Geometry, GeometryEntry, GeometryObject } from '../api';
 import { useT } from '../i18n';
-import type { TextKey } from '../i18n/en';
+import type { TextKey } from '../i18n';
 import { formKindOf, freeName, plainBars, newObject, switchVariant, VARIANTS, type FormKind, type Variant } from '../geometry';
 import { colourStyle } from './GeometryPlot';
 import { Katex } from './Katex';

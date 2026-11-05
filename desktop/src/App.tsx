@@ -21,7 +21,7 @@ import { QuickSearch } from './components/QuickSearch';
 import { SessionsPanel } from './components/SessionsPanel';
 import { ToolDialog, type ToolKind } from './components/ToolDialog';
 import { I18nContext, makeTranslate } from './i18n';
-import type { TextKey } from './i18n/en';
+import type { TextKey } from './i18n';
 import { DEFAULT_SETTINGS, modeChoices, Segmented, SettingsDialog } from './components/SettingsDialog';
 
 type Panel = 'history' | 'variables' | 'sessions' | null;

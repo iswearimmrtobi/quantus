@@ -95,12 +95,21 @@ fn every_text_is_used() {
     for dir in ["crates", "desktop/src", "desktop/src-tauri/src", "firmware"] {
         sources(&root().join(dir), &mut code);
     }
+    // Every quoted word that could be a key, `"core.x"`, `'history'` or `` `copy` ``.
+    let mut quoted = std::collections::HashSet::new();
+    for quote in ['"', '\'', '`'] {
+        // Apostrophes in comments throw the pairs off, so any piece made of key characters counts.
+        quoted.extend(code.split(quote).filter(|part| part.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_')));
+    }
+    // The frontend builds some keys, `t(`mode.${mode}`)`: what precedes `${` stands for them all.
+    let built: Vec<&str> = code.split("${").filter_map(|before| before.rsplit('`').next()).filter(|p| p.ends_with('.')).collect();
+    let used = |short: &str| quoted.contains(short) || built.iter().any(|prefix| short.starts_with(prefix));
     let unused: Vec<&String> = texts
         .keys()
         .filter(|key| match key.strip_prefix("app.") {
-            // The frontend's `t('history')` adds the prefix itself.
-            Some(short) => ![format!("'{short}'"), format!("\"{short}\""), format!("`{short}`")].iter().any(|k| code.contains(k)),
-            None => !code.contains(&format!("\"{key}\"")),
+            // The frontend's `t('history')` adds the prefix itself; `.hint` goes with its label.
+            Some(short) => !used(short) && !short.strip_suffix(".hint").is_some_and(used),
+            None => !quoted.contains(key.as_str()),
         })
         .collect();
     assert!(unused.is_empty(), "{} texts are not used anywhere:\n{unused:?}", unused.len());

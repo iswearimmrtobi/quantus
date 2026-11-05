@@ -1,5 +1,5 @@
 import type { LinearSystemRequest, UnknownNames } from './api';
-import type { TextKey } from './i18n/en';
+import type { TextKey } from './i18n';
 
 /** The input of the linear systems mode, and how it becomes a request to the engine. */
 

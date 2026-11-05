@@ -406,7 +406,8 @@ export interface GeometryViewResponse {
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
 export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff' | 'baseN' | 'verify' | 'geometry';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
-export type Language = 'en' | 'de';
+import type { Language } from './i18n';
+export type { Language };
 export type DenominatorForm = 'auto' | 'expanded' | 'factored';
 export type ConditionalIdentities = 'withCondition' | 'alwaysValid';
 export type StepDetail = 'none' | 'brief' | 'standard' | 'detailed' | 'maximal';
