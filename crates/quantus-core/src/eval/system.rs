@@ -71,13 +71,13 @@ pub(crate) enum Solution {
 impl Evaluator<'_> {
     pub(crate) fn solve_system(&self, system: &Node, method: Method) -> Result<SystemSolution> {
         let Node::System { equations, .. } = system else {
-            return Err(QuantusError::other(msg!("core.eval.system.only_system_equations_can_solved")));
+            return Err(QuantusError::other(msg!("core.eval.system.not_a_system")));
         };
         let mut unknowns = Vec::new();
         collect_unknowns(system, true, &mut Vec::new(), self, &mut unknowns);
         if unknowns.is_empty() {
             return Err(QuantusError::other(
-                msg!("core.eval.system.system_has_no_unknown_solve"),
+                msg!("core.eval.system.no_unknown"),
             ));
         }
         unknowns.sort_by_cached_key(|key| variable_order(key));
@@ -92,7 +92,7 @@ impl Evaluator<'_> {
     /// The row `a_1 … a_n | b` of a linear equation `a·x = b` in the given unknowns.
     fn coefficients(&self, equation: &Node, unknowns: &[String]) -> Result<Vec<Value>> {
         let Node::Equation { left, right, .. } = equation else {
-            return Err(QuantusError::other(msg!("core.eval.system.every_line_system_must_equation")));
+            return Err(QuantusError::other(msg!("core.eval.system.line_not_equation")));
         };
         let mut scope = self.variables.clone();
         let mut residual = |point: &[Value]| -> Result<Value> {
@@ -103,7 +103,7 @@ impl Evaluator<'_> {
             Ok(evaluator.evaluate(left)?.sub(&evaluator.evaluate(right)?)?.value)
         };
         let not_linear = || {
-            QuantusError::other(msg!("core.eval.system.system_not_linear_only_linear",
+            QuantusError::other(msg!("core.eval.system.not_linear",
                 unknowns.join(", ")
             ))
         };

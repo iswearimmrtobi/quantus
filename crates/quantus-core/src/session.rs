@@ -272,7 +272,7 @@ impl Session {
 
     pub fn define_from_with(&mut self, latex: &str, precision: Option<i64>, settings: &Settings) -> Result<Variable> {
         self.evaluate_with(latex, precision, settings)?.1.ok_or_else(|| {
-            QuantusError::other(msg!("core.session.does_not_define_variable_write"
+            QuantusError::other(msg!("core.session.not_a_definition"
             ))
         })
     }
@@ -293,7 +293,7 @@ impl Session {
         let calculator = LatexCalculator::new(precision_or(precision, settings.precision)?).with_settings(settings.clone());
         let calculation = calculator.evaluate(latex, &self.quantities())?;
         if matches!(calculation.formula.expression, crate::latex::Node::Equation { .. } | crate::latex::Node::System { .. }) {
-            return Err(QuantusError::other(msg!("core.session.value_must_number_not_equation")));
+            return Err(QuantusError::other(msg!("core.session.value_is_equation")));
         }
         let variable = Variable {
             key: key.to_string(),
@@ -463,7 +463,7 @@ impl Session {
 fn migrate(file: SessionFile) -> Result<SessionFile> {
     match file.version {
         FORMAT_VERSION => Ok(file),
-        version if version > FORMAT_VERSION => Err(QuantusError::other(msg!("core.session.session_was_saved_newer_quantus"
+        version if version > FORMAT_VERSION => Err(QuantusError::other(msg!("core.session.newer_format"
         ))),
         version => Err(QuantusError::other(msg!("core.session.unknown_session_format"))),
     }
@@ -473,7 +473,7 @@ fn precision_or(requested: Option<i64>, default: usize) -> Result<usize> {
     let Some(precision) = requested else { return Ok(default) };
     match usize::try_from(precision) {
         Ok(p) if (1..=MAX_PRECISION).contains(&p) => Ok(p),
-        _ => Err(QuantusError::other(msg!("core.session.precision_must_between_1_digits"
+        _ => Err(QuantusError::other(msg!("core.session.precision_range"
         ))),
     }
 }

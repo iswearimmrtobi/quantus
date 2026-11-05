@@ -47,13 +47,13 @@ pub enum BinomialIdentity {
 impl BinomialIdentity {
     pub fn description(&self) -> String {
         match self {
-            Self::SquareOfSum => crate::text::msg!("core.algebra.binomial.square_sum_b_2ab_b"),
-            Self::SquareOfDifference => crate::text::msg!("core.algebra.binomial.square_difference_b_2ab_b"),
-            Self::CubeOfSum => crate::text::msg!("core.algebra.binomial.cube_sum_b_3a_b"),
-            Self::CubeOfDifference => crate::text::msg!("core.algebra.binomial.cube_difference_b_3a_b"),
-            Self::DifferenceOfSquares => crate::text::msg!("core.algebra.binomial.difference_squares_b_b_b"),
-            Self::SumOfCubes => crate::text::msg!("core.algebra.binomial.sum_cubes_b_b_ab"),
-            Self::DifferenceOfCubes => crate::text::msg!("core.algebra.binomial.difference_cubes_b_b_ab"),
+            Self::SquareOfSum => crate::text::msg!("core.algebra.binomial.square_of_sum"),
+            Self::SquareOfDifference => crate::text::msg!("core.algebra.binomial.square_of_difference"),
+            Self::CubeOfSum => crate::text::msg!("core.algebra.binomial.cube_of_sum"),
+            Self::CubeOfDifference => crate::text::msg!("core.algebra.binomial.cube_of_difference"),
+            Self::DifferenceOfSquares => crate::text::msg!("core.algebra.binomial.difference_of_squares"),
+            Self::SumOfCubes => crate::text::msg!("core.algebra.binomial.sum_of_cubes"),
+            Self::DifferenceOfCubes => crate::text::msg!("core.algebra.binomial.difference_of_cubes"),
         }
     }
 

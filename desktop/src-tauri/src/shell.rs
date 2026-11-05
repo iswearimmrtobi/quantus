@@ -70,7 +70,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>, language: Language) -> tauri::
         .separator()
         .item(&item(app, "switch-form", l(texts!("shell.menu.next_result_form")), Some("CmdOrCtrl+D"))?)
         .item(&item(app, "eng", l(texts!("shell.menu.eng")), Some("CmdOrCtrl+E"))?)
-        .item(&item(app, "eng-back", l(texts!("shell.menu.eng_2")), Some("CmdOrCtrl+Shift+E"))?)
+        .item(&item(app, "eng-back", l(texts!("shell.menu.eng_back")), Some("CmdOrCtrl+Shift+E"))?)
         .separator()
         .item(&item(app, "copy-result", l(texts!("shell.menu.copy_result")), Some("CmdOrCtrl+Shift+C"))?)
         .item(&item(app, "copy-all", l(texts!("shell.menu.copy_whole_calculation")), Some("CmdOrCtrl+Alt+C"))?)

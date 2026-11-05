@@ -84,7 +84,7 @@ impl Equations {
                 [first, second, ..] => {
                     let (p, q) = (&parts[first.part].id, &parts[second.part].id);
                     return Err(QuantusError::other(msg!(
-                        "core.kirchhoff.equations.series_two_current_sources_set")));
+                        "core.kirchhoff.equations.current_sources_in_series")));
                 }
             }
         }

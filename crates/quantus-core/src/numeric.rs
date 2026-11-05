@@ -195,7 +195,7 @@ pub(crate) fn integrate(
         previous = Some(estimate);
     }
     Err(QuantusError::other(
-        msg!("core.numeric.integral_did_not_converge_integrand"),
+        msg!("core.numeric.integral_diverges"),
     ))
 }
 

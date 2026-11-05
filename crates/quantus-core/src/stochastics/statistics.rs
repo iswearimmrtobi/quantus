@@ -74,7 +74,7 @@ pub fn statistics(settings: &Settings, request: &StatisticsRequest) -> Result<St
     let rows = read_rows(&numbers, &request.x, request.y.as_deref(), request.freq.as_deref())?;
     if request.y.is_none() {
         if request.regression.is_some() {
-            return Err(QuantusError::other(msg!("core.stochastics.statistics.regression_needs_pairs_x_y")));
+            return Err(QuantusError::other(msg!("core.stochastics.statistics.regression_needs_pairs")));
         }
         return Ok(StatisticsResponse { values: one_variable(&numbers, &rows)?, regression: Vec::new(), estimates: Vec::new() });
     }
@@ -112,12 +112,12 @@ fn read_rows(numbers: &Numbers, x: &[String], y: Option<&[String]>, freq: Option
         return Err(QuantusError::other(msg!("core.stochastics.statistics.most_rows", MAX_ROWS)));
     }
     if y.is_some_and(|y| y.len() != x.len()) {
-        return Err(QuantusError::other(msg!("core.stochastics.statistics.y_column_needs_one_entry")));
+        return Err(QuantusError::other(msg!("core.stochastics.statistics.y_entry_per_row")));
     }
     if let Some(freq) = freq {
         if freq.len() != x.len() {
             return Err(QuantusError::other(msg!(
-                "core.stochastics.statistics.frequency_column_needs_one_entry")));
+                "core.stochastics.statistics.frequency_entry_per_row")));
         }
     }
     let mut rows = Vec::new();
@@ -125,7 +125,7 @@ fn read_rows(numbers: &Numbers, x: &[String], y: Option<&[String]>, freq: Option
         if cell.trim().is_empty() {
             continue;
         }
-        let what = |column: &str| msg!("core.stochastics.statistics.row", column, i + 1);
+        let what = |column: &str| msg!("core.stochastics.statistics.at_row", column, i + 1);
         let value = numbers.read(cell, &what("x"))?;
         let y = match y {
             Some(y) => Some(numbers.read(&y[i], &what("y"))?),
@@ -139,7 +139,7 @@ fn read_rows(numbers: &Numbers, x: &[String], y: Option<&[String]>, freq: Option
             QuantusError::other(format!(
                 "{}: {}",
                 what("Freq"),
-                msg!("core.stochastics.statistics.frequency_whole_number_from_0")
+                msg!("core.stochastics.statistics.frequency_whole")
             ))
         })?;
         rows.push(Row { x: value, y, freq, count });
@@ -226,7 +226,7 @@ fn transformed(kind: Regression, x: &Value, y: &Value, digits: usize) -> Result<
         Regression::Power => (ln(x)?, ln(y)?),
         Regression::Inverse => {
             if x.is_zero() {
-                return Err(QuantusError::other(msg!("core.stochastics.statistics.y_b_x_needs_x")));
+                return Err(QuantusError::other(msg!("core.stochastics.statistics.inverse_needs_nonzero_x")));
             }
             (Value::one().div(x)?, y.clone())
         }
@@ -246,7 +246,7 @@ fn fit(numbers: &Numbers, rows: &[Row], kind: Regression) -> Result<Fit> {
     let n = total(&|_, _| Value::one());
     let (su, sv) = (total(&|u, _| u.clone()), total(&|_, v| v.clone()));
     let (suu, svv, suv) = (total(&|u, _| u.mul(u)), total(&|_, v| v.mul(v)), total(&|u, v| u.mul(v)));
-    let singular = || QuantusError::other(msg!("core.stochastics.statistics.x_values_must_not_all"));
+    let singular = || QuantusError::other(msg!("core.stochastics.statistics.x_values_equal"));
     if kind == Regression::Quadratic {
         let (su3, su4) = (total(&|u, _| u.mul(u).mul(u)), total(&|u, _| u.mul(u).mul(u).mul(u)));
         let suuv = total(&|u, v| u.mul(u).mul(v));
@@ -256,7 +256,7 @@ fn fit(numbers: &Numbers, rows: &[Row], kind: Regression) -> Result<Fit> {
             vec![suu, su3, su4, suuv],
         ];
         let solution = linear::solve_square(system, 3)?.ok_or_else(|| {
-            QuantusError::other(msg!("core.stochastics.statistics.quadratic_fit_needs_three_different"))
+            QuantusError::other(msg!("core.stochastics.statistics.quadratic_needs_three"))
         })?;
         let [a, b, c]: [Value; 3] = solution.try_into().expect("three coefficients");
         return Ok(Fit { kind, a, b, c: Some(c), r: None });

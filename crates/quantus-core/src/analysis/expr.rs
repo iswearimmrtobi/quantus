@@ -160,7 +160,7 @@ impl Expr {
             Node::Variable { name, index, .. } => {
                 let name = Node::variable_key(name, index);
                 return Err(QuantusError::other(msg!(
-                    "core.analysis.expr.f_may_depend_only_but")));
+                    "core.analysis.expr.depends_on_other_letter")));
             }
             Node::Group { inner, .. } => from(inner)?,
             Node::Negation { operand, .. } => Expr::neg(from(operand)?),
@@ -190,7 +190,7 @@ impl Expr {
                         Expr::Num(n) if n.is_int() && n > RBig::ZERO => n.numerator().unsigned_abs(),
                         _ => {
                             return Err(QuantusError::other(msg!(
-                                "core.analysis.expr.degree_root_must_positive_whole")))
+                                "core.analysis.expr.root_degree_whole")))
                         }
                     },
                 };
@@ -242,7 +242,7 @@ impl Expr {
             Node::Matrix { .. } | Node::Determinant { .. } => return Err(unsupported(msg!("core.analysis.expr.matrices"))),
             Node::Binomial { .. } => return Err(unsupported(msg!("core.analysis.expr.binomial_coefficients"))),
             Node::Call { .. } => {
-                return Err(unsupported(msg!("core.analysis.expr.integer_functions_such_n")))
+                return Err(unsupported(msg!("core.analysis.expr.integer_functions")))
             }
             Node::Equation { .. } | Node::System { .. } => {
                 return Err(QuantusError::other(msg!(
@@ -272,7 +272,7 @@ impl Expr {
 
 fn unsupported(what: String) -> QuantusError {
     QuantusError::other(msg!(
-        "core.analysis.expr.analysis_mode_does_not_support"))
+        "core.analysis.expr.unsupported"))
 }
 
 fn unwrap_group(node: &Node) -> &Node {

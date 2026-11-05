@@ -125,7 +125,7 @@ impl Evaluator<'_> {
         let mut x = start.decimal(digits)?.to_rational();
         let h = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits / 2 + 2));
         let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.precision + 3));
-        let failed = || QuantusError::other(msg!("core.eval.solver.newtons_method_found_no_solution"));
+        let failed = || QuantusError::other(msg!("core.eval.solver.newton_failed"));
         for _ in 0..200 {
             let f = number(residual(Value::Rat(x.clone()))?)?;
             if f == RBig::ZERO {
@@ -152,10 +152,10 @@ impl Evaluator<'_> {
         collect_unknowns(equation, false, &mut Vec::new(), self, &mut found);
         match found.as_slice() {
             [] => Err(QuantusError::other(
-                msg!("core.eval.solver.equation_has_no_unknown_solve"),
+                msg!("core.eval.solver.no_unknown"),
             )),
             [one] => Ok(one.clone()),
-            many => Err(QuantusError::other(msg!("core.eval.solver.equation_has_more_than_one",
+            many => Err(QuantusError::other(msg!("core.eval.solver.several_unknowns",
                 many.join(", ")
             ))),
         }
@@ -188,7 +188,7 @@ impl Evaluator<'_> {
         )?;
 
         if roots.is_empty() {
-            return Err(QuantusError::other(msg!("core.eval.solver.no_solution_found_between"
+            return Err(QuantusError::other(msg!("core.eval.solver.no_solution_in_range"
             )));
         }
         roots.sort_by_key(|root| root.clone().abs());

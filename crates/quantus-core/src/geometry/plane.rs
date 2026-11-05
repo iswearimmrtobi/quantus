@@ -95,7 +95,7 @@ impl Plane {
         let normal = u.cross(v);
         if normal.is_zero() {
             return Err(error(msg!(
-                "core.geometry.plane.two_directions_collinear_they_span")));
+                "core.geometry.plane.collinear_directions")));
         }
         let normal = match shortening(&normal) {
             Some(factor) => normal.scale(&factor),
@@ -107,7 +107,7 @@ impl Plane {
     /// The plane through `support` with the normal `normal` (normal form).
     pub fn with_normal(support: &Point, normal: &Vector3) -> Result<Plane> {
         if normal.is_zero() {
-            return Err(error(msg!("core.geometry.plane.zero_vector_no_normal_plane")));
+            return Err(error(msg!("core.geometry.plane.zero_normal")));
         }
         let normal = spatial_vector(normal);
         Ok(Plane::build(support, normal.clone(), perpendicular_pair(&normal), PlaneForm::Normal))
@@ -119,7 +119,7 @@ impl Plane {
         let normal = Vector3::new(a, b, c);
         if normal.is_zero() {
             return Err(error(msg!(
-                "core.geometry.plane.coordinate_equation_plane_x_y")));
+                "core.geometry.plane.no_coordinates")));
         }
         let i = (0..3).find(|&i| !normal.coords[i].is_zero()).expect("not zero");
         let mut coords = [Value::zero(), Value::zero(), Value::zero()];
@@ -134,17 +134,17 @@ impl Plane {
         let (u, v) = (a.to(b), a.to(c));
         if u.is_collinear(&v) {
             return Err(error(msg!(
-                "core.geometry.plane.three_points_lie_one_line")));
+                "core.geometry.plane.collinear_points")));
         }
         let mut working = Working::default();
         let (u, v) = (spatial_vector(&u), spatial_vector(&v));
         working.add(
             Standard,
-            msg!("core.geometry.plane.directions_from_b_from_c"),
+            msg!("core.geometry.plane.directions_from_a"),
             format!("\\overrightarrow{{AB}} = {}, \\quad \\overrightarrow{{AC}} = {}", show::vector(&u), show::vector(&v)),
         );
         let plane = Plane::parametric(a, &u, &v)?;
-        working.add(Brief, msg!("core.geometry.plane.plane_through_b_c"), plane.equation());
+        working.add(Brief, msg!("core.geometry.plane.plane_through_points"), plane.equation());
         Ok(Worked::new(plane, working))
     }
 
@@ -216,7 +216,7 @@ impl Plane {
         if self.form == PlaneForm::Coordinate {
             working.add(
                 Standard,
-                msg!("core.geometry.plane.coefficients_x_y_z_normal"),
+                msg!("core.geometry.plane.coefficients_are_normal"),
                 format!("\\vec{{n}} = {}", show::vector(&self.normal)),
             );
             working.add(
@@ -256,7 +256,7 @@ impl Plane {
             let [u, v] = &self.spans;
             working.add(
                 Standard,
-                msg!("core.geometry.plane.set_point_equal_plane_equation"),
+                msg!("core.geometry.plane.point_into_plane"),
                 format!("{} = {} + \\lambda {} + \\mu {}", show::vector(&spatial(p).position()), show::vector(&self.support.position()), show::vector(u), show::vector(v)),
             );
             let Some((_, _, fits)) = two_parameters(u, v, &self.support.to(p), 3, &mut working)? else {

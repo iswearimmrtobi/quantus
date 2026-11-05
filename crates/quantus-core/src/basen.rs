@@ -136,7 +136,7 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
     let chars: Vec<char> = latex.chars().collect();
     let mut tokens = Vec::new();
     let mut i = 0;
-    let unexpected = |c: char| QuantusError::other(msg!("core.basen.basis_n_does_not_know"));
+    let unexpected = |c: char| QuantusError::other(msg!("core.basen.unknown_character"));
     while i < chars.len() {
         let c = chars[i];
         match c {
@@ -188,7 +188,7 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                     "lor" | "vee" => tokens.push(Token::Word("or".into())),
                     "oplus" => tokens.push(Token::Word("xor".into())),
                     "lnot" | "neg" => tokens.push(Token::Word("Not".into())),
-                    other => return Err(QuantusError::other(msg!("core.basen.basis_n_does_not_know_2"))),
+                    other => return Err(QuantusError::other(msg!("core.basen.unknown_command"))),
                 }
             }
             other => return Err(unexpected(other)),
@@ -203,7 +203,7 @@ fn braced(chars: &[char], i: &mut usize) -> Result<String> {
         *i += 1;
     }
     if chars.get(*i) != Some(&'{') {
-        return Err(QuantusError::other(msg!("core.basen.expected_here")));
+        return Err(QuantusError::other(msg!("core.basen.expected_brace")));
     }
     let start = *i + 1;
     let mut depth = 0;
@@ -231,7 +231,7 @@ struct Parser {
 }
 
 fn overflow() -> QuantusError {
-    QuantusError::other(msg!("core.basen.result_does_not_fit_32"))
+    QuantusError::other(msg!("core.basen.overflow_32_bits"))
 }
 
 /// Values are carried as `i64` so that `-2147483648` can be typed; each result must fit 32 bits.

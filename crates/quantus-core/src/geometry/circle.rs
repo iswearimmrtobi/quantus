@@ -70,7 +70,7 @@ impl Circle {
             return Err(error(msg!("core.geometry.circle.radius_circle_must_positive")));
         }
         if normal.is_zero() {
-            return Err(error(msg!("core.geometry.circle.zero_vector_no_normal_circle")));
+            return Err(error(msg!("core.geometry.circle.zero_normal")));
         }
         Ok(Circle { centre: centre.clone(), radius, normal: Vector3 { planar: false, ..normal.clone() } })
     }
@@ -88,7 +88,7 @@ impl Circle {
         match result {
             SpherePlane::Circle { circle, .. } => Ok(Worked::new(circle, working)),
             SpherePlane::Tangent { .. } => Err(error(msg!(
-                "core.geometry.circle.plane_only_touches_sphere_they"))),
+                "core.geometry.circle.plane_touches_no_circle"))),
             SpherePlane::Apart { .. } => Err(error(msg!(
                 "core.geometry.circle.plane_does_not_meet_sphere"))),
         }
@@ -201,7 +201,7 @@ impl Circle {
             if !equal(&offset, &Value::zero()) {
                 working.add(
                     Standard,
-                    msg!("core.geometry.circle.line_parallel_plane_circle_not"),
+                    msg!("core.geometry.circle.line_parallel_to_plane"),
                     format!("\\vec{{n}} \\cdot \\vec{{u}} = 0, \\quad \\vec{{n}} \\cdot \\overrightarrow{{MP}} = {} \\neq 0", show::value(&offset)),
                 );
                 working.add(Brief, msg!("core.geometry.circle.line_misses_circle"), "g \\cap k = \\emptyset");
@@ -227,7 +227,7 @@ impl Circle {
         let point = Point { planar: false, ..line.at(&lambda) };
         working.add(
             Standard,
-            msg!("core.geometry.circle.line_crosses_plane_circle_where"),
+            msg!("core.geometry.circle.line_crosses_plane"),
             format!(
                 "\\vec{{n}} \\cdot \\left(\\overrightarrow{{MP}} + \\lambda \\vec{{u}}\\right) = {} = 0 \\quad \\Rightarrow \\quad \\lambda = {}",
                 show::combination(&[(&offset, ""), (&coefficient, "\\lambda")]),
@@ -239,7 +239,7 @@ impl Circle {
         let on = equal(&mq.dot(&mq), &self.radius_squared());
         working.add(
             Standard,
-            msg!("core.geometry.circle.distance_from_centre_2"),
+            msg!("core.geometry.circle.its_distance_from_centre"),
             format!("\\left|\\overrightarrow{{MQ}}\\right| = {} {} r = {}", show::value(&mq.length()?), if on { "=" } else { "\\neq" }, show::value(&self.radius)),
         );
         if on {
@@ -255,7 +255,7 @@ impl Circle {
     pub fn tangent(&self, p: &Point) -> Result<Worked<Line>> {
         if !self.contains(p)?.result {
             return Err(error(msg!(
-                "core.geometry.circle.point_does_not_lie_circle_2")));
+                "core.geometry.circle.point_off_circle_no_tangent")));
         }
         let mut working = Working::default();
         let planar = self.is_planar() && p.planar;
@@ -280,7 +280,7 @@ impl Circle {
             let inside = equal(&e.normal.dot(&self.centre.position()), &e.constant);
             working.add(
                 Standard,
-                msg!("core.geometry.circle.plane_parallel_plane_circle_centre"),
+                msg!("core.geometry.circle.plane_parallel"),
                 format!("{} {} {}", show::dot(&e.normal, &Vector3 { planar: false, ..self.centre.position() }), if inside { "=" } else { "\\neq" }, show::value(&e.constant)),
             );
             if inside {

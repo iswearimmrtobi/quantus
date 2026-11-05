@@ -62,7 +62,7 @@ impl Plane {
         let quotient = if length.is_one() { show::value(&abs(offset.clone())?) } else { format!("\\frac{{{}}}{{{}}}", show::value(&abs(offset)?), show::value(&length)) };
         working.add(
             Standard,
-            msg!("core.geometry.relations.put_point_into_hesse_normal"),
+            msg!("core.geometry.relations.hesse_distance"),
             format!(
                 "d = \\frac{{\\left|{} - {}\\right|}}{{{}}} = {}",
                 products.join(" + "),
@@ -103,7 +103,7 @@ impl Plane {
         }
         working.add(
             Standard,
-            msg!("core.geometry.relations.put_line_into_coordinate_form"),
+            msg!("core.geometry.relations.line_into_plane"),
             format!("{substituted} = {}", show::value(&plane.constant)),
         );
         let (constant, coefficient) = (n.dot(&s), n.dot(u));
@@ -136,7 +136,7 @@ impl Plane {
         working.add(Brief, msg!("core.geometry.relations.line_meets_plane_point"), format!("S = {}", show::point(&point)));
         working.add(
             Maximal,
-            msg!("core.geometry.relations.check_s_lies_plane"),
+            msg!("core.geometry.relations.check_in_plane"),
             format!("{} = {}", show::dot(n, &point.position()), show::value(&n.dot(&point.position()))),
         );
         // The angle to the plane is 90° minus the angle to the normal: its sine is that cosine.
@@ -190,7 +190,7 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
     let direction = n1.cross(n2);
     working.add(
         Standard,
-        msg!("core.geometry.relations.line_intersection_perpendicular_both_normals"),
+        msg!("core.geometry.relations.intersection_direction"),
         format!("\\vec{{u}} = \\vec{{n_1}} \\times \\vec{{n_2}} = {} \\times {} = {}", show::vector(n1), show::vector(n2), show::vector(&direction)),
     );
     // A common point: one coordinate 0, where the other two have a non-zero determinant
@@ -207,7 +207,7 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
         .map(|(c, d)| format!("{} = {}", show::combination(&[(&c[i], names[i]), (&c[j], names[j])]), show::value(d)));
     working.add(
         Standard,
-        msg!("core.geometry.relations.common_point_set_0_both", names[m]),
+        msg!("core.geometry.relations.common_point", names[m]),
         format!("\\begin{{aligned}} {} \\\\ {} \\end{{aligned}}", equations[0], equations[1]),
     );
     let determinant = a[i].mul(&b[j]).sub(&a[j].mul(&b[i]));
@@ -222,7 +222,7 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
     );
     working.add(
         Maximal,
-        msg!("core.geometry.relations.check_point_lies_both_planes"),
+        msg!("core.geometry.relations.check_in_both_planes"),
         format!(
             "{} = {}, \\quad {} = {}",
             show::dot(n1, &point.position()),

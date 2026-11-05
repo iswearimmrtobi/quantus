@@ -54,7 +54,7 @@ pub struct DomainContext<'a> {
 pub fn domain(f: &Expr, ctx: &DomainContext) -> Result<(Domain, Vec<Step>)> {
     let (mut domain, mut steps) = domain_of(f, ctx)?;
     if domain.set.is_empty() {
-        return Err(QuantusError::other(msg!("core.analysis.domain.f_defined_nowhere")));
+        return Err(QuantusError::other(msg!("core.analysis.domain.defined_nowhere")));
     }
     domain.holes = holes(f, &domain);
     let latex = format!("D = {}", domain.to_latex(ctx.digits, ctx.settings.language));
@@ -148,7 +148,7 @@ fn check_constant(condition: &Condition, value: &Expr) -> Result<()> {
     if holds {
         Ok(())
     } else {
-        Err(QuantusError::other(msg!("core.analysis.domain.f_defined_nowhere")))
+        Err(QuantusError::other(msg!("core.analysis.domain.defined_nowhere")))
     }
 }
 
@@ -181,7 +181,7 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
             let latex = format!("{} \\neq 0 \\Rightarrow {var} \\neq {listed}", tex(&cosine));
             steps.push(step(
                 AnalysisRule::DomainCondition,
-                msg!("core.analysis.domain.tan_undefined_where_cos_0"),
+                msg!("core.analysis.domain.tan_undefined"),
                 latex,
             ));
         }
@@ -197,21 +197,21 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
             let latex = format!("{} {relation} 0 \\Rightarrow {var} \\in {}", tex(u), set.to_latex(ctx.digits, ctx.settings.language));
             let explanation = match condition {
                 Condition::Positive(_, Reason::Logarithm) => {
-                    msg!("core.analysis.domain.argument_logarithm_0")
+                    msg!("core.analysis.domain.logarithm_argument")
                 }
                 Condition::Positive(_, Reason::VariablePower) => {
-                    msg!("core.analysis.domain.base_variable_exponent_0")
+                    msg!("core.analysis.domain.variable_exponent_base")
                 }
                 Condition::Positive(_, Reason::RootBelowTheLine) => {
-                    msg!("core.analysis.domain.radicand_even_root_denominator_0")
+                    msg!("core.analysis.domain.even_root_in_denominator")
                 }
                 Condition::Positive(_, Reason::RealPower) => {
-                    msg!("core.analysis.domain.base_power_negative_irrational_exponent")
+                    msg!("core.analysis.domain.negative_irrational_exponent_base")
                 }
                 Condition::NonNegative(_, Reason::RealPower) => {
-                    msg!("core.analysis.domain.base_power_irrational_exponent_0")
+                    msg!("core.analysis.domain.irrational_exponent_base")
                 }
-                _ => msg!("core.analysis.domain.radicand_even_root_0"),
+                _ => msg!("core.analysis.domain.even_root_radicand"),
             };
             steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, complete), latex));
         }
@@ -221,12 +221,12 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
             let (lower, lower_complete) = sign_set(&Expr::Sum(vec![u.clone(), Expr::int(1)]), false, ctx)?;
             domain.set = domain.set.intersect(&lower);
             let latex = format!("{} \\geq -1 \\Rightarrow {var} \\in {}", tex(u), lower.to_latex(ctx.digits, language));
-            let explanation = msg!("core.analysis.domain.argument_arcsin_arccos_1");
+            let explanation = msg!("core.analysis.domain.arcsin_argument_lower");
             steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, lower_complete), latex));
             let (upper, upper_complete) = sign_set(&Expr::Sum(vec![Expr::int(1), Expr::neg(u.clone())]), false, ctx)?;
             domain.set = domain.set.intersect(&upper);
             let latex = format!("{} \\leq 1 \\Rightarrow {var} \\in {}", tex(u), upper.to_latex(ctx.digits, language));
-            let explanation = msg!("core.analysis.domain.argument_arcsin_arccos_1_2");
+            let explanation = msg!("core.analysis.domain.arcsin_argument_upper");
             steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, upper_complete), latex));
         }
     }
@@ -277,7 +277,7 @@ fn numeric_note(explanation: String, complete: bool) -> String {
     if complete {
         explanation
     } else {
-        msg!("core.analysis.domain.zeros_found_numerically_some_may", explanation)
+        msg!("core.analysis.domain.zeros_found_numerically", explanation)
     }
 }
 
@@ -288,7 +288,7 @@ fn sign_set(u: &Expr, strict: bool, ctx: &DomainContext) -> Result<(IntervalSet,
     let (points, families, complete) = zeros(u, ctx);
     if !families.is_empty() || !own.excluded.is_empty() {
         return Err(QuantusError::other(msg!(
-            "core.analysis.domain.domains_made_periodic_intervals_not")));
+            "core.analysis.domain.periodic_unsupported")));
     }
     let mut pieces: Vec<Interval> = Vec::new();
     for interval in &own.set.0 {

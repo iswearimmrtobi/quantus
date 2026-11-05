@@ -99,13 +99,13 @@ impl Sphere {
         let mp = centre.to(p);
         if mp.is_zero() {
             return Err(error(msg!(
-                "core.geometry.sphere.point_centre_radius_would_0")));
+                "core.geometry.sphere.point_is_centre")));
         }
         let mut working = Working::default();
         let radius = mp.length()?;
         working.add(
             Standard,
-            msg!("core.geometry.sphere.radius_distance_from_centre_point"),
+            msg!("core.geometry.sphere.radius_from_point"),
             format!("r = \\left|\\overrightarrow{{MP}}\\right| = \\left|{}\\right| = {} = {}", show::vector(&mp), show::length(&mp), show::value(&radius)),
         );
         let sphere = Sphere::new(centre, radius)?;
@@ -122,13 +122,13 @@ impl Sphere {
         let determinant = triple_product(&rows[0], &rows[1], &rows[2])?;
         if determinant.is_zero() {
             return Err(error(msg!(
-                "core.geometry.sphere.four_points_lie_one_plane")));
+                "core.geometry.sphere.coplanar_points")));
         }
         let mut working = Working::default();
         working.add(
             Standard,
             msg!(
-                "core.geometry.sphere.centre_m_equally_far_from"),
+                "core.geometry.sphere.centre_equally_far"),
             format!(
                 "\\begin{{aligned}} {} \\end{{aligned}}",
                 rows.iter()
@@ -164,7 +164,7 @@ impl Sphere {
             .iter()
             .map(|(name, p)| Ok(format!("\\left|\\overrightarrow{{M{name}}}\\right| = {}", show::value(&centre.to(p).length()?))))
             .collect::<Result<_>>()?;
-        working.add(Maximal, msg!("core.geometry.sphere.check_other_points_far_away"), checks.join(", \\quad "));
+        working.add(Maximal, msg!("core.geometry.sphere.check_radius"), checks.join(", \\quad "));
         let sphere = Sphere::new(&centre, radius)?;
         working.add(Brief, msg!("core.geometry.sphere.sphere"), sphere.equation());
         Ok(Worked::new(sphere, working))
@@ -237,7 +237,7 @@ impl Sphere {
         let offset = Vector3 { planar, ..offset };
         working.add(
             Standard,
-            msg!("core.geometry.sphere.put_line_into_vector_form"),
+            msg!("core.geometry.sphere.line_into_sphere"),
             format!("\\left({} + \\lambda {}\\right)^2 = {}", show::vector(&offset), show::vector(u), show::value(&self.radius_squared())),
         );
         let a = u.dot(u);
@@ -265,7 +265,7 @@ impl Sphere {
         if discriminant.is_negative()? {
             working.add(
                 Brief,
-                msg!("core.geometry.sphere.no_solution_line_misses_sphere"),
+                msg!("core.geometry.sphere.line_misses"),
                 "D < 0",
             );
             return Ok(Worked::new(SphereLine::Passant, working));
@@ -296,7 +296,7 @@ impl Sphere {
             working.extend(foot);
             working.add(
                 Brief,
-                msg!("core.geometry.sphere.d_r_plane_touches_sphere"),
+                msg!("core.geometry.sphere.plane_touches"),
                 format!("B = {}", show::point(&point)),
             );
             return Ok(Worked::new(SpherePlane::Tangent { point }, working));
@@ -305,7 +305,7 @@ impl Sphere {
             let gap = distance.sub(&self.radius);
             working.add(
                 Brief,
-                msg!("core.geometry.sphere.d_r_plane_does_not"),
+                msg!("core.geometry.sphere.plane_misses"),
                 format!("{} > r = {}", show::value(&distance), show::value(&self.radius)),
             );
             working.add(Standard, msg!("core.geometry.sphere.gap_between_them"), format!("d - r = {}", show::value(&gap)));
@@ -313,7 +313,7 @@ impl Sphere {
         }
         working.add(
             Standard,
-            msg!("core.geometry.sphere.d_r_plane_cuts_sphere"),
+            msg!("core.geometry.sphere.plane_cuts"),
             format!("{} < r = {}", show::value(&distance), show::value(&self.radius)),
         );
         let Worked { result: centre, working: foot } = plane.foot(&self.centre)?;
@@ -369,12 +369,12 @@ impl Sphere {
         let (r1, r2) = (&self.radius, &other.radius);
         if d2.is_zero() {
             if equal(r1, r2) {
-                working.add(Brief, msg!("core.geometry.sphere.same_centre_radius_spheres_identical"), "K_1 = K_2");
+                working.add(Brief, msg!("core.geometry.sphere.identical"), "K_1 = K_2");
                 return Ok(Worked::new(SphereSphere::Identical, working));
             }
             working.add(
                 Brief,
-                msg!("core.geometry.sphere.same_centre_different_radii_one"),
+                msg!("core.geometry.sphere.concentric"),
                 format!("r_1 = {} \\neq r_2 = {}", show::value(r1), show::value(r2)),
             );
             return Ok(Worked::new(SphereSphere::Concentric, working));
@@ -390,7 +390,7 @@ impl Sphere {
             let gap = distance.sub(&sum);
             working.add(
                 Brief,
-                msg!("core.geometry.sphere.d_r_r_spheres_lie"),
+                msg!("core.geometry.sphere.spheres_apart"),
                 format!("{} > {}", show::value(&distance), show::value(&sum)),
             );
             working.add(Standard, msg!("core.geometry.sphere.gap_between_them"), format!("d - r_1 - r_2 = {}", show::value(&gap)));
@@ -399,7 +399,7 @@ impl Sphere {
         if d2.sub(&difference.mul(&difference)).is_negative()? && !equal(&difference.mul(&difference), &d2) {
             working.add(
                 Brief,
-                msg!("core.geometry.sphere.d_r_r_one_sphere"),
+                msg!("core.geometry.sphere.one_inside_other"),
                 format!("{} < {}", show::value(&distance), show::value(&difference)),
             );
             return Ok(Worked::new(SphereSphere::Inside, working));
@@ -416,7 +416,7 @@ impl Sphere {
         let plane = Plane::coordinate(a, b, c, constant)?;
         working.add(
             Standard,
-            msg!("core.geometry.sphere.subtract_equations_spheres_x_y"),
+            msg!("core.geometry.sphere.subtract_equations"),
             "2 \\left(\\vec{m_2} - \\vec{m_1}\\right) \\cdot \\vec{x} = r_1^2 - r_2^2 - \\vec{m_1}^2 + \\vec{m_2}^2",
         );
         working.add(Brief, msg!("core.geometry.sphere.potenzebene"), plane.equation());

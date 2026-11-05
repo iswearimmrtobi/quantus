@@ -99,7 +99,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     let x = parse_number(x0, settings, "x_0")?;
     let not_differentiable = || {
         QuantusError::other(msg!(
-            "core.analysis.tasks.f_not_differentiable_x_0",
+            "core.analysis.tasks.not_differentiable",
             x.to_latex(p.digits)
         ))
     };
@@ -116,7 +116,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     let m = Point::exact(simplify(&f1.substitute(&at))).ok_or_else(not_differentiable)?;
     let (x_tex, y_tex, m_tex) = (x.to_latex(p.digits), y.to_latex(p.digits), m.to_latex(p.digits));
     let point = msg!("core.analysis.tasks.point_graph");
-    let slope = msg!("core.analysis.tasks.slope_derivative_x_0");
+    let slope = msg!("core.analysis.tasks.slope_is_derivative");
     let mut steps = Vec::new();
     steps.extend(written_out(
         step(AnalysisRule::Tangent, point.clone(), format!("f({x_tex}) = {y_tex}")),
@@ -137,7 +137,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     let (t, t_intercept) = line(&m_exact);
     steps.push(step(
         AnalysisRule::Tangent,
-        msg!("core.analysis.tasks.tangent_t_x_f_x"),
+        msg!("core.analysis.tasks.tangent_equation"),
         format!("t({var}) = {m_tex} \\cdot ({var} - {}) + {}", bracket(&x_tex), bracket(&y_tex)),
     ));
     let simplified = format!("t({var}) = {}", tex(&display(&t, settings)));
@@ -158,7 +158,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
         steps.push(step(AnalysisRule::Normal, msg!("core.analysis.tasks.slope_normal"), latex).with_level(StepDetail::Standard));
         steps.push(step(
             AnalysisRule::Normal,
-            msg!("core.analysis.tasks.normal_slope_1_m"),
+            msg!("core.analysis.tasks.normal_slope"),
             format!("n({var}) = -\\frac{{1}}{{{m_tex}}} \\cdot ({var} - {}) + {} = {shown}", bracket(&x_tex), bracket(&y_tex)),
         ));
         Line::Sloped { slope, intercept: n_intercept, latex: format!("n({var}) = {shown}") }
@@ -176,7 +176,7 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, settings, precision)?;
     let var = p.var.as_str();
-    let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral_not_supported_yet"));
+    let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral"));
     let enter_bounds = || QuantusError::other(msg!("core.analysis.tasks.please_enter_bounds"));
     let infinite = |bound: Option<&str>| bound.is_some_and(|b| b.contains("\\infty") || b.contains('∞'));
     if infinite(from) || infinite(to) {
@@ -253,13 +253,13 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let names: Vec<String> = (1..=parts.len()).map(|i| format!("\\left|A_{{{i}}}\\right|")).collect();
     let area_shown = if area.exact.is_some() { area.to_latex(d) } else { format!("\\approx {}", area.to_latex(d)) };
     let decimal = if area.exact.is_some() && !area.is_rational() { format!(" \\approx {}", area.decimal_latex(d)) } else { String::new() };
-    steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.parts_below_axis_count_their"), format!("A = {} = {area_shown}{decimal}", names.join(" + "))));
+    steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.parts_below_axis"), format!("A = {} = {area_shown}{decimal}", names.join(" + "))));
     // The signed integral, where parts below the axis count negatively.
     let signed_shown = if signed.exact.is_some() { signed.to_latex(d) } else { format!("\\approx {}", signed.to_latex(d)) };
     let parts_sum: Vec<String> = (1..=parts.len()).map(|i| format!("A_{{{i}}}")).collect();
     steps.push(step(
         AnalysisRule::Area,
-        msg!("core.analysis.tasks.integral_itself_counts_parts_below"),
+        msg!("core.analysis.tasks.signed_integral"),
         format!("\\int_{{{}}}^{{{}}} f({var}) \\, d{var} = {} = {signed_shown}", a.to_latex(d), b.to_latex(d), parts_sum.join(" + ")),
     ));
     Ok(AreaResult { steps, area, signed, regions })

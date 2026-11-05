@@ -47,14 +47,14 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
             position: 0,
         };
         let rule = RuleId::NormalizeExpression;
-        let explanation = crate::text::msg!("core.algebra.reduce.zero_divided_any_non_zero");
+        let explanation = crate::text::msg!("core.algebra.reduce.zero_divided");
         return simple(zero_node, rule, explanation);
     }
 
     // 2. Denominator is 1: P / 1 -> P
     if is_constant_one(den) {
         let rule = RuleId::NormalizeExpression;
-        let explanation = crate::text::msg!("core.algebra.reduce.division_1_leaves_expression_unchanged");
+        let explanation = crate::text::msg!("core.algebra.reduce.divide_by_one");
         return simple(num.clone(), rule, explanation);
     }
 
@@ -69,7 +69,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
                 position: 0,
             };
             let rule = RuleId::CancelCommonFactors;
-            let explanation = crate::text::msg!("core.algebra.reduce.cancel_identical_numerator_denominator_get");
+            let explanation = crate::text::msg!("core.algebra.reduce.cancel_to_one");
             return simple(one_node, rule, explanation);
         }
 
@@ -83,7 +83,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
                 position: 0,
             };
             let rule = RuleId::CancelCommonFactors;
-            let explanation = crate::text::msg!("core.algebra.reduce.cancel_opposite_terms_get_1");
+            let explanation = crate::text::msg!("core.algebra.reduce.cancel_to_minus_one");
             return simple(neg_one_node, rule, explanation);
         }
     }
@@ -129,7 +129,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
             RuleId::FactorPolynomial
         };
         let explanation = crate::text::msg!(
-            "core.algebra.reduce.factor_numerator_identify_common_factors",
+            "core.algebra.reduce.factor_to_cancel",
             serializer::expression(&fact_num.to_node())
         );
         let step = AlgebraStep::new(node.clone(), new_frac, explanation, Some(rule));
@@ -158,10 +158,10 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
 
     let rule = RuleId::CancelCommonFactors;
     let common = serializer::expression(&gcd.to_node());
-    let explanation = crate::text::msg!("core.algebra.reduce.cancel_common_factor_from_numerator");
+    let explanation = crate::text::msg!("core.algebra.reduce.cancel_common_factor");
     let mut working = Vec::new();
     if let Some(difference) = exponent_difference(num, den) {
-        working.push(AlgebraStep::line(node, difference, crate::text::msg!("core.algebra.reduce.divide_powers_same_base_subtract"), StepDetail::Standard));
+        working.push(AlgebraStep::line(node, difference, crate::text::msg!("core.algebra.reduce.divide_powers"), StepDetail::Standard));
     } else {
         let marked = make_fraction(mark_cancelled(num, &mut gcd.factors.clone()), mark_cancelled(den, &mut gcd.factors.clone()));
         if serializer::expression(&marked) != serializer::expression(unwrapped) {
@@ -246,9 +246,9 @@ fn zero_note(base: &Poly) -> String {
         (true, 1, Some(var)) => {
             let root = -base.coeff_of(&Monomial::one()) / base.coeff_of(&Monomial::from_var(&var));
             let root = serializer::expression(&rational_to_node(&root));
-            crate::text::msg!("core.algebra.reduce.note_cancelled_factor_zero_there")
+            crate::text::msg!("core.algebra.reduce.note_cancelled_factor_at")
         }
-        _ => crate::text::msg!("core.algebra.reduce.note_0_where_cancelled_factor"),
+        _ => crate::text::msg!("core.algebra.reduce.note_cancelled_factor"),
     }
 }
 

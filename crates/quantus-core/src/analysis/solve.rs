@@ -176,7 +176,7 @@ impl Solver<'_> {
             let listed = family.to_latex().join(", ");
             self.push(
                 AnalysisRule::DomainCondition,
-                msg!("core.analysis.solve.only_members_d_solutions"),
+                msg!("core.analysis.solve.only_domain_members"),
                 format!("{} = {listed}, \\ {} \\in D", self.ctx.var, self.ctx.var),
             );
         }
@@ -223,7 +223,7 @@ impl Solver<'_> {
                     let latex = format!("{} = 0", self.tex(&numerator));
                     self.push(
                         AnalysisRule::ZeroProduct,
-                        msg!("core.analysis.solve.fraction_zero_where_numerator_zero"),
+                        msg!("core.analysis.solve.fraction_zero"),
                         latex,
                     );
                     return self.solve(&numerator);
@@ -234,7 +234,7 @@ impl Solver<'_> {
                 let latex = above.iter().map(|f| format!("{} = 0", self.tex(f))).collect::<Vec<_>>().join(" \\lor ");
                 self.push(
                     AnalysisRule::ZeroProduct,
-                    msg!("core.analysis.solve.product_zero_where_one_factors"),
+                    msg!("core.analysis.solve.product_zero"),
                     latex,
                 );
                 let mut all = Solutions::none();
@@ -306,11 +306,11 @@ impl Solver<'_> {
             let power = if k == 1 { Expr::Var } else { Expr::pow(Expr::Var, Expr::int(k as i64)) };
             let latex = format!("{} \\cdot ({}) = 0", self.tex(&power), self.tex(&Expr::from_poly(&rest)));
             let name = self.tex(&power);
-            self.push(AnalysisRule::FactorOut, msg!("core.analysis.solve.factor_out_2", name), latex);
+            self.push(AnalysisRule::FactorOut, msg!("core.analysis.solve.factor_out_term", name), latex);
             let latex = format!("{} = 0 \\lor {} = 0", self.tex(&power), self.tex(&Expr::from_poly(&rest)));
             self.push(
                 AnalysisRule::ZeroProduct,
-                msg!("core.analysis.solve.product_zero_where_one_factors"),
+                msg!("core.analysis.solve.product_zero"),
                 latex,
             );
             if k > 1 {
@@ -326,7 +326,7 @@ impl Solver<'_> {
             // 3x - 6 = 0: first 3x = 6, then divide.
             if c(0) != RBig::ZERO && c(1) != RBig::ONE {
                 let size = self.tex(&Expr::Num(c(0).abs()));
-                let text = if c(0).is_negative() { msg!("core.analysis.solve.add", size) } else { msg!("core.analysis.solve.subtract", size) };
+                let text = if c(0).is_negative() { msg!("core.analysis.solve.add_term", size) } else { msg!("core.analysis.solve.subtract", size) };
                 let term = self.tex(&Expr::Product(vec![Expr::Num(c(1)), Expr::Var]));
                 let latex = format!("{term} = {}", self.tex(&Expr::Num(-c(0))));
                 self.push_at(StepDetail::Detailed, AnalysisRule::InverseFunction, text, latex);
@@ -392,7 +392,7 @@ impl Solver<'_> {
         self.push(
             AnalysisRule::RationalRootGuess,
             msg!(
-                "core.analysis.solve.inspection_value_0_root",
+                "core.analysis.solve.root_by_inspection",
                 self.ctx.var,
                 value
             ),
@@ -470,7 +470,7 @@ impl Solver<'_> {
             }
             self.push(
                 AnalysisRule::QuadraticPq,
-                msg!("core.analysis.solve.pq_formula_p_q", plain(&p), plain(&q)),
+                msg!("core.analysis.solve.pq_formula", plain(&p), plain(&q)),
                 latex,
             );
             centre = half;
@@ -490,7 +490,7 @@ impl Solver<'_> {
             self.push(
                 AnalysisRule::QuadraticAbc,
                 msg!(
-                    "core.analysis.solve.quadratic_formula_b_c",
+                    "core.analysis.solve.quadratic_formula",
                     plain(a),
                     plain(b),
                     plain(c)
@@ -513,7 +513,7 @@ impl Solver<'_> {
             let latex = format!("{} < 0", num(&discriminant));
             self.push(
                 rule,
-                msg!("core.analysis.solve.radicand_negative_no_real_solution"),
+                msg!("core.analysis.solve.negative_radicand"),
                 latex,
             );
             return Solutions::none();
@@ -555,7 +555,7 @@ impl Solver<'_> {
                 let latex = format!("{} < 0", self.tex(value));
                 self.push(
                     AnalysisRule::InverseFunction,
-                    msg!("core.analysis.solve.even_power_never_negative_no"),
+                    msg!("core.analysis.solve.even_power_never_negative"),
                     latex,
                 );
                 return Solutions::none();
@@ -630,7 +630,7 @@ impl Solver<'_> {
                 .join(", \\quad ")
         };
         let explanation = match window {
-            None => msg!("core.analysis.solve.no_exact_method_applies_solved"),
+            None => msg!("core.analysis.solve.no_exact_method"),
             Some((lo, hi)) => msg!(
                 "core.analysis.solve.solved_numerically",
                 lo,
@@ -693,13 +693,13 @@ impl Solver<'_> {
                 let u = (**u).clone();
                 let values = match function {
                     Fn::Exp | Fn::Cosh if (*function == Fn::Exp && v <= 0.0) || (*function == Fn::Cosh && v < 1.0) => {
-                        none(self, msg!("core.analysis.solve.function_never_takes_value_no"));
+                        none(self, msg!("core.analysis.solve.value_never_taken"));
                         vec![]
                     }
                     Fn::Exp => vec![one(Expr::func(Fn::Ln, value.clone()))],
                     Fn::Ln => vec![one(Expr::func(Fn::Exp, value.clone()))],
                     Fn::Sin | Fn::Cos if v.abs() > 1.0 + 1e-15 => {
-                        none(self, msg!("core.analysis.solve.sin_cos_stay_between_1"));
+                        none(self, msg!("core.analysis.solve.sin_cos_bounded"));
                         vec![]
                     }
                     Fn::Sin => {
@@ -731,7 +731,7 @@ impl Solver<'_> {
                             _ => (v.abs() < half_pi, Fn::Tan),
                         };
                         if !inside {
-                            none(self, msg!("core.analysis.solve.function_never_takes_value_no"));
+                            none(self, msg!("core.analysis.solve.value_never_taken"));
                             vec![]
                         } else {
                             vec![one(Expr::func(back, value.clone()))]
@@ -749,7 +749,7 @@ impl Solver<'_> {
                     }
                     Fn::Abs => {
                         if v < 0.0 {
-                            none(self, msg!("core.analysis.solve.absolute_value_never_negative_no"));
+                            none(self, msg!("core.analysis.solve.absolute_value_never_negative"));
                             vec![]
                         } else if v == 0.0 {
                             vec![InnerValue::One(Expr::int(0))]
@@ -763,7 +763,7 @@ impl Solver<'_> {
             // a^u = v
             Expr::Pow(base, exponent) if base.is_constant() => {
                 if v <= 0.0 {
-                    none(self, msg!("core.analysis.solve.power_positive_number_positive_no"));
+                    none(self, msg!("core.analysis.solve.positive_power_positive"));
                     return Some(((**exponent).clone(), vec![]));
                 }
                 let u = exact_log(base, value).unwrap_or_else(|| {
@@ -777,12 +777,12 @@ impl Solver<'_> {
                 let even_root = r.denominator().clone() % UBig::from(2u8) == UBig::ZERO;
                 let even_power = r.numerator() % IBig::from(2) == IBig::ZERO;
                 if (even_root || even_power) && v < 0.0 {
-                    none(self, msg!("core.analysis.solve.power_never_negative_no_solution"));
+                    none(self, msg!("core.analysis.solve.power_never_negative"));
                     return Some(((**base).clone(), vec![]));
                 }
                 if v == 0.0 {
                     if r.is_negative() {
-                        none(self, msg!("core.analysis.solve.power_never_zero_no_solution"));
+                        none(self, msg!("core.analysis.solve.power_never_zero"));
                         return Some(((**base).clone(), vec![]));
                     }
                     return Some(((**base).clone(), vec![InnerValue::One(Expr::int(0))]));
@@ -880,7 +880,7 @@ impl Solver<'_> {
         let range = if lowest == 0 { "k \\in \\mathbb{N}_{0}".to_string() } else { format!("k \\geq {lowest}") };
         let latex = format!("{} = \\pm {root}, \\quad {range}", self.ctx.var);
         let text = msg!(
-            "core.analysis.solve.0_k_take_root",
+            "core.analysis.solve.take_root_for_k",
             power,
             lowest
         );

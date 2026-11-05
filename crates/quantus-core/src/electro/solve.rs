@@ -294,7 +294,7 @@ impl<'a> Model<'a> {
             }
         }
         if !index.contains_key(&GROUND) {
-            return Err(QuantusError::other(msg!("core.electro.solve.circuit_has_no_ground_node")));
+            return Err(QuantusError::other(msg!("core.electro.solve.no_ground")));
         }
         for (n, element) in circuit.elements.iter().enumerate() {
             if circuit.elements[..n].iter().any(|e| e.id == element.id) {
@@ -352,7 +352,7 @@ impl<'a> Model<'a> {
                     if let Some(p) = position {
                         if p.is_negative()? || !p.sub(&Value::one()).is_negative()? && !p.sub(&Value::one()).is_zero() {
                             return Err(QuantusError::other(msg!(
-                                "core.electro.solve.wiper_position_must_between_0",
+                                "core.electro.solve.wiper_out_of_range",
                                 element.id
                             )));
                         }
@@ -432,7 +432,7 @@ impl<'a> Model<'a> {
             return self.run_linear(values, &HashMap::new());
         }
 
-        let no_solution = || QuantusError::other(msg!("core.electro.solve.no_solution_load_too_large"));
+        let no_solution = || QuantusError::other(msg!("core.electro.solve.load_too_large"));
         let tolerance = convergence_tolerance(precision)?;
         let two = Value::int(2);
         let mut tangents = HashMap::new();

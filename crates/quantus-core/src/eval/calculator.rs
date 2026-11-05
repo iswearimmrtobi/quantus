@@ -493,9 +493,9 @@ impl LatexCalculator {
             let vars: Vec<String> = crate::algebra::pipeline::collect_variables(&formula.expression).into_iter().collect();
             match vars.as_slice() {
                 [] => None,
-                [one] => Some(msg!("core.eval.calculator.variable_has_no_value_expression"
+                [one] => Some(msg!("core.eval.calculator.variable_without_value"
                 )),
-                many => Some(msg!("core.eval.calculator.variables_have_no_value_expression",
+                many => Some(msg!("core.eval.calculator.variables_without_value",
                     many.join(", "),
                     many[0]
                 )),
@@ -568,7 +568,7 @@ impl LatexCalculator {
         let mut unknowns = Vec::new();
         super::solver::collect_unknowns(&formula.expression, false, &mut Vec::new(), evaluator, &mut unknowns);
         if unknowns.len() > 1 {
-            return Err(crate::QuantusError::other(msg!("core.eval.calculator.inequality_has_more_than_one",
+            return Err(crate::QuantusError::other(msg!("core.eval.calculator.inequality_several_unknowns",
                 unknowns.join(", ")
             )));
         }
@@ -655,7 +655,7 @@ impl LatexCalculator {
                 .map(|c| Ok(format!("{x} \\neq {}", self.shown_value(&c.point.value)?)))
                 .collect::<Result<_>>()?;
             if !poles.is_empty() {
-                let text = msg!("core.eval.calculator.denominator_0_there_never_solution");
+                let text = msg!("core.eval.calculator.denominator_zero_excluded");
                 steps.push(Step::algebraic(poles.join(" \\land "), None, text, None, None).with_level(StepDetail::Standard));
             }
 

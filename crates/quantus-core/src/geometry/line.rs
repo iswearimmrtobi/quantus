@@ -108,12 +108,12 @@ pub(crate) fn compare_directions(u: &Vector3, v: &Vector3, working: &mut Working
     match &k {
         Some(k) => working.add(
             Standard,
-            msg!("core.geometry.line.vectors_multiples_each_other"),
+            msg!("core.geometry.line.vectors_multiples"),
             format!("{} = {} \\cdot {}", show::vector(u), show::value(k), show::vector(v)),
         ),
         None => working.add(
             Standard,
-            msg!("core.geometry.line.vectors_not_multiples_each_other"),
+            msg!("core.geometry.line.vectors_not_multiples"),
             format!("{} \\neq k \\cdot {}", show::vector(u), show::vector(v)),
         ),
     }
@@ -132,7 +132,7 @@ impl Line {
     pub fn new(support: Point, direction: Vector3) -> Result<Line> {
         if direction.is_zero() {
             return Err(QuantusError::other(msg!(
-                "core.geometry.line.zero_vector_no_direction_line")));
+                "core.geometry.line.zero_direction")));
         }
         Ok(Line { support, direction })
     }
@@ -142,13 +142,13 @@ impl Line {
     pub fn through(a: &Point, b: &Point) -> Result<Worked<Line>> {
         if a == b {
             return Err(QuantusError::other(msg!(
-                "core.geometry.line.two_equal_points_give_no")));
+                "core.geometry.line.equal_points")));
         }
         let direction = a.to(b);
         let mut working = Working::default();
         working.add(
             Standard,
-            msg!("core.geometry.line.direction_vector_from_b"),
+            msg!("core.geometry.line.direction_from_a_to_b"),
             format!(
                 "\\vec{{u}} = \\overrightarrow{{AB}} = {} - {} = {}",
                 show::vector(&b.position()),
@@ -157,7 +157,7 @@ impl Line {
             ),
         );
         let line = Line::new(a.clone(), direction)?;
-        working.add(Brief, msg!("core.geometry.line.line_through_b"), line.equation());
+        working.add(Brief, msg!("core.geometry.line.line_through_points"), line.equation());
         Ok(Worked::new(line, working))
     }
 
@@ -186,7 +186,7 @@ impl Line {
         let mut working = Working::default();
         working.add(
             Standard,
-            msg!("core.geometry.line.set_point_equal_line_equation"),
+            msg!("core.geometry.line.point_into_line"),
             format!(
                 "{} = {} + \\lambda {}",
                 show::vector(&p.position()),
@@ -216,7 +216,7 @@ impl Line {
                 }
                 format!("{row} \\quad \\Rightarrow \\quad \\lambda = {}", show::value(&here))
             };
-            working.add(Detailed, msg!("core.geometry.line.row", i + 1), latex);
+            working.add(Detailed, msg!("core.geometry.line.row_number", i + 1), latex);
         }
         match contradiction {
             None => {
@@ -230,7 +230,7 @@ impl Line {
             Some(latex) => {
                 working.add(
                     Brief,
-                    msg!("core.geometry.line.rows_contradict_each_other_point"),
+                    msg!("core.geometry.line.rows_contradict"),
                     latex,
                 );
                 Worked::new(None, working)
@@ -252,7 +252,7 @@ impl Line {
         working.add(
             Standard,
             msg!(
-                "core.geometry.line.vector_from_p_perpendicular_direction"),
+                "core.geometry.line.perpendicular_to_direction"),
             format!(
                 "\\overrightarrow{{PF_\\lambda}} \\cdot \\vec{{u}} = \\left({} + \\lambda {}\\right) \\cdot {} = 0",
                 show::vector(&offset),
@@ -264,7 +264,7 @@ impl Line {
         let lambda = constant.neg().div(&coefficient).expect("a direction is not zero");
         working.add(
             Maximal,
-            msg!("core.geometry.line.both_dot_products_row_row"),
+            msg!("core.geometry.line.both_dot_products"),
             format!("{} + \\lambda \\left({}\\right) = 0", show::dot(&offset, u), show::dot(u, u)),
         );
         working.add(
@@ -294,7 +294,7 @@ impl Line {
         let distance = pf.length()?;
         working.add(
             Standard,
-            msg!("core.geometry.line.distance_length_vector_from_p"),
+            msg!("core.geometry.line.distance_is_length"),
             format!("d = \\left|\\overrightarrow{{PF}}\\right| = \\left|{}\\right| = {}", show::vector(&pf), show::length(&pf)),
         );
         working.add(Brief, msg!("core.geometry.line.distance"), format!("d = {}", show::value(&distance)));
@@ -343,7 +343,7 @@ impl Line {
             );
             working.add(
                 Maximal,
-                msg!("core.geometry.line.check_second_line_gives_same"),
+                msg!("core.geometry.line.check_second_line"),
                 format!("{} + {} \\cdot {} = {}", show::vector(&other.support.position()), show::factor(&mu), show::vector(v), show::vector(&other.at(&mu).position())),
             );
             let angle = acute_angle(u, v, false, unit, precision, &mut working)?;
@@ -351,7 +351,7 @@ impl Line {
         }
         working.add(
             Brief,
-            msg!("core.geometry.line.system_has_no_solution_lines"),
+            msg!("core.geometry.line.no_intersection"),
             "g \\cap h = \\emptyset",
         );
         // The distance along the common perpendicular n = u × v.

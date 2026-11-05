@@ -63,7 +63,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         let (expanded, _) = expand_and_collect_all(&f.to_node("x"));
         if let Ok(expanded) = Expr::from_node(&expanded, "x") {
             if let Some(result) = table(&simplify(&expanded)) {
-                let text = msg!("core.analysis.integrate.power_rule_x_n_dx");
+                let text = msg!("core.analysis.integrate.power_rule");
                 let lines = power_rule_line(&simplify(&expanded), ctx.var)
                     .map(|line| step(AnalysisRule::IntegralPolynomial, text, line).with_level(StepDetail::Detailed));
                 if let Some(done) = finish(result, AnalysisRule::IntegralPolynomial, lines.into_iter().collect()) {
@@ -94,13 +94,13 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
             ),
             step(
                 AnalysisRule::IntegralSubstitution,
-                msg!("core.analysis.integrate.write_integral_u"),
+                msg!("core.analysis.integrate.write_in_u"),
                 format!("\\int {} \\, d{} = \\int {} \\, du", tex(&f), ctx.var, g.to_latex("u")),
             )
             .with_level(StepDetail::Standard),
             step(
                 AnalysisRule::IntegralSubstitution,
-                msg!("core.analysis.integrate.integrate_u_then_substitute_back"),
+                msg!("core.analysis.integrate.integrate_then_substitute"),
                 format!("\\int {} \\, du = {}", g.to_latex("u"), big_g.to_latex("u")),
             ),
         ];
@@ -109,7 +109,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         }
     }
     if let Some((result, parts)) = by_parts(&f, 0) {
-        let with = || msg!("core.analysis.integrate.integration_parts_u_v_dx");
+        let with = || msg!("core.analysis.integrate.by_parts_with");
         let named = |u: &Expr, v_prime: &Expr, u_prime: &Expr, v: &Expr| {
             format!(
                 "u = {}, \\quad v' = {}, \\quad u' = {}, \\quad v = {}",
@@ -126,7 +126,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                 let uv = display(&Expr::Product(vec![u.clone(), v.clone()]), ctx.settings);
                 let rest = simplify(&Expr::Product(vec![derivative(u), v.clone()]));
                 let put = format!("F({var}) = {} - \\int {} \\, d{var}", tex(&uv), tex(&display(&rest, ctx.settings)), var = ctx.var);
-                lines.push(step(AnalysisRule::IntegrationByParts, msg!("core.analysis.integrate.put_into_u_v_u"), put).with_level(StepDetail::Standard));
+                lines.push(step(AnalysisRule::IntegrationByParts, msg!("core.analysis.integrate.put_into_by_parts"), put).with_level(StepDetail::Standard));
                 if let Some(remaining) = antiderivative(&rest, ctx) {
                     let g = tex(&remaining.result);
                     let g = if matches!(remaining.result, Expr::Sum(_)) { format!("\\left({g}\\right)") } else { g };
@@ -153,7 +153,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                     step(AnalysisRule::IntegrationByParts, with(), named(&second.u, &second.v_prime, &second.u_prime, &second.v)),
                     step(
                         AnalysisRule::IntegrationByParts,
-                        msg!("core.analysis.integrate.second_round_integral_i_comes"),
+                        msg!("core.analysis.integrate.integral_comes_back"),
                         format!(
                             "{} = {} - {}",
                             integral(&product(&first.u_prime, &first.v)),
@@ -163,7 +163,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                     ),
                     step(
                         AnalysisRule::IntegrationByParts,
-                        msg!("core.analysis.integrate.solve_i"),
+                        msg!("core.analysis.integrate.solve_for_integral"),
                         format!(
                             "I = {} + {} I \\Rightarrow I = {}",
                             shown(&solved),
@@ -187,7 +187,7 @@ fn method_text(method: AnalysisRule) -> String {
         AnalysisRule::PartialFractions => msg!("core.analysis.integrate.integrate_partial_fractions"),
         AnalysisRule::IntegralSubstitution => msg!("core.analysis.integrate.substitute_back"),
         AnalysisRule::IntegrationByParts => msg!("core.analysis.integrate.integration_parts"),
-        _ => msg!("core.analysis.integrate.basic_integrals_sum_factor_rule"),
+        _ => msg!("core.analysis.integrate.basic_integrals"),
     }
 }
 

@@ -285,7 +285,7 @@ fn tan_square(node: &Node, ctx: &mut Context) -> Option<Local> {
 }
 
 pub fn tan_squares(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    everywhere(node, ctx, &crate::text::msg!("core.algebra.trig.use_pythagorean_identity_2"), RuleId::Pythagorean, tan_square)
+    everywhere(node, ctx, &crate::text::msg!("core.algebra.trig.pythagorean_identity"), RuleId::Pythagorean, tan_square)
 }
 
 fn double_angle(node: &Node, ctx: &mut Context) -> Option<Local> {

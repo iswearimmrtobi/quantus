@@ -46,7 +46,7 @@ fn diverges(why: &str) -> QuantusError {
 
 fn too_slow() -> QuantusError {
     QuantusError::other(
-        msg!("core.eval.series.series_cannot_summed_only_terms"),
+        msg!("core.eval.series.not_summable"),
     )
 }
 
@@ -73,7 +73,7 @@ pub(crate) fn rational_partial_sum(p: &[RBig], q: &[RBig], from: i64, n: i64) ->
         let x = RBig::from(k);
         let d = evaluate(q, &x);
         if d == RBig::ZERO {
-            return Err(QuantusError::other(msg!("core.eval.series.term_undefined_k")));
+            return Err(QuantusError::other(msg!("core.eval.series.term_undefined")));
         }
         sum += evaluate(p, &x) / d;
     }

@@ -120,8 +120,8 @@ fn factor_den_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Nod
             let factored_den_node = factored.to_node();
             let new_frac = make_fraction(num.clone(), factored_den_node);
             let explanation = match factor_binomial(&poly) {
-                Some((_, identity)) => crate::text::msg!("core.algebra.combine.factor_denominator_using_binomial_identity", identity.description()),
-                None => crate::text::msg!("core.algebra.combine.factor_polynomial_denominator_find_common"),
+                Some((_, identity)) => crate::text::msg!("core.algebra.combine.factor_denominator_binomial", identity.description()),
+                None => crate::text::msg!("core.algebra.combine.factor_denominators"),
             };
             let (lines, last) = factoring_lines(&poly);
             let lines = lines.into_iter().map(|line| line.placed(|part| make_fraction(num.clone(), part))).collect();
@@ -286,7 +286,7 @@ pub fn combine_fractions_at(node: &Node) -> Option<(Node, RuleId, String)> {
     let combined_fraction = make_fraction(combined_num, combined_den);
 
     let rule = RuleId::CombineFractions;
-    let explanation = crate::text::msg!("core.algebra.combine.add_numerators_over_common_denominator");
+    let explanation = crate::text::msg!("core.algebra.combine.add_numerators");
 
     Some((combined_fraction, rule, explanation))
 }

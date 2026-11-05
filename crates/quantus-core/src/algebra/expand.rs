@@ -21,7 +21,7 @@ use crate::latex::ast::{Node, Operator};
 
 /// The line of the working that groups like terms; the last line then only adds coefficients.
 fn like_terms_together() -> String {
-    crate::text::msg!("core.algebra.expand.put_like_terms_next_each")
+    crate::text::msg!("core.algebra.expand.group_like_terms")
 }
 use crate::latex::serializer;
 
@@ -157,8 +157,8 @@ fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
                 return Some(step);
             };
             let working = vec![
-                AlgebraStep::line(node, place(each.clone()), crate::text::msg!("core.algebra.expand.write_each_term_first_bracket"), StepDetail::Detailed),
-                AlgebraStep::line(&place(each), place(uncollected), crate::text::msg!("core.algebra.expand.multiply_every_term_first_bracket"), StepDetail::Standard),
+                AlgebraStep::line(node, place(each.clone()), crate::text::msg!("core.algebra.expand.distribute_terms"), StepDetail::Detailed),
+                AlgebraStep::line(&place(each), place(uncollected), crate::text::msg!("core.algebra.expand.multiply_out_brackets"), StepDetail::Standard),
             ];
             return Some(step.with_working(working, crate::text::msg!("core.algebra.expand.combine_like_terms")));
         }

@@ -13,7 +13,7 @@ fn mirrored(p: &Point, centre: &Point, name: &str, working: &mut Working) -> Poi
     let image = centre + &p.to(centre);
     working.add(
         Standard,
-        msg!("core.geometry.reflect.p_lies_far_beyond_p"),
+        msg!("core.geometry.reflect.mirror_image"),
         format!(
             "\\vec{{p'}} = \\vec{{p}} + 2 \\cdot \\overrightarrow{{P{name}}} = {} + 2 \\cdot {} = {}",
             show::vector(&p.position()),
@@ -58,14 +58,14 @@ impl Plane {
         let position = Vector3 { coords: p.coords.clone(), planar: false };
         working.add(
             Standard,
-            msg!("core.geometry.reflect.perpendicular_through_point_along_normal"),
+            msg!("core.geometry.reflect.perpendicular_line"),
             format!("\\vec{{x}} = {} + \\lambda {}", show::vector(&position), show::vector(n)),
         );
         let (constant, coefficient) = (n.dot(&position), n.dot(n));
         let lambda = plane.constant.sub(&constant).div(&coefficient)?;
         working.add(
             Standard,
-            msg!("core.geometry.reflect.put_into_coordinate_form_solve"),
+            msg!("core.geometry.reflect.solve_for_parameter"),
             format!(
                 "{} = {} \\quad \\Rightarrow \\quad \\lambda = {}",
                 show::combination(&[(&constant, ""), (&coefficient, "\\lambda")]),

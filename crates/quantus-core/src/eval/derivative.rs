@@ -117,7 +117,7 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
             if index == var || !depends_on(body, var) {
                 return Ok(number(0, position));
             }
-            return Err(QuantusError::other(msg!("core.eval.derivative.product_cannot_differentiated_write_out")));
+            return Err(QuantusError::other(msg!("core.eval.derivative.product_not_differentiable")));
         }
         Node::Sum { index, from, to, body, .. } => {
             require_independent([from, to], var, &msg!("core.eval.derivative.limits_sum"))?;

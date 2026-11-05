@@ -297,12 +297,12 @@ pub fn factor_polynomial_node(node: &Node) -> Option<AlgebraStep> {
     } else if poly.monomial_gcd().is_one() && poly.content() == RBig::ONE {
         (
             RuleId::FactorPolynomial,
-            crate::text::msg!("core.algebra.factor.factor_polynomial_into_irreducible_linear"),
+            crate::text::msg!("core.algebra.factor.irreducible_factors"),
         )
     } else {
         (
             RuleId::FactorPolynomial,
-            crate::text::msg!("core.algebra.factor.factor_out_common_factors_factor"),
+            crate::text::msg!("core.algebra.factor.common_then_polynomial"),
         )
     };
 
@@ -371,7 +371,7 @@ pub fn factoring_lines(poly: &Poly) -> (Vec<Line>, String) {
         .collect();
     let mut lines = Vec::new();
     if let Some(found) = signed_terms_sum(each) {
-        lines.push(Line::new(found, crate::text::msg!("core.algebra.factor.find_common_factor_all_terms", latex(&common_node)), StepDetail::Detailed));
+        lines.push(Line::new(found, crate::text::msg!("core.algebra.factor.find_common_factor", latex(&common_node)), StepDetail::Detailed));
     }
     let taken_out = |part: Node| Node::binary(Operator::ImplicitTimes, common_node.clone(), Node::Group { inner: Box::new(part), position: 0 }, 0);
     let factor_out = crate::text::msg!("core.algebra.factor.factor_out", latex(&common_node));
@@ -412,13 +412,13 @@ fn rest_lines(poly: &Poly) -> (Vec<Line>, String) {
             crate::text::msg!("core.algebra.factor.try_divisors", latex(&rational_node(&constant.clone().abs())))
         } else {
             crate::text::msg!(
-                "core.algebra.factor.try_fractions_divisor_over_divisor",
+                "core.algebra.factor.try_rational_roots",
                 latex(&rational_node(&constant.clone().abs())),
                 latex(&rational_node(&leading.clone().abs()))
             )
         };
         let r = latex(&rational_node(&root));
-        let text = crate::text::msg!("core.algebra.factor.p_0_factor", term_values(&current, &var, &root), latex(&divisor.to_node()));
+        let text = crate::text::msg!("core.algebra.factor.root_found", term_values(&current, &var, &root), latex(&divisor.to_node()));
         lines.push(Line::note(poly.to_node(), text, StepDetail::Standard));
         let divide = crate::text::msg!("core.algebra.factor.divide", latex(&current.to_node()), latex(&divisor.to_node()), latex(&quotient.to_node()));
         lines.push(Line::note(poly.to_node(), divide, StepDetail::Detailed));
@@ -456,7 +456,7 @@ fn squares_line(poly: &Poly) -> Option<Line> {
                 exponent: Box::new(rational_node(&RBig::from(2))),
                 position: 0,
             };
-            changed.push(crate::text::msg!("core.algebra.factor.as", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
+            changed.push(crate::text::msg!("core.algebra.factor.term_as", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
             square
         };
         written.push((!term.coeff.is_negative(), node));
@@ -464,7 +464,7 @@ fn squares_line(poly: &Poly) -> Option<Line> {
     if changed.is_empty() {
         return None;
     }
-    let changed = changed.join(&crate::text::msg!("core.algebra.factor.and"));
+    let changed = changed.join(&crate::text::msg!("core.algebra.factor.list_and"));
     Some(Line::new(signed_terms_sum(written)?, crate::text::msg!("core.algebra.factor.write", changed), StepDetail::Detailed))
 }
 

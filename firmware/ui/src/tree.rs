@@ -145,12 +145,12 @@ static ALGEBRA: Page = Page {
 static INPUT: Page = Page {
     title: tx!("hui.tree.input"),
     entries: &[
-        switch(tx!("hui.tree.y_variables"), S::AAndYAsVariables),
+        switch(tx!("hui.tree.a_and_y_as_variables"), S::AAndYAsVariables),
         switch(tx!("hui.tree.letters_product"), S::LetterProducts),
-        switch(tx!("hui.tree.t_u_units"), S::ExtraUnitLetters),
+        switch(tx!("hui.tree.extra_unit_letters"), S::ExtraUnitLetters),
         entry(
             tx!("hui.tree.unknowns_systems"),
-            Kind::Choice(S::UnknownNames, &[opt(tx!("hui.tree.indexed_x_1"), 0), opt(tx!("hui.tree.letters_x_y"), 1)]),
+            Kind::Choice(S::UnknownNames, &[opt(tx!("hui.tree.unknowns_indexed"), 0), opt(tx!("hui.tree.unknowns_letters"), 1)]),
         ),
     ],
 };
@@ -226,7 +226,7 @@ static REMOTE: Page = Page {
     entries: &[
         entry(
             tx!("hui.tree.remote_engine"),
-            Kind::Choice(S::Remote, &[opt(crate::text::OFF, 0), opt(tx!("hui.tree.over_500_ms"), 1)]),
+            Kind::Choice(S::Remote, &[opt(crate::text::OFF, 0), opt(tx!("hui.tree.long_press"), 1)]),
         ),
         pending(tx!("hui.tree.address")),
     ],
@@ -253,19 +253,19 @@ static CLOCK: Page = Page {
 /// In the order of [`crate::settings::Zone::ALL`].
 const ZONES: [Opt; 14] = [
     opt(same("UTC"), 0),
-    opt(tx!("hui.tree.london_utc_0"), 1),
-    opt(tx!("hui.tree.berlin_utc_1"), 2),
-    opt(tx!("hui.tree.helsinki_utc_2"), 3),
-    opt(tx!("hui.tree.moscow_utc_3"), 4),
-    opt(tx!("hui.tree.dubai_utc_4"), 5),
-    opt(tx!("hui.tree.india_utc_5_30"), 6),
-    opt(tx!("hui.tree.china_utc_8"), 7),
-    opt(tx!("hui.tree.tokyo_utc_9"), 8),
-    opt(tx!("hui.tree.sydney_utc_10"), 9),
-    opt(tx!("hui.tree.new_york_utc_5"), 10),
-    opt(tx!("hui.tree.chicago_utc_6"), 11),
-    opt(tx!("hui.tree.denver_utc_7"), 12),
-    opt(tx!("hui.tree.los_angeles_utc_8"), 13),
+    opt(tx!("hui.tree.zone.london"), 1),
+    opt(tx!("hui.tree.zone.berlin"), 2),
+    opt(tx!("hui.tree.zone.helsinki"), 3),
+    opt(tx!("hui.tree.zone.moscow"), 4),
+    opt(tx!("hui.tree.zone.dubai"), 5),
+    opt(tx!("hui.tree.zone.india"), 6),
+    opt(tx!("hui.tree.zone.china"), 7),
+    opt(tx!("hui.tree.zone.tokyo"), 8),
+    opt(tx!("hui.tree.zone.sydney"), 9),
+    opt(tx!("hui.tree.zone.new_york"), 10),
+    opt(tx!("hui.tree.zone.chicago"), 11),
+    opt(tx!("hui.tree.zone.denver"), 12),
+    opt(tx!("hui.tree.zone.los_angeles"), 13),
 ];
 
 static FIRMWARE: Page = Page {
@@ -341,7 +341,7 @@ static ANALYSIS: Page = Page {
     title: same("Analysis"),
     entries: &[
         ins(tx!("hui.tree.integral"), r"\int_{}^{}"),
-        ins(tx!("hui.tree.d_dx_derivative"), r"\frac{d}{dx}"),
+        ins(tx!("hui.tree.derivative"), r"\frac{d}{dx}"),
         ins(tx!("hui.tree.sum"), r"\sum_{}^{}"),
         ins(tx!("hui.tree.product"), r"\prod_{}^{}"),
         ins(tx!("hui.tree.lim_limit"), r"\lim_{x\to}"),
@@ -351,8 +351,8 @@ static ANALYSIS: Page = Page {
 static NUMBER: Page = Page {
     title: tx!("hui.tree.number"),
     entries: &[
-        ins(tx!("hui.tree.x_absolute_value"), "||"),
-        ins(tx!("hui.tree.n_factorial"), "!"),
+        ins(tx!("hui.tree.absolute_value_key"), "||"),
+        ins(tx!("hui.tree.factorial"), "!"),
         ins(same("nCr"), r"\binom{}{}"),
         ins(same("nPr"), r"\operatorname{nPr}(;)"),
         ins(tx!("hui.tree.gcd"), r"\operatorname{ggT}(;)"),
@@ -361,7 +361,7 @@ static NUMBER: Page = Page {
         ins(same("Intg"), r"\operatorname{Intg}()"),
         ins(same("Rnd"), r"\operatorname{Rnd}()"),
         ins(same("RndFix"), r"\operatorname{RndFix}(;)"),
-        ins(tx!("hui.tree.r_remainder"), r"\operatorname{divR}(;)"),
+        ins(tx!("hui.tree.remainder"), r"\operatorname{divR}(;)"),
         ins(same("mod"), r"\bmod "),
         ins(tx!("hui.tree.floor"), r"\lfloor\rfloor"),
         ins(tx!("hui.tree.ceiling"), r"\lceil\rceil"),
@@ -387,7 +387,7 @@ static HYPERBOLIC: Page = Page {
 static ANGLE: Page = Page {
     title: tx!("hui.tree.angle"),
     entries: &[
-        ins(tx!("hui.tree.degrees_2"), "°"),
+        ins(tx!("hui.tree.degrees_symbol"), "°"),
         // ′ and ″ are not in the fonts; the engine reads ' and '' alike.
         ins(tx!("hui.tree.minutes"), "'"),
         ins(tx!("hui.tree.seconds"), "''"),
@@ -459,7 +459,7 @@ macro_rules! units {
 
 units!(LENGTH, tx!("hui.tree.length"), ["m", "Å", "AU", "ly"]);
 units!(MASS, tx!("hui.tree.mass"), ["g", "t", "Da"]);
-units!(TIME, tx!("hui.tree.time_2"), ["s", "min", "h", "d", "wk", "mo", "yr"]);
+units!(TIME, tx!("hui.tree.time_units"), ["s", "min", "h", "d", "wk", "mo", "yr"]);
 units!(CURRENT, tx!("hui.tree.current"), ["A"]);
 units!(TEMPERATURE, tx!("hui.tree.temperature"), ["K", "°C"]);
 units!(FORCE, tx!("hui.tree.force"), ["N"]);
@@ -478,7 +478,7 @@ static UNITS: Page = Page {
     entries: &[
         group(tx!("hui.tree.length"), &LENGTH),
         group(tx!("hui.tree.mass"), &MASS),
-        group(tx!("hui.tree.time_2"), &TIME),
+        group(tx!("hui.tree.time_units"), &TIME),
         group(tx!("hui.tree.current"), &CURRENT),
         group(tx!("hui.tree.temperature"), &TEMPERATURE),
         group(tx!("hui.tree.force"), &FORCE),
@@ -586,7 +586,7 @@ static OPTN_TABLE: Page = Page {
 const CLEAR_ALL: Text = tx!("hui.tree.clear_all");
 
 static OPTN_LINEAR: Page = Page {
-    title: tx!("hui.tree.linear_systems_2"),
+    title: tx!("hui.tree.linear_systems_page"),
     entries: &[
         entry(
             tx!("hui.tree.input"),
@@ -639,10 +639,10 @@ static OPTN_BASE_N: Page = Page {
 static BASE_PREFIXES: Page = Page {
     title: tx!("hui.tree.prefixes"),
     entries: &[
-        ins(tx!("hui.tree.d_decimal"), r"\mathrm{d}"),
-        ins(tx!("hui.tree.h_hexadecimal"), r"\mathrm{h}"),
-        ins(tx!("hui.tree.b_binary"), r"\mathrm{b}"),
-        ins(tx!("hui.tree.o_octal"), r"\mathrm{o}"),
+        ins(tx!("hui.tree.base.decimal"), r"\mathrm{d}"),
+        ins(tx!("hui.tree.base.hexadecimal"), r"\mathrm{h}"),
+        ins(tx!("hui.tree.base.binary"), r"\mathrm{b}"),
+        ins(tx!("hui.tree.base.octal"), r"\mathrm{o}"),
     ],
 };
 
@@ -661,7 +661,7 @@ static OPTN_STATISTICS: Page = Page {
 };
 
 static STATISTICS_TYPES: [Opt; 8] = [
-    opt(tx!("hui.tree.1_variable"), 0),
+    opt(tx!("hui.tree.one_variable"), 0),
     opt(same("y = a + bx"), 1),
     opt(same("y = a + bx + cx²"), 2),
     opt(same("y = a + b·ln(x)"), 3),

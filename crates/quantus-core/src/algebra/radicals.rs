@@ -73,7 +73,7 @@ fn nest_root(index: usize, ctx: &mut Context) -> Option<Local> {
 
 /// `\sqrt[m]{\sqrt[n]{u}} = \sqrt[mn]{u}`.
 pub fn nest_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, &crate::text::msg!("core.algebra.radicals.write_nested_roots_one_root"), RuleId::NestRoots, nest_root)
+    each_atom(node, ctx, &crate::text::msg!("core.algebra.radicals.merge_nested_roots"), RuleId::NestRoots, nest_root)
 }
 
 // ---- powers out of the radicand ---------------------------------------------------------------

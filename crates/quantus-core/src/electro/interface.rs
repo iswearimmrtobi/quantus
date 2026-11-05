@@ -157,7 +157,7 @@ impl ValueResponse {
 pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<CircuitResponse> {
     let _language = Scope::new(settings.language);
     let precision = match request.precision {
-        Some(p) if p < 1 => return Err(QuantusError::other(msg!("core.electro.interface.precision_must_least_1_but"))),
+        Some(p) if p < 1 => return Err(QuantusError::other(msg!("core.electro.interface.precision_too_small"))),
         Some(p) => p as usize,
         None => settings.precision,
     };

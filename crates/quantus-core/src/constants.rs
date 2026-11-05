@@ -114,7 +114,7 @@ const CONSTANTS: [Constant; 47] = [
     c("F_Fa", "F_{Fa}", "96485.33212", "C/mol", PhysicoChemical, Text(texts!("constant.faraday_constant"))),
     c("N_A", "N_{A}", "6.02214076e23", "/mol", PhysicoChemical, Text(texts!("constant.avogadro_constant"))),
     c("k_B", "k_{B}", "1.380649e-23", "J/K", PhysicoChemical, Text(texts!("constant.boltzmann_constant"))),
-    c("V_m", "V_{m}", "22.41396954e-3", "m*m*m/mol", PhysicoChemical, Text(texts!("constant.molar_volume_ideal_gas_273"))),
+    c("V_m", "V_{m}", "22.41396954e-3", "m*m*m/mol", PhysicoChemical, Text(texts!("constant.molar_volume_stp"))),
     // N_A k_B, exactly
     c("R_m", "R_{m}", "8.31446261815324", "J/mol/K", PhysicoChemical, Text(texts!("constant.molar_gas_constant"))),
     c("c_1", "c_{1}", "3.741771852e-16", "W*m*m", PhysicoChemical, Text(texts!("constant.first_radiation_constant"))),
@@ -122,9 +122,9 @@ const CONSTANTS: [Constant; 47] = [
     c("\\sigma_SB", "\\sigma_{SB}", "5.670374419e-8", "W/m/m/K/K/K/K", PhysicoChemical, Text(texts!("constant.stefan_boltzmann_constant"))),
     c("g_n", "g_{n}", "9.80665", "m/s/s", Adopted, Text(texts!("constant.standard_acceleration_gravity"))),
     c("p_atm", "p_{atm}", "101325", "Pa", Adopted, Text(texts!("constant.standard_atmosphere"))),
-    c("R_K90", "R_{K90}", "25812.807", "Ohm", Adopted, Text(texts!("constant.conventional_von_klitzing_constant_1990"))),
-    c("K_J90", "K_{J90}", "483597.9e9", "Hz/V", Adopted, Text(texts!("constant.conventional_josephson_constant_1990"))),
-    c("T_0", "T_{0}", "273.15", "K", Other, Text(texts!("constant.0_c_kelvin"))),
+    c("R_K90", "R_{K90}", "25812.807", "Ohm", Adopted, Text(texts!("constant.von_klitzing_1990"))),
+    c("K_J90", "K_{J90}", "483597.9e9", "Hz/V", Adopted, Text(texts!("constant.josephson_1990"))),
+    c("T_0", "T_{0}", "273.15", "K", Other, Text(texts!("constant.zero_celsius"))),
 ];
 
 /// Spellings that name the same constant.

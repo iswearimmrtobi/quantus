@@ -289,7 +289,7 @@ impl<'a> Builder<'a> {
 
     fn coordinates(&self, cells: &[String]) -> Result<(Vec<crate::num::Value>, bool)> {
         if !(2..=3).contains(&cells.len()) {
-            return Err(error(msg!("core.geometry.interface.point_vector_has_two_three")));
+            return Err(error(msg!("core.geometry.interface.coordinate_count")));
         }
         let values = cells.iter().map(|cell| self.number(cell)).collect::<Result<Vec<_>>>()?;
         Ok((values, cells.len() == 2))
@@ -361,7 +361,7 @@ impl<'a> Builder<'a> {
             Shape::CircleCut { sphere, plane } => match (self.get(sphere)?, self.get(plane)?) {
                 (Object::Sphere(k), Object::Plane(e)) => worked(Circle::cut(k, e)?, Object::Circle),
                 _ => Err(error(msg!(
-                    "core.geometry.interface.cut_circle_needs_sphere_plane"))),
+                    "core.geometry.interface.cut_circle_objects"))),
             },
             Shape::Typed { .. } => unreachable!("a typed object is read by `typed`"),
         }
@@ -525,7 +525,7 @@ fn on(found: &bool) -> &'static str {
 }
 
 fn not_for(task: &str) -> QuantusError {
-    error(msg!("core.geometry.interface.does_not_work_these_objects", task))
+    error(msg!("core.geometry.interface.not_for_objects", task))
 }
 
 impl Builder<'_> {
@@ -570,7 +570,7 @@ impl Builder<'_> {
             (P(p), L(g)) | (L(g), P(p)) => Answer::plain(g.distance(p)?),
             (P(p), E(e)) | (E(e), P(p)) => Answer::plain(e.distance(p)?),
             (P(_), K(_)) | (K(_), P(_)) | (L(_), L(_)) | (L(_), E(_)) | (E(_), L(_)) | (E(_), E(_)) => self.relation(a, b)?,
-            _ => return Err(not_for(&msg!("core.geometry.interface.distance_2"))),
+            _ => return Err(not_for(&msg!("core.geometry.interface.a_distance"))),
         })
     }
 
@@ -595,7 +595,7 @@ impl Builder<'_> {
                 Answer::plain(Worked::new(angle, working))
             }
             (L(_), L(_)) | (L(_), E(_)) | (E(_), L(_)) | (E(_), E(_)) => self.relation(a, b)?,
-            _ => return Err(not_for(&msg!("core.geometry.interface.angle_2"))),
+            _ => return Err(not_for(&msg!("core.geometry.interface.an_angle"))),
         })
     }
 
@@ -670,13 +670,13 @@ impl Builder<'_> {
                     let mut working = Working::default();
                     working.add(
                         Standard,
-                        msg!("core.geometry.interface.half_way_from_p_q"),
+                        msg!("core.geometry.interface.half_way"),
                         format!("\\vec{{m}} = \\frac{{1}}{{2}} \\cdot \\left({} + {}\\right) = {}", show::vector(&p.position()), show::vector(&q.position()), show::vector(&m.position())),
                     );
                     working.add(Brief, msg!("core.geometry.interface.midpoint"), format!("M = {}", show::point(&m)));
                     Ok(Answer::plain(Worked::new(m, working)))
                 }
-                _ => Err(not_for(&msg!("core.geometry.interface.midpoint_2"))),
+                _ => Err(not_for(&msg!("core.geometry.interface.a_midpoint"))),
             },
             Task::Measure { object, measure } => self.measure(self.get(object)?, *measure),
             Task::Evaluate { latex } => self.evaluate(latex),

@@ -618,7 +618,7 @@ impl Poly {
                         let c = den.leading_coeff();
                         Ok(&num / &c)
                     } else {
-                        Err(QuantusError::other(msg!("core.algebra.poly.division_non_constant_not_polynomial")))
+                        Err(QuantusError::other(msg!("core.algebra.poly.division_not_polynomial")))
                     }
                 }
             },
@@ -629,7 +629,7 @@ impl Poly {
                     let c = den.leading_coeff();
                     Ok(&num / &c)
                 } else {
-                    Err(QuantusError::other(msg!("core.algebra.poly.division_non_constant_not_polynomial")))
+                    Err(QuantusError::other(msg!("core.algebra.poly.division_not_polynomial")))
                 }
             }
             Node::Negation { operand, .. } => Ok(-&Self::from_node(operand)?),
@@ -651,7 +651,7 @@ impl Poly {
                             n as usize
                         } else {
                             return Err(QuantusError::other(
-                                msg!("core.algebra.poly.non_integer_negative_exponent_polynomial"),
+                                msg!("core.algebra.poly.exponent_not_natural"),
                             ));
                         }
                     }

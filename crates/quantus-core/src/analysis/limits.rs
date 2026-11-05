@@ -144,7 +144,7 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
             let (deg_n, deg_d) = (n.degree_of(x), d.degree_of(x));
             let ratio = leading(&n) / leading(&d);
             if n.is_zero() {
-                return Some((Behaviour::Finite(Point::rational(RBig::ZERO)), AnalysisRule::LimitDegree, msg!("core.analysis.limits.f_0")));
+                return Some((Behaviour::Finite(Point::rational(RBig::ZERO)), AnalysisRule::LimitDegree, msg!("core.analysis.limits.zero_function")));
             }
             Some(if deg_d == 0 {
                 let sign = sign_at_infinity(&ratio, deg_n, matches!(at, Approach::NegInf));
@@ -161,14 +161,14 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
                     Behaviour::Finite(Point::rational(ratio)),
                     AnalysisRule::LimitDegree,
                     msg!(
-                        "core.analysis.limits.degree_numerator_degree_denominator_ratio"),
+                        "core.analysis.limits.equal_degrees"),
                 )
             } else {
                 let sign = sign_at_infinity(&ratio, deg_n - deg_d, matches!(at, Approach::NegInf));
                 (
                     infinite(sign),
                     AnalysisRule::LimitDegree,
-                    msg!("core.analysis.limits.degree_numerator_degree_denominator_2"),
+                    msg!("core.analysis.limits.numerator_degree_higher"),
                 )
             })
         }
@@ -188,7 +188,7 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
                 return Some((
                     Behaviour::Finite(value),
                     AnalysisRule::LimitPole,
-                    msg!("core.analysis.limits.removable_gap_cancelled_function_continuous"),
+                    msg!("core.analysis.limits.removable_gap_cancelled"),
                 ));
             }
             // D(x) ≈ D^{(k)}(x₀)/k! · (x − x₀)^k next to a zero of order k, so the sign on the
@@ -201,7 +201,7 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
                 _ => right,
             };
             let explanation = msg!(
-                "core.analysis.limits.pole_order_signs_numerator_x",
+                "core.analysis.limits.pole_signs",
                 order,
                 order
             );
@@ -326,7 +326,7 @@ pub fn infinity_working(f: &Expr, at: &Approach, ctx: &LimitContext) -> Vec<Step
         let tends = format!("\\lim_{{{limit}}} {power} \\cdot 1 = {result}");
         return vec![
             step(AnalysisRule::LimitDegree, msg!("core.analysis.limits.factor_out_highest_power"), factored).with_level(StepDetail::Standard),
-            step(AnalysisRule::LimitDegree, msg!("core.analysis.limits.bracket_tends_1"), tends).with_level(StepDetail::Standard),
+            step(AnalysisRule::LimitDegree, msg!("core.analysis.limits.bracket_tends_to_one"), tends).with_level(StepDetail::Standard),
         ];
     }
     if deg_n == deg_d && deg_n >= 1 {
@@ -382,7 +382,7 @@ fn bounded(g: &Expr) -> Option<(Behaviour, AnalysisRule, String)> {
     if !has_oscillation(g) {
         return None;
     }
-    let squeeze = || msg!("core.analysis.limits.bounded_factor_times_factor_tends");
+    let squeeze = || msg!("core.analysis.limits.bounded_times_zero");
     let oscillates = || msg!("core.analysis.limits.sin_cos_keep_oscillating");
     match g {
         Expr::Product(factors) => {
@@ -410,7 +410,7 @@ fn bounded(g: &Expr) -> Option<(Behaviour, AnalysisRule, String)> {
                 b @ (Behaviour::PosInf | Behaviour::NegInf) => (
                     b,
                     AnalysisRule::LimitSqueeze,
-                    msg!("core.analysis.limits.bounded_sin_cos_term_does"),
+                    msg!("core.analysis.limits.bounded_term"),
                 ),
                 finite if vanishing => (finite, AnalysisRule::LimitSqueeze, squeeze()),
                 _ => (Behaviour::Oscillates, AnalysisRule::LimitSqueeze, oscillates()),
@@ -494,9 +494,9 @@ impl Growth {
 
     fn explanation(&self) -> String {
         if self.kinds & EXP != 0 && self.kinds & (POWER | LOG) != 0 {
-            msg!("core.analysis.limits.exponential_function_grows_faster_than")
+            msg!("core.analysis.limits.exponential_beats_power")
         } else if self.kinds & POWER != 0 && self.kinds & LOG != 0 {
-            msg!("core.analysis.limits.any_power_x_0_grows")
+            msg!("core.analysis.limits.power_beats_log")
         } else {
             msg!("core.analysis.limits.term_highest_power_decides")
         }

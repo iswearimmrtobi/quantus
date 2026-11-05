@@ -101,7 +101,7 @@ fn heads<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> Vec<Row> {
 }
 
 const FREQ: text::Text = tx!("hui.render.sheet.freq");
-const OUTER_ZEROS: text::Text = tx!("hui.render.sheet.b_empty_between_outer_zeros");
+const OUTER_ZEROS: text::Text = tx!("hui.render.sheet.outer_zeros_hint");
 
 /// The labels of a form's rows.
 fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {

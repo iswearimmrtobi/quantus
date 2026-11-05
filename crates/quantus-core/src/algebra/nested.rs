@@ -375,7 +375,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = crate::text::msg!("core.algebra.nested.apply_reciprocal_rule_divide_fractions");
+            let explanation = crate::text::msg!("core.algebra.nested.reciprocal_rule_fractions");
             Some((res, rule, explanation))
         }
 
@@ -389,7 +389,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = crate::text::msg!("core.algebra.nested.apply_reciprocal_rule_divide_fraction");
+            let explanation = crate::text::msg!("core.algebra.nested.reciprocal_rule");
             Some((res, rule, explanation))
         }
 
@@ -403,7 +403,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::SimplifyNestedFraction;
-            let explanation = crate::text::msg!("core.algebra.nested.simplify_complex_fraction_multiplying_denominators");
+            let explanation = crate::text::msg!("core.algebra.nested.clear_complex_fraction");
             Some((res, rule, explanation))
         }
 

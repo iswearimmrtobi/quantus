@@ -42,17 +42,17 @@ impl Matrix {
     pub fn new(rows: Vec<Vec<Value>>) -> Result<Matrix> {
         let columns = rows.first().map_or(0, Vec::len);
         if rows.is_empty() || columns == 0 || rows.iter().any(|row| row.len() != columns) {
-            return Err(error(msg!("core.matrix.matrix_needs_rows_equal_length")));
+            return Err(error(msg!("core.matrix.rows_equal_length")));
         }
         if rows.len() > MAX_SIZE || columns > MAX_SIZE {
-            return Err(error(msg!("core.matrix.matrix_may_have_most_rows")));
+            return Err(error(msg!("core.matrix.size_limit")));
         }
         Ok(Matrix { rows })
     }
 
     pub fn identity(size: usize) -> Result<Matrix> {
         if !(1..=MAX_SIZE).contains(&size) {
-            return Err(error(msg!("core.matrix.identity_matrix_has_1_rows")));
+            return Err(error(msg!("core.matrix.identity_size")));
         }
         Ok(Matrix {
             rows: (0..size).map(|r| (0..size).map(|c| if r == c { Value::one() } else { Value::zero() }).collect()).collect(),
@@ -77,14 +77,14 @@ impl Matrix {
 
     fn zip(&self, other: &Matrix, what: &str, f: impl Fn(&Value, &Value) -> Value) -> Result<Matrix> {
         if self.row_count() != other.row_count() || self.column_count() != other.column_count() {
-            return Err(error(msg!("core.matrix.needs_matrices_same_size_not", self.size(), other.size())));
+            return Err(error(msg!("core.matrix.same_size", self.size(), other.size())));
         }
         let rows = self.rows.iter().zip(&other.rows).map(|(a, b)| a.iter().zip(b).map(|(x, y)| f(x, y)).collect()).collect();
         Ok(Matrix { rows })
     }
 
     pub fn add(&self, other: &Matrix) -> Result<Matrix> {
-        self.zip(other, &msg!("core.matrix.sum"), Value::add)
+        self.zip(other, &msg!("core.matrix.a_sum"), Value::add)
     }
 
     pub fn sub(&self, other: &Matrix) -> Result<Matrix> {
@@ -97,7 +97,7 @@ impl Matrix {
 
     pub fn mul(&self, other: &Matrix) -> Result<Matrix> {
         if self.column_count() != other.row_count() {
-            return Err(error(msg!("core.matrix.matrix_times_matrix_columns_first",
+            return Err(error(msg!("core.matrix.product_sizes",
                 self.size(),
                 other.size()
             )));
@@ -126,7 +126,7 @@ impl Matrix {
             return Err(error(msg!("core.matrix.only_square_matrix_has_powers", self.size())));
         }
         if n.unsigned_abs() > 1000 {
-            return Err(error(msg!("core.matrix.matrix_power_may_most_1000")));
+            return Err(error(msg!("core.matrix.power_limit")));
         }
         let base = if n < 0 { self.inverse()?.matrix } else { self.clone() };
         let mut result = Matrix::identity(self.row_count())?;
@@ -169,7 +169,7 @@ impl Matrix {
             self.rows.iter().zip(&identity.rows).map(|(a, i)| a.iter().chain(i).cloned().collect()).collect();
         let elimination = linear::eliminate(augmented.clone(), size, true)?;
         if elimination.pivots.len() < size {
-            return Err(error(msg!("core.matrix.matrix_singular_determinant_0_has")));
+            return Err(error(msg!("core.matrix.singular")));
         }
         let rows = elimination.matrix.iter().map(|row| row[size..].to_vec()).collect();
         Ok(Reduced { start: augmented, log: elimination.log, matrix: Matrix { rows } })
@@ -274,16 +274,16 @@ impl<'a> MatrixEvaluator<'a> {
                         Ok(Item::Matrix(m.scale(&self.plain(&s)?)))
                     }
                     (Operator::Divide, Item::Matrix(m), Item::Scalar(s)) => Ok(Item::Matrix(m.scale(&Value::one().div(&self.plain(&s)?)?))),
-                    _ => Err(error(msg!("core.matrix.matrix_cannot_divide_multiply_inverse"))),
+                    _ => Err(error(msg!("core.matrix.no_division"))),
                 }
             }
             Node::Fraction { numerator, denominator, .. } => match (self.evaluate(numerator)?, self.evaluate(denominator)?) {
                 (Item::Matrix(m), Item::Scalar(s)) => Ok(Item::Matrix(m.scale(&Value::one().div(&self.plain(&s)?)?))),
-                _ => Err(error(msg!("core.matrix.matrix_cannot_divide_multiply_inverse"))),
+                _ => Err(error(msg!("core.matrix.no_division"))),
             },
             Node::Power { base, exponent, .. } => {
                 let Item::Matrix(base) = self.evaluate(base)? else {
-                    return Err(error(msg!("core.matrix.number_cannot_have_matrix_exponent")));
+                    return Err(error(msg!("core.matrix.matrix_exponent")));
                 };
                 let mut bare = &**exponent;
                 while let Node::Group { inner, .. } = bare {
@@ -310,7 +310,7 @@ impl<'a> MatrixEvaluator<'a> {
             }
             Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
                 ("Identity", [n]) => {
-                    let n = usize::try_from(self.whole(n)?).map_err(|_| error(msg!("core.matrix.identity_matrix_has_1_10")))?;
+                    let n = usize::try_from(self.whole(n)?).map_err(|_| error(msg!("core.matrix.identity_size_10")))?;
                     Ok(Item::Matrix(Matrix::identity(n)?))
                 }
                 ("ref" | "rref", [operand]) => {
@@ -345,13 +345,13 @@ impl<'a> MatrixEvaluator<'a> {
     fn scalar(&self, node: &Node) -> Result<Value> {
         match self.evaluate(node)? {
             Item::Scalar(quantity) => self.plain(&quantity),
-            Item::Matrix(_) => Err(error(msg!("core.matrix.matrix_entry_must_number_not"))),
+            Item::Matrix(_) => Err(error(msg!("core.matrix.entry_not_matrix"))),
         }
     }
 
     fn plain(&self, quantity: &PhysicalQuantity) -> Result<Value> {
         if !quantity.is_dimensionless() {
-            return Err(error(msg!("core.matrix.matrix_entries_plain_numbers_without")));
+            return Err(error(msg!("core.matrix.entries_without_units")));
         }
         quantity.dimensionless_value()
     }
@@ -362,7 +362,7 @@ impl<'a> MatrixEvaluator<'a> {
             .as_rational()
             .filter(|r| r.denominator() == &dashu::integer::UBig::ONE)
             .and_then(|r| i64::try_from(r.numerator().clone()).ok())
-            .ok_or_else(|| error(msg!("core.matrix.matrix_exponent_must_whole_number")))
+            .ok_or_else(|| error(msg!("core.matrix.exponent_whole_or_t")))
     }
 }
 

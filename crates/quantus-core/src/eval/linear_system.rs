@@ -67,7 +67,7 @@ pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Resu
                 equation @ Node::Equation { .. } => Node::System { position: equation.position(), equations: vec![equation] },
                 _ => {
                     return Err(QuantusError::other(msg!(
-                        "core.eval.linear_system.type_system_equations_one_per")))
+                        "core.eval.linear_system.one_equation_per_line")))
                 }
             };
             (evaluator.solve_system(&system, settings.elimination)?, Some(serializer::expression(&system)))
@@ -151,11 +151,11 @@ fn width(rows: &[Vec<String>]) -> Result<usize> {
     };
     if first.len() < 2 {
         return Err(QuantusError::other(msg!(
-            "core.eval.linear_system.row_needs_least_one_coefficient")));
+            "core.eval.linear_system.row_too_short")));
     }
     if let Some((r, row)) = rows.iter().enumerate().find(|(_, row)| row.len() != first.len()) {
         return Err(QuantusError::other(msg!(
-            "core.eval.linear_system.row_has_entries_but_row",
+            "core.eval.linear_system.row_length_differs",
             r + 1,
             row.len(),
             first.len()
@@ -191,7 +191,7 @@ fn given_names(names: &[String], n: usize, settings: &Settings) -> Result<Vec<St
             Ok(Node::Variable { name, index, .. }) => Node::variable_key(&name, &index),
             _ => {
                 return Err(QuantusError::other(msg!(
-                    "core.eval.linear_system.not_name_unknown_use_letter",
+                    "core.eval.linear_system.bad_unknown_name",
                     name
                 )))
             }
@@ -227,7 +227,7 @@ fn read_matrix(rows: &[Vec<String>], settings: &Settings, evaluator: &Evaluator)
             match letter(&expression) {
                 Some(name) if name == "i" => {
                     return Err(at(msg!(
-                        "core.eval.linear_system.i_not_number_here_turn")))
+                        "core.eval.linear_system.i_not_a_number")))
                 }
                 Some(name) => {
                     return Err(at(msg!("core.eval.linear_system.entry_number_but_letter", name)))
@@ -237,7 +237,7 @@ fn read_matrix(rows: &[Vec<String>], settings: &Settings, evaluator: &Evaluator)
             let quantity = evaluator.evaluate(&expression).map_err(|e| at(e.to_string()))?;
             if !quantity.is_dimensionless() {
                 return Err(at(msg!(
-                    "core.eval.linear_system.coefficients_linear_system_have_no")));
+                    "core.eval.linear_system.coefficients_without_units")));
             }
             values.push(quantity.value);
         }

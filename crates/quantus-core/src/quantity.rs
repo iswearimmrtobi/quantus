@@ -86,7 +86,7 @@ impl PhysicalQuantity {
     /// dimensionless base may be raised to anything.
     pub fn pow(&self, exponent: &PhysicalQuantity) -> Result<PhysicalQuantity> {
         if !exponent.is_dimensionless() {
-            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.exponent_must_dimensionless_but_carries",
+            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.exponent_has_unit",
                 registry::describe(&exponent.unit)
             )));
         }
@@ -97,7 +97,7 @@ impl PhysicalQuantity {
             return Ok(PhysicalQuantity::dimensionless(powered));
         }
         let rational = exponent.value.as_rational().ok_or_else(|| {
-            QuantusError::other(msg!("core.quantity.quantity_unit_can_only_raised",
+            QuantusError::other(msg!("core.quantity.irrational_power",
                 exponent.value
             ))
         })?;
@@ -189,7 +189,7 @@ impl PhysicalQuantity {
     /// quantity being converted to; it shows up in the error message.
     fn value_in(&self, target: &Unit, verb: &str, context: &PhysicalQuantity) -> Result<Value> {
         if !self.unit.is_compatible(target) {
-            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.incompatible_units_cannot",
+            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.incompatible_units",
                 registry::describe(&context.unit),
                 registry::describe(&self.unit)
             )));
@@ -199,7 +199,7 @@ impl PhysicalQuantity {
         // difference and 298.15 °C read as two absolute temperatures. Rather than pick one
         // silently, say so; converting to K makes the intent explicit.
         if conversion.offset != RBig::ZERO {
-            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.cannot_directly_because_one_them",
+            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.offset_units",
                 registry::describe(&context.unit),
                 registry::describe(&self.unit)
             )));

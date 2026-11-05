@@ -131,10 +131,10 @@ impl<'a> Evaluator<'a> {
                     return Ok(constant);
                 }
                 Err(QuantusError::UnresolvedVariable(if index.is_empty() {
-                    msg!("core.eval.evaluator.variable_has_no_value_only"
+                    msg!("core.eval.evaluator.variable_without_subscript"
                     )
                 } else {
-                    msg!("core.eval.evaluator.variable_has_no_value_yet")
+                    msg!("core.eval.evaluator.variable_undefined")
                 }))
             }
             Node::Group { inner, .. } => self.evaluate(inner),
@@ -200,7 +200,7 @@ impl<'a> Evaluator<'a> {
                 let mut applied = if self.complex() { argument.apply_complex(function) } else { argument.apply(function) }?;
                 if self.degrees() && angles::gives_angle(name) {
                     if applied.contains_imaginary() {
-                        return Err(QuantusError::other(msg!("core.eval.evaluator.has_complex_value_here_which"
+                        return Err(QuantusError::other(msg!("core.eval.evaluator.complex_angle_in_degrees"
                         )));
                     }
                     applied = angles::to_degrees(&applied)?;
@@ -216,10 +216,10 @@ impl<'a> Evaluator<'a> {
                 self.solve(node)?.values.into_iter().next().ok_or_else(|| QuantusError::other(msg!("core.common.equation_has_no_solution")))
             }
             Node::System { .. } => Err(QuantusError::other(
-                msg!("core.eval.evaluator.system_equations_must_whole_input"),
+                msg!("core.eval.evaluator.system_inside_calculation"),
             )),
             Node::Matrix { .. } => Err(QuantusError::other(
-                msg!("core.eval.evaluator.matrix_not_number_take_determinant"),
+                msg!("core.eval.evaluator.matrix_not_number"),
             )),
             Node::Determinant { operand, .. } => self.determinant(operand),
             Node::Call { name, arguments, .. } => self.call(name, arguments),
@@ -246,7 +246,7 @@ impl<'a> Evaluator<'a> {
                         [re, im].iter().all(|part| part.decimal(40).is_ok_and(|d| d.to_rational().abs() < RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(35))))
                     });
                     if !zero && !matches!(operator, "=" | "\\neq") {
-                        return Err(QuantusError::other(msg!("core.eval.evaluator.complex_numbers_have_no_order")));
+                        return Err(QuantusError::other(msg!("core.eval.evaluator.complex_no_order")));
                     }
                     if zero { 0 } else { 2 }
                 }
@@ -268,15 +268,15 @@ impl<'a> Evaluator<'a> {
     fn plain_number(&self, node: &Node, what: &str) -> Result<Value> {
         let quantity = self.evaluate(node)?;
         if !quantity.is_dimensionless() {
-            return Err(QuantusError::other(msg!("core.eval.evaluator.must_plain_number_not_quantity")));
+            return Err(QuantusError::other(msg!("core.eval.evaluator.must_be_plain")));
         }
         quantity.dimensionless_value()
     }
 
     fn whole_number(&self, node: &Node, command: &str) -> Result<i64> {
-        let value = self.plain_number(node, &msg!("core.eval.evaluator.argument_2"))?;
+        let value = self.plain_number(node, &msg!("core.eval.evaluator.argument_of_command"))?;
         value.to_i64().filter(|n| *n >= 0).ok_or_else(|| {
-            QuantusError::other(msg!("core.eval.evaluator.arguments_must_non_negative_whole"))
+            QuantusError::other(msg!("core.eval.evaluator.arguments_natural"))
         })
     }
 
@@ -284,7 +284,7 @@ impl<'a> Evaluator<'a> {
         let value = self.plain_number(node, what)?;
         value
             .to_i64()
-            .ok_or_else(|| QuantusError::other(msg!("core.eval.evaluator.must_whole_number_but_was")))
+            .ok_or_else(|| QuantusError::other(msg!("core.eval.evaluator.must_be_whole")))
     }
 
     // ---- constructs that bind a variable ------------------------------------------------
@@ -332,7 +332,7 @@ impl<'a> Evaluator<'a> {
                     scope.insert(index.to_string(), PhysicalQuantity::dimensionless(Value::int(k)));
                     let quantity = self.scoped(&scope).evaluate(body)?;
                     if !quantity.unit.is_one() {
-                        return Err(QuantusError::other(msg!("core.eval.evaluator.sum_takes_terms_without_unit")));
+                        return Err(QuantusError::other(msg!("core.eval.evaluator.infinite_sum_unit")));
                     }
                     Ok(quantity.value.decimal(digits + 10)?.to_rational())
                 };
@@ -560,10 +560,10 @@ impl<'a> Evaluator<'a> {
         match (name, arguments) {
             ("polar", [r, theta]) => {
                 if !self.complex() {
-                    return Err(QuantusError::other(msg!("core.eval.evaluator.r_complex_number_needs_complex")));
+                    return Err(QuantusError::other(msg!("core.eval.evaluator.polar_needs_complex_mode")));
                 }
                 let modulus = self.evaluate(r)?;
-                let mut angle = self.plain_number(theta, &msg!("core.eval.evaluator.angle_r"))?;
+                let mut angle = self.plain_number(theta, &msg!("core.eval.evaluator.polar_angle"))?;
                 if self.degrees() && !angles::is_marked(theta) {
                     angle = angles::to_radians(&angle)?;
                 }
@@ -579,7 +579,7 @@ impl<'a> Evaluator<'a> {
                     return Ok(PhysicalQuantity::dimensionless(gamma));
                 }
                 if value.is_negative()? {
-                    return Err(QuantusError::other(msg!("core.eval.evaluator.undefined_factorial_has_poles_negative")));
+                    return Err(QuantusError::other(msg!("core.eval.evaluator.factorial_pole")));
                 }
                 let n = self.whole_number(n, "factorial")?;
                 if n > 10_000 {
@@ -599,7 +599,7 @@ impl<'a> Evaluator<'a> {
                 let value = self.evaluate(value)?;
                 let target = self.evaluate(target)?;
                 if !target.value.as_rational().is_some_and(|r| *r == RBig::ONE) || target.unit.is_one() {
-                    return Err(QuantusError::other(msg!("core.eval.evaluator.after_comes_unit_alone_such")));
+                    return Err(QuantusError::other(msg!("core.eval.evaluator.unit_alone_after_arrow")));
                 }
                 value.to(&target.unit)
             }
@@ -609,16 +609,16 @@ impl<'a> Evaluator<'a> {
                     return Err(QuantusError::other(format!("nPr needs r ≤ n, but r = {r} and n = {n}.")));
                 }
                 if n > 10_000 {
-                    return Err(QuantusError::other(msg!("core.eval.evaluator.npr_too_large_compute_exactly")));
+                    return Err(QuantusError::other(msg!("core.eval.evaluator.permutations_too_large")));
                 }
                 let product = (n - r + 1..=n).fold(IBig::ONE, |p, k| p * IBig::from(k));
                 Ok(PhysicalQuantity::dimensionless(Value::Rat(RBig::from(product))))
             }
             ("gcd" | "lcm", [first, rest @ ..]) => {
                 let whole = |node: &Node| -> Result<IBig> {
-                    let value = self.plain_number(node, &msg!("core.eval.evaluator.argument_3"))?;
+                    let value = self.plain_number(node, &msg!("core.eval.evaluator.argument_of_name"))?;
                     value.to_i64().map(IBig::from).ok_or_else(|| {
-                        QuantusError::other(msg!("core.eval.evaluator.arguments_must_whole_numbers_but"))
+                        QuantusError::other(msg!("core.eval.evaluator.arguments_whole"))
                     })
                 };
                 let mut result = dashu::base::UnsignedAbs::unsigned_abs(whole(first)?);
@@ -652,17 +652,17 @@ impl<'a> Evaluator<'a> {
                         let places = self.whole_number(places, "RndFix")?;
                         crate::latex::numbers::to_places(&decimal, places.min(1000))
                     }
-                    ("RndFix", _, _) => return Err(QuantusError::other(msg!("core.eval.evaluator.rndfix_takes_value_number_places"))),
+                    ("RndFix", _, _) => return Err(QuantusError::other(msg!("core.eval.evaluator.rndfix_arguments"))),
                     (_, [], NumberFormat::Fix { digits }) => crate::latex::numbers::to_places(&decimal, i64::from(digits)),
                     (_, [], NumberFormat::Sci { digits }) => decimal.round(if digits == 0 { 10 } else { usize::from(digits) }),
                     // Norm rounds to the ten digits the display shows.
                     (_, [], _) => decimal.round(10),
-                    _ => return Err(QuantusError::other(msg!("core.eval.evaluator.rnd_takes_one_value_rnd"))),
+                    _ => return Err(QuantusError::other(msg!("core.eval.evaluator.rnd_arguments"))),
                 };
                 Ok(PhysicalQuantity::new(Value::Rat(rounded.to_rational()), q.unit))
             }
             ("divR", [a, b]) => {
-                let (a, b) = (self.whole_integer(a, "The dividend of ÷R")?, self.whole_integer(b, &msg!("core.eval.evaluator.divisor_r"))?);
+                let (a, b) = (self.whole_integer(a, "The dividend of ÷R")?, self.whole_integer(b, &msg!("core.eval.evaluator.remainder_divisor"))?);
                 if b == 0 {
                     return Err(QuantusError::other(msg!("core.common.division_zero")));
                 }
@@ -777,7 +777,7 @@ impl<'a> Evaluator<'a> {
         };
         let size = rows.len();
         if rows.iter().any(|row| row.len() != size) {
-            return Err(QuantusError::other(msg!("core.eval.evaluator.determinant_needs_square_matrix_but",
+            return Err(QuantusError::other(msg!("core.eval.evaluator.determinant_not_square",
                 rows[0].len()
             )));
         }
@@ -818,7 +818,7 @@ impl<'a> Evaluator<'a> {
                 scope.insert(variable.to_string(), self.evaluate(at)?);
             }
             None if !scope.contains_key(variable) => {
-                return Err(QuantusError::UnresolvedVariable(msg!("core.eval.evaluator.derivative_respect_needs_point_evaluated"
+                return Err(QuantusError::UnresolvedVariable(msg!("core.eval.evaluator.derivative_needs_point"
                 )));
             }
             None => {}
@@ -873,9 +873,9 @@ impl<'a> Evaluator<'a> {
         let scale = reference.clone().abs().max(RBig::ONE);
         if samples.iter().any(|s| (s.clone() - &reference).abs() > &tolerance * &scale) {
             return Err(QuantusError::other(if side == 0 && infinite.is_none() {
-                msg!("core.eval.evaluator.limit_does_not_exist_values")
+                msg!("core.eval.evaluator.limit_sides_disagree")
             } else {
-                msg!("core.eval.evaluator.limit_does_not_exist_values_2")
+                msg!("core.eval.evaluator.limit_does_not_settle")
             }));
         }
         let mean = samples.iter().fold(RBig::ZERO, |sum, s| sum + s) / RBig::from(samples.len());
@@ -898,13 +898,13 @@ impl<'a> Evaluator<'a> {
         let quantity = self.evaluate(degree)?;
         if !quantity.is_dimensionless() {
             return Err(QuantusError::other(
-                msg!("core.eval.evaluator.degree_root_must_plain_number"),
+                msg!("core.eval.evaluator.root_degree_plain"),
             ));
         }
         let value = quantity.dimensionless_value()?;
         match value.to_i64() {
             Some(n) if n > 0 && n <= i64::from(u32::MAX) => Ok(n as u32),
-            _ => Err(QuantusError::other(msg!("core.eval.evaluator.degree_root_must_positive_whole"
+            _ => Err(QuantusError::other(msg!("core.eval.evaluator.root_degree_whole"
             ))),
         }
     }
@@ -961,7 +961,7 @@ fn binomial(n: i64, k: i64) -> Result<IBig> {
     }
     let k = k.min(n - k);
     if k > LIMIT {
-        return Err(QuantusError::other(msg!("core.eval.evaluator.limited_lower_index_100000")));
+        return Err(QuantusError::other(msg!("core.eval.evaluator.binom_index_limit")));
     }
     let mut result = IBig::ONE;
     for i in 0..k {
@@ -990,7 +990,7 @@ fn constant(name: &str) -> Result<Value> {
         "e" => Ok(Value::E),
         "i" => Ok(Value::I),
         "\\infty" => Err(QuantusError::other(
-            msg!("core.eval.evaluator.not_number_can_target_limit"),
+            msg!("core.eval.evaluator.infinity_not_number"),
         )),
         _ => Err(QuantusError::other(msg!("core.eval.evaluator.unknown_constant"))),
     }

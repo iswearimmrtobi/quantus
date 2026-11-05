@@ -45,7 +45,7 @@ impl Warning {
     /// The note shown in the editor; `wire` is the wire's name, e.g. "W1".
     pub fn text(&self, wire: &str) -> String {
         match self {
-            Warning::DefaultTemperature => msg!("core.electro.wire.20_c"),
+            Warning::DefaultTemperature => msg!("core.electro.wire.at_20_celsius"),
             Warning::Idealised { missing } => {
                 let names: Vec<String> = missing
                     .iter()
@@ -59,7 +59,7 @@ impl Warning {
                 if missing.len() == 1 {
                     msg!("core.electro.wire.wire_idealised_missing")
                 } else {
-                    msg!("core.electro.wire.wire_idealised_missing_2")
+                    msg!("core.electro.wire.idealised_missing")
                 }
             }
         }

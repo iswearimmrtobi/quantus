@@ -338,7 +338,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Errors of the calculator, the parser, matrices, Base-N, sessions and settings are in German
   when the language is German; they were English only. So are a few desktop texts ("kopieren",
   "Sitzung aktiv", "Umschalt"), the prefix names, "Firmware update" and "Base-N" in English
-  on the handheld, and the handheld's engine and Wi-Fi chip messages.
+  on the handheld, and the handheld's engine and Wi-Fi chip messages. The handheld's English
+  "In Physics mode only" said "Physik".
 
 - `\Gamma(5)` was read as the letter Γ times 5. `\Gamma` followed by a bracket is now the Gamma
   function; on its own it is still a letter.

@@ -28,7 +28,7 @@ fn error(message: String) -> QuantusError {
 
 fn unclear() -> QuantusError {
     error(msg!(
-        "core.geometry.interface.typed.object_typed_name_1_2"))
+        "core.geometry.interface.typed.how_to_type"))
 }
 
 /// Whether `name` (a key) can name an object: letters, then an optional `_` and index.
@@ -155,7 +155,7 @@ impl Builder<'_> {
         let n = parameters.len();
         if !(1..=2).contains(&n) {
             return Err(error(msg!(
-                "core.geometry.interface.typed.parameter_form_has_one_parameter")));
+                "core.geometry.interface.typed.parameter_count")));
         }
         let unit = |i: usize| (0..n).map(|j| if i == j { Value::one() } else { Value::zero() }).collect::<Vec<_>>();
         let support = at(&vec![Value::zero(); n])?;
@@ -165,7 +165,7 @@ impl Builder<'_> {
         let expected = directions.iter().zip(&probe).fold(support.clone(), |p, (u, k)| &p + &u.scale(k));
         let actual = at(&probe)?;
         if !(0..3).all(|i| equal(&expected.coords[i], &actual.coords[i])) {
-            return Err(error(msg!("core.geometry.interface.typed.parameter_form_must_linear_parameters")));
+            return Err(error(msg!("core.geometry.interface.typed.parameters_not_linear")));
         }
         Ok(match directions.as_slice() {
             [u] => Object::Line(Line::new(support, u.clone())?),
@@ -188,7 +188,7 @@ impl Builder<'_> {
         let side = |node: &Node| match self.item_with(node, &values, &objects)? {
             Item::Scalar(value) => Ok(value),
             _ => Err(error(msg!(
-                "core.geometry.interface.typed.both_sides_equation_must_numbers"))),
+                "core.geometry.interface.typed.sides_not_numbers"))),
         };
         let (l, r) = (side(left)?, side(right)?);
         Ok(if matches!(left, Node::Abs { .. }) || matches!(right, Node::Abs { .. }) { l.mul(&l).sub(&r.mul(&r)) } else { l.sub(&r) })
@@ -229,7 +229,7 @@ impl Builder<'_> {
         };
         let neither = || {
             error(msg!(
-                "core.geometry.interface.typed.equation_neither_plane_linear_x"))
+                "core.geometry.interface.typed.neither_plane_nor_sphere"))
         };
         for p in [[3, -2, 7], [-5, 11, 2], [2, 5, -3]] {
             if !equal(&f(p[0], p[1], p[2])?, &model(p)) {
@@ -251,7 +251,7 @@ impl Builder<'_> {
             let squared = coords.iter().fold(c.div(a)?.neg(), |sum, m| sum.add(&m.mul(m)));
             if zero(&squared) || squared.is_negative()? {
                 return Err(error(msg!(
-                    "core.geometry.interface.typed.equation_has_no_circle_sphere",
+                    "core.geometry.interface.typed.not_a_sphere",
                     super::show::value(&squared)
                 )));
             }

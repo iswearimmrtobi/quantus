@@ -20,7 +20,7 @@ pub fn parse_function(latex: &str, variable: Option<&str>, settings: &Settings) 
     let var = match (variable, named) {
         (Some(asked), Some(named)) if asked != named => {
             return Err(QuantusError::other(msg!(
-                "core.analysis.input.function_written_but_was_asked")))
+                "core.analysis.input.wrong_function_name")))
         }
         (Some(asked), _) => asked.to_string(),
         (None, Some(named)) => named,
@@ -32,7 +32,7 @@ pub fn parse_function(latex: &str, variable: Option<&str>, settings: &Settings) 
                 _ => {
                     let listed = found.into_iter().collect::<Vec<_>>().join(", ");
                     return Err(QuantusError::other(msg!(
-                        "core.analysis.input.f_may_depend_one_variable")));
+                        "core.analysis.input.one_variable_only")));
                 }
             }
         }

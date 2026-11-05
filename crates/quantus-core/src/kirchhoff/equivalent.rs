@@ -157,7 +157,7 @@ pub fn equivalent(
     let terminal = |n: usize, name: &str| {
         vertex_of.get(&terminals[n]).copied().ok_or_else(|| {
             QuantusError::other(msg!(
-                "core.kirchhoff.equivalent.not_connected_put_terminal_resistor"))
+                "core.kirchhoff.equivalent.terminal_not_connected"))
         })
     };
     let (a_vertex, b_vertex) = (terminal(0, "A")?, terminal(1, "B")?);
@@ -169,7 +169,7 @@ pub fn equivalent(
     if node_a == node_b {
         let latex = format!("R_{{AB}} = {}", ohms(&Value::zero())?);
         notes.push(msg!(
-            "core.kirchhoff.equivalent.b_joined_wire_no_current"));
+            "core.kirchhoff.equivalent.shorted"));
         steps.push(Step::new(StepKind::Result, latex.clone()));
         return Ok(Equivalent {
             value: Value::zero(),
@@ -192,7 +192,7 @@ pub fn equivalent(
         if a == b {
             let id = &part.id;
             notes.push(msg!(
-                "core.kirchhoff.equivalent.shorted_both_terminals_same_node"));
+                "core.kirchhoff.equivalent.shorted_part"));
             continue;
         }
         let index = index(&part.id);
@@ -215,14 +215,14 @@ pub fn equivalent(
     }
     if connected.find(node_a) != connected.find(node_b) {
         return Err(QuantusError::other(msg!(
-            "core.kirchhoff.equivalent.no_resistor_path_leads_from")));
+            "core.kirchhoff.equivalent.no_path")));
     }
     let home = connected.find(node_a);
     let (kept, apart): (Vec<Resistor>, Vec<Resistor>) = resistors.into_iter().partition(|r| connected.find(r.a) == home);
     for r in apart {
         let ids = r.parts.join(", ");
         notes.push(msg!(
-            "core.kirchhoff.equivalent.not_connected_b_carries_no"));
+            "core.kirchhoff.equivalent.not_connected"));
     }
     let mut resistors = kept;
 
@@ -285,7 +285,7 @@ pub fn equivalent(
 
     // What is left is no series and no parallel circuit: the node rule with a test current.
     notes.push(msg!(
-        "core.kirchhoff.equivalent.rest_network_neither_series_nor"));
+        "core.kirchhoff.equivalent.neither_series_nor_parallel"));
     let mut nodes: Vec<usize> = resistors.iter().flat_map(|r| [r.a, r.b]).filter(|&n| n != node_b).collect();
     nodes.sort_unstable();
     nodes.dedup();
@@ -339,7 +339,7 @@ pub fn equivalent(
     steps.extend(calculator.system_steps(&system, &names)?);
     let Solution::Unique(values) = &system.solution else {
         return Err(QuantusError::other(msg!(
-            "core.kirchhoff.equivalent.node_equations_have_no_single")));
+            "core.kirchhoff.equivalent.node_rule_ambiguous")));
     };
     // φ_A in V for I = 1 A: R_AB in Ω has the same number.
     let value = values[0].clone();
@@ -372,7 +372,7 @@ fn prune(resistors: &mut Vec<Resistor>, a: usize, b: usize, notes: &mut Vec<Stri
         let r = resistors.remove(open);
         let ids = r.parts.join(", ");
         notes.push(msg!(
-            "core.kirchhoff.equivalent.has_open_end_carries_no"));
+            "core.kirchhoff.equivalent.open_end"));
     }
 }
 
@@ -423,7 +423,7 @@ fn plain(symbol: &str) -> String {
 /// `a, b and c` in the current language.
 fn listing(names: &[String]) -> String {
     match names.split_last() {
-        Some((last, rest)) if !rest.is_empty() => format!("{} {} {last}", rest.join(", "), msg!("core.kirchhoff.equivalent.and")),
+        Some((last, rest)) if !rest.is_empty() => format!("{} {} {last}", rest.join(", "), msg!("core.kirchhoff.equivalent.and_word")),
         _ => names.join(""),
     }
 }
@@ -474,7 +474,7 @@ fn merge_parallel(resistors: &mut Vec<Resistor>, group: &[usize], calculator: &L
     };
     let names = listing(&symbols.iter().map(|s| plain(s)).collect::<Vec<_>>());
     let explanation = msg!(
-        "core.kirchhoff.equivalent.parallel_they_lie_between_same");
+        "core.kirchhoff.equivalent.parallel");
     let steps = merge_steps(&target, symbols.join(" \\parallel "), formula, substituted, with_decimal(calculator, &value, UnitKind::Ohm)?, explanation);
     let merged = Resistor {
         symbol: target.clone(),
@@ -511,7 +511,7 @@ fn merge_series(
     let substituted = format!("{} + {}", ohms(&p.value)?, ohms(&q.value)?);
     let (pn, qn) = (plain(&p.symbol), plain(&q.symbol));
     let explanation = msg!(
-        "core.kirchhoff.equivalent.series_nothing_else_branches_off");
+        "core.kirchhoff.equivalent.series");
     let steps = merge_steps(&target, sum.clone(), sum, substituted, with_decimal(calculator, &value, UnitKind::Ohm)?, explanation);
     let merged = Resistor {
         symbol: target.clone(),
@@ -685,7 +685,7 @@ fn delta_to_star(
     }
     let names = listing(&sides.iter().map(|r| plain(&r.symbol)).collect::<Vec<_>>());
     let explanation = msg!(
-        "core.kirchhoff.equivalent.form_delta_each_lies_between");
+        "core.kirchhoff.equivalent.delta");
     let merge = Merge {
         symbol: String::new(),
         parts: sides.iter().flat_map(|r| r.parts.iter().cloned()).collect(),
@@ -748,7 +748,7 @@ fn star_to_delta(
     }
     let names = listing(&star.iter().map(|r| plain(&r.symbol)).collect::<Vec<_>>());
     let explanation = msg!(
-        "core.kirchhoff.equivalent.form_star_they_meet_node");
+        "core.kirchhoff.equivalent.star");
     let merge = Merge {
         symbol: String::new(),
         parts: star.iter().flat_map(|r| r.parts.iter().cloned()).collect(),

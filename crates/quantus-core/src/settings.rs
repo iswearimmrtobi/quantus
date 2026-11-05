@@ -295,13 +295,13 @@ impl Default for Settings {
 impl Settings {
     pub fn validate(&self) -> Result<()> {
         if !(1..=MAX_PRECISION).contains(&self.precision) {
-            return Err(QuantusError::other(msg!("core.settings.precision_must_between_1_digits",
+            return Err(QuantusError::other(msg!("core.settings.precision_range",
                 self.precision
             )));
         }
         if let NumberFormat::Fix { digits } | NumberFormat::Sci { digits } = self.number_format {
             if digits > 9 {
-                return Err(QuantusError::other(msg!("core.settings.number_format_takes_0_9")));
+                return Err(QuantusError::other(msg!("core.settings.format_digits_range")));
             }
         }
         Ok(())

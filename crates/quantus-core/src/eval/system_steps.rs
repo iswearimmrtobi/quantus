@@ -115,7 +115,7 @@ impl LatexCalculator {
             let text = match (gauss, standard) {
                 (true, true) => msg!("core.eval.system_steps.matrix_triangle_form"),
                 (true, false) => msg!("core.eval.system_steps.bring_triangle_form"),
-                (false, true) => msg!("core.eval.system_steps.matrix_reduced_row_echelon_form"),
+                (false, true) => msg!("core.eval.system_steps.reduced_row_echelon"),
                 (false, false) => msg!("core.eval.system_steps.eliminate_column_column"),
             };
             let marking = if standard {
@@ -133,7 +133,7 @@ impl LatexCalculator {
             let right = self.cell(constant)?;
             let reads = constant.as_rational().map_or_else(|| "c".to_string(), |c| c.to_string());
             let text = msg!(
-                "core.eval.system_steps.row_reads_0_contradiction_system",
+                "core.eval.system_steps.contradiction",
                 label.plain(),
                 reads
             );
@@ -160,7 +160,7 @@ impl LatexCalculator {
                     left = "0".to_string();
                 }
                 let label = Label { number: i, marks: 0 };
-                let text = msg!("core.eval.system_steps.check_put_solution_into", label.plain());
+                let text = msg!("core.eval.system_steps.check_solution", label.plain());
                 let latex = format!("{}: \\; {left} = {} \\; \\checkmark", label.latex(), self.cell(&row[n])?);
                 steps.push(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Maximal));
             }
@@ -179,7 +179,7 @@ impl LatexCalculator {
         let names: Vec<String> = (1..=columns).map(|c| msg!("core.eval.system_steps.column", c)).collect();
         let mut steps = Vec::new();
         let write = match working.what {
-            Operation::Inverse => msg!("core.eval.system_steps.write_matrix_next_identity_matrix"),
+            Operation::Inverse => msg!("core.eval.system_steps.augment_identity"),
             _ => msg!("core.eval.system_steps.eliminate_column_column"),
         };
         if !standard || working.log.is_empty() {
@@ -222,9 +222,9 @@ impl LatexCalculator {
             let text = match working.what {
                 Operation::Determinant => msg!("core.eval.system_steps.matrix_reduced"),
                 Operation::Inverse => msg!(
-                    "core.eval.system_steps.left_half_identity_matrix_right"),
+                    "core.eval.system_steps.inverse_read_off"),
                 Operation::RowEchelon => msg!("core.eval.system_steps.matrix_triangle_form"),
-                Operation::ReducedRowEchelon => msg!("core.eval.system_steps.matrix_reduced_row_echelon_form"),
+                Operation::ReducedRowEchelon => msg!("core.eval.system_steps.reduced_row_echelon"),
             };
             let marking = Marking { labels: standard.then_some(labels.as_slice()), changed: &changed, split, ..Marking::default() };
             steps.push(Step::algebraic(self.matrix(before, &marking)?, None, text, None, None));
@@ -244,9 +244,9 @@ impl LatexCalculator {
             let reduced_to_identity = before.iter().enumerate().all(|(r, row)| row[r].is_one());
             let text = if reduced_to_identity {
                 msg!(
-                    "core.eval.system_steps.determinant_product_pivots_sign_change")
+                    "core.eval.system_steps.determinant_from_pivots")
             } else {
-                msg!("core.eval.system_steps.row_zeros_determinant_0")
+                msg!("core.eval.system_steps.zero_row_determinant")
             };
             let mut product = if factors.is_empty() { vec!["1".to_string()] } else { factors };
             if swaps % 2 == 1 {
@@ -308,14 +308,14 @@ impl LatexCalculator {
         let maximal = self.settings.step_detail == StepDetail::Maximal;
         let text = match (&first.operation, first.reason) {
             (RowOperation::Swap(a, b), Reason::ZeroPivot { column }) if maximal => msg!(
-                "core.eval.system_steps.entry_zero_swap_first_row",
+                "core.eval.system_steps.swap_for_pivot",
                 names[column],
                 labels[*a].plain(),
                 labels[*a].plain(),
                 labels[*b].plain()
             ),
             (RowOperation::Swap(a, b), _) => msg!(
-                "core.eval.system_steps.swap_get_non_zero_pivot",
+                "core.eval.system_steps.swap_nonzero_pivot",
                 labels[*a].plain(),
                 labels[*b].plain()
             ),
@@ -333,20 +333,20 @@ impl LatexCalculator {
                 let targets = join_plain(&targets);
                 let eliminate = match first.operation {
                     RowOperation::Combine { source, .. } | RowOperation::Subtract { source, .. } if maximal => msg!(
-                        "core.eval.system_steps.eliminate_from_pivot_first_non",
+                        "core.eval.system_steps.eliminate_with_pivot",
                         names[column],
                         targets,
                         labels[source].plain()
                     ),
-                    _ => msg!("core.eval.system_steps.eliminate_from", names[column], targets),
+                    _ => msg!("core.eval.system_steps.eliminate", names[column], targets),
                 };
                 if stage.iter().any(|entry| matches!(entry.operation, RowOperation::Scale { .. })) {
-                    msg!("core.eval.system_steps.then_divide_out_common_factor", eliminate)
+                    msg!("core.eval.system_steps.then_divide_row", eliminate)
                 } else {
                     eliminate
                 }
             }
-            _ => msg!("core.eval.system_steps.divide_out_common_factor_row"),
+            _ => msg!("core.eval.system_steps.divide_row"),
         };
         Ok((latex, text))
     }
@@ -619,7 +619,7 @@ fn join_plain(items: &[String]) -> String {
     match items {
         [] => String::new(),
         [one] => one.clone(),
-        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), msg!("core.eval.system_steps.and")),
+        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), msg!("core.eval.system_steps.and_word")),
     }
 }
 

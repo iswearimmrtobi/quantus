@@ -505,7 +505,7 @@ impl Value {
     pub fn pow(&self, exponent: &Value) -> Result<Value> {
         if exponent.is_zero() {
             return if self.is_zero() {
-                Err(QuantusError::other(msg!("core.num.0_power_0_undefined")))
+                Err(QuantusError::other(msg!("core.num.zero_to_zero")))
             } else {
                 Ok(Value::one())
             };
@@ -554,7 +554,7 @@ impl Value {
                     return Err(self.not_real());
                 }
                 if self.is_zero() || self.is_negative()? {
-                    return Err(QuantusError::other(msg!("core.num.logarithm_only_defined_positive_numbers"
+                    return Err(QuantusError::other(msg!("core.num.logarithm_domain"
                     , self)));
                 }
                 if let Some(exact) = self.exact_log(function) {
@@ -602,7 +602,7 @@ impl Value {
             MathFunction::Coth => {
                 let sinh = self.apply(MathFunction::Sinh)?;
                 if sinh.is_zero() {
-                    return Err(QuantusError::other(msg!("core.num.coth_undefined_0")));
+                    return Err(QuantusError::other(msg!("core.num.coth_at_zero")));
                 }
                 return self.apply(MathFunction::Cosh)?.div(&sinh);
             }
@@ -617,14 +617,14 @@ impl Value {
                     MathFunction::Arsinh => self.add(&self.mul(self).add(&one).pow(&half)?).apply(MathFunction::Ln),
                     MathFunction::Arcosh => {
                         if self.sub(&one).is_negative()? {
-                            return Err(QuantusError::other(msg!("core.num.arcosh_only_defined_from_1", self)));
+                            return Err(QuantusError::other(msg!("core.num.arcosh_domain", self)));
                         }
                         self.add(&self.mul(self).sub(&one).pow(&half)?).apply(MathFunction::Ln)
                     }
                     _ => {
                         let inside = one.sub(&self.mul(self));
                         if inside.is_zero() || inside.is_negative()? {
-                            return Err(QuantusError::other(msg!("core.num.artanh_only_defined_between_1", self)));
+                            return Err(QuantusError::other(msg!("core.num.artanh_domain", self)));
                         }
                         Ok(half.mul(&one.add(self).div(&one.sub(self))?.apply(MathFunction::Ln)?))
                     }
@@ -658,7 +658,7 @@ impl Value {
         let whole = |r: &RBig| -> Option<i64> { (*r.denominator() == UBig::ONE).then(|| i64::try_from(r.numerator().clone()).ok()).flatten() };
         if let Some(n) = whole(r).or_else(|| (*r.denominator() == UBig::ONE).then_some(i64::MAX)) {
             if n <= 0 {
-                return Err(QuantusError::other(msg!("core.num.gamma_function_has_pole_undefined")));
+                return Err(QuantusError::other(msg!("core.num.gamma_pole")));
             }
             if n > LIMIT {
                 return Ok(None);
@@ -689,7 +689,7 @@ impl Value {
     fn exact_arc(&self, function: MathFunction) -> Result<Option<Value>> {
         let x = self.decimal(60)?.to_rational();
         if function != MathFunction::Arctan && x.clone().abs() > RBig::ONE {
-            return Err(QuantusError::other(msg!("core.num.only_defined_between_1_1",
+            return Err(QuantusError::other(msg!("core.num.arc_domain",
                 function.display_name()
             , self)));
         }
@@ -752,7 +752,7 @@ impl Value {
                 let (sin, cos) = (cos_of(&(half - &r)), cos_of(&r));
                 match (sin, cos) {
                     (_, Some(c)) if c.is_zero() => {
-                        return Err(QuantusError::other(msg!("core.num.tangent_undefined_odd_multiples_2")))
+                        return Err(QuantusError::other(msg!("core.num.tangent_poles")))
                     }
                     (Some(s), Some(c)) => Some(s.div(&c)?),
                     _ => tan_of_quarter_pi_multiple(&r),
@@ -981,7 +981,7 @@ impl Value {
             (MathFunction::Ln | MathFunction::Log, Some((a, b))) if complex || a.is_negative()? => {
                 let norm = a.mul(&a).add(&b.mul(&b));
                 if norm.is_zero() {
-                    return Err(QuantusError::other(msg!("core.num.logarithm_0_undefined")));
+                    return Err(QuantusError::other(msg!("core.num.logarithm_of_zero")));
                 }
                 let ln = norm.apply(MathFunction::Ln)?.mul(&Value::ratio(1, 2)).add(&Value::I.mul(&arg_of(&a, &b)?));
                 match function {
@@ -1031,7 +1031,7 @@ impl Value {
                     return self.apply(function);
                 }
             } else if b.mul(b).sub(&one).is_zero() {
-                return Err(QuantusError::other(msg!("core.num.arctan_undefined_i_i")));
+                return Err(QuantusError::other(msg!("core.num.arctan_poles")));
             } else if beyond_one(b)? {
                 // On the cut: π/2 + i/2·ln((y + 1)/(y - 1)).
                 let ln = b.add(&one).div(&b.sub(&one))?.apply(MathFunction::Ln)?;
@@ -1146,7 +1146,7 @@ impl Value {
     }
 
     fn not_real(&self) -> QuantusError {
-        QuantusError::NotReal(msg!("core.num.not_real_number_cannot_shown", self))
+        QuantusError::NotReal(msg!("core.num.not_real", self))
     }
 }
 
@@ -1190,7 +1190,7 @@ fn write_joined(f: &mut fmt::Formatter<'_>, items: &[Value], separator: &str) ->
 fn arg_of(a: &Value, b: &Value) -> Result<Value> {
     if b.is_zero() {
         return match a {
-            _ if a.is_zero() => Err(QuantusError::other(msg!("core.num.argument_0_undefined"))),
+            _ if a.is_zero() => Err(QuantusError::other(msg!("core.num.argument_of_zero"))),
             _ if a.is_negative()? => Ok(Value::Pi),
             _ => Ok(Value::zero()),
         };

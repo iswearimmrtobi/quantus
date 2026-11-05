@@ -295,7 +295,7 @@ fn intersect(a: &[Interval], b: &[Interval]) -> Vec<Interval> {
 
 fn unsupported() -> QuantusError {
     QuantusError::other(
-        msg!("core.eval.inequality.only_polynomial_rational_inequalities_rational"),
+        msg!("core.eval.inequality.only_rational"),
     )
 }
 
@@ -305,7 +305,7 @@ pub(crate) fn rational_function(evaluator: &Evaluator, node: &Node, variable: &s
     if !depends_on(node, variable) {
         let quantity = evaluator.evaluate(node)?.simplify()?;
         if !quantity.unit.is_one() {
-            return Err(QuantusError::other(msg!("core.eval.inequality.inequality_units_cannot_solved_leave")));
+            return Err(QuantusError::other(msg!("core.eval.inequality.units_unsupported")));
         }
         let value = quantity.value.as_rational().cloned().or_else(|| {
             // A value like 2^{-1} that is rational but not folded.
