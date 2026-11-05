@@ -8,7 +8,7 @@ title: Kirchhoff
 **Kirchhoff** mode works out a resistor network the way it is done on paper: you draw the
 circuit, and the page sets up the junction and loop rules, writes them as a matrix, solves it with
 the Gauss steps and gives every current, voltage and power with a power balance. Values are read
-as in [Physics](physics.md): `10V`, `2k\Omega`, `500mA`.
+as in [Physics](physics/index.md): `10V`, `2k\Omega`, `500mA`.
 
 ## Drawing the circuit
 

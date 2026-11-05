@@ -85,4 +85,4 @@ names the result in base units.
 ## Next
 
 - [Concepts](concepts.md) explains modes, letters and variables.
-- [Units and quantities](../guides/physics.md) goes deeper into Physics mode.
+- [Units and quantities](../guides/physics/index.md) goes deeper into Physics mode.

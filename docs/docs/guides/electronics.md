@@ -8,7 +8,7 @@ title: Electronics
 **Electronics** mode is a circuit calculator for DC circuits: resistor networks, voltage
 dividers, voltage drop on a cable. You draw the circuit, and every part shows its voltage and
 current as you go. The values are exact until they are written; inputs are read as in
-[Physics](physics.md): `230V`, `2k\Omega`, `2.5mm^2`.
+[Physics](physics/index.md): `230V`, `2k\Omega`, `2.5mm^2`.
 
 ## Drawing the circuit
 
@@ -131,4 +131,4 @@ See [Settings](../reference/settings.md).
 ## See also
 
 - [Kirchhoff](kirchhoff.md): the same kind of circuit worked out with the junction and loop rules
-- [Units and quantities](physics.md)
+- [Units and quantities](physics/index.md)
