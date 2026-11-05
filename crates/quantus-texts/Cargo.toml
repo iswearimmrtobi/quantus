@@ -1,0 +1,20 @@
+[package]
+name = "quantus-texts"
+description = "Every text of Quantus in every language, from texts/texts.json, built into the program"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[features]
+# `Language` as its code, "en" or "de".
+serde = ["dep:serde"]
+
+[dependencies]
+quantus-texts-macros = { path = "../quantus-texts-macros" }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[dev-dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }

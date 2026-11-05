@@ -1,0 +1,26 @@
+{
+  "languages": {
+    "en": {
+      "name": "English",
+      "decimal": ".",
+      "intervals": "round",
+      "quadratic": "abc"
+    },
+    "de": {
+      "name": "Deutsch",
+      "decimal": ",",
+      "intervals": "reversed",
+      "quadratic": "pq"
+    }
+  },
+  "texts": {
+    "test.one": {
+      "en": "one {}",
+      "de": "eins {}"
+    },
+    "test.named": {
+      "en": "{n} of {total}",
+      "de": "{n} von {total}"
+    }
+  }
+}
