@@ -3162,6 +3162,194 @@
       "en": "Wanted:",
       "de": "Gesucht:"
     },
+    "shell.cannot_start": {
+      "en": "Quantus cannot start",
+      "de": "Quantus startet nicht"
+    },
+    "shell.commands.circuit_file_has_no_list": {
+      "en": "The circuit file has no list of parts.",
+      "de": "Schaltungsdatei ohne Bauteilliste."
+    },
+    "shell.commands.circuit_file_has_unknown_version": {
+      "en": "The circuit file has the unknown version {other}.",
+      "de": "Schaltungsdatei hat die unbekannte Version {other}."
+    },
+    "shell.commands.could_not_read": {
+      "en": "{} could not be read: {error}",
+      "de": "{} konnte nicht gelesen werden: {error}"
+    },
+    "shell.commands.could_not_saved": {
+      "en": "{} could not be saved: {error}",
+      "de": "{} konnte nicht gespeichert werden: {error}"
+    },
+    "shell.commands.id_occurs_more_than_once": {
+      "en": "The ID {id} occurs more than once.",
+      "de": "Die ID {id} kommt mehrfach vor."
+    },
+    "shell.commands.not_circuit_file_version_missing": {
+      "en": "This is not a circuit file: the version is missing.",
+      "de": "Das ist keine Schaltungsdatei: die Version fehlt."
+    },
+    "shell.commands.not_valid_circuit_file": {
+      "en": "Not a valid circuit file: {error}",
+      "de": "Keine gültige Schaltungsdatei: {error}"
+    },
+    "shell.commands.part_id_missing": {
+      "en": "Part {number}: the ID is missing.",
+      "de": "Bauteil {number}: die ID fehlt."
+    },
+    "shell.commands.position_missing": {
+      "en": "{id}: the position ({key}) is missing.",
+      "de": "{id}: die Position ({key}) fehlt."
+    },
+    "shell.commands.reversed_must_true_false": {
+      "en": "{id}: “reversed” must be true or false.",
+      "de": "{id}: „reversed“ muss true oder false sein."
+    },
+    "shell.commands.settings_could_not_saved": {
+      "en": "The settings could not be saved: {error}",
+      "de": "Einstellungen konnten nicht gespeichert werden: {error}"
+    },
+    "shell.commands.unknown_kind_part": {
+      "en": "{id}: unknown kind of part “{kind}”.",
+      "de": "{id}: unbekannte Bauteilart „{kind}“."
+    },
+    "shell.menu.calc_put_values": {
+      "en": "CALC: put in values…",
+      "de": "CALC: Werte einsetzen …"
+    },
+    "shell.menu.calculation": {
+      "en": "Calculation",
+      "de": "Rechnung"
+    },
+    "shell.menu.constants_units": {
+      "en": "Constants and units",
+      "de": "Konstanten und Einheiten"
+    },
+    "shell.menu.copy": {
+      "en": "Copy",
+      "de": "Kopieren"
+    },
+    "shell.menu.copy_result": {
+      "en": "Copy result",
+      "de": "Ergebnis kopieren"
+    },
+    "shell.menu.copy_whole_calculation": {
+      "en": "Copy whole calculation",
+      "de": "Ganze Rechnung kopieren"
+    },
+    "shell.menu.cut": {
+      "en": "Cut",
+      "de": "Ausschneiden"
+    },
+    "shell.menu.developer_tools": {
+      "en": "Developer tools",
+      "de": "Entwicklerwerkzeuge"
+    },
+    "shell.menu.edit": {
+      "en": "Edit",
+      "de": "Bearbeiten"
+    },
+    "shell.menu.eng": {
+      "en": "ENG",
+      "de": "ENG"
+    },
+    "shell.menu.eng_2": {
+      "en": "←ENG",
+      "de": "←ENG"
+    },
+    "shell.menu.evaluate": {
+      "en": "Evaluate",
+      "de": "Auswerten"
+    },
+    "shell.menu.full_screen": {
+      "en": "Full screen",
+      "de": "Vollbild"
+    },
+    "shell.menu.history": {
+      "en": "History",
+      "de": "Verlauf"
+    },
+    "shell.menu.new_calculation": {
+      "en": "New calculation",
+      "de": "Neue Rechnung"
+    },
+    "shell.menu.new_session": {
+      "en": "New session",
+      "de": "Neue Sitzung"
+    },
+    "shell.menu.next_result_form": {
+      "en": "Next result form",
+      "de": "Nächste Ergebnisform"
+    },
+    "shell.menu.paste": {
+      "en": "Paste",
+      "de": "Einfügen"
+    },
+    "shell.menu.quick_search": {
+      "en": "Quick search…",
+      "de": "Schnellsuche …"
+    },
+    "shell.menu.quit": {
+      "en": "Quit",
+      "de": "Beenden"
+    },
+    "shell.menu.redo": {
+      "en": "Redo",
+      "de": "Wiederherstellen"
+    },
+    "shell.menu.reset_zoom": {
+      "en": "Reset zoom",
+      "de": "Zoom zurücksetzen"
+    },
+    "shell.menu.select_all": {
+      "en": "Select all",
+      "de": "Alles auswählen"
+    },
+    "shell.menu.sessions": {
+      "en": "Sessions",
+      "de": "Sitzungen"
+    },
+    "shell.menu.settings": {
+      "en": "Settings",
+      "de": "Einstellungen"
+    },
+    "shell.menu.solve_variable": {
+      "en": "SOLVE for a variable…",
+      "de": "SOLVE: nach Variable lösen …"
+    },
+    "shell.menu.steps": {
+      "en": "Steps",
+      "de": "Rechenweg"
+    },
+    "shell.menu.undo": {
+      "en": "Undo",
+      "de": "Rückgängig"
+    },
+    "shell.menu.variables": {
+      "en": "Variables",
+      "de": "Variablen"
+    },
+    "shell.menu.view": {
+      "en": "View",
+      "de": "Ansicht"
+    },
+    "shell.menu.write_latex": {
+      "en": "Write LaTeX",
+      "de": "LaTeX schreiben"
+    },
+    "shell.menu.writeup_given_wanted_solution": {
+      "en": "Writeup: given, wanted, solution",
+      "de": "Lösungsweg: Gegeben, Gesucht, Lösung"
+    },
+    "shell.menu.zoom": {
+      "en": "Zoom in",
+      "de": "Größer"
+    },
+    "shell.menu.zoom_out": {
+      "en": "Zoom out",
+      "de": "Kleiner"
+    },
     "test.named": {
       "en": "{n} of {total}",
       "de": "{n} von {total}"

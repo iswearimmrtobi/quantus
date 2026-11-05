@@ -18,19 +18,10 @@ use quantus_core::api::{
 };
 use quantus_core::session::{SessionStore, DEFAULT_SESSION};
 use quantus_core::settings::{Language, Settings};
+use quantus_texts::tr;
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime, State};
-
-/// `format!` in the given language: the English text first, then the German one.
-macro_rules! text {
-    ($language:expr, $en:literal, $de:literal $(, $arg:expr)* $(,)?) => {
-        match $language {
-            Language::En => format!($en $(, $arg)*),
-            Language::De => format!($de $(, $arg)*),
-        }
-    };
-}
 
 #[derive(Default)]
 pub struct Engine {
@@ -423,11 +414,9 @@ pub fn set_settings<R: Runtime>(
     }
     if let Some(path) = engine.settings_file.get() {
         save_settings(path, &saved).map_err(|error| ApiError {
-            error: text!(
+            error: tr!(
                 saved.language,
-                "The settings could not be saved: {error}",
-                "Einstellungen konnten nicht gespeichert werden: {error}"
-            ),
+                "shell.commands.settings_could_not_saved"),
             position: None,
         })?;
     }
@@ -462,22 +451,18 @@ pub fn validate_circuit(circuit: &Value, language: Language) -> Result<(), ApiEr
     let version = circuit.get("version").and_then(Value::as_u64);
     if version != Some(CIRCUIT_FILE_VERSION) {
         return Err(file_error(match version {
-            Some(other) => text!(
+            Some(other) => tr!(
                 language,
-                "The circuit file has the unknown version {other}.",
-                "Schaltungsdatei hat die unbekannte Version {other}."
-            ),
-            None => text!(
+                "shell.commands.circuit_file_has_unknown_version"),
+            None => tr!(
                 language,
-                "This is not a circuit file: the version is missing.",
-                "Das ist keine Schaltungsdatei: die Version fehlt."
-            ),
+                "shell.commands.not_circuit_file_version_missing"),
         }));
     }
     let elements = circuit
         .get("elements")
         .and_then(Value::as_array)
-        .ok_or_else(|| file_error(text!(language, "The circuit file has no list of parts.", "Schaltungsdatei ohne Bauteilliste.")))?;
+        .ok_or_else(|| file_error(tr!(language, "shell.commands.circuit_file_has_no_list")))?;
     let mut ids = std::collections::HashSet::new();
     for (index, element) in elements.iter().enumerate() {
         let number = index + 1;
@@ -485,25 +470,23 @@ pub fn validate_circuit(circuit: &Value, language: Language) -> Result<(), ApiEr
             .get("id")
             .and_then(Value::as_str)
             .filter(|id| !id.trim().is_empty())
-            .ok_or_else(|| file_error(text!(language, "Part {number}: the ID is missing.", "Bauteil {number}: die ID fehlt.")))?;
+            .ok_or_else(|| file_error(tr!(language, "shell.commands.part_id_missing")))?;
         if !ids.insert(id) {
-            return Err(file_error(text!(language, "The ID {id} occurs more than once.", "Die ID {id} kommt mehrfach vor.")));
+            return Err(file_error(tr!(language, "shell.commands.id_occurs_more_than_once")));
         }
         let kind = element.get("kind").and_then(Value::as_str).unwrap_or_default();
         if !ELEMENT_KINDS.contains(&kind) {
-            return Err(file_error(text!(language, "{id}: unknown kind of part “{kind}”.", "{id}: unbekannte Bauteilart „{kind}“.")));
+            return Err(file_error(tr!(language, "shell.commands.unknown_kind_part")));
         }
         for key in ["x", "y"] {
             if !element.get(key).is_some_and(Value::is_number) {
-                return Err(file_error(text!(language, "{id}: the position ({key}) is missing.", "{id}: die Position ({key}) fehlt.")));
+                return Err(file_error(tr!(language, "shell.commands.position_missing")));
             }
         }
         if element.get("reversed").is_some_and(|reversed| !reversed.is_boolean()) {
-            return Err(file_error(text!(
+            return Err(file_error(tr!(
                 language,
-                "{id}: “reversed” must be true or false.",
-                "{id}: „reversed“ muss true oder false sein."
-            )));
+                "shell.commands.reversed_must_true_false")));
         }
     }
     Ok(())
@@ -513,14 +496,13 @@ pub fn validate_circuit(circuit: &Value, language: Language) -> Result<(), ApiEr
 /// the circuit it has.
 pub fn read_circuit(path: &Path, language: Language) -> Result<Value, ApiError> {
     let text = fs::read_to_string(path)
-        .map_err(|error| file_error(text!(
+        .map_err(|error| file_error(tr!(
             language,
-            "{} could not be read: {error}",
-            "{} konnte nicht gelesen werden: {error}",
+            "shell.commands.could_not_read",
             path.display()
         )))?;
     let circuit: Value = serde_json::from_str(&text)
-        .map_err(|error| file_error(text!(language, "Not a valid circuit file: {error}", "Keine gültige Schaltungsdatei: {error}")))?;
+        .map_err(|error| file_error(tr!(language, "shell.commands.not_valid_circuit_file")))?;
     validate_circuit(&circuit, language)?;
     Ok(circuit)
 }
@@ -529,10 +511,9 @@ pub fn write_circuit(path: &Path, circuit: &Value, language: Language) -> Result
     validate_circuit(circuit, language)?;
     let text = serde_json::to_string_pretty(circuit).map_err(file_error)?;
     fs::write(path, text)
-        .map_err(|error| file_error(text!(
+        .map_err(|error| file_error(tr!(
             language,
-            "{} could not be saved: {error}",
-            "{} konnte nicht gespeichert werden: {error}",
+            "shell.commands.could_not_saved",
             path.display()
         )))
 }

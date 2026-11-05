@@ -7,6 +7,7 @@
 use std::sync::Mutex;
 
 use quantus_core::settings::Language;
+use quantus_texts::{texts, Text};
 use tauri::menu::{Menu, MenuBuilder, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
@@ -59,55 +60,52 @@ fn item<R: Runtime>(
 }
 
 pub fn build_menu<R: Runtime>(app: &AppHandle<R>, language: Language) -> tauri::Result<Menu<R>> {
-    let l = |en: &'static str, de: &'static str| match language {
-        Language::En => en,
-        Language::De => de,
-    };
-    let calculation = SubmenuBuilder::new(app, l("Calculation", "Rechnung"))
-        .item(&item(app, "new", l("New calculation", "Neue Rechnung"), Some("CmdOrCtrl+N"))?)
-        .item(&item(app, "evaluate", l("Evaluate", "Auswerten"), Some("CmdOrCtrl+Enter"))?)
-        .item(&item(app, "toggle-latex", l("Write LaTeX", "LaTeX schreiben"), Some("CmdOrCtrl+L"))?)
-        .item(&item(app, "calc", l("CALC: put in values…", "CALC: Werte einsetzen …"), Some("CmdOrCtrl+Shift+K"))?)
-        .item(&item(app, "solve", l("SOLVE for a variable…", "SOLVE: nach Variable lösen …"), Some("CmdOrCtrl+Shift+S"))?)
+    let l = |text: [&'static str; Language::ALL.len()]| Text(text).get(language);
+    let calculation = SubmenuBuilder::new(app, l(texts!("shell.menu.calculation")))
+        .item(&item(app, "new", l(texts!("shell.menu.new_calculation")), Some("CmdOrCtrl+N"))?)
+        .item(&item(app, "evaluate", l(texts!("shell.menu.evaluate")), Some("CmdOrCtrl+Enter"))?)
+        .item(&item(app, "toggle-latex", l(texts!("shell.menu.write_latex")), Some("CmdOrCtrl+L"))?)
+        .item(&item(app, "calc", l(texts!("shell.menu.calc_put_values")), Some("CmdOrCtrl+Shift+K"))?)
+        .item(&item(app, "solve", l(texts!("shell.menu.solve_variable")), Some("CmdOrCtrl+Shift+S"))?)
         .separator()
-        .item(&item(app, "switch-form", l("Next result form", "Nächste Ergebnisform"), Some("CmdOrCtrl+D"))?)
-        .item(&item(app, "eng", l("ENG", "ENG"), Some("CmdOrCtrl+E"))?)
-        .item(&item(app, "eng-back", l("←ENG", "←ENG"), Some("CmdOrCtrl+Shift+E"))?)
+        .item(&item(app, "switch-form", l(texts!("shell.menu.next_result_form")), Some("CmdOrCtrl+D"))?)
+        .item(&item(app, "eng", l(texts!("shell.menu.eng")), Some("CmdOrCtrl+E"))?)
+        .item(&item(app, "eng-back", l(texts!("shell.menu.eng_2")), Some("CmdOrCtrl+Shift+E"))?)
         .separator()
-        .item(&item(app, "copy-result", l("Copy result", "Ergebnis kopieren"), Some("CmdOrCtrl+Shift+C"))?)
-        .item(&item(app, "copy-all", l("Copy whole calculation", "Ganze Rechnung kopieren"), Some("CmdOrCtrl+Alt+C"))?)
+        .item(&item(app, "copy-result", l(texts!("shell.menu.copy_result")), Some("CmdOrCtrl+Shift+C"))?)
+        .item(&item(app, "copy-all", l(texts!("shell.menu.copy_whole_calculation")), Some("CmdOrCtrl+Alt+C"))?)
         .separator()
-        .item(&item(app, "new-session", l("New session", "Neue Sitzung"), Some("CmdOrCtrl+Shift+N"))?)
-        .item(&item(app, "toggle-sessions", l("Sessions", "Sitzungen"), Some("CmdOrCtrl+O"))?)
+        .item(&item(app, "new-session", l(texts!("shell.menu.new_session")), Some("CmdOrCtrl+Shift+N"))?)
+        .item(&item(app, "toggle-sessions", l(texts!("shell.menu.sessions")), Some("CmdOrCtrl+O"))?)
         .separator()
-        .item(&PredefinedMenuItem::quit(app, Some(l("Quit", "Beenden")))?)
+        .item(&PredefinedMenuItem::quit(app, Some(l(texts!("shell.menu.quit"))))?)
         .build()?;
 
-    let edit = SubmenuBuilder::new(app, l("Edit", "Bearbeiten"))
-        .item(&PredefinedMenuItem::undo(app, Some(l("Undo", "Rückgängig")))?)
-        .item(&PredefinedMenuItem::redo(app, Some(l("Redo", "Wiederherstellen")))?)
+    let edit = SubmenuBuilder::new(app, l(texts!("shell.menu.edit")))
+        .item(&PredefinedMenuItem::undo(app, Some(l(texts!("shell.menu.undo"))))?)
+        .item(&PredefinedMenuItem::redo(app, Some(l(texts!("shell.menu.redo"))))?)
         .separator()
-        .item(&PredefinedMenuItem::cut(app, Some(l("Cut", "Ausschneiden")))?)
-        .item(&PredefinedMenuItem::copy(app, Some(l("Copy", "Kopieren")))?)
-        .item(&PredefinedMenuItem::paste(app, Some(l("Paste", "Einfügen")))?)
-        .item(&PredefinedMenuItem::select_all(app, Some(l("Select all", "Alles auswählen")))?)
+        .item(&PredefinedMenuItem::cut(app, Some(l(texts!("shell.menu.cut"))))?)
+        .item(&PredefinedMenuItem::copy(app, Some(l(texts!("shell.menu.copy"))))?)
+        .item(&PredefinedMenuItem::paste(app, Some(l(texts!("shell.menu.paste"))))?)
+        .item(&PredefinedMenuItem::select_all(app, Some(l(texts!("shell.menu.select_all"))))?)
         .build()?;
 
-    let mut view = SubmenuBuilder::new(app, l("View", "Ansicht"))
-        .item(&item(app, "toggle-steps", l("Steps", "Rechenweg"), Some("CmdOrCtrl+J"))?)
-        .item(&item(app, "toggle-variables", l("Variables", "Variablen"), Some("CmdOrCtrl+,"))?)
-        .item(&item(app, "toggle-history", l("History", "Verlauf"), Some("CmdOrCtrl+H"))?)
-        .item(&item(app, "toggle-library", l("Constants and units", "Konstanten und Einheiten"), Some("CmdOrCtrl+K"))?)
-        .item(&item(app, "toggle-writeup", l("Writeup: given, wanted, solution", "Lösungsweg: Gegeben, Gesucht, Lösung"), Some("CmdOrCtrl+G"))?)
-        .item(&item(app, "quick-search", l("Quick search…", "Schnellsuche …"), Some("CmdOrCtrl+F"))?)
-        .item(&item(app, "toggle-settings", l("Settings", "Einstellungen"), Some("CmdOrCtrl+."))?)
+    let mut view = SubmenuBuilder::new(app, l(texts!("shell.menu.view")))
+        .item(&item(app, "toggle-steps", l(texts!("shell.menu.steps")), Some("CmdOrCtrl+J"))?)
+        .item(&item(app, "toggle-variables", l(texts!("shell.menu.variables")), Some("CmdOrCtrl+,"))?)
+        .item(&item(app, "toggle-history", l(texts!("shell.menu.history")), Some("CmdOrCtrl+H"))?)
+        .item(&item(app, "toggle-library", l(texts!("shell.menu.constants_units")), Some("CmdOrCtrl+K"))?)
+        .item(&item(app, "toggle-writeup", l(texts!("shell.menu.writeup_given_wanted_solution")), Some("CmdOrCtrl+G"))?)
+        .item(&item(app, "quick-search", l(texts!("shell.menu.quick_search")), Some("CmdOrCtrl+F"))?)
+        .item(&item(app, "toggle-settings", l(texts!("shell.menu.settings")), Some("CmdOrCtrl+."))?)
         .separator()
-        .item(&item(app, "zoom-reset", l("Reset zoom", "Zoom zurücksetzen"), Some("CmdOrCtrl+0"))?)
-        .item(&item(app, "zoom-in", l("Zoom in", "Größer"), Some("CmdOrCtrl+Plus"))?)
-        .item(&item(app, "zoom-out", l("Zoom out", "Kleiner"), Some("CmdOrCtrl+-"))?)
-        .item(&item(app, "fullscreen", l("Full screen", "Vollbild"), Some("F11"))?);
+        .item(&item(app, "zoom-reset", l(texts!("shell.menu.reset_zoom")), Some("CmdOrCtrl+0"))?)
+        .item(&item(app, "zoom-in", l(texts!("shell.menu.zoom")), Some("CmdOrCtrl+Plus"))?)
+        .item(&item(app, "zoom-out", l(texts!("shell.menu.zoom_out")), Some("CmdOrCtrl+-"))?)
+        .item(&item(app, "fullscreen", l(texts!("shell.menu.full_screen")), Some("F11"))?);
     if cfg!(debug_assertions) {
-        view = view.item(&item(app, "devtools", l("Developer tools", "Entwicklerwerkzeuge"), Some("CmdOrCtrl+Shift+I"))?);
+        view = view.item(&item(app, "devtools", l(texts!("shell.menu.developer_tools")), Some("CmdOrCtrl+Shift+I"))?);
     }
 
     MenuBuilder::new(app).item(&calculation).item(&edit).item(&view.build()?).build()

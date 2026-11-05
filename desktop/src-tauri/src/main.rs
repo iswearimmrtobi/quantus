@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use quantus_core::settings::Language;
+use quantus_texts::tr;
 use tauri::Manager;
 
 mod commands;
@@ -79,13 +81,15 @@ fn main() {
         .unwrap_or_else(|error| fatal(&error.to_string()));
 }
 
-/// The settings are not readable this early, so the system's language decides.
-fn system_is_german() -> bool {
+/// The settings are not readable this early, so the system's language decides: `de_DE.UTF-8`
+/// is German, a language Quantus does not have is English.
+fn system_language() -> Language {
     ["LC_ALL", "LC_MESSAGES", "LANG"]
         .iter()
         .find_map(|name| std::env::var(name).ok().filter(|value| !value.is_empty()))
         .or_else(system_locale)
-        .is_some_and(|value| value.starts_with("de"))
+        .and_then(|value| Language::from_code(&value.get(..2)?.to_lowercase()))
+        .unwrap_or_default()
 }
 
 /// Windows does not set `LANG`; the user locale (`de-DE`, `en-US`, …) stands in for it.
@@ -109,7 +113,7 @@ fn fatal(message: &str) -> ! {
     eprintln!("Quantus: {message}");
     rfd::MessageDialog::new()
         .set_level(rfd::MessageLevel::Error)
-        .set_title(if system_is_german() { "Quantus startet nicht" } else { "Quantus cannot start" })
+        .set_title(tr!(system_language(), "shell.cannot_start"))
         .set_description(message)
         .show();
     std::process::exit(1);

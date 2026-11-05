@@ -3050,6 +3050,7 @@ name = "quantus-desktop"
 version = "0.1.0"
 dependencies = [
  "quantus-core",
+ "quantus-texts",
  "rfd",
  "serde",
  "serde_json",
