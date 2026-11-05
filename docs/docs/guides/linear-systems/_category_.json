@@ -1,0 +1,5 @@
+{
+  "label": "Linear systems",
+  "position": 5,
+  "link": { "type": "doc", "id": "guides/linear-systems/index" }
+}

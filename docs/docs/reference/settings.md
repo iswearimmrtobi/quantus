@@ -119,7 +119,7 @@ off, a cancelled factor is shown in colour instead. See
 **Gauss** brings it to triangle form without fractions and then solves from the bottom up, as
 taught at school; **Gauss–Jordan** divides every pivot to 1 and clears its column above and below.
 The solution is the same. It applies to systems typed with `;`, to
-[Linear systems](../guides/linear-systems.md) mode and to the equations of
+[Linear systems](../guides/linear-systems/index.md) mode and to the equations of
 [Kirchhoff](../guides/kirchhoff.md) mode.
 
 **Resistance between A and B** decides what the [Kirchhoff](../guides/kirchhoff.md) mode does
@@ -135,7 +135,7 @@ formula in German and the quadratic (abc) formula in English. It is read only in
 **Unknown names** names the columns of the matrix, the equations written from it and the
 solution: *indexed* is $x_1, x_2, \dots$; *letters* is $x, y, z, a, \dots, w$ without $e$ and
 $i$, then $x_1, x_2, \dots$ Equations typed on the **Equations** tab keep the names you typed. It is read
-only in [Linear systems](../guides/linear-systems.md) mode.
+only in [Linear systems](../guides/linear-systems/index.md) mode.
 
 ## Input
 

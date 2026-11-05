@@ -76,7 +76,7 @@ shorter.
    source voltages. Each rule is written with names first, $R_1 I_1 + R_3 I_3 = U_1$, then with
    the values, $1000\,\Omega \cdot I_1 + 2000\,\Omega \cdot I_3 = 10\,\mathrm{V}$.
 3. **Matrix**: the rules as $[A \mid b]$ in the unknowns, and the Gauss steps that solve it, as in
-   [Linear systems](linear-systems.md#the-steps).
+   [Linear systems](linear-systems/solution.md#the-steps).
 4. **Currents**: each unknown, exact: $I_1 = \frac{3}{800}\,\mathrm{A}$.
 5. **Power balance**: the power the sources deliver equals the power the resistors take.
 
@@ -195,5 +195,5 @@ See [Settings](../reference/settings.md).
 
 ## See also
 
-- [Linear systems](linear-systems.md): the Gauss steps in detail
+- [Linear systems](linear-systems/index.md): the Gauss steps in detail
 - [Working and output](../basics/working-and-output.md)

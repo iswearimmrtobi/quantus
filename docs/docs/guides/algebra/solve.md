@@ -78,10 +78,10 @@ contradicts itself ends in the row $0 = c$.
 
 Coefficients may be fractions, $\pi$ or stored variables (`k_1 x + y = 7`); the unknowns
 themselves must appear linearly. For larger systems, one equation per line or a matrix, use
-[Linear systems](../linear-systems.md) mode.
+[Linear systems](../linear-systems/index.md) mode.
 
 ## See also
 
 - [Complex numbers](../imaginary.md) for equations without real solutions
-- [Linear systems](../linear-systems.md) for larger systems
+- [Linear systems](../linear-systems/index.md) for larger systems
 - [Known limits](../../reference/limits.md)
