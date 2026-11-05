@@ -137,11 +137,7 @@ fn tick_label(value: f32, step: f32, lang: Lang) -> String {
     let decimals = (-step.log10().floor()).max(0.0) as usize;
     let value = if value.abs() < step / 1000.0 { 0.0 } else { value };
     let text = format!("{value:.decimals$}");
-    if lang == Lang::De {
-        text.replace('.', ",")
-    } else {
-        text
-    }
+    text.replace('.', lang.decimal())
 }
 
 /// The colour a point is marked in.

@@ -6,7 +6,7 @@ use crate::backend::{
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
-use crate::text::{self, same, t, Lang, Text};
+use crate::text::{self, same, tx, Lang, Text};
 use crate::tree;
 use crate::clock;
 use crate::menu::{self, Action, Edit, Kind, Menu, Outcome, TextFor, TimeField};
@@ -55,18 +55,18 @@ impl Mode {
     /// The name, with a soft hyphen where a tile may break it.
     pub fn text(self) -> Text {
         match self {
-            Mode::Physics => t("Physik", "Physics"),
+            Mode::Physics => tx!("hui.app.physics"),
             Mode::Algebra => same("Algebra"),
-            Mode::Imaginary => t("Komplex", "Complex"),
-            Mode::Analysis => t("Kurven\u{ad}diskussion", "Curve sketching"),
-            Mode::Linear => t("LGS", "Linear systems"),
-            Mode::Table => t("Werte\u{ad}tabelle", "Table"),
-            Mode::Matrix => t("Matrizen", "Matrices"),
+            Mode::Imaginary => tx!("hui.app.complex"),
+            Mode::Analysis => tx!("hui.app.curve_sketching"),
+            Mode::Linear => tx!("hui.app.linear_systems"),
+            Mode::Table => tx!("hui.app.table"),
+            Mode::Matrix => tx!("hui.app.matrices"),
             Mode::BaseN => same("Basis-N"),
-            Mode::Statistics => t("Statistik", "Statistics"),
-            Mode::Distributions => t("Vertei\u{ad}lungen", "Distri\u{ad}butions"),
-            Mode::Verify => t("Prüfen", "Verify"),
-            Mode::Sessions => t("Sitzungen", "Sessions"),
+            Mode::Statistics => tx!("hui.app.statistics"),
+            Mode::Distributions => tx!("hui.app.distri_butions"),
+            Mode::Verify => tx!("hui.app.verify"),
+            Mode::Sessions => tx!("hui.app.sessions"),
         }
     }
 

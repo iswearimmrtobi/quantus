@@ -315,7 +315,7 @@ impl Settings {
         let on = value != 0;
         let small = value.clamp(0, i32::from(u8::MAX)) as u8;
         match setting {
-            S::Language => self.language = if value == Lang::En as i32 { Lang::En } else { Lang::De },
+            S::Language => self.language = usize::try_from(value).ok().and_then(|i| Lang::ALL.get(i)).copied().unwrap_or(Lang::De),
             S::Angle => self.angle = Angle::from_index(value),
             S::Digits => self.digits = small.clamp(1, Self::MAX_DIGITS),
             S::Format => self.format = NumberFormat::from_index(value),
@@ -386,7 +386,9 @@ const HEADER: &str = "quantus-settings 1";
 const KEYS: &[(&str, Setting)] = {
     use Setting as S;
     &[
-        ("language", S::Language),
+        // Renamed when the value became the position in `texts/texts.json` (English first), so a
+        // value kept from before (0 was German) does not switch the language.
+        ("language_2", S::Language),
         ("angle", S::Angle),
         ("digits", S::Digits),
         ("format", S::Format),

@@ -17,10 +17,6 @@ pub fn sketch(core: &CoreSettings, f: &str, precision: Option<usize>) -> Result<
     Ok(analysis(&response))
 }
 
-fn german(core: &CoreSettings) -> bool {
-    core.language == quantus_core::settings::Language::De
-}
-
 fn analysis(response: &AnalysisResponse) -> Analysis {
     let pages = response
         .sections
@@ -169,7 +165,7 @@ pub fn tangent(core: &CoreSettings, f: &str, x0: &str, precision: Option<usize>)
     let lines = steps(&response.steps);
     let mut result = math_lines(&response.tangent.latex);
     result.extend(math_lines(&response.normal.latex));
-    let title = if german(core) { "Tangente, Normale" } else { "Tangent, normal" }.to_string();
+    let title = quantus_texts::tr!(core.language, "engine.tangent_normal");
     let overlay = Overlay {
         tangent: straight(&response.tangent),
         normal: straight(&response.normal),
@@ -193,7 +189,7 @@ pub fn area(core: &CoreSettings, f: &str, from: &str, to: &str, precision: Optio
     let response = api::area(core, &request).map_err(|error| error.error)?;
     let lines = steps(&response.steps);
     let result = vec![Line::Math(format!("A = {}", response.area)), Line::Math(format!("\\int f(x)\\,dx = {}", response.signed))];
-    let title = if german(core) { "Fläche" } else { "Area" }.to_string();
+    let title = quantus_texts::tr!(core.language, "engine.area");
     let regions = response
         .regions
         .iter()

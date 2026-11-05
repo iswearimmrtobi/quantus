@@ -36,8 +36,8 @@ pub trait Backend {
     /// What a mode with a sheet (LGS, Wertetabelle, Statistik, Verteilungen) asks for, worked
     /// out, or an error message. The backend keeps the request in the open session, so the
     /// sheet is filled again when the session is opened.
-    fn solve(&mut self, _settings: &Settings, _request: &Request) -> Result<Reply, String> {
-        Err(text::NOT_AVAILABLE.de.to_string())
+    fn solve(&mut self, settings: &Settings, _request: &Request) -> Result<Reply, String> {
+        Err(text::NOT_AVAILABLE.get(settings.language).to_string())
     }
 
     /// [`solve`](Backend::solve) as [`start`](Backend::start) does it: the answer now, or
@@ -59,8 +59,8 @@ pub trait Backend {
 
     /// Does `command` to the variables of the open session and returns them all afterwards, or
     /// why it failed. A backend without sessions has none.
-    fn variables(&mut self, _command: VariableCommand, _settings: &Settings) -> Result<Vec<Stored>, String> {
-        Err(text::NOT_AVAILABLE.de.to_string())
+    fn variables(&mut self, _command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {
+        Err(text::NOT_AVAILABLE.get(settings.language).to_string())
     }
 
     /// The sessions there are, in the order the session list shows them.
@@ -334,12 +334,12 @@ impl Field {
     }
 
     pub fn label(self) -> text::Text {
-        use text::{same, t};
+        use text::{same, tx};
         match self {
             Field::X => same("x"),
-            Field::Lower => t("Untere", "Lower"),
-            Field::Upper => t("Obere", "Upper"),
-            Field::Area => t("Fläche", "Area"),
+            Field::Lower => tx!("hui.backend.lower"),
+            Field::Upper => tx!("hui.backend.upper"),
+            Field::Area => tx!("hui.backend.area"),
             Field::Sigma => same("σ"),
             Field::Mu => same("μ"),
             Field::N => same("n"),
@@ -599,7 +599,7 @@ pub fn bytes(bytes: u64, lang: crate::text::Lang) -> String {
         unit += 1;
     }
     let text = if value < 99.95 { format!("{value:.1}") } else { format!("{value:.0}") };
-    let text = if lang == crate::text::Lang::De { text.replace('.', ",") } else { text };
+    let text = text.replace('.', lang.decimal());
     format!("{text} {}", UNITS[unit])
 }
 

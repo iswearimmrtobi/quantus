@@ -84,5 +84,5 @@ fn solve_without_letters_says_so() {
     let mut app = algebra();
     press(&mut app, &[Key::Digit(2), Key::Shift, Key::Calc]);
     assert_eq!(app.sheet_kind(), None);
-    assert_eq!(result(&app), Err(quantus_ui::text::NO_UNKNOWN.de.to_string()));
+    assert_eq!(result(&app), Err(quantus_ui::text::NO_UNKNOWN.get(quantus_ui::text::Lang::De).to_string()));
 }

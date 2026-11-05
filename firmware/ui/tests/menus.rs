@@ -98,7 +98,8 @@ fn the_exam_mode_keeps_the_radios_off() {
 fn the_language_switches_the_texts() {
     let mut app = setup();
     assert_eq!(menu(&app).title().get(app.settings.language), "Setup");
-    press(&mut app, &[Key::Digit(1), Key::Digit(1), Key::Digit(2)]);
+    // Allgemein → Sprache → English, first as in `texts/texts.json`.
+    press(&mut app, &[Key::Digit(1), Key::Digit(1), Key::Digit(1)]);
     assert_eq!(app.settings.language, Lang::En);
     assert_eq!(menu(&app).title().get(app.settings.language), "General");
 }
@@ -326,13 +327,13 @@ fn the_storage_screen_shows_the_card() {
     let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
     let Some(Edit::Storage { storage: Some(storage), .. }) = &menu.edit else { panic!("no storage: {:?}", menu.edit) };
     assert_eq!(storage.used(), 11_914_983_424);
-    assert_eq!(menu.title().de, "Speicherplatz");
+    assert_eq!(menu.title().get(quantus_ui::text::Lang::De), "Speicherplatz");
     let _ = Frame::new(&app);
     // Any key goes back to Gerät.
     app.key(Key::Digit(7));
     let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
     assert!(menu.edit.is_none());
-    assert_eq!(menu.level().page.title.de, "Gerät");
+    assert_eq!(menu.level().page.title.get(quantus_ui::text::Lang::De), "Gerät");
 }
 
 #[test]

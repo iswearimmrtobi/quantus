@@ -4762,6 +4762,1178 @@
       "en": "Wanted:",
       "de": "Gesucht:"
     },
+    "engine.arbitrary": {
+      "en": "arbitrary",
+      "de": "beliebig"
+    },
+    "engine.area": {
+      "en": "Area",
+      "de": "Fläche"
+    },
+    "engine.estimates": {
+      "en": "Estimates",
+      "de": "Schätzwerte"
+    },
+    "engine.tangent_normal": {
+      "en": "Tangent, normal",
+      "de": "Tangente, Normale"
+    },
+    "engine.working": {
+      "en": "Working",
+      "de": "Rechenweg"
+    },
+    "hui.address": {
+      "en": "Address",
+      "de": "Adresse"
+    },
+    "hui.app.complex": {
+      "en": "Complex",
+      "de": "Komplex"
+    },
+    "hui.app.curve_sketching": {
+      "en": "Curve sketching",
+      "de": "Kurven­diskussion"
+    },
+    "hui.app.distri_butions": {
+      "en": "Distri­butions",
+      "de": "Vertei­lungen"
+    },
+    "hui.app.linear_systems": {
+      "en": "Linear systems",
+      "de": "LGS"
+    },
+    "hui.app.matrices": {
+      "en": "Matrices",
+      "de": "Matrizen"
+    },
+    "hui.app.physics": {
+      "en": "Physics",
+      "de": "Physik"
+    },
+    "hui.app.sessions": {
+      "en": "Sessions",
+      "de": "Sitzungen"
+    },
+    "hui.app.statistics": {
+      "en": "Statistics",
+      "de": "Statistik"
+    },
+    "hui.app.table": {
+      "en": "Table",
+      "de": "Werte­tabelle"
+    },
+    "hui.app.verify": {
+      "en": "Verify",
+      "de": "Prüfen"
+    },
+    "hui.backend.area": {
+      "en": "Area",
+      "de": "Fläche"
+    },
+    "hui.backend.lower": {
+      "en": "Lower",
+      "de": "Untere"
+    },
+    "hui.backend.upper": {
+      "en": "Upper",
+      "de": "Obere"
+    },
+    "hui.bad_clock": {
+      "en": "Not a valid time",
+      "de": "Keine gültige Uhrzeit"
+    },
+    "hui.bad_date": {
+      "en": "Not a valid date",
+      "de": "Kein gültiges Datum"
+    },
+    "hui.bad_picture": {
+      "en": "Picture must be a 480×320 BMP",
+      "de": "Bild muss 480×320 BMP sein"
+    },
+    "hui.bad_variable": {
+      "en": "A letter, then letters, digits, _",
+      "de": "Ein Buchstabe, dann Buchstaben, Ziffern, _"
+    },
+    "hui.calibrate": {
+      "en": "Calibrate touch",
+      "de": "Touch kalibrieren"
+    },
+    "hui.calibrate_hint": {
+      "en": "Touch the cross and hold briefly",
+      "de": "Kreuz berühren und kurz halten"
+    },
+    "hui.calibrate_retry": {
+      "en": "Too far off, once more please",
+      "de": "Zu ungenau, bitte noch einmal"
+    },
+    "hui.clock_hint": {
+      "en": "Type HH:MM, OK sets the clock",
+      "de": "HH:MM tippen, OK stellt die Uhr"
+    },
+    "hui.connecting": {
+      "en": "Connecting to",
+      "de": "Verbinde mit"
+    },
+    "hui.date_first": {
+      "en": "Set the date first",
+      "de": "Erst das Datum stellen"
+    },
+    "hui.date_hint": {
+      "en": "Type DD.MM.YYYY, OK sets the clock",
+      "de": "TT.MM.JJJJ tippen, OK stellt die Uhr"
+    },
+    "hui.decimal_short": {
+      "en": "Dec",
+      "de": "Dez"
+    },
+    "hui.done": {
+      "en": "Done",
+      "de": "Erledigt"
+    },
+    "hui.empty_name": {
+      "en": "The name must not be empty",
+      "de": "Der Name darf nicht leer sein"
+    },
+    "hui.exact_short": {
+      "en": "Exact",
+      "de": "Exakt"
+    },
+    "hui.exam": {
+      "en": "EXAM",
+      "de": "PRÜFUNG"
+    },
+    "hui.exam_blocks": {
+      "en": "Off in exam mode",
+      "de": "Aus im Prüfungsmodus"
+    },
+    "hui.failed": {
+      "en": "Could not connect to",
+      "de": "Keine Verbindung mit"
+    },
+    "hui.forget": {
+      "en": "Forget",
+      "de": "Vergessen"
+    },
+    "hui.free": {
+      "en": "Free",
+      "de": "Frei"
+    },
+    "hui.graph": {
+      "en": "Graph",
+      "de": "Graph"
+    },
+    "hui.matrix": {
+      "en": "Matrix",
+      "de": "Matrix"
+    },
+    "hui.matrix_hint": {
+      "en": "Type a name (A, M_1), OK opens the cells",
+      "de": "Namen tippen (A, M_1), OK öffnet die Zellen"
+    },
+    "hui.matrix_name": {
+      "en": "Name of the matrix",
+      "de": "Name der Matrix"
+    },
+    "hui.menu.change_value": {
+      "en": "Change value",
+      "de": "Wert ändern"
+    },
+    "hui.menu.delete": {
+      "en": "Delete",
+      "de": "Löschen"
+    },
+    "hui.menu.insert": {
+      "en": "Insert",
+      "de": "Einfügen"
+    },
+    "hui.moving": {
+      "en": "Move",
+      "de": "Bewegen"
+    },
+    "hui.name_hint": {
+      "en": "Type a name, OK sets it",
+      "de": "Namen tippen, OK übernimmt ihn"
+    },
+    "hui.network": {
+      "en": "Network",
+      "de": "Netzwerk"
+    },
+    "hui.no_card": {
+      "en": "No SD card",
+      "de": "Keine SD-Karte"
+    },
+    "hui.no_entries": {
+      "en": "No entries",
+      "de": "Keine Einträge"
+    },
+    "hui.no_networks": {
+      "en": "No networks found",
+      "de": "Keine Netzwerke gefunden"
+    },
+    "hui.no_pictures": {
+      "en": "No pictures on the SD card",
+      "de": "Keine Bilder auf der SD-Karte"
+    },
+    "hui.no_result": {
+      "en": "Calculate something first",
+      "de": "Erst etwas ausrechnen"
+    },
+    "hui.no_saved_networks": {
+      "en": "No saved networks",
+      "de": "Keine gespeicherten Netzwerke"
+    },
+    "hui.no_unknown": {
+      "en": "No letter to solve for",
+      "de": "Keine Variable zum Auflösen"
+    },
+    "hui.no_variables": {
+      "en": "No variables",
+      "de": "Keine Variablen"
+    },
+    "hui.none": {
+      "en": "None",
+      "de": "Keins"
+    },
+    "hui.not_available": {
+      "en": "Not available yet",
+      "de": "Noch nicht verfügbar"
+    },
+    "hui.not_set": {
+      "en": "Not set",
+      "de": "Nicht gestellt"
+    },
+    "hui.off": {
+      "en": "Off",
+      "de": "Aus"
+    },
+    "hui.on": {
+      "en": "On",
+      "de": "Ein"
+    },
+    "hui.options": {
+      "en": "Options",
+      "de": "Optionen"
+    },
+    "hui.password_hint": {
+      "en": "Type the password, S-D shows it",
+      "de": "Passwort tippen, S-D zeigt es"
+    },
+    "hui.password_length": {
+      "en": "8 to 63 characters",
+      "de": "8 bis 63 Zeichen"
+    },
+    "hui.physics_only": {
+      "en": "In Physik mode only",
+      "de": "Nur im Modus Physik"
+    },
+    "hui.range": {
+      "en": "Range",
+      "de": "Bereich"
+    },
+    "hui.render.sheet.b_empty_between_outer_zeros": {
+      "en": "a and b empty: between the outer zeros",
+      "de": "a und b leer: zwischen den äußeren Nullstellen"
+    },
+    "hui.render.sheet.column": {
+      "en": "Column",
+      "de": "Spalte"
+    },
+    "hui.render.sheet.eq": {
+      "en": "Eq.",
+      "de": "Gl."
+    },
+    "hui.render.sheet.freq": {
+      "en": "Freq",
+      "de": "Häuf."
+    },
+    "hui.render.sheet.from": {
+      "en": "From",
+      "de": "Von"
+    },
+    "hui.render.sheet.row": {
+      "en": "Row",
+      "de": "Zeile"
+    },
+    "hui.render.sheet.step": {
+      "en": "Step",
+      "de": "Schritt"
+    },
+    "hui.render.sheet.to": {
+      "en": "To",
+      "de": "Bis"
+    },
+    "hui.sd_card": {
+      "en": "SD card",
+      "de": "SD-Karte"
+    },
+    "hui.searching": {
+      "en": "Looking for networks ...",
+      "de": "Suche Netzwerke ..."
+    },
+    "hui.section_failed": {
+      "en": "failed",
+      "de": "fehlgeschlagen"
+    },
+    "hui.section_partial": {
+      "en": "partial",
+      "de": "teilweise"
+    },
+    "hui.setup": {
+      "en": "Setup",
+      "de": "Setup"
+    },
+    "hui.signal": {
+      "en": "Signal",
+      "de": "Signal"
+    },
+    "hui.sketch_first": {
+      "en": "Type f(x) and EXE first",
+      "de": "Erst f(x) eingeben und EXE"
+    },
+    "hui.solve_hint": {
+      "en": "Solved for: the empty field",
+      "de": "Gesucht: das leere Feld"
+    },
+    "hui.store_hint": {
+      "en": "Type a name (A, r_1), OK stores",
+      "de": "Namen tippen (A, r_1), OK speichert"
+    },
+    "hui.stored": {
+      "en": "Stored",
+      "de": "Gespeichert"
+    },
+    "hui.to": {
+      "en": "to",
+      "de": "bis"
+    },
+    "hui.total": {
+      "en": "Total",
+      "de": "Gesamt"
+    },
+    "hui.tree.1_variable": {
+      "en": "1 variable",
+      "de": "1 Variable"
+    },
+    "hui.tree.absolute_value": {
+      "en": "Absolute value",
+      "de": "Betrag"
+    },
+    "hui.tree.address": {
+      "en": "Address",
+      "de": "Adresse"
+    },
+    "hui.tree.always_valid": {
+      "en": "Always valid",
+      "de": "Nur immer gültige"
+    },
+    "hui.tree.angle": {
+      "en": "Angle",
+      "de": "Winkel"
+    },
+    "hui.tree.angle_input": {
+      "en": "Angle input",
+      "de": "Winkel-Eingabe"
+    },
+    "hui.tree.angle_unit": {
+      "en": "Angle unit",
+      "de": "Winkeleinheit"
+    },
+    "hui.tree.area": {
+      "en": "Area",
+      "de": "Fläche"
+    },
+    "hui.tree.area_volume": {
+      "en": "Area, volume",
+      "de": "Fläche, Volumen"
+    },
+    "hui.tree.argument": {
+      "en": "Argument",
+      "de": "Argument"
+    },
+    "hui.tree.auto_power_off": {
+      "en": "Auto power off",
+      "de": "Automatisch aus"
+    },
+    "hui.tree.automatically": {
+      "en": "Automatically",
+      "de": "Automatisch"
+    },
+    "hui.tree.b_binary": {
+      "en": "b binary",
+      "de": "b binär"
+    },
+    "hui.tree.base": {
+      "en": "Base",
+      "de": "Basis"
+    },
+    "hui.tree.berlin_utc_1": {
+      "en": "Berlin (UTC+1)",
+      "de": "Berlin (UTC+1)"
+    },
+    "hui.tree.between_equations": {
+      "en": "; between equations",
+      "de": "; zwischen Gleichungen"
+    },
+    "hui.tree.bi": {
+      "en": "To a+bi",
+      "de": "In a+bi"
+    },
+    "hui.tree.binomial": {
+      "en": "Binomial",
+      "de": "Binom"
+    },
+    "hui.tree.binomial_cd": {
+      "en": "Binomial CD",
+      "de": "Kumul. Binom.-V."
+    },
+    "hui.tree.binomial_formulas": {
+      "en": "Binomial formulas",
+      "de": "Binomformeln"
+    },
+    "hui.tree.binomial_pd": {
+      "en": "Binomial PD",
+      "de": "Binomial-Dichte"
+    },
+    "hui.tree.brief": {
+      "en": "Brief",
+      "de": "Kurz"
+    },
+    "hui.tree.brightness": {
+      "en": "Brightness",
+      "de": "Helligkeit"
+    },
+    "hui.tree.calibrate_touch": {
+      "en": "Calibrate touch",
+      "de": "Touch kalibrieren"
+    },
+    "hui.tree.capacitance": {
+      "en": "Capacitance",
+      "de": "Kapazität"
+    },
+    "hui.tree.ceiling": {
+      "en": "Ceiling",
+      "de": "Aufrunden (ceil)"
+    },
+    "hui.tree.charge": {
+      "en": "Charge",
+      "de": "Ladung"
+    },
+    "hui.tree.check_updates": {
+      "en": "Check for updates",
+      "de": "Suchen"
+    },
+    "hui.tree.chicago_utc_6": {
+      "en": "Chicago (UTC−6)",
+      "de": "Chicago (UTC−6)"
+    },
+    "hui.tree.china_utc_8": {
+      "en": "China (UTC+8)",
+      "de": "China (UTC+8)"
+    },
+    "hui.tree.clear_all": {
+      "en": "Clear all",
+      "de": "Alles löschen"
+    },
+    "hui.tree.clock": {
+      "en": "Clock",
+      "de": "Uhrzeit"
+    },
+    "hui.tree.columns": {
+      "en": "Columns",
+      "de": "Spalten"
+    },
+    "hui.tree.completing_square": {
+      "en": "Completing the square",
+      "de": "Quadratische Ergänzung"
+    },
+    "hui.tree.complex": {
+      "en": "Complex",
+      "de": "Komplex"
+    },
+    "hui.tree.complex_numbers": {
+      "en": "Complex numbers",
+      "de": "Komplexe Zahlen"
+    },
+    "hui.tree.condition": {
+      "en": "With condition",
+      "de": "Mit Bedingung"
+    },
+    "hui.tree.conjugate": {
+      "en": "Conjugate",
+      "de": "Konjugierte"
+    },
+    "hui.tree.connections": {
+      "en": "Connections",
+      "de": "Verbindungen"
+    },
+    "hui.tree.constants": {
+      "en": "Constants",
+      "de": "Konstanten"
+    },
+    "hui.tree.convert": {
+      "en": "Convert",
+      "de": "Umrechnen"
+    },
+    "hui.tree.current": {
+      "en": "Current",
+      "de": "Strom"
+    },
+    "hui.tree.curve_sketching": {
+      "en": "Curve sketching",
+      "de": "Kurvendiskussion"
+    },
+    "hui.tree.d_decimal": {
+      "en": "d decimal",
+      "de": "d dezimal"
+    },
+    "hui.tree.d_dx_derivative": {
+      "en": "d/dx Derivative",
+      "de": "d/dx Ableitung"
+    },
+    "hui.tree.date": {
+      "en": "Date",
+      "de": "Datum"
+    },
+    "hui.tree.decimal": {
+      "en": "Decimal",
+      "de": "Dezimal"
+    },
+    "hui.tree.decimal_prefixes": {
+      "en": "Decimal prefixes",
+      "de": "Dezimalpräfixe"
+    },
+    "hui.tree.define": {
+      "en": "Define",
+      "de": "Definieren"
+    },
+    "hui.tree.degrees": {
+      "en": "Degrees",
+      "de": "Grad"
+    },
+    "hui.tree.degrees_2": {
+      "en": "° Degrees",
+      "de": "° Grad"
+    },
+    "hui.tree.delete": {
+      "en": "Delete",
+      "de": "Löschen"
+    },
+    "hui.tree.delete_row": {
+      "en": "Delete row",
+      "de": "Zeile löschen"
+    },
+    "hui.tree.denominators": {
+      "en": "Denominators",
+      "de": "Nenner"
+    },
+    "hui.tree.denver_utc_7": {
+      "en": "Denver (UTC−7)",
+      "de": "Denver (UTC−7)"
+    },
+    "hui.tree.detailed": {
+      "en": "Detailed",
+      "de": "Ausführlich"
+    },
+    "hui.tree.determinant": {
+      "en": "Determinant",
+      "de": "Determinante"
+    },
+    "hui.tree.device": {
+      "en": "Device",
+      "de": "Gerät"
+    },
+    "hui.tree.digit_grouping": {
+      "en": "Digit grouping",
+      "de": "1000er-Trennung"
+    },
+    "hui.tree.distributions": {
+      "en": "Distributions",
+      "de": "Verteilungen"
+    },
+    "hui.tree.dubai_utc_4": {
+      "en": "Dubai (UTC+4)",
+      "de": "Dubai (UTC+4)"
+    },
+    "hui.tree.duplicate": {
+      "en": "Duplicate",
+      "de": "Duplizieren"
+    },
+    "hui.tree.edit": {
+      "en": "Edit",
+      "de": "Bearbeiten"
+    },
+    "hui.tree.energy": {
+      "en": "Energy",
+      "de": "Energie"
+    },
+    "hui.tree.equations": {
+      "en": "Equations",
+      "de": "Gleichungen"
+    },
+    "hui.tree.estimates": {
+      "en": "Estimates",
+      "de": "Schätzwerte"
+    },
+    "hui.tree.everything": {
+      "en": "Everything",
+      "de": "Alles"
+    },
+    "hui.tree.everywhere": {
+      "en": "Everywhere",
+      "de": "Überall"
+    },
+    "hui.tree.exact": {
+      "en": "Exact",
+      "de": "Exakt"
+    },
+    "hui.tree.exact_decimal": {
+      "en": "Exact or decimal",
+      "de": "Exakt oder dezimal"
+    },
+    "hui.tree.exam_mode": {
+      "en": "Exam mode",
+      "de": "Prüfungsmodus"
+    },
+    "hui.tree.expanded": {
+      "en": "Expanded",
+      "de": "Ausmultipliziert"
+    },
+    "hui.tree.factored": {
+      "en": "Factored",
+      "de": "Faktorisiert"
+    },
+    "hui.tree.floor": {
+      "en": "Floor",
+      "de": "Abrunden (floor)"
+    },
+    "hui.tree.font_size": {
+      "en": "Font size",
+      "de": "Schriftgröße"
+    },
+    "hui.tree.force": {
+      "en": "Force",
+      "de": "Kraft"
+    },
+    "hui.tree.fractions": {
+      "en": "Fractions",
+      "de": "Brüche"
+    },
+    "hui.tree.frequency": {
+      "en": "Frequency",
+      "de": "Häufigkeit"
+    },
+    "hui.tree.gcd": {
+      "en": "gcd",
+      "de": "ggT"
+    },
+    "hui.tree.general": {
+      "en": "General",
+      "de": "Allgemein"
+    },
+    "hui.tree.greek": {
+      "en": "Greek",
+      "de": "Griechisch"
+    },
+    "hui.tree.h_hexadecimal": {
+      "en": "h hexadecimal",
+      "de": "h hexadezimal"
+    },
+    "hui.tree.hand": {
+      "en": "By hand",
+      "de": "Von Hand"
+    },
+    "hui.tree.helsinki_utc_2": {
+      "en": "Helsinki (UTC+2)",
+      "de": "Helsinki (UTC+2)"
+    },
+    "hui.tree.hyperbolic": {
+      "en": "Hyperbolic",
+      "de": "Hyperbol. Fkt."
+    },
+    "hui.tree.identities": {
+      "en": "Identities",
+      "de": "Identitäten"
+    },
+    "hui.tree.identity": {
+      "en": "Identity",
+      "de": "Einheitsmatrix"
+    },
+    "hui.tree.imaginary_part": {
+      "en": "Imaginary part",
+      "de": "Imaginärteil"
+    },
+    "hui.tree.imaginary_unit_i": {
+      "en": "Imaginary unit i",
+      "de": "Imaginäre Einheit i"
+    },
+    "hui.tree.indexed_x_1": {
+      "en": "Indexed (x_1)",
+      "de": "Indiziert (x_1)"
+    },
+    "hui.tree.india_utc_5_30": {
+      "en": "India (UTC+5:30)",
+      "de": "Indien (UTC+5:30)"
+    },
+    "hui.tree.input": {
+      "en": "Input",
+      "de": "Eingabe"
+    },
+    "hui.tree.insert_row": {
+      "en": "Insert row",
+      "de": "Zeile einfügen"
+    },
+    "hui.tree.install": {
+      "en": "Install",
+      "de": "Installieren"
+    },
+    "hui.tree.installed_version": {
+      "en": "Installed version",
+      "de": "Installierte Version"
+    },
+    "hui.tree.integral": {
+      "en": "∫ Integral",
+      "de": "∫ Integral"
+    },
+    "hui.tree.inverse": {
+      "en": "Inverse",
+      "de": "Inverse"
+    },
+    "hui.tree.inverse_normal": {
+      "en": "Inverse normal",
+      "de": "Inv. Normal-V."
+    },
+    "hui.tree.language": {
+      "en": "Language",
+      "de": "Sprache"
+    },
+    "hui.tree.lcm": {
+      "en": "lcm",
+      "de": "kgV"
+    },
+    "hui.tree.length": {
+      "en": "Length",
+      "de": "Länge"
+    },
+    "hui.tree.letters_product": {
+      "en": "Letters as a product",
+      "de": "Buchstaben als Produkt"
+    },
+    "hui.tree.letters_x_y": {
+      "en": "Letters (x, y)",
+      "de": "Buchstaben (x, y)"
+    },
+    "hui.tree.lim_limit": {
+      "en": "lim Limit",
+      "de": "lim Grenzwert"
+    },
+    "hui.tree.linear_systems": {
+      "en": "Linear systems",
+      "de": "Gleichungssysteme"
+    },
+    "hui.tree.linear_systems_2": {
+      "en": "Linear systems",
+      "de": "LGS"
+    },
+    "hui.tree.london_utc_0": {
+      "en": "London (UTC+0)",
+      "de": "London (UTC+0)"
+    },
+    "hui.tree.los_angeles_utc_8": {
+      "en": "Los Angeles (UTC−8)",
+      "de": "Los Angeles (UTC−8)"
+    },
+    "hui.tree.main_menu": {
+      "en": "Main menu",
+      "de": "Hauptmenü"
+    },
+    "hui.tree.mass": {
+      "en": "Mass",
+      "de": "Masse"
+    },
+    "hui.tree.matrices": {
+      "en": "Matrices",
+      "de": "Matrizen"
+    },
+    "hui.tree.memory": {
+      "en": "Memory",
+      "de": "Speicher"
+    },
+    "hui.tree.menus": {
+      "en": "Menus",
+      "de": "Menüs"
+    },
+    "hui.tree.minutes": {
+      "en": "' Minutes",
+      "de": "' Minuten"
+    },
+    "hui.tree.moscow_utc_3": {
+      "en": "Moscow (UTC+3)",
+      "de": "Moskau (UTC+3)"
+    },
+    "hui.tree.n_factorial": {
+      "en": "n! Factorial",
+      "de": "n! Fakultät"
+    },
+    "hui.tree.network_ntp": {
+      "en": "Network (NTP)",
+      "de": "Netzwerk (NTP)"
+    },
+    "hui.tree.networks": {
+      "en": "Networks",
+      "de": "Netzwerke"
+    },
+    "hui.tree.new": {
+      "en": "New",
+      "de": "Neu"
+    },
+    "hui.tree.new_york_utc_5": {
+      "en": "New York (UTC−5)",
+      "de": "New York (UTC−5)"
+    },
+    "hui.tree.none": {
+      "en": "None",
+      "de": "Keiner"
+    },
+    "hui.tree.normal_cd": {
+      "en": "Normal CD",
+      "de": "Kumul. Normal-V."
+    },
+    "hui.tree.normal_pd": {
+      "en": "Normal PD",
+      "de": "Normal-Dichte"
+    },
+    "hui.tree.now": {
+      "en": "Now",
+      "de": "Jetzt"
+    },
+    "hui.tree.number": {
+      "en": "Number",
+      "de": "Zahl"
+    },
+    "hui.tree.number_format": {
+      "en": "Number format",
+      "de": "Zahlenformat"
+    },
+    "hui.tree.o_octal": {
+      "en": "o octal",
+      "de": "o oktal"
+    },
+    "hui.tree.open": {
+      "en": "Open",
+      "de": "Öffnen"
+    },
+    "hui.tree.over_500_ms": {
+      "en": "Over 500 ms",
+      "de": "Ab 500 ms"
+    },
+    "hui.tree.pair": {
+      "en": "Pair",
+      "de": "Koppeln"
+    },
+    "hui.tree.paired_devices": {
+      "en": "Paired devices",
+      "de": "Gekoppelte Geräte"
+    },
+    "hui.tree.physics": {
+      "en": "Physics",
+      "de": "Physik"
+    },
+    "hui.tree.picture": {
+      "en": "Picture",
+      "de": "Bild"
+    },
+    "hui.tree.poisson_cd": {
+      "en": "Poisson CD",
+      "de": "Kumul. Poisson-V."
+    },
+    "hui.tree.poisson_pd": {
+      "en": "Poisson PD",
+      "de": "Poisson-Dichte"
+    },
+    "hui.tree.polar_form": {
+      "en": "To polar form",
+      "de": "In Polarform"
+    },
+    "hui.tree.power": {
+      "en": "Power",
+      "de": "Leistung"
+    },
+    "hui.tree.prefixes": {
+      "en": "Prefixes",
+      "de": "Präfixe"
+    },
+    "hui.tree.prefixes_d_h_b_o": {
+      "en": "Prefixes d, h, b, o",
+      "de": "Präfixe d, h, b, o"
+    },
+    "hui.tree.pressure": {
+      "en": "Pressure",
+      "de": "Druck"
+    },
+    "hui.tree.product": {
+      "en": "∏ Product",
+      "de": "∏ Produkt"
+    },
+    "hui.tree.quadratic_equations": {
+      "en": "Quadratic equations",
+      "de": "Quadratische Gleichungen"
+    },
+    "hui.tree.r_remainder": {
+      "en": "÷R Remainder",
+      "de": "÷R Rest"
+    },
+    "hui.tree.rad_radians": {
+      "en": "rad Radians",
+      "de": "rad Bogenmaß"
+    },
+    "hui.tree.radians": {
+      "en": "Radians",
+      "de": "Bogenmaß"
+    },
+    "hui.tree.real_part": {
+      "en": "Real part",
+      "de": "Realteil"
+    },
+    "hui.tree.recurring_decimals": {
+      "en": "Recurring decimals",
+      "de": "Periodische Dezimalzahlen"
+    },
+    "hui.tree.remote_engine": {
+      "en": "Remote engine",
+      "de": "Rechnen im Netz"
+    },
+    "hui.tree.rename": {
+      "en": "Rename",
+      "de": "Umbenennen"
+    },
+    "hui.tree.reset": {
+      "en": "Reset",
+      "de": "Zurücksetzen"
+    },
+    "hui.tree.resistance": {
+      "en": "Resistance",
+      "de": "Widerstand"
+    },
+    "hui.tree.results": {
+      "en": "Results",
+      "de": "Ergebnis"
+    },
+    "hui.tree.rows": {
+      "en": "Rows",
+      "de": "Zeilen"
+    },
+    "hui.tree.saved_networks": {
+      "en": "Saved networks",
+      "de": "Gespeicherte Netzwerke"
+    },
+    "hui.tree.seconds": {
+      "en": "'' Seconds",
+      "de": "'' Sekunden"
+    },
+    "hui.tree.sections": {
+      "en": "Sections",
+      "de": "Abschnitte"
+    },
+    "hui.tree.sessions": {
+      "en": "Sessions",
+      "de": "Sitzungen"
+    },
+    "hui.tree.settings": {
+      "en": "Settings",
+      "de": "Einstellungen"
+    },
+    "hui.tree.show": {
+      "en": "Show on",
+      "de": "Anzeigen"
+    },
+    "hui.tree.significant_digits": {
+      "en": "Significant digits",
+      "de": "Signifikante Stellen"
+    },
+    "hui.tree.small": {
+      "en": "Small",
+      "de": "Klein"
+    },
+    "hui.tree.source": {
+      "en": "Source",
+      "de": "Quelle"
+    },
+    "hui.tree.speed": {
+      "en": "Speed",
+      "de": "Geschwindigkeit"
+    },
+    "hui.tree.statistics": {
+      "en": "Statistics",
+      "de": "Statistik"
+    },
+    "hui.tree.storage": {
+      "en": "Storage",
+      "de": "Speicherplatz"
+    },
+    "hui.tree.strike_out_cancelling": {
+      "en": "Strike out cancelling",
+      "de": "Kürzungen durchstreichen"
+    },
+    "hui.tree.sum": {
+      "en": "∑ Sum",
+      "de": "∑ Summe"
+    },
+    "hui.tree.sydney_utc_10": {
+      "en": "Sydney (UTC+10)",
+      "de": "Sydney (UTC+10)"
+    },
+    "hui.tree.sync_sessions": {
+      "en": "Sync sessions",
+      "de": "Sitzungen abgleichen"
+    },
+    "hui.tree.system_equations": {
+      "en": "System of equations",
+      "de": "Gleichungssystem"
+    },
+    "hui.tree.t_u_units": {
+      "en": "t, u, in as units",
+      "de": "t, u, in als Einheiten"
+    },
+    "hui.tree.table": {
+      "en": "Table",
+      "de": "Wertetabelle"
+    },
+    "hui.tree.tangent_normal": {
+      "en": "Tangent, normal",
+      "de": "Tangente, Normale"
+    },
+    "hui.tree.temperature": {
+      "en": "Temperature",
+      "de": "Temperatur"
+    },
+    "hui.tree.time": {
+      "en": "Time",
+      "de": "Uhrzeit"
+    },
+    "hui.tree.time_2": {
+      "en": "Time",
+      "de": "Zeit"
+    },
+    "hui.tree.time_zone": {
+      "en": "Time zone",
+      "de": "Zeitzone"
+    },
+    "hui.tree.tokyo_utc_9": {
+      "en": "Tokyo (UTC+9)",
+      "de": "Tokio (UTC+9)"
+    },
+    "hui.tree.tools": {
+      "en": "Tools",
+      "de": "Werkzeuge"
+    },
+    "hui.tree.transpose": {
+      "en": "Transpose",
+      "de": "Transponierte"
+    },
+    "hui.tree.type": {
+      "en": "Type",
+      "de": "Typ"
+    },
+    "hui.tree.unit": {
+      "en": "To unit",
+      "de": "In Einheit"
+    },
+    "hui.tree.units": {
+      "en": "Units",
+      "de": "Einheiten"
+    },
+    "hui.tree.unknowns_systems": {
+      "en": "Unknowns (systems)",
+      "de": "Unbekannte (LGS)"
+    },
+    "hui.tree.variables": {
+      "en": "Variables",
+      "de": "Variablen"
+    },
+    "hui.tree.verify": {
+      "en": "Verify",
+      "de": "Prüfen"
+    },
+    "hui.tree.visible": {
+      "en": "Visible",
+      "de": "Sichtbar"
+    },
+    "hui.tree.voltage": {
+      "en": "Voltage",
+      "de": "Spannung"
+    },
+    "hui.tree.wallpaper": {
+      "en": "Wallpaper",
+      "de": "Hintergrundbild"
+    },
+    "hui.tree.wi_fi": {
+      "en": "Wi-Fi",
+      "de": "WLAN"
+    },
+    "hui.tree.working": {
+      "en": "Working",
+      "de": "Rechenweg"
+    },
+    "hui.tree.x_absolute_value": {
+      "en": "|x| Absolute value",
+      "de": "|x| Betrag"
+    },
+    "hui.tree.y_variables": {
+      "en": "a and y as variables",
+      "de": "a und y als Variablen"
+    },
+    "hui.used": {
+      "en": "Used",
+      "de": "Belegt"
+    },
+    "hui.weekday.fri": {
+      "en": "Fri",
+      "de": "Fr"
+    },
+    "hui.weekday.mon": {
+      "en": "Mon",
+      "de": "Mo"
+    },
+    "hui.weekday.sat": {
+      "en": "Sat",
+      "de": "Sa"
+    },
+    "hui.weekday.sun": {
+      "en": "Sun",
+      "de": "So"
+    },
+    "hui.weekday.thu": {
+      "en": "Thu",
+      "de": "Do"
+    },
+    "hui.weekday.tue": {
+      "en": "Tue",
+      "de": "Di"
+    },
+    "hui.weekday.wed": {
+      "en": "Wed",
+      "de": "Mi"
+    },
+    "hui.wlan_is_off": {
+      "en": "Wi-Fi is off",
+      "de": "WLAN ist aus"
+    },
+    "hui.wlan_off": {
+      "en": "Switch Wi-Fi on first",
+      "de": "Erst WLAN einschalten"
+    },
+    "hui.wlan_searching": {
+      "en": "No saved network in reach",
+      "de": "Kein gespeichertes Netzwerk in Reichweite"
+    },
+    "hui.working": {
+      "en": "Working",
+      "de": "Rechenweg"
+    },
+    "hui.yes": {
+      "en": "Yes",
+      "de": "Ja"
+    },
     "shell.cannot_start": {
       "en": "Quantus cannot start",
       "de": "Quantus startet nicht"

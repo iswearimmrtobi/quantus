@@ -12,6 +12,7 @@ use quantus_core::stochastics::StatisticValue;
 use quantus_ui::app::Settings;
 use quantus_ui::backend::{Field, Line, Matrix, Reply, Request};
 use quantus_ui::settings::{DistributionKind, StatisticsType};
+use quantus_texts::tr;
 use quantus_ui::text::Lang;
 
 use crate::analysis;
@@ -19,15 +20,15 @@ use crate::analysis;
 /// Works `request` out with the core, its settings made from the hui's by `core_settings`.
 pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(CoreMode) -> core::Settings) -> Result<Reply, String> {
     let error = |error: api::ApiError| error.error;
-    let german = settings.language == Lang::De;
+    let lang = settings.language;
     match request {
         Request::Linear { rows } => {
             let core = core_settings(CoreMode::Linear);
             let request = LinearSystemRequest::Matrix { unknowns: None, rows: rows.clone() };
             let response = api::linear_system(&core, &request).map_err(error)?;
-            let mut lines: Vec<Line> = solution(&response.result, german).into_iter().map(Line::Math).collect();
+            let mut lines: Vec<Line> = solution(&response.result, lang).into_iter().map(Line::Math).collect();
             if !response.steps.is_empty() {
-                lines.push(Line::Note(if german { "Rechenweg" } else { "Working" }.to_string()));
+                lines.push(Line::Note(tr!(lang, "engine.working")));
                 lines.extend(steps(&response.steps));
             }
             Ok(Reply::Lines(lines))
@@ -75,7 +76,7 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
                 lines.extend(response.regression.iter().map(value_line));
             }
             if !response.estimates.is_empty() {
-                lines.push(Line::Note(if german { "Schätzwerte" } else { "Estimates" }.to_string()));
+                lines.push(Line::Note(tr!(lang, "engine.estimates")));
                 lines.extend(response.estimates.iter().map(value_line));
             }
             Ok(Reply::Lines(lines))
@@ -126,9 +127,9 @@ fn value_line(value: &StatisticValue) -> Line {
 
 /// The unknowns' values one per line: `x_{1} = 2 \land x_{2} = 1` gives two. The fonts have no
 /// ∈ and no ℝ: a free parameter is "beliebig".
-fn solution(result: &str, german: bool) -> Vec<String> {
-    let free = if german { "\\,\\mathrm{beliebig}" } else { "\\,\\mathrm{arbitrary}" };
-    result.split("\\land").map(|part| part.trim().replace("\\in \\mathbb{R}", free)).filter(|part| !part.is_empty()).collect()
+fn solution(result: &str, lang: Lang) -> Vec<String> {
+    let free = format!("\\,\\mathrm{{{}}}", tr!(lang, "engine.arbitrary"));
+    result.split("\\land").map(|part| part.trim().replace("\\in \\mathbb{R}", &free)).filter(|part| !part.is_empty()).collect()
 }
 
 /// A step's line, `-x_{2} = -1 \quad\Rightarrow\quad x_{2} = 1` as two: the fonts have no ⇒.

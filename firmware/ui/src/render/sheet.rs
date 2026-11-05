@@ -14,7 +14,7 @@ use crate::latex;
 use crate::layout::{self, RowLayout};
 use crate::settings::UnknownNames;
 use crate::sheet::{self, Column, Kind, Sheet, LABEL_WIDTH, ROWS_SHOWN};
-use crate::text::{self, t, Lang};
+use crate::text::{self, tx, Lang};
 
 /// The height of a row of cells: a small fraction fits.
 const ROW: i32 = 40;
@@ -100,8 +100,8 @@ fn heads<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> Vec<Row> {
     }
 }
 
-const FREQ: text::Text = t("Häuf.", "Freq");
-const OUTER_ZEROS: text::Text = t("a und b leer: zwischen den äußeren Nullstellen", "a and b empty: between the outer zeros");
+const FREQ: text::Text = tx!("hui.render.sheet.freq");
+const OUTER_ZEROS: text::Text = tx!("hui.render.sheet.b_empty_between_outer_zeros");
 
 /// The labels of a form's rows.
 fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
@@ -110,9 +110,9 @@ fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
         Kind::Table => [
             text::same("f(x)"),
             text::same("g(x)"),
-            t("Von", "From"),
-            t("Bis", "To"),
-            t("Schritt", "Step"),
+            tx!("hui.render.sheet.from"),
+            tx!("hui.render.sheet.to"),
+            tx!("hui.render.sheet.step"),
         ]
         .iter()
         .map(|label| label.get(lang).to_string())
@@ -120,7 +120,7 @@ fn labels<B>(app: &App<B>, kind: Kind) -> Vec<String> {
         Kind::Distribution => app.sheets.distribution_fields().iter().map(|field| field.label().get(lang).to_string()).collect(),
         Kind::Tangent => vec!["x0".to_string()],
         Kind::Area => vec!["a".to_string(), "b".to_string()],
-        Kind::Points => [t("Von", "From"), t("Bis", "To"), t("Schritt", "Step")].iter().map(|label| label.get(lang).to_string()).collect(),
+        Kind::Points => [tx!("hui.render.sheet.from"), tx!("hui.render.sheet.to"), tx!("hui.render.sheet.step")].iter().map(|label| label.get(lang).to_string()).collect(),
         // As math: `m_{1}`.
         Kind::Formula => app.sheets.asked.iter().flat_map(|asked| &asked.variables).map(|variable| variable.symbol.clone()).collect(),
         // As math: the value given, then what is estimated at it.
@@ -134,12 +134,12 @@ fn cursor_name<B>(app: &App<B>, kind: Kind, sheet: &Sheet) -> String {
     let lang = app.settings.language;
     let row = sheet.cursor.0;
     match kind {
-        Kind::Linear => format!("{} {}", t("Gl.", "Eq.").get(lang), row + 1),
-        Kind::Statistics => format!("{} {}", t("Zeile", "Row").get(lang), row + 1),
+        Kind::Linear => format!("{} {}", tx!("hui.render.sheet.eq").get(lang), row + 1),
+        Kind::Statistics => format!("{} {}", tx!("hui.render.sheet.row").get(lang), row + 1),
         // The matrix's name, and where in it the cursor is.
         Kind::Matrix => {
             let name = app.sheets.defining.clone().unwrap_or_default();
-            format!("{name}: {} {}, {} {}", t("Zeile", "Row").get(lang), row + 1, t("Spalte", "Column").get(lang), sheet.cursor.1 + 1)
+            format!("{name}: {} {}, {} {}", tx!("hui.render.sheet.row").get(lang), row + 1, tx!("hui.render.sheet.column").get(lang), sheet.cursor.1 + 1)
         }
         _ => labels(app, kind).get(row).cloned().unwrap_or_default(),
     }

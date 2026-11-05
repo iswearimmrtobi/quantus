@@ -95,7 +95,7 @@ impl Engine {
                 NewSessionRequest { name: None, now: Some(now), utc_offset_minutes }
             }
             None => {
-                let word = if self.store.settings.language == core::Language::De { "Sitzung" } else { "Session" };
+                let word = quantus_texts::tr!(self.store.settings.language, "core.session.session");
                 let names: HashSet<String> = self.store.sessions().into_iter().map(|session| session.name.clone()).collect();
                 let name = (1..).map(|n| format!("{word} {n}")).find(|name| !names.contains(name)).expect("numbers are endless");
                 NewSessionRequest { name: Some(name), ..Default::default() }
@@ -213,7 +213,7 @@ impl Backend for Engine {
     }
 
     fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
-        let language = if lang == Lang::De { core::Language::De } else { core::Language::En };
+        let language = lang;
         match catalogue {
             Catalogue::Constants => api::constants(language)
                 .into_iter()
@@ -414,10 +414,7 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
         a_and_y_as_variables: settings.a_and_y_as_variables,
         letter_products: settings.letter_products,
         extra_unit_letters: settings.extra_unit_letters,
-        language: match settings.language {
-            Lang::De => core::Language::De,
-            Lang::En => core::Language::En,
-        },
+        language: settings.language,
         quadratic_formula: match settings.quadratic_formula {
             ui::QuadraticFormula::Auto => core::QuadraticFormula::Auto,
             ui::QuadraticFormula::Pq => core::QuadraticFormula::Pq,

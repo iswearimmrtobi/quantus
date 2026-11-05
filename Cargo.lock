@@ -3068,6 +3068,7 @@ name = "quantus-engine"
 version = "0.1.0"
 dependencies = [
  "quantus-core",
+ "quantus-texts",
  "quantus-ui",
 ]
 
@@ -3096,6 +3097,7 @@ name = "quantus-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "quantus-texts",
  "tinybmp",
  "u8g2-fonts",
 ]

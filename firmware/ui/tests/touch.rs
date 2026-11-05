@@ -47,7 +47,7 @@ fn setup<B: Backend>(app: &mut App<B>) {
 fn back_closes_the_setup() {
     let mut app = App::new(Stub);
     setup(&mut app);
-    assert_eq!(menu(&app).level().page.title.de, "Setup");
+    assert_eq!(menu(&app).level().page.title.get(quantus_ui::text::Lang::De), "Setup");
     // Allgemein, and back.
     tap(&mut app, line(0));
     assert_eq!(menu(&app).stack.len(), 2);
@@ -119,7 +119,7 @@ fn the_mode_tiles_page_by_swipe_and_by_dot() {
     app.key(Key::Mode);
     tap(&mut app, dot_rect(1).center());
     tap(&mut app, tile_rect(5).center());
-    assert_eq!(menu(&app).level().page.title.de, "Sitzungen");
+    assert_eq!(menu(&app).level().page.title.get(quantus_ui::text::Lang::De), "Sitzungen");
     tap(&mut app, BACK);
     assert_eq!(app.screen, Screen::Calc);
     app.key(Key::Mode);
@@ -147,7 +147,7 @@ fn a_long_list_follows_the_finger_and_turns_the_page() {
     // Verbindungen, the second line of the second page.
     swipe(&mut app, line(3), line(1));
     tap(&mut app, line(1));
-    assert_eq!(menu(&app).level().page.title.de, "Verbindungen");
+    assert_eq!(menu(&app).level().page.title.get(quantus_ui::text::Lang::De), "Verbindungen");
 }
 
 #[test]
@@ -241,7 +241,7 @@ fn the_calibration_learns_the_panel() {
     }
     let calibration = app.take_calibration().expect("a calibration");
     assert_eq!(app.take_calibration(), None, "taken once");
-    assert_eq!(menu(&app).level().page.title.de, "Gerät", "back where it came from");
+    assert_eq!(menu(&app).level().page.title.get(quantus_ui::text::Lang::De), "Gerät", "back where it came from");
     let off = calibration.map(panel(Point::new(100, 200))) - Point::new(100, 200);
     assert!(off.x.abs() <= 1 && off.y.abs() <= 1, "{off:?}");
 

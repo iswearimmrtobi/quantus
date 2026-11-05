@@ -289,9 +289,9 @@ pub enum TextFor {
 
 /// What VARS does to a variable chosen: inserts its name, changes its value, deletes it.
 pub const VARIABLE_ACTIONS: [Text; 3] = [
-    crate::text::t("Einfügen", "Insert"),
-    crate::text::t("Wert ändern", "Change value"),
-    crate::text::t("Löschen", "Delete"),
+    crate::text::tx!("hui.menu.insert"),
+    crate::text::tx!("hui.menu.change_value"),
+    crate::text::tx!("hui.menu.delete"),
 ];
 
 /// The longest name of a variable typed for STO.
