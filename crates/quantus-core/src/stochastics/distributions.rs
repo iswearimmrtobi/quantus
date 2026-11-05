@@ -92,7 +92,7 @@ fn error(message: String) -> QuantusError {
 }
 
 fn missing(name: &str) -> QuantusError {
-    error(msg!("{} is missing.", "{} fehlt.", name))
+    error(msg!("core.stochastics.distributions.missing", name))
 }
 
 pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Result<DistributionResponse> {
@@ -108,7 +108,7 @@ pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Resul
             let sigma = read(&request.sigma, "σ")?.unwrap_or(Value::one());
             let mu = read(&request.mu, "μ")?.unwrap_or(Value::zero());
             if sigma.is_zero() || sigma.is_negative()? {
-                return Err(error(msg!("σ must be positive.", "σ muss positiv sein.")));
+                return Err(error(msg!("core.stochastics.distributions.must_positive")));
             }
             match request.kind {
                 Distribution::NormalDensity => one(normal_density(&need(&request.x, "x")?, &sigma, &mu)?),
@@ -126,7 +126,7 @@ pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Resul
                 _ => {
                     let area = need(&request.area, "Fläche / area")?;
                     if area.is_zero() || area.is_negative()? || !super::less(&area, &Value::one()) {
-                        return Err(error(msg!("The area must lie between 0 and 1.", "Die Fläche muss zwischen 0 und 1 liegen.")));
+                        return Err(error(msg!("core.stochastics.distributions.area_must_lie_between_0")));
                     }
                     let z = inverse_standard(&area, numbers.precision())?;
                     one(mu.add(&sigma.mul(&z)))
@@ -136,11 +136,11 @@ pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Resul
         Distribution::BinomialDensity | Distribution::BinomialCumulative => {
             let n = whole(&need(&request.n, "N")?, "N")?;
             if n > MAX_TRIALS {
-                return Err(error(msg!("N may be at most {}.", "N darf höchstens {} sein.", MAX_TRIALS)));
+                return Err(error(msg!("core.stochastics.distributions.n_may_most", MAX_TRIALS)));
             }
             let p = need(&request.p, "p")?;
             if p.is_negative()? || super::less(&Value::one(), &p) {
-                return Err(error(msg!("p must lie between 0 and 1.", "p muss zwischen 0 und 1 liegen.")));
+                return Err(error(msg!("core.stochastics.distributions.p_must_lie_between_0")));
             }
             let cumulative = request.kind == Distribution::BinomialCumulative;
             list(&numbers, &request.k, |k| {
@@ -151,7 +151,7 @@ pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Resul
         Distribution::PoissonDensity | Distribution::PoissonCumulative => {
             let mu = need(&request.mu, "μ")?;
             if mu.is_zero() || mu.is_negative()? {
-                return Err(error(msg!("μ must be positive.", "μ muss positiv sein.")));
+                return Err(error(msg!("core.stochastics.distributions.must_positive_2")));
             }
             let cumulative = request.kind == Distribution::PoissonCumulative;
             let decay = Value::E.pow(&mu.neg())?;
@@ -184,7 +184,7 @@ fn list(numbers: &Numbers, ks: &[String], f: impl Fn(u64) -> Result<Value>) -> R
         return Err(missing("k"));
     }
     if cells.len() > MAX_LIST {
-        return Err(error(msg!("At most {} values of k.", "Höchstens {} Werte für k.", MAX_LIST)));
+        return Err(error(msg!("core.stochastics.distributions.most_values_k", MAX_LIST)));
     }
     let mut results = Vec::new();
     for cell in cells {
@@ -200,7 +200,7 @@ fn whole(value: &Value, name: &str) -> Result<u64> {
         .as_rational()
         .filter(|r| r.denominator() == &dashu::integer::UBig::ONE)
         .and_then(|r| u64::try_from(r.numerator().clone()).ok())
-        .ok_or_else(|| error(msg!("{} must be a whole number from 0 on.", "{} muss eine ganze Zahl ab 0 sein.", name)))
+        .ok_or_else(|| error(msg!("core.stochastics.distributions.must_whole_number_from_0", name)))
 }
 
 fn factorial(n: u64) -> dashu::integer::IBig {

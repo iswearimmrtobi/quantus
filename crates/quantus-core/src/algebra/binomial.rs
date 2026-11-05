@@ -47,13 +47,13 @@ pub enum BinomialIdentity {
 impl BinomialIdentity {
     pub fn description(&self) -> String {
         match self {
-            Self::SquareOfSum => crate::text::msg!("Square of a sum: (a + b)² = a² + 2ab + b²", "Erste binomische Formel: (a + b)² = a² + 2ab + b²"),
-            Self::SquareOfDifference => crate::text::msg!("Square of a difference: (a - b)² = a² - 2ab + b²", "Zweite binomische Formel: (a - b)² = a² - 2ab + b²"),
-            Self::CubeOfSum => crate::text::msg!("Cube of a sum: (a + b)³ = a³ + 3a²b + 3ab² + b³", "Dritte Potenz einer Summe: (a + b)³ = a³ + 3a²b + 3ab² + b³"),
-            Self::CubeOfDifference => crate::text::msg!("Cube of a difference: (a - b)³ = a³ - 3a²b + 3ab² - b³", "Dritte Potenz einer Differenz: (a - b)³ = a³ - 3a²b + 3ab² - b³"),
-            Self::DifferenceOfSquares => crate::text::msg!("Difference of squares: a² - b² = (a - b)(a + b)", "Dritte binomische Formel: a² - b² = (a - b)(a + b)"),
-            Self::SumOfCubes => crate::text::msg!("Sum of cubes: a³ + b³ = (a + b)(a² - ab + b²)", "Summe dritter Potenzen: a³ + b³ = (a + b)(a² - ab + b²)"),
-            Self::DifferenceOfCubes => crate::text::msg!("Difference of cubes: a³ - b³ = (a - b)(a² + ab + b²)", "Differenz dritter Potenzen: a³ - b³ = (a - b)(a² + ab + b²)"),
+            Self::SquareOfSum => crate::text::msg!("core.algebra.binomial.square_sum_b_2ab_b"),
+            Self::SquareOfDifference => crate::text::msg!("core.algebra.binomial.square_difference_b_2ab_b"),
+            Self::CubeOfSum => crate::text::msg!("core.algebra.binomial.cube_sum_b_3a_b"),
+            Self::CubeOfDifference => crate::text::msg!("core.algebra.binomial.cube_difference_b_3a_b"),
+            Self::DifferenceOfSquares => crate::text::msg!("core.algebra.binomial.difference_squares_b_b_b"),
+            Self::SumOfCubes => crate::text::msg!("core.algebra.binomial.sum_cubes_b_b_ab"),
+            Self::DifferenceOfCubes => crate::text::msg!("core.algebra.binomial.difference_cubes_b_b_ab"),
         }
     }
 
@@ -735,14 +735,14 @@ pub fn expand_binomial_node(node: &Node) -> Option<AlgebraStep> {
                             let after_node = expanded_poly.to_node();
                             let rule = identity.rule_id(true);
                             let explanation = crate::text::msg!(
-                                "Expand binomial power using {}", "Die Potenz mit der Formel ausmultiplizieren: {}",
+                                "core.algebra.binomial.expand_binomial_power_using",
                                 identity.description()
                             );
                             let step = AlgebraStep::new(node.clone(), after_node, explanation, Some(rule));
                             return Some(match binomial_formula_line(&poly_base, exp, identity) {
                                 Some((line, formula, values)) => step.with_working(
-                                    vec![AlgebraStep::line(node, line, crate::text::msg!("{formula} with {values}", "{formula} mit {values}"), StepDetail::Standard)],
-                                    crate::text::msg!("Work out the terms", "Die Terme ausrechnen"),
+                                    vec![AlgebraStep::line(node, line, crate::text::msg!("core.algebra.binomial.with"), StepDetail::Standard)],
+                                    crate::text::msg!("core.algebra.binomial.work_out_terms"),
                                 ),
                                 None => step,
                             });
@@ -766,7 +766,7 @@ pub fn expand_binomial_node(node: &Node) -> Option<AlgebraStep> {
                 let after_node = expanded_poly.to_node();
                 let rule = RuleId::ApplyBinomialIdentity;
                 let explanation = crate::text::msg!(
-                    "Apply difference of squares identity: {}", "Die dritte binomische Formel anwenden: {}",
+                    "core.algebra.binomial.apply_difference_squares_identity",
                     BinomialIdentity::DifferenceOfSquares.description()
                 );
                 return Some(AlgebraStep::new(node.clone(), after_node, explanation, Some(rule)));
@@ -785,7 +785,7 @@ pub fn factor_binomial_node(node: &Node) -> Option<AlgebraStep> {
     let after_node = factored.to_node();
     let rule = identity.rule_id(false);
     let explanation = crate::text::msg!(
-        "Factor using binomial identity: {}", "Mit der binomischen Formel faktorisieren: {}",
+        "core.algebra.binomial.factor_using_binomial_identity",
         identity.description()
     );
     Some(AlgebraStep::new(node.clone(), after_node, explanation, Some(rule)))

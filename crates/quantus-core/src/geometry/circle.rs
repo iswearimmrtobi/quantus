@@ -67,10 +67,10 @@ impl Circle {
     /// The circle around `centre` with `radius` perpendicular to `normal`.
     pub fn new(centre: &Point, radius: Value, normal: &Vector3) -> Result<Circle> {
         if radius.is_zero() || radius.is_negative()? {
-            return Err(error(msg!("The radius of a circle must be positive.", "Der Radius eines Kreises muss positiv sein.")));
+            return Err(error(msg!("core.geometry.circle.radius_circle_must_positive")));
         }
         if normal.is_zero() {
-            return Err(error(msg!("The zero vector is no normal of a circle.", "Der Nullvektor ist kein Normalenvektor eines Kreises.")));
+            return Err(error(msg!("core.geometry.circle.zero_vector_no_normal_circle")));
         }
         Ok(Circle { centre: centre.clone(), radius, normal: Vector3 { planar: false, ..normal.clone() } })
     }
@@ -88,13 +88,9 @@ impl Circle {
         match result {
             SpherePlane::Circle { circle, .. } => Ok(Worked::new(circle, working)),
             SpherePlane::Tangent { .. } => Err(error(msg!(
-                "The plane only touches the sphere, so they have no circle in common.",
-                "Die Ebene berührt die Kugel nur, sie haben also keinen gemeinsamen Kreis."
-            ))),
+                "core.geometry.circle.plane_only_touches_sphere_they"))),
             SpherePlane::Apart { .. } => Err(error(msg!(
-                "The plane does not meet the sphere, so they have no circle in common.",
-                "Die Ebene trifft die Kugel nicht, sie haben also keinen gemeinsamen Kreis."
-            ))),
+                "core.geometry.circle.plane_does_not_meet_sphere"))),
         }
     }
 
@@ -133,7 +129,7 @@ impl Circle {
         if !self.is_planar() || !p.planar {
             working.add(
                 Standard,
-                msg!("Is the point in the plane of the circle?", "Liegt der Punkt in der Ebene des Kreises?"),
+                msg!("core.geometry.circle.point_plane_circle"),
                 format!(
                     "\\overrightarrow{{MP}} \\cdot \\vec{{n}} = {} \\cdot {} = {} {} 0",
                     show::vector(&mp),
@@ -144,14 +140,14 @@ impl Circle {
             );
         }
         if !in_plane {
-            working.add(Brief, msg!("The point does not lie in the plane of the circle.", "Der Punkt liegt nicht in der Ebene des Kreises."), "P \\notin k");
+            working.add(Brief, msg!("core.geometry.circle.point_does_not_lie_plane"), "P \\notin k");
             return Ok(Worked::new(false, working));
         }
         let length = mp.length()?;
         let on = equal(&mp.dot(&mp), &self.radius_squared());
         working.add(
             Standard,
-            msg!("The distance from the centre:", "Der Abstand zum Mittelpunkt:"),
+            msg!("core.geometry.circle.distance_from_centre"),
             format!(
                 "\\left|\\overrightarrow{{MP}}\\right| = {} = {} {} r = {}",
                 show::length(&mp),
@@ -162,7 +158,7 @@ impl Circle {
         );
         working.add(
             Brief,
-            if on { msg!("The point lies on the circle.", "Der Punkt liegt auf dem Kreis.") } else { msg!("The point does not lie on the circle.", "Der Punkt liegt nicht auf dem Kreis.") },
+            if on { msg!("core.geometry.circle.point_lies_circle") } else { msg!("core.geometry.circle.point_does_not_lie_circle") },
             if on { "P \\in k" } else { "P \\notin k" },
         );
         Ok(Worked::new(on, working))
@@ -172,8 +168,8 @@ impl Circle {
     pub fn circumference(&self) -> Worked<Value> {
         let mut working = Working::default();
         let value = Value::int(2).mul(&Value::Pi).mul(&self.radius);
-        working.add(Detailed, msg!("The formula:", "Die Formel:"), format!("U = 2 \\pi r = 2 \\pi \\cdot {}", show::factor(&self.radius)));
-        working.add(Brief, msg!("The circumference:", "Der Umfang:"), format!("U = {}", show::value(&value)));
+        working.add(Detailed, msg!("core.geometry.circle.formula"), format!("U = 2 \\pi r = 2 \\pi \\cdot {}", show::factor(&self.radius)));
+        working.add(Brief, msg!("core.geometry.circle.circumference"), format!("U = {}", show::value(&value)));
         Worked::new(value, working)
     }
 
@@ -181,8 +177,8 @@ impl Circle {
     pub fn area(&self) -> Worked<Value> {
         let mut working = Working::default();
         let value = Value::Pi.mul(&self.radius_squared());
-        working.add(Detailed, msg!("The formula:", "Die Formel:"), format!("A = \\pi r^2 = \\pi \\cdot {}^2", show::factor(&self.radius)));
-        working.add(Brief, msg!("The area:", "Der Flächeninhalt:"), format!("A = {}", show::value(&value)));
+        working.add(Detailed, msg!("core.geometry.circle.formula"), format!("A = \\pi r^2 = \\pi \\cdot {}^2", show::factor(&self.radius)));
+        working.add(Brief, msg!("core.geometry.circle.area"), format!("A = {}", show::value(&value)));
         Worked::new(value, working)
     }
 
@@ -205,16 +201,16 @@ impl Circle {
             if !equal(&offset, &Value::zero()) {
                 working.add(
                     Standard,
-                    msg!("The line is parallel to the plane of the circle and not in it:", "Die Gerade ist parallel zur Ebene des Kreises und liegt nicht in ihr:"),
+                    msg!("core.geometry.circle.line_parallel_plane_circle_not"),
                     format!("\\vec{{n}} \\cdot \\vec{{u}} = 0, \\quad \\vec{{n}} \\cdot \\overrightarrow{{MP}} = {} \\neq 0", show::value(&offset)),
                 );
-                working.add(Brief, msg!("The line misses the circle.", "Die Gerade verfehlt den Kreis."), "g \\cap k = \\emptyset");
+                working.add(Brief, msg!("core.geometry.circle.line_misses_circle"), "g \\cap k = \\emptyset");
                 return Ok(Worked::new(CircleLine::Apart, working));
             }
             if !planar {
                 working.add(
                     Standard,
-                    msg!("The line lies in the plane of the circle:", "Die Gerade liegt in der Ebene des Kreises:"),
+                    msg!("core.geometry.circle.line_lies_plane_circle"),
                     "\\vec{n} \\cdot \\vec{u} = 0, \\quad \\vec{n} \\cdot \\overrightarrow{MP} = 0",
                 );
             }
@@ -231,26 +227,26 @@ impl Circle {
         let point = Point { planar: false, ..line.at(&lambda) };
         working.add(
             Standard,
-            msg!("The line crosses the plane of the circle where", "Die Gerade durchstößt die Ebene des Kreises, wo"),
+            msg!("core.geometry.circle.line_crosses_plane_circle_where"),
             format!(
                 "\\vec{{n}} \\cdot \\left(\\overrightarrow{{MP}} + \\lambda \\vec{{u}}\\right) = {} = 0 \\quad \\Rightarrow \\quad \\lambda = {}",
                 show::combination(&[(&offset, ""), (&coefficient, "\\lambda")]),
                 show::value(&lambda)
             ),
         );
-        working.add(Detailed, msg!("The point in the plane:", "Der Punkt in der Ebene:"), format!("Q = {}", show::point(&point)));
+        working.add(Detailed, msg!("core.geometry.circle.point_plane"), format!("Q = {}", show::point(&point)));
         let mq = self.centre.to(&point);
         let on = equal(&mq.dot(&mq), &self.radius_squared());
         working.add(
             Standard,
-            msg!("Its distance from the centre:", "Sein Abstand zum Mittelpunkt:"),
+            msg!("core.geometry.circle.distance_from_centre_2"),
             format!("\\left|\\overrightarrow{{MQ}}\\right| = {} {} r = {}", show::value(&mq.length()?), if on { "=" } else { "\\neq" }, show::value(&self.radius)),
         );
         if on {
-            working.add(Brief, msg!("The line goes through the circle in", "Die Gerade geht durch den Kreis in"), format!("Q = {}", show::point(&point)));
+            working.add(Brief, msg!("core.geometry.circle.line_goes_through_circle"), format!("Q = {}", show::point(&point)));
             return Ok(Worked::new(CircleLine::Crossing { point }, working));
         }
-        working.add(Brief, msg!("The line misses the circle.", "Die Gerade verfehlt den Kreis."), "g \\cap k = \\emptyset");
+        working.add(Brief, msg!("core.geometry.circle.line_misses_circle"), "g \\cap k = \\emptyset");
         Ok(Worked::new(CircleLine::Apart, working))
     }
 
@@ -259,9 +255,7 @@ impl Circle {
     pub fn tangent(&self, p: &Point) -> Result<Worked<Line>> {
         if !self.contains(p)?.result {
             return Err(error(msg!(
-                "The point does not lie on the circle, so it has no tangent there.",
-                "Der Punkt liegt nicht auf dem Kreis, dort gibt es also keine Tangente."
-            )));
+                "core.geometry.circle.point_does_not_lie_circle_2")));
         }
         let mut working = Working::default();
         let planar = self.is_planar() && p.planar;
@@ -269,11 +263,11 @@ impl Circle {
         let direction = Vector3 { planar, ..self.normal.cross(&mp) };
         working.add(
             Standard,
-            msg!("The tangent is perpendicular to the radius and to the normal:", "Die Tangente steht senkrecht auf dem Radius und dem Normalenvektor:"),
+            msg!("core.geometry.circle.tangent_perpendicular_radius_normal"),
             format!("\\vec{{u}} = \\vec{{n}} \\times \\overrightarrow{{MP}} = {} \\times {} = {}", show::vector(&self.normal), show::vector(&Vector3 { planar: false, ..mp }), show::vector(&direction)),
         );
         let line = Line::new(Point { planar, ..p.clone() }, direction)?;
-        working.add(Brief, msg!("The tangent:", "Die Tangente:"), line.equation());
+        working.add(Brief, msg!("core.geometry.circle.tangent"), line.equation());
         Ok(Worked::new(line, working))
     }
 
@@ -286,18 +280,18 @@ impl Circle {
             let inside = equal(&e.normal.dot(&self.centre.position()), &e.constant);
             working.add(
                 Standard,
-                msg!("The plane is parallel to the plane of the circle; is the centre in it?", "Die Ebene ist parallel zur Ebene des Kreises; liegt der Mittelpunkt in ihr?"),
+                msg!("core.geometry.circle.plane_parallel_plane_circle_centre"),
                 format!("{} {} {}", show::dot(&e.normal, &Vector3 { planar: false, ..self.centre.position() }), if inside { "=" } else { "\\neq" }, show::value(&e.constant)),
             );
             if inside {
-                working.add(Brief, msg!("The circle lies in the plane.", "Der Kreis liegt in der Ebene."), "k \\subset E");
+                working.add(Brief, msg!("core.geometry.circle.circle_lies_plane"), "k \\subset E");
                 return Ok(Worked::new(CirclePlane::Contained, working));
             }
-            working.add(Brief, msg!("The plane is parallel to the circle.", "Die Ebene ist parallel zum Kreis."), "k \\cap E = \\emptyset");
+            working.add(Brief, msg!("core.geometry.circle.plane_parallel_circle"), "k \\cap E = \\emptyset");
             return Ok(Worked::new(CirclePlane::Parallel, working));
         }
         let own = self.plane().convert(PlaneForm::Coordinate).result;
-        working.add(Standard, msg!("The plane of the circle:", "Die Ebene des Kreises:"), own.equation());
+        working.add(Standard, msg!("core.geometry.circle.plane_circle"), own.equation());
         let line = cut_line(&own, &e, &mut working)?;
         let Worked { result, working: cut } = self.meet_line(&line)?;
         working.extend(cut);

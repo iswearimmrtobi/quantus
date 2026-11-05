@@ -95,9 +95,7 @@ impl Plane {
         let normal = u.cross(v);
         if normal.is_zero() {
             return Err(error(msg!(
-                "The two directions are collinear, so they span no plane.",
-                "Die beiden Richtungsvektoren sind kollinear und spannen keine Ebene auf."
-            )));
+                "core.geometry.plane.two_directions_collinear_they_span")));
         }
         let normal = match shortening(&normal) {
             Some(factor) => normal.scale(&factor),
@@ -109,7 +107,7 @@ impl Plane {
     /// The plane through `support` with the normal `normal` (normal form).
     pub fn with_normal(support: &Point, normal: &Vector3) -> Result<Plane> {
         if normal.is_zero() {
-            return Err(error(msg!("The zero vector is no normal of a plane.", "Der Nullvektor ist kein Normalenvektor einer Ebene.")));
+            return Err(error(msg!("core.geometry.plane.zero_vector_no_normal_plane")));
         }
         let normal = spatial_vector(normal);
         Ok(Plane::build(support, normal.clone(), perpendicular_pair(&normal), PlaneForm::Normal))
@@ -121,9 +119,7 @@ impl Plane {
         let normal = Vector3::new(a, b, c);
         if normal.is_zero() {
             return Err(error(msg!(
-                "In a coordinate equation of a plane, x, y and z cannot all be missing.",
-                "In einer Koordinatengleichung einer Ebene können x, y und z nicht alle fehlen."
-            )));
+                "core.geometry.plane.coordinate_equation_plane_x_y")));
         }
         let i = (0..3).find(|&i| !normal.coords[i].is_zero()).expect("not zero");
         let mut coords = [Value::zero(), Value::zero(), Value::zero()];
@@ -138,19 +134,17 @@ impl Plane {
         let (u, v) = (a.to(b), a.to(c));
         if u.is_collinear(&v) {
             return Err(error(msg!(
-                "The three points lie on one line, so they give no plane.",
-                "Die drei Punkte liegen auf einer Geraden und legen keine Ebene fest."
-            )));
+                "core.geometry.plane.three_points_lie_one_line")));
         }
         let mut working = Working::default();
         let (u, v) = (spatial_vector(&u), spatial_vector(&v));
         working.add(
             Standard,
-            msg!("The directions from A to B and from A to C:", "Die Richtungsvektoren von A nach B und von A nach C:"),
+            msg!("core.geometry.plane.directions_from_b_from_c"),
             format!("\\overrightarrow{{AB}} = {}, \\quad \\overrightarrow{{AC}} = {}", show::vector(&u), show::vector(&v)),
         );
         let plane = Plane::parametric(a, &u, &v)?;
-        working.add(Brief, msg!("The plane through A, B and C:", "Die Ebene durch A, B und C:"), plane.equation());
+        working.add(Brief, msg!("core.geometry.plane.plane_through_b_c"), plane.equation());
         Ok(Worked::new(plane, working))
     }
 
@@ -184,7 +178,7 @@ impl Plane {
     pub fn convert(&self, form: PlaneForm) -> Worked<Plane> {
         let mut working = Working::default();
         if form == self.form {
-            working.add(Brief, msg!("The plane is already in this form.", "Die Ebene ist schon in dieser Form."), self.equation());
+            working.add(Brief, msg!("core.geometry.plane.plane_already_form"), self.equation());
             return Worked::new(self.clone(), working);
         }
         if self.form == PlaneForm::Parameter {
@@ -192,14 +186,14 @@ impl Plane {
             let cross = u.cross(v);
             working.add(
                 Standard,
-                msg!("A normal is the cross product of the directions:", "Ein Normalenvektor ist das Kreuzprodukt der Richtungsvektoren:"),
+                msg!("core.geometry.plane.normal_cross_product_directions"),
                 format!("\\vec{{n}} = {} \\times {} = {}", show::vector(u), show::vector(v), show::vector(&cross)),
             );
-            working.add(Detailed, msg!("Component by component:", "Komponentenweise:"), format!("\\vec{{n}} = {} = {}", show::cross(u, v), show::vector(&cross)));
+            working.add(Detailed, msg!("core.geometry.plane.component_component"), format!("\\vec{{n}} = {} = {}", show::cross(u, v), show::vector(&cross)));
             if let Some(factor) = shortening(&cross) {
                 working.add(
                     Standard,
-                    msg!("Shortened:", "Gekürzt:"),
+                    msg!("core.geometry.plane.shortened"),
                     format!("\\vec{{n}} = {} \\cdot {} = {}", show::value(&factor), show::vector(&cross), show::vector(&self.normal)),
                 );
             }
@@ -209,25 +203,25 @@ impl Plane {
             if self.form == PlaneForm::Normal {
                 working.add(
                     Standard,
-                    msg!("Multiply out the normal form:", "Die Normalenform ausmultiplizieren:"),
+                    msg!("core.geometry.plane.multiply_out_normal_form"),
                     "\\vec{n} \\cdot \\vec{x} = \\vec{n} \\cdot \\vec{p}",
                 );
             }
             working.add(
                 Standard,
-                msg!("The constant is the normal times the support:", "Die Konstante ist der Normalenvektor mal dem Stützvektor:"),
+                msg!("core.geometry.plane.constant_normal_times_support"),
                 format!("d = {} \\cdot {} = {} = {}", show::vector(n), show::vector(&self.support.position()), show::dot(n, &self.support.position()), show::value(&self.constant)),
             );
         }
         if self.form == PlaneForm::Coordinate {
             working.add(
                 Standard,
-                msg!("The coefficients of x, y and z are a normal:", "Die Koeffizienten von x, y und z bilden einen Normalenvektor:"),
+                msg!("core.geometry.plane.coefficients_x_y_z_normal"),
                 format!("\\vec{{n}} = {}", show::vector(&self.normal)),
             );
             working.add(
                 Standard,
-                msg!("A point of the plane:", "Ein Punkt der Ebene:"),
+                msg!("core.geometry.plane.point_plane"),
                 format!("P = {}", show::point(&self.support)),
             );
         }
@@ -235,20 +229,20 @@ impl Plane {
             let [u, v] = &self.spans;
             working.add(
                 Standard,
-                msg!("Two directions perpendicular to the normal:", "Zwei Richtungsvektoren senkrecht zum Normalenvektor:"),
+                msg!("core.geometry.plane.two_directions_perpendicular_normal"),
                 format!("\\vec{{u}} = {}, \\quad \\vec{{v}} = {}", show::vector(u), show::vector(v)),
             );
             working.add(
                 Detailed,
-                msg!("Check:", "Probe:"),
+                msg!("core.geometry.plane.check"),
                 format!("\\vec{{n}} \\cdot \\vec{{u}} = {} = 0, \\quad \\vec{{n}} \\cdot \\vec{{v}} = {} = 0", show::dot(&self.normal, u), show::dot(&self.normal, v)),
             );
         }
         let plane = Plane { form, ..self.clone() };
         let named = match form {
-            PlaneForm::Parameter => msg!("The parameter form:", "Die Parameterform:"),
-            PlaneForm::Normal => msg!("The normal form:", "Die Normalenform:"),
-            PlaneForm::Coordinate => msg!("The coordinate form:", "Die Koordinatenform:"),
+            PlaneForm::Parameter => msg!("core.geometry.plane.parameter_form"),
+            PlaneForm::Normal => msg!("core.geometry.plane.normal_form"),
+            PlaneForm::Coordinate => msg!("core.geometry.plane.coordinate_form"),
         };
         working.add(Brief, named, plane.equation());
         Worked::new(plane, working)
@@ -262,7 +256,7 @@ impl Plane {
             let [u, v] = &self.spans;
             working.add(
                 Standard,
-                msg!("Set the point equal to the plane equation.", "Den Punkt mit der Ebenengleichung gleichsetzen."),
+                msg!("core.geometry.plane.set_point_equal_plane_equation"),
                 format!("{} = {} + \\lambda {} + \\mu {}", show::vector(&spatial(p).position()), show::vector(&self.support.position()), show::vector(u), show::vector(v)),
             );
             let Some((_, _, fits)) = two_parameters(u, v, &self.support.to(p), 3, &mut working)? else {
@@ -280,12 +274,12 @@ impl Plane {
             } else {
                 format!("{} = {} {relation} {}", show::dot(&self.normal, &spatial(p).position()), show::value(&left), show::value(&self.constant))
             };
-            working.add(Standard, msg!("Put the point into the equation:", "Den Punkt in die Gleichung einsetzen:"), latex);
+            working.add(Standard, msg!("core.geometry.plane.put_point_into_equation"), latex);
             fits
         };
         working.add(
             Brief,
-            if on { msg!("The point lies on the plane.", "Der Punkt liegt in der Ebene.") } else { msg!("The point does not lie on the plane.", "Der Punkt liegt nicht in der Ebene.") },
+            if on { msg!("core.geometry.plane.point_lies_plane") } else { msg!("core.geometry.plane.point_does_not_lie_plane") },
             if on { "P \\in E" } else { "P \\notin E" },
         );
         Ok(Worked::new(on, working))

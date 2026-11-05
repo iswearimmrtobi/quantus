@@ -21,7 +21,7 @@ use crate::latex::ast::{Node, Operator};
 
 /// The line of the working that groups like terms; the last line then only adds coefficients.
 fn like_terms_together() -> String {
-    crate::text::msg!("Put like terms next to each other", "Gleichartige Terme nebeneinander schreiben")
+    crate::text::msg!("core.algebra.expand.put_like_terms_next_each")
 }
 use crate::latex::serializer;
 
@@ -142,7 +142,7 @@ fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
             let result_node = rebuild_product(new_factors.clone());
             let rule = RuleId::ExpandPolynomial;
             let explanation = crate::text::msg!(
-                "Expand polynomial product {} to {}", "Das Produkt {} zu {} ausmultiplizieren",
+                "core.algebra.expand.expand_polynomial_product",
                 serializer::expression(&rebuild_product(vec![f1.clone(), f2.clone()])),
                 serializer::expression(&prod_node)
             );
@@ -157,10 +157,10 @@ fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
                 return Some(step);
             };
             let working = vec![
-                AlgebraStep::line(node, place(each.clone()), crate::text::msg!("Write each term of the first bracket times each term of the second", "Jeden Term der ersten Klammer mal jeden Term der zweiten schreiben"), StepDetail::Detailed),
-                AlgebraStep::line(&place(each), place(uncollected), crate::text::msg!("Multiply every term of the first bracket by every term of the second", "Jeden Term der ersten Klammer mit jedem Term der zweiten multiplizieren"), StepDetail::Standard),
+                AlgebraStep::line(node, place(each.clone()), crate::text::msg!("core.algebra.expand.write_each_term_first_bracket"), StepDetail::Detailed),
+                AlgebraStep::line(&place(each), place(uncollected), crate::text::msg!("core.algebra.expand.multiply_every_term_first_bracket"), StepDetail::Standard),
             ];
-            return Some(step.with_working(working, crate::text::msg!("Combine like terms", "Gleichartige Terme zusammenfassen")));
+            return Some(step.with_working(working, crate::text::msg!("core.algebra.expand.combine_like_terms")));
         }
 
         // Case B: Distribute a scalar or monomial multiplier across a sum factor
@@ -190,7 +190,7 @@ fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
                         let result_node = rebuild_product(new_factors);
                         let rule = RuleId::ExpandPolynomial;
                         let explanation = crate::text::msg!(
-                            "Distribute {} across ({}) to obtain {}", "{} mit ({}) ausmultiplizieren: {}",
+                            "core.algebra.expand.distribute_across_obtain",
                             serializer::expression(&f_scalar),
                             serializer::expression(&add_factor),
                             serializer::expression(&dist_node)
@@ -383,7 +383,7 @@ fn like_term_lines(node: &Node, terms: &[(bool, Node)]) -> Vec<AlgebraStep> {
         }
     };
     if let Some(ordered) = signed_terms_sum(groups.iter().flat_map(|(_, group)| group.clone())) {
-        push(ordered, &crate::text::msg!("Order the terms by degree", "Die Terme nach dem Grad ordnen"), StepDetail::Maximal, &mut current);
+        push(ordered, &crate::text::msg!("core.algebra.expand.order_terms_degree"), StepDetail::Maximal, &mut current);
     }
     let grouped = groups.iter().map(|(_, group)| match group.as_slice() {
         [single] => single.clone(),
@@ -477,15 +477,15 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
             if serializer::expression(&canonical_node) != serializer::expression(unwrapped) {
                 // Only putting the terms in order is bookkeeping (Maximal).
                 let (explanation, level) = if is_term_reordering(unwrapped) {
-                    (crate::text::msg!("Order the terms by descending powers", "Die Terme nach absteigenden Potenzen ordnen"), StepDetail::Maximal)
+                    (crate::text::msg!("core.algebra.expand.order_terms_descending_powers"), StepDetail::Maximal)
                 } else {
-                    (crate::text::msg!("Combine like terms to obtain {}", "Gleichartige Terme zusammenfassen: {}", serializer::expression(&canonical_node)), StepDetail::Brief)
+                    (crate::text::msg!("core.algebra.expand.combine_like_terms_obtain", serializer::expression(&canonical_node)), StepDetail::Brief)
                 };
                 let step = AlgebraStep::new(node.clone(), canonical_node.clone(), explanation.clone(), Some(RuleId::CollectLikeTerms))
                     .with_level(level);
                 let working = collect_working(node);
                 let last = if working.iter().any(|line| line.explanation == like_terms_together()) {
-                    crate::text::msg!("Add the coefficients", "Die Koeffizienten addieren")
+                    crate::text::msg!("core.algebra.expand.add_coefficients")
                 } else {
                     explanation
                 };

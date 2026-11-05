@@ -4,6 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::settings::Language;
+use quantus_texts::{texts, Text};
 
 /// A category with its target units.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -24,54 +25,50 @@ pub struct UnitInfo {
 /// A unit of the catalogue with both names, for the search, which matches the English name in
 /// every language.
 pub(crate) struct Entry {
-    pub category_en: &'static str,
-    pub category_de: &'static str,
+    pub category: Text,
     pub latex: &'static str,
-    pub en: &'static str,
-    pub de: &'static str,
+    pub name: Text,
 }
 
 /// Every unit of the catalogue in its order; a unit in two categories comes twice.
 pub(crate) fn entries() -> impl Iterator<Item = Entry> {
-    CATEGORIES.iter().flat_map(|(category_en, category_de, units)| {
-        units.iter().map(|(latex, en, de)| Entry { category_en, category_de, latex, en, de })
-    })
+    CATEGORIES.iter().flat_map(|(category, units)| units.iter().map(|(latex, name)| Entry { category: *category, latex, name: *name }))
 }
 
 #[rustfmt::skip]
-const CATEGORIES: [(&str, &str, &[(&str, &str, &str)]); 19] = [
-    ("Length", "Länge", &[(r"\mathrm{m}", "metre", "Meter"), (r"\mathrm{km}", "kilometre", "Kilometer"), (r"\mathrm{cm}", "centimetre", "Zentimeter"), (r"\mathrm{mm}", "millimetre", "Millimeter"), (r"\mathrm{fm}", "femtometre", "Femtometer"), (r"\mathrm{in}", "inch", "Zoll"), (r"\mathrm{ft}", "foot", "Fuß"), (r"\mathrm{yd}", "yard", "Yard"), (r"\mathrm{mi}", "mile", "Meile"), (r"\mathrm{nmi}", "nautical mile", "Seemeile"), (r"\mathrm{pc}", "parsec", "Parsec"), (r"\mathrm{ly}", "light-year", "Lichtjahr"), (r"\mathrm{AU}", "astronomical unit", "Astronomische Einheit"), (r"\mathrm{Å}", "ångström", "Ångström"), (r"\mathrm{ch}", "chain", "Chain"), (r"\mathrm{mil}", "mil", "Mil"), (r"\mathrm{fath}", "fathom", "Faden")]),
-    ("Area", "Fläche", &[(r"\mathrm{m}^{2}", "square metre", "Quadratmeter"), (r"\mathrm{km}^{2}", "square kilometre", "Quadratkilometer"), (r"\mathrm{cm}^{2}", "square centimetre", "Quadratzentimeter"), (r"\mathrm{ha}", "hectare", "Hektar"), (r"\mathrm{acre}", "acre", "Acre"), (r"\mathrm{ft}^{2}", "square foot", "Quadratfuß"), (r"\mathrm{in}^{2}", "square inch", "Quadratzoll"), (r"\mathrm{mi}^{2}", "square mile", "Quadratmeile")]),
-    ("Volume", "Volumen", &[(r"\mathrm{m}^{3}", "cubic metre", "Kubikmeter"), (r"\mathrm{l}", "litre", "Liter"), (r"\mathrm{ml}", "millilitre", "Milliliter"), (r"\mathrm{gal}", "gallon", "Gallone"), (r"\mathrm{bu}", "bushel", "Bushel"), (r"\mathrm{bbl}", "barrel", "Barrel"), (r"\mathrm{ft}^{3}", "cubic foot", "Kubikfuß"), (r"\mathrm{in}^{3}", "cubic inch", "Kubikzoll")]),
-    ("Angle", "Winkel", &[(r"\mathrm{rad}", "radian", "Radiant")]),
-    ("Mass", "Masse", &[(r"\mathrm{kg}", "kilogram", "Kilogramm"), (r"\mathrm{g}", "gram", "Gramm"), (r"\mathrm{t}", "tonne", "Tonne"), (r"\mathrm{lb}", "pound", "Pfund"), (r"\mathrm{oz}", "ounce", "Unze"), (r"\mathrm{ton}", "short ton", "Short ton"), (r"\mathrm{ct}", "carat", "Karat"), (r"\mathrm{Da}", "dalton", "Dalton")]),
-    ("Time", "Zeit", &[(r"\mathrm{s}", "second", "Sekunde"), (r"\mathrm{min}", "minute", "Minute"), (r"\mathrm{h}", "hour", "Stunde"), (r"\mathrm{d}", "day", "Tag"), (r"\mathrm{yr}", "year", "Jahr")]),
-    ("Speed", "Geschwindigkeit", &[(r"\frac{\mathrm{m}}{\mathrm{s}}", "metre per second", "Meter pro Sekunde"), (r"\frac{\mathrm{km}}{\mathrm{h}}", "kilometre per hour", "Kilometer pro Stunde"), (r"\mathrm{mph}", "mile per hour", "Meile pro Stunde"), (r"\mathrm{kn}", "knot", "Knoten")]),
-    ("Acceleration", "Beschleunigung", &[(r"\frac{\mathrm{m}}{\mathrm{s}^{2}}", "metre per second squared", "Meter pro Quadratsekunde"), (r"\mathrm{Gal}", "gal", "Gal")]),
-    ("Torque", "Drehmoment", &[(r"\mathrm{N} \cdot \mathrm{m}", "newton metre", "Newtonmeter"), (r"\mathrm{dyn} \cdot \mathrm{cm}", "dyne centimetre", "Dyn-Zentimeter")]),
-    ("Force", "Kraft", &[(r"\mathrm{N}", "newton", "Newton"), (r"\mathrm{dyn}", "dyne", "Dyn"), (r"\mathrm{lbf}", "pound-force", "Pound-force"), (r"\mathrm{kgf}", "kilogram-force", "Kilopond")]),
-    ("Pressure", "Druck", &[(r"\mathrm{Pa}", "pascal", "Pascal"), (r"\mathrm{kPa}", "kilopascal", "Kilopascal"), (r"\mathrm{bar}", "bar", "Bar"), (r"\mathrm{atm}", "atmosphere", "Atmosphäre"), (r"\mathrm{mmHg}", "millimetre of mercury", "Millimeter Quecksilbersäule"), (r"\mathrm{inHg}", "inch of mercury", "Zoll Quecksilbersäule"), (r"\mathrm{psi}", "pound per square inch", "Pfund pro Quadratzoll"), (r"\mathrm{Torr}", "torr", "Torr"), (r"\frac{\mathrm{kgf}}{\mathrm{cm}^{2}}", "kilogram-force per square centimetre", "Kilopond pro Quadratzentimeter"), (r"\frac{\mathrm{dyn}}{\mathrm{cm}^{2}}", "dyne per square centimetre", "Dyn pro Quadratzentimeter")]),
-    ("Energy", "Energie", &[(r"\mathrm{J}", "joule", "Joule"), (r"\mathrm{kJ}", "kilojoule", "Kilojoule"), (r"\mathrm{kWh}", "kilowatt hour", "Kilowattstunde"), (r"\mathrm{eV}", "electronvolt", "Elektronenvolt"), (r"\mathrm{cal}", "calorie", "Kalorie"), (r"\mathrm{kcal}", "kilocalorie", "Kilokalorie"), (r"\mathrm{erg}", "erg", "Erg"), (r"\mathrm{Btu}", "British thermal unit", "British thermal unit"), (r"\mathrm{kgf} \cdot \mathrm{m}", "kilogram-force metre", "Kilopondmeter")]),
-    ("Power", "Leistung", &[(r"\mathrm{W}", "watt", "Watt"), (r"\mathrm{kW}", "kilowatt", "Kilowatt"), (r"\mathrm{hp}", "horsepower", "Pferdestärke")]),
-    ("Heat flow", "Wärmedurchfluss", &[(r"\mathrm{W}", "watt", "Watt"), (r"\frac{\mathrm{Btu}}{\mathrm{min}}", "BTU per minute", "BTU pro Minute")]),
-    ("Temperature", "Temperatur", &[(r"\mathrm{K}", "kelvin", "Kelvin"), (r"^\circ\mathrm{C}", "degree Celsius", "Grad Celsius"), (r"^\circ\mathrm{F}", "degree Fahrenheit", "Grad Fahrenheit")]),
-    ("Specific heat", "Spezifische Wärme", &[(r"\frac{\mathrm{J}}{\mathrm{kg} \cdot \mathrm{K}}", "joule per kilogram kelvin", "Joule pro Kilogramm und Kelvin"), (r"\frac{\mathrm{cal}}{\mathrm{g} \cdot \mathrm{K}}", "calorie per gram kelvin", "Kalorie pro Gramm und Kelvin")]),
-    ("Kinematic viscosity", "Kinematische Viskosität", &[(r"\frac{\mathrm{m}^{2}}{\mathrm{s}}", "square metre per second", "Quadratmeter pro Sekunde"), (r"\mathrm{St}", "stokes", "Stokes")]),
-    ("Magnetism", "Magnetismus", &[(r"\mathrm{Wb}", "weber", "Weber"), (r"\mathrm{Mx}", "maxwell", "Maxwell"), (r"\mathrm{T}", "tesla", "Tesla")]),
-    ("Radioactivity", "Radioaktivität", &[(r"\mathrm{Bq}", "becquerel", "Becquerel"), (r"\mathrm{Ci}", "curie", "Curie"), (r"\mathrm{Gy}", "gray", "Gray"), (r"\mathrm{Sv}", "sievert", "Sievert"), (r"\mathrm{rem}", "rem", "Rem")]),
+const CATEGORIES: [(Text, &[(&str, Text)]); 19] = [
+    (Text(texts!("unit.category.length")), &[(r"\mathrm{m}", Text(texts!("unit.metre"))), (r"\mathrm{km}", Text(texts!("unit.kilometre"))), (r"\mathrm{cm}", Text(texts!("unit.centimetre"))), (r"\mathrm{mm}", Text(texts!("unit.millimetre"))), (r"\mathrm{fm}", Text(texts!("unit.femtometre"))), (r"\mathrm{in}", Text(texts!("unit.inch"))), (r"\mathrm{ft}", Text(texts!("unit.foot"))), (r"\mathrm{yd}", Text(texts!("unit.yard"))), (r"\mathrm{mi}", Text(texts!("unit.mile"))), (r"\mathrm{nmi}", Text(texts!("unit.nautical_mile"))), (r"\mathrm{pc}", Text(texts!("unit.parsec"))), (r"\mathrm{ly}", Text(texts!("unit.light_year"))), (r"\mathrm{AU}", Text(texts!("unit.astronomical_unit"))), (r"\mathrm{Å}", Text(texts!("unit.ngstr_m"))), (r"\mathrm{ch}", Text(texts!("unit.chain"))), (r"\mathrm{mil}", Text(texts!("unit.mil"))), (r"\mathrm{fath}", Text(texts!("unit.fathom")))]),
+    (Text(texts!("unit.category.area")), &[(r"\mathrm{m}^{2}", Text(texts!("unit.square_metre"))), (r"\mathrm{km}^{2}", Text(texts!("unit.square_kilometre"))), (r"\mathrm{cm}^{2}", Text(texts!("unit.square_centimetre"))), (r"\mathrm{ha}", Text(texts!("unit.hectare"))), (r"\mathrm{acre}", Text(texts!("unit.acre"))), (r"\mathrm{ft}^{2}", Text(texts!("unit.square_foot"))), (r"\mathrm{in}^{2}", Text(texts!("unit.square_inch"))), (r"\mathrm{mi}^{2}", Text(texts!("unit.square_mile")))]),
+    (Text(texts!("unit.category.volume")), &[(r"\mathrm{m}^{3}", Text(texts!("unit.cubic_metre"))), (r"\mathrm{l}", Text(texts!("unit.litre"))), (r"\mathrm{ml}", Text(texts!("unit.millilitre"))), (r"\mathrm{gal}", Text(texts!("unit.gallon"))), (r"\mathrm{bu}", Text(texts!("unit.bushel"))), (r"\mathrm{bbl}", Text(texts!("unit.barrel"))), (r"\mathrm{ft}^{3}", Text(texts!("unit.cubic_foot"))), (r"\mathrm{in}^{3}", Text(texts!("unit.cubic_inch")))]),
+    (Text(texts!("unit.category.angle")), &[(r"\mathrm{rad}", Text(texts!("unit.radian")))]),
+    (Text(texts!("unit.category.mass")), &[(r"\mathrm{kg}", Text(texts!("unit.kilogram"))), (r"\mathrm{g}", Text(texts!("unit.gram"))), (r"\mathrm{t}", Text(texts!("unit.tonne"))), (r"\mathrm{lb}", Text(texts!("unit.pound"))), (r"\mathrm{oz}", Text(texts!("unit.ounce"))), (r"\mathrm{ton}", Text(texts!("unit.short_ton"))), (r"\mathrm{ct}", Text(texts!("unit.carat"))), (r"\mathrm{Da}", Text(texts!("unit.dalton")))]),
+    (Text(texts!("unit.category.time")), &[(r"\mathrm{s}", Text(texts!("unit.second"))), (r"\mathrm{min}", Text(texts!("unit.minute"))), (r"\mathrm{h}", Text(texts!("unit.hour"))), (r"\mathrm{d}", Text(texts!("unit.day"))), (r"\mathrm{yr}", Text(texts!("unit.year")))]),
+    (Text(texts!("unit.category.speed")), &[(r"\frac{\mathrm{m}}{\mathrm{s}}", Text(texts!("unit.metre_per_second"))), (r"\frac{\mathrm{km}}{\mathrm{h}}", Text(texts!("unit.kilometre_per_hour"))), (r"\mathrm{mph}", Text(texts!("unit.mile_per_hour"))), (r"\mathrm{kn}", Text(texts!("unit.knot")))]),
+    (Text(texts!("unit.category.acceleration")), &[(r"\frac{\mathrm{m}}{\mathrm{s}^{2}}", Text(texts!("unit.metre_per_second_squared"))), (r"\mathrm{Gal}", Text(texts!("unit.gal")))]),
+    (Text(texts!("unit.category.torque")), &[(r"\mathrm{N} \cdot \mathrm{m}", Text(texts!("unit.newton_metre"))), (r"\mathrm{dyn} \cdot \mathrm{cm}", Text(texts!("unit.dyne_centimetre")))]),
+    (Text(texts!("unit.category.force")), &[(r"\mathrm{N}", Text(texts!("unit.newton"))), (r"\mathrm{dyn}", Text(texts!("unit.dyne"))), (r"\mathrm{lbf}", Text(texts!("unit.pound_force"))), (r"\mathrm{kgf}", Text(texts!("unit.kilogram_force")))]),
+    (Text(texts!("unit.category.pressure")), &[(r"\mathrm{Pa}", Text(texts!("unit.pascal"))), (r"\mathrm{kPa}", Text(texts!("unit.kilopascal"))), (r"\mathrm{bar}", Text(texts!("unit.bar"))), (r"\mathrm{atm}", Text(texts!("unit.atmosphere"))), (r"\mathrm{mmHg}", Text(texts!("unit.millimetre_mercury"))), (r"\mathrm{inHg}", Text(texts!("unit.inch_mercury"))), (r"\mathrm{psi}", Text(texts!("unit.pound_per_square_inch"))), (r"\mathrm{Torr}", Text(texts!("unit.torr"))), (r"\frac{\mathrm{kgf}}{\mathrm{cm}^{2}}", Text(texts!("unit.kilogram_force_per_square_centimetre"))), (r"\frac{\mathrm{dyn}}{\mathrm{cm}^{2}}", Text(texts!("unit.dyne_per_square_centimetre")))]),
+    (Text(texts!("unit.category.energy")), &[(r"\mathrm{J}", Text(texts!("unit.joule"))), (r"\mathrm{kJ}", Text(texts!("unit.kilojoule"))), (r"\mathrm{kWh}", Text(texts!("unit.kilowatt_hour"))), (r"\mathrm{eV}", Text(texts!("unit.electronvolt"))), (r"\mathrm{cal}", Text(texts!("unit.calorie"))), (r"\mathrm{kcal}", Text(texts!("unit.kilocalorie"))), (r"\mathrm{erg}", Text(texts!("unit.erg"))), (r"\mathrm{Btu}", Text(texts!("unit.british_thermal_unit"))), (r"\mathrm{kgf} \cdot \mathrm{m}", Text(texts!("unit.kilogram_force_metre")))]),
+    (Text(texts!("unit.category.power")), &[(r"\mathrm{W}", Text(texts!("unit.watt"))), (r"\mathrm{kW}", Text(texts!("unit.kilowatt"))), (r"\mathrm{hp}", Text(texts!("unit.horsepower")))]),
+    (Text(texts!("unit.category.heat_flow")), &[(r"\mathrm{W}", Text(texts!("unit.watt"))), (r"\frac{\mathrm{Btu}}{\mathrm{min}}", Text(texts!("unit.btu_per_minute")))]),
+    (Text(texts!("unit.category.temperature")), &[(r"\mathrm{K}", Text(texts!("unit.kelvin"))), (r"^\circ\mathrm{C}", Text(texts!("unit.degree_celsius"))), (r"^\circ\mathrm{F}", Text(texts!("unit.degree_fahrenheit")))]),
+    (Text(texts!("unit.category.specific_heat")), &[(r"\frac{\mathrm{J}}{\mathrm{kg} \cdot \mathrm{K}}", Text(texts!("unit.joule_per_kilogram_kelvin"))), (r"\frac{\mathrm{cal}}{\mathrm{g} \cdot \mathrm{K}}", Text(texts!("unit.calorie_per_gram_kelvin")))]),
+    (Text(texts!("unit.category.kinematic_viscosity")), &[(r"\frac{\mathrm{m}^{2}}{\mathrm{s}}", Text(texts!("unit.square_metre_per_second"))), (r"\mathrm{St}", Text(texts!("unit.stokes")))]),
+    (Text(texts!("unit.category.magnetism")), &[(r"\mathrm{Wb}", Text(texts!("unit.weber"))), (r"\mathrm{Mx}", Text(texts!("unit.maxwell"))), (r"\mathrm{T}", Text(texts!("unit.tesla")))]),
+    (Text(texts!("unit.category.radioactivity")), &[(r"\mathrm{Bq}", Text(texts!("unit.becquerel"))), (r"\mathrm{Ci}", Text(texts!("unit.curie"))), (r"\mathrm{Gy}", Text(texts!("unit.gray"))), (r"\mathrm{Sv}", Text(texts!("unit.sievert"))), (r"\mathrm{rem}", Text(texts!("unit.rem")))]),
 ];
 
 /// The target units by category, named in `language`.
 pub fn catalogue(language: Language) -> Vec<UnitCategory> {
     CATEGORIES
         .iter()
-        .map(|(en, de, units)| UnitCategory {
-            name: if language == Language::De { de } else { en }.to_string(),
+        .map(|(name, units)| UnitCategory {
+            name: name.get(language).to_string(),
             units: units
                 .iter()
-                .map(|(latex, en, de)| UnitInfo {
+                .map(|(latex, name)| UnitInfo {
                     latex: latex.to_string(),
-                    name: if language == Language::De { de } else { en }.to_string(),
+                    name: name.get(language).to_string(),
                 })
                 .collect(),
         })
@@ -100,7 +97,7 @@ mod tests {
     #[test]
     fn every_unit_has_a_name_in_both_languages() {
         for entry in entries() {
-            assert!(!entry.en.is_empty() && !entry.de.is_empty(), "{}", entry.latex);
+            assert!(entry.name.0.iter().all(|name| !name.is_empty()), "{}", entry.latex);
         }
     }
 }

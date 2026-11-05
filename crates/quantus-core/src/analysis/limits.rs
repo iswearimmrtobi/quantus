@@ -48,7 +48,7 @@ impl Behaviour {
             Behaviour::Finite(p) => format!("\\approx {}", p.to_latex(digits)),
             Behaviour::PosInf => "\\infty".into(),
             Behaviour::NegInf => "-\\infty".into(),
-            Behaviour::Oscillates => format!("\\text{{{}}}", msg!("does not exist (oscillates)", "existiert nicht (oszilliert)")),
+            Behaviour::Oscillates => format!("\\text{{{}}}", msg!("core.analysis.limits.does_not_exist_oscillates")),
             Behaviour::Unknown => "\\text{?}".into(),
         }
     }
@@ -125,7 +125,7 @@ fn decide(f: &Expr, at: &Approach) -> (Behaviour, AnalysisRule, String) {
             return (behaviour, AnalysisRule::LimitDominance, growth.explanation());
         }
     }
-    (numeric(f, at), AnalysisRule::LimitNumeric, msg!("Determined numerically", "Numerisch bestimmt"))
+    (numeric(f, at), AnalysisRule::LimitNumeric, msg!("core.analysis.limits.determined_numerically"))
 }
 
 // ---- rational functions ------------------------------------------------------------------------
@@ -144,33 +144,31 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
             let (deg_n, deg_d) = (n.degree_of(x), d.degree_of(x));
             let ratio = leading(&n) / leading(&d);
             if n.is_zero() {
-                return Some((Behaviour::Finite(Point::rational(RBig::ZERO)), AnalysisRule::LimitDegree, msg!("f is 0", "f ist 0")));
+                return Some((Behaviour::Finite(Point::rational(RBig::ZERO)), AnalysisRule::LimitDegree, msg!("core.analysis.limits.f_0")));
             }
             Some(if deg_d == 0 {
                 let sign = sign_at_infinity(&ratio, deg_n, matches!(at, Approach::NegInf));
                 let behaviour = if deg_n == 0 { Behaviour::Finite(Point::rational(ratio)) } else { infinite(sign) };
-                (behaviour, AnalysisRule::LimitDegree, msg!("The term with the highest power decides", "Der Summand mit dem höchsten Exponenten bestimmt das Verhalten"))
+                (behaviour, AnalysisRule::LimitDegree, msg!("core.analysis.limits.term_highest_power_decides"))
             } else if deg_n < deg_d {
                 (
                     Behaviour::Finite(Point::rational(RBig::ZERO)),
                     AnalysisRule::LimitDegree,
-                    msg!("Degree of the numerator < degree of the denominator", "Zählergrad < Nennergrad"),
+                    msg!("core.analysis.limits.degree_numerator_degree_denominator"),
                 )
             } else if deg_n == deg_d {
                 (
                     Behaviour::Finite(Point::rational(ratio)),
                     AnalysisRule::LimitDegree,
                     msg!(
-                        "Degree of the numerator = degree of the denominator: ratio of the leading coefficients",
-                        "Zählergrad = Nennergrad: Quotient der Leitkoeffizienten"
-                    ),
+                        "core.analysis.limits.degree_numerator_degree_denominator_ratio"),
                 )
             } else {
                 let sign = sign_at_infinity(&ratio, deg_n - deg_d, matches!(at, Approach::NegInf));
                 (
                     infinite(sign),
                     AnalysisRule::LimitDegree,
-                    msg!("Degree of the numerator > degree of the denominator", "Zählergrad > Nennergrad"),
+                    msg!("core.analysis.limits.degree_numerator_degree_denominator_2"),
                 )
             })
         }
@@ -190,7 +188,7 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
                 return Some((
                     Behaviour::Finite(value),
                     AnalysisRule::LimitPole,
-                    msg!("Removable gap: the cancelled function is continuous here", "Hebbare Lücke: die gekürzte Funktion ist hier stetig"),
+                    msg!("core.analysis.limits.removable_gap_cancelled_function_continuous"),
                 ));
             }
             // D(x) ≈ D^{(k)}(x₀)/k! · (x − x₀)^k next to a zero of order k, so the sign on the
@@ -203,8 +201,7 @@ fn rational(numerator: &Poly, denominator: &Poly, at: &Approach) -> Option<(Beha
                 _ => right,
             };
             let explanation = msg!(
-                "Pole of order {}: the signs of the numerator and of (x - x_0)^{} decide",
-                "Polstelle der Ordnung {}: die Vorzeichen des Zählers und von (x - x_0)^{} entscheiden",
+                "core.analysis.limits.pole_order_signs_numerator_x",
                 order,
                 order
             );
@@ -271,13 +268,13 @@ pub fn pole(f: &Expr, at: &Point, ctx: &LimitContext) -> (Behaviour, Behaviour, 
     );
     let explanation = match (&left, &right) {
         (Behaviour::PosInf, Behaviour::NegInf) | (Behaviour::NegInf, Behaviour::PosInf) => {
-            msg!("Pole with a sign change", "Polstelle mit Vorzeichenwechsel")
+            msg!("core.analysis.limits.pole_sign_change")
         }
         (Behaviour::PosInf, Behaviour::PosInf) | (Behaviour::NegInf, Behaviour::NegInf) => {
-            msg!("Pole without a sign change", "Polstelle ohne Vorzeichenwechsel")
+            msg!("core.analysis.limits.pole_without_sign_change")
         }
-        (Behaviour::Finite(_), Behaviour::Finite(_)) => msg!("Removable gap", "Hebbare Lücke"),
-        _ => msg!("Behaviour at the gap", "Verhalten an der Lücke"),
+        (Behaviour::Finite(_), Behaviour::Finite(_)) => msg!("core.analysis.limits.removable_gap"),
+        _ => msg!("core.analysis.limits.behaviour_gap"),
     };
     (left, right, step(AnalysisRule::LimitPole, explanation, latex))
 }
@@ -328,8 +325,8 @@ pub fn infinity_working(f: &Expr, at: &Approach, ctx: &LimitContext) -> Vec<Step
         let result = decide(f, at).0.to_latex(ctx.digits);
         let tends = format!("\\lim_{{{limit}}} {power} \\cdot 1 = {result}");
         return vec![
-            step(AnalysisRule::LimitDegree, msg!("Factor out the highest power", "Höchste Potenz ausklammern"), factored).with_level(StepDetail::Standard),
-            step(AnalysisRule::LimitDegree, msg!("The bracket tends to 1", "Die Klammer geht gegen 1"), tends).with_level(StepDetail::Standard),
+            step(AnalysisRule::LimitDegree, msg!("core.analysis.limits.factor_out_highest_power"), factored).with_level(StepDetail::Standard),
+            step(AnalysisRule::LimitDegree, msg!("core.analysis.limits.bracket_tends_1"), tends).with_level(StepDetail::Standard),
         ];
     }
     if deg_n == deg_d && deg_n >= 1 {
@@ -338,7 +335,7 @@ pub fn infinity_working(f: &Expr, at: &Approach, ctx: &LimitContext) -> Vec<Step
             over_power(&numerator, deg_n, &RBig::ONE, var),
             over_power(&denominator, deg_d, &RBig::ONE, var)
         );
-        let text = msg!("Divide numerator and denominator by {}^{}", "Zähler und Nenner durch {}^{} teilen", var, deg_n);
+        let text = msg!("core.analysis.limits.divide_numerator_denominator", var, deg_n);
         return vec![step(AnalysisRule::LimitDegree, text, divided).with_level(StepDetail::Standard)];
     }
     Vec::new()
@@ -372,8 +369,8 @@ pub fn pole_working(f: &Expr, at: &Point, ctx: &LimitContext) -> Vec<Step> {
         side(derivative_sign)
     );
     vec![
-        step(AnalysisRule::LimitPole, msg!("The numerator at {}", "Der Zähler bei {}", a_tex), numerator_line).with_level(StepDetail::Standard),
-        step(AnalysisRule::LimitPole, msg!("Sign of the denominator", "Vorzeichen des Nenners"), denominator_line).with_level(StepDetail::Standard),
+        step(AnalysisRule::LimitPole, msg!("core.analysis.limits.numerator", a_tex), numerator_line).with_level(StepDetail::Standard),
+        step(AnalysisRule::LimitPole, msg!("core.analysis.limits.sign_denominator"), denominator_line).with_level(StepDetail::Standard),
     ]
 }
 
@@ -385,8 +382,8 @@ fn bounded(g: &Expr) -> Option<(Behaviour, AnalysisRule, String)> {
     if !has_oscillation(g) {
         return None;
     }
-    let squeeze = || msg!("Bounded factor times a factor that tends to 0", "Beschränkter Faktor mal Nullfolge");
-    let oscillates = || msg!("sin and cos keep oscillating", "sin und cos schwingen immer weiter");
+    let squeeze = || msg!("core.analysis.limits.bounded_factor_times_factor_tends");
+    let oscillates = || msg!("core.analysis.limits.sin_cos_keep_oscillating");
     match g {
         Expr::Product(factors) => {
             let (wave, rest): (Vec<Expr>, Vec<Expr>) = factors.iter().cloned().partition(is_oscillating);
@@ -413,7 +410,7 @@ fn bounded(g: &Expr) -> Option<(Behaviour, AnalysisRule, String)> {
                 b @ (Behaviour::PosInf | Behaviour::NegInf) => (
                     b,
                     AnalysisRule::LimitSqueeze,
-                    msg!("The bounded sin or cos term does not matter next to the term that grows", "Der beschränkte sin- bzw. cos-Term spielt neben dem wachsenden Term keine Rolle"),
+                    msg!("core.analysis.limits.bounded_sin_cos_term_does"),
                 ),
                 finite if vanishing => (finite, AnalysisRule::LimitSqueeze, squeeze()),
                 _ => (Behaviour::Oscillates, AnalysisRule::LimitSqueeze, oscillates()),
@@ -497,11 +494,11 @@ impl Growth {
 
     fn explanation(&self) -> String {
         if self.kinds & EXP != 0 && self.kinds & (POWER | LOG) != 0 {
-            msg!("The exponential function grows faster than any power of x", "Die e-Funktion wächst schneller als jede Potenz von x")
+            msg!("core.analysis.limits.exponential_function_grows_faster_than")
         } else if self.kinds & POWER != 0 && self.kinds & LOG != 0 {
-            msg!("Any power x^a (a > 0) grows faster than ln x", "Jede Potenz x^a (a > 0) wächst schneller als ln x")
+            msg!("core.analysis.limits.any_power_x_0_grows")
         } else {
-            msg!("The term with the highest power decides", "Der Summand mit dem höchsten Exponenten bestimmt das Verhalten")
+            msg!("core.analysis.limits.term_highest_power_decides")
         }
     }
 }

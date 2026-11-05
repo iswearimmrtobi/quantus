@@ -84,9 +84,7 @@ impl Equations {
                 [first, second, ..] => {
                     let (p, q) = (&parts[first.part].id, &parts[second.part].id);
                     return Err(QuantusError::other(msg!(
-                        "{p} and {q} are in series: two current sources set the same current.",
-                        "{p} und {q} liegen in Reihe: zwei Stromquellen geben denselben Strom vor."
-                    )));
+                        "core.kirchhoff.equations.series_two_current_sources_set")));
                 }
             }
         }

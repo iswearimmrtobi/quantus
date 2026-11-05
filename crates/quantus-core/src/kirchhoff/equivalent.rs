@@ -157,9 +157,7 @@ pub fn equivalent(
     let terminal = |n: usize, name: &str| {
         vertex_of.get(&terminals[n]).copied().ok_or_else(|| {
             QuantusError::other(msg!(
-                "{name} is not connected: put it on the terminal of a resistor or on a wire.",
-                "{name} ist nicht angeschlossen: auf den Anschluss eines Widerstands oder auf eine Leitung setzen."
-            ))
+                "core.kirchhoff.equivalent.not_connected_put_terminal_resistor"))
         })
     };
     let (a_vertex, b_vertex) = (terminal(0, "A")?, terminal(1, "B")?);
@@ -171,9 +169,7 @@ pub fn equivalent(
     if node_a == node_b {
         let latex = format!("R_{{AB}} = {}", ohms(&Value::zero())?);
         notes.push(msg!(
-            "A and B are joined by a wire, so no current flows through the resistors.",
-            "A und B sind durch eine Leitung verbunden, daher fließt kein Strom durch die Widerstände."
-        ));
+            "core.kirchhoff.equivalent.b_joined_wire_no_current"));
         steps.push(Step::new(StepKind::Result, latex.clone()));
         return Ok(Equivalent {
             value: Value::zero(),
@@ -196,9 +192,7 @@ pub fn equivalent(
         if a == b {
             let id = &part.id;
             notes.push(msg!(
-                "{id} is shorted: both of its terminals are on the same node.",
-                "{id} ist kurzgeschlossen: beide Anschlüsse liegen am selben Knoten."
-            ));
+                "core.kirchhoff.equivalent.shorted_both_terminals_same_node"));
             continue;
         }
         let index = index(&part.id);
@@ -221,18 +215,14 @@ pub fn equivalent(
     }
     if connected.find(node_a) != connected.find(node_b) {
         return Err(QuantusError::other(msg!(
-            "No resistor path leads from A to B, so no current can flow: R_AB is infinite.",
-            "Kein Weg über Widerstände führt von A nach B, daher kann kein Strom fließen: R_AB ist unendlich."
-        )));
+            "core.kirchhoff.equivalent.no_resistor_path_leads_from")));
     }
     let home = connected.find(node_a);
     let (kept, apart): (Vec<Resistor>, Vec<Resistor>) = resistors.into_iter().partition(|r| connected.find(r.a) == home);
     for r in apart {
         let ids = r.parts.join(", ");
         notes.push(msg!(
-            "{ids} is not connected to A and B and carries no current.",
-            "{ids} ist nicht mit A und B verbunden und führt keinen Strom."
-        ));
+            "core.kirchhoff.equivalent.not_connected_b_carries_no"));
     }
     let mut resistors = kept;
 
@@ -295,9 +285,7 @@ pub fn equivalent(
 
     // What is left is no series and no parallel circuit: the node rule with a test current.
     notes.push(msg!(
-        "The rest of the network is neither in series nor in parallel, so it is solved with the node rule: a test current I = 1 A flows in at A and out at B, and B is at 0 V.",
-        "Der Rest des Netzwerks ist weder in Reihe noch parallel, daher wird er mit der Knotenregel gelöst: ein Prüfstrom I = 1 A fließt bei A hinein und bei B heraus, B liegt auf 0 V."
-    ));
+        "core.kirchhoff.equivalent.rest_network_neither_series_nor"));
     let mut nodes: Vec<usize> = resistors.iter().flat_map(|r| [r.a, r.b]).filter(|&n| n != node_b).collect();
     nodes.sort_unstable();
     nodes.dedup();
@@ -351,9 +339,7 @@ pub fn equivalent(
     steps.extend(calculator.system_steps(&system, &names)?);
     let Solution::Unique(values) = &system.solution else {
         return Err(QuantusError::other(msg!(
-            "The node equations have no single solution.",
-            "Die Knotengleichungen haben keine eindeutige Lösung."
-        )));
+            "core.kirchhoff.equivalent.node_equations_have_no_single")));
     };
     // φ_A in V for I = 1 A: R_AB in Ω has the same number.
     let value = values[0].clone();
@@ -386,9 +372,7 @@ fn prune(resistors: &mut Vec<Resistor>, a: usize, b: usize, notes: &mut Vec<Stri
         let r = resistors.remove(open);
         let ids = r.parts.join(", ");
         notes.push(msg!(
-            "{ids} has an open end and carries no current.",
-            "{ids} hat ein offenes Ende und führt keinen Strom."
-        ));
+            "core.kirchhoff.equivalent.has_open_end_carries_no"));
     }
 }
 
@@ -439,7 +423,7 @@ fn plain(symbol: &str) -> String {
 /// `a, b and c` in the current language.
 fn listing(names: &[String]) -> String {
     match names.split_last() {
-        Some((last, rest)) if !rest.is_empty() => format!("{} {} {last}", rest.join(", "), msg!("and", "und")),
+        Some((last, rest)) if !rest.is_empty() => format!("{} {} {last}", rest.join(", "), msg!("core.kirchhoff.equivalent.and")),
         _ => names.join(""),
     }
 }
@@ -490,9 +474,7 @@ fn merge_parallel(resistors: &mut Vec<Resistor>, group: &[usize], calculator: &L
     };
     let names = listing(&symbols.iter().map(|s| plain(s)).collect::<Vec<_>>());
     let explanation = msg!(
-        "{names} are in parallel: they lie between the same two nodes.",
-        "{names} sind parallel: sie liegen zwischen denselben zwei Knoten."
-    );
+        "core.kirchhoff.equivalent.parallel_they_lie_between_same");
     let steps = merge_steps(&target, symbols.join(" \\parallel "), formula, substituted, with_decimal(calculator, &value, UnitKind::Ohm)?, explanation);
     let merged = Resistor {
         symbol: target.clone(),
@@ -529,9 +511,7 @@ fn merge_series(
     let substituted = format!("{} + {}", ohms(&p.value)?, ohms(&q.value)?);
     let (pn, qn) = (plain(&p.symbol), plain(&q.symbol));
     let explanation = msg!(
-        "{pn} and {qn} are in series: nothing else branches off between them, so the same current flows through both.",
-        "{pn} und {qn} sind in Reihe: zwischen ihnen zweigt nichts ab, daher fließt durch beide derselbe Strom."
-    );
+        "core.kirchhoff.equivalent.series_nothing_else_branches_off");
     let steps = merge_steps(&target, sum.clone(), sum, substituted, with_decimal(calculator, &value, UnitKind::Ohm)?, explanation);
     let merged = Resistor {
         symbol: target.clone(),
@@ -705,9 +685,7 @@ fn delta_to_star(
     }
     let names = listing(&sides.iter().map(|r| plain(&r.symbol)).collect::<Vec<_>>());
     let explanation = msg!(
-        "{names} form a delta: each lies between two of the same three nodes, and neither series nor parallel applies. Turned into a star around a new node, each corner gets the product of the two resistors at it over the sum of all three.",
-        "{names} bilden ein Dreieck: jeder liegt zwischen zwei derselben drei Knoten, und weder Reihe noch parallel trifft zu. In einen Stern um einen neuen Knoten umgewandelt, erhält jede Ecke das Produkt der beiden Widerstände an ihr geteilt durch die Summe aller drei."
-    );
+        "core.kirchhoff.equivalent.form_delta_each_lies_between");
     let merge = Merge {
         symbol: String::new(),
         parts: sides.iter().flat_map(|r| r.parts.iter().cloned()).collect(),
@@ -770,9 +748,7 @@ fn star_to_delta(
     }
     let names = listing(&star.iter().map(|r| plain(&r.symbol)).collect::<Vec<_>>());
     let explanation = msg!(
-        "{names} form a star: they meet at a node where nothing else is connected, and neither series nor parallel applies. Turned into a delta between their outer ends, each side gets the sum of the products of two arms over the arm opposite it.",
-        "{names} bilden einen Stern: sie treffen sich an einem Knoten, an dem sonst nichts angeschlossen ist, und weder Reihe noch parallel trifft zu. In ein Dreieck zwischen ihren äußeren Enden umgewandelt, erhält jede Seite die Summe der Zweierprodukte geteilt durch den gegenüberliegenden Arm."
-    );
+        "core.kirchhoff.equivalent.form_star_they_meet_node");
     let merge = Merge {
         symbol: String::new(),
         parts: star.iter().flat_map(|r| r.parts.iter().cloned()).collect(),

@@ -157,9 +157,7 @@ impl Graph {
             let link = links.iter().find(|l| l.a == open || l.b == open).expect("a node of degree 1 has a link");
             let id = &edges[link.edge].id;
             return Err(QuantusError::other(msg!(
-                "{id} has an open end: nothing is connected to one of its terminals.",
-                "{id} hat ein offenes Ende: an einem Anschluss ist nichts angeschlossen."
-            )));
+                "core.kirchhoff.graph.has_open_end_nothing_connected")));
         }
 
         let mut connected = UnionFind::new(nodes.len());

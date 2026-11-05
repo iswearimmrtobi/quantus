@@ -20,7 +20,7 @@ use crate::eval::{Evaluator, LatexCalculator, Variables};
 use crate::latex::ast::Node;
 use crate::latex::{parser, serializer};
 use crate::session::{Session, ANS, PRE_ANS};
-use crate::settings::{Language, Mode, Settings};
+use crate::settings::{Mode, Settings};
 use crate::text::{self, msg};
 use crate::units::{self, registry, Dimension, Unit};
 
@@ -119,9 +119,9 @@ impl Writeup {
         };
         let mut latex = format!(
             "\\noindent\n{}\\hfill\n{}\n\n\\medskip\n\\noindent\\textbf{{{}}}\n",
-            column(msg!("Given:", "Gegeben:"), given),
-            column(msg!("Wanted:", "Gesucht:"), wanted),
-            msg!("Solution:", "Lösung:"),
+            column(msg!("core.writeup.given"), given),
+            column(msg!("core.writeup.wanted"), wanted),
+            msg!("core.writeup.solution"),
         );
         for block in &self.blocks {
             let mut rows = Vec::new();
@@ -154,15 +154,15 @@ impl Writeup {
     /// table, each block is one `aligned` formula with its sentences as `\text` rows, and
     /// `\left( \right)` become plain brackets.
     pub fn to_markdown(&self) -> String {
-        let given_title = msg!("Given:", "Gegeben:");
-        let wanted_title = msg!("Wanted:", "Gesucht:");
+        let given_title = msg!("core.writeup.given");
+        let wanted_title = msg!("core.writeup.wanted");
         let rows = self.given.len().max(self.wanted.len()).max(1);
         let cell = |list: &[String], i: usize| list.get(i).map(|m| format!("${}$", simple(m))).unwrap_or_default();
         let mut markdown = format!("| {given_title} | {wanted_title} |\n|---|---|\n");
         for i in 0..rows {
             markdown.push_str(&format!("| {} | {} |\n", cell(&self.given, i), cell(&self.wanted, i)));
         }
-        markdown.push_str(&format!("\n**{}**\n", msg!("Solution:", "Lösung:")));
+        markdown.push_str(&format!("\n**{}**\n", msg!("core.writeup.solution")));
         // One `aligned` per block, so the equations stand under each other at their `=`;
         // Markdown renderers know no `\intertext`, so the sentences are `\text` rows.
         for block in &self.blocks {
@@ -397,8 +397,8 @@ impl Builder {
         }
         self.numbered = numbered;
         let lines = vec![
-            Line { kind: LineKind::Law, text: Some(msg!("It holds:", "Es gilt:")), latex: format!("{target} = {named}") },
-            Line { kind: LineKind::Substituted, text: Some(msg!("Inserting the values:", "Einsetzen der Werte:")), latex: format!("{target} = {valued}") },
+            Line { kind: LineKind::Law, text: Some(msg!("core.writeup.holds")), latex: format!("{target} = {named}") },
+            Line { kind: LineKind::Substituted, text: Some(msg!("core.writeup.inserting_values")), latex: format!("{target} = {valued}") },
             Line { kind: LineKind::Result, text: None, latex: format!("{target} = {result}") },
         ];
         self.writeup.blocks.push(Block { target, intermediate: true, lines });
@@ -451,10 +451,7 @@ impl Builder {
                 let canonical = law.canonical();
                 let law_names: Vec<(String, i32)> = canonical.factors.iter().map(|(s, e)| (symbols[*s].latex.to_string(), *e)).collect();
                 let stated = format!("{} = {}", symbols[0].latex, render(&canonical.coefficient, canonical.root, &law_names));
-                let sentence = match text::language() {
-                    Language::En => law.sentence.0,
-                    Language::De => law.sentence.1,
-                };
+                let sentence = law.sentence.get(text::language());
                 lines.push(Line { kind: LineKind::Law, text: Some(sentence.to_string()), latex: stated.clone() });
                 // The form's factors in the order of the law, with the names of the task.
                 let in_order = |of: &[(String, i32)]| -> Vec<(String, i32)> {
@@ -462,23 +459,23 @@ impl Builder {
                 };
                 let rearranged = format!("{target} = {}", render(&form.coefficient, form.root, &in_order(&named)));
                 if rearranged != stated {
-                    let text = (form.target != 0).then(|| msg!("Solved for {}:", "Umgestellt nach {}:", plain(&target)));
+                    let text = (form.target != 0).then(|| msg!("core.writeup.solved", plain(&target)));
                     lines.push(Line { kind: LineKind::Rearranged, text, latex: rearranged });
                 }
                 let substituted = format!("{target} = {}", render(&form.coefficient, form.root, &in_order(&valued)));
-                lines.push(Line { kind: LineKind::Substituted, text: Some(msg!("Inserting the values:", "Einsetzen der Werte:")), latex: substituted });
+                lines.push(Line { kind: LineKind::Substituted, text: Some(msg!("core.writeup.inserting_values")), latex: substituted });
             }
             _ => {
                 let formula = format!("{target} = {}", render(&monomial.coefficient, monomial.root, &named));
-                lines.push(Line { kind: LineKind::Law, text: Some(msg!("It holds:", "Es gilt:")), latex: formula });
+                lines.push(Line { kind: LineKind::Law, text: Some(msg!("core.writeup.holds")), latex: formula });
                 let substituted = format!("{target} = {}", render(&monomial.coefficient, monomial.root, &valued));
-                lines.push(Line { kind: LineKind::Substituted, text: Some(msg!("Inserting the values:", "Einsetzen der Werte:")), latex: substituted });
+                lines.push(Line { kind: LineKind::Substituted, text: Some(msg!("core.writeup.inserting_values")), latex: substituted });
             }
         }
         lines.push(Line { kind: LineKind::Result, text: None, latex: format!("{target} = {result}") });
         let target_unit = target_symbol.map(|s| s.si_unit()).or_else(|| registry::preferred_unit(dimension));
         if let Some(check) = unit_check(&target, monomial.root, &parts, target_unit) {
-            lines.push(Line { kind: LineKind::UnitCheck, text: Some(msg!("Unit check:", "Einheitenuntersuchung:")), latex: check });
+            lines.push(Line { kind: LineKind::UnitCheck, text: Some(msg!("core.writeup.unit_check")), latex: check });
         }
         self.writeup.blocks.push(Block { target, intermediate: false, lines });
         self.writeup.blocks.len() - 1

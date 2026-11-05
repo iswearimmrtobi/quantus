@@ -10,6 +10,7 @@ use dashu::integer::IBig;
 use dashu::rational::RBig;
 
 use crate::units::{lookup, Dimension, Unit};
+use quantus_texts::{texts, Text};
 
 /// A symbol of a law: how it is written and the coherent SI unit of its quantity, as a unit
 /// spec (see [`unit`]).
@@ -40,8 +41,8 @@ const fn s(latex: &'static str, unit: &'static str) -> Symbol {
 #[derive(Debug)]
 pub struct Law {
     pub id: &'static str,
-    /// The sentence the solution starts with, English and German.
-    pub sentence: (&'static str, &'static str),
+    /// The sentence the solution starts with.
+    pub sentence: Text,
     pub left: Symbol,
     pub right: &'static [(Symbol, i32)],
     /// `c` as numerator and denominator.
@@ -148,31 +149,31 @@ const DELTA_T: Symbol = s("\\Delta T", "K");
 /// The laws, in the order they are tried: where two fit the same input, the first wins.
 pub static LAWS: &[Law] = &[
     // electricity
-    Law { id: "ohm", sentence: ("By Ohm's law:", "Nach dem Ohm'schen Gesetz gilt:"), left: U, right: &[(R, 1), (I, 1)], coefficient: (1, 1) },
-    Law { id: "electric-power", sentence: ("For the electric power:", "Für die elektrische Leistung gilt:"), left: P, right: &[(U, 1), (I, 1)], coefficient: (1, 1) },
-    Law { id: "power-resistance-current", sentence: ("For the electric power:", "Für die elektrische Leistung gilt:"), left: P, right: &[(R, 1), (I, 2)], coefficient: (1, 1) },
-    Law { id: "power-voltage-resistance", sentence: ("For the electric power:", "Für die elektrische Leistung gilt:"), left: P, right: &[(U, 2), (R, -1)], coefficient: (1, 1) },
-    Law { id: "electric-work", sentence: ("For the electric work:", "Für die elektrische Arbeit gilt:"), left: W, right: &[(U, 1), (I, 1), (T_TIME, 1)], coefficient: (1, 1) },
-    Law { id: "charge", sentence: ("For the electric charge:", "Für die elektrische Ladung gilt:"), left: Q_CHARGE, right: &[(I, 1), (T_TIME, 1)], coefficient: (1, 1) },
-    Law { id: "wire-resistance", sentence: ("For the resistance of a wire:", "Für den Widerstand eines Drahtes gilt:"), left: R, right: &[(RHO_WIRE, 1), (L, 1), (A_AREA, -1)], coefficient: (1, 1) },
+    Law { id: "ohm", sentence: Text(texts!("core.writeup.laws.ohms_law")), left: U, right: &[(R, 1), (I, 1)], coefficient: (1, 1) },
+    Law { id: "electric-power", sentence: Text(texts!("core.writeup.laws.electric_power")), left: P, right: &[(U, 1), (I, 1)], coefficient: (1, 1) },
+    Law { id: "power-resistance-current", sentence: Text(texts!("core.writeup.laws.electric_power")), left: P, right: &[(R, 1), (I, 2)], coefficient: (1, 1) },
+    Law { id: "power-voltage-resistance", sentence: Text(texts!("core.writeup.laws.electric_power")), left: P, right: &[(U, 2), (R, -1)], coefficient: (1, 1) },
+    Law { id: "electric-work", sentence: Text(texts!("core.writeup.laws.electric_work")), left: W, right: &[(U, 1), (I, 1), (T_TIME, 1)], coefficient: (1, 1) },
+    Law { id: "charge", sentence: Text(texts!("core.writeup.laws.electric_charge")), left: Q_CHARGE, right: &[(I, 1), (T_TIME, 1)], coefficient: (1, 1) },
+    Law { id: "wire-resistance", sentence: Text(texts!("core.writeup.laws.resistance_wire")), left: R, right: &[(RHO_WIRE, 1), (L, 1), (A_AREA, -1)], coefficient: (1, 1) },
     // mechanics
-    Law { id: "speed", sentence: ("For the speed:", "Für die Geschwindigkeit gilt:"), left: V_SPEED, right: &[(S_DIST, 1), (T_TIME, -1)], coefficient: (1, 1) },
-    Law { id: "acceleration", sentence: ("For the acceleration:", "Für die Beschleunigung gilt:"), left: A_ACC, right: &[(V_SPEED, 1), (T_TIME, -1)], coefficient: (1, 1) },
-    Law { id: "uniform-acceleration", sentence: ("For a uniformly accelerated motion from rest:", "Für die gleichmäßig beschleunigte Bewegung aus der Ruhe gilt:"), left: S_DIST, right: &[(A_ACC, 1), (T_TIME, 2)], coefficient: (1, 2) },
-    Law { id: "weight", sentence: ("For the weight:", "Für die Gewichtskraft gilt:"), left: F_G, right: &[(M, 1), (G, 1)], coefficient: (1, 1) },
-    Law { id: "newton", sentence: ("By Newton's second law:", "Nach dem zweiten Newton'schen Gesetz gilt:"), left: F, right: &[(M, 1), (A_ACC, 1)], coefficient: (1, 1) },
-    Law { id: "density", sentence: ("For the density:", "Für die Dichte gilt:"), left: RHO, right: &[(M, 1), (V_VOLUME, -1)], coefficient: (1, 1) },
-    Law { id: "pressure", sentence: ("For the pressure:", "Für den Druck gilt:"), left: P_PRESSURE, right: &[(F, 1), (A_AREA, -1)], coefficient: (1, 1) },
-    Law { id: "potential-energy", sentence: ("For the potential energy:", "Für die potentielle Energie gilt:"), left: E_POT, right: &[(M, 1), (G, 1), (H, 1)], coefficient: (1, 1) },
-    Law { id: "kinetic-energy", sentence: ("For the kinetic energy:", "Für die kinetische Energie gilt:"), left: E_KIN, right: &[(M, 1), (V_SPEED, 2)], coefficient: (1, 2) },
-    Law { id: "mechanical-work", sentence: ("For the mechanical work:", "Für die mechanische Arbeit gilt:"), left: W, right: &[(F, 1), (S_DIST, 1)], coefficient: (1, 1) },
-    Law { id: "power", sentence: ("For the power:", "Für die Leistung gilt:"), left: P, right: &[(W, 1), (T_TIME, -1)], coefficient: (1, 1) },
-    Law { id: "momentum", sentence: ("For the momentum:", "Für den Impuls gilt:"), left: P_MOMENTUM, right: &[(M, 1), (V_SPEED, 1)], coefficient: (1, 1) },
+    Law { id: "speed", sentence: Text(texts!("core.writeup.laws.speed")), left: V_SPEED, right: &[(S_DIST, 1), (T_TIME, -1)], coefficient: (1, 1) },
+    Law { id: "acceleration", sentence: Text(texts!("core.writeup.laws.acceleration")), left: A_ACC, right: &[(V_SPEED, 1), (T_TIME, -1)], coefficient: (1, 1) },
+    Law { id: "uniform-acceleration", sentence: Text(texts!("core.writeup.laws.uniformly_accelerated_motion_from_rest")), left: S_DIST, right: &[(A_ACC, 1), (T_TIME, 2)], coefficient: (1, 2) },
+    Law { id: "weight", sentence: Text(texts!("core.writeup.laws.weight")), left: F_G, right: &[(M, 1), (G, 1)], coefficient: (1, 1) },
+    Law { id: "newton", sentence: Text(texts!("core.writeup.laws.newtons_second_law")), left: F, right: &[(M, 1), (A_ACC, 1)], coefficient: (1, 1) },
+    Law { id: "density", sentence: Text(texts!("core.writeup.laws.density")), left: RHO, right: &[(M, 1), (V_VOLUME, -1)], coefficient: (1, 1) },
+    Law { id: "pressure", sentence: Text(texts!("core.writeup.laws.pressure")), left: P_PRESSURE, right: &[(F, 1), (A_AREA, -1)], coefficient: (1, 1) },
+    Law { id: "potential-energy", sentence: Text(texts!("core.writeup.laws.potential_energy")), left: E_POT, right: &[(M, 1), (G, 1), (H, 1)], coefficient: (1, 1) },
+    Law { id: "kinetic-energy", sentence: Text(texts!("core.writeup.laws.kinetic_energy")), left: E_KIN, right: &[(M, 1), (V_SPEED, 2)], coefficient: (1, 2) },
+    Law { id: "mechanical-work", sentence: Text(texts!("core.writeup.laws.mechanical_work")), left: W, right: &[(F, 1), (S_DIST, 1)], coefficient: (1, 1) },
+    Law { id: "power", sentence: Text(texts!("core.writeup.laws.power")), left: P, right: &[(W, 1), (T_TIME, -1)], coefficient: (1, 1) },
+    Law { id: "momentum", sentence: Text(texts!("core.writeup.laws.momentum")), left: P_MOMENTUM, right: &[(M, 1), (V_SPEED, 1)], coefficient: (1, 1) },
     // waves
-    Law { id: "frequency", sentence: ("For the frequency:", "Für die Frequenz gilt:"), left: FREQ, right: &[(PERIOD, -1)], coefficient: (1, 1) },
-    Law { id: "wave-speed", sentence: ("For the speed of a wave:", "Für die Ausbreitungsgeschwindigkeit einer Welle gilt:"), left: C_WAVE, right: &[(LAMBDA, 1), (FREQ, 1)], coefficient: (1, 1) },
+    Law { id: "frequency", sentence: Text(texts!("core.writeup.laws.frequency")), left: FREQ, right: &[(PERIOD, -1)], coefficient: (1, 1) },
+    Law { id: "wave-speed", sentence: Text(texts!("core.writeup.laws.speed_wave")), left: C_WAVE, right: &[(LAMBDA, 1), (FREQ, 1)], coefficient: (1, 1) },
     // heat
-    Law { id: "heat", sentence: ("For the heat:", "Für die Wärme gilt:"), left: Q_HEAT, right: &[(C_HEAT, 1), (M, 1), (DELTA_T, 1)], coefficient: (1, 1) },
+    Law { id: "heat", sentence: Text(texts!("core.writeup.laws.heat")), left: Q_HEAT, right: &[(C_HEAT, 1), (M, 1), (DELTA_T, 1)], coefficient: (1, 1) },
 ];
 
 /// The symbol a quantity goes by when no law names it, by its dimension; the first entry of a

@@ -210,14 +210,8 @@ pub enum ComplexForm {
     Polar,
 }
 
-/// The language of the texts the engine writes itself (the electronics notes and errors).
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum Language {
-    #[default]
-    En,
-    De,
-}
+/// The language of the texts the engine writes itself, from `texts/texts.json`.
+pub use quantus_texts::Language;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", default)]
@@ -347,7 +341,7 @@ impl Settings {
     /// Whether quadratics are solved with the pq formula rather than the abc formula.
     pub fn uses_pq_formula(&self) -> bool {
         match self.quadratic_formula {
-            QuadraticFormula::Auto => self.language == Language::De,
+            QuadraticFormula::Auto => self.language.quadratic() == "pq",
             QuadraticFormula::Pq => true,
             QuadraticFormula::Abc => false,
         }

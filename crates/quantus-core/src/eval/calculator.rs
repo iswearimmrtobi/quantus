@@ -17,7 +17,7 @@ use crate::num::{Decimal, Value, DEFAULT_PRECISION};
 use crate::quantity::PhysicalQuantity;
 use crate::forms::{self, FormKind, ResultForm};
 use crate::matrix::{Item, Matrices, Matrix, MatrixEvaluator};
-use crate::settings::{AngleUnit, BinomialForm, ComplexForm, FractionForm, Language, Mode, Settings, StepDetail};
+use crate::settings::{AngleUnit, BinomialForm, ComplexForm, FractionForm, Mode, Settings, StepDetail};
 use crate::units::registry;
 use crate::text::msg;
 use crate::Result;
@@ -361,12 +361,7 @@ impl LatexCalculator {
     /// An (in)equality without unknowns: `\text{wahr}` or `\text{falsch}` (true, false), its
     /// value 1 or 0 as on a Casio.
     fn truth(&self, formula: Formula, holds: bool) -> Calculation {
-        let word = match (self.settings.language, holds) {
-            (Language::De, true) => "wahr",
-            (Language::De, false) => "falsch",
-            (_, true) => "true",
-            (_, false) => "false",
-        };
+        let word = if holds { quantus_texts::tr!(self.settings.language, "core.eval.calculator.true") } else { quantus_texts::tr!(self.settings.language, "core.eval.calculator.false") };
         let result = format!("\\text{{{word}}}");
         let input = serializer::formula(&formula);
         let steps = vec![Step::new(StepKind::Symbolic, input.clone()), Step::new(StepKind::Result, result.clone())];
@@ -640,7 +635,7 @@ impl LatexCalculator {
             let side = if constant_q { p.clone() } else { format!("\\frac{{{p}}}{{{q}}}") };
             let one_side = format!("{side} {} 0", chart.relation);
             if one_side != symbolic {
-                steps.push(Step::algebraic(one_side, None, msg!("Bring everything to one side", "Alles auf eine Seite bringen"), None, None));
+                steps.push(Step::algebraic(one_side, None, msg!("core.eval.calculator.bring_everything_one_side"), None, None));
             }
             let zeros: Vec<String> = chart
                 .points
@@ -649,9 +644,9 @@ impl LatexCalculator {
                 .map(|c| Ok(format!("{x} = {}", self.shown_value(&c.point.value)?)))
                 .collect::<Result<_>>()?;
             let (latex, text) = if zeros.is_empty() {
-                (format!("{p} \\neq 0"), msg!("No real zeros", "Keine reellen Nullstellen"))
+                (format!("{p} \\neq 0"), msg!("core.eval.calculator.no_real_zeros"))
             } else {
-                (format!("{p} = 0 \\Rightarrow {}", zeros.join(" \\lor ")), msg!("The zeros", "Die Nullstellen"))
+                (format!("{p} = 0 \\Rightarrow {}", zeros.join(" \\lor ")), msg!("core.eval.calculator.zeros"))
             };
             if !(zeros.is_empty() && chart.numerator.len() == 1) {
                 steps.push(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Standard));
@@ -663,7 +658,7 @@ impl LatexCalculator {
                 .map(|c| Ok(format!("{x} \\neq {}", self.shown_value(&c.point.value)?)))
                 .collect::<Result<_>>()?;
             if !poles.is_empty() {
-                let text = msg!("A denominator is 0 there: never in the solution", "Dort ist ein Nenner 0: nie in der Lösung");
+                let text = msg!("core.eval.calculator.denominator_0_there_never_solution");
                 steps.push(Step::algebraic(poles.join(" \\land "), None, text, None, None).with_level(StepDetail::Standard));
             }
 
@@ -702,7 +697,7 @@ impl LatexCalculator {
             let columns = format!("c|{}", vec!["c"; 2 * n + 1].join(""));
             let table = format!("\\begin{{array}}{{{columns}}} {} \\end{{array}}", rows.join(" \\\\ \\hline "));
             let table = table.replace("\\\\ \\hline \\hline", "\\\\ \\hline");
-            steps.push(Step::algebraic(table, None, msg!("Sign chart", "Vorzeichentabelle"), None, None));
+            steps.push(Step::algebraic(table, None, msg!("core.eval.calculator.sign_chart"), None, None));
         }
         Ok(steps)
     }
@@ -806,7 +801,7 @@ impl LatexCalculator {
                     first.get_or_insert((quantity, decimal, imaginary));
                 }
             }
-            Solution::Inconsistent { .. } => parts.push(msg!("\\text{{no solution}}", "\\text{{keine Lösung}}")),
+            Solution::Inconsistent { .. } => parts.push(msg!("core.eval.calculator.no_solution")),
             Solution::Parametric { free, bound, parameters } => {
                 // After the Gauss method the free unknowns are parameters: `y = λ`.
                 let mut shown = names.to_vec();
@@ -1040,7 +1035,7 @@ impl LatexCalculator {
         if line == result {
             return None;
         }
-        let text = msg!("Multiply the numbers and the units", "Zahlen und Einheiten multiplizieren");
+        let text = msg!("core.eval.calculator.multiply_numbers_units");
         Some(Step::algebraic(format!("{prefix}{line}"), None, text, None, None).with_level(StepDetail::Standard))
     }
 }
@@ -1155,9 +1150,9 @@ fn arithmetic_lines(expression: &Node, evaluator: &Evaluator, prefix: &str) -> V
         matches!(n, Node::Fraction { .. } | Node::Binary { operator: Operator::Times | Operator::ImplicitTimes | Operator::Divide, .. })
     };
     let stages: [(&dyn Fn(&Node) -> bool, String); 3] = [
-        (&brackets, msg!("Brackets first", "Klammern zuerst")),
-        (&powers, msg!("Powers and roots", "Potenzen und Wurzeln")),
-        (&products, msg!("Multiplication and division", "Punktrechnung")),
+        (&brackets, msg!("core.eval.calculator.brackets_first")),
+        (&powers, msg!("core.eval.calculator.powers_roots")),
+        (&products, msg!("core.eval.calculator.multiplication_division")),
     ];
     let mut lines = Vec::new();
     let mut current = expression.clone();
@@ -1207,7 +1202,7 @@ fn common_unit_line(expression: &Node, evaluator: &Evaluator, prefix: &str) -> O
         })
         .collect::<Option<_>>()?;
     let line = crate::algebra::display::signed_terms_sum(converted)?;
-    let text = msg!("Convert to a common unit", "In eine gemeinsame Einheit umrechnen");
+    let text = msg!("core.eval.calculator.convert_common_unit");
     Some(Step::algebraic(format!("{prefix}{}", serializer::expression(&line)), None, text, None, None).with_level(StepDetail::Standard))
 }
 

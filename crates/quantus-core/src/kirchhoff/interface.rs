@@ -175,9 +175,7 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
     let precision = match request.precision {
         Some(p) if p < 1 => {
             return Err(QuantusError::other(msg!(
-                "The precision must be at least 1, but is {p}.",
-                "Die Genauigkeit muss mindestens 1 sein, ist aber {p}."
-            )))
+                "core.kirchhoff.interface.precision_must_least_1_but")))
         }
         Some(p) => p as usize,
         None => settings.precision,
@@ -198,9 +196,7 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
     }
     if parts.iter().all(|p| p.kind == Kind::Wire) {
         return Err(QuantusError::other(msg!(
-            "The circuit has no parts: draw sources and resistors.",
-            "Die Schaltung hat keine Bauteile: Quellen und Widerstände zeichnen."
-        )));
+            "core.kirchhoff.interface.circuit_has_no_parts_draw")));
     }
     let graph = Graph::build(&edges)?;
     let (network, equations, system) = orient(&graph, &parts, &edges, &calculator, &settings)?;
@@ -210,7 +206,7 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
         .iter()
         .enumerate()
         .map(|(k, rule)| JunctionResponse {
-            name: msg!("N_{{{}}}", "K_{{{}}}", k + 1),
+            name: msg!("core.kirchhoff.interface.n", k + 1),
             anchor: graph.nodes[rule.node].points[0],
             symbolic: rule.equation.symbolic.clone(),
             numeric: rule.equation.numeric.clone(),
@@ -224,7 +220,7 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
         .zip(&equations.loops)
         .enumerate()
         .map(|(k, (mesh, equation))| LoopResponse {
-            name: msg!("L_{{{}}}", "M_{{{}}}", k + 1),
+            name: msg!("core.kirchhoff.interface.l", k + 1),
             anchor: mesh.anchor,
             members: mesh
                 .turns
@@ -256,16 +252,12 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
     let mut notes = Vec::new();
     if !graph.planar {
         notes.push(msg!(
-            "Lines of the drawing cross, so the loops are not its windows but come from a spanning tree.",
-            "Linien der Zeichnung kreuzen sich, daher sind die Maschen nicht ihre Fenster, sondern kommen aus einem Spannbaum."
-        ));
+            "core.kirchhoff.interface.lines_drawing_cross_loops_not"));
     }
     for junction in junctions.iter().filter(|j| j.dropped) {
         let name = plain(&junction.name);
         notes.push(msg!(
-            "The junction rule at {name} follows from the others and is left out.",
-            "Die Knotenregel bei {name} folgt aus den anderen und entfällt."
-        ));
+            "core.kirchhoff.interface.junction_rule_follows_from_others"));
     }
 
     let kept: Vec<&Equation> =
@@ -323,13 +315,9 @@ pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<Kirc
         other => {
             response.error = Some(match other {
                 Solution::Inconsistent { .. } => msg!(
-                    "The equations contradict each other: voltage sources alone in a loop must add up to zero, and current sources alone at a junction must cancel.",
-                    "Die Gleichungen widersprechen sich: Spannungsquellen allein in einer Masche müssen sich zu null addieren, Stromquellen allein an einem Knoten müssen sich aufheben."
-                ),
+                    "core.kirchhoff.interface.equations_contradict_each_other_voltage"),
                 _ => msg!(
-                    "The equations leave the currents open: a loop of voltage sources alone, or a junction of current sources alone, has no single solution.",
-                    "Die Gleichungen lassen die Ströme offen: eine Masche nur aus Spannungsquellen oder ein Knoten nur aus Stromquellen hat keine eindeutige Lösung."
-                ),
+                    "core.kirchhoff.interface.equations_leave_currents_open_loop"),
             });
             let (result, ..) = calculator.system_result(&system, &equations.names)?;
             steps.push(Step::new(StepKind::Result, result));
@@ -353,15 +341,11 @@ fn resistance_between(
     if let Some(source) = parts.iter().find(|p| matches!(p.kind, Kind::VoltageSource | Kind::CurrentSource)) {
         let id = &source.id;
         return Err(QuantusError::other(msg!(
-            "{id} is a source; the resistance between A and B is worked out for resistors and wires only, so remove the sources or the terminals A and B.",
-            "{id} ist eine Quelle; der Widerstand zwischen A und B wird nur für Widerstände und Leitungen bestimmt, daher die Quellen oder die Anschlüsse A und B entfernen."
-        )));
+            "core.kirchhoff.interface.source_resistance_between_b_worked")));
     }
     if parts.iter().all(|p| p.kind == Kind::Wire) {
         return Err(QuantusError::other(msg!(
-            "The network has no resistors: draw resistors between A and B.",
-            "Das Netzwerk hat keine Widerstände: Widerstände zwischen A und B zeichnen."
-        )));
+            "core.kirchhoff.interface.network_has_no_resistors_draw")));
     }
     let result = equivalent(edges, parts, terminals, calculator, settings)?;
     let shown = shown_steps(&result.steps, settings.step_detail);
@@ -461,28 +445,24 @@ fn part_of(calculator: &LatexCalculator, element: &KirchhoffElement) -> Result<O
             let given = |text: &Option<String>| text.as_deref().is_some_and(|t| !t.trim().is_empty());
             if given(&e.r_override) || (given(&e.material) && given(&e.length) && given(&e.area)) {
                 return Err(QuantusError::other(msg!(
-                    "{id} is a wire with a resistance; the Kirchhoff mode takes ideal wires only, so draw a resistor instead.",
-                    "{id} ist eine Leitung mit Widerstand; der Kirchhoff-Modus kennt nur ideale Leitungen, daher stattdessen einen Widerstand zeichnen."
-                )));
+                    "core.kirchhoff.interface.wire_resistance_kirchhoff_mode_takes")));
             }
             return Ok(Some(part(Kind::Wire, Value::zero(), None)));
         }
         "resistor" | "voltageSource" | "currentSource" => {}
         _ => {
             return Err(QuantusError::other(msg!(
-                "{id} can't be used in the Kirchhoff mode: it takes resistors, voltage and current sources and ideal wires.",
-                "{id} geht im Kirchhoff-Modus nicht: er kennt Widerstände, Spannungs- und Stromquellen und ideale Leitungen."
-            )))
+                "core.kirchhoff.interface.cant_used_kirchhoff_mode_takes")))
         }
     }
     let missing = |what: &str| {
-        QuantusError::other(msg!("The value {what} of {id} is missing.", "Der Wert {what} von {id} fehlt."))
+        QuantusError::other(msg!("core.kirchhoff.interface.value_missing"))
     };
     let value = |q: &PhysicalQuantity, symbol: &str| -> Result<Value> { Ok(q.to(&unit(symbol))?.value) };
     let nonnegative = |q: &PhysicalQuantity, symbol: &str| -> Result<Value> {
         let v = value(q, symbol)?;
         if is_negative(&v) {
-            return Err(QuantusError::other(msg!("The value of {id} must not be negative.", "Der Wert von {id} darf nicht negativ sein.")));
+            return Err(QuantusError::other(msg!("core.kirchhoff.interface.value_must_not_negative")));
         }
         Ok(v)
     };
@@ -623,9 +603,7 @@ impl<'a> Solved<'a> {
         let (gen, cons) = (generated.result.clone().unwrap_or_default(), consumed.result.clone().unwrap_or_default());
         let relation = if balanced { format!("= {gen} =") } else { format!("= {gen} \\neq {cons} =") };
         let latex = msg!(
-            "\\sum P_{{\\mathrm{{gen}}}} {relation} \\sum P_{{\\mathrm{{cons}}}}",
-            "\\sum P_{{\\mathrm{{abg}}}} {relation} \\sum P_{{\\mathrm{{auf}}}}"
-        );
+            "core.kirchhoff.interface.p_gen_p_cons");
         Ok(PowerBalanceResponse { generated, consumed, latex })
     }
 }

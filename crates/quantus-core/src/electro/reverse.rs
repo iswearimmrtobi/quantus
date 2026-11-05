@@ -71,7 +71,7 @@ const GRID: std::ops::RangeInclusive<i64> = -15..=15;
 pub fn solve_for(circuit: &Circuit, element: &str, parameter: Parameter, target: &Target, precision: usize) -> Result<Reverse> {
     let trial = |x: &Value| with_parameter(circuit, element, parameter, x);
     if missing_parameters(&trial(&Value::one())?)? > 0 {
-        return Err(QuantusError::other(msg!("more than one unknown", "more than one unknown")));
+        return Err(QuantusError::other(msg!("core.electro.reverse.more_than_one_unknown")));
     }
     let goal = target_value(&target.measure, &target.value)?;
     // The inner solves converge a little further than the answer is looked for.
@@ -110,7 +110,7 @@ pub fn solve_for(circuit: &Circuit, element: &str, parameter: Parameter, target:
         previous = Some((x, d));
     }
     let Some((mut low, low_deviation, mut high)) = bracket else {
-        return Err(first_error.unwrap_or_else(|| QuantusError::other(msg!("the target cannot be reached", "the target cannot be reached"))));
+        return Err(first_error.unwrap_or_else(|| QuantusError::other(msg!("core.electro.reverse.target_cannot_reached"))));
     };
 
     let negative_at_low = low_deviation.is_negative()?;
@@ -177,7 +177,7 @@ fn with_parameter(circuit: &Circuit, id: &str, parameter: Parameter, x: &Value) 
         .elements
         .iter_mut()
         .find(|e| e.id == id)
-        .ok_or_else(|| QuantusError::other(msg!("Element {id} does not exist", "Element {id} gibt es nicht")))?;
+        .ok_or_else(|| QuantusError::other(msg!("core.electro.reverse.element_does_not_exist")))?;
     let quantity = parameter_unit(parameter).map(|u| Some(PhysicalQuantity::new(x.clone(), u)));
     let slot: Option<&mut Option<PhysicalQuantity>> = match (&mut element.kind, parameter) {
         (ElementKind::Resistor { r }, Parameter::Resistance) => Some(r),
@@ -190,22 +190,22 @@ fn with_parameter(circuit: &Circuit, id: &str, parameter: Parameter, x: &Value) 
         (ElementKind::Potentiometer { r_total, .. }, Parameter::TotalResistance) => Some(r_total),
         (ElementKind::Potentiometer { position, .. }, Parameter::Position) => {
             if position.is_some() {
-                return Err(QuantusError::other(msg!("The parameter of {id} is already given", "Der Parameter von {id} ist schon gegeben")));
+                return Err(QuantusError::other(msg!("core.electro.reverse.parameter_already_given")));
             }
             *position = Some(x.clone());
             return Ok(circuit);
         }
-        _ => return Err(QuantusError::other(msg!("The parameter does not fit {id}", "Der Parameter passt nicht zu {id}"))),
+        _ => return Err(QuantusError::other(msg!("core.electro.reverse.parameter_does_not_fit"))),
     };
     let slot = slot.expect("a parameter with a unit");
     if slot.is_some() {
-        return Err(QuantusError::other(msg!("The parameter of {id} is already given", "Der Parameter von {id} ist schon gegeben")));
+        return Err(QuantusError::other(msg!("core.electro.reverse.parameter_already_given")));
     }
     *slot = quantity.expect("a parameter with a unit");
     // A wire is only resistive if it is complete; a partial one would silently stay ideal.
     if let ElementKind::Wire(w) = &element.kind {
         if w.r_override.is_none() && (w.material.is_none() || w.length.is_none() || w.area.is_none()) {
-            return Err(QuantusError::other(msg!("more than one unknown", "more than one unknown")));
+            return Err(QuantusError::other(msg!("core.electro.reverse.more_than_one_unknown")));
         }
     }
     Ok(circuit)
@@ -229,13 +229,13 @@ fn read(circuit: &Circuit, measure: &Measure, solution: &Solution) -> Result<Val
             .elements
             .iter()
             .find(|e| e.id == id)
-            .ok_or_else(|| QuantusError::other(msg!("Element {id} does not exist", "Element {id} gibt es nicht")))
+            .ok_or_else(|| QuantusError::other(msg!("core.electro.reverse.element_does_not_exist")))
     };
     let number = |output: &Output| -> Result<(Value, bool)> {
         match output {
             Output::Known(q) => Ok((q.value.clone(), false)),
             Output::Relative { value, .. } => Ok((value.value.clone(), true)),
-            Output::Unknown(reason) => Err(QuantusError::other(msg!("Unknown: {}", "Unbekannt: {}", reason.text()))),
+            Output::Unknown(reason) => Err(QuantusError::other(msg!("core.electro.reverse.unknown", reason.text()))),
         }
     };
     match measure {
@@ -244,7 +244,7 @@ fn read(circuit: &Circuit, measure: &Measure, solution: &Solution) -> Result<Val
                 .nodes
                 .iter()
                 .find(|n| n.id == *id)
-                .ok_or_else(|| QuantusError::other(msg!("Node {id} does not exist", "Knoten {id} gibt es nicht")))?;
+                .ok_or_else(|| QuantusError::other(msg!("core.electro.reverse.node_does_not_exist")))?;
             Ok(number(&node.voltage)?.0)
         }
         Measure::Voltage(id) => Ok(number(&element(id)?.voltage)?.0),
@@ -264,8 +264,8 @@ fn read(circuit: &Circuit, measure: &Measure, solution: &Solution) -> Result<Val
             let supply = circuit.elements.iter().find(|e| e.id == *source);
             match supply.map(|e| &e.kind) {
                 Some(ElementKind::VoltageSource { u: Some(u), .. }) => sum.div(&u.to(&unit("V"))?.value),
-                Some(ElementKind::VoltageSource { .. }) => Err(QuantusError::other(msg!("Unknown: the supply voltage is missing", "Unbekannt: Versorgungsspannung fehlt"))),
-                _ => Err(QuantusError::other(msg!("{source} is not a voltage source", "{source} ist keine Spannungsquelle"))),
+                Some(ElementKind::VoltageSource { .. }) => Err(QuantusError::other(msg!("core.electro.reverse.unknown_supply_voltage_missing"))),
+                _ => Err(QuantusError::other(msg!("core.electro.reverse.not_voltage_source"))),
             }
         }
     }

@@ -62,7 +62,7 @@ impl Plane {
         let quotient = if length.is_one() { show::value(&abs(offset.clone())?) } else { format!("\\frac{{{}}}{{{}}}", show::value(&abs(offset)?), show::value(&length)) };
         working.add(
             Standard,
-            msg!("Put the point into the Hesse normal form:", "Den Punkt in die Hessesche Normalenform einsetzen:"),
+            msg!("core.geometry.relations.put_point_into_hesse_normal"),
             format!(
                 "d = \\frac{{\\left|{} - {}\\right|}}{{{}}} = {}",
                 products.join(" + "),
@@ -71,7 +71,7 @@ impl Plane {
                 quotient
             ),
         );
-        working.add(Brief, msg!("The distance:", "Der Abstand:"), format!("d = {}", show::value(&distance)));
+        working.add(Brief, msg!("core.geometry.relations.distance"), format!("d = {}", show::value(&distance)));
         Ok(Worked::new(distance, working))
     }
 
@@ -103,7 +103,7 @@ impl Plane {
         }
         working.add(
             Standard,
-            msg!("Put the line into the coordinate form:", "Die Gerade in die Koordinatenform einsetzen:"),
+            msg!("core.geometry.relations.put_line_into_coordinate_form"),
             format!("{substituted} = {}", show::value(&plane.constant)),
         );
         let (constant, coefficient) = (n.dot(&s), n.dot(u));
@@ -112,31 +112,31 @@ impl Plane {
             let holds = equal(&constant, &plane.constant);
             working.add(
                 Standard,
-                msg!("λ drops out:", "λ fällt weg:"),
-                format!("{equation} \\quad ({})", if holds { msg!("true", "wahr") } else { msg!("false", "falsch") }),
+                msg!("core.geometry.relations.drops_out"),
+                format!("{equation} \\quad ({})", if holds { msg!("core.geometry.relations.true") } else { msg!("core.geometry.relations.false") }),
             );
             if holds {
-                working.add(Brief, msg!("The line lies in the plane.", "Die Gerade liegt in der Ebene."), "g \\subset E");
+                working.add(Brief, msg!("core.geometry.relations.line_lies_plane"), "g \\subset E");
                 return Ok(Worked::new(LinePlane::Contained, working));
             }
-            working.add(Brief, msg!("The line is parallel to the plane.", "Die Gerade ist parallel zur Ebene."), "g \\parallel E");
+            working.add(Brief, msg!("core.geometry.relations.line_parallel_plane"), "g \\parallel E");
             let Worked { result: distance, working: part } = plane.distance(&line.support)?;
             working.extend(part);
             return Ok(Worked::new(LinePlane::Parallel { distance }, working));
         }
         let lambda = plane.constant.sub(&constant).div(&coefficient)?;
-        working.add(Detailed, msg!("Solve for λ:", "Nach λ auflösen:"), format!("{equation} \\quad \\Rightarrow \\quad \\lambda = {}", show::value(&lambda)));
+        working.add(Detailed, msg!("core.geometry.relations.solve"), format!("{equation} \\quad \\Rightarrow \\quad \\lambda = {}", show::value(&lambda)));
         let point = line.at(&lambda);
         let point = Point { planar: false, ..point };
         working.add(
             Standard,
-            msg!("Put λ into the line:", "λ in die Gerade einsetzen:"),
+            msg!("core.geometry.relations.put_into_line"),
             format!("\\vec{{s}} = {} + {} \\cdot {}", show::vector(&s), show::factor(&lambda), show::vector(u)),
         );
-        working.add(Brief, msg!("The line meets the plane in the point", "Die Gerade schneidet die Ebene im Punkt"), format!("S = {}", show::point(&point)));
+        working.add(Brief, msg!("core.geometry.relations.line_meets_plane_point"), format!("S = {}", show::point(&point)));
         working.add(
             Maximal,
-            msg!("Check: S lies in the plane.", "Probe: S liegt in der Ebene."),
+            msg!("core.geometry.relations.check_s_lies_plane"),
             format!("{} = {}", show::dot(n, &point.position()), show::value(&n.dot(&point.position()))),
         );
         // The angle to the plane is 90° minus the angle to the normal: its sine is that cosine.
@@ -144,7 +144,7 @@ impl Plane {
         let angle = Angle::of(ratio, true, unit, precision)?;
         working.add(
             Standard,
-            msg!("The angle between line and plane:", "Der Winkel zwischen Gerade und Ebene:"),
+            msg!("core.geometry.relations.angle_between_line_plane"),
             format!(
                 "\\sin\\varphi = \\frac{{\\left|\\vec{{n}} \\cdot \\vec{{u}}\\right|}}{{\\left|\\vec{{n}}\\right| \\cdot \\left|\\vec{{u}}\\right|}} = \\frac{{{}}}{{{} \\cdot {}}} = {}",
                 show::value(&abs(coefficient)?),
@@ -153,7 +153,7 @@ impl Plane {
                 show::value(&angle.ratio)
             ),
         );
-        working.add(Brief, msg!("The angle:", "Der Winkel:"), show::angle(&angle));
+        working.add(Brief, msg!("core.geometry.relations.angle"), show::angle(&angle));
         Ok(Worked::new(LinePlane::Intersecting { point, lambda, angle }, working))
     }
 
@@ -168,10 +168,10 @@ impl Plane {
             let Worked { result: on, working: test } = e.contains(&f.support)?;
             working.extend(test);
             if on {
-                working.add(Brief, msg!("The planes are identical.", "Die Ebenen sind identisch."), "E = F");
+                working.add(Brief, msg!("core.geometry.relations.planes_identical"), "E = F");
                 return Ok(Worked::new(PlanePlane::Identical, working));
             }
-            working.add(Brief, msg!("The planes are parallel.", "Die Ebenen sind parallel."), "E \\parallel F");
+            working.add(Brief, msg!("core.geometry.relations.planes_parallel"), "E \\parallel F");
             let Worked { result: distance, working: part } = e.distance(&f.support)?;
             working.extend(part);
             return Ok(Worked::new(PlanePlane::Parallel { distance }, working));
@@ -190,7 +190,7 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
     let direction = n1.cross(n2);
     working.add(
         Standard,
-        msg!("The line of intersection is perpendicular to both normals:", "Die Schnittgerade steht senkrecht auf beiden Normalenvektoren:"),
+        msg!("core.geometry.relations.line_intersection_perpendicular_both_normals"),
         format!("\\vec{{u}} = \\vec{{n_1}} \\times \\vec{{n_2}} = {} \\times {} = {}", show::vector(n1), show::vector(n2), show::vector(&direction)),
     );
     // A common point: one coordinate 0, where the other two have a non-zero determinant
@@ -207,7 +207,7 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
         .map(|(c, d)| format!("{} = {}", show::combination(&[(&c[i], names[i]), (&c[j], names[j])]), show::value(d)));
     working.add(
         Standard,
-        msg!("A common point: set {} = 0 in both equations.", "Ein gemeinsamer Punkt: {} = 0 in beide Gleichungen einsetzen.", names[m]),
+        msg!("core.geometry.relations.common_point_set_0_both", names[m]),
         format!("\\begin{{aligned}} {} \\\\ {} \\end{{aligned}}", equations[0], equations[1]),
     );
     let determinant = a[i].mul(&b[j]).sub(&a[j].mul(&b[i]));
@@ -217,12 +217,12 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
     let point = Point::new(coords[0].clone(), coords[1].clone(), coords[2].clone());
     working.add(
         Detailed,
-        msg!("Solved:", "Gelöst:"),
+        msg!("core.geometry.relations.solved"),
         format!("{} = {}, \\quad {} = {}", names[i], show::value(&point.coords[i]), names[j], show::value(&point.coords[j])),
     );
     working.add(
         Maximal,
-        msg!("Check: the point lies in both planes.", "Probe: Der Punkt liegt in beiden Ebenen."),
+        msg!("core.geometry.relations.check_point_lies_both_planes"),
         format!(
             "{} = {}, \\quad {} = {}",
             show::dot(n1, &point.position()),
@@ -232,6 +232,6 @@ pub(crate) fn cut_line(e: &Plane, f: &Plane, working: &mut Working) -> Result<Li
         ),
     );
     let line = Line::new(point, direction)?;
-    working.add(Brief, msg!("The planes meet in the line", "Die Ebenen schneiden sich in der Geraden"), line.equation());
+    working.add(Brief, msg!("core.geometry.relations.planes_meet_line"), line.equation());
     Ok(line)
 }

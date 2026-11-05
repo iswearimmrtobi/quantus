@@ -49,7 +49,7 @@ impl Numbers {
         let at = |reason: String| QuantusError::other(format!("{what}: {reason}"));
         let formula = parser::parse_with(latex.trim(), &self.settings.parse_options()).map_err(|e| at(e.to_string()))?;
         if formula.label.is_some() || matches!(formula.expression, Node::Equation { .. } | Node::System { .. }) {
-            return Err(at(msg!("a number, not an equation.", "eine Zahl, keine Gleichung.")));
+            return Err(at(msg!("core.stochastics.number_not_equation")));
         }
         let variables = Variables::new();
         let evaluator = Evaluator::new(&variables)
@@ -58,7 +58,7 @@ impl Numbers {
             .with_angle_unit(self.settings.angle_unit);
         let quantity = evaluator.evaluate(&formula.expression).map_err(|e| at(e.to_string()))?;
         if !quantity.is_dimensionless() {
-            return Err(at(msg!("a plain number, without a unit.", "eine reine Zahl, ohne Einheit.")));
+            return Err(at(msg!("core.stochastics.plain_number_without_unit")));
         }
         let value = quantity.dimensionless_value()?;
         value.decimal(10).map_err(|e| at(e.to_string()))?;

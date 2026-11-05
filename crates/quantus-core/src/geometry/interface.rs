@@ -283,13 +283,13 @@ impl<'a> Builder<'a> {
         }
         match self.read(latex)? {
             Item::Scalar(value) => Ok(value),
-            _ => Err(error(msg!("'{}' is not a number.", "'{}' ist keine Zahl.", latex))),
+            _ => Err(error(msg!("core.geometry.interface.not_number", latex))),
         }
     }
 
     fn coordinates(&self, cells: &[String]) -> Result<(Vec<crate::num::Value>, bool)> {
         if !(2..=3).contains(&cells.len()) {
-            return Err(error(msg!("A point or vector has two or three coordinates.", "Ein Punkt oder Vektor hat zwei oder drei Koordinaten.")));
+            return Err(error(msg!("core.geometry.interface.point_vector_has_two_three")));
         }
         let values = cells.iter().map(|cell| self.number(cell)).collect::<Result<Vec<_>>>()?;
         Ok((values, cells.len() == 2))
@@ -307,7 +307,7 @@ impl<'a> Builder<'a> {
             }
             Entry::Latex(latex) => match self.read(latex)? {
                 Item::Point(p) => Ok(p),
-                _ => Err(error(msg!("'{}' is not a point.", "'{}' ist kein Punkt.", latex))),
+                _ => Err(error(msg!("core.geometry.interface.not_point", latex))),
             },
         }
     }
@@ -317,7 +317,7 @@ impl<'a> Builder<'a> {
             Entry::Coordinates(_) => Ok(self.point(entry)?.position()),
             Entry::Latex(latex) => match self.read(latex)? {
                 Item::Vector(v) => Ok(v),
-                _ => Err(error(msg!("'{}' is not a vector.", "'{}' ist kein Vektor.", latex))),
+                _ => Err(error(msg!("core.geometry.interface.not_vector", latex))),
             },
         }
     }
@@ -327,7 +327,7 @@ impl<'a> Builder<'a> {
         let key = key_of(name);
         let vector = self.built.get(&format!("\\vec{key}"));
         let found = if name.trim().starts_with("\\vec") { vector } else { self.built.get(&key).or(vector) };
-        found.ok_or_else(|| error(msg!("There is no object {} in the scene.", "Es gibt kein Objekt {} in der Szene.", name)))
+        found.ok_or_else(|| error(msg!("core.geometry.interface.there_no_object_scene", name)))
     }
 
     /// Builds `shape`, with the working of a construction that has one.
@@ -361,9 +361,7 @@ impl<'a> Builder<'a> {
             Shape::CircleCut { sphere, plane } => match (self.get(sphere)?, self.get(plane)?) {
                 (Object::Sphere(k), Object::Plane(e)) => worked(Circle::cut(k, e)?, Object::Circle),
                 _ => Err(error(msg!(
-                    "A cut circle needs a sphere and a plane.",
-                    "Ein Schnittkreis braucht eine Kugel und eine Ebene."
-                ))),
+                    "core.geometry.interface.cut_circle_needs_sphere_plane"))),
             },
             Shape::Typed { .. } => unreachable!("a typed object is read by `typed`"),
         }
@@ -378,7 +376,7 @@ impl<'a> Builder<'a> {
                     Ok((key, object)) => (key, Ok(Worked::new(object, Working::default()))),
                     Err(e) => (typed::name_in(latex).unwrap_or_else(|| name.clone()), Err(e)),
                 },
-                _ if key_of(name).is_empty() => (name.clone(), Err(error(msg!("An object needs a name.", "Ein Objekt braucht einen Namen.")))),
+                _ if key_of(name).is_empty() => (name.clone(), Err(error(msg!("core.geometry.interface.object_needs_name")))),
                 _ => (name.clone(), self.build(shape)),
             };
             let key = key_of(&name);
@@ -527,7 +525,7 @@ fn on(found: &bool) -> &'static str {
 }
 
 fn not_for(task: &str) -> QuantusError {
-    error(msg!("{} does not work for these objects.", "{} geht für diese Objekte nicht.", task))
+    error(msg!("core.geometry.interface.does_not_work_these_objects", task))
 }
 
 impl Builder<'_> {
@@ -550,7 +548,7 @@ impl Builder<'_> {
             (K(k), K(m)) => Answer::of(k.meet_sphere(m)?, sphere_sphere),
             (C(c), L(g)) | (L(g), C(c)) => Answer::of(c.meet_line(g)?, circle_line),
             (C(c), E(e)) | (E(e), C(c)) => Answer::of(c.meet_plane(e)?, circle_plane),
-            _ => return Err(not_for(&msg!("A relation", "Eine Lagebeziehung"))),
+            _ => return Err(not_for(&msg!("core.geometry.interface.relation"))),
         })
     }
 
@@ -563,16 +561,16 @@ impl Builder<'_> {
                 let mut working = Working::default();
                 working.add(
                     Standard,
-                    msg!("The length of the vector between the points:", "Die Länge des Vektors zwischen den Punkten:"),
+                    msg!("core.geometry.interface.length_vector_between_points"),
                     format!("\\left|\\overrightarrow{{PQ}}\\right| = \\left|{}\\right| = {}", show::vector(&v), show::length(&v)),
                 );
-                working.add(Brief, msg!("The distance:", "Der Abstand:"), format!("d = {}", show::value(&d)));
+                working.add(Brief, msg!("core.geometry.interface.distance"), format!("d = {}", show::value(&d)));
                 Answer::plain(Worked::new(d, working))
             }
             (P(p), L(g)) | (L(g), P(p)) => Answer::plain(g.distance(p)?),
             (P(p), E(e)) | (E(e), P(p)) => Answer::plain(e.distance(p)?),
             (P(_), K(_)) | (K(_), P(_)) | (L(_), L(_)) | (L(_), E(_)) | (E(_), L(_)) | (E(_), E(_)) => self.relation(a, b)?,
-            _ => return Err(not_for(&msg!("A distance", "Ein Abstand"))),
+            _ => return Err(not_for(&msg!("core.geometry.interface.distance_2"))),
         })
     }
 
@@ -584,7 +582,7 @@ impl Builder<'_> {
                 let mut working = Working::default();
                 working.add(
                     Standard,
-                    msg!("The cosine of the angle:", "Der Kosinus des Winkels:"),
+                    msg!("core.geometry.interface.cosine_angle"),
                     format!(
                         "\\cos\\varphi = \\frac{{\\vec{{a}} \\cdot \\vec{{b}}}}{{\\left|\\vec{{a}}\\right| \\cdot \\left|\\vec{{b}}\\right|}} = \\frac{{{}}}{{{} \\cdot {}}} = {}",
                         show::value(&u.dot(v)),
@@ -593,11 +591,11 @@ impl Builder<'_> {
                         show::value(&angle.ratio)
                     ),
                 );
-                working.add(Brief, msg!("The angle:", "Der Winkel:"), show::angle(&angle));
+                working.add(Brief, msg!("core.geometry.interface.angle"), show::angle(&angle));
                 Answer::plain(Worked::new(angle, working))
             }
             (L(_), L(_)) | (L(_), E(_)) | (E(_), L(_)) | (E(_), E(_)) => self.relation(a, b)?,
-            _ => return Err(not_for(&msg!("An angle", "Ein Winkel"))),
+            _ => return Err(not_for(&msg!("core.geometry.interface.angle_2"))),
         })
     }
 
@@ -605,15 +603,15 @@ impl Builder<'_> {
         Ok(match (object, measure) {
             (Object::Vector(v), Measure::Length) => {
                 let mut working = Working::default();
-                working.add(Standard, msg!("The length of the vector:", "Der Betrag des Vektors:"), format!("\\left|\\vec{{a}}\\right| = {}", show::length(v)));
-                working.add(Brief, msg!("The length:", "Der Betrag:"), format!("\\left|\\vec{{a}}\\right| = {}", show::value(&v.length()?)));
+                working.add(Standard, msg!("core.geometry.interface.length_vector"), format!("\\left|\\vec{{a}}\\right| = {}", show::length(v)));
+                working.add(Brief, msg!("core.geometry.interface.length"), format!("\\left|\\vec{{a}}\\right| = {}", show::value(&v.length()?)));
                 Answer::plain(Worked::new((), working))
             }
             (Object::Sphere(k), Measure::Surface) => Answer::plain(k.surface()),
             (Object::Sphere(k), Measure::Volume) => Answer::plain(k.volume()),
             (Object::Circle(c), Measure::Circumference) => Answer::plain(c.circumference()),
             (Object::Circle(c), Measure::Area) => Answer::plain(c.area()),
-            _ => return Err(not_for(&msg!("This measure", "Dieses Maß"))),
+            _ => return Err(not_for(&msg!("core.geometry.interface.measure"))),
         })
     }
 
@@ -628,7 +626,7 @@ impl Builder<'_> {
             Item::Point(p) => show::point(&p),
         };
         let mut working = Working::default();
-        working.add(Brief, msg!("The result:", "Das Ergebnis:"), format!("{input} = {shown}"));
+        working.add(Brief, msg!("core.geometry.interface.result"), format!("{input} = {shown}"));
         Ok(Answer::plain(Worked::new((), working)))
     }
 
@@ -639,7 +637,7 @@ impl Builder<'_> {
             Task::Angle { a, b } => self.angle(self.get(a)?, self.get(b)?),
             Task::Convert { plane, form } => match self.get(plane)? {
                 Object::Plane(e) => Ok(Answer::plain(e.convert((*form).into()))),
-                _ => Err(not_for(&msg!("A conversion", "Eine Umformung"))),
+                _ => Err(not_for(&msg!("core.geometry.interface.conversion"))),
             },
             Task::Foot { point, onto } => match (self.get(point)?, self.get(onto)?) {
                 (Object::Point(p), Object::Line(g)) => Ok(Answer::plain(g.foot(p))),
@@ -652,18 +650,18 @@ impl Builder<'_> {
                     }
                     Ok(Answer::plain(worked))
                 }
-                _ => Err(not_for(&msg!("A foot of the perpendicular", "Ein Lotfußpunkt"))),
+                _ => Err(not_for(&msg!("core.geometry.interface.foot_perpendicular"))),
             },
             Task::Reflect { point, mirror } => match (self.get(point)?, self.get(mirror)?) {
                 (Object::Point(p), Object::Point(m)) => Ok(Answer::plain(p.reflect_in_point(m))),
                 (Object::Point(p), Object::Line(g)) => Ok(Answer::plain(g.reflect(p))),
                 (Object::Point(p), Object::Plane(e)) => Ok(Answer::plain(e.reflect(p)?)),
-                _ => Err(not_for(&msg!("A reflection", "Eine Spiegelung"))),
+                _ => Err(not_for(&msg!("core.geometry.interface.reflection"))),
             },
             Task::Tangent { object, point } => match (self.get(object)?, self.get(point)?) {
                 (Object::Sphere(k), Object::Point(p)) => Ok(Answer::plain(k.tangent_plane(p)?)),
                 (Object::Circle(c), Object::Point(p)) => Ok(Answer::plain(c.tangent(p)?)),
-                _ => Err(not_for(&msg!("A tangent", "Eine Tangente"))),
+                _ => Err(not_for(&msg!("core.geometry.interface.tangent"))),
             },
             Task::Midpoint { a, b } => match (self.get(a)?, self.get(b)?) {
                 (Object::Point(p), Object::Point(q)) => {
@@ -672,13 +670,13 @@ impl Builder<'_> {
                     let mut working = Working::default();
                     working.add(
                         Standard,
-                        msg!("Half of the way from P to Q:", "Die Hälfte des Wegs von P nach Q:"),
+                        msg!("core.geometry.interface.half_way_from_p_q"),
                         format!("\\vec{{m}} = \\frac{{1}}{{2}} \\cdot \\left({} + {}\\right) = {}", show::vector(&p.position()), show::vector(&q.position()), show::vector(&m.position())),
                     );
-                    working.add(Brief, msg!("The midpoint:", "Der Mittelpunkt:"), format!("M = {}", show::point(&m)));
+                    working.add(Brief, msg!("core.geometry.interface.midpoint"), format!("M = {}", show::point(&m)));
                     Ok(Answer::plain(Worked::new(m, working)))
                 }
-                _ => Err(not_for(&msg!("A midpoint", "Ein Mittelpunkt"))),
+                _ => Err(not_for(&msg!("core.geometry.interface.midpoint_2"))),
             },
             Task::Measure { object, measure } => self.measure(self.get(object)?, *measure),
             Task::Evaluate { latex } => self.evaluate(latex),

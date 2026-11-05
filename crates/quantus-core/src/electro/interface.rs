@@ -157,7 +157,7 @@ impl ValueResponse {
 pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<CircuitResponse> {
     let _language = Scope::new(settings.language);
     let precision = match request.precision {
-        Some(p) if p < 1 => return Err(QuantusError::other(msg!("The precision must be at least 1, but is {p}.", "Die Genauigkeit muss mindestens 1 sein, ist aber {p}."))),
+        Some(p) if p < 1 => return Err(QuantusError::other(msg!("core.electro.interface.precision_must_least_1_but"))),
         Some(p) => p as usize,
         None => settings.precision,
     };
@@ -168,7 +168,7 @@ pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<Ci
         None => (solve_at(&circuit, precision)?, None),
         Some(ask) => {
             let parameter = parameter_of(&ask.parameter)?;
-            let target = Target { measure: measure_of(&ask.measure)?, value: quantity(&calculator, &ask.value, &msg!("target value", "Zielwert"))? };
+            let target = Target { measure: measure_of(&ask.measure)?, value: quantity(&calculator, &ask.value, &msg!("core.electro.interface.target_value"))? };
             let Reverse { value, solution } = solve_for(&circuit, &ask.element, parameter, &target, precision)?;
             let found = ReverseResponse {
                 element: ask.element.clone(),
@@ -195,13 +195,13 @@ pub(crate) fn element_of(calculator: &LatexCalculator, e: &ElementRequest) -> Re
             material: match e.material.as_deref().map(str::trim).filter(|m| !m.is_empty()) {
                 Some(name) => Some(
                     Material::from_name(name)
-                        .ok_or_else(|| QuantusError::other(msg!("{}: unknown material “{name}”", "{}: unbekanntes Material „{name}“", e.id)))?,
+                        .ok_or_else(|| QuantusError::other(msg!("core.electro.interface.unknown_material", e.id)))?,
                 ),
                 None => None,
             },
-            length: get(&e.length, &msg!("length", "Länge"))?,
-            area: get(&e.area, &msg!("cross-section", "Querschnitt"))?,
-            temp: get(&e.temp, &msg!("temperature", "Temperatur"))?,
+            length: get(&e.length, &msg!("core.electro.interface.length"))?,
+            area: get(&e.area, &msg!("core.electro.interface.cross_section"))?,
+            temp: get(&e.temp, &msg!("core.electro.interface.temperature"))?,
             r_override: get(&e.r_override, "R")?,
             l_per_m: get(&e.l_per_m, "L'")?,
             c_per_m: get(&e.c_per_m, "C'")?,
@@ -212,21 +212,21 @@ pub(crate) fn element_of(calculator: &LatexCalculator, e: &ElementRequest) -> Re
         }
         "voltageSource" => ElementKind::VoltageSource {
             u: get(&e.u, "U")?,
-            internal_resistance: get(&e.internal_resistance, &msg!("internal resistance", "Innenwiderstand"))?,
+            internal_resistance: get(&e.internal_resistance, &msg!("core.electro.interface.internal_resistance"))?,
         },
         "currentSource" => ElementKind::CurrentSource {
             i: get(&e.i, "I")?,
-            internal_conductance: get(&e.internal_conductance, &msg!("internal conductance", "Innenleitwert"))?,
+            internal_conductance: get(&e.internal_conductance, &msg!("core.electro.interface.internal_conductance"))?,
         },
         "potentiometer" => ElementKind::Potentiometer {
             wiper: e
                 .wiper
-                .ok_or_else(|| QuantusError::other(msg!("{}: the wiper is not connected", "{}: der Schleifer ist nicht verbunden", e.id)))?,
+                .ok_or_else(|| QuantusError::other(msg!("core.electro.interface.wiper_not_connected", e.id)))?,
             r_total: get(&e.r_total, "R")?,
-            position: get(&e.position, &msg!("position", "Stellung"))?.map(|q| q.dimensionless_value()).transpose()?,
+            position: get(&e.position, &msg!("core.electro.interface.position"))?.map(|q| q.dimensionless_value()).transpose()?,
         },
         "powerLoad" => ElementKind::PowerLoad { p: get(&e.p, "P")? },
-        other => return Err(QuantusError::other(msg!("{}: unknown element kind “{other}”", "{}: unbekannte Bauteilart „{other}“", e.id))),
+        other => return Err(QuantusError::other(msg!("core.electro.interface.unknown_element_kind", e.id))),
     };
     Ok(Element { id: e.id.clone(), a: e.a, b: e.b, kind })
 }
@@ -256,22 +256,22 @@ fn parameter_of(name: &str) -> Result<Parameter> {
         "power" => Parameter::Power,
         "totalResistance" => Parameter::TotalResistance,
         "position" => Parameter::Position,
-        other => return Err(QuantusError::other(msg!("Unknown parameter “{other}”", "Unbekannter Parameter „{other}“"))),
+        other => return Err(QuantusError::other(msg!("core.electro.interface.unknown_parameter"))),
     })
 }
 
 fn measure_of(m: &MeasureRequest) -> Result<Measure> {
-    let element = || m.element.clone().ok_or_else(|| QuantusError::other(msg!("The target lacks its element", "Dem Ziel fehlt das Bauteil")));
+    let element = || m.element.clone().ok_or_else(|| QuantusError::other(msg!("core.electro.interface.target_lacks_element")));
     Ok(match m.kind.as_str() {
-        "nodeVoltage" => Measure::NodeVoltage(m.node.ok_or_else(|| QuantusError::other(msg!("The target lacks its node", "Dem Ziel fehlt der Knoten")))?),
+        "nodeVoltage" => Measure::NodeVoltage(m.node.ok_or_else(|| QuantusError::other(msg!("core.electro.interface.target_lacks_node")))?),
         "voltage" => Measure::Voltage(element()?),
         "current" => Measure::Current(element()?),
         "power" => Measure::Power(element()?),
         "relativeDrop" => Measure::RelativeDrop {
             elements: m.elements.clone(),
-            source: m.source.clone().ok_or_else(|| QuantusError::other(msg!("The target lacks its source", "Dem Ziel fehlt die Quelle")))?,
+            source: m.source.clone().ok_or_else(|| QuantusError::other(msg!("core.electro.interface.target_lacks_source")))?,
         },
-        other => return Err(QuantusError::other(msg!("Unknown target “{other}”", "Unbekanntes Ziel „{other}“"))),
+        other => return Err(QuantusError::other(msg!("core.electro.interface.unknown_target"))),
     })
 }
 
@@ -328,7 +328,7 @@ fn resistance_of(calculator: &LatexCalculator, circuit: &Circuit, result: &Eleme
     };
     match ratio {
         Some(r) => known(calculator, &r).map(Some),
-        None => Ok(Some(ValueResponse { text: Some(msg!("Unknown: no current flows", "Unbekannt: es fließt kein Strom")), ..ValueResponse::absent("unknown") })),
+        None => Ok(Some(ValueResponse { text: Some(msg!("core.electro.interface.unknown_no_current_flows")), ..ValueResponse::absent("unknown") })),
     }
 }
 
@@ -375,7 +375,7 @@ fn value_of(calculator: &LatexCalculator, circuit: &Circuit, output: &Output) ->
     match output {
         Output::Known(q) => known(calculator, q),
         Output::Unknown(reason) => {
-            Ok(ValueResponse { text: Some(msg!("Unknown: {}", "Unbekannt: {}", reason.text())), ..ValueResponse::absent("unknown") })
+            Ok(ValueResponse { text: Some(msg!("core.electro.interface.unknown", reason.text())), ..ValueResponse::absent("unknown") })
         }
         Output::Relative { value, source } => {
             let current = circuit
@@ -398,9 +398,9 @@ fn value_of(calculator: &LatexCalculator, circuit: &Circuit, output: &Output) ->
                 unit: Some(crate::units::registry::format(&shown.unit)),
                 source: Some(source.clone()),
                 text: Some(if current {
-                    msg!("relative, {reading} (current unknown)", "relativ, {reading} (Strom unbekannt)")
+                    msg!("core.electro.interface.relative_current_unknown")
                 } else {
-                    msg!("relative, {reading} (voltage unknown)", "relativ, {reading} (Spannung unbekannt)")
+                    msg!("core.electro.interface.relative_voltage_unknown")
                 }),
             })
         }

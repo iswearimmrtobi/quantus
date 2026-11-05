@@ -45,21 +45,21 @@ impl Warning {
     /// The note shown in the editor; `wire` is the wire's name, e.g. "W1".
     pub fn text(&self, wire: &str) -> String {
         match self {
-            Warning::DefaultTemperature => msg!("at 20 °C", "bei 20 °C"),
+            Warning::DefaultTemperature => msg!("core.electro.wire.20_c"),
             Warning::Idealised { missing } => {
                 let names: Vec<String> = missing
                     .iter()
                     .map(|m| match m {
-                        Missing::Material => msg!("material", "Material"),
-                        Missing::Length => msg!("length", "Länge"),
-                        Missing::Area => msg!("cross-section", "Querschnitt"),
+                        Missing::Material => msg!("core.electro.wire.material"),
+                        Missing::Length => msg!("core.electro.wire.length"),
+                        Missing::Area => msg!("core.electro.wire.cross_section"),
                     })
                     .collect();
                 let names = names.join(", ");
                 if missing.len() == 1 {
-                    msg!("Wire {wire} idealised: {names} is missing", "Leitung {wire} idealisiert: {names} fehlt")
+                    msg!("core.electro.wire.wire_idealised_missing")
                 } else {
-                    msg!("Wire {wire} idealised: {names} are missing", "Leitung {wire} idealisiert: {names} fehlen")
+                    msg!("core.electro.wire.wire_idealised_missing_2")
                 }
             }
         }
@@ -78,7 +78,7 @@ impl Wire {
         if let Some(r) = &self.r_override {
             let r = r.to(&ohm)?;
             if r.value.is_negative()? {
-                return Err(QuantusError::other(msg!("The resistance must not be negative.", "Der Widerstand darf nicht negativ sein.")));
+                return Err(QuantusError::other(msg!("core.electro.wire.resistance_must_not_negative")));
             }
             return Ok((r, vec![]));
         }
@@ -101,10 +101,10 @@ impl Wire {
         let length = length.to(&find("m").expect("unit is registered"))?;
         let area = area.to(&find("m").expect("unit is registered").pow(2))?;
         if length.value.is_negative()? {
-            return Err(QuantusError::other(msg!("The length must not be negative.", "Die Länge darf nicht negativ sein.")));
+            return Err(QuantusError::other(msg!("core.electro.wire.length_must_not_negative")));
         }
         if area.value.is_zero() || area.value.is_negative()? {
-            return Err(QuantusError::other(msg!("The cross-section must be positive.", "Der Querschnitt muss positiv sein.")));
+            return Err(QuantusError::other(msg!("core.electro.wire.cross_section_must_positive")));
         }
 
         let (difference, warnings) = self.temperature_difference()?;

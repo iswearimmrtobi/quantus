@@ -4,7 +4,6 @@ use crate::eval::calculator::fraction_node;
 use crate::latex::{exact, serializer};
 use crate::linear;
 use crate::num::{Decimal, Value};
-use crate::settings::Language;
 use crate::text;
 
 use super::{Angle, Point, Vector3};
@@ -30,9 +29,9 @@ pub(crate) fn value(value: &Value) -> String {
 /// A decimal with six digits, with a decimal comma in German.
 pub(crate) fn decimal(d: &Decimal) -> String {
     let plain = d.round(6).to_string();
-    match text::language() {
-        Language::De => plain.replace('.', "{,}"),
-        Language::En => plain,
+    match text::language().decimal() {
+        "." => plain,
+        separator => plain.replace('.', &format!("{{{separator}}}")),
     }
 }
 

@@ -182,12 +182,8 @@ fn typed_symbol(latex: &str) -> String {
 }
 
 fn entries(language: Language) -> &'static [Entry] {
-    static EN: OnceLock<Vec<Entry>> = OnceLock::new();
-    static DE: OnceLock<Vec<Entry>> = OnceLock::new();
-    match language {
-        Language::En => EN.get_or_init(|| build(Language::En)),
-        Language::De => DE.get_or_init(|| build(Language::De)),
-    }
+    static ENTRIES: [OnceLock<Vec<Entry>>; Language::ALL.len()] = [const { OnceLock::new() }; Language::ALL.len()];
+    ENTRIES[language as usize].get_or_init(|| build(language))
 }
 
 fn entry(hit: LibraryHit, english: &str, symbols: Vec<String>) -> Entry {
@@ -216,14 +212,13 @@ fn build(language: Language) -> Vec<Entry> {
         if !seen.insert(unit.latex) {
             continue;
         }
-        let de = language == Language::De;
         let hit = LibraryHit {
             kind: HitKind::Unit,
             latex: unit.latex.to_string(),
-            name: if de { unit.de } else { unit.en }.to_string(),
-            detail: if de { unit.category_de } else { unit.category_en }.to_string(),
+            name: unit.name.get(language).to_string(),
+            detail: unit.category.get(language).to_string(),
         };
-        entries.push(entry(hit, unit.en, vec![typed_symbol(unit.latex)]));
+        entries.push(entry(hit, unit.name.get(Language::En), vec![typed_symbol(unit.latex)]));
     }
     entries
 }

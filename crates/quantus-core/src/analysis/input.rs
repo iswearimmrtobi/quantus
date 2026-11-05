@@ -15,14 +15,12 @@ pub fn parse_function(latex: &str, variable: Option<&str>, settings: &Settings) 
     let options = Settings { mode: Mode::Algebra, ..settings.clone() }.parse_options();
     let formula = parser::parse_with(&source, &options)?;
     if let Node::Equation { .. } | Node::System { .. } = formula.expression {
-        return Err(QuantusError::other(msg!("Enter a function, not an equation.", "Gib eine Funktion ein, keine Gleichung.")));
+        return Err(QuantusError::other(msg!("core.analysis.input.enter_function_not_equation")));
     }
     let var = match (variable, named) {
         (Some(asked), Some(named)) if asked != named => {
             return Err(QuantusError::other(msg!(
-                "The function is written in {named}, but {asked} was asked for.",
-                "Die Funktion ist in {named} geschrieben, gefragt war aber {asked}."
-            )))
+                "core.analysis.input.function_written_but_was_asked")))
         }
         (Some(asked), _) => asked.to_string(),
         (None, Some(named)) => named,
@@ -34,9 +32,7 @@ pub fn parse_function(latex: &str, variable: Option<&str>, settings: &Settings) 
                 _ => {
                     let listed = found.into_iter().collect::<Vec<_>>().join(", ");
                     return Err(QuantusError::other(msg!(
-                        "f may depend on one variable only, but it contains {listed}; function families are not supported yet.",
-                        "f darf nur von einer Variablen abhängen, enthält aber {listed}; Funktionenscharen werden noch nicht unterstützt."
-                    )));
+                        "core.analysis.input.f_may_depend_one_variable")));
                 }
             }
         }

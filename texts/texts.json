@@ -14,13 +14,3625 @@
     }
   },
   "texts": {
-    "test.one": {
-      "en": "one {}",
-      "de": "eins {}"
+    "constant.0_c_kelvin": {
+      "en": "0 °C in kelvin",
+      "de": "0 °C in Kelvin"
+    },
+    "constant.atomic_mass_constant": {
+      "en": "atomic mass constant",
+      "de": "atomare Masseneinheit"
+    },
+    "constant.avogadro_constant": {
+      "en": "Avogadro constant",
+      "de": "Avogadro-Konstante"
+    },
+    "constant.bohr_magneton": {
+      "en": "Bohr magneton",
+      "de": "Bohrsches Magneton"
+    },
+    "constant.bohr_radius": {
+      "en": "Bohr radius",
+      "de": "Bohrscher Radius"
+    },
+    "constant.boltzmann_constant": {
+      "en": "Boltzmann constant",
+      "de": "Boltzmann-Konstante"
+    },
+    "constant.category.adopted_values": {
+      "en": "Adopted values",
+      "de": "Übernommene Werte"
+    },
+    "constant.category.atomic_nuclear": {
+      "en": "Atomic and nuclear",
+      "de": "Atom- und Kernkonstanten"
+    },
+    "constant.category.electromagnetic": {
+      "en": "Electromagnetic",
+      "de": "Elektromagnetische Konstanten"
+    },
+    "constant.category.other": {
+      "en": "Other",
+      "de": "Andere"
+    },
+    "constant.category.physico_chemical": {
+      "en": "Physico-chemical",
+      "de": "Physikalisch-chemische Konstanten"
+    },
+    "constant.category.universal": {
+      "en": "Universal",
+      "de": "Universelle Konstanten"
+    },
+    "constant.characteristic_impedance_vacuum": {
+      "en": "characteristic impedance of vacuum",
+      "de": "Wellenwiderstand des Vakuums"
+    },
+    "constant.classical_electron_radius": {
+      "en": "classical electron radius",
+      "de": "klassischer Elektronenradius"
+    },
+    "constant.compton_wavelength": {
+      "en": "Compton wavelength",
+      "de": "Compton-Wellenlänge"
+    },
+    "constant.conductance_quantum": {
+      "en": "conductance quantum",
+      "de": "Leitwertquant"
+    },
+    "constant.conventional_josephson_constant_1990": {
+      "en": "conventional Josephson constant (1990)",
+      "de": "konventionelle Josephson-Konstante (1990)"
+    },
+    "constant.conventional_von_klitzing_constant_1990": {
+      "en": "conventional von Klitzing constant (1990)",
+      "de": "konventionelle von-Klitzing-Konstante (1990)"
+    },
+    "constant.electron_magnetic_moment": {
+      "en": "electron magnetic moment",
+      "de": "magnetisches Moment des Elektrons"
+    },
+    "constant.electron_mass": {
+      "en": "electron mass",
+      "de": "Elektronenmasse"
+    },
+    "constant.elementary_charge": {
+      "en": "elementary charge",
+      "de": "Elementarladung"
+    },
+    "constant.faraday_constant": {
+      "en": "Faraday constant",
+      "de": "Faraday-Konstante"
+    },
+    "constant.fine_structure_constant": {
+      "en": "fine-structure constant",
+      "de": "Feinstrukturkonstante"
+    },
+    "constant.first_radiation_constant": {
+      "en": "first radiation constant",
+      "de": "erste Strahlungskonstante"
+    },
+    "constant.gravitational_constant": {
+      "en": "gravitational constant",
+      "de": "Gravitationskonstante"
+    },
+    "constant.josephson_constant": {
+      "en": "Josephson constant",
+      "de": "Josephson-Konstante"
+    },
+    "constant.magnetic_flux_quantum": {
+      "en": "magnetic flux quantum",
+      "de": "magnetisches Flussquant"
+    },
+    "constant.molar_gas_constant": {
+      "en": "molar gas constant",
+      "de": "universelle Gaskonstante"
+    },
+    "constant.molar_volume_ideal_gas_273": {
+      "en": "molar volume of an ideal gas (273,15 K, 101,325 kPa)",
+      "de": "molares Volumen eines idealen Gases (273,15 K, 101,325 kPa)"
+    },
+    "constant.muon_magnetic_moment": {
+      "en": "muon magnetic moment",
+      "de": "magnetisches Moment des Myons"
+    },
+    "constant.muon_mass": {
+      "en": "muon mass",
+      "de": "Myonmasse"
+    },
+    "constant.neutron_compton_wavelength": {
+      "en": "neutron Compton wavelength",
+      "de": "Compton-Wellenlänge des Neutrons"
+    },
+    "constant.neutron_magnetic_moment": {
+      "en": "neutron magnetic moment",
+      "de": "magnetisches Moment des Neutrons"
+    },
+    "constant.neutron_mass": {
+      "en": "neutron mass",
+      "de": "Neutronenmasse"
+    },
+    "constant.nuclear_magneton": {
+      "en": "nuclear magneton",
+      "de": "Kernmagneton"
+    },
+    "constant.planck_constant": {
+      "en": "Planck constant",
+      "de": "Planck-Konstante"
+    },
+    "constant.planck_length": {
+      "en": "Planck length",
+      "de": "Planck-Länge"
+    },
+    "constant.planck_time": {
+      "en": "Planck time",
+      "de": "Planck-Zeit"
+    },
+    "constant.proton_compton_wavelength": {
+      "en": "proton Compton wavelength",
+      "de": "Compton-Wellenlänge des Protons"
+    },
+    "constant.proton_gyromagnetic_ratio": {
+      "en": "proton gyromagnetic ratio",
+      "de": "gyromagnetisches Verhältnis des Protons"
+    },
+    "constant.proton_magnetic_moment": {
+      "en": "proton magnetic moment",
+      "de": "magnetisches Moment des Protons"
+    },
+    "constant.proton_mass": {
+      "en": "proton mass",
+      "de": "Protonenmasse"
+    },
+    "constant.reduced_planck_constant": {
+      "en": "reduced Planck constant",
+      "de": "reduzierte Planck-Konstante"
+    },
+    "constant.rydberg_constant": {
+      "en": "Rydberg constant",
+      "de": "Rydberg-Konstante"
+    },
+    "constant.second_radiation_constant": {
+      "en": "second radiation constant",
+      "de": "zweite Strahlungskonstante"
+    },
+    "constant.speed_light_vacuum": {
+      "en": "speed of light in vacuum",
+      "de": "Lichtgeschwindigkeit im Vakuum"
+    },
+    "constant.standard_acceleration_gravity": {
+      "en": "standard acceleration of gravity",
+      "de": "Normfallbeschleunigung"
+    },
+    "constant.standard_atmosphere": {
+      "en": "standard atmosphere",
+      "de": "Normatmosphäre"
+    },
+    "constant.stefan_boltzmann_constant": {
+      "en": "Stefan–Boltzmann constant",
+      "de": "Stefan-Boltzmann-Konstante"
+    },
+    "constant.tau_mass": {
+      "en": "tau mass",
+      "de": "Taumasse"
+    },
+    "constant.vacuum_permeability": {
+      "en": "vacuum permeability",
+      "de": "magnetische Feldkonstante"
+    },
+    "constant.vacuum_permittivity": {
+      "en": "vacuum permittivity",
+      "de": "elektrische Feldkonstante"
+    },
+    "constant.von_klitzing_constant": {
+      "en": "von Klitzing constant",
+      "de": "von-Klitzing-Konstante"
+    },
+    "core.algebra.abs.divide_absolute_values": {
+      "en": "Divide the absolute values",
+      "de": "Die Beträge dividieren"
+    },
+    "core.algebra.abs.multiply_absolute_values": {
+      "en": "Multiply the absolute values: {}",
+      "de": "Die Beträge multiplizieren: {}"
+    },
+    "core.algebra.abs.simplify_absolute_value": {
+      "en": "Simplify the absolute value",
+      "de": "Den Betrag vereinfachen"
+    },
+    "core.algebra.abs.take_absolute_value": {
+      "en": "Take the absolute value",
+      "de": "Den Betrag bilden"
+    },
+    "core.algebra.binomial.apply_difference_squares_identity": {
+      "en": "Apply difference of squares identity: {}",
+      "de": "Die dritte binomische Formel anwenden: {}"
+    },
+    "core.algebra.binomial.cube_difference_b_3a_b": {
+      "en": "Cube of a difference: (a - b)³ = a³ - 3a²b + 3ab² - b³",
+      "de": "Dritte Potenz einer Differenz: (a - b)³ = a³ - 3a²b + 3ab² - b³"
+    },
+    "core.algebra.binomial.cube_sum_b_3a_b": {
+      "en": "Cube of a sum: (a + b)³ = a³ + 3a²b + 3ab² + b³",
+      "de": "Dritte Potenz einer Summe: (a + b)³ = a³ + 3a²b + 3ab² + b³"
+    },
+    "core.algebra.binomial.difference_cubes_b_b_ab": {
+      "en": "Difference of cubes: a³ - b³ = (a - b)(a² + ab + b²)",
+      "de": "Differenz dritter Potenzen: a³ - b³ = (a - b)(a² + ab + b²)"
+    },
+    "core.algebra.binomial.difference_squares_b_b_b": {
+      "en": "Difference of squares: a² - b² = (a - b)(a + b)",
+      "de": "Dritte binomische Formel: a² - b² = (a - b)(a + b)"
+    },
+    "core.algebra.binomial.expand_binomial_power_using": {
+      "en": "Expand binomial power using {}",
+      "de": "Die Potenz mit der Formel ausmultiplizieren: {}"
+    },
+    "core.algebra.binomial.factor_using_binomial_identity": {
+      "en": "Factor using binomial identity: {}",
+      "de": "Mit der binomischen Formel faktorisieren: {}"
+    },
+    "core.algebra.binomial.square_difference_b_2ab_b": {
+      "en": "Square of a difference: (a - b)² = a² - 2ab + b²",
+      "de": "Zweite binomische Formel: (a - b)² = a² - 2ab + b²"
+    },
+    "core.algebra.binomial.square_sum_b_2ab_b": {
+      "en": "Square of a sum: (a + b)² = a² + 2ab + b²",
+      "de": "Erste binomische Formel: (a + b)² = a² + 2ab + b²"
+    },
+    "core.algebra.binomial.sum_cubes_b_b_ab": {
+      "en": "Sum of cubes: a³ + b³ = (a + b)(a² - ab + b²)",
+      "de": "Summe dritter Potenzen: a³ + b³ = (a + b)(a² - ab + b²)"
+    },
+    "core.algebra.binomial.with": {
+      "en": "{formula} with {values}",
+      "de": "{formula} mit {values}"
+    },
+    "core.algebra.binomial.work_out_terms": {
+      "en": "Work out the terms",
+      "de": "Die Terme ausrechnen"
+    },
+    "core.algebra.combine.add_numerators_over_common_denominator": {
+      "en": "Add the numerators over the common denominator",
+      "de": "Die Zähler über dem gemeinsamen Nenner addieren"
+    },
+    "core.algebra.combine.factor_denominator_using_binomial_identity": {
+      "en": "Factor the denominator using binomial identity: {}",
+      "de": "Den Nenner mit der binomischen Formel faktorisieren: {}"
+    },
+    "core.algebra.combine.factor_polynomial_denominator_find_common": {
+      "en": "Factor polynomial denominator to find common factors",
+      "de": "Den Nenner faktorisieren, um gemeinsame Faktoren zu finden"
+    },
+    "core.algebra.expand.add_coefficients": {
+      "en": "Add the coefficients",
+      "de": "Die Koeffizienten addieren"
+    },
+    "core.algebra.expand.combine_like_terms": {
+      "en": "Combine like terms",
+      "de": "Gleichartige Terme zusammenfassen"
+    },
+    "core.algebra.expand.combine_like_terms_obtain": {
+      "en": "Combine like terms to obtain {}",
+      "de": "Gleichartige Terme zusammenfassen: {}"
+    },
+    "core.algebra.expand.distribute_across_obtain": {
+      "en": "Distribute {} across ({}) to obtain {}",
+      "de": "{} mit ({}) ausmultiplizieren: {}"
+    },
+    "core.algebra.expand.expand_polynomial_product": {
+      "en": "Expand polynomial product {} to {}",
+      "de": "Das Produkt {} zu {} ausmultiplizieren"
+    },
+    "core.algebra.expand.multiply_every_term_first_bracket": {
+      "en": "Multiply every term of the first bracket by every term of the second",
+      "de": "Jeden Term der ersten Klammer mit jedem Term der zweiten multiplizieren"
+    },
+    "core.algebra.expand.order_terms_degree": {
+      "en": "Order the terms by degree",
+      "de": "Die Terme nach dem Grad ordnen"
+    },
+    "core.algebra.expand.order_terms_descending_powers": {
+      "en": "Order the terms by descending powers",
+      "de": "Die Terme nach absteigenden Potenzen ordnen"
+    },
+    "core.algebra.expand.put_like_terms_next_each": {
+      "en": "Put like terms next to each other",
+      "de": "Gleichartige Terme nebeneinander schreiben"
+    },
+    "core.algebra.expand.write_each_term_first_bracket": {
+      "en": "Write each term of the first bracket times each term of the second",
+      "de": "Jeden Term der ersten Klammer mal jeden Term der zweiten schreiben"
+    },
+    "core.algebra.factor.and": {
+      "en": " and ",
+      "de": " und "
+    },
+    "core.algebra.factor.as": {
+      "en": "{} as {}",
+      "de": "{} als {}"
+    },
+    "core.algebra.factor.divide": {
+      "en": "Divide: ({}) : ({}) = {}",
+      "de": "Dividieren: ({}) : ({}) = {}"
+    },
+    "core.algebra.factor.factor_out": {
+      "en": "Factor out {}",
+      "de": "{} ausklammern"
+    },
+    "core.algebra.factor.factor_out_common_factors_factor": {
+      "en": "Factor out common factors and factor polynomial",
+      "de": "Gemeinsame Faktoren ausklammern und das Polynom faktorisieren"
+    },
+    "core.algebra.factor.factor_polynomial": {
+      "en": "Factor the polynomial",
+      "de": "Das Polynom faktorisieren"
+    },
+    "core.algebra.factor.factor_polynomial_into_irreducible_linear": {
+      "en": "Factor polynomial into irreducible linear and quadratic factors",
+      "de": "Das Polynom in lineare und quadratische Faktoren zerlegen"
+    },
+    "core.algebra.factor.factor_using_binomial_identity": {
+      "en": "Factor using binomial identity: {}",
+      "de": "Mit der binomischen Formel faktorisieren: {}"
+    },
+    "core.algebra.factor.find_common_factor_all_terms": {
+      "en": "Find the common factor {} of all terms",
+      "de": "Den gemeinsamen Faktor {} aller Terme finden"
+    },
+    "core.algebra.factor.p_0_factor": {
+      "en": "{tried}: p({r}) = {} = 0, so {} is a factor",
+      "de": "{tried}: p({r}) = {} = 0, also ist {} ein Faktor"
+    },
+    "core.algebra.factor.try_divisors": {
+      "en": "Try the divisors of {}",
+      "de": "Die Teiler von {} probieren"
+    },
+    "core.algebra.factor.try_fractions_divisor_over_divisor": {
+      "en": "Try fractions of a divisor of {} over a divisor of {}",
+      "de": "Brüche aus einem Teiler von {} durch einen Teiler von {} probieren"
+    },
+    "core.algebra.factor.write": {
+      "en": "Write {}",
+      "de": "{} schreiben"
+    },
+    "core.algebra.factor.write_product_factors": {
+      "en": "Write as a product of the factors",
+      "de": "Als Produkt der Faktoren schreiben"
+    },
+    "core.algebra.identities.for": {
+      "en": "{explanation}, for {}",
+      "de": "{explanation}, für {}"
+    },
+    "core.algebra.logs.combine_logarithms": {
+      "en": "Combine the logarithms: {}",
+      "de": "Die Logarithmen zusammenfassen: {}"
+    },
+    "core.algebra.logs.divide_logarithms": {
+      "en": "Divide the logarithms",
+      "de": "Die Logarithmen dividieren"
+    },
+    "core.algebra.logs.evaluate_logarithm": {
+      "en": "Evaluate the logarithm",
+      "de": "Den Logarithmus ausrechnen"
+    },
+    "core.algebra.logs.write_exponential": {
+      "en": "Write the exponential",
+      "de": "Die Exponentialfunktion schreiben"
+    },
+    "core.algebra.logs.write_power_base": {
+      "en": "Write {} as a power of the base",
+      "de": "{} als Potenz der Basis schreiben"
+    },
+    "core.algebra.nested.apply_reciprocal_rule_divide_fraction": {
+      "en": "Apply the reciprocal rule: divide by a fraction by multiplying by its reciprocal",
+      "de": "Durch einen Bruch teilen: mit seinem Kehrwert multiplizieren"
+    },
+    "core.algebra.nested.apply_reciprocal_rule_divide_fractions": {
+      "en": "Apply the reciprocal rule: divide fractions by multiplying by the reciprocal",
+      "de": "Durch einen Bruch teilen: mit dem Kehrwert multiplizieren"
+    },
+    "core.algebra.nested.combine_inner_fractions": {
+      "en": "Combine the inner fractions",
+      "de": "Die inneren Brüche zusammenfassen"
+    },
+    "core.algebra.nested.dividing_multiplying_reciprocal": {
+      "en": "Dividing by {} is multiplying by its reciprocal {}",
+      "de": "Durch {} teilen heißt mit dem Kehrwert {} multiplizieren"
+    },
+    "core.algebra.nested.multiply_denominators": {
+      "en": "Multiply the denominators",
+      "de": "Die Nenner multiplizieren"
+    },
+    "core.algebra.nested.multiply_numerators_denominators": {
+      "en": "Multiply numerators and denominators",
+      "de": "Zähler und Nenner multiplizieren"
+    },
+    "core.algebra.nested.simplify_complex_fraction_multiplying_denominators": {
+      "en": "Simplify complex fraction by multiplying the denominators",
+      "de": "Den Doppelbruch vereinfachen: die Nenner multiplizieren"
+    },
+    "core.algebra.nested.write_over_denominator": {
+      "en": "Write {} over the denominator {}",
+      "de": "{} auf den Nenner {} bringen"
+    },
+    "core.algebra.pipeline.2_2ab_b_add_subtract": {
+      "en": "2 \\cdot {} \\cdot {} is 2ab with a = {}, b = {}: add and subtract b² = {b_squared}",
+      "de": "2 \\cdot {} \\cdot {} ist 2ab mit a = {}, b = {}: b² = {b_squared} addieren und subtrahieren"
+    },
+    "core.algebra.pipeline.add_constants": {
+      "en": "Add the constants",
+      "de": "Die Konstanten addieren"
+    },
+    "core.algebra.pipeline.cancel_minus_signs_numerator_denominator": {
+      "en": "Cancel the minus signs of numerator and denominator",
+      "de": "Die Minuszeichen von Zähler und Nenner kürzen"
+    },
+    "core.algebra.pipeline.combine_like_terms": {
+      "en": "Combine like terms",
+      "de": "Gleichartige Terme zusammenfassen"
+    },
+    "core.algebra.pipeline.complete_square_add_subtract_then": {
+      "en": "Complete the square: add and subtract {b_squared}, then apply the binomial formula",
+      "de": "Quadratische Ergänzung: {b_squared} addieren und subtrahieren, dann die binomische Formel anwenden"
+    },
+    "core.algebra.pipeline.evaluate_power": {
+      "en": "Evaluate the power",
+      "de": "Die Potenz ausrechnen"
+    },
+    "core.algebra.pipeline.extend_each_fraction_factor_denominator": {
+      "en": "Extend each fraction by the factor its denominator is missing from the least common denominator {lcd_latex}",
+      "de": "Jeden Bruch mit dem Faktor erweitern, der seinem Nenner zum Hauptnenner {lcd_latex} fehlt"
+    },
+    "core.algebra.pipeline.first_binomial_formula_2ab_b": {
+      "en": "First binomial formula: a² + 2ab + b² = (a + b)²",
+      "de": "Erste binomische Formel: a² + 2ab + b² = (a + b)²"
+    },
+    "core.algebra.pipeline.group_square": {
+      "en": "Group the square",
+      "de": "Das Quadrat zusammenfassen"
+    },
+    "core.algebra.pipeline.half_coefficient_square_add_subtract": {
+      "en": "Half of the coefficient of {} is {}, its square is {b_squared}: add and subtract {b_squared}",
+      "de": "Die Hälfte des Koeffizienten von {} ist {}, ihr Quadrat {b_squared}: {b_squared} addieren und subtrahieren"
+    },
+    "core.algebra.pipeline.multiply_factors_into_one_term": {
+      "en": "Multiply the factors into one term",
+      "de": "Die Faktoren zu einem Term multiplizieren"
+    },
+    "core.algebra.pipeline.multiply_fractions": {
+      "en": "Multiply the fractions",
+      "de": "Die Brüche multiplizieren"
+    },
+    "core.algebra.pipeline.multiply_fractions_multiply_numerators_denominators": {
+      "en": "Multiply fractions: multiply the numerators and the denominators",
+      "de": "Brüche multiplizieren: Zähler mal Zähler, Nenner mal Nenner"
+    },
+    "core.algebra.pipeline.multiply_numerator_denominator_1": {
+      "en": "Multiply numerator and denominator by -1",
+      "de": "Zähler und Nenner mit -1 multiplizieren"
+    },
+    "core.algebra.pipeline.multiply_numerator_denominator_1_denominator": {
+      "en": "Multiply numerator and denominator by -1, so the denominator starts with a positive term",
+      "de": "Zähler und Nenner mit -1 multiplizieren, damit der Nenner mit einem positiven Term beginnt"
+    },
+    "core.algebra.pipeline.multiply_out": {
+      "en": "Multiply out",
+      "de": "Ausmultiplizieren"
+    },
+    "core.algebra.pipeline.negative_exponent_n_1_n": {
+      "en": "Negative exponent: a^{{-n}} = \\frac{{1}}{{a^{{n}}}}",
+      "de": "Negativer Exponent: a^{{-n}} = \\frac{{1}}{{a^{{n}}}}"
+    },
+    "core.algebra.pipeline.note_where_denominator_input_zero": {
+      "en": "Note: {plain}, where a denominator of the input is zero",
+      "de": "Hinweis: {plain}, denn dort ist ein Nenner der Eingabe null"
+    },
+    "core.algebra.pipeline.order_terms_descending_powers": {
+      "en": "Order the terms by descending powers",
+      "de": "Die Terme nach absteigenden Potenzen ordnen"
+    },
+    "core.algebra.pipeline.power_power_multiply_exponents": {
+      "en": "Power of a power: multiply the exponents",
+      "de": "Potenz einer Potenz: die Exponenten multiplizieren"
+    },
+    "core.algebra.pipeline.raise_numerator_denominator_power_separately": {
+      "en": "Raise numerator and denominator to the power separately",
+      "de": "Zähler und Nenner einzeln potenzieren"
+    },
+    "core.algebra.pipeline.recognise": {
+      "en": "Recognise {pattern} with {values}",
+      "de": "{pattern} erkennen mit {values}"
+    },
+    "core.algebra.pipeline.rewrite_every_fraction_over_least": {
+      "en": "Rewrite every fraction over the least common denominator {lcd_latex}",
+      "de": "Jeden Bruch auf den Hauptnenner {lcd_latex} bringen"
+    },
+    "core.algebra.pipeline.same_base_add_exponents": {
+      "en": "Same base: add the exponents",
+      "de": "Gleiche Basis: die Exponenten addieren"
+    },
+    "core.algebra.pipeline.second_binomial_formula_2ab_b": {
+      "en": "Second binomial formula: a² - 2ab + b² = (a - b)²",
+      "de": "Zweite binomische Formel: a² - 2ab + b² = (a - b)²"
+    },
+    "core.algebra.pipeline.split_fraction": {
+      "en": "Split the fraction",
+      "de": "Den Bruch aufteilen"
+    },
+    "core.algebra.pipeline.two_minus_signs_cancel": {
+      "en": "Two minus signs cancel: -(-a) = a",
+      "de": "Zwei Minuszeichen heben sich auf: -(-a) = a"
+    },
+    "core.algebra.pipeline.work_out_exponent": {
+      "en": "Work out the exponent",
+      "de": "Den Exponenten ausrechnen"
+    },
+    "core.algebra.pipeline.write_binomial": {
+      "en": "Write as a binomial: {}",
+      "de": "Als Binom schreiben: {}"
+    },
+    "core.algebra.pipeline.write_division_coefficient": {
+      "en": "Write the division by {} as a coefficient",
+      "de": "Die Division durch {} als Koeffizienten schreiben"
+    },
+    "core.algebra.pipeline.write_division_fraction": {
+      "en": "Write the division as a fraction",
+      "de": "Die Division als Bruch schreiben"
+    },
+    "core.algebra.pipeline.write_polynomial_expanded_terms_descending": {
+      "en": "Write the polynomial expanded, terms in descending powers",
+      "de": "Das Polynom ausmultipliziert schreiben, nach absteigenden Potenzen"
+    },
+    "core.algebra.pipeline.write_result_canonical_form_numerator": {
+      "en": "Write the result in canonical form: numerator expanded, denominator factored",
+      "de": "Das Ergebnis in Normalform schreiben: Zähler ausmultipliziert, Nenner faktorisiert"
+    },
+    "core.algebra.powers.add_exponents": {
+      "en": "Add the exponents: {}",
+      "de": "Die Exponenten addieren: {}"
+    },
+    "core.algebra.powers.multiply_bases": {
+      "en": "Multiply the bases: {}",
+      "de": "Die Basen multiplizieren: {}"
+    },
+    "core.algebra.powers.multiply_exponents": {
+      "en": "Multiply the exponents",
+      "de": "Die Exponenten multiplizieren"
+    },
+    "core.algebra.powers.power_power_multiply_exponents": {
+      "en": "Power of a power: multiply the exponents",
+      "de": "Potenz einer Potenz: die Exponenten multiplizieren"
+    },
+    "core.algebra.powers.subtract_exponents": {
+      "en": "Subtract the exponents",
+      "de": "Die Exponenten subtrahieren"
+    },
+    "core.algebra.powers.work_out_exponent": {
+      "en": "Work out the exponent",
+      "de": "Den Exponenten ausrechnen"
+    },
+    "core.algebra.powers.write_rational_exponent_root": {
+      "en": "Write the rational exponent as a root",
+      "de": "Den gebrochenen Exponenten als Wurzel schreiben"
+    },
+    "core.algebra.radicals.cube": {
+      "en": "cube",
+      "de": "eine dritte Potenz"
+    },
+    "core.algebra.radicals.extend": {
+      "en": "Extend by {}",
+      "de": "Mit {} erweitern"
+    },
+    "core.algebra.radicals.extend_conjugate": {
+      "en": "Extend by the conjugate {}",
+      "de": "Mit dem konjugierten Term {} erweitern"
+    },
+    "core.algebra.radicals.multiply": {
+      "en": "multiply by {}",
+      "de": "mit {} multiplizieren"
+    },
+    "core.algebra.radicals.multiply_conjugate": {
+      "en": "multiply by the conjugate {}",
+      "de": "mit dem konjugierten Term {} multiplizieren"
+    },
+    "core.algebra.radicals.multiply_exponents": {
+      "en": "Multiply the exponents",
+      "de": "Die Exponenten multiplizieren"
+    },
+    "core.algebra.radicals.multiply_fractions": {
+      "en": "Multiply the fractions",
+      "de": "Die Brüche multiplizieren"
+    },
+    "core.algebra.radicals.multiply_numbers": {
+      "en": "Multiply the numbers",
+      "de": "Die Zahlen multiplizieren"
+    },
+    "core.algebra.radicals.multiply_roots": {
+      "en": "Multiply the roots: {}",
+      "de": "Die Wurzeln multiplizieren: {}"
+    },
+    "core.algebra.radicals.multiply_under_one_root": {
+      "en": "Multiply under one root: {}",
+      "de": "Unter einer Wurzel multiplizieren: {}"
+    },
+    "core.algebra.radicals.rationalize_denominator": {
+      "en": "Rationalize the denominator",
+      "de": "Den Nenner rational machen"
+    },
+    "core.algebra.radicals.split_off_largest_factor": {
+      "en": "Split off the largest {kind} factor",
+      "de": "Den größten Faktor abspalten, der {kind} ist"
+    },
+    "core.algebra.radicals.square": {
+      "en": "square",
+      "de": "ein Quadrat"
+    },
+    "core.algebra.radicals.take_powers_out_root": {
+      "en": "Take powers out of the root",
+      "de": "Potenzen aus der Wurzel ziehen"
+    },
+    "core.algebra.radicals.th_power": {
+      "en": "{n}th power",
+      "de": "eine {n}-te Potenz"
+    },
+    "core.algebra.radicals.third_binomial_formula_denominator": {
+      "en": "Third binomial formula in the denominator",
+      "de": "Dritte binomische Formel im Nenner"
+    },
+    "core.algebra.radicals.work_out_denominator": {
+      "en": "Work out the denominator",
+      "de": "Den Nenner ausrechnen"
+    },
+    "core.algebra.radicals.write_nested_roots_one_root": {
+      "en": "Write the nested roots as one root",
+      "de": "Die verschachtelten Wurzeln als eine Wurzel schreiben"
+    },
+    "core.algebra.radicals.write_power_root": {
+      "en": "Write the power as a root",
+      "de": "Die Potenz als Wurzel schreiben"
+    },
+    "core.algebra.radicals.write_roots_powers": {
+      "en": "Write the roots as powers",
+      "de": "Die Wurzeln als Potenzen schreiben"
+    },
+    "core.algebra.reduce.cancel": {
+      "en": "Cancel {common}",
+      "de": "{common} kürzen"
+    },
+    "core.algebra.reduce.cancel_common_factor_from_numerator": {
+      "en": "Cancel common factor {common} from numerator and denominator",
+      "de": "Den gemeinsamen Faktor {common} in Zähler und Nenner kürzen"
+    },
+    "core.algebra.reduce.cancel_identical_numerator_denominator_get": {
+      "en": "Cancel identical numerator and denominator to get 1",
+      "de": "Gleichen Zähler und Nenner zu 1 kürzen"
+    },
+    "core.algebra.reduce.cancel_opposite_terms_get_1": {
+      "en": "Cancel opposite terms to get -1",
+      "de": "Entgegengesetzte Terme zu -1 kürzen"
+    },
+    "core.algebra.reduce.divide_powers_same_base_subtract": {
+      "en": "Divide powers of the same base: subtract the exponents",
+      "de": "Potenzen mit gleicher Basis teilen: die Exponenten subtrahieren"
+    },
+    "core.algebra.reduce.division_1_leaves_expression_unchanged": {
+      "en": "Division by 1 leaves the expression unchanged",
+      "de": "Teilen durch 1 ändert den Term nicht"
+    },
+    "core.algebra.reduce.factor_numerator_identify_common_factors": {
+      "en": "Factor numerator to identify common factors: {}",
+      "de": "Den Zähler faktorisieren, um gemeinsame Faktoren zu finden: {}"
+    },
+    "core.algebra.reduce.mark_common_factor": {
+      "en": "Mark the common factor",
+      "de": "Den gemeinsamen Faktor markieren"
+    },
+    "core.algebra.reduce.note_0_where_cancelled_factor": {
+      "en": "Note: {factor} ≠ 0: where the cancelled factor is zero, the input is undefined",
+      "de": "Hinweis: {factor} ≠ 0: wo der gekürzte Faktor null ist, ist die Eingabe nicht definiert"
+    },
+    "core.algebra.reduce.note_cancelled_factor_zero_there": {
+      "en": "Note: {var} ≠ {root}: the cancelled factor {factor} is zero there, so the input is undefined at {var} = {root}",
+      "de": "Hinweis: {var} ≠ {root}: der gekürzte Faktor {factor} ist dort null, die Eingabe ist bei {var} = {root} nicht definiert"
+    },
+    "core.algebra.reduce.zero_divided_any_non_zero": {
+      "en": "Zero divided by any non-zero expression is 0",
+      "de": "Null geteilt durch einen Term ungleich null ist 0"
+    },
+    "core.algebra.trig.multiply_numbers": {
+      "en": "Multiply the numbers",
+      "de": "Die Zahlen multiplizieren"
+    },
+    "core.algebra.trig.use_double_angle": {
+      "en": "Use the double angle",
+      "de": "Die Doppelwinkelformel nutzen"
+    },
+    "core.algebra.trig.use_pythagorean_identity": {
+      "en": "Use the Pythagorean identity: {}",
+      "de": "Den trigonometrischen Pythagoras nutzen: {}"
+    },
+    "core.algebra.trig.use_pythagorean_identity_2": {
+      "en": "Use the Pythagorean identity",
+      "de": "Den trigonometrischen Pythagoras nutzen"
+    },
+    "core.algebra.trig.use_symmetry": {
+      "en": "Use the symmetry",
+      "de": "Die Symmetrie nutzen"
+    },
+    "core.algebra.trig.write_quotient_tangent": {
+      "en": "Write the quotient as a tangent",
+      "de": "Den Quotienten als Tangens schreiben"
+    },
+    "core.algebra.trig.write_sine_cosine": {
+      "en": "Write as sine and cosine: {}",
+      "de": "Mit Sinus und Kosinus schreiben: {}"
+    },
+    "core.analysis.derive.chain_rule_outer_derivative_times": {
+      "en": "Chain rule: outer derivative times inner derivative",
+      "de": "Kettenregel: äußere mal innere Ableitung"
+    },
+    "core.analysis.derive.chain_rule_outer_inner_u": {
+      "en": "{}' by the chain rule: outer {}, inner u = {}, u' = {}",
+      "de": "{}' mit der Kettenregel: äußere {}, innere u = {}, u' = {}"
+    },
+    "core.analysis.derive.constant_factor_rule_stays_front": {
+      "en": "Constant factor rule: {} stays in front",
+      "de": "Faktorregel: {} bleibt als Faktor stehen"
+    },
+    "core.analysis.derive.derivative_basic_function": {
+      "en": "Derivative of a basic function",
+      "de": "Ableitung einer Grundfunktion"
+    },
+    "core.analysis.derive.derivative_constant_0": {
+      "en": "The derivative of a constant is 0",
+      "de": "Die Ableitung einer Konstanten ist 0"
+    },
+    "core.analysis.derive.inner_function": {
+      "en": "Inner function",
+      "de": "Innere Funktion"
+    },
+    "core.analysis.derive.outer_derivative_times_inner_derivative": {
+      "en": "Outer derivative times inner derivative",
+      "de": "Äußere mal innere Ableitung"
+    },
+    "core.analysis.derive.power_rule": {
+      "en": "Power rule",
+      "de": "Potenzregel"
+    },
+    "core.analysis.derive.power_rule_x_n_n": {
+      "en": "Power rule: (x^n)' = n x^{{n - 1}}",
+      "de": "Potenzregel: (x^n)' = n x^{{n - 1}}"
+    },
+    "core.analysis.derive.product_rule": {
+      "en": "Product rule",
+      "de": "Produktregel"
+    },
+    "core.analysis.derive.product_rule_2": {
+      "en": "Product rule with",
+      "de": "Produktregel mit"
+    },
+    "core.analysis.derive.put": {
+      "en": "Put in",
+      "de": "Einsetzen"
+    },
+    "core.analysis.derive.quotient_rule": {
+      "en": "Quotient rule",
+      "de": "Quotientenregel"
+    },
+    "core.analysis.derive.quotient_rule_2": {
+      "en": "Quotient rule with",
+      "de": "Quotientenregel mit"
+    },
+    "core.analysis.derive.simplify": {
+      "en": "Simplify",
+      "de": "Zusammenfassen"
+    },
+    "core.analysis.derive.sum_constant_factor_rule_differentiate": {
+      "en": "Sum and constant factor rule: differentiate term by term",
+      "de": "Summen- und Faktorregel: gliedweise ableiten"
+    },
+    "core.analysis.derive.term_term": {
+      "en": "Term by term",
+      "de": "Gliedweise"
+    },
+    "core.analysis.derive.write_power": {
+      "en": "Write as a power",
+      "de": "Als Potenz schreiben"
+    },
+    "core.analysis.derive.write_power_base_e": {
+      "en": "Write the power with base e",
+      "de": "Potenz zur Basis e schreiben"
+    },
+    "core.analysis.discussion.0_d_no_y_intercept": {
+      "en": "0 ∉ D: no y-intercept",
+      "de": "0 ∉ D: kein y-Achsenabschnitt"
+    },
+    "core.analysis.discussion.antiderivative": {
+      "en": "Antiderivative",
+      "de": "Stammfunktion"
+    },
+    "core.analysis.discussion.approximating_curve": {
+      "en": "approximating curve",
+      "de": "Näherungskurve"
+    },
+    "core.analysis.discussion.behaviour_edges_asymptotes": {
+      "en": "Behaviour at the edges and asymptotes",
+      "de": "Verhalten an den Rändern und Asymptoten"
+    },
+    "core.analysis.discussion.boundary_maximum": {
+      "en": "boundary maximum",
+      "de": "Randmaximum"
+    },
+    "core.analysis.discussion.boundary_minimum": {
+      "en": "boundary minimum",
+      "de": "Randminimum"
+    },
+    "core.analysis.discussion.checked_numerically": {
+      "en": "(checked numerically)",
+      "de": "(numerisch geprüft)"
+    },
+    "core.analysis.discussion.compare_f_x_f_x": {
+      "en": "Compare with f(x) and -f(x)",
+      "de": "Mit f(x) und -f(x) vergleichen"
+    },
+    "core.analysis.discussion.continued_periodically": {
+      "en": "continued periodically",
+      "de": "periodisch fortgesetzt"
+    },
+    "core.analysis.discussion.crosses_axis": {
+      "en": "crosses the axis",
+      "de": "mit Vorzeichenwechsel"
+    },
+    "core.analysis.discussion.curvature": {
+      "en": "Curvature",
+      "de": "Krümmung"
+    },
+    "core.analysis.discussion.derivatives": {
+      "en": "Derivatives",
+      "de": "Ableitungen"
+    },
+    "core.analysis.discussion.domain": {
+      "en": "Domain",
+      "de": "Definitionsbereich"
+    },
+    "core.analysis.discussion.double_root": {
+      "en": "double root",
+      "de": "doppelte Nullstelle"
+    },
+    "core.analysis.discussion.extrema": {
+      "en": "Extrema",
+      "de": "Extrempunkte"
+    },
+    "core.analysis.discussion.f_0_everywhere": {
+      "en": "f is 0 everywhere",
+      "de": "f ist überall 0"
+    },
+    "core.analysis.discussion.f_0_well_saddle_point": {
+      "en": "f'({}) = 0 as well: a saddle point",
+      "de": "Zusätzlich f'({}) = 0: ein Sattelpunkt (Terrassenpunkt)"
+    },
+    "core.analysis.discussion.f_constant": {
+      "en": "f is constant",
+      "de": "f ist konstant"
+    },
+    "core.analysis.discussion.f_linear_no_curvature": {
+      "en": "f is linear: no curvature",
+      "de": "f ist linear: keine Krümmung"
+    },
+    "core.analysis.discussion.f_linear_no_inflection_points": {
+      "en": "f is linear: no inflection points",
+      "de": "f ist linear: keine Wendepunkte"
+    },
+    "core.analysis.discussion.fold_root": {
+      "en": "{}-fold root",
+      "de": "{}-fache Nullstelle"
+    },
+    "core.analysis.discussion.found_numerically_window_there_may": {
+      "en": "Found numerically in a window; there may be more outside it.",
+      "de": "Numerisch in einem Bereich gefunden; außerhalb kann es weitere geben."
+    },
+    "core.analysis.discussion.horizontal_asymptote": {
+      "en": "horizontal asymptote",
+      "de": "waagrechte Asymptote"
+    },
+    "core.analysis.discussion.inflection_points": {
+      "en": "Inflection points",
+      "de": "Wendepunkte"
+    },
+    "core.analysis.discussion.left_curved_convex": {
+      "en": "left-curved (convex) on",
+      "de": "linksgekrümmt auf"
+    },
+    "core.analysis.discussion.letter.boundary": {
+      "en": "B",
+      "de": "R"
+    },
+    "core.analysis.discussion.letter.hole": {
+      "en": "G",
+      "de": "L"
+    },
+    "core.analysis.discussion.letter.inflection": {
+      "en": "I",
+      "de": "W"
+    },
+    "core.analysis.discussion.letter.max": {
+      "en": "Max",
+      "de": "H"
+    },
+    "core.analysis.discussion.letter.min": {
+      "en": "Min",
+      "de": "T"
+    },
+    "core.analysis.discussion.letter.zero": {
+      "en": "Z",
+      "de": "N"
+    },
+    "core.analysis.discussion.maximum": {
+      "en": "maximum",
+      "de": "Hochpunkt"
+    },
+    "core.analysis.discussion.minimum": {
+      "en": "minimum",
+      "de": "Tiefpunkt"
+    },
+    "core.analysis.discussion.monotonicity": {
+      "en": "Monotonicity",
+      "de": "Monotonie"
+    },
+    "core.analysis.discussion.necessary_condition": {
+      "en": "Necessary condition",
+      "de": "Notwendige Bedingung"
+    },
+    "core.analysis.discussion.no_asymptotes": {
+      "en": "No asymptotes",
+      "de": "Keine Asymptoten"
+    },
+    "core.analysis.discussion.no_elementary_antiderivative_found": {
+      "en": "No elementary antiderivative found",
+      "de": "Keine elementare Stammfunktion gefunden"
+    },
+    "core.analysis.discussion.no_extrema": {
+      "en": "No extrema",
+      "de": "Keine Extrempunkte"
+    },
+    "core.analysis.discussion.no_inflection_points": {
+      "en": "No inflection points",
+      "de": "Keine Wendepunkte"
+    },
+    "core.analysis.discussion.no_sign_change": {
+      "en": "no sign change",
+      "de": "kein Vorzeichenwechsel"
+    },
+    "core.analysis.discussion.no_sign_change_no_extremum": {
+      "en": "no sign change: no extremum (saddle candidate)",
+      "de": "kein Vorzeichenwechsel: kein Extrempunkt (Sattelpunkt-Kandidat)"
+    },
+    "core.analysis.discussion.no_simple_symmetry": {
+      "en": "No simple symmetry",
+      "de": "Keine einfache Symmetrie"
+    },
+    "core.analysis.discussion.no_symmetry_d_not_symmetric": {
+      "en": "No symmetry: D is not symmetric about 0",
+      "de": "Keine Symmetrie: D ist nicht symmetrisch zu 0"
+    },
+    "core.analysis.discussion.no_zeros": {
+      "en": "No zeros",
+      "de": "Keine Nullstellen"
+    },
+    "core.analysis.discussion.oblique_asymptote": {
+      "en": "oblique asymptote",
+      "de": "schiefe Asymptote"
+    },
+    "core.analysis.discussion.put_x_0": {
+      "en": "Put in x = 0",
+      "de": "x = 0 einsetzen"
+    },
+    "core.analysis.discussion.removable_gap": {
+      "en": "removable gap",
+      "de": "hebbare Lücke"
+    },
+    "core.analysis.discussion.replace_x_x": {
+      "en": "Replace x by -x",
+      "de": "x durch -x ersetzen"
+    },
+    "core.analysis.discussion.right_curved_concave": {
+      "en": "right-curved (concave) on",
+      "de": "rechtsgekrümmt auf"
+    },
+    "core.analysis.discussion.set_f_x_0": {
+      "en": "Set f(x) = 0",
+      "de": "f(x) = 0 setzen"
+    },
+    "core.analysis.discussion.sign_change_f": {
+      "en": "Sign change of f' at {}: {}",
+      "de": "Vorzeichenwechsel von f' bei {}: {}"
+    },
+    "core.analysis.discussion.sign_change_f_2": {
+      "en": "Sign change of f'' at {}: {}",
+      "de": "Vorzeichenwechsel von f'' bei {}: {}"
+    },
+    "core.analysis.discussion.sign_change_inflection_point": {
+      "en": "sign change: inflection point",
+      "de": "Vorzeichenwechsel: Wendepunkt"
+    },
+    "core.analysis.discussion.sign_change_maximum": {
+      "en": "sign change + to -: maximum",
+      "de": "Vorzeichenwechsel von + nach -: Hochpunkt"
+    },
+    "core.analysis.discussion.sign_change_minimum": {
+      "en": "sign change - to +: minimum",
+      "de": "Vorzeichenwechsel von - nach +: Tiefpunkt"
+    },
+    "core.analysis.discussion.sign_f_between_zeros_gaps": {
+      "en": "Sign of f' between its zeros and gaps",
+      "de": "Vorzeichen von f' zwischen den Nullstellen und Lücken"
+    },
+    "core.analysis.discussion.sign_f_between_zeros_gaps_2": {
+      "en": "Sign of f'' between its zeros and gaps",
+      "de": "Vorzeichen von f'' zwischen den Nullstellen und Lücken"
+    },
+    "core.analysis.discussion.strictly_decreasing": {
+      "en": "strictly decreasing on",
+      "de": "streng monoton fallend auf"
+    },
+    "core.analysis.discussion.strictly_increasing": {
+      "en": "strictly increasing on",
+      "de": "streng monoton steigend auf"
+    },
+    "core.analysis.discussion.sufficient_condition_f_0": {
+      "en": "Sufficient condition: f'''({}) ≠ 0",
+      "de": "Hinreichende Bedingung: f'''({}) ≠ 0"
+    },
+    "core.analysis.discussion.sufficient_condition_f_gives": {
+      "en": "Sufficient condition: f''({}) {} gives a {}",
+      "de": "Hinreichende Bedingung: f''({}) {} ergibt einen {}"
+    },
+    "core.analysis.discussion.symmetric_about_origin": {
+      "en": "Symmetric about the origin",
+      "de": "Punktsymmetrisch zum Ursprung"
+    },
+    "core.analysis.discussion.symmetric_about_y_axis": {
+      "en": "Symmetric about the y-axis",
+      "de": "Achsensymmetrisch zur y-Achse"
+    },
+    "core.analysis.discussion.symmetry": {
+      "en": "Symmetry",
+      "de": "Symmetrie"
+    },
+    "core.analysis.discussion.time_limit_reached": {
+      "en": "Time limit reached",
+      "de": "Zeitlimit erreicht"
+    },
+    "core.analysis.discussion.touches_axis": {
+      "en": "touches the axis",
+      "de": "Berührpunkt"
+    },
+    "core.analysis.discussion.triple_root": {
+      "en": "triple root",
+      "de": "dreifache Nullstelle"
+    },
+    "core.analysis.discussion.vertical_asymptote": {
+      "en": "vertical asymptote",
+      "de": "senkrechte Asymptote"
+    },
+    "core.analysis.discussion.vertical_asymptotes": {
+      "en": "vertical asymptotes",
+      "de": "senkrechte Asymptoten"
+    },
+    "core.analysis.discussion.x": {
+      "en": "for x → ∞",
+      "de": "für x → ∞"
+    },
+    "core.analysis.discussion.x_2": {
+      "en": "for x → −∞",
+      "de": "für x → −∞"
+    },
+    "core.analysis.discussion.y_intercept": {
+      "en": "y-intercept",
+      "de": "Schnittpunkt mit der y-Achse"
+    },
+    "core.analysis.discussion.y_value": {
+      "en": "The y-value",
+      "de": "Der y-Wert"
+    },
+    "core.analysis.discussion.zeros": {
+      "en": "Zeros",
+      "de": "Nullstellen"
+    },
+    "core.analysis.domain.argument_arcsin_arccos_1": {
+      "en": "Argument of arcsin or arccos ≥ -1",
+      "de": "Argument von arcsin oder arccos ≥ -1"
+    },
+    "core.analysis.domain.argument_arcsin_arccos_1_2": {
+      "en": "Argument of arcsin or arccos ≤ 1",
+      "de": "Argument von arcsin oder arccos ≤ 1"
+    },
+    "core.analysis.domain.argument_logarithm_0": {
+      "en": "Argument of the logarithm > 0",
+      "de": "Argument des Logarithmus > 0"
+    },
+    "core.analysis.domain.base_power_irrational_exponent_0": {
+      "en": "Base of a power with an irrational exponent ≥ 0",
+      "de": "Basis einer Potenz mit irrationalem Exponenten ≥ 0"
+    },
+    "core.analysis.domain.base_power_negative_irrational_exponent": {
+      "en": "Base of a power with a negative irrational exponent > 0",
+      "de": "Basis einer Potenz mit negativem irrationalem Exponenten > 0"
+    },
+    "core.analysis.domain.base_variable_exponent_0": {
+      "en": "Base of a variable exponent > 0",
+      "de": "Basis einer variablen Potenz > 0"
+    },
+    "core.analysis.domain.denominator_must_not_zero": {
+      "en": "Denominator must not be zero",
+      "de": "Nenner darf nicht null sein"
+    },
+    "core.analysis.domain.domain": {
+      "en": "Domain",
+      "de": "Definitionsbereich"
+    },
+    "core.analysis.domain.domains_made_periodic_intervals_not": {
+      "en": "Domains made of periodic intervals are not supported yet.",
+      "de": "Definitionsbereiche aus periodischen Intervallen werden noch nicht unterstützt."
+    },
+    "core.analysis.domain.f_defined_nowhere": {
+      "en": "f is defined nowhere.",
+      "de": "f ist nirgends definiert."
+    },
+    "core.analysis.domain.radicand_even_root_0": {
+      "en": "Radicand of an even root ≥ 0",
+      "de": "Radikand einer geraden Wurzel ≥ 0"
+    },
+    "core.analysis.domain.radicand_even_root_denominator_0": {
+      "en": "Radicand of an even root in the denominator > 0",
+      "de": "Radikand einer geraden Wurzel im Nenner > 0"
+    },
+    "core.analysis.domain.tan_undefined_where_cos_0": {
+      "en": "tan is undefined where cos = 0",
+      "de": "tan ist nicht definiert, wo cos = 0"
+    },
+    "core.analysis.domain.where_sign_can_change": {
+      "en": "Where the sign can change",
+      "de": "Wo das Vorzeichen wechseln kann"
+    },
+    "core.analysis.domain.zeros_found_numerically_some_may": {
+      "en": "{} (zeros found numerically, some may be missing)",
+      "de": "{} (Nullstellen numerisch gesucht, es können welche fehlen)"
+    },
+    "core.analysis.expr.analysis_mode_does_not_support": {
+      "en": "The analysis mode does not support {what}.",
+      "de": "Der Analysis-Modus unterstützt keine {what}."
+    },
+    "core.analysis.expr.binomial_coefficients": {
+      "en": "binomial coefficients",
+      "de": "Binomialkoeffizienten"
+    },
+    "core.analysis.expr.complex_functions": {
+      "en": "complex functions",
+      "de": "komplexe Funktionen"
+    },
+    "core.analysis.expr.complex_numbers": {
+      "en": "complex numbers",
+      "de": "komplexe Zahlen"
+    },
+    "core.analysis.expr.degree_root_must_positive_whole": {
+      "en": "The degree of a root must be a positive whole number.",
+      "de": "Der Grad einer Wurzel muss eine positive ganze Zahl sein."
+    },
+    "core.analysis.expr.derivatives": {
+      "en": "derivatives",
+      "de": "Ableitungen"
+    },
+    "core.analysis.expr.enter_function_not_equation": {
+      "en": "Enter a function, not an equation.",
+      "de": "Gib eine Funktion ein, keine Gleichung."
+    },
+    "core.analysis.expr.f_may_depend_only_but": {
+      "en": "f may depend on {var} only, but it also contains {name}; function families are not supported yet.",
+      "de": "f darf nur von {var} abhängen, enthält aber auch {name}; Funktionenscharen werden noch nicht unterstützt."
+    },
+    "core.analysis.expr.integer_functions_such_n": {
+      "en": "integer functions such as n!",
+      "de": "ganzzahlige Funktionen wie n!"
+    },
+    "core.analysis.expr.integrals": {
+      "en": "integrals",
+      "de": "Integrale"
+    },
+    "core.analysis.expr.limits": {
+      "en": "limits",
+      "de": "Grenzwerte"
+    },
+    "core.analysis.expr.matrices": {
+      "en": "matrices",
+      "de": "Matrizen"
+    },
+    "core.analysis.expr.sums": {
+      "en": "sums",
+      "de": "Summen"
+    },
+    "core.analysis.expr.units": {
+      "en": "units",
+      "de": "Einheiten"
+    },
+    "core.analysis.input.enter_function_not_equation": {
+      "en": "Enter a function, not an equation.",
+      "de": "Gib eine Funktion ein, keine Gleichung."
+    },
+    "core.analysis.input.f_may_depend_one_variable": {
+      "en": "f may depend on one variable only, but it contains {listed}; function families are not supported yet.",
+      "de": "f darf nur von einer Variablen abhängen, enthält aber {listed}; Funktionenscharen werden noch nicht unterstützt."
+    },
+    "core.analysis.input.function_written_but_was_asked": {
+      "en": "The function is written in {named}, but {asked} was asked for.",
+      "de": "Die Funktion ist in {named} geschrieben, gefragt war aber {asked}."
+    },
+    "core.analysis.integrate.ansatz": {
+      "en": "Ansatz",
+      "de": "Ansatz"
+    },
+    "core.analysis.integrate.basic_integrals_sum_factor_rule": {
+      "en": "Basic integrals with the sum and factor rule",
+      "de": "Grundintegrale mit Summen- und Faktorregel"
+    },
+    "core.analysis.integrate.compare_numerators": {
+      "en": "Compare the numerators",
+      "de": "Zähler vergleichen"
+    },
+    "core.analysis.integrate.first_round": {
+      "en": "First round",
+      "de": "Erste Runde"
+    },
+    "core.analysis.integrate.integral_left": {
+      "en": "The integral that is left",
+      "de": "Das restliche Integral"
+    },
+    "core.analysis.integrate.integrate_partial_fractions": {
+      "en": "Integrate the partial fractions",
+      "de": "Partialbrüche integrieren"
+    },
+    "core.analysis.integrate.integrate_u_then_substitute_back": {
+      "en": "Integrate in u, then substitute back",
+      "de": "In u integrieren, dann zurück substituieren"
+    },
+    "core.analysis.integrate.integration_parts": {
+      "en": "Integration by parts",
+      "de": "Partielle Integration"
+    },
+    "core.analysis.integrate.integration_parts_u_v_dx": {
+      "en": "Integration by parts: ∫u·v' dx = u·v − ∫u'·v dx with",
+      "de": "Partielle Integration: ∫u·v' dx = u·v − ∫u'·v dx mit"
+    },
+    "core.analysis.integrate.partial_fraction_decomposition": {
+      "en": "Partial fraction decomposition",
+      "de": "Partialbruchzerlegung"
+    },
+    "core.analysis.integrate.power_rule_term_term": {
+      "en": "Power rule, term by term",
+      "de": "Potenzregel, gliedweise"
+    },
+    "core.analysis.integrate.power_rule_x_n_dx": {
+      "en": "Power rule: ∫ x^n dx = x^(n+1)/(n+1)",
+      "de": "Potenzregel: ∫ x^n dx = x^(n+1)/(n+1)"
+    },
+    "core.analysis.integrate.put_into_u_v_u": {
+      "en": "Put into u·v − ∫u'·v dx",
+      "de": "In u·v − ∫u'·v dx einsetzen"
+    },
+    "core.analysis.integrate.second_round_integral_i_comes": {
+      "en": "Second round: the integral I comes back",
+      "de": "Zweite Runde: das Integral I kommt wieder"
+    },
+    "core.analysis.integrate.solve_i": {
+      "en": "Solve for I",
+      "de": "Nach I auflösen"
+    },
+    "core.analysis.integrate.substitute_back": {
+      "en": "Substitute back",
+      "de": "Rücksubstitution"
+    },
+    "core.analysis.integrate.substitution": {
+      "en": "Substitution",
+      "de": "Substitution"
+    },
+    "core.analysis.integrate.write_integral_u": {
+      "en": "Write the integral in u",
+      "de": "Das Integral in u schreiben"
+    },
+    "core.analysis.limits.any_power_x_0_grows": {
+      "en": "Any power x^a (a > 0) grows faster than ln x",
+      "de": "Jede Potenz x^a (a > 0) wächst schneller als ln x"
+    },
+    "core.analysis.limits.behaviour_gap": {
+      "en": "Behaviour at the gap",
+      "de": "Verhalten an der Lücke"
+    },
+    "core.analysis.limits.bounded_factor_times_factor_tends": {
+      "en": "Bounded factor times a factor that tends to 0",
+      "de": "Beschränkter Faktor mal Nullfolge"
+    },
+    "core.analysis.limits.bounded_sin_cos_term_does": {
+      "en": "The bounded sin or cos term does not matter next to the term that grows",
+      "de": "Der beschränkte sin- bzw. cos-Term spielt neben dem wachsenden Term keine Rolle"
+    },
+    "core.analysis.limits.bracket_tends_1": {
+      "en": "The bracket tends to 1",
+      "de": "Die Klammer geht gegen 1"
+    },
+    "core.analysis.limits.degree_numerator_degree_denominator": {
+      "en": "Degree of the numerator < degree of the denominator",
+      "de": "Zählergrad < Nennergrad"
+    },
+    "core.analysis.limits.degree_numerator_degree_denominator_2": {
+      "en": "Degree of the numerator > degree of the denominator",
+      "de": "Zählergrad > Nennergrad"
+    },
+    "core.analysis.limits.degree_numerator_degree_denominator_ratio": {
+      "en": "Degree of the numerator = degree of the denominator: ratio of the leading coefficients",
+      "de": "Zählergrad = Nennergrad: Quotient der Leitkoeffizienten"
+    },
+    "core.analysis.limits.determined_numerically": {
+      "en": "Determined numerically",
+      "de": "Numerisch bestimmt"
+    },
+    "core.analysis.limits.divide_numerator_denominator": {
+      "en": "Divide numerator and denominator by {}^{}",
+      "de": "Zähler und Nenner durch {}^{} teilen"
+    },
+    "core.analysis.limits.does_not_exist_oscillates": {
+      "en": "does not exist (oscillates)",
+      "de": "existiert nicht (oszilliert)"
+    },
+    "core.analysis.limits.exponential_function_grows_faster_than": {
+      "en": "The exponential function grows faster than any power of x",
+      "de": "Die e-Funktion wächst schneller als jede Potenz von x"
+    },
+    "core.analysis.limits.f_0": {
+      "en": "f is 0",
+      "de": "f ist 0"
+    },
+    "core.analysis.limits.factor_out_highest_power": {
+      "en": "Factor out the highest power",
+      "de": "Höchste Potenz ausklammern"
+    },
+    "core.analysis.limits.numerator": {
+      "en": "The numerator at {}",
+      "de": "Der Zähler bei {}"
+    },
+    "core.analysis.limits.pole_order_signs_numerator_x": {
+      "en": "Pole of order {}: the signs of the numerator and of (x - x_0)^{} decide",
+      "de": "Polstelle der Ordnung {}: die Vorzeichen des Zählers und von (x - x_0)^{} entscheiden"
+    },
+    "core.analysis.limits.pole_sign_change": {
+      "en": "Pole with a sign change",
+      "de": "Polstelle mit Vorzeichenwechsel"
+    },
+    "core.analysis.limits.pole_without_sign_change": {
+      "en": "Pole without a sign change",
+      "de": "Polstelle ohne Vorzeichenwechsel"
+    },
+    "core.analysis.limits.removable_gap": {
+      "en": "Removable gap",
+      "de": "Hebbare Lücke"
+    },
+    "core.analysis.limits.removable_gap_cancelled_function_continuous": {
+      "en": "Removable gap: the cancelled function is continuous here",
+      "de": "Hebbare Lücke: die gekürzte Funktion ist hier stetig"
+    },
+    "core.analysis.limits.sign_denominator": {
+      "en": "Sign of the denominator",
+      "de": "Vorzeichen des Nenners"
+    },
+    "core.analysis.limits.sin_cos_keep_oscillating": {
+      "en": "sin and cos keep oscillating",
+      "de": "sin und cos schwingen immer weiter"
+    },
+    "core.analysis.limits.term_highest_power_decides": {
+      "en": "The term with the highest power decides",
+      "de": "Der Summand mit dem höchsten Exponenten bestimmt das Verhalten"
+    },
+    "core.analysis.polydiv.multiply_back": {
+      "en": "Multiply back",
+      "de": "Zurückmultiplizieren"
+    },
+    "core.analysis.polydiv.partial_quotient": {
+      "en": "Partial quotient {}",
+      "de": "Teilquotient {}"
+    },
+    "core.analysis.polydiv.polynomial_division": {
+      "en": "Polynomial division",
+      "de": "Polynomdivision"
+    },
+    "core.analysis.solve.0_k_take_root": {
+      "en": "{} ≥ 0, so k ≥ {}; take the root",
+      "de": "{} ≥ 0, also k ≥ {}; Wurzel ziehen"
+    },
+    "core.analysis.solve.absolute_value_never_negative_no": {
+      "en": "An absolute value is never negative: no solution",
+      "de": "Ein Betrag ist nie negativ: keine Lösung"
+    },
+    "core.analysis.solve.add": {
+      "en": "Add {}",
+      "de": "{} addieren"
+    },
+    "core.analysis.solve.apply_inverse_function": {
+      "en": "Apply the inverse function",
+      "de": "Umkehrfunktion anwenden"
+    },
+    "core.analysis.solve.constant_factor_never_zero": {
+      "en": "A constant factor is never zero",
+      "de": "Ein konstanter Faktor wird nie null"
+    },
+    "core.analysis.solve.discriminant": {
+      "en": "Discriminant",
+      "de": "Diskriminante"
+    },
+    "core.analysis.solve.divide": {
+      "en": "Divide by {}",
+      "de": "Durch {} teilen"
+    },
+    "core.analysis.solve.double_solution": {
+      "en": "Double solution",
+      "de": "Doppelte Lösung"
+    },
+    "core.analysis.solve.even_power_never_negative_no": {
+      "en": "An even power is never negative: no solution",
+      "de": "Eine gerade Potenz ist nie negativ: keine Lösung"
+    },
+    "core.analysis.solve.factor_never_zero": {
+      "en": "This factor is never zero",
+      "de": "Dieser Faktor wird nie null"
+    },
+    "core.analysis.solve.factor_out": {
+      "en": "Factor out",
+      "de": "Ausklammern"
+    },
+    "core.analysis.solve.factor_out_2": {
+      "en": "Factor out {}",
+      "de": "{} ausklammern"
+    },
+    "core.analysis.solve.fraction_zero_where_numerator_zero": {
+      "en": "A fraction is zero where its numerator is zero",
+      "de": "Ein Bruch ist null, wenn der Zähler null ist"
+    },
+    "core.analysis.solve.function_never_takes_value_no": {
+      "en": "The function never takes this value: no solution",
+      "de": "Die Funktion nimmt diesen Wert nie an: keine Lösung"
+    },
+    "core.analysis.solve.inspection_value_0_root": {
+      "en": "By inspection: the value at {} = {} is 0, so it is a root",
+      "de": "Raten: Der Wert bei {} = {} ist 0, also ist es eine Nullstelle"
+    },
+    "core.analysis.solve.isolate_function": {
+      "en": "Isolate the function",
+      "de": "Funktion isolieren"
+    },
+    "core.analysis.solve.isolate_power": {
+      "en": "Isolate the power",
+      "de": "Potenz isolieren"
+    },
+    "core.analysis.solve.isolate_square": {
+      "en": "Isolate the square",
+      "de": "Quadrat isolieren"
+    },
+    "core.analysis.solve.no_exact_method_applies_solved": {
+      "en": "No exact method applies: solved numerically",
+      "de": "Kein exaktes Verfahren: numerisch gelöst"
+    },
+    "core.analysis.solve.no_solution": {
+      "en": "No solution",
+      "de": "Keine Lösung"
+    },
+    "core.analysis.solve.no_solution_found": {
+      "en": "no solution found",
+      "de": "keine Lösung gefunden"
+    },
+    "core.analysis.solve.not_domain_no_solution": {
+      "en": "Not in the domain, so no solution",
+      "de": "Nicht im Definitionsbereich, also keine Lösung"
+    },
+    "core.analysis.solve.only_members_d_solutions": {
+      "en": "Only the members in D are solutions",
+      "de": "Nur die Werte in D sind Lösungen"
+    },
+    "core.analysis.solve.only_zero": {
+      "en": "Only zero",
+      "de": "Nur null"
+    },
+    "core.analysis.solve.only_zero_solves": {
+      "en": "Only zero solves it",
+      "de": "Nur null löst die Gleichung"
+    },
+    "core.analysis.solve.power_never_negative_no_solution": {
+      "en": "This power is never negative: no solution",
+      "de": "Diese Potenz ist nie negativ: keine Lösung"
+    },
+    "core.analysis.solve.power_never_zero_no_solution": {
+      "en": "This power is never zero: no solution",
+      "de": "Diese Potenz wird nie null: keine Lösung"
+    },
+    "core.analysis.solve.power_positive_number_positive_no": {
+      "en": "A power of a positive number is positive: no solution",
+      "de": "Eine Potenz einer positiven Zahl ist positiv: keine Lösung"
+    },
+    "core.analysis.solve.pq_formula_p_q": {
+      "en": "pq formula with p = {}, q = {}",
+      "de": "pq-Formel mit p = {}, q = {}"
+    },
+    "core.analysis.solve.product_zero_where_one_factors": {
+      "en": "A product is zero where one of its factors is zero",
+      "de": "Ein Produkt ist null, wenn ein Faktor null ist"
+    },
+    "core.analysis.solve.quadratic_formula_b_c": {
+      "en": "Quadratic formula with a = {}, b = {}, c = {}",
+      "de": "Mitternachtsformel mit a = {}, b = {}, c = {}"
+    },
+    "core.analysis.solve.radicand": {
+      "en": "Radicand",
+      "de": "Radikand"
+    },
+    "core.analysis.solve.radicand_negative_no_real_solution": {
+      "en": "The radicand is negative: no real solution",
+      "de": "Der Radikand ist negativ: keine reelle Lösung"
+    },
+    "core.analysis.solve.sin_cos_stay_between_1": {
+      "en": "sin and cos stay between -1 and 1: no solution",
+      "de": "sin und cos bleiben zwischen -1 und 1: keine Lösung"
+    },
+    "core.analysis.solve.solve": {
+      "en": "Solve for {}",
+      "de": "Nach {} auflösen"
+    },
+    "core.analysis.solve.solve_linear_equation": {
+      "en": "Solve the linear equation",
+      "de": "Lineare Gleichung lösen"
+    },
+    "core.analysis.solve.solved_numerically": {
+      "en": "Solved numerically on [{}, {}]",
+      "de": "Numerisch gelöst im Bereich [{}; {}]"
+    },
+    "core.analysis.solve.substitute_back": {
+      "en": "Substitute back",
+      "de": "Rücksubstitution"
+    },
+    "core.analysis.solve.substitution": {
+      "en": "Substitution",
+      "de": "Substitution"
+    },
+    "core.analysis.solve.subtract": {
+      "en": "Subtract {}",
+      "de": "{} subtrahieren"
+    },
+    "core.analysis.solve.take_root": {
+      "en": "Take the root",
+      "de": "Wurzel ziehen"
+    },
+    "core.analysis.solve.take_square_out_root": {
+      "en": "Take the square out of the root",
+      "de": "Quadrat aus der Wurzel ziehen"
+    },
+    "core.analysis.solve.two_solutions": {
+      "en": "Two solutions",
+      "de": "Zwei Lösungen"
+    },
+    "core.analysis.tasks.antiderivative": {
+      "en": "Antiderivative",
+      "de": "Stammfunktion"
+    },
+    "core.analysis.tasks.f_not_differentiable_x_0": {
+      "en": "f is not differentiable at x_0 = {}.",
+      "de": "f ist an der Stelle x_0 = {} nicht differenzierbar."
+    },
+    "core.analysis.tasks.improper_integral_not_supported_yet": {
+      "en": "Improper integral, not supported yet.",
+      "de": "Uneigentliches Integral, noch nicht unterstützt."
+    },
+    "core.analysis.tasks.integral_could_not_computed": {
+      "en": "The integral could not be computed.",
+      "de": "Das Integral konnte nicht berechnet werden."
+    },
+    "core.analysis.tasks.integral_itself_counts_parts_below": {
+      "en": "The integral itself counts parts below the axis negatively",
+      "de": "Das Integral selbst zählt Teile unter der Achse negativ"
+    },
+    "core.analysis.tasks.integral_over_part": {
+      "en": "Integral over the part",
+      "de": "Integral über das Teilstück"
+    },
+    "core.analysis.tasks.must_number": {
+      "en": "{} must be a number.",
+      "de": "{} muss eine Zahl sein."
+    },
+    "core.analysis.tasks.normal_slope_1_m": {
+      "en": "Normal: slope -1/m",
+      "de": "Normale: Steigung -1/m"
+    },
+    "core.analysis.tasks.not_real_number": {
+      "en": "{} is not a real number.",
+      "de": "{} ist keine reelle Zahl."
+    },
+    "core.analysis.tasks.parts_below_axis_count_their": {
+      "en": "Parts below the axis count with their absolute value",
+      "de": "Teile unter der Achse zählen mit ihrem Betrag"
+    },
+    "core.analysis.tasks.please_enter_bounds": {
+      "en": "Please enter the bounds.",
+      "de": "Bitte Grenzen angeben."
+    },
+    "core.analysis.tasks.point_graph": {
+      "en": "Point on the graph",
+      "de": "Punkt auf dem Graphen"
+    },
+    "core.analysis.tasks.simplify": {
+      "en": "Simplify",
+      "de": "Zusammenfassen"
+    },
+    "core.analysis.tasks.slope_derivative_x_0": {
+      "en": "Slope: the derivative at x_0",
+      "de": "Steigung: die Ableitung an der Stelle x_0"
+    },
+    "core.analysis.tasks.slope_normal": {
+      "en": "Slope of the normal",
+      "de": "Steigung der Normalen"
+    },
+    "core.analysis.tasks.step_must_positive": {
+      "en": "The step must be positive.",
+      "de": "Die Schrittweite muss positiv sein."
+    },
+    "core.analysis.tasks.table_has_most_rows": {
+      "en": "A table has at most {} rows.",
+      "de": "Eine Tabelle hat höchstens {} Zeilen."
+    },
+    "core.analysis.tasks.tangent_horizontal_normal_vertical": {
+      "en": "The tangent is horizontal, so the normal is vertical",
+      "de": "Die Tangente ist waagrecht, also ist die Normale senkrecht"
+    },
+    "core.analysis.tasks.tangent_t_x_f_x": {
+      "en": "Tangent: t(x) = f'(x_0)(x - x_0) + f(x_0), values put in",
+      "de": "Tangente: t(x) = f'(x_0)(x - x_0) + f(x_0), Werte eingesetzt"
+    },
+    "core.analysis.tasks.upper_minus_lower_bound": {
+      "en": "Upper minus lower bound",
+      "de": "Obere minus untere Grenze"
+    },
+    "core.analysis.tasks.zeros_inside_interval_split": {
+      "en": "Zeros inside the interval split it",
+      "de": "Nullstellen im Intervall teilen es auf"
+    },
+    "core.electro.interface.cross_section": {
+      "en": "cross-section",
+      "de": "Querschnitt"
+    },
+    "core.electro.interface.internal_conductance": {
+      "en": "internal conductance",
+      "de": "Innenleitwert"
+    },
+    "core.electro.interface.internal_resistance": {
+      "en": "internal resistance",
+      "de": "Innenwiderstand"
+    },
+    "core.electro.interface.length": {
+      "en": "length",
+      "de": "Länge"
+    },
+    "core.electro.interface.position": {
+      "en": "position",
+      "de": "Stellung"
+    },
+    "core.electro.interface.precision_must_least_1_but": {
+      "en": "The precision must be at least 1, but is {p}.",
+      "de": "Die Genauigkeit muss mindestens 1 sein, ist aber {p}."
+    },
+    "core.electro.interface.relative_current_unknown": {
+      "en": "relative, {reading} (current unknown)",
+      "de": "relativ, {reading} (Strom unbekannt)"
+    },
+    "core.electro.interface.relative_voltage_unknown": {
+      "en": "relative, {reading} (voltage unknown)",
+      "de": "relativ, {reading} (Spannung unbekannt)"
+    },
+    "core.electro.interface.target_lacks_element": {
+      "en": "The target lacks its element",
+      "de": "Dem Ziel fehlt das Bauteil"
+    },
+    "core.electro.interface.target_lacks_node": {
+      "en": "The target lacks its node",
+      "de": "Dem Ziel fehlt der Knoten"
+    },
+    "core.electro.interface.target_lacks_source": {
+      "en": "The target lacks its source",
+      "de": "Dem Ziel fehlt die Quelle"
+    },
+    "core.electro.interface.target_value": {
+      "en": "target value",
+      "de": "Zielwert"
+    },
+    "core.electro.interface.temperature": {
+      "en": "temperature",
+      "de": "Temperatur"
+    },
+    "core.electro.interface.unknown": {
+      "en": "Unknown: {}",
+      "de": "Unbekannt: {}"
+    },
+    "core.electro.interface.unknown_element_kind": {
+      "en": "{}: unknown element kind “{other}”",
+      "de": "{}: unbekannte Bauteilart „{other}“"
+    },
+    "core.electro.interface.unknown_material": {
+      "en": "{}: unknown material “{name}”",
+      "de": "{}: unbekanntes Material „{name}“"
+    },
+    "core.electro.interface.unknown_no_current_flows": {
+      "en": "Unknown: no current flows",
+      "de": "Unbekannt: es fließt kein Strom"
+    },
+    "core.electro.interface.unknown_parameter": {
+      "en": "Unknown parameter “{other}”",
+      "de": "Unbekannter Parameter „{other}“"
+    },
+    "core.electro.interface.unknown_target": {
+      "en": "Unknown target “{other}”",
+      "de": "Unbekanntes Ziel „{other}“"
+    },
+    "core.electro.interface.wiper_not_connected": {
+      "en": "{}: the wiper is not connected",
+      "de": "{}: der Schleifer ist nicht verbunden"
+    },
+    "core.electro.reverse.element_does_not_exist": {
+      "en": "Element {id} does not exist",
+      "de": "Element {id} gibt es nicht"
+    },
+    "core.electro.reverse.more_than_one_unknown": {
+      "en": "more than one unknown",
+      "de": "more than one unknown"
+    },
+    "core.electro.reverse.node_does_not_exist": {
+      "en": "Node {id} does not exist",
+      "de": "Knoten {id} gibt es nicht"
+    },
+    "core.electro.reverse.not_voltage_source": {
+      "en": "{source} is not a voltage source",
+      "de": "{source} ist keine Spannungsquelle"
+    },
+    "core.electro.reverse.parameter_already_given": {
+      "en": "The parameter of {id} is already given",
+      "de": "Der Parameter von {id} ist schon gegeben"
+    },
+    "core.electro.reverse.parameter_does_not_fit": {
+      "en": "The parameter does not fit {id}",
+      "de": "Der Parameter passt nicht zu {id}"
+    },
+    "core.electro.reverse.target_cannot_reached": {
+      "en": "the target cannot be reached",
+      "de": "the target cannot be reached"
+    },
+    "core.electro.reverse.unknown": {
+      "en": "Unknown: {}",
+      "de": "Unbekannt: {}"
+    },
+    "core.electro.reverse.unknown_supply_voltage_missing": {
+      "en": "Unknown: the supply voltage is missing",
+      "de": "Unbekannt: Versorgungsspannung fehlt"
+    },
+    "core.electro.solve.circuit_has_no_ground_node": {
+      "en": "The circuit has no ground node 0.",
+      "de": "Die Schaltung hat keinen Masseknoten 0."
+    },
+    "core.electro.solve.depends": {
+      "en": "depends on {ids}",
+      "de": "hängt von {ids} ab"
+    },
+    "core.electro.solve.did_not_converge": {
+      "en": "did not converge",
+      "de": "nicht konvergiert"
+    },
+    "core.electro.solve.element_exists_twice": {
+      "en": "Element {} exists twice.",
+      "de": "Das Bauteil {} kommt doppelt vor."
+    },
+    "core.electro.solve.element_uses_unknown_node": {
+      "en": "Element {} uses the unknown node {node}.",
+      "de": "Das Bauteil {} nutzt den unbekannten Knoten {node}."
+    },
+    "core.electro.solve.no_solution_load_too_large": {
+      "en": "no solution: the load is too large",
+      "de": "keine Lösung: die Last ist zu groß"
+    },
+    "core.electro.solve.node_exists_twice": {
+      "en": "Node {id} exists twice.",
+      "de": "Knoten {id} kommt doppelt vor."
+    },
+    "core.electro.solve.node_not_connected": {
+      "en": "Node {} is not connected",
+      "de": "Knoten {} nicht verbunden"
+    },
+    "core.electro.solve.short_circuit": {
+      "en": "short circuit",
+      "de": "Kurzschluss"
+    },
+    "core.electro.solve.supply_current_missing": {
+      "en": "the supply current is missing",
+      "de": "Versorgungsstrom fehlt"
+    },
+    "core.electro.solve.supply_voltage_missing": {
+      "en": "the supply voltage is missing",
+      "de": "Versorgungsspannung fehlt"
+    },
+    "core.electro.solve.value_must_not_negative": {
+      "en": "The value of {id} must not be negative.",
+      "de": "Der Wert von {id} darf nicht negativ sein."
+    },
+    "core.electro.solve.wiper_position_must_between_0": {
+      "en": "The wiper position of {} must be between 0 and 1.",
+      "de": "Die Stellung von {} muss zwischen 0 und 1 liegen."
+    },
+    "core.electro.wire.20_c": {
+      "en": "at 20 °C",
+      "de": "bei 20 °C"
+    },
+    "core.electro.wire.cross_section": {
+      "en": "cross-section",
+      "de": "Querschnitt"
+    },
+    "core.electro.wire.cross_section_must_positive": {
+      "en": "The cross-section must be positive.",
+      "de": "Der Querschnitt muss positiv sein."
+    },
+    "core.electro.wire.length": {
+      "en": "length",
+      "de": "Länge"
+    },
+    "core.electro.wire.length_must_not_negative": {
+      "en": "The length must not be negative.",
+      "de": "Die Länge darf nicht negativ sein."
+    },
+    "core.electro.wire.material": {
+      "en": "material",
+      "de": "Material"
+    },
+    "core.electro.wire.resistance_must_not_negative": {
+      "en": "The resistance must not be negative.",
+      "de": "Der Widerstand darf nicht negativ sein."
+    },
+    "core.electro.wire.wire_idealised_missing": {
+      "en": "Wire {wire} idealised: {names} is missing",
+      "de": "Leitung {wire} idealisiert: {names} fehlt"
+    },
+    "core.electro.wire.wire_idealised_missing_2": {
+      "en": "Wire {wire} idealised: {names} are missing",
+      "de": "Leitung {wire} idealisiert: {names} fehlen"
+    },
+    "core.eval.calculator.brackets_first": {
+      "en": "Brackets first",
+      "de": "Klammern zuerst"
+    },
+    "core.eval.calculator.bring_everything_one_side": {
+      "en": "Bring everything to one side",
+      "de": "Alles auf eine Seite bringen"
+    },
+    "core.eval.calculator.convert_common_unit": {
+      "en": "Convert to a common unit",
+      "de": "In eine gemeinsame Einheit umrechnen"
+    },
+    "core.eval.calculator.denominator_0_there_never_solution": {
+      "en": "A denominator is 0 there: never in the solution",
+      "de": "Dort ist ein Nenner 0: nie in der Lösung"
+    },
+    "core.eval.calculator.false": {
+      "en": "false",
+      "de": "falsch"
+    },
+    "core.eval.calculator.multiplication_division": {
+      "en": "Multiplication and division",
+      "de": "Punktrechnung"
+    },
+    "core.eval.calculator.multiply_numbers_units": {
+      "en": "Multiply the numbers and the units",
+      "de": "Zahlen und Einheiten multiplizieren"
+    },
+    "core.eval.calculator.no_real_zeros": {
+      "en": "No real zeros",
+      "de": "Keine reellen Nullstellen"
+    },
+    "core.eval.calculator.no_solution": {
+      "en": "\\text{{no solution}}",
+      "de": "\\text{{keine Lösung}}"
+    },
+    "core.eval.calculator.powers_roots": {
+      "en": "Powers and roots",
+      "de": "Potenzen und Wurzeln"
+    },
+    "core.eval.calculator.sign_chart": {
+      "en": "Sign chart",
+      "de": "Vorzeichentabelle"
+    },
+    "core.eval.calculator.true": {
+      "en": "true",
+      "de": "wahr"
+    },
+    "core.eval.calculator.zeros": {
+      "en": "The zeros",
+      "de": "Die Nullstellen"
+    },
+    "core.eval.linear_system.coefficients_linear_system_have_no": {
+      "en": "the coefficients of a linear system have no units.",
+      "de": "die Koeffizienten eines linearen Gleichungssystems haben keine Einheiten."
+    },
+    "core.eval.linear_system.entry_number_but_letter": {
+      "en": "an entry is a number, but {} is a letter.",
+      "de": "ein Eintrag ist eine Zahl, {} aber ein Buchstabe."
+    },
+    "core.eval.linear_system.entry_number_not_equation": {
+      "en": "an entry is a number, not an equation.",
+      "de": "ein Eintrag ist eine Zahl, keine Gleichung."
+    },
+    "core.eval.linear_system.i_not_number_here_turn": {
+      "en": "i is not a number here; turn on the imaginary unit for complex coefficients.",
+      "de": "i ist hier keine Zahl; für komplexe Koeffizienten die imaginäre Einheit einschalten."
+    },
+    "core.eval.linear_system.matrix_has_no_rows": {
+      "en": "The matrix has no rows.",
+      "de": "Die Matrix hat keine Zeilen."
+    },
+    "core.eval.linear_system.not_name_unknown_use_letter": {
+      "en": "{} is not a name for an unknown; use a letter such as x or x_1.",
+      "de": "{} ist kein Name für eine Unbekannte; einen Buchstaben wie x oder x_1 verwenden."
+    },
+    "core.eval.linear_system.row_entry": {
+      "en": "Row {}, entry {}: {}",
+      "de": "Zeile {}, Eintrag {}: {}"
+    },
+    "core.eval.linear_system.row_has_entries_but_row": {
+      "en": "Row {} has {} entries, but row 1 has {}.",
+      "de": "Zeile {} hat {} Einträge, Zeile 1 aber {}."
+    },
+    "core.eval.linear_system.row_needs_least_one_coefficient": {
+      "en": "A row needs at least one coefficient and the right-hand side.",
+      "de": "Eine Zeile braucht mindestens einen Koeffizienten und die rechte Seite."
+    },
+    "core.eval.linear_system.there_names_unknowns": {
+      "en": "There are {} names for {} unknowns.",
+      "de": "Es gibt {} Namen für {} Unbekannte."
+    },
+    "core.eval.linear_system.type_system_equations_one_per": {
+      "en": "Type the system as equations, one per line.",
+      "de": "Das System als Gleichungen eingeben, eine pro Zeile."
+    },
+    "core.eval.linear_system.unknown_named_twice": {
+      "en": "The unknown {} is named twice.",
+      "de": "Die Unbekannte {} ist doppelt benannt."
+    },
+    "core.eval.system_steps.and": {
+      "en": "and",
+      "de": "und"
+    },
+    "core.eval.system_steps.bring_triangle_form": {
+      "en": "Bring it to triangle form",
+      "de": "In Stufenform bringen"
+    },
+    "core.eval.system_steps.check_put_solution_into": {
+      "en": "Check: put the solution into {}",
+      "de": "Probe: die Lösung in {} einsetzen"
+    },
+    "core.eval.system_steps.column": {
+      "en": "column {}",
+      "de": "Spalte {}"
+    },
+    "core.eval.system_steps.determinant_product_pivots_sign_change": {
+      "en": "The determinant is the product of the pivots, with a sign change for each swap",
+      "de": "Die Determinante ist das Produkt der Pivotelemente, mit einem Vorzeichenwechsel je Tausch"
+    },
+    "core.eval.system_steps.divide_out_common_factor_row": {
+      "en": "Divide out the common factor of the row",
+      "de": "Den gemeinsamen Faktor der Zeile herausteilen"
+    },
+    "core.eval.system_steps.divide_pivot": {
+      "en": "Divide {} by its pivot",
+      "de": "{} durch sein Pivotelement teilen"
+    },
+    "core.eval.system_steps.eliminate_column_column": {
+      "en": "Eliminate column by column",
+      "de": "Spalte für Spalte eliminieren"
+    },
+    "core.eval.system_steps.eliminate_from": {
+      "en": "Eliminate {} from {}",
+      "de": "{} aus {} eliminieren"
+    },
+    "core.eval.system_steps.eliminate_from_pivot_first_non": {
+      "en": "Eliminate {} from {} with the pivot of {}, the first non-zero entry of the column",
+      "de": "{} aus {} eliminieren, mit dem Pivotelement von {}, dem ersten Eintrag ungleich null der Spalte"
+    },
+    "core.eval.system_steps.entry_zero_swap_first_row": {
+      "en": "The entry of {} in {} is zero, so swap {} with {}, the first row below with a non-zero one",
+      "de": "Der Eintrag von {} in {} ist null, also {} mit {} tauschen, der ersten Zeile darunter mit einem anderen"
+    },
+    "core.eval.system_steps.free_set_parameter": {
+      "en": "{} is free: set it to a parameter",
+      "de": "{} ist frei: als Parameter setzen"
+    },
+    "core.eval.system_steps.free_set_them_parameters": {
+      "en": "{} are free: set them to parameters",
+      "de": "{} sind frei: als Parameter setzen"
+    },
+    "core.eval.system_steps.left_half_identity_matrix_right": {
+      "en": "The left half is the identity matrix, so the right half is the inverse",
+      "de": "Links steht die Einheitsmatrix, also rechts die Inverse"
+    },
+    "core.eval.system_steps.matrix_reduced": {
+      "en": "The matrix is reduced",
+      "de": "Die Matrix ist reduziert"
+    },
+    "core.eval.system_steps.matrix_reduced_row_echelon_form": {
+      "en": "The matrix is in reduced row echelon form",
+      "de": "Die Matrix hat reduzierte Stufenform"
+    },
+    "core.eval.system_steps.matrix_triangle_form": {
+      "en": "The matrix is in triangle form",
+      "de": "Die Matrix hat Stufenform"
+    },
+    "core.eval.system_steps.put_into_solve": {
+      "en": "Put {} into {} and solve for {}",
+      "de": "{} in {} einsetzen und nach {} auflösen"
+    },
+    "core.eval.system_steps.row_reads_0_contradiction_system": {
+      "en": "Row {} reads 0 = {}, a contradiction: the system has no solution",
+      "de": "Zeile {} lautet 0 = {}, ein Widerspruch: das System hat keine Lösung"
+    },
+    "core.eval.system_steps.row_zeros_determinant_0": {
+      "en": "A row of zeros: the determinant is 0",
+      "de": "Eine Nullzeile: die Determinante ist 0"
+    },
+    "core.eval.system_steps.solve": {
+      "en": "Solve {} for {}",
+      "de": "{} nach {} auflösen"
+    },
+    "core.eval.system_steps.swap_get_non_zero_pivot": {
+      "en": "Swap {} and {} to get a non-zero pivot",
+      "de": "{} und {} tauschen, um ein Pivotelement ungleich null zu bekommen"
+    },
+    "core.eval.system_steps.then_divide_out_common_factor": {
+      "en": "{}, then divide out the common factor",
+      "de": "{}, dann den gemeinsamen Faktor herausteilen"
+    },
+    "core.eval.system_steps.work_out_entry_entry": {
+      "en": "Work out {} entry by entry",
+      "de": "{} Eintrag für Eintrag ausrechnen"
+    },
+    "core.eval.system_steps.write_matrix_next_identity_matrix": {
+      "en": "Write the matrix next to the identity matrix",
+      "de": "Die Matrix neben die Einheitsmatrix schreiben"
+    },
+    "core.eval.system_steps.write_system_augmented_matrix": {
+      "en": "Write the system as an augmented matrix",
+      "de": "Das System als erweiterte Koeffizientenmatrix schreiben"
+    },
+    "core.geometry.circle.area": {
+      "en": "The area:",
+      "de": "Der Flächeninhalt:"
+    },
+    "core.geometry.circle.circle_lies_plane": {
+      "en": "The circle lies in the plane.",
+      "de": "Der Kreis liegt in der Ebene."
+    },
+    "core.geometry.circle.circumference": {
+      "en": "The circumference:",
+      "de": "Der Umfang:"
+    },
+    "core.geometry.circle.distance_from_centre": {
+      "en": "The distance from the centre:",
+      "de": "Der Abstand zum Mittelpunkt:"
+    },
+    "core.geometry.circle.distance_from_centre_2": {
+      "en": "Its distance from the centre:",
+      "de": "Sein Abstand zum Mittelpunkt:"
+    },
+    "core.geometry.circle.formula": {
+      "en": "The formula:",
+      "de": "Die Formel:"
+    },
+    "core.geometry.circle.line_crosses_plane_circle_where": {
+      "en": "The line crosses the plane of the circle where",
+      "de": "Die Gerade durchstößt die Ebene des Kreises, wo"
+    },
+    "core.geometry.circle.line_goes_through_circle": {
+      "en": "The line goes through the circle in",
+      "de": "Die Gerade geht durch den Kreis in"
+    },
+    "core.geometry.circle.line_lies_plane_circle": {
+      "en": "The line lies in the plane of the circle:",
+      "de": "Die Gerade liegt in der Ebene des Kreises:"
+    },
+    "core.geometry.circle.line_misses_circle": {
+      "en": "The line misses the circle.",
+      "de": "Die Gerade verfehlt den Kreis."
+    },
+    "core.geometry.circle.line_parallel_plane_circle_not": {
+      "en": "The line is parallel to the plane of the circle and not in it:",
+      "de": "Die Gerade ist parallel zur Ebene des Kreises und liegt nicht in ihr:"
+    },
+    "core.geometry.circle.plane_circle": {
+      "en": "The plane of the circle:",
+      "de": "Die Ebene des Kreises:"
+    },
+    "core.geometry.circle.plane_does_not_meet_sphere": {
+      "en": "The plane does not meet the sphere, so they have no circle in common.",
+      "de": "Die Ebene trifft die Kugel nicht, sie haben also keinen gemeinsamen Kreis."
+    },
+    "core.geometry.circle.plane_only_touches_sphere_they": {
+      "en": "The plane only touches the sphere, so they have no circle in common.",
+      "de": "Die Ebene berührt die Kugel nur, sie haben also keinen gemeinsamen Kreis."
+    },
+    "core.geometry.circle.plane_parallel_circle": {
+      "en": "The plane is parallel to the circle.",
+      "de": "Die Ebene ist parallel zum Kreis."
+    },
+    "core.geometry.circle.plane_parallel_plane_circle_centre": {
+      "en": "The plane is parallel to the plane of the circle; is the centre in it?",
+      "de": "Die Ebene ist parallel zur Ebene des Kreises; liegt der Mittelpunkt in ihr?"
+    },
+    "core.geometry.circle.point_does_not_lie_circle": {
+      "en": "The point does not lie on the circle.",
+      "de": "Der Punkt liegt nicht auf dem Kreis."
+    },
+    "core.geometry.circle.point_does_not_lie_circle_2": {
+      "en": "The point does not lie on the circle, so it has no tangent there.",
+      "de": "Der Punkt liegt nicht auf dem Kreis, dort gibt es also keine Tangente."
+    },
+    "core.geometry.circle.point_does_not_lie_plane": {
+      "en": "The point does not lie in the plane of the circle.",
+      "de": "Der Punkt liegt nicht in der Ebene des Kreises."
+    },
+    "core.geometry.circle.point_lies_circle": {
+      "en": "The point lies on the circle.",
+      "de": "Der Punkt liegt auf dem Kreis."
+    },
+    "core.geometry.circle.point_plane": {
+      "en": "The point in the plane:",
+      "de": "Der Punkt in der Ebene:"
+    },
+    "core.geometry.circle.point_plane_circle": {
+      "en": "Is the point in the plane of the circle?",
+      "de": "Liegt der Punkt in der Ebene des Kreises?"
+    },
+    "core.geometry.circle.radius_circle_must_positive": {
+      "en": "The radius of a circle must be positive.",
+      "de": "Der Radius eines Kreises muss positiv sein."
+    },
+    "core.geometry.circle.tangent": {
+      "en": "The tangent:",
+      "de": "Die Tangente:"
+    },
+    "core.geometry.circle.tangent_perpendicular_radius_normal": {
+      "en": "The tangent is perpendicular to the radius and to the normal:",
+      "de": "Die Tangente steht senkrecht auf dem Radius und dem Normalenvektor:"
+    },
+    "core.geometry.circle.zero_vector_no_normal_circle": {
+      "en": "The zero vector is no normal of a circle.",
+      "de": "Der Nullvektor ist kein Normalenvektor eines Kreises."
+    },
+    "core.geometry.interface.angle": {
+      "en": "The angle:",
+      "de": "Der Winkel:"
+    },
+    "core.geometry.interface.angle_2": {
+      "en": "An angle",
+      "de": "Ein Winkel"
+    },
+    "core.geometry.interface.conversion": {
+      "en": "A conversion",
+      "de": "Eine Umformung"
+    },
+    "core.geometry.interface.cosine_angle": {
+      "en": "The cosine of the angle:",
+      "de": "Der Kosinus des Winkels:"
+    },
+    "core.geometry.interface.cut_circle_needs_sphere_plane": {
+      "en": "A cut circle needs a sphere and a plane.",
+      "de": "Ein Schnittkreis braucht eine Kugel und eine Ebene."
+    },
+    "core.geometry.interface.distance": {
+      "en": "The distance:",
+      "de": "Der Abstand:"
+    },
+    "core.geometry.interface.distance_2": {
+      "en": "A distance",
+      "de": "Ein Abstand"
+    },
+    "core.geometry.interface.does_not_work_these_objects": {
+      "en": "{} does not work for these objects.",
+      "de": "{} geht für diese Objekte nicht."
+    },
+    "core.geometry.interface.foot_perpendicular": {
+      "en": "A foot of the perpendicular",
+      "de": "Ein Lotfußpunkt"
+    },
+    "core.geometry.interface.half_way_from_p_q": {
+      "en": "Half of the way from P to Q:",
+      "de": "Die Hälfte des Wegs von P nach Q:"
+    },
+    "core.geometry.interface.length": {
+      "en": "The length:",
+      "de": "Der Betrag:"
+    },
+    "core.geometry.interface.length_vector": {
+      "en": "The length of the vector:",
+      "de": "Der Betrag des Vektors:"
+    },
+    "core.geometry.interface.length_vector_between_points": {
+      "en": "The length of the vector between the points:",
+      "de": "Die Länge des Vektors zwischen den Punkten:"
+    },
+    "core.geometry.interface.measure": {
+      "en": "This measure",
+      "de": "Dieses Maß"
+    },
+    "core.geometry.interface.midpoint": {
+      "en": "The midpoint:",
+      "de": "Der Mittelpunkt:"
+    },
+    "core.geometry.interface.midpoint_2": {
+      "en": "A midpoint",
+      "de": "Ein Mittelpunkt"
+    },
+    "core.geometry.interface.not_number": {
+      "en": "'{}' is not a number.",
+      "de": "'{}' ist keine Zahl."
+    },
+    "core.geometry.interface.not_point": {
+      "en": "'{}' is not a point.",
+      "de": "'{}' ist kein Punkt."
+    },
+    "core.geometry.interface.not_vector": {
+      "en": "'{}' is not a vector.",
+      "de": "'{}' ist kein Vektor."
+    },
+    "core.geometry.interface.object_needs_name": {
+      "en": "An object needs a name.",
+      "de": "Ein Objekt braucht einen Namen."
+    },
+    "core.geometry.interface.point_vector_has_two_three": {
+      "en": "A point or vector has two or three coordinates.",
+      "de": "Ein Punkt oder Vektor hat zwei oder drei Koordinaten."
+    },
+    "core.geometry.interface.reflection": {
+      "en": "A reflection",
+      "de": "Eine Spiegelung"
+    },
+    "core.geometry.interface.relation": {
+      "en": "A relation",
+      "de": "Eine Lagebeziehung"
+    },
+    "core.geometry.interface.result": {
+      "en": "The result:",
+      "de": "Das Ergebnis:"
+    },
+    "core.geometry.interface.tangent": {
+      "en": "A tangent",
+      "de": "Eine Tangente"
+    },
+    "core.geometry.interface.there_no_object_scene": {
+      "en": "There is no object {} in the scene.",
+      "de": "Es gibt kein Objekt {} in der Szene."
+    },
+    "core.geometry.interface.typed.both_sides_equation_must_numbers": {
+      "en": "Both sides of the equation must be numbers, as in (\\vec{{x}} - \\vec{{p}}) \\cdot \\vec{{n}} = 0.",
+      "de": "Beide Seiten der Gleichung müssen Zahlen sein, wie in (\\vec{{x}} - \\vec{{p}}) \\cdot \\vec{{n}} = 0."
+    },
+    "core.geometry.interface.typed.equation_has_no_circle_sphere": {
+      "en": "The equation has no circle or sphere: the radius squared would be {}.",
+      "de": "Die Gleichung beschreibt keinen Kreis und keine Kugel: Das Quadrat des Radius wäre {}."
+    },
+    "core.geometry.interface.typed.equation_neither_plane_linear_x": {
+      "en": "This equation is neither a plane (linear in x, y, z) nor a sphere (x^2 + y^2 + z^2 with one coefficient, no mixed terms).",
+      "de": "Diese Gleichung ist weder eine Ebene (linear in x, y, z) noch eine Kugel (x^2 + y^2 + z^2 mit einem Koeffizienten, ohne gemischte Glieder)."
+    },
+    "core.geometry.interface.typed.must_vector": {
+      "en": "\\vec{{{}}} must be a vector.",
+      "de": "\\vec{{{}}} muss ein Vektor sein."
+    },
+    "core.geometry.interface.typed.object_typed_name_1_2": {
+      "en": "An object is typed with its name: A(1|2|3), \\vec{{a}} = …, g: X = A + \\lambda \\vec{{u}}, E: 2x + y = 3 or K: x^2 + y^2 + z^2 = 9.",
+      "de": "Ein Objekt wird mit seinem Namen eingegeben: A(1|2|3), \\vec{{a}} = …, g: X = A + \\lambda \\vec{{u}}, E: 2x + y = 3 oder K: x^2 + y^2 + z^2 = 9."
+    },
+    "core.geometry.interface.typed.parameter_form_gives_point": {
+      "en": "A parameter form gives a point.",
+      "de": "Eine Parameterform ergibt einen Punkt."
+    },
+    "core.geometry.interface.typed.parameter_form_has_one_parameter": {
+      "en": "A parameter form has one parameter (a line) or two (a plane), such as \\lambda and \\mu.",
+      "de": "Eine Parameterform hat einen Parameter (Gerade) oder zwei (Ebene), etwa \\lambda und \\mu."
+    },
+    "core.geometry.interface.typed.parameter_form_must_linear_parameters": {
+      "en": "A parameter form must be linear in its parameters.",
+      "de": "Eine Parameterform muss linear in ihren Parametern sein."
+    },
+    "core.geometry.line.angle": {
+      "en": "The angle:",
+      "de": "Der Winkel:"
+    },
+    "core.geometry.line.angle_between_directions": {
+      "en": "The angle between the directions:",
+      "de": "Der Winkel zwischen den Richtungsvektoren:"
+    },
+    "core.geometry.line.angle_between_normals": {
+      "en": "The angle between the normals:",
+      "de": "Der Winkel zwischen den Normalenvektoren:"
+    },
+    "core.geometry.line.both_dot_products_row_row": {
+      "en": "Both dot products row by row:",
+      "de": "Beide Skalarprodukte zeilenweise:"
+    },
+    "core.geometry.line.check_row": {
+      "en": "Check in row {}:",
+      "de": "Probe in Zeile {}:"
+    },
+    "core.geometry.line.check_second_line_gives_same": {
+      "en": "Check: μ in the second line gives the same point.",
+      "de": "Probe: μ in die zweite Gerade eingesetzt ergibt denselben Punkt."
+    },
+    "core.geometry.line.direction_vector_from_b": {
+      "en": "The direction is the vector from A to B.",
+      "de": "Der Richtungsvektor ist der Vektor von A nach B."
+    },
+    "core.geometry.line.distance": {
+      "en": "The distance:",
+      "de": "Der Abstand:"
+    },
+    "core.geometry.line.distance_length_vector_from_p": {
+      "en": "The distance is the length of the vector from P to F:",
+      "de": "Der Abstand ist die Länge des Vektors von P nach F:"
+    },
+    "core.geometry.line.distance_skew_lines": {
+      "en": "The distance of the skew lines:",
+      "de": "Der Abstand der windschiefen Geraden:"
+    },
+    "core.geometry.line.false": {
+      "en": "false",
+      "de": "falsch"
+    },
+    "core.geometry.line.foot_perpendicular": {
+      "en": "The foot of the perpendicular:",
+      "de": "Der Lotfußpunkt:"
+    },
+    "core.geometry.line.general_point_line": {
+      "en": "A general point of the line:",
+      "de": "Ein allgemeiner Punkt der Geraden:"
+    },
+    "core.geometry.line.line_through_b": {
+      "en": "The line through A and B:",
+      "de": "Die Gerade durch A und B:"
+    },
+    "core.geometry.line.lines_identical": {
+      "en": "The lines are identical.",
+      "de": "Die Geraden sind identisch."
+    },
+    "core.geometry.line.lines_intersect_point": {
+      "en": "The lines intersect in the point",
+      "de": "Die Geraden schneiden sich im Punkt"
+    },
+    "core.geometry.line.lines_parallel": {
+      "en": "The lines are parallel.",
+      "de": "Die Geraden sind parallel."
+    },
+    "core.geometry.line.multiply_out_solve": {
+      "en": "Multiply out and solve for λ:",
+      "de": "Ausmultiplizieren und nach λ auflösen:"
+    },
+    "core.geometry.line.point_lies_line": {
+      "en": "The point lies on the line.",
+      "de": "Der Punkt liegt auf der Geraden."
+    },
+    "core.geometry.line.row": {
+      "en": "Row {}:",
+      "de": "Zeile {}:"
+    },
+    "core.geometry.line.rows_contradict_each_other_point": {
+      "en": "The rows contradict each other: the point does not lie on the line.",
+      "de": "Die Zeilen widersprechen sich: Der Punkt liegt nicht auf der Geraden."
+    },
+    "core.geometry.line.rows_give": {
+      "en": "Rows {} and {} give:",
+      "de": "Aus den Zeilen {} und {}:"
+    },
+    "core.geometry.line.set_line_equations_equal": {
+      "en": "Set the line equations equal:",
+      "de": "Die Geradengleichungen gleichsetzen:"
+    },
+    "core.geometry.line.set_point_equal_line_equation": {
+      "en": "Set the point equal to the line equation.",
+      "de": "Den Punkt mit der Geradengleichung gleichsetzen."
+    },
+    "core.geometry.line.system_equations": {
+      "en": "As a system of equations:",
+      "de": "Als Gleichungssystem:"
+    },
+    "core.geometry.line.system_has_no_solution_lines": {
+      "en": "The system has no solution: the lines are skew.",
+      "de": "Das Gleichungssystem hat keine Lösung: Die Geraden sind windschief."
+    },
+    "core.geometry.line.true": {
+      "en": "true",
+      "de": "wahr"
+    },
+    "core.geometry.line.two_equal_points_give_no": {
+      "en": "Two equal points give no line.",
+      "de": "Zwei gleiche Punkte legen keine Gerade fest."
+    },
+    "core.geometry.line.vector_from_p_perpendicular_direction": {
+      "en": "The vector from P to it is perpendicular to the direction:",
+      "de": "Der Vektor von P dorthin steht senkrecht auf dem Richtungsvektor:"
+    },
+    "core.geometry.line.vector_perpendicular_both_directions": {
+      "en": "A vector perpendicular to both directions:",
+      "de": "Ein Vektor senkrecht zu beiden Richtungen:"
+    },
+    "core.geometry.line.vectors_multiples_each_other": {
+      "en": "The vectors are multiples of each other:",
+      "de": "Die Vektoren sind Vielfache voneinander:"
+    },
+    "core.geometry.line.vectors_not_multiples_each_other": {
+      "en": "The vectors are not multiples of each other:",
+      "de": "Die Vektoren sind keine Vielfachen voneinander:"
+    },
+    "core.geometry.line.zero_vector_no_direction_line": {
+      "en": "The zero vector is no direction of a line.",
+      "de": "Der Nullvektor ist kein Richtungsvektor einer Geraden."
+    },
+    "core.geometry.plane.check": {
+      "en": "Check:",
+      "de": "Probe:"
+    },
+    "core.geometry.plane.coefficients_x_y_z_normal": {
+      "en": "The coefficients of x, y and z are a normal:",
+      "de": "Die Koeffizienten von x, y und z bilden einen Normalenvektor:"
+    },
+    "core.geometry.plane.component_component": {
+      "en": "Component by component:",
+      "de": "Komponentenweise:"
+    },
+    "core.geometry.plane.constant_normal_times_support": {
+      "en": "The constant is the normal times the support:",
+      "de": "Die Konstante ist der Normalenvektor mal dem Stützvektor:"
+    },
+    "core.geometry.plane.coordinate_equation_plane_x_y": {
+      "en": "In a coordinate equation of a plane, x, y and z cannot all be missing.",
+      "de": "In einer Koordinatengleichung einer Ebene können x, y und z nicht alle fehlen."
+    },
+    "core.geometry.plane.coordinate_form": {
+      "en": "The coordinate form:",
+      "de": "Die Koordinatenform:"
+    },
+    "core.geometry.plane.directions_from_b_from_c": {
+      "en": "The directions from A to B and from A to C:",
+      "de": "Die Richtungsvektoren von A nach B und von A nach C:"
+    },
+    "core.geometry.plane.multiply_out_normal_form": {
+      "en": "Multiply out the normal form:",
+      "de": "Die Normalenform ausmultiplizieren:"
+    },
+    "core.geometry.plane.normal_cross_product_directions": {
+      "en": "A normal is the cross product of the directions:",
+      "de": "Ein Normalenvektor ist das Kreuzprodukt der Richtungsvektoren:"
+    },
+    "core.geometry.plane.normal_form": {
+      "en": "The normal form:",
+      "de": "Die Normalenform:"
+    },
+    "core.geometry.plane.parameter_form": {
+      "en": "The parameter form:",
+      "de": "Die Parameterform:"
+    },
+    "core.geometry.plane.plane_already_form": {
+      "en": "The plane is already in this form.",
+      "de": "Die Ebene ist schon in dieser Form."
+    },
+    "core.geometry.plane.plane_through_b_c": {
+      "en": "The plane through A, B and C:",
+      "de": "Die Ebene durch A, B und C:"
+    },
+    "core.geometry.plane.point_does_not_lie_plane": {
+      "en": "The point does not lie on the plane.",
+      "de": "Der Punkt liegt nicht in der Ebene."
+    },
+    "core.geometry.plane.point_lies_plane": {
+      "en": "The point lies on the plane.",
+      "de": "Der Punkt liegt in der Ebene."
+    },
+    "core.geometry.plane.point_plane": {
+      "en": "A point of the plane:",
+      "de": "Ein Punkt der Ebene:"
+    },
+    "core.geometry.plane.put_point_into_equation": {
+      "en": "Put the point into the equation:",
+      "de": "Den Punkt in die Gleichung einsetzen:"
+    },
+    "core.geometry.plane.set_point_equal_plane_equation": {
+      "en": "Set the point equal to the plane equation.",
+      "de": "Den Punkt mit der Ebenengleichung gleichsetzen."
+    },
+    "core.geometry.plane.shortened": {
+      "en": "Shortened:",
+      "de": "Gekürzt:"
+    },
+    "core.geometry.plane.three_points_lie_one_line": {
+      "en": "The three points lie on one line, so they give no plane.",
+      "de": "Die drei Punkte liegen auf einer Geraden und legen keine Ebene fest."
+    },
+    "core.geometry.plane.two_directions_collinear_they_span": {
+      "en": "The two directions are collinear, so they span no plane.",
+      "de": "Die beiden Richtungsvektoren sind kollinear und spannen keine Ebene auf."
+    },
+    "core.geometry.plane.two_directions_perpendicular_normal": {
+      "en": "Two directions perpendicular to the normal:",
+      "de": "Zwei Richtungsvektoren senkrecht zum Normalenvektor:"
+    },
+    "core.geometry.plane.zero_vector_no_normal_plane": {
+      "en": "The zero vector is no normal of a plane.",
+      "de": "Der Nullvektor ist kein Normalenvektor einer Ebene."
+    },
+    "core.geometry.reflect.foot_perpendicular": {
+      "en": "The foot of the perpendicular:",
+      "de": "Der Lotfußpunkt:"
+    },
+    "core.geometry.reflect.image_point": {
+      "en": "The image point:",
+      "de": "Der Bildpunkt:"
+    },
+    "core.geometry.reflect.p_lies_far_beyond_p": {
+      "en": "P' lies as far beyond {name} as P lies before it:",
+      "de": "P' liegt so weit hinter {name} wie P davor:"
+    },
+    "core.geometry.reflect.perpendicular_through_point_along_normal": {
+      "en": "The perpendicular through the point along the normal:",
+      "de": "Die Lotgerade durch den Punkt in Richtung des Normalenvektors:"
+    },
+    "core.geometry.reflect.put_into_coordinate_form_solve": {
+      "en": "Put it into the coordinate form and solve for λ:",
+      "de": "In die Koordinatenform einsetzen und nach λ auflösen:"
+    },
+    "core.geometry.relations.angle": {
+      "en": "The angle:",
+      "de": "Der Winkel:"
+    },
+    "core.geometry.relations.angle_between_line_plane": {
+      "en": "The angle between line and plane:",
+      "de": "Der Winkel zwischen Gerade und Ebene:"
+    },
+    "core.geometry.relations.check_point_lies_both_planes": {
+      "en": "Check: the point lies in both planes.",
+      "de": "Probe: Der Punkt liegt in beiden Ebenen."
+    },
+    "core.geometry.relations.check_s_lies_plane": {
+      "en": "Check: S lies in the plane.",
+      "de": "Probe: S liegt in der Ebene."
+    },
+    "core.geometry.relations.common_point_set_0_both": {
+      "en": "A common point: set {} = 0 in both equations.",
+      "de": "Ein gemeinsamer Punkt: {} = 0 in beide Gleichungen einsetzen."
+    },
+    "core.geometry.relations.distance": {
+      "en": "The distance:",
+      "de": "Der Abstand:"
+    },
+    "core.geometry.relations.drops_out": {
+      "en": "λ drops out:",
+      "de": "λ fällt weg:"
+    },
+    "core.geometry.relations.false": {
+      "en": "false",
+      "de": "falsch"
+    },
+    "core.geometry.relations.line_intersection_perpendicular_both_normals": {
+      "en": "The line of intersection is perpendicular to both normals:",
+      "de": "Die Schnittgerade steht senkrecht auf beiden Normalenvektoren:"
+    },
+    "core.geometry.relations.line_lies_plane": {
+      "en": "The line lies in the plane.",
+      "de": "Die Gerade liegt in der Ebene."
+    },
+    "core.geometry.relations.line_meets_plane_point": {
+      "en": "The line meets the plane in the point",
+      "de": "Die Gerade schneidet die Ebene im Punkt"
+    },
+    "core.geometry.relations.line_parallel_plane": {
+      "en": "The line is parallel to the plane.",
+      "de": "Die Gerade ist parallel zur Ebene."
+    },
+    "core.geometry.relations.planes_identical": {
+      "en": "The planes are identical.",
+      "de": "Die Ebenen sind identisch."
+    },
+    "core.geometry.relations.planes_meet_line": {
+      "en": "The planes meet in the line",
+      "de": "Die Ebenen schneiden sich in der Geraden"
+    },
+    "core.geometry.relations.planes_parallel": {
+      "en": "The planes are parallel.",
+      "de": "Die Ebenen sind parallel."
+    },
+    "core.geometry.relations.put_into_line": {
+      "en": "Put λ into the line:",
+      "de": "λ in die Gerade einsetzen:"
+    },
+    "core.geometry.relations.put_line_into_coordinate_form": {
+      "en": "Put the line into the coordinate form:",
+      "de": "Die Gerade in die Koordinatenform einsetzen:"
+    },
+    "core.geometry.relations.put_point_into_hesse_normal": {
+      "en": "Put the point into the Hesse normal form:",
+      "de": "Den Punkt in die Hessesche Normalenform einsetzen:"
+    },
+    "core.geometry.relations.solve": {
+      "en": "Solve for λ:",
+      "de": "Nach λ auflösen:"
+    },
+    "core.geometry.relations.solved": {
+      "en": "Solved:",
+      "de": "Gelöst:"
+    },
+    "core.geometry.relations.true": {
+      "en": "true",
+      "de": "wahr"
+    },
+    "core.geometry.sphere.centre_m_equally_far_from": {
+      "en": "The centre M is equally far from all points; subtracting the equation of A from the others:",
+      "de": "Der Mittelpunkt M ist von allen Punkten gleich weit entfernt; die Gleichung von A von den anderen abziehen:"
+    },
+    "core.geometry.sphere.check_other_points_far_away": {
+      "en": "Check: the other points are as far away.",
+      "de": "Probe: Die anderen Punkte sind gleich weit entfernt."
+    },
+    "core.geometry.sphere.circle_intersection": {
+      "en": "The circle of intersection:",
+      "de": "Der Schnittkreis:"
+    },
+    "core.geometry.sphere.compare_sum_difference_radii": {
+      "en": "Compare with the sum and the difference of the radii:",
+      "de": "Mit Summe und Differenz der Radien vergleichen:"
+    },
+    "core.geometry.sphere.coordinate_form": {
+      "en": "In coordinate form:",
+      "de": "In Koordinatenform:"
+    },
+    "core.geometry.sphere.d_r_plane_cuts_sphere": {
+      "en": "d < r: the plane cuts the sphere in a circle.",
+      "de": "d < r: Die Ebene schneidet die Kugel in einem Kreis."
+    },
+    "core.geometry.sphere.d_r_plane_does_not": {
+      "en": "d > r: the plane does not touch the sphere.",
+      "de": "d > r: Die Ebene berührt die Kugel nicht."
+    },
+    "core.geometry.sphere.d_r_plane_touches_sphere": {
+      "en": "d = r: the plane touches the sphere in",
+      "de": "d = r: Die Ebene berührt die Kugel in"
+    },
+    "core.geometry.sphere.d_r_r_one_sphere": {
+      "en": "d < |r₁ − r₂|: one sphere lies inside the other.",
+      "de": "d < |r₁ − r₂|: Eine Kugel liegt in der anderen."
+    },
+    "core.geometry.sphere.d_r_r_spheres_lie": {
+      "en": "d > r₁ + r₂: the spheres lie apart.",
+      "de": "d > r₁ + r₂: Die Kugeln liegen außerhalb voneinander."
+    },
+    "core.geometry.sphere.discriminant": {
+      "en": "The discriminant:",
+      "de": "Die Diskriminante:"
+    },
+    "core.geometry.sphere.distance_centres": {
+      "en": "The distance of the centres:",
+      "de": "Der Abstand der Mittelpunkte:"
+    },
+    "core.geometry.sphere.distance_from_centre": {
+      "en": "The distance from the centre:",
+      "de": "Der Abstand zum Mittelpunkt:"
+    },
+    "core.geometry.sphere.distance_sphere": {
+      "en": "Its distance to the sphere:",
+      "de": "Sein Abstand zur Kugel:"
+    },
+    "core.geometry.sphere.formula": {
+      "en": "The formula:",
+      "de": "Die Formel:"
+    },
+    "core.geometry.sphere.four_points_lie_one_plane": {
+      "en": "The four points lie in one plane, so no single sphere passes through them.",
+      "de": "Die vier Punkte liegen in einer Ebene, also geht keine eindeutige Kugel durch sie."
+    },
+    "core.geometry.sphere.gap_between_them": {
+      "en": "The gap between them:",
+      "de": "Der Abstand zwischen ihnen:"
+    },
+    "core.geometry.sphere.line_cuts_sphere_secant": {
+      "en": "The line cuts the sphere (secant) in",
+      "de": "Die Gerade schneidet die Kugel (Sekante) in"
+    },
+    "core.geometry.sphere.line_touches_sphere_tangent": {
+      "en": "The line touches the sphere (tangent) in",
+      "de": "Die Gerade berührt die Kugel (Tangente) in"
+    },
+    "core.geometry.sphere.multiplied_out": {
+      "en": "Multiplied out:",
+      "de": "Ausmultipliziert:"
+    },
+    "core.geometry.sphere.no_solution_line_misses_sphere": {
+      "en": "No solution: the line misses the sphere (passant).",
+      "de": "Keine Lösung: Die Gerade verfehlt die Kugel (Passante)."
+    },
+    "core.geometry.sphere.one_solution": {
+      "en": "One solution:",
+      "de": "Eine Lösung:"
+    },
+    "core.geometry.sphere.point_centre_radius_would_0": {
+      "en": "The point is the centre, so the radius would be 0.",
+      "de": "Der Punkt ist der Mittelpunkt, der Radius wäre also 0."
+    },
+    "core.geometry.sphere.point_does_not_lie_sphere": {
+      "en": "The point does not lie on the sphere, so it has no tangent plane there.",
+      "de": "Der Punkt liegt nicht auf der Kugel, dort gibt es also keine Tangentialebene."
+    },
+    "core.geometry.sphere.point_lies_inside_sphere": {
+      "en": "The point lies inside the sphere.",
+      "de": "Der Punkt liegt innerhalb der Kugel."
+    },
+    "core.geometry.sphere.point_lies_outside_sphere": {
+      "en": "The point lies outside the sphere.",
+      "de": "Der Punkt liegt außerhalb der Kugel."
+    },
+    "core.geometry.sphere.point_lies_sphere": {
+      "en": "The point lies on the sphere.",
+      "de": "Der Punkt liegt auf der Kugel."
+    },
+    "core.geometry.sphere.potenzebene": {
+      "en": "The Potenzebene:",
+      "de": "Die Potenzebene:"
+    },
+    "core.geometry.sphere.put_line_into_vector_form": {
+      "en": "Put the line into the vector form of the sphere:",
+      "de": "Die Gerade in die Vektorform der Kugel einsetzen:"
+    },
+    "core.geometry.sphere.radius_circle_pythagoras": {
+      "en": "The radius of the circle, by Pythagoras:",
+      "de": "Der Radius des Kreises nach Pythagoras:"
+    },
+    "core.geometry.sphere.radius_distance": {
+      "en": "The radius is the distance to A:",
+      "de": "Der Radius ist der Abstand zu A:"
+    },
+    "core.geometry.sphere.radius_distance_from_centre_point": {
+      "en": "The radius is the distance from the centre to the point:",
+      "de": "Der Radius ist der Abstand vom Mittelpunkt zum Punkt:"
+    },
+    "core.geometry.sphere.radius_point_normal": {
+      "en": "The radius to the point is the normal:",
+      "de": "Der Radius zum Punkt ist der Normalenvektor:"
+    },
+    "core.geometry.sphere.radius_sphere_must_positive": {
+      "en": "The radius of a sphere must be positive.",
+      "de": "Der Radius einer Kugel muss positiv sein."
+    },
+    "core.geometry.sphere.same_centre_different_radii_one": {
+      "en": "Same centre, different radii: one lies inside the other.",
+      "de": "Gleicher Mittelpunkt, verschiedene Radien: Eine liegt in der anderen."
+    },
+    "core.geometry.sphere.same_centre_radius_spheres_identical": {
+      "en": "Same centre and radius: the spheres are identical.",
+      "de": "Gleicher Mittelpunkt und Radius: Die Kugeln sind identisch."
+    },
+    "core.geometry.sphere.solved_centre": {
+      "en": "Solved, the centre:",
+      "de": "Gelöst, der Mittelpunkt:"
+    },
+    "core.geometry.sphere.sphere": {
+      "en": "The sphere:",
+      "de": "Die Kugel:"
+    },
+    "core.geometry.sphere.subtract_equations_spheres_x_y": {
+      "en": "Subtract the equations of the spheres; x², y² and z² cancel:",
+      "de": "Die Kugelgleichungen subtrahieren; x², y² und z² fallen weg:"
+    },
+    "core.geometry.sphere.surface": {
+      "en": "The surface:",
+      "de": "Die Oberfläche:"
+    },
+    "core.geometry.sphere.tangent_plane": {
+      "en": "The tangent plane:",
+      "de": "Die Tangentialebene:"
+    },
+    "core.geometry.sphere.two_solutions": {
+      "en": "Two solutions:",
+      "de": "Zwei Lösungen:"
+    },
+    "core.geometry.sphere.volume": {
+      "en": "The volume:",
+      "de": "Das Volumen:"
+    },
+    "core.kirchhoff.equations.series_two_current_sources_set": {
+      "en": "{p} and {q} are in series: two current sources set the same current.",
+      "de": "{p} und {q} liegen in Reihe: zwei Stromquellen geben denselben Strom vor."
+    },
+    "core.kirchhoff.equivalent.and": {
+      "en": "and",
+      "de": "und"
+    },
+    "core.kirchhoff.equivalent.b_joined_wire_no_current": {
+      "en": "A and B are joined by a wire, so no current flows through the resistors.",
+      "de": "A und B sind durch eine Leitung verbunden, daher fließt kein Strom durch die Widerstände."
+    },
+    "core.kirchhoff.equivalent.form_delta_each_lies_between": {
+      "en": "{names} form a delta: each lies between two of the same three nodes, and neither series nor parallel applies. Turned into a star around a new node, each corner gets the product of the two resistors at it over the sum of all three.",
+      "de": "{names} bilden ein Dreieck: jeder liegt zwischen zwei derselben drei Knoten, und weder Reihe noch parallel trifft zu. In einen Stern um einen neuen Knoten umgewandelt, erhält jede Ecke das Produkt der beiden Widerstände an ihr geteilt durch die Summe aller drei."
+    },
+    "core.kirchhoff.equivalent.form_star_they_meet_node": {
+      "en": "{names} form a star: they meet at a node where nothing else is connected, and neither series nor parallel applies. Turned into a delta between their outer ends, each side gets the sum of the products of two arms over the arm opposite it.",
+      "de": "{names} bilden einen Stern: sie treffen sich an einem Knoten, an dem sonst nichts angeschlossen ist, und weder Reihe noch parallel trifft zu. In ein Dreieck zwischen ihren äußeren Enden umgewandelt, erhält jede Seite die Summe der Zweierprodukte geteilt durch den gegenüberliegenden Arm."
+    },
+    "core.kirchhoff.equivalent.has_open_end_carries_no": {
+      "en": "{ids} has an open end and carries no current.",
+      "de": "{ids} hat ein offenes Ende und führt keinen Strom."
+    },
+    "core.kirchhoff.equivalent.no_resistor_path_leads_from": {
+      "en": "No resistor path leads from A to B, so no current can flow: R_AB is infinite.",
+      "de": "Kein Weg über Widerstände führt von A nach B, daher kann kein Strom fließen: R_AB ist unendlich."
+    },
+    "core.kirchhoff.equivalent.node_equations_have_no_single": {
+      "en": "The node equations have no single solution.",
+      "de": "Die Knotengleichungen haben keine eindeutige Lösung."
+    },
+    "core.kirchhoff.equivalent.not_connected_b_carries_no": {
+      "en": "{ids} is not connected to A and B and carries no current.",
+      "de": "{ids} ist nicht mit A und B verbunden und führt keinen Strom."
+    },
+    "core.kirchhoff.equivalent.not_connected_put_terminal_resistor": {
+      "en": "{name} is not connected: put it on the terminal of a resistor or on a wire.",
+      "de": "{name} ist nicht angeschlossen: auf den Anschluss eines Widerstands oder auf eine Leitung setzen."
+    },
+    "core.kirchhoff.equivalent.parallel_they_lie_between_same": {
+      "en": "{names} are in parallel: they lie between the same two nodes.",
+      "de": "{names} sind parallel: sie liegen zwischen denselben zwei Knoten."
+    },
+    "core.kirchhoff.equivalent.rest_network_neither_series_nor": {
+      "en": "The rest of the network is neither in series nor in parallel, so it is solved with the node rule: a test current I = 1 A flows in at A and out at B, and B is at 0 V.",
+      "de": "Der Rest des Netzwerks ist weder in Reihe noch parallel, daher wird er mit der Knotenregel gelöst: ein Prüfstrom I = 1 A fließt bei A hinein und bei B heraus, B liegt auf 0 V."
+    },
+    "core.kirchhoff.equivalent.series_nothing_else_branches_off": {
+      "en": "{pn} and {qn} are in series: nothing else branches off between them, so the same current flows through both.",
+      "de": "{pn} und {qn} sind in Reihe: zwischen ihnen zweigt nichts ab, daher fließt durch beide derselbe Strom."
+    },
+    "core.kirchhoff.equivalent.shorted_both_terminals_same_node": {
+      "en": "{id} is shorted: both of its terminals are on the same node.",
+      "de": "{id} ist kurzgeschlossen: beide Anschlüsse liegen am selben Knoten."
+    },
+    "core.kirchhoff.graph.has_open_end_nothing_connected": {
+      "en": "{id} has an open end: nothing is connected to one of its terminals.",
+      "de": "{id} hat ein offenes Ende: an einem Anschluss ist nichts angeschlossen."
+    },
+    "core.kirchhoff.interface.cant_used_kirchhoff_mode_takes": {
+      "en": "{id} can't be used in the Kirchhoff mode: it takes resistors, voltage and current sources and ideal wires.",
+      "de": "{id} geht im Kirchhoff-Modus nicht: er kennt Widerstände, Spannungs- und Stromquellen und ideale Leitungen."
+    },
+    "core.kirchhoff.interface.circuit_has_no_parts_draw": {
+      "en": "The circuit has no parts: draw sources and resistors.",
+      "de": "Die Schaltung hat keine Bauteile: Quellen und Widerstände zeichnen."
+    },
+    "core.kirchhoff.interface.equations_contradict_each_other_voltage": {
+      "en": "The equations contradict each other: voltage sources alone in a loop must add up to zero, and current sources alone at a junction must cancel.",
+      "de": "Die Gleichungen widersprechen sich: Spannungsquellen allein in einer Masche müssen sich zu null addieren, Stromquellen allein an einem Knoten müssen sich aufheben."
+    },
+    "core.kirchhoff.interface.equations_leave_currents_open_loop": {
+      "en": "The equations leave the currents open: a loop of voltage sources alone, or a junction of current sources alone, has no single solution.",
+      "de": "Die Gleichungen lassen die Ströme offen: eine Masche nur aus Spannungsquellen oder ein Knoten nur aus Stromquellen hat keine eindeutige Lösung."
+    },
+    "core.kirchhoff.interface.junction_rule_follows_from_others": {
+      "en": "The junction rule at {name} follows from the others and is left out.",
+      "de": "Die Knotenregel bei {name} folgt aus den anderen und entfällt."
+    },
+    "core.kirchhoff.interface.l": {
+      "en": "L_{{{}}}",
+      "de": "M_{{{}}}"
+    },
+    "core.kirchhoff.interface.lines_drawing_cross_loops_not": {
+      "en": "Lines of the drawing cross, so the loops are not its windows but come from a spanning tree.",
+      "de": "Linien der Zeichnung kreuzen sich, daher sind die Maschen nicht ihre Fenster, sondern kommen aus einem Spannbaum."
+    },
+    "core.kirchhoff.interface.n": {
+      "en": "N_{{{}}}",
+      "de": "K_{{{}}}"
+    },
+    "core.kirchhoff.interface.network_has_no_resistors_draw": {
+      "en": "The network has no resistors: draw resistors between A and B.",
+      "de": "Das Netzwerk hat keine Widerstände: Widerstände zwischen A und B zeichnen."
+    },
+    "core.kirchhoff.interface.p_gen_p_cons": {
+      "en": "\\sum P_{{\\mathrm{{gen}}}} {relation} \\sum P_{{\\mathrm{{cons}}}}",
+      "de": "\\sum P_{{\\mathrm{{abg}}}} {relation} \\sum P_{{\\mathrm{{auf}}}}"
+    },
+    "core.kirchhoff.interface.precision_must_least_1_but": {
+      "en": "The precision must be at least 1, but is {p}.",
+      "de": "Die Genauigkeit muss mindestens 1 sein, ist aber {p}."
+    },
+    "core.kirchhoff.interface.source_resistance_between_b_worked": {
+      "en": "{id} is a source; the resistance between A and B is worked out for resistors and wires only, so remove the sources or the terminals A and B.",
+      "de": "{id} ist eine Quelle; der Widerstand zwischen A und B wird nur für Widerstände und Leitungen bestimmt, daher die Quellen oder die Anschlüsse A und B entfernen."
+    },
+    "core.kirchhoff.interface.value_missing": {
+      "en": "The value {what} of {id} is missing.",
+      "de": "Der Wert {what} von {id} fehlt."
+    },
+    "core.kirchhoff.interface.value_must_not_negative": {
+      "en": "The value of {id} must not be negative.",
+      "de": "Der Wert von {id} darf nicht negativ sein."
+    },
+    "core.kirchhoff.interface.wire_resistance_kirchhoff_mode_takes": {
+      "en": "{id} is a wire with a resistance; the Kirchhoff mode takes ideal wires only, so draw a resistor instead.",
+      "de": "{id} ist eine Leitung mit Widerstand; der Kirchhoff-Modus kennt nur ideale Leitungen, daher stattdessen einen Widerstand zeichnen."
+    },
+    "core.session.copy": {
+      "en": "copy",
+      "de": "Kopie"
+    },
+    "core.session.session": {
+      "en": "Session",
+      "de": "Sitzung"
+    },
+    "core.stochastics.distributions.area_must_lie_between_0": {
+      "en": "The area must lie between 0 and 1.",
+      "de": "Die Fläche muss zwischen 0 und 1 liegen."
+    },
+    "core.stochastics.distributions.missing": {
+      "en": "{} is missing.",
+      "de": "{} fehlt."
+    },
+    "core.stochastics.distributions.most_values_k": {
+      "en": "At most {} values of k.",
+      "de": "Höchstens {} Werte für k."
+    },
+    "core.stochastics.distributions.must_positive": {
+      "en": "σ must be positive.",
+      "de": "σ muss positiv sein."
+    },
+    "core.stochastics.distributions.must_positive_2": {
+      "en": "μ must be positive.",
+      "de": "μ muss positiv sein."
+    },
+    "core.stochastics.distributions.must_whole_number_from_0": {
+      "en": "{} must be a whole number from 0 on.",
+      "de": "{} muss eine ganze Zahl ab 0 sein."
+    },
+    "core.stochastics.distributions.n_may_most": {
+      "en": "N may be at most {}.",
+      "de": "N darf höchstens {} sein."
+    },
+    "core.stochastics.distributions.p_must_lie_between_0": {
+      "en": "p must lie between 0 and 1.",
+      "de": "p muss zwischen 0 und 1 liegen."
+    },
+    "core.stochastics.number_not_equation": {
+      "en": "a number, not an equation.",
+      "de": "eine Zahl, keine Gleichung."
+    },
+    "core.stochastics.plain_number_without_unit": {
+      "en": "a plain number, without a unit.",
+      "de": "eine reine Zahl, ohne Einheit."
+    },
+    "core.stochastics.statistics.frequency_column_needs_one_entry": {
+      "en": "The frequency column needs one entry per row.",
+      "de": "Die Häufigkeitsspalte braucht einen Eintrag je Zeile."
+    },
+    "core.stochastics.statistics.frequency_whole_number_from_0": {
+      "en": "a frequency is a whole number from 0 on.",
+      "de": "eine Häufigkeit ist eine ganze Zahl ab 0."
+    },
+    "core.stochastics.statistics.list_empty": {
+      "en": "The list is empty.",
+      "de": "Die Liste ist leer."
+    },
+    "core.stochastics.statistics.most_rows": {
+      "en": "At most {} rows.",
+      "de": "Höchstens {} Zeilen."
+    },
+    "core.stochastics.statistics.quadratic_fit_needs_three_different": {
+      "en": "A quadratic fit needs three different x values.",
+      "de": "Eine quadratische Regression braucht drei verschiedene x-Werte."
+    },
+    "core.stochastics.statistics.regression_needs_pairs_x_y": {
+      "en": "A regression needs pairs x, y.",
+      "de": "Eine Regression braucht Paare x, y."
+    },
+    "core.stochastics.statistics.row": {
+      "en": "{}, row {}",
+      "de": "{}, Zeile {}"
+    },
+    "core.stochastics.statistics.x_values_must_not_all": {
+      "en": "The x values must not all be equal.",
+      "de": "Die x-Werte dürfen nicht alle gleich sein."
+    },
+    "core.stochastics.statistics.y_b_x_needs_x": {
+      "en": "y = a + b/x needs x ≠ 0.",
+      "de": "y = a + b/x braucht x ≠ 0."
+    },
+    "core.stochastics.statistics.y_column_needs_one_entry": {
+      "en": "The y column needs one entry per row.",
+      "de": "Die y-Spalte braucht einen Eintrag je Zeile."
+    },
+    "core.writeup.given": {
+      "en": "Given:",
+      "de": "Gegeben:"
+    },
+    "core.writeup.holds": {
+      "en": "It holds:",
+      "de": "Es gilt:"
+    },
+    "core.writeup.inserting_values": {
+      "en": "Inserting the values:",
+      "de": "Einsetzen der Werte:"
+    },
+    "core.writeup.laws.acceleration": {
+      "en": "For the acceleration:",
+      "de": "Für die Beschleunigung gilt:"
+    },
+    "core.writeup.laws.density": {
+      "en": "For the density:",
+      "de": "Für die Dichte gilt:"
+    },
+    "core.writeup.laws.electric_charge": {
+      "en": "For the electric charge:",
+      "de": "Für die elektrische Ladung gilt:"
+    },
+    "core.writeup.laws.electric_power": {
+      "en": "For the electric power:",
+      "de": "Für die elektrische Leistung gilt:"
+    },
+    "core.writeup.laws.electric_work": {
+      "en": "For the electric work:",
+      "de": "Für die elektrische Arbeit gilt:"
+    },
+    "core.writeup.laws.frequency": {
+      "en": "For the frequency:",
+      "de": "Für die Frequenz gilt:"
+    },
+    "core.writeup.laws.heat": {
+      "en": "For the heat:",
+      "de": "Für die Wärme gilt:"
+    },
+    "core.writeup.laws.kinetic_energy": {
+      "en": "For the kinetic energy:",
+      "de": "Für die kinetische Energie gilt:"
+    },
+    "core.writeup.laws.mechanical_work": {
+      "en": "For the mechanical work:",
+      "de": "Für die mechanische Arbeit gilt:"
+    },
+    "core.writeup.laws.momentum": {
+      "en": "For the momentum:",
+      "de": "Für den Impuls gilt:"
+    },
+    "core.writeup.laws.newtons_second_law": {
+      "en": "By Newton's second law:",
+      "de": "Nach dem zweiten Newton'schen Gesetz gilt:"
+    },
+    "core.writeup.laws.ohms_law": {
+      "en": "By Ohm's law:",
+      "de": "Nach dem Ohm'schen Gesetz gilt:"
+    },
+    "core.writeup.laws.potential_energy": {
+      "en": "For the potential energy:",
+      "de": "Für die potentielle Energie gilt:"
+    },
+    "core.writeup.laws.power": {
+      "en": "For the power:",
+      "de": "Für die Leistung gilt:"
+    },
+    "core.writeup.laws.pressure": {
+      "en": "For the pressure:",
+      "de": "Für den Druck gilt:"
+    },
+    "core.writeup.laws.resistance_wire": {
+      "en": "For the resistance of a wire:",
+      "de": "Für den Widerstand eines Drahtes gilt:"
+    },
+    "core.writeup.laws.speed": {
+      "en": "For the speed:",
+      "de": "Für die Geschwindigkeit gilt:"
+    },
+    "core.writeup.laws.speed_wave": {
+      "en": "For the speed of a wave:",
+      "de": "Für die Ausbreitungsgeschwindigkeit einer Welle gilt:"
+    },
+    "core.writeup.laws.uniformly_accelerated_motion_from_rest": {
+      "en": "For a uniformly accelerated motion from rest:",
+      "de": "Für die gleichmäßig beschleunigte Bewegung aus der Ruhe gilt:"
+    },
+    "core.writeup.laws.weight": {
+      "en": "For the weight:",
+      "de": "Für die Gewichtskraft gilt:"
+    },
+    "core.writeup.solution": {
+      "en": "Solution:",
+      "de": "Lösung:"
+    },
+    "core.writeup.solved": {
+      "en": "Solved for {}:",
+      "de": "Umgestellt nach {}:"
+    },
+    "core.writeup.unit_check": {
+      "en": "Unit check:",
+      "de": "Einheitenuntersuchung:"
+    },
+    "core.writeup.wanted": {
+      "en": "Wanted:",
+      "de": "Gesucht:"
     },
     "test.named": {
       "en": "{n} of {total}",
       "de": "{n} von {total}"
+    },
+    "test.one": {
+      "en": "one {}",
+      "de": "eins {}"
+    },
+    "unit.acre": {
+      "en": "acre",
+      "de": "Acre"
+    },
+    "unit.astronomical_unit": {
+      "en": "astronomical unit",
+      "de": "Astronomische Einheit"
+    },
+    "unit.atmosphere": {
+      "en": "atmosphere",
+      "de": "Atmosphäre"
+    },
+    "unit.bar": {
+      "en": "bar",
+      "de": "Bar"
+    },
+    "unit.barrel": {
+      "en": "barrel",
+      "de": "Barrel"
+    },
+    "unit.becquerel": {
+      "en": "becquerel",
+      "de": "Becquerel"
+    },
+    "unit.british_thermal_unit": {
+      "en": "British thermal unit",
+      "de": "British thermal unit"
+    },
+    "unit.btu_per_minute": {
+      "en": "BTU per minute",
+      "de": "BTU pro Minute"
+    },
+    "unit.bushel": {
+      "en": "bushel",
+      "de": "Bushel"
+    },
+    "unit.calorie": {
+      "en": "calorie",
+      "de": "Kalorie"
+    },
+    "unit.calorie_per_gram_kelvin": {
+      "en": "calorie per gram kelvin",
+      "de": "Kalorie pro Gramm und Kelvin"
+    },
+    "unit.carat": {
+      "en": "carat",
+      "de": "Karat"
+    },
+    "unit.category.acceleration": {
+      "en": "Acceleration",
+      "de": "Beschleunigung"
+    },
+    "unit.category.angle": {
+      "en": "Angle",
+      "de": "Winkel"
+    },
+    "unit.category.area": {
+      "en": "Area",
+      "de": "Fläche"
+    },
+    "unit.category.energy": {
+      "en": "Energy",
+      "de": "Energie"
+    },
+    "unit.category.force": {
+      "en": "Force",
+      "de": "Kraft"
+    },
+    "unit.category.heat_flow": {
+      "en": "Heat flow",
+      "de": "Wärmedurchfluss"
+    },
+    "unit.category.kinematic_viscosity": {
+      "en": "Kinematic viscosity",
+      "de": "Kinematische Viskosität"
+    },
+    "unit.category.length": {
+      "en": "Length",
+      "de": "Länge"
+    },
+    "unit.category.magnetism": {
+      "en": "Magnetism",
+      "de": "Magnetismus"
+    },
+    "unit.category.mass": {
+      "en": "Mass",
+      "de": "Masse"
+    },
+    "unit.category.power": {
+      "en": "Power",
+      "de": "Leistung"
+    },
+    "unit.category.pressure": {
+      "en": "Pressure",
+      "de": "Druck"
+    },
+    "unit.category.radioactivity": {
+      "en": "Radioactivity",
+      "de": "Radioaktivität"
+    },
+    "unit.category.specific_heat": {
+      "en": "Specific heat",
+      "de": "Spezifische Wärme"
+    },
+    "unit.category.speed": {
+      "en": "Speed",
+      "de": "Geschwindigkeit"
+    },
+    "unit.category.temperature": {
+      "en": "Temperature",
+      "de": "Temperatur"
+    },
+    "unit.category.time": {
+      "en": "Time",
+      "de": "Zeit"
+    },
+    "unit.category.torque": {
+      "en": "Torque",
+      "de": "Drehmoment"
+    },
+    "unit.category.volume": {
+      "en": "Volume",
+      "de": "Volumen"
+    },
+    "unit.centimetre": {
+      "en": "centimetre",
+      "de": "Zentimeter"
+    },
+    "unit.chain": {
+      "en": "chain",
+      "de": "Chain"
+    },
+    "unit.cubic_foot": {
+      "en": "cubic foot",
+      "de": "Kubikfuß"
+    },
+    "unit.cubic_inch": {
+      "en": "cubic inch",
+      "de": "Kubikzoll"
+    },
+    "unit.cubic_metre": {
+      "en": "cubic metre",
+      "de": "Kubikmeter"
+    },
+    "unit.curie": {
+      "en": "curie",
+      "de": "Curie"
+    },
+    "unit.dalton": {
+      "en": "dalton",
+      "de": "Dalton"
+    },
+    "unit.day": {
+      "en": "day",
+      "de": "Tag"
+    },
+    "unit.degree_celsius": {
+      "en": "degree Celsius",
+      "de": "Grad Celsius"
+    },
+    "unit.degree_fahrenheit": {
+      "en": "degree Fahrenheit",
+      "de": "Grad Fahrenheit"
+    },
+    "unit.dyne": {
+      "en": "dyne",
+      "de": "Dyn"
+    },
+    "unit.dyne_centimetre": {
+      "en": "dyne centimetre",
+      "de": "Dyn-Zentimeter"
+    },
+    "unit.dyne_per_square_centimetre": {
+      "en": "dyne per square centimetre",
+      "de": "Dyn pro Quadratzentimeter"
+    },
+    "unit.electronvolt": {
+      "en": "electronvolt",
+      "de": "Elektronenvolt"
+    },
+    "unit.erg": {
+      "en": "erg",
+      "de": "Erg"
+    },
+    "unit.fathom": {
+      "en": "fathom",
+      "de": "Faden"
+    },
+    "unit.femtometre": {
+      "en": "femtometre",
+      "de": "Femtometer"
+    },
+    "unit.foot": {
+      "en": "foot",
+      "de": "Fuß"
+    },
+    "unit.gal": {
+      "en": "gal",
+      "de": "Gal"
+    },
+    "unit.gallon": {
+      "en": "gallon",
+      "de": "Gallone"
+    },
+    "unit.gram": {
+      "en": "gram",
+      "de": "Gramm"
+    },
+    "unit.gray": {
+      "en": "gray",
+      "de": "Gray"
+    },
+    "unit.hectare": {
+      "en": "hectare",
+      "de": "Hektar"
+    },
+    "unit.horsepower": {
+      "en": "horsepower",
+      "de": "Pferdestärke"
+    },
+    "unit.hour": {
+      "en": "hour",
+      "de": "Stunde"
+    },
+    "unit.inch": {
+      "en": "inch",
+      "de": "Zoll"
+    },
+    "unit.inch_mercury": {
+      "en": "inch of mercury",
+      "de": "Zoll Quecksilbersäule"
+    },
+    "unit.joule": {
+      "en": "joule",
+      "de": "Joule"
+    },
+    "unit.joule_per_kilogram_kelvin": {
+      "en": "joule per kilogram kelvin",
+      "de": "Joule pro Kilogramm und Kelvin"
+    },
+    "unit.kelvin": {
+      "en": "kelvin",
+      "de": "Kelvin"
+    },
+    "unit.kilocalorie": {
+      "en": "kilocalorie",
+      "de": "Kilokalorie"
+    },
+    "unit.kilogram": {
+      "en": "kilogram",
+      "de": "Kilogramm"
+    },
+    "unit.kilogram_force": {
+      "en": "kilogram-force",
+      "de": "Kilopond"
+    },
+    "unit.kilogram_force_metre": {
+      "en": "kilogram-force metre",
+      "de": "Kilopondmeter"
+    },
+    "unit.kilogram_force_per_square_centimetre": {
+      "en": "kilogram-force per square centimetre",
+      "de": "Kilopond pro Quadratzentimeter"
+    },
+    "unit.kilojoule": {
+      "en": "kilojoule",
+      "de": "Kilojoule"
+    },
+    "unit.kilometre": {
+      "en": "kilometre",
+      "de": "Kilometer"
+    },
+    "unit.kilometre_per_hour": {
+      "en": "kilometre per hour",
+      "de": "Kilometer pro Stunde"
+    },
+    "unit.kilopascal": {
+      "en": "kilopascal",
+      "de": "Kilopascal"
+    },
+    "unit.kilowatt": {
+      "en": "kilowatt",
+      "de": "Kilowatt"
+    },
+    "unit.kilowatt_hour": {
+      "en": "kilowatt hour",
+      "de": "Kilowattstunde"
+    },
+    "unit.knot": {
+      "en": "knot",
+      "de": "Knoten"
+    },
+    "unit.light_year": {
+      "en": "light-year",
+      "de": "Lichtjahr"
+    },
+    "unit.litre": {
+      "en": "litre",
+      "de": "Liter"
+    },
+    "unit.maxwell": {
+      "en": "maxwell",
+      "de": "Maxwell"
+    },
+    "unit.metre": {
+      "en": "metre",
+      "de": "Meter"
+    },
+    "unit.metre_per_second": {
+      "en": "metre per second",
+      "de": "Meter pro Sekunde"
+    },
+    "unit.metre_per_second_squared": {
+      "en": "metre per second squared",
+      "de": "Meter pro Quadratsekunde"
+    },
+    "unit.mil": {
+      "en": "mil",
+      "de": "Mil"
+    },
+    "unit.mile": {
+      "en": "mile",
+      "de": "Meile"
+    },
+    "unit.mile_per_hour": {
+      "en": "mile per hour",
+      "de": "Meile pro Stunde"
+    },
+    "unit.millilitre": {
+      "en": "millilitre",
+      "de": "Milliliter"
+    },
+    "unit.millimetre": {
+      "en": "millimetre",
+      "de": "Millimeter"
+    },
+    "unit.millimetre_mercury": {
+      "en": "millimetre of mercury",
+      "de": "Millimeter Quecksilbersäule"
+    },
+    "unit.minute": {
+      "en": "minute",
+      "de": "Minute"
+    },
+    "unit.nautical_mile": {
+      "en": "nautical mile",
+      "de": "Seemeile"
+    },
+    "unit.newton": {
+      "en": "newton",
+      "de": "Newton"
+    },
+    "unit.newton_metre": {
+      "en": "newton metre",
+      "de": "Newtonmeter"
+    },
+    "unit.ngstr_m": {
+      "en": "ångström",
+      "de": "Ångström"
+    },
+    "unit.ounce": {
+      "en": "ounce",
+      "de": "Unze"
+    },
+    "unit.parsec": {
+      "en": "parsec",
+      "de": "Parsec"
+    },
+    "unit.pascal": {
+      "en": "pascal",
+      "de": "Pascal"
+    },
+    "unit.pound": {
+      "en": "pound",
+      "de": "Pfund"
+    },
+    "unit.pound_force": {
+      "en": "pound-force",
+      "de": "Pound-force"
+    },
+    "unit.pound_per_square_inch": {
+      "en": "pound per square inch",
+      "de": "Pfund pro Quadratzoll"
+    },
+    "unit.radian": {
+      "en": "radian",
+      "de": "Radiant"
+    },
+    "unit.rem": {
+      "en": "rem",
+      "de": "Rem"
+    },
+    "unit.second": {
+      "en": "second",
+      "de": "Sekunde"
+    },
+    "unit.short_ton": {
+      "en": "short ton",
+      "de": "Short ton"
+    },
+    "unit.sievert": {
+      "en": "sievert",
+      "de": "Sievert"
+    },
+    "unit.square_centimetre": {
+      "en": "square centimetre",
+      "de": "Quadratzentimeter"
+    },
+    "unit.square_foot": {
+      "en": "square foot",
+      "de": "Quadratfuß"
+    },
+    "unit.square_inch": {
+      "en": "square inch",
+      "de": "Quadratzoll"
+    },
+    "unit.square_kilometre": {
+      "en": "square kilometre",
+      "de": "Quadratkilometer"
+    },
+    "unit.square_metre": {
+      "en": "square metre",
+      "de": "Quadratmeter"
+    },
+    "unit.square_metre_per_second": {
+      "en": "square metre per second",
+      "de": "Quadratmeter pro Sekunde"
+    },
+    "unit.square_mile": {
+      "en": "square mile",
+      "de": "Quadratmeile"
+    },
+    "unit.stokes": {
+      "en": "stokes",
+      "de": "Stokes"
+    },
+    "unit.tesla": {
+      "en": "tesla",
+      "de": "Tesla"
+    },
+    "unit.tonne": {
+      "en": "tonne",
+      "de": "Tonne"
+    },
+    "unit.torr": {
+      "en": "torr",
+      "de": "Torr"
+    },
+    "unit.watt": {
+      "en": "watt",
+      "de": "Watt"
+    },
+    "unit.weber": {
+      "en": "weber",
+      "de": "Weber"
+    },
+    "unit.yard": {
+      "en": "yard",
+      "de": "Yard"
+    },
+    "unit.year": {
+      "en": "year",
+      "de": "Jahr"
     }
   }
 }

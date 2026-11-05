@@ -13,7 +13,7 @@ fn mirrored(p: &Point, centre: &Point, name: &str, working: &mut Working) -> Poi
     let image = centre + &p.to(centre);
     working.add(
         Standard,
-        msg!("P' lies as far beyond {name} as P lies before it:", "P' liegt so weit hinter {name} wie P davor:"),
+        msg!("core.geometry.reflect.p_lies_far_beyond_p"),
         format!(
             "\\vec{{p'}} = \\vec{{p}} + 2 \\cdot \\overrightarrow{{P{name}}} = {} + 2 \\cdot {} = {}",
             show::vector(&p.position()),
@@ -21,7 +21,7 @@ fn mirrored(p: &Point, centre: &Point, name: &str, working: &mut Working) -> Poi
             show::vector(&image.position())
         ),
     );
-    working.add(Brief, msg!("The image point:", "Der Bildpunkt:"), format!("P' = {}", show::point(&image)));
+    working.add(Brief, msg!("core.geometry.reflect.image_point"), format!("P' = {}", show::point(&image)));
     image
 }
 
@@ -58,14 +58,14 @@ impl Plane {
         let position = Vector3 { coords: p.coords.clone(), planar: false };
         working.add(
             Standard,
-            msg!("The perpendicular through the point along the normal:", "Die Lotgerade durch den Punkt in Richtung des Normalenvektors:"),
+            msg!("core.geometry.reflect.perpendicular_through_point_along_normal"),
             format!("\\vec{{x}} = {} + \\lambda {}", show::vector(&position), show::vector(n)),
         );
         let (constant, coefficient) = (n.dot(&position), n.dot(n));
         let lambda = plane.constant.sub(&constant).div(&coefficient)?;
         working.add(
             Standard,
-            msg!("Put it into the coordinate form and solve for λ:", "In die Koordinatenform einsetzen und nach λ auflösen:"),
+            msg!("core.geometry.reflect.put_into_coordinate_form_solve"),
             format!(
                 "{} = {} \\quad \\Rightarrow \\quad \\lambda = {}",
                 show::combination(&[(&constant, ""), (&coefficient, "\\lambda")]),
@@ -74,7 +74,7 @@ impl Plane {
             ),
         );
         let foot = Point { planar: false, ..p + &n.scale(&lambda) };
-        working.add(Detailed, msg!("The foot of the perpendicular:", "Der Lotfußpunkt:"), format!("F = {}", show::point(&foot)));
+        working.add(Detailed, msg!("core.geometry.reflect.foot_perpendicular"), format!("F = {}", show::point(&foot)));
         Ok(Worked::new(foot, working))
     }
 

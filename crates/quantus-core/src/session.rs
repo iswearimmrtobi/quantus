@@ -545,7 +545,7 @@ impl SessionStore {
     pub fn duplicate(&mut self, id: &str, now: Option<i64>) -> Result<&mut Session> {
         let source = self.sessions.get(id).ok_or_else(|| unknown_session(id))?;
         let settings = self.settings.clone();
-        let copy_word = if settings.language == crate::settings::Language::De { "Kopie" } else { "copy" };
+        let copy_word = quantus_texts::tr!(settings.language, "core.session.copy");
         let mut file = source.to_file();
         let new_id = self.fresh_id();
         file.id = new_id.clone();
@@ -578,7 +578,7 @@ pub(crate) fn unknown_session(id: &str) -> QuantusError {
 
 /// "Sitzung 2026-11-01 14:30" or "Session 2026-11-01 14:30"; without a time just the word.
 pub fn default_name(now: Option<i64>, utc_offset_minutes: i32, language: crate::settings::Language) -> String {
-    let word = if language == crate::settings::Language::De { "Sitzung" } else { "Session" };
+    let word = quantus_texts::tr!(language, "core.session.session");
     let Some(now) = now else { return word.to_string() };
     let minutes = now.div_euclid(60_000) + i64::from(utc_offset_minutes);
     let (days, minute_of_day) = (minutes.div_euclid(1440), minutes.rem_euclid(1440));

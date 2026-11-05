@@ -65,15 +65,15 @@ fn nest_root(index: usize, ctx: &mut Context) -> Option<Local> {
     let powers = raised(raised(radicand.clone(), m), n);
     let product = raised(radicand, n * m);
     let working = vec![
-        (powers, crate::text::msg!("Write the roots as powers", "Die Wurzeln als Potenzen schreiben"), StepDetail::Detailed),
-        (product, crate::text::msg!("Multiply the exponents", "Die Exponenten multiplizieren"), StepDetail::Detailed),
+        (powers, crate::text::msg!("core.algebra.radicals.write_roots_powers"), StepDetail::Detailed),
+        (product, crate::text::msg!("core.algebra.radicals.multiply_exponents"), StepDetail::Detailed),
     ];
-    Some(Local::new(merged, detail).with_working(working, crate::text::msg!("Write the power as a root", "Die Potenz als Wurzel schreiben")))
+    Some(Local::new(merged, detail).with_working(working, crate::text::msg!("core.algebra.radicals.write_power_root")))
 }
 
 /// `\sqrt[m]{\sqrt[n]{u}} = \sqrt[mn]{u}`.
 pub fn nest_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, &crate::text::msg!("Write the nested roots as one root", "Die verschachtelten Wurzeln als eine Wurzel schreiben"), RuleId::NestRoots, nest_root)
+    each_atom(node, ctx, &crate::text::msg!("core.algebra.radicals.write_nested_roots_one_root"), RuleId::NestRoots, nest_root)
 }
 
 // ---- powers out of the radicand ---------------------------------------------------------------
@@ -208,15 +208,15 @@ fn extract_root(index: usize, ctx: &mut Context) -> Option<Local> {
             let split = make_root(n, Node::binary(Operator::Times, number(&power), number(&rest), 0));
             let apart = Node::binary(Operator::Times, make_root(n, number(&power)), make_root(n, number(&rest)), 0);
             let kind = match n {
-                2 => crate::text::msg!("square", "ein Quadrat"),
-                3 => crate::text::msg!("cube", "eine dritte Potenz"),
-                n => crate::text::msg!("{n}th power", "eine {n}-te Potenz"),
+                2 => crate::text::msg!("core.algebra.radicals.square"),
+                3 => crate::text::msg!("core.algebra.radicals.cube"),
+                n => crate::text::msg!("core.algebra.radicals.th_power"),
             };
             let rule = if n == 2 { "\\sqrt{ab} = \\sqrt{a} \\cdot \\sqrt{b}".to_string() } else { format!("\\sqrt[{n}]{{ab}} = \\sqrt[{n}]{{a}} \\cdot \\sqrt[{n}]{{b}}") };
             let last = format!("{} = {}", serializer::expression(&make_root(n, number(&power))), out);
             Some(local.with_working(
                 vec![
-                    (split, crate::text::msg!("Split off the largest {kind} factor", "Den größten Faktor abspalten, der {kind} ist"), StepDetail::Standard),
+                    (split, crate::text::msg!("core.algebra.radicals.split_off_largest_factor"), StepDetail::Standard),
                     (apart, rule, StepDetail::Detailed),
                 ],
                 last,
@@ -262,7 +262,7 @@ fn common_degree(n: usize, constant: &RBig, factors: &[(Poly, usize)]) -> Option
 
 /// `\sqrt{8} = 2\sqrt{2}`, `\sqrt{4a} = 2\sqrt{a}`, `\sqrt{a^{3}} = a\sqrt{a}`, `\sqrt{a^{2}} = |a|`.
 pub fn extract_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, &crate::text::msg!("Take powers out of the root", "Potenzen aus der Wurzel ziehen"), RuleId::ExtractRoots, extract_root)
+    each_atom(node, ctx, &crate::text::msg!("core.algebra.radicals.take_powers_out_root"), RuleId::ExtractRoots, extract_root)
 }
 
 // ---- powers and products of roots --------------------------------------------------------------
@@ -331,10 +331,10 @@ pub fn multiply_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
             }
         }
     }
-    let last = (!working.is_empty()).then(|| crate::text::msg!("Multiply the numbers", "Die Zahlen multiplizieren"));
+    let last = (!working.is_empty()).then(|| crate::text::msg!("core.algebra.radicals.multiply_numbers"));
     Some(Rewrite {
         node: reduced,
-        explanation: crate::text::msg!("Multiply the roots: {}", "Die Wurzeln multiplizieren: {}", details.join(", ")),
+        explanation: crate::text::msg!("core.algebra.radicals.multiply_roots", details.join(", ")),
         rule: RuleId::MultiplyRoots,
         conditions,
         working,
@@ -395,7 +395,7 @@ pub fn merge_roots(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let merged = each_poly(node, ctx, merge_poly, &mut details, &mut conditions);
     (!details.is_empty()).then(|| Rewrite {
         node: merged,
-        explanation: crate::text::msg!("Multiply under one root: {}", "Unter einer Wurzel multiplizieren: {}", details.join(", ")),
+        explanation: crate::text::msg!("core.algebra.radicals.multiply_under_one_root", details.join(", ")),
         rule: RuleId::MergeRoots,
         conditions,
         working: Vec::new(),
@@ -439,7 +439,7 @@ fn rationalize_factor(node: &Node, atoms: &Atoms) -> Option<(Node, String)> {
         .filter(|(other, _)| *other != position)
         .fold(radicand, |product, (_, factor)| make_product((*factor).clone(), product));
     let by = power(atoms.var(index), n - exp);
-    let detail = crate::text::msg!("multiply by {}", "mit {} multiplizieren", serializer::expression(&by));
+    let detail = crate::text::msg!("core.algebra.radicals.multiply", serializer::expression(&by));
     Some((make_fraction(make_product(numerator.clone(), by), rest), detail))
 }
 
@@ -485,9 +485,9 @@ fn rationalize_conjugate(node: &Node, ctx: &Context) -> Option<Local> {
         if !ctx.allows(&[Condition::NonZero(conjugate.to_node())]) {
             continue;
         }
-        let detail = crate::text::msg!("multiply by the conjugate {}", "mit dem konjugierten Term {} multiplizieren", serializer::expression(&conjugate.to_node()));
+        let detail = crate::text::msg!("core.algebra.radicals.multiply_conjugate", serializer::expression(&conjugate.to_node()));
         let result = make_fraction(make_product(numerator.clone(), conjugate.to_node()), rationalized.to_node());
-        let extend = (extended(node, &conjugate.to_node()), crate::text::msg!("Extend by the conjugate {}", "Mit dem konjugierten Term {} erweitern", serializer::expression(&conjugate.to_node())), StepDetail::Standard);
+        let extend = (extended(node, &conjugate.to_node()), crate::text::msg!("core.algebra.radicals.extend_conjugate", serializer::expression(&conjugate.to_node())), StepDetail::Standard);
         let mut working = vec![extend];
         // With numbers for p and q, the denominator is the third binomial formula: (\sqrt{3})^2 - 1^2.
         if p.is_constant() && q.is_constant() {
@@ -501,9 +501,9 @@ fn rationalize_conjugate(node: &Node, ctx: &Context) -> Option<Local> {
                 Node::binary(Operator::Minus, number_part, root_part, 0)
             };
             let line = make_fraction(make_product(numerator.clone(), conjugate.to_node()), formula);
-            working.push((line, crate::text::msg!("Third binomial formula in the denominator", "Dritte binomische Formel im Nenner"), StepDetail::Detailed));
+            working.push((line, crate::text::msg!("core.algebra.radicals.third_binomial_formula_denominator"), StepDetail::Detailed));
         }
-        return Some(Local::new(result, detail).with_working(working, crate::text::msg!("Work out the denominator", "Den Nenner ausrechnen")));
+        return Some(Local::new(result, detail).with_working(working, crate::text::msg!("core.algebra.radicals.work_out_denominator")));
     }
     None
 }
@@ -525,8 +525,8 @@ fn rationalize_at(node: &Node, ctx: &mut Context) -> Option<Local> {
     // One root in the denominator: \frac{1}{\sqrt{2}} \cdot \frac{\sqrt{2}}{\sqrt{2}} first.
     match by.as_slice() {
         [Some(by)] => {
-            let text = crate::text::msg!("Extend by {}", "Mit {} erweitern", serializer::expression(by));
-            Some(local.with_working(vec![(extended(node, by), text, StepDetail::Standard)], crate::text::msg!("Multiply the fractions", "Die Brüche multiplizieren")))
+            let text = crate::text::msg!("core.algebra.radicals.extend", serializer::expression(by));
+            Some(local.with_working(vec![(extended(node, by), text, StepDetail::Standard)], crate::text::msg!("core.algebra.radicals.multiply_fractions")))
         }
         _ => Some(local),
     }
@@ -540,5 +540,5 @@ fn root_factor_by(node: &Node, atoms: &Atoms) -> Option<Node> {
 }
 
 pub fn rationalize_denominators(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    everywhere(node, ctx, &crate::text::msg!("Rationalize the denominator", "Den Nenner rational machen"), RuleId::RationalizeDenominator, rationalize_at)
+    everywhere(node, ctx, &crate::text::msg!("core.algebra.radicals.rationalize_denominator"), RuleId::RationalizeDenominator, rationalize_at)
 }

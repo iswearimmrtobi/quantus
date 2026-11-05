@@ -154,15 +154,13 @@ impl Expr {
             Node::Constant { name, .. } => match name.as_str() {
                 "\\pi" => Expr::Pi,
                 "e" => Expr::E,
-                _ => return Err(unsupported(msg!("complex numbers", "komplexe Zahlen"))),
+                _ => return Err(unsupported(msg!("core.analysis.expr.complex_numbers"))),
             },
             Node::Variable { name, index, .. } if index.is_empty() && name == var => Expr::Var,
             Node::Variable { name, index, .. } => {
                 let name = Node::variable_key(name, index);
                 return Err(QuantusError::other(msg!(
-                    "f may depend on {var} only, but it also contains {name}; function families are not supported yet.",
-                    "f darf nur von {var} abhängen, enthält aber auch {name}; Funktionenscharen werden noch nicht unterstützt."
-                )));
+                    "core.analysis.expr.f_may_depend_only_but")));
             }
             Node::Group { inner, .. } => from(inner)?,
             Node::Negation { operand, .. } => Expr::neg(from(operand)?),
@@ -192,9 +190,7 @@ impl Expr {
                         Expr::Num(n) if n.is_int() && n > RBig::ZERO => n.numerator().unsigned_abs(),
                         _ => {
                             return Err(QuantusError::other(msg!(
-                                "The degree of a root must be a positive whole number.",
-                                "Der Grad einer Wurzel muss eine positive ganze Zahl sein."
-                            )))
+                                "core.analysis.expr.degree_root_must_positive_whole")))
                         }
                     },
                 };
@@ -233,26 +229,24 @@ impl Expr {
                     "cot" => Expr::Product(vec![f(Fn::Cos), Expr::recip(f(Fn::Sin))]),
                     "sec" => Expr::recip(f(Fn::Cos)),
                     "csc" => Expr::recip(f(Fn::Sin)),
-                    _ => return Err(unsupported(msg!("complex functions", "komplexe Funktionen"))),
+                    _ => return Err(unsupported(msg!("core.analysis.expr.complex_functions"))),
                 }
             }
             Node::Abs { operand, .. } => Expr::func(Fn::Abs, from(operand)?),
             Node::Degrees { operand, .. } => Expr::Product(vec![from(operand)?, Expr::Pi, Expr::ratio(1, 180)]),
-            Node::Unit { .. } => return Err(unsupported(msg!("units", "Einheiten"))),
-            Node::Sum { .. } => return Err(unsupported(msg!("sums", "Summen"))),
-            Node::Integral { .. } => return Err(unsupported(msg!("integrals", "Integrale"))),
-            Node::Limit { .. } => return Err(unsupported(msg!("limits", "Grenzwerte"))),
-            Node::Derivative { .. } => return Err(unsupported(msg!("derivatives", "Ableitungen"))),
-            Node::Matrix { .. } | Node::Determinant { .. } => return Err(unsupported(msg!("matrices", "Matrizen"))),
-            Node::Binomial { .. } => return Err(unsupported(msg!("binomial coefficients", "Binomialkoeffizienten"))),
+            Node::Unit { .. } => return Err(unsupported(msg!("core.analysis.expr.units"))),
+            Node::Sum { .. } => return Err(unsupported(msg!("core.analysis.expr.sums"))),
+            Node::Integral { .. } => return Err(unsupported(msg!("core.analysis.expr.integrals"))),
+            Node::Limit { .. } => return Err(unsupported(msg!("core.analysis.expr.limits"))),
+            Node::Derivative { .. } => return Err(unsupported(msg!("core.analysis.expr.derivatives"))),
+            Node::Matrix { .. } | Node::Determinant { .. } => return Err(unsupported(msg!("core.analysis.expr.matrices"))),
+            Node::Binomial { .. } => return Err(unsupported(msg!("core.analysis.expr.binomial_coefficients"))),
             Node::Call { .. } => {
-                return Err(unsupported(msg!("integer functions such as n!", "ganzzahlige Funktionen wie n!")))
+                return Err(unsupported(msg!("core.analysis.expr.integer_functions_such_n")))
             }
             Node::Equation { .. } | Node::System { .. } => {
                 return Err(QuantusError::other(msg!(
-                    "Enter a function, not an equation.",
-                    "Gib eine Funktion ein, keine Gleichung."
-                )))
+                    "core.analysis.expr.enter_function_not_equation")))
             }
         })
     }
@@ -278,9 +272,7 @@ impl Expr {
 
 fn unsupported(what: String) -> QuantusError {
     QuantusError::other(msg!(
-        "The analysis mode does not support {what}.",
-        "Der Analysis-Modus unterstützt keine {what}."
-    ))
+        "core.analysis.expr.analysis_mode_does_not_support"))
 }
 
 fn unwrap_group(node: &Node) -> &Node {

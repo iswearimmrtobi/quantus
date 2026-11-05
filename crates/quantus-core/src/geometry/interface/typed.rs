@@ -28,9 +28,7 @@ fn error(message: String) -> QuantusError {
 
 fn unclear() -> QuantusError {
     error(msg!(
-        "An object is typed with its name: A(1|2|3), \\vec{{a}} = …, g: X = A + \\lambda \\vec{{u}}, E: 2x + y = 3 or K: x^2 + y^2 + z^2 = 9.",
-        "Ein Objekt wird mit seinem Namen eingegeben: A(1|2|3), \\vec{{a}} = …, g: X = A + \\lambda \\vec{{u}}, E: 2x + y = 3 oder K: x^2 + y^2 + z^2 = 9."
-    ))
+        "core.geometry.interface.typed.object_typed_name_1_2"))
 }
 
 /// Whether `name` (a key) can name an object: letters, then an optional `_` and index.
@@ -120,7 +118,7 @@ impl Builder<'_> {
                 Node::Call { name, arguments, .. } if name == "vec" && !is_running(left) => match arguments.as_slice() {
                     [Node::Variable { name, index, .. }] => match self.object_of(right)? {
                         vector @ Object::Vector(_) => Ok((Node::variable_key(name, index), vector)),
-                        _ => Err(error(msg!("\\vec{{{}}} must be a vector.", "\\vec{{{}}} muss ein Vektor sein.", name))),
+                        _ => Err(error(msg!("core.geometry.interface.typed.must_vector", name))),
                     },
                     _ => Err(unclear()),
                 },
@@ -151,15 +149,13 @@ impl Builder<'_> {
             match self.item_with(node, &given, &self.objects)? {
                 Item::Point(p) => Ok(p),
                 Item::Vector(v) => Ok(v.to_point()),
-                Item::Scalar(_) => Err(error(msg!("A parameter form gives a point.", "Eine Parameterform ergibt einen Punkt."))),
+                Item::Scalar(_) => Err(error(msg!("core.geometry.interface.typed.parameter_form_gives_point"))),
             }
         };
         let n = parameters.len();
         if !(1..=2).contains(&n) {
             return Err(error(msg!(
-                "A parameter form has one parameter (a line) or two (a plane), such as \\lambda and \\mu.",
-                "Eine Parameterform hat einen Parameter (Gerade) oder zwei (Ebene), etwa \\lambda und \\mu."
-            )));
+                "core.geometry.interface.typed.parameter_form_has_one_parameter")));
         }
         let unit = |i: usize| (0..n).map(|j| if i == j { Value::one() } else { Value::zero() }).collect::<Vec<_>>();
         let support = at(&vec![Value::zero(); n])?;
@@ -169,7 +165,7 @@ impl Builder<'_> {
         let expected = directions.iter().zip(&probe).fold(support.clone(), |p, (u, k)| &p + &u.scale(k));
         let actual = at(&probe)?;
         if !(0..3).all(|i| equal(&expected.coords[i], &actual.coords[i])) {
-            return Err(error(msg!("A parameter form must be linear in its parameters.", "Eine Parameterform muss linear in ihren Parametern sein.")));
+            return Err(error(msg!("core.geometry.interface.typed.parameter_form_must_linear_parameters")));
         }
         Ok(match directions.as_slice() {
             [u] => Object::Line(Line::new(support, u.clone())?),
@@ -192,9 +188,7 @@ impl Builder<'_> {
         let side = |node: &Node| match self.item_with(node, &values, &objects)? {
             Item::Scalar(value) => Ok(value),
             _ => Err(error(msg!(
-                "Both sides of the equation must be numbers, as in (\\vec{{x}} - \\vec{{p}}) \\cdot \\vec{{n}} = 0.",
-                "Beide Seiten der Gleichung müssen Zahlen sein, wie in (\\vec{{x}} - \\vec{{p}}) \\cdot \\vec{{n}} = 0."
-            ))),
+                "core.geometry.interface.typed.both_sides_equation_must_numbers"))),
         };
         let (l, r) = (side(left)?, side(right)?);
         Ok(if matches!(left, Node::Abs { .. }) || matches!(right, Node::Abs { .. }) { l.mul(&l).sub(&r.mul(&r)) } else { l.sub(&r) })
@@ -235,9 +229,7 @@ impl Builder<'_> {
         };
         let neither = || {
             error(msg!(
-                "This equation is neither a plane (linear in x, y, z) nor a sphere (x^2 + y^2 + z^2 with one coefficient, no mixed terms).",
-                "Diese Gleichung ist weder eine Ebene (linear in x, y, z) noch eine Kugel (x^2 + y^2 + z^2 mit einem Koeffizienten, ohne gemischte Glieder)."
-            ))
+                "core.geometry.interface.typed.equation_neither_plane_linear_x"))
         };
         for p in [[3, -2, 7], [-5, 11, 2], [2, 5, -3]] {
             if !equal(&f(p[0], p[1], p[2])?, &model(p)) {
@@ -259,8 +251,7 @@ impl Builder<'_> {
             let squared = coords.iter().fold(c.div(a)?.neg(), |sum, m| sum.add(&m.mul(m)));
             if zero(&squared) || squared.is_negative()? {
                 return Err(error(msg!(
-                    "The equation has no circle or sphere: the radius squared would be {}.",
-                    "Die Gleichung beschreibt keinen Kreis und keine Kugel: Das Quadrat des Radius wäre {}.",
+                    "core.geometry.interface.typed.equation_has_no_circle_sphere",
                     super::show::value(&squared)
                 )));
             }

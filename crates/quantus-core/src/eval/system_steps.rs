@@ -73,7 +73,7 @@ impl LatexCalculator {
         let plain_names: Vec<String> = system.unknowns.iter().map(|key| plain(key)).collect();
 
         let mut steps = Vec::new();
-        let write = msg!("Write the system as an augmented matrix", "Das System als erweiterte Koeffizientenmatrix schreiben");
+        let write = msg!("core.eval.system_steps.write_system_augmented_matrix");
         if !standard || log.is_empty() {
             steps.push(Step::algebraic(self.matrix(&system.matrix, &Marking::default())?, None, write, None, None));
         }
@@ -113,10 +113,10 @@ impl LatexCalculator {
 
         if !log.is_empty() {
             let text = match (gauss, standard) {
-                (true, true) => msg!("The matrix is in triangle form", "Die Matrix hat Stufenform"),
-                (true, false) => msg!("Bring it to triangle form", "In Stufenform bringen"),
-                (false, true) => msg!("The matrix is in reduced row echelon form", "Die Matrix hat reduzierte Stufenform"),
-                (false, false) => msg!("Eliminate column by column", "Spalte für Spalte eliminieren"),
+                (true, true) => msg!("core.eval.system_steps.matrix_triangle_form"),
+                (true, false) => msg!("core.eval.system_steps.bring_triangle_form"),
+                (false, true) => msg!("core.eval.system_steps.matrix_reduced_row_echelon_form"),
+                (false, false) => msg!("core.eval.system_steps.eliminate_column_column"),
             };
             let marking = if standard {
                 Marking { labels: Some(&labels), changed: &changed, contradiction, ..Marking::default() }
@@ -133,8 +133,7 @@ impl LatexCalculator {
             let right = self.cell(constant)?;
             let reads = constant.as_rational().map_or_else(|| "c".to_string(), |c| c.to_string());
             let text = msg!(
-                "Row {} reads 0 = {}, a contradiction: the system has no solution",
-                "Zeile {} lautet 0 = {}, ein Widerspruch: das System hat keine Lösung",
+                "core.eval.system_steps.row_reads_0_contradiction_system",
                 label.plain(),
                 reads
             );
@@ -161,7 +160,7 @@ impl LatexCalculator {
                     left = "0".to_string();
                 }
                 let label = Label { number: i, marks: 0 };
-                let text = msg!("Check: put the solution into {}", "Probe: die Lösung in {} einsetzen", label.plain());
+                let text = msg!("core.eval.system_steps.check_put_solution_into", label.plain());
                 let latex = format!("{}: \\; {left} = {} \\; \\checkmark", label.latex(), self.cell(&row[n])?);
                 steps.push(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Maximal));
             }
@@ -177,11 +176,11 @@ impl LatexCalculator {
         let start = &working.start;
         let columns = start.first().map_or(0, Vec::len);
         let split = Some(working.split.unwrap_or(columns));
-        let names: Vec<String> = (1..=columns).map(|c| msg!("column {}", "Spalte {}", c)).collect();
+        let names: Vec<String> = (1..=columns).map(|c| msg!("core.eval.system_steps.column", c)).collect();
         let mut steps = Vec::new();
         let write = match working.what {
-            Operation::Inverse => msg!("Write the matrix next to the identity matrix", "Die Matrix neben die Einheitsmatrix schreiben"),
-            _ => msg!("Eliminate column by column", "Spalte für Spalte eliminieren"),
+            Operation::Inverse => msg!("core.eval.system_steps.write_matrix_next_identity_matrix"),
+            _ => msg!("core.eval.system_steps.eliminate_column_column"),
         };
         if !standard || working.log.is_empty() {
             steps.push(Step::algebraic(self.matrix(start, &Marking { split, ..Marking::default() })?, None, write, None, None));
@@ -221,13 +220,11 @@ impl LatexCalculator {
 
         if !working.log.is_empty() {
             let text = match working.what {
-                Operation::Determinant => msg!("The matrix is reduced", "Die Matrix ist reduziert"),
+                Operation::Determinant => msg!("core.eval.system_steps.matrix_reduced"),
                 Operation::Inverse => msg!(
-                    "The left half is the identity matrix, so the right half is the inverse",
-                    "Links steht die Einheitsmatrix, also rechts die Inverse"
-                ),
-                Operation::RowEchelon => msg!("The matrix is in triangle form", "Die Matrix hat Stufenform"),
-                Operation::ReducedRowEchelon => msg!("The matrix is in reduced row echelon form", "Die Matrix hat reduzierte Stufenform"),
+                    "core.eval.system_steps.left_half_identity_matrix_right"),
+                Operation::RowEchelon => msg!("core.eval.system_steps.matrix_triangle_form"),
+                Operation::ReducedRowEchelon => msg!("core.eval.system_steps.matrix_reduced_row_echelon_form"),
             };
             let marking = Marking { labels: standard.then_some(labels.as_slice()), changed: &changed, split, ..Marking::default() };
             steps.push(Step::algebraic(self.matrix(before, &marking)?, None, text, None, None));
@@ -247,11 +244,9 @@ impl LatexCalculator {
             let reduced_to_identity = before.iter().enumerate().all(|(r, row)| row[r].is_one());
             let text = if reduced_to_identity {
                 msg!(
-                    "The determinant is the product of the pivots, with a sign change for each swap",
-                    "Die Determinante ist das Produkt der Pivotelemente, mit einem Vorzeichenwechsel je Tausch"
-                )
+                    "core.eval.system_steps.determinant_product_pivots_sign_change")
             } else {
-                msg!("A row of zeros: the determinant is 0", "Eine Nullzeile: die Determinante ist 0")
+                msg!("core.eval.system_steps.row_zeros_determinant_0")
             };
             let mut product = if factors.is_empty() { vec!["1".to_string()] } else { factors };
             if swaps % 2 == 1 {
@@ -313,21 +308,19 @@ impl LatexCalculator {
         let maximal = self.settings.step_detail == StepDetail::Maximal;
         let text = match (&first.operation, first.reason) {
             (RowOperation::Swap(a, b), Reason::ZeroPivot { column }) if maximal => msg!(
-                "The entry of {} in {} is zero, so swap {} with {}, the first row below with a non-zero one",
-                "Der Eintrag von {} in {} ist null, also {} mit {} tauschen, der ersten Zeile darunter mit einem anderen",
+                "core.eval.system_steps.entry_zero_swap_first_row",
                 names[column],
                 labels[*a].plain(),
                 labels[*a].plain(),
                 labels[*b].plain()
             ),
             (RowOperation::Swap(a, b), _) => msg!(
-                "Swap {} and {} to get a non-zero pivot",
-                "{} und {} tauschen, um ein Pivotelement ungleich null zu bekommen",
+                "core.eval.system_steps.swap_get_non_zero_pivot",
                 labels[*a].plain(),
                 labels[*b].plain()
             ),
             (RowOperation::Divide { row, .. }, _) => {
-                msg!("Divide {} by its pivot", "{} durch sein Pivotelement teilen", labels[*row].plain())
+                msg!("core.eval.system_steps.divide_pivot", labels[*row].plain())
             }
             (_, Reason::Eliminate { column }) => {
                 let targets: Vec<String> = stage
@@ -340,21 +333,20 @@ impl LatexCalculator {
                 let targets = join_plain(&targets);
                 let eliminate = match first.operation {
                     RowOperation::Combine { source, .. } | RowOperation::Subtract { source, .. } if maximal => msg!(
-                        "Eliminate {} from {} with the pivot of {}, the first non-zero entry of the column",
-                        "{} aus {} eliminieren, mit dem Pivotelement von {}, dem ersten Eintrag ungleich null der Spalte",
+                        "core.eval.system_steps.eliminate_from_pivot_first_non",
                         names[column],
                         targets,
                         labels[source].plain()
                     ),
-                    _ => msg!("Eliminate {} from {}", "{} aus {} eliminieren", names[column], targets),
+                    _ => msg!("core.eval.system_steps.eliminate_from", names[column], targets),
                 };
                 if stage.iter().any(|entry| matches!(entry.operation, RowOperation::Scale { .. })) {
-                    msg!("{}, then divide out the common factor", "{}, dann den gemeinsamen Faktor herausteilen", eliminate)
+                    msg!("core.eval.system_steps.then_divide_out_common_factor", eliminate)
                 } else {
                     eliminate
                 }
             }
-            _ => msg!("Divide out the common factor of the row", "Den gemeinsamen Faktor der Zeile herausteilen"),
+            _ => msg!("core.eval.system_steps.divide_out_common_factor_row"),
         };
         Ok((latex, text))
     }
@@ -393,7 +385,7 @@ impl LatexCalculator {
             parts.push(format!("{first}{second} = {}", self.cell(result)?));
         }
         let label = labels[target];
-        let text = msg!("Work out {} entry by entry", "{} Eintrag für Eintrag ausrechnen", label.plain());
+        let text = msg!("core.eval.system_steps.work_out_entry_entry", label.plain());
         let latex = format!("{}: \\; {}", label.latex(), parts.join(", \\quad "));
         Ok(Some(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Detailed)))
     }
@@ -419,9 +411,9 @@ impl LatexCalculator {
             let latex: Vec<String> = parameters.iter().map(|(c, p)| format!("{} = {p}", names[*c])).collect();
             let free: Vec<String> = parameters.iter().map(|(c, _)| plain_names[*c].clone()).collect();
             let text = if free.len() == 1 {
-                msg!("{} is free: set it to a parameter", "{} ist frei: als Parameter setzen", free[0])
+                msg!("core.eval.system_steps.free_set_parameter", free[0])
             } else {
-                msg!("{} are free: set them to parameters", "{} sind frei: als Parameter setzen", join_plain(&free))
+                msg!("core.eval.system_steps.free_set_them_parameters", join_plain(&free))
             };
             steps.push(Step::algebraic(latex.join(", \\; "), None, text, None, None).with_level(StepDetail::Standard));
         }
@@ -450,9 +442,9 @@ impl LatexCalculator {
             };
             let (label, unknown) = (labels[b.row].plain(), &plain_names[b.column]);
             let text = if known.is_empty() {
-                msg!("Solve {} for {}", "{} nach {} auflösen", label, unknown)
+                msg!("core.eval.system_steps.solve", label, unknown)
             } else {
-                msg!("Put {} into {} and solve for {}", "{} in {} einsetzen und nach {} auflösen", join_plain(&known), label, unknown)
+                msg!("core.eval.system_steps.put_into_solve", join_plain(&known), label, unknown)
             };
             steps.push(Step::algebraic(latex, None, text, None, None).with_level(StepDetail::Standard));
             values[b.column] = Some(value);
@@ -627,7 +619,7 @@ fn join_plain(items: &[String]) -> String {
     match items {
         [] => String::new(),
         [one] => one.clone(),
-        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), msg!("and", "und")),
+        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), msg!("core.eval.system_steps.and")),
     }
 }
 

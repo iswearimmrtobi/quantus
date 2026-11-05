@@ -67,9 +67,7 @@ pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Resu
                 equation @ Node::Equation { .. } => Node::System { position: equation.position(), equations: vec![equation] },
                 _ => {
                     return Err(QuantusError::other(msg!(
-                        "Type the system as equations, one per line.",
-                        "Das System als Gleichungen eingeben, eine pro Zeile."
-                    )))
+                        "core.eval.linear_system.type_system_equations_one_per")))
                 }
             };
             (evaluator.solve_system(&system, settings.elimination)?, Some(serializer::expression(&system)))
@@ -149,18 +147,15 @@ fn equation(calculator: &LatexCalculator, row: &[Value], names: &[String]) -> Re
 /// right-hand side.
 fn width(rows: &[Vec<String>]) -> Result<usize> {
     let Some(first) = rows.first() else {
-        return Err(QuantusError::other(msg!("The matrix has no rows.", "Die Matrix hat keine Zeilen.")));
+        return Err(QuantusError::other(msg!("core.eval.linear_system.matrix_has_no_rows")));
     };
     if first.len() < 2 {
         return Err(QuantusError::other(msg!(
-            "A row needs at least one coefficient and the right-hand side.",
-            "Eine Zeile braucht mindestens einen Koeffizienten und die rechte Seite."
-        )));
+            "core.eval.linear_system.row_needs_least_one_coefficient")));
     }
     if let Some((r, row)) = rows.iter().enumerate().find(|(_, row)| row.len() != first.len()) {
         return Err(QuantusError::other(msg!(
-            "Row {} has {} entries, but row 1 has {}.",
-            "Zeile {} hat {} Einträge, Zeile 1 aber {}.",
+            "core.eval.linear_system.row_has_entries_but_row",
             r + 1,
             row.len(),
             first.len()
@@ -185,8 +180,7 @@ fn default_names(names: UnknownNames, n: usize) -> Vec<String> {
 fn given_names(names: &[String], n: usize, settings: &Settings) -> Result<Vec<String>> {
     if names.len() != n {
         return Err(QuantusError::other(msg!(
-            "There are {} names for {} unknowns.",
-            "Es gibt {} Namen für {} Unbekannte.",
+            "core.eval.linear_system.there_names_unknowns",
             names.len(),
             n
         )));
@@ -197,14 +191,13 @@ fn given_names(names: &[String], n: usize, settings: &Settings) -> Result<Vec<St
             Ok(Node::Variable { name, index, .. }) => Node::variable_key(&name, &index),
             _ => {
                 return Err(QuantusError::other(msg!(
-                    "{} is not a name for an unknown; use a letter such as x or x_1.",
-                    "{} ist kein Name für eine Unbekannte; einen Buchstaben wie x oder x_1 verwenden.",
+                    "core.eval.linear_system.not_name_unknown_use_letter",
                     name
                 )))
             }
         };
         if keys.contains(&key) {
-            return Err(QuantusError::other(msg!("The unknown {} is named twice.", "Die Unbekannte {} ist doppelt benannt.", name)));
+            return Err(QuantusError::other(msg!("core.eval.linear_system.unknown_named_twice", name)));
         }
         keys.push(key);
     }
@@ -224,31 +217,27 @@ fn read_matrix(rows: &[Vec<String>], settings: &Settings, evaluator: &Evaluator)
                 continue;
             }
             let at = |reason: String| {
-                QuantusError::other(msg!("Row {}, entry {}: {}", "Zeile {}, Eintrag {}: {}", r + 1, c + 1, reason))
+                QuantusError::other(msg!("core.eval.linear_system.row_entry", r + 1, c + 1, reason))
             };
             let formula = parser::parse_with(entry, &settings.parse_options()).map_err(|e| at(e.to_string()))?;
             let expression = formula.expression;
             if formula.label.is_some() || matches!(expression, Node::Equation { .. } | Node::System { .. }) {
-                return Err(at(msg!("an entry is a number, not an equation.", "ein Eintrag ist eine Zahl, keine Gleichung.")));
+                return Err(at(msg!("core.eval.linear_system.entry_number_not_equation")));
             }
             match letter(&expression) {
                 Some(name) if name == "i" => {
                     return Err(at(msg!(
-                        "i is not a number here; turn on the imaginary unit for complex coefficients.",
-                        "i ist hier keine Zahl; für komplexe Koeffizienten die imaginäre Einheit einschalten."
-                    )))
+                        "core.eval.linear_system.i_not_number_here_turn")))
                 }
                 Some(name) => {
-                    return Err(at(msg!("an entry is a number, but {} is a letter.", "ein Eintrag ist eine Zahl, {} aber ein Buchstabe.", name)))
+                    return Err(at(msg!("core.eval.linear_system.entry_number_but_letter", name)))
                 }
                 None => {}
             }
             let quantity = evaluator.evaluate(&expression).map_err(|e| at(e.to_string()))?;
             if !quantity.is_dimensionless() {
                 return Err(at(msg!(
-                    "the coefficients of a linear system have no units.",
-                    "die Koeffizienten eines linearen Gleichungssystems haben keine Einheiten."
-                )));
+                    "core.eval.linear_system.coefficients_linear_system_have_no")));
             }
             values.push(quantity.value);
         }

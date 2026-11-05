@@ -45,11 +45,11 @@ impl Reason {
     /// The text shown after "Unknown: ".
     pub fn text(&self) -> String {
         match self {
-            Reason::MissingSource { current: false, .. } => msg!("the supply voltage is missing", "Versorgungsspannung fehlt"),
-            Reason::MissingSource { current: true, .. } => msg!("the supply current is missing", "Versorgungsstrom fehlt"),
+            Reason::MissingSource { current: false, .. } => msg!("core.electro.solve.supply_voltage_missing"),
+            Reason::MissingSource { current: true, .. } => msg!("core.electro.solve.supply_current_missing"),
             Reason::DependsOn(ids) => {
                 let ids = ids.join(", ");
-                msg!("depends on {ids}", "hängt von {ids} ab")
+                msg!("core.electro.solve.depends")
             }
         }
     }
@@ -290,15 +290,15 @@ impl<'a> Model<'a> {
         let mut index = HashMap::new();
         for (n, id) in circuit.nodes.iter().enumerate() {
             if index.insert(*id, n).is_some() {
-                return Err(QuantusError::other(msg!("Node {id} exists twice.", "Knoten {id} kommt doppelt vor.")));
+                return Err(QuantusError::other(msg!("core.electro.solve.node_exists_twice")));
             }
         }
         if !index.contains_key(&GROUND) {
-            return Err(QuantusError::other(msg!("The circuit has no ground node 0.", "Die Schaltung hat keinen Masseknoten 0.")));
+            return Err(QuantusError::other(msg!("core.electro.solve.circuit_has_no_ground_node")));
         }
         for (n, element) in circuit.elements.iter().enumerate() {
             if circuit.elements[..n].iter().any(|e| e.id == element.id) {
-                return Err(QuantusError::other(msg!("Element {} exists twice.", "Das Bauteil {} kommt doppelt vor.", element.id)));
+                return Err(QuantusError::other(msg!("core.electro.solve.element_exists_twice", element.id)));
             }
             let wiper = match &element.kind {
                 ElementKind::Potentiometer { wiper, .. } => Some(*wiper),
@@ -307,8 +307,7 @@ impl<'a> Model<'a> {
             for node in [Some(element.a), Some(element.b), wiper].into_iter().flatten() {
                 if !index.contains_key(&node) {
                     return Err(QuantusError::other(msg!(
-                        "Element {} uses the unknown node {node}.",
-                        "Das Bauteil {} nutzt den unbekannten Knoten {node}.",
+                        "core.electro.solve.element_uses_unknown_node",
                         element.id
                     )));
                 }
@@ -353,8 +352,7 @@ impl<'a> Model<'a> {
                     if let Some(p) = position {
                         if p.is_negative()? || !p.sub(&Value::one()).is_negative()? && !p.sub(&Value::one()).is_zero() {
                             return Err(QuantusError::other(msg!(
-                                "The wiper position of {} must be between 0 and 1.",
-                                "Die Stellung von {} muss zwischen 0 und 1 liegen.",
+                                "core.electro.solve.wiper_position_must_between_0",
                                 element.id
                             )));
                         }
@@ -434,7 +432,7 @@ impl<'a> Model<'a> {
             return self.run_linear(values, &HashMap::new());
         }
 
-        let no_solution = || QuantusError::other(msg!("no solution: the load is too large", "keine Lösung: die Last ist zu groß"));
+        let no_solution = || QuantusError::other(msg!("core.electro.solve.no_solution_load_too_large"));
         let tolerance = convergence_tolerance(precision)?;
         let two = Value::int(2);
         let mut tangents = HashMap::new();
@@ -478,7 +476,7 @@ impl<'a> Model<'a> {
             }
             tangents = next;
         }
-        Err(QuantusError::other(msg!("did not converge", "nicht konvergiert")))
+        Err(QuantusError::other(msg!("core.electro.solve.did_not_converge")))
     }
 
     fn run_linear(&self, values: &BTreeMap<Slot, Value>, loads: &HashMap<usize, (Value, Value)>) -> Result<Run> {
@@ -634,8 +632,8 @@ impl<'a> Model<'a> {
             }
         }
         match reached.iter().position(|r| !r) {
-            Some(n) => QuantusError::other(msg!("Node {} is not connected", "Knoten {} nicht verbunden", self.circuit.nodes[n])),
-            None => QuantusError::other(msg!("short circuit", "Kurzschluss")),
+            Some(n) => QuantusError::other(msg!("core.electro.solve.node_not_connected", self.circuit.nodes[n])),
+            None => QuantusError::other(msg!("core.electro.solve.short_circuit")),
         }
     }
 }
@@ -668,7 +666,7 @@ fn nonnegative(value: &Option<PhysicalQuantity>, target: &Unit, id: &str) -> Res
     let Some(q) = value else { return Ok(None) };
     let q = q.to(target)?;
     if q.value.is_negative()? {
-        return Err(QuantusError::other(msg!("The value of {id} must not be negative.", "Der Wert von {id} darf nicht negativ sein.")));
+        return Err(QuantusError::other(msg!("core.electro.solve.value_must_not_negative")));
     }
     Ok(Some(q.value))
 }

@@ -34,11 +34,11 @@ pub fn divide(dividend: &Poly, divisor: &Poly, var: &str) -> Division {
         // The partial quotient times the divisor, before it is subtracted: x^2 \cdot (x - 1) = x^3 - x^2.
         let factor = |p: &Poly| if p.terms.len() > 1 { format!("({})", tex(p)) } else { tex(p) };
         let product = format!("{} \\cdot {} = {}", factor(&term), factor(divisor), tex(&subtracted));
-        steps.push(step(AnalysisRule::PolynomialDivision, msg!("Multiply back", "Zurückmultiplizieren"), product).with_level(StepDetail::Detailed));
+        steps.push(step(AnalysisRule::PolynomialDivision, msg!("core.analysis.polydiv.multiply_back"), product).with_level(StepDetail::Detailed));
         // The rows of the written division: what is subtracted, and what is left.
         steps.push(step_with_rows(
             AnalysisRule::PolynomialDivision,
-            msg!("Partial quotient {}", "Teilquotient {}", tex(&term)),
+            msg!("core.analysis.polydiv.partial_quotient", tex(&term)),
             format!("{} - ({}) = {}", tex(&remainder), tex(&subtracted), tex(&next)),
             format!("- ({})", tex(&subtracted)),
             tex(&next),
@@ -56,7 +56,7 @@ pub fn divide(dividend: &Poly, divisor: &Poly, var: &str) -> Division {
             result.push_str(&format!(" + {rest}"));
         }
     }
-    steps.push(step(AnalysisRule::PolynomialDivision, msg!("Polynomial division", "Polynomdivision"), result));
+    steps.push(step(AnalysisRule::PolynomialDivision, msg!("core.analysis.polydiv.polynomial_division"), result));
     // The written rows must agree with the division of the algebra module.
     if let Ok((checked_quotient, checked_remainder)) = dividend.div_rem(divisor) {
         assert!(checked_quotient == quotient && checked_remainder == remainder, "polynomial division disagrees with Poly::div_rem");

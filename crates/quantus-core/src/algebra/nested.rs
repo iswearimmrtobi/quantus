@@ -299,20 +299,20 @@ fn nested_fraction_step(node: &Node) -> Option<AlgebraStep> {
         if let Some((over, text)) = write_over_denominator(side) {
             lines.push((place(over, &num_now, &den_now), text));
         }
-        lines.push((place(combined.clone(), &num_now, &den_now), crate::text::msg!("Combine the inner fractions", "Die inneren Brüche zusammenfassen")));
+        lines.push((place(combined.clone(), &num_now, &den_now), crate::text::msg!("core.algebra.nested.combine_inner_fractions")));
         if numerator_side { num_now = combined } else { den_now = combined }
     }
     let last = if let Some((c, d)) = split_fraction(&den_now) {
         let reciprocal = if is_constant_one(c) { d.clone() } else { make_fraction(d.clone(), c.clone()) };
         let text = crate::text::msg!(
-            "Dividing by {} is multiplying by its reciprocal {}", "Durch {} teilen heißt mit dem Kehrwert {} multiplizieren",
+            "core.algebra.nested.dividing_multiplying_reciprocal",
             serializer::expression(&den_now),
             serializer::expression(&reciprocal)
         );
         lines.push((Node::binary(Operator::Times, num_now, reciprocal, 0), text));
-        crate::text::msg!("Multiply numerators and denominators", "Zähler und Nenner multiplizieren")
+        crate::text::msg!("core.algebra.nested.multiply_numerators_denominators")
     } else {
-        crate::text::msg!("Multiply the denominators", "Die Nenner multiplizieren")
+        crate::text::msg!("core.algebra.nested.multiply_denominators")
     };
     let mut before = node.clone();
     let working = lines
@@ -334,7 +334,7 @@ fn write_over_denominator(sum: &Node) -> Option<(Node, String)> {
         return None;
     };
     let over = |term: &Node, d: &Node| make_fraction(make_product(term.clone(), d.clone()), d.clone());
-    let text = |term: &Node, d: &Node| crate::text::msg!("Write {} over the denominator {}", "{} auf den Nenner {} bringen", serializer::expression(term), serializer::expression(d));
+    let text = |term: &Node, d: &Node| crate::text::msg!("core.algebra.nested.write_over_denominator", serializer::expression(term), serializer::expression(d));
     let (left_frac, right_frac) = (split_fraction(left), split_fraction(right));
     let (written, text) = match (left_frac, right_frac) {
         (None, Some((_, d))) => (Node::binary(*operator, over(left, d), (**right).clone(), 0), text(left, d)),
@@ -375,7 +375,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = crate::text::msg!("Apply the reciprocal rule: divide fractions by multiplying by the reciprocal", "Durch einen Bruch teilen: mit dem Kehrwert multiplizieren");
+            let explanation = crate::text::msg!("core.algebra.nested.apply_reciprocal_rule_divide_fractions");
             Some((res, rule, explanation))
         }
 
@@ -389,7 +389,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = crate::text::msg!("Apply the reciprocal rule: divide by a fraction by multiplying by its reciprocal", "Durch einen Bruch teilen: mit seinem Kehrwert multiplizieren");
+            let explanation = crate::text::msg!("core.algebra.nested.apply_reciprocal_rule_divide_fraction");
             Some((res, rule, explanation))
         }
 
@@ -403,7 +403,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::SimplifyNestedFraction;
-            let explanation = crate::text::msg!("Simplify complex fraction by multiplying the denominators", "Den Doppelbruch vereinfachen: die Nenner multiplizieren");
+            let explanation = crate::text::msg!("core.algebra.nested.simplify_complex_fraction_multiplying_denominators");
             Some((res, rule, explanation))
         }
 

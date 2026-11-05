@@ -560,7 +560,7 @@ pub fn apply_rules(
         let mut explanation = rewrite.explanation;
         if !added.is_empty() {
             let latex: Vec<String> = added.iter().map(DomainRestriction::to_latex).collect();
-            explanation = crate::text::msg!("{explanation}, for {}", "{explanation}, für {}", latex.join(", "));
+            explanation = crate::text::msg!("core.algebra.identities.for", latex.join(", "));
         }
         for restriction in added {
             if !restrictions.contains(&restriction) {

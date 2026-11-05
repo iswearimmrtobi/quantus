@@ -47,14 +47,14 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
             position: 0,
         };
         let rule = RuleId::NormalizeExpression;
-        let explanation = crate::text::msg!("Zero divided by any non-zero expression is 0", "Null geteilt durch einen Term ungleich null ist 0");
+        let explanation = crate::text::msg!("core.algebra.reduce.zero_divided_any_non_zero");
         return simple(zero_node, rule, explanation);
     }
 
     // 2. Denominator is 1: P / 1 -> P
     if is_constant_one(den) {
         let rule = RuleId::NormalizeExpression;
-        let explanation = crate::text::msg!("Division by 1 leaves the expression unchanged", "Teilen durch 1 ändert den Term nicht");
+        let explanation = crate::text::msg!("core.algebra.reduce.division_1_leaves_expression_unchanged");
         return simple(num.clone(), rule, explanation);
     }
 
@@ -69,7 +69,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
                 position: 0,
             };
             let rule = RuleId::CancelCommonFactors;
-            let explanation = crate::text::msg!("Cancel identical numerator and denominator to get 1", "Gleichen Zähler und Nenner zu 1 kürzen");
+            let explanation = crate::text::msg!("core.algebra.reduce.cancel_identical_numerator_denominator_get");
             return simple(one_node, rule, explanation);
         }
 
@@ -83,7 +83,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
                 position: 0,
             };
             let rule = RuleId::CancelCommonFactors;
-            let explanation = crate::text::msg!("Cancel opposite terms to get -1", "Entgegengesetzte Terme zu -1 kürzen");
+            let explanation = crate::text::msg!("core.algebra.reduce.cancel_opposite_terms_get_1");
             return simple(neg_one_node, rule, explanation);
         }
     }
@@ -129,7 +129,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
             RuleId::FactorPolynomial
         };
         let explanation = crate::text::msg!(
-            "Factor numerator to identify common factors: {}", "Den Zähler faktorisieren, um gemeinsame Faktoren zu finden: {}",
+            "core.algebra.reduce.factor_numerator_identify_common_factors",
             serializer::expression(&fact_num.to_node())
         );
         let step = AlgebraStep::new(node.clone(), new_frac, explanation, Some(rule));
@@ -158,19 +158,19 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
 
     let rule = RuleId::CancelCommonFactors;
     let common = serializer::expression(&gcd.to_node());
-    let explanation = crate::text::msg!("Cancel common factor {common} from numerator and denominator", "Den gemeinsamen Faktor {common} in Zähler und Nenner kürzen");
+    let explanation = crate::text::msg!("core.algebra.reduce.cancel_common_factor_from_numerator");
     let mut working = Vec::new();
     if let Some(difference) = exponent_difference(num, den) {
-        working.push(AlgebraStep::line(node, difference, crate::text::msg!("Divide powers of the same base: subtract the exponents", "Potenzen mit gleicher Basis teilen: die Exponenten subtrahieren"), StepDetail::Standard));
+        working.push(AlgebraStep::line(node, difference, crate::text::msg!("core.algebra.reduce.divide_powers_same_base_subtract"), StepDetail::Standard));
     } else {
         let marked = make_fraction(mark_cancelled(num, &mut gcd.factors.clone()), mark_cancelled(den, &mut gcd.factors.clone()));
         if serializer::expression(&marked) != serializer::expression(unwrapped) {
-            working.push(AlgebraStep::line(node, marked, crate::text::msg!("Mark the common factor", "Den gemeinsamen Faktor markieren"), StepDetail::Detailed));
+            working.push(AlgebraStep::line(node, marked, crate::text::msg!("core.algebra.reduce.mark_common_factor"), StepDetail::Detailed));
         }
     }
     let notes = gcd.factors.iter().map(|f| AlgebraStep::note(res_node.clone(), zero_note(&f.base), None, StepDetail::Maximal)).collect();
     let step = AlgebraStep::new(node.clone(), res_node, explanation, Some(rule));
-    Some(step.with_working(working, crate::text::msg!("Cancel {common}", "{common} kürzen")).with_notes(notes))
+    Some(step.with_working(working, crate::text::msg!("core.algebra.reduce.cancel")).with_notes(notes))
 }
 
 /// `x^{5 - 2}` for `\frac{x^5}{x^2}`, or `\frac{1}{x^{5 - 2}}` the other way round: a power over a
@@ -246,9 +246,9 @@ fn zero_note(base: &Poly) -> String {
         (true, 1, Some(var)) => {
             let root = -base.coeff_of(&Monomial::one()) / base.coeff_of(&Monomial::from_var(&var));
             let root = serializer::expression(&rational_to_node(&root));
-            crate::text::msg!("Note: {var} ≠ {root}: the cancelled factor {factor} is zero there, so the input is undefined at {var} = {root}", "Hinweis: {var} ≠ {root}: der gekürzte Faktor {factor} ist dort null, die Eingabe ist bei {var} = {root} nicht definiert")
+            crate::text::msg!("core.algebra.reduce.note_cancelled_factor_zero_there")
         }
-        _ => crate::text::msg!("Note: {factor} ≠ 0: where the cancelled factor is zero, the input is undefined", "Hinweis: {factor} ≠ 0: wo der gekürzte Faktor null ist, ist die Eingabe nicht definiert"),
+        _ => crate::text::msg!("core.algebra.reduce.note_0_where_cancelled_factor"),
     }
 }
 

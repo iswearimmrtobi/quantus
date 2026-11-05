@@ -3040,6 +3040,7 @@ version = "0.1.0"
 dependencies = [
  "astro-float",
  "dashu",
+ "quantus-texts",
  "serde",
  "serde_json",
 ]

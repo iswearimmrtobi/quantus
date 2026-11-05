@@ -84,7 +84,7 @@ impl Sphere {
     /// The sphere around `centre` with `radius`, which must be positive.
     pub fn new(centre: &Point, radius: Value) -> Result<Sphere> {
         if radius.is_zero() || radius.is_negative()? {
-            return Err(error(msg!("The radius of a sphere must be positive.", "Der Radius einer Kugel muss positiv sein.")));
+            return Err(error(msg!("core.geometry.sphere.radius_sphere_must_positive")));
         }
         Ok(Sphere { centre: spatial(centre), radius })
     }
@@ -99,19 +99,17 @@ impl Sphere {
         let mp = centre.to(p);
         if mp.is_zero() {
             return Err(error(msg!(
-                "The point is the centre, so the radius would be 0.",
-                "Der Punkt ist der Mittelpunkt, der Radius wäre also 0."
-            )));
+                "core.geometry.sphere.point_centre_radius_would_0")));
         }
         let mut working = Working::default();
         let radius = mp.length()?;
         working.add(
             Standard,
-            msg!("The radius is the distance from the centre to the point:", "Der Radius ist der Abstand vom Mittelpunkt zum Punkt:"),
+            msg!("core.geometry.sphere.radius_distance_from_centre_point"),
             format!("r = \\left|\\overrightarrow{{MP}}\\right| = \\left|{}\\right| = {} = {}", show::vector(&mp), show::length(&mp), show::value(&radius)),
         );
         let sphere = Sphere::new(centre, radius)?;
-        working.add(Brief, msg!("The sphere:", "Die Kugel:"), sphere.equation());
+        working.add(Brief, msg!("core.geometry.sphere.sphere"), sphere.equation());
         Ok(Worked::new(sphere, working))
     }
 
@@ -124,17 +122,13 @@ impl Sphere {
         let determinant = triple_product(&rows[0], &rows[1], &rows[2])?;
         if determinant.is_zero() {
             return Err(error(msg!(
-                "The four points lie in one plane, so no single sphere passes through them.",
-                "Die vier Punkte liegen in einer Ebene, also geht keine eindeutige Kugel durch sie."
-            )));
+                "core.geometry.sphere.four_points_lie_one_plane")));
         }
         let mut working = Working::default();
         working.add(
             Standard,
             msg!(
-                "The centre M is equally far from all points; subtracting the equation of A from the others:",
-                "Der Mittelpunkt M ist von allen Punkten gleich weit entfernt; die Gleichung von A von den anderen abziehen:"
-            ),
+                "core.geometry.sphere.centre_m_equally_far_from"),
             format!(
                 "\\begin{{aligned}} {} \\end{{aligned}}",
                 rows.iter()
@@ -158,21 +152,21 @@ impl Sphere {
             coords.push(triple_product(&replaced[0], &replaced[1], &replaced[2])?.div(&determinant)?);
         }
         let centre = Point::new(coords[0].clone(), coords[1].clone(), coords[2].clone());
-        working.add(Standard, msg!("Solved, the centre:", "Gelöst, der Mittelpunkt:"), format!("M = {}", show::point(&centre)));
+        working.add(Standard, msg!("core.geometry.sphere.solved_centre"), format!("M = {}", show::point(&centre)));
         let ma = centre.to(a);
         let radius = ma.length()?;
         working.add(
             Standard,
-            msg!("The radius is the distance to A:", "Der Radius ist der Abstand zu A:"),
+            msg!("core.geometry.sphere.radius_distance"),
             format!("r = \\left|\\overrightarrow{{MA}}\\right| = {} = {}", show::length(&ma), show::value(&radius)),
         );
         let checks: Vec<String> = [("B", b), ("C", c), ("D", d)]
             .iter()
             .map(|(name, p)| Ok(format!("\\left|\\overrightarrow{{M{name}}}\\right| = {}", show::value(&centre.to(p).length()?))))
             .collect::<Result<_>>()?;
-        working.add(Maximal, msg!("Check: the other points are as far away.", "Probe: Die anderen Punkte sind gleich weit entfernt."), checks.join(", \\quad "));
+        working.add(Maximal, msg!("core.geometry.sphere.check_other_points_far_away"), checks.join(", \\quad "));
         let sphere = Sphere::new(&centre, radius)?;
-        working.add(Brief, msg!("The sphere:", "Die Kugel:"), sphere.equation());
+        working.add(Brief, msg!("core.geometry.sphere.sphere"), sphere.equation());
         Ok(Worked::new(sphere, working))
     }
 
@@ -194,22 +188,22 @@ impl Sphere {
         let length = mp.length()?;
         working.add(
             Standard,
-            msg!("The distance from the centre:", "Der Abstand zum Mittelpunkt:"),
+            msg!("core.geometry.sphere.distance_from_centre"),
             format!("\\left|\\overrightarrow{{MP}}\\right| = \\left|{}\\right| = {} = {}", show::vector(&mp), show::length(&mp), show::value(&length)),
         );
         let (squared, r2) = (mp.dot(&mp), self.radius_squared());
         let result = if equal(&squared, &r2) {
-            working.add(Brief, msg!("The point lies on the sphere.", "Der Punkt liegt auf der Kugel."), format!("\\left|\\overrightarrow{{MP}}\\right| = r = {}", show::value(&self.radius)));
+            working.add(Brief, msg!("core.geometry.sphere.point_lies_sphere"), format!("\\left|\\overrightarrow{{MP}}\\right| = r = {}", show::value(&self.radius)));
             SpherePoint::On
         } else if squared.sub(&r2).is_negative()? {
             let distance = self.radius.sub(&length);
-            working.add(Brief, msg!("The point lies inside the sphere.", "Der Punkt liegt innerhalb der Kugel."), format!("{} < r = {}", show::value(&length), show::value(&self.radius)));
-            working.add(Brief, msg!("Its distance to the sphere:", "Sein Abstand zur Kugel:"), format!("d = r - \\left|\\overrightarrow{{MP}}\\right| = {}", show::value(&distance)));
+            working.add(Brief, msg!("core.geometry.sphere.point_lies_inside_sphere"), format!("{} < r = {}", show::value(&length), show::value(&self.radius)));
+            working.add(Brief, msg!("core.geometry.sphere.distance_sphere"), format!("d = r - \\left|\\overrightarrow{{MP}}\\right| = {}", show::value(&distance)));
             SpherePoint::Inside { distance }
         } else {
             let distance = length.sub(&self.radius);
-            working.add(Brief, msg!("The point lies outside the sphere.", "Der Punkt liegt außerhalb der Kugel."), format!("{} > r = {}", show::value(&length), show::value(&self.radius)));
-            working.add(Brief, msg!("Its distance to the sphere:", "Sein Abstand zur Kugel:"), format!("d = \\left|\\overrightarrow{{MP}}\\right| - r = {}", show::value(&distance)));
+            working.add(Brief, msg!("core.geometry.sphere.point_lies_outside_sphere"), format!("{} > r = {}", show::value(&length), show::value(&self.radius)));
+            working.add(Brief, msg!("core.geometry.sphere.distance_sphere"), format!("d = \\left|\\overrightarrow{{MP}}\\right| - r = {}", show::value(&distance)));
             SpherePoint::Outside { distance }
         };
         Ok(Worked::new(result, working))
@@ -219,8 +213,8 @@ impl Sphere {
     pub fn surface(&self) -> Worked<Value> {
         let mut working = Working::default();
         let surface = Value::int(4).mul(&Value::Pi).mul(&self.radius_squared());
-        working.add(Detailed, msg!("The formula:", "Die Formel:"), format!("O = 4 \\pi r^2 = 4 \\pi \\cdot {}^2", show::factor(&self.radius)));
-        working.add(Brief, msg!("The surface:", "Die Oberfläche:"), format!("O = {}", show::value(&surface)));
+        working.add(Detailed, msg!("core.geometry.sphere.formula"), format!("O = 4 \\pi r^2 = 4 \\pi \\cdot {}^2", show::factor(&self.radius)));
+        working.add(Brief, msg!("core.geometry.sphere.surface"), format!("O = {}", show::value(&surface)));
         Worked::new(surface, working)
     }
 
@@ -228,8 +222,8 @@ impl Sphere {
     pub fn volume(&self) -> Worked<Value> {
         let mut working = Working::default();
         let volume = Value::ratio(4, 3).mul(&Value::Pi).mul(&self.radius_squared()).mul(&self.radius);
-        working.add(Detailed, msg!("The formula:", "Die Formel:"), format!("V = \\frac{{4}}{{3}} \\pi r^3 = \\frac{{4}}{{3}} \\pi \\cdot {}^3", show::factor(&self.radius)));
-        working.add(Brief, msg!("The volume:", "Das Volumen:"), format!("V = {}", show::value(&volume)));
+        working.add(Detailed, msg!("core.geometry.sphere.formula"), format!("V = \\frac{{4}}{{3}} \\pi r^3 = \\frac{{4}}{{3}} \\pi \\cdot {}^3", show::factor(&self.radius)));
+        working.add(Brief, msg!("core.geometry.sphere.volume"), format!("V = {}", show::value(&volume)));
         Worked::new(volume, working)
     }
 
@@ -243,7 +237,7 @@ impl Sphere {
         let offset = Vector3 { planar, ..offset };
         working.add(
             Standard,
-            msg!("Put the line into the vector form of the sphere:", "Die Gerade in die Vektorform der Kugel einsetzen:"),
+            msg!("core.geometry.sphere.put_line_into_vector_form"),
             format!("\\left({} + \\lambda {}\\right)^2 = {}", show::vector(&offset), show::vector(u), show::value(&self.radius_squared())),
         );
         let a = u.dot(u);
@@ -251,27 +245,27 @@ impl Sphere {
         let c = offset.dot(&offset).sub(&self.radius_squared());
         working.add(
             Standard,
-            msg!("Multiplied out:", "Ausmultipliziert:"),
+            msg!("core.geometry.sphere.multiplied_out"),
             format!("{} = 0", show::combination(&[(&a, "\\lambda^2"), (&b, "\\lambda"), (&c, "")])),
         );
         let discriminant = b.mul(&b).sub(&Value::int(4).mul(&a).mul(&c));
         working.add(
             Detailed,
-            msg!("The discriminant:", "Die Diskriminante:"),
+            msg!("core.geometry.sphere.discriminant"),
             format!("D = b^2 - 4ac = {}^2 - 4 \\cdot {} \\cdot {} = {}", show::factor(&b), show::factor(&a), show::factor(&c), show::value(&discriminant)),
         );
         let twice = Value::int(2).mul(&a);
         if equal(&discriminant, &Value::zero()) {
             let lambda = b.neg().div(&twice)?;
             let point = Point { planar, ..line.at(&lambda) };
-            working.add(Standard, msg!("One solution:", "Eine Lösung:"), format!("\\lambda = {}", show::value(&lambda)));
-            working.add(Brief, msg!("The line touches the sphere (tangent) in", "Die Gerade berührt die Kugel (Tangente) in"), format!("B = {}", show::point(&point)));
+            working.add(Standard, msg!("core.geometry.sphere.one_solution"), format!("\\lambda = {}", show::value(&lambda)));
+            working.add(Brief, msg!("core.geometry.sphere.line_touches_sphere_tangent"), format!("B = {}", show::point(&point)));
             return Ok(Worked::new(SphereLine::Tangent { point, lambda }, working));
         }
         if discriminant.is_negative()? {
             working.add(
                 Brief,
-                msg!("No solution: the line misses the sphere (passant).", "Keine Lösung: Die Gerade verfehlt die Kugel (Passante)."),
+                msg!("core.geometry.sphere.no_solution_line_misses_sphere"),
                 "D < 0",
             );
             return Ok(Worked::new(SphereLine::Passant, working));
@@ -280,13 +274,13 @@ impl Sphere {
         let lambdas = [b.neg().sub(&root).div(&twice)?, b.neg().add(&root).div(&twice)?];
         working.add(
             Standard,
-            msg!("Two solutions:", "Zwei Lösungen:"),
+            msg!("core.geometry.sphere.two_solutions"),
             format!("\\lambda_1 = {}, \\quad \\lambda_2 = {}", show::value(&lambdas[0]), show::value(&lambdas[1])),
         );
         let points = [Point { planar, ..line.at(&lambdas[0]) }, Point { planar, ..line.at(&lambdas[1]) }];
         working.add(
             Brief,
-            msg!("The line cuts the sphere (secant) in", "Die Gerade schneidet die Kugel (Sekante) in"),
+            msg!("core.geometry.sphere.line_cuts_sphere_secant"),
             format!("S_1 = {}, \\quad S_2 = {}", show::point(&points[0]), show::point(&points[1])),
         );
         Ok(Worked::new(SphereLine::Secant { points, lambdas }, working))
@@ -302,7 +296,7 @@ impl Sphere {
             working.extend(foot);
             working.add(
                 Brief,
-                msg!("d = r: the plane touches the sphere in", "d = r: Die Ebene berührt die Kugel in"),
+                msg!("core.geometry.sphere.d_r_plane_touches_sphere"),
                 format!("B = {}", show::point(&point)),
             );
             return Ok(Worked::new(SpherePlane::Tangent { point }, working));
@@ -311,15 +305,15 @@ impl Sphere {
             let gap = distance.sub(&self.radius);
             working.add(
                 Brief,
-                msg!("d > r: the plane does not touch the sphere.", "d > r: Die Ebene berührt die Kugel nicht."),
+                msg!("core.geometry.sphere.d_r_plane_does_not"),
                 format!("{} > r = {}", show::value(&distance), show::value(&self.radius)),
             );
-            working.add(Standard, msg!("The gap between them:", "Der Abstand zwischen ihnen:"), format!("d - r = {}", show::value(&gap)));
+            working.add(Standard, msg!("core.geometry.sphere.gap_between_them"), format!("d - r = {}", show::value(&gap)));
             return Ok(Worked::new(SpherePlane::Apart { distance, gap }, working));
         }
         working.add(
             Standard,
-            msg!("d < r: the plane cuts the sphere in a circle.", "d < r: Die Ebene schneidet die Kugel in einem Kreis."),
+            msg!("core.geometry.sphere.d_r_plane_cuts_sphere"),
             format!("{} < r = {}", show::value(&distance), show::value(&self.radius)),
         );
         let Worked { result: centre, working: foot } = plane.foot(&self.centre)?;
@@ -327,12 +321,12 @@ impl Sphere {
         let radius = r2.sub(&d2).pow(&Value::ratio(1, 2))?;
         working.add(
             Standard,
-            msg!("The radius of the circle, by Pythagoras:", "Der Radius des Kreises nach Pythagoras:"),
+            msg!("core.geometry.sphere.radius_circle_pythagoras"),
             format!("\\rho = \\sqrt{{r^2 - d^2}} = \\sqrt{{{} - {}}} = {}", show::value(&r2), show::value(&d2), show::value(&radius)),
         );
         working.add(
             Brief,
-            msg!("The circle of intersection:", "Der Schnittkreis:"),
+            msg!("core.geometry.sphere.circle_intersection"),
             format!("M' = {}, \\quad \\rho = {}", show::point(&centre), show::value(&radius)),
         );
         let circle = Circle { centre, radius, normal: plane.normal.clone() };
@@ -344,20 +338,18 @@ impl Sphere {
         let normal = self.centre.to(p);
         if !equal(&normal.dot(&normal), &self.radius_squared()) {
             return Err(error(msg!(
-                "The point does not lie on the sphere, so it has no tangent plane there.",
-                "Der Punkt liegt nicht auf der Kugel, dort gibt es also keine Tangentialebene."
-            )));
+                "core.geometry.sphere.point_does_not_lie_sphere")));
         }
         let mut working = Working::default();
         let normal = Vector3 { planar: false, ..normal };
         working.add(
             Standard,
-            msg!("The radius to the point is the normal:", "Der Radius zum Punkt ist der Normalenvektor:"),
+            msg!("core.geometry.sphere.radius_point_normal"),
             format!("\\vec{{n}} = \\overrightarrow{{MP}} = {}", show::vector(&normal)),
         );
         let plane = Plane::with_normal(p, &normal)?;
-        working.add(Brief, msg!("The tangent plane:", "Die Tangentialebene:"), plane.equation());
-        working.add(Standard, msg!("In coordinate form:", "In Koordinatenform:"), plane.equation_in(PlaneForm::Coordinate));
+        working.add(Brief, msg!("core.geometry.sphere.tangent_plane"), plane.equation());
+        working.add(Standard, msg!("core.geometry.sphere.coordinate_form"), plane.equation_in(PlaneForm::Coordinate));
         Ok(Worked::new(plane, working))
     }
 
@@ -371,18 +363,18 @@ impl Sphere {
         let distance = d2.pow(&Value::ratio(1, 2))?;
         working.add(
             Standard,
-            msg!("The distance of the centres:", "Der Abstand der Mittelpunkte:"),
+            msg!("core.geometry.sphere.distance_centres"),
             format!("d = \\left|\\overrightarrow{{M_1 M_2}}\\right| = \\left|{}\\right| = {}", show::vector(&between), show::value(&distance)),
         );
         let (r1, r2) = (&self.radius, &other.radius);
         if d2.is_zero() {
             if equal(r1, r2) {
-                working.add(Brief, msg!("Same centre and radius: the spheres are identical.", "Gleicher Mittelpunkt und Radius: Die Kugeln sind identisch."), "K_1 = K_2");
+                working.add(Brief, msg!("core.geometry.sphere.same_centre_radius_spheres_identical"), "K_1 = K_2");
                 return Ok(Worked::new(SphereSphere::Identical, working));
             }
             working.add(
                 Brief,
-                msg!("Same centre, different radii: one lies inside the other.", "Gleicher Mittelpunkt, verschiedene Radien: Eine liegt in der anderen."),
+                msg!("core.geometry.sphere.same_centre_different_radii_one"),
                 format!("r_1 = {} \\neq r_2 = {}", show::value(r1), show::value(r2)),
             );
             return Ok(Worked::new(SphereSphere::Concentric, working));
@@ -391,23 +383,23 @@ impl Sphere {
         let difference = super::abs(r1.sub(r2))?;
         working.add(
             Standard,
-            msg!("Compare with the sum and the difference of the radii:", "Mit Summe und Differenz der Radien vergleichen:"),
+            msg!("core.geometry.sphere.compare_sum_difference_radii"),
             format!("r_1 + r_2 = {}, \\quad \\left|r_1 - r_2\\right| = {}", show::value(&sum), show::value(&difference)),
         );
         if sum.mul(&sum).sub(&d2).is_negative()? && !equal(&sum.mul(&sum), &d2) {
             let gap = distance.sub(&sum);
             working.add(
                 Brief,
-                msg!("d > r₁ + r₂: the spheres lie apart.", "d > r₁ + r₂: Die Kugeln liegen außerhalb voneinander."),
+                msg!("core.geometry.sphere.d_r_r_spheres_lie"),
                 format!("{} > {}", show::value(&distance), show::value(&sum)),
             );
-            working.add(Standard, msg!("The gap between them:", "Der Abstand zwischen ihnen:"), format!("d - r_1 - r_2 = {}", show::value(&gap)));
+            working.add(Standard, msg!("core.geometry.sphere.gap_between_them"), format!("d - r_1 - r_2 = {}", show::value(&gap)));
             return Ok(Worked::new(SphereSphere::Apart { gap }, working));
         }
         if d2.sub(&difference.mul(&difference)).is_negative()? && !equal(&difference.mul(&difference), &d2) {
             working.add(
                 Brief,
-                msg!("d < |r₁ − r₂|: one sphere lies inside the other.", "d < |r₁ − r₂|: Eine Kugel liegt in der anderen."),
+                msg!("core.geometry.sphere.d_r_r_one_sphere"),
                 format!("{} < {}", show::value(&distance), show::value(&difference)),
             );
             return Ok(Worked::new(SphereSphere::Inside, working));
@@ -424,10 +416,10 @@ impl Sphere {
         let plane = Plane::coordinate(a, b, c, constant)?;
         working.add(
             Standard,
-            msg!("Subtract the equations of the spheres; x², y² and z² cancel:", "Die Kugelgleichungen subtrahieren; x², y² und z² fallen weg:"),
+            msg!("core.geometry.sphere.subtract_equations_spheres_x_y"),
             "2 \\left(\\vec{m_2} - \\vec{m_1}\\right) \\cdot \\vec{x} = r_1^2 - r_2^2 - \\vec{m_1}^2 + \\vec{m_2}^2",
         );
-        working.add(Brief, msg!("The Potenzebene:", "Die Potenzebene:"), plane.equation());
+        working.add(Brief, msg!("core.geometry.sphere.potenzebene"), plane.equation());
         let Worked { result, working: cut } = self.meet_plane(&plane)?;
         working.extend(cut);
         let relation = match result {
