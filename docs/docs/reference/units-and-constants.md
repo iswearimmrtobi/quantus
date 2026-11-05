@@ -138,7 +138,7 @@ with the subscript in braces or without (`\mu_{N}` or `\mu_N`).
 The app's **Library** window (<kbd>Ctrl</kbd>+<kbd>K</kbd>) lists them with their values; a
 click puts one in at the cursor and closes the window, with <kbd>Shift</kbd> it stays open. Its
 **Convert** tab lists the units `▶` converts to: a click puts in `▶` and the unit, with
-<kbd>Alt</kbd> the unit alone.
+<kbd>Alt</kbd> the unit alone. How the arrow works: [Converting units](../guides/physics/convert.md).
 
 Faster is the **quick search** (<kbd>Ctrl</kbd>+<kbd>F</kbd>): type part of a name, in the set
 language or in English, or a symbol, and <kbd>Enter</kbd> puts in the first hit. `steff` finds

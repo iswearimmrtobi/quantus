@@ -153,7 +153,7 @@ and the variants `\varepsilon`, `\vartheta`, `\varphi`.
 | `2\,\mathrm{kg}`, `3\text{ m}` | explicit, works in every mode |
 | `\qty{12}{cm}`, `\SI{12}{cm}`, `\num{12}`, `\unit{cm}`, `\si{cm}` | siunitx; the unit is written with symbols, not `\kilo\metre` |
 | `25°C`, `77°F`, `30^\circ` | degree Celsius, degree Fahrenheit, degree of angle |
-| `5\,\mathrm{cm} \blacktriangleright \mathrm{in}`, `▶` | the value written in the unit after the arrow, in every mode; the dimensions must match. Temperatures convert with their offset: `50°F ▶ ^\circ\mathrm{C}` is $10\,^\circ\mathrm{C}$ |
+| `5\,\mathrm{cm} \blacktriangleright \mathrm{in}`, `▶` | the value written in the unit after the arrow, in every mode; the dimensions must match. Temperatures convert with their offset: `50°F ▶ ^\circ\mathrm{C}` is $10\,^\circ\mathrm{C}$; see [Converting units](../guides/physics/convert.md) |
 
 The full list is in [Units and constants](units-and-constants.md).
 

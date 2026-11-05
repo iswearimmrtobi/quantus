@@ -40,10 +40,8 @@ The first unit sets the target. Units you typed yourself are kept: `72\frac{km}{
 $\mathrm{km/h}$. Only a product the arithmetic made, such as $\mathrm{kg \cdot m^2/s^2}$, is
 replaced by its named unit.
 
-:::note
-There is no command to convert into a unit of your choice yet. Divide by that unit instead:
-`\frac{72\,\mathrm{km/h}}{1\,\mathrm{m/s}}` gives $20$.
-:::
+To get a result in a unit of your choice, put `▶` and the unit after it: `72\frac{km}{h} ▶ \frac{m}{s}`
+gives $20\,\mathrm{m/s}$. See [Converting units](convert.md).
 
 ## Work with variables
 
@@ -96,5 +94,6 @@ $5\,\mathrm{N}$.
 ## See also
 
 - [Given, wanted, solution](writeup.md): write the session up as a physics solution
+- [Converting units](convert.md): a result in the unit of your choice
 - [Units and constants](../../reference/units-and-constants.md)
 - [Concepts](../../getting-started/concepts.md): why letters become units
