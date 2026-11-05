@@ -44,16 +44,41 @@ as the formula with the values put in or a factor written out before it is cance
 When a factor is cancelled, the step before shows which one. With
 **Strike out cancelled factors** on, it is struck through; off, it is shown in colour.
 
-## Forms of a result and ENG
+## Forms of a result
 
 Under the result, buttons switch between the forms it has: a fraction as $\frac{7}{3}$, mixed
 as $2\frac{1}{3}$, as the recurring decimal $2{,}\overline{3}$ and as the decimal; a whole
 number in prime factors (**FACT**); a root or π exact and as the decimal; a complex number as
 $a + bi$ and $r \angle \theta$; an angle in degrees, minutes and seconds; in Basis-N the other
-three bases. <kbd>Ctrl</kbd>+<kbd>D</kbd> steps to the next one. **ENG** (<kbd>Ctrl</kbd>+<kbd>E</kbd>)
-writes a decimal result with an exponent that is a multiple of three, each further press moves
-it by three; **←ENG** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) moves it the other way.
+three bases. <kbd>Ctrl</kbd>+<kbd>D</kbd> steps to the next one.
 Which form comes first is set in [Settings](../reference/settings.md#numbers).
+
+## ENG
+
+**ENG** (<kbd>Ctrl</kbd>+<kbd>E</kbd>) writes the result in engineering notation: with an
+exponent that is a multiple of three, as on a Casio calculator. Each further press moves the
+exponent up by three and the decimal point to the left. **←ENG**
+(<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) moves it the other way; pressed first, it starts
+one step below ENG. Both buttons are next to the forms under the result.
+
+For the result $12345$:
+
+| Keys | Shows |
+|---|---|
+| ENG | $12{,}345 \cdot 10^{3}$ |
+| ENG, ENG | $0{,}012345 \cdot 10^{6}$ |
+| ←ENG | $12345 \cdot 10^{0}$ |
+| ←ENG, ←ENG | $12345000 \cdot 10^{-3}$ |
+
+ENG works on the decimal value of every result, also a fraction or a root, but not in Base-N or
+Verify. A unit stays behind the number ($4{,}7 \cdot 10^{3}\,\mathrm{\Omega}$), and a complex
+number gets each part stepped on its own:
+$1{,}5 \cdot 10^{3} + (2{,}5 \cdot 10^{3})i$. A new result, another form or <kbd>Ctrl</kbd>+<kbd>D</kbd>
+ends ENG.
+
+With **Settings → Decimal prefixes** on, a result without a unit gets a prefix instead of the
+power of ten: $12{,}345\,\mathrm{k}$, $47\,\mathrm{\mu}$, and $12345$ for the exponent 0.
+A result with a unit keeps the power of ten, so the unit you see is still the one of the result.
 
 ## Copy
 
