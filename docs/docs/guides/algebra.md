@@ -157,5 +157,5 @@ An expression that is already as simple as Quantus can make it is shown as typed
 ## See also
 
 - [Complex numbers](imaginary.md) for equations without real solutions
-- [Working and output](working-and-output.md) for more or fewer steps
+- [Working and output](../basics/working-and-output.md) for more or fewer steps
 - [Known limits](../reference/limits.md)

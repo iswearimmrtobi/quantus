@@ -201,4 +201,4 @@ See [Settings](../reference/settings.md).
 ## See also
 
 - [Algebra](algebra.md): how numbers are read
-- [Working and output](working-and-output.md)
+- [Working and output](../basics/working-and-output.md)

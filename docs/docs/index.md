@@ -44,5 +44,6 @@ Every result can be copied as LaTeX.
   [Your first calculation](getting-started/first-calculation.md).
 - Read [Concepts](getting-started/concepts.md) once: modes, how letters are read and why
   variables carry an index explain most surprises.
-- The **Guides** show one task each, the **Reference** lists everything that is supported.
+- **Using Quantus** covers what every mode shares, **Modes** has a section per mode, the
+  **Reference** lists everything that is supported.
 - Want to change the code? Start with [Architecture](contributing/architecture.md).

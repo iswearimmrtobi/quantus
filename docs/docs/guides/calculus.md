@@ -9,7 +9,7 @@ Derivatives at a point, definite integrals, limits and sums work in every calcul
 with units in Physics mode. For a function as a whole (its derivative, antiderivative, zeros and
 graph) use [Curve sketching](analysis.md).
 
-These are easiest to type in the [LaTeX source](input.md#the-latex-source).
+These are easiest to type in the [LaTeX source](../basics/input.md#the-latex-source).
 
 ## Derivative at a point
 

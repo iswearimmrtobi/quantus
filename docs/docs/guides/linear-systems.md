@@ -149,4 +149,4 @@ See [Settings](../reference/settings.md).
 
 - [Algebra](algebra.md#systems-of-linear-equations): systems typed with `;`, with stored values
   as coefficients
-- [Working and output](working-and-output.md)
+- [Working and output](../basics/working-and-output.md)

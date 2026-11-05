@@ -196,4 +196,4 @@ See [Settings](../reference/settings.md).
 ## See also
 
 - [Linear systems](linear-systems.md): the Gauss steps in detail
-- [Working and output](working-and-output.md)
+- [Working and output](../basics/working-and-output.md)

@@ -55,7 +55,7 @@ Three settings under **Settings → Input** change how letters are read:
 
 Everything you define lives in the current session and shows up in the **Variables** panel. The
 **History** panel (<kbd>Ctrl</kbd>+<kbd>H</kbd>) keeps the calculations. Delete a variable from
-the panel to forget it. See [Variables and history](../guides/variables-and-history.md).
+the panel to forget it. See [Variables and history](../basics/variables-and-history.md).
 
 ## Numbers are exact
 
@@ -77,4 +77,4 @@ at most 30. See [Known limits](../reference/limits.md).
 Each result comes with its steps, labelled SYMBOLIC (the formula as entered), SUBSTITUTED (the
 variables put in), STEP (one rule each) and RESULT. How many steps you see is the
 **Step detail** setting, from *None* to *Maximal*; see
-[Working and output](../guides/working-and-output.md).
+[Working and output](../basics/working-and-output.md).

@@ -113,7 +113,7 @@ Geometry mode always works as with **Exact as a root** on: a distance is $2\sqrt
 
 Each level contains every step of the levels before it. With **Strike out cancelled factors**
 off, a cancelled factor is shown in colour instead. See
-[Working and output](../guides/working-and-output.md).
+[Working and output](../basics/working-and-output.md).
 
 **Systems of equations** decides how the steps of a system (`2x + y = 5; x - y = 1`) reduce it:
 **Gauss** brings it to triangle form without fractions and then solves from the bottom up, as
