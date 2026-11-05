@@ -1,14 +1,12 @@
 ---
-sidebar_position: 10
-title: Base-N and Verify
+sidebar_position: 9
+title: Base-N
 ---
 
-# Base-N and Verify
+# Base-N
 
-Two small modes modelled on the Casio fx-991DE X: **Base-N** (German *Basis-N*) calculates with
-whole numbers in four bases, **Verify** (German *Prüfen*) checks whether a statement is true.
-
-## Base-N
+**Base-N** mode (German *Basis-N*), modelled on the Casio fx-991DE X, calculates with whole
+numbers in four bases.
 
 Switch to **Base-N** in the top bar. Above the input are a switch **DEC / HEX / BIN / OCT** for
 the base the input is read in and the result written in, and keys for the logic and the
@@ -42,28 +40,7 @@ A digit the base does not have, or a result outside 32 bits, is refused:
 | `1F + 1` in DEC | *'1F' is not a number in decimal.* |
 | `2147483647 + 1` | *The result does not fit 32 bits (from -2147483648 to 2147483647).* |
 
-## Verify
-
-Switch to **Verify** in the top bar. Every input is checked instead of solved: the answer is
-$\text{true}$ or $\text{false}$ (German *wahr*, *falsch*). The keys above the input put in
-`=`, `≠`, `<`, `>`, `≤` and `≥`.
-
-| Input | Result |
-|---|---|
-| `2 + 3 = 5` | $\text{true}$ |
-| `\sqrt{2}^2 = 2` | $\text{true}$ |
-| `\pi > 3{,}2` | $\text{false}$ |
-| `\frac{1}{3} \ne 0{,}333` | $\text{true}$ |
-| `1 < 2 \le 2` | $\text{true}$: a chain is true when every link is |
-
-Both sides are compared to 40 digits and must have the same dimension: `1 = 1\,\mathrm{m}` is an
-error. Session variables are put in. A letter without a value is an error, since there is nothing to check.
-
-Outside this mode, an equation without an unknown is checked the same way. Verify differs in
-reading `a_1 = 3` as a comparison, where the other modes define $a_1$.
-
 ## See also
 
-- [Syntax: Basis-N](../reference/syntax.md#basis-n) and
-  [Syntax: Equations](../reference/syntax.md#equations)
+- [Syntax: Basis-N](../reference/syntax.md#basis-n)
 - [Settings: Number base](../reference/settings.md#outside-the-window)
