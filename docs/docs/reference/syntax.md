@@ -85,7 +85,7 @@ before sums.
 | `\left.\frac{\partial^2}{\partial x \partial z} f\right\|_{x=1, z=2}` | mixed partials, also `\partial^3 / \partial x^2 \partial z` |
 
 An integral needs bounds (`\oint` is refused) and a derivative needs a point; for antiderivatives and derivatives as
-functions use [Curve sketching](../guides/analysis.md).
+functions use [Curve sketching](../guides/analysis/index.md).
 
 ## Equations
 

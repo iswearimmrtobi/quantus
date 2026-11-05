@@ -7,7 +7,7 @@ title: Calculus
 
 Derivatives at a point, definite integrals, limits and sums work in every calculator mode, and
 with units in Physics mode. For a function as a whole (its derivative, antiderivative, zeros and
-graph) use [Curve sketching](../guides/analysis.md).
+graph) use [Curve sketching](../guides/analysis/index.md).
 
 These are easiest to type in the [LaTeX source](input.md#the-latex-source).
 
