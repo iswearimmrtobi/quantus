@@ -9,6 +9,7 @@ use crate::latex::numbers::Style;
 use crate::latex::parser::ParseOptions;
 use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 /// Which way the binomial formulas are applied to a polynomial result.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, Hash)]
@@ -294,14 +295,13 @@ impl Default for Settings {
 impl Settings {
     pub fn validate(&self) -> Result<()> {
         if !(1..=MAX_PRECISION).contains(&self.precision) {
-            return Err(QuantusError::other(format!(
-                "The precision must be between 1 and {MAX_PRECISION} digits, but was {}.",
+            return Err(QuantusError::other(msg!("core.settings.precision_must_between_1_digits",
                 self.precision
             )));
         }
         if let NumberFormat::Fix { digits } | NumberFormat::Sci { digits } = self.number_format {
             if digits > 9 {
-                return Err(QuantusError::other(format!("The number format takes 0 to 9 digits, but was {digits}.")));
+                return Err(QuantusError::other(msg!("core.settings.number_format_takes_0_9")));
             }
         }
         Ok(())

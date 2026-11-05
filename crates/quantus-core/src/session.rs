@@ -25,6 +25,7 @@ use crate::quantity::PhysicalQuantity;
 use crate::matrix::Matrices;
 use crate::settings::{Mode, Settings};
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 pub const DEFAULT_SESSION: &str = "default";
 
@@ -271,9 +272,7 @@ impl Session {
 
     pub fn define_from_with(&mut self, latex: &str, precision: Option<i64>, settings: &Settings) -> Result<Variable> {
         self.evaluate_with(latex, precision, settings)?.1.ok_or_else(|| {
-            QuantusError::other(format!(
-                "'{latex}' does not define a variable. Write it as name and value, e.g. r_1 = 0{{,}}5m \
-                 — and remember that a variable name always carries a subscript."
+            QuantusError::other(msg!("core.session.does_not_define_variable_write"
             ))
         })
     }
@@ -294,7 +293,7 @@ impl Session {
         let calculator = LatexCalculator::new(precision_or(precision, settings.precision)?).with_settings(settings.clone());
         let calculation = calculator.evaluate(latex, &self.quantities())?;
         if matches!(calculation.formula.expression, crate::latex::Node::Equation { .. } | crate::latex::Node::System { .. }) {
-            return Err(QuantusError::other(format!("The value of {key} must be a number, not an equation.")));
+            return Err(QuantusError::other(msg!("core.session.value_must_number_not_equation")));
         }
         let variable = Variable {
             key: key.to_string(),
@@ -430,13 +429,13 @@ impl Session {
         for stored in &file.variables {
             let settings = Settings { mode: stored.mode, ..settings.clone() };
             session.assign(&stored.key, &stored.definition, None, &settings).map_err(|e| {
-                QuantusError::other(format!("The variable {} could not be restored: {e}", stored.key))
+                QuantusError::other(msg!("core.session.variable_could_not_restored", stored.key))
             })?;
         }
         let matrix_settings = Settings { mode: Mode::Matrix, ..settings.clone() };
         for stored in &file.matrices {
             session.evaluate_with(&format!("{} = {}", symbol_of(&stored.key), stored.definition), None, &matrix_settings).map_err(|e| {
-                QuantusError::other(format!("The matrix {} could not be restored: {e}", stored.key))
+                QuantusError::other(msg!("core.session.matrix_could_not_restored", stored.key))
             })?;
         }
         session.history = file.history;
@@ -455,7 +454,7 @@ impl Session {
 
     pub fn from_json(json: &str, settings: &Settings) -> Result<Session> {
         let file: SessionFile =
-            serde_json::from_str(json).map_err(|e| QuantusError::other(format!("This is no Quantus session file: {e}")))?;
+            serde_json::from_str(json).map_err(|e| QuantusError::other(msg!("core.session.no_quantus_session_file")))?;
         Session::from_file(file, settings)
     }
 }
@@ -464,10 +463,9 @@ impl Session {
 fn migrate(file: SessionFile) -> Result<SessionFile> {
     match file.version {
         FORMAT_VERSION => Ok(file),
-        version if version > FORMAT_VERSION => Err(QuantusError::other(format!(
-            "The session was saved by a newer Quantus (format {version}); this one reads up to format {FORMAT_VERSION}."
+        version if version > FORMAT_VERSION => Err(QuantusError::other(msg!("core.session.session_was_saved_newer_quantus"
         ))),
-        version => Err(QuantusError::other(format!("Unknown session format {version}."))),
+        version => Err(QuantusError::other(msg!("core.session.unknown_session_format"))),
     }
 }
 
@@ -475,8 +473,7 @@ fn precision_or(requested: Option<i64>, default: usize) -> Result<usize> {
     let Some(precision) = requested else { return Ok(default) };
     match usize::try_from(precision) {
         Ok(p) if (1..=MAX_PRECISION).contains(&p) => Ok(p),
-        _ => Err(QuantusError::other(format!(
-            "The precision must be between 1 and {MAX_PRECISION} digits, but was {precision}."
+        _ => Err(QuantusError::other(msg!("core.session.precision_must_between_1_digits"
         ))),
     }
 }
@@ -573,7 +570,7 @@ impl SessionStore {
 }
 
 pub(crate) fn unknown_session(id: &str) -> QuantusError {
-    QuantusError::other(format!("There is no session '{id}'."))
+    QuantusError::other(msg!("core.session.there_no_session"))
 }
 
 /// "Sitzung 2026-11-01 14:30" or "Session 2026-11-01 14:30"; without a time just the word.

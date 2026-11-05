@@ -232,7 +232,7 @@
     },
     "app.copy": {
       "en": "copy",
-      "de": "copy"
+      "de": "kopieren"
     },
     "app.detail.brief": {
       "en": "Brief",
@@ -372,7 +372,7 @@
     },
     "app.footer.session": {
       "en": "Session active",
-      "de": "Session aktiv"
+      "de": "Sitzung aktiv"
     },
     "app.form.bin": {
       "en": "BIN",
@@ -789,6 +789,10 @@
     "app.key.home": {
       "en": "Home",
       "de": "Pos1"
+    },
+    "app.key.shift": {
+      "en": "Shift",
+      "de": "Umschalt"
     },
     "app.key.shiftR": {
       "en": "Shift+R",
@@ -2078,6 +2082,10 @@
       "en": "Evaluate the power",
       "de": "Die Potenz ausrechnen"
     },
+    "core.algebra.pipeline.expression_contains_which_cannot_fully": {
+      "en": "Expression contains {construct}, which cannot be fully simplified algebraically; supported rational subtrees were simplified.",
+      "de": "Der Ausdruck enthält {construct}, das sich algebraisch nicht ganz vereinfachen lässt; die rationalen Teile wurden vereinfacht."
+    },
     "core.algebra.pipeline.extend_each_fraction_factor_denominator": {
       "en": "Extend each fraction by the factor its denominator is missing from the least common denominator {lcd_latex}",
       "de": "Jeden Bruch mit dem Faktor erweitern, der seinem Nenner zum Hauptnenner {lcd_latex} fehlt"
@@ -2154,6 +2162,18 @@
       "en": "Second binomial formula: a² - 2ab + b² = (a - b)²",
       "de": "Zweite binomische Formel: a² - 2ab + b² = (a - b)²"
     },
+    "core.algebra.pipeline.simplification_stopped_after_reaching_pass": {
+      "en": "Simplification stopped after reaching the pass limit; the result is equivalent but may not be fully simplified.",
+      "de": "Die Vereinfachung hat nach der Höchstzahl an Durchläufen angehalten; das Ergebnis ist gleichwertig, aber vielleicht nicht ganz vereinfacht."
+    },
+    "core.algebra.pipeline.simplification_stopped_after_reaching_step": {
+      "en": "Simplification stopped after reaching the step limit; the result is equivalent but may not be fully simplified.",
+      "de": "Die Vereinfachung hat nach der Höchstzahl an Schritten angehalten; das Ergebnis ist gleichwertig, aber vielleicht nicht ganz vereinfacht."
+    },
+    "core.algebra.pipeline.simplification_stopped_because_transformation_would": {
+      "en": "Simplification stopped because a transformation would have repeated an earlier form; the result is equivalent but may not be fully simplified.",
+      "de": "Die Vereinfachung hat angehalten, weil eine Umformung eine frühere Form wiederholt hätte; das Ergebnis ist gleichwertig, aber vielleicht nicht ganz vereinfacht."
+    },
     "core.algebra.pipeline.split_fraction": {
       "en": "Split the fraction",
       "de": "Den Bruch aufteilen"
@@ -2185,6 +2205,26 @@
     "core.algebra.pipeline.write_result_canonical_form_numerator": {
       "en": "Write the result in canonical form: numerator expanded, denominator factored",
       "de": "Das Ergebnis in Normalform schreiben: Zähler ausmultipliziert, Nenner faktorisiert"
+    },
+    "core.algebra.poly.division_non_constant_not_polynomial": {
+      "en": "Division by non-constant is not a polynomial.",
+      "de": "Eine Division durch eine Nicht-Konstante ergibt kein Polynom."
+    },
+    "core.algebra.poly.exponent_too_large": {
+      "en": "Exponent too large.",
+      "de": "Der Exponent ist zu groß."
+    },
+    "core.algebra.poly.expression_not_polynomial": {
+      "en": "Expression is not a polynomial.",
+      "de": "Der Ausdruck ist kein Polynom."
+    },
+    "core.algebra.poly.non_integer_negative_exponent_polynomial": {
+      "en": "Non-integer or negative exponent in polynomial.",
+      "de": "Nicht ganzzahliger oder negativer Exponent im Polynom."
+    },
+    "core.algebra.poly.variable_complex_exponent_polynomial": {
+      "en": "Variable or complex exponent in polynomial.",
+      "de": "Variabler oder komplexer Exponent im Polynom."
     },
     "core.algebra.powers.add_exponents": {
       "en": "Add the exponents: {}",
@@ -3298,6 +3338,70 @@
       "en": "Zeros inside the interval split it",
       "de": "Nullstellen im Intervall teilen es auf"
     },
+    "core.api.not_number": {
+      "en": "'{text}' is not a number.",
+      "de": "„{text}“ ist keine Zahl."
+    },
+    "core.api.session_needs_name": {
+      "en": "A session needs a name.",
+      "de": "Eine Sitzung braucht einen Namen."
+    },
+    "core.basen.basis_n_does_not_know": {
+      "en": "Basis-N does not know '{c}'.",
+      "de": "Basis-N kennt „{c}“ nicht."
+    },
+    "core.basen.basis_n_does_not_know_2": {
+      "en": "Basis-N does not know '\\{other}'.",
+      "de": "Basis-N kennt „\\{other}“ nicht."
+    },
+    "core.basen.bracket_not_closed": {
+      "en": "A bracket is not closed.",
+      "de": "Eine Klammer wird nicht geschlossen."
+    },
+    "core.basen.expected_here": {
+      "en": "Expected '{{' here.",
+      "de": "Hier wird „{{“ erwartet."
+    },
+    "core.basen.expected_number_before": {
+      "en": "Expected a number before '{}'.",
+      "de": "Vor „{}“ wird eine Zahl erwartet."
+    },
+    "core.basen.input_ends_too_early": {
+      "en": "The input ends too early.",
+      "de": "Die Eingabe endet zu früh."
+    },
+    "core.basen.not_closed": {
+      "en": "A '{{' is not closed.",
+      "de": "Ein „{{“ wird nicht geschlossen."
+    },
+    "core.basen.not_number": {
+      "en": "'{digits}' is not a number in {}.",
+      "de": "„{digits}“ ist keine Zahl in {}."
+    },
+    "core.basen.result_does_not_fit_32": {
+      "en": "The result does not fit 32 bits (from -2147483648 to 2147483647).",
+      "de": "Das Ergebnis passt nicht in 32 Bit (von -2147483648 bis 2147483647)."
+    },
+    "core.basen.type_number": {
+      "en": "Type a number.",
+      "de": "Eine Zahl eingeben."
+    },
+    "core.basen.unexpected": {
+      "en": "Unexpected '{}'.",
+      "de": "Unerwartetes „{}“."
+    },
+    "core.common.division_zero": {
+      "en": "Division by zero.",
+      "de": "Division durch null."
+    },
+    "core.common.equation_has_no_solution": {
+      "en": "The equation has no solution.",
+      "de": "Die Gleichung hat keine Lösung."
+    },
+    "core.common.point_has_two_three_coordinates": {
+      "en": "A point has two or three coordinates.",
+      "de": "Ein Punkt hat zwei oder drei Koordinaten."
+    },
     "core.electro.interface.cross_section": {
       "en": "cross-section",
       "de": "Querschnitt"
@@ -3522,6 +3626,14 @@
       "en": "false",
       "de": "falsch"
     },
+    "core.eval.calculator.inequality_has_more_than_one": {
+      "en": "The inequality has more than one unknown ({}); only one can be solved for.",
+      "de": "Die Ungleichung hat mehr als eine Unbekannte ({}); nur nach einer lässt sich auflösen."
+    },
+    "core.eval.calculator.inequality_has_no_solution": {
+      "en": "This inequality has no solution.",
+      "de": "Diese Ungleichung hat keine Lösung."
+    },
     "core.eval.calculator.multiplication_division": {
       "en": "Multiplication and division",
       "de": "Punktrechnung"
@@ -3550,9 +3662,233 @@
       "en": "true",
       "de": "wahr"
     },
+    "core.eval.calculator.value_not_form_bi": {
+      "en": "The value is not of the form a + bi.",
+      "de": "Der Wert hat nicht die Form a + bi."
+    },
+    "core.eval.calculator.variable_has_no_value_expression": {
+      "en": "The variable {one} has no value, so the expression is shown as typed. Only variables with a subscript can be defined, e.g. {one}_1 = 5m.",
+      "de": "Die Variable {one} hat keinen Wert, deshalb steht der Ausdruck wie eingegeben da. Nur Variablen mit Index lassen sich definieren, z. B. {one}_1 = 5m."
+    },
+    "core.eval.calculator.variables_have_no_value_expression": {
+      "en": "The variables {} have no value, so the expression is shown as typed. Only variables with a subscript can be defined, e.g. {}_1 = 5m.",
+      "de": "Die Variablen {} haben keinen Wert, deshalb steht der Ausdruck wie eingegeben da. Nur Variablen mit Index lassen sich definieren, z. B. {}_1 = 5m."
+    },
     "core.eval.calculator.zeros": {
       "en": "The zeros",
       "de": "Die Nullstellen"
+    },
+    "core.eval.derivative.cannot_differentiate": {
+      "en": "Cannot differentiate \\{other}.",
+      "de": "\\{other} lässt sich nicht ableiten."
+    },
+    "core.eval.derivative.cannot_differentiate_when_depend": {
+      "en": "Cannot differentiate when {what} depend on {var}.",
+      "de": "Ableiten geht nicht, wenn {what} von {var} abhängen."
+    },
+    "core.eval.derivative.expression_cannot_differentiated": {
+      "en": "This expression cannot be differentiated.",
+      "de": "Dieser Ausdruck lässt sich nicht ableiten."
+    },
+    "core.eval.derivative.limits_integral": {
+      "en": "the limits of an integral",
+      "de": "die Grenzen eines Integrals"
+    },
+    "core.eval.derivative.limits_sum": {
+      "en": "the limits of a sum",
+      "de": "die Grenzen einer Summe"
+    },
+    "core.eval.derivative.product_cannot_differentiated_write_out": {
+      "en": "A product \\prod cannot be differentiated; write it out.",
+      "de": "Ein Produkt \\prod lässt sich nicht ableiten; es ausschreiben."
+    },
+    "core.eval.evaluator.after_comes_unit_alone_such": {
+      "en": "After ▶ comes a unit alone, such as \\mathrm{{in}} or \\frac{{\\mathrm{{km}}}}{{\\mathrm{{h}}}}.",
+      "de": "Nach ▶ kommt nur eine Einheit, etwa \\mathrm{{in}} oder \\frac{{\\mathrm{{km}}}}{{\\mathrm{{h}}}}."
+    },
+    "core.eval.evaluator.angle_degrees": {
+      "en": "An angle in degrees",
+      "de": "Ein Winkel in Grad"
+    },
+    "core.eval.evaluator.angle_r": {
+      "en": "The angle of r\\angle\\theta",
+      "de": "Der Winkel von r\\angle\\theta"
+    },
+    "core.eval.evaluator.argument": {
+      "en": "The argument of \\{name}",
+      "de": "Das Argument von \\{name}"
+    },
+    "core.eval.evaluator.argument_2": {
+      "en": "An argument of \\{command}",
+      "de": "Ein Argument von \\{command}"
+    },
+    "core.eval.evaluator.argument_3": {
+      "en": "An argument of {name}",
+      "de": "Ein Argument von {name}"
+    },
+    "core.eval.evaluator.argument_factorial": {
+      "en": "The argument of the factorial",
+      "de": "Das Argument der Fakultät"
+    },
+    "core.eval.evaluator.arguments_must_non_negative_whole": {
+      "en": "The arguments of \\{command} must be non-negative whole numbers, but one was '{value}'.",
+      "de": "Die Argumente von \\{command} müssen nichtnegative ganze Zahlen sein, eines war aber „{value}“."
+    },
+    "core.eval.evaluator.arguments_must_whole_numbers_but": {
+      "en": "The arguments of {name} must be whole numbers, but one was '{value}'.",
+      "de": "Die Argumente von {name} müssen ganze Zahlen sein, eines war aber „{value}“."
+    },
+    "core.eval.evaluator.complex_numbers_have_no_order": {
+      "en": "Complex numbers have no order; only = and ≠ compare them.",
+      "de": "Komplexe Zahlen haben keine Ordnung; nur = und ≠ vergleichen sie."
+    },
+    "core.eval.evaluator.degree_root_must_plain_number": {
+      "en": "The degree of a root must be a plain number, not a quantity with a unit.",
+      "de": "Der Grad einer Wurzel muss eine reine Zahl sein, keine Größe mit Einheit."
+    },
+    "core.eval.evaluator.degree_root_must_positive_whole": {
+      "en": "The degree of a root must be a positive whole number, but was '{value}'.",
+      "de": "Der Grad einer Wurzel muss eine positive ganze Zahl sein, war aber „{value}“."
+    },
+    "core.eval.evaluator.derivative_respect_needs_point_evaluated": {
+      "en": "The derivative with respect to {variable} needs a point to be evaluated at. Write it as \\left.\\frac{{d}}{{d{variable}}} … \\right|_{{{variable}=2}}.",
+      "de": "Die Ableitung nach {variable} braucht eine Stelle, an der sie ausgewertet wird. Sie als \\left.\\frac{{d}}{{d{variable}}} … \\right|_{{{variable}=2}} schreiben."
+    },
+    "core.eval.evaluator.determinant_needs_square_matrix_but": {
+      "en": "The determinant needs a square matrix, but this one has {size} rows of {} entries.",
+      "de": "Die Determinante braucht eine quadratische Matrix, diese hat aber {size} Zeilen mit {} Einträgen."
+    },
+    "core.eval.evaluator.determinants_limited_matrices": {
+      "en": "Determinants are limited to {MAX_DETERMINANT_SIZE}×{MAX_DETERMINANT_SIZE} matrices.",
+      "de": "Determinanten gibt es höchstens für {MAX_DETERMINANT_SIZE}×{MAX_DETERMINANT_SIZE}-Matrizen."
+    },
+    "core.eval.evaluator.divisor_r": {
+      "en": "The divisor of ÷R",
+      "de": "Der Teiler von ÷R"
+    },
+    "core.eval.evaluator.has_complex_value_here_which": {
+      "en": "\\{name} has a complex value here, which is no angle in degrees. Switch the angle unit to radians.",
+      "de": "\\{name} hat hier einen komplexen Wert, und der ist kein Winkel in Grad. Die Winkeleinheit auf Bogenmaß stellen."
+    },
+    "core.eval.evaluator.limit_does_not_exist_values": {
+      "en": "The limit does not exist: the values on the two sides of the target disagree or grow without bound.",
+      "de": "Der Grenzwert existiert nicht: die Werte auf beiden Seiten der Stelle stimmen nicht überein oder wachsen unbeschränkt."
+    },
+    "core.eval.evaluator.limit_does_not_exist_values_2": {
+      "en": "The limit does not exist: the values do not settle or grow without bound.",
+      "de": "Der Grenzwert existiert nicht: die Werte kommen nicht zur Ruhe oder wachsen unbeschränkt."
+    },
+    "core.eval.evaluator.limited_lower_index_100000": {
+      "en": "\\binom is limited to a lower index of 100000.",
+      "de": "\\binom geht nur bis zu einem unteren Index von 100000."
+    },
+    "core.eval.evaluator.lower_limit_product": {
+      "en": "The lower limit of a product",
+      "de": "Die untere Grenze eines Produkts"
+    },
+    "core.eval.evaluator.lower_limit_sum": {
+      "en": "The lower limit of a sum",
+      "de": "Die untere Grenze einer Summe"
+    },
+    "core.eval.evaluator.matrix_not_number_take_determinant": {
+      "en": "A matrix is not a number. Take its determinant with \\det.",
+      "de": "Eine Matrix ist keine Zahl. Ihre Determinante gibt \\det."
+    },
+    "core.eval.evaluator.must_plain_number_not_quantity": {
+      "en": "{what} must be a plain number, not a quantity with a unit.",
+      "de": "{what} muss eine reine Zahl sein, keine Größe mit Einheit."
+    },
+    "core.eval.evaluator.must_whole_number_but_was": {
+      "en": "{what} must be a whole number, but was '{value}'.",
+      "de": "{what} muss eine ganze Zahl sein, war aber „{value}“."
+    },
+    "core.eval.evaluator.needs_matrix_pmatrix_pmatrix": {
+      "en": "\\det needs a matrix, as in \\det\\begin{{pmatrix}} … \\end{{pmatrix}}.",
+      "de": "\\det braucht eine Matrix, etwa \\det\\begin{{pmatrix}} … \\end{{pmatrix}}."
+    },
+    "core.eval.evaluator.needs_number_form_bi": {
+      "en": "\\{name} needs a number of the form a + bi.",
+      "de": "\\{name} braucht eine Zahl der Form a + bi."
+    },
+    "core.eval.evaluator.not_number_can_target_limit": {
+      "en": "\\infty is not a number. It can be the target of a limit or a bound of an integral.",
+      "de": "\\infty ist keine Zahl. Es kann die Stelle eines Grenzwerts oder eine Grenze eines Integrals sein."
+    },
+    "core.eval.evaluator.npr_too_large_compute_exactly": {
+      "en": "nPr of {n} is too large to compute exactly.",
+      "de": "nPr von {n} ist zu groß, um es exakt zu berechnen."
+    },
+    "core.eval.evaluator.product_limited_factors": {
+      "en": "A product is limited to {MAX_SUM_TERMS} factors.",
+      "de": "Ein Produkt hat höchstens {MAX_SUM_TERMS} Faktoren."
+    },
+    "core.eval.evaluator.r_complex_number_needs_complex": {
+      "en": "r\\angle\\theta is a complex number; it needs the complex mode.",
+      "de": "r\\angle\\theta ist eine komplexe Zahl; dafür braucht es den komplexen Modus."
+    },
+    "core.eval.evaluator.rnd_takes_one_value_rnd": {
+      "en": "Rnd takes one value: Rnd(x).",
+      "de": "Rnd nimmt einen Wert: Rnd(x)."
+    },
+    "core.eval.evaluator.rndfix_takes_value_number_places": {
+      "en": "RndFix takes a value and a number of places: RndFix(x; 2).",
+      "de": "RndFix nimmt einen Wert und eine Stellenzahl: RndFix(x; 2)."
+    },
+    "core.eval.evaluator.sum_limited_terms": {
+      "en": "A sum is limited to {MAX_SUM_TERMS} terms.",
+      "de": "Eine Summe hat höchstens {MAX_SUM_TERMS} Glieder."
+    },
+    "core.eval.evaluator.sum_takes_terms_without_unit": {
+      "en": "A sum to \\infty takes terms without a unit.",
+      "de": "Eine Summe bis \\infty braucht Glieder ohne Einheit."
+    },
+    "core.eval.evaluator.system_equations_must_whole_input": {
+      "en": "A system of equations must be the whole input; it cannot be part of a calculation.",
+      "de": "Ein Gleichungssystem muss die ganze Eingabe sein; es kann nicht Teil einer Rechnung sein."
+    },
+    "core.eval.evaluator.too_large_compute_exactly": {
+      "en": "{n}! is too large to compute exactly.",
+      "de": "{n}! ist zu groß, um es exakt zu berechnen."
+    },
+    "core.eval.evaluator.undefined_factorial_has_poles_negative": {
+      "en": "{value}! is undefined: the factorial has poles at the negative whole numbers.",
+      "de": "{value}! ist nicht definiert: die Fakultät hat Pole bei den negativen ganzen Zahlen."
+    },
+    "core.eval.evaluator.unknown_comparison": {
+      "en": "Unknown comparison '{other}'.",
+      "de": "Unbekannter Vergleich „{other}“."
+    },
+    "core.eval.evaluator.unknown_constant": {
+      "en": "Unknown constant '{name}'.",
+      "de": "Unbekannte Konstante „{name}“."
+    },
+    "core.eval.evaluator.unknown_function": {
+      "en": "Unknown function '\\{name}'.",
+      "de": "Unbekannte Funktion „\\{name}“."
+    },
+    "core.eval.evaluator.upper_limit_product": {
+      "en": "The upper limit of a product",
+      "de": "Die obere Grenze eines Produkts"
+    },
+    "core.eval.evaluator.upper_limit_sum": {
+      "en": "The upper limit of a sum",
+      "de": "Die obere Grenze einer Summe"
+    },
+    "core.eval.evaluator.variable_has_no_value_only": {
+      "en": "The variable {key} has no value. Only variables with a subscript can be defined, e.g. {key}_1 = 5m.",
+      "de": "Die Variable {key} hat keinen Wert. Nur Variablen mit Index lassen sich definieren, z. B. {key}_1 = 5m."
+    },
+    "core.eval.evaluator.variable_has_no_value_yet": {
+      "en": "The variable {key} has no value yet. Define it first, e.g. {key} = 5m.",
+      "de": "Die Variable {key} hat noch keinen Wert. Sie zuerst definieren, z. B. {key} = 5m."
+    },
+    "core.eval.inequality.inequality_units_cannot_solved_leave": {
+      "en": "An inequality with units cannot be solved; leave the units out.",
+      "de": "Eine Ungleichung mit Einheiten lässt sich nicht lösen; die Einheiten weglassen."
+    },
+    "core.eval.inequality.only_polynomial_rational_inequalities_rational": {
+      "en": "Only polynomial and rational inequalities with rational coefficients can be solved; roots, |x| and functions of the unknown cannot.",
+      "de": "Nur Polynom- und rationale Ungleichungen mit rationalen Koeffizienten lassen sich lösen, Wurzeln, |x| und Funktionen der Unbekannten nicht."
     },
     "core.eval.linear_system.coefficients_linear_system_have_no": {
       "en": "the coefficients of a linear system have no units.",
@@ -3601,6 +3937,70 @@
     "core.eval.linear_system.unknown_named_twice": {
       "en": "The unknown {} is named twice.",
       "de": "Die Unbekannte {} ist doppelt benannt."
+    },
+    "core.eval.series.series_cannot_summed_only_terms": {
+      "en": "This series cannot be summed to \\infty: only terms that are a rational function of the index, alternate, or fall at least geometrically are.",
+      "de": "Diese Reihe lässt sich nicht bis \\infty summieren: das geht nur mit Gliedern, die eine rationale Funktion des Index sind, das Vorzeichen wechseln oder mindestens geometrisch fallen."
+    },
+    "core.eval.series.series_diverges": {
+      "en": "The series diverges: {why}.",
+      "de": "Die Reihe divergiert: {why}."
+    },
+    "core.eval.series.term_undefined_k": {
+      "en": "The term is undefined at k = {k}.",
+      "de": "Das Glied ist bei k = {k} nicht definiert."
+    },
+    "core.eval.solver.equation_has_more_than_one": {
+      "en": "The equation has more than one unknown ({}); only one can be solved for.",
+      "de": "Die Gleichung hat mehr als eine Unbekannte ({}); nur nach einer lässt sich auflösen."
+    },
+    "core.eval.solver.equation_has_no_real_solution": {
+      "en": "This equation has no real solution.",
+      "de": "Diese Gleichung hat keine reelle Lösung."
+    },
+    "core.eval.solver.equation_has_no_solution": {
+      "en": "This equation has no solution.",
+      "de": "Diese Gleichung hat keine Lösung."
+    },
+    "core.eval.solver.equation_has_no_unknown_solve": {
+      "en": "The equation has no unknown to solve for. Use a letter such as x without a value.",
+      "de": "Die Gleichung hat keine Unbekannte, nach der sich auflösen lässt. Einen Buchstaben wie x ohne Wert verwenden."
+    },
+    "core.eval.solver.every_number_solves_equation": {
+      "en": "Every number solves this equation.",
+      "de": "Jede Zahl löst diese Gleichung."
+    },
+    "core.eval.solver.give_value_first": {
+      "en": "Give a value to {} first.",
+      "de": "Zuerst {} einen Wert geben."
+    },
+    "core.eval.solver.newtons_method_found_no_solution": {
+      "en": "Newton's method found no solution for {variable} from this start value.",
+      "de": "Das Newton-Verfahren findet von diesem Startwert aus keine Lösung für {variable}."
+    },
+    "core.eval.solver.no_solution_found_between": {
+      "en": "No solution for {variable} found between -{SCAN_LIMIT} and {SCAN_LIMIT}.",
+      "de": "Keine Lösung für {variable} zwischen -{SCAN_LIMIT} und {SCAN_LIMIT} gefunden."
+    },
+    "core.eval.solver.only_equation_can_solved": {
+      "en": "Only an equation can be solved.",
+      "de": "Nur eine Gleichung lässt sich lösen."
+    },
+    "core.eval.system.every_line_system_must_equation": {
+      "en": "Every line of a system must be an equation.",
+      "de": "Jede Zeile eines Systems muss eine Gleichung sein."
+    },
+    "core.eval.system.only_system_equations_can_solved": {
+      "en": "Only a system of equations can be solved as one.",
+      "de": "Nur ein Gleichungssystem lässt sich als Ganzes lösen."
+    },
+    "core.eval.system.system_has_no_unknown_solve": {
+      "en": "The system has no unknown to solve for. Use letters such as x and y without a value.",
+      "de": "Das System hat keine Unbekannte, nach der sich auflösen lässt. Buchstaben wie x und y ohne Wert verwenden."
+    },
+    "core.eval.system.system_not_linear_only_linear": {
+      "en": "The system is not linear in {}; only linear systems can be solved.",
+      "de": "Das System ist nicht linear in {}; nur lineare Systeme lassen sich lösen."
     },
     "core.eval.system_steps.and": {
       "en": "and",
@@ -3809,6 +4209,70 @@
     "core.geometry.circle.zero_vector_no_normal_circle": {
       "en": "The zero vector is no normal of a circle.",
       "de": "Der Nullvektor ist kein Normalenvektor eines Kreises."
+    },
+    "core.geometry.eval.coordinate_must_number_but_has": {
+      "en": "A coordinate must be a number, but '{unknown}' has no value.",
+      "de": "Eine Koordinate muss eine Zahl sein, aber „{unknown}“ hat keinen Wert."
+    },
+    "core.geometry.eval.coordinate_must_number_not_vector": {
+      "en": "A coordinate must be a number, not a vector or a point.",
+      "de": "Eine Koordinate muss eine Zahl sein, kein Vektor oder Punkt."
+    },
+    "core.geometry.eval.does_not_work_vector_point": {
+      "en": "This does not work with a vector or a point.",
+      "de": "Das geht nicht mit einem Vektor oder Punkt."
+    },
+    "core.geometry.eval.geometry_works_plain_numbers_without": {
+      "en": "Geometry works with plain numbers, without units.",
+      "de": "Die Geometrie rechnet mit reinen Zahlen, ohne Einheiten."
+    },
+    "core.geometry.eval.number_vector_point_cannot_added": {
+      "en": "A number and a vector or point cannot be added.",
+      "de": "Eine Zahl und ein Vektor oder Punkt lassen sich nicht addieren."
+    },
+    "core.geometry.eval.only_vector_can_divided_only": {
+      "en": "Only a vector can be divided, and only by a number.",
+      "de": "Nur ein Vektor lässt sich teilen, und nur durch eine Zahl."
+    },
+    "core.geometry.eval.point_cannot_multiplied_position_vector": {
+      "en": "A point cannot be multiplied; its position vector \\vec{{OP}} can.",
+      "de": "Ein Punkt lässt sich nicht multiplizieren, sein Ortsvektor \\vec{{OP}} schon."
+    },
+    "core.geometry.eval.point_cannot_negated_op_vector": {
+      "en": "A point cannot be negated; -\\vec{{OP}} is the vector to it, reversed.",
+      "de": "Ein Punkt lässt sich nicht negieren; -\\vec{{OP}} ist der umgekehrte Vektor zu ihm."
+    },
+    "core.geometry.eval.point_has_no_length_distance": {
+      "en": "A point has no length; the distance from the origin is |\\vec{{OP}}|.",
+      "de": "Ein Punkt hat keine Länge; der Abstand vom Ursprung ist |\\vec{{OP}}|."
+    },
+    "core.geometry.eval.takes_two_vectors_cross_product": {
+      "en": "\\times takes two vectors (the cross product) or two numbers; a number times a vector is written with \\cdot.",
+      "de": "\\times nimmt zwei Vektoren (das Kreuzprodukt) oder zwei Zahlen; eine Zahl mal einen Vektor schreibt man mit \\cdot."
+    },
+    "core.geometry.eval.there_no_vector_scene": {
+      "en": "There is no vector \\vec{{{key}}} in the scene.",
+      "de": "In der Szene gibt es keinen Vektor \\vec{{{key}}}."
+    },
+    "core.geometry.eval.two_points_cannot_added_point": {
+      "en": "Two points cannot be added; a point plus a vector is a point.",
+      "de": "Zwei Punkte lassen sich nicht addieren; ein Punkt plus ein Vektor ist ein Punkt."
+    },
+    "core.geometry.eval.vector_column_numbers": {
+      "en": "A vector is a column of numbers.",
+      "de": "Ein Vektor ist eine Spalte aus Zahlen."
+    },
+    "core.geometry.eval.vector_column_two_three_numbers": {
+      "en": "A vector is a column of two or three numbers, not a {}×{} matrix.",
+      "de": "Ein Vektor ist eine Spalte aus zwei oder drei Zahlen, keine {}×{}-Matrix."
+    },
+    "core.geometry.eval.vector_has_only_square_2": {
+      "en": "A vector has only the square, \\vec{{a}}^2 = \\vec{{a}} \\cdot \\vec{{a}}.",
+      "de": "Ein Vektor hat nur das Quadrat, \\vec{{a}}^2 = \\vec{{a}} \\cdot \\vec{{a}}."
+    },
+    "core.geometry.eval.vector_named_one_letter": {
+      "en": "A vector is named by one letter, as in \\vec{{a}}.",
+      "de": "Ein Vektor heißt mit einem Buchstaben, etwa \\vec{{a}}."
     },
     "core.geometry.interface.angle": {
       "en": "The angle:",
@@ -4446,6 +4910,14 @@
       "en": "The volume:",
       "de": "Das Volumen:"
     },
+    "core.geometry.zero_vector_has_no_unit": {
+      "en": "The zero vector has no unit vector.",
+      "de": "Der Nullvektor hat keinen Einheitsvektor."
+    },
+    "core.geometry.zero_vector_makes_no_angle": {
+      "en": "The zero vector makes no angle.",
+      "de": "Der Nullvektor bildet keinen Winkel."
+    },
     "core.kirchhoff.equations.series_two_current_sources_set": {
       "en": "{p} and {q} are in series: two current sources set the same current.",
       "de": "{p} und {q} liegen in Reihe: zwei Stromquellen geben denselben Strom vor."
@@ -4566,13 +5038,413 @@
       "en": "{id} is a wire with a resistance; the Kirchhoff mode takes ideal wires only, so draw a resistor instead.",
       "de": "{id} ist eine Leitung mit Widerstand; der Kirchhoff-Modus kennt nur ideale Leitungen, daher stattdessen einen Widerstand zeichnen."
     },
+    "core.latex.lexer.backslash_must_followed_command_name": {
+      "en": "A backslash must be followed by a command name.",
+      "de": "Auf einen Backslash muss ein Befehlsname folgen."
+    },
+    "core.latex.lexer.unexpected_character": {
+      "en": "Unexpected character '{c}'.",
+      "de": "Unerwartetes Zeichen „{c}“."
+    },
+    "core.latex.lexer.unknown_command": {
+      "en": "Unknown command '\\{first}'.",
+      "de": "Unbekannter Befehl „\\{first}“."
+    },
+    "core.latex.parser.absolute_value_missing_closing": {
+      "en": "The absolute value is missing its closing '|'.",
+      "de": "Beim Betrag fehlt das schließende „|“."
+    },
+    "core.latex.parser.after_comes_unit_such_c": {
+      "en": "After ▶ comes a unit, such as \\mathrm{{in}} or ^\\circ\\mathrm{{C}}.",
+      "de": "Nach ▶ kommt eine Einheit, etwa \\mathrm{{in}} oder ^\\circ\\mathrm{{C}}."
+    },
+    "core.latex.parser.all_rows_matrix_need_same": {
+      "en": "All rows of a matrix need the same number of entries.",
+      "de": "Alle Zeilen einer Matrix brauchen gleich viele Einträge."
+    },
+    "core.latex.parser.base_not_supported": {
+      "en": "A base on {} is not supported.",
+      "de": "Eine Basis an {} wird nicht unterstützt."
+    },
+    "core.latex.parser.bracket_needs_limits_evaluate_x": {
+      "en": "The bracket needs the limits to evaluate at, as in \\left[\\int x\\,dx\\right]_{{0}}^{{1}}.",
+      "de": "Die Klammer braucht die Grenzen, an denen sie ausgewertet wird, etwa \\left[\\int x\\,dx\\right]_{{0}}^{{1}}."
+    },
+    "core.latex.parser.cases_closed": {
+      "en": "\\begin{{cases}} is closed by \\end{{{closing}}}.",
+      "de": "\\begin{{cases}} wird mit \\end{{{closing}}} geschlossen."
+    },
+    "core.latex.parser.closed": {
+      "en": "\\begin{{{environment}}} is closed by \\end{{{closing}}}.",
+      "de": "\\begin{{{environment}}} wird mit \\end{{{closing}}} geschlossen."
+    },
+    "core.latex.parser.closed_path_integrals_not_supported": {
+      "en": "Closed-path integrals ({}) are not supported; an integral over an interval is \\int_a^b.",
+      "de": "Kurvenintegrale über geschlossene Wege ({}) gibt es nicht; ein Integral über ein Intervall ist \\int_a^b."
+    },
+    "core.latex.parser.degrees_minutes_seconds_must_plain": {
+      "en": "Degrees, minutes and seconds must be plain numbers.",
+      "de": "Grad, Minuten und Sekunden müssen reine Zahlen sein."
+    },
+    "core.latex.parser.every_line_system_needs": {
+      "en": "Every line of a system needs an '='.",
+      "de": "Jede Zeile eines Systems braucht ein „=“."
+    },
+    "core.latex.parser.expected_after_equation": {
+      "en": "Expected '\\\\' or '\\end' after the equation.",
+      "de": "Nach der Gleichung wird „\\\\“ oder „\\end“ erwartet."
+    },
+    "core.latex.parser.expected_here": {
+      "en": "Expected '\\to' here.",
+      "de": "Hier wird „\\to“ erwartet."
+    },
+    "core.latex.parser.expected_index_after": {
+      "en": "Expected an index after '_'.",
+      "de": "Nach „_“ wird ein Index erwartet."
+    },
+    "core.latex.parser.expected_matrix": {
+      "en": "Expected '&', '\\\\' or '\\end' in the matrix.",
+      "de": "In der Matrix wird „&“, „\\\\“ oder „\\end“ erwartet."
+    },
+    "core.latex.parser.expected_number_unit_variable_here": {
+      "en": "Expected a number, a unit or a variable here.",
+      "de": "Hier wird eine Zahl, eine Einheit oder eine Variable erwartet."
+    },
+    "core.latex.parser.expected_point": {
+      "en": "Expected '|', ';' or ')' in the point.",
+      "de": "Im Punkt wird „|“, „;“ oder „)“ erwartet."
+    },
+    "core.latex.parser.index_missing_closing": {
+      "en": "The index is missing its closing '}}'.",
+      "de": "Beim Index fehlt die schließende „}}“."
+    },
+    "core.latex.parser.index_must_not_empty": {
+      "en": "The index must not be empty.",
+      "de": "Der Index darf nicht leer sein."
+    },
+    "core.latex.parser.input_empty": {
+      "en": "The input is empty.",
+      "de": "Die Eingabe ist leer."
+    },
+    "core.latex.parser.integral_missing_differential_e_g": {
+      "en": "The integral is missing its differential, e.g. \\, dx.",
+      "de": "Beim Integral fehlt das Differential, z. B. \\, dx."
+    },
+    "core.latex.parser.integral_needs_limits_0_1": {
+      "en": "An integral needs limits, as in \\int_{{0}}^{{1}} x \\, dx.",
+      "de": "Ein Integral braucht Grenzen, etwa \\int_{{0}}^{{1}} x \\, dx."
+    },
+    "core.latex.parser.missing": {
+      "en": "'{}' is missing its '{closing}'.",
+      "de": "Bei „{}“ fehlt „{closing}“."
+    },
+    "core.latex.parser.missing_argument_write": {
+      "en": "'{command}' is missing its argument — write it as {command}{{…}}.",
+      "de": "Bei „{command}“ fehlt das Argument; es als {command}{{…}} schreiben."
+    },
+    "core.latex.parser.n_ambiguous_write_1_x": {
+      "en": "{}^{{-n}} is ambiguous; write 1/{} x or \\arc… instead.",
+      "de": "{}^{{-n}} ist mehrdeutig; stattdessen 1/{} x oder \\arc… schreiben."
+    },
+    "core.latex.parser.needs_arguments_brackets_b": {
+      "en": "'{written}' needs its arguments in brackets: {written}(a; b).",
+      "de": "„{written}“ braucht seine Argumente in Klammern: {written}(a; b)."
+    },
+    "core.latex.parser.needs_name_environment": {
+      "en": "{command} needs the name of an environment.",
+      "de": "{command} braucht den Namen einer Umgebung."
+    },
+    "core.latex.parser.needs_single_letter_variable": {
+      "en": "{command} needs a single letter as its variable.",
+      "de": "{command} braucht einen einzelnen Buchstaben als Variable."
+    },
+    "core.latex.parser.not_number": {
+      "en": "'{}' is not a number.",
+      "de": "„{}“ ist keine Zahl."
+    },
+    "core.latex.parser.not_valid_number": {
+      "en": "'{text}' is not a valid number.",
+      "de": "„{text}“ ist keine gültige Zahl."
+    },
+    "core.latex.parser.only_one_allowed_per_equation": {
+      "en": "Only one '=' is allowed per equation.",
+      "de": "Pro Gleichung ist nur ein „=“ erlaubt."
+    },
+    "core.latex.parser.point_gives_twice": {
+      "en": "The point gives {name} twice.",
+      "de": "Die Stelle gibt {name} zweimal an."
+    },
+    "core.latex.parser.point_has_given_2": {
+      "en": "The point has to be given for {variable}, as in _{{{variable}=2}}.",
+      "de": "Die Stelle muss für {variable} angegeben sein, etwa _{{{variable}=2}}."
+    },
+    "core.latex.parser.point_separates_coordinates_write_absolute": {
+      "en": "In a point, '|' separates the coordinates; write an absolute value there as \\left|…\\right|.",
+      "de": "In einem Punkt trennt „|“ die Koordinaten; einen Betrag dort als \\left|…\\right| schreiben."
+    },
+    "core.latex.parser.point_takes_one_separator_between": {
+      "en": "A point takes one separator between its coordinates: '|' or ';'.",
+      "de": "Ein Punkt trennt seine Koordinaten mit einem Zeichen: „|“ oder „;“."
+    },
+    "core.latex.parser.product_units_needs_explicit": {
+      "en": " A product of units needs an explicit \\cdot.",
+      "de": " Ein Produkt von Einheiten braucht ein ausdrückliches \\cdot."
+    },
+    "core.latex.parser.say_which_variable_prime_differentiates": {
+      "en": "Say which variable the prime differentiates by with a point, as in \\left.(x^2)'\\right|_{{x=1}}.",
+      "de": "Mit einer Stelle angeben, nach welcher Variablen der Strich ableitet, etwa \\left.(x^2)'\\right|_{{x=1}}."
+    },
+    "core.latex.parser.system_equations_must_whole_input": {
+      "en": "A system of equations must be the whole input.",
+      "de": "Ein Gleichungssystem muss die ganze Eingabe sein."
+    },
+    "core.latex.parser.system_has_no_equations": {
+      "en": "The system has no equations.",
+      "de": "Das System hat keine Gleichungen."
+    },
+    "core.latex.parser.unsupported_command": {
+      "en": "Unsupported command '{other}'.",
+      "de": "Der Befehl „{other}“ wird nicht unterstützt."
+    },
+    "core.latex.parser.unsupported_environment": {
+      "en": "Unsupported environment '{other}'.",
+      "de": "Die Umgebung „{other}“ wird nicht unterstützt."
+    },
+    "core.latex.parser.vector_named_one_letter_1": {
+      "en": "A vector is named by one letter, as in \\vec{{a}} or \\vec{{a}}_1.",
+      "de": "Ein Vektor heißt mit einem Buchstaben, etwa \\vec{{a}} oder \\vec{{a}}_1."
+    },
+    "core.matrix.difference": {
+      "en": "A difference",
+      "de": "Eine Differenz"
+    },
+    "core.matrix.does_not_take_matrix": {
+      "en": "'{name}' does not take a matrix.",
+      "de": "„{name}“ nimmt keine Matrix."
+    },
+    "core.matrix.does_not_work_matrix": {
+      "en": "This does not work with a matrix.",
+      "de": "Das geht nicht mit einer Matrix."
+    },
+    "core.matrix.identity_matrix_has_1_10": {
+      "en": "The identity matrix has 1 to 10 rows.",
+      "de": "Die Einheitsmatrix hat 1 bis 10 Zeilen."
+    },
+    "core.matrix.identity_matrix_has_1_rows": {
+      "en": "The identity matrix has 1 to {MAX_SIZE} rows.",
+      "de": "Die Einheitsmatrix hat 1 bis {MAX_SIZE} Zeilen."
+    },
+    "core.matrix.matrix_cannot_divide_multiply_inverse": {
+      "en": "A matrix cannot divide; multiply by its inverse A^{{-1}}.",
+      "de": "Durch eine Matrix lässt sich nicht teilen; mit ihrer Inversen A^{{-1}} multiplizieren."
+    },
+    "core.matrix.matrix_entries_plain_numbers_without": {
+      "en": "Matrix entries are plain numbers, without units.",
+      "de": "Matrixeinträge sind reine Zahlen, ohne Einheiten."
+    },
+    "core.matrix.matrix_entry_must_number_not": {
+      "en": "A matrix entry must be a number, not a matrix.",
+      "de": "Ein Matrixeintrag muss eine Zahl sein, keine Matrix."
+    },
+    "core.matrix.matrix_exponent_must_whole_number": {
+      "en": "A matrix exponent must be a whole number or T.",
+      "de": "Ein Matrixexponent muss eine ganze Zahl oder T sein."
+    },
+    "core.matrix.matrix_may_have_most_rows": {
+      "en": "A matrix may have at most {MAX_SIZE} rows and {MAX_SIZE} columns.",
+      "de": "Eine Matrix darf höchstens {MAX_SIZE} Zeilen und {MAX_SIZE} Spalten haben."
+    },
+    "core.matrix.matrix_needs_rows_equal_length": {
+      "en": "A matrix needs rows of equal length.",
+      "de": "Eine Matrix braucht gleich lange Zeilen."
+    },
+    "core.matrix.matrix_number_cannot_added": {
+      "en": "A matrix and a number cannot be added.",
+      "de": "Eine Matrix und eine Zahl lassen sich nicht addieren."
+    },
+    "core.matrix.matrix_power_may_most_1000": {
+      "en": "A matrix power may be at most 1000.",
+      "de": "Eine Matrixpotenz darf höchstens 1000 sein."
+    },
+    "core.matrix.matrix_singular_determinant_0_has": {
+      "en": "The matrix is singular (its determinant is 0), so it has no inverse.",
+      "de": "Die Matrix ist singulär (ihre Determinante ist 0) und hat daher keine Inverse."
+    },
+    "core.matrix.matrix_times_matrix_columns_first": {
+      "en": "A {} matrix times a {} matrix: the columns of the first must match the rows of the second.",
+      "de": "Eine {}-Matrix mal eine {}-Matrix: die Spalten der ersten müssen zu den Zeilen der zweiten passen."
+    },
+    "core.matrix.needs_matrices_same_size_not": {
+      "en": "{what} needs matrices of the same size, not {} and {}.",
+      "de": "{what} braucht gleich große Matrizen, nicht {} und {}."
+    },
+    "core.matrix.needs_matrix": {
+      "en": "\\det needs a matrix.",
+      "de": "\\det braucht eine Matrix."
+    },
+    "core.matrix.number_cannot_have_matrix_exponent": {
+      "en": "A number cannot have a matrix as its exponent.",
+      "de": "Eine Zahl kann keine Matrix als Exponent haben."
+    },
+    "core.matrix.only_square_matrix_has_determinant": {
+      "en": "Only a square matrix has a determinant, not a {} one.",
+      "de": "Nur eine quadratische Matrix hat eine Determinante, keine {}-Matrix."
+    },
+    "core.matrix.only_square_matrix_has_inverse": {
+      "en": "Only a square matrix has an inverse, not a {} one.",
+      "de": "Nur eine quadratische Matrix hat eine Inverse, keine {}-Matrix."
+    },
+    "core.matrix.only_square_matrix_has_powers": {
+      "en": "Only a square matrix has powers, not a {} one.",
+      "de": "Nur eine quadratische Matrix hat Potenzen, keine {}-Matrix."
+    },
+    "core.matrix.sum": {
+      "en": "A sum",
+      "de": "Eine Summe"
+    },
+    "core.num.0_power_0_undefined": {
+      "en": "0 to the power of 0 is undefined.",
+      "de": "0 hoch 0 ist nicht definiert."
+    },
+    "core.num.arcosh_only_defined_from_1": {
+      "en": "ArCosh is only defined from 1 on, but the argument was '{}'.",
+      "de": "ArCosh ist erst ab 1 definiert, das Argument war aber „{}“."
+    },
+    "core.num.arctan_undefined_i_i": {
+      "en": "ArcTan is undefined at i and -i.",
+      "de": "ArcTan ist bei i und -i nicht definiert."
+    },
+    "core.num.argument_0_undefined": {
+      "en": "The argument of 0 is undefined.",
+      "de": "Das Argument von 0 ist nicht definiert."
+    },
+    "core.num.artanh_only_defined_between_1": {
+      "en": "ArTanh is only defined between -1 and 1, but the argument was '{}'.",
+      "de": "ArTanh ist nur zwischen -1 und 1 definiert, das Argument war aber „{}“."
+    },
+    "core.num.coth_undefined_0": {
+      "en": "Coth is undefined at 0.",
+      "de": "Coth ist bei 0 nicht definiert."
+    },
+    "core.num.gamma_function_has_pole_undefined": {
+      "en": "The Gamma function has a pole at {n}: Γ is undefined at 0, -1, -2, …",
+      "de": "Die Gammafunktion hat bei {n} einen Pol: Γ ist bei 0, -1, -2, … nicht definiert."
+    },
+    "core.num.logarithm_0_undefined": {
+      "en": "The logarithm of 0 is undefined.",
+      "de": "Der Logarithmus von 0 ist nicht definiert."
+    },
+    "core.num.logarithm_only_defined_positive_numbers": {
+      "en": "The logarithm is only defined for positive numbers, but the argument was '{}'.",
+      "de": "Der Logarithmus ist nur für positive Zahlen definiert, das Argument war aber „{}“."
+    },
+    "core.num.not_real_number_cannot_shown": {
+      "en": "'{}' is not a real number and cannot be shown as a decimal.",
+      "de": "„{}“ ist keine reelle Zahl und lässt sich nicht als Dezimalzahl zeigen."
+    },
+    "core.num.only_defined_between_1_1": {
+      "en": "{} is only defined between -1 and 1, but the argument was '{}'.",
+      "de": "{} ist nur zwischen -1 und 1 definiert, das Argument war aber „{}“."
+    },
+    "core.num.tangent_undefined_odd_multiples_2": {
+      "en": "The tangent is undefined at odd multiples of π/2.",
+      "de": "Der Tangens ist bei ungeraden Vielfachen von π/2 nicht definiert."
+    },
+    "core.num.too_large_compute": {
+      "en": "'{}' is too large to compute.",
+      "de": "„{}“ ist zu groß zum Berechnen."
+    },
+    "core.num.undefined": {
+      "en": "{} is undefined at '{}'.",
+      "de": "{} ist bei „{}“ nicht definiert."
+    },
+    "core.numeric.integral_did_not_converge_integrand": {
+      "en": "The integral did not converge. The integrand may be singular inside the interval or oscillate too fast.",
+      "de": "Das Integral konvergiert nicht. Der Integrand ist im Intervall vielleicht singulär oder schwingt zu schnell."
+    },
+    "core.quantity.added": {
+      "en": "added",
+      "de": "addiert"
+    },
+    "core.quantity.cannot_convert": {
+      "en": "Cannot convert {} to {}.",
+      "de": "{} lässt sich nicht in {} umrechnen."
+    },
+    "core.quantity.cannot_directly_because_one_them": {
+      "en": "{} and {} cannot be {verb} directly because one of them has a zero point of its own. Convert both to the same unit first.",
+      "de": "{} und {} können nicht direkt {verb} werden, weil eine davon einen eigenen Nullpunkt hat. Zuerst beide in dieselbe Einheit umrechnen."
+    },
+    "core.quantity.exponent_must_dimensionless_but_carries": {
+      "en": "The exponent must be dimensionless but carries the unit {}.",
+      "de": "Der Exponent muss dimensionslos sein, trägt aber die Einheit {}."
+    },
+    "core.quantity.exponent_too_large": {
+      "en": "The exponent '{}' is too large.",
+      "de": "Der Exponent „{}“ ist zu groß."
+    },
+    "core.quantity.incompatible_units_cannot": {
+      "en": "Incompatible units: {} and {} cannot be {verb}.",
+      "de": "Unverträgliche Einheiten: {} und {} können nicht {verb} werden."
+    },
+    "core.quantity.quantity_unit_can_only_raised": {
+      "en": "A quantity with a unit can only be raised to a rational power, but the exponent here is '{}'.",
+      "de": "Eine Größe mit Einheit lässt sich nur mit einem rationalen Exponenten potenzieren, der Exponent hier ist aber „{}“."
+    },
+    "core.quantity.subtracted": {
+      "en": "subtracted",
+      "de": "subtrahiert"
+    },
     "core.session.copy": {
       "en": "copy",
       "de": "Kopie"
     },
+    "core.session.does_not_define_variable_write": {
+      "en": "'{latex}' does not define a variable. Write it as name and value, e.g. r_1 = 0{{,}}5m — and remember that a variable name always carries a subscript.",
+      "de": "„{latex}“ definiert keine Variable. Sie als Name und Wert schreiben, z. B. r_1 = 0{{,}}5m; ein Variablenname trägt immer einen Index."
+    },
+    "core.session.matrix_could_not_restored": {
+      "en": "The matrix {} could not be restored: {e}",
+      "de": "Die Matrix {} ließ sich nicht wiederherstellen: {e}"
+    },
+    "core.session.no_quantus_session_file": {
+      "en": "This is no Quantus session file: {e}",
+      "de": "Das ist keine Quantus-Sitzungsdatei: {e}"
+    },
+    "core.session.precision_must_between_1_digits": {
+      "en": "The precision must be between 1 and {MAX_PRECISION} digits, but was {precision}.",
+      "de": "Die Genauigkeit muss zwischen 1 und {MAX_PRECISION} Stellen liegen, war aber {precision}."
+    },
     "core.session.session": {
       "en": "Session",
       "de": "Sitzung"
+    },
+    "core.session.session_was_saved_newer_quantus": {
+      "en": "The session was saved by a newer Quantus (format {version}); this one reads up to format {FORMAT_VERSION}.",
+      "de": "Die Sitzung wurde von einem neueren Quantus gespeichert (Format {version}); dieses liest bis Format {FORMAT_VERSION}."
+    },
+    "core.session.there_no_session": {
+      "en": "There is no session '{id}'.",
+      "de": "Es gibt keine Sitzung „{id}“."
+    },
+    "core.session.unknown_session_format": {
+      "en": "Unknown session format {version}.",
+      "de": "Unbekanntes Sitzungsformat {version}."
+    },
+    "core.session.value_must_number_not_equation": {
+      "en": "The value of {key} must be a number, not an equation.",
+      "de": "Der Wert von {key} muss eine Zahl sein, keine Gleichung."
+    },
+    "core.session.variable_could_not_restored": {
+      "en": "The variable {} could not be restored: {e}",
+      "de": "Die Variable {} ließ sich nicht wiederherstellen: {e}"
+    },
+    "core.settings.number_format_takes_0_9": {
+      "en": "The number format takes 0 to 9 digits, but was {digits}.",
+      "de": "Das Zahlenformat nimmt 0 bis 9 Stellen, war aber {digits}."
+    },
+    "core.settings.precision_must_between_1_digits": {
+      "en": "The precision must be between 1 and {MAX_PRECISION} digits, but was {}.",
+      "de": "Die Genauigkeit muss zwischen 1 und {MAX_PRECISION} Stellen liegen, war aber {}."
     },
     "core.stochastics.distributions.area_must_lie_between_0": {
       "en": "The area must lie between 0 and 1.",
@@ -4854,6 +5726,22 @@
       "en": "A letter, then letters, digits, _",
       "de": "Ein Buchstabe, dann Buchstaben, Ziffern, _"
     },
+    "hui.base_n": {
+      "en": "Base-N",
+      "de": "Basis-N"
+    },
+    "hui.c6.not_updated": {
+      "en": "Wi-Fi chip not updated",
+      "de": "WLAN-Chip nicht aktualisiert"
+    },
+    "hui.c6.updated": {
+      "en": "Wi-Fi chip updated, restarting ...",
+      "de": "WLAN-Chip aktualisiert, Neustart ..."
+    },
+    "hui.c6.updating": {
+      "en": "Updating the Wi-Fi chip: {percent} %",
+      "de": "WLAN-Chip wird aktualisiert: {percent} %"
+    },
     "hui.calibrate": {
       "en": "Calibrate touch",
       "de": "Touch kalibrieren"
@@ -4893,6 +5781,10 @@
     "hui.empty_name": {
       "en": "The name must not be empty",
       "de": "Der Name darf nicht leer sein"
+    },
+    "hui.engine_stopped": {
+      "en": "The engine has stopped.",
+      "de": "Die Rechen-Engine ist angehalten."
     },
     "hui.exact_short": {
       "en": "Exact",
@@ -5085,6 +5977,10 @@
     "hui.signal": {
       "en": "Signal",
       "de": "Signal"
+    },
+    "hui.significant_short": {
+      "en": "Sig",
+      "de": "Sig"
     },
     "hui.sketch_first": {
       "en": "Type f(x) and EXE first",
@@ -5402,6 +6298,10 @@
       "en": "Factored",
       "de": "Faktorisiert"
     },
+    "hui.tree.firmware_update": {
+      "en": "Firmware update",
+      "de": "Firmware-Update"
+    },
     "hui.tree.floor": {
       "en": "Floor",
       "de": "Abrunden (floor)"
@@ -5657,6 +6557,38 @@
     "hui.tree.power": {
       "en": "Power",
       "de": "Leistung"
+    },
+    "hui.tree.prefix.centi": {
+      "en": "c  centi",
+      "de": "c  zenti"
+    },
+    "hui.tree.prefix.deca": {
+      "en": "da  deca",
+      "de": "da  deka"
+    },
+    "hui.tree.prefix.deci": {
+      "en": "d  deci",
+      "de": "d  dezi"
+    },
+    "hui.tree.prefix.hecto": {
+      "en": "h  hecto",
+      "de": "h  hekto"
+    },
+    "hui.tree.prefix.micro": {
+      "en": "μ  micro",
+      "de": "μ  mikro"
+    },
+    "hui.tree.prefix.pico": {
+      "en": "p  pico",
+      "de": "p  piko"
+    },
+    "hui.tree.prefix.quecto": {
+      "en": "q  quecto",
+      "de": "q  quekto"
+    },
+    "hui.tree.prefix.yocto": {
+      "en": "y  yocto",
+      "de": "y  yokto"
     },
     "hui.tree.prefixes": {
       "en": "Prefixes",

@@ -62,6 +62,7 @@ use crate::latex::ast::{Node, Operator};
 use crate::latex::{parser, serializer};
 use crate::num::Decimal;
 use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings, StepDetail};
+use crate::text::msg;
 
 /// How the result is written: the user-adjustable choices of stages 13 and 14.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -234,8 +235,7 @@ pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
 /// The note for a result that still contains a construct the pipeline cannot simplify.
 pub(crate) fn unsupported_diagnostic(node: &Node) -> Option<String> {
     find_unsupported_construct(node).map(|construct| {
-        format!(
-            "Expression contains {construct}, which cannot be fully simplified algebraically; supported rational subtrees were simplified."
+        msg!("core.algebra.pipeline.expression_contains_which_cannot_fully"
         )
     })
 }
@@ -528,16 +528,13 @@ impl Pipeline {
 
         let diagnostic = self.stop.map(|reason| match reason {
             StopReason::CycleDetected => {
-                "Simplification stopped because a transformation would have repeated an earlier \
-                 form; the result is equivalent but may not be fully simplified."
+                msg!("core.algebra.pipeline.simplification_stopped_because_transformation_would")
             }
             StopReason::StepLimit => {
-                "Simplification stopped after reaching the step limit; the result is equivalent \
-                 but may not be fully simplified."
+                msg!("core.algebra.pipeline.simplification_stopped_after_reaching_step")
             }
             StopReason::PassLimit => {
-                "Simplification stopped after reaching the pass limit; the result is equivalent \
-                 but may not be fully simplified."
+                msg!("core.algebra.pipeline.simplification_stopped_after_reaching_pass")
             }
         });
         let mut diagnostic = diagnostic.map(|s| s.to_string());

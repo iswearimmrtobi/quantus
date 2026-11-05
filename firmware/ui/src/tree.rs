@@ -206,7 +206,7 @@ static CONNECTIONS: Page = Page {
         entry(tx!("hui.tree.remote_engine"), Kind::Page(&REMOTE)),
         entry(tx!("hui.tree.sync_sessions"), Kind::Page(&SYNC)),
         entry(tx!("hui.tree.clock"), Kind::Page(&CLOCK)),
-        entry(same("Firmware-Update"), Kind::Page(&FIRMWARE)),
+        entry(tx!("hui.tree.firmware_update"), Kind::Page(&FIRMWARE)),
         entry(same("Bluetooth"), Kind::Page(&BLUETOOTH)),
     ],
 };
@@ -269,7 +269,7 @@ const ZONES: [Opt; 14] = [
 ];
 
 static FIRMWARE: Page = Page {
-    title: same("Firmware-Update"),
+    title: tx!("hui.tree.firmware_update"),
     entries: &[
         entry(tx!("hui.tree.installed_version"), Kind::Info(Info::Version)),
         pending(tx!("hui.tree.check_updates")),
@@ -508,20 +508,20 @@ static PREFIXES: Page = Page {
         ins(same("G  giga"), "G"),
         ins(same("M  mega"), "M"),
         ins(same("k  kilo"), "k"),
-        ins(same("h  hekto"), "h"),
-        ins(same("da  deka"), "da"),
-        ins(same("d  dezi"), "d"),
-        ins(same("c  zenti"), "c"),
+        ins(tx!("hui.tree.prefix.hecto"), "h"),
+        ins(tx!("hui.tree.prefix.deca"), "da"),
+        ins(tx!("hui.tree.prefix.deci"), "d"),
+        ins(tx!("hui.tree.prefix.centi"), "c"),
         ins(same("m  milli"), "m"),
-        ins(same("μ  mikro"), r"\mu "),
+        ins(tx!("hui.tree.prefix.micro"), r"\mu "),
         ins(same("n  nano"), "n"),
-        ins(same("p  piko"), "p"),
+        ins(tx!("hui.tree.prefix.pico"), "p"),
         ins(same("f  femto"), "f"),
         ins(same("a  atto"), "a"),
         ins(same("z  zepto"), "z"),
-        ins(same("y  yokto"), "y"),
+        ins(tx!("hui.tree.prefix.yocto"), "y"),
         ins(same("r  ronto"), "r"),
-        ins(same("q  quekto"), "q"),
+        ins(tx!("hui.tree.prefix.quecto"), "q"),
     ],
 };
 
@@ -620,7 +620,7 @@ static OPTN_MATRIX: Page = Page {
 /// The base numbers are typed and shown in, a prefix for one number in another, and the
 /// bitwise logic; A–F are letters.
 static OPTN_BASE_N: Page = Page {
-    title: same("Basis-N"),
+    title: tx!("hui.base_n"),
     entries: &[
         entry(
             tx!("hui.tree.base"),

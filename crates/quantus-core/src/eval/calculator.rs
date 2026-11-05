@@ -493,11 +493,9 @@ impl LatexCalculator {
             let vars: Vec<String> = crate::algebra::pipeline::collect_variables(&formula.expression).into_iter().collect();
             match vars.as_slice() {
                 [] => None,
-                [one] => Some(format!(
-                    "The variable {one} has no value, so the expression is shown as typed. Only variables with a subscript can be defined, e.g. {one}_1 = 5m."
+                [one] => Some(msg!("core.eval.calculator.variable_has_no_value_expression"
                 )),
-                many => Some(format!(
-                    "The variables {} have no value, so the expression is shown as typed. Only variables with a subscript can be defined, e.g. {}_1 = 5m.",
+                many => Some(msg!("core.eval.calculator.variables_have_no_value_expression",
                     many.join(", "),
                     many[0]
                 )),
@@ -570,8 +568,7 @@ impl LatexCalculator {
         let mut unknowns = Vec::new();
         super::solver::collect_unknowns(&formula.expression, false, &mut Vec::new(), evaluator, &mut unknowns);
         if unknowns.len() > 1 {
-            return Err(crate::QuantusError::other(format!(
-                "The inequality has more than one unknown ({}); only one can be solved for.",
+            return Err(crate::QuantusError::other(msg!("core.eval.calculator.inequality_has_more_than_one",
                 unknowns.join(", ")
             )));
         }
@@ -591,7 +588,7 @@ impl LatexCalculator {
             });
         }
         if parts.is_empty() {
-            return Err(crate::QuantusError::other("This inequality has no solution."));
+            return Err(crate::QuantusError::other(msg!("core.eval.calculator.inequality_has_no_solution")));
         }
         let result = parts.join(" \\lor ");
         let first = solution.intervals.iter().find_map(|i| i.lo.as_ref().or(i.hi.as_ref())).map(|p| p.value.clone());
@@ -741,7 +738,7 @@ impl LatexCalculator {
             first.get_or_insert((quantity, value, imaginary));
         }
         let (quantity, value, imaginary) =
-            first.ok_or_else(|| crate::QuantusError::other("The equation has no solution."))?;
+            first.ok_or_else(|| crate::QuantusError::other(msg!("core.common.equation_has_no_solution")))?;
         Ok((quantity, value, imaginary, parts.join(" \\lor ")))
     }
 
@@ -902,7 +899,7 @@ impl LatexCalculator {
     /// `r\angle\theta`, the angle in the angle unit (`5 \angle 53{,}13^{\circ}`).
     fn polar(&self, re: &Value, im: &Value, unit: &crate::units::Unit) -> Result<String> {
         let z = re.add(&im.mul(&Value::I));
-        let not_complex = || crate::QuantusError::other("The value is not of the form a + bi.");
+        let not_complex = || crate::QuantusError::other(msg!("core.eval.calculator.value_not_form_bi"));
         let modulus = z.modulus().ok_or_else(not_complex)??;
         let mut angle = z.argument().ok_or_else(not_complex)??;
         let degrees = self.settings.angle_unit == AngleUnit::Degree;

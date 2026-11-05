@@ -42,6 +42,7 @@ pub const USED: Text = tx!("hui.used");
 pub const FREE: Text = tx!("hui.free");
 pub const TOTAL: Text = tx!("hui.total");
 pub const DECIMAL_SHORT: Text = tx!("hui.decimal_short");
+pub const SIGNIFICANT_SHORT: Text = tx!("hui.significant_short");
 pub const CALIBRATE: Text = tx!("hui.calibrate");
 pub const CALIBRATE_HINT: Text = tx!("hui.calibrate_hint");
 pub const CALIBRATE_RETRY: Text = tx!("hui.calibrate_retry");

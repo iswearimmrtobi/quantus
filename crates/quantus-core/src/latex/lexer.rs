@@ -7,6 +7,7 @@
 //!   `\left`/`\right` are dropped, so the parser only ever sees structure.
 
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenType {
@@ -196,7 +197,7 @@ impl Lexer<'_> {
         let start = self.index;
         self.index += 1; // the backslash
         let Some(first) = self.at(0) else {
-            return Err(self.error("A backslash must be followed by a command name.".into(), start));
+            return Err(self.error(msg!("core.latex.lexer.backslash_must_followed_command_name").into(), start));
         };
 
         if first == '\\' {
@@ -218,7 +219,7 @@ impl Lexer<'_> {
             if SPACING_SYMBOLS.contains(&first) {
                 return Ok(None);
             }
-            return Err(self.error(format!("Unknown command '\\{first}'."), start));
+            return Err(self.error(msg!("core.latex.lexer.unknown_command"), start));
         }
 
         while self.at(0).is_some_and(char::is_alphabetic) {
@@ -291,7 +292,7 @@ impl Lexer<'_> {
             '\u{2264}' => return Ok(Token { kind: TokenType::Relation, text: "\\le".into(), position: start }),
             '\u{2265}' => return Ok(Token { kind: TokenType::Relation, text: "\\ge".into(), position: start }),
             '\u{2260}' => return Ok(Token { kind: TokenType::Relation, text: "\\neq".into(), position: start }),
-            _ => return Err(self.error(format!("Unexpected character '{c}'."), start)),
+            _ => return Err(self.error(msg!("core.latex.lexer.unexpected_character"), start)),
         };
         Ok(Token { kind, text: c.to_string(), position: start })
     }

@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::forms::{FormKind, ResultForm};
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 /// The base numbers are read and written in.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -73,12 +74,12 @@ pub struct BaseNResult {
 pub fn evaluate(latex: &str, base: NumberBase) -> Result<BaseNResult> {
     let tokens = tokenize(latex)?;
     if tokens.is_empty() {
-        return Err(QuantusError::other("Type a number."));
+        return Err(QuantusError::other(msg!("core.basen.type_number")));
     }
     let mut parser = Parser { tokens, index: 0, base };
     let value = fit(parser.or()?)? as i32;
     if parser.index < parser.tokens.len() {
-        return Err(QuantusError::other(format!("Unexpected '{}'.", parser.tokens[parser.index].text())));
+        return Err(QuantusError::other(msg!("core.basen.unexpected", parser.tokens[parser.index].text())));
     }
     let forms = NumberBase::ALL
         .into_iter()
@@ -135,7 +136,7 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
     let chars: Vec<char> = latex.chars().collect();
     let mut tokens = Vec::new();
     let mut i = 0;
-    let unexpected = |c: char| QuantusError::other(format!("Basis-N does not know '{c}'."));
+    let unexpected = |c: char| QuantusError::other(msg!("core.basen.basis_n_does_not_know"));
     while i < chars.len() {
         let c = chars[i];
         match c {
@@ -187,7 +188,7 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                     "lor" | "vee" => tokens.push(Token::Word("or".into())),
                     "oplus" => tokens.push(Token::Word("xor".into())),
                     "lnot" | "neg" => tokens.push(Token::Word("Not".into())),
-                    other => return Err(QuantusError::other(format!("Basis-N does not know '\\{other}'."))),
+                    other => return Err(QuantusError::other(msg!("core.basen.basis_n_does_not_know_2"))),
                 }
             }
             other => return Err(unexpected(other)),
@@ -202,7 +203,7 @@ fn braced(chars: &[char], i: &mut usize) -> Result<String> {
         *i += 1;
     }
     if chars.get(*i) != Some(&'{') {
-        return Err(QuantusError::other("Expected '{' here."));
+        return Err(QuantusError::other(msg!("core.basen.expected_here")));
     }
     let start = *i + 1;
     let mut depth = 0;
@@ -220,7 +221,7 @@ fn braced(chars: &[char], i: &mut usize) -> Result<String> {
         }
         *i += 1;
     }
-    Err(QuantusError::other("A '{' is not closed."))
+    Err(QuantusError::other(msg!("core.basen.not_closed")))
 }
 
 struct Parser {
@@ -230,7 +231,7 @@ struct Parser {
 }
 
 fn overflow() -> QuantusError {
-    QuantusError::other("The result does not fit 32 bits (from -2147483648 to 2147483647).")
+    QuantusError::other(msg!("core.basen.result_does_not_fit_32"))
 }
 
 /// Values are carried as `i64` so that `-2147483648` can be typed; each result must fit 32 bits.
@@ -307,7 +308,7 @@ impl Parser {
             left = if times {
                 fit(left * right)?
             } else if right == 0 {
-                return Err(QuantusError::other("Division by zero."));
+                return Err(QuantusError::other(msg!("core.common.division_zero")));
             } else {
                 fit(left / right)?
             };
@@ -340,7 +341,7 @@ impl Parser {
                 self.index += 1;
                 let value = self.or()?;
                 if self.peek() != Some(&Token::Close) {
-                    return Err(QuantusError::other("A bracket is not closed."));
+                    return Err(QuantusError::other(msg!("core.basen.bracket_not_closed")));
                 }
                 self.index += 1;
                 Ok(value)
@@ -356,8 +357,8 @@ impl Parser {
                 }
                 self.number(&word)
             }
-            Some(other) => Err(QuantusError::other(format!("Expected a number before '{}'.", other.text()))),
-            None => Err(QuantusError::other("The input ends too early.")),
+            Some(other) => Err(QuantusError::other(msg!("core.basen.expected_number_before", other.text()))),
+            None => Err(QuantusError::other(msg!("core.basen.input_ends_too_early"))),
         }
     }
 
@@ -380,7 +381,7 @@ impl Parser {
 /// `digits` in `base`: up to 2147483647 in decimal, any 32-bit pattern in the others.
 fn literal(digits: &str, base: NumberBase) -> Result<i64> {
     let invalid = || {
-        QuantusError::other(format!("'{digits}' is not a number in {}.", match base {
+        QuantusError::other(msg!("core.basen.not_number", match base {
             NumberBase::Dec => "decimal",
             NumberBase::Hex => "hexadecimal",
             NumberBase::Bin => "binary",

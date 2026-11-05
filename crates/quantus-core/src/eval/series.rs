@@ -18,6 +18,7 @@ use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 /// B₂, B₄, …, B₂₀.
 const BERNOULLI: [(i64, u64); 10] = [
@@ -40,12 +41,12 @@ const TAIL_START: i64 = 200;
 const MAX_TERMS: i64 = 200_000;
 
 fn diverges(why: &str) -> QuantusError {
-    QuantusError::other(format!("The series diverges: {why}."))
+    QuantusError::other(msg!("core.eval.series.series_diverges"))
 }
 
 fn too_slow() -> QuantusError {
     QuantusError::other(
-        "This series cannot be summed to \\infty: only terms that are a rational function of the index, alternate, or fall at least geometrically are.",
+        msg!("core.eval.series.series_cannot_summed_only_terms"),
     )
 }
 
@@ -72,7 +73,7 @@ pub(crate) fn rational_partial_sum(p: &[RBig], q: &[RBig], from: i64, n: i64) ->
         let x = RBig::from(k);
         let d = evaluate(q, &x);
         if d == RBig::ZERO {
-            return Err(QuantusError::other(format!("The term is undefined at k = {k}.")));
+            return Err(QuantusError::other(msg!("core.eval.series.term_undefined_k")));
         }
         sum += evaluate(p, &x) / d;
     }

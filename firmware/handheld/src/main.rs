@@ -19,6 +19,7 @@ use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{Backend, Catalogue, Group, Network, Reply, Request, Storage, WlanStatus};
+use quantus_texts::tr;
 use quantus_ui::text::Lang;
 #[cfg(feature = "engine")]
 use quantus_ui::backend::{Opened, SessionCommand, SessionInfo, Stored, VariableCommand};
@@ -345,6 +346,8 @@ impl Backend for Board {
 /// Sends the C6 the image in the `c6_fw` partition if it runs another version and the image was
 /// not tried before, saying so on the screen; restarts after a success (src/c6.rs).
 fn update_c6(store: Option<&Store>, display: &mut Display) {
+    // Before the UI starts: the language of the saved settings.
+    let lang = store.and_then(Store::load_settings).map_or(Lang::De, |settings| settings.language);
     let Some(image) = c6::Image::find() else { return };
     let tried = store.and_then(Store::c6_tried);
     if tried.as_deref() == Some(image.id().as_str()) {
@@ -377,18 +380,18 @@ fn update_c6(store: Option<&Store>, display: &mut Display) {
     let sent = c6::send(&image, &running, |percent| {
         if percent / 10 != shown / 10 {
             shown = percent;
-            message(display, &format!("WLAN-Chip wird aktualisiert: {percent} %"));
+            message(display, &tr!(lang, "hui.c6.updating"));
         }
     });
     match sent {
         Ok(()) => {
             println!("C6: sent in {} s, restarting", started.elapsed().as_secs());
-            message(display, "WLAN-Chip aktualisiert, Neustart ...");
+            message(display, &tr!(lang, "hui.c6.updated"));
             c6::restart();
         }
         Err(error) => {
             println!("C6: update failed: {error}; it keeps firmware {running}");
-            message(display, "WLAN-Chip nicht aktualisiert");
+            message(display, &tr!(lang, "hui.c6.not_updated"));
             FreeRtos::delay_ms(1500);
         }
     }

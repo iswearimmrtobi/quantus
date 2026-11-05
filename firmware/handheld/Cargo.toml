@@ -20,6 +20,7 @@ engine = ["dep:quantus-engine"]
 quantus-engine = { path = "../engine", optional = true }
 quantus-mirror = { path = "../mirror" }
 quantus-ui = { path = "../ui" }
+quantus-texts = { path = "../../crates/quantus-texts" }
 esp-idf-svc = "0.53"
 log = "0.4"
 embedded-graphics = "0.8.2"

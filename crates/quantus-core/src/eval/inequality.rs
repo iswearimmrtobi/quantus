@@ -18,6 +18,7 @@ use crate::algebra::poly::gcd_ubig;
 use crate::latex::{Node, Operator};
 use crate::num::Value;
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 /// A polynomial by its coefficients, the constant first.
 type Coefficients = Vec<RBig>;
@@ -294,7 +295,7 @@ fn intersect(a: &[Interval], b: &[Interval]) -> Vec<Interval> {
 
 fn unsupported() -> QuantusError {
     QuantusError::other(
-        "Only polynomial and rational inequalities with rational coefficients can be solved; roots, |x| and functions of the unknown cannot.",
+        msg!("core.eval.inequality.only_polynomial_rational_inequalities_rational"),
     )
 }
 
@@ -304,7 +305,7 @@ pub(crate) fn rational_function(evaluator: &Evaluator, node: &Node, variable: &s
     if !depends_on(node, variable) {
         let quantity = evaluator.evaluate(node)?.simplify()?;
         if !quantity.unit.is_one() {
-            return Err(QuantusError::other("An inequality with units cannot be solved; leave the units out."));
+            return Err(QuantusError::other(msg!("core.eval.inequality.inequality_units_cannot_solved_leave")));
         }
         let value = quantity.value.as_rational().cloned().or_else(|| {
             // A value like 2^{-1} that is rational but not folded.
@@ -362,7 +363,7 @@ pub(crate) fn rational_function(evaluator: &Evaluator, node: &Node, variable: &s
 /// `(a/b) / (c/d)`, with the zeros of `c` as poles.
 fn divide(a: Coefficients, b: Coefficients, c: Coefficients, d: Coefficients, poles: &mut Vec<Coefficients>) -> Result<(Coefficients, Coefficients)> {
     if is_zero(&c) {
-        return Err(QuantusError::other("Division by zero."));
+        return Err(QuantusError::other(msg!("core.common.division_zero")));
     }
     if c.len() > 1 {
         poles.push(c.clone());

@@ -62,7 +62,7 @@ impl Mode {
             Mode::Linear => tx!("hui.app.linear_systems"),
             Mode::Table => tx!("hui.app.table"),
             Mode::Matrix => tx!("hui.app.matrices"),
-            Mode::BaseN => same("Basis-N"),
+            Mode::BaseN => tx!("hui.base_n"),
             Mode::Statistics => tx!("hui.app.statistics"),
             Mode::Distributions => tx!("hui.app.distri_butions"),
             Mode::Verify => tx!("hui.app.verify"),

@@ -291,7 +291,10 @@ pub fn new_session(engine: State<Engine>, request: NewSessionRequest) -> Session
 #[tauri::command]
 pub fn open_session(engine: State<Engine>, id: String, now: Option<i64>) -> Result<SessionInfo, ApiError> {
     engine.with_saved(Some(&id), |store| {
-        let session = store.get_mut(&id).ok_or_else(|| ApiError { error: format!("There is no session '{id}'."), position: None })?;
+        let language = store.settings.language;
+        let session = store
+            .get_mut(&id)
+            .ok_or_else(|| ApiError { error: tr!(language, "core.session.there_no_session"), position: None })?;
         if now.is_some() {
             session.last_used = now;
         }

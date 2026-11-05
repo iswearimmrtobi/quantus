@@ -11,6 +11,7 @@ use crate::eval::{Calculation, Step};
 use crate::session::{SessionStore, Variable};
 use crate::settings::Settings;
 use crate::QuantusError;
+use crate::text::msg;
 
 /// An `evaluate` call: the input as the user typed it.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -165,6 +166,7 @@ impl std::fmt::Display for ApiError {
 impl std::error::Error for ApiError {}
 
 pub fn evaluate(store: &mut SessionStore, request: &CalculationRequest) -> Result<CalculationResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
     let (calculation, variable) = session.evaluate_with(&request.latex, request.precision, &settings)?;
@@ -174,6 +176,7 @@ pub fn evaluate(store: &mut SessionStore, request: &CalculationRequest) -> Resul
 }
 
 pub fn define_variable(store: &mut SessionStore, request: &CalculationRequest) -> Result<VariableResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
     Ok(VariableResponse::of(&session.define_from_with(&request.latex, request.precision, &settings)?))
@@ -189,6 +192,7 @@ pub struct FreeVariable {
 
 /// The letters of the input that have no value yet: what CALC asks for, in order.
 pub fn free_variables(store: &mut SessionStore, request: &CalculationRequest) -> Result<Vec<FreeVariable>, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
     let keys = session.free_variables(&request.latex, &settings)?;
@@ -215,6 +219,7 @@ pub struct CalcRequest {
 }
 
 pub fn calc(store: &mut SessionStore, request: &CalcRequest) -> Result<CalculationResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
     for value in &request.values {
@@ -238,6 +243,7 @@ pub struct SolveRequest {
 }
 
 pub fn solve_for(store: &mut SessionStore, request: &SolveRequest) -> Result<CalculationResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
     for value in &request.values {
@@ -341,7 +347,7 @@ pub fn engineering(settings: &Settings, request: &EngineeringRequest) -> Result<
     use crate::latex::numbers;
     use crate::num::Decimal;
     let parse = |text: &str| {
-        Decimal::parse(text).ok_or_else(|| ApiError { error: format!("'{text}' is not a number."), position: None })
+        Decimal::parse(text).ok_or_else(|| ApiError { error: msg!("core.api.not_number"), position: None })
     };
     let prefixes = settings.decimal_prefixes && request.unit_latex.is_empty();
     let real = parse(&request.value)?;
@@ -462,15 +468,17 @@ fn existing<'a>(store: &'a mut SessionStore, id: &str) -> Result<&'a mut crate::
 }
 
 pub fn rename_session(store: &mut SessionStore, id: &str, name: &str) -> Result<SessionInfo, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let session = existing(store, id)?;
     if name.trim().is_empty() {
-        return Err(QuantusError::other("A session needs a name.").into());
+        return Err(QuantusError::other(msg!("core.api.session_needs_name")).into());
     }
     session.name = name.trim().to_string();
     Ok(SessionInfo::of(session))
 }
 
 pub fn duplicate_session(store: &mut SessionStore, id: &str, now: Option<i64>) -> Result<SessionInfo, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     Ok(SessionInfo::of(store.duplicate(id, now)?))
 }
 
@@ -485,6 +493,7 @@ pub fn export_session(store: &mut SessionStore, id: Option<&str>) -> String {
 
 /// A saved session read back; it keeps its id unless that is taken.
 pub fn import_session(store: &mut SessionStore, json: &str) -> Result<SessionInfo, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     Ok(SessionInfo::of(store.import(json)?))
 }
 
@@ -519,6 +528,7 @@ pub fn get_settings(store: &SessionStore) -> Settings {
 
 /// Replaces the settings for all following calls, after checking them.
 pub fn set_settings(store: &mut SessionStore, settings: Settings) -> Result<Settings, ApiError> {
+    let _language = crate::text::Scope::new(settings.language);
     settings.validate()?;
     store.settings = settings;
     Ok(store.settings.clone())

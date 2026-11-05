@@ -11,6 +11,7 @@ use esp_idf_svc::sys;
 use quantus_engine::Engine;
 use quantus_ui::app::{Mode, Settings};
 use quantus_ui::backend::{Backend, Catalogue, Group, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, VariableCommand};
+use quantus_texts::tr;
 use quantus_ui::text::Lang;
 
 /// The parser and the algebra recurse; the desktop never notices, a FreeRTOS task does. The
@@ -43,6 +44,8 @@ pub struct Worker {
     answers: Receiver<(u32, Done)>,
     /// Counts the calculations started and dropped; an answer of an older one is thrown away.
     generation: u32,
+    /// The language of the last settings sent, for saying the engine thread has stopped.
+    lang: Lang,
 }
 
 impl Worker {
@@ -100,12 +103,13 @@ impl Worker {
                 }
             })
             .expect("engine thread");
-        Worker { jobs, answers, generation: 0 }
+        Worker { jobs, answers, generation: 0, lang: Lang::De }
     }
 
     /// Sends a calculation to the engine; its answer comes from [`poll`](Worker::poll).
     /// `record: false` leaves the history alone (S⇔D).
     pub fn send(&mut self, mode: Mode, settings: &Settings, latex: &str, record: bool) {
+        self.lang = settings.language;
         self.generation = self.generation.wrapping_add(1);
         let job = Job::Calculate { generation: self.generation, mode, settings: *settings, latex: latex.to_string(), record };
         if self.jobs.send(job).is_err() {
@@ -115,6 +119,7 @@ impl Worker {
 
     /// Sends a sheet to the engine; its answer comes from [`poll_solve`](Worker::poll_solve).
     pub fn solve(&mut self, settings: &Settings, request: &Request) {
+        self.lang = settings.language;
         self.generation = self.generation.wrapping_add(1);
         let job = Job::Solve { generation: self.generation, settings: *settings, request: request.clone() };
         if self.jobs.send(job).is_err() {
@@ -134,7 +139,8 @@ impl Worker {
     /// Does `command` to the sessions, waiting like [`sessions`](Worker::sessions).
     pub fn session(&mut self, command: SessionCommand, settings: &Settings) -> Result<Opened, String> {
         let (reply, answer) = mpsc::channel();
-        let stopped = || "the engine thread has stopped".to_string();
+        self.lang = settings.language;
+        let stopped = || tr!(self.lang, "hui.engine_stopped");
         self.jobs.send(Job::Session(command, *settings, reply)).map_err(|_| stopped())?;
         answer.recv().map_err(|_| stopped())?
     }
@@ -151,7 +157,8 @@ impl Worker {
     /// Does `command` to the variables, waiting like [`sessions`](Worker::sessions).
     pub fn variables(&mut self, command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {
         let (reply, answer) = mpsc::channel();
-        let stopped = || "the engine thread has stopped".to_string();
+        self.lang = settings.language;
+        let stopped = || tr!(self.lang, "hui.engine_stopped");
         self.jobs.send(Job::Variables(command, *settings, reply)).map_err(|_| stopped())?;
         answer.recv().map_err(|_| stopped())?
     }
@@ -182,7 +189,7 @@ impl Worker {
             match self.answers.recv() {
                 Ok((generation, Done::Latex(answer))) if generation == self.generation => return answer,
                 Ok(_) => {}
-                Err(_) => return Err("the engine thread has stopped".to_string()),
+                Err(_) => return Err(tr!(self.lang, "hui.engine_stopped")),
             }
         }
     }
@@ -193,7 +200,7 @@ impl Worker {
             match self.answers.recv() {
                 Ok((generation, Done::Sheet(reply))) if generation == self.generation => return reply,
                 Ok(_) => {}
-                Err(_) => return Err("the engine thread has stopped".to_string()),
+                Err(_) => return Err(tr!(self.lang, "hui.engine_stopped")),
             }
         }
     }

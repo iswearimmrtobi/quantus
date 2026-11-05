@@ -11,6 +11,7 @@ use crate::matrix::{self, Matrices, MatrixEvaluator};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 use super::{Point, Vector3};
 
@@ -76,9 +77,9 @@ impl<'a> GeometryEvaluator<'a> {
                         .get(&key)
                         .cloned()
                         .map(Item::Vector)
-                        .ok_or_else(|| error(format!("There is no vector \\vec{{{key}}} in the scene.")))
+                        .ok_or_else(|| error(msg!("core.geometry.eval.there_no_vector_scene")))
                 }
-                _ => Err(error("A vector is named by one letter, as in \\vec{a}.")),
+                _ => Err(error(msg!("core.geometry.eval.vector_named_one_letter"))),
             },
             Node::Variable { name, index, .. } => Ok(Item::Point(self.objects.points[&Node::variable_key(name, index)].clone())),
             Node::Call { name, arguments, .. } if name == "point" => Ok(Item::Point(self.point(arguments)?)),
@@ -87,31 +88,31 @@ impl<'a> GeometryEvaluator<'a> {
                 (Item::Vector(a), Item::Vector(b)) => Ok(Item::Vector(a.cross(&b))),
                 (Item::Scalar(a), Item::Scalar(b)) => Ok(Item::Scalar(a.mul(&b))),
                 _ => Err(error(
-                    "\\times takes two vectors (the cross product) or two numbers; a number times a vector is written with \\cdot.",
+                    msg!("core.geometry.eval.takes_two_vectors_cross_product"),
                 )),
             },
             Node::Group { inner, .. } => self.evaluate(inner),
             Node::Negation { operand, .. } => match self.evaluate(operand)? {
                 Item::Scalar(value) => Ok(Item::Scalar(value.neg())),
                 Item::Vector(v) => Ok(Item::Vector(-&v)),
-                Item::Point(_) => Err(error("A point cannot be negated; -\\vec{OP} is the vector to it, reversed.")),
+                Item::Point(_) => Err(error(msg!("core.geometry.eval.point_cannot_negated_op_vector"))),
             },
             Node::Binary { operator, left, right, .. } => self.binary(*operator, self.evaluate(left)?, self.evaluate(right)?),
             Node::Fraction { numerator, denominator, .. } => match (self.evaluate(numerator)?, self.evaluate(denominator)?) {
                 (Item::Vector(v), Item::Scalar(s)) => Ok(Item::Vector(v.scale(&Value::one().div(&s)?))),
                 (Item::Scalar(_), Item::Scalar(_)) => self.through_scalars(node),
-                _ => Err(error("Only a vector can be divided, and only by a number.")),
+                _ => Err(error(msg!("core.geometry.eval.only_vector_can_divided_only"))),
             },
             Node::Abs { operand, .. } => match self.evaluate(operand)? {
                 Item::Vector(v) => Ok(Item::Scalar(v.length()?)),
                 Item::Scalar(value) => Ok(Item::Scalar(if value.is_negative()? { value.neg() } else { value })),
-                Item::Point(_) => Err(error("A point has no length; the distance from the origin is |\\vec{OP}|.")),
+                Item::Point(_) => Err(error(msg!("core.geometry.eval.point_has_no_length_distance"))),
             },
             // `\vec{a}^2` is `\vec{a} \cdot \vec{a}`, as in school.
             Node::Power { base, exponent, .. } if self.has_geometry(base) => match (self.evaluate(base)?, self.evaluate(exponent)?) {
                 (Item::Vector(v), Item::Scalar(two)) if two == Value::int(2) => Ok(Item::Scalar(v.dot(&v))),
                 (Item::Scalar(_), Item::Scalar(_)) => self.through_scalars(node),
-                _ => Err(error("A vector has only the square, \\vec{a}^2 = \\vec{a} \\cdot \\vec{a}.")),
+                _ => Err(error(msg!("core.geometry.eval.vector_has_only_square_2"))),
             },
             _ => self.through_scalars(node),
         }
@@ -127,8 +128,8 @@ impl<'a> GeometryEvaluator<'a> {
             (Operator::Plus, P(p), V(v)) | (Operator::Plus, V(v), P(p)) => P(&p + &v),
             (Operator::Minus, P(p), V(v)) => P(&p - &v),
             (Operator::Minus, P(p), P(q)) => V(&p - &q),
-            (Operator::Plus, P(_), P(_)) => return Err(error("Two points cannot be added; a point plus a vector is a point.")),
-            (Operator::Plus | Operator::Minus, _, _) => return Err(error("A number and a vector or point cannot be added.")),
+            (Operator::Plus, P(_), P(_)) => return Err(error(msg!("core.geometry.eval.two_points_cannot_added_point"))),
+            (Operator::Plus | Operator::Minus, _, _) => return Err(error(msg!("core.geometry.eval.number_vector_point_cannot_added"))),
             (Operator::Times | Operator::ImplicitTimes, S(a), S(b)) => S(a.mul(&b)),
             (Operator::Times | Operator::ImplicitTimes, S(s), V(v)) | (Operator::Times | Operator::ImplicitTimes, V(v), S(s)) => {
                 V(v.scale(&s))
@@ -136,8 +137,8 @@ impl<'a> GeometryEvaluator<'a> {
             (Operator::Times | Operator::ImplicitTimes, V(a), V(b)) => S(a.dot(&b)),
             (Operator::Divide, V(v), S(s)) => V(v.scale(&Value::one().div(&s)?)),
             (Operator::Divide, S(a), S(b)) => S(a.div(&b)?),
-            (Operator::Divide, _, _) => return Err(error("Only a vector can be divided, and only by a number.")),
-            (_, P(_), _) | (_, _, P(_)) => return Err(error("A point cannot be multiplied; its position vector \\vec{OP} can.")),
+            (Operator::Divide, _, _) => return Err(error(msg!("core.geometry.eval.only_vector_can_divided_only"))),
+            (_, P(_), _) | (_, _, P(_)) => return Err(error(msg!("core.geometry.eval.point_cannot_multiplied_position_vector"))),
         })
     }
 
@@ -157,7 +158,7 @@ impl<'a> GeometryEvaluator<'a> {
                     Node::Variable { name: PART.into(), index, position: child.position() }
                 }
                 Ok(_) => {
-                    failure = Some(error("This does not work with a vector or a point."));
+                    failure = Some(error(msg!("core.geometry.eval.does_not_work_vector_point")));
                     child
                 }
                 Err(e) => {
@@ -179,11 +180,10 @@ impl<'a> GeometryEvaluator<'a> {
         let matrices = Matrices::new();
         let matrix = match MatrixEvaluator::new(self.evaluator, &matrices).evaluate(node)? {
             matrix::Item::Matrix(matrix) => matrix,
-            matrix::Item::Scalar(_) => return Err(error("A vector is a column of numbers.")),
+            matrix::Item::Scalar(_) => return Err(error(msg!("core.geometry.eval.vector_column_numbers"))),
         };
         if matrix.column_count() != 1 || !(2..=3).contains(&matrix.row_count()) {
-            return Err(error(format!(
-                "A vector is a column of two or three numbers, not a {}×{} matrix.",
+            return Err(error(msg!("core.geometry.eval.vector_column_two_three_numbers",
                 matrix.row_count(),
                 matrix.column_count()
             )));
@@ -202,7 +202,7 @@ impl<'a> GeometryEvaluator<'a> {
         Ok(match <[Value; 3]>::try_from(values) {
             Ok([x, y, z]) => Point::new(x, y, z),
             Err(values) => {
-                let [x, y]: [Value; 2] = values.try_into().map_err(|_| error("A point has two or three coordinates."))?;
+                let [x, y]: [Value; 2] = values.try_into().map_err(|_| error(msg!("core.common.point_has_two_three_coordinates")))?;
                 Point::planar(x, y)
             }
         })
@@ -212,7 +212,7 @@ impl<'a> GeometryEvaluator<'a> {
         self.no_unknowns(node)?;
         match self.evaluate(node)? {
             Item::Scalar(value) => Ok(value),
-            _ => Err(error("A coordinate must be a number, not a vector or a point.")),
+            _ => Err(error(msg!("core.geometry.eval.coordinate_must_number_not_vector"))),
         }
     }
 
@@ -221,14 +221,14 @@ impl<'a> GeometryEvaluator<'a> {
         let mut unknowns = Vec::new();
         crate::eval::solver::collect_unknowns(node, true, &mut Vec::new(), self.evaluator, &mut unknowns);
         match unknowns.first() {
-            Some(unknown) => Err(error(format!("A coordinate must be a number, but '{unknown}' has no value."))),
+            Some(unknown) => Err(error(msg!("core.geometry.eval.coordinate_must_number_but_has"))),
             None => Ok(()),
         }
     }
 
     fn number(&self, quantity: &PhysicalQuantity) -> Result<Value> {
         if !quantity.is_dimensionless() {
-            return Err(error("Geometry works with plain numbers, without units."));
+            return Err(error(msg!("core.geometry.eval.geometry_works_plain_numbers_without")));
         }
         quantity.dimensionless_value()
     }

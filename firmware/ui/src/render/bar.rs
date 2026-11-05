@@ -77,7 +77,7 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         (_, true) => text::DECIMAL_SHORT,
         (_, false) => text::EXACT_SHORT,
     };
-    let digits = format!("Sig {}", settings.digits);
+    let digits = format!("{} {}", text::SIGNIFICANT_SHORT.get(lang), settings.digits);
     for text in [angle, form.get(lang)].map(str::to_string).into_iter().chain([digits]) {
         let width = Scale::Small.width(&text);
         shapes.push(Shape::Text(Point::new(right - width, baseline), text, Scale::Small, colors::TEXT));

@@ -42,6 +42,7 @@ use super::normalizer;
 use crate::num::Decimal;
 use crate::units;
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 const MULTIPLICATION_COMMANDS: [&str; 3] = ["\\cdot", "\\times", "\\ast"];
 const CONSTANTS: [&str; 3] = ["\\pi", "e", "i"];
@@ -259,7 +260,7 @@ struct Parser<'a> {
 impl Parser<'_> {
     fn parse(mut self) -> Result<Formula> {
         if self.tokens.len() == 1 {
-            return Err(self.error("The input is empty.", 0));
+            return Err(self.error(&msg!("core.latex.parser.input_empty"), 0));
         }
         if self.starts_cases() || self.has_top_level_semicolon() {
             let system = self.parse_system()?;
@@ -309,7 +310,7 @@ impl Parser<'_> {
                     return Ok(unit);
                 }
             }
-            return Err(self.error("After ▶ comes a unit, such as \\mathrm{in} or ^\\circ\\mathrm{C}.", position));
+            return Err(self.error(&msg!("core.latex.parser.after_comes_unit_such_c"), position));
         }
         self.in_unit_context(|p| p.parse_expression())
     }
@@ -358,13 +359,13 @@ impl Parser<'_> {
                         self.advance();
                     }
                     _ if self.is_end_command() => {}
-                    _ => return Err(self.error("Expected '\\\\' or '\\end' after the equation.", self.current().position)),
+                    _ => return Err(self.error(&msg!("core.latex.parser.expected_after_equation"), self.current().position)),
                 }
             }
             self.advance(); // \end
             let closing = self.parse_environment_name("\\end")?;
             if closing != "cases" {
-                return Err(self.error(&format!("\\begin{{cases}} is closed by \\end{{{closing}}}."), position));
+                return Err(self.error(&msg!("core.latex.parser.cases_closed"), position));
             }
         } else {
             loop {
@@ -379,7 +380,7 @@ impl Parser<'_> {
             }
         }
         if equations.is_empty() {
-            return Err(self.error("The system has no equations.", position));
+            return Err(self.error(&msg!("core.latex.parser.system_has_no_equations"), position));
         }
         Ok(Node::System { equations, position })
     }
@@ -390,13 +391,13 @@ impl Parser<'_> {
         let left = self.parse_expression()?;
         self.skip_ampersand();
         if self.current().kind != TokenType::Equals {
-            return Err(self.error("Every line of a system needs an '='.", self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.every_line_system_needs"), self.current().position));
         }
         self.advance();
         self.skip_ampersand();
         let right = self.parse_expression()?;
         if self.current().kind == TokenType::Equals {
-            return Err(self.error("Only one '=' is allowed per equation.", self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.only_one_allowed_per_equation"), self.current().position));
         }
         if self.current().kind == TokenType::Ampersand
             && (self.peek(1).kind == TokenType::RowBreak || self.peek(1).text == "\\end")
@@ -544,7 +545,7 @@ impl Parser<'_> {
             };
             let number = self.advance();
             let value = Decimal::parse(&number.text)
-                .ok_or_else(|| self.error(&format!("'{}' is not a number.", number.text), number.position))?;
+                .ok_or_else(|| self.error(&msg!("core.latex.parser.not_number", number.text), number.position))?;
             *slot = Some(value);
             self.index += consumed;
         }
@@ -552,7 +553,7 @@ impl Parser<'_> {
             return Ok(Node::Degrees { operand: Box::new(degrees), position, sexagesimal: None });
         }
         let Node::Number { value: whole, .. } = &degrees else {
-            return Err(self.error("Degrees, minutes and seconds must be plain numbers.", position));
+            return Err(self.error(&msg!("core.latex.parser.degrees_minutes_seconds_must_plain"), position));
         };
         let mut written = format!("{}^{{\\circ}}", super::numbers::format(whole));
         let mut operand = degrees.clone();
@@ -645,7 +646,7 @@ impl Parser<'_> {
             }
             TokenType::Identifier => self.parse_identifier(),
             TokenType::Pipe if self.in_point && token.text == "|" => Err(self.error(
-                "In a point, '|' separates the coordinates; write an absolute value there as \\left|…\\right|.",
+                &msg!("core.latex.parser.point_separates_coordinates_write_absolute"),
                 token.position,
             )),
             TokenType::Pipe => self.parse_abs(),
@@ -655,7 +656,7 @@ impl Parser<'_> {
             TokenType::LBracket if self.evaluated_integral_ahead() => self.parse_evaluated_integral(),
             TokenType::LBracket => self.parse_group(TokenType::RBracket, "]"),
             TokenType::Command => self.parse_command(&token),
-            _ => Err(self.error("Expected a number, a unit or a variable here.", token.position)),
+            _ => Err(self.error(&msg!("core.latex.parser.expected_number_unit_variable_here"), token.position)),
         }
     }
 
@@ -693,7 +694,7 @@ impl Parser<'_> {
             TokenType::LParen => TokenType::RParen,
             TokenType::LBrace => TokenType::RBrace,
             TokenType::LBracket => TokenType::RBracket,
-            _ => return Err(self.error(&format!("'{written}' needs its arguments in brackets: {written}(a; b)."), self.current().position)),
+            _ => return Err(self.error(&msg!("core.latex.parser.needs_arguments_brackets_b"), self.current().position)),
         };
         self.advance();
         let mut arguments = vec![self.parse_expression()?];
@@ -744,7 +745,7 @@ impl Parser<'_> {
         self.abs_depth -= 1;
         let operand = operand?;
         if self.current().kind != TokenType::Pipe {
-            return Err(self.error("The absolute value is missing its closing '|'.", open.position));
+            return Err(self.error(&msg!("core.latex.parser.absolute_value_missing_closing"), open.position));
         }
         self.advance();
         Ok(Node::Abs { operand: Box::new(operand), position: open.position })
@@ -812,7 +813,7 @@ impl Parser<'_> {
         match letters.as_slice() {
             [letter] => Ok((*letter).to_string()),
             _ => Err(self.error(
-                "Say which variable the prime differentiates by with a point, as in \\left.(x^2)'\\right|_{x=1}.",
+                &msg!("core.latex.parser.say_which_variable_prime_differentiates"),
                 token(close + 1).position,
             )),
         }
@@ -877,16 +878,16 @@ impl Parser<'_> {
                 }
                 TokenType::Pipe | TokenType::Comma if token.text == "|" || token.text == ";" => {
                     if separator.get_or_insert_with(|| token.text.clone()) != &token.text {
-                        return Err(self.error("A point takes one separator between its coordinates: '|' or ';'.", token.position));
+                        return Err(self.error(&msg!("core.latex.parser.point_takes_one_separator_between"), token.position));
                     }
                     self.advance();
                     coordinates.push(self.parse_expression()?);
                 }
-                _ => return Err(self.error("Expected '|', ';' or ')' in the point.", token.position)),
+                _ => return Err(self.error(&msg!("core.latex.parser.expected_point"), token.position)),
             }
         }
         if !(2..=3).contains(&coordinates.len()) {
-            return Err(self.error("A point has two or three coordinates.", open));
+            return Err(self.error(&msg!("core.common.point_has_two_three_coordinates"), open));
         }
         Ok(coordinates)
     }
@@ -913,7 +914,7 @@ impl Parser<'_> {
                 self.advance();
                 let inner = self.parse_expression()?;
                 if !(self.current().kind == TokenType::Command && self.current().text == closing) {
-                    return Err(self.error(&format!("'{}' is missing its '{closing}'.", token.text), self.current().position));
+                    return Err(self.error(&msg!("core.latex.parser.missing", token.text), self.current().position));
                 }
                 self.advance();
                 Ok(Node::Call { name: name.into(), arguments: vec![inner], position })
@@ -988,10 +989,10 @@ impl Parser<'_> {
                 Ok(Node::binary(Operator::ImplicitTimes, value, unit, position))
             }
             "\\oint" | "\\oiint" | "\\oiiint" => Err(self.error(
-                &format!("Closed-path integrals ({}) are not supported; an integral over an interval is \\int_a^b.", token.text),
+                &msg!("core.latex.parser.closed_path_integrals_not_supported", token.text),
                 position,
             )),
-            other => Err(self.error(&format!("Unsupported command '{other}'."), position)),
+            other => Err(self.error(&msg!("core.latex.parser.unsupported_command"), position)),
         }
     }
 
@@ -1008,7 +1009,7 @@ impl Parser<'_> {
         // `\log_b x` (also `\log_{b}`) is ln x / ln b.
         let base = if self.current().kind == TokenType::Underscore {
             if name != "log" {
-                return Err(self.error(&format!("A base on {} is not supported.", token.text), self.current().position));
+                return Err(self.error(&msg!("core.latex.parser.base_not_supported", token.text), self.current().position));
             }
             self.advance();
             Some(self.parse_argument(&token.text)?)
@@ -1025,7 +1026,7 @@ impl Parser<'_> {
                 let inverse = matches!(name.as_str(), "sin" | "cos" | "tan" | "sinh" | "cosh" | "tanh") && is_minus_one(&exponent);
                 if !inverse {
                     return Err(self.error(
-                        &format!("{}^{{-n}} is ambiguous; write 1/{} x or \\arc… instead.", token.text, token.text),
+                        &msg!("core.latex.parser.n_ambiguous_write_1_x", token.text, token.text),
                         caret.position,
                     ));
                 }
@@ -1072,7 +1073,7 @@ impl Parser<'_> {
         let first = self.current().clone();
         if !self.starts_atom() || is_function_command(&first) {
             return Err(self.error(
-                &format!("'{command}' is missing its argument — write it as {command}{{…}}."),
+                &msg!("core.latex.parser.missing_argument_write"),
                 first.position,
             ));
         }
@@ -1116,7 +1117,7 @@ impl Parser<'_> {
         self.expect(TokenType::LBrace, "'{'")?;
         let variable = self.parse_bound_name("\\lim")?;
         if !(self.current().kind == TokenType::Command && matches!(self.current().text.as_str(), "\\to" | "\\rightarrow")) {
-            return Err(self.error("Expected '\\to' here.", self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.expected_here"), self.current().position));
         }
         self.advance();
         let side = self.take_limit_side();
@@ -1162,7 +1163,7 @@ impl Parser<'_> {
     fn parse_integral(&mut self, token: &Token) -> Result<Node> {
         self.advance();
         if self.current().kind != TokenType::Underscore {
-            return Err(self.error("An integral needs limits, as in \\int_{0}^{1} x \\, dx.", self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.integral_needs_limits_0_1"), self.current().position));
         }
         self.advance();
         let lower = self.parse_argument(&token.text)?;
@@ -1209,7 +1210,7 @@ impl Parser<'_> {
         let (variable, body) = integrand?;
         self.expect(TokenType::RBracket, "']' after the differential")?;
         if self.current().kind != TokenType::Underscore {
-            return Err(self.error("The bracket needs the limits to evaluate at, as in \\left[\\int x\\,dx\\right]_{0}^{1}.", self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.bracket_needs_limits_evaluate_x"), self.current().position));
         }
         self.advance();
         let lower = self.parse_argument(&int.text)?;
@@ -1233,10 +1234,10 @@ impl Parser<'_> {
             "pmatrix" | "bmatrix" | "matrix" => false,
             "vmatrix" => true,
             "cases" => {
-                return Err(self.error("A system of equations must be the whole input.", token.position));
+                return Err(self.error(&msg!("core.latex.parser.system_equations_must_whole_input"), token.position));
             }
             other => {
-                return Err(self.error(&format!("Unsupported environment '{other}'."), token.position));
+                return Err(self.error(&msg!("core.latex.parser.unsupported_environment"), token.position));
             }
         };
 
@@ -1256,17 +1257,17 @@ impl Parser<'_> {
                     rows.push(Vec::new());
                 }
                 _ if self.is_end_command() => break,
-                _ => return Err(self.error("Expected '&', '\\\\' or '\\end' in the matrix.", self.current().position)),
+                _ => return Err(self.error(&msg!("core.latex.parser.expected_matrix"), self.current().position)),
             }
         }
         self.advance(); // \end
         let closing = self.parse_environment_name("\\end")?;
         if closing != environment {
-            return Err(self.error(&format!("\\begin{{{environment}}} is closed by \\end{{{closing}}}."), token.position));
+            return Err(self.error(&msg!("core.latex.parser.closed"), token.position));
         }
 
         if rows.iter().any(|row| row.len() != rows[0].len()) {
-            return Err(self.error("All rows of a matrix need the same number of entries.", token.position));
+            return Err(self.error(&msg!("core.latex.parser.all_rows_matrix_need_same"), token.position));
         }
         let matrix = Node::Matrix { rows, position: token.position };
         Ok(if determinant {
@@ -1286,7 +1287,7 @@ impl Parser<'_> {
         }
         let letter = self.current().clone();
         if letter.kind != TokenType::Identifier || letter.text.chars().count() != 1 {
-            return Err(self.error("A vector is named by one letter, as in \\vec{a} or \\vec{a}_1.", letter.position));
+            return Err(self.error(&msg!("core.latex.parser.vector_named_one_letter_1"), letter.position));
         }
         self.advance();
         let mut index = String::new();
@@ -1320,7 +1321,7 @@ impl Parser<'_> {
         self.expect(TokenType::LBrace, &format!("'{{' after {command}"))?;
         let name = self.current().clone();
         if name.kind != TokenType::Identifier {
-            return Err(self.error(&format!("{command} needs the name of an environment."), name.position));
+            return Err(self.error(&msg!("core.latex.parser.needs_name_environment"), name.position));
         }
         self.advance();
         self.expect(TokenType::RBrace, "'}'")?;
@@ -1442,7 +1443,7 @@ impl Parser<'_> {
         }
         match at {
             Some(at) => Ok((at, given)),
-            None => Err(self.error(&format!("The point has to be given for {variable}, as in _{{{variable}=2}}."), position)),
+            None => Err(self.error(&msg!("core.latex.parser.point_has_given_2"), position)),
         }
     }
 
@@ -1460,7 +1461,7 @@ impl Parser<'_> {
             let name_position = self.current().position;
             let name = self.parse_bound_name("the evaluation point")?;
             if bindings.iter().any(|(n, _)| *n == name) {
-                return Err(self.error(&format!("The point gives {name} twice."), name_position));
+                return Err(self.error(&msg!("core.latex.parser.point_gives_twice"), name_position));
             }
             self.expect(TokenType::Equals, "'='")?;
             bindings.push((name, self.parse_expression()?));
@@ -1525,7 +1526,7 @@ impl Parser<'_> {
     fn parse_bound_name(&mut self, command: &str) -> Result<String> {
         let token = self.current().clone();
         if token.kind != TokenType::Identifier || !is_single_letter(&token.text) {
-            return Err(self.error(&format!("{command} needs a single letter as its variable."), token.position));
+            return Err(self.error(&msg!("core.latex.parser.needs_single_letter_variable"), token.position));
         }
         self.advance();
         Ok(token.text)
@@ -1567,7 +1568,7 @@ impl Parser<'_> {
             }
             match token.kind {
                 TokenType::End => {
-                    return Err(self.error("The integral is missing its differential, e.g. \\, dx.", position));
+                    return Err(self.error(&msg!("core.latex.parser.integral_missing_differential_e_g"), position));
                 }
                 TokenType::LParen | TokenType::LBrace | TokenType::LBracket => depth += 1,
                 TokenType::RParen | TokenType::RBrace | TokenType::RBracket => depth -= 1,
@@ -1575,7 +1576,7 @@ impl Parser<'_> {
                 _ => {}
             }
             if depth < 0 {
-                return Err(self.error("The integral is missing its differential, e.g. \\, dx.", position));
+                return Err(self.error(&msg!("core.latex.parser.integral_missing_differential_e_g"), position));
             }
             i += 1;
         }
@@ -1630,7 +1631,7 @@ impl Parser<'_> {
             }
             TokenType::Identifier | TokenType::Command => self.parse_atom(),
             _ => Err(self.error(
-                &format!("'{command}' is missing its argument — write it as {command}{{…}}."),
+                &msg!("core.latex.parser.missing_argument_write"),
                 token.position,
             )),
         }
@@ -1726,7 +1727,7 @@ impl Parser<'_> {
             return Ok(self.take_first_letter());
         }
 
-        let hint = if run.len() > 1 { " A product of units needs an explicit \\cdot." } else { "" };
+        let hint = if run.len() > 1 { msg!("core.latex.parser.product_units_needs_explicit") } else { String::new() };
         let reason = if self.unit_context {
             format!("'{symbol}' is not a known unit.{hint}")
         } else {
@@ -1789,7 +1790,7 @@ impl Parser<'_> {
         if self.current().kind != TokenType::LBrace {
             let token = self.current().clone();
             if !matches!(token.kind, TokenType::Number | TokenType::Identifier) {
-                return Err(self.error("Expected an index after '_'.", token.position));
+                return Err(self.error(&msg!("core.latex.parser.expected_index_after"), token.position));
             }
             self.advance();
             return Ok(token.text);
@@ -1798,13 +1799,13 @@ impl Parser<'_> {
         let mut index = String::new();
         while self.current().kind != TokenType::RBrace {
             if self.current().kind == TokenType::End {
-                return Err(self.error("The index is missing its closing '}'.", self.current().position));
+                return Err(self.error(&msg!("core.latex.parser.index_missing_closing"), self.current().position));
             }
             index.push_str(&self.advance().text);
         }
         self.advance();
         if index.is_empty() {
-            return Err(self.error("The index must not be empty.", self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.index_must_not_empty"), self.current().position));
         }
         Ok(index)
     }
@@ -1857,7 +1858,7 @@ impl Parser<'_> {
     }
 
     fn decimal(&self, text: &str, position: usize) -> Result<Decimal> {
-        Decimal::parse(text).ok_or_else(|| self.error(&format!("'{text}' is not a valid number."), position))
+        Decimal::parse(text).ok_or_else(|| self.error(&msg!("core.latex.parser.not_valid_number"), position))
     }
 
     fn error(&self, reason: &str, position: usize) -> QuantusError {

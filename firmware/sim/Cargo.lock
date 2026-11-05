@@ -261,6 +261,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "equivalent"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00d174d5400e5e8fd687ad1049e2f578285fa914201b1af7e8b112a4546bd826"
+
+[[package]]
 name = "fdeflate"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -290,6 +296,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
+
+[[package]]
 name = "getrandom"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,6 +311,12 @@ dependencies = [
  "libc",
  "wasi",
 ]
+
+[[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
 name = "heck"
@@ -317,6 +335,16 @@ dependencies = [
  "moxcms",
  "num-traits",
  "png",
+]
+
+[[package]]
+name = "indexmap"
+version = "2.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
+dependencies = [
+ "equivalent",
+ "hashbrown",
 ]
 
 [[package]]
@@ -554,6 +582,7 @@ version = "0.1.0"
 dependencies = [
  "astro-float",
  "dashu",
+ "quantus-texts",
  "serde",
  "serde_json",
 ]
@@ -563,6 +592,7 @@ name = "quantus-engine"
 version = "0.1.0"
 dependencies = [
  "quantus-core",
+ "quantus-texts",
  "quantus-ui",
 ]
 
@@ -583,10 +613,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "quantus-texts"
+version = "0.1.0"
+dependencies = [
+ "quantus-texts-macros",
+ "serde",
+]
+
+[[package]]
+name = "quantus-texts-macros"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "quantus-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "quantus-texts",
  "tinybmp",
  "u8g2-fonts",
 ]
@@ -695,6 +741,8 @@ version = "1.0.154"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6"
 dependencies = [
+ "foldhash",
+ "indexmap",
  "itoa",
  "memchr",
  "serde",

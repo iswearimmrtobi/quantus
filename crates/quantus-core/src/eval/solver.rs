@@ -26,6 +26,7 @@ use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
 use crate::units::Unit;
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 const SCAN_LIMIT: i64 = 100;
 const SCAN_STEPS_PER_UNIT: i64 = 4;
@@ -50,7 +51,7 @@ impl Evaluator<'_> {
     /// instead of the scan.
     pub fn solve_for(&self, equation: &Node, target: Option<&str>, start: Option<&Value>) -> Result<Solutions> {
         let Node::Equation { left, right, .. } = equation else {
-            return Err(QuantusError::other("Only an equation can be solved."));
+            return Err(QuantusError::other(msg!("core.eval.solver.only_equation_can_solved")));
         };
         let variable = match target {
             None => self.unknown(equation)?,
@@ -60,7 +61,7 @@ impl Evaluator<'_> {
                 let others: Vec<&String> = found.iter().filter(|key| key.as_str() != target).collect();
                 if !others.is_empty() {
                     let names: Vec<&str> = others.iter().map(|key| key.as_str()).collect();
-                    return Err(QuantusError::other(format!("Give a value to {} first.", names.join(", "))));
+                    return Err(QuantusError::other(msg!("core.eval.solver.give_value_first", names.join(", "))));
                 }
                 target.to_string()
             }
@@ -81,7 +82,7 @@ impl Evaluator<'_> {
                 Some(coefficients) => {
                     let roots = polynomial::roots(&coefficients, self.complex(), self.precision)?;
                     if roots.is_empty() {
-                        return Err(QuantusError::other("This equation has no real solution."));
+                        return Err(QuantusError::other(msg!("core.eval.solver.equation_has_no_real_solution")));
                     }
                     roots
                 }
@@ -124,7 +125,7 @@ impl Evaluator<'_> {
         let mut x = start.decimal(digits)?.to_rational();
         let h = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits / 2 + 2));
         let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.precision + 3));
-        let failed = || QuantusError::other(format!("Newton's method found no solution for {variable} from this start value."));
+        let failed = || QuantusError::other(msg!("core.eval.solver.newtons_method_found_no_solution"));
         for _ in 0..200 {
             let f = number(residual(Value::Rat(x.clone()))?)?;
             if f == RBig::ZERO {
@@ -151,11 +152,10 @@ impl Evaluator<'_> {
         collect_unknowns(equation, false, &mut Vec::new(), self, &mut found);
         match found.as_slice() {
             [] => Err(QuantusError::other(
-                "The equation has no unknown to solve for. Use a letter such as x without a value.",
+                msg!("core.eval.solver.equation_has_no_unknown_solve"),
             )),
             [one] => Ok(one.clone()),
-            many => Err(QuantusError::other(format!(
-                "The equation has more than one unknown ({}); only one can be solved for.",
+            many => Err(QuantusError::other(msg!("core.eval.solver.equation_has_more_than_one",
                 many.join(", ")
             ))),
         }
@@ -188,8 +188,7 @@ impl Evaluator<'_> {
         )?;
 
         if roots.is_empty() {
-            return Err(QuantusError::other(format!(
-                "No solution for {variable} found between -{SCAN_LIMIT} and {SCAN_LIMIT}."
+            return Err(QuantusError::other(msg!("core.eval.solver.no_solution_found_between"
             )));
         }
         roots.sort_by_key(|root| root.clone().abs());
@@ -392,9 +391,9 @@ fn polynomial_roots(
     if a.is_zero() {
         if b.is_zero() {
             return Err(QuantusError::other(if c.is_zero() {
-                "Every number solves this equation."
+                msg!("core.eval.solver.every_number_solves_equation")
             } else {
-                "This equation has no solution."
+                msg!("core.eval.solver.equation_has_no_solution")
             }));
         }
         return Ok(Some(vec![c.neg().div(&b)?]));
@@ -413,7 +412,7 @@ fn polynomial_roots(
             let im = if im.is_negative()? { im.neg() } else { im };
             return Ok(Some(vec![re.sub(&im.mul(&Value::I)), re.add(&im.mul(&Value::I))]));
         }
-        return Err(QuantusError::other("This equation has no real solution."));
+        return Err(QuantusError::other(msg!("core.eval.solver.equation_has_no_real_solution")));
     }
     let root = discriminant.pow(&Value::ratio(1, 2))?;
     let two_a = a.mul(&Value::int(2));

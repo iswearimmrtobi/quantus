@@ -15,6 +15,7 @@ use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use crate::error::{QuantusError, Result};
+use crate::text::msg;
 
 /// Default digit count per F3.
 pub const DEFAULT_PRECISION: usize = 50;
@@ -496,7 +497,7 @@ impl Value {
 
     pub fn div(&self, other: &Value) -> Result<Value> {
         if other.is_zero() {
-            return Err(QuantusError::other("Division by zero."));
+            return Err(QuantusError::other(msg!("core.common.division_zero")));
         }
         Ok(self.mul(&other.pow(&Value::int(-1))?))
     }
@@ -504,7 +505,7 @@ impl Value {
     pub fn pow(&self, exponent: &Value) -> Result<Value> {
         if exponent.is_zero() {
             return if self.is_zero() {
-                Err(QuantusError::other("0 to the power of 0 is undefined."))
+                Err(QuantusError::other(msg!("core.num.0_power_0_undefined")))
             } else {
                 Ok(Value::one())
             };
@@ -553,9 +554,8 @@ impl Value {
                     return Err(self.not_real());
                 }
                 if self.is_zero() || self.is_negative()? {
-                    return Err(QuantusError::other(format!(
-                        "The logarithm is only defined for positive numbers, but the argument was '{self}'."
-                    )));
+                    return Err(QuantusError::other(msg!("core.num.logarithm_only_defined_positive_numbers"
+                    , self)));
                 }
                 if let Some(exact) = self.exact_log(function) {
                     return Ok(exact);
@@ -585,10 +585,9 @@ impl Value {
                     _ => (Value::one(), sin),
                 };
                 if bottom.is_zero() {
-                    return Err(QuantusError::other(format!(
-                        "{} is undefined at '{self}'.",
+                    return Err(QuantusError::other(msg!("core.num.undefined",
                         function.display_name()
-                    )));
+                    , self)));
                 }
                 return top.div(&bottom);
             }
@@ -603,7 +602,7 @@ impl Value {
             MathFunction::Coth => {
                 let sinh = self.apply(MathFunction::Sinh)?;
                 if sinh.is_zero() {
-                    return Err(QuantusError::other("Coth is undefined at 0."));
+                    return Err(QuantusError::other(msg!("core.num.coth_undefined_0")));
                 }
                 return self.apply(MathFunction::Cosh)?.div(&sinh);
             }
@@ -618,14 +617,14 @@ impl Value {
                     MathFunction::Arsinh => self.add(&self.mul(self).add(&one).pow(&half)?).apply(MathFunction::Ln),
                     MathFunction::Arcosh => {
                         if self.sub(&one).is_negative()? {
-                            return Err(QuantusError::other(format!("ArCosh is only defined from 1 on, but the argument was '{self}'.")));
+                            return Err(QuantusError::other(msg!("core.num.arcosh_only_defined_from_1", self)));
                         }
                         self.add(&self.mul(self).sub(&one).pow(&half)?).apply(MathFunction::Ln)
                     }
                     _ => {
                         let inside = one.sub(&self.mul(self));
                         if inside.is_zero() || inside.is_negative()? {
-                            return Err(QuantusError::other(format!("ArTanh is only defined between -1 and 1, but the argument was '{self}'.")));
+                            return Err(QuantusError::other(msg!("core.num.artanh_only_defined_between_1", self)));
                         }
                         Ok(half.mul(&one.add(self).div(&one.sub(self))?.apply(MathFunction::Ln)?))
                     }
@@ -659,7 +658,7 @@ impl Value {
         let whole = |r: &RBig| -> Option<i64> { (*r.denominator() == UBig::ONE).then(|| i64::try_from(r.numerator().clone()).ok()).flatten() };
         if let Some(n) = whole(r).or_else(|| (*r.denominator() == UBig::ONE).then_some(i64::MAX)) {
             if n <= 0 {
-                return Err(QuantusError::other(format!("The Gamma function has a pole at {n}: Γ is undefined at 0, -1, -2, …")));
+                return Err(QuantusError::other(msg!("core.num.gamma_function_has_pole_undefined")));
             }
             if n > LIMIT {
                 return Ok(None);
@@ -690,10 +689,9 @@ impl Value {
     fn exact_arc(&self, function: MathFunction) -> Result<Option<Value>> {
         let x = self.decimal(60)?.to_rational();
         if function != MathFunction::Arctan && x.clone().abs() > RBig::ONE {
-            return Err(QuantusError::other(format!(
-                "{} is only defined between -1 and 1, but the argument was '{self}'.",
+            return Err(QuantusError::other(msg!("core.num.only_defined_between_1_1",
                 function.display_name()
-            )));
+            , self)));
         }
         let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(55));
         // (multiple of π, value) for the principal branch.
@@ -754,7 +752,7 @@ impl Value {
                 let (sin, cos) = (cos_of(&(half - &r)), cos_of(&r));
                 match (sin, cos) {
                     (_, Some(c)) if c.is_zero() => {
-                        return Err(QuantusError::other("The tangent is undefined at odd multiples of \u{3c0}/2."))
+                        return Err(QuantusError::other(msg!("core.num.tangent_undefined_odd_multiples_2")))
                     }
                     (Some(s), Some(c)) => Some(s.div(&c)?),
                     _ => tan_of_quarter_pi_multiple(&r),
@@ -885,9 +883,8 @@ impl Value {
                             return Ok(BigFloat::from_u8(0, bits));
                         }
                         if magnitude.cmp(&limit).is_some_and(|o| o > 0) {
-                            return Err(QuantusError::other(format!(
-                                "'{self}' is too large to compute."
-                            )));
+                            return Err(QuantusError::other(msg!("core.num.too_large_compute"
+                            , self)));
                         }
                     }
                     return Ok(b.pow(&e, bits, rm, consts));
@@ -931,7 +928,7 @@ impl Value {
             self.clone()
         };
         if n < 0 && re.is_zero() && im.is_zero() {
-            return Err(QuantusError::other("Division by zero."));
+            return Err(QuantusError::other(msg!("core.common.division_zero")));
         }
         let mut result = Value::one();
         let mut remaining = n.unsigned_abs();
@@ -984,7 +981,7 @@ impl Value {
             (MathFunction::Ln | MathFunction::Log, Some((a, b))) if complex || a.is_negative()? => {
                 let norm = a.mul(&a).add(&b.mul(&b));
                 if norm.is_zero() {
-                    return Err(QuantusError::other("The logarithm of 0 is undefined."));
+                    return Err(QuantusError::other(msg!("core.num.logarithm_0_undefined")));
                 }
                 let ln = norm.apply(MathFunction::Ln)?.mul(&Value::ratio(1, 2)).add(&Value::I.mul(&arg_of(&a, &b)?));
                 match function {
@@ -1034,7 +1031,7 @@ impl Value {
                     return self.apply(function);
                 }
             } else if b.mul(b).sub(&one).is_zero() {
-                return Err(QuantusError::other("ArcTan is undefined at i and -i."));
+                return Err(QuantusError::other(msg!("core.num.arctan_undefined_i_i")));
             } else if beyond_one(b)? {
                 // On the cut: π/2 + i/2·ln((y + 1)/(y - 1)).
                 let ln = b.add(&one).div(&b.sub(&one))?.apply(MathFunction::Ln)?;
@@ -1149,7 +1146,7 @@ impl Value {
     }
 
     fn not_real(&self) -> QuantusError {
-        QuantusError::NotReal(format!("'{self}' is not a real number and cannot be shown as a decimal."))
+        QuantusError::NotReal(msg!("core.num.not_real_number_cannot_shown", self))
     }
 }
 
@@ -1193,7 +1190,7 @@ fn write_joined(f: &mut fmt::Formatter<'_>, items: &[Value], separator: &str) ->
 fn arg_of(a: &Value, b: &Value) -> Result<Value> {
     if b.is_zero() {
         return match a {
-            _ if a.is_zero() => Err(QuantusError::other("The argument of 0 is undefined.")),
+            _ if a.is_zero() => Err(QuantusError::other(msg!("core.num.argument_0_undefined"))),
             _ if a.is_negative()? => Ok(Value::Pi),
             _ => Ok(Value::zero()),
         };
@@ -1270,7 +1267,7 @@ fn rational_power(base: &RBig, exponent: &RBig) -> Result<Option<RBig>> {
             return if n > 0 {
                 Ok(Some(RBig::ZERO))
             } else {
-                Err(QuantusError::other("Division by zero."))
+                Err(QuantusError::other(msg!("core.common.division_zero")))
             };
         }
         // `RBig::pow` takes negative exponents and inverts for us.
@@ -1296,7 +1293,7 @@ fn rational_power(base: &RBig, exponent: &RBig) -> Result<Option<RBig>> {
     }
     let root = RBig::from_parts(if negative { -IBig::from(root_a) } else { IBig::from(root_a) }, root_b);
     if root == RBig::ZERO {
-        return if p > 0 { Ok(Some(RBig::ZERO)) } else { Err(QuantusError::other("Division by zero.")) };
+        return if p > 0 { Ok(Some(RBig::ZERO)) } else { Err(QuantusError::other(msg!("core.common.division_zero"))) };
     }
     Ok(Some(root.pow(p as isize)))
 }

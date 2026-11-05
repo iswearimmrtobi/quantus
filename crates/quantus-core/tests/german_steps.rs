@@ -99,3 +99,17 @@ fn no_step_is_english() {
         }
     }
 }
+
+/// The error of `input` in `mode`, in `language`.
+fn error(input: &str, mode: Mode, language: Language) -> String {
+    let settings = Settings { mode, language, ..Settings::default() };
+    LatexCalculator::default().with_settings(settings).evaluate(input, &Variables::new()).unwrap_err().to_string()
+}
+
+#[test]
+fn errors_are_german() {
+    assert!(error("\\frac{1}{0}", Mode::Algebra, Language::De).contains("Division durch null"));
+    assert!(error("\\frac{1}{0}", Mode::Algebra, Language::En).contains("Division by zero"));
+    assert!(error("", Mode::Algebra, Language::De).contains("Die Eingabe ist leer"));
+    assert!(error("\\ln 0", Mode::Algebra, Language::De).contains("Logarithmus"));
+}

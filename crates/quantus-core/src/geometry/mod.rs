@@ -32,6 +32,7 @@ use crate::matrix::Matrix;
 use crate::num::{Decimal, MathFunction, Value};
 use crate::settings::AngleUnit;
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 /// The three coordinates, each exact.
 pub type Coordinates = [Value; 3];
@@ -103,7 +104,7 @@ impl Vector3 {
     /// The unit vector (Einheitsvektor) `self / |self|`; the zero vector has none.
     pub fn unit(&self) -> Result<Vector3> {
         if self.is_zero() {
-            return Err(QuantusError::other("The zero vector has no unit vector."));
+            return Err(QuantusError::other(msg!("core.geometry.zero_vector_has_no_unit")));
         }
         // `|v|^{-1}` as one power, so that its square folds back to a fraction.
         Ok(self.scale(&self.dot(self).pow(&Value::ratio(-1, 2))?))
@@ -113,7 +114,7 @@ impl Vector3 {
     /// makes none.
     pub fn angle(&self, other: &Vector3, unit: AngleUnit, precision: usize) -> Result<Angle> {
         if self.is_zero() || other.is_zero() {
-            return Err(QuantusError::other("The zero vector makes no angle."));
+            return Err(QuantusError::other(msg!("core.geometry.zero_vector_makes_no_angle")));
         }
         // One root over the product of the squared lengths keeps the cosine in its simplest form.
         let cosine = self.dot(other).mul(&self.dot(self).mul(&other.dot(other)).pow(&Value::ratio(-1, 2))?);

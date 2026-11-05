@@ -783,6 +783,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
+
+[[package]]
 name = "fs_at"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1247,6 +1253,7 @@ version = "0.1.0"
 dependencies = [
  "astro-float",
  "dashu",
+ "quantus-texts",
  "serde",
  "serde_json",
 ]
@@ -1256,6 +1263,7 @@ name = "quantus-engine"
 version = "0.1.0"
 dependencies = [
  "quantus-core",
+ "quantus-texts",
  "quantus-ui",
 ]
 
@@ -1269,6 +1277,7 @@ dependencies = [
  "log",
  "quantus-engine",
  "quantus-mirror",
+ "quantus-texts",
  "quantus-ui",
 ]
 
@@ -1277,10 +1286,26 @@ name = "quantus-mirror"
 version = "0.1.0"
 
 [[package]]
+name = "quantus-texts"
+version = "0.1.0"
+dependencies = [
+ "quantus-texts-macros",
+ "serde",
+]
+
+[[package]]
+name = "quantus-texts-macros"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "quantus-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "quantus-texts",
  "tinybmp",
  "u8g2-fonts",
 ]
@@ -1466,6 +1491,8 @@ version = "1.0.154"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6"
 dependencies = [
+ "foldhash",
+ "indexmap",
  "itoa",
  "memchr",
  "serde",

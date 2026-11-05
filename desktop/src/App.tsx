@@ -711,7 +711,7 @@ export function App() {
                       <button className={eng ? 'form-chip active' : 'form-chip'} title={`${ctrl}+E`} onClick={() => void engineering(1)}>
                         ENG
                       </button>
-                      <button className="form-chip" title={`${ctrl}+Shift+E`} onClick={() => void engineering(-1)}>
+                      <button className="form-chip" title={`${ctrl}+${t('key.shift')}+E`} onClick={() => void engineering(-1)}>
                         ←ENG
                       </button>
                     </>

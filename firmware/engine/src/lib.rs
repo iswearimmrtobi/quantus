@@ -21,7 +21,7 @@ use quantus_ui::backend::{
 };
 use quantus_ui::clock;
 use quantus_ui::settings as ui;
-use quantus_ui::text::Lang;
+use quantus_ui::text::{self, Lang};
 
 mod analysis;
 mod sheet;
@@ -134,7 +134,7 @@ impl Engine {
 
     /// The engine's settings for `mode` set in the store, for a call on the open session.
     fn prepare(&mut self, mode: Mode, settings: &Settings) -> Result<(), String> {
-        let mode = core_mode(mode).ok_or_else(|| "Noch nicht verfügbar".to_string())?;
+        let mode = core_mode(mode).ok_or_else(|| text::NOT_AVAILABLE.get(settings.language).to_string())?;
         self.zone = settings.zone;
         api::set_settings(&mut self.store, core_settings(mode, settings)).map(|_| ()).map_err(|error| error.to_string())
     }
@@ -167,7 +167,7 @@ impl Engine {
                 self.save(&self.current);
                 Ok(Reply::Result(response?.result))
             }
-            _ => Err("Noch nicht verfügbar".to_string()),
+            _ => Err(text::NOT_AVAILABLE.get(settings.language).to_string()),
         }
     }
 
@@ -276,7 +276,7 @@ impl Backend for Engine {
             SessionCommand::New => self.current = self.create(),
             SessionCommand::Open(id) => {
                 if self.store.get(&id).is_none() {
-                    return Err(format!("There is no session '{id}'."));
+                    return Err(quantus_texts::tr!(settings.language, "core.session.there_no_session"));
                 }
                 self.current = id;
             }
