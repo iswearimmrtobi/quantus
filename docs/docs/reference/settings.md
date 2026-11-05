@@ -120,9 +120,9 @@ off, a cancelled factor is shown in colour instead. See
 taught at school; **Gauss–Jordan** divides every pivot to 1 and clears its column above and below.
 The solution is the same. It applies to systems typed with `;`, to
 [Linear systems](../guides/linear-systems/index.md) mode and to the equations of
-[Kirchhoff](../guides/kirchhoff.md) mode.
+[Kirchhoff](../guides/kirchhoff/index.md) mode.
 
-**Resistance between A and B** decides what the [Kirchhoff](../guides/kirchhoff.md) mode does
+**Resistance between A and B** decides what the [Kirchhoff](../guides/kirchhoff/resistance.md) mode does
 with a network between the terminals A and B that series and parallel merges don't reduce, such
 as a bridge. **Node rule** solves the rest with a test current. **Delta → star** turns three
 resistors in a ring into a star, or a star into a ring if there is no ring, and merges on.

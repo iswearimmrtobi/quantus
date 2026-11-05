@@ -39,7 +39,7 @@ The canvas moves with the right or middle mouse button or by scrolling, and zoom
 <kbd>Ctrl</kbd> and scrolling or a pinch; <kbd>Home</kbd> goes back to the start.
 
 **Load** and **Save** under *File* read and write the circuit as a `.json` file. The Kirchhoff
-mode uses the same files, see [Kirchhoff](kirchhoff.md).
+mode uses the same files, see [Kirchhoff](kirchhoff/index.md).
 
 ## Ground
 
@@ -130,5 +130,5 @@ See [Settings](../reference/settings.md).
 
 ## See also
 
-- [Kirchhoff](kirchhoff.md): the same kind of circuit worked out with the junction and loop rules
+- [Kirchhoff](kirchhoff/index.md): the same kind of circuit worked out with the junction and loop rules
 - [Units and quantities](physics/index.md)
