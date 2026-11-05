@@ -211,7 +211,8 @@ built from [`docs/`](docs/) (run it locally with `cd docs && npm install && npm 
 | | |
 |---|---|
 | 🚀 [Getting started](docs/docs/getting-started/) | Install, your first calculation, the concepts behind modes and variables |
-| 🧭 [Guides](docs/docs/guides/) | Entering formulas, units, algebra, complex numbers, calculus, curve sketching |
+| 🧮 [Using Quantus](docs/docs/basics/) | Entering formulas, working and output, variables and history, calculus |
+| 🧭 [Modes](docs/docs/guides/) | A section per mode: Physics, Algebra, Imaginary, Analysis, Linear systems, Electronics, Kirchhoff, Geometry, Base-N, Verify |
 | 📖 [Reference](docs/docs/reference/) | Syntax, units and constants, settings, keyboard shortcuts, known limits, FAQ |
 | 🛠️ [Contributing](docs/docs/contributing/) | Architecture, building, the engine API, testing, translations |
 

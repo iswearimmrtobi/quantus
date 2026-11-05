@@ -21,12 +21,20 @@ npm run build      # production build into docs/build/; fails on broken links
 | Folder | For | Reader question |
 |---|---|---|
 | `docs/docs/getting-started/` | install, first steps, concepts | How do I begin? |
-| `docs/docs/guides/` | one task or mode per page | How do I do X? |
+| `docs/docs/basics/` | what every mode shares: input, working, variables, calculus | How do I use it? |
+| `docs/docs/guides/` | the modes, in the order of the overview | How do I do X in this mode? |
 | `docs/docs/reference/` | complete lists, mostly tables | What exactly is supported? |
 | `docs/docs/contributing/` | code, tests, docs | How does it work, how do I change it? |
 
 The sidebar is generated from the folders. Each folder has a `_category_.json` with its label and
-position; each page sets `sidebar_position` and `title` in its front matter. Design documents and
+position; each page sets `sidebar_position` and `title` in its front matter.
+
+A mode with one page is a file in `guides/` (`imaginary.md`). A larger mode is a folder with an
+`index.md`, its overview, and a page for each separate job (`kirchhoff/working.md`,
+`kirchhoff/resistance.md`); its `_category_.json` links the section to `index.md`, so the folder
+keeps the address the single page had. Split a page only where it has two separate jobs, and keep
+*What is refused* and *Settings that matter here* on the overview. A page that moves gets a
+redirect in `docusaurus.config.js`. Design documents and
 plans are not part of the site; they stay in `design/` and `plans/`.
 
 ## Conventions
