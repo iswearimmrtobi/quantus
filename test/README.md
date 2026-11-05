@@ -129,9 +129,8 @@ the case itself is wrong.
 
 ## Latest results
 
-Full run (2026-11-04, 4 workers, 5 s limit, 196 s): **all 112,040 cases pass**, including the
-1,592 gap cases written before the features they test were implemented. The `open-features`
-category was added after that run, with every case failing as a gap; once its features were
-implemented, all 500 pass on their own (2026-11-04).
+Full run (2026-11-05, 4 workers, 5 s limit, 337 s): **all 112,540 cases pass**, including the
+1,592 gap cases written before the features they test were implemented and the 500 of
+`open-features`. The slowest are the double integrals, about 2 s each.
 
 The full breakdown of the full run is in `test/results/summary.md`.

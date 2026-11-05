@@ -124,9 +124,8 @@ implemented since.
 
 ### Latest results
 
-The first twenty categories were run in full on 2026-11-04: all 112,040 cases pass, including the
-1,592 gap cases written before the features they test were implemented. `open-features` was added
-after that run; on its own all 500 of its cases pass, now that its features are implemented.
+The whole set was run on 2026-11-05: all 112,540 cases pass, including the 1,592 gap cases
+written before the features they test were implemented.
 
 ### By category and subcategory
 
