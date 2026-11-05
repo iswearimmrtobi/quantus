@@ -34,6 +34,9 @@ These are for what only the Kirchhoff mode has, and
 | `kirchhoff-current-source.json` | A current source as a known branch current; the voltage across it is an unknown instead | 10 V with 2 Ω, 2 A into the junction, 4 Ω to the bottom: I(R1) = 1/3 A, I(R2) = 7/3 A, U(R2) = 28/3 V |
 | `kirchhoff-crossing.json` | Wires that cross without a connection: loops from a spanning tree, with a note | 12 V across 4 Ω ‖ 12 Ω: I(R1) = 3 A, I(R2) = 1 A, I(V1) = 4 A |
 | `kirchhoff-source-loop.json` | Two voltage sources in parallel: the equations contradict each other | Error, with the rules and the steps up to the contradiction |
+| `kirchhoff-series-parallel.json` | Resistance between A and B, reduced by series and parallel merges alone | R1 … R8 = 1 Ω … 8 Ω: R_AB = 2430/799 Ω ≈ 3.0413 Ω, seven merges |
+| `kirchhoff-bridge.json` | Resistance between A and B of a bridge: the node rule, or one star–delta conversion | R1 … R5 = 1 Ω … 5 Ω: R_AB = 61/21 Ω ≈ 2.90476 Ω with every setting of *Resistance between A and B* |
+| `kirchhoff-two-conversions.json` | Resistance between A and B that needs more than one star–delta conversion | Seven resistors of 1 Ω: R_AB = 8/7 Ω ≈ 1.142857 Ω with every setting of *Resistance between A and B* |
 
 The files were written by the editor's own `toFile` (`desktop/src/circuit.ts`), so the node
 numbers in them match the positions. When the editor loads a file it works the nodes out again.

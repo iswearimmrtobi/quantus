@@ -2,7 +2,8 @@
 //! run into.
 
 use quantus_core::api::{kirchhoff, KirchhoffRequest, KirchhoffResponse};
-use quantus_core::settings::{Language, Settings};
+use quantus_core::kirchhoff::Point;
+use quantus_core::settings::{Language, Settings, StarDelta};
 use serde_json::{json, Value};
 
 /// A part by ID, the kind from its first letter, with its value as typed and its terminals `a`
@@ -567,6 +568,30 @@ fn the_kirchhoff_test_circuits_solve_to_their_documented_values() {
     let sources = load("source-loop").unwrap();
     assert!(sources.error.unwrap().starts_with("The equations contradict each other"));
     assert!(sources.elements.is_empty() && !sources.steps.is_empty());
+
+    // The resistor networks: the terminals A and B go into the request, not among the parts.
+    let network = |name: &str, star_delta: StarDelta| {
+        let text = std::fs::read_to_string(directory.join(format!("kirchhoff-{name}.json"))).unwrap();
+        let circuit: Value = serde_json::from_str(&text).unwrap();
+        let (mut ends, parts): (Vec<Value>, Vec<Value>) =
+            circuit["elements"].as_array().unwrap().iter().cloned().partition(|e| e["kind"] == "terminal");
+        ends.sort_by(|p, q| p["id"].as_str().cmp(&q["id"].as_str()));
+        let points: Vec<_> = parts.iter().map(terminals).collect();
+        let mut request = as_kirchhoff(&json!({ "elements": parts }), &points, &vec![false; points.len()]);
+        let at = |e: &Value| Point { x: e["x"].as_i64().unwrap() / 20, y: e["y"].as_i64().unwrap() / 20 };
+        request.terminals = Some([at(&ends[0]), at(&ends[1])]);
+        let response = kirchhoff(&Settings { star_delta, ..Settings::default() }, &request).unwrap();
+        response.equivalent.unwrap()
+    };
+    let series = network("series-parallel", StarDelta::NodeRule);
+    assert!(series.latex.starts_with(r"R_{AB} = \frac{2430}{799}"), "{}", series.latex);
+    assert_eq!(series.merges.len(), 7);
+    for (name, value) in [("bridge", r"\frac{61}{21}"), ("two-conversions", r"\frac{8}{7}")] {
+        for star_delta in [StarDelta::NodeRule, StarDelta::DeltaToStar, StarDelta::StarToDelta] {
+            let equivalent = network(name, star_delta);
+            assert!(equivalent.latex.starts_with(&format!("R_{{AB}} = {value}")), "{name}: {}", equivalent.latex);
+        }
+    }
 }
 
 /// The resistance between A at `a` and B at `b` of a drawing of resistors and wires.
