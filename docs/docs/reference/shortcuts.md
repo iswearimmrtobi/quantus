@@ -22,6 +22,12 @@ Everything except typing is reachable from the keyboard. Press <kbd>F10</kbd> to
 | <kbd>Ctrl</kbd>+<kbd>E</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | ENG / ←ENG: the result in engineering notation, the exponent moved by three | Calculation → ENG, ←ENG |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> | New session | Calculation → New session |
 | <kbd>Ctrl</kbd>+<kbd>O</kbd> | Sessions panel | Calculation → Sessions |
+| | Quit | Calculation → Quit |
+
+## Edit
+
+The **Edit** menu has **Undo**, **Redo**, **Cut**, **Copy**, **Paste** and **Select all** with the
+usual keys of your system (<kbd>Ctrl</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>+<kbd>C</kbd>, …).
 
 ## View
 
@@ -46,6 +52,8 @@ Everything except typing is reachable from the keyboard. Press <kbd>F10</kbd> to
 | <kbd>*</kbd> | $\cdot$ |
 | <kbd>^</kbd> / <kbd>_</kbd> | a superscript / a subscript |
 | <kbd>→</kbd> | leaves the index, exponent or bracket you are in |
+| <kbd>\\</kbd> | opens the LaTeX source |
+| `▶` or `\blacktriangleright` in the LaTeX source | converts to the unit after it, see [Converting units](../guides/physics/convert.md) |
 
 ## In the LaTeX source
 
@@ -55,11 +63,35 @@ Everything except typing is reachable from the keyboard. Press <kbd>F10</kbd> to
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | New line |
 | <kbd>Esc</kbd> | Back to the formula editor |
 
+## In the linear system
+
+| Key | Action |
+|---|---|
+| <kbd>Enter</kbd> | Solve |
+| <kbd>Enter</kbd> twice, or <kbd>Shift</kbd>+<kbd>Enter</kbd> in the LaTeX source | New line below |
+| <kbd>Backspace</kbd> in an empty line | Remove the line |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Move between the lines |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> in the matrix | Next / previous cell, row by row |
+| <kbd>Enter</kbd> in the matrix | Solve |
+
+## In the dialogs
+
+| Where | Key | Action |
+|---|---|---|
+| CALC, SOLVE | <kbd>Enter</kbd> / <kbd>Esc</kbd> | Calculate or solve / close |
+| Quick search | <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>Tab</kbd> <kbd>Shift</kbd>+<kbd>Tab</kbd> | Choose a hit |
+| Quick search | <kbd>Enter</kbd> / <kbd>Alt</kbd>+<kbd>Enter</kbd> | Put in the hit / a unit without `▶` |
+| Library | <kbd>Enter</kbd> in the filter | Put in the first hit (<kbd>Alt</kbd>: a unit alone, <kbd>Shift</kbd>: the window stays open) |
+| Library | <kbd>Shift</kbd>+click / <kbd>Alt</kbd>+click | Put in and keep the window open / a unit without `▶` |
+| Session name | <kbd>Enter</kbd> / <kbd>Esc</kbd> | Rename / cancel |
+| Analysis tasks | <kbd>Enter</kbd> in a field | Run the task |
+
 ## In the schematic editor
 
 | Key / mouse | Action |
 |---|---|
-| <kbd>Space</kbd> or <kbd>R</kbd> | Rotate the selected parts |
+| <kbd>Space</kbd> or <kbd>R</kbd> | Rotate the selected parts by 90° |
+| <kbd>Shift</kbd>+<kbd>R</kbd> | Turn the selected resistors by 45° |
 | <kbd>Del</kbd> or <kbd>Backspace</kbd> | Delete the selected parts |
 | <kbd>Esc</kbd> | Clear the selection |
 | Drag from a terminal, or from a grid point on a wire | Draw a wire |
