@@ -1,0 +1,103 @@
+{
+  "elements": [
+    {
+      "a": 0,
+      "b": 0,
+      "id": "A",
+      "kind": "terminal",
+      "rotation": 0,
+      "x": 240,
+      "y": 180
+    },
+    {
+      "a": 0,
+      "b": 0,
+      "id": "B",
+      "kind": "terminal",
+      "rotation": 0,
+      "x": 400,
+      "y": 180
+    },
+    {
+      "a": 1,
+      "b": 2,
+      "id": "R1",
+      "kind": "resistor",
+      "r": "1Ohm",
+      "rotation": 0,
+      "x": 280,
+      "y": 200
+    },
+    {
+      "a": 1,
+      "b": 3,
+      "id": "R2",
+      "kind": "resistor",
+      "r": "2Ohm",
+      "rotation": 0,
+      "x": 280,
+      "y": 280
+    },
+    {
+      "a": 2,
+      "b": 3,
+      "id": "R3",
+      "kind": "resistor",
+      "r": "3Ohm",
+      "rotation": 1,
+      "x": 320,
+      "y": 240
+    },
+    {
+      "a": 2,
+      "b": 4,
+      "id": "R4",
+      "kind": "resistor",
+      "r": "4Ohm",
+      "rotation": 0,
+      "x": 360,
+      "y": 200
+    },
+    {
+      "a": 3,
+      "b": 4,
+      "id": "R5",
+      "kind": "resistor",
+      "r": "5Ohm",
+      "rotation": 0,
+      "x": 360,
+      "y": 280
+    },
+    {
+      "a": 4,
+      "b": 5,
+      "id": "W1",
+      "kind": "wire",
+      "rotation": 0,
+      "x": 400,
+      "x2": 400,
+      "y": 280,
+      "y2": 180
+    },
+    {
+      "a": 1,
+      "b": 6,
+      "id": "W2",
+      "kind": "wire",
+      "rotation": 0,
+      "x": 240,
+      "x2": 240,
+      "y": 280,
+      "y2": 180
+    }
+  ],
+  "nodes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "version": 1
+}
