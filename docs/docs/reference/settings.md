@@ -24,7 +24,7 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 is read and what `\arcsin`, `\arccos`, `\arctan` and `\arg` answer in: with *degree*
 $\sin 30 = 0{,}5$ and $\arctan 1 = 45$. A value that states its unit keeps it in either setting:
 `30^\circ` is always degrees, `\pi\,\mathrm{rad}` always radians. Derivatives follow the setting;
-the curve sketch (Analysis mode) always works in radians. In [Geometry](../guides/geometry.md)
+the curve sketch (Analysis mode) always works in radians. In [Geometry](../guides/geometry/index.md)
 mode the angles between vectors, lines and planes are given in the angle unit.
 **Language** changes the interface, the menu and the texts the engine writes itself (the
 analysis and geometry working). The parser and algebra messages are English only.
