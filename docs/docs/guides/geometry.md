@@ -12,7 +12,7 @@ way they are done at school.
 
 Objects have names of their own, apart from the session variables: a point $A$, a vector
 $\vec{a}$ and a variable $a$ can all exist at once. Inputs are read as in
-[Algebra](algebra.md), without units.
+[Algebra](algebra/index.md), without units.
 
 ## The page
 
@@ -200,5 +200,5 @@ See [Settings](../reference/settings.md).
 
 ## See also
 
-- [Algebra](algebra.md): how numbers are read
+- [Algebra](algebra/index.md): how numbers are read
 - [Working and output](../basics/working-and-output.md)

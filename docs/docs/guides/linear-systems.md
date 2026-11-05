@@ -8,7 +8,7 @@ title: Linear systems
 **Linear systems** mode (German **LGS**) has a page of its own for systems of linear equations:
 typed one equation per line, or entered as the matrix $[A \mid b]$. Both lead to the same exact
 solution and the same Gauss steps. A short system also works in Algebra with `;`, see
-[Algebra](algebra.md#systems-of-linear-equations).
+[Algebra](algebra/solve.md#systems-of-linear-equations).
 
 The mode uses no session variables: every letter is an unknown, `k_1` too. A system that needs
 stored values stays in Algebra.
@@ -102,7 +102,7 @@ skipping a letter the system uses as an unknown.
 ## The steps
 
 The steps follow the method of the setting **Systems of equations**, as in
-[Algebra](algebra.md#systems-of-linear-equations): **Gauss** (default) brings the matrix to
+[Algebra](algebra/solve.md#systems-of-linear-equations): **Gauss** (default) brings the matrix to
 triangle form without fractions and solves from the bottom row up; **Gauss–Jordan** divides every
 pivot to 1 and reads the solution off. For $2x + 3y + z = 11$, $3x + 2y - z = 4$,
 $4x - y + 2z = 8$ at *Standard*:
@@ -147,6 +147,6 @@ See [Settings](../reference/settings.md).
 
 ## See also
 
-- [Algebra](algebra.md#systems-of-linear-equations): systems typed with `;`, with stored values
+- [Algebra](algebra/solve.md#systems-of-linear-equations): systems typed with `;`, with stored values
   as coefficients
 - [Working and output](../basics/working-and-output.md)
