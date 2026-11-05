@@ -8,7 +8,7 @@ title: Circuit files
 **Electronics** and **Kirchhoff** keep their circuit in a `.json` file. **Save** under *File* in
 the parts column writes the circuit as drawn, **Load** reads one back and replaces the circuit on
 the canvas. Both modes read and write the same format, so a circuit drawn in one opens in the
-other. The test circuits in `test/circuits/` of the repository are such files.
+other. The [example files](#example-files) below are such files.
 
 A file that can't be read is reported, and the circuit on the canvas stays as it was.
 
@@ -96,6 +96,22 @@ solved, as if you had typed them.
 
 A file from Electronics can hold what Kirchhoff can't use: a potentiometer, a power load or a
 wire with a material is refused there with a message, and ground symbols are ignored.
+
+## Example files
+
+The repository's [`test/circuits/`](https://github.com/iswearimmrtobi/quantus/tree/dev/test/circuits/) holds circuits drawn in the
+editor, with their expected values in its [README](https://github.com/iswearimmrtobi/quantus/blob/dev/test/circuits/README.md). Download one and open it with
+**Load**. For the resistance between two points in Kirchhoff:
+
+| File | Network | $R_{AB}$ |
+|---|---|---|
+| [`kirchhoff-series-parallel.json`](https://github.com/iswearimmrtobi/quantus/blob/dev/test/circuits/kirchhoff-series-parallel.json) | eight resistors, series and parallel only | $\frac{2430}{799}\,\Omega$ |
+| [`kirchhoff-bridge.json`](https://github.com/iswearimmrtobi/quantus/blob/dev/test/circuits/kirchhoff-bridge.json) | a bridge of five resistors: node rule or one star–delta conversion | $\frac{61}{21}\,\Omega$ |
+| [`kirchhoff-two-conversions.json`](https://github.com/iswearimmrtobi/quantus/blob/dev/test/circuits/kirchhoff-two-conversions.json) | seven resistors of 1 Ω, more than one star–delta conversion | $\frac{8}{7}\,\Omega$ |
+
+The others are for Electronics (`divider.json`, `wheatstone.json`, `cable.json`, …) and for the
+Kirchhoff working (`kirchhoff-current-source.json`, `kirchhoff-crossing.json`,
+`kirchhoff-source-loop.json`).
 
 ## See also
 

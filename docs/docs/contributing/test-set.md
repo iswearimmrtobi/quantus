@@ -670,7 +670,7 @@ Checked as: `inequality` 175, `number` 137, `complex` 100, `complex-solutions` 7
 
 ## Circuit files
 
-`test/circuits/` holds 13 circuit files drawn in the editor, with their expected values in its
+`test/circuits/` holds 16 circuit files drawn in the editor, with their expected values in its
 [README](https://github.com/iswearimmrtobi/quantus/blob/master/test/circuits/README.md): ten for the
-Electronics mode, three only for the Kirchhoff mode. `the_test_circuits_solve_to_their_documented_values`
+Electronics mode, six only for the Kirchhoff mode. `the_test_circuits_solve_to_their_documented_values`
 (desktop) and the two circuit tests in `kirchhoff.rs` solve them.
