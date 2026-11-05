@@ -304,6 +304,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Every text is in one file, `texts/texts.json`, for the desktop app, the engine and the handheld;
+  a new language is one more entry per text there. On the handheld the language list starts with
+  English, and the language has to be chosen again once.
 - `\oint` is refused with *Closed-path integrals are not supported* instead of *Unsupported command*.
 - The unknown of an equation takes the unit that makes both sides agree: `9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}`
   gives `x = 6 N/kg` and `3x = 6\,\mathrm{m}` gives `x = 2 m`; both were dimension errors. An
@@ -331,6 +334,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   complex factor of a parameter is bracketed: `x = i - (1 + i) · λ`.
 
 ### Fixed
+
+- Errors of the calculator, the parser, matrices, Base-N, sessions and settings are in German
+  when the language is German; they were English only. So are a few desktop texts ("kopieren",
+  "Sitzung aktiv", "Umschalt"), the prefix names, "Firmware update" and "Base-N" in English
+  on the handheld, and the handheld's engine and Wi-Fi chip messages.
 
 - `\Gamma(5)` was read as the letter Γ times 5. `\Gamma` followed by a bracket is now the Gamma
   function; on its own it is still a letter.
