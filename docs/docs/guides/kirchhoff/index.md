@@ -33,7 +33,8 @@ terminal must be connected to something.
 
 The circuit is kept when you switch to another mode and back. It is separate from the Electronics
 circuit, but both use the same files: **Load** and **Save** under *File* read and write the same
-`.json` format, so a circuit drawn in one mode opens in the other.
+`.json` format, so a circuit drawn in one mode opens in the other, see
+[Circuit files](../circuit-files.md).
 
 ## What the canvas shows
 
