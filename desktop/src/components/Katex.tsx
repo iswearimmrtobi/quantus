@@ -21,6 +21,14 @@ export function Katex({ latex, display = false, className }: Props) {
   return <span className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
+/**
+ * A formula in display style, fractions included: `\displaystyle` does not reach into the cells
+ * of an array, so every `\frac` becomes a `\dfrac` as well.
+ */
+export function displayStyle(latex: string): string {
+  return `\\displaystyle ${latex.replace(/\\frac(?![a-zA-Z])/g, '\\dfrac')}`;
+}
+
 /** Commands whose two arguments sit above and below each other. */
 const STACKED = new Set(['frac', 'dfrac', 'tfrac', 'cfrac', 'binom', 'dbinom', 'tbinom']);
 /** Operators that reach above and below the line in display style. */

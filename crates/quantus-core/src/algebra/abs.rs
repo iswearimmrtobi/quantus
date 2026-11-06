@@ -67,7 +67,7 @@ fn abs_value(index: usize, ctx: &mut Context) -> Option<Local> {
         Some((value, operand)) => {
             let sign = if value.is_negative() { "<" } else { "\\geq" };
             let text = format!("{operand} {sign} 0, so {before} = {}", serializer::expression(&result));
-            Some(local.with_working(vec![(ctx.atoms.var(index), text, StepDetail::Detailed)], "Take the absolute value"))
+            Some(local.with_working(vec![(ctx.atoms.var(index), text, StepDetail::Detailed)], crate::text::msg!("core.algebra.abs.take_absolute_value")))
         }
         None => Some(local),
     }
@@ -75,7 +75,7 @@ fn abs_value(index: usize, ctx: &mut Context) -> Option<Local> {
 
 /// `|-a| = |a|`, `|2a| = 2|a|`, `|a^{2}| = a^{2}`.
 pub fn abs_values(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, "Simplify the absolute value", RuleId::AbsValue, abs_value)
+    each_atom(node, ctx, &crate::text::msg!("core.algebra.abs.simplify_absolute_value"), RuleId::AbsValue, abs_value)
 }
 
 /// `|u|^{2k + r} = u^{2k} |u|^{r}` in every term of `poly`, and `|a| |b| = |ab|`.
@@ -127,7 +127,7 @@ pub fn abs_products(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let node = each_poly(node, ctx, abs_poly, &mut details, &mut conditions);
     (!details.is_empty()).then(|| Rewrite {
         node,
-        explanation: format!("Multiply the absolute values: {}", details.join(", ")),
+        explanation: crate::text::msg!("core.algebra.abs.multiply_absolute_values", details.join(", ")),
         rule: RuleId::MergeAbs,
         conditions,
         working: Vec::new(),
@@ -161,5 +161,5 @@ fn abs_quotient(node: &Node, ctx: &mut Context) -> Option<Local> {
 
 /// `\frac{|a|}{|b|} = \left|\frac{a}{b}\right|`.
 pub fn abs_quotients(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    everywhere(node, ctx, "Divide the absolute values", RuleId::MergeAbs, abs_quotient)
+    everywhere(node, ctx, &crate::text::msg!("core.algebra.abs.divide_absolute_values"), RuleId::MergeAbs, abs_quotient)
 }

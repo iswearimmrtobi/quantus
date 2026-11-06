@@ -7,6 +7,7 @@
 //!   `\left`/`\right` are dropped, so the parser only ever sees structure.
 
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenType {
@@ -38,6 +39,10 @@ pub enum TokenType {
     Comma,
     /// `!`, the factorial.
     Bang,
+    /// `'` or `′`, the minutes of an angle; `″` lexes as two of them.
+    Prime,
+    /// A comparison, its text one of `<`, `>`, `\le`, `\ge`, `\neq`.
+    Relation,
     End,
 }
 
@@ -89,10 +94,27 @@ impl Lexer<'_> {
             };
             if c.is_ascii_digit() {
                 tokens.push(self.number());
+            } else if c == DEGREE && !self.at(1).is_some_and(char::is_alphabetic) {
+                // A lone `°` is the degree sign, as `^\circ`.
+                tokens.push(Token { kind: TokenType::Caret, text: "^".to_string(), position: self.index });
+                tokens.push(Token { kind: TokenType::Command, text: "\\circ".to_string(), position: self.index });
+                self.index += 1;
+            } else if c == '\u{2033}' {
+                for _ in 0..2 {
+                    tokens.push(Token { kind: TokenType::Prime, text: "'".to_string(), position: self.index });
+                }
+                self.index += 1;
             } else if c.is_alphabetic() || c == DEGREE {
                 tokens.push(self.identifier());
             } else if c == '%' {
                 tokens.push(Token { kind: TokenType::Identifier, text: "%".to_string(), position: self.index });
+                self.index += 1;
+            } else if c == '\u{25b6}' || c == '\u{25ba}' {
+                // `▶`, the conversion arrow.
+                tokens.push(Token { kind: TokenType::Command, text: "\\blacktriangleright".to_string(), position: self.index });
+                self.index += 1;
+            } else if c == '\u{2109}' {
+                tokens.push(Token { kind: TokenType::Identifier, text: "°F".to_string(), position: self.index });
                 self.index += 1;
             } else if c == '\u{2103}' {
                 // The one-character degree Celsius sign reads like `°C`.
@@ -149,6 +171,10 @@ impl Lexer<'_> {
             return None;
         }
         if !self.at(0).is_some_and(|c| c.is_ascii_digit()) {
+            // `0{,}\overline{3}`: the period follows the separator at once.
+            if self.chars[self.index..].starts_with(&['\\', 'o', 'v', 'e', 'r', 'l', 'i', 'n', 'e']) {
+                return Some(String::new());
+            }
             self.index = start; // a lone separator is not part of the number
             return None;
         }
@@ -171,7 +197,7 @@ impl Lexer<'_> {
         let start = self.index;
         self.index += 1; // the backslash
         let Some(first) = self.at(0) else {
-            return Err(self.error("A backslash must be followed by a command name.".into(), start));
+            return Err(self.error(msg!("core.latex.lexer.lone_backslash").into(), start));
         };
 
         if first == '\\' {
@@ -193,7 +219,7 @@ impl Lexer<'_> {
             if SPACING_SYMBOLS.contains(&first) {
                 return Ok(None);
             }
-            return Err(self.error(format!("Unknown command '\\{first}'."), start));
+            return Err(self.error(msg!("core.latex.lexer.unknown_command"), start));
         }
 
         while self.at(0).is_some_and(char::is_alphabetic) {
@@ -204,10 +230,31 @@ impl Lexer<'_> {
         if matches!(text.as_str(), "\\left" | "\\right") && self.at(0) == Some('.') {
             self.index += 1;
         }
-        Ok(if IGNORED_COMMANDS.contains(&text.as_str()) {
+        // `\left|` and `\right|` are bars that open and close: the Geometry mode tells them from
+        // the bars that separate coordinates, `(1|\left|-2\right||3)`.
+        if matches!(text.as_str(), "\\left" | "\\right") && self.at(0) == Some('|') {
+            self.index += 1;
+            return Ok(Some(Token { kind: TokenType::Pipe, text: format!("{text}|"), position: start }));
+        }
+        let relation = match text.as_str() {
+            "\\lt" => Some("<"),
+            "\\gt" => Some(">"),
+            "\\le" | "\\leq" | "\\leqslant" => Some("\\le"),
+            "\\ge" | "\\geq" | "\\geqslant" => Some("\\ge"),
+            "\\neq" | "\\ne" => Some("\\neq"),
+            _ => None,
+        };
+        Ok(if let Some(relation) = relation {
+            Some(Token { kind: TokenType::Relation, text: relation.to_string(), position: start })
+        } else if IGNORED_COMMANDS.contains(&text.as_str()) {
             None
         } else if PIPE_COMMANDS.contains(&text.as_str()) {
-            Some(Token { kind: TokenType::Pipe, text: "|".to_string(), position: start })
+            let text = match text.as_str() {
+                "\\lvert" => "\\left|",
+                "\\rvert" => "\\right|",
+                _ => "|",
+            };
+            Some(Token { kind: TokenType::Pipe, text: text.to_string(), position: start })
         } else if text == "\\AA" {
             Some(Token { kind: TokenType::Identifier, text: "\u{c5}".to_string(), position: start })
         } else if GREEK_COMMANDS.contains(&text.as_str()) {
@@ -240,7 +287,12 @@ impl Lexer<'_> {
             ']' => TokenType::RBracket,
             ',' | ';' => TokenType::Comma,
             '!' => TokenType::Bang,
-            _ => return Err(self.error(format!("Unexpected character '{c}'."), start)),
+            '\'' | '\u{2032}' => TokenType::Prime,
+            '<' | '>' => TokenType::Relation,
+            '\u{2264}' => return Ok(Token { kind: TokenType::Relation, text: "\\le".into(), position: start }),
+            '\u{2265}' => return Ok(Token { kind: TokenType::Relation, text: "\\ge".into(), position: start }),
+            '\u{2260}' => return Ok(Token { kind: TokenType::Relation, text: "\\neq".into(), position: start }),
+            _ => return Err(self.error(msg!("core.latex.lexer.unexpected_character"), start)),
         };
         Ok(Token { kind, text: c.to_string(), position: start })
     }

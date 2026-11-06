@@ -1,0 +1,14 @@
+//! Kirchhoff mode: a resistor network solved the way a student does it, with junction and loop
+//! rules, the linear system and its Gauss steps. UI-independent, no state of its own.
+
+pub mod branches;
+pub mod equations;
+pub mod equivalent;
+pub mod graph;
+pub mod interface;
+
+pub use branches::{Branch, Kind, Member, Mesh, Network, Part, Turn};
+pub use equations::{Current, Equation, Equations, JunctionRule};
+pub use equivalent::{equivalent, Created, Equivalent, Merge, MergeKind};
+pub use graph::{Edge, Graph, Point};
+pub use interface::{kirchhoff, KirchhoffElement, KirchhoffRequest, KirchhoffResponse};

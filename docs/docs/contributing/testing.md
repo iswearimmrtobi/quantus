@@ -6,13 +6,16 @@ sidebar_position: 4
 
 Quantus has two kinds of tests:
 
-1. **`cargo test`**: 518 tests that run in a few seconds. Run them before every commit.
-2. **The generated test set** in `test/`: 103,000 cases run by a separate program, for broad
+1. **`cargo test`**: about 1,100 tests that run in a few seconds. Run them before every commit.
+2. **The generated test set** in `test/`: 112,540 cases run by a separate program, for broad
    coverage of the engine. A full run takes about 4 minutes, so run it when you change the engine's
    behaviour, not on every commit.
 
 The frontend (`desktop/src/`) has no tests of its own; `npm run typecheck` is its only check. The
 renderer's calls into the engine are covered by the Tauri IPC tests below.
+
+How many tests of each kind there are, file by file and category by category, is listed on
+[Test inventory](test-set.md). The tables below describe the main files; their counts are older.
 
 ## Running
 
@@ -51,7 +54,7 @@ next to the code they test, so the file you change is also where its tests are.
 | `crates/quantus-core/src/` (rest) | 29 | Sessions, settings, error messages, message language, algebra pipeline, rational roots, steps merged and filtered by detail level |
 | `desktop/src-tauri/src/tests.rs` | 20 | The Tauri commands through Tauri's own IPC layer with a mock runtime, as the renderer's `invoke` reaches them: evaluation, variables, error positions, settings and circuit files, the menu, the analysis commands at a set precision and with their errors |
 
-## Integration tests (248)
+## Integration tests (263)
 
 `crates/quantus-core/tests/*.rs`. Each file is its own test binary and uses only the public API of
 `quantus-core`.
@@ -96,16 +99,22 @@ The symbolic simplification of rational expressions, built milestone by mileston
 |---|---:|---|
 | `analysis.rs` | 43 | The analysis mode end to end: each section's result and the marked points for every case of `design/analysis-mode.md` §17, each expected antiderivative differentiated back, periodic families, constant functions, boundary points, German texts, the pq formula, input forms and errors, every solution having its step, no steps without a change, a time check, and the working each detail level adds |
 | `complex.rs` | 10 | Complex results in imaginary mode |
+| `geometry.rs` | 15 | The Geometry mode's points and vectors: their arithmetic, dot and cross product, length, unit vector, angle in both angle units, triple product, collinear and coplanar tests, areas and volumes, all exact; reading columns, `\vec{a}` and points `P(1\|2\|3)` or `(1;2;3)` (bars that separate coordinates against `\left\|…\right\|`, decimal commas, 2D input), and the operator each pair of types makes |
+| `geometry_view.rs` | 24 | The shared 3D view of the Geometry mode: the camera's projection and depth (school view, view from above), the auto-fit box and the camera that fits it, the axes with round ticks and their numbers, points as markers with their names, lines clipped to the box, vectors as arrows from the origin, planes as the polygon of their cut with the box (square, hexagon, triangle, none) with an optional hatch inside it, spheres as an outline with rings of latitude and longitude (their far halves hidden), circles as rings of short segments; all of it far to near with the labels last, crossing planes split along their intersection line (parallel and identical ones not), lines and axes cut where they pass through a plane |
 | `settings.rs` | 12 | Each user setting switches its reading or writing rule; the calculator's working by detail level |
 
-## The generated test set (103,000 cases)
+## The generated test set (112,540 cases)
 
 `test/` holds a large set of generated cases across arithmetic, functions, equations, derivatives,
-integrals, limits, algebra, physics with units, complex numbers and syntax errors. Every expected
+integrals, limits, algebra, physics with units, complex numbers, syntax errors, and every mode:
+linear systems, Verify, Base-N, Matrix, Statistics, Distributions, Analysis, Geometry, and a few
+circuits for Electronics and Kirchhoff. A last category, `open-features`, holds the features that
+were open in `plans/plans.md` until 2026-11-04, written as gaps first; new open features get gap
+cases there, so the set shows when one lands. Every expected
 value is computed by the Python generator, independently of the engine.
 
 ```sh
-cargo run --release -p quantus-core --example run_cases                    # all cases, ~4 min
+cargo run --release -p quantus-core --example run_cases                    # all cases, a few minutes
 cargo run --release -p quantus-core --example run_cases -- --filter physics --fail-only
 python3 test/generator/generate.py --check                                 # regenerate test/cases
 ```

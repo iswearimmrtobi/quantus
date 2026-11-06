@@ -11,7 +11,7 @@ impl Atom {
     /// The registered symbol (`μm` with a Greek mu, `℃`), else prefix and kind symbol.
     pub fn name(&self) -> String {
         match lookup::label(self) {
-            Some(label) => label.to_string(),
+            Some(label) => label,
             None => format!("{}{}", self.prefix().map_or("", |p| p.symbol), self.kind().symbol()),
         }
     }

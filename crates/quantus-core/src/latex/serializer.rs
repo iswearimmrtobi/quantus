@@ -6,7 +6,7 @@
 //! (`2\,\mathrm{kg}`) instead of a `\cdot`.
 
 use super::ast::{Formula, Label, Node, Operator};
-use super::numbers;
+use super::numbers::{self, Style};
 use crate::num::Decimal;
 use dashu::base::UnsignedAbs;
 use dashu::integer::IBig;
@@ -54,10 +54,15 @@ pub fn algebraic_expression(node: &Node) -> String {
 
 /// A result: value and unit, e.g. `20\,\mathrm{N}`.
 pub fn quantity(value: &Decimal, unit: &Unit) -> String {
-    let number = numbers::format(value);
+    quantity_styled(value, unit, &Style::default())
+}
+
+/// A result in the user's number format.
+pub fn quantity_styled(value: &Decimal, unit: &Unit, style: &Style) -> String {
     if unit.is_one() {
-        return number;
+        return if style.prefixes { numbers::with_prefix(value, style) } else { numbers::format_with(value, style) };
     }
+    let number = numbers::format_with(value, style);
     format!("{number}\\,{}", unit_latex::format(unit))
 }
 
@@ -99,7 +104,12 @@ pub fn exact_complex_quantity(re: &str, im: &str, unit: &Unit) -> String {
 
 /// A complex result, `3 + 4i` or `-2i`, with its unit after the parenthesised number.
 pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
-    let magnitude = |value: &Decimal| match numbers::format(&Decimal::new(IBig::from(value.unscaled().clone().unsigned_abs()), value.scale())).as_str() {
+    complex_quantity_styled(re, im, unit, &Style::default())
+}
+
+/// A complex result in the user's number format.
+pub fn complex_quantity_styled(re: &Decimal, im: &Decimal, unit: &Unit, style: &Style) -> String {
+    let magnitude = |value: &Decimal| match numbers::format_with(&Decimal::new(IBig::from(value.unscaled().clone().unsigned_abs()), value.scale()), style).as_str() {
         "1" => String::new(),
         other => other.to_string(),
     };
@@ -108,7 +118,7 @@ pub fn complex_quantity(re: &Decimal, im: &Decimal, unit: &Unit) -> String {
         if im.is_negative() { format!("-{imaginary}") } else { imaginary }
     } else {
         let sign = if im.is_negative() { '-' } else { '+' };
-        format!("{} {sign} {imaginary}", numbers::format(re))
+        format!("{} {sign} {imaginary}", numbers::format_with(re, style))
     };
     if unit.is_one() {
         return number;
@@ -153,6 +163,9 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         Node::Number { value, .. } => numbers::format(value),
         Node::Unit { symbol, .. } => unit_latex::symbol(symbol),
         Node::Constant { name, .. } => name.clone(),
+        Node::Variable { name, index, .. } if index.is_empty() && matches!(name.as_str(), "Ans" | "PreAns") => {
+            format!("\\mathrm{{{name}}}")
+        }
         Node::Variable { name, index, .. } if index.is_empty() => name.clone(),
         Node::Variable { name, index, .. } => format!("{name}_{{{index}}}"),
         Node::Negation { operand, .. } => format!("-{}", render(operand, PRECEDENCE_MULTIPLICATIVE, mode)),
@@ -190,12 +203,53 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         }
         Node::Binary { operator, left, right, .. } => binary(*operator, left, right, mode),
         Node::Group { inner, .. } => expression_with_mode(inner, mode),
-        Node::Function { name, argument, .. } => match mode {
-            SerializerMode::Standard => format!("\\{name}{{{}}}", expression_with_mode(argument, mode)),
-            SerializerMode::Algebraic => format!("\\{name}{}", function_argument(argument)),
-        },
+        // Γ takes its bracket: without it, `\Gamma` is read as the letter.
+        Node::Function { name, argument, .. } if name == "Gamma" => {
+            let argument = match &**argument {
+                Node::Group { inner, .. } => &**inner,
+                other => other,
+            };
+            format!("\\Gamma\\left({}\\right)", expression_with_mode(argument, mode))
+        }
+        Node::Function { name, argument, .. } => {
+            // The area functions have no LaTeX command of their own.
+            let command = if matches!(name.as_str(), "arsinh" | "arcosh" | "artanh") {
+                format!("\\operatorname{{{name}}}")
+            } else {
+                format!("\\{name}")
+            };
+            match mode {
+                SerializerMode::Standard => format!("{command}{{{}}}", expression_with_mode(argument, mode)),
+                SerializerMode::Algebraic => format!("{command}{}", function_argument(argument)),
+            }
+        }
         Node::Call { name, arguments, .. } => match (name.as_str(), arguments.as_slice()) {
+            (name, operands) if name.starts_with("relation ") => {
+                let mut out = expression_with_mode(&operands[0], mode);
+                for (operator, operand) in name.split(' ').skip(1).zip(&operands[1..]) {
+                    out.push_str(&format!(" {operator} {}", expression_with_mode(operand, mode)));
+                }
+                out
+            }
+            ("vec", [name]) => format!("\\vec{{{}}}", expression_with_mode(name, mode)),
+            ("cross", [a, b]) => format!(
+                "{} \\times {}",
+                render(a, PRECEDENCE_MULTIPLICATIVE, mode),
+                render(b, PRECEDENCE_POWER, mode)
+            ),
+            ("point", coordinates) => coordinate_list(coordinates, mode),
+            ("named point", [name, coordinates @ ..]) => {
+                format!("{}{}", expression_with_mode(name, mode), coordinate_list(coordinates, mode))
+            }
             ("factorial", [n]) => format!("{}!", render(n, PRECEDENCE_ATOM, mode)),
+            ("convert", [value, unit]) => {
+                format!("{} \\blacktriangleright {}", expression_with_mode(value, mode), expression_with_mode(unit, mode))
+            }
+            ("polar", [r, theta]) => format!(
+                "{} \\angle {}",
+                render(r, PRECEDENCE_MULTIPLICATIVE, mode),
+                render(theta, PRECEDENCE_POWER, mode)
+            ),
             ("floor", [x]) => format!("\\lfloor {} \\rfloor", expression_with_mode(x, mode)),
             ("ceil", [x]) => format!("\\lceil {} \\rceil", expression_with_mode(x, mode)),
             (crate::algebra::display::BRACKET, [x]) => {
@@ -207,6 +261,11 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 format!("\\textcolor{{orange}}{{{}}}", render(x, PRECEDENCE_MULTIPLICATIVE, mode))
             }
             ("mod", [a, b]) => format!("{} \\bmod {}", render(a, PRECEDENCE_ATOM, mode), render(b, PRECEDENCE_ATOM, mode)),
+            (name, arguments) if super::parser::named_call_spelling(name).is_some() => format!(
+                "\\operatorname{{{}}}\\left({}\\right)",
+                super::parser::named_call_spelling(name).expect("checked"),
+                arguments.iter().map(|a| expression_with_mode(a, mode)).collect::<Vec<_>>().join("; ")
+            ),
             (name, arguments) => format!(
                 "\\{name}\\left({}\\right)",
                 arguments.iter().map(|a| expression_with_mode(a, mode)).collect::<Vec<_>>().join(", ")
@@ -214,9 +273,11 @@ fn text(node: &Node, mode: SerializerMode) -> String {
         },
         Node::Abs { operand, .. } => format!("\\left|{}\\right|", expression_with_mode(operand, mode)),
         Node::Binomial { n, k, .. } => format!("\\binom{{{}}}{{{}}}", expression_with_mode(n, mode), expression_with_mode(k, mode)),
+        Node::Degrees { sexagesimal: Some(written), .. } => written.clone(),
         Node::Degrees { operand, .. } => format!("{}^{{\\circ}}", render(operand, PRECEDENCE_ATOM, mode)),
-        Node::Sum { index, from, to, body, .. } => format!(
-            "\\sum_{{{index}={}}}^{{{}}} {}",
+        Node::Sum { index, from, to, body, product, .. } => format!(
+            "\\{}_{{{index}={}}}^{{{}}} {}",
+            if *product { "prod" } else { "sum" },
             expression_with_mode(from, mode),
             expression_with_mode(to, mode),
             render(body, PRECEDENCE_MULTIPLICATIVE, mode)
@@ -239,14 +300,19 @@ fn text(node: &Node, mode: SerializerMode) -> String {
                 render(body, PRECEDENCE_MULTIPLICATIVE, mode)
             )
         }
-        Node::Derivative { variable, body, at: None, .. } => {
-            format!("\\frac{{d}}{{d{variable}}} {}", render(body, PRECEDENCE_MULTIPLICATIVE, mode))
+        Node::Derivative { variable, body, at: None, partial, .. } => {
+            format!("{} {}", derivative_operator(variable, *partial), render(body, PRECEDENCE_MULTIPLICATIVE, mode))
         }
-        Node::Derivative { variable, body, at: Some(at), .. } => format!(
-            "\\left.\\frac{{d}}{{d{variable}}} {}\\right|_{{{variable}={}}}",
-            render(body, PRECEDENCE_MULTIPLICATIVE, mode),
-            expression_with_mode(at, mode)
-        ),
+        Node::Derivative { variable, body, at: Some(at), given, partial, .. } => {
+            let mut point = vec![format!("{variable}={}", expression_with_mode(at, mode))];
+            point.extend(given.iter().map(|(name, value)| format!("{name}={}", expression_with_mode(value, mode))));
+            format!(
+                "\\left.{} {}\\right|_{{{}}}",
+                derivative_operator(variable, *partial),
+                render(body, PRECEDENCE_MULTIPLICATIVE, mode),
+                point.join(", ")
+            )
+        }
         Node::Matrix { rows, .. } => {
             let rows: Vec<String> =
                 rows.iter().map(|row| row.iter().map(|cell| expression_with_mode(cell, mode)).collect::<Vec<_>>().join(" & ")).collect();
@@ -431,6 +497,7 @@ fn precedence(node: &Node) -> u8 {
     match node {
         Node::Binary { operator: Operator::Plus | Operator::Minus, .. } => PRECEDENCE_ADDITIVE,
         Node::Binary { .. } => PRECEDENCE_MULTIPLICATIVE,
+        Node::Call { name, .. } if name == "cross" => PRECEDENCE_MULTIPLICATIVE,
         Node::Negation { .. } => PRECEDENCE_ADDITIVE,
         // Their bodies reach as far right as a term, so they need brackets as a factor.
         Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. } | Node::Derivative { at: None, .. } => {
@@ -454,6 +521,16 @@ fn is_unit_only(node: &Node) -> bool {
             !matches!(operator, Operator::Plus | Operator::Minus) && is_unit_only(left) && is_unit_only(right)
         }
         _ => false,
+    }
+}
+
+
+/// `\frac{d}{dx}`, or `\frac{\partial}{\partial x}` for a derivative typed with `\partial`.
+fn derivative_operator(variable: &str, partial: bool) -> String {
+    if partial {
+        format!("\\frac{{\\partial}}{{\\partial {variable}}}")
+    } else {
+        format!("\\frac{{d}}{{d{variable}}}")
     }
 }
 
@@ -537,4 +614,9 @@ mod tests {
         assert_eq!(round_trip("e \\cdot i"), "e \\cdot i");
         assert_eq!(round_trip("2 \\cdot \\pi"), "2 \\cdot \\pi");
     }
+}
+
+/// The coordinates of a point, `(1|2|3)`.
+fn coordinate_list(coordinates: &[Node], mode: SerializerMode) -> String {
+    format!("({})", coordinates.iter().map(|c| expression_with_mode(c, mode)).collect::<Vec<_>>().join("|"))
 }

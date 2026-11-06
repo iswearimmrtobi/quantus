@@ -15,6 +15,7 @@ use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use crate::error::{QuantusError, Result};
+use crate::text::msg;
 
 /// Default digit count per F3.
 pub const DEFAULT_PRECISION: usize = 50;
@@ -233,6 +234,15 @@ pub enum MathFunction {
     Arcsin,
     Arccos,
     Arctan,
+    /// The error function, for the normal distribution.
+    Erf,
+    Coth,
+    /// The area functions, the inverses of sinh, cosh and tanh.
+    Arsinh,
+    Arcosh,
+    Artanh,
+    /// The Gamma function, `\Gamma(x)`; also `x!` for an x that is not whole, as `Γ(x + 1)`.
+    Gamma,
 }
 
 impl MathFunction {
@@ -253,6 +263,12 @@ impl MathFunction {
             "arcsin" => MathFunction::Arcsin,
             "arccos" => MathFunction::Arccos,
             "arctan" => MathFunction::Arctan,
+            "erf" => MathFunction::Erf,
+            "coth" => MathFunction::Coth,
+            "arsinh" => MathFunction::Arsinh,
+            "arcosh" => MathFunction::Arcosh,
+            "artanh" => MathFunction::Artanh,
+            "Gamma" => MathFunction::Gamma,
             _ => return None,
         })
     }
@@ -274,6 +290,12 @@ impl MathFunction {
             MathFunction::Arcsin => "ArcSin",
             MathFunction::Arccos => "ArcCos",
             MathFunction::Arctan => "ArcTan",
+            MathFunction::Erf => "Erf",
+            MathFunction::Coth => "Coth",
+            MathFunction::Arsinh => "ArSinh",
+            MathFunction::Arcosh => "ArCosh",
+            MathFunction::Artanh => "ArTanh",
+            MathFunction::Gamma => "Gamma",
         }
     }
 }
@@ -475,7 +497,7 @@ impl Value {
 
     pub fn div(&self, other: &Value) -> Result<Value> {
         if other.is_zero() {
-            return Err(QuantusError::other("Division by zero."));
+            return Err(QuantusError::other(msg!("core.common.division_zero")));
         }
         Ok(self.mul(&other.pow(&Value::int(-1))?))
     }
@@ -483,7 +505,7 @@ impl Value {
     pub fn pow(&self, exponent: &Value) -> Result<Value> {
         if exponent.is_zero() {
             return if self.is_zero() {
-                Err(QuantusError::other("0 to the power of 0 is undefined."))
+                Err(QuantusError::other(msg!("core.num.zero_to_zero")))
             } else {
                 Ok(Value::one())
             };
@@ -532,9 +554,8 @@ impl Value {
                     return Err(self.not_real());
                 }
                 if self.is_zero() || self.is_negative()? {
-                    return Err(QuantusError::other(format!(
-                        "The logarithm is only defined for positive numbers, but the argument was '{self}'."
-                    )));
+                    return Err(QuantusError::other(msg!("core.num.logarithm_domain"
+                    , self)));
                 }
                 if let Some(exact) = self.exact_log(function) {
                     return Ok(exact);
@@ -564,10 +585,9 @@ impl Value {
                     _ => (Value::one(), sin),
                 };
                 if bottom.is_zero() {
-                    return Err(QuantusError::other(format!(
-                        "{} is undefined at '{self}'.",
+                    return Err(QuantusError::other(msg!("core.num.undefined",
                         function.display_name()
-                    )));
+                    , self)));
                 }
                 return top.div(&bottom);
             }
@@ -579,8 +599,89 @@ impl Value {
                     return Ok(exact);
                 }
             }
+            MathFunction::Coth => {
+                let sinh = self.apply(MathFunction::Sinh)?;
+                if sinh.is_zero() {
+                    return Err(QuantusError::other(msg!("core.num.coth_at_zero")));
+                }
+                return self.apply(MathFunction::Cosh)?.div(&sinh);
+            }
+            // The area functions as logarithms, so their exact values come from ln.
+            MathFunction::Arsinh | MathFunction::Arcosh | MathFunction::Artanh => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                let half = Value::ratio(1, 2);
+                let one = Value::one();
+                return match function {
+                    MathFunction::Arsinh => self.add(&self.mul(self).add(&one).pow(&half)?).apply(MathFunction::Ln),
+                    MathFunction::Arcosh => {
+                        if self.sub(&one).is_negative()? {
+                            return Err(QuantusError::other(msg!("core.num.arcosh_domain", self)));
+                        }
+                        self.add(&self.mul(self).sub(&one).pow(&half)?).apply(MathFunction::Ln)
+                    }
+                    _ => {
+                        let inside = one.sub(&self.mul(self));
+                        if inside.is_zero() || inside.is_negative()? {
+                            return Err(QuantusError::other(msg!("core.num.artanh_domain", self)));
+                        }
+                        Ok(half.mul(&one.add(self).div(&one.sub(self))?.apply(MathFunction::Ln)?))
+                    }
+                };
+            }
+            MathFunction::Erf => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                if self.is_zero() {
+                    return Ok(Value::zero());
+                }
+            }
+            MathFunction::Gamma => {
+                if self.contains_imaginary() {
+                    return Err(self.not_real());
+                }
+                if let Some(exact) = self.exact_gamma()? {
+                    return Ok(exact);
+                }
+            }
         }
         Ok(Value::Func(function, Box::new(self.clone())))
+    }
+
+    /// Γ where it has a closed form: `(n - 1)!` at a whole number n, a rational multiple of `√π`
+    /// halfway between two (`Γ(½) = √π`, `Γ(5/2) = ¾√π`). Its poles, 0, -1, -2, …, are errors.
+    fn exact_gamma(&self) -> Result<Option<Value>> {
+        const LIMIT: i64 = 10_000;
+        let Some(r) = self.as_rational() else { return Ok(None) };
+        let whole = |r: &RBig| -> Option<i64> { (*r.denominator() == UBig::ONE).then(|| i64::try_from(r.numerator().clone()).ok()).flatten() };
+        if let Some(n) = whole(r).or_else(|| (*r.denominator() == UBig::ONE).then_some(i64::MAX)) {
+            if n <= 0 {
+                return Err(QuantusError::other(msg!("core.num.gamma_pole")));
+            }
+            if n > LIMIT {
+                return Ok(None);
+            }
+            return Ok(Some(Value::Rat(RBig::from((2..n).fold(IBig::ONE, |p, k| p * IBig::from(k))))));
+        }
+        if *r.denominator() != UBig::from(2u8) {
+            return Ok(None);
+        }
+        // Γ(z + 1) = z Γ(z), from Γ(½) = √π up or down to r.
+        let (mut z, mut factor) = (RBig::from_parts(IBig::ONE, UBig::from(2u8)), RBig::ONE);
+        if (r - &z).clone().abs() > RBig::from(LIMIT) {
+            return Ok(None);
+        }
+        while &z < r {
+            factor *= &z;
+            z += RBig::ONE;
+        }
+        while &z > r {
+            z -= RBig::ONE;
+            factor /= &z;
+        }
+        Ok(Some(Value::Rat(factor).mul(&Value::Pi.pow(&Value::ratio(1, 2))?)))
     }
 
     /// arcsin, arccos and arctan at the values where they are a rational multiple of π, by
@@ -588,10 +689,9 @@ impl Value {
     fn exact_arc(&self, function: MathFunction) -> Result<Option<Value>> {
         let x = self.decimal(60)?.to_rational();
         if function != MathFunction::Arctan && x.clone().abs() > RBig::ONE {
-            return Err(QuantusError::other(format!(
-                "{} is only defined between -1 and 1, but the argument was '{self}'.",
+            return Err(QuantusError::other(msg!("core.num.arc_domain",
                 function.display_name()
-            )));
+            , self)));
         }
         let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(55));
         // (multiple of π, value) for the principal branch.
@@ -652,7 +752,7 @@ impl Value {
                 let (sin, cos) = (cos_of(&(half - &r)), cos_of(&r));
                 match (sin, cos) {
                     (_, Some(c)) if c.is_zero() => {
-                        return Err(QuantusError::other("The tangent is undefined at odd multiples of \u{3c0}/2."))
+                        return Err(QuantusError::other(msg!("core.num.tangent_poles")))
                     }
                     (Some(s), Some(c)) => Some(s.div(&c)?),
                     _ => tan_of_quarter_pi_multiple(&r),
@@ -757,6 +857,13 @@ impl Value {
                     MathFunction::Cot => x.tan(bits, rm, consts).reciprocal(bits, rm),
                     MathFunction::Sec => x.cos(bits, rm, consts).reciprocal(bits, rm),
                     MathFunction::Csc => x.sin(bits, rm, consts).reciprocal(bits, rm),
+                    MathFunction::Erf => erf(&x, bits, consts),
+                    // Built from ln and exp by `apply`, so never wrapped.
+                    MathFunction::Coth => x.tanh(bits, rm, consts).reciprocal(bits, rm),
+                    MathFunction::Arsinh => x.asinh(bits, rm, consts),
+                    MathFunction::Arcosh => x.acosh(bits, rm, consts),
+                    MathFunction::Artanh => x.atanh(bits, rm, consts),
+                    MathFunction::Gamma => gamma(&x, bits, consts),
                 };
                 if result.is_nan() || result.is_inf() {
                     return Err(self.not_real());
@@ -776,9 +883,8 @@ impl Value {
                             return Ok(BigFloat::from_u8(0, bits));
                         }
                         if magnitude.cmp(&limit).is_some_and(|o| o > 0) {
-                            return Err(QuantusError::other(format!(
-                                "'{self}' is too large to compute."
-                            )));
+                            return Err(QuantusError::other(msg!("core.num.too_large_compute"
+                            , self)));
                         }
                     }
                     return Ok(b.pow(&e, bits, rm, consts));
@@ -822,7 +928,7 @@ impl Value {
             self.clone()
         };
         if n < 0 && re.is_zero() && im.is_zero() {
-            return Err(QuantusError::other("Division by zero."));
+            return Err(QuantusError::other(msg!("core.common.division_zero")));
         }
         let mut result = Value::one();
         let mut remaining = n.unsigned_abs();
@@ -875,7 +981,7 @@ impl Value {
             (MathFunction::Ln | MathFunction::Log, Some((a, b))) if complex || a.is_negative()? => {
                 let norm = a.mul(&a).add(&b.mul(&b));
                 if norm.is_zero() {
-                    return Err(QuantusError::other("The logarithm of 0 is undefined."));
+                    return Err(QuantusError::other(msg!("core.num.logarithm_of_zero")));
                 }
                 let ln = norm.apply(MathFunction::Ln)?.mul(&Value::ratio(1, 2)).add(&Value::I.mul(&arg_of(&a, &b)?));
                 match function {
@@ -900,8 +1006,82 @@ impl Value {
                     _ => Value::one().div(&sin),
                 }
             }
+            (MathFunction::Arcsin | MathFunction::Arccos | MathFunction::Arctan, Some((a, b))) => {
+                self.complex_arc(function, &a, &b)
+            }
             _ => self.apply(function),
         }
+    }
+
+    /// arcsin, arccos and arctan where they leave the reals: a complex argument, or a real one
+    /// beyond ±1 for arcsin and arccos. Principal values, `arcsin z = -i ln(iz + √(1 - z²))`,
+    /// `arccos z = π/2 - arcsin z`, `arctan z = i/2 (ln(1 - iz) - ln(1 + iz))`. On the branch cuts
+    /// the value is the one from the side where the other part is +0, as in C99 and Python:
+    /// `arcsin 2 = π/2 + i·arcosh 2`, `arctan 2i = π/2 + i/2·ln 3`.
+    fn complex_arc(&self, function: MathFunction, a: &Value, b: &Value) -> Result<Value> {
+        let one = Value::one();
+        let half_pi = Value::Pi.div(&Value::int(2))?;
+        let beyond_one = |x: &Value| -> Result<bool> {
+            let excess = x.mul(x).sub(&one);
+            Ok(!excess.is_zero() && !excess.is_negative()?)
+        };
+        if function == MathFunction::Arctan {
+            if !a.is_zero() || b.is_zero() {
+                if !self.contains_imaginary() {
+                    return self.apply(function);
+                }
+            } else if b.mul(b).sub(&one).is_zero() {
+                return Err(QuantusError::other(msg!("core.num.arctan_poles")));
+            } else if beyond_one(b)? {
+                // On the cut: π/2 + i/2·ln((y + 1)/(y - 1)).
+                let ln = b.add(&one).div(&b.sub(&one))?.apply(MathFunction::Ln)?;
+                return Ok(half_pi.add(&Value::I.mul(&ln.div(&Value::int(2))?)));
+            }
+            let iz = Value::I.mul(self);
+            let difference = one.sub(&iz).apply_complex(MathFunction::Ln)?.sub(&one.add(&iz).apply_complex(MathFunction::Ln)?);
+            return Value::I.div(&Value::int(2))?.mul(&difference).normalized_complex();
+        }
+        let arcsin = if b.is_zero() {
+            if !beyond_one(a)? {
+                return self.apply(function);
+            }
+            // On the cut: ±π/2 + i·arcosh|x|.
+            let x = if a.is_negative()? { a.neg() } else { a.clone() };
+            let arcosh = x.apply(MathFunction::Arcosh)?;
+            let side = if a.is_negative()? { half_pi.neg() } else { half_pi.clone() };
+            side.add(&Value::I.mul(&arcosh))
+        } else {
+            let root = one.sub(&self.mul(self)).sqrt_complex()?;
+            let ln = Value::I.mul(self).add(&root).apply_complex(MathFunction::Ln)?;
+            Value::I.neg().mul(&ln).normalized_complex()?
+        };
+        match function {
+            MathFunction::Arcsin => Ok(arcsin),
+            _ => half_pi.sub(&arcsin).normalized_complex(),
+        }
+    }
+
+    /// `a + b·i` with both parts gathered, for a value built from complex pieces.
+    fn normalized_complex(&self) -> Result<Value> {
+        match self.re_im() {
+            Some((a, b)) => Ok(a.add(&b.mul(&Value::I))),
+            None => Ok(self.clone()),
+        }
+    }
+
+    /// The principal square root of `a + b·i`, by halves: `√((|z| + a)/2) + i·sgn(b)·√((|z| - a)/2)`,
+    /// which keeps `√(2i) = 1 + i` exact where the polar form would give cosines of `π/4`.
+    pub fn sqrt_complex(&self) -> Result<Value> {
+        let half = Value::ratio(1, 2);
+        let Some((a, b)) = self.re_im() else { return self.pow(&half) };
+        if b.is_zero() {
+            return if a.is_negative()? { Ok(a.neg().pow(&half)?.mul(&Value::I)) } else { a.pow(&half) };
+        }
+        let modulus = a.mul(&a).add(&b.mul(&b)).pow(&half)?;
+        let re = modulus.add(&a).div(&Value::int(2))?.pow(&half)?;
+        let im = modulus.sub(&a).div(&Value::int(2))?.pow(&half)?;
+        let im = if b.is_negative()? { im.neg() } else { im };
+        Ok(re.add(&im.mul(&Value::I)))
     }
 
     /// `|z|` of `a + b·i`: `√(a² + b²)`.
@@ -966,7 +1146,7 @@ impl Value {
     }
 
     fn not_real(&self) -> QuantusError {
-        QuantusError::NotReal(format!("'{self}' is not a real number and cannot be shown as a decimal."))
+        QuantusError::NotReal(msg!("core.num.not_real", self))
     }
 }
 
@@ -1010,7 +1190,7 @@ fn write_joined(f: &mut fmt::Formatter<'_>, items: &[Value], separator: &str) ->
 fn arg_of(a: &Value, b: &Value) -> Result<Value> {
     if b.is_zero() {
         return match a {
-            _ if a.is_zero() => Err(QuantusError::other("The argument of 0 is undefined.")),
+            _ if a.is_zero() => Err(QuantusError::other(msg!("core.num.argument_of_zero"))),
             _ if a.is_negative()? => Ok(Value::Pi),
             _ => Ok(Value::zero()),
         };
@@ -1087,7 +1267,7 @@ fn rational_power(base: &RBig, exponent: &RBig) -> Result<Option<RBig>> {
             return if n > 0 {
                 Ok(Some(RBig::ZERO))
             } else {
-                Err(QuantusError::other("Division by zero."))
+                Err(QuantusError::other(msg!("core.common.division_zero")))
             };
         }
         // `RBig::pow` takes negative exponents and inverts for us.
@@ -1113,7 +1293,7 @@ fn rational_power(base: &RBig, exponent: &RBig) -> Result<Option<RBig>> {
     }
     let root = RBig::from_parts(if negative { -IBig::from(root_a) } else { IBig::from(root_a) }, root_b);
     if root == RBig::ZERO {
-        return if p > 0 { Ok(Some(RBig::ZERO)) } else { Err(QuantusError::other("Division by zero.")) };
+        return if p > 0 { Ok(Some(RBig::ZERO)) } else { Err(QuantusError::other(msg!("core.common.division_zero"))) };
     }
     Ok(Some(root.pow(p as isize)))
 }
@@ -1140,6 +1320,116 @@ fn rational_digits(value: &RBig, digits: usize) -> Decimal {
         decimal = Decimal::new(-decimal.unscaled, decimal.scale);
     }
     decimal
+}
+
+/// `erf x = 2/√π · Σ (-1)^n x^(2n+1) / (n! (2n+1))`. The terms grow to about `e^(x²)` before
+/// they fall, so the sum runs with that many extra bits; beyond the point where `1 - |erf x|`
+/// drops below the precision it is ±1.
+fn erf(x: &BigFloat, bits: usize, consts: &mut Consts) -> BigFloat {
+    let rm = RoundingMode::ToEven;
+    if x.is_zero() {
+        return BigFloat::from_u8(0, bits);
+    }
+    // |x| < 2^e, so x² < 4^e.
+    let e = i64::from(x.exponent().unwrap_or(0)).max(0);
+    let square_bound = 4f64.powi(e as i32);
+    // 1 - erf x < e^(-x²) < 2^(-bits) once x² > bits · ln 2.
+    if e > 0 && 4f64.powi(e as i32 - 1) > bits as f64 * std::f64::consts::LN_2 + 2.0 {
+        let one = BigFloat::from_u8(1, bits);
+        return if x.is_negative() { one.neg() } else { one };
+    }
+    let p = bits + (square_bound * std::f64::consts::LOG2_E).ceil() as usize + 64;
+    let mut x = x.clone();
+    // Only grows the mantissa, so it cannot fail.
+    let _ = x.set_precision(p, rm);
+    let minus_square = x.mul(&x, p, rm).neg();
+    let mut power = x.clone();
+    let mut sum = x.clone();
+    let mut n: u64 = 0;
+    loop {
+        n += 1;
+        power = power.mul(&minus_square, p, rm).div(&BigFloat::from_u64(n, p), p, rm);
+        let term = power.div(&BigFloat::from_u64(2 * n + 1, p), p, rm);
+        sum = sum.add(&term, p, rm);
+        let small = match (term.exponent(), sum.exponent()) {
+            (Some(t), Some(s)) => i64::from(t) < i64::from(s) - p as i64,
+            _ => term.is_zero(),
+        };
+        if small || n > 1_000_000 {
+            break;
+        }
+    }
+    let two_over_root_pi = BigFloat::from_u8(2, p).div(&consts.pi(p, rm).sqrt(p, rm), p, rm);
+    sum.mul(&two_over_root_pi, bits, rm)
+}
+
+/// Γ(x) by the Stirling series: x is moved up to z = x + n, far enough that the series' terms
+/// fall below the precision before they start to grow, `ln Γ(z) = (z - ½) ln z - z + ½ ln 2π +
+/// Σ B_{2k} / (2k (2k - 1) z^{2k-1})`, and Γ(x) = Γ(z) / (x (x + 1) … (x + n - 1)). Below ½ the
+/// reflection `Γ(x) Γ(1 - x) = π / sin πx`. NaN at a pole.
+fn gamma(x: &BigFloat, bits: usize, consts: &mut Consts) -> BigFloat {
+    let rm = RoundingMode::ToEven;
+    let p = bits + 64;
+    let half = BigFloat::from_f64(0.5, p);
+    let one = BigFloat::from_u8(1, p);
+    if x.cmp(&half).is_some_and(|o| o < 0) {
+        let pi = consts.pi(p, rm);
+        let sine = pi.mul(x, p, rm).sin(p, rm, consts);
+        if sine.is_zero() {
+            return BigFloat::nan(None);
+        }
+        let reflected = gamma(&one.sub(x, p, rm), bits, consts);
+        return pi.div(&sine.mul(&reflected, p, rm), bits, rm);
+    }
+    // e^{-2πz} < 2^{-p}: z > p ln 2 / 2π ≈ 0.11 p.
+    let target = BigFloat::from_f64((0.11 * p as f64).ceil() + 8.0, p);
+    let mut z = x.clone();
+    let mut product = one.clone();
+    while z.cmp(&target).is_some_and(|o| o < 0) {
+        product = product.mul(&z, p, rm);
+        z = z.add(&one, p, rm);
+    }
+    let ln_z = z.ln(p, rm, consts);
+    let two_pi = consts.pi(p, rm).mul(&BigFloat::from_u8(2, p), p, rm);
+    let mut ln_gamma = z.sub(&half, p, rm).mul(&ln_z, p, rm).sub(&z, p, rm).add(&two_pi.ln(p, rm, consts).mul(&half, p, rm), p, rm);
+    let z_squared = z.mul(&z, p, rm);
+    let mut power = z.clone(); // z^{2k-1}
+    for k in 1..=(4 * p as u64) {
+        let b = Value::Rat(bernoulli_even(k as usize)).eval_float(p, consts).unwrap_or_else(|_| BigFloat::from_u8(0, p));
+        let term = b.div(&BigFloat::from_u64(2 * k * (2 * k - 1), p).mul(&power, p, rm), p, rm);
+        ln_gamma = ln_gamma.add(&term, p, rm);
+        let small = match (term.exponent(), ln_gamma.exponent()) {
+            (Some(t), Some(s)) => i64::from(t) < i64::from(s) - p as i64,
+            _ => term.is_zero(),
+        };
+        if small {
+            break;
+        }
+        power = power.mul(&z_squared, p, rm);
+    }
+    ln_gamma.exp(p, rm, consts).div(&product, bits, rm)
+}
+
+/// B_{2k}, k ≥ 1, from a table that grows as far as it is asked for:
+/// `B_m = -1/(m + 1) Σ_{j<m} C(m + 1, j) B_j`.
+fn bernoulli_even(k: usize) -> RBig {
+    static TABLE: std::sync::Mutex<Vec<RBig>> = std::sync::Mutex::new(Vec::new());
+    let mut table = TABLE.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    if table.is_empty() {
+        table.push(RBig::ONE);
+    }
+    while table.len() <= 2 * k {
+        let m = table.len();
+        // C(m + 1, j) for j = 0, 1, …
+        let mut binomial = IBig::ONE;
+        let mut sum = RBig::ZERO;
+        for (j, b) in table.iter().enumerate() {
+            sum += RBig::from(binomial.clone()) * b;
+            binomial = binomial * IBig::from(m + 1 - j) / IBig::from(j + 1);
+        }
+        table.push(-sum / RBig::from(m as i64 + 1));
+    }
+    table[2 * k].clone()
 }
 
 fn bigfloat_from_int(value: &IBig, bits: usize, consts: &mut Consts) -> BigFloat {
@@ -1179,6 +1469,16 @@ mod tests {
 
     fn rat(text: &str) -> Value {
         Value::from_decimal(&dec(text))
+    }
+
+    #[test]
+    fn erf_has_its_known_values() {
+        let erf = |x: Value, digits| Value::Func(MathFunction::Erf, Box::new(x)).decimal(digits).unwrap().to_plain_string();
+        assert_eq!(erf(Value::one(), 20), "0.84270079294971486934");
+        assert_eq!(erf(Value::int(-2), 15), "-0.995322265018953");
+        assert_eq!(erf(Value::ratio(1, 2), 10), "0.5204998778");
+        assert_eq!(erf(Value::int(6), 10), "1");
+        assert_eq!(erf(Value::int(30), 10), "1");
     }
 
     #[test]
@@ -1250,6 +1550,13 @@ mod tests {
         let c = Value::int(299_792_458);
         let squared = c.pow(&Value::int(2)).unwrap();
         assert_eq!(squared.decimal(50).unwrap().to_plain_string(), "89875517873681764");
+    }
+
+    #[test]
+    fn bernoulli_numbers() {
+        assert_eq!(bernoulli_even(1), RBig::from_parts(IBig::ONE, UBig::from(6u8)));
+        assert_eq!(bernoulli_even(6), RBig::from_parts(IBig::from(-691), UBig::from(2730u16)));
+        assert_eq!(bernoulli_even(10), RBig::from_parts(IBig::from(-174611), UBig::from(330u16)));
     }
 
     #[test]

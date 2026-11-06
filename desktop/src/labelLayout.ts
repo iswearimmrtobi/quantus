@@ -1,0 +1,209 @@
+import { GRID, HALF, isDiagonal, rotate, terminals, type EditorElement, type Point } from './circuit';
+
+/**
+ * Places the labels on the circuit canvas so that none overlaps another label, a part or a wire.
+ * Everything is in drawing coordinates, so zooming and moving the canvas leave the layout alone.
+ */
+
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export type Side = 'below' | 'above' | 'right' | 'left';
+
+export interface LabelRequest {
+  id: string;
+  /** The point the label belongs to; it sits `gap` away from it on one of `sides`. */
+  anchor: Point;
+  /** The sides to try, the preferred one first. */
+  sides: Side[];
+  gap: number;
+  /** Whether to try the corners of a side before its middle, as for a node beside its wires. */
+  corner?: boolean;
+  w: number;
+  h: number;
+}
+
+export interface Placement extends Rect {
+  /** Whether the label had to move away from its anchor, so a line should lead to it. */
+  displaced: boolean;
+  /** The top left corner relative to the anchor, so the spot can be kept when the anchor moves. */
+  offset: Point;
+}
+
+/** Space kept free around every label. */
+const MARGIN = 2;
+/** How far each ring of candidates lies beyond the one before. */
+const STEP = GRID / 2;
+
+const overlaps = (p: Rect, q: Rect) =>
+  p.x - MARGIN < q.x + q.w && q.x < p.x + p.w + MARGIN && p.y - MARGIN < q.y + q.h && q.y < p.y + p.h + MARGIN;
+
+/** The box of a label on `side` at distance `d`, moved `slide` along that side. */
+function box(label: LabelRequest, side: Side, d: number, slide: number): Rect {
+  const { anchor: a, w, h } = label;
+  switch (side) {
+    case 'below':
+      return { x: a.x - w / 2 + slide, y: a.y + d, w, h };
+    case 'above':
+      return { x: a.x - w / 2 + slide, y: a.y - d - h, w, h };
+    case 'right':
+      return { x: a.x + d, y: a.y - h / 2 + slide, w, h };
+    case 'left':
+      return { x: a.x - d - w, y: a.y - h / 2 + slide, w, h };
+  }
+}
+
+/** The slides along a side: centred, a quarter off, and past the anchor into either corner. */
+function slides(label: LabelRequest, side: Side): number[] {
+  const length = side === 'below' || side === 'above' ? label.w : label.h;
+  const corner = length / 2 + label.gap;
+  return label.corner
+    ? [corner, -corner, 0, length / 4, -length / 4]
+    : [0, length / 4, -length / 4, corner, -corner];
+}
+
+function bounds(rects: Rect[]): { x0: number; y0: number; x1: number; y1: number } {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const r of rects) {
+    x0 = Math.min(x0, r.x);
+    y0 = Math.min(y0, r.y);
+    x1 = Math.max(x1, r.x + r.w);
+    y1 = Math.max(y1, r.y + r.h);
+  }
+  return { x0, y0, x1, y1 };
+}
+
+/**
+ * Greedy, in the order given: each label takes the first free candidate, trying ring after ring
+ * outwards and on each ring every side and slide. Beyond the bounding box of everything placed so
+ * far every candidate is free, so the search always ends, at the latest just outside that box.
+ *
+ * With `previous`, a label whose size has not changed first tries the spot it had there, at the
+ * same offset from its anchor, so it moves along with its part and stays put while others move.
+ * Those that keep their spot are placed before the rest, which then search around them.
+ */
+export function placeLabels(
+  labels: LabelRequest[],
+  obstacles: Rect[],
+  previous?: Map<string, Placement>,
+): Map<string, Placement> {
+  const taken: Rect[] = [...obstacles];
+  const placed = new Map<string, Placement>();
+  const free = (r: Rect) => !taken.some((t) => overlaps(r, t));
+  const take = (label: LabelRequest, r: Rect, displaced: boolean) => {
+    const placement = { ...r, displaced, offset: { x: r.x - label.anchor.x, y: r.y - label.anchor.y } };
+    taken.push(placement);
+    placed.set(label.id, placement);
+  };
+
+  for (const label of labels) {
+    const before = previous?.get(label.id);
+    if (!before || before.w !== label.w || before.h !== label.h) continue;
+    const spot = { x: label.anchor.x + before.offset.x, y: label.anchor.y + before.offset.y, w: label.w, h: label.h };
+    if (free(spot)) take(label, spot, before.displaced);
+  }
+
+  for (const label of labels) {
+    if (placed.has(label.id)) continue;
+    const all = bounds([...taken, { x: label.anchor.x, y: label.anchor.y, w: 0, h: 0 }]);
+    // The distance at which a box on any side has left the bounding box completely.
+    const reach =
+      Math.max(label.anchor.x - all.x0, all.x1 - label.anchor.x, label.anchor.y - all.y0, all.y1 - label.anchor.y) +
+      MARGIN +
+      1;
+    let found: { box: Rect; displaced: boolean } | null = null;
+    for (let ring = 0; !found; ring += 1) {
+      const d = label.gap + ring * STEP;
+      if (d > reach) {
+        found = { box: box(label, label.sides[0], d, 0), displaced: true };
+        break;
+      }
+      for (const side of label.sides) {
+        for (const slide of slides(label, side)) {
+          const candidate = box(label, side, d, slide);
+          if (free(candidate)) {
+            found = { box: candidate, displaced: ring > 0 };
+            break;
+          }
+        }
+        if (found) break;
+      }
+    }
+    take(label, found.box, found.displaced);
+  }
+  return placed;
+}
+
+/** The box around points turned with a part and moved to its place. */
+function turned(element: EditorElement, corners: Point[]): Rect {
+  // A rectangle turned by 45° is bounded by its four corners turned, not by the two given ones.
+  const all = isDiagonal(element.rotation)
+    ? [corners[0], corners[1], { x: corners[0].x, y: corners[1].y }, { x: corners[1].x, y: corners[0].y }]
+    : corners;
+  const angle = (element.rotation * Math.PI) / 2;
+  const turn = (p: Point) =>
+    isDiagonal(element.rotation)
+      ? { x: p.x * Math.cos(angle) - p.y * Math.sin(angle), y: p.x * Math.sin(angle) + p.y * Math.cos(angle) }
+      : rotate(p, element.rotation);
+  const points = all.map(turn).map((p) => ({ x: element.x + p.x, y: element.y + p.y }));
+  const b = bounds(points.map((p) => ({ ...p, w: 0, h: 0 })));
+  return { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 };
+}
+
+/** Half the size of a part's body across its axis and along it, as `Symbol` draws it. */
+const BODY: Partial<Record<EditorElement['kind'], { along: number; across: number }>> = {
+  resistor: { along: 20, across: 7 },
+  potentiometer: { along: 20, across: 7 },
+  voltageSource: { along: 14, across: 14 },
+  currentSource: { along: 14, across: 14 },
+  powerLoad: { along: 14, across: 14 },
+};
+
+/** A line as a thin box around it, as wide as the stroke and the terminal circles. */
+function segment(a: Point, b: Point, half: number): Rect {
+  return {
+    x: Math.min(a.x, b.x) - half,
+    y: Math.min(a.y, b.y) - half,
+    w: Math.abs(b.x - a.x) + 2 * half,
+    h: Math.abs(b.y - a.y) + 2 * half,
+  };
+}
+
+/** The drawn body of a part: the symbol without its leads, a wire's line, a ground's bars. */
+export function body(element: EditorElement): Rect {
+  if (element.kind === 'wire') {
+    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
+    return segment(a, b, 2);
+  }
+  if (element.kind === 'ground') return turned(element, [{ x: -12, y: 0 }, { x: 12, y: 19 }]);
+  if (element.kind === 'terminal') return turned(element, [{ x: -7, y: -7 }, { x: 22, y: 7 }]);
+  const { along, across } = BODY[element.kind]!;
+  return turned(element, [{ x: -along, y: -across }, { x: along, y: across }]);
+}
+
+/** What the labels must keep clear of: the bodies and leads of the parts, the wires, the terminals. */
+export function obstacles(elements: EditorElement[]): Rect[] {
+  const rects: Rect[] = [];
+  for (const element of elements) {
+    const places = terminals(element);
+    for (const point of Object.values(places) as Point[]) rects.push(segment(point, point, 5));
+    rects.push(body(element));
+    if (element.kind === 'wire' || element.kind === 'ground' || element.kind === 'terminal') continue;
+    const lead = isDiagonal(element.rotation) ? HALF * Math.SQRT2 : HALF;
+    rects.push(turned(element, [{ x: -lead, y: -2 }, { x: lead, y: 2 }]));
+    if (places.wiper) rects.push(turned(element, [{ x: -4, y: -HALF }, { x: 4, y: 0 }]));
+  }
+  return rects;
+}
+
+/** The point on a box nearest to `p`, where a line from `p` to the box ends. */
+export function nearest(r: Rect, p: Point): Point {
+  return { x: Math.min(Math.max(p.x, r.x), r.x + r.w), y: Math.min(Math.max(p.y, r.y), r.y + r.h) };
+}

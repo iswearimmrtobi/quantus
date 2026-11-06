@@ -30,11 +30,20 @@
   --point-saddle: #ffd27f;
   --point-hole: var(--text);
   --point-tangent: var(--accent);
+  /* The objects of the Geometry view, one colour each in scene order. */
+  --geometry-0: #9186e8;
+  --geometry-1: #7fd1b9;
+  --geometry-2: #ff8fa8;
+  --geometry-3: #ffd27f;
+  --geometry-4: #8fb8ff;
+  --geometry-5: #d8a9ff;
+  --geometry-6: #f0a070;
+  --geometry-7: #b8e07a;
   --mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
   --sans: system-ui, 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
   --radius: 3px;
   --rail-w: 44px;
-  --panel-w: 300px;
+  --panel-w: 340px;
 }
 
 * {
@@ -438,6 +447,14 @@ code {
   color: var(--text);
   line-height: 1.5;
 }
+.error-row.soft {
+  border-color: var(--hairline);
+  border-left-color: var(--text-faint);
+}
+.error-row.soft .error-label,
+.error-row.soft .error-text {
+  color: var(--text-muted);
+}
 .error-position {
   font-family: var(--mono);
   font-size: 11.5px;
@@ -554,6 +571,67 @@ code {
   border-color: var(--hairline-strong);
 }
 
+
+/* The forms of a result (S⇔D) and ENG, under the result. */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 4px;
+}
+.form-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.form-chip:hover {
+  color: var(--text);
+  border-color: var(--cyan-dim);
+}
+.form-chip.active {
+  color: var(--amber);
+  border-color: var(--amber-dim);
+  background: var(--surface-raised);
+}
+
+/* Keys a mode needs above its input: the bases and logic of Basis-N, the relations of Prüfen. */
+.mode-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.mode-tools .segmented {
+  flex: 0 0 auto;
+}
+.mode-tools .segment {
+  padding: 5px 10px;
+}
+.insert-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.insert-key {
+  min-width: 30px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.insert-key:hover {
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+  background: var(--surface-hover);
+}
+
 /* ---------- Side rail and panel ---------- */
 
 .side-rail {
@@ -564,9 +642,13 @@ code {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 10px;
+  padding: 10px 0;
   gap: 4px;
   z-index: 3;
+}
+/* Settings are not a panel: their button sits apart, at the bottom of the rail. */
+.rail-settings {
+  margin-top: auto;
 }
 .rail-btn {
   width: 32px;
@@ -616,13 +698,17 @@ code {
   font-size: 11.5px;
 }
 .panel-tab {
-  flex: 1;
-  padding: 10px 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 3px;
   text-align: center;
   color: var(--text-muted);
   border-bottom: 2px solid transparent;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .panel-tab.active {
   color: var(--text);
@@ -664,10 +750,80 @@ code {
   color: var(--text-muted);
 }
 
-.settings {
-  padding: 6px 10px 14px;
-  font-size: 12px;
+/* Two classes, so it wins over `.dialog` further down. */
+.dialog.settings-dialog {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  grid-template-rows: auto 1fr auto;
+  width: min(860px, calc(100vw - 32px));
+  height: min(560px, 76vh);
+  padding: 0;
   color: var(--text);
+}
+.settings-head {
+  grid-column: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 10px 10px 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+.settings-head h3 {
+  margin: 0;
+}
+.settings-close {
+  width: 28px;
+  height: 24px;
+  color: var(--text-faint);
+  border-radius: var(--radius);
+}
+.settings-close:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.settings-nav {
+  grid-row: 2 / 4;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  border-right: 1px solid var(--hairline);
+}
+.settings-cat {
+  padding: 8px 16px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  border-left: 2px solid transparent;
+}
+.settings-cat:hover {
+  color: var(--text);
+}
+.settings-cat.active {
+  color: var(--text);
+  border-color: var(--cyan);
+  background: var(--surface-hover);
+}
+.settings-body {
+  overflow-y: auto;
+  padding: 0 18px;
+}
+.settings-body .setting:last-child {
+  border-bottom: none;
+}
+.settings-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 18px 14px;
+}
+.settings-foot .setting-error {
+  flex: 1;
+  margin: 14px 0 0;
+}
+.setting-only {
+  color: var(--text-muted);
 }
 .setting {
   padding: 10px 0 12px;
@@ -861,6 +1017,421 @@ select option {
   background: var(--surface);
 }
 
+
+.history-clear {
+  margin: 10px 6px;
+}
+
+/* ---------- Library: constants and units ---------- */
+
+.library {
+  padding: 6px 6px 14px;
+  font-size: 12px;
+}
+.library-head {
+  padding: 4px 4px 8px;
+}
+.library-filter {
+  width: 100%;
+  margin-top: 8px;
+  padding: 5px 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.library-filter:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.library-filter:disabled {
+  opacity: 0.5;
+}
+.library-group h3 {
+  margin: 12px 4px 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.library-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  width: 100%;
+  padding: 6px;
+  text-align: left;
+  border-radius: var(--radius);
+}
+.library-item:hover {
+  background: var(--surface-hover);
+}
+.library-symbol {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.library-symbol .katex {
+  color: var(--cyan);
+  font-size: 14px;
+}
+.library-name {
+  color: var(--text);
+  font-size: 11.5px;
+}
+.library-value {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.library-value .katex {
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+.library-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 4px;
+}
+.library-unit {
+  padding: 3px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+.library-unit .katex {
+  color: var(--text);
+  font-size: 12px;
+}
+.library-unit:hover {
+  border-color: var(--cyan-dim);
+  background: var(--surface-hover);
+}
+
+/* The library as a window: the body scrolls under a filter that stays put. */
+.library-dialog .settings-body {
+  grid-row: 2 / 4;
+  padding: 0 14px 14px;
+}
+.library-dialog .library-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 4px 6px;
+  background: var(--surface);
+}
+.library-constants {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.library-unit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.library-unit-name {
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+/* The writeup: given and wanted side by side, the solution below. */
+.dialog.settings-dialog.writeup-dialog {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  height: min(720px, 86vh);
+}
+.writeup-dialog .settings-head {
+  grid-column: 1;
+}
+.writeup-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.writeup-dialog .settings-body {
+  padding: 4px 22px 18px;
+}
+.writeup h4 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.writeup-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.writeup-row {
+  display: block;
+  padding: 3px 0;
+  font-size: 14px;
+}
+.writeup-none {
+  margin: 0;
+  color: var(--text-faint);
+}
+.writeup-block {
+  padding: 6px 0 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.writeup-block:last-child {
+  border-bottom: none;
+}
+.writeup-text {
+  margin: 10px 0 2px;
+  color: var(--text-muted);
+}
+.writeup-math {
+  display: block;
+  font-size: 14px;
+}
+.writeup-math .katex-display {
+  margin: 4px 0;
+  text-align: left;
+}
+.writeup-math .katex-display > .katex {
+  display: inline-block;
+  margin-left: 24px;
+  text-align: left;
+}
+/* The result underlined twice, as on paper. */
+.writeup-result .writeup-math .katex-display > .katex {
+  padding-bottom: 2px;
+  border-bottom: 3px double var(--text-muted);
+}
+
+/* The quick search: a launcher line near the top. */
+.quick-backdrop {
+  padding-top: 14vh;
+  background: rgba(10, 9, 14, 0.35);
+}
+.dialog.quick-search {
+  width: min(560px, calc(100vw - 32px));
+  padding: 8px;
+}
+.quick-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+}
+.quick-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.quick-search .hits {
+  margin-top: 6px;
+}
+.quick-empty,
+.quick-hint {
+  margin: 8px 4px 2px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+/* A hit of the search, in the library and in the quick search. */
+.hits {
+  display: flex;
+  flex-direction: column;
+}
+.hit {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  border-radius: var(--radius);
+}
+.hit:hover,
+.hit.selected {
+  background: var(--surface-hover);
+}
+.hit.selected {
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+.hit-symbol {
+  grid-row: 1 / 3;
+  align-self: center;
+  overflow: hidden;
+}
+.hit-symbol .katex {
+  color: var(--cyan);
+  font-size: 14px;
+}
+.hit-name {
+  color: var(--text);
+  font-size: 12px;
+}
+.hit-kind {
+  grid-row: 1 / 3;
+  grid-column: 3;
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.hit-detail {
+  grid-column: 2;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+.hit-detail .katex {
+  font-size: 10.5px;
+}
+
+/* ---------- Sessions ---------- */
+
+.sessions {
+  padding: 6px 6px 14px;
+}
+.sessions-new {
+  margin: 4px 4px 10px;
+}
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  border-radius: var(--radius);
+  border-left: 2px solid transparent;
+}
+.session-item:hover {
+  background: var(--surface-hover);
+}
+.session-item.active {
+  border-left-color: var(--cyan);
+  background: var(--surface-raised);
+}
+.session-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  text-align: left;
+}
+.session-name {
+  color: var(--text);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.session-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.session-action {
+  color: var(--text-faint);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+}
+.session-action:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.session-action.danger {
+  color: var(--danger);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+/* ---------- CALC and SOLVE ---------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgba(10, 9, 14, 0.6);
+}
+.dialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.dialog h3 {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+}
+.dialog-input {
+  display: block;
+  margin-bottom: 10px;
+  overflow-x: auto;
+  font-size: 15px;
+}
+.dialog-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.dialog-row input[type='radio'] {
+  accent-color: var(--cyan);
+}
+.dialog-row .library-filter {
+  margin-top: 0;
+  flex: 1;
+}
+.dialog-letter {
+  min-width: 48px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.dialog-letter .katex {
+  color: var(--cyan);
+  font-size: 14px;
+}
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.setting-reset.primary {
+  color: var(--text);
+  background: var(--cyan-dim);
+  border-color: var(--cyan-dim);
+}
+.setting-reset:disabled {
+  opacity: 0.5;
+}
+
 /* ---------- Footer ---------- */
 
 .statusbar {
@@ -876,6 +1447,16 @@ select option {
   font-size: 10.5px;
   color: var(--text-faint);
   z-index: 3;
+}
+.statusbar-session {
+  font: inherit;
+  color: inherit;
+  padding: 2px 4px;
+  border-radius: var(--radius);
+}
+.statusbar-session:hover {
+  color: var(--text);
+  background: var(--surface-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -902,7 +1483,14 @@ select option {
 .circuit {
   display: grid;
   grid-template-columns: 170px 1fr 250px;
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
+}
+.circuit-centre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 
 .circuit-palette,
@@ -957,7 +1545,9 @@ select option {
 
 .circuit-stage {
   position: relative;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 
 .circuit-canvas {
@@ -984,6 +1574,19 @@ select option {
 .part.selected .wire {
   stroke: var(--cyan);
 }
+.junction-dot {
+  fill: var(--text);
+  pointer-events: none;
+}
+.part .terminal-name {
+  fill: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.part.selected .terminal-name {
+  fill: var(--cyan);
+}
 .part .hit {
   fill: transparent;
   stroke: transparent;
@@ -1001,29 +1604,75 @@ select option {
 .part .end:hover {
   fill: var(--cyan);
 }
+/* A connected end keeps its handle but shows it only under the pointer. */
+.part .connected:not(:hover) {
+  fill: transparent;
+  stroke: transparent;
+}
+.label-leader {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
 .wire-ghost {
+  fill: none;
   stroke: var(--cyan);
   stroke-width: 2;
   stroke-dasharray: 4 4;
   pointer-events: none;
 }
 
-.part-id {
-  fill: var(--amber);
-  font-family: var(--mono);
-  font-size: 12px;
+.circuit-shown {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  background: var(--surface);
 }
-
-.value-box {
-  overflow: visible;
+.circuit-shown .segment {
+  flex: none;
+  min-width: 28px;
+}
+.circuit-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.circuit-labels-drawing {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.part-label,
+.node-label {
+  position: absolute;
+  padding: 1px 4px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.part-label {
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+}
+.node-label {
+  font-size: 10px;
+  opacity: 0.8;
+}
+.part-id {
+  display: block;
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 11px;
 }
 .canvas-value {
-  font-size: 12px;
-  white-space: nowrap;
+  font-size: 11px;
   color: var(--text);
 }
-.canvas-value.small {
-  font-size: 11px;
+.node-label .canvas-value {
+  font-size: 10px;
   color: var(--text-muted);
 }
 .value-label {
@@ -1036,6 +1685,156 @@ select option {
 }
 .value-relative {
   color: var(--amber);
+}
+
+/* ---------- Kirchhoff: marks over the schematic ---------- */
+
+.part.highlighted .symbol,
+.part.highlighted .wire {
+  stroke: var(--point-saddle);
+}
+.kirchhoff-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 12;
+}
+.kirchhoff-loop path {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+.kirchhoff-loop polygon {
+  fill: var(--text-muted);
+}
+.kirchhoff-loop.active path {
+  stroke: var(--point-saddle);
+}
+.kirchhoff-loop.active polygon,
+.kirchhoff-loop.active .kirchhoff-loop-name {
+  fill: var(--point-saddle);
+}
+.kirchhoff-loop-name {
+  fill: var(--text-muted);
+  font-family: 'KaTeX_Math', serif;
+  font-style: italic;
+  font-size: 12px;
+  pointer-events: none;
+}
+.kirchhoff-current {
+  cursor: pointer;
+}
+.kirchhoff-current line:not(.kirchhoff-hit) {
+  stroke: var(--point-zero);
+  stroke-width: 1.5;
+}
+.kirchhoff-current polygon {
+  fill: var(--point-zero);
+}
+.kirchhoff-current:hover line:not(.kirchhoff-hit) {
+  stroke-width: 2.5;
+}
+.kirchhoff-voltage {
+  pointer-events: none;
+}
+.kirchhoff-voltage line,
+.kirchhoff-voltage polyline {
+  fill: none;
+  stroke: var(--point-y-intercept);
+  stroke-width: 1.3;
+}
+.kirchhoff-junction {
+  fill: var(--text);
+  pointer-events: none;
+}
+.kirchhoff-junction.active {
+  fill: var(--point-saddle);
+}
+.kirchhoff-label {
+  position: absolute;
+  padding: 0 3px;
+  font-size: 11px;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.kirchhoff-current-name {
+  color: var(--point-zero);
+}
+.kirchhoff-junction-name {
+  color: var(--text-muted);
+}
+
+/* The working panel under the canvas. */
+.kirchhoff-splitter {
+  flex: none;
+  height: 6px;
+  cursor: row-resize;
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  touch-action: none;
+}
+.kirchhoff-splitter:hover {
+  background: var(--surface-hover);
+}
+.kirchhoff-working {
+  flex: none;
+  overflow: auto;
+  padding: 10px 16px 16px;
+}
+.kirchhoff-sheet {
+  display: grid;
+  gap: 12px;
+}
+.kirchhoff-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.kirchhoff-note {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.kirchhoff-title {
+  margin: 0 0 6px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: normal;
+  letter-spacing: 0.12em;
+}
+.kirchhoff-rule {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+}
+.kirchhoff-rule.active {
+  background: var(--surface-hover);
+}
+.kirchhoff-rule.dropped {
+  opacity: 0.5;
+}
+.kirchhoff-rule-name {
+  flex: none;
+  min-width: 36px;
+  color: var(--text-muted);
+}
+.kirchhoff-rule-forms {
+  display: grid;
+  gap: 2px;
+}
+.kirchhoff-numeric {
+  color: var(--text-muted);
+}
+.kirchhoff-unknowns {
+  color: var(--text-muted);
+}
+.kirchhoff-result {
+  display: block;
+  margin-bottom: 2px;
 }
 
 .circuit-note {
@@ -1284,6 +2083,9 @@ select option {
 .analysis-step .step-latex {
   font-size: 14px;
 }
+.analysis-step.active {
+  background: var(--surface-hover);
+}
 
 .task-inputs {
   display: flex;
@@ -1518,3 +2320,427 @@ select option {
 
 .plot-point { fill: var(--point); }
 .point-swatch { background: var(--point); }
+
+/* ---- Linear systems mode ------------------------------------------------------------------ */
+
+.linear-panel {
+  max-width: 900px;
+}
+
+.linear-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linear-complex {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.linear-bar + .system-field,
+.linear-bar + .matrix-input {
+  margin-top: 4px;
+}
+
+/* The lines of a system as one block with a bracket in front, like the brace of a written system. */
+.system-field {
+  position: relative;
+}
+.system-field.multiline {
+  padding-left: 12px;
+}
+.system-field.multiline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 7px;
+  border: 1.5px solid var(--text-muted);
+  border-right: none;
+  border-radius: 7px 0 0 7px;
+}
+.system-line + .system-line {
+  border-top-color: var(--hairline);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: -1px;
+}
+.system-line:has(+ .system-line) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.matrix-input {
+  display: grid;
+  gap: 12px;
+}
+
+.matrix-size {
+  width: 64px;
+}
+
+/* n coefficient columns and the right-hand side, a bar between them as in `[A | b]`. */
+.matrix-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(64px, 1fr)) minmax(64px, 1fr);
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.matrix-head {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.matrix-cell {
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-raised);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  min-width: 0;
+}
+.matrix-cell:focus-within {
+  border-color: var(--cyan-dim);
+}
+.matrix-cell.rhs,
+.matrix-head.rhs {
+  margin-left: 10px;
+  position: relative;
+}
+.matrix-cell.rhs::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: -2px;
+  bottom: -2px;
+  border-left: 1.5px solid var(--text-muted);
+}
+
+.cell-input {
+  font-size: 16px;
+  text-align: center;
+}
+
+.matrix-json {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.matrix-json summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+.matrix-json[open] {
+  display: grid;
+  gap: 8px;
+}
+.json-text {
+  font-size: 12.5px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+.json-text:focus {
+  border-color: var(--cyan-dim);
+}
+
+.matrix-large {
+  display: grid;
+  gap: 10px;
+}
+.matrix-preview {
+  overflow: auto;
+  max-height: 60vh;
+}
+
+.linear-result {
+  margin-top: 14px;
+}
+
+.linear-result-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---- Geometry mode ------------------------------------------------------------------------ */
+
+.geometry-panel {
+  max-width: 1280px;
+}
+
+.geometry-plot {
+  margin: 14px 0;
+}
+
+.geometry-plot .plot-canvas {
+  height: 460px;
+}
+
+.geometry-plot-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.geometry-axis {
+  stroke: var(--text-faint);
+  stroke-width: 1.2;
+}
+
+.geometry-tick {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+}
+
+.geometry-object {
+  stroke: var(--object, var(--cyan));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.geometry-hatch {
+  stroke: var(--object, var(--cyan));
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+
+.geometry-hidden {
+  stroke: var(--object, var(--cyan));
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.geometry-face {
+  fill: var(--object, var(--cyan));
+  fill-opacity: 0.14;
+  stroke: var(--object, var(--cyan));
+  stroke-opacity: 0.5;
+  stroke-width: 1;
+}
+
+.geometry-marker {
+  fill: var(--object, var(--cyan));
+  stroke: var(--bg);
+  stroke-width: 1.5;
+}
+
+.geometry-label {
+  fill: var(--object, var(--text));
+  font-size: 13px;
+  font-style: italic;
+}
+
+.geometry-index {
+  font-size: 10px;
+}
+
+.geometry-tick-label {
+  fill: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.geometry-objects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.geometry-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.geometry-add-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-right: 4px;
+}
+
+.geometry-object-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.geometry-object-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.geometry-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--object, var(--text-faint));
+  flex: none;
+}
+
+.geometry-name {
+  width: 64px;
+}
+
+.geometry-cells {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A vector as a column, as it is written. */
+.geometry-cells.vector {
+  flex-direction: column;
+  padding: 0 6px;
+  border-left: 1.5px solid var(--text-muted);
+  border-right: 1.5px solid var(--text-muted);
+  border-radius: 8px;
+}
+
+.geometry-cell-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.geometry-cell {
+  width: 72px;
+}
+
+.geometry-cell.wide {
+  width: 120px;
+}
+
+.geometry-cell.line {
+  flex: 1;
+  min-width: 240px;
+}
+.geometry-cell.line .cell-input {
+  text-align: left;
+}
+
+.geometry-typed {
+  margin-top: 14px;
+  padding: 10px 14px;
+}
+
+.geometry-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Switches an entry between coordinate cells and a name or expression. */
+.geometry-entry-switch {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.geometry-entry-switch:hover {
+  color: var(--text);
+}
+
+.geometry-form-text {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.geometry-pick {
+  width: auto;
+}
+
+.geometry-bar {
+  color: var(--text-muted);
+}
+
+.geometry-remove {
+  margin-left: auto;
+}
+
+.geometry-built {
+  font-size: 14px;
+  padding-left: 18px;
+}
+
+.geometry-task {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.geometry-task-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.geometry-task-word {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.geometry-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.geometry-answer-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.geometry-object-steps {
+  padding-left: 18px;
+}
+.geometry-object-steps summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.geometry-relation {
+  align-self: flex-start;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--amber-dim);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+}
+
+.geometry-error {
+  color: var(--text-muted);
+  font-size: 13px;
+}

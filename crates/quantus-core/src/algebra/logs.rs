@@ -121,7 +121,7 @@ fn log_value(index: usize, ctx: &mut Context) -> Option<Local> {
 
 /// `\ln 1 = 0`, `\ln e = 1`, `\ln(e^{x}) = x`, `\log 1000 = 3`.
 pub fn log_values(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, "Evaluate the logarithm", RuleId::LogValue, log_value)
+    each_atom(node, ctx, &crate::text::msg!("core.algebra.logs.evaluate_logarithm"), RuleId::LogValue, log_value)
 }
 
 fn exp_value(index: usize, ctx: &mut Context) -> Option<Local> {
@@ -161,7 +161,7 @@ fn exp_value(index: usize, ctx: &mut Context) -> Option<Local> {
 
 /// `e^{\ln a} = a`, `e^{c \ln a} = a^{c}`, `\exp(x) = e^{x}`.
 pub fn exp_values(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    each_atom(node, ctx, "Write the exponential", RuleId::ExpValue, exp_value)
+    each_atom(node, ctx, &crate::text::msg!("core.algebra.logs.write_exponential"), RuleId::ExpValue, exp_value)
 }
 
 /// `c_1 \ln a_1 + c_2 \ln a_2 = \ln(a_1^{c_1} a_2^{c_2})` for the terms of `poly` that are an integer
@@ -229,7 +229,7 @@ pub fn merge_logs(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
     let merged = each_poly(node, ctx, merge_poly, &mut details, &mut conditions);
     (!details.is_empty()).then(|| Rewrite {
         node: merged,
-        explanation: format!("Combine the logarithms: {}", details.join(", ")),
+        explanation: crate::text::msg!("core.algebra.logs.combine_logarithms", details.join(", ")),
         rule: RuleId::MergeLogs,
         conditions,
         working: Vec::new(),
@@ -296,7 +296,7 @@ fn log_quotient(node: &Node, ctx: &mut Context) -> Option<Local> {
             _ => return Some(local),
         };
         let written = make_fraction(Node::Function { name, argument: Box::new(power), position: 0 }, atoms.node(bottom_index).clone());
-        let text = format!("Write {} as a power of the base", serializer::expression(&a.to_node()));
+        let text = crate::text::msg!("core.algebra.logs.write_power_base", serializer::expression(&a.to_node()));
         return Some(local.with_working(vec![(written, text, StepDetail::Standard)], "\\log_{b}(b^{n}) = n"));
     }
     Some(local)
@@ -304,5 +304,5 @@ fn log_quotient(node: &Node, ctx: &mut Context) -> Option<Local> {
 
 /// `\frac{\ln(a^{2})}{\ln a} = 2` for `a > 0`.
 pub fn divide_logs(node: &Node, ctx: &mut Context) -> Option<Rewrite> {
-    everywhere(node, ctx, "Divide the logarithms", RuleId::MergeLogs, log_quotient)
+    everywhere(node, ctx, &crate::text::msg!("core.algebra.logs.divide_logarithms"), RuleId::MergeLogs, log_quotient)
 }

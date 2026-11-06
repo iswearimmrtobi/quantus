@@ -45,11 +45,11 @@ impl Reason {
     /// The text shown after "Unknown: ".
     pub fn text(&self) -> String {
         match self {
-            Reason::MissingSource { current: false, .. } => msg!("the supply voltage is missing", "Versorgungsspannung fehlt"),
-            Reason::MissingSource { current: true, .. } => msg!("the supply current is missing", "Versorgungsstrom fehlt"),
+            Reason::MissingSource { current: false, .. } => msg!("core.electro.solve.supply_voltage_missing"),
+            Reason::MissingSource { current: true, .. } => msg!("core.electro.solve.supply_current_missing"),
             Reason::DependsOn(ids) => {
                 let ids = ids.join(", ");
-                msg!("depends on {ids}", "hängt von {ids} ab")
+                msg!("core.electro.solve.depends")
             }
         }
     }
@@ -61,8 +61,9 @@ pub struct NodeResult {
     pub voltage: Output,
 }
 
-/// Voltage and current as defined at [`Element`](super::Element); the power is positive for a
-/// consumer and negative for a source that delivers.
+/// Voltage and current as defined at [`Element`](super::Element), except that a consumer's run
+/// along its real current, so they are not negative however the part is drawn; the power is
+/// positive for a consumer and negative for a source that delivers.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElementResult {
     pub id: String,
@@ -196,8 +197,8 @@ pub fn solve_at(circuit: &Circuit, precision: usize) -> Result<Solution> {
     let volt = unit("V");
     let amp = unit("A");
     let watt = unit("W");
-    let output = |n: usize, quantity: Kind| -> Result<Output> {
-        let value = base[n].clone();
+    let output = |n: usize, quantity: Kind, turned: bool| -> Result<Output> {
+        let value = if turned { base[n].neg() } else { base[n].clone() };
         if !depends[n].is_empty() {
             return Ok(Output::Unknown(Reason::DependsOn(depends[n].clone())));
         }
@@ -225,16 +226,21 @@ pub fn solve_at(circuit: &Circuit, precision: usize) -> Result<Solution> {
 
     let mut nodes = Vec::new();
     for (n, id) in circuit.nodes.iter().enumerate() {
-        nodes.push(NodeResult { id: *id, voltage: output(n, Kind::Voltage)? });
+        nodes.push(NodeResult { id: *id, voltage: output(n, Kind::Voltage, false)? });
     }
     let mut elements = Vec::new();
     for (n, element) in circuit.elements.iter().enumerate() {
         let at = circuit.nodes.len() + 3 * n;
+        // A consumer counts from `b` to `a` if its current flows that way (or, with none, its
+        // voltage points that way); P = U·I stays as it is.
+        let consumer = !matches!(element.kind, ElementKind::VoltageSource { .. } | ElementKind::CurrentSource { .. });
+        let [u, i, _] = &baseline.elements[n];
+        let turned = consumer && if i.is_zero() { u.is_negative()? } else { i.is_negative()? };
         elements.push(ElementResult {
             id: element.id.clone(),
-            voltage: output(at, Kind::Voltage)?,
-            current: output(at + 1, Kind::Current)?,
-            power: output(at + 2, Kind::Power)?,
+            voltage: output(at, Kind::Voltage, turned)?,
+            current: output(at + 1, Kind::Current, turned)?,
+            power: output(at + 2, Kind::Power, false)?,
             notes: model.notes[n].clone(),
         });
     }
@@ -284,15 +290,15 @@ impl<'a> Model<'a> {
         let mut index = HashMap::new();
         for (n, id) in circuit.nodes.iter().enumerate() {
             if index.insert(*id, n).is_some() {
-                return Err(QuantusError::other(msg!("Node {id} exists twice.", "Knoten {id} kommt doppelt vor.")));
+                return Err(QuantusError::other(msg!("core.electro.solve.node_exists_twice")));
             }
         }
         if !index.contains_key(&GROUND) {
-            return Err(QuantusError::other(msg!("The circuit has no ground node 0.", "Die Schaltung hat keinen Masseknoten 0.")));
+            return Err(QuantusError::other(msg!("core.electro.solve.no_ground")));
         }
         for (n, element) in circuit.elements.iter().enumerate() {
             if circuit.elements[..n].iter().any(|e| e.id == element.id) {
-                return Err(QuantusError::other(msg!("Element {} exists twice.", "Das Bauteil {} kommt doppelt vor.", element.id)));
+                return Err(QuantusError::other(msg!("core.electro.solve.element_exists_twice", element.id)));
             }
             let wiper = match &element.kind {
                 ElementKind::Potentiometer { wiper, .. } => Some(*wiper),
@@ -301,8 +307,7 @@ impl<'a> Model<'a> {
             for node in [Some(element.a), Some(element.b), wiper].into_iter().flatten() {
                 if !index.contains_key(&node) {
                     return Err(QuantusError::other(msg!(
-                        "Element {} uses the unknown node {node}.",
-                        "Das Bauteil {} nutzt den unbekannten Knoten {node}.",
+                        "core.electro.solve.element_uses_unknown_node",
                         element.id
                     )));
                 }
@@ -347,8 +352,7 @@ impl<'a> Model<'a> {
                     if let Some(p) = position {
                         if p.is_negative()? || !p.sub(&Value::one()).is_negative()? && !p.sub(&Value::one()).is_zero() {
                             return Err(QuantusError::other(msg!(
-                                "The wiper position of {} must be between 0 and 1.",
-                                "Die Stellung von {} muss zwischen 0 und 1 liegen.",
+                                "core.electro.solve.wiper_out_of_range",
                                 element.id
                             )));
                         }
@@ -428,7 +432,7 @@ impl<'a> Model<'a> {
             return self.run_linear(values, &HashMap::new());
         }
 
-        let no_solution = || QuantusError::other(msg!("no solution: the load is too large", "no solution: the load is too large"));
+        let no_solution = || QuantusError::other(msg!("core.electro.solve.load_too_large"));
         let tolerance = convergence_tolerance(precision)?;
         let two = Value::int(2);
         let mut tangents = HashMap::new();
@@ -472,7 +476,7 @@ impl<'a> Model<'a> {
             }
             tangents = next;
         }
-        Err(QuantusError::other(msg!("did not converge", "nicht konvergiert")))
+        Err(QuantusError::other(msg!("core.electro.solve.did_not_converge")))
     }
 
     fn run_linear(&self, values: &BTreeMap<Slot, Value>, loads: &HashMap<usize, (Value, Value)>) -> Result<Run> {
@@ -628,8 +632,8 @@ impl<'a> Model<'a> {
             }
         }
         match reached.iter().position(|r| !r) {
-            Some(n) => QuantusError::other(msg!("Node {} is not connected", "Knoten {} nicht verbunden", self.circuit.nodes[n])),
-            None => QuantusError::other(msg!("short circuit", "Kurzschluss")),
+            Some(n) => QuantusError::other(msg!("core.electro.solve.node_not_connected", self.circuit.nodes[n])),
+            None => QuantusError::other(msg!("core.electro.solve.short_circuit")),
         }
     }
 }
@@ -662,7 +666,7 @@ fn nonnegative(value: &Option<PhysicalQuantity>, target: &Unit, id: &str) -> Res
     let Some(q) = value else { return Ok(None) };
     let q = q.to(target)?;
     if q.value.is_negative()? {
-        return Err(QuantusError::other(msg!("The value of {id} must not be negative.", "Der Wert von {id} darf nicht negativ sein.")));
+        return Err(QuantusError::other(msg!("core.electro.solve.value_must_not_negative")));
     }
     Ok(Some(q.value))
 }
@@ -740,6 +744,18 @@ mod tests {
         // The source delivers: negative current and power.
         assert_eq!(known(&result(&s, "U1").current), Value::ratio(-4, 1000));
         assert_eq!(known(&result(&s, "U1").power), Value::ratio(-48, 1000));
+    }
+
+    #[test]
+    fn a_consumer_drawn_backwards_counts_along_its_current() {
+        let c = circuit(&[0, 1, 2], vec![source("U1", 1, 0, Some(12)), resistor("R1", 2, 1, Some(1000)), resistor("R2", 0, 2, Some(2000))]);
+        let s = solve(&c).unwrap();
+        assert_eq!(known(&result(&s, "R1").voltage), Value::int(4));
+        assert_eq!(known(&result(&s, "R1").current), Value::ratio(4, 1000));
+        assert_eq!(known(&result(&s, "R2").voltage), Value::int(8));
+        assert_eq!(known(&result(&s, "R2").power), Value::ratio(32, 1000));
+        // A source stays from `a` to `b`.
+        assert_eq!(known(&result(&s, "U1").current), Value::ratio(-4, 1000));
     }
 
     #[test]

@@ -1,6 +1,7 @@
 //! Units, dimensions and conversions: the Rust counterpart of Indriya, reduced to what Quantus uses.
 
 pub mod atom;
+pub mod catalogue;
 pub mod conversions;
 pub mod dimension;
 pub mod format;

@@ -13,9 +13,9 @@ import {
 } from '../api';
 import { useT } from '../i18n';
 import { copyText } from '../shell';
-import type { TextKey } from '../i18n/en';
+import type { TextKey } from '../i18n';
 import { FunctionPlot } from './FunctionPlot';
-import { Katex, latexLines } from './Katex';
+import { displayStyle, Katex, latexLines } from './Katex';
 import { LatexInput, type LatexInputHandle } from './LatexInput';
 import { MathField, toReadableLatex, type MathFieldHandle } from './MathField';
 
@@ -30,24 +30,44 @@ const TABS: { id: Tab; label: TextKey }[] = [
 
 const PLACEHOLDER = 'f(x) = x^3 - 3x';
 
-function Steps({ steps, hidden }: { steps: Step[]; hidden: boolean }) {
+/** `display`: the formulas in display style, so fractions stand at full size. */
+export function Steps({
+  steps,
+  hidden,
+  display = false,
+  active,
+  onHover,
+}: {
+  steps: Step[];
+  hidden: boolean;
+  display?: boolean;
+  /** The step under the pointer, marked. */
+  active?: number | null;
+  onHover?(index: number | null): void;
+}) {
   if (hidden) return null;
   return (
     <div className="analysis-steps">
       {steps.map((step, index) => (
-        <div className="analysis-step" key={index}>
+        <div
+          className={index === active ? 'analysis-step active' : 'analysis-step'}
+          key={index}
+          onMouseEnter={onHover && (() => onHover(index))}
+          onMouseLeave={onHover && (() => onHover(null))}
+        >
           {step.explanation && <span className="step-explanation">{step.explanation}</span>}
-          {step.latex && <Katex className="step-latex" latex={step.latex} />}
+          {step.latex && <Katex className="step-latex" latex={display ? displayStyle(step.latex) : step.latex} />}
         </div>
       ))}
     </div>
   );
 }
 
-function ErrorRow({ error }: { error: ApiError }) {
+/** `soft`: grey instead of red, for input that is still being typed. */
+export function ErrorRow({ error, soft = false }: { error: ApiError; soft?: boolean }) {
   const { t } = useT();
   return (
-    <div className="error-row">
+    <div className={soft ? 'error-row soft' : 'error-row'}>
       <span className="error-label">{t('error')}</span>
       <span className="error-text">
         {error.message}
@@ -57,7 +77,7 @@ function ErrorRow({ error }: { error: ApiError }) {
   );
 }
 
-const asError = (failure: unknown) => (failure instanceof ApiError ? failure : new ApiError(String(failure)));
+export const asError = (failure: unknown) => (failure instanceof ApiError ? failure : new ApiError(String(failure)));
 
 /** Identifies a point across re-runs, unlike its index. */
 const pointKey = (point: MarkedPoint) => `${point.kind}|${point.x}|${point.y}`;

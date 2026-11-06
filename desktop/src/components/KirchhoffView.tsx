@@ -1,0 +1,191 @@
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { api, ApiError, type Kirchhoff, type Settings } from '../api';
+import {
+  GRID,
+  IDEAL_FIELDS,
+  junctionPoint,
+  numberNodes,
+  reducedDrawings,
+  terminalParts,
+  toKirchhoffRequest,
+  type EditorElement,
+  type EditorKind,
+  type Shown,
+} from '../circuit';
+import { useT } from '../i18n';
+import { CircuitEditor } from './CircuitEditor';
+import { currentArrows, KirchhoffOverlay, overlayLabels, overlayReserved, voltageArrows, type Hover } from './KirchhoffOverlay';
+import { KirchhoffWorking } from './KirchhoffWorking';
+
+const PALETTE: EditorKind[] = ['voltageSource', 'currentSource', 'resistor', 'wire', 'terminal'];
+
+/** The working panel's height in pixels: at first, and the least the splitter leaves it and the canvas. */
+const WORKING_HEIGHT = 280;
+const MIN_HEIGHT = 80;
+
+interface Props {
+  elements: EditorElement[];
+  onChange(next: EditorElement[]): void;
+  /** The engine reads the stored settings; these are watched so a change shows at once. */
+  settings: Settings;
+  shown: Shown;
+  onShownChange(next: Shown): void;
+  toolbar?: ReactNode;
+}
+
+/**
+ * The Kirchhoff mode: a resistor network drawn in the circuit editor, worked out by the junction
+ * and loop rules.
+ */
+export function KirchhoffView({ elements, onChange, settings, shown, onShownChange, toolbar }: Props) {
+  const { t } = useT();
+  const [solution, setSolution] = useState<Kirchhoff | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [hover, setHover] = useState<Hover>(null);
+  const [height, setHeight] = useState(WORKING_HEIGHT);
+  const resizing = useRef<{ y: number; height: number; room: number } | null>(null);
+
+  const request = useMemo(() => toKirchhoffRequest(elements), [elements]);
+  /** A is placed but B is not yet, or the other way round. */
+  const halfTerminals = useMemo(() => terminalParts(elements).length === 1, [elements]);
+
+  // As in the electronics mode: every change recalculates after a short debounce, and an answer
+  // to an older circuit is dropped. The step settings change the working, so they count too.
+  const { language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination, starDelta } = settings;
+  useEffect(() => {
+    let current = true;
+    const timer = window.setTimeout(() => {
+      if (request.elements.length === 0 || halfTerminals) {
+        setSolution(null);
+        setFailure(null);
+        return;
+      }
+      api.solveKirchhoff(request).then(
+        (solved) => {
+          if (!current) return;
+          setSolution(solved);
+          setFailure(null);
+        },
+        (error) => {
+          if (!current) return;
+          setSolution(null);
+          setFailure(error instanceof ApiError ? error.message : String(error));
+        },
+      );
+    }, 60);
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [request, halfTerminals, language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination, starDelta]);
+
+  const nodes = useMemo(() => numberNodes(elements), [elements]);
+  // The overlay belongs to the drawing it was solved for; while a change is being solved the
+  // parts may have moved, which only shifts the marks until the answer comes.
+  const marks = useMemo(() => {
+    if (!solution) return null;
+    const junctions = solution.junctions.map((junction, index) => ({
+      index,
+      point: junctionPoint(elements, nodes, { x: junction.anchor.x * GRID, y: junction.anchor.y * GRID }),
+    }));
+    const arrows = currentArrows(solution, elements);
+    const voltages = shown.voltage ? voltageArrows(solution, elements) : [];
+    return {
+      junctions,
+      arrows,
+      voltages,
+      labels: overlayLabels(solution, junctions, arrows),
+      reserved: overlayReserved(solution, [...arrows, ...voltages]),
+    };
+  }, [solution, elements, nodes, shown.voltage]);
+
+  /** While a step of the reduction is under the pointer, the network as it stands after it. */
+  // Worked out on the first hover over a step and kept for the solution, since placing a star or
+  // delta takes a search.
+  const previews = useRef<{ solution: Kirchhoff; drawings: ReturnType<typeof reducedDrawings> } | null>(null);
+  const reduced = useMemo(() => {
+    const merges = solution?.equivalent?.merges;
+    if (hover?.kind !== 'merge' || !solution || !merges?.[hover.index]) return null;
+    if (previews.current?.solution !== solution) previews.current = { solution, drawings: reducedDrawings(elements, merges) };
+    return previews.current.drawings[hover.index] ?? null;
+  }, [hover, solution, elements]);
+
+  const highlight = useMemo(() => {
+    if (!solution) return undefined;
+    if (reduced) return reduced.merged;
+    if (hover?.kind !== 'loop') return undefined;
+    return solution.loops[hover.index]?.members.map((m) => m.id);
+  }, [hover, solution, reduced]);
+
+  const startResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const centre = event.currentTarget.parentElement!.getBoundingClientRect();
+    resizing.current = { y: event.clientY, height, room: centre.height - MIN_HEIGHT };
+  };
+  const resize = (event: ReactPointerEvent) => {
+    const start = resizing.current;
+    if (!start) return;
+    setHeight(Math.max(MIN_HEIGHT, Math.min(start.room, start.height - (event.clientY - start.y))));
+  };
+
+  // A lone terminal waits for the other one rather than solving the drawing without it.
+  const shownFailure = halfTerminals && request.elements.length > 0 ? t('kirchhoff.terminal.missing') : failure;
+
+  const flip = (lead: string) => onChange(elements.map((e) => (e.id === lead ? { ...e, reversed: !e.reversed } : e)));
+
+  return (
+    <CircuitEditor
+      elements={elements}
+      onChange={onChange}
+      palette={PALETTE}
+      fields={IDEAL_FIELDS}
+      results={solution?.elements}
+      overlay={
+        solution &&
+        marks && (
+          <KirchhoffOverlay
+            solution={solution}
+            junctions={marks.junctions}
+            arrows={marks.arrows}
+            voltages={marks.voltages}
+            hover={hover}
+            onHover={setHover}
+            onFlip={flip}
+          />
+        )
+      }
+      labels={marks?.labels}
+      reserved={marks?.reserved}
+      highlight={highlight}
+      preview={reduced?.elements}
+      failure={shownFailure ?? solution?.error}
+      below={
+        <>
+          <div
+            className="kirchhoff-splitter"
+            role="separator"
+            aria-orientation="horizontal"
+            title={t('kirchhoff.resize')}
+            onPointerDown={startResize}
+            onPointerMove={resize}
+            onPointerUp={() => (resizing.current = null)}
+            onPointerCancel={() => (resizing.current = null)}
+          />
+          <section className="kirchhoff-working" style={{ height }} aria-label={t('kirchhoff.working')}>
+            <KirchhoffWorking
+              solution={solution}
+              failure={shownFailure}
+              empty={elements.length === 0}
+              stepsHidden={stepDetail === 'none'}
+              hover={hover}
+              onHover={setHover}
+            />
+          </section>
+        </>
+      }
+      shown={shown}
+      onShownChange={onShownChange}
+      toolbar={toolbar}
+    />
+  );
+}

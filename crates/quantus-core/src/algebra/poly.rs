@@ -12,6 +12,7 @@ use dashu::rational::RBig;
 use crate::latex::ast::{Node, Operator};
 use crate::num::Decimal;
 use crate::QuantusError;
+use crate::text::msg;
 
 /// Greatest common divisor of two non-negative unsigned big integers.
 pub fn gcd_ubig(mut a: UBig, mut b: UBig) -> UBig {
@@ -426,7 +427,7 @@ impl Poly {
     /// this guarantees `deg(R) < deg(divisor)`.
     pub fn div_rem(&self, divisor: &Poly) -> Result<(Poly, Poly), QuantusError> {
         if divisor.is_zero() {
-            return Err(QuantusError::other("Division by zero."));
+            return Err(QuantusError::other(msg!("core.common.division_zero")));
         }
         if self.is_zero() {
             return Ok((Poly::zero(), Poly::zero()));
@@ -617,7 +618,7 @@ impl Poly {
                         let c = den.leading_coeff();
                         Ok(&num / &c)
                     } else {
-                        Err(QuantusError::other("Division by non-constant is not a polynomial."))
+                        Err(QuantusError::other(msg!("core.algebra.poly.division_not_polynomial")))
                     }
                 }
             },
@@ -628,7 +629,7 @@ impl Poly {
                     let c = den.leading_coeff();
                     Ok(&num / &c)
                 } else {
-                    Err(QuantusError::other("Division by non-constant is not a polynomial."))
+                    Err(QuantusError::other(msg!("core.algebra.poly.division_not_polynomial")))
                 }
             }
             Node::Negation { operand, .. } => Ok(-&Self::from_node(operand)?),
@@ -646,19 +647,19 @@ impl Poly {
                             && !r.numerator().is_negative()
                         {
                             let n = u64::try_from(r.numerator())
-                                .map_err(|_| QuantusError::other("Exponent too large."))?;
+                                .map_err(|_| QuantusError::other(msg!("core.algebra.poly.exponent_too_large")))?;
                             n as usize
                         } else {
                             return Err(QuantusError::other(
-                                "Non-integer or negative exponent in polynomial.",
+                                msg!("core.algebra.poly.exponent_not_natural"),
                             ));
                         }
                     }
-                    _ => return Err(QuantusError::other("Variable or complex exponent in polynomial.")),
+                    _ => return Err(QuantusError::other(msg!("core.algebra.poly.variable_complex_exponent_polynomial"))),
                 };
                 Ok(b.pow(exp_val))
             }
-            _ => Err(QuantusError::other("Expression is not a polynomial.")),
+            _ => Err(QuantusError::other(msg!("core.algebra.poly.expression_not_polynomial"))),
         }
     }
 

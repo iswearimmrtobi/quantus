@@ -39,6 +39,22 @@ const config = {
     ],
   ],
 
+  // Pages that moved keep their old address.
+  plugins: [
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          { from: "/docs/guides/input", to: "/docs/basics/input" },
+          { from: "/docs/guides/working-and-output", to: "/docs/basics/working-and-output" },
+          { from: "/docs/guides/variables-and-history", to: "/docs/basics/variables-and-history" },
+          { from: "/docs/guides/calculus", to: "/docs/basics/calculus" },
+          { from: "/docs/guides/base-n-and-verify", to: "/docs/guides/base-n" },
+        ],
+      },
+    ],
+  ],
+
   themeConfig: {
     navbar: {
       title: "Quantus",

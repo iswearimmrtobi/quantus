@@ -60,7 +60,7 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
             let previous = format!("{}({var})", derivative_name(order - 1));
             let c = constant.as_ref().map(|c| c.to_latex(var)).unwrap_or_default();
             let power = format!("{previous} = {c}({})^{{{}}}", base.to_latex(var), exponent.to_latex(var));
-            steps.push(step(AnalysisRule::ChainRule, msg!("Write as a power", "Als Potenz schreiben"), power).with_level(StepDetail::Standard));
+            steps.push(step(AnalysisRule::ChainRule, msg!("core.analysis.derive.write_power"), power).with_level(StepDetail::Standard));
         }
     }
     steps.extend(parts);
@@ -69,7 +69,7 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
     }
     if let Some((outer, inner)) = chain {
         let latex = format!("{name} = {times_constant}{}", chain_product(&outer, &inner, var, settings));
-        let text = msg!("Outer derivative times inner derivative", "Äußere mal innere Ableitung");
+        let text = msg!("core.analysis.derive.outer_times_inner");
         steps.push(step(AnalysisRule::ChainRule, text, latex).with_level(StepDetail::Standard));
     }
     if let (AnalysisRule::ProductRule, Some((u, v, false))) = (rule, split_parts(&rest)) {
@@ -77,7 +77,7 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
         let (du, dv) = (display(&derivative(&u), settings), display(&derivative(&v), settings));
         let sum = format!("{} \\cdot {} + {} \\cdot {}", factor_tex(&du, var), factor_tex(&v, var), factor_tex(&u, var), factor_tex(&dv, var));
         let put_in = if constant.is_some() { format!("{name} = {times_constant}\\left({sum}\\right)") } else { format!("{name} = {sum}") };
-        steps.push(step(AnalysisRule::ProductRule, msg!("Put in", "Einsetzen"), put_in).with_level(StepDetail::Detailed));
+        steps.push(step(AnalysisRule::ProductRule, msg!("core.analysis.derive.put_in"), put_in).with_level(StepDetail::Detailed));
     }
     let line = match (&rule, &shown) {
         (AnalysisRule::SumRule, Expr::Sum(terms)) => {
@@ -94,7 +94,7 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
     let simplified = format!("{name} = {}", tex(&result));
     if simplified != line {
         steps.extend(super::simplify::working(&raw, var, &format!("{name} = "), &simplified, settings));
-        steps.push(step(AnalysisRule::Simplify, msg!("Simplify", "Zusammenfassen"), simplified));
+        steps.push(step(AnalysisRule::Simplify, msg!("core.analysis.derive.simplify"), simplified));
     }
     Derivation { raw, result, steps }
 }
@@ -144,10 +144,10 @@ fn term_by_term(terms: &[Expr], name: &str, var: &str) -> Vec<Step> {
             }
         }
     }
-    let marked = step(AnalysisRule::SumRule, msg!("Term by term", "Gliedweise"), format!("{name} = {marked}"));
+    let marked = step(AnalysisRule::SumRule, msg!("core.analysis.derive.term_term"), format!("{name} = {marked}"));
     let mut lines = vec![marked.with_level(StepDetail::Standard)];
     if has_power {
-        let text = msg!("Power rule: (x^n)' = n x^{{n - 1}}", "Potenzregel: (x^n)' = n x^{{n - 1}}");
+        let text = msg!("core.analysis.derive.power_rule_formula");
         lines.push(step(AnalysisRule::PowerRule, text, format!("{name} = {powered}")).with_level(StepDetail::Detailed));
     }
     lines
@@ -165,16 +165,16 @@ pub fn derivative_name(order: usize) -> String {
 fn rule_text(rule: AnalysisRule) -> String {
     match rule {
         AnalysisRule::SumRule => {
-            msg!("Sum and constant factor rule: differentiate term by term", "Summen- und Faktorregel: gliedweise ableiten")
+            msg!("core.analysis.derive.sum_and_factor_rule")
         }
-        AnalysisRule::PowerRule => msg!("Power rule", "Potenzregel"),
-        AnalysisRule::ProductRule => msg!("Product rule", "Produktregel"),
-        AnalysisRule::QuotientRule => msg!("Quotient rule", "Quotientenregel"),
+        AnalysisRule::PowerRule => msg!("core.analysis.derive.power_rule"),
+        AnalysisRule::ProductRule => msg!("core.analysis.derive.product_rule"),
+        AnalysisRule::QuotientRule => msg!("core.analysis.derive.quotient_rule"),
         AnalysisRule::ChainRule => {
-            msg!("Chain rule: outer derivative times inner derivative", "Kettenregel: äußere mal innere Ableitung")
+            msg!("core.analysis.derive.chain_rule_heading")
         }
-        AnalysisRule::ElementaryDerivative => msg!("Derivative of a basic function", "Ableitung einer Grundfunktion"),
-        _ => msg!("The derivative of a constant is 0", "Die Ableitung einer Konstanten ist 0"),
+        AnalysisRule::ElementaryDerivative => msg!("core.analysis.derive.derivative_basic_function"),
+        _ => msg!("core.analysis.derive.constant_rule"),
     }
 }
 
@@ -194,7 +194,7 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
                 // Before the product rule the constant is set aside; the chain rule keeps it in its line.
                 if split_parts(&rest).is_some() {
                     let c = constant.to_latex(var);
-                    let text = msg!("Constant factor rule: {} stays in front", "Faktorregel: {} bleibt als Faktor stehen", c);
+                    let text = msg!("core.analysis.derive.constant_factor_rule", c);
                     let latex = format!("{name} = {c} \\cdot \\left({}\\right)'", rest.to_latex(var));
                     steps.push(step(AnalysisRule::FactorRule, text, latex).with_level(StepDetail::Standard));
                 }
@@ -218,10 +218,10 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
                 shown_derivative(&v)
             );
             if quotient {
-                steps.push(step(AnalysisRule::QuotientRule, msg!("Quotient rule with", "Quotientenregel mit"), parts));
+                steps.push(step(AnalysisRule::QuotientRule, msg!("core.analysis.derive.quotient_rule_with"), parts));
                 AnalysisRule::QuotientRule
             } else {
-                steps.push(step(AnalysisRule::ProductRule, msg!("Product rule with", "Produktregel mit"), parts));
+                steps.push(step(AnalysisRule::ProductRule, msg!("core.analysis.derive.product_rule_with"), parts));
                 AnalysisRule::ProductRule
             }
         }
@@ -244,7 +244,7 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
         Expr::Pow(..) => {
             steps.push(step(
                 AnalysisRule::ChainRule,
-                msg!("Write the power with base e", "Potenz zur Basis e schreiben"),
+                msg!("core.analysis.derive.power_to_base_e"),
                 "u^{v} = e^{v \\cdot \\ln(u)}",
             ));
             AnalysisRule::ChainRule
@@ -263,7 +263,7 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
 
 fn inner_function(u: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) {
     let latex = format!("u = {}, \\quad u' = {}", u.to_latex(var), display(&derivative(u), settings).to_latex(var));
-    steps.push(step(AnalysisRule::ChainRule, msg!("Inner function", "Innere Funktion"), latex));
+    steps.push(step(AnalysisRule::ChainRule, msg!("core.analysis.derive.inner_function"), latex));
 }
 
 /// A function of an inner function, as `(outer, inner)` with the outer one in x: `e^{2x}` is
@@ -306,8 +306,7 @@ fn chain_product(outer: &Expr, inner: &Expr, var: &str, settings: &Settings) -> 
 fn chain_for_part(label: &str, part: &Expr, var: &str, settings: &Settings) -> Option<Step> {
     let (outer, inner) = chain_parts(part)?;
     let text = msg!(
-        "{}' by the chain rule: outer {}, inner u = {}, u' = {}",
-        "{}' mit der Kettenregel: äußere {}, innere u = {}, u' = {}",
+        "core.analysis.derive.chain_rule",
         label,
         outer.to_latex("u"),
         inner.to_latex(var),

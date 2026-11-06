@@ -1,0 +1,49 @@
+[package]
+name = "quantus-handheld"
+description = "The handheld calculator's firmware: the UI and the engine on an ESP32-P4 with an ILI9486 display"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+default-run = "quantus-handheld"
+
+# Its own workspace: the ESP toolchain and ESP-IDF stay out of `cargo test --workspace`.
+[workspace]
+
+[features]
+default = ["engine"]
+# quantus-core behind the UI. Without it (`--no-default-features`) a stub answers with the input
+# itself, which builds and flashes much faster for work on the UI.
+engine = ["dep:quantus-engine"]
+
+[dependencies]
+quantus-engine = { path = "../engine", optional = true }
+quantus-mirror = { path = "../mirror" }
+quantus-ui = { path = "../ui" }
+quantus-texts = { path = "../../crates/quantus-texts" }
+esp-idf-svc = "0.53"
+log = "0.4"
+embedded-graphics = "0.8.2"
+
+[build-dependencies]
+embuild = "0.33"
+# The tour's wallpaper, converted on the PC into the raw pixels the board reads from flash.
+quantus-ui = { path = "../ui" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[profile.dev]
+opt-level = "s"
+debug = true
+
+# Wi-Fi: the P4 has no radio; the ESP32-C6 on the board is its Wi-Fi over SDIO (ESP-Hosted), and
+# esp_wifi_remote gives it the usual esp_wifi API, which esp-idf-svc then wraps
+# (firmware/docs/wlan.md).
+[[package.metadata.esp-idf-sys.extra_components]]
+remote_component = { name = "espressif/esp_wifi_remote", version = "1.6.5" }
+
+[[package.metadata.esp-idf-sys.extra_components]]
+remote_component = { name = "espressif/esp_hosted", version = "3.0.10" }

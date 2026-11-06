@@ -51,10 +51,10 @@ What changed between versions is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## ✨ Features
 
-### 🧭 Four modes
+### 🧭 Modes
 
-The mode is chosen in the top bar or in the settings panel. Each one decides
-how letters are read; an example under the empty input shows what fits.
+The mode is chosen in the top bar. Each one decides how letters are read; an example
+under the empty input shows what fits.
 
 | Mode | What it is for |
 |---|---|
@@ -62,6 +62,12 @@ how letters are read; an example under the empty input shows what fits.
 | **Algebra** | Every letter is a variable: simplify, factor and solve, no units or constants |
 | **Imaginary** | As Algebra, but `i` is the imaginary unit and results may be complex, shown as `a + bi` |
 | **Analysis** | Enter `f(x) = …` and get the whole curve sketch beside an interactive graph |
+| **Linear systems** | Type a system line by line or as a matrix and get it solved exactly with the Gauss steps |
+| **Electronics** | Draw a DC circuit and see every part's voltage, current, power and resistance |
+| **Kirchhoff** | Draw a resistor network and get the junction and loop rules, their Gauss steps, every current and a power balance |
+| **Geometry** | Points, vectors, lines, planes, spheres and circles drawn in 3D, with their relations, intersections, distances and angles worked out exactly and step by step |
+| **Base-N** | Whole numbers in decimal, hexadecimal, binary and octal, 32 bits, with bitwise logic |
+| **Verify** | Check an equation or comparison, also chained (`1 < 2 \le 2`): true or false |
 
 ### ✍️ Input
 
@@ -84,6 +90,15 @@ how letters are read; an example under the empty input shows what fits.
 - **Exact roots and π**, a setting: `\sqrt{12}` is shown as `2\sqrt{3}` and `\pi/2`
   as `\frac{\pi}{2}` instead of a decimal (off by default)
 
+### 🔌 Electronics
+
+A circuit calculator for DC circuits: voltage and current sources, resistors, potentiometers,
+power loads and wires, drawn on a canvas. Every part shows its values beside it as you draw,
+with the unit prefix that fits (`4 mA`). A wire gets a resistance from its material, length,
+cross-section and temperature, so the voltage drop on a cable is one drawing away. Nothing is
+guessed: a value that cannot be found says why, and a circuit whose source has no value is
+solved relative to it. Circuits are saved as JSON files, shared with the Kirchhoff mode.
+
 ### 📈 Analysis
 
 Derivatives, domain, symmetry, zeros, extrema, inflection and saddle points,
@@ -103,8 +118,8 @@ and normal, the area under the curve and a value table.
 ### ⚙️ Settings
 
 Precision, step detail, how results are written (binomial direction, completing
-the square, denominator form, pq or abc formula), how letters are read, the mode
-and the language. Settings are kept in the app's config directory.
+the square, denominator form, pq or abc formula), how letters are read
+and the language, in a settings window (<kbd>Ctrl</kbd>+<kbd>.</kbd>). Settings are kept in the app's config directory.
 
 ## 🔨 Building
 
@@ -147,7 +162,7 @@ checks the engine broadly; [`docs/docs/contributing/testing.md`](docs/docs/contr
 
 ```sh
 cd desktop && npm run bundle
-../target/release/bundle/appimage/Quantus_0.1.0_amd64.AppImage
+../target/release/bundle/appimage/Quantus_0.2.0_amd64.AppImage
 ```
 
 On Windows the same command builds an NSIS installer (`bundle/nsis/*.exe`) and an
@@ -155,9 +170,10 @@ On Windows the same command builds an NSIS installer (`bundle/nsis/*.exe`) and a
 
 You don't need a Windows machine for this: the *Release build* workflow
 (`.github/workflows/release.yml`) runs the desktop tests and builds the AppImage
-on Linux and the `.msi` on Windows, on every `v*` tag or by hand from the Actions
+on Linux and the `.msi` on Windows, for every release or by hand from the Actions
 tab. The packages are attached to the run as the `quantus-linux` and
-`quantus-windows` artifacts; on a tag they also go into a draft GitHub release.
+`quantus-windows` artifacts; for a release they also go into a draft GitHub release
+(see [RELEASING.md](RELEASING.md)).
 
 </details>
 
@@ -174,7 +190,9 @@ tab. The packages are attached to the run as the `quantus-linux` and
 | `crates/quantus-core/src/eval/` | AST evaluation, substitution, steps |
 | `crates/quantus-core/src/algebra/` | Simplifying, factoring and solving with working |
 | `crates/quantus-core/src/analysis/` | The analysis mode: curve sketch, graph, tangent, area, table |
-| `crates/quantus-core/src/electro/` | The electronics mode (not in the app yet): materials, wires, circuit solver |
+| `crates/quantus-core/src/electro/` | The electronics mode: materials, wires, circuit solver |
+| `crates/quantus-core/src/kirchhoff/` | The Kirchhoff mode: drawing graph, branches, junction and loop rules |
+| `crates/quantus-core/src/geometry/` | The Geometry mode: vectors, lines, planes, spheres and circles, their relations, and the shared 3D view |
 | `crates/quantus-core/src/settings.rs` | User settings and modes |
 | `crates/quantus-core/src/session.rs`, `api.rs` | Session variables and the app's JSON types |
 | `crates/quantus-core/tests/` | Golden tests, carried over from the Kotlin tests |
@@ -194,7 +212,8 @@ built from [`docs/`](docs/) (run it locally with `cd docs && npm install && npm 
 | | |
 |---|---|
 | 🚀 [Getting started](docs/docs/getting-started/) | Install, your first calculation, the concepts behind modes and variables |
-| 🧭 [Guides](docs/docs/guides/) | Entering formulas, units, algebra, complex numbers, calculus, curve sketching |
+| 🧮 [Using Quantus](docs/docs/basics/) | Entering formulas, working and output, variables and history, calculus |
+| 🧭 [Modes](docs/docs/guides/) | A section per mode: Physics, Algebra, Imaginary, Analysis, Linear systems, Electronics, Kirchhoff, Geometry, Base-N, Verify |
 | 📖 [Reference](docs/docs/reference/) | Syntax, units and constants, settings, keyboard shortcuts, known limits, FAQ |
 | 🛠️ [Contributing](docs/docs/contributing/) | Architecture, building, the engine API, testing, translations |
 

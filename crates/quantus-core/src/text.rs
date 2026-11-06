@@ -30,14 +30,10 @@ impl Drop for Scope {
     }
 }
 
-/// `format!` in the current language: the English text first, then the German one, both with
-/// the same arguments.
+/// `format!` of the text `key` of `locales/` in the current language.
 macro_rules! msg {
-    ($en:literal, $de:literal $(, $arg:expr)* $(,)?) => {
-        match $crate::text::language() {
-            $crate::settings::Language::En => format!($en $(, $arg)*),
-            $crate::settings::Language::De => format!($de $(, $arg)*),
-        }
+    ($key:tt $($rest:tt)*) => {
+        ::quantus_texts::tr!($crate::text::language(), $key $($rest)*)
     };
 }
 pub(crate) use msg;
@@ -48,10 +44,10 @@ mod tests {
 
     #[test]
     fn the_scope_sets_and_restores_the_language() {
-        assert_eq!(msg!("one {}", "eins {}", 1), "one 1");
+        assert_eq!(msg!("test.one", 1), "one 1");
         {
             let _german = Scope::new(Language::De);
-            assert_eq!(msg!("one {}", "eins {}", 1), "eins 1");
+            assert_eq!(msg!("test.one", 1), "eins 1");
         }
         assert_eq!(language(), Language::En);
     }

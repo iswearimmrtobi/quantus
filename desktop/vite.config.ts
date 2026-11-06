@@ -8,6 +8,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // The texts are shared by every program, in `locales/` next to `desktop/`.
+    fs: { allow: ['..'] },
   },
   build: {
     outDir: 'dist',

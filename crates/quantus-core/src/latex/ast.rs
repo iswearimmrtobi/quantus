@@ -34,17 +34,20 @@ pub enum Node {
     Abs { operand: Box<Node>, position: usize },
     /// `\binom{n}{k}`.
     Binomial { n: Box<Node>, k: Box<Node>, position: usize },
-    /// `x^\circ`: an angle in degrees.
-    Degrees { operand: Box<Node>, position: usize },
-    /// `\sum_{i=from}^{to} body`.
-    Sum { index: String, from: Box<Node>, to: Box<Node>, body: Box<Node>, position: usize },
+    /// `x^\circ`: an angle in degrees. Typed as degrees, minutes and seconds (`2^\circ 20' 30''`),
+    /// `operand` is their sum in degrees and `sexagesimal` the input as written.
+    Degrees { operand: Box<Node>, position: usize, sexagesimal: Option<String> },
+    /// `\sum_{i=from}^{to} body`, or with `product` `\prod_{i=from}^{to} body`.
+    Sum { index: String, from: Box<Node>, to: Box<Node>, body: Box<Node>, position: usize, product: bool },
     /// `\int_{lower}^{upper} body \, dx`.
     Integral { variable: String, lower: Box<Node>, upper: Box<Node>, body: Box<Node>, position: usize },
     /// `\lim_{x \to target} body`.
     /// `side` is 0 for a two-sided limit, 1 from the right (`0^+`), -1 from the left (`0^-`).
     Limit { variable: String, target: Box<Node>, body: Box<Node>, side: i8, position: usize },
     /// `\frac{d}{dx} body`, optionally evaluated at a point: `\left.\frac{d}{dx} body\right|_{x=at}`.
-    Derivative { variable: String, body: Box<Node>, at: Option<Box<Node>>, position: usize },
+    /// `given` are the point's other variables, `|_{x=2, z=3}`, which the body is evaluated with;
+    /// `partial` says it was written with `\partial`.
+    Derivative { variable: String, body: Box<Node>, at: Option<Box<Node>>, given: Vec<(String, Node)>, partial: bool, position: usize },
     /// `\begin{pmatrix} … \end{pmatrix}`, row by row.
     Matrix { rows: Vec<Vec<Node>>, position: usize },
     /// `\det` of a matrix.
@@ -108,7 +111,9 @@ impl Node {
             Node::Sum { from, to, body, .. } => vec![from, to, body],
             Node::Integral { lower, upper, body, .. } => vec![lower, upper, body],
             Node::Limit { target, body, .. } => vec![target, body],
-            Node::Derivative { body, at, .. } => std::iter::once(&**body).chain(at.as_deref()).collect(),
+            Node::Derivative { body, at, given, .. } => {
+                std::iter::once(&**body).chain(at.as_deref()).chain(given.iter().map(|(_, value)| value)).collect()
+            }
             Node::Matrix { rows, .. } => rows.iter().flatten().collect(),
             Node::Call { arguments, .. } => arguments.iter().collect(),
             Node::System { equations, .. } => equations.iter().collect(),
@@ -133,7 +138,9 @@ impl Node {
             }
             Node::Negation { operand, position } => Node::Negation { operand: b(operand), position },
             Node::Abs { operand, position } => Node::Abs { operand: b(operand), position },
-            Node::Degrees { operand, position } => Node::Degrees { operand: b(operand), position },
+            Node::Degrees { operand, position, sexagesimal } => {
+                Node::Degrees { operand: b(operand), position, sexagesimal: sexagesimal.clone() }
+            }
             Node::Determinant { operand, position } => Node::Determinant { operand: b(operand), position },
             Node::Group { inner, position } => Node::Group { inner: b(inner), position },
             Node::Function { name, argument, position } => Node::Function { name, argument: b(argument), position },
@@ -144,8 +151,8 @@ impl Node {
                 Node::System { equations: equations.into_iter().map(&mut *f).collect(), position }
             }
             Node::Binomial { n, k, position } => Node::Binomial { n: b(n), k: b(k), position },
-            Node::Sum { index, from, to, body, position } => {
-                Node::Sum { index, from: b(from), to: b(to), body: b(body), position }
+            Node::Sum { index, from, to, body, position, product } => {
+                Node::Sum { index, from: b(from), to: b(to), body: b(body), position, product }
             }
             Node::Integral { variable, lower, upper, body, position } => {
                 Node::Integral { variable, lower: b(lower), upper: b(upper), body: b(body), position }
@@ -153,9 +160,14 @@ impl Node {
             Node::Limit { variable, target, body, side, position } => {
                 Node::Limit { variable, target: b(target), body: b(body), side, position }
             }
-            Node::Derivative { variable, body, at, position } => {
-                Node::Derivative { variable, body: b(body), at: at.map(&mut b), position }
-            }
+            Node::Derivative { variable, body, at, given, partial, position } => Node::Derivative {
+                variable,
+                body: b(body),
+                at: at.map(&mut b),
+                given: given.into_iter().map(|(name, value)| (name, f(value))).collect(),
+                partial,
+                position,
+            },
             Node::Matrix { rows, position } => Node::Matrix {
                 rows: rows.into_iter().map(|row| row.into_iter().map(&mut *f).collect()).collect(),
                 position,

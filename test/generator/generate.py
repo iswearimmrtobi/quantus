@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the 100,000-case engine test set into test/cases/<category>/<category>-NNN.json.
+"""Generates the engine test set into test/cases/<category>/<category>-NNN.json.
 
 Usage:
     python3 test/generator/generate.py            # write the cases
@@ -18,7 +18,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from gens import algebra, arithmetic, calculus, complex_numbers, functions, physics, syntax  # noqa: E402
+from gens import (algebra, analysis, arithmetic, calculus, complex_numbers, functions, linear_systems, physics, syntax,  # noqa: E402
+                  basen, circuits, distributions, geometry, matrix, open_features, statistics, verify)
 
 SEED = 20261023
 GENERATOR_VERSION = 1
@@ -40,6 +41,20 @@ CATEGORIES = {
     "physics": ("phys", 22000, physics.GENERATORS),
     "syntax": ("syn", 3000, syntax.GENERATORS),
     "complex": ("cplx", 3000, complex_numbers.GENERATORS),
+    "linear-systems": ("lgs", 2000, linear_systems.GENERATORS),
+    # The modes added later, appended so the seeds of the categories above stay the same.
+    "verify": ("ver", 1000, verify.GENERATORS),
+    "base-n": ("bn", 1000, basen.GENERATORS),
+    "matrix": ("mat", 1000, matrix.GENERATORS),
+    "statistics": ("stat", 1000, statistics.GENERATORS),
+    "distributions": ("dist", 1000, distributions.GENERATORS),
+    "analysis": ("ana", 1000, analysis.GENERATORS),
+    "geometry": ("geo", 1000, geometry.GENERATORS),
+    # A handful of circuits, one per template, instead of weighted generators.
+    "electronics": ("el", 20, circuits.electronics_cases),
+    "kirchhoff": ("kh", 20, circuits.kirchhoff_cases),
+    # Open features from plans/plans.md, every case a gap; appended so the seeds above stay the same.
+    "open-features": ("open", 500, open_features.GENERATORS),
 }
 
 
@@ -57,6 +72,10 @@ def weighted_schedule(rng, generators, n):
 def generate_category(index, name, prefix, n, generators):
     from gens.common import pick_difficulty
     rng = random.Random(SEED * 100 + index)
+    if callable(generators):
+        cases = [{"id": f"{prefix}-{i + 1:06d}", "category": name, **c} for i, c in enumerate(generators(rng))]
+        assert len(cases) == n, f"{name}: {len(cases)} cases, expected {n}"
+        return cases
     seen = set()
     cases = []
     for i, gen in enumerate(weighted_schedule(rng, generators, n)):
@@ -105,15 +124,65 @@ def check(all_cases):
                 _parse_value(e["re"])
                 _parse_value(e["im"])
                 float(e["rel_tol"])
+            elif e["kind"] == "inequality":
+                for lo, hi, lc, hc in e["intervals"]:
+                    [_parse_value(v) for v in (lo, hi) if v is not None]
+                    if not isinstance(lc, bool) or not isinstance(hc, bool):
+                        errors.append(f"{c['id']}: interval ends must say whether they are closed")
             elif e["kind"] == "complex-solutions":
                 [(_parse_value(v["re"]), _parse_value(v["im"])) for v in e["values"]]
             elif e["kind"] == "algebra":
                 for vals in e["restrictions"].values():
                     [Fraction(v) for v in vals]
+            elif e["kind"] == "linear":
+                values = [v for row in e["rows"] for v in row] + e.get("values", [])
+                [(_parse_value(v["re"]), _parse_value(v["im"])) if isinstance(v, dict) else _parse_value(v) for v in values]
+                if e["outcome"] not in ("unique", "none", "infinite") or len(e["unknowns"]) != len(e["rows"][0]) - 1:
+                    errors.append(f"{c['id']}: bad linear expectation")
+                if "request" not in c:
+                    errors.append(f"{c['id']}: no request")
+            elif e["kind"] == "truth":
+                if not isinstance(e["value"], bool):
+                    errors.append(f"{c['id']}: truth without true or false")
+            elif e["kind"] == "basen":
+                int(e["value"])
+                if len(e["forms"]) != 3:
+                    errors.append(f"{c['id']}: basen needs the three other forms")
+            elif e["kind"] == "matrix":
+                [Fraction(v) for row in e["rows"] for v in row]
+                if len({len(row) for row in e["rows"]}) != 1:
+                    errors.append(f"{c['id']}: matrix rows of different lengths")
+            elif e["kind"] == "statistics":
+                for group in ("values", "regression", "estimates"):
+                    for value, tol in e.get(group, {}).values():
+                        _parse_value(value)
+                        float(tol)
+            elif e["kind"] == "distribution":
+                for value, tol in e["values"]:
+                    _parse_value(value)
+                    float(tol)
+            elif e["kind"] in ("analysis", "tangent"):
+                float(e["tol"])
+            elif e["kind"] == "area":
+                _parse_value(e["area"])
+                _parse_value(e["signed"])
+            elif e["kind"] == "table":
+                [_parse_value(v) for row in e["rows"] for v in row if v is not None]
+            elif e["kind"] == "geometry":
+                for _, value, tol in e["values"]:
+                    _parse_value(value)
+                    float(tol)
+                [_parse_value(x) for _, p in e["points"] for x in p]
+            elif e["kind"] == "equivalent":
+                _parse_value(e["resistance"])
+            elif e["kind"] == "circuit":
+                [_parse_value(v) for values in e["elements"].values() for v in values]
             elif e["kind"] != "error":
                 errors.append(f"{c['id']}: unknown kind {e['kind']}")
         except Exception as ex:  # noqa: BLE001
             errors.append(f"{c['id']}: bad expectation {e}: {ex}")
+        if "api" in c and not isinstance(c.get("request"), dict):
+            errors.append(f"{c['id']}: api {c['api']} without a request")
         if not isinstance(c["latex"], str):
             errors.append(f"{c['id']}: latex is not a string")
     errors += check_units()

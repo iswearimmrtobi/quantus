@@ -63,7 +63,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         let (expanded, _) = expand_and_collect_all(&f.to_node("x"));
         if let Ok(expanded) = Expr::from_node(&expanded, "x") {
             if let Some(result) = table(&simplify(&expanded)) {
-                let text = msg!("Power rule: ∫ x^n dx = x^(n+1)/(n+1)", "Potenzregel: ∫ x^n dx = x^(n+1)/(n+1)");
+                let text = msg!("core.analysis.integrate.power_rule");
                 let lines = power_rule_line(&simplify(&expanded), ctx.var)
                     .map(|line| step(AnalysisRule::IntegralPolynomial, text, line).with_level(StepDetail::Detailed));
                 if let Some(done) = finish(result, AnalysisRule::IntegralPolynomial, lines.into_iter().collect()) {
@@ -89,18 +89,18 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         let steps = vec![
             step(
                 AnalysisRule::IntegralSubstitution,
-                msg!("Substitution", "Substitution"),
+                msg!("core.analysis.integrate.substitution"),
                 format!("u = {}, \\quad du = {} \\, d{}", tex(&u), tex(&display(&derivative(&u), ctx.settings)), ctx.var),
             ),
             step(
                 AnalysisRule::IntegralSubstitution,
-                msg!("Write the integral in u", "Das Integral in u schreiben"),
+                msg!("core.analysis.integrate.write_in_u"),
                 format!("\\int {} \\, d{} = \\int {} \\, du", tex(&f), ctx.var, g.to_latex("u")),
             )
             .with_level(StepDetail::Standard),
             step(
                 AnalysisRule::IntegralSubstitution,
-                msg!("Integrate in u, then substitute back", "In u integrieren, dann zurück substituieren"),
+                msg!("core.analysis.integrate.integrate_then_substitute"),
                 format!("\\int {} \\, du = {}", g.to_latex("u"), big_g.to_latex("u")),
             ),
         ];
@@ -109,7 +109,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
         }
     }
     if let Some((result, parts)) = by_parts(&f, 0) {
-        let with = || msg!("Integration by parts: ∫u·v' dx = u·v − ∫u'·v dx with", "Partielle Integration: ∫u·v' dx = u·v − ∫u'·v dx mit");
+        let with = || msg!("core.analysis.integrate.by_parts_with");
         let named = |u: &Expr, v_prime: &Expr, u_prime: &Expr, v: &Expr| {
             format!(
                 "u = {}, \\quad v' = {}, \\quad u' = {}, \\quad v = {}",
@@ -126,12 +126,12 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                 let uv = display(&Expr::Product(vec![u.clone(), v.clone()]), ctx.settings);
                 let rest = simplify(&Expr::Product(vec![derivative(u), v.clone()]));
                 let put = format!("F({var}) = {} - \\int {} \\, d{var}", tex(&uv), tex(&display(&rest, ctx.settings)), var = ctx.var);
-                lines.push(step(AnalysisRule::IntegrationByParts, msg!("Put into u·v − ∫u'·v dx", "In u·v − ∫u'·v dx einsetzen"), put).with_level(StepDetail::Standard));
+                lines.push(step(AnalysisRule::IntegrationByParts, msg!("core.analysis.integrate.put_into_by_parts"), put).with_level(StepDetail::Standard));
                 if let Some(remaining) = antiderivative(&rest, ctx) {
                     let g = tex(&remaining.result);
                     let g = if matches!(remaining.result, Expr::Sum(_)) { format!("\\left({g}\\right)") } else { g };
                     let latex = format!("F({}) = {} - {g} + C", ctx.var, tex(&uv));
-                    lines.push(step(AnalysisRule::IntegrationByParts, msg!("The integral that is left", "Das restliche Integral"), latex).with_level(StepDetail::Standard));
+                    lines.push(step(AnalysisRule::IntegrationByParts, msg!("core.analysis.integrate.integral_left"), latex).with_level(StepDetail::Standard));
                 }
                 lines
             }
@@ -147,13 +147,13 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                     step(AnalysisRule::IntegrationByParts, with(), named(&first.u, &first.v_prime, &first.u_prime, &first.v)),
                     step(
                         AnalysisRule::IntegrationByParts,
-                        msg!("First round", "Erste Runde"),
+                        msg!("core.analysis.integrate.first_round"),
                         format!("I = {} = {} - {}", integral(integrand), shown(&product(&first.u, &first.v)), integral(&product(&first.u_prime, &first.v))),
                     ),
                     step(AnalysisRule::IntegrationByParts, with(), named(&second.u, &second.v_prime, &second.u_prime, &second.v)),
                     step(
                         AnalysisRule::IntegrationByParts,
-                        msg!("Second round: the integral I comes back", "Zweite Runde: das Integral I kommt wieder"),
+                        msg!("core.analysis.integrate.integral_comes_back"),
                         format!(
                             "{} = {} - {}",
                             integral(&product(&first.u_prime, &first.v)),
@@ -163,7 +163,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                     ),
                     step(
                         AnalysisRule::IntegrationByParts,
-                        msg!("Solve for I", "Nach I auflösen"),
+                        msg!("core.analysis.integrate.solve_for_integral"),
                         format!(
                             "I = {} + {} I \\Rightarrow I = {}",
                             shown(&solved),
@@ -183,11 +183,11 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
 
 fn method_text(method: AnalysisRule) -> String {
     match method {
-        AnalysisRule::IntegralPolynomial => msg!("Power rule, term by term", "Potenzregel, gliedweise"),
-        AnalysisRule::PartialFractions => msg!("Integrate the partial fractions", "Partialbrüche integrieren"),
-        AnalysisRule::IntegralSubstitution => msg!("Substitute back", "Rücksubstitution"),
-        AnalysisRule::IntegrationByParts => msg!("Integration by parts", "Partielle Integration"),
-        _ => msg!("Basic integrals with the sum and factor rule", "Grundintegrale mit Summen- und Faktorregel"),
+        AnalysisRule::IntegralPolynomial => msg!("core.analysis.integrate.power_rule_term_term"),
+        AnalysisRule::PartialFractions => msg!("core.analysis.integrate.integrate_partial_fractions"),
+        AnalysisRule::IntegralSubstitution => msg!("core.analysis.integrate.substitute_back"),
+        AnalysisRule::IntegrationByParts => msg!("core.analysis.integrate.integration_parts"),
+        _ => msg!("core.analysis.integrate.basic_integrals"),
     }
 }
 
@@ -376,12 +376,12 @@ fn rational(n: &Poly, d: &Poly, mut steps: Option<(&mut Vec<Step>, &str)>) -> Op
             if left != right {
                 if let Some([ansatz, comparison]) = ansatz_lines(&remainder, &factored.coeff, &factored.factors, var) {
                     let latex = format!("{left} = {ansatz}");
-                    list.push(step(AnalysisRule::PartialFractions, msg!("Ansatz", "Ansatz"), latex).with_level(StepDetail::Standard));
-                    let text = msg!("Compare the numerators", "Zähler vergleichen");
+                    list.push(step(AnalysisRule::PartialFractions, msg!("core.analysis.integrate.ansatz"), latex).with_level(StepDetail::Standard));
+                    let text = msg!("core.analysis.integrate.compare_numerators");
                     list.push(step(AnalysisRule::PartialFractions, text, comparison).with_level(StepDetail::Detailed));
                 }
                 let latex = format!("{left} = {right}");
-                list.push(step(AnalysisRule::PartialFractions, msg!("Partial fraction decomposition", "Partialbruchzerlegung"), latex));
+                list.push(step(AnalysisRule::PartialFractions, msg!("core.analysis.integrate.partial_fraction_decomposition"), latex));
             }
         }
     }

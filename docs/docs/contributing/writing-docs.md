@@ -21,12 +21,20 @@ npm run build      # production build into docs/build/; fails on broken links
 | Folder | For | Reader question |
 |---|---|---|
 | `docs/docs/getting-started/` | install, first steps, concepts | How do I begin? |
-| `docs/docs/guides/` | one task or mode per page | How do I do X? |
+| `docs/docs/basics/` | what every mode shares: input, working, variables, calculus | How do I use it? |
+| `docs/docs/guides/` | the modes, in the order of the overview | How do I do X in this mode? |
 | `docs/docs/reference/` | complete lists, mostly tables | What exactly is supported? |
 | `docs/docs/contributing/` | code, tests, docs | How does it work, how do I change it? |
 
 The sidebar is generated from the folders. Each folder has a `_category_.json` with its label and
-position; each page sets `sidebar_position` and `title` in its front matter. Design documents and
+position; each page sets `sidebar_position` and `title` in its front matter.
+
+A mode with one page is a file in `guides/` (`imaginary.md`). A larger mode is a folder with an
+`index.md`, its overview, and a page for each separate job (`kirchhoff/working.md`,
+`kirchhoff/resistance.md`); its `_category_.json` links the section to `index.md`, so the folder
+keeps the address the single page had. Split a page only where it has two separate jobs, and keep
+*What is refused* and *Settings that matter here* on the overview. A page that moves gets a
+redirect in `docusaurus.config.js`. Design documents and
 plans are not part of the site; they stay in `design/` and `plans/`.
 
 ## Conventions
@@ -38,7 +46,7 @@ plans are not part of the site; they stay in `design/` and `plans/`.
   (Standard step detail, precision 50), not from a hand calculation. Say so when a setting
   changes it.
 - **Take facts from the code.** Settings come from `settings.rs`, shortcuts from `shell.rs` and
-  `App.tsx`, labels from `desktop/src/i18n/en.ts`, units from `units/lookup.rs`.
+  `App.tsx`, labels from the `app.` texts of `locales/en.json`, units from `units/lookup.rs`.
 - **Name UI elements in bold**, exactly as the English interface spells them: **Settings → Step
   detail**. Keys as `<kbd>Ctrl</kbd>+<kbd>J</kbd>`.
 - **Guides are short.** A goal, the steps, the result, then *See also* into the reference.
@@ -54,3 +62,15 @@ need no escaping. Inside a table, write `\|` for a `|` in maths.
 Update the page that describes the behaviour in the same commit: a new setting goes into
 [Settings](../reference/settings.md), a new command into [Syntax](../reference/syntax.md) and
 the guide of its mode, a removed limit out of [Known limits](../reference/limits.md).
+
+## Last synced
+
+The user docs describe `dev` up to commit `c136814` (2026-11-03). The handheld firmware
+(`firmware/`) is not documented here. To see what changed since, and what may need a page:
+
+```sh
+git log --oneline c136814..dev -- . ':!firmware'
+git diff c136814..dev -- CHANGELOG.md
+```
+
+Move the commit forward here whenever the docs are brought up to date.

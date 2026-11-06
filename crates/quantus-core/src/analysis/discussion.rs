@@ -20,7 +20,8 @@ use super::simplify::{display, is_zero, is_zero_numeric, simplify};
 use super::solve::{merge_families, solve_zero, Root, SolveContext, Solutions};
 use crate::eval::Step;
 use crate::num::Value;
-use crate::settings::{Language, Settings, StepDetail};
+use crate::settings::{Settings, StepDetail};
+use quantus_texts::texts;
 use crate::text::msg;
 use crate::Result;
 
@@ -85,24 +86,17 @@ impl PointKind {
 
     /// The letter the point is named with: H, T, W, … in German.
     fn letter(self) -> &'static str {
-        match (self, crate::text::language()) {
-            (PointKind::Zero, Language::De) => "N",
-            (PointKind::Zero, Language::En) => "Z",
-            (PointKind::YIntercept, _) => "S_y",
-            (PointKind::Max, Language::De) => "H",
-            (PointKind::Max, Language::En) => "Max",
-            (PointKind::Min, Language::De) => "T",
-            (PointKind::Min, Language::En) => "Min",
-            (PointKind::Inflection, Language::De) => "W",
-            (PointKind::Inflection, Language::En) => "I",
-            (PointKind::Saddle, _) => "S",
-            (PointKind::Hole, Language::De) => "L",
-            (PointKind::Hole, Language::En) => "G",
-            (PointKind::BoundaryMax, Language::De) => "R",
-            (PointKind::BoundaryMax, Language::En) => "B",
-            (PointKind::BoundaryMin, Language::De) => "R",
-            (PointKind::BoundaryMin, Language::En) => "B",
-        }
+        let letter = match self {
+            PointKind::Zero => texts!("core.analysis.discussion.letter.zero"),
+            PointKind::YIntercept => return "S_y",
+            PointKind::Max => texts!("core.analysis.discussion.letter.max"),
+            PointKind::Min => texts!("core.analysis.discussion.letter.min"),
+            PointKind::Inflection => texts!("core.analysis.discussion.letter.inflection"),
+            PointKind::Saddle => return "S",
+            PointKind::Hole => texts!("core.analysis.discussion.letter.hole"),
+            PointKind::BoundaryMax | PointKind::BoundaryMin => texts!("core.analysis.discussion.letter.boundary"),
+        };
+        quantus_texts::Text(letter).get(crate::text::language())
     }
 }
 
@@ -177,7 +171,7 @@ struct Candidate {
 }
 
 fn time_limit() -> String {
-    msg!("Time limit reached", "Zeitlimit erreicht")
+    msg!("core.analysis.discussion.time_limit_reached")
 }
 
 /// Marks a section whose methods ran out of time on the way: what it found may be incomplete.
@@ -218,7 +212,7 @@ pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
     let mut sections = vec![sketch.derivatives(&derivatives)];
     sections.push(Section {
         id: "domain",
-        title: msg!("Domain", "Definitionsbereich"),
+        title: msg!("core.analysis.discussion.domain"),
         status: SectionStatus::Ok,
         message: None,
         result: domain_steps.last().map(|s| s.latex.clone()),
@@ -226,15 +220,15 @@ pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
     });
     type Builder<'b> = Box<dyn std::ops::Fn(&mut Sketch, &[Derivation]) -> Section + 'b>;
     let builders: Vec<(&'static str, String, Builder)> = vec![
-        ("symmetry", msg!("Symmetry", "Symmetrie"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.symmetry())),
-        ("yIntercept", msg!("y-intercept", "Schnittpunkt mit der y-Achse"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.y_intercept())),
-        ("zeros", msg!("Zeros", "Nullstellen"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.zeros())),
-        ("extrema", msg!("Extrema", "Extrempunkte"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.extrema(d))),
-        ("inflection", msg!("Inflection points", "Wendepunkte"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.inflection(d))),
-        ("monotonicity", msg!("Monotonicity", "Monotonie"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.monotonicity(&d[0].result))),
-        ("curvature", msg!("Curvature", "Krümmung"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.curvature(&d[1].result))),
-        ("behaviour", msg!("Behaviour at the edges and asymptotes", "Verhalten an den Rändern und Asymptoten"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.behaviour())),
-        ("antiderivative", msg!("Antiderivative", "Stammfunktion"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.antiderivative())),
+        ("symmetry", msg!("core.analysis.discussion.symmetry"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.symmetry())),
+        ("yIntercept", msg!("core.analysis.discussion.y_intercept"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.y_intercept())),
+        ("zeros", msg!("core.analysis.discussion.zeros"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.zeros())),
+        ("extrema", msg!("core.analysis.discussion.extrema"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.extrema(d))),
+        ("inflection", msg!("core.analysis.discussion.inflection_points"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.inflection(d))),
+        ("monotonicity", msg!("core.analysis.discussion.monotonicity"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.monotonicity(&d[0].result))),
+        ("curvature", msg!("core.analysis.discussion.curvature"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.curvature(&d[1].result))),
+        ("behaviour", msg!("core.analysis.discussion.behaviour_edges_asymptotes"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.behaviour())),
+        ("antiderivative", msg!("core.analysis.discussion.antiderivative"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.antiderivative())),
     ];
     for section in &mut sections {
         out_of_time(section);
@@ -404,9 +398,7 @@ impl Sketch<'_> {
             (
                 SectionStatus::Partial,
                 Some(msg!(
-                    "Found numerically in a window; there may be more outside it.",
-                    "Numerisch in einem Bereich gefunden; außerhalb kann es weitere geben."
-                )),
+                    "core.analysis.discussion.found_numerically")),
             )
         };
         Section { id, title: String::new(), status, message, steps, result }
@@ -466,7 +458,7 @@ impl Sketch<'_> {
             lines.push(format!("{}({}) = {}", derivative_name(i + 1), self.ctx.var, self.tex(&d.result)));
         }
         let mut section = self.section("derivatives", steps, Some(lines.join(", \\quad ")), true);
-        section.title = msg!("Derivatives", "Ableitungen");
+        section.title = msg!("core.analysis.discussion.derivatives");
         section
     }
 
@@ -476,31 +468,31 @@ impl Sketch<'_> {
         let symmetric_domain = self.domain.set.is_symmetric()
             && self.domain.excluded.iter().all(|family| family.base.iter().all(|b| b.eval_f64(0.0).is_some_and(|b| family.contains(-b))));
         if !symmetric_domain {
-            let result = msg!("No symmetry: D is not symmetric about 0", "Keine Symmetrie: D ist nicht symmetrisch zu 0");
+            let result = msg!("core.analysis.discussion.domain_not_symmetric");
             steps.push(step(AnalysisRule::Symmetry, result.clone(), format!("D = {}", self.domain.to_latex(self.ctx.digits, self.ctx.settings.language))));
             return self.section("symmetry", steps, Some(text(&result)), true);
         }
         let mirrored = simplify(&self.f.substitute(&Expr::neg(Expr::Var)));
         let replaced = format!("f(-{var}) = {}", put_in(&self.f, &Expr::neg(Expr::Var), var));
-        steps.push(step(AnalysisRule::Symmetry, msg!("Replace x by -x", "x durch -x ersetzen"), replaced).with_level(StepDetail::Standard));
+        steps.push(step(AnalysisRule::Symmetry, msg!("core.analysis.discussion.replace_x_by_minus_x"), replaced).with_level(StepDetail::Standard));
         steps.push(step(
             AnalysisRule::Symmetry,
-            msg!("Replace x by -x", "x durch -x ersetzen"),
+            msg!("core.analysis.discussion.replace_x_by_minus_x"),
             format!("f(-{var}) = {}", self.tex(&display(&mirrored, self.ctx.settings))),
         ));
         let even = Expr::Sum(vec![mirrored.clone(), Expr::neg(self.f.clone())]);
         let odd = Expr::Sum(vec![mirrored, self.f.clone()]);
         let points: Vec<f64> = self.domain.sample_points(9).into_iter().filter(|x| self.domain.contains(-x)).collect();
         let (result, checked) = if is_zero(&even) {
-            (msg!("Symmetric about the y-axis", "Achsensymmetrisch zur y-Achse"), false)
+            (msg!("core.analysis.discussion.symmetric_about_y_axis"), false)
         } else if is_zero(&odd) {
-            (msg!("Symmetric about the origin", "Punktsymmetrisch zum Ursprung"), false)
+            (msg!("core.analysis.discussion.symmetric_about_origin"), false)
         } else if is_zero_numeric(&simplify(&even), &points) {
-            (msg!("Symmetric about the y-axis", "Achsensymmetrisch zur y-Achse"), true)
+            (msg!("core.analysis.discussion.symmetric_about_y_axis"), true)
         } else if is_zero_numeric(&simplify(&odd), &points) {
-            (msg!("Symmetric about the origin", "Punktsymmetrisch zum Ursprung"), true)
+            (msg!("core.analysis.discussion.symmetric_about_origin"), true)
         } else {
-            (msg!("No simple symmetry", "Keine einfache Symmetrie"), false)
+            (msg!("core.analysis.discussion.no_simple_symmetry"), false)
         };
         let relation = if result.contains("y-") {
             format!("f(-{var}) = f({var})")
@@ -509,10 +501,10 @@ impl Sketch<'_> {
         } else {
             format!("f(-{var}) = -f({var})")
         };
-        let result = if checked { format!("{result} {}", msg!("(checked numerically)", "(numerisch geprüft)")) } else { result };
+        let result = if checked { format!("{result} {}", msg!("core.analysis.discussion.checked_numerically")) } else { result };
         let negated = display(&simplify(&Expr::neg(self.f.clone())), self.ctx.settings);
         let compared = format!("f({var}) = {}, \\quad -f({var}) = {}", self.tex(&display(&self.f, self.ctx.settings)), self.tex(&negated));
-        steps.push(step(AnalysisRule::Symmetry, msg!("Compare with f(x) and -f(x)", "Mit f(x) und -f(x) vergleichen"), compared).with_level(StepDetail::Standard));
+        steps.push(step(AnalysisRule::Symmetry, msg!("core.analysis.discussion.compare_symmetry"), compared).with_level(StepDetail::Standard));
         steps.push(step(AnalysisRule::Symmetry, result.clone(), relation));
         self.section("symmetry", steps, Some(text(&result)), true)
     }
@@ -520,14 +512,14 @@ impl Sketch<'_> {
     fn y_intercept(&mut self) -> Section {
         let var = self.ctx.var;
         if !self.domain.contains(0.0) {
-            let result = msg!("0 ∉ D: no y-intercept", "0 ∉ D: kein y-Achsenabschnitt");
+            let result = msg!("core.analysis.discussion.no_y_intercept");
             return self.section("yIntercept", Vec::new(), Some(text(&result)), true);
         }
         let zero = Point::rational(RBig::ZERO);
         let Some(y) = self.value_at(&self.f, &zero) else {
             return self.section("yIntercept", Vec::new(), None, false);
         };
-        let put = msg!("Put in x = 0", "x = 0 einsetzen");
+        let put = msg!("core.analysis.discussion.put_in_zero");
         let value = y.to_latex(self.ctx.digits);
         let short = step(AnalysisRule::Simplify, put.clone(), format!("f(0) = {value}"));
         let steps = self.with_value_put_in(short, &self.f.clone(), &zero, "f(0) = ", &format!(" = {value}"));
@@ -538,10 +530,10 @@ impl Sketch<'_> {
 
     fn zeros(&mut self) -> Section {
         let solved = self.solve(&self.f);
-        let mut steps = vec![step(AnalysisRule::ZeroProduct, msg!("Set f(x) = 0", "f(x) = 0 setzen"), format!("{} = 0", self.tex(&display(&self.f, self.ctx.settings))))];
+        let mut steps = vec![step(AnalysisRule::ZeroProduct, msg!("core.analysis.discussion.set_to_zero"), format!("{} = 0", self.tex(&display(&self.f, self.ctx.settings))))];
         steps.extend(solved.steps);
         if solved.solutions.all {
-            let result = msg!("f is 0 everywhere", "f ist überall 0");
+            let result = msg!("core.analysis.discussion.zero_everywhere");
             return self.section("zeros", steps, Some(text(&result)), true);
         }
         let mut lines = Vec::new();
@@ -565,7 +557,7 @@ impl Sketch<'_> {
                 lines.push(format!("{} = {general}, \\ k \\in \\mathbb{{Z}}", self.ctx.var));
             }
         }
-        let result = if lines.is_empty() { text(&msg!("No zeros", "Keine Nullstellen")) } else { lines.join(", \\quad ") };
+        let result = if lines.is_empty() { text(&msg!("core.analysis.discussion.no_zeros")) } else { lines.join(", \\quad ") };
         self.section("zeros", steps, Some(result), solved.complete)
     }
 
@@ -666,11 +658,11 @@ impl Sketch<'_> {
         let (f1, f2) = (&d[0].result, &d[1].result);
         let mut steps = vec![step(
             AnalysisRule::SecondDerivativeTest,
-            msg!("Necessary condition", "Notwendige Bedingung"),
+            msg!("core.analysis.discussion.necessary_condition"),
             format!("f'({var}) = 0 \\Leftrightarrow {} = 0", self.tex(f1)),
         )];
         if f1.is_constant() {
-            let result = if is_zero(f1) { msg!("f is constant", "f ist konstant") } else { msg!("No extrema", "Keine Extrempunkte") };
+            let result = if is_zero(f1) { msg!("core.analysis.discussion.constant") } else { msg!("core.analysis.discussion.no_extrema") };
             return self.section("extrema", steps, Some(text(&result)), true);
         }
         let mut complete = true;
@@ -686,8 +678,8 @@ impl Sketch<'_> {
                 Some((v, false)) => {
                     let kind = if v.approx < 0.0 { PointKind::Max } else { PointKind::Min };
                     let relation = if v.approx < 0.0 { "< 0" } else { "> 0" };
-                    let name = if kind == PointKind::Max { msg!("maximum", "Hochpunkt") } else { msg!("minimum", "Tiefpunkt") };
-                    let text = msg!("Sufficient condition: f''({}) {} gives a {}", "Hinreichende Bedingung: f''({}) {} ergibt einen {}", x_text, relation, name);
+                    let name = if kind == PointKind::Max { msg!("core.analysis.discussion.maximum") } else { msg!("core.analysis.discussion.minimum") };
+                    let text = msg!("core.analysis.discussion.sufficient_second_derivative", x_text, relation, name);
                     let value = v.to_latex(self.ctx.digits);
                     let short = step(AnalysisRule::SecondDerivativeTest, text, format!("f''({x_text}) = {value} {relation}"));
                     steps.extend(self.with_value_put_in(short, f2, x0, &format!("f''({x_text}) = "), &format!(" = {value} {relation}")));
@@ -703,16 +695,14 @@ impl Sketch<'_> {
                         _ => None,
                     };
                     let verdict = match kind {
-                        Some(PointKind::Max) => msg!("sign change + to -: maximum", "Vorzeichenwechsel von + nach -: Hochpunkt"),
-                        Some(_) => msg!("sign change - to +: minimum", "Vorzeichenwechsel von - nach +: Tiefpunkt"),
+                        Some(PointKind::Max) => msg!("core.analysis.discussion.sign_change_maximum"),
+                        Some(_) => msg!("core.analysis.discussion.sign_change_minimum"),
                         None => msg!(
-                            "no sign change: no extremum (saddle candidate)",
-                            "kein Vorzeichenwechsel: kein Extrempunkt (Sattelpunkt-Kandidat)"
-                        ),
+                            "core.analysis.discussion.no_extremum"),
                     };
                     steps.push(step(
                         AnalysisRule::SignChangeTest,
-                        msg!("Sign change of f' at {}: {}", "Vorzeichenwechsel von f' bei {}: {}", x_text, verdict),
+                        msg!("core.analysis.discussion.sign_change_first", x_text, verdict),
                         format!("f'({var}) \\colon {} \\to {}", sign(l), sign(r)),
                     ));
                     kind
@@ -730,7 +720,7 @@ impl Sketch<'_> {
         }
         lines.extend(self.family_points(families));
         lines.extend(self.boundary_points(f1));
-        let result = if lines.is_empty() { text(&msg!("No extrema", "Keine Extrempunkte")) } else { lines.join(", \\quad ") };
+        let result = if lines.is_empty() { text(&msg!("core.analysis.discussion.no_extrema")) } else { lines.join(", \\quad ") };
         self.section("extrema", steps, Some(result), complete)
     }
 
@@ -750,7 +740,7 @@ impl Sketch<'_> {
         let at = x.exact.as_ref()?;
         let x_text = x.to_latex(self.ctx.digits);
         let latex = format!("f({x_text}) = {} = {}", put_in(&self.f, at, self.ctx.var), y.to_latex(self.ctx.digits));
-        Some(step(AnalysisRule::Simplify, msg!("The y-value", "Der y-Wert"), latex).with_level(StepDetail::Standard))
+        Some(step(AnalysisRule::Simplify, msg!("core.analysis.discussion.y_value"), latex).with_level(StepDetail::Standard))
     }
 
     /// Whether `g` is defined at `x` (its own domain, which may be smaller than f's).
@@ -783,7 +773,7 @@ impl Sketch<'_> {
             let rising = slope > 0.0;
             let kind = if rising == left_end { PointKind::BoundaryMin } else { PointKind::BoundaryMax };
             let Some(y) = self.value_at(&self.f, &end) else { continue };
-            let name = if kind == PointKind::BoundaryMin { msg!("boundary minimum", "Randminimum") } else { msg!("boundary maximum", "Randmaximum") };
+            let name = if kind == PointKind::BoundaryMin { msg!("core.analysis.discussion.boundary_minimum") } else { msg!("core.analysis.discussion.boundary_maximum") };
             let point = self.mark(kind, &end, &y);
             out.push(format!("{point} \\ \\text{{({name})}}"));
         }
@@ -795,16 +785,16 @@ impl Sketch<'_> {
         let (f1, f2, f3) = (&d[0].result, &d[1].result, &d[2].result);
         let mut steps = vec![step(
             AnalysisRule::ThirdDerivativeTest,
-            msg!("Necessary condition", "Notwendige Bedingung"),
+            msg!("core.analysis.discussion.necessary_condition"),
             format!("f''({var}) = 0 \\Leftrightarrow {} = 0", self.tex(f2)),
         )];
         if f2.is_constant() {
             let result = if is_zero(f1) {
-                msg!("f is constant", "f ist konstant")
+                msg!("core.analysis.discussion.constant")
             } else if is_zero(f2) && f1.is_constant() {
-                msg!("f is linear: no inflection points", "f ist linear: keine Wendepunkte")
+                msg!("core.analysis.discussion.linear_no_inflection")
             } else {
-                msg!("No inflection points", "Keine Wendepunkte")
+                msg!("core.analysis.discussion.no_inflection_points")
             };
             return self.section("inflection", steps, Some(text(&result)), true);
         }
@@ -819,7 +809,7 @@ impl Sketch<'_> {
             let third = if self.domain_of_defined(f3, x0) { self.value_at(f3, x0) } else { None };
             let inflects = match third.as_ref().filter(|v| !(v.exact.as_ref().is_some_and(is_zero) || v.approx == 0.0)) {
                 Some(v) => {
-                    let text = msg!("Sufficient condition: f'''({}) ≠ 0", "Hinreichende Bedingung: f'''({}) ≠ 0", x_text);
+                    let text = msg!("core.analysis.discussion.sufficient_third_derivative", x_text);
                     let value = v.to_latex(self.ctx.digits);
                     let short = step(AnalysisRule::ThirdDerivativeTest, text, format!("f'''({x_text}) = {value} \\neq 0"));
                     steps.extend(self.with_value_put_in(short, f3, x0, &format!("f'''({x_text}) = "), &format!(" = {value} \\neq 0")));
@@ -829,11 +819,11 @@ impl Sketch<'_> {
                     let others: Vec<f64> = xs.iter().copied().filter(|x| (x - x0.approx).abs() > 1e-12).collect();
                     let (l, r) = self.sign_change(f2, x0.approx, &others);
                     let changes = l != 0 && r != 0 && l != r;
-                    let verdict = if changes { msg!("sign change: inflection point", "Vorzeichenwechsel: Wendepunkt") } else { msg!("no sign change", "kein Vorzeichenwechsel") };
+                    let verdict = if changes { msg!("core.analysis.discussion.sign_change_inflection_point") } else { msg!("core.analysis.discussion.no_sign_change") };
                     let sign = |s: i32| if s > 0 { "+" } else if s < 0 { "-" } else { "0" };
                     steps.push(step(
                         AnalysisRule::SignChangeTest,
-                        msg!("Sign change of f'' at {}: {}", "Vorzeichenwechsel von f'' bei {}: {}", x_text, verdict),
+                        msg!("core.analysis.discussion.sign_change_second", x_text, verdict),
                         format!("f''({var}) \\colon {} \\to {}", sign(l), sign(r)),
                     ));
                     changes
@@ -848,7 +838,7 @@ impl Sketch<'_> {
             if saddle {
                 steps.push(step(
                     AnalysisRule::ThirdDerivativeTest,
-                    msg!("f'({}) = 0 as well: a saddle point", "Zusätzlich f'({}) = 0: ein Sattelpunkt (Terrassenpunkt)", x_text),
+                    msg!("core.analysis.discussion.saddle_point", x_text),
                     format!("f'({x_text}) = 0"),
                 ));
             }
@@ -862,7 +852,7 @@ impl Sketch<'_> {
             }
         }
         lines.extend(self.family_points(families));
-        let result = if lines.is_empty() { text(&msg!("No inflection points", "Keine Wendepunkte")) } else { lines.join(", \\quad ") };
+        let result = if lines.is_empty() { text(&msg!("core.analysis.discussion.no_inflection_points")) } else { lines.join(", \\quad ") };
         self.section("inflection", steps, Some(result), complete)
     }
 
@@ -983,23 +973,23 @@ impl Sketch<'_> {
 
     fn monotonicity(&mut self, f1: &Expr) -> Section {
         if f1.is_constant() && is_zero(f1) {
-            return self.section("monotonicity", Vec::new(), Some(text(&msg!("f is constant", "f ist konstant"))), true);
+            return self.section("monotonicity", Vec::new(), Some(text(&msg!("core.analysis.discussion.constant"))), true);
         }
         let (pieces, complete) = self.sign_intervals(f1);
         let table = self.sign_table("f'", &pieces, "\\nearrow", "\\searrow");
-        let mut steps = vec![step(AnalysisRule::SignChangeTest, msg!("Sign of f' between its zeros and gaps", "Vorzeichen von f' zwischen den Nullstellen und Lücken"), table)];
+        let mut steps = vec![step(AnalysisRule::SignChangeTest, msg!("core.analysis.discussion.sign_first_between_zeros"), table)];
         let language = self.ctx.settings.language;
         let list = |sign: i32| pieces.iter().filter(|(_, s)| *s == sign).map(|(i, _)| i.to_latex(self.ctx.digits, language)).collect::<Vec<_>>();
         let (up, down) = (list(1), list(-1));
         let mut parts = Vec::new();
         if !up.is_empty() {
-            parts.push(format!("{}: {}", text(&msg!("strictly increasing on", "streng monoton steigend auf")), up.join(", ")));
+            parts.push(format!("{}: {}", text(&msg!("core.analysis.discussion.strictly_increasing")), up.join(", ")));
         }
         if !down.is_empty() {
-            parts.push(format!("{}: {}", text(&msg!("strictly decreasing on", "streng monoton fallend auf")), down.join(", ")));
+            parts.push(format!("{}: {}", text(&msg!("core.analysis.discussion.strictly_decreasing")), down.join(", ")));
         }
         if self.f_is_periodic() {
-            steps.push(step(AnalysisRule::SignChangeTest, msg!("continued periodically", "periodisch fortgesetzt"), String::new()));
+            steps.push(step(AnalysisRule::SignChangeTest, msg!("core.analysis.discussion.continued_periodically"), String::new()));
         }
         self.section("monotonicity", steps, Some(parts.join(", \\quad ")), complete)
     }
@@ -1007,27 +997,27 @@ impl Sketch<'_> {
     fn curvature(&mut self, f2: &Expr) -> Section {
         if f2.is_constant() && is_zero(f2) {
             let result = if self.f.is_constant() {
-                msg!("f is constant", "f ist konstant")
+                msg!("core.analysis.discussion.constant")
             } else {
-                msg!("f is linear: no curvature", "f ist linear: keine Krümmung")
+                msg!("core.analysis.discussion.linear_no_curvature")
             };
             return self.section("curvature", Vec::new(), Some(text(&result)), true);
         }
         let (pieces, complete) = self.sign_intervals(f2);
         let table = self.sign_table("f''", &pieces, "\\smile", "\\frown");
-        let mut steps = vec![step(AnalysisRule::SignChangeTest, msg!("Sign of f'' between its zeros and gaps", "Vorzeichen von f'' zwischen den Nullstellen und Lücken"), table)];
+        let mut steps = vec![step(AnalysisRule::SignChangeTest, msg!("core.analysis.discussion.sign_second_between_zeros"), table)];
         let language = self.ctx.settings.language;
         let list = |sign: i32| pieces.iter().filter(|(_, s)| *s == sign).map(|(i, _)| i.to_latex(self.ctx.digits, language)).collect::<Vec<_>>();
         let (left, right) = (list(1), list(-1));
         let mut parts = Vec::new();
         if !left.is_empty() {
-            parts.push(format!("{}: {}", text(&msg!("left-curved (convex) on", "linksgekrümmt auf")), left.join(", ")));
+            parts.push(format!("{}: {}", text(&msg!("core.analysis.discussion.left_curved_convex")), left.join(", ")));
         }
         if !right.is_empty() {
-            parts.push(format!("{}: {}", text(&msg!("right-curved (concave) on", "rechtsgekrümmt auf")), right.join(", ")));
+            parts.push(format!("{}: {}", text(&msg!("core.analysis.discussion.right_curved_concave")), right.join(", ")));
         }
         if self.f_is_periodic() {
-            steps.push(step(AnalysisRule::SignChangeTest, msg!("continued periodically", "periodisch fortgesetzt"), String::new()));
+            steps.push(step(AnalysisRule::SignChangeTest, msg!("core.analysis.discussion.continued_periodically"), String::new()));
         }
         self.section("curvature", steps, Some(parts.join(", \\quad ")), complete)
     }
@@ -1098,7 +1088,7 @@ impl Sketch<'_> {
                 steps.push(s);
             }
             for general in family.to_latex() {
-                lines.push(format!("{} {} = {general}, \\ k \\in \\mathbb{{Z}}", text(&msg!("vertical asymptotes", "senkrechte Asymptoten")), self.ctx.var));
+                lines.push(format!("{} {} = {general}, \\ k \\in \\mathbb{{Z}}", text(&msg!("core.analysis.discussion.vertical_asymptotes")), self.ctx.var));
             }
             for member in members {
                 self.breaks.push(member.approx);
@@ -1111,7 +1101,7 @@ impl Sketch<'_> {
         }
         for (l, side) in horizontal {
             let latex = format!("y = {}", l.to_latex(self.ctx.digits));
-            lines.push(format!("{} {latex}{}", text(&msg!("horizontal asymptote", "waagrechte Asymptote")), side_text(side)));
+            lines.push(format!("{} {latex}{}", text(&msg!("core.analysis.discussion.horizontal_asymptote")), side_text(side)));
             self.asymptotes.push(Asymptote::Horizontal { y: l.approx, side, latex });
         }
         for (m, b, side) in oblique_lines {
@@ -1130,15 +1120,15 @@ impl Sketch<'_> {
                     format!("y \\approx {}{} {sign} {intercept}", m.decimal_latex(self.ctx.digits), self.ctx.var)
                 }
             };
-            lines.push(format!("{} {latex}{}", text(&msg!("oblique asymptote", "schiefe Asymptote")), side_text(side)));
+            lines.push(format!("{} {latex}{}", text(&msg!("core.analysis.discussion.oblique_asymptote")), side_text(side)));
             self.asymptotes.push(Asymptote::Oblique { slope: m.approx, intercept: b.approx, side, latex });
         }
         if let Some((curve, division)) = approximating_curve(&self.f, &ctx) {
             steps.extend(division);
             let latex = format!("y = {}", self.tex(&curve));
-            lines.push(format!("{} {latex}", text(&msg!("approximating curve", "Näherungskurve"))));
+            lines.push(format!("{} {latex}", text(&msg!("core.analysis.discussion.approximating_curve"))));
         }
-        let result = if lines.is_empty() { text(&msg!("No asymptotes", "Keine Asymptoten")) } else { lines.join(", \\quad ") };
+        let result = if lines.is_empty() { text(&msg!("core.analysis.discussion.no_asymptotes")) } else { lines.join(", \\quad ") };
         self.section("behaviour", steps, Some(result), complete)
     }
 
@@ -1147,7 +1137,7 @@ impl Sketch<'_> {
         if self.asymptotes.iter().any(|a| matches!(a, Asymptote::Vertical { x, .. } if (x - p.approx).abs() < 1e-12)) {
             return;
         }
-        lines.push(format!("{} {latex}", text(&msg!("vertical asymptote", "senkrechte Asymptote"))));
+        lines.push(format!("{} {latex}", text(&msg!("core.analysis.discussion.vertical_asymptote"))));
         self.breaks.push(p.approx);
         self.asymptotes.push(Asymptote::Vertical { x: p.approx, period: None, latex });
     }
@@ -1163,7 +1153,7 @@ impl Sketch<'_> {
         } else if let (Behaviour::Finite(l), Behaviour::Finite(r)) = (&left, &right) {
             if l.same(r) {
                 let coordinates = self.mark(PointKind::Hole, at, l);
-                lines.push(format!("{} {coordinates}", text(&msg!("removable gap", "hebbare Lücke"))));
+                lines.push(format!("{} {coordinates}", text(&msg!("core.analysis.discussion.removable_gap"))));
                 self.breaks.push(at.approx);
             }
         }
@@ -1177,7 +1167,7 @@ impl Sketch<'_> {
                 self.section("antiderivative", found.steps, Some(result), true)
             }
             None => {
-                let message = msg!("No elementary antiderivative found", "Keine elementare Stammfunktion gefunden");
+                let message = msg!("core.analysis.discussion.no_elementary_antiderivative_found");
                 let mut section = self.section("antiderivative", Vec::new(), Some(text(&message)), true);
                 section.status = SectionStatus::Partial;
                 section.message = Some(message);
@@ -1221,22 +1211,22 @@ fn split_family(family: &PeriodicSet, big: &Expr) -> Vec<PeriodicSet> {
 fn side_text(side: Side) -> String {
     match side {
         Side::Both => String::new(),
-        Side::PlusInfinity => format!(" \\ \\text{{({})}}", msg!("for x → ∞", "für x → ∞")),
-        Side::MinusInfinity => format!(" \\ \\text{{({})}}", msg!("for x → −∞", "für x → −∞")),
+        Side::PlusInfinity => format!(" \\ \\text{{({})}}", msg!("core.analysis.discussion.towards_infinity")),
+        Side::MinusInfinity => format!(" \\ \\text{{({})}}", msg!("core.analysis.discussion.towards_minus_infinity")),
     }
 }
 
 /// `double root: touches the axis`, `triple root: crosses the axis`, `4-fold root: …`.
 fn multiplicity_text(m: u32) -> String {
     let name = match m {
-        2 => msg!("double root", "doppelte Nullstelle"),
-        3 => msg!("triple root", "dreifache Nullstelle"),
-        _ => msg!("{}-fold root", "{}-fache Nullstelle", m),
+        2 => msg!("core.analysis.discussion.double_root"),
+        3 => msg!("core.analysis.discussion.triple_root"),
+        _ => msg!("core.analysis.discussion.fold_root", m),
     };
     let behaviour = if m % 2 == 0 {
-        msg!("touches the axis", "Berührpunkt")
+        msg!("core.analysis.discussion.touches_axis")
     } else {
-        msg!("crosses the axis", "mit Vorzeichenwechsel")
+        msg!("core.analysis.discussion.crosses_axis")
     };
     format!("{name}: {behaviour}")
 }

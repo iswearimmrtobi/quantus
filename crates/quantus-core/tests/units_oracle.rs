@@ -64,7 +64,7 @@ fn actual_vector(unit: &Unit) -> Vec<(String, i32)> {
 }
 
 /// The kinds Quantus adds to Indriya's units.
-const EXTENSIONS: [Kind; 15] = [
+const EXTENSIONS: [Kind; 47] = [
     Kind::Electronvolt,
     Kind::Atmosphere,
     Kind::Bar,
@@ -80,6 +80,38 @@ const EXTENSIONS: [Kind; 15] = [
     Kind::Percent,
     Kind::Tonne,
     Kind::Inch,
+    Kind::Foot,
+    Kind::Yard,
+    Kind::Mile,
+    Kind::NauticalMile,
+    Kind::Mil,
+    Kind::Fathom,
+    Kind::Chain,
+    Kind::Parsec,
+    Kind::Acre,
+    Kind::Gallon,
+    Kind::Bushel,
+    Kind::Barrel,
+    Kind::Pound,
+    Kind::Ounce,
+    Kind::Carat,
+    Kind::ShortTon,
+    Kind::Knot,
+    Kind::Gal,
+    Kind::Dyne,
+    Kind::PoundForce,
+    Kind::KilogramForce,
+    Kind::Psi,
+    Kind::MillimetreOfMercury,
+    Kind::InchOfMercury,
+    Kind::Erg,
+    Kind::Btu,
+    Kind::Horsepower,
+    Kind::Fahrenheit,
+    Kind::Stokes,
+    Kind::Maxwell,
+    Kind::Curie,
+    Kind::Rem,
 ];
 
 #[test]

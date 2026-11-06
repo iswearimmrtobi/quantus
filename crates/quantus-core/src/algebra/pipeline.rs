@@ -62,6 +62,7 @@ use crate::latex::ast::{Node, Operator};
 use crate::latex::{parser, serializer};
 use crate::num::Decimal;
 use crate::settings::{BinomialForm, ConditionalIdentities, DenominatorForm, Settings, StepDetail};
+use crate::text::msg;
 
 /// How the result is written: the user-adjustable choices of stages 13 and 14.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -234,8 +235,7 @@ pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
 /// The note for a result that still contains a construct the pipeline cannot simplify.
 pub(crate) fn unsupported_diagnostic(node: &Node) -> Option<String> {
     find_unsupported_construct(node).map(|construct| {
-        format!(
-            "Expression contains {construct}, which cannot be fully simplified algebraically; supported rational subtrees were simplified."
+        msg!("core.algebra.pipeline.partly_simplified"
         )
     })
 }
@@ -528,16 +528,13 @@ impl Pipeline {
 
         let diagnostic = self.stop.map(|reason| match reason {
             StopReason::CycleDetected => {
-                "Simplification stopped because a transformation would have repeated an earlier \
-                 form; the result is equivalent but may not be fully simplified."
+                msg!("core.algebra.pipeline.stopped_at_repeated_form")
             }
             StopReason::StepLimit => {
-                "Simplification stopped after reaching the step limit; the result is equivalent \
-                 but may not be fully simplified."
+                msg!("core.algebra.pipeline.stopped_at_step_limit")
             }
             StopReason::PassLimit => {
-                "Simplification stopped after reaching the pass limit; the result is equivalent \
-                 but may not be fully simplified."
+                msg!("core.algebra.pipeline.stopped_at_pass_limit")
             }
         });
         let mut diagnostic = diagnostic.map(|s| s.to_string());
@@ -560,7 +557,7 @@ fn input_domain_note(input: &Node, restrictions: &[crate::algebra::domain::Domai
         return None;
     }
     let plain = crate::algebra::domain::format_restrictions_plain(restrictions).replace("!=", "≠");
-    let text = format!("Note: {plain}, where a denominator of the input is zero");
+    let text = crate::text::msg!("core.algebra.pipeline.note_denominator_zero");
     Some(AlgebraStep::note(input.clone(), text, None, StepDetail::Maximal))
 }
 
@@ -724,11 +721,11 @@ enum Notation {
 }
 
 impl Notation {
-    fn step(self) -> (&'static str, StepDetail) {
+    fn step(self) -> (String, StepDetail) {
         match self {
-            Notation::Division => ("Write the division as a fraction", StepDetail::Maximal),
-            Notation::NegativeExponent => ("Negative exponent: a^{-n} = \\frac{1}{a^{n}}", StepDetail::Brief),
-            Notation::DoubleNegation => ("Two minus signs cancel: -(-a) = a", StepDetail::Maximal),
+            Notation::Division => (crate::text::msg!("core.algebra.pipeline.write_division_fraction"), StepDetail::Maximal),
+            Notation::NegativeExponent => (crate::text::msg!("core.algebra.pipeline.negative_exponent"), StepDetail::Brief),
+            Notation::DoubleNegation => (crate::text::msg!("core.algebra.pipeline.two_minus_signs_cancel"), StepDetail::Maximal),
         }
     }
 }
@@ -794,7 +791,7 @@ pub fn normalize_product_at(node: &Node) -> Option<(Node, RuleId, String)> {
             Some((
                 make_fraction(num, den),
                 RuleId::NormalizeExpression,
-                "Multiply fractions: multiply the numerators and the denominators".to_string(),
+                crate::text::msg!("core.algebra.pipeline.multiply_fractions_rule"),
             ))
         }
         Node::Power { base, exponent, .. } => {
@@ -808,7 +805,7 @@ pub fn normalize_product_at(node: &Node) -> Option<(Node, RuleId, String)> {
             Some((
                 make_fraction(power(a), power(b)),
                 RuleId::NormalizeExpression,
-                "Raise numerator and denominator to the power separately".to_string(),
+                crate::text::msg!("core.algebra.pipeline.power_of_fraction"),
             ))
         }
         Node::Fraction {
@@ -819,7 +816,7 @@ pub fn normalize_product_at(node: &Node) -> Option<(Node, RuleId, String)> {
             (Node::Negation { operand: a, .. }, Node::Negation { operand: b, .. }) => Some((
                 make_fraction((**a).clone(), (**b).clone()),
                 RuleId::NormalizeExpression,
-                "Cancel the minus signs of numerator and denominator".to_string(),
+                crate::text::msg!("core.algebra.pipeline.cancel_minus_signs"),
             )),
             _ => None,
         },
@@ -904,10 +901,10 @@ fn common_denominator_rewrite(node: &Node) -> Option<AlgebraStep> {
     let after = signed_terms_sum(rewritten)?;
     let extended = signed_terms_sum(extended)?;
     let lcd_latex = serializer::expression(&lcd_node);
-    let summary = format!("Rewrite every fraction over the least common denominator {lcd_latex}");
-    let extend = format!("Extend each fraction by the factor its denominator is missing from the least common denominator {lcd_latex}");
+    let summary = crate::text::msg!("core.algebra.pipeline.common_denominator");
+    let extend = crate::text::msg!("core.algebra.pipeline.extend_fractions");
     let step = AlgebraStep::new(node.clone(), after, summary, Some(RuleId::FindCommonDenominator));
-    Some(step.with_working(vec![AlgebraStep::line(node, extended, extend, StepDetail::Standard)], "Multiply the fractions"))
+    Some(step.with_working(vec![AlgebraStep::line(node, extended, extend, StepDetail::Standard)], crate::text::msg!("core.algebra.pipeline.multiply_fractions")))
 }
 
 
@@ -989,23 +986,23 @@ pub fn canonicalize_step(root: &Node, form: DenominatorForm) -> Option<LocalRewr
     let mut lines: Vec<AlgebraStep> = [&evaluated]
         .into_iter()
         .filter(|e| serializer::expression(e) != serializer::expression(root) && serializer::expression(e) != serializer::expression(&canonical))
-        .map(|e| AlgebraStep::line(root, e.clone(), "Evaluate the power", StepDetail::Detailed))
+        .map(|e| AlgebraStep::line(root, e.clone(), crate::text::msg!("core.algebra.pipeline.evaluate_power"), StepDetail::Detailed))
         .collect();
     let mut last = explanation;
     if let Some((line, text)) = exponent_line(root) {
         lines.push(AlgebraStep::line(root, line, text, StepDetail::Standard));
-        last = "Work out the exponent".to_string();
+        last = crate::text::msg!("core.algebra.pipeline.work_out_exponent");
     }
     if let Some(flipped) = sign_flip_line(root) {
-        lines.push(AlgebraStep::line(root, flipped, "Multiply numerator and denominator by -1", StepDetail::Standard));
-        last = "Multiply out".to_string();
+        lines.push(AlgebraStep::line(root, flipped, crate::text::msg!("core.algebra.pipeline.negate_fraction"), StepDetail::Standard));
+        last = crate::text::msg!("core.algebra.pipeline.multiply_out");
     }
     Some((canonical, step.with_working(lines, last)))
 }
 
 /// The exponents written out before they are added or multiplied: `x^{2 + 3}` for
 /// `x^2 \cdot x^3`, `x^{2 \cdot 3}` for `(x^2)^3`.
-fn exponent_line(root: &Node) -> Option<(Node, &'static str)> {
+fn exponent_line(root: &Node) -> Option<(Node, String)> {
     let exponent_of = |node: &Node| -> Option<(String, Node, Node)> {
         match unwrap_group(node) {
             v @ Node::Variable { .. } => Some((serializer::expression(v), v.clone(), number(1))),
@@ -1021,7 +1018,7 @@ fn exponent_line(root: &Node) -> Option<(Node, &'static str)> {
         let (_, inner_base, inner) = exponent_of(base).filter(|_| matches!(unwrap_group(base), Node::Power { .. }))?;
         integer_exponent(exponent)?;
         let product = Node::binary(Operator::Times, inner, (**exponent).clone(), 0);
-        return Some((Node::Power { base: Box::new(inner_base), exponent: Box::new(product), position: 0 }, "Power of a power: multiply the exponents"));
+        return Some((Node::Power { base: Box::new(inner_base), exponent: Box::new(product), position: 0 }, crate::text::msg!("core.algebra.pipeline.power_power_multiply_exponents")));
     }
     if !is_power_product(unwrapped) {
         return None;
@@ -1031,7 +1028,7 @@ fn exponent_line(root: &Node) -> Option<(Node, &'static str)> {
     let parts: Vec<(String, Node, Node)> = factors.iter().map(|f| exponent_of(f)).collect::<Option<_>>()?;
     let (_, base, _) = parts.first()?.clone();
     let sum = parts.into_iter().map(|(_, _, e)| e).reduce(|acc, e| Node::binary(Operator::Plus, acc, e, 0))?;
-    Some((Node::Power { base: Box::new(base), exponent: Box::new(sum), position: 0 }, "Same base: add the exponents"))
+    Some((Node::Power { base: Box::new(base), exponent: Box::new(sum), position: 0 }, crate::text::msg!("core.algebra.pipeline.same_base_add_exponents")))
 }
 
 /// Whether `root` is a sum over a number, `\frac{\sqrt{3} + 1}{2}`, written term by term in its
@@ -1082,43 +1079,42 @@ fn canonical_explanation(root: &Node) -> (String, RuleId) {
     let den = split_fraction(inner).and_then(|(_, den)| Poly::from_node(den).ok());
     if let Some(den) = den.as_ref().filter(|den| den.is_constant()) {
         if splits_a_sum(root) {
-            return ("Split the fraction".into(), RuleId::NormalizeExpression);
+            return (crate::text::msg!("core.algebra.pipeline.split_fraction"), RuleId::NormalizeExpression);
         }
         return (
-            format!("Write the division by {} as a coefficient", serializer::expression(&den.to_node())),
+            crate::text::msg!("core.algebra.pipeline.write_division_coefficient", serializer::expression(&den.to_node())),
             RuleId::NormalizeExpression,
         );
     }
     if let Ok(poly) = Poly::from_node(unwrapped) {
         return match unwrapped {
             Node::Power { base, .. } if matches!(unwrap_group(base), Node::Power { .. }) => {
-                ("Power of a power: multiply the exponents".into(), RuleId::NestPowers)
+                (crate::text::msg!("core.algebra.pipeline.power_power_multiply_exponents"), RuleId::NestPowers)
             }
             Node::Binary { operator: Operator::Times | Operator::ImplicitTimes, .. }
                 if is_power_product(unwrapped) =>
             {
-                ("Same base: add the exponents".into(), RuleId::MergePowers)
+                (crate::text::msg!("core.algebra.pipeline.same_base_add_exponents"), RuleId::MergePowers)
             }
             _ if crate::algebra::expand::is_term_reordering(unwrapped) => {
-                ("Order the terms by descending powers".into(), RuleId::NormalizeExpression)
+                (crate::text::msg!("core.algebra.pipeline.order_terms_descending_powers"), RuleId::NormalizeExpression)
             }
             _ if poly.terms.len() == 1 => {
-                ("Multiply the factors into one term".into(), RuleId::NormalizeExpression)
+                (crate::text::msg!("core.algebra.pipeline.multiply_factors"), RuleId::NormalizeExpression)
             }
             _ => (
-                "Write the polynomial expanded, terms in descending powers".into(),
+                crate::text::msg!("core.algebra.pipeline.order_terms_descending"),
                 RuleId::NormalizeExpression,
             ),
         };
     }
     match den {
         Some(den) if den.leading_coeff().is_negative() => (
-            "Multiply numerator and denominator by -1, so the denominator starts with a positive term"
-                .into(),
+            crate::text::msg!("core.algebra.pipeline.negate_fraction_positive_denominator"),
             RuleId::NormalizeExpression,
         ),
         _ => (
-            "Write the result in canonical form: numerator expanded, denominator factored".into(),
+            crate::text::msg!("core.algebra.pipeline.canonical_form"),
             RuleId::NormalizeExpression,
         ),
     }
@@ -1208,7 +1204,7 @@ fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite
     let (after, step) = match compress_binomial(&poly) {
         Some((factored, identity)) => {
             let after = factored.to_node();
-            let explanation = format!("Write as a binomial: {}", identity.description());
+            let explanation = crate::text::msg!("core.algebra.pipeline.write_binomial", identity.description());
             let step = AlgebraStep::new(root.clone(), after.clone(), explanation.clone(), Some(RuleId::ApplyBinomialIdentity));
             // The square recognised in the polynomial: x^2 + 2 \cdot x \cdot 3 + 3^2.
             let recognised = match factored.factors.as_slice() {
@@ -1220,7 +1216,7 @@ fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite
             let step = match recognised {
                 Some((line, formula, values)) => {
                     let pattern = formula.split(" = ").nth(1).unwrap_or(&formula).to_string();
-                    let text = format!("Recognise {pattern} with {values}");
+                    let text = crate::text::msg!("core.algebra.pipeline.recognise");
                     step.with_working(vec![AlgebraStep::line(root, line, text, StepDetail::Detailed)], explanation)
                 }
                 None => step,
@@ -1246,31 +1242,31 @@ fn binomial_form_step(root: &Node, style: &BinomialStyle) -> Option<LocalRewrite
 fn completing_the_square(root: &Node, after: Node, poly: &Poly, a: &Poly, b: &Poly, explicit: bool) -> AlgebraStep {
     let latex = |p: &Poly| serializer::expression(&p.to_node());
     let b_squared = latex(&(b * b));
-    let summary = format!("Complete the square: add and subtract {b_squared}, then apply the binomial formula");
+    let summary = crate::text::msg!("core.algebra.pipeline.complete_square");
     let idea = if explicit {
         let b_abs = if b.leading_coeff().is_negative() { -b } else { b.clone() };
-        format!(
-            "2 \\cdot {} \\cdot {} is 2ab with a = {}, b = {}: add and subtract b² = {b_squared}",
+        crate::text::msg!(
+            "core.algebra.pipeline.complete_square_middle_term",
             latex(a),
             latex(&b_abs),
             latex(a),
             latex(&b_abs)
         )
     } else {
-        format!("Half of the coefficient of {} is {}, its square is {b_squared}: add and subtract {b_squared}", latex(a), latex(b))
+        crate::text::msg!("core.algebra.pipeline.complete_square_half_coefficient", latex(a), latex(b))
     };
     let formula = if b.leading_coeff().is_negative() {
-        "Second binomial formula: a² - 2ab + b² = (a - b)²"
+        crate::text::msg!("core.algebra.pipeline.second_binomial_formula")
     } else {
-        "First binomial formula: a² + 2ab + b² = (a + b)²"
+        crate::text::msg!("core.algebra.pipeline.first_binomial_formula")
     };
     let [added, grouped, binomial] = square_completion_lines(poly, a, b);
     let rest = poly - &(&(a + b) * &(a + b));
-    let last = if rest.is_constant() { "Add the constants" } else { "Combine like terms" };
+    let last = if rest.is_constant() { crate::text::msg!("core.algebra.pipeline.add_constants") } else { crate::text::msg!("core.algebra.pipeline.combine_like_terms") };
     AlgebraStep::new(root.clone(), after, summary, Some(RuleId::CompleteSquare)).with_working(
         vec![
             AlgebraStep::line(root, added.clone(), idea, StepDetail::Standard),
-            AlgebraStep::line(&added, grouped.clone(), "Group the square", StepDetail::Detailed),
+            AlgebraStep::line(&added, grouped.clone(), crate::text::msg!("core.algebra.pipeline.group_square"), StepDetail::Detailed),
             AlgebraStep::line(&grouped, binomial, formula, StepDetail::Standard),
         ],
         last,

@@ -292,17 +292,17 @@ pub fn factor_polynomial_node(node: &Node) -> Option<AlgebraStep> {
     let (rule, explanation) = if let Some((_, id)) = factor_binomial(&poly) {
         (
             RuleId::ApplyBinomialIdentity,
-            format!("Factor using binomial identity: {}", id.description()),
+            crate::text::msg!("core.algebra.factor.factor_using_binomial_identity", id.description()),
         )
     } else if poly.monomial_gcd().is_one() && poly.content() == RBig::ONE {
         (
             RuleId::FactorPolynomial,
-            "Factor polynomial into irreducible linear and quadratic factors".to_string(),
+            crate::text::msg!("core.algebra.factor.irreducible_factors"),
         )
     } else {
         (
             RuleId::FactorPolynomial,
-            "Factor out common factors and factor polynomial".to_string(),
+            crate::text::msg!("core.algebra.factor.common_then_polynomial"),
         )
     };
 
@@ -371,10 +371,10 @@ pub fn factoring_lines(poly: &Poly) -> (Vec<Line>, String) {
         .collect();
     let mut lines = Vec::new();
     if let Some(found) = signed_terms_sum(each) {
-        lines.push(Line::new(found, format!("Find the common factor {} of all terms", latex(&common_node)), StepDetail::Detailed));
+        lines.push(Line::new(found, crate::text::msg!("core.algebra.factor.find_common_factor", latex(&common_node)), StepDetail::Detailed));
     }
     let taken_out = |part: Node| Node::binary(Operator::ImplicitTimes, common_node.clone(), Node::Group { inner: Box::new(part), position: 0 }, 0);
-    let factor_out = format!("Factor out {}", latex(&common_node));
+    let factor_out = crate::text::msg!("core.algebra.factor.factor_out", latex(&common_node));
     let further = factor_polynomial(&rest);
     if further.factors.len() <= 1 && further.factors.iter().all(|f| f.exp == 1) {
         return (lines, factor_out);
@@ -395,7 +395,7 @@ fn rest_lines(poly: &Poly) -> (Vec<Line>, String) {
         return (lines, identity.description().to_string());
     }
     let Some(var) = poly.main_variable().filter(|_| poly.is_univariate() && poly.total_degree() >= 2) else {
-        return (Vec::new(), "Factor the polynomial".to_string());
+        return (Vec::new(), crate::text::msg!("core.algebra.factor.factor_polynomial"));
     };
     let mut lines = Vec::new();
     let mut current = poly.clone();
@@ -409,22 +409,22 @@ fn rest_lines(poly: &Poly) -> (Vec<Line>, String) {
         let constant = current.coeff_of(&Monomial::one());
         let leading = current.leading_coeff();
         let tried = if root.denominator() == &dashu::integer::UBig::ONE {
-            format!("Try the divisors of {}", latex(&rational_node(&constant.clone().abs())))
+            crate::text::msg!("core.algebra.factor.try_divisors", latex(&rational_node(&constant.clone().abs())))
         } else {
-            format!(
-                "Try fractions of a divisor of {} over a divisor of {}",
+            crate::text::msg!(
+                "core.algebra.factor.try_rational_roots",
                 latex(&rational_node(&constant.clone().abs())),
                 latex(&rational_node(&leading.clone().abs()))
             )
         };
         let r = latex(&rational_node(&root));
-        let text = format!("{tried}: p({r}) = {} = 0, so {} is a factor", term_values(&current, &var, &root), latex(&divisor.to_node()));
+        let text = crate::text::msg!("core.algebra.factor.root_found", term_values(&current, &var, &root), latex(&divisor.to_node()));
         lines.push(Line::note(poly.to_node(), text, StepDetail::Standard));
-        let divide = format!("Divide: ({}) : ({}) = {}", latex(&current.to_node()), latex(&divisor.to_node()), latex(&quotient.to_node()));
+        let divide = crate::text::msg!("core.algebra.factor.divide", latex(&current.to_node()), latex(&divisor.to_node()), latex(&quotient.to_node()));
         lines.push(Line::note(poly.to_node(), divide, StepDetail::Detailed));
         current = quotient;
     }
-    let last = if lines.is_empty() { "Factor the polynomial" } else { "Write as a product of the factors" };
+    let last = if lines.is_empty() { crate::text::msg!("core.algebra.factor.factor_polynomial") } else { crate::text::msg!("core.algebra.factor.write_product_factors") };
     (lines, last.to_string())
 }
 
@@ -456,7 +456,7 @@ fn squares_line(poly: &Poly) -> Option<Line> {
                 exponent: Box::new(rational_node(&RBig::from(2))),
                 position: 0,
             };
-            changed.push(format!("{} as {}", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
+            changed.push(crate::text::msg!("core.algebra.factor.term_as", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
             square
         };
         written.push((!term.coeff.is_negative(), node));
@@ -464,7 +464,8 @@ fn squares_line(poly: &Poly) -> Option<Line> {
     if changed.is_empty() {
         return None;
     }
-    Some(Line::new(signed_terms_sum(written)?, format!("Write {}", changed.join(" and ")), StepDetail::Detailed))
+    let changed = changed.join(&crate::text::msg!("core.algebra.factor.list_and"));
+    Some(Line::new(signed_terms_sum(written)?, crate::text::msg!("core.algebra.factor.write", changed), StepDetail::Detailed))
 }
 
 /// Whether the square of `root` already reads as a square: `x^2`, `y^4`.

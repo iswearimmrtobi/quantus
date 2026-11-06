@@ -14,6 +14,7 @@ use astro_float::{BigFloat, Consts, Radix, RoundingMode};
 
 use crate::num::{parse_float_text, Decimal};
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 const RM: RoundingMode = RoundingMode::ToEven;
 const MAX_LEVEL: u32 = 9;
@@ -194,7 +195,7 @@ pub(crate) fn integrate(
         previous = Some(estimate);
     }
     Err(QuantusError::other(
-        "The integral did not converge. The integrand may be singular inside the interval or oscillate too fast.",
+        msg!("core.numeric.integral_diverges"),
     ))
 }
 

@@ -10,6 +10,7 @@ use dashu::rational::RBig;
 use crate::algebra::poly::{Monomial, Poly, Term};
 use crate::error::QuantusError;
 use crate::latex::ast::{Node, Operator};
+use crate::text::msg;
 
 /// A domain restriction indicating that a variable or sub-expression cannot equal a specific value.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -621,7 +622,7 @@ pub fn extract_domain_restrictions(node: &Node) -> Result<Vec<DomainRestriction>
     let raw = collect_raw_denominators(node);
     for den in &raw {
         if is_constant_zero(den) {
-            return Err(QuantusError::other("Division by zero."));
+            return Err(QuantusError::other(msg!("core.common.division_zero")));
         }
     }
     Ok(solve_denominator_roots(&raw))

@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use quantus_core::settings::Language;
+use quantus_texts::tr;
 use tauri::Manager;
 
 mod commands;
@@ -19,7 +21,31 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::engine_info,
             commands::evaluate,
             commands::define_variable,
+            commands::engineering,
+            commands::free_variables,
+            commands::calc,
+            commands::solve_for,
+            commands::new_session,
+            commands::open_session,
+            commands::list_sessions,
+            commands::rename_session,
+            commands::duplicate_session,
+            commands::delete_session,
+            commands::export_session,
+            commands::import_session,
+            commands::history,
+            commands::clear_history,
+            commands::get_mode_inputs,
+            commands::set_mode_inputs,
+            commands::statistics,
+            commands::distribution,
+            commands::constants,
+            commands::conversion_units,
+            commands::search_library,
             commands::solve_circuit,
+            commands::solve_kirchhoff,
+            commands::geometry,
+            commands::geometry_view,
             commands::load_circuit,
             commands::save_circuit,
             commands::analyze,
@@ -27,7 +53,9 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::tangent,
             commands::area_under_curve,
             commands::value_table,
+            commands::solve_linear_system,
             commands::list_variables,
+            commands::writeup,
             commands::delete_variable,
             commands::get_settings,
             commands::set_settings,
@@ -42,9 +70,10 @@ fn main() {
         shell::focus_main(app);
     });
     app(tauri::Builder::default().plugin(single_instance))
-        // Here rather than in `app()`, so the tests never read or write the user's settings.
+        // Here rather than in `app()`, so the tests never read or write the user's settings and sessions.
         .setup(|app| {
             commands::restore_settings(app.handle());
+            commands::restore_sessions(app.handle());
             shell::set_menu_language(app.handle(), app.state::<commands::Engine>().language());
             Ok(())
         })
@@ -52,13 +81,15 @@ fn main() {
         .unwrap_or_else(|error| fatal(&error.to_string()));
 }
 
-/// The settings are not readable this early, so the system's language decides.
-fn system_is_german() -> bool {
+/// The settings are not readable this early, so the system's language decides: `de_DE.UTF-8`
+/// is German, a language Quantus does not have is English.
+fn system_language() -> Language {
     ["LC_ALL", "LC_MESSAGES", "LANG"]
         .iter()
         .find_map(|name| std::env::var(name).ok().filter(|value| !value.is_empty()))
         .or_else(system_locale)
-        .is_some_and(|value| value.starts_with("de"))
+        .and_then(|value| Language::from_code(&value.get(..2)?.to_lowercase()))
+        .unwrap_or_default()
 }
 
 /// Windows does not set `LANG`; the user locale (`de-DE`, `en-US`, …) stands in for it.
@@ -82,7 +113,7 @@ fn fatal(message: &str) -> ! {
     eprintln!("Quantus: {message}");
     rfd::MessageDialog::new()
         .set_level(rfd::MessageLevel::Error)
-        .set_title(if system_is_german() { "Quantus startet nicht" } else { "Quantus cannot start" })
+        .set_title(tr!(system_language(), "shell.cannot_start"))
         .set_description(message)
         .show();
     std::process::exit(1);

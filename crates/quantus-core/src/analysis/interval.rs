@@ -161,13 +161,13 @@ impl Interval {
                 return format!("\\{{{lo}\\}}");
             }
         }
-        match language {
-            Language::De => {
+        match language.intervals() {
+            "reversed" => {
                 let open = if self.lo.closed() { "[" } else { "]" };
                 let close = if self.hi.closed() { "]" } else { "[" };
                 format!("{open}{lo}; {hi}{close}")
             }
-            Language::En => {
+            _ => {
                 let open = if self.lo.closed() { "[" } else { "(" };
                 let close = if self.hi.closed() { "]" } else { ")" };
                 format!("{open}{lo}, {hi}{close}")
@@ -326,7 +326,7 @@ impl IntervalSet {
             Some(points) if points.is_empty() => "\\mathbb{R}".into(),
             Some(points) => {
                 let listed: Vec<String> = points.iter().map(|p| p.to_latex(digits)).collect();
-                let separator = if language == Language::De { "; " } else { ", " };
+                let separator = if language.intervals() == "reversed" { "; " } else { ", " };
                 format!("\\mathbb{{R}} \\setminus \\{{{}\\}}", listed.join(separator))
             }
             None => self.0.iter().map(|i| i.to_latex(digits, language)).collect::<Vec<_>>().join(" \\cup "),

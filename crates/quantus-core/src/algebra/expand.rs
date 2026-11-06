@@ -18,6 +18,11 @@ use crate::algebra::display::{bracket, signed_terms_sum};
 use crate::algebra::steps::{AlgebraStep, RuleId};
 use crate::settings::StepDetail;
 use crate::latex::ast::{Node, Operator};
+
+/// The line of the working that groups like terms; the last line then only adds coefficients.
+fn like_terms_together() -> String {
+    crate::text::msg!("core.algebra.expand.group_like_terms")
+}
 use crate::latex::serializer;
 
 /// The most products of terms a multiplied-out pair of sums is written with.
@@ -136,8 +141,8 @@ fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
 
             let result_node = rebuild_product(new_factors.clone());
             let rule = RuleId::ExpandPolynomial;
-            let explanation = format!(
-                "Expand polynomial product {} to {}",
+            let explanation = crate::text::msg!(
+                "core.algebra.expand.expand_polynomial_product",
                 serializer::expression(&rebuild_product(vec![f1.clone(), f2.clone()])),
                 serializer::expression(&prod_node)
             );
@@ -152,10 +157,10 @@ fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
                 return Some(step);
             };
             let working = vec![
-                AlgebraStep::line(node, place(each.clone()), "Write each term of the first bracket times each term of the second", StepDetail::Detailed),
-                AlgebraStep::line(&place(each), place(uncollected), "Multiply every term of the first bracket by every term of the second", StepDetail::Standard),
+                AlgebraStep::line(node, place(each.clone()), crate::text::msg!("core.algebra.expand.distribute_terms"), StepDetail::Detailed),
+                AlgebraStep::line(&place(each), place(uncollected), crate::text::msg!("core.algebra.expand.multiply_out_brackets"), StepDetail::Standard),
             ];
-            return Some(step.with_working(working, "Combine like terms"));
+            return Some(step.with_working(working, crate::text::msg!("core.algebra.expand.combine_like_terms")));
         }
 
         // Case B: Distribute a scalar or monomial multiplier across a sum factor
@@ -184,8 +189,8 @@ fn expand_product_step(node: &Node, working: bool) -> Option<AlgebraStep> {
 
                         let result_node = rebuild_product(new_factors);
                         let rule = RuleId::ExpandPolynomial;
-                        let explanation = format!(
-                            "Distribute {} across ({}) to obtain {}",
+                        let explanation = crate::text::msg!(
+                            "core.algebra.expand.distribute_across_obtain",
                             serializer::expression(&f_scalar),
                             serializer::expression(&add_factor),
                             serializer::expression(&dist_node)
@@ -378,14 +383,14 @@ fn like_term_lines(node: &Node, terms: &[(bool, Node)]) -> Vec<AlgebraStep> {
         }
     };
     if let Some(ordered) = signed_terms_sum(groups.iter().flat_map(|(_, group)| group.clone())) {
-        push(ordered, "Order the terms by degree", StepDetail::Maximal, &mut current);
+        push(ordered, &crate::text::msg!("core.algebra.expand.order_terms_degree"), StepDetail::Maximal, &mut current);
     }
     let grouped = groups.iter().map(|(_, group)| match group.as_slice() {
         [single] => single.clone(),
         many => (true, bracket(signed_terms_sum(many.to_vec()).expect("a group has terms"))),
     });
     if let Some(grouped) = signed_terms_sum(grouped) {
-        push(grouped, "Put like terms next to each other", StepDetail::Detailed, &mut current);
+        push(grouped, &like_terms_together(), StepDetail::Detailed, &mut current);
     }
     // Groups that add up to zero.
     let sum = |group: &[(bool, Node)]| {
@@ -472,15 +477,15 @@ fn collect_recursive(node: &Node, step_info: &mut Option<AlgebraStep>) -> Node {
             if serializer::expression(&canonical_node) != serializer::expression(unwrapped) {
                 // Only putting the terms in order is bookkeeping (Maximal).
                 let (explanation, level) = if is_term_reordering(unwrapped) {
-                    ("Order the terms by descending powers".to_string(), StepDetail::Maximal)
+                    (crate::text::msg!("core.algebra.expand.order_terms_descending_powers"), StepDetail::Maximal)
                 } else {
-                    (format!("Combine like terms to obtain {}", serializer::expression(&canonical_node)), StepDetail::Brief)
+                    (crate::text::msg!("core.algebra.expand.combine_like_terms_obtain", serializer::expression(&canonical_node)), StepDetail::Brief)
                 };
                 let step = AlgebraStep::new(node.clone(), canonical_node.clone(), explanation.clone(), Some(RuleId::CollectLikeTerms))
                     .with_level(level);
                 let working = collect_working(node);
-                let last = if working.iter().any(|line| line.explanation == "Put like terms next to each other") {
-                    "Add the coefficients".to_string()
+                let last = if working.iter().any(|line| line.explanation == like_terms_together()) {
+                    crate::text::msg!("core.algebra.expand.add_coefficients")
                 } else {
                     explanation
                 };

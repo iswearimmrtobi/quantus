@@ -1,0 +1,15 @@
+[package]
+name = "quantus-texts-macros"
+description = "Reads locales/*.json at compile time for quantus-texts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[lib]
+proc-macro = true
+
+[dependencies]
+serde_json = "1"

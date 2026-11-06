@@ -11,8 +11,8 @@ The "Now" rows are real output of the engine (default settings), after the fixes
 "Proposed" rows are worked by hand; each row follows from the one before it.
 
 **Status:** built, in the order of [Order of work](#order-of-work). The tables are the
-specification; the tests in `tests/algebra_milestone5.rs`, `tests/analysis.rs` and
-`tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
+specification; the tests in `tests/algebra_milestone5.rs`, `tests/analysis.rs`,
+`tests/geometry.rs` and `tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
 section says so under **Built**. Rows not built: the Maximal $+(-2) = -2$ of the tangent, the
 merged family $x^2 = k\pi$ of the inverse functions, a Standard block per summand that needs the
 product or chain rule inside a sum, factoring out $e^{2x}$ after the product rule (the algebra
@@ -752,6 +752,209 @@ numbers and the units apart, and the rearranged equation, since `eval/solver.rs`
 numerically and has no symbolic form to show.
 
 Code: `LatexCalculator::steps` (`calculator.rs:311`), `eval/evaluator.rs`, `eval/solver.rs`.
+
+## Linear systems
+
+Code in `crates/quantus-core/src/linear.rs` (`gauss`, `eliminate`), `eval/system.rs` (the
+outcome and back-substitution) and `eval/system_steps.rs` (the steps). The setting `elimination`
+picks **Gauss** (default; school method: triangle form without fractions, then back-substitution)
+or **Gauss–Jordan** (every pivot divided to 1, the solution read off). The levels apply to both.
+
+How a matrix looks from Standard on:
+- The rows are named by Roman numerals to the left of the matrix. Each change adds a mark
+  ($\text{II} \to \text{II}' \to \text{II}''$), and a swap takes the names along.
+- The operation stands to the right of the row it changes, in the matrix *before* the change, as
+  on paper. It names the rows as they are at that moment ($\text{III}' - \text{II}'$).
+- The pivot is orange. The rows the step before changed are blue. KaTeX has no row background
+  inside `array` (no `\rowcolor`, and `\colorbox` takes text only), so it is coloured text.
+
+Input `2x + 3y + z = 11; 3x + 2y - z = 4; 4x - y + 2z = 8`, solution $x = 1, y = 2, z = 3$.
+
+**Brief:** the start matrix, the triangle form, the result.
+
+| Step | Expression |
+|---|---|
+| Write the system as an augmented matrix | $\left(\begin{array}{ccc\|c} 2 & 3 & 1 & 11 \\ 3 & 2 & -1 & 4 \\ 4 & -1 & 2 & 8 \end{array}\right)$ |
+| Bring it to triangle form | $\left(\begin{array}{ccc\|c} 2 & 3 & 1 & 11 \\ 0 & -1 & -1 & -5 \\ 0 & 0 & 1 & 3 \end{array}\right)$ |
+| | $x = 1 \land y = 2 \land z = 3$ |
+
+**Standard:** every matrix with its operations. A division by the common factor of a row joins
+the operation that made it ($(2 \cdot \text{II} - 3 \cdot \text{I}) : 5$). Then the
+back-substitution as equations.
+
+| Step | Expression |
+|---|---|
+| Eliminate x from II and III, then divide out the common factor | $\left(\begin{array}{ccc\|c\|l} \color{orange}2 & 3 & 1 & 11 & \\ 3 & 2 & -1 & 4 & (2 \cdot \text{II} - 3 \cdot \text{I}) : 5 \\ 4 & -1 & 2 & 8 & (\text{III} - 2 \cdot \text{I}) : 7 \end{array}\right)$ |
+| Eliminate y from III′ | $\left(\begin{array}{ccc\|c\|l} 2 & 3 & 1 & 11 & \\ 0 & \color{orange}-1 & -1 & -5 & \\ 0 & -1 & 0 & -2 & \text{III}' - \text{II}' \end{array}\right)$ |
+| The matrix is in triangle form | $\left(\begin{array}{ccc\|c} 2 & 3 & 1 & 11 \\ 0 & -1 & -1 & -5 \\ 0 & 0 & 1 & 3 \end{array}\right)$ (rows $\text{I}, \text{II}', \text{III}''$) |
+| Solve III″ for z | $z = 3$ |
+| Put z into II′ and solve for y | $-y - 3 = -5 \Rightarrow y = 2$ |
+| Put y and z into I and solve for x | $2x + 3 \cdot 2 + 3 = 11 \Rightarrow x = 1$ |
+
+**Detailed:** also each changed row worked out entry by entry, and the division by the common
+factor as a step of its own (so $\text{II}$ ends as $\text{II}''$).
+
+| Step | Expression |
+|---|---|
+| Eliminate x from II and III | the start matrix with $2 \cdot \text{II} - 3 \cdot \text{I}$ and $\text{III} - 2 \cdot \text{I}$ |
+| Work out II′ entry by entry | $\text{II}': \; 2 \cdot 3 - 3 \cdot 2 = 0, \quad 2 \cdot 2 - 3 \cdot 3 = -5, \quad 2 \cdot (-1) - 3 \cdot 1 = -5, \quad 2 \cdot 4 - 3 \cdot 11 = -25$ |
+| Work out III′ entry by entry | $\text{III}': \; 4 - 2 \cdot 2 = 0, \quad -1 - 2 \cdot 3 = -7, \quad 2 - 2 \cdot 1 = 0, \quad 8 - 2 \cdot 11 = -14$ |
+| Divide out the common factor of the row | the matrix with $\text{II}' : 5$ and $\text{III}' : 7$ |
+| Eliminate y from III″ | the matrix with $\text{III}'' - \text{II}''$ |
+| Work out III‴ entry by entry | $\text{III}''': \; -1 - (-1) = 0, \quad 0 - (-1) = 1, \quad -2 - (-5) = 3$ |
+| … | the triangle form and the back-substitution as at Standard |
+
+**Maximal:** also why the pivot was chosen, and the check of the solution in each equation.
+
+| Step | Expression |
+|---|---|
+| Eliminate x from II and III with the pivot of I, the first non-zero entry of the column | as at Detailed |
+| … | |
+| Check: put the solution into I | $\text{I}: \; 2 \cdot 1 + 3 \cdot 2 + 3 = 11 \; \checkmark$ |
+| Check: put the solution into II | $\text{II}: \; 3 \cdot 1 + 2 \cdot 2 - 3 = 4 \; \checkmark$ |
+| Check: put the solution into III | $\text{III}: \; 4 \cdot 1 - 2 + 2 \cdot 3 = 8 \; \checkmark$ |
+
+A zero in the pivot's place is swapped away with the first row below that has a non-zero entry
+($\text{I} \leftrightarrow \text{II}$). Standard says "Swap I and II to get a non-zero pivot",
+and Maximal says why: "The entry of x in I is zero, so swap I with II, …".
+
+**No solution.** The final matrix shows the row $0 = c$ in orange, followed by
+$\text{II}': \; 0 = 1$ with "Row II′ reads 0 = 1, a contradiction: the system has no solution". The
+result is "no solution". This is not an error, so the steps that lead to it stay visible. At Brief
+the row is named without marks, because no named matrix is shown there.
+
+**Infinitely many.** Gauss sets the free unknowns to $\lambda, \mu, \nu, \dots$ ("z is free: set it
+to a parameter", $z = \lambda$), skipping a letter the system uses as an unknown, and
+back-substitutes: $x = 3 - \frac{1}{2} \lambda \land y = 3 - \frac{1}{2} \lambda \land z = \lambda
+\land \lambda \in \mathbb{R}$. Gauss–Jordan keeps the free unknown: $x = 3 - \frac{1}{2} z \land
+\dots \land z \in \mathbb{R}$.
+
+**Gauss–Jordan** shows the same marks and colours. Its stages are "Divide I by its pivot" and
+"Eliminate x from II and III" (above and below the pivot), ending in "The matrix is in reduced row
+echelon form", with no back-substitution.
+
+Symbolic entries stay exact in the matrix ($\pi \cdot \text{II} - \text{I}$, $-1 + \pi^2$); rows
+with them skip the gcd. An entry with no exact form is a six-digit decimal.
+
+Built: all of the above. Tests: `tests/linear_systems.rs` with `tests/golden/systems.json` (this
+example at every level, plus one inconsistent and one infinite system with both methods), and the
+unit tests in `eval/calculator.rs`, `eval/system.rs` and `linear.rs`.
+
+---
+
+## Geometry mode
+
+Code in `crates/quantus-core/src/geometry/`. Every operation returns its result with a `Working`:
+a list of notes, each a text (through `msg!`, English and German), a formula and the lowest level
+it shows at. Degenerate cases (parallel, identical, skew, a point off a line) are results with
+their own working, not errors. The levels mean:
+
+- **Brief:** the result lines only: the point, the equation, the angle, the distance, the relation.
+- **Standard:** the school method: the equation that is set up, the vector that is computed, the
+  values that come out, the check of a third row.
+- **Detailed:** the formula with the values put in: the system of equations written out, the
+  cross product component by component, the discriminant, the foot of a perpendicular as a point.
+- **Maximal:** the checks of a result (the intersection point in the other object, the other
+  points of a sphere through four) and the dot products row by row.
+
+A plane in another form is put into the coordinate form first, and that conversion is part of the
+working. Points and vectors of 2D inputs are written without z. Exact values stay exact
+(fractions, roots, `π`); an angle without a closed form is written as its `\arccos` or `\arcsin`
+with a six-digit decimal.
+
+### Two lines (`line.rs`, `relation`)
+
+$g: \vec{x} = (1|0|0) + \lambda (1, 1, 0)$ and $h: \vec{x} = (0|3|0) + \mu (1, 0, 0)$, angle in degrees.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | The vectors are not multiples of each other | $\begin{pmatrix} 1 \\ 1 \\ 0 \end{pmatrix} \neq k \cdot \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix}$ |
+| Standard | Set the line equations equal | $\begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} + \lambda \begin{pmatrix} 1 \\ 1 \\ 0 \end{pmatrix} = \begin{pmatrix} 0 \\ 3 \\ 0 \end{pmatrix} + \mu \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix}$ |
+| Detailed | As a system of equations | $\begin{aligned} \lambda - \mu = -1 \\ \lambda = 3 \\ 0 = 0 \end{aligned}$ |
+| Standard | Rows 1 and 2 give | $\lambda = 3, \quad \mu = 4$ |
+| Standard | Check in row 3 | $0 \cdot 3 + 0 \cdot 4 = 0 = 0$ |
+| Brief | The lines intersect in the point | $S = (4\|3\|0)$ |
+| Maximal | Check: μ in the second line gives the same point | $\begin{pmatrix} 0 \\ 3 \\ 0 \end{pmatrix} + 4 \cdot \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} = \begin{pmatrix} 4 \\ 3 \\ 0 \end{pmatrix}$ |
+| Standard | The angle between the directions | $\cos\varphi = \frac{\left\|\vec{u} \cdot \vec{v}\right\|}{\left\|\vec{u}\right\| \cdot \left\|\vec{v}\right\|} = \frac{1}{\sqrt{2} \cdot 1} = \frac{\sqrt{2}}{2}$ |
+| Brief | The angle | $\varphi = 45^\circ$ |
+
+Parallel lines show the point test of $h$'s support on $g$ and then the distance through the foot
+of the perpendicular; skew lines show the failing check, $\vec{n} = \vec{u} \times \vec{v}$ and
+$d = \frac{|\overrightarrow{PQ} \cdot \vec{n}|}{|\vec{n}|}$, then the angle.
+
+### A plane from parameter to coordinate form (`plane.rs`, `convert`)
+
+$E: \vec{x} = (1|1|1) + \lambda (1, 2, 3) + \mu (-2, 0, 4)$.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | A normal is the cross product of the directions | $\vec{n} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix} \times \begin{pmatrix} -2 \\ 0 \\ 4 \end{pmatrix} = \begin{pmatrix} 8 \\ -10 \\ 4 \end{pmatrix}$ |
+| Detailed | Component by component | $\vec{n} = \begin{pmatrix} 2 \cdot 4 - 3 \cdot 0 \\ 3 \cdot (-2) - 1 \cdot 4 \\ 1 \cdot 0 - 2 \cdot (-2) \end{pmatrix}$ |
+| Standard | Shortened | $\vec{n} = \frac{1}{2} \cdot \begin{pmatrix} 8 \\ -10 \\ 4 \end{pmatrix} = \begin{pmatrix} 4 \\ -5 \\ 2 \end{pmatrix}$ |
+| Standard | The constant is the normal times the support | $d = 4 \cdot 1 + (-5) \cdot 1 + 2 \cdot 1 = 1$ |
+| Brief | The coordinate form | $4x - 5y + 2z = 1$ |
+
+The way back (coordinate to parameter form) reads the normal off, picks the point on the first
+axis the plane is not parallel to, and two directions perpendicular to the normal; Detailed adds
+their check $\vec{n} \cdot \vec{u} = 0$.
+
+### A line and a plane (`relations.rs`, `meet_line`)
+
+$E: 2x - y + 3z = 4$ and $g: \vec{x} = (1|2|0) + \lambda (1, 0, -1)$.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | Put the line into the coordinate form | $2 (1 + \lambda) - 2 + 3 (-\lambda) = 4$ |
+| Detailed | Solve for λ | $-\lambda = 4 \Rightarrow \lambda = -4$ |
+| Standard | Put λ into the line | $\vec{s} = \begin{pmatrix} 1 \\ 2 \\ 0 \end{pmatrix} + (-4) \cdot \begin{pmatrix} 1 \\ 0 \\ -1 \end{pmatrix}$ |
+| Brief | The line meets the plane in the point | $S = (-3\|2\|4)$ |
+| Maximal | Check: S lies in the plane | $2 \cdot (-3) + (-1) \cdot 2 + 3 \cdot 4 = 4$ |
+| Standard | The angle between line and plane | $\sin\varphi = \frac{\|\vec{n} \cdot \vec{u}\|}{\|\vec{n}\| \cdot \|\vec{u}\|} = \frac{1}{\sqrt{14} \cdot \sqrt{2}} = \frac{\sqrt{7}}{14}$ |
+| Brief | The angle | $\varphi = \arcsin\left(\frac{\sqrt{7}}{14}\right) \approx 10.8934^\circ$ |
+
+When λ drops out, Standard shows the remaining equation with "(true)" (the line lies in the plane)
+or "(false)" (parallel, followed by the Hesse distance of the support).
+
+### A sphere and a plane (`sphere.rs`, `meet_plane`)
+
+$K: (x - 1)^2 + (y - 2)^2 + (z - 3)^2 = 25$ and $E: z = 6$.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | Put the point into the Hesse normal form | $d = \frac{\|1 \cdot 3 - 6\|}{\sqrt{0^2 + 0^2 + 1^2}} = 3$ |
+| Brief | The distance | $d = 3$ |
+| Standard | d < r: the plane cuts the sphere in a circle | $3 < r = 5$ |
+| Standard | The perpendicular through the point along the normal | $\vec{x} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix} + \lambda \begin{pmatrix} 0 \\ 0 \\ 1 \end{pmatrix}$ |
+| Standard | Put it into the coordinate form and solve for λ | $3 + \lambda = 6 \Rightarrow \lambda = 3$ |
+| Detailed | The foot of the perpendicular | $F = (1\|2\|6)$ |
+| Standard | The radius of the circle, by Pythagoras | $\rho = \sqrt{r^2 - d^2} = \sqrt{25 - 9} = 4$ |
+| Brief | The circle of intersection | $M' = (1\|2\|6), \quad \rho = 4$ |
+
+Two spheres build on this: the difference of their equations is the Potenzebene (Brief), and the
+circle or the touching point is where it cuts the first sphere. A circle and a line or plane work
+in the plane of the circle with the sphere of the same centre and radius.
+
+Built: all of the above. Tests: `tests/geometry.rs`, with every operation checked at every level
+(each has a Brief line, Standard adds to it) and in both languages.
+
+## Kirchhoff mode: resistance between A and B
+
+Code in `crates/quantus-core/src/kirchhoff/equivalent.rs`. Each merge of resistors is one line
+whose explanation names the rule (in parallel: between the same two nodes; in series: nothing
+branches off between them). The line grows with the level; the shorter one gives way to it:
+
+| Level | Line of a merge | Example |
+|---|---|---|
+| Brief | The rule by name and the result | $R_{23} = R_2 \parallel R_3 = \frac{6}{5}\,\Omega$ |
+| Standard | The formula and the result | $R_{23} = \frac{R_2 \cdot R_3}{R_2 + R_3} = \frac{6}{5}\,\Omega$ |
+| Detailed, Maximal | Also the values put in | $R_{23} = \frac{R_2 \cdot R_3}{R_2 + R_3} = \frac{2\,\Omega \cdot 3\,\Omega}{2\,\Omega + 3\,\Omega} = \frac{6}{5}\,\Omega$ |
+
+The last line is the result, $R_{AB} = R_{123} = \frac{11}{5}\,\Omega$. A network that does not
+reduce gets the node equations (with names, then with values), the Gauss steps of the
+Kirchhoff mode's systems, and $R_{AB} = \varphi_A / I$.
+
+Built: all of the above. Tests: `tests/kirchhoff.rs` (both languages, Brief and Detailed) and
+the unit tests in `equivalent.rs`.
 
 ---
 

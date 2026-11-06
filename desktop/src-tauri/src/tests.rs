@@ -205,6 +205,30 @@ fn settings_files_are_written_and_read_back() {
     std::fs::remove_dir_all(dir).unwrap();
 }
 
+#[test]
+fn session_files_are_written_read_back_and_need_a_plain_id() {
+    use quantus_core::api::{self, CalculationRequest, NewSessionRequest};
+    use quantus_core::session::SessionStore;
+    let dir = std::env::temp_dir().join(format!("quantus-sessions-{}", std::process::id()));
+    let mut store = SessionStore::new();
+    let id = api::new_session(&mut store, &NewSessionRequest { name: Some("Lab".into()), ..Default::default() }).id;
+    let request = CalculationRequest { latex: "m_1 = 2kg".into(), session_id: Some(id.clone()), ..Default::default() };
+    api::evaluate(&mut store, &request).unwrap();
+    super::commands::save_session(&dir, &mut store, &id).unwrap();
+    // A session the store does not have, and an id that is no file name, write nothing.
+    super::commands::save_session(&dir, &mut store, "missing").unwrap();
+    assert!(super::commands::session_path(&dir, "../settings").is_none());
+    std::fs::write(dir.join("broken.json"), "{").unwrap();
+
+    let mut fresh = SessionStore::new();
+    super::commands::load_sessions(&dir, &mut fresh);
+    let sessions = api::list_sessions(&fresh);
+    assert_eq!(sessions.len(), 1);
+    assert_eq!((sessions[0].id.as_str(), sessions[0].name.as_str(), sessions[0].entries), (id.as_str(), "Lab", 1));
+    assert_eq!(api::list_variables(&mut fresh, Some(&id))[0].key, "m_1");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
 fn cable() -> Value {
     json!({
         "nodes": [0, 1, 2, 3],
@@ -378,4 +402,145 @@ fn the_analysis_follows_the_set_precision() {
     assert!(precise["points"][0]["latex"].as_str().unwrap().contains("-1{,}7320508"));
     let area = invoke(&w, "area_under_curve", json!({ "request": { "latex": "e^{x^2}", "from": "0", "to": "1" } })).unwrap();
     assert_eq!(area["area"], "\\approx 1{,}46");
+}
+
+#[test]
+fn a_linear_system_is_solved_through_the_command_without_session_variables() {
+    let w = window();
+    // A stored k_1 is ignored by the linear systems mode: it stays an unknown.
+    invoke(&w, "evaluate", json!({ "request": { "latex": "k_1 = 5", "sessionId": "desktop" } })).unwrap();
+    let typed = invoke(&w, "solve_linear_system", json!({ "request": { "equations": "k_1 + x = 3; k_1 - x = 1" } })).unwrap();
+    assert_eq!(typed["result"], "x = 1 \\land k_{1} = 2");
+    assert_eq!(typed["matrix"], json!([["1", "1", "3"], ["-1", "1", "1"]]));
+
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    settings["mode"] = json!("linear");
+    settings["unknownNames"] = json!("letters");
+    let saved = invoke(&w, "set_settings", json!({ "settings": settings })).unwrap();
+    assert_eq!((saved["mode"].clone(), saved["linearComplex"].clone()), (json!("linear"), json!(false)));
+    let given = invoke(&w, "solve_linear_system", json!({ "request": { "matrix": { "rows": [["2", "1", "5"], ["1", "-1", ""]] } } })).unwrap();
+    assert_eq!(given["equations"], json!(["2x + y = 5", "x - y = 0"]));
+    assert_eq!(given["result"], "x = \\frac{5}{3} \\land y = \\frac{5}{3}");
+    assert!(given["alignBlock"].as_str().unwrap().starts_with("\\begin{align*}"));
+
+    let error = invoke(&w, "solve_linear_system", json!({ "request": { "matrix": { "rows": [["2", "m", "5"]] } } })).unwrap_err();
+    assert!(error["error"].as_str().unwrap().starts_with("Row 1, entry 2:"));
+}
+
+/// The circuits in `test/circuits/`, loaded and solved the way the editor does it: the file goes
+/// through `load_circuit`, the ground symbols stay behind and the rest is the request.
+#[test]
+fn the_test_circuits_solve_to_their_documented_values() {
+    let w = window();
+    let mut settings = invoke(&w, "get_settings", json!({})).unwrap();
+    settings["precision"] = json!(6);
+    invoke(&w, "set_settings", json!({ "settings": settings })).unwrap();
+    let solve = |name: &str| {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test/circuits").join(format!("{name}.json"));
+        let mut request = invoke(&w, "load_circuit", json!({ "path": path })).unwrap();
+        request["elements"].as_array_mut().unwrap().retain(|e| e["kind"] != "ground");
+        invoke(&w, "solve_circuit", json!({ "request": request }))
+    };
+    // (circuit, element, quantity, result)
+    let expected = [
+        ("divider", "R1", "current", r"4\,\mathrm{mA}"),
+        ("divider", "R2", "voltage", r"8\,\mathrm{V}"),
+        ("parallel", "R1", "current", r"100\,\mathrm{mA}"),
+        ("parallel", "R2", "current", r"25\,\mathrm{mA}"),
+        ("parallel", "V1", "current", r"-125\,\mathrm{mA}"),
+        ("precision", "R1", "current", r"3{,}33333\,\mathrm{A}"),
+        ("current-source", "R1", "voltage", r"8\,\mathrm{V}"),
+        ("current-source", "R1", "current", r"1{,}6\,\mathrm{A}"),
+        ("current-source", "R2", "current", r"400\,\mathrm{mA}"),
+        ("potentiometer", "R1", "voltage", r"6{,}31579\,\mathrm{V}"),
+        ("two-sources", "R3", "voltage", r"6{,}25\,\mathrm{V}"),
+        ("two-sources", "R1", "current", r"3{,}75\,\mathrm{mA}"),
+        ("two-sources", "R2", "current", r"625\,\mathrm{\mu A}"),
+        ("wheatstone", "R5", "current", r"0\,\mathrm{A}"),
+        ("wheatstone", "R1", "voltage", r"3{,}33333\,\mathrm{V}"),
+        ("cable", "L1", "power", r"2\,\mathrm{kW}"),
+        ("cable", "C1", "voltage", r"6{,}33116\,\mathrm{V}"),
+        ("wheatstone", "R5", "resistance", r"500\,\mathrm{\Omega }"),
+        ("cable", "L1", "resistance", r"23{,}6178\,\mathrm{\Omega }"),
+        ("cable", "C1", "resistance", r"688\,\mathrm{m\Omega }"),
+        ("relative", "R1", "voltage", r"25\,\%"),
+        ("relative", "R2", "voltage", r"75\,\%"),
+    ];
+    for (circuit, id, quantity, result) in expected {
+        let solved = solve(circuit).unwrap();
+        let element = solved["elements"].as_array().unwrap().iter().find(|e| e["id"] == id).unwrap();
+        assert_eq!(element[quantity]["result"], result, "{circuit}: {quantity} of {id}");
+    }
+    assert_eq!(solve("relative").unwrap()["elements"][2]["voltage"]["status"], "relative");
+    assert!(solve("divider").unwrap()["elements"][0]["resistance"].is_null(), "a source has no resistance");
+    assert_eq!(solve("short-circuit").unwrap_err()["error"], "short circuit");
+}
+
+/// One source and one resistor in a square, as the editor sends it: terminal points in grid steps.
+fn square(reversed: bool) -> Value {
+    json!({ "elements": [
+        { "id": "V1", "kind": "voltageSource", "u": "10V", "pa": { "x": 0, "y": 4 }, "pb": { "x": 0, "y": 0 }, "reversed": reversed },
+        { "id": "R1", "kind": "resistor", "r": "5\\Omega", "pa": { "x": 0, "y": 0 }, "pb": { "x": 4, "y": 0 } },
+        { "id": "W1", "kind": "wire", "pa": { "x": 4, "y": 0 }, "pb": { "x": 4, "y": 4 } },
+        { "id": "W2", "kind": "wire", "pa": { "x": 4, "y": 4 }, "pb": { "x": 0, "y": 4 } },
+        { "id": "GND1", "kind": "ground", "pa": { "x": 0, "y": 4 }, "pb": { "x": 0, "y": 4 } },
+    ] })
+}
+
+#[test]
+fn a_kirchhoff_network_is_solved_through_the_command() {
+    let w = window();
+    let solved = invoke(&w, "solve_kirchhoff", json!({ "request": square(false) })).unwrap();
+    assert_eq!(solved["result"], json!(["I_{1} = 2\\,\\mathrm{A}"]));
+    assert_eq!(solved["loops"][0]["name"], "L_{1}");
+    assert_eq!(solved["branches"][0]["lead"], "V1");
+    assert!(solved["error"].is_null());
+    let flipped = invoke(&w, "solve_kirchhoff", json!({ "request": square(true) })).unwrap();
+    assert_eq!(flipped["result"], json!(["I_{1} = -2\\,\\mathrm{A}"]));
+
+    let mut missing = square(false);
+    missing["elements"][1]["r"] = json!("");
+    let error = invoke(&w, "solve_kirchhoff", json!({ "request": missing })).unwrap_err();
+    assert!(error["error"].as_str().unwrap().contains("R1"), "{error}");
+}
+
+#[test]
+fn a_geometry_scene_is_answered_through_the_command() {
+    let w = window();
+    let request = json!({
+        "scene": { "objects": [
+            { "name": "A", "kind": "point", "at": ["1", "2", "3"] },
+            { "kind": "typed", "latex": "E: x + y + z = 0" }
+        ] },
+        "task": { "kind": "foot", "point": "A", "onto": "E" }
+    });
+    let answered = invoke(&w, "geometry", json!({ "request": request })).unwrap();
+    assert_eq!(answered["objects"][1]["latex"], "E: x + y + z = 0");
+    assert_eq!(answered["task"]["result"], json!(["F = (-1|0|1)"]));
+    assert!(answered["task"]["error"].is_null());
+}
+
+#[test]
+fn a_geometry_scene_is_projected_through_the_command() {
+    let w = window();
+    let request = json!({
+        "scene": { "objects": [{ "name": "A", "kind": "point", "at": ["1", "2", "3"] }] },
+        "yaw": 0.5, "pitch": 0.3, "zoom": 1
+    });
+    let view = invoke(&w, "geometry_view", json!({ "request": request })).unwrap();
+    assert_eq!(view["objects"], json!([{ "name": "A", "kind": "point" }]));
+    let kinds: Vec<&str> = view["primitives"].as_array().unwrap().iter().map(|p| p["kind"].as_str().unwrap()).collect();
+    assert!(kinds.contains(&"marker") && kinds.contains(&"segment") && kinds.contains(&"label"), "{kinds:?}");
+}
+
+#[test]
+fn a_circuit_file_may_carry_a_flipped_current() {
+    let mut circuit = saved_circuit();
+    circuit["elements"][0]["reversed"] = json!(true);
+    assert!(super::commands::validate_circuit(&circuit, Language::En).is_ok());
+    circuit["elements"][0]["reversed"] = json!("yes");
+    assert_eq!(
+        super::commands::validate_circuit(&circuit, Language::En).unwrap_err().error,
+        "V1: “reversed” must be true or false."
+    );
 }

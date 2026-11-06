@@ -16,13 +16,14 @@ re-run as a set. What has been checked is the feature each one was waiting for.
 | `\ln`, `\log` | M3 | `\log` is base 10. Arguments must be positive. No `\log_b`; write `\ln x / \ln b`. |
 | `\|x\|` | M8 | Also `\left\|…\right\|`, `\lvert…\rvert`. Keeps the unit. |
 | `\binom{n}{k}` | M7 | Exact; needs non-negative whole numbers. |
-| `\sum_{i=a}^{b}` | M6 | Exact, up to 1,000,000 terms. The body is a whole term: `\sum k + 1` is `(\sum k) + 1`. |
+| `\sum_{i=a}^{b}` | M6 | Exact, up to 1,000,000 terms. The body is a whole term: `\sum k + 1` is `(\sum k) + 1`. To `\infty`: numerical, at most 30 digits, for terms that are a rational function of the index (Euler–Maclaurin tail, convergence decided by the degrees), alternate (Cohen–Villegas–Zagier) or fall geometrically; other series are refused. |
 | `\int_a^b f\,dx` | M9, P6, P7, P8, U7, U8 | Numerical (tanh-sinh), at most 30 digits. The variable carries the unit of the limits. Nested integrals work but are slow. |
 | `\lim_{x \to a}` | M11 | Numerical and two-sided. Reports an error if the sides disagree or the values grow without bound. |
 | `\det`, `pmatrix` | M12 | Exact, up to 8×8. `vmatrix` is a determinant. A matrix on its own is an error. |
 | Variables without an index | M4, M5 | A single letter that is not a unit or constant (`x`, `\theta`). |
 | Derivative `\frac{d}{dx}` | M10 | Symbolic; needs a point: `\left.\frac{d}{dx} f\right\|_{x=2}`. |
 | Equations | M4, M5 | `lhs = rhs` with one unknown. Degree ≤ 2 exactly, otherwise numerically on [-100, 100]. |
+| Inequalities | – | `<`, `>`, `\le`, `\ge`, `\neq` and chains of them in one unknown, polynomial or rational with rational coefficients, by a sign chart. The solution set is written like the roots of an equation (`x \le -2 \lor x \ge 3`); a pole is never in it. Not `\|x\|`, roots or functions of the unknown. |
 
 ## Limits worth knowing
 
@@ -32,15 +33,17 @@ re-run as a set. What has been checked is the feature each one was waiting for.
 - **Units win over letters.** `m`, `s`, `g`, `y`, `t` and so on are units, so they cannot be the
   unknown of an equation. Inside `\sum`, `\int`, `\lim` and `\frac{d}{dx}` the bound letter
   takes precedence in the body.
-- **The unknown of an equation is a plain number.** `3x = 6m` is a dimension error; `3x\,m = 6m`
-  is fine.
+- **The unknown of an equation takes the unit that balances it.** `9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}`
+  gives `x = 6 m/s²`; `3x = 6m` gives `x = 2 m`. An equation no unit balances (`x + 1 = 2m`) is a
+  dimension error.
 - **Integral differentials** (`dx`, `d x`, `\mathrm{d}x`) must be at the top level of the
   integrand, not inside `\frac{…}{…}`.
 - **Numerical results are marked by their digits.** An integral shows at most 30 digits, a root
   found numerically as many as the precision.
-- **Not implemented:** one-sided limits, limits at infinity, indefinite integrals, higher
-  derivatives other than by nesting, `\arcsin` and friends, `\sin^{-1}`, matrix results
-  (only `\det`), equations with several unknowns.
+- **Not implemented:** indefinite integrals on their own (`\left[\int f\,dx\right]_a^b` works),
+  closed-path integrals (`\oint`), matrix results outside the Matrix mode (only `\det`), and
+  equations with several unknowns outside a system. One-sided limits, limits at infinity,
+  `\arcsin` and friends and `\sin^{-1}` work now.
 
 ## Modes and complex numbers
 
@@ -67,8 +70,17 @@ In imaginary mode:
 - Both parts of a result are given to the calculator's precision; the API reports the real part
   as `value` and the imaginary part as `imaginary`.
 
-Not covered: `\arcsin`, `\arccos` and `\arctan` of a complex number, equations of degree above
-two with complex roots, derivatives and integrals of complex functions, and complex units
+- `\arcsin`, `\arccos` and `\arctan` of a complex number, and of a real one beyond ±1, as
+  principal values. On a branch cut the value is the one from the side where the other part is
+  +0, as in C99 and Python: `\arcsin 2 = π/2 + i·arcosh 2`, `\arccos 2 = -i·arcosh 2`,
+  `\arctan 2i = π/2 + i/2·ln 3`. `\arctan(±i)` is an error, and so is a complex angle in degrees.
+- Equations of degree three to twelve have all their complex roots: exact up to degree four,
+  numerical (Durand–Kerner, then Newton to the full precision) beyond.
+
+- Integrals of complex functions with real bounds: the real and the imaginary part are
+  integrated in two passes; the second runs only when a sample was complex.
+
+Not covered: integrals with complex bounds (paths in the complex plane), and complex units
 (`2i\,\mathrm{m}` works, `\mathrm{m}` is not a complex quantity). Odd roots of negative
 numbers keep their real value: `\sqrt[3]{-8}` is -2. The algebraic simplifier leaves `i` alone,
 so `(x+i)(x-i)` with a free `x` is shown as typed.

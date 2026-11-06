@@ -13,6 +13,7 @@ use dashu::rational::RBig;
 use crate::error::{QuantusError, Result};
 use crate::num::{Decimal, Value};
 use crate::units::{between, registry, AffineConversion, Atom, BaseDim, Dimension, Kind, Unit};
+use crate::text::msg;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PhysicalQuantity {
@@ -50,12 +51,12 @@ impl PhysicalQuantity {
 
     /// The right operand is converted into the left operand's unit, which the result keeps.
     pub fn add(&self, other: &PhysicalQuantity) -> Result<PhysicalQuantity> {
-        let converted = other.value_in(&self.unit, "added", self)?;
+        let converted = other.value_in(&self.unit, &msg!("core.quantity.added"), self)?;
         Ok(PhysicalQuantity::new(self.value.add(&converted), self.unit.clone()))
     }
 
     pub fn sub(&self, other: &PhysicalQuantity) -> Result<PhysicalQuantity> {
-        let converted = other.value_in(&self.unit, "subtracted", self)?;
+        let converted = other.value_in(&self.unit, &msg!("core.quantity.subtracted"), self)?;
         Ok(PhysicalQuantity::new(self.value.sub(&converted), self.unit.clone()))
     }
 
@@ -85,8 +86,7 @@ impl PhysicalQuantity {
     /// dimensionless base may be raised to anything.
     pub fn pow(&self, exponent: &PhysicalQuantity) -> Result<PhysicalQuantity> {
         if !exponent.is_dimensionless() {
-            return Err(QuantusError::DimensionMismatch(format!(
-                "The exponent must be dimensionless but carries the unit {}.",
+            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.exponent_has_unit",
                 registry::describe(&exponent.unit)
             )));
         }
@@ -97,9 +97,7 @@ impl PhysicalQuantity {
             return Ok(PhysicalQuantity::dimensionless(powered));
         }
         let rational = exponent.value.as_rational().ok_or_else(|| {
-            QuantusError::other(format!(
-                "A quantity with a unit can only be raised to a rational power, but the exponent \
-                 here is '{}'.",
+            QuantusError::other(msg!("core.quantity.irrational_power",
                 exponent.value
             ))
         })?;
@@ -108,7 +106,7 @@ impl PhysicalQuantity {
             i32::try_from(rational.denominator().clone()),
         );
         let (Ok(numerator), Ok(denominator)) = (numerator, denominator) else {
-            return Err(QuantusError::other(format!("The exponent '{}' is too large.", exponent.value)));
+            return Err(QuantusError::other(msg!("core.quantity.exponent_too_large", exponent.value)));
         };
         let whole_root = self.dimension().exponents().iter().all(|(_, e)| (e * numerator) % denominator == 0);
         if denominator != 1 && whole_root {
@@ -166,8 +164,7 @@ impl PhysicalQuantity {
     /// Explicit conversion to a target unit (F1: km/h to m/s, prefixes).
     pub fn to(&self, target: &Unit) -> Result<PhysicalQuantity> {
         if !self.unit.is_compatible(target) {
-            return Err(QuantusError::DimensionMismatch(format!(
-                "Cannot convert {} to {}.",
+            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.cannot_convert",
                 registry::describe(&self.unit),
                 registry::describe(target)
             )));
@@ -192,8 +189,7 @@ impl PhysicalQuantity {
     /// quantity being converted to; it shows up in the error message.
     fn value_in(&self, target: &Unit, verb: &str, context: &PhysicalQuantity) -> Result<Value> {
         if !self.unit.is_compatible(target) {
-            return Err(QuantusError::DimensionMismatch(format!(
-                "Incompatible units: {} and {} cannot be {verb}.",
+            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.incompatible_units",
                 registry::describe(&context.unit),
                 registry::describe(&self.unit)
             )));
@@ -203,9 +199,7 @@ impl PhysicalQuantity {
         // difference and 298.15 °C read as two absolute temperatures. Rather than pick one
         // silently, say so; converting to K makes the intent explicit.
         if conversion.offset != RBig::ZERO {
-            return Err(QuantusError::DimensionMismatch(format!(
-                "{} and {} cannot be {verb} directly because one of them has a zero point of its own. \
-                 Convert both to the same unit first.",
+            return Err(QuantusError::DimensionMismatch(msg!("core.quantity.offset_units",
                 registry::describe(&context.unit),
                 registry::describe(&self.unit)
             )));

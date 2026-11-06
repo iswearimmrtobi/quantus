@@ -1,0 +1,545 @@
+//! The 2D layout of a [`Row`]: fractions stacked, exponents raised, roots drawn. Positions are in
+//! pixels, relative to the left end of a row's baseline, y downwards.
+
+use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::prelude::*;
+use embedded_graphics::primitives::{Polyline, PrimitiveStyle, Rectangle};
+
+use crate::editor::{Accent, Node, Row, THIN_SPACE};
+use crate::font::Scale;
+
+/// Characters that get a gap on both sides.
+const OPERATORS: &str = "+-=×÷±→⇒⇔≈≤≥≠∧∨∈∉∪∖▶";
+
+#[derive(Clone, Debug)]
+pub struct RowLayout {
+    pub scale: Scale,
+    pub width: i32,
+    pub ascent: i32,
+    pub descent: i32,
+    /// One per node of the row.
+    pub items: Vec<Item>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Item {
+    pub x: i32,
+    pub width: i32,
+    pub ascent: i32,
+    pub descent: i32,
+    pub kind: Kind,
+    /// The node's rows, each with its origin relative to the item's origin.
+    pub slots: Vec<(Point, RowLayout)>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Kind {
+    /// Text, starting `dx` right of the item's origin.
+    Text { text: String, dx: i32 },
+    /// A fraction bar.
+    Bar(Rectangle),
+    /// The lines of a root sign or an accent.
+    Sign([Point; 4]),
+    /// A sign the fonts lack, drawn as lines (`∈`, `⇒`, `→`), over a letter for `ℝ` and `ℤ`.
+    Strokes { text: Option<String>, lines: Vec<Vec<Point>> },
+    /// Only its slot: an exponent or index.
+    Script,
+    /// A bracket drawn as a curve over the item's height, grown to what it holds.
+    Paren { open: bool },
+    /// A bracket `width` wide at each side of the item, around its slots: nCr.
+    Brackets { width: i32 },
+}
+
+impl RowLayout {
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    pub fn height(&self) -> i32 {
+        self.ascent + self.descent
+    }
+
+    /// The area drawn when the row's origin is at `origin`.
+    pub fn bounds(&self, origin: Point) -> Rectangle {
+        Rectangle::new(
+            origin - Point::new(0, self.ascent),
+            Size::new(self.width.max(0) as u32, self.height().max(0) as u32),
+        )
+    }
+}
+
+/// Lays out `row`; `nested` is true inside a fraction, where fractions get small.
+pub fn layout(row: &Row, scale: Scale) -> RowLayout {
+    layout_nested(row, scale, false)
+}
+
+fn layout_nested(row: &Row, scale: Scale, nested: bool) -> RowLayout {
+    let metrics = scale.metrics();
+    if row.is_empty() {
+        // A box to type into.
+        return RowLayout {
+            scale,
+            width: metrics.digit * 2 / 3 + 2,
+            ascent: metrics.digit,
+            descent: 0,
+            items: Vec::new(),
+        };
+    }
+    let mut items: Vec<Item> = Vec::with_capacity(row.0.len());
+    let mut x = 0;
+    // The items of the brackets still open.
+    let mut open = Vec::new();
+    for (index, node) in row.0.iter().enumerate() {
+        let base_ascent = items.last().map_or(metrics.digit, |item| item.ascent);
+        // After an interval's bracket or a separator, a minus is a sign: `]-∞; -1]`.
+        let unary = index == 0 || matches!(row.0[index - 1], Node::Char(c) if "([];,".contains(c) || OPERATORS.contains(c));
+        let mut item = node_layout(node, scale, nested, base_ascent, unary);
+        item.x = x;
+        x += item.width;
+        items.push(item);
+        // A closed bracket grows before what follows it, so an exponent sits above it.
+        match node {
+            Node::Char('(') => open.push(index),
+            Node::Char(')') => {
+                let start = open.pop().unwrap_or(0);
+                grow(&mut items, start, index, scale);
+            }
+            _ => {}
+        }
+    }
+    // Open brackets reach to the end of the row.
+    while let Some(start) = open.pop() {
+        let last = items.len() - 1;
+        grow(&mut items, start, last, scale);
+    }
+    RowLayout {
+        scale,
+        width: x,
+        ascent: items.iter().map(|item| item.ascent).max().unwrap_or(0).max(metrics.digit),
+        descent: items.iter().map(|item| item.descent).max().unwrap_or(0),
+        items,
+    }
+}
+
+/// Makes the brackets among `items[first]` and `items[last]` as tall as what lies between them,
+/// when that is taller than the font's bracket.
+fn grow(items: &mut [Item], first: usize, last: usize, scale: Scale) {
+    let metrics = scale.metrics();
+    // Brackets and scripts do not count: an exponent may stick out, as after a single digit.
+    let counts = |item: &Item| match &item.kind {
+        Kind::Text { text, .. } => text != "(" && text != ")",
+        Kind::Paren { .. } | Kind::Script => false,
+        _ => true,
+    };
+    let inner = || items[first..=last].iter().filter(|item| counts(item));
+    let ascent = inner().map(|item| item.ascent).max().unwrap_or(0);
+    let descent = inner().map(|item| item.descent).max().unwrap_or(0);
+    if ascent <= metrics.ascent + 2 && descent <= metrics.descent + 2 {
+        return;
+    }
+    let (ascent, descent) = (ascent.max(metrics.ascent) + 1, descent.max(metrics.descent) + 1);
+    for index in [first, last] {
+        let item = &mut items[index];
+        let open = match &item.kind {
+            Kind::Text { text, .. } if text == "(" || text == ")" => text == "(",
+            Kind::Paren { open } => *open,
+            _ => continue,
+        };
+        item.kind = Kind::Paren { open };
+        item.ascent = ascent;
+        item.descent = descent;
+    }
+}
+
+/// The signs [`drawn`] draws.
+pub const DRAWN: &str = "∧∨∈∉∪∖→⇒⇔↗↘∅⌣⌢ℝℤℏ▶";
+
+/// A sign the fonts lack, drawn as lines around the math axis, about as tall as a digit.
+fn drawn(c: char, scale: Scale, unary: bool) -> Item {
+    let metrics = scale.metrics();
+    let gap = if OPERATORS.contains(c) && !unary { metrics.digit / 4 + 1 } else { 1 };
+    let height = metrics.digit * 4 / 5;
+    let (top, middle, bottom) = (-metrics.axis - height / 2, -metrics.axis, -metrics.axis + height / 2);
+    let p = Point::new;
+    // A half circle of radius r around (cx, cy), from the angle `from` through `sweep`, in degrees.
+    let arc = |cx: i32, cy: i32, r: i32, from: f32, sweep: f32| -> Vec<Point> {
+        (0..=8)
+            .map(|step| {
+                let angle = (from + sweep * step as f32 / 8.0).to_radians();
+                p(cx + (r as f32 * angle.cos()).round() as i32, cy - (r as f32 * angle.sin()).round() as i32)
+            })
+            .collect()
+    };
+    let half = height / 2;
+    let arrow = |length: i32| -> Vec<Vec<Point>> {
+        let (start, end) = (gap, gap + length);
+        vec![vec![p(start, middle), p(end, middle)], vec![p(end - 4, middle - 4), p(end, middle), p(end - 4, middle + 4)]]
+    };
+    let (text, width, lines) = match c {
+        '∧' => (None, 2 * half, vec![vec![p(gap, bottom), p(gap + half, top), p(gap + 2 * half, bottom)]]),
+        '∨' => (None, 2 * half, vec![vec![p(gap, top), p(gap + half, bottom), p(gap + 2 * half, top)]]),
+        '∈' | '∉' => {
+            let width = half * 3 / 2;
+            let mut lines = vec![
+                [vec![p(gap + width, top)], arc(gap + half, middle, half, 90.0, 180.0), vec![p(gap + width, bottom)]].concat(),
+                vec![p(gap, middle), p(gap + width - 1, middle)],
+            ];
+            if c == '∉' {
+                lines.push(vec![p(gap + width - 1, top - 2), p(gap + 1, bottom + 2)]);
+            }
+            (None, width, lines)
+        }
+        '∪' => {
+            let line = [vec![p(gap, top)], arc(gap + half, middle, half, 180.0, 180.0), vec![p(gap + 2 * half, top)]].concat();
+            (None, 2 * half, vec![line])
+        }
+        '∖' => (None, half, vec![vec![p(gap, top), p(gap + half, bottom)]]),
+        '→' => (None, metrics.digit, arrow(metrics.digit)),
+        '⇒' => {
+            let (start, end) = (gap, gap + metrics.digit);
+            let lines = vec![
+                vec![p(start, middle - 2), p(end - 3, middle - 2)],
+                vec![p(start, middle + 2), p(end - 3, middle + 2)],
+                vec![p(end - 5, middle - 5), p(end, middle), p(end - 5, middle + 5)],
+            ];
+            (None, metrics.digit, lines)
+        }
+        '⇔' => {
+            let (start, end) = (gap, gap + metrics.digit + 4);
+            let lines = vec![
+                vec![p(start + 3, middle - 2), p(end - 3, middle - 2)],
+                vec![p(start + 3, middle + 2), p(end - 3, middle + 2)],
+                vec![p(start + 5, middle - 5), p(start, middle), p(start + 5, middle + 5)],
+                vec![p(end - 5, middle - 5), p(end, middle), p(end - 5, middle + 5)],
+            ];
+            (None, metrics.digit + 4, lines)
+        }
+        // A smile and a frown: curved to the left and to the right, in a sign table.
+        '⌣' => (None, 2 * half, vec![arc(gap + half, middle - half / 2, half, 200.0, 140.0)]),
+        '⌢' => (None, 2 * half, vec![arc(gap + half, middle + half / 2, half, 20.0, 140.0)]),
+        '↗' | '↘' => {
+            let (from, to) = match c {
+                '↗' => (p(gap, bottom), p(gap + height, top)),
+                _ => (p(gap, top), p(gap + height, bottom)),
+            };
+            let back = if c == '↗' { 1 } else { -1 };
+            let head = vec![p(to.x - 5, to.y), to, p(to.x, to.y + 5 * back)];
+            (None, height, vec![vec![from, to], head])
+        }
+        // The conversion to a unit: a triangle pointing right, filled with upright strokes.
+        '▶' => {
+            let width = half * 3 / 2;
+            let lines = (0..=width)
+                .map(|x| {
+                    let reach = half * (width - x) / width;
+                    vec![p(gap + x, middle - reach), p(gap + x, middle + reach)]
+                })
+                .collect();
+            (None, width, lines)
+        }
+        '∅' => {
+            let circle = arc(gap + half, middle, half, 0.0, 360.0);
+            (None, 2 * half, vec![circle, vec![p(gap + 2 * half, top - 2), p(gap, bottom + 2)]])
+        }
+        // A capital with a second stroke beside its stem, or along its diagonal; an h with a bar
+        // through its stem.
+        _ => {
+            let letter = match c {
+                'ℝ' => "R",
+                'ℤ' => "Z",
+                _ => "h",
+            };
+            let width = scale.width(letter);
+            let cap = -metrics.digit;
+            let line = match c {
+                'ℝ' => vec![p(6, cap + 1), p(6, -1)],
+                'ℤ' => vec![p(width - 3, cap + 1), p(2, -1)],
+                _ => vec![p(0, cap * 2 / 3 + 1), p(width * 2 / 3, cap * 4 / 5)],
+            };
+            (Some(letter.to_string()), width - 2 * gap, vec![line])
+        }
+    };
+    Item {
+        x: 0,
+        width: width + 2 * gap + 1,
+        ascent: metrics.ascent,
+        descent: metrics.descent,
+        kind: Kind::Strokes { text, lines },
+        slots: Vec::new(),
+    }
+}
+
+fn text_item(text: String, dx: i32, width: i32, scale: Scale) -> Item {
+    let metrics = scale.metrics();
+    Item {
+        x: 0,
+        width,
+        ascent: metrics.ascent,
+        descent: metrics.descent,
+        kind: Kind::Text { text, dx },
+        slots: Vec::new(),
+    }
+}
+
+/// `base_ascent` is how far what comes before reaches up, for placing an exponent; `unary` says
+/// that an operator here is a sign and gets no gaps.
+fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary: bool) -> Item {
+    let metrics = scale.metrics();
+    let small = Scale::Small.metrics();
+    match node {
+        Node::Char(c) if DRAWN.contains(*c) => drawn(*c, scale, unary),
+        // The fonts have no thin space: a gap of its width.
+        Node::Char(THIN_SPACE) => text_item(String::new(), 0, metrics.digit / 3, scale),
+        Node::Char(c) => {
+            let text = c.to_string();
+            let gap = if OPERATORS.contains(*c) && !unary { metrics.digit / 4 } else { 0 };
+            let width = scale.width(&text) + 2 * gap;
+            text_item(text, gap, width, scale)
+        }
+        Node::Func(name) => text_item(name.clone(), 0, scale.width(name) + 2, scale),
+        Node::Upright(text) => text_item(text.clone(), 0, scale.width(text), scale),
+        Node::Pow(exponent) => {
+            let exponent = layout_nested(exponent, Scale::Small, nested);
+            let rise = base_ascent.max(metrics.digit) - small.digit / 2;
+            script(exponent, -rise)
+        }
+        Node::Sub(index) => script(layout_nested(index, Scale::Small, nested), small.digit / 2),
+        Node::Frac(numerator, denominator) => {
+            let part = if nested { Scale::Small } else { scale };
+            let numerator = layout_nested(numerator, part, true);
+            let denominator = layout_nested(denominator, part, true);
+            let pad = 2;
+            let gap = 2;
+            let inner = numerator.width.max(denominator.width) + 2 * pad;
+            let bar_y = -metrics.axis;
+            let numerator_at =
+                Point::new(1 + (inner - numerator.width) / 2, bar_y - gap - numerator.descent);
+            let denominator_at =
+                Point::new(1 + (inner - denominator.width) / 2, bar_y + 1 + gap + denominator.ascent);
+            Item {
+                x: 0,
+                width: inner + 2,
+                ascent: numerator.ascent - numerator_at.y,
+                descent: denominator_at.y + denominator.descent,
+                kind: Kind::Bar(Rectangle::new(Point::new(1, bar_y), Size::new(inner as u32, 1))),
+                slots: vec![(numerator_at, numerator), (denominator_at, denominator)],
+            }
+        }
+        Node::Binom(n, r) => {
+            let part = if nested { Scale::Small } else { scale };
+            let (n, r) = (layout_nested(n, part, true), layout_nested(r, part, true));
+            let bracket = metrics.digit / 2 + 2;
+            let inner = n.width.max(r.width) + 4;
+            let middle = -metrics.axis;
+            let n_at = Point::new(bracket + (inner - n.width) / 2, middle - 2 - n.descent);
+            let r_at = Point::new(bracket + (inner - r.width) / 2, middle + 2 + r.ascent);
+            Item {
+                x: 0,
+                width: inner + 2 * bracket,
+                ascent: n.ascent - n_at.y + 1,
+                descent: r_at.y + r.descent + 1,
+                kind: Kind::Brackets { width: bracket },
+                slots: vec![(n_at, n), (r_at, r)],
+            }
+        }
+        Node::Matrix(rows) => matrix(rows, if nested { Scale::Small } else { scale }, metrics),
+        Node::Sqrt(radicand) => root(None, layout_nested(radicand, scale, nested), scale),
+        Node::Root(index, radicand) => {
+            let index = layout_nested(index, Scale::Small, nested);
+            root(Some(index), layout_nested(radicand, scale, nested), scale)
+        }
+        Node::Accent(accent, row) => accent_item(*accent, layout_nested(row, scale, nested)),
+    }
+}
+
+/// A matrix: its cells centred in their columns, its rows one under the other around the math
+/// axis, in brackets as tall as it is. The slots are the cells, row by row.
+fn matrix(rows: &[Vec<Row>], part: Scale, metrics: crate::font::Metrics) -> Item {
+    const GAP: i32 = 12;
+    let cells: Vec<Vec<RowLayout>> = rows.iter().map(|row| row.iter().map(|cell| layout_nested(cell, part, true)).collect()).collect();
+    let columns = cells.iter().map(Vec::len).max().unwrap_or(0);
+    let widths: Vec<i32> = (0..columns).map(|j| cells.iter().filter_map(|row| row.get(j)).map(|cell| cell.width).max().unwrap_or(0)).collect();
+    let heights: Vec<(i32, i32)> = cells
+        .iter()
+        .map(|row| (row.iter().map(|cell| cell.ascent).max().unwrap_or(0), row.iter().map(|cell| cell.descent).max().unwrap_or(0)))
+        .collect();
+    let height = heights.iter().map(|(ascent, descent)| ascent + descent).sum::<i32>() + 2 * (heights.len() as i32 - 1).max(0);
+    let top = -metrics.axis - height / 2;
+    let bracket = metrics.digit / 2 + 2;
+    let inner = widths.iter().sum::<i32>() + GAP * (columns as i32 - 1).max(0);
+    let mut slots = Vec::new();
+    let mut y = top;
+    for (row, &(ascent, descent)) in cells.into_iter().zip(&heights) {
+        let mut x = bracket + 3;
+        for (cell, &width) in row.into_iter().zip(&widths) {
+            let at = Point::new(x + (width - cell.width) / 2, y + ascent);
+            slots.push((at, cell));
+            x += width + GAP;
+        }
+        y += ascent + descent + 2;
+    }
+    Item {
+        x: 0,
+        width: inner + 2 * bracket + 6,
+        ascent: -top + 1,
+        descent: top + height + 1,
+        kind: Kind::Brackets { width: bracket },
+        slots,
+    }
+}
+
+/// A bar or a hat over `row`, just above a small letter's height.
+fn accent_item(accent: Accent, row: RowLayout) -> Item {
+    let metrics = row.scale.metrics();
+    // Over a lower-case letter: about the height of a digit's upper part.
+    let top = -(metrics.digit * 4 / 5) - 3;
+    let (left, right) = (1, row.width.max(4));
+    let points = match accent {
+        Accent::Bar => [Point::new(left, top), Point::new(right, top), Point::new(right, top), Point::new(right, top)],
+        Accent::Hat => {
+            let middle = (left + right) / 2;
+            [Point::new(left, top + 1), Point::new(middle, top - 2), Point::new(right, top + 1), Point::new(right, top + 1)]
+        }
+    };
+    Item {
+        x: 0,
+        width: row.width + 1,
+        ascent: row.ascent.max(-top + 3),
+        descent: row.descent,
+        kind: Kind::Sign(points),
+        slots: vec![(Point::zero(), row)],
+    }
+}
+
+fn script(row: RowLayout, dy: i32) -> Item {
+    Item {
+        x: 0,
+        width: row.width + 1,
+        ascent: row.ascent - dy,
+        descent: row.descent + dy,
+        kind: Kind::Script,
+        slots: vec![(Point::new(0, dy), row)],
+    }
+}
+
+fn root(index: Option<RowLayout>, radicand: RowLayout, scale: Scale) -> Item {
+    let metrics = scale.metrics();
+    let sign = metrics.digit / 2 + 2;
+    let top = -(radicand.ascent + 3);
+    let bottom = radicand.descent.max(1);
+    // The index sits over the short stroke and may push the sign to the right.
+    let lead = index.as_ref().map_or(0, |index| (index.width - sign / 2).max(0));
+    let points = [
+        Point::new(lead, -metrics.axis),
+        Point::new(lead + sign / 3, bottom),
+        Point::new(lead + sign, top),
+        Point::new(lead + sign + radicand.width + 3, top),
+    ];
+    let mut ascent = -top + 1;
+    let mut slots = vec![(Point::new(lead + sign + 2, 0), radicand)];
+    if let Some(index) = index {
+        let at = Point::new(0, -metrics.axis - 2 - index.descent);
+        ascent = ascent.max(index.ascent - at.y);
+        slots.insert(0, (at, index));
+    }
+    Item {
+        x: 0,
+        width: points[3].x + 1,
+        ascent,
+        descent: bottom + 1,
+        kind: Kind::Sign(points),
+        slots,
+    }
+}
+
+/// The caret for a cursor at `pos` in the row the `path` leads to, with the layout's origin at
+/// `origin`.
+pub fn caret(row: &RowLayout, origin: Point, path: &[(usize, usize)], pos: usize) -> Rectangle {
+    if let Some((&(index, slot), rest)) = path.split_first() {
+        let item = &row.items[index];
+        let (offset, inner) = &item.slots[slot];
+        return caret(inner, origin + Point::new(item.x, 0) + *offset, rest, pos);
+    }
+    let x = row.items.get(pos).map_or(row.width, |item| item.x);
+    let x = if row.is_empty() { 1 } else { x };
+    let metrics = row.scale.metrics();
+    Rectangle::new(
+        origin + Point::new(x - 1, -metrics.ascent),
+        Size::new(2, (metrics.ascent + metrics.descent) as u32),
+    )
+}
+
+/// Draws the row with its origin at `origin`; empty rows as a box in `placeholder`.
+pub fn draw<D: DrawTarget<Color = Rgb565>>(
+    row: &RowLayout,
+    origin: Point,
+    color: Rgb565,
+    placeholder: Rgb565,
+    target: &mut D,
+) {
+    if row.is_empty() {
+        let bounds = row.bounds(origin);
+        let bounds = Rectangle::new(bounds.top_left + Point::new(1, 0), bounds.size - Size::new(2, 0));
+        let _ = bounds.into_styled(PrimitiveStyle::with_stroke(placeholder, 1)).draw(target);
+        return;
+    }
+    for item in &row.items {
+        let at = origin + Point::new(item.x, 0);
+        match &item.kind {
+            Kind::Text { text, dx } => row.scale.draw(text, at + Point::new(*dx, 0), color, target),
+            Kind::Bar(bar) => {
+                let _ = bar.translate(at).into_styled(PrimitiveStyle::with_fill(color)).draw(target);
+            }
+            Kind::Sign(points) => {
+                let line = Polyline::new(points).translate(at);
+                let _ = line.into_styled(PrimitiveStyle::with_stroke(color, 1)).draw(target);
+            }
+            Kind::Strokes { text, lines } => {
+                if let Some(text) = text {
+                    row.scale.draw(text, at, color, target);
+                }
+                // As thick as the font's strokes.
+                let width = if row.scale == Scale::Normal { 2 } else { 1 };
+                for line in lines {
+                    let line = Polyline::new(line).translate(at);
+                    let _ = line.into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
+                }
+            }
+            Kind::Script => {}
+            Kind::Paren { open } => paren(*open, item, at, row.scale, color, target),
+            &Kind::Brackets { width } => {
+                let side = Item { width, kind: Kind::Script, slots: Vec::new(), ..*item };
+                paren(true, &side, at, row.scale, color, target);
+                paren(false, &side, at + Point::new(item.width - width, 0), row.scale, color, target);
+            }
+        }
+        for (offset, slot) in &item.slots {
+            draw(slot, at + *offset, color, placeholder, target);
+        }
+    }
+}
+
+/// A bracket over the item's whole height: a flat parabola, thickest in the middle like the font's.
+fn paren<D: DrawTarget<Color = Rgb565>>(
+    open: bool,
+    item: &Item,
+    at: Point,
+    scale: Scale,
+    color: Rgb565,
+    target: &mut D,
+) {
+    const STEPS: i32 = 16;
+    let top = at.y - item.ascent + 1;
+    let height = item.ascent + item.descent - 2;
+    let (inner, outer) = (at.x + 1, at.x + item.width - 2);
+    let (inner, outer) = if open { (inner, outer) } else { (outer, inner) };
+    let points: Vec<Point> = (0..=STEPS)
+        .map(|step| {
+            let t = 2 * step - STEPS;
+            let x = inner + (outer - inner) * t * t / (STEPS * STEPS);
+            Point::new(x, top + height * step / STEPS)
+        })
+        .collect();
+    let width = if scale == Scale::Normal { 2 } else { 1 };
+    let _ = Polyline::new(&points).into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
+}

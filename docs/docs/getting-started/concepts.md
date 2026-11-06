@@ -18,9 +18,15 @@ the product $2 \cdot g \cdot k$ in Algebra.
 | **Algebra** | variables | unknown | a variable |
 | **Imaginary** | variables | unknown | the imaginary unit |
 | **Analysis** | variables, as in Algebra | unknown | a variable |
+| **Linear systems** | unknowns; session variables are not used | unknown | an unknown, or the imaginary unit with the switch on |
+| **Electronics** | values typed into the circuit's parts, read as in Physics | known | a variable |
+| **Kirchhoff** | values typed into the circuit's parts, read as in Physics | known | a variable |
+| **Geometry** | variables, as in Algebra; points, vectors, lines and planes are named objects of their own | unknown | a variable |
+| **Base-N** | hexadecimal digits A–F, the logic words and the prefixes d, h, b, o | unknown | not used |
+| **Verify** | variables, as in Algebra | unknown | a variable |
 
-Switch the mode in the top bar or under **Settings → Mode**. An example under the empty input
-shows what fits the current mode.
+Switch the mode in the top bar; hovering a mode shows what it does. An example under the empty
+input shows what fits the current mode.
 
 ## Variables carry an index
 
@@ -49,7 +55,7 @@ Three settings under **Settings → Input** change how letters are read:
 
 Everything you define lives in the current session and shows up in the **Variables** panel. The
 **History** panel (<kbd>Ctrl</kbd>+<kbd>H</kbd>) keeps the calculations. Delete a variable from
-the panel to forget it. See [Variables and history](../guides/variables-and-history.md).
+the panel to forget it. See [Variables and history](../basics/variables-and-history.md).
 
 ## Numbers are exact
 
@@ -71,4 +77,4 @@ at most 30. See [Known limits](../reference/limits.md).
 Each result comes with its steps, labelled SYMBOLIC (the formula as entered), SUBSTITUTED (the
 variables put in), STEP (one rule each) and RESULT. How many steps you see is the
 **Step detail** setting, from *None* to *Maximal*; see
-[Working and output](../guides/working-and-output.md).
+[Working and output](../basics/working-and-output.md).

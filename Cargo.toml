@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["crates/quantus-core", "desktop/src-tauri"]
+members = ["crates/quantus-core", "crates/quantus-texts", "crates/quantus-texts-macros", "desktop/src-tauri", "firmware/engine", "firmware/mirror", "firmware/ui"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/iswearimmrtobi/quantus"

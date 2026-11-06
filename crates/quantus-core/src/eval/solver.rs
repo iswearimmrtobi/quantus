@@ -1,25 +1,32 @@
 //! Equations with one unknown: `x^2 - 5x + 6 = 0`.
 //!
-//! The unknown is the single variable without a subscript that has no value; it is a plain
-//! number, so an equation whose sides differ in dimension is an error as anywhere else.
+//! The unknown is the single variable without a subscript that has no value. It carries the
+//! unit that makes the two sides agree (`9\,\mathrm{kg} \cdot x = 54\,\mathrm{N}` gives
+//! `x = 6\,\frac{\mathrm{m}}{\mathrm{s}^{2}}`), or none; an equation no such unit can balance
+//! (`x + 1 = 2\,\mathrm{m}`) is a dimension error as anywhere else.
 //!
 //! Polynomials up to degree two are solved exactly. The coefficients are read off by
 //! evaluating at a few points and checked at others, which also covers `\pi x = 3` and
-//! `\sqrt{2} x^2 = 4`. Anything else is solved numerically: the equation is scanned on
-//! [-100, 100], each sign change is refined by bisection and each interior minimum of the
-//! residual's magnitude by a shrinking-interval search, which finds roots the residual only
-//! touches (`|x - 2| = 0`). A point where the equation is undefined (`1/x` at 0) is sampled
-//! just beside it, so a root next to it is still bracketed.
+//! `\sqrt{2} x^2 = 4`. Polynomials of higher degree with rational coefficients go to
+//! [`super::polynomial`]: exact up to degree four, and numerically beyond that, on the whole
+//! real line. Anything else is solved numerically: the equation is scanned on [-100, 100], each
+//! sign change is refined by bisection and each interior minimum of the residual's magnitude by
+//! a shrinking-interval search, which finds roots the residual only touches (`|x - 2| = 0`). A
+//! point where the equation is undefined (`1/x` at 0) is sampled just beside it, so a root next
+//! to it is still bracketed.
 
 use dashu::base::Abs;
 use dashu::integer::{IBig, UBig};
 use dashu::rational::RBig;
 
 use super::evaluator::Evaluator;
+use super::polynomial;
 use crate::latex::Node;
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
+use crate::units::Unit;
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 const SCAN_LIMIT: i64 = 100;
 const SCAN_STEPS_PER_UNIT: i64 = 4;
@@ -36,36 +43,119 @@ pub struct Solutions {
 
 impl Evaluator<'_> {
     pub fn solve(&self, equation: &Node) -> Result<Solutions> {
-        let Node::Equation { left, right, .. } = equation else {
-            return Err(QuantusError::other("Only an equation can be solved."));
-        };
-        let variable = self.unknown(equation)?;
+        self.solve_for(equation, None, None)
+    }
 
+    /// Solves for `target`, or for the one unknown when it is `None`. Every other letter must
+    /// have a value. Without an exact method, a `start` value runs Newton's method from there
+    /// instead of the scan.
+    pub fn solve_for(&self, equation: &Node, target: Option<&str>, start: Option<&Value>) -> Result<Solutions> {
+        let Node::Equation { left, right, .. } = equation else {
+            return Err(QuantusError::other(msg!("core.eval.solver.only_equation_can_solved")));
+        };
+        let variable = match target {
+            None => self.unknown(equation)?,
+            Some(target) => {
+                let mut found = Vec::new();
+                collect_unknowns(equation, true, &mut Vec::new(), self, &mut found);
+                let others: Vec<&String> = found.iter().filter(|key| key.as_str() != target).collect();
+                if !others.is_empty() {
+                    let names: Vec<&str> = others.iter().map(|key| key.as_str()).collect();
+                    return Err(QuantusError::other(msg!("core.eval.solver.give_value_first", names.join(", "))));
+                }
+                target.to_string()
+            }
+        };
+
+        // The unknown may carry a unit (F = m a for a): the one that makes the two sides agree.
+        let unit = self.unit_of_unknown(&variable, left, right);
         let mut scope = self.variables.clone();
         let mut residual = |x: Value| -> Result<PhysicalQuantity> {
-            scope.insert(variable.clone(), PhysicalQuantity::dimensionless(x));
+            scope.insert(variable.clone(), PhysicalQuantity::new(x, unit.clone()));
             let evaluator = self.scoped_over(&scope);
             evaluator.evaluate(left)?.sub(&evaluator.evaluate(right)?)
         };
 
         let roots = match polynomial_roots(&mut residual, self.complex())? {
             Some(roots) => roots,
-            None => self.numeric_roots(&mut residual, &variable)?,
+            None => match higher_polynomial(&mut residual)? {
+                Some(coefficients) => {
+                    let roots = polynomial::roots(&coefficients, self.complex(), self.precision)?;
+                    if roots.is_empty() {
+                        return Err(QuantusError::other(msg!("core.eval.solver.equation_has_no_real_solution")));
+                    }
+                    roots
+                }
+                None => match start {
+                    Some(start) => vec![self.newton(&mut residual, &variable, start)?],
+                    None => self.numeric_roots(&mut residual, &variable)?,
+                },
+            },
         };
-        Ok(Solutions { variable, values: roots.into_iter().map(PhysicalQuantity::dimensionless).collect() })
+        Ok(Solutions { variable, values: roots.into_iter().map(|root| PhysicalQuantity::new(root, unit.clone())).collect() })
+    }
+
+    /// The unit that makes both sides of the equation compatible when `variable` carries it:
+    /// none, or the quotient of the sides' units either way round.
+    fn unit_of_unknown(&self, variable: &str, left: &Node, right: &Node) -> Unit {
+        let sides = |unit: &Unit| -> Option<(PhysicalQuantity, PhysicalQuantity)> {
+            let mut scope = self.variables.clone();
+            scope.insert(variable.to_string(), PhysicalQuantity::new(Value::one(), unit.clone()));
+            let evaluator = self.scoped_over(&scope);
+            Some((evaluator.evaluate(left).ok()?, evaluator.evaluate(right).ok()?))
+        };
+        let Some((l, r)) = sides(&Unit::ONE) else { return Unit::ONE };
+        if l.unit.is_compatible(&r.unit) {
+            return Unit::ONE;
+        }
+        for candidate in [l.unit.divide(&r.unit), r.unit.divide(&l.unit)] {
+            if let Some((l, r)) = sides(&candidate) {
+                if l.unit.is_compatible(&r.unit) {
+                    return candidate;
+                }
+            }
+        }
+        Unit::ONE
+    }
+
+    /// Newton's method from `start`, with the slope from a central difference.
+    fn newton(&self, residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>, variable: &str, start: &Value) -> Result<Value> {
+        let digits = self.precision + 10;
+        let number = |q: PhysicalQuantity| -> Result<RBig> { Ok(q.value.decimal(digits)?.to_rational()) };
+        let mut x = start.decimal(digits)?.to_rational();
+        let h = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits / 2 + 2));
+        let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(self.precision + 3));
+        let failed = || QuantusError::other(msg!("core.eval.solver.newton_failed"));
+        for _ in 0..200 {
+            let f = number(residual(Value::Rat(x.clone()))?)?;
+            if f == RBig::ZERO {
+                return Ok(Value::from_decimal(&Value::Rat(x).decimal(self.precision)?));
+            }
+            let up = number(residual(Value::Rat(&x + &h))?)?;
+            let down = number(residual(Value::Rat(&x - &h))?)?;
+            let slope = (up - down) / (RBig::from(2) * &h);
+            if slope == RBig::ZERO {
+                return Err(failed());
+            }
+            let step = &f / &slope;
+            x = Value::Rat(&x - &step).decimal(digits)?.to_rational();
+            if step.abs() < tolerance {
+                return Ok(Value::from_decimal(&Value::Rat(x).decimal(self.precision)?));
+            }
+        }
+        Err(failed())
     }
 
     /// The one free, unindexed variable of the equation.
     fn unknown(&self, equation: &Node) -> Result<String> {
         let mut found = Vec::new();
-        collect_unknowns(equation, &mut Vec::new(), self, &mut found);
+        collect_unknowns(equation, false, &mut Vec::new(), self, &mut found);
         match found.as_slice() {
             [] => Err(QuantusError::other(
-                "The equation has no unknown to solve for. Use a letter such as x without a value.",
+                msg!("core.eval.solver.no_unknown"),
             )),
             [one] => Ok(one.clone()),
-            many => Err(QuantusError::other(format!(
-                "The equation has more than one unknown ({}); only one can be solved for.",
+            many => Err(QuantusError::other(msg!("core.eval.solver.several_unknowns",
                 many.join(", ")
             ))),
         }
@@ -98,8 +188,7 @@ impl Evaluator<'_> {
         )?;
 
         if roots.is_empty() {
-            return Err(QuantusError::other(format!(
-                "No solution for {variable} found between -{SCAN_LIMIT} and {SCAN_LIMIT}."
+            return Err(QuantusError::other(msg!("core.eval.solver.no_solution_in_range"
             )));
         }
         roots.sort_by_key(|root| root.clone().abs());
@@ -256,6 +345,19 @@ fn touch(
     Ok((magnitude <= *accept).then_some(root))
 }
 
+/// The coefficients when the residual is a polynomial of degree three to
+/// [`polynomial::MAX_DEGREE`] with rational coefficients.
+fn higher_polynomial(residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>) -> Result<Option<Vec<RBig>>> {
+    let mut at = |x: &RBig| -> Result<Option<RBig>> {
+        match residual(Value::Rat(x.clone())) {
+            Ok(q) => Ok(q.value.as_rational().cloned()),
+            Err(e @ (QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_))) => Err(e),
+            Err(_) => Ok(None),
+        }
+    };
+    Ok(polynomial::fit(&mut at)?.filter(|coefficients| coefficients.len() > 3))
+}
+
 /// Exact roots when the residual is a polynomial of degree at most two, `None` otherwise.
 fn polynomial_roots(
     residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>,
@@ -289,9 +391,9 @@ fn polynomial_roots(
     if a.is_zero() {
         if b.is_zero() {
             return Err(QuantusError::other(if c.is_zero() {
-                "Every number solves this equation."
+                msg!("core.eval.solver.every_number_solves_equation")
             } else {
-                "This equation has no solution."
+                msg!("core.eval.solver.equation_has_no_solution")
             }));
         }
         return Ok(Some(vec![c.neg().div(&b)?]));
@@ -310,7 +412,7 @@ fn polynomial_roots(
             let im = if im.is_negative()? { im.neg() } else { im };
             return Ok(Some(vec![re.sub(&im.mul(&Value::I)), re.add(&im.mul(&Value::I))]));
         }
-        return Err(QuantusError::other("This equation has no real solution."));
+        return Err(QuantusError::other(msg!("core.eval.solver.equation_has_no_real_solution")));
     }
     let root = discriminant.pow(&Value::ratio(1, 2))?;
     let two_a = a.mul(&Value::int(2));
@@ -323,29 +425,48 @@ fn polynomial_roots(
     Ok(Some(keyed.into_iter().map(|(_, value)| value).collect()))
 }
 
-/// Variables without index and without value, outside whatever binds them.
-pub(super) fn collect_unknowns(node: &Node, bound: &mut Vec<String>, evaluator: &Evaluator, found: &mut Vec<String>) {
+/// Variables without value and without index, outside whatever binds them, by session key. In a
+/// system (`system`) a variable with an index counts too: `x_1` is an unknown there, while a
+/// single equation leaves `v_1` and `t_1` to the physics.
+pub(crate) fn collect_unknowns(
+    node: &Node,
+    system: bool,
+    bound: &mut Vec<String>,
+    evaluator: &Evaluator,
+    found: &mut Vec<String>,
+) {
     match node {
-        Node::Variable { name, index, .. } if index.is_empty() => {
-            if !bound.contains(name)
-                && !evaluator.variables.contains_key(name)
-                && !found.contains(name)
-                && evaluator.physical_constant(name).is_none()
+        Node::Variable { name, index, .. } if system || index.is_empty() => {
+            let key = Node::variable_key(name, index);
+            if !bound.contains(&key)
+                && !evaluator.variables.contains_key(&key)
+                && !found.contains(&key)
+                && evaluator.physical_constant(&key).is_none()
             {
-                found.push(name.clone());
+                found.push(key);
             }
         }
-        Node::Sum { index: name, .. } | Node::Integral { variable: name, .. } | Node::Limit { variable: name, .. }
-        | Node::Derivative { variable: name, .. } => {
+        // The point's values belong to the outside; the body sees the variables they bind.
+        Node::Derivative { variable, body, at, given, .. } => {
+            for value in at.as_deref().into_iter().chain(given.iter().map(|(_, value)| value)) {
+                collect_unknowns(value, system, bound, evaluator, found);
+            }
+            let before = bound.len();
+            bound.push(variable.clone());
+            bound.extend(given.iter().map(|(name, _)| name.clone()));
+            collect_unknowns(body, system, bound, evaluator, found);
+            bound.truncate(before);
+        }
+        Node::Sum { index: name, .. } | Node::Integral { variable: name, .. } | Node::Limit { variable: name, .. } => {
             bound.push(name.clone());
             for child in node.children() {
-                collect_unknowns(child, bound, evaluator, found);
+                collect_unknowns(child, system, bound, evaluator, found);
             }
             bound.pop();
         }
         other => {
             for child in other.children() {
-                collect_unknowns(child, bound, evaluator, found);
+                collect_unknowns(child, system, bound, evaluator, found);
             }
         }
     }

@@ -81,12 +81,12 @@ fn prepare(latex: &str, variable: Option<&str>, settings: &Settings, precision: 
 fn parse_number(latex: &str, settings: &Settings, what: &str) -> Result<Point> {
     let options = Settings { mode: Mode::Algebra, ..settings.clone() }.parse_options();
     let node = parser::parse_with(latex, &options)?.expression;
-    let not_a_number = || QuantusError::other(msg!("{} must be a number.", "{} muss eine Zahl sein.", what));
+    let not_a_number = || QuantusError::other(msg!("core.analysis.tasks.must_number", what));
     let e = Expr::from_node(&node, "\u{0}").map_err(|_| not_a_number())?;
     if !e.is_constant() {
         return Err(not_a_number());
     }
-    Point::exact(simplify(&e)).ok_or_else(|| QuantusError::other(msg!("{} is not a real number.", "{} ist keine reelle Zahl.", what)))
+    Point::exact(simplify(&e)).ok_or_else(|| QuantusError::other(msg!("core.analysis.tasks.not_real_number", what)))
 }
 
 /// Tangent and normal to the graph at `x0`.
@@ -99,8 +99,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     let x = parse_number(x0, settings, "x_0")?;
     let not_differentiable = || {
         QuantusError::other(msg!(
-            "f is not differentiable at x_0 = {}.",
-            "f ist an der Stelle x_0 = {} nicht differenzierbar.",
+            "core.analysis.tasks.not_differentiable",
             x.to_latex(p.digits)
         ))
     };
@@ -116,8 +115,8 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     }
     let m = Point::exact(simplify(&f1.substitute(&at))).ok_or_else(not_differentiable)?;
     let (x_tex, y_tex, m_tex) = (x.to_latex(p.digits), y.to_latex(p.digits), m.to_latex(p.digits));
-    let point = msg!("Point on the graph", "Punkt auf dem Graphen");
-    let slope = msg!("Slope: the derivative at x_0", "Steigung: die Ableitung an der Stelle x_0");
+    let point = msg!("core.analysis.tasks.point_graph");
+    let slope = msg!("core.analysis.tasks.slope_is_derivative");
     let mut steps = Vec::new();
     steps.extend(written_out(
         step(AnalysisRule::Tangent, point.clone(), format!("f({x_tex}) = {y_tex}")),
@@ -138,17 +137,17 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
     let (t, t_intercept) = line(&m_exact);
     steps.push(step(
         AnalysisRule::Tangent,
-        msg!("Tangent: t(x) = f'(x_0)(x - x_0) + f(x_0), values put in", "Tangente: t(x) = f'(x_0)(x - x_0) + f(x_0), Werte eingesetzt"),
+        msg!("core.analysis.tasks.tangent_equation"),
         format!("t({var}) = {m_tex} \\cdot ({var} - {}) + {}", bracket(&x_tex), bracket(&y_tex)),
     ));
     let simplified = format!("t({var}) = {}", tex(&display(&t, settings)));
     let raw = Expr::Sum(vec![Expr::Product(vec![m_exact.clone(), Expr::Sum(vec![Expr::Var, Expr::neg(at.clone())])]), y.exact.clone().unwrap()]);
     steps.extend(super::simplify::working(&raw, var, &format!("t({var}) = "), &simplified, settings));
-    steps.push(step(AnalysisRule::Simplify, msg!("Simplify", "Zusammenfassen"), simplified));
+    steps.push(step(AnalysisRule::Simplify, msg!("core.analysis.tasks.simplify"), simplified));
     let tangent = Line::Sloped { slope: m_exact.clone(), intercept: t_intercept, latex: format!("t({var}) = {}", tex(&display(&t, settings))) };
     let normal = if is_zero(&m_exact) {
         let latex = format!("{var} = {x_tex}");
-        steps.push(step(AnalysisRule::Normal, msg!("The tangent is horizontal, so the normal is vertical", "Die Tangente ist waagrecht, also ist die Normale senkrecht"), latex.clone()));
+        steps.push(step(AnalysisRule::Normal, msg!("core.analysis.tasks.tangent_horizontal_normal_vertical"), latex.clone()));
         Line::Vertical { x: x.clone(), latex }
     } else {
         let slope = simplify(&Expr::neg(Expr::recip(m_exact)));
@@ -156,10 +155,10 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
         let shown = tex(&display(&n, settings));
         let slope_tex = Point::exact(slope.clone()).map(|s| s.to_latex(p.digits)).unwrap_or_else(|| tex(&slope));
         let latex = format!("-\\frac{{1}}{{m}} = -\\frac{{1}}{{{m_tex}}} = {slope_tex}");
-        steps.push(step(AnalysisRule::Normal, msg!("Slope of the normal", "Steigung der Normalen"), latex).with_level(StepDetail::Standard));
+        steps.push(step(AnalysisRule::Normal, msg!("core.analysis.tasks.slope_normal"), latex).with_level(StepDetail::Standard));
         steps.push(step(
             AnalysisRule::Normal,
-            msg!("Normal: slope -1/m", "Normale: Steigung -1/m"),
+            msg!("core.analysis.tasks.normal_slope"),
             format!("n({var}) = -\\frac{{1}}{{{m_tex}}} \\cdot ({var} - {}) + {} = {shown}", bracket(&x_tex), bracket(&y_tex)),
         ));
         Line::Sloped { slope, intercept: n_intercept, latex: format!("n({var}) = {shown}") }
@@ -177,8 +176,8 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, settings, precision)?;
     let var = p.var.as_str();
-    let improper = || QuantusError::other(msg!("Improper integral, not supported yet.", "Uneigentliches Integral, noch nicht unterstützt."));
-    let enter_bounds = || QuantusError::other(msg!("Please enter the bounds.", "Bitte Grenzen angeben."));
+    let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral"));
+    let enter_bounds = || QuantusError::other(msg!("core.analysis.tasks.please_enter_bounds"));
     let infinite = |bound: Option<&str>| bound.is_some_and(|b| b.contains("\\infty") || b.contains('∞'));
     if infinite(from) || infinite(to) {
         return Err(improper());
@@ -218,11 +217,11 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let mut steps = Vec::new();
     if cuts.len() > 2 {
         let inner: Vec<String> = cuts[1..cuts.len() - 1].iter().map(|z| z.to_latex(d)).collect();
-        steps.push(step(AnalysisRule::Area, msg!("Zeros inside the interval split it", "Nullstellen im Intervall teilen es auf"), format!("{var} = {}", inner.join(", \\ "))));
+        steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.zeros_inside_interval_split"), format!("{var} = {}", inner.join(", \\ "))));
     }
     let primitive = antiderivative(&p.f, &IntegrateContext { settings, var, domain: &p.domain }).map(|i| i.result);
     if let Some(big_f) = &primitive {
-        steps.push(step(AnalysisRule::Area, msg!("Antiderivative", "Stammfunktion"), format!("F({var}) = {}", big_f.to_latex(var))));
+        steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.antiderivative"), format!("F({var}) = {}", big_f.to_latex(var))));
     }
     let mut parts: Vec<Point> = Vec::new();
     let mut regions = Vec::new();
@@ -232,7 +231,7 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
             Some(big_f) => exact_integral(big_f, lo, hi).or_else(|| numeric_integral(&p.f, lo, hi, d)),
             None => numeric_integral(&p.f, lo, hi, d),
         }
-        .ok_or_else(|| QuantusError::other(msg!("The integral could not be computed.", "Das Integral konnte nicht berechnet werden.")))?;
+        .ok_or_else(|| QuantusError::other(msg!("core.analysis.tasks.integral_could_not_computed")))?;
         let bounds = format!("\\int_{{{}}}^{{{}}} f({var}) \\, d{var}", lo.to_latex(d), hi.to_latex(d));
         let shown = if value.exact.is_some() { value.to_latex(d) } else { format!("\\approx {}", value.to_latex(d)) };
         let latex = match &primitive {
@@ -243,9 +242,9 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
         if let (Some(big_f), Some(lo_exact), Some(hi_exact), Some(_)) = (&primitive, &lo.exact, &hi.exact, &value.exact) {
             let put = |at: &Expr| format!("\\left({}\\right)", put_in(big_f, at, var));
             let latex = format!("A_{{{}}} = F({}) - F({}) = {} - {}", i + 1, hi.to_latex(d), lo.to_latex(d), put(hi_exact), put(lo_exact));
-            steps.push(step(AnalysisRule::Area, msg!("Upper minus lower bound", "Obere minus untere Grenze"), latex).with_level(StepDetail::Standard));
+            steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.upper_minus_lower_bound"), latex).with_level(StepDetail::Standard));
         }
-        steps.push(step(AnalysisRule::Area, msg!("Integral over the part", "Integral über das Teilstück"), latex));
+        steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.integral_over_part"), latex));
         regions.push(Region { from: lo.approx, to: hi.approx, positive: value.approx >= 0.0 });
         parts.push(value);
     }
@@ -254,13 +253,13 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let names: Vec<String> = (1..=parts.len()).map(|i| format!("\\left|A_{{{i}}}\\right|")).collect();
     let area_shown = if area.exact.is_some() { area.to_latex(d) } else { format!("\\approx {}", area.to_latex(d)) };
     let decimal = if area.exact.is_some() && !area.is_rational() { format!(" \\approx {}", area.decimal_latex(d)) } else { String::new() };
-    steps.push(step(AnalysisRule::Area, msg!("Parts below the axis count with their absolute value", "Teile unter der Achse zählen mit ihrem Betrag"), format!("A = {} = {area_shown}{decimal}", names.join(" + "))));
+    steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.parts_below_axis"), format!("A = {} = {area_shown}{decimal}", names.join(" + "))));
     // The signed integral, where parts below the axis count negatively.
     let signed_shown = if signed.exact.is_some() { signed.to_latex(d) } else { format!("\\approx {}", signed.to_latex(d)) };
     let parts_sum: Vec<String> = (1..=parts.len()).map(|i| format!("A_{{{i}}}")).collect();
     steps.push(step(
         AnalysisRule::Area,
-        msg!("The integral itself counts parts below the axis negatively", "Das Integral selbst zählt Teile unter der Achse negativ"),
+        msg!("core.analysis.tasks.signed_integral"),
         format!("\\int_{{{}}}^{{{}}} f({var}) \\, d{var} = {} = {signed_shown}", a.to_latex(d), b.to_latex(d), parts_sum.join(" + ")),
     ));
     Ok(AreaResult { steps, area, signed, regions })
@@ -329,13 +328,12 @@ pub fn value_table(latex: &str, variable: Option<&str>, from: &str, to: &str, st
     let p = prepare(latex, variable, settings, precision)?;
     let (start, end, step) = (parse_number(from, settings, "from")?, parse_number(to, settings, "to")?, parse_number(step_size, settings, "step")?);
     if step.approx <= 0.0 {
-        return Err(QuantusError::other(msg!("The step must be positive.", "Die Schrittweite muss positiv sein.")));
+        return Err(QuantusError::other(msg!("core.analysis.tasks.step_must_positive")));
     }
     let count = ((end.approx - start.approx) / step.approx + 1e-9).floor();
     if count < 0.0 || count as usize + 1 > MAX_TABLE_ROWS {
         return Err(QuantusError::other(msg!(
-            "A table has at most {} rows.",
-            "Eine Tabelle hat höchstens {} Zeilen.",
+            "core.analysis.tasks.table_has_most_rows",
             MAX_TABLE_ROWS
         )));
     }

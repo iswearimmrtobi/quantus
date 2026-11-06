@@ -299,20 +299,20 @@ fn nested_fraction_step(node: &Node) -> Option<AlgebraStep> {
         if let Some((over, text)) = write_over_denominator(side) {
             lines.push((place(over, &num_now, &den_now), text));
         }
-        lines.push((place(combined.clone(), &num_now, &den_now), "Combine the inner fractions".to_string()));
+        lines.push((place(combined.clone(), &num_now, &den_now), crate::text::msg!("core.algebra.nested.combine_inner_fractions")));
         if numerator_side { num_now = combined } else { den_now = combined }
     }
     let last = if let Some((c, d)) = split_fraction(&den_now) {
         let reciprocal = if is_constant_one(c) { d.clone() } else { make_fraction(d.clone(), c.clone()) };
-        let text = format!(
-            "Dividing by {} is multiplying by its reciprocal {}",
+        let text = crate::text::msg!(
+            "core.algebra.nested.dividing_multiplying_reciprocal",
             serializer::expression(&den_now),
             serializer::expression(&reciprocal)
         );
         lines.push((Node::binary(Operator::Times, num_now, reciprocal, 0), text));
-        "Multiply numerators and denominators"
+        crate::text::msg!("core.algebra.nested.multiply_numerators_denominators")
     } else {
-        "Multiply the denominators"
+        crate::text::msg!("core.algebra.nested.multiply_denominators")
     };
     let mut before = node.clone();
     let working = lines
@@ -334,7 +334,7 @@ fn write_over_denominator(sum: &Node) -> Option<(Node, String)> {
         return None;
     };
     let over = |term: &Node, d: &Node| make_fraction(make_product(term.clone(), d.clone()), d.clone());
-    let text = |term: &Node, d: &Node| format!("Write {} over the denominator {}", serializer::expression(term), serializer::expression(d));
+    let text = |term: &Node, d: &Node| crate::text::msg!("core.algebra.nested.write_over_denominator", serializer::expression(term), serializer::expression(d));
     let (left_frac, right_frac) = (split_fraction(left), split_fraction(right));
     let (written, text) = match (left_frac, right_frac) {
         (None, Some((_, d))) => (Node::binary(*operator, over(left, d), (**right).clone(), 0), text(left, d)),
@@ -375,7 +375,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = "Apply the reciprocal rule: divide fractions by multiplying by the reciprocal".to_string();
+            let explanation = crate::text::msg!("core.algebra.nested.reciprocal_rule_fractions");
             Some((res, rule, explanation))
         }
 
@@ -389,7 +389,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::ApplyReciprocalRule;
-            let explanation = "Apply the reciprocal rule: divide by a fraction by multiplying by its reciprocal".to_string();
+            let explanation = crate::text::msg!("core.algebra.nested.reciprocal_rule");
             Some((res, rule, explanation))
         }
 
@@ -403,7 +403,7 @@ fn simplify_nested_fraction_parts(node: &Node) -> Option<(Node, RuleId, String)>
                 make_fraction(new_num, new_den)
             };
             let rule = RuleId::SimplifyNestedFraction;
-            let explanation = "Simplify complex fraction by multiplying the denominators".to_string();
+            let explanation = crate::text::msg!("core.algebra.nested.clear_complex_fraction");
             Some((res, rule, explanation))
         }
 

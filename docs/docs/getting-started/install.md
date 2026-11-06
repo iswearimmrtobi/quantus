@@ -11,17 +11,17 @@ yourself as described in [Building](../contributing/building.md).
 
 ## Windows
 
-Run the installer, `Quantus_0.1.0_x64_en-US.msi`. It needs WebView2, which is part of
+Run the installer, `Quantus_0.2.0_x64_en-US.msi`. It needs WebView2, which is part of
 Windows 10 and 11; if it is missing, the installer downloads it.
 
 ## Linux
 
-Quantus comes as an AppImage, `Quantus_0.1.0_amd64.AppImage` (~100 MB). It ships its own
+Quantus comes as an AppImage, `Quantus_0.2.0_amd64.AppImage` (~100 MB). It ships its own
 WebKitGTK and runs on most distributions. Make it executable and run it:
 
 ```sh
-chmod +x Quantus_0.1.0_amd64.AppImage
-./Quantus_0.1.0_amd64.AppImage
+chmod +x Quantus_0.2.0_amd64.AppImage
+./Quantus_0.2.0_amd64.AppImage
 ```
 
 ## Where Quantus keeps its settings

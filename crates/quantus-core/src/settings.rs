@@ -4,9 +4,12 @@
 use serde::{Deserialize, Serialize};
 
 use crate::algebra::pipeline::{OutputStyle, PipelineConfig};
+pub use crate::basen::NumberBase;
+use crate::latex::numbers::Style;
 use crate::latex::parser::ParseOptions;
 use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 /// Which way the binomial formulas are applied to a polynomial result.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, Hash)]
@@ -85,6 +88,42 @@ impl StepDetail {
     }
 }
 
+/// How a system of linear equations is reduced in the steps.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum Elimination {
+    /// The school method: triangle form without fractions, then back-substitution.
+    #[default]
+    Gauss,
+    /// Every pivot divided to 1 and its column cleared above and below.
+    GaussJordan,
+}
+
+/// What the resistance between A and B of the Kirchhoff mode does with a network that series and
+/// parallel merges don't reduce, such as a bridge.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum StarDelta {
+    /// The rest is solved with the node rule and a test current.
+    #[default]
+    NodeRule,
+    /// A delta of three resistors is turned into a star, or a star into a delta if there is no delta.
+    DeltaToStar,
+    /// A star is turned into a delta, or a delta into a star if there is no star.
+    StarToDelta,
+}
+
+/// How the linear systems mode names the unknowns of a matrix.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum UnknownNames {
+    /// `x_1, x_2, …, x_n`.
+    #[default]
+    Indexed,
+    /// `x, y, z, a, b, …, w` in the order of the unknowns, then `x_1, x_2, …`.
+    Letters,
+}
+
 /// What the calculator is used for. It decides which symbols mean something on their own.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -100,16 +139,80 @@ pub enum Mode {
     Electronics,
     /// The curve sketch of a function of one variable. Inputs are read as in `Algebra`.
     Analysis,
+    /// Systems of linear equations, typed or as a matrix. Inputs are read as in `Algebra`, or as
+    /// in `Imaginary` with `linear_complex`.
+    Linear,
+    /// A resistor network solved by the junction and loop rules. Inputs are read as in `Physics`.
+    Kirchhoff,
+    /// Whole numbers in decimal, hexadecimal, binary or octal with bitwise operations
+    /// ([`crate::basen`]), in the base `number_base`.
+    #[serde(rename = "baseN")]
+    BaseN,
+    /// Matrices as values ([`crate::matrix`]), stored in the session under any name. Inputs are
+    /// read as in `Algebra`.
+    Matrix,
+    /// Statistics of data lists ([`crate::stochastics::statistics`]). Inputs are read as in `Algebra`.
+    Statistics,
+    /// Probability distributions ([`crate::stochastics`]). Inputs are read as in `Algebra`.
+    Distributions,
+    /// Checks (in)equalities, chained as `1 < 2 \le 2`: true or false (Prüfen). Inputs are read
+    /// as in `Algebra`, and an equation is checked instead of solved.
+    Verify,
+    /// Vectors, points, lines, planes, spheres and circles in 3D ([`crate::geometry`]). Inputs are read
+    /// as in `Algebra`.
+    Geometry,
 }
 
-/// The language of the texts the engine writes itself (the electronics notes and errors).
+/// The unit a plain number in a trigonometric function is read in, and inverse functions answer in.
+/// A value marked with `^\circ` or `\mathrm{rad}` keeps its own unit either way.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum Language {
+pub enum AngleUnit {
+    Degree,
     #[default]
-    En,
-    De,
+    Radian,
 }
+
+/// How a decimal result is written. `digits` is the decimal places of `fix` and the significant
+/// digits of `sci` (0 to 9; `sci` with 0 means 10). The precision stays what is computed.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(tag = "style", rename_all = "camelCase")]
+pub enum NumberFormat {
+    /// Plain from 10⁻⁴ to below 10¹⁵, scientific outside.
+    #[default]
+    Auto,
+    /// Plain from 10⁻² to below 10¹⁰, as the Casio's Norm 1.
+    Norm1,
+    /// Plain from 10⁻⁹ to below 10¹⁰, as the Casio's Norm 2.
+    Norm2,
+    Fix { digits: u8 },
+    Sci { digits: u8 },
+}
+
+/// Which fraction a result's forms offer first.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum FractionForm {
+    /// `\frac{7}{3}`.
+    #[default]
+    Improper,
+    /// `2\frac{1}{3}`.
+    Mixed,
+}
+
+/// How a complex result is written.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ComplexForm {
+    /// `a + bi`.
+    #[default]
+    Rectangular,
+    /// `r\angle\theta`, the angle in the angle unit.
+    Polar,
+}
+
+/// The language of the texts the engine writes itself, from `locales/`.
+pub use quantus_texts::Language;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", default)]
@@ -135,6 +238,25 @@ pub struct Settings {
     pub step_detail: StepDetail,
     /// Whether a cancelled factor is struck through (`\cancel`) rather than coloured.
     pub cancel_marks: bool,
+    pub elimination: Elimination,
+    pub star_delta: StarDelta,
+    pub unknown_names: UnknownNames,
+    /// Whether `i` is the imaginary unit in the linear systems mode rather than an unknown.
+    pub linear_complex: bool,
+    /// Degrees or radians for `\sin 30` and `\arcsin`; the curve sketch always uses radians.
+    pub angle_unit: AngleUnit,
+    pub number_format: NumberFormat,
+    /// A decimal result without a unit is written with a decimal prefix: `4{,}7\,\mathrm{k}`.
+    pub decimal_prefixes: bool,
+    /// Long integer parts are grouped by three with a thin space: `12\,345{,}6`.
+    pub digit_grouping: bool,
+    /// Whether a result's forms put the mixed or the improper fraction first.
+    pub fraction_form: FractionForm,
+    /// Whether a result's forms include the recurring decimal, `0{,}\overline{3}`.
+    pub recurring: bool,
+    pub complex_form: ComplexForm,
+    /// The base Basis-N mode reads and writes numbers in.
+    pub number_base: NumberBase,
 }
 
 impl Default for Settings {
@@ -154,6 +276,18 @@ impl Default for Settings {
             quadratic_formula: QuadraticFormula::Auto,
             step_detail: StepDetail::Standard,
             cancel_marks: true,
+            elimination: Elimination::Gauss,
+            star_delta: StarDelta::NodeRule,
+            unknown_names: UnknownNames::Indexed,
+            linear_complex: false,
+            angle_unit: AngleUnit::Radian,
+            number_format: NumberFormat::Auto,
+            decimal_prefixes: false,
+            digit_grouping: false,
+            fraction_form: FractionForm::Improper,
+            recurring: true,
+            complex_form: ComplexForm::Rectangular,
+            number_base: NumberBase::Dec,
         }
     }
 }
@@ -161,12 +295,21 @@ impl Default for Settings {
 impl Settings {
     pub fn validate(&self) -> Result<()> {
         if !(1..=MAX_PRECISION).contains(&self.precision) {
-            return Err(QuantusError::other(format!(
-                "The precision must be between 1 and {MAX_PRECISION} digits, but was {}.",
+            return Err(QuantusError::other(msg!("core.settings.precision_range",
                 self.precision
             )));
         }
+        if let NumberFormat::Fix { digits } | NumberFormat::Sci { digits } = self.number_format {
+            if digits > 9 {
+                return Err(QuantusError::other(msg!("core.settings.format_digits_range")));
+            }
+        }
         Ok(())
+    }
+
+    /// How decimal results are written.
+    pub fn number_style(&self) -> Style {
+        Style { format: self.number_format, prefixes: self.decimal_prefixes, grouping: self.digit_grouping }
     }
 
     pub fn parse_options(&self) -> ParseOptions {
@@ -174,15 +317,31 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis),
-            imaginary_i: self.mode == Mode::Imaginary,
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify | Mode::Geometry),
+            imaginary_i: self.complex(),
+            geometry: self.mode == Mode::Geometry,
+        }
+    }
+
+    /// Whether `i` is the imaginary unit and results may be complex.
+    pub fn complex(&self) -> bool {
+        self.mode == Mode::Imaginary || (self.mode == Mode::Linear && self.linear_complex)
+    }
+
+    /// The mode the evaluator works in: the linear systems mode evaluates as `Algebra`, or as
+    /// `Imaginary` with `linear_complex`.
+    pub fn evaluation_mode(&self) -> Mode {
+        match self.mode {
+            Mode::Linear if self.linear_complex => Mode::Imaginary,
+            Mode::Linear => Mode::Algebra,
+            mode => mode,
         }
     }
 
     /// Whether quadratics are solved with the pq formula rather than the abc formula.
     pub fn uses_pq_formula(&self) -> bool {
         match self.quadratic_formula {
-            QuadraticFormula::Auto => self.language == Language::De,
+            QuadraticFormula::Auto => self.language.quadratic() == "pq",
             QuadraticFormula::Pq => true,
             QuadraticFormula::Abc => false,
         }
@@ -238,7 +397,19 @@ mod tests {
                 "language": "en",
                 "quadraticFormula": "auto",
                 "stepDetail": "standard",
-                "cancelMarks": true
+                "cancelMarks": true,
+                "elimination": "gauss",
+                "starDelta": "nodeRule",
+                "unknownNames": "indexed",
+                "linearComplex": false,
+                "angleUnit": "radian",
+                "numberFormat": { "style": "auto" },
+                "decimalPrefixes": false,
+                "digitGrouping": false,
+                "fractionForm": "improper",
+                "recurring": true,
+                "complexForm": "rectangular",
+                "numberBase": "dec"
             })
         );
     }
@@ -252,6 +423,26 @@ mod tests {
         assert_eq!((options(Mode::Electronics).units, options(Mode::Electronics).imaginary_i), (true, false));
         assert_eq!((options(Mode::Analysis).units, options(Mode::Analysis).imaginary_i), (false, false));
         assert_eq!(serde_json::to_value(Mode::Analysis).unwrap(), json!("analysis"));
+        assert_eq!((options(Mode::Kirchhoff).units, options(Mode::Kirchhoff).imaginary_i), (true, false));
+        assert_eq!(serde_json::to_value(Mode::Kirchhoff).unwrap(), json!("kirchhoff"));
+        assert_eq!(serde_json::to_value(Mode::BaseN).unwrap(), json!("baseN"));
+        assert_eq!(serde_json::to_value(Mode::Matrix).unwrap(), json!("matrix"));
+        assert_eq!(serde_json::to_value(Mode::Distributions).unwrap(), json!("distributions"));
+        assert_eq!(serde_json::to_value(Mode::Verify).unwrap(), json!("verify"));
+        assert_eq!((options(Mode::Geometry).units, options(Mode::Geometry).imaginary_i), (false, false));
+        assert_eq!(serde_json::to_value(Mode::Geometry).unwrap(), json!("geometry"));
+    }
+
+    #[test]
+    fn the_linear_mode_reads_i_by_its_toggle() {
+        let linear = |linear_complex| Settings { mode: Mode::Linear, linear_complex, ..Settings::default() };
+        assert_eq!((linear(false).parse_options().units, linear(false).parse_options().imaginary_i), (false, false));
+        assert!(linear(true).parse_options().imaginary_i && linear(true).complex());
+        // The toggle belongs to the linear systems mode only.
+        assert!(!Settings { linear_complex: true, ..Settings::default() }.complex());
+        assert_eq!((linear(false).evaluation_mode(), linear(true).evaluation_mode()), (Mode::Algebra, Mode::Imaginary));
+        let parsed: Settings = serde_json::from_value(json!({ "mode": "linear", "unknownNames": "letters" })).unwrap();
+        assert_eq!((parsed.mode, parsed.unknown_names), (Mode::Linear, UnknownNames::Letters));
     }
 
     #[test]
@@ -279,6 +470,22 @@ mod tests {
         assert!(Maximal.shows(Maximal));
         let parsed: Settings = serde_json::from_value(json!({ "stepDetail": "maximal", "cancelMarks": false })).unwrap();
         assert_eq!((parsed.step_detail, parsed.cancel_marks), (Maximal, false));
+    }
+
+    #[test]
+    fn gauss_is_the_default_elimination() {
+        let parsed: Settings = serde_json::from_value(json!({ "elimination": "gaussJordan" })).unwrap();
+        assert_eq!(parsed.elimination, Elimination::GaussJordan);
+        assert_eq!(Settings::default().elimination, Elimination::Gauss);
+    }
+
+    #[test]
+    fn the_number_format_is_tagged_by_its_style() {
+        let parsed: Settings = serde_json::from_value(json!({ "numberFormat": { "style": "fix", "digits": 2 } })).unwrap();
+        assert_eq!(parsed.number_format, NumberFormat::Fix { digits: 2 });
+        let norm: Settings = serde_json::from_value(json!({ "numberFormat": { "style": "norm1" } })).unwrap();
+        assert_eq!(norm.number_format, NumberFormat::Norm1);
+        assert!(Settings { number_format: NumberFormat::Sci { digits: 10 }, ..Settings::default() }.validate().is_err());
     }
 
     #[test]

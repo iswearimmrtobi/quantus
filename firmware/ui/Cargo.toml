@@ -1,0 +1,13 @@
+[package]
+name = "quantus-ui"
+description = "The handheld calculator's user interface, without hardware and engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+embedded-graphics = "0.8.2"
+tinybmp = "0.7.0"
+u8g2-fonts = "0.8.0"
+quantus-texts = { path = "../../crates/quantus-texts" }

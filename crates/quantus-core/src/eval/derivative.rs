@@ -5,9 +5,11 @@
 //! needless `0 + …` or `1 · …` are folded as they are made: besides keeping the tree small, a
 //! literal `0` would not add to a quantity with a unit.
 
+use super::angles;
 use crate::latex::{Node, Operator};
 use crate::num::Decimal;
 use crate::{QuantusError, Result};
+use crate::text::msg;
 
 pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
     let position = node.position();
@@ -36,6 +38,17 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
                 return Ok(inner);
             }
             let u = (**argument).clone();
+            // In degree mode sin x is sin(x π/180): the chain rule adds π/180, and arcsin's
+            // value in degrees carries 180/π.
+            let pi = || Node::Constant { name: "\\pi".into(), position };
+            let degrees = angles::in_degrees();
+            let inner = if degrees && angles::takes_angle(name) && !angles::is_marked(argument) {
+                multiply(inner, Node::fraction(pi(), number(180, position), position), position)
+            } else if degrees && angles::gives_angle(name) {
+                multiply(inner, Node::fraction(number(180, position), pi(), position), position)
+            } else {
+                inner
+            };
             let outer = match name.as_str() {
                 "sin" => function("cos", u, position),
                 "cos" => negate(function("sin", u, position), position),
@@ -66,7 +79,21 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
                     if name == "arccos" { negate(derivative, position) } else { derivative }
                 }
                 "arctan" => Node::fraction(number(1, position), add(number(1, position), square(u, position), position), position),
-                other => return Err(QuantusError::other(format!("Cannot differentiate \\{other}."))),
+                "coth" => negate(
+                    Node::fraction(number(1, position), square(function("sinh", u, position), position), position),
+                    position,
+                ),
+                "arsinh" | "arcosh" => {
+                    let radicand = if name == "arsinh" {
+                        add(square(u, position), number(1, position), position)
+                    } else {
+                        subtract(square(u, position), number(1, position), position)
+                    };
+                    let root = Node::Root { radicand: Box::new(radicand), degree: None, position };
+                    Node::fraction(number(1, position), root, position)
+                }
+                "artanh" => Node::fraction(number(1, position), subtract(number(1, position), square(u, position), position), position),
+                other => return Err(QuantusError::other(msg!("core.eval.derivative.cannot_differentiate"))),
             };
             multiply(outer, inner, position)
         }
@@ -80,13 +107,20 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
             Node::fraction(multiply(u.clone(), inner, position), Node::Abs { operand: Box::new(u), position }, position)
         }
         // x° is x π / 180
+        Node::Degrees { operand, .. } if angles::in_degrees() => d(operand)?,
         Node::Degrees { operand, .. } => {
             let inner = d(operand)?;
             let factor = Node::fraction(Node::Constant { name: "\\pi".into(), position }, number(180, position), position);
             multiply(inner, factor, position)
         }
+        Node::Sum { index, product: true, body, .. } => {
+            if index == var || !depends_on(body, var) {
+                return Ok(number(0, position));
+            }
+            return Err(QuantusError::other(msg!("core.eval.derivative.product_not_differentiable")));
+        }
         Node::Sum { index, from, to, body, .. } => {
-            require_independent([from, to], var, "the limits of a sum")?;
+            require_independent([from, to], var, &msg!("core.eval.derivative.limits_sum"))?;
             if index == var {
                 return Ok(number(0, position));
             }
@@ -94,10 +128,10 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
             if is_zero(&body) {
                 return Ok(body);
             }
-            Node::Sum { index: index.clone(), from: from.clone(), to: to.clone(), body: Box::new(body), position }
+            Node::Sum { index: index.clone(), from: from.clone(), to: to.clone(), body: Box::new(body), position, product: false }
         }
         Node::Integral { variable, lower, upper, body, .. } => {
-            require_independent([lower, upper], var, "the limits of an integral")?;
+            require_independent([lower, upper], var, &msg!("core.eval.derivative.limits_integral"))?;
             if variable == var {
                 return Ok(number(0, position));
             }
@@ -126,7 +160,7 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
             if !depends_on(node, var) {
                 return Ok(number(0, position));
             }
-            return Err(QuantusError::other("This expression cannot be differentiated."));
+            return Err(QuantusError::other(msg!("core.eval.derivative.expression_cannot_differentiated")));
         }
     })
 }
@@ -146,8 +180,10 @@ pub fn depends_on(node: &Node, var: &str) -> bool {
         }
         // Without a point the derivative is still a function of its variable.
         Node::Derivative { body, at: None, .. } => depends_on(body, var),
-        Node::Derivative { variable: bound, body, at: Some(at), .. } => {
-            depends_on(at, var) || (bound != var && depends_on(body, var))
+        Node::Derivative { variable: bound, body, at: Some(at), given, .. } => {
+            depends_on(at, var)
+                || given.iter().any(|(_, value)| depends_on(value, var))
+                || (bound != var && given.iter().all(|(name, _)| name != var) && depends_on(body, var))
         }
         other => other.children().into_iter().any(|child| depends_on(child, var)),
     }
@@ -155,7 +191,7 @@ pub fn depends_on(node: &Node, var: &str) -> bool {
 
 fn require_independent<'a>(nodes: impl IntoIterator<Item = &'a Box<Node>>, var: &str, what: &str) -> Result<()> {
     if nodes.into_iter().any(|node| depends_on(node, var)) {
-        return Err(QuantusError::other(format!("Cannot differentiate when {what} depend on {var}.")));
+        return Err(QuantusError::other(msg!("core.eval.derivative.cannot_differentiate_when_depend")));
     }
     Ok(())
 }

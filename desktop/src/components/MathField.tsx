@@ -1,5 +1,8 @@
-import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref } from 'react';
 import { MathfieldElement } from 'mathlive';
+
+/** MathLive does not export the type of its menu entries. */
+type MenuItem = MathfieldElement['menuItems'][number];
 
 // MathLive fetches its fonts by URL; the copy in public/fonts is what it finds (see
 // scripts/copy-mathlive-fonts.mjs). Sounds are off — this is a calculator, not a game.
@@ -50,6 +53,12 @@ function completeCommand(mathfield: MathfieldElement): void {
   mathfield.insert(SKELETONS[command], { focus: true, selectionMode: 'placeholder' });
 }
 
+/** An entry of the context menu that the app handles. */
+export interface Tool {
+  label: string;
+  run(): void;
+}
+
 export interface MathFieldHandle {
   focus(): void;
   setValue(latex: string): void;
@@ -61,10 +70,26 @@ interface Props {
   value: string;
   onChange(latex: string): void;
   onEnter(): void;
-  /** Der Nutzer hat `\` getippt und will LaTeX schreiben — [seed] ist der Text für das Quelltextfeld. */
-  onLatexRequested(seed: string): void;
+  /**
+   * Der Nutzer hat `\` getippt und will LaTeX schreiben — [seed] ist der Text für das Quelltextfeld.
+   * Without it MathLive takes the key itself, for a command name such as `\pi` (the matrix cells).
+   */
+  onLatexRequested?(seed: string): void;
   /** LaTeX the empty editor shows greyed out. */
   placeholder?: string;
+  /** Whether the field takes the focus when it appears; off for the many fields of a list or grid. */
+  autoFocus?: boolean;
+  /** Backspace in the empty field, where it has nothing to delete. */
+  onBackspaceEmpty?(): void;
+  /** Up or Down that did not move the cursor inside the formula: on to the line above or below. */
+  onLeaveLine?(direction: -1 | 1): void;
+  /** Tab or Shift+Tab with no placeholder left to jump to in that direction: on to the next field. */
+  onTab?(direction: -1 | 1): void;
+  /** Pasted text; returning true means it was taken care of and MathLive does not paste it. */
+  onPasteText?(text: string): boolean;
+  /** Entries put at the top of the field's context menu, above MathLive's own (CALC, SOLVE). */
+  tools?: Tool[];
+  className?: string;
   ref?: Ref<MathFieldHandle>;
 }
 
@@ -88,17 +113,31 @@ export function toReadableLatex(latex: string): string {
  * The element is created imperatively rather than as JSX — it is a custom element with a
  * property-based API, and React would only ever set attributes.
  */
-export function MathField({ value, onChange, onEnter, onLatexRequested, placeholder, ref }: Props) {
+export function MathField({
+  value,
+  onChange,
+  onEnter,
+  onLatexRequested,
+  placeholder,
+  autoFocus = true,
+  onBackspaceEmpty,
+  onLeaveLine,
+  onTab,
+  onPasteText,
+  tools,
+  className,
+  ref,
+}: Props) {
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
-  const callbacks = useRef({ onChange, onEnter, onLatexRequested });
-  callbacks.current = { onChange, onEnter, onLatexRequested };
+  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText });
+  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText };
   /** Der zuletzt aus dem Feld gemeldete Wert — alles andere kommt von außen. */
   const reported = useRef(value);
 
   useEffect(() => {
     const mathfield = new MathfieldElement();
-    mathfield.className = 'math-input';
+    mathfield.className = className ? `math-input ${className}` : 'math-input';
     // No virtual keyboard: the desktop workflow is physical keys and the numpad (F10).
     mathfield.mathVirtualKeyboardPolicy = 'manual';
     mathfield.smartMode = false;
@@ -123,12 +162,40 @@ export function MathField({ value, onChange, onEnter, onLatexRequested, placehol
       // Der Backslash ist die Tür zum Quelltext (F2). MathLive hätte hier seinen eigenen
       // Latex-Modus angeboten, in dem aber nur der Befehlsname steht und nicht die Formel —
       // Argumente, Klammern und alles Verschachtelte gehen dort nicht von Hand zu tippen.
-      if (event.key === '\\' && mathfield.mode !== 'latex') {
+      if (event.key === '\\' && mathfield.mode !== 'latex' && callbacks.current.onLatexRequested) {
         // stopPropagation, nicht nur preventDefault: MathLive verarbeitet die Taste im
         // Inneren des Elements und würde sonst trotzdem seinen eigenen Latex-Modus öffnen.
         event.preventDefault();
         event.stopPropagation();
         callbacks.current.onLatexRequested(`${toReadableLatex(mathfield.value)}\\`);
+        return;
+      }
+
+      if (event.key === 'Backspace' && mathfield.value === '' && callbacks.current.onBackspaceEmpty) {
+        event.preventDefault();
+        event.stopPropagation();
+        callbacks.current.onBackspaceEmpty();
+        return;
+      }
+
+      // Inside a fraction Up and Down move between numerator and denominator; only when the
+      // cursor stays where it was is there no line in the formula left to go to.
+      if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && callbacks.current.onLeaveLine) {
+        const before = mathfield.position;
+        const direction = event.key === 'ArrowUp' ? -1 : 1;
+        window.setTimeout(() => {
+          if (mathfield.position === before) callbacks.current.onLeaveLine?.(direction);
+        });
+        return;
+      }
+
+      if (event.key === 'Tab' && callbacks.current.onTab) {
+        event.preventDefault();
+        event.stopPropagation();
+        const before = mathfield.position;
+        const direction = event.shiftKey ? -1 : 1;
+        mathfield.executeCommand(direction === 1 ? 'moveToNextPlaceholder' : 'moveToPreviousPlaceholder');
+        if (mathfield.position === before) callbacks.current.onTab(direction);
         return;
       }
 
@@ -153,17 +220,26 @@ export function MathField({ value, onChange, onEnter, onLatexRequested, placehol
       callbacks.current.onChange(mathfield.value);
     };
 
+    const onPaste = (event: ClipboardEvent) => {
+      const text = event.clipboardData?.getData('text/plain');
+      if (!text || !callbacks.current.onPasteText?.(text)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
     mathfield.addEventListener('input', onInput);
+    mathfield.addEventListener('paste', onPaste, true);
     // Capture-Phase: MathLive verarbeitet Tasten in seinem Inneren und ist sonst zuerst dran.
     mathfield.addEventListener('keydown', onKeyDown, true);
     mathfield.addEventListener('mode-change', onModeChange);
 
     host.current?.appendChild(mathfield);
     field.current = mathfield;
-    mathfield.focus();
+    if (autoFocus) mathfield.focus();
 
     return () => {
       mathfield.removeEventListener('input', onInput);
+      mathfield.removeEventListener('paste', onPaste, true);
       mathfield.removeEventListener('keydown', onKeyDown, true);
       mathfield.removeEventListener('mode-change', onModeChange);
       mathfield.remove();
@@ -172,6 +248,29 @@ export function MathField({ value, onChange, onEnter, onLatexRequested, placehol
     // Only on mount: the field owns its content from here on, `value` syncs below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // MathLive's own entries stay below the app's; they are read once, before anything is added.
+  const ownMenu = useRef<readonly MenuItem[] | null>(null);
+  useEffect(() => {
+    const mathfield = field.current;
+    if (!mathfield) return;
+    ownMenu.current ??= mathfield.menuItems;
+    if (!tools?.length) {
+      mathfield.menuItems = ownMenu.current;
+      return;
+    }
+    mathfield.menuItems = [
+      ...tools.map((tool): MenuItem => ({ label: tool.label, onMenuSelect: () => tool.run() })),
+      { type: 'divider' },
+      ...ownMenu.current,
+    ];
+  }, [tools]);
+
+  // WebKit fires no blur when a focused element is removed, so MathLive would keep a removed
+  // field as the focused one and crash blurring it once another field takes the focus (a new
+  // line of a system). A layout cleanup runs before React removes the element, while MathLive
+  // can still blur it; the cleanup above runs after, when the field is already disposed.
+  useLayoutEffect(() => () => field.current?.blur(), []);
 
   /**
    * Änderungen von außen — Verlauf, neue Rechnung, eingefügte Variablen — ins Feld schreiben.

@@ -34,14 +34,19 @@ use quantus_core::algebra::nested::split_fraction;
 use quantus_core::algebra::pipeline::{collect_variables, simplify_node_with};
 use quantus_core::algebra::poly::Poly;
 use quantus_core::algebra::verify::eval_rational;
+use quantus_core::api::{self, LinearSystemRequest, LinearSystemResponse};
 use quantus_core::eval::{Evaluator, LatexCalculator, Variables};
 use quantus_core::latex::{parser, Node};
-use quantus_core::num::Decimal;
-use quantus_core::settings::{Mode, Settings};
+use quantus_core::num::{Decimal, Value as Number};
+use quantus_core::settings::{Elimination, Mode, Settings, UnknownNames};
 use quantus_core::units::BaseDim;
 use quantus_core::PhysicalQuantity;
 
 const PRECISION: usize = 50;
+
+/// The checks of the modes added after the linear systems mode, one file each.
+#[path = "run_cases/modes.rs"]
+mod modes;
 
 struct Options {
     cases: PathBuf,
@@ -195,32 +200,46 @@ fn si_value(q: &PhysicalQuantity, displayed: &Decimal) -> Result<RBig, String> {
 
 // --- evaluation -------------------------------------------------------------------------------
 
+/// The case's `settings` on top of the defaults. The snake-case keys of the first categories are
+/// read here; every other key is a field of `Settings` as its JSON names it (`mode`, `numberBase`,
+/// `language`, `angleUnit`, `starDelta`, …).
 fn settings_of(case: &Value) -> Settings {
+    const LEGACY: [&str; 6] =
+        ["a_and_y_as_variables", "letter_products", "extra_unit_letters", "linear_complex", "elimination", "unknown_names"];
     let mut s = Settings::default();
-    if let Some(m) = case.get("settings").and_then(Value::as_object) {
-        if let Some(b) = m.get("a_and_y_as_variables").and_then(Value::as_bool) {
-            s.a_and_y_as_variables = b;
-        }
-        if let Some(b) = m.get("letter_products").and_then(Value::as_bool) {
-            s.letter_products = b;
-        }
-        if let Some(b) = m.get("extra_unit_letters").and_then(Value::as_bool) {
-            s.extra_unit_letters = b;
-        }
-        if let Some(mode) = m.get("mode").and_then(Value::as_str) {
-            s.mode = match mode {
-                "algebra" => Mode::Algebra,
-                "physics" => Mode::Physics,
-                "imaginary" => Mode::Imaginary,
-                "electronics" => Mode::Electronics,
-                other => panic!("unknown mode {other:?}"),
-            };
-        }
+    let Some(m) = case.get("settings").and_then(Value::as_object) else { return s };
+    if let Some(b) = m.get("a_and_y_as_variables").and_then(Value::as_bool) {
+        s.a_and_y_as_variables = b;
     }
-    s
+    if let Some(b) = m.get("letter_products").and_then(Value::as_bool) {
+        s.letter_products = b;
+    }
+    if let Some(b) = m.get("extra_unit_letters").and_then(Value::as_bool) {
+        s.extra_unit_letters = b;
+    }
+    if let Some(b) = m.get("linear_complex").and_then(Value::as_bool) {
+        s.linear_complex = b;
+    }
+    if let Some(e) = m.get("elimination").and_then(Value::as_str) {
+        s.elimination = if e == "gaussJordan" { Elimination::GaussJordan } else { Elimination::Gauss };
+    }
+    if let Some(names) = m.get("unknown_names").and_then(Value::as_str) {
+        s.unknown_names = if names == "letters" { UnknownNames::Letters } else { UnknownNames::Indexed };
+    }
+    let mut json = serde_json::to_value(&s).expect("settings to JSON");
+    for (key, value) in m.iter().filter(|(k, _)| !LEGACY.contains(&k.as_str())) {
+        json[key] = value.clone();
+    }
+    serde_json::from_value(json).unwrap_or_else(|e| panic!("unknown setting in {:?}: {e}", m))
 }
 
 fn run_case(case: &Value) -> Outcome {
+    if let Some(api) = case.get("api").and_then(Value::as_str) {
+        return modes::run_api_case(api, case);
+    }
+    if case.get("request").is_some() {
+        return run_linear_case(case);
+    }
     let latex = case["latex"].as_str().unwrap_or_default();
     let expect = &case["expect"];
     let settings = settings_of(case);
@@ -308,9 +327,173 @@ fn run_case(case: &Value) -> Outcome {
         }
         "complex-solutions" => check_complex_solutions(latex, &settings, expect, &tol, calc.latex),
         "solutions" => check_solutions(latex, &settings, expect, &tol, calc.latex),
+        "inequality" => check_inequality(expect, calc.latex),
         "algebra" => check_algebra(latex, &settings, expect, calc.result),
-        _ => generator("unknown expectation kind"),
+        _ => modes::check_calculation(kind, &settings, expect, &calc),
     }
+}
+
+// --- linear systems mode -----------------------------------------------------------------------
+
+/// A case of the linear systems mode: `request` goes to `api::linear_system` as the UI sends it.
+fn run_linear_case(case: &Value) -> Outcome {
+    let expect = &case["expect"];
+    let settings = settings_of(case);
+    let Ok(request) = serde_json::from_value::<LinearSystemRequest>(case["request"].clone()) else {
+        return generator("unreadable request");
+    };
+    let result = api::linear_system(&settings, &request);
+    if expect["kind"] == "error" {
+        let contains = expect["contains"].as_str().unwrap_or_default();
+        return match result {
+            Err(e) if e.error.contains(contains) => Outcome::pass(format!("error: {e}")),
+            Err(e) => Outcome::fail("wrong-error", format!("expected an error containing '{contains}'"), format!("error: {e}")),
+            Ok(response) => Outcome {
+                status: "UNEXPECTED_OK",
+                reason: String::new(),
+                detail: "expected an error".into(),
+                actual: response.result,
+                note: String::new(),
+            },
+        };
+    }
+    match result {
+        Ok(response) => check_linear(&response, &settings, expect).unwrap_or_else(|(reason, detail)| {
+            Outcome::fail(reason, detail, response.result.clone())
+        }),
+        Err(e) => Outcome::error(e.error),
+    }
+}
+
+/// A complex number as the generator writes it: `"p/q"`, or `{"re": …, "im": …}`.
+type Complex = (RBig, RBig);
+
+fn expected_complex(v: &Value) -> Option<Complex> {
+    match v {
+        Value::String(s) => Some((parse_rational(s)?, RBig::ZERO)),
+        _ => Some((parse_rational(v["re"].as_str()?)?, parse_rational(v["im"].as_str()?)?)),
+    }
+}
+
+/// The engine's LaTeX evaluated back to a number, with `env` for the parameters.
+fn latex_complex(latex: &str, settings: &Settings, env: &Variables) -> Result<Complex, String> {
+    let formula = parser::parse_with(latex, &settings.parse_options()).map_err(|e| format!("{latex}: {e}"))?;
+    let evaluator = Evaluator::new(env).with_precision(PRECISION).with_mode(settings.evaluation_mode());
+    let value = evaluator.evaluate(&formula.expression).map_err(|e| format!("{latex}: {e}"))?.value;
+    let (re, im) = value.re_im().ok_or_else(|| format!("{latex}: not a + bi"))?;
+    let part = |v: Number| v.decimal(PRECISION).map(|d| d.to_rational()).map_err(|e| format!("{latex}: {e}"));
+    Ok((part(re)?, part(im)?))
+}
+
+fn close_complex(actual: &Complex, expected: &Complex) -> bool {
+    let tol = exact_tolerance();
+    close(&actual.0, &expected.0, &tol) && close(&actual.1, &expected.1, &tol)
+}
+
+fn show_complex(z: &Complex) -> String {
+    if z.1.is_zero() { show(&z.0) } else { format!("{} + {}i", show(&z.0), show(&z.1)) }
+}
+
+/// The unknowns, the matrix as read, and the solution: each value for a unique one, `no solution`,
+/// or for infinitely many the number of parameters and, at two choices of them, every equation.
+fn check_linear(response: &LinearSystemResponse, settings: &Settings, expect: &Value) -> Result<Outcome, (&'static str, String)> {
+    let unknowns: Vec<&str> = expect["unknowns"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+    if response.unknowns != unknowns {
+        return Err(("unknowns", format!("expected unknowns {unknowns:?}, got {:?}", response.unknowns)));
+    }
+    let empty = Variables::new();
+    let rows: Vec<Vec<Complex>> = expect["rows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|row| row.as_array().into_iter().flatten().filter_map(expected_complex).collect())
+        .collect();
+    if response.matrix.len() != rows.len() {
+        return Err(("matrix", format!("expected {} rows, got {}", rows.len(), response.matrix.len())));
+    }
+    for (r, (got, want)) in response.matrix.iter().zip(&rows).enumerate() {
+        for (c, (cell, want)) in got.iter().zip(want).enumerate() {
+            let value = latex_complex(cell, settings, &empty).map_err(|e| ("result-unparsable", e))?;
+            if !close_complex(&value, want) {
+                return Err(("matrix", format!("entry ({}, {}): expected {}, got {cell}", r + 1, c + 1, show_complex(want))));
+            }
+        }
+    }
+
+    let parts: Vec<&str> = response.result.split(" \\land ").collect();
+    let outcome = expect["outcome"].as_str().unwrap_or_default();
+    if outcome == "none" {
+        return if response.result == "\\text{no solution}" {
+            Ok(Outcome::pass(response.result.clone()))
+        } else {
+            Err(("solutions", "expected no solution".into()))
+        };
+    }
+    let mut lines = Vec::new();
+    for part in &parts {
+        if let Some((name, rhs)) = part.split_once(" = ") {
+            lines.push((name, rhs));
+        }
+    }
+    if outcome == "unique" {
+        let values: Vec<Complex> = expect["values"].as_array().into_iter().flatten().filter_map(expected_complex).collect();
+        if lines.len() != values.len() || lines.len() != parts.len() {
+            return Err(("solutions", format!("expected {} values", values.len())));
+        }
+        for ((name, rhs), (want_name, want)) in lines.iter().zip(unknowns.iter().zip(&values)) {
+            let value = latex_complex(rhs, settings, &empty).map_err(|e| ("result-unparsable", e))?;
+            if name != want_name || !close_complex(&value, want) {
+                return Err(("solutions", format!("expected {want_name} = {}, got {name} = {rhs}", show_complex(want))));
+            }
+        }
+        return Ok(Outcome::pass(response.result.clone()));
+    }
+
+    // Infinitely many: `… \land λ, μ \in \mathbb{R}` names the parameters.
+    let free = expect["free"].as_u64().unwrap_or_default() as usize;
+    let Some((parameters, _)) = parts.last().and_then(|last| last.split_once(" \\in ")) else {
+        return Err(("solutions", "expected parameters".into()));
+    };
+    let parameters: Vec<&str> = parameters.split(", ").collect();
+    if parameters.len() != free {
+        return Err(("solutions", format!("expected {free} parameters, got {}", parameters.len())));
+    }
+    let keys: Vec<String> = parameters
+        .iter()
+        .map(|p| match parser::parse_with(p, &settings.parse_options()).map(|f| f.expression) {
+            Ok(Node::Variable { name, index, .. }) => Ok(Node::variable_key(&name, &index)),
+            _ => Err(("result-unparsable", format!("parameter {p}"))),
+        })
+        .collect::<Result<_, _>>()?;
+    for choice in 1..=2i64 {
+        let mut env = Variables::new();
+        for (k, key) in keys.iter().enumerate() {
+            let value = RBig::from_parts(IBig::from(3 * choice + k as i64), UBig::from(7u8));
+            env.insert(key.clone(), PhysicalQuantity::dimensionless(Number::Rat(value)));
+        }
+        let mut x = Vec::new();
+        for name in &unknowns {
+            let value = match lines.iter().find(|(n, _)| n == name) {
+                Some((_, rhs)) => latex_complex(rhs, settings, &env).map_err(|e| ("result-unparsable", e))?,
+                // After Gauss–Jordan a free unknown is its own parameter.
+                None => latex_complex(name, settings, &env).map_err(|_| ("solutions", format!("{name} is missing")))?,
+            };
+            x.push(value);
+        }
+        for (r, row) in rows.iter().enumerate() {
+            let (mut re, mut im) = (RBig::ZERO, RBig::ZERO);
+            for (a, v) in row.iter().zip(&x) {
+                re += &a.0 * &v.0 - &a.1 * &v.1;
+                im += &a.0 * &v.1 + &a.1 * &v.0;
+            }
+            let b = &row[row.len() - 1];
+            let tol = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(35));
+            if (re - &b.0).abs() > tol || (im - &b.1).abs() > tol {
+                return Err(("solutions", format!("equation {} fails at parameter choice {choice}", r + 1)));
+            }
+        }
+    }
+    Ok(Outcome::pass(response.result.clone()))
 }
 
 fn generator(message: &str) -> Outcome {
@@ -414,6 +597,103 @@ fn check_complex_solutions(latex: &str, settings: &Settings, expect: &Value, tol
     } else {
         Outcome::fail("solutions", format!("missing [{}], unexpected [{}]", missing.join(", "), extra.join(", ")), shown)
     }
+}
+
+/// The solution set of an inequality, read from the result as the solver writes the roots of an
+/// equation: pieces joined by `\lor`, each a chain such as `-2 < x \le 3` or `x > 1` (after a
+/// `\Leftrightarrow`, if the result restates the input). Each piece is evaluated in the Verify
+/// mode with the variable replaced by sample points: every bound, a thousandth either side of it,
+/// the midpoints between them and one beyond each end. A point is in the set if a piece is true there, and that must agree with
+/// `intervals` (`[lo, hi, lo_closed, hi_closed]`, `null` for an infinite end).
+fn check_inequality(expect: &Value, shown: String) -> Outcome {
+    type Interval = (Option<RBig>, Option<RBig>, bool, bool);
+    let var = expect["var"].as_str().unwrap_or("x");
+    let bound = |v: &Value| if v.is_null() { Some(None) } else { v.as_str().and_then(parse_rational).map(Some) };
+    let intervals: Option<Vec<Interval>> = expect["intervals"].as_array().and_then(|a| {
+        a.iter()
+            .map(|i| Some((bound(&i[0])?, bound(&i[1])?, i[2].as_bool()?, i[3].as_bool()?)))
+            .collect()
+    });
+    let Some(intervals) = intervals else { return generator("unparsable intervals") };
+    let inside = |t: &RBig| {
+        intervals.iter().any(|(lo, hi, lc, hc)| {
+            let above = lo.as_ref().is_none_or(|lo| if *lc { t >= lo } else { t > lo });
+            let below = hi.as_ref().is_none_or(|hi| if *hc { t <= hi } else { t < hi });
+            above && below
+        })
+    };
+
+    let mut bounds: Vec<RBig> = intervals.iter().flat_map(|(lo, hi, _, _)| [lo.clone(), hi.clone()]).flatten().collect();
+    bounds.sort();
+    bounds.dedup();
+    let mut points = bounds.clone();
+    let step = RBig::from_parts(IBig::ONE, UBig::from(1000u32));
+    points.extend(bounds.iter().flat_map(|b| [b - &step, b + &step]));
+    points.extend(bounds.windows(2).map(|w| (&w[0] + &w[1]) / RBig::from(2)));
+    match (bounds.first(), bounds.last()) {
+        (Some(first), Some(last)) => points.extend([first - RBig::ONE, last + RBig::ONE]),
+        _ => points.push(RBig::ZERO),
+    }
+
+    let set = shown.rsplit("\\Leftrightarrow").next().unwrap_or(&shown).trim();
+    let pieces: Vec<&str> = set.split("\\lor").flat_map(|p| p.split("\\vee")).map(str::trim).collect();
+    if pieces.iter().any(|p| !mentions(p, var)) {
+        return Outcome::fail("inequality", format!("not a chain in {var} joined by \\lor"), shown);
+    }
+    let verify = LatexCalculator::new(PRECISION).with_settings(Settings { mode: Mode::Verify, ..Settings::default() });
+    let vars = Variables::new();
+    for t in &points {
+        let mut found = false;
+        for piece in &pieces {
+            let text = substitute(piece, var, &format!("({})", rational_latex(t)));
+            match verify.evaluate(&text, &vars) {
+                Ok(calc) if calc.value.to_rational() == RBig::ONE => found = true,
+                Ok(_) => {}
+                Err(e) => return Outcome::fail("inequality", format!("cannot check '{text}': {e}"), shown),
+            }
+        }
+        if found != inside(t) {
+            let (want, got) = if inside(t) { ("in", "out of") } else { ("out of", "in") };
+            return Outcome::fail("inequality", format!("{var} = {} should be {want} the set, the result has it {got} it", show(t)), shown);
+        }
+    }
+    Outcome::pass(shown)
+}
+
+/// Whether `var` appears in `text` as a letter of its own (not inside a command or a longer name).
+fn mentions(text: &str, var: &str) -> bool {
+    substitute(text, var, "\u{0}").contains('\u{0}')
+}
+
+/// `text` with every standalone `var` replaced by `with`.
+fn substitute(text: &str, var: &str, with: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let v: Vec<char> = var.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let matches = chars[i..].starts_with(&v);
+        let before_ok = i == 0 || !(chars[i - 1].is_alphabetic() || chars[i - 1] == '\\');
+        let after_ok = chars.get(i + v.len()).is_none_or(|c| !c.is_alphabetic());
+        if matches && before_ok && after_ok {
+            out.push_str(with);
+            i += v.len();
+        } else {
+            out.push(chars[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// A rational as LaTeX: `3`, `-\frac{3}{7}`.
+fn rational_latex(r: &RBig) -> String {
+    let (n, d) = (r.numerator(), r.denominator());
+    if *d == UBig::ONE {
+        return n.to_string();
+    }
+    let sign = if *n < IBig::ZERO { "-" } else { "" };
+    format!("{sign}\\frac{{{}}}{{{d}}}", n.abs())
 }
 
 /// Small deterministic generator for sample points.
@@ -987,4 +1267,30 @@ fn summarize(records: &[Record], wall: Duration, opts: &Options) -> String {
         );
     }
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn outside_two() -> Value {
+        json!({"kind": "inequality", "var": "x", "intervals": [[null, "-2", false, false], ["5/2", null, false, false]]})
+    }
+
+    #[test]
+    fn an_inequality_is_read_as_typed() {
+        let expect = outside_two();
+        assert_eq!(check_inequality(&expect, r"x < -2 \lor x > \frac{5}{2}".into()).status, "PASS");
+        assert_eq!(check_inequality(&expect, r"x^2 > 4 \Leftrightarrow x < -2 \lor x > 2{,}5".into()).status, "PASS");
+        let inside = json!({"kind": "inequality", "var": "z", "intervals": [["-2", "3", true, false]]});
+        assert_eq!(check_inequality(&inside, r"-2 \le z < 3".into()).status, "PASS");
+    }
+
+    #[test]
+    fn a_wrong_bound_or_end_fails() {
+        let expect = outside_two();
+        assert_ne!(check_inequality(&expect, r"x \le -2 \lor x > \frac{5}{2}".into()).status, "PASS");
+        assert_ne!(check_inequality(&expect, r"x < -2 \lor x > 3".into()).status, "PASS");
+        assert_ne!(check_inequality(&expect, r"x \in (-\infty, -2) \cup (2{,}5, \infty)".into()).status, "PASS");
+    }
 }

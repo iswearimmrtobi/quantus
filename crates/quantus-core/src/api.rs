@@ -6,10 +6,12 @@
 use serde::{Deserialize, Serialize};
 
 use crate::electro::interface;
+use crate::forms::ResultForm;
 use crate::eval::{Calculation, Step};
 use crate::session::{SessionStore, Variable};
 use crate::settings::Settings;
 use crate::QuantusError;
+use crate::text::msg;
 
 /// An `evaluate` call: the input as the user typed it.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -19,6 +21,8 @@ pub struct CalculationRequest {
     pub session_id: Option<String>,
     /// Significant digits for this one call; `None` uses the default.
     pub precision: Option<i64>,
+    /// Milliseconds since 1970 (UTC), for the history; the shell sends it when it knows the time.
+    pub at: Option<i64>,
 }
 
 /// One evaluated input, ready for display: the steps of F6, the result in LaTeX and as a plain
@@ -41,6 +45,9 @@ pub struct CalculationResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub imaginary: Option<String>,
     pub unit: String,
+    /// The unit in LaTeX, `\mathrm{N}`, empty for a plain number: what follows the number in
+    /// another form of the result (ENG).
+    pub unit_latex: String,
     /// The informational name of the quantity (F11), e.g. "force".
     pub quantity_name: Option<String>,
     /// The dimension as Indriya wrote it, e.g. `[M]·[L]/[T]²`.
@@ -53,6 +60,9 @@ pub struct CalculationResponse {
     /// Set when the result is shown as typed because its variables have no value.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub warning: Option<String>,
+    /// The result written other ways than `result` (°′″, …), for a form switch.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub forms: Vec<ResultForm>,
 }
 
 impl CalculationResponse {
@@ -66,11 +76,17 @@ impl CalculationResponse {
             value: calculation.value.to_plain_string(),
             imaginary: calculation.imaginary.as_ref().map(|im| im.to_plain_string()),
             unit: calculation.unit.clone(),
+            unit_latex: if calculation.quantity.unit.is_one() {
+                String::new()
+            } else {
+                crate::units::latex::format(&calculation.quantity.unit)
+            },
             quantity_name: calculation.quantity_name.clone(),
             dimension: calculation.quantity.dimension().to_string(),
             variable: variable.map(VariableResponse::of),
             domain_restrictions: calculation.domain_restrictions.clone(),
             warning: calculation.warning.clone(),
+            forms: calculation.forms.clone(),
         }
     }
 }
@@ -150,16 +166,91 @@ impl std::fmt::Display for ApiError {
 impl std::error::Error for ApiError {}
 
 pub fn evaluate(store: &mut SessionStore, request: &CalculationRequest) -> Result<CalculationResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
+    let (calculation, variable) = session.evaluate_with(&request.latex, request.precision, &settings)?;
+    let response = CalculationResponse::of(&calculation, variable.as_ref());
+    session.record(&request.latex, response.clone(), request.at);
+    Ok(response)
+}
+
+pub fn define_variable(store: &mut SessionStore, request: &CalculationRequest) -> Result<VariableResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
+    let settings = store.settings.clone();
+    let session = store.session(request.session_id.as_deref());
+    Ok(VariableResponse::of(&session.define_from_with(&request.latex, request.precision, &settings)?))
+}
+
+/// A letter of an input and its LaTeX: `{ key: "m_1", symbol: "m_{1}" }`.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FreeVariable {
+    pub key: String,
+    pub symbol: String,
+}
+
+/// The letters of the input that have no value yet: what CALC asks for, in order.
+pub fn free_variables(store: &mut SessionStore, request: &CalculationRequest) -> Result<Vec<FreeVariable>, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
+    let settings = store.settings.clone();
+    let session = store.session(request.session_id.as_deref());
+    let keys = session.free_variables(&request.latex, &settings)?;
+    Ok(keys.into_iter().map(|key| FreeVariable { symbol: crate::session::symbol_of(&key), key }).collect())
+}
+
+/// A value given to a letter: `{ key: "x", latex: "3" }`.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Assignment {
+    pub key: String,
+    pub latex: String,
+}
+
+/// CALC: the values first become session variables, then the input is evaluated with them, so
+/// the steps show them substituted.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CalcRequest {
+    pub latex: String,
+    pub values: Vec<Assignment>,
+    pub session_id: Option<String>,
+    pub precision: Option<i64>,
+}
+
+pub fn calc(store: &mut SessionStore, request: &CalcRequest) -> Result<CalculationResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
+    let settings = store.settings.clone();
+    let session = store.session(request.session_id.as_deref());
+    for value in &request.values {
+        session.assign(&value.key, &value.latex, request.precision, &settings)?;
+    }
     let (calculation, variable) = session.evaluate_with(&request.latex, request.precision, &settings)?;
     Ok(CalculationResponse::of(&calculation, variable.as_ref()))
 }
 
-pub fn define_variable(store: &mut SessionStore, request: &CalculationRequest) -> Result<VariableResponse, ApiError> {
+/// SOLVE: the input solved for `variable`, the other letters from `values` and the session.
+/// `start` begins Newton's method where no exact method applies.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SolveRequest {
+    pub latex: String,
+    pub variable: String,
+    pub values: Vec<Assignment>,
+    pub start: Option<String>,
+    pub session_id: Option<String>,
+    pub precision: Option<i64>,
+}
+
+pub fn solve_for(store: &mut SessionStore, request: &SolveRequest) -> Result<CalculationResponse, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
     let settings = store.settings.clone();
     let session = store.session(request.session_id.as_deref());
-    Ok(VariableResponse::of(&session.define_from_with(&request.latex, request.precision, &settings)?))
+    for value in &request.values {
+        session.assign(&value.key, &value.latex, request.precision, &settings)?;
+    }
+    let calculation = session.solve_for(&request.latex, &request.variable, request.start.as_deref(), request.precision, &settings)?;
+    Ok(CalculationResponse::of(&calculation, None))
 }
 
 pub use crate::electro::interface::{CircuitRequest, CircuitResponse};
@@ -200,12 +291,244 @@ pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableR
     Ok(crate::analysis::interface::value_table(settings, request)?)
 }
 
+pub use crate::eval::linear_system::{LinearSystemRequest, LinearSystemResponse};
+
+/// A system of linear equations, typed or as a matrix (linear systems mode). It uses no session
+/// variables, so like `analyze` it needs the settings only.
+pub fn linear_system(settings: &Settings, request: &LinearSystemRequest) -> Result<LinearSystemResponse, ApiError> {
+    Ok(crate::eval::linear_system::linear_system(settings, request)?)
+}
+
+pub use crate::kirchhoff::interface::{KirchhoffElement, KirchhoffRequest, KirchhoffResponse};
+
+/// A resistor network worked out by the junction and loop rules (Kirchhoff mode). Stateless,
+/// like `solve_circuit`.
+pub fn kirchhoff(settings: &Settings, request: &KirchhoffRequest) -> Result<KirchhoffResponse, ApiError> {
+    Ok(crate::kirchhoff::interface::kirchhoff(settings, request)?)
+}
+
+pub use crate::geometry::interface::{
+    Entry, Form, GeometryRequest, GeometryResponse, Measure, ObjectResponse, Scene, SceneObject, Shape, Task, TaskResponse, ViewObject,
+    ViewRequest, ViewResponse,
+};
+
+/// A scene of points, vectors, lines, planes, spheres and circles and a task on it (Geometry
+/// mode). Stateless: the shell keeps the scene.
+pub fn geometry(settings: &Settings, request: &GeometryRequest) -> Result<GeometryResponse, ApiError> {
+    Ok(crate::geometry::interface::geometry(settings, request)?)
+}
+
+/// The scene projected for the 3D view: the primitives a shell draws, far to near.
+pub fn geometry_view(settings: &Settings, request: &ViewRequest) -> Result<ViewResponse, ApiError> {
+    Ok(crate::geometry::interface::geometry_view(settings, request)?)
+}
+
+/// An ENG or ←ENG step on a result: its `value` (and `imaginary`) from the
+/// [`CalculationResponse`], `steps` presses of ENG (negative for ←ENG; 0 is the first press).
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct EngineeringRequest {
+    pub value: String,
+    pub imaginary: Option<String>,
+    /// `unitLatex` of the response, appended after the number.
+    pub unit_latex: String,
+    pub steps: i32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct EngineeringResponse {
+    pub latex: String,
+}
+
+/// A result in engineering notation: the exponent a multiple of three, moved by three per step,
+/// or a decimal prefix with the setting on.
+pub fn engineering(settings: &Settings, request: &EngineeringRequest) -> Result<EngineeringResponse, ApiError> {
+    use crate::latex::numbers;
+    use crate::num::Decimal;
+    let parse = |text: &str| {
+        Decimal::parse(text).ok_or_else(|| ApiError { error: msg!("core.api.not_number"), position: None })
+    };
+    let prefixes = settings.decimal_prefixes && request.unit_latex.is_empty();
+    let real = parse(&request.value)?;
+    let number = match &request.imaginary {
+        None => numbers::engineering(&real, request.steps, prefixes),
+        Some(imaginary) => {
+            let imaginary = parse(imaginary)?;
+            let (sign, magnitude) = if imaginary.is_negative() { ("-", Decimal::new(-imaginary.unscaled().clone(), imaginary.scale())) } else { ("+", imaginary) };
+            let im = numbers::engineering(&magnitude, request.steps, false);
+            if real.is_zero() {
+                format!("{}({im})i", if sign == "-" { "-" } else { "" })
+            } else {
+                format!("{} {sign} ({im})i", numbers::engineering(&real, request.steps, false))
+            }
+        }
+    };
+    let latex = match (request.unit_latex.as_str(), &request.imaginary) {
+        ("", _) => number,
+        (unit, None) => format!("{number}\\,{unit}"),
+        (unit, Some(_)) => format!("\\left({number}\\right)\\,{unit}"),
+    };
+    Ok(EngineeringResponse { latex })
+}
+
+pub use crate::stochastics::statistics::{StatisticsRequest, StatisticsResponse};
+pub use crate::stochastics::StatisticValue;
+
+/// The statistics of a data list (Statistik). Stateless: the shell keeps the lists.
+pub fn statistics(settings: &Settings, request: &StatisticsRequest) -> Result<StatisticsResponse, ApiError> {
+    let _language = crate::text::Scope::new(settings.language);
+    Ok(crate::stochastics::statistics::statistics(settings, request)?)
+}
+
+pub use crate::stochastics::distributions::{Distribution, DistributionRequest, DistributionResponse, DistributionResult};
+
+/// A probability of the normal, binomial or Poisson distribution (Verteilungen). Stateless.
+pub fn distribution(settings: &Settings, request: &DistributionRequest) -> Result<DistributionResponse, ApiError> {
+    let _language = crate::text::Scope::new(settings.language);
+    Ok(crate::stochastics::distributions::distribution(settings, request)?)
+}
+
+pub use crate::constants::{ConstantCategory, ConstantInfo};
+
+/// The physical constants by category, for a CONST menu or a picker, named in `language`.
+pub fn constants(language: crate::settings::Language) -> Vec<ConstantCategory> {
+    crate::constants::catalogue(language)
+}
+
+pub use crate::units::catalogue::{UnitCategory, UnitInfo};
+
+/// The units a conversion `▶` can aim at, by the Casio's categories, named in `language`.
+pub fn conversion_units(language: crate::settings::Language) -> Vec<UnitCategory> {
+    crate::units::catalogue::catalogue(language)
+}
+
+pub use crate::library_search::{HitKind, LibraryHit};
+
+/// A quick search over the constants and conversion units.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LibrarySearchRequest {
+    pub query: String,
+    /// At most this many hits; 8 when left out.
+    #[serde(default)]
+    pub limit: Option<usize>,
+}
+
+/// The constants and units that fit a query, best first, named in `language`.
+pub fn search_library(language: crate::settings::Language, request: &LibrarySearchRequest) -> Vec<LibraryHit> {
+    crate::library_search::search(&request.query, language, request.limit.unwrap_or(8))
+}
+
+pub use crate::session::{HistoryEntry, ModeInputs, SessionFile};
+
+/// A session as a menu lists it.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionInfo {
+    pub id: String,
+    pub name: String,
+    pub created: Option<i64>,
+    pub last_used: Option<i64>,
+    /// How many calculations its history holds.
+    pub entries: usize,
+}
+
+impl SessionInfo {
+    fn of(session: &crate::session::Session) -> Self {
+        SessionInfo {
+            id: session.id.clone(),
+            name: session.name.clone(),
+            created: session.created,
+            last_used: session.last_used,
+            entries: session.history().len(),
+        }
+    }
+}
+
+/// A new session: `name`, or one after the time `now` (UTC milliseconds) in the shell's time zone.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NewSessionRequest {
+    pub name: Option<String>,
+    pub now: Option<i64>,
+    pub utc_offset_minutes: i32,
+}
+
+pub fn new_session(store: &mut SessionStore, request: &NewSessionRequest) -> SessionInfo {
+    SessionInfo::of(store.create(request.name.as_deref(), request.now, request.utc_offset_minutes))
+}
+
+pub fn list_sessions(store: &SessionStore) -> Vec<SessionInfo> {
+    store.sessions().into_iter().map(SessionInfo::of).collect()
+}
+
+fn existing<'a>(store: &'a mut SessionStore, id: &str) -> Result<&'a mut crate::session::Session, ApiError> {
+    store.get_mut(id).ok_or_else(|| crate::session::unknown_session(id).into())
+}
+
+pub fn rename_session(store: &mut SessionStore, id: &str, name: &str) -> Result<SessionInfo, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
+    let session = existing(store, id)?;
+    if name.trim().is_empty() {
+        return Err(QuantusError::other(msg!("core.api.session_needs_name")).into());
+    }
+    session.name = name.trim().to_string();
+    Ok(SessionInfo::of(session))
+}
+
+pub fn duplicate_session(store: &mut SessionStore, id: &str, now: Option<i64>) -> Result<SessionInfo, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
+    Ok(SessionInfo::of(store.duplicate(id, now)?))
+}
+
+pub fn delete_session(store: &mut SessionStore, id: &str) -> bool {
+    store.delete(id)
+}
+
+/// The session as JSON, for the shell to save.
+pub fn export_session(store: &mut SessionStore, id: Option<&str>) -> String {
+    store.session(id).to_json()
+}
+
+/// A saved session read back; it keeps its id unless that is taken.
+pub fn import_session(store: &mut SessionStore, json: &str) -> Result<SessionInfo, ApiError> {
+    let _language = crate::text::Scope::new(store.settings.language);
+    Ok(SessionInfo::of(store.import(json)?))
+}
+
+pub fn history(store: &mut SessionStore, id: Option<&str>) -> Vec<HistoryEntry> {
+    store.session(id).history().to_vec()
+}
+
+/// The session written up as given, wanted and solution, see [`crate::writeup`].
+pub fn writeup(store: &mut SessionStore, id: Option<&str>) -> crate::writeup::Writeup {
+    let settings = store.settings.clone();
+    crate::writeup::build(store.session(id), &settings)
+}
+
+pub fn clear_history(store: &mut SessionStore, id: Option<&str>) {
+    store.session(id).clear_history();
+}
+
+pub fn get_mode_inputs(store: &mut SessionStore, id: Option<&str>) -> ModeInputs {
+    store.session(id).mode_inputs.clone()
+}
+
+pub fn set_mode_inputs(store: &mut SessionStore, id: Option<&str>, inputs: ModeInputs) {
+    store.session(id).mode_inputs = inputs;
+}
+
+/// The remote engine: a request as JSON answered as JSON, see [`crate::remote`].
+pub use crate::remote::dispatch;
+
 pub fn get_settings(store: &SessionStore) -> Settings {
     store.settings.clone()
 }
 
 /// Replaces the settings for all following calls, after checking them.
 pub fn set_settings(store: &mut SessionStore, settings: Settings) -> Result<Settings, ApiError> {
+    let _language = crate::text::Scope::new(settings.language);
     settings.validate()?;
     store.settings = settings;
     Ok(store.settings.clone())
@@ -255,8 +578,26 @@ mod tests {
         keys.sort();
         assert_eq!(
             keys,
-            ["alignBlock", "dimension", "input", "latex", "quantityName", "result", "steps", "unit", "value", "variable"]
+            ["alignBlock", "dimension", "input", "latex", "quantityName", "result", "steps", "unit", "unitLatex", "value", "variable"]
         );
+    }
+
+    #[test]
+    fn eng_steps_a_result_by_three() {
+        let mut store = SessionStore::new();
+        let body = evaluate(&mut store, &request("1234\\,\\mathrm{m}")).unwrap();
+        assert_eq!(body.unit_latex, "\\mathrm{m}");
+        let eng = |steps, settings: &Settings| {
+            let request = EngineeringRequest { value: body.value.clone(), unit_latex: body.unit_latex.clone(), steps, ..Default::default() };
+            engineering(settings, &request).unwrap().latex
+        };
+        assert_eq!(eng(0, &Settings::default()), "1{,}234 \\cdot 10^{3}\\,\\mathrm{m}");
+        assert_eq!(eng(-1, &Settings::default()), "1234 \\cdot 10^{0}\\,\\mathrm{m}");
+        let prefixes = Settings { decimal_prefixes: true, ..Settings::default() };
+        let plain = EngineeringRequest { value: "0.047".into(), steps: 0, ..Default::default() };
+        assert_eq!(engineering(&prefixes, &plain).unwrap().latex, "47\\,\\mathrm{m}");
+        let complex = EngineeringRequest { value: "1500".into(), imaginary: Some("-2".into()), steps: 0, ..Default::default() };
+        assert_eq!(engineering(&Settings::default(), &complex).unwrap().latex, "1{,}5 \\cdot 10^{3} - (2 \\cdot 10^{0})i");
     }
 
     #[test]
@@ -440,6 +781,44 @@ mod tests {
         assert!(parse.position.is_some());
         let family = analyze(&settings, &AnalysisRequest { latex: "x^2 + a".into(), ..Default::default() }).unwrap_err();
         assert!(family.error.contains("function families") && family.position.is_none());
+    }
+
+    #[test]
+    fn the_linear_system_has_its_request_and_response_shape() {
+        let typed: LinearSystemRequest = serde_json::from_value(json!({ "equations": "x + y = 1; x - y = 0" })).unwrap();
+        let given: LinearSystemRequest = serde_json::from_value(json!({ "matrix": { "rows": [["1", "1", "1"], ["1", "-1", ""]] } })).unwrap();
+        let body = json_of(&linear_system(&Settings::default(), &given).unwrap());
+        let mut keys: Vec<_> = body.as_object().unwrap().keys().cloned().collect();
+        keys.sort();
+        assert_eq!(keys, ["alignBlock", "equations", "matrix", "result", "steps", "unknowns"]);
+        assert_eq!(body["unknowns"], json!(["x_{1}", "x_{2}"]));
+        assert_eq!(linear_system(&Settings::default(), &typed).unwrap().result, "x = \\frac{1}{2} \\land y = \\frac{1}{2}");
+        let error = linear_system(&Settings::default(), &LinearSystemRequest::Equations("x^2 = 1; y = 2".into())).unwrap_err();
+        assert!(error.error.contains("not linear") && error.position.is_none());
+    }
+
+    #[test]
+    fn the_kirchhoff_mode_has_its_request_and_response_shape() {
+        let request: KirchhoffRequest = serde_json::from_value(json!({ "elements": [
+            { "id": "V1", "kind": "voltageSource", "u": "10V", "pa": { "x": 0, "y": 4 }, "pb": { "x": 0, "y": 0 } },
+            { "id": "R1", "kind": "resistor", "r": "5\\Omega", "pa": { "x": 0, "y": 0 }, "pb": { "x": 4, "y": 0 } },
+            { "id": "W1", "kind": "wire", "pa": { "x": 4, "y": 0 }, "pb": { "x": 4, "y": 4 } },
+            { "id": "W2", "kind": "wire", "pa": { "x": 4, "y": 4 }, "pb": { "x": 0, "y": 4 } },
+            { "id": "GND1", "kind": "ground" }
+        ] })).unwrap();
+        let body = json_of(&kirchhoff(&Settings::default(), &request).unwrap());
+        let mut keys: Vec<_> = body.as_object().unwrap().keys().cloned().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            ["alignBlock", "branches", "elements", "equivalent", "error", "junctions", "loops", "matrix", "notes", "powerBalance", "result", "steps", "unknowns"]
+        );
+        assert_eq!(body["result"], json!(["I_{1} = 2\\,\\mathrm{A}"]));
+        assert_eq!(body["loops"][0]["name"], "L_{1}");
+        assert_eq!(body["branches"][0]["lead"], "V1");
+        assert_eq!(body["elements"][1]["current"]["result"], "2\\,\\mathrm{A}");
+        assert_eq!(body["powerBalance"]["latex"], "\\sum P_{\\mathrm{gen}} = 20\\,\\mathrm{W} = \\sum P_{\\mathrm{cons}}");
+        assert!(body["alignBlock"].as_str().unwrap().contains("P_{\\mathrm{gen}}"));
     }
 
     #[test]

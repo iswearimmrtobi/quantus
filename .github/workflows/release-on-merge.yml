@@ -1,0 +1,49 @@
+# Releases what reaches master: the merged release PR from dev (or a merge pushed by hand). It reads
+# the version from Cargo.toml and, if there is no tag `v<version>` yet, tags the merge commit and
+# builds the packages into a draft release (release.yml). A `-dev` version or an existing tag
+# releases nothing, so a push to master without a version bump is harmless. A tag pushed by a
+# workflow starts no other workflow, which is why the build is called from here.
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tag the version, if it is new
+        id: tag
+        run: |
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          tag="v$version"
+          if [ -z "$version" ]; then
+            echo "::error::No version in [workspace.package] of Cargo.toml"
+            exit 1
+          elif [[ "$version" == *-* ]]; then
+            echo "$version is a pre-release version; nothing to release."
+          elif git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "$tag exists already; nothing to release."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$tag" -m "Quantus $version"
+            git push origin "$tag"
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: tag
+    if: needs.tag.outputs.tag != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}
