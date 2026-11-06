@@ -7,14 +7,22 @@ release tag goes on that merge commit.
 
 1. On `dev`, set the release version (list below) and turn `## [Unreleased]` in `CHANGELOG.md` into
    `## [X.Y.Z] - YYYY-MM-DD`, with a fresh empty `## [Unreleased]` above it. Update the compare links
-   at the bottom.
-2. Run the *Check* workflow by hand on `dev` with `bundle` on, and look at the packages.
-3. Merge `dev` into `master` with a merge commit, no squash: `git switch master && git merge --no-ff dev`.
-4. Tag and push: `git tag -a vX.Y.Z -m "Quantus X.Y.Z" && git push origin master vX.Y.Z`. The tag
-   starts the *Release build* workflow, which attaches the packages to a draft release.
-5. Publish the draft by hand. Pushing to `master` also deploys the docs.
-6. Back on `dev`, bump to the next `-dev` version (list below) and merge `master` in, so the tag is
+   at the bottom. Push `dev`.
+2. Open a pull request from `dev` into `master`. The *Check* workflow runs on it with the bundles;
+   download the AppImage and the .msi from its run and look at them. Further pushes to `dev`
+   run it again.
+3. Merge the pull request with **Create a merge commit** (the only merge method the repository
+   allows). The *Release* workflow (`release-on-merge.yml`) reads the version from `Cargo.toml`,
+   tags the merge commit `vX.Y.Z` and calls *Release build*, which attaches the packages to a
+   draft release. Pushing to `master` also deploys the docs.
+4. Publish the draft by hand.
+5. Back on `dev`, bump to the next `-dev` version (list below) and merge `master` in, so the tag is
    reachable from `dev`.
+
+*Release* only tags a version without `-` whose tag does not exist yet, so a merge without a
+version bump releases nothing. Without a pull request the same works by hand:
+`git switch master && git merge --no-ff dev && git push origin master`. A `v*` tag pushed by hand
+also starts *Release build* on its own.
 
 ## Where the version lives
 

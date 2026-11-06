@@ -6,7 +6,8 @@ Rust engine, Tauri 2 shell, React + MathLive frontend.
 ## Branches
 
 Work on `dev`. `master` only gets a merge at release time, see [RELEASING.md](RELEASING.md).
-Nothing runs automatically on `dev`; the *Check* workflow is started by hand.
+Nothing runs on pushes to `dev`; the *Check* workflow is started by hand, and runs on the release PR
+into `master`. Merging that PR tags and builds the release.
 
 ## Layout
 

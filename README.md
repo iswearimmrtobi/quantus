@@ -170,9 +170,10 @@ On Windows the same command builds an NSIS installer (`bundle/nsis/*.exe`) and a
 
 You don't need a Windows machine for this: the *Release build* workflow
 (`.github/workflows/release.yml`) runs the desktop tests and builds the AppImage
-on Linux and the `.msi` on Windows, on every `v*` tag or by hand from the Actions
+on Linux and the `.msi` on Windows, for every release or by hand from the Actions
 tab. The packages are attached to the run as the `quantus-linux` and
-`quantus-windows` artifacts; on a tag they also go into a draft GitHub release.
+`quantus-windows` artifacts; for a release they also go into a draft GitHub release
+(see [RELEASING.md](RELEASING.md)).
 
 </details>
 

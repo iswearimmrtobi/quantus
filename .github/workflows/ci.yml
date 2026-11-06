@@ -1,9 +1,11 @@
-# Checks the code on any branch, started by hand from the Actions tab. Nothing runs on push or
-# pull request. With `bundle` on, the AppImage and the .msi are built as well and kept as workflow
-# artifacts; no release is made.
+# Checks the code: by hand on any branch from the Actions tab, and on every pull request into
+# master, the release PR from dev. With `bundle` on, and always on such a pull request, the
+# AppImage and the .msi are built as well and kept as workflow artifacts; no release is made.
 name: Check
 
 on:
+  pull_request:
+    branches: [master]
   workflow_dispatch:
     inputs:
       bundle:
@@ -49,19 +51,19 @@ jobs:
         run: npm run typecheck
 
       - name: Bundle
-        if: inputs.bundle
+        if: inputs.bundle || github.event_name == 'pull_request'
         working-directory: desktop
         run: npm run bundle:appimage
 
       - uses: actions/upload-artifact@v4
-        if: inputs.bundle
+        if: inputs.bundle || github.event_name == 'pull_request'
         with:
           name: quantus-linux
           path: target/release/bundle/appimage/*.AppImage
           if-no-files-found: error
 
   windows:
-    if: inputs.bundle
+    if: inputs.bundle || github.event_name == 'pull_request'
     needs: check
     runs-on: windows-latest
     steps:

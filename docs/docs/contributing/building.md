@@ -56,10 +56,14 @@ it.
 ## Release builds in CI
 
 The *Release build* workflow (`.github/workflows/release.yml`) runs the desktop tests and builds
-the AppImage on Ubuntu 22.04 and the `.msi` on Windows, on every `v*` tag or by hand from the
-**Actions** tab. The packages are attached to the run as the `quantus-linux` and
-`quantus-windows` artifacts. On a tag they also go into a draft GitHub release, which is
-published by hand.
+the AppImage on Ubuntu 22.04 and the `.msi` on Windows, by hand from the **Actions** tab or for a
+release. The packages are attached to the run as the `quantus-linux` and `quantus-windows`
+artifacts. For a release they also go into a draft GitHub release, which is published by hand.
+
+A release starts with a pull request from `dev` into `master`: the *Check* workflow
+(`ci.yml`) runs on it and builds both packages, to be tried before the merge. Merging it starts
+*Release* (`release-on-merge.yml`), which tags the merge commit with the version from
+`Cargo.toml` and calls *Release build*. The steps are in `RELEASING.md` in the repository.
 
 The AppImage is built on the oldest supported Ubuntu runner on purpose: it runs only on systems
 whose glibc is at least as new as the one it was built against.
