@@ -16,8 +16,12 @@ release tag goes on that merge commit.
    tags the merge commit `vX.Y.Z` and calls *Release build*, which attaches the packages to a
    draft release. Pushing to `master` also deploys the docs.
 4. Publish the draft by hand.
-5. Back on `dev`, bump to the next `-dev` version (list below) and merge `master` in, so the tag is
-   reachable from `dev`.
+5. Bring the merge commit back to `dev`, so the tag is reachable from it and GitHub doesn't show
+   `dev` as a commit behind: `git switch dev && git fetch origin && git rebase origin/master &&
+   git push origin dev`. Without new commits on `dev` this is a fast-forward; unpushed commits are
+   replayed on top of the merge commit. If commits on `dev` were pushed after the release PR was
+   merged, use `git merge origin/master` instead of the rebase.
+6. Bump `dev` to the next `-dev` version (list below), for example `0.3.0-dev` after `0.2.0`.
 
 *Release* only tags a version without `-` whose tag does not exist yet, so a merge without a
 version bump releases nothing. Without a pull request the same works by hand:
