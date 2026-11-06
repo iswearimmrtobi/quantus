@@ -5,6 +5,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-06
+
 ### Added
 
 - The desktop app shows the Casio features of the engine:
@@ -381,5 +383,6 @@ The first release.
 - English and German interface.
 - Packages for Linux (AppImage) and Windows (`.msi`).
 
-[Unreleased]: https://github.com/iswearimmrtobi/quantus/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/iswearimmrtobi/quantus/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/iswearimmrtobi/quantus/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/iswearimmrtobi/quantus/releases/tag/v0.1.0
