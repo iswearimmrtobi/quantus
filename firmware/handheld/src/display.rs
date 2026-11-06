@@ -1,7 +1,7 @@
-//! The 3.5" RPi display (Waveshare (A) layout): an ILI9486 behind shift registers that turn SPI
-//! into a 16-bit bus. Every command and parameter goes out as a 16-bit word, pixels as RGB565
-//! words, and every transfer must be a whole number of words. The display cannot be read back.
-//! Its touch controller sits on the same bus with its own chip select.
+//! The 3.5" capacitive touch display (Waveshare 3.5inch Capacitive Touch LCD): an ST7796S on
+//! 4-wire SPI, 320×480 native, turned to landscape by `MADCTL`. Commands and parameters go out as
+//! bytes, pixels as RGB565 words; the display cannot be read back. The touch controller (FT6336U)
+//! is on I²C, see `touch.rs`.
 
 use std::rc::Rc;
 
@@ -15,27 +15,25 @@ use esp_idf_svc::hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::sys::{self, esp, EspError};
 use quantus_ui::render::{HEIGHT, WIDTH};
 
-/// The SPI clock, or `QUANTUS_SPI_MHZ` at build time to try another. The ESP32 divides 80 MHz
-/// and takes the fastest whole divisor not above this: 27 gives 26.67 MHz (80/3), the fastest
-/// the display's shift registers take cleanly; 40 MHz (80/2) garbles the picture.
-pub const SPI_MHZ: u32 = quantus_mirror::number(option_env!("QUANTUS_SPI_MHZ"), 27);
+/// The SPI clock, or `QUANTUS_SPI_MHZ` at build time to try another. The P4 divides 80 MHz and
+/// takes the fastest whole divisor not above this: 40 gives 40 MHz (80/2). The ST7796S takes more
+/// than its datasheet says, but jumper wires do not: if the picture shows noise or shifted
+/// lines, try 27 (26.67 MHz, 80/3) or less.
+pub const SPI_MHZ: u32 = quantus_mirror::number(option_env!("QUANTUS_SPI_MHZ"), 40);
 
-/// The touch controller's clock: the XPT2046 takes up to about 2 MHz, but on jumper wires
-/// 1 MHz reads cleaner.
-pub const TOUCH_MHZ: u32 = 1;
-
-/// A device on the shared bus.
+/// The display on the SPI bus.
 pub type Bus<'d> = SpiDeviceDriver<'d, Rc<SpiDriver<'d>>>;
 
-/// The display and its touch controller on SPI3, plugged onto the Pi-layout header of the
-/// ESP32-P4 dev kit (`firmware/docs/dev-kit.md`), from the fields of a `Peripherals`, which
-/// stays usable for the other pins: `(display, touch)`.
-/// Keep the touch device even when it is not read: dropping it gives up its chip select, and
-/// the controller may then talk over the display. Panics if a driver cannot be set up.
+/// The display on SPI3 and the touch controller on I²C0, wired to the ESP32-P4 dev kit's header
+/// as in `firmware/docs/dev-kit.md`, from the fields of a `Peripherals`, which stays usable for
+/// the other pins: `(display, touch)`.
+/// Keep the touch panel even when it is not read: dropping it gives up TP_RST and the I²C bus.
+/// Panics if a driver cannot be set up.
 #[macro_export]
 macro_rules! open_display {
     ($peripherals:ident) => {{
-        use esp_idf_svc::hal::gpio::PinDriver;
+        use esp_idf_svc::hal::gpio::{AnyIOPin, PinDriver};
+        use esp_idf_svc::hal::i2c::{config::Config as I2cConfig, I2cDriver};
         use esp_idf_svc::hal::spi::config::{Config, DriverConfig};
         use esp_idf_svc::hal::spi::{Dma, SpiDeviceDriver, SpiDriver};
         use esp_idf_svc::hal::units::FromValueType;
@@ -43,47 +41,63 @@ macro_rules! open_display {
         let driver = std::rc::Rc::new(
             SpiDriver::new(
                 $peripherals.spi3,
-                $peripherals.pins.gpio0,       // SCLK, Pi pin 23
-                $peripherals.pins.gpio3,       // MOSI, Pi pin 19
-                Some($peripherals.pins.gpio2), // MISO, Pi pin 21, for the touch controller
+                $peripherals.pins.gpio0, // SCLK
+                $peripherals.pins.gpio3, // MOSI
+                None::<AnyIOPin>,        // MISO: the display is never read
                 &bus,
             )
             .expect("spi"),
         );
-        // The touch controller first: adding it drives its chip select high before the display
-        // is reset.
-        let config = Config::new().baudrate($crate::display::TOUCH_MHZ.MHz().into());
-        let touch = SpiDeviceDriver::new(std::rc::Rc::clone(&driver), Some($peripherals.pins.gpio32), &config)
-            .expect("TP_CS"); // Pi pin 26
         // Two transfers in flight: one sent by DMA while the next is filled.
         let config = Config::new().baudrate($crate::display::SPI_MHZ.MHz().into()).queue_size(2);
-        let spi = SpiDeviceDriver::new(driver, Some($peripherals.pins.gpio36), &config).expect("LCD_CS"); // Pi pin 24
-        let dc = PinDriver::output($peripherals.pins.gpio4).expect("LCD_RS"); // Pi pin 18
-        let reset = PinDriver::output($peripherals.pins.gpio1).expect("RST"); // Pi pin 22
-        ($crate::display::Display::new(spi, dc, reset).expect("display"), touch)
+        let spi = SpiDeviceDriver::new(driver, Some($peripherals.pins.gpio36), &config).expect("LCD_CS");
+        let dc = PinDriver::output($peripherals.pins.gpio4).expect("LCD_DC");
+        let reset = PinDriver::output($peripherals.pins.gpio1).expect("LCD_RST");
+        let backlight = PinDriver::output($peripherals.pins.gpio5).expect("LCD_BL");
+        // The onboard I²C bus (GPIO7/8) also carries the audio codec, which this firmware leaves
+        // alone, and the DSI and CSI connectors.
+        let i2c = I2cDriver::new(
+            $peripherals.i2c0,
+            $peripherals.pins.gpio7, // TP_SDA
+            $peripherals.pins.gpio8, // TP_SCL
+            &I2cConfig::new().baudrate(400.kHz().into()),
+        )
+        .expect("i2c");
+        let touch_reset = PinDriver::output($peripherals.pins.gpio21).expect("TP_RST");
+        (
+            $crate::display::Display::new(spi, dc, reset, backlight).expect("display"),
+            $crate::touch::TouchPanel::new(i2c, touch_reset).expect("touch"),
+        )
     }};
 }
 
 /// Memory access control: rows and columns swapped for landscape, BGR order. 0xE8 turns the
-/// picture by 180°.
+/// picture by 180°; 0x68 and 0xA8 mirror it.
 const MADCTL: u8 = 0x28;
 
-/// The init sequence of the Linux fbtft overlay for this display: a command, its parameters,
-/// and a pause in ms after it.
+/// The init sequence of the ST7796S (as in TFT_eSPI's driver for it): a command, its parameters,
+/// and a pause in ms after it. The panel is IPS and needs inversion on.
 const INIT: &[(u8, &[u8], u32)] = &[
-    (0xB0, &[0x00], 0), // interface mode
-    (0x11, &[], 255),   // out of sleep
-    (0x3A, &[0x55], 0), // 16 bits per pixel
+    (0x11, &[], 120),   // out of sleep
+    (0xF0, &[0xC3], 0), // command set control: enable extended commands
+    (0xF0, &[0x96], 0),
     (0x36, &[MADCTL], 0),
-    (0xC2, &[0x44], 0),                   // power control 3
-    (0xC5, &[0x00, 0x00, 0x00, 0x00], 0), // VCOM
-    (0xE0, &[0x0F, 0x1F, 0x1C, 0x0C, 0x0F, 0x08, 0x48, 0x98, 0x37, 0x0A, 0x13, 0x04, 0x11, 0x0D, 0x00], 0),
-    (0xE1, &[0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00], 0),
-    (0xE2, &[0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00], 0),
+    (0x3A, &[0x55], 0),                // 16 bits per pixel
+    (0xB4, &[0x01], 0),                // 1-dot inversion
+    (0xB6, &[0x80, 0x02, 0x3B], 0),    // display function control
+    (0xE8, &[0x40, 0x8A, 0x00, 0x00, 0x29, 0x19, 0xA5, 0x33], 0), // output adjust
+    (0xC1, &[0x06], 0),                // power control 2
+    (0xC2, &[0xA7], 0),                // power control 3
+    (0xC5, &[0x18], 120),              // VCOM
+    (0xE0, &[0xF0, 0x09, 0x0B, 0x06, 0x04, 0x15, 0x2F, 0x54, 0x42, 0x3C, 0x17, 0x14, 0x18, 0x1B], 0),
+    (0xE1, &[0xE0, 0x09, 0x0B, 0x06, 0x04, 0x03, 0x2B, 0x43, 0x42, 0x3B, 0x16, 0x14, 0x17, 0x1B], 0),
+    (0xF0, &[0x3C], 0), // command set control: disable extended commands
+    (0xF0, &[0x69], 120),
+    (0x21, &[], 0), // inversion on
     (0x29, &[], 0), // display on
 ];
 
-/// Bytes per SPI transfer of pixels; even, so no word is split.
+/// Bytes per SPI transfer of pixels; even, so no pixel is split.
 const CHUNK: usize = 4096;
 
 pub struct Display<'d> {
@@ -93,6 +107,8 @@ pub struct Display<'d> {
     /// Kept so the pin stays driven high: dropping a `PinDriver` resets the GPIO to a floating
     /// input, and the panel then resets itself at random and turns white.
     _reset: PinDriver<'d, Output>,
+    /// LCD_BL, driven high: the backlight is on. Kept for the same reason.
+    _backlight: PinDriver<'d, Output>,
     /// Two buffers of pixel bytes: DMA sends one while the other is filled.
     buffers: [Vec<u8>; 2],
     /// The transfers of the buffers, boxed so they stay put while queued.
@@ -105,15 +121,18 @@ impl<'d> Display<'d> {
         spi: Bus<'d>,
         dc: PinDriver<'d, Output>,
         mut reset: PinDriver<'d, Output>,
+        mut backlight: PinDriver<'d, Output>,
     ) -> Result<Self, EspError> {
         reset.set_low()?;
         FreeRtos::delay_ms(10);
         reset.set_high()?;
         FreeRtos::delay_ms(120);
+        backlight.set_high()?;
         let mut display = Display {
             spi,
             dc,
             _reset: reset,
+            _backlight: backlight,
             buffers: [Vec::with_capacity(CHUNK), Vec::with_capacity(CHUNK)],
             transfers: Box::new([sys::spi_transaction_t::default(); 2]),
         };
@@ -128,11 +147,10 @@ impl<'d> Display<'d> {
 
     fn command(&mut self, command: u8, parameters: &[u8]) -> Result<(), EspError> {
         self.dc.set_low()?;
-        self.spi.write(&[0, command])?;
+        self.spi.write(&[command])?;
         if !parameters.is_empty() {
             self.dc.set_high()?;
-            let words: Vec<u8> = parameters.iter().flat_map(|&byte| [0, byte]).collect();
-            self.spi.write(&words)?;
+            self.spi.write(parameters)?;
         }
         Ok(())
     }
@@ -148,7 +166,7 @@ impl<'d> Display<'d> {
         self.dc.set_high()
     }
 
-    /// The SPI clock the driver chose, in kHz: the ESP32 divides 80 MHz, so it can differ from
+    /// The SPI clock the driver chose, in kHz: the P4 divides 80 MHz, so it can differ from
     /// [`SPI_MHZ`].
     pub fn actual_khz(&self) -> i32 {
         let mut khz = 0;

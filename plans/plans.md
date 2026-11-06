@@ -93,7 +93,7 @@ dev kit. See its [README](../firmware/esp32/README.md).
     LaTeX, and a reader of LaTeX results.
   - [x] 2D layout of math, the screen, band-wise redraws, a stub backend.
   - [x] `firmware/sim`: the UI in a window, PC keys.
-  - [x] `firmware/handheld`: the ILI9486 over SPI on the ESP32-P4.
+  - [x] `firmware/handheld`: the ST7796S over SPI and its FT6336U touch over I²C on the ESP32-P4 (before: an ILI9486 RPi display).
   - [x] Keys over the serial console on the board (built; not yet tried on the board).
   - [x] The screen like a Casio, in the desktop's dark palette: a top bar in the mode's colour,
     one calculation (input top left, result bottom right), the mode menu as coloured tiles,

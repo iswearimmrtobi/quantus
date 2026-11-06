@@ -16,8 +16,8 @@ State on 2026-11-04.
 
 - [~] ESP32-P4 with 32 MB PSRAM: runs on the Waveshare dev kit; the product's own PCB is not built
 - [x] ESP32-C6 as the radio, over ESP-Hosted (SDIO)
-- [~] 3.5" 480×320 display: the ILI9486 RPi display on the dev kit; the product panel (maybe ST7796S) is not chosen
-- [x] Resistive touch (XPT2046) on the display's SPI bus
+- [~] 3.5" 480×320 display: the ST7796S capacitive touch display on the dev kit; the product panel is not chosen
+- [x] Capacitive touch (FT6336U) on I²C, polled, calibrated once
 - [ ] Keypad: about 53 keys on a TCA8418 over I²C; the layout and legend are not fixed
 - [x] SD card slot (shares the SDMMC controller with the C6)
 - [~] USB-C for flashing and power: the dev kit's port; the product's USB-C with ESD protection is not built

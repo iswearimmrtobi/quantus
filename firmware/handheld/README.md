@@ -1,7 +1,7 @@
 # Quantus handheld firmware
 
 The handheld's UI (`firmware/ui`) and the engine (`quantus-core`, through `firmware/engine`) on
-the Waveshare ESP32-P4-Module-DEV-KIT with the 3.5" RPi display, with keys typed into the serial
+the Waveshare ESP32-P4-Module-DEV-KIT with the 3.5" capacitive touch display, with keys typed into the serial
 monitor or on a USB keyboard, or the touch panel.
 
 ## The engine

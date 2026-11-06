@@ -34,37 +34,28 @@ long battery life second. Later, and optional: hand calculations that take longe
     GPIO36,
   - `VBAT` tied to 3.3 V, `ESP_EN` pulled high, 10 µF at the supply input.
 - **Display, product**: a bare 3.5" 480×320 SPI panel on a flex cable with `LED+` and `LED−` on
-  the cable, and a datasheet for its backlight. Many of these use an ST7796S, not an ILI9486,
-  which is a small driver change. The exact panel is still to be chosen.
+  the cable, and a datasheet for its backlight. The prototype's controller, an ST7796S, is the common one for these.
+  The exact panel is still to be chosen.
   - Why SPI and not DPI (RGB parallel): the panel keeps the picture in its own RAM, so a static
     screen costs the P4 nothing and a keypress only sends the bands that changed (about 9 ms
     each). A DPI panel needs a framebuffer scanned out about 60 times a second from PSRAM. That
     costs current all the time and needs about 20 GPIOs instead of 5. For a bigger or sharper
     screen, MIPI-DSI would be the better step, not DPI.
   - Pick a panel whose flex brings out `TE` (sometimes called `FMARK`), and wire it to a GPIO,
-    so full redraws can wait for it and don't tear. The prototype's RPi board doesn't bring it
+    so full redraws can wait for it and don't tear. The prototype's board doesn't bring it
     out, so the prototype can tear.
-  - Without the prototype's shift registers, the SPI clock can probably go above 26.67 MHz
-    (40–80 MHz) and needs measuring.
-- **Display, prototype**: an RPi display with an ILI9486 over SPI, no HDMI, or any display with
-  a separate backlight pin. These boards often put shift registers in front of the controller,
-  so commands and data go out as 16-bit words. The display RAM cannot be read back.
-- **Touch**: on the prototype an XPT2046, resistive, on the same SPI bus as the display with its
-  own chip select, at most ~2 MHz. Polled only while `TP_IRQ` is low. Needs a one-time
-  calibration. The product uses what the chosen panel brings: the same chip on our PCB for a
-  resistive panel, or a capacitive controller on I²C.
+  - The prototype's ST7796S already runs at 40 MHz; whether more is possible needs measuring.
+- **Display, prototype**: the Waveshare 3.5" Capacitive Touch LCD: an ST7796S over 4-wire SPI
+  (plain 8-bit commands), 320×480 turned to landscape, with its own backlight pin, or any
+  display with a separate backlight pin. The display RAM cannot be read back.
+- **Touch**: on the prototype an FT6336U, capacitive, on I²C (0x38), polled, with a one-time
+  calibration. The product uses what the chosen panel brings: a capacitive controller on I²C, or
+  a resistive panel with an XPT2046 on the display's SPI bus.
 - **Dev board**: until our PCB exists, a Waveshare ESP32-P4-Module-DEV-KIT; its pinout and the
   display's pins on it are in [dev-kit.md](dev-kit.md).
-- **Display pins, prototype** (Waveshare (A) layout, to verify on the board):
-
-  | Signal | Pi header | Purpose |
-  |---|---|---|
-  | SCLK, MOSI, MISO | GPIO 11, 10, 9 | Shared SPI bus |
-  | LCD_CS | GPIO 8 (CE0) | Display select |
-  | TP_CS | GPIO 7 (CE1) | Touch select |
-  | LCD_RS | GPIO 24 | Command or data |
-  | RST | GPIO 25 | Display reset |
-  | TP_IRQ | GPIO 17 | Low while touched |
+- **Display pins, prototype**: see [dev-kit.md](dev-kit.md#the-35-capacitive-touch-display-on-the-header)
+  (SCLK, MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL on SPI3 and GPIOs, TP_SDA and TP_SCL on the
+  board's I²C, TP_RST).
 
 - **Keypad**: low-profile SMD tactile switches under printed keycaps, read by a TCA8418
   (I²C, up to 80 keys, debounced, with an interrupt line). The ON key is the same switch on the

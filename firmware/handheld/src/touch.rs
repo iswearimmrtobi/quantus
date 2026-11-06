@@ -1,79 +1,89 @@
-//! The display's XPT2046 resistive touch controller, on the display's SPI bus with its own chip
-//! select. It is polled, and a press is told by its pressure, so TP_IRQ is not needed. It reports
-//! the panel's raw readings; the hui turns them into screen points with the calibration it made
-//! on its calibration screen, which is kept in flash (`store.rs`).
+//! The display's FT6336U capacitive touch controller, on I²C (address 0x38). It is polled: one
+//! read of its status and first-finger registers says whether the panel is touched and where, so
+//! TP_INT is not needed. It reports the panel's own coordinates (320×480, portrait); the UI turns
+//! them into screen points with the calibration it made on its calibration screen, which is kept
+//! in flash (`store.rs`), so the panel's orientation does not matter.
 //!
-//! On jumper wires a reading is now and then garbage (all zeros, or more than 12 bits): such a
-//! poll says nothing, neither pressed nor lifted, so it neither starts nor ends a touch.
+//! A poll that fails (a loose wire) says nothing, neither pressed nor lifted; after [`SILENT`] of
+//! them in a row the finger counts as lifted, so a touch is not held down for ever.
 
 use embedded_graphics::prelude::Point;
+use esp_idf_svc::hal::delay::{FreeRtos, BLOCK};
+use esp_idf_svc::hal::gpio::{Output, PinDriver};
+use esp_idf_svc::hal::i2c::I2cDriver;
 use esp_idf_svc::sys::EspError;
 use quantus_ui::touch::Touch;
 
-use crate::display::Bus;
+/// The controller's 7-bit address.
+const ADDRESS: u8 = 0x38;
 
-/// The conversions, 12 bits, differential, powered down between them.
-const READ_X: u8 = 0xD0;
-const READ_Y: u8 = 0x90;
-const READ_Z1: u8 = 0xB0;
-const READ_Z2: u8 = 0xC0;
+/// Registers: from `STATUS` on, five bytes: the number of fingers (low nibble), then the first
+/// finger's X high byte (event in the top two bits, X in the low nibble), X low, Y high, Y low.
+const STATUS: u8 = 0x02;
+const CHIP_ID: u8 = 0xA3;
 
-/// Z1 at least this, and Z2 below [`Z2_MAX`]: pressed. Untouched, Z1 reads about 0 and Z2 about
-/// 4080; a finger gives about 500 and 2500.
-const Z1_MIN: u16 = 100;
-const Z2_MAX: u16 = 4000;
-
-/// Readings per position; the median of the sound ones is taken, if there are enough.
-const SAMPLES: usize = 7;
-const ENOUGH: usize = 4;
-
-/// How far the middle half of the sound samples of an axis may lie apart; more means the finger
-/// slid or the readings are unsteady.
-const SPREAD: u16 = 150;
+/// The FT6336U's chip ID; the FT6236 reports 0x36.
+const FT6336U: u8 = 0x64;
 
 /// Polls in a row that say lifted before the finger counts as lifted.
 const LIFTED: u8 = 2;
 
-/// Polls in a row that say nothing before the finger counts as lifted anyway: a wire that came
-/// loose must not hold a touch down for ever.
+/// Polls in a row that fail before the finger counts as lifted anyway.
 const SILENT: u8 = 10;
 
 /// What one poll says.
 enum Reading {
     Pressed(Point),
     Lifted,
-    /// Garbage on the wire.
+    /// The bus failed.
     Unknown,
 }
 
 pub struct TouchPanel<'d> {
-    spi: Bus<'d>,
+    i2c: I2cDriver<'d>,
+    /// Kept so TP_RST stays driven high: dropping a `PinDriver` floats the pin.
+    _reset: PinDriver<'d, Output>,
     down: bool,
-    /// A first pressed poll, waiting for a second one to confirm it.
-    pending: bool,
     lifted: u8,
     silent: u8,
 }
 
 impl<'d> TouchPanel<'d> {
-    pub fn new(spi: Bus<'d>) -> Self {
-        TouchPanel { spi, down: false, pending: false, lifted: 0, silent: 0 }
+    /// Resets the controller through `reset` and reads its chip ID, which is logged. An
+    /// unexpected one, or none at all, is only a warning (with the addresses that do answer on
+    /// the bus), so the display can still be tried; such a panel reports no touches.
+    pub fn new(i2c: I2cDriver<'d>, mut reset: PinDriver<'d, Output>) -> Result<Self, EspError> {
+        reset.set_low()?;
+        FreeRtos::delay_ms(10);
+        reset.set_high()?;
+        // The controller needs about 300 ms after reset before it answers.
+        FreeRtos::delay_ms(300);
+        let mut panel = TouchPanel { i2c, _reset: reset, down: false, lifted: 0, silent: 0 };
+        let mut id = [0u8];
+        match panel.i2c.write_read(ADDRESS, &[CHIP_ID], &mut id, BLOCK) {
+            Ok(()) if id[0] == FT6336U => log::info!("touch: FT6336U ready"),
+            Ok(()) => log::warn!("touch: chip ID 0x{:02X}, expected 0x{FT6336U:02X} (FT6336U)", id[0]),
+            Err(error) => {
+                // A broken bus makes every probe take about a second, so only the likely ones:
+                // the codec, the FT6336U, and the addresses of other common touch chips.
+                let found: Vec<String> = [0x14u8, 0x15, 0x18, 0x38, 0x5D]
+                    .into_iter()
+                    .filter(|&address| panel.i2c.write(address, &[], BLOCK).is_ok())
+                    .map(|address| format!("0x{address:02X}"))
+                    .collect();
+                log::warn!("touch: no answer from 0x{ADDRESS:02X} ({error}); on the bus: {found:?}");
+            }
+        }
+        Ok(panel)
     }
 
-    /// What the finger did since the last poll, if anything, as raw readings. A touch starts
-    /// with the second pressed poll in a row, so a single stray reading does not tap.
+    /// What the finger did since the last poll, if anything, as the panel's coordinates.
     pub fn poll(&mut self) -> Option<Touch> {
         match self.reading() {
             Reading::Pressed(raw) => {
                 (self.lifted, self.silent) = (0, 0);
-                if self.down {
-                    return Some(Touch::Drag(raw));
-                }
-                if !std::mem::replace(&mut self.pending, true) {
-                    return None;
-                }
-                self.down = true;
-                Some(Touch::Press(raw))
+                let was_down = std::mem::replace(&mut self.down, true);
+                Some(if was_down { Touch::Drag(raw) } else { Touch::Press(raw) })
             }
             Reading::Lifted => {
                 self.silent = 0;
@@ -92,21 +102,26 @@ impl<'d> TouchPanel<'d> {
         if !gone {
             return None;
         }
-        self.pending = false;
         std::mem::take(&mut self.down).then_some(Touch::Release)
     }
 
-    /// Prints the raw readings, pressed or not: built with `QUANTUS_TOUCH_DEBUG=1`, to find out
+    /// Prints the raw registers, touched or not: built with `QUANTUS_TOUCH_DEBUG=1`, to find out
     /// why touches do not arrive.
     pub fn debug(&mut self) {
-        let mut read = |command| self.read(command).map_or(-1, i32::from);
-        let (z1, z2, x, y) = (read(READ_Z1), read(READ_Z2), read(READ_X), read(READ_Y));
-        println!("touch debug: z1 {z1}, z2 {z2}, x {x}, y {y}");
+        match self.registers() {
+            Ok(r) => println!("touch debug: registers {r:02X?}"),
+            Err(error) => println!("touch debug: {error}"),
+        }
     }
 
     fn reading(&mut self) -> Reading {
-        match self.raw() {
-            Ok(reading) => reading,
+        match self.registers() {
+            Ok(r) if r[0] & 0x0F == 0 => Reading::Lifted,
+            Ok(r) => {
+                let x = u16::from(r[1] & 0x0F) << 8 | u16::from(r[2]);
+                let y = u16::from(r[3] & 0x0F) << 8 | u16::from(r[4]);
+                Reading::Pressed(Point::new(x.into(), y.into()))
+            }
             Err(error) => {
                 log::warn!("touch: {error}");
                 Reading::Unknown
@@ -114,53 +129,9 @@ impl<'d> TouchPanel<'d> {
         }
     }
 
-    /// The raw X and Y readings, if the panel is pressed firmly enough and they are sound.
-    fn raw(&mut self) -> Result<Reading, EspError> {
-        match self.pressed()? {
-            Some(true) => {}
-            Some(false) => return Ok(Reading::Lifted),
-            None => return Ok(Reading::Unknown),
-        }
-        let (mut xs, mut ys) = (Vec::with_capacity(SAMPLES), Vec::with_capacity(SAMPLES));
-        for _ in 0..SAMPLES {
-            xs.push(self.read(READ_X)?);
-            ys.push(self.read(READ_Y)?);
-        }
-        let (Some(x), Some(y)) = (median(xs), median(ys)) else { return Ok(Reading::Unknown) };
-        // Lifted while reading: the samples are not to be trusted.
-        Ok(match self.pressed()? {
-            Some(true) => Reading::Pressed(Point::new(x.into(), y.into())),
-            Some(false) => Reading::Lifted,
-            None => Reading::Unknown,
-        })
+    fn registers(&mut self) -> Result<[u8; 5], EspError> {
+        let mut registers = [0u8; 5];
+        self.i2c.write_read(ADDRESS, &[STATUS], &mut registers, BLOCK)?;
+        Ok(registers)
     }
-
-    /// Whether the pressure says the panel is pressed; `None` for garbage.
-    fn pressed(&mut self) -> Result<Option<bool>, EspError> {
-        let (z1, z2) = (self.read(READ_Z1)?, self.read(READ_Z2)?);
-        if (z1 == 0 && z2 == 0) || z1 > 4095 || z2 > 4095 {
-            return Ok(None);
-        }
-        Ok(Some(z1 >= Z1_MIN && z2 > z1 && z2 < Z2_MAX))
-    }
-
-    /// One conversion: the command, then 12 bits in the next two bytes; more than 12 bits is
-    /// garbage on the wire.
-    fn read(&mut self, command: u8) -> Result<u16, EspError> {
-        let mut read = [0u8; 3];
-        self.spi.transfer(&mut read, &[command, 0, 0])?;
-        Ok(((u16::from(read[1]) << 8) | u16::from(read[2])) >> 3)
-    }
-}
-
-/// The median of the sound samples (neither 0 nor more than 12 bits), if there are enough and
-/// they agree.
-fn median(mut samples: Vec<u16>) -> Option<u16> {
-    samples.retain(|&sample| sample > 0 && sample <= 4095);
-    if samples.len() < ENOUGH {
-        return None;
-    }
-    samples.sort_unstable();
-    let quarter = samples.len() / 4;
-    (samples[samples.len() - 1 - quarter] - samples[quarter] <= SPREAD).then(|| samples[samples.len() / 2])
 }

@@ -83,56 +83,65 @@ it to 3.3 V (LDO channel 4, see [hardware.md](hardware.md) §3; [sd-card.md](sd-
 (`firmware/handheld/src/sd.rs`). These are SDMMC slot 0's fixed IOMUX pins. GPIO24/25 being the USB Serial/JTAG port confirms the
 choice for our own PCB.
 
-## The 3.5" RPi display on the header
+## The 3.5" capacitive touch display on the header
 
-Because the header has the Pi layout, the display (Waveshare (A) layout) plugs on directly or
-with jumpers pin for pin. Its signals then land on these P4 GPIOs; the firmware sets them in
-`open_display!` in `firmware/handheld/src/display.rs`:
+The Waveshare [3.5inch Capacitive Touch LCD](https://www.waveshare.com/wiki/3.5inch_Capacitive_Touch_LCD)
+(ST7796S on 4-wire SPI, FT6336U touch on I²C, 320×480, 3.3 V or 5 V supply) has no Pi-layout
+plug, only a 15-pin GH1.25 connector (or an 18-pin FPC), so it is wired with jumpers. The 15-pin
+numbering is the connector's pin 1 first; check it against the silkscreen. The firmware sets the
+pins in `open_display!` in `firmware/handheld/src/display.rs`:
 
-| Display signal | Pi header | P4 GPIO |
-|---|---|---|
-| SCLK | GPIO 11 (pin 23) | 0 |
-| MOSI | GPIO 10 (pin 19) | 3 |
-| MISO | GPIO 9 (pin 21) | 2 |
-| LCD_CS | GPIO 8 (pin 24) | 36 |
-| TP_CS | GPIO 7 (pin 26) | 32 |
-| LCD_RS | GPIO 24 (pin 18) | 4 |
-| RST | GPIO 25 (pin 22) | 1 |
-| TP_IRQ | GPIO 17 (pin 11) | 21 (not used, see [display-and-touch.md](display-and-touch.md)) |
-| 5 V, 3.3 V, GND | pins 2/4, 1/17, 6 … | |
+| Display (15-pin) | Signal | Header pin | P4 GPIO |
+|---|---|---:|---|
+| 1 | VCC | 1 (3V3), **not** 5 V | |
+| 2 | 3V3 | 17 (3V3) | |
+| 3 | GND | 6 (GND) | |
+| 4 | MISO | not connected | the display is never read |
+| 5 | MOSI | 19 | 3 |
+| 6 | SCLK | 23 | 0 |
+| 7 | SD_CS | 17 (3V3) | the TF slot on the display is unused; high keeps it off the bus |
+| 8 | LCD_CS | 24 | 36 |
+| 9 | LCD_DC | 18 | 4 |
+| 10 | LCD_RST | 22 | 1 |
+| 11 | LCD_BL | 16 | 5 (high: on) |
+| 12 | TP_SDA | 3 | 7 (shared I²C) |
+| 13 | TP_SCL | 5 | 8 (shared I²C) |
+| 14 | TP_INT | not connected | polled instead |
+| 15 | TP_RST | 11 | 21 |
 
-Until the P4 arrived the handheld ran on a classic ESP32 (WROOM, VSPI: SCLK 18, MOSI 23, MISO 19,
-LCD_CS 5, TP_CS 4, LCD_RS 21, RST 22); git history has that build setup.
+**Supply VCC from 3.3 V, not 5 V.** With VCC on 5 V the touch controller did not answer on this
+dev kit, and the display went dark a few seconds after boot; on 3.3 V both work. The module's 3V3
+pin (pin 2) was not tested on its own: it is wired to 3V3 in the table, and the touch worked
+with it connected.
 
-Every pin of the header with what the display connects to it (from the display's (A) pin
-table); pins marked – are not connected on the display.
-
-| Display | GPIO | Pin | Pin | GPIO | Display |
-|---|---|---:|---:|---|---|
-| 3.3 V | 3V3 | 1 | 2 | 5V | 5 V |
-| – | 7 | 3 | 4 | 5V | 5 V |
-| – | 8 | 5 | 6 | GND | GND |
-| – | 23 | 7 | 8 | 37 | – |
-| GND | GND | 9 | 10 | 38 | – |
-| TP_IRQ | 21 | 11 | 12 | 22 | – |
-| – | 20 | 13 | 14 | GND | GND |
-| – | 6 | 15 | 16 | 5 | – |
-| 3.3 V | 3V3 | 17 | 18 | 4 | LCD_RS |
-| MOSI (LCD_SI, TP_SI) | 3 | 19 | 20 | GND | GND |
-| MISO (TP_SO) | 2 | 21 | 22 | 1 | RST |
-| SCLK (LCD_SCK, TP_SCK) | 0 | 23 | 24 | 36 | LCD_CS |
-| GND | GND | 25 | 26 | 32 | TP_CS |
-| – | 24 | 27 | 28 | 25 | – |
-| – | 33 | 29 | 30 | GND | – |
-| – | 26 | 31 | 32 | 54 | – |
-| – | 48 | 33 | 34 | GND | – |
-| – | 53 | 35 | 36 | 46 | – |
-| – | 47 | 37 | 38 | 27 | – |
-| – | GND | 39 | 40 | 45 | – |
+The touch controller (address 0x38) sits on the board's I²C bus with the audio codec, which has
+a different address. The bus needs pull-ups on SDA and SCL (the board should have them for the codec; not checked,
+and the display module may have its own); the firmware runs it at 400 kHz. If the picture stays white or black, check LCD_BL and LCD_RST first; if touch does not
+answer, `QUANTUS_TOUCH_DEBUG=1` prints the controller's registers.
 
 None of these collide with an onboard part. LCD_CS on GPIO36 is a strapping pin; the display
 holds its chip select high when idle, which is the safe level. The display does not use pins 27
-and 28, so the **USB** port keeps working with the display plugged on.
+and 28, so the **USB** port keeps working with the display wired up.
+
+The earlier prototype display, an RPi display with an ILI9486 and an XPT2046 on the Pi-layout
+header, and the classic ESP32 before that, are in git history.
+
+Header pins the display wiring uses (others stay free):
+
+| Use | GPIO | Pin | Pin | GPIO | Use |
+|---|---|---:|---:|---|---|
+| 3V3 (VCC) | 3V3 | 1 | 2 | 5V | |
+| TP_SDA | 7 | 3 | 4 | 5V | |
+| TP_SCL | 8 | 5 | 6 | GND | GND |
+| | 23 | 7 | 8 | 37 | |
+| | GND | 9 | 10 | 38 | |
+| TP_RST | 21 | 11 | 12 | 22 | |
+| | 20 | 13 | 14 | GND | |
+| | 6 | 15 | 16 | 5 | LCD_BL |
+| 3V3 (3V3, SD_CS) | 3V3 | 17 | 18 | 4 | LCD_DC |
+| MOSI | 3 | 19 | 20 | GND | |
+| | 2 | 21 | 22 | 1 | LCD_RST |
+| SCLK | 0 | 23 | 24 | 36 | LCD_CS |
 
 ## USB keyboard
 

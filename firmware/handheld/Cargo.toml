@@ -1,6 +1,6 @@
 [package]
 name = "quantus-handheld"
-description = "The handheld calculator's firmware: the UI and the engine on an ESP32-P4 with an ILI9486 display"
+description = "The handheld calculator's firmware: the UI and the engine on an ESP32-P4 with an ST7796S display"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"

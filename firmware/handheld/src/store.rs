@@ -9,7 +9,9 @@ use quantus_ui::touch::Calibration;
 pub struct Store(EspDefaultNvs);
 
 const NAMESPACE: &str = "quantus";
-const CALIBRATION: &str = "touch_cal";
+/// Not "touch_cal": that one was made for the resistive panel's readings and would be wrong for
+/// the capacitive panel.
+const CALIBRATION: &str = "touch_cal_i2c";
 const WALLPAPER: &str = "wallpaper";
 const SETTINGS: &str = "settings";
 const C6_TRIED: &str = "c6_tried";

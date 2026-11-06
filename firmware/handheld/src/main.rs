@@ -1,6 +1,6 @@
-//! The handheld's firmware on the ESP32-P4 dev kit with the 3.5" ILI9486 display: the UI of
-//! `quantus-ui` with the engine (`quantus-core`, or a stub without the `engine` feature), keys
-//! from the serial monitor or a USB keyboard, and the display's touch panel. See the README.
+//! The handheld's firmware on the ESP32-P4 dev kit with the 3.5" ST7796S capacitive touch display:
+//! the UI of `quantus-ui` with the engine (`quantus-core`, or a stub without the `engine` feature),
+//! keys from the serial monitor or a USB keyboard, and the display's touch panel. See the README.
 
 #[cfg(feature = "engine")]
 mod engine;
@@ -31,7 +31,6 @@ use quantus_handheld::display::Display;
 use quantus_handheld::c6;
 use quantus_handheld::store::Store;
 use quantus_handheld::wlan::Wlan;
-use quantus_handheld::touch::TouchPanel;
 use quantus_handheld::{keyboard, open_display, sd};
 use quantus_ui::touch::Touch;
 
@@ -44,8 +43,7 @@ fn main() {
     let start = Instant::now();
 
     let peripherals = Peripherals::take().expect("peripherals");
-    let (mut display, touch) = open_display!(peripherals);
-    let mut touch = TouchPanel::new(touch);
+    let (mut display, mut touch) = open_display!(peripherals);
     println!("display ready after {} ms", start.elapsed().as_millis());
 
     test_pattern(&mut display);
