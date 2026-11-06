@@ -162,7 +162,7 @@ checks the engine broadly; [`docs/docs/contributing/testing.md`](docs/docs/contr
 
 ```sh
 cd desktop && npm run bundle
-../target/release/bundle/appimage/Quantus_0.1.0_amd64.AppImage
+../target/release/bundle/appimage/Quantus_0.2.0_amd64.AppImage
 ```
 
 On Windows the same command builds an NSIS installer (`bundle/nsis/*.exe`) and an
