@@ -1,6 +1,7 @@
-// Writes THIRD-PARTY-LICENSES.md in the repository root: the Rust crates through cargo-about
-// (about.toml, about.hbs), then the npm packages that end up in the renderer, which are the
-// non-dev entries of package-lock.json. The installers ship the file next to the app.
+// Writes THIRD-PARTY-LICENSES.md in the repository root: the Rust crates of the desktop crate
+// through cargo-about (about.toml, about.hbs; only that crate, so the firmware's crates in the
+// workspace stay out), then the npm packages that end up in the renderer, which are the non-dev
+// entries of package-lock.json. The installers ship the file next to the app.
 import { execFileSync } from 'node:child_process';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -10,7 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const desktop = resolve(here, '..');
 const root = resolve(desktop, '..');
 
-const crates = execFileSync('cargo', ['about', 'generate', 'about.hbs'], { cwd: root, encoding: 'utf8' });
+const crates = execFileSync('cargo', ['about', 'generate', '-c', 'about.toml', '-m', 'desktop/src-tauri/Cargo.toml', 'about.hbs'], { cwd: root, encoding: 'utf8' });
 
 const lock = JSON.parse(await readFile(join(desktop, 'package-lock.json'), 'utf8'));
 const packages = Object.entries(lock.packages)
