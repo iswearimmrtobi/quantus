@@ -18,7 +18,8 @@ State on 2026-11-04.
 - [x] ESP32-C6 as the radio, over ESP-Hosted (SDIO)
 - [~] 3.5" 480×320 display: the ST7796S capacitive touch display on the dev kit; the product panel is not chosen
 - [x] Capacitive touch (FT6336U) on I²C, polled, calibrated once
-- [ ] Keypad: about 53 keys on a TCA8418 over I²C; the layout and legend are not fixed
+- [ ] Keypad: 68 keys (small) or 77 (big) in an 8 × 10 matrix on three MCP23017 over their own I²C bus; the layout is sketched, the legend is not fixed
+- [ ] Two sizes: 77 mm with a 2.8" display and about 97 mm with the 3.5" one, one firmware and a UI profile per screen; the 2.8" panel is not chosen
 - [x] SD card slot (shares the SDMMC controller with the C6)
 - [~] USB-C for flashing and power: the dev kit's port; the product's USB-C with ESD protection is not built
 - [x] USB-A host port for a keyboard (dev kit)
@@ -97,6 +98,9 @@ State on 2026-11-04.
 - [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y), CALC (F8, Ctrl+B) and SOLVE (SHIFT+CALC), STO (SHIFT+VARS; VARS is F11, Ctrl+V)
 - [ ] Keys still missing: ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
 - [ ] ALPHA letters on the keypad
+- [ ] Soft keys (2 × 5 or 2 × 6) with their labels at the bottom of the screen, hidden in modes without them
+- [ ] UNIT layer and SYMB (Greek letters and math symbols on the soft keys)
+- [ ] Unit bar on the soft keys, ordered by the units already in the input (see unit-keys.md)
 - [ ] UNDO/REDO
 - [ ] INS (wrap the previous item in the next template)
 - [ ] Selection with SHIFT+←/→, copy and paste

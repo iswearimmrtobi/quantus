@@ -41,7 +41,7 @@ functions, units, constants, settings, modes and menu entries together: `ohm` fi
 and the constant R_K; `wurz` finds √ and ⁿ√; `zeit` finds Uhrzeit, Zeitzone and the unit group
 Zeit.
 
-**Why.** The OPTN, CONST and CONV trees are deep, and with ~53 keys many functions sit two or
+**Why.** The OPTN, CONST and CONV trees are deep, and with 68–77 keys many functions sit two or
 three levels down. A user who knows the name should not need to know where it lives. On the
 desktop the constants and units picker would get the same search.
 

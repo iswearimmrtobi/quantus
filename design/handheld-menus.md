@@ -736,7 +736,11 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | ∠ | SHIFT + a key in Komplex | missing |
 | UNDO/REDO, INS | SHIFT + DEL, SHIFT + another key | missing |
 | Select, copy, paste | SHIFT + ←/→, then a copy and a paste key | missing |
-| ∫, d/dx, Σ | own keys or OPTN → Analysis | missing |
+| ∫, d/dx, Σ | own keys on the big unit; the Algebra soft keys or OPTN → Analysis on the small | missing |
+| UNIT | the third modifier, in the round control row | missing (`Key::Unit`): see [unit-keys.md](../firmware/docs/unit-keys.md) |
+| SYMB | a key; Greek letters and math symbols on the soft keys | missing (`Key::Symb`) |
+| Soft keys | two rows under the screen, 2 × 5 or 2 × 6; labels at the bottom of the screen | missing (`Key::Soft(u8)`) |
+| EXE | bottom right of the number block, where the Casio has `=` | exists (`Exe`); `=` for equations is `Equals` on the function block |
 | x⁻¹, x³, ⁿ√, 10ˣ, eˣ | SHIFT layers | partly (`Root` with SHIFT is ⁿ√) |
 | ALPHA letters | ALPHA + key | `Alpha` exists, legend open |
 
@@ -853,8 +857,9 @@ and the external keyboard, and the exam mode.
 
 ## 9. Open questions
 
-- **Keys**: which of OPTN, CONST, CONV, ENG, STO, VARS, CALC, SOLVE, ∫ and d/dx get their own
-  key among the 53, and which go through OPTN.
+- **Keys**: which of ENG, STO, SOLVE, d/dx and the rest get their own key, which go through the
+  soft keys or OPTN. The layout is in [hardware.md](../firmware/docs/hardware.md) §4: OPTN,
+  CONST, CONV, CALC and VARS have keys; ∫, Σ and the like only on the big unit.
 - **More than nine entries** in a menu: the Casio picks with digits; past 9 the handheld needs the
   cursor, or letters.
 - **Cardano and Ferrari** give long nested roots: show them only when they simplify, or always

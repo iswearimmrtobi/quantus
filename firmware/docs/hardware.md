@@ -19,8 +19,11 @@ long battery life second. Later, and optional: hand calculations that take longe
 - **R5** One USB-C port on our PCB is exposed, for flashing and power.
 - **R6** A custom boot screen.
 - **R7** Near-instant boot: the first screen within a few hundred milliseconds.
-- **R8** Touch input in addition to the keys.
+- **R8** Touch input in addition to the keys. Nothing may need touch: every function is
+  reachable from the keys.
 - **R9** Runs from a LiPo cell for about a week of normal use, with good power saving (§7).
+- **R10** Two sizes, one firmware: 77 mm wide (as the Casio) with a 2.8" display, and about 97 mm
+  wide with a 3.5" display (§4). The UI adapts to the screen.
 
 ## 3. Components
 
@@ -57,22 +60,75 @@ long battery life second. Later, and optional: hand calculations that take longe
   (SCLK, MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL on SPI3 and GPIOs, TP_SDA and TP_SCL on the
   board's I²C, TP_RST).
 
-- **Keypad**: low-profile SMD tactile switches under printed keycaps, read by a TCA8418
-  (I²C, up to 80 keys, debounced, with an interrupt line). The ON key is the same switch on the
-  same PCB, but wired to the power latch, not the matrix (§7).
+- **Keypad**: low-profile SMD tactile switches under printed keycaps, in an 8 × 10 matrix (80
+  positions) read by three MCP23017 (16-bit I²C port expanders). The ON key is the same switch
+  on the same PCB, but wired to the power latch, not the matrix (§7).
+  - **Bus**: the three chips sit on an I²C bus of their own, so a scan does not hold up touch,
+    RTC and fuel gauge. Their address pins give three addresses, and one P4 GPIO drives the
+    `RESET` of all three.
+  - **Chip 1**: the 8 rows, inputs with pull-ups, on port A, with interrupt-on-change (INT to a
+    P4 GPIO). **Chip 2**: the 10 columns, outputs, on port A and two pins of port B. **Chip 3**:
+    general I/O. With the matrix on those pins, port B of chip 1 (8 pins) and 6 pins of chip 2
+    stay free as well.
+  - **Scanning**: at rest all columns are held low, a press raises INT, and only then does the
+    firmware scan (one column write and one row read per step, about 2–3 ms for ten columns at
+    400 kHz, to be measured) until every key is released. The chips have no debounce and no
+    event FIFO, the firmware does both.
+  - **No diodes**: SHIFT, ALPHA and UNIT latch, so at most two keys are held together.
+  - **Why not a scanner chip**: the TCA8418 was planned first but is out of stock or has long
+    lead times. Alternatives found, not checked against their datasheets: ADP5588 (8 × 10
+    keys), ADP5589 (11 × 8), STMPE1801 (10 × 8 and 4 dedicated keys), LM8330 (TI again). The
+    MCP23S17 is the SPI version with the same registers, for a faster scan.
 - **Clock**: a small RTC, e.g. RV-3028, on I²C. The 3.3 V rail is off when the calculator is, so
   the P4 cannot keep the time. Main supply from 3.3 V, backup supply from the cell (§7).
 
 ## 4. Keypad layout
 
-Modelled on the Casio fx-DE line, not a copy:
+Modelled on the Casio fx-DE line, not a copy. The two sizes run the same firmware and share one
+set of logical keys (`firmware/ui/src/key.rs`). The big one adds shortcuts for what the small one
+reaches through the soft keys or a menu, so no function exists on one of them only.
+[keypad-sizes.html](../../design/keypad-sizes.html) draws both to scale from one table of sizes.
 
-- a top row of 4 keys,
-- a navigation cluster: 4 directions and OK,
-- a 4×6 block of function keys,
-- a 4×5 block of number and operator keys at the bottom.
+| | Small | Big |
+|---|---|---|
+| Width | 77 mm, as the Casio | about 97 mm |
+| Display | 2.8" (panel not chosen; the sketch assumes 320×240) | 3.5", 480×320 |
+| Length (sketch) | about 186 mm | about 197 mm |
+| Soft keys | 2 × 5 | 2 × 6 |
+| Keys | 68 | 77, of which 7 are extras |
 
-About 53 keys in total. Typing units fast is planned in [unit-keys.md](unit-keys.md).
+All keys but ON sit in the 8 × 10 matrix (§3): 67 and 76 keys, 13 and 4 positions spare.
+
+Top to bottom:
+
+- **Soft keys**: two rows of plain keys directly below the screen, 5 mm high, spaced to the
+  width of the screen. Their labels are drawn in two strips at the bottom of the screen: the key
+  row nearest the screen in the lowest strip, the second row in the strip above, tinted
+  differently on screen and on the keycaps. A mode with no use for them (linear systems, graph)
+  hides the strips; the keys are then inert, never a hidden function. The labels follow the
+  screen: units and symbols, algebra commands, result forms ([unit-keys.md](unit-keys.md)).
+- **Control row**: round keys in one row: SHIFT, ALPHA, UNIT, OPTN, MODE, ON.
+- **Arrow pad**: four arrows (smaller than the other keys) and OK, with SYMB, CALC and VARS at
+  its corners (placeholder positions).
+- **Function block**: 6 columns × 4 rows, keys 5 mm high.
+- **Number block**: 5 columns × 4 rows, larger keys. EXE sits at the bottom right where the
+  Casio has `=`. The `=` of equations is a key of the function block (`Key::Equals`).
+- **Big unit only**: UNDO, REDO, ▶unit, x³, 10ˣ, Σ and ∫.
+
+| Key (mm) | Small | Big |
+|---|---|---|
+| Function | 9.3 × 5 | 10.6 × 5 |
+| Soft | 10.3 × 5 | 10.4 × 5.5 |
+| Control (round) | Ø 8 | Ø 8.5 |
+| Arrows | 7 × 5.5 | 7.5 × 5.5 |
+| Number | 11.4 × 8.5 | 15.6 × 9 |
+
+These sizes are a first guess, to be tried on real keycaps.
+
+Legends: SHIFT yellow, ALPHA red, UNIT lavender, at most three per key. ALPHA carries the
+Casio's variables (A–F, M, x, y), not the alphabet: names are rarely typed, and touch is never
+the way in. SYMB opens Greek letters and math symbols on the soft keys. Typing units fast and the
+soft keys' context are in [unit-keys.md](unit-keys.md).
 
 ## 5. Firmware requirements that affect the hardware
 
@@ -98,6 +154,14 @@ About 53 keys in total. Typing units fast is planned in [unit-keys.md](unit-keys
   window for `KILL` after power-on, and the MAX17048 and RV-3028 figures, against their
   datasheets.
 - **Enclosure and keycaps**: how they are made.
+- **Case length**: the sketch comes out at about 186 mm (small) and 197 mm (big), against the
+  Casio fx-991's 162 mm, because of the taller display and the two soft-key rows. Shorter rows or
+  a smaller pitch would cut it.
+- **Small display**: the 2.8" panel is not chosen. Its size and resolution decide the UI profile
+  (the UI draws 480-wide bands today).
+- **Keypad chips**: confirm against the MCP23017 datasheet the I²C speed, the internal pull-up
+  value, the standby current and the scan time; the ADP5588 is the fallback. SYMB, CALC and VARS
+  have no fixed place yet.
 
 ## 7. Power
 
