@@ -126,6 +126,7 @@ fn main() {
     keyboard::start(keys.clone());
     std::thread::Builder::new().stack_size(8 * 1024).spawn(move || read_keys(keys)).expect("key thread");
     let mut last_debug = Instant::now();
+    let mut kept_brightness = None;
     loop {
         // Short enough that the touch panel follows a finger.
         let mut changed = match received.recv_timeout(Duration::from_millis(20)) {
@@ -157,6 +158,12 @@ fn main() {
             kept_wallpaper = app.wallpaper_name.clone();
             if let Some(Err(error)) = store.as_ref().map(|store| store.save_wallpaper(kept_wallpaper.as_deref())) {
                 println!("wallpaper not kept: {error}");
+            }
+        }
+        if kept_brightness != Some(app.settings.brightness) {
+            kept_brightness = Some(app.settings.brightness);
+            if let Err(error) = display.set_brightness(app.settings.brightness) {
+                println!("brightness not set: {error}");
             }
         }
         changed |= app.tick(start.elapsed().as_millis() as u64);

@@ -11,6 +11,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::gpio::{Output, PinDriver};
+use esp_idf_svc::hal::ledc::LedcDriver;
 use esp_idf_svc::hal::spi::{SpiDeviceDriver, SpiDriver};
 use esp_idf_svc::sys::{self, esp, EspError};
 use quantus_ui::render::{HEIGHT, WIDTH};
@@ -53,7 +54,16 @@ macro_rules! open_display {
         let spi = SpiDeviceDriver::new(driver, Some($peripherals.pins.gpio36), &config).expect("LCD_CS");
         let dc = PinDriver::output($peripherals.pins.gpio4).expect("LCD_DC");
         let reset = PinDriver::output($peripherals.pins.gpio1).expect("LCD_RST");
-        let backlight = PinDriver::output($peripherals.pins.gpio5).expect("LCD_BL");
+        // LCD_BL dimmed by PWM, above hearing.
+        let timer = esp_idf_svc::hal::ledc::LedcTimerDriver::new(
+            $peripherals.ledc.timer0,
+            &esp_idf_svc::hal::ledc::config::TimerConfig::new()
+                .frequency(20.kHz().into())
+                .resolution(esp_idf_svc::hal::ledc::Resolution::Bits10),
+        )
+        .expect("LEDC timer");
+        let backlight = esp_idf_svc::hal::ledc::LedcDriver::new($peripherals.ledc.channel0, timer, $peripherals.pins.gpio5)
+            .expect("LCD_BL");
         // The onboard I²C bus (GPIO7/8) also carries the audio codec, which this firmware leaves
         // alone, and the DSI and CSI connectors.
         let i2c = I2cDriver::new(
@@ -107,8 +117,8 @@ pub struct Display<'d> {
     /// Kept so the pin stays driven high: dropping a `PinDriver` resets the GPIO to a floating
     /// input, and the panel then resets itself at random and turns white.
     _reset: PinDriver<'d, Output>,
-    /// LCD_BL, driven high: the backlight is on. Kept for the same reason.
-    _backlight: PinDriver<'d, Output>,
+    /// LCD_BL as PWM: the duty cycle is the brightness. Kept for the same reason.
+    backlight: LedcDriver<'d>,
     /// Two buffers of pixel bytes: DMA sends one while the other is filled.
     buffers: [Vec<u8>; 2],
     /// The transfers of the buffers, boxed so they stay put while queued.
@@ -121,18 +131,17 @@ impl<'d> Display<'d> {
         spi: Bus<'d>,
         dc: PinDriver<'d, Output>,
         mut reset: PinDriver<'d, Output>,
-        mut backlight: PinDriver<'d, Output>,
+        backlight: LedcDriver<'d>,
     ) -> Result<Self, EspError> {
         reset.set_low()?;
         FreeRtos::delay_ms(10);
         reset.set_high()?;
         FreeRtos::delay_ms(120);
-        backlight.set_high()?;
         let mut display = Display {
             spi,
             dc,
             _reset: reset,
-            _backlight: backlight,
+            backlight,
             buffers: [Vec::with_capacity(CHUNK), Vec::with_capacity(CHUNK)],
             transfers: Box::new([sys::spi_transaction_t::default(); 2]),
         };
@@ -142,7 +151,16 @@ impl<'d> Display<'d> {
                 FreeRtos::delay_ms(pause);
             }
         }
+        display.set_brightness(10)?;
         Ok(display)
+    }
+
+    /// Sets the backlight to `level`, 1 (dim) to 10 (full). The duty cycle follows the square of
+    /// the level, since the eye is roughly logarithmic: level 1 is 1 %, level 5 is 25 %.
+    pub fn set_brightness(&mut self, level: u8) -> Result<(), EspError> {
+        let level = u32::from(level.clamp(1, 10));
+        let max = self.backlight.get_max_duty();
+        self.backlight.set_duty((max * level * level / 100).max(1))
     }
 
     fn command(&mut self, command: u8, parameters: &[u8]) -> Result<(), EspError> {

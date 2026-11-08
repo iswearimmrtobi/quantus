@@ -38,7 +38,7 @@ State on 2026-11-04.
 - [ ] Saves the session and switches off when the ON key is pressed
 - [ ] Saves and switches off when the cell runs low
 - [ ] Automatic off after 10 or 60 min (the SETUP entry exists, UI only)
-- [ ] Backlight brightness 1–10 (the SETUP entry exists, UI only)
+- [x] Backlight brightness 1–10 (PWM on LCD_BL, 20 kHz)
 - [ ] Backlight dims after a pause, off after a longer one, back on with any key or touch
 - [ ] Display sleep (`SLPIN`) while the screen is off
 - [ ] CPU frequency scaling and automatic light sleep while idle
