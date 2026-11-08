@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantus keypad sizes</title>
+<style>
+  :root {
+    --mm: 3.7795px;               /* set from the scale slider */
+    --bg: #14161a; --fg: #e6e8ec; --muted: #9aa1ad;
+    --body: #23262d; --key: #4a505b; --key-hi: #5a616d; --soft: #3b414b;
+    --accent: #5fb3a1;
+    --shift: #e8c84a; --alpha: #e86a6a; --unit: #9186e8; --exe: #3d8f5a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
+         font: 14px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 14px; color: var(--muted); max-width: 70ch; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center;
+              margin-bottom: 20px; color: var(--muted); }
+  .controls input[type=range] { width: 200px; vertical-align: middle; }
+  .stage { display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-start; }
+  .col h2 { font-size: 14px; margin: 0 0 6px; }
+  .dim { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+
+  .device { position: relative; background: var(--body); border-radius: calc(var(--mm) * 4);
+            box-shadow: 0 0 0 1px #3a3f48; }
+  .screen { position: absolute; background: #0d1712; border: 1px solid #2c4a3a;
+            border-radius: 2px; overflow: hidden; }
+  .screen .size { position: absolute; top: 4px; left: 6px; color: #5d8a74; font-size: 11px; }
+  .lab { position: absolute; background: #1d3a2d; color: #9fd3b8; text-align: center;
+         font-size: calc(var(--mm) * 2.2); line-height: calc(var(--mm) * 4);
+         border-radius: 2px; border-top: 1px solid #2c4a3a; }
+  .lab.r1 { background: #1d2c3f; color: #9cb9e0; }
+  .key { position: absolute; display: flex; align-items: center; justify-content: center;
+         background: var(--key); border-radius: calc(var(--mm) * 1);
+         box-shadow: 0 calc(var(--mm) * .4) 0 #1a1c21; color: var(--fg);
+         font-size: calc(var(--mm) * 2.7); white-space: nowrap; user-select: none; }
+  .key:hover { background: var(--key-hi); }
+  .key.soft { background: var(--soft); font-size: calc(var(--mm) * 2.2); color: var(--muted);
+              border-radius: calc(var(--mm) * .8); }
+  .key.soft.r1 { background: #35404f; }
+  .key.digit { background: #6a717e; font-weight: 600; }
+  .key.op, .key.del { background: #3c424c; }
+  .key.shift { color: #1a1a1a; background: var(--shift); font-weight: 600; }
+  .key.alpha { color: #1a1a1a; background: var(--alpha); font-weight: 600; }
+  .key.unit  { color: #1a1a1a; background: var(--unit);  font-weight: 600; }
+  .key.exe   { background: var(--exe); font-weight: 700; }
+  .key.on    { background: #7a3a3a; }
+  .key.round { border-radius: 50%; }
+  .key.extra { outline: 2px dashed var(--accent); outline-offset: -2px; }
+
+  table { border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+  th, td { padding: 3px 10px 3px 0; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  .card { background: #2e3440; border: 1px dashed #6b7380; border-radius: calc(var(--mm) * 3.2);
+          display: flex; align-items: center; justify-content: center; color: var(--muted);
+          text-align: center; font-size: 12px; }
+  ul.notes { color: var(--muted); max-width: 80ch; margin-top: 24px; padding-left: 18px; }
+  ul.notes li { margin-bottom: 4px; }
+  .legend span { display: inline-block; padding: 0 8px; border-radius: 3px; margin-right: 6px;
+                 color: #1a1a1a; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Quantus handheld: key sizes</h1>
+<p class="sub">Both variants at one scale, drawn from the numbers in the <code>DEVICES</code> table at the
+  bottom of this file. Change a number, reload. Labels are placeholders, the sizes are the point.</p>
+
+<div class="controls">
+  <label>Scale <input id="zoom" type="range" min="0.5" max="3" step="0.05" value="1"> <span id="zv">1.00×</span></label>
+  <label><input id="cardOn" type="checkbox"> credit card (85.6 × 54 mm), to calibrate the scale against a real card</label>
+  <span class="legend"><span style="background:var(--shift)">SHIFT</span><span style="background:var(--alpha)">ALPHA</span><span style="background:var(--unit)">UNIT</span><span style="background:var(--exe)">EXE</span><span style="outline:2px dashed var(--accent);color:var(--fg)">big unit only</span></span>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<ul class="notes">
+  <li><b>EXE replaces “=”</b> in the bottom right of the number block. The equals sign still exists
+    as a key for equations (<code>Key::Equals</code>), here in the function block.</li>
+  <li>Soft keys: the key row nearest the screen is labelled in the bottom strip of the screen, the
+    second row in the strip above it (blue tint on both). The strips can be hidden in modes that
+    don't use them (LGS, graph).</li>
+  <li>Dashed keys exist only on the big unit; each one is a shortcut for something the small unit
+    reaches through a menu or the soft keys.</li>
+</ul>
+
+<script>
+// All sizes in millimetres. kw/kh: the key, px/py: the pitch (key + gap).
+// A row is a string of labels: "." is an empty cell, "!label" a key only the big unit has.
+const DEVICES = [
+  {
+    title: 'Small · 2.8" · 77 mm wide',
+    width: 77, top: 7, bottom: 7, gap: 3,
+    screen: { w: 57.6, h: 43.2, label: '2.8" 320×240' },
+    soft: { cols: 5, rows: 2, kw: 10.3, kh: 5, px: 11.5, py: 7, strip: 4.2 },
+    blocks: [
+      // cx: x of each column's centre, from the block's left edge; bw: the block's width
+      { name: 'control', round: true, kw: 6, kh: 6, py: 8, gapAfter: 0, bw: 65.8,
+        cx: [4.65, 15.95, 27.25, 38.55, 53.8, 62.8], rows: [
+        'SHIFT ALPHA UNIT OPTN MODE ON' ] },
+      // arrows and function keys share one grid: the cross sits in the middle, function keys around it
+      { name: 'function + arrows', kw: 9.3, kh: 5, px: 11.3, py: 7, gapAfter: 1, small: { labels: '▲ ▼ ◄ ► OK', kw: 7, kh: 5.5 }, rows: [
+        'SYMB a/b √ . ▲ .',
+        'VARS x² xʸ ◄ OK ►',
+        'CALC log ln . ▼ .',
+        '(−) x⁻¹ sin cos tan π',
+        '( ) = ; CONST ENG',
+        'x y e i CONV S⇔D' ] },
+      { name: 'number', kw: 11.4, kh: 8.5, px: 13.6, py: 10.5, rows: [
+        '7 8 9 DEL AC',
+        '4 5 6 × ÷',
+        '1 2 3 + −',
+        '0 , ×10ˣ Ans EXE' ] },
+    ],
+  },
+  {
+    title: 'Big · 3.5" · 97 mm wide',
+    width: 97, top: 8, bottom: 8, gap: 3,
+    screen: { w: 73.6, h: 49.1, label: '3.5" 480×320' },
+    soft: { cols: 6, rows: 2, kw: 10.4, kh: 5.5, px: 12.3, py: 7.5, strip: 4.2 },
+    blocks: [
+      { name: 'control', round: true, kw: 6, kh: 6, py: 8, gapAfter: 0, bw: 86.2,
+        cx: [5.3, 17.9, 30.5, 43.1, 55.7, 68.3, 80.9], rows: [
+        'SHIFT ALPHA UNIT OPTN . MODE ON' ] },
+      { name: 'function + arrows', kw: 10.6, kh: 5, px: 12.6, py: 7, gapAfter: 1, small: { labels: '▲ ▼ ◄ ► OK', kw: 7.5, kh: 5.5 }, rows: [
+        'SYMB a/b √ x² . ▲ .',
+        'VARS xʸ log ln ◄ OK ►',
+        'CALC !UNDO !▶unit !x³ . ▼ .',
+        '(−) x⁻¹ sin cos tan π !10ˣ',
+        '( ) = ; CONST ENG !Σ',
+        'x y e i CONV S⇔D !∫' ] },
+      { name: 'number', kw: 15.6, kh: 9, px: 17.6, py: 11, rows: [
+        '7 8 9 DEL AC',
+        '4 5 6 × ÷',
+        '1 2 3 + −',
+        '0 , ×10ˣ Ans EXE' ] },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const mm = v => `calc(var(--mm) * ${v})`;
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const pos = (e, x, y, w, h) => { Object.assign(e.style, { left: mm(x), top: mm(y), width: mm(w), height: mm(h) }); return e; };
+const parse = s => s.trim().split(/\s+/).map(t => t === '.' ? null : t[0] === '!' ? { l: t.slice(1), extra: true } : { l: t });
+const cls = l => ({ SHIFT: 'shift', ALPHA: 'alpha', UNIT: 'unit', EXE: 'exe', ON: 'on', DEL: 'del', AC: 'del' }[l]
+  || (/^[0-9,]$/.test(l) ? 'digit' : '×÷+−'.includes(l) ? 'op' : ''));
+const f1 = v => v.toFixed(1).replace(/\.0$/, '');
+
+function build(d) {
+  const col = el('div', 'col');
+  col.append(el('h2', null, d.title));
+  const dev = el('div', 'device');
+  dev.style.width = mm(d.width);
+  const stats = { core: 0, extra: 0, soft: d.soft.cols * d.soft.rows };
+
+  let y = d.top;
+  const sx = (d.width - d.screen.w) / 2;
+  const scr = pos(el('div', 'screen'), sx, y, d.screen.w, d.screen.h);
+  scr.append(el('div', 'size', d.screen.label));
+  dev.append(scr);
+  y += d.screen.h + d.gap;
+
+  // soft keys, and their labels on the screen
+  const s = d.soft, sw = (s.cols - 1) * s.px + s.kw, s0 = (d.width - sw) / 2;
+  for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
+    const n = r * s.cols + c + 1;
+    const k = pos(el('div', 'key soft r' + r, 'F' + n), s0 + c * s.px, y + r * s.py, s.kw, s.kh);
+    dev.append(k);
+    const lab = pos(el('div', 'lab r' + r, 'F' + n), s0 + c * s.px - sx, d.screen.h - (r + 1) * s.strip - 0.3, s.kw, s.strip - 0.3);
+    scr.append(lab);
+  }
+  y += s.rows * s.py + d.gap + 1;
+
+  // key blocks
+  const sizes = [];
+  d.blocks.forEach((b, bi) => {
+    const rows = b.rows.map(parse), cols = rows[0].length;
+    const bw = b.cx ? b.bw : (cols - 1) * b.px + b.kw, x0 = (d.width - bw) / 2;
+    rows.forEach((row, r) => row.forEach((cell, c) => {
+      if (!cell) return;
+      const sm = b.small && b.small.labels.split(' ').includes(cell.l);
+      const kw = sm ? b.small.kw : b.kw, kh = sm ? b.small.kh : b.kh;
+      const cx = b.cx ? b.cx[c] : c * b.px + b.kw / 2;
+      const k = pos(el('div', 'key ' + cls(cell.l) + (cell.extra ? ' extra' : '') + (b.round ? ' round' : ''), cell.l),
+        x0 + cx - kw / 2, y + r * b.py + (b.kh - kh) / 2, kw, kh);
+      k.title = `${cell.l}: ${kw} × ${kh} mm`;
+      dev.append(k);
+      cell.extra ? stats.extra++ : stats.core++;
+    }));
+    sizes.push({ name: b.name, cols, rows: rows.length, ...b, bw });
+    y += rows.length * b.py + (bi < d.blocks.length - 1 ? (b.gapAfter ?? d.gap) : 0);
+  });
+  const length = y + d.bottom;
+  dev.style.height = mm(length);
+
+  col.append(Object.assign(el('div', 'dim'), { textContent: `${d.width} × ${f1(length)} mm` }), dev);
+
+  // numbers
+  const bar = 2 * s.strip / d.screen.h * 100;
+  const t = el('table');
+  const row = (a, b) => { const tr = el('tr'); tr.append(el('th', null, a), el('td', null, b)); t.append(tr); };
+  row('Body', `${d.width} × ${f1(length)} mm (Casio fx-991: 77 × 162)`);
+  row('Screen', `${d.screen.w} × ${d.screen.h} mm; the two label strips take ${Math.round(bar)} % of its height`);
+  row('Soft keys', `${s.rows} × ${s.cols}, ${s.kw} × ${s.kh} mm, pitch ${s.px} × ${s.py}`);
+  sizes.forEach(z => row(z.name, `${z.cols} × ${z.rows}, key ${z.kw} × ${z.kh} mm${z.round ? ' (round)' : ''}` +
+    (z.small ? `, arrows ${z.small.kw} × ${z.small.kh}` : '') +
+    (z.cx ? `, row pitch ${z.py}` : `, pitch ${z.px} × ${z.py} (gap ${f1(z.px - z.kw)} / ${f1(z.py - z.kh)})`)));
+  row('Keys', `${stats.soft + stats.core + stats.extra} (${stats.soft} soft, ${stats.core} fixed, ${stats.extra} big-unit extras)`);
+  col.append(t);
+  return col;
+}
+
+function render() {
+  const z = +$('zoom').value;
+  document.documentElement.style.setProperty('--mm', (96 / 25.4 * z) + 'px');
+  $('zv').textContent = z.toFixed(2) + '×';
+  const stage = $('stage');
+  stage.replaceChildren(...DEVICES.map(build));
+  if ($('cardOn').checked) {
+    const c = el('div', 'col');
+    c.append(el('h2', null, 'Credit card'));
+    const card = el('div', 'card', '85.6 × 54 mm');
+    card.style.width = mm(85.6); card.style.height = mm(54);
+    c.append(card);
+    stage.append(c);
+  }
+}
+$('zoom').addEventListener('input', render);
+$('cardOn').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
