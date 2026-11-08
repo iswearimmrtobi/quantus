@@ -79,8 +79,8 @@
 <ul class="notes">
   <li><b>EXE replaces “=”</b> in the bottom right of the number block. The equals sign still exists
     as a key for equations (<code>Key::Equals</code>), here in the function block.</li>
-  <li>Soft keys: the key row nearest the screen is labelled in the bottom strip of the screen, the
-    second row in the strip above it (blue tint on both). The strips can be hidden in modes that
+  <li>Soft keys: the top key row is labelled in the upper strip of the screen, the
+    second row in the strip below it (blue tint on both). The strips can be hidden in modes that
     don't use them (LGS, graph).</li>
   <li>Dashed keys exist only on the big unit; each one is a shortcut for something the small unit
     reaches through a menu or the soft keys.</li>
@@ -167,10 +167,10 @@ function build(d) {
   // soft keys, and their labels on the screen
   const s = d.soft, sw = (s.cols - 1) * s.px + s.kw, s0 = (d.width - sw) / 2;
   for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
-    const n = (s.rows - 1 - r) * s.cols + c + 1;   // the row nearest the screen gets the higher numbers
+    const n = r * s.cols + c + 1;
     const k = pos(el('div', 'key soft r' + r, 'F' + n), s0 + c * s.px, y + r * s.py, s.kw, s.kh);
     dev.append(k);
-    const lab = pos(el('div', 'lab r' + r, 'F' + n), s0 + c * s.px - sx, d.screen.h - (r + 1) * s.strip - 0.3, s.kw, s.strip - 0.3);
+    const lab = pos(el('div', 'lab r' + r, 'F' + n), s0 + c * s.px - sx, d.screen.h - (s.rows - r) * s.strip - 0.3, s.kw, s.strip - 0.3);
     scr.append(lab);
   }
   y += s.rows * s.py + d.gap + 1;

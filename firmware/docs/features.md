@@ -18,7 +18,7 @@ State on 2026-11-04.
 - [x] ESP32-C6 as the radio, over ESP-Hosted (SDIO)
 - [~] 3.5" 480×320 display: the ST7796S capacitive touch display on the dev kit; the product panel is not chosen
 - [x] Capacitive touch (FT6336U) on I²C, polled, calibrated once
-- [ ] Keypad: 68 keys (small) or 77 (big) in an 8 × 10 matrix on three MCP23017 over their own I²C bus; the layout is sketched, the legend is not fixed
+- [ ] Keypad: 68 keys (small) or 76 (big) in an 8 × 10 matrix on three MCP23017 over their own I²C bus; the layout is sketched, the legend is not fixed
 - [ ] Two sizes: 77 mm with a 2.8" display and about 97 mm with the 3.5" one, one firmware and a UI profile per screen; the 2.8" panel is not chosen
 - [x] SD card slot (shares the SDMMC controller with the C6)
 - [~] USB-C for flashing and power: the dev kit's port; the product's USB-C with ESD protection is not built

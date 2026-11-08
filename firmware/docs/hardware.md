@@ -93,17 +93,17 @@ reaches through the soft keys or a menu, so no function exists on one of them on
 |---|---|---|
 | Width | 77 mm, as the Casio | about 97 mm |
 | Display | 2.8" (panel not chosen; the sketch assumes 320×240) | 3.5", 480×320 |
-| Length (sketch) | about 186 mm | about 197 mm |
+| Length (sketch) | about 171 mm | about 182 mm |
 | Soft keys | 2 × 5 | 2 × 6 |
-| Keys | 68 | 77, of which 7 are extras |
+| Keys | 68 | 76, of which 6 are extras |
 
-All keys but ON sit in the 8 × 10 matrix (§3): 67 and 76 keys, 13 and 4 positions spare.
+All keys but ON sit in the 8 × 10 matrix (§3): 67 and 75 keys, 13 and 5 positions spare.
 
 Top to bottom:
 
 - **Soft keys**: two rows of plain keys directly below the screen, 5 mm high, spaced to the
-  width of the screen. Their labels are drawn in two strips at the bottom of the screen: the key
-  row nearest the screen in the lowest strip, the second row in the strip above, tinted
+  width of the screen. Their labels are drawn in two strips at the bottom of the screen: the top
+  key row in the upper strip, the second row in the lower one, so F1 is top left on both, tinted
   differently on screen and on the keycaps. A mode with no use for them (linear systems, graph)
   hides the strips; the keys are then inert, never a hidden function. The labels follow the
   screen: units and symbols, algebra commands, result forms ([unit-keys.md](unit-keys.md)).
@@ -154,7 +154,7 @@ soft keys' context are in [unit-keys.md](unit-keys.md).
   window for `KILL` after power-on, and the MAX17048 and RV-3028 figures, against their
   datasheets.
 - **Enclosure and keycaps**: how they are made.
-- **Case length**: the sketch comes out at about 186 mm (small) and 197 mm (big), against the
+- **Case length**: the sketch comes out at about 171 mm (small) and 182 mm (big), against the
   Casio fx-991's 162 mm, because of the taller display and the two soft-key rows. Shorter rows or
   a smaller pitch would cut it.
 - **Small display**: the 2.8" panel is not chosen. Its size and resolution decide the UI profile
