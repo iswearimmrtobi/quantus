@@ -167,7 +167,7 @@ function build(d) {
   // soft keys, and their labels on the screen
   const s = d.soft, sw = (s.cols - 1) * s.px + s.kw, s0 = (d.width - sw) / 2;
   for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
-    const n = r * s.cols + c + 1;
+    const n = (s.rows - 1 - r) * s.cols + c + 1;   // the row nearest the screen gets the higher numbers
     const k = pos(el('div', 'key soft r' + r, 'F' + n), s0 + c * s.px, y + r * s.py, s.kw, s.kh);
     dev.append(k);
     const lab = pos(el('div', 'lab r' + r, 'F' + n), s0 + c * s.px - sx, d.screen.h - (r + 1) * s.strip - 0.3, s.kw, s.strip - 0.3);
