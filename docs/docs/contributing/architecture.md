@@ -49,7 +49,7 @@ build bundles it.
 | `latex/` | lexer, parser, AST, normalizer and serializer for LaTeX in and out |
 | `eval/` | evaluating the AST, substitution of session variables, the equation solver, symbolic derivatives, the step list of the calculator |
 | `algebra/` | the simplification pipeline: expand, factor, combine, cancel, radicals, logs, trig identities, with a step per rule and the domain conditions |
-| `analysis/` | Analysis mode: its own expression tree, derivatives with rules, domains, limits, antiderivatives, equation solving, the plot sampler and the tasks, all under a time budget |
+| `analysis/` | Analysis mode: its own expression tree, derivatives with rules, domains, limits, antiderivatives, equation solving, the plot sampler and the tasks, all under a time budget; `calculus.rs` works out the calculator's integrals without limits and derivatives without a point |
 | `electro/` | Electronics mode: material table, wire resistance, the exact MNA solver, Newton iteration for power loads, reverse solving |
 | `kirchhoff/` | Kirchhoff mode: the circuit graph, branches, junction and loop rules, their matrix and Gauss steps |
 | `linear.rs` | exact elimination on `[A \| b]`: Gauss–Jordan and the school Gauss method, shared by systems, matrices and circuits |

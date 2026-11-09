@@ -40,8 +40,10 @@ re-run as a set. What has been checked is the feature each one was waiting for.
   integrand, not inside `\frac{…}{…}`.
 - **Numerical results are marked by their digits.** An integral shows at most 30 digits, a root
   found numerically as many as the precision.
-- **Not implemented:** indefinite integrals on their own (`\left[\int f\,dx\right]_a^b` works),
-  closed-path integrals (`\oint`), matrix results outside the Matrix mode (only `\det`), and
+- **Indefinite integrals and derivatives without a point** as the whole input are worked out by
+  the analysis mode (`analysis/calculus.rs`), for functions of their variable alone; inside a
+  calculation they are refused.
+- **Not implemented:** closed-path integrals (`\oint`), matrix results outside the Matrix mode (only `\det`), and
   equations with several unknowns outside a system. One-sided limits, limits at infinity,
   `\arcsin` and friends and `\sin^{-1}` work now.
 

@@ -30,12 +30,16 @@ app.
 - **Systems must be linear.** `x^2 + y = 1; x - y = 0` is refused; there is no numerical
   solver for non-linear systems. A system is always the whole input and cannot be part of a
   calculation, and its unknowns are plain numbers.
-- **Integrals need bounds**, given at `\int` or after an evaluation bracket
-  (`\left[\int x\,dx\right]_0^1`), and are numerical (tanh-sinh), with at most 30 digits. Nested
+- **Integrals with bounds** (at `\int` or after an evaluation bracket,
+  `\left[\int x\,dx\right]_0^1`) are numerical (tanh-sinh), with at most 30 digits. Nested
   integrals work but are slow; improper integrals of exponentials take about a second.
   Differentials must stand at the top level of the integrand, not inside `\frac{…}{…}`.
-- **Derivatives need a point**: `\left.\frac{d}{dx} f\right|_{x=2}`. A partial derivative
-  `\frac{\partial}{\partial x}` is the ordinary one, since an input has a single variable.
+- **Integrals without bounds and derivatives without a point** are worked out symbolically, by
+  the rules of curve sketching (see below). They have to be the whole input
+  (`2\int x\,dx` is refused) and a function of their variable alone, with no other letters
+  (`\int a x\,dx`) and no units. Inside a calculation a derivative needs a point,
+  `\left.\frac{d}{dx} f\right|_{x=2}`. A partial derivative `\frac{\partial}{\partial x}` is
+  the ordinary one, since an input has a single variable.
 - **No closed-path integrals** (`\oint`).
 - **Limits** are numerical; a limit whose two sides disagree is an error, use `0^+` or `0^-`.
 - **Matrices** only inside `\det`, up to 8×8.

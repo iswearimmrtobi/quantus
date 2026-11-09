@@ -5,9 +5,9 @@ title: Calculus
 
 # Calculus
 
-Derivatives at a point, definite integrals, limits and sums work in every calculator mode, and
-with units in Physics mode. For a function as a whole (its derivative, antiderivative, zeros and
-graph) use [Curve sketching](../guides/analysis/index.md).
+Derivatives, integrals, limits and sums work in every calculator mode, and with units in Physics
+mode. For a function as a whole (its zeros, extrema and graph) use
+[Curve sketching](../guides/analysis/index.md).
 
 These are easiest to type in the [LaTeX source](input.md#the-latex-source).
 
@@ -21,8 +21,29 @@ $$
 1536
 $$
 
-The derivative is taken symbolically, then the point is put in. A derivative without a point is
-an error that tells you how to add one.
+The derivative is taken symbolically, then the point is put in. When the variable has a value in
+the session, a derivative without a point is taken there.
+
+## Derivatives and antiderivatives as functions
+
+Without a point or limits, the derivative or the integral is worked out as a function, with
+the working the steps show:
+
+| Input | Result |
+|---|---|
+| `\frac{d}{dx} (x^3 - 2x)` | $3x^{2} - 2$ |
+| `\frac{d^2}{dx^2} \sin x` | $-\sin(x)$ |
+| `(x^3 - x)'` | $3x^{2} - 1$ |
+| `\int x e^x\,dx` | $(x - 1)e^{x} + C$ |
+| `\int \frac{1}{x}\,dx` | $\ln\left\|x\right\| + C$ |
+
+The rules are those of [Curve sketching](../guides/analysis/index.md): derivatives by the sum,
+product, quotient and chain rules; antiderivatives from a table, by partial fractions,
+substitution and integration by parts, each checked by differentiating it back. Integrands without
+an elementary antiderivative, such as $e^{x^2}$, give *No elementary antiderivative found*.
+
+Such a derivative or integral is the whole input (`\frac{d}{dx} x^3 + 1` is an error) and a
+function of its variable alone: other letters (`\int a x\,dx`) and units are refused.
 
 ## Definite integrals
 
@@ -97,5 +118,4 @@ $$
 ## See also
 
 - [Syntax](../reference/syntax.md#calculus)
-- [Known limits](../reference/limits.md): no higher or partial derivatives, no indefinite integrals
-  in the calculator
+- [Known limits](../reference/limits.md)

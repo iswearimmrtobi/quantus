@@ -77,15 +77,18 @@ before sums.
 | `\int_0^1 x^2\,dx` | numerical, at most 30 digits. Differentials `dx`, `d x`, `\mathrm{d}x` |
 | `\int_1^{\infty} \frac{1}{x^2}\,dx` | improper integrals with `\infty` bounds |
 | `\left[\int x^2\,dx\right]_0^2` | an antiderivative evaluated between limits: the integral from 0 to 2 |
+| `\int x^2\,dx` | the antiderivative, $\frac{1}{3}x^{3} + C$, with its working |
 | `\lim_{x \to 0} f`, `\lim_{x \to 0^+} f`, `\lim_{x \to \infty} f` | two-sided, one-sided, at infinity; `\rightarrow` works too |
 | `\left.\frac{d}{dx} x^3\right\|_{x=2}` | derivative at a point, symbolic; also `\mathrm{d}` and `\partial` |
+| `\frac{d}{dx} x^3`, `(x^3)'` | the derivative as a function, $3x^{2}$, with its working |
 | `\left.\frac{d^2}{dx^2} x^3\right\|_{x=2}` | higher derivatives, up to the 9th |
 | `\left.(x^3 - x)'\right\|_{x=2}` | prime notation for the derivative of a bracket, `''` for the second |
 | `\left.\frac{\partial}{\partial x} (x^2 z)\right\|_{x=2, z=3}` | partial derivative at a point in several variables, in any order; a letter the point names is a variable in the body, even a unit such as `t` |
 | `\left.\frac{\partial^2}{\partial x \partial z} f\right\|_{x=1, z=2}` | mixed partials, also `\partial^3 / \partial x^2 \partial z` |
 
-An integral needs bounds (`\oint` is refused) and a derivative needs a point; for antiderivatives and derivatives as
-functions use [Curve sketching](../guides/analysis/index.md).
+An integral without bounds and a derivative without a point have to be the whole input, and a
+function of one variable without units; inside a calculation they need bounds or a point.
+`\oint` is refused.
 
 ## Equations
 

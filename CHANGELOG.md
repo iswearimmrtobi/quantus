@@ -18,6 +18,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   their commands (Basis-N's bases and logic, Prüfen's relations, Komplex's parts, Matrizen's
   functions, Kurvendiskussion's tasks). After a result they hold S⇔D, ENG and ←ENG, and in
   Physik the units it converts to. SYMB puts Greek letters and math symbols on them.
+- Integrals without limits and derivatives without a point: `\int x e^x\,dx` gives
+  $(x - 1)e^{x} + C$, `\frac{d}{dx}(x^3 - 2x)` gives $3x^{2} - 2$, with the working in the steps,
+  by the rules of curve sketching. Also `\frac{d^2}{dx^2}` and `(…)'`.
 
 ## [0.2.0] - 2026-11-06
 
