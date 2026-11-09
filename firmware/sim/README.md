@@ -74,8 +74,8 @@ of the screen: click a key to type it, arrows and DEL repeat while held, and a k
 keyboard lights its key. After SHIFT the keys with a SHIFT action (SETUP, SOLVE, STO, n-th root)
 show it in SHIFT's yellow; after ALPHA the keys with a variable (A–F, M, x, y) show the letter in
 ALPHA's red, and a click types it. UNIT, SYMB, the soft keys and the other keys the UI has no code for yet are
-dimmed and do nothing. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out (and
-the window twice the screen's size again), `--scale <n>` sets the window's scale (1 with the pad).
+dimmed and do nothing. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
+`--scale <n>` sets the window's scale (2 by default, `--scale 1` for a small monitor).
 With `--png` the pad is only in the picture with `--keypad`.
 
 The characters are the same over the board's serial console (`firmware/handheld`), and a USB

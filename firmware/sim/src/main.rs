@@ -111,8 +111,8 @@ fn main() {
 
     print!("{KEYS}");
     let latex = terminal_lines();
-    // The window is twice the screen's size; with the keypad beside it, it would not fit a monitor.
-    let scale = option("--scale").and_then(|scale| scale.parse().ok()).unwrap_or(if keypad.is_some() { 1 } else { 2 });
+    // The window is twice the screen's size, with the keypad too; `--scale 1` for a small monitor.
+    let scale = option("--scale").and_then(|scale| scale.parse().ok()).unwrap_or(2);
     let settings = OutputSettingsBuilder::new().scale(scale).build();
     let mut window = Window::new("Quantus", &settings);
     let start = Instant::now();
