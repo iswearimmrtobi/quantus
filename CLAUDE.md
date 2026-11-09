@@ -32,6 +32,7 @@ cargo test --workspace
 cargo clippy --workspace --all-targets
 cd desktop && npm run typecheck
 cd desktop && npm run dev        # app with hot reload
+cd desktop && npm run android:dev  # Android app (needs the SDK and NDK, see building.md)
 cargo run --release -p quantus-core --example run_cases   # the generated test set
 ```
 

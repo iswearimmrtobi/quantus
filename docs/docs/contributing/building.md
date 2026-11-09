@@ -53,6 +53,31 @@ npm packages in the app. After adding or updating a dependency, regenerate the s
 `npm run licenses` in `desktop/` (it needs `cargo install cargo-about --features cli`) and commit
 it.
 
+## Android
+
+The same app builds for Android through Tauri's mobile support. The shell is a library
+(`src-tauri/src/lib.rs`, with `tauri::mobile_entry_point`); `main.rs` only starts it on the
+desktop. The menu, the single-instance plugin and the GTK error dialog exist only on the desktop;
+on Android the UI's action bar stands in for the menu, and circuit files go through
+`tauri-plugin-fs`, because the file dialog returns `content://` URIs there.
+
+Prerequisites, once:
+
+- JDK 17, the Android SDK (a platform, build tools, platform tools) and the NDK; set `JAVA_HOME`,
+  `ANDROID_HOME` and `NDK_HOME`. See the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/#android).
+- `rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android`
+- An emulator, or a phone with USB debugging on.
+
+```sh
+cd desktop
+npm run android:dev      # on the emulator or phone, with hot reload
+npm run android:build    # APKs under src-tauri/gen/android/app/build/outputs/apk/
+```
+
+The Android project in `src-tauri/gen/android/` comes from `npx tauri android init`. The phone
+layout is plain CSS (`@media (max-width: 700px)` in `styles.css`), so `npm run dev` in a narrow
+window shows it too.
+
 ## Release builds in CI
 
 The *Release build* workflow (`.github/workflows/release.yml`) runs the desktop tests and builds

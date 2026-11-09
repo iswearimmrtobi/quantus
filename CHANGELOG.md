@@ -7,6 +7,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Quantus builds as an Android app (`npm run android:build` in `desktop/`). Below 700 px the
+  window switches to a phone layout: the panels' tab bar at the bottom, panels and dialogs full
+  screen, buttons for what the menu does (CALC, SOLVE, search, copy, new calculation), and
+  MathLive's own keyboard on touch screens.
 - The handheld simulator shows the keypad beside the screen; its keys can be clicked. SHIFT, ALPHA and UNIT relabel them, with locks, as in the layer table.
 
 ## [0.2.0] - 2026-11-06
