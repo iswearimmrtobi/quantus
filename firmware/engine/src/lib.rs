@@ -11,7 +11,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use quantus_core::api::{self, Assignment, CalcRequest, CalculationRequest, CalculationResponse, NewSessionRequest, SolveRequest};
+use quantus_core::api::{self, Assignment, CalcRequest, CalculationRequest, CalculationResponse, EngineeringRequest, NewSessionRequest, SolveRequest};
 use quantus_core::forms::{FormKind, ResultForm};
 use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
@@ -195,6 +195,18 @@ impl Backend for Engine {
 
     fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
         Some(self.calculate(mode, settings, latex, false))
+    }
+
+    fn engineering(&mut self, mode: Mode, settings: &Settings, latex: &str, steps: i32) -> Option<Result<String, String>> {
+        let work = |engine: &mut Engine| {
+            engine.prepare(mode, settings)?;
+            let request = CalcRequest { latex: latex.to_string(), values: Vec::new(), session_id: Some(engine.current.clone()), precision: Some(settings.digits.into()) };
+            let response = api::calc(&mut engine.store, &request).map_err(|error| error.to_string())?;
+            let core = core_settings(core_mode(mode).ok_or_else(|| text::NOT_AVAILABLE.get(settings.language).to_string())?, settings);
+            let request = EngineeringRequest { value: response.value, imaginary: response.imaginary, unit_latex: response.unit_latex, steps };
+            api::engineering(&core, &request).map(|response| response.latex).map_err(|error| error.to_string())
+        };
+        Some(work(self))
     }
 
     /// Keeps the sheet in the open session, then works it out; or what the calculation screen

@@ -53,8 +53,9 @@ pub enum Key {
     Inverse,
     /// The imaginary unit.
     Imag,
-    /// ENG: the result in engineering notation.
+    /// ENG: the result in engineering notation, the exponent up by three; ←ENG (SHIFT) down.
     Eng,
+    EngBack,
     /// UNDO and REDO of the big unit, and SHIFT on DEL and AC.
     Undo,
     Redo,

@@ -29,6 +29,13 @@ pub trait Backend {
         self.start(mode, settings, latex)
     }
 
+    /// The result of `latex` in engineering notation (ENG): the exponent a multiple of three,
+    /// moved by three per step (`steps` 0 is the first press of ENG, −1 the first of ←ENG), or
+    /// an error if it has no decimal value. `None` for a backend without it.
+    fn engineering(&mut self, _mode: Mode, _settings: &Settings, _latex: &str, _steps: i32) -> Option<Result<String, String>> {
+        None
+    }
+
     /// Forgets the running calculation: its answer never comes from [`poll`](Backend::poll) or
     /// [`poll_solve`](Backend::poll_solve).
     fn drop_pending(&mut self) {}
@@ -626,6 +633,11 @@ impl Backend for Stub {
         } else {
             Ok(latex.to_string())
         }
+    }
+
+    /// The steps, to see ENG without the engine.
+    fn engineering(&mut self, _mode: Mode, _settings: &Settings, latex: &str, steps: i32) -> Option<Result<String, String>> {
+        Some(Ok(format!("{latex} \\cdot 10^{{{}}}", 3 * steps)))
     }
 
     /// Two constants and two units, to see the menus without the engine.

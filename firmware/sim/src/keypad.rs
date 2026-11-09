@@ -253,7 +253,7 @@ fn shift_legend(label: &str) -> Option<(&'static str, bool)> {
         "π" => ("°′″", true),
         "(" => ("|x|", true),
         ";" => (":", true),
-        "ENG" => ("←ENG", false),
+        "ENG" => ("←ENG", true),
         "x" => ("∫", true),
         "y" => ("d/dx", true),
         "e" => ("Σ", true),

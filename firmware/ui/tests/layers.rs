@@ -137,3 +137,20 @@ fn catalog_lists_the_optn_functions_by_name_and_inserts() {
     assert!(matches!(app.screen, Screen::Calc));
     assert!(!app.editor.is_empty());
 }
+
+#[test]
+fn eng_and_back_step_the_shown_result() {
+    let mut app = App::new(Stub);
+    app.mode = Mode::Algebra;
+    press(&mut app, &[Key::Digit(5), Key::Exe]);
+    let shown = |app: &App<Stub>| app.shown_entry().and_then(|entry| entry.result.clone().ok()).map(|row| row.to_latex());
+    press(&mut app, &[Key::Eng]);
+    assert_eq!(shown(&app).as_deref(), Some(r"5\cdot10^{0}"));
+    press(&mut app, &[Key::Eng]);
+    assert_eq!(shown(&app).as_deref(), Some(r"5\cdot10^{3}"));
+    press(&mut app, &[Key::Shift, Key::Eng, Key::Shift, Key::Eng]);
+    assert_eq!(shown(&app).as_deref(), Some(r"5\cdot10^{-3}"));
+    // S⇔D goes back to the plain result.
+    press(&mut app, &[Key::SwapForm]);
+    assert_eq!(app.shown_entry().map(|entry| entry.eng), Some(None));
+}

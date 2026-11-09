@@ -76,7 +76,7 @@ keyboard lights its key. SHIFT, ALPHA and UNIT relabel the keys with the layer t
 UNIT (prefixes on the digits, units on the function block). One press serves the next key; SHIFT
 then ALPHA or UNIT locks the layer (shown as `UNIT=` in the top bar, thick outline on the key), and
 SHIFT is one-shot on top of a lock. In UNIT prefixes, units and the operators ÷ × x² ^ keep the layer.
-A legend the UI does not carry out yet (←ENG, FACT, recurring decimals) is dimmed and does nothing, as are
+A legend the UI does not carry out yet (FACT, recurring decimals) is dimmed and does nothing, as are
 SYMB, the soft keys and the keys without code. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
 `--scale <n>` sets the window's scale (2 by default, `--scale 1` for a small monitor).
 With `--png` the pad is only in the picture with `--keypad`.
@@ -108,6 +108,7 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | F6, Ctrl+U | | CONST: the physical constants by category (Physik) |
 | F7, Ctrl+Y | | CONV: `▶` and a unit to convert the value to, by category |
 | F8, Ctrl+B | | CALC: a form asks for the letters of the input, EXE works it out; after F1, SOLVE: solved for the letter left empty |
+| F10 | | ENG, after F1 ←ENG: the shown result in engineering notation |
 | F11, Ctrl+V | | after F1, STO: the result kept under a name typed |
 | Ctrl+W | | √ |
 | Ctrl+Q | | x² |

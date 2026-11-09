@@ -131,6 +131,9 @@ pub struct Entry {
     pub result: Result<Row, String>,
     /// Whether the result is written as a decimal; S⇔D flips it.
     pub decimal: bool,
+    /// The steps ENG took the result to (0 after the first press, −1 after ←ENG), if it is
+    /// written in engineering notation; S⇔D ends it.
+    pub eng: Option<i32>,
 }
 
 /// A calculation the backend is still working on, and where its answer goes.
@@ -466,7 +469,7 @@ impl<B: Backend> App<B> {
             .history
             .into_iter()
             .skip(skip)
-            .map(|(input, result)| Entry { input: latex::parse(&input), result: Ok(latex::parse(&result)), decimal })
+            .map(|(input, result)| Entry { input: latex::parse(&input), result: Ok(latex::parse(&result)), decimal, eng: None })
             .collect();
         self.session = Some(opened.info);
         self.reset();
@@ -1248,6 +1251,7 @@ impl<B: Backend> App<B> {
             Key::Const => return self.open_catalogue(Catalogue::Constants),
             Key::Conv => return self.open_catalogue(Catalogue::Units),
             Key::Catalog => return self.open_catalogue(Catalogue::Functions),
+            Key::Eng | Key::EngBack => return self.engineering(key == Key::Eng),
             Key::Calc => return self.formula(shift),
             Key::Vars if shift => return self.sto(),
             Key::Vars => return self.vars(),
@@ -1735,6 +1739,29 @@ impl<B: Backend> App<B> {
         self.start(Pending::Swap { index, decimal: settings.decimal }, &settings, &latex);
     }
 
+    /// ENG (`up`) or ←ENG on the shown result: written with the exponent a multiple of three,
+    /// and by three more on each press. A result with no decimal value stays as it is.
+    fn engineering(&mut self, up: bool) {
+        let Some(shown) = self.shown else { return };
+        if self.pending.is_some() || matches!(self.mode, Mode::BaseN | Mode::Verify) {
+            return;
+        }
+        let index = self.history.len() - 1 - shown;
+        let entry = &self.history[index];
+        let steps = match (entry.eng, up) {
+            (None, true) => 0,
+            (None, false) => -1,
+            (Some(steps), true) => steps + 1,
+            (Some(steps), false) => steps - 1,
+        };
+        let latex = entry.input.to_latex();
+        if let Some(Ok(result)) = self.backend.engineering(self.mode, &self.settings, &latex, steps) {
+            let entry = &mut self.history[index];
+            entry.result = Ok(latex::parse(&result));
+            entry.eng = Some(steps);
+        }
+    }
+
     fn evaluate(&mut self) {
         self.evaluate_as(self.settings.decimal);
     }
@@ -1778,7 +1805,7 @@ impl<B: Backend> App<B> {
         let result = result.map(|latex| latex::parse(&latex));
         match self.pending.take() {
             Some(Pending::New { input, decimal }) => {
-                self.history.push(Entry { input: input.clone(), result, decimal });
+                self.history.push(Entry { input: input.clone(), result, decimal, eng: None });
                 if self.history.len() > HISTORY {
                     self.history.remove(0);
                 }
@@ -1789,6 +1816,7 @@ impl<B: Backend> App<B> {
                 if let Some(entry) = self.history.get_mut(index) {
                     entry.result = result;
                     entry.decimal = decimal;
+                    entry.eng = None;
                 }
             }
             Some(Pending::Sheet | Pending::Curve | Pending::Variables { .. } | Pending::Formula { .. }) | None => {}

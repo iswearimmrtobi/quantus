@@ -161,8 +161,9 @@ fn shift(key: Key) -> Option<Resolved> {
         Key::Down => K(Key::Paste),
         Key::Exe => K(Key::Approx),
         Key::Optn => K(Key::Catalog),
-        // ←ENG, FACT and recurring decimals wait for the engine.
-        Key::Eng | Key::SwapForm => Nothing,
+        Key::Eng => K(Key::EngBack),
+        // FACT and recurring decimals wait for the engine.
+        Key::SwapForm => Nothing,
         _ => return None,
     })
 }

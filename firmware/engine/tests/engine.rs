@@ -379,3 +379,13 @@ fn matrices_are_defined_used_and_listed() {
     engine.variables(VariableCommand::Delete("A".into()), &settings).expect("deleted");
     assert!(matrix(&mut engine, r"\det A").is_err());
 }
+
+#[test]
+fn eng_steps_the_exponent_by_three() {
+    let mut engine = Engine::default();
+    let settings = Settings::default();
+    let eng = |engine: &mut Engine, steps| engine.engineering(Mode::Algebra, &settings, "12345", steps).expect("supported").expect("a result");
+    assert_eq!(eng(&mut engine, 0), r"12{,}345 \cdot 10^{3}");
+    assert_eq!(eng(&mut engine, 1), r"0{,}012345 \cdot 10^{6}");
+    assert_eq!(eng(&mut engine, -1), r"12345 \cdot 10^{0}");
+}

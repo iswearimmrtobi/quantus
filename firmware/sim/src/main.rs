@@ -503,6 +503,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::F6 => return Some(Key::Const),
         Keycode::F7 => return Some(Key::Conv),
         Keycode::F8 => return Some(Key::Calc),
+        Keycode::F10 => return Some(Key::Eng),
         Keycode::F11 => return Some(Key::Vars),
         Keycode::KpPlus => return Some(Key::Plus),
         Keycode::KpMinus => return Some(Key::Minus),
