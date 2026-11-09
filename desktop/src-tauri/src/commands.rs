@@ -500,12 +500,18 @@ pub fn validate_circuit(circuit: &Value, language: Language) -> Result<(), ApiEr
 
 /// Reads a circuit file. A broken one is reported instead of being returned, so the caller keeps
 /// the circuit it has.
+#[cfg(test)]
 pub fn read_circuit(path: &Path, language: Language) -> Result<Value, ApiError> {
-    let text = fs::read_to_string(path)
+    parse_circuit(fs::read_to_string(path), &path.display().to_string(), language)
+}
+
+/// `text` is what reading the file `shown` gave.
+fn parse_circuit(text: io::Result<String>, shown: &str, language: Language) -> Result<Value, ApiError> {
+    let text = text
         .map_err(|error| file_error(tr!(
             language,
             "shell.commands.could_not_read",
-            path.display()
+            shown
         )))?;
     let circuit: Value = serde_json::from_str(&text)
         .map_err(|error| file_error(tr!(language, "shell.commands.not_valid_circuit_file")))?;
@@ -513,23 +519,54 @@ pub fn read_circuit(path: &Path, language: Language) -> Result<Value, ApiError> 
     Ok(circuit)
 }
 
-pub fn write_circuit(path: &Path, circuit: &Value, language: Language) -> Result<(), ApiError> {
-    validate_circuit(circuit, language)?;
-    let text = serde_json::to_string_pretty(circuit).map_err(file_error)?;
-    fs::write(path, text)
+#[tauri::command]
+pub fn load_circuit<R: Runtime>(app: AppHandle<R>, engine: State<Engine>, path: String) -> Result<Value, ApiError> {
+    parse_circuit(read_picked(&app, &path), &path, engine.language())
+}
+
+#[tauri::command]
+pub fn save_circuit<R: Runtime>(
+    app: AppHandle<R>,
+    engine: State<Engine>,
+    path: String,
+    circuit: Value,
+) -> Result<(), ApiError> {
+    let language = engine.language();
+    validate_circuit(&circuit, language)?;
+    let text = serde_json::to_string_pretty(&circuit).map_err(file_error)?;
+    write_picked(&app, &path, &text)
         .map_err(|error| file_error(tr!(
             language,
             "shell.commands.could_not_saved",
-            path.display()
+            path
         )))
 }
 
-#[tauri::command]
-pub fn load_circuit(engine: State<Engine>, path: String) -> Result<Value, ApiError> {
-    read_circuit(Path::new(&path), engine.language())
+/// A file from the open dialog: a path on the desktop.
+#[cfg(desktop)]
+fn read_picked<R: Runtime>(_app: &AppHandle<R>, path: &str) -> io::Result<String> {
+    fs::read_to_string(path)
 }
 
-#[tauri::command]
-pub fn save_circuit(engine: State<Engine>, path: String, circuit: Value) -> Result<(), ApiError> {
-    write_circuit(Path::new(&path), &circuit, engine.language())
+#[cfg(desktop)]
+fn write_picked<R: Runtime>(_app: &AppHandle<R>, path: &str, text: &str) -> io::Result<()> {
+    fs::write(path, text)
+}
+
+/// On Android the dialog hands out `content://` URIs, which only the fs plugin can open.
+#[cfg(mobile)]
+fn read_picked<R: Runtime>(app: &AppHandle<R>, path: &str) -> io::Result<String> {
+    use tauri_plugin_fs::{FilePath, FsExt};
+    let path: FilePath = path.parse().map_err(io::Error::other)?;
+    app.fs().read_to_string(path)
+}
+
+#[cfg(mobile)]
+fn write_picked<R: Runtime>(app: &AppHandle<R>, path: &str, text: &str) -> io::Result<()> {
+    use io::Write;
+    use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
+    let path: FilePath = path.parse().map_err(io::Error::other)?;
+    let mut options = OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+    app.fs().open(path, options)?.write_all(text.as_bytes())
 }

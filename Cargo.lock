@@ -3058,6 +3058,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-dialog",
+ "tauri-plugin-fs",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
  "windows-sys 0.61.2",

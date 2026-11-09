@@ -15,6 +15,8 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(commands::Engine::default());
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_fs::init());
     // Phones have no menu bar; the UI offers the same actions as buttons.
     #[cfg(desktop)]
     let builder = builder
