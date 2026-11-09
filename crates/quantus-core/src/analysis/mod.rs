@@ -2,6 +2,7 @@
 //! its working out. See `design/analysis-mode.md`.
 
 pub mod budget;
+pub mod calculus;
 pub mod derive;
 pub mod discussion;
 pub mod domain;

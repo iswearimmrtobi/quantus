@@ -208,6 +208,9 @@ impl LatexCalculator {
         if let Node::System { .. } = formula.expression {
             return self.evaluate_system(&evaluator, formula, variables);
         }
+        if let Some(calculation) = self.evaluate_indefinite(&formula, variables) {
+            return calculation;
+        }
         match &formula.expression {
             // An equation can have several solutions, which no single quantity can hold.
             Node::Equation { left, right, .. } if self.settings.mode == Mode::Verify || !has_unknown(&formula.expression, &evaluator) => {
@@ -550,6 +553,41 @@ impl LatexCalculator {
             warning,
             forms: Vec::new(),
         })
+    }
+
+    /// `\int f\,dx`, or a derivative without a point whose variable has no value, as the whole
+    /// input: the function worked out symbolically. `None` for every other input.
+    fn evaluate_indefinite(&self, formula: &Formula, variables: &Variables) -> Option<Result<Calculation>> {
+        let worked = match indefinite(&formula.expression)? {
+            Indefinite::Integral { variable, body } => crate::analysis::calculus::integrate(body, variable, &self.settings),
+            Indefinite::Derivative { variable, .. } if variables.contains_key(variable) => return None,
+            Indefinite::Derivative { variable, order, body } => {
+                crate::analysis::calculus::differentiate(body, variable, order, &self.settings)
+            }
+        };
+        Some(worked.map(|worked| {
+            let prefix = formula.label.as_ref().map(|l| format!("{} = ", serializer::label(l))).unwrap_or_default();
+            let latex = format!("{prefix}{}", worked.result);
+            let mut steps = vec![Step::new(StepKind::Symbolic, format!("{prefix}{}", serializer::expression(&formula.expression)))];
+            steps.extend(worked.steps);
+            steps.push(Step::new(StepKind::Result, latex.clone()));
+            let zero = Value::Rat(dashu::rational::RBig::ZERO);
+            Calculation {
+                input: serializer::formula(formula),
+                latex,
+                steps: shown_steps(&steps, self.settings.step_detail),
+                value: Decimal::from_i64(0),
+                imaginary: None,
+                unit: String::new(),
+                quantity_name: None,
+                quantity: PhysicalQuantity::new(zero, crate::units::Unit::ONE),
+                result: worked.result,
+                formula: formula.clone(),
+                domain_restrictions: None,
+                warning: None,
+                forms: Vec::new(),
+            }
+        }))
     }
 
     /// `x = 2 \lor x = 3`, with the first solution as the calculation's quantity.
@@ -1201,6 +1239,40 @@ fn common_unit_line(expression: &Node, evaluator: &Evaluator, prefix: &str) -> O
     let line = crate::algebra::display::signed_terms_sum(converted)?;
     let text = msg!("core.eval.calculator.convert_common_unit");
     Some(Step::algebraic(format!("{prefix}{}", serializer::expression(&line)), None, text, None, None).with_level(StepDetail::Standard))
+}
+
+/// An input that is a function rather than a value.
+enum Indefinite<'a> {
+    /// `\int body \, d variable`.
+    Integral { variable: &'a str, body: &'a Node },
+    /// `\frac{d^order}{d variable^order} body` without a point.
+    Derivative { variable: &'a str, order: usize, body: &'a Node },
+}
+
+/// The antiderivative or the derivative without a point that `node` is as a whole, if any.
+/// Nested derivatives count as one of higher order when they share their variable.
+fn indefinite(node: &Node) -> Option<Indefinite<'_>> {
+    match node {
+        Node::Group { inner, .. } => indefinite(inner),
+        Node::Antiderivative { variable, body, .. } => Some(Indefinite::Integral { variable, body }),
+        Node::Derivative { variable, body, at: None, .. } => {
+            let mut order = 1;
+            let mut body: &Node = body;
+            loop {
+                match body {
+                    Node::Group { inner, .. } if matches!(**inner, Node::Derivative { .. }) => body = inner,
+                    Node::Derivative { variable: inner, body: deeper, at: None, .. } if inner == variable => {
+                        order += 1;
+                        body = deeper;
+                    }
+                    Node::Derivative { .. } => return None,
+                    _ => break,
+                }
+            }
+            Some(Indefinite::Derivative { variable, order, body })
+        }
+        _ => None,
+    }
 }
 
 fn has_free_algebraic_variables(node: &Node, evaluator: &Evaluator) -> bool {
