@@ -77,7 +77,7 @@ before sums.
 | `\int_0^1 x^2\,dx` | numerical, at most 30 digits. Differentials `dx`, `d x`, `\mathrm{d}x` |
 | `\int_1^{\infty} \frac{1}{x^2}\,dx` | improper integrals with `\infty` bounds |
 | `\left[\int x^2\,dx\right]_0^2` | an antiderivative evaluated between limits: the integral from 0 to 2 |
-| `\int x^2\,dx` | the antiderivative, $\frac{1}{3}x^{3} + C$, with its working |
+| `\int x^2\,dx` | the antiderivative, $\frac{1}{3}x^{3} + C$, with its working; also with both limits left empty, `\int_{}^{}`, as the ∫ key leaves them |
 | `\lim_{x \to 0} f`, `\lim_{x \to 0^+} f`, `\lim_{x \to \infty} f` | two-sided, one-sided, at infinity; `\rightarrow` works too |
 | `\left.\frac{d}{dx} x^3\right\|_{x=2}` | derivative at a point, symbolic; also `\mathrm{d}` and `\partial` |
 | `\frac{d}{dx} x^3`, `(x^3)'` | the derivative as a function, $3x^{2}$, with its working |

@@ -1166,6 +1166,13 @@ impl Parser<'_> {
         if self.current().kind == TokenType::Caret {
             return Err(self.error(&msg!("core.latex.parser.integral_needs_limits"), self.current().position));
         }
+        // `\int_{}^{}` with both limits left empty, as the keypad's and MathLive's templates
+        // leave them, is the integral without limits.
+        let empty_limits =
+            [TokenType::Underscore, TokenType::LBrace, TokenType::RBrace, TokenType::Caret, TokenType::LBrace, TokenType::RBrace];
+        if empty_limits.iter().enumerate().all(|(i, kind)| self.peek(i).kind == *kind) {
+            self.index += empty_limits.len();
+        }
         if self.current().kind != TokenType::Underscore {
             // `\int f\,dx`: the antiderivative.
             let (variable, body) = self.parse_integrand(token.position)?;

@@ -41,6 +41,9 @@ fn integrals_without_limits_give_the_antiderivative_plus_c() {
     assert_eq!(calc(r"\int x e^x\,dx"), r"(x - 1)e^{x} + C");
     assert_eq!(calc(r"\int \frac{1}{x}\,dx"), r"\ln\left|x\right| + C");
     assert_eq!(calc(r"F = \int 2x\,dx"), r"F = x^{2} + C");
+    // The keypad's and MathLive's template with its limits left empty.
+    assert_eq!(calc(r"\int_{}^{}x^{2}\,dx"), r"\frac{1}{3}x^{3} + C");
+    assert!(calc(r"\int_{}^{1}x\,dx").starts_with("error"));
     assert_eq!(calc_in(r"\int t^2\,dt", Mode::Physics), r"\frac{1}{3}t^{3} + C");
 }
 
