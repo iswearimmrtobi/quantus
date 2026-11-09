@@ -113,6 +113,9 @@ pub fn resolve(key: Key, layer: Layer, exponent: bool, base_n: bool) -> Resolved
     })
 }
 
+/// What SHIFT y inserts; the app puts the input before the cursor into brackets after it.
+pub const DERIVATIVE: &str = r"\frac{d}{dx}";
+
 /// Keys of the big unit that only insert something.
 fn base(key: Key) -> Option<&'static str> {
     Some(match key {
@@ -142,7 +145,7 @@ fn shift(key: Key) -> Option<Resolved> {
         Key::OpenParen => Insert("||"),
         Key::Semicolon => Insert(":"),
         Key::Letter('x') => Insert(r"\int_{}^{}"),
-        Key::Letter('y') => Insert(r"\frac{d}{dx}"),
+        Key::Letter('y') => Insert(DERIVATIVE),
         Key::E => Insert(r"\sum_{}^{}"),
         Key::Imag => Insert(r"\prod_{}^{}"),
         Key::Times => Insert(r"\operatorname{nPr}(;)"),

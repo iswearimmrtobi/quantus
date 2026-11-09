@@ -204,3 +204,29 @@ fn a_matrix_reads_back_into_its_cells() {
     editor.left();
     assert_eq!((editor.path(), editor.pos()), (&[(0, 3)][..], 1), "at the end of the last cell");
 }
+
+#[test]
+fn d_dx_takes_what_was_typed_before_it() {
+    let derived = |text: &str| {
+        let mut editor = Editor::new();
+        type_text(&mut editor, text);
+        editor.derivative();
+        editor.to_latex()
+    };
+    assert_eq!(derived("x^2"), r"\frac{d}{dx}(x^{2})");
+    assert_eq!(derived("x^3>-2x"), r"\frac{d}{dx}(x^{3}-2x)");
+    assert_eq!(derived("y=x^2"), r"y=\frac{d}{dx}(x^{2})");
+    assert_eq!(derived("2+(x^2"), r"2+(\frac{d}{dx}(x^{2})");
+    assert_eq!(derived("(x+1)x"), r"\frac{d}{dx}((x+1)x)");
+
+    // Nothing to take: the cursor waits in the brackets.
+    let mut editor = Editor::new();
+    type_text(&mut editor, "2+");
+    editor.derivative();
+    type_text(&mut editor, "x^2");
+    assert_eq!(editor.to_latex(), r"2+\frac{d}{dx}(x^{2})");
+    let mut editor = Editor::new();
+    editor.derivative();
+    type_text(&mut editor, "x");
+    assert_eq!(editor.to_latex(), r"\frac{d}{dx}(x)");
+}

@@ -1258,6 +1258,11 @@ impl<B: Backend> App<B> {
         if self.pending.is_some() {
             return;
         }
+        // d/dx takes what was typed before it; after a result, the input that gave it.
+        if latex == layer::DERIVATIVE && self.sheet_kind().is_none() {
+            self.shown = None;
+            return self.editor.derivative();
+        }
         let row = latex::parse(latex);
         // Into the cell at the cursor, on a sheet.
         let editor = match self.sheet_kind() {

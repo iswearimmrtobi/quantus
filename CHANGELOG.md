@@ -20,7 +20,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   Physik the units it converts to. SYMB puts Greek letters and math symbols on them.
 - Integrals without limits and derivatives without a point: `\int x e^x\,dx` gives
   $(x - 1)e^{x} + C$, `\frac{d}{dx}(x^3 - 2x)` gives $3x^{2} - 2$, with the working in the steps,
-  by the rules of curve sketching. Also `\frac{d^2}{dx^2}` and `(…)'`.
+  by the rules of curve sketching. Also `\frac{d^2}{dx^2}` and `(…)'`. On the handheld the ∫
+  template works with its limits left empty, and d/dx takes the input before the cursor into its
+  brackets: `x²` then d/dx is $\frac{d}{dx}(x^{2})$.
 
 ## [0.2.0] - 2026-11-06
 

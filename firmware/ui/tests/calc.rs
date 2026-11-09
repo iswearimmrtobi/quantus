@@ -86,3 +86,16 @@ fn solve_without_letters_says_so() {
     assert_eq!(app.sheet_kind(), None);
     assert_eq!(result(&app), Err(quantus_ui::text::NO_UNKNOWN.get(quantus_ui::text::Lang::De).to_string()));
 }
+
+#[test]
+fn shift_y_takes_the_input_into_d_dx_also_after_a_result() {
+    let mut app = algebra();
+    // The cursor still in the exponent.
+    press(&mut app, &[Key::Letter('x'), Key::Power, Key::Digit(2), Key::Shift, Key::Letter('y')]);
+    assert_eq!(app.editor.to_latex(), r"\frac{d}{dx}(x^{2})");
+
+    let mut app = algebra();
+    press(&mut app, &[Key::Letter('x'), Key::Power, Key::Digit(3), Key::Exe, Key::Shift, Key::Letter('y')]);
+    assert!(app.shown_entry().is_none());
+    assert_eq!(app.editor.to_latex(), r"\frac{d}{dx}(x^{3})");
+}

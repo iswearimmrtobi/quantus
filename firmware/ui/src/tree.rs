@@ -359,7 +359,7 @@ static ANALYSIS: Page = Page {
     title: same("Analysis"),
     entries: &[
         ins(tx!("hui.tree.integral"), r"\int_{}^{}"),
-        ins(tx!("hui.tree.derivative"), r"\frac{d}{dx}"),
+        ins(tx!("hui.tree.derivative"), crate::layer::DERIVATIVE),
         ins(tx!("hui.tree.sum"), r"\sum_{}^{}"),
         ins(tx!("hui.tree.product"), r"\prod_{}^{}"),
         ins(tx!("hui.tree.lim_limit"), r"\lim_{x\to}"),
@@ -759,7 +759,7 @@ pub fn soft_keys(mode: Mode) -> &'static [Soft] {
 pub static SOFT_ALGEBRA: [Soft; 12] = [
     soft_ins(";", ";"),
     soft_ins("∫", r"\int_{}^{}"),
-    soft_ins("d/dx", r"\frac{d}{dx}"),
+    soft_ins("d/dx", crate::layer::DERIVATIVE),
     soft_ins("Σ", r"\sum_{}^{}"),
     soft_ins("Π", r"\prod_{}^{}"),
     soft_ins("lim", r"\lim_{x\to}"),
@@ -789,7 +789,7 @@ pub static SOFT_ANALYSIS: [Soft; 6] = [
     soft(tx!("hui.soft.tangent"), entry(tx!("hui.tree.tangent_normal"), Kind::Do(Action::TangentForm))),
     soft(tx!("hui.tree.area"), entry(tx!("hui.tree.area"), Kind::Do(Action::AreaForm))),
     soft(tx!("hui.soft.table"), entry(tx!("hui.tree.table"), Kind::Do(Action::PointsForm))),
-    soft_ins("d/dx", r"\frac{d}{dx}"),
+    soft_ins("d/dx", crate::layer::DERIVATIVE),
     soft_ins("∫", r"\int_{}^{}"),
 ];
 
