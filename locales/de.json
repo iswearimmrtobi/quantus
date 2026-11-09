@@ -6,6 +6,11 @@
     "quadratic": "pq"
   },
   "texts": {
+    "app.actions.copyAll": "Alles kopieren",
+    "app.actions.copyResult": "Ergebnis kopieren",
+    "app.actions.evaluate": "Berechnen",
+    "app.actions.new": "Neue Rechnung",
+    "app.actions.search": "Konstanten und Einheiten suchen",
     "app.analysis.area": "FLÄCHE",
     "app.analysis.area.hint": "Ohne Grenzen: die Fläche zwischen der ersten und der letzten Nullstelle.",
     "app.analysis.compute": "Berechnen",

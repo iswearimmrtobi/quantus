@@ -12,7 +12,7 @@ import { EMPTY_GEOMETRY, geometryInput, geometryRequest, type GeometryInput } fr
 import { EMPTY_LINEAR, inputFor, requestFor, type LinearInput } from './linear';
 import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { copyText, inShell, onShortcut } from './shell';
+import { copyText, inShell, onShortcut, type Shortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
 import { LibraryDialog } from './components/LibraryDialog';
@@ -370,9 +370,9 @@ export function App() {
     [evaluate],
   );
 
-  // The menu accelerators of the native shell (F10).
-  useEffect(() => {
-    return onShortcut((shortcut) => {
+  /** What the menu accelerators of the native shell (F10) and the action bar of the phone layout do. */
+  const runShortcut = useCallback(
+    (shortcut: Shortcut) => {
       const current = latest.current.calculation;
       switch (shortcut) {
         case 'new':
@@ -436,8 +436,11 @@ export function App() {
           setSettingsOpen((open) => !open);
           break;
       }
-    });
-  }, [copy, evaluate, reset, togglePanel, toggleLatexMode, openTool, nextForm, engineering, newSession]);
+    },
+    [copy, evaluate, reset, togglePanel, toggleLatexMode, openTool, nextForm, engineering, newSession],
+  );
+
+  useEffect(() => onShortcut(runShortcut), [runShortcut]);
 
   // Escape closes the panel and the settings everywhere; the Ctrl combos only stand in for the menu when the
   // UI runs in a plain browser (`npm run dev:renderer`).
@@ -636,6 +639,36 @@ export function App() {
               onClick={() => toggleLatexMode()}
             >
               {latexMode ? 'TeX' : 'f(x)'}
+            </button>
+          </div>
+
+          {/* The menu's actions as buttons; only the phone layout shows them, it has no menu bar. */}
+          <div className="action-bar">
+            <button className="action-key action-evaluate" onClick={() => runShortcut('evaluate')}>
+              =<span className="action-label">{t('actions.evaluate')}</span>
+            </button>
+            <button className="action-key" disabled={!input.trim()} onClick={() => runShortcut('calc')}>
+              {t('tool.calc')}
+            </button>
+            <button className="action-key" disabled={!input.trim()} onClick={() => runShortcut('solve')}>
+              {t('tool.solve')}
+            </button>
+            <button className="action-key" title={t('actions.search')} aria-label={t('actions.search')} onClick={() => runShortcut('quick-search')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <circle cx="10.5" cy="10.5" r="6" />
+                <path d="M15 15l5 5" />
+              </svg>
+            </button>
+            <button className="action-key" title={t('actions.new')} aria-label={t('actions.new')} onClick={() => runShortcut('new')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+            <button className="action-key action-copy" disabled={!calculation} onClick={() => runShortcut('copy-result')}>
+              {copied === 'result' ? t('copied') : t('actions.copyResult')}
+            </button>
+            <button className="action-key action-copy" disabled={!calculation} onClick={() => runShortcut('copy-all')}>
+              {copied === 'all' ? t('copied') : t('actions.copyAll')}
             </button>
           </div>
 

@@ -2744,3 +2744,250 @@ select option {
   color: var(--text-muted);
   font-size: 13px;
 }
+
+/* ---------- Phone layout (the Android app) ---------- */
+
+/* The menu's actions as buttons: only the phone layout shows them, the desktop has the menu bar. */
+.action-bar {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --rail-w: 0px;
+    --panel-w: 100vw;
+    --tab-bar-h: 52px;
+  }
+
+  /* The topbar sits under the status bar and the tab bar above the gesture area. */
+  .app {
+    height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    grid-template-rows: auto minmax(0, 1fr) var(--tab-bar-h);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topbar {
+    grid-column: 1;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 8px 12px;
+  }
+  .topbar-mid {
+    flex: 1 1 0;
+  }
+  .dim-readout {
+    max-width: 100%;
+  }
+  /* The mode switch gets a row of its own and scrolls sideways. */
+  .topbar-right {
+    order: 3;
+    flex: 1 0 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topbar-right > :not(.mode-switch) {
+    display: none;
+  }
+  .mode-switch .segment {
+    padding: 8px 12px;
+  }
+
+  .workspace {
+    grid-column: 1;
+  }
+  .app.panel-open .workspace {
+    padding-right: 0;
+  }
+  .calc-panel,
+  .analysis-panel {
+    margin-top: 16px;
+    padding: 0 12px 24px;
+  }
+
+  /* The rail becomes the tab bar at the bottom, the status bar gives way to it. */
+  .statusbar {
+    display: none;
+  }
+  .side-rail {
+    grid-column: 1;
+    grid-row: 3;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0 4px;
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+  }
+  .rail-settings {
+    margin-top: 0;
+  }
+  .rail-btn {
+    width: 48px;
+    height: 44px;
+  }
+  .rail-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Panels cover the workspace, above the tab bar that switches between them. */
+  .side-panel {
+    grid-column: 1;
+    width: 100%;
+    border-left: none;
+  }
+  .panel-tab {
+    padding: 14px 3px;
+    font-size: 12px;
+  }
+  .panel-collapse {
+    width: 48px;
+  }
+  .panel-collapse svg {
+    transform: rotate(90deg);
+  }
+
+  .action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .action-key {
+    flex: 1 1 auto;
+    min-height: 40px;
+    min-width: 44px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+  }
+  .action-key svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* The two copy keys share the second row. */
+  .action-copy {
+    flex: 1 1 calc(50% - 3px);
+  }
+  .action-key:disabled {
+    opacity: 0.4;
+  }
+  .action-evaluate {
+    flex: 1 0 100%;
+    font-size: 16px;
+    color: var(--bg);
+    background: var(--cyan);
+    border-color: var(--cyan);
+  }
+  .action-label {
+    font-size: 12px;
+  }
+
+  /* Finger-sized keys and chips. */
+  .copy-btn,
+  .form-chip,
+  .insert-key,
+  .steps-toggle {
+    min-height: 36px;
+  }
+  .steps-toggle kbd {
+    display: none;
+  }
+  .step-row {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+  .step-latex {
+    overflow-x: auto;
+  }
+
+  /* Dialogs fill the screen; the settings' categories become a row that scrolls. */
+  .dialog-backdrop {
+    padding: env(safe-area-inset-top) 0 0;
+    align-items: stretch;
+  }
+  .dialog {
+    width: 100vw;
+    max-height: 100dvh;
+    overflow-y: auto;
+    border: none;
+  }
+  .dialog.settings-dialog,
+  .dialog.settings-dialog.writeup-dialog {
+    width: 100vw;
+    height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+  .settings-head {
+    grid-column: 1;
+  }
+  .settings-close {
+    width: 44px;
+    height: 40px;
+  }
+  .settings-nav {
+    grid-row: 2;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--hairline);
+    scrollbar-width: none;
+  }
+  .settings-cat {
+    flex: none;
+    padding: 12px 14px;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+  }
+  .settings-body {
+    grid-row: 3;
+    padding: 0 14px;
+  }
+  .settings-foot {
+    grid-row: 4;
+    padding: 0 14px calc(14px + env(safe-area-inset-bottom));
+  }
+  .library-dialog .settings-body {
+    grid-row: 2 / 5;
+  }
+  .writeup-dialog .settings-body {
+    grid-row: 2 / 5;
+    padding: 4px 14px 18px;
+  }
+  .library-constants {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .quick-backdrop {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* The schematic editor: parts above the drawing, the inspector below, the page scrolls. */
+  .workspace.circuit-workspace {
+    overflow-y: auto;
+  }
+  .circuit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(360px, 70dvh) auto;
+    height: auto;
+  }
+  .circuit-palette,
+  .circuit-inspector {
+    border: none;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .palette-item {
+    display: inline-flex;
+    width: auto;
+    min-height: 40px;
+  }
+}

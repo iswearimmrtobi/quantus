@@ -6,6 +6,11 @@
     "quadratic": "abc"
   },
   "texts": {
+    "app.actions.copyAll": "Copy all",
+    "app.actions.copyResult": "Copy result",
+    "app.actions.evaluate": "Evaluate",
+    "app.actions.new": "New calculation",
+    "app.actions.search": "Search constants and units",
     "app.analysis.area": "AREA",
     "app.analysis.area.hint": "Leave both bounds empty for the area between the outermost zeros.",
     "app.analysis.compute": "Compute",

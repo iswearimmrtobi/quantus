@@ -138,8 +138,9 @@ export function MathField({
   useEffect(() => {
     const mathfield = new MathfieldElement();
     mathfield.className = className ? `math-input ${className}` : 'math-input';
-    // No virtual keyboard: the desktop workflow is physical keys and the numpad (F10).
-    mathfield.mathVirtualKeyboardPolicy = 'manual';
+    // The desktop workflow is physical keys and the numpad (F10); a touch screen (the Android app) has
+    // neither, so there MathLive's own keyboard comes up with the field instead of the system's.
+    mathfield.mathVirtualKeyboardPolicy = window.matchMedia('(pointer: coarse)').matches ? 'auto' : 'manual';
     mathfield.smartMode = false;
     if (placeholder) mathfield.placeholder = placeholder;
     mathfield.value = value;
