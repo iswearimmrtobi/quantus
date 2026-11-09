@@ -204,7 +204,7 @@ pub fn find_unsupported_construct(node: &Node) -> Option<&'static str> {
         Node::Function { .. } => Some("transcendental functions"),
         Node::Call { .. } => Some("integer functions"),
         Node::Sum { .. } => Some("sums"),
-        Node::Integral { .. } => Some("integrals"),
+        Node::Integral { .. } | Node::Antiderivative { .. } => Some("integrals"),
         Node::Limit { .. } => Some("limits"),
         Node::Derivative { .. } => Some("derivatives"),
         Node::Power { exponent, .. } => {

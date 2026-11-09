@@ -1158,12 +1158,18 @@ impl Parser<'_> {
         if sign == TokenType::Plus { 1 } else { -1 }
     }
 
-    /// `\int_a^b body \, dx`. The differential is found first, so the integration variable is
-    /// known (and wins over a unit of the same name) while the body is read.
+    /// `\int_a^b body \, dx`, or without limits `\int body \, dx`. The differential is found
+    /// first, so the integration variable is known (and wins over a unit of the same name) while
+    /// the body is read.
     fn parse_integral(&mut self, token: &Token) -> Result<Node> {
         self.advance();
-        if self.current().kind != TokenType::Underscore {
+        if self.current().kind == TokenType::Caret {
             return Err(self.error(&msg!("core.latex.parser.integral_needs_limits"), self.current().position));
+        }
+        if self.current().kind != TokenType::Underscore {
+            // `\int f\,dx`: the antiderivative.
+            let (variable, body) = self.parse_integrand(token.position)?;
+            return Ok(Node::Antiderivative { variable, body: Box::new(body), position: token.position });
         }
         self.advance();
         let lower = self.parse_argument(&token.text)?;

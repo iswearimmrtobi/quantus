@@ -34,8 +34,8 @@ pub(crate) fn gives_angle(name: &str) -> bool {
 pub(crate) fn is_marked(node: &Node) -> bool {
     match node {
         Node::Unit { unit, .. } => unit.factors().iter().any(|factor| factor.item.kind() == Kind::Radian),
-        Node::Function { .. } | Node::Call { .. } | Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. }
-        | Node::Derivative { .. } => false,
+        Node::Function { .. } | Node::Call { .. } | Node::Sum { .. } | Node::Integral { .. } | Node::Antiderivative { .. }
+        | Node::Limit { .. } | Node::Derivative { .. } => false,
         other => other.children().into_iter().any(is_marked),
     }
 }

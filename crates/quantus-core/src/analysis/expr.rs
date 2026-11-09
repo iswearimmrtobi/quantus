@@ -236,7 +236,7 @@ impl Expr {
             Node::Degrees { operand, .. } => Expr::Product(vec![from(operand)?, Expr::Pi, Expr::ratio(1, 180)]),
             Node::Unit { .. } => return Err(unsupported(msg!("core.analysis.expr.units"))),
             Node::Sum { .. } => return Err(unsupported(msg!("core.analysis.expr.sums"))),
-            Node::Integral { .. } => return Err(unsupported(msg!("core.analysis.expr.integrals"))),
+            Node::Integral { .. } | Node::Antiderivative { .. } => return Err(unsupported(msg!("core.analysis.expr.integrals"))),
             Node::Limit { .. } => return Err(unsupported(msg!("core.analysis.expr.limits"))),
             Node::Derivative { .. } => return Err(unsupported(msg!("core.analysis.expr.derivatives"))),
             Node::Matrix { .. } | Node::Determinant { .. } => return Err(unsupported(msg!("core.analysis.expr.matrices"))),

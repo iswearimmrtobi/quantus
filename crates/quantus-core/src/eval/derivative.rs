@@ -147,10 +147,13 @@ pub fn differentiate(node: &Node, var: &str) -> Result<Node> {
                 position,
             }
         }
+        // The derivative of an antiderivative is the integrand.
+        Node::Antiderivative { variable, body, .. } if variable == var => (**body).clone(),
         // A derivative inside a derivative: work the inner one out first.
         Node::Derivative { variable, body, at: None, .. } => d(&differentiate(body, variable)?)?,
         Node::Binomial { .. }
         | Node::Limit { .. }
+        | Node::Antiderivative { .. }
         | Node::Derivative { .. }
         | Node::Matrix { .. }
         | Node::Determinant { .. }

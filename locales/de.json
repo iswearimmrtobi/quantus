@@ -934,6 +934,7 @@
     "core.eval.derivative.limits_sum": "die Grenzen einer Summe",
     "core.eval.derivative.product_not_differentiable": "Ein Produkt \\prod lässt sich nicht ableiten; es ausschreiben.",
     "core.eval.evaluator.angle_degrees": "Ein Winkel in Grad",
+    "core.eval.evaluator.antiderivative_alone": "Ein Integral ohne Grenzen ist eine Funktion, kein Wert, und muss allein stehen, etwa \\int x\\,dx. Um damit zu rechnen, ihm Grenzen geben: \\int_{{0}}^{{1}} x\\,dx.",
     "core.eval.evaluator.argument": "Das Argument von \\{name}",
     "core.eval.evaluator.argument_factorial": "Das Argument der Fakultät",
     "core.eval.evaluator.argument_of_command": "Ein Argument von \\{command}",

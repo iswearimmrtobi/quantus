@@ -174,6 +174,7 @@ fn is_opaque(node: &Node) -> bool {
             | Node::System { .. }
             | Node::Sum { .. }
             | Node::Integral { .. }
+            | Node::Antiderivative { .. }
             | Node::Limit { .. }
             | Node::Derivative { .. }
     )

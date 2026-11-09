@@ -288,6 +288,9 @@ fn text(node: &Node, mode: SerializerMode) -> String {
             expression_with_mode(upper, mode),
             expression_with_mode(body, mode)
         ),
+        Node::Antiderivative { variable, body, .. } => {
+            format!("\\int {} \\,d{variable}", expression_with_mode(body, mode))
+        }
         Node::Limit { variable, target, body, side, .. } => {
             let side = match side {
                 1 => "^{+}",
@@ -500,7 +503,7 @@ fn precedence(node: &Node) -> u8 {
         Node::Call { name, .. } if name == "cross" => PRECEDENCE_MULTIPLICATIVE,
         Node::Negation { .. } => PRECEDENCE_ADDITIVE,
         // Their bodies reach as far right as a term, so they need brackets as a factor.
-        Node::Sum { .. } | Node::Integral { .. } | Node::Limit { .. } | Node::Derivative { at: None, .. } => {
+        Node::Sum { .. } | Node::Integral { .. } | Node::Antiderivative { .. } | Node::Limit { .. } | Node::Derivative { at: None, .. } => {
             PRECEDENCE_ADDITIVE
         }
         Node::Power { .. } => PRECEDENCE_POWER,

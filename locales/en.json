@@ -934,6 +934,7 @@
     "core.eval.derivative.limits_sum": "the limits of a sum",
     "core.eval.derivative.product_not_differentiable": "A product \\prod cannot be differentiated; write it out.",
     "core.eval.evaluator.angle_degrees": "An angle in degrees",
+    "core.eval.evaluator.antiderivative_alone": "An integral without limits is a function, not a value, so it has to stand alone, as in \\int x\\,dx. To calculate with it, give it limits: \\int_{{0}}^{{1}} x\\,dx.",
     "core.eval.evaluator.argument": "The argument of \\{name}",
     "core.eval.evaluator.argument_factorial": "The argument of the factorial",
     "core.eval.evaluator.argument_of_command": "An argument of \\{command}",

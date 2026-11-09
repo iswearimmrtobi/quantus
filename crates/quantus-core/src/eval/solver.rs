@@ -457,7 +457,10 @@ pub(crate) fn collect_unknowns(
             collect_unknowns(body, system, bound, evaluator, found);
             bound.truncate(before);
         }
-        Node::Sum { index: name, .. } | Node::Integral { variable: name, .. } | Node::Limit { variable: name, .. } => {
+        Node::Sum { index: name, .. }
+        | Node::Integral { variable: name, .. }
+        | Node::Antiderivative { variable: name, .. }
+        | Node::Limit { variable: name, .. } => {
             bound.push(name.clone());
             for child in node.children() {
                 collect_unknowns(child, system, bound, evaluator, found);

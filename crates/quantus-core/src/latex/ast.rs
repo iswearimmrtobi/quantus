@@ -41,6 +41,8 @@ pub enum Node {
     Sum { index: String, from: Box<Node>, to: Box<Node>, body: Box<Node>, position: usize, product: bool },
     /// `\int_{lower}^{upper} body \, dx`.
     Integral { variable: String, lower: Box<Node>, upper: Box<Node>, body: Box<Node>, position: usize },
+    /// `\int body \, dx` without limits: the antiderivative, a function rather than a value.
+    Antiderivative { variable: String, body: Box<Node>, position: usize },
     /// `\lim_{x \to target} body`.
     /// `side` is 0 for a two-sided limit, 1 from the right (`0^+`), -1 from the left (`0^-`).
     Limit { variable: String, target: Box<Node>, body: Box<Node>, side: i8, position: usize },
@@ -81,6 +83,7 @@ impl Node {
             | Node::Degrees { position, .. }
             | Node::Sum { position, .. }
             | Node::Integral { position, .. }
+            | Node::Antiderivative { position, .. }
             | Node::Limit { position, .. }
             | Node::Derivative { position, .. }
             | Node::Matrix { position, .. }
@@ -110,6 +113,7 @@ impl Node {
             Node::Binomial { n, k, .. } => vec![n, k],
             Node::Sum { from, to, body, .. } => vec![from, to, body],
             Node::Integral { lower, upper, body, .. } => vec![lower, upper, body],
+            Node::Antiderivative { body, .. } => vec![body],
             Node::Limit { target, body, .. } => vec![target, body],
             Node::Derivative { body, at, given, .. } => {
                 std::iter::once(&**body).chain(at.as_deref()).chain(given.iter().map(|(_, value)| value)).collect()
@@ -157,6 +161,7 @@ impl Node {
             Node::Integral { variable, lower, upper, body, position } => {
                 Node::Integral { variable, lower: b(lower), upper: b(upper), body: b(body), position }
             }
+            Node::Antiderivative { variable, body, position } => Node::Antiderivative { variable, body: b(body), position },
             Node::Limit { variable, target, body, side, position } => {
                 Node::Limit { variable, target: b(target), body: b(body), side, position }
             }

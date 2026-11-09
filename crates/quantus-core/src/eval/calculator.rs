@@ -1238,6 +1238,12 @@ fn check_free_algebraic_variables(node: &Node, bound: &mut Vec<String>, evaluato
             bound.pop();
             found
         }
+        Node::Antiderivative { variable, body, .. } => {
+            bound.push(variable.clone());
+            let found = check_free_algebraic_variables(body, bound, evaluator);
+            bound.pop();
+            found
+        }
         Node::Limit { variable, target, body, .. } => {
             if check_free_algebraic_variables(target, bound, evaluator) {
                 return true;
