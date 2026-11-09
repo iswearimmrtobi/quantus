@@ -624,6 +624,7 @@ impl<B: Backend> App<B> {
         let key = match resolved {
             Resolved::Key(key) => key,
             Resolved::Insert(latex) if calc => return self.insert(latex),
+            Resolved::Nothing => return,
             // Menus and the other screens have no cursor to insert at.
             Resolved::Insert(_) => return,
         };

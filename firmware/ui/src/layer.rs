@@ -93,6 +93,8 @@ pub enum Resolved {
     Key(Key),
     /// Insert this LaTeX at the cursor (what an OPTN entry does).
     Insert(&'static str),
+    /// A legend the handheld does not carry out yet.
+    Nothing,
 }
 
 /// What `key` stands for on `layer`. A key with no legend there does what it does on the base
@@ -125,7 +127,7 @@ fn base(key: Key) -> Option<&'static str> {
 }
 
 fn shift(key: Key) -> Option<Resolved> {
-    use Resolved::{Insert, Key as K};
+    use Resolved::{Insert, Key as K, Nothing};
     Some(match key {
         Key::Square => Insert("^{3}"),
         Key::Power => Insert(r"\log_{}()"),
@@ -152,6 +154,9 @@ fn shift(key: Key) -> Option<Resolved> {
         Key::Del => K(Key::Undo),
         Key::Ac => K(Key::Redo),
         Key::Ok => K(Key::Ins),
+        // Mixed number, ←ENG, FACT, CATALOG, ≈, recurring decimals, select, copy and paste.
+        Key::Fraction | Key::Eng | Key::SwapForm | Key::Optn | Key::Exe => Nothing,
+        Key::Left | Key::Right | Key::Up | Key::Down => Nothing,
         _ => return None,
     })
 }

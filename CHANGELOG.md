@@ -7,7 +7,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- The handheld simulator shows the keypad beside the screen; its keys can be clicked.
+- The handheld simulator shows the keypad beside the screen; its keys can be clicked. SHIFT, ALPHA and UNIT relabel them, with locks, as in the layer table.
 
 ## [0.2.0] - 2026-11-06
 

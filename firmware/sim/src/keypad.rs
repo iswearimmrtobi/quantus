@@ -13,6 +13,7 @@ use embedded_graphics::primitives::{Circle, PrimitiveStyle, PrimitiveStyleBuilde
 use u8g2_fonts::types::{FontColor, HorizontalAlignment, VerticalPosition};
 use u8g2_fonts::{fonts, FontRenderer};
 use quantus_ui::key::Key;
+use quantus_ui::layer::{Layer, Modifier};
 
 /// Pixels per millimetre. The screen is 480 px on 73.6 mm of the big unit (6.5 px/mm), so the keys
 /// are drawn smaller than life to fit a monitor.
@@ -181,6 +182,16 @@ fn key_of(label: &str) -> Option<Key> {
     Some(match label {
         "SHIFT" => Key::Shift,
         "ALPHA" => Key::Alpha,
+        "UNIT" => Key::Unit,
+        "(−)" => Key::Neg,
+        "x⁻¹" => Key::Inverse,
+        "ENG" => Key::Eng,
+        "i" => Key::Imag,
+        "UNDO" => Key::Undo,
+        "x³" => Key::Cube,
+        "10ˣ" => Key::TenPow,
+        "Σ" => Key::Sum,
+        "∫" => Key::Integral,
         "OPTN" => Key::Optn,
         "MODE" => Key::Mode,
         "OK" => Key::Ok,
@@ -224,43 +235,103 @@ fn key_of(label: &str) -> Option<Key> {
     })
 }
 
-/// What a key does after SHIFT, where the UI knows an action (the label drawn in SHIFT's colour).
-fn shift_legend(label: &str) -> Option<&'static str> {
+/// What a key does after SHIFT (design/handheld-menus.md §7.4.1), and whether the handheld UI
+/// carries it out yet; one that it does not is drawn dim.
+fn shift_legend(label: &str) -> Option<(&'static str, bool)> {
     Some(match label {
-        "MODE" => "SETUP",
-        "CALC" => "SOLVE",
-        "VARS" => "STO",
-        "√" => "n√",
+        "a/b" => ("a b/c", false),
+        "√" => ("n√", true),
+        "x²" => ("x³", true),
+        "xʸ" => ("logₐb", true),
+        "log" => ("10ˣ", true),
+        "ln" => ("eˣ", true),
+        "(−)" => ("∠", true),
+        "x⁻¹" => ("x!", true),
+        "sin" => ("sin⁻¹", true),
+        "cos" => ("cos⁻¹", true),
+        "tan" => ("tan⁻¹", true),
+        "π" => ("°′″", true),
+        "(" => ("|x|", true),
+        ";" => (":", true),
+        "ENG" => ("←ENG", false),
+        "x" => ("∫", true),
+        "y" => ("d/dx", true),
+        "e" => ("Σ", true),
+        "i" => ("Π", true),
+        "S⇔D" => ("FACT", false),
+        "VARS" => ("STO", true),
+        "CALC" => ("SOLVE", true),
+        "×" => ("nPr", true),
+        "÷" => ("nCr", true),
+        "+" => ("Pol(", true),
+        "−" => ("Rec(", true),
+        "," => ("Ran#", true),
+        "×10ˣ" => ("0.ẋ", false),
+        "Ans" => ("PreAns", true),
+        "DEL" => ("UNDO", false),
+        "AC" => ("REDO", false),
+        "▲" | "▼" | "◄" | "►" => ("sel", false),
+        "OK" => ("INS", false),
+        "EXE" => ("≈", false),
+        "OPTN" => ("CATALOG", false),
+        "MODE" => ("SETUP", true),
         _ => return None,
     })
 }
 
-/// The variable a key types after ALPHA (hardware.md: A–F, M, x, y).
-fn alpha_legend(label: &str) -> Option<&'static str> {
+/// What a key types after ALPHA: the variables A–F and M on the digits, and two commands.
+fn alpha_legend(label: &str) -> Option<(&'static str, bool)> {
     Some(match label {
-        "(−)" => "A",
-        "x⁻¹" => "B",
-        "sin" => "C",
-        "cos" => "D",
-        "tan" => "E",
-        "π" => "F",
-        "Ans" => "M",
-        "(" => "x",
-        ")" => "y",
+        "7" => ("A", true),
+        "8" => ("B", true),
+        "9" => ("C", true),
+        "4" => ("D", true),
+        "5" => ("E", true),
+        "6" => ("F", true),
+        "1" => ("M", true),
+        "(" => ("%", true),
+        "," => ("RanInt#", true),
         _ => return None,
     })
 }
 
-/// Which modifier is waiting for a key.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Layer {
-    Base,
-    Shift,
-    Alpha,
+/// What a key types after UNIT: the prefixes on the digits and the units on the function block.
+fn unit_legend(label: &str) -> Option<(&'static str, bool)> {
+    let prefix = match label {
+        "7" => "G",
+        "8" => "M",
+        "9" => "k",
+        "4" => "m",
+        "5" => "µ",
+        "6" => "n",
+        "1" => "p",
+        "2" => "c",
+        "3" => "d",
+        "0" => "T",
+        _ => "",
+    };
+    if !prefix.is_empty() {
+        return Some((prefix, true));
+    }
+    let key = key_of(label)?;
+    quantus_ui::layer::UNITS.iter().find(|(unit, _)| *unit == key).map(|&(_, symbol)| (symbol, true))
+}
+
+/// The legend of a key on a layer, and whether it works.
+fn legend(label: &str, layer: Layer) -> Option<(&'static str, bool)> {
+    match layer {
+        Layer::Base => None,
+        Layer::Shift => shift_legend(label),
+        Layer::Alpha => alpha_legend(label),
+        Layer::Unit => unit_legend(label),
+    }
 }
 
 const SHIFT_COLOUR: Rgb565 = Rgb565::new(0xe8 >> 3, 0xc5 >> 2, 0x3a >> 3);
 const ALPHA_COLOUR: Rgb565 = Rgb565::new(0xd9 >> 3, 0x4a >> 2, 0x4a >> 3);
+const UNIT_COLOUR: Rgb565 = Rgb565::new(0x91 >> 3, 0x86 >> 2, 0xe8 >> 3);
+/// A legend the handheld UI does not carry out yet.
+const DIM_COLOUR: Rgb565 = Rgb565::new(0x80 >> 3, 0x84 >> 2, 0x8e >> 3);
 
 fn style_of(label: &str) -> Style {
     match label {
@@ -290,6 +361,18 @@ fn shown(label: &'static str) -> &'static str {
         "10ˣ" => "10^x",
         "S⇔D" => "S<>D",
         "▶unit" => ">unit",
+        "x³" => "x^3",
+        "logₐb" => "log_a b",
+        "eˣ" => "e^x",
+        "sin⁻¹" => "sin^-1",
+        "cos⁻¹" => "cos^-1",
+        "tan⁻¹" => "tan^-1",
+        "°′″" => "o'\"",
+        "0.ẋ" => "0.rec",
+        "|x|" => "abs",
+        "←ENG" => "<-ENG",
+        "≈" => "~",
+        "∠" => "ang",
         label => label,
     }
 }
@@ -391,16 +474,10 @@ impl Keypad {
     }
 
     /// The mouse button goes down at `point`: the key under it, to be typed now.
-    pub fn press(&mut self, point: Point, now: Instant, alpha: bool) -> Option<Key> {
+    pub fn press(&mut self, point: Point, now: Instant) -> Option<Key> {
         self.pressed = self.hit(point).filter(|&i| self.keys[i].key.is_some());
-        let key = self.pressed.and_then(|i| {
-            let def = &self.keys[i];
-            // After ALPHA a key with a variable types it.
-            match alpha_legend(def.label) {
-                Some(letter) if alpha => letter.chars().next().map(|c| Key::Letter(c.to_ascii_lowercase())),
-                _ => def.key,
-            }
-        });
+        // The layer is the app's business: the key is the same on every one.
+        let key = self.pressed.and_then(|i| self.keys[i].key);
         self.held = key.filter(|key| matches!(key, Key::Left | Key::Right | Key::Up | Key::Down | Key::Del)).map(|key| (key, now + REPEAT_DELAY));
         key
     }
@@ -452,15 +529,25 @@ impl Keypad {
         }
     }
 
-    /// Draws the whole panel; SHIFT and ALPHA are outlined while they are waiting for a key.
-    pub fn draw<D: DrawTarget<Color = Rgb565>>(&self, target: &mut D, shift: bool, alpha: bool) {
-        // SHIFT wins if both wait; the app uses both flags on the next key.
-        let layer = if shift { Layer::Shift } else if alpha { Layer::Alpha } else { Layer::Base };
+    /// Draws the whole panel with the legends of the layer the next key is read on. The waiting
+    /// modifier is outlined, and a locked one with a thicker line.
+    pub fn draw<D: DrawTarget<Color = Rgb565>>(&self, target: &mut D, modifier: &Modifier) {
+        let layer = modifier.layer();
         let _ = self.panel.into_styled(PrimitiveStyle::with_fill(BODY)).draw(target);
         for (i, key) in self.keys.iter().enumerate() {
             let lit = self.pressed == Some(i) || self.flash.is_some_and(|(flash, _)| flash == i);
-            let latched = (key.style == Style::Shift && shift) || (key.style == Style::Alpha && alpha);
-            draw_key(target, key, lit, latched, layer);
+            let own = match key.style {
+                Style::Shift => Some(Layer::Shift),
+                Style::Alpha => Some(Layer::Alpha),
+                Style::Unit => Some(Layer::Unit),
+                _ => None,
+            };
+            let outline = match own {
+                Some(own) if modifier.lock == Some(own) => 3,
+                Some(own) if modifier.pending == Some(own) => 2,
+                _ => 0,
+            };
+            draw_key(target, key, lit, outline, layer);
         }
     }
 }
@@ -470,7 +557,7 @@ fn rows_len(block: &Block) -> f32 {
     block.rows.len() as f32 * block.py
 }
 
-fn draw_key<D: DrawTarget<Color = Rgb565>>(target: &mut D, key: &KeyDef, lit: bool, latched: bool, layer: Layer) {
+fn draw_key<D: DrawTarget<Color = Rgb565>>(target: &mut D, key: &KeyDef, lit: bool, outline: u32, layer: Layer) {
     let (fill, text) = match key.style {
         Style::Plain => (rgb(0x44, 0x49, 0x55), rgb(0xee, 0xee, 0xee)),
         Style::Digit => (rgb(0x62, 0x67, 0x74), rgb(0xff, 0xff, 0xff)),
@@ -487,7 +574,7 @@ fn draw_key<D: DrawTarget<Color = Rgb565>>(target: &mut D, key: &KeyDef, lit: bo
     let dim = key.key.is_none() && key.style != Style::Soft && key.style != Style::Unit && key.style != Style::On;
     let (fill, text) = if dim { (rgb(0x32, 0x36, 0x40), rgb(0x80, 0x84, 0x8e)) } else { (fill, text) };
     let fill = if lit { rgb(fill.r() << 3 | 0x40, fill.g() << 2 | 0x40, fill.b() << 3 | 0x40) } else { fill };
-    let (stroke, width) = if latched { (rgb(0xff, 0xff, 0xff), 2) } else { (rgb(0x10, 0x11, 0x14), 1) };
+    let (stroke, width) = if outline > 0 { (rgb(0xff, 0xff, 0xff), outline) } else { (rgb(0x10, 0x11, 0x14), 1) };
     let style = PrimitiveStyleBuilder::new().fill_color(fill).stroke_color(stroke).stroke_width(width).build();
     let rect = key.rect;
     if key.round {
@@ -506,10 +593,16 @@ fn draw_key<D: DrawTarget<Color = Rgb565>>(target: &mut D, key: &KeyDef, lit: bo
         "◄" => arrow([centre + Point::new(-6, 0), centre + Point::new(4, -6), centre + Point::new(4, 6)]),
         "►" => arrow([centre + Point::new(6, 0), centre + Point::new(-4, -6), centre + Point::new(-4, 6)]),
         label => {
-            let (label, text) = match layer {
-                Layer::Shift if shift_legend(label).is_some() => (shift_legend(label).unwrap_or(label), SHIFT_COLOUR),
-                Layer::Alpha if alpha_legend(label).is_some() => (alpha_legend(label).unwrap_or(label), ALPHA_COLOUR),
-                _ => (label, text),
+            let (label, text) = match legend(label, layer) {
+                Some((legend, works)) => {
+                    let colour = match layer {
+                        Layer::Shift => SHIFT_COLOUR,
+                        Layer::Alpha => ALPHA_COLOUR,
+                        _ => UNIT_COLOUR,
+                    };
+                    (legend, if works { colour } else { DIM_COLOUR })
+                }
+                None => (label, text),
             };
             let label = shown(label);
             let fonts: [&FontRenderer; 4] = if key.round { [&ROUND, &SYMBOLS, &SYMBOLS_BIG, &GREEK] } else { [&LABEL, &SYMBOLS, &SYMBOLS_BIG, &GREEK] };

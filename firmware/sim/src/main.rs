@@ -92,7 +92,7 @@ fn main() {
         }
         renderer.render(&Frame::new(&app), &mut display.cropped(&screen_area)).unwrap();
         if let Some(keypad) = &keypad {
-            keypad.draw(&mut display, app.shift, app.alpha);
+            keypad.draw(&mut display, &app.modifier);
         }
         let settings = OutputSettingsBuilder::new().build();
         display.to_rgb_output_image(&settings).save_png(png).expect("write the png");
@@ -137,7 +137,7 @@ fn main() {
             let mut target = Tee { display: &mut screen, mirror: mirror.as_mut() };
             renderer.render(&Frame::new(&app), &mut target).unwrap();
             if let Some(keypad) = &keypad {
-                keypad.draw(&mut display, app.shift, app.alpha);
+                keypad.draw(&mut display, &app.modifier);
             }
         }
         window.update(&display);
@@ -166,7 +166,7 @@ fn main() {
                 SimulatorEvent::MouseButtonDown { mouse_btn: MouseButton::Left, point } => match &mut keypad {
                     Some(keypad) if keypad.contains(point) => {
                         on_screen = false;
-                        if let Some(key) = keypad.press(point, Instant::now(), app.alpha) {
+                        if let Some(key) = keypad.press(point, Instant::now()) {
                             app.key(key);
                         }
                         changed = true;
@@ -496,6 +496,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::Return | Keycode::KpEnter => return Some(Key::Exe),
         Keycode::F1 => return Some(Key::Shift),
         Keycode::F2 => return Some(Key::Alpha),
+        Keycode::F9 => return Some(Key::Unit),
         Keycode::F3 => return Some(Key::SwapForm),
         Keycode::F4 => return Some(Key::Optn),
         Keycode::F5 => return Some(Key::Ok),

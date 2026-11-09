@@ -71,10 +71,13 @@ In `--keys`, `\n` is EXE and `>`/`<` move the cursor.
 
 The window shows the handheld's keypad (the big unit's layout of `design/keypad-sizes.html`) right
 of the screen: click a key to type it, arrows and DEL repeat while held, and a key typed on the PC
-keyboard lights its key. After SHIFT the keys with a SHIFT action (SETUP, SOLVE, STO, n-th root)
-show it in SHIFT's yellow; after ALPHA the keys with a variable (A–F, M, x, y) show the letter in
-ALPHA's red, and a click types it. UNIT, SYMB, the soft keys and the other keys the UI has no code for yet are
-dimmed and do nothing. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
+keyboard lights its key. SHIFT, ALPHA and UNIT relabel the keys with the layer table of
+`design/handheld-menus.md` §7.4.1: yellow for SHIFT, red for ALPHA (A–F, M on the digits), lavender for
+UNIT (prefixes on the digits, units on the function block). One press serves the next key; SHIFT
+then ALPHA or UNIT locks the layer (shown as `UNIT=` in the top bar, thick outline on the key), and
+SHIFT is one-shot on top of a lock. In UNIT prefixes, units and the operators ÷ × x² ^ keep the layer.
+A legend the UI does not carry out yet (CATALOG, UNDO, INS, ≈, …) is dimmed and does nothing, as are
+SYMB, the soft keys and the keys without code. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
 `--scale <n>` sets the window's scale (2 by default, `--scale 1` for a small monitor).
 With `--png` the pad is only in the picture with `--keypad`.
 
@@ -97,7 +100,8 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | F1 then Tab | | SHIFT+MODE: setup. A digit or ↑/↓ and Enter open an entry; each entry opens a submenu: a list of values or a number typed with the digits. ← or Backspace go back, Esc closes |
 | arrows | | cursor; ↑/↓ outside a fraction step through earlier calculations |
 | F1, Ctrl+F | | SHIFT (SHIFT, then √ is the n-th root) |
-| F2, Ctrl+K | | ALPHA (only shown for now) |
+| F2, Ctrl+K | | ALPHA |
+| F9, Ctrl+Z | | UNIT |
 | F3, Ctrl+D | | S⇔D: the result exact or as a decimal |
 | F4, Ctrl+N | | OPTN: the mode's options (units, prefixes, functions, …), menus as in the setup |
 | F5 | | OK: on a sheet, edits the cell as it is |

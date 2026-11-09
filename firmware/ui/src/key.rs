@@ -94,6 +94,7 @@ pub const CONTROLS: &[(char, Key)] = &[
     ('\u{06}', Key::Shift),     // Ctrl+F
     ('\u{07}', Key::Log),       // Ctrl+G
     ('\u{0b}', Key::Alpha),     // Ctrl+K
+    ('\u{1a}', Key::Unit),      // Ctrl+Z
     ('\u{0c}', Key::Ln),        // Ctrl+L
     ('\u{0e}', Key::Optn),      // Ctrl+N
     ('\u{0f}', Key::Cos),       // Ctrl+O
