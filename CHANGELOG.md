@@ -21,8 +21,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Integrals without limits and derivatives without a point: `\int x e^x\,dx` gives
   $(x - 1)e^{x} + C$, `\frac{d}{dx}(x^3 - 2x)` gives $3x^{2} - 2$, with the working in the steps,
   by the rules of curve sketching. Also `\frac{d^2}{dx^2}` and `(…)'`. On the handheld the ∫
-  template works with its limits left empty, and d/dx takes the input before the cursor into its
-  brackets: `x²` then d/dx is $\frac{d}{dx}(x^{2})$.
+  template works with its limits left empty, and d/dx can be typed after its function: `x²` then
+  d/dx shows $x^{2}\frac{d}{dx}$ and gives $2x$.
 
 ## [0.2.0] - 2026-11-06
 

@@ -154,8 +154,8 @@ in yet.
 - [x] arsinh, arcosh, artanh, coth (OPTN → Hyperbol. Fkt.)
 - [x] ∫ with bounds (also infinite), d/dx at a point, Σ, lim (a⁺, a⁻, ∞)
 - [x] ∫ without bounds (the template's left empty) and d/dx without a point: the antiderivative + C
-  and the derivative as a function. d/dx takes the input before the cursor into its brackets
-  (`x²` d/dx is d/dx(x²)), after a result the input that gave it
+  and the derivative as a function. d/dx can follow its function (`x² d/dx`, out of the exponent
+  first); after a result it goes after the input that gave it
 - [x] Π (`\prod`, OPTN → Analysis)
 - [x] |x|, n!, mod, ⌊x⌋, ⌈x⌉, max, min, %
 - [x] nCr, nPr, ggT, kgV, Int, Intg, Rnd, RndFix, ÷R (OPTN → Zahl)

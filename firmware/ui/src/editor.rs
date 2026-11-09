@@ -27,22 +27,6 @@ const SYMBOLS: &[(char, &str)] = &[
 
 use crate::key::Key;
 
-/// Where the expression ending at `before`'s end starts: after the last `=` or `;`, or after an
-/// open bracket that is not closed before the end.
-fn start_of_expression(before: &[Node]) -> usize {
-    let mut depth = 0usize;
-    for (i, node) in before.iter().enumerate().rev() {
-        match node {
-            Node::Char(')') => depth += 1,
-            Node::Char('(') if depth == 0 => return i + 1,
-            Node::Char('(') => depth -= 1,
-            Node::Char('=' | ';') if depth == 0 => return i + 1,
-            _ => {}
-        }
-    }
-    0
-}
-
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Row(pub Vec<Node>);
 
@@ -328,32 +312,15 @@ impl Editor {
         self.insert(Node::Char(c));
     }
 
-    /// `d/dx` of what was typed: the input before the cursor, back to an `=`, a `;` or an open
-    /// bracket, goes into brackets after it and the cursor behind them, so `x^2` d/dx is
-    /// `\frac{d}{dx}(x^{2})`. With nothing to take (an empty row, or an operator right before the
-    /// cursor) the cursor waits between the brackets.
+    /// `d/dx` at the cursor, as typed: after the function (`x^2` d/dx, which the engine reads as
+    /// the derivative of what stands before it) or before it. At the end of an exponent or an
+    /// index, as after `x^2`, it goes after the power rather than into it.
     pub fn derivative(&mut self) {
         self.delete_selection();
-        // At the end of an exponent or an index, as after `x^2`, the power is what was typed.
         while self.pos == self.current().0.len() && self.in_script() {
             self.right();
         }
-        let pos = self.pos;
-        let row = self.current();
-        let takes = row.0[..pos]
-            .last()
-            .is_some_and(|node| !matches!(node, Node::Char('+' | '-' | '×' | '÷' | '=' | ';' | '(' | '±' | ' ') | Node::Func(_)));
-        let start = if takes { start_of_expression(&row.0[..pos]) } else { pos };
-        let taken: Vec<Node> = row.0.drain(start..pos).collect();
-        self.pos = start;
         self.insert(Node::Frac(Row(vec![Node::Char('d')]), Row(vec![Node::Char('d'), Node::Char('x')])));
-        self.char('(');
-        let empty = taken.is_empty();
-        taken.into_iter().for_each(|node| self.insert(node));
-        self.char(')');
-        if empty {
-            self.left();
-        }
     }
 
     /// Whether the cursor is in an exponent or an index.

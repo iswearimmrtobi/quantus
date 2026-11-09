@@ -80,7 +80,7 @@ before sums.
 | `\int x^2\,dx` | the antiderivative, $\frac{1}{3}x^{3} + C$, with its working; also with both limits left empty, `\int_{}^{}`, as the ∫ key leaves them |
 | `\lim_{x \to 0} f`, `\lim_{x \to 0^+} f`, `\lim_{x \to \infty} f` | two-sided, one-sided, at infinity; `\rightarrow` works too |
 | `\left.\frac{d}{dx} x^3\right\|_{x=2}` | derivative at a point, symbolic; also `\mathrm{d}` and `\partial` |
-| `\frac{d}{dx} x^3`, `(x^3)'` | the derivative as a function, $3x^{2}$, with its working |
+| `\frac{d}{dx} x^3`, `(x^3)'`, `x^3\frac{d}{dx}` | the derivative as a function, $3x^{2}$, with its working; written at the end, `\frac{d}{dx}` applies to everything before it (after an `=`) |
 | `\left.\frac{d^2}{dx^2} x^3\right\|_{x=2}` | higher derivatives, up to the 9th |
 | `\left.(x^3 - x)'\right\|_{x=2}` | prime notation for the derivative of a bracket, `''` for the second |
 | `\left.\frac{\partial}{\partial x} (x^2 z)\right\|_{x=2, z=3}` | partial derivative at a point in several variables, in any order; a letter the point names is a variable in the body, even a unit such as `t` |

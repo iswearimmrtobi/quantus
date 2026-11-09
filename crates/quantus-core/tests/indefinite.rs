@@ -55,6 +55,11 @@ fn derivatives_without_a_point_give_the_derivative() {
     assert_eq!(calc(r"\frac{d}{dx}\frac{d}{dx} x^4"), r"12x^{2}");
     assert_eq!(calc(r"(x^3 - x)''"), r"6x");
     assert_eq!(calc_in(r"\frac{d}{dt} t^3", Mode::Physics), r"3t^{2}");
+    // Written after the function, as the handheld types it.
+    assert_eq!(calc(r"x^{2}\frac{d}{dx}"), r"2x");
+    assert_eq!(calc(r"x^{3}-2x\frac{d}{dx}"), r"3x^{2} - 2");
+    assert_eq!(calc(r"y = x^{3}\frac{d}{dx}"), r"y = 3x^{2}");
+    assert_eq!(calc(r"\sin(x)\frac{d^2}{dx^2}"), r"-\sin(x)");
 }
 
 #[test]

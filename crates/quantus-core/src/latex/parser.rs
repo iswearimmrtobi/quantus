@@ -267,6 +267,7 @@ impl Parser<'_> {
             self.expect(TokenType::End, "the end of the input")?;
             return Ok(Formula { label: None, expression: normalizer::normalize(system), source: self.source.to_string() });
         }
+        self.move_trailing_derivative();
         let label = self.parse_label()?;
         let mut expression = self.parse_expression()?;
         if self.at_conversion() {
@@ -1344,6 +1345,42 @@ impl Parser<'_> {
     /// `{d}{dx}` right after a `\frac`. Also `{d^2}{dx^2}` for a higher order, `\mathrm{d}` for
     /// `d`, and `\partial` for both `d`s, with one variable or several: `{\partial^2}{\partial x
     /// \partial z}`, `{\partial^3}{\partial x^2 \partial z}`.
+    /// `x^{2}\frac{d}{dx}`, a derivative written after its function as the handheld types it,
+    /// read as `\frac{d}{dx}(x^{2})`: the tokens of the function, back to an `=` at the top,
+    /// move into brackets after the header. Positions stay those of the source.
+    fn move_trailing_derivative(&mut self) {
+        let end = self.tokens.len() - 1;
+        let Some(header) = (0..end).rev().find(|&i| {
+            self.tokens[i].kind == TokenType::Command && self.tokens[i].text == "\\frac" && {
+                let index = std::mem::replace(&mut self.index, i);
+                let after = self.derivative_header().map(|header| header.after);
+                self.index = index;
+                after == Some(end)
+            }
+        }) else {
+            return;
+        };
+        let mut depth = 0i32;
+        let mut start = 0;
+        for (i, token) in self.tokens[..header].iter().enumerate() {
+            match token.kind {
+                TokenType::LBrace | TokenType::LParen | TokenType::LBracket => depth += 1,
+                TokenType::RBrace | TokenType::RParen | TokenType::RBracket => depth -= 1,
+                TokenType::Equals if depth == 0 => start = i + 1,
+                _ => {}
+            }
+        }
+        if start == header || depth != 0 {
+            return;
+        }
+        let open = Token { kind: TokenType::LParen, text: "(".into(), position: self.tokens[start].position };
+        let close = Token { kind: TokenType::RParen, text: ")".into(), position: self.tokens[header].position };
+        let function: Vec<Token> = self.tokens.drain(start..header).collect();
+        let at = end - function.len();
+        let moved = std::iter::once(open).chain(function).chain(std::iter::once(close));
+        self.tokens.splice(at..at, moved);
+    }
+
     fn derivative_header(&self) -> Option<DerivativeHeader> {
         let kind = |i: usize| self.tokens[i.min(self.tokens.len() - 1)].kind;
         let text = |i: usize| self.tokens[i.min(self.tokens.len() - 1)].text.as_str();

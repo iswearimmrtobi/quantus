@@ -113,7 +113,7 @@ pub fn resolve(key: Key, layer: Layer, exponent: bool, base_n: bool) -> Resolved
     })
 }
 
-/// What SHIFT y inserts; the app puts the input before the cursor into brackets after it.
+/// What SHIFT y inserts; typed after a function, the engine takes the derivative of it.
 pub const DERIVATIVE: &str = r"\frac{d}{dx}";
 
 /// Keys of the big unit that only insert something.

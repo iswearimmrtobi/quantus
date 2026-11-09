@@ -88,14 +88,14 @@ fn solve_without_letters_says_so() {
 }
 
 #[test]
-fn shift_y_takes_the_input_into_d_dx_also_after_a_result() {
+fn shift_y_puts_d_dx_after_the_input_also_after_a_result() {
     let mut app = algebra();
     // The cursor still in the exponent.
     press(&mut app, &[Key::Letter('x'), Key::Power, Key::Digit(2), Key::Shift, Key::Letter('y')]);
-    assert_eq!(app.editor.to_latex(), r"\frac{d}{dx}(x^{2})");
+    assert_eq!(app.editor.to_latex(), r"x^{2}\frac{d}{dx}");
 
     let mut app = algebra();
     press(&mut app, &[Key::Letter('x'), Key::Power, Key::Digit(3), Key::Exe, Key::Shift, Key::Letter('y')]);
     assert!(app.shown_entry().is_none());
-    assert_eq!(app.editor.to_latex(), r"\frac{d}{dx}(x^{3})");
+    assert_eq!(app.editor.to_latex(), r"x^{3}\frac{d}{dx}");
 }

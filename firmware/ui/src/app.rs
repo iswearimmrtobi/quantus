@@ -1258,7 +1258,7 @@ impl<B: Backend> App<B> {
         if self.pending.is_some() {
             return;
         }
-        // d/dx takes what was typed before it; after a result, the input that gave it.
+        // d/dx goes after the power it ends; after a result, after the input that gave it.
         if latex == layer::DERIVATIVE && self.sheet_kind().is_none() {
             self.shown = None;
             return self.editor.derivative();
