@@ -60,6 +60,7 @@ pub mod colors {
     pub const ERROR: Rgb565 = rgb(0xc9, 0x8a, 0x96);
     pub const SHIFT: Rgb565 = rgb(0xc9, 0xa4, 0x6a);
     pub const ALPHA: Rgb565 = rgb(0x8f, 0xb3, 0xa0);
+    pub const UNIT: Rgb565 = rgb(0x91, 0x86, 0xe8);
     pub const PLACEHOLDER: Rgb565 = FAINT;
     /// The desktop's `--cyan`, a lavender: the caret, the menu highlight, the chosen tile.
     pub const CYAN: Rgb565 = rgb(0x91, 0x86, 0xe8);

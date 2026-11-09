@@ -10,6 +10,7 @@ pub mod editor;
 pub mod font;
 pub mod hid;
 pub mod key;
+pub mod layer;
 pub mod latex;
 pub mod layout;
 pub mod menu;

@@ -6,6 +6,7 @@ use crate::backend::{
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
 use crate::latex;
+use crate::layer::{self, Layer, Modifier, Resolved};
 use crate::text::{self, same, tx, Lang, Text};
 use crate::tree;
 use crate::clock;
@@ -278,8 +279,8 @@ pub struct App<B> {
     /// The settings the backend was last given, to notice a change.
     used: Settings,
     pub screen: Screen,
-    pub shift: bool,
-    pub alpha: bool,
+    /// The waiting SHIFT, ALPHA and UNIT, and the lock below them.
+    pub modifier: Modifier,
     pub editor: Editor,
     /// Oldest first.
     pub history: Vec<Entry>,
@@ -415,8 +416,7 @@ impl<B: Backend> App<B> {
             settings,
             used: settings,
             screen: Screen::Calc,
-            shift: false,
-            alpha: false,
+            modifier: Modifier::default(),
             editor: Editor::new(),
             history: Vec::new(),
             shown: None,
@@ -614,15 +614,27 @@ impl<B: Backend> App<B> {
         let typing = matches!(&self.screen, Screen::Menu(menu) if matches!(menu.edit, Some(Edit::Text { .. })));
         let Some(key) = (if typing { Some(key) } else { key.plain() }) else { return };
         self.caret_on = true;
-        let shift = std::mem::take(&mut self.shift);
-        let alpha = std::mem::take(&mut self.alpha);
+        let calc = matches!(self.screen, Screen::Calc);
+        if calc && Modifier::is_modifier(key) {
+            return self.modifier.press(key);
+        }
+        let layer = self.modifier.layer();
+        let resolved = layer::resolve(key, layer, self.modifier.exponent, self.mode == Mode::BaseN);
+        self.modifier.settle(key, layer);
+        let key = match resolved {
+            Resolved::Key(key) => key,
+            Resolved::Insert(latex) if calc => return self.insert(latex),
+            // Menus and the other screens have no cursor to insert at.
+            Resolved::Insert(_) => return,
+        };
+        let shift = layer == Layer::Shift;
         match std::mem::replace(&mut self.screen, Screen::Calc) {
             Screen::Modes { selected } => self.modes_key(selected, key),
             Screen::Menu(mut menu) => {
                 let outcome = menu.key(key, &mut self.settings);
                 self.outcome(menu, outcome);
             }
-            Screen::Calc => self.calc_key(key, shift, alpha),
+            Screen::Calc => self.calc_key(key, shift),
             // AC or ← leaves it with the calibration as it was.
             Screen::Calibrate(state, back) => match key {
                 Key::Ac | Key::Left => self.screen = *back,
@@ -1204,10 +1216,8 @@ impl<B: Backend> App<B> {
         });
     }
 
-    fn calc_key(&mut self, key: Key, shift: bool, alpha: bool) {
+    fn calc_key(&mut self, key: Key, shift: bool) {
         match key {
-            Key::Shift => return self.shift = !shift,
-            Key::Alpha => return self.alpha = !alpha,
             Key::Mode if shift => return self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
             Key::Mode => return self.screen = Screen::Modes { selected: self.mode.index() },
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),

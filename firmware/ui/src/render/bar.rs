@@ -8,6 +8,7 @@ use embedded_graphics::primitives::{Arc, Circle, Rectangle};
 use super::{colors, full_width, goes_back, rounded, Shape, BAR, MARGIN, WIDTH};
 use crate::app::{App, Mode, Screen};
 use crate::font::Scale;
+use crate::layer::Layer;
 use crate::settings::{Angle, NumberBase};
 use crate::text;
 
@@ -83,9 +84,14 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         shapes.push(Shape::Text(Point::new(right - width, baseline), text, Scale::Small, colors::TEXT));
         right -= width + 12;
     }
-    for (on, label, color) in [(app.alpha, "ALPHA", colors::ALPHA), (app.shift, "SHIFT", colors::SHIFT)] {
-        if on {
-            right -= tag(shapes, right, label, color) + 8;
+    // What waits for the next key, and a lock below it marked by a second letter: `ALPHA=`.
+    let modifier = &app.modifier;
+    let shown = [(Layer::Alpha, "ALPHA", colors::ALPHA), (Layer::Unit, "UNIT", colors::UNIT), (Layer::Shift, "SHIFT", colors::SHIFT)];
+    for (layer, label, color) in shown {
+        let locked = modifier.lock == Some(layer);
+        if modifier.pending == Some(layer) || locked {
+            let label = if locked { format!("{label}=") } else { label.to_string() };
+            right -= tag(shapes, right, &label, color) + 8;
         }
     }
 }

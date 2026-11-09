@@ -359,7 +359,7 @@ impl Editor {
             Key::Comma => self.char(','),
             Key::Semicolon => self.char(';'),
             Key::Plus => self.char('+'),
-            Key::Minus => self.char('-'),
+            Key::Minus | Key::Neg => self.char('-'),
             Key::Times => self.char('×'),
             Key::Divide => self.char('÷'),
             Key::Equals => self.char('='),

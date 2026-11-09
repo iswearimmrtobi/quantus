@@ -45,6 +45,26 @@ pub enum Key {
     Shift,
     /// The next key types its letter.
     Alpha,
+    /// The next key types a unit or a prefix.
+    Unit,
+    /// (−): the sign of a number; after SHIFT the angle of a complex number.
+    Neg,
+    /// x⁻¹.
+    Inverse,
+    /// The imaginary unit.
+    Imag,
+    /// ENG: the result in engineering notation.
+    Eng,
+    /// UNDO and REDO of the big unit, and SHIFT on DEL and AC.
+    Undo,
+    Redo,
+    /// SHIFT on OK: insert instead of overtype.
+    Ins,
+    /// The keys of the big unit that stand for a template of their own: x³, 10ˣ, Σ and ∫.
+    Cube,
+    TenPow,
+    Sum,
+    Integral,
     Mode,
     /// The mode's option menu.
     Optn,
