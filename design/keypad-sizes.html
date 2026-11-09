@@ -140,6 +140,22 @@ const DEVICES = [
   },
 ];
 
+// The 8 × 10 key matrix (firmware/docs/hardware.md §3): the small unit uses R0–R6, the big one
+// adds R7. "SOFT" cells are the soft keys, placed by softPos below.
+const MATRIX = [
+  'SOFT SOFT SOFT SOFT SOFT SOFT SOFT SOFT SOFT SOFT',
+  'SHIFT ALPHA UNIT OPTN MODE ▲ ◄ OK ► ▼',
+  'SYMB VARS CALC a/b √ x² xʸ log ln .',
+  '(−) x⁻¹ sin cos tan π ( ) = ;',
+  'CONST ENG x y e i CONV S⇔D . .',
+  '7 8 9 DEL AC 4 5 6 × ÷',
+  '1 2 3 + − 0 , ×10ˣ Ans EXE',
+  'SOFT SOFT UNDO ▶unit x³ 10ˣ Σ ∫ . .',
+];
+const matrixPos = l => { for (let r = 0; r < MATRIX.length; r++) { const c = MATRIX[r].split(' ').indexOf(l); if (c >= 0) return `R${r}C${c}`; } return null; };
+// soft key at row r, column c of the soft keys: the first five of each row on R0, the 6th on R7
+const softPos = (r, c) => c < 5 ? `R0C${r * 5 + c}` : `R7C${r}`;
+
 // ---------------------------------------------------------------------------
 const $ = id => document.getElementById(id);
 const mm = v => `calc(var(--mm) * ${v})`;
@@ -169,6 +185,7 @@ function build(d) {
   for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
     const n = r * s.cols + c + 1;
     const k = pos(el('div', 'key soft r' + r, 'F' + n), s0 + c * s.px, y + r * s.py, s.kw, s.kh);
+    k.title = `F${n}: ${s.kw} × ${s.kh} mm, matrix ${softPos(r, c)}`;
     dev.append(k);
     const lab = pos(el('div', 'lab r' + r, 'F' + n), s0 + c * s.px - sx, d.screen.h - (s.rows - r) * s.strip - 0.3, s.kw, s.strip - 0.3);
     scr.append(lab);
@@ -187,7 +204,9 @@ function build(d) {
       const cx = b.cx ? b.cx[c] : c * b.px + b.kw / 2;
       const k = pos(el('div', 'key ' + cls(cell.l) + (cell.extra ? ' extra' : '') + (b.round ? ' round' : ''), cell.l),
         x0 + cx - kw / 2, y + r * b.py + (b.kh - kh) / 2, kw, kh);
-      k.title = `${cell.l}: ${kw} × ${kh} mm`;
+      const at = cell.l === 'ON' ? 'power latch, not the matrix' : `matrix ${matrixPos(cell.l) ?? 'MISSING'}`;
+      if (at.endsWith('MISSING')) console.warn('not in MATRIX:', cell.l);
+      k.title = `${cell.l}: ${kw} × ${kh} mm, ${at}`;
       dev.append(k);
       cell.extra ? stats.extra++ : stats.core++;
     }));

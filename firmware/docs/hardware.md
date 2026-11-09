@@ -79,6 +79,30 @@ long battery life second. Later, and optional: hand calculations that take longe
     P4 GPIO). **Chip 2**: the 10 columns, outputs, on port A and two pins of port B. **Chip 3**:
     general I/O. With the matrix on those pins, port B of chip 1 (8 pins) and 6 pins of chip 2
     stay free as well.
+  - **Matrix**: built for the small unit, which uses rows R0–R6; the big unit is the same table
+    plus R7 for its extra keys, so both PCBs put every shared key on the same position and the
+    firmware has one table. A row holds one area of the keypad, in reading order. The table maps
+    keys, not places: x², xʸ, log and ln sit elsewhere on the big unit, on the same position.
+
+    | | C0 | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 |
+    |---|---|---|---|---|---|---|---|---|---|---|
+    | R0 soft | 1st row 1 | 1st row 2 | 1st row 3 | 1st row 4 | 1st row 5 | 2nd row 1 | 2nd row 2 | 2nd row 3 | 2nd row 4 | 2nd row 5 |
+    | R1 control, arrows | SHIFT | ALPHA | UNIT | OPTN | MODE | ▲ | ◄ | OK | ► | ▼ |
+    | R2 function | SYMB | VARS | CALC | a/b | √ | x² | xʸ | log | ln | – |
+    | R3 function | (−) | x⁻¹ | sin | cos | tan | π | ( | ) | = | ; |
+    | R4 function | CONST | ENG | x | y | e | i | CONV | S⇔D | – | – |
+    | R5 number | 7 | 8 | 9 | DEL | AC | 4 | 5 | 6 | × | ÷ |
+    | R6 number | 1 | 2 | 3 | + | − | 0 | , | ×10ˣ | Ans | EXE |
+    | R7 big only | 1st row 6 | 2nd row 6 | UNDO | ▶unit | x³ | 10ˣ | Σ | ∫ | – | – |
+
+    Spare: R2C9, R4C8, R4C9 and on the small unit all of R7. ▶unit has no `Key` yet.
+  - **Soft keys**: a soft key at row r of the soft keys (R0 C0–C4 the first, C5–C9 the second,
+    R7 C0 and C1 the 6th of each) and column c is `Key::Soft(r × columns + c)`, with 5 columns on
+    the small unit and 6 on the big one, so R0C5 is `Soft(5)` on the small unit, `Soft(6)` on the
+    big one.
+  - **Which unit**: GPB0 of chip 1 is tied to GND on the big PCB and left on its pull-up on the
+    small one, so one firmware knows the unit (soft-key columns, display). On the small unit R7
+    has no switches and reads high.
   - **Scanning**: at rest all columns are held low, a press raises INT, and only then does the
     firmware scan (one column write and one row read per step, about 2–3 ms for ten columns at
     400 kHz, to be measured) until every key is released. The chips have no debounce and no
@@ -106,7 +130,8 @@ reaches through the soft keys or a menu, so no function exists on one of them on
 | Soft keys | 2 × 5 | 2 × 6 |
 | Keys | 68 | 76, of which 6 are extras |
 
-All keys but ON sit in the 8 × 10 matrix (§3): 67 and 75 keys, 13 and 5 positions spare.
+All keys but ON sit in the 8 × 10 matrix (§3): 67 and 75 keys, 13 and 5 positions spare. The
+small unit uses rows R0–R6, the big one adds R7 for its extras.
 
 Top to bottom:
 
