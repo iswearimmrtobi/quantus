@@ -60,6 +60,14 @@ fn named_keys_and_the_keypad() {
     assert_eq!(key(0x62, 0), Some(Key::Digit(0)));
     assert_eq!(key(0x54, 0), Some(Key::Fraction));
     assert_eq!(key(0x63, 0), Some(Key::Comma));
+    assert_eq!(key(0x45, 0), Some(Key::Symb));
+}
+
+#[test]
+fn shift_and_the_function_keys_are_the_soft_keys() {
+    assert_eq!(key(0x3A, 0x02), Some(Key::Soft(0)));
+    assert_eq!(key(0x40, 0x20), Some(Key::Soft(6)));
+    assert_eq!(key(0x45, 0x02), Some(Key::Soft(11)));
 }
 
 #[test]

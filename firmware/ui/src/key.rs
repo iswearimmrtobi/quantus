@@ -92,6 +92,11 @@ pub enum Key {
     Vars,
     /// S⇔D: the shown result as a decimal or exact.
     SwapForm,
+    /// SYMB: Greek letters and math symbols on the soft keys.
+    Symb,
+    /// A soft key under the screen, counted from the top left along the rows: what it does is
+    /// drawn above it at the bottom of the screen (`crate::soft`).
+    Soft(u8),
     /// A character from a keyboard that no key stands for (`@`, `!`, …), and the point, which
     /// the calculator takes as its comma ([`Key::plain`]): only a text field (a name, a
     /// password) takes it as it is.
@@ -121,6 +126,7 @@ pub const CONTROLS: &[(char, Key)] = &[
     ('\u{16}', Key::Vars),      // Ctrl+V
     ('\u{17}', Key::Root),      // Ctrl+W
     ('\u{18}', Key::Ac),        // Ctrl+X
+    ('\u{1c}', Key::Symb),      // Ctrl+\
 ];
 
 impl Key {

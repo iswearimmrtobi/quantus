@@ -17,6 +17,10 @@ pub const REPEAT_RATE: u64 = 50;
 
 /// The key for a pressed key's usage ID (HID usage table, page 7) with the report's modifiers.
 pub fn key(usage: u8, modifiers: u8) -> Option<Key> {
+    // Shift and F1–F12 are the soft keys.
+    if modifiers & SHIFT != 0 && (0x3A..=0x45).contains(&usage) {
+        return Some(Key::Soft(usage - 0x3A));
+    }
     let named = match usage {
         0x4F => Some(Key::Right),
         0x50 => Some(Key::Left),
@@ -37,6 +41,7 @@ pub fn key(usage: u8, modifiers: u8) -> Option<Key> {
         0x40 => Some(Key::Conv),
         0x41 => Some(Key::Calc),
         0x44 => Some(Key::Vars),
+        0x45 => Some(Key::Symb),
         0x54 => Some(Key::Fraction),
         0x55 => Some(Key::Times),
         0x56 => Some(Key::Minus),

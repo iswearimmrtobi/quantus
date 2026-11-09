@@ -2,8 +2,8 @@
 //!
 //! The layout is that of `design/keypad-sizes.html` (`DEVICES`, all sizes in millimetres) and of
 //! firmware/docs/hardware.md §4: the soft keys, the control row, the function keys around the
-//! arrows and the number block. A key whose label has no [`Key`] yet (UNIT, SYMB, the soft keys,
-//! ON, x⁻¹, ...) is drawn dimmed and does nothing.
+//! arrows and the number block. A key whose label has no [`Key`] yet (ON, ...) is drawn dimmed
+//! and does nothing.
 
 use std::time::{Duration, Instant};
 
@@ -182,6 +182,7 @@ fn key_of(label: &str) -> Option<Key> {
     Some(match label {
         "SHIFT" => Key::Shift,
         "ALPHA" => Key::Alpha,
+        "SYMB" => Key::Symb,
         "UNIT" => Key::Unit,
         "(−)" => Key::Neg,
         "x⁻¹" => Key::Inverse,
@@ -424,7 +425,7 @@ impl Keypad {
                     Point::new(px(x0 + col as f32 * pitch_x), px(y + row as f32 * pitch_y)),
                     Size::new(px(kw) as u32, px(kh) as u32),
                 );
-                keys.push(KeyDef { label, rect, round: false, style: Style::Soft, key: None });
+                keys.push(KeyDef { label, rect, round: false, style: Style::Soft, key: Some(Key::Soft((row * cols + col) as u8)) });
             }
         }
         y += rows as f32 * pitch_y + device.gap + 1.0;

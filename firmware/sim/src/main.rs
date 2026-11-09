@@ -467,6 +467,8 @@ Quantus simulator keys
   CONV                 F7 or Ctrl+Y (convert to a unit)
   CALC / SOLVE         F8 or Ctrl+B / F1 first (values for the letters of the input)
   VARS / STO           F11 or Ctrl+V / F1 first (the variables; keep the result)
+  SYMB                 F12 or Ctrl+\\ (Greek letters and symbols on the soft keys)
+  soft keys            Shift+F1 to Shift+F12 (F1 top left, along the rows)
   EXE / DEL / AC       Enter / Backspace / Esc, Delete or Ctrl+X
   fraction ^ index     /  ^  _
   sqrt x^2 pi e        Ctrl+W  Ctrl+Q  Ctrl+P  Ctrl+E
@@ -487,6 +489,13 @@ LaTeX: type it here in the terminal and press Enter; it becomes the input and is
 fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
     let shift = keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD);
     let ctrl = keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD);
+    // Shift and F1–F12 are the soft keys.
+    if shift {
+        let function = keycode.into_i32() - Keycode::F1.into_i32();
+        if (0..12).contains(&function) {
+            return Some(Key::Soft(function as u8));
+        }
+    }
     match keycode {
         Keycode::Left => return Some(Key::Left),
         Keycode::Right => return Some(Key::Right),
@@ -505,6 +514,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::F8 => return Some(Key::Calc),
         Keycode::F10 => return Some(Key::Eng),
         Keycode::F11 => return Some(Key::Vars),
+        Keycode::F12 => return Some(Key::Symb),
         Keycode::KpPlus => return Some(Key::Plus),
         Keycode::KpMinus => return Some(Key::Minus),
         Keycode::KpMultiply => return Some(Key::Times),
