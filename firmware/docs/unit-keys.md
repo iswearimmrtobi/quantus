@@ -1,7 +1,10 @@
 # Unit keys
 
-State on 2026-11-08: proposed, not built. The keypad is sketched in [hardware.md](hardware.md) §4
-(two sizes, soft keys, a UNIT key); the legends are not fixed.
+State on 2026-11-09: the UNIT layer (§1), the soft keys with the unit bar (§2) and SYMB are built
+in the hui and the simulator; the order of the bar comes from `quantus-core`
+(`units::suggest`, `api::unit_suggestions`). Not built: the SETUP switch for the bar's order.
+The keypad is sketched in [hardware.md](hardware.md) §4 (two sizes, soft keys, a UNIT key); the
+legends are not fixed.
 
 ## Context
 

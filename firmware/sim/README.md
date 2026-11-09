@@ -77,7 +77,8 @@ UNIT (prefixes on the digits, units on the function block). One press serves the
 then ALPHA or UNIT locks the layer (shown as `UNIT=` in the top bar, thick outline on the key), and
 SHIFT is one-shot on top of a lock. In UNIT prefixes, units and the operators ÷ × x² ^ keep the layer.
 A legend the UI does not carry out yet (FACT, recurring decimals) is dimmed and does nothing, as are
-SYMB, the soft keys and the keys without code. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
+the keys without code. The soft keys F1–F12 at the top of the pad do what their labels at the
+bottom of the screen say; a click on a label does the same. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
 `--scale <n>` sets the window's scale (2 by default, `--scale 1` for a small monitor).
 With `--png` the pad is only in the picture with `--keypad`.
 
@@ -110,6 +111,8 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | F8, Ctrl+B | | CALC: a form asks for the letters of the input, EXE works it out; after F1, SOLVE: solved for the letter left empty |
 | F10 | | ENG, after F1 ←ENG: the shown result in engineering notation |
 | F11, Ctrl+V | | after F1, STO: the result kept under a name typed |
+| F12, Ctrl+\ | | SYMB: Greek letters and math symbols on the soft keys, one typed with one key |
+| Shift+F1 to Shift+F12 | | the soft keys, F1 at the top left, along the rows (5 to a row with `--keypad=small`) |
 | Ctrl+W | | √ |
 | Ctrl+Q | | x² |
 | Ctrl+P | | π |

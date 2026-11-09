@@ -6,7 +6,7 @@ documents this list is drawn from: [plans.md](../../plans/plans.md) §4–5,
 [hardware.md](hardware.md). Ideas that are not planned yet are in
 [feature-ideas.md](feature-ideas.md).
 
-State on 2026-11-04.
+State on 2026-11-09.
 
 - `[x]` works: on the board, or in the hui and the simulator where the board has no part in it
 - `[~]` partly: what is missing follows the dash
@@ -98,9 +98,10 @@ State on 2026-11-04.
 - [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y), CALC (F8, Ctrl+B) and SOLVE (SHIFT+CALC), STO (SHIFT+VARS; VARS is F11, Ctrl+V)
 - [ ] Keys still missing: ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
 - [ ] ALPHA letters on the keypad
-- [ ] Soft keys (2 × 5 or 2 × 6) with their labels at the bottom of the screen, hidden in modes without them
-- [ ] UNIT layer and SYMB (Greek letters and math symbols on the soft keys)
-- [ ] Unit bar on the soft keys, ordered by the units already in the input (see unit-keys.md)
+- [x] Soft keys (2 × 5 or 2 × 6) with their labels at the bottom of the screen, hidden on sheets and answer pages; the mode's commands, the result forms after a result, pages when they do not fit, a tap on a label
+- [x] UNIT layer and SYMB (Greek letters and math symbols on the soft keys)
+- [x] Unit bar on the soft keys, from the input before the cursor and the units typed lately (see unit-keys.md)
+- [ ] SETUP switch for the unit bar's order (smart or most recent first)
 - [ ] UNDO/REDO
 - [ ] INS (wrap the previous item in the next template)
 - [ ] Selection with SHIFT+←/→, copy and paste

@@ -738,8 +738,8 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | Select, copy, paste | SHIFT + ←/→, then a copy and a paste key | missing |
 | ∫, d/dx, Σ, Π | SHIFT + `x y e i` (own keys for ∫ and Σ on the big unit); OPTN → Analysis as well | missing |
 | UNIT | the third modifier, in the round control row | missing (`Key::Unit`): see [unit-keys.md](../firmware/docs/unit-keys.md) |
-| SYMB | a key; Greek letters and math symbols on the soft keys | missing (`Key::Symb`) |
-| Soft keys | two rows under the screen, 2 × 5 or 2 × 6; labels at the bottom of the screen | missing (`Key::Soft(u8)`) |
+| SYMB | a key; Greek letters and math symbols on the soft keys | `Symb` (F12, Ctrl+\): pages of symbols, Physik's first page Δ ω ρ μ ε Ω °, the others' π ∞ ± ≤ ≥; one symbol, then the bar is back |
+| Soft keys | two rows under the screen, 2 × 5 or 2 × 6; labels at the bottom of the screen | `Soft(0..12)` (Shift+F1–F12; `firmware/ui/src/soft.rs`): see the list under 7.4.1 |
 | EXE | bottom right of the number block, where the Casio has `=` | exists (`Exe`); `=` for equations is `Equals` on the function block |
 | x⁻¹, x³, ⁿ√, 10ˣ, eˣ | SHIFT layers | partly (`Root` with SHIFT is ⁿ√) |
 | ALPHA letters | ALPHA + a digit: `7 8 9 → A B C`, `4 5 6 → D E F`, `1 → M` (the full layer table is in 7.4.1) | `Alpha` exists, legend moves from the function block to the digits |
@@ -794,7 +794,21 @@ existing SHIFT + VARS, M+, M−.
 - **Soft keys carry each mode's OPTN commands**, as the Casio has them under OPTN: Basis-N shows
   DEC HEX BIN OCT and the logic operators (10 labels, exactly 2 × 5), Komplex Arg, Konjugierte,
   Re, Im, ▶r∠θ, ▶a+bi, Prüfen = ≠ > < ≥ ≤, Matrizen and Vektoren their commands. OPTN still
-  lists them all.
+  lists them all. *Implemented* in the hui (`tree::soft_keys`, `soft.rs`):
+  - Physik: the unit bar (unit-keys.md §2), from the core (`api::unit_suggestions`);
+  - Algebra: `;` ∫ d/dx Σ Π lim nCr |x| x! ggT kgV mod;
+  - Komplex: arg, Konj., Re, Im, |z|, ▶r∠θ, ▶a+bi, ∠ (Konj. and the last three wait for the
+    engine);
+  - Kurvendiskussion: Abschnitte, Tangente, Fläche, Tabelle, d/dx, ∫;
+  - Matrizen: Definieren, Bearbeiten, det, Aᵀ, A⁻¹, Einheitsmatrix, REF, RREF;
+  - Basis-N: DEC HEX BIN OCT (the base set is lit), and, or, xor, xnor, Not, Neg;
+  - Prüfen: = ≠ < > ≤ ≥;
+  - after a result: S⇔D, ENG, ←ENG; Physik adds the ▶units of its dimension (one press converts
+    and works it out), Komplex ▶r∠θ and ▶a+bi;
+  - LGS, Wertetabelle, Statistik, Verteilungen, the forms, answer pages and the graph hide the
+    strips; SYMB shows over a sheet, to type into its cell;
+  - more than fit go on pages: the last key turns the page, any other key goes back to the
+    first.
 - **RESET** is an entry of SETUP, **QR code** an entry of OPTN → Werkzeuge: rare, and no key is left.
 - In Basis-N, ALPHA A–F are the hex digits.
 

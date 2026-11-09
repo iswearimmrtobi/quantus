@@ -12,6 +12,12 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   screen, buttons for what the menu does (CALC, SOLVE, search, copy, new calculation), and
   MathLive's own keyboard on touch screens.
 - The handheld simulator shows the keypad beside the screen; its keys can be clicked. SHIFT, ALPHA and UNIT relabel them, with locks, as in the layer table.
+- The handheld's soft keys work in the simulator, with their labels in two strips at the bottom
+  of the screen. In Physik they offer the units that fit the input (after `3 kW +` the units of
+  power, after `5 N ·` m and s, after `P =` W), the units typed lately first; the other modes get
+  their commands (Basis-N's bases and logic, Prüfen's relations, Komplex's parts, Matrizen's
+  functions, Kurvendiskussion's tasks). After a result they hold S⇔D, ENG and ←ENG, and in
+  Physik the units it converts to. SYMB puts Greek letters and math symbols on them.
 
 ## [0.2.0] - 2026-11-06
 
