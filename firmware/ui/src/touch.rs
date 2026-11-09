@@ -35,6 +35,8 @@ pub enum Target {
     Cell(usize, usize),
     /// An edge of a curve sketch: the next page (true) or the one before.
     Side(bool),
+    /// The label of a soft key at the bottom of the screen, counted like [`Key::Soft`](crate::key::Key::Soft).
+    Soft(usize),
 }
 
 /// What the finger did, once it lifted.

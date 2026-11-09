@@ -22,7 +22,7 @@ use quantus_ui::backend::{Backend, Catalogue, Group, Network, Reply, Request, St
 use quantus_texts::tr;
 use quantus_ui::text::Lang;
 #[cfg(feature = "engine")]
-use quantus_ui::backend::{Opened, SessionCommand, SessionInfo, Stored, VariableCommand};
+use quantus_ui::backend::{Opened, SessionCommand, SessionInfo, Stored, Units, VariableCommand};
 use quantus_ui::font::Scale;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, WIDTH};
@@ -230,6 +230,11 @@ impl Backend for Board {
     #[cfg(feature = "engine")]
     fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
         self.engine.catalogue(catalogue, lang)
+    }
+
+    #[cfg(feature = "engine")]
+    fn unit_suggestions(&mut self, before: &str, recent: &[String], result: Option<&str>) -> Units {
+        self.engine.unit_suggestions(before, recent, result)
     }
 
     #[cfg(feature = "engine")]

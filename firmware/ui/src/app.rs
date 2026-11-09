@@ -1,7 +1,8 @@
 //! The calculator's state and what each key does to it.
 
 use crate::backend::{
-    Backend, Catalogue, Graph, Group, Opened, Reply, Request, SessionCommand, SessionInfo, VariableCommand, Window, WlanStatus,
+    Backend, Catalogue, Graph, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Units, VariableCommand, Window,
+    WlanStatus,
 };
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
@@ -12,7 +13,8 @@ use crate::tree;
 use crate::clock;
 use crate::menu::{self, Action, Edit, Kind, Menu, Outcome, TextFor, TimeField};
 use crate::render;
-use crate::settings::SystemInput;
+use crate::settings::{Setting, SystemInput};
+use crate::soft::{self, Slot};
 use crate::sheet::{self, Sheets};
 use crate::touch::{self, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
 use crate::wallpaper::Wallpaper;
@@ -345,7 +347,25 @@ pub struct App<B> {
     pub wlan_connected: bool,
     /// When the connection was asked for last; `None` asks at the next tick.
     last_wlan: Option<u64>,
+    /// How many soft keys a row has: 6 on the big unit, 5 on the small one.
+    pub soft_columns: usize,
+    /// The page of the soft keys shown; back to the first with any other key.
+    pub soft_page: usize,
+    /// The page of SYMB's symbols on the soft keys, while they are open.
+    pub symbols: Option<usize>,
+    /// The units Physik's soft keys offer, and what they were asked for.
+    pub units: Units,
+    units_for: Option<String>,
+    /// The labels of the units typed lately, newest first, for the order of the unit bar.
+    pub recent_units: Vec<String>,
+    /// The units typed into the input since the last EXE, and a unit being typed on the UNIT
+    /// layer (its prefix and symbol).
+    typed_units: Vec<String>,
+    unit_run: String,
 }
+
+/// How many recent units the unit bar remembers.
+const RECENT_UNITS: usize = 12;
 
 impl<B> App<B> {
     /// The sheet the screen shows instead of the input line, if any: the mode's own
@@ -452,11 +472,20 @@ impl<B: Backend> App<B> {
             minute: None,
             wlan_connected: false,
             last_wlan: None,
+            soft_columns: 6,
+            soft_page: 0,
+            symbols: None,
+            units: Units::default(),
+            units_for: None,
+            recent_units: Vec::new(),
+            typed_units: Vec::new(),
+            unit_run: String::new(),
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
             app.load(opened);
         }
+        app.refresh_units();
         app
     }
 
@@ -473,6 +502,8 @@ impl<B: Backend> App<B> {
             .collect();
         self.session = Some(opened.info);
         self.reset();
+        self.recent_units.clear();
+        self.typed_units.clear();
         // The sheets as the session left them, laid out as they were.
         self.answer = None;
         (self.task, self.sketch, self.kept_function) = (None, None, None);
@@ -613,10 +644,16 @@ impl<B: Backend> App<B> {
             self.caret_on = !self.caret_on;
             changed = true;
         }
+        changed |= self.refresh_units();
         changed
     }
 
     pub fn key(&mut self, key: Key) {
+        self.press(key);
+        self.refresh_units();
+    }
+
+    fn press(&mut self, key: Key) {
         let typing = matches!(&self.screen, Screen::Menu(menu) if matches!(menu.edit, Some(Edit::Text { .. })));
         let Some(key) = (if typing { Some(key) } else { key.plain() }) else { return };
         self.caret_on = true;
@@ -624,9 +661,17 @@ impl<B: Backend> App<B> {
         if calc && Modifier::is_modifier(key) {
             return self.modifier.press(key);
         }
+        // Any other key closes SYMB's symbols and goes back to the first page of soft keys.
+        if !matches!(key, Key::Soft(_) | Key::Symb) {
+            self.symbols = None;
+            self.soft_page = 0;
+        }
         let layer = self.modifier.layer();
         let resolved = layer::resolve(key, layer, self.modifier.exponent, self.mode == Mode::BaseN);
         self.modifier.settle(key, layer);
+        if calc {
+            self.track_unit(layer, resolved);
+        }
         let key = match resolved {
             Resolved::Key(key) => key,
             Resolved::Insert(latex) if calc => return self.insert(latex),
@@ -811,6 +856,7 @@ impl<B: Backend> App<B> {
             Target::Side(next) => self.key(if next { Key::Right } else { Key::Left }),
             Target::Ok | Target::Anywhere => self.key(Key::Ok),
             Target::Tile(index) => self.choose(index),
+            Target::Soft(index) => self.key(Key::Soft(index as u8)),
             Target::Page(page) => self.show_page(page),
             Target::Line(_) | Target::Step(_) => {
                 let Screen::Menu(mut menu) = std::mem::replace(&mut self.screen, Screen::Calc) else { return };
@@ -1243,6 +1289,110 @@ impl<B: Backend> App<B> {
         });
     }
 
+    /// What soft key `index` holds, done.
+    fn soft_key(&mut self, index: usize) {
+        let Some(bar) = soft::bar(self) else { return };
+        let Some(slot) = bar.slot(index).cloned() else { return };
+        match slot {
+            Slot::Empty => {}
+            Slot::Page => match &mut self.symbols {
+                Some(page) => *page = bar.page + 1,
+                None => self.soft_page = bar.page + 1,
+            },
+            Slot::Symbol(_, latex) => {
+                self.symbols = None;
+                self.insert(latex);
+            }
+            Slot::Unit(item) => {
+                self.typed_units.push(item.name.clone());
+                self.insert(&item.latex);
+            }
+            Slot::Convert(item) => self.convert(&item),
+            Slot::Key(_, key) => self.calc_key(key, false),
+            Slot::Base(_, value) => self.settings.set(Setting::NumberBase, value),
+            // As OPTN does it, over a page of its own: a message or a list closes back to here.
+            Slot::Command(soft) => {
+                let mut menu = Menu::new(&tree::SOFT_PAGE);
+                let outcome = menu.choose(&soft.entry, &self.settings);
+                match outcome {
+                    Outcome::Stay if menu.edit.is_none() => {}
+                    outcome => self.outcome(menu, outcome),
+                }
+            }
+        }
+    }
+
+    /// The shown result converted to the unit `item` and worked out: `Ans ▶ unit`.
+    fn convert(&mut self, item: &Item) {
+        let Some(Entry { result: Ok(result), .. }) = self.shown_entry() else { return };
+        let result = result.clone();
+        self.reset();
+        self.editor.paste(&result);
+        self.typed_units.push(item.name.clone());
+        self.insert(&format!(r"\blacktriangleright {}", item.latex));
+        self.evaluate();
+    }
+
+    /// A prefix and a unit typed on the UNIT layer are remembered as one unit once the layer lets
+    /// go of them.
+    fn track_unit(&mut self, layer: Layer, resolved: Resolved) {
+        match resolved {
+            Resolved::Insert(latex) if layer == Layer::Unit => self.unit_run.push_str(&latex.replace(r"\mu ", "µ")),
+            _ => self.end_unit(),
+        }
+    }
+
+    fn end_unit(&mut self) {
+        if !self.unit_run.is_empty() {
+            let run = std::mem::take(&mut self.unit_run);
+            self.typed_units.push(run);
+        }
+    }
+
+    /// The units typed since the last EXE go to the front of the recent ones.
+    fn remember_units(&mut self) {
+        self.end_unit();
+        for unit in std::mem::take(&mut self.typed_units) {
+            self.recent_units.retain(|recent| *recent != unit);
+            self.recent_units.insert(0, unit);
+        }
+        self.recent_units.truncate(RECENT_UNITS);
+    }
+
+    /// Asks the backend for Physik's units again when what they go by has changed: the input
+    /// up to its last operator, or the shown result. Whether they changed.
+    fn refresh_units(&mut self) -> bool {
+        let wanted = self.mode == Mode::Physics
+            && matches!(self.screen, Screen::Calc)
+            && self.answer.is_none()
+            && self.pending.is_none()
+            && self.sheet_kind().is_none();
+        if !wanted {
+            return false;
+        }
+        let result = self.shown.map(|_| match self.shown_entry() {
+            Some(Entry { result: Ok(result), .. }) => Some(result.to_latex()),
+            _ => None,
+        });
+        let context = match &result {
+            Some(result) => format!("={}", result.as_deref().unwrap_or("")),
+            None => soft::context(self.editor.before_cursor(), self.editor.path().len()),
+        };
+        if self.units_for.as_ref() == Some(&context) {
+            return false;
+        }
+        self.units = match result {
+            Some(None) => Units::default(),
+            Some(Some(result)) => self.backend.unit_suggestions("", &self.recent_units, Some(&result)),
+            None => {
+                let before = Row(self.editor.before_cursor().to_vec()).to_latex();
+                self.backend.unit_suggestions(&before, &self.recent_units, None)
+            }
+        };
+        self.units_for = Some(context);
+        true
+    }
+
     fn calc_key(&mut self, key: Key, shift: bool) {
         match key {
             Key::Mode if shift => return self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
@@ -1255,6 +1405,8 @@ impl<B: Backend> App<B> {
             Key::Calc => return self.formula(shift),
             Key::Vars if shift => return self.sto(),
             Key::Vars => return self.vars(),
+            Key::Symb => return self.symbols = if self.symbols.is_some() { None } else { Some(0) },
+            Key::Soft(index) => return self.soft_key(usize::from(index)),
             _ => {}
         }
         // While the backend calculates, AC drops its answer and the other keys wait; the graph
@@ -1770,6 +1922,9 @@ impl<B: Backend> App<B> {
     fn evaluate_as(&mut self, decimal: bool) {
         if self.editor.is_empty() {
             return;
+        }
+        if self.mode == Mode::Physics {
+            self.remember_units();
         }
         // Kurvendiskussion sketches the function, a page per section.
         if self.mode == Mode::Analysis {

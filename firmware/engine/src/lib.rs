@@ -17,7 +17,7 @@ use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
 use quantus_ui::backend::{
-    Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Variable, VariableCommand,
+    Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, Variable, VariableCommand,
 };
 use quantus_ui::clock;
 use quantus_ui::settings as ui;
@@ -244,6 +244,13 @@ impl Backend for Engine {
             // The app lists these itself, from the OPTN tree.
             Catalogue::Functions => Vec::new(),
         }
+    }
+
+    fn unit_suggestions(&mut self, before: &str, recent: &[String], result: Option<&str>) -> Units {
+        let request = api::UnitSuggestionRequest { before: before.to_string(), recent: recent.to_vec(), result: result.map(str::to_string) };
+        let found = api::unit_suggestions(&request);
+        let items = |list: Vec<api::UnitSuggestion>| list.into_iter().map(|unit| Item { name: unit.label, latex: unit.latex }).collect();
+        Units { best: items(found.best), more: items(found.more) }
     }
 
     fn variables(&mut self, command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {

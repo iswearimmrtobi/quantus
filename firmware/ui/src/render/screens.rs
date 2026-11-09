@@ -45,7 +45,9 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         shapes.push(Shape::Fill(caret, colors::CYAN));
     }
 
-    let bottom = HEIGHT as i32 - MARGIN;
+    // Above the soft keys' labels, while they show.
+    let soft = if crate::soft::shows(app) { super::SOFT } else { 0 };
+    let bottom = HEIGHT as i32 - MARGIN - soft;
     if let Some(entry) = app.shown_entry() {
         match &entry.result {
             Ok(result) => {

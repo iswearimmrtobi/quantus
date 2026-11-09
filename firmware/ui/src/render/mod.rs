@@ -10,8 +10,10 @@ mod graph;
 mod renderer;
 mod screens;
 mod sheet;
+mod soft;
 
 pub use analysis::{dragged, graph_area};
+pub use soft::{slot_rect, SOFT};
 pub use renderer::Renderer;
 
 use embedded_graphics::pixelcolor::Rgb565;
@@ -198,6 +200,9 @@ impl Frame {
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
             Screen::Calibrate(state, _) => calibration(&mut shapes, state, app.settings.language),
         }
+        if let Some(keys) = crate::soft::bar(app) {
+            soft::strips(&mut shapes, app, &keys);
+        }
         bar(&mut shapes, app);
         Frame(shapes, backdrop)
     }
@@ -337,6 +342,9 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
     }
     match &app.screen {
         Screen::Calc => {
+            if let Some(target) = soft::soft_at(app, point) {
+                return Some(target);
+            }
             // The edges of a curve sketch turn its pages.
             if let Some(answer) = app.answer.as_ref().filter(|answer| answer.pages() > 1) {
                 return match point.x {

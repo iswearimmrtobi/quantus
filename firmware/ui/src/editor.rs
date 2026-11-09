@@ -21,7 +21,7 @@ const SYMBOLS: &[(char, &str)] = &[
     ('≤', "le"), ('≥', "ge"), ('≠', "neq"), ('ℏ', "hbar"), ('∧', "land"), ('∫', "int"),
     ('∑', "sum"), ('∏', "prod"), ('∨', "lor"), ('∈', "in"), ('∉', "notin"), ('∪', "cup"), ('∖', "setminus"),
     ('⇒', "Rightarrow"), ('↗', "nearrow"), ('↘', "searrow"), ('∅', "emptyset"), ('⇔', "Leftrightarrow"),
-    ('⌣', "smile"), ('⌢', "frown"), ('▶', "blacktriangleright"), ('{', "{"),
+    ('⌣', "smile"), ('⌢', "frown"), ('▶', "blacktriangleright"), ('←', "leftarrow"), ('{', "{"),
     ('}', "}"),
 ];
 
@@ -272,6 +272,15 @@ impl Editor {
 
     pub fn to_latex(&self) -> String {
         self.row.to_latex()
+    }
+
+    /// The nodes of the cursor's row before the cursor: what the soft keys' units go by.
+    pub fn before_cursor(&self) -> &[Node] {
+        let mut row = &self.row;
+        for &(index, slot) in &self.path {
+            row = row.0[index].slot(slot);
+        }
+        &row.0[..self.pos]
     }
 
     fn current(&mut self) -> &mut Row {

@@ -720,3 +720,105 @@ static OPTN_VERIFY: Page = Page {
         ins(same("≥"), r"\ge "),
     ],
 };
+
+// The soft keys (design/handheld-menus.md §7.4.1): the mode's OPTN commands, one press each.
+// Physik's units and the result forms are made by `crate::soft`.
+
+/// A soft key: its short label, LaTeX as the strip draws it, and what it does, as OPTN does it.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Soft {
+    pub label: Text,
+    pub entry: Entry,
+}
+
+const fn soft(label: Text, entry: Entry) -> Soft {
+    Soft { label, entry }
+}
+
+/// A soft key that inserts `latex`, labelled with `label`.
+const fn soft_ins(label: &'static str, latex: &'static str) -> Soft {
+    soft(same(label), ins(same(label), latex))
+}
+
+/// What a soft key's command opens over: a message or a list, which closes back to the input.
+pub static SOFT_PAGE: Page = Page { title: same(""), entries: &[] };
+
+/// The soft keys of a mode while its input is typed; Physik's are its units.
+pub fn soft_keys(mode: Mode) -> &'static [Soft] {
+    match mode {
+        Mode::Algebra => &SOFT_ALGEBRA,
+        Mode::Imaginary => &SOFT_COMPLEX,
+        Mode::Analysis => &SOFT_ANALYSIS,
+        Mode::Matrix => &SOFT_MATRIX,
+        Mode::BaseN => &SOFT_BASE_N,
+        Mode::Verify => &SOFT_VERIFY,
+        _ => &[],
+    }
+}
+
+pub static SOFT_ALGEBRA: [Soft; 12] = [
+    soft_ins(";", ";"),
+    soft_ins("∫", r"\int_{}^{}"),
+    soft_ins("d/dx", r"\frac{d}{dx}"),
+    soft_ins("Σ", r"\sum_{}^{}"),
+    soft_ins("Π", r"\prod_{}^{}"),
+    soft_ins("lim", r"\lim_{x\to}"),
+    soft_ins("nCr", r"\binom{}{}"),
+    soft_ins("|x|", "||"),
+    soft_ins("x!", "!"),
+    soft(tx!("hui.tree.gcd"), ins(tx!("hui.tree.gcd"), r"\operatorname{ggT}(;)")),
+    soft(tx!("hui.tree.lcm"), ins(tx!("hui.tree.lcm"), r"\operatorname{kgV}(;)")),
+    soft_ins("mod", r"\bmod "),
+];
+
+/// Komplex: the parts of a number, then the forms a result is shown in (they wait for the engine).
+pub static SOFT_COMPLEX: [Soft; 8] = [
+    soft_ins("arg", r"\arg()"),
+    soft(tx!("hui.soft.conjugate"), pending(tx!("hui.tree.conjugate"))),
+    soft_ins("Re", r"\Re()"),
+    soft_ins("Im", r"\Im()"),
+    soft_ins("|z|", "||"),
+    soft(same(r"\blacktriangleright r\angle\theta"), pending(tx!("hui.tree.polar_form"))),
+    soft(same(r"\blacktriangleright a+bi"), pending(tx!("hui.tree.bi"))),
+    soft(same(r"\angle"), pending(tx!("hui.tree.angle_input"))),
+];
+
+/// Kurvendiskussion: the pages of the last sketch and the three tasks, then two templates.
+pub static SOFT_ANALYSIS: [Soft; 6] = [
+    soft(tx!("hui.soft.sections"), entry(tx!("hui.tree.sections"), Kind::Sections)),
+    soft(tx!("hui.soft.tangent"), entry(tx!("hui.tree.tangent_normal"), Kind::Do(Action::TangentForm))),
+    soft(tx!("hui.tree.area"), entry(tx!("hui.tree.area"), Kind::Do(Action::AreaForm))),
+    soft(tx!("hui.soft.table"), entry(tx!("hui.tree.table"), Kind::Do(Action::PointsForm))),
+    soft_ins("d/dx", r"\frac{d}{dx}"),
+    soft_ins("∫", r"\int_{}^{}"),
+];
+
+pub static SOFT_MATRIX: [Soft; 8] = [
+    soft(tx!("hui.soft.define"), entry(tx!("hui.tree.define"), Kind::Do(Action::DefineMatrix))),
+    soft(tx!("hui.soft.edit"), entry(tx!("hui.tree.edit"), Kind::Do(Action::EditMatrix))),
+    soft_ins("det", r"\det "),
+    soft(same("A^{T}"), ins(tx!("hui.tree.transpose"), "^{T}")),
+    soft(same("A^{-1}"), ins(tx!("hui.tree.inverse"), "^{-1}")),
+    soft(tx!("hui.soft.identity"), ins(tx!("hui.tree.identity"), r"\operatorname{Identity}()")),
+    soft_ins("REF", r"\operatorname{ref}()"),
+    soft_ins("RREF", r"\operatorname{rref}()"),
+];
+
+/// Basis-N: the logic; the four bases come first, from `crate::soft`.
+pub static SOFT_BASE_N: [Soft; 6] = [
+    soft_ins("and", r"\operatorname{and}"),
+    soft_ins("or", r"\operatorname{or}"),
+    soft_ins("xor", r"\operatorname{xor}"),
+    soft_ins("xnor", r"\operatorname{xnor}"),
+    soft_ins("Not", r"\operatorname{Not}()"),
+    soft_ins("Neg", r"\operatorname{Neg}()"),
+];
+
+pub static SOFT_VERIFY: [Soft; 6] = [
+    soft_ins("=", "="),
+    soft_ins("≠", r"\neq "),
+    soft_ins("<", "<"),
+    soft_ins(">", ">"),
+    soft_ins("≤", r"\le "),
+    soft_ins("≥", r"\ge "),
+];

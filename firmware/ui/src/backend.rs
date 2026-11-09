@@ -64,6 +64,16 @@ pub trait Backend {
         Vec::new()
     }
 
+    /// The units the soft keys offer in Physik (firmware/docs/unit-keys.md §2): for the input
+    /// `before` the cursor (its LaTeX), the labels of the units used last, newest first; or, with
+    /// `result`, the units a shown result converts to. Without an engine, the common units.
+    fn unit_suggestions(&mut self, _before: &str, _recent: &[String], result: Option<&str>) -> Units {
+        match result {
+            Some(_) => Units::default(),
+            None => Units::common(),
+        }
+    }
+
     /// Does `command` to the variables of the open session and returns them all afterwards, or
     /// why it failed. A backend without sessions has none.
     fn variables(&mut self, _command: VariableCommand, settings: &Settings) -> Result<Vec<Stored>, String> {
@@ -184,6 +194,22 @@ pub struct Group {
 pub struct Item {
     pub name: String,
     pub latex: String,
+}
+
+/// The units for the soft keys, best first: `best` for the first row, `more` for the second
+/// and the pages after it.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Units {
+    pub best: Vec<Item>,
+    pub more: Vec<Item>,
+}
+
+impl Units {
+    /// The common units of mechanics, electricity and heat.
+    pub fn common() -> Units {
+        let item = |name: &str| Item { name: name.to_string(), latex: format!(r"\mathrm{{{name}}}") };
+        Units { best: ["m", "s", "kg", "N", "J", "W"].map(item).to_vec(), more: ["V", "A", "Pa", "K", "Hz", "km"].map(item).to_vec() }
+    }
 }
 
 /// The WLAN connection.

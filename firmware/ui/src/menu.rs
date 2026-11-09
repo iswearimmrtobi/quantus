@@ -570,6 +570,11 @@ impl Menu {
     /// Opens the entry `index` of the page on the screen.
     fn open(&mut self, index: usize, settings: &Settings) -> Outcome {
         let entry = &self.level().page.entries[index];
+        self.choose(entry, settings)
+    }
+
+    /// Opens `entry` as if it were chosen on the page on the screen: a soft key's.
+    pub fn choose(&mut self, entry: &'static Entry, settings: &Settings) -> Outcome {
         match &entry.kind {
             Kind::Page(page) => self.stack.push(Level { page, selected: 0 }),
             Kind::Choice(setting, opts) => {

@@ -10,7 +10,7 @@ use std::time::Instant;
 use esp_idf_svc::sys;
 use quantus_engine::Engine;
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Catalogue, Group, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, VariableCommand};
+use quantus_ui::backend::{Backend, Catalogue, Group, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, VariableCommand};
 use quantus_texts::tr;
 use quantus_ui::text::Lang;
 
@@ -37,6 +37,8 @@ enum Job {
     Catalogue(Catalogue, Lang, Sender<Vec<Group>>),
     /// STO and VARS, answered like the sessions.
     Variables(VariableCommand, Settings, Sender<Result<Vec<Stored>, String>>),
+    /// The units for the soft keys: the input before the cursor, the recent units, a result.
+    Units(String, Vec<String>, Option<String>, Sender<Units>),
 }
 
 pub struct Worker {
@@ -95,6 +97,9 @@ impl Worker {
                         Job::Catalogue(catalogue, lang, reply) => {
                             let _ = reply.send(engine.catalogue(catalogue, lang));
                         }
+                        Job::Units(before, recent, result, reply) => {
+                            let _ = reply.send(engine.unit_suggestions(&before, &recent, result.as_deref()));
+                        }
                         Job::Variables(command, settings, reply) => {
                             println!("variables: {command:?}");
                             let _ = reply.send(engine.variables(command, &settings));
@@ -150,6 +155,16 @@ impl Worker {
         let (reply, answer) = mpsc::channel();
         if self.jobs.send(Job::Catalogue(catalogue, lang, reply)).is_err() {
             return Vec::new();
+        }
+        answer.recv().unwrap_or_default()
+    }
+
+    /// The units for the soft keys, waiting like [`sessions`](Worker::sessions).
+    pub fn unit_suggestions(&mut self, before: &str, recent: &[String], result: Option<&str>) -> Units {
+        let (reply, answer) = mpsc::channel();
+        let job = Job::Units(before.to_string(), recent.to_vec(), result.map(str::to_string), reply);
+        if self.jobs.send(job).is_err() {
+            return Units::default();
         }
         answer.recv().unwrap_or_default()
     }

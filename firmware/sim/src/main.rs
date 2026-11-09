@@ -35,8 +35,8 @@ use mirror::{Mirror, Tee};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{
-    Backend, Catalogue, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stored, Stub, VariableCommand,
-    WlanStatus,
+    Backend, Catalogue, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stored, Stub, Units,
+    VariableCommand, WlanStatus,
 };
 use quantus_ui::text::Lang;
 use quantus_ui::key::Key;
@@ -64,6 +64,10 @@ fn main() {
     let answers = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::new(sessions)) };
     let wlan = FakeWlan::load(Path::new(sd));
     let mut app = App::new(Sim { answers, sd: PathBuf::from(sd), keep, wlan });
+    // The small unit has five soft keys to a row, the big one six.
+    if unit == Some(keypad::Unit::Small) {
+        app.soft_columns = 5;
+    }
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
     // What the board will report, shown on demand: F9 and F10 switch them in the window.
@@ -145,11 +149,12 @@ fn main() {
         for event in window.events() {
             match event {
                 SimulatorEvent::Quit => return,
-                SimulatorEvent::KeyDown { keycode: Keycode::F9, .. } => {
+                // Shift+F9 and Shift+F10 are soft keys.
+                SimulatorEvent::KeyDown { keycode: Keycode::F9, keymod, .. } if !shifted(keymod) => {
                     app.charging = !app.charging;
                     changed = true;
                 }
-                SimulatorEvent::KeyDown { keycode: Keycode::F10, .. } => {
+                SimulatorEvent::KeyDown { keycode: Keycode::F10, keymod, .. } if !shifted(keymod) => {
                     app.busy = !app.busy;
                     changed = true;
                 }
@@ -332,6 +337,13 @@ impl Backend for Sim {
         }
     }
 
+    fn unit_suggestions(&mut self, before: &str, recent: &[String], result: Option<&str>) -> Units {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.unit_suggestions(before, recent, result),
+            Answers::Stub(stub) => stub.unit_suggestions(before, recent, result),
+        }
+    }
+
     fn solve(&mut self, settings: &Settings, request: &Request) -> Result<Reply, String> {
         match &mut self.answers {
             Answers::Engine(engine) => engine.solve(settings, request),
@@ -486,8 +498,12 @@ LaTeX: type it here in the terminal and press Enter; it becomes the input and is
 
 /// The key for a key press. SDL reports the key's unshifted character, so the shifted ones are
 /// those of a German layout.
+fn shifted(keymod: Mod) -> bool {
+    keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD)
+}
+
 fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
-    let shift = keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD);
+    let shift = shifted(keymod);
     let ctrl = keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD);
     // Shift and F1–F12 are the soft keys.
     if shift {
