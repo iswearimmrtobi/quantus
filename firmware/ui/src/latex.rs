@@ -19,7 +19,7 @@ const SYMBOLS: &[(&str, char)] = &[
     ("setminus", '∖'), ("mid", '|'), ("Rightarrow", '⇒'), ("implies", '⇒'), ("rightarrow", '→'),
     ("nearrow", '↗'), ("searrow", '↘'), ("emptyset", '∅'), ("varnothing", '∅'), ("colon", ':'),
     ("Leftrightarrow", '⇔'), ("iff", '⇔'), ("smile", '⌣'), ("frown", '⌢'), ("circ", '°'),
-    ("blacktriangleright", '▶'), ("triangleright", '▶'),
+    ("blacktriangleright", '▶'), ("triangleright", '▶'), ("leftarrow", '←'), ("angle", '∠'),
 ];
 
 pub fn parse(latex: &str) -> Row {

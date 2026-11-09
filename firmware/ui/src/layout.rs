@@ -152,7 +152,7 @@ fn grow(items: &mut [Item], first: usize, last: usize, scale: Scale) {
 }
 
 /// The signs [`drawn`] draws.
-pub const DRAWN: &str = "∧∨∈∉∪∖→⇒⇔↗↘∅⌣⌢ℝℤℏ▶";
+pub const DRAWN: &str = "∧∨∈∉∪∖→←⇒⇔↗↘∅⌣⌢ℝℤℏ▶∠";
 
 /// A sign the fonts lack, drawn as lines around the math axis, about as tall as a digit.
 fn drawn(c: char, scale: Scale, unary: bool) -> Item {
@@ -195,6 +195,12 @@ fn drawn(c: char, scale: Scale, unary: bool) -> Item {
         }
         '∖' => (None, half, vec![vec![p(gap, top), p(gap + half, bottom)]]),
         '→' => (None, metrics.digit, arrow(metrics.digit)),
+        '←' => {
+            let (start, end) = (gap, gap + metrics.digit);
+            (None, metrics.digit, vec![vec![p(start, middle), p(end, middle)], vec![p(start + 4, middle - 4), p(start, middle), p(start + 4, middle + 4)]])
+        }
+        // An angle: a stroke up from the corner at the bottom left, and the base line.
+        '∠' => (None, height, vec![vec![p(gap + height, top), p(gap, bottom), p(gap + height, bottom)]]),
         '⇒' => {
             let (start, end) = (gap, gap + metrics.digit);
             let lines = vec![
