@@ -403,6 +403,25 @@ pub fn conversion_units(language: crate::settings::Language) -> Vec<UnitCategory
     crate::units::catalogue::catalogue(language)
 }
 
+pub use crate::units::suggest::{UnitSuggestion, UnitSuggestions};
+
+/// The input of a Physik calculation up to the cursor, for the units a soft key bar offers.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct UnitSuggestionRequest {
+    /// The LaTeX before the cursor.
+    pub before: String,
+    /// The labels of the units used last, newest first.
+    pub recent: Vec<String>,
+    /// A shown result: its ▶unit targets are offered instead.
+    pub result: Option<String>,
+}
+
+/// The units that fit the input at the cursor, best first (firmware/docs/unit-keys.md §2).
+pub fn unit_suggestions(request: &UnitSuggestionRequest) -> UnitSuggestions {
+    crate::units::suggest::suggest(&request.before, &request.recent, request.result.as_deref())
+}
+
 pub use crate::library_search::{HitKind, LibraryHit};
 
 /// A quick search over the constants and conversion units.

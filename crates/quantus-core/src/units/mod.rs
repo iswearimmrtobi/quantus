@@ -9,6 +9,7 @@ pub mod latex;
 pub mod lookup;
 pub mod product;
 pub mod registry;
+pub mod suggest;
 pub mod unit;
 
 pub use atom::{Atom, Kind, Prefix};
