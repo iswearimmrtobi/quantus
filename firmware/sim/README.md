@@ -76,7 +76,7 @@ keyboard lights its key. SHIFT, ALPHA and UNIT relabel the keys with the layer t
 UNIT (prefixes on the digits, units on the function block). One press serves the next key; SHIFT
 then ALPHA or UNIT locks the layer (shown as `UNIT=` in the top bar, thick outline on the key), and
 SHIFT is one-shot on top of a lock. In UNIT prefixes, units and the operators ÷ × x² ^ keep the layer.
-A legend the UI does not carry out yet (CATALOG, UNDO, INS, ≈, …) is dimmed and does nothing, as are
+A legend the UI does not carry out yet (CATALOG, ←ENG, FACT, recurring decimals) is dimmed and does nothing, as are
 SYMB, the soft keys and the keys without code. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
 `--scale <n>` sets the window's scale (2 by default, `--scale 1` for a small monitor).
 With `--png` the pad is only in the picture with `--keypad`.

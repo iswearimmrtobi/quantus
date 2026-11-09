@@ -135,7 +135,26 @@ pub struct Editor {
     path: Vec<(usize, usize)>,
     /// The cursor's position in the innermost row: before the node with this index.
     pos: usize,
+    /// INS: a typed character replaces the one at the cursor.
+    pub overtype: bool,
+    /// Where a selection started, in the cursor's row; it runs to the cursor.
+    anchor: Option<usize>,
+    undo: Vec<Snapshot>,
+    redo: Vec<Snapshot>,
+    /// The last change was an undo or redo, which are not changes to record.
+    restored: bool,
 }
+
+/// The input as it was, for UNDO and REDO.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Snapshot {
+    row: Row,
+    path: Vec<(usize, usize)>,
+    pos: usize,
+}
+
+/// How many changes UNDO goes back.
+const HISTORY: usize = 50;
 
 impl Editor {
     pub fn new() -> Self {
@@ -154,12 +173,93 @@ impl Editor {
         self.row.is_empty()
     }
 
+    /// Empties the input; what UNDO knows stays.
     pub fn clear(&mut self) {
-        *self = Self::default();
+        self.row = Row::default();
+        self.path.clear();
+        self.pos = 0;
+        self.anchor = None;
+    }
+
+    pub fn snapshot(&self) -> Snapshot {
+        Snapshot { row: self.row.clone(), path: self.path.clone(), pos: self.pos }
+    }
+
+    /// Records `before` for UNDO if the input has changed since (not a mere move of the cursor).
+    pub fn commit(&mut self, before: Snapshot) {
+        if std::mem::take(&mut self.restored) || before.row == self.row {
+            return;
+        }
+        self.undo.push(before);
+        if self.undo.len() > HISTORY {
+            self.undo.remove(0);
+        }
+        self.redo.clear();
+    }
+
+    fn restore(&mut self, snapshot: Snapshot) {
+        (self.row, self.path, self.pos) = (snapshot.row, snapshot.path, snapshot.pos);
+        self.anchor = None;
+        self.restored = true;
+    }
+
+    pub fn undo(&mut self) {
+        if let Some(snapshot) = self.undo.pop() {
+            self.redo.push(self.snapshot());
+            self.restore(snapshot);
+        }
+    }
+
+    pub fn redo(&mut self) {
+        if let Some(snapshot) = self.redo.pop() {
+            self.undo.push(self.snapshot());
+            self.restore(snapshot);
+        }
+    }
+
+    /// The selected nodes of the cursor's row, as positions.
+    pub fn selection(&self) -> Option<std::ops::Range<usize>> {
+        let anchor = self.anchor.filter(|&anchor| anchor != self.pos)?;
+        Some(anchor.min(self.pos)..anchor.max(self.pos))
+    }
+
+    /// Extends the selection by the node left of the cursor.
+    pub fn select_left(&mut self) {
+        if self.pos > 0 {
+            self.anchor.get_or_insert(self.pos);
+            self.pos -= 1;
+        }
+    }
+
+    /// Extends the selection by the node right of the cursor.
+    pub fn select_right(&mut self) {
+        if self.pos < self.current().0.len() {
+            self.anchor.get_or_insert(self.pos);
+            self.pos += 1;
+        }
+    }
+
+    /// A copy of the selection.
+    pub fn copied(&mut self) -> Option<Row> {
+        let range = self.selection()?;
+        Some(Row(self.current().0[range].to_vec()))
+    }
+
+    /// Removes the selection and puts the cursor where it was. Whether there was one.
+    fn delete_selection(&mut self) -> bool {
+        let Some(range) = self.selection() else {
+            self.anchor = None;
+            return false;
+        };
+        self.anchor = None;
+        self.pos = range.start;
+        self.current().0.drain(range);
+        true
     }
 
     /// Replaces the input, with the cursor at its end.
     pub fn set(&mut self, row: Row) {
+        self.anchor = None;
         self.pos = row.0.len();
         self.path.clear();
         self.row = row;
@@ -183,7 +283,11 @@ impl Editor {
     }
 
     fn insert(&mut self, node: Node) {
+        self.delete_selection();
         let pos = self.pos;
+        if self.overtype && matches!(node, Node::Char(_)) && self.current().0.get(pos).is_some_and(|next| next.slot_count() == 0) {
+            self.current().0.remove(pos);
+        }
         self.current().0.insert(pos, node);
         self.pos += 1;
     }
@@ -217,6 +321,28 @@ impl Editor {
         self.insert_template(Node::Frac(Row(numerator), Row::default()), slot);
     }
 
+    /// A mixed number: the number before the cursor becomes the whole part, `(2+a/b)`, with the
+    /// cursor in the numerator. Without a number it is an ordinary fraction.
+    pub fn mixed(&mut self) {
+        let pos = self.pos;
+        let row = self.current();
+        let start = row.0[..pos].iter().rposition(|node| !node.is_operand()).map_or(0, |i| i + 1);
+        if start == pos {
+            return self.fraction();
+        }
+        let whole: Vec<Node> = row.0.drain(start..pos).collect();
+        self.pos = start;
+        self.char('(');
+        whole.into_iter().for_each(|node| self.insert(node));
+        self.char('+');
+        let at = self.pos;
+        let row = self.current();
+        row.0.insert(at, Node::Frac(Row::default(), Row::default()));
+        row.0.insert(at + 1, Node::Char(')'));
+        self.path.push((at, 0));
+        self.pos = 0;
+    }
+
     pub fn power(&mut self) {
         self.insert_template(Node::Pow(Row::default()), 0);
     }
@@ -247,6 +373,9 @@ impl Editor {
     /// goes into it instead; at the start of one of its rows the template goes and its content
     /// stays.
     pub fn delete(&mut self) {
+        if self.delete_selection() {
+            return;
+        }
         let pos = self.pos;
         if pos > 0 {
             let row = self.current();
@@ -270,6 +399,7 @@ impl Editor {
 
     /// Returns false at the end of the input.
     pub fn right(&mut self) -> bool {
+        self.anchor = None;
         let pos = self.pos;
         let row = self.current();
         if pos < row.0.len() {
@@ -294,6 +424,7 @@ impl Editor {
 
     /// Returns false at the start of the input.
     pub fn left(&mut self) -> bool {
+        self.anchor = None;
         let pos = self.pos;
         let row = self.current();
         if pos > 0 {
@@ -332,6 +463,7 @@ impl Editor {
 
     /// Moves to row `to` of the innermost fraction or root whose row `from` holds the cursor.
     fn switch_slot(&mut self, from: usize, to: usize) -> bool {
+        self.anchor = None;
         let mut target = None;
         let mut row = &self.row;
         for (depth, &(index, slot)) in self.path.iter().enumerate() {
@@ -370,6 +502,10 @@ impl Editor {
             Key::Fraction => self.fraction(),
             Key::Power => self.power(),
             Key::Square => self.square(),
+            Key::Mixed => self.mixed(),
+            Key::Ins => self.overtype = !self.overtype,
+            Key::SelectLeft => self.select_left(),
+            Key::SelectRight => self.select_right(),
             Key::Root if shift => self.root(),
             Key::Root => self.sqrt(),
             Key::Subscript => self.subscript(),

@@ -154,9 +154,14 @@ fn shift(key: Key) -> Option<Resolved> {
         Key::Del => K(Key::Undo),
         Key::Ac => K(Key::Redo),
         Key::Ok => K(Key::Ins),
-        // Mixed number, ←ENG, FACT, CATALOG, ≈, recurring decimals, select, copy and paste.
-        Key::Fraction | Key::Eng | Key::SwapForm | Key::Optn | Key::Exe => Nothing,
-        Key::Left | Key::Right | Key::Up | Key::Down => Nothing,
+        Key::Fraction => K(Key::Mixed),
+        Key::Left => K(Key::SelectLeft),
+        Key::Right => K(Key::SelectRight),
+        Key::Up => K(Key::Copy),
+        Key::Down => K(Key::Paste),
+        Key::Exe => K(Key::Approx),
+        // ←ENG, FACT, CATALOG and recurring decimals wait for the engine and the catalogue.
+        Key::Eng | Key::SwapForm | Key::Optn => Nothing,
         _ => return None,
     })
 }

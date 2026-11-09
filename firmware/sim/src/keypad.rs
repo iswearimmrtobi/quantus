@@ -239,7 +239,7 @@ fn key_of(label: &str) -> Option<Key> {
 /// carries it out yet; one that it does not is drawn dim.
 fn shift_legend(label: &str) -> Option<(&'static str, bool)> {
     Some(match label {
-        "a/b" => ("a b/c", false),
+        "a/b" => ("a b/c", true),
         "√" => ("n√", true),
         "x²" => ("x³", true),
         "xʸ" => ("logₐb", true),
@@ -268,11 +268,14 @@ fn shift_legend(label: &str) -> Option<(&'static str, bool)> {
         "," => ("Ran#", true),
         "×10ˣ" => ("0.ẋ", false),
         "Ans" => ("PreAns", true),
-        "DEL" => ("UNDO", false),
-        "AC" => ("REDO", false),
-        "▲" | "▼" | "◄" | "►" => ("sel", false),
-        "OK" => ("INS", false),
-        "EXE" => ("≈", false),
+        "DEL" => ("UNDO", true),
+        "AC" => ("REDO", true),
+        "◄" => ("sel<", true),
+        "►" => ("sel>", true),
+        "▲" => ("copy", true),
+        "▼" => ("paste", true),
+        "OK" => ("INS", true),
+        "EXE" => ("≈", true),
         "OPTN" => ("CATALOG", false),
         "MODE" => ("SETUP", true),
         _ => return None,
@@ -588,10 +591,10 @@ fn draw_key<D: DrawTarget<Color = Rgb565>>(target: &mut D, key: &KeyDef, lit: bo
         let _ = Triangle::new(points[0], points[1], points[2]).into_styled(PrimitiveStyle::with_fill(text)).draw(target);
     };
     match key.label {
-        "▲" => arrow([centre + Point::new(0, -5), centre + Point::new(-6, 4), centre + Point::new(6, 4)]),
-        "▼" => arrow([centre + Point::new(0, 5), centre + Point::new(-6, -4), centre + Point::new(6, -4)]),
-        "◄" => arrow([centre + Point::new(-6, 0), centre + Point::new(4, -6), centre + Point::new(4, 6)]),
-        "►" => arrow([centre + Point::new(6, 0), centre + Point::new(-4, -6), centre + Point::new(-4, 6)]),
+        "▲" if legend(key.label, layer).is_none() => arrow([centre + Point::new(0, -5), centre + Point::new(-6, 4), centre + Point::new(6, 4)]),
+        "▼" if legend(key.label, layer).is_none() => arrow([centre + Point::new(0, 5), centre + Point::new(-6, -4), centre + Point::new(6, -4)]),
+        "◄" if legend(key.label, layer).is_none() => arrow([centre + Point::new(-6, 0), centre + Point::new(4, -6), centre + Point::new(4, 6)]),
+        "►" if legend(key.label, layer).is_none() => arrow([centre + Point::new(6, 0), centre + Point::new(-4, -6), centre + Point::new(-4, 6)]),
         label => {
             let (label, text) = match legend(label, layer) {
                 Some((legend, works)) => {

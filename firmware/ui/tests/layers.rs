@@ -69,3 +69,54 @@ fn alpha_has_its_digits() {
     assert_eq!(typed(&[Key::Alpha, Key::Digit(4), Key::Alpha, Key::Digit(1)]), "DM");
     assert_eq!(typed(&[Key::Alpha, Key::Digit(2)]), "2", "no legend: the base key");
 }
+
+#[test]
+fn shift_ok_overtypes() {
+    assert_eq!(typed(&[Key::Digit(1), Key::Digit(2), Key::Left, Key::Left, Key::Shift, Key::Ok, Key::Digit(9), Key::Digit(8)]), "98");
+    assert_eq!(typed(&[Key::Digit(1), Key::Digit(2), Key::Left, Key::Digit(9)]), "192");
+}
+
+#[test]
+fn a_mixed_number_takes_the_number_before_it() {
+    assert_eq!(typed(&[Key::Digit(2), Key::Shift, Key::Fraction, Key::Digit(1), Key::Down, Key::Digit(3)]), r"(2+\frac{1}{3})");
+}
+
+#[test]
+fn undo_and_redo_step_through_the_changes() {
+    let keys = [Key::Digit(1), Key::Digit(2), Key::Left, Key::Plus];
+    assert_eq!(typed(&keys), "1+2");
+    let mut with = keys.to_vec();
+    with.extend([Key::Shift, Key::Del]);
+    assert_eq!(typed(&with), "12", "undo");
+    with.extend([Key::Shift, Key::Del]);
+    assert_eq!(typed(&with), "1");
+    with.extend([Key::Shift, Key::Ac]);
+    assert_eq!(typed(&with), "12", "redo");
+    with.extend([Key::Shift, Key::Ac, Key::Shift, Key::Ac]);
+    assert_eq!(typed(&with), "1+2", "no more to redo");
+}
+
+#[test]
+fn select_copy_and_paste() {
+    // 123, select the last two, copy, go to the end, paste: 12323.
+    let keys = [Key::Digit(1), Key::Digit(2), Key::Digit(3), Key::Shift, Key::Left, Key::Shift, Key::Left, Key::Shift, Key::Up];
+    let mut with = keys.to_vec();
+    with.extend([Key::Right, Key::Right, Key::Shift, Key::Down]);
+    assert_eq!(typed(&with), "12323");
+    // Typing over a selection replaces it.
+    let mut over = keys[..7].to_vec();
+    over.push(Key::Digit(9));
+    assert_eq!(typed(&over), "19");
+    // DEL deletes it.
+    let mut del = keys[..7].to_vec();
+    del.push(Key::Del);
+    assert_eq!(typed(&del), "1");
+}
+
+#[test]
+fn shift_exe_is_a_decimal() {
+    let mut app = App::new(Stub);
+    app.mode = Mode::Physics;
+    press(&mut app, &[Key::Digit(1), Key::Shift, Key::Exe]);
+    assert!(app.shown_entry().is_some_and(|entry| entry.decimal));
+}

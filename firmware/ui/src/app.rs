@@ -281,6 +281,8 @@ pub struct App<B> {
     pub screen: Screen,
     /// The waiting SHIFT, ALPHA and UNIT, and the lock below them.
     pub modifier: Modifier,
+    /// What COPY took from the input, for PASTE.
+    clipboard: Row,
     pub editor: Editor,
     /// Oldest first.
     pub history: Vec<Entry>,
@@ -417,6 +419,7 @@ impl<B: Backend> App<B> {
             used: settings,
             screen: Screen::Calc,
             modifier: Modifier::default(),
+            clipboard: Row::default(),
             editor: Editor::new(),
             history: Vec::new(),
             shown: None,
@@ -629,6 +632,15 @@ impl<B: Backend> App<B> {
             Resolved::Insert(_) => return,
         };
         let shift = layer == Layer::Shift;
+        // UNDO and REDO step through the input as it was, also back out of a shown result.
+        if calc && matches!(key, Key::Undo | Key::Redo) {
+            if self.pending.is_none() && self.sheet_kind().is_none() && self.answer.is_none() {
+                self.shown = None;
+                if key == Key::Undo { self.editor.undo() } else { self.editor.redo() }
+            }
+            return;
+        }
+        let before = self.editor.snapshot();
         match std::mem::replace(&mut self.screen, Screen::Calc) {
             Screen::Modes { selected } => self.modes_key(selected, key),
             Screen::Menu(mut menu) => {
@@ -643,6 +655,7 @@ impl<B: Backend> App<B> {
             },
         }
         self.fit_sheets();
+        self.editor.commit(before);
     }
 
     /// The touch calibration screen, back to this screen afterwards.
@@ -1251,6 +1264,13 @@ impl<B: Backend> App<B> {
             return;
         }
         match key {
+            Key::Copy => {
+                if let Some(row) = editor.copied() {
+                    self.clipboard = row;
+                }
+            }
+            Key::Paste => editor.paste(&self.clipboard),
+            Key::Approx => self.evaluate_as(true),
             Key::Ans => {
                 if let Some(Entry { result: Ok(result), .. }) = self.history.last() {
                     editor.paste(result);
@@ -1705,6 +1725,11 @@ impl<B: Backend> App<B> {
     }
 
     fn evaluate(&mut self) {
+        self.evaluate_as(self.settings.decimal);
+    }
+
+    /// Works the input out, exact or as a decimal whatever the setting is.
+    fn evaluate_as(&mut self, decimal: bool) {
         if self.editor.is_empty() {
             return;
         }
@@ -1713,9 +1738,9 @@ impl<B: Backend> App<B> {
             let request = Request::Analysis { f: self.editor.to_latex() };
             return self.solve(&request);
         }
-        let pending = Pending::New { input: self.editor.row.clone(), decimal: self.settings.decimal };
+        let pending = Pending::New { input: self.editor.row.clone(), decimal };
         if self.mode.engine() {
-            let settings = self.settings;
+            let settings = Settings { decimal, ..self.settings };
             self.start(pending, &settings, &self.editor.to_latex());
         } else {
             self.pending = Some(pending);

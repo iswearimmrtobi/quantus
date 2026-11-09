@@ -60,6 +60,16 @@ pub enum Key {
     Redo,
     /// SHIFT on OK: insert instead of overtype.
     Ins,
+    /// SHIFT on a/b: a mixed number.
+    Mixed,
+    /// SHIFT on ◄ and ►: select the node left or right of the cursor.
+    SelectLeft,
+    SelectRight,
+    /// SHIFT on ▲ and ▼: copy the selection, paste it.
+    Copy,
+    Paste,
+    /// SHIFT on EXE: the result straight as a decimal.
+    Approx,
     /// The keys of the big unit that stand for a template of their own: x³, 10ˣ, Σ and ∫.
     Cube,
     TenPow,

@@ -31,6 +31,13 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         origin.x -= overflow;
     }
     let caret = caret.translate(Point::new(origin.x - MARGIN, 0));
+    // The selection, from its first node to its last, under the input.
+    if let Some(range) = app.editor.selection() {
+        let at = |pos| layout::caret(&input, origin, app.editor.path(), pos);
+        let (from, to) = (at(range.start), at(range.end));
+        let selected = Rectangle::new(from.top_left, Size::new((to.top_left.x - from.top_left.x).max(0) as u32 + 2, from.size.height));
+        shapes.push(Shape::Fill(selected, colors::CYAN_DIM));
+    }
     if !app.editor.is_empty() {
         shapes.push(Shape::Math(origin, input, colors::TEXT));
     }
