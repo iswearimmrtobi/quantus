@@ -736,13 +736,67 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | ∠ | SHIFT + a key in Komplex | missing |
 | UNDO/REDO, INS | SHIFT + DEL, SHIFT + another key | missing |
 | Select, copy, paste | SHIFT + ←/→, then a copy and a paste key | missing |
-| ∫, d/dx, Σ | own keys on the big unit; the Algebra soft keys or OPTN → Analysis on the small | missing |
+| ∫, d/dx, Σ, Π | SHIFT + `x y e i` (own keys for ∫ and Σ on the big unit); OPTN → Analysis as well | missing |
 | UNIT | the third modifier, in the round control row | missing (`Key::Unit`): see [unit-keys.md](../firmware/docs/unit-keys.md) |
 | SYMB | a key; Greek letters and math symbols on the soft keys | missing (`Key::Symb`) |
 | Soft keys | two rows under the screen, 2 × 5 or 2 × 6; labels at the bottom of the screen | missing (`Key::Soft(u8)`) |
 | EXE | bottom right of the number block, where the Casio has `=` | exists (`Exe`); `=` for equations is `Equals` on the function block |
 | x⁻¹, x³, ⁿ√, 10ˣ, eˣ | SHIFT layers | partly (`Root` with SHIFT is ⁿ√) |
-| ALPHA letters | ALPHA + key | `Alpha` exists, legend open |
+| ALPHA letters | ALPHA + a digit: `7 8 9 → A B C`, `4 5 6 → D E F`, `1 → M` (the full layer table is in 7.4.1) | `Alpha` exists, legend moves from the function block to the digits |
+| Modifier rules | all latch for one key; SHIFT then ALPHA or UNIT locks; SHIFT is one-shot over a lock; another modifier replaces the pending one | missing (one `Modifier` state in `app.rs`, now `shift` and `alpha`) |
+
+#### 7.4.1 Layer table (small keypad)
+
+Rule: what the Casio puts on a key or under SHIFT/ALPHA gets a legend here; what the Casio reaches
+through OPTN, CATALOG or a menu stays there (hyperbolic functions, angle marks, prefixes, matrix
+and vector commands). The key positions follow the fx-991 family as remembered, not checked: the
+manual prints keys as icons. Everything not named is unchanged. Not taken over: STO beyond the
+existing SHIFT + VARS, M+, M−.
+
+| Key | SHIFT | ALPHA | UNIT |
+|---|---|---|---|
+| a/b | mixed number | | unit |
+| √ | ⁿ√ | | unit |
+| x² | x³ | | passes through |
+| xʸ | log_a b | | passes through |
+| log, ln | 10ˣ, eˣ | | unit |
+| (−) | ∠ | | unit |
+| x⁻¹ | x! | | unit |
+| sin, cos, tan | sin⁻¹, cos⁻¹, tan⁻¹ | | unit |
+| π | °′″ (° ′ ″ in turn) | | unit |
+| `(` | \|x\| | % | passes through |
+| `)` | | | passes through |
+| `=` | | | passes through |
+| `;` | `:` (several statements in one line) | | |
+| CONST | | | unit |
+| ENG | ←ENG | | unit |
+| x, y, e, i | ∫, d/dx, Σ, Π | | unit |
+| CONV | | | unit |
+| S⇔D | FACT (prime factors) | | unit |
+| VARS, CALC | STO, SOLVE | | |
+| `×`, `÷` | nPr, nCr | | |
+| `+`, `−` | Pol(, Rec( | | |
+| `,` | Ran# | RanInt# | |
+| ×10ˣ | recurring decimal | | |
+| Ans | PreAns | | |
+| `7 8 9 4 5 6` | | A B C D E F | G M k m µ n |
+| `1 2 3 0` | | M, –, –, – | p c d T |
+| DEL, AC | UNDO, REDO | | |
+| ◄ ► ▲ ▼ | select left/right, copy, paste | | |
+| OK | INS | | |
+| EXE | ≈ (straight to a decimal) | | |
+| OPTN | CATALOG | | |
+| MODE | SETUP | | |
+
+- **CATALOG** is a flat, alphabetical list of every function and template the editor can insert,
+  built from the OPTN tree, so GCD, LCM, Int, Intg, ÷R, Rnd, RndFix, mod, floor and ceiling need no
+  key of their own.
+- **Soft keys carry each mode's OPTN commands**, as the Casio has them under OPTN: Basis-N shows
+  DEC HEX BIN OCT and the logic operators (10 labels, exactly 2 × 5), Komplex Arg, Konjugierte,
+  Re, Im, ▶r∠θ, ▶a+bi, Prüfen = ≠ > < ≥ ≤, Matrizen and Vektoren their commands. OPTN still
+  lists them all.
+- **RESET** is an entry of SETUP, **QR code** an entry of OPTN → Werkzeuge: rare, and no key is left.
+- In Basis-N, ALPHA A–F are the hex digits.
 
 ### 7.5 Connections
 

@@ -125,9 +125,13 @@ Top to bottom:
 
 These sizes are a first guess, to be tried on real keycaps.
 
-Legends: SHIFT yellow, ALPHA red, UNIT lavender, at most three per key. ALPHA carries the
-Casio's variables (A–F, M, x, y), not the alphabet: names are rarely typed, and touch is never
-the way in. SYMB opens Greek letters and math symbols on the soft keys. Typing units fast and the
+Legends: SHIFT yellow, ALPHA red, UNIT lavender, at most three per key. One theme per modifier:
+SHIFT the second function (inverse, rare command) on the function block and a few control keys,
+UNIT the units on the function block and the prefixes on the digits, ALPHA the variables A–F and M
+on the digits (`7 8 9 → A B C`, `4 5 6 → D E F`, `1 → M`), so no key carries four legends. ALPHA
+does not carry the alphabet: names are rarely typed, and touch is never the way in. A few keys
+also have an ALPHA legend of the Casio's: `(` types %, `,` types RanInt#. Which legend sits
+under which modifier is the table in [handheld-menus.md](../../design/handheld-menus.md) §7.4.1. SYMB opens Greek letters and math symbols on the soft keys. Typing units fast and the
 soft keys' context are in [unit-keys.md](unit-keys.md).
 
 ## 5. Firmware requirements that affect the hardware

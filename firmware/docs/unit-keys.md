@@ -22,24 +22,29 @@ keys), and units and symbols matter more than text. Physik and Algebra are equal
 A third modifier next to SHIFT (yellow) and ALPHA (red), in the round control row. Give it its
 own colour, e.g. the lavender `#9186e8`. Then:
 
-- **Function block (4×6 = 24 keys)**: print the 24 most-used units on it. A proposal, grouped so
-  related units sit together:
-  `m  s  g  A  K  mol` · `N  J  W  Pa  Hz  C` · `V  Ω  F  T  H  eV` ·
-  `l  h  min  °C  bar  %`
-  The exact choice should follow what students type most (Mechanik, E-Lehre, Thermo).
+- **Function block (18 keys of the three lower rows)**: print the 18 most-used units on it.
+  `x²`, `xʸ`, `(`, `)` and `=` stay out, because they pass through (below). A proposal, grouped
+  so related units sit together:
+  `m  s  g  A  K  mol` · `N  J  W  Pa  Hz  C` · `V  Ω  F  T  H  eV`
+  `l`, `h`, `min`, `°C`, `bar` and `%` come from the soft keys. The exact choice should follow
+  what students type most (Mechanik, E-Lehre, Thermo), and the assignment of units to positions
+  is still to be set on the keypad sketch.
 - **Digit block**: put the prefixes on the digits, in order:
   `7 8 9 → G M k`, `4 5 6 → m µ n`, `1 2 3 → p c d`, `0 → T`.
   `µ` gets a key of its own, which avoids the `u` = dalton clash.
 - **Rule: a prefix keeps the layer on.** UNIT then a prefix stays in UNIT for the next key, so
-  `kN` is UNIT 7 N, which is 3 presses. A plain unit like `N` is 2 presses.
+  `kN` is UNIT 9 N, which is 3 presses. A plain unit like `N` is 2 presses.
 - **Operators pass through.** ÷, ×, x² and ^ type as usual and keep the layer latched, so
   `m/s²` is UNIT m ÷ s x² (5 presses for a compound unit). Any digit-free, non-unit key or EXE
-  ends the latch.
-- **SHIFT+UNIT locks it** (like ALPHA-lock) for long unit strings.
+  ends the latch. After `xʸ` a digit is an exponent, not a prefix, and ends the latch after it.
+- **SHIFT+UNIT locks it** (like ALPHA-lock) for long unit strings. SHIFT is one-shot on top of
+  a lock and returns to it, so in a UNIT lock SHIFT x² types x³ and stays in UNIT.
+- **Replace**: pressing another modifier replaces the pending one; the same one cancels it.
 - The editor shows the active layer in the top bar ("U" next to S/A), as it does for SHIFT/ALPHA.
 - **At most three legends per key.** UNIT legends go on the function block and the digits;
-  ALPHA carries only the Casio's variables (A–F, M, x, y). The UNIT legend can sit on the front
-  edge of the cap. The HP 50g has four legends per key, so it is possible, but not at 77 mm pitch.
+  ALPHA carries only the variables A–F and M, and sits on the digits (hardware.md §4), not on
+  the function block, so the function block has base, SHIFT and UNIT. The UNIT legend can sit on
+  the front edge of the cap. The HP 50g has four legends per key, so it is possible, but not at 77 mm pitch.
 
 Why not just use ALPHA letters? The case collisions (m/M, k/K, s/S, p/P, t/T) and the missing
 symbols (Ω, µ, °C, eV) make plain letters ambiguous and slow. A unit layer prints the real
