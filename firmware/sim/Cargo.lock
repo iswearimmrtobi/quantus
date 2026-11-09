@@ -550,7 +550,7 @@ checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "quantus-core"
-version = "0.1.0"
+version = "0.3.0-dev"
 dependencies = [
  "astro-float",
  "dashu",
@@ -561,7 +561,7 @@ dependencies = [
 
 [[package]]
 name = "quantus-engine"
-version = "0.1.0"
+version = "0.3.0-dev"
 dependencies = [
  "quantus-core",
  "quantus-texts",
@@ -570,7 +570,7 @@ dependencies = [
 
 [[package]]
 name = "quantus-mirror"
-version = "0.1.0"
+version = "0.3.0-dev"
 
 [[package]]
 name = "quantus-sim"
@@ -582,11 +582,12 @@ dependencies = [
  "quantus-mirror",
  "quantus-ui",
  "serialport",
+ "u8g2-fonts",
 ]
 
 [[package]]
 name = "quantus-texts"
-version = "0.1.0"
+version = "0.3.0-dev"
 dependencies = [
  "quantus-texts-macros",
  "serde",
@@ -594,14 +595,14 @@ dependencies = [
 
 [[package]]
 name = "quantus-texts-macros"
-version = "0.1.0"
+version = "0.3.0-dev"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "quantus-ui"
-version = "0.1.0"
+version = "0.3.0-dev"
 dependencies = [
  "embedded-graphics",
  "quantus-texts",

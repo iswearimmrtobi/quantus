@@ -18,6 +18,7 @@
 //!   the settings `settings.txt` in it, the saved WLAN networks `wlan.txt`. WLAN is played: three
 //!   made-up networks, any password taken.
 
+mod keypad;
 mod mirror;
 
 use std::path::{Path, PathBuf};
@@ -28,6 +29,8 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics_simulator::sdl2::{Keycode, Mod, MouseButton};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window};
+use embedded_graphics::primitives::Rectangle;
+use keypad::Keypad;
 use mirror::{Mirror, Tee};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
@@ -41,8 +44,20 @@ use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
 use quantus_ui::touch::Touch;
 
 fn main() {
-    let mut display = SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT));
     let args: Vec<String> = std::env::args().collect();
+    // The keypad sits right of the screen in the window; in a screenshot only if asked for.
+    let png_mode = args.iter().any(|arg| arg == "--png");
+    let unit = args.iter().find_map(|arg| match arg.as_str() {
+        "--keypad" | "--keypad=big" => Some(keypad::Unit::Big),
+        "--keypad=small" => Some(keypad::Unit::Small),
+        _ => None,
+    });
+    let unit = if args.iter().any(|arg| arg == "--no-keypad") { None } else if png_mode { unit } else { unit.or(Some(keypad::Unit::Big)) };
+    let screen_size = Size::new(WIDTH, HEIGHT);
+    let mut keypad = unit.map(|unit| Keypad::new(unit, Point::new(WIDTH as i32, 0)));
+    let mut display = SimulatorDisplay::<Rgb565>::new(keypad.as_ref().map_or(screen_size, |keypad| keypad.window(screen_size)));
+    display.clear(Rgb565::new(3, 6, 4)).unwrap();
+    let screen_area = Rectangle::new(Point::zero(), screen_size);
     let sd = args.iter().position(|arg| arg == "--sd").and_then(|i| args.get(i + 1)).map_or("sd", String::as_str);
     let sessions = (!args.iter().any(|arg| arg == "--png")).then(|| Path::new(sd).join("sessions"));
     let keep = sessions.is_some();
@@ -75,7 +90,10 @@ fn main() {
         if let Some(latex) = option("--latex") {
             evaluate_latex(&mut app, latex);
         }
-        renderer.render(&Frame::new(&app), &mut display).unwrap();
+        renderer.render(&Frame::new(&app), &mut display.cropped(&screen_area)).unwrap();
+        if let Some(keypad) = &keypad {
+            keypad.draw(&mut display, app.shift, app.alpha);
+        }
         let settings = OutputSettingsBuilder::new().build();
         display.to_rgb_output_image(&settings).save_png(png).expect("write the png");
         return;
@@ -93,7 +111,9 @@ fn main() {
 
     print!("{KEYS}");
     let latex = terminal_lines();
-    let settings = OutputSettingsBuilder::new().scale(2).build();
+    // The window is twice the screen's size; with the keypad beside it, it would not fit a monitor.
+    let scale = option("--scale").and_then(|scale| scale.parse().ok()).unwrap_or(if keypad.is_some() { 1 } else { 2 });
+    let settings = OutputSettingsBuilder::new().scale(scale).build();
     let mut window = Window::new("Quantus", &settings);
     let start = Instant::now();
     let mut tour: std::collections::VecDeque<_> =
@@ -101,6 +121,8 @@ fn main() {
     let mut last_step = Instant::now();
     // Draw only when something changed: a key, the caret, the spinner or a new mirror.
     let mut changed = true;
+    // Where the mouse button went down: the screen is touched, a key of the keypad is held.
+    let mut on_screen = false;
     loop {
         if let Ok(line) = latex.try_recv() {
             evaluate_latex(&mut app, &line);
@@ -111,8 +133,12 @@ fn main() {
             changed = true;
         }
         if changed {
-            let mut target = Tee { display: &mut display, mirror: mirror.as_mut() };
+            let mut screen = display.cropped(&screen_area);
+            let mut target = Tee { display: &mut screen, mirror: mirror.as_mut() };
             renderer.render(&Frame::new(&app), &mut target).unwrap();
+            if let Some(keypad) = &keypad {
+                keypad.draw(&mut display, app.shift, app.alpha);
+            }
         }
         window.update(&display);
         changed = false;
@@ -129,17 +155,39 @@ fn main() {
                 }
                 SimulatorEvent::KeyDown { keycode, keymod, .. } => {
                     if let Some(key) = key(keycode, keymod) {
+                        if let Some(keypad) = &mut keypad {
+                            keypad.flash(key, Instant::now());
+                        }
                         app.key(key);
                         changed = true;
                     }
                 }
-                // The mouse is the finger.
-                SimulatorEvent::MouseButtonDown { mouse_btn: MouseButton::Left, point } => {
-                    changed |= app.touch(Touch::Press(point));
+                // The mouse is the finger on the screen, and presses the keys of the keypad.
+                SimulatorEvent::MouseButtonDown { mouse_btn: MouseButton::Left, point } => match &mut keypad {
+                    Some(keypad) if keypad.contains(point) => {
+                        on_screen = false;
+                        if let Some(key) = keypad.press(point, Instant::now(), app.alpha) {
+                            app.key(key);
+                        }
+                        changed = true;
+                    }
+                    _ => {
+                        on_screen = true;
+                        changed |= app.touch(Touch::Press(point));
+                    }
+                },
+                SimulatorEvent::MouseMove { point } if on_screen => changed |= app.touch(Touch::Drag(point)),
+                SimulatorEvent::MouseMove { point } => {
+                    if let Some(keypad) = &mut keypad {
+                        changed |= keypad.drag(point);
+                    }
                 }
-                SimulatorEvent::MouseMove { point } => changed |= app.touch(Touch::Drag(point)),
                 SimulatorEvent::MouseButtonUp { mouse_btn: MouseButton::Left, .. } => {
-                    changed |= app.touch(Touch::Release);
+                    if std::mem::take(&mut on_screen) {
+                        changed |= app.touch(Touch::Release);
+                    } else if let Some(keypad) = &mut keypad {
+                        changed |= keypad.release();
+                    }
                 }
                 _ => {}
             }
@@ -155,6 +203,13 @@ fn main() {
             if tour.is_empty() {
                 println!("tour: done");
             }
+        }
+        if let Some(keypad) = &mut keypad {
+            let (repeat, dim) = keypad.tick(Instant::now());
+            if let Some(key) = repeat {
+                app.key(key);
+            }
+            changed |= repeat.is_some() || dim;
         }
         changed |= app.tick(start.elapsed().as_millis() as u64);
         std::thread::sleep(Duration::from_millis(15));
@@ -421,6 +476,8 @@ Quantus simulator keys
   history              Up/Down outside a fraction
   charging / busy      F9 / F10 (what the board will report)
   touch                the mouse is the finger: click to tap, drag to scroll
+  keypad               click the keys beside the screen (--keypad=small for the small unit,
+                       --no-keypad to leave it out, --scale <n> for the window)
   Shifted characters follow a German layout (Shift+7 is /, Shift+0 is =).
 LaTeX: type it here in the terminal and press Enter; it becomes the input and is evaluated.
 ";

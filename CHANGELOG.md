@@ -5,6 +5,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- The handheld simulator shows the keypad beside the screen; its keys can be clicked.
+
 ## [0.2.0] - 2026-11-06
 
 ### Added

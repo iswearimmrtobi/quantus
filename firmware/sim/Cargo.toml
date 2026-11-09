@@ -16,6 +16,7 @@ quantus-engine = { path = "../engine" }
 quantus-mirror = { path = "../mirror" }
 quantus-ui = { path = "../ui" }
 serialport = "4.10.1"
+u8g2-fonts = "0.8.0"
 
 # The UI and the graphics crates: drawing a frame with a wallpaper and decoding a picture take
 # 20 to 60 ms unoptimised and about 1 ms optimised, as on the board (always built optimised).
