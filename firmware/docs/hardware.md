@@ -63,6 +63,15 @@ long battery life second. Later, and optional: hand calculations that take longe
 - **Keypad**: low-profile SMD tactile switches under printed keycaps, in an 8 × 10 matrix (80
   positions) read by three MCP23017 (16-bit I²C port expanders). The ON key is the same switch
   on the same PCB, but wired to the power latch, not the matrix (§7).
+  - **Switch**: one part for every key, C&K PTS810 (4.2 × 3.2 × 2.5 mm, J-lead SMD),
+    `PTS810 SJM 250 SMTR LFS` (250 gf) or `PTS810 SJS 160 SMTR LFS` (160 gf). Its 3.2 mm side runs
+    along the 5 mm height of the function and soft keys. Second source of about the same size:
+    Alps SKRP (SKRPACE010, SKRPABE010); check the footprint against both datasheets.
+  - **Keycaps**: each cap has a centred stem onto the plunger, and the case guides the caps (ribs
+    in the bezel or one silicone carrier sheet), so the wide number keys and the round keys do
+    not tilt when pressed at the edge.
+  - **Later option**: metal snap domes on PCB pads under an adhesive dome sheet: thinner and
+    quieter, but a custom sheet per layout.
   - **Bus**: the three chips sit on an I²C bus of their own, so a scan does not hold up touch,
     RTC and fuel gauge. Their address pins give three addresses, and one P4 GPIO drives the
     `RESET` of all three.
@@ -157,7 +166,8 @@ soft keys' context are in [unit-keys.md](unit-keys.md).
 - **Parts to confirm**: which LTC2955 variant has the active-high EN output, the LTC2955's
   window for `KILL` after power-on, and the MAX17048 and RV-3028 figures, against their
   datasheets.
-- **Enclosure and keycaps**: how they are made.
+- **Enclosure and keycaps**: how they are made. The switch force, 160 gf or 250 gf, to be
+  tried under a real keycap.
 - **Case length**: the sketch comes out at about 171 mm (small) and 182 mm (big), against the
   Casio fx-991's 162 mm, because of the taller display and the two soft-key rows. Shorter rows or
   a smaller pitch would cut it.
