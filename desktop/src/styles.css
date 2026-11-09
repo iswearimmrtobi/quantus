@@ -2789,6 +2789,11 @@ select option {
   .topbar-right > :not(.mode-switch) {
     display: none;
   }
+  /* The global scrollbar style would draw a thumb under the mode switch. */
+  .topbar-right::-webkit-scrollbar,
+  .topbar-right ::-webkit-scrollbar {
+    display: none;
+  }
   .mode-switch .segment {
     padding: 8px 12px;
   }
@@ -2898,8 +2903,13 @@ select option {
   .steps-toggle {
     min-height: 36px;
   }
-  .steps-toggle kbd {
+  /* Keyboard shortcuts mean nothing on a phone. */
+  .steps-toggle kbd,
+  .step-hint {
     display: none;
+  }
+  .step-row-all .copy-btn {
+    margin-left: auto;
   }
   .step-row {
     flex-wrap: wrap;
@@ -2914,16 +2924,17 @@ select option {
     padding: env(safe-area-inset-top) 0 0;
     align-items: stretch;
   }
+  /* The backdrop already leaves the status bar free, so the dialog is that much shorter. */
   .dialog {
     width: 100vw;
-    max-height: 100dvh;
+    max-height: calc(100dvh - env(safe-area-inset-top));
     overflow-y: auto;
     border: none;
   }
   .dialog.settings-dialog,
   .dialog.settings-dialog.writeup-dialog {
     width: 100vw;
-    height: 100dvh;
+    height: calc(100dvh - env(safe-area-inset-top));
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr) auto;
   }
