@@ -412,9 +412,12 @@ pub fn set_settings<R: Runtime>(
 ) -> Result<Settings, ApiError> {
     let before = engine.language();
     let saved = engine.with(|store| api::set_settings(store, settings))?;
+    #[cfg(desktop)]
     if saved.language != before {
         crate::shell::set_menu_language(&app, saved.language);
     }
+    #[cfg(mobile)]
+    let _ = (app, before);
     if let Some(path) = engine.settings_file.get() {
         save_settings(path, &saved).map_err(|error| ApiError {
             error: tr!(
