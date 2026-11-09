@@ -1,7 +1,7 @@
 //! The calculator's state and what each key does to it.
 
 use crate::backend::{
-    Backend, Catalogue, Graph, Opened, Reply, Request, SessionCommand, SessionInfo, VariableCommand, Window, WlanStatus,
+    Backend, Catalogue, Graph, Group, Opened, Reply, Request, SessionCommand, SessionInfo, VariableCommand, Window, WlanStatus,
 };
 use crate::editor::{Editor, Node, Row};
 use crate::key::Key;
@@ -1037,6 +1037,7 @@ impl<B: Backend> App<B> {
                 let latex = match catalogue {
                     Catalogue::Constants => item.latex.clone(),
                     Catalogue::Units => format!(r"\blacktriangleright {}", item.latex),
+                    Catalogue::Functions => item.latex.clone(),
                 };
                 return self.insert(&latex);
             }
@@ -1050,8 +1051,12 @@ impl<B: Backend> App<B> {
         let page = match catalogue {
             Catalogue::Constants => &tree::CONSTANTS,
             Catalogue::Units => &tree::CONVERSIONS,
+            Catalogue::Functions => tree::optn(self.mode),
         };
-        let label = page.title;
+        let label = match catalogue {
+            Catalogue::Functions => text::CATALOG,
+            _ => page.title,
+        };
         let mut menu = Menu::new(page);
         menu.edit = Some(match catalogue {
             Catalogue::Constants if self.mode != Mode::Physics => Edit::Message { label, message: text::PHYSICS_ONLY },
@@ -1063,6 +1068,11 @@ impl<B: Backend> App<B> {
     /// The list of a catalogue the backend has, or a message if it has none; `close` for one
     /// opened by its key, which closes the menu when it is left.
     fn catalogue(&mut self, label: Text, catalogue: Catalogue, close: bool) -> Edit {
+        if catalogue == Catalogue::Functions {
+            let items = tree::functions(self.mode, self.settings.language);
+            let groups = vec![Group { name: label.get(self.settings.language).to_string(), items }];
+            return Edit::Catalogue { label, catalogue, groups, group: Some(0), selected: 0, close };
+        }
         let groups = self.backend.catalogue(catalogue, self.settings.language);
         match groups.is_empty() {
             true => Edit::Message { label, message: text::NOT_AVAILABLE },
@@ -1237,6 +1247,7 @@ impl<B: Backend> App<B> {
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             Key::Const => return self.open_catalogue(Catalogue::Constants),
             Key::Conv => return self.open_catalogue(Catalogue::Units),
+            Key::Catalog => return self.open_catalogue(Catalogue::Functions),
             Key::Calc => return self.formula(shift),
             Key::Vars if shift => return self.sto(),
             Key::Vars => return self.vars(),

@@ -276,7 +276,7 @@ fn shift_legend(label: &str) -> Option<(&'static str, bool)> {
         "▼" => ("paste", true),
         "OK" => ("INS", true),
         "EXE" => ("≈", true),
-        "OPTN" => ("CATALOG", false),
+        "OPTN" => ("CATALOG", true),
         "MODE" => ("SETUP", true),
         _ => return None,
     })

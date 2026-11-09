@@ -160,8 +160,9 @@ fn shift(key: Key) -> Option<Resolved> {
         Key::Up => K(Key::Copy),
         Key::Down => K(Key::Paste),
         Key::Exe => K(Key::Approx),
-        // ←ENG, FACT, CATALOG and recurring decimals wait for the engine and the catalogue.
-        Key::Eng | Key::SwapForm | Key::Optn => Nothing,
+        Key::Optn => K(Key::Catalog),
+        // ←ENG, FACT and recurring decimals wait for the engine.
+        Key::Eng | Key::SwapForm => Nothing,
         _ => return None,
     })
 }

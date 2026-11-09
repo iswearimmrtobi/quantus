@@ -229,6 +229,8 @@ impl Backend for Engine {
                     items: category.units.into_iter().map(|unit| Item { name: unit.name, latex: unit.latex }).collect(),
                 })
                 .collect(),
+            // The app lists these itself, from the OPTN tree.
+            Catalogue::Functions => Vec::new(),
         }
     }
 

@@ -120,3 +120,20 @@ fn shift_exe_is_a_decimal() {
     press(&mut app, &[Key::Digit(1), Key::Shift, Key::Exe]);
     assert!(app.shown_entry().is_some_and(|entry| entry.decimal));
 }
+
+#[test]
+fn catalog_lists_the_optn_functions_by_name_and_inserts() {
+    use quantus_ui::app::Screen;
+    let mut app = App::new(Stub);
+    app.mode = Mode::Algebra;
+    press(&mut app, &[Key::Shift, Key::Optn]);
+    assert!(matches!(app.screen, Screen::Menu(_)));
+    // The list is alphabetical.
+    let items = quantus_ui::tree::functions(Mode::Algebra, quantus_ui::text::Lang::En);
+    assert!(items.windows(2).all(|pair| pair[0].name.to_lowercase() <= pair[1].name.to_lowercase()));
+    assert!(items.iter().any(|item| item.name == "gcd" || item.name.to_lowercase().contains("gcd")));
+    // OK inserts the first one and leaves the menu.
+    press(&mut app, &[Key::Ok]);
+    assert!(matches!(app.screen, Screen::Calc));
+    assert!(!app.editor.is_empty());
+}

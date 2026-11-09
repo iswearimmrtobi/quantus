@@ -3,7 +3,7 @@
 //! wait for the engine or the firmware is noted there.
 
 use crate::app::Mode;
-use crate::backend::Catalogue;
+use crate::backend::{Catalogue, Item};
 use crate::menu::{opt, Action, Entry, Info, Kind, Opt, Page, TimeField, ON_OFF};
 use crate::settings::Setting as S;
 use crate::text::{same, tx, Lang, Text};
@@ -309,6 +309,24 @@ const fn ins(label: Text, latex: &'static str) -> Entry {
 
 const fn group(label: Text, page: &'static Page) -> Entry {
     entry(label, Kind::Page(page))
+}
+
+/// Every entry of a mode's OPTN menu that inserts something, by name: the CATALOG.
+pub fn functions(mode: Mode, lang: Lang) -> Vec<Item> {
+    fn walk(page: &Page, lang: Lang, items: &mut Vec<Item>) {
+        for entry in page.entries {
+            match &entry.kind {
+                Kind::Page(page) => walk(page, lang, items),
+                Kind::Insert(latex) => items.push(Item { name: entry.label.get(lang).to_string(), latex: latex.to_string() }),
+                _ => {}
+            }
+        }
+    }
+    let mut items = Vec::new();
+    walk(optn(mode), lang, &mut items);
+    items.sort_by_cached_key(|item| item.name.to_lowercase());
+    items.dedup_by(|a, b| a.name == b.name);
+    items
 }
 
 /// The OPTN page of a mode.

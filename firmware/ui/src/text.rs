@@ -21,6 +21,7 @@ pub const fn same(text: &'static str) -> Text {
 }
 
 pub const SETUP: Text = tx!("hui.setup");
+pub const CATALOG: Text = tx!("hui.tree.catalog");
 pub const OPTIONS: Text = tx!("hui.options");
 pub const ON: Text = tx!("hui.on");
 pub const OFF: Text = tx!("hui.off");

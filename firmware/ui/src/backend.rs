@@ -160,6 +160,9 @@ pub struct Stored {
 pub enum Catalogue {
     Constants,
     Units,
+    /// SHIFT+OPTN: every function and template of the mode's OPTN menu, alphabetically; built
+    /// by the app ([`crate::tree::functions`]), not by the backend.
+    Functions,
 }
 
 /// A category of a [`Catalogue`]: Universelle Konstanten, Länge.
@@ -637,6 +640,7 @@ impl Backend for Stub {
                 name: "Länge".into(),
                 items: vec![item("Meter", r"\mathrm{m}"), item("Zoll", r"\mathrm{in}")],
             }],
+            Catalogue::Functions => Vec::new(),
         }
     }
 

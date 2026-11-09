@@ -864,6 +864,8 @@ impl Menu {
                         self.edit = edit(groups, group, chosen);
                         return Outcome::Item;
                     }
+                    // CATALOG is one list: leaving it leaves the menu.
+                    (Pick::Back, Some(_)) if close && catalogue == Catalogue::Functions => return Outcome::Close,
                     (Pick::Back, Some(index)) => self.edit = edit(groups, None, index),
                     (Pick::Back, None) if close => return Outcome::Close,
                     (Pick::Back, None) => {}
