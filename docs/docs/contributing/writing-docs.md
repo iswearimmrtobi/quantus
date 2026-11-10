@@ -66,7 +66,8 @@ the guide of its mode, a removed limit out of [Known limits](../reference/limits
 ## Last synced
 
 The user docs describe `dev` up to commit `c136814` (2026-11-03). The handheld firmware
-(`firmware/`) is not documented here. To see what changed since, and what may need a page:
+(`firmware/`) is not documented here, except for [Themes](../basics/themes.md), which it shares
+with the desktop app. To see what changed since, and what may need a page:
 
 ```sh
 git log --oneline c136814..dev -- . ':!firmware'

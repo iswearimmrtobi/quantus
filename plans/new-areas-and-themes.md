@@ -42,3 +42,9 @@ variables; themes are then small files. KaTeX and MathLive output must follow th
 2. Light and dark, default "follow system".
 3. Setting in the settings dialog (`en.ts` and `de.ts`), saved in `settings.json`.
 4. More themes only on demand; a theme is a set of variable values.
+
+**Status.** Done, for the desktop and the handheld: the colours are CSS variables named as the keys
+of a theme file (`themes/*.toml`, read by `crates/quantus-themes`); built in are `dark` and
+`light`, the setting `theme` defaults to `system`, and users add `.toml` files to `themes/` in the
+config directory or on the SD card (docs: *Using Quantus → Themes*, *Reference → Theme files*).
+Open: the engine's `\textcolor{orange|dodgerblue}` in step LaTeX does not follow the theme.

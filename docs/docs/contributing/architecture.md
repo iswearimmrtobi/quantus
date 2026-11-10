@@ -34,7 +34,8 @@ crates/quantus-core/src/api.rs          JSON request and response types
 | Crate | Path | What it is |
 |---|---|---|
 | `quantus-core` | `crates/quantus-core/` | The engine, a library with no UI and no I/O |
-| `quantus-desktop` | `desktop/src-tauri/` | The Tauri shell: commands, menu, single instance, settings file, bundling |
+| `quantus-themes` | `crates/quantus-themes/` | The colour themes: the built-in `themes/*.toml` and the reader for the users' files, shared by the desktop and the handheld |
+| `quantus-desktop` | `desktop/src-tauri/` | The Tauri shell: commands, menu, single instance, settings file, themes folder, bundling |
 
 The renderer in `desktop/src/` is a React app built with Vite. It is not a crate; the Tauri
 build bundles it.

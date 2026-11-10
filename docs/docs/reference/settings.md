@@ -17,6 +17,7 @@ resets all of them. The *Key* column is the name in `settings.json` and in the
 | Setting | Key | Values | Default |
 |---|---|---|---|
 | **Language** | `language` | `en`, `de` | `en` |
+| **Theme** | `theme` | `system`, or a theme's id: `dark`, `light`, or one of [your own](themes.md) | `system` |
 | **Precision** | `precision` | 1 to 10,000 significant digits | 50 |
 | **Angle unit** | `angleUnit` | `degree`, `radian` | `radian` |
 
@@ -26,6 +27,8 @@ $\sin 30 = 0{,}5$ and $\arctan 1 = 45$. A value that states its unit keeps it in
 `30^\circ` is always degrees, `\pi\,\mathrm{rad}` always radians. Derivatives follow the setting;
 the curve sketch (Analysis mode) always works in radians. In [Geometry](../guides/geometry/index.md)
 mode the angles between vectors, lines and planes are given in the angle unit.
+**Theme** sets the colours, see [Themes](../basics/themes.md); `system` follows the operating
+system's light or dark setting. **Restore defaults** keeps it, like the language.
 **Language** changes the interface, the menu and the texts the engine writes itself (the
 analysis and geometry working). The parser and algebra messages are English only.
 

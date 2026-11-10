@@ -23,12 +23,18 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   by the rules of curve sketching. Also `\frac{d^2}{dx^2}` and `(…)'`. On the handheld the ∫
   template works with its limits left empty, and d/dx can be typed after its function: `x²` then
   d/dx shows $x^{2}\frac{d}{dx}$ and gives $2x$.
+- Themes: **Settings → General → Theme** picks Dark, Light or *Like the system*, which follows the
+  system's light or dark setting; on the handheld, SETUP → Gerät → Farbschema, with the screen
+  shown in the theme under the cursor. Your own themes are small `.toml` files in the `themes`
+  folder of the config directory or on the SD card, the same file for both. The docs' *Theme
+  files* page lists every colour.
 - Search everywhere: the quick search (Ctrl+F) also finds functions and operations by name in
   either language or by alias (`wurz` and `sqrt` the square root, `ggt` and `gcd` the greatest
   common divisor, `Ableitung` d/dx), put in with placeholders in their slots, and the metric
   prefixes (`kilo`). On the handheld, letters typed in CATALOG (SHIFT+OPTN) search the same and
   SETUP's and OPTN's entries too: a function, unit or constant goes in, a setting opens where it
   lives (`zeitzone`). Typing needs a USB keyboard until the keypad's ALPHA legend is fixed.
+
 
 ### Fixed
 
