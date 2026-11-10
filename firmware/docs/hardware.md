@@ -76,7 +76,7 @@ long battery life second. Later, and optional: hand calculations that take longe
     quieter, but a custom sheet per layout.
   - **Bus**: the three chips sit on an I²C bus of their own, so a scan does not hold up touch,
     RTC and fuel gauge. The main board connects to the top board (8-pin JST SH, also carrying the
-    ON key), and the top board passes the bus on to the bottom board (6-pin JST SH). Addresses: top
+    ON key), and the top board passes the bus on to the bottom board (the same 8-pin JST SH, pin 8 open). Addresses: top
     board 0x20 (small unit) or 0x21 (big unit), bottom board 0x22, chip 3 0x27. One P4 GPIO drives
     the `RESET` of all three. The keypad chips share one INT line to a P4 GPIO: both set
     `IOCON.MIRROR` and `IOCON.ODR` (open drain), with one pull-up on the main board.

@@ -13,9 +13,9 @@ matrix. Both stay two-layer. The matrix itself is in [hardware.md](hardware.md) 
 The cut runs between the last function row and the first number row, at y −2810 mil of the old
 board (the rows' switch centres sit at −2618 and −3002), so no key is on both boards.
 
-[`tools/keypad_pcb.py`](../tools/keypad_pcb.py) sets up the matrix of each board, writes the nets,
-routes the board and checks it. The parts, the outline and the connectors are placed by hand in
-EasyEDA (below); the script cannot add parts.
+[`tools/keypad_split.py`](../tools/keypad_split.py) cuts `2_8_keypad.epro2` into the two projects
+(below). [`tools/keypad_pcb.py`](../tools/keypad_pcb.py) then sets up the matrix of each board, writes
+the nets, routes the board and checks it.
 
 ## Why one 8 × 8 matrix per board
 
@@ -85,40 +85,46 @@ the top board's chip (0x20 small, 0x21 big), so the GPB0 strap of the one-board 
 
 - **J1 on the top board**, to the main board: as before, 8-pin JST SH: 1 3V3, 2 GND, 3 SDA, 4 SCL,
   5 GND, 6 KP_INT, 7 KP_RESET, 8 PWR_ON (the ON key).
-- **J2 on the top board** and **J1 on the bottom board**, 6-pin JST SH (`SM06B-SRSS-TB`): 1 3V3,
-  2 GND, 3 SDA, 4 SCL, 5 KP_INT, 6 KP_RESET. Check that the cable connects pin 1 to pin 1; ready-made
-  SH cables come both ways.
+- **J2 on the top board** and **J1 on the bottom board**: the same 8-pin JST SH (`SM08B-SRSS-TB`)
+  with the same pinout, pin 8 (PWR_ON) open. One part and one cable type for all three; a 6-pin
+  part would need a library part the project does not have, and saves 2 mm.
+- J2 sits on the back at the cut (x 1437, y −2665 mil, as J1), J1 of the bottom board on the back at
+  the cut too, turned by 180° (y −2955). Both open towards the cut, so a short cable joins them.
+  Seen from the back, pin 1 of J2 is on the right and pin 1 of the bottom J1 on the left: check that
+  the cable connects pin 1 to pin 1; ready-made SH cables come both ways.
 
 KP_INT is shared: the firmware sets `IOCON.MIRROR` (INTA and INTB on both pins) and `IOCON.ODR`
 (open drain) on both chips, and the one pull-up sits on the main board, as before. KP_RESET keeps its
 pull-up R1 on the top board.
 
-## Making the two projects in EasyEDA
+## Making the two projects
 
-Both start as copies of `2_8_keypad.epro2`; the original stays untouched.
+```sh
+python3 -I firmware/tools/keypad_split.py   # writes 2_8_keypad_top.epro2 and 2_8_keypad_bottom.epro2
+```
 
-`2_8_keypad_top.epro2`:
+The original `2_8_keypad.epro2` stays untouched; every part keeps its place in its coordinates, so the
+two outlines together are the old one. All copper goes, `keypad_pcb.py` routes each board anew.
 
-1. Delete SW49–SW68 and U2, C2 (schematic and PCB).
-2. Board outline: y from 0 to −2810 mil.
-3. U1 address: A0 (pin 15) to GND, A1 and A2 to GND, for 0x20. The big unit's board ties A0 to 3V3
-   for 0x21.
-4. U1 INTA (pin 20) and INTB (pin 19) both to KP_INT.
-5. Add J2 (6-pin SH) at the bottom edge with the nets above.
-6. On the `matrix_input` page, at least one ROW or COL net port must remain on U1; the script
-   rebuilds them all from it.
+`2_8_keypad_top.epro2` (outline y 0 to −2810 mil):
 
-`2_8_keypad_bottom.epro2`:
+1. SW49–SW68 (page `number_btn`), U2 and C2 are gone.
+2. U1 A0 (pin 15) to GND: 0x20. The big unit's board ties A0 to 3V3 for 0x21.
+3. U1 INTA (pin 20) and INTB (pin 19) both on KP_INT.
+4. J2, a copy of J1, with the nets above.
+5. NC flags: off the matrix pins the small unit uses, on GPB6.
 
-1. Delete SW1–SW48 (ON included), U1, C1, R1 and the 8-pin J1.
-2. Board outline: y from −2810 to −4528 mil (or move everything up so it starts at 0).
-3. Keep U2 and rename it U1. Its straps already give 0x22 (A1 to 3V3, A0 and A2 to GND).
-4. U1 INTA and INTB both to KP_INT (on the old U2 they were not connected).
-5. Add J1 (6-pin SH) at the top edge, and move C2 (renamed C1) next to U1.
-6. One ROW or COL net port on U1 on the `matrix_input` page, as above.
+`2_8_keypad_bottom.epro2` (outline y −2810 to −4527.6 mil):
+
+1. SW1–SW48 (ON included, pages `soft_btn` to `function_btn`), U1, C1 and R1 are gone.
+2. U2 is now U1 and sits on the back between the first two number rows (x 2165, y −3209); its
+   straps already give 0x22 (A1 to 3V3, A0 and A2 to GND). C2 is now C1, below it as before.
+3. U1 INTA and INTB on KP_INT (on the old U2 they were open).
+4. J1 moves to the cut, PWR_ON off pin 8.
+5. NC flags on the free pins GPA4–GPA7 and GPB5–GPB7.
 
 On both boards: screw holes or bosses near the cut on each side, so the keys next to the cut do not
-give.
+give. They are not in the projects yet.
 
 ## Routing
 
