@@ -6,8 +6,8 @@
 //! - `--stub`: the stub answers instead of the engine.
 //! - `--mirror <port>`: also shows the picture on the board; `--baud <n>` if the board's
 //!   `mirror` was built with another `QUANTUS_MIRROR_BAUD`.
-//! - `--charging`, `--busy`: start with the battery charging or the busy spinner turning; F9 and
-//!   F10 switch them in the window.
+//! - `--charging`, `--busy`: start with the battery charging or the busy spinner turning;
+//!   Ctrl+F9 and Ctrl+F10 switch them in the window.
 //! - `--tour`: plays `quantus_ui::tour` in the window, with a person's pauses between the keys:
 //!   the first wallpaper everywhere, the SETUP pages, the mode tiles, OPTN and some
 //!   calculations. Works with `--mirror`.
@@ -70,7 +70,7 @@ fn main() {
     }
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
-    // What the board will report, shown on demand: F9 and F10 switch them in the window.
+    // What the board will report, shown on demand: Ctrl+F9 and Ctrl+F10 switch them in the window.
     app.charging = args.iter().any(|arg| arg == "--charging");
     app.busy = args.iter().any(|arg| arg == "--busy");
     let mut renderer = Renderer::new();
@@ -149,12 +149,12 @@ fn main() {
         for event in window.events() {
             match event {
                 SimulatorEvent::Quit => return,
-                // Shift+F9 and Shift+F10 are soft keys.
-                SimulatorEvent::KeyDown { keycode: Keycode::F9, keymod, .. } if !shifted(keymod) => {
+                // F9 and F10 are UNIT and ENG, Shift+F9 and Shift+F10 soft keys.
+                SimulatorEvent::KeyDown { keycode: Keycode::F9, keymod, .. } if ctrl(keymod) => {
                     app.charging = !app.charging;
                     changed = true;
                 }
-                SimulatorEvent::KeyDown { keycode: Keycode::F10, keymod, .. } if !shifted(keymod) => {
+                SimulatorEvent::KeyDown { keycode: Keycode::F10, keymod, .. } if ctrl(keymod) => {
                     app.busy = !app.busy;
                     changed = true;
                 }
@@ -479,12 +479,14 @@ Quantus simulator keys
   Setup (SHIFT+MODE)   F1, then Tab; a digit or Up/Down and Enter open an entry,
                        Left goes back, Esc closes
   SHIFT / ALPHA        F1 or Ctrl+F / F2 or Ctrl+K
+  UNIT                 F9 or Ctrl+Z
   S<=>D                F3 or Ctrl+D
   OPTN (mode's options) F4 or Ctrl+N
   OK                   F5 (on a sheet: edits the cell as it is; Enter works it out)
   CONST                F6 or Ctrl+U (the constants, in Physik)
   CONV                 F7 or Ctrl+Y (convert to a unit)
   CALC / SOLVE         F8 or Ctrl+B / F1 first (values for the letters of the input)
+  ENG / <-ENG          F10 / F1 first (the result in engineering notation)
   VARS / STO           F11 or Ctrl+V / F1 first (the variables; keep the result)
   SYMB                 F12 or Ctrl+\\ (Greek letters and symbols on the soft keys)
   soft keys            Shift+F1 to Shift+F12 (F1 top left, along the rows)
@@ -495,7 +497,7 @@ Quantus simulator keys
   ln log Ans           Ctrl+L  Ctrl+G  Ctrl+A
   ;                    Shift+, (between equations and arguments)
   history              Up/Down outside a fraction
-  charging / busy      F9 / F10 (what the board will report)
+  charging / busy      Ctrl+F9 / Ctrl+F10 (what the board will report)
   touch                the mouse is the finger: click to tap, drag to scroll
   keypad               click the keys beside the screen (--keypad=small for the small unit,
                        --no-keypad to leave it out, --scale <n> for the window)
@@ -509,9 +511,13 @@ fn shifted(keymod: Mod) -> bool {
     keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD)
 }
 
+fn ctrl(keymod: Mod) -> bool {
+    keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD)
+}
+
 fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
     let shift = shifted(keymod);
-    let ctrl = keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD);
+    let ctrl = ctrl(keymod);
     // Shift and F1–F12 are the soft keys.
     if shift {
         let function = keycode.into_i32() - Keycode::F1.into_i32();

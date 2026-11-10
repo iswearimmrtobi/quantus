@@ -18,7 +18,8 @@ into `master`. Merging that PR tags and builds the release.
   spike `esp32` (the engine over serial, no UI) are their own workspaces; both firmwares target
   the ESP32-P4 dev kit. `c6` is the ESP-IDF (C) firmware of the kit's ESP32-C6 (Wi-Fi through
   ESP-Hosted), which the handheld sends to it. `mirror` (in the workspace, testing only) sends the
-  simulator's picture to the board. `docs/` holds the hardware documentation (product, dev kit,
+  simulator's picture to the board. `engine` (in the workspace) joins `quantus-core` to the UI for
+  both. `tools/` holds the keypad PCB scripts. `docs/` holds the hardware documentation (product, dev kit,
   setup, display, SD card, mirror); the crates' READMEs link there.
 - `locales/`: every text, one JSON file per language, read by `crates/quantus-texts` (compile time)
   and the frontend.

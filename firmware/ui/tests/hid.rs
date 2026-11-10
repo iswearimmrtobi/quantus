@@ -54,6 +54,9 @@ fn named_keys_and_the_keypad() {
     assert_eq!(key(0x2B, 0), Some(Key::Mode));
     assert_eq!(key(0x3A, 0), Some(Key::Shift));
     assert_eq!(key(0x3D, 0), Some(Key::Optn));
+    assert_eq!(key(0x42, 0), Some(Key::Unit)); // F9
+    assert_eq!(key(0x43, 0), Some(Key::Eng)); // F10
+    assert_eq!(key(0x42, SHIFT), Some(Key::Soft(8)));
     assert_eq!(key(0x50, 0), Some(Key::Left));
     assert_eq!(key(0x52, 0), Some(Key::Up));
     assert_eq!(key(0x59, 0), Some(Key::Digit(1)));

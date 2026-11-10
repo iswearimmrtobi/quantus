@@ -45,8 +45,8 @@ decimal, steps through the history, opens OPTN and calculates in Physik. The ter
 part as it starts. With `--mirror` the board shows it too. `firmware/ui/tests/tour.rs` plays the
 same keys without the pauses.
 
-The PC has no battery or remote engine, so F9 and F10 switch the charging bolt and the busy
-spinner by hand.
+The PC has no battery or remote engine, so Ctrl+F9 and Ctrl+F10 switch the charging bolt and the
+busy spinner by hand.
 
 The keys are printed when the window opens. The mouse is the finger: a click taps, a drag
 scrolls. Every menu works by touch: a tap opens a line or picks a tile, ‹ at the left of the top
@@ -120,8 +120,8 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | Ctrl+S, Ctrl+O, Ctrl+T | | sin, cos, tan |
 | Ctrl+L, Ctrl+G | | ln, log |
 | Ctrl+A | | Ans |
-| F9 | | simulator only: charging on/off |
-| F10 | | simulator only: busy spinner on/off |
+| Ctrl+F9 | | simulator only: charging on/off |
+| Ctrl+F10 | | simulator only: busy spinner on/off |
 
 SDL reports only the unshifted key, so the shifted characters in the window follow a German
 layout (Shift+7 is `/`, Shift+8 `(`, Shift+0 `=`, Shift++ `*`). The number pad works on any

@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Rebuild the key matrix of firmware/2_8_keypad.epro2 on the physical grid and route the board.
+"""Rebuild the key matrix of the one-board keypad project on the physical grid and route the board.
 
-See firmware/docs/keypad-pcb.md for what this does and why.
+See firmware/docs/keypad-pcb.md for what this does and why. This is still the one-board router
+(13 rows on U1, columns on U2, GPB0 of U1 the unit strap); the split into a top and a bottom board
+(keypad_split.py) needs a `--part top|bottom` mode with one 8 x 8 matrix per board, not built yet.
 
-    python3 -I firmware/tools/keypad_pcb.py                      # table + edit + route + check + write
-    python3 -I firmware/tools/keypad_pcb.py --table              # only print the new matrix
-    python3 -I firmware/tools/keypad_pcb.py --render out.png     # also draw both layers
+    python3 -I firmware/tools/keypad_pcb.py PROJECT                   # table + edit + route + check + write
+    python3 -I firmware/tools/keypad_pcb.py PROJECT --table           # only print the new matrix
+    python3 -I firmware/tools/keypad_pcb.py PROJECT --render out.png  # also draw both layers
 
-Input is the untouched `2_8_keypad.epro2`, output is `2_8_keypad_rerouted.epro2` next to it. The
-project is a zip with one `*.epru` file of JSON lines `{header}||{body}|` (EasyEDA Pro). Records
-that are not changed keep their original text, so a diff of the two `.epru` files shows only the
-edits listed in the docs.
+PROJECT is the EasyEDA Pro project, left untouched; the output goes next to it, its name ending in
+`_rerouted` (or `--out`). The project is a zip with one `*.epru` file of JSON lines
+`{header}||{body}|`. Records that are not changed keep their original text, so a diff of the two
+`.epru` files shows only the edits listed in the docs.
 
 Units are mil (the file's unit), x to the right, y up; the board is x 0..2874, y -4527..0.
 """
@@ -25,14 +27,16 @@ import sys
 import zipfile
 from collections import defaultdict
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-FIRMWARE = os.path.dirname(HERE)
-SRC = os.path.join(FIRMWARE, "2_8_keypad.epro2")
-DST = os.path.join(FIRMWARE, "2_8_keypad_rerouted.epro2")
+
+def beside(path, suffix):
+    """`path` with `suffix` added to its name, before the extension."""
+    stem, ext = os.path.splitext(path)
+    return stem + suffix + ext
+
 
 # ---------------------------------------------------------------------------------------------
 # The keypad as designed (design/keypad-sizes.html): the legend of every key, block by block.
-# '.' is no key. `!` marks keys that exist on the big unit only.
+# '.' is no key.
 
 SMALL = {
     "soft": ["F1 F2 F3 F4 F5", "F6 F7 F8 F9 F10"],
@@ -1164,7 +1168,7 @@ def render(board, cu, path):
 # Putting it together
 
 
-def build(src=SRC):
+def build(src):
     prj = Project(src)
     board = Board(prj)
     ids = Ids(prj)
@@ -1205,10 +1209,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--table", action="store_true", help="print the new matrix and stop")
     ap.add_argument("--render", metavar="PNG", help="draw both layers")
-    ap.add_argument("--src", default=SRC)
-    ap.add_argument("--out", default=DST)
+    ap.add_argument("project", help="the one-board keypad's EasyEDA Pro project")
+    ap.add_argument("--out", help="where to write (default: next to the project, `_rerouted`)")
     a = ap.parse_args()
-    prj, board, ids, cells, log = build(a.src)
+    a.out = a.out or beside(a.project, "_rerouted")
+    prj, board, ids, cells, log = build(a.project)
     print_table(cells)
     if a.table:
         return

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Split the one-board keypad firmware/2_8_keypad.epro2 into a top and a bottom board.
+"""Split the one-board keypad's EasyEDA Pro project into a top and a bottom board.
 
 See firmware/docs/keypad-pcb.md for the two boards.
 
-    python3 -I firmware/tools/keypad_split.py        # writes 2_8_keypad_top.epro2 and _bottom.epro2
+    python3 -I firmware/tools/keypad_split.py PROJECT   # writes PROJECT's _top and _bottom beside it
 
 The cut runs at y -2810 mil, between the last function row and the first number row; the two
 outlines together are the old one (73 x 115 mm). Every part keeps its place in the old coordinates,
@@ -31,9 +31,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.dont_write_bytecode = True
 sys.path.insert(0, HERE)
 import keypad_pcb as kp  # noqa: E402
-
-FIRMWARE = os.path.dirname(HERE)
-SRC = os.path.join(FIRMWARE, "2_8_keypad.epro2")
 
 CUT = -2810.0                   # mil, the edge between the two boards
 NETPORT = "pid8a0e77bacb214e"   # schematic net port
@@ -461,7 +458,7 @@ def make_top(src, dst):
     pcb.set_net("J2", 8, "")
     pcb.channel_pages(page_map)
     pcb.prune_nets()
-    set_title(prj, "2_8_keypad_top")
+    set_title(prj, os.path.splitext(os.path.basename(dst))[0])
     prj.write(dst)
 
 
@@ -524,7 +521,7 @@ def make_bottom(src, dst):
     pcb.set_net("J1", 8, "")
     pcb.channel_pages(page_map)
     pcb.prune_nets()
-    set_title(prj, "2_8_keypad_bottom")
+    set_title(prj, os.path.splitext(os.path.basename(dst))[0])
     prj.write(dst)
 
 
@@ -574,9 +571,13 @@ def add_sch_connector(sch, ids, src_id, des, dx, unique_id):
 
 
 def main():
-    make_top(SRC, os.path.join(FIRMWARE, "2_8_keypad_top.epro2"))
-    make_bottom(SRC, os.path.join(FIRMWARE, "2_8_keypad_bottom.epro2"))
-    print("wrote 2_8_keypad_top.epro2 and 2_8_keypad_bottom.epro2")
+    if len(sys.argv) != 2:
+        sys.exit("usage: keypad_split.py PROJECT (the one-board keypad's EasyEDA Pro project)")
+    src = sys.argv[1]
+    top, bottom = kp.beside(src, "_top"), kp.beside(src, "_bottom")
+    make_top(src, top)
+    make_bottom(src, bottom)
+    print(f"wrote {top} and {bottom}")
 
 
 if __name__ == "__main__":

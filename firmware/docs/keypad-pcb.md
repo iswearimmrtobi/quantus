@@ -1,6 +1,7 @@
 # Keypad PCB: two boards, one 8 × 8 matrix each
 
-The small unit's keypad was one board, `firmware/2_8_keypad.epro2` (73 × 115 mm, two layers, 67
+The small unit's keypad was one board, an EasyEDA Pro project kept outside the repository
+(73 × 115 mm, two layers, 67
 matrix keys and ON, two MCP23017, an 8-pin JST SH connector). At 115 mm it is past the 100 × 100 mm
 of the cheap fab tier, so it is split into two boards, each with its own MCP23017 and its own
 matrix. Both stay two-layer. The matrix itself is in [hardware.md](hardware.md) §3.
@@ -13,9 +14,10 @@ matrix. Both stay two-layer. The matrix itself is in [hardware.md](hardware.md) 
 The cut runs between the last function row and the first number row, at y −2810 mil of the old
 board (the rows' switch centres sit at −2618 and −3002), so no key is on both boards.
 
-[`tools/keypad_split.py`](../tools/keypad_split.py) cuts `2_8_keypad.epro2` into the two projects
-(below). [`tools/keypad_pcb.py`](../tools/keypad_pcb.py) then sets up the matrix of each board, writes
-the nets, routes the board and checks it.
+[`tools/keypad_split.py`](../tools/keypad_split.py) cuts that project into two
+(below). [`tools/keypad_pcb.py`](../tools/keypad_pcb.py) is to set up the matrix of each board, write
+the nets, route the board and check it; so far it does that for the one-board design only
+([Redoing it](#redoing-it)).
 
 ## Why one 8 × 8 matrix per board
 
@@ -100,13 +102,14 @@ pull-up R1 on the top board.
 ## Making the two projects
 
 ```sh
-python3 -I firmware/tools/keypad_split.py   # writes 2_8_keypad_top.epro2 and 2_8_keypad_bottom.epro2
+python3 -I firmware/tools/keypad_split.py PROJECT   # writes PROJECT's _top and _bottom beside it
 ```
 
-The original `2_8_keypad.epro2` stays untouched; every part keeps its place in its coordinates, so the
-two outlines together are the old one. All copper goes, `keypad_pcb.py` routes each board anew.
+PROJECT is the one-board project; it stays untouched. Every part keeps its place in its
+coordinates, so the two outlines together are the old one. All copper goes, `keypad_pcb.py` routes
+each board anew.
 
-`2_8_keypad_top.epro2` (outline y 0 to −2810 mil):
+The top project (outline y 0 to −2810 mil):
 
 1. SW49–SW68 (page `number_btn`), U2 and C2 are gone.
 2. U1 A0 (pin 15) to GND: 0x20. The big unit's board ties A0 to 3V3 for 0x21.
@@ -114,7 +117,7 @@ two outlines together are the old one. All copper goes, `keypad_pcb.py` routes e
 4. J2, a copy of J1, with the nets above.
 5. NC flags: off the matrix pins the small unit uses, on GPB6.
 
-`2_8_keypad_bottom.epro2` (outline y −2810 to −4527.6 mil):
+The bottom project (outline y −2810 to −4527.6 mil):
 
 1. SW1–SW48 (ON included, pages `soft_btn` to `function_btn`), U1, C1 and R1 are gone.
 2. U2 is now U1 and sits on the back between the first two number rows (x 2165, y −3209); its
@@ -146,8 +149,7 @@ board is routed again.
 
 The script cannot open EasyEDA, so check its output by hand:
 
-1. Open `2_8_keypad_<part>_routed.epro2`. If EasyEDA refuses it, say so; the source project is
-   untouched.
+1. Open the routed project. If EasyEDA refuses it, say so; the source project is untouched.
 2. PCB: *Design → DRC* must pass and the ratsnest must be empty. *Design → Update from schematic*
    must find nothing to change (schematic and PCB use the same nets).
 3. Check the pin order of every connector against the cable and the main board.
@@ -155,22 +157,26 @@ The script cannot open EasyEDA, so check its output by hand:
 
 ## Redoing it
 
+Not built yet: `keypad_pcb.py` is still the one-board router (13 rows on U1, columns on U2; it
+takes the one-board project and writes it `_rerouted` beside it) and has no `--part`. The commands
+below are what it is to become:
+
 ```sh
-python3 -I firmware/tools/keypad_pcb.py --part top --table               # only the matrix
-python3 -I firmware/tools/keypad_pcb.py --part top --render top.png      # route, check, draw, write
-python3 -I firmware/tools/keypad_pcb.py --part bottom --render bottom.png
+python3 -I firmware/tools/keypad_pcb.py TOP --part top --table               # only the matrix
+python3 -I firmware/tools/keypad_pcb.py TOP --part top --render top.png      # route, check, draw, write
+python3 -I firmware/tools/keypad_pcb.py BOTTOM --part bottom --render bottom.png
 ```
 
-Needs Python 3, numpy, and matplotlib for `--render`. The input is `2_8_keypad_<part>.epro2` and the
-output `2_8_keypad_<part>_routed.epro2`. A change to the keypad layout goes into the layout tables at
-the top of the script (and into `design/keypad-sizes.html`), and then the boards are made again.
-`--table` also works without the projects; it then prints the matrix only.
+Needs Python 3, numpy, and matplotlib for `--render`. TOP and BOTTOM are the projects of
+`keypad_split.py`; each routed board is written beside its project, `_routed`. A change to the
+keypad layout goes into the layout tables at the top of the script (and into
+`design/keypad-sizes.html`), and then the boards are made again.
 
 ## History
 
 The first matrix was *logical*: R0 held all ten soft keys, R1 the control keys and the arrows, and so
 on. Its rows and columns joined keys that sat far apart, so nothing could be routed. The second one
 was the physical grid on the one board, 13 rows × 6 columns on two chips (rows on U1, columns on U2,
-GPB0 of U1 the unit strap), routed by this script into `2_8_keypad_rerouted.epro2`. That board's
+GPB0 of U1 the unit strap), routed by this script. That board's
 rows ran to one chip and its columns to the other, all over a board too long for the cheap tier,
 which led to the split.

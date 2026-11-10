@@ -41,7 +41,7 @@ cargo run --release --no-default-features   # the same with the stub instead of 
 The hardware, setup and wiring are in [firmware/docs](../docs/README.md):
 
 - [Setup, build and flash](../docs/setup.md), including the serial port on Linux
-- [The dev kit and the display's pins](../docs/dev-kit.md#the-35-rpi-display-on-the-header)
+- [The dev kit and the display's pins](../docs/dev-kit.md#the-35-capacitive-touch-display-on-the-header)
 - [Display and touch](../docs/display-and-touch.md): first start, colours, calibration, test binaries
 - [SD card](../docs/sd-card.md): formatting, wallpapers and sessions
 - [WLAN](../docs/wlan.md): Wi-Fi through the C6, saved networks, network time
@@ -54,7 +54,8 @@ Type into the serial monitor; the keys are those of the simulator, see its
 Delete clears like AC. Ctrl+C and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
 
 A USB keyboard in the board's USB-A port types the same keys, with a German (QWERTZ) layout as
-in the simulator: F1–F4 are SHIFT, ALPHA, S⇔D and OPTN, Tab is MODE, the keypad works, AltGr
+in the simulator, F1–F12 and Shift+F1–F12 (the soft keys) included: F1–F4 are SHIFT, ALPHA, S⇔D
+and OPTN, F9 UNIT, F10 ENG, Tab is MODE, the keypad works, AltGr
 types `@`, braces, brackets, `\`, `~` and `|` for a WLAN password. The arrows and Backspace repeat while held. It is a HID boot keyboard
 (`src/keyboard.rs`, the layout in `firmware/ui/src/hid.rs`); one at a time, plugged in before or
 after the start, and the serial monitor keeps working beside it. Its hookup is in

@@ -30,6 +30,12 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   SETUP's and OPTN's entries too: a function, unit or constant goes in, a setting opens where it
   lives (`zeitzone`). Typing needs a USB keyboard until the keypad's ALPHA legend is fixed.
 
+### Fixed
+
+- In the handheld simulator F9 and F10 are UNIT and ENG, as its key table says; charging and the
+  busy spinner moved to Ctrl+F9 and Ctrl+F10. A USB keyboard on the handheld types UNIT and ENG
+  with F9 and F10 too.
+
 ## [0.2.0] - 2026-11-06
 
 ### Added

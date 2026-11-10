@@ -56,7 +56,7 @@ pub enum Key {
     /// ENG: the result in engineering notation, the exponent up by three; ←ENG (SHIFT) down.
     Eng,
     EngBack,
-    /// UNDO and REDO of the big unit, and SHIFT on DEL and AC.
+    /// UNDO: the big unit's key, and SHIFT on DEL. REDO: SHIFT on AC.
     Undo,
     Redo,
     /// SHIFT on OK: insert instead of overtype.

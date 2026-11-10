@@ -12,7 +12,8 @@ long battery life second. Later, and optional: hand calculations that take longe
 
 ## 2. Requirements
 
-- **R1** One PCB only, to keep the profile low.
+- **R1** One main board, to keep the profile low; only the keypad sits on boards of its own (two,
+  §3), joined to it by a cable.
 - **R2** An SD card, in a slot on our PCB. The slot must be reachable from outside the case.
 - **R3** The ESP32-P4 module is soldered directly to the PCB.
 - **R4** The display is fixed directly to the PCB: its flex cable is soldered or plugged in.
@@ -158,11 +159,12 @@ Top to bottom:
   screen: units and symbols, algebra commands, result forms ([unit-keys.md](unit-keys.md)).
 - **Control row**: round keys in one row: SHIFT, ALPHA, UNIT, OPTN, MODE, ON.
 - **Arrow pad**: four arrows (smaller than the other keys) and OK, with SYMB, CALC and VARS at
-  its corners (placeholder positions).
+  its corners (as on the keypad PCB, still open to change).
 - **Function block**: 6 columns × 4 rows, keys 5 mm high.
 - **Number block**: 5 columns × 4 rows, larger keys. EXE sits at the bottom right where the
   Casio has `=`. The `=` of equations is a key of the function block (`Key::Equals`).
-- **Big unit only**: UNDO, REDO, ▶unit, x³, 10ˣ, Σ and ∫.
+- **Big unit only**: UNDO, ▶unit, x³, 10ˣ, Σ and ∫. REDO is SHIFT+AC on both units, as UNDO is
+  SHIFT+DEL.
 
 | Key (mm) | Small | Big |
 |---|---|---|
@@ -214,8 +216,8 @@ soft keys' context are in [unit-keys.md](unit-keys.md).
 - **Small display**: the 2.8" panel is not chosen. Its size and resolution decide the UI profile
   (the UI draws 480-wide bands today).
 - **Keypad chips**: confirm against the MCP23017 datasheet the I²C speed, the internal pull-up
-  value, the standby current and the scan time; the ADP5588 is the fallback. SYMB, CALC and VARS
-  have no fixed place yet.
+  value, the standby current and the scan time; the ADP5588 is the fallback. The places of SYMB,
+  CALC and VARS are those of the PCB, not yet tried on a real keypad.
 
 ## 7. Power
 
