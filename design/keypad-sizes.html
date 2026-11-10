@@ -140,9 +140,11 @@ const DEVICES = [
   },
 ];
 
-// The key matrix is the physical grid (firmware/docs/keypad-pcb.md): row = row of keys from the top
-// (2 soft rows, 1 control row, 6 function/arrow rows, 4 number rows), column = place in the row of
-// its block. The cell of a key is computed from the layout above, nothing is listed twice.
+// The keypad is two PCBs with an 8 × 8 matrix each (firmware/docs/keypad-pcb.md). Top board: the
+// soft rows are R0–R1 and the function/arrow rows R2–R7, the column is the key's place in the row
+// of its block; the control row has its own column C7 and takes R0, R1, … key by key. Bottom board:
+// the number rows are R0–R3. The cell of a key is computed from the layout above, nothing is listed
+// twice.
 
 // ---------------------------------------------------------------------------
 const $ = id => document.getElementById(id);
@@ -173,7 +175,7 @@ function build(d) {
   for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
     const n = r * s.cols + c + 1;
     const k = pos(el('div', 'key soft r' + r, 'F' + n), s0 + c * s.px, y + r * s.py, s.kw, s.kh);
-    k.title = `F${n}: ${s.kw} × ${s.kh} mm, matrix R${r}C${c}`;
+    k.title = `F${n}: ${s.kw} × ${s.kh} mm, matrix top R${r}C${c}`;
     dev.append(k);
     const lab = pos(el('div', 'lab r' + r, 'F' + n), s0 + c * s.px - sx, d.screen.h - (s.rows - r) * s.strip - 0.3, s.kw, s.strip - 0.3);
     scr.append(lab);
@@ -182,8 +184,10 @@ function build(d) {
 
   // key blocks
   const sizes = [];
-  let gridRow = s.rows;
+  let gridRow = s.rows;  // next matrix row of the top board
   d.blocks.forEach((b, bi) => {
+    const number = b.name === 'number', control = b.name === 'control';
+    let ctl = 0;  // control keys so far: their matrix row on C7
     const rows = b.rows.map(parse), cols = rows[0].length;
     const bw = b.cx ? b.bw : (cols - 1) * b.px + b.kw, x0 = (d.width - bw) / 2;
     rows.forEach((row, r) => row.forEach((cell, c) => {
@@ -193,12 +197,15 @@ function build(d) {
       const cx = b.cx ? b.cx[c] : c * b.px + b.kw / 2;
       const k = pos(el('div', 'key ' + cls(cell.l) + (cell.extra ? ' extra' : '') + (b.round ? ' round' : ''), cell.l),
         x0 + cx - kw / 2, y + r * b.py + (b.kh - kh) / 2, kw, kh);
-      const at = cell.l === 'ON' ? 'power latch, not the matrix' : `matrix R${gridRow + r}C${c}`;
+      const at = cell.l === 'ON' ? 'power latch, not the matrix'
+        : number ? `matrix bottom R${r}C${c}`
+        : control ? `matrix top R${ctl++}C7`
+        : `matrix top R${gridRow + r}C${c}`;
       k.title = `${cell.l}: ${kw} × ${kh} mm, ${at}`;
       dev.append(k);
       cell.extra ? stats.extra++ : stats.core++;
     }));
-    gridRow += rows.length;
+    if (!number && !control) gridRow += rows.length;
     sizes.push({ name: b.name, cols, rows: rows.length, ...b, bw });
     y += rows.length * b.py + (bi < d.blocks.length - 1 ? (b.gapAfter ?? d.gap) : 0);
   });
