@@ -11,12 +11,11 @@ Each idea says what it is, why it helps, how it could work, where the work goes 
 M: one or two weeks, L: more) and what is still open. The rule from handheld-menus.md §8 holds:
 maths, data and state go into the core, so both shells get them.
 
-State on 2026-11-02. An idea that is taken up moves into plans.md and out of this file; the
-numbers stay. Taken up: 1 (search everywhere, plans.md §6).
+State on 2026-11-02. An idea that is taken up moves into plans.md and out of this file.
 
 ## Contents
 
-1. Working faster: [user-defined functions](#2-user-defined-functions),
+1. Working faster: [search everywhere](#1-search-everywhere), [user-defined functions](#2-user-defined-functions),
    [history search and pins](#3-history-search-pins-and-favourites), [result references](#4-references-to-earlier-results),
    [macros](#5-macros-and-small-programs)
 2. Understanding: [help key](#6-a-help-key), [errors that point](#7-errors-that-point-at-the-input),
