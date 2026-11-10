@@ -3052,6 +3052,7 @@ version = "0.3.0-dev"
 dependencies = [
  "quantus-core",
  "quantus-texts",
+ "quantus-themes",
  "rfd",
  "serde",
  "serde_json",

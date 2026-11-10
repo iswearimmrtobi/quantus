@@ -3,9 +3,13 @@
  * work offline), MathLive as the input widget, KaTeX for everything static.
  */
 
+/*
+ * The colours are those of the dark theme (themes/dark.toml), so nothing flashes before the theme is loaded;
+ * src/theme.ts then sets every one of them from the chosen theme. A new colour needs a key in quantus-themes.
+ */
 :root {
   color-scheme: dark;
-  --bg: #17161d;
+  --background: #17161d;
   --surface: #1e1d27;
   --surface-raised: #262532;
   --surface-hover: #2d2b3a;
@@ -14,14 +18,17 @@
   --text: #edebf3;
   --text-muted: #8b87a3;
   --text-faint: #55506a;
-  --cyan: #9186e8;
-  --cyan-dim: #423a63;
-  --amber: #d8a9ff;
-  --amber-dim: #4e3c63;
+  --primary: #9186e8;
+  --primary-dim: #423a63;
+  --accent: #d8a9ff;
+  --accent-dim: #4e3c63;
   --danger: #ff8fa8;
+  /* The glow behind a result, and the shade behind dialogs. */
+  --glow: #d8a9ff38;
+  --overlay: #0a090e59;
+  --overlay-strong: #0a090e99;
   /* The analysis graph: asymptotes, tangent and normal, and one colour per kind of point. */
   --muted: var(--text-muted);
-  --accent: var(--amber);
   --point-zero: #7fd1b9;
   --point-y-intercept: #8fb8ff;
   --point-max: #ff8fa8;
@@ -54,19 +61,19 @@ html,
 body {
   min-height: 100%;
   margin: 0;
-  background: var(--bg);
+  background: var(--background);
   color: var(--text);
   font-family: var(--sans);
   overflow: hidden;
 }
 
 ::selection {
-  background: var(--cyan-dim);
+  background: var(--primary-dim);
   color: var(--text);
 }
 
 :focus-visible {
-  outline: 1.5px solid var(--cyan);
+  outline: 1.5px solid var(--primary);
   outline-offset: 2px;
 }
 
@@ -144,7 +151,7 @@ code {
   font-size: 12.5px;
 }
 .wordmark span {
-  color: var(--cyan);
+  color: var(--primary);
 }
 
 .topbar-mid {
@@ -172,12 +179,12 @@ code {
   color: var(--text-faint);
 }
 .dim-readout .vec {
-  color: var(--cyan);
+  color: var(--primary);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .dim-readout .unit {
-  color: var(--amber);
+  color: var(--accent);
   font-weight: 500;
 }
 
@@ -193,8 +200,8 @@ code {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 6px var(--cyan);
+  background: var(--primary);
+  box-shadow: 0 0 6px var(--primary);
   display: inline-block;
 }
 
@@ -236,7 +243,7 @@ code {
   padding: 10px 68px 10px 14px;
 }
 .input-row:focus-within {
-  border-color: var(--cyan-dim);
+  border-color: var(--primary-dim);
 }
 
 .math-host {
@@ -252,8 +259,8 @@ code {
   border: none;
   background: transparent;
   outline: none;
-  --caret-color: var(--cyan);
-  --selection-background-color: var(--cyan-dim);
+  --caret-color: var(--primary);
+  --selection-background-color: var(--primary-dim);
   --contains-highlight-background-color: transparent;
   --smart-fence-color: var(--text-muted);
   --placeholder-color: var(--text-faint);
@@ -280,7 +287,7 @@ code {
   font-family: var(--mono);
   font-size: 17px;
   line-height: 1.5;
-  caret-color: var(--cyan);
+  caret-color: var(--primary);
   field-sizing: content;
 }
 .latex-input::placeholder {
@@ -288,7 +295,7 @@ code {
 }
 
 .input-row.latex {
-  border-color: var(--cyan-dim);
+  border-color: var(--primary-dim);
 }
 
 .mode-toggle {
@@ -305,12 +312,12 @@ code {
   line-height: 1.2;
 }
 .mode-toggle:hover {
-  color: var(--cyan);
-  border-color: var(--cyan-dim);
+  color: var(--primary);
+  border-color: var(--primary-dim);
 }
 .input-row.latex .mode-toggle {
-  color: var(--cyan);
-  border-color: var(--cyan-dim);
+  color: var(--primary);
+  border-color: var(--primary-dim);
 }
 
 /* Im Quelltext-Modus steht unter dem Feld die gesetzte Formel statt des Quelltexts. */
@@ -371,7 +378,7 @@ code {
   font-family: var(--mono);
   font-size: 9.5px;
   letter-spacing: 0.08em;
-  color: var(--cyan);
+  color: var(--primary);
   flex-shrink: 0;
 }
 
@@ -388,7 +395,7 @@ code {
 }
 
 .domain-item .katex {
-  color: var(--cyan);
+  color: var(--primary);
 }
 
 .result-main {
@@ -407,19 +414,19 @@ code {
 .result-value {
   font-size: 30px;
   font-weight: 500;
-  color: var(--amber);
-  text-shadow: 0 0 18px rgba(216, 169, 255, 0.22);
+  color: var(--accent);
+  text-shadow: 0 0 18px var(--glow);
 }
 .result-value .katex {
-  color: var(--amber);
+  color: var(--accent);
 }
 .result-unit {
   font-size: 12px;
   font-family: var(--mono);
   padding: 4px 8px;
-  border: 1px solid var(--amber-dim);
+  border: 1px solid var(--accent-dim);
   border-radius: var(--radius);
-  color: var(--amber);
+  color: var(--accent);
   align-self: center;
   white-space: nowrap;
 }
@@ -430,7 +437,7 @@ code {
   gap: 14px;
   margin-top: 22px;
   padding: 12px 14px;
-  border: 1px solid var(--amber-dim);
+  border: 1px solid var(--accent-dim);
   border-left: 2px solid var(--danger);
   border-radius: var(--radius);
   background: var(--surface);
@@ -475,8 +482,8 @@ code {
   transition: color 120ms ease, border-color 120ms ease;
 }
 .steps-toggle:hover {
-  color: var(--cyan);
-  border-color: var(--cyan-dim);
+  color: var(--primary);
+  border-color: var(--primary-dim);
 }
 .steps-toggle .chev {
   display: inline-block;
@@ -540,7 +547,7 @@ code {
   flex-shrink: 0;
 }
 .step-label.result-label {
-  color: var(--amber);
+  color: var(--accent);
 }
 .step-latex {
   flex: 1;
@@ -567,7 +574,7 @@ code {
   flex-shrink: 0;
 }
 .copy-btn:hover {
-  color: var(--cyan);
+  color: var(--primary);
   border-color: var(--hairline-strong);
 }
 
@@ -590,11 +597,11 @@ code {
 }
 .form-chip:hover {
   color: var(--text);
-  border-color: var(--cyan-dim);
+  border-color: var(--primary-dim);
 }
 .form-chip.active {
-  color: var(--amber);
-  border-color: var(--amber-dim);
+  color: var(--accent);
+  border-color: var(--accent-dim);
   background: var(--surface-raised);
 }
 
@@ -627,8 +634,8 @@ code {
   border-radius: var(--radius);
 }
 .insert-key:hover {
-  color: var(--cyan);
-  border-color: var(--cyan-dim);
+  color: var(--primary);
+  border-color: var(--primary-dim);
   background: var(--surface-hover);
 }
 
@@ -664,7 +671,7 @@ code {
   color: var(--text);
 }
 .rail-btn.active {
-  color: var(--cyan);
+  color: var(--primary);
   background: var(--surface-hover);
 }
 .rail-btn svg {
@@ -712,7 +719,7 @@ code {
 }
 .panel-tab.active {
   color: var(--text);
-  border-color: var(--cyan);
+  border-color: var(--primary);
 }
 .panel-tab:hover {
   color: var(--text);
@@ -801,7 +808,7 @@ code {
 }
 .settings-cat.active {
   color: var(--text);
-  border-color: var(--cyan);
+  border-color: var(--primary);
   background: var(--surface-hover);
 }
 .settings-body {
@@ -866,7 +873,7 @@ code {
   color: var(--text);
 }
 .segment.active {
-  background: var(--cyan-dim);
+  background: var(--primary-dim);
   color: var(--text);
 }
 .setting-select {
@@ -875,7 +882,7 @@ code {
   font-family: var(--mono);
   font-size: 11.5px;
   color: var(--text);
-  background: var(--bg);
+  background: var(--background);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
 }
@@ -885,7 +892,7 @@ select option {
 }
 .setting-select:focus {
   outline: none;
-  border-color: var(--cyan);
+  border-color: var(--primary);
 }
 .setting-toggle {
   display: flex;
@@ -896,7 +903,7 @@ select option {
 }
 .setting-toggle input {
   margin: 1px 0 0;
-  accent-color: var(--cyan);
+  accent-color: var(--primary);
 }
 .setting-toggle .setting-hint {
   margin-top: 2px;
@@ -912,13 +919,13 @@ select option {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--text);
-  background: var(--bg);
+  background: var(--background);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
 }
 .setting-precision input:focus {
   outline: none;
-  border-color: var(--cyan);
+  border-color: var(--primary);
 }
 .setting-precision .setting-hint {
   margin: 0;
@@ -937,6 +944,13 @@ select option {
   color: var(--text-muted);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
+}
+.setting-actions {
+  display: flex;
+  gap: 8px;
+}
+.setting-actions .setting-reset {
+  margin-top: 8px;
 }
 .setting-reset:hover {
   background: var(--surface-hover);
@@ -968,14 +982,14 @@ select option {
   gap: 8px;
 }
 .hist-meta .val {
-  color: var(--amber);
+  color: var(--accent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 60%;
 }
 .hist-meta .val .katex {
-  color: var(--amber);
+  color: var(--accent);
   font-size: 11px;
 }
 
@@ -999,7 +1013,7 @@ select option {
   overflow: hidden;
 }
 .var-name .katex {
-  color: var(--cyan);
+  color: var(--primary);
   font-size: 15px;
 }
 .var-val .katex {
@@ -1038,13 +1052,13 @@ select option {
   font-family: var(--mono);
   font-size: 11.5px;
   color: var(--text);
-  background: var(--bg);
+  background: var(--background);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
 }
 .library-filter:focus {
   outline: none;
-  border-color: var(--cyan);
+  border-color: var(--primary);
 }
 .library-filter:disabled {
   opacity: 0.5;
@@ -1076,7 +1090,7 @@ select option {
   align-self: center;
 }
 .library-symbol .katex {
-  color: var(--cyan);
+  color: var(--primary);
   font-size: 14px;
 }
 .library-name {
@@ -1107,7 +1121,7 @@ select option {
   font-size: 12px;
 }
 .library-unit:hover {
-  border-color: var(--cyan-dim);
+  border-color: var(--primary-dim);
   background: var(--surface-hover);
 }
 
@@ -1209,7 +1223,7 @@ select option {
 /* The quick search: a launcher line near the top. */
 .quick-backdrop {
   padding-top: 14vh;
-  background: rgba(10, 9, 14, 0.35);
+  background: var(--overlay);
 }
 .dialog.quick-search {
   width: min(560px, calc(100vw - 32px));
@@ -1221,13 +1235,13 @@ select option {
   font-family: var(--mono);
   font-size: 15px;
   color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--cyan-dim);
+  background: var(--background);
+  border: 1px solid var(--primary-dim);
   border-radius: var(--radius);
 }
 .quick-input:focus {
   outline: none;
-  border-color: var(--cyan);
+  border-color: var(--primary);
 }
 .quick-search .hits {
   margin-top: 6px;
@@ -1260,7 +1274,7 @@ select option {
   background: var(--surface-hover);
 }
 .hit.selected {
-  box-shadow: inset 2px 0 0 var(--cyan);
+  box-shadow: inset 2px 0 0 var(--primary);
 }
 .hit-symbol {
   grid-row: 1 / 3;
@@ -1268,7 +1282,7 @@ select option {
   overflow: hidden;
 }
 .hit-symbol .katex {
-  color: var(--cyan);
+  color: var(--primary);
   font-size: 14px;
 }
 .hit-name {
@@ -1316,7 +1330,7 @@ select option {
   background: var(--surface-hover);
 }
 .session-item.active {
-  border-left-color: var(--cyan);
+  border-left-color: var(--primary);
   background: var(--surface-raised);
 }
 .session-open {
@@ -1371,7 +1385,7 @@ select option {
   align-items: flex-start;
   justify-content: center;
   padding-top: 12vh;
-  background: rgba(10, 9, 14, 0.6);
+  background: var(--overlay-strong);
 }
 .dialog {
   width: min(420px, calc(100vw - 32px));
@@ -1387,7 +1401,7 @@ select option {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
-  color: var(--cyan);
+  color: var(--primary);
 }
 .dialog-input {
   display: block;
@@ -1402,7 +1416,7 @@ select option {
   margin-top: 8px;
 }
 .dialog-row input[type='radio'] {
-  accent-color: var(--cyan);
+  accent-color: var(--primary);
 }
 .dialog-row .library-filter {
   margin-top: 0;
@@ -1415,7 +1429,7 @@ select option {
   font-size: 11px;
 }
 .dialog-letter .katex {
-  color: var(--cyan);
+  color: var(--primary);
   font-size: 14px;
 }
 .dialog-buttons {
@@ -1425,8 +1439,8 @@ select option {
 }
 .setting-reset.primary {
   color: var(--text);
-  background: var(--cyan-dim);
-  border-color: var(--cyan-dim);
+  background: var(--primary-dim);
+  border-color: var(--primary-dim);
 }
 .setting-reset:disabled {
   opacity: 0.5;
@@ -1466,7 +1480,7 @@ select option {
 }
 
 .warning-row .domain-label {
-  color: var(--amber);
+  color: var(--accent);
 }
 .mode-switch .segment {
   flex: none;
@@ -1572,7 +1586,7 @@ select option {
 }
 .part.selected .symbol,
 .part.selected .wire {
-  stroke: var(--cyan);
+  stroke: var(--primary);
 }
 .junction-dot {
   fill: var(--text);
@@ -1585,7 +1599,7 @@ select option {
   pointer-events: none;
 }
 .part.selected .terminal-name {
-  fill: var(--cyan);
+  fill: var(--primary);
 }
 .part .hit {
   fill: transparent;
@@ -1595,14 +1609,14 @@ select option {
 }
 .part .terminal,
 .part .end {
-  fill: var(--bg);
-  stroke: var(--cyan);
+  fill: var(--background);
+  stroke: var(--primary);
   stroke-width: 1.5;
   cursor: crosshair;
 }
 .part .terminal:hover,
 .part .end:hover {
-  fill: var(--cyan);
+  fill: var(--primary);
 }
 /* A connected end keeps its handle but shows it only under the pointer. */
 .part .connected:not(:hover) {
@@ -1617,7 +1631,7 @@ select option {
 }
 .wire-ghost {
   fill: none;
-  stroke: var(--cyan);
+  stroke: var(--primary);
   stroke-width: 2;
   stroke-dasharray: 4 4;
   pointer-events: none;
@@ -1655,7 +1669,7 @@ select option {
   line-height: 1.35;
 }
 .part-label {
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  background: color-mix(in srgb, var(--background) 82%, transparent);
 }
 .node-label {
   font-size: 10px;
@@ -1663,7 +1677,7 @@ select option {
 }
 .part-id {
   display: block;
-  color: var(--amber);
+  color: var(--accent);
   font-family: var(--mono);
   font-size: 11px;
 }
@@ -1684,7 +1698,7 @@ select option {
   font-family: var(--mono);
 }
 .value-relative {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 /* ---------- Kirchhoff: marks over the schematic ---------- */
@@ -1851,7 +1865,7 @@ select option {
 }
 .circuit-note.error {
   color: var(--danger);
-  border-color: var(--amber-dim);
+  border-color: var(--accent-dim);
   border-left: 2px solid var(--danger);
 }
 
@@ -1862,7 +1876,7 @@ select option {
   margin-bottom: 12px;
 }
 .inspector-id {
-  color: var(--amber);
+  color: var(--accent);
   font-family: var(--mono);
 }
 .inspector-kind {
@@ -1894,7 +1908,7 @@ select option {
   color: var(--text);
   font-family: var(--mono);
   font-size: 12px;
-  background: var(--bg);
+  background: var(--background);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
 }
@@ -1932,9 +1946,9 @@ select option {
 }
 
 .marquee {
-  fill: var(--cyan);
+  fill: var(--primary);
   fill-opacity: 0.12;
-  stroke: var(--cyan);
+  stroke: var(--primary);
   stroke-width: 1;
   stroke-dasharray: 4 3;
 }
@@ -2038,8 +2052,8 @@ select option {
   letter-spacing: 0.08em;
   padding: 2px 6px;
   border-radius: var(--radius);
-  color: var(--amber);
-  border: 1px solid var(--amber-dim);
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
 }
 
 .section-status.failed {
@@ -2115,7 +2129,7 @@ select option {
 
 .task-input:focus {
   outline: none;
-  border-color: var(--cyan);
+  border-color: var(--primary);
 }
 
 .task-results {
@@ -2199,7 +2213,7 @@ select option {
 
 .plot-curve {
   fill: none;
-  stroke: var(--cyan);
+  stroke: var(--primary);
   stroke-width: 2;
   stroke-linejoin: round;
 }
@@ -2216,13 +2230,13 @@ select option {
 }
 
 .plot-region {
-  fill: var(--cyan);
+  fill: var(--primary);
   fill-opacity: 0.18;
   stroke: none;
 }
 
 .plot-region.negative {
-  fill: var(--amber);
+  fill: var(--accent);
 }
 
 .plot-dot {
@@ -2230,7 +2244,7 @@ select option {
 }
 
 .plot-point {
-  stroke: var(--bg);
+  stroke: var(--background);
   stroke-width: 1.5;
   cursor: pointer;
 }
@@ -2407,7 +2421,7 @@ select option {
   min-width: 0;
 }
 .matrix-cell:focus-within {
-  border-color: var(--cyan-dim);
+  border-color: var(--primary-dim);
 }
 .matrix-cell.rhs,
 .matrix-head.rhs {
@@ -2451,7 +2465,7 @@ select option {
   background: var(--surface-raised);
 }
 .json-text:focus {
-  border-color: var(--cyan-dim);
+  border-color: var(--primary-dim);
 }
 
 .matrix-large {
@@ -2504,35 +2518,35 @@ select option {
 }
 
 .geometry-object {
-  stroke: var(--object, var(--cyan));
+  stroke: var(--object, var(--primary));
   stroke-width: 1.8;
   stroke-linecap: round;
 }
 
 .geometry-hatch {
-  stroke: var(--object, var(--cyan));
+  stroke: var(--object, var(--primary));
   stroke-opacity: 0.35;
   stroke-width: 1;
 }
 
 .geometry-hidden {
-  stroke: var(--object, var(--cyan));
+  stroke: var(--object, var(--primary));
   stroke-opacity: 0.35;
   stroke-width: 1;
   stroke-dasharray: 3 3;
 }
 
 .geometry-face {
-  fill: var(--object, var(--cyan));
+  fill: var(--object, var(--primary));
   fill-opacity: 0.14;
-  stroke: var(--object, var(--cyan));
+  stroke: var(--object, var(--primary));
   stroke-opacity: 0.5;
   stroke-width: 1;
 }
 
 .geometry-marker {
-  fill: var(--object, var(--cyan));
-  stroke: var(--bg);
+  fill: var(--object, var(--primary));
+  stroke: var(--background);
   stroke-width: 1.5;
 }
 
@@ -2735,7 +2749,7 @@ select option {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent);
-  border: 1px solid var(--amber-dim);
+  border: 1px solid var(--accent-dim);
   border-radius: var(--radius);
   padding: 2px 8px;
 }
@@ -2888,9 +2902,9 @@ select option {
   .action-evaluate {
     flex: 1 0 100%;
     font-size: 16px;
-    color: var(--bg);
-    background: var(--cyan);
-    border-color: var(--cyan);
+    color: var(--background);
+    background: var(--primary);
+    border-color: var(--primary);
   }
   .action-label {
     font-size: 12px;

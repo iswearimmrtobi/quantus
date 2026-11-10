@@ -23,6 +23,7 @@ import { ToolDialog, type ToolKind } from './components/ToolDialog';
 import { I18nContext, makeTranslate } from './i18n';
 import type { TextKey } from './i18n';
 import { DEFAULT_SETTINGS, modeChoices, Segmented, SettingsDialog } from './components/SettingsDialog';
+import { useTheme } from './theme';
 
 type Panel = 'history' | 'variables' | 'sessions' | null;
 
@@ -103,6 +104,8 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
+  // Waits for the saved settings, so a dark theme does not flash light first on a light system.
+  const theme = useTheme(settingsLoaded ? settings.theme : null);
   /** Quelltext statt Formeleditor — über `\` oder Strg+L (F2). */
   const [latexMode, setLatexMode] = useState(false);
   /** The schematic lives here so it survives a switch to another mode and back. */
@@ -990,7 +993,9 @@ export function App() {
         <SettingsDialog
           settings={settings}
           error={settingsError}
+          themeError={theme.error}
           onChange={(next) => void changeSettings(next)}
+          onReloadTheme={theme.reload}
           onClose={() => {
             setSettingsOpen(false);
             editor()?.focus();

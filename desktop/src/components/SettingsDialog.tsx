@@ -1,5 +1,7 @@
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StarDelta, StepDetail, UnknownNames } from '../api';
+import { useCallback, useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StarDelta, StepDetail, Themes, UnknownNames } from '../api';
+import { api } from '../api';
+import { SYSTEM_THEME } from '../theme';
 import { LANGUAGES, LANGUAGE_NAMES, useT, type Translate } from '../i18n';
 
 interface Choice<T extends string> {
@@ -129,6 +131,7 @@ export const DEFAULT_SETTINGS: Settings = {
   recurring: true,
   complexForm: 'rectangular',
   numberBase: 'dec',
+  theme: SYSTEM_THEME,
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
@@ -196,7 +199,11 @@ function storedCategory(): Category {
 export function SettingsDialog(props: {
   settings: Settings;
   error: string | null;
+  /** Why the chosen theme is not shown. */
+  themeError: string | null;
   onChange: (settings: Settings) => void;
+  /** Reads the theme files again after the user changed one. */
+  onReloadTheme: () => void;
   onClose: () => void;
 }) {
   const { settings, onChange } = props;
@@ -233,6 +240,23 @@ export function SettingsDialog(props: {
     else setDigits(String(format.digits));
   };
 
+  // The themes folder is read again whenever the dialog opens and on Reload.
+  const [themes, setThemes] = useState<Themes | null>(null);
+  const [themeFailure, setThemeFailure] = useState<string | null>(null);
+  const loadThemes = useCallback(() => {
+    api.themes().then(setThemes, (failure) => setThemeFailure(String(failure)));
+  }, []);
+  useEffect(loadThemes, [loadThemes, settings.language]);
+  const reloadThemes = () => {
+    setThemeFailure(null);
+    loadThemes();
+    props.onReloadTheme();
+  };
+  const openThemesFolder = () => {
+    api.openThemesFolder().catch((failure) => setThemeFailure(String(failure)));
+  };
+  const chosenTheme = themes?.themes.find((theme) => theme.id === settings.theme);
+
   /** Settings that only one mode reads say which. */
   const onlyIn = (mode: Mode) => <span className="setting-only">{t('settings.onlyIn', { mode: t(`mode.${mode}`) })}</span>;
 
@@ -241,6 +265,39 @@ export function SettingsDialog(props: {
       <section className="setting">
         <h3>{t('settings.language')}</h3>
         <Segmented choices={LANGUAGE_CHOICES} value={settings.language} onChange={(v) => set('language', v)} />
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.theme')}</h3>
+        <select className="setting-select" value={settings.theme} onChange={(event) => set('theme', event.target.value)}>
+          <option value={SYSTEM_THEME}>{t('settings.theme.system')}</option>
+          {themes?.themes.map((theme) => (
+            <option key={theme.id} value={theme.id} disabled={theme.error !== null} title={theme.error ?? undefined}>
+              {theme.error === null ? theme.name : t('settings.theme.broken', { name: theme.name })}
+            </option>
+          ))}
+          {themes && settings.theme !== SYSTEM_THEME && !chosenTheme && <option value={settings.theme}>{settings.theme}</option>}
+        </select>
+        <div className="setting-actions">
+          <button className="setting-reset" onClick={openThemesFolder}>
+            {t('settings.theme.folder')}
+          </button>
+          <button className="setting-reset" onClick={reloadThemes}>
+            {t('settings.theme.reload')}
+          </button>
+        </div>
+        <p className="setting-hint">{t('settings.theme.hint', { dir: themes?.dir ?? '…' })}</p>
+        {themes?.themes
+          .filter((theme) => theme.error !== null)
+          .map((theme) => (
+            <p key={theme.id} className="setting-error">
+              {theme.id}.toml: {theme.error}
+            </p>
+          ))}
+        {chosenTheme && chosenTheme.warnings.length > 0 && (
+          <p className="setting-hint">{t('settings.theme.warnings', { warnings: chosenTheme.warnings.join('; ') })}</p>
+        )}
+        {(themeFailure ?? props.themeError) && <p className="setting-error">{themeFailure ?? props.themeError}</p>}
       </section>
 
       <section className="setting">
@@ -489,7 +546,7 @@ export function SettingsDialog(props: {
         <div className="settings-body">{pages[category]}</div>
         <div className="settings-foot">
           {props.error && <p className="setting-error">{props.error}</p>}
-          <button className="setting-reset" onClick={() => onChange({ ...DEFAULT_SETTINGS, language: settings.language })}>
+          <button className="setting-reset" onClick={() => onChange({ ...DEFAULT_SETTINGS, language: settings.language, theme: settings.theme })}>
             {t('settings.reset')}
           </button>
         </div>

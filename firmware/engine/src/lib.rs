@@ -506,5 +506,7 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
             ui::NumberBase::Bin => core::NumberBase::Bin,
             ui::NumberBase::Oct => core::NumberBase::Oct,
         },
+        // The handheld keeps its theme apart from the settings (the UI's own palette).
+        theme: core::Settings::default().theme,
     }
 }

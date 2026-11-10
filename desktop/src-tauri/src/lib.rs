@@ -5,6 +5,7 @@
 use tauri::Manager;
 
 mod commands;
+mod themes;
 #[cfg(desktop)]
 mod shell;
 
@@ -66,6 +67,9 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::delete_variable,
             commands::get_settings,
             commands::set_settings,
+            themes::themes,
+            themes::theme,
+            themes::open_themes_folder,
         ])
 }
 

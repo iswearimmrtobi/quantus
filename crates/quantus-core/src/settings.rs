@@ -257,6 +257,9 @@ pub struct Settings {
     pub complex_form: ComplexForm,
     /// The base Basis-N mode reads and writes numbers in.
     pub number_base: NumberBase,
+    /// The id of the desktop's colour theme (quantus-themes), or `system` for the light or the dark
+    /// one as the system is set. The engine does not use it; an unknown id shows the dark theme.
+    pub theme: String,
 }
 
 impl Default for Settings {
@@ -288,6 +291,7 @@ impl Default for Settings {
             recurring: true,
             complex_form: ComplexForm::Rectangular,
             number_base: NumberBase::Dec,
+            theme: "system".to_string(),
         }
     }
 }
@@ -409,7 +413,8 @@ mod tests {
                 "fractionForm": "improper",
                 "recurring": true,
                 "complexForm": "rectangular",
-                "numberBase": "dec"
+                "numberBase": "dec",
+                "theme": "system"
             })
         );
     }

@@ -486,6 +486,37 @@ export interface Settings {
   complexForm: ComplexForm;
   /** The base the Basis-N mode reads and writes. */
   numberBase: NumberBase;
+  /** The id of the colour theme (`themes/`), or `system` for light or dark as the system is set. */
+  theme: string;
+}
+
+/** A theme on offer: built in, or a file in the user's themes folder. */
+export interface ThemeInfo {
+  id: string;
+  /** In the language of the settings. */
+  name: string;
+  dark: boolean;
+  builtIn: boolean;
+  /** Why the file cannot be used; such a theme cannot be chosen. */
+  error: string | null;
+  /** Keys of the file that were ignored. */
+  warnings: string[];
+}
+
+export interface Themes {
+  /** The folder of the user's themes. */
+  dir: string;
+  themes: ThemeInfo[];
+}
+
+/** The colours of a theme as CSS variables. */
+export interface ThemeColors {
+  /** The theme shown: the one asked for, or `dark` if that cannot be used. */
+  id: string;
+  dark: boolean;
+  vars: [string, string][];
+  /** Why the theme asked for is not shown. */
+  error: string | null;
 }
 
 /** A linear system as typed (`2x + y = 5; x - y = 1` or a `cases` block) or as the rows of `[A | b]`. */
@@ -747,4 +778,11 @@ export const api = {
 
   /** Checks and saves; returns what the engine now uses. */
   saveSettings: (settings: Settings) => call<Settings>('set_settings', { settings }),
+
+  /** Every theme, read again from the themes folder. */
+  themes: () => call<Themes>('themes'),
+
+  theme: (id: string) => call<ThemeColors>('theme', { id }),
+
+  openThemesFolder: () => call<void>('open_themes_folder'),
 };
