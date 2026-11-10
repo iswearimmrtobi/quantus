@@ -1,168 +1,170 @@
-# Keypad PCB: matrix and routing
+# Keypad PCB: two boards, one 8 × 8 matrix each
 
-The EasyEDA Pro project of the small unit's keypad is `firmware/2_8_keypad.epro2` (73 × 115 mm, two
-layers, 67 matrix keys, ON, two MCP23017, an 8-pin JST SH connector). `2_8_keypad_rerouted.epro2` is
-the same project with the matrix rebuilt and the board routed; the original is untouched. Both are
-made and checked by [`tools/keypad_pcb.py`](../tools/keypad_pcb.py). The matrix itself is in
-[hardware.md](hardware.md) §3.
+The small unit's keypad was one board, `firmware/2_8_keypad.epro2` (73 × 115 mm, two layers, 67
+matrix keys and ON, two MCP23017, an 8-pin JST SH connector). At 115 mm it is past the 100 × 100 mm
+of the cheap fab tier, so it is split into two boards, each with its own MCP23017 and its own
+matrix. Both stay two-layer. The matrix itself is in [hardware.md](hardware.md) §3.
 
-## Why it was reworked
+| Board | Keys | Size | Chip |
+|---|---|---|---|
+| Top | soft keys, control row with ON, arrows, function block: 47 matrix keys (big unit 55) and ON | 73 × 71 mm | U1, 0x20 (big unit 0x21) |
+| Bottom | number block: 20 keys on both units | 73 × 44 mm | U1, 0x22 |
 
-The first matrix was *logical*: R0 held all ten soft keys, R1 the control keys and the arrows, R2
-SYMB … ln, and so on. Rows and columns therefore joined keys that sit far apart: ROW1 touched keys on
-four different rows of the PCB, COL0 ran from the soft keys to the last number row. Nothing could be
-routed without crossing everything, and the chips were not connected at all.
+The cut runs between the last function row and the first number row, at y −2810 mil of the old
+board (the rows' switch centres sit at −2618 and −3002), so no key is on both boards.
 
-## The new matrix: the physical grid
+[`tools/keypad_pcb.py`](../tools/keypad_pcb.py) sets up the matrix of each board, writes the nets,
+routes the board and checks it. The parts, the outline and the connectors are placed by hand in
+EasyEDA (below); the script cannot add parts.
 
-- **Row** = a row of keys on the PCB, counted from the top: 2 soft rows (R0, R1), the control row
-  (R2), the six rows of the function block with the arrow cross (R3–R8), the four number rows
-  (R9–R12). 13 rows.
-- **Column** = the key's place in its row of its block (C0–C5). The function block is 6 wide, the
-  others 5. The big unit has the same 13 rows and a 7th column, and its own table.
-- The cell of every key is computed from the keypad layout, so the table cannot drift from the
-  sketch (`design/keypad-sizes.html` shows it in each key's tooltip).
+## Why one 8 × 8 matrix per board
 
-Chip pins (every MCP23017 pin does the same, so the pins follow the rows):
+- An MCP23017 has 16 I/O pins: 8 rows on GPA0–GPA7 (inputs with pull-ups) and 8 columns on
+  GPB0–GPB7 (outputs) read 64 keys, every pin in use.
+- Only the bus crosses the cut: 3V3, GND, SDA, SCL, KP_INT, KP_RESET. No row or column net leaves its
+  board, so each board routes on its own, with its chip next to its keys.
+- Still three chips in all: the top board's, the bottom board's, and chip 3 on the main board.
+
+Two layers are enough: rows on the top layer, columns on the bottom, as the router prefers anyway.
+A four-layer board would add a GND plane that I²C at 400 kHz does not need; a GND pour on both
+layers does the same job here.
+
+## The matrices
+
+A row is a row of keys, a column the key's place in its row of its block, as before. The top board
+has nine rows of keys for eight matrix rows, so the control row (five keys, ON is not in the matrix)
+gets its own column, C7, and takes rows R0–R4; it lies directly below the two soft rows, so those row
+nets only run one row further down.
+
+Top board, small unit:
+
+| | C0 | C1 | C2 | C3 | C4 | C5 | C6 | C7 |
+|---|---|---|---|---|---|---|---|---|
+| R0 | F1 | F2 | F3 | F4 | F5 | – | – | SHIFT |
+| R1 | F6 | F7 | F8 | F9 | F10 | – | – | ALPHA |
+| R2 | SYMB | a/b | √ | – | ▲ | – | – | UNIT |
+| R3 | VARS | x² | xʸ | ◄ | OK | ► | – | OPTN |
+| R4 | CALC | log | ln | – | ▼ | – | – | MODE |
+| R5 | (−) | x⁻¹ | sin | cos | tan | π | – | – |
+| R6 | ( | ) | = | ; | CONST | ENG | – | – |
+| R7 | x | y | e | i | CONV | S⇔D | – | – |
+
+Top board, big unit:
+
+| | C0 | C1 | C2 | C3 | C4 | C5 | C6 | C7 |
+|---|---|---|---|---|---|---|---|---|
+| R0 | F1 | F2 | F3 | F4 | F5 | F6 | – | SHIFT |
+| R1 | F7 | F8 | F9 | F10 | F11 | F12 | – | ALPHA |
+| R2 | SYMB | a/b | √ | x² | – | ▲ | – | UNIT |
+| R3 | VARS | xʸ | log | ln | ◄ | OK | ► | OPTN |
+| R4 | CALC | UNDO | ▶unit | x³ | – | ▼ | – | MODE |
+| R5 | (−) | x⁻¹ | sin | cos | tan | π | 10ˣ | – |
+| R6 | ( | ) | = | ; | CONST | ENG | Σ | – |
+| R7 | x | y | e | i | CONV | S⇔D | ∫ | – |
+
+Bottom board, both units (GPA4–GPA7 and GPB5–GPB7 stay free):
+
+| | C0 | C1 | C2 | C3 | C4 |
+|---|---|---|---|---|---|
+| R0 | 7 | 8 | 9 | DEL | AC |
+| R1 | 4 | 5 | 6 | × | ÷ |
+| R2 | 1 | 2 | 3 | + | − |
+| R3 | 0 | , | ×10ˣ | Ans | EXE |
+
+Chip pins, the same on both boards:
 
 | Net | Chip pins |
 |---|---|
-| ROW0–ROW7 | U1 GPA0–GPA7 (pins 21–28) |
-| ROW8–ROW12 | U1 GPB1–GPB5 (pins 2–6); GPB0 stays the unit strap, GPB6–7 free |
-| COL0–COL5 | U2 GPA0–GPA5 (pins 21–26); the rest free |
+| ROW0–ROW7 | GPA0–GPA7 (pins 21–28) |
+| COL0–COL7 | GPB0–GPB7 (pins 1–8) |
 
-Gone: ROW7 as "big unit only", COL6–COL9. A scan is six steps instead of ten.
+The firmware addresses a key as (board, row, column). Which unit it is follows from the address of
+the top board's chip (0x20 small, 0x21 big), so the GPB0 strap of the one-board design is gone.
 
-## Edits to the project
+## Connectors
 
-Schematic (pages `soft_btn`, `control_btn`, `arrow_btn`, `function_btn`, `number_btn`,
-`matrix_input`):
+- **J1 on the top board**, to the main board: as before, 8-pin JST SH: 1 3V3, 2 GND, 3 SDA, 4 SCL,
+  5 GND, 6 KP_INT, 7 KP_RESET, 8 PWR_ON (the ON key).
+- **J2 on the top board** and **J1 on the bottom board**, 6-pin JST SH (`SM06B-SRSS-TB`): 1 3V3,
+  2 GND, 3 SDA, 4 SCL, 5 KP_INT, 6 KP_RESET. Check that the cable connects pin 1 to pin 1; ready-made
+  SH cables come both ways.
 
-- the two net ports of each of the 67 switches renamed to the new ROWn / COLm, and the labels
-  ("F1  R0C0") to the new cell; the page notes point to this file;
-- `matrix_input`: the net ports of U1 and U2 moved to the pins above, ROW8–ROW12 added, COL6–COL9
-  removed.
+KP_INT is shared: the firmware sets `IOCON.MIRROR` (INTA and INTB on both pins) and `IOCON.ODR`
+(open drain) on both chips, and the one pull-up sits on the main board, as before. KP_RESET keeps its
+pull-up R1 on the top board.
 
-PCB:
+## Making the two projects in EasyEDA
 
-- pad nets of the switches, U1 and U2; the net list (ROW8–ROW12 added, COL6–COL9 removed); the
-  silkscreen text "SWn RxCy" of each key;
-- all old ROW/COL tracks (205) and vias (10) removed;
-- new copper: 887 tracks (about 2.7 m), 185 vias.
+Both start as copies of `2_8_keypad.epro2`; the original stays untouched.
 
-Everything else is as it was: outline, parts and their places, other silkscreen, rules, 3D models.
-J1, C1, C2, R1 and the chips were not moved.
+`2_8_keypad_top.epro2`:
 
-### Old and new cell of every key
+1. Delete SW49–SW68 and U2, C2 (schematic and PCB).
+2. Board outline: y from 0 to −2810 mil.
+3. U1 address: A0 (pin 15) to GND, A1 and A2 to GND, for 0x20. The big unit's board ties A0 to 3V3
+   for 0x21.
+4. U1 INTA (pin 20) and INTB (pin 19) both to KP_INT.
+5. Add J2 (6-pin SH) at the bottom edge with the nets above.
+6. On the `matrix_input` page, at least one ROW or COL net port must remain on U1; the script
+   rebuilds them all from it.
 
-| Switch | Key | Old | New |
-|---|---|---|---|
-| SW1 | F1 | R0C0 | R0C0 |
-| SW2 | F2 | R0C1 | R0C1 |
-| SW3 | F3 | R0C2 | R0C2 |
-| SW4 | F4 | R0C3 | R0C3 |
-| SW5 | F5 | R0C4 | R0C4 |
-| SW6 | F6 | R0C5 | R1C0 |
-| SW7 | F7 | R0C6 | R1C1 |
-| SW8 | F8 | R0C7 | R1C2 |
-| SW9 | F9 | R0C8 | R1C3 |
-| SW10 | F10 | R0C9 | R1C4 |
-| SW11 | SHIFT | R1C0 | R2C0 |
-| SW12 | ALPHA | R1C1 | R2C1 |
-| SW13 | UNIT | R1C2 | R2C2 |
-| SW14 | OPTN | R1C3 | R2C3 |
-| SW15 | MODE | R1C4 | R2C4 |
-| SW17 | ▲ | R1C5 | R3C4 |
-| SW18 | ◄ | R1C6 | R4C3 |
-| SW19 | OK | R1C7 | R4C4 |
-| SW20 | ► | R1C8 | R4C5 |
-| SW21 | ▼ | R1C9 | R5C4 |
-| SW22 | SYMB | R2C0 | R3C0 |
-| SW23 | a/b | R2C3 | R3C1 |
-| SW24 | √ | R2C4 | R3C2 |
-| SW25 | VARS | R2C1 | R4C0 |
-| SW26 | x² | R2C5 | R4C1 |
-| SW27 | xʸ | R2C6 | R4C2 |
-| SW28 | CALC | R2C2 | R5C0 |
-| SW29 | log | R2C7 | R5C1 |
-| SW30 | ln | R2C8 | R5C2 |
-| SW31 | (−) | R3C0 | R6C0 |
-| SW32 | x⁻¹ | R3C1 | R6C1 |
-| SW33 | sin | R3C2 | R6C2 |
-| SW34 | cos | R3C3 | R6C3 |
-| SW35 | tan | R3C4 | R6C4 |
-| SW36 | π | R3C5 | R6C5 |
-| SW37 | ( | R3C6 | R7C0 |
-| SW38 | ) | R3C7 | R7C1 |
-| SW39 | = | R3C8 | R7C2 |
-| SW40 | ; | R3C9 | R7C3 |
-| SW41 | CONST | R4C0 | R7C4 |
-| SW42 | ENG | R4C1 | R7C5 |
-| SW43 | x | R4C2 | R8C0 |
-| SW44 | y | R4C3 | R8C1 |
-| SW45 | e | R4C4 | R8C2 |
-| SW46 | i | R4C5 | R8C3 |
-| SW47 | CONV | R4C6 | R8C4 |
-| SW48 | S⇔D | R4C7 | R8C5 |
-| SW49 | 7 | R5C0 | R9C0 |
-| SW50 | 8 | R5C1 | R9C1 |
-| SW51 | 9 | R5C2 | R9C2 |
-| SW52 | DEL | R5C3 | R9C3 |
-| SW53 | AC | R5C4 | R9C4 |
-| SW54 | 4 | R5C5 | R10C0 |
-| SW55 | 5 | R5C6 | R10C1 |
-| SW56 | 6 | R5C7 | R10C2 |
-| SW57 | × | R5C8 | R10C3 |
-| SW58 | ÷ | R5C9 | R10C4 |
-| SW59 | 1 | R6C0 | R11C0 |
-| SW60 | 2 | R6C1 | R11C1 |
-| SW61 | 3 | R6C2 | R11C2 |
-| SW62 | + | R6C3 | R11C3 |
-| SW63 | − | R6C4 | R11C4 |
-| SW64 | 0 | R6C5 | R12C0 |
-| SW65 | , | R6C6 | R12C1 |
-| SW66 | ×10ˣ | R6C7 | R12C2 |
-| SW67 | Ans | R6C8 | R12C3 |
-| SW68 | EXE | R6C9 | R12C4 |
+`2_8_keypad_bottom.epro2`:
+
+1. Delete SW1–SW48 (ON included), U1, C1, R1 and the 8-pin J1.
+2. Board outline: y from −2810 to −4528 mil (or move everything up so it starts at 0).
+3. Keep U2 and rename it U1. Its straps already give 0x22 (A1 to 3V3, A0 and A2 to GND).
+4. U1 INTA and INTB both to KP_INT (on the old U2 they were not connected).
+5. Add J1 (6-pin SH) at the top edge, and move C2 (renamed C1) next to U1.
+6. One ROW or COL net port on U1 on the `matrix_input` page, as above.
+
+On both boards: screw holes or bosses near the cut on each side, so the keys next to the cut do not
+give.
 
 ## Routing
 
 Done by the script's own router, not EasyEDA's: two layers on a 5 mil grid, eight directions, A*
-from the routed part of a net to its next pad, a failed net is moved to the front and everything is
-routed again.
+from the routed part of a net to its next pad. If a net fails, it moves to the front and the whole
+board is routed again.
 
 - 10 mil tracks, vias 12 / 24 mil (the project's sizes), 10 mil clearance while routing (the rule
   asks 6 mil; the grid costs up to 3.5 mil), 20 mil from the board edge.
-- Top layer prefers horizontal runs (the rows), the bottom layer vertical ones (the columns and the
-  runs to the chips). Each fine-pitch pad of U1, U2 and J1 gets a straight 70 mil escape stub first,
-  so later nets cannot box it in.
+- The top layer prefers horizontal runs (the rows), the bottom layer vertical ones (the columns and
+  the runs to the chip). Each fine-pitch pad of U1 and the connectors first gets a straight 70 mil
+  escape stub, so later nets cannot box it in.
 - Power (3V3, GND) is routed as 10 mil tracks like the rest. A GND pour on both layers is the one
   thing worth adding by hand.
 - The checker works on the geometry, not the router's grid: every net is one connected piece, no
-  copper of two nets closer than 6 mil (tightest found: 11 mil), nothing near the board edge.
-
-The bottom-layer pads of J1 sit under the soft key SW3 on the top; the layers do not touch, but no
-via can go there.
+  copper of two nets closer than 6 mil, nothing near the board edge.
 
 ## Check it in EasyEDA
 
-The script cannot open EasyEDA, so the file has not been loaded by it yet:
+The script cannot open EasyEDA, so check its output by hand:
 
-1. Open `2_8_keypad_rerouted.epro2`. If it refuses, say so; the original is untouched.
-2. PCB: *Design → DRC*, and the ratsnest must be empty. *Design → Update from schematic* must find
-   nothing to change (schematic and PCB use the same nets).
-3. The bottom-layer pin order of J1 follows the footprint as drawn (pin 1 at the left, seen from the
-   top); check it against the main board and the cable, as the schematic note says.
-4. Optional: a GND pour; decoupling caps C1/C2 sit about 12 mm from their chips and could move
-   closer.
+1. Open `2_8_keypad_<part>_routed.epro2`. If EasyEDA refuses it, say so; the source project is
+   untouched.
+2. PCB: *Design → DRC* must pass and the ratsnest must be empty. *Design → Update from schematic*
+   must find nothing to change (schematic and PCB use the same nets).
+3. Check the pin order of every connector against the cable and the main board.
+4. Optional: a GND pour.
 
 ## Redoing it
 
 ```sh
-python3 -I firmware/tools/keypad_pcb.py --table                 # only the matrix
-python3 -I firmware/tools/keypad_pcb.py --render keypad.png     # route, check, draw, write
+python3 -I firmware/tools/keypad_pcb.py --part top --table               # only the matrix
+python3 -I firmware/tools/keypad_pcb.py --part top --render top.png      # route, check, draw, write
+python3 -I firmware/tools/keypad_pcb.py --part bottom --render bottom.png
 ```
 
-Needs Python 3, numpy, and matplotlib for `--render`. About two minutes. It always starts from
-`2_8_keypad.epro2`, so a later change to the keypad layout is made in the layout tables at the top
-of the script (and in `design/keypad-sizes.html`), then the board is made again.
+Needs Python 3, numpy, and matplotlib for `--render`. The input is `2_8_keypad_<part>.epro2` and the
+output `2_8_keypad_<part>_routed.epro2`. A change to the keypad layout goes into the layout tables at
+the top of the script (and into `design/keypad-sizes.html`), and then the boards are made again.
+`--table` also works without the projects; it then prints the matrix only.
+
+## History
+
+The first matrix was *logical*: R0 held all ten soft keys, R1 the control keys and the arrows, and so
+on. Its rows and columns joined keys that sat far apart, so nothing could be routed. The second one
+was the physical grid on the one board, 13 rows × 6 columns on two chips (rows on U1, columns on U2,
+GPB0 of U1 the unit strap), routed by this script into `2_8_keypad_rerouted.epro2`. That board's
+rows ran to one chip and its columns to the other, all over a board too long for the cheap tier,
+which led to the split.
