@@ -113,6 +113,20 @@ pub trait Backend {
         Wallpaper::from_bmp(&self.wallpaper(name)?)
     }
 
+    /// The colour themes in `/themes/` on the SD card: each file's name without `.toml` and
+    /// its text, in any order.
+    fn themes(&mut self) -> Vec<(String, String)> {
+        Vec::new()
+    }
+
+    /// The id of the theme kept from the last run, if any.
+    fn load_theme(&mut self) -> Option<String> {
+        None
+    }
+
+    /// Keeps the theme `id` for the next run.
+    fn keep_theme(&mut self, _id: &str) {}
+
     /// How full the SD card is; `None` without a card.
     fn storage(&mut self) -> Option<Storage> {
         None

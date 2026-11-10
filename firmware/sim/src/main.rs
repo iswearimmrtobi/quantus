@@ -15,7 +15,8 @@
 //! - `--sd <dir>`: the folder that stands for the SD card (`sd` by default); the wallpapers are
 //!   the 480×320 BMP files in its `wallpapers` folder, the sessions the JSON files in its
 //!   `sessions` folder (with `--png` they are kept in memory, so a screenshot changes nothing),
-//!   the settings `settings.txt` in it, the saved WLAN networks `wlan.txt`. WLAN is played: three
+//!   the settings `settings.txt` in it, the saved WLAN networks `wlan.txt`, the colour themes the
+//!   `.toml` files in its `themes` folder and the theme set `theme.txt`. WLAN is played: three
 //!   made-up networks, any password taken.
 
 mod keypad;
@@ -451,6 +452,36 @@ impl Backend for Sim {
 
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         std::fs::read(self.sd.join("wallpapers").join(format!("{name}.bmp"))).ok()
+    }
+
+    /// The `.toml` files in the `themes` folder.
+    fn themes(&mut self) -> Vec<(String, String)> {
+        let Ok(files) = std::fs::read_dir(self.sd.join("themes")) else { return Vec::new() };
+        files
+            .filter_map(|file| {
+                let path = file.ok()?.path();
+                if !path.extension()?.eq_ignore_ascii_case("toml") {
+                    return None;
+                }
+                let id = path.file_stem()?.to_str()?.to_string();
+                Some((id, std::fs::read_to_string(&path).ok()?))
+            })
+            .collect()
+    }
+
+    /// `theme.txt` in the SD folder.
+    fn load_theme(&mut self) -> Option<String> {
+        let id = std::fs::read_to_string(self.sd.join("theme.txt")).ok()?;
+        Some(id.trim().to_string()).filter(|id| !id.is_empty())
+    }
+
+    fn keep_theme(&mut self, id: &str) {
+        let path = self.sd.join("theme.txt");
+        if self.keep {
+            if let Err(error) = std::fs::create_dir_all(&self.sd).and_then(|()| std::fs::write(&path, id)) {
+                eprintln!("theme not kept in {}: {error}", path.display());
+            }
+        }
     }
 
     /// The folder as a card of [`SD_CAPACITY`]: what its files take is used.

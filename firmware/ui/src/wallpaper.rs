@@ -87,8 +87,13 @@ impl Wallpaper {
         if pixels.len() != (WIDTH * HEIGHT) as usize {
             return None;
         }
-        let dim: Vec<Rgb565> = pixels.iter().map(|&pixel| blend(colors::BACKGROUND, pixel, DIM)).collect();
+        let dim: Vec<Rgb565> = pixels.iter().map(|&pixel| blend(colors::background(), pixel, DIM)).collect();
         Some(Wallpaper { full: ram(pixels), dim: ram(dim) })
+    }
+
+    /// The picture dimmed again, towards the background of the theme in force now.
+    pub fn redimmed(&self) -> Option<Wallpaper> {
+        Wallpaper::new((0..(WIDTH * HEIGHT) as usize).map(|index| self.full.get(index)).collect())
     }
 
     /// A picture kept in flash: both forms as raw RGB565 ([`Pixels::to_raw`]).
@@ -105,7 +110,7 @@ impl Wallpaper {
         }
         // Drawn rather than read with `Bmp::pixels`, which in tinybmp 0.7 turns a bottom-up
         // file (the usual kind) upside down.
-        let mut screen = Screen(vec![colors::BACKGROUND; (WIDTH * HEIGHT) as usize]);
+        let mut screen = Screen(vec![colors::background(); (WIDTH * HEIGHT) as usize]);
         bmp.draw(&mut screen).ok()?;
         Wallpaper::new(screen.0)
     }

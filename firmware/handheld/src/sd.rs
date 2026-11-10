@@ -133,3 +133,18 @@ pub fn wallpapers() -> Vec<String> {
 pub fn wallpaper(name: &str) -> Option<Vec<u8>> {
     std::fs::read(format!("{MOUNT}/wallpapers/{name}.bmp")).ok()
 }
+
+/// The colour themes in `/themes/`: each file's name without `.toml`, and its text.
+pub fn themes() -> Vec<(String, String)> {
+    let Ok(files) = std::fs::read_dir(format!("{MOUNT}/themes")) else { return Vec::new() };
+    files
+        .filter_map(|file| {
+            let path = file.ok()?.path();
+            if !path.extension()?.eq_ignore_ascii_case("toml") {
+                return None;
+            }
+            let id = path.file_stem()?.to_str()?.to_string();
+            Some((id, std::fs::read_to_string(&path).ok()?))
+        })
+        .collect()
+}

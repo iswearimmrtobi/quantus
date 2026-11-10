@@ -1,5 +1,5 @@
 //! What the handheld keeps in flash: a namespace in the NVS partition with the touch
-//! calibration, the wallpaper's name, the settings and the C6 image sent last.
+//! calibration, the wallpaper's name, the theme's id, the settings and the C6 image sent last.
 
 use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
 use esp_idf_svc::sys::EspError;
@@ -13,6 +13,7 @@ const NAMESPACE: &str = "quantus";
 /// the capacitive panel.
 const CALIBRATION: &str = "touch_cal_i2c";
 const WALLPAPER: &str = "wallpaper";
+const THEME: &str = "theme";
 const SETTINGS: &str = "settings";
 const C6_TRIED: &str = "c6_tried";
 
@@ -44,6 +45,16 @@ impl Store {
             Some(name) => self.0.set_str(WALLPAPER, name),
             None => self.0.remove(WALLPAPER).map(|_| ()),
         }
+    }
+
+    /// The id of the colour theme set, if one was kept.
+    pub fn load_theme(&self) -> Option<String> {
+        let mut buffer = [0u8; 256];
+        self.0.get_str(THEME, &mut buffer).ok()?.map(str::to_string)
+    }
+
+    pub fn save_theme(&self, id: &str) -> Result<(), EspError> {
+        self.0.set_str(THEME, id)
     }
 
     /// The settings of the last run, if they were kept.

@@ -156,13 +156,13 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         let Some(area) = cell_rect(kind, sheet, sheet.top, column) else { continue };
         let head = layout::layout(head, Scale::Small);
         let x = area.top_left.x + (area.size.width as i32 - head.width) / 2;
-        shapes.push(Shape::Math(Point::new(x, HEADS - head.descent), head, colors::MUTED));
+        shapes.push(Shape::Math(Point::new(x, HEADS - head.descent), head, colors::muted()));
     }
     if kind == Kind::Linear {
         if let Some(area) = cell_rect(kind, sheet, sheet.top, sheet.columns() - 1) {
             let rows = (sheet.rows() - sheet.top).min(ROWS_SHOWN) as u32;
             let line = Rectangle::new(area.top_left - Point::new(3, 0), Size::new(1, rows * ROW as u32 - 4));
-            shapes.push(Shape::Fill(line, colors::HAIRLINE));
+            shapes.push(Shape::Fill(line, colors::hairline()));
         }
     }
 
@@ -176,17 +176,17 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         let laid = layout::layout(&latex::parse(&function), Scale::Normal);
         let baseline = FORM_TOP + (ROW - 4 + laid.ascent - laid.descent) / 2;
         let (x, width) = (MARGIN, laid.width);
-        shapes.push(Shape::Math(Point::new(x, baseline), laid, colors::AMBER));
+        shapes.push(Shape::Math(Point::new(x, baseline), laid, colors::accent()));
         if kind == Kind::Area {
             let hint = OUTER_ZEROS.get(app.settings.language).to_string();
             let y = top(kind) + 2 * ROW + Scale::Small.metrics().ascent + 4;
-            shapes.push(Shape::Text(Point::new(MARGIN, y), hint, Scale::Small, colors::FAINT));
+            shapes.push(Shape::Text(Point::new(MARGIN, y), hint, Scale::Small, colors::faint()));
         }
         // Along the right of the input, which letter SOLVE solves for.
         if app.sheets.asked.as_ref().is_some_and(|asked| asked.solve) {
             let hint = text::SOLVE_HINT.get(app.settings.language).to_string();
             let x = WIDTH as i32 - MARGIN - Scale::Small.width(&hint);
-            shapes.push(Shape::Text(Point::new(x.max(MARGIN + width + 12), baseline), hint, Scale::Small, colors::FAINT));
+            shapes.push(Shape::Text(Point::new(x.max(MARGIN + width + 12), baseline), hint, Scale::Small, colors::faint()));
         }
     }
 
@@ -196,11 +196,11 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         let baseline = y + (ROW - 4 + Scale::Normal.metrics().digit) / 2;
         if matches!(kind, Kind::Formula | Kind::Estimates) {
             let laid = layout::layout(&latex::parse(label), Scale::Normal);
-            shapes.push(Shape::Math(Point::new(MARGIN, baseline), laid, colors::MUTED));
+            shapes.push(Shape::Math(Point::new(MARGIN, baseline), laid, colors::muted()));
             continue;
         }
         let label = fit(label, LABEL_WIDTH - 8, Scale::Normal);
-        shapes.push(Shape::Text(Point::new(MARGIN, baseline), label, Scale::Normal, colors::MUTED));
+        shapes.push(Shape::Text(Point::new(MARGIN, baseline), label, Scale::Normal, colors::muted()));
     }
 
     // The cells; the one at the cursor outlined, in the accent while it is edited.
@@ -209,11 +209,11 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
             let Some(area) = cell_rect(kind, sheet, row, column) else { continue };
             let here = sheet.cursor == (row, column);
             let outline = match (here, &sheet.editing) {
-                (true, Some(_)) => Some(colors::AMBER),
-                (true, None) => Some(colors::CYAN),
+                (true, Some(_)) => Some(colors::accent()),
+                (true, None) => Some(colors::primary()),
                 _ => None,
             };
-            let fill = if here { colors::CYAN_DIM } else { colors::SURFACE };
+            let fill = if here { colors::primary_dim() } else { colors::surface() };
             shapes.push(panel(rounded(area.top_left, area.size, 6), fill, outline, glass));
             let content = match (here, &sheet.editing) {
                 (true, Some(editor)) => &editor.row,
@@ -234,13 +234,13 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
     }
 
     // The cell at the cursor in full along the bottom, with the caret while it is edited.
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, EDIT_TOP), Size::new(WIDTH - 2 * MARGIN as u32, 1)), colors::HAIRLINE));
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, EDIT_TOP), Size::new(WIDTH - 2 * MARGIN as u32, 1)), colors::hairline()));
     let name = cursor_name(app, kind, sheet);
     let normal = Scale::Normal.metrics();
     let at = Point::new(MARGIN, EDIT_TOP + 6 + normal.ascent);
     match kind {
-        Kind::Formula | Kind::Estimates => shapes.push(Shape::Math(at, layout::layout(&latex::parse(&name), Scale::Normal), colors::MUTED)),
-        _ => shapes.push(Shape::Text(at, name, Scale::Normal, colors::MUTED)),
+        Kind::Formula | Kind::Estimates => shapes.push(Shape::Math(at, layout::layout(&latex::parse(&name), Scale::Normal), colors::muted())),
+        _ => shapes.push(Shape::Text(at, name, Scale::Normal, colors::muted())),
     }
     let (row, column) = sheet.cursor;
     let (content, editor) = match &sheet.editing {
@@ -259,11 +259,11 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         }
         if app.caret_on {
             let caret = layout::caret(&laid, origin, editor.path(), editor.pos());
-            shapes.push(Shape::Fill(caret, colors::CYAN));
+            shapes.push(Shape::Fill(caret, colors::primary()));
         }
     }
     if !content.is_empty() {
-        shapes.push(Shape::Math(origin, laid, colors::TEXT));
+        shapes.push(Shape::Math(origin, laid, colors::text()));
     }
 }
 
@@ -288,9 +288,9 @@ fn cell_content(shapes: &mut Vec<Shape>, content: &Row, area: Rectangle) {
     let x = if cut { area.top_left.x + 5 } else { right - laid.width };
     if cut {
         let at = Point::new(x + laid.width, baseline);
-        shapes.push(Shape::Text(at, "...".to_string(), Scale::Small, colors::MUTED));
+        shapes.push(Shape::Text(at, "...".to_string(), Scale::Small, colors::muted()));
     }
-    shapes.push(Shape::Math(Point::new(x, baseline), laid, colors::TEXT));
+    shapes.push(Shape::Math(Point::new(x, baseline), laid, colors::text()));
 }
 
 /// A small triangle: there is more above or below.
@@ -298,7 +298,7 @@ fn arrow(shapes: &mut Vec<Shape>, tip: Point, up: bool) {
     let (dy, base) = if up { (0, 7) } else { (0, -7) };
     let tip = tip + Point::new(0, dy);
     let triangle = Triangle::new(tip, tip + Point::new(-5, base), tip + Point::new(5, base));
-    shapes.push(Shape::Triangle(triangle, colors::FAINT));
+    shapes.push(Shape::Triangle(triangle, colors::faint()));
 }
 
 /// The answer, from its first line or row on: lines of math and the matrices of the steps, or a
@@ -318,7 +318,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
             let metrics = Scale::Normal.metrics();
             for line in wrap(message, WIDTH as i32 - 2 * MARGIN, Scale::Normal) {
                 y += metrics.ascent;
-                shapes.push(Shape::Text(Point::new(MARGIN, y), line, Scale::Normal, colors::ERROR));
+                shapes.push(Shape::Text(Point::new(MARGIN, y), line, Scale::Normal, colors::error()));
                 y += metrics.descent + 4;
             }
             return;
@@ -326,7 +326,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
     };
     if reply.is_empty() {
         let at = Point::new(MARGIN, y + Scale::Normal.metrics().ascent);
-        shapes.push(Shape::Text(at, text::NO_ENTRIES.get(lang).to_string(), Scale::Normal, colors::MUTED));
+        shapes.push(Shape::Text(at, text::NO_ENTRIES.get(lang).to_string(), Scale::Normal, colors::muted()));
         return;
     }
     let mut more = false;
@@ -341,7 +341,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
                             more = true;
                             break;
                         }
-                        shapes.push(Shape::Math(Point::new(x, y + laid.ascent + 3), laid, colors::RESULT));
+                        shapes.push(Shape::Math(Point::new(x, y + laid.ascent + 3), laid, colors::result()));
                         height
                     }
                     Line::Note(note) => {
@@ -351,7 +351,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
                             more = true;
                             break;
                         }
-                        shapes.push(Shape::Text(Point::new(x, y + 3 + metrics.ascent), note.clone(), Scale::Small, colors::MUTED));
+                        shapes.push(Shape::Text(Point::new(x, y + 3 + metrics.ascent), note.clone(), Scale::Small, colors::muted()));
                         height
                     }
                     Line::Matrix(matrix) => {
@@ -377,7 +377,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
             let cell = |shapes: &mut Vec<Shape>, column: usize, latex: &str, y: i32, color| {
                 let left = x + column as i32 * width;
                 if latex.is_empty() {
-                    shapes.push(Shape::Text(Point::new(left + width - 20, y), "-".to_string(), Scale::Small, colors::FAINT));
+                    shapes.push(Shape::Text(Point::new(left + width - 20, y), "-".to_string(), Scale::Small, colors::faint()));
                     return;
                 }
                 let laid = layout::layout(&latex::parse(latex), Scale::Small);
@@ -386,17 +386,17 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
             };
             let heads = y + small.ascent + 2;
             for (column, head) in header.iter().enumerate() {
-                cell(shapes, column, head, heads, colors::MUTED);
+                cell(shapes, column, head, heads, colors::muted());
             }
             y += line;
-            shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, y - 6), Size::new(WIDTH - 2 * MARGIN as u32, 1)), colors::HAIRLINE));
+            shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, y - 6), Size::new(WIDTH - 2 * MARGIN as u32, 1)), colors::hairline()));
             for row in rows.iter().skip(answer.scroll) {
                 if y + line > bottom {
                     more = true;
                     break;
                 }
                 for (column, value) in row.iter().enumerate() {
-                    cell(shapes, column, value, y + small.ascent + 4, if column == 0 { colors::TEXT } else { colors::RESULT });
+                    cell(shapes, column, value, y + small.ascent + 4, if column == 0 { colors::text() } else { colors::result() });
                 }
                 y += line;
             }
@@ -474,36 +474,36 @@ impl MatrixLayout {
         let bracket = |x: i32, toward: i32| {
             vec![Point::new(x + toward, at.y), Point::new(x, at.y + 3), Point::new(x, at.y + height - 3), Point::new(x + toward, at.y + height)]
         };
-        shapes.push(Shape::Path(bracket(open, 4), colors::TEXT, 1));
+        shapes.push(Shape::Path(bracket(open, 4), colors::text(), 1));
         let mut column_x = Vec::new();
         let mut x = open + 8;
         for (column, width) in widths.iter().enumerate() {
             if column == split && column > 0 {
                 let bar = Rectangle::new(Point::new(x - GAP / 2 - 1, at.y + 2), Size::new(1, (height - 4).max(1) as u32));
-                shapes.push(Shape::Fill(bar, colors::MUTED));
+                shapes.push(Shape::Fill(bar, colors::muted()));
             }
             column_x.push(x);
             x += width + GAP;
         }
         let close = x - GAP + 6;
-        shapes.push(Shape::Path(bracket(close, -4), colors::TEXT, 1));
+        shapes.push(Shape::Path(bracket(close, -4), colors::text(), 1));
         for (index, row) in cells.into_iter().enumerate() {
             let baseline = at.y + baselines[index];
             for (column, cell) in row.into_iter().enumerate() {
                 let right = column_x[column] + widths[column];
-                shapes.push(Shape::Math(Point::new(right - cell.width, baseline), cell, colors::TEXT));
+                shapes.push(Shape::Math(Point::new(right - cell.width, baseline), cell, colors::text()));
             }
         }
         for (index, name) in names.into_iter().enumerate() {
             let Some(name) = name else { continue };
             if let Some(&baseline) = baselines.get(index) {
-                shapes.push(Shape::Math(Point::new(at.x, at.y + baseline), name, colors::MUTED));
+                shapes.push(Shape::Math(Point::new(at.x, at.y + baseline), name, colors::muted()));
             }
         }
         for (index, note) in notes.into_iter().enumerate() {
             let Some(note) = note else { continue };
             if let Some(&baseline) = baselines.get(index) {
-                shapes.push(Shape::Math(Point::new(close + 12, at.y + baseline), note, colors::MUTED));
+                shapes.push(Shape::Math(Point::new(close + 12, at.y + baseline), note, colors::muted()));
             }
         }
     }

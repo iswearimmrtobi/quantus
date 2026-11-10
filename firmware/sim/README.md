@@ -31,7 +31,8 @@ The folder `sd` (or the one after `--sd`) stands for the SD card; its `wallpaper
 the pictures for SETUP → Gerät → Hintergrundbild and its `sessions` folder the sessions, as on
 the board ([sd-card.md](../docs/sd-card.md#what-goes-on-the-card)). With `--png` the sessions are
 read but not written. `sd/` is in `.gitignore`. The settings are kept in its `settings.txt`, the
-saved WLAN networks in `wlan.txt`.
+saved WLAN networks in `wlan.txt`, the colour themes for SETUP → Gerät → Farbschema are the `.toml`
+files in its `themes` folder, and the theme set is kept in `theme.txt`.
 
 WLAN is played: SETUP → Verbindungen → WLAN finds three made-up networks after 1.5 s
 (*Quantus-Labor*, *FRITZ!Box 7590*, the open *Café Gast*), takes any password and connects

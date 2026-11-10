@@ -143,12 +143,12 @@ fn tick_label(value: f32, step: f32, lang: Lang) -> String {
 /// The colour a point is marked in.
 fn mark_color(kind: MarkKind) -> Rgb565 {
     match kind {
-        MarkKind::Max | MarkKind::Min | MarkKind::Boundary => colors::AMBER,
-        MarkKind::Zero => colors::CYAN,
-        MarkKind::Inflection | MarkKind::Saddle => colors::ALPHA,
-        MarkKind::YIntercept => colors::MUTED,
-        MarkKind::Hole => colors::TEXT,
-        MarkKind::Touch => colors::SHIFT,
+        MarkKind::Max | MarkKind::Min | MarkKind::Boundary => colors::accent(),
+        MarkKind::Zero => colors::primary(),
+        MarkKind::Inflection | MarkKind::Saddle => colors::alpha(),
+        MarkKind::YIntercept => colors::muted(),
+        MarkKind::Hole => colors::text(),
+        MarkKind::Touch => colors::shift(),
     }
 }
 
@@ -249,15 +249,15 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
     for x in ticks(window.x_min, window.x_max, x_step) {
         let sx = plot.screen(x, 0.0).0.round() as i32;
         let line = Rectangle::new(Point::new(sx, area.top_left.y), Size::new(1, area.size.height));
-        shapes.push(Shape::Fill(line, colors::HAIRLINE));
+        shapes.push(Shape::Fill(line, colors::hairline()));
     }
     for y in ticks(window.y_min, window.y_max, y_step) {
         let sy = plot.screen(0.0, y).1.round() as i32;
         let line = Rectangle::new(Point::new(area.top_left.x, sy), Size::new(area.size.width, 1));
-        shapes.push(Shape::Fill(line, colors::HAIRLINE));
+        shapes.push(Shape::Fill(line, colors::hairline()));
     }
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(area.top_left.x, axis_x), Size::new(area.size.width, 1)), colors::MUTED));
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(axis_y, area.top_left.y), Size::new(1, area.size.height)), colors::MUTED));
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(area.top_left.x, axis_x), Size::new(area.size.width, 1)), colors::muted()));
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(axis_y, area.top_left.y), Size::new(1, area.size.height)), colors::muted()));
     // The numbers: under the x-axis, right of the y-axis; 0 once, at the origin.
     let label_y = (axis_x + 3 + small.ascent).min(area.top_left.y + area.size.height as i32 - small.descent);
     for x in ticks(window.x_min, window.x_max, x_step).filter(|x| x.abs() > x_step / 1000.0) {
@@ -265,7 +265,7 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
         let width = Scale::Small.width(&text);
         let sx = plot.screen(x, 0.0).0.round() as i32 - width / 2;
         let sx = sx.clamp(area.top_left.x, area.top_left.x + area.size.width as i32 - width);
-        shapes.push(Shape::Text(Point::new(sx, label_y), text, Scale::Small, colors::FAINT));
+        shapes.push(Shape::Text(Point::new(sx, label_y), text, Scale::Small, colors::faint()));
     }
     for y in ticks(window.y_min, window.y_max, y_step).filter(|y| y.abs() > y_step / 1000.0) {
         let text = tick_label(y, y_step, lang);
@@ -275,12 +275,12 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
             continue;
         }
         let sx = (axis_y + 4).min(area.top_left.x + area.size.width as i32 - width);
-        shapes.push(Shape::Text(Point::new(sx, sy), text, Scale::Small, colors::FAINT));
+        shapes.push(Shape::Text(Point::new(sx, sy), text, Scale::Small, colors::faint()));
     }
 
     // An area as upright hatching down to the axis, in a tint per side.
     for region in &graph.overlay.regions {
-        let color = if region.positive { colors::CYAN_DIM } else { colors::AMBER_DIM };
+        let color = if region.positive { colors::primary_dim() } else { colors::accent_dim() };
         hatch(shapes, &plot, &region.curve, color);
     }
 
@@ -296,18 +296,18 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
         };
         for line in lines {
             if let Some((a, b)) = plot.across(line) {
-                dashed(shapes, a, b, colors::MUTED);
+                dashed(shapes, a, b, colors::muted());
             }
         }
     }
     for piece in &graph.curve {
         for line in plot.polylines(piece) {
-            stroke(shapes, &line, colors::RESULT, true);
+            stroke(shapes, &line, colors::result(), true);
         }
     }
 
     // A task's tangent and normal over the curve.
-    for (line, color) in [(graph.overlay.tangent, colors::SHIFT), (graph.overlay.normal, colors::ALPHA)] {
+    for (line, color) in [(graph.overlay.tangent, colors::shift()), (graph.overlay.normal, colors::alpha())] {
         let Some((a, b)) = line.and_then(|line| plot.across(line)) else { continue };
         let round = |(x, y): (f32, f32)| Point::new(x.round() as i32, y.round() as i32);
         shapes.push(Shape::Path(vec![round(a), round(b)], color, 1));
@@ -339,7 +339,7 @@ pub fn graph(shapes: &mut Vec<Shape>, graph: &Graph, area: Rectangle, lang: Lang
         let color = mark_color(mark.kind);
         shapes.push(Shape::Circle(Circle::with_center(at, 7), color));
         if mark.kind == MarkKind::Hole {
-            shapes.push(Shape::Circle(Circle::with_center(at, 3), colors::BACKGROUND));
+            shapes.push(Shape::Circle(Circle::with_center(at, 3), colors::background()));
         }
         if !listed {
             continue;

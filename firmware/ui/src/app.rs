@@ -13,7 +13,7 @@ use crate::tree;
 use crate::clock;
 use crate::menu::{self, Action, Edit, Kind, Level, Menu, Outcome, TextFor, TimeField};
 use crate::search;
-use crate::render;
+use crate::render::{self, colors::{self, Palette}};
 use crate::settings::{Setting, SystemInput};
 use crate::soft::{self, Slot};
 use crate::sheet::{self, Sheets};
@@ -313,6 +313,11 @@ pub struct App<B> {
     /// While the list of wallpapers is open: the place in it of the picture shown instead, and
     /// that picture (`None` for none, or one that could not be read).
     pub preview: Option<(usize, Option<Wallpaper>)>,
+    /// The colour theme set. Its colours are in force ([`colors::set`]) unless the list of
+    /// themes shows another.
+    pub theme: quantus_themes::Theme,
+    /// While the list of themes is open: the themes in it, read once.
+    themes: Vec<quantus_themes::Entry>,
     /// The session open now, whose history is shown; `None` for a backend without sessions.
     pub session: Option<SessionInfo>,
     /// What LGS, Wertetabelle, Statistik and Verteilungen hold.
@@ -389,6 +394,11 @@ impl<B> App<B> {
         }
     }
 
+    /// The place of the theme set in the open list of themes.
+    pub fn theme_index(&self) -> Option<usize> {
+        self.themes.iter().position(|entry| entry.id == self.theme.id)
+    }
+
     /// The picture to show behind the screen.
     pub fn wallpaper(&self) -> Option<&Wallpaper> {
         match &self.preview {
@@ -438,6 +448,12 @@ impl<B: Backend> App<B> {
     pub fn new(mut backend: B) -> Self {
         let settings = backend.load_settings().unwrap_or_default();
         backend.use_settings(&settings);
+        // The theme kept, if the card still has it; else the default one.
+        let theme = backend
+            .load_theme()
+            .and_then(|id| quantus_themes::find(&id, backend.themes()).ok())
+            .unwrap_or_else(quantus_themes::default_theme);
+        colors::set(Palette::from_theme(&theme));
         let mut app = App {
             backend,
             mode: Mode::Physics,
@@ -457,6 +473,8 @@ impl<B: Backend> App<B> {
             wallpaper: None,
             wallpaper_name: None,
             preview: None,
+            theme,
+            themes: Vec::new(),
             session: None,
             sheets: Sheets::new(&settings),
             answer: None,
@@ -931,6 +949,10 @@ impl<B: Backend> App<B> {
             Outcome::Stay => {}
             Outcome::Close => {
                 self.preview = None;
+                if !self.themes.is_empty() {
+                    self.themes.clear();
+                    colors::set(Palette::from_theme(&self.theme));
+                }
                 return;
             }
             Outcome::Insert(latex) => return self.insert(latex),
@@ -1037,12 +1059,19 @@ impl<B: Backend> App<B> {
                 return self.session_command(menu, SessionCommand::Rename(name));
             }
             Outcome::Pictures(label) => self.open_pictures(&mut menu, label),
+            Outcome::Themes(label) => self.open_themes(&mut menu, label),
+            Outcome::Preview(index) if matches!(menu.edit, Some(Edit::Themes { .. })) => self.preview_theme(index),
             Outcome::Preview(index) => {
                 let picture = self.picture(&menu, index);
                 self.preview = Some((index, picture));
             }
+            Outcome::Keep(index) if matches!(menu.edit, Some(Edit::Themes { .. })) => self.keep_theme(&mut menu, index),
             Outcome::Keep(index) => self.keep_picture(&mut menu, index),
-            Outcome::Restore => self.preview = None,
+            Outcome::Restore => {
+                self.preview = None;
+                self.themes.clear();
+                colors::set(Palette::from_theme(&self.theme));
+            }
             Outcome::Storage(label) => menu.edit = Some(Edit::Storage { label, storage: self.backend.storage() }),
             Outcome::SetTime(field) => self.set_time(&mut menu, field),
             Outcome::Networks(label) if !self.settings.wlan => {
@@ -1299,6 +1328,57 @@ impl<B: Backend> App<B> {
         }
         self.wallpaper = picture;
         self.wallpaper_name = name;
+    }
+
+    /// Sets the wallpaper `name` at the start, dimmed towards the theme's background.
+    pub fn set_wallpaper(&mut self, name: String, picture: Wallpaper) {
+        let picture = match colors::background() == Palette::DARK.background {
+            true => picture,
+            false => picture.redimmed().unwrap_or(picture),
+        };
+        self.wallpaper = Some(picture);
+        self.wallpaper_name = Some(name);
+    }
+
+    /// Opens the list of themes, the built-in ones and those on the SD card, on the one set now.
+    fn open_themes(&mut self, menu: &mut Menu, label: Text) {
+        self.themes = quantus_themes::list(self.backend.themes());
+        let code = self.settings.language.code();
+        let names = self
+            .themes
+            .iter()
+            .map(|entry| match &entry.theme {
+                Ok(theme) => theme.name(code).to_string(),
+                Err(_) => format!("{} (!)", entry.id),
+            })
+            .collect();
+        let selected = self.theme_index().unwrap_or(0);
+        menu.edit = Some(Edit::Themes { label, names, selected });
+    }
+
+    /// Shows the theme at `index` of the open list, or the one set if that cannot be read.
+    fn preview_theme(&self, index: usize) {
+        let theme = self.themes.get(index).and_then(|entry| entry.theme.as_ref().ok()).unwrap_or(&self.theme);
+        colors::set(Palette::from_theme(theme));
+    }
+
+    /// Sets the theme at `index` of the open list and keeps it, or says why it cannot.
+    fn keep_theme(&mut self, menu: &mut Menu, index: usize) {
+        let Some(Edit::Themes { label, .. }) = menu.edit.take() else { return };
+        let entries = std::mem::take(&mut self.themes);
+        let Some(entry) = entries.into_iter().nth(index) else { return };
+        match entry.theme {
+            Ok(theme) => {
+                colors::set(Palette::from_theme(&theme));
+                self.backend.keep_theme(&theme.id);
+                self.theme = theme;
+                self.wallpaper = self.wallpaper.as_ref().and_then(Wallpaper::redimmed);
+            }
+            Err(error) => {
+                colors::set(Palette::from_theme(&self.theme));
+                menu.edit = Some(Edit::Note { label, note: format!("themes/{}.toml: {error}", entry.id) });
+            }
+        }
     }
 
     /// Puts LaTeX from a menu into the input, as if typed: a shown result is left first.

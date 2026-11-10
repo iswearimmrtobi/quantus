@@ -164,6 +164,7 @@ static DEVICE: Page = Page {
             Kind::Choice(S::FontSize, &[opt(same("Normal"), 0), opt(tx!("hui.tree.small"), 1)]),
         ),
         entry(tx!("hui.tree.wallpaper"), Kind::Page(&WALLPAPER)),
+        entry(tx!("hui.tree.theme"), Kind::Themes),
         entry(tx!("hui.tree.storage"), Kind::Storage),
         entry(
             tx!("hui.tree.auto_power_off"),

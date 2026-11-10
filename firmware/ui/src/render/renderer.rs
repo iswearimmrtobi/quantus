@@ -25,7 +25,7 @@ impl Default for Renderer {
 
 impl Renderer {
     pub fn new() -> Self {
-        Renderer { band: vec![colors::BACKGROUND; (WIDTH * BAND) as usize], sent: [None; BANDS], drawn: [None; BANDS] }
+        Renderer { band: vec![colors::background(); (WIDTH * BAND) as usize], sent: [None; BANDS], drawn: [None; BANDS] }
     }
 
     /// Draws the whole screen again on the next frame.
@@ -60,7 +60,7 @@ impl Renderer {
             let pixels = &mut self.band[..(area.size.width * area.size.height) as usize];
             match &frame.1 {
                 Some(backdrop) => backdrop.copy_to((top * WIDTH) as usize, pixels),
-                None => pixels.fill(colors::BACKGROUND),
+                None => pixels.fill(colors::background()),
             }
             let mut band = Band { pixels, area };
             for shape in &frame.0 {

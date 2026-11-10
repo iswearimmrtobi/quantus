@@ -1,7 +1,8 @@
 //! The screen: a top bar over one calculation, the mode menu or a menu list (SETUP, OPTN), in the
-//! desktop's dark palette with its purple accents (design/handheld-menus.md §7.6). A [`Frame`] is the screen
-//! laid out once; the [`Renderer`] draws it band by band into a small buffer and sends only the
-//! bands that changed, so no framebuffer is needed. A wallpaper, if one is set, lies under it
+//! colours of the chosen theme, by default the desktop's dark palette with its purple accents
+//! (design/handheld-menus.md §7.6). A [`Frame`] is the screen laid out once; the [`Renderer`]
+//! draws it band by band into a small buffer and sends only the bands that changed, so no
+//! framebuffer is needed. A wallpaper, if one is set, lies under it
 //! all, and the tiles and menu lines let it shine through.
 
 mod analysis;
@@ -43,51 +44,143 @@ const BANDS: usize = HEIGHT.div_ceil(BAND) as usize;
 const BAR: i32 = 26;
 const MARGIN: i32 = 10;
 
-/// The desktop app's dark palette (`desktop/src/styles.css`): nothing bright.
+/// The colours of the theme in force (quantus-themes, design/handheld-menus.md §7.6): one
+/// [`colors::Palette`] for the thread that draws, the dark theme until [`colors::set`] gives
+/// another. The renderer compares the shapes with their colours, so a new palette is drawn at once.
 pub mod colors {
+    use std::cell::Cell;
+
     use embedded_graphics::pixelcolor::Rgb565;
+    use quantus_themes::{Color, Theme, TILES};
 
     pub const fn rgb(r: u8, g: u8, b: u8) -> Rgb565 {
         Rgb565::new(r >> 3, g >> 2, b >> 3)
     }
 
-    pub const BACKGROUND: Rgb565 = rgb(0x17, 0x16, 0x1d);
-    pub const SURFACE: Rgb565 = rgb(0x1e, 0x1d, 0x27);
-    pub const HAIRLINE: Rgb565 = rgb(0x32, 0x2f, 0x3f);
-    pub const TEXT: Rgb565 = rgb(0xed, 0xeb, 0xf3);
-    pub const MUTED: Rgb565 = rgb(0x8b, 0x87, 0xa3);
-    pub const FAINT: Rgb565 = rgb(0x55, 0x50, 0x6a);
-    /// A result, in a soft purple.
-    pub const RESULT: Rgb565 = rgb(0xbf, 0xa0, 0xf2);
-    pub const ERROR: Rgb565 = rgb(0xc9, 0x8a, 0x96);
-    pub const SHIFT: Rgb565 = rgb(0xc9, 0xa4, 0x6a);
-    pub const ALPHA: Rgb565 = rgb(0x8f, 0xb3, 0xa0);
-    pub const UNIT: Rgb565 = rgb(0x91, 0x86, 0xe8);
-    pub const PLACEHOLDER: Rgb565 = FAINT;
-    /// The desktop's `--cyan`, a lavender: the caret, the menu highlight, the chosen tile.
-    pub const CYAN: Rgb565 = rgb(0x91, 0x86, 0xe8);
-    /// The desktop's `--amber`, the accent.
-    pub const AMBER: Rgb565 = rgb(0xd8, 0xa9, 0xff);
-    /// Their dim forms, for fills: the top bar, the tiles, the selected line.
-    pub const CYAN_DIM: Rgb565 = rgb(0x42, 0x3a, 0x63);
-    pub const AMBER_DIM: Rgb565 = rgb(0x4e, 0x3c, 0x63);
+    const fn color(c: Color) -> Rgb565 {
+        rgb(c.r, c.g, c.b)
+    }
 
-    /// A muted colour per mode tile, in the order of `Mode::ALL`: (the tile, the chosen tile).
-    pub const TILES: [(Rgb565, Rgb565); 12] = [
-        (rgb(0x4a, 0x3d, 0x6b), rgb(0x63, 0x52, 0x8e)), // purple
-        (rgb(0x34, 0x44, 0x6b), rgb(0x46, 0x59, 0x8c)), // blue
-        (rgb(0x2f, 0x55, 0x60), rgb(0x3e, 0x6f, 0x7d)), // teal
-        (rgb(0x35, 0x57, 0x4a), rgb(0x46, 0x72, 0x62)), // green
-        (rgb(0x4d, 0x55, 0x36), rgb(0x66, 0x6f, 0x47)), // olive
-        (rgb(0x62, 0x51, 0x3a), rgb(0x80, 0x6a, 0x4c)), // amber
-        (rgb(0x64, 0x3f, 0x35), rgb(0x83, 0x53, 0x46)), // rust
-        (rgb(0x5e, 0x36, 0x40), rgb(0x7b, 0x47, 0x54)), // red
-        (rgb(0x5c, 0x37, 0x56), rgb(0x78, 0x48, 0x71)), // plum
-        (rgb(0x3a, 0x3a, 0x6e), rgb(0x4d, 0x4d, 0x90)), // indigo
-        (rgb(0x2f, 0x4f, 0x6a), rgb(0x3e, 0x67, 0x8b)), // steel
-        (rgb(0x45, 0x4a, 0x5a), rgb(0x5c, 0x62, 0x76)), // slate
-    ];
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub struct Palette {
+        pub background: Rgb565,
+        pub surface: Rgb565,
+        /// The second row of soft keys, a little darker than the first, as on the keycaps.
+        pub lower: Rgb565,
+        pub hairline: Rgb565,
+        pub text: Rgb565,
+        pub muted: Rgb565,
+        /// Also the placeholders.
+        pub faint: Rgb565,
+        pub result: Rgb565,
+        pub error: Rgb565,
+        pub shift: Rgb565,
+        pub alpha: Rgb565,
+        pub unit: Rgb565,
+        /// The caret, the menu highlight, the chosen tile.
+        pub primary: Rgb565,
+        pub accent: Rgb565,
+        /// Their dim forms, for fills: the top bar, the tiles, the selected line.
+        pub primary_dim: Rgb565,
+        pub accent_dim: Rgb565,
+        /// A muted colour per mode tile, in the order of `Mode::ALL`: (the tile, the chosen tile).
+        pub tiles: [(Rgb565, Rgb565); TILES],
+    }
 
+    impl Palette {
+        /// `themes/dark.toml`, the default.
+        pub const DARK: Palette = Palette {
+            background: rgb(0x17, 0x16, 0x1d),
+            surface: rgb(0x1e, 0x1d, 0x27),
+            lower: rgb(0x22, 0x20, 0x2d),
+            hairline: rgb(0x32, 0x2f, 0x3f),
+            text: rgb(0xed, 0xeb, 0xf3),
+            muted: rgb(0x8b, 0x87, 0xa3),
+            faint: rgb(0x55, 0x50, 0x6a),
+            result: rgb(0xbf, 0xa0, 0xf2),
+            error: rgb(0xc9, 0x8a, 0x96),
+            shift: rgb(0xc9, 0xa4, 0x6a),
+            alpha: rgb(0x8f, 0xb3, 0xa0),
+            unit: rgb(0x91, 0x86, 0xe8),
+            primary: rgb(0x91, 0x86, 0xe8),
+            accent: rgb(0xd8, 0xa9, 0xff),
+            primary_dim: rgb(0x42, 0x3a, 0x63),
+            accent_dim: rgb(0x4e, 0x3c, 0x63),
+            tiles: [
+                (rgb(0x4a, 0x3d, 0x6b), rgb(0x63, 0x52, 0x8e)), // purple
+                (rgb(0x34, 0x44, 0x6b), rgb(0x46, 0x59, 0x8c)), // blue
+                (rgb(0x2f, 0x55, 0x60), rgb(0x3e, 0x6f, 0x7d)), // teal
+                (rgb(0x35, 0x57, 0x4a), rgb(0x46, 0x72, 0x62)), // green
+                (rgb(0x4d, 0x55, 0x36), rgb(0x66, 0x6f, 0x47)), // olive
+                (rgb(0x62, 0x51, 0x3a), rgb(0x80, 0x6a, 0x4c)), // amber
+                (rgb(0x64, 0x3f, 0x35), rgb(0x83, 0x53, 0x46)), // rust
+                (rgb(0x5e, 0x36, 0x40), rgb(0x7b, 0x47, 0x54)), // red
+                (rgb(0x5c, 0x37, 0x56), rgb(0x78, 0x48, 0x71)), // plum
+                (rgb(0x3a, 0x3a, 0x6e), rgb(0x4d, 0x4d, 0x90)), // indigo
+                (rgb(0x2f, 0x4f, 0x6a), rgb(0x3e, 0x67, 0x8b)), // steel
+                (rgb(0x45, 0x4a, 0x5a), rgb(0x5c, 0x62, 0x76)), // slate
+            ],
+        };
+
+        /// The handheld's part of a theme; the opacity of its colours is dropped.
+        pub fn from_theme(theme: &Theme) -> Palette {
+            let shared = |key| color(theme.color(key));
+            let own = |key| color(theme.handheld(key));
+            let (surface, raised) = (theme.color("surface"), theme.color("surface-raised"));
+            let half = |a: u8, b: u8| ((u16::from(a) + u16::from(b)) / 2) as u8;
+            Palette {
+                background: shared("background"),
+                surface: shared("surface"),
+                lower: rgb(half(surface.r, raised.r), half(surface.g, raised.g), half(surface.b, raised.b)),
+                hairline: shared("hairline"),
+                text: shared("text"),
+                muted: shared("text-muted"),
+                faint: shared("text-faint"),
+                result: own("result"),
+                error: own("error"),
+                shift: own("shift"),
+                alpha: own("alpha"),
+                unit: own("unit"),
+                primary: shared("primary"),
+                accent: shared("accent"),
+                primary_dim: shared("primary-dim"),
+                accent_dim: shared("accent-dim"),
+                tiles: theme.handheld.tiles.map(|(tile, chosen)| (color(tile), color(chosen))),
+            }
+        }
+    }
+
+    thread_local! {
+        static CURRENT: Cell<Palette> = const { Cell::new(Palette::DARK) };
+    }
+
+    /// The palette in force on this thread.
+    pub fn get() -> Palette {
+        CURRENT.with(Cell::get)
+    }
+
+    /// Makes `palette` the one in force on this thread, the one that draws.
+    pub fn set(palette: Palette) {
+        CURRENT.with(|current| current.set(palette));
+    }
+
+    pub fn background() -> Rgb565 { get().background }
+    pub fn surface() -> Rgb565 { get().surface }
+    pub fn lower() -> Rgb565 { get().lower }
+    pub fn hairline() -> Rgb565 { get().hairline }
+    pub fn text() -> Rgb565 { get().text }
+    pub fn muted() -> Rgb565 { get().muted }
+    pub fn faint() -> Rgb565 { get().faint }
+    pub fn result() -> Rgb565 { get().result }
+    pub fn error() -> Rgb565 { get().error }
+    pub fn shift() -> Rgb565 { get().shift }
+    pub fn alpha() -> Rgb565 { get().alpha }
+    pub fn unit() -> Rgb565 { get().unit }
+    pub fn primary() -> Rgb565 { get().primary }
+    pub fn accent() -> Rgb565 { get().accent }
+    pub fn primary_dim() -> Rgb565 { get().primary_dim }
+    pub fn accent_dim() -> Rgb565 { get().accent_dim }
+    pub fn tiles() -> [(Rgb565, Rgb565); TILES] { get().tiles }
 }
 
 /// Something to draw, at absolute screen coordinates. Its `Debug` text says all that it draws:
@@ -169,7 +262,7 @@ impl Shape {
             }
             Shape::Text(origin, text, scale, color) => scale.draw(text, *origin, *color, target),
             Shape::Math(origin, row, color) => {
-                layout::draw(row, *origin, *color, colors::PLACEHOLDER, target);
+                layout::draw(row, *origin, *color, colors::faint(), target);
             }
             Shape::Thumbnail(at, pixels) => {
                 let width = THUMBNAIL.width;
@@ -292,6 +385,7 @@ fn list_len(menu: &Menu) -> Option<usize> {
         },
         Some(Edit::Confirm { .. }) => Some(1),
         Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
+        Some(Edit::Themes { names, .. }) => Some(names.len()),
         Some(Edit::Sessions { sessions, .. }) => Some(sessions.len()),
         Some(Edit::Sections { titles, .. }) => Some(titles.len()),
         Some(Edit::Forget { .. }) => Some(1),

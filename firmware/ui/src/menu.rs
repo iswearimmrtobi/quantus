@@ -46,6 +46,8 @@ pub enum Kind {
     Insert(&'static str),
     /// The list of wallpapers on the SD card, which the app fills in.
     Wallpapers,
+    /// The list of colour themes, built in and on the SD card, which the app fills in.
+    Themes,
     /// How full the SD card is, which the app asks the board.
     Storage,
     /// The list of sessions, which the app fills in; choosing one opens it.
@@ -241,6 +243,8 @@ pub enum Edit {
     Note { label: Text, note: String },
     /// The wallpapers: *Keins* first, then `names`. The app shows the selected one as a preview.
     Pictures { label: Text, names: Vec<String>, selected: usize },
+    /// The colour themes by their names. The app shows the selected one on the whole screen.
+    Themes { label: Text, names: Vec<String>, selected: usize },
     /// The SD card's size and room, `None` without one; any key goes back.
     Storage { label: Text, storage: Option<Storage> },
     /// The sessions; the app opens the chosen one.
@@ -353,11 +357,13 @@ pub enum Outcome {
     Act(Action),
     /// Open the list of wallpapers over the page.
     Pictures(Text),
-    /// The cursor is on the wallpaper at this place of the list (0 for none): show it.
+    /// Open the list of themes over the page.
+    Themes(Text),
+    /// The cursor is on the wallpaper (0 for none) or theme at this place of the list: show it.
     Preview(usize),
-    /// Keep the wallpaper at this place of the list.
+    /// Keep the wallpaper or theme at this place of the list.
     Keep(usize),
-    /// Back from the list: show the wallpaper set before.
+    /// Back from the list: show the wallpaper and theme set before.
     Restore,
     /// Show how full the SD card is.
     Storage(Text),
@@ -421,6 +427,7 @@ impl Menu {
                 | Edit::Message { label, .. }
                 | Edit::Note { label, .. }
                 | Edit::Pictures { label, .. }
+                | Edit::Themes { label, .. }
                 | Edit::Storage { label, .. }
                 | Edit::Sessions { label, .. }
                 | Edit::Sections { label, .. }
@@ -481,12 +488,12 @@ impl Menu {
     }
 
     /// A tap on the line `offset` of the list on the screen: opens or chooses it, as OK does.
-    /// On the wallpapers a tap on another line only shows it, a second one keeps it.
+    /// On the wallpapers and themes a tap on another line only shows it, a second one keeps it.
     pub fn tap(&mut self, offset: usize, settings: &mut Settings) -> Outcome {
         if matches!(self.edit, Some(Edit::Confirm { .. } | Edit::Forget { .. })) {
             return if offset == 0 { self.key(Key::Ok, settings) } else { Outcome::Stay };
         }
-        let pictures = matches!(self.edit, Some(Edit::Pictures { .. }));
+        let pictures = matches!(self.edit, Some(Edit::Pictures { .. } | Edit::Themes { .. }));
         let Some((selected, count)) = self.list_mut() else { return Outcome::Stay };
         let index = *selected / ROWS * ROWS + offset;
         if offset >= ROWS || index >= count {
@@ -502,7 +509,7 @@ impl Menu {
 
     /// The next page of the list on the screen, or the one before, on its first line.
     pub fn page(&mut self, forward: bool) -> Outcome {
-        let pictures = matches!(self.edit, Some(Edit::Pictures { .. }));
+        let pictures = matches!(self.edit, Some(Edit::Pictures { .. } | Edit::Themes { .. }));
         let Some((selected, count)) = self.list_mut() else { return Outcome::Stay };
         let first = *selected / ROWS * ROWS;
         let first = match forward {
@@ -541,6 +548,7 @@ impl Menu {
                 _ => None,
             },
             Some(Edit::Pictures { names, selected, .. }) => Some((*selected, names.len() + 1)),
+            Some(Edit::Themes { names, selected, .. }) => Some((*selected, names.len())),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((*selected, sessions.len())),
             Some(Edit::Sections { titles, selected, .. }) => Some((*selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
@@ -564,6 +572,7 @@ impl Menu {
                 Some((selected, opts.len()))
             }
             Some(Edit::Pictures { names, selected, .. }) => Some((selected, names.len() + 1)),
+            Some(Edit::Themes { names, selected, .. }) => Some((selected, names.len())),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((selected, sessions.len())),
             Some(Edit::Sections { titles, selected, .. }) => Some((selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
@@ -602,6 +611,7 @@ impl Menu {
             Kind::Info(_) => {}
             Kind::Insert(latex) => return Outcome::Insert(latex),
             Kind::Wallpapers => return Outcome::Pictures(entry.label),
+            Kind::Themes => return Outcome::Themes(entry.label),
             Kind::Storage => return Outcome::Storage(entry.label),
             Kind::Sessions => return Outcome::Sessions(entry.label),
             Kind::Sections => return Outcome::Sections(entry.label),
@@ -705,33 +715,19 @@ impl Menu {
                 _ => self.edit = Some(Edit::Confirm { entry, action }),
             },
             Edit::Pictures { label, names, selected } => {
-                let count = names.len() + 1;
-                let chosen = match key {
-                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
-                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
-                        if index >= count {
-                            self.edit = Some(Edit::Pictures { label, names, selected });
-                            return Outcome::Stay;
-                        }
-                        index
-                    }
-                    Key::Ok | Key::Exe | Key::Right => selected,
-                    Key::Up | Key::Down => {
-                        let step = if key == Key::Up { count - 1 } else { 1 };
-                        let selected = (selected + step) % count;
-                        self.edit = Some(Edit::Pictures { label, names, selected });
-                        return Outcome::Preview(selected);
-                    }
-                    Key::Del => return Outcome::Restore,
-                    _ if back => return Outcome::Restore,
-                    _ => {
-                        self.edit = Some(Edit::Pictures { label, names, selected });
-                        return Outcome::Stay;
-                    }
+                let Some((selected, outcome)) = previewing(key, back, selected, names.len() + 1) else {
+                    return Outcome::Restore;
                 };
-                // The app reads the name from it, then closes it.
-                self.edit = Some(Edit::Pictures { label, names, selected: chosen });
-                return Outcome::Keep(chosen);
+                // On Keep the app reads the name from it, then closes it.
+                self.edit = Some(Edit::Pictures { label, names, selected });
+                return outcome;
+            }
+            Edit::Themes { label, names, selected } => {
+                let Some((selected, outcome)) = previewing(key, back, selected, names.len()) else {
+                    return Outcome::Restore;
+                };
+                self.edit = Some(Edit::Themes { label, names, selected });
+                return outcome;
             }
             Edit::Sessions { label, sessions, selected } => {
                 let count = sessions.len();
@@ -988,4 +984,29 @@ pub fn value(entry: &Entry, settings: &Settings, lang: Lang) -> Option<String> {
         }),
         _ => None,
     }
+}
+
+/// A key on a list whose line under the cursor is shown before it is kept (the wallpapers, the
+/// themes): the cursor then and what the app has to do, or `None` to leave the list and show
+/// what was set before.
+fn previewing(key: Key, back: bool, selected: usize, count: usize) -> Option<(usize, Outcome)> {
+    Some(match key {
+        Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
+            let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+            if index >= count {
+                (selected, Outcome::Stay)
+            } else {
+                (index, Outcome::Keep(index))
+            }
+        }
+        Key::Ok | Key::Exe | Key::Right => (selected, Outcome::Keep(selected)),
+        Key::Up | Key::Down => {
+            let step = if key == Key::Up { count - 1 } else { 1 };
+            let selected = (selected + step) % count;
+            (selected, Outcome::Preview(selected))
+        }
+        Key::Del => return None,
+        _ if back => return None,
+        _ => (selected, Outcome::Stay),
+    })
 }

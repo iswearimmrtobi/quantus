@@ -72,7 +72,7 @@ fn reset_memory_empties_the_history() {
     press(&mut app, &[Key::Ac, Key::Digit(7), Key::Exe]);
     assert_eq!(app.history.len(), 1);
     // Gerät → Zurücksetzen (both on the second page) → Speicher.
-    press(&mut app, &[Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Up, Key::Digit(1), Key::Digit(2), Key::Exe]);
+    press(&mut app, &[Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Up, Key::Digit(2), Key::Digit(2), Key::Exe]);
     assert!(app.history.is_empty() && app.editor.is_empty());
 
     app.settings.digits = 3;
@@ -323,7 +323,7 @@ fn without_pictures_the_list_says_so() {
 fn the_storage_screen_shows_the_card() {
     let mut app = App::new(Card);
     // SETUP → Gerät (on the second page) → Speicherplatz.
-    [Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Digit(4)].iter().for_each(|&key| app.key(key));
+    [Key::Shift, Key::Mode, Key::Up, Key::Digit(1), Key::Digit(5)].iter().for_each(|&key| app.key(key));
     let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
     let Some(Edit::Storage { storage: Some(storage), .. }) = &menu.edit else { panic!("no storage: {:?}", menu.edit) };
     assert_eq!(storage.used(), 11_914_983_424);
@@ -339,7 +339,7 @@ fn the_storage_screen_shows_the_card() {
 #[test]
 fn without_a_card_the_storage_screen_says_so() {
     let mut app = setup();
-    press(&mut app, &[Key::Up, Key::Digit(1), Key::Digit(4)]);
+    press(&mut app, &[Key::Up, Key::Digit(1), Key::Digit(5)]);
     assert!(matches!(menu(&app).edit, Some(Edit::Storage { storage: None, .. })));
     let _ = Frame::new(&app);
 }

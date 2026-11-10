@@ -107,8 +107,7 @@ fn main() {
     });
     let mut app = App::new(board);
     if let Some((name, picture)) = wallpaper {
-        app.wallpaper = Some(picture);
-        app.wallpaper_name = Some(name);
+        app.set_wallpaper(name, picture);
     }
     // Without a calibration, the calibration screen comes first.
     match store.as_ref().and_then(Store::load) {
@@ -291,6 +290,20 @@ impl Backend for Board {
 
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         self.card.as_ref().and_then(|_| sd::wallpaper(name))
+    }
+
+    fn themes(&mut self) -> Vec<(String, String)> {
+        if self.card.is_some() { sd::themes() } else { Vec::new() }
+    }
+
+    fn load_theme(&mut self) -> Option<String> {
+        self.store.as_ref()?.load_theme()
+    }
+
+    fn keep_theme(&mut self, id: &str) {
+        if let Some(Err(error)) = self.store.as_ref().map(|store| store.save_theme(id)) {
+            println!("theme not kept: {error}");
+        }
     }
 
     fn load_settings(&mut self) -> Option<Settings> {

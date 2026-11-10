@@ -17,7 +17,7 @@ use crate::text;
 /// they are on, the digits, exact or decimal, the angle unit, the WLAN and Bluetooth icons when
 /// on, the exam mode and the battery.
 pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
-    shapes.push(Shape::Fill(full_width(0, BAR as u32), colors::CYAN_DIM));
+    shapes.push(Shape::Fill(full_width(0, BAR as u32), colors::primary_dim()));
     let baseline = BAR - 7;
     let searched;
     let title = match &app.screen {
@@ -36,10 +36,10 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         // ‹ before the title: a tap on the left of the bar goes back.
         let (x, middle) = (MARGIN + 1, BAR / 2);
         let points = vec![Point::new(x + 6, middle - 6), Point::new(x, middle), Point::new(x + 6, middle + 6)];
-        shapes.push(Shape::Path(points, colors::TEXT, 2));
+        shapes.push(Shape::Path(points, colors::text(), 2));
         left += 16;
     }
-    shapes.push(Shape::Text(Point::new(left, baseline), title.to_string(), Scale::Small, colors::TEXT));
+    shapes.push(Shape::Text(Point::new(left, baseline), title.to_string(), Scale::Small, colors::text()));
     if app.busy {
         // Eight dots on a ring; the bright one moves on a step each tick, with a trail behind it.
         let center = Point::new(left + Scale::Small.width(title) + 18, BAR / 2);
@@ -47,9 +47,9 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
             let angle = f32::from(dot) * core::f32::consts::FRAC_PI_4;
             let at = center + Point::new((7.0 * angle.cos()).round() as i32, (7.0 * angle.sin()).round() as i32);
             let color = match (app.spin + 8 - dot) % 8 {
-                0 => colors::TEXT,
-                1 => colors::MUTED,
-                _ => colors::FAINT,
+                0 => colors::text(),
+                1 => colors::muted(),
+                _ => colors::faint(),
             };
             shapes.push(Shape::Circle(Circle::with_center(at, 4), color));
         }
@@ -63,7 +63,7 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     // The exam mode as a tag in the accent, the radios as icons; the angle unit, the digits and
     // the result form as text.
     if settings.exam {
-        right -= tag(shapes, right, text::EXAM.get(lang), colors::AMBER) + 8;
+        right -= tag(shapes, right, text::EXAM.get(lang), colors::accent()) + 8;
     }
     if settings.wlan {
         right -= wlan(shapes, right, app.wlan_connected) + 10;
@@ -89,12 +89,12 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let digits = format!("{} {}", text::SIGNIFICANT_SHORT.get(lang), settings.digits);
     for text in [angle, form.get(lang)].map(str::to_string).into_iter().chain([digits]) {
         let width = Scale::Small.width(&text);
-        shapes.push(Shape::Text(Point::new(right - width, baseline), text, Scale::Small, colors::TEXT));
+        shapes.push(Shape::Text(Point::new(right - width, baseline), text, Scale::Small, colors::text()));
         right -= width + 12;
     }
     // What waits for the next key, and a lock below it marked by a second letter: `ALPHA=`.
     let modifier = &app.modifier;
-    let shown = [(Layer::Alpha, "ALPHA", colors::ALPHA), (Layer::Unit, "UNIT", colors::UNIT), (Layer::Shift, "SHIFT", colors::SHIFT)];
+    let shown = [(Layer::Alpha, "ALPHA", colors::alpha()), (Layer::Unit, "UNIT", colors::unit()), (Layer::Shift, "SHIFT", colors::shift())];
     for (layer, label, color) in shown {
         let locked = modifier.lock == Some(layer);
         if modifier.pending == Some(layer) || locked {
@@ -110,7 +110,7 @@ fn tag(shapes: &mut Vec<Shape>, right: i32, label: &str, color: Rgb565) -> i32 {
     let tag = rounded(Point::new(right - width - 8, 4), Size::new(width as u32 + 8, BAR as u32 - 8), 3);
     shapes.push(Shape::Round(tag, color, None));
     let at = Point::new(right - width - 4, BAR - 7);
-    shapes.push(Shape::Text(at, label.to_string(), Scale::Small, colors::BACKGROUND));
+    shapes.push(Shape::Text(at, label.to_string(), Scale::Small, colors::background()));
     width + 8
 }
 
@@ -119,7 +119,7 @@ fn tag(shapes: &mut Vec<Shape>, right: i32, label: &str, color: Rgb565) -> i32 {
 fn wlan(shapes: &mut Vec<Shape>, right: i32, connected: bool) -> i32 {
     let width = 18;
     let base = Point::new(right - width / 2, BAR - 6);
-    let color = if connected { colors::TEXT } else { colors::FAINT };
+    let color = if connected { colors::text() } else { colors::faint() };
     for diameter in [9, 17, 25] {
         let arc = Arc::with_center(base, diameter, (-135.0).deg(), 90.0.deg());
         shapes.push(Shape::Arc(arc, color, 2));
@@ -140,7 +140,7 @@ fn bluetooth(shapes: &mut Vec<Shape>, right: i32) -> i32 {
         (x + 4, top + quarter),
         (x - 4, bottom - quarter),
     ];
-    shapes.push(Shape::Path(points.iter().map(|&(x, y)| Point::new(x, y)).collect(), colors::TEXT, 2));
+    shapes.push(Shape::Path(points.iter().map(|&(x, y)| Point::new(x, y)).collect(), colors::text(), 2));
     width
 }
 
@@ -150,17 +150,17 @@ fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, charging: bool, right_ce
     let (width, height) = (26, 14);
     let top_left = Point::new(right_center.x - width, right_center.y - height / 2);
     let nub = Rectangle::new(Point::new(right_center.x - 2, right_center.y - 3), Size::new(2, 6));
-    shapes.push(Shape::Fill(nub, colors::TEXT));
+    shapes.push(Shape::Fill(nub, colors::text()));
     let body = Rectangle::new(top_left, Size::new(width as u32 - 2, height as u32));
-    shapes.push(Shape::Fill(body, colors::TEXT));
-    shapes.push(Shape::Fill(body.offset(-1), colors::BACKGROUND));
+    shapes.push(Shape::Fill(body, colors::text()));
+    shapes.push(Shape::Fill(body.offset(-1), colors::background()));
     if let Some(charge) = charge {
         let inner = body.offset(-2);
         let filled = inner.size.width * u32::from(charge.min(100)) / 100;
         let color = match (charging, charge < 15) {
-            (true, _) => colors::ALPHA,
-            (false, true) => colors::ERROR,
-            (false, false) => colors::TEXT,
+            (true, _) => colors::alpha(),
+            (false, true) => colors::error(),
+            (false, false) => colors::text(),
         };
         shapes.push(Shape::Fill(Rectangle::new(inner.top_left, Size::new(filled, inner.size.height)), color));
     }
@@ -170,7 +170,7 @@ fn battery(shapes: &mut Vec<Shape>, charge: Option<u8>, charging: bool, right_ce
         const BOLT: [(i32, u32); 8] = [(3, 2), (2, 2), (1, 2), (0, 6), (3, 2), (2, 2), (1, 2), (1, 1)];
         let origin = Point::new(right_center.x - width / 2 - 4, right_center.y - 4);
         let rim = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-        for ((dx, dy), color) in rim.iter().map(|&o| (o, colors::BACKGROUND)).chain([((0, 0), colors::TEXT)]) {
+        for ((dx, dy), color) in rim.iter().map(|&o| (o, colors::background())).chain([((0, 0), colors::text())]) {
             for (row, &(start, len)) in BOLT.iter().enumerate() {
                 let at = origin + Point::new(start + dx, row as i32 + dy);
                 shapes.push(Shape::Fill(Rectangle::new(at, Size::new(len, 1)), color));

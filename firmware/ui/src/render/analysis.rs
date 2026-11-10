@@ -57,11 +57,11 @@ fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, drag: Opti
         let count = Scale::Small.width(&format!("{}/{}", page + 1, pages));
         let word = text::MOVING.get(lang).to_string();
         let x = WIDTH as i32 - MARGIN - count - 12 - Scale::Small.width(&word);
-        shapes.push(Shape::Text(Point::new(x, BAR + 6 + small.ascent), word, Scale::Small, colors::SHIFT));
+        shapes.push(Shape::Text(Point::new(x, BAR + 6 + small.ascent), word, Scale::Small, colors::shift()));
     }
     let function = layout::layout(&latex::parse(function), Scale::Small);
     let baseline = BAR + 6 + Scale::Small.metrics().ascent;
-    shapes.push(Shape::Math(Point::new(MARGIN, baseline), function, colors::AMBER));
+    shapes.push(Shape::Math(Point::new(MARGIN, baseline), function, colors::accent()));
     // While a finger drags it, the graph moves with it.
     match drag {
         Some(by) => super::graph::graph(shapes, &Graph { window: dragged(graph.window, by), ..graph.clone() }, graph_area(), lang),
@@ -74,11 +74,11 @@ fn sides(shapes: &mut Vec<Shape>, answer_page: usize, pages: usize) {
     let middle = (BAR + HEIGHT as i32) / 2;
     if answer_page > 0 {
         let tip = Point::new(1, middle);
-        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(5, -6), tip + Point::new(5, 6)), colors::FAINT));
+        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(5, -6), tip + Point::new(5, 6)), colors::faint()));
     }
     if answer_page + 1 < pages {
         let tip = Point::new(WIDTH as i32 - 2, middle);
-        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -6), tip + Point::new(-5, 6)), colors::FAINT));
+        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -6), tip + Point::new(-5, 6)), colors::faint()));
     }
 }
 
@@ -102,7 +102,7 @@ fn title(shapes: &mut Vec<Shape>, title: &str, status: Status, page: usize, page
     let baseline = BAR + 6 + small.ascent;
     let count = format!("{}/{}", page + 1, pages);
     let count_width = Scale::Small.width(&count);
-    shapes.push(Shape::Text(Point::new(WIDTH as i32 - MARGIN - count_width, baseline), count, Scale::Small, colors::FAINT));
+    shapes.push(Shape::Text(Point::new(WIDTH as i32 - MARGIN - count_width, baseline), count, Scale::Small, colors::faint()));
     let mark = match status {
         Status::Ok => None,
         Status::Partial => Some(text::SECTION_PARTIAL.get(lang)),
@@ -112,12 +112,12 @@ fn title(shapes: &mut Vec<Shape>, title: &str, status: Status, page: usize, page
     let room = WIDTH as i32 - 2 * MARGIN - count_width - 10 - mark_width;
     let title = fit(title, room, Scale::Small);
     let title_width = Scale::Small.width(&title);
-    shapes.push(Shape::Text(Point::new(MARGIN, baseline), title, Scale::Small, colors::AMBER));
+    shapes.push(Shape::Text(Point::new(MARGIN, baseline), title, Scale::Small, colors::accent()));
     if let Some(mark) = mark {
-        shapes.push(Shape::Text(Point::new(MARGIN + title_width + 10, baseline), mark.to_string(), Scale::Small, colors::ERROR));
+        shapes.push(Shape::Text(Point::new(MARGIN + title_width + 10, baseline), mark.to_string(), Scale::Small, colors::error()));
     }
     let rule = Rectangle::new(Point::new(MARGIN, baseline + small.descent + 4), Size::new(WIDTH - 2 * MARGIN as u32, 1));
-    shapes.push(Shape::Fill(rule, colors::HAIRLINE));
+    shapes.push(Shape::Fill(rule, colors::hairline()));
 }
 
 /// What a section says: why it is not complete, its steps, and its result, from the line
@@ -127,18 +127,18 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
     // The result alone first: why it is not complete, the result, and that the working is
     // below. A page without working scrolls through its result.
     let (lines, skip, hint): (Vec<(&Line, Rgb565)>, usize, bool) = match (steps.is_empty(), scroll) {
-        (true, _) => (result.iter().map(|line| (line, colors::RESULT)).collect(), scroll, false),
-        (false, 0) => (result.iter().map(|line| (line, colors::RESULT)).collect(), 0, true),
+        (true, _) => (result.iter().map(|line| (line, colors::result())).collect(), scroll, false),
+        (false, 0) => (result.iter().map(|line| (line, colors::result())).collect(), 0, true),
         (false, _) => {
-            let working = steps.iter().map(|line| (line, colors::TEXT));
-            (working.chain(result.iter().map(|line| (line, colors::RESULT))).collect(), scroll - 1, false)
+            let working = steps.iter().map(|line| (line, colors::text()));
+            (working.chain(result.iter().map(|line| (line, colors::result()))).collect(), scroll - 1, false)
         }
     };
     if scroll == 0 {
         if let Some(message) = message {
             let small = Scale::Small.metrics();
             for line in wrap(message, ROOM, Scale::Small) {
-                shapes.push(Shape::Text(Point::new(MARGIN, y + small.ascent), line, Scale::Small, colors::ERROR));
+                shapes.push(Shape::Text(Point::new(MARGIN, y + small.ascent), line, Scale::Small, colors::error()));
                 y += small.ascent + small.descent + 2;
             }
             y += 4;
@@ -154,7 +154,7 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
                 break;
             }
             let rule = Rectangle::new(Point::new(MARGIN, y + 2), Size::new(WIDTH / 3, 1));
-            shapes.push(Shape::Fill(rule, colors::HAIRLINE));
+            shapes.push(Shape::Fill(rule, colors::hairline()));
             y += 6;
         }
         let drawn = lines_of(line, color);
@@ -173,16 +173,16 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
         let small = Scale::Small.metrics();
         let baseline = (y + 10 + small.ascent).min(BOTTOM - small.descent);
         let tip = Point::new(MARGIN + 5, baseline);
-        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -7), tip + Point::new(5, -7)), colors::FAINT));
-        shapes.push(Shape::Text(Point::new(MARGIN + 16, baseline), text::WORKING.get(lang).to_string(), Scale::Small, colors::FAINT));
+        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -7), tip + Point::new(5, -7)), colors::faint()));
+        shapes.push(Shape::Text(Point::new(MARGIN + 16, baseline), text::WORKING.get(lang).to_string(), Scale::Small, colors::faint()));
     }
     if more {
         let tip = Point::new(WIDTH as i32 - MARGIN - 6, HEIGHT as i32 - 4);
-        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -7), tip + Point::new(5, -7)), colors::FAINT));
+        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -7), tip + Point::new(5, -7)), colors::faint()));
     }
     if scroll > 0 {
         let tip = Point::new(WIDTH as i32 - MARGIN - 6, TOP - 2);
-        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, 7), tip + Point::new(5, 7)), colors::FAINT));
+        shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, 7), tip + Point::new(5, 7)), colors::faint()));
     }
 }
 
@@ -216,7 +216,7 @@ impl Drawn {
             Drawn::Math { laid, x, color } => shapes.push(Shape::Math(Point::new(x, y + laid.ascent + 2), laid, color)),
             Drawn::Note(note) => {
                 let at = Point::new(MARGIN, y + Scale::Small.metrics().ascent + 2);
-                shapes.push(Shape::Text(at, note, Scale::Small, colors::MUTED));
+                shapes.push(Shape::Text(at, note, Scale::Small, colors::muted()));
             }
             Drawn::Grid(rows) => {
                 let columns = rows.iter().map(Vec::len).max().unwrap_or(0);
@@ -228,7 +228,7 @@ impl Drawn {
                     let row_height = row_height(&row);
                     let mut x = MARGIN;
                     for (column, cell) in row.into_iter().enumerate() {
-                        let color = if column == 0 || index == 0 { colors::MUTED } else { colors::TEXT };
+                        let color = if column == 0 || index == 0 { colors::muted() } else { colors::text() };
                         // Centred in its column.
                         let at = Point::new(x + (widths[column] - cell.width) / 2, top + ascent);
                         shapes.push(Shape::Math(at, cell, color));
@@ -237,12 +237,12 @@ impl Drawn {
                     top += row_height + 2;
                     if index == 0 {
                         let width = (x - GAP - MARGIN).max(0) as u32;
-                        shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, top - 2), Size::new(width, 1)), colors::HAIRLINE));
+                        shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, top - 2), Size::new(width, 1)), colors::hairline()));
                     }
                 }
                 let first = widths.first().copied().unwrap_or(0);
                 let rule = Rectangle::new(Point::new(MARGIN + first + GAP / 2, y + 2), Size::new(1, (top - y - 4).max(1) as u32));
-                shapes.push(Shape::Fill(rule, colors::HAIRLINE));
+                shapes.push(Shape::Fill(rule, colors::hairline()));
             }
         }
         height

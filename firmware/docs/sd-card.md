@@ -35,6 +35,9 @@ Windows' own format dialog offers only exFAT above 32 GB; use a tool such as *Ru
   `magick in.png -resize 480x320^ -gravity center -extent 480x320 out.bmp`. Long names and
   umlauts are fine. The picture set is kept in flash (NVS) by name and comes back after a
   restart if the card still has it.
+- `themes/`: colour themes for SETUP → Gerät → Farbschema, `.toml` files, the same as the
+  desktop app's (see the docs, *Reference → Theme files*). The id of the theme set is kept in
+  flash and comes back after a restart if the card still has it; otherwise the dark theme shows.
 - `sessions/`: the sessions of MODE → Sitzungen, one JSON file each (`session-1.json`, …),
   written after every calculation and every change in the menu; `current.txt` names the one
   open, which opens again after a restart. They are the same files as the desktop app's

@@ -857,9 +857,16 @@ and surfaces the hui already shares with the desktop (`firmware/ui/src/render/mo
 mode in `firmware/ui/src/app.rs` (green, brown, teal, slate) go; the mode shows by its name in
 the top bar and on its tile.
 
-*Implemented* in the hui: `render::colors::{CYAN, AMBER, CYAN_DIM, AMBER_DIM}`; the bar in
-`CYAN_DIM`, the caret in `CYAN`. Each mode tile has its own muted colour (`colors::TILES`), the
-chosen tile a lighter form of it with a `TEXT` outline; a result shows in a soft purple `#bfa0f2`.
+*Implemented* in the hui: `render::colors::{primary, accent, primary_dim, accent_dim}`; the bar in
+`primary_dim`, the caret in `primary`. Each mode tile has its own muted colour (`colors::tiles`), the
+chosen tile a lighter form of it with a `text` outline; a result shows in a soft purple `#bfa0f2`.
+
+**Themes**: these colours are the built-in theme *Dunkel* (`themes/dark.toml`). SETUP → Gerät →
+Farbschema picks another: the built-in *Hell*, or a `.toml` file from `/themes/` on the SD card,
+the same files as the desktop's (`crates/quantus-themes`, docs/docs/reference/themes.md). The list
+shows the theme under the cursor on the whole screen; OK keeps it, ← goes back. The theme's id is
+kept in flash (NVS) and read at the start. `render::colors` holds the palette in force for the
+thread that draws; a theme change also dims the wallpaper again towards the new background.
 
 **Wallpaper** (`firmware/ui/src/wallpaper.rs`): a picture of the screen's size, 480×320, from
 `/wallpapers/` on the SD card, as a BMP (`tinybmp` reads every BMP colour depth). The backend lists

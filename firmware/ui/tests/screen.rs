@@ -174,15 +174,15 @@ fn the_wallpaper_shows_where_the_setting_says() {
     press(&mut app, &[Key::Mode]);
     let modes = shot(&app);
     assert_eq!(modes.at(margin), red, "full strength behind the tiles");
-    assert!(![red, colors::BACKGROUND].contains(&modes.at(tile)), "the tile lets it shine through");
+    assert!(![red, colors::background()].contains(&modes.at(tile)), "the tile lets it shine through");
 
     press(&mut app, &[Key::Ac]);
-    assert_eq!(shot(&app).at(margin), colors::BACKGROUND, "not behind the calculation");
+    assert_eq!(shot(&app).at(margin), colors::background(), "not behind the calculation");
     app.settings.wallpaper_on = WallpaperOn::Everywhere;
     assert_eq!(shot(&app).at(margin), wallpaper.dim.get(0), "dimmed behind the calculation");
 
     app.wallpaper = None;
-    assert_eq!(shot(&app).at(margin), colors::BACKGROUND);
+    assert_eq!(shot(&app).at(margin), colors::background());
 }
 
 #[test]
