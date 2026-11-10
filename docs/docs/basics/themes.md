@@ -6,12 +6,16 @@ title: Themes
 # Themes
 
 A theme sets every colour of Quantus: the background, the text, the results, the curves and points
-of the graphs, and on the handheld the menus and mode tiles. Quantus comes with two themes:
+of the graphs, and on the handheld the menus and mode tiles. Quantus comes with six themes:
 
 | Theme | Id | Looks |
 |---|---|---|
 | **Dark** | `dark` | dark grey with purple accents, the default |
 | **Light** | `light` | white and light grey with the same purple accents |
+| **Black** | `black` | Dark on true black, for OLED screens, whose black pixels are off |
+| **Paper** | `paper` | warm off-white with ink blue and rust instead of purple |
+| **High contrast dark** | `contrast-dark` | white on black, strong lines, graph colours that colour-blind eyes tell apart |
+| **High contrast light** | `contrast-light` | the same in black on white; also the one for the handheld in sunlight |
 
 You can add your own: a theme is one small text file, and the same file works in the desktop app
 and on the handheld. [Theme files](../reference/themes.md) describes how to write one.

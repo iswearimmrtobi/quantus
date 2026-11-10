@@ -58,10 +58,14 @@ pub const TILES: usize = 12;
 /// The theme every other one starts from, unless it names another base.
 pub const DEFAULT: &str = "dark";
 
-/// The built-in themes: their ids and files, `dark` first.
+/// The built-in themes: their ids and files, `dark` first, each after its base.
 pub const BUILT_IN: &[(&str, &str)] = &[
     ("dark", include_str!("../../../themes/dark.toml")),
     ("light", include_str!("../../../themes/light.toml")),
+    ("black", include_str!("../../../themes/black.toml")),
+    ("paper", include_str!("../../../themes/paper.toml")),
+    ("contrast-dark", include_str!("../../../themes/contrast-dark.toml")),
+    ("contrast-light", include_str!("../../../themes/contrast-light.toml")),
 ];
 
 /// A colour with its opacity, 255 being opaque.

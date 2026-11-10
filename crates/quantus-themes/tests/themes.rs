@@ -1,8 +1,8 @@
-use quantus_themes::{built_in, default_theme, find, list, parse, Color, COLORS, HANDHELD, TILES};
+use quantus_themes::{built_in, default_theme, find, list, parse, Color, BUILT_IN, COLORS, HANDHELD, TILES};
 
 #[test]
 fn built_in_themes_are_complete_and_without_warnings() {
-    for id in ["dark", "light"] {
+    for (id, _) in BUILT_IN {
         let theme = built_in(id).unwrap();
         assert_eq!(theme.colors.len(), COLORS.len(), "{id}");
         assert_eq!(theme.handheld.colors.len(), HANDHELD.len(), "{id}");
@@ -12,6 +12,33 @@ fn built_in_themes_are_complete_and_without_warnings() {
     assert!(built_in("dark").unwrap().dark);
     assert!(!built_in("light").unwrap().dark);
     assert_eq!(default_theme().id, "dark");
+}
+
+/// The WCAG contrast ratio of two opaque colours, from 1 to 21.
+fn contrast(a: Color, b: Color) -> f64 {
+    let luminance = |c: Color| {
+        let channel = |v: u8| {
+            let v = f64::from(v) / 255.0;
+            if v <= 0.040_45 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) }
+        };
+        0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b)
+    };
+    let (la, lb) = (luminance(a), luminance(b));
+    (la.max(lb) + 0.05) / (la.min(lb) + 0.05)
+}
+
+#[test]
+fn built_in_themes_have_readable_text() {
+    for (id, _) in BUILT_IN {
+        let theme = built_in(id).unwrap();
+        let least = if id.starts_with("contrast-") { 7.0 } else { 4.5 };
+        for text in ["text", "text-muted"] {
+            for ground in ["background", "surface"] {
+                let ratio = contrast(theme.color(text), theme.color(ground));
+                assert!(ratio >= least, "{id}: {text} on {ground} is {ratio:.2}:1, needs {least}:1");
+            }
+        }
+    }
 }
 
 #[test]
@@ -83,10 +110,10 @@ fn users_themes_follow_the_built_in_ones_and_may_replace_them() {
     ];
     let entries = list(user.clone());
     let ids: Vec<&str> = entries.iter().map(|e| e.id.as_str()).collect();
-    assert_eq!(ids, ["dark", "light", "broken", "zebra"]);
+    assert_eq!(ids, ["dark", "light", "black", "paper", "contrast-dark", "contrast-light", "broken", "zebra"]);
     assert!(!entries[1].built_in);
     assert_eq!(entries[1].theme.as_ref().unwrap().name("en"), "My light");
-    assert!(entries[2].theme.is_err());
+    assert!(entries[6].theme.is_err());
 
     assert_eq!(find("light", user.clone()).unwrap().name("en"), "My light");
     assert_eq!(find("dark", user.clone()).unwrap().name("en"), "Dark");

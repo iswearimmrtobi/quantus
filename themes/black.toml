@@ -1,0 +1,13 @@
+# Dark on true black, for OLED screens: their black pixels are off. Everything else is Dark's.
+
+name = { en = "Black", de = "Schwarz" }
+
+[colors]
+background = "#000000"
+surface = "#0b0b0f"
+surface-raised = "#15141c"
+surface-hover = "#1e1c27"
+hairline = "#26242f"
+hairline-strong = "#3a3649"
+overlay = "#000000a6"
+overlay-strong = "#000000cc"

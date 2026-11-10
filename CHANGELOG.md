@@ -34,7 +34,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   prefixes (`kilo`). On the handheld, letters typed in CATALOG (SHIFT+OPTN) search the same and
   SETUP's and OPTN's entries too: a function, unit or constant goes in, a setting opens where it
   lives (`zeitzone`). Typing needs a USB keyboard until the keypad's ALPHA legend is fixed.
-
+- Four more built-in themes: Black (Dark on true black, for OLED screens), Paper (warm off-white
+  with ink blue), and High contrast dark and light, with text at 7:1 or more and graph colours
+  that colour-blind eyes tell apart.
 
 ### Fixed
 

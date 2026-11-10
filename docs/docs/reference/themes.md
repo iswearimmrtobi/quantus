@@ -9,9 +9,10 @@ A theme is a [TOML](https://toml.io/) file with the extension `.toml`. Its name 
 is the theme's **id**. The same file works in the desktop app and on the handheld.
 [Themes](../basics/themes.md) says where the files go and how to pick one.
 
-The built-in themes are [`themes/dark.toml`](https://github.com/iswearimmrtobi/quantus/blob/dev/themes/dark.toml)
-and [`themes/light.toml`](https://github.com/iswearimmrtobi/quantus/blob/dev/themes/light.toml)
-in the repository. Copying one of them is the quickest way to start.
+The built-in themes are the files in [`themes/`](https://github.com/iswearimmrtobi/quantus/tree/dev/themes)
+in the repository: `dark.toml` and `light.toml` give every key, `black.toml` and `paper.toml`
+only what they change, and `contrast-dark.toml` and `contrast-light.toml` show colours chosen for
+colour blindness. Copying one of them is the quickest way to start.
 
 ## A first theme
 
@@ -50,7 +51,7 @@ result = "#2f5a9a"
 | Key | Value | Default |
 |---|---|---|
 | `name` | the name in the lists: a text, or a text per language, `{ en = "…", de = "…" }` | the id |
-| `base` | the id of the built-in theme to start from: `dark` or `light` | `dark` |
+| `base` | the id of the built-in theme to start from: `dark`, `light` or another [built-in one](../basics/themes.md) | `dark` |
 | `dark` | `true` for a dark theme, `false` for a light one | the base's |
 | `[colors]` | the colours of both programs, below | the base's |
 | `[handheld]` | the colours only the handheld has, below | the base's |

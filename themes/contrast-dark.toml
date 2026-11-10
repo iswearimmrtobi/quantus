@@ -1,0 +1,62 @@
+# High contrast on black: white text, muted text still at least 7:1, strong hairlines.
+# The marks of plots and constructions use the Okabe-Ito colours, which stay apart for
+# red-green colour blindness. Gives every key but the name, as it changes nearly all of them.
+
+name = { en = "High contrast dark", de = "Hoher Kontrast dunkel" }
+base = "dark"
+dark = true
+
+[colors]
+background = "#000000"
+surface = "#0d0d10"
+surface-raised = "#18181d"
+surface-hover = "#24242b"
+hairline = "#55555f"
+hairline-strong = "#9a9aa8"
+text = "#ffffff"
+text-muted = "#d4d4de"
+text-faint = "#a6a6b4"
+primary = "#56b4e9"
+primary-dim = "#123a52"
+accent = "#f0e442"
+accent-dim = "#47431a"
+danger = "#ff8c42"
+glow = "#00000000"
+overlay = "#000000a6"
+overlay-strong = "#000000d9"
+point-zero = "#19c39a"
+point-y-intercept = "#56b4e9"
+point-max = "#e69f00"
+point-min = "#cc79a7"
+point-inflection = "#f0e442"
+point-saddle = "#ffffff"
+geometry-0 = "#56b4e9"
+geometry-1 = "#e69f00"
+geometry-2 = "#19c39a"
+geometry-3 = "#f0e442"
+geometry-4 = "#cc79a7"
+geometry-5 = "#ff7a2e"
+geometry-6 = "#ffffff"
+geometry-7 = "#4a90d9"
+
+[handheld]
+result = "#56b4e9"
+error = "#ff8c42"
+shift = "#e69f00"
+alpha = "#19c39a"
+unit = "#cc79a7"
+# Darker tiles than Dark's, so white text stands out; the chosen tile much brighter.
+tiles = [
+    ["#3a2a66", "#6a4fc0"], # purple
+    ["#1f3166", "#3a5cc0"], # blue
+    ["#163f4a", "#2a7a8f"], # teal
+    ["#1a4535", "#2f8466"], # green
+    ["#36401a", "#677a30"], # olive
+    ["#4d3a14", "#94701f"], # amber
+    ["#55291c", "#a34e33"], # rust
+    ["#521f2c", "#9e3a54"], # red
+    ["#4a2245", "#8e4185"], # plum
+    ["#262666", "#4848c4"], # indigo
+    ["#1a3a57", "#326fa6"], # steel
+    ["#2e323e", "#5a6177"], # slate
+]

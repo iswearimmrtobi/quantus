@@ -1,0 +1,29 @@
+# Light on warm paper, with ink-blue and rust instead of purple. The marks of plots are Light's.
+
+name = { en = "Paper", de = "Papier" }
+base = "light"
+
+[colors]
+background = "#f7f3ea"
+surface = "#fffcf5"
+surface-raised = "#f1ecdf"
+surface-hover = "#e9e2d1"
+hairline = "#e0d8c6"
+hairline-strong = "#c9bea6"
+text = "#2b2620"
+text-muted = "#62594b"
+text-faint = "#a39883"
+primary = "#2f5f9e"
+primary-dim = "#dbe5f2"
+accent = "#9c4a2a"
+accent-dim = "#f2e0d4"
+overlay = "#2b262033"
+overlay-strong = "#2b262066"
+point-min = "#2f5f9e"
+point-inflection = "#9c4a2a"
+geometry-0 = "#2f5f9e"
+geometry-5 = "#9c4a2a"
+
+[handheld]
+result = "#2f5a9a"
+unit = "#2f5f9e"

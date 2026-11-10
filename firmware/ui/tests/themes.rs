@@ -56,7 +56,10 @@ fn the_theme_list_previews_keeps_and_restores() {
 
     press(&mut app, &OPEN);
     let Some(Edit::Themes { names, selected: 0, .. }) = edit(&app) else { panic!("no themes: {:?}", edit(&app)) };
-    assert_eq!(names, &["Dunkel", "Hell", "broken (!)", "Abendrot"]);
+    assert_eq!(
+        names,
+        &["Dunkel", "Hell", "Schwarz", "Papier", "Hoher Kontrast dunkel", "Hoher Kontrast hell", "broken (!)", "Abendrot"]
+    );
     let _ = Frame::new(&app);
 
     // ↓ shows the light theme at once, ← goes back to the dark one.
@@ -73,15 +76,16 @@ fn the_theme_list_previews_keeps_and_restores() {
     press(&mut app, &OPEN);
     press(&mut app, &[Key::Left]);
 
-    // 4 keeps Abendrot: its own background over the dark theme's other colours.
-    press(&mut app, &[Key::Digit(4), Key::Digit(4)]);
+    // ↑ from the top wraps to the last, Abendrot, and OK keeps it: its own background over the
+    // dark theme's other colours.
+    press(&mut app, &[Key::Digit(4), Key::Up, Key::Ok]);
     assert_eq!(app.theme.id, "sunset");
     assert_eq!(kept.borrow().as_deref(), Some("sunset"));
     assert_eq!(colors::background(), colors::rgb(0x40, 0x20, 0x10));
     assert_eq!(colors::text(), Palette::DARK.text);
 
-    // The broken file says why and changes nothing.
-    press(&mut app, &[Key::Digit(4), Key::Digit(3)]);
+    // The broken file, now just above the kept one, says why and changes nothing.
+    press(&mut app, &[Key::Digit(4), Key::Up, Key::Ok]);
     let Some(Edit::Note { note, .. }) = edit(&app) else { panic!("no note: {:?}", edit(&app)) };
     assert!(note.contains("broken.toml") && note.contains("colors.text"), "{note}");
     assert_eq!(app.theme.id, "sunset");
