@@ -60,8 +60,8 @@ long battery life second. Later, and optional: hand calculations that take longe
   (SCLK, MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL on SPI3 and GPIOs, TP_SDA and TP_SCL on the
   board's I²C, TP_RST).
 
-- **Keypad**: low-profile SMD tactile switches under printed keycaps, in an 8 × 10 matrix (80
-  positions) read by three MCP23017 (16-bit I²C port expanders). The ON key is the same switch
+- **Keypad**: low-profile SMD tactile switches under printed keycaps, in a 13 × 6 matrix (78
+  positions, the physical grid) read by three MCP23017 (16-bit I²C port expanders). The ON key is the same switch
   on the same PCB, but wired to the power latch, not the matrix (§7).
   - **Switch**: one part for every key, C&K PTS810 (4.2 × 3.2 × 2.5 mm, J-lead SMD),
     `PTS810 SJM 250 SMTR LFS` (250 gf) or `PTS810 SJS 160 SMTR LFS` (160 gf). Its 3.2 mm side runs
@@ -75,37 +75,45 @@ long battery life second. Later, and optional: hand calculations that take longe
   - **Bus**: the three chips sit on an I²C bus of their own, so a scan does not hold up touch,
     RTC and fuel gauge. Their address pins give three addresses, and one P4 GPIO drives the
     `RESET` of all three.
-  - **Chip 1**: the 8 rows, inputs with pull-ups, on port A, with interrupt-on-change (INT to a
-    P4 GPIO). **Chip 2**: the 10 columns, outputs, on port A and two pins of port B. **Chip 3**:
-    general I/O. With the matrix on those pins, port B of chip 1 (8 pins) and 6 pins of chip 2
-    stay free as well.
-  - **Matrix**: built for the small unit, which uses rows R0–R6; the big unit is the same table
-    plus R7 for its extra keys, so both PCBs put every shared key on the same position and the
-    firmware has one table. A row holds one area of the keypad, in reading order. The table maps
-    keys, not places: x², xʸ, log and ln sit elsewhere on the big unit, on the same position.
+  - **Chip 1**: the 13 rows, inputs with pull-ups, on port A (R0–R7) and GPB1–GPB5 (R8–R12), with
+    interrupt-on-change (INT to a P4 GPIO). GPB0 is the unit strap, GPB6 and GPB7 are free.
+    **Chip 2**: the 6 columns, outputs, on GPA0–GPA5 (the big unit's 7th column is GPA6). **Chip
+    3**: general I/O. With the matrix on those pins, 10 pins of chip 2 stay free as well.
+  - **Matrix**: the physical grid, see [keypad-pcb.md](keypad-pcb.md). A row is one row of keys on
+    the PCB (2 soft, 1 control, 6 function and arrow, 4 number rows), a column is the key's place in
+    its row of its block, so every row and column net runs where its keys are. The small unit has
+    13 rows × 6 columns; the big unit has the same 13 rows and a 7th column, and its own table
+    (its keys sit in other places). The firmware knows the unit from the strap and picks the table.
 
-    | | C0 | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 |
-    |---|---|---|---|---|---|---|---|---|---|---|
-    | R0 soft | 1st row 1 | 1st row 2 | 1st row 3 | 1st row 4 | 1st row 5 | 2nd row 1 | 2nd row 2 | 2nd row 3 | 2nd row 4 | 2nd row 5 |
-    | R1 control, arrows | SHIFT | ALPHA | UNIT | OPTN | MODE | ▲ | ◄ | OK | ► | ▼ |
-    | R2 function | SYMB | VARS | CALC | a/b | √ | x² | xʸ | log | ln | – |
-    | R3 function | (−) | x⁻¹ | sin | cos | tan | π | ( | ) | = | ; |
-    | R4 function | CONST | ENG | x | y | e | i | CONV | S⇔D | – | – |
-    | R5 number | 7 | 8 | 9 | DEL | AC | 4 | 5 | 6 | × | ÷ |
-    | R6 number | 1 | 2 | 3 | + | − | 0 | , | ×10ˣ | Ans | EXE |
-    | R7 big only | 1st row 6 | 2nd row 6 | UNDO | ▶unit | x³ | 10ˣ | Σ | ∫ | – | – |
+    Small unit:
 
-    Spare: R2C9, R4C8, R4C9 and on the small unit all of R7. ▶unit has no `Key` yet.
-  - **Soft keys**: a soft key at row r of the soft keys (R0 C0–C4 the first, C5–C9 the second,
-    R7 C0 and C1 the 6th of each) and column c is `Key::Soft(r × columns + c)`, with 5 columns on
-    the small unit and 6 on the big one, so R0C5 is `Soft(5)` on the small unit, `Soft(6)` on the
-    big one.
+    | | C0 | C1 | C2 | C3 | C4 | C5 |
+    |---|---|---|---|---|---|---|
+    | R0 soft 1 | F1 | F2 | F3 | F4 | F5 | – |
+    | R1 soft 2 | F6 | F7 | F8 | F9 | F10 | – |
+    | R2 control | SHIFT | ALPHA | UNIT | OPTN | MODE | – |
+    | R3 arrows | SYMB | a/b | √ | – | ▲ | – |
+    | R4 arrows | VARS | x² | xʸ | ◄ | OK | ► |
+    | R5 arrows | CALC | log | ln | – | ▼ | – |
+    | R6 function | (−) | x⁻¹ | sin | cos | tan | π |
+    | R7 function | ( | ) | = | ; | CONST | ENG |
+    | R8 function | x | y | e | i | CONV | S⇔D |
+    | R9 number | 7 | 8 | 9 | DEL | AC | – |
+    | R10 number | 4 | 5 | 6 | × | ÷ | – |
+    | R11 number | 1 | 2 | 3 | + | − | – |
+    | R12 number | 0 | , | ×10ˣ | Ans | EXE | – |
+
+    Spare: 11 positions, marked –. Big unit: the same rows; ◄ OK ► sit in C4–C6, x²/xʸ/log/ln and
+    the extras in the function rows follow the layout in
+    [design/keypad-sizes.html](../../design/keypad-sizes.html) (its tooltips show each key's cell).
+  - **Soft keys**: the soft key at row r of the soft keys and column c is `Key::Soft(r × columns +
+    c)`, with 5 columns on the small unit and 6 on the big one; its matrix cell is R(r) C(c).
   - **Which unit**: GPB0 of chip 1 is tied to GND on the big PCB and left on its pull-up on the
-    small one, so one firmware knows the unit (soft-key columns, display). On the small unit R7
-    has no switches and reads high.
+    small one, so one firmware knows the unit (soft-key columns, display, key table). On the small unit C6
+    has no switches.
   - **Scanning**: at rest all columns are held low, a press raises INT, and only then does the
-    firmware scan (one column write and one row read per step, about 2–3 ms for ten columns at
-    400 kHz, to be measured) until every key is released. The chips have no debounce and no
+    firmware scan (one column write and one two-byte row read per step, about 1.5–2 ms for six columns
+    at 400 kHz, to be measured) until every key is released. The chips have no debounce and no
     event FIFO, the firmware does both.
   - **No diodes**: SHIFT, ALPHA and UNIT latch, so at most two keys are held together.
   - **Why not a scanner chip**: the TCA8418 was planned first but is out of stock or has long
@@ -130,8 +138,8 @@ reaches through the soft keys or a menu, so no function exists on one of them on
 | Soft keys | 2 × 5 | 2 × 6 |
 | Keys | 68 | 76, of which 6 are extras |
 
-All keys but ON sit in the 8 × 10 matrix (§3): 67 and 75 keys, 13 and 5 positions spare. The
-small unit uses rows R0–R6, the big one adds R7 for its extras.
+All keys but ON sit in the 13 × 6 (small) and 13 × 7 (big) matrix (§3): 67 and 75 keys, 11 and 16
+positions spare.
 
 Top to bottom:
 

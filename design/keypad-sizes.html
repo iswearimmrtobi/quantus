@@ -140,21 +140,9 @@ const DEVICES = [
   },
 ];
 
-// The 8 × 10 key matrix (firmware/docs/hardware.md §3): the small unit uses R0–R6, the big one
-// adds R7. "SOFT" cells are the soft keys, placed by softPos below.
-const MATRIX = [
-  'SOFT SOFT SOFT SOFT SOFT SOFT SOFT SOFT SOFT SOFT',
-  'SHIFT ALPHA UNIT OPTN MODE ▲ ◄ OK ► ▼',
-  'SYMB VARS CALC a/b √ x² xʸ log ln .',
-  '(−) x⁻¹ sin cos tan π ( ) = ;',
-  'CONST ENG x y e i CONV S⇔D . .',
-  '7 8 9 DEL AC 4 5 6 × ÷',
-  '1 2 3 + − 0 , ×10ˣ Ans EXE',
-  'SOFT SOFT UNDO ▶unit x³ 10ˣ Σ ∫ . .',
-];
-const matrixPos = l => { for (let r = 0; r < MATRIX.length; r++) { const c = MATRIX[r].split(' ').indexOf(l); if (c >= 0) return `R${r}C${c}`; } return null; };
-// soft key at row r, column c of the soft keys: the first five of each row on R0, the 6th on R7
-const softPos = (r, c) => c < 5 ? `R0C${r * 5 + c}` : `R7C${r}`;
+// The key matrix is the physical grid (firmware/docs/keypad-pcb.md): row = row of keys from the top
+// (2 soft rows, 1 control row, 6 function/arrow rows, 4 number rows), column = place in the row of
+// its block. The cell of a key is computed from the layout above, nothing is listed twice.
 
 // ---------------------------------------------------------------------------
 const $ = id => document.getElementById(id);
@@ -185,7 +173,7 @@ function build(d) {
   for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
     const n = r * s.cols + c + 1;
     const k = pos(el('div', 'key soft r' + r, 'F' + n), s0 + c * s.px, y + r * s.py, s.kw, s.kh);
-    k.title = `F${n}: ${s.kw} × ${s.kh} mm, matrix ${softPos(r, c)}`;
+    k.title = `F${n}: ${s.kw} × ${s.kh} mm, matrix R${r}C${c}`;
     dev.append(k);
     const lab = pos(el('div', 'lab r' + r, 'F' + n), s0 + c * s.px - sx, d.screen.h - (s.rows - r) * s.strip - 0.3, s.kw, s.strip - 0.3);
     scr.append(lab);
@@ -194,6 +182,7 @@ function build(d) {
 
   // key blocks
   const sizes = [];
+  let gridRow = s.rows;
   d.blocks.forEach((b, bi) => {
     const rows = b.rows.map(parse), cols = rows[0].length;
     const bw = b.cx ? b.bw : (cols - 1) * b.px + b.kw, x0 = (d.width - bw) / 2;
@@ -204,12 +193,12 @@ function build(d) {
       const cx = b.cx ? b.cx[c] : c * b.px + b.kw / 2;
       const k = pos(el('div', 'key ' + cls(cell.l) + (cell.extra ? ' extra' : '') + (b.round ? ' round' : ''), cell.l),
         x0 + cx - kw / 2, y + r * b.py + (b.kh - kh) / 2, kw, kh);
-      const at = cell.l === 'ON' ? 'power latch, not the matrix' : `matrix ${matrixPos(cell.l) ?? 'MISSING'}`;
-      if (at.endsWith('MISSING')) console.warn('not in MATRIX:', cell.l);
+      const at = cell.l === 'ON' ? 'power latch, not the matrix' : `matrix R${gridRow + r}C${c}`;
       k.title = `${cell.l}: ${kw} × ${kh} mm, ${at}`;
       dev.append(k);
       cell.extra ? stats.extra++ : stats.core++;
     }));
+    gridRow += rows.length;
     sizes.push({ name: b.name, cols, rows: rows.length, ...b, bw });
     y += rows.length * b.py + (bi < d.blocks.length - 1 ? (b.gapAfter ?? d.gap) : 0);
   });
