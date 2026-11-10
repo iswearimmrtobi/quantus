@@ -1,0 +1,60 @@
+# A light theme with the same purple accents, for bright rooms and printouts of the screen.
+# It gives every key itself; it only names `base` to show how inheriting works.
+
+name = { en = "Light", de = "Hell" }
+base = "dark"
+dark = false
+
+[colors]
+background = "#f6f5fa"
+surface = "#ffffff"
+surface-raised = "#f0eef7"
+surface-hover = "#e7e4f1"
+hairline = "#dedae9"
+hairline-strong = "#c6c0d9"
+text = "#1d1b26"
+text-muted = "#615c78"
+text-faint = "#9f9ab3"
+primary = "#5b4fd0"
+primary-dim = "#e0dcf8"
+accent = "#8237c9"
+accent-dim = "#eddff9"
+danger = "#c8325a"
+glow = "#00000000"
+overlay = "#1d1b2633"
+overlay-strong = "#1d1b2666"
+point-zero = "#1c9473"
+point-y-intercept = "#2f6fd6"
+point-max = "#d03a5f"
+point-min = "#5b4fd0"
+point-inflection = "#8237c9"
+point-saddle = "#b07a00"
+geometry-0 = "#5b4fd0"
+geometry-1 = "#1c9473"
+geometry-2 = "#d03a5f"
+geometry-3 = "#b07a00"
+geometry-4 = "#2f6fd6"
+geometry-5 = "#8237c9"
+geometry-6 = "#c4602a"
+geometry-7 = "#5f8f1f"
+
+[handheld]
+result = "#7444c4"
+error = "#b4435a"
+shift = "#9a6414"
+alpha = "#2c7a55"
+unit = "#5b4fd0"
+tiles = [
+    ["#e4dcf5", "#cdbfee"], # purple
+    ["#dce3f5", "#c1cff0"], # blue
+    ["#d7ecef", "#bbdce3"], # teal
+    ["#d9eee4", "#bddfcd"], # green
+    ["#e6ead6", "#d2d9b9"], # olive
+    ["#f3e7d3", "#e7d1ad"], # amber
+    ["#f3dfd8", "#e7c3b6"], # rust
+    ["#f3dade", "#e7bec7"], # red
+    ["#efdbec", "#e0bfdb"], # plum
+    ["#dedef5", "#c4c4ee"], # indigo
+    ["#d8e5f0", "#bcd2e6"], # steel
+    ["#e2e4ea", "#cbcfd9"], # slate
+]

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/quantus-core", "crates/quantus-search", "crates/quantus-texts", "crates/quantus-texts-macros", "desktop/src-tauri", "firmware/engine", "firmware/mirror", "firmware/ui"]
+members = ["crates/quantus-core", "crates/quantus-search", "crates/quantus-texts", "crates/quantus-texts-macros", "crates/quantus-themes", "desktop/src-tauri", "firmware/engine", "firmware/mirror", "firmware/ui"]
 
 [workspace.package]
 version = "0.3.0-dev"

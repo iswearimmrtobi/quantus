@@ -1,0 +1,12 @@
+[package]
+name = "quantus-themes"
+description = "The colour themes of Quantus: the built-in ones from themes/*.toml and the reader for the users' own"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[dependencies]
+toml = "1"

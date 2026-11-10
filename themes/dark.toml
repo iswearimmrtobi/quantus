@@ -1,0 +1,61 @@
+# The default theme: a dark grey with purple accents, nothing bright.
+# Every other theme starts from this one unless it names another `base`, so this file has
+# to give every key. See docs/docs/reference/themes.md.
+
+name = { en = "Dark", de = "Dunkel" }
+dark = true
+
+[colors]
+background = "#17161d"
+surface = "#1e1d27"
+surface-raised = "#262532"
+surface-hover = "#2d2b3a"
+hairline = "#322f3f"
+hairline-strong = "#433e56"
+text = "#edebf3"
+text-muted = "#8b87a3"
+text-faint = "#55506a"
+primary = "#9186e8"
+primary-dim = "#423a63"
+accent = "#d8a9ff"
+accent-dim = "#4e3c63"
+danger = "#ff8fa8"
+glow = "#d8a9ff38"
+overlay = "#0a090e59"
+overlay-strong = "#0a090e99"
+point-zero = "#7fd1b9"
+point-y-intercept = "#8fb8ff"
+point-max = "#ff8fa8"
+point-min = "#9186e8"
+point-inflection = "#d8a9ff"
+point-saddle = "#ffd27f"
+geometry-0 = "#9186e8"
+geometry-1 = "#7fd1b9"
+geometry-2 = "#ff8fa8"
+geometry-3 = "#ffd27f"
+geometry-4 = "#8fb8ff"
+geometry-5 = "#d8a9ff"
+geometry-6 = "#f0a070"
+geometry-7 = "#b8e07a"
+
+[handheld]
+result = "#bfa0f2"
+error = "#c98a96"
+shift = "#c9a46a"
+alpha = "#8fb3a0"
+unit = "#9186e8"
+# One pair per mode tile, in the order of the mode menu: the tile, and the chosen tile.
+tiles = [
+    ["#4a3d6b", "#63528e"], # purple
+    ["#34446b", "#46598c"], # blue
+    ["#2f5560", "#3e6f7d"], # teal
+    ["#35574a", "#467262"], # green
+    ["#4d5536", "#666f47"], # olive
+    ["#62513a", "#806a4c"], # amber
+    ["#643f35", "#835346"], # rust
+    ["#5e3640", "#7b4754"], # red
+    ["#5c3756", "#784871"], # plum
+    ["#3a3a6e", "#4d4d90"], # indigo
+    ["#2f4f6a", "#3e678b"], # steel
+    ["#454a5a", "#5c6276"], # slate
+]
