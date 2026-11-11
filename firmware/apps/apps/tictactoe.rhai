@@ -100,11 +100,70 @@ fn play(i) {
     this.turn = other(this.turn);
 }
 
-// The computer's move, when it is its turn.
+// The computer's move, when it is its turn: a free cell at random, or on *schwer* the best.
 fn cpu() {
     if !this.computer || this.over || this.turn != "O" { return; }
     let cells = free(this.board);
-    this.play(cells[random(cells.len())]);
+    if this.hard {
+        this.play(best(this.board, "O"));
+    } else {
+        this.play(cells[random(cells.len())]);
+    }
+}
+
+// Whether `mark` has a line through cell `i`: its row, its column, a diagonal.
+fn wins_at(b, i, m) {
+    let r = i / 3 * 3;
+    let c = i % 3;
+    (b[r] == m && b[r + 1] == m && b[r + 2] == m)
+        || (b[c] == m && b[c + 3] == m && b[c + 6] == m)
+        || (b[4] == m && ((b[0] == m && b[8] == m) || (b[2] == m && b[6] == m)))
+}
+
+// The free cells, the centre first, then the corners: good moves first prune the search.
+fn ordered(board) {
+    let cells = [];
+    for i in [4, 0, 2, 6, 8, 1, 3, 5, 7] {
+        if board[i] == "" { cells.push(i); }
+    }
+    cells
+}
+
+// The best cell for `me`. The first two moves come from a table (the centre, else a corner):
+// searching the whole tree there is more than a callback may do.
+fn best(board, me) {
+    let cells = ordered(board);
+    if cells.len() >= 8 {
+        return if board[4] == "" { 4 } else { 0 };
+    }
+    let best_cell = cells[0];
+    let best_score = -100;
+    for i in cells {
+        board[i] = me;
+        let score = -value(board, i, other(me), 1, -100, 100);
+        board[i] = "";
+        if score > best_score {
+            best_score = score;
+            best_cell = i;
+        }
+    }
+    best_cell
+}
+
+// How good the board is for `turn`, who moves next, after the last move on cell `last`
+// (negamax with alpha-beta): a win sooner is worth more.
+fn value(board, last, turn, depth, alpha, beta) {
+    if wins_at(board, last, other(turn)) { return depth - 10; }
+    let cells = ordered(board);
+    if cells.is_empty() { return 0; }
+    for i in cells {
+        board[i] = turn;
+        let score = -value(board, i, other(turn), depth + 1, -beta, -alpha);
+        board[i] = "";
+        if score > alpha { alpha = score; }
+        if alpha >= beta { break; }
+    }
+    alpha
 }
 
 fn pick(col, row) {

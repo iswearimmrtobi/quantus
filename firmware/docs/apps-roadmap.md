@@ -253,10 +253,15 @@ interpreter. No engine.
   the `"grid"` template with `digits`, `side()` for the turn and the score, the soft keys *Neu*,
   *2 Spieler* / *Computer*, *Stufe*; the winning line marked; any key starts the next round
   with the other side. German and English through `lang()`.
-- [ ] **5.2 The computer.** *Leicht* picks a free cell with `random`; *schwer* searches the game
+- [x] **5.2 The computer.** *Leicht* picks a free cell with `random`; *schwer* searches the game
   tree. Measure the first move of the search against the operation budget on the board; if it
   does not fit, the first move comes from a table (centre, else a corner) and the search starts
   with the second.
+  Measured with Rhai's operation count: a search over the whole tree from eight free cells does
+  not fit, so the first move is from the table. From seven free cells (the computer began in the
+  centre, X answered) negamax with alpha-beta, the centre and the corners tried first, takes
+  200,000 to 415,000 operations, under the provisional budget of 500,000. Whether that is under
+  200 ms on the board waits for it.
 - [ ] **5.3 Tests and a look.** `firmware/apps/tests/tictactoe.rs`: a game through keys against
   the seeded computer; *schwer* loses none of a few hundred seeded games against random moves;
   the layout at 480 × 250 and at 320 × 214 keeps board and side panel inside the area. PNGs
