@@ -200,6 +200,20 @@ in yet.
 - [x] CONV menu by category, each unit with its name
 - [x] *Noch nicht verfügbar* for entries that wait for the engine or the firmware
 
+## Apps and games
+
+Planned in [apps.md](apps.md); nothing is built.
+
+- [ ] MODE → Apps: a tile that lists games and tools, built in and from the card
+- [ ] Tic tac toe: two players or against the handheld, two levels
+- [ ] 2048, with the game and the best score kept
+- [ ] Apps from the card: scripts in `/apps/`, with limits on time and memory
+- [ ] The script API: keys, drawing, a timer, random numbers, saved data
+- [ ] The calculator from a script: work an input out, read a variable, hand a result back
+- [ ] Forms: a tool declared as fields and formulas, drawn as a sheet
+- [ ] Apps found by CATALOG's search
+- [ ] No apps in Prüfungsmodus
+
 ## Storage and sessions
 
 - [x] SD card: wallpapers in `/wallpapers/`, sessions in `/sessions/`

@@ -578,6 +578,9 @@ engine; the modes with a sheet work it out with EXE on its last cell.
       Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. A new one is
       named after the local time as on the desktop ("Sitzung 2026-11-02 14:30"); before the
       clock is set, "Sitzung 2", the lowest number free.
+- Page 3, planned
+  13. Apps [Q, fw]: a page that lists games and user-made tools, scripts built in or from the
+      card ([apps.md](../firmware/docs/apps.md)). Locked in Prüfungsmodus.
 - Later: Ungleichungen [C, eng] ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)),
   Geometrie with the vectors [fw]: the engine has the mode, the tile is in
   [plans/geometry.md](../plans/geometry.md) § Later.

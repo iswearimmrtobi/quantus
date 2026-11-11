@@ -15,6 +15,8 @@ how to flash and use it. The crates' READMEs cover the software and link here.
 - [mirror.md](mirror.md): the board as the simulator's screen (testing only).
 - [unit-keys.md](unit-keys.md): the proposed UNIT key layer, soft keys and unit bar for typing
   units fast.
+- [apps.md](apps.md): the plan for apps and games: scripts on the card, the Apps tile, the script
+  API with forms and drawing, tic tac toe and 2048.
 - [keypad-sizes.html](../../design/keypad-sizes.html): both keypads to scale (open in a browser).
 - [features.md](features.md): every feature of the handheld, with its state.
 - [feature-ideas.md](feature-ideas.md): ideas not planned yet, for the handheld and the desktop.

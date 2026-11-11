@@ -182,7 +182,14 @@ by how often an entry was used comes later.
 - [x] Desktop: the quick search lists functions and prefixes too.
 - [ ] Usage counts that rank frequent entries first.
 
-## 7. Later
+## 7. Apps and games on the handheld
+
+Games (tic tac toe, 2048) and user-made UIs for special calculations, as scripts that the handheld
+runs: built in, or from `/apps/` on the card. Handheld only; the core does not change. The design
+and the steps, with their checkboxes, are in [apps.md](../firmware/docs/apps.md) §8; the first
+step is a spike of the interpreter on the board.
+
+## 8. Later
 
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
