@@ -10,6 +10,7 @@ use crate::ScriptApplet;
 
 /// The apps compiled into the firmware: their ids and their files.
 pub const BUILT_IN: &[(&str, &str)] = &[
+    ("2048", include_str!("../apps/2048.rhai")),
     ("tictactoe", include_str!("../apps/tictactoe.rhai")),
     ("zaehler", include_str!("../apps/zaehler.rhai")),
 ];

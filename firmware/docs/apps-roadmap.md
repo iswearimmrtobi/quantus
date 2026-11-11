@@ -287,7 +287,7 @@ M2.
   Built so: `Backend::delete_app_data`; *Daten löschen* asks first in the app's menu and in the
   list, and in a running app the app then starts again from nothing (without `leave`, which
   would save again). The board's `Apps` has no card folder until 7.2.
-- [ ] **6.3 The script.** `firmware/apps/apps/2048.rhai` as apps.md §6.2: `"keys"`, the slide
+- [x] **6.3 The script.** `firmware/apps/apps/2048.rhai` as apps.md §6.2: `"keys"`, the slide
   and merge, a 2 nine times in ten, the new tile outlined, colours from the tile palette, the
   small font from four digits on, *Neu* with `confirm`, *Zurück* once, 2048 reached, the end.
   It saves after every move, so switching off loses nothing.
