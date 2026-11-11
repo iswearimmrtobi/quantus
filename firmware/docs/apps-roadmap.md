@@ -339,9 +339,12 @@ M4.
   layer, SYMB puts its symbols on the soft keys in place of the app's, which otherwise stay;
   CATALOG does not reach an app's line (it opens a menu of the calculation). ↑ out of the line
   goes to the app. The line is 64 px high, for fractions, below the area.
-- [ ] **3b.3 `"cells"`.** The grid of 3a.2 with the cell editor of `sheet::Sheet` in the cell
+- [x] **3b.3 `"cells"`.** The grid of 3a.2 with the cell editor of `sheet::Sheet` in the cell
   under the cursor; `digits_only` takes one digit and moves on. `Event::Entered` with column,
   row and value. Test.
+  Built on an `Editor` of its own for the cell, as `sheet::Sheet` has one, not on the sheet
+  itself: a key that types, or OK, starts the value; DEL outside a value goes to the app, which
+  clears the cell itself.
 
 ### Step 8. The calculator from a script (M)
 

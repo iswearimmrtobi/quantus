@@ -916,3 +916,64 @@ fn a_fraction_with_a_unit_is_typed_into_the_apps_line() {
     press(&mut app, &[Key::Symb, Key::Soft(0), Key::Exe]);
     assert_eq!(entered.borrow()[1], r"\pi");
 }
+
+/// What a cells applet got.
+type Cells = Rc<RefCell<Vec<(usize, usize, String)>>>;
+
+/// An applet with the cells template.
+struct Sudoku {
+    cells: Cells,
+    log: Rc<RefCell<Log>>,
+    digits_only: bool,
+}
+
+impl Applet for Sudoku {
+    fn key(&mut self, key: AppKey, _host: &mut dyn Host) {
+        self.log.borrow_mut().keys.push(key);
+    }
+
+    fn event(&mut self, event: quantus_ui::applet::Event, _host: &mut dyn Host) {
+        if let quantus_ui::applet::Event::Cell(col, row, value) = event {
+            self.cells.borrow_mut().push((col, row, value));
+        }
+    }
+
+    fn draw(&self, _canvas: &mut Canvas) {}
+
+    fn input(&self) -> quantus_ui::applet::Input {
+        quantus_ui::applet::Input::Cells { cols: 3, rows: 2, digits_only: self.digits_only }
+    }
+}
+
+fn sudoku(digits_only: bool) -> (App<Stub>, Cells, Rc<RefCell<Log>>) {
+    let mut app = App::new(Stub);
+    let (cells, log) = (Cells::default(), Rc::new(RefCell::new(Log::default())));
+    app.open_applet(Box::new(Sudoku { cells: cells.clone(), log: log.clone(), digits_only }), info());
+    (app, cells, log)
+}
+
+#[test]
+fn a_value_is_typed_into_a_cell() {
+    let (mut app, cells, log) = sudoku(false);
+    // A digit starts the value; a fraction and a minus as in the calculation.
+    press(&mut app, &[Key::Right, Key::Digit(1), Key::Fraction, Key::Digit(2), Key::Exe]);
+    assert_eq!(*cells.borrow(), [(1, 0, r"\frac{1}{2}".to_string())]);
+    // OK on a cell starts an empty one; the arrows move again after EXE.
+    press(&mut app, &[Key::Down, Key::Ok, Key::Minus, Key::Digit(3), Key::Exe]);
+    assert_eq!(cells.borrow()[1], (1, 1, "-3".to_string()));
+    // While typing the value shows in the cell.
+    press(&mut app, &[Key::Digit(7)]);
+    assert!(quantus_ui::render::Frame::new(&app).0.iter().any(|shape| matches!(shape, Shape::Math(..))));
+    // DEL outside a value reaches the app.
+    press(&mut app, &[Key::Exe, Key::Del]);
+    assert_eq!(log.borrow().keys, [AppKey::Del]);
+}
+
+#[test]
+fn digits_only_takes_one_digit_and_moves_on() {
+    let (mut app, cells, log) = sudoku(true);
+    press(&mut app, &[Key::Digit(5), Key::Digit(6), Key::Digit(7), Key::Digit(8), Key::Plus]);
+    let got: Vec<(usize, usize, String)> = cells.borrow().clone();
+    assert_eq!(got, [(0, 0, "5".into()), (1, 0, "6".into()), (2, 0, "7".into()), (0, 1, "8".into())]);
+    assert_eq!(log.borrow().keys, [AppKey::Plus]);
+}

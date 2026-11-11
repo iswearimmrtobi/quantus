@@ -194,3 +194,14 @@ fn the_line_template_gives_latex() {
     press(&mut app, &[Key::Digit(2), Key::Power, Key::Digit(5), Key::Exe]);
     assert!(shows(&app, "2^{5}"));
 }
+
+#[test]
+fn the_cells_template_gives_col_row_and_value() {
+    let mut app = open(r#"
+        fn init() { input("cells", #{ cols: 2, rows: 2, digits_only: true }); this.e = ""; }
+        fn entered(c) { this.e += `${c.col}${c.row}=${c.value} `; }
+        fn draw() { text(0, 0, this.e, "text"); }
+    "#);
+    press(&mut app, &[Key::Digit(4), Key::Down, Key::Digit(9)]);
+    assert!(shows(&app, "00=4 11=9 "));
+}

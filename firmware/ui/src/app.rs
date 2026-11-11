@@ -152,6 +152,8 @@ pub struct Running {
     pub template: Template,
     /// The input line of the line template.
     pub line: Editor,
+    /// The value being typed into the cell under the cursor of the cells template.
+    pub cell: Option<Editor>,
 }
 
 /// What the input templates keep while an app runs (apps.md §4.4).
@@ -811,6 +813,7 @@ impl<B: Backend> App<B> {
                 self.modifier.settle(key, layer);
                 return match resolved {
                     Resolved::Key(key) if self.line_key(key, layer == Layer::Shift) => {}
+                    Resolved::Key(key) if self.cells_key(key, layer == Layer::Shift) => {}
                     Resolved::Key(key) => self.app_key(key),
                     Resolved::Insert(latex) => self.line_insert(latex),
                     Resolved::Nothing => {}
@@ -872,7 +875,7 @@ impl<B: Backend> App<B> {
     pub fn open_applet(&mut self, applet: Box<dyn Applet>, info: AppInfo) {
         self.close_app();
         let back = std::mem::replace(&mut self.screen, Screen::App);
-        self.running = Some(Running { applet, info, menu: None, back: Box::new(back), template: Template::default(), line: Editor::new() });
+        self.running = Some(Running { applet, info, menu: None, back: Box::new(back), template: Template::default(), line: Editor::new(), cell: None });
         self.soft_page = 0;
         if let Some((applet, mut host)) = self.applet() {
             applet.start(&mut host);
@@ -932,16 +935,83 @@ impl<B: Backend> App<B> {
     /// LaTeX from a layer (UNIT, SHIFT) or SYMB into the line template's input line.
     fn line_insert(&mut self, latex: &str) {
         let Some(running) = &mut self.running else { return };
-        if matches!(running.applet.input(), Input::Line { .. }) {
+        if let Some(cell) = &mut running.cell {
+            paste_latex(cell, &latex::parse(latex));
+        } else if matches!(running.applet.input(), Input::Line { .. }) {
             paste_latex(&mut running.line, &latex::parse(latex));
         }
+    }
+
+    /// A key on the cells template: the arrows move over the grid; a value is typed into the
+    /// cell under the cursor as in the Matrizen grid and EXE gives it to the app, or with
+    /// `digits_only` one digit is the value and the cursor moves on. Whether it took the key.
+    fn cells_key(&mut self, key: Key, shift: bool) -> bool {
+        let Some(running) = &mut self.running else { return false };
+        let Input::Cells { cols, rows, digits_only } = running.applet.input() else { return false };
+        let (cols, rows) = (cols.max(1), rows.max(1));
+        let (col, row) = running.template.cursor;
+        let (col, row) = (col.min(cols - 1), row.min(rows - 1));
+        let value = if let Some(editor) = &mut running.cell {
+            match key {
+                Key::Ok | Key::Exe => {
+                    let value = editor.to_latex();
+                    running.cell = None;
+                    Some((col, row, value))
+                }
+                Key::Up => {
+                    editor.up();
+                    return true;
+                }
+                Key::Ac | Key::Mode | Key::Optn | Key::Soft(_) => return false,
+                key => {
+                    type_key(editor, key, shift, &mut self.clipboard);
+                    return true;
+                }
+            }
+        } else {
+            match key {
+                Key::Left => running.template.cursor = (col.saturating_sub(1), row),
+                Key::Right => running.template.cursor = ((col + 1).min(cols - 1), row),
+                Key::Up => running.template.cursor = (col, row.saturating_sub(1)),
+                Key::Down => running.template.cursor = (col, (row + 1).min(rows - 1)),
+                Key::Digit(digit) if digits_only => {
+                    // On to the next cell, along the rows.
+                    let next = (row * cols + col + 1).min(rows * cols - 1);
+                    running.template.cursor = (next % cols, next / cols);
+                    return self.cell_entered(col, row, digit.to_string());
+                }
+                _ if digits_only => return false,
+                Key::Ok | Key::Exe => running.cell = Some(Editor::new()),
+                key => {
+                    // A key that types starts the value.
+                    let mut editor = Editor::new();
+                    if !type_key(&mut editor, key, shift, &mut self.clipboard) || editor.is_empty() {
+                        return false;
+                    }
+                    running.cell = Some(editor);
+                }
+            }
+            None
+        };
+        match value {
+            Some((col, row, value)) => self.cell_entered(col, row, value),
+            None => true,
+        }
+    }
+
+    /// Gives the app the value of a cell.
+    fn cell_entered(&mut self, col: usize, row: usize, value: String) -> bool {
+        if let Some((applet, mut host)) = self.applet() {
+            applet.event(Event::Cell(col, row, value), &mut host);
+        }
+        true
     }
 
     /// Whether the app has a line typed into: the text template, or `ask` open.
     fn app_typing(&self) -> bool {
         let Some(running) = &self.running else { return false };
         matches!(running.template.question, Some(Question::Ask { .. }))
-            || (running.template.question.is_none() && running.applet.input().line())
+            || (running.template.question.is_none() && (running.applet.input().line() || running.cell.is_some()))
     }
 
     /// A key on the text template: letters, digits and the space type, DEL takes one back, OK or
@@ -1091,7 +1161,7 @@ impl<B: Backend> App<B> {
     fn app_tap(&mut self, point: embedded_graphics::prelude::Point) {
         let area = render::app_area(self);
         let Some((applet, mut host)) = self.applet() else { return };
-        if let Input::Grid { cols, rows, .. } = applet.input() {
+        if let Input::Grid { cols, rows, .. } | Input::Cells { cols, rows, .. } = applet.input() {
             let grid = Grid::new(area.size.width as i32, area.size.height as i32, cols, rows);
             if let Some((col, row)) = grid.at(point) {
                 host.template.cursor = (col, row);
@@ -1125,6 +1195,7 @@ impl<B: Backend> App<B> {
                 self.screen = Screen::Modes { selected: self.mode.index() };
             }
             key if self.text_key(key) => {}
+            key if self.cells_key(key, false) => {}
             Key::Soft(index) => {
                 let Some(bar) = soft::bar(self) else { return };
                 match bar.slot(usize::from(index)) {

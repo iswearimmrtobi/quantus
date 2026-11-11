@@ -493,7 +493,7 @@ come first; a step is ticked here once its commits there are.
   from `Backend::apps` with the authors, the lock in Prüfungsmodus, the texts in every file of
   `locales/` (`cargo test -p quantus-texts`). Tested with a backend that lists two apps; the
   Setup tile opens what SHIFT + MODE opens and keeps the mode.
-- [ ] **3. hui: the input templates.** `Input` on `Applet`: `"keys"`, `"line"` and `"cells"` on
+- [x] **3. hui: the input templates.** `Input` on `Applet`: `"keys"`, `"line"` and `"cells"` on
   the editor the calculation and the Matrizen grid have, `"text"`, `"grid"`, `"list"`, and the
   questions `confirm` and `ask`. Tested with applets written in Rust, one per template.
 - [x] **4. `firmware/apps`: the host.** The crate, the header with the credits, callbacks, keys,

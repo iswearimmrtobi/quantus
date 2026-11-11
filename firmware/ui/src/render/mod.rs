@@ -341,10 +341,24 @@ fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectan
         };
         app_list(shapes, items, running.template.list.min(items.len().saturating_sub(1)), pressed);
     }
-    if let crate::applet::Input::Grid { cols, rows, .. } = input {
+    if let crate::applet::Input::Grid { cols, rows, .. } | crate::applet::Input::Cells { cols, rows, .. } = input {
         let grid = crate::applet::Grid::new(area.size.width as i32, area.size.height as i32, cols, rows);
         let (col, row) = running.template.cursor;
         let cell = grid.cell(col.min(cols.max(1) - 1), row.min(rows.max(1) - 1)).translate(area.top_left);
+        // The value being typed into the cell, over what the app drew there.
+        if let Some(editor) = &running.cell {
+            let inner = Rectangle::new(cell.top_left + Point::new(4, 4), cell.size.saturating_sub(Size::new(8, 8)));
+            shapes.push(Shape::Fill(inner, colors::surface()));
+            let value = layout::layout(&editor.row, Scale::Small);
+            let origin = Point::new(inner.top_left.x + 4, inner.center().y + (value.ascent - value.descent) / 2);
+            let mark = layout::caret(&value, origin, editor.path(), editor.pos());
+            if !editor.is_empty() {
+                shapes.push(Shape::Math(origin, value, colors::text()));
+            }
+            if caret {
+                shapes.push(Shape::Fill(mark, colors::primary()));
+            }
+        }
         shapes.push(Shape::Outline(rounded(cell.top_left + Point::new(2, 2), cell.size.saturating_sub(Size::new(4, 4)), 4), colors::primary()));
         shapes.push(Shape::Outline(rounded(cell.top_left + Point::new(4, 4), cell.size.saturating_sub(Size::new(8, 8)), 3), colors::primary()));
     }
