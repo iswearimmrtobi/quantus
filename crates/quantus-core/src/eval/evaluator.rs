@@ -520,7 +520,7 @@ impl<'a> Evaluator<'a> {
                 // Close to t = 1 the exact x and Jacobian have hundreds of digits; the working
                 // precision is all the integrand and the sum need.
                 let x = Value::Rat(x).decimal(digits + 10)?.to_rational();
-                let jacobian = Value::Rat(jacobian).decimal(digits + 10)?.to_rational();
+                let jacobian = Value::Rat(jacobian).decimal(digits + 10)?;
                 scope.insert(
                     variable.to_string(),
                     PhysicalQuantity::new(Value::Rat(x.clone()), variable_unit.clone()),
@@ -537,12 +537,15 @@ impl<'a> Evaluator<'a> {
                     }
                     Some(unit) => y.to(unit)?,
                 };
+                // Decimals, not rationals: the integrand can be 10^-800000 far out, and the exact
+                // fraction of that is a number with 800,000 digits.
                 let value = match self.integrand_part(&y.value, part, digits + 10, &mut complex_seen) {
-                    Ok(v) => v.to_rational(),
-                    Err(_) if x.clone().abs() > far => RBig::ZERO,
+                    Ok(v) => v,
+                    Err(_) if x.clone().abs() > far => return Ok(Decimal::from_i64(0)),
                     Err(e) => return Err(e),
                 };
-                Value::Rat(value * jacobian).decimal(digits + 10)
+                let product = Decimal::new(value.unscaled() * jacobian.unscaled(), value.scale() + jacobian.scale());
+                Ok(product.round(digits + 10).normalized())
             };
             let (a, b) = match (lower_inf, upper_inf) {
                 (Some(_), Some(_)) => (Decimal::from_i64(-1), Decimal::from_i64(1)),
