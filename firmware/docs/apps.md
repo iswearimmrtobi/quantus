@@ -495,7 +495,7 @@ come first; a step is ticked here once its commits there are.
 - [ ] **3. hui: the input templates.** `Input` on `Applet`: `"keys"`, `"line"` and `"cells"` on
   the editor the calculation and the Matrizen grid have, `"text"`, `"grid"`, `"list"`, and the
   questions `confirm` and `ask`. Tested with applets written in Rust, one per template.
-- [ ] **4. `firmware/apps`: the host.** The crate, the header with the credits, callbacks, keys,
+- [x] **4. `firmware/apps`: the host.** The crate, the header with the credits, callbacks, keys,
   drawing, `soft`, `input`, `grid`, `side`, `random`, `timer`, `lang`, the limits and the error
   page; `firmware/engine` implements `apps`, `open_app` and `random`. Tests run small scripts and
   check the shapes, the budget and the errors.

@@ -95,6 +95,8 @@ fn main() {
         radio: None,
         #[cfg(feature = "engine")]
         engine: engine::Worker::start(card.is_some().then(|| std::path::PathBuf::from(sd::SESSIONS))),
+        // The card's apps come with step 7 of apps-roadmap.md.
+        apps: quantus_apps::Apps::new(None),
         card,
     };
     // The wallpaper set before the last restart, if the card still has it.
@@ -187,6 +189,8 @@ struct Board {
     radio: Option<bool>,
     #[cfg(feature = "engine")]
     engine: engine::Worker,
+    /// The apps built in and on the card.
+    apps: quantus_apps::Apps,
 }
 
 impl Backend for Board {
@@ -286,6 +290,19 @@ impl Backend for Board {
 
     fn wallpapers(&mut self) -> Vec<String> {
         if self.card.is_some() { sd::wallpapers() } else { Vec::new() }
+    }
+
+    fn apps(&mut self, lang: quantus_ui::text::Lang) -> Vec<quantus_ui::applet::AppInfo> {
+        self.apps.list(lang)
+    }
+
+    fn open_app(&mut self, id: &str) -> Result<Box<dyn quantus_ui::applet::Applet>, String> {
+        self.apps.open(id)
+    }
+
+    fn random(&mut self) -> u32 {
+        // SAFETY: esp_random reads the hardware generator and has no preconditions.
+        unsafe { sys::esp_random() }
     }
 
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {

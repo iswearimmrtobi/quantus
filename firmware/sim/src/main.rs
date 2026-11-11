@@ -18,6 +18,7 @@
 //!   the settings `settings.txt` in it, the saved WLAN networks `wlan.txt`, the colour themes the
 //!   `.toml` files in its `themes` folder and the theme set `theme.txt`. WLAN is played: three
 //!   made-up networks, any password taken.
+//! - `--seed <n>`: fixes the random numbers apps get, so a game repeats.
 
 mod keypad;
 mod mirror;
@@ -33,6 +34,7 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Simul
 use embedded_graphics::primitives::Rectangle;
 use keypad::Keypad;
 use mirror::{Mirror, Tee};
+use quantus_apps::{Apps, Seeded};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{
@@ -64,7 +66,10 @@ fn main() {
     let keep = sessions.is_some();
     let answers = if args.iter().any(|arg| arg == "--stub") { Answers::Stub(Stub) } else { Answers::Engine(Engine::new(sessions)) };
     let wlan = FakeWlan::load(Path::new(sd));
-    let mut app = App::new(Sim { answers, sd: PathBuf::from(sd), keep, wlan });
+    let seed = args.iter().position(|arg| arg == "--seed").and_then(|i| args.get(i + 1)).and_then(|seed| seed.parse().ok());
+    let seed = seed.unwrap_or_else(|| std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(1, |t| t.subsec_nanos()));
+    let apps = Apps::new(Some(Path::new(sd).join("apps")));
+    let mut app = App::new(Sim { answers, sd: PathBuf::from(sd), keep, wlan, apps, random: Seeded::new(seed) });
     // The small unit has five soft keys to a row, the big one six.
     if unit == Some(keypad::Unit::Small) {
         app.soft_columns = 5;
@@ -262,6 +267,9 @@ struct Sim {
     /// Whether changes are written to the folder; not for a `--png` screenshot.
     keep: bool,
     wlan: FakeWlan,
+    /// The apps built in and in the folder's `apps`.
+    apps: Apps,
+    random: Seeded,
 }
 
 /// The networks the simulator pretends to find: name, signal, whether it needs a password.
@@ -303,6 +311,18 @@ impl FakeWlan {
 }
 
 impl Backend for Sim {
+    fn apps(&mut self, lang: quantus_ui::text::Lang) -> Vec<quantus_ui::applet::AppInfo> {
+        self.apps.list(lang)
+    }
+
+    fn open_app(&mut self, id: &str) -> Result<Box<dyn quantus_ui::applet::Applet>, String> {
+        self.apps.open(id)
+    }
+
+    fn random(&mut self) -> u32 {
+        self.random.next()
+    }
+
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
         match &mut self.answers {
             Answers::Engine(engine) => engine.evaluate(mode, settings, latex),

@@ -3,10 +3,12 @@
 //! the interpreter.
 
 pub mod api;
+pub mod apps;
 pub mod applet;
 pub mod header;
 pub mod script;
 
 pub use applet::ScriptApplet;
+pub use apps::{Apps, Seeded};
 pub use header::{info, Header, API};
 pub use script::{Callback, Context, Error, Output, Request, Script, Value, Yield};

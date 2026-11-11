@@ -236,13 +236,16 @@ interpreter. No engine.
   templates of 3a with `pick` and `entered`, `cursor`, `confirm` (a yield, F1), `grid`, `side`,
   `random(n)` (through `Host::random`), `timer`, `lang`, `exit`. Tests: one small script per
   function.
-- [ ] **4.6 Into the simulator and the board.** `quantus_apps::Apps { card: Option<PathBuf> }`
+- [x] **4.6 Into the simulator and the board.** `quantus_apps::Apps { card: Option<PathBuf> }`
   with `list(lang)` and `open(id)`; the built-in apps from `firmware/apps/apps/*.rhai` with
   `include_str!` (one test script for now). `Sim` and `Board` hold one and implement `apps`,
   `open_app` and `random` (F3): `esp_random` on the board, in the simulator a small generator
   that `--seed <n>` fixes (F11). The dependency goes into `sim` and `handheld`; all three lock
   files change. Check: the test script opens from the Apps list in the simulator, and on the
   board over the serial keys.
+  Done but for the board: the firmware builds with the apps (`cargo build --release`), the
+  check on the board over the serial keys waits for it. The test script is the Counter as
+  `zaehler.rhai`; the card's folder is listed from 7.1 on.
 
 ### Step 5. Tic tac toe (M)
 
