@@ -34,8 +34,8 @@ impl Applet for Probe {
     }
 
     fn draw(&self, canvas: &mut Canvas) {
-        canvas.clear(colors::SURFACE);
-        canvas.rect(0, -40, 20, 60, colors::AMBER);
+        canvas.clear(colors::surface());
+        canvas.rect(0, -40, 20, 60, colors::accent());
     }
 
     fn soft_keys(&self) -> Vec<String> {
@@ -152,9 +152,9 @@ fn keys_map_as_the_api_names_them() {
 /// Where the shapes of the same calls land, on a canvas at `area`.
 fn drawn(area: Rectangle) -> Vec<Rectangle> {
     let mut canvas = Canvas::new(area);
-    canvas.rect(10, 20, 30, 40, colors::TEXT);
-    canvas.circle(0, 0, 10, colors::TEXT);
-    canvas.text(5, 5, "Hallo", colors::TEXT);
+    canvas.rect(10, 20, 30, 40, colors::text());
+    canvas.circle(0, 0, 10, colors::text());
+    canvas.text(5, 5, "Hallo", colors::text());
     canvas
         .shapes()
         .iter()
@@ -186,23 +186,24 @@ fn the_canvas_moves_by_its_area() {
 fn a_canvas_keeps_its_limit() {
     let mut canvas = Canvas::new(Rectangle::new(Point::zero(), Size::new(480, 294)));
     for _ in 0..quantus_ui::applet::MAX_SHAPES + 10 {
-        canvas.rect(0, 0, 1, 1, colors::TEXT);
+        canvas.rect(0, 0, 1, 1, colors::text());
     }
     assert_eq!(canvas.shapes().len(), quantus_ui::applet::MAX_SHAPES);
     assert!(canvas.dropped());
     // A negative size is no size.
     let mut canvas = Canvas::new(Rectangle::new(Point::zero(), Size::new(10, 10)));
-    canvas.rect(0, 0, -5, 3, colors::TEXT);
+    canvas.rect(0, 0, -5, 3, colors::text());
     assert!(matches!(canvas.shapes()[0], Shape::Fill(rect, _) if rect.size == Size::new(0, 3)));
 }
 
 #[test]
 fn colours_by_name() {
-    assert_eq!(Palette::get("background"), Some(colors::BACKGROUND));
-    assert_eq!(Palette::get("tile1"), Some(colors::TILES[0].1));
-    assert_eq!(Palette::get(&format!("tile{}", colors::TILES.len())), Some(colors::TILES[colors::TILES.len() - 1].1));
+    assert_eq!(Palette::get("background"), Some(colors::background()));
+    let tiles = colors::tiles();
+    assert_eq!(Palette::get("tile1"), Some(tiles[0].1));
+    assert_eq!(Palette::get(&format!("tile{}", tiles.len())), Some(tiles[tiles.len() - 1].1));
     assert_eq!(Palette::get("tile0"), None);
-    assert_eq!(Palette::get(&format!("tile{}", colors::TILES.len() + 1)), None);
+    assert_eq!(Palette::get(&format!("tile{}", tiles.len() + 1)), None);
     assert_eq!(Palette::get("pink"), None);
 }
 
@@ -213,9 +214,9 @@ fn the_applet_draws_below_the_bar() {
     let area = quantus_ui::render::app_area(&app);
     assert_eq!(area, Rectangle::new(Point::new(0, 26), Size::new(480, 294)));
     // The clear fills the area, the square is moved by its origin.
-    let clear = frame.0.iter().position(|shape| matches!(shape, Shape::Fill(rect, color) if *rect == area && *color == colors::SURFACE));
+    let clear = frame.0.iter().position(|shape| matches!(shape, Shape::Fill(rect, color) if *rect == area && *color == colors::surface()));
     let square = frame.0.iter().position(|shape| matches!(shape, Shape::Fill(rect, color)
-        if *color == colors::AMBER && *rect == Rectangle::new(Point::new(0, -14), Size::new(20, 60))));
+        if *color == colors::accent() && *rect == Rectangle::new(Point::new(0, -14), Size::new(20, 60))));
     // The bar's fill comes after both, so what reaches above the area is covered.
     let bar = frame.0.iter().position(|shape| matches!(shape, Shape::Fill(rect, _) if rect.top_left == Point::zero() && rect.size == Size::new(480, 26)));
     let (clear, square, bar) = (clear.expect("cleared"), square.expect("square"), bar.expect("bar"));
@@ -399,4 +400,41 @@ fn taps_on_the_apps_menu() {
     tap(&mut app, line);
     assert_eq!(app.screen, Screen::Calc);
     assert!(log.borrow().taps.is_empty());
+}
+
+#[test]
+fn page_three_has_the_apps_and_the_setup() {
+    use quantus_ui::render::{dot_rect, Frame};
+    let mut app = App::new(Stub);
+    app.key(Key::Mode);
+    // Down from tile 10 to tile 13, on the third page.
+    app.screen = Screen::Modes { selected: 9 };
+    app.key(Key::Down);
+    assert_eq!(app.screen, Screen::Modes { selected: 12 });
+    assert_eq!(Mode::ALL[12], Mode::Apps);
+    assert_eq!(Mode::ALL[13], Mode::Setup);
+    let frame = Frame::new(&app);
+    let names: Vec<&str> = frame.0.iter().filter_map(|shape| match shape {
+        Shape::Text(_, text, ..) => Some(text.as_str()),
+        _ => None,
+    }).collect();
+    assert!(names.contains(&"Apps") && names.contains(&"Setup"), "{names:?}");
+    // The third dot is drawn.
+    let third = dot_rect(2);
+    assert!(frame.0.iter().any(|shape| matches!(shape, Shape::Round(round, ..) if round.rectangle == third)
+        || matches!(shape, Shape::Circle(circle, _) if circle.bounding_box() == third)
+        || matches!(shape, Shape::Fill(rect, _) if *rect == third)));
+}
+
+#[test]
+fn the_setup_tile_opens_setup_and_keeps_the_mode() {
+    let mut app = App::new(Stub);
+    app.mode = Mode::Algebra;
+    app.settings.exam = true;
+    app.key(Key::Mode);
+    app.screen = Screen::Modes { selected: 13 };
+    app.key(Key::Ok);
+    let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
+    assert_eq!(menu.level().page, &quantus_ui::tree::SETUP);
+    assert_eq!(app.mode, Mode::Algebra);
 }

@@ -293,6 +293,9 @@ static BLUETOOTH: Page = Page {
 
 /// The Sitzungen tile of MODE (§6). Renaming, duplicating and deleting act on the open session;
 /// the backend keeps them, on the SD card when there is one.
+/// The list of apps, which the app fills in: a page with no entries of its own.
+pub static APPS: Page = Page { title: tx!("hui.app.apps"), entries: &[] };
+
 /// OPTN inside an app: the hui's, which the app cannot change (apps.md §2).
 pub static APP_MENU: Page = Page {
     title: crate::text::APP_MENU,
@@ -410,8 +413,8 @@ pub fn optn(mode: Mode) -> &'static Page {
         Mode::Statistics => &OPTN_STATISTICS,
         Mode::Distributions => &OPTN_DISTRIBUTIONS,
         Mode::Verify => &OPTN_VERIFY,
-        // The tile opens the sessions menu; OPTN never sees it as the mode.
-        Mode::Sessions => &OPTN_PHYSICS,
+        // The tiles open their menus; OPTN never sees them as the mode.
+        Mode::Sessions | Mode::Apps | Mode::Setup => &OPTN_PHYSICS,
     }
 }
 

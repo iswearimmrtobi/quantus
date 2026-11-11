@@ -306,19 +306,19 @@ impl Palette {
     /// `"error"`, `"cyan"`, `"amber"`, `"tile1"` up to the number of tiles.
     pub fn get(name: &str) -> Option<Rgb565> {
         Some(match name {
-            "background" => colors::BACKGROUND,
-            "surface" => colors::SURFACE,
-            "hairline" => colors::HAIRLINE,
-            "text" => colors::TEXT,
-            "muted" => colors::MUTED,
-            "faint" => colors::FAINT,
-            "result" => colors::RESULT,
-            "error" => colors::ERROR,
-            "cyan" => colors::CYAN,
-            "amber" => colors::AMBER,
+            "background" => colors::background(),
+            "surface" => colors::surface(),
+            "hairline" => colors::hairline(),
+            "text" => colors::text(),
+            "muted" => colors::muted(),
+            "faint" => colors::faint(),
+            "result" => colors::result(),
+            "error" => colors::error(),
+            "cyan" => colors::primary(),
+            "amber" => colors::accent(),
             _ => {
                 let index: usize = name.strip_prefix("tile")?.parse().ok()?;
-                colors::TILES.get(index.checked_sub(1)?)?.1
+                colors::tiles().get(index.checked_sub(1)?)?.1
             }
         })
     }

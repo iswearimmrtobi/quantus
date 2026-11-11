@@ -59,10 +59,10 @@ pub fn tour() -> Vec<Step> {
     tour.read(900);
     tour.press(&[Ac]);
 
-    tour.note("The mode tiles, both pages, then Algebra");
+    tour.note("The mode tiles, all three pages, then Algebra");
     tour.press(&[Mode]);
     tour.read(1200);
-    tour.look(&[Right, Right, Down, Down, Up, Left, Left, Up, Right]);
+    tour.look(&[Right, Right, Down, Down, Up, Left, Left, Down, Down, Up, Up, Up, Right]);
     tour.read(800);
     tour.press(&[Ok]);
 

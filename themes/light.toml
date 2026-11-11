@@ -57,4 +57,6 @@ tiles = [
     ["#dedef5", "#c4c4ee"], # indigo
     ["#d8e5f0", "#bcd2e6"], # steel
     ["#e2e4ea", "#cbcfd9"], # slate
+    ["#dde9d6", "#c3d8b8"], # moss
+    ["#e8dfec", "#d4c5dc"], # mauve
 ]

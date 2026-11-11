@@ -23,7 +23,8 @@ use crate::wallpaper::Wallpaper;
 use embedded_graphics::prelude::Point;
 pub use crate::settings::Settings;
 
-/// The modes of the MODE menu (design/handheld-menus.md §7.1), in its order: two pages of six.
+/// The modes of the MODE menu (design/handheld-menus.md §7.1), in its order: two pages of six
+/// and a third with the apps and the setup.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
     Physics,
@@ -39,10 +40,14 @@ pub enum Mode {
     Verify,
     /// Not a mode: the tile opens the sessions menu.
     Sessions,
+    /// Not a mode: the tile opens the list of apps.
+    Apps,
+    /// Not a mode: the tile opens SETUP, as SHIFT + MODE does.
+    Setup,
 }
 
 impl Mode {
-    pub const ALL: [Mode; 12] = [
+    pub const ALL: [Mode; 14] = [
         Mode::Physics,
         Mode::Algebra,
         Mode::Imaginary,
@@ -55,6 +60,8 @@ impl Mode {
         Mode::Distributions,
         Mode::Verify,
         Mode::Sessions,
+        Mode::Apps,
+        Mode::Setup,
     ];
 
     /// The name, with a soft hyphen where a tile may break it.
@@ -72,6 +79,8 @@ impl Mode {
             Mode::Distributions => tx!("hui.app.distri_butions"),
             Mode::Verify => tx!("hui.app.verify"),
             Mode::Sessions => tx!("hui.app.sessions"),
+            Mode::Apps => tx!("hui.app.apps"),
+            Mode::Setup => tx!("hui.app.setup"),
         }
     }
 
@@ -2144,6 +2153,13 @@ impl<B: Backend> App<B> {
     fn choose(&mut self, index: usize) {
         match Mode::ALL[index] {
             Mode::Sessions => self.screen = Screen::Menu(Menu::new(&tree::SESSIONS)),
+            // SETUP, and the mode stays as it is.
+            Mode::Setup => self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
+            Mode::Apps => {
+                let mut menu = Menu::new(&tree::APPS);
+                menu.edit = Some(Edit::Message { label: tree::APPS.title, message: text::NOT_AVAILABLE });
+                self.screen = Screen::Menu(menu);
+            }
             mode => {
                 if mode != self.mode {
                     self.answer = None;

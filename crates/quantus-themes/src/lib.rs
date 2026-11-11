@@ -53,7 +53,7 @@ pub const COLORS: &[&str] = &[
 pub const HANDHELD: &[&str] = &["result", "error", "shift", "alpha", "unit"];
 
 /// The number of mode tiles on the handheld, each with its own pair of colours.
-pub const TILES: usize = 12;
+pub const TILES: usize = 14;
 
 /// The theme every other one starts from, unless it names another base.
 pub const DEFAULT: &str = "dark";

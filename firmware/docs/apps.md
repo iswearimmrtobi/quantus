@@ -292,7 +292,7 @@ time; the renderer finds what changed.
 | `math(x, y, latex, color)` | A formula, set as the calculator sets results, its top left at (x, y) |
 
 A colour is a name from the hui's palette (`"background"`, `"surface"`, `"text"`, `"muted"`,
-`"result"`, `"error"`, `"cyan"`, `"amber"`, `"tile1"` to `"tile13"`), so an app follows the
+`"result"`, `"error"`, `"cyan"`, `"amber"`, `"tile1"` to `"tile14"`), so an app follows the
 theme, or `rgb(r, g, b)`.
 
 ### 4.4 Input templates

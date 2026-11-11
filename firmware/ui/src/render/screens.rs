@@ -449,7 +449,7 @@ fn wlan_screen(shapes: &mut Vec<Shape>, status: &WlanStatus, lang: text::Lang, g
 fn app_info(shapes: &mut Vec<Shape>, info: &crate::applet::AppInfo, lang: text::Lang) {
     let room = WIDTH as i32 - 2 * MARGIN;
     let mut y = BAR + 14 + Scale::Normal.metrics().ascent;
-    shapes.push(Shape::Text(Point::new(MARGIN, y), fit(&info.name, room, Scale::Normal), Scale::Normal, colors::TEXT));
+    shapes.push(Shape::Text(Point::new(MARGIN, y), fit(&info.name, room, Scale::Normal), Scale::Normal, colors::text()));
     y += 10;
     let step = Scale::Small.metrics().ascent + 8;
     let mut line = |shapes: &mut Vec<Shape>, text: String, color| {
@@ -463,21 +463,21 @@ fn app_info(shapes: &mut Vec<Shape>, info: &crate::applet::AppInfo, lang: text::
         1 => format!("{}: {}", text::AUTHOR.get(lang), info.authors[0]),
         _ => format!("{}: {}", text::AUTHORS.get(lang), info.authors.join(", ")),
     };
-    line(shapes, authors, colors::TEXT);
+    line(shapes, authors, colors::text());
     if let Some(version) = &info.version {
-        line(shapes, format!("{}: {version}", text::APP_VERSION.get(lang)), colors::TEXT);
+        line(shapes, format!("{}: {version}", text::APP_VERSION.get(lang)), colors::text());
     }
     if let Some(about) = &info.about {
-        line(shapes, about.clone(), colors::MUTED);
+        line(shapes, about.clone(), colors::muted());
     }
     if let Some(license) = &info.license {
-        line(shapes, format!("{}: {license}", text::LICENSE.get(lang)), colors::TEXT);
+        line(shapes, format!("{}: {license}", text::LICENSE.get(lang)), colors::text());
     }
     let source = match info.built_in {
         true => text::BUILT_IN.get(lang).to_string(),
         false => format!("{}, {}.rhai", text::FROM_CARD.get(lang), info.id),
     };
-    line(shapes, format!("API {} · {source}", info.api), colors::MUTED);
+    line(shapes, format!("API {} · {source}", info.api), colors::muted());
 }
 
 fn centred(shapes: &mut Vec<Shape>, text: &str) {

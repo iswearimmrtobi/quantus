@@ -113,9 +113,9 @@ The desktop sets each key as the CSS variable of the same name (`--background`, 
 | `shift` | the SHIFT mark in the top bar | `#c9a46a` |
 | `alpha` | the ALPHA mark in the top bar | `#8fb3a0` |
 | `unit` | the UNIT mark in the top bar | `#9186e8` |
-| `tiles` | the mode tiles: twelve pairs `["tile", "chosen tile"]`, in the order of the mode menu | twelve muted colours, purple to slate |
+| `tiles` | the mode tiles: fourteen pairs `["tile", "chosen tile"]`, in the order of the mode menu | fourteen muted colours, purple to mauve |
 
-`tiles` is all or nothing: give all twelve pairs, or leave the key out and keep the base's.
+`tiles` is all or nothing: give all fourteen pairs, or leave the key out and keep the base's.
 
 ```toml
 [handheld]
@@ -132,6 +132,8 @@ tiles = [
     ["#3a3a6e", "#4d4d90"], # indigo
     ["#2f4f6a", "#3e678b"], # steel
     ["#454a5a", "#5c6276"], # slate
+    ["#3d523a", "#516c4d"], # moss
+    ["#55465e", "#705c7c"], # mauve
 ]
 ```
 
@@ -139,7 +141,7 @@ tiles = [
 
 | In the file | What happens |
 |---|---|
-| broken TOML, a colour that is not `#rrggbb` or `#rrggbbaa`, a `base` that is not built in, `tiles` without twelve pairs | the theme cannot be chosen; the list says why, with the key: `colors.text: "red" is not a colour, write #rrggbb or #rrggbbaa` |
+| broken TOML, a colour that is not `#rrggbb` or `#rrggbbaa`, a `base` that is not built in, `tiles` without fourteen pairs | the theme cannot be chosen; the list says why, with the key: `colors.text: "red" is not a colour, write #rrggbb or #rrggbbaa` |
 | a key Quantus does not know, such as a typo `backgrund` | ignored; while the theme is chosen, the desktop lists it under the theme buttons (`colors.backgrund: unknown, ignored`) |
 | a theme chosen earlier that is gone or broken now | the app shows Dark and says why; the setting is kept, so the theme comes back once the file is fixed |
 

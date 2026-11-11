@@ -144,7 +144,7 @@ touch `Screen` (`screen`, `menus`, `sheets`, `touch`, `soft_keys`) still do.
 
 ### Step 2. hui: page 3 with the Apps and Setup tiles (M)
 
-- [ ] **2.1 The tiles.** `Mode::Apps` and `Mode::Setup` at the end of `Mode::ALL`
+- [x] **2.1 The tiles.** `Mode::Apps` and `Mode::Setup` at the end of `Mode::ALL`
   (`[Mode; 14]`), their texts (`hui.app.apps`, `hui.app.setup`), two more colours in
   `colors::TILES` (F6). `Mode::engine` and `Mode::sheet` say no for both; `core_mode` in
   `firmware/engine/src/lib.rs` gets its arms. `App::choose`: *Setup* opens
