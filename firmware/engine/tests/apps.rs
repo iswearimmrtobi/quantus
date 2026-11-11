@@ -84,3 +84,19 @@ fn var_reads_the_sessions_variables_and_insert_hands_back() {
     assert_eq!(app.screen, quantus_ui::app::Screen::Calc);
     assert_eq!(app.editor.to_latex(), r"\frac{1}{2}");
 }
+
+#[test]
+fn the_line_with_calc_gives_the_result() {
+    let mut app = App::new(Engine::default());
+    let source = r#"
+        fn init() { input("line", #{ label: "x", calc: true }); this.t = ""; }
+        fn entered(r) { this.t = `${r.ok} ${r.latex}`; }
+        fn draw() { text(0, 0, this.t, "text"); }
+    "#;
+    let info = AppInfo { id: "t".into(), name: "T".into(), api: 1, usable: true, ..AppInfo::default() };
+    app.open_applet(Box::new(ScriptApplet::new(source)), info);
+    for key in [Key::Digit(2), Key::Plus, Key::Digit(3), Key::Exe] {
+        app.key(key);
+    }
+    assert!(texts(&app).contains(&"true 5".to_string()), "{:?}", texts(&app));
+}

@@ -91,3 +91,22 @@ fn ac_drops_the_calculation_and_leaves() {
     assert_eq!(app.screen, Screen::Calc);
     assert!(app.running.is_none());
 }
+
+#[test]
+fn the_line_with_calc_waits_for_the_engine() {
+    let (dropped, mode) = (Rc::new(Cell::new(0)), Rc::new(Cell::new(None)));
+    let mut app = App::new(Slow { polls: 0, dropped, mode });
+    let source = r#"
+        fn init() { input("line", #{ calc: true }); this.t = "-"; }
+        fn entered(r) { this.t = r.value; }
+        fn draw() { text(0, 0, this.t, "text"); }
+    "#;
+    let info = AppInfo { id: "t".into(), name: "T".into(), api: 1, usable: true, ..AppInfo::default() };
+    app.open_applet(Box::new(ScriptApplet::new(source)), info);
+    app.key(Key::Digit(4));
+    app.key(Key::Exe);
+    app.tick(0);
+    assert!(app.busy);
+    app.tick(10);
+    assert!(texts(&app).contains(&"4{,}2".to_string()), "{:?}", texts(&app));
+}

@@ -366,7 +366,7 @@ M4.
   `App::insert` takes it); `now()` from `clock::now`. Tests.
   `var` is a reserved word of Rhai: the function is `variable(name)`, by key or symbol, a yield
   answered at once from `Backend::variables`. `now` came with 4.5.
-- [ ] **8.4 `calc: true` on the `"line"` template.**
+- [x] **8.4 `calc: true` on the `"line"` template.**
 
 ### Step 9. Forms (L)
 

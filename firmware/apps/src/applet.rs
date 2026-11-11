@@ -36,6 +36,8 @@ pub struct ScriptApplet {
     data: Option<Value>,
     /// LaTeX for the calculation, handed back when the app is left.
     insert: Option<String>,
+    /// A line worked out for `entered`, waiting for the engine (`calc: true`).
+    entering: bool,
 }
 
 impl ScriptApplet {
@@ -55,6 +57,7 @@ impl ScriptApplet {
             lang: Lang::De,
             data: None,
             insert: None,
+            entering: false,
         };
         match Script::start(source) {
             Ok(script) => applet.script = Some(script),
@@ -288,6 +291,17 @@ impl Applet for ScriptApplet {
         let callback = match event {
             Event::Pick(col, row) => Callback::Pick(col as i64, row as i64),
             Event::Chosen(index) => Callback::Entered(Value::Int(index as i64)),
+            // The input line with `calc: true` gives what `calc` gives.
+            Event::Entered(latex) if matches!(self.input, Input::Line { calc: true, .. }) && self.error.is_none() => {
+                match host.calc(&latex) {
+                    Some(answer) => Callback::Entered(calc_answer(answer)),
+                    None => {
+                        self.asking = Some(Request::Calc(latex));
+                        self.entering = true;
+                        return;
+                    }
+                }
+            }
             Event::Entered(text) => Callback::Entered(Value::Str(text)),
             Event::Cell(col, row, value) => Callback::Entered(Value::Map(vec![
                 ("col".into(), Value::Int(col as i64)),
@@ -300,6 +314,12 @@ impl Applet for ScriptApplet {
 
     fn answer(&mut self, response: Response, host: &mut dyn Host) {
         let Some(_) = self.asking.take() else { return };
+        if std::mem::take(&mut self.entering) {
+            if let Response::Calc(answer) = response {
+                self.call(Callback::Entered(calc_answer(answer)), host);
+            }
+            return;
+        }
         let value = match response {
             Response::Confirmed(yes) => Value::Bool(yes),
             Response::Text(Some(text)) => Value::Str(text),
