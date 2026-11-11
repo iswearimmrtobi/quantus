@@ -52,6 +52,7 @@ pub const APPS_EXAM: Text = tx!("hui.apps.exam");
 pub const NOT_RESPONDING: Text = tx!("hui.apps.not_responding");
 pub const APP_ERROR: Text = tx!("hui.apps.error");
 pub const LINE: Text = tx!("hui.apps.line");
+pub const VALUE_MISSING: Text = tx!("hui.forms.missing");
 pub const NO_ENTRIES: Text = tx!("hui.no_entries");
 pub const EXAM: Text = tx!("hui.exam");
 pub const EXACT_SHORT: Text = tx!("hui.exact_short");

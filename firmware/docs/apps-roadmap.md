@@ -378,12 +378,17 @@ M4.
   ([`sheet.rs`](../ui/src/sheet.rs), [`render/sheet.rs`](../ui/src/render/sheet.rs)): one field
   per line with label and unit, ↑/↓, the editor in the field, `choices` as a list, `hint` below.
   More fields than fit scroll. Test with a form built in Rust.
-- [ ] **9.3 Working it out.** EXE on the last field: each field as `value` with its unit if it
+- [x] **9.3 Working it out.** EXE on the last field: each field as `value` with its unit if it
   has none, substituted into each `formula` (F4), worked out through `app_calc`, converted to
   the result's `unit`; an error of the engine lands on the field it names where that can be
   told, else under the results. The results as an answer below; OK on one hands it to the
   calculation. Tests against the real engine: the voltage divider of apps.md §4.7, `10 kΩ`
   typed into a field in Ω, a length typed into a voltage.
+  Built so: a field's value goes to the engine first; a number alone gets the field's unit, one
+  with a unit is converted to the field's (`▶`) to check its quantity, the error landing on the
+  field. The ids are replaced as whole names, not inside longer ones or LaTeX commands, by the
+  term in brackets; the engine reads `*` and `/` as written. Each step goes through
+  `Host::calc`, at once or after the engine, one after the other.
 - [ ] **9.4 `form` from a script.** `form(description)` as a yield that gives the results when
   the form closes; a script that is only a `form(...)` call is a tool with no callbacks. With
   `submit` the function is called with the values and gives results or a field's error. The

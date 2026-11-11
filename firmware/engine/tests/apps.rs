@@ -100,3 +100,109 @@ fn the_line_with_calc_gives_the_result() {
     }
     assert!(texts(&app).contains(&"true 5".to_string()), "{:?}", texts(&app));
 }
+
+mod forms {
+    use quantus_engine::Engine;
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::applet::{Applet, Host};
+    use quantus_ui::backend::Backend;
+    use quantus_ui::form::{Field, Form, FormApplet, Outcome};
+    use quantus_ui::key::Key;
+    use quantus_ui::text::Lang;
+
+    /// What a form asks of the device, answered by the engine.
+    struct Calculator(Engine);
+
+    impl Host for Calculator {
+        fn random(&mut self) -> u32 {
+            4
+        }
+
+        fn lang(&self) -> Lang {
+            Lang::De
+        }
+
+        fn calc(&mut self, input: &str) -> Option<Result<String, String>> {
+            self.0.app_calc(Mode::Physics, &Settings::default(), input)
+        }
+    }
+
+    fn field(id: &str, unit: &str, value: Option<&str>) -> Field {
+        Field { id: id.into(), label: id.into(), unit: Some(unit.into()), value: value.map(str::to_string), ..Field::default() }
+    }
+
+    /// The voltage divider of apps.md §4.7.
+    fn divider() -> FormApplet {
+        FormApplet::new(Form {
+            title: "Spannungsteiler".into(),
+            fields: vec![field("U", "V", None), field("R1", "Ω", None), field("R2", "Ω", Some("10 kΩ"))],
+            results: vec![
+                Outcome { label: "U₂".into(), formula: "U*R2/(R1+R2)".into(), unit: Some("V".into()) },
+                Outcome { label: "I".into(), formula: "U/(R1+R2)".into(), unit: Some("mA".into()) },
+            ],
+            submit: false,
+        })
+    }
+
+    /// Types `keys` into the field under the cursor, `unit` after them, and goes on with EXE.
+    fn fill(form: &mut FormApplet, host: &mut Calculator, keys: &[Key], unit: Option<&str>) {
+        for &key in keys {
+            form.typed(key, false, host);
+        }
+        if let Some(unit) = unit {
+            form.insert(unit, host);
+        }
+        form.typed(Key::Exe, false, host);
+    }
+
+    #[test]
+    fn the_voltage_divider_works_out() {
+        let mut host = Calculator(Engine::default());
+        let mut form = divider();
+        fill(&mut form, &mut host, &[Key::Digit(1), Key::Digit(2)], None);
+        fill(&mut form, &mut host, &[Key::Digit(5)], Some(r"\mathrm{k\Omega}"));
+        // R₂ keeps its 10 kΩ; EXE on it works the form out.
+        form.typed(Key::Exe, false, &mut host);
+        let results = form.results.clone().expect("results");
+        assert_eq!(results[0], ("U₂".to_string(), Ok(r"8\,\mathrm{V}".to_string())), "{results:?}");
+        assert_eq!(results[1], ("I".to_string(), Ok(r"\frac{4}{5}\,\mathrm{mA}".to_string())), "{results:?}");
+        // The cursor on the first result: OK hands it to the calculation.
+        assert_eq!(form.result, Some(0));
+        assert_eq!(form.leave(&mut host).as_deref(), Some(r"8\,\mathrm{V}"));
+    }
+
+    #[test]
+    fn a_number_alone_takes_the_fields_unit_and_a_wrong_quantity_is_the_fields_error() {
+        let mut host = Calculator(Engine::default());
+        let mut form = divider();
+        // 12 into U, 5000 alone into R1: Ω; R₂ as given.
+        fill(&mut form, &mut host, &[Key::Digit(1), Key::Digit(2)], None);
+        fill(&mut form, &mut host, &[Key::Digit(5), Key::Digit(0), Key::Digit(0), Key::Digit(0)], None);
+        form.typed(Key::Exe, false, &mut host);
+        assert_eq!(form.results.as_ref().unwrap()[0].1, Ok(r"8\,\mathrm{V}".to_string()));
+
+        // A length into the voltage.
+        let mut form = divider();
+        fill(&mut form, &mut host, &[Key::Digit(3)], Some(r"\mathrm{m}"));
+        fill(&mut form, &mut host, &[Key::Digit(5)], Some(r"\mathrm{k\Omega}"));
+        form.typed(Key::Exe, false, &mut host);
+        assert!(form.results.is_none());
+        let error = form.errors[0].clone().expect("an error on U");
+        assert!(error.contains("V"), "{error}");
+        assert!(form.errors[1].is_none() && form.errors[2].is_none());
+
+        // An empty field says so.
+        let mut form = divider();
+        form.typed(Key::Exe, false, &mut host);
+        form.typed(Key::Exe, false, &mut host);
+        form.typed(Key::Exe, false, &mut host);
+        assert_eq!(form.errors[0].as_deref(), Some("Hier fehlt ein Wert."));
+    }
+
+    #[test]
+    fn whole_names_only_are_replaced() {
+        use quantus_ui::form::substitute;
+        let terms = [("R1".to_string(), "5".to_string()), ("R12".to_string(), "7".to_string())];
+        assert_eq!(substitute(r"R1+R12+\sqrt{R1}+R1x", &terms), r"(5)+(7)+\sqrt{(5)}+R1x");
+    }
+}

@@ -1564,6 +1564,7 @@
     "hui.exam_blocks": "Aus im Prüfungsmodus",
     "hui.failed": "Keine Verbindung mit",
     "hui.forget": "Vergessen",
+    "hui.forms.missing": "Hier fehlt ein Wert.",
     "hui.free": "Frei",
     "hui.graph": "Graph",
     "hui.matrix": "Matrix",

@@ -36,7 +36,9 @@ pub struct Outcome {
     pub unit: Option<String>,
 }
 
-use crate::applet::{AppKey, Applet, Canvas, Host, Palette};
+use std::collections::VecDeque;
+
+use crate::applet::{AppKey, Applet, Canvas, Host, Palette, Response};
 use crate::font::Scale;
 use crate::key::Key;
 use crate::latex;
@@ -67,6 +69,53 @@ pub struct FormApplet {
     pub error: Option<String>,
     /// The result under the cursor, while the cursor is below the fields.
     pub result: Option<usize>,
+    /// What is still to be worked out, and the step the engine works on now.
+    jobs: VecDeque<Job>,
+    waiting: Option<Job>,
+    /// Each field as it goes into the formulas: its value, with its unit if it had none.
+    terms: Vec<String>,
+}
+
+/// A step of working a form out.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Job {
+    /// What a field's value is: a number alone, or one with a unit.
+    Value(usize),
+    /// Whether a field's value with a unit is of the field's unit's quantity.
+    Unit(usize),
+    /// A result's formula.
+    Result(usize),
+}
+
+/// `formula` with every name of a field replaced by its term: whole names only, so `R1` stays
+/// apart from `R12`, and a LaTeX command (`\sqrt`) is left alone.
+pub fn substitute(formula: &str, terms: &[(String, String)]) -> String {
+    let mut out = String::new();
+    let mut chars = formula.chars().peekable();
+    let mut command = false;
+    while let Some(c) = chars.next() {
+        if c.is_ascii_alphabetic() {
+            let mut name = c.to_string();
+            while let Some(&next) = chars.peek().filter(|next| next.is_ascii_alphanumeric() || **next == '_') {
+                name.push(next);
+                chars.next();
+            }
+            match terms.iter().find(|(id, _)| *id == name).filter(|_| !command) {
+                Some((_, term)) => out.push_str(&format!("({term})")),
+                None => out.push_str(&name),
+            }
+            command = false;
+        } else {
+            command = c == '\\';
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// A unit written upright, as the engine reads it.
+fn unit(unit: &str) -> String {
+    format!(r"\mathrm{{{unit}}}")
 }
 
 /// A value as a form's description writes it (`10 kΩ`), as the calculator's LaTeX: a number
@@ -97,7 +146,20 @@ impl FormApplet {
             .map(|field| field.value.as_ref().and_then(|value| field.choices.iter().position(|choice| choice == value)).unwrap_or(0))
             .collect();
         let errors = vec![None; form.fields.len()];
-        FormApplet { form, sheet, chosen, choosing: None, errors, results: None, error: None, result: None }
+        let terms = vec![String::new(); form.fields.len()];
+        FormApplet {
+            form,
+            sheet,
+            chosen,
+            choosing: None,
+            errors,
+            results: None,
+            error: None,
+            result: None,
+            jobs: VecDeque::new(),
+            waiting: None,
+            terms,
+        }
     }
 
     /// The field under the cursor.
@@ -173,9 +235,106 @@ impl FormApplet {
         }
     }
 
-    /// Works the form out; the results come into [`FormApplet::results`].
-    pub fn calculate(&mut self, _host: &mut dyn Host) {
+    /// Works the form out: each field's value, then each result; the results come into
+    /// [`FormApplet::results`], what is wrong with a field to it.
+    pub fn calculate(&mut self, host: &mut dyn Host) {
         self.sheet.commit();
+        if self.form.submit {
+            // The app's own function works it out (`quantus-apps`).
+            return;
+        }
+        self.errors.iter_mut().for_each(|error| *error = None);
+        (self.results, self.error, self.result) = (None, None, None);
+        let missing = crate::text::VALUE_MISSING.get(host.lang()).to_string();
+        for (index, field) in self.form.fields.iter().enumerate() {
+            if let Some(choice) = field.choices.get(self.chosen[index]) {
+                self.terms[index] = choice.clone();
+            } else if self.sheet.cell(index, 0).is_empty() {
+                self.errors[index] = Some(missing.clone());
+            } else {
+                self.jobs.push_back(Job::Value(index));
+            }
+        }
+        self.work(host);
+    }
+
+    /// The engine's input for `job`.
+    fn input(&self, job: Job) -> String {
+        match job {
+            Job::Value(index) => self.sheet.latex(index, 0),
+            Job::Unit(index) => {
+                let field = &self.form.fields[index];
+                format!(r"({})\blacktriangleright {}", self.sheet.latex(index, 0), unit(field.unit.as_deref().unwrap_or_default()))
+            }
+            Job::Result(index) => {
+                let outcome = &self.form.results[index];
+                let terms: Vec<(String, String)> = self.form.fields.iter().map(|field| field.id.clone()).zip(self.terms.iter().cloned()).collect();
+                let formula = substitute(&outcome.formula, &terms);
+                match &outcome.unit {
+                    Some(to) => format!(r"({formula})\blacktriangleright {}", unit(to)),
+                    None => formula,
+                }
+            }
+        }
+    }
+
+    /// Gives the engine the next steps, as long as it answers at once.
+    fn work(&mut self, host: &mut dyn Host) {
+        while self.waiting.is_none() {
+            let Some(job) = self.jobs.pop_front() else {
+                if self.done() {
+                    continue;
+                }
+                return;
+            };
+            match host.calc(&self.input(job)) {
+                Some(answer) => self.take(job, answer),
+                None => self.waiting = Some(job),
+            }
+        }
+    }
+
+    /// What the engine made of `job`.
+    fn take(&mut self, job: Job, answer: Result<String, String>) {
+        match (job, answer) {
+            (Job::Value(index) | Job::Unit(index), Err(error)) => self.errors[index] = Some(error),
+            (Job::Value(index), Ok(value)) => {
+                let typed = self.sheet.latex(index, 0);
+                match &self.form.fields[index].unit {
+                    // A value with a unit of its own is taken as typed, once its quantity is the
+                    // field's.
+                    Some(_) if value.contains(r"\mathrm{") => {
+                        self.terms[index] = typed;
+                        self.jobs.push_front(Job::Unit(index));
+                    }
+                    // A number alone is in the field's unit.
+                    Some(to) => self.terms[index] = format!(r"({typed})\,{}", unit(to)),
+                    None => self.terms[index] = typed,
+                }
+            }
+            (Job::Unit(_), Ok(_)) => {}
+            (Job::Result(index), answer) => {
+                if let Some(results) = &mut self.results {
+                    results[index].1 = answer;
+                }
+            }
+        }
+    }
+
+    /// Every field is read: the results next, unless a field is wrong; or all is done. Whether
+    /// there is more to work out.
+    fn done(&mut self) -> bool {
+        if self.results.is_some() {
+            // The answer below, the cursor on its first result.
+            self.result = self.results.as_ref().filter(|results| !results.is_empty()).map(|_| 0);
+            return false;
+        }
+        if self.errors.iter().any(Option::is_some) {
+            return false;
+        }
+        self.results = Some(self.form.results.iter().map(|outcome| (outcome.label.clone(), Err(String::new()))).collect());
+        self.jobs.extend((0..self.form.results.len()).map(Job::Result));
+        true
     }
 
     /// The lines of the form from the top: (field or result, top, height).
@@ -354,6 +513,12 @@ impl Applet for FormApplet {
                 canvas.text(x + 16, y + 4, &format!("{} {choice}", offset + 1), color("text"));
             }
         }
+    }
+
+    fn answer(&mut self, response: Response, host: &mut dyn Host) {
+        let (Response::Calc(answer), Some(job)) = (response, self.waiting.take()) else { return };
+        self.take(job, answer);
+        self.work(host);
     }
 
     fn leave(&mut self, _host: &mut dyn Host) -> Option<String> {
