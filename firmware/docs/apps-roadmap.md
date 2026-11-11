@@ -199,7 +199,7 @@ holds. The hui handles the template's keys first and passes the rest on (apps.md
 The crate `quantus-apps`, a member of the main workspace, depending on `quantus-ui` and the
 interpreter. No engine.
 
-- [ ] **4.1 The crate and the header.** `header::parse(text) -> Option<Header>`: the comment
+- [x] **4.1 The crate and the header.** `header::parse(text) -> Option<Header>`: the comment
   lines at the top, `name`, `name.<lang>`, `kind`, `api`, repeated `author`, `version`, `about`,
   `about.<lang>`, `license`, each at most 80 characters; no `name` gives `None`. `API: u32 = 1`.
   `fn info(id, text, built_in, lang) -> Option<AppInfo>`. Tests on header texts, among them a
