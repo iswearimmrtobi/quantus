@@ -291,7 +291,7 @@ fn text_item(text: String, dx: i32, width: i32, scale: Scale) -> Item {
 /// that an operator here is a sign and gets no gaps.
 fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary: bool) -> Item {
     let metrics = scale.metrics();
-    let small = Scale::Small.metrics();
+    let small = scale.script().metrics();
     match node {
         Node::Char(c) if DRAWN.contains(*c) => drawn(*c, scale, unary),
         // The fonts have no thin space: a gap of its width.
@@ -305,13 +305,13 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
         Node::Func(name) => text_item(name.clone(), 0, scale.width(name) + 2, scale),
         Node::Upright(text) => text_item(text.clone(), 0, scale.width(text), scale),
         Node::Pow(exponent) => {
-            let exponent = layout_nested(exponent, Scale::Small, nested);
+            let exponent = layout_nested(exponent, scale.script(), nested);
             let rise = base_ascent.max(metrics.digit) - small.digit / 2;
             script(exponent, -rise)
         }
-        Node::Sub(index) => script(layout_nested(index, Scale::Small, nested), small.digit / 2),
+        Node::Sub(index) => script(layout_nested(index, scale.script(), nested), small.digit / 2),
         Node::Frac(numerator, denominator) => {
-            let part = if nested { Scale::Small } else { scale };
+            let part = if nested { scale.script() } else { scale };
             let numerator = layout_nested(numerator, part, true);
             let denominator = layout_nested(denominator, part, true);
             let pad = 2;
@@ -332,7 +332,7 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
             }
         }
         Node::Binom(n, r) => {
-            let part = if nested { Scale::Small } else { scale };
+            let part = if nested { scale.script() } else { scale };
             let (n, r) = (layout_nested(n, part, true), layout_nested(r, part, true));
             let bracket = metrics.digit / 2 + 2;
             let inner = n.width.max(r.width) + 4;
@@ -348,10 +348,10 @@ fn node_layout(node: &Node, scale: Scale, nested: bool, base_ascent: i32, unary:
                 slots: vec![(n_at, n), (r_at, r)],
             }
         }
-        Node::Matrix(rows) => matrix(rows, if nested { Scale::Small } else { scale }, metrics),
+        Node::Matrix(rows) => matrix(rows, if nested { scale.script() } else { scale }, metrics),
         Node::Sqrt(radicand) => root(None, layout_nested(radicand, scale, nested), scale),
         Node::Root(index, radicand) => {
-            let index = layout_nested(index, Scale::Small, nested);
+            let index = layout_nested(index, scale.script(), nested);
             root(Some(index), layout_nested(radicand, scale, nested), scale)
         }
         Node::Accent(accent, row) => accent_item(*accent, layout_nested(row, scale, nested)),
@@ -505,7 +505,7 @@ pub fn draw<D: DrawTarget<Color = Rgb565>>(
                     row.scale.draw(text, at, color, target);
                 }
                 // As thick as the font's strokes.
-                let width = if row.scale == Scale::Normal { 2 } else { 1 };
+                let width = row.scale.stroke();
                 for line in lines {
                     let line = Polyline::new(line).translate(at);
                     let _ = line.into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
@@ -546,6 +546,6 @@ fn paren<D: DrawTarget<Color = Rgb565>>(
             Point::new(x, top + height * step / STEPS)
         })
         .collect();
-    let width = if scale == Scale::Normal { 2 } else { 1 };
+    let width = scale.stroke();
     let _ = Polyline::new(&points).into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
 }

@@ -1,5 +1,6 @@
-//! Text in two sizes: normal for the input and results, small for exponents, indices and the
-//! status bar. Each size is a Latin-1 font (FreeUniversal) with a symbol font (some Greek letters
+//! Text in five sizes: normal for the input and results, small for exponents, indices and the
+//! status bar; large and huge for the calculation at the bigger Schriftgrößen, middle for their
+//! exponents. Each size is a Latin-1 font (FreeUniversal) with a symbol font (some Greek letters
 //! and math signs) and a full Greek font behind it for the characters it lacks.
 
 use embedded_graphics::pixelcolor::Rgb565;
@@ -9,9 +10,35 @@ use u8g2_fonts::{fonts, FontRenderer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scale {
-    Normal,
+    /// FreeUniversal 14.
     Small,
+    /// 17, only for the exponents of [`Scale::Large`].
+    Middle,
+    /// 20.
+    Normal,
+    /// 25.
+    Large,
+    /// 30.
+    Huge,
 }
+
+static HUGE: [FontRenderer; 3] = [
+    FontRenderer::new::<fonts::u8g2_font_fur30_tf>(),
+    FontRenderer::new::<fonts::u8g2_font_fur30_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
+];
+
+static LARGE: [FontRenderer; 3] = [
+    FontRenderer::new::<fonts::u8g2_font_fur25_tf>(),
+    FontRenderer::new::<fonts::u8g2_font_fur25_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
+];
+
+static MIDDLE: [FontRenderer; 3] = [
+    FontRenderer::new::<fonts::u8g2_font_fur17_tf>(),
+    FontRenderer::new::<fonts::u8g2_font_fur17_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_cu12_t_greek>(),
+];
 
 static NORMAL: [FontRenderer; 3] = [
     FontRenderer::new::<fonts::u8g2_font_fur20_tf>(),
@@ -41,8 +68,29 @@ pub struct Metrics {
 impl Scale {
     fn fonts(self) -> &'static [FontRenderer; 3] {
         match self {
-            Scale::Normal => &NORMAL,
             Scale::Small => &SMALL,
+            Scale::Middle => &MIDDLE,
+            Scale::Normal => &NORMAL,
+            Scale::Large => &LARGE,
+            Scale::Huge => &HUGE,
+        }
+    }
+
+    /// The size of exponents, indices and nested fractions in text of this size.
+    pub fn script(self) -> Scale {
+        match self {
+            Scale::Small | Scale::Middle | Scale::Normal => Scale::Small,
+            Scale::Large => Scale::Middle,
+            Scale::Huge => Scale::Normal,
+        }
+    }
+
+    /// The width of drawn signs and brackets, as thick as the font's strokes.
+    pub fn stroke(self) -> u32 {
+        match self {
+            Scale::Small | Scale::Middle => 1,
+            Scale::Normal | Scale::Large => 2,
+            Scale::Huge => 3,
         }
     }
 

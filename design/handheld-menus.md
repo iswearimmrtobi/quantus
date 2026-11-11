@@ -610,7 +610,8 @@ maps every setting the core has.
   Unbekannte (LGS) ✓
 - **Gerät** [fw]:
   - Helligkeit ◌ (typed, 1–10)
-  - Schriftgröße normal/klein ◌
+  - Schriftgröße ✓: Klein (the size of the menus), Mittel, Groß, for the input and result of
+    the calculation; exponents and fractions in fractions one size down
   - Hintergrundbild ✓ in the hui and the simulator (section 7.6): Bild (Keins, then the BMP
     files in `/wallpapers/` on the SD card, with a preview beside the list) · Anzeigen
     Hauptmenü/Menüs/Überall

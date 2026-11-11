@@ -436,8 +436,8 @@ desktop plans light and dark themes (new-areas-and-themes.md); the handheld has 
 dark palette.
 
 **How.** The hui's colours are already named constants (`render::colors`); a palette becomes a
-table chosen in SETUP → Gerät. Large print needs a second font size in the layout, which the
-planned Schriftgröße setting starts.
+table chosen in SETUP → Gerät. Large print has started: SETUP → Gerät → Schriftgröße draws the
+calculation in FreeUniversal 20, 25 or 30; the menus and sheets still have one size.
 
 **Where.** hui.
 

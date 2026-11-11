@@ -7,7 +7,8 @@ use quantus_ui::app::{App, Mode, Screen, Settings};
 use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::key::Key;
 use quantus_ui::menu::Menu;
-use quantus_ui::settings::{Angle, NumberFormat};
+use quantus_ui::font::Scale;
+use quantus_ui::settings::{Angle, FontSize, NumberFormat};
 use quantus_ui::text::Lang;
 use quantus_ui::tree;
 
@@ -22,9 +23,19 @@ fn the_text_gives_back_the_settings() {
         decimal: true,
         wlan: true,
         time_from_network: false,
+        font_size: FontSize::Large,
         ..Settings::default()
     };
     assert_eq!(Settings::from_text(&settings.to_text()), settings);
+}
+
+#[test]
+fn the_font_size_starts_small_and_an_old_one_is_not_read() {
+    assert_eq!(Settings::default().font_size, FontSize::Small);
+    assert_eq!(FontSize::Small.scale(), Scale::Normal);
+    assert_eq!(FontSize::Large.scale(), Scale::Huge);
+    // Before, 1 was Klein.
+    assert_eq!(Settings::from_text("quantus-settings 1\nfont_size=1\n").font_size, FontSize::Small);
 }
 
 #[test]

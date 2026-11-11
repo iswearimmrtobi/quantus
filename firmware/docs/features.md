@@ -184,7 +184,7 @@ in yet.
 - [x] SETUP Rechenweg: level, Kürzungen durchstreichen, Gauß/Gauß-Jordan
 - [x] SETUP Algebra: Binomformeln, Quadratische Ergänzung, Nenner, Identitäten mit Bedingung
 - [x] SETUP Eingabe: a und y als Variablen, Buchstaben als Produkt, t/u/in als Einheiten, Unbekannte (LGS)
-- [~] SETUP Gerät — Hintergrundbild, Speicherplatz, Zurücksetzen, Touch kalibrieren work; Helligkeit, Schriftgröße, Automatisch aus are UI only
+- [~] SETUP Gerät — Schriftgröße (Klein, Mittel, Groß for the calculation), Hintergrundbild, Speicherplatz, Zurücksetzen, Touch kalibrieren work; Helligkeit, Automatisch aus are UI only
 - [~] SETUP Verbindungen — Prüfungsmodus, WLAN, Uhrzeit, installed version work; Rechnen im Netz, Sitzungen abgleichen, Firmware-Update, Bluetooth are UI only
 - [x] OPTN per mode, inserting at the cursor
 - [x] OPTN groups Analysis, Zahl, Hyperbol. Fkt., Winkel, Griechisch (the working entries)

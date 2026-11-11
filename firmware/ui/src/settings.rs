@@ -3,6 +3,7 @@
 //! kept here until the engine or the firmware can use them (design/handheld-menus.md §7.2 says
 //! which is which).
 
+use crate::font::Scale;
 use crate::text::Lang;
 
 /// An enum of choices, with the list of them in menu order.
@@ -72,7 +73,21 @@ choice!(
         PoissonCumulative,
     }
 );
-choice!(FontSize { Normal, Small });
+choice!(
+    /// How big the calculation is: Small is the size of the menus.
+    FontSize { Small, Medium, Large }
+);
+
+impl FontSize {
+    /// The size the input and result are drawn in.
+    pub fn scale(self) -> Scale {
+        match self {
+            FontSize::Small => Scale::Normal,
+            FontSize::Medium => Scale::Large,
+            FontSize::Large => Scale::Huge,
+        }
+    }
+}
 choice!(
     /// The time zones the clock knows, each with its summer time (`clock.rs`).
     Zone { Utc, London, Berlin, Helsinki, Moscow, Dubai, India, China, Tokyo, Sydney, NewYork, Chicago, Denver, LosAngeles }
@@ -192,7 +207,7 @@ impl Default for Settings {
             statistics_freq: false,
             distribution: DistributionKind::NormalDensity,
             brightness: 8,
-            font_size: FontSize::Normal,
+            font_size: FontSize::Small,
             wallpaper_on: WallpaperOn::Modes,
             auto_off: 10,
             exam: false,
@@ -424,7 +439,9 @@ const KEYS: &[(&str, Setting)] = {
         ("statistics_freq", S::StatisticsFreq),
         ("distribution", S::Distribution),
         ("brightness", S::Brightness),
-        ("font_size", S::FontSize),
+        // Renamed when Normal became Small and two bigger sizes came, so a value kept from
+        // before (1 was Klein) does not make the calculation bigger.
+        ("font_size_2", S::FontSize),
         ("wallpaper_on", S::WallpaperOn),
         ("auto_off", S::AutoOff),
         ("exam", S::Exam),

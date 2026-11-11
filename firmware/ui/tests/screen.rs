@@ -31,8 +31,25 @@ fn a_fraction_is_taller_and_an_exponent_higher_than_a_digit() {
 
 /// The signs the fonts lack are drawn as lines inside their item, in both sizes.
 #[test]
+fn the_bigger_sizes_are_bigger_with_their_exponents_and_fractions() {
+    let sizes = [Scale::Normal, Scale::Large, Scale::Huge];
+    let rows: Vec<_> = sizes.iter().map(|&scale| layout::layout(&quantus_ui::latex::parse(r"2^{3}+\frac{\frac{1}{2}}{3}"), scale)).collect();
+    for pair in rows.windows(2) {
+        assert!(pair[1].width > pair[0].width && pair[1].height() > pair[0].height());
+    }
+    // The exponent and a fraction in a fraction are one size down.
+    for (row, scale) in rows.iter().zip(sizes) {
+        assert_eq!(row.items[1].slots[0].1.scale, scale.script());
+        let fraction = row.items.last().unwrap();
+        assert_eq!(fraction.slots[0].1.items[0].slots[0].1.scale, scale.script());
+    }
+    assert_eq!(Scale::Large.script(), Scale::Middle);
+    assert_eq!(Scale::Huge.script(), Scale::Normal);
+}
+
+#[test]
 fn the_drawn_signs_stay_inside_their_place() {
-    for scale in [Scale::Normal, Scale::Small] {
+    for scale in [Scale::Small, Scale::Middle, Scale::Normal, Scale::Large, Scale::Huge] {
         for c in layout::DRAWN.chars() {
             let row = layout::layout(&quantus_ui::editor::Row(vec![quantus_ui::editor::Node::Char('x'), quantus_ui::editor::Node::Char(c)]), scale);
             let item = &row.items[1];

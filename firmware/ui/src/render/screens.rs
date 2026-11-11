@@ -21,8 +21,9 @@ use crate::touch::{self, Calibrating, Target};
 /// One calculation, as on a Casio: the input from the top left, its result at the bottom right.
 pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let width = WIDTH as i32;
+    let scale = app.settings.font_size.scale();
 
-    let input = layout::layout(&app.editor.row, Scale::Normal);
+    let input = layout::layout(&app.editor.row, scale);
     let mut origin = Point::new(MARGIN, BAR + 12 + input.ascent);
     let caret = layout::caret(&input, origin, app.editor.path(), app.editor.pos());
     // Scroll a long input so the caret stays on the screen.
@@ -51,15 +52,15 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     if let Some(entry) = app.shown_entry() {
         match &entry.result {
             Ok(result) => {
-                let result = layout::layout(result, Scale::Normal);
+                let result = layout::layout(result, scale);
                 let x = (width - MARGIN - result.width).max(MARGIN);
                 shapes.push(Shape::Math(Point::new(x, bottom - result.descent), result, colors::result()));
             }
             Err(message) => {
-                let metrics = Scale::Normal.metrics();
-                let x = (width - MARGIN - Scale::Normal.width(message)).max(MARGIN);
+                let metrics = scale.metrics();
+                let x = (width - MARGIN - scale.width(message)).max(MARGIN);
                 let at = Point::new(x, bottom - metrics.descent);
-                shapes.push(Shape::Text(at, message.to_string(), Scale::Normal, colors::error()));
+                shapes.push(Shape::Text(at, message.to_string(), scale, colors::error()));
             }
         }
     }

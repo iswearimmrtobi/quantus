@@ -23,6 +23,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   by the rules of curve sketching. Also `\frac{d^2}{dx^2}` and `(…)'`. On the handheld the ∫
   template works with its limits left empty, and d/dx can be typed after its function: `x²` then
   d/dx shows $x^{2}\frac{d}{dx}$ and gives $2x$.
+- The handheld's Schriftgröße (SETUP → Gerät) works: Klein is the size so far, Mittel and Groß
+  draw the input and result of a calculation bigger, with exponents and fractions to match.
 - Themes: **Settings → General → Theme** picks Dark, Light or *Like the system*, which follows the
   system's light or dark setting; on the handheld, SETUP → Gerät → Farbschema, with the screen
   shown in the theme under the cursor. Your own themes are small `.toml` files in the `themes`
