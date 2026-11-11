@@ -9,6 +9,7 @@ pub mod backend;
 pub mod clock;
 pub mod editor;
 pub mod font;
+pub mod form;
 pub mod hid;
 pub mod key;
 pub mod layer;

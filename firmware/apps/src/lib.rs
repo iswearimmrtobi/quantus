@@ -4,6 +4,7 @@
 
 pub mod api;
 pub mod apps;
+pub mod form;
 pub mod applet;
 pub mod header;
 pub mod json;

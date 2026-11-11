@@ -370,7 +370,7 @@ M4.
 
 ### Step 9. Forms (L)
 
-- [ ] **9.1 The description.** `struct Form` in the hui, free of anything only the hui knows
+- [x] **9.1 The description.** `struct Form` in the hui, free of anything only the hui knows
   (apps.md §3): title, fields (id, label, unit, value, hint, choices), results (label, formula,
   unit). `quantus-apps` reads it from the script's map and reports what is wrong with the
   field's name. Tests on good and bad descriptions.
