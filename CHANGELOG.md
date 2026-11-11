@@ -39,6 +39,19 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Four more built-in themes: Black (Dark on true black, for OLED screens), Paper (warm off-white
   with ink blue), and High contrast dark and light, with text at 7:1 or more and graph colours
   that colour-blind eyes tell apart.
+- **Apps and games on the handheld**: MODE has a third page with the tiles **Apps** and
+  **Setup** (the menu of SHIFT + MODE). Apps lists games and tools, built in and from the SD
+  card: an app is a Rhai script copied into `/apps/`, passed from user to user as a file. Built
+  in are **tic tac toe** (two players or against the handheld, *leicht* or *schwer*, which never
+  loses) and **2048** (one move back, the best score; a game survives switching off). Scripts
+  draw on the area below the hui's top bar, label the soft keys, and are typed into through
+  templates: their own keys, a grid, cells, a list, a line of text, the calculator's input line;
+  they ask with `confirm` and `ask`, keep data in `/apps/data/`, work inputs out with the
+  engine (`calc`) and hand a result to the calculation. A **form** declares fields with units
+  and formulas, and the hui draws and works it out; the simulator's card has a voltage divider.
+  OPTN inside an app shows its credits. Apps are found by CATALOG's search, have limits on time
+  and memory, and are locked in Prüfungsmodus. The site has a page on writing them; the
+  simulator takes `--seed` to repeat a game.
 
 ### Fixed
 

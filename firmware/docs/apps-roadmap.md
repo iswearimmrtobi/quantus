@@ -427,7 +427,7 @@ M5.
   the lines in [features.md](features.md), the tiles and page 3 in
   [handheld-menus.md](../../design/handheld-menus.md) §7.1, the `--seed` option and `sd/apps/`
   in the simulator's README.
-- [ ] **11.3 `CHANGELOG.md`**, under `## [Unreleased]`.
+- [x] **11.3 `CHANGELOG.md`**, under `## [Unreleased]`.
 - [ ] **11.4 `THIRD-PARTY-LICENSES.md`** for the interpreter and what it brings (F12).
 - [ ] **11.5 apps.md** from plan to description: the state line, §8 removed, plans.md §7 removed.
 
