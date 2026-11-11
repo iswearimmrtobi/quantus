@@ -122,7 +122,7 @@ Rust in `ui/tests/apps.rs`.
   `App::tick`: `Applet::tick(now_ms)`, its redraw flag into `changed`. Test: the shapes land in
   the frame below the bar; a shape drawn at y = −40 is covered by the bar's fill; a ticking
   applet makes `tick` return true.
-- [ ] **1.4 Soft keys.** `Slot::App(String)` in [`soft.rs`](../ui/src/soft.rs); `soft::bar`
+- [x] **1.4 Soft keys.** `Slot::App(String)` in [`soft.rs`](../ui/src/soft.rs); `soft::bar`
   gives the applet's labels on `Screen::App`, in pages with `Slot::Page` when there are more
   than `2 × soft_columns`; `App::soft_key` sends `AppKey::Soft(n)` counted over all pages; an
   empty label is dead. The label as plain text (F7). Test: with labels the area is 250 high,

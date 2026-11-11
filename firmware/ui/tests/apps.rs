@@ -65,7 +65,7 @@ fn press(app: &mut App<Stub>, keys: &[Key]) {
 
 #[test]
 fn keys_arrive_in_order() {
-    let (mut app, log) = opened(&[]);
+    let (mut app, log) = opened(&["A", "B", "C", "D"]);
     assert_eq!(app.screen, Screen::App);
     press(&mut app, &[Key::Up, Key::Digit(5), Key::Exe, Key::Soft(3)]);
     assert_eq!(log.borrow().keys, [AppKey::Up, AppKey::Digit(5), AppKey::Exe, AppKey::Soft(3)]);
@@ -237,4 +237,55 @@ fn a_ticking_applet_redraws() {
     app.tick(600);
     assert!(!app.tick(900));
     assert!(app.tick(1000));
+}
+
+#[test]
+fn soft_keys_make_the_area_lower() {
+    let (app, _) = opened(&["Neu", "2 Spieler"]);
+    assert_eq!(quantus_ui::render::app_area(&app).size, Size::new(480, 250));
+    let (mut app, log) = opened(&[]);
+    assert_eq!(quantus_ui::render::app_area(&app).size, Size::new(480, 294));
+    // Without strips the soft keys are dead.
+    app.key(Key::Soft(0));
+    assert!(log.borrow().keys.is_empty());
+    // Only blank labels: no strips either.
+    let (app, _) = opened(&["", " "]);
+    assert!(!quantus_ui::soft::shows(&app));
+}
+
+#[test]
+fn labels_are_plain_text() {
+    let (app, _) = opened(&["2 Spieler", "x_1^2"]);
+    let frame = quantus_ui::render::Frame::new(&app);
+    let texts: Vec<&str> = frame.0.iter().filter_map(|shape| match shape {
+        Shape::Text(_, text, ..) => Some(text.as_str()),
+        _ => None,
+    }).collect();
+    assert!(texts.contains(&"2 Spieler") && texts.contains(&"x_1^2"), "{texts:?}");
+}
+
+#[test]
+fn soft_keys_page_and_count_over_all_pages() {
+    let labels: Vec<String> = (1..=13).map(|n| format!("K{n}")).collect();
+    let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
+    let (mut app, log) = opened(&labels);
+    let bar = quantus_ui::soft::bar(&app).expect("strips");
+    assert_eq!((bar.pages, bar.slots.len()), (2, 12));
+    assert_eq!(bar.slot(11), Some(&quantus_ui::soft::Slot::Page));
+    // The last key turns the page; then the first key is the twelfth label.
+    press(&mut app, &[Key::Soft(0), Key::Soft(11), Key::Soft(0), Key::Soft(1)]);
+    assert_eq!(log.borrow().keys, [AppKey::Soft(0), AppKey::Soft(11), AppKey::Soft(12)]);
+    // The small unit: rows of five.
+    let (mut app, _) = opened(&["A", "B", "C", "D", "E", "F"]);
+    app.soft_columns = 5;
+    let bar = quantus_ui::soft::bar(&app).expect("strips");
+    assert_eq!(bar.columns, 5);
+    assert_eq!(bar.slot(5), Some(&quantus_ui::soft::Slot::App(5, "F".into())));
+}
+
+#[test]
+fn a_blank_label_is_dead() {
+    let (mut app, log) = opened(&["Neu", "", "Stufe"]);
+    press(&mut app, &[Key::Soft(1), Key::Soft(2)]);
+    assert_eq!(log.borrow().keys, [AppKey::Soft(2)]);
 }

@@ -773,6 +773,7 @@ impl<B: Backend> App<B> {
         self.close_app();
         let back = std::mem::replace(&mut self.screen, Screen::App);
         self.running = Some(Running { applet, info, back: Box::new(back) });
+        self.soft_page = 0;
     }
 
     /// The applet and what it may ask of the device, borrowed apart.
@@ -793,6 +794,18 @@ impl<B: Backend> App<B> {
             Key::Mode => {
                 self.close_app();
                 self.screen = Screen::Modes { selected: self.mode.index() };
+            }
+            Key::Soft(index) => {
+                let Some(bar) = soft::bar(self) else { return };
+                match bar.slot(usize::from(index)) {
+                    Some(Slot::Page) => self.soft_page = bar.page + 1,
+                    Some(Slot::App(index, _)) => {
+                        let index = *index;
+                        let Some((running, mut host)) = self.applet() else { return };
+                        running.applet.key(AppKey::Soft(index), &mut host);
+                    }
+                    _ => {}
+                }
             }
             key => {
                 let Some(key) = AppKey::from_key(key) else { return };
@@ -1507,7 +1520,7 @@ impl<B: Backend> App<B> {
         let Some(bar) = soft::bar(self) else { return };
         let Some(slot) = bar.slot(index).cloned() else { return };
         match slot {
-            Slot::Empty => {}
+            Slot::Empty | Slot::App(..) => {}
             Slot::Page => match &mut self.symbols {
                 Some(page) => *page = bar.page + 1,
                 None => self.soft_page = bar.page + 1,

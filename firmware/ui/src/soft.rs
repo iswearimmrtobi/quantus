@@ -37,6 +37,8 @@ pub enum Slot {
     Base(&'static str, i32),
     /// The next page.
     Page,
+    /// An app's key: its number over all pages, and its label, plain text.
+    App(usize, String),
 }
 
 /// The soft keys on the screen: those of the page shown, row by row.
@@ -64,6 +66,7 @@ impl Bar {
             Slot::Convert(item) => format!(r"\blacktriangleright {}", unit_label(&item.name)),
             Slot::Symbol(label, _) | Slot::Key(label, _) | Slot::Base(label, _) => label.to_string(),
             Slot::Page => format!(r"\blacktriangleright {}/{}", self.page + 1, self.pages),
+            Slot::App(_, label) => label.clone(),
         }
     }
 
@@ -127,10 +130,22 @@ pub fn shows<B>(app: &App<B>) -> bool {
 
 /// The soft keys as the screen is now, or `None` where they are hidden.
 pub fn bar<B>(app: &App<B>) -> Option<Bar> {
+    let columns = app.soft_columns.clamp(2, 6);
+    if let (Screen::App, Some(running)) = (&app.screen, &app.running) {
+        let labels = running.applet.soft_keys();
+        let slots = labels
+            .into_iter()
+            .enumerate()
+            .map(|(index, label)| if label.trim().is_empty() { Slot::Empty } else { Slot::App(index, label) })
+            .collect::<Vec<_>>();
+        if slots.iter().all(|slot| *slot == Slot::Empty) {
+            return None;
+        }
+        return Some(paginate(slots, columns, app.soft_page));
+    }
     if !matches!(app.screen, Screen::Calc) || app.answer.is_some() {
         return None;
     }
-    let columns = app.soft_columns.clamp(2, 6);
     if let Some(page) = app.symbols {
         let lead = if app.mode == Mode::Physics { PHYSICS_FIRST } else { MATH_FIRST };
         let rest = SYMBOLS.iter().filter(|symbol| !lead.contains(symbol));

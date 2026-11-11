@@ -65,6 +65,14 @@ pub(super) fn strips<B>(shapes: &mut Vec<Shape>, app: &App<B>, bar: &Bar) {
             Some(Slot::Unit(_) | Slot::Convert(_)) => colors::result(),
             _ => colors::text(),
         };
+        // An app's label is plain text: `_` and `^` mean nothing in it.
+        if let Some(Slot::App(..)) = slot {
+            let label = super::fit(&label, area.size.width as i32 - 4, Scale::Small);
+            let x = area.top_left.x + ((area.size.width as i32 - Scale::Small.width(&label)) / 2).max(2);
+            let baseline = area.top_left.y + (STRIP + Scale::Small.metrics().digit) / 2;
+            shapes.push(Shape::Text(Point::new(x, baseline), label, Scale::Small, color));
+            continue;
+        }
         // A symbol of SYMB in the normal size: the small font's Greek letters are tiny.
         let scale = if matches!(slot, Some(Slot::Symbol(..))) { Scale::Normal } else { Scale::Small };
         let row = layout::layout(&crate::latex::parse(&label), scale);
