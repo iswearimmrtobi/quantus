@@ -168,6 +168,14 @@ pub trait Backend {
 
     /// Sets the clock to `utc_ms` (milliseconds since 1970, UTC), typed by hand. A board that
     /// can set its system clock does that instead of moving [`clock::now`].
+    /// Works out `input` for an app's `calc` (apps.md §4.6), with the open session's settings and
+    /// variables but without writing it into the history; the answer now, or `None` and
+    /// [`poll`](Backend::poll) brings it. The default is [`recalculate`](Backend::recalculate),
+    /// which does just that.
+    fn app_calc(&mut self, mode: Mode, settings: &Settings, input: &str) -> Option<Result<String, String>> {
+        self.recalculate(mode, settings, input)
+    }
+
     /// The apps there are, built in and on the card, with what the list shows of them.
     fn apps(&mut self, _lang: crate::text::Lang) -> Vec<crate::applet::AppInfo> {
         Vec::new()

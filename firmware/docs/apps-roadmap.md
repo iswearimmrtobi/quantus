@@ -348,11 +348,15 @@ M4.
 
 ### Step 8. The calculator from a script (M)
 
-- [ ] **8.1 `calc` in the engine.** `Backend::app_calc(mode, settings, input) -> Option<..>`
+- [x] **8.1 `calc` in the engine.** `Backend::app_calc(mode, settings, input) -> Option<..>`
   started and polled as `start` and `poll` are, on `Engine::calculate(.., record: false)` (F4),
   through the worker on the board (`Job::Calculate` with `record: false` exists). The answer as
   `#{ok, value, latex, error}`: `latex` as the calculator shows it, `value` a text `calc` takes
   again. The mode is the one that was open when the app started.
+  Built as `Backend::app_calc`, which defaults to `recalculate`: every backend already works an
+  input out that way without the history (`calculate(.., record: false)` in `firmware/engine`,
+  the worker's `Job::Calculate` with `record: false` on the board, answered by `poll`), so no
+  backend needed code. The map `#{ok, value, latex, error}` is made in `quantus-apps` (8.2).
 - [ ] **8.2 `calc` in the host.** A yield (F1): the hui sets `busy`, the spinner turns, the
   answer resumes the script; AC drops the calculation (`drop_pending`) and leaves. Tests in
   `firmware/engine/tests/apps.rs` against the real engine: a script that adds two lengths, an
