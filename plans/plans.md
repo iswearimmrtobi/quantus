@@ -13,10 +13,14 @@ at 1.7 ms each. `tests/golden.rs` lists it in `KNOWN_SLOW`; remove it from there
 evaluation per outer sample, or lower the inner precision to what the outer one needs.
 Target: under 0.2 s.
 
-**Left from the improper integrals (done: x and the Jacobian rounded, decimals instead of exact
-fractions, constants kept per thread).** What remains is about 1,100 samples at 0.2 ms, an `exp` at
-78 digits each. Fewer samples would need a tail cut-off earlier than `integrate`'s two negligible
-nodes per level.
+**Improper integrals of exponentials (mostly done).**
+- [x] Timing guard: no `evaluate.json` case over 1 s (`tests/golden.rs`).
+- [x] Round `x` and the Jacobian to the working precision in `improper_integral`.
+- [x] Keep the π/e/ln 2 constants per thread in `Value::decimal` (this was the biggest cost).
+- [x] Multiply integrand and Jacobian as decimals, not exact fractions.
+- [x] Measure again: 0.2–0.3 s per case in a release build, digits unchanged.
+- [ ] Stop sampling a tail earlier than `integrate`'s two negligible nodes per level. About 1,100
+  samples at 0.2 ms (an `exp` at 78 digits) remain.
 
 ## 2. Manual checks left over from the Rust/Tauri migration
 
