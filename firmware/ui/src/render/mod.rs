@@ -193,6 +193,8 @@ pub enum Shape {
     /// A rounded box laid over what is under it, `alpha` of 256 of its colour showing; drawn
     /// as a [`Shape::Round`] on targets that cannot be read back.
     Glass(RoundedRectangle, Rgb565, u16, Option<Rgb565>),
+    /// A rounded box's outline alone, two pixels wide, inside it.
+    Outline(RoundedRectangle, Rgb565),
     Triangle(Triangle, Rgb565),
     Circle(Circle, Rgb565),
     /// An arc, stroked with the width.
@@ -214,7 +216,7 @@ impl Shape {
     fn bounds(&self) -> Rectangle {
         match self {
             Shape::Fill(area, _) => *area,
-            Shape::Round(round, _, _) | Shape::Glass(round, ..) => round.rectangle,
+            Shape::Round(round, _, _) | Shape::Glass(round, ..) | Shape::Outline(round, _) => round.rectangle,
             Shape::Triangle(triangle, _) => triangle.bounding_box(),
             Shape::Circle(circle, _) => circle.bounding_box(),
             Shape::Arc(arc, color, width) => arc.into_styled(PrimitiveStyle::with_stroke(*color, *width)).bounding_box(),
@@ -247,6 +249,14 @@ impl Shape {
                         .stroke_alignment(StrokeAlignment::Inside);
                 }
                 let _ = round.into_styled(style.build()).draw(target);
+            }
+            Shape::Outline(round, color) => {
+                let style = PrimitiveStyleBuilder::new()
+                    .stroke_color(*color)
+                    .stroke_width(2)
+                    .stroke_alignment(StrokeAlignment::Inside)
+                    .build();
+                let _ = round.into_styled(style).draw(target);
             }
             Shape::Triangle(triangle, color) => {
                 let _ = triangle.into_styled(PrimitiveStyle::with_fill(*color)).draw(target);

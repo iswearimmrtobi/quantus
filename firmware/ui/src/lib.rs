@@ -4,6 +4,7 @@
 //! and touches.
 
 pub mod app;
+pub mod applet;
 pub mod backend;
 pub mod clock;
 pub mod editor;

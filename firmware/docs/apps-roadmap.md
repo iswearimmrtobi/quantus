@@ -99,7 +99,7 @@ Criteria for Rhai: a 2048 move with `draw` under 30 ms; under 600 KB of image; a
 Everything here is in `firmware/ui`, with no interpreter. The applet under test is written in
 Rust in `ui/tests/apps.rs`.
 
-- [ ] **1.1 `applet.rs`: the types.** `trait Applet` (`key`, `tick`, `draw`, `tap`, `soft_keys`,
+- [x] **1.1 `applet.rs`: the types.** `trait Applet` (`key`, `tick`, `draw`, `tap`, `soft_keys`,
   `input`, `info`, `leave`), `trait Host`, `AppKey` with `AppKey::from(Key)` (arrows, OK, EXE,
   DEL, digits, operators, `=`, the comma, `Soft(n)`; `None` for the rest), `AppInfo` (id, name,
   kind, authors, version, about, licence, api, built in, usable), `Canvas`: built for a
@@ -107,6 +107,9 @@ Rust in `ui/tests/apps.rs`.
   `Shape` moved by the area's origin, and a limit on their number (F5, F8). `Palette`: a colour's
   name to `Rgb565`, `rgb(r, g, b)`. Unit tests: every `Key` maps as §4.2 says; a canvas of
   480 × 250 and one of 320 × 214 place the same call at the right screen points.
+  Built without `info` on the trait: the `AppInfo` the list gave travels in `Running`. Added:
+  `frame` (an outline, `Shape::Outline`, for the grid's cursor and 2048's new tile) and
+  `text_height`; text and formulas are placed by their top left, like every other shape.
 - [ ] **1.2 `Screen::App` and `App::running`.** `Running { applet, info, menu: Option<..>,
   back: Box<Screen> }` as a field of `App` (F2). `App::open_applet(applet, info)` for the tests
   and step 2. `App::press`: on `Screen::App`, AC leaves to `back`, MODE leaves to

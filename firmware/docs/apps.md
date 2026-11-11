@@ -281,11 +281,13 @@ time; the renderer finds what changed.
 | `clear(color)` | Fills the area |
 | `rect(x, y, w, h, color)` | A filled rectangle |
 | `round(x, y, w, h, r, color)` | With rounded corners |
-| `circle(x, y, d, color)` | A filled circle |
+| `frame(x, y, w, h, r, color)` | The outline of one, two pixels wide, inside it |
+| `circle(x, y, d, color)` | A filled circle, `d` across, its box's top left at (x, y) |
 | `line(x1, y1, x2, y2, color, width)` | A line |
-| `text(x, y, s, color)`, `text_small(...)` | Text in the hui's two fonts |
+| `text(x, y, s, color)`, `text_small(...)` | Text in the hui's two fonts, the top left of its line at (x, y) |
 | `text_width(s)`, `text_small_width(s)` | Its width, for centring |
-| `math(x, y, latex, color)` | A formula, set as the calculator sets results |
+| `text_height()`, `text_small_height()` | The height of a line, for centring |
+| `math(x, y, latex, color)` | A formula, set as the calculator sets results, its top left at (x, y) |
 
 A colour is a name from the hui's palette (`"background"`, `"surface"`, `"text"`, `"muted"`,
 `"result"`, `"error"`, `"cyan"`, `"amber"`, `"tile1"` to `"tile13"`), so an app follows the
