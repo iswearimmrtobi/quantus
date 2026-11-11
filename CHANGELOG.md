@@ -43,7 +43,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   **Setup** (the menu of SHIFT + MODE). Apps lists games and tools, built in and from the SD
   card: an app is a Lua script copied into `/apps/`, passed from user to user as a file. Built
   in are **tic tac toe** (two players or against the handheld, *leicht* or *schwer*, which never
-  loses) and **2048** (one move back, the best score; a game survives switching off). Scripts
+  loses), **2048** (one move back, the best score; a game survives switching off), **Sudoku**
+  (three levels, repeated digits marked, the best time), **Minesweeper** (three boards, the
+  first opening always safe, flags by 0 or a soft key) and **Snake** (on the timer, faster as
+  it grows). Scripts
   draw on the area below the hui's top bar, label the soft keys, and are typed into through
   templates: their own keys, a grid, cells, a list, a line of text, the calculator's input line;
   they ask with `confirm` and `ask`, keep data in `/apps/data/`, work inputs out with the

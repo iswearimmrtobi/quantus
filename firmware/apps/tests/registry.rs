@@ -8,7 +8,7 @@ fn the_built_in_apps_are_listed_and_open() {
     let apps = Apps::new(None);
     let list = apps.list(Lang::De);
     let ids: Vec<&str> = list.iter().map(|app| app.id.as_str()).collect();
-    assert_eq!(ids, ["2048", "tictactoe"]);
+    assert_eq!(ids, ["2048", "minesweeper", "snake", "sudoku", "tictactoe"]);
     let game = list.iter().find(|app| app.id == "tictactoe").expect("tic tac toe");
     assert_eq!(game.name, "Tic Tac Toe");
     assert!(game.built_in && game.usable);

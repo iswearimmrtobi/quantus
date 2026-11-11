@@ -223,5 +223,12 @@ and proves nothing; the limits above are what protect you. Saved data stays on y
 
 The built-in games are apps like yours, and the best examples:
 [tic tac toe](https://github.com/iswearimmrtobi/quantus/blob/dev/firmware/apps/apps/tictactoe.lua)
-and [2048](https://github.com/iswearimmrtobi/quantus/blob/dev/firmware/apps/apps/2048.lua).
+(the grid template with `digits`),
+[2048](https://github.com/iswearimmrtobi/quantus/blob/dev/firmware/apps/apps/2048.lua) (its own
+keys), [Sudoku](https://github.com/iswearimmrtobi/quantus/blob/dev/firmware/apps/apps/sudoku.lua)
+(a grid whose digits reach `key`),
+[Minesweeper](https://github.com/iswearimmrtobi/quantus/blob/dev/firmware/apps/apps/minesweeper.lua)
+(a larger grid, levels that change it) and
+[Snake](https://github.com/iswearimmrtobi/quantus/blob/dev/firmware/apps/apps/snake.lua) (the
+timer).
 An app with the id of a built-in one is listed beside it, not instead of it.

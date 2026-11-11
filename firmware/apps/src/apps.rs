@@ -12,6 +12,9 @@ use crate::ScriptApplet;
 pub const BUILT_IN: &[(&str, &str)] = &[
     ("2048", include_str!("../apps/2048.lua")),
     ("tictactoe", include_str!("../apps/tictactoe.lua")),
+    ("sudoku", include_str!("../apps/sudoku.lua")),
+    ("minesweeper", include_str!("../apps/minesweeper.lua")),
+    ("snake", include_str!("../apps/snake.lua")),
 ];
 
 /// The apps, built in and in the card's folder `/apps`.

@@ -329,7 +329,7 @@ outcome. `"keys"` is the default.
 | `"line"` | Types as in Physik: numbers with units and prefixes, fractions, powers, constants, with SHIFT, ALPHA, UNIT and SYMB (SYMB's symbols take the soft keys while open; no unit bar) | The input line at the bottom of the area, with a `label` in front | `entered(value)` on EXE, `value` as `calc` takes it. `options.calc: true` works it out first and gives what `calc` gives |
 | `"text"` | Types plain text: letters, digits, the space, as when a session is renamed | One line with a `label`, at the bottom of the area | `entered(text)` on EXE or OK. `options.max` limits the length (32 if not named), `options.value` stands in it at first |
 | `"grid"` | Moves a cursor over `options.cols` × `options.rows` cells with the arrows or a tap, picks with OK or EXE | The cursor's frame on the cell, over the app's drawing | `pick(col, row)`. `cursor()` gives the cell it is on as `{col, row}`, `cursor(col, row)` sets it. `digits = true` lets 1–9 pick a cell of a 3 × 3 grid directly, laid out as the number block is. `wrap = true` lets the cursor go round the edges |
-| `"cells"` | The same grid, and types a value into the cell under the cursor, as in the Matrizen grid | The cursor and the editor in the cell | `entered({col, row, value})` when a cell is confirmed. `digits_only = true` takes one digit per cell and moves on (Sudoku) |
+| `"cells"` | The same grid, and types a value into the cell under the cursor, as in the Matrizen grid | The cursor and the editor in the cell | `entered({col, row, value})` when a cell is confirmed. `digits_only = true` takes one digit per cell and moves on to the next (a row of digits typed in one go; Sudoku uses `"grid"`, §6.3) |
 | `"list"` | Goes through `options.items` with ↑/↓ or picks with a digit | The list, as a menu of the hui's, in the area | `entered(index)` |
 
 Two questions need no template to be set and no callback; they open over the app and give their
@@ -451,8 +451,10 @@ harm the handheld or the user's data.
 
 ## 6. The first games
 
-Both are built in, both are scripts, and both stay within what the display does well: a move
-changes a few cells, so a few bands are sent.
+All five are built in, all are scripts, and all stay within what the display does well: a move
+changes a few cells, so a few bands are sent. Each keeps its rules in global functions
+(`slide`, `best`, `conflicts`, `open`, `advance`), which the tests in `firmware/apps/tests/`
+call without the host.
 
 ### 6.1 Tic tac toe
 
@@ -484,6 +486,53 @@ changes a few cells, so a few bands are sent.
 - Reaching 2048 says so and the game goes on. No free cell and no possible merge ends it.
 - Saved: the board, the score, the best score, so that a game survives switching off.
 
+### 6.3 Sudoku
+
+- The 9 × 9 board with `grid(9, 9)`, thick lines between the boxes; the level, the time, the
+  best time and *Gelöst!* in `side()`.
+- Input is the `"grid"` template without `digits`, so the digits reach `key`: 1–9 write into
+  the cell under `cursor()`, 0 and DEL clear it, OK or a tap counts it up (for touch). Givens
+  cannot be changed. `"cells"` with `digits_only` would move the cursor on after every digit.
+- The puzzles are six per level (*leicht* about 38 givens, *mittel* 30, *schwer* 25), made
+  with a single solution outside the firmware. A new game shuffles one: the digits, the rows
+  within a band, the bands, the same for the columns, and a transposition, which keeps it a
+  Sudoku with one solution. Generating one with a check for uniqueness would not fit a
+  callback's budget.
+- A digit repeated in its row, column or box is drawn in the error colour; a full board
+  without one is solved, whatever the solution was.
+- Soft keys: *Neu*, the level (starts a new game on the next one), *Zurück* (any number of
+  steps). Both ask first while a game is going on.
+- The time ticks every second on the timer. Saved: the puzzle, the entries, the time, the
+  level, the best time per level.
+
+### 6.4 Minesweeper
+
+- *leicht* 9 × 9 with 10 mines, *mittel* 16 × 12 with 30, *schwer* 20 × 12 with 45, each laid
+  out with `grid`; the mines left, the time and the best time in `side()`.
+- Input is the `"grid"` template: OK, EXE or a tap opens a cell, 0 or `.` sets or removes a
+  flag on the cursor's cell, and the third soft key (*Öffnen* / *Flagge*) makes a pick set
+  flags, for touch. OK on an open number with as many flags around it as it counts opens the
+  rest around it.
+- The mines are laid on the first opening, never on that cell or around it, so it opens an
+  area. Cells without a mine near open their neighbours, by a list of cells to do instead of
+  recursion.
+- A mine ends the game: the mines are shown, the wrong flags crossed out. Any pick then starts
+  a new one.
+- Soft keys: *Neu*, the level, the mode. Saved: the level, the best times, a game in progress.
+
+### 6.5 Snake
+
+- A 16 × 12 board with `grid`, so that the side panel fits beside it on the big unit; the
+  score and the best score in `side()`.
+- Input is `"keys"`: the arrows (or 8, 2, 4, 6) steer. The first arrow starts it. Turns wait in
+  a queue of two for the next steps, and a turn back into the snake is ignored.
+- It steps on the timer, every 150 ms at first and 2 ms faster with each piece of food, down to
+  the timer's 100 ms. A step changes the head, the tail and the food, a few bands.
+- The wall and the snake's own body end it; the cell the tail leaves may be entered. Any key
+  then sets up the next game.
+- Soft keys: *Neu*, *Pause* / *Weiter*. Saved: the best score only; a game ends when the app
+  closes.
+
 ## 7. Where apps show up
 
 - **MODE, page 3**: tile 13 *Apps* and tile 14 *Setup*. The page is added for them; ↑/↓ and a
@@ -504,7 +553,9 @@ changes a few cells, so a few bands are sent.
 
 - The unit bar on an app's input line (the `"line"` template): units come from the UNIT layer for
   now, and the soft keys stay the app's (apps-roadmap.md F9).
-- More games: Snake (on the timer), Minesweeper, Sudoku, Memory.
+- More games: Memory.
+- Pencil marks in Sudoku, and marking the row, column and box of the cursor, which needs the
+  script to hear of a cursor moved by the template.
 - Key release and held keys, once the keypad's driver exists and can report them.
 - Pictures: small bitmaps from the app's file or the card.
 - Animation in steps, when the redraw time of the product's panel is known.
