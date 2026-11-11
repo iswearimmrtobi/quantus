@@ -211,10 +211,14 @@ interpreter. No engine.
   `Script` closes the channel and the thread ends; a thread still inside a callback is left to
   the operation budget. `Error` carries the message and the line. Tests: a callback returns; a
   host call yields and resumes; a script error has its line; a dropped script's thread is gone.
-- [ ] **4.3 The limits.** The operation budget per callback (the number from 0.4), call depth,
+- [x] **4.3 The limits.** The operation budget per callback (the number from 0.4), call depth,
   sizes of strings, arrays and maps, at most 256 KB of source, a few thousand shapes per frame.
   Tests: each limit as its own script, each an `Error`, none a panic; the texts *Die App
   antwortet nicht* and the error page's (`hui.apps.not_responding`, `.error`, `.line`).
+  Found: the budget is 500,000 operations for now (about 0.2 s in a debug build on a PC), to be
+  set from 0.4; Rhai gives its error no position, so *Die App antwortet nicht* comes without a
+  line; Rhai does not check the size of an array on `push` or of a map on a new key, so the
+  budget is what stops those. The limit on shapes per frame comes with the drawing in 4.4.
 - [ ] **4.4 Callbacks, keys and drawing.** `ScriptApplet: Applet` over `Script`: `key` turns
   `AppKey` into its name (§4.2) and calls `key(k)`, then `draw()`; `tick` calls `tick(ms)` when
   the timer set with `timer(ms)` is due (at least 100 ms). The drawing functions of §4.3

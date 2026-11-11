@@ -406,7 +406,7 @@ harm the handheld or the user's data.
 - **What a script can reach**: the functions of §4 and nothing else. No files, no network, no
   settings, no other app's data, no sessions other than the open one through `calc` and `var`.
 - **Time**: each callback has a budget of operations. Over it, the app stops with *Die App
-  antwortet nicht* and the line it was at. AC works at any time (decision 7).
+  antwortet nicht* (the interpreter does not tell the line). AC works at any time (decision 7).
 - **Memory**: limits on the depth of calls and on the length of strings, arrays and maps; a
   script file of at most 256 KB; saved data of at most 64 KB; at most a few thousand shapes per
   frame.

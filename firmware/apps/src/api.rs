@@ -12,9 +12,17 @@ use crate::script::{Command, Context, Output, Reply, Request, Value, Yield};
 /// The largest script file.
 pub const MAX_SOURCE: usize = 256 * 1024;
 
-/// What a callback may do before it counts as hung. Provisional: measured on a PC; the board's
+/// What a callback may do before it counts as hung. Provisional, set on a PC; the board's
 /// number comes from the spike (apps-roadmap.md 0.4), aiming at about 200 ms there.
-pub const BUDGET: u64 = 200_000;
+pub const BUDGET: u64 = 500_000;
+
+/// How deep calls may nest.
+pub const CALL_LEVELS: usize = 32;
+
+/// The longest string, the largest array and map a script may make.
+pub const MAX_STRING: usize = 16 * 1024;
+pub const MAX_ARRAY: usize = 10_000;
+pub const MAX_MAP: usize = 1_000;
 
 /// What the script set and drew in the callback that runs, and what it may know.
 #[derive(Default)]
@@ -47,7 +55,11 @@ type Fallible<T> = Result<T, Box<EvalAltResult>>;
 pub(crate) fn engine(_shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command>>, replies: Sender<Reply>) -> Engine {
     let mut engine = Engine::new();
     engine.set_max_operations(BUDGET);
-    engine.set_max_call_levels(32);
+    engine.set_max_call_levels(CALL_LEVELS);
+    engine.set_max_expr_depths(64, 32);
+    engine.set_max_string_size(MAX_STRING);
+    engine.set_max_array_size(MAX_ARRAY);
+    engine.set_max_map_size(MAX_MAP);
     engine.on_print(|_| {});
     engine.on_debug(|_, _, _| {});
 
