@@ -395,8 +395,12 @@ for a bare number; a value typed with another unit of the same quantity is taken
 one of a wrong quantity is an error on the field, which the engine's dimension check finds.
 
 For more than formulas, `results` is replaced by `submit: |v| { ... }`, a function that gets the
-values as a map, uses `calc` as it likes, and gives the list of results (`#{label, latex}`) or an
-error text for a field.
+values as a map (by the fields' ids, as typed), uses `calc` as it likes, and gives the list of
+results (`#{label, latex}`), an error text for the form, or `#{field, error}` for a field.
+
+A script that is only a `form(...)` call has no `draw`; its inputs are its saved data. In a
+script that draws, `form(...)` puts *Fertig* on the first soft key, which closes the form and
+gives the results as a map from label to LaTeX.
 
 ## 5. Limits and safety
 

@@ -189,6 +189,12 @@ pub enum Request {
     Calc(String),
     /// A variable of the session; the answer is its value, or `()`.
     Var(String),
+    /// A form to show, its description as plain data. The answer is `#{submit: values}` when
+    /// the app's `submit` is to work it out, which yields [`Request::Submitted`], or the results
+    /// when the form closes.
+    Form(Value),
+    /// What `submit` gave: the results, or an error for a field or the form.
+    Submitted(Value),
 }
 
 /// What a callback that ran to its end leaves for the hui: what `draw` drew and what the script
@@ -230,7 +236,8 @@ pub(crate) enum Command {
 
 /// From the script's thread to the main side.
 pub(crate) enum Reply {
-    Compiled(Result<(), Error>),
+    /// Compiled, and whether the script has a `draw` of its own.
+    Compiled(Result<bool, Error>),
     Yield(Yield),
 }
 
@@ -241,6 +248,8 @@ pub struct Script {
     thread: Option<JoinHandle<()>>,
     /// The script stopped answering or failed: it gets nothing more.
     dead: bool,
+    /// Whether it has `draw`: a script that is only a `form(...)` call has none.
+    pub draws: bool,
 }
 
 impl Script {
@@ -258,9 +267,12 @@ impl Script {
             .stack_size(STACK)
             .spawn(move || run(&source, commands, replies))
             .map_err(|error| Error::new(format!("no thread for the app: {error}")))?;
-        let script = Script { to: Some(to), from, thread: Some(thread), dead: false };
+        let mut script = Script { to: Some(to), from, thread: Some(thread), dead: false, draws: true };
         match script.from.recv_timeout(WAIT) {
-            Ok(Reply::Compiled(Ok(()))) => Ok(script),
+            Ok(Reply::Compiled(Ok(draws))) => {
+                script.draws = draws;
+                Ok(script)
+            }
             Ok(Reply::Compiled(Err(error))) => Err(error),
             Ok(Reply::Yield(_)) => Err(Error::new("the script answered out of turn")),
             Err(_) => Err(Error::hung()),
@@ -326,11 +338,8 @@ fn run(source: &str, commands: Receiver<Command>, replies: Sender<Reply>) {
             return;
         }
     };
-    if !ast.iter_functions().any(|function| function.name == "draw" && function.params.is_empty()) {
-        let _ = replies.send(Reply::Compiled(Err(Error::new("the app has no draw()"))));
-        return;
-    }
-    if replies.send(Reply::Compiled(Ok(()))).is_err() {
+    let draws = ast.iter_functions().any(|function| function.name == "draw" && function.params.is_empty());
+    if replies.send(Reply::Compiled(Ok(draws))).is_err() {
         return;
     }
     let mut state = Dynamic::from_map(Map::new());
@@ -366,7 +375,8 @@ fn callback_and_draw(engine: &Engine, ast: &AST, scope: &mut Scope, state: &mut 
             call(engine, ast, scope, state, name, args)?;
         }
     }
-    if *callback == Callback::Leave {
+    let draws = ast.iter_functions().any(|function| function.name == "draw" && function.params.is_empty());
+    if *callback == Callback::Leave || !draws {
         return Ok(false);
     }
     call(engine, ast, scope, state, "draw", Vec::new())?;

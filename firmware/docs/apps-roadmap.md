@@ -389,10 +389,16 @@ M4.
   field. The ids are replaced as whole names, not inside longer ones or LaTeX commands, by the
   term in brackets; the engine reads `*` and `/` as written. Each step goes through
   `Host::calc`, at once or after the engine, one after the other.
-- [ ] **9.4 `form` from a script.** `form(description)` as a yield that gives the results when
+- [x] **9.4 `form` from a script.** `form(description)` as a yield that gives the results when
   the form closes; a script that is only a `form(...)` call is a tool with no callbacks. With
   `submit` the function is called with the values and gives results or a field's error. The
   inputs are saved with the app's data and stand in the fields next time. Tests.
+  Built so: `draw` is no longer required; a script without it is a tool that is only its form,
+  and its inputs are its saved data (`#{inputs}`). A script that draws gets *Fertig* on the
+  first soft key, which closes the form and gives `form(...)` the results as a map from label
+  to LaTeX. `submit` gets the inputs as typed, by id, and gives a list of `#{label, latex}`, an
+  error text, or `#{field, error}`; it runs on the script's thread while `form` waits, so it can
+  use `calc`. A result is handed to the calculation by OK only, not by AC.
 - [ ] **9.5 An example on the card.** `firmware/sim/sd/apps/spannungsteiler.rhai`.
 
 M5.

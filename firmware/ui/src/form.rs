@@ -74,6 +74,11 @@ pub struct FormApplet {
     waiting: Option<Job>,
     /// Each field as it goes into the formulas: its value, with its unit if it had none.
     terms: Vec<String>,
+    /// The form was asked to be worked out since this was last cleared: for the app around it,
+    /// to keep the inputs and, with `submit`, to work it out itself.
+    pub asked: bool,
+    /// OK was pressed on a result: leaving hands it to the calculation.
+    handing: bool,
 }
 
 /// A step of working a form out.
@@ -159,6 +164,8 @@ impl FormApplet {
             jobs: VecDeque::new(),
             waiting: None,
             terms,
+            asked: false,
+            handing: false,
         }
     }
 
@@ -239,6 +246,7 @@ impl FormApplet {
     /// [`FormApplet::results`], what is wrong with a field to it.
     pub fn calculate(&mut self, host: &mut dyn Host) {
         self.sheet.commit();
+        self.asked = true;
         if self.form.submit {
             // The app's own function works it out (`quantus-apps`).
             return;
@@ -319,6 +327,19 @@ impl FormApplet {
                 }
             }
         }
+    }
+
+    /// Whether a step waits for the engine.
+    pub fn busy(&self) -> bool {
+        self.waiting.is_some()
+    }
+
+    /// The results the app's `submit` gave: the cursor goes to the first.
+    pub fn submitted(&mut self, results: Vec<(String, Result<String, String>)>) {
+        self.errors.iter_mut().for_each(|error| *error = None);
+        self.error = None;
+        self.result = (!results.is_empty()).then_some(0);
+        self.results = Some(results);
     }
 
     /// Every field is read: the results next, unless a field is wrong; or all is done. Whether
@@ -409,6 +430,7 @@ impl Applet for FormApplet {
                 Key::Down => self.result = Some((result + 1).min(count.saturating_sub(1))),
                 Key::Ok | Key::Exe => {
                     if let Some((_, Ok(_))) = self.results.as_ref().and_then(|results| results.get(result)) {
+                        self.handing = true;
                         host.exit();
                     }
                 }
@@ -522,7 +544,10 @@ impl Applet for FormApplet {
     }
 
     fn leave(&mut self, _host: &mut dyn Host) -> Option<String> {
-        // The result under the cursor, handed to the calculation by OK.
+        // The result under the cursor, handed to the calculation by OK; AC hands nothing.
+        if !std::mem::take(&mut self.handing) {
+            return None;
+        }
         let results = self.results.as_ref()?;
         match results.get(self.result?) {
             Some((_, Ok(value))) => Some(value.clone()),

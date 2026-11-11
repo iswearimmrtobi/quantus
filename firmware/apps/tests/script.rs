@@ -41,8 +41,8 @@ fn a_script_error_has_its_line() {
         Yield::Failed(error) => assert_eq!(error.line, Some(4), "{error:?}"),
         other => panic!("{other:?}"),
     }
-    let error = Script::start("fn init() {}").err().expect("no draw");
-    assert!(error.message.contains("draw"));
+    // Without draw: allowed, for a script that is only a form.
+    assert!(!Script::start("fn init() {}").expect("it compiles").draws);
 }
 
 #[test]

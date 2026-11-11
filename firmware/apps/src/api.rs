@@ -7,7 +7,7 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use embedded_graphics::pixelcolor::Rgb565;
 use quantus_ui::applet::{self, Canvas, Grid, Input, Palette, MAX_SHAPES};
-use rhai::{Array, Dynamic, Engine, EvalAltResult, Map, INT};
+use rhai::{Array, Dynamic, Engine, EvalAltResult, FnPtr, Map, NativeCallContext, INT};
 
 use crate::script::{Command, Context, Output, Reply, Request, Value, Yield};
 
@@ -159,6 +159,22 @@ pub(crate) fn engine(shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command>
         let mut shared = s.borrow_mut();
         shared.output.insert = Some(latex.to_string());
         shared.output.exit = true;
+    });
+
+    // A form: the script waits for it to close, and works it out with `submit` meanwhile.
+    let (c, r) = (commands.clone(), replies.clone());
+    engine.register_fn("form", move |context: NativeCallContext, description: Map| -> Fallible<Dynamic> {
+        let submit = description.get("submit").and_then(|submit| submit.clone().try_cast::<FnPtr>());
+        let mut answer = ask(&c, &r, Request::Form(Value::from_dynamic(&Dynamic::from_map(description))))?;
+        loop {
+            let values = match (&submit, answer.get("submit")) {
+                (Some(_), Some(values)) => values.to_dynamic(),
+                _ => return Ok(answer.to_dynamic()),
+            };
+            let submit = submit.as_ref().expect("a submit function");
+            let given: Dynamic = submit.call_within_context(&context, (values,))?;
+            answer = ask(&c, &r, Request::Submitted(Value::from_dynamic(&given)))?;
+        }
     });
 
     // The calculator: the script waits for the engine.

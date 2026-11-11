@@ -5,6 +5,8 @@
 use embedded_graphics::prelude::*;
 use quantus_ui::applet::{AppKey, Applet, Canvas, Event, Host, Input, Palette, Response};
 use quantus_ui::font::Scale;
+use quantus_ui::form::FormApplet;
+use quantus_ui::key::Key;
 use quantus_ui::text::{self, Lang};
 
 use crate::api::Draw;
@@ -38,6 +40,10 @@ pub struct ScriptApplet {
     insert: Option<String>,
     /// A line worked out for `entered`, waiting for the engine (`calc: true`).
     entering: bool,
+    /// The form the script waits on in `form(...)`.
+    form: Option<FormApplet>,
+    /// The script has no `draw`: it is only a form, whose inputs are its saved data.
+    form_only: bool,
 }
 
 impl ScriptApplet {
@@ -58,9 +64,14 @@ impl ScriptApplet {
             data: None,
             insert: None,
             entering: false,
+            form: None,
+            form_only: false,
         };
         match Script::start(source) {
-            Ok(script) => applet.script = Some(script),
+            Ok(script) => {
+                applet.form_only = !script.draws;
+                applet.script = Some(script);
+            }
             Err(error) => applet.error = Some(error),
         }
         applet
@@ -144,6 +155,30 @@ impl ScriptApplet {
                         let reply = script.answer(value);
                         return self.handle(reply, host);
                     }
+                    Request::Form(description) => match crate::form::read(description) {
+                        Ok(form) => {
+                            let mut form = FormApplet::new(form);
+                            // A tool that is only a form: its inputs as they were left.
+                            if let (true, Some(Value::Map(entries))) = (self.form_only, self.data.as_ref().and_then(|data| data.get("inputs"))) {
+                                let inputs: Vec<(String, String)> = entries
+                                    .iter()
+                                    .filter_map(|(id, value)| match value {
+                                        Value::Str(latex) => Some((id.clone(), latex.clone())),
+                                        _ => None,
+                                    })
+                                    .collect();
+                                form.restore(&inputs);
+                            }
+                            self.form = Some(form);
+                        }
+                        Err(message) => return self.fail(Error::new(message)),
+                    },
+                    Request::Submitted(given) => {
+                        self.submitted(given);
+                        // The script waits in `form` again.
+                        self.asking = Some(Request::Form(Value::Unit));
+                        return;
+                    }
                     Request::Calc(input) => {
                         if let Some(answer) = host.calc(input) {
                             // Answered at once: the script goes on.
@@ -157,6 +192,79 @@ impl ScriptApplet {
             }
             Yield::Failed(error) => self.fail(error),
         }
+    }
+
+    /// What `submit` gave, into the form: a list of `#{label, latex}`, an error text for the
+    /// form, or `#{field, error}` for a field.
+    fn submitted(&mut self, given: &Value) {
+        let Some(form) = &mut self.form else { return };
+        match given {
+            Value::Array(results) => {
+                let text = |value: Option<&Value>| match value {
+                    Some(Value::Str(s)) => s.clone(),
+                    Some(Value::Int(i)) => i.to_string(),
+                    Some(Value::Float(f)) => f.to_string(),
+                    _ => String::new(),
+                };
+                let results = results
+                    .iter()
+                    .map(|result| (text(result.get("label")), Ok(text(result.get("latex").or(result.get("value"))))))
+                    .collect();
+                form.submitted(results);
+            }
+            Value::Map(_) => {
+                let field = given.get("field").and_then(|field| match field {
+                    Value::Str(id) => form.form.fields.iter().position(|f| f.id == *id),
+                    _ => None,
+                });
+                let message = match given.get("error") {
+                    Some(Value::Str(message)) => message.clone(),
+                    _ => String::new(),
+                };
+                match field {
+                    Some(index) => form.errors[index] = Some(message),
+                    None => form.error = Some(message),
+                }
+            }
+            Value::Str(message) => form.error = Some(message.clone()),
+            _ => {}
+        }
+    }
+
+    /// After a key on the form: its inputs kept if it was worked out, and with `submit` the
+    /// script asked.
+    fn after_form(&mut self, host: &mut dyn Host) {
+        let Some(form) = &mut self.form else { return };
+        if !std::mem::take(&mut form.asked) {
+            return;
+        }
+        let inputs = Value::Map(form.inputs().into_iter().map(|(id, latex)| (id, Value::Str(latex))).collect());
+        if self.form_only {
+            let data = Value::Map(vec![("inputs".into(), inputs.clone())]);
+            host.save(&crate::json::write(&data));
+            self.data = Some(data);
+        }
+        if form.form.submit {
+            let Some(script) = &mut self.script else { return };
+            self.asking = None;
+            let reply = script.answer(Value::Map(vec![("submit".into(), inputs)]));
+            self.handle(reply, host);
+        }
+    }
+
+    /// The results of the form as a map, label to LaTeX, and the form closed; the script goes on.
+    fn close_form(&mut self, host: &mut dyn Host) {
+        let Some(form) = self.form.take() else { return };
+        let results = form
+            .results
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|(label, value)| value.ok().map(|latex| (label, Value::Str(latex))))
+            .collect();
+        self.asking = None;
+        let Some(script) = &mut self.script else { return };
+        let reply = script.answer(Value::Map(results));
+        self.handle(reply, host);
     }
 
     fn apply(&mut self, output: Output) {
@@ -244,7 +352,31 @@ impl Applet for ScriptApplet {
         self.call(Callback::Init, host);
     }
 
+    fn types(&self) -> bool {
+        self.form.is_some() && self.error.is_none()
+    }
+
+    fn typed(&mut self, key: Key, shift: bool, host: &mut dyn Host) -> bool {
+        let Some(form) = &mut self.form else { return false };
+        let took = form.typed(key, shift, host);
+        self.after_form(host);
+        took
+    }
+
+    fn insert(&mut self, latex: &str, host: &mut dyn Host) {
+        if let Some(form) = &mut self.form {
+            form.insert(latex, host);
+        }
+    }
+
     fn key(&mut self, key: AppKey, host: &mut dyn Host) {
+        // *Fertig* closes a form of a script that draws itself.
+        if self.form.is_some() {
+            if key == AppKey::Soft(0) && !self.form_only {
+                self.close_form(host);
+            }
+            return;
+        }
         if self.error.is_some() {
             // OK or EXE leave the error page, as AC does.
             if matches!(key, AppKey::Ok | AppKey::Exe) {
@@ -270,6 +402,9 @@ impl Applet for ScriptApplet {
         if let Some(error) = &self.error {
             return self.error_page(error, canvas);
         }
+        if let Some(form) = &self.form {
+            return form.draw(canvas);
+        }
         for draw in &self.draws {
             draw.replay(canvas);
         }
@@ -280,10 +415,17 @@ impl Applet for ScriptApplet {
     }
 
     fn soft_keys(&self) -> Vec<String> {
-        self.soft.clone()
+        match (&self.form, self.form_only) {
+            (Some(_), false) => vec![if self.lang == Lang::De { "Fertig" } else { "Done" }.to_string()],
+            (Some(_), true) => Vec::new(),
+            (None, _) => self.soft.clone(),
+        }
     }
 
     fn input(&self) -> Input {
+        if self.form.is_some() {
+            return Input::Keys;
+        }
         self.input.clone()
     }
 
@@ -313,6 +455,12 @@ impl Applet for ScriptApplet {
     }
 
     fn answer(&mut self, response: Response, host: &mut dyn Host) {
+        // The engine's answer to a step of the form.
+        if let (Some(form), Response::Calc(_)) = (&mut self.form, &response) {
+            if form.busy() {
+                return form.answer(response, host);
+            }
+        }
         let Some(_) = self.asking.take() else { return };
         if std::mem::take(&mut self.entering) {
             if let Response::Calc(answer) = response {
@@ -338,6 +486,9 @@ impl Applet for ScriptApplet {
     }
 
     fn leave(&mut self, host: &mut dyn Host) -> Option<String> {
+        if let Some(form) = &mut self.form {
+            return form.leave(host).or(self.insert.take());
+        }
         if self.error.is_none() && self.asking.is_none() {
             self.call(Callback::Leave, host);
         }

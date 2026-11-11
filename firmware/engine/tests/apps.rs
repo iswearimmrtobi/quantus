@@ -168,6 +168,7 @@ mod forms {
         assert_eq!(results[1], ("I".to_string(), Ok(r"\frac{4}{5}\,\mathrm{mA}".to_string())), "{results:?}");
         // The cursor on the first result: OK hands it to the calculation.
         assert_eq!(form.result, Some(0));
+        form.typed(Key::Ok, false, &mut host);
         assert_eq!(form.leave(&mut host).as_deref(), Some(r"8\,\mathrm{V}"));
     }
 
@@ -204,5 +205,105 @@ mod forms {
         use quantus_ui::form::substitute;
         let terms = [("R1".to_string(), "5".to_string()), ("R12".to_string(), "7".to_string())];
         assert_eq!(substitute(r"R1+R12+\sqrt{R1}+R1x", &terms), r"(5)+(7)+\sqrt{(5)}+R1x");
+    }
+}
+
+mod form_scripts {
+    use quantus_apps::ScriptApplet;
+    use quantus_engine::Engine;
+    use quantus_ui::app::{App, Screen};
+    use quantus_ui::applet::AppInfo;
+    use quantus_ui::key::Key;
+    use quantus_ui::render::{Frame, Shape};
+
+    const DIVIDER: &str = r#"
+// name: Spannungsteiler
+// kind: tool
+
+form(#{
+    title: "Spannungsteiler",
+    fields: [
+        #{ id: "U",  label: "Eingangsspannung", unit: "V" },
+        #{ id: "R1", label: "R₁", unit: "Ω" },
+        #{ id: "R2", label: "R₂", unit: "Ω", value: "10 kΩ" },
+    ],
+    results: [
+        #{ label: "U₂", formula: "U*R2/(R1+R2)", unit: "V" },
+        #{ label: "I",  formula: "U/(R1+R2)",    unit: "mA" },
+    ],
+})
+"#;
+
+    fn open(app: &mut App<Engine>, source: &str) {
+        let info = AppInfo { id: "teiler".into(), name: "Teiler".into(), api: 1, usable: true, ..AppInfo::default() };
+        app.open_applet(Box::new(ScriptApplet::new(source)), info);
+    }
+
+    fn texts(app: &App<Engine>) -> Vec<String> {
+        Frame::new(app).0.iter().filter_map(|shape| match shape {
+            Shape::Text(_, text, ..) => Some(text.clone()),
+            _ => None,
+        }).collect()
+    }
+
+    fn maths(app: &App<Engine>) -> usize {
+        Frame::new(app).0.iter().filter(|shape| matches!(shape, Shape::Math(..))).count()
+    }
+
+    fn press(app: &mut App<Engine>, keys: &[Key]) {
+        keys.iter().for_each(|&key| app.key(key));
+    }
+
+    #[test]
+    fn a_script_that_is_only_a_form_works_out_and_keeps_its_inputs() {
+        let mut app = App::new(Engine::default());
+        open(&mut app, DIVIDER);
+        let shown = texts(&app);
+        assert!(shown.contains(&"Eingangsspannung".to_string()) && shown.contains(&"Spannungsteiler".to_string()), "{shown:?}");
+        press(&mut app, &[Key::Digit(1), Key::Digit(2), Key::Exe, Key::Digit(5), Key::Digit(0), Key::Digit(0), Key::Digit(0), Key::Exe, Key::Exe]);
+        let shown = texts(&app);
+        assert!(shown.contains(&"U₂ =".to_string()) && shown.contains(&"I =".to_string()), "{shown:?}");
+        // Left, opened again: the inputs stand in the fields.
+        app.key(Key::Ac);
+        let before = maths(&app);
+        open(&mut app, DIVIDER);
+        assert!(maths(&app) >= 3, "{before} {}", maths(&app));
+        // OK on the first result hands it to the calculation.
+        press(&mut app, &[Key::Exe, Key::Exe, Key::Exe, Key::Ok]);
+        assert_eq!(app.screen, Screen::Calc);
+        assert_eq!(app.editor.to_latex(), r"8\,\mathrm{V}");
+    }
+
+    const SUBMIT: &str = r#"
+fn init() { this.got = "-"; }
+fn key(k) {
+    let r = form(#{
+        fields: [ #{ id: "a", unit: "m" }, #{ id: "b" } ],
+        submit: |v| {
+            if v.b == "0" { return #{ field: "b", error: "nicht null" }; }
+            let s = calc(v.a + "\\cdot " + v.b);
+            [ #{ label: "a·b", latex: s.latex } ]
+        },
+    });
+    this.got = `${r["a·b"]}`;
+}
+fn draw() { text(0, 0, this.got, "text"); }
+"#;
+
+    #[test]
+    fn submit_works_the_form_out_and_fertig_gives_the_results() {
+        let mut app = App::new(Engine::default());
+        open(&mut app, SUBMIT);
+        app.key(Key::Digit(1));
+        // The form, with Fertig on the soft keys.
+        assert!(texts(&app).contains(&"Fertig".to_string()));
+        // EXE keeps the value typed, EXE on the last field works it out.
+        press(&mut app, &[Key::Digit(3), Key::Exe, Key::Digit(0), Key::Exe, Key::Exe]);
+        assert!(texts(&app).contains(&"nicht null".to_string()), "{:?}", texts(&app));
+        press(&mut app, &[Key::Del, Key::Digit(2), Key::Exe, Key::Exe]);
+        assert!(texts(&app).contains(&"a·b =".to_string()), "{:?}", texts(&app));
+        // Fertig: the results to the script, which draws them. `submit` got the inputs as typed.
+        app.key(Key::Soft(0));
+        assert!(texts(&app).contains(&"6".to_string()), "{:?}", texts(&app));
     }
 }
