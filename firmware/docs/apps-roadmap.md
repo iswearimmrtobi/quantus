@@ -187,7 +187,7 @@ holds. The hui handles the template's keys first and passes the rest on (apps.md
   the hui draws the cursor's frame over the applet's shapes; a tap picks the cell under it.
   `Host::cursor` and `set_cursor`. Test: a Rust applet with a 3 × 3 grid gets the picks; keys
   the grid does not use still reach `key`.
-- [ ] **3a.3 `"list"`.** `options.items` drawn as a menu list in the area (reuse `line_rect` and
+- [x] **3a.3 `"list"`.** `options.items` drawn as a menu list in the area (reuse `line_rect` and
   the list drawing of `screens.rs`), ↑/↓, a digit, OK; `Event::Entered(index)`. Test.
 - [ ] **3a.4 `confirm`.** A question of the hui's over the app with *Ja* and *Nein*, AC is
   *Nein*; while it is open the applet gets nothing. On the hui's side it is

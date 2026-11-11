@@ -32,7 +32,7 @@ use crate::settings::WallpaperOn;
 use crate::touch::Target;
 use crate::wallpaper::Pixels;
 use bar::bar;
-use screens::{calculation, calibration, menu_screen, modes};
+use screens::{app_list, calculation, calibration, menu_screen, modes};
 
 pub const WIDTH: u32 = 480;
 pub const HEIGHT: u32 = 320;
@@ -312,7 +312,7 @@ impl Frame {
                     let mut canvas = crate::applet::Canvas::new(area);
                     running.applet.draw(&mut canvas);
                     shapes.extend(canvas.into_shapes());
-                    template(&mut shapes, running, area);
+                    template(&mut shapes, running, area, app.pressed());
                 }
             }
         }
@@ -324,9 +324,17 @@ impl Frame {
     }
 }
 
-/// The input template's part, over the app's shapes: the grid's cursor.
-fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectangle) {
-    if let crate::applet::Input::Grid { cols, rows, .. } = running.applet.input() {
+/// The input template's part, over the app's shapes: the grid's cursor, the list.
+fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectangle, pressed: Option<Target>) {
+    let input = running.applet.input();
+    if let crate::applet::Input::List { items } = &input {
+        let pressed = match pressed {
+            Some(Target::Line(offset)) => Some(offset),
+            _ => None,
+        };
+        app_list(shapes, items, running.template.list.min(items.len().saturating_sub(1)), pressed);
+    }
+    if let crate::applet::Input::Grid { cols, rows, .. } = input {
         let grid = crate::applet::Grid::new(area.size.width as i32, area.size.height as i32, cols, rows);
         let (col, row) = running.template.cursor;
         let cell = grid.cell(col.min(cols.max(1) - 1), row.min(rows.max(1) - 1)).translate(area.top_left);
@@ -502,6 +510,20 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             None => {
                 if let Some(target) = soft::soft_at(app, point) {
                     return Some(target);
+                }
+                // A line of the list template, as in a menu.
+                let list = app.running.as_ref().and_then(|running| match running.applet.input() {
+                    crate::applet::Input::List { items } => Some(items.len()),
+                    _ => None,
+                });
+                if let Some(count) = list {
+                    let first = app.running.as_ref().map_or(0, |running| running.template.list / ROWS * ROWS);
+                    let around = |line: Rectangle| Rectangle::new(line.top_left - Point::new(MARGIN, LINE_GAP / 2), line.size + Size::new(2 * MARGIN as u32, LINE_GAP as u32));
+                    let edge = WIDTH as i32 - MARGIN;
+                    return (0..ROWS)
+                        .filter(|offset| first + offset < count)
+                        .find(|&offset| around(line_rect(offset, edge)).contains(point))
+                        .map(Target::Line);
                 }
                 let area = app_area(app);
                 area.contains(point).then(|| Target::App(point - area.top_left))

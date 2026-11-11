@@ -579,6 +579,13 @@ struct List {
     glass: bool,
 }
 
+/// The list template of an app (apps.md §4.4): its items as a menu of the hui's, at the top of
+/// the area.
+pub(super) fn app_list(shapes: &mut Vec<Shape>, items: &[String], selected: usize, pressed: Option<usize>) {
+    let lines = items.iter().map(|item| Line { label: item.clone(), value: None, math: None, mark: Mark::None });
+    lines_page(shapes, lines.collect(), selected, &List { scroll: 0, pressed, glass: false });
+}
+
 /// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
 /// there are more.
 fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List) {

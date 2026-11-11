@@ -157,6 +157,8 @@ pub struct Running {
 pub struct Template {
     /// The grid's cursor: its column and row.
     pub cursor: (usize, usize),
+    /// The list's selected item.
+    pub list: usize,
 }
 
 /// What an app asks of the device, answered over the backend.
@@ -822,7 +824,36 @@ impl<B: Backend> App<B> {
     fn template_key(&mut self, key: AppKey) -> bool {
         let Some((applet, mut host)) = self.applet() else { return false };
         match applet.input() {
-            Input::Keys | Input::Line { .. } | Input::Text { .. } | Input::List { .. } | Input::Cells { .. } => false,
+            Input::Keys | Input::Line { .. } | Input::Text { .. } | Input::Cells { .. } => false,
+            Input::List { items } => {
+                let count = items.len();
+                if count == 0 {
+                    return false;
+                }
+                let selected = host.template.list.min(count - 1);
+                let chosen = match key {
+                    AppKey::Up => {
+                        host.template.list = (selected + count - 1) % count;
+                        return true;
+                    }
+                    AppKey::Down => {
+                        host.template.list = (selected + 1) % count;
+                        return true;
+                    }
+                    AppKey::Ok | AppKey::Exe => selected,
+                    AppKey::Digit(digit @ 1..=9) if usize::from(digit) <= menu::ROWS => {
+                        let index = selected / menu::ROWS * menu::ROWS + usize::from(digit) - 1;
+                        if index >= count {
+                            return true;
+                        }
+                        index
+                    }
+                    _ => return false,
+                };
+                host.template.list = chosen;
+                applet.event(Event::Chosen(chosen), &mut host);
+                true
+            }
             Input::Grid { cols, rows, digits, wrap } => {
                 let (cols, rows) = (cols.max(1), rows.max(1));
                 let (col, row) = host.template.cursor;
@@ -1110,6 +1141,14 @@ impl<B: Backend> App<B> {
             Target::Tile(index) => self.choose(index),
             Target::Soft(index) => self.key(Key::Soft(index as u8)),
             Target::Page(page) => self.show_page(page),
+            // A line of an app's list: picked as its digit picks it.
+            Target::Line(offset) if self.running.as_ref().is_some_and(|running| running.menu.is_none()) => {
+                let first = self.running.as_ref().map_or(0, |running| running.template.list / menu::ROWS * menu::ROWS);
+                if let Some(running) = &mut self.running {
+                    running.template.list = first + offset;
+                }
+                self.template_key(AppKey::Ok);
+            }
             Target::Line(offset) if matches!(self.screen, Screen::App) => {
                 let Some(mut menu) = self.running.as_mut().and_then(|running| running.menu.take()) else { return };
                 let outcome = menu.tap(offset, &mut self.settings);

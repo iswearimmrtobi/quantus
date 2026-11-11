@@ -710,3 +710,44 @@ fn a_tap_picks_the_cell_under_it() {
     assert_eq!(log.borrow().taps, [grid.side().center()]);
     assert_eq!(picks.borrow().len(), 1);
 }
+
+/// An applet with the list template: it writes down what was chosen.
+struct Chooser {
+    chosen: Rc<RefCell<Vec<usize>>>,
+    log: Rc<RefCell<Log>>,
+}
+
+impl Applet for Chooser {
+    fn key(&mut self, key: AppKey, _host: &mut dyn Host) {
+        self.log.borrow_mut().keys.push(key);
+    }
+
+    fn event(&mut self, event: quantus_ui::applet::Event, _host: &mut dyn Host) {
+        if let quantus_ui::applet::Event::Chosen(index) = event {
+            self.chosen.borrow_mut().push(index);
+        }
+    }
+
+    fn draw(&self, _canvas: &mut Canvas) {}
+
+    fn input(&self) -> quantus_ui::applet::Input {
+        let items = ["Stahl", "Alu", "Kupfer", "Holz", "Glas", "Beton", "Gummi"];
+        quantus_ui::applet::Input::List { items: items.iter().map(|item| item.to_string()).collect() }
+    }
+}
+
+#[test]
+fn the_list_template_chooses() {
+    let mut app = App::new(Stub);
+    let (chosen, log) = (Rc::new(RefCell::new(Vec::new())), Rc::new(RefCell::new(Log::default())));
+    app.open_applet(Box::new(Chooser { chosen: chosen.clone(), log: log.clone() }), info());
+    assert!(texts(&app).iter().any(|text| text == "Kupfer"));
+    press(&mut app, &[Key::Down, Key::Down, Key::Ok, Key::Up, Key::Up, Key::Up, Key::Exe, Key::Digit(2), Key::Digit(9), Key::Plus]);
+    // ↑ from the first goes round to the last; a digit counts on the page shown.
+    assert_eq!(*chosen.borrow(), [2, 6, 6]);
+    assert_eq!(log.borrow().keys, [AppKey::Digit(9), AppKey::Plus]);
+    // The second page is shown: Gummi; a tap on its first line picks Beton.
+    assert!(texts(&app).iter().any(|text| text == "Gummi"));
+    tap(&mut app, quantus_ui::render::line_rect(0, 470).center());
+    assert_eq!(*chosen.borrow(), [2, 6, 6, 5]);
+}
