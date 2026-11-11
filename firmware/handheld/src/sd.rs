@@ -17,6 +17,9 @@ pub const MOUNT: &str = "/sd";
 /// The session files (`quantus_engine::Engine`), one JSON file each, as on the desktop.
 pub const SESSIONS: &str = "/sd/sessions";
 
+/// The apps from the card (`quantus_apps::Apps`), and their data in `data` below it.
+pub const APPS: &str = "/sd/apps";
+
 /// The mounted card; it stays mounted. Dropping it switches its supply off.
 pub struct SdCard {
     _card: *mut sys::sdmmc_card_t,

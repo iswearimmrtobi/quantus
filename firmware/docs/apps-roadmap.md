@@ -310,10 +310,12 @@ M3: the games are done.
   with a folder of good and bad files in `firmware/apps/tests/card/`.
   Also left out: a file whose name is no plain id (letters, digits, `-`, `_`), as it could not
   name its data. The data of `card:<id>` are `/apps/data/card~<id>.json`.
-- [ ] **7.2 The simulator and the board.** `firmware/sim/sd/apps/` with one example tool (the
+- [x] **7.2 The simulator and the board.** `firmware/sim/sd/apps/` with one example tool (the
   Counter); `sd::APPS` in `handheld/src/sd.rs`. The list is read each time the Apps tile opens,
   so a card changed in between shows. Measure the listing of twenty files on the board (the
   card runs at 10 MHz).
+  Done but for the board: the listing's time waits for it. The Counter left the built-in apps
+  for `sim/sd/apps/zaehler.rhai`; `.gitignore` keeps `sim/sd/apps/` but not its `data/`.
 - [ ] **7.3 Storage.** SETUP → Gerät → Speicherplatz counts `/apps/` (`Storage`, `sd::storage`,
   the simulator's `storage`).
 

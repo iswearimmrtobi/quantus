@@ -7,11 +7,13 @@ use quantus_ui::text::Lang;
 fn the_built_in_apps_are_listed_and_open() {
     let apps = Apps::new(None);
     let list = apps.list(Lang::De);
-    let counter = list.iter().find(|app| app.id == "zaehler").expect("the counter");
-    assert_eq!(counter.name, "Zähler");
-    assert!(counter.built_in && counter.usable);
-    assert_eq!(apps.list(Lang::En).iter().find(|app| app.id == "zaehler").map(|app| app.name.as_str()), Some("Counter"));
-    assert!(apps.open("zaehler").is_ok());
+    let ids: Vec<&str> = list.iter().map(|app| app.id.as_str()).collect();
+    assert_eq!(ids, ["2048", "tictactoe"]);
+    let game = list.iter().find(|app| app.id == "tictactoe").expect("tic tac toe");
+    assert_eq!(game.name, "Tic Tac Toe");
+    assert!(game.built_in && game.usable);
+    assert_eq!(apps.list(Lang::En).iter().find(|app| app.id == "tictactoe").map(|app| app.name.as_str()), Some("Tic tac toe"));
+    assert!(apps.open("tictactoe").is_ok());
     assert!(apps.open("nothing").is_err());
 }
 

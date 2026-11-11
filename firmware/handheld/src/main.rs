@@ -95,8 +95,7 @@ fn main() {
         radio: None,
         #[cfg(feature = "engine")]
         engine: engine::Worker::start(card.is_some().then(|| std::path::PathBuf::from(sd::SESSIONS))),
-        // The card's apps come with step 7 of apps-roadmap.md.
-        apps: quantus_apps::Apps::new(None),
+        apps: quantus_apps::Apps::new(card.is_some().then(|| std::path::PathBuf::from(sd::APPS))),
         card,
     };
     // The wallpaper set before the last restart, if the card still has it.

@@ -17,4 +17,7 @@ desktop/public/fonts/
 desktop/src-tauri/gen/schemas/
 
 # the simulator's stand-in for the SD card (wallpapers)
-firmware/sim/sd/
+firmware/sim/sd/*
+# The example apps are part of the repository; what they save is not.
+!firmware/sim/sd/apps/
+firmware/sim/sd/apps/data/
