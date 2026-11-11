@@ -79,6 +79,14 @@ pub trait Host {
     /// [`Applet::answer`], and until then the app gets nothing.
     fn confirm(&mut self, _question: &str) {}
 
+    /// Works `input` out as the calculator's line takes it, with the open session's settings and
+    /// variables, the history left alone: the result's LaTeX or the error now, or `None` while
+    /// the engine works; then the answer comes to [`Applet::answer`] and the app gets nothing
+    /// until it does.
+    fn calc(&mut self, _input: &str) -> Option<Result<String, String>> {
+        Some(Err("no calculator".to_string()))
+    }
+
     /// Asks for one line of plain text over the app, `value` in it at first, at most `max`
     /// characters; the text, or none after AC, comes to [`Applet::answer`].
     fn ask(&mut self, _label: &str, _max: usize, _value: &str) {}
@@ -145,6 +153,8 @@ pub enum Response {
     Confirmed(bool),
     /// The text typed, or none after AC.
     Text(Option<String>),
+    /// What the engine made of a calculation: the result's LaTeX, or the error.
+    Calc(Result<String, String>),
 }
 
 impl Input {

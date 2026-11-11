@@ -357,7 +357,7 @@ M4.
   input out that way without the history (`calculate(.., record: false)` in `firmware/engine`,
   the worker's `Job::Calculate` with `record: false` on the board, answered by `poll`), so no
   backend needed code. The map `#{ok, value, latex, error}` is made in `quantus-apps` (8.2).
-- [ ] **8.2 `calc` in the host.** A yield (F1): the hui sets `busy`, the spinner turns, the
+- [x] **8.2 `calc` in the host.** A yield (F1): the hui sets `busy`, the spinner turns, the
   answer resumes the script; AC drops the calculation (`drop_pending`) and leaves. Tests in
   `firmware/engine/tests/apps.rs` against the real engine: a script that adds two lengths, an
   error from the engine as `ok: false`, the history unchanged.

@@ -169,12 +169,17 @@ pub struct Template {
     pub exit: bool,
     /// What is typed into the text template, `None` before the first key (its value shows).
     pub text: Option<String>,
+    /// The engine works on a calculation of the app; it gets nothing until the answer.
+    pub calculating: bool,
 }
 
 /// What an app asks of the device, answered over the backend.
 struct AppHost<'a, B> {
     backend: &'a mut B,
     lang: Lang,
+    /// The mode and the settings a calculation of the app is done in.
+    mode: Mode,
+    settings: Settings,
     template: &'a mut Template,
     /// The app's id, for its data.
     id: &'a str,
@@ -201,6 +206,12 @@ impl<B: Backend> Host for AppHost<'_, B> {
 
     fn exit(&mut self) {
         self.template.exit = true;
+    }
+
+    fn calc(&mut self, input: &str) -> Option<Result<String, String>> {
+        let answer = self.backend.app_calc(self.mode, &self.settings, input);
+        self.template.calculating = answer.is_none();
+        answer
     }
 
     fn load(&mut self) -> Option<String> {
@@ -757,7 +768,18 @@ impl<B: Backend> App<B> {
             self.screen = Screen::Calc;
             changed = true;
         }
-        if let Some((applet, mut host)) = self.applet() {
+        // An app's calculation done: its answer resumes it.
+        if self.running.as_ref().is_some_and(|running| running.template.calculating) {
+            self.busy = true;
+            if let Some(answer) = self.backend.poll() {
+                self.busy = false;
+                if let Some((applet, mut host)) = self.applet() {
+                    host.template.calculating = false;
+                    applet.answer(Response::Calc(answer), &mut host);
+                }
+                changed = true;
+            }
+        } else if let Some((applet, mut host)) = self.applet() {
             changed |= applet.tick(now_ms, &mut host);
         }
         if self.running.as_ref().is_some_and(|running| running.template.exit) {
@@ -894,8 +916,11 @@ impl<B: Backend> App<B> {
     /// The applet and what it may ask of the device, borrowed apart.
     fn applet(&mut self) -> Option<(&mut dyn Applet, AppHost<'_, B>)> {
         let lang = self.settings.language;
+        // The mode open when the app started; one without the engine calculates as Physik.
+        let mode = if self.mode.engine() { self.mode } else { Mode::Physics };
+        let settings = self.settings;
         let Running { applet, template, info, .. } = self.running.as_mut()?;
-        let host = AppHost { backend: &mut self.backend, lang, template, id: &info.id, data: &mut self.app_data };
+        let host = AppHost { backend: &mut self.backend, lang, mode, settings, template, id: &info.id, data: &mut self.app_data };
         Some((applet.as_mut(), host))
     }
 
@@ -1174,6 +1199,16 @@ impl<B: Backend> App<B> {
     /// A key on an app: AC leaves to where it was opened from, MODE to the mode menu; the others
     /// go to the applet as far as it gets them.
     fn app_key(&mut self, key: Key) {
+        // While the engine works for the app: AC drops the calculation and leaves, as MODE does.
+        if self.running.as_ref().is_some_and(|running| running.template.calculating) {
+            if matches!(key, Key::Ac | Key::Mode) {
+                self.backend.drop_pending();
+                self.busy = false;
+                let back = self.close_app();
+                self.screen = if key == Key::Mode { Screen::Modes { selected: self.mode.index() } } else { back.unwrap_or(Screen::Calc) };
+            }
+            return;
+        }
         if let Some(menu) = self.running.as_mut().and_then(|running| running.menu.take()) {
             return self.app_menu_key(menu, key);
         }

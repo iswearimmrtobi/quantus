@@ -3137,6 +3137,7 @@ dependencies = [
 name = "quantus-engine"
 version = "0.3.0-dev"
 dependencies = [
+ "quantus-apps",
  "quantus-core",
  "quantus-texts",
  "quantus-ui",

@@ -10,3 +10,6 @@ publish = false
 quantus-core = { path = "../../crates/quantus-core" }
 quantus-ui = { path = "../ui" }
 quantus-texts = { path = "../../crates/quantus-texts" }
+
+[dev-dependencies]
+quantus-apps = { path = "../apps" }

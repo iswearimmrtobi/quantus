@@ -129,6 +129,14 @@ impl ScriptApplet {
                 match &request {
                     Request::Confirm(question) => host.confirm(question),
                     Request::Ask { label, max, value } => host.ask(label, *max, value),
+                    Request::Calc(input) => {
+                        if let Some(answer) = host.calc(input) {
+                            // Answered at once: the script goes on.
+                            let Some(script) = &mut self.script else { return };
+                            let reply = script.answer(calc_answer(answer));
+                            return self.handle(reply, host);
+                        }
+                    }
                 }
                 self.asking = Some(request);
             }
@@ -181,6 +189,19 @@ impl ScriptApplet {
             canvas.text_small(12, y, &format!("{} {line}", text::LINE.get(lang)), Palette::get("muted").unwrap_or_default());
         }
     }
+}
+
+/// The engine's answer as `calc` gives it: `#{ok, value, latex, error}`. `latex` is the result
+/// as the calculator shows it, `value` what `calc` takes again (without `≈`).
+pub fn calc_answer(answer: Result<String, String>) -> Value {
+    let (ok, value, latex, error) = match answer {
+        Ok(latex) => {
+            let value = latex.trim_start_matches(r"\approx").trim().to_string();
+            (true, Value::Str(value), Value::Str(latex), Value::Unit)
+        }
+        Err(error) => (false, Value::Unit, Value::Unit, Value::Str(error)),
+    };
+    Value::Map(vec![("ok".into(), Value::Bool(ok)), ("value".into(), value), ("latex".into(), latex), ("error".into(), error)])
 }
 
 /// `text` broken into lines of at most `room` pixels in the small font.
@@ -271,6 +292,7 @@ impl Applet for ScriptApplet {
             Response::Confirmed(yes) => Value::Bool(yes),
             Response::Text(Some(text)) => Value::Str(text),
             Response::Text(None) => Value::Unit,
+            Response::Calc(answer) => calc_answer(answer),
         };
         let Some(script) = &mut self.script else { return };
         let reply = script.answer(value);

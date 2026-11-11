@@ -149,6 +149,12 @@ pub(crate) fn engine(shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command>
 
     asking(&mut engine, &commands, &replies);
 
+    // The calculator: the script waits for the engine.
+    let (c, r) = (commands.clone(), replies.clone());
+    engine.register_fn("calc", move |input: Dynamic| -> Fallible<Dynamic> {
+        Ok(ask(&c, &r, Request::Calc(input.to_string()))?.to_dynamic())
+    });
+
     // A question with Ja and Nein, answered by the hui: the script waits for it.
     engine.register_fn("confirm", move |question: &str| -> Fallible<bool> {
         match ask(&commands, &replies, Request::Confirm(question.to_string()))? {
