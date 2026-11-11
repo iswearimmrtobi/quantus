@@ -1,7 +1,9 @@
 # Apps and games
 
-State on 2026-11-11: planned, nothing is built. This page is the plan: what an app is, how the
-hui runs one, the script API, the two first games, and the steps in the order they are built (§8).
+State on 2026-11-11: built and tested in the simulator, steps 1 to 11 of §8; on the board it
+builds, and the spike's numbers (step 0) and the checks there wait for it. This page is the
+design: what an app is, how the hui runs one, the script API, the two first games; app authors
+read the site's *Writing apps*.
 
 Handheld only. The desktop app gets none of this.
 

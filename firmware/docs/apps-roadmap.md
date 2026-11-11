@@ -1,9 +1,11 @@
 # Apps and games: the implementation roadmap
 
-State on 2026-11-11: nothing is built. [apps.md](apps.md) is the design; its §8 names twelve steps.
-This page breaks each of them into commits: what changes, in which files, and how it is checked.
-It was written against the code as it stands, and §1 lists where the code asks for something
-other than what apps.md says.
+State on 2026-11-11: every box is done that does not need the board. Open are 0.2 to 0.5 (the
+spike's numbers and the choice of Rhai), the checks on the board noted under 4.6, 5.2, 5.3,
+6.4 and 7.2, 11.4 (the firmware's licences, see there) and 11.5. [apps.md](apps.md) is the
+design; its §8 names twelve steps. This page breaks each of them into commits: what changes, in
+which files, and how it is checked. It was written against the code as it stood, and §1 lists
+where the code asked for something other than what apps.md said.
 
 One box is one commit on `dev`. A step of apps.md §8 is ticked there once all its boxes here are.
 Checks are the step's own tests (`cargo test -p <crate> --test <name>`) and a look in the
@@ -429,6 +431,9 @@ M5.
   in the simulator's README.
 - [x] **11.3 `CHANGELOG.md`**, under `## [Unreleased]`.
 - [ ] **11.4 `THIRD-PARTY-LICENSES.md`** for the interpreter and what it brings (F12).
+  Checked: `npm run licenses` lists the desktop crate's dependencies only, on purpose, so the
+  firmware's crates stay out and the file does not change; Rhai (MIT or Apache-2.0) and what it
+  brings are in no list yet. Whether the firmware gets one of its own is to be decided.
 - [ ] **11.5 apps.md** from plan to description: the state line, §8 removed, plans.md §7 removed.
 
 M6.

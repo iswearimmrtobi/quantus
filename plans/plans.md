@@ -179,10 +179,12 @@ by how often an entry was used comes later.
 ## 7. Apps and games on the handheld
 
 Games (tic tac toe, 2048) and user-made UIs for special calculations, as scripts that the handheld
-runs: built in, or from `/apps/` on the card. Handheld only; the core does not change. The design
-and the steps are in [apps.md](../firmware/docs/apps.md) §8, each broken into its commits in
-[apps-roadmap.md](../firmware/docs/apps-roadmap.md); the first step is a spike of the interpreter
-on the board.
+runs: built in, or from `/apps/` on the card. Built and tested in the simulator
+([apps.md](../firmware/docs/apps.md)). Left, all on the board
+([apps-roadmap.md](../firmware/docs/apps-roadmap.md)): the spike's numbers (stack, time of a
+move, the operation budget, now 500,000 for a PC) and the choice of Rhai; the checks noted under
+4.6, 5.2, 5.3, 6.4 and 7.2. Also the unit bar on an app's input line (F9), and a licence list
+for the firmware's crates (11.4).
 
 ## 8. Later
 
