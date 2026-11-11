@@ -537,24 +537,6 @@ pub fn value_table(settings: &Settings, r: &TableRequest) -> Result<TableRespons
 - **`styles.css`:** `.analysis-workspace`, `.analysis-sheet`, `.section-card`, `.plot`, and marker classes per kind.
 - **`i18n/en.ts`, `i18n/de.ts`:** `mode.analysis` (+ hint), `analysis.tab.*`, `analysis.input.*`, `analysis.compute`, `analysis.reset`, `analysis.status.partial/failed`, `point.zero/yIntercept/max/min/inflection/saddle/hole/boundaryMax/boundaryMin` (Nullstelle, y-Achsenabschnitt, Hochpunkt, Tiefpunkt, Wendepunkt, Sattelpunkt, Lücke, Randmaximum, Randminimum), `settings.quadratic*`. The section titles come from the engine (bilingual via `msg!`).
 
-## 16. Implementation steps (one commit each, on master, no attribution)
-
-1. Move `msg!`/`Scope` to `crate::text`
-2. Refactor the solver into `scan_roots` (existing tests unchanged)
-3. `analysis::expr` (from/to node, eval) + serializer separator extension + tests
-4. `simplify` + `exact` tables + tests
-5. `derive` with rule steps + tests
-6. `interval` + `polydiv` + `solve` (polynomial, quadratic pq/abc, substitution, guess+division, isolation, periodic, numeric) + `QuadraticFormula` setting + tests (`Domain` lives in `interval.rs`, so the solver can filter by it before the domain can be computed)
-7. `domain` + tests (it solves `u ≠ 0` and `u > 0` with `solve`)
-8. `limits` + asymptotes + tests
-9. `integrate` (table, polynomial, partial fractions, substitution, parts, guard) + tests
-10. `discussion` (all sections, periodic handling, budget) + `tests/analysis.rs`
-11. `tasks` (tangent, area, table) + tests
-12. `plot` + tests
-13. `Mode::Analysis`, API types and functions, Tauri commands + API and IPC tests
-14. Frontend: api.ts, SettingsPanel, App, AnalysisView, FunctionPlot, i18n, styles
-15. Docs: README (features, usage), `docs/unsupported-inputs.md` (analysis limits from §1), `docs/testing.md` (new test counts)
-
 ## 17. Verification
 
 **`cargo test --workspace`** (each test < 1 s). The new `crates/quantus-core/tests/analysis.rs` checks the exact LaTeX of points and results (English, default settings, `quadraticFormula: abc` unless noted):
