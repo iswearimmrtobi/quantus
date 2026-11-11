@@ -175,12 +175,13 @@ M1: `cargo run -- --keys '…' --png out.png` in `firmware/sim` shows page 3 and
 The template's state lives in `Running`, beside the applet; `Applet::input()` says which one
 holds. The hui handles the template's keys first and passes the rest on (apps.md §4.4).
 
-- [ ] **3a.1 `Input` and `"keys"`.** `enum Input { Keys, Grid {..}, List {..}, Line {..},
+- [x] **3a.1 `Input` and `"keys"`.** `enum Input { Keys, Grid {..}, List {..}, Line {..},
   Text {..}, Cells {..} }` in `applet.rs`, and `enum Event { Entered(Value), Pick(col, row) }`
   given to a new `Applet::event`. `"keys"` is what step 1 does. The layout helper
   `Layout::grid(area, cols, rows)` with `cell`, `at` and `side` (apps.md §4.5) is here, in the
   hui, because the grid template and the scripts must agree on the cells. Unit tests of the
-  layout: 480 × 250 puts `side` to the right, 320 × 214 below.
+  layout: 480 × 250 puts `side` to the right, 320 × 214 below. Built as `applet::Grid`, and
+  `Event` as `Pick`, `Chosen`, `Entered` (text or LaTeX) and `Cell`, no script value in the hui.
 - [ ] **3a.2 `"grid"`.** The arrows move the cursor, with `wrap` round the edges; OK or EXE
   gives `Event::Pick`; `digits` maps 1–9 to a 3 × 3 grid as the number block lies (7 top left);
   the hui draws the cursor's frame over the applet's shapes; a tap picks the cell under it.

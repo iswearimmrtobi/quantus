@@ -39,6 +39,10 @@ pub trait Applet {
         Input::Keys
     }
 
+    /// What the input template gives (apps.md §4.4): a cell picked, a line or a list entry
+    /// confirmed.
+    fn event(&mut self, _event: Event, _host: &mut dyn Host) {}
+
     /// Starts again from the beginning (*Neu starten* in the app's menu).
     fn restart(&mut self, _host: &mut dyn Host) {}
 
@@ -62,12 +66,111 @@ pub trait Host {
     }
 }
 
-/// How an app is typed into (apps.md §4.4).
+/// How an app is typed into (apps.md §4.4). The hui handles the template's keys and draws its
+/// part; the keys it does not use go to [`Applet::key`].
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum Input {
     /// Every key goes to the app.
     #[default]
     Keys,
+    /// A cursor over the cells of [`Grid`]: the arrows move it (round the edges with `wrap`),
+    /// OK or EXE pick; `digits` lets 1–9 pick a cell of a 3 × 3 grid as the number block lies.
+    Grid { cols: usize, rows: usize, digits: bool, wrap: bool },
+    /// A list of the hui's in the area: ↑/↓, a digit, OK.
+    List { items: Vec<String> },
+    /// The calculator's input line at the bottom of the area; `calc` works it out first.
+    Line { label: String, calc: bool },
+    /// A line of plain text at the bottom of the area, at most `max` characters, `value` in it
+    /// at first.
+    Text { label: String, max: usize, value: String },
+    /// The grid with a value typed into the cell under the cursor; `digits_only` takes one
+    /// digit and moves on.
+    Cells { cols: usize, rows: usize, digits_only: bool },
+}
+
+/// What an input template gives the app.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Event {
+    /// OK or EXE (or a tap) on a cell of the grid.
+    Pick(usize, usize),
+    /// The entry of the list at this place, chosen.
+    Chosen(usize),
+    /// A line confirmed: plain text, or what the input line holds as LaTeX.
+    Entered(String),
+    /// A cell's value confirmed: its column, its row, what was typed.
+    Cell(usize, usize, String),
+}
+
+/// A board of `cols` × `rows` square cells laid into an app's area as large as fits, and the
+/// part beside it for the score or whose turn it is (apps.md §4.5): where the area is wide
+/// enough the side panel is to the right of the board, else below it, and the board centred.
+/// The grid templates and the scripts' `grid` both use it, so they agree on the cells.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Grid {
+    pub cols: usize,
+    pub rows: usize,
+    /// The board's top left, in the area's coordinates.
+    pub origin: Point,
+    /// The side of a cell.
+    pub cell: i32,
+    side: Rectangle,
+}
+
+/// The space kept around the board and between it and the side panel.
+const GRID_MARGIN: i32 = 8;
+/// The narrowest side panel beside the board; narrower, it goes below.
+const SIDE_WIDTH: i32 = 140;
+/// The height of a side panel below the board.
+const SIDE_HEIGHT: i32 = 56;
+
+impl Grid {
+    /// The board for an area of `width` × `height`.
+    pub fn new(width: i32, height: i32, cols: usize, rows: usize) -> Grid {
+        let (cols, rows) = (cols.clamp(1, 64), rows.clamp(1, 64));
+        let (c, r) = (cols as i32, rows as i32);
+        let m = GRID_MARGIN;
+        // Beside: the board as high as the area allows.
+        let cell = ((height - 2 * m) / r).min((width - 2 * m) / c).max(1);
+        let board = (cell * c, cell * r);
+        let room = width - board.0 - 3 * m;
+        if room >= SIDE_WIDTH {
+            let origin = Point::new(m, (height - board.1) / 2);
+            let side = Rectangle::new(Point::new(2 * m + board.0, m), Size::new(room.max(0) as u32, (height - 2 * m).max(0) as u32));
+            return Grid { cols, rows, origin, cell, side };
+        }
+        // Below: the board centred over the panel.
+        let cell = ((height - 3 * m - SIDE_HEIGHT) / r).min((width - 2 * m) / c).max(1);
+        let board = (cell * c, cell * r);
+        let origin = Point::new((width - board.0) / 2, m);
+        let top = origin.y + board.1 + m;
+        let side = Rectangle::new(Point::new(m, top), Size::new((width - 2 * m).max(0) as u32, (height - top - m).max(0) as u32));
+        Grid { cols, rows, origin, cell, side }
+    }
+
+    /// The cell at `col`, `row`, in the area's coordinates.
+    pub fn cell(&self, col: usize, row: usize) -> Rectangle {
+        let at = self.origin + Point::new(col as i32 * self.cell, row as i32 * self.cell);
+        Rectangle::new(at, Size::new(self.cell as u32, self.cell as u32))
+    }
+
+    /// The whole board.
+    pub fn board(&self) -> Rectangle {
+        Rectangle::new(self.origin, Size::new((self.cell * self.cols as i32) as u32, (self.cell * self.rows as i32) as u32))
+    }
+
+    /// The cell under `point`, if it is on the board.
+    pub fn at(&self, point: Point) -> Option<(usize, usize)> {
+        if !self.board().contains(point) {
+            return None;
+        }
+        let offset = point - self.origin;
+        Some(((offset.x / self.cell) as usize, (offset.y / self.cell) as usize))
+    }
+
+    /// The part of the area beside or below the board.
+    pub fn side(&self) -> Rectangle {
+        self.side
+    }
 }
 
 /// The keys an app gets: no modifiers, no AC, MODE or OPTN (apps.md §4.2).

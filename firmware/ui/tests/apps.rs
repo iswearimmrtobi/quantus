@@ -601,3 +601,31 @@ fn no_apps_in_exam_mode() {
     assert_eq!(app.screen, Screen::Calc);
     assert_eq!(log.borrow().left, 1);
 }
+
+#[test]
+fn the_grid_puts_its_side_panel_where_there_is_room() {
+    use quantus_ui::applet::Grid;
+    // The big unit with soft keys: the panel to the right of the board.
+    let grid = Grid::new(480, 250, 3, 3);
+    let (board, side) = (grid.board(), grid.side());
+    assert!(side.top_left.x >= board.top_left.x + board.size.width as i32, "{board:?} {side:?}");
+    assert!(board.size.height <= 250 && board.size.width == board.size.height);
+    assert!(side.size.width >= 140);
+    // The small unit: below it, the board centred.
+    let grid = Grid::new(320, 214, 3, 3);
+    let (board, side) = (grid.board(), grid.side());
+    assert!(side.top_left.y >= board.top_left.y + board.size.height as i32, "{board:?} {side:?}");
+    assert_eq!(board.top_left.x * 2 + board.size.width as i32, 320);
+    assert!(side.top_left.y + side.size.height as i32 <= 214);
+    // Cells and taps agree.
+    for (width, height) in [(480, 250), (320, 214), (480, 294)] {
+        let grid = Grid::new(width, height, 4, 4);
+        for (col, row) in [(0, 0), (3, 1), (2, 3)] {
+            let cell = grid.cell(col, row);
+            assert_eq!(grid.at(cell.center()), Some((col, row)));
+            assert!(cell.top_left.x >= 0 && cell.top_left.y >= 0);
+            assert!(cell.top_left.x + cell.size.width as i32 <= width && cell.top_left.y + cell.size.height as i32 <= height);
+        }
+        assert_eq!(grid.at(Point::new(-1, 5)), None);
+    }
+}
