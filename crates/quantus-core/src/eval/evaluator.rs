@@ -517,6 +517,10 @@ impl<'a> Evaluator<'a> {
                         (&t / &s, (&one + &t * &t) / (&s * &s))
                     }
                 };
+                // Close to t = 1 the exact x and Jacobian have hundreds of digits; the working
+                // precision is all the integrand and the sum need.
+                let x = Value::Rat(x).decimal(digits + 10)?.to_rational();
+                let jacobian = Value::Rat(jacobian).decimal(digits + 10)?.to_rational();
                 scope.insert(
                     variable.to_string(),
                     PhysicalQuantity::new(Value::Rat(x.clone()), variable_unit.clone()),
