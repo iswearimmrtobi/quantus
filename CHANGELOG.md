@@ -7,6 +7,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The handheld shows the Quantus logo while it starts, instead of the colour-bar test screen.
 - Quantus builds as an Android app (`npm run android:build` in `desktop/`). Below 700 px the
   window switches to a phone layout: the panels' tab bar at the bottom, panels and dialogs full
   screen, buttons for what the menu does (CALC, SOLVE, search, copy, new calculation), and

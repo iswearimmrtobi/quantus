@@ -11,9 +11,9 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
 
-use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::pixelcolor::{Rgb565, Rgb888};
 use embedded_graphics::prelude::*;
-use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
+use embedded_graphics::primitives::{Circle, Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, StrokeAlignment};
 use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
@@ -51,7 +51,7 @@ fn main() {
     let (mut display, mut touch) = open_display!(peripherals);
     println!("display ready after {} ms", start.elapsed().as_millis());
 
-    test_pattern(&mut display);
+    splash(&mut display);
     let shown = Instant::now();
 
     let mounted = Instant::now();
@@ -635,19 +635,29 @@ fn escape(sequence: &[u8]) -> Option<Key> {
     })
 }
 
-/// Red, green, blue and white bars with their names: colours and orientation at a glance.
-fn test_pattern(display: &mut Display) {
-    let bars = [(Rgb565::RED, "red"), (Rgb565::GREEN, "green"), (Rgb565::BLUE, "blue"), (Rgb565::WHITE, "white")];
-    let width = WIDTH / bars.len() as u32;
-    for (index, (color, name)) in bars.into_iter().enumerate() {
-        let x = (index as u32 * width) as i32;
-        let bar = Rectangle::new(Point::new(x, 0), Size::new(width, 280));
-        let _ = bar.into_styled(PrimitiveStyle::with_fill(color)).draw(display);
-        let label = Rectangle::new(Point::new(x, 280), Size::new(width, 40));
-        let _ = label.into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK)).draw(display);
-        Scale::Small.draw(name, Point::new(x + 10, 306), Rgb565::WHITE, display);
-    }
-    // The top left corner, to see where (0, 0) is.
-    let corner = Rectangle::new(Point::zero(), Size::new(20, 20));
-    let _ = corner.into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK)).draw(display);
+/// The Quantus logo (`desktop/build/icon.svg`: the Q in brackets over a fraction bar) on the
+/// app's dark background, shown while the board starts.
+fn splash(display: &mut Display) {
+    const LINE: Rgb888 = Rgb888::new(0xB0, 0x98, 0xF2);
+    let ink = Rgb565::from(LINE);
+    let _ = Rectangle::new(Point::zero(), Size::new(WIDTH, 320))
+        .into_styled(PrimitiveStyle::with_fill(Rgb565::from(Rgb888::new(0x17, 0x16, 0x1D))))
+        .draw(display);
+    // The icon's 512 x 512 drawing at half size, its centre in the middle of the screen.
+    let at = |x: i32, y: i32| Point::new(WIDTH as i32 / 2 + (x - 256) / 2, 160 + (y - 256) / 2);
+    let stroke = |display: &mut Display, from: Point, to: Point, width: u32| {
+        let _ = Line::new(from, to).into_styled(PrimitiveStyle::with_stroke(ink, width)).draw(display);
+        for end in [from, to] {
+            let cap = Circle::with_center(end, width);
+            let _ = cap.into_styled(PrimitiveStyle::with_fill(ink)).draw(display);
+        }
+    };
+    stroke(display, at(150, 132), at(104, 256), 10);
+    stroke(display, at(104, 256), at(150, 380), 10);
+    stroke(display, at(362, 132), at(408, 256), 10);
+    stroke(display, at(408, 256), at(362, 380), 10);
+    stroke(display, at(292, 268), at(330, 318), 13);
+    stroke(display, at(186, 356), at(326, 356), 9);
+    let ring = PrimitiveStyleBuilder::new().stroke_color(ink).stroke_width(13).stroke_alignment(StrokeAlignment::Center).build();
+    let _ = Circle::with_center(at(256, 228), 74).into_styled(ring).draw(display);
 }
