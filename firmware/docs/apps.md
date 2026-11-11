@@ -434,8 +434,9 @@ changes a few cells, so a few bands are sent.
   `side()`, beside the board on the big unit and below it on the small one.
 - Input is the `"grid"` template with `digits`: the arrows move the cursor, OK or EXE sets the
   mark, the digits 1–9 set it directly, laid out as the number block is (7 at the top left).
-- Soft keys: *Neu*, *2 Spieler* / *Computer*, *Stufe* (leicht: random; schwer: never loses, by
-  searching the game tree, which has at most 9! sequences of moves and in practice far fewer).
+- Soft keys: *Neu*, *2 Spieler* / *Rechner* (*Computer* does not fit a soft key), and the level,
+  *leicht* or *schwer* (leicht: random; schwer: never loses, by searching the game tree, which
+  has at most 9! sequences of moves and in practice far fewer). Each shows what is set.
 - A line of three is marked, the result named, and any key starts the next round with the other
   side beginning.
 - Saved: the mode, the level, the score.

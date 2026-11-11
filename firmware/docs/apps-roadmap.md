@@ -249,7 +249,7 @@ interpreter. No engine.
 
 ### Step 5. Tic tac toe (M)
 
-- [ ] **5.1 The script.** `firmware/apps/apps/tictactoe.rhai` as apps.md §6.1: `grid(3, 3)`,
+- [x] **5.1 The script.** `firmware/apps/apps/tictactoe.rhai` as apps.md §6.1: `grid(3, 3)`,
   the `"grid"` template with `digits`, `side()` for the turn and the score, the soft keys *Neu*,
   *2 Spieler* / *Computer*, *Stufe*; the winning line marked; any key starts the next round
   with the other side. German and English through `lang()`.

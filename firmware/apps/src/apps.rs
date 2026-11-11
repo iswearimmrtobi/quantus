@@ -9,7 +9,10 @@ use crate::header;
 use crate::ScriptApplet;
 
 /// The apps compiled into the firmware: their ids and their files.
-pub const BUILT_IN: &[(&str, &str)] = &[("zaehler", include_str!("../apps/zaehler.rhai"))];
+pub const BUILT_IN: &[(&str, &str)] = &[
+    ("tictactoe", include_str!("../apps/tictactoe.rhai")),
+    ("zaehler", include_str!("../apps/zaehler.rhai")),
+];
 
 /// The apps, built in and in the card's folder `/apps`.
 #[derive(Clone, Debug, Default)]
