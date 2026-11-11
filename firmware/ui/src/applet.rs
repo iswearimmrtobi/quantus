@@ -15,6 +15,9 @@ use crate::text::Lang;
 
 /// A program that runs inside the hui's frame.
 pub trait Applet {
+    /// The app opens: the place to set it up with what the host can tell.
+    fn start(&mut self, _host: &mut dyn Host) {}
+
     /// A key pressed, of those the input template does not take.
     fn key(&mut self, key: AppKey, host: &mut dyn Host);
 
@@ -74,6 +77,14 @@ pub trait Host {
     /// Asks `question` with *Ja* and *Nein* over the app; the answer comes to
     /// [`Applet::answer`], and until then the app gets nothing.
     fn confirm(&mut self, _question: &str) {}
+
+    /// The size of the app's area, with the soft-key strips shown or not.
+    fn area(&self, soft_keys: bool) -> Size {
+        crate::render::app_area_with(soft_keys).size
+    }
+
+    /// Leaves the app once the call that asks for it is done.
+    fn exit(&mut self) {}
 
     /// The time as Unix milliseconds, if the clock is set.
     fn now(&self) -> Option<i64> {

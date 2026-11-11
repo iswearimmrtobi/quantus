@@ -5,7 +5,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender};
 
-use rhai::{Engine, EvalAltResult};
+use embedded_graphics::pixelcolor::Rgb565;
+use quantus_ui::applet::{self, Canvas, Palette, MAX_SHAPES};
+use rhai::{Dynamic, Engine, EvalAltResult};
 
 use crate::script::{Command, Context, Output, Reply, Request, Value, Yield};
 
@@ -32,6 +34,16 @@ pub struct Shared {
 }
 
 impl Shared {
+    fn draw(&mut self, draw: Draw) -> Fallible<()> {
+        if self.output.draws.len() >= MAX_SHAPES {
+            return Err(format!("more than {MAX_SHAPES} shapes in one frame").into());
+        }
+        self.output.draws.push(draw);
+        Ok(())
+    }
+}
+
+impl Shared {
     /// A callback starts with `context`.
     pub fn begin(&mut self, context: Context) {
         self.context = context;
@@ -46,13 +58,66 @@ impl Shared {
 
 /// A drawing command, replayed into the hui's canvas (apps.md §4.3).
 #[derive(Clone, Debug, PartialEq)]
-pub enum Draw {}
+pub enum Draw {
+    Clear(Rgb565),
+    Rect(i32, i32, i32, i32, Rgb565),
+    Round(i32, i32, i32, i32, i32, Rgb565),
+    Frame(i32, i32, i32, i32, i32, Rgb565),
+    Circle(i32, i32, i32, Rgb565),
+    Line(i32, i32, i32, i32, Rgb565, i32),
+    /// Text, in the small font or the normal one.
+    Text(i32, i32, String, Rgb565, bool),
+    Math(i32, i32, String, Rgb565),
+}
+
+impl Draw {
+    /// Draws it into `canvas`.
+    pub fn replay(&self, canvas: &mut Canvas) {
+        match self {
+            Draw::Clear(c) => canvas.clear(*c),
+            &Draw::Rect(x, y, w, h, c) => canvas.rect(x, y, w, h, c),
+            &Draw::Round(x, y, w, h, r, c) => canvas.round(x, y, w, h, r, c),
+            &Draw::Frame(x, y, w, h, r, c) => canvas.frame(x, y, w, h, r, c),
+            &Draw::Circle(x, y, d, c) => canvas.circle(x, y, d, c),
+            &Draw::Line(x1, y1, x2, y2, c, w) => canvas.line(x1, y1, x2, y2, c, w),
+            Draw::Text(x, y, text, c, false) => canvas.text(*x, *y, text, *c),
+            Draw::Text(x, y, text, c, true) => canvas.text_small(*x, *y, text, *c),
+            Draw::Math(x, y, latex, c) => canvas.math(*x, *y, latex, *c),
+        }
+    }
+}
+
+/// A whole number from a script's number, whole or not.
+pub(crate) fn number(value: &Dynamic) -> Fallible<i32> {
+    if let Ok(i) = value.as_int() {
+        return Ok(i.clamp(i32::MIN as i64, i32::MAX as i64) as i32);
+    }
+    if let Ok(f) = value.as_float() {
+        if f.is_finite() {
+            return Ok(f.round().clamp(i32::MIN as f64, i32::MAX as f64) as i32);
+        }
+    }
+    Err(format!("a number was expected, not {}", value.type_name()).into())
+}
+
+/// A colour by its name in the palette, or as `rgb` gives it: `#rrggbb`.
+pub(crate) fn color(value: &Dynamic) -> Fallible<Rgb565> {
+    let name = value.clone().into_string().map_err(|_| format!("a colour was expected, not {}", value.type_name()))?;
+    if let Some(color) = Palette::get(&name) {
+        return Ok(color);
+    }
+    let hex = name.strip_prefix('#').filter(|hex| hex.len() == 6).and_then(|hex| u32::from_str_radix(hex, 16).ok());
+    match hex {
+        Some(rgb) => Ok(Palette::rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8)),
+        None => Err(format!("no colour called {name:?}").into()),
+    }
+}
 
 type Fallible<T> = Result<T, Box<EvalAltResult>>;
 
 /// The engine of one script: its limits and the API, over the state it shares with the host
 /// functions and the channels a host call that needs the hui waits on.
-pub(crate) fn engine(_shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command>>, replies: Sender<Reply>) -> Engine {
+pub(crate) fn engine(shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command>>, replies: Sender<Reply>) -> Engine {
     let mut engine = Engine::new();
     engine.set_max_operations(BUDGET);
     engine.set_max_call_levels(CALL_LEVELS);
@@ -63,6 +128,8 @@ pub(crate) fn engine(_shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command
     engine.on_print(|_| {});
     engine.on_debug(|_, _, _| {});
 
+    drawing(&mut engine, &shared);
+
     // A question with Ja and Nein, answered by the hui: the script waits for it.
     engine.register_fn("confirm", move |question: &str| -> Fallible<bool> {
         match ask(&commands, &replies, Request::Confirm(question.to_string()))? {
@@ -71,6 +138,60 @@ pub(crate) fn engine(_shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command
         }
     });
     engine
+}
+
+/// The screen and drawing (apps.md §4.3).
+fn drawing(engine: &mut Engine, shared: &Rc<RefCell<Shared>>) {
+    let s = shared.clone();
+    engine.register_fn("width", move || -> i64 { s.borrow().context.width.into() });
+    let s = shared.clone();
+    engine.register_fn("height", move || -> i64 { s.borrow().context.height.into() });
+    let s = shared.clone();
+    engine.register_fn("clear", move |c: Dynamic| -> Fallible<()> { s.borrow_mut().draw(Draw::Clear(color(&c)?)) });
+    // Rhai's own `clear` of a string would take `clear("background")`: this one, with the exact
+    // type, comes first.
+    let s = shared.clone();
+    engine.register_fn("clear", move |c: rhai::ImmutableString| -> Fallible<()> {
+        s.borrow_mut().draw(Draw::Clear(color(&c.into())?))
+    });
+    let s = shared.clone();
+    engine.register_fn("rect", move |x: Dynamic, y: Dynamic, w: Dynamic, h: Dynamic, c: Dynamic| -> Fallible<()> {
+        s.borrow_mut().draw(Draw::Rect(number(&x)?, number(&y)?, number(&w)?, number(&h)?, color(&c)?))
+    });
+    let s = shared.clone();
+    engine.register_fn("round", move |x: Dynamic, y: Dynamic, w: Dynamic, h: Dynamic, r: Dynamic, c: Dynamic| -> Fallible<()> {
+        s.borrow_mut().draw(Draw::Round(number(&x)?, number(&y)?, number(&w)?, number(&h)?, number(&r)?, color(&c)?))
+    });
+    let s = shared.clone();
+    engine.register_fn("frame", move |x: Dynamic, y: Dynamic, w: Dynamic, h: Dynamic, r: Dynamic, c: Dynamic| -> Fallible<()> {
+        s.borrow_mut().draw(Draw::Frame(number(&x)?, number(&y)?, number(&w)?, number(&h)?, number(&r)?, color(&c)?))
+    });
+    let s = shared.clone();
+    engine.register_fn("circle", move |x: Dynamic, y: Dynamic, d: Dynamic, c: Dynamic| -> Fallible<()> {
+        s.borrow_mut().draw(Draw::Circle(number(&x)?, number(&y)?, number(&d)?, color(&c)?))
+    });
+    let s = shared.clone();
+    engine.register_fn("line", move |x1: Dynamic, y1: Dynamic, x2: Dynamic, y2: Dynamic, c: Dynamic, w: Dynamic| -> Fallible<()> {
+        s.borrow_mut().draw(Draw::Line(number(&x1)?, number(&y1)?, number(&x2)?, number(&y2)?, color(&c)?, number(&w)?))
+    });
+    for (name, small) in [("text", false), ("text_small", true)] {
+        let s = shared.clone();
+        engine.register_fn(name, move |x: Dynamic, y: Dynamic, text: Dynamic, c: Dynamic| -> Fallible<()> {
+            s.borrow_mut().draw(Draw::Text(number(&x)?, number(&y)?, text.to_string(), color(&c)?, small))
+        });
+    }
+    let s = shared.clone();
+    engine.register_fn("math", move |x: Dynamic, y: Dynamic, latex: &str, c: Dynamic| -> Fallible<()> {
+        s.borrow_mut().draw(Draw::Math(number(&x)?, number(&y)?, latex.to_string(), color(&c)?))
+    });
+    engine.register_fn("text_width", |text: Dynamic| -> i64 { applet::text_width(&text.to_string()).into() });
+    engine.register_fn("text_small_width", |text: Dynamic| -> i64 { applet::text_small_width(&text.to_string()).into() });
+    engine.register_fn("text_height", || -> i64 { applet::text_height().into() });
+    engine.register_fn("text_small_height", || -> i64 { applet::text_small_height().into() });
+    engine.register_fn("rgb", |r: i64, g: i64, b: i64| -> String {
+        let channel = |v: i64| v.clamp(0, 255);
+        format!("#{:02x}{:02x}{:02x}", channel(r), channel(g), channel(b))
+    });
 }
 
 /// Hands `request` to the main side and waits for its answer.

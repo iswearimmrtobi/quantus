@@ -389,7 +389,12 @@ fn question_box(shapes: &mut Vec<Shape>, question: &crate::applet::Question, are
 /// The area an app draws into: below the top bar, above the soft-key strips if they show. The
 /// bar and the strips are drawn after the app's shapes, so these cannot cover them.
 pub fn app_area<B>(app: &App<B>) -> Rectangle {
-    let bottom = if crate::soft::shows(app) { HEIGHT as i32 - SOFT } else { HEIGHT as i32 };
+    app_area_with(crate::soft::shows(app))
+}
+
+/// The area of an app with the soft-key strips shown or not.
+pub fn app_area_with(soft: bool) -> Rectangle {
+    let bottom = if soft { HEIGHT as i32 - SOFT } else { HEIGHT as i32 };
     Rectangle::new(Point::new(0, BAR), Size::new(WIDTH, (bottom - BAR) as u32))
 }
 

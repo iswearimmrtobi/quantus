@@ -7,6 +7,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
+embedded-graphics = "0.8.2"
 quantus-ui = { path = "../ui" }
 # The limits stay (no `unchecked`); no modules, no custom syntax, no clock: a script reaches
 # only what the host gives it. The numbers are Rhai's own, i64 and f64, so `now()` fits.

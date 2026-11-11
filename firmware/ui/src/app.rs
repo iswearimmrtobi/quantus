@@ -161,6 +161,8 @@ pub struct Template {
     pub list: usize,
     /// A question open over the app; it gets nothing until it is answered.
     pub question: Option<Question>,
+    /// The app asked to be left.
+    pub exit: bool,
 }
 
 /// What an app asks of the device, answered over the backend.
@@ -185,6 +187,10 @@ impl<B: Backend> Host for AppHost<'_, B> {
 
     fn set_cursor(&mut self, col: usize, row: usize) {
         self.template.cursor = (col, row);
+    }
+
+    fn exit(&mut self) {
+        self.template.exit = true;
     }
 
     fn confirm(&mut self, question: &str) {
@@ -726,6 +732,10 @@ impl<B: Backend> App<B> {
         if let Some((applet, mut host)) = self.applet() {
             changed |= applet.tick(now_ms, &mut host);
         }
+        if self.running.as_ref().is_some_and(|running| running.template.exit) {
+            self.app_exit();
+            changed = true;
+        }
         changed |= self.wlan_tick(now_ms);
         let minute = clock::now().map(|now| now / 60_000);
         if minute != self.minute {
@@ -748,6 +758,7 @@ impl<B: Backend> App<B> {
 
     pub fn key(&mut self, key: Key) {
         self.press(key);
+        self.app_exit();
         self.refresh_units();
     }
 
@@ -817,6 +828,18 @@ impl<B: Backend> App<B> {
         let back = std::mem::replace(&mut self.screen, Screen::App);
         self.running = Some(Running { applet, info, menu: None, back: Box::new(back), template: Template::default() });
         self.soft_page = 0;
+        if let Some((applet, mut host)) = self.applet() {
+            applet.start(&mut host);
+        }
+        self.app_exit();
+    }
+
+    /// Leaves the app if it asked to be left.
+    fn app_exit(&mut self) {
+        if self.running.as_ref().is_some_and(|running| running.template.exit) {
+            let back = self.close_app();
+            self.screen = back.unwrap_or(Screen::Calc);
+        }
     }
 
     /// The applet and what it may ask of the device, borrowed apart.
@@ -1064,6 +1087,7 @@ impl<B: Backend> App<B> {
                 if let Some(target) = render::target(self, point) {
                     self.tap(target);
                 }
+                self.app_exit();
             }
             Some(Gesture::Drag(moved)) => self.turn(moved),
             None => {}

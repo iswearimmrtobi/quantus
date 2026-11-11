@@ -219,7 +219,7 @@ interpreter. No engine.
   set from 0.4; Rhai gives its error no position, so *Die App antwortet nicht* comes without a
   line; Rhai does not check the size of an array on `push` or of a map on a new key, so the
   budget is what stops those. The limit on shapes per frame comes with the drawing in 4.4.
-- [ ] **4.4 Callbacks, keys and drawing.** `ScriptApplet: Applet` over `Script`: `key` turns
+- [x] **4.4 Callbacks, keys and drawing.** `ScriptApplet: Applet` over `Script`: `key` turns
   `AppKey` into its name (§4.2) and calls `key(k)`, then `draw()`; `tick` calls `tick(ms)` when
   the timer set with `timer(ms)` is due (at least 100 ms). The drawing functions of §4.3
   collect plain draw commands on the script's side, which the applet replays into the `Canvas`
@@ -227,6 +227,11 @@ interpreter. No engine.
   and the hui's font metrics. Colours by name or `rgb`. An error at any point turns the applet
   into the error page (message, line; OK or AC go back). Tests run the Counter of apps.md §4.1
   and compare the shapes.
+  Built so: `Applet::start` runs `init` when the hui opens the app; `Host::area` gives the
+  area with the strips or without, and an app whose soft keys come or go is drawn again for the
+  new area; `Host::exit` leaves after the call. A colour is a palette name or `#rrggbb`, which
+  `rgb` gives. Rhai's own `clear` of a string would take `clear("background")`, so the API's is
+  registered for strings too.
 - [ ] **4.5 `soft`, `input`, the helpers.** `soft([...])`, `input(kind, options)` for the
   templates of 3a with `pick` and `entered`, `cursor`, `confirm` (a yield, F1), `grid`, `side`,
   `random(n)` (through `Host::random`), `timer`, `lang`, `exit`. Tests: one small script per
