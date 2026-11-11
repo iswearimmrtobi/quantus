@@ -147,6 +147,8 @@ pub(crate) fn engine(shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command>
     templates(&mut engine, &shared);
     helpers(&mut engine, &shared);
 
+    asking(&mut engine, &commands, &replies);
+
     // A question with Ja and Nein, answered by the hui: the script waits for it.
     engine.register_fn("confirm", move |question: &str| -> Fallible<bool> {
         match ask(&commands, &replies, Request::Confirm(question.to_string()))? {
@@ -347,6 +349,21 @@ fn helpers(engine: &mut Engine, shared: &Rc<RefCell<Shared>>) {
     let s = shared.clone();
     engine.register_fn("exit", move || {
         s.borrow_mut().output.exit = true;
+    });
+}
+
+/// `ask(label)` and `ask(label, options)`: a line of text over the app.
+fn asking(engine: &mut Engine, commands: &Rc<Receiver<Command>>, replies: &Sender<Reply>) {
+    let (c, r) = (commands.clone(), replies.clone());
+    engine.register_fn("ask", move |label: &str| -> Fallible<Dynamic> {
+        let request = Request::Ask { label: label.to_string(), max: 32, value: String::new() };
+        Ok(ask(&c, &r, request)?.to_dynamic())
+    });
+    let (c, r) = (commands.clone(), replies.clone());
+    engine.register_fn("ask", move |label: &str, options: Map| -> Fallible<Dynamic> {
+        let max = options.get("max").and_then(|v| v.as_int().ok()).map_or(32, |v| v.clamp(1, 256) as usize);
+        let value = options.get("value").map(|v| v.to_string()).unwrap_or_default();
+        Ok(ask(&c, &r, Request::Ask { label: label.to_string(), max, value })?.to_dynamic())
     });
 }
 

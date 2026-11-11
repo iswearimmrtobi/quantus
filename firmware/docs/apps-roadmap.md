@@ -325,7 +325,7 @@ M4.
 
 ### Step 3b. hui: the templates for tools (L)
 
-- [ ] **3b.1 `"text"` and `ask`.** One line of plain text at the bottom of the area with a
+- [x] **3b.1 `"text"` and `ask`.** One line of plain text at the bottom of the area with a
   label, the typing of `Edit::Text` reused (letters, digits, space, DEL; `max`, `value`);
   `ask` as a question over the app, answered like `confirm`; AC gives `()`. The area is lower
   while the line shows. Tests with a Rust applet, then `input("text", ..)` and `ask` in

@@ -79,6 +79,10 @@ pub trait Host {
     /// [`Applet::answer`], and until then the app gets nothing.
     fn confirm(&mut self, _question: &str) {}
 
+    /// Asks for one line of plain text over the app, `value` in it at first, at most `max`
+    /// characters; the text, or none after AC, comes to [`Applet::answer`].
+    fn ask(&mut self, _label: &str, _max: usize, _value: &str) {}
+
     /// The app's saved data, as JSON.
     fn load(&mut self) -> Option<String> {
         None
@@ -88,8 +92,10 @@ pub trait Host {
     fn save(&mut self, _json: &str) {}
 
     /// The size of the app's area, with the soft-key strips shown or not.
-    fn area(&self, soft_keys: bool) -> Size {
-        crate::render::app_area_with(soft_keys).size
+    /// The size of the app's area, with the soft-key strips shown or not and an input line at
+    /// its bottom or not.
+    fn area(&self, soft_keys: bool, line: bool) -> Size {
+        crate::render::app_area_with(soft_keys, line).size
     }
 
     /// Leaves the app once the call that asks for it is done.
@@ -128,6 +134,8 @@ pub enum Input {
 pub enum Question {
     /// *Ja* or *Nein*; `yes` is where the cursor is.
     Confirm { text: String, yes: bool },
+    /// A line of plain text: what it is for, the longest it may be, what is typed.
+    Ask { label: String, max: usize, typed: String },
 }
 
 /// The answer to a [`Question`].
@@ -135,6 +143,15 @@ pub enum Question {
 pub enum Response {
     /// *Ja* (true) or *Nein*; AC is *Nein*.
     Confirmed(bool),
+    /// The text typed, or none after AC.
+    Text(Option<String>),
+}
+
+impl Input {
+    /// Whether the template is a line at the bottom of the area: the area is lower by it.
+    pub fn line(&self) -> bool {
+        matches!(self, Input::Line { .. } | Input::Text { .. })
+    }
 }
 
 /// What an input template gives the app.

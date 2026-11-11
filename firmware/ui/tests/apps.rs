@@ -770,8 +770,9 @@ impl Applet for Asker {
     }
 
     fn answer(&mut self, response: quantus_ui::applet::Response, _host: &mut dyn Host) {
-        let quantus_ui::applet::Response::Confirmed(yes) = response;
-        self.answers.borrow_mut().push(yes);
+        if let quantus_ui::applet::Response::Confirmed(yes) = response {
+            self.answers.borrow_mut().push(yes);
+        }
     }
 
     fn draw(&self, _canvas: &mut Canvas) {}
@@ -800,4 +801,65 @@ fn confirm_asks_over_the_app() {
     let area = quantus_ui::render::app_area(&app);
     tap(&mut app, quantus_ui::render::answer_rect(area, 0).center());
     assert_eq!(*answers.borrow(), [false, false, true, true]);
+}
+
+/// An applet with the text template: it writes down what was entered and asked.
+struct Namer {
+    entered: Rc<RefCell<Vec<String>>>,
+}
+
+impl Applet for Namer {
+    fn key(&mut self, key: AppKey, host: &mut dyn Host) {
+        if key == AppKey::Up {
+            host.ask("Name", 5, "Bo");
+        }
+    }
+
+    fn event(&mut self, event: quantus_ui::applet::Event, _host: &mut dyn Host) {
+        if let quantus_ui::applet::Event::Entered(text) = event {
+            self.entered.borrow_mut().push(text);
+        }
+    }
+
+    fn answer(&mut self, response: quantus_ui::applet::Response, _host: &mut dyn Host) {
+        if let quantus_ui::applet::Response::Text(text) = response {
+            self.entered.borrow_mut().push(format!("asked {text:?}"));
+        }
+    }
+
+    fn draw(&self, _canvas: &mut Canvas) {}
+
+    fn input(&self) -> quantus_ui::applet::Input {
+        quantus_ui::applet::Input::Text { label: "Wort".into(), max: 6, value: "ab".into() }
+    }
+}
+
+#[test]
+fn the_text_template_types_a_line() {
+    let mut app = App::new(Stub);
+    let entered = Rc::new(RefCell::new(Vec::new()));
+    app.open_applet(Box::new(Namer { entered: entered.clone() }), info());
+    // The line lies below the area, which is lower by it.
+    assert_eq!(quantus_ui::render::app_area(&app).size, Size::new(480, 250));
+    assert!(texts(&app).iter().any(|text| text == "Wort") && texts(&app).iter().any(|text| text == "ab"));
+    // Typed from a keyboard, and with ALPHA from the keypad (ALPHA 7 is A); at most six.
+    press(&mut app, &[Key::Letter('c'), Key::Alpha, Key::Digit(7), Key::Space, Key::Digit(1), Key::Digit(2), Key::Del, Key::Exe]);
+    assert_eq!(*entered.borrow(), ["abcA "]);
+    // The line starts again from its value.
+    press(&mut app, &[Key::Exe]);
+    assert_eq!(*entered.borrow(), ["abcA ", "ab"]);
+}
+
+#[test]
+fn ask_asks_for_a_line_over_the_app() {
+    let mut app = App::new(Stub);
+    let entered = Rc::new(RefCell::new(Vec::new()));
+    app.open_applet(Box::new(Namer { entered: entered.clone() }), info());
+    press(&mut app, &[Key::Up]);
+    assert!(texts(&app).iter().any(|text| text == "Name") && texts(&app).iter().any(|text| text == "Bo"));
+    // At most five; the template's line gets nothing meanwhile.
+    press(&mut app, &[Key::Letter('b'), Key::Letter('b'), Key::Letter('y'), Key::Letter('z'), Key::Ok]);
+    press(&mut app, &[Key::Up, Key::Ac]);
+    assert_eq!(*entered.borrow(), ["asked Some(\"Bobby\")", "asked None"]);
+    assert_eq!(app.screen, Screen::App);
 }

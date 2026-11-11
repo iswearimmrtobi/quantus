@@ -182,6 +182,9 @@ pub struct Context {
 pub enum Request {
     /// A question with *Ja* and *Nein*; the answer is a [`Value::Bool`].
     Confirm(String),
+    /// A line of plain text: its label, the longest, what stands in it at first; the answer is
+    /// a [`Value::Str`], or [`Value::Unit`] after AC.
+    Ask { label: String, max: usize, value: String },
 }
 
 /// What a callback that ran to its end leaves for the hui: what `draw` drew and what the script

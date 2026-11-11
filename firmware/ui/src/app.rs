@@ -163,6 +163,8 @@ pub struct Template {
     pub question: Option<Question>,
     /// The app asked to be left.
     pub exit: bool,
+    /// What is typed into the text template, `None` before the first key (its value shows).
+    pub text: Option<String>,
 }
 
 /// What an app asks of the device, answered over the backend.
@@ -208,6 +210,12 @@ impl<B: Backend> Host for AppHost<'_, B> {
 
     fn confirm(&mut self, question: &str) {
         self.template.question = Some(Question::Confirm { text: question.to_string(), yes: true });
+    }
+
+    fn ask(&mut self, label: &str, max: usize, value: &str) {
+        let max = max.clamp(1, 256);
+        let typed: String = value.chars().take(max).collect();
+        self.template.question = Some(Question::Ask { label: label.to_string(), max, typed });
     }
 }
 
@@ -783,9 +791,23 @@ impl<B: Backend> App<B> {
             menu.edit,
             Some(Edit::Text { .. } | Edit::Catalogue { catalogue: Catalogue::Functions, .. })
         ));
+        let typing = typing || self.app_typing();
         let Some(key) = (if typing { Some(key) } else { key.plain() }) else { return };
         self.caret_on = true;
         if matches!(self.screen, Screen::App) {
+            // SHIFT, ALPHA and UNIT work while the app has a line typed into.
+            if self.app_typing() && self.running.as_ref().is_some_and(|running| running.menu.is_none()) {
+                if Modifier::is_modifier(key) {
+                    return self.modifier.press(key);
+                }
+                let layer = self.modifier.layer();
+                let resolved = layer::resolve(key, layer, self.modifier.exponent, false);
+                self.modifier.settle(key, layer);
+                return match resolved {
+                    Resolved::Key(key) => self.app_key(key),
+                    Resolved::Insert(_) | Resolved::Nothing => {}
+                };
+            }
             return self.app_key(key);
         }
         let calc = matches!(self.screen, Screen::Calc);
@@ -868,7 +890,60 @@ impl<B: Backend> App<B> {
 
     /// A key on a question over the app: the arrows go between *Ja* and *Nein*, OK or EXE
     /// answer, 1 is *Ja* and 2 *Nein*, AC is *Nein*. MODE still leaves the app.
+    /// Whether the app has a line typed into: the text template, or `ask` open.
+    fn app_typing(&self) -> bool {
+        let Some(running) = &self.running else { return false };
+        matches!(running.template.question, Some(Question::Ask { .. }))
+            || (running.template.question.is_none() && running.applet.input().line())
+    }
+
+    /// A key on the text template: letters, digits and the space type, DEL takes one back, OK or
+    /// EXE give the line to the app. Whether it took the key.
+    fn text_key(&mut self, key: Key) -> bool {
+        let Some((applet, mut host)) = self.applet() else { return false };
+        let Input::Text { max, value, .. } = applet.input() else { return false };
+        let typed = host.template.text.get_or_insert(value);
+        match key {
+            Key::Del => {
+                typed.pop();
+            }
+            Key::Ok | Key::Exe => {
+                let text = host.template.text.take().unwrap_or_default();
+                applet.event(Event::Entered(text), &mut host);
+            }
+            key => match key.text() {
+                Some(c) if typed.chars().count() < max.max(1) => typed.push(c),
+                Some(_) => {}
+                None => return false,
+            },
+        }
+        true
+    }
+
     fn question_key(&mut self, key: Key) {
+        let question = self.running.as_mut().and_then(|running| running.template.question.as_mut());
+        if let Some(Question::Ask { max, typed, .. }) = question {
+            let response = match key {
+                Key::Ok | Key::Exe => Response::Text(Some(typed.clone())),
+                Key::Ac => Response::Text(None),
+                Key::Del => {
+                    typed.pop();
+                    return;
+                }
+                Key::Mode => {
+                    self.close_app();
+                    self.screen = Screen::Modes { selected: self.mode.index() };
+                    return;
+                }
+                key => {
+                    if let Some(c) = key.text().filter(|_| typed.chars().count() < *max) {
+                        typed.push(c);
+                    }
+                    return;
+                }
+            };
+            return self.respond(response);
+        }
         let Some(Question::Confirm { yes, .. }) = self.running.as_mut().and_then(|running| running.template.question.as_mut()) else { return };
         let answer = match key {
             Key::Left | Key::Right | Key::Up | Key::Down => {
@@ -1002,6 +1077,7 @@ impl<B: Backend> App<B> {
                 self.close_app();
                 self.screen = Screen::Modes { selected: self.mode.index() };
             }
+            key if self.text_key(key) => {}
             Key::Soft(index) => {
                 let Some(bar) = soft::bar(self) else { return };
                 match bar.slot(usize::from(index)) {

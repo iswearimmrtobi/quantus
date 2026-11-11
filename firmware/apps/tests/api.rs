@@ -166,3 +166,20 @@ fn a_wrong_input_is_an_error() {
     let app = open(r#"fn init() { input("wheel"); } fn draw() {}"#);
     assert!(texts(&app).iter().any(|text| text.contains("wheel")));
 }
+
+#[test]
+fn the_text_template_and_ask() {
+    let mut app = open(r#"
+        fn init() { input("text", #{ label: "Name", max: 4, value: "Al" }); this.e = ""; }
+        fn entered(t) { this.e = t; }
+        fn key(k) { if k == "up" { let a = ask("Wer?", #{ value: "X" }); this.e = `${a}`; } }
+        fn draw() { text(0, 0, `${height()}:${this.e}`, "text"); }
+    "#);
+    assert!(shows(&app, "250:"));
+    press(&mut app, &[Key::Letter('i'), Key::Letter('c'), Key::Letter('e'), Key::Exe]);
+    assert!(shows(&app, "250:Alic"));
+    press(&mut app, &[Key::Up, Key::Letter('Y'), Key::Ok]);
+    assert!(shows(&app, "250:XY"));
+    press(&mut app, &[Key::Up, Key::Ac]);
+    assert!(shows(&app, "250:"));
+}

@@ -74,8 +74,14 @@ impl ScriptApplet {
         self.soft.iter().any(|label| !label.trim().is_empty())
     }
 
+    /// What the area depends on: the soft keys and an input line at its bottom.
+    fn layout(&self) -> (bool, bool) {
+        (self.soft_shown(), self.input.line())
+    }
+
     fn context(&self, host: &mut dyn Host) -> Context {
-        let area = host.area(self.soft_shown());
+        let (soft, line) = self.layout();
+        let area = host.area(soft, line);
         Context {
             width: area.width as i32,
             height: area.height as i32,
@@ -103,7 +109,7 @@ impl ScriptApplet {
     fn handle(&mut self, reply: Yield, host: &mut dyn Host) {
         match reply {
             Yield::Done(output) => {
-                let soft = self.soft_shown();
+                let layout = self.layout();
                 if let Some((col, row)) = output.cursor {
                     host.set_cursor(col, row);
                 }
@@ -115,14 +121,15 @@ impl ScriptApplet {
                     self.data = crate::json::read(json);
                 }
                 self.apply(output);
-                // The strips came or went: the area changed, so it is drawn again for it.
-                if self.soft_shown() != soft {
+                // The strips or the line came or went: the area changed, so it is drawn again.
+                if self.layout() != layout {
                     self.call(Callback::Draw, host);
                 }
             }
             Yield::Asks(request) => {
                 match &request {
                     Request::Confirm(question) => host.confirm(question),
+                    Request::Ask { label, max, value } => host.ask(label, *max, value),
                 }
                 self.asking = Some(request);
             }
@@ -263,6 +270,8 @@ impl Applet for ScriptApplet {
         let Some(_) = self.asking.take() else { return };
         let value = match response {
             Response::Confirmed(yes) => Value::Bool(yes),
+            Response::Text(Some(text)) => Value::Str(text),
+            Response::Text(None) => Value::Unit,
         };
         let Some(script) = &mut self.script else { return };
         let reply = script.answer(value);

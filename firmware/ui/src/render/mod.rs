@@ -312,7 +312,7 @@ impl Frame {
                     let mut canvas = crate::applet::Canvas::new(area);
                     running.applet.draw(&mut canvas);
                     shapes.extend(canvas.into_shapes());
-                    template(&mut shapes, running, area, app.pressed(), app.settings.language);
+                    template(&mut shapes, running, area, app.pressed(), app.settings.language, app.caret_on);
                 }
             }
         }
@@ -325,8 +325,12 @@ impl Frame {
 }
 
 /// The input template's part, over the app's shapes: the grid's cursor, the list.
-fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectangle, pressed: Option<Target>, lang: crate::text::Lang) {
+fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectangle, pressed: Option<Target>, lang: crate::text::Lang, caret: bool) {
     let input = running.applet.input();
+    if let crate::applet::Input::Text { label, value, .. } = &input {
+        let typed = running.template.text.as_ref().unwrap_or(value);
+        text_line(shapes, app_line_rect(area), label, typed, caret && running.template.question.is_none());
+    }
     if let crate::applet::Input::List { items } = &input {
         let pressed = match pressed {
             Some(Target::Line(offset)) => Some(offset),
@@ -342,7 +346,7 @@ fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectan
         shapes.push(Shape::Outline(rounded(cell.top_left + Point::new(4, 4), cell.size.saturating_sub(Size::new(8, 8)), 3), colors::primary()));
     }
     if let Some(question) = &running.template.question {
-        question_box(shapes, question, area, pressed, lang);
+        question_box(shapes, question, area, pressed, lang, caret);
     }
 }
 
@@ -363,8 +367,43 @@ pub fn answer_rect(area: Rectangle, index: usize) -> Rectangle {
     Rectangle::new(at, Size::new(width.max(0) as u32, 48))
 }
 
-fn question_box(shapes: &mut Vec<Shape>, question: &crate::applet::Question, area: Rectangle, pressed: Option<Target>, lang: crate::text::Lang) {
-    let crate::applet::Question::Confirm { text, yes } = question;
+/// A line of plain text being typed into: its label, what is typed, the caret.
+fn text_line(shapes: &mut Vec<Shape>, at: Rectangle, label: &str, typed: &str, caret: bool) {
+    shapes.push(Shape::Fill(at, colors::surface()));
+    shapes.push(Shape::Fill(Rectangle::new(at.top_left, Size::new(at.size.width, 1)), colors::hairline()));
+    let baseline = at.top_left.y + (at.size.height as i32 + Scale::Normal.metrics().digit) / 2;
+    let label = fit(label, at.size.width as i32 / 3, Scale::Small);
+    let label_width = if label.is_empty() { 0 } else { Scale::Small.width(&label) + 12 };
+    shapes.push(Shape::Text(Point::new(at.top_left.x + MARGIN, baseline), label, Scale::Small, colors::muted()));
+    let left = at.top_left.x + MARGIN + label_width;
+    let room = at.size.width as i32 - left - MARGIN - 12;
+    // The end of a long text, where the caret is.
+    let mut shown = typed.to_string();
+    while Scale::Normal.width(&shown) > room && !shown.is_empty() {
+        shown.remove(0);
+    }
+    let width = Scale::Normal.width(&shown);
+    shapes.push(Shape::Text(Point::new(left, baseline), shown, Scale::Normal, colors::text()));
+    if caret {
+        let top = at.top_left.y + 8;
+        shapes.push(Shape::Fill(Rectangle::new(Point::new(left + width + 1, top), Size::new(2, at.size.height - 16)), colors::primary()));
+    }
+}
+
+fn question_box(shapes: &mut Vec<Shape>, question: &crate::applet::Question, area: Rectangle, pressed: Option<Target>, lang: crate::text::Lang, caret: bool) {
+    let (text, yes) = match question {
+        crate::applet::Question::Confirm { text, yes } => (text, yes),
+        crate::applet::Question::Ask { label, typed, .. } => {
+            let frame = question_rect(area);
+            shapes.push(Shape::Round(rounded(frame.top_left, frame.size, 8), colors::surface(), Some(colors::hairline())));
+            let y = frame.top_left.y + 14 + Scale::Small.metrics().ascent;
+            let label = fit(label, frame.size.width as i32 - 24, Scale::Small);
+            shapes.push(Shape::Text(Point::new(frame.top_left.x + 12, y), label, Scale::Small, colors::text()));
+            let field = Rectangle::new(frame.top_left + Point::new(10, 50), Size::new(frame.size.width.saturating_sub(20), APP_LINE as u32));
+            text_line(shapes, field, "", typed, caret);
+            return;
+        }
+    };
     let frame = question_rect(area);
     shapes.push(Shape::Round(rounded(frame.top_left, frame.size, 8), colors::surface(), Some(colors::hairline())));
     let room = frame.size.width as i32 - 24;
@@ -389,13 +428,22 @@ fn question_box(shapes: &mut Vec<Shape>, question: &crate::applet::Question, are
 /// The area an app draws into: below the top bar, above the soft-key strips if they show. The
 /// bar and the strips are drawn after the app's shapes, so these cannot cover them.
 pub fn app_area<B>(app: &App<B>) -> Rectangle {
-    app_area_with(crate::soft::shows(app))
+    let line = app.running.as_ref().is_some_and(|running| running.applet.input().line());
+    app_area_with(crate::soft::shows(app), line)
 }
 
-/// The area of an app with the soft-key strips shown or not.
-pub fn app_area_with(soft: bool) -> Rectangle {
-    let bottom = if soft { HEIGHT as i32 - SOFT } else { HEIGHT as i32 };
+/// The height of an app's input line, below its area.
+pub const APP_LINE: i32 = 44;
+
+/// The area of an app with the soft-key strips shown or not, and an input line or not.
+pub fn app_area_with(soft: bool, line: bool) -> Rectangle {
+    let bottom = if soft { HEIGHT as i32 - SOFT } else { HEIGHT as i32 } - if line { APP_LINE } else { 0 };
     Rectangle::new(Point::new(0, BAR), Size::new(WIDTH, (bottom - BAR) as u32))
+}
+
+/// An app's input line, below `area`.
+fn app_line_rect(area: Rectangle) -> Rectangle {
+    Rectangle::new(Point::new(0, area.top_left.y + area.size.height as i32), Size::new(WIDTH, APP_LINE as u32))
 }
 
 /// The wallpaper under the screen, as SETUP → Gerät → Hintergrundbild → Anzeigen says: at full
