@@ -197,7 +197,7 @@ RemoteResponse { version: 1, id, result?: any, error?: { error, position? }, ses
 The methods are `evaluate`, `defineVariable`, `freeVariables`, `calc`, `solveFor`,
 `listVariables`, `history`, `engineering`, `analyze`, `sampleFunction`, `tangent`, `area`,
 `valueTable`, `linearSystem`, `kirchhoff`, `solveCircuit`, `statistics`, `distribution`,
-`constants`, `conversionUnits`, `searchLibrary`, `getSettings` and `ping`. With a `session` or `settings` the call
+`constants`, `conversionUnits`, `searchLibrary`, `libraryIndex`, `getSettings` and `ping`. With a `session` or `settings` the call
 runs on its own engine, not on the listener's, and the response carries the session as it is
 afterwards (its new history entry, variables and Ans), for the caller to keep. A request of a
 newer version is refused.
@@ -290,7 +290,8 @@ Each value is
 |---|---|---|
 | `constants` | none | `{ category, name, constants: { key, latex, name, value }[] }[]`, the physical constants by category in the user's language |
 | `conversion_units` | none | `{ name, units: { latex, name }[] }[]`, the units a conversion `▶` can aim at, by the Casio's categories, as LaTeX with their names in the user's language |
-| `search_library` | `{ query, limit? }` | `{ kind: "constant" \| "unit", latex, name, detail }[]`, the constants and units that fit `query` best first (at most `limit`, 8 by default): by symbol, name in the user's language or English, word start, or a start with a typo or two; `detail` is a constant's value or a unit's category |
+| `search_library` | `{ query, limit? }` | `{ kind: "constant" \| "unit" \| "function" \| "prefix", latex, name, detail }[]`, the constants, units, functions and metric prefixes that fit `query` best first (at most `limit`, 8 by default): by symbol, name in the user's language or English or an alias, word start, or a start with a typo or two; `detail` is a constant's value, a prefix's power of ten or a unit's or function's category; a function's `latex` has empty slots (`\sin()`) |
+| `library_index` | – | `{ hit, names, symbols }[]`: everything `search_library` looks through, with the names and symbols it is found by, for a shell that ranks it with entries of its own (the handheld's CATALOG, through `quantus-search`) |
 | `get_settings` | none | `Settings`, see [Settings](../reference/settings.md) for the keys |
 | `set_settings` | `{ settings }` | the saved `Settings` |
 | `engine_info` | none | `{ application, precision }` |

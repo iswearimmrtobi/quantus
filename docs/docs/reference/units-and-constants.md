@@ -143,8 +143,10 @@ click puts one in at the cursor and closes the window, with <kbd>Shift</kbd> it 
 Faster is the **quick search** (<kbd>Ctrl</kbd>+<kbd>F</kbd>): type part of a name, in the set
 language or in English, or a symbol, and <kbd>Enter</kbd> puts in the first hit. `steff` finds
 the Stefan–Boltzmann constant, `zoll` or `inch` the inch, `c` the speed of light; a typo or two
-in a longer word is forgiven. <kbd>↑</kbd>/<kbd>↓</kbd> choose another hit, and
+in a longer word is forgiven. It finds functions too (`wurz` or `sqrt` the square root, `ggt` the
+greatest common divisor), put in with placeholders to fill, and the metric prefixes (`kilo`). <kbd>↑</kbd>/<kbd>↓</kbd> choose another hit, and
 <kbd>Alt</kbd>+<kbd>Enter</kbd> puts a unit in without `▶`.
 
-The engine gives the lists and the search (`constants`, `conversion_units`, `search_library`, see
+The engine gives the lists and the search (`constants`, `conversion_units`, `search_library`,
+`library_index`, see
 the [engine API](../contributing/api.md#settings-and-info)).

@@ -790,7 +790,8 @@ existing SHIFT + VARS, M+, M−.
 
 - **CATALOG** is a flat, alphabetical list of every function and template the editor can insert,
   built from the OPTN tree, so GCD, LCM, Int, Intg, ÷R, Rnd, RndFix, mod, floor and ceiling need no
-  key of their own.
+  key of their own. A letter typed starts a search (plans.md §6) over the engine's constants,
+  units, functions and prefixes and the entries of SETUP and OPTN; DEL takes a letter back.
 - **Soft keys carry each mode's OPTN commands**, as the Casio has them under OPTN: Basis-N shows
   DEC HEX BIN OCT and the logic operators (10 labels, exactly 2 × 5), Komplex Arg, Konjugierte,
   Re, Im, ▶r∠θ, ▶a+bi, Prüfen = ≠ > < ≥ ≤, Matrizen and Vektoren their commands. OPTN still

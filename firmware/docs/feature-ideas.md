@@ -11,11 +11,12 @@ Each idea says what it is, why it helps, how it could work, where the work goes 
 M: one or two weeks, L: more) and what is still open. The rule from handheld-menus.md §8 holds:
 maths, data and state go into the core, so both shells get them.
 
-State on 2026-11-02. An idea that is taken up moves into plans.md and out of this file.
+State on 2026-11-02. An idea that is taken up moves into plans.md and out of this file; the
+numbers stay. Taken up: 1 (search everywhere, plans.md §6).
 
 ## Contents
 
-1. Working faster: [search everywhere](#1-search-everywhere), [user-defined functions](#2-user-defined-functions),
+1. Working faster: [user-defined functions](#2-user-defined-functions),
    [history search and pins](#3-history-search-pins-and-favourites), [result references](#4-references-to-earlier-results),
    [macros](#5-macros-and-small-programs)
 2. Understanding: [help key](#6-a-help-key), [errors that point](#7-errors-that-point-at-the-input),
@@ -33,31 +34,6 @@ State on 2026-11-02. An idea that is taken up moves into plans.md and out of thi
 ---
 
 ## 1. Working faster
-
-### 1. Search everywhere
-
-**What.** One key (or SHIFT+OPTN) opens a search line. Typing a few letters lists matching
-functions, units, constants, settings, modes and menu entries together: `ohm` finds the unit Ω
-and the constant R_K; `wurz` finds √ and ⁿ√; `zeit` finds Uhrzeit, Zeitzone and the unit group
-Zeit.
-
-**Why.** The OPTN, CONST and CONV trees are deep, and with 68–77 keys many functions sit two or
-three levels down. A user who knows the name should not need to know where it lives. On the
-desktop the constants and units picker would get the same search.
-
-**How.** The core exports one index: every function, unit, prefix and constant with its names in
-German and English, aliases (`wurzel`, `sqrt`, `root`), and the LaTeX to insert. The hui adds its
-menu entries from `tree.rs`. Matching by prefix and by words inside the name, ranked by exact
-match, then by how often the entry was used (a small count kept in NVS). Choosing an entry inserts
-it, opens the setting, or jumps to the menu page. Typing needs ALPHA letters, so this waits for
-the keypad legend; until then it works on a USB keyboard.
-
-**Where.** Core: the index. hui: the search screen. Desktop: search in the picker and a command
-palette (Ctrl+K).
-
-**Effort.** M.
-
-**Open.** Which key opens it; whether recent entries show before anything is typed.
 
 ### 2. User-defined functions
 

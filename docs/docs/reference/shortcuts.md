@@ -38,7 +38,7 @@ usual keys of your system (<kbd>Ctrl</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>+<kbd>C<
 | <kbd>Ctrl</kbd>+<kbd>H</kbd> | History panel |
 | <kbd>Ctrl</kbd>+<kbd>K</kbd> | Library window: constants and unit conversions |
 | <kbd>Ctrl</kbd>+<kbd>G</kbd> | Writeup window: the session as given, wanted and solution |
-| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Quick search: type part of a constant's or unit's name, <kbd>Enter</kbd> puts the first hit in (<kbd>Alt</kbd>+<kbd>Enter</kbd>: a unit alone) |
+| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Quick search: type part of a constant's, unit's or function's name, <kbd>Enter</kbd> puts the first hit in (<kbd>Alt</kbd>+<kbd>Enter</kbd>: a unit alone) |
 | <kbd>Ctrl</kbd>+<kbd>.</kbd> | Settings window |
 | <kbd>Esc</kbd> | Leave the LaTeX source, or close the panel or window |
 | <kbd>Ctrl</kbd>+<kbd>0</kbd> / <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>-</kbd> | Reset zoom / zoom in / zoom out |

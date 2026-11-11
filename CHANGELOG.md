@@ -23,6 +23,12 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   by the rules of curve sketching. Also `\frac{d^2}{dx^2}` and `(…)'`. On the handheld the ∫
   template works with its limits left empty, and d/dx can be typed after its function: `x²` then
   d/dx shows $x^{2}\frac{d}{dx}$ and gives $2x$.
+- Search everywhere: the quick search (Ctrl+F) also finds functions and operations by name in
+  either language or by alias (`wurz` and `sqrt` the square root, `ggt` and `gcd` the greatest
+  common divisor, `Ableitung` d/dx), put in with placeholders in their slots, and the metric
+  prefixes (`kilo`). On the handheld, letters typed in CATALOG (SHIFT+OPTN) search the same and
+  SETUP's and OPTN's entries too: a function, unit or constant goes in, a setting opens where it
+  lives (`zeitzone`). Typing needs a USB keyboard until the keypad's ALPHA legend is fixed.
 
 ## [0.2.0] - 2026-11-06
 

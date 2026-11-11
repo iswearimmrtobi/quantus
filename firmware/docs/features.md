@@ -101,6 +101,7 @@ State on 2026-11-09.
 - [x] Soft keys (2 × 5 or 2 × 6) with their labels at the bottom of the screen, hidden on sheets and answer pages; the mode's commands, the result forms after a result, pages when they do not fit, a tap on a label
 - [x] UNIT layer and SYMB (Greek letters and math symbols on the soft keys)
 - [x] Unit bar on the soft keys, from the input before the cursor and the units typed lately (see unit-keys.md)
+- [x] CATALOG (SHIFT+OPTN) searches: letters typed find constants, units, functions, prefixes and the entries of SETUP and OPTN; a hit inserts or opens its menu (typing needs a USB keyboard until the ALPHA legend is fixed)
 - [ ] SETUP switch for the unit bar's order (smart or most recent first)
 - [ ] UNDO/REDO
 - [ ] INS (wrap the previous item in the next template)
