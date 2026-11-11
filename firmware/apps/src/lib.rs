@@ -6,6 +6,7 @@ pub mod api;
 pub mod apps;
 pub mod applet;
 pub mod header;
+pub mod json;
 pub mod script;
 
 pub use applet::ScriptApplet;

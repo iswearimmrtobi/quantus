@@ -78,6 +78,14 @@ pub trait Host {
     /// [`Applet::answer`], and until then the app gets nothing.
     fn confirm(&mut self, _question: &str) {}
 
+    /// The app's saved data, as JSON.
+    fn load(&mut self) -> Option<String> {
+        None
+    }
+
+    /// Keeps the app's data, as JSON.
+    fn save(&mut self, _json: &str) {}
+
     /// The size of the app's area, with the soft-key strips shown or not.
     fn area(&self, soft_keys: bool) -> Size {
         crate::render::app_area_with(soft_keys).size

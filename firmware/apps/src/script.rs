@@ -201,6 +201,8 @@ pub struct Output {
     pub cursor: Option<(usize, usize)>,
     /// `exit` was called.
     pub exit: bool,
+    /// What `save` saved last, as JSON.
+    pub save: Option<String>,
 }
 
 /// Where the main side is with the script.

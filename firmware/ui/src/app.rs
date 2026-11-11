@@ -170,6 +170,10 @@ struct AppHost<'a, B> {
     backend: &'a mut B,
     lang: Lang,
     template: &'a mut Template,
+    /// The app's id, for its data.
+    id: &'a str,
+    /// The apps' data as the hui keeps it until it is switched off, for a backend that keeps none.
+    data: &'a mut std::collections::HashMap<String, String>,
 }
 
 impl<B: Backend> Host for AppHost<'_, B> {
@@ -191,6 +195,15 @@ impl<B: Backend> Host for AppHost<'_, B> {
 
     fn exit(&mut self) {
         self.template.exit = true;
+    }
+
+    fn load(&mut self) -> Option<String> {
+        self.data.get(self.id).cloned().or_else(|| self.backend.app_data(self.id))
+    }
+
+    fn save(&mut self, json: &str) {
+        self.data.insert(self.id.to_string(), json.to_string());
+        self.backend.store_app_data(self.id, json);
     }
 
     fn confirm(&mut self, question: &str) {
@@ -442,6 +455,8 @@ pub struct App<B> {
     search: Option<search::Index>,
     /// The app on the screen while [`Screen::App`] shows.
     pub running: Option<Running>,
+    /// The apps' saved data, kept here as well as by the backend.
+    app_data: std::collections::HashMap<String, String>,
 }
 
 /// How many recent units the unit bar remembers.
@@ -575,6 +590,7 @@ impl<B: Backend> App<B> {
             unit_run: String::new(),
             search: None,
             running: None,
+            app_data: std::collections::HashMap::new(),
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -845,8 +861,9 @@ impl<B: Backend> App<B> {
     /// The applet and what it may ask of the device, borrowed apart.
     fn applet(&mut self) -> Option<(&mut dyn Applet, AppHost<'_, B>)> {
         let lang = self.settings.language;
-        let Running { applet, template, .. } = self.running.as_mut()?;
-        Some((applet.as_mut(), AppHost { backend: &mut self.backend, lang, template }))
+        let Running { applet, template, info, .. } = self.running.as_mut()?;
+        let host = AppHost { backend: &mut self.backend, lang, template, id: &info.id, data: &mut self.app_data };
+        Some((applet.as_mut(), host))
     }
 
     /// A key on a question over the app: the arrows go between *Ja* and *Nein*, OK or EXE

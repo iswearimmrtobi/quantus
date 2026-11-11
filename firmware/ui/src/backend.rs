@@ -178,6 +178,14 @@ pub trait Backend {
         Err("No apps".to_string())
     }
 
+    /// The saved data of the app `id`, as JSON, if the card keeps any.
+    fn app_data(&mut self, _id: &str) -> Option<String> {
+        None
+    }
+
+    /// Keeps the saved data of the app `id`.
+    fn store_app_data(&mut self, _id: &str, _json: &str) {}
+
     /// A random number, for apps. The default is a generator over a fixed seed.
     fn random(&mut self) -> u32 {
         use core::sync::atomic::{AtomicU32, Ordering};

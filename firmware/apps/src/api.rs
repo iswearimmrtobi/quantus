@@ -331,6 +331,20 @@ fn helpers(engine: &mut Engine, shared: &Rc<RefCell<Shared>>) {
     let s = shared.clone();
     engine.register_fn("now", move || -> Dynamic { s.borrow().context.now.map_or(Dynamic::UNIT, Dynamic::from) });
     let s = shared.clone();
+    engine.register_fn("save", move |value: Dynamic| -> Fallible<()> {
+        let value = Value::from_dynamic(&value);
+        let json = crate::json::write(&value);
+        if json.len() > crate::json::MAX_DATA {
+            return Err(format!("the data to save is over {} KB", crate::json::MAX_DATA / 1024).into());
+        }
+        let mut shared = s.borrow_mut();
+        shared.context.data = Some(value);
+        shared.output.save = Some(json);
+        Ok(())
+    });
+    let s = shared.clone();
+    engine.register_fn("load", move || -> Dynamic { s.borrow().context.data.as_ref().map_or(Dynamic::UNIT, Value::to_dynamic) });
+    let s = shared.clone();
     engine.register_fn("exit", move || {
         s.borrow_mut().output.exit = true;
     });

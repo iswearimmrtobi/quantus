@@ -110,6 +110,10 @@ impl ScriptApplet {
                 if output.exit {
                     host.exit();
                 }
+                if let Some(json) = &output.save {
+                    host.save(json);
+                    self.data = crate::json::read(json);
+                }
                 self.apply(output);
                 // The strips came or went: the area changed, so it is drawn again for it.
                 if self.soft_shown() != soft {
@@ -194,6 +198,7 @@ fn wrap(text: &str, room: i32) -> Vec<String> {
 
 impl Applet for ScriptApplet {
     fn start(&mut self, host: &mut dyn Host) {
+        self.data = host.load().and_then(|json| crate::json::read(&json));
         self.call(Callback::Init, host);
     }
 

@@ -274,7 +274,7 @@ M2.
 
 ### Step 6. 2048, with saved data (M)
 
-- [ ] **6.1 `save` and `load`.** In `quantus-apps`: a script value to JSON and back (maps,
+- [x] **6.1 `save` and `load`.** In `quantus-apps`: a script value to JSON and back (maps,
   arrays, numbers, strings, booleans, `()`), at most 64 KB; `Host::load` and `Host::save`.
   `Backend::app_data(id)` and `store_app_data(id, json)` with defaults; the hui's `Host` keeps
   the data in memory when the backend keeps none. Tests: a round trip of nested values; over
