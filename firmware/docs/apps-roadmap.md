@@ -59,7 +59,7 @@ with each other and promise nothing.
 Throwaway code on a branch of its own, in the `handheld` build. Only the numbers and the decision
 are kept.
 
-- [ ] **0.1 Rhai builds for the board.** `rhai` as a dependency of `firmware/handheld` behind a
+- [x] **0.1 Rhai builds for the board.** `rhai` as a dependency of `firmware/handheld` behind a
   feature `spike-apps`, a serial command that runs a script given as text. Features to try, to be
   checked against Rhai's documentation: no `unchecked` (the limits must stay), no `sync`,
   `only_i32` or `f32_float` for the P4, `no_module`, `no_custom_syntax`, `no_time`. Record: the
@@ -83,6 +83,13 @@ are kept.
 - [ ] **0.5 Decide and write down.** The table of numbers into apps.md decision 5; §3 and §5 of
   apps.md rewritten for the script thread (F1). If Rhai fails a criterion, the same four boxes
   with `mlua` before going on.
+
+Numbers so far (rhai 1.27, release, `opt-level = "s"`, image from `espflash save-image`; the
+same binary without Rhai is 580,544 B): with `only_i32`, `f32_float`, `no_module`,
+`no_custom_syntax`, `no_time`: 1,624,720 B, **+1.04 MB**; with `no_closure` and `no_optimize` too:
+1,486,368 B, **+906 KB**. Both are over the 600 KB criterion but a small part of the 7.9 MB
+`factory` partition. A clean build of the dependencies took 1 m 26 s, the crate alone 20–50 s.
+0.2 to 0.4 wait for a board: `/dev/ttyACM0` on the development PC is an ST-Link, not the dev kit.
 
 Criteria for Rhai: a 2048 move with `draw` under 30 ms; under 600 KB of image; a stack of at most
 64 KB; every limit comes back as an error.
