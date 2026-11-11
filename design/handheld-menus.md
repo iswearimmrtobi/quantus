@@ -581,6 +581,7 @@ engine; the modes with a sheet work it out with EXE on its last cell.
 - Page 3, planned
   13. Apps [Q, fw]: a page that lists games and user-made tools, scripts built in or from the
       card ([apps.md](../firmware/docs/apps.md)). Locked in Prüfungsmodus.
+  14. Setup [Q, fw]: opens SETUP (7.2), as SHIFT + MODE does; the mode stays as it is.
 - Later: Ungleichungen [C, eng] ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)),
   Geometrie with the vectors [fw]: the engine has the mode, the tile is in
   [plans/geometry.md](../plans/geometry.md) § Later.
@@ -933,7 +934,8 @@ and the external keyboard, and the exam mode.
   soft keys or OPTN. The layout is in [hardware.md](../firmware/docs/hardware.md) §4: OPTN,
   CONST, CONV, CALC and VARS have keys; ∫, Σ and the like only on the big unit.
 - **More than nine entries** in a menu: the Casio picks with digits; past 9 the handheld needs the
-  cursor, or letters.
+  cursor, or letters. For MODE it is settled: the tiles get a third page, and those past 9 are
+  picked with the cursor.
 - **Cardano and Ferrari** give long nested roots: show them only when they simplify, or always
   with the decimal next to them?
 - **Session format**: how mode inputs are stored, and how the format version is migrated.

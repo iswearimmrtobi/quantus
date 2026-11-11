@@ -204,11 +204,15 @@ in yet.
 
 Planned in [apps.md](apps.md); nothing is built.
 
+- [ ] MODE, page 3: the tiles Apps and Setup (the menu of SHIFT + MODE)
 - [ ] MODE → Apps: a tile that lists games and tools, built in and from the card
 - [ ] Tic tac toe: two players or against the handheld, two levels
 - [ ] 2048, with the game and the best score kept
 - [ ] Apps from the card: scripts in `/apps/`, with limits on time and memory
 - [ ] The script API: keys, drawing, a timer, random numbers, saved data
+- [ ] The app's screen: the hui's top bar, soft keys the app turns on and labels
+- [ ] Input templates: own keys, the calculator's line, plain text, a grid, cells, a list
+- [ ] Credits in the app's header (author, version, description), shown by OPTN
 - [ ] The calculator from a script: work an input out, read a variable, hand a result back
 - [ ] Forms: a tool declared as fields and formulas, drawn as a sheet
 - [ ] Apps found by CATALOG's search
