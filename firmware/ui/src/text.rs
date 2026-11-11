@@ -49,6 +49,7 @@ pub const TOOLS: Text = tx!("hui.apps.tools");
 pub const OWN_APPS: Text = tx!("hui.apps.own");
 pub const NEWER_API: Text = tx!("hui.apps.newer");
 pub const APPS_EXAM: Text = tx!("hui.apps.exam");
+pub const APPS: Text = tx!("hui.app.apps");
 pub const NOT_RESPONDING: Text = tx!("hui.apps.not_responding");
 pub const APP_ERROR: Text = tx!("hui.apps.error");
 pub const LINE: Text = tx!("hui.apps.line");

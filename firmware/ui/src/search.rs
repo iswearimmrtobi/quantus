@@ -35,12 +35,16 @@ pub enum Target {
     Insert(String),
     /// Opens the menu where the entry lives, on it: SETUP's settings, OPTN's pages.
     Open(Root, Vec<usize>),
+    /// Opens the app.
+    App(crate::applet::AppInfo),
 }
 
 /// Everything a search looks through, for one language and mode.
 pub struct Index {
     pub lang: Lang,
     pub mode: Mode,
+    /// The ids of the apps in it: the index is made again when they change.
+    pub apps: Vec<String>,
     entries: Vec<(Hit, Candidate)>,
 }
 
@@ -48,6 +52,12 @@ impl Index {
     /// The engine's `library` and the menus of `mode`, named in `lang`. OPTN's entries that insert
     /// what the engine already lists are left out.
     pub fn new(library: Vec<IndexItem>, mode: Mode, lang: Lang) -> Self {
+        Index::with_apps(library, &[], mode, lang)
+    }
+
+    /// [`Index::new`] and the apps that can run, found by their names (none in Prüfungsmodus:
+    /// the caller leaves them out).
+    pub fn with_apps(library: Vec<IndexItem>, apps: &[crate::applet::AppInfo], mode: Mode, lang: Lang) -> Self {
         let mut entries = Vec::new();
         for item in &library {
             let insert = match item.kind {
@@ -67,7 +77,13 @@ impl Index {
             let hit = Hit { name: label.get(lang).to_string(), latex, detail, target };
             entries.push((hit, candidate(label, lang)));
         }
-        Index { lang, mode, entries }
+        let apps: Vec<&crate::applet::AppInfo> = apps.iter().filter(|app| app.usable).collect();
+        for app in &apps {
+            let hit = Hit { name: app.name.clone(), latex: None, detail: Some(crate::text::APPS.get(lang).to_string()), target: Target::App((*app).clone()) };
+            entries.push((hit, Candidate::new([app.name.as_str(), app.id.as_str()], Vec::new())));
+        }
+        let apps = apps.iter().map(|app| app.id.clone()).collect();
+        Index { lang, mode, apps, entries }
     }
 
     /// The best hits for `query`, best first: by how well they match, then the shorter name.

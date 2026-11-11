@@ -487,6 +487,8 @@ pub struct App<B> {
     app_data: std::collections::HashMap<String, String>,
     /// LaTeX an app handed back when it was left, for the calculation's cursor.
     handed: Option<String>,
+    /// The apps CATALOG's search finds, read when it opens; none in Prüfungsmodus.
+    searched_apps: Vec<AppInfo>,
 }
 
 /// How many recent units the unit bar remembers.
@@ -622,6 +624,7 @@ impl<B: Backend> App<B> {
             running: None,
             app_data: std::collections::HashMap::new(),
             handed: None,
+            searched_apps: Vec::new(),
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -1776,8 +1779,10 @@ impl<B: Backend> App<B> {
             Outcome::Search => {
                 let Some(Edit::Catalogue { query, hits, selected, .. }) = &mut menu.edit else { return };
                 let (lang, mode) = (self.settings.language, self.mode);
-                if !self.search.as_ref().is_some_and(|index| index.lang == lang && index.mode == mode) {
-                    self.search = Some(search::Index::new(self.backend.search_index(lang), mode, lang));
+                let apps: Vec<String> = self.searched_apps.iter().filter(|app| app.usable).map(|app| app.id.clone()).collect();
+                if !self.search.as_ref().is_some_and(|index| index.lang == lang && index.mode == mode && index.apps == apps) {
+                    let library = self.backend.search_index(lang);
+                    self.search = Some(search::Index::with_apps(library, &self.searched_apps, mode, lang));
                 }
                 *hits = match query.is_empty() {
                     true => Vec::new(),
@@ -1791,6 +1796,16 @@ impl<B: Backend> App<B> {
                 match hit.target.clone() {
                     search::Target::Insert(latex) => return self.insert(&latex),
                     search::Target::Open(root, path) => return self.open_place(root, &path),
+                    search::Target::App(info) => {
+                        if self.settings.exam {
+                            return;
+                        }
+                        match self.backend.open_app(&info.id) {
+                            // AC goes back to the calculation.
+                            Ok(applet) => return self.open_applet(applet, info),
+                            Err(error) => menu.edit = Some(Edit::Note { label: text::APPS, note: error }),
+                        }
+                    }
                 }
             }
             Outcome::Item => {
@@ -1832,6 +1847,8 @@ impl<B: Backend> App<B> {
     /// opened by its key, which closes the menu when it is left.
     fn catalogue(&mut self, label: Text, catalogue: Catalogue, close: bool) -> Edit {
         if catalogue == Catalogue::Functions {
+            // The apps as they are now, for the search; none in Prüfungsmodus.
+            self.searched_apps = if self.settings.exam { Vec::new() } else { self.backend.apps(self.settings.language) };
             let items = tree::functions(self.mode, self.settings.language);
             let groups = vec![Group { name: label.get(self.settings.language).to_string(), items }];
             return Edit::Catalogue { label, catalogue, groups, group: Some(0), selected: 0, close, query: String::new(), hits: Vec::new() };

@@ -406,9 +406,12 @@ M5.
 
 ### Step 10. Search and touch (S)
 
-- [ ] **10.1 Apps in CATALOG.** `search::Target::App(id)`; `Index::new` takes the list of apps
+- [x] **10.1 Apps in CATALOG.** `search::Target::App(id)`; `Index::new` takes the list of apps
   and is built again when it or `Settings::exam` changes (F10); a hit opens the app. In
   Prüfungsmodus apps are not in the index. Test in `ui/tests/search.rs`.
+  The apps are read when CATALOG opens (`Backend::apps`, so a changed card shows), and the
+  index is made again when their ids differ from the ones in it; an app for a newer API is not
+  found.
 - [ ] **10.2 `tap` and `at`.** `tap(x, y)` reaches the script; `grid(..).at(x, y)` gives the
   cell. Tic tac toe and 2048 need nothing (the grid template takes taps; 2048 gets a swipe as
   an arrow if `App::touch` can tell one). Test.

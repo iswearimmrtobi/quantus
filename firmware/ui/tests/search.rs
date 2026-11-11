@@ -122,3 +122,70 @@ fn without_an_engine_the_menus_are_still_found() {
     press(&mut app, &letters("factorial"));
     assert!(hits(&app).iter().any(|name| name.contains("Factorial")), "{:?}", hits(&app));
 }
+
+/// The library and two apps, one for a newer firmware; opening gives an applet that does nothing.
+struct Shelf;
+
+struct Idle;
+
+impl quantus_ui::applet::Applet for Idle {
+    fn key(&mut self, _key: quantus_ui::applet::AppKey, _host: &mut dyn quantus_ui::applet::Host) {}
+    fn draw(&self, _canvas: &mut quantus_ui::applet::Canvas) {}
+}
+
+impl Backend for Shelf {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+        Stub.evaluate(mode, settings, latex)
+    }
+
+    fn search_index(&mut self, lang: Lang) -> Vec<IndexItem> {
+        Library.search_index(lang)
+    }
+
+    fn apps(&mut self, _lang: Lang) -> Vec<quantus_ui::applet::AppInfo> {
+        let app = |id: &str, name: &str, usable| quantus_ui::applet::AppInfo { id: id.into(), name: name.into(), api: 1, usable, ..Default::default() };
+        vec![app("teiler", "Spannungsteiler", true), app("morgen", "Spannungsprüfer", false)]
+    }
+
+    fn open_app(&mut self, _id: &str) -> Result<Box<dyn quantus_ui::applet::Applet>, String> {
+        Ok(Box::new(Idle))
+    }
+}
+
+/// The hits of CATALOG's search for `query`.
+fn found<B: Backend>(app: &mut App<B>, query: &str) -> Vec<quantus_ui::search::Hit> {
+    press(app, &[Key::Catalog]);
+    press(app, &letters(query));
+    let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
+    let Some(Edit::Catalogue { hits, .. }) = &menu.edit else { panic!("no catalogue") };
+    hits.clone()
+}
+
+#[test]
+fn apps_are_found_by_name_and_a_hit_opens_one() {
+    let mut app = App::new(Shelf);
+    let found = found(&mut app, "spannungs");
+    // The one this firmware can run, after OPTN's Spannung.
+    let apps: Vec<usize> = (0..found.len()).filter(|&i| matches!(found[i].target, Target::App(_))).collect();
+    assert_eq!(apps.len(), 1, "{found:?}");
+    assert!(matches!(&found[apps[0]].target, Target::App(info) if info.id == "teiler"));
+    for _ in 0..apps[0] {
+        app.key(Key::Down);
+    }
+    app.key(Key::Ok);
+    assert_eq!(app.screen, Screen::App);
+    app.key(Key::Ac);
+    assert_eq!(app.screen, Screen::Calc);
+}
+
+#[test]
+fn no_apps_in_exam_mode() {
+    let mut app = App::new(Shelf);
+    app.settings.exam = true;
+    let apps = |hits: Vec<quantus_ui::search::Hit>| hits.into_iter().filter(|hit| matches!(hit.target, Target::App(_))).count();
+    assert_eq!(apps(found(&mut app, "spann")), 0);
+    // Out of it, the index is made again with the apps.
+    press(&mut app, &[Key::Ac]);
+    app.settings.exam = false;
+    assert_eq!(apps(found(&mut app, "spann")), 1);
+}
