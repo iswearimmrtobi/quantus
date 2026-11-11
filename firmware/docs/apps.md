@@ -517,7 +517,7 @@ come first; a step is ticked here once its commits there are.
 - [x] **9. Forms.** The form applet in the hui on the sheets' fields; `form` with `results` and
   with `submit`; inputs kept. Tests: the voltage divider above, a wrong unit, a result handed to
   the calculation.
-- [ ] **10. Search and touch.** Apps in CATALOG's search (`quantus-search`); `tap` and `at`.
+- [x] **10. Search and touch.** Apps in CATALOG's search (`quantus-search`); `tap` and `at`.
 - [ ] **11. Documentation.** A reference page of the API for app authors with the example apps
   and how to pass an app on,
   `/apps/` in [sd-card.md](sd-card.md), the lines in [features.md](features.md), the tiles in

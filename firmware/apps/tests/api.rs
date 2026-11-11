@@ -205,3 +205,33 @@ fn the_cells_template_gives_col_row_and_value() {
     press(&mut app, &[Key::Digit(4), Key::Down, Key::Digit(9)]);
     assert!(shows(&app, "00=4 11=9 "));
 }
+
+#[test]
+fn taps_and_swipes_reach_the_script() {
+    use embedded_graphics::prelude::Point;
+    use quantus_ui::touch::Touch;
+    let mut app = open(r#"
+        fn init() { this.t = ""; }
+        fn tap(x, y) { let g = grid(3, 3); let c = g.at(x, y); this.t += if c == () { `(${x},${y}) ` } else { `${c.col}${c.row} ` }; }
+        fn key(k) { this.t += k + " "; }
+        fn draw() { text(0, 0, this.t, "text"); }
+    "#);
+    let tap = |app: &mut App<Stub>, point: Point| {
+        app.touch(Touch::Press(point));
+        app.touch(Touch::Release);
+    };
+    // The middle of cell (1, 2) of the board, on the screen below the bar.
+    let grid = Grid::new(480, 294, 3, 3);
+    let cell = grid.cell(1, 2);
+    tap(&mut app, cell.center() + Point::new(0, 26));
+    tap(&mut app, Point::new(470, 300));
+    // A swipe to the left, and one upwards.
+    let swipe = |app: &mut App<Stub>, from: Point, to: Point| {
+        app.touch(Touch::Press(from));
+        app.touch(Touch::Drag(to));
+        app.touch(Touch::Release);
+    };
+    swipe(&mut app, Point::new(300, 150), Point::new(200, 160));
+    swipe(&mut app, Point::new(300, 250), Point::new(290, 120));
+    assert!(shows(&app, "12 (470,274) left up "));
+}

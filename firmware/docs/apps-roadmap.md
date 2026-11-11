@@ -412,9 +412,11 @@ M5.
   The apps are read when CATALOG opens (`Backend::apps`, so a changed card shows), and the
   index is made again when their ids differ from the ones in it; an app for a newer API is not
   found.
-- [ ] **10.2 `tap` and `at`.** `tap(x, y)` reaches the script; `grid(..).at(x, y)` gives the
+- [x] **10.2 `tap` and `at`.** `tap(x, y)` reaches the script; `grid(..).at(x, y)` gives the
   cell. Tic tac toe and 2048 need nothing (the grid template takes taps; 2048 gets a swipe as
   an arrow if `App::touch` can tell one). Test.
+  `tap` and `at` came with 4.4 and 4.5; here a swipe of 40 px or more on an app is the arrow of
+  its longer side, as the keys would move.
 
 ### Step 11. Documentation (M)
 

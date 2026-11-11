@@ -1418,6 +1418,22 @@ impl<B: Backend> App<B> {
                 };
                 self.outcome(menu, outcome);
             }
+            // Across an app: a swipe is an arrow, as the keys would move (2048).
+            Screen::App => {
+                self.screen = Screen::App;
+                let free = self.running.as_ref().is_some_and(|running| running.menu.is_none() && running.template.question.is_none());
+                if !free || moved.x.abs().max(moved.y.abs()) < TURN {
+                    return;
+                }
+                let key = match (moved.x.abs() >= moved.y.abs(), moved.x < 0, moved.y < 0) {
+                    (true, true, _) => Key::Left,
+                    (true, false, _) => Key::Right,
+                    (false, _, true) => Key::Up,
+                    (false, _, false) => Key::Down,
+                };
+                self.app_key(key);
+                self.app_exit();
+            }
             Screen::Calc => {
                 // Across a graph: it moves with the finger, and its curve is sampled anew.
                 if let Some(answer) = self.answer.as_mut().filter(|answer| answer.graph().is_some()) {
