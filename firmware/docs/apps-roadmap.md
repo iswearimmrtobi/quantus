@@ -151,7 +151,7 @@ touch `Screen` (`screen`, `menus`, `sheets`, `touch`, `soft_keys`) still do.
   `Menu::new(&tree::SETUP)` as SHIFT + MODE does and leaves `self.mode`. Check the tests that
   count tiles or pages (`ui/tests/menus.rs`, `touch.rs`, `tour.rs`) and the tour itself. Test:
   ↓ from tile 10 reaches page 3; the third dot shows; *Setup* in Prüfungsmodus opens SETUP.
-- [ ] **2.2 The list.** `Backend::apps(lang) -> Vec<AppInfo>` and
+- [x] **2.2 The list.** `Backend::apps(lang) -> Vec<AppInfo>` and
   `Backend::open_app(id) -> Result<Box<dyn Applet>, String>`, both with defaults.
   `Edit::Apps { label, apps, selected }` in [`menu.rs`](../ui/src/menu.rs), filled at runtime as
   `Edit::Sessions` is, with `Outcome::OpenApp(usize)`; `list_len` and `menu_screen` in the

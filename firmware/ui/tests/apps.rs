@@ -438,3 +438,111 @@ fn the_setup_tile_opens_setup_and_keeps_the_mode() {
     assert_eq!(menu.level().page, &quantus_ui::tree::SETUP);
     assert_eq!(app.mode, Mode::Algebra);
 }
+
+/// A backend with a game built in and a tool from the card, the tool asking for a newer API.
+struct Shelf {
+    log: Rc<RefCell<Log>>,
+}
+
+impl quantus_ui::backend::Backend for Shelf {
+    fn evaluate(&mut self, mode: Mode, settings: &quantus_ui::app::Settings, latex: &str) -> Result<String, String> {
+        Stub.evaluate(mode, settings, latex)
+    }
+
+    fn apps(&mut self, _lang: quantus_ui::text::Lang) -> Vec<AppInfo> {
+        let tool = AppInfo {
+            id: "teiler".into(),
+            name: "Teiler".into(),
+            kind: AppKind::Tool,
+            authors: vec!["Ada".into()],
+            api: 9,
+            built_in: false,
+            usable: false,
+            ..AppInfo::default()
+        };
+        let broken = AppInfo { id: "kaputt".into(), name: "Kaputt".into(), kind: AppKind::Game, ..info() };
+        vec![tool, info(), broken]
+    }
+
+    fn open_app(&mut self, id: &str) -> Result<Box<dyn Applet>, String> {
+        match id {
+            "probe" => Ok(Box::new(Probe { log: self.log.clone(), soft: Vec::new() })),
+            _ => Err("Zeile 3: unbekannte Funktion".into()),
+        }
+    }
+}
+
+
+fn shelf() -> (App<Shelf>, Rc<RefCell<Log>>) {
+    let log = Rc::new(RefCell::new(Log::default()));
+    let mut app = App::new(Shelf { log: log.clone() });
+    app.key(Key::Mode);
+    app.screen = Screen::Modes { selected: 12 };
+    app.key(Key::Ok);
+    (app, log)
+}
+
+fn shelf_texts(app: &App<Shelf>) -> Vec<String> {
+    let frame = quantus_ui::render::Frame::new(app);
+    frame.0.iter().filter_map(|shape| match shape {
+        Shape::Text(_, text, ..) => Some(text.clone()),
+        _ => None,
+    }).collect()
+}
+
+#[test]
+fn the_list_groups_the_apps() {
+    use quantus_ui::menu::{app_lines, AppLine, Edit};
+    let (app, _) = shelf();
+    let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
+    let Some(Edit::Apps { apps, selected, .. }) = &menu.edit else { panic!("no list") };
+    // Games first, then tools; a heading over each; no hint, as one app is from the card.
+    let names: Vec<&str> = apps.iter().map(|app| app.name.as_str()).collect();
+    assert_eq!(names, ["Probe", "Kaputt", "Teiler"]);
+    assert_eq!(
+        app_lines(apps),
+        [AppLine::Heading(AppKind::Game), AppLine::App(0), AppLine::App(1), AppLine::Heading(AppKind::Tool), AppLine::App(2)]
+    );
+    assert_eq!(*selected, 1);
+    let shown = shelf_texts(&app);
+    for text in ["Spiele", "Werkzeuge", "Probe", "Teiler", "Ada"] {
+        assert!(shown.iter().any(|shown| shown == text), "{text} in {shown:?}");
+    }
+    // Only built-in apps: the hint at the end.
+    let lines = app_lines(&[info()]);
+    assert_eq!(lines.last(), Some(&AppLine::Hint));
+}
+
+#[test]
+fn ok_opens_and_ac_comes_back_to_the_list() {
+    let (mut app, log) = shelf();
+    app.key(Key::Ok);
+    assert_eq!(app.screen, Screen::App);
+    app.key(Key::Digit(3));
+    assert_eq!(log.borrow().keys, [AppKey::Digit(3)]);
+    app.key(Key::Ac);
+    assert!(matches!(&app.screen, Screen::Menu(menu) if matches!(menu.edit, Some(quantus_ui::menu::Edit::Apps { .. }))));
+    // ↓ goes over the heading; a digit picks the line it stands on.
+    press_on(&mut app, &[Key::Down, Key::Down]);
+    let Screen::Menu(menu) = &app.screen else { panic!() };
+    assert!(matches!(menu.edit, Some(quantus_ui::menu::Edit::Apps { selected: 4, .. })));
+    press_on(&mut app, &[Key::Digit(2)]);
+    assert_eq!(app.screen, Screen::App);
+}
+
+#[test]
+fn a_newer_api_is_grey_and_says_so() {
+    let (mut app, log) = shelf();
+    // Teiler, the fifth line.
+    app.key(Key::Digit(5));
+    assert!(shelf_texts(&app).iter().any(|text| text.contains("neuere Firmware")));
+    assert!(matches!(app.screen, Screen::Menu(_)));
+    // A key goes back to the list.
+    app.key(Key::Ok);
+    assert!(shelf_texts(&app).iter().any(|text| text == "Teiler"));
+    assert!(log.borrow().keys.is_empty());
+}
+
+fn press_on(app: &mut App<Shelf>, keys: &[Key]) {
+    keys.iter().for_each(|&key| app.key(key));
+}

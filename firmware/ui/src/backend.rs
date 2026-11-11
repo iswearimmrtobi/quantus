@@ -168,6 +168,16 @@ pub trait Backend {
 
     /// Sets the clock to `utc_ms` (milliseconds since 1970, UTC), typed by hand. A board that
     /// can set its system clock does that instead of moving [`clock::now`].
+    /// The apps there are, built in and on the card, with what the list shows of them.
+    fn apps(&mut self, _lang: crate::text::Lang) -> Vec<crate::applet::AppInfo> {
+        Vec::new()
+    }
+
+    /// The app `id`, started.
+    fn open_app(&mut self, _id: &str) -> Result<Box<dyn crate::applet::Applet>, String> {
+        Err("No apps".to_string())
+    }
+
     /// A random number, for apps. The default is a generator over a fixed seed.
     fn random(&mut self) -> u32 {
         use core::sync::atomic::{AtomicU32, Ordering};

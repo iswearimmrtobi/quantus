@@ -1172,6 +1172,23 @@ impl<B: Backend> App<B> {
             }
             Outcome::Act(action) => self.act(action),
             Outcome::Sessions(label) => self.open_sessions(&mut menu, label),
+            Outcome::OpenApp(index) => {
+                let Some(Edit::Apps { apps, note, .. }) = &mut menu.edit else { return };
+                let Some(info) = apps.get(index).cloned() else { return };
+                let lang = self.settings.language;
+                if !info.usable {
+                    *note = Some(text::NEWER_API.get(lang).to_string());
+                } else {
+                    match self.backend.open_app(&info.id) {
+                        Ok(applet) => {
+                            // AC comes back to the list.
+                            self.screen = Screen::Menu(menu);
+                            return self.open_applet(applet, info);
+                        }
+                        Err(error) => *note = Some(error),
+                    }
+                }
+            }
             Outcome::OpenSession(index) => {
                 let Some(Edit::Sessions { sessions, .. }) = &menu.edit else { return };
                 let Some(id) = sessions.get(index).map(|session| session.id.clone()) else { return };
@@ -2157,7 +2174,7 @@ impl<B: Backend> App<B> {
             Mode::Setup => self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
             Mode::Apps => {
                 let mut menu = Menu::new(&tree::APPS);
-                menu.edit = Some(Edit::Message { label: tree::APPS.title, message: text::NOT_AVAILABLE });
+                menu.edit = Some(menu::apps_edit(tree::APPS.title, self.backend.apps(self.settings.language)));
                 self.screen = Screen::Menu(menu);
             }
             mode => {

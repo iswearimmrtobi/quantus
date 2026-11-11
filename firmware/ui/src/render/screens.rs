@@ -164,6 +164,11 @@ enum Mark {
     Dot,
     /// A network: its signal as bars, a lock if it needs a password, a dot if it is saved.
     Signal { bars: u8, secured: bool, saved: bool },
+    /// Not a line to choose: a heading over the lines below it, or a hint, in small type
+    /// without a box or a number.
+    Caption,
+    /// A line that cannot be used now: its label faint.
+    Faint,
 }
 
 /// SETUP or OPTN: the page on the screen, or the submenu open over it.
@@ -268,6 +273,39 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                 value: None,
                 math: None,
                 mark: if Some(index) == set { Mark::Dot } else { Mark::None },
+            });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
+        Some(Edit::Apps { note: Some(note), .. }) => {
+            for (index, line) in super::sheet::wrap(note, WIDTH as i32 - 2 * MARGIN - 16, Scale::Small).into_iter().enumerate() {
+                let x = (WIDTH as i32 - Scale::Small.width(&line)) / 2;
+                let y = BAR + (HEIGHT as i32 - BAR) / 2 + index as i32 * (Scale::Small.metrics().ascent + 6);
+                shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), line, Scale::Small, colors::muted()));
+            }
+        }
+        Some(Edit::Apps { apps, selected, note: None, .. }) => {
+            let lines = menu::app_lines(apps).into_iter().map(|line| match line {
+                menu::AppLine::Heading(kind) => Line {
+                    label: match kind {
+                        crate::applet::AppKind::Game => text::GAMES,
+                        crate::applet::AppKind::Tool => text::TOOLS,
+                    }
+                    .get(lang)
+                    .to_string(),
+                    value: None,
+                    math: None,
+                    mark: Mark::Caption,
+                },
+                menu::AppLine::App(index) => {
+                    let app = &apps[index];
+                    Line {
+                        label: app.name.clone(),
+                        value: (!app.authors.is_empty()).then(|| app.authors.join(", ")),
+                        math: None,
+                        mark: if app.usable { Mark::None } else { Mark::Faint },
+                    }
+                }
+                menu::AppLine::Hint => Line { label: text::OWN_APPS.get(lang).to_string(), value: None, math: None, mark: Mark::Caption },
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
@@ -554,6 +592,12 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
         if y + LINE <= BAR || y >= HEIGHT as i32 {
             continue;
         }
+        if line.mark == Mark::Caption {
+            let label = fit(&line.label, right - MARGIN - 12, Scale::Small);
+            let baseline = y + LINE - 12;
+            shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), label, Scale::Small, colors::muted()));
+            continue;
+        }
         let chosen = index == selected || (list.scroll == 0 && list.pressed.is_some_and(|offset| first + offset == index));
         let fill = if chosen { colors::primary_dim() } else { colors::surface() };
         shapes.push(panel(RoundedRectangle::with_equal_corners(area, Size::new(6, 6)), fill, None, list.glass));
@@ -568,7 +612,8 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
         });
         let math_width = math.as_ref().map_or(0, |math| math.width + 12);
         let label = fit(&line.label, right - MARGIN - 34 - 14 - math_width, Scale::Normal);
-        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, colors::text()));
+        let color = if line.mark == Mark::Faint { colors::faint() } else { colors::text() };
+        shapes.push(Shape::Text(Point::new(MARGIN + 34, baseline), label, Scale::Normal, color));
         if let Some(math) = math {
             let at = Point::new(end - math.width, middle + (math.ascent - math.descent) / 2);
             let color = if chosen { colors::text() } else { colors::result() };
@@ -608,7 +653,7 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
                     shapes.push(Shape::Circle(Circle::new(Point::new(end - dot, middle - dot / 2), dot as u32), colors::primary()));
                 }
             }
-            Mark::None => {}
+            Mark::None | Mark::Caption | Mark::Faint => {}
         }
         if let Some(value) = &line.value {
             let width = Scale::Small.width(value);

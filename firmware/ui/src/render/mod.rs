@@ -415,6 +415,8 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
         Some(Edit::Themes { names, .. }) => Some(names.len()),
         Some(Edit::Sessions { sessions, .. }) => Some(sessions.len()),
+        Some(Edit::Apps { apps, note: None, .. }) => Some(crate::menu::app_lines(apps).len()),
+        Some(Edit::Apps { note: Some(_), .. }) => None,
         Some(Edit::Sections { titles, .. }) => Some(titles.len()),
         Some(Edit::Forget { .. }) => Some(1),
         Some(Edit::Networks { networks, .. }) => networks.as_ref().map(Vec::len),
@@ -508,7 +510,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
 /// What a tap at `point` hits on `menu`.
 fn menu_target(menu: &Menu, point: Point) -> Option<Target> {
     if let Some(
-        Edit::Message { .. } | Edit::AppInfo { .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. },
+        Edit::Message { .. } | Edit::AppInfo { .. } | Edit::Apps { note: Some(_), .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. },
     ) = menu.edit
     {
         return Some(Target::Anywhere);

@@ -249,6 +249,9 @@ pub enum Edit {
     Message { label: Text, message: Text },
     /// A text to read that the app made, the engine's error: any key goes back.
     Note { label: Text, note: String },
+    /// The apps, games first, built in first in each group; `note` is said over the list until
+    /// a key.
+    Apps { label: Text, apps: Vec<crate::applet::AppInfo>, selected: usize, note: Option<String> },
     /// An app's credits (apps.md §2); any key goes back.
     AppInfo { label: Text, info: crate::applet::AppInfo },
     /// The wallpapers: *Keins* first, then `names`. The app shows the selected one as a preview.
@@ -417,6 +420,8 @@ pub enum Outcome {
     Define,
     /// Do [`VARIABLE_ACTIONS`]`[action]` to the variable chosen (the app reads it from the edit).
     Variable(usize),
+    /// Open the app at this place of the list's apps.
+    OpenApp(usize),
 }
 
 impl Menu {
@@ -437,6 +442,7 @@ impl Menu {
                 | Edit::Message { label, .. }
                 | Edit::Note { label, .. }
                 | Edit::AppInfo { label, .. }
+                | Edit::Apps { label, .. }
                 | Edit::Pictures { label, .. }
                 | Edit::Themes { label, .. }
                 | Edit::Storage { label, .. }
@@ -561,6 +567,7 @@ impl Menu {
             Some(Edit::Pictures { names, selected, .. }) => Some((*selected, names.len() + 1)),
             Some(Edit::Themes { names, selected, .. }) => Some((*selected, names.len())),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((*selected, sessions.len())),
+            Some(Edit::Apps { apps, selected, note: None, .. }) => Some((*selected, app_lines(apps).len())),
             Some(Edit::Sections { titles, selected, .. }) => Some((*selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
@@ -585,6 +592,10 @@ impl Menu {
             Some(Edit::Pictures { names, selected, .. }) => Some((selected, names.len() + 1)),
             Some(Edit::Themes { names, selected, .. }) => Some((selected, names.len())),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((selected, sessions.len())),
+            Some(Edit::Apps { apps, selected, note: None, .. }) => {
+                let count = app_lines(apps).len();
+                Some((selected, count))
+            }
             Some(Edit::Sections { titles, selected, .. }) => Some((selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
@@ -739,6 +750,47 @@ impl Menu {
                 };
                 self.edit = Some(Edit::Themes { label, names, selected });
                 return outcome;
+            }
+            Edit::Apps { label, apps, selected, note: Some(_) } => {
+                // Any key reads the note, back to the list.
+                self.edit = Some(Edit::Apps { label, apps, selected, note: None });
+            }
+            Edit::Apps { label, apps, selected, note: None } => {
+                let lines = app_lines(&apps);
+                let app_at = |index: usize| match lines.get(index) {
+                    Some(AppLine::App(app)) => Some(*app),
+                    _ => None,
+                };
+                let chosen = match key {
+                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
+                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+                        app_at(index).map(|app| (index, app))
+                    }
+                    Key::Ok | Key::Exe | Key::Right => app_at(selected).map(|app| (selected, app)),
+                    Key::Up | Key::Down => {
+                        // To the next app, over the headings.
+                        let count = lines.len().max(1);
+                        let step = if key == Key::Up { count - 1 } else { 1 };
+                        let mut next = selected;
+                        for _ in 0..count {
+                            next = (next + step) % count;
+                            if app_at(next).is_some() {
+                                break;
+                            }
+                        }
+                        let selected = if app_at(next).is_some() { next } else { selected };
+                        self.edit = Some(Edit::Apps { label, apps, selected, note: None });
+                        return Outcome::Stay;
+                    }
+                    Key::Del => return Outcome::Stay,
+                    _ if back => return Outcome::Stay,
+                    _ => None,
+                };
+                let selected = chosen.map_or(selected, |(index, _)| index);
+                self.edit = Some(Edit::Apps { label, apps, selected, note: None });
+                if let Some((_, app)) = chosen {
+                    return Outcome::OpenApp(app);
+                }
             }
             Edit::Sessions { label, sessions, selected } => {
                 let count = sessions.len();
@@ -931,6 +983,41 @@ impl Menu {
         }
         Outcome::Stay
     }
+}
+
+/// A line of the list of apps.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AppLine {
+    /// *Spiele* or *Werkzeuge*, above their apps.
+    Heading(crate::applet::AppKind),
+    /// The app at this place of the list's apps.
+    App(usize),
+    /// Where the user's own apps go, while the card has none.
+    Hint,
+}
+
+/// The lines of the list of `apps`, which come grouped: a heading over each group, the hint at
+/// the end if no app is from the card.
+pub fn app_lines(apps: &[crate::applet::AppInfo]) -> Vec<AppLine> {
+    let mut lines = Vec::new();
+    for (index, app) in apps.iter().enumerate() {
+        if index == 0 || apps[index - 1].kind != app.kind {
+            lines.push(AppLine::Heading(app.kind));
+        }
+        lines.push(AppLine::App(index));
+    }
+    if apps.iter().all(|app| app.built_in) {
+        lines.push(AppLine::Hint);
+    }
+    lines
+}
+
+/// The list of apps over `menu`'s page, sorted into its groups, on its first app.
+pub fn apps_edit(label: Text, mut apps: Vec<crate::applet::AppInfo>) -> Edit {
+    use crate::applet::AppKind;
+    apps.sort_by_key(|app| (app.kind != AppKind::Game, !app.built_in));
+    let selected = app_lines(&apps).iter().position(|line| matches!(line, AppLine::App(_))).unwrap_or(0);
+    Edit::Apps { label, apps, selected, note: None }
 }
 
 /// What a key does in a list the app filled in.
