@@ -10,7 +10,9 @@ use std::time::Instant;
 use esp_idf_svc::sys;
 use quantus_engine::Engine;
 use quantus_ui::app::{Mode, Settings};
-use quantus_ui::backend::{Backend, Catalogue, Group, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, VariableCommand};
+use quantus_ui::backend::{
+    Backend, Catalogue, Group, IndexItem, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, VariableCommand,
+};
 use quantus_texts::tr;
 use quantus_ui::text::Lang;
 
@@ -35,6 +37,8 @@ enum Job {
     Session(SessionCommand, Settings, Sender<Result<Opened, String>>),
     /// CONST and CONV, answered like the sessions.
     Catalogue(Catalogue, Lang, Sender<Vec<Group>>),
+    /// What CATALOG's search looks through, answered like the sessions.
+    SearchIndex(Lang, Sender<Vec<IndexItem>>),
     /// STO and VARS, answered like the sessions.
     Variables(VariableCommand, Settings, Sender<Result<Vec<Stored>, String>>),
     /// The units for the soft keys: the input before the cursor, the recent units, a result.
@@ -97,6 +101,9 @@ impl Worker {
                         Job::Catalogue(catalogue, lang, reply) => {
                             let _ = reply.send(engine.catalogue(catalogue, lang));
                         }
+                        Job::SearchIndex(lang, reply) => {
+                            let _ = reply.send(engine.search_index(lang));
+                        }
                         Job::Units(before, recent, result, reply) => {
                             let _ = reply.send(engine.unit_suggestions(&before, &recent, result.as_deref()));
                         }
@@ -154,6 +161,15 @@ impl Worker {
     pub fn catalogue(&mut self, catalogue: Catalogue, lang: Lang) -> Vec<Group> {
         let (reply, answer) = mpsc::channel();
         if self.jobs.send(Job::Catalogue(catalogue, lang, reply)).is_err() {
+            return Vec::new();
+        }
+        answer.recv().unwrap_or_default()
+    }
+
+    /// What CATALOG's search looks through, waiting like [`sessions`](Worker::sessions).
+    pub fn search_index(&mut self, lang: Lang) -> Vec<IndexItem> {
+        let (reply, answer) = mpsc::channel();
+        if self.jobs.send(Job::SearchIndex(lang, reply)).is_err() {
             return Vec::new();
         }
         answer.recv().unwrap_or_default()
