@@ -863,3 +863,56 @@ fn ask_asks_for_a_line_over_the_app() {
     assert_eq!(*entered.borrow(), ["asked Some(\"Bobby\")", "asked None"]);
     assert_eq!(app.screen, Screen::App);
 }
+
+/// An applet with the calculator's input line: it writes down what was entered.
+struct Liner {
+    entered: Rc<RefCell<Vec<String>>>,
+    log: Rc<RefCell<Log>>,
+}
+
+impl Applet for Liner {
+    fn key(&mut self, key: AppKey, _host: &mut dyn Host) {
+        self.log.borrow_mut().keys.push(key);
+    }
+
+    fn event(&mut self, event: quantus_ui::applet::Event, _host: &mut dyn Host) {
+        if let quantus_ui::applet::Event::Entered(latex) = event {
+            self.entered.borrow_mut().push(latex);
+        }
+    }
+
+    fn draw(&self, _canvas: &mut Canvas) {}
+
+    fn soft_keys(&self) -> Vec<String> {
+        vec!["Neu".into()]
+    }
+
+    fn input(&self) -> quantus_ui::applet::Input {
+        quantus_ui::applet::Input::Line { label: "l".into(), calc: false }
+    }
+}
+
+#[test]
+fn a_fraction_with_a_unit_is_typed_into_the_apps_line() {
+    let mut app = App::new(Stub);
+    let (entered, log) = (Rc::new(RefCell::new(Vec::new())), Rc::new(RefCell::new(Log::default())));
+    app.open_applet(Box::new(Liner { entered: entered.clone(), log: log.clone() }), info());
+    // The line is higher than one of text; the soft keys stay below it.
+    assert_eq!(quantus_ui::render::app_area(&app).size, Size::new(480, 294 - 44 - 64));
+    // 3/4 m, with UNIT for the metre; a stray ↑ at the top of the line goes to the app.
+    press(&mut app, &[Key::Digit(3), Key::Fraction, Key::Digit(4), Key::Right, Key::Unit, Key::Fraction, Key::Up]);
+    // While typed the line shows it.
+    let frame = quantus_ui::render::Frame::new(&app);
+    assert!(frame.0.iter().any(|shape| matches!(shape, Shape::Math(..))));
+    app.key(Key::Exe);
+    let typed = entered.borrow()[0].clone();
+    assert!(typed.contains(r"\frac{3}{4}") && typed.ends_with('m'), "{typed}");
+    assert_eq!(log.borrow().keys, [AppKey::Up]);
+    // EXE on an empty line gives nothing; the app's soft key still reaches it.
+    press(&mut app, &[Key::Exe, Key::Soft(0)]);
+    assert_eq!(entered.borrow().len(), 1);
+    assert_eq!(log.borrow().keys, [AppKey::Up, AppKey::Soft(0)]);
+    // SYMB puts its symbols on the soft keys; one goes into the line.
+    press(&mut app, &[Key::Symb, Key::Soft(0), Key::Exe]);
+    assert_eq!(entered.borrow()[1], r"\pi");
+}

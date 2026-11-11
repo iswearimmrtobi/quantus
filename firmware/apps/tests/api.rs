@@ -183,3 +183,14 @@ fn the_text_template_and_ask() {
     press(&mut app, &[Key::Up, Key::Ac]);
     assert!(shows(&app, "250:"));
 }
+
+#[test]
+fn the_line_template_gives_latex() {
+    let mut app = open(r#"
+        fn init() { input("line", #{ label: "x =" }); this.e = ""; }
+        fn entered(v) { this.e = v; }
+        fn draw() { text(0, 0, `${this.e}`, "text"); }
+    "#);
+    press(&mut app, &[Key::Digit(2), Key::Power, Key::Digit(5), Key::Exe]);
+    assert!(shows(&app, "2^{5}"));
+}

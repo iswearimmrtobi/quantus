@@ -330,11 +330,15 @@ M4.
   `ask` as a question over the app, answered like `confirm`; AC gives `()`. The area is lower
   while the line shows. Tests with a Rust applet, then `input("text", ..)` and `ask` in
   `quantus-apps`.
-- [ ] **3b.2 `"line"`.** An `Editor` of its own in `Running`, with the modifier layers, SYMB
+- [x] **3b.2 `"line"`.** An `Editor` of its own in `Running`, with the modifier layers, SYMB
   and the keys `calc_key` handles for typing; what `calc_key` does to the editor is first moved
   into a function both use, in a commit of its own that changes no behaviour (`ui/tests/calc.rs`
   and `editor.rs` stay green). The soft keys while the line has the cursor as F9 says. EXE
   gives `Event::Entered` with the LaTeX. Tests: a fraction with a unit typed into an app's line.
+  Built as the risk table's fallback: the line without the unit bar. Units come from the UNIT
+  layer, SYMB puts its symbols on the soft keys in place of the app's, which otherwise stay;
+  CATALOG does not reach an app's line (it opens a menu of the calculation). ↑ out of the line
+  goes to the app. The line is 64 px high, for fractions, below the area.
 - [ ] **3b.3 `"cells"`.** The grid of 3a.2 with the cell editor of `sheet::Sheet` in the cell
   under the cursor; `digits_only` takes one digit and moves on. `Event::Entered` with column,
   row and value. Test.

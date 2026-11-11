@@ -75,13 +75,12 @@ impl ScriptApplet {
     }
 
     /// What the area depends on: the soft keys and an input line at its bottom.
-    fn layout(&self) -> (bool, bool) {
-        (self.soft_shown(), self.input.line())
+    fn layout(&self) -> (bool, i32) {
+        (self.soft_shown(), self.input.line_height())
     }
 
     fn context(&self, host: &mut dyn Host) -> Context {
-        let (soft, line) = self.layout();
-        let area = host.area(soft, line);
+        let area = host.area(self.soft_shown(), &self.input);
         Context {
             width: area.width as i32,
             height: area.height as i32,

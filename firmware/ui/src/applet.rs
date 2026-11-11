@@ -92,10 +92,10 @@ pub trait Host {
     fn save(&mut self, _json: &str) {}
 
     /// The size of the app's area, with the soft-key strips shown or not.
-    /// The size of the app's area, with the soft-key strips shown or not and an input line at
-    /// its bottom or not.
-    fn area(&self, soft_keys: bool, line: bool) -> Size {
-        crate::render::app_area_with(soft_keys, line).size
+    /// The size of the app's area, with the soft-key strips shown or not and the line of the
+    /// input template `input` at its bottom.
+    fn area(&self, soft_keys: bool, input: &Input) -> Size {
+        crate::render::app_area_with(soft_keys, input).size
     }
 
     /// Leaves the app once the call that asks for it is done.
@@ -150,7 +150,17 @@ pub enum Response {
 impl Input {
     /// Whether the template is a line at the bottom of the area: the area is lower by it.
     pub fn line(&self) -> bool {
-        matches!(self, Input::Line { .. } | Input::Text { .. })
+        self.line_height() > 0
+    }
+
+    /// The height of the template's line below the area: the input line is higher than one of
+    /// text, for fractions.
+    pub fn line_height(&self) -> i32 {
+        match self {
+            Input::Line { .. } => 64,
+            Input::Text { .. } => 44,
+            _ => 0,
+        }
     }
 }
 

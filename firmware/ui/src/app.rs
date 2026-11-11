@@ -150,6 +150,8 @@ pub struct Running {
     pub back: Box<Screen>,
     /// The state of the input template, the hui's.
     pub template: Template,
+    /// The input line of the line template.
+    pub line: Editor,
 }
 
 /// What the input templates keep while an app runs (apps.md §4.4).
@@ -800,12 +802,18 @@ impl<B: Backend> App<B> {
                 if Modifier::is_modifier(key) {
                     return self.modifier.press(key);
                 }
+                // Any other key closes SYMB's symbols.
+                if !matches!(key, Key::Soft(_) | Key::Symb) {
+                    self.symbols = None;
+                }
                 let layer = self.modifier.layer();
                 let resolved = layer::resolve(key, layer, self.modifier.exponent, false);
                 self.modifier.settle(key, layer);
                 return match resolved {
+                    Resolved::Key(key) if self.line_key(key, layer == Layer::Shift) => {}
                     Resolved::Key(key) => self.app_key(key),
-                    Resolved::Insert(_) | Resolved::Nothing => {}
+                    Resolved::Insert(latex) => self.line_insert(latex),
+                    Resolved::Nothing => {}
                 };
             }
             return self.app_key(key);
@@ -864,7 +872,7 @@ impl<B: Backend> App<B> {
     pub fn open_applet(&mut self, applet: Box<dyn Applet>, info: AppInfo) {
         self.close_app();
         let back = std::mem::replace(&mut self.screen, Screen::App);
-        self.running = Some(Running { applet, info, menu: None, back: Box::new(back), template: Template::default() });
+        self.running = Some(Running { applet, info, menu: None, back: Box::new(back), template: Template::default(), line: Editor::new() });
         self.soft_page = 0;
         if let Some((applet, mut host)) = self.applet() {
             applet.start(&mut host);
@@ -890,6 +898,45 @@ impl<B: Backend> App<B> {
 
     /// A key on a question over the app: the arrows go between *Ja* and *Nein*, OK or EXE
     /// answer, 1 is *Ja* and 2 *Nein*, AC is *Nein*. MODE still leaves the app.
+    /// A key on the line template's input line: typing as in a calculation, SYMB, EXE gives the
+    /// input to the app as LaTeX. Whether it took the key; ↑ out of the top, AC, MODE, OPTN and
+    /// the soft keys are not its.
+    fn line_key(&mut self, key: Key, shift: bool) -> bool {
+        let Some(running) = &mut self.running else { return false };
+        if !matches!(running.applet.input(), Input::Line { .. }) {
+            return false;
+        }
+        match key {
+            Key::Symb => {
+                self.symbols = if self.symbols.is_some() { None } else { Some(0) };
+                return true;
+            }
+            Key::Ok | Key::Exe => {
+                if running.line.is_empty() {
+                    return true;
+                }
+                let latex = running.line.to_latex();
+                running.line.clear();
+                if let Some((applet, mut host)) = self.applet() {
+                    applet.event(Event::Entered(latex), &mut host);
+                }
+                return true;
+            }
+            Key::Up => return running.line.up(),
+            Key::Ac | Key::Mode | Key::Optn | Key::Soft(_) => return false,
+            _ => {}
+        }
+        type_key(&mut running.line, key, shift, &mut self.clipboard)
+    }
+
+    /// LaTeX from a layer (UNIT, SHIFT) or SYMB into the line template's input line.
+    fn line_insert(&mut self, latex: &str) {
+        let Some(running) = &mut self.running else { return };
+        if matches!(running.applet.input(), Input::Line { .. }) {
+            paste_latex(&mut running.line, &latex::parse(latex));
+        }
+    }
+
     /// Whether the app has a line typed into: the text template, or `ask` open.
     fn app_typing(&self) -> bool {
         let Some(running) = &self.running else { return false };
@@ -1081,7 +1128,13 @@ impl<B: Backend> App<B> {
             Key::Soft(index) => {
                 let Some(bar) = soft::bar(self) else { return };
                 match bar.slot(usize::from(index)) {
+                    Some(Slot::Page) if self.symbols.is_some() => self.symbols = Some(bar.page + 1),
                     Some(Slot::Page) => self.soft_page = bar.page + 1,
+                    Some(Slot::Symbol(_, latex)) => {
+                        let latex = *latex;
+                        self.symbols = None;
+                        self.line_insert(latex);
+                    }
                     Some(Slot::App(index, _)) => {
                         let index = *index;
                         let Some((applet, mut host)) = self.applet() else { return };

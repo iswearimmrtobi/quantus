@@ -329,7 +329,10 @@ fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectan
     let input = running.applet.input();
     if let crate::applet::Input::Text { label, value, .. } = &input {
         let typed = running.template.text.as_ref().unwrap_or(value);
-        text_line(shapes, app_line_rect(area), label, typed, caret && running.template.question.is_none());
+        text_line(shapes, app_line_rect(area, input.line_height()), label, typed, caret && running.template.question.is_none());
+    }
+    if let crate::applet::Input::Line { label, .. } = &input {
+        input_line(shapes, app_line_rect(area, input.line_height()), label, &running.line, caret && running.template.question.is_none());
     }
     if let crate::applet::Input::List { items } = &input {
         let pressed = match pressed {
@@ -365,6 +368,33 @@ pub fn answer_rect(area: Rectangle, index: usize) -> Rectangle {
     let width = (frame.size.width as i32 - 3 * gap) / 2;
     let at = frame.top_left + Point::new(gap + index as i32 * (width + gap), frame.size.height as i32 - 48 - gap);
     Rectangle::new(at, Size::new(width.max(0) as u32, 48))
+}
+
+/// The calculator's input line in an app: its label, the input as the calculation sets it, the
+/// caret, scrolled so the caret stays in it.
+fn input_line(shapes: &mut Vec<Shape>, at: Rectangle, label: &str, editor: &crate::editor::Editor, caret: bool) {
+    shapes.push(Shape::Fill(at, colors::surface()));
+    shapes.push(Shape::Fill(Rectangle::new(at.top_left, Size::new(at.size.width, 1)), colors::hairline()));
+    let label = fit(label, at.size.width as i32 / 3, Scale::Small);
+    let label_width = if label.is_empty() { 0 } else { Scale::Small.width(&label) + 12 };
+    let middle = at.top_left.y + at.size.height as i32 / 2;
+    shapes.push(Shape::Text(Point::new(at.top_left.x + MARGIN, middle + Scale::Small.metrics().digit / 2), label, Scale::Small, colors::muted()));
+    let left = at.top_left.x + MARGIN + label_width;
+    let right = at.top_left.x + at.size.width as i32 - MARGIN;
+    let input = layout::layout(&editor.row, Scale::Normal);
+    let mut origin = Point::new(left, middle + (input.ascent - input.descent) / 2);
+    let mark = layout::caret(&input, origin, editor.path(), editor.pos());
+    let overflow = mark.top_left.x - (right - 4);
+    if overflow > 0 {
+        origin.x -= overflow;
+    }
+    let mark = mark.translate(Point::new(origin.x - left, 0));
+    if !editor.is_empty() {
+        shapes.push(Shape::Math(origin, input, colors::text()));
+    }
+    if caret {
+        shapes.push(Shape::Fill(mark, colors::primary()));
+    }
 }
 
 /// A line of plain text being typed into: its label, what is typed, the caret.
@@ -428,22 +458,22 @@ fn question_box(shapes: &mut Vec<Shape>, question: &crate::applet::Question, are
 /// The area an app draws into: below the top bar, above the soft-key strips if they show. The
 /// bar and the strips are drawn after the app's shapes, so these cannot cover them.
 pub fn app_area<B>(app: &App<B>) -> Rectangle {
-    let line = app.running.as_ref().is_some_and(|running| running.applet.input().line());
-    app_area_with(crate::soft::shows(app), line)
+    let input = app.running.as_ref().map_or(crate::applet::Input::Keys, |running| running.applet.input());
+    app_area_with(crate::soft::shows(app), &input)
 }
 
-/// The height of an app's input line, below its area.
-pub const APP_LINE: i32 = 44;
+/// The height of a line of text being typed (an app's question).
+const APP_LINE: i32 = 44;
 
-/// The area of an app with the soft-key strips shown or not, and an input line or not.
-pub fn app_area_with(soft: bool, line: bool) -> Rectangle {
-    let bottom = if soft { HEIGHT as i32 - SOFT } else { HEIGHT as i32 } - if line { APP_LINE } else { 0 };
+/// The area of an app with the soft-key strips shown or not, and the line of `input` below it.
+pub fn app_area_with(soft: bool, input: &crate::applet::Input) -> Rectangle {
+    let bottom = if soft { HEIGHT as i32 - SOFT } else { HEIGHT as i32 } - input.line_height();
     Rectangle::new(Point::new(0, BAR), Size::new(WIDTH, (bottom - BAR) as u32))
 }
 
-/// An app's input line, below `area`.
-fn app_line_rect(area: Rectangle) -> Rectangle {
-    Rectangle::new(Point::new(0, area.top_left.y + area.size.height as i32), Size::new(WIDTH, APP_LINE as u32))
+/// An app's input line of `height`, below `area`.
+fn app_line_rect(area: Rectangle, height: i32) -> Rectangle {
+    Rectangle::new(Point::new(0, area.top_left.y + area.size.height as i32), Size::new(WIDTH, height as u32))
 }
 
 /// The wallpaper under the screen, as SETUP → Gerät → Hintergrundbild → Anzeigen says: at full

@@ -135,6 +135,11 @@ pub fn bar<B>(app: &App<B>) -> Option<Bar> {
         if running.menu.is_some() {
             return None;
         }
+        // SYMB on an input line: its symbols instead of the app's keys.
+        if let (Some(page), crate::applet::Input::Line { .. }) = (app.symbols, running.applet.input()) {
+            let slots = MATH_FIRST.iter().chain(SYMBOLS.iter().filter(|symbol| !MATH_FIRST.contains(symbol)));
+            return Some(paginate(slots.map(|&(label, latex)| Slot::Symbol(label, latex)).collect(), columns, page));
+        }
         let labels = running.applet.soft_keys();
         let slots = labels
             .into_iter()
