@@ -40,9 +40,10 @@ fn texts(app: &App<Stub>) -> Vec<String> {
 }
 
 const KEEPER: &str = r#"
-    fn init() { let d = load(); this.n = if d == () { 0 } else { d.n }; }
-    fn key(k) { this.n += 1; save(#{ n: this.n, list: [1, 2.5, "x", true, ()] }); }
-    fn draw() { text(0, 0, `n ${this.n}`, "text"); }
+    local n
+    function init() local d = load(); n = d and d.n or 0 end
+    function key(k) n = n + 1; save({n = n, list = {1, 2.5, "x", true}}) end
+    function draw() text(0, 0, "n " .. n, "text") end
 "#;
 
 #[test]
@@ -60,9 +61,8 @@ fn the_data_outlast_the_app() {
 
 #[test]
 fn over_64_kb_is_an_error_of_the_script() {
-    // Strings cannot get there: Rhai counts the strings of an array against the 16 KB of one.
     let mut app = App::new(Stub);
-    open(&mut app, r#"fn key(k) { let a = []; for i in 0..9000 { a.push(1234567); } save(a); } fn draw() { text(0, 0, "drawn", "text"); }"#);
+    open(&mut app, r#"function key(k) local a = {}; for i = 1, 9000 do a[i] = 1234567 end; save(a) end function draw() text(0, 0, "drawn", "text") end"#);
     app.key(Key::Digit(1));
     let shown = texts(&app);
     assert!(shown.iter().any(|text| text.contains("64 KB")), "{shown:?}");

@@ -40,9 +40,9 @@ fn a_file_over_the_limit_is_left_out() {
     let folder = std::env::temp_dir().join(format!("quantus-apps-{}-big", std::process::id()));
     let _ = std::fs::remove_dir_all(&folder);
     std::fs::create_dir_all(&folder).unwrap();
-    let big = format!("// name: Gross\nfn draw() {{}}\n// {}\n", "x".repeat(quantus_apps::api::MAX_SOURCE));
-    std::fs::write(folder.join("gross.rhai"), big).unwrap();
-    std::fs::write(folder.join("klein.rhai"), "// name: Klein\nfn draw() {}\n").unwrap();
+    let big = format!("-- name: Gross\nfunction draw() end\n-- {}\n", "x".repeat(quantus_apps::api::MAX_SOURCE));
+    std::fs::write(folder.join("gross.lua"), big).unwrap();
+    std::fs::write(folder.join("klein.lua"), "-- name: Klein\nfunction draw() end\n").unwrap();
     let apps = Apps::new(Some(folder));
     let names: Vec<String> = apps.list(Lang::De).into_iter().filter(|app| !app.built_in).map(|app| app.name).collect();
     assert_eq!(names, ["Klein"]);

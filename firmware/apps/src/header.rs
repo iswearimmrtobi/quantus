@@ -1,11 +1,11 @@
 //! The header of an app: the comment lines at the top of its file, read to list the app without
 //! running it (apps.md §2).
 //!
-//! ```rhai
-//! // name: 2048
-//! // kind: game
-//! // api: 1
-//! // author: Quantus
+//! ```lua
+//! -- name: 2048
+//! -- kind: game
+//! -- api: 1
+//! -- author: Quantus
 //! ```
 
 use quantus_ui::applet::{AppInfo, AppKind};
@@ -59,7 +59,7 @@ pub fn parse(text: &str) -> Option<Header> {
         if line.is_empty() {
             continue;
         }
-        let Some(comment) = line.strip_prefix("//") else { break };
+        let Some(comment) = line.strip_prefix("--") else { break };
         let Some((key, value)) = comment.split_once(':') else { continue };
         let (key, value) = (key.trim(), cut(value.trim()));
         if value.is_empty() {

@@ -349,7 +349,7 @@ fn info_shows_the_credits() {
     app.open_applet(Box::new(Clock), credits);
     press(&mut app, &[Key::Optn, Key::Digit(1)]);
     let shown = texts(&app);
-    for line in ["Autoren: Ada, Grace", "Version: 1.2", "API 1 · SD-Karte, probe.rhai"] {
+    for line in ["Autoren: Ada, Grace", "Version: 1.2", "API 1 · SD-Karte, probe.lua"] {
         assert!(shown.iter().any(|text| text == line), "{line} in {shown:?}");
     }
 }

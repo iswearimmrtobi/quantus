@@ -40,9 +40,9 @@ impl Backend for Slow {
 }
 
 const SOURCE: &str = r#"
-    fn init() { this.t = "-"; }
-    fn key(k) { let r = calc("6\\cdot 0{,}7"); this.t = `${r.ok} ${r.value} ${r.latex}`; }
-    fn draw() { text(0, 0, this.t, "text"); }
+    local t = "-"
+    function key(k) local r = calc("6\\cdot 0{,}7"); t = tostring(r.ok) .. " " .. r.value .. " " .. r.latex end
+    function draw() text(0, 0, t, "text") end
 "#;
 
 /// The mode a calculation was asked in.
@@ -97,9 +97,10 @@ fn the_line_with_calc_waits_for_the_engine() {
     let (dropped, mode) = (Rc::new(Cell::new(0)), Rc::new(Cell::new(None)));
     let mut app = App::new(Slow { polls: 0, dropped, mode });
     let source = r#"
-        fn init() { input("line", #{ calc: true }); this.t = "-"; }
-        fn entered(r) { this.t = r.value; }
-        fn draw() { text(0, 0, this.t, "text"); }
+        local t = "-"
+        function init() input("line", {calc = true}) end
+        function entered(r) t = r.value end
+        function draw() text(0, 0, t, "text") end
     "#;
     let info = AppInfo { id: "t".into(), name: "T".into(), api: 1, usable: true, ..AppInfo::default() };
     app.open_applet(Box::new(ScriptApplet::new(source)), info);

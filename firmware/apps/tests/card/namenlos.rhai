@@ -1,2 +1,0 @@
-// kind: tool
-fn draw() {}

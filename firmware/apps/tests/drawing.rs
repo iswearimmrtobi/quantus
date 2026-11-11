@@ -10,22 +10,22 @@ use quantus_ui::backend::Stub;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Shape};
 
-const COUNTER: &str = r#"// name: Counter
-// kind: tool
-// api: 1
+const COUNTER: &str = r#"-- name: Counter
+-- kind: tool
+-- api: 1
 
-fn init() { this.n = 0; }
+local n = 0
 
-fn key(k) {
-    if k == "up"   { this.n += 1; }
-    if k == "down" { this.n -= 1; }
-}
+function key(k)
+    if k == "up" then n = n + 1 end
+    if k == "down" then n = n - 1 end
+end
 
-fn draw() {
-    clear("background");
-    text(20, 40, `Count: ${this.n}`, "text");
-    rect(width() - 30, height() - 30, 20, 20, rgb(255, 0, 0));
-}
+function draw()
+    clear("background")
+    text(20, 40, "Count: " .. n, "text")
+    rect(width() - 30, height() - 30, 20, 20, rgb(255, 0, 0))
+end
 "#;
 
 fn open(source: &str) -> App<Stub> {
@@ -60,7 +60,7 @@ fn the_counter_counts_and_draws() {
 
 #[test]
 fn an_error_turns_into_a_page_and_ok_leaves() {
-    let mut app = open("fn draw() { clear(\"background\"); }\nfn key(k) {\n  rect(0, 0, 1, 1, \"pink\");\n}\n");
+    let mut app = open("function draw() clear(\"background\") end\nfunction key(k)\n  rect(0, 0, 1, 1, \"pink\")\nend\n");
     app.key(Key::Digit(1));
     let shown = texts(&app);
     assert!(shown.iter().any(|text| text == "Fehler in der App"), "{shown:?}");
@@ -72,21 +72,21 @@ fn an_error_turns_into_a_page_and_ok_leaves() {
 
 #[test]
 fn a_syntax_error_shows_at_once() {
-    let app = open("fn draw( {");
+    let app = open("function draw( end");
     assert!(texts(&app).iter().any(|text| text == "Fehler in der App"));
 }
 
 #[test]
 fn an_endless_loop_shows_the_error_page() {
     // The budget ends the loop well before the main side stops waiting.
-    let mut app = open("fn draw() {}\nfn key(k) { while true {} }");
+    let mut app = open("function draw() end\nfunction key(k) while true do end end");
     app.key(Key::Digit(1));
     assert!(texts(&app).iter().any(|text| text == "Fehler in der App"));
 }
 
 #[test]
 fn too_many_shapes_are_an_error() {
-    let mut app = open("fn draw() { if this.many == true { for i in 0..5000 { rect(0, 0, 1, 1, \"text\"); } } }\nfn key(k) { this.many = true; }");
+    let mut app = open("local many\nfunction draw() if many then for i = 1, 5000 do rect(0, 0, 1, 1, \"text\") end end end\nfunction key(k) many = true end");
     app.key(Key::Digit(1));
     let shown = texts(&app);
     assert!(shown.iter().any(|text| text.contains("4000")), "{shown:?}");

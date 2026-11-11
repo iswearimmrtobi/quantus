@@ -40,14 +40,14 @@ fn a_script_adds_two_lengths_and_the_history_stays() {
     app.key(Key::Exe);
     let history = app.history.len();
     let source = r#"
-        fn init() { this.t = ""; }
-        fn key(k) {
-            let a = calc("3\\,\\mathrm{m}+20\\,\\mathrm{cm}");
-            let b = calc("1+");
-            let c = calc(a.value + "\\cdot 2");
-            this.t = `${a.ok} ${a.latex}|${b.ok} ${b.error != ()}|${c.latex}`;
-        }
-        fn draw() { text(0, 0, this.t, "text"); }
+        local t = ""
+        function key(k)
+            local a = calc("3\\,\\mathrm{m}+20\\,\\mathrm{cm}")
+            local b = calc("1+")
+            local c = calc(a.value .. "\\cdot 2")
+            t = tostring(a.ok) .. " " .. a.latex .. "|" .. tostring(b.ok) .. " " .. tostring(b.error ~= nil) .. "|" .. c.latex
+        end
+        function draw() text(0, 0, t, "text") end
     "#;
     let info = AppInfo { id: "t".into(), name: "T".into(), api: 1, usable: true, ..AppInfo::default() };
     app.open_applet(Box::new(ScriptApplet::new(source)), info);
@@ -72,9 +72,10 @@ fn var_reads_the_sessions_variables_and_insert_hands_back() {
     engine.variables(store.clone(), &settings).expect("stored");
     let mut app = App::new(engine);
     let source = r#"
-        fn init() { this.t = `${variable("a")} ${variable("nothing")}`; }
-        fn key(k) { insert("\\frac{1}{2}"); }
-        fn draw() { text(0, 0, this.t, "text"); }
+        local t
+        function init() t = (variable("a") or "") .. " " .. (variable("nothing") or "") end
+        function key(k) insert("\\frac{1}{2}") end
+        function draw() text(0, 0, t, "text") end
     "#;
     let info = AppInfo { id: "t".into(), name: "T".into(), api: 1, usable: true, ..AppInfo::default() };
     app.open_applet(Box::new(ScriptApplet::new(source)), info);
@@ -89,9 +90,10 @@ fn var_reads_the_sessions_variables_and_insert_hands_back() {
 fn the_line_with_calc_gives_the_result() {
     let mut app = App::new(Engine::default());
     let source = r#"
-        fn init() { input("line", #{ label: "x", calc: true }); this.t = ""; }
-        fn entered(r) { this.t = `${r.ok} ${r.latex}`; }
-        fn draw() { text(0, 0, this.t, "text"); }
+        local t = ""
+        function init() input("line", {label = "x", calc = true}) end
+        function entered(r) t = tostring(r.ok) .. " " .. r.latex end
+        function draw() text(0, 0, t, "text") end
     "#;
     let info = AppInfo { id: "t".into(), name: "T".into(), api: 1, usable: true, ..AppInfo::default() };
     app.open_applet(Box::new(ScriptApplet::new(source)), info);
@@ -217,20 +219,20 @@ mod form_scripts {
     use quantus_ui::render::{Frame, Shape};
 
     const DIVIDER: &str = r#"
-// name: Spannungsteiler
-// kind: tool
+-- name: Spannungsteiler
+-- kind: tool
 
-form(#{
-    title: "Spannungsteiler",
-    fields: [
-        #{ id: "U",  label: "Eingangsspannung", unit: "V" },
-        #{ id: "R1", label: "R₁", unit: "Ω" },
-        #{ id: "R2", label: "R₂", unit: "Ω", value: "10 kΩ" },
-    ],
-    results: [
-        #{ label: "U₂", formula: "U*R2/(R1+R2)", unit: "V" },
-        #{ label: "I",  formula: "U/(R1+R2)",    unit: "mA" },
-    ],
+form({
+    title = "Spannungsteiler",
+    fields = {
+        {id = "U",  label = "Eingangsspannung", unit = "V"},
+        {id = "R1", label = "R₁", unit = "Ω"},
+        {id = "R2", label = "R₂", unit = "Ω", value = "10 kΩ"},
+    },
+    results = {
+        {label = "U₂", formula = "U*R2/(R1+R2)", unit = "V"},
+        {label = "I",  formula = "U/(R1+R2)",    unit = "mA"},
+    },
 })
 "#;
 
@@ -275,19 +277,19 @@ form(#{
     }
 
     const SUBMIT: &str = r#"
-fn init() { this.got = "-"; }
-fn key(k) {
-    let r = form(#{
-        fields: [ #{ id: "a", unit: "m" }, #{ id: "b" } ],
-        submit: |v| {
-            if v.b == "0" { return #{ field: "b", error: "nicht null" }; }
-            let s = calc(v.a + "\\cdot " + v.b);
-            [ #{ label: "a·b", latex: s.latex } ]
-        },
-    });
-    this.got = `${r["a·b"]}`;
-}
-fn draw() { text(0, 0, this.got, "text"); }
+local got = "-"
+function key(k)
+    local r = form({
+        fields = {{id = "a", unit = "m"}, {id = "b"}},
+        submit = function(v)
+            if v.b == "0" then return {field = "b", error = "nicht null"} end
+            local s = calc(v.a .. "\\cdot " .. v.b)
+            return {{label = "a·b", latex = s.latex}}
+        end,
+    })
+    got = tostring(r["a·b"])
+end
+function draw() text(0, 0, got, "text") end
 "#;
 
     #[test]

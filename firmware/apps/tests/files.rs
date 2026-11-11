@@ -60,10 +60,11 @@ impl Backend for Card {
 }
 
 const COUNTER: &str = r#"
-    fn init() { let d = load(); this.n = if d == () { 0 } else { d.n }; }
-    fn key(k) { this.n += 1; }
-    fn leave() { save(#{ n: this.n }); }
-    fn draw() { text(0, 0, `n ${this.n}`, "text"); }
+    local n
+    function init() local d = load(); n = d and d.n or 0 end
+    function key(k) n = n + 1 end
+    function leave() save({n = n}) end
+    function draw() text(0, 0, "n " .. n, "text") end
 "#;
 
 fn open(app: &mut App<Card>) {

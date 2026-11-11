@@ -10,8 +10,8 @@ use crate::ScriptApplet;
 
 /// The apps compiled into the firmware: their ids and their files.
 pub const BUILT_IN: &[(&str, &str)] = &[
-    ("2048", include_str!("../apps/2048.rhai")),
-    ("tictactoe", include_str!("../apps/tictactoe.rhai")),
+    ("2048", include_str!("../apps/2048.lua")),
+    ("tictactoe", include_str!("../apps/tictactoe.lua")),
 ];
 
 /// The apps, built in and in the card's folder `/apps`.
@@ -27,7 +27,7 @@ impl Apps {
     }
 
     /// What the list shows of them, in `lang`, sorted by name: the built-in ones, and the
-    /// card's `/apps/*.rhai`, read only as far as their header. A file without a `name`, over
+    /// card's `/apps/*.lua`, read only as far as their header. A file without a `name`, over
     /// the size limit, with another ending or a name that is no plain id is left out. One with
     /// the id of a built-in app is listed beside it, as `card:<id>`, so their data do not mix.
     pub fn list(&self, lang: Lang) -> Vec<AppInfo> {
@@ -48,9 +48,9 @@ impl Apps {
         for entry in entries.flatten() {
             let path = entry.path();
             let Some(id) = path.file_stem().and_then(|stem| stem.to_str()).map(str::to_string) else { continue };
-            let rhai = path.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("rhai"));
+            let lua = path.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("lua"));
             let small = entry.metadata().is_ok_and(|meta| meta.is_file() && meta.len() <= crate::api::MAX_SOURCE as u64);
-            if !rhai || !small || !plain_id(&id) {
+            if !lua || !small || !plain_id(&id) {
                 continue;
             }
             if let Some(head) = head(&path) {
@@ -76,7 +76,7 @@ impl Apps {
         if !plain_id(id) {
             return None;
         }
-        let path = self.card.as_ref()?.join(format!("{id}.rhai"));
+        let path = self.card.as_ref()?.join(format!("{id}.lua"));
         let bytes = std::fs::read(path).ok()?;
         (bytes.len() <= crate::api::MAX_SOURCE).then(|| String::from_utf8_lossy(&bytes).into_owned())
     }

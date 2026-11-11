@@ -14,7 +14,7 @@ use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Shape};
 
-const SOURCE: &str = include_str!("../apps/tictactoe.rhai");
+const SOURCE: &str = include_str!("../apps/tictactoe.lua");
 
 /// The stub with the apps and seeded random numbers, as the simulator with `--seed`.
 struct Seeded1(Seeded);
@@ -134,24 +134,27 @@ fn every_game(play: &mut dyn FnMut(&[&'static str; 9]) -> usize, board: &mut [&'
 
 #[test]
 fn schwer_loses_no_game_and_answers_quickly() {
-    let mut engine = rhai::Engine::new();
-    engine.set_max_expr_depths(64, 32);
-    engine.set_max_call_levels(32);
-    let operations = std::rc::Rc::new(std::cell::Cell::new(0u64));
-    let counted = operations.clone();
-    engine.on_progress(move |count| {
-        counted.set(count);
-        None
-    });
-    let ast = engine.compile(SOURCE).expect("it compiles");
+    // The script's functions without the host; the instructions counted as the budget does.
+    let lua = mlua::Lua::new();
+    let instructions = std::rc::Rc::new(std::cell::Cell::new(0u64));
+    let counted = instructions.clone();
+    lua.set_hook(mlua::HookTriggers::new().every_nth_instruction(100), move |_, _| {
+        counted.set(counted.get() + 100);
+        Ok(mlua::VmState::Continue)
+    })
+    .unwrap();
+    lua.load(SOURCE).exec().expect("it runs");
+    let best: mlua::Function = lua.globals().get("best").unwrap();
     let mut answers: HashMap<String, usize> = HashMap::new();
     let mut most = 0;
     let mut play = |board: &[&'static str; 9]| {
         *answers.entry(board.join(",")).or_insert_with(|| {
-            let array: rhai::Array = board.iter().map(|cell| rhai::Dynamic::from(cell.to_string())).collect();
-            let cell = engine.call_fn::<i64>(&mut rhai::Scope::new(), &ast, "best", (array, "O".to_string())).expect("a move");
-            most = most.max(operations.get());
-            cell as usize
+            instructions.set(0);
+            let cells: Vec<&str> = board.to_vec();
+            let cell: usize = best.call((cells, "O")).expect("a move");
+            most = most.max(instructions.get());
+            // Lua counts from 1.
+            cell - 1
         })
     };
     let (mut games, mut lost) = (0, Vec::new());
@@ -161,9 +164,9 @@ fn schwer_loses_no_game_and_answers_quickly() {
     assert!(lost.is_empty(), "lost {} of {games}: {:?}", lost.len(), &lost[..lost.len().min(5)]);
     // Every game the other side can play, both beginning.
     assert!(games > 500, "{games}");
-    // A move is a small part of the budget: about 940 operations a millisecond on the board.
-    assert!(most < 20_000, "{most} operations");
-    eprintln!("{games} games, at most {most} operations a move");
+    // A move is a small part of the budget of a million instructions.
+    assert!(most < 10_000, "{most} instructions");
+    eprintln!("{games} games, at most {most} instructions a move");
 }
 
 #[test]
@@ -174,7 +177,7 @@ fn board_and_side_fit_both_sizes() {
         let Yield::Done(output) = script.send(Callback::Init, context.clone()) else { panic!("init") };
         inside(&output.draws, width, height).unwrap();
         // A round played to its end, the line drawn.
-        for (col, row) in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)] {
+        for (col, row) in [(1, 1), (2, 1), (3, 1), (1, 2), (2, 2), (3, 2), (1, 3), (2, 3), (3, 3)] {
             let Yield::Done(output) = script.send(Callback::Pick(col, row), context.clone()) else { panic!("pick") };
             inside(&output.draws, width, height).unwrap();
         }

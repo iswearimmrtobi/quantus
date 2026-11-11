@@ -431,8 +431,9 @@ impl Applet for ScriptApplet {
 
     fn event(&mut self, event: Event, host: &mut dyn Host) {
         let callback = match event {
-            Event::Pick(col, row) => Callback::Pick(col as i64, row as i64),
-            Event::Chosen(index) => Callback::Entered(Value::Int(index as i64)),
+            // Columns, rows and lines count from 1 in a script, as Lua's lists do.
+            Event::Pick(col, row) => Callback::Pick(col as i64 + 1, row as i64 + 1),
+            Event::Chosen(index) => Callback::Entered(Value::Int(index as i64 + 1)),
             // The input line with `calc: true` gives what `calc` gives.
             Event::Entered(latex) if matches!(self.input, Input::Line { calc: true, .. }) && self.error.is_none() => {
                 match host.calc(&latex) {
@@ -446,8 +447,8 @@ impl Applet for ScriptApplet {
             }
             Event::Entered(text) => Callback::Entered(Value::Str(text)),
             Event::Cell(col, row, value) => Callback::Entered(Value::Map(vec![
-                ("col".into(), Value::Int(col as i64)),
-                ("row".into(), Value::Int(row as i64)),
+                ("col".into(), Value::Int(col as i64 + 1)),
+                ("row".into(), Value::Int(row as i64 + 1)),
                 ("value".into(), Value::Str(value)),
             ])),
         };

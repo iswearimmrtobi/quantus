@@ -6,27 +6,28 @@
 //! the stack it needs, and a script that hangs can be left: the main side stops waiting after
 //! [`WAIT`], and the operation budget ends the thread.
 //!
-//! What crosses the channel is plain data ([`Value`], [`Output`]): Rhai's own values are not
-//! `Send`, and the engine and the AST live and die on the script's thread.
+//! What crosses the channel is plain data ([`Value`], [`Output`]): Lua's own values are not
+//! `Send`, and the Lua state lives and dies on the script's thread.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::OnceLock;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use rhai::{CallFnOptions, Dynamic, Engine, EvalAltResult, Map, Position, Scope, AST};
+use mlua::{Function, IntoLuaMulti, Lua, MultiValue, Table};
 
 use crate::api::{self, Shared};
 
 /// How long the main side waits for a callback before the app counts as not responding.
 pub const WAIT: Duration = Duration::from_secs(3);
 
-/// The stack of the script's thread. On the board Rhai takes about 3.6 KB of it per call level,
-/// and the deepest the limits allow, 32 levels each nesting expressions as far as the parser
-/// lets them, took 438 KB (apps.md §5): the stack must hold that, since running over it halts
-/// the board instead of giving an error. It comes from PSRAM. A debug build on a PC needs more.
+/// The stack of the script's thread. Lua calls Lua without it, but a call through a host
+/// function (a script's `submit`, its `__index` and the like) nests in C, up to Lua's 200 levels:
+/// on the board that took about 250 KB (apps.md §5). The stack must hold it, since running over it
+/// halts the board instead of giving an error. It comes from PSRAM. A debug build on a PC needs
+/// more.
 #[cfg(target_os = "espidf")]
 pub const STACK: usize = 1024 * 1024;
 #[cfg(not(target_os = "espidf"))]
@@ -77,43 +78,86 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn from_dynamic(value: &Dynamic) -> Value {
-        if value.is_unit() {
-            Value::Unit
-        } else if let Ok(b) = value.as_bool() {
-            Value::Bool(b)
-        } else if let Ok(i) = value.as_int() {
-            Value::Int(i)
-        } else if let Ok(f) = value.as_float() {
-            Value::Float(f)
-        } else if value.is_string() {
-            Value::Str(value.clone().into_string().unwrap_or_default())
-        } else if value.is_array() {
-            let array = value.clone().into_array().unwrap_or_default();
-            Value::Array(array.iter().map(Value::from_dynamic).collect())
-        } else if value.is_map() {
-            let map = value.clone().cast::<Map>();
-            Value::Map(map.iter().map(|(key, value)| (key.to_string(), Value::from_dynamic(value))).collect())
-        } else if value.is_char() {
-            Value::Str(value.to_string())
-        } else {
-            Value::Str(value.type_name().to_string())
-        }
+    /// A value of the script's, as plain data: a table whose keys are 1 to n is an array, any
+    /// other a map with its keys sorted; a function is the string `"function"`. Tables nested
+    /// deeper than [`DEPTH`], a table inside itself among them, are an error.
+    pub fn from_lua(value: &mlua::Value) -> Result<Value, String> {
+        Value::from_lua_at(value, 0)
     }
 
-    pub fn to_dynamic(&self) -> Dynamic {
-        match self {
-            Value::Unit => Dynamic::UNIT,
-            Value::Bool(b) => (*b).into(),
-            Value::Int(i) => (*i).into(),
-            Value::Float(f) => (*f).into(),
-            Value::Str(s) => s.clone().into(),
-            Value::Array(items) => Dynamic::from_array(items.iter().map(Value::to_dynamic).collect()),
-            Value::Map(entries) => {
-                let map: Map = entries.iter().map(|(key, value)| (key.as_str().into(), value.to_dynamic())).collect();
-                Dynamic::from_map(map)
+    fn from_lua_at(value: &mlua::Value, depth: usize) -> Result<Value, String> {
+        Ok(match value {
+            mlua::Value::Nil => Value::Unit,
+            mlua::Value::Boolean(b) => Value::Bool(*b),
+            mlua::Value::Integer(i) => Value::Int(*i),
+            mlua::Value::Number(n) => Value::Float(*n),
+            mlua::Value::String(s) => Value::Str(s.to_string_lossy()),
+            mlua::Value::Table(table) => {
+                if depth >= DEPTH {
+                    return Err(format!("tables nested deeper than {DEPTH}"));
+                }
+                Value::from_table(table, depth + 1)?
             }
+            other => Value::Str(other.type_name().to_string()),
+        })
+    }
+
+    fn from_table(table: &Table, depth: usize) -> Result<Value, String> {
+        let mut entries = Vec::new();
+        for pair in table.pairs::<mlua::Value, mlua::Value>() {
+            let (key, value) = pair.map_err(|error| error.to_string())?;
+            entries.push((key, Value::from_lua_at(&value, depth)?));
         }
+        let length = table.raw_len();
+        let sequence = entries.len() == length && entries.iter().all(|(key, _)| matches!(key, mlua::Value::Integer(i) if *i >= 1 && *i as usize <= length));
+        if sequence {
+            let mut items = vec![Value::Unit; length];
+            for (key, value) in entries {
+                if let mlua::Value::Integer(i) = key {
+                    items[i as usize - 1] = value;
+                }
+            }
+            return Ok(Value::Array(items));
+        }
+        let mut map: Vec<(String, Value)> = entries
+            .into_iter()
+            .map(|(key, value)| {
+                let key = match key {
+                    mlua::Value::String(s) => s.to_string_lossy(),
+                    mlua::Value::Integer(i) => i.to_string(),
+                    mlua::Value::Number(n) => n.to_string(),
+                    other => other.type_name().to_string(),
+                };
+                (key, value)
+            })
+            .collect();
+        map.sort_by(|(a, _), (b, _)| a.cmp(b));
+        Ok(Value::Map(map))
+    }
+
+    /// The value for the script.
+    pub fn to_lua(&self, lua: &Lua) -> mlua::Result<mlua::Value> {
+        Ok(match self {
+            Value::Unit => mlua::Value::Nil,
+            Value::Bool(b) => mlua::Value::Boolean(*b),
+            Value::Int(i) => mlua::Value::Integer(*i),
+            Value::Float(f) => mlua::Value::Number(*f),
+            Value::Str(s) => mlua::Value::String(lua.create_string(s)?),
+            Value::Array(items) => {
+                let table = lua.create_table_with_capacity(items.len(), 0)?;
+                for (i, item) in items.iter().enumerate() {
+                    table.raw_set(i + 1, item.to_lua(lua)?)?;
+                }
+                mlua::Value::Table(table)
+            }
+            Value::Map(entries) => {
+                let table = lua.create_table_with_capacity(0, entries.len())?;
+                for (key, value) in entries {
+                    table.raw_set(key.as_str(), value.to_lua(lua)?)?;
+                }
+                mlua::Value::Table(table)
+            }
+        })
     }
 
     /// A map's value at `key`.
@@ -124,6 +168,12 @@ impl Value {
         }
     }
 }
+
+/// How deep tables may nest in a value that leaves the script.
+pub const DEPTH: usize = 32;
+
+/// The name the script's chunk has in Lua's messages, `app:12: …`.
+pub(crate) const CHUNK: &str = "app";
 
 /// What went wrong in a script: the message, and the line where the script was.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -143,23 +193,49 @@ impl Error {
         Error { message: "not responding".into(), line: None, hung: true }
     }
 
-    fn at(message: impl Into<String>, position: Position) -> Error {
-        Error { message: message.into(), line: position.line(), hung: false }
-    }
-
-    pub(crate) fn from_eval(error: &EvalAltResult) -> Error {
-        // The innermost error of a call, with its own line.
+    /// The error of a Lua call: the innermost message, without Lua's `app:12:` in front, and
+    /// the line from it or, for an error of a host function, from where the script called it.
+    pub(crate) fn from_lua(error: &mlua::Error) -> Error {
         let mut error = error;
-        while let EvalAltResult::ErrorInFunctionCall(_, _, inner, _) = error {
-            error = inner;
+        let mut traceback = None;
+        loop {
+            match error {
+                mlua::Error::CallbackError { traceback: trace, cause } => {
+                    traceback.get_or_insert(trace.clone());
+                    error = cause;
+                }
+                mlua::Error::WithContext { cause, .. } => error = cause,
+                _ => break,
+            }
         }
-        let message = match error {
-            // `throw`: what was thrown.
-            EvalAltResult::ErrorRuntime(value, _) => value.to_string(),
-            error => error.to_string().split(" (line ").next().unwrap_or_default().to_string(),
+        let text = match error {
+            mlua::Error::RuntimeError(message) => message.clone(),
+            mlua::Error::SyntaxError { message, .. } => message.clone(),
+            mlua::Error::MemoryError(_) => "not enough memory: the app used more than it may".to_string(),
+            error => error.to_string(),
         };
-        Error::at(message, error.position())
+        let (line, message) = match located(&text) {
+            Some((line, rest)) => (Some(line), rest.to_string()),
+            None => (traceback.as_deref().and_then(located_anywhere), text.clone()),
+        };
+        Error { message: message.lines().next().unwrap_or_default().trim().to_string(), line, hung: false }
     }
+}
+
+/// `app:12: message` as the line and the message.
+fn located(text: &str) -> Option<(usize, &str)> {
+    let rest = text.strip_prefix(CHUNK)?.strip_prefix(':')?;
+    let (line, message) = rest.split_once(':')?;
+    Some((line.parse().ok()?, message.trim_start()))
+}
+
+/// The first `app:12:` in a traceback.
+fn located_anywhere(text: &str) -> Option<usize> {
+    let marker = format!("{CHUNK}:");
+    text.match_indices(&marker).find_map(|(at, _)| {
+        let digits: String = text[at + marker.len()..].chars().take_while(char::is_ascii_digit).collect();
+        digits.parse().ok()
+    })
 }
 
 /// A callback of the script (apps.md §4.1).
@@ -179,17 +255,31 @@ pub enum Callback {
 
 impl Callback {
     /// The script's function and its arguments; `None` for the ones only drawn.
-    fn function(&self) -> Option<(&'static str, Vec<Dynamic>)> {
-        Some(match self {
-            Callback::Init => ("init", Vec::new()),
-            Callback::Key(key) => ("key", vec![key.clone().into()]),
-            Callback::Tick(ms) => ("tick", vec![(*ms).into()]),
-            Callback::Tap(x, y) => ("tap", vec![(*x).into(), (*y).into()]),
-            Callback::Entered(value) => ("entered", vec![value.to_dynamic()]),
-            Callback::Pick(col, row) => ("pick", vec![(*col).into(), (*row).into()]),
-            Callback::Leave => ("leave", Vec::new()),
-            Callback::Draw => return None,
-        })
+    fn function(&self, lua: &Lua) -> mlua::Result<Option<(&'static str, MultiValue)>> {
+        Ok(Some(match self {
+            Callback::Init => ("init", MultiValue::new()),
+            Callback::Key(key) => ("key", key.as_str().into_lua_multi(lua)?),
+            Callback::Tick(ms) => ("tick", (*ms).into_lua_multi(lua)?),
+            Callback::Tap(x, y) => ("tap", (*x, *y).into_lua_multi(lua)?),
+            Callback::Entered(value) => ("entered", value.to_lua(lua)?.into_lua_multi(lua)?),
+            Callback::Pick(col, row) => ("pick", (*col, *row).into_lua_multi(lua)?),
+            Callback::Leave => ("leave", MultiValue::new()),
+            Callback::Draw => return Ok(None),
+        }))
+    }
+
+    /// The name of its function, for the board's log.
+    fn name(&self) -> &'static str {
+        match self {
+            Callback::Init => "init",
+            Callback::Key(_) => "key",
+            Callback::Tick(_) => "tick",
+            Callback::Tap(..) => "tap",
+            Callback::Entered(_) => "entered",
+            Callback::Pick(..) => "pick",
+            Callback::Leave => "leave",
+            Callback::Draw => "draw",
+        }
     }
 }
 
@@ -373,6 +463,17 @@ impl Drop for Script {
     }
 }
 
+/// Whether `source` defines `draw`: known before its top level runs, which may show a form and
+/// wait. A script that draws has `function draw()`, as the apps' page says.
+fn defines_draw(source: &str) -> bool {
+    source.lines().any(|line| {
+        let line = line.trim_start();
+        let line = line.strip_prefix("local ").unwrap_or(line).trim_start();
+        line.strip_prefix("function").is_some_and(|rest| rest.trim_start().strip_prefix("draw").is_some_and(|rest| rest.trim_start().starts_with('(')))
+            || line.strip_prefix("draw").is_some_and(|rest| rest.trim_start().strip_prefix('=').is_some_and(|rest| rest.trim_start().starts_with("function")))
+    })
+}
+
 /// The script's thread: compiles, then runs callbacks until the channel closes.
 fn run(source: &str, commands: Receiver<Command>, replies: Sender<Reply>) {
     if let Some(started) = STARTED.get() {
@@ -380,36 +481,34 @@ fn run(source: &str, commands: Receiver<Command>, replies: Sender<Reply>) {
     }
     let commands = Rc::new(commands);
     let shared = Rc::new(RefCell::new(Shared::default()));
-    let engine = api::engine(shared.clone(), commands.clone(), replies.clone());
+    let operations = Rc::new(Cell::new(0));
     let started = Instant::now();
-    let compiled = engine.compile(source);
+    let compiled = api::lua(shared.clone(), commands.clone(), replies.clone(), operations.clone())
+        .and_then(|lua| lua.load(source).set_name(format!("={CHUNK}")).into_function().map(|chunk| (lua, chunk)));
     if let Some(probe) = PROBE.get() {
         probe(Probe::Callback("compile", started.elapsed()));
     }
-    let ast = match compiled {
-        Ok(ast) => ast,
+    let (lua, chunk) = match compiled {
+        Ok(compiled) => compiled,
         Err(error) => {
-            let message = error.err_type().to_string();
-            let _ = replies.send(Reply::Compiled(Err(Error::at(message, error.position()))));
+            let _ = replies.send(Reply::Compiled(Err(Error::from_lua(&error))));
             return;
         }
     };
-    let draws = ast.iter_functions().any(|function| function.name == "draw" && function.params.is_empty());
-    if replies.send(Reply::Compiled(Ok(draws))).is_err() {
+    if replies.send(Reply::Compiled(Ok(defines_draw(source)))).is_err() {
         return;
     }
-    let mut state = Dynamic::from_map(Map::new());
-    let mut scope = Scope::new();
     while let Ok(command) = commands.recv() {
         let Command::Call(callback, context) = command else {
             let _ = replies.send(Reply::Yield(Yield::Failed(Error::new("an answer nobody asked for"))));
             continue;
         };
         shared.borrow_mut().begin(context);
+        operations.set(0);
         let started = Instant::now();
-        let ran = callback_and_draw(&engine, &ast, &mut scope, &mut state, &callback);
+        let ran = callback_and_draw(&lua, &chunk, &callback);
         if let Some(probe) = PROBE.get() {
-            probe(Probe::Callback(callback.function().map_or("draw", |(name, _)| name), started.elapsed()));
+            probe(Probe::Callback(callback.name(), started.elapsed()));
         }
         let reply = match ran {
             Ok(drawn) => {
@@ -427,24 +526,27 @@ fn run(source: &str, commands: Receiver<Command>, replies: Sender<Reply>) {
 
 /// Runs the callback if the script has it, and `draw` after it but after `leave`; whether
 /// `draw` ran.
-fn callback_and_draw(engine: &Engine, ast: &AST, scope: &mut Scope, state: &mut Dynamic, callback: &Callback) -> Result<bool, Error> {
+fn callback_and_draw(lua: &Lua, chunk: &Function, callback: &Callback) -> Result<bool, Error> {
     if *callback == Callback::Init {
-        engine.run_ast_with_scope(scope, ast).map_err(|error| Error::from_eval(&error))?;
+        chunk.call::<()>(()).map_err(|error| Error::from_lua(&error))?;
     }
-    if let Some((name, args)) = callback.function() {
-        if ast.iter_functions().any(|function| function.name == name && function.params.len() == args.len()) {
-            call(engine, ast, scope, state, name, args)?;
+    if let Some((name, args)) = callback.function(lua).map_err(|error| Error::from_lua(&error))? {
+        if let Some(function) = global(lua, name) {
+            function.call::<()>(args).map_err(|error| Error::from_lua(&error))?;
         }
     }
-    let draws = ast.iter_functions().any(|function| function.name == "draw" && function.params.is_empty());
-    if *callback == Callback::Leave || !draws {
+    if *callback == Callback::Leave {
         return Ok(false);
     }
-    call(engine, ast, scope, state, "draw", Vec::new())?;
+    let Some(draw) = global(lua, "draw") else { return Ok(false) };
+    draw.call::<()>(()).map_err(|error| Error::from_lua(&error))?;
     Ok(true)
 }
 
-fn call(engine: &Engine, ast: &AST, scope: &mut Scope, state: &mut Dynamic, name: &str, args: Vec<Dynamic>) -> Result<(), Error> {
-    let options = CallFnOptions::new().eval_ast(false).rewind_scope(true).bind_this_ptr(state);
-    engine.call_fn_with_options::<Dynamic>(options, scope, ast, name, args).map(|_| ()).map_err(|error| Error::from_eval(&error))
+/// The script's function `name`, if it has one.
+fn global(lua: &Lua, name: &str) -> Option<Function> {
+    match lua.globals().raw_get::<mlua::Value>(name) {
+        Ok(mlua::Value::Function(function)) => Some(function),
+        _ => None,
+    }
 }

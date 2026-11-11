@@ -1,2 +1,2 @@
-// name: Text
-fn draw() {}
+-- name: Text
+function draw() end

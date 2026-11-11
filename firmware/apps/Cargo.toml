@@ -1,6 +1,6 @@
 [package]
 name = "quantus-apps"
-description = "Apps and games on the handheld: scripts in Rhai run inside the hui's frame"
+description = "Apps and games on the handheld: scripts in Lua run inside the hui's frame"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,6 +9,12 @@ publish = false
 [dependencies]
 embedded-graphics = "0.8.2"
 quantus-ui = { path = "../ui" }
-# The limits stay (no `unchecked`); no modules, no custom syntax, no clock: a script reaches
-# only what the host gives it. The numbers are Rhai's own, i64 and f64, so `now()` fits.
-rhai = { version = "1.27", default-features = false, features = ["std", "no_module", "no_custom_syntax", "no_time"] }
+
+# Lua 5.4: built from lua-src on the PC; on the board the handheld compiles the same version from
+# firmware/handheld/lua with the ESP toolchain (lua-src knows no ESP-IDF target), and mlua only
+# links it.
+[target.'cfg(not(target_os = "espidf"))'.dependencies]
+mlua = { version = "0.12", features = ["lua54", "vendored"] }
+
+[target.'cfg(target_os = "espidf")'.dependencies]
+mlua = { version = "0.12", features = ["lua54"] }

@@ -12,27 +12,19 @@ use quantus_ui::backend::Stub;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Shape};
 
-const SOURCE: &str = include_str!("../apps/2048.rhai");
+const SOURCE: &str = include_str!("../apps/2048.lua");
 
-fn engine() -> (rhai::Engine, rhai::AST) {
-    let mut engine = rhai::Engine::new();
-    engine.set_max_expr_depths(64, 32);
-    engine.set_max_call_levels(32);
-    let ast = engine.compile(SOURCE).expect("it compiles");
-    (engine, ast)
-}
-
-fn ints(array: &rhai::Array) -> Vec<i64> {
-    array.iter().map(|v| v.as_int().expect("a number")).collect()
-}
-
-fn array(values: &[i64]) -> rhai::Array {
-    values.iter().map(|&v| rhai::Dynamic::from(v)).collect()
+/// The script's functions, without the host: the top level only defines them.
+fn lua() -> mlua::Lua {
+    let lua = mlua::Lua::new();
+    lua.load(SOURCE).exec().expect("it runs");
+    lua
 }
 
 #[test]
 fn a_line_slides_and_joins_once() {
-    let (engine, ast) = engine();
+    let lua = lua();
+    let slide: mlua::Function = lua.globals().get("slide").unwrap();
     let cases: [([i64; 4], [i64; 4], i64); 6] = [
         ([2, 2, 2, 2], [4, 4, 0, 0], 8),
         ([2, 2, 4, 4], [4, 8, 0, 0], 12),
@@ -42,16 +34,18 @@ fn a_line_slides_and_joins_once() {
         ([8, 8, 8, 0], [16, 8, 0, 0], 16),
     ];
     for (line, expected, gained) in cases {
-        let result = engine.call_fn::<rhai::Map>(&mut rhai::Scope::new(), &ast, "slide", (array(&line),)).expect("slid");
-        assert_eq!(ints(&result["line"].clone().into_array().unwrap()), expected, "{line:?}");
-        assert_eq!(result["gained"].as_int().unwrap(), gained, "{line:?}");
+        let (out, points): (Vec<i64>, i64) = slide.call(line.to_vec()).expect("slid");
+        assert_eq!(out, expected, "{line:?}");
+        assert_eq!(points, gained, "{line:?}");
     }
     // A board moved to the right and down.
-    let board = array(&[2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
-    let right = engine.call_fn::<rhai::Map>(&mut rhai::Scope::new(), &ast, "moved", (board.clone(), "right".to_string())).unwrap();
-    assert_eq!(ints(&right["board"].clone().into_array().unwrap()), [0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
-    let down = engine.call_fn::<rhai::Map>(&mut rhai::Scope::new(), &ast, "moved", (board, "down".to_string())).unwrap();
-    assert_eq!(ints(&down["board"].clone().into_array().unwrap()), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2]);
+    let moved: mlua::Function = lua.globals().get("moved").unwrap();
+    let board = vec![2i64, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
+    let (right, _, changed): (Vec<i64>, i64, bool) = moved.call((board.clone(), "right")).unwrap();
+    assert!(changed);
+    assert_eq!(right, [0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
+    let (down, _, _): (Vec<i64>, i64, bool) = moved.call((board, "down")).unwrap();
+    assert_eq!(down, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2]);
 }
 
 /// A saved game with `board`.
