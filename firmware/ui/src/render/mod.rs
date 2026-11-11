@@ -302,6 +302,7 @@ impl Frame {
             Screen::Modes { selected } => modes(&mut shapes, app, *selected, glass),
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
             Screen::Calibrate(state, _) => calibration(&mut shapes, state, app.settings.language),
+            Screen::App => {}
         }
         if let Some(keys) = crate::soft::bar(app) {
             soft::strips(&mut shapes, app, &keys);
@@ -461,7 +462,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             let (row, column) = sheet::cell_at(kind, app.sheets.get(kind), point)?;
             Some(Target::Cell(row, column))
         }
-        Screen::Calibrate(..) => None,
+        Screen::Calibrate(..) | Screen::App => None,
         Screen::Modes { selected } => {
             let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
             let on_page = (Mode::ALL.len() - first).min(TILES_PER_PAGE);
@@ -499,7 +500,7 @@ const SIDE: i32 = 40;
 /// Whether the screen has ‹ in the top bar: a menu, and the answer to a sheet or a sketch.
 fn goes_back<B>(app: &App<B>) -> bool {
     match app.screen {
-        Screen::Modes { .. } | Screen::Menu(_) => true,
+        Screen::Modes { .. } | Screen::Menu(_) | Screen::App => true,
         Screen::Calc => app.answer.is_some(),
         Screen::Calibrate(..) => false,
     }

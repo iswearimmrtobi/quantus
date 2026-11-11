@@ -153,7 +153,9 @@ MODE → Apps ──► list (Backend::apps) ──► Backend::open_app(id) ─
   `draw(&self, canvas: &mut Canvas)`, `tap(&mut self, point, host)`, `soft_keys(&self)` (none
   hides the strips), `input(&self) -> Input` (the template in use, §4.4), `info(&self)` (the
   credits) and `leave(&mut self, host) -> Option<String>` for a value handed to the calculation.
-- `Screen::App(Box<dyn Applet>)`. `App::press`, `App::tick`, `Frame::new` and `render::target`
+- `Screen::App`, with the applet itself in `App::running` (`Running`: the applet, its
+  `AppInfo`, the screen it was opened from), since `Screen` is cloned and compared and a
+  `Box<dyn Applet>` is neither. `App::press`, `App::tick`, `Frame::new` and `render::target`
   each get one branch for it; that is all the hui knows about apps.
 - The hui draws the top bar (the app's name where a mode's name stands, the clock and the
   battery as everywhere), the soft-key strips when the app has any, the template's part (the

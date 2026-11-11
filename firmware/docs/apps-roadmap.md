@@ -110,7 +110,7 @@ Rust in `ui/tests/apps.rs`.
   Built without `info` on the trait: the `AppInfo` the list gave travels in `Running`. Added:
   `frame` (an outline, `Shape::Outline`, for the grid's cursor and 2048's new tile) and
   `text_height`; text and formulas are placed by their top left, like every other shape.
-- [ ] **1.2 `Screen::App` and `App::running`.** `Running { applet, info, menu: Option<..>,
+- [x] **1.2 `Screen::App` and `App::running`.** `Running { applet, info, menu: Option<..>,
   back: Box<Screen> }` as a field of `App` (F2). `App::open_applet(applet, info)` for the tests
   and step 2. `App::press`: on `Screen::App`, AC leaves to `back`, MODE leaves to
   `Screen::Modes`, everything else goes through `AppKey::from` to `Applet::key`; modifiers are

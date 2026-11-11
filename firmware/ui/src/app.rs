@@ -1,5 +1,6 @@
 //! The calculator's state and what each key does to it.
 
+use crate::applet::{AppInfo, AppKey, Applet, Host};
 use crate::backend::{
     Backend, Catalogue, Graph, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Units, VariableCommand, Window,
     WlanStatus,
@@ -126,6 +127,32 @@ pub enum Screen {
     Menu(Menu),
     /// The touch calibration, and the screen to go back to.
     Calibrate(Calibrating, Box<Screen>),
+    /// An app, which [`App::running`] holds.
+    App,
+}
+
+/// The app on the screen: the applet, what the list said of it, and the screen it was opened
+/// from.
+pub struct Running {
+    pub applet: Box<dyn Applet>,
+    pub info: AppInfo,
+    pub back: Box<Screen>,
+}
+
+/// What an app asks of the device, answered over the backend.
+struct AppHost<'a, B> {
+    backend: &'a mut B,
+    lang: Lang,
+}
+
+impl<B: Backend> Host for AppHost<'_, B> {
+    fn random(&mut self) -> u32 {
+        self.backend.random()
+    }
+
+    fn lang(&self) -> Lang {
+        self.lang
+    }
 }
 
 /// A calculation in the history.
@@ -370,6 +397,8 @@ pub struct App<B> {
     unit_run: String,
     /// What CATALOG's search looks through, built when it is first used in a language and mode.
     search: Option<search::Index>,
+    /// The app on the screen while [`Screen::App`] shows.
+    pub running: Option<Running>,
 }
 
 /// How many recent units the unit bar remembers.
@@ -502,6 +531,7 @@ impl<B: Backend> App<B> {
             typed_units: Vec::new(),
             unit_run: String::new(),
             search: None,
+            running: None,
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -682,6 +712,9 @@ impl<B: Backend> App<B> {
         ));
         let Some(key) = (if typing { Some(key) } else { key.plain() }) else { return };
         self.caret_on = true;
+        if matches!(self.screen, Screen::App) {
+            return self.app_key(key);
+        }
         let calc = matches!(self.screen, Screen::Calc);
         if calc && Modifier::is_modifier(key) {
             return self.modifier.press(key);
@@ -726,9 +759,52 @@ impl<B: Backend> App<B> {
                 Key::Ac | Key::Left => self.screen = *back,
                 _ => self.screen = Screen::Calibrate(state, back),
             },
+            Screen::App => self.screen = Screen::App,
         }
         self.fit_sheets();
         self.editor.commit(before);
+    }
+
+    /// Opens `applet` over the screen shown now, which AC goes back to.
+    pub fn open_applet(&mut self, applet: Box<dyn Applet>, info: AppInfo) {
+        self.close_app();
+        let back = std::mem::replace(&mut self.screen, Screen::App);
+        self.running = Some(Running { applet, info, back: Box::new(back) });
+    }
+
+    /// The applet and what it may ask of the device, borrowed apart.
+    fn applet(&mut self) -> Option<(&mut Running, AppHost<'_, B>)> {
+        let lang = self.settings.language;
+        let running = self.running.as_mut()?;
+        Some((running, AppHost { backend: &mut self.backend, lang }))
+    }
+
+    /// A key on an app: AC leaves to where it was opened from, MODE to the mode menu; the others
+    /// go to the applet as far as it gets them.
+    fn app_key(&mut self, key: Key) {
+        match key {
+            Key::Ac => {
+                let back = self.close_app();
+                self.screen = back.unwrap_or(Screen::Calc);
+            }
+            Key::Mode => {
+                self.close_app();
+                self.screen = Screen::Modes { selected: self.mode.index() };
+            }
+            key => {
+                let Some(key) = AppKey::from_key(key) else { return };
+                let Some((running, mut host)) = self.applet() else { return };
+                running.applet.key(key, &mut host);
+            }
+        }
+    }
+
+    /// Leaves the app, if one runs: it is told, and the screen it was opened from is given back.
+    fn close_app(&mut self) -> Option<Screen> {
+        let (running, mut host) = self.applet()?;
+        running.applet.leave(&mut host);
+        let running = self.running.take()?;
+        Some(*running.back)
     }
 
     /// The touch calibration screen, back to this screen afterwards.

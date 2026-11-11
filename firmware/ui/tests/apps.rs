@@ -1,12 +1,111 @@
 //! Apps inside the hui's frame (firmware/docs/apps.md): the keys an app gets, its canvas, and an
 //! applet written in Rust driven through the app.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 
-use quantus_ui::applet::{AppKey, Canvas, Palette};
+use quantus_ui::app::{App, Mode, Screen};
+use quantus_ui::applet::{AppInfo, AppKey, AppKind, Applet, Canvas, Host, Palette};
+use quantus_ui::backend::Stub;
 use quantus_ui::key::Key;
 use quantus_ui::render::{colors, Shape};
+
+/// What the test applet saw.
+#[derive(Default)]
+struct Log {
+    keys: Vec<AppKey>,
+    left: usize,
+}
+
+/// An applet that writes down what it gets and draws a square where it is told.
+struct Probe {
+    log: Rc<RefCell<Log>>,
+    soft: Vec<String>,
+}
+
+impl Applet for Probe {
+    fn key(&mut self, key: AppKey, _host: &mut dyn Host) {
+        self.log.borrow_mut().keys.push(key);
+    }
+
+    fn draw(&self, canvas: &mut Canvas) {
+        canvas.clear(colors::SURFACE);
+        canvas.rect(0, -40, 20, 60, colors::AMBER);
+    }
+
+    fn soft_keys(&self) -> Vec<String> {
+        self.soft.clone()
+    }
+
+    fn leave(&mut self, _host: &mut dyn Host) -> Option<String> {
+        self.log.borrow_mut().left += 1;
+        None
+    }
+}
+
+fn info() -> AppInfo {
+    AppInfo { id: "probe".into(), name: "Probe".into(), kind: AppKind::Game, api: 1, built_in: true, usable: true, ..AppInfo::default() }
+}
+
+/// The app with the probe opened from the calculation, and what the probe sees.
+fn opened(soft: &[&str]) -> (App<Stub>, Rc<RefCell<Log>>) {
+    let mut app = App::new(Stub);
+    let log = Rc::new(RefCell::new(Log::default()));
+    let probe = Probe { log: log.clone(), soft: soft.iter().map(|s| s.to_string()).collect() };
+    app.open_applet(Box::new(probe), info());
+    (app, log)
+}
+
+fn press(app: &mut App<Stub>, keys: &[Key]) {
+    keys.iter().for_each(|&key| app.key(key));
+}
+
+#[test]
+fn keys_arrive_in_order() {
+    let (mut app, log) = opened(&[]);
+    assert_eq!(app.screen, Screen::App);
+    press(&mut app, &[Key::Up, Key::Digit(5), Key::Exe, Key::Soft(3)]);
+    assert_eq!(log.borrow().keys, [AppKey::Up, AppKey::Digit(5), AppKey::Exe, AppKey::Soft(3)]);
+}
+
+#[test]
+fn modifiers_reach_nothing() {
+    let (mut app, log) = opened(&[]);
+    press(&mut app, &[Key::Shift, Key::Digit(1), Key::Alpha, Key::Digit(2), Key::Sin]);
+    // SHIFT and ALPHA wait for nothing: the digits come as they are.
+    assert_eq!(log.borrow().keys, [AppKey::Digit(1), AppKey::Digit(2)]);
+    assert_eq!(app.modifier.pending, None);
+}
+
+#[test]
+fn ac_goes_back_to_where_the_app_was_opened() {
+    let (mut app, log) = opened(&[]);
+    app.key(Key::Ac);
+    assert_eq!(app.screen, Screen::Calc);
+    assert!(app.running.is_none());
+    assert_eq!(log.borrow().left, 1);
+
+    // From the mode menu, back to it.
+    let mut app = App::new(Stub);
+    app.key(Key::Mode);
+    let log = Rc::new(RefCell::new(Log::default()));
+    app.open_applet(Box::new(Probe { log: log.clone(), soft: Vec::new() }), info());
+    app.key(Key::Ac);
+    assert!(matches!(app.screen, Screen::Modes { .. }));
+}
+
+#[test]
+fn mode_leaves_to_the_mode_menu() {
+    let (mut app, log) = opened(&[]);
+    app.mode = Mode::Algebra;
+    app.key(Key::Mode);
+    assert_eq!(app.screen, Screen::Modes { selected: 1 });
+    assert_eq!(log.borrow().left, 1);
+    assert!(log.borrow().keys.is_empty());
+}
 
 #[test]
 fn keys_map_as_the_api_names_them() {
