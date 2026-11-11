@@ -841,8 +841,10 @@ impl<B: Backend> App<B> {
                 let layer = self.modifier.layer();
                 let resolved = layer::resolve(key, layer, self.modifier.exponent, false);
                 self.modifier.settle(key, layer);
+                let shift = layer == Layer::Shift;
                 return match resolved {
-                    Resolved::Key(key) if self.line_key(key, layer == Layer::Shift) => {}
+                    Resolved::Key(key) if self.applet_typed(key, shift) => {}
+                    Resolved::Key(key) if self.line_key(key, shift) => {}
                     Resolved::Key(key) if self.cells_key(key, layer == Layer::Shift) => {}
                     Resolved::Key(key) => self.app_key(key),
                     Resolved::Insert(latex) => self.line_insert(latex),
@@ -971,7 +973,21 @@ impl<B: Backend> App<B> {
     }
 
     /// LaTeX from a layer (UNIT, SHIFT) or SYMB into the line template's input line.
+    /// A key for an app that types itself (a form); whether it took it.
+    fn applet_typed(&mut self, key: Key, shift: bool) -> bool {
+        if matches!(key, Key::Ac | Key::Mode | Key::Optn | Key::Soft(_)) {
+            return false;
+        }
+        let Some((applet, mut host)) = self.applet() else { return false };
+        applet.types() && applet.typed(key, shift, &mut host)
+    }
+
     fn line_insert(&mut self, latex: &str) {
+        if let Some((applet, mut host)) = self.applet() {
+            if applet.types() {
+                return applet.insert(latex, &mut host);
+            }
+        }
         let Some(running) = &mut self.running else { return };
         if let Some(cell) = &mut running.cell {
             paste_latex(cell, &latex::parse(latex));
@@ -1049,7 +1065,8 @@ impl<B: Backend> App<B> {
     fn app_typing(&self) -> bool {
         let Some(running) = &self.running else { return false };
         matches!(running.template.question, Some(Question::Ask { .. }))
-            || (running.template.question.is_none() && (running.applet.input().line() || running.cell.is_some()))
+            || (running.template.question.is_none()
+                && (running.applet.input().line() || running.cell.is_some() || running.applet.types()))
     }
 
     /// A key on the text template: letters, digits and the space type, DEL takes one back, OK or

@@ -374,7 +374,7 @@ M4.
   (apps.md §3): title, fields (id, label, unit, value, hint, choices), results (label, formula,
   unit). `quantus-apps` reads it from the script's map and reports what is wrong with the
   field's name. Tests on good and bad descriptions.
-- [ ] **9.2 The form applet.** `FormApplet: Applet` in the hui on the sheets' fields
+- [x] **9.2 The form applet.** `FormApplet: Applet` in the hui on the sheets' fields
   ([`sheet.rs`](../ui/src/sheet.rs), [`render/sheet.rs`](../ui/src/render/sheet.rs)): one field
   per line with label and unit, ↑/↓, the editor in the field, `choices` as a list, `hint` below.
   More fields than fit scroll. Test with a form built in Rust.

@@ -21,6 +21,21 @@ pub trait Applet {
     /// A key pressed, of those the input template does not take.
     fn key(&mut self, key: AppKey, host: &mut dyn Host);
 
+    /// Whether the app takes the calculator's typing itself, SHIFT, ALPHA and UNIT working: then
+    /// [`Applet::typed`] gets every key first (a form, which the hui's own applet is).
+    fn types(&self) -> bool {
+        false
+    }
+
+    /// A key as the layers made it, `shift` if SHIFT was on; whether the app took it. AC, MODE,
+    /// OPTN and the soft keys are left to the hui.
+    fn typed(&mut self, _key: Key, _shift: bool, _host: &mut dyn Host) -> bool {
+        false
+    }
+
+    /// LaTeX a layer types (UNIT, SHIFT), for an app that [`types`](Applet::types).
+    fn insert(&mut self, _latex: &str, _host: &mut dyn Host) {}
+
     /// Time passes; whether the app wants to be drawn again.
     fn tick(&mut self, _now_ms: u64, _host: &mut dyn Host) -> bool {
         false
@@ -448,6 +463,26 @@ impl Canvas {
     pub fn line(&mut self, x1: i32, y1: i32, x2: i32, y2: i32, color: Rgb565, width: i32) {
         let points = vec![self.at(x1, y1), self.at(x2, y2)];
         self.push(Shape::Path(points, color, width.clamp(1, 32) as u32));
+    }
+
+    /// A row of the input as the calculation sets it, its baseline at `y`, and the caret where
+    /// `editor`'s cursor is if `caret`.
+    pub fn editor(&mut self, x: i32, y: i32, editor: &crate::editor::Editor, caret: bool, color: Rgb565) {
+        let row = layout::layout(&editor.row, Scale::Normal);
+        let origin = self.at(x, y);
+        let mark = layout::caret(&row, origin, editor.path(), editor.pos());
+        if !editor.is_empty() {
+            self.push(Shape::Math(origin, row, color));
+        }
+        if caret {
+            self.push(Shape::Fill(mark, colors::primary()));
+        }
+    }
+
+    /// A row, its baseline at `y`.
+    pub fn row(&mut self, x: i32, y: i32, row: &crate::editor::Row, scale: Scale, color: Rgb565) {
+        let laid = layout::layout(row, scale);
+        self.push(Shape::Math(self.at(x, y), laid, color));
     }
 
     /// Text in the normal font, the top left of its line at (x, y).
