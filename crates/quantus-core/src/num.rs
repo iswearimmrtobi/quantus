@@ -795,8 +795,22 @@ impl Value {
         }
         // Binary precision with room to spare: roughly log2(10) bits per digit.
         let bits = ((digits + 10) as f64 * std::f64::consts::LOG2_10).ceil() as usize + 64;
-        let mut consts = Consts::new().map_err(|_| QuantusError::other("could not initialise constants"))?;
-        let result = self.eval_float(bits, &mut consts)?;
+        // The constants cache π, e and ln 2, which cost more than the function itself; keep them
+        // for the next call instead of building them again for every sample of an integral.
+        thread_local! {
+            static CONSTS: std::cell::RefCell<Option<Consts>> = const { std::cell::RefCell::new(None) };
+        }
+        let mut consts = match CONSTS.with(|c| c.borrow_mut().take()) {
+            Some(consts) => consts,
+            None => Consts::new().map_err(|_| QuantusError::other("could not initialise constants"))?,
+        };
+        let outcome = self.irrational_text(bits, digits, &mut consts);
+        CONSTS.with(|c| *c.borrow_mut() = Some(consts));
+        outcome
+    }
+
+    fn irrational_text(&self, bits: usize, digits: usize, consts: &mut Consts) -> Result<Decimal> {
+        let result = self.eval_float(bits, consts)?;
         if result.is_nan() || result.is_inf() {
             return Err(self.not_real());
         }
@@ -804,7 +818,7 @@ impl Value {
             return Ok(Decimal::new(IBig::ZERO, 0));
         }
         let text = result
-            .format(Radix::Dec, RoundingMode::ToEven, &mut consts)
+            .format(Radix::Dec, RoundingMode::ToEven, consts)
             .map_err(|_| QuantusError::other("could not format a number"))?;
         parse_float_text(&text, digits).ok_or_else(|| QuantusError::other("could not read a computed number"))
     }
