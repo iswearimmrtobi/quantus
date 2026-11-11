@@ -41,7 +41,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   that colour-blind eyes tell apart.
 - **Apps and games on the handheld**: MODE has a third page with the tiles **Apps** and
   **Setup** (the menu of SHIFT + MODE). Apps lists games and tools, built in and from the SD
-  card: an app is a Rhai script copied into `/apps/`, passed from user to user as a file. Built
+  card: an app is a Lua script copied into `/apps/`, passed from user to user as a file. Built
   in are **tic tac toe** (two players or against the handheld, *leicht* or *schwer*, which never
   loses) and **2048** (one move back, the best score; a game survives switching off). Scripts
   draw on the area below the hui's top bar, label the soft keys, and are typed into through
@@ -51,7 +51,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   and formulas, and the hui draws and works it out; the simulator's card has a voltage divider.
   OPTN inside an app shows its credits. Apps are found by CATALOG's search, have limits on time
   and memory, and are locked in Prüfungsmodus. The site has a page on writing them; the
-  simulator takes `--seed` to repeat a game.
+  simulator takes `--seed` to repeat a game. On the dev kit a move of either game takes under
+  10 ms; the serial console types the soft keys as Shift+F1 to F12, and the firmware is flashed
+  in QIO at 80 MHz, which runs scripts about 1.6 times as fast.
 
 ### Fixed
 
