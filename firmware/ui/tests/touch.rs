@@ -110,14 +110,14 @@ fn the_mode_tiles_page_by_swipe_and_by_dot() {
     assert_eq!(app.screen, Screen::Modes { selected: 6 });
     swipe(&mut app, middle, middle + Point::new(120, 0));
     assert_eq!(app.screen, Screen::Modes { selected: 0 });
-    tap(&mut app, dot_rect(1).center());
+    tap(&mut app, dot_rect(1, 3).center());
     assert_eq!(app.screen, Screen::Modes { selected: 6 });
     // The fifth tile of the second page: Prüfen.
     tap(&mut app, tile_rect(4).center());
     assert_eq!((app.mode, &app.screen), (Mode::Verify, &Screen::Calc));
     // The last tile opens the sessions; back closes the tiles.
     app.key(Key::Mode);
-    tap(&mut app, dot_rect(1).center());
+    tap(&mut app, dot_rect(1, 3).center());
     tap(&mut app, tile_rect(5).center());
     assert_eq!(menu(&app).level().page.title.get(quantus_ui::text::Lang::De), "Sitzungen");
     tap(&mut app, BACK);
@@ -250,7 +250,7 @@ fn the_calibration_learns_the_panel() {
     tap(&mut app, panel(Point::new(20, 12)));
     assert_eq!(app.screen, Screen::Calc);
     app.key(Key::Mode);
-    tap(&mut app, panel(dot_rect(1).center()));
+    tap(&mut app, panel(dot_rect(1, 3).center()));
     assert_eq!(app.screen, Screen::Modes { selected: 6 });
 }
 

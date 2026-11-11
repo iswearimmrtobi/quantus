@@ -6,6 +6,7 @@
 //! -- kind: game
 //! -- api: 1
 //! -- author: Quantus
+//! -- tile: yes
 //! ```
 
 use quantus_ui::applet::{AppInfo, AppKind};
@@ -30,6 +31,8 @@ pub struct Header {
     pub about: Option<String>,
     pub abouts: Vec<(String, String)>,
     pub license: Option<String>,
+    /// `tile: yes`: the app has a tile of its own in the MODE menu, after the modes.
+    pub tile: bool,
 }
 
 impl Header {
@@ -76,6 +79,7 @@ pub fn parse(text: &str) -> Option<Header> {
             "version" => header.version = Some(value),
             "about" => header.about = Some(value),
             "license" => header.license = Some(value),
+            "tile" => header.tile = matches!(value.to_lowercase().as_str(), "yes" | "true" | "1"),
             key => {
                 if let Some(code) = key.strip_prefix("name.") {
                     header.names.push((code.to_string(), value));
@@ -107,5 +111,6 @@ pub fn info(id: &str, text: &str, built_in: bool, lang: Lang) -> Option<AppInfo>
         api: header.api,
         built_in,
         usable: header.api <= API,
+        tile: header.tile,
     })
 }

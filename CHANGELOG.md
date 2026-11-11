@@ -52,7 +52,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   they ask with `confirm` and `ask`, keep data in `/apps/data/`, work inputs out with the
   engine (`calc`) and hand a result to the calculation. A **form** declares fields with units
   and formulas, and the hui draws and works it out; the simulator's card has a voltage divider.
-  OPTN inside an app shows its credits. Apps are found by CATALOG's search, have limits on time
+  OPTN inside an app shows its credits. An app whose header says `-- tile: yes` also gets a
+  tile of its own in the MODE menu, after Setup. Apps are found by CATALOG's search, have limits on time
   and memory, and are locked in Prüfungsmodus. The site has a page on writing them; the
   simulator takes `--seed` to repeat a game. On the dev kit a move of either game takes under
   10 ms; the serial console types the soft keys as Shift+F1 to F12, and the firmware is flashed

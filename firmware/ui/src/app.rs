@@ -489,6 +489,9 @@ pub struct App<B> {
     handed: Option<String>,
     /// The apps CATALOG's search finds, read when it opens; none in Prüfungsmodus.
     searched_apps: Vec<AppInfo>,
+    /// The apps with a tile of their own in the mode menu, after the modes (`tile: yes`), read
+    /// when it opens; none in Prüfungsmodus.
+    pub app_tiles: Vec<AppInfo>,
 }
 
 /// How many recent units the unit bar remembers.
@@ -534,6 +537,11 @@ impl<B> App<B> {
     /// What the finger is on, while it is down and has not moved away.
     pub fn pressed(&self) -> Option<Target> {
         self.pressed
+    }
+
+    /// The tiles of the mode menu: the modes, then the apps with a tile of their own.
+    pub fn tile_count(&self) -> usize {
+        Mode::ALL.len() + self.app_tiles.len()
     }
 
     /// How far a finger drags the screen: across the mode tiles, along a menu list.
@@ -625,6 +633,7 @@ impl<B: Backend> App<B> {
             app_data: std::collections::HashMap::new(),
             handed: None,
             searched_apps: Vec::new(),
+            app_tiles: Vec::new(),
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -1107,7 +1116,7 @@ impl<B: Backend> App<B> {
                 }
                 Key::Mode => {
                     self.close_app();
-                    self.screen = Screen::Modes { selected: self.mode.index() };
+                    self.show_modes();
                     return;
                 }
                 key => {
@@ -1130,7 +1139,7 @@ impl<B: Backend> App<B> {
             Key::Digit(2) | Key::Ac => false,
             Key::Mode => {
                 self.close_app();
-                self.screen = Screen::Modes { selected: self.mode.index() };
+                self.show_modes();
                 return;
             }
             _ => return,
@@ -1238,7 +1247,10 @@ impl<B: Backend> App<B> {
                 self.backend.drop_pending();
                 self.busy = false;
                 let back = self.close_app();
-                self.screen = if key == Key::Mode { Screen::Modes { selected: self.mode.index() } } else { back.unwrap_or(Screen::Calc) };
+                match key {
+                    Key::Mode => self.show_modes(),
+                    _ => self.screen = back.unwrap_or(Screen::Calc),
+                }
             }
             return;
         }
@@ -1260,7 +1272,7 @@ impl<B: Backend> App<B> {
             }
             Key::Mode => {
                 self.close_app();
-                self.screen = Screen::Modes { selected: self.mode.index() };
+                self.show_modes();
             }
             key if self.text_key(key) => {}
             key if self.cells_key(key, false) => {}
@@ -1589,7 +1601,7 @@ impl<B: Backend> App<B> {
     /// The mode menu on the first tile of `page`, if there is one.
     fn show_page(&mut self, page: usize) {
         let selected = page * TILES_PER_PAGE;
-        if matches!(self.screen, Screen::Modes { .. }) && selected < Mode::ALL.len() {
+        if matches!(self.screen, Screen::Modes { .. }) && selected < self.tile_count() {
             self.screen = Screen::Modes { selected };
         }
     }
@@ -2211,7 +2223,7 @@ impl<B: Backend> App<B> {
     fn calc_key(&mut self, key: Key, shift: bool) {
         match key {
             Key::Mode if shift => return self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
-            Key::Mode => return self.screen = Screen::Modes { selected: self.mode.index() },
+            Key::Mode => return self.show_modes(),
             Key::Optn => return self.screen = Screen::Menu(Menu::new(tree::optn(self.mode))),
             Key::Const => return self.open_catalogue(Catalogue::Constants),
             Key::Conv => return self.open_catalogue(Catalogue::Units),
@@ -2643,7 +2655,7 @@ impl<B: Backend> App<B> {
     /// The mode menu: ←/→ through the tiles of all pages, ↑/↓ by a row, across pages too; a
     /// digit picks tiles 1–9, the others need the cursor.
     fn modes_key(&mut self, selected: usize, key: Key) {
-        let count = Mode::ALL.len();
+        let count = self.tile_count();
         let selected = match key {
             Key::Digit(digit @ 1..=9) if usize::from(digit) <= count => {
                 return self.choose(usize::from(digit) - 1);
@@ -2659,8 +2671,40 @@ impl<B: Backend> App<B> {
         self.screen = Screen::Modes { selected };
     }
 
+    /// The mode menu on the tile of the mode open, with the apps that have a tile as the backend
+    /// has them now; none in Prüfungsmodus (apps.md decision 6).
+    fn show_modes(&mut self) {
+        self.app_tiles = match self.settings.exam {
+            true => Vec::new(),
+            false => self.backend.apps(self.settings.language).into_iter().filter(|app| app.tile).collect(),
+        };
+        self.screen = Screen::Modes { selected: self.mode.index() };
+    }
+
+    /// Opens the app of the tile `index` after the modes; AC comes back to the mode menu. One
+    /// that cannot start says why over the list of apps.
+    fn open_tile(&mut self, index: usize) {
+        let Some(info) = self.app_tiles.get(index).cloned() else { return };
+        let opened = match info.usable {
+            true => self.backend.open_app(&info.id),
+            false => Err(text::NEWER_API.get(self.settings.language).to_string()),
+        };
+        match opened {
+            Ok(applet) => {
+                self.screen = Screen::Modes { selected: Mode::ALL.len() + index };
+                self.open_applet(applet, info);
+            }
+            Err(note) => {
+                let mut menu = Menu::new(&tree::APPS);
+                menu.edit = Some(Edit::Note { label: tree::APPS.title, note });
+                self.screen = Screen::Menu(menu);
+            }
+        }
+    }
+
     fn choose(&mut self, index: usize) {
-        match Mode::ALL[index] {
+        let Some(&mode) = Mode::ALL.get(index) else { return self.open_tile(index - Mode::ALL.len()) };
+        match mode {
             Mode::Sessions => self.screen = Screen::Menu(Menu::new(&tree::SESSIONS)),
             // SETUP, and the mode stays as it is.
             Mode::Setup => self.screen = Screen::Menu(Menu::new(&tree::SETUP)),

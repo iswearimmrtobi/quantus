@@ -7,7 +7,7 @@ use embedded_graphics::primitives::{Circle, Rectangle, RoundedRectangle, Triangl
 
 use super::{
     colors, dot_rect, fit, line_rect, list_edge, number_button, panel, rounded, tile_rect, Shape, BAR,
-    HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, PAGES, THUMBNAIL, WIDTH,
+    HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, THUMBNAIL, WIDTH,
 };
 use crate::app::{App, Mode, TILES_PER_PAGE};
 use crate::backend::{Storage, WlanStatus};
@@ -77,41 +77,48 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     }
 }
 
-/// The mode menu: pages of tiles, numbered over all pages. While a finger drags them, the page
-/// moves with it and its neighbour comes in.
+/// The mode menu: pages of tiles, numbered over all pages, the apps with a tile of their own
+/// after the modes. While a finger drags them, the page moves with it and its neighbour comes in.
 pub(super) fn modes<B>(shapes: &mut Vec<Shape>, app: &App<B>, selected: usize, glass: bool) {
     let lang = app.settings.language;
+    // Each tile's name on one line, and with the places it may break at.
+    let names: Vec<(String, String)> = Mode::ALL
+        .iter()
+        .map(|mode| (mode.name(lang), mode.text().get(lang).replace('\u{ad}', "-\u{ad}")))
+        .chain(app.app_tiles.iter().map(|info| (info.name.clone(), info.name.clone())))
+        .collect();
+    let count = super::pages(names.len());
     let page = selected / TILES_PER_PAGE;
     let dx = app.drag().map_or(0, |drag| drag.x);
-    let pages = if dx == 0 { page..=page } else { page.saturating_sub(1)..=(page + 1).min(PAGES - 1) };
+    let pages = if dx == 0 { page..=page } else { page.saturating_sub(1)..=(page + 1).min(count - 1) };
     for shown in pages {
         let shift = Point::new((shown as i32 - page as i32) * WIDTH as i32 + dx, 0);
-        tiles(shapes, shown, selected, app.pressed(), shift, lang, glass);
+        tiles(shapes, &names, shown, selected, app.pressed(), shift, glass);
     }
 
-    if PAGES > 1 {
-        for index in 0..PAGES {
+    if count > 1 {
+        for index in 0..count {
             let color = if index == page { colors::text() } else { colors::faint() };
-            let dot = dot_rect(index);
+            let dot = dot_rect(index, count);
             shapes.push(Shape::Circle(Circle::new(dot.top_left, dot.size.width), color));
         }
     }
 }
 
-/// The tiles of mode page `page`, moved by `shift`.
+/// The tiles of mode page `page`, moved by `shift`, of the tiles `names`.
 fn tiles(
     shapes: &mut Vec<Shape>,
+    names: &[(String, String)],
     page: usize,
     selected: usize,
     pressed: Option<Target>,
     shift: Point,
-    lang: text::Lang,
     glass: bool,
 ) {
     let first = page * TILES_PER_PAGE;
-    let modes = &Mode::ALL[first..(first + TILES_PER_PAGE).min(Mode::ALL.len())];
+    let on_page = names.get(first..(first + TILES_PER_PAGE).min(names.len())).unwrap_or_default();
     let small = Scale::Small.metrics();
-    for (offset, mode) in modes.iter().enumerate() {
+    for (offset, (name, breakable)) in on_page.iter().enumerate() {
         let index = first + offset;
         let Rectangle { top_left: at, size } = tile_rect(offset).translate(shift);
         let (tile_width, tile_height) = (size.width as i32, size.height as i32);
@@ -123,13 +130,11 @@ fn tiles(
         shapes.push(Shape::Text(at + Point::new(12, 10 + small.ascent), number, Scale::Small, colors::text()));
         // The name at the bottom, a word per line when it is too wide, and small when a word is.
         let room = tile_width - 18;
-        let name = mode.name(lang);
-        let lines: Vec<String> = if Scale::Normal.width(&name) <= room {
-            vec![name]
+        let lines: Vec<String> = if Scale::Normal.width(name) <= room {
+            vec![name.clone()]
         } else {
             // At the spaces, and at the soft hyphens with a hyphen.
-            let hyphenated = mode.text().get(lang).replace('\u{ad}', "-\u{ad}");
-            hyphenated.split([' ', '\u{ad}']).map(str::to_string).collect()
+            breakable.split([' ', '\u{ad}']).map(str::to_string).collect()
         };
         let fits = lines.iter().all(|line| Scale::Normal.width(line) <= room);
         let scale = if fits { Scale::Normal } else { Scale::Small };

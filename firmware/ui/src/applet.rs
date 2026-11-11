@@ -372,6 +372,8 @@ pub struct AppInfo {
     pub built_in: bool,
     /// Whether this firmware can run it: its API is not newer.
     pub usable: bool,
+    /// Whether it has a tile of its own in the MODE menu (`tile: yes` in its header).
+    pub tile: bool,
 }
 
 /// The most shapes one frame of an app may have; more are dropped.

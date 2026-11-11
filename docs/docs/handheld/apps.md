@@ -54,6 +54,7 @@ them without running it.
 | `api` | The version of this page the app was written for, `1`. An app that needs a newer one is listed in grey |
 | `author` | Repeat it for several authors. Without one, **Info** says *Author unknown* |
 | `version`, `about`, `about.de`, `license` | Shown by **OPTN → Info** inside the app |
+| `tile` | `yes` puts the app on a tile of its own in the MODE menu, after **Setup**, besides the list |
 
 Each value is one line of at most 80 characters.
 

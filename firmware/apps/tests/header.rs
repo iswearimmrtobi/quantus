@@ -35,6 +35,16 @@ fn every_line_is_read() {
 }
 
 #[test]
+fn a_tile_is_asked_for_with_yes() {
+    assert!(!parse(FULL).expect("a header").tile);
+    for yes in ["yes", "Yes", "true", "1"] {
+        assert!(parse(&format!("-- name: T\n-- tile: {yes}\n")).expect("a header").tile, "{yes}");
+    }
+    assert!(!parse("-- name: T\n-- tile: no\n").expect("a header").tile);
+    assert!(info("t", "-- name: T\n-- tile: yes\n", false, Lang::En).expect("an app").tile);
+}
+
+#[test]
 fn no_name_no_app() {
     assert_eq!(parse("-- kind: game\nfunction draw() end"), None);
     assert_eq!(parse(""), None);

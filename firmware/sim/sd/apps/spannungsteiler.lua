@@ -7,6 +7,7 @@
 -- about: The output voltage and the current of a voltage divider.
 -- about.de: Ausgangsspannung und Strom eines Spannungsteilers.
 -- license: MIT
+-- tile: yes
 
 -- A tool that only asks for values and shows results: a form, with no callbacks. The units
 -- are the ones a number typed alone is taken in; 10 kΩ typed into R2 is taken as typed.

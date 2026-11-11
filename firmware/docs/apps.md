@@ -117,6 +117,8 @@ which the hui reads to list the app without running it:
 - `author`, `version`, `about` (and `about.<lang>`), `license`: the credits, all optional, each
   one line of at most 80 characters. A line may be repeated (`author` twice for two authors).
   The hui shows them and makes nothing of them: a version is text, not compared.
+- `tile`: `yes` gives the app a tile of its own in the MODE menu, after *Setup* (§7). Optional;
+  without it the app is only in the list.
 
 **Credits.** OPTN inside an app opens a menu of the hui's, over the app, which the app cannot
 change:
@@ -540,6 +542,10 @@ call without the host.
   (the digits reach 1–9). *Setup* opens the menu of SHIFT + MODE and leaves the mode as it is;
   it is there for whoever looks for the settings among the tiles, and works in Prüfungsmodus.
   Ungleichungen and Geometrie take the next places on the page when they come.
+- **MODE, after Setup**: a tile for each app whose header says `tile: yes`, in the list's order
+  by name, numbered on from 15; more of them add pages. The tile shows the app's name, OK or a
+  tap starts it, AC comes back to the tile. The MODE menu reads them each time it opens, so a
+  file copied to the card shows up then. None in Prüfungsmodus.
 - **MODE → Apps**: the list, in two groups *Spiele* and *Werkzeuge*, built in first, each line
   with the app's name and its author. A digit picks, OK opens, OPTN shows the credits, ← or AC
   goes back. An empty card adds the line *Eigene Apps: Ordner /apps auf der SD-Karte*.

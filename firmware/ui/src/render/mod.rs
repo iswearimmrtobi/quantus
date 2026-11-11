@@ -24,7 +24,7 @@ use embedded_graphics::primitives::{
     Triangle,
 };
 
-use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
+use crate::app::{App, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
 use crate::menu::{AppsView, Edit, Kind, Menu, ROWS};
@@ -525,8 +525,10 @@ fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
 
 const TILE_GAP: i32 = 8;
 const TILE_HEIGHT: i32 = 116;
-/// The pages of the mode menu.
-const PAGES: usize = Mode::ALL.len().div_ceil(TILES_PER_PAGE);
+/// The pages of the mode menu with `tiles` tiles.
+pub fn pages(tiles: usize) -> usize {
+    tiles.div_ceil(TILES_PER_PAGE)
+}
 
 /// The tile `offset` of a page of the mode menu.
 pub fn tile_rect(offset: usize) -> Rectangle {
@@ -538,12 +540,12 @@ pub fn tile_rect(offset: usize) -> Rectangle {
     Rectangle::new(at, Size::new(width as u32, TILE_HEIGHT as u32))
 }
 
-/// The dot of page `index` under the tiles.
-pub fn dot_rect(index: usize) -> Rectangle {
+/// The dot of page `index` of `pages` under the tiles.
+pub fn dot_rect(index: usize, pages: usize) -> Rectangle {
     let dot = 8;
     let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
     let y = BAR + 10 + rows * (TILE_HEIGHT + TILE_GAP) + 10;
-    let start = (WIDTH as i32 - (PAGES as i32 * (dot + 8) - 8)) / 2;
+    let start = (WIDTH as i32 - (pages as i32 * (dot + 8) - 8)) / 2;
     Rectangle::new(Point::new(start + index as i32 * (dot + 8), y), Size::new(dot as u32, dot as u32))
 }
 
@@ -676,13 +678,15 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
         },
         Screen::Modes { selected } => {
             let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
-            let on_page = (Mode::ALL.len() - first).min(TILES_PER_PAGE);
+            let count = app.tile_count();
+            let on_page = count.saturating_sub(first).min(TILES_PER_PAGE);
             if let Some(offset) = (0..on_page).find(|&offset| tile_rect(offset).contains(point)) {
                 return Some(Target::Tile(first + offset));
             }
             // Half the gap to the next dot on each side, more above and below for the finger.
             let around = |dot: Rectangle| Rectangle::new(dot.top_left - Point::new(4, 12), dot.size + Size::new(8, 24));
-            (0..PAGES).find(|&index| around(dot_rect(index)).contains(point)).map(Target::Page)
+            let pages = pages(count);
+            (0..pages).find(|&index| around(dot_rect(index, pages)).contains(point)).map(Target::Page)
         }
         Screen::Menu(menu) => menu_target(menu, point),
     }

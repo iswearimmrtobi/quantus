@@ -423,7 +423,7 @@ fn page_three_has_the_apps_and_the_setup() {
     }).collect();
     assert!(names.contains(&"Apps") && names.contains(&"Setup"), "{names:?}");
     // The third dot is drawn.
-    let third = dot_rect(2);
+    let third = dot_rect(2, 3);
     assert!(frame.0.iter().any(|shape| matches!(shape, Shape::Round(round, ..) if round.rectangle == third)
         || matches!(shape, Shape::Circle(circle, _) if circle.bounding_box() == third)
         || matches!(shape, Shape::Fill(rect, _) if *rect == third)));
@@ -461,10 +461,11 @@ impl quantus_ui::backend::Backend for Shelf {
             api: 9,
             built_in: false,
             usable: false,
+            tile: true,
             ..AppInfo::default()
         };
         let broken = AppInfo { id: "kaputt".into(), name: "Kaputt".into(), kind: AppKind::Game, ..info() };
-        vec![tool, info(), broken]
+        vec![tool, AppInfo { tile: true, ..info() }, broken]
     }
 
     fn open_app(&mut self, id: &str) -> Result<Box<dyn Applet>, String> {
@@ -605,6 +606,44 @@ fn no_apps_in_exam_mode() {
     assert!(app.running.is_none());
     assert_eq!(app.screen, Screen::Calc);
     assert_eq!(log.borrow().left, 1);
+}
+
+#[test]
+fn an_app_with_a_tile_is_on_the_mode_menu_after_the_setup() {
+    let log = Rc::new(RefCell::new(Log::default()));
+    let mut app = App::new(Shelf { log: log.clone() });
+    app.key(Key::Mode);
+    let names: Vec<&str> = app.app_tiles.iter().map(|info| info.name.as_str()).collect();
+    assert_eq!(names, ["Teiler", "Probe"]);
+    assert_eq!(app.tile_count(), Mode::ALL.len() + 2);
+    // On the third page, after Apps and Setup: tiles 15 and 16.
+    app.screen = Screen::Modes { selected: 13 };
+    press_on(&mut app, &[Key::Right, Key::Right]);
+    assert_eq!(app.screen, Screen::Modes { selected: 15 });
+    let shown = shelf_texts(&app);
+    for text in ["Setup", "Teiler", "Probe", "15", "16"] {
+        assert!(shown.iter().any(|shown| shown == text), "{text} in {shown:?}");
+    }
+    // OK starts it; AC comes back to its tile.
+    app.key(Key::Ok);
+    assert_eq!(app.screen, Screen::App);
+    app.key(Key::Digit(4));
+    assert_eq!(log.borrow().keys, [AppKey::Digit(4)]);
+    app.key(Key::Ac);
+    assert_eq!(app.screen, Screen::Modes { selected: 15 });
+
+    // One for a newer firmware says so instead.
+    app.screen = Screen::Modes { selected: 14 };
+    app.key(Key::Ok);
+    assert!(shelf_texts(&app).iter().any(|text| text.contains("neuere Firmware")));
+    assert!(app.running.is_none());
+
+    // None in Prüfungsmodus.
+    app.screen = Screen::Calc;
+    app.settings.exam = true;
+    app.key(Key::Mode);
+    assert!(app.app_tiles.is_empty());
+    assert_eq!(app.tile_count(), Mode::ALL.len());
 }
 
 #[test]
