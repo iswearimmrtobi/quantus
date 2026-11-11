@@ -29,6 +29,11 @@ Verbindungen → WLAN switches it, finds networks, keeps their passwords and sho
 the clock comes from the network (SETUP → Verbindungen → Uhrzeit), or is set there by hand. The
 settings are kept in flash.
 
+Apps and games are Lua scripts ([apps.md](../docs/apps.md)): `build.rs` compiles Lua from
+`lua/` with the ESP toolchain, and the script's thread takes its stack and memory from PSRAM.
+`QUANTUS_APPS_DEBUG=1 cargo run --release` logs every callback of an app with its time, the
+script's stack and the heap.
+
 The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 
 ```sh

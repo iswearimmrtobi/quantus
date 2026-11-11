@@ -14,6 +14,8 @@ rustflags = ["--cfg", "espidf_time64"]
 build-std = ["std", "panic_abort"]
 
 [env]
+# Lua for the apps comes from build.rs (`lua/`): mlua links it by this name instead of building one.
+LUA_LIB_NAME = "lua"
 MCU = "esp32p4"
 # The ESP-IDF tools go to ~/.espressif, shared with other projects, instead of a second
 # download into this crate.

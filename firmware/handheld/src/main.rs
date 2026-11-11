@@ -411,6 +411,11 @@ impl Backend for Board {
     }
 }
 
+/// mlua's `C-unwind` functions name the personality routine, which a `panic_abort` build lacks.
+/// Nothing unwinds: Lua's errors are longjmp, a panic aborts.
+#[unsafe(no_mangle)]
+extern "C" fn rust_eh_personality() {}
+
 /// Starts the thread `spawn` starts with its stack in PSRAM: an app's 64 KB would take the last of
 /// the internal RAM while WLAN is on (apps.md §5). The script's thread never writes to flash,
 /// which a stack in PSRAM would not allow.
