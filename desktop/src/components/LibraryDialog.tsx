@@ -23,7 +23,8 @@ export function LibraryDialog(props: {
   const [constants, setConstants] = useState<ConstantCategory[]>([]);
   const [units, setUnits] = useState<UnitCategory[]>([]);
   const [filter, setFilter] = useState('');
-  const { hits } = useLibrarySearch(filter, 40);
+  // The dialog lists constants and units; functions and prefixes are the quick search's.
+  const hits = useLibrarySearch(filter, 40).hits.filter((hit) => hit.kind === 'constant' || hit.kind === 'unit');
 
   useEffect(() => {
     api.constants().then(setConstants, () => {});

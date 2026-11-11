@@ -179,7 +179,7 @@ by how often an entry was used comes later.
   the library search, and the whole index for the handheld (`api::library_index`).
 - [x] Handheld: typing in CATALOG lists the hits of the index and of the SETUP and OPTN menus;
   a function, unit or constant is inserted, a menu entry opens where it lives.
-- [ ] Desktop: the quick search lists functions and prefixes too.
+- [x] Desktop: the quick search lists functions and prefixes too.
 - [ ] Usage counts that rank frequent entries first.
 
 ## 7. Later

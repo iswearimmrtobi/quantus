@@ -102,12 +102,19 @@ export interface UnitInfo {
   name: string;
 }
 
-/** A hit of the quick search: a unit goes in after `\blacktriangleright`, a constant as it is. */
+/**
+ * A hit of the quick search: a unit goes in after `\blacktriangleright`, a constant as it is, a
+ * function with its empty slots as placeholders, a prefix upright.
+ */
 export interface LibraryHit {
-  kind: 'constant' | 'unit';
+  kind: 'constant' | 'unit' | 'function' | 'prefix';
+  /** For a function the handheld's template with empty slots: `\sin()`, `\binom{}{}`. */
   latex: string;
   name: string;
-  /** The value with unit for a constant, the category for a unit. */
+  /**
+   * The value with unit for a constant and the power of ten for a prefix (LaTeX), the category
+   * for a unit or a function.
+   */
   detail: string;
 }
 
