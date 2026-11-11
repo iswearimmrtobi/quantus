@@ -162,7 +162,7 @@ in [handheld-menus.md](../design/handheld-menus.md) §7.
 
 ## 6. Search everywhere
 
-From [feature-ideas.md](../firmware/docs/feature-ideas.md) (was §1): a few typed letters find
+From [feature-ideas.md](feature-ideas.md) (was its §1): a few typed letters find
 functions, units, prefixes, constants, settings and menu pages together. The handheld types into
 CATALOG (SHIFT+OPTN); the desktop's quick search and library dialog get the larger index. Ranking
 by how often an entry was used comes later.

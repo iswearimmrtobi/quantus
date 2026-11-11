@@ -2,8 +2,8 @@
 
 Two handhelds that are held together become each other's **contacts**. From then on either can
 send the other a session, as AirDrop does, and the two can play two-player games, four in a row
-first. This is an idea, not planned work; the short form is idea 26 in
-[feature-ideas.md](../firmware/docs/feature-ideas.md).
+first. This is an idea, not planned work; the short form is idea 38 in
+[feature-ideas.md](../plans/feature-ideas.md).
 
 - **Section 1**: goal and scope.
 - **Section 2**: the NFC hardware.

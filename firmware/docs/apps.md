@@ -29,8 +29,8 @@ What exists today:
   on the last field works out.
 - MODE has twelve tiles on two pages ([handheld-menus.md](../../design/handheld-menus.md) §7.1);
   *Sitzungen* is a tile that opens a page instead of a mode. SETUP opens with SHIFT + MODE only.
-- Related ideas, none of them planned: macros (idea 5), packs of formulas on the card (idea 19)
-  and an exam mode teachers can trust (idea 24) in [feature-ideas.md](feature-ideas.md).
+- Related ideas, none of them planned: macros (idea 4), packs of formulas on the card (idea 31)
+  and an exam mode teachers can trust (idea 36) in [feature-ideas.md](../../plans/feature-ideas.md).
 
 What shapes the design:
 

@@ -1,4 +1,4 @@
-//! CATALOG's search (firmware/docs/feature-ideas.md §1, now plans.md §6): a few letters find the
+//! CATALOG's search (plans.md §6): a few letters find the
 //! engine's constants, units, functions and prefixes together with the entries of SETUP and the
 //! mode's OPTN. The ranking is the engine's (`quantus_search`), so `wurz` finds the same on the
 //! handheld as on the desktop.

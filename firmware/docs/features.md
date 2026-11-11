@@ -4,7 +4,7 @@ Every feature the handheld has or is meant to have, one line each. The details a
 documents this list is drawn from: [plans.md](../../plans/plans.md) §4–5,
 [handheld-menus.md](../../design/handheld-menus.md) (*What is missing* and §7) and
 [hardware.md](hardware.md). Ideas that are not planned yet are in
-[feature-ideas.md](feature-ideas.md).
+[feature-ideas.md](../../plans/feature-ideas.md).
 
 State on 2026-11-09.
 

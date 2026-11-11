@@ -21,7 +21,7 @@ how to flash and use it. The crates' READMEs cover the software and link here.
   risks, and what the code asks to change in the design.
 - [keypad-sizes.html](../../design/keypad-sizes.html): both keypads to scale (open in a browser).
 - [features.md](features.md): every feature of the handheld, with its state.
-- [feature-ideas.md](feature-ideas.md): ideas not planned yet, for the handheld and the desktop.
+- [feature-ideas.md](../../plans/feature-ideas.md): ideas not planned yet, for the handheld and the desktop.
 
 The crates:
 
