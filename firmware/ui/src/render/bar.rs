@@ -29,6 +29,7 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         }
         Screen::Menu(menu) => menu.title().get(app.settings.language),
         Screen::Calibrate(..) => text::CALIBRATE.get(app.settings.language),
+        Screen::App => app.running.as_ref().map_or("", |running| running.info.name.as_str()),
         _ => &app.mode.name(app.settings.language),
     };
     let mut left = MARGIN;

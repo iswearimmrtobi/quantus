@@ -680,6 +680,9 @@ impl<B: Backend> App<B> {
             }
             None => {}
         }
+        if let Some((running, mut host)) = self.applet() {
+            changed |= running.applet.tick(now_ms, &mut host);
+        }
         changed |= self.wlan_tick(now_ms);
         let minute = clock::now().map(|now| now / 60_000);
         if minute != self.minute {

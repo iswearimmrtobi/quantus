@@ -195,3 +195,46 @@ fn colours_by_name() {
     assert_eq!(Palette::get(&format!("tile{}", colors::TILES.len() + 1)), None);
     assert_eq!(Palette::get("pink"), None);
 }
+
+#[test]
+fn the_applet_draws_below_the_bar() {
+    let (app, _) = opened(&[]);
+    let frame = quantus_ui::render::Frame::new(&app);
+    let area = quantus_ui::render::app_area(&app);
+    assert_eq!(area, Rectangle::new(Point::new(0, 26), Size::new(480, 294)));
+    // The clear fills the area, the square is moved by its origin.
+    let clear = frame.0.iter().position(|shape| matches!(shape, Shape::Fill(rect, color) if *rect == area && *color == colors::SURFACE));
+    let square = frame.0.iter().position(|shape| matches!(shape, Shape::Fill(rect, color)
+        if *color == colors::AMBER && *rect == Rectangle::new(Point::new(0, -14), Size::new(20, 60))));
+    // The bar's fill comes after both, so what reaches above the area is covered.
+    let bar = frame.0.iter().position(|shape| matches!(shape, Shape::Fill(rect, _) if rect.top_left == Point::zero() && rect.size == Size::new(480, 26)));
+    let (clear, square, bar) = (clear.expect("cleared"), square.expect("square"), bar.expect("bar"));
+    assert!(clear < square && square < bar);
+    // The app's name is the title.
+    assert!(frame.0.iter().any(|shape| matches!(shape, Shape::Text(_, text, ..) if text == "Probe")));
+}
+
+/// An applet that wants to be drawn on every tick from 1 s on.
+struct Clock;
+
+impl Applet for Clock {
+    fn key(&mut self, _key: AppKey, _host: &mut dyn Host) {}
+
+    fn tick(&mut self, now_ms: u64, _host: &mut dyn Host) -> bool {
+        now_ms >= 1000
+    }
+
+    fn draw(&self, _canvas: &mut Canvas) {}
+}
+
+#[test]
+fn a_ticking_applet_redraws() {
+    let mut app = App::new(Stub);
+    app.open_applet(Box::new(Clock), info());
+    app.tick(0);
+    // Between blinks of the caret, only the applet asks for a redraw.
+    assert!(!app.tick(100));
+    app.tick(600);
+    assert!(!app.tick(900));
+    assert!(app.tick(1000));
+}

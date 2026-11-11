@@ -302,7 +302,13 @@ impl Frame {
             Screen::Modes { selected } => modes(&mut shapes, app, *selected, glass),
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
             Screen::Calibrate(state, _) => calibration(&mut shapes, state, app.settings.language),
-            Screen::App => {}
+            Screen::App => {
+                if let Some(running) = &app.running {
+                    let mut canvas = crate::applet::Canvas::new(app_area(app));
+                    running.applet.draw(&mut canvas);
+                    shapes.extend(canvas.into_shapes());
+                }
+            }
         }
         if let Some(keys) = crate::soft::bar(app) {
             soft::strips(&mut shapes, app, &keys);
@@ -310,6 +316,13 @@ impl Frame {
         bar(&mut shapes, app);
         Frame(shapes, backdrop)
     }
+}
+
+/// The area an app draws into: below the top bar, above the soft-key strips if they show. The
+/// bar and the strips are drawn after the app's shapes, so these cannot cover them.
+pub fn app_area<B>(app: &App<B>) -> Rectangle {
+    let bottom = if crate::soft::shows(app) { HEIGHT as i32 - SOFT } else { HEIGHT as i32 };
+    Rectangle::new(Point::new(0, BAR), Size::new(WIDTH, (bottom - BAR) as u32))
 }
 
 /// The wallpaper under the screen, as SETUP → Gerät → Hintergrundbild → Anzeigen says: at full

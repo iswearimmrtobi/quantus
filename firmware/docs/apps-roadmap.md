@@ -116,7 +116,7 @@ Rust in `ui/tests/apps.rs`.
   `Screen::Modes`, everything else goes through `AppKey::from` to `Applet::key`; modifiers are
   not waiting there. `leave` is called on every way out. Test: keys arrive in order; AC returns
   to the screen the app was opened from; SHIFT and ALPHA reach nothing.
-- [ ] **1.3 Drawing.** `Frame::new`: a branch that makes the `Canvas` for the area (below `BAR`,
+- [x] **1.3 Drawing.** `Frame::new`: a branch that makes the `Canvas` for the area (below `BAR`,
   above the strips if `soft_keys()` has any), calls `Applet::draw` and appends the shapes;
   `backdrop` gives none for an app. `bar.rs`: the app's name as the title, `goes_back` true.
   `App::tick`: `Applet::tick(now_ms)`, its redraw flag into `changed`. Test: the shapes land in
