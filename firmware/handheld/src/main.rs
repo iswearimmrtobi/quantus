@@ -5,7 +5,9 @@
 #[cfg(feature = "engine")]
 mod engine;
 
+use std::alloc::{GlobalAlloc, Layout, System};
 use std::io::Read;
+use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
 
@@ -36,6 +38,9 @@ use quantus_ui::touch::Touch;
 
 /// Prints the touch controller's raw state four times a second (`QUANTUS_TOUCH_DEBUG=1`).
 const DEBUG_TOUCH: bool = option_env!("QUANTUS_TOUCH_DEBUG").is_some();
+/// Logs every callback of an app with its time, the script's stack and the heap
+/// (`QUANTUS_APPS_DEBUG=1`); each line costs about 13 ms on the serial line.
+const DEBUG_APPS: bool = option_env!("QUANTUS_APPS_DEBUG").is_some();
 
 fn main() {
     sys::link_patches();
@@ -89,6 +94,11 @@ fn main() {
         }
         (_, None) => None,
     };
+    if DEBUG_APPS {
+        quantus_apps::script::set_probe(app_probe);
+    }
+    quantus_apps::script::set_spawn(in_psram);
+    quantus_apps::script::set_started(script_started);
     let mut board = Board {
         store: open(),
         wlan,
@@ -401,6 +411,111 @@ impl Backend for Board {
     }
 }
 
+/// Starts the thread `spawn` starts with its stack in PSRAM: an app's 64 KB would take the last of
+/// the internal RAM while WLAN is on (apps.md §5). The script's thread never writes to flash,
+/// which a stack in PSRAM would not allow.
+fn in_psram(spawn: &mut dyn FnMut()) {
+    // SAFETY: plain calls with valid configurations; they only change how this thread's next
+    // pthread_create allocates the stack, and the default comes back afterwards.
+    unsafe {
+        let mut config = sys::esp_pthread_get_default_config();
+        config.stack_alloc_caps = sys::MALLOC_CAP_SPIRAM | sys::MALLOC_CAP_8BIT;
+        let set = sys::esp_pthread_set_cfg(&config);
+        if set != sys::ESP_OK {
+            println!("app: stack in PSRAM not set ({set})");
+        }
+        spawn();
+        let default = sys::esp_pthread_get_default_config();
+        sys::esp_pthread_set_cfg(&default);
+    }
+}
+
+/// The task of the app's script that runs now, whose heap is PSRAM ([`Heap`]).
+static SCRIPT_TASK: AtomicPtr<core::ffi::c_void> = AtomicPtr::new(core::ptr::null_mut());
+
+fn script_started() {
+    // SAFETY: plain FreeRTOS call; the handle of the calling task.
+    SCRIPT_TASK.store(unsafe { sys::xTaskGetCurrentTaskHandle() }.cast(), Ordering::Relaxed);
+}
+
+/// The heap as the system has it, but for an app's script: its allocations come from PSRAM.
+/// Small ones would otherwise go to internal RAM first, and compiling a script of a few hundred
+/// lines took it down to nothing while WLAN needs it (apps.md §5).
+struct Heap;
+
+#[global_allocator]
+static HEAP: Heap = Heap;
+
+fn in_script() -> bool {
+    let task = SCRIPT_TASK.load(Ordering::Relaxed);
+    // SAFETY: plain FreeRTOS call.
+    !task.is_null() && task == unsafe { sys::xTaskGetCurrentTaskHandle() }.cast()
+}
+
+const PSRAM: u32 = sys::MALLOC_CAP_SPIRAM | sys::MALLOC_CAP_8BIT;
+
+unsafe impl GlobalAlloc for Heap {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        if in_script() {
+            // SAFETY: a valid alignment and size from the layout; null when PSRAM is full.
+            unsafe { sys::heap_caps_aligned_alloc(layout.align(), layout.size(), PSRAM).cast() }
+        } else {
+            // SAFETY: the caller's contract, passed on.
+            unsafe { System.alloc(layout) }
+        }
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        // ESP-IDF's free takes memory of any capabilities, aligned or not.
+        // SAFETY: the caller's contract, passed on.
+        unsafe { System.dealloc(ptr, layout) }
+    }
+
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        if !in_script() {
+            // SAFETY: the caller's contract, passed on.
+            return unsafe { System.realloc(ptr, layout, new_size) };
+        }
+        if layout.align() <= 4 {
+            // heap_caps_realloc keeps the allocator's own alignment, which is enough here.
+            // SAFETY: ptr came from this allocator; null leaves it untouched.
+            return unsafe { sys::heap_caps_realloc(ptr.cast(), new_size, PSRAM).cast() };
+        }
+        // SAFETY: as GlobalAlloc's own realloc: a new block, the old contents, the old freed.
+        unsafe {
+            let new = self.alloc(Layout::from_size_align_unchecked(new_size, layout.align()));
+            if !new.is_null() {
+                core::ptr::copy_nonoverlapping(ptr, new, layout.size().min(new_size));
+                self.dealloc(ptr, layout);
+            }
+            new
+        }
+    }
+}
+
+/// An app's callbacks in the log: the time, and on the script's thread its stack and the heap.
+fn app_probe(probe: quantus_apps::script::Probe) {
+    use quantus_apps::script::Probe;
+    match probe {
+        Probe::Callback(name, took) => {
+            // SAFETY: plain reads of allocator counters; a null handle is the calling task.
+            let (unused, free, internal, internal_minimum) = unsafe {
+                (
+                    sys::uxTaskGetStackHighWaterMark(core::ptr::null_mut()),
+                    sys::esp_get_free_heap_size(),
+                    sys::heap_caps_get_free_size(sys::MALLOC_CAP_INTERNAL),
+                    sys::heap_caps_get_minimum_free_size(sys::MALLOC_CAP_INTERNAL),
+                )
+            };
+            log::info!(
+                "app: {name} in {} us; stack {unused} B never used; heap {free} B free, internal {internal} B, lowest {internal_minimum} B",
+                took.as_micros()
+            );
+        }
+        Probe::Yielded(took) => log::info!("app: yielded after {} us", took.as_micros()),
+    }
+}
+
 /// Sends the C6 the image in the `c6_fw` partition if it runs another version and the image was
 /// not tried before, saying so on the screen; restarts after a success (src/c6.rs).
 fn update_c6(store: Option<&Store>, display: &mut Display) {
@@ -456,8 +571,7 @@ fn update_c6(store: Option<&Store>, display: &mut Display) {
 }
 
 /// Turns the bytes typed into the serial monitor into keys: characters by `Key::from_char`,
-/// the arrows' escape sequences, Delete (`ESC [ 3 ~`) as AC and F5 (`ESC [ 1 5 ~`) as OK, as on
-/// a USB keyboard.
+/// and escape sequences by [`escape`].
 fn read_keys(keys: Sender<Key>) {
     let mut stdin = std::io::stdin();
     let mut pending: Vec<u8> = Vec::new();
@@ -469,13 +583,10 @@ fn read_keys(keys: Sender<Key>) {
         }
         pending.push(byte[0]);
         let key = match pending.as_slice() {
-            [0x1b] | [0x1b, b'['] | [0x1b, b'[', b'3'] | [0x1b, b'[', b'1'] | [0x1b, b'[', b'1', b'5'] => continue,
-            [0x1b, b'[', b'A'] => Some(Key::Up),
-            [0x1b, b'[', b'B'] => Some(Key::Down),
-            [0x1b, b'[', b'C'] => Some(Key::Right),
-            [0x1b, b'[', b'D'] => Some(Key::Left),
-            [0x1b, b'[', b'3', b'~'] => Some(Key::Ac),
-            [0x1b, b'[', b'1', b'5', b'~'] => Some(Key::Ok),
+            [0x1b] | [0x1b, b'[' | b'O'] => continue,
+            // A control sequence ends with a byte from `@` to `~`.
+            [0x1b, b'[' | b'O', .., last] if !(0x40..=0x7e).contains(last) && pending.len() < 10 => continue,
+            [0x1b, b'[' | b'O', sequence @ ..] => escape(sequence),
             [0x1b, ..] => None,
             bytes => match std::str::from_utf8(bytes) {
                 Ok(text) => text.chars().next().and_then(Key::from_char),
@@ -491,6 +602,32 @@ fn read_keys(keys: Sender<Key>) {
             }
         }
     }
+}
+
+/// The key of a terminal's escape sequence (after `ESC [` or `ESC O`), as on a USB keyboard: the
+/// arrows, Delete as AC, F5 as OK, and Shift+F1 to F12 as the soft keys.
+fn escape(sequence: &[u8]) -> Option<Key> {
+    Some(match sequence {
+        b"A" => Key::Up,
+        b"B" => Key::Down,
+        b"C" => Key::Right,
+        b"D" => Key::Left,
+        b"3~" => Key::Ac,
+        b"15~" => Key::Ok,
+        b"1;2P" => Key::Soft(0),
+        b"1;2Q" => Key::Soft(1),
+        b"1;2R" => Key::Soft(2),
+        b"1;2S" => Key::Soft(3),
+        b"15;2~" => Key::Soft(4),
+        b"17;2~" => Key::Soft(5),
+        b"18;2~" => Key::Soft(6),
+        b"19;2~" => Key::Soft(7),
+        b"20;2~" => Key::Soft(8),
+        b"21;2~" => Key::Soft(9),
+        b"23;2~" => Key::Soft(10),
+        b"24;2~" => Key::Soft(11),
+        _ => return None,
+    })
 }
 
 /// Red, green, blue and white bars with their names: colours and orientation at a glance.

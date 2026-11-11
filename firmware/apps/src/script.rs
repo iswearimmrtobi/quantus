@@ -12,8 +12,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::OnceLock;
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rhai::{CallFnOptions, Dynamic, Engine, EvalAltResult, Map, Position, Scope, AST};
 
@@ -22,12 +23,45 @@ use crate::api::{self, Shared};
 /// How long the main side waits for a callback before the app counts as not responding.
 pub const WAIT: Duration = Duration::from_secs(3);
 
-/// The stack of the script's thread. On the board the number waits for the spike (step 0.3);
-/// a debug build on a PC needs far more per call level.
+/// The stack of the script's thread. On the board Rhai takes about 3.6 KB of it per call level,
+/// and the deepest the limits allow, 32 levels each nesting expressions as far as the parser
+/// lets them, took 438 KB (apps.md §5): the stack must hold that, since running over it halts
+/// the board instead of giving an error. It comes from PSRAM. A debug build on a PC needs more.
 #[cfg(target_os = "espidf")]
-pub const STACK: usize = 64 * 1024;
+pub const STACK: usize = 1024 * 1024;
 #[cfg(not(target_os = "espidf"))]
 pub const STACK: usize = 4 * 1024 * 1024;
+
+/// What a callback cost, for a log on the board ([`set_probe`]).
+#[derive(Clone, Copy, Debug)]
+pub enum Probe<'a> {
+    /// On the script's thread: a callback and its `draw` ran, in so long.
+    Callback(&'a str, Duration),
+    /// On the main side: the round trip of a callback or an answer, until the script yielded.
+    Yielded(Duration),
+}
+
+static PROBE: OnceLock<fn(Probe)> = OnceLock::new();
+
+/// Has every callback reported to `probe`; the board logs the time, its stack and heap.
+pub fn set_probe(probe: fn(Probe)) {
+    let _ = PROBE.set(probe);
+}
+
+static SPAWN: OnceLock<fn(&mut dyn FnMut())> = OnceLock::new();
+static STARTED: OnceLock<fn()> = OnceLock::new();
+
+/// Has the script's thread started inside `spawn`, which calls its argument once. The board
+/// sets the stack's memory there: from PSRAM, since internal RAM cannot spare it.
+pub fn set_spawn(spawn: fn(&mut dyn FnMut())) {
+    let _ = SPAWN.set(spawn);
+}
+
+/// Has `started` run first on each script's thread. The board notes the thread there, so that
+/// what the script allocates comes from PSRAM too.
+pub fn set_started(started: fn()) {
+    let _ = STARTED.set(started);
+}
 
 /// A value of a script, as plain data.
 #[derive(Clone, Debug, PartialEq)]
@@ -262,11 +296,21 @@ impl Script {
         let (to, commands) = mpsc::channel();
         let (replies, from) = mpsc::channel();
         let source = source.to_string();
-        let thread = std::thread::Builder::new()
-            .name("app".into())
-            .stack_size(STACK)
-            .spawn(move || run(&source, commands, replies))
-            .map_err(|error| Error::new(format!("no thread for the app: {error}")))?;
+        let mut job = Some(move || run(&source, commands, replies));
+        let mut spawned = None;
+        let mut spawn = || {
+            let job = job.take().expect("spawned once");
+            spawned = Some(std::thread::Builder::new().name("app".into()).stack_size(STACK).spawn(job));
+        };
+        match SPAWN.get() {
+            Some(wrap) => wrap(&mut spawn),
+            None => spawn(),
+        }
+        let thread = match spawned {
+            Some(Ok(thread)) => thread,
+            Some(Err(error)) => return Err(Error::new(format!("no thread for the app: {error}"))),
+            None => return Err(Error::new("no thread for the app")),
+        };
         let mut script = Script { to: Some(to), from, thread: Some(thread), dead: false, draws: true };
         match script.from.recv_timeout(WAIT) {
             Ok(Reply::Compiled(Ok(draws))) => {
@@ -298,12 +342,16 @@ impl Script {
             self.dead = true;
             return Yield::Failed(Error::new("the app has stopped"));
         }
+        let started = Instant::now();
         let reply = match self.from.recv_timeout(WAIT) {
             Ok(Reply::Yield(reply)) => reply,
             Ok(Reply::Compiled(_)) => Yield::Failed(Error::new("the script answered out of turn")),
             Err(RecvTimeoutError::Timeout) => Yield::Failed(Error::hung()),
             Err(RecvTimeoutError::Disconnected) => Yield::Failed(Error::new("the app has stopped")),
         };
+        if let Some(probe) = PROBE.get() {
+            probe(Probe::Yielded(started.elapsed()));
+        }
         if matches!(reply, Yield::Failed(_)) {
             self.dead = true;
         }
@@ -327,10 +375,18 @@ impl Drop for Script {
 
 /// The script's thread: compiles, then runs callbacks until the channel closes.
 fn run(source: &str, commands: Receiver<Command>, replies: Sender<Reply>) {
+    if let Some(started) = STARTED.get() {
+        started();
+    }
     let commands = Rc::new(commands);
     let shared = Rc::new(RefCell::new(Shared::default()));
     let engine = api::engine(shared.clone(), commands.clone(), replies.clone());
-    let ast = match engine.compile(source) {
+    let started = Instant::now();
+    let compiled = engine.compile(source);
+    if let Some(probe) = PROBE.get() {
+        probe(Probe::Callback("compile", started.elapsed()));
+    }
+    let ast = match compiled {
         Ok(ast) => ast,
         Err(error) => {
             let message = error.err_type().to_string();
@@ -350,7 +406,12 @@ fn run(source: &str, commands: Receiver<Command>, replies: Sender<Reply>) {
             continue;
         };
         shared.borrow_mut().begin(context);
-        let reply = match callback_and_draw(&engine, &ast, &mut scope, &mut state, &callback) {
+        let started = Instant::now();
+        let ran = callback_and_draw(&engine, &ast, &mut scope, &mut state, &callback);
+        if let Some(probe) = PROBE.get() {
+            probe(Probe::Callback(callback.function().map_or("draw", |(name, _)| name), started.elapsed()));
+        }
+        let reply = match ran {
             Ok(drawn) => {
                 let mut output = shared.borrow_mut().take();
                 output.drawn = drawn;

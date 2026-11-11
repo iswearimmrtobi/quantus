@@ -51,7 +51,8 @@ The hardware, setup and wiring are in [firmware/docs](../docs/README.md):
 
 Type into the serial monitor; the keys are those of the simulator, see its
 [key table](../sim/README.md#keys) (Ctrl+F then Tab for the setup). The arrows work as arrows,
-Delete clears like AC. Ctrl+C and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
+Delete clears like AC, F5 is OK and Shift+F1–F12 are the soft keys (as a terminal sends them,
+`ESC [ 1 ; 2 P` and so on, which an app needs for its soft keys). Ctrl+C and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
 
 A USB keyboard in the board's USB-A port types the same keys, with a German (QWERTZ) layout as
 in the simulator, F1–F12 and Shift+F1–F12 (the soft keys) included: F1–F4 are SHIFT, ALPHA, S⇔D

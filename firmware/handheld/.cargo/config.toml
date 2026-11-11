@@ -3,7 +3,11 @@ target = "riscv32imafc-esp-espidf"
 
 [target.riscv32imafc-esp-espidf]
 linker = "ldproxy"
-runner = "espflash flash --monitor --flash-size 16mb --partition-table partitions.csv"
+# Quad I/O at 80 MHz: the code runs from flash through the cache, and an app's script runs about
+# 1.6 times as fast as with espflash's default, DIO at 40 MHz (firmware/docs/apps.md §5). The
+# flags set espflash's bootloader and the image's header; sdkconfig keeps DIO, since ESP-IDF's
+# own bootloader with QIO is too large for the partition table's offset.
+runner = "espflash flash --monitor --flash-mode qio --flash-freq 80mhz --flash-size 16mb --partition-table partitions.csv"
 rustflags = ["--cfg", "espidf_time64"]
 
 [unstable]

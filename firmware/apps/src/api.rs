@@ -14,9 +14,9 @@ use crate::script::{Command, Context, Output, Reply, Request, Value, Yield};
 /// The largest script file.
 pub const MAX_SOURCE: usize = 256 * 1024;
 
-/// What a callback may do before it counts as hung. Provisional, set on a PC; the board's
-/// number comes from the spike (apps-roadmap.md 0.4), aiming at about 200 ms there.
-pub const BUDGET: u64 = 500_000;
+/// What a callback may do before it counts as hung: about 200 ms on the board, which does some
+/// 940 operations a millisecond (apps.md §5); a move of either game takes under 25,000.
+pub const BUDGET: u64 = 200_000;
 
 /// How deep calls may nest.
 pub const CALL_LEVELS: usize = 32;

@@ -15,8 +15,6 @@ default = ["engine"]
 # quantus-core behind the UI. Without it (`--no-default-features`) a stub answers with the input
 # itself, which builds and flashes much faster for work on the UI.
 engine = ["dep:quantus-engine"]
-# Throwaway: the interpreter spike of firmware/docs/apps.md step 0 (`src/bin/spike_apps.rs`).
-spike-apps = ["dep:rhai"]
 
 [dependencies]
 quantus-engine = { path = "../engine", optional = true }
@@ -27,13 +25,6 @@ quantus-texts = { path = "../../crates/quantus-texts" }
 esp-idf-svc = "0.53"
 log = "0.4"
 embedded-graphics = "0.8.2"
-# No `unchecked` (the limits stay), no `sync`; i32 and f32 are the P4's own sizes.
-rhai = { version = "1.27", default-features = false, features = ["only_i32", "f32_float", "no_module", "no_custom_syntax", "no_time", "no_closure", "no_optimize"], optional = true }
-
-[[bin]]
-name = "spike_apps"
-path = "src/bin/spike_apps.rs"
-required-features = ["spike-apps"]
 
 [build-dependencies]
 embuild = "0.33"
