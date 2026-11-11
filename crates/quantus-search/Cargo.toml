@@ -1,0 +1,11 @@
+[package]
+name = "quantus-search"
+description = "How Quantus matches a typed query against names and symbols, shared by the engine and the handheld"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[dependencies]

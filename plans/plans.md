@@ -166,7 +166,23 @@ handheld-menus.md, *What is missing*.
 The handheld's own part (menus, keys, the purple palette, WLAN and Bluetooth, the exam mode) is
 in [handheld-menus.md](../design/handheld-menus.md) §7.
 
-## 6. Later
+## 6. Search everywhere
+
+From [feature-ideas.md](../firmware/docs/feature-ideas.md) (was §1): a few typed letters find
+functions, units, prefixes, constants, settings and menu pages together. The handheld types into
+CATALOG (SHIFT+OPTN); the desktop's quick search and library dialog get the larger index. Ranking
+by how often an entry was used comes later.
+
+- [x] `crates/quantus-search`: the matching and ranking of `library_search`, shared by the engine
+  and the handheld, which does not depend on the engine.
+- [ ] Core: functions and prefixes with names in every language and aliases (`wurzel`, `sqrt`) in
+  the library search, and the whole index for the handheld (`api::library_index`).
+- [ ] Handheld: typing in CATALOG lists the hits of the index and of the SETUP and OPTN menus;
+  a function, unit or constant is inserted, a menu entry opens where it lives.
+- [ ] Desktop: the quick search lists functions and prefixes too.
+- [ ] Usage counts that rank frequent entries first.
+
+## 7. Later
 
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
