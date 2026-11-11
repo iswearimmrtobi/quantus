@@ -34,6 +34,8 @@ pub struct ScriptApplet {
     lang: Lang,
     /// The saved data the script last saved or was opened with.
     data: Option<Value>,
+    /// LaTeX for the calculation, handed back when the app is left.
+    insert: Option<String>,
 }
 
 impl ScriptApplet {
@@ -52,6 +54,7 @@ impl ScriptApplet {
             error: None,
             lang: Lang::De,
             data: None,
+            insert: None,
         };
         match Script::start(source) {
             Ok(script) => applet.script = Some(script),
@@ -115,6 +118,9 @@ impl ScriptApplet {
                 if output.exit {
                     host.exit();
                 }
+                if output.insert.is_some() {
+                    self.insert = output.insert.clone();
+                }
                 if let Some(json) = &output.save {
                     host.save(json);
                     self.data = crate::json::read(json);
@@ -129,6 +135,12 @@ impl ScriptApplet {
                 match &request {
                     Request::Confirm(question) => host.confirm(question),
                     Request::Ask { label, max, value } => host.ask(label, *max, value),
+                    Request::Var(name) => {
+                        let value = host.variable(name).map_or(Value::Unit, Value::Str);
+                        let Some(script) = &mut self.script else { return };
+                        let reply = script.answer(value);
+                        return self.handle(reply, host);
+                    }
                     Request::Calc(input) => {
                         if let Some(answer) = host.calc(input) {
                             // Answered at once: the script goes on.
@@ -309,6 +321,6 @@ impl Applet for ScriptApplet {
         if self.error.is_none() && self.asking.is_none() {
             self.call(Callback::Leave, host);
         }
-        None
+        self.insert.take()
     }
 }

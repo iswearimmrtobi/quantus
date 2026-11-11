@@ -187,6 +187,8 @@ pub enum Request {
     Ask { label: String, max: usize, value: String },
     /// A calculation; the answer is `#{ok, value, latex, error}`.
     Calc(String),
+    /// A variable of the session; the answer is its value, or `()`.
+    Var(String),
 }
 
 /// What a callback that ran to its end leaves for the hui: what `draw` drew and what the script
@@ -208,6 +210,8 @@ pub struct Output {
     pub exit: bool,
     /// What `save` saved last, as JSON.
     pub save: Option<String>,
+    /// LaTeX `insert` hands to the calculation; the app leaves.
+    pub insert: Option<String>,
 }
 
 /// Where the main side is with the script.

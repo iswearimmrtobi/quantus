@@ -208,6 +208,11 @@ impl<B: Backend> Host for AppHost<'_, B> {
         self.template.exit = true;
     }
 
+    fn variable(&mut self, name: &str) -> Option<String> {
+        let variables = self.backend.variables(VariableCommand::List, &self.settings).ok()?;
+        variables.into_iter().find(|v| v.key == name || v.symbol == name).map(|v| v.value)
+    }
+
     fn calc(&mut self, input: &str) -> Option<Result<String, String>> {
         let answer = self.backend.app_calc(self.mode, &self.settings, input);
         self.template.calculating = answer.is_none();
@@ -480,6 +485,8 @@ pub struct App<B> {
     pub running: Option<Running>,
     /// The apps' saved data, kept here as well as by the backend.
     app_data: std::collections::HashMap<String, String>,
+    /// LaTeX an app handed back when it was left, for the calculation's cursor.
+    handed: Option<String>,
 }
 
 /// How many recent units the unit bar remembers.
@@ -614,6 +621,7 @@ impl<B: Backend> App<B> {
             search: None,
             running: None,
             app_data: std::collections::HashMap::new(),
+            handed: None,
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -910,6 +918,11 @@ impl<B: Backend> App<B> {
         if self.running.as_ref().is_some_and(|running| running.template.exit) {
             let back = self.close_app();
             self.screen = back.unwrap_or(Screen::Calc);
+        }
+        // A value handed back goes to the cursor of the calculation of the mode open.
+        if let Some(latex) = self.handed.take() {
+            self.screen = Screen::Calc;
+            self.insert(&latex);
         }
     }
 
@@ -1313,7 +1326,7 @@ impl<B: Backend> App<B> {
     /// Leaves the app, if one runs: it is told, and the screen it was opened from is given back.
     fn close_app(&mut self) -> Option<Screen> {
         let (applet, mut host) = self.applet()?;
-        applet.leave(&mut host);
+        self.handed = applet.leave(&mut host);
         let running = self.running.take()?;
         Some(*running.back)
     }

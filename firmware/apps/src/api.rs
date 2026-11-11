@@ -149,6 +149,18 @@ pub(crate) fn engine(shared: Rc<RefCell<Shared>>, commands: Rc<Receiver<Command>
 
     asking(&mut engine, &commands, &replies);
 
+    // The session's variables, through the host (`var` is a word of Rhai's own).
+    let (c, r) = (commands.clone(), replies.clone());
+    engine.register_fn("variable", move |name: &str| -> Fallible<Dynamic> {
+        Ok(ask(&c, &r, Request::Var(name.to_string()))?.to_dynamic())
+    });
+    let s = shared.clone();
+    engine.register_fn("insert", move |latex: Dynamic| {
+        let mut shared = s.borrow_mut();
+        shared.output.insert = Some(latex.to_string());
+        shared.output.exit = true;
+    });
+
     // The calculator: the script waits for the engine.
     let (c, r) = (commands.clone(), replies.clone());
     engine.register_fn("calc", move |input: Dynamic| -> Fallible<Dynamic> {

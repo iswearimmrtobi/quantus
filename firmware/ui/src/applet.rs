@@ -87,6 +87,12 @@ pub trait Host {
         Some(Err("no calculator".to_string()))
     }
 
+    /// The value of the session's variable `name` (its key or its symbol), as `calc` gives
+    /// values.
+    fn variable(&mut self, _name: &str) -> Option<String> {
+        None
+    }
+
     /// Asks for one line of plain text over the app, `value` in it at first, at most `max`
     /// characters; the text, or none after AC, comes to [`Applet::answer`].
     fn ask(&mut self, _label: &str, _max: usize, _value: &str) {}

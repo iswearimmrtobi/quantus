@@ -361,9 +361,11 @@ M4.
   answer resumes the script; AC drops the calculation (`drop_pending`) and leaves. Tests in
   `firmware/engine/tests/apps.rs` against the real engine: a script that adds two lengths, an
   error from the engine as `ok: false`, the history unchanged.
-- [ ] **8.3 `var`, `insert`, `now`.** `var(name)` from `Backend::variables(List)`; `insert`
+- [x] **8.3 `var`, `insert`, `now`.** `var(name)` from `Backend::variables(List)`; `insert`
   leaves the app and puts the LaTeX at the cursor of the calculation (`Applet::leave` gives it,
   `App::insert` takes it); `now()` from `clock::now`. Tests.
+  `var` is a reserved word of Rhai: the function is `variable(name)`, by key or symbol, a yield
+  answered at once from `Backend::variables`. `now` came with 4.5.
 - [ ] **8.4 `calc: true` on the `"line"` template.**
 
 ### Step 9. Forms (L)

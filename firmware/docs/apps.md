@@ -352,7 +352,7 @@ for a whole page of fields and stands for itself.
 | Function | |
 |---|---|
 | `calc(input)` | Works `input` out with the open session's settings and variables and gives `#{ok, value, latex, error}`. `input` is what the calculator's line takes; the history is left alone |
-| `var(name)` | A variable of the session, as `calc` gives values, or `()` |
+| `variable(name)` | A variable of the session by its name or its symbol, as `calc` gives values, or `()` (`var` is a word of Rhai's own) |
 | `insert(latex)` | Leaves the app and puts `latex` at the cursor of the calculation |
 | `form(description)` | Opens a form (below) and gives its result when it closes |
 

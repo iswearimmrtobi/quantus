@@ -61,3 +61,26 @@ fn a_script_adds_two_lengths_and_the_history_stays() {
     app.key(Key::Ac);
     assert_eq!(app.history.len(), history);
 }
+
+#[test]
+fn var_reads_the_sessions_variables_and_insert_hands_back() {
+    use quantus_ui::backend::VariableCommand;
+    let settings = Settings::default();
+    let store = VariableCommand::Store { mode: Mode::Physics, key: "a".into(), latex: "5".into() };
+    // Through the app's backend, as STO does.
+    let mut engine = Engine::default();
+    engine.variables(store.clone(), &settings).expect("stored");
+    let mut app = App::new(engine);
+    let source = r#"
+        fn init() { this.t = `${variable("a")} ${variable("nothing")}`; }
+        fn key(k) { insert("\\frac{1}{2}"); }
+        fn draw() { text(0, 0, this.t, "text"); }
+    "#;
+    let info = AppInfo { id: "t".into(), name: "T".into(), api: 1, usable: true, ..AppInfo::default() };
+    app.open_applet(Box::new(ScriptApplet::new(source)), info);
+    assert!(texts(&app).contains(&"5 ".to_string()), "{:?}", texts(&app));
+    app.key(Key::Digit(1));
+    // Left, back in the calculation, the value at its cursor.
+    assert_eq!(app.screen, quantus_ui::app::Screen::Calc);
+    assert_eq!(app.editor.to_latex(), r"\frac{1}{2}");
+}
