@@ -183,8 +183,7 @@ runs: built in, or from `/apps/` on the card. Built and tested in the simulator
 ([apps.md](../firmware/docs/apps.md)). Left, all on the board
 ([apps-roadmap.md](../firmware/docs/apps-roadmap.md)): the spike's numbers (stack, time of a
 move, the operation budget, now 500,000 for a PC) and the choice of Rhai; the checks noted under
-4.6, 5.2, 5.3, 6.4 and 7.2. Also the unit bar on an app's input line (F9), and a licence list
-for the firmware's crates (11.4).
+4.6, 5.2, 5.3, 6.4 and 7.2. Also the unit bar on an app's input line (F9).
 
 ## 8. Later
 

@@ -2,6 +2,7 @@
 // through cargo-about (about.toml, about.hbs; only that crate, so the firmware's crates in the
 // workspace stay out), then the npm packages that end up in the renderer, which are the non-dev
 // entries of package-lock.json. The installers ship the file next to the app.
+// Then firmware/THIRD-PARTY-LICENSES.md, the same for the handheld's firmware.
 import { execFileSync } from 'node:child_process';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -39,3 +40,13 @@ for (const path of packages) {
 const text = crates.trimEnd() + '\n\n' + npm.trimEnd() + '\n';
 await writeFile(join(root, 'THIRD-PARTY-LICENSES.md'), text.replace(/\r\n?/g, '\n'));
 console.log(`[quantus] THIRD-PARTY-LICENSES.md written (${packages.length} npm packages)`);
+
+// The handheld's firmware, its own workspace: its crates for the board's target
+// (firmware/about.toml, about.hbs), then the fonts and ESP-IDF, which are not crates of their own
+// (firmware/licenses/fonts.md).
+const firmware = join(root, 'firmware');
+const firmwareCrates = execFileSync('cargo', ['about', 'generate', '-c', 'about.toml', '-m', 'handheld/Cargo.toml', 'about.hbs'], { cwd: firmware, encoding: 'utf8' });
+const fonts = await readFile(join(firmware, 'licenses', 'fonts.md'), 'utf8');
+const firmwareText = firmwareCrates.trimEnd() + '\n\n' + fonts.trimEnd() + '\n';
+await writeFile(join(firmware, 'THIRD-PARTY-LICENSES.md'), firmwareText.replace(/\r\n?/g, '\n'));
+console.log('[quantus] firmware/THIRD-PARTY-LICENSES.md written');

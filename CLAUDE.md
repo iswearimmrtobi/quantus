@@ -43,4 +43,4 @@ Details: `docs/docs/contributing/building.md` and `testing.md`.
 
 - Add user-visible changes to `## [Unreleased]` in `CHANGELOG.md`.
 - Texts go into every file of `locales/` (`cargo test -p quantus-texts` checks them).
-- After changing a dependency, regenerate `THIRD-PARTY-LICENSES.md` (`npm run licenses` in `desktop/`).
+- After changing a dependency, regenerate `THIRD-PARTY-LICENSES.md` and `firmware/THIRD-PARTY-LICENSES.md` (`npm run licenses` in `desktop/`).

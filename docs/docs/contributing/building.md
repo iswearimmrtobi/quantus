@@ -51,7 +51,9 @@ generated from `desktop/build/icon.svg` with `npx tauri icon`.
 Every package ships `LICENSE` and `THIRD-PARTY-LICENSES.md`, the license texts of all crates and
 npm packages in the app. After adding or updating a dependency, regenerate the second one with
 `npm run licenses` in `desktop/` (it needs `cargo install cargo-about --features cli`) and commit
-it.
+it. The same command writes `firmware/THIRD-PARTY-LICENSES.md` for the handheld's firmware: its
+crates for the board (`firmware/about.toml`), then its fonts and ESP-IDF
+(`firmware/licenses/fonts.md`, kept by hand).
 
 ## Android
 

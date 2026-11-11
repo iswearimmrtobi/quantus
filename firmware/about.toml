@@ -1,0 +1,39 @@
+# cargo-about: the licenses of the crates in the handheld's firmware (`firmware/handheld`), for
+# firmware/THIRD-PARTY-LICENSES.md. Regenerate with `npm run licenses` in desktop/, which writes
+# the desktop app's list and this one.
+accepted = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "ISC",
+    "Zlib",
+    "BSL-1.0",
+    "Unicode-3.0",
+    "Unlicense",
+    "CC0-1.0",
+    "MPL-2.0",
+]
+# The ESP32-P4 the firmware is built for.
+targets = ["riscv32imafc-esp-espidf"]
+ignore-dev-dependencies = true
+# The workspace's own crates are covered by LICENSE.
+private = { ignore = true }
+
+# The hui's fonts: the crate names no license field, only its files. The fonts inside it have
+# licenses of their own, which licenses/fonts.md gives.
+[u8g2-fonts.clarify]
+license = "MIT OR Apache-2.0"
+
+[[u8g2-fonts.clarify.files]]
+path = "LICENSE-MIT"
+license = "MIT"
+checksum = "fe87c00042541e987d9c5fe4a6f3cd6a9440ed23312bf36275f0473ab41f6bf8"
+
+[[u8g2-fonts.clarify.files]]
+path = "LICENSE-APACHE"
+license = "Apache-2.0"
+checksum = "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
