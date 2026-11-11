@@ -1,12 +1,15 @@
 //! Tic tac toe (apps.md §6.1): a game through the keys against the seeded computer, the hard
 //! level against random moves, the layout at both sizes.
 
+mod common;
+
+use common::inside;
+
 use std::collections::HashMap;
 
-use quantus_apps::api::Draw;
 use quantus_apps::{Apps, Callback, Context, Script, Seeded, Yield};
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::applet::{self, Palette};
+use quantus_ui::applet::Palette;
 use quantus_ui::backend::{Backend, Stub};
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Shape};
@@ -133,32 +136,6 @@ fn schwer_loses_no_game_against_random_moves() {
         }
     }
     assert_eq!((lost, games), (0, 300));
-}
-
-/// Whether everything `draws` drew lies inside an area of `width` × `height`.
-fn inside(draws: &[Draw], width: i32, height: i32) -> Result<(), String> {
-    let within = |x: i32, y: i32, w: i32, h: i32| x >= 0 && y >= 0 && x + w <= width && y + h <= height;
-    for draw in draws {
-        let ok = match draw {
-            Draw::Clear(_) => true,
-            &Draw::Rect(x, y, w, h, _) | &Draw::Round(x, y, w, h, _, _) | &Draw::Frame(x, y, w, h, _, _) => within(x, y, w, h),
-            &Draw::Circle(x, y, d, _) => within(x, y, d, d),
-            &Draw::Line(x1, y1, x2, y2, _, _) => within(x1.min(x2), y1.min(y2), (x2 - x1).abs(), (y2 - y1).abs()),
-            Draw::Text(x, y, text, _, small) => {
-                let (w, h) = if *small {
-                    (applet::text_small_width(text), applet::text_small_height())
-                } else {
-                    (applet::text_width(text), applet::text_height())
-                };
-                within(*x, *y, w, h)
-            }
-            Draw::Math(..) => true,
-        };
-        if !ok {
-            return Err(format!("{draw:?} outside {width} × {height}"));
-        }
-    }
-    Ok(())
 }
 
 #[test]

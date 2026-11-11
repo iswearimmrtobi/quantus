@@ -291,10 +291,12 @@ M2.
   and merge, a 2 nine times in ten, the new tile outlined, colours from the tile palette, the
   small font from four digits on, *Neu* with `confirm`, *Zurück* once, 2048 reached, the end.
   It saves after every move, so switching off loses nothing.
-- [ ] **6.4 Tests and a look.** `firmware/apps/tests/g2048.rs`: slides and merges from set
+- [x] **6.4 Tests and a look.** `firmware/apps/tests/g2048.rs`: slides and merges from set
   boards (`[2,2,2,2]` gives `[4,4,0,0]`), a move that changes nothing adds no tile, a game
   restored after reopening, the best score kept across *Neu*, both sizes. On the board: the
   redraw time of a move, written into apps.md §6.2 for the later animation.
+  Done but for the board: the redraw time waits for it. The move back is not saved: a game
+  reopened has no *Zurück* until the next move.
 - [ ] **6.5 Tic tac toe saves** its mode, level and score.
 
 M3: the games are done.
