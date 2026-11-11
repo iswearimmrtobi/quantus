@@ -486,6 +486,7 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Sessions { sessions, .. }) => Some(sessions.len()),
         Some(Edit::Apps { apps, view: AppsView::List, .. }) => Some(crate::menu::app_lines(apps).len()),
         Some(Edit::Apps { view: AppsView::Options(_), .. }) => Some(crate::menu::APP_OPTIONS.len()),
+        Some(Edit::Apps { view: AppsView::Confirm, .. }) => Some(1),
         Some(Edit::Apps { view: AppsView::Info | AppsView::Note(_), .. }) => None,
         Some(Edit::Sections { titles, .. }) => Some(titles.len()),
         Some(Edit::Forget { .. }) => Some(1),

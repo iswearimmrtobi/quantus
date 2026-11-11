@@ -1043,12 +1043,23 @@ impl<B: Backend> App<B> {
             }
             Outcome::Act(Action::AppRestart) => {
                 if let Some((applet, mut host)) = self.applet() {
+                    applet.leave(&mut host);
                     applet.restart(&mut host);
                 }
             }
+            // After its question: the data gone, the app starts again from nothing.
             Outcome::Act(Action::AppDeleteData) => {
-                menu.edit = Some(Edit::Message { label, message: text::NO_DATA });
-                running.menu = Some(menu);
+                let id = running.info.id.clone();
+                if self.delete_app_data(&id) {
+                    if let Some((applet, mut host)) = self.applet() {
+                        applet.restart(&mut host);
+                    }
+                } else {
+                    menu.edit = Some(Edit::Message { label, message: text::NO_DATA });
+                    if let Some(running) = &mut self.running {
+                        running.menu = Some(menu);
+                    }
+                }
             }
             Outcome::Act(Action::AppQuit) => {
                 let back = self.close_app();
@@ -1056,6 +1067,12 @@ impl<B: Backend> App<B> {
             }
             _ => running.menu = Some(menu),
         }
+    }
+
+    /// Removes the saved data of the app `id`, the hui's and the backend's; whether there were any.
+    fn delete_app_data(&mut self, id: &str) -> bool {
+        let kept = self.app_data.remove(id).is_some();
+        self.backend.delete_app_data(id) || kept
     }
 
     /// Leaves the app, if one runs: it is told, and the screen it was opened from is given back.
@@ -1386,9 +1403,13 @@ impl<B: Backend> App<B> {
                     }
                 }
             }
-            Outcome::DeleteAppData(_) => {
+            Outcome::DeleteAppData(index) => {
+                let Some(Edit::Apps { apps, .. }) = &menu.edit else { return };
+                let Some(id) = apps.get(index).map(|app| app.id.clone()) else { return };
+                let deleted = self.delete_app_data(&id);
                 let Some(Edit::Apps { view, .. }) = &mut menu.edit else { return };
-                *view = menu::AppsView::Note(text::NO_DATA.get(self.settings.language).to_string());
+                let said = if deleted { text::DONE } else { text::NO_DATA };
+                *view = menu::AppsView::Note(said.get(self.settings.language).to_string());
             }
             Outcome::OpenSession(index) => {
                 let Some(Edit::Sessions { sessions, .. }) = &menu.edit else { return };

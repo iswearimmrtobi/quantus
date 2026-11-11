@@ -323,6 +323,23 @@ impl Backend for Sim {
         self.random.next_u32()
     }
 
+    /// The apps' data in the folder's `apps/data`; with `--png` the hui keeps them.
+    fn app_data(&mut self, id: &str) -> Option<String> {
+        if self.keep { self.apps.data(id) } else { None }
+    }
+
+    fn store_app_data(&mut self, id: &str, json: &str) {
+        if self.keep {
+            if let Err(error) = self.apps.store_data(id, json) {
+                eprintln!("the data of {id} not kept: {error}");
+            }
+        }
+    }
+
+    fn delete_app_data(&mut self, id: &str) -> bool {
+        self.keep && self.apps.delete_data(id)
+    }
+
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
         match &mut self.answers {
             Answers::Engine(engine) => engine.evaluate(mode, settings, latex),

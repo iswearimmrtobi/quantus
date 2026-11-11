@@ -49,7 +49,8 @@ pub trait Applet {
     /// The answer to a question the app asked through the host ([`Host::confirm`]).
     fn answer(&mut self, _response: Response, _host: &mut dyn Host) {}
 
-    /// Starts again from the beginning (*Neu starten* in the app's menu).
+    /// Starts again from the beginning, as when it opened (*Neu starten* in the app's menu,
+    /// after [`Applet::leave`]; after *Daten löschen*, without it).
     fn restart(&mut self, _host: &mut dyn Host) {}
 
     /// The app is left: a value for the calculation's cursor, if it hands one back.

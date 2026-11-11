@@ -279,11 +279,14 @@ M2.
   `Backend::app_data(id)` and `store_app_data(id, json)` with defaults; the hui's `Host` keeps
   the data in memory when the backend keeps none. Tests: a round trip of nested values; over
   64 KB is an error of the script, not a cut file.
-- [ ] **6.2 The files.** `Apps::data` and `store_data` on `/apps/data/<id>.json`, written to a
+- [x] **6.2 The files.** `Apps::data` and `store_data` on `/apps/data/<id>.json`, written to a
   temporary name and renamed, as far as FAT allows; an id is checked before it becomes a path
   (letters, digits, `-`, `_`). In the simulator not with `--png` (F11). `leave()` is called on
   AC, MODE, *Beenden* and `exit`, and before *Neu starten*. *Daten löschen* in the app's menu
   and from the list removes the file. Tests with a temporary folder.
+  Built so: `Backend::delete_app_data`; *Daten löschen* asks first in the app's menu and in the
+  list, and in a running app the app then starts again from nothing (without `leave`, which
+  would save again). The board's `Apps` has no card folder until 7.2.
 - [ ] **6.3 The script.** `firmware/apps/apps/2048.rhai` as apps.md §6.2: `"keys"`, the slide
   and merge, a 2 nine times in ten, the new tile outlined, colours from the tile palette, the
   small font from four digits on, *Neu* with `confirm`, *Zurück* once, 2048 reached, the end.

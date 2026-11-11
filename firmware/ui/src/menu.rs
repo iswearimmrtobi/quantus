@@ -508,7 +508,7 @@ impl Menu {
     /// A tap on the line `offset` of the list on the screen: opens or chooses it, as OK does.
     /// On the wallpapers and themes a tap on another line only shows it, a second one keeps it.
     pub fn tap(&mut self, offset: usize, settings: &mut Settings) -> Outcome {
-        if matches!(self.edit, Some(Edit::Confirm { .. } | Edit::Forget { .. })) {
+        if matches!(self.edit, Some(Edit::Confirm { .. } | Edit::Forget { .. } | Edit::Apps { view: AppsView::Confirm, .. })) {
             return if offset == 0 { self.key(Key::Ok, settings) } else { Outcome::Stay };
         }
         let pictures = matches!(self.edit, Some(Edit::Pictures { .. } | Edit::Themes { .. }));
@@ -570,6 +570,7 @@ impl Menu {
             Some(Edit::Sessions { sessions, selected, .. }) => Some((*selected, sessions.len())),
             Some(Edit::Apps { apps, selected, view: AppsView::List, .. }) => Some((*selected, app_lines(apps).len())),
             Some(Edit::Apps { view: AppsView::Options(option), .. }) => Some((*option, 2)),
+            Some(Edit::Apps { view: AppsView::Confirm, .. }) => Some((0, 1)),
             Some(Edit::Sections { titles, selected, .. }) => Some((*selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
@@ -599,6 +600,7 @@ impl Menu {
                 Some((selected, count))
             }
             Some(Edit::Apps { view: AppsView::Options(option), .. }) => Some((option, 2)),
+            Some(Edit::Apps { view: AppsView::Confirm, .. }) => None,
             Some(Edit::Sections { titles, selected, .. }) => Some((selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
@@ -759,10 +761,6 @@ impl Menu {
                 self.edit = Some(Edit::Apps { label, apps, selected, view: AppsView::List });
             }
             Edit::Apps { label, apps, selected, view: AppsView::Options(option) } => {
-                let app = match app_lines(&apps).get(selected) {
-                    Some(AppLine::App(app)) => *app,
-                    _ => 0,
-                };
                 let chosen = match key {
                     Key::Digit(digit @ 1..=2) => Some(usize::from(digit) - 1),
                     Key::Ok | Key::Exe | Key::Right => Some(option),
@@ -778,10 +776,20 @@ impl Menu {
                 };
                 let view = match chosen {
                     Some(0) => AppsView::Info,
-                    _ => AppsView::Options(option),
+                    Some(_) => AppsView::Confirm,
+                    None => AppsView::Options(option),
                 };
                 self.edit = Some(Edit::Apps { label, apps, selected, view });
-                if chosen == Some(1) {
+            }
+            Edit::Apps { label, apps, selected, view: AppsView::Confirm } => {
+                let app = match app_lines(&apps).get(selected) {
+                    Some(AppLine::App(app)) => *app,
+                    _ => 0,
+                };
+                let yes = matches!(key, Key::Ok | Key::Exe | Key::Digit(1));
+                let view = if yes { AppsView::List } else { AppsView::Options(1) };
+                self.edit = Some(Edit::Apps { label, apps, selected, view });
+                if yes {
                     return Outcome::DeleteAppData(app);
                 }
             }
@@ -1027,6 +1035,8 @@ pub enum AppsView {
     Options(usize),
     /// The credits of the app under the cursor; any key goes back.
     Info,
+    /// *Ja* before its data are deleted.
+    Confirm,
     /// A text said over the list, an error of the app; any key goes back.
     Note(String),
 }

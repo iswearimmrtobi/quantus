@@ -281,6 +281,10 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                 app_info(shapes, &apps[*index], lang);
             }
         }
+        Some(Edit::Apps { view: menu::AppsView::Confirm, .. }) => {
+            let yes = Line { label: text::YES.get(lang).to_string(), value: None, math: None, mark: Mark::None };
+            lines_page(shapes, vec![yes], 0, &list);
+        }
         Some(Edit::Apps { view: menu::AppsView::Options(option), .. }) => {
             let lines = menu::APP_OPTIONS.iter().map(|label| Line { label: label.get(lang).to_string(), value: None, math: None, mark: Mark::None });
             lines_page(shapes, lines.collect(), *option, &list);

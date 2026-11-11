@@ -186,6 +186,11 @@ pub trait Backend {
     /// Keeps the saved data of the app `id`.
     fn store_app_data(&mut self, _id: &str, _json: &str) {}
 
+    /// Removes the saved data of the app `id`; whether there were any.
+    fn delete_app_data(&mut self, _id: &str) -> bool {
+        false
+    }
+
     /// A random number, for apps. The default is a generator over a fixed seed.
     fn random(&mut self) -> u32 {
         use core::sync::atomic::{AtomicU32, Ordering};

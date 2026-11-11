@@ -305,6 +305,20 @@ impl Backend for Board {
         unsafe { sys::esp_random() }
     }
 
+    fn app_data(&mut self, id: &str) -> Option<String> {
+        self.apps.data(id)
+    }
+
+    fn store_app_data(&mut self, id: &str, json: &str) {
+        if let Err(error) = self.apps.store_data(id, json) {
+            println!("app data of {id} not kept: {error}");
+        }
+    }
+
+    fn delete_app_data(&mut self, id: &str) -> bool {
+        self.apps.delete_data(id)
+    }
+
     fn wallpaper(&mut self, name: &str) -> Option<Vec<u8>> {
         self.card.as_ref().and_then(|_| sd::wallpaper(name))
     }

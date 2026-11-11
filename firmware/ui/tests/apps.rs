@@ -358,15 +358,18 @@ fn info_shows_the_credits() {
 fn restart_and_quit() {
     let (mut app, log) = opened(&[]);
     press(&mut app, &[Key::Optn, Key::Digit(2)]);
-    assert_eq!(log.borrow().restarts, 1);
+    // Left first, so it can save, then started again.
+    assert_eq!((log.borrow().left, log.borrow().restarts), (1, 1));
     assert_eq!(app.screen, Screen::App);
-    // No data yet: the entry says so.
+    // No data yet: after the question the entry says so.
     press(&mut app, &[Key::Optn, Key::Digit(3)]);
+    assert!(texts(&app).iter().any(|text| text == "Ja"));
+    app.key(Key::Ok);
     assert!(texts(&app).iter().any(|text| text == "Keine Daten"));
     press(&mut app, &[Key::Ok, Key::Digit(4)]);
     assert_eq!(app.screen, Screen::Calc);
     assert!(app.running.is_none());
-    assert_eq!(log.borrow().left, 1);
+    assert_eq!(log.borrow().left, 2);
 }
 
 fn tap(app: &mut App<Stub>, point: Point) {
@@ -559,6 +562,8 @@ fn optn_on_a_line_shows_info_and_delete_without_starting() {
     app.key(Key::Ok);
     assert!(shelf_texts(&app).iter().any(|text| text == "Spiele"));
     press_on(&mut app, &[Key::Optn, Key::Digit(2)]);
+    assert!(shelf_texts(&app).iter().any(|text| text == "Ja"));
+    app.key(Key::Ok);
     assert!(shelf_texts(&app).iter().any(|text| text == "Keine Daten"));
     press_on(&mut app, &[Key::Ok, Key::Optn, Key::Left]);
     assert!(shelf_texts(&app).iter().any(|text| text == "Spiele"));

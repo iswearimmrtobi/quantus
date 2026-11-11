@@ -302,7 +302,7 @@ pub static APP_MENU: Page = Page {
     entries: &[
         entry(crate::text::APP_INFO, Kind::Do(Action::AppInfo)),
         entry(tx!("hui.apps.restart"), Kind::Do(Action::AppRestart)),
-        entry(crate::text::APP_DELETE_DATA, Kind::Do(Action::AppDeleteData)),
+        entry(crate::text::APP_DELETE_DATA, Kind::Confirm(Action::AppDeleteData)),
         entry(tx!("hui.apps.quit"), Kind::Do(Action::AppQuit)),
     ],
 };
