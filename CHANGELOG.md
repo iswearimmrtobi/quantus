@@ -46,6 +46,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   busy spinner moved to Ctrl+F9 and Ctrl+F10. A USB keyboard on the handheld types UNIT and ENG
   with F9 and F10 too.
 
+### Changed
+
+- Improper integrals of exponentials (`\int_0^{\infty} e^{-2x}\,dx`, `\int_{-\infty}^{\infty} e^{-x^2}\,dx`)
+  are about four times faster, 0.2–0.3 s instead of about a second.
+
 ## [0.2.0] - 2026-11-06
 
 ### Added
