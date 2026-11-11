@@ -320,7 +320,7 @@ impl Backend for Sim {
     }
 
     fn random(&mut self) -> u32 {
-        self.random.next()
+        self.random.next_u32()
     }
 
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {

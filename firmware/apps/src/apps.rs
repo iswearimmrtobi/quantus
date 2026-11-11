@@ -56,7 +56,7 @@ impl Seeded {
     }
 
     /// The next number (xorshift).
-    pub fn next(&mut self) -> u32 {
+    pub fn next_u32(&mut self) -> u32 {
         let mut x = self.0;
         x ^= x << 13;
         x ^= x >> 17;

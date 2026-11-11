@@ -500,7 +500,7 @@ come first; a step is ticked here once its commits there are.
   drawing, `soft`, `input`, `grid`, `side`, `random`, `timer`, `lang`, the limits and the error
   page; `firmware/engine` implements `apps`, `open_app` and `random`. Tests run small scripts and
   check the shapes, the budget and the errors.
-- [ ] **5. Tic tac toe.** The script, embedded. Tests play a game through keys against the
+- [x] **5. Tic tac toe.** The script, embedded. Tests play a game through keys against the
   seeded computer, at the big unit's size and the small one's; a look at it in the simulator and
   on the board.
 - [ ] **6. 2048, with saved data.** `save`, `load`, `leave`; `app_data` and `store_app_data` in

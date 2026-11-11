@@ -262,10 +262,13 @@ interpreter. No engine.
   centre, X answered) negamax with alpha-beta, the centre and the corners tried first, takes
   200,000 to 415,000 operations, under the provisional budget of 500,000. Whether that is under
   200 ms on the board waits for it.
-- [ ] **5.3 Tests and a look.** `firmware/apps/tests/tictactoe.rs`: a game through keys against
+- [x] **5.3 Tests and a look.** `firmware/apps/tests/tictactoe.rs`: a game through keys against
   the seeded computer; *schwer* loses none of a few hundred seeded games against random moves;
   the layout at 480 × 250 and at 320 × 214 keeps board and side panel inside the area. PNGs
   from the simulator, then the board: the bands sent per move (`main.rs` logs them).
+  Done but for the board: the bands per move wait for it. *schwer* plays 300 games against
+  random moves, the computer beginning every other one, and loses none; the layout test found a
+  hint wider than the side panel, so the script now shrinks or leaves out what does not fit.
 
 M2.
 

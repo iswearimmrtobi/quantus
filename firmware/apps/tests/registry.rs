@@ -18,7 +18,7 @@ fn the_built_in_apps_are_listed_and_open() {
 #[test]
 fn a_seed_repeats() {
     let (mut a, mut b) = (Seeded::new(7), Seeded::new(7));
-    let first: Vec<u32> = (0..5).map(|_| a.next()).collect();
-    assert_eq!(first, (0..5).map(|_| b.next()).collect::<Vec<_>>());
+    let first: Vec<u32> = (0..5).map(|_| a.next_u32()).collect();
+    assert_eq!(first, (0..5).map(|_| b.next_u32()).collect::<Vec<_>>());
     assert_ne!(first[0], first[1]);
 }

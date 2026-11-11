@@ -235,16 +235,29 @@ fn side_panel() {
         }
     } else if de { `Am Zug: ${this.turn}` } else { `To move: ${this.turn}` };
     let step = text_small_height() + 6;
+    let room = s.w - 8;
     let y = s.y + 4;
-    text(s.x + 4, y, status, if this.over { "amber" } else { "text" });
-    y += text_height() + 6;
+    let color = if this.over { "amber" } else { "text" };
+    // The status in the large font where it fits, else the small one.
+    if text_width(status) <= room {
+        text(s.x + 4, y, status, color);
+        y += text_height() + 6;
+    } else {
+        text_small(s.x + 4, y, status, color);
+        y += step;
+    }
     let draws = if de { "Remis" } else { "Draws" };
-    text_small(s.x + 4, y, `X ${this.score.x}   O ${this.score.o}   ${draws} ${this.score.draw}`, "muted");
+    let score = `X ${this.score.x}   O ${this.score.o}   ${draws} ${this.score.draw}`;
+    if text_small_width(score) <= room {
+        text_small(s.x + 4, y, score, "muted");
+    } else {
+        text_small(s.x + 4, y, `${this.score.x} : ${this.score.o}`, "muted");
+    }
     y += step;
-    if y + step <= s.y + s.h {
-        let hint = if this.over {
-            if de { "Eine Taste: nächste Runde" } else { "Any key: next round" }
-        } else if de { "Pfeile und OK, oder 1-9" } else { "Arrows and OK, or 1-9" };
+    let hint = if this.over {
+        if de { "Taste: nächste Runde" } else { "Any key: next round" }
+    } else if de { "Pfeile und OK, oder 1-9" } else { "Arrows and OK, or 1-9" };
+    if y + step <= s.y + s.h && text_small_width(hint) <= room {
         text_small(s.x + 4, y, hint, "muted");
     }
 }
