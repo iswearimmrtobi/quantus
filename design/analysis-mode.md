@@ -1,53 +1,5 @@
 # Analysis mode (Kurvendiskussion)
 
-## Implementation plan
-
-The steps of §16, one commit each, and the checks of §17.
-
-- [x] 1. Move `msg!`/`Scope` to `crate::text` (`b2098fd`)
-- [x] 2. Refactor the solver into `scan_roots` (`3a09035`)
-- [x] 3. `analysis::expr`: from/to node, eval, serializer separator extension (`4b8f3a3`)
-- [x] 4. `simplify` + `exact` tables (`22c52eb`)
-- [x] 5. `derive` with rule steps (`41f87fc`)
-- [x] 6. `interval` + `polydiv` + `solve` + `QuadraticFormula` setting (`cc5748a`)
-- [x] 7. `domain` (`7d2c778`)
-- [x] 8. `limits` + asymptotes (`2191375`)
-- [x] 9. `integrate`: table, polynomial, partial fractions, substitution, parts, guard (`c15f51c`)
-- [x] 10. `discussion` + `tests/analysis.rs` (`bd29215`)
-- [x] 11. `tasks`: tangent, area, table (`8c62df4`)
-- [x] 12. `plot` (`5de3a06`)
-- [x] 13. `Mode::Analysis`, API types and functions, Tauri commands (`cfd60b6`)
-- [x] 14. Frontend: api.ts, SettingsPanel, App, AnalysisView, FunctionPlot, i18n, styles (`7b3309e`)
-- [x] 15. Docs: README, `docs/unsupported-inputs.md`, `docs/testing.md` (`fce7c9d`)
-- [x] `cargo test --workspace` passes
-- [x] `cd desktop && npm run typecheck` passes
-- [ ] Manual check in `npm run dev` (§17)
-
-### Completion
-
-A check of the code against this specification found gaps after step 15. They were closed one
-commit each:
-
-- [x] Time budget inside the numeric loops, the simplifier and the integration methods; limits for the tasks and the sampling (`49a5eab`)
-- [x] Domain and interval rules: exact point equality and symmetry, merged intersections, arcsin as two inequalities, irrational exponents, numeric zeros noted (`04e10c6`, `7755350`)
-- [x] Solver working: families outside D, rational exact logarithms, duplicate families, constant factors, the put-in guess, pq rule ids, simplified radicals, division rows in `before`/`after` (`46c7145`)
-- [x] Limits: exact pole signs, `\ln` of growing arguments, the numeric classifier, approximate oblique asymptotes, the approximating curve (`40ee1f9`)
-- [x] Antiderivatives: nested parts, irrational quadratic roots, working for `e^{ax}\sin(bx)`, completed squares in the table, `\ln|u|` by the sign on D, polynomials multiplied out (`33e40d5`)
-- [x] Serializer join of x-powers, odd and even sums, the chain-rule step for a constant over several factors (`8673b1b`)
-- [x] Point text, refined y, boundary point names, multiplicity notes and section wording (`cd27790`)
-- [x] Periodic families merged after classifying, moving y for ax + periodic, `period` in the API (`ec65a1e`)
-- [x] Tasks: zeros on [a, b], bounds and errors, signed integral, closed-form table cells, `xValue`/`yValue`, five tangent steps (`1484300`)
-- [x] Plot: domain ends in every view, the pole offset (`e6fd912`)
-- [x] Frontend: request order, kept view and selection, tooltip, zoom limits, one-sided and periodic asymptotes (`90ca1bf`)
-- [x] Frontend: placeholder, input row, i18n keys, colour tokens, container query (`1c737d7`)
-- [x] Tests for every row of §17 and every expected antiderivative (`5b9615d`)
-
-Decided while completing it, and written into the sections below:
-
-- `1/\sqrt{a} = \sqrt{a}/a` stays part of the canonical form (§5): it is what lets `\frac{\sqrt{2}}{2}` and `\frac{1}{\sqrt{2}}` collect as like terms.
-- Holes are found with the gcd of numerator and denominator, which is what `DomainTracker` records (§7).
-- Families are listed in [−10, 10] when f is not periodic (§11): the plot window is computed from the listed points, so it cannot decide which points are listed.
-
 ## 1. Context and scope
 
 Quantus can differentiate symbolically (`eval/derivative.rs`), but it only uses that to evaluate a derivative at a point. Integrals are definite and numerical only (`numeric.rs`, tanh-sinh). The algebra pipeline rejects anything that is not rational (`algebra::pipeline::find_unsupported_construct`). This plan adds a fifth app mode, **Analysis** (German UI: "Analysis"). The user enters f(x) and gets a full curve sketch with the working written out the way a student would write it, plus three tasks: tangent/normal, area and value table.
