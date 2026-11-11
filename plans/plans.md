@@ -176,18 +176,11 @@ by how often an entry was used comes later.
 - [x] Desktop: the quick search lists functions and prefixes too.
 - [ ] Usage counts that rank frequent entries first.
 
-## 7. Apps and games on the handheld
-
-Games (tic tac toe, 2048) and user-made UIs for special calculations, as scripts that the handheld
-runs: built in, or from `/apps/` on the card. Built and tested in the simulator
-([apps.md](../firmware/docs/apps.md)). Left, all on the board
-([apps-roadmap.md](../firmware/docs/apps-roadmap.md)): the spike's numbers (stack, time of a
-move, the operation budget, now 500,000 for a PC) and the choice of Rhai; the checks noted under
-4.6, 5.2, 5.3, 6.4 and 7.2. Also the unit bar on an app's input line (F9).
-
-## 8. Later
+## 7. Later
 
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
+- The unit bar on an app's input line on the handheld (apps-roadmap.md F9); the apps themselves
+  are done ([apps.md](../firmware/docs/apps.md)).
 - Optional: a thin `quantus-server` crate (axum) over `quantus-core`, if self-hosting is wanted.
 - Optional: PKGBUILD or Flatpak, signing and updates.

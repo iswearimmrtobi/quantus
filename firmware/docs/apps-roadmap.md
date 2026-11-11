@@ -1,13 +1,14 @@
 # Apps and games: the implementation roadmap
 
-State on 2026-11-11: every box is done that does not need the board. Open are 0.2 to 0.5 (the
-spike's numbers and the choice of Rhai), the checks on the board noted under 4.6, 5.2, 5.3,
-6.4 and 7.2, and 11.5. [apps.md](apps.md) is the
-design; its §8 names twelve steps. This page breaks each of them into commits: what changes, in
+State on 2026-11-11: every box is done, the checks on the board too. The spike of step 0 measured
+Rhai and Lua on the board and Lua was chosen (0.5); the apps were then moved from Rhai to Lua
+(step 12). What is left is the unit bar on an app's input line (F9), under apps.md §8 *Later*.
+[apps.md](apps.md) is the design; it had a plan of twelve steps, removed once they were done
+(11.5). This page breaks each of them into commits: what changes, in
 which files, and how it is checked. It was written against the code as it stood, and §1 lists
 where the code asked for something other than what apps.md said.
 
-One box is one commit on `dev`. A step of apps.md §8 is ticked there once all its boxes here are.
+One box is one commit on `dev`. A step of apps.md's plan was ticked there once all its boxes here were.
 Checks are the step's own tests (`cargo test -p <crate> --test <name>`) and a look in the
 simulator, never the whole workspace.
 
@@ -66,23 +67,23 @@ are kept.
   checked against Rhai's documentation: no `unchecked` (the limits must stay), no `sync`,
   `only_i32` or `f32_float` for the P4, `no_module`, `no_custom_syntax`, `no_time`. Record: the
   growth of the image against the 7.9 MB `factory` partition (`partitions.csv`), the build time.
-- [ ] **0.2 A script that plays 2048.** Board as an array in a map, `slide` in four directions,
+- [x] **0.2 A script that plays 2048.** Board as an array in a map, `slide` in four directions,
   the state as `this` in `init`, `key` and `draw` (`call_fn` with a bound `this`; confirm the
   mechanism). `draw` only counts the shapes it would make. Record per callback: time, stack high
   water mark (`uxTaskGetStackHighWaterMark`), heap and internal RAM, as `report_memory` in
   `handheld/src/engine.rs` prints them.
-- [ ] **0.3 On a thread, yielding.** The script on a thread started as the engine's worker is
+- [x] **0.3 On a thread, yielding.** The script on a thread started as the engine's worker is
   (`std::thread::Builder::stack_size`), the main loop sending a key and waiting for the answer on
   a channel; one host function (`confirm`) that blocks the script until the main loop answers.
   Record: the stack size that is enough (start with 32 KB), the round trip in ms, whether the
   thread's stack comes from internal RAM (380–440 KB free, 116 KB at the lowest during a sketch)
   or can come from PSRAM, and that the thread ends cleanly when its channel closes.
-- [ ] **0.4 The limits hold.** `while true {}` ends by the operation budget
+- [x] **0.4 The limits hold.** `while true {}` ends by the operation budget
   (`set_max_operations`, `on_progress`), a recursion without end by `set_max_call_levels`, a
   string doubled without end by `set_max_string_size`; each comes back as an error value with a
   line number. The board builds with `panic_abort`: nothing may panic. Record the budget that
   gives about 200 ms.
-- [ ] **0.5 Decide and write down.** The table of numbers into apps.md decision 5; §3 and §5 of
+- [x] **0.5 Decide and write down.** The table of numbers into apps.md decision 5; §3 and §5 of
   apps.md rewritten for the script thread (F1). If Rhai fails a criterion, the same four boxes
   with `mlua` before going on.
 
@@ -91,7 +92,33 @@ same binary without Rhai is 580,544 B): with `only_i32`, `f32_float`, `no_module
 `no_custom_syntax`, `no_time`: 1,624,720 B, **+1.04 MB**; with `no_closure` and `no_optimize` too:
 1,486,368 B, **+906 KB**. Both are over the 600 KB criterion but a small part of the 7.9 MB
 `factory` partition. A clean build of the dependencies took 1 m 26 s, the crate alone 20–50 s.
-0.2 to 0.4 wait for a board: `/dev/ttyACM0` on the development PC is an ST-Link, not the dev kit.
+Measured on the dev kit (ESP32-P4 rev 3.2 at 400 MHz, WLAN connected) with the real firmware
+rather than throwaway code, every callback logged with its time, the script thread's stack and
+the heap (`QUANTUS_APPS_DEBUG=1`), the keys sent over the serial line:
+
+- **0.2.** Rhai, the real 2048: a move with its `draw` 18–25 ms, compiling 37 ms (with the flash
+  in QIO at 80 MHz; 35–41 ms a move with espflash's default DIO at 40 MHz, which is why the
+  runner now flashes QIO). The state as `this` with `call_fn`'s bound `this` worked as planned.
+- **0.3.** The script's thread as built (F1) works on the board; the round trip's own cost could
+  not be told apart from the log's lines (about 13 ms each at 115,200 baud). Its stack cannot come from internal RAM: with WLAN on, a 64 KB stack left 863 B, and the next
+  mutex the system made aborted the board. The stack comes from PSRAM (`esp_pthread_set_cfg`
+  with `MALLOC_CAP_SPIRAM`), and so does everything the script allocates (a global allocator
+  that knows the script's task): with small allocations in internal RAM first, compiling 2048
+  took the internal heap down to 16 B, and every allocation of a script then failed there before
+  it went to PSRAM, which made scripts five times slower whenever WLAN was on. With both in
+  PSRAM, internal RAM stays above 150 KB while an app runs. The thread ends when its channel
+  closes.
+- **0.4.** Every limit came back as an error, but the stack: Rhai takes about 3.6 KB per call
+  level, and 32 levels with expressions nested as deep as the parser allows took 438 KB, where
+  running over it is a *Stack protection fault* that halts the CPU. The stack is sized for the
+  worst the limits allow (1 MB). The budget: 940 operations a millisecond, so 200,000 for 200 ms.
+  Tic tac toe's search over the game tree took 1 to 4.6 s on the board and gave way to the
+  rules that never lose (5.2).
+- **0.5.** Rhai missed three of the criteria below as written (36 ms a move with DIO, +1.04 MB,
+  438 KB of stack). The same checks with Lua 5.4 through mlua: a move 4.9 ms in the spike and
+  7–10 ms in the firmware, +0.27 MB, 250 KB of stack at Lua's 200 nested C calls, every limit an
+  error. Lua was chosen (apps.md decision 5) and the apps moved to it (step 12). F1 stays: the
+  callbacks with answers as the call's value, on the script's thread.
 
 Criteria for Rhai: a 2048 move with `draw` under 30 ms; under 600 KB of image; a stack of at most
 64 KB; every limit comes back as an error.
@@ -245,9 +272,8 @@ interpreter. No engine.
   that `--seed <n>` fixes (F11). The dependency goes into `sim` and `handheld`; all three lock
   files change. Check: the test script opens from the Apps list in the simulator, and on the
   board over the serial keys.
-  Done but for the board: the firmware builds with the apps (`cargo build --release`), the
-  check on the board over the serial keys waits for it. The test script is the Counter as
-  `zaehler.rhai`; the card's folder is listed from 7.1 on.
+  Done: the games open from the Apps list on the board, over the serial keys. The test script
+  was the Counter as `zaehler.rhai`; the card's folder is listed from 7.1 on.
 
 ### Step 5. Tic tac toe (M)
 
@@ -268,9 +294,12 @@ interpreter. No engine.
   the seeded computer; *schwer* loses none of a few hundred seeded games against random moves;
   the layout at 480 × 250 and at 320 × 214 keeps board and side panel inside the area. PNGs
   from the simulator, then the board: the bands sent per move (`main.rs` logs them).
-  Done but for the board: the bands per move wait for it. *schwer* plays 300 games against
-  random moves, the computer beginning every other one, and loses none; the layout test found a
-  hint wider than the side panel, so the script now shrinks or leaves out what does not fit.
+  Done. On the board a move sends three to eight bands, 30–92 ms. The search of 5.2 took 1 to
+  4.6 s on the board, the last over the 3 s after which the app counts as not responding, so
+  *schwer* now plays by the rules that never lose (win, block, fork, block a fork, centre,
+  opposite corner, corner, side): at most 3,500 Lua instructions a move, and a test plays every
+  game the other side can play, 597 of them, both beginning, and loses none. The layout test
+  found a hint wider than the side panel, so the script shrinks or leaves out what does not fit.
 
 M2.
 
@@ -297,8 +326,9 @@ M2.
   boards (`[2,2,2,2]` gives `[4,4,0,0]`), a move that changes nothing adds no tile, a game
   restored after reopening, the best score kept across *Neu*, both sizes. On the board: the
   redraw time of a move, written into apps.md §6.2 for the later animation.
-  Done but for the board: the redraw time waits for it. The move back is not saved: a game
-  reopened has no *Zurück* until the next move.
+  Done. On the board a move takes 7–10 ms in the script (Lua) and 55–75 ms to send its six to
+  eight bands, now in apps.md §6.2. The move back is not saved: a game reopened has no *Zurück*
+  until the next move.
 - [x] **6.5 Tic tac toe saves** its mode, level and score.
 
 M3: the games are done.
@@ -316,8 +346,9 @@ M3: the games are done.
   Counter); `sd::APPS` in `handheld/src/sd.rs`. The list is read each time the Apps tile opens,
   so a card changed in between shows. Measure the listing of twenty files on the board (the
   card runs at 10 MHz).
-  Done but for the board: the listing's time waits for it. The Counter left the built-in apps
-  for `sim/sd/apps/zaehler.rhai`; `.gitignore` keeps `sim/sd/apps/` but not its `data/`.
+  Done. On the board twenty files are listed in 93 ms (written to a folder of their own and
+  removed again). The Counter left the built-in apps for `sim/sd/apps/zaehler.rhai`, now
+  `zaehler.lua`; `.gitignore` keeps `sim/sd/apps/` but not its `data/`.
 - [x] **7.3 Storage.** SETUP → Gerät → Speicherplatz counts `/apps/` (`Storage`, `sd::storage`,
   the simulator's `storage`).
   Nothing to change: the page shows the card's total and free space, no folders. The board reads
@@ -436,25 +467,50 @@ M5.
   written by the same command: the handheld's crates for the board's target (Rhai and what it
   brings among them), then the hui's fonts (FreeUniversal under the OFL, 10x20 in the public
   domain, ClearlyU cu12) and a note on ESP-IDF's components.
-- [ ] **11.5 apps.md** from plan to description: the state line, §8 removed, plans.md §7 removed.
+- [x] **11.5 apps.md** from plan to description: the state line, §8 removed, plans.md §7 removed.
+  The unit bar (F9) went to apps.md *Later* and plans.md's list of later work.
 
 M6.
+
+### Step 12. From Rhai to Lua (M)
+
+After 0.5. Every box above was built on Rhai and stays as it was written; this step moved them.
+
+- [x] **12.1 `quantus-apps` on mlua.** `script.rs` and `api.rs` over a Lua state: the safe
+  standard libraries only (`string`, `table`, `math`, `utf8`), no `pcall`, `xpcall`, coroutines,
+  `load`, `dofile`; the budget as an instruction hook with the line; a memory limit of 4 MB;
+  values to and from tables (1 to n is a list, tables nested at most 32 deep). The API as
+  before but for Lua's words: `formula` for `math`, `math.random` from the host's generator
+  for `random`, `g:cell` and `g:at` with `size` for `cell`, `nil` for `()`. Positions in a grid,
+  cells and lists count from 1. `draws` from the source (`function draw(`), since the top level
+  may show a form before it ends.
+- [x] **12.2 The games and the card's apps** in Lua (`*.lua`), the header in `--` comments.
+- [x] **12.3 The tests**, every script in them rewritten; the exhaustive test of tic tac toe
+  counts Lua instructions.
+- [x] **12.4 The board.** Lua 5.4.9's C sources in `firmware/handheld/lua`, compiled by
+  `build.rs` with the ESP toolchain (lua-src knows no ESP-IDF target), linked through mlua by
+  `LUA_LIB_NAME`; `rust_eh_personality` defined, which mlua needs and `panic_abort` lacks. The
+  image went from 5.23 to 4.15 MB.
+- [x] **12.5 The pages**: apps.md, the site's *Writing apps*, sd-card.md, the changelog, the
+  licences.
 
 ## 4. Risks
 
 | Risk | Seen in | What then |
 |---|---|---|
-| Rhai is too slow, too large or needs too much stack | 0.2, 0.3 | Lua (`mlua`); the API of apps.md §4 carries over, steps 1 to 3 are untouched because the hui never sees the interpreter |
-| The script thread's stack does not fit into internal RAM beside the engine's 64 KB | 0.3 | The stack from PSRAM, or the script on the engine's worker thread while no calculation runs |
+| Rhai is too slow, too large or needs too much stack | 0.2, 0.3 | Lua (`mlua`); the API of apps.md §4 carries over, steps 1 to 3 are untouched because the hui never sees the interpreter. Happened: step 12 |
+| The script thread's stack does not fit into internal RAM beside the engine's 64 KB | 0.3 | The stack from PSRAM, or the script on the engine's worker thread while no calculation runs. Happened: the stack and the script's heap from PSRAM |
 | A panic inside the interpreter halts the board | 0.4, 4.3 | Every limit has a test that would abort; a crash found later is a bug in the limits, not something to catch |
-| *schwer* in tic tac toe is over the operation budget | 5.2 | A table for the first move; a larger budget for built-in apps is not wanted, the games are the examples |
+| *schwer* in tic tac toe is over the operation budget | 5.2 | A table for the first move; a larger budget for built-in apps is not wanted, the games are the examples. Happened on the board: the rules that never lose instead of a search |
 | Writing `/apps/data/` after every move is slow or wears on the card | 6.4 | Save on `leave` and every few moves instead |
 | `"line"` needs more of `calc_key` than can be shared cleanly | 3b.2 | The line without the unit bar first; tools can still take units through UNIT |
 | The form's substitution of values into formulas goes wrong for names like `R1` inside `R12` | 9.3 | Substitute on the parsed input, not on text; if the core has to help, it is a function in `quantus-core` and the desktop gets it too (ideas 5 and 19) |
 
 ## 5. Open, to be decided on the way
 
-- **F1 against the callback style**, in 0.5, with the spike's numbers.
-- **The soft keys while an app's input line has the cursor** (F9), in 3b.2.
-- **Long calculations from a script** (apps.md §10): 8.2 gives the spinner and AC; whether more
+- **F1 against the callback style**, in 0.5, with the spike's numbers. Settled: F1, the script's
+  thread, on the board as on the PC.
+- **The soft keys while an app's input line has the cursor** (F9), in 3b.2. The line without the
+  unit bar was built; the unit bar is left for later (apps.md §8).
+- **Long calculations from a script** (apps.md §9): 8.2 gives the spinner and AC; whether more
   is needed shows with the first real tools.

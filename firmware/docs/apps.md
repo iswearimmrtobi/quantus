@@ -1,9 +1,8 @@
 # Apps and games
 
-State on 2026-11-11: built and tested in the simulator, steps 1 to 11 of §8; on the board it
-builds, and the spike's numbers (step 0) and the checks there wait for it. This page is the
-design: what an app is, how the hui runs one, the script API, the two first games; app authors
-read the site's *Writing apps*.
+State on 2026-11-11: built, and tested in the simulator and on the board; how it was built, step
+by step, is in [apps-roadmap.md](apps-roadmap.md). This page describes the design: what an app is, how the hui runs one, the script API, the two first
+games; app authors read the site's *Writing apps*.
 
 Handheld only. The desktop app gets none of this.
 
@@ -59,18 +58,26 @@ What shapes the design:
 4. **One MODE tile, *Apps***, lists games and tools together, built in first, then the card's.
    It opens a third page of the mode menu, and a tile *Setup* stands beside it, which opens the
    menu SHIFT + MODE opens (§7).
-5. **The script language is Rhai**, to be confirmed by the spike in step 0:
+5. **The script language is Lua 5.4**, chosen after the spike of step 0 measured Rhai, the first
+   choice, and Lua on the board (ESP32-P4 at 400 MHz, flash in QIO at 80 MHz, WLAN connected):
 
-   | | Rhai | Lua | WebAssembly |
-   |---|---|---|---|
-   | In the firmware | A Rust crate, nothing to cross-compile | `mlua` builds the C sources for the board's target; `piccolo` is Rust but young | A runtime, the largest of the three |
-   | For the user | A text file; the syntax reads like Rust or JavaScript | A text file; known from other handhelds and games | Needs a compiler on a PC |
-   | Sandbox | Has no file or network access unless the host gives it; limits on operations, call depth and sizes are built in | Possible, by leaving libraries out and a hook that counts | Strong |
-   | Speed | Slowest, an interpreter over the syntax tree | Fast | Fastest |
+   | On the board | Rhai 1.27 | Lua 5.4 (mlua) |
+   |---|---|---|
+   | 2048: compiling the file | 37 ms | 12 ms |
+   | 2048: a move with its `draw` | 21–25 ms | 7–10 ms |
+   | Tic tac toe: the computer's move on *schwer* | 7–12 ms | 4–6 ms |
+   | A loop of 10,000 steps | 63 ms | 8 ms |
+   | The time budget (§5) | 200,000 operations, 211 ms | 1,000,000 instructions, 183 ms |
+   | The image | +1.04 MB | +0.27 MB |
+   | The deepest stack the limits allow | 438 KB | 250 KB |
+   | Every limit an error, none a halt | yes | yes |
 
-   Rhai is the least work and safe by default, and a turn of tic tac toe or 2048 is a few hundred
-   operations. If the spike shows it too slow, too large or too hungry for stack, Lua takes its
-   place. The API in §4 names functions and values, not syntax, so it carries over.
+   Both fit; Lua is about three times as fast and a quarter of the size, and is known from games
+   and other calculators. The PC builds Lua from the `lua-src` crate; the board compiles the same
+   C sources from `firmware/handheld/lua` with the ESP toolchain, since `lua-src` knows no ESP-IDF
+   target. The API in §4 names functions and values, so it carried over from Rhai unchanged but
+   for Lua's own words: `formula` for `math`, `math.random` for `random`, `g:cell` and `nil`.
+
 6. **No apps in Prüfungsmodus.** With `Settings::exam` on, the tile says why and opens nothing.
    A tool from the card is a formula sheet, which an exam forbids, and a game has no place there.
    Letting a teacher allow single apps belongs to idea 24.
@@ -88,19 +95,19 @@ What shapes the design:
 
 ## 2. What an app is
 
-One file, `/apps/<id>.rhai` on the card; the file's name without the ending is the app's id. In
+One file, `/apps/<id>.lua` on the card; the file's name without the ending is the app's id. In
 the simulator the folder is `firmware/sim/sd/apps/`. The first lines are a header in comments,
 which the hui reads to list the app without running it:
 
-```rhai
-// name: 2048
-// name.de: 2048
-// kind: game
-// api: 1
-// author: Quantus
-// version: 1.0
-// about: Slide the tiles and join equal ones.
-// about.de: Schiebe die Kacheln und verbinde gleiche.
+```lua
+-- name: 2048
+-- name.de: 2048
+-- kind: game
+-- api: 1
+-- author: Quantus
+-- version: 1.0
+-- about: Slide the tiles and join equal ones.
+-- about.de: Schiebe die Kacheln und verbinde gleiche.
 ```
 
 - `name`: what the list shows; `name.<lang>` for one language.
@@ -134,7 +141,7 @@ The built-in apps are files in `firmware/apps/apps/`, embedded with `include_str
 card with the id of a built-in one is listed beside it, marked as the card's, and does not replace
 it.
 
-**Saved data.** An app can keep one value (a map: the best score, a game in progress, the last
+**Saved data.** An app can keep one value (a table: the best score, a game in progress, the last
 inputs of a form) with `save` and `load`. It is stored as JSON in `/apps/data/<id>.json`, at most
 64 KB. Without a card it lasts until the handheld is switched off.
 
@@ -201,7 +208,7 @@ own thread (`Script` in `firmware/apps/src/script.rs`), and the main side sends 
 and waits for it to *yield*: the callback and `draw` are done (`Yield::Done`, with what `draw`
 drew and what the script set), or the script stands in a host call that needs the hui
 (`Yield::Asks`, a question or a calculation) until the answer resumes it, or it failed. What
-crosses the channel is plain data: Rhai's values are not `Send`. The thread gives the
+crosses the channel is plain data: Lua's values are not `Send`. The thread gives the
 interpreter the stack it needs, and a callback that does not come back in time counts as hung:
 the main side stops waiting and the operation budget ends the thread.
 
@@ -218,7 +225,9 @@ later, for the desktop as well (ideas 5 and 19).
 
 ### 4.1 Callbacks
 
-An app defines the functions it needs; all are optional except `draw`.
+An app defines the functions it needs, as global functions; all are optional. One without
+`draw` is only a form (§4.7). Positions in a grid, cells and lists count from 1, as Lua's lists
+do; pixels count from 0.
 
 | Function | Called |
 |---|---|
@@ -231,25 +240,25 @@ An app defines the functions it needs; all are optional except `draw`.
 | `pick(col, row)` | When OK is pressed on a cell of the grid (§4.4) |
 | `leave()` | When the app closes (AC, or MODE). The place to `save` |
 
-The app's state is one map, which every callback gets as `this`. Functions in Rhai do not see
-variables outside themselves, so the state travels this way; the spike confirms the mechanism.
+The app's state is its variables: one Lua state lives as long as the app is open, so `local`
+variables at the top of the file keep their values from one callback to the next.
 
-```rhai
-// name: Counter
-// kind: tool
-// api: 1
+```lua
+-- name: Counter
+-- kind: tool
+-- api: 1
 
-fn init() { this.n = 0; }
+local n = 0
 
-fn key(k) {
-    if k == "up"   { this.n += 1; }
-    if k == "down" { this.n -= 1; }
-}
+function key(k)
+  if k == "up" then n = n + 1 end
+  if k == "down" then n = n - 1 end
+end
 
-fn draw() {
-    clear("background");
-    text(20, 40, `Count: ${this.n}`, "text");
-}
+function draw()
+  clear("background")
+  text(20, 40, "Count: " .. n, "text")
+end
 ```
 
 ### 4.2 Keys
@@ -298,11 +307,11 @@ time; the renderer finds what changed.
 | `round(x, y, w, h, r, color)` | With rounded corners |
 | `frame(x, y, w, h, r, color)` | The outline of one, two pixels wide, inside it |
 | `circle(x, y, d, color)` | A filled circle, `d` across, its box's top left at (x, y) |
-| `line(x1, y1, x2, y2, color, width)` | A line |
-| `text(x, y, s, color)`, `text_small(...)` | Text in the hui's two fonts, the top left of its line at (x, y) |
+| `line(x1, y1, x2, y2, color, width)` | A line; `width` 1 when left out |
+| `text(x, y, s, color)`, `text_small(...)` | Text in the hui's two fonts, the top left of its line at (x, y); a number as `tostring` writes it |
 | `text_width(s)`, `text_small_width(s)` | Its width, for centring |
 | `text_height()`, `text_small_height()` | The height of a line, for centring |
-| `math(x, y, latex, color)` | A formula, set as the calculator sets results, its top left at (x, y) |
+| `formula(x, y, latex, color)` | A formula, set as the calculator sets results, its top left at (x, y) (`math` is Lua's library) |
 
 A colour is a name from the hui's palette (`"background"`, `"surface"`, `"text"`, `"muted"`,
 `"result"`, `"error"`, `"cyan"`, `"amber"`, `"tile1"` to `"tile14"`), so an app follows the
@@ -319,8 +328,8 @@ outcome. `"keys"` is the default.
 | `"keys"` | Presses keys | Nothing | `key(k)` for every key. The app's own input, for a game that steers with the arrows |
 | `"line"` | Types as in Physik: numbers with units and prefixes, fractions, powers, constants, with SHIFT, ALPHA, UNIT and SYMB (SYMB's symbols take the soft keys while open; no unit bar) | The input line at the bottom of the area, with a `label` in front | `entered(value)` on EXE, `value` as `calc` takes it. `options.calc: true` works it out first and gives what `calc` gives |
 | `"text"` | Types plain text: letters, digits, the space, as when a session is renamed | One line with a `label`, at the bottom of the area | `entered(text)` on EXE or OK. `options.max` limits the length (32 if not named), `options.value` stands in it at first |
-| `"grid"` | Moves a cursor over `options.cols` × `options.rows` cells with the arrows or a tap, picks with OK or EXE | The cursor's frame on the cell, over the app's drawing | `pick(col, row)`. `cursor()` gives the cell it is on as `#{col, row}`, `cursor(col, row)` sets it. `options.digits: true` lets 1–9 pick a cell of a 3 × 3 grid directly, laid out as the number block is. `options.wrap: true` lets the cursor go round the edges |
-| `"cells"` | The same grid, and types a value into the cell under the cursor, as in the Matrizen grid | The cursor and the editor in the cell | `entered(#{col, row, value})` when a cell is confirmed. `options.digits_only: true` takes one digit per cell and moves on (Sudoku) |
+| `"grid"` | Moves a cursor over `options.cols` × `options.rows` cells with the arrows or a tap, picks with OK or EXE | The cursor's frame on the cell, over the app's drawing | `pick(col, row)`. `cursor()` gives the cell it is on as `{col, row}`, `cursor(col, row)` sets it. `digits = true` lets 1–9 pick a cell of a 3 × 3 grid directly, laid out as the number block is. `wrap = true` lets the cursor go round the edges |
+| `"cells"` | The same grid, and types a value into the cell under the cursor, as in the Matrizen grid | The cursor and the editor in the cell | `entered({col, row, value})` when a cell is confirmed. `digits_only = true` takes one digit per cell and moves on (Sudoku) |
 | `"list"` | Goes through `options.items` with ↑/↓ or picks with a digit | The list, as a menu of the hui's, in the area | `entered(index)` |
 
 Two questions need no template to be set and no callback; they open over the app and give their
@@ -329,7 +338,7 @@ answer as the call's value:
 | Function | |
 |---|---|
 | `confirm(question)` | A question with *Ja* and *Nein*, as the hui asks before deleting. `true` or `false`; AC is `false` |
-| `ask(label, options)` | One line of plain text over the app (a name for a high score), with `options` as for `"text"`. The text, or `()` when it was left with AC |
+| `ask(label, options)` | One line of plain text over the app (a name for a high score), with `options` as for `"text"`. The text, or `nil` when it was left with AC |
 
 With every template but `"keys"`, the keys the template uses do not reach `key`; the others do
 (the soft keys always, the digits in a grid without `digits`). An input line or a line of text
@@ -340,21 +349,21 @@ for a whole page of fields and stands for itself.
 
 | Function | |
 |---|---|
-| `grid(cols, rows)` | Lays a board into the area, as large as fits: centred where the area is narrow, at the left where a side panel fits beside it. Gives the board as `#{x, y, w, h, cols, rows, cell}` (`cell` the side of a cell), with `g.cell(col, row)` as `#{x, y, w, h}` and `g.at(x, y)`, the cell under a tap as `#{col, row}` or `()`. The `"grid"` and `"cells"` templates use the same cells |
-| `side()` | The part of the area the board leaves, as `#{x, y, w, h}`: right of the board on a wide area, below it on a narrow one. For the score, whose turn it is, a hint |
-| `random(n)` | A whole number from 0 to n − 1 |
+| `grid(cols, rows)` | Lays a board into the area, as large as fits: centred where the area is narrow, at the left where a side panel fits beside it. Gives the board as `{x, y, w, h, cols, rows, size}` (`size` the side of a cell), with `g:cell(col, row)` as `{x, y, w, h}` and `g:at(x, y)`, the cell under a tap as `{col, row}` or `nil`. The `"grid"` and `"cells"` templates use the same cells |
+| `side()` | The part of the area the board leaves, as `{x, y, w, h}`: right of the board on a wide area, below it on a narrow one. For the score, whose turn it is, a hint |
+| `math.random(n)` | Lua's own, from 1 to n (`math.random(m, n)`, `math.random()` as in Lua), but from the host's generator, which `--seed` fixes in the simulator; `math.randomseed` is not there |
 | `timer(ms)` | Calls `tick` every `ms`; no faster than 100 ms. `timer(0)` stops it |
-| `save(value)`, `load()` | The app's saved data (§2); `load()` gives `()` when there is none |
+| `save(value)`, `load()` | The app's saved data (§2); `load()` gives `nil` when there is none (Lua's own `load`, which runs code from text, is not there) |
 | `lang()` | `"de"` or `"en"`, the hui's language |
-| `now()` | The time as Unix milliseconds, or `()` before the clock is set |
+| `now()` | The time as Unix milliseconds, or `nil` before the clock is set |
 | `exit()` | Leaves the app |
 
 ### 4.6 The calculator from a script
 
 | Function | |
 |---|---|
-| `calc(input)` | Works `input` out with the open session's settings and variables and gives `#{ok, value, latex, error}`. `input` is what the calculator's line takes; the history is left alone |
-| `variable(name)` | A variable of the session by its name or its symbol, as `calc` gives values, or `()` (`var` is a word of Rhai's own) |
+| `calc(input)` | Works `input` out with the open session's settings and variables and gives `{ok, value, latex, error}`. `input` is what the calculator's line takes; the history is left alone |
+| `variable(name)` | A variable of the session by its name or its symbol, as `calc` gives values, or `nil` |
 | `insert(latex)` | Leaves the app and puts `latex` at the cursor of the calculation |
 | `form(description)` | Opens a form (below) and gives its result when it closes |
 
@@ -365,22 +374,22 @@ top bar; AC drops it and leaves.
 
 A tool that only asks for values and shows results is a description, with no callbacks:
 
-```rhai
-// name: Spannungsteiler
-// kind: tool
-// api: 1
+```lua
+-- name: Spannungsteiler
+-- kind: tool
+-- api: 1
 
-form(#{
-    title: "Spannungsteiler",
-    fields: [
-        #{ id: "U",  label: "Eingangsspannung", unit: "V" },
-        #{ id: "R1", label: "R₁", unit: "Ω" },
-        #{ id: "R2", label: "R₂", unit: "Ω", value: "10 kΩ" },
-    ],
-    results: [
-        #{ label: "U₂", formula: "U*R2/(R1+R2)", unit: "V" },
-        #{ label: "I",  formula: "U/(R1+R2)",    unit: "mA" },
-    ],
+form({
+  title = "Spannungsteiler",
+  fields = {
+    {id = "U",  label = "Eingangsspannung", unit = "V"},
+    {id = "R1", label = "R₁", unit = "Ω"},
+    {id = "R2", label = "R₂", unit = "Ω", value = "10 kΩ"},
+  },
+  results = {
+    {label = "U₂", formula = "U*R2/(R1+R2)", unit = "V"},
+    {label = "I",  formula = "U/(R1+R2)",    unit = "mA"},
+  },
 })
 ```
 
@@ -392,30 +401,36 @@ calculation, as `insert` does. The inputs are saved with the app's data and stan
 the next time.
 
 A field can carry `value` (what stands in it at first), `hint` (a line below it) and
-`choices: ["Stahl", "Alu"]` (a list instead of an input). A unit on a field is the one assumed
+`choices = {"Stahl", "Alu"}` (a list instead of an input). A unit on a field is the one assumed
 for a bare number; a value typed with another unit of the same quantity is taken as typed, and
 one of a wrong quantity is an error on the field, which the engine's dimension check finds.
 
-For more than formulas, `results` is replaced by `submit: |v| { ... }`, a function that gets the
-values as a map (by the fields' ids, as typed), uses `calc` as it likes, and gives the list of
-results (`#{label, latex}`), an error text for the form, or `#{field, error}` for a field.
+For more than formulas, `results` is replaced by `submit = function(v) … end`, which gets the
+values as a table (by the fields' ids, as typed), uses `calc` as it likes, and gives the list of
+results (`{label, latex}`), an error text for the form, or `{field, error}` for a field.
 
 A script that is only a `form(...)` call has no `draw`; its inputs are its saved data. In a
 script that draws, `form(...)` puts *Fertig* on the first soft key, which closes the form and
-gives the results as a map from label to LaTeX.
+gives the results as a table from label to LaTeX.
 
 ## 5. Limits and safety
 
 An app is a file from a card, possibly from someone else. It may be wrong; it must not be able to
 harm the handheld or the user's data.
 
-- **What a script can reach**: the functions of §4 and nothing else. No files, no network, no
-  settings, no other app's data, no sessions other than the open one through `calc` and `var`.
-- **Time**: each callback has a budget of operations. Over it, the app stops with *Die App
-  antwortet nicht* (the interpreter does not tell the line). AC works at any time (decision 7).
-- **Memory**: limits on the depth of calls and on the length of strings, arrays and maps; a
-  script file of at most 256 KB; saved data of at most 64 KB; at most a few thousand shapes per
-  frame.
+- **What a script can reach**: the functions of §4 and Lua's `string`, `table`, `math` and
+  `utf8`, nothing else. No `io`, `os`, `debug`, `package` or `require`; no `load`, `dofile` or
+  `loadfile` to run code from text or files (`load` is the app's saved data); `print` does
+  nothing. No files, no network, no settings, no other app's data, no sessions other than the
+  open one through `calc` and `variable`.
+- **Time**: each callback may run 1,000,000 Lua instructions, about 200 ms on the board; a hook
+  counts them every 1000. Over it, the callback stops with an error on its line. `pcall`,
+  `xpcall` and coroutines are left out, since they could catch that error and run on for ever;
+  any error ends the callback. AC works at any time (decision 7), and the main side stops
+  waiting after 3 s.
+- **Memory**: 4 MB for the script's Lua state, which ends an endless recursion or a string grown
+  without end with an error; a script file of at most 256 KB; saved data of at most 64 KB;
+  tables nested at most 32 deep in what leaves the script; 4000 shapes per frame.
 - **The frame**: the top bar, AC, MODE and OPTN are the hui's. An app cannot draw over the top
   bar, pose as another screen of the calculator there, or hide its own credits.
 - **A stranger's file**: apps come from other users, with nobody in between who checks them. The
@@ -423,10 +438,15 @@ harm the handheld or the user's data.
   `author` line is what the author wrote and proves nothing.
 - **Errors**: a script error opens a page with the message and the line, and OK or AC goes back
   to the list. The host returns errors and never panics, since a panic halts the board.
-- **Stack**: an interpreter that walks the syntax tree needs stack in proportion to the nesting
-  of the script, and the main task has 16 KB. The script runs on a thread of its own (§3), with
-  a stack of its own as the engine's worker has (`firmware/handheld/src/engine.rs`); its size on
-  the board is what the spike measures.
+- **Stack**: Lua calls Lua without the C stack, but a call that goes through C (a metamethod,
+  `string.gsub` with a function, a form's `submit`) nests on it, up to Lua's limit of 200; that
+  took about 250 KB on the board. Running over the stack halts the board instead of giving an
+  error, so the script's thread has 1 MB.
+- **Memory on the board**: internal RAM is scarce while WLAN is on, so the script's thread takes
+  its stack and everything it allocates from PSRAM (`firmware/handheld/src/main.rs`: the spawn
+  hook and the allocator). With small allocations in internal RAM, compiling a game took the
+  internal heap down to a few bytes and every allocation of the script fell back to PSRAM
+  slowly; the measurement of step 0 found it.
 - **Prüfungsmodus**: no app opens (decision 6); CATALOG's search leaves apps out.
 
 ## 6. The first games
@@ -454,8 +474,9 @@ changes a few cells, so a few bands are sent.
   move a 2 (nine
   times in ten) or a 4 appears on a free cell.
 - No sliding animation in version 1: the board is redrawn in its new state, and the tile that
-  appeared is outlined. An animation of two or three steps on the timer can follow once the
-  redraw time on the product's panel is known.
+  appeared is outlined. On the dev kit a move takes 7–10 ms in the script and 55–75 ms to send
+  the six to eight bands that changed, so a step of an animation costs about 80 ms; whether two
+  or three steps on the timer look right waits for the product's panel.
 - Tiles are coloured by value from the tile palette; numbers of four and five digits use the
   small font.
 - Soft keys: *Neu* (asks first with `confirm` when a game is running), *Zurück* (one move back,
@@ -479,57 +500,10 @@ changes a few cells, so a few bands are sent.
 - An app that hands a value back (`insert`, or OK on a form's result) returns to the calculation
   of the mode that was open, with the value at the cursor.
 
-## 8. Plan
+## 8. Later
 
-Each step is checked with its own tests and in the simulator
-(`cargo run -- --keys '…' --png out.png` in `firmware/sim`), not with the whole workspace's tests.
-[apps-roadmap.md](apps-roadmap.md) breaks every step into its commits, with the files and the
-checks, lists what the code asks to change in this design, and splits step 3 so that the games
-come first; a step is ticked here once its commits there are.
-
-- [ ] **0. Spike: the interpreter on the board.** Rhai in the `handheld` build with a script that
-  plays 2048 moves: the growth of the image, the stack a callback needs, the time of a move with
-  its redraw, the state as `this`. Decide Rhai or Lua and write the numbers into decision 5.
-- [x] **1. hui: the frame for apps.** `Applet`, `Host`, `Canvas`, `AppKey`, `Screen::App`; the
-  fixed top bar with the app's name, the soft keys on and off with the area following; AC and
-  MODE leave, OPTN opens the app's menu with *Info*. `ui/tests/apps.rs` drives an applet written
-  in Rust: keys arrive, shapes are drawn, the area grows without soft keys, AC returns to where
-  the app was opened from.
-- [x] **2. hui: page 3 with the Apps and Setup tiles.** `Mode::Apps` and `Mode::Setup`, the list
-  from `Backend::apps` with the authors, the lock in Prüfungsmodus, the texts in every file of
-  `locales/` (`cargo test -p quantus-texts`). Tested with a backend that lists two apps; the
-  Setup tile opens what SHIFT + MODE opens and keeps the mode.
-- [x] **3. hui: the input templates.** `Input` on `Applet`: `"keys"`, `"line"` and `"cells"` on
-  the editor the calculation and the Matrizen grid have, `"text"`, `"grid"`, `"list"`, and the
-  questions `confirm` and `ask`. Tested with applets written in Rust, one per template.
-- [x] **4. `firmware/apps`: the host.** The crate, the header with the credits, callbacks, keys,
-  drawing, `soft`, `input`, `grid`, `side`, `random`, `timer`, `lang`, the limits and the error
-  page; `firmware/engine` implements `apps`, `open_app` and `random`. Tests run small scripts and
-  check the shapes, the budget and the errors.
-- [x] **5. Tic tac toe.** The script, embedded. Tests play a game through keys against the
-  seeded computer, at the big unit's size and the small one's; a look at it in the simulator and
-  on the board.
-- [x] **6. 2048, with saved data.** `save`, `load`, `leave`; `app_data` and `store_app_data` in
-  the engine, files in `/apps/data/`, *Daten löschen* in the app's menu. Tests: the moves and
-  merges, a game restored after reopening, both sizes.
-- [x] **7. Apps from the card.** Listing `/apps/*.rhai`, the header, the API version, the size
-  limit, the simulator's `sd/apps/`. Tests with a folder of good and bad files.
-- [x] **8. The calculator from a script.** `calc`, `var`, `insert`, `now`, `exit`. Tests against
-  the real engine in `firmware/engine/tests/`.
-- [x] **9. Forms.** The form applet in the hui on the sheets' fields; `form` with `results` and
-  with `submit`; inputs kept. Tests: the voltage divider above, a wrong unit, a result handed to
-  the calculation.
-- [x] **10. Search and touch.** Apps in CATALOG's search (`quantus-search`); `tap` and `at`.
-- [ ] **11. Documentation.** A reference page of the API for app authors with the example apps
-  and how to pass an app on,
-  `/apps/` in [sd-card.md](sd-card.md), the lines in [features.md](features.md), the tiles in
-  [handheld-menus.md](../../design/handheld-menus.md) §7.1, `CHANGELOG.md`,
-  `THIRD-PARTY-LICENSES.md` for the new dependency.
-
-After step 6 the games are done; steps 7 to 9 are what lets users add their own.
-
-## 9. Later
-
+- The unit bar on an app's input line (the `"line"` template): units come from the UNIT layer for
+  now, and the soft keys stay the app's (apps-roadmap.md F9).
 - More games: Snake (on the timer), Minesweeper, Sudoku, Memory.
 - Key release and held keys, once the keypad's driver exists and can report them.
 - Pictures: small bitmaps from the app's file or the card.
@@ -540,7 +514,7 @@ After step 6 the games are done; steps 7 to 9 are what lets users add their own.
 - Forms read by `quantus-core`, for the desktop as well, together with the packs of idea 19.
 - An app's own texts in several languages without `if lang() == …`.
 
-## 10. Open questions
+## 9. Open questions
 
 - **Long calculations.** `calc` holds the app. Whether a script needs a way to start one and be
   called when it is done depends on what tools users write.
