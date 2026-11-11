@@ -2,6 +2,9 @@
 //! run inside the hui's frame as an [`Applet`](quantus_ui::applet::Applet). The hui never sees
 //! the interpreter.
 
+pub mod api;
 pub mod header;
+pub mod script;
 
 pub use header::{info, Header, API};
+pub use script::{Callback, Context, Error, Output, Request, Script, Value, Yield};

@@ -192,6 +192,17 @@ fn random(&mut self) -> u32;
 script API, the limits, the embedded games. It depends on `quantus-ui` for `Applet`, `Canvas` and
 `Host`, and gives `list(card_dir)` and `open(id, card_dir)`.
 
+**The script runs on a thread of its own.** `confirm`, `ask`, `form` and `calc` give their
+answer as the call's value, but the hui's loop (`App::press`, `App::tick`) cannot take keys
+while a callback has not returned. So the script's engine and its compiled file live on their
+own thread (`Script` in `firmware/apps/src/script.rs`), and the main side sends it a callback
+and waits for it to *yield*: the callback and `draw` are done (`Yield::Done`, with what `draw`
+drew and what the script set), or the script stands in a host call that needs the hui
+(`Yield::Asks`, a question or a calculation) until the answer resumes it, or it failed. What
+crosses the channel is plain data: Rhai's values are not `Send`. The thread gives the
+interpreter the stack it needs, and a callback that does not come back in time counts as hung:
+the main side stops waiting and the operation budget ends the thread.
+
 **`firmware/engine`** implements the new `Backend` methods with `quantus-apps`, for the simulator
 and the board alike, as it does for sessions. Random numbers come from `esp_random` on the board
 and from a generator in the simulator that `--seed` fixes for tests. `calc` goes to `api::calc`,
@@ -407,9 +418,9 @@ harm the handheld or the user's data.
 - **Errors**: a script error opens a page with the message and the line, and OK or AC goes back
   to the list. The host returns errors and never panics, since a panic halts the board.
 - **Stack**: an interpreter that walks the syntax tree needs stack in proportion to the nesting
-  of the script, and the main task has 16 KB. The spike measures it. If it is too much, the app
-  runs on a thread of its own with a large stack, as the engine's worker does
-  (`firmware/handheld/src/engine.rs`), and the hui talks to it over a channel.
+  of the script, and the main task has 16 KB. The script runs on a thread of its own (§3), with
+  a stack of its own as the engine's worker has (`firmware/handheld/src/engine.rs`); its size on
+  the board is what the spike measures.
 - **Prüfungsmodus**: no app opens (decision 6); CATALOG's search leaves apps out.
 
 ## 6. The first games

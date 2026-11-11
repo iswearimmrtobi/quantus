@@ -204,7 +204,7 @@ interpreter. No engine.
   `about.<lang>`, `license`, each at most 80 characters; no `name` gives `None`. `API: u32 = 1`.
   `fn info(id, text, built_in, lang) -> Option<AppInfo>`. Tests on header texts, among them a
   file with a BOM, with `\r\n`, with a header after the first line of code (ignored).
-- [ ] **4.2 The script thread.** `Script::start(source) -> Result<Script, Error>`: compiles on
+- [x] **4.2 The script thread.** `Script::start(source) -> Result<Script, Error>`: compiles on
   the new thread, runs `init`. The main side has `send(Callback) -> Yield` with
   `Yield::Done(Frame)`, `Yield::Asks(Request)` and `Yield::Failed(Error)`, and
   `answer(Value) -> Yield`. It waits with a timeout; over it the app counts as hung. Dropping
