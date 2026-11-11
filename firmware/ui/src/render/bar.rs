@@ -9,6 +9,7 @@ use super::{colors, full_width, goes_back, rounded, Shape, BAR, MARGIN, WIDTH};
 use crate::app::{App, Mode, Screen};
 use crate::font::Scale;
 use crate::layer::Layer;
+use crate::menu::{Edit, Menu};
 use crate::settings::{Angle, NumberBase};
 use crate::text;
 
@@ -18,7 +19,14 @@ use crate::text;
 pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     shapes.push(Shape::Fill(full_width(0, BAR as u32), colors::CYAN_DIM));
     let baseline = BAR - 7;
+    let searched;
     let title = match &app.screen {
+        // CATALOG's query after its title, with a caret while it blinks on.
+        Screen::Menu(menu @ Menu { edit: Some(Edit::Catalogue { query, .. }), .. }) if !query.is_empty() => {
+            let caret = if app.caret_on { "_" } else { "" };
+            searched = format!("{}: {query}{caret}", menu.title().get(app.settings.language));
+            &searched
+        }
         Screen::Menu(menu) => menu.title().get(app.settings.language),
         Screen::Calibrate(..) => text::CALIBRATE.get(app.settings.language),
         _ => &app.mode.name(app.settings.language),

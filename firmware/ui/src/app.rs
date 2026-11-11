@@ -11,7 +11,8 @@ use crate::layer::{self, Layer, Modifier, Resolved};
 use crate::text::{self, same, tx, Lang, Text};
 use crate::tree;
 use crate::clock;
-use crate::menu::{self, Action, Edit, Kind, Menu, Outcome, TextFor, TimeField};
+use crate::menu::{self, Action, Edit, Kind, Level, Menu, Outcome, TextFor, TimeField};
+use crate::search;
 use crate::render;
 use crate::settings::{Setting, SystemInput};
 use crate::soft::{self, Slot};
@@ -362,6 +363,8 @@ pub struct App<B> {
     /// layer (its prefix and symbol).
     typed_units: Vec<String>,
     unit_run: String,
+    /// What CATALOG's search looks through, built when it is first used in a language and mode.
+    search: Option<search::Index>,
 }
 
 /// How many recent units the unit bar remembers.
@@ -480,6 +483,7 @@ impl<B: Backend> App<B> {
             recent_units: Vec::new(),
             typed_units: Vec::new(),
             unit_run: String::new(),
+            search: None,
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -654,7 +658,10 @@ impl<B: Backend> App<B> {
     }
 
     fn press(&mut self, key: Key) {
-        let typing = matches!(&self.screen, Screen::Menu(menu) if matches!(menu.edit, Some(Edit::Text { .. })));
+        let typing = matches!(&self.screen, Screen::Menu(menu) if matches!(
+            menu.edit,
+            Some(Edit::Text { .. } | Edit::Catalogue { catalogue: Catalogue::Functions, .. })
+        ));
         let Some(key) = (if typing { Some(key) } else { key.plain() }) else { return };
         self.caret_on = true;
         let calc = matches!(self.screen, Screen::Calc);
@@ -1079,6 +1086,26 @@ impl<B: Backend> App<B> {
                 menu.edit = Some(Edit::WlanStatus { label, status: self.backend.wlan_status() });
             }
             Outcome::Catalogue(label, catalogue) => menu.edit = Some(self.catalogue(label, catalogue, false)),
+            Outcome::Search => {
+                let Some(Edit::Catalogue { query, hits, selected, .. }) = &mut menu.edit else { return };
+                let (lang, mode) = (self.settings.language, self.mode);
+                if !self.search.as_ref().is_some_and(|index| index.lang == lang && index.mode == mode) {
+                    self.search = Some(search::Index::new(self.backend.search_index(lang), mode, lang));
+                }
+                *hits = match query.is_empty() {
+                    true => Vec::new(),
+                    false => self.search.as_ref().map_or_else(Vec::new, |index| index.search(query)),
+                };
+                *selected = 0;
+            }
+            Outcome::Item if matches!(&menu.edit, Some(Edit::Catalogue { query, .. }) if !query.is_empty()) => {
+                let Some(Edit::Catalogue { hits, selected, .. }) = &menu.edit else { return };
+                let Some(hit) = hits.get(*selected) else { return };
+                match hit.target.clone() {
+                    search::Target::Insert(latex) => return self.insert(&latex),
+                    search::Target::Open(root, path) => return self.open_place(root, &path),
+                }
+            }
             Outcome::Item => {
                 let Some(Edit::Catalogue { catalogue, groups, group: Some(group), selected, .. }) = &menu.edit else { return };
                 let Some(item) = groups.get(*group).and_then(|group| group.items.get(*selected)) else { return };
@@ -1120,13 +1147,35 @@ impl<B: Backend> App<B> {
         if catalogue == Catalogue::Functions {
             let items = tree::functions(self.mode, self.settings.language);
             let groups = vec![Group { name: label.get(self.settings.language).to_string(), items }];
-            return Edit::Catalogue { label, catalogue, groups, group: Some(0), selected: 0, close };
+            return Edit::Catalogue { label, catalogue, groups, group: Some(0), selected: 0, close, query: String::new(), hits: Vec::new() };
         }
         let groups = self.backend.catalogue(catalogue, self.settings.language);
         match groups.is_empty() {
             true => Edit::Message { label, message: text::NOT_AVAILABLE },
-            false => Edit::Catalogue { label, catalogue, groups, group: None, selected: 0, close },
+            false => Edit::Catalogue { label, catalogue, groups, group: None, selected: 0, close, query: String::new(), hits: Vec::new() },
         }
+    }
+
+    /// A menu hit of CATALOG's search: its menu, opened down to the entry, which is opened if it
+    /// opens a page or a submenu; an action waits for OK. Leaving goes up the menu from there.
+    fn open_place(&mut self, root: tree::Root, path: &[usize]) {
+        let mut menu = Menu::new(root.page(self.mode));
+        let Some((&last, pages)) = path.split_last() else { return };
+        for &index in pages {
+            let level = menu.stack.last_mut().expect("a menu has a page");
+            level.selected = index;
+            let Some(Kind::Page(page)) = level.page.entries.get(index).map(|entry| &entry.kind) else { return };
+            menu.stack.push(Level { page, selected: 0 });
+        }
+        let level = menu.stack.last_mut().expect("a menu has a page");
+        level.selected = last;
+        let Some(entry) = level.page.entries.get(last) else { return };
+        if matches!(entry.kind, Kind::Do(_) | Kind::Insert(_) | Kind::Info(_) | Kind::Pending) {
+            self.screen = Screen::Menu(menu);
+            return;
+        }
+        let outcome = menu.choose(entry, &self.settings);
+        self.outcome(menu, outcome);
     }
 
     /// Sets the clock to the date or the time typed in `menu`, keeping the other from the clock

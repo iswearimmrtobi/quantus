@@ -17,7 +17,8 @@ use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
 use quantus_ui::backend::{
-    Backend, Catalogue, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, Variable, VariableCommand,
+    Backend, Catalogue, Group, IndexItem, IndexKind, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, Variable,
+    VariableCommand,
 };
 use quantus_ui::clock;
 use quantus_ui::settings as ui;
@@ -244,6 +245,24 @@ impl Backend for Engine {
             // The app lists these itself, from the OPTN tree.
             Catalogue::Functions => Vec::new(),
         }
+    }
+
+    fn search_index(&mut self, lang: Lang) -> Vec<IndexItem> {
+        api::library_index(lang)
+            .into_iter()
+            .map(|entry| IndexItem {
+                kind: match entry.hit.kind {
+                    api::HitKind::Constant => IndexKind::Constant,
+                    api::HitKind::Unit => IndexKind::Unit,
+                    api::HitKind::Function => IndexKind::Function,
+                    api::HitKind::Prefix => IndexKind::Prefix,
+                },
+                latex: entry.hit.latex,
+                name: entry.hit.name,
+                names: entry.names,
+                symbols: entry.symbols,
+            })
+            .collect()
     }
 
     fn unit_suggestions(&mut self, before: &str, recent: &[String], result: Option<&str>) -> Units {

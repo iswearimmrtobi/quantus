@@ -64,6 +64,12 @@ pub trait Backend {
         Vec::new()
     }
 
+    /// What CATALOG's search finds besides the menus: the constants, units, functions and
+    /// prefixes, named in `lang`. Without an engine, nothing.
+    fn search_index(&mut self, _lang: crate::text::Lang) -> Vec<IndexItem> {
+        Vec::new()
+    }
+
     /// The units the soft keys offer in Physik (firmware/docs/unit-keys.md §2): for the input
     /// `before` the cursor (its LaTeX), the labels of the units used last, newest first; or, with
     /// `result`, the units a shown result converts to. Without an engine, the common units.
@@ -194,6 +200,29 @@ pub struct Group {
 pub struct Item {
     pub name: String,
     pub latex: String,
+}
+
+/// What an entry of the search index is: a unit is inserted after ▶, the others as they are.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IndexKind {
+    Constant,
+    Unit,
+    Function,
+    Prefix,
+}
+
+/// An entry of the engine's search index (`api::library_index`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IndexItem {
+    pub kind: IndexKind,
+    /// What is inserted and shown beside the name.
+    pub latex: String,
+    /// The name in the set language.
+    pub name: String,
+    /// Every name it is found by: the set language's, the English one, aliases.
+    pub names: Vec<String>,
+    /// The symbols as typed (`c0`, `km/h`, `sqrt`).
+    pub symbols: Vec<String>,
 }
 
 /// The units for the soft keys, best first: `best` for the first row, `more` for the second

@@ -337,6 +337,13 @@ impl Backend for Sim {
         }
     }
 
+    fn search_index(&mut self, lang: Lang) -> Vec<quantus_ui::backend::IndexItem> {
+        match &mut self.answers {
+            Answers::Engine(engine) => engine.search_index(lang),
+            Answers::Stub(stub) => stub.search_index(lang),
+        }
+    }
+
     fn unit_suggestions(&mut self, before: &str, recent: &[String], result: Option<&str>) -> Units {
         match &mut self.answers {
             Answers::Engine(engine) => engine.unit_suggestions(before, recent, result),

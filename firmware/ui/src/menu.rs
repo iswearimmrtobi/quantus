@@ -7,6 +7,7 @@
 //! [`Menu::page`], [`Menu::step`]).
 
 use crate::backend::{Catalogue, Group, Network, SessionInfo, Storage, Stored, WlanStatus};
+use crate::search::{Hit, QUERY_LENGTH};
 use crate::clock::{self, Local};
 use crate::key::Key;
 use crate::settings::{Setting, Settings};
@@ -264,8 +265,18 @@ pub enum Edit {
     /// What can be done to the variable `index` of `variables`: [`VARIABLE_ACTIONS`].
     Variable { label: Text, variables: Vec<Stored>, index: usize, selected: usize },
     /// The categories of a catalogue, or the items of the category `group`; `close` says that
-    /// leaving the categories closes the menu (opened by its key, not from a page).
-    Catalogue { label: Text, catalogue: Catalogue, groups: Vec<Group>, group: Option<usize>, selected: usize, close: bool },
+    /// leaving the categories closes the menu (opened by its key, not from a page). In CATALOG,
+    /// letters typed make a `query`, and the list is its `hits` while it is not empty.
+    Catalogue {
+        label: Text,
+        catalogue: Catalogue,
+        groups: Vec<Group>,
+        group: Option<usize>,
+        selected: usize,
+        close: bool,
+        query: String,
+        hits: Vec<Hit>,
+    },
 }
 
 /// The longest name a session can be given on the handheld.
@@ -379,8 +390,11 @@ pub enum Outcome {
     SetTime(TimeField),
     /// Open a catalogue over the page.
     Catalogue(Text, Catalogue),
-    /// Insert the item under the cursor of the catalogue (the app reads it from the edit).
+    /// Insert the item under the cursor of the catalogue, or go to the hit under it (the app
+    /// reads it from the edit).
     Item,
+    /// The query of CATALOG changed: find its hits (the app reads it from the edit).
+    Search,
     /// Keep the value of the text field under the name typed (the app reads both from it).
     Store,
     /// Open the grid for the matrix named in the text field.
@@ -531,7 +545,7 @@ impl Menu {
             Some(Edit::Sections { titles, selected, .. }) => Some((*selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
-            Some(Edit::Catalogue { groups, group, selected, .. }) => Some((*selected, catalogue_len(groups, *group))),
+            Some(Edit::Catalogue { groups, group, selected, query, hits, .. }) => Some((*selected, catalogue_len(groups, *group, query, hits))),
             Some(Edit::Variables { variables, selected, .. }) => Some((*selected, variables.len())),
             Some(Edit::Variable { selected, .. }) => Some((*selected, VARIABLE_ACTIONS.len())),
             _ => None,
@@ -554,7 +568,7 @@ impl Menu {
             Some(Edit::Sections { titles, selected, .. }) => Some((selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
-            Some(Edit::Catalogue { groups, group, selected, .. }) => Some((selected, catalogue_len(groups, *group))),
+            Some(Edit::Catalogue { groups, group, selected, query, hits, .. }) => Some((selected, catalogue_len(groups, *group, query, hits))),
             Some(Edit::Variables { variables, selected, .. }) => Some((selected, variables.len())),
             Some(Edit::Variable { selected, .. }) => Some((selected, VARIABLE_ACTIONS.len())),
             _ => None,
@@ -859,19 +873,43 @@ impl Menu {
                 }
                 Pick::Back => self.edit = Some(Edit::Variables { label, variables, selected: index }),
             },
-            Edit::Catalogue { label, catalogue, groups, group, selected, close } => {
-                let edit = |groups, group, selected| Some(Edit::Catalogue { label, catalogue, groups, group, selected, close });
-                match (pick(key, selected, catalogue_len(&groups, group)), group) {
-                    (Pick::Move(selected), _) => self.edit = edit(groups, group, selected),
-                    (Pick::Chosen(chosen), None) => self.edit = edit(groups, Some(chosen), 0),
+            Edit::Catalogue { label, catalogue, groups, group, selected, close, mut query, hits } => {
+                // CATALOG takes letters: the first starts the search, then digits and signs too.
+                if catalogue == Catalogue::Functions {
+                    let typed = match key {
+                        Key::Del if !query.is_empty() => query.pop().is_some(),
+                        _ => match key.text() {
+                            Some(c) if (!query.is_empty() || c.is_alphabetic()) && query.chars().count() < QUERY_LENGTH => {
+                                query.push(c);
+                                true
+                            }
+                            _ => false,
+                        },
+                    };
+                    if typed {
+                        self.edit = Some(Edit::Catalogue { label, catalogue, groups, group, selected: 0, close, query, hits });
+                        return Outcome::Search;
+                    }
+                }
+                let count = catalogue_len(&groups, group, &query, &hits);
+                let searching = !query.is_empty();
+                let edit = |groups, group, selected, query, hits| Some(Edit::Catalogue { label, catalogue, groups, group, selected, close, query, hits });
+                match (pick(key, selected, count), group) {
+                    (Pick::Move(selected), _) => self.edit = edit(groups, group, selected, query, hits),
+                    (Pick::Chosen(chosen), _) if searching => {
+                        // The app reads the hit from it.
+                        self.edit = edit(groups, group, chosen, query, hits);
+                        return Outcome::Item;
+                    }
+                    (Pick::Chosen(chosen), None) => self.edit = edit(groups, Some(chosen), 0, query, hits),
                     (Pick::Chosen(chosen), Some(_)) => {
                         // The app reads the item from it.
-                        self.edit = edit(groups, group, chosen);
+                        self.edit = edit(groups, group, chosen, query, hits);
                         return Outcome::Item;
                     }
                     // CATALOG is one list: leaving it leaves the menu.
                     (Pick::Back, Some(_)) if close && catalogue == Catalogue::Functions => return Outcome::Close,
-                    (Pick::Back, Some(index)) => self.edit = edit(groups, None, index),
+                    (Pick::Back, Some(index)) => self.edit = edit(groups, None, index, query, hits),
                     (Pick::Back, None) if close => return Outcome::Close,
                     (Pick::Back, None) => {}
                 }
@@ -913,9 +951,11 @@ fn pick(key: Key, selected: usize, count: usize) -> Pick {
     }
 }
 
-/// The lines of a catalogue: its categories, or the items of the category `group`.
-fn catalogue_len(groups: &[Group], group: Option<usize>) -> usize {
+/// The lines of a catalogue: the hits of a query, its categories, or the items of the category
+/// `group`.
+pub fn catalogue_len(groups: &[Group], group: Option<usize>, query: &str, hits: &[Hit]) -> usize {
     match group {
+        _ if !query.is_empty() => hits.len(),
         None => groups.len(),
         Some(index) => groups.get(index).map_or(0, |group| group.items.len()),
     }

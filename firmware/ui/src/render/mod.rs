@@ -299,10 +299,7 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Saved { names, .. }) => Some(names.len()),
         Some(Edit::Variables { variables, .. }) => Some(variables.len()),
         Some(Edit::Variable { .. }) => Some(crate::menu::VARIABLE_ACTIONS.len()),
-        Some(Edit::Catalogue { groups, group, .. }) => Some(match group {
-            None => groups.len(),
-            Some(index) => groups.get(*index).map_or(0, |group| group.items.len()),
-        }),
+        Some(Edit::Catalogue { groups, group, query, hits, .. }) => Some(crate::menu::catalogue_len(groups, *group, query, hits)),
         Some(
             Edit::Number { .. }
             | Edit::Message { .. }

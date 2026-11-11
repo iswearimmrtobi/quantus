@@ -366,7 +366,16 @@ fn a_catalogue_goes_from_its_categories_to_their_items_and_back() {
     let label = same("Konstanten");
     assert_eq!(menu.key(Key::Exe, &mut settings), Outcome::Catalogue(label, Catalogue::Constants));
     let groups = Stub.catalogue(Catalogue::Constants, Lang::De);
-    menu.edit = Some(Edit::Catalogue { label, catalogue: Catalogue::Constants, groups, group: None, selected: 0, close: false });
+    menu.edit = Some(Edit::Catalogue {
+        label,
+        catalogue: Catalogue::Constants,
+        groups,
+        group: None,
+        selected: 0,
+        close: false,
+        query: String::new(),
+        hits: Vec::new(),
+    });
     // Into the first category, down to its second item, chosen.
     assert_eq!(menu.key(Key::Exe, &mut settings), Outcome::Stay);
     assert!(matches!(menu.edit, Some(Edit::Catalogue { group: Some(0), selected: 0, .. })));
@@ -380,6 +389,7 @@ fn a_catalogue_goes_from_its_categories_to_their_items_and_back() {
     assert_eq!(menu.edit, None);
     // Opened by its key, leaving the categories closes the menu.
     let groups = Stub.catalogue(Catalogue::Constants, Lang::De);
-    menu.edit = Some(Edit::Catalogue { label, catalogue: Catalogue::Constants, groups, group: None, selected: 0, close: true });
+    let (query, hits) = (String::new(), Vec::new());
+    menu.edit = Some(Edit::Catalogue { label, catalogue: Catalogue::Constants, groups, group: None, selected: 0, close: true, query, hits });
     assert_eq!(menu.key(Key::Left, &mut settings), Outcome::Close);
 }

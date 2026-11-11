@@ -329,6 +329,58 @@ pub fn functions(mode: Mode, lang: Lang) -> Vec<Item> {
     items
 }
 
+/// The menu a search hit lives in: SETUP or the mode's OPTN.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Root {
+    Setup,
+    Optn,
+}
+
+impl Root {
+    pub fn page(self, mode: Mode) -> &'static Page {
+        match self {
+            Root::Setup => &SETUP,
+            Root::Optn => optn(mode),
+        }
+    }
+}
+
+/// An entry of SETUP or of a mode's OPTN, with the way to it: the index on each page from the
+/// root's, the last one the entry's own.
+#[derive(Clone, Debug)]
+pub struct Place {
+    pub entry: &'static Entry,
+    /// The title of the page it stands on.
+    pub parent: Text,
+    pub root: Root,
+    pub path: Vec<usize>,
+}
+
+/// Every entry of SETUP and of `mode`'s OPTN, for the search in CATALOG; a page reached twice
+/// is listed once.
+pub fn places(mode: Mode) -> Vec<Place> {
+    fn walk(page: &'static Page, root: Root, path: &mut Vec<usize>, seen: &mut Vec<*const Page>, places: &mut Vec<Place>) {
+        if seen.contains(&(page as *const Page)) {
+            return;
+        }
+        seen.push(page);
+        for (index, entry) in page.entries.iter().enumerate() {
+            path.push(index);
+            places.push(Place { entry, parent: page.title, root, path: path.clone() });
+            if let Kind::Page(sub) = &entry.kind {
+                walk(sub, root, path, seen, places);
+            }
+            path.pop();
+        }
+    }
+    let mut places = Vec::new();
+    let mut seen = Vec::new();
+    for root in [Root::Setup, Root::Optn] {
+        walk(root.page(mode), root, &mut Vec::new(), &mut seen, &mut places);
+    }
+    places
+}
+
 /// The OPTN page of a mode.
 pub fn optn(mode: Mode) -> &'static Page {
     match mode {

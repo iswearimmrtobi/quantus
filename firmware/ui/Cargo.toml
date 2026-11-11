@@ -11,3 +11,4 @@ embedded-graphics = "0.8.2"
 tinybmp = "0.7.0"
 u8g2-fonts = "0.8.0"
 quantus-texts = { path = "../../crates/quantus-texts" }
+quantus-search = { path = "../../crates/quantus-search" }

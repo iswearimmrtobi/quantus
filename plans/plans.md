@@ -177,7 +177,7 @@ by how often an entry was used comes later.
   and the handheld, which does not depend on the engine.
 - [x] Core: functions and prefixes with names in every language and aliases (`wurzel`, `sqrt`) in
   the library search, and the whole index for the handheld (`api::library_index`).
-- [ ] Handheld: typing in CATALOG lists the hits of the index and of the SETUP and OPTN menus;
+- [x] Handheld: typing in CATALOG lists the hits of the index and of the SETUP and OPTN menus;
   a function, unit or constant is inserted, a menu entry opens where it lives.
 - [ ] Desktop: the quick search lists functions and prefixes too.
 - [ ] Usage counts that rank frequent entries first.

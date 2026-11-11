@@ -339,6 +339,18 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             let lines = menu::VARIABLE_ACTIONS.iter().map(|action| Line { label: action.get(lang).to_string(), ..Line::default() });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
+        Some(Edit::Catalogue { query, hits, .. }) if !query.is_empty() && hits.is_empty() => {
+            centred(shapes, text::NOTHING_FOUND.get(lang))
+        }
+        Some(Edit::Catalogue { query, hits, selected, .. }) if !query.is_empty() => {
+            let lines = hits.iter().map(|hit| Line {
+                label: hit.name.clone(),
+                value: hit.detail.clone(),
+                math: hit.latex.as_deref().map(crate::latex::parse),
+                ..Line::default()
+            });
+            lines_page(shapes, lines.collect(), *selected, &list);
+        }
         Some(Edit::Catalogue { groups, group: None, selected, .. }) => {
             let lines = groups.iter().map(|group| Line { label: group.name.clone(), mark: Mark::Arrow, ..Line::default() });
             lines_page(shapes, lines.collect(), *selected, &list);

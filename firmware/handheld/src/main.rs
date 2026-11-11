@@ -233,6 +233,11 @@ impl Backend for Board {
     }
 
     #[cfg(feature = "engine")]
+    fn search_index(&mut self, lang: Lang) -> Vec<quantus_ui::backend::IndexItem> {
+        self.engine.search_index(lang)
+    }
+
+    #[cfg(feature = "engine")]
     fn unit_suggestions(&mut self, before: &str, recent: &[String], result: Option<&str>) -> Units {
         self.engine.unit_suggestions(before, recent, result)
     }

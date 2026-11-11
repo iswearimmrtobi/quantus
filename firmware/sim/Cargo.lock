@@ -554,6 +554,7 @@ version = "0.3.0-dev"
 dependencies = [
  "astro-float",
  "dashu",
+ "quantus-search",
  "quantus-texts",
  "serde",
  "serde_json",
@@ -570,6 +571,10 @@ dependencies = [
 
 [[package]]
 name = "quantus-mirror"
+version = "0.3.0-dev"
+
+[[package]]
+name = "quantus-search"
 version = "0.3.0-dev"
 
 [[package]]
@@ -605,6 +610,7 @@ name = "quantus-ui"
 version = "0.3.0-dev"
 dependencies = [
  "embedded-graphics",
+ "quantus-search",
  "quantus-texts",
  "tinybmp",
  "u8g2-fonts",

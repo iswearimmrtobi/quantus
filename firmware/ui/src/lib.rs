@@ -15,6 +15,7 @@ pub mod latex;
 pub mod layout;
 pub mod menu;
 pub mod render;
+pub mod search;
 pub mod settings;
 pub mod sheet;
 pub mod soft;
