@@ -555,8 +555,9 @@ are German and English (`firmware/ui/src/text.rs`), German by default; *Sprache*
 
 ### 7.1 MODE (main menu)
 
-In the hui (`Mode` in `firmware/ui/src/app.rs`): all twelve tiles, ←/→ through all tiles, ↑/↓
-by a row and across the pages, a digit picks 1–9 and 10–12 need the cursor (section 9). A long
+In the hui (`Mode` in `firmware/ui/src/app.rs`): all fourteen tiles on three pages, ←/→ through
+all tiles, ↑/↓ by a row and across the pages, a digit picks 1–9 and 10–14 need the cursor
+(section 9). A long
 name breaks at a soft hyphen, and goes small when a word is still too wide. Every mode has the
 engine; the modes with a sheet work it out with EXE on its last cell.
 
@@ -578,10 +579,12 @@ engine; the modes with a sheet work it out with EXE on its last cell.
       Umbenennen, Duplizieren and Löschen act on the open session; Öffnen lists them all. A new one is
       named after the local time as on the desktop ("Sitzung 2026-11-02 14:30"); before the
       clock is set, "Sitzung 2", the lowest number free.
-- Page 3, planned
-  13. Apps [Q, fw]: a page that lists games and user-made tools, scripts built in or from the
-      card ([apps.md](../firmware/docs/apps.md)). Locked in Prüfungsmodus.
-  14. Setup [Q, fw]: opens SETUP (7.2), as SHIFT + MODE does; the mode stays as it is.
+- Page 3
+  13. Apps [Q, fw] ✓: the list of games and tools, *Spiele* and *Werkzeuge* under headings,
+      built in first, the author on each line; scripts built in or from the card's `/apps`
+      ([apps.md](../firmware/docs/apps.md)). OPTN on a line: *Info*, *Daten löschen*. Locked in
+      Prüfungsmodus.
+  14. Setup [Q, fw] ✓: opens SETUP (7.2), as SHIFT + MODE does; the mode stays as it is.
 - Later: Ungleichungen [C, eng] ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)),
   Geometrie with the vectors [fw]: the engine has the mode, the tile is in
   [plans/geometry.md](../plans/geometry.md) § Later.

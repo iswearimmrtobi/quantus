@@ -543,7 +543,7 @@ impl Backend for Sim {
 /// The PC keys for the calculator's, printed at start (the full table is in the README).
 const KEYS: &str = "\
 Quantus simulator keys
-  MODE (mode tiles)    Tab, then 1-9 or arrows and Enter (12 tiles, 2 pages)
+  MODE (mode tiles)    Tab, then 1-9 or arrows and Enter (14 tiles, 3 pages)
   Setup (SHIFT+MODE)   F1, then Tab; a digit or Up/Down and Enter open an entry,
                        Left goes back, Esc closes
   SHIFT / ALPHA        F1 or Ctrl+F / F2 or Ctrl+K

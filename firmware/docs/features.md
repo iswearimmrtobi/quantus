@@ -177,7 +177,7 @@ in yet.
 
 ## Menus and settings
 
-- [x] MODE: twelve tiles on two pages, digits 1–9, cursor and touch for all
+- [x] MODE: fourteen tiles on three pages, digits 1–9, cursor and touch for all
 - [x] SETUP (SHIFT+MODE): a submenu per entry, a list or a typed number with its range
 - [x] SETUP Allgemein: Sprache, Winkeleinheit, Signifikante Stellen, Zahlenformat, Dezimalpräfixe, 1000er-Trennung
 - [x] SETUP Ergebnis: exakt/dezimal, Brüche, Periodisch, Komplexe Zahlen, Quadratische Gleichungen
@@ -202,25 +202,28 @@ in yet.
 
 ## Apps and games
 
-Planned in [apps.md](apps.md); nothing is built.
+Described in [apps.md](apps.md), for app authors on the site's *Writing apps*. Built and tested
+in the simulator; on the board it builds, the checks there wait for it
+([apps-roadmap.md](apps-roadmap.md)).
 
-- [ ] MODE, page 3: the tiles Apps and Setup (the menu of SHIFT + MODE)
-- [ ] MODE → Apps: a tile that lists games and tools, built in and from the card
-- [ ] Tic tac toe: two players or against the handheld, two levels
-- [ ] 2048, with the game and the best score kept
-- [ ] Apps from the card: scripts in `/apps/`, with limits on time and memory
-- [ ] The script API: keys, drawing, a timer, random numbers, saved data
-- [ ] The app's screen: the hui's top bar, soft keys the app turns on and labels
-- [ ] Input templates: own keys, the calculator's line, plain text, a grid, cells, a list
-- [ ] Credits in the app's header (author, version, description), shown by OPTN
-- [ ] The calculator from a script: work an input out, read a variable, hand a result back
-- [ ] Forms: a tool declared as fields and formulas, drawn as a sheet
-- [ ] Apps found by CATALOG's search
-- [ ] No apps in Prüfungsmodus
+- [x] MODE, page 3: the tiles Apps and Setup (the menu of SHIFT + MODE)
+- [x] MODE → Apps: a tile that lists games and tools, built in and from the card
+- [x] Tic tac toe: two players or against the handheld, two levels
+- [x] 2048, with the game and the best score kept
+- [x] Apps from the card: scripts in `/apps/`, with limits on time and memory
+- [x] The script API: keys, drawing, a timer, random numbers, saved data
+- [x] The app's screen: the hui's top bar, soft keys the app turns on and labels
+- [~] Input templates: own keys, the calculator's line, plain text, a grid, cells, a list — the
+  line has no unit bar yet
+- [x] Credits in the app's header (author, version, description), shown by OPTN
+- [x] The calculator from a script: work an input out, read a variable, hand a result back
+- [x] Forms: a tool declared as fields and formulas, drawn as a sheet
+- [x] Apps found by CATALOG's search
+- [x] No apps in Prüfungsmodus
 
 ## Storage and sessions
 
-- [x] SD card: wallpapers in `/wallpapers/`, sessions in `/sessions/`
+- [x] SD card: wallpapers in `/wallpapers/`, sessions in `/sessions/`, apps in `/apps/` and their data in `/apps/data/`
 - [x] Speicherplatz: used, free, total, as a bar; *Keine SD-Karte* without one
 - [x] Sessions: new, open, rename, duplicate, delete
 - [x] New sessions named after the local time ("Sitzung 2026-11-02 14:30"), or numbered before the clock is set

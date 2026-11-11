@@ -423,7 +423,7 @@ M5.
 - [x] **11.1 For app authors.** A reference page of the API in `docs/docs/` (the handheld's
   part of the site), with the Counter, the two games' sources linked, a form, the limits and
   how to pass an app on.
-- [ ] **11.2 The firmware's pages.** `/apps/` and `/apps/data/` in [sd-card.md](sd-card.md),
+- [x] **11.2 The firmware's pages.** `/apps/` and `/apps/data/` in [sd-card.md](sd-card.md),
   the lines in [features.md](features.md), the tiles and page 3 in
   [handheld-menus.md](../../design/handheld-menus.md) §7.1, the `--seed` option and `sd/apps/`
   in the simulator's README.

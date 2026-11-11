@@ -44,10 +44,18 @@ Windows' own format dialog offers only exFAT above 32 GB; use a tool such as *Ru
   `sessions/` in its config directory, so a session can be copied from one to the other (an id
   already in use gets a new one when read). Without a card, sessions are kept until the next
   restart only.
+- `apps/`: apps and games from other users or of your own, one Rhai script each (`*.rhai`),
+  listed under MODE → Apps beside the built-in ones ([apps.md](apps.md)). A file without a
+  `name` in its header, over 256 KB, or whose name is more than letters, digits, `-` and `_` is
+  left out. The list is read each time the Apps tile opens.
+- `apps/data/`: what the apps save, one JSON file per app (`<id>.json`, at most 64 KB; an app of
+  the card with a built-in app's id keeps `card~<id>.json`). Written beside and then put in
+  place; *Daten löschen* in an app's menu removes it. Without a card, kept until the handheld is
+  switched off.
 
 SETUP → Gerät → Speicherplatz shows how full the card is.
 
 ## In the simulator
 
 The simulator's folder `firmware/sim/sd` (or the one after `--sd`) stands for the card, with the
-same layout. `sd/` is in `.gitignore`.
+same layout. `sd/` is in `.gitignore`, but for the example apps in `sd/apps/`.

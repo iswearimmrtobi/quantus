@@ -25,14 +25,17 @@ cargo run -- --mirror /dev/ttyUSB0                  # also show the picture on t
 cargo run -- --charging --busy                      # start charging, with the spinner turning
 cargo run -- --sd ~/quantus-sd                      # another folder as the SD card
 cargo run -- --tour                                 # a walk through the UI with the wallpaper
+cargo run -- --seed 7                               # the apps' random numbers fixed, a game repeats
 ```
 
 The folder `sd` (or the one after `--sd`) stands for the SD card; its `wallpapers` folder holds
 the pictures for SETUP → Gerät → Hintergrundbild and its `sessions` folder the sessions, as on
 the board ([sd-card.md](../docs/sd-card.md#what-goes-on-the-card)). With `--png` the sessions are
-read but not written. `sd/` is in `.gitignore`. The settings are kept in its `settings.txt`, the
-saved WLAN networks in `wlan.txt`, the colour themes for SETUP → Gerät → Farbschema are the `.toml`
-files in its `themes` folder, and the theme set is kept in `theme.txt`.
+read but not written. `sd/` is in `.gitignore`, but for `sd/apps/`: the example apps, the
+Counter and the voltage divider form, which MODE → Apps lists beside the built-in games; what
+apps save goes to `sd/apps/data/` (not with `--png`). The settings are kept in its
+`settings.txt`, the saved WLAN networks in `wlan.txt`, the colour themes for SETUP → Gerät →
+Farbschema are the `.toml` files in its `themes` folder, and the theme set is kept in `theme.txt`.
 
 WLAN is played: SETUP → Verbindungen → WLAN finds three made-up networks after 1.5 s
 (*Quantus-Labor*, *FRITZ!Box 7590*, the open *Café Gast*), takes any password and connects
@@ -98,7 +101,7 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | Enter | | EXE |
 | Backspace | | DEL |
 | Esc, Delete, Ctrl+X | | AC |
-| Tab | | MODE: the twelve mode tiles on two pages (then 1–9, or the arrows and Enter) |
+| Tab | | MODE: the fourteen tiles on three pages (then 1–9, or the arrows and Enter) |
 | F1 then Tab | | SHIFT+MODE: setup. A digit or ↑/↓ and Enter open an entry; each entry opens a submenu: a list of values or a number typed with the digits. ← or Backspace go back, Esc closes |
 | arrows | | cursor; ↑/↓ outside a fraction step through earlier calculations |
 | F1, Ctrl+F | | SHIFT (SHIFT, then √ is the n-th root) |
