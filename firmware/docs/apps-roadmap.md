@@ -135,7 +135,7 @@ Rust in `ui/tests/apps.rs`.
   `.built_in`, `.from_card` in `locales/de.json` and `en.json`
   (`cargo test -p quantus-texts`). Test: the applet cannot close or change the menu; *Beenden*
   leaves as AC does.
-- [ ] **1.6 Touch.** `render::target`: the left of the bar is `Target::Back` (leaves), a soft
+- [x] **1.6 Touch.** `render::target`: the left of the bar is `Target::Back` (leaves), a soft
   label is `Target::Soft`; a tap inside the area becomes `Applet::tap` with the point in the
   area's coordinates. Test in `ui/tests/apps.rs` beside the keys.
 

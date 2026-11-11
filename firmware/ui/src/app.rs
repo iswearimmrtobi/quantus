@@ -828,6 +828,11 @@ impl<B: Backend> App<B> {
     /// A key in the app's menu; AC and OPTN close it, back to the app.
     fn app_menu_key(&mut self, mut menu: Menu, key: Key) {
         let outcome = menu.key(key, &mut self.settings);
+        self.app_menu_outcome(menu, outcome);
+    }
+
+    /// Does what the app's menu asks for, and keeps it open unless it closed.
+    fn app_menu_outcome(&mut self, mut menu: Menu, outcome: Outcome) {
         let label = menu.title();
         let Some(running) = &mut self.running else { return };
         match outcome {
@@ -996,7 +1001,12 @@ impl<B: Backend> App<B> {
 
     fn tap(&mut self, target: Target) {
         match target {
-            Target::Back if matches!(self.screen, Screen::Modes { .. } | Screen::Calc) => self.key(Key::Ac),
+            Target::Back if matches!(self.screen, Screen::Modes { .. } | Screen::Calc | Screen::App) => self.key(Key::Ac),
+            Target::App(point) => {
+                if let Some((running, mut host)) = self.applet() {
+                    running.applet.tap(point, &mut host);
+                }
+            }
             Target::Cell(row, column) => {
                 let Some(kind) = self.sheet_kind() else { return };
                 let sheet = self.sheets.get_mut(kind);
@@ -1013,6 +1023,11 @@ impl<B: Backend> App<B> {
             Target::Tile(index) => self.choose(index),
             Target::Soft(index) => self.key(Key::Soft(index as u8)),
             Target::Page(page) => self.show_page(page),
+            Target::Line(offset) if matches!(self.screen, Screen::App) => {
+                let Some(mut menu) = self.running.as_mut().and_then(|running| running.menu.take()) else { return };
+                let outcome = menu.tap(offset, &mut self.settings);
+                self.app_menu_outcome(menu, outcome);
+            }
             Target::Line(_) | Target::Step(_) => {
                 let Screen::Menu(mut menu) = std::mem::replace(&mut self.screen, Screen::Calc) else { return };
                 let outcome = match target {

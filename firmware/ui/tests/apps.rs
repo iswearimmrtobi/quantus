@@ -19,6 +19,7 @@ struct Log {
     keys: Vec<AppKey>,
     left: usize,
     restarts: usize,
+    taps: Vec<Point>,
 }
 
 /// An applet that writes down what it gets and draws a square where it is told.
@@ -39,6 +40,10 @@ impl Applet for Probe {
 
     fn soft_keys(&self) -> Vec<String> {
         self.soft.clone()
+    }
+
+    fn tap(&mut self, point: Point, _host: &mut dyn Host) {
+        self.log.borrow_mut().taps.push(point);
     }
 
     fn restart(&mut self, _host: &mut dyn Host) {
@@ -361,4 +366,37 @@ fn restart_and_quit() {
     assert_eq!(app.screen, Screen::Calc);
     assert!(app.running.is_none());
     assert_eq!(log.borrow().left, 1);
+}
+
+fn tap(app: &mut App<Stub>, point: Point) {
+    use quantus_ui::touch::Touch;
+    app.touch(Touch::Press(point));
+    app.touch(Touch::Release);
+    let _ = quantus_ui::render::Frame::new(app);
+}
+
+#[test]
+fn taps_reach_the_app_in_its_coordinates() {
+    let (mut app, log) = opened(&["Neu", "Stufe"]);
+    tap(&mut app, Point::new(100, 126));
+    assert_eq!(log.borrow().taps, [Point::new(100, 100)]);
+    // A label is its soft key.
+    let label = quantus_ui::render::slot_rect(1, 6).center();
+    tap(&mut app, label);
+    assert_eq!(log.borrow().keys, [AppKey::Soft(1)]);
+    // The left of the top bar leaves.
+    tap(&mut app, Point::new(20, 12));
+    assert_eq!(app.screen, Screen::Calc);
+    assert_eq!(log.borrow().left, 1);
+}
+
+#[test]
+fn taps_on_the_apps_menu() {
+    let (mut app, log) = opened(&[]);
+    app.key(Key::Optn);
+    // The fourth line, Beenden.
+    let line = quantus_ui::render::line_rect(3, 470).center();
+    tap(&mut app, line);
+    assert_eq!(app.screen, Screen::Calc);
+    assert!(log.borrow().taps.is_empty());
 }

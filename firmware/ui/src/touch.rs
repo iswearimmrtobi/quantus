@@ -37,6 +37,8 @@ pub enum Target {
     Side(bool),
     /// The label of a soft key at the bottom of the screen, counted like [`Key::Soft`](crate::key::Key::Soft).
     Soft(usize),
+    /// A point of an app's area, in the area's coordinates.
+    App(Point),
 }
 
 /// What the finger did, once it lifted.

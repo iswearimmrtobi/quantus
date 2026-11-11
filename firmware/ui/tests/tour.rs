@@ -72,6 +72,7 @@ fn title(app: &App<Card>) -> String {
         Screen::Modes { selected } => format!("MODE {}", selected + 1),
         Screen::Calc => format!("{} {}", app.mode.name(Lang::De), app.editor.to_latex()),
         Screen::Calibrate(..) => "calibration".to_string(),
+        Screen::App => "app".to_string(),
     }
 }
 

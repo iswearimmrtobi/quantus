@@ -479,7 +479,16 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             Some(Target::Cell(row, column))
         }
         Screen::Calibrate(..) => None,
-        Screen::App => None,
+        Screen::App => match app.running.as_ref().and_then(|running| running.menu.as_ref()) {
+            Some(menu) => menu_target(menu, point),
+            None => {
+                if let Some(target) = soft::soft_at(app, point) {
+                    return Some(target);
+                }
+                let area = app_area(app);
+                area.contains(point).then(|| Target::App(point - area.top_left))
+            }
+        },
         Screen::Modes { selected } => {
             let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
             let on_page = (Mode::ALL.len() - first).min(TILES_PER_PAGE);
@@ -490,25 +499,29 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             let around = |dot: Rectangle| Rectangle::new(dot.top_left - Point::new(4, 12), dot.size + Size::new(8, 24));
             (0..PAGES).find(|&index| around(dot_rect(index)).contains(point)).map(Target::Page)
         }
-        Screen::Menu(menu) => {
-            if let Some(Edit::Message { .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. }) =
-                menu.edit
-            {
-                return Some(Target::Anywhere);
-            }
-            if let Some(Edit::Number { .. }) = menu.edit {
-                let index = (0..NUMBER_BUTTONS.len()).find(|&index| number_button(index).contains(point))?;
-                return Some(NUMBER_BUTTONS[index].0);
-            }
-            list_len(menu)?;
-            // The whole width, and half the gap above and below: a finger is not precise.
-            let around = |line: Rectangle| {
-                Rectangle::new(line.top_left - Point::new(MARGIN, LINE_GAP / 2), line.size + Size::new(2 * MARGIN as u32, LINE_GAP as u32))
-            };
-            let edge = list_edge(menu);
-            (0..ROWS).find(|&offset| around(line_rect(offset, edge)).contains(point)).map(Target::Line)
-        }
+        Screen::Menu(menu) => menu_target(menu, point),
     }
+}
+
+/// What a tap at `point` hits on `menu`.
+fn menu_target(menu: &Menu, point: Point) -> Option<Target> {
+    if let Some(
+        Edit::Message { .. } | Edit::AppInfo { .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. },
+    ) = menu.edit
+    {
+        return Some(Target::Anywhere);
+    }
+    if let Some(Edit::Number { .. }) = menu.edit {
+        let index = (0..NUMBER_BUTTONS.len()).find(|&index| number_button(index).contains(point))?;
+        return Some(NUMBER_BUTTONS[index].0);
+    }
+    list_len(menu)?;
+    // The whole width, and half the gap above and below: a finger is not precise.
+    let around = |line: Rectangle| {
+        Rectangle::new(line.top_left - Point::new(MARGIN, LINE_GAP / 2), line.size + Size::new(2 * MARGIN as u32, LINE_GAP as u32))
+    };
+    let edge = list_edge(menu);
+    (0..ROWS).find(|&offset| around(line_rect(offset, edge)).contains(point)).map(Target::Line)
 }
 
 /// How far in from the left and the right a tap turns the page of a curve sketch.

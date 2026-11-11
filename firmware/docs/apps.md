@@ -472,7 +472,7 @@ come first; a step is ticked here once its commits there are.
 - [ ] **0. Spike: the interpreter on the board.** Rhai in the `handheld` build with a script that
   plays 2048 moves: the growth of the image, the stack a callback needs, the time of a move with
   its redraw, the state as `this`. Decide Rhai or Lua and write the numbers into decision 5.
-- [ ] **1. hui: the frame for apps.** `Applet`, `Host`, `Canvas`, `AppKey`, `Screen::App`; the
+- [x] **1. hui: the frame for apps.** `Applet`, `Host`, `Canvas`, `AppKey`, `Screen::App`; the
   fixed top bar with the app's name, the soft keys on and off with the area following; AC and
   MODE leave, OPTN opens the app's menu with *Info*. `ui/tests/apps.rs` drives an applet written
   in Rust: keys arrive, shapes are drawn, the area grows without soft keys, AC returns to where
