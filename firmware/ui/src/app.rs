@@ -1,6 +1,6 @@
 //! The calculator's state and what each key does to it.
 
-use crate::applet::{AppInfo, AppKey, Applet, Host};
+use crate::applet::{AppInfo, AppKey, Applet, Event, Grid, Host, Input};
 use crate::backend::{
     Backend, Catalogue, Graph, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Units, VariableCommand, Window,
     WlanStatus,
@@ -148,12 +148,22 @@ pub struct Running {
     /// The app's menu (OPTN), over it: the applet gets no keys while it is open.
     pub menu: Option<Menu>,
     pub back: Box<Screen>,
+    /// The state of the input template, the hui's.
+    pub template: Template,
+}
+
+/// What the input templates keep while an app runs (apps.md §4.4).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Template {
+    /// The grid's cursor: its column and row.
+    pub cursor: (usize, usize),
 }
 
 /// What an app asks of the device, answered over the backend.
 struct AppHost<'a, B> {
     backend: &'a mut B,
     lang: Lang,
+    template: &'a mut Template,
 }
 
 impl<B: Backend> Host for AppHost<'_, B> {
@@ -163,6 +173,14 @@ impl<B: Backend> Host for AppHost<'_, B> {
 
     fn lang(&self) -> Lang {
         self.lang
+    }
+
+    fn cursor(&self) -> (usize, usize) {
+        self.template.cursor
+    }
+
+    fn set_cursor(&mut self, col: usize, row: usize) {
+        self.template.cursor = (col, row);
     }
 }
 
@@ -697,8 +715,8 @@ impl<B: Backend> App<B> {
             self.screen = Screen::Calc;
             changed = true;
         }
-        if let Some((running, mut host)) = self.applet() {
-            changed |= running.applet.tick(now_ms, &mut host);
+        if let Some((applet, mut host)) = self.applet() {
+            changed |= applet.tick(now_ms, &mut host);
         }
         changed |= self.wlan_tick(now_ms);
         let minute = clock::now().map(|now| now / 60_000);
@@ -789,15 +807,70 @@ impl<B: Backend> App<B> {
     pub fn open_applet(&mut self, applet: Box<dyn Applet>, info: AppInfo) {
         self.close_app();
         let back = std::mem::replace(&mut self.screen, Screen::App);
-        self.running = Some(Running { applet, info, menu: None, back: Box::new(back) });
+        self.running = Some(Running { applet, info, menu: None, back: Box::new(back), template: Template::default() });
         self.soft_page = 0;
     }
 
     /// The applet and what it may ask of the device, borrowed apart.
-    fn applet(&mut self) -> Option<(&mut Running, AppHost<'_, B>)> {
+    fn applet(&mut self) -> Option<(&mut dyn Applet, AppHost<'_, B>)> {
         let lang = self.settings.language;
-        let running = self.running.as_mut()?;
-        Some((running, AppHost { backend: &mut self.backend, lang }))
+        let Running { applet, template, .. } = self.running.as_mut()?;
+        Some((applet.as_mut(), AppHost { backend: &mut self.backend, lang, template }))
+    }
+
+    /// A key the input template takes; whether it took it.
+    fn template_key(&mut self, key: AppKey) -> bool {
+        let Some((applet, mut host)) = self.applet() else { return false };
+        match applet.input() {
+            Input::Keys | Input::Line { .. } | Input::Text { .. } | Input::List { .. } | Input::Cells { .. } => false,
+            Input::Grid { cols, rows, digits, wrap } => {
+                let (cols, rows) = (cols.max(1), rows.max(1));
+                let (col, row) = host.template.cursor;
+                let (col, row) = (col.min(cols - 1), row.min(rows - 1));
+                let step = |at: usize, by: isize, count: usize| match (at.checked_add_signed(by), wrap) {
+                    (Some(next), _) if next < count => next,
+                    (_, true) if by < 0 => count - 1,
+                    (_, true) => 0,
+                    (_, false) => at,
+                };
+                let cursor = match key {
+                    AppKey::Left => (step(col, -1, cols), row),
+                    AppKey::Right => (step(col, 1, cols), row),
+                    AppKey::Up => (col, step(row, -1, rows)),
+                    AppKey::Down => (col, step(row, 1, rows)),
+                    AppKey::Ok | AppKey::Exe => {
+                        host.template.cursor = (col, row);
+                        applet.event(Event::Pick(col, row), &mut host);
+                        return true;
+                    }
+                    // 1–9 as the number block lies: 7 at the top left.
+                    AppKey::Digit(digit @ 1..=9) if digits && cols == 3 && rows == 3 => {
+                        let index = usize::from(digit) - 1;
+                        let (col, row) = (index % 3, 2 - index / 3);
+                        host.template.cursor = (col, row);
+                        applet.event(Event::Pick(col, row), &mut host);
+                        return true;
+                    }
+                    _ => return false,
+                };
+                host.template.cursor = cursor;
+                true
+            }
+        }
+    }
+
+    /// A tap in the app's area: on a cell of the grid it picks the cell, else the applet gets it.
+    fn app_tap(&mut self, point: embedded_graphics::prelude::Point) {
+        let area = render::app_area(self);
+        let Some((applet, mut host)) = self.applet() else { return };
+        if let Input::Grid { cols, rows, .. } = applet.input() {
+            let grid = Grid::new(area.size.width as i32, area.size.height as i32, cols, rows);
+            if let Some((col, row)) = grid.at(point) {
+                host.template.cursor = (col, row);
+                return applet.event(Event::Pick(col, row), &mut host);
+            }
+        }
+        applet.tap(point, &mut host);
     }
 
     /// A key on an app: AC leaves to where it was opened from, MODE to the mode menu; the others
@@ -826,16 +899,19 @@ impl<B: Backend> App<B> {
                     Some(Slot::Page) => self.soft_page = bar.page + 1,
                     Some(Slot::App(index, _)) => {
                         let index = *index;
-                        let Some((running, mut host)) = self.applet() else { return };
-                        running.applet.key(AppKey::Soft(index), &mut host);
+                        let Some((applet, mut host)) = self.applet() else { return };
+                        applet.key(AppKey::Soft(index), &mut host);
                     }
                     _ => {}
                 }
             }
             key => {
                 let Some(key) = AppKey::from_key(key) else { return };
-                let Some((running, mut host)) = self.applet() else { return };
-                running.applet.key(key, &mut host);
+                if self.template_key(key) {
+                    return;
+                }
+                let Some((applet, mut host)) = self.applet() else { return };
+                applet.key(key, &mut host);
             }
         }
     }
@@ -857,8 +933,8 @@ impl<B: Backend> App<B> {
                 running.menu = Some(menu);
             }
             Outcome::Act(Action::AppRestart) => {
-                if let Some((running, mut host)) = self.applet() {
-                    running.applet.restart(&mut host);
+                if let Some((applet, mut host)) = self.applet() {
+                    applet.restart(&mut host);
                 }
             }
             Outcome::Act(Action::AppDeleteData) => {
@@ -875,8 +951,8 @@ impl<B: Backend> App<B> {
 
     /// Leaves the app, if one runs: it is told, and the screen it was opened from is given back.
     fn close_app(&mut self) -> Option<Screen> {
-        let (running, mut host) = self.applet()?;
-        running.applet.leave(&mut host);
+        let (applet, mut host) = self.applet()?;
+        applet.leave(&mut host);
         let running = self.running.take()?;
         Some(*running.back)
     }
@@ -1017,11 +1093,7 @@ impl<B: Backend> App<B> {
     fn tap(&mut self, target: Target) {
         match target {
             Target::Back if matches!(self.screen, Screen::Modes { .. } | Screen::Calc | Screen::App) => self.key(Key::Ac),
-            Target::App(point) => {
-                if let Some((running, mut host)) = self.applet() {
-                    running.applet.tap(point, &mut host);
-                }
-            }
+            Target::App(point) => self.app_tap(point),
             Target::Cell(row, column) => {
                 let Some(kind) = self.sheet_kind() else { return };
                 let sheet = self.sheets.get_mut(kind);

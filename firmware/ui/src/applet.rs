@@ -60,6 +60,14 @@ pub trait Host {
     /// The hui's language.
     fn lang(&self) -> Lang;
 
+    /// The cursor of the grid template: its column and row.
+    fn cursor(&self) -> (usize, usize) {
+        (0, 0)
+    }
+
+    /// Moves the grid's cursor.
+    fn set_cursor(&mut self, _col: usize, _row: usize) {}
+
     /// The time as Unix milliseconds, if the clock is set.
     fn now(&self) -> Option<i64> {
         crate::clock::now()

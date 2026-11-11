@@ -182,7 +182,7 @@ holds. The hui handles the template's keys first and passes the rest on (apps.md
   hui, because the grid template and the scripts must agree on the cells. Unit tests of the
   layout: 480 × 250 puts `side` to the right, 320 × 214 below. Built as `applet::Grid`, and
   `Event` as `Pick`, `Chosen`, `Entered` (text or LaTeX) and `Cell`, no script value in the hui.
-- [ ] **3a.2 `"grid"`.** The arrows move the cursor, with `wrap` round the edges; OK or EXE
+- [x] **3a.2 `"grid"`.** The arrows move the cursor, with `wrap` round the edges; OK or EXE
   gives `Event::Pick`; `digits` maps 1–9 to a 3 × 3 grid as the number block lies (7 top left);
   the hui draws the cursor's frame over the applet's shapes; a tap picks the cell under it.
   `Host::cursor` and `set_cursor`. Test: a Rust applet with a 3 × 3 grid gets the picks; keys

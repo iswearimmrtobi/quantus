@@ -629,3 +629,84 @@ fn the_grid_puts_its_side_panel_where_there_is_room() {
         assert_eq!(grid.at(Point::new(-1, 5)), None);
     }
 }
+
+/// The cells picked.
+type Picks = Rc<RefCell<Vec<(usize, usize)>>>;
+
+/// A 3 × 3 board with the grid template: it writes down the picks and the other keys.
+struct Board {
+    picks: Picks,
+    log: Rc<RefCell<Log>>,
+    digits: bool,
+    wrap: bool,
+}
+
+impl Applet for Board {
+    fn key(&mut self, key: AppKey, _host: &mut dyn Host) {
+        self.log.borrow_mut().keys.push(key);
+    }
+
+    fn event(&mut self, event: quantus_ui::applet::Event, _host: &mut dyn Host) {
+        if let quantus_ui::applet::Event::Pick(col, row) = event {
+            self.picks.borrow_mut().push((col, row));
+        }
+    }
+
+    fn tap(&mut self, point: Point, _host: &mut dyn Host) {
+        self.log.borrow_mut().taps.push(point);
+    }
+
+    fn draw(&self, canvas: &mut Canvas) {
+        canvas.clear(colors::background());
+    }
+
+    fn input(&self) -> quantus_ui::applet::Input {
+        quantus_ui::applet::Input::Grid { cols: 3, rows: 3, digits: self.digits, wrap: self.wrap }
+    }
+}
+
+fn board(digits: bool, wrap: bool) -> (App<Stub>, Picks, Rc<RefCell<Log>>) {
+    let mut app = App::new(Stub);
+    let (picks, log) = (Rc::new(RefCell::new(Vec::new())), Rc::new(RefCell::new(Log::default())));
+    app.open_applet(Box::new(Board { picks: picks.clone(), log: log.clone(), digits, wrap }), info());
+    (app, picks, log)
+}
+
+#[test]
+fn the_grid_moves_its_cursor_and_picks() {
+    let (mut app, picks, log) = board(false, false);
+    press(&mut app, &[Key::Right, Key::Right, Key::Right, Key::Down, Key::Ok]);
+    // The edge holds without wrap.
+    assert_eq!(*picks.borrow(), [(2, 1)]);
+    press(&mut app, &[Key::Left, Key::Exe, Key::Digit(7), Key::Plus]);
+    assert_eq!(*picks.borrow(), [(2, 1), (1, 1)]);
+    // Keys the grid does not use reach the app: the digits too, without `digits`.
+    assert_eq!(log.borrow().keys, [AppKey::Digit(7), AppKey::Plus]);
+    // The cursor's frame is drawn, in the area.
+    let frame = quantus_ui::render::Frame::new(&app);
+    assert!(frame.0.iter().any(|shape| matches!(shape, Shape::Outline(_, color) if *color == colors::primary())));
+}
+
+#[test]
+fn the_grid_wraps_and_takes_digits_as_the_number_block() {
+    let (mut app, picks, log) = board(true, true);
+    press(&mut app, &[Key::Left, Key::Up, Key::Ok]);
+    assert_eq!(*picks.borrow(), [(2, 2)]);
+    press(&mut app, &[Key::Digit(7), Key::Digit(3), Key::Digit(5), Key::Digit(0)]);
+    assert_eq!(*picks.borrow(), [(2, 2), (0, 0), (2, 2), (1, 1)]);
+    assert_eq!(log.borrow().keys, [AppKey::Digit(0)]);
+}
+
+#[test]
+fn a_tap_picks_the_cell_under_it() {
+    let (mut app, picks, log) = board(false, false);
+    let area = quantus_ui::render::app_area(&app);
+    let grid = quantus_ui::applet::Grid::new(area.size.width as i32, area.size.height as i32, 3, 3);
+    let cell = grid.cell(1, 2).translate(area.top_left);
+    tap(&mut app, cell.center());
+    assert_eq!(*picks.borrow(), [(1, 2)]);
+    // Beside the board, the app gets the tap.
+    tap(&mut app, area.top_left + grid.side().center());
+    assert_eq!(log.borrow().taps, [grid.side().center()]);
+    assert_eq!(picks.borrow().len(), 1);
+}

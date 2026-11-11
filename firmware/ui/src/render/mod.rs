@@ -308,9 +308,11 @@ impl Frame {
                 if let Some(menu) = app.running.as_ref().and_then(|running| running.menu.as_ref()) {
                     menu_screen(&mut shapes, app, menu, false);
                 } else if let Some(running) = &app.running {
-                    let mut canvas = crate::applet::Canvas::new(app_area(app));
+                    let area = app_area(app);
+                    let mut canvas = crate::applet::Canvas::new(area);
                     running.applet.draw(&mut canvas);
                     shapes.extend(canvas.into_shapes());
+                    template(&mut shapes, running, area);
                 }
             }
         }
@@ -319,6 +321,17 @@ impl Frame {
         }
         bar(&mut shapes, app);
         Frame(shapes, backdrop)
+    }
+}
+
+/// The input template's part, over the app's shapes: the grid's cursor.
+fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectangle) {
+    if let crate::applet::Input::Grid { cols, rows, .. } = running.applet.input() {
+        let grid = crate::applet::Grid::new(area.size.width as i32, area.size.height as i32, cols, rows);
+        let (col, row) = running.template.cursor;
+        let cell = grid.cell(col.min(cols.max(1) - 1), row.min(rows.max(1) - 1)).translate(area.top_left);
+        shapes.push(Shape::Outline(rounded(cell.top_left + Point::new(2, 2), cell.size.saturating_sub(Size::new(4, 4)), 4), colors::primary()));
+        shapes.push(Shape::Outline(rounded(cell.top_left + Point::new(4, 4), cell.size.saturating_sub(Size::new(8, 8)), 3), colors::primary()));
     }
 }
 
