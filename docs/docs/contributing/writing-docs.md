@@ -24,6 +24,7 @@ npm run build      # production build into docs/build/; fails on broken links
 | `docs/docs/basics/` | what every mode shares: input, working, variables, calculus | How do I use it? |
 | `docs/docs/guides/` | the modes, in the order of the overview | How do I do X in this mode? |
 | `docs/docs/reference/` | complete lists, mostly tables | What exactly is supported? |
+| `docs/docs/handheld/` | what is the handheld's alone: writing apps | How do I make my own? |
 | `docs/docs/contributing/` | code, tests, docs | How does it work, how do I change it? |
 
 The sidebar is generated from the folders. Each folder has a `_category_.json` with its label and
@@ -67,7 +68,8 @@ the guide of its mode, a removed limit out of [Known limits](../reference/limits
 
 The user docs describe `dev` up to commit `c136814` (2026-11-03). The handheld firmware
 (`firmware/`) is not documented here, except for [Themes](../basics/themes.md), which it shares
-with the desktop app. To see what changed since, and what may need a page:
+with the desktop app, and [writing apps](../handheld/apps.md), which follows `firmware/docs/apps.md`
+and the script API in `firmware/apps/src/api.rs`. To see what changed since, and what may need a page:
 
 ```sh
 git log --oneline c136814..dev -- . ':!firmware'

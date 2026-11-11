@@ -420,7 +420,7 @@ M5.
 
 ### Step 11. Documentation (M)
 
-- [ ] **11.1 For app authors.** A reference page of the API in `docs/docs/` (the handheld's
+- [x] **11.1 For app authors.** A reference page of the API in `docs/docs/` (the handheld's
   part of the site), with the Counter, the two games' sources linked, a form, the limits and
   how to pass an app on.
 - [ ] **11.2 The firmware's pages.** `/apps/` and `/apps/data/` in [sd-card.md](sd-card.md),
