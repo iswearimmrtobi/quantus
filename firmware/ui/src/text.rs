@@ -27,6 +27,7 @@ pub const OPTIONS: Text = tx!("hui.options");
 pub const ON: Text = tx!("hui.on");
 pub const OFF: Text = tx!("hui.off");
 pub const YES: Text = tx!("hui.yes");
+pub const NO: Text = tx!("hui.no");
 pub const NOT_AVAILABLE: Text = tx!("hui.not_available");
 pub const RANGE: Text = tx!("hui.range");
 pub const TO: Text = tx!("hui.to");

@@ -39,6 +39,8 @@ pub enum Target {
     Soft(usize),
     /// A point of an app's area, in the area's coordinates.
     App(Point),
+    /// *Ja* (true) or *Nein* of a question over an app.
+    Answer(bool),
 }
 
 /// What the finger did, once it lifted.

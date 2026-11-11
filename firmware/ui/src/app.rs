@@ -1,6 +1,6 @@
 //! The calculator's state and what each key does to it.
 
-use crate::applet::{AppInfo, AppKey, Applet, Event, Grid, Host, Input};
+use crate::applet::{AppInfo, AppKey, Applet, Event, Grid, Host, Input, Question, Response};
 use crate::backend::{
     Backend, Catalogue, Graph, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Units, VariableCommand, Window,
     WlanStatus,
@@ -159,6 +159,8 @@ pub struct Template {
     pub cursor: (usize, usize),
     /// The list's selected item.
     pub list: usize,
+    /// A question open over the app; it gets nothing until it is answered.
+    pub question: Option<Question>,
 }
 
 /// What an app asks of the device, answered over the backend.
@@ -183,6 +185,10 @@ impl<B: Backend> Host for AppHost<'_, B> {
 
     fn set_cursor(&mut self, col: usize, row: usize) {
         self.template.cursor = (col, row);
+    }
+
+    fn confirm(&mut self, question: &str) {
+        self.template.question = Some(Question::Confirm { text: question.to_string(), yes: true });
     }
 }
 
@@ -820,6 +826,35 @@ impl<B: Backend> App<B> {
         Some((applet.as_mut(), AppHost { backend: &mut self.backend, lang, template }))
     }
 
+    /// A key on a question over the app: the arrows go between *Ja* and *Nein*, OK or EXE
+    /// answer, 1 is *Ja* and 2 *Nein*, AC is *Nein*. MODE still leaves the app.
+    fn question_key(&mut self, key: Key) {
+        let Some(Question::Confirm { yes, .. }) = self.running.as_mut().and_then(|running| running.template.question.as_mut()) else { return };
+        let answer = match key {
+            Key::Left | Key::Right | Key::Up | Key::Down => {
+                *yes = !*yes;
+                return;
+            }
+            Key::Ok | Key::Exe => *yes,
+            Key::Digit(1) => true,
+            Key::Digit(2) | Key::Ac => false,
+            Key::Mode => {
+                self.close_app();
+                self.screen = Screen::Modes { selected: self.mode.index() };
+                return;
+            }
+            _ => return,
+        };
+        self.respond(Response::Confirmed(answer));
+    }
+
+    /// Closes the question over the app and gives it the answer.
+    fn respond(&mut self, response: Response) {
+        let Some((applet, mut host)) = self.applet() else { return };
+        host.template.question = None;
+        applet.answer(response, &mut host);
+    }
+
     /// A key the input template takes; whether it took it.
     fn template_key(&mut self, key: AppKey) -> bool {
         let Some((applet, mut host)) = self.applet() else { return false };
@@ -909,6 +944,9 @@ impl<B: Backend> App<B> {
     fn app_key(&mut self, key: Key) {
         if let Some(menu) = self.running.as_mut().and_then(|running| running.menu.take()) {
             return self.app_menu_key(menu, key);
+        }
+        if self.running.as_ref().is_some_and(|running| running.template.question.is_some()) {
+            return self.question_key(key);
         }
         match key {
             Key::Optn => {
@@ -1125,6 +1163,7 @@ impl<B: Backend> App<B> {
         match target {
             Target::Back if matches!(self.screen, Screen::Modes { .. } | Screen::Calc | Screen::App) => self.key(Key::Ac),
             Target::App(point) => self.app_tap(point),
+            Target::Answer(yes) => self.respond(Response::Confirmed(yes)),
             Target::Cell(row, column) => {
                 let Some(kind) = self.sheet_kind() else { return };
                 let sheet = self.sheets.get_mut(kind);

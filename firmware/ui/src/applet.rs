@@ -43,6 +43,9 @@ pub trait Applet {
     /// confirmed.
     fn event(&mut self, _event: Event, _host: &mut dyn Host) {}
 
+    /// The answer to a question the app asked through the host ([`Host::confirm`]).
+    fn answer(&mut self, _response: Response, _host: &mut dyn Host) {}
+
     /// Starts again from the beginning (*Neu starten* in the app's menu).
     fn restart(&mut self, _host: &mut dyn Host) {}
 
@@ -67,6 +70,10 @@ pub trait Host {
 
     /// Moves the grid's cursor.
     fn set_cursor(&mut self, _col: usize, _row: usize) {}
+
+    /// Asks `question` with *Ja* and *Nein* over the app; the answer comes to
+    /// [`Applet::answer`], and until then the app gets nothing.
+    fn confirm(&mut self, _question: &str) {}
 
     /// The time as Unix milliseconds, if the clock is set.
     fn now(&self) -> Option<i64> {
@@ -94,6 +101,20 @@ pub enum Input {
     /// The grid with a value typed into the cell under the cursor; `digits_only` takes one
     /// digit and moves on.
     Cells { cols: usize, rows: usize, digits_only: bool },
+}
+
+/// A question of the hui's over an app.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Question {
+    /// *Ja* or *Nein*; `yes` is where the cursor is.
+    Confirm { text: String, yes: bool },
+}
+
+/// The answer to a [`Question`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Response {
+    /// *Ja* (true) or *Nein*; AC is *Nein*.
+    Confirmed(bool),
 }
 
 /// What an input template gives the app.

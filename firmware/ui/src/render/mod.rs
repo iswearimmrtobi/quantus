@@ -312,7 +312,7 @@ impl Frame {
                     let mut canvas = crate::applet::Canvas::new(area);
                     running.applet.draw(&mut canvas);
                     shapes.extend(canvas.into_shapes());
-                    template(&mut shapes, running, area, app.pressed());
+                    template(&mut shapes, running, area, app.pressed(), app.settings.language);
                 }
             }
         }
@@ -325,7 +325,7 @@ impl Frame {
 }
 
 /// The input template's part, over the app's shapes: the grid's cursor, the list.
-fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectangle, pressed: Option<Target>) {
+fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectangle, pressed: Option<Target>, lang: crate::text::Lang) {
     let input = running.applet.input();
     if let crate::applet::Input::List { items } = &input {
         let pressed = match pressed {
@@ -340,6 +340,49 @@ fn template(shapes: &mut Vec<Shape>, running: &crate::app::Running, area: Rectan
         let cell = grid.cell(col.min(cols.max(1) - 1), row.min(rows.max(1) - 1)).translate(area.top_left);
         shapes.push(Shape::Outline(rounded(cell.top_left + Point::new(2, 2), cell.size.saturating_sub(Size::new(4, 4)), 4), colors::primary()));
         shapes.push(Shape::Outline(rounded(cell.top_left + Point::new(4, 4), cell.size.saturating_sub(Size::new(8, 8)), 3), colors::primary()));
+    }
+    if let Some(question) = &running.template.question {
+        question_box(shapes, question, area, pressed, lang);
+    }
+}
+
+/// The box of a question over an app, in the middle of its area.
+pub fn question_rect(area: Rectangle) -> Rectangle {
+    let width = (area.size.width as i32 - 2 * MARGIN).min(380);
+    let height = 140.min(area.size.height as i32 - 2 * MARGIN);
+    let at = area.top_left + Point::new((area.size.width as i32 - width) / 2, (area.size.height as i32 - height) / 2);
+    Rectangle::new(at, Size::new(width.max(0) as u32, height.max(0) as u32))
+}
+
+/// *Ja* (0) or *Nein* (1) at the bottom of the question's box.
+pub fn answer_rect(area: Rectangle, index: usize) -> Rectangle {
+    let frame = question_rect(area);
+    let gap = 10;
+    let width = (frame.size.width as i32 - 3 * gap) / 2;
+    let at = frame.top_left + Point::new(gap + index as i32 * (width + gap), frame.size.height as i32 - 48 - gap);
+    Rectangle::new(at, Size::new(width.max(0) as u32, 48))
+}
+
+fn question_box(shapes: &mut Vec<Shape>, question: &crate::applet::Question, area: Rectangle, pressed: Option<Target>, lang: crate::text::Lang) {
+    let crate::applet::Question::Confirm { text, yes } = question;
+    let frame = question_rect(area);
+    shapes.push(Shape::Round(rounded(frame.top_left, frame.size, 8), colors::surface(), Some(colors::hairline())));
+    let room = frame.size.width as i32 - 24;
+    let line = Scale::Small.metrics().ascent + 6;
+    for (index, part) in sheet::wrap(text, room, Scale::Small).into_iter().take(3).enumerate() {
+        let x = frame.top_left.x + (frame.size.width as i32 - Scale::Small.width(&part)) / 2;
+        let y = frame.top_left.y + 14 + Scale::Small.metrics().ascent + index as i32 * line;
+        shapes.push(Shape::Text(Point::new(x, y), part, Scale::Small, colors::text()));
+    }
+    for (index, (label, answer)) in [(crate::text::YES, true), (crate::text::NO, false)].into_iter().enumerate() {
+        let label = label.get(lang);
+        let button = answer_rect(area, index);
+        let lit = *yes == answer || pressed == Some(Target::Answer(answer));
+        let fill = if lit { colors::primary_dim() } else { colors::background() };
+        shapes.push(Shape::Round(rounded(button.top_left, button.size, 6), fill, Some(colors::hairline())));
+        let x = button.top_left.x + (button.size.width as i32 - Scale::Small.width(label)) / 2;
+        let y = button.top_left.y + (button.size.height as i32 + Scale::Small.metrics().digit) / 2;
+        shapes.push(Shape::Text(Point::new(x, y), label.to_string(), Scale::Small, colors::text()));
     }
 }
 
@@ -507,6 +550,10 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
         Screen::Calibrate(..) => None,
         Screen::App => match app.running.as_ref().and_then(|running| running.menu.as_ref()) {
             Some(menu) => menu_target(menu, point),
+            None if app.running.as_ref().is_some_and(|running| running.template.question.is_some()) => {
+                let area = app_area(app);
+                (0..2).find(|&index| answer_rect(area, index).contains(point)).map(|index| Target::Answer(index == 0))
+            }
             None => {
                 if let Some(target) = soft::soft_at(app, point) {
                     return Some(target);

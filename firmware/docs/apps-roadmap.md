@@ -189,7 +189,7 @@ holds. The hui handles the template's keys first and passes the rest on (apps.md
   the grid does not use still reach `key`.
 - [x] **3a.3 `"list"`.** `options.items` drawn as a menu list in the area (reuse `line_rect` and
   the list drawing of `screens.rs`), ↑/↓, a digit, OK; `Event::Entered(index)`. Test.
-- [ ] **3a.4 `confirm`.** A question of the hui's over the app with *Ja* and *Nein*, AC is
+- [x] **3a.4 `confirm`.** A question of the hui's over the app with *Ja* and *Nein*, AC is
   *Nein*; while it is open the applet gets nothing. On the hui's side it is
   `Running::question: Option<Question>`, opened by a request from the applet and answered into
   it (`Applet::answer`), which is what the script thread of F1 waits for. Test.

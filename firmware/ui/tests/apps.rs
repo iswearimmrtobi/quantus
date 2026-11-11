@@ -751,3 +751,48 @@ fn the_list_template_chooses() {
     tap(&mut app, quantus_ui::render::line_rect(0, 470).center());
     assert_eq!(*chosen.borrow(), [2, 6, 6, 5]);
 }
+
+/// An applet that asks before each key it gets, and writes down the answers.
+struct Asker {
+    answers: Rc<RefCell<Vec<bool>>>,
+    log: Rc<RefCell<Log>>,
+}
+
+impl Applet for Asker {
+    fn key(&mut self, key: AppKey, host: &mut dyn Host) {
+        self.log.borrow_mut().keys.push(key);
+        host.confirm("Neues Spiel?");
+    }
+
+    fn answer(&mut self, response: quantus_ui::applet::Response, _host: &mut dyn Host) {
+        let quantus_ui::applet::Response::Confirmed(yes) = response;
+        self.answers.borrow_mut().push(yes);
+    }
+
+    fn draw(&self, _canvas: &mut Canvas) {}
+}
+
+#[test]
+fn confirm_asks_over_the_app() {
+    let mut app = App::new(Stub);
+    let (answers, log) = (Rc::new(RefCell::new(Vec::new())), Rc::new(RefCell::new(Log::default())));
+    app.open_applet(Box::new(Asker { answers: answers.clone(), log: log.clone() }), info());
+    app.key(Key::Digit(5));
+    let shown = texts(&app);
+    assert!(["Neues Spiel?", "Ja", "Nein"].iter().all(|text| shown.iter().any(|shown| shown == text)), "{shown:?}");
+    // While it is open the app gets nothing; the arrows go to Nein, OK answers.
+    press(&mut app, &[Key::Up, Key::Plus, Key::Ok]);
+    assert_eq!(*answers.borrow(), [false]);
+    // AC is Nein, and the app stays.
+    press(&mut app, &[Key::Digit(1), Key::Ac]);
+    assert_eq!(*answers.borrow(), [false, false]);
+    assert_eq!(app.screen, Screen::App);
+    press(&mut app, &[Key::Digit(2), Key::Digit(1)]);
+    assert_eq!(*answers.borrow(), [false, false, true]);
+    assert_eq!(log.borrow().keys, [AppKey::Digit(5), AppKey::Digit(1), AppKey::Digit(2)]);
+    // A tap on Ja.
+    app.key(Key::Digit(3));
+    let area = quantus_ui::render::app_area(&app);
+    tap(&mut app, quantus_ui::render::answer_rect(area, 0).center());
+    assert_eq!(*answers.borrow(), [false, false, true, true]);
+}
