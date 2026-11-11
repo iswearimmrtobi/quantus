@@ -506,7 +506,7 @@ come first; a step is ticked here once its commits there are.
 - [x] **6. 2048, with saved data.** `save`, `load`, `leave`; `app_data` and `store_app_data` in
   the engine, files in `/apps/data/`, *Daten löschen* in the app's menu. Tests: the moves and
   merges, a game restored after reopening, both sizes.
-- [ ] **7. Apps from the card.** Listing `/apps/*.rhai`, the header, the API version, the size
+- [x] **7. Apps from the card.** Listing `/apps/*.rhai`, the header, the API version, the size
   limit, the simulator's `sd/apps/`. Tests with a folder of good and bad files.
 - [ ] **8. The calculator from a script.** `calc`, `var`, `insert`, `now`, `exit`. Tests against
   the real engine in `firmware/engine/tests/`.

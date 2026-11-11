@@ -316,8 +316,10 @@ M3: the games are done.
   card runs at 10 MHz).
   Done but for the board: the listing's time waits for it. The Counter left the built-in apps
   for `sim/sd/apps/zaehler.rhai`; `.gitignore` keeps `sim/sd/apps/` but not its `data/`.
-- [ ] **7.3 Storage.** SETUP → Gerät → Speicherplatz counts `/apps/` (`Storage`, `sd::storage`,
+- [x] **7.3 Storage.** SETUP → Gerät → Speicherplatz counts `/apps/` (`Storage`, `sd::storage`,
   the simulator's `storage`).
+  Nothing to change: the page shows the card's total and free space, no folders. The board reads
+  them from FAT (`esp_vfs_fat_info`), the simulator sums its whole folder, `apps/` with it.
 
 M4.
 
