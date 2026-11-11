@@ -17,6 +17,8 @@ how to flash and use it. The crates' READMEs cover the software and link here.
   units fast.
 - [apps.md](apps.md): the plan for apps and games: scripts on the card, the Apps tile, the script
   API with forms and drawing, tic tac toe and 2048.
+- [apps-roadmap.md](apps-roadmap.md): that plan commit by commit: files, checks, milestones,
+  risks, and what the code asks to change in the design.
 - [keypad-sizes.html](../../design/keypad-sizes.html): both keypads to scale (open in a browser).
 - [features.md](features.md): every feature of the handheld, with its state.
 - [feature-ideas.md](feature-ideas.md): ideas not planned yet, for the handheld and the desktop.

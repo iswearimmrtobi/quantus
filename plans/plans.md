@@ -186,8 +186,9 @@ by how often an entry was used comes later.
 
 Games (tic tac toe, 2048) and user-made UIs for special calculations, as scripts that the handheld
 runs: built in, or from `/apps/` on the card. Handheld only; the core does not change. The design
-and the steps, with their checkboxes, are in [apps.md](../firmware/docs/apps.md) §8; the first
-step is a spike of the interpreter on the board.
+and the steps are in [apps.md](../firmware/docs/apps.md) §8, each broken into its commits in
+[apps-roadmap.md](../firmware/docs/apps-roadmap.md); the first step is a spike of the interpreter
+on the board.
 
 ## 8. Later
 

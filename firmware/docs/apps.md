@@ -459,8 +459,11 @@ changes a few cells, so a few bands are sent.
 
 ## 8. Plan
 
-One commit per step. Each step is checked with its own tests and in the simulator
+Each step is checked with its own tests and in the simulator
 (`cargo run -- --keys '…' --png out.png` in `firmware/sim`), not with the whole workspace's tests.
+[apps-roadmap.md](apps-roadmap.md) breaks every step into its commits, with the files and the
+checks, lists what the code asks to change in this design, and splits step 3 so that the games
+come first; a step is ticked here once its commits there are.
 
 - [ ] **0. Spike: the interpreter on the board.** Rhai in the `handheld` build with a script that
   plays 2048 moves: the growth of the image, the stack a callback needs, the time of a move with
