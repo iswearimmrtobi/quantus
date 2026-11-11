@@ -136,6 +136,8 @@ pub enum Screen {
 pub struct Running {
     pub applet: Box<dyn Applet>,
     pub info: AppInfo,
+    /// The app's menu (OPTN), over it: the applet gets no keys while it is open.
+    pub menu: Option<Menu>,
     pub back: Box<Screen>,
 }
 
@@ -772,7 +774,7 @@ impl<B: Backend> App<B> {
     pub fn open_applet(&mut self, applet: Box<dyn Applet>, info: AppInfo) {
         self.close_app();
         let back = std::mem::replace(&mut self.screen, Screen::App);
-        self.running = Some(Running { applet, info, back: Box::new(back) });
+        self.running = Some(Running { applet, info, menu: None, back: Box::new(back) });
         self.soft_page = 0;
     }
 
@@ -786,7 +788,15 @@ impl<B: Backend> App<B> {
     /// A key on an app: AC leaves to where it was opened from, MODE to the mode menu; the others
     /// go to the applet as far as it gets them.
     fn app_key(&mut self, key: Key) {
+        if let Some(menu) = self.running.as_mut().and_then(|running| running.menu.take()) {
+            return self.app_menu_key(menu, key);
+        }
         match key {
+            Key::Optn => {
+                if let Some(running) = &mut self.running {
+                    running.menu = Some(Menu::new(&tree::APP_MENU));
+                }
+            }
             Key::Ac => {
                 let back = self.close_app();
                 self.screen = back.unwrap_or(Screen::Calc);
@@ -812,6 +822,34 @@ impl<B: Backend> App<B> {
                 let Some((running, mut host)) = self.applet() else { return };
                 running.applet.key(key, &mut host);
             }
+        }
+    }
+
+    /// A key in the app's menu; AC and OPTN close it, back to the app.
+    fn app_menu_key(&mut self, mut menu: Menu, key: Key) {
+        let outcome = menu.key(key, &mut self.settings);
+        let label = menu.title();
+        let Some(running) = &mut self.running else { return };
+        match outcome {
+            Outcome::Close => {}
+            Outcome::Act(Action::AppInfo) => {
+                menu.edit = Some(Edit::AppInfo { label, info: running.info.clone() });
+                running.menu = Some(menu);
+            }
+            Outcome::Act(Action::AppRestart) => {
+                if let Some((running, mut host)) = self.applet() {
+                    running.applet.restart(&mut host);
+                }
+            }
+            Outcome::Act(Action::AppDeleteData) => {
+                menu.edit = Some(Edit::Message { label, message: text::NO_DATA });
+                running.menu = Some(menu);
+            }
+            Outcome::Act(Action::AppQuit) => {
+                let back = self.close_app();
+                self.screen = back.unwrap_or(Screen::Calc);
+            }
+            _ => running.menu = Some(menu),
         }
     }
 
@@ -1369,6 +1407,8 @@ impl<B: Backend> App<B> {
             // Done by `outcome`, which knows the menu to come back to.
             Action::DefineMatrix | Action::EditMatrix | Action::Estimates => {}
             Action::Calibrate | Action::NewSession | Action::DuplicateSession | Action::DeleteSession => {}
+            // Done by `app_menu_key`, inside an app.
+            Action::AppInfo | Action::AppRestart | Action::AppDeleteData | Action::AppQuit => {}
         }
     }
 

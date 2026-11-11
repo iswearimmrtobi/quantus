@@ -132,6 +132,9 @@ pub fn shows<B>(app: &App<B>) -> bool {
 pub fn bar<B>(app: &App<B>) -> Option<Bar> {
     let columns = app.soft_columns.clamp(2, 6);
     if let (Screen::App, Some(running)) = (&app.screen, &app.running) {
+        if running.menu.is_some() {
+            return None;
+        }
         let labels = running.applet.soft_keys();
         let slots = labels
             .into_iter()

@@ -125,6 +125,14 @@ pub enum Action {
     EditMatrix,
     /// Statistik's form for where its regression estimates x̂ and ŷ.
     Estimates,
+    /// The running app's credits.
+    AppInfo,
+    /// The running app started again.
+    AppRestart,
+    /// The running app's saved data removed.
+    AppDeleteData,
+    /// The running app left.
+    AppQuit,
 }
 
 impl Action {
@@ -241,6 +249,8 @@ pub enum Edit {
     Message { label: Text, message: Text },
     /// A text to read that the app made, the engine's error: any key goes back.
     Note { label: Text, note: String },
+    /// An app's credits (apps.md §2); any key goes back.
+    AppInfo { label: Text, info: crate::applet::AppInfo },
     /// The wallpapers: *Keins* first, then `names`. The app shows the selected one as a preview.
     Pictures { label: Text, names: Vec<String>, selected: usize },
     /// The colour themes by their names. The app shows the selected one on the whole screen.
@@ -426,6 +436,7 @@ impl Menu {
                 Edit::Number { label, .. }
                 | Edit::Message { label, .. }
                 | Edit::Note { label, .. }
+                | Edit::AppInfo { label, .. }
                 | Edit::Pictures { label, .. }
                 | Edit::Themes { label, .. }
                 | Edit::Storage { label, .. }
@@ -913,6 +924,7 @@ impl Menu {
             // Any key reads on; so it does while the board looks for networks.
             Edit::Message { .. }
             | Edit::Note { .. }
+            | Edit::AppInfo { .. }
             | Edit::Storage { .. }
             | Edit::WlanStatus { .. }
             | Edit::Networks { networks: None, .. } => {}

@@ -293,6 +293,17 @@ static BLUETOOTH: Page = Page {
 
 /// The Sitzungen tile of MODE (§6). Renaming, duplicating and deleting act on the open session;
 /// the backend keeps them, on the SD card when there is one.
+/// OPTN inside an app: the hui's, which the app cannot change (apps.md §2).
+pub static APP_MENU: Page = Page {
+    title: crate::text::APP_MENU,
+    entries: &[
+        entry(crate::text::APP_INFO, Kind::Do(Action::AppInfo)),
+        entry(tx!("hui.apps.restart"), Kind::Do(Action::AppRestart)),
+        entry(crate::text::APP_DELETE_DATA, Kind::Do(Action::AppDeleteData)),
+        entry(tx!("hui.apps.quit"), Kind::Do(Action::AppQuit)),
+    ],
+};
+
 pub static SESSIONS: Page = Page {
     title: tx!("hui.tree.sessions"),
     entries: &[

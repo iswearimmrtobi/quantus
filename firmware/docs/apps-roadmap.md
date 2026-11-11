@@ -127,7 +127,7 @@ Rust in `ui/tests/apps.rs`.
   than `2 × soft_columns`; `App::soft_key` sends `AppKey::Soft(n)` counted over all pages; an
   empty label is dead. The label as plain text (F7). Test: with labels the area is 250 high,
   without 294; thirteen labels page; `soft_columns = 5` gives rows of five.
-- [ ] **1.5 The app's menu.** OPTN on `Screen::App` opens a list of the hui's over the app:
+- [x] **1.5 The app's menu.** OPTN on `Screen::App` opens a list of the hui's over the app:
   *Info* (a page built from `AppInfo`, *Autor unbekannt* without an author), *Neu starten*
   (`Applet::restart`, added to the trait), *Daten löschen* (a question first; the data come in
   step 6, the entry is there and says *Keine Daten*), *Beenden*. While it is open the applet

@@ -18,6 +18,7 @@ use quantus_ui::render::{colors, Shape};
 struct Log {
     keys: Vec<AppKey>,
     left: usize,
+    restarts: usize,
 }
 
 /// An applet that writes down what it gets and draws a square where it is told.
@@ -38,6 +39,10 @@ impl Applet for Probe {
 
     fn soft_keys(&self) -> Vec<String> {
         self.soft.clone()
+    }
+
+    fn restart(&mut self, _host: &mut dyn Host) {
+        self.log.borrow_mut().restarts += 1;
     }
 
     fn leave(&mut self, _host: &mut dyn Host) -> Option<String> {
@@ -288,4 +293,72 @@ fn a_blank_label_is_dead() {
     let (mut app, log) = opened(&["Neu", "", "Stufe"]);
     press(&mut app, &[Key::Soft(1), Key::Soft(2)]);
     assert_eq!(log.borrow().keys, [AppKey::Soft(2)]);
+}
+
+/// The texts of the frame, in order.
+fn texts(app: &App<Stub>) -> Vec<String> {
+    let frame = quantus_ui::render::Frame::new(app);
+    frame.0.iter().filter_map(|shape| match shape {
+        Shape::Text(_, text, ..) => Some(text.clone()),
+        _ => None,
+    }).collect()
+}
+
+#[test]
+fn optn_opens_the_apps_menu_over_it() {
+    let (mut app, log) = opened(&["Neu"]);
+    app.key(Key::Optn);
+    let shown = texts(&app);
+    for entry in ["Info", "Neu starten", "Daten löschen", "Beenden"] {
+        assert!(shown.iter().any(|text| text == entry), "{entry} in {shown:?}");
+    }
+    // The menu takes the keys, the app gets none; its soft keys are gone meanwhile.
+    assert!(!quantus_ui::soft::shows(&app));
+    press(&mut app, &[Key::Down, Key::Up, Key::Soft(0)]);
+    assert!(log.borrow().keys.is_empty());
+    // AC closes the menu, back to the app.
+    app.key(Key::Ac);
+    assert_eq!(app.screen, Screen::App);
+    assert!(app.running.as_ref().is_some_and(|running| running.menu.is_none()));
+    app.key(Key::Up);
+    assert_eq!(log.borrow().keys, [AppKey::Up]);
+}
+
+#[test]
+fn info_shows_the_credits() {
+    let (mut app, _) = opened(&[]);
+    press(&mut app, &[Key::Optn, Key::Digit(1)]);
+    let shown = texts(&app);
+    assert!(shown.iter().any(|text| text == "Autor unbekannt"), "{shown:?}");
+    assert!(shown.iter().any(|text| text == "API 1 · Eingebaut"), "{shown:?}");
+    // Any key goes back to the menu.
+    app.key(Key::Ok);
+    assert!(texts(&app).iter().any(|text| text == "Beenden"));
+
+    let mut app = App::new(Stub);
+    let mut credits = info();
+    credits.authors = vec!["Ada".into(), "Grace".into()];
+    credits.version = Some("1.2".into());
+    credits.built_in = false;
+    app.open_applet(Box::new(Clock), credits);
+    press(&mut app, &[Key::Optn, Key::Digit(1)]);
+    let shown = texts(&app);
+    for line in ["Autoren: Ada, Grace", "Version: 1.2", "API 1 · SD-Karte, probe.rhai"] {
+        assert!(shown.iter().any(|text| text == line), "{line} in {shown:?}");
+    }
+}
+
+#[test]
+fn restart_and_quit() {
+    let (mut app, log) = opened(&[]);
+    press(&mut app, &[Key::Optn, Key::Digit(2)]);
+    assert_eq!(log.borrow().restarts, 1);
+    assert_eq!(app.screen, Screen::App);
+    // No data yet: the entry says so.
+    press(&mut app, &[Key::Optn, Key::Digit(3)]);
+    assert!(texts(&app).iter().any(|text| text == "Keine Daten"));
+    press(&mut app, &[Key::Ok, Key::Digit(4)]);
+    assert_eq!(app.screen, Screen::Calc);
+    assert!(app.running.is_none());
+    assert_eq!(log.borrow().left, 1);
 }

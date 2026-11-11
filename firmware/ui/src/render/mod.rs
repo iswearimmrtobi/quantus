@@ -303,7 +303,9 @@ impl Frame {
             Screen::Menu(menu) => menu_screen(&mut shapes, app, menu, glass),
             Screen::Calibrate(state, _) => calibration(&mut shapes, state, app.settings.language),
             Screen::App => {
-                if let Some(running) = &app.running {
+                if let Some(menu) = app.running.as_ref().and_then(|running| running.menu.as_ref()) {
+                    menu_screen(&mut shapes, app, menu, false);
+                } else if let Some(running) = &app.running {
                     let mut canvas = crate::applet::Canvas::new(app_area(app));
                     running.applet.draw(&mut canvas);
                     shapes.extend(canvas.into_shapes());
@@ -422,6 +424,7 @@ fn list_len(menu: &Menu) -> Option<usize> {
             Edit::Number { .. }
             | Edit::Message { .. }
             | Edit::Note { .. }
+            | Edit::AppInfo { .. }
             | Edit::Storage { .. }
             | Edit::Text { .. }
             | Edit::Time { .. }
@@ -475,7 +478,8 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             let (row, column) = sheet::cell_at(kind, app.sheets.get(kind), point)?;
             Some(Target::Cell(row, column))
         }
-        Screen::Calibrate(..) | Screen::App => None,
+        Screen::Calibrate(..) => None,
+        Screen::App => None,
         Screen::Modes { selected } => {
             let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
             let on_page = (Mode::ALL.len() - first).min(TILES_PER_PAGE);

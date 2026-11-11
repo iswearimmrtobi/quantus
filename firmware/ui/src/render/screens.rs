@@ -305,6 +305,7 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
         Some(Edit::Storage { storage: Some(storage), .. }) => storage_screen(shapes, *storage, lang, glass),
         Some(Edit::Storage { storage: None, .. }) => centred(shapes, text::NO_CARD.get(lang)),
         Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),
+        Some(Edit::AppInfo { info, .. }) => app_info(shapes, info, lang),
         Some(Edit::Note { note, .. }) => {
             let lines = super::sheet::wrap(note, WIDTH as i32 - 2 * MARGIN - 16, Scale::Small);
             let height = Scale::Small.metrics().ascent + 6;
@@ -443,6 +444,42 @@ fn wlan_screen(shapes: &mut Vec<Shape>, status: &WlanStatus, lang: text::Lang, g
 }
 
 /// A muted line in the middle of the screen under the top bar.
+/// An app's credits: its name, the authors, the version, the description, the licence, the API
+/// and where it comes from.
+fn app_info(shapes: &mut Vec<Shape>, info: &crate::applet::AppInfo, lang: text::Lang) {
+    let room = WIDTH as i32 - 2 * MARGIN;
+    let mut y = BAR + 14 + Scale::Normal.metrics().ascent;
+    shapes.push(Shape::Text(Point::new(MARGIN, y), fit(&info.name, room, Scale::Normal), Scale::Normal, colors::TEXT));
+    y += 10;
+    let step = Scale::Small.metrics().ascent + 8;
+    let mut line = |shapes: &mut Vec<Shape>, text: String, color| {
+        for part in super::sheet::wrap(&text, room, Scale::Small) {
+            y += step;
+            shapes.push(Shape::Text(Point::new(MARGIN, y), part, Scale::Small, color));
+        }
+    };
+    let authors = match info.authors.len() {
+        0 => text::AUTHOR_UNKNOWN.get(lang).to_string(),
+        1 => format!("{}: {}", text::AUTHOR.get(lang), info.authors[0]),
+        _ => format!("{}: {}", text::AUTHORS.get(lang), info.authors.join(", ")),
+    };
+    line(shapes, authors, colors::TEXT);
+    if let Some(version) = &info.version {
+        line(shapes, format!("{}: {version}", text::APP_VERSION.get(lang)), colors::TEXT);
+    }
+    if let Some(about) = &info.about {
+        line(shapes, about.clone(), colors::MUTED);
+    }
+    if let Some(license) = &info.license {
+        line(shapes, format!("{}: {license}", text::LICENSE.get(lang)), colors::TEXT);
+    }
+    let source = match info.built_in {
+        true => text::BUILT_IN.get(lang).to_string(),
+        false => format!("{}, {}.rhai", text::FROM_CARD.get(lang), info.id),
+    };
+    line(shapes, format!("API {} · {source}", info.api), colors::MUTED);
+}
+
 fn centred(shapes: &mut Vec<Shape>, text: &str) {
     let x = (WIDTH as i32 - Scale::Normal.width(text)) / 2;
     let y = BAR + (HEIGHT as i32 - BAR) / 2;

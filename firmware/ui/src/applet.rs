@@ -39,6 +39,9 @@ pub trait Applet {
         Input::Keys
     }
 
+    /// Starts again from the beginning (*Neu starten* in the app's menu).
+    fn restart(&mut self, _host: &mut dyn Host) {}
+
     /// The app is left: a value for the calculation's cursor, if it hands one back.
     fn leave(&mut self, _host: &mut dyn Host) -> Option<String> {
         None
