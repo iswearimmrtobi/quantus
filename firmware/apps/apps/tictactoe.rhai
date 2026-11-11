@@ -15,9 +15,12 @@ fn init() {
     this.board = ["", "", "", "", "", "", "", "", ""];
     this.starter = "X";
     this.turn = "X";
-    this.computer = true;
-    this.hard = false;
-    this.score = #{ x: 0, o: 0, draw: 0 };
+    // The mode, the level and the score as they were left.
+    let saved = load();
+    let kept = saved != () && type_of(saved) == "map";
+    this.computer = if kept && type_of(saved.computer) == "bool" { saved.computer } else { true };
+    this.hard = if kept && type_of(saved.hard) == "bool" { saved.hard } else { false };
+    this.score = if kept && type_of(saved.score) == "map" { saved.score } else { #{ x: 0, o: 0, draw: 0 } };
     this.over = false;
     this.line = ();
     input("grid", #{ cols: 3, rows: 3, digits: true });
@@ -25,6 +28,12 @@ fn init() {
 }
 
 fn de() { lang() == "de" }
+
+fn keep() {
+    save(#{ computer: this.computer, hard: this.hard, score: this.score });
+}
+
+fn leave() { this.keep(); }
 
 // The soft keys: Neu, the mode, the level (only against the computer), each showing what is set.
 fn labels() {
@@ -90,11 +99,13 @@ fn play(i) {
         this.over = true;
         this.line = line;
         if this.turn == "X" { this.score.x += 1; } else { this.score.o += 1; }
+        this.keep();
         return;
     }
     if full(this.board) {
         this.over = true;
         this.score.draw += 1;
+        this.keep();
         return;
     }
     this.turn = other(this.turn);
@@ -181,13 +192,16 @@ fn key(k) {
     if k == "soft1" {
         this.score = #{ x: 0, o: 0, draw: 0 };
         this.new_round("X");
+        this.keep();
     } else if k == "soft2" {
         this.computer = !this.computer;
         this.labels();
+        this.keep();
         this.cpu();
     } else if k == "soft3" {
         this.hard = !this.hard;
         this.labels();
+        this.keep();
     } else if this.over {
         this.new_round(other(this.starter));
     }

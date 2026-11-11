@@ -152,3 +152,26 @@ fn board_and_side_fit_both_sizes() {
         }
     }
 }
+
+#[test]
+fn mode_level_and_score_are_kept() {
+    let mut app = open(7);
+    app.key(Key::Soft(2));
+    // A round to its end, the score counted.
+    for digit in (1..=9).cycle().take(40) {
+        if texts(&app).iter().any(|text| text.contains("gewinnt") || text == "Unentschieden") {
+            break;
+        }
+        app.key(Key::Digit(digit));
+    }
+    let score = texts(&app).into_iter().find(|text| text.contains("Remis")).expect("the score");
+    assert_ne!(score, "X 0   O 0   Remis 0");
+    app.key(Key::Ac);
+    // Opened again in the same App, which keeps the data while the stub keeps none.
+    let apps = Apps::new(None);
+    let info = apps.list(quantus_ui::text::Lang::De).into_iter().find(|app| app.id == "tictactoe").unwrap();
+    app.open_applet(apps.open("tictactoe").unwrap(), info);
+    let labels = quantus_ui::soft::bar(&app).map(|bar| bar.label(2, quantus_ui::text::Lang::De));
+    assert_eq!(labels.as_deref(), Some("schwer"));
+    assert!(texts(&app).contains(&score));
+}

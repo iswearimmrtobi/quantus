@@ -297,7 +297,7 @@ M2.
   redraw time of a move, written into apps.md §6.2 for the later animation.
   Done but for the board: the redraw time waits for it. The move back is not saved: a game
   reopened has no *Zurück* until the next move.
-- [ ] **6.5 Tic tac toe saves** its mode, level and score.
+- [x] **6.5 Tic tac toe saves** its mode, level and score.
 
 M3: the games are done.
 

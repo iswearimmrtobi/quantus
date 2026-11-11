@@ -503,7 +503,7 @@ come first; a step is ticked here once its commits there are.
 - [x] **5. Tic tac toe.** The script, embedded. Tests play a game through keys against the
   seeded computer, at the big unit's size and the small one's; a look at it in the simulator and
   on the board.
-- [ ] **6. 2048, with saved data.** `save`, `load`, `leave`; `app_data` and `store_app_data` in
+- [x] **6. 2048, with saved data.** `save`, `load`, `leave`; `app_data` and `store_app_data` in
   the engine, files in `/apps/data/`, *Daten löschen* in the app's menu. Tests: the moves and
   merges, a game restored after reopening, both sizes.
 - [ ] **7. Apps from the card.** Listing `/apps/*.rhai`, the header, the API version, the size
