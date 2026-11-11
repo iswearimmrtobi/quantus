@@ -276,14 +276,23 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             });
             lines_page(shapes, lines.collect(), *selected, &list);
         }
-        Some(Edit::Apps { note: Some(note), .. }) => {
+        Some(Edit::Apps { view: menu::AppsView::Info, apps, selected, .. }) => {
+            if let Some(menu::AppLine::App(index)) = menu::app_lines(apps).get(*selected) {
+                app_info(shapes, &apps[*index], lang);
+            }
+        }
+        Some(Edit::Apps { view: menu::AppsView::Options(option), .. }) => {
+            let lines = menu::APP_OPTIONS.iter().map(|label| Line { label: label.get(lang).to_string(), value: None, math: None, mark: Mark::None });
+            lines_page(shapes, lines.collect(), *option, &list);
+        }
+        Some(Edit::Apps { view: menu::AppsView::Note(note), .. }) => {
             for (index, line) in super::sheet::wrap(note, WIDTH as i32 - 2 * MARGIN - 16, Scale::Small).into_iter().enumerate() {
                 let x = (WIDTH as i32 - Scale::Small.width(&line)) / 2;
                 let y = BAR + (HEIGHT as i32 - BAR) / 2 + index as i32 * (Scale::Small.metrics().ascent + 6);
                 shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), line, Scale::Small, colors::muted()));
             }
         }
-        Some(Edit::Apps { apps, selected, note: None, .. }) => {
+        Some(Edit::Apps { apps, selected, view: menu::AppsView::List, .. }) => {
             let lines = menu::app_lines(apps).into_iter().map(|line| match line {
                 menu::AppLine::Heading(kind) => Line {
                     label: match kind {

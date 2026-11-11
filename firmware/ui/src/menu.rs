@@ -249,9 +249,8 @@ pub enum Edit {
     Message { label: Text, message: Text },
     /// A text to read that the app made, the engine's error: any key goes back.
     Note { label: Text, note: String },
-    /// The apps, games first, built in first in each group; `note` is said over the list until
-    /// a key.
-    Apps { label: Text, apps: Vec<crate::applet::AppInfo>, selected: usize, note: Option<String> },
+    /// The apps, games first, built in first in each group, and what is shown of them.
+    Apps { label: Text, apps: Vec<crate::applet::AppInfo>, selected: usize, view: AppsView },
     /// An app's credits (apps.md §2); any key goes back.
     AppInfo { label: Text, info: crate::applet::AppInfo },
     /// The wallpapers: *Keins* first, then `names`. The app shows the selected one as a preview.
@@ -422,6 +421,8 @@ pub enum Outcome {
     Variable(usize),
     /// Open the app at this place of the list's apps.
     OpenApp(usize),
+    /// Remove the saved data of the app at this place of the list's apps.
+    DeleteAppData(usize),
 }
 
 impl Menu {
@@ -567,7 +568,8 @@ impl Menu {
             Some(Edit::Pictures { names, selected, .. }) => Some((*selected, names.len() + 1)),
             Some(Edit::Themes { names, selected, .. }) => Some((*selected, names.len())),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((*selected, sessions.len())),
-            Some(Edit::Apps { apps, selected, note: None, .. }) => Some((*selected, app_lines(apps).len())),
+            Some(Edit::Apps { apps, selected, view: AppsView::List, .. }) => Some((*selected, app_lines(apps).len())),
+            Some(Edit::Apps { view: AppsView::Options(option), .. }) => Some((*option, 2)),
             Some(Edit::Sections { titles, selected, .. }) => Some((*selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((*selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((*selected, names.len())),
@@ -592,10 +594,11 @@ impl Menu {
             Some(Edit::Pictures { names, selected, .. }) => Some((selected, names.len() + 1)),
             Some(Edit::Themes { names, selected, .. }) => Some((selected, names.len())),
             Some(Edit::Sessions { sessions, selected, .. }) => Some((selected, sessions.len())),
-            Some(Edit::Apps { apps, selected, note: None, .. }) => {
+            Some(Edit::Apps { apps, selected, view: AppsView::List, .. }) => {
                 let count = app_lines(apps).len();
                 Some((selected, count))
             }
+            Some(Edit::Apps { view: AppsView::Options(option), .. }) => Some((option, 2)),
             Some(Edit::Sections { titles, selected, .. }) => Some((selected, titles.len())),
             Some(Edit::Networks { networks: Some(networks), selected, .. }) => Some((selected, networks.len())),
             Some(Edit::Saved { names, selected, .. }) => Some((selected, names.len())),
@@ -751,11 +754,38 @@ impl Menu {
                 self.edit = Some(Edit::Themes { label, names, selected });
                 return outcome;
             }
-            Edit::Apps { label, apps, selected, note: Some(_) } => {
-                // Any key reads the note, back to the list.
-                self.edit = Some(Edit::Apps { label, apps, selected, note: None });
+            Edit::Apps { label, apps, selected, view: AppsView::Note(_) | AppsView::Info } => {
+                // Any key reads on, back to the list.
+                self.edit = Some(Edit::Apps { label, apps, selected, view: AppsView::List });
             }
-            Edit::Apps { label, apps, selected, note: None } => {
+            Edit::Apps { label, apps, selected, view: AppsView::Options(option) } => {
+                let app = match app_lines(&apps).get(selected) {
+                    Some(AppLine::App(app)) => *app,
+                    _ => 0,
+                };
+                let chosen = match key {
+                    Key::Digit(digit @ 1..=2) => Some(usize::from(digit) - 1),
+                    Key::Ok | Key::Exe | Key::Right => Some(option),
+                    Key::Up | Key::Down => {
+                        self.edit = Some(Edit::Apps { label, apps, selected, view: AppsView::Options(1 - option.min(1)) });
+                        return Outcome::Stay;
+                    }
+                    _ if back || key == Key::Del => {
+                        self.edit = Some(Edit::Apps { label, apps, selected, view: AppsView::List });
+                        return Outcome::Stay;
+                    }
+                    _ => None,
+                };
+                let view = match chosen {
+                    Some(0) => AppsView::Info,
+                    _ => AppsView::Options(option),
+                };
+                self.edit = Some(Edit::Apps { label, apps, selected, view });
+                if chosen == Some(1) {
+                    return Outcome::DeleteAppData(app);
+                }
+            }
+            Edit::Apps { label, apps, selected, view: AppsView::List } => {
                 let lines = app_lines(&apps);
                 let app_at = |index: usize| match lines.get(index) {
                     Some(AppLine::App(app)) => Some(*app),
@@ -779,7 +809,11 @@ impl Menu {
                             }
                         }
                         let selected = if app_at(next).is_some() { next } else { selected };
-                        self.edit = Some(Edit::Apps { label, apps, selected, note: None });
+                        self.edit = Some(Edit::Apps { label, apps, selected, view: AppsView::List });
+                        return Outcome::Stay;
+                    }
+                    Key::Optn if app_at(selected).is_some() => {
+                        self.edit = Some(Edit::Apps { label, apps, selected, view: AppsView::Options(0) });
                         return Outcome::Stay;
                     }
                     Key::Del => return Outcome::Stay,
@@ -787,7 +821,7 @@ impl Menu {
                     _ => None,
                 };
                 let selected = chosen.map_or(selected, |(index, _)| index);
-                self.edit = Some(Edit::Apps { label, apps, selected, note: None });
+                self.edit = Some(Edit::Apps { label, apps, selected, view: AppsView::List });
                 if let Some((_, app)) = chosen {
                     return Outcome::OpenApp(app);
                 }
@@ -985,6 +1019,21 @@ impl Menu {
     }
 }
 
+/// What the list of apps shows.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AppsView {
+    List,
+    /// OPTN on the app under the cursor, without starting it: *Info* and *Daten löschen*.
+    Options(usize),
+    /// The credits of the app under the cursor; any key goes back.
+    Info,
+    /// A text said over the list, an error of the app; any key goes back.
+    Note(String),
+}
+
+/// What OPTN on a line of the list offers.
+pub const APP_OPTIONS: [Text; 2] = [text::APP_INFO, text::APP_DELETE_DATA];
+
 /// A line of the list of apps.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AppLine {
@@ -1017,7 +1066,7 @@ pub fn apps_edit(label: Text, mut apps: Vec<crate::applet::AppInfo>) -> Edit {
     use crate::applet::AppKind;
     apps.sort_by_key(|app| (app.kind != AppKind::Game, !app.built_in));
     let selected = app_lines(&apps).iter().position(|line| matches!(line, AppLine::App(_))).unwrap_or(0);
-    Edit::Apps { label, apps, selected, note: None }
+    Edit::Apps { label, apps, selected, view: AppsView::List }
 }
 
 /// What a key does in a list the app filled in.

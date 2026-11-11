@@ -160,7 +160,7 @@ touch `Screen` (`screen`, `menus`, `sheets`, `touch`, `soft_keys`) still do.
   is grey and says so when picked. Without apps from the card, the line *Eigene Apps: Ordner
   /apps auf der SD-Karte*. Texts under `hui.apps.*`. Test with a backend that lists two apps
   and opens the Rust applet of step 1.
-- [ ] **2.3 OPTN on a line, and errors.** OPTN on an app in the list opens *Info* and *Daten
+- [x] **2.3 OPTN on a line, and errors.** OPTN on an app in the list opens *Info* and *Daten
   löschen* without starting it. An `Err` from `open_app` is shown as `Edit::Note` and OK goes
   back to the list. Test both.
 - [ ] **2.4 Prüfungsmodus.** With `Settings::exam` the Apps tile opens a message

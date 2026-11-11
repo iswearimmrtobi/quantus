@@ -1173,11 +1173,11 @@ impl<B: Backend> App<B> {
             Outcome::Act(action) => self.act(action),
             Outcome::Sessions(label) => self.open_sessions(&mut menu, label),
             Outcome::OpenApp(index) => {
-                let Some(Edit::Apps { apps, note, .. }) = &mut menu.edit else { return };
+                let Some(Edit::Apps { apps, view, .. }) = &mut menu.edit else { return };
                 let Some(info) = apps.get(index).cloned() else { return };
                 let lang = self.settings.language;
                 if !info.usable {
-                    *note = Some(text::NEWER_API.get(lang).to_string());
+                    *view = menu::AppsView::Note(text::NEWER_API.get(lang).to_string());
                 } else {
                     match self.backend.open_app(&info.id) {
                         Ok(applet) => {
@@ -1185,9 +1185,13 @@ impl<B: Backend> App<B> {
                             self.screen = Screen::Menu(menu);
                             return self.open_applet(applet, info);
                         }
-                        Err(error) => *note = Some(error),
+                        Err(error) => *view = menu::AppsView::Note(error),
                     }
                 }
+            }
+            Outcome::DeleteAppData(_) => {
+                let Some(Edit::Apps { view, .. }) = &mut menu.edit else { return };
+                *view = menu::AppsView::Note(text::NO_DATA.get(self.settings.language).to_string());
             }
             Outcome::OpenSession(index) => {
                 let Some(Edit::Sessions { sessions, .. }) = &menu.edit else { return };

@@ -546,3 +546,33 @@ fn a_newer_api_is_grey_and_says_so() {
 fn press_on(app: &mut App<Shelf>, keys: &[Key]) {
     keys.iter().for_each(|&key| app.key(key));
 }
+
+#[test]
+fn optn_on_a_line_shows_info_and_delete_without_starting() {
+    let (mut app, log) = shelf();
+    app.key(Key::Optn);
+    let shown = shelf_texts(&app);
+    assert!(shown.iter().any(|text| text == "Info") && shown.iter().any(|text| text == "Daten löschen"), "{shown:?}");
+    app.key(Key::Digit(1));
+    assert!(shelf_texts(&app).iter().any(|text| text == "API 1 · Eingebaut"));
+    // A key back to the list; the app never started.
+    app.key(Key::Ok);
+    assert!(shelf_texts(&app).iter().any(|text| text == "Spiele"));
+    press_on(&mut app, &[Key::Optn, Key::Digit(2)]);
+    assert!(shelf_texts(&app).iter().any(|text| text == "Keine Daten"));
+    press_on(&mut app, &[Key::Ok, Key::Optn, Key::Left]);
+    assert!(shelf_texts(&app).iter().any(|text| text == "Spiele"));
+    assert!(matches!(app.screen, Screen::Menu(_)));
+    assert!(log.borrow().keys.is_empty() && log.borrow().left == 0);
+}
+
+#[test]
+fn an_error_opening_is_said_and_ok_goes_back() {
+    let (mut app, _) = shelf();
+    // Kaputt, the third line.
+    app.key(Key::Digit(3));
+    assert!(shelf_texts(&app).iter().any(|text| text.contains("unbekannte Funktion")));
+    app.key(Key::Ok);
+    let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
+    assert!(matches!(menu.edit, Some(quantus_ui::menu::Edit::Apps { view: quantus_ui::menu::AppsView::List, selected: 2, .. })));
+}

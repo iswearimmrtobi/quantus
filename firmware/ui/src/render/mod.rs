@@ -27,7 +27,7 @@ use embedded_graphics::primitives::{
 use crate::app::{App, Mode, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
-use crate::menu::{Edit, Kind, Menu, ROWS};
+use crate::menu::{AppsView, Edit, Kind, Menu, ROWS};
 use crate::settings::WallpaperOn;
 use crate::touch::Target;
 use crate::wallpaper::Pixels;
@@ -415,8 +415,9 @@ fn list_len(menu: &Menu) -> Option<usize> {
         Some(Edit::Pictures { names, .. }) => Some(names.len() + 1),
         Some(Edit::Themes { names, .. }) => Some(names.len()),
         Some(Edit::Sessions { sessions, .. }) => Some(sessions.len()),
-        Some(Edit::Apps { apps, note: None, .. }) => Some(crate::menu::app_lines(apps).len()),
-        Some(Edit::Apps { note: Some(_), .. }) => None,
+        Some(Edit::Apps { apps, view: AppsView::List, .. }) => Some(crate::menu::app_lines(apps).len()),
+        Some(Edit::Apps { view: AppsView::Options(_), .. }) => Some(crate::menu::APP_OPTIONS.len()),
+        Some(Edit::Apps { view: AppsView::Info | AppsView::Note(_), .. }) => None,
         Some(Edit::Sections { titles, .. }) => Some(titles.len()),
         Some(Edit::Forget { .. }) => Some(1),
         Some(Edit::Networks { networks, .. }) => networks.as_ref().map(Vec::len),
@@ -510,7 +511,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
 /// What a tap at `point` hits on `menu`.
 fn menu_target(menu: &Menu, point: Point) -> Option<Target> {
     if let Some(
-        Edit::Message { .. } | Edit::AppInfo { .. } | Edit::Apps { note: Some(_), .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. },
+        Edit::Message { .. } | Edit::AppInfo { .. } | Edit::Apps { view: AppsView::Info | AppsView::Note(_), .. } | Edit::Storage { .. } | Edit::WlanStatus { .. } | Edit::Networks { networks: None, .. },
     ) = menu.edit
     {
         return Some(Target::Anywhere);
