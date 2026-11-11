@@ -1,5 +1,5 @@
 //! Tic tac toe (apps.md §6.1): a game through the keys against the seeded computer, the hard
-//! level against random moves, the layout at both sizes.
+//! level against every game the other side can play, the layout at both sizes.
 
 mod common;
 
@@ -101,41 +101,69 @@ fn winner(board: &[&str; 9]) -> Option<&'static str> {
     })
 }
 
+/// Plays every game the other side can play against *schwer* from `board`, `turn` moving next;
+/// the computer's answers are kept by position. Counts the games and the ones lost.
+fn every_game(play: &mut dyn FnMut(&[&'static str; 9]) -> usize, board: &mut [&'static str; 9], turn: &'static str, games: &mut usize, lost: &mut Vec<String>) {
+    if let Some(mark) = winner(board) {
+        *games += 1;
+        if mark == "X" {
+            lost.push(format!("{board:?}"));
+        }
+        return;
+    }
+    if !board.contains(&"") {
+        *games += 1;
+        return;
+    }
+    if turn == "O" {
+        let cell = play(board);
+        assert!(board[cell].is_empty(), "{board:?} {cell}");
+        board[cell] = "O";
+        every_game(play, board, "X", games, lost);
+        board[cell] = "";
+    } else {
+        for cell in 0..9 {
+            if board[cell].is_empty() {
+                board[cell] = "X";
+                every_game(play, board, "O", games, lost);
+                board[cell] = "";
+            }
+        }
+    }
+}
+
 #[test]
-fn schwer_loses_no_game_against_random_moves() {
+fn schwer_loses_no_game_and_answers_quickly() {
     let mut engine = rhai::Engine::new();
     engine.set_max_expr_depths(64, 32);
     engine.set_max_call_levels(32);
+    let operations = std::rc::Rc::new(std::cell::Cell::new(0u64));
+    let counted = operations.clone();
+    engine.on_progress(move |count| {
+        counted.set(count);
+        None
+    });
     let ast = engine.compile(SOURCE).expect("it compiles");
-    // The same position comes up in many games: its answer is kept.
-    let mut answers: HashMap<String, i64> = HashMap::new();
-    let mut random = Seeded::new(2026);
-    let (mut lost, mut games) = (0, 0);
-    for game in 0..300 {
-        let mut board = [""; 9];
-        let mut turn = if game % 2 == 0 { "X" } else { "O" };
-        while winner(&board).is_none() && board.contains(&"") {
-            let cell = if turn == "X" {
-                let free: Vec<usize> = (0..9).filter(|&i| board[i].is_empty()).collect();
-                free[random.next_u32() as usize % free.len()]
-            } else {
-                let key = board.join(",");
-                *answers.entry(key).or_insert_with(|| {
-                    let array: rhai::Array = board.iter().map(|cell| rhai::Dynamic::from(cell.to_string())).collect();
-                    engine.call_fn::<i64>(&mut rhai::Scope::new(), &ast, "best", (array, "O".to_string())).expect("a move")
-                }) as usize
-            };
-            assert!(board[cell].is_empty(), "{board:?} {cell}");
-            board[cell] = turn;
-            turn = if turn == "X" { "O" } else { "X" };
-        }
-        games += 1;
-        if winner(&board) == Some("X") {
-            lost += 1;
-            eprintln!("lost: {board:?}");
-        }
+    let mut answers: HashMap<String, usize> = HashMap::new();
+    let mut most = 0;
+    let mut play = |board: &[&'static str; 9]| {
+        *answers.entry(board.join(",")).or_insert_with(|| {
+            let array: rhai::Array = board.iter().map(|cell| rhai::Dynamic::from(cell.to_string())).collect();
+            let cell = engine.call_fn::<i64>(&mut rhai::Scope::new(), &ast, "best", (array, "O".to_string())).expect("a move");
+            most = most.max(operations.get());
+            cell as usize
+        })
+    };
+    let (mut games, mut lost) = (0, Vec::new());
+    for first in ["X", "O"] {
+        every_game(&mut play, &mut [""; 9], first, &mut games, &mut lost);
     }
-    assert_eq!((lost, games), (0, 300));
+    assert!(lost.is_empty(), "lost {} of {games}: {:?}", lost.len(), &lost[..lost.len().min(5)]);
+    // Every game the other side can play, both beginning.
+    assert!(games > 500, "{games}");
+    // A move is a small part of the budget: about 940 operations a millisecond on the board.
+    assert!(most < 20_000, "{most} operations");
+    eprintln!("{games} games, at most {most} operations a move");
 }
 
 #[test]

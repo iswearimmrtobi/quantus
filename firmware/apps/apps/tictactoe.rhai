@@ -122,16 +122,7 @@ fn cpu() {
     }
 }
 
-// Whether `mark` has a line through cell `i`: its row, its column, a diagonal.
-fn wins_at(b, i, m) {
-    let r = i / 3 * 3;
-    let c = i % 3;
-    (b[r] == m && b[r + 1] == m && b[r + 2] == m)
-        || (b[c] == m && b[c + 3] == m && b[c + 6] == m)
-        || (b[4] == m && ((b[0] == m && b[8] == m) || (b[2] == m && b[6] == m)))
-}
-
-// The free cells, the centre first, then the corners: good moves first prune the search.
+// The free cells, the centre first, then the corners.
 fn ordered(board) {
     let cells = [];
     for i in [4, 0, 2, 6, 8, 1, 3, 5, 7] {
@@ -140,41 +131,79 @@ fn ordered(board) {
     cells
 }
 
-// The best cell for `me`. The first two moves come from a table (the centre, else a corner):
-// searching the whole tree there is more than a callback may do.
-fn best(board, me) {
-    let cells = ordered(board);
-    if cells.len() >= 8 {
-        return if board[4] == "" { 4 } else { 0 };
-    }
-    let best_cell = cells[0];
-    let best_score = -100;
-    for i in cells {
-        board[i] = me;
-        let score = -value(board, i, other(me), 1, -100, 100);
-        board[i] = "";
-        if score > best_score {
-            best_score = score;
-            best_cell = i;
-        }
-    }
-    best_cell
+// The free cell of a line with two of `m` in it, or -1.
+fn open_end(b, line, m) {
+    let a = b[line[0]];
+    let c = b[line[1]];
+    let d = b[line[2]];
+    if a == m && c == m && d == "" { return line[2]; }
+    if a == m && d == m && c == "" { return line[1]; }
+    if c == m && d == m && a == "" { return line[0]; }
+    -1
 }
 
-// How good the board is for `turn`, who moves next, after the last move on cell `last`
-// (negamax with alpha-beta): a win sooner is worth more.
-fn value(board, last, turn, depth, alpha, beta) {
-    if wins_at(board, last, other(turn)) { return depth - 10; }
-    let cells = ordered(board);
-    if cells.is_empty() { return 0; }
-    for i in cells {
-        board[i] = turn;
-        let score = -value(board, i, other(turn), depth + 1, -beta, -alpha);
-        board[i] = "";
-        if score > alpha { alpha = score; }
-        if alpha >= beta { break; }
+// A free cell that gives `m` a line, or -1.
+fn completing(b, m) {
+    for line in lines() {
+        let cell = open_end(b, line, m);
+        if cell >= 0 { return cell; }
     }
-    alpha
+    -1
+}
+
+// How many lines `m` could complete with one more mark.
+fn threats(b, m) {
+    let n = 0;
+    for line in lines() {
+        if open_end(b, line, m) >= 0 { n += 1; }
+    }
+    n
+}
+
+// The free cells where a mark of `m` makes two threats at once.
+fn forks(b, m) {
+    let cells = [];
+    for i in ordered(b) {
+        b[i] = m;
+        if threats(b, m) >= 2 { cells.push(i); }
+        b[i] = "";
+    }
+    cells
+}
+
+// The best cell for `me`, by the rules that never lose: win, block, fork, block a fork, the
+// centre, the corner opposite the other's, a corner, a side. A search of the game tree takes
+// seconds on the handheld; the rules take a few thousand operations.
+fn best(board, me) {
+    let you = other(me);
+    let cell = completing(board, me);
+    if cell >= 0 { return cell; }
+    cell = completing(board, you);
+    if cell >= 0 { return cell; }
+    let mine = forks(board, me);
+    if !mine.is_empty() { return mine[0]; }
+    let theirs = forks(board, you);
+    if theirs.len() == 1 { return theirs[0]; }
+    if theirs.len() > 1 {
+        // A threat of my own, so that the other must block, where blocking makes no fork.
+        for i in ordered(board) {
+            board[i] = me;
+            let block = completing(board, me);
+            let good = false;
+            if block >= 0 {
+                board[block] = you;
+                good = threats(board, you) < 2;
+                board[block] = "";
+            }
+            board[i] = "";
+            if good { return i; }
+        }
+    }
+    if board[4] == "" { return 4; }
+    for pair in [[0, 8], [8, 0], [2, 6], [6, 2]] {
+        if board[pair[0]] == you && board[pair[1]] == "" { return pair[1]; }
+    }
+    ordered(board)[0]
 }
 
 fn pick(col, row) {
