@@ -303,11 +303,13 @@ M3: the games are done.
 
 ### Step 7. Apps from the card (M)
 
-- [ ] **7.1 Listing.** `Apps::list` reads `/apps/*.rhai`: the first 2 KB of each file for the
+- [x] **7.1 Listing.** `Apps::list` reads `/apps/*.rhai`: the first 2 KB of each file for the
   header, the size limit, no `name` or another ending left out, a newer `api` listed as not
   usable; an id that a built-in app has is listed beside it, marked as the card's (the id
   becomes `card:<id>` inside, so the data do not mix). Sorted by name within the groups. Tests
   with a folder of good and bad files in `firmware/apps/tests/card/`.
+  Also left out: a file whose name is no plain id (letters, digits, `-`, `_`), as it could not
+  name its data. The data of `card:<id>` are `/apps/data/card~<id>.json`.
 - [ ] **7.2 The simulator and the board.** `firmware/sim/sd/apps/` with one example tool (the
   Counter); `sd::APPS` in `handheld/src/sd.rs`. The list is read each time the Apps tile opens,
   so a card changed in between shows. Measure the listing of twenty files on the board (the

@@ -30,7 +30,7 @@ fn data_are_written_replaced_and_removed() {
     assert!(apps.delete_data("g2048"));
     assert!(!apps.delete_data("g2048"));
     // An id that is not a plain name never becomes a path.
-    for bad in ["../evil", "a/b", "", "x.json", "card:x"] {
+    for bad in ["../evil", "a/b", "", "x.json", "card:../x", "card:"] {
         assert!(apps.store_data(bad, "{}").is_err(), "{bad}");
         assert_eq!(apps.data(bad), None);
     }

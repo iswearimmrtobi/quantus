@@ -526,7 +526,8 @@ fn app_info(shapes: &mut Vec<Shape>, info: &crate::applet::AppInfo, lang: text::
     }
     let source = match info.built_in {
         true => text::BUILT_IN.get(lang).to_string(),
-        false => format!("{}, {}.rhai", text::FROM_CARD.get(lang), info.id),
+        // The file's name: a card's app beside a built-in one has `card:` before its id.
+        false => format!("{}, {}.rhai", text::FROM_CARD.get(lang), info.id.strip_prefix("card:").unwrap_or(&info.id)),
     };
     line(shapes, format!("API {} · {source}", info.api), colors::muted());
 }

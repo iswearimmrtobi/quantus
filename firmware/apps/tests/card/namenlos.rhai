@@ -1,0 +1,2 @@
+// kind: tool
+fn draw() {}
