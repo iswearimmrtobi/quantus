@@ -1879,19 +1879,7 @@ impl<B: Backend> App<B> {
                 &mut self.editor
             }
         };
-        editor.paste(&row);
-        // Into a pair of brackets or bars, at the first argument: `\sinh(|)`, `\max(|;)`, `|x|`;
-        // into n of nCr.
-        let back = match row.0.last() {
-            Some(Node::Binom(..)) => 2,
-            _ if row.0.len() < 2 => 0,
-            Some(Node::Char(')')) => row.0.iter().rposition(|node| *node == Node::Char('(')).map_or(1, |open| row.0.len() - 1 - open),
-            Some(Node::Char('|')) => 1,
-            _ => 0,
-        };
-        (0..back).for_each(|_| {
-            editor.left();
-        });
+        paste_latex(editor, &row);
     }
 
     /// What soft key `index` holds, done.
@@ -2031,38 +2019,22 @@ impl<B: Backend> App<B> {
         if self.shown.is_some() && !self.leave_result(key) {
             return;
         }
-        let editor = &mut self.editor;
-        if editor.key(key, shift) {
+        if type_key(&mut self.editor, key, shift, &mut self.clipboard) {
             return;
         }
+        let editor = &mut self.editor;
         match key {
-            Key::Copy => {
-                if let Some(row) = editor.copied() {
-                    self.clipboard = row;
-                }
-            }
-            Key::Paste => editor.paste(&self.clipboard),
             Key::Approx => self.evaluate_as(true),
             Key::Ans => {
                 if let Some(Entry { result: Ok(result), .. }) = self.history.last() {
                     editor.paste(result);
                 }
             }
-            Key::Left => {
-                editor.left();
-            }
-            Key::Right => {
-                editor.right();
-            }
             Key::Up => {
                 if !editor.up() {
                     self.recall(0);
                 }
             }
-            Key::Down => {
-                editor.down();
-            }
-            Key::Del => editor.delete(),
             Key::Ac => editor.clear(),
             Key::Ok | Key::Exe => self.evaluate(),
             _ => {}
@@ -2602,4 +2574,50 @@ impl<B: Backend> App<B> {
             self.busy = false;
         }
     }
+}
+
+/// Pastes `row` at the cursor of `editor`, as if typed: into a pair of brackets or bars it goes
+/// to the first argument (`\sinh(|)`, `\max(|;)`, `|x|`), into n of nCr. The calculation and an
+/// app's input line share it.
+pub(crate) fn paste_latex(editor: &mut Editor, row: &Row) {
+    editor.paste(row);
+    let back = match row.0.last() {
+        Some(Node::Binom(..)) => 2,
+        _ if row.0.len() < 2 => 0,
+        Some(Node::Char(')')) => row.0.iter().rposition(|node| *node == Node::Char('(')).map_or(1, |open| row.0.len() - 1 - open),
+        Some(Node::Char('|')) => 1,
+        _ => 0,
+    };
+    (0..back).for_each(|_| {
+        editor.left();
+    });
+}
+
+/// What a key does to `editor` while an input is typed, whatever is around it: the editor's
+/// own keys, COPY and PASTE, ←, →, ↓ and DEL. Whether the key was one of them; ↑, AC and EXE are
+/// left to the caller. The calculation and an app's input line share it.
+pub(crate) fn type_key(editor: &mut Editor, key: Key, shift: bool, clipboard: &mut Row) -> bool {
+    if editor.key(key, shift) {
+        return true;
+    }
+    match key {
+        Key::Copy => {
+            if let Some(row) = editor.copied() {
+                *clipboard = row;
+            }
+        }
+        Key::Paste => editor.paste(clipboard),
+        Key::Left => {
+            editor.left();
+        }
+        Key::Right => {
+            editor.right();
+        }
+        Key::Down => {
+            editor.down();
+        }
+        Key::Del => editor.delete(),
+        _ => return false,
+    }
+    true
 }
