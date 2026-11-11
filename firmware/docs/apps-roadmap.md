@@ -399,7 +399,8 @@ M4.
   to LaTeX. `submit` gets the inputs as typed, by id, and gives a list of `#{label, latex}`, an
   error text, or `#{field, error}`; it runs on the script's thread while `form` waits, so it can
   use `calc`. A result is handed to the calculation by OK only, not by AC.
-- [ ] **9.5 An example on the card.** `firmware/sim/sd/apps/spannungsteiler.rhai`.
+- [x] **9.5 An example on the card.** `firmware/sim/sd/apps/spannungsteiler.rhai`.
+  Its labels are R1, R2 and U2: the hui's fonts have no subscript digits.
 
 M5.
 
