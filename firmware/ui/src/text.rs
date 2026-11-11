@@ -47,6 +47,7 @@ pub const GAMES: Text = tx!("hui.apps.games");
 pub const TOOLS: Text = tx!("hui.apps.tools");
 pub const OWN_APPS: Text = tx!("hui.apps.own");
 pub const NEWER_API: Text = tx!("hui.apps.newer");
+pub const APPS_EXAM: Text = tx!("hui.apps.exam");
 pub const NO_ENTRIES: Text = tx!("hui.no_entries");
 pub const EXAM: Text = tx!("hui.exam");
 pub const EXACT_SHORT: Text = tx!("hui.exact_short");

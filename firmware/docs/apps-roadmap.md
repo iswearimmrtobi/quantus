@@ -163,7 +163,7 @@ touch `Screen` (`screen`, `menus`, `sheets`, `touch`, `soft_keys`) still do.
 - [x] **2.3 OPTN on a line, and errors.** OPTN on an app in the list opens *Info* and *Daten
   löschen* without starting it. An `Err` from `open_app` is shown as `Edit::Note` and OK goes
   back to the list. Test both.
-- [ ] **2.4 Prüfungsmodus.** With `Settings::exam` the Apps tile opens a message
+- [x] **2.4 Prüfungsmodus.** With `Settings::exam` the Apps tile opens a message
   (`hui.apps.exam`) and nothing else; a running app is left when the exam mode is switched on
   (it can only be switched in SETUP, which is not reachable from inside an app, so this is one
   assertion). Test.

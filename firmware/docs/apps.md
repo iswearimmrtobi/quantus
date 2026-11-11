@@ -477,7 +477,7 @@ come first; a step is ticked here once its commits there are.
   MODE leave, OPTN opens the app's menu with *Info*. `ui/tests/apps.rs` drives an applet written
   in Rust: keys arrive, shapes are drawn, the area grows without soft keys, AC returns to where
   the app was opened from.
-- [ ] **2. hui: page 3 with the Apps and Setup tiles.** `Mode::Apps` and `Mode::Setup`, the list
+- [x] **2. hui: page 3 with the Apps and Setup tiles.** `Mode::Apps` and `Mode::Setup`, the list
   from `Backend::apps` with the authors, the lock in Prüfungsmodus, the texts in every file of
   `locales/` (`cargo test -p quantus-texts`). Tested with a backend that lists two apps; the
   Setup tile opens what SHIFT + MODE opens and keeps the mode.

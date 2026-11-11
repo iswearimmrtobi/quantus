@@ -1521,6 +1521,7 @@
     "hui.apps.authors": "Authors",
     "hui.apps.built_in": "Built in",
     "hui.apps.delete_data": "Delete data",
+    "hui.apps.exam": "Apps are locked in exam mode.",
     "hui.apps.from_card": "SD card",
     "hui.apps.games": "Games",
     "hui.apps.info": "Info",

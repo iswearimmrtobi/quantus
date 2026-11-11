@@ -1521,6 +1521,7 @@
     "hui.apps.authors": "Autoren",
     "hui.apps.built_in": "Eingebaut",
     "hui.apps.delete_data": "Daten löschen",
+    "hui.apps.exam": "Im Prüfungsmodus sind Apps gesperrt.",
     "hui.apps.from_card": "SD-Karte",
     "hui.apps.games": "Spiele",
     "hui.apps.info": "Info",

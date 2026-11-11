@@ -576,3 +576,28 @@ fn an_error_opening_is_said_and_ok_goes_back() {
     let Screen::Menu(menu) = &app.screen else { panic!("no menu") };
     assert!(matches!(menu.edit, Some(quantus_ui::menu::Edit::Apps { view: quantus_ui::menu::AppsView::List, selected: 2, .. })));
 }
+
+#[test]
+fn no_apps_in_exam_mode() {
+    let log = Rc::new(RefCell::new(Log::default()));
+    let mut app = App::new(Shelf { log: log.clone() });
+    app.settings.exam = true;
+    app.key(Key::Mode);
+    app.screen = Screen::Modes { selected: 12 };
+    app.key(Key::Ok);
+    assert!(shelf_texts(&app).iter().any(|text| text.contains("Prüfungsmodus")));
+    // OK reads it and leaves; no app was opened.
+    app.key(Key::Ok);
+    assert!(app.running.is_none());
+    assert!(!matches!(app.screen, Screen::App));
+
+    // An app running when the exam mode comes on is left.
+    let (mut app, log) = shelf();
+    app.key(Key::Ok);
+    assert_eq!(app.screen, Screen::App);
+    app.settings.exam = true;
+    app.tick(0);
+    assert!(app.running.is_none());
+    assert_eq!(app.screen, Screen::Calc);
+    assert_eq!(log.borrow().left, 1);
+}

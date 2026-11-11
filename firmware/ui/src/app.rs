@@ -691,6 +691,12 @@ impl<B: Backend> App<B> {
             }
             None => {}
         }
+        // Prüfungsmodus ends a running app.
+        if self.settings.exam && self.running.is_some() {
+            self.close_app();
+            self.screen = Screen::Calc;
+            changed = true;
+        }
         if let Some((running, mut host)) = self.applet() {
             changed |= running.applet.tick(now_ms, &mut host);
         }
@@ -2178,7 +2184,12 @@ impl<B: Backend> App<B> {
             Mode::Setup => self.screen = Screen::Menu(Menu::new(&tree::SETUP)),
             Mode::Apps => {
                 let mut menu = Menu::new(&tree::APPS);
-                menu.edit = Some(menu::apps_edit(tree::APPS.title, self.backend.apps(self.settings.language)));
+                let label = tree::APPS.title;
+                // No apps in Prüfungsmodus (apps.md decision 6).
+                menu.edit = Some(match self.settings.exam {
+                    true => Edit::Message { label, message: text::APPS_EXAM },
+                    false => menu::apps_edit(label, self.backend.apps(self.settings.language)),
+                });
                 self.screen = Screen::Menu(menu);
             }
             mode => {
