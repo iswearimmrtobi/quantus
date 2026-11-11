@@ -232,7 +232,7 @@ interpreter. No engine.
   new area; `Host::exit` leaves after the call. A colour is a palette name or `#rrggbb`, which
   `rgb` gives. Rhai's own `clear` of a string would take `clear("background")`, so the API's is
   registered for strings too.
-- [ ] **4.5 `soft`, `input`, the helpers.** `soft([...])`, `input(kind, options)` for the
+- [x] **4.5 `soft`, `input`, the helpers.** `soft([...])`, `input(kind, options)` for the
   templates of 3a with `pick` and `entered`, `cursor`, `confirm` (a yield, F1), `grid`, `side`,
   `random(n)` (through `Host::random`), `timer`, `lang`, `exit`. Tests: one small script per
   function.

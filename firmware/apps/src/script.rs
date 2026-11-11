@@ -191,6 +191,16 @@ pub struct Output {
     pub draws: Vec<api::Draw>,
     /// Whether `draw` ran.
     pub drawn: bool,
+    /// The soft keys' labels, if `soft` was called.
+    pub soft: Option<Vec<String>>,
+    /// The input template, if `input` was called.
+    pub input: Option<quantus_ui::applet::Input>,
+    /// The timer, if `timer` was called: every so many ms, 0 for none.
+    pub timer: Option<u64>,
+    /// Where `cursor` put the grid's cursor.
+    pub cursor: Option<(usize, usize)>,
+    /// `exit` was called.
+    pub exit: bool,
 }
 
 /// Where the main side is with the script.

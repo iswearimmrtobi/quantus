@@ -104,6 +104,12 @@ impl ScriptApplet {
         match reply {
             Yield::Done(output) => {
                 let soft = self.soft_shown();
+                if let Some((col, row)) = output.cursor {
+                    host.set_cursor(col, row);
+                }
+                if output.exit {
+                    host.exit();
+                }
                 self.apply(output);
                 // The strips came or went: the area changed, so it is drawn again for it.
                 if self.soft_shown() != soft {
@@ -123,6 +129,15 @@ impl ScriptApplet {
     fn apply(&mut self, output: Output) {
         if output.drawn {
             self.draws = output.draws;
+        }
+        if let Some(soft) = output.soft {
+            self.soft = soft;
+        }
+        if let Some(input) = output.input {
+            self.input = input;
+        }
+        if let Some(every) = output.timer {
+            self.timer = (every > 0).then(|| every.max(MIN_TIMER));
         }
     }
 

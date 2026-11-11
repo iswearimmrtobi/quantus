@@ -317,7 +317,7 @@ outcome. `"keys"` is the default.
 | `"keys"` | Presses keys | Nothing | `key(k)` for every key. The app's own input, for a game that steers with the arrows |
 | `"line"` | Types as in Physik: numbers with units and prefixes, fractions, powers, constants, with SHIFT, ALPHA, UNIT, SYMB and the unit bar | The input line at the bottom of the area, with a `label` in front | `entered(value)` on EXE, `value` as `calc` takes it. `options.calc: true` works it out first and gives what `calc` gives |
 | `"text"` | Types plain text: letters, digits, the space, as when a session is renamed | One line with a `label`, at the bottom of the area | `entered(text)` on EXE or OK. `options.max` limits the length (32 if not named), `options.value` stands in it at first |
-| `"grid"` | Moves a cursor over `options.cols` × `options.rows` cells with the arrows or a tap, picks with OK or EXE | The cursor's frame on the cell, over the app's drawing | `pick(col, row)`. `cursor()` gives the cell it is on, `cursor(col, row)` sets it. `options.digits: true` lets 1–9 pick a cell of a 3 × 3 grid directly, laid out as the number block is. `options.wrap: true` lets the cursor go round the edges |
+| `"grid"` | Moves a cursor over `options.cols` × `options.rows` cells with the arrows or a tap, picks with OK or EXE | The cursor's frame on the cell, over the app's drawing | `pick(col, row)`. `cursor()` gives the cell it is on as `#{col, row}`, `cursor(col, row)` sets it. `options.digits: true` lets 1–9 pick a cell of a 3 × 3 grid directly, laid out as the number block is. `options.wrap: true` lets the cursor go round the edges |
 | `"cells"` | The same grid, and types a value into the cell under the cursor, as in the Matrizen grid | The cursor and the editor in the cell | `entered(#{col, row, value})` when a cell is confirmed. `options.digits_only: true` takes one digit per cell and moves on (Sudoku) |
 | `"list"` | Goes through `options.items` with ↑/↓ or picks with a digit | The list, as a menu of the hui's, in the area | `entered(index)` |
 
@@ -338,7 +338,7 @@ for a whole page of fields and stands for itself.
 
 | Function | |
 |---|---|
-| `grid(cols, rows)` | Lays a board into the area, as large as fits: centred where the area is narrow, at the left where a side panel fits beside it. Gives `cell(col, row)` as `#{x, y, w, h}` and `at(x, y)`, the cell under a tap. The `"grid"` and `"cells"` templates use the same cells |
+| `grid(cols, rows)` | Lays a board into the area, as large as fits: centred where the area is narrow, at the left where a side panel fits beside it. Gives the board as `#{x, y, w, h, cols, rows, cell}` (`cell` the side of a cell), with `g.cell(col, row)` as `#{x, y, w, h}` and `g.at(x, y)`, the cell under a tap as `#{col, row}` or `()`. The `"grid"` and `"cells"` templates use the same cells |
 | `side()` | The part of the area the board leaves, as `#{x, y, w, h}`: right of the board on a wide area, below it on a narrow one. For the score, whose turn it is, a hint |
 | `random(n)` | A whole number from 0 to n − 1 |
 | `timer(ms)` | Calls `tick` every `ms`; no faster than 100 ms. `timer(0)` stops it |
