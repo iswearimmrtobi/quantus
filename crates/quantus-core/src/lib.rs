@@ -7,6 +7,7 @@ pub mod basen;
 pub mod constants;
 pub mod error;
 pub mod forms;
+pub mod functions;
 pub mod geometry;
 pub mod electro;
 pub mod eval;

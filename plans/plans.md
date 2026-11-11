@@ -175,7 +175,7 @@ by how often an entry was used comes later.
 
 - [x] `crates/quantus-search`: the matching and ranking of `library_search`, shared by the engine
   and the handheld, which does not depend on the engine.
-- [ ] Core: functions and prefixes with names in every language and aliases (`wurzel`, `sqrt`) in
+- [x] Core: functions and prefixes with names in every language and aliases (`wurzel`, `sqrt`) in
   the library search, and the whole index for the handheld (`api::library_index`).
 - [ ] Handheld: typing in CATALOG lists the hits of the index and of the SETUP and OPTN menus;
   a function, unit or constant is inserted, a menu entry opens where it lives.

@@ -422,7 +422,7 @@ pub fn unit_suggestions(request: &UnitSuggestionRequest) -> UnitSuggestions {
     crate::units::suggest::suggest(&request.before, &request.recent, request.result.as_deref())
 }
 
-pub use crate::library_search::{HitKind, LibraryHit};
+pub use crate::library_search::{HitKind, LibraryEntry, LibraryHit};
 
 /// A quick search over the constants and conversion units.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -437,6 +437,12 @@ pub struct LibrarySearchRequest {
 /// The constants and units that fit a query, best first, named in `language`.
 pub fn search_library(language: crate::settings::Language, request: &LibrarySearchRequest) -> Vec<LibraryHit> {
     crate::library_search::search(&request.query, language, request.limit.unwrap_or(8))
+}
+
+/// Everything the library search finds, with the names and symbols it is found by, named in
+/// `language`; the handheld ranks it together with its menu entries.
+pub fn library_index(language: crate::settings::Language) -> Vec<LibraryEntry> {
+    crate::library_search::index(language)
 }
 
 pub use crate::session::{HistoryEntry, ModeInputs, SessionFile};
