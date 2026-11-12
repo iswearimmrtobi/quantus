@@ -104,9 +104,9 @@ fn parse_errors_carry_a_position() {
 }
 
 #[test]
-fn dimension_errors_have_text_and_no_position() {
+fn dimension_errors_have_text_and_mark_the_sum() {
     let error = evaluate(&window(), r"1m + 1s").unwrap_err();
-    assert!(error["position"].is_null(), "{error}");
+    assert_eq!(error["span"], json!({ "start": 0, "end": 7 }), "{error}");
     assert!(error["error"].as_str().unwrap().len() > 10, "{error}");
 }
 

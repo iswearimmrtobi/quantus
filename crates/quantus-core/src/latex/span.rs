@@ -60,6 +60,10 @@ pub fn resolve(source: &str, first: usize, last: usize) -> Option<Span> {
             _ => break,
         }
     }
+    // `{x-1}` as a whole argument is marked without its braces.
+    if tokens[first_index].kind == TokenType::LBrace && closing(tokens, first_index) == Some(last_index) && first_index < last_index {
+        return Some(Span { start: tokens[first_index].end, end: tokens[last_index].position });
+    }
     Some(Span { start, end: tokens[last_index].end })
 }
 
@@ -144,6 +148,7 @@ mod tests {
         assert_eq!(text("2\\left(x+1\\right)", 6, 9), "\\left(x+1\\right)");
         assert_eq!(text("\\sin(x)", 0, 5), "\\sin(x)");
         assert_eq!(text("|x-1| + 2", 0, 3), "|x-1|");
+        assert_eq!(text("\\frac{1}{x-1}", 8, 11), "x-1");
     }
 
     #[test]

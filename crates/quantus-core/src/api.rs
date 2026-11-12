@@ -695,7 +695,7 @@ mod tests {
     }
 
     #[test]
-    fn a_parse_error_carries_its_position_other_errors_do_not() {
+    fn errors_carry_the_span_they_are_about() {
         let mut store = SessionStore::new();
         let parse = evaluate(&mut store, &request("2 +")).unwrap_err();
         assert!(parse.position.is_some());
@@ -706,8 +706,8 @@ mod tests {
             json_of(&dimension),
             json!({
                 "error": "Incompatible units: m (length) and s (time) cannot be added.",
-                "position": null,
-                "span": null,
+                "position": 0,
+                "span": { "start": 0, "end": 7 },
                 "reason": "Incompatible units: m (length) and s (time) cannot be added."
             })
         );

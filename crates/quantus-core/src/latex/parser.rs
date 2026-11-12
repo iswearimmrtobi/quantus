@@ -264,7 +264,7 @@ impl Parser<'_> {
         }
         if self.starts_cases() || self.has_top_level_semicolon() {
             let system = self.parse_system()?;
-            self.expect(TokenType::End, "the end of the input")?;
+            self.expect(TokenType::End, &msg!("core.latex.parser.expect.end_of_input"))?;
             return Ok(Formula { label: None, expression: normalizer::normalize(system), source: self.source.to_string() });
         }
         self.move_trailing_derivative();
@@ -295,7 +295,7 @@ impl Parser<'_> {
             operands.insert(0, expression);
             expression = Node::Call { name: format!("{RELATION} {}", operators.join(" ")), arguments: operands, position };
         }
-        self.expect(TokenType::End, "the end of the input")?;
+        self.expect(TokenType::End, &msg!("core.latex.parser.expect.end_of_input"))?;
         Ok(Formula { label, expression: normalizer::normalize(expression), source: self.source.to_string() })
     }
 
@@ -703,7 +703,7 @@ impl Parser<'_> {
             self.advance();
             arguments.push(self.parse_expression()?);
         }
-        self.expect(closing, "a closing bracket")?;
+        self.expect(closing, &msg!("core.latex.parser.expect.closing_bracket"))?;
         Ok(arguments)
     }
 
@@ -828,7 +828,7 @@ impl Parser<'_> {
         self.abs_depth = outer_abs_depth;
         self.in_point = in_point;
         let inner = inner?;
-        self.expect(closing, &format!("'{closing_text}'"))?;
+        self.expect(closing, &msg!("core.latex.parser.expect.symbol", symbol = closing_text))?;
         Ok(Node::Group { inner: Box::new(inner), position: open.position })
     }
 
@@ -964,7 +964,7 @@ impl Parser<'_> {
                 let degree = if self.current().kind == TokenType::LBracket {
                     self.advance();
                     let degree = self.parse_expression()?;
-                    self.expect(TokenType::RBracket, "']'")?;
+                    self.expect(TokenType::RBracket, &msg!("core.latex.parser.expect.symbol", symbol = "]"))?;
                     Some(Box::new(degree))
                 } else {
                     None
@@ -1092,13 +1092,13 @@ impl Parser<'_> {
     fn parse_sum(&mut self, token: &Token) -> Result<Node> {
         let command = token.text.as_str();
         self.advance();
-        self.expect(TokenType::Underscore, &format!("'_' with the index, as in {command}_{{i=1}}^{{n}}"))?;
-        self.expect(TokenType::LBrace, "'{'")?;
+        self.expect(TokenType::Underscore, &msg!("core.latex.parser.expect.index_underscore"))?;
+        self.expect(TokenType::LBrace, &msg!("core.latex.parser.expect.symbol", symbol = "{"))?;
         let index = self.parse_bound_name(command)?;
-        self.expect(TokenType::Equals, "'=' after the index")?;
+        self.expect(TokenType::Equals, &msg!("core.latex.parser.expect.equals_after_index"))?;
         let from = self.parse_expression()?;
-        self.expect(TokenType::RBrace, "'}'")?;
-        self.expect(TokenType::Caret, &format!("'^' with the upper limit, as in {command}_{{i=1}}^{{n}}"))?;
+        self.expect(TokenType::RBrace, &msg!("core.latex.parser.expect.symbol", symbol = "}"))?;
+        self.expect(TokenType::Caret, &msg!("core.latex.parser.expect.upper_limit_sum"))?;
         let to = self.parse_argument(&token.text)?;
         let body = self.with_bound(&index, |p| p.parse_term())?;
         Ok(Node::Sum {
@@ -1114,8 +1114,8 @@ impl Parser<'_> {
     /// `\lim_{x \to a} body`, two-sided; the body is a term like a sum's.
     fn parse_limit(&mut self, token: &Token) -> Result<Node> {
         self.advance();
-        self.expect(TokenType::Underscore, "'_' with the limit, as in \\lim_{x \\to 0}")?;
-        self.expect(TokenType::LBrace, "'{'")?;
+        self.expect(TokenType::Underscore, &msg!("core.latex.parser.expect.limit_underscore"))?;
+        self.expect(TokenType::LBrace, &msg!("core.latex.parser.expect.symbol", symbol = "{"))?;
         let variable = self.parse_bound_name("\\lim")?;
         if !(self.current().kind == TokenType::Command && matches!(self.current().text.as_str(), "\\to" | "\\rightarrow")) {
             return Err(self.error(&msg!("core.latex.parser.expected_to"), self.current().position));
@@ -1123,7 +1123,7 @@ impl Parser<'_> {
         self.advance();
         let side = self.take_limit_side();
         let target = self.parse_expression()?;
-        self.expect(TokenType::RBrace, "'}'")?;
+        self.expect(TokenType::RBrace, &msg!("core.latex.parser.expect.symbol", symbol = "}"))?;
         let body = self.with_bound(&variable, |p| p.parse_term())?;
         Ok(Node::Limit { variable, target: Box::new(target), body: Box::new(body), side, position: token.position })
     }
@@ -1181,7 +1181,7 @@ impl Parser<'_> {
         }
         self.advance();
         let lower = self.parse_argument(&token.text)?;
-        self.expect(TokenType::Caret, "'^' with the upper limit, as in \\int_{0}^{1}")?;
+        self.expect(TokenType::Caret, &msg!("core.latex.parser.expect.upper_limit_integral"))?;
         let upper = self.parse_argument(&token.text)?;
         let (variable, body) = self.parse_integrand(token.position)?;
         Ok(Node::Integral {
@@ -1201,7 +1201,7 @@ impl Parser<'_> {
         self.stops.pop();
         let body = body?;
         if self.index != stop {
-            return Err(self.error(&format!("Expected 'd{variable}' here."), self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.expected_differential"), self.current().position));
         }
         self.index += length;
         Ok((variable, body))
@@ -1222,13 +1222,13 @@ impl Parser<'_> {
         let integrand = self.parse_integrand(int.position);
         self.abs_depth = outer_abs_depth;
         let (variable, body) = integrand?;
-        self.expect(TokenType::RBracket, "']' after the differential")?;
+        self.expect(TokenType::RBracket, &msg!("core.latex.parser.expect.bracket_after_differential"))?;
         if self.current().kind != TokenType::Underscore {
             return Err(self.error(&msg!("core.latex.parser.bracket_needs_limits"), self.current().position));
         }
         self.advance();
         let lower = self.parse_argument(&int.text)?;
-        self.expect(TokenType::Caret, "'^' with the upper limit, as in \\right]_{0}^{1}")?;
+        self.expect(TokenType::Caret, &msg!("core.latex.parser.expect.upper_limit_bracket"))?;
         let upper = self.parse_argument(&int.text)?;
         Ok(Node::Integral {
             variable,
@@ -1310,7 +1310,7 @@ impl Parser<'_> {
             index = self.parse_subscript()?;
         }
         if braced {
-            self.expect(TokenType::RBrace, "'}' after the name of the vector")?;
+            self.expect(TokenType::RBrace, &msg!("core.latex.parser.expect.brace_after_vector"))?;
             if index.is_empty() && self.current().kind == TokenType::Underscore {
                 self.advance();
                 index = self.parse_subscript()?;
@@ -1332,13 +1332,13 @@ impl Parser<'_> {
 
     /// The `{name}` after `\begin` or `\end`.
     fn parse_environment_name(&mut self, command: &str) -> Result<String> {
-        self.expect(TokenType::LBrace, &format!("'{{' after {command}"))?;
+        self.expect(TokenType::LBrace, &msg!("core.latex.parser.expect.brace_after_command"))?;
         let name = self.current().clone();
         if name.kind != TokenType::Identifier {
             return Err(self.error(&msg!("core.latex.parser.needs_name_environment"), name.position));
         }
         self.advance();
-        self.expect(TokenType::RBrace, "'}'")?;
+        self.expect(TokenType::RBrace, &msg!("core.latex.parser.expect.symbol", symbol = "}"))?;
         Ok(name.text)
     }
 
@@ -1504,7 +1504,7 @@ impl Parser<'_> {
             return Ok(None);
         }
         self.index += 2;
-        self.expect(TokenType::LBrace, "'{'")?;
+        self.expect(TokenType::LBrace, &msg!("core.latex.parser.expect.symbol", symbol = "{"))?;
         let position = self.current().position;
         let mut bindings: Bindings = Vec::new();
         loop {
@@ -1513,14 +1513,14 @@ impl Parser<'_> {
             if bindings.iter().any(|(n, _)| *n == name) {
                 return Err(self.error(&msg!("core.latex.parser.point_gives_twice"), name_position));
             }
-            self.expect(TokenType::Equals, "'='")?;
+            self.expect(TokenType::Equals, &msg!("core.latex.parser.expect.symbol", symbol = "="))?;
             bindings.push((name, self.parse_expression()?));
             if self.current().kind != TokenType::Comma {
                 break;
             }
             self.advance();
         }
-        self.expect(TokenType::RBrace, "'}'")?;
+        self.expect(TokenType::RBrace, &msg!("core.latex.parser.expect.symbol", symbol = "}"))?;
         Ok(Some((bindings, position)))
     }
 
@@ -1779,9 +1779,9 @@ impl Parser<'_> {
 
         let hint = if run.len() > 1 { msg!("core.latex.parser.product_units_needs_explicit") } else { String::new() };
         let reason = if self.unit_context {
-            format!("'{symbol}' is not a known unit.{hint}")
+            msg!("core.latex.parser.unknown_unit")
         } else {
-            format!("'{symbol}' is neither a unit nor a constant. A variable is a single letter or carries a subscript, e.g. x or v_1.{hint}")
+            msg!("core.latex.parser.unknown_identifier")
         };
         Err(self.error(&reason, token.position))
     }
@@ -1878,7 +1878,7 @@ impl Parser<'_> {
 
     fn expect(&mut self, kind: TokenType, description: &str) -> Result<()> {
         if self.current().kind != kind {
-            return Err(self.error(&format!("Expected {description} here."), self.current().position));
+            return Err(self.error(&msg!("core.latex.parser.expected_here"), self.current().position));
         }
         if kind != TokenType::End {
             self.advance();

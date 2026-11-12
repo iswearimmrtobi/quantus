@@ -48,3 +48,30 @@ fn the_api_reports_the_span_and_the_bare_reason() {
     assert!(error.error.contains("position 9"), "{}", error.error);
     assert!(!error.reason.contains("position"), "{}", error.reason);
 }
+
+#[test]
+fn adding_metres_to_seconds_marks_the_sum() {
+    let input = "1\\,\\mathrm{m} + 2\\,\\mathrm{s} + 3";
+    assert_eq!(physics(input).as_deref(), Some("1\\,\\mathrm{m} + 2\\,\\mathrm{s}"));
+}
+
+#[test]
+fn a_division_by_zero_marks_the_denominator() {
+    assert_eq!(physics("2 + \\frac{1}{3-3}").as_deref(), Some("3-3"));
+    assert_eq!(physics("2 + 1 / (3-3)").as_deref(), Some("(3-3)"));
+}
+
+#[test]
+fn a_symbolic_division_by_zero_marks_the_denominator() {
+    assert_eq!(marked(Mode::Algebra, "x + \\frac{x}{0}").as_deref(), Some("0"));
+}
+
+#[test]
+fn an_undefined_variable_is_marked() {
+    assert_eq!(physics("2 \\cdot v_{1} + 3").as_deref(), Some("v_{1}"));
+}
+
+#[test]
+fn a_unit_where_a_number_belongs_marks_the_argument() {
+    assert_eq!(physics("1 + \\sin\\left(2\\,\\mathrm{m}\\right)").as_deref(), Some("\\left(2\\,\\mathrm{m}\\right)"));
+}

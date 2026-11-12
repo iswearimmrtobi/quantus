@@ -617,12 +617,12 @@ pub fn is_constant_zero(node: &Node) -> bool {
 }
 
 /// Convenience entry point: scans an AST and extracts all domain restrictions,
-/// immediately failing with `QuantusError::DivisionByZero` if any denominator is constant zero.
+/// immediately failing, at that denominator, if any denominator is constant zero.
 pub fn extract_domain_restrictions(node: &Node) -> Result<Vec<DomainRestriction>, QuantusError> {
     let raw = collect_raw_denominators(node);
     for den in &raw {
         if is_constant_zero(den) {
-            return Err(QuantusError::other(msg!("core.common.division_zero")));
+            return Err(QuantusError::other(msg!("core.eval.evaluator.division_zero_here")).at_node(den));
         }
     }
     Ok(solve_denominator_roots(&raw))

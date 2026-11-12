@@ -200,32 +200,32 @@ fn test_division_by_zero_detection() {
     // x / 0
     let node1 = parse(r"\frac{x}{0}");
     let err1 = extract_domain_restrictions(&node1).unwrap_err();
-    assert_eq!(err1.to_string(), "Division by zero.");
+    assert_eq!(err1.to_string(), "Division by zero: this denominator is 0.");
 
     // 1 / (x - x)
     let node2 = parse(r"\frac{1}{x - x}");
     let err2 = extract_domain_restrictions(&node2).unwrap_err();
-    assert_eq!(err2.to_string(), "Division by zero.");
+    assert_eq!(err2.to_string(), "Division by zero: this denominator is 0.");
 
     // 1 / (3 - 3)
     let node3 = parse(r"1 / (3 - 3)");
     let err3 = extract_domain_restrictions(&node3).unwrap_err();
-    assert_eq!(err3.to_string(), "Division by zero.");
+    assert_eq!(err3.to_string(), "Division by zero: this denominator is 0.");
 
     // Reciprocal zero denominator: 3 / ((x + 3) / 0)
     let node4 = parse(r"\frac{3}{\frac{x + 3}{0}}");
     let err4 = extract_domain_restrictions(&node4).unwrap_err();
-    assert_eq!(err4.to_string(), "Division by zero.");
+    assert_eq!(err4.to_string(), "Division by zero: this denominator is 0.");
 
     // Reciprocal zero numerator: 3 / (0 / (x - 2))
     let node5 = parse(r"\frac{3}{\frac{0}{x - 2}}");
     let err5 = extract_domain_restrictions(&node5).unwrap_err();
-    assert_eq!(err5.to_string(), "Division by zero.");
+    assert_eq!(err5.to_string(), "Division by zero: this denominator is 0.");
 
     // Negative power of zero: 0^{-2}
     let node6 = parse(r"0^{-2}");
     let err6 = extract_domain_restrictions(&node6).unwrap_err();
-    assert_eq!(err6.to_string(), "Division by zero.");
+    assert_eq!(err6.to_string(), "Division by zero: this denominator is 0.");
 }
 
 #[test]

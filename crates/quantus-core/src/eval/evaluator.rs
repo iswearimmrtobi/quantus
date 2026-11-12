@@ -117,7 +117,13 @@ impl<'a> Evaluator<'a> {
         }
     }
 
+    /// The node's value. An error points at the innermost node it came from, so the input can
+    /// be marked there.
     pub fn evaluate(&self, node: &Node) -> Result<PhysicalQuantity> {
+        self.evaluate_node(node).map_err(|error| error.at_node(node))
+    }
+
+    fn evaluate_node(&self, node: &Node) -> Result<PhysicalQuantity> {
         match node {
             Node::Number { value, .. } => Ok(PhysicalQuantity::dimensionless(Value::from_decimal(value))),
             Node::Unit { unit, .. } => Ok(PhysicalQuantity::new(Value::one(), unit.clone())),
@@ -140,21 +146,23 @@ impl<'a> Evaluator<'a> {
             Node::Group { inner, .. } => self.evaluate(inner),
             Node::Negation { operand, .. } => Ok(self.evaluate(operand)?.neg()),
             Node::Fraction { numerator, denominator, .. } => {
-                self.evaluate(numerator)?.div(&self.evaluate(denominator)?)
+                let numerator = self.evaluate(numerator)?;
+                let divisor = self.evaluate(denominator)?;
+                numerator.div(&divisor).map_err(|error| by_zero(error, &divisor, denominator))
             }
             Node::Power { base, exponent, .. } => self.evaluate(base)?.pow(&self.evaluate(exponent)?),
             Node::Root { radicand, degree, .. } => {
                 let degree = self.degree(degree.as_deref())?;
                 self.evaluate(radicand)?.root(degree)
             }
-            Node::Binary { operator, left, right, .. } => {
+            Node::Binary { operator, left, right: right_node, .. } => {
                 let left = self.evaluate(left)?;
-                let right = self.evaluate(right)?;
+                let right = self.evaluate(right_node)?;
                 match operator {
                     Operator::Plus => left.add(&right),
                     Operator::Minus => left.sub(&right),
                     Operator::Times | Operator::ImplicitTimes => Ok(left.mul(&right)),
-                    Operator::Divide => left.div(&right),
+                    Operator::Divide => left.div(&right).map_err(|error| by_zero(error, &right, right_node)),
                 }
             }
             Node::Abs { operand, .. } => {
@@ -265,11 +273,12 @@ impl<'a> Evaluator<'a> {
         })
     }
 
-    /// A dimensionless operand's value; `what` names the construct for the error.
+    /// A dimensionless operand's value; `what` names the construct for the error, which points
+    /// at the operand.
     fn plain_number(&self, node: &Node, what: &str) -> Result<Value> {
         let quantity = self.evaluate(node)?;
         if !quantity.is_dimensionless() {
-            return Err(QuantusError::other(msg!("core.eval.evaluator.must_be_plain")));
+            return Err(QuantusError::other(msg!("core.eval.evaluator.must_be_plain")).at_node(node));
         }
         quantity.dimensionless_value()
     }
@@ -277,7 +286,7 @@ impl<'a> Evaluator<'a> {
     fn whole_number(&self, node: &Node, command: &str) -> Result<i64> {
         let value = self.plain_number(node, &msg!("core.eval.evaluator.argument_of_command"))?;
         value.to_i64().filter(|n| *n >= 0).ok_or_else(|| {
-            QuantusError::other(msg!("core.eval.evaluator.arguments_natural"))
+            QuantusError::other(msg!("core.eval.evaluator.arguments_natural")).at_node(node)
         })
     }
 
@@ -285,7 +294,7 @@ impl<'a> Evaluator<'a> {
         let value = self.plain_number(node, what)?;
         value
             .to_i64()
-            .ok_or_else(|| QuantusError::other(msg!("core.eval.evaluator.must_be_whole")))
+            .ok_or_else(|| QuantusError::other(msg!("core.eval.evaluator.must_be_whole")).at_node(node))
     }
 
     // ---- constructs that bind a variable ------------------------------------------------
@@ -1004,6 +1013,15 @@ fn constant(name: &str) -> Result<Value> {
     }
 }
 
+/// A division that failed because the divisor is zero points at the divisor and says so.
+fn by_zero(error: QuantusError, divisor: &PhysicalQuantity, node: &Node) -> QuantusError {
+    if divisor.value.is_zero() {
+        QuantusError::other(msg!("core.eval.evaluator.division_zero_here")).at_node(node)
+    } else {
+        error
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1035,7 +1053,7 @@ mod tests {
     #[test]
     fn unknown_variables_are_refused_with_a_hint() {
         let error = eval("v_1 \\cdot 2s", &Variables::new()).unwrap_err();
-        assert!(matches!(error, QuantusError::UnresolvedVariable(_)));
+        assert!(matches!(error.unlocated(), QuantusError::UnresolvedVariable(_)));
         assert_eq!(error.to_string(), "The variable v_1 has no value yet. Define it first, e.g. v_1 = 5m.");
     }
 
