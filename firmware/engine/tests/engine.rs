@@ -430,3 +430,49 @@ mod marks {
         assert_eq!(marked(r"3\cdot v_{1}"), Some(Mark { path: vec![], nodes: 2..4 }));
     }
 }
+
+#[test]
+fn basis_n_takes_the_word_and_shifts() {
+    use quantus_ui::settings::{NumberBase, Signedness, WordSize};
+    let mut engine = Engine::default();
+    let byte = Settings { number_base: NumberBase::Hex, word_size: WordSize::W8, signedness: Signedness::Unsigned, ..Settings::default() };
+    assert_eq!(engine.evaluate(Mode::BaseN, &byte, "rol(81;1)"), Ok("3".to_string()));
+    assert_eq!(engine.evaluate(Mode::BaseN, &byte, "F0>>4"), Ok("\\mathrm{F}".to_string()));
+    assert_eq!(engine.evaluate(Mode::BaseN, &byte, "FF+1"), Ok("0".to_string()));
+    let signed = Settings { signedness: Signedness::Signed, number_base: NumberBase::Dec, ..byte };
+    assert_eq!(engine.evaluate(Mode::BaseN, &signed, "127+1"), Ok("-128".to_string()));
+}
+
+#[test]
+fn s_d_in_basis_n_goes_through_the_other_bases_to_the_bits() {
+    use quantus_ui::app::{App, View};
+    use quantus_ui::key::Key;
+    use quantus_ui::settings::{NumberBase, Signedness, WordSize};
+    let mut app = App::new(Engine::default());
+    app.mode = Mode::BaseN;
+    app.settings.word_size = WordSize::W8;
+    app.settings.number_base = NumberBase::Dec;
+    app.key(Key::Minus);
+    app.key(Key::Digit(2));
+    app.key(Key::Exe);
+    let shown = |app: &App<Engine>| {
+        let entry = app.shown_entry().unwrap();
+        (entry.view, entry.result.as_ref().unwrap().to_latex())
+    };
+    assert_eq!(shown(&app), (View::Result, "-2".to_string()));
+    let mut seen = Vec::new();
+    for _ in 0..5 {
+        app.key(Key::SwapForm);
+        seen.push(shown(&app));
+    }
+    assert_eq!(
+        seen,
+        [
+            (View::Base(NumberBase::Hex), r"\mathrm{h}\mathrm{FE}".to_string()),
+            (View::Base(NumberBase::Bin), r"\mathrm{b}11111110".to_string()),
+            (View::Base(NumberBase::Oct), r"\mathrm{o}376".to_string()),
+            (View::Bits { width: 8, signed: Signedness::Signed == app.settings.signedness }, r"\mathrm{b}11111110".to_string()),
+            (View::Result, "-2".to_string()),
+        ]
+    );
+}

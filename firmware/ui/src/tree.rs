@@ -714,13 +714,32 @@ static OPTN_BASE_N: Page = Page {
             tx!("hui.tree.base"),
             Kind::Choice(S::NumberBase, &[opt(same("DEC"), 0), opt(same("HEX"), 1), opt(same("BIN"), 2), opt(same("OCT"), 3)]),
         ),
+        entry(
+            tx!("hui.tree.word_size"),
+            Kind::Choice(S::WordSize, &[opt(same("8 Bit"), 0), opt(same("16 Bit"), 1), opt(same("32 Bit"), 2), opt(same("64 Bit"), 3)]),
+        ),
+        entry(tx!("hui.tree.signedness"), Kind::Choice(S::Signedness, &[opt(tx!("hui.tree.signed"), 0), opt(tx!("hui.tree.unsigned"), 1)])),
         group(tx!("hui.tree.prefixes_d_h_b_o"), &BASE_PREFIXES),
+        group(tx!("hui.tree.shift_rotate"), &BASE_SHIFTS),
         ins(same("and"), r"\operatorname{and}"),
         ins(same("or"), r"\operatorname{or}"),
         ins(same("xor"), r"\operatorname{xor}"),
         ins(same("xnor"), r"\operatorname{xnor}"),
         ins(same("Not"), r"\operatorname{Not}()"),
         ins(same("Neg"), r"\operatorname{Neg}()"),
+    ],
+};
+
+static BASE_SHIFTS: Page = Page {
+    title: tx!("hui.tree.shift_rotate"),
+    entries: &[
+        ins(same("<<"), "<<"),
+        ins(same(">>"), ">>"),
+        ins(same("shl"), r"\operatorname{shl}(;)"),
+        ins(same("shr"), r"\operatorname{shr}(;)"),
+        ins(same("sar"), r"\operatorname{sar}(;)"),
+        ins(same("rol"), r"\operatorname{rol}(;)"),
+        ins(same("ror"), r"\operatorname{ror}(;)"),
     ],
 };
 

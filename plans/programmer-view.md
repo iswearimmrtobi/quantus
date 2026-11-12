@@ -169,27 +169,30 @@ the shown result is re-evaluated as today when the base changes.
 
 ## Phase 5 — Handheld
 
-- [ ] **5.1 Settings** (`firmware/ui/src/settings.rs`): `choice!(WordSize { W8, W16, W32, W64 })`,
+- [x] **5.1 Settings** (`firmware/ui/src/settings.rs`): `choice!(WordSize { W8, W16, W32, W64 })`,
       `choice!(Signedness { Signed, Unsigned })`, fields, defaults, `Setting::WordSize`,
       `Setting::Signedness`, get/set, persisted keys `word_size`, `signed`.
-- [ ] **5.2 Engine bridge** (`firmware/engine/src/lib.rs` near L507): map both into the core
-      settings; pass `bits` and the forms through to the UI result.
-- [ ] **5.3 Menus** (`tree.rs` `OPTN_BASE_N`): choices "Word size" (8/16/32/64) and
+- [x] **5.2 Engine bridge** (`firmware/engine/src/lib.rs` near L507): map both into the core
+      settings. (Done without passing `bits` and the forms: S⇔D recalculates the prefixed result
+      in the next base, the bit view is the binary result padded to the word, so the board's
+      worker protocol stays as it is.)
+- [x] **5.3 Menus** (`tree.rs` `OPTN_BASE_N`): choices "Word size" (8/16/32/64) and
       "Signed/Unsigned"; group "Shift/Rotate" with `<<`, `>>`, `shl()`, `shr()`, `sar()`, `rol()`,
       `ror()`. `SOFT_BASE_N` stays as is (the six logic keys), unless a free slot appears.
-- [ ] **5.4 Bar** (`render/bar.rs` L85): base plus width and sign, e.g. `Hex 16u` / `Dec 32s`.
-- [ ] **5.5 Result display**: S⇔D in Basis-N (today only exact/decimal, `app.rs` L2748) cycles
+- [x] **5.4 Bar** (`render/bar.rs` L85): base plus width and sign, e.g. `Hex 16u` / `Dec 32s`.
+- [x] **5.5 Result display**: S⇔D in Basis-N (today only exact/decimal, `app.rs` L2748) cycles
       set base → other bases → bit view (→ IEEE in phase 6). The bit view is drawn in
       `render/` (new `render/bits.rs` or inside `screens.rs`): groups of four in the small font,
       16 or 32 bits per row depending on the screen width, with the high index at the row's left
       edge. Read-only.
-- [ ] **5.6 Keys**: the comma for the two-argument functions is reachable in Basis-N (check
-      `layer.rs`).
-- [ ] **5.7 Texts**: `hui.tree.word_size`, `hui.tree.signed`, `hui.tree.unsigned`,
+- [x] **5.6 Keys**: the comma for the two-argument functions is reachable in Basis-N (check
+      `layer.rs`). (The OPTN entries insert `(;)` with the separator in place.)
+- [x] **5.7 Texts**: `hui.tree.word_size`, `hui.tree.signed`, `hui.tree.unsigned`,
       `hui.tree.shift_rotate` in both locales.
-- [ ] **5.8 Tests**: `firmware/ui/tests/optn.rs` (new entries), `screen.rs` (bar text, bit view
+- [x] **5.8 Tests**: `firmware/ui/tests/optn.rs` (new entries), `screen.rs` (bar text, bit view
       screenshot), `engine/tests/engine.rs` (width + shift through the bridge). Check on the
-      simulator, then on the board (see the P4 serial notes).
+      simulator, then on the board (see the P4 serial notes). (Tests and the simulator build;
+      not yet tried by hand on the simulator or the board.)
 
 ## Phase 6 — IEEE-754 view
 

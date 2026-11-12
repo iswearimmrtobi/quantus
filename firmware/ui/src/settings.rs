@@ -58,6 +58,25 @@ choice!(
     NumberBase { Dec, Hex, Bin, Oct }
 );
 choice!(
+    /// The width of the word Basis-N computes in.
+    WordSize { W8, W16, W32, W64 }
+);
+choice!(
+    /// Whether Basis-N reads a word as two's complement.
+    Signedness { Signed, Unsigned }
+);
+
+impl WordSize {
+    pub fn bits(self) -> u32 {
+        match self {
+            WordSize::W8 => 8,
+            WordSize::W16 => 16,
+            WordSize::W32 => 32,
+            WordSize::W64 => 64,
+        }
+    }
+}
+choice!(
     /// What Statistik works out: one list, or pairs with one of the Casio's regressions.
     StatisticsType { OneVariable, Linear, Quadratic, Logarithmic, EExponential, AbExponential, Power, Inverse }
 );
@@ -142,6 +161,8 @@ pub struct Settings {
     pub matrix_rows: u8,
     pub matrix_columns: u8,
     pub number_base: NumberBase,
+    pub word_size: WordSize,
+    pub signedness: Signedness,
     // Statistik and Verteilungen (in their OPTN)
     pub statistics_type: StatisticsType,
     /// A Häufigkeit column next to the data.
@@ -203,6 +224,8 @@ impl Default for Settings {
             matrix_rows: 2,
             matrix_columns: 2,
             number_base: NumberBase::Dec,
+            word_size: WordSize::W32,
+            signedness: Signedness::Signed,
             statistics_type: StatisticsType::OneVariable,
             statistics_freq: false,
             distribution: DistributionKind::NormalDensity,
@@ -255,6 +278,8 @@ pub enum Setting {
     MatrixRows,
     MatrixColumns,
     NumberBase,
+    WordSize,
+    Signedness,
     StatisticsType,
     StatisticsFreq,
     Distribution,
@@ -304,6 +329,8 @@ impl Settings {
             S::MatrixRows => self.matrix_rows.into(),
             S::MatrixColumns => self.matrix_columns.into(),
             S::NumberBase => self.number_base.index(),
+            S::WordSize => self.word_size.index(),
+            S::Signedness => self.signedness.index(),
             S::SystemRows => self.system_rows.into(),
             S::SystemColumns => self.system_columns.into(),
             S::StatisticsType => self.statistics_type.index(),
@@ -358,6 +385,8 @@ impl Settings {
             S::LinearComplex => self.linear_complex = on,
             S::SystemInput => self.system_input = SystemInput::from_index(value),
             S::NumberBase => self.number_base = NumberBase::from_index(value),
+            S::WordSize => self.word_size = WordSize::from_index(value),
+            S::Signedness => self.signedness = Signedness::from_index(value),
             S::SystemRows => self.system_rows = small,
             S::SystemColumns => self.system_columns = small,
             S::MatrixRows => self.matrix_rows = small.clamp(1, 10),
@@ -435,6 +464,8 @@ const KEYS: &[(&str, Setting)] = {
         ("matrix_rows", S::MatrixRows),
         ("matrix_columns", S::MatrixColumns),
         ("number_base", S::NumberBase),
+        ("word_size", S::WordSize),
+        ("signedness", S::Signedness),
         ("statistics_type", S::StatisticsType),
         ("statistics_freq", S::StatisticsFreq),
         ("distribution", S::Distribution),

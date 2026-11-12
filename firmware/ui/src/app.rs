@@ -15,7 +15,7 @@ use crate::clock;
 use crate::menu::{self, Action, Edit, Kind, Level, Menu, Outcome, TextFor, TimeField};
 use crate::search;
 use crate::render::{self, colors::{self, Palette}};
-use crate::settings::{Setting, SystemInput};
+use crate::settings::{NumberBase, Setting, SystemInput};
 use crate::soft::{self, Slot};
 use crate::sheet::{self, Sheets};
 use crate::touch::{self, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
@@ -250,14 +250,43 @@ pub struct Entry {
     pub eng: Option<i32>,
     /// The nodes of the input an error is about, drawn red behind them.
     pub mark: Option<Mark>,
+    /// How a Basis-N result is shown; S⇔D goes on to the next way.
+    pub view: View,
+}
+
+/// The ways S⇔D shows a Basis-N result, after the one in the set base.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum View {
+    /// As the backend wrote it.
+    #[default]
+    Result,
+    /// In another base, with the prefix that reads it back (`\mathrm{h}1F`).
+    Base(NumberBase),
+    /// The bits of the word, from the result in binary.
+    Bits { width: u32, signed: bool },
+}
+
+/// `latex` with the prefix of `base` in front of its digits: `-\mathrm{d}5`, `\mathrm{h}\mathrm{FF}`.
+fn prefixed(latex: &str, base: NumberBase) -> String {
+    let letter = match base {
+        NumberBase::Dec => 'd',
+        NumberBase::Hex => 'h',
+        NumberBase::Bin => 'b',
+        NumberBase::Oct => 'o',
+    };
+    match latex.strip_prefix('-') {
+        Some(digits) => format!("-\\mathrm{{{letter}}}{digits}"),
+        None => format!("\\mathrm{{{letter}}}{latex}"),
+    }
 }
 
 /// A calculation the backend is still working on, and where its answer goes.
 enum Pending {
     /// A new entry for this input, written as a decimal or not.
     New { input: Row, decimal: bool },
-    /// The other form of the entry at this place in the history (oldest first).
-    Swap { index: usize, decimal: bool },
+    /// The other form of the entry at this place in the history (oldest first), or in Basis-N
+    /// the next view.
+    Swap { index: usize, decimal: bool, view: View },
     /// The answer to a sheet.
     Sheet,
     /// The curve of the graph on the screen, moved or zoomed.
@@ -654,7 +683,7 @@ impl<B: Backend> App<B> {
             .history
             .into_iter()
             .skip(skip)
-            .map(|(input, result)| Entry { input: latex::parse(&input), result: Ok(latex::parse(&result)), decimal, eng: None, mark: None })
+            .map(|(input, result)| Entry { input: latex::parse(&input), result: Ok(latex::parse(&result)), decimal, eng: None, mark: None, view: View::Result })
             .collect();
         self.session = Some(opened.info);
         self.reset();
@@ -2744,13 +2773,43 @@ impl<B: Backend> App<B> {
         self.shown = Some(index);
     }
 
-    /// Evaluates the shown entry again, as a decimal if it was exact and the other way round.
+    /// Evaluates the shown entry again, as a decimal if it was exact and the other way round;
+    /// in Basis-N in the next view.
     fn swap_form(&mut self, shown: usize) {
         let index = self.history.len() - 1 - shown;
         let entry = &self.history[index];
-        let settings = Settings { decimal: !entry.decimal, ..self.settings };
         let latex = entry.input.to_latex();
-        self.start(Pending::Swap { index, decimal: settings.decimal }, &settings, &latex);
+        if self.mode == Mode::BaseN {
+            // The result, not the input, goes to the backend again: read with its prefix, it is
+            // the same number in any base, where the input's digits would be read in the new one.
+            let Ok(result) = &entry.result else { return };
+            let latex = match entry.view {
+                View::Result => prefixed(&result.to_latex(), self.settings.number_base),
+                _ => result.to_latex(),
+            };
+            let view = self.next_view(entry.view);
+            let number_base = match view {
+                View::Result => self.settings.number_base,
+                View::Base(base) => base,
+                View::Bits { .. } => NumberBase::Bin,
+            };
+            let settings = Settings { number_base, ..self.settings };
+            return self.start(Pending::Swap { index, decimal: entry.decimal, view }, &settings, &latex);
+        }
+        let settings = Settings { decimal: !entry.decimal, ..self.settings };
+        self.start(Pending::Swap { index, decimal: settings.decimal, view: View::Result }, &settings, &latex);
+    }
+
+    /// The Basis-N view after `view`: the set base, the other bases, the bits, round again.
+    pub fn next_view(&self, view: View) -> View {
+        let set = self.settings.number_base;
+        let bits = View::Bits { width: self.settings.word_size.bits(), signed: self.settings.signedness == crate::settings::Signedness::Signed };
+        let cycle: Vec<View> = std::iter::once(View::Result)
+            .chain(NumberBase::ALL.iter().filter(|&&base| base != set).map(|&base| View::Base(base)))
+            .chain([bits])
+            .collect();
+        let at = cycle.iter().position(|&shown| shown == view).unwrap_or(0);
+        cycle[(at + 1) % cycle.len()]
     }
 
     /// ENG (`up`) or ←ENG on the shown result: written with the exponent a multiple of three,
@@ -2822,18 +2881,25 @@ impl<B: Backend> App<B> {
         match self.pending.take() {
             Some(Pending::New { input, decimal }) => {
                 let (result, mark) = written(&answer, &input);
-                self.history.push(Entry { input: input.clone(), result, decimal, eng: None, mark });
+                self.history.push(Entry { input: input.clone(), result, decimal, eng: None, mark, view: View::Result });
                 if self.history.len() > HISTORY {
                     self.history.remove(0);
                 }
                 self.editor.set(input);
                 self.shown = Some(0);
             }
-            Some(Pending::Swap { index, decimal }) => {
+            Some(Pending::Swap { index, decimal, view }) => {
+                // In another base the result carries its prefix, so pasting it reads it back.
+                let answer = match view {
+                    View::Base(base) => answer.map(|latex| prefixed(&latex, base)),
+                    View::Bits { .. } => answer.map(|latex| prefixed(&latex, NumberBase::Bin)),
+                    View::Result => answer,
+                };
                 if let Some(entry) = self.history.get_mut(index) {
                     (entry.result, entry.mark) = written(&answer, &entry.input);
                     entry.decimal = decimal;
                     entry.eng = None;
+                    entry.view = view;
                 }
             }
             Some(Pending::Sheet | Pending::Curve | Pending::Variables { .. } | Pending::Formula { .. }) | None => {}

@@ -9,7 +9,7 @@ use super::{
     colors, dot_rect, fit, line_rect, list_edge, number_button, panel, rounded, tile_rect, Shape, BAR,
     HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, THUMBNAIL, WIDTH,
 };
-use crate::app::{App, Mode, TILES_PER_PAGE};
+use crate::app::{App, Mode, View, TILES_PER_PAGE};
 use crate::backend::{Storage, WlanStatus};
 use crate::editor::Row;
 use crate::font::Scale;
@@ -61,6 +61,11 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let bottom = HEIGHT as i32 - MARGIN - soft;
     if let Some(entry) = app.shown_entry() {
         match &entry.result {
+            Ok(result) if matches!(entry.view, View::Bits { .. }) => {
+                if let View::Bits { width: bits, signed } = entry.view {
+                    bit_view(shapes, &result.to_latex(), bits, signed, bottom);
+                }
+            }
             Ok(result) => {
                 let result = layout::layout(result, scale);
                 let x = (width - MARGIN - result.width).max(MARGIN);
@@ -95,6 +100,42 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         shapes.push(Shape::Triangle(arrow, colors::faint()));
         let count = earlier.to_string();
         shapes.push(Shape::Text(Point::new(MARGIN + 15, baseline), count, Scale::Small, colors::faint()));
+    }
+}
+
+/// The bits of a Basis-N result (its binary digits after the prefix `\mathrm{b}`), read-only:
+/// groups of four in the small font, 32 bits a row where they fit (else 16), the index of each
+/// row's highest bit at its left, the sign bit in the accent when the word is signed.
+fn bit_view(shapes: &mut Vec<Shape>, latex: &str, width: u32, signed: bool, bottom: i32) {
+    let digits: String = latex.replace("\\mathrm{b}", "").chars().filter(|c| matches!(c, '0' | '1')).collect();
+    let pattern = format!("{digits:0>width$}", width = width as usize);
+    let scale = Scale::Small;
+    let metrics = scale.metrics();
+    let line = metrics.ascent + metrics.descent + 6;
+    let zero = scale.width("0");
+    let group = 4 * zero + zero;
+    let label = scale.width("63") + zero;
+    let room = WIDTH as i32 - 2 * MARGIN;
+    let per_row = if width >= 32 && label + 8 * group - zero <= room { 32 } else { 16.min(width) };
+    let rows = width.div_ceil(per_row);
+    let row_width = label + (per_row / 4) as i32 * group - zero;
+    let left = WIDTH as i32 - MARGIN - row_width;
+    for row in 0..rows {
+        let high = width - 1 - row * per_row;
+        let baseline = bottom - metrics.descent - (rows - 1 - row) as i32 * line;
+        let index = high.to_string();
+        shapes.push(Shape::Text(Point::new(left + label - zero - scale.width(&index), baseline), index, scale, colors::faint()));
+        for column in 0..per_row {
+            let bit = high - column;
+            let one = pattern.as_bytes()[(width - 1 - bit) as usize] == b'1';
+            let color = match (signed && bit == width - 1, one) {
+                (true, _) => colors::accent(),
+                (false, true) => colors::result(),
+                (false, false) => colors::faint(),
+            };
+            let x = left + label + (column / 4) as i32 * group + (column % 4) as i32 * zero;
+            shapes.push(Shape::Text(Point::new(x, baseline), if one { "1" } else { "0" }.into(), scale, color));
+        }
     }
 }
 

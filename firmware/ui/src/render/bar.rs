@@ -10,7 +10,7 @@ use crate::app::{App, Mode, Screen};
 use crate::font::Scale;
 use crate::layer::Layer;
 use crate::menu::{Edit, Menu};
-use crate::settings::{Angle, NumberBase};
+use crate::settings::{Angle, NumberBase, Signedness};
 use crate::text;
 
 /// The top bar: the mode (or the menu's page) on the left, followed by a spinner while busy; on the right SHIFT and ALPHA while
@@ -82,19 +82,24 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         Angle::Degrees => "D",
         Angle::Radians => "R",
     };
-    // Basis-N has whole numbers only: its base instead of exact or decimal.
+    // Basis-N has whole numbers only: its base, the word's width and s(igned) or u(nsigned)
+    // instead of exact or decimal: `Hex 16u`.
     let form = match (app.mode, settings.decimal) {
-        (Mode::BaseN, _) => text::same(match settings.number_base {
-            NumberBase::Dec => "Dec",
-            NumberBase::Hex => "Hex",
-            NumberBase::Bin => "Bin",
-            NumberBase::Oct => "Oct",
-        }),
-        (_, true) => text::DECIMAL_SHORT,
-        (_, false) => text::EXACT_SHORT,
+        (Mode::BaseN, _) => {
+            let base = match settings.number_base {
+                NumberBase::Dec => "Dec",
+                NumberBase::Hex => "Hex",
+                NumberBase::Bin => "Bin",
+                NumberBase::Oct => "Oct",
+            };
+            let sign = if settings.signedness == Signedness::Signed { 's' } else { 'u' };
+            format!("{base} {}{sign}", settings.word_size.bits())
+        }
+        (_, true) => text::DECIMAL_SHORT.get(lang).to_string(),
+        (_, false) => text::EXACT_SHORT.get(lang).to_string(),
     };
     let digits = format!("{} {}", text::SIGNIFICANT_SHORT.get(lang), settings.digits);
-    for text in [angle, form.get(lang)].map(str::to_string).into_iter().chain([digits]) {
+    for text in [angle.to_string(), form, digits] {
         let width = Scale::Small.width(&text);
         shapes.push(Shape::Text(Point::new(right - width, baseline), text, Scale::Small, colors::text()));
         right -= width + 12;

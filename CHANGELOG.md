@@ -23,6 +23,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   groups of four with the index under each group (64 bits in two rows), the sign bit marked.
   A click on a bit (or Space on it) flips it and puts the new value, in the set base, into the
   input.
+- Handheld, Basis-N: OPTN sets the word size (8, 16, 32, 64 Bit) and signed or unsigned, and
+  has a group Schieben/Rotieren (`<<`, `>>`, `shl`, `shr`, `sar`, `rol`, `ror`). The top bar shows
+  the word with the base: `Hex 16u`, `Dec 32s`. S⇔D goes from the result in the set base to the
+  other bases (with their prefix, `\mathrm{h}FE`, so the result pastes back as the same number)
+  and to the bits of the word in groups of four, the sign bit in the accent.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on

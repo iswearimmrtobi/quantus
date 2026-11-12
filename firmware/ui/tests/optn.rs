@@ -181,8 +181,36 @@ fn the_top_bar_shows_the_base_in_basis_n() {
     };
     let mut app = app(Mode::BaseN);
     app.settings.number_base = quantus_ui::settings::NumberBase::Hex;
-    assert!(texts(&app).contains(&"Hex".to_string()));
+    assert!(texts(&app).contains(&"Hex 32s".to_string()));
     assert!(!texts(&app).contains(&"Exakt".to_string()));
+    app.settings.word_size = quantus_ui::settings::WordSize::W16;
+    app.settings.signedness = quantus_ui::settings::Signedness::Unsigned;
+    assert!(texts(&app).contains(&"Hex 16u".to_string()));
+}
+
+#[test]
+fn base_n_sets_the_word_and_inserts_shifts() {
+    use quantus_ui::settings::{Signedness, WordSize};
+    let mut app = app(Mode::BaseN);
+    // Wortbreite → 64 Bit, the one after 32; Vorzeichen → Ohne Vorzeichen.
+    optn(&mut app, &["Wortbreite"]);
+    app.key(Key::Down);
+    app.key(Key::Exe);
+    assert_eq!(app.settings.word_size, WordSize::W64);
+    app.key(Key::Ac);
+    optn(&mut app, &["Vorzeichen"]);
+    app.key(Key::Down);
+    app.key(Key::Exe);
+    assert_eq!(app.settings.signedness, Signedness::Unsigned);
+    let mut app = self::app(Mode::BaseN);
+    optn(&mut app, &["Schieben/Rotieren", "rol"]);
+    app.key(Key::Digit(1));
+    assert_eq!(app.editor.to_latex(), r"\mathrm{rol}(1;)");
+    let mut app = self::app(Mode::BaseN);
+    app.key(Key::Digit(1));
+    optn(&mut app, &["Schieben/Rotieren", "<<"]);
+    app.key(Key::Digit(4));
+    assert_eq!(app.editor.to_latex(), "1<<4");
 }
 
 #[test]
@@ -204,4 +232,36 @@ fn matrizen_inserts_the_matrix_functions() {
     optn(&mut app, &["Einheitsmatrix"]);
     app.key(Key::Digit(3));
     assert_eq!(app.editor.to_latex(), r"\mathrm{Identity}(3)");
+}
+
+#[test]
+fn the_bit_view_draws_the_word_with_the_row_indices() {
+    use quantus_ui::app::{Entry, View};
+    use quantus_ui::render::{Frame, Shape};
+    let mut app = app(Mode::BaseN);
+    let entry = |width| Entry {
+        input: quantus_ui::latex::parse("5"),
+        result: Ok(quantus_ui::latex::parse(r"\mathrm{b}101")),
+        decimal: false,
+        eng: None,
+        mark: None,
+        view: View::Bits { width, signed: true },
+    };
+    let texts = |app: &App<Stub>| -> Vec<String> {
+        Frame::new(app).0.iter().filter_map(|shape| match shape {
+            Shape::Text(_, text, _, _) => Some(text.clone()),
+            _ => None,
+        }).collect()
+    };
+    app.history.push(entry(8));
+    app.shown = Some(0);
+    let shown = texts(&app);
+    let bits: String = shown.iter().filter(|text| *text == "0" || *text == "1").cloned().collect();
+    assert!(bits.ends_with("00000101"), "{shown:?}");
+    assert!(shown.contains(&"7".to_string()));
+    // 64 bits in two rows of 32: the rows start at 63 and 31.
+    app.history[0] = entry(64);
+    let shown = texts(&app);
+    assert!(shown.contains(&"63".to_string()) && shown.contains(&"31".to_string()), "{shown:?}");
+    assert_eq!(shown.iter().filter(|text| *text == "1").count(), 2);
 }
