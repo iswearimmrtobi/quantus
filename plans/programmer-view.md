@@ -79,14 +79,14 @@ the shown result is re-evaluated as today when the base changes.
 
 ## Phase 1 — Core: word size, signedness, wrapping
 
-- [ ] **1.1 Settings** (`crates/quantus-core/src/settings.rs`)
-  - [ ] `enum WordSize { W8, W16, W32, W64 }` in `basen.rs`, serialised as the numbers
+- [x] **1.1 Settings** (`crates/quantus-core/src/settings.rs`)
+  - [x] `enum WordSize { W8, W16, W32, W64 }` in `basen.rs`, serialised as the numbers
         `8`/`16`/`32`/`64` (`serde_repr` or a manual impl), default `W32`; `fn bits(self) -> u32`.
-  - [ ] Fields `word_size: WordSize` and `signed: bool` (default `true`) next to `number_base`;
+  - [x] Fields `word_size: WordSize` and `signed: bool` (default `true`) next to `number_base`;
         re-export `WordSize`. JSON keys `wordSize`, `signed`.
-  - [ ] Extend the serde test (L416/L433) and `tests/settings.rs` for the defaults and a
+  - [x] Extend the serde test (L416/L433) and `tests/settings.rs` for the defaults and a
         round trip; an old settings file without the keys loads as 32/signed.
-- [ ] **1.2 The `Word` type** (`basen.rs`)
+- [x] **1.2 The `Word` type** (`basen.rs`)
   - [ ] `struct Spec { width: u32, signed: bool }` with `mask()`, `min()`, `max()` (as `i128`),
         `read(bits: u64) -> i128`, `wrap(v: i128) -> (u64, bool /*wrapped*/)`.
   - [ ] Parser carries `i128` values and `spec`; replace `fit()` by `self.wrap(v)`, which

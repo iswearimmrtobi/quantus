@@ -63,6 +63,46 @@ impl NumberBase {
     const ALL: [NumberBase; 4] = [NumberBase::Dec, NumberBase::Hex, NumberBase::Bin, NumberBase::Oct];
 }
 
+/// The width of the word Basis-N computes in; written to JSON as the number of bits.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum WordSize {
+    W8,
+    W16,
+    #[default]
+    W32,
+    W64,
+}
+
+impl WordSize {
+    pub const ALL: [WordSize; 4] = [WordSize::W8, WordSize::W16, WordSize::W32, WordSize::W64];
+
+    pub fn bits(self) -> u32 {
+        match self {
+            WordSize::W8 => 8,
+            WordSize::W16 => 16,
+            WordSize::W32 => 32,
+            WordSize::W64 => 64,
+        }
+    }
+
+    pub fn of_bits(bits: u64) -> Option<WordSize> {
+        WordSize::ALL.into_iter().find(|w| u64::from(w.bits()) == bits)
+    }
+}
+
+impl Serialize for WordSize {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        serializer.serialize_u32(self.bits())
+    }
+}
+
+impl<'de> Deserialize<'de> for WordSize {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        let bits = u64::deserialize(deserializer)?;
+        WordSize::of_bits(bits).ok_or_else(|| serde::de::Error::custom(format!("word size {bits}: expected 8, 16, 32 or 64")))
+    }
+}
+
 /// A Basis-N result: the value and how it is written in the set base and in the others.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BaseNResult {

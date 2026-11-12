@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::algebra::pipeline::{OutputStyle, PipelineConfig};
-pub use crate::basen::NumberBase;
+pub use crate::basen::{NumberBase, WordSize};
 pub use crate::logic::expr::Notation as LogicNotation;
 use crate::latex::numbers::Style;
 use crate::latex::parser::ParseOptions;
@@ -272,6 +272,10 @@ pub struct Settings {
     pub complex_form: ComplexForm,
     /// The base Basis-N mode reads and writes numbers in.
     pub number_base: NumberBase,
+    /// The width of the Basis-N word: 8, 16, 32 or 64 bits.
+    pub word_size: WordSize,
+    /// Whether Basis-N reads a word as two's complement rather than as an unsigned number.
+    pub signed: bool,
     /// The id of the desktop's colour theme (quantus-themes), or `system` for the light or the dark
     /// one as the system is set. The engine does not use it; an unknown id shows the dark theme.
     pub theme: String,
@@ -315,6 +319,8 @@ impl Default for Settings {
             recurring: true,
             complex_form: ComplexForm::Rectangular,
             number_base: NumberBase::Dec,
+            word_size: WordSize::W32,
+            signed: true,
             theme: "system".to_string(),
             logic_symbols: LogicSymbols::Iec,
             logic_notation: LogicNotation::Logic,
@@ -442,6 +448,8 @@ mod tests {
                 "recurring": true,
                 "complexForm": "rectangular",
                 "numberBase": "dec",
+                "wordSize": 32,
+                "signed": true,
                 "theme": "system",
                 "logicSymbols": "iec",
                 "logicNotation": "logic",

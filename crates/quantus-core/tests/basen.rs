@@ -21,3 +21,16 @@ fn the_setting_names_the_mode_base_n() {
     let settings: Settings = serde_json::from_value(serde_json::json!({ "mode": "baseN", "numberBase": "bin" })).unwrap();
     assert_eq!((settings.mode, settings.number_base), (Mode::BaseN, NumberBase::Bin));
 }
+
+#[test]
+fn word_size_and_signedness_are_settings() {
+    use quantus_core::settings::WordSize;
+    // An old settings file without the keys loads as 32 bit, signed.
+    let old: Settings = serde_json::from_value(serde_json::json!({ "mode": "baseN" })).unwrap();
+    assert_eq!((old.word_size, old.signed), (WordSize::W32, true));
+    let settings = Settings { word_size: WordSize::W8, signed: false, ..Settings::default() };
+    let json = serde_json::to_value(&settings).unwrap();
+    assert_eq!((&json["wordSize"], &json["signed"]), (&serde_json::json!(8), &serde_json::json!(false)));
+    assert_eq!(serde_json::from_value::<Settings>(json).unwrap(), settings);
+    assert!(serde_json::from_value::<Settings>(serde_json::json!({ "wordSize": 12 })).is_err());
+}

@@ -510,6 +510,9 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
             ui::NumberBase::Bin => core::NumberBase::Bin,
             ui::NumberBase::Oct => core::NumberBase::Oct,
         },
+        // Until the handheld has the settings of its own: 32 bit, signed.
+        word_size: core::WordSize::W32,
+        signed: true,
         // The handheld keeps its theme apart from the settings (the UI's own palette).
         theme: core::Settings::default().theme,
         // The handheld has no logic mode yet.
