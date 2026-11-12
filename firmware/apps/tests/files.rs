@@ -42,7 +42,7 @@ fn data_are_written_replaced_and_removed() {
 struct Card(Apps);
 
 impl Backend for Card {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

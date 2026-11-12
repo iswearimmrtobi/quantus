@@ -17,7 +17,7 @@ use quantus_core::session::SessionStore;
 use quantus_core::settings::{self as core, Mode as CoreMode};
 use quantus_ui::app::{Mode, Settings};
 use quantus_ui::backend::{
-    Backend, Catalogue, Group, IndexItem, IndexKind, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, Variable,
+    Answer, Backend, Catalogue, Failure, Group, IndexItem, IndexKind, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Stored, Units, Variable,
     VariableCommand,
 };
 use quantus_ui::clock;
@@ -173,7 +173,7 @@ impl Engine {
     }
 
     /// Evaluates `latex` in the open session; `record` puts it into the history (S⇔D does not).
-    fn calculate(&mut self, mode: Mode, settings: &Settings, latex: &str, record: bool) -> Result<String, String> {
+    fn calculate(&mut self, mode: Mode, settings: &Settings, latex: &str, record: bool) -> Answer {
         self.prepare(mode, settings)?;
         let (latex, session_id, precision) = (latex.to_string(), Some(self.current.clone()), Some(settings.digits.into()));
         let response = if record {
@@ -182,7 +182,11 @@ impl Engine {
         } else {
             api::calc(&mut self.store, &CalcRequest { latex, values: Vec::new(), session_id, precision })
         };
-        let response = response.map_err(|error| error.to_string())?;
+        let response = response.map_err(|error| Failure {
+            span: error.span.map(|span| (span.start, span.end)),
+            message: error.error,
+            reason: error.reason,
+        })?;
         // A definition and Ans changed, and the history if recorded.
         self.save(&self.current);
         Ok(shown(&response, settings))
@@ -190,11 +194,11 @@ impl Engine {
 }
 
 impl Backend for Engine {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Answer {
         self.calculate(mode, settings, latex, true)
     }
 
-    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Answer> {
         Some(self.calculate(mode, settings, latex, false))
     }
 

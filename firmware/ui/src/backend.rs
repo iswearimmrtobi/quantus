@@ -6,26 +6,59 @@ use crate::settings::{DistributionKind, StatisticsType};
 use crate::text;
 use crate::wallpaper::Wallpaper;
 
+/// Why a calculation failed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Failure {
+    /// The message as it stands on its own (a parse error says where).
+    pub message: String,
+    /// The message for when the input shows where: without the position.
+    pub reason: String,
+    /// The part of the input the error is about, as characters of the LaTeX that was sent:
+    /// the first and the one after the last.
+    pub span: Option<(usize, usize)>,
+}
+
+impl From<String> for Failure {
+    fn from(message: String) -> Self {
+        Failure { reason: message.clone(), message, span: None }
+    }
+}
+
+impl From<&str> for Failure {
+    fn from(message: &str) -> Self {
+        message.to_string().into()
+    }
+}
+
+impl std::fmt::Display for Failure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+/// A calculation's result as LaTeX, or why there is none.
+pub type Answer = Result<String, Failure>;
+
 pub trait Backend {
-    /// The result of `latex` in `mode`, written as `settings` say, as LaTeX, or an error message.
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String>;
+    /// The result of `latex` in `mode`, written as `settings` say, as LaTeX, or why not.
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Answer;
 
     /// Starts a calculation. A backend that answers at once returns the answer; one that
     /// calculates elsewhere (on a thread of its own) returns `None` and hands it to
     /// [`poll`](Backend::poll) later. One calculation at a time: the app waits for the answer or
     /// drops it before it starts the next.
-    fn start(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+    fn start(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Answer> {
         Some(self.evaluate(mode, settings, latex))
     }
 
     /// The answer to the last [`start`](Backend::start) that returned `None`, once it is there.
-    fn poll(&mut self) -> Option<Result<String, String>> {
+    fn poll(&mut self) -> Option<Answer> {
         None
     }
 
     /// [`start`](Backend::start) for an input that is already in the history, in the other form
     /// (S⇔D): the session does not record it a second time.
-    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Answer> {
         self.start(mode, settings, latex)
     }
 
@@ -172,7 +205,7 @@ pub trait Backend {
     /// variables but without writing it into the history; the answer now, or `None` and
     /// [`poll`](Backend::poll) brings it. The default is [`recalculate`](Backend::recalculate),
     /// which does just that.
-    fn app_calc(&mut self, mode: Mode, settings: &Settings, input: &str) -> Option<Result<String, String>> {
+    fn app_calc(&mut self, mode: Mode, settings: &Settings, input: &str) -> Option<Answer> {
         self.recalculate(mode, settings, input)
     }
 
@@ -737,9 +770,9 @@ fn parabola() -> Graph {
 pub struct Stub;
 
 impl Backend for Stub {
-    fn evaluate(&mut self, _mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, _mode: Mode, settings: &Settings, latex: &str) -> Answer {
         if latex.contains('?') {
-            Err("Syntax error".to_string())
+            Err("Syntax error".into())
         } else if settings.decimal {
             Ok(format!(r"\approx {latex}"))
         } else {

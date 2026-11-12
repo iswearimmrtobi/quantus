@@ -25,6 +25,8 @@ const SYMBOLS: &[(char, &str)] = &[
     ('}', "}"),
 ];
 
+use std::ops::Range;
+
 use crate::key::Key;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -550,12 +552,61 @@ impl Editor {
     }
 }
 
+/// A stretch of nodes in one row of an input: the row's path (as [`Editor`] keeps it) and the
+/// nodes' indices in it. What an error marks.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Mark {
+    pub path: Vec<(usize, usize)>,
+    pub nodes: Range<usize>,
+}
+
+impl Row {
+    /// The nodes that wrote the characters `span` (first, one after the last) of
+    /// [`to_latex`](Row::to_latex): those of the innermost row whose nodes wrote all of it.
+    /// `None` for an empty span or one outside the LaTeX.
+    pub fn mark(&self, span: (usize, usize)) -> Option<Mark> {
+        let (start, end) = span;
+        if start >= end {
+            return None;
+        }
+        let mut latex = Latex { written: Some(Vec::new()), ..Latex::default() };
+        latex.row(self);
+        let written = latex.written.unwrap_or_default();
+        let mut best: Option<Mark> = None;
+        for Written { path, .. } in &written {
+            if best.as_ref().is_some_and(|mark| mark.path.len() >= path.len()) {
+                continue;
+            }
+            let overlapping: Vec<_> = written.iter().filter(|w| &w.path == path && w.start < end && w.end > start).collect();
+            let (Some(first), Some(last)) = (overlapping.first(), overlapping.last()) else { continue };
+            if first.start <= start && last.end >= end {
+                best = Some(Mark { path: path.clone(), nodes: first.index..last.index + 1 });
+            }
+        }
+        best
+    }
+}
+
 /// Writes rows as LaTeX, with a space after a command made of letters where the next text
 /// would otherwise run into it (`\pi x`).
 #[derive(Default)]
 struct Latex {
     out: String,
     after_command: bool,
+    /// The row being written, as a path from the outer row.
+    path: Vec<(usize, usize)>,
+    /// When kept: what each node wrote.
+    written: Option<Vec<Written>>,
+}
+
+/// The characters a node wrote: the first and the one after the last.
+struct Written {
+    /// Its row, as a path from the outer row.
+    path: Vec<(usize, usize)>,
+    /// Its index in the row.
+    index: usize,
+    start: usize,
+    end: usize,
 }
 
 impl Latex {
@@ -579,6 +630,17 @@ impl Latex {
         self.text("}");
     }
 
+    /// Writes a node's row `slot` (`{}` around it unless `bare`).
+    fn slot(&mut self, node: usize, slot: usize, row: &Row, bare: bool) {
+        self.path.push((node, slot));
+        if bare {
+            self.row(row);
+        } else {
+            self.group(row);
+        }
+        self.path.pop();
+    }
+
     fn char(&mut self, c: char) {
         match c {
             ',' => self.text("{,}"),
@@ -593,67 +655,77 @@ impl Latex {
     }
 
     fn row(&mut self, row: &Row) {
-        for node in &row.0 {
-            match node {
-                Node::Char(c) => self.char(*c),
-                Node::Func(name) => self.command(name),
-                Node::Upright(text) => {
-                    self.command("mathrm");
-                    self.text("{");
-                    text.chars().for_each(|c| self.char(c));
-                    self.text("}");
-                }
-                Node::Frac(numerator, denominator) => {
-                    self.command("frac");
-                    self.group(numerator);
-                    self.group(denominator);
-                }
-                Node::Binom(n, r) => {
-                    self.command("binom");
-                    self.group(n);
-                    self.group(r);
-                }
-                Node::Matrix(rows) => {
-                    self.text(r"\begin{pmatrix}");
-                    for (index, cells) in rows.iter().enumerate() {
-                        if index > 0 {
-                            self.text(r"\\");
-                        }
-                        for (column, cell) in cells.iter().enumerate() {
-                            if column > 0 {
-                                self.text("&");
-                            }
-                            self.row(cell);
-                        }
+        for (index, node) in row.0.iter().enumerate() {
+            let start = self.written.is_some().then(|| self.out.chars().count());
+            self.node(index, node);
+            if let (Some(start), Some(written)) = (start, &mut self.written) {
+                written.push(Written { path: self.path.clone(), index, start, end: self.out.chars().count() });
+            }
+        }
+    }
+
+    fn node(&mut self, index: usize, node: &Node) {
+        match node {
+            Node::Char(c) => self.char(*c),
+            Node::Func(name) => self.command(name),
+            Node::Upright(text) => {
+                self.command("mathrm");
+                self.text("{");
+                text.chars().for_each(|c| self.char(c));
+                self.text("}");
+            }
+            Node::Frac(numerator, denominator) => {
+                self.command("frac");
+                self.slot(index, 0, numerator, false);
+                self.slot(index, 1, denominator, false);
+            }
+            Node::Binom(n, r) => {
+                self.command("binom");
+                self.slot(index, 0, n, false);
+                self.slot(index, 1, r, false);
+            }
+            Node::Matrix(rows) => {
+                self.text(r"\begin{pmatrix}");
+                let mut slot = 0;
+                for (line, cells) in rows.iter().enumerate() {
+                    if line > 0 {
+                        self.text(r"\\");
                     }
-                    self.text(r"\end{pmatrix}");
+                    for (column, cell) in cells.iter().enumerate() {
+                        if column > 0 {
+                            self.text("&");
+                        }
+                        self.slot(index, slot, cell, true);
+                        slot += 1;
+                    }
                 }
-                Node::Pow(exponent) => {
-                    self.text("^");
-                    self.group(exponent);
-                }
-                Node::Sub(index) => {
-                    self.text("_");
-                    self.group(index);
-                }
-                Node::Sqrt(radicand) => {
-                    self.command("sqrt");
-                    self.group(radicand);
-                }
-                Node::Accent(accent, row) => {
-                    self.command(match accent {
-                        Accent::Bar => "bar",
-                        Accent::Hat => "hat",
-                    });
-                    self.group(row);
-                }
-                Node::Root(index, radicand) => {
-                    self.command("sqrt");
-                    self.text("[");
-                    self.row(index);
-                    self.text("]");
-                    self.group(radicand);
-                }
+                self.text(r"\end{pmatrix}");
+            }
+            Node::Pow(exponent) => {
+                self.text("^");
+                self.slot(index, 0, exponent, false);
+            }
+            Node::Sub(subscript) => {
+                self.text("_");
+                self.slot(index, 0, subscript, false);
+            }
+            Node::Sqrt(radicand) => {
+                self.command("sqrt");
+                self.slot(index, 0, radicand, false);
+            }
+            Node::Accent(accent, row) => {
+                self.command(match accent {
+                    Accent::Bar => "bar",
+                    Accent::Hat => "hat",
+                });
+                self.slot(index, 0, row, false);
+            }
+            Node::Root(degree, radicand) => {
+                self.command("sqrt");
+                self.text("[");
+                self.slot(index, 0, degree, true);
+                self.text("]");
+                self.slot(index, 1, radicand, false);
             }
         }
     }

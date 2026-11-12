@@ -15,7 +15,7 @@ struct Themed {
 }
 
 impl Backend for Themed {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

@@ -204,13 +204,13 @@ struct Board {
 
 impl Backend for Board {
     #[cfg(feature = "engine")]
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         self.engine.send(mode, settings, latex, true);
         self.engine.wait()
     }
 
     #[cfg(not(feature = "engine"))]
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         let result = quantus_ui::backend::Stub.evaluate(mode, settings, latex);
         println!("{}: {latex}  =>  {result:?}", mode.name(quantus_ui::text::Lang::En));
         result
@@ -218,13 +218,13 @@ impl Backend for Board {
 
     /// The engine calculates on its thread; `poll` brings the answer.
     #[cfg(feature = "engine")]
-    fn start(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+    fn start(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<quantus_ui::backend::Answer> {
         self.engine.send(mode, settings, latex, true);
         None
     }
 
     #[cfg(feature = "engine")]
-    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<quantus_ui::backend::Answer> {
         self.engine.send(mode, settings, latex, false);
         None
     }
@@ -265,7 +265,7 @@ impl Backend for Board {
     }
 
     #[cfg(feature = "engine")]
-    fn poll(&mut self) -> Option<Result<String, String>> {
+    fn poll(&mut self) -> Option<quantus_ui::backend::Answer> {
         self.engine.poll()
     }
 

@@ -74,6 +74,8 @@ pub mod colors {
         pub faint: Rgb565,
         pub result: Rgb565,
         pub error: Rgb565,
+        /// The error colour dimmed, for the fill behind the part of an input an error is about.
+        pub error_dim: Rgb565,
         pub shift: Rgb565,
         pub alpha: Rgb565,
         pub unit: Rgb565,
@@ -99,6 +101,8 @@ pub mod colors {
             faint: rgb(0x55, 0x50, 0x6a),
             result: rgb(0xbf, 0xa0, 0xf2),
             error: rgb(0xc9, 0x8a, 0x96),
+            // Half the error colour over the background.
+            error_dim: rgb(0x70, 0x50, 0x59),
             shift: rgb(0xc9, 0xa4, 0x6a),
             alpha: rgb(0x8f, 0xb3, 0xa0),
             unit: rgb(0x91, 0x86, 0xe8),
@@ -130,6 +134,7 @@ pub mod colors {
             let own = |key| color(theme.handheld(key));
             let (surface, raised) = (theme.color("surface"), theme.color("surface-raised"));
             let half = |a: u8, b: u8| ((u16::from(a) + u16::from(b)) / 2) as u8;
+            let (error, background) = (theme.handheld("error"), theme.color("background"));
             Palette {
                 background: shared("background"),
                 surface: shared("surface"),
@@ -140,6 +145,7 @@ pub mod colors {
                 faint: shared("text-faint"),
                 result: own("result"),
                 error: own("error"),
+                error_dim: rgb(half(error.r, background.r), half(error.g, background.g), half(error.b, background.b)),
                 shift: own("shift"),
                 alpha: own("alpha"),
                 unit: own("unit"),
@@ -175,6 +181,7 @@ pub mod colors {
     pub fn faint() -> Rgb565 { get().faint }
     pub fn result() -> Rgb565 { get().result }
     pub fn error() -> Rgb565 { get().error }
+    pub fn error_dim() -> Rgb565 { get().error_dim }
     pub fn shift() -> Rgb565 { get().shift }
     pub fn alpha() -> Rgb565 { get().alpha }
     pub fn unit() -> Rgb565 { get().unit }

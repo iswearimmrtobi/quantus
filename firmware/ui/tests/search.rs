@@ -12,7 +12,7 @@ use quantus_ui::text::Lang;
 struct Library;
 
 impl Backend for Library {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 
@@ -134,7 +134,7 @@ impl quantus_ui::applet::Applet for Idle {
 }
 
 impl Backend for Shelf {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

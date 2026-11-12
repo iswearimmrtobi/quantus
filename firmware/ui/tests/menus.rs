@@ -242,7 +242,7 @@ fn the_wallpaper_page_sets_where_it_shows() {
 struct Card;
 
 impl quantus_ui::backend::Backend for Card {
-    fn evaluate(&mut self, mode: quantus_ui::app::Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: quantus_ui::app::Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

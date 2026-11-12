@@ -448,7 +448,7 @@ struct Shelf {
 }
 
 impl quantus_ui::backend::Backend for Shelf {
-    fn evaluate(&mut self, mode: Mode, settings: &quantus_ui::app::Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &quantus_ui::app::Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

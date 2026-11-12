@@ -39,6 +39,16 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         let selected = Rectangle::new(from.top_left, Size::new((to.top_left.x - from.top_left.x).max(0) as u32 + 2, from.size.height));
         shapes.push(Shape::Fill(selected, colors::primary_dim()));
     }
+    // The part of the input the shown error is about, red behind it, while the input is the
+    // one that failed.
+    if let Some(entry) = app.shown_entry().filter(|entry| entry.input == app.editor.row) {
+        if let Some(mark) = &entry.mark {
+            let at = |pos| layout::caret(&input, origin, &mark.path, pos);
+            let (from, to) = (at(mark.nodes.start), at(mark.nodes.end));
+            let width = (to.top_left.x - from.top_left.x).max(0) as u32 + 2;
+            shapes.push(Shape::Fill(Rectangle::new(from.top_left, Size::new(width, from.size.height)), colors::error_dim()));
+        }
+    }
     if !app.editor.is_empty() {
         shapes.push(Shape::Math(origin, input, colors::text()));
     }
@@ -57,10 +67,21 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
                 shapes.push(Shape::Math(Point::new(x, bottom - result.descent), result, colors::result()));
             }
             Err(message) => {
+                // A message too long for one line goes on several in the small font, the last
+                // at the bottom: it says what to do, so all of it has to show.
+                let room = width - 2 * MARGIN;
+                let (lines, scale) = if scale.width(message) <= room {
+                    (vec![message.to_string()], scale)
+                } else {
+                    (super::sheet::wrap(message, room, Scale::Small), Scale::Small)
+                };
                 let metrics = scale.metrics();
-                let x = (width - MARGIN - scale.width(message)).max(MARGIN);
-                let at = Point::new(x, bottom - metrics.descent);
-                shapes.push(Shape::Text(at, message.to_string(), scale, colors::error()));
+                let height = metrics.ascent + metrics.descent + 2;
+                for (index, line) in lines.iter().rev().take(4).enumerate() {
+                    let x = (width - MARGIN - scale.width(line)).max(MARGIN);
+                    let at = Point::new(x, bottom - metrics.descent - index as i32 * height);
+                    shapes.push(Shape::Text(at, line.clone(), scale, colors::error()));
+                }
             }
         }
     }

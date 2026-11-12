@@ -173,7 +173,7 @@ mod optn {
     /// `latex` as the hui's editor holds and writes it, worked out in `mode`.
     pub fn typed(mode: Mode, latex: &str) -> Result<String, String> {
         let edited = latex::parse(latex).to_latex();
-        Engine::default().evaluate(mode, &Settings { decimal: true, ..Settings::default() }, &edited)
+        Engine::default().evaluate(mode, &Settings { decimal: true, ..Settings::default() }, &edited).map_err(|failure| failure.message)
     }
 
     #[test]
@@ -388,4 +388,45 @@ fn eng_steps_the_exponent_by_three() {
     assert_eq!(eng(&mut engine, 0), r"12{,}345 \cdot 10^{3}");
     assert_eq!(eng(&mut engine, 1), r"0{,}012345 \cdot 10^{6}");
     assert_eq!(eng(&mut engine, -1), r"12345 \cdot 10^{0}");
+}
+
+/// Errors that mark the part of the input they are about (feature idea 6), from the input as
+/// the editor holds it to the nodes drawn red.
+mod marks {
+    use quantus_engine::Engine;
+    use quantus_ui::app::{Mode, Settings};
+    use quantus_ui::backend::Backend;
+    use quantus_ui::editor::Mark;
+    use quantus_ui::latex;
+
+    /// The nodes the error for `latex`, typed in Physik, marks.
+    fn marked(latex: &str) -> Option<Mark> {
+        let row = latex::parse(latex);
+        let failure = Engine::default().evaluate(Mode::Physics, &Settings::default(), &row.to_latex()).expect_err(latex);
+        row.mark(failure.span?)
+    }
+
+    #[test]
+    fn a_sum_of_metres_and_seconds_marks_both_terms() {
+        // 1, thin space, m, +, 2, thin space, s
+        assert_eq!(marked(r"1\,\mathrm{m}+2\,\mathrm{s}+3"), Some(Mark { path: vec![], nodes: 0..7 }));
+    }
+
+    #[test]
+    fn a_division_by_zero_marks_the_denominator() {
+        assert_eq!(marked(r"2+\frac{1}{3-3}"), Some(Mark { path: vec![(2, 1)], nodes: 0..3 }));
+    }
+
+    #[test]
+    fn a_missing_operand_at_the_end_marks_nothing() {
+        let row = latex::parse("2+");
+        let failure = Engine::default().evaluate(Mode::Physics, &Settings::default(), &row.to_latex()).expect_err("2+");
+        assert_eq!(failure.span.and_then(|span| row.mark(span)), None);
+        assert!(!failure.reason.contains("position"), "{}", failure.reason);
+    }
+
+    #[test]
+    fn an_undefined_variable_marks_the_letter_and_its_subscript() {
+        assert_eq!(marked(r"3\cdot v_{1}"), Some(Mark { path: vec![], nodes: 2..4 }));
+    }
 }

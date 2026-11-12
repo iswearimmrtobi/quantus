@@ -20,7 +20,7 @@ use quantus_ui::text::Lang;
 /// WROOM needed at most 14 KB for the inputs of the spike's `:bench`.
 const ENGINE_STACK: usize = 64 * 1024;
 
-type Answer = Result<String, String>;
+type Answer = quantus_ui::backend::Answer;
 
 /// What the engine thread hands back: a calculation's LaTeX, or a sheet's answer.
 enum Done {
@@ -220,7 +220,7 @@ impl Worker {
             match self.answers.recv() {
                 Ok((generation, Done::Latex(answer))) if generation == self.generation => return answer,
                 Ok(_) => {}
-                Err(_) => return Err(tr!(self.lang, "hui.engine_stopped")),
+                Err(_) => return Err(tr!(self.lang, "hui.engine_stopped").into()),
             }
         }
     }

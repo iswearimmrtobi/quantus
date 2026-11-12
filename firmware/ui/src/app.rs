@@ -5,7 +5,7 @@ use crate::backend::{
     Backend, Catalogue, Graph, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Units, VariableCommand, Window,
     WlanStatus,
 };
-use crate::editor::{Editor, Node, Row};
+use crate::editor::{Editor, Mark, Node, Row};
 use crate::key::Key;
 use crate::latex;
 use crate::layer::{self, Layer, Modifier, Resolved};
@@ -216,7 +216,7 @@ impl<B: Backend> Host for AppHost<'_, B> {
     fn calc(&mut self, input: &str) -> Option<Result<String, String>> {
         let answer = self.backend.app_calc(self.mode, &self.settings, input);
         self.template.calculating = answer.is_none();
-        answer
+        answer.map(|answer| answer.map_err(|failure| failure.message))
     }
 
     fn load(&mut self) -> Option<String> {
@@ -248,6 +248,8 @@ pub struct Entry {
     /// The steps ENG took the result to (0 after the first press, −1 after ←ENG), if it is
     /// written in engineering notation; S⇔D ends it.
     pub eng: Option<i32>,
+    /// The nodes of the input an error is about, drawn red behind them.
+    pub mark: Option<Mark>,
 }
 
 /// A calculation the backend is still working on, and where its answer goes.
@@ -652,7 +654,7 @@ impl<B: Backend> App<B> {
             .history
             .into_iter()
             .skip(skip)
-            .map(|(input, result)| Entry { input: latex::parse(&input), result: Ok(latex::parse(&result)), decimal, eng: None })
+            .map(|(input, result)| Entry { input: latex::parse(&input), result: Ok(latex::parse(&result)), decimal, eng: None, mark: None })
             .collect();
         self.session = Some(opened.info);
         self.reset();
@@ -795,7 +797,7 @@ impl<B: Backend> App<B> {
                 self.busy = false;
                 if let Some((applet, mut host)) = self.applet() {
                     host.template.calculating = false;
-                    applet.answer(Response::Calc(answer), &mut host);
+                    applet.answer(Response::Calc(answer.map_err(|failure| failure.message)), &mut host);
                 }
                 changed = true;
             }
@@ -2457,7 +2459,7 @@ impl<B: Backend> App<B> {
                     Err(message) => Err(message),
                 };
                 self.pending = Some(Pending::New { input, decimal: self.settings.decimal });
-                self.finish(result);
+                self.finish(result.map_err(Into::into));
             }
             _ => {}
         }
@@ -2466,7 +2468,7 @@ impl<B: Backend> App<B> {
     /// Shows `result` for the input as a new entry of the history.
     fn answer_entry(&mut self, result: Result<String, String>) {
         self.pending = Some(Pending::New { input: self.editor.row.clone(), decimal: self.settings.decimal });
-        self.finish(result);
+        self.finish(result.map_err(Into::into));
     }
 
     /// A key on a curve sketch: ←/→ turn its pages, ↑/↓ scroll one, AC, DEL, OK and EXE go
@@ -2792,7 +2794,7 @@ impl<B: Backend> App<B> {
             self.start(pending, &settings, &self.editor.to_latex());
         } else {
             self.pending = Some(pending);
-            self.finish(Err(text::NOT_AVAILABLE.get(self.settings.language).to_string()));
+            self.finish(Err(text::NOT_AVAILABLE.get(self.settings.language).into()));
         }
     }
 
@@ -2810,12 +2812,12 @@ impl<B: Backend> App<B> {
     }
 
     /// Writes the answer to the pending calculation into the history and shows it.
-    fn finish(&mut self, result: Result<String, String>) {
+    fn finish(&mut self, answer: crate::backend::Answer) {
         self.busy = false;
-        let result = result.map(|latex| latex::parse(&latex));
         match self.pending.take() {
             Some(Pending::New { input, decimal }) => {
-                self.history.push(Entry { input: input.clone(), result, decimal, eng: None });
+                let (result, mark) = written(&answer, &input);
+                self.history.push(Entry { input: input.clone(), result, decimal, eng: None, mark });
                 if self.history.len() > HISTORY {
                     self.history.remove(0);
                 }
@@ -2824,7 +2826,7 @@ impl<B: Backend> App<B> {
             }
             Some(Pending::Swap { index, decimal }) => {
                 if let Some(entry) = self.history.get_mut(index) {
-                    entry.result = result;
+                    (entry.result, entry.mark) = written(&answer, &entry.input);
                     entry.decimal = decimal;
                     entry.eng = None;
                 }
@@ -2886,4 +2888,14 @@ pub(crate) fn type_key(editor: &mut Editor, key: Key, shift: bool, clipboard: &m
         _ => return false,
     }
     true
+}
+
+/// What the history keeps of `answer` to `input`: the result, or the error and the nodes of
+/// the input it is about. The message goes without the position in the LaTeX a parse error
+/// adds: the input shows the place, and no one sees that LaTeX here.
+fn written(answer: &crate::backend::Answer, input: &Row) -> (Result<Row, String>, Option<Mark>) {
+    match answer {
+        Ok(latex) => (Ok(latex::parse(latex)), None),
+        Err(failure) => (Err(failure.reason.clone()), failure.span.and_then(|span| input.mark(span))),
+    }
 }

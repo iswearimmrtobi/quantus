@@ -17,7 +17,7 @@ struct State {
     /// What was started and not yet answered or dropped.
     asked: Option<String>,
     /// The answer `poll` hands out next.
-    ready: Option<Result<String, String>>,
+    ready: Option<quantus_ui::backend::Answer>,
     started: usize,
     dropped: usize,
 }
@@ -32,11 +32,11 @@ impl Later {
 }
 
 impl Backend for Later {
-    fn evaluate(&mut self, _mode: Mode, _settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, _mode: Mode, _settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Ok(latex.to_string())
     }
 
-    fn start(&mut self, _mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+    fn start(&mut self, _mode: Mode, settings: &Settings, latex: &str) -> Option<quantus_ui::backend::Answer> {
         let mut state = self.0.borrow_mut();
         state.started += 1;
         let latex = if settings.decimal { format!(r"\approx {latex}") } else { latex.to_string() };
@@ -44,7 +44,7 @@ impl Backend for Later {
         None
     }
 
-    fn poll(&mut self) -> Option<Result<String, String>> {
+    fn poll(&mut self) -> Option<quantus_ui::backend::Answer> {
         self.0.borrow_mut().ready.take()
     }
 

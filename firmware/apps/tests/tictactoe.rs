@@ -20,7 +20,7 @@ const SOURCE: &str = include_str!("../apps/tictactoe.lua");
 struct Seeded1(Seeded);
 
 impl Backend for Seeded1 {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

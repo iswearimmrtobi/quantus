@@ -125,7 +125,7 @@ mod forms {
         }
 
         fn calc(&mut self, input: &str) -> Option<Result<String, String>> {
-            self.0.app_calc(Mode::Physics, &Settings::default(), input)
+            self.0.app_calc(Mode::Physics, &Settings::default(), input).map(|answer| answer.map_err(|failure| failure.message))
         }
     }
 

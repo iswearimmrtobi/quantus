@@ -57,7 +57,7 @@ fn a_saved_exam_mode_keeps_the_radios_off() {
 struct Kept(Rc<RefCell<Vec<Settings>>>);
 
 impl Backend for Kept {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

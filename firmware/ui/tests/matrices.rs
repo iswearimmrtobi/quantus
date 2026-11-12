@@ -9,7 +9,7 @@ use quantus_ui::sheet::Kind;
 struct OneMatrix;
 
 impl Backend for OneMatrix {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

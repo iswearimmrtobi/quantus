@@ -18,7 +18,7 @@ fn info(id: &str, name: &str) -> SessionInfo {
 }
 
 impl Backend for Two {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 

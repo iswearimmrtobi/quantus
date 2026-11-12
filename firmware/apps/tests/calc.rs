@@ -19,17 +19,17 @@ struct Slow {
 }
 
 impl Backend for Slow {
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         Stub.evaluate(mode, settings, latex)
     }
 
-    fn app_calc(&mut self, mode: Mode, _settings: &Settings, _input: &str) -> Option<Result<String, String>> {
+    fn app_calc(&mut self, mode: Mode, _settings: &Settings, _input: &str) -> Option<quantus_ui::backend::Answer> {
         self.mode.set(Some(mode));
         self.polls = 0;
         None
     }
 
-    fn poll(&mut self) -> Option<Result<String, String>> {
+    fn poll(&mut self) -> Option<quantus_ui::backend::Answer> {
         self.polls += 1;
         (self.polls >= 2).then(|| Ok(r"\approx 4{,}2".to_string()))
     }

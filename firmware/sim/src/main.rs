@@ -340,14 +340,14 @@ impl Backend for Sim {
         self.keep && self.apps.delete_data(id)
     }
 
-    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Result<String, String> {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> quantus_ui::backend::Answer {
         match &mut self.answers {
             Answers::Engine(engine) => engine.evaluate(mode, settings, latex),
             Answers::Stub(stub) => stub.evaluate(mode, settings, latex),
         }
     }
 
-    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<Result<String, String>> {
+    fn recalculate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Option<quantus_ui::backend::Answer> {
         match &mut self.answers {
             Answers::Engine(engine) => engine.recalculate(mode, settings, latex),
             Answers::Stub(stub) => stub.recalculate(mode, settings, latex),
