@@ -1,4 +1,4 @@
-//! Errors that point at the part of the input they are about (feature idea 6).
+//! Errors that point at the part of the input they are about.
 
 use std::collections::HashMap;
 
@@ -74,4 +74,15 @@ fn an_undefined_variable_is_marked() {
 #[test]
 fn a_unit_where_a_number_belongs_marks_the_argument() {
     assert_eq!(physics("1 + \\sin\\left(2\\,\\mathrm{m}\\right)").as_deref(), Some("\\left(2\\,\\mathrm{m}\\right)"));
+}
+
+/// The example of `docs/docs/contributing/api.md`.
+#[test]
+fn the_documented_example_holds() {
+    let mut store = SessionStore::new();
+    let request = CalculationRequest { latex: "72\\frac{km}{h} \\to \\frac{m}{s}".into(), ..Default::default() };
+    let error = api::evaluate(&mut store, &request).unwrap_err();
+    let span = error.span.expect("a span");
+    assert_eq!((error.position, span.start, span.end), (Some(15), 15, 18));
+    assert_eq!(error.reason, "Unsupported command '\\to'.");
 }

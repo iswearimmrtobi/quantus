@@ -390,7 +390,7 @@ fn eng_steps_the_exponent_by_three() {
     assert_eq!(eng(&mut engine, -1), r"12345 \cdot 10^{0}");
 }
 
-/// Errors that mark the part of the input they are about (feature idea 6), from the input as
+/// Errors that mark the part of the input they are about, from the input as
 /// the editor holds it to the nodes drawn red.
 mod marks {
     use quantus_engine::Engine;

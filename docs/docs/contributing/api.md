@@ -17,10 +17,21 @@ values) are sent as LaTeX strings and parsed by the engine, so they accept what 
 Every command that can fail returns
 
 ```json
-{ "error": "Unsupported command '\\to'. (at position 16: '\\to \\frac{m}…')", "position": 15 }
+{
+  "error": "Unsupported command '\\to'. (at position 16: '\\to \\frac{m}…')",
+  "position": 15,
+  "span": { "start": 15, "end": 18 },
+  "reason": "Unsupported command '\\to'."
+}
 ```
 
-`position` is 0-based and set for parser errors only.
+`span` is the part of the input the error is about, as 0-based characters (Unicode code points,
+not UTF-16 units) of the LaTeX that was sent, `end` exclusive; `null` when the error is about no
+particular part. Evaluation errors have one too: `1\,\mathrm{m} + 2\,\mathrm{s}` spans the
+sum, a division by zero the denominator. `position` is the span's start (or a parser error's
+position). `reason` is `error` without the position a parser error adds, for a shell that marks
+the span in the input instead. Errors of the modes with their own language (Basis-N, Matrizen)
+have no span.
 
 ## Calculator
 
@@ -191,7 +202,7 @@ RemoteRequest {
   settings?: Settings      // the caller's settings for this call
   session?: SessionFile    // the caller's session to compute in
 }
-RemoteResponse { version: 1, id, result?: any, error?: { error, position? }, session?: SessionFile }
+RemoteResponse { version: 1, id, result?: any, error?: { error, position?, span?, reason? }, session?: SessionFile }
 ```
 
 The methods are `evaluate`, `defineVariable`, `freeVariables`, `calc`, `solveFor`,

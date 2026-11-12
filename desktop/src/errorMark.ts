@@ -2,7 +2,7 @@ import type { MathfieldElement } from 'mathlive';
 import type { Span } from './api';
 
 /**
- * Marking the part of the input an error is about (feature idea 6).
+ * Marking the part of the input an error is about.
  *
  * The backend counts a span in characters (code points) of the LaTeX it was sent; a text field
  * counts UTF-16 units, and MathLive counts positions in its own model, so both are translated

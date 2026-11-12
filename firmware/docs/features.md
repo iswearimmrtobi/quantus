@@ -6,7 +6,7 @@ documents this list is drawn from: [plans.md](../../plans/plans.md) §4–5,
 [hardware.md](hardware.md). Ideas that are not planned yet are in
 [feature-ideas.md](../../plans/feature-ideas.md).
 
-State on 2026-11-09.
+State on 2026-11-12.
 
 - `[x]` works: on the board, or in the hui and the simulator where the board has no part in it
 - `[~]` partly: what is missing follows the dash
@@ -130,6 +130,7 @@ State on 2026-11-09.
 
 - [x] Exact or decimal, as SETUP says
 - [x] S⇔D between exact and decimal
+- [x] An error marks the part of the input it is about with a red box; a long message wraps
 - [x] Fractions improper or mixed (d/c, ab/c)
 - [ ] S⇔D through all forms: recurring decimal, mixed fraction, °′″
 - [ ] FACT (prime factors) from OPTN

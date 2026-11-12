@@ -83,7 +83,7 @@ export function App() {
   const [input, setInput] = useState('');
   const [calculation, setCalculation] = useState<Calculation | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  /** Whether the input shows the part the error is about (feature idea 6). */
+  /** Whether the input shows the part the error is about. */
   const [errorMarked, setErrorMarked] = useState(false);
   const [variables, setVariables] = useState<Variable[]>([]);
   /** The open session's history, oldest first, as the engine keeps it. */

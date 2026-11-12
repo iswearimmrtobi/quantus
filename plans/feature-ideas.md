@@ -25,8 +25,8 @@ editor for one field that compiles to exact equations, solves them, and writes t
 1. Working faster: [user-defined functions](#1-user-defined-functions),
    [history search and pins](#2-history-search-pins-and-favourites),
    [result references](#3-references-to-earlier-results), [macros](#4-macros-and-small-programs)
-2. Understanding: [help key](#5-a-help-key), [errors that point](#6-errors-that-point-at-the-input),
-   [practice mode](#7-practice-mode), [notes](#8-notes-on-calculations)
+2. Understanding: [help key](#5-a-help-key), [practice mode](#7-practice-mode),
+   [notes](#8-notes-on-calculations)
 3. Everyday maths: [graph](#9-more-on-the-handhelds-graph),
    [uncertainties](#10-measurement-uncertainties), [dates and durations](#11-dates-and-durations),
    [money](#12-percent-and-money), [programmer view](#13-a-programmer-view-for-basis-n)
@@ -156,25 +156,6 @@ right; a test runs every example.
 **Effort.** M (mostly writing).
 
 **Open.** Whether help covers the modes too (a short "what this mode is for" page).
-
-### 6. Errors that point at the input
-
-**What.** An error marks the part of the input it is about (the box in the editor turns red) and
-says what to do: "Division durch 0 in diesem Nenner", "Einheiten passen nicht: m + s", "Hier fehlt
-ein Argument".
-
-**Why.** An error message alone on a small screen makes the user search the whole input; a
-pointer saves that, especially in long Physik inputs with units.
-
-**How.** The core's errors carry the span of the LaTeX they refer to; the hui maps the span back
-to the editor's tree (it wrote the LaTeX, so it knows which node produced which range). The
-desktop's MathLive can select the same range.
-
-**Where.** Core: spans on errors. hui and desktop: the marking.
-
-**Effort.** M.
-
-**Open.** How fine the spans can be for errors found late (during simplification).
 
 ### 7. Practice mode
 

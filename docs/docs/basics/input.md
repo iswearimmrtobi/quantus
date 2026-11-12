@@ -52,18 +52,32 @@ Use the source for anything the editor makes awkward: `\sqrt[3]{27}`, `\binom{5}
 
 ## Errors
 
-When the input cannot be read, the result area shows **ERROR** with the message and, for parser
-errors, the **Position** in the input:
+When the input cannot be read or worked out, the result area shows **ERROR** with the message,
+and the part of the input the error is about is selected in red:
 
 ```latex
-72\frac{km}{h} \to \frac{m}{s}
+1\,\mathrm{m} + 2\,\mathrm{s}
 ```
 
-> **ERROR** Unsupported command '\to'. (at position 16: '\to \frac{m}…')
+> **ERROR** Incompatible units: m (length) and s (time) cannot be added.
+
+Here the whole sum is marked. A division by zero marks the denominator, an undefined variable
+the variable, and an input that cannot be read the part where reading stopped: in
+`72\frac{km}{h} \to \frac{m}{s}` the `\to`, with *Unsupported command '\to'.* The mark goes
+with the next key or click. Where nothing can be marked, for instance when something is
+missing at the end, the message gives the **Position** in the input instead:
+
+```latex
+2 +
+```
+
+> **ERROR** Expected a number, a unit or a variable here. (at position 4: '')
 
 Most messages say what to write instead:
 
 > An integral needs limits, as in \int_{0}^{1} x \, dx.
+
+On the handheld the marked part has a red box behind it.
 
 ## See also
 

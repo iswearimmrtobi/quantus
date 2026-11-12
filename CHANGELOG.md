@@ -7,6 +7,15 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Errors point at the part of the input they are about. On the desktop that part is selected
+  in red, in the formula editor and in the LaTeX field, and the message drops its position; on
+  the handheld a red box lies behind it. This works for parse errors (the token that could not
+  be read) and for errors found while calculating: `1\,\mathrm{m} + 2\,\mathrm{s}` marks the
+  sum, a division by zero marks the denominator ("Division by zero: this denominator is 0."),
+  an undefined variable marks the variable. The API's errors carry the `span` and the bare
+  `reason` besides `error` and `position`.
+- The handheld wraps a long error message onto several lines in the small font instead of
+  cutting it off at the edge of the screen.
 - The handheld shows the Quantus logo while it starts, instead of the colour-bar test screen.
 - Quantus builds as an Android app (`npm run android:build` in `desktop/`). Below 700 px the
   window switches to a phone layout: the panels' tab bar at the bottom, panels and dialogs full
