@@ -37,6 +37,8 @@ pub enum FormKind {
     Hex,
     Bin,
     Oct,
+    /// A Basis-N value as its whole pattern in groups of four: `\mathtt{0000\,1111}`.
+    Bits,
 }
 
 /// One form of a result, as LaTeX.

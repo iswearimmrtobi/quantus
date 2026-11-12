@@ -132,16 +132,16 @@ the shown result is re-evaluated as today when the base changes.
 
 ## Phase 3 — Core: the bit view in the response
 
-- [ ] **3.1 Type** (`api.rs` or `basen.rs`): `BitView { width: u32, signed: bool, bits: String }`,
+- [x] **3.1 Type** (`api.rs` or `basen.rs`): `BitView { width: u32, signed: bool, bits: String }`,
       `bits` as `'0'/'1'` most significant first (the frontends group them). Optional
       `ieee: Option<IeeeView>` (filled in phase 6).
-- [ ] **3.2 Plumbing**: `Calculation.bits: Option<BitView>`, set only by `evaluate_base_n`;
+- [x] **3.2 Plumbing**: `Calculation.bits: Option<BitView>`, set only by `evaluate_base_n`;
       `CalculationResponse.bits` with `skip_serializing_if = "Option::is_none"`; history entries
       keep it if they keep the response (check `session.rs`).
-- [ ] **3.3 Form for copy**: a `FormKind::Bits` whose LaTeX is the grouped pattern
+- [x] **3.3 Form for copy**: a `FormKind::Bits` whose LaTeX is the grouped pattern
       (`\mathtt{0000\,1111}`) so the desktop chips and Ctrl+D reach it and it can be copied.
       Locale `app.form.bits`.
-- [ ] **3.4 Tests**: `tests/basen.rs` checks `bits` for 8-bit −1, 64-bit 1, and absence in other
+- [x] **3.4 Tests**: `tests/basen.rs` checks `bits` for 8-bit −1, 64-bit 1, and absence in other
       modes; `tests/result_forms.rs` for `Bits`.
 
 ## Phase 4 — Desktop

@@ -68,3 +68,12 @@ fn roots_switch_between_exact_and_decimal() {
     let exact = Settings { exact_roots: true, ..Settings::default() };
     assert_eq!(kinds(exact, r"\sqrt{12}"), ["decimal"]);
 }
+
+#[test]
+fn a_base_n_result_has_its_bits_as_a_form() {
+    use quantus_core::settings::{NumberBase, WordSize};
+    let settings = Settings { mode: Mode::BaseN, number_base: NumberBase::Hex, word_size: WordSize::W16, ..Settings::default() };
+    let forms = forms(settings, "F0F");
+    assert_eq!(forms.last().unwrap(), &("bits".to_string(), r"\mathtt{0000\,1111\,0000\,1111}".to_string()));
+    assert_eq!(forms.iter().map(|(kind, _)| kind.as_str()).collect::<Vec<_>>(), ["dec", "bin", "oct", "bits"]);
+}

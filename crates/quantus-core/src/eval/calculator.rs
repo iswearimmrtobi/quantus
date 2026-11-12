@@ -45,6 +45,8 @@ pub struct Calculation {
     pub warning: Option<String>,
     /// The result written other ways, for S⇔D: °′″ and so on.
     pub forms: Vec<ResultForm>,
+    /// The bits of a Basis-N result.
+    pub bits: Option<crate::basen::BitView>,
 }
 
 impl Calculation {
@@ -250,6 +252,7 @@ impl LatexCalculator {
                     domain_restrictions: None,
                     warning: None,
                     forms: Vec::new(),
+                    bits: None,
                 })
             }
             expression => {
@@ -279,6 +282,7 @@ impl LatexCalculator {
                             domain_restrictions: None,
                     warning: None,
                     forms,
+                    bits: None,
                         })
                     }
                     Err(err)
@@ -361,6 +365,7 @@ impl LatexCalculator {
             domain_restrictions: None,
             warning: None,
             forms: Vec::new(),
+            bits: None,
         })
     }
 
@@ -385,6 +390,7 @@ impl LatexCalculator {
             domain_restrictions: None,
             warning: None,
             forms: Vec::new(),
+            bits: None,
         }
     }
 
@@ -452,6 +458,7 @@ impl LatexCalculator {
             domain_restrictions: None,
             warning: None,
             forms: Vec::new(),
+            bits: None,
         };
         Ok((calculation, defined))
     }
@@ -474,6 +481,7 @@ impl LatexCalculator {
         let value = Value::from_decimal(&decimal);
         let input = latex.trim().to_string();
         let warning = result.wrapped.then(|| msg!("core.basen.wrapped", spec.width));
+        let bits = Some(result.bit_view());
         Ok(Calculation {
             formula: Formula { label: None, expression: Node::Number { value: decimal.clone(), position: Node::SYNTHETIC }, source: latex.to_string() },
             steps: vec![Step::new(StepKind::Symbolic, input.clone()), Step::new(StepKind::Result, result.latex.clone())],
@@ -487,6 +495,7 @@ impl LatexCalculator {
             quantity: PhysicalQuantity::dimensionless(value),
             domain_restrictions: None,
             warning,
+            bits,
             forms: result.forms,
         })
     }
@@ -559,6 +568,7 @@ impl LatexCalculator {
             domain_restrictions,
             warning,
             forms: Vec::new(),
+            bits: None,
         })
     }
 
@@ -593,6 +603,7 @@ impl LatexCalculator {
                 domain_restrictions: None,
                 warning: None,
                 forms: Vec::new(),
+                bits: None,
             }
         }))
     }
@@ -657,6 +668,7 @@ impl LatexCalculator {
             domain_restrictions: None,
             warning: None,
             forms: Vec::new(),
+            bits: None,
         })
     }
 
@@ -823,6 +835,7 @@ impl LatexCalculator {
             domain_restrictions: None,
             warning: None,
                     forms: Vec::new(),
+                    bits: None,
         })
     }
 

@@ -153,6 +153,34 @@ impl Spec {
     }
 }
 
+/// The bits of a Basis-N result, for the frontends to draw.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BitView {
+    pub width: u32,
+    pub signed: bool,
+    /// `'0'` and `'1'`, the most significant bit first, all `width` of them.
+    pub bits: String,
+}
+
+impl BitView {
+    pub fn new(bits: u64, spec: Spec) -> BitView {
+        BitView { width: spec.width, signed: spec.signed, bits: pattern(bits, spec) }
+    }
+}
+
+/// The whole pattern, most significant bit first.
+fn pattern(bits: u64, spec: Spec) -> String {
+    format!("{:0width$b}", bits & spec.mask(), width = spec.width as usize)
+}
+
+/// The pattern in groups of four for copying: `\mathtt{0000\,1111}`.
+pub fn grouped(bits: u64, spec: Spec) -> String {
+    let pattern = pattern(bits, spec);
+    let groups: Vec<&str> = pattern.as_bytes().chunks(4).map(|g| std::str::from_utf8(g).unwrap_or_default()).collect();
+    format!("\\mathtt{{{}}}", groups.join("\\,"))
+}
+
 /// A Basis-N result: the pattern and how it is written in the set base and in the others.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BaseNResult {
@@ -168,6 +196,10 @@ impl BaseNResult {
     /// The number the pattern stands for, signed or unsigned as the word is.
     pub fn value(&self) -> i128 {
         self.spec.read(self.bits)
+    }
+
+    pub fn bit_view(&self) -> BitView {
+        BitView::new(self.bits, self.spec)
     }
 }
 
@@ -187,6 +219,7 @@ pub fn evaluate(latex: &str, base: NumberBase, spec: Spec) -> Result<BaseNResult
         .into_iter()
         .filter(|b| *b != base)
         .map(|b| ResultForm::new(b.form(), write(bits, spec, b)))
+        .chain([ResultForm::new(FormKind::Bits, grouped(bits, spec))])
         .collect();
     Ok(BaseNResult { bits, spec, latex: write(bits, spec, base), forms, wrapped: parser.wrapped })
 }
@@ -871,7 +904,7 @@ mod tests {
     fn the_other_bases_are_forms() {
         let result = evaluate("255", NumberBase::Dec, Spec::default()).unwrap();
         let forms: Vec<_> = result.forms.iter().map(|f| f.latex.as_str()).collect();
-        assert_eq!(forms, ["\\mathrm{FF}", "11111111", "377"]);
+        assert_eq!(forms, ["\\mathrm{FF}", "11111111", "377", "\\mathtt{0000\\,0000\\,0000\\,0000\\,0000\\,0000\\,1111\\,1111}"]);
         let result = evaluate("FF", NumberBase::Hex, spec(WordSize::W8, true)).unwrap();
         assert_eq!(result.forms[0].latex, "-1");
     }

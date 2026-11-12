@@ -53,3 +53,23 @@ fn a_wrapped_result_warns_and_the_value_is_read_by_the_word() {
     let response = evaluate("100+27", WordSize::W8, true);
     assert_eq!((response.result.as_str(), response.warning), ("127", None));
 }
+
+#[test]
+fn the_response_carries_the_bits() {
+    use quantus_core::settings::WordSize;
+    let response = |latex: &str, mode, word_size| {
+        let mut store = SessionStore::new();
+        api::set_settings(&mut store, Settings { mode, word_size, ..Settings::default() }).unwrap();
+        api::evaluate(&mut store, &CalculationRequest { latex: latex.into(), ..Default::default() }).unwrap()
+    };
+    let minus_one = response("-1", Mode::BaseN, WordSize::W8).bits.unwrap();
+    assert_eq!((minus_one.width, minus_one.signed, minus_one.bits.as_str()), (8, true, "11111111"));
+    let one = response("1", Mode::BaseN, WordSize::W64).bits.unwrap();
+    assert_eq!(one.bits, format!("{}1", "0".repeat(63)));
+    let json = serde_json::to_value(response("5", Mode::BaseN, WordSize::W16)).unwrap();
+    assert_eq!(json["bits"], serde_json::json!({ "width": 16, "signed": true, "bits": "0000000000000101" }));
+    // Other modes have none, and leave the key out.
+    let algebra = response("1+1", Mode::Algebra, WordSize::W32);
+    assert!(algebra.bits.is_none());
+    assert!(serde_json::to_value(algebra).unwrap().get("bits").is_none());
+}

@@ -15,6 +15,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   signed, logical when unsigned, as in C), and the functions `shl`, `shr`, `sar`, `rol`, `ror`
   as `(x, n)` or `(x; n)`. `<<` and `>>` bind below `+ -` and above `and`; a shift by the width
   or more leaves 0 (all sign bits for `sar`), a rotation turns by `n mod width`.
+- A Basis-N response carries `bits` (`width`, `signed`, and the pattern as `'0'`/`'1'`, most
+  significant first) for a bit view, and a form `bits` with the pattern in groups of four
+  (`\mathtt{0000\,1111}`) to copy.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on

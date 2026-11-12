@@ -64,6 +64,9 @@ pub struct CalculationResponse {
     /// The result written other ways than `result` (°′″, …), for a form switch.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub forms: Vec<ResultForm>,
+    /// The bits of a Basis-N result, for a bit view.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bits: Option<crate::basen::BitView>,
 }
 
 impl CalculationResponse {
@@ -88,6 +91,7 @@ impl CalculationResponse {
             domain_restrictions: calculation.domain_restrictions.clone(),
             warning: calculation.warning.clone(),
             forms: calculation.forms.clone(),
+            bits: calculation.bits.clone(),
         }
     }
 }

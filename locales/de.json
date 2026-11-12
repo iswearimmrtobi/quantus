@@ -102,6 +102,7 @@
     "app.footer.counts": "{variables} Variablen · {history} Einträge im Verlauf",
     "app.footer.session": "Sitzung aktiv",
     "app.form.bin": "BIN",
+    "app.form.bits": "BITS",
     "app.form.dec": "DEC",
     "app.form.decimal": "dezimal",
     "app.form.exact": "exakt",
