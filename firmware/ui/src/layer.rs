@@ -153,7 +153,7 @@ fn shift(key: Key) -> Option<Resolved> {
         Key::Plus => Insert(r"\operatorname{Pol}(;)"),
         Key::Minus => Insert(r"\operatorname{Rec}(;)"),
         Key::Comma => Insert(r"\operatorname{Ran}()"),
-        Key::Ans => Insert(r"\operatorname{PreAns}"),
+        Key::Ans => K(Key::PreAns),
         Key::Del => K(Key::Undo),
         Key::Ac => K(Key::Redo),
         Key::Ok => K(Key::Ins),

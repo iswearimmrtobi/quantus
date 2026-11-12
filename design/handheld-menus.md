@@ -740,7 +740,7 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | STO, VARS | SHIFT + a key, and a key | `Vars` (F11, Ctrl+V); SHIFT + it is STO: a name typed (`A`, `r_1`), the shown result kept under it (`Ans`, `PreAns` or the result as shown). VARS alone lists the variables with their values: Einfügen, Wert ändern (CALC's form with its one field), Löschen |
 | CALC, SOLVE | a key and SHIFT + it, or OPTN → Werkzeuge | `Calc` (F8, Ctrl+B): a form over the input with a field per free letter (`sheet::Kind::Formula`); its answer goes into the history. SHIFT + it is SOLVE: the same form, solved for the letter left empty (all given: the one at the cursor, starting from its value) |
 | Sitzungen | SHIFT + a key, or the MODE tile | the MODE tile |
-| PreAns | SHIFT + Ans | missing |
+| PreAns | SHIFT + Ans | exists (`PreAns`): pastes the result before the last one, as Ans pastes the last |
 | ∠ | SHIFT + a key in Komplex | missing |
 | UNDO/REDO, INS | SHIFT + DEL, SHIFT + another key | missing |
 | Select, copy, paste | SHIFT + ←/→, then a copy and a paste key | missing |

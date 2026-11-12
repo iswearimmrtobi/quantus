@@ -7,6 +7,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on
   the handheld a red box lies behind it. This works for parse errors (the token that could not

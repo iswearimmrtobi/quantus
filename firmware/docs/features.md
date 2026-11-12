@@ -90,13 +90,13 @@ State on 2026-11-12.
 - [ ] Templates: conjugate (`\overline`), `cases`
 - [x] History with ↑/↓, replaying an input
 - [x] Ans
-- [ ] PreAns (the core has it; no key yet)
+- [x] PreAns (SHIFT+Ans)
 - [x] Keys over the serial monitor
 - [x] USB keyboard, German QWERTZ layout, key repeat
 - [x] Touch: every menu by finger, taps, drag to scroll, page turns, − / + for numbers
 - [x] Touch calibration: five crosses, least squares, redone when off by more than 20 px
 - [x] CONST (F6, Ctrl+U), CONV (F7, Ctrl+Y), CALC (F8, Ctrl+B) and SOLVE (SHIFT+CALC), STO (SHIFT+VARS; VARS is F11, Ctrl+V)
-- [ ] Keys still missing: ENG/←ENG, STO, VARS, CALC/SOLVE, PreAns, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
+- [ ] Keys still missing: ENG/←ENG, STO, VARS, CALC/SOLVE, ∠, ∫, d/dx, Σ, x⁻¹, x³, 10ˣ, eˣ
 - [ ] ALPHA letters on the keypad
 - [x] Soft keys (2 × 5 or 2 × 6) with their labels at the bottom of the screen, hidden on sheets and answer pages; the mode's commands, the result forms after a result, pages when they do not fit, a tap on a label
 - [x] UNIT layer and SYMB (Greek letters and math symbols on the soft keys)

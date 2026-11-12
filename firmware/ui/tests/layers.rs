@@ -114,6 +114,15 @@ fn select_copy_and_paste() {
 }
 
 #[test]
+fn shift_ans_pastes_the_result_before_the_last() {
+    let mut app = App::new(Stub);
+    app.mode = Mode::Physics;
+    press(&mut app, &[Key::Digit(6), Key::Exe, Key::Digit(7), Key::Exe, Key::Ac]);
+    press(&mut app, &[Key::Ans, Key::Plus, Key::Shift, Key::Ans]);
+    assert_eq!(app.editor.to_latex(), "7+6");
+}
+
+#[test]
 fn shift_exe_is_a_decimal() {
     let mut app = App::new(Stub);
     app.mode = Mode::Physics;

@@ -147,7 +147,7 @@ handheld-menus.md, *What is missing*.
 - [x] Sessions: history, mode inputs, a name and timestamps in `session.rs`, serialised to JSON
   with a format version. The desktop keeps them in its config directory with a session menu and
   opens the last one on start; the handheld keeps them on the SD card.
-- [ ] PreAns on a key of the handheld (the session has it; STO and VARS are done).
+- [x] PreAns on a key of the handheld (SHIFT + Ans).
 - [ ] The link between handheld and desktop: the request and response format (the JSON of
   `api.rs`) and the session files from the core; on the desktop a listener reachable over WLAN
   and Bluetooth, with pairing; on the handheld the client (remote engine, session sync).

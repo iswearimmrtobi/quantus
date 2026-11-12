@@ -2266,6 +2266,11 @@ impl<B: Backend> App<B> {
                     editor.paste(result);
                 }
             }
+            Key::PreAns => {
+                if let Some(Entry { result: Ok(result), .. }) = self.history.iter().rev().nth(1) {
+                    editor.paste(result);
+                }
+            }
             Key::Up => {
                 if !editor.up() {
                     self.recall(0);

@@ -34,6 +34,8 @@ pub enum Key {
     Ln,
     Log,
     Ans,
+    /// SHIFT on Ans: the result before the last one.
+    PreAns,
     Left,
     Right,
     Up,
