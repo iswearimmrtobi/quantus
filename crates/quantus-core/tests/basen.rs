@@ -34,3 +34,22 @@ fn word_size_and_signedness_are_settings() {
     assert_eq!(serde_json::from_value::<Settings>(json).unwrap(), settings);
     assert!(serde_json::from_value::<Settings>(serde_json::json!({ "wordSize": 12 })).is_err());
 }
+
+#[test]
+fn a_wrapped_result_warns_and_the_value_is_read_by_the_word() {
+    use quantus_core::settings::WordSize;
+    let evaluate = |latex: &str, word_size, signed| {
+        let mut store = SessionStore::new();
+        let settings = Settings { mode: Mode::BaseN, word_size, signed, ..Settings::default() };
+        api::set_settings(&mut store, settings).unwrap();
+        api::evaluate(&mut store, &CalculationRequest { latex: latex.into(), ..Default::default() }).unwrap()
+    };
+    let response = evaluate("200+100", WordSize::W8, false);
+    assert_eq!((response.result.as_str(), response.value.as_str()), ("44", "44"));
+    assert_eq!(response.warning.as_deref(), Some("Overflow: the result was wrapped to 8 bits."));
+    let response = evaluate("0-1", WordSize::W64, false);
+    assert_eq!(response.value, "18446744073709551615");
+    assert!(response.warning.is_some());
+    let response = evaluate("100+27", WordSize::W8, true);
+    assert_eq!((response.result.as_str(), response.warning), ("127", None));
+}

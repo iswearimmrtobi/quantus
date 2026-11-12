@@ -467,22 +467,26 @@ impl LatexCalculator {
 
     /// Basis-N has its own little language (`1F`, `and`), so it bypasses the parser.
     fn evaluate_base_n(&self, latex: &str) -> Result<Calculation> {
-        let result = crate::basen::evaluate(latex, self.settings.number_base)?;
-        let value = Value::int(i64::from(result.value));
+        let spec = crate::basen::Spec::new(self.settings.word_size, self.settings.signed);
+        let result = crate::basen::evaluate(latex, self.settings.number_base, spec)?;
+        // An unsigned 64-bit value does not fit an i64.
+        let decimal = Decimal::new(result.value().into(), 0);
+        let value = Value::from_decimal(&decimal);
         let input = latex.trim().to_string();
+        let warning = result.wrapped.then(|| msg!("core.basen.wrapped", spec.width));
         Ok(Calculation {
-            formula: Formula { label: None, expression: Node::Number { value: Decimal::from_i64(result.value.into()), position: Node::SYNTHETIC }, source: latex.to_string() },
+            formula: Formula { label: None, expression: Node::Number { value: decimal.clone(), position: Node::SYNTHETIC }, source: latex.to_string() },
             steps: vec![Step::new(StepKind::Symbolic, input.clone()), Step::new(StepKind::Result, result.latex.clone())],
             input,
             latex: result.latex.clone(),
             result: result.latex,
-            value: Decimal::from_i64(result.value.into()),
+            value: decimal,
             imaginary: None,
             unit: String::new(),
             quantity_name: None,
             quantity: PhysicalQuantity::dimensionless(value),
             domain_restrictions: None,
-            warning: None,
+            warning,
             forms: result.forms,
         })
     }

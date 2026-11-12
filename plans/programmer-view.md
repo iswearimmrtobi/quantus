@@ -87,29 +87,29 @@ the shown result is re-evaluated as today when the base changes.
   - [x] Extend the serde test (L416/L433) and `tests/settings.rs` for the defaults and a
         round trip; an old settings file without the keys loads as 32/signed.
 - [x] **1.2 The `Word` type** (`basen.rs`)
-  - [ ] `struct Spec { width: u32, signed: bool }` with `mask()`, `min()`, `max()` (as `i128`),
+  - [x] `struct Spec { width: u32, signed: bool }` with `mask()`, `min()`, `max()` (as `i128`),
         `read(bits: u64) -> i128`, `wrap(v: i128) -> (u64, bool /*wrapped*/)`.
-  - [ ] Parser carries `i128` values and `spec`; replace `fit()` by `self.wrap(v)`, which
+  - [x] Parser carries `i128` values and `spec`; replace `fit()` by `self.wrap(v)`, which
         records `self.wrapped = true` when the value changed.
-  - [ ] `literal(digits, base, spec)`: range check per the table above; error key
+  - [x] `literal(digits, base, spec)`: range check per the table above; error key
         `core.basen.literal_too_big` with the width.
-  - [ ] Signed/unsigned division and `Not`/`Neg`/`xnor` via mask.
-- [ ] **1.3 Result** (`basen.rs`)
-  - [ ] `BaseNResult { bits: u64, spec, latex, forms, wrapped: bool }`; `fn value(&self) -> i128`.
-  - [ ] `write(bits, spec, base)`: decimal signed or unsigned per spec; other bases the pattern
+  - [x] Signed/unsigned division and `Not`/`Neg`/`xnor` via mask.
+- [x] **1.3 Result** (`basen.rs`)
+  - [x] `BaseNResult { bits: u64, spec, latex, forms, wrapped: bool }`; `fn value(&self) -> i128`.
+  - [x] `write(bits, spec, base)`: decimal signed or unsigned per spec; other bases the pattern
         without leading zeros (unchanged behaviour at 32/signed).
-  - [ ] `pub fn evaluate(latex, base, spec)`.
-- [ ] **1.4 Calculator** (`eval/calculator.rs::evaluate_base_n`)
-  - [ ] Pass `Spec` from settings; `value` via `Decimal::parse(&value.to_string())` (u64 range
+  - [x] `pub fn evaluate(latex, base, spec)`.
+- [x] **1.4 Calculator** (`eval/calculator.rs::evaluate_base_n`)
+  - [x] Pass `Spec` from settings; `value` via `Decimal::parse(&value.to_string())` (u64 range
         does not fit `from_i64`); `warning: Some(msg!("core.basen.wrapped", width))` when wrapped.
-- [ ] **1.5 Texts** (both `locales/*.json`)
-  - [ ] `core.basen.literal_too_big`, `core.basen.wrapped`; remove `overflow_32_bits` once unused.
-  - [ ] While here: `not_number` gets the base name from a locale key instead of the English
+- [x] **1.5 Texts** (both `locales/*.json`)
+  - [x] `core.basen.literal_too_big`, `core.basen.wrapped`; remove `overflow_32_bits` once unused.
+  - [x] While here: `not_number` gets the base name from a locale key instead of the English
         word (German shows "hexadecimal" today).
 - [ ] **1.6 Tests**
-  - [ ] Unit tests: each width signed/unsigned, literal limits, wrap + warning flag, `-128` in 8 bit,
+  - [x] Unit tests: each width signed/unsigned, literal limits, wrap + warning flag, `-128` in 8 bit,
         unsigned division, `MIN ÷ −1`. Change the existing overflow test to the wrap behaviour.
-  - [ ] `tests/basen.rs`: settings through the API, `warning` in the response.
+  - [x] `tests/basen.rs`: settings through the API, `warning` in the response.
   - [ ] Generated set: `gens/basen.py` gets `width`/`signed` per case, wrap instead of the
         overflow error, literal-too-big errors; the case format carries the two settings;
         `examples/run_cases/basen.rs` applies them. Regenerate `test/cases/base-n/`, run

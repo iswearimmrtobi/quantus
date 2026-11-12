@@ -7,6 +7,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Basis-N computes in a word of 8, 16, 32 or 64 bits, signed or unsigned (settings `wordSize`
+  and `signed`; the default stays 32 bit, signed). A literal must fit the word: `-128` and `FF`
+  can be typed in 8 bit (`FF` is −1 when signed), `1FF` is the error *'1FF' does not fit 8 bits.*
+  Division is signed or unsigned by the setting.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on
@@ -80,6 +84,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Basis-N wraps a result that does not fit the word, as a register does, and warns: *Overflow:
+  the result was wrapped to 32 bits.* Before, `2147483647 + 1` was an error. The message for a
+  digit outside the base names the base in the language set (*'12' is not a binary number.*).
 - Improper integrals of exponentials (`\int_0^{\infty} e^{-2x}\,dx`, `\int_{-\infty}^{\infty} e^{-x^2}\,dx`)
   are about four times faster, 0.2–0.3 s instead of about a second.
 
