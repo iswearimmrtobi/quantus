@@ -6,8 +6,10 @@ and evaluated here with the mode's rules: every operation computes from the numb
 stand for and wraps the result into the word (modulo 2ⁿ, and the result says it wrapped), division
 truncates toward zero, and the bitwise operators work on the pattern. A literal must fit the word:
 in decimal up to the top of the range (signed: up to 2ⁿ⁻¹, as the operand of a minus), in the
-other bases any pattern of at most n bits. Precedence, highest first: sign, Not, Neg; · ÷; + −;
-and; or, xor, xnor. Hexadecimal digits are written in capitals, so a lone `b` or `d` is never a
+other bases any pattern of at most n bits. Shifts and rotations move the pattern (no wrap):
+`shl`/`<<`, `shr`, `sar`, `>>` (sar when signed, shr when unsigned), `rol`, `ror`; by the width or
+more a shift leaves 0 (sar: the sign bits), a rotation turns by n mod width. Precedence, highest
+first: sign, Not, Neg, functions; · ÷; + −; << >>; and; or, xor, xnor. Hexadecimal digits are written in capitals, so a lone `b` or `d` is never a
 prefix. Most cases use the default word (32 bit, signed); the others draw one.
 """
 
@@ -15,7 +17,8 @@ from .common import case, expect_error, level
 
 BASES = {"dec": 10, "hex": 16, "bin": 2, "oct": 8}
 PREFIX = {"dec": "d", "hex": "h", "bin": "b", "oct": "o"}
-PREC = {"or": 0, "xor": 0, "xnor": 0, "and": 1, "+": 2, "-": 2, "*": 3, "/": 3}
+PREC = {"or": 0, "xor": 0, "xnor": 0, "and": 1, "<<": 2, ">>": 2, "+": 3, "-": 3, "*": 4, "/": 4}
+SHIFTS = ["shl", "shr", "sar", "rol", "ror"]
 WIDTHS = [8, 16, 32, 64]
 
 
@@ -80,7 +83,25 @@ def literal_text(bits, base):
     return {"dec": str(bits), "hex": f"{bits:X}", "bin": f"{bits:b}", "oct": f"{bits:o}"}[base]
 
 
+def shift(w, kind, bits, n):
+    """The pattern `bits` shifted or rotated by n ≥ 0 within the word."""
+    width, mask = w.width, w.mask
+    bits &= mask
+    if kind == "shl":
+        return 0 if n >= width else (bits << n) & mask
+    if kind == "shr":
+        return 0 if n >= width else bits >> n
+    if kind == "sar":
+        extended = bits - (1 << width) if bits >> (width - 1) else bits
+        return (extended >> min(n, width - 1)) & mask
+    k = n % width
+    if kind == "rol":
+        return ((bits << k) | (bits >> (width - k))) & mask
+    return ((bits >> k) | (bits << (width - k))) & mask
+
+
 # --- trees: ("num", value, base_written) | ("op", op, left, right) | ("not"|"neg"|"minus", child) ----
+# | ("fn", name, x, n) for shl(x, n) and the like
 # A number's value is what the literal stands for: in decimal the digits (up to 2ⁿ⁻¹ when signed),
 # in the other bases the pattern as the word reads it.
 
@@ -94,6 +115,11 @@ def evaluate(t, w):
         return w.read(-w.bits(evaluate(t[1], w)))
     if kind == "not":
         return w.read(~w.bits(evaluate(t[1], w)))
+    if kind == "fn" or t[1] in ("<<", ">>"):
+        name = t[1] if kind == "fn" else {"<<": "shl", ">>": "sar" if w.signed else "shr"}[t[1]]
+        x, n = w.bits(evaluate(t[2], w)), w.wrap(evaluate(t[3], w))
+        assert n >= 0, "the generator draws no negative counts"
+        return w.read(shift(w, name, x, n))
     op, a, b = t[1], evaluate(t[2], w), evaluate(t[3], w)
     if op in ("and", "or", "xor", "xnor"):
         a, b = w.bits(a), w.bits(b)
@@ -128,6 +154,10 @@ def render(t, base, rng, style, w):
     if kind in ("not", "neg"):
         name = "Not" if kind == "not" else "Neg"
         return f"\\operatorname{{{name}}}({render(t[1], base, rng, style, w)})"
+    if kind == "fn":
+        name = t[1] if style == "plain" else f"\\operatorname{{{t[1]}}}"
+        separator = rng.choice([", ", "; ", ","])
+        return f"{name}({render(t[2], base, rng, style, w)}{separator}{render(t[3], base, rng, style, w)})"
     op = t[1]
 
     def side(child, right):
@@ -143,6 +173,10 @@ def render(t, base, rng, style, w):
         sym = rng.choice(["\\cdot", "\\times", "*"])
     elif op == "/":
         sym = rng.choice(["\\div", "/"])
+    elif op == "<<":
+        sym = rng.choice(["<<", "\\ll"])
+    elif op == ">>":
+        sym = rng.choice([">>", "\\gg"])
     else:
         sym = {
             "plain": f" {op} ",
@@ -308,6 +342,32 @@ def wrapping(rng, diff):
     return _case("wrap", diff, tree, base, rng, w, "a result outside the word wraps modulo 2ⁿ")
 
 
+def shifts(rng, diff):
+    """shl, shr, sar, rol, ror and the operators << >>, counts up to past the width, in any word."""
+    base = rng.choice(list(BASES))
+    w = Word(rng.choice(WIDTHS), rng.random() < 0.5)
+    size = [255, 1 << 16, (1 << 32) - 1, (1 << 64) - 1][level(diff)] if base != "dec" else 10 ** (2 + 2 * level(diff))
+
+    def count():
+        n = rng.choice([0, 1, w.width - 1, w.width, w.width + 1, rng.randint(0, w.width - 1), rng.randint(0, w.width - 1)])
+        return ("num", n, base)
+
+    x = number(rng, base, size, w)
+    if rng.random() < 0.5:
+        tree = ("fn", rng.choice(SHIFTS), x, count())
+    else:
+        tree = ("op", rng.choice(["<<", ">>"]), x, count())
+    if level(diff) >= 2:
+        # Mixed with the levels around: a + b << n, x << n and m, shl(x, n) + 1.
+        other = number(rng, base, 1000, w)
+        tree = rng.choice([
+            ("op", "and", tree, number(rng, base, size, w)),
+            ("op", "+", tree, other) if tree[0] == "fn" else ("op", tree[1], ("op", "+", x, other), tree[3]),
+            ("op", "or", tree, ("fn", rng.choice(SHIFTS), number(rng, base, size, w), count())),
+        ])
+    return _case("shift", diff, tree, base, rng, w, "shifts and rotations of the pattern")
+
+
 GENERATORS = [
     (12, literals),
     (22, arithmetic),
@@ -316,4 +376,5 @@ GENERATORS = [
     (14, precedence),
     (12, prefixes),
     (10, wrapping),
+    (12, shifts),
 ]
