@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { api, ApiError, setSessionId, type Calculation, type FormKind, type HistoryEntry, type ModeInputs, type Mode, type NumberBase, type SessionInfo, type Settings, type StepKind, type Variable } from './api';
+import { api, ApiError, setSessionId, type Calculation, type FormKind, type HistoryEntry, type ModeInputs, type Mode, type NumberBase, type SessionInfo, type WordSize, type Settings, type StepKind, type Variable } from './api';
 import { Katex, latexLines } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { ElectronicsView } from './components/ElectronicsView';
@@ -15,6 +15,8 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut, type Shortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
+import { BitView } from './components/BitView';
+import { flipBit, patternInput } from './bits';
 import { LibraryDialog } from './components/LibraryDialog';
 import { WriteupDialog } from './components/WriteupDialog';
 import { QuickSearch } from './components/QuickSearch';
@@ -55,10 +57,15 @@ const BASE_CHOICES: { value: NumberBase; label: string }[] = [
   { value: 'oct', label: 'OCT' },
 ];
 
-/** The logic of Basis-N and the prefixes that read one number in another base. */
+const WORD_CHOICES: { value: `${WordSize}`; label: string }[] = (['8', '16', '32', '64'] as const).map((value) => ({ value, label: value }));
+
+/** The logic, shifts and rotations of Basis-N and the prefixes that read one number in another base. */
 const BASE_KEYS: InsertKey[] = [
   ...['and', 'or', 'xor', 'xnor'].map((word) => ({ label: word, latex: ` \\operatorname{${word}} ` })),
   ...['Not', 'Neg'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?\\right)` })),
+  { label: '<<', latex: ' \\ll ' },
+  { label: '>>', latex: ' \\gg ' },
+  ...['shl', 'shr', 'sar', 'rol', 'ror'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?,#?\\right)` })),
   ...['d', 'h', 'b', 'o'].map((prefix) => ({ label: prefix, latex: `\\mathrm{${prefix}}` })),
 ];
 
@@ -265,6 +272,20 @@ export function App() {
   const forms = formChoices(calculation);
   const shownResult = calculation ? (eng?.latex ?? (formIndex !== null ? forms[formIndex].latex : calculation.result)) : '';
   const activeForm = eng ? -1 : (formIndex ?? forms.findIndex((form) => form.latex === calculation?.result));
+
+  /** A click on a bit of the bit view: the flipped pattern, written in the set base, becomes the input. */
+  const flip = useCallback(
+    (index: number) => {
+      const bits = latest.current.calculation?.bits;
+      if (!bits) return;
+      const latex = patternInput(flipBit(bits, index), bits.signed, settings.numberBase);
+      setInput(latex);
+      field.current?.setValue(latex);
+      latest.current.input = latex;
+      void evaluate({ record: false });
+    },
+    [evaluate, settings.numberBase],
+  );
 
   /** S⇔D: on to the next form of the result, round to the first. */
   const nextForm = useCallback(() => {
@@ -616,6 +637,21 @@ export function App() {
                 value={settings.numberBase}
                 onChange={(numberBase) => void changeSettings({ ...settings, numberBase })}
               />
+              <span title={t('basen.wordSize')}>
+                <Segmented
+                  choices={WORD_CHOICES}
+                  value={`${settings.wordSize}`}
+                  onChange={(size) => void changeSettings({ ...settings, wordSize: Number(size) as WordSize })}
+                />
+              </span>
+              <Segmented
+                choices={[
+                  { value: 'signed', label: t('basen.signed') },
+                  { value: 'unsigned', label: t('basen.unsigned') },
+                ]}
+                value={settings.signed ? 'signed' : 'unsigned'}
+                onChange={(sign) => void changeSettings({ ...settings, signed: sign === 'signed' })}
+              />
               <InsertBar keys={BASE_KEYS} onInsert={insert} />
             </div>
           )}
@@ -769,6 +805,7 @@ export function App() {
                   )}
                 </div>
               )}
+              {calculation?.bits && settings.mode === 'baseN' && <BitView view={calculation.bits} onFlip={flip} />}
               {calculation?.warning && (
                 <div className="domain-row warning-row">
                   <span className="domain-label">{t('note')}</span>

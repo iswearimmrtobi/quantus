@@ -131,6 +131,8 @@ export const DEFAULT_SETTINGS: Settings = {
   recurring: true,
   complexForm: 'rectangular',
   numberBase: 'dec',
+  wordSize: 32,
+  signed: true,
   theme: SYSTEM_THEME,
   logicSymbols: 'iec',
   logicNotation: 'logic',

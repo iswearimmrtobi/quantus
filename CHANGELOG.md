@@ -18,6 +18,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - A Basis-N response carries `bits` (`width`, `signed`, and the pattern as `'0'`/`'1'`, most
   significant first) for a bit view, and a form `bits` with the pattern in groups of four
   (`\mathtt{0000\,1111}`) to copy.
+- Desktop, Basis-N: next to DEC/HEX/BIN/OCT the word size (8, 16, 32, 64) and signed or
+  unsigned; keys for `<<`, `>>`, `shl`, `shr`, `sar`, `rol`, `ror`; under the result its bits in
+  groups of four with the index under each group (64 bits in two rows), the sign bit marked.
+  A click on a bit (or Space on it) flips it and puts the new value, in the set base, into the
+  input.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on

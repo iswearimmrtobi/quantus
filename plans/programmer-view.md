@@ -146,23 +146,23 @@ the shown result is re-evaluated as today when the base changes.
 
 ## Phase 4 — Desktop
 
-- [ ] **4.1 API types** (`desktop/src/api.ts`): `WordSize = 8|16|32|64`, `Settings.wordSize`,
+- [x] **4.1 API types** (`desktop/src/api.ts`): `WordSize = 8|16|32|64`, `Settings.wordSize`,
       `Settings.signed`, `BitView`, `CalculationResponse.bits`, `FormKind` `'bits'`; defaults in
       `SettingsDialog.tsx` (L133).
-- [ ] **4.2 Mode bar** (`App.tsx` L612): next to DEC/HEX/BIN/OCT a `Segmented` 8/16/32/64 and a
+- [x] **4.2 Mode bar** (`App.tsx` L612): next to DEC/HEX/BIN/OCT a `Segmented` 8/16/32/64 and a
       toggle Signed/Unsigned; both call `changeSettings` and re-evaluate the shown input as the base
       switch does.
-- [ ] **4.3 Keys** (`BASE_KEYS`): `<<`, `>>`, `shl(`, `shr(`, `sar(`, `rol(`, `ror(` as
+- [x] **4.3 Keys** (`BASE_KEYS`): `<<`, `>>`, `shl(`, `shr(`, `sar(`, `rol(`, `ror(` as
       `\operatorname{shl}\left(#?,\right)` etc.
-- [ ] **4.4 Bit panel** (new `desktop/src/components/BitView.tsx`, styles in `styles.css`)
-  - [ ] Under the result in Basis-N: rows of 32 bits (64 bit = two rows), groups of four, index
+- [x] **4.4 Bit panel** (new `desktop/src/components/BitView.tsx`, styles in `styles.css`)
+  - [x] Under the result in Basis-N: rows of 32 bits (64 bit = two rows), groups of four, index
         under each group's low bit (as Windows calculator: 63 … 32 / 31 … 0), the sign bit marked
         when signed.
-  - [ ] Click a bit: flip it (BigInt), write the new value in the set base (small helper
+  - [x] Click a bit: flip it (BigInt), write the new value in the set base (small helper
         `desktop/src/bits.ts`: pattern → hex/bin/oct, or signed/unsigned decimal), put it into
         the input, evaluate. Keyboard: focusable bits, Space flips.
-  - [ ] Warning line for a wrapped result uses the existing `warning` display.
-- [ ] **4.5 Texts**: labels (word size, signed, unsigned, bit, the tooltip "click to flip") in
+  - [x] Warning line for a wrapped result uses the existing `warning` display.
+- [x] **4.5 Texts**: labels (word size, signed, unsigned, bit, the tooltip "click to flip") in
       both locales.
 - [ ] **4.6 Check**: `npm run typecheck`; run the app (`npm run dev`) and try every width, a
       flip at bit 63 in signed 64, and the form chip `Bits`.

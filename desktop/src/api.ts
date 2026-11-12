@@ -40,6 +40,16 @@ export interface Calculation {
   unitLatex: string;
   /** The other ways to write the result, for the form switch; absent when there are none. */
   forms?: ResultForm[];
+  /** The bits of a Basis-N result; absent in the other modes. */
+  bits?: BitView;
+}
+
+/** What `quantus_core::basen::BitView` serialises to. */
+export interface BitView {
+  width: WordSize;
+  signed: boolean;
+  /** `'0'` and `'1'`, the most significant bit first. */
+  bits: string;
 }
 
 export type FormKind =
@@ -55,7 +65,8 @@ export type FormKind =
   | 'dec'
   | 'hex'
   | 'bin'
-  | 'oct';
+  | 'oct'
+  | 'bits';
 
 /** What `quantus_core::forms::ResultForm` serialises to. */
 export interface ResultForm {
@@ -638,6 +649,7 @@ export type NumberFormat =
 export type FractionForm = 'improper' | 'mixed';
 export type ComplexForm = 'rectangular' | 'polar';
 export type NumberBase = 'dec' | 'hex' | 'bin' | 'oct';
+export type WordSize = 8 | 16 | 32 | 64;
 
 /** What `quantus_core::settings::Settings` serialises to. */
 export interface Settings {
@@ -683,6 +695,10 @@ export interface Settings {
   complexForm: ComplexForm;
   /** The base the Basis-N mode reads and writes. */
   numberBase: NumberBase;
+  /** The width of the Basis-N word. */
+  wordSize: WordSize;
+  /** Whether Basis-N reads a word as two's complement rather than unsigned. */
+  signed: boolean;
   /** The id of the colour theme (`themes/`), or `system` for light or dark as the system is set. */
   theme: string;
   /** The Logic mode's gate symbols. */
