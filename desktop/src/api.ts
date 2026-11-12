@@ -851,11 +851,29 @@ export interface EngineInfo {
   precision: number;
 }
 
-/** An error the backend explained in words — [position] points into the input (F2). */
+/** A stretch of the input, in characters (code points, not UTF-16 units): `end` is exclusive. */
+export interface Span {
+  start: number;
+  end: number;
+}
+
+/**
+ * An error the backend explained in words — [position] points into the input (F2), [span] is
+ * the part of it the error is about, and [reason] the message without the position, for when
+ * the input shows the span.
+ */
 export class ApiError extends Error {
-  constructor(message: string, readonly position: number | null = null) {
+  readonly reason: string;
+
+  constructor(
+    message: string,
+    readonly position: number | null = null,
+    readonly span: Span | null = null,
+    reason?: string,
+  ) {
     super(message);
     this.name = 'ApiError';
+    this.reason = reason || message;
   }
 }
 
@@ -870,6 +888,8 @@ export function setSessionId(id: string): void {
 interface ErrorPayload {
   error?: string;
   position?: number | null;
+  span?: Span | null;
+  reason?: string;
 }
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -877,8 +897,8 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
     return await invoke<T>(command, args);
   } catch (failure) {
     if (typeof failure === 'object' && failure !== null && 'error' in failure) {
-      const { error, position } = failure as ErrorPayload;
-      throw new ApiError(error ?? 'Unknown error.', position ?? null);
+      const { error, position, span, reason } = failure as ErrorPayload;
+      throw new ApiError(error ?? 'Unknown error.', position ?? null, span ?? null, reason);
     }
     throw new ApiError(String(failure));
   }

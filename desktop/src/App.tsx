@@ -83,6 +83,8 @@ export function App() {
   const [input, setInput] = useState('');
   const [calculation, setCalculation] = useState<Calculation | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  /** Whether the input shows the part the error is about (feature idea 6). */
+  const [errorMarked, setErrorMarked] = useState(false);
   const [variables, setVariables] = useState<Variable[]>([]);
   /** The open session's history, oldest first, as the engine keeps it. */
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -222,7 +224,13 @@ export function App() {
       if (result.variable) await refreshVariables();
     } catch (failure) {
       show(null);
-      setError(failure instanceof ApiError ? failure : new ApiError(String(failure)));
+      const error = failure instanceof ApiError ? failure : new ApiError(String(failure));
+      setError(error);
+      // Only one of the two editors is mounted.
+      const span = error.span;
+      setErrorMarked(
+        span !== null && (field.current?.markError(latex, span) || latexField.current?.markError(latex, span) || false),
+      );
     }
   }, [refreshVariables, refreshSessions, show]);
 
@@ -701,8 +709,15 @@ export function App() {
             <div className="error-row">
               <span className="error-label">{t('error')}</span>
               <span className="error-text">
-                {error.message}
-                {error.position !== null && <span className="error-position"> · {t('position', { n: error.position + 1 })}</span>}
+                {errorMarked ? (
+                  // The input shows where; the message need not say it.
+                  error.reason
+                ) : (
+                  <>
+                    {error.message}
+                    {error.position !== null && <span className="error-position"> · {t('position', { n: error.position + 1 })}</span>}
+                  </>
+                )}
               </span>
             </div>
           ) : (

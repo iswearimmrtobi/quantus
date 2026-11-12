@@ -265,6 +265,13 @@ code {
   --smart-fence-color: var(--text-muted);
   --placeholder-color: var(--text-faint);
 }
+/* The part of the input an error is about (feature idea 6), selected in the error colour. */
+.math-input.error-mark {
+  --selection-background-color: color-mix(in srgb, var(--danger) 35%, transparent);
+}
+.latex-input.error-mark::selection {
+  background: color-mix(in srgb, var(--danger) 35%, transparent);
+}
 .math-input::part(container) {
   padding: 0;
 }

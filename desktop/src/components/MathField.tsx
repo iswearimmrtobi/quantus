@@ -1,5 +1,7 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref } from 'react';
 import { MathfieldElement } from 'mathlive';
+import type { Span } from '../api';
+import { modelRange } from '../errorMark';
 
 /** MathLive does not export the type of its menu entries. */
 type MenuItem = MathfieldElement['menuItems'][number];
@@ -64,6 +66,11 @@ export interface MathFieldHandle {
   setValue(latex: string): void;
   /** Puts LaTeX in at the cursor — how the variables panel writes `r_1` into the input. */
   insert(latex: string): void;
+  /**
+   * Selects, in red, the part `span` of `latex` that an error is about, if the field still holds
+   * `latex`; whether it could. The mark goes with the next key, click or change.
+   */
+  markError(latex: string, span: Span): boolean;
 }
 
 interface Props {
@@ -150,7 +157,10 @@ export function MathField({
     // Genau dort muss die Ergänzung ansetzen.
     let commandJustCommitted = false;
 
+    const unmark = () => mathfield.classList.remove('error-mark');
+
     const onInput = () => {
+      unmark();
       if (commandJustCommitted) {
         commandJustCommitted = false;
         completeCommand(mathfield);
@@ -160,6 +170,7 @@ export function MathField({
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
+      unmark();
       // Der Backslash ist die Tür zum Quelltext (F2). MathLive hätte hier seinen eigenen
       // Latex-Modus angeboten, in dem aber nur der Befehlsname steht und nicht die Formel —
       // Argumente, Klammern und alles Verschachtelte gehen dort nicht von Hand zu tippen.
@@ -233,6 +244,7 @@ export function MathField({
     // Capture-Phase: MathLive verarbeitet Tasten in seinem Inneren und ist sonst zuerst dran.
     mathfield.addEventListener('keydown', onKeyDown, true);
     mathfield.addEventListener('mode-change', onModeChange);
+    mathfield.addEventListener('pointerdown', unmark);
 
     host.current?.appendChild(mathfield);
     field.current = mathfield;
@@ -243,6 +255,7 @@ export function MathField({
       mathfield.removeEventListener('paste', onPaste, true);
       mathfield.removeEventListener('keydown', onKeyDown, true);
       mathfield.removeEventListener('mode-change', onModeChange);
+      mathfield.removeEventListener('pointerdown', unmark);
       mathfield.remove();
       field.current = null;
     };
@@ -283,6 +296,7 @@ export function MathField({
   useEffect(() => {
     const mathfield = field.current;
     if (!mathfield || value === reported.current) return;
+    mathfield.classList.remove('error-mark');
     if (mathfield.value !== value) mathfield.value = value;
     reported.current = value;
   }, [value]);
@@ -302,6 +316,15 @@ export function MathField({
       if (!mathfield) return;
       mathfield.insert(latex, { focus: true });
       callbacks.current.onChange(mathfield.value);
+    },
+    markError: (latex: string, span: Span) => {
+      const mathfield = field.current;
+      if (!mathfield || mathfield.value.trim() !== latex) return false;
+      const range = modelRange(mathfield, latex, span);
+      if (!range) return false;
+      mathfield.selection = { ranges: [range], direction: 'forward' };
+      mathfield.classList.add('error-mark');
+      return true;
     },
   }));
 

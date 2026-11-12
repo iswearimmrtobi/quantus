@@ -1,9 +1,13 @@
-import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import type { Span } from '../api';
+import { utf16Range } from '../errorMark';
 
 export interface LatexInputHandle {
   focus(): void;
   /** Fügt Text an der Einfügemarke ein — so schreibt das Variablen-Panel `r_1` hinein. */
   insert(latex: string): void;
+  /** Selects, in red, the part `span` of `latex` an error is about; see `MathFieldHandle`. */
+  markError(latex: string, span: Span): boolean;
 }
 
 interface Props {
@@ -27,6 +31,7 @@ interface Props {
  */
 export function LatexInput({ value, onChange, onEnter, onLeave, placeholder = 'F = 2kg \\cdot 10\\frac{m}{s^2}', ref }: Props) {
   const input = useRef<HTMLTextAreaElement>(null);
+  const [marked, setMarked] = useState(false);
 
   useEffect(() => {
     const field = input.current;
@@ -49,19 +54,32 @@ export function LatexInput({ value, onChange, onEnter, onLeave, placeholder = 'F
       // Nach dem Rendern steht der Cursor hinter dem Eingefügten.
       requestAnimationFrame(() => field.setSelectionRange(start + latex.length, start + latex.length));
     },
+    markError: (latex: string, span: Span) => {
+      const field = input.current;
+      if (!field || field.value.trim() !== latex || span.start === span.end) return false;
+      // The backend was sent the trimmed text.
+      const leading = field.value.length - field.value.trimStart().length;
+      const [start, end] = utf16Range(latex, span);
+      field.focus();
+      field.setSelectionRange(leading + start, leading + end);
+      setMarked(true);
+      return true;
+    },
   }));
 
   return (
     <textarea
       ref={input}
-      className="latex-input"
+      className={marked ? 'latex-input error-mark' : 'latex-input'}
       value={value}
       spellCheck={false}
       autoComplete="off"
       rows={1}
       placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
+      onPointerDown={() => setMarked(false)}
       onKeyDown={(event) => {
+        setMarked(false);
         if (event.key === 'Enter' && !event.shiftKey) {
           event.preventDefault();
           onEnter();
