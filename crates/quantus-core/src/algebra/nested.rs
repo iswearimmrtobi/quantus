@@ -28,7 +28,7 @@ pub fn wrap_factor(node: Node) -> Node {
     if needs_group && !matches!(node, Node::Group { .. }) {
         Node::Group {
             inner: Box::new(node),
-            position: 0,
+            position: Node::SYNTHETIC,
         }
     } else {
         node
@@ -70,19 +70,19 @@ pub fn make_product(left: Node, right: Node) -> Node {
     if crate::algebra::domain::is_constant_zero(&left) || crate::algebra::domain::is_constant_zero(&right) {
         return Node::Number {
             value: Decimal::from_i64(0),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
     }
     if is_constant_neg_one(&left) {
         return Node::Negation {
             operand: Box::new(wrap_factor(right)),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
     }
     if is_constant_neg_one(&right) {
         return Node::Negation {
             operand: Box::new(wrap_factor(left)),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
     }
 
@@ -101,7 +101,7 @@ pub fn make_product(left: Node, right: Node) -> Node {
         operator: Operator::ImplicitTimes,
         left: Box::new(left_wrapped),
         right: Box::new(right_wrapped),
-        position: 0,
+        position: Node::SYNTHETIC,
     }
 }
 
@@ -110,7 +110,7 @@ pub fn make_fraction(numerator: Node, denominator: Node) -> Node {
     Node::Fraction {
         numerator: Box::new(numerator),
         denominator: Box::new(denominator),
-        position: 0,
+        position: Node::SYNTHETIC,
     }
 }
 
@@ -199,7 +199,7 @@ pub fn combine_simple_fraction_sum(node: &Node) -> Option<Node> {
 
         let one_node = Node::Number {
             value: Decimal::from_i64(1),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
 
         let (n1, d1) = left_frac
@@ -222,7 +222,7 @@ pub fn combine_simple_fraction_sum(node: &Node) -> Option<Node> {
                 operator: *operator,
                 left: Box::new(n1),
                 right: Box::new(wrap_factor(n2)),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             (num, d1)
         } else if is_constant_one(&d1) {
@@ -231,7 +231,7 @@ pub fn combine_simple_fraction_sum(node: &Node) -> Option<Node> {
                 operator: *operator,
                 left: Box::new(left_scaled),
                 right: Box::new(wrap_factor(n2)),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             (num, d2)
         } else if is_constant_one(&d2) {
@@ -240,7 +240,7 @@ pub fn combine_simple_fraction_sum(node: &Node) -> Option<Node> {
                 operator: *operator,
                 left: Box::new(n1),
                 right: Box::new(wrap_factor(right_scaled)),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             (num, d1)
         } else {
@@ -250,7 +250,7 @@ pub fn combine_simple_fraction_sum(node: &Node) -> Option<Node> {
                 operator: *operator,
                 left: Box::new(left_scaled),
                 right: Box::new(wrap_factor(right_scaled)),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             let den = make_product(d1, d2);
             (num, den)
@@ -309,7 +309,7 @@ fn nested_fraction_step(node: &Node) -> Option<AlgebraStep> {
             serializer::expression(&den_now),
             serializer::expression(&reciprocal)
         );
-        lines.push((Node::binary(Operator::Times, num_now, reciprocal, 0), text));
+        lines.push((Node::binary(Operator::Times, num_now, reciprocal, Node::SYNTHETIC), text));
         crate::text::msg!("core.algebra.nested.multiply_numerators_denominators")
     } else {
         crate::text::msg!("core.algebra.nested.multiply_denominators")
@@ -337,8 +337,8 @@ fn write_over_denominator(sum: &Node) -> Option<(Node, String)> {
     let text = |term: &Node, d: &Node| crate::text::msg!("core.algebra.nested.write_over_denominator", serializer::expression(term), serializer::expression(d));
     let (left_frac, right_frac) = (split_fraction(left), split_fraction(right));
     let (written, text) = match (left_frac, right_frac) {
-        (None, Some((_, d))) => (Node::binary(*operator, over(left, d), (**right).clone(), 0), text(left, d)),
-        (Some((_, d)), None) => (Node::binary(*operator, (**left).clone(), over(right, d), 0), text(right, d)),
+        (None, Some((_, d))) => (Node::binary(*operator, over(left, d), (**right).clone(), Node::SYNTHETIC), text(left, d)),
+        (Some((_, d)), None) => (Node::binary(*operator, (**left).clone(), over(right, d), Node::SYNTHETIC), text(right, d)),
         _ => return None,
     };
     Some((written, text))

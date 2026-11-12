@@ -322,8 +322,8 @@ impl<'a> Evaluator<'a> {
             Ok((p, q)) => {
                 let n = series::rational_tail_start(&p, &q, from)?;
                 let head = series::rational_partial_sum(&p, &q, from, n)?;
-                let lower = Node::Number { value: Decimal::from_i64(n), position: 0 };
-                let upper = Node::Constant { name: "\\infty".into(), position: 0 };
+                let lower = Node::Number { value: Decimal::from_i64(n), position: Node::SYNTHETIC };
+                let upper = Node::Constant { name: "\\infty".into(), position: Node::SYNTHETIC };
                 let integral = self.integral(index, &lower, &upper, body)?.value.decimal(digits)?.to_rational();
                 head + integral + series::euler_maclaurin_correction(&p, &q, n)
             }

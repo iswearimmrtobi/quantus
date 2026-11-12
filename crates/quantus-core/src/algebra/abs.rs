@@ -29,7 +29,7 @@ fn abs_atom(atoms: &Atoms, index: usize) -> Option<&Node> {
 }
 
 fn abs_of(operand: Node, atoms: &mut Atoms) -> Poly {
-    let atom = atoms.intern(Node::Abs { operand: Box::new(operand), position: 0 });
+    let atom = atoms.intern(Node::Abs { operand: Box::new(operand), position: Node::SYNTHETIC });
     Poly::from_node(&atom).expect("an atom is a variable")
 }
 

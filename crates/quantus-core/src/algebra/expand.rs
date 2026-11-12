@@ -50,7 +50,7 @@ pub fn rebuild_product(mut factors: Vec<Node>) -> Node {
     if factors.is_empty() {
         return Node::Number {
             value: crate::num::Decimal::from_i64(1),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
     }
     let mut prod = factors.remove(0);
@@ -59,7 +59,7 @@ pub fn rebuild_product(mut factors: Vec<Node>) -> Node {
             operator: Operator::ImplicitTimes,
             left: Box::new(prod),
             right: Box::new(wrap_factor(next)),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
     }
     prod
@@ -212,7 +212,7 @@ fn term_by_term(first: &Node, second: &Node) -> Option<(Node, Node)> {
     let terms = |node: &Node| {
         let mut terms = Vec::new();
         flatten_additive_terms(node, true, &mut terms);
-        terms.into_iter().map(|(positive, term)| if positive { term } else { Node::Negation { operand: Box::new(term), position: 0 } })
+        terms.into_iter().map(|(positive, term)| if positive { term } else { Node::Negation { operand: Box::new(term), position: Node::SYNTHETIC } })
     };
     // More products than fit on a line are not written out.
     if terms(first).count() * terms(second).count() > MAX_WRITTEN_PRODUCTS {
@@ -227,7 +227,7 @@ fn term_by_term(first: &Node, second: &Node) -> Option<(Node, Node)> {
             values.push((!negative, if negative { (-product).to_node() } else { product.to_node() }));
             // A negative first factor in brackets: (-2) \cdot x.
             let first = if matches!(a, Node::Negation { .. }) { bracket(a.clone()) } else { a.clone() };
-            products.push((true, Node::binary(Operator::Times, first, b, 0)));
+            products.push((true, Node::binary(Operator::Times, first, b, Node::SYNTHETIC)));
         }
     }
     Some((signed_terms_sum(products)?, signed_terms_sum(values)?))
@@ -402,7 +402,7 @@ fn like_term_lines(node: &Node, terms: &[(bool, Node)]) -> Vec<AlgebraStep> {
         .filter_map(|(_, group)| Some(format!("{} = 0", serializer::expression(&signed_terms_sum(group.clone())?))))
         .collect();
     if !zeros.is_empty() {
-        let zero = Node::Number { value: crate::num::Decimal::from_i64(0), position: 0 };
+        let zero = Node::Number { value: crate::num::Decimal::from_i64(0), position: Node::SYNTHETIC };
         let with_zeros = groups.iter().map(|(_, group)| match group.as_slice() {
             [single] => single.clone(),
             many if sum(many).is_zero() => (true, zero.clone()),

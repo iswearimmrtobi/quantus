@@ -59,7 +59,7 @@ impl Atoms {
 
     /// The variable standing for the atom with `index`.
     pub fn var(&self, index: usize) -> Node {
-        Node::Variable { name: self.name(index).into(), index: (index + 1).to_string(), position: 0 }
+        Node::Variable { name: self.name(index).into(), index: (index + 1).to_string(), position: Node::SYNTHETIC }
     }
 
     /// How the atom with `index` is addressed; a polynomial rebuilds its variables from this key.

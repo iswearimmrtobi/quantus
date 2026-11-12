@@ -336,18 +336,18 @@ fn atom_node(e: &Expr, atoms: &mut Vec<Expr>) -> Option<Node> {
         Expr::Num(r) => number(r),
         Expr::Var => Expr::Var.to_node(Expr::poly_variable()),
         Expr::Sum(terms) => {
-            terms.iter().map(|t| atom_node(t, atoms)).collect::<Option<Vec<_>>>()?.into_iter().reduce(|a, b| Node::binary(Operator::Plus, a, b, 0))?
+            terms.iter().map(|t| atom_node(t, atoms)).collect::<Option<Vec<_>>>()?.into_iter().reduce(|a, b| Node::binary(Operator::Plus, a, b, Node::SYNTHETIC))?
         }
         Expr::Product(factors) => factors
             .iter()
             .map(|f| atom_node(f, atoms))
             .collect::<Option<Vec<_>>>()?
             .into_iter()
-            .reduce(|a, b| Node::binary(Operator::Times, a, b, 0))?,
+            .reduce(|a, b| Node::binary(Operator::Times, a, b, Node::SYNTHETIC))?,
         Expr::Pow(base, exponent) if is_integer(exponent) => {
             let n = exponent.as_num().unwrap();
-            let base = Node::Group { inner: Box::new(atom_node(base, atoms)?), position: 0 };
-            let power = Node::Power { base: Box::new(base), exponent: Box::new(number(&n.clone().abs())), position: 0 };
+            let base = Node::Group { inner: Box::new(atom_node(base, atoms)?), position: Node::SYNTHETIC };
+            let power = Node::Power { base: Box::new(base), exponent: Box::new(number(&n.clone().abs())), position: Node::SYNTHETIC };
             if n.is_negative() { Node::fraction(number(&RBig::ONE), power, 0) } else { power }
         }
         atom => {
@@ -362,7 +362,7 @@ fn atom_node(e: &Expr, atoms: &mut Vec<Expr>) -> Option<Node> {
                     atoms.len() - 1
                 }
             };
-            Node::Variable { name: "a".into(), index: (index + 1).to_string(), position: 0 }
+            Node::Variable { name: "a".into(), index: (index + 1).to_string(), position: Node::SYNTHETIC }
         }
     })
 }
@@ -376,7 +376,7 @@ fn restore_atoms(node: Node, atoms: &[Expr], variable: &str) -> Node {
         _ => None,
     };
     match atom {
-        Some(i) => Node::Group { inner: Box::new(atoms[i - 1].to_node(variable)), position: 0 },
+        Some(i) => Node::Group { inner: Box::new(atoms[i - 1].to_node(variable)), position: Node::SYNTHETIC },
         None => node.map_children(&mut |child| restore_atoms(child, atoms, variable)),
     }
 }

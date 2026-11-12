@@ -44,7 +44,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
     if is_constant_zero(num) {
         let zero_node = Node::Number {
             value: Decimal::from_i64(0),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
         let rule = RuleId::NormalizeExpression;
         let explanation = crate::text::msg!("core.algebra.reduce.zero_divided");
@@ -66,7 +66,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
             }
             let one_node = Node::Number {
                 value: Decimal::from_i64(1),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             let rule = RuleId::CancelCommonFactors;
             let explanation = crate::text::msg!("core.algebra.reduce.cancel_to_one");
@@ -80,7 +80,7 @@ fn reduce_rational_step(node: &Node, mut tracker: Option<&mut DomainTracker>) ->
             }
             let neg_one_node = Node::Number {
                 value: Decimal::from_i64(-1),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             let rule = RuleId::CancelCommonFactors;
             let explanation = crate::text::msg!("core.algebra.reduce.cancel_to_minus_one");
@@ -187,9 +187,9 @@ fn exponent_difference(num: &Node, den: &Node) -> Option<Node> {
     if serializer::expression(&base) != serializer::expression(&other) || m == n || !matches!(unwrap_group(&base), Node::Variable { .. }) {
         return None;
     }
-    let number = |v: i64| Node::Number { value: Decimal::from_i64(v), position: 0 };
+    let number = |v: i64| Node::Number { value: Decimal::from_i64(v), position: Node::SYNTHETIC };
     let (high, low) = if m > n { (m, n) } else { (n, m) };
-    let difference = Node::Power { base: Box::new(base), exponent: Box::new(Node::binary(Operator::Minus, number(high), number(low), 0)), position: 0 };
+    let difference = Node::Power { base: Box::new(base), exponent: Box::new(Node::binary(Operator::Minus, number(high), number(low), Node::SYNTHETIC)), position: Node::SYNTHETIC };
     Some(if m > n { difference } else { make_fraction(number(1), difference) })
 }
 
@@ -206,8 +206,8 @@ fn mark_cancelled(node: &Node, factors: &mut Vec<Factor>) -> Node {
         if let Some(index) = factors.iter().position(|f| is_sum && f.exp == 1 && is_multiple_of(&poly, &f.base)) {
             let factor = factors.remove(index);
             let multiple = &poly.leading_coeff() / &factor.base.leading_coeff();
-            let grouped = Node::Group { inner: Box::new(factor.base.to_node()), position: 0 };
-            return Node::binary(Operator::ImplicitTimes, rational_to_node(&multiple), cancel(grouped), 0);
+            let grouped = Node::Group { inner: Box::new(factor.base.to_node()), position: Node::SYNTHETIC };
+            return Node::binary(Operator::ImplicitTimes, rational_to_node(&multiple), cancel(grouped), Node::SYNTHETIC);
         }
     }
     // Only part of a power cancels: x^2 over x is written x \cdot x, one of them marked.
@@ -217,8 +217,8 @@ fn mark_cancelled(node: &Node, factors: &mut Vec<Factor>) -> Node {
         };
         if let Some(index) = factors.iter().position(|f| f.base == base_poly && (f.exp as i64) < k) {
             let j = factors.remove(index).exp as i64;
-            let power = |e: i64| if e == 1 { (**base).clone() } else { Node::Power { base: base.clone(), exponent: Box::new(Node::Number { value: Decimal::from_i64(e), position: 0 }), position: 0 } };
-            return Node::binary(Operator::Times, power(k - j), cancel(power(j)), 0);
+            let power = |e: i64| if e == 1 { (**base).clone() } else { Node::Power { base: base.clone(), exponent: Box::new(Node::Number { value: Decimal::from_i64(e), position: Node::SYNTHETIC }), position: Node::SYNTHETIC } };
+            return Node::binary(Operator::Times, power(k - j), cancel(power(j)), Node::SYNTHETIC);
         }
     }
     match node {

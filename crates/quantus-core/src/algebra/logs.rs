@@ -59,7 +59,7 @@ fn as_power<'a>(node: &'a Node, atoms: &'a Atoms) -> Option<(&'a Node, &'a Node)
 }
 
 fn number(value: &IBig) -> Node {
-    Node::Number { value: Decimal::new(value.clone(), 0), position: 0 }
+    Node::Number { value: Decimal::new(value.clone(), 0), position: Node::SYNTHETIC }
 }
 
 /// `k` with `value = 10^k`, if there is one.
@@ -106,8 +106,8 @@ fn log_value(index: usize, ctx: &mut Context) -> Option<Local> {
     if base == "ln" {
         if let Some((power_base, exponent)) = as_power(argument, atoms) {
             if is_e(power_base, atoms) && Poly::from_node(exponent).is_ok_and(|p| p.is_constant() && p.constant_term() != RBig::ONE) {
-                let ln_e = Node::Function { name: "ln".into(), argument: Box::new(Node::Constant { name: "e".into(), position: 0 }), position: 0 };
-                let times = |right: Node| Node::binary(Operator::Times, exponent.clone(), right, 0);
+                let ln_e = Node::Function { name: "ln".into(), argument: Box::new(Node::Constant { name: "e".into(), position: Node::SYNTHETIC }), position: Node::SYNTHETIC };
+                let times = |right: Node| Node::binary(Operator::Times, exponent.clone(), right, Node::SYNTHETIC);
                 let working = vec![
                     (times(ln_e), "\\ln(a^{n}) = n \\ln a".to_string(), StepDetail::Detailed),
                     (times(number(&IBig::ONE)), "\\ln e = 1".to_string(), StepDetail::Detailed),
@@ -130,8 +130,8 @@ fn exp_value(index: usize, ctx: &mut Context) -> Option<Local> {
         // \exp(x) = e^{x}
         Node::Function { name, argument, .. } if name == "exp" => {
             let argument = argument.clone();
-            let e = ctx.atoms.intern(Node::Constant { name: "e".into(), position: 0 });
-            let power = Node::Power { base: Box::new(e), exponent: argument, position: 0 };
+            let e = ctx.atoms.intern(Node::Constant { name: "e".into(), position: Node::SYNTHETIC });
+            let power = Node::Power { base: Box::new(e), exponent: argument, position: Node::SYNTHETIC };
             let detail = format!("{} = {}", serializer::expression(&ctx.atoms.var(index)), serializer::expression(&power));
             let power = crate::algebra::atoms::atomize(power, ctx.atoms);
             Some(Local::new(power, detail))
@@ -208,7 +208,7 @@ fn merge_poly(poly: &Poly, ctx: &mut Context, details: &mut Vec<String>, conditi
         let (_, name, _) = log_atom(ctx.atoms, members[0].2)?;
         let name = name.to_string();
         let argument = if den.is_constant() { (&num * &Poly::from_const(RBig::ONE / den.constant_term())).to_node() } else { make_fraction(num.to_node(), den.to_node()) };
-        let log = ctx.atoms.intern(Node::Function { name, argument: Box::new(argument), position: 0 });
+        let log = ctx.atoms.intern(Node::Function { name, argument: Box::new(argument), position: Node::SYNTHETIC });
         note(details, format!("{} = {}", parts.join(" + ").replace("+ -", "- "), serializer::expression(&log)));
         sum = &sum + &Poly::from_node(&log).ok()?;
     }
@@ -290,12 +290,12 @@ fn log_quotient(node: &Node, ctx: &mut Context) -> Option<Local> {
     let local = Local::new(result, detail).with([Condition::Positive(base.to_node())]);
     // \log_2 8 = \log_2(2^{3}): the argument as a power of the base.
     if base.is_constant() && m == 1 && k > 1 {
-        let power = Node::Power { base: Box::new(base.to_node()), exponent: Box::new(number(&IBig::from(k))), position: 0 };
+        let power = Node::Power { base: Box::new(base.to_node()), exponent: Box::new(number(&IBig::from(k))), position: Node::SYNTHETIC };
         let name = match atoms.node(top_index) {
             Node::Function { name, .. } => name.clone(),
             _ => return Some(local),
         };
-        let written = make_fraction(Node::Function { name, argument: Box::new(power), position: 0 }, atoms.node(bottom_index).clone());
+        let written = make_fraction(Node::Function { name, argument: Box::new(power), position: Node::SYNTHETIC }, atoms.node(bottom_index).clone());
         let text = crate::text::msg!("core.algebra.logs.write_power_base", serializer::expression(&a.to_node()));
         return Some(local.with_working(vec![(written, text, StepDetail::Standard)], "\\log_{b}(b^{n}) = n"));
     }

@@ -308,7 +308,7 @@ impl FactoredPoly {
         if self.is_zero() {
             return Node::Number {
                 value: Decimal::new(IBig::ZERO, 0),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
         }
         if self.factors.is_empty() {
@@ -326,7 +326,7 @@ impl FactoredPoly {
                 let var_node = Node::Variable {
                     name: var_name.clone(),
                     index: String::new(),
-                    position: 0,
+                    position: Node::SYNTHETIC,
                 };
                 if factor.exp == 1 {
                     var_node
@@ -335,16 +335,16 @@ impl FactoredPoly {
                         base: Box::new(var_node),
                         exponent: Box::new(Node::Number {
                             value: Decimal::from_i64(factor.exp as i64),
-                            position: 0,
+                            position: Node::SYNTHETIC,
                         }),
-                        position: 0,
+                        position: Node::SYNTHETIC,
                     }
                 }
             } else {
                 let base_node = factor.base.to_node();
                 let grouped = Node::Group {
                     inner: Box::new(base_node),
-                    position: 0,
+                    position: Node::SYNTHETIC,
                 };
                 if factor.exp == 1 {
                     grouped
@@ -353,9 +353,9 @@ impl FactoredPoly {
                         base: Box::new(grouped),
                         exponent: Box::new(Node::Number {
                             value: Decimal::from_i64(factor.exp as i64),
-                            position: 0,
+                            position: Node::SYNTHETIC,
                         }),
-                        position: 0,
+                        position: Node::SYNTHETIC,
                     }
                 }
             };
@@ -368,7 +368,7 @@ impl FactoredPoly {
                 operator: Operator::ImplicitTimes,
                 left: Box::new(product),
                 right: Box::new(next),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
         }
 
@@ -377,7 +377,7 @@ impl FactoredPoly {
         } else if self.coeff == -RBig::ONE {
             Node::Negation {
                 operand: Box::new(product),
-                position: 0,
+                position: Node::SYNTHETIC,
             }
         } else if self.coeff.is_negative() {
             Node::Negation {
@@ -385,16 +385,16 @@ impl FactoredPoly {
                     operator: Operator::ImplicitTimes,
                     left: Box::new(rational_to_node(&self.coeff.clone().abs())),
                     right: Box::new(product),
-                    position: 0,
+                    position: Node::SYNTHETIC,
                 }),
-                position: 0,
+                position: Node::SYNTHETIC,
             }
         } else {
             Node::Binary {
                 operator: Operator::ImplicitTimes,
                 left: Box::new(rational_to_node(&self.coeff)),
                 right: Box::new(product),
-                position: 0,
+                position: Node::SYNTHETIC,
             }
         }
     }

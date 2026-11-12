@@ -668,7 +668,7 @@ impl Poly {
         if self.is_zero() {
             return Node::Number {
                 value: Decimal::new(IBig::ZERO, 0),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
         }
         let mut acc: Option<Node> = None;
@@ -682,7 +682,7 @@ impl Poly {
                     if is_neg {
                         acc = Some(Node::Negation {
                             operand: Box::new(term_node),
-                            position: 0,
+                            position: Node::SYNTHETIC,
                         });
                     } else {
                         acc = Some(term_node);
@@ -694,14 +694,14 @@ impl Poly {
                             operator: Operator::Minus,
                             left: Box::new(prev),
                             right: Box::new(term_node),
-                            position: 0,
+                            position: Node::SYNTHETIC,
                         });
                     } else {
                         acc = Some(Node::Binary {
                             operator: Operator::Plus,
                             left: Box::new(prev),
                             right: Box::new(term_node),
-                            position: 0,
+                            position: Node::SYNTHETIC,
                         });
                     }
                 }
@@ -752,19 +752,19 @@ pub fn rational_to_node(r: &RBig) -> Node {
     if den == UBig::from(1u8) {
         Node::Number {
             value: Decimal::new(num, 0),
-            position: 0,
+            position: Node::SYNTHETIC,
         }
     } else {
         Node::Fraction {
             numerator: Box::new(Node::Number {
                 value: Decimal::new(num, 0),
-                position: 0,
+                position: Node::SYNTHETIC,
             }),
             denominator: Box::new(Node::Number {
                 value: Decimal::new(IBig::from(den), 0),
-                position: 0,
+                position: Node::SYNTHETIC,
             }),
-            position: 0,
+            position: Node::SYNTHETIC,
         }
     }
 }
@@ -775,7 +775,7 @@ pub fn monomial_to_node(m: &Monomial) -> Node {
         let var_node = Node::Variable {
             name: var.clone(),
             index: String::new(),
-            position: 0,
+            position: Node::SYNTHETIC,
         };
         if exp == 1 {
             factor_nodes.push(var_node);
@@ -784,16 +784,16 @@ pub fn monomial_to_node(m: &Monomial) -> Node {
                 base: Box::new(var_node),
                 exponent: Box::new(Node::Number {
                     value: Decimal::from_i64(exp as i64),
-                    position: 0,
+                    position: Node::SYNTHETIC,
                 }),
-                position: 0,
+                position: Node::SYNTHETIC,
             });
         }
     }
     if factor_nodes.is_empty() {
         Node::Number {
             value: Decimal::from_i64(1),
-            position: 0,
+            position: Node::SYNTHETIC,
         }
     } else {
         let mut expr = factor_nodes.remove(0);
@@ -802,7 +802,7 @@ pub fn monomial_to_node(m: &Monomial) -> Node {
                 operator: Operator::ImplicitTimes,
                 left: Box::new(expr),
                 right: Box::new(next),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
         }
         expr
@@ -819,7 +819,7 @@ pub fn term_to_node(coeff: &RBig, monomial: &Monomial) -> Node {
             operator: Operator::ImplicitTimes,
             left: Box::new(rational_to_node(coeff)),
             right: Box::new(monomial_to_node(monomial)),
-            position: 0,
+            position: Node::SYNTHETIC,
         }
     }
 }

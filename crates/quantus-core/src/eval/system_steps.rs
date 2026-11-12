@@ -647,7 +647,7 @@ fn plain(key: &str) -> String {
 /// The LaTeX of an unknown's key: `x_1` as `x_{1}`.
 pub(super) fn unknown_latex(key: &str) -> String {
     let (name, index) = key.split_once('_').unwrap_or((key, ""));
-    serializer::expression(&Node::Variable { name: name.to_string(), index: index.to_string(), position: 0 })
+    serializer::expression(&Node::Variable { name: name.to_string(), index: index.to_string(), position: Node::SYNTHETIC })
 }
 
 #[cfg(test)]

@@ -366,14 +366,14 @@ pub fn factoring_lines(poly: &Poly) -> (Vec<Line>, String) {
         .iter()
         .map(|t| {
             let quotient = Poly::from_term(t.coeff.clone().abs(), t.monomial.clone()).to_node();
-            (!t.coeff.is_negative(), Node::binary(Operator::Times, common_node.clone(), quotient, 0))
+            (!t.coeff.is_negative(), Node::binary(Operator::Times, common_node.clone(), quotient, Node::SYNTHETIC))
         })
         .collect();
     let mut lines = Vec::new();
     if let Some(found) = signed_terms_sum(each) {
         lines.push(Line::new(found, crate::text::msg!("core.algebra.factor.find_common_factor", latex(&common_node)), StepDetail::Detailed));
     }
-    let taken_out = |part: Node| Node::binary(Operator::ImplicitTimes, common_node.clone(), Node::Group { inner: Box::new(part), position: 0 }, 0);
+    let taken_out = |part: Node| Node::binary(Operator::ImplicitTimes, common_node.clone(), Node::Group { inner: Box::new(part), position: Node::SYNTHETIC }, Node::SYNTHETIC);
     let factor_out = crate::text::msg!("core.algebra.factor.factor_out", latex(&common_node));
     let further = factor_polynomial(&rest);
     if further.factors.len() <= 1 && further.factors.iter().all(|f| f.exp == 1) {
@@ -452,9 +452,9 @@ fn squares_line(poly: &Poly) -> Option<Line> {
             Poly::from_term(coeff.clone(), term.monomial.clone()).to_node()
         } else {
             let square = Node::Power {
-                base: Box::new(Node::Group { inner: Box::new(root.to_node()), position: 0 }),
+                base: Box::new(Node::Group { inner: Box::new(root.to_node()), position: Node::SYNTHETIC }),
                 exponent: Box::new(rational_node(&RBig::from(2))),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             changed.push(crate::text::msg!("core.algebra.factor.term_as", latex(&Poly::from_term(coeff, term.monomial.clone()).to_node()), latex(&square)));
             square

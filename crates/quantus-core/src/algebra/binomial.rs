@@ -564,9 +564,9 @@ pub fn square_completion_lines(poly: &Poly, a: &Poly, b: &Poly) -> [Node; 3] {
 fn square_of(base: &Poly) -> Node {
     let base = if base.leading_coeff().is_negative() { -base } else { base.clone() };
     Node::Power {
-        base: Box::new(Node::Group { inner: Box::new(base.to_node()), position: 0 }),
+        base: Box::new(Node::Group { inner: Box::new(base.to_node()), position: Node::SYNTHETIC }),
         exponent: Box::new(rational_to_node(&RBig::from(2))),
-        position: 0,
+        position: Node::SYNTHETIC,
     }
 }
 
@@ -594,11 +594,11 @@ pub(crate) fn binomial_formula_line(base: &Poly, exp: usize, identity: BinomialI
     let (a_node, b_node) = (a.to_node(), b.to_node());
     let factor = |p: &Poly, n: &Node| if is_atom(p) { n.clone() } else { bracket(n.clone()) };
     let power_of = |n: &Node, k: i64| Node::Power {
-        base: Box::new(Node::Group { inner: Box::new(n.clone()), position: 0 }),
+        base: Box::new(Node::Group { inner: Box::new(n.clone()), position: Node::SYNTHETIC }),
         exponent: Box::new(rational_to_node(&RBig::from(k))),
-        position: 0,
+        position: Node::SYNTHETIC,
     };
-    let times = |parts: Vec<Node>| parts.into_iter().reduce(|acc, next| Node::binary(Operator::Times, acc, next, 0)).unwrap();
+    let times = |parts: Vec<Node>| parts.into_iter().reduce(|acc, next| Node::binary(Operator::Times, acc, next, Node::SYNTHETIC)).unwrap();
     let number = |k: i64| rational_to_node(&RBig::from(k));
     let minus = t1.coeff.is_negative();
     let terms: Vec<(bool, Node)> = if exp == 2 {

@@ -471,7 +471,7 @@ impl LatexCalculator {
         let value = Value::int(i64::from(result.value));
         let input = latex.trim().to_string();
         Ok(Calculation {
-            formula: Formula { label: None, expression: Node::Number { value: Decimal::from_i64(result.value.into()), position: 0 }, source: latex.to_string() },
+            formula: Formula { label: None, expression: Node::Number { value: Decimal::from_i64(result.value.into()), position: Node::SYNTHETIC }, source: latex.to_string() },
             steps: vec![Step::new(StepKind::Symbolic, input.clone()), Step::new(StepKind::Result, result.latex.clone())],
             input,
             latex: result.latex.clone(),
@@ -1105,9 +1105,9 @@ pub(crate) fn fraction_node(value: &dashu::rational::RBig) -> Node {
         return number_node(value);
     }
     let size = value.clone().abs();
-    let part = |n: IBig| Node::Number { value: Decimal::new(n, 0), position: 0 };
+    let part = |n: IBig| Node::Number { value: Decimal::new(n, 0), position: Node::SYNTHETIC };
     let node = Node::fraction(part(size.numerator().clone()), part(IBig::from(size.denominator().clone())), 0);
-    if value.is_negative() { Node::Negation { operand: Box::new(node), position: 0 } } else { node }
+    if value.is_negative() { Node::Negation { operand: Box::new(node), position: Node::SYNTHETIC } } else { node }
 }
 
 /// A complex number with rational parts, exactly: `\frac{1}{2} - 3i`, `-\frac{2}{3}i`. `None`
@@ -1142,12 +1142,12 @@ fn number_node(value: &dashu::rational::RBig) -> Node {
         scale += 1;
     }
     let node = if scaled.denominator() == &dashu::integer::UBig::ONE {
-        Node::Number { value: Decimal::new(scaled.numerator().clone(), scale), position: 0 }
+        Node::Number { value: Decimal::new(scaled.numerator().clone(), scale), position: Node::SYNTHETIC }
     } else {
-        let part = |n: IBig| Node::Number { value: Decimal::new(n, 0), position: 0 };
-        Node::Fraction { numerator: Box::new(part(size.numerator().clone())), denominator: Box::new(part(IBig::from(size.denominator().clone()))), position: 0 }
+        let part = |n: IBig| Node::Number { value: Decimal::new(n, 0), position: Node::SYNTHETIC };
+        Node::Fraction { numerator: Box::new(part(size.numerator().clone())), denominator: Box::new(part(IBig::from(size.denominator().clone()))), position: Node::SYNTHETIC }
     };
-    if negative { Node::Negation { operand: Box::new(node), position: 0 } } else { node }
+    if negative { Node::Negation { operand: Box::new(node), position: Node::SYNTHETIC } } else { node }
 }
 
 fn contains_unit(node: &Node) -> bool {
@@ -1236,7 +1236,7 @@ fn common_unit_line(expression: &Node, evaluator: &Evaluator, prefix: &str) -> O
         .iter()
         .map(|(positive, _, quantity)| {
             let crate::num::Value::Rat(value) = quantity.to(&first.unit).ok()?.value else { return None };
-            Some((*positive, Node::binary(Operator::ImplicitTimes, number_node(&value), unit_node.clone(), 0)))
+            Some((*positive, Node::binary(Operator::ImplicitTimes, number_node(&value), unit_node.clone(), Node::SYNTHETIC)))
         })
         .collect::<Option<_>>()?;
     let line = crate::algebra::display::signed_terms_sum(converted)?;

@@ -35,7 +35,7 @@ fn power_atom(atoms: &Atoms, index: usize) -> Option<(&Node, Poly)> {
 }
 
 fn integer_power(base: Node, exp: &IBig) -> Node {
-    Node::Power { base: Box::new(base), exponent: Box::new(Node::Number { value: Decimal::new(exp.clone(), 0), position: 0 }), position: 0 }
+    Node::Power { base: Box::new(base), exponent: Box::new(Node::Number { value: Decimal::new(exp.clone(), 0), position: Node::SYNTHETIC }), position: Node::SYNTHETIC }
 }
 
 /// The integer a constant polynomial stands for, if it is one.
@@ -51,7 +51,7 @@ pub(crate) fn power_of(base: &Node, exponent: &Poly, atoms: &mut Atoms) -> Optio
         // A negative integer power belongs in a denominator, which a term cannot hold.
         Some(_) => None,
         None => {
-            let atom = atoms.intern(Node::Power { base: Box::new(base.clone()), exponent: Box::new(exponent.to_node()), position: 0 });
+            let atom = atoms.intern(Node::Power { base: Box::new(base.clone()), exponent: Box::new(exponent.to_node()), position: Node::SYNTHETIC });
             Poly::from_node(&atom).ok()
         }
     }
@@ -74,7 +74,7 @@ fn rational_exponent(index: usize, ctx: &mut Context) -> Option<Local> {
     let magnitude = if p.is_negative() { -p.clone() } else { p.clone() };
     let radicand = if magnitude == IBig::ONE { base.clone() } else { integer_power(base.clone(), &magnitude) };
     let root = ctx.atoms.intern(make_root(q, radicand));
-    let result = if p.is_negative() { make_fraction(Node::Number { value: Decimal::from_i64(1), position: 0 }, root) } else { root };
+    let result = if p.is_negative() { make_fraction(Node::Number { value: Decimal::from_i64(1), position: Node::SYNTHETIC }, root) } else { root };
     let detail = format!("{} = {}", latex(&ctx.atoms.var(index)), latex(&result));
     Some(Local::new(result, detail))
 }
@@ -106,7 +106,7 @@ fn parts(monomial: &Monomial, atoms: &Atoms, sign: i64) -> Vec<Part> {
         let scale = Poly::from_const(RBig::from(sign * exp as i64));
         let (base, exponent, is_atom) = match atoms.index_of_key(var).and_then(|i| power_atom(atoms, i)) {
             Some((base, exponent)) => (base.clone(), &exponent * &scale, true),
-            None => (Node::Variable { name: var.clone(), index: String::new(), position: 0 }, scale, false),
+            None => (Node::Variable { name: var.clone(), index: String::new(), position: Node::SYNTHETIC }, scale, false),
         };
         // A variable rebuilt from its key has an empty index; key the base the same way.
         let key = Poly::from_node(&base).map_or_else(|_| latex(&base), |poly| poly.to_plain_string());
@@ -141,7 +141,7 @@ fn merge_conditions(group: &[Part]) -> Vec<Condition> {
 fn describe(group: &[Part], result: &Node) -> String {
     let factors: Vec<String> = group
         .iter()
-        .map(|part| latex(&Node::Power { base: Box::new(part.base.clone()), exponent: Box::new(part.exponent.to_node()), position: 0 }))
+        .map(|part| latex(&Node::Power { base: Box::new(part.base.clone()), exponent: Box::new(part.exponent.to_node()), position: Node::SYNTHETIC }))
         .collect();
     format!("{} = {}", factors.join(" \\cdot "), latex(result))
 }
@@ -228,7 +228,7 @@ fn divide_at(node: &Node, ctx: &mut Context) -> Option<Local> {
         } else {
             num_factor = &num_factor * &merged;
         }
-        details.push(describe(&group, &if below { make_fraction(Node::Number { value: Decimal::from_i64(1), position: 0 }, merged.to_node()) } else { merged.to_node() }));
+        details.push(describe(&group, &if below { make_fraction(Node::Number { value: Decimal::from_i64(1), position: Node::SYNTHETIC }, merged.to_node()) } else { merged.to_node() }));
         conditions.push(condition);
     }
     if details.is_empty() {
@@ -261,8 +261,8 @@ fn nest_power(index: usize, ctx: &mut Context) -> Option<Local> {
     let merged = power_of(&inner_base, &exponent, ctx.atoms)?.to_node();
     let detail = format!("{} = {}", latex(&ctx.atoms.var(index)), latex(&merged));
     // The product of the exponents written out: (a^{x})^{2} = a^{x \cdot 2}.
-    let product = Node::binary(crate::latex::ast::Operator::Times, inner.to_node(), outer.to_node(), 0);
-    let written = Node::Power { base: Box::new(inner_base.clone()), exponent: Box::new(product), position: 0 };
+    let product = Node::binary(crate::latex::ast::Operator::Times, inner.to_node(), outer.to_node(), Node::SYNTHETIC);
+    let written = Node::Power { base: Box::new(inner_base.clone()), exponent: Box::new(product), position: Node::SYNTHETIC };
     let working = vec![(written, crate::text::msg!("core.algebra.powers.power_power_multiply_exponents"), crate::settings::StepDetail::Standard)];
     Some(Local::new(merged, detail).with([Condition::Positive(inner_base)]).with_working(working, crate::text::msg!("core.algebra.powers.work_out_exponent")))
 }

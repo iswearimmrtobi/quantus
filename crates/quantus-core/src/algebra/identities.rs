@@ -423,14 +423,14 @@ pub fn everywhere(node: &Node, ctx: &mut Context, title: &str, rule: RuleId, loc
 // ---- helpers for the rules -----------------------------------------------------------------
 
 pub(crate) fn number(n: usize) -> Node {
-    Node::Number { value: Decimal::from_i64(n as i64), position: 0 }
+    Node::Number { value: Decimal::from_i64(n as i64), position: Node::SYNTHETIC }
 }
 
 pub(crate) fn power(base: Node, exp: usize) -> Node {
     if exp == 1 {
         base
     } else {
-        Node::Power { base: Box::new(base), exponent: Box::new(number(exp)), position: 0 }
+        Node::Power { base: Box::new(base), exponent: Box::new(number(exp)), position: Node::SYNTHETIC }
     }
 }
 

@@ -689,7 +689,7 @@ pub(crate) fn rewrite_first_top_down_with(
 fn number(value: i64) -> Node {
     Node::Number {
         value: Decimal::from_i64(value),
-        position: 0,
+        position: Node::SYNTHETIC,
     }
 }
 
@@ -742,7 +742,7 @@ fn normalize_notation_of(node: &Node, kinds: &[Notation]) -> Node {
                     Node::Power {
                         base: base.clone(),
                         exponent: Box::new(number(-n)),
-                        position: 0,
+                        position: Node::SYNTHETIC,
                     }
                 };
                 make_fraction(number(1), positive)
@@ -800,7 +800,7 @@ pub fn normalize_product_at(node: &Node) -> Option<(Node, RuleId, String)> {
             let power = |x: &Node| Node::Power {
                 base: Box::new(wrap_power_base(x.clone())),
                 exponent: Box::new(number(n)),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
             Some((
                 make_fraction(power(a), power(b)),
@@ -829,7 +829,7 @@ fn wrap_power_base(node: Node) -> Node {
         Node::Number { .. } | Node::Variable { .. } | Node::Group { .. } => node,
         _ => Node::Group {
             inner: Box::new(node),
-            position: 0,
+            position: Node::SYNTHETIC,
         },
     }
 }
@@ -894,7 +894,7 @@ fn common_denominator_rewrite(node: &Node) -> Option<AlgebraStep> {
             rewritten.push((positive, make_fraction(num, lcd_node.clone())));
         } else {
             let factor = missing.to_node();
-            extended.push((positive, Node::binary(Operator::Times, original, make_fraction(factor.clone(), factor.clone()), 0)));
+            extended.push((positive, Node::binary(Operator::Times, original, make_fraction(factor.clone(), factor.clone()), Node::SYNTHETIC)));
             rewritten.push((positive, make_fraction(make_product(num, factor), lcd_node.clone())));
         }
     }
@@ -1017,8 +1017,8 @@ fn exponent_line(root: &Node) -> Option<(Node, String)> {
     if let Node::Power { base, exponent, .. } = unwrapped {
         let (_, inner_base, inner) = exponent_of(base).filter(|_| matches!(unwrap_group(base), Node::Power { .. }))?;
         integer_exponent(exponent)?;
-        let product = Node::binary(Operator::Times, inner, (**exponent).clone(), 0);
-        return Some((Node::Power { base: Box::new(inner_base), exponent: Box::new(product), position: 0 }, crate::text::msg!("core.algebra.pipeline.power_power_multiply_exponents")));
+        let product = Node::binary(Operator::Times, inner, (**exponent).clone(), Node::SYNTHETIC);
+        return Some((Node::Power { base: Box::new(inner_base), exponent: Box::new(product), position: Node::SYNTHETIC }, crate::text::msg!("core.algebra.pipeline.power_power_multiply_exponents")));
     }
     if !is_power_product(unwrapped) {
         return None;
@@ -1027,8 +1027,8 @@ fn exponent_line(root: &Node) -> Option<(Node, String)> {
     crate::algebra::expand::flatten_multiplicative_factors(unwrapped, &mut factors);
     let parts: Vec<(String, Node, Node)> = factors.iter().map(|f| exponent_of(f)).collect::<Option<_>>()?;
     let (_, base, _) = parts.first()?.clone();
-    let sum = parts.into_iter().map(|(_, _, e)| e).reduce(|acc, e| Node::binary(Operator::Plus, acc, e, 0))?;
-    Some((Node::Power { base: Box::new(base), exponent: Box::new(sum), position: 0 }, crate::text::msg!("core.algebra.pipeline.same_base_add_exponents")))
+    let sum = parts.into_iter().map(|(_, _, e)| e).reduce(|acc, e| Node::binary(Operator::Plus, acc, e, Node::SYNTHETIC))?;
+    Some((Node::Power { base: Box::new(base), exponent: Box::new(sum), position: Node::SYNTHETIC }, crate::text::msg!("core.algebra.pipeline.same_base_add_exponents")))
 }
 
 /// Whether `root` is a sum over a number, `\frac{\sqrt{3} + 1}{2}`, written term by term in its
@@ -1049,8 +1049,8 @@ fn sign_flip_line(root: &Node) -> Option<Node> {
     if !Poly::from_node(den).ok()?.leading_coeff().is_negative() {
         return None;
     }
-    let minus_one = || Node::Negation { operand: Box::new(number(1)), position: 0 };
-    let times = |node: &Node| Node::binary(Operator::Times, node.clone(), minus_one(), 0);
+    let minus_one = || Node::Negation { operand: Box::new(number(1)), position: Node::SYNTHETIC };
+    let times = |node: &Node| Node::binary(Operator::Times, node.clone(), minus_one(), Node::SYNTHETIC);
     Some(make_fraction(times(num), times(den)))
 }
 
@@ -1316,7 +1316,7 @@ mod tests {
         let mut counter = 0;
         pipeline.run_stage(|node, _| {
             counter += 1;
-            let next = Node::binary(Operator::Plus, node.clone(), number(counter), 0);
+            let next = Node::binary(Operator::Plus, node.clone(), number(counter), Node::SYNTHETIC);
             let step = AlgebraStep::new(node.clone(), next.clone(), "grow", None);
             Some((next, step))
         });

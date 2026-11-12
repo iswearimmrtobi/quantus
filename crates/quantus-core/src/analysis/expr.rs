@@ -283,15 +283,15 @@ fn unwrap_group(node: &Node) -> &Node {
 }
 
 fn number(value: &IBig) -> Node {
-    Node::Number { value: Decimal::new(value.clone(), 0), position: 0 }
+    Node::Number { value: Decimal::new(value.clone(), 0), position: Node::SYNTHETIC }
 }
 
 fn negation(node: Node) -> Node {
-    Node::Negation { operand: Box::new(node), position: 0 }
+    Node::Negation { operand: Box::new(node), position: Node::SYNTHETIC }
 }
 
 fn times(left: Node, right: Node) -> Node {
-    Node::binary(Operator::ImplicitTimes, left, right, 0)
+    Node::binary(Operator::ImplicitTimes, left, right, Node::SYNTHETIC)
 }
 
 /// A non-negative rational: `3` or `\frac{1}{2}`.
@@ -372,7 +372,7 @@ fn sum_node(terms: &[Expr], var: &str) -> Node {
             None => magnitude,
             Some(left) => {
                 let operator = if negative { Operator::Minus } else { Operator::Plus };
-                Node::binary(operator, left, magnitude, 0)
+                Node::binary(operator, left, magnitude, Node::SYNTHETIC)
             }
         });
     }
@@ -381,7 +381,7 @@ fn sum_node(terms: &[Expr], var: &str) -> Node {
 
 /// A sum inside a sum (only in trees that are not simplified yet).
 fn sum_node_grouped(e: &Expr, var: &str) -> Node {
-    Node::Group { inner: Box::new(e.to_node(var)), position: 0 }
+    Node::Group { inner: Box::new(e.to_node(var)), position: Node::SYNTHETIC }
 }
 
 /// Where a factor goes in a product: constants (π, e, \\ln(2)), powers of the variable, other
@@ -480,32 +480,32 @@ fn flatten_product(factors: &[Expr]) -> Vec<Expr> {
 fn factor_node(factor: &Expr, var: &str) -> Node {
     match factor {
         Expr::Num(r) => unsigned_rational(&r.clone().abs()),
-        Expr::Pi => Node::Constant { name: "\\pi".into(), position: 0 },
-        Expr::E => Node::Constant { name: "e".into(), position: 0 },
-        Expr::Var => Node::Variable { name: var.to_string(), index: String::new(), position: 0 },
+        Expr::Pi => Node::Constant { name: "\\pi".into(), position: Node::SYNTHETIC },
+        Expr::E => Node::Constant { name: "e".into(), position: Node::SYNTHETIC },
+        Expr::Var => Node::Variable { name: var.to_string(), index: String::new(), position: Node::SYNTHETIC },
         Expr::Sum(_) => sum_node_grouped(factor, var),
         Expr::Product(_) => {
             let (negative, node) = term_node(factor, var);
             if negative { negation(node) } else { node }
         }
         Expr::Pow(base, exponent) => power_node(base, exponent, var),
-        Expr::Func(Fn::Exp, argument) if **argument == Expr::int(1) => Node::Constant { name: "e".into(), position: 0 },
+        Expr::Func(Fn::Exp, argument) if **argument == Expr::int(1) => Node::Constant { name: "e".into(), position: Node::SYNTHETIC },
         Expr::Func(Fn::Exp, argument) => Node::Power {
-            base: Box::new(Node::Constant { name: "e".into(), position: 0 }),
+            base: Box::new(Node::Constant { name: "e".into(), position: Node::SYNTHETIC }),
             exponent: Box::new(argument.to_node(var)),
-            position: 0,
+            position: Node::SYNTHETIC,
         },
-        Expr::Func(Fn::Abs, argument) => Node::Abs { operand: Box::new(argument.to_node(var)), position: 0 },
+        Expr::Func(Fn::Abs, argument) => Node::Abs { operand: Box::new(argument.to_node(var)), position: Node::SYNTHETIC },
         Expr::Func(function, argument) => {
-            Node::Function { name: function.name().to_string(), argument: Box::new(argument.to_node(var)), position: 0 }
+            Node::Function { name: function.name().to_string(), argument: Box::new(argument.to_node(var)), position: Node::SYNTHETIC }
         }
     }
 }
 
 fn power_node(base: &Expr, exponent: &Expr, var: &str) -> Node {
     let base_node = || match base {
-        Expr::Sum(_) | Expr::Product(_) => Node::Group { inner: Box::new(base.to_node(var)), position: 0 },
-        Expr::Num(r) if r.is_negative() => Node::Group { inner: Box::new(base.to_node(var)), position: 0 },
+        Expr::Sum(_) | Expr::Product(_) => Node::Group { inner: Box::new(base.to_node(var)), position: Node::SYNTHETIC },
+        Expr::Num(r) if r.is_negative() => Node::Group { inner: Box::new(base.to_node(var)), position: Node::SYNTHETIC },
         other => factor_node(other, var),
     };
     match exponent {
@@ -516,12 +516,12 @@ fn power_node(base: &Expr, exponent: &Expr, var: &str) -> Node {
             let radicand = if p == IBig::ONE {
                 base.to_node(var)
             } else {
-                Node::Power { base: Box::new(base_node()), exponent: Box::new(number(&p)), position: 0 }
+                Node::Power { base: Box::new(base_node()), exponent: Box::new(number(&p)), position: Node::SYNTHETIC }
             };
             let degree = (q != UBig::from(2u8)).then(|| Box::new(number(&IBig::from(q))));
-            Node::Root { radicand: Box::new(radicand), degree, position: 0 }
+            Node::Root { radicand: Box::new(radicand), degree, position: Node::SYNTHETIC }
         }
-        _ => Node::Power { base: Box::new(base_node()), exponent: Box::new(exponent.to_node(var)), position: 0 },
+        _ => Node::Power { base: Box::new(base_node()), exponent: Box::new(exponent.to_node(var)), position: Node::SYNTHETIC },
     }
 }
 

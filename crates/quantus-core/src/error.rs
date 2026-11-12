@@ -141,7 +141,7 @@ impl fmt::Display for QuantusError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             QuantusError::Parse { reason, position, source } => {
-                write!(f, "{reason} (at position {}: '{}')", position + 1, excerpt(source, *position))
+                write!(f, "{reason} (at position {}: '{}')", position.saturating_add(1), excerpt(source, *position))
             }
             QuantusError::DimensionMismatch(m)
             | QuantusError::UnresolvedVariable(m)

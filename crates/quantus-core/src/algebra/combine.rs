@@ -204,7 +204,7 @@ pub fn combine_fractions_at(node: &Node) -> Option<(Node, RuleId, String)> {
 
     let one_node = Node::Number {
         value: Decimal::from_i64(1),
-        position: 0,
+        position: Node::SYNTHETIC,
     };
 
     let mut rational_terms = Vec::new();
@@ -259,7 +259,7 @@ pub fn combine_fractions_at(node: &Node) -> Option<(Node, RuleId, String)> {
     } else {
         Node::Negation {
             operand: Box::new(wrap_factor(first_node)),
-            position: 0,
+            position: Node::SYNTHETIC,
         }
     };
 
@@ -270,14 +270,14 @@ pub fn combine_fractions_at(node: &Node) -> Option<(Node, RuleId, String)> {
                 operator: Operator::Plus,
                 left: Box::new(combined_num),
                 right: Box::new(wrapped),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
         } else {
             combined_num = Node::Binary {
                 operator: Operator::Minus,
                 left: Box::new(combined_num),
                 right: Box::new(wrapped),
-                position: 0,
+                position: Node::SYNTHETIC,
             };
         }
     }

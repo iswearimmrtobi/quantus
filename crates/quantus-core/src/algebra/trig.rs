@@ -53,7 +53,7 @@ fn trig_vars(poly: &Poly, atoms: &Atoms) -> BTreeMap<String, BTreeMap<String, (S
 
 /// The variable for `name(argument)`, a new atom if needed.
 fn function(name: &str, argument: &Node, atoms: &mut Atoms) -> Poly {
-    let atom = atoms.intern(Node::Function { name: name.into(), argument: Box::new(argument.clone()), position: 0 });
+    let atom = atoms.intern(Node::Function { name: name.into(), argument: Box::new(argument.clone()), position: Node::SYNTHETIC });
     Poly::from_node(&atom).expect("an atom is a variable")
 }
 
@@ -71,7 +71,7 @@ fn symmetry(index: usize, ctx: &mut Context) -> Option<Local> {
     }
     let name = name.to_string();
     let positive = function(&name, &(-&argument).to_node(), ctx.atoms).to_node();
-    let result = if name == "cos" { positive } else { Node::Negation { operand: Box::new(positive), position: 0 } };
+    let result = if name == "cos" { positive } else { Node::Negation { operand: Box::new(positive), position: Node::SYNTHETIC } };
     let detail = format!("{} = {}", serializer::expression(&ctx.atoms.var(index)), serializer::expression(&result));
     Some(Local::new(result, detail))
 }
@@ -331,7 +331,7 @@ fn double_angle(node: &Node, ctx: &mut Context) -> Option<Local> {
             if quotient.is_constant() && factor != RBig::ONE {
                 let half = (&Poly::from_const(factor) * &merged).to_node();
                 let identity = format!("{} = {}", latex_of(&form), serializer::expression(&half));
-                let line = Node::binary(Operator::Times, quotient.to_node(), half, 0);
+                let line = Node::binary(Operator::Times, quotient.to_node(), half, Node::SYNTHETIC);
                 return Some(local.with_working(vec![(line, identity, StepDetail::Detailed)], crate::text::msg!("core.algebra.trig.multiply_numbers")));
             }
             return Some(local);
