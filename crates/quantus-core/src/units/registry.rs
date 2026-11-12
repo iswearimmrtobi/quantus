@@ -13,6 +13,7 @@ use std::sync::OnceLock;
 use super::atom::{Atom, Kind};
 use super::dimension::Dimension;
 use super::unit::Unit;
+use crate::text::msg;
 
 /// The coherent SI units that carry a name of their own, in priority order.
 ///
@@ -160,10 +161,50 @@ pub fn format(unit: &Unit) -> String {
     unit.to_string()
 }
 
-/// Unit plus quantity name, e.g. `m/s² (acceleration)`, for error messages.
+/// `name`, a name of [`quantity_name`], in the current language.
+fn translated(name: &str) -> String {
+    match name {
+        "length" => msg!("core.quantity.name.length"),
+        "area" => msg!("core.quantity.name.area"),
+        "volume" => msg!("core.quantity.name.volume"),
+        "mass" => msg!("core.quantity.name.mass"),
+        "time" => msg!("core.quantity.name.time"),
+        "electric current" => msg!("core.quantity.name.electric_current"),
+        "temperature" => msg!("core.quantity.name.temperature"),
+        "amount of substance" => msg!("core.quantity.name.amount_of_substance"),
+        "luminous intensity" => msg!("core.quantity.name.luminous_intensity"),
+        "velocity" => msg!("core.quantity.name.velocity"),
+        "acceleration" => msg!("core.quantity.name.acceleration"),
+        "density" => msg!("core.quantity.name.density"),
+        "momentum" => msg!("core.quantity.name.momentum"),
+        "volumetric flow rate" => msg!("core.quantity.name.volumetric_flow_rate"),
+        "frequency" => msg!("core.quantity.name.frequency"),
+        "force" => msg!("core.quantity.name.force"),
+        "pressure" => msg!("core.quantity.name.pressure"),
+        "energy" => msg!("core.quantity.name.energy"),
+        "power" => msg!("core.quantity.name.power"),
+        "electric charge" => msg!("core.quantity.name.electric_charge"),
+        "voltage" => msg!("core.quantity.name.voltage"),
+        "capacitance" => msg!("core.quantity.name.capacitance"),
+        "resistance" => msg!("core.quantity.name.resistance"),
+        "conductance" => msg!("core.quantity.name.conductance"),
+        "magnetic flux" => msg!("core.quantity.name.magnetic_flux"),
+        "magnetic flux density" => msg!("core.quantity.name.magnetic_flux_density"),
+        "inductance" => msg!("core.quantity.name.inductance"),
+        "illuminance" => msg!("core.quantity.name.illuminance"),
+        "absorbed dose" => msg!("core.quantity.name.absorbed_dose"),
+        "catalytic activity" => msg!("core.quantity.name.catalytic_activity"),
+        "heat capacity" => msg!("core.quantity.name.heat_capacity"),
+        "specific heat capacity" => msg!("core.quantity.name.specific_heat_capacity"),
+        other => other.to_string(),
+    }
+}
+
+/// Unit plus quantity name, e.g. `m/s² (acceleration)`, for error messages: the name in the
+/// current language.
 pub fn describe(unit: &Unit) -> String {
     match quantity_name(&unit.dimension()) {
-        Some(name) => format!("{unit} ({name})"),
+        Some(name) => format!("{unit} ({})", translated(name)),
         None => unit.to_string(),
     }
 }

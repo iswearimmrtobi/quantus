@@ -113,3 +113,13 @@ fn errors_are_german() {
     assert!(error("", Mode::Algebra, Language::De).contains("Die Eingabe ist leer"));
     assert!(error("\\ln 0", Mode::Algebra, Language::De).contains("Logarithmus"));
 }
+
+#[test]
+fn unit_errors_name_the_quantities_in_german() {
+    assert_eq!(
+        error("1\\,\\mathrm{m} + 2\\,\\mathrm{s}", Mode::Physics, Language::De),
+        "Unverträgliche Einheiten: m (Länge) und s (Zeit) können nicht addiert werden."
+    );
+    assert!(error("1\\,\\mathrm{N} - 2\\,\\mathrm{W}", Mode::Physics, Language::De).contains("N (Kraft) und W (Leistung)"));
+    assert!(error("1\\,\\mathrm{m} + 2\\,\\mathrm{s}", Mode::Physics, Language::En).contains("m (length) and s (time)"));
+}
