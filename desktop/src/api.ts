@@ -50,6 +50,24 @@ export interface BitView {
   signed: boolean;
   /** `'0'` and `'1'`, the most significant bit first. */
   bits: string;
+  /** At 32 and 64 bits, the pattern read as a float. */
+  ieee?: IeeeView;
+}
+
+/** What `quantus_core::ieee754::IeeeView` serialises to. */
+export interface IeeeView {
+  sign: boolean;
+  exponentBits: string;
+  /** Without the bias; absent for infinity and NaN. */
+  exponent?: number | null;
+  mantissaBits: string;
+  class: 'normal' | 'subnormal' | 'zero' | 'infinity' | 'nan';
+  /** The exact value as LaTeX. */
+  exact: string;
+  /** The number typed into `f32(…)`/`f64(…)`, as LaTeX. */
+  typed?: string;
+  /** exact − typed, as LaTeX. */
+  error?: string;
 }
 
 export type FormKind =

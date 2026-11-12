@@ -209,7 +209,7 @@ the shown result is re-evaluated as today when the base changes.
         rounding error (exact − typed).
   - [x] Filled into `BitView.ieee` for every 32/64-bit result (any integer pattern can be read as
         a float, e.g. `h3F800000` → 1.0).
-- [ ] **6.3 Desktop**: a tab "Integer | IEEE 754" on the bit panel; the IEEE tab colours sign,
+- [x] **6.3 Desktop**: a tab "Integer | IEEE 754" on the bit panel; the IEEE tab colours sign,
       exponent and mantissa, shows each as a number and the exact value + rounding error. Keys
       `f32(`, `f64(`.
 - [ ] **6.4 Handheld**: OPTN entries `f32()`, `f64()`; the IEEE page as the last step of the S⇔D

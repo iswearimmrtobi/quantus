@@ -66,6 +66,7 @@ const BASE_KEYS: InsertKey[] = [
   { label: '<<', latex: ' \\ll ' },
   { label: '>>', latex: ' \\gg ' },
   ...['shl', 'shr', 'sar', 'rol', 'ror'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?,#?\\right)` })),
+  ...['f32', 'f64'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?\\right)` })),
   ...['d', 'h', 'b', 'o'].map((prefix) => ({ label: prefix, latex: `\\mathrm{${prefix}}` })),
 ];
 

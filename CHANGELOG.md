@@ -34,6 +34,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   and mantissa bits, the exponent, the class (normal, subnormal, zero, infinity, NaN), the
   float's exact value (`0{,}100000001490116119384765625`) and, after `f32(…)`, the rounding
   error. Any pattern can be read so: `h3F800000` is 1.
+- Desktop, Basis-N: at 32 and 64 bits the bit panel has a tab IEEE 754 that colours sign,
+  exponent and mantissa and lists them with the exponent, the kind of number, the exact value
+  and, after `f32(…)`/`f64(…)`, the typed number and the rounding error. Keys `f32(` and `f64(`.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on
