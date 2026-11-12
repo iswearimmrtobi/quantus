@@ -34,6 +34,10 @@ Apps and games are Lua scripts ([apps.md](../docs/apps.md)): `build.rs` compiles
 `QUANTUS_APPS_DEBUG=1 cargo run --release` logs every callback of an app with its time, the
 script's stack and the heap.
 
+`QUANTUS_SCREEN_DEBUG=1` prints a line after every change on the screen: the mode, the Basis-N
+settings, the menu entry selected, and the input and the entry shown with its result and view.
+With the keys sent over the serial line, the board can be tested without looking at it.
+
 The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 
 ```sh

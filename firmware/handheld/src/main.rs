@@ -41,6 +41,36 @@ const DEBUG_TOUCH: bool = option_env!("QUANTUS_TOUCH_DEBUG").is_some();
 /// Logs every callback of an app with its time, the script's stack and the heap
 /// (`QUANTUS_APPS_DEBUG=1`); each line costs about 13 ms on the serial line.
 const DEBUG_APPS: bool = option_env!("QUANTUS_APPS_DEBUG").is_some();
+/// Prints what is on the screen after every change (`QUANTUS_SCREEN_DEBUG=1`): the mode, the
+/// Basis-N settings, the menu entry selected and the entry shown, to test the board unattended.
+const DEBUG_SCREEN: bool = option_env!("QUANTUS_SCREEN_DEBUG").is_some();
+
+/// The line [`DEBUG_SCREEN`] prints.
+fn screen_line<B>(app: &App<B>) -> String {
+    use quantus_ui::app::Screen;
+    let s = &app.settings;
+    let mut line = format!("screen: {:?} {:?} {:?} {:?} | ", app.mode, s.number_base, s.word_size, s.signedness);
+    match &app.screen {
+        Screen::Menu(menu) => {
+            let level = menu.stack.last().expect("a menu has a page");
+            let entry = level.page.entries.get(level.selected).map(|entry| entry.label);
+            line += &format!("menu {:?} > {:?} edit {:?}", level.page.title, entry, menu.edit);
+        }
+        Screen::Calc => {
+            line += &format!("input {:?}", app.editor.to_latex());
+            let entry = match app.shown {
+                Some(back) => app.history.len().checked_sub(back + 1).and_then(|at| app.history.get(at)),
+                None => app.history.last(),
+            };
+            if let Some(entry) = entry {
+                let result = entry.result.as_ref().map(|row| row.to_latex());
+                line += &format!(" | last {:?} = {:?} view {:?}", entry.input.to_latex(), result, entry.view);
+            }
+        }
+        other => line += &format!("{:?}", std::mem::discriminant(other)),
+    }
+    line
+}
 
 fn main() {
     sys::link_patches();
@@ -136,6 +166,7 @@ fn main() {
     keyboard::start(keys.clone());
     std::thread::Builder::new().stack_size(8 * 1024).spawn(move || read_keys(keys)).expect("key thread");
     let mut last_debug = Instant::now();
+    let mut last_screen = String::new();
     let mut kept_brightness = None;
     loop {
         // Short enough that the touch panel follows a finger.
@@ -178,6 +209,14 @@ fn main() {
         }
         changed |= app.tick(start.elapsed().as_millis() as u64);
         if changed {
+            if DEBUG_SCREEN {
+                // Not again for the caret's blinking.
+                let line = screen_line(&app);
+                if line != last_screen {
+                    println!("{line}");
+                    last_screen = line;
+                }
+            }
             let drawn = Instant::now();
             let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
             if bands > 1 {
