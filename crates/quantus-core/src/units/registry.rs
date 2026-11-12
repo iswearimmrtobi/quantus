@@ -161,8 +161,8 @@ pub fn format(unit: &Unit) -> String {
     unit.to_string()
 }
 
-/// `name`, a name of [`quantity_name`], in the current language.
-fn translated(name: &str) -> String {
+/// `name`, a name of [`quantity_name`], in the current language: what errors and results show.
+pub fn localized(name: &str) -> String {
     match name {
         "length" => msg!("core.quantity.name.length"),
         "area" => msg!("core.quantity.name.area"),
@@ -204,7 +204,7 @@ fn translated(name: &str) -> String {
 /// current language.
 pub fn describe(unit: &Unit) -> String {
     match quantity_name(&unit.dimension()) {
-        Some(name) => format!("{unit} ({})", translated(name)),
+        Some(name) => format!("{unit} ({})", localized(name)),
         None => unit.to_string(),
     }
 }

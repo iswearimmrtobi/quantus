@@ -123,3 +123,14 @@ fn unit_errors_name_the_quantities_in_german() {
     assert!(error("1\\,\\mathrm{N} - 2\\,\\mathrm{W}", Mode::Physics, Language::De).contains("N (Kraft) und W (Leistung)"));
     assert!(error("1\\,\\mathrm{m} + 2\\,\\mathrm{s}", Mode::Physics, Language::En).contains("m (length) and s (time)"));
 }
+
+#[test]
+fn the_result_names_its_quantity_in_german() {
+    let name = |language| {
+        let settings = Settings { mode: Mode::Physics, language, ..Settings::default() };
+        let input = "2\\,\\mathrm{kg} \\cdot 3\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}";
+        LatexCalculator::default().with_settings(settings).evaluate(input, &Variables::new()).unwrap().quantity_name
+    };
+    assert_eq!(name(Language::De).as_deref(), Some("Kraft"));
+    assert_eq!(name(Language::En).as_deref(), Some("force"));
+}

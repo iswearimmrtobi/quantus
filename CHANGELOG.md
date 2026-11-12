@@ -71,8 +71,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- Unit errors name the quantities in the language set: in German `m (Länge) und s (Zeit)` instead
-  of `m (length) und s (time)`.
+- Unit errors and the quantity next to a result are named in the language set: in German
+  `m (Länge) und s (Zeit)` instead of `m (length) und s (time)`, and *Kraft* instead of *force*.
 - In the handheld simulator F9 and F10 are UNIT and ENG, as its key table says; charging and the
   busy spinner moved to Ctrl+F9 and Ctrl+F10. A USB keyboard on the handheld types UNIT and ENG
   with F9 and F10 too.

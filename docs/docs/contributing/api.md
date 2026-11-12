@@ -57,7 +57,7 @@ CalculationResponse {
   imaginary?: string       // the imaginary part, Imaginary mode
   unit: string
   unitLatex: string        // the unit in LaTeX, "" for a plain number
-  quantityName?: string    // "force", "velocity", …
+  quantityName?: string    // "force", "velocity", …, in the settings' language ("Kraft")
   dimension: string
   variable?: VariableResponse   // set when the input defined one
   domainRestrictions?: string[] // "x \neq 1"
