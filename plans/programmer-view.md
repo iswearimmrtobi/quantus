@@ -222,15 +222,17 @@ the shown result is re-evaluated as today when the base changes.
 
 ## Phase 7 — Docs and wrap-up
 
-- [ ] `docs/docs/guides/base-n.md`: word size, signedness, wrapping, shifts, bit view, IEEE section
+- [x] `docs/docs/guides/base-n.md`: word size, signedness, wrapping, shifts, bit view, IEEE section
       with examples; `docs/docs/reference/syntax.md` (Basis-N section), `reference/settings.md`
       (the two settings), `contributing/test-set.md` if the case format changed.
-- [ ] `firmware/docs/features.md`, `design/handheld-menus.md` §3.5 (new OPTN entries, S⇔D cycle).
-- [ ] `CHANGELOG.md` `## [Unreleased]`: one entry per phase as it lands (core, desktop, handheld,
+- [x] `firmware/docs/features.md`, `design/handheld-menus.md` §3.5 (new OPTN entries, S⇔D cycle).
+- [x] `CHANGELOG.md` `## [Unreleased]`: one entry per phase as it lands (core, desktop, handheld,
       IEEE); note the change from overflow error to wrapping.
-- [ ] `README.md` L69/L216 if they mention 32 bit.
-- [ ] Remove idea 13 from `plans/feature-ideas.md` (and its references at L32/L324/L373), and
-      this plan's pointer from `plans/plans.md` when all boxes are ticked.
+- [x] `README.md` L69/L216 if they mention 32 bit.
+- [x] Remove idea 13 from `plans/feature-ideas.md` (its link at L32; L324/L373 speak of Base-N
+      itself and stay).
+- [ ] This plan's pointer out of `plans/plans.md` once 4.6 and the board check of 5.8 are done
+      by hand.
 
 ## Verification
 

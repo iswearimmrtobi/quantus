@@ -156,12 +156,15 @@ These are set elsewhere in the app, but kept in `settings.json` with the others.
 |---|---|---|---|---|
 | **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `electronics`, `kirchhoff`, `geometry`, `baseN`, `matrix`, `statistics`, `distributions`, `verify` | `physics` | the top bar |
 | **Number base** | `numberBase` | `dec`, `hex`, `bin`, `oct` | `dec` | the DEC/HEX/BIN/OCT switch in Base-N mode |
+| **Word size** | `wordSize` | `8`, `16`, `32`, `64` | `32` | the 8/16/32/64 switch in Base-N mode |
+| **Signed** | `signed` | on / off | on | the signed/unsigned switch in Base-N mode |
 | **Imaginary unit i** | `linearComplex` | on / off | off | the switch above the input in Linear systems mode |
 
 **Mode** decides how letters are read, see [Concepts](../getting-started/concepts.md#modes-decide-how-letters-are-read).
 **Number base** is the base the Basis-N mode (`baseN`) reads and writes numbers in, see
 [Syntax](syntax.md#basis-n). The app sets it with the DEC/HEX/BIN/OCT switch above the input in
-that mode. The modes `matrix`, `statistics` and `distributions` are engine only for now.
+that mode. **Word size** and **Signed** are the word Basis-N computes in: a result outside it
+wraps, with a warning; off, **Signed** reads a word as an unsigned number. The modes `matrix`, `statistics` and `distributions` are engine only for now.
 
 **Imaginary unit i** on makes $i$ the imaginary unit, so coefficients may be complex, and the
 mode reads **Linear systems + 𝑖** in the top bar. Off, $i$ is an unknown.

@@ -691,8 +691,12 @@ Per mode:
 - **Matrizen**: Definieren (a name, then the grid) ✓ · Bearbeiten (VARS) ✓ · Zeilen, Spalten ✓ ·
   Determinante, Transponierte, Inverse, Einheitsmatrix, REF, RREF ✓ [C, eng]. The matrices are
   inserted from VARS, the last result with Ans.
-- **Basis-N**: Basis DEC/HEX/BIN/OCT ✓ (a choice, the setting `number_base`) · Präfixe d, h, b, o ✓
-  (`\mathrm{h}`) · and, or, xor, xnor, Not, Neg ✓ (`\operatorname{and}`) [C, eng]
+- **Basis-N**: Basis DEC/HEX/BIN/OCT ✓ (a choice, the setting `number_base`) · Wortbreite
+  8/16/32/64 Bit ✓ (`word_size`) · Vorzeichen mit/ohne ✓ (`signedness`) · Präfixe d, h, b, o ✓
+  (`\mathrm{h}`) · Schieben/Rotieren: <<, >>, shl, shr, sar, rol, ror ✓ · IEEE 754: f32, f64 ✓ ·
+  and, or, xor, xnor, Not, Neg ✓ (`\operatorname{and}`) [C, eng]. S⇔D on a result: the set base
+  → the other bases (with their prefix) → the bits in groups of four → at 32 and 64 bits the
+  float's sign, exponent, mantissa and exact value → round again. Read-only.
 - **Statistik**: Typ (1 Variable and the 7 regressions) ✓ · Häufigkeit ein/aus ✓ · Zeile
   einfügen, Zeile löschen, Alles löschen ✓ · Schätzwerte ✓ (a form for an x for ŷ and a y for x̂,
   over the data; EXE works it out with them) [C]. The sums, the measures, min/max/quartiles and the

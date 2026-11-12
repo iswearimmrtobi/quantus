@@ -67,7 +67,7 @@ State on 2026-11-12.
 - [x] Band-wise redraws (480×32 bands), only the bands that changed
 - [~] Display colours, orientation and SPI clock — run on the board at 26.67 MHz; colours and orientation still to check by eye
 - [x] Casio-like calculation screen: input top left, result bottom right
-- [x] Top bar: mode name, significant digits, Exakt/Dez (the base in Basis-N), D/R
+- [x] Top bar: mode name, significant digits, Exakt/Dez (in Basis-N the base and the word: `Hex 16u`), D/R
 - [x] Top bar: Wi-Fi fan (dim until connected), Bluetooth rune, *PRÜFUNG* tag
 - [x] Top bar: busy ring for a remote calculation (set by the client once it exists)
 - [ ] Top bar: clock
@@ -117,7 +117,7 @@ State on 2026-11-12.
 - [x] 5 LGS: the matrix [A|b] up to 10 × 10, or typed equations
 - [x] 6 Wertetabelle, with g(x) as a second column
 - [x] 7 Matrizen: typed inputs (`A^{-1}`, `\det A`), a matrix defined under a name in a grid (OPTN → Definieren, Zeilen, Spalten, up to 10 × 10), changed from VARS
-- [x] 8 Basis-N: 32-bit whole numbers in DEC, HEX, BIN or OCT (OPTN → Basis), the prefixes d, h, b, o and the logic in OPTN; A–F as letters
+- [x] 8 Basis-N: whole numbers in DEC, HEX, BIN or OCT (OPTN → Basis) in a word of 8 to 64 bits, signed or unsigned (OPTN → Wortbreite, Vorzeichen; a result wraps), the prefixes d, h, b, o, the logic, Schieben/Rotieren and IEEE 754 (f32, f64) in OPTN; A–F as letters; S⇔D through the other bases to the bits and, at 32 and 64 bits, the float's sign, exponent, mantissa and exact value
 - [x] 9 Statistik, with a data editor; OPTN → Schätzwerte: x̂ and ŷ for a given value
 - [x] 10 Verteilungen, one k or several
 - [x] 11 Prüfen: wahr or falsch, chains like 1 < 2 ≤ 2; OPTN has the relations
@@ -193,7 +193,7 @@ in yet.
 - [x] OPTN Komplex: Argument, Realteil, Imaginärteil, Betrag
 - [x] OPTN Werkzeuge: CALC, SOLVE, In Einheit
 - [x] OPTN for Kurvendiskussion: Abschnitte, Tangente/Normale, Fläche, Wertetabelle
-- [x] OPTN for Basis-N: Basis, Präfixe, and, or, xor, xnor, Not, Neg
+- [x] OPTN for Basis-N: Basis, Wortbreite, Vorzeichen, Präfixe, Schieben/Rotieren (<<, >>, shl, shr, sar, rol, ror), IEEE 754 (f32, f64), and, or, xor, xnor, Not, Neg
 - [x] OPTN for Matrizen: Definieren, Bearbeiten, Zeilen, Spalten, the functions
 - [x] OPTN Wertetabelle, Statistik (Typ, Häufigkeit, rows), Verteilungen (Typ)
 - [x] OPTN LGS: Eingabe, Zeilen, Spalten, Imaginäre Einheit, Alles löschen

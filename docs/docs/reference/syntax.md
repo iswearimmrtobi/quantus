@@ -180,21 +180,31 @@ later inputs use it by that name.
 
 ## Basis-N
 
-The mode `baseN` works with whole numbers in the [number base](settings.md#outside-the-window) set, as
-32-bit two's complement: from −2147483648 to 2147483647 in decimal, any 32-bit pattern in the
-other bases (`FFFFFFFF` is −1). The result comes in the other three bases as its forms. In the
-app, the switch above the input sets the base, and keys put in the logic and the prefixes.
+The mode `baseN` works with whole numbers in the [number base](settings.md#outside-the-window) set,
+in a word of 8, 16, 32 or 64 bits (`wordSize`, default 32), signed (two's complement) or unsigned
+(`signed`). A result outside the word wraps modulo 2ⁿ and the response carries a `warning`. A
+number typed must fit the word: in decimal up to the top of the range (signed: up to 2ⁿ⁻¹ after a
+minus), in the other bases any pattern of at most n bits (`FF` is −1 in 8 bit signed). The result
+comes in the other three bases and as its bits as its forms. In the app, switches above the input
+set the base, the word size and the signedness, and keys put in the logic, the shifts, the floats
+and the prefixes.
 
 | Input | Meaning |
 |---|---|
 | `1F`, `\mathrm{1F}` | a number in the set base; letters A–F in hexadecimal |
 | `\mathrm{h}1F`, `\mathrm{d}10`, `\mathrm{b}101`, `\mathrm{o}17` | one number in another base; plain `h1F` works where the letter is no digit of the set base |
-| `+`, `-`, `\cdot`, `\div`, `\frac{a}{b}` | arithmetic; division truncates toward zero |
+| `+`, `-`, `\cdot`, `\div`, `\frac{a}{b}` | arithmetic; division truncates toward zero, signed or unsigned as the word |
 | `\operatorname{and}`, `or`, `xor`, `xnor` | bitwise operations, written plain or in `\operatorname{}` |
 | `\operatorname{Not}(x)`, `\operatorname{Neg}(x)` | bitwise not (one's complement), negation (two's complement) |
+| `x << n`, `x \ll n`; `x >> n`, `x \gg n` | shift left; shift right, arithmetic when signed, logical when unsigned |
+| `\operatorname{shl}(x, n)`, `shr`, `sar` | shift left, logical right, arithmetic right; `,` or `;` between the arguments |
+| `\operatorname{rol}(x, n)`, `ror` | rotate left, right within the word |
+| `\operatorname{f32}(x)`, `f64(x)` | the IEEE-754 pattern of the decimal number `x` (`0{,}1`, `1.5e3`, `2 \cdot 10^{-3}`) |
 
-Signs, `Not` and `Neg` bind first, then products, then sums, then `and`, then `or`, `xor` and
-`xnor`.
+Signs, `Not`, `Neg` and the functions bind first, then products, then sums, then `<<` and `>>`,
+then `and`, then `or`, `xor` and `xnor`. A shift by the width or more leaves 0 (`sar`: all sign
+bits); a rotation turns by n mod width; a negative count is an error. `f32` and `f64` need a word
+of 32 or 64 bits; `F32` in capitals is a hexadecimal number.
 
 ## Ignored layout
 

@@ -66,7 +66,7 @@ under the empty input shows what fits.
 | **Electronics** | Draw a DC circuit and see every part's voltage, current, power and resistance |
 | **Kirchhoff** | Draw a resistor network and get the junction and loop rules, their Gauss steps, every current and a power balance |
 | **Geometry** | Points, vectors, lines, planes, spheres and circles drawn in 3D, with their relations, intersections, distances and angles worked out exactly and step by step |
-| **Base-N** | Whole numbers in decimal, hexadecimal, binary and octal, 32 bits, with bitwise logic |
+| **Base-N** | Whole numbers in decimal, hexadecimal, binary and octal, in 8 to 64 bits, signed or unsigned, with bitwise logic, shifts, rotations, the bits to click and IEEE 754 |
 | **Verify** | Check an equation or comparison, also chained (`1 < 2 \le 2`): true or false |
 
 ### ✍️ Input

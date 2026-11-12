@@ -63,6 +63,19 @@ CalculationResponse {
   domainRestrictions?: string[] // "x \neq 1"
   warning?: string
   forms?: { kind, latex }[]     // the result written other ways, for a form switch
+  bits?: BitView                // Basis-N: the bits of the result
+}
+
+BitView {
+  width: 8 | 16 | 32 | 64
+  signed: boolean
+  bits: string                  // '0'/'1', the most significant bit first
+  ieee?: {                      // at 32 and 64 bits: the word read as a float
+    sign: boolean, exponentBits: string, exponent?: number, mantissaBits: string,
+    class: 'normal' | 'subnormal' | 'zero' | 'infinity' | 'nan',
+    exact: string,              // LaTeX, cut after the precision with \ldots
+    typed?: string, error?: string   // after f32(…)/f64(…): the number typed, exact − typed
+  }
 }
 
 VariableResponse { key, symbol, latex, value, unit }
@@ -71,7 +84,9 @@ VariableResponse { key, symbol, latex, value, unit }
 `forms` lists the other ways to write the result, which a form switch (S⇔D on the handheld)
 steps through without another call. `kind` is `fraction`, `mixedFraction`, `recurring`,
 `decimal`, `exact` (roots and π), `primeFactors`, `rectangular`, `polar` or `sexagesimal` (degrees, minutes, seconds; for
-an angle with the angle unit on degrees). No form repeats `result` or another form.
+an angle with the angle unit on degrees); in Basis-N `dec`, `hex`, `bin`, `oct` and `bits` (the
+pattern in groups of four, `\mathtt{0000\,1111}`). No form repeats `result` or another form.
+In Basis-N a result that wrapped carries the `warning` *Overflow: the result was wrapped to n bits.*
 
 `solve_for` (SOLVE) takes an equation, an expression (solved as `= 0`) or a labelled formula
 (`F_1 = m_1 a_1`, the label then one more letter). Every letter but `variable` needs a value, from

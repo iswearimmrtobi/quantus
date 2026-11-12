@@ -29,7 +29,7 @@ editor for one field that compiles to exact equations, solves them, and writes t
    [notes](#8-notes-on-calculations)
 3. Everyday maths: [graph](#9-more-on-the-handhelds-graph),
    [uncertainties](#10-measurement-uncertainties), [dates and durations](#11-dates-and-durations),
-   [money](#12-percent-and-money), [programmer view](#13-a-programmer-view-for-basis-n)
+   [money](#12-percent-and-money)
 4. Editor-style modes: [statics](#14-statics-trusses-and-beams),
    [control engineering](#15-control-engineering-block-diagrams), [digital logic](#16-digital-logic-editor),
    [Markov chains](#17-markov-chains-and-graphs), [optics](#18-optics-ray-path)
@@ -278,27 +278,6 @@ group, the rate download. Desktop: the same, rates over the internet.
 **Effort.** M (percent and TVM), M (currencies).
 
 **Open.** Which rate source (free, without a key); rounding rules for money.
-
-### 13. A programmer view for Basis-N
-
-**What.** In Basis-N, a view of the result's bits in groups of four, the word size (8, 16, 32,
-64 bit) and signed or unsigned; shifts and rotations; an IEEE-754 view that shows a float's sign,
-exponent and mantissa.
-
-**Why.** Basis-N on the Casio is fixed at 32 bit; programmers and electronics students need
-other widths and the bit picture, and the electronics mode is in Quantus already.
-
-**How.** Word size and signedness as Basis-N settings in the core; the bit view is a result form
-the hui draws. Shifts and rotations as functions.
-
-**Where.** Core: settings, operations, result form. hui: the view. Desktop: the same in its
-Basis-N mode.
-
-**Effort.** S–M (Basis-N is on the handheld).
-
-**Open.** Whether the IEEE view belongs here or in a separate tool.
-
-## 4. Editor-style modes (the electronics pattern)
 
 ### 14. Statics (trusses and beams)
 
