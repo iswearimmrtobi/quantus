@@ -106,11 +106,11 @@ the shown result is re-evaluated as today when the base changes.
   - [x] `core.basen.literal_too_big`, `core.basen.wrapped`; remove `overflow_32_bits` once unused.
   - [x] While here: `not_number` gets the base name from a locale key instead of the English
         word (German shows "hexadecimal" today).
-- [ ] **1.6 Tests**
+- [x] **1.6 Tests**
   - [x] Unit tests: each width signed/unsigned, literal limits, wrap + warning flag, `-128` in 8 bit,
         unsigned division, `MIN ÷ −1`. Change the existing overflow test to the wrap behaviour.
   - [x] `tests/basen.rs`: settings through the API, `warning` in the response.
-  - [ ] Generated set: `gens/basen.py` gets `width`/`signed` per case, wrap instead of the
+  - [x] Generated set: `gens/basen.py` gets `width`/`signed` per case, wrap instead of the
         overflow error, literal-too-big errors; the case format carries the two settings;
         `examples/run_cases/basen.rs` applies them. Regenerate `test/cases/base-n/`, run
         `run_cases`, update `test/results/summary.md`.

@@ -148,6 +148,8 @@ def check(all_cases):
                 int(e["value"])
                 if len(e["forms"]) != 3:
                     errors.append(f"{c['id']}: basen needs the three other forms")
+                if not isinstance(e.get("wrapped"), bool):
+                    errors.append(f"{c['id']}: basen without wrapped")
             elif e["kind"] == "matrix":
                 [Fraction(v) for row in e["rows"] for v in row]
                 if len({len(row) for row in e["rows"]}) != 1:

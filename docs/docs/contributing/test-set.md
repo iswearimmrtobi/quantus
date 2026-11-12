@@ -461,7 +461,7 @@ Checked as: `truth` 960, `error` 40.
 
 ### base-n (1,000)
 
-Checked as: `basen` 907, `error` 93.
+Checked as: `basen` 967, `error` 33.
 
 <details>
 <summary>Subcategories</summary>
@@ -474,7 +474,8 @@ Checked as: `basen` 907, `error` 93.
 | literal | 120 |
 | prefix | 120 |
 | not-neg | 100 |
-| overflow | 100 |
+| wrap | 81 |
+| too-big | 19 |
 
 </details>
 
