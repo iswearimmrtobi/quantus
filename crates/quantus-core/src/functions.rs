@@ -100,6 +100,8 @@ pub const FUNCTIONS: &[Function] = &[
     f(r"\operatorname{sar}(;)", Text(texts!("function.sar")), LOGIC, &["sar"], &["shift"]),
     f(r"\operatorname{rol}(;)", Text(texts!("function.rol")), LOGIC, &["rol"], &["rotate"]),
     f(r"\operatorname{ror}(;)", Text(texts!("function.ror")), LOGIC, &["ror"], &["rotate"]),
+    f(r"\operatorname{f32}()", Text(texts!("function.f32")), LOGIC, &["f32"], &["IEEE", "float"]),
+    f(r"\operatorname{f64}()", Text(texts!("function.f64")), LOGIC, &["f64"], &["IEEE", "double"]),
 ];
 
 /// A metric prefix: what is inserted, its name and its power of ten.

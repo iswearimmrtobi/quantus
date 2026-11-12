@@ -11,6 +11,8 @@
 //! - `and`, `or`, `xor`, `xnor` (as `\operatorname{and}` or plain), `Not(x)`, `Neg(x)`.
 //! - Shifts and rotations: `x << n` (`\ll`), `x >> n` (`\gg`; arithmetic when signed, logical
 //!   when unsigned, as in C), and `shl`, `shr`, `sar`, `rol`, `ror` as `(x, n)` or `(x; n)`.
+//! - `f32(x)`, `f64(x)`: the IEEE-754 pattern of the decimal number `x` (read as decimal in any
+//!   base: `0{,}1`, `-1.5 \cdot 10^{-3}`, `2e10`), rounded to the nearest float.
 //! - Precedence, highest first: sign, `Not`, `Neg`, functions; `\cdot` `\div`; `+` `-`; `<<` `>>`;
 //!   `and`; `or` `xor` `xnor`.
 //!
@@ -22,6 +24,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::forms::{FormKind, ResultForm};
+use crate::ieee754::{self, Format, IeeeView};
 use crate::{QuantusError, Result};
 use crate::text::msg;
 
@@ -161,11 +164,14 @@ pub struct BitView {
     pub signed: bool,
     /// `'0'` and `'1'`, the most significant bit first, all `width` of them.
     pub bits: String,
+    /// At 32 and 64 bits, the pattern read as a float.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ieee: Option<IeeeView>,
 }
 
 impl BitView {
     pub fn new(bits: u64, spec: Spec) -> BitView {
-        BitView { width: spec.width, signed: spec.signed, bits: pattern(bits, spec) }
+        BitView { width: spec.width, signed: spec.signed, bits: pattern(bits, spec), ieee: None }
     }
 }
 
@@ -190,6 +196,8 @@ pub struct BaseNResult {
     pub forms: Vec<ResultForm>,
     /// Whether a result on the way did not fit the word and was wrapped.
     pub wrapped: bool,
+    /// The number typed into `f32(…)`/`f64(…)` when that is the whole input, as plain text.
+    pub typed: Option<(Format, String)>,
 }
 
 impl BaseNResult {
@@ -198,8 +206,15 @@ impl BaseNResult {
         self.spec.read(self.bits)
     }
 
-    pub fn bit_view(&self) -> BitView {
-        BitView::new(self.bits, self.spec)
+    /// The bits, and at 32 and 64 bits the float they stand for, its value cut after
+    /// `precision` significant digits.
+    pub fn bit_view(&self, precision: usize) -> BitView {
+        let mut view = BitView::new(self.bits, self.spec);
+        view.ieee = Format::of_width(self.spec.width).map(|format| {
+            let typed = self.typed.as_ref().filter(|(typed, _)| *typed == format).map(|(_, text)| text.as_str());
+            ieee754::view(self.bits, format, typed, precision)
+        });
+        view
     }
 }
 
@@ -215,13 +230,17 @@ pub fn evaluate(latex: &str, base: NumberBase, spec: Spec) -> Result<BaseNResult
         return Err(QuantusError::other(msg!("core.basen.unexpected", parser.tokens[parser.index].text())));
     }
     let bits = spec.wrap(value).0;
+    let typed = match parser.tokens.as_slice() {
+        [Token::Float(format, text)] => ieee754::plain_number(text).map(|plain| (*format, plain)),
+        _ => None,
+    };
     let forms = NumberBase::ALL
         .into_iter()
         .filter(|b| *b != base)
         .map(|b| ResultForm::new(b.form(), write(bits, spec, b)))
         .chain([ResultForm::new(FormKind::Bits, grouped(bits, spec))])
         .collect();
-    Ok(BaseNResult { bits, spec, latex: write(bits, spec, base), forms, wrapped: parser.wrapped })
+    Ok(BaseNResult { bits, spec, latex: write(bits, spec, base), forms, wrapped: parser.wrapped, typed })
 }
 
 /// `bits` in `base`: the number (signed or unsigned per `spec`) in decimal, the pattern without
@@ -251,6 +270,8 @@ enum Token {
     Comma,
     ShiftLeft,
     ShiftRight,
+    /// `f32(…)` or `f64(…)` with its argument as typed.
+    Float(Format, String),
 }
 
 impl Token {
@@ -266,6 +287,7 @@ impl Token {
             Token::Comma => ",".into(),
             Token::ShiftLeft => "<<".into(),
             Token::ShiftRight => ">>".into(),
+            Token::Float(format, text) => format!("{}({text})", if *format == Format::F32 { "f32" } else { "f64" }),
         }
     }
 }
@@ -309,7 +331,11 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                 while i < chars.len() && chars[i].is_ascii_alphanumeric() {
                     i += 1;
                 }
-                tokens.push(Token::Word(chars[start..i].iter().collect()));
+                let word: String = chars[start..i].iter().collect();
+                match Format::of_name(&word).and_then(|format| float_argument(&chars, &mut i).map(|text| Token::Float(format, text))) {
+                    Some(float) => tokens.push(float),
+                    None => tokens.push(Token::Word(word)),
+                }
             }
             '\\' => {
                 i += 1;
@@ -351,8 +377,11 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                         tokens.push(Token::Close);
                     }
                     name if WORD_COMMANDS.contains(&name) => {
-                        let word = braced(&chars, &mut i)?;
-                        tokens.push(Token::Word(word.chars().filter(|c| !c.is_whitespace()).collect()));
+                        let word: String = braced(&chars, &mut i)?.chars().filter(|c| !c.is_whitespace()).collect();
+                        match Format::of_name(&word).and_then(|format| float_argument(&chars, &mut i).map(|text| Token::Float(format, text))) {
+                            Some(float) => tokens.push(float),
+                            None => tokens.push(Token::Word(word)),
+                        }
                     }
                     name if IGNORED_COMMANDS.contains(&name) => {}
                     "land" | "wedge" => tokens.push(Token::Word("and".into())),
@@ -366,6 +395,36 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
         }
     }
     Ok(tokens)
+}
+
+/// After `f32`/`f64`: the argument in brackets as typed (`(0{,}1)`, `\left(1e3\right)`), and
+/// `*i` past it; none without a bracket, and `*i` stays.
+fn float_argument(chars: &[char], i: &mut usize) -> Option<String> {
+    let rest: String = chars[*i..].iter().collect();
+    let trimmed = rest.trim_start();
+    let opening = if trimmed.starts_with("\\left(") { "\\left(" } else if trimmed.starts_with('(') { "(" } else { return None };
+    let start = chars.len() - trimmed.chars().count() + opening.chars().count();
+    let mut depth = 1;
+    let mut at = start;
+    while at < chars.len() {
+        match chars[at] {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    let mut inner: String = chars[start..at].iter().collect();
+                    if inner.trim_end().ends_with("\\right") {
+                        inner.truncate(inner.trim_end().len() - "\\right".len());
+                    }
+                    *i = at + 1;
+                    return Some(inner);
+                }
+            }
+            _ => {}
+        }
+        at += 1;
+    }
+    None
 }
 
 /// The content of the `{…}` at `*i`, which moves past it.
@@ -651,6 +710,15 @@ impl Parser {
                 self.index += 1;
                 Ok(value)
             }
+            Some(Token::Float(format, text)) => {
+                self.index += 1;
+                if self.spec.width < format.width() {
+                    return Err(ieee754::needs_bits(format));
+                }
+                let plain = ieee754::plain_number(&text).ok_or_else(|| QuantusError::other(msg!("core.basen.not_float", text.trim())))?;
+                // The pattern as the word reads it: in a 64-bit word an f32 fills the low half.
+                Ok(self.read(ieee754::pattern(&plain, format)?))
+            }
             Some(Token::Word(word)) if Shift::of_name(&word).is_some() => {
                 self.index += 1;
                 self.function(Shift::of_name(&word).unwrap_or(Shift::Shl), &word.to_ascii_lowercase())
@@ -898,6 +966,41 @@ mod tests {
         assert_eq!(eval("ror 1", NumberBase::Dec), "error: Expected '(' after 'ror'.");
         assert_eq!(eval(r"\operatorname{rol}\left(1{,}2\right)", NumberBase::Dec), "4");
         assert_eq!(eval("shl(1, 2) + shr(16, 2)", NumberBase::Dec), "8");
+    }
+
+    #[test]
+    fn floats_are_typed_as_decimals_in_any_base() {
+        let word = spec(WordSize::W32, false);
+        assert_eq!(eval_in(r"f32(0{,}1)", NumberBase::Hex, word), "\\mathrm{3DCCCCCD}");
+        assert_eq!(eval_in(r"\operatorname{f32}\left(0.1\right)", NumberBase::Hex, word), "\\mathrm{3DCCCCCD}");
+        assert_eq!(eval_in("f32(1)", NumberBase::Bin, word), "111111100000000000000000000000");
+        assert_eq!(eval_in(r"f32(-2{,}5 \cdot 10^{3})", NumberBase::Hex, word), "\\mathrm{C51C4000}");
+        assert_eq!(eval_in("f64(0.1)", NumberBase::Hex, spec(WordSize::W64, false)), "\\mathrm{3FB999999999999A}");
+        // In a 64-bit word an f32 fills the low half.
+        assert_eq!(eval_in("f32(1)", NumberBase::Hex, spec(WordSize::W64, true)), "\\mathrm{3F800000}");
+        // The pattern takes part in the rest of the input.
+        assert_eq!(eval_in("f32(1) >> 23", NumberBase::Dec, word), "127");
+        assert_eq!(eval_in("f32(1)", NumberBase::Hex, spec(WordSize::W16, true)), "error: f32 needs a word of at least 32 bits.");
+        assert_eq!(eval_in("f64(1)", NumberBase::Hex, word), "error: f64 needs a word of at least 64 bits.");
+        assert_eq!(eval_in("f32(x)", NumberBase::Hex, word), "error: 'x' is not a decimal number for f32 or f64.");
+        // F32 in capitals is a hexadecimal number.
+        assert_eq!(eval_in("F32(2)", NumberBase::Hex, word), "\\mathrm{1E64}");
+    }
+
+    #[test]
+    fn a_word_of_32_or_64_bits_is_read_as_a_float_too() {
+        let result = evaluate("f32(0{,}1)", NumberBase::Hex, Spec::default()).unwrap();
+        let ieee = result.bit_view(50).ieee.unwrap();
+        assert_eq!(ieee.exact, "0{,}100000001490116119384765625");
+        assert_eq!(ieee.typed.as_deref(), Some("0{,}1"));
+        assert_eq!(ieee.error.as_deref(), Some("0{,}000000001490116119384765625"));
+        // Any pattern: 3F800000 is 1.0, and no typed number.
+        let one = evaluate("3F800000", NumberBase::Hex, Spec::default()).unwrap().bit_view(50).ieee.unwrap();
+        assert_eq!((one.exact.as_str(), one.typed), ("1", None));
+        // Not at 8 and 16 bits; at 64 an f32 pattern is read as a (tiny) f64.
+        assert!(evaluate("1", NumberBase::Hex, spec(WordSize::W16, true)).unwrap().bit_view(50).ieee.is_none());
+        let wide = evaluate("f32(1)", NumberBase::Hex, spec(WordSize::W64, true)).unwrap().bit_view(50).ieee.unwrap();
+        assert_eq!((wide.class, wide.typed), (crate::ieee754::FloatClass::Subnormal, None));
     }
 
     #[test]

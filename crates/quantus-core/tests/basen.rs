@@ -73,3 +73,19 @@ fn the_response_carries_the_bits() {
     assert!(algebra.bits.is_none());
     assert!(serde_json::to_value(algebra).unwrap().get("bits").is_none());
 }
+
+#[test]
+fn a_float_is_broken_down_at_32_and_64_bits() {
+    use quantus_core::settings::WordSize;
+    let mut store = SessionStore::new();
+    let settings = Settings { mode: Mode::BaseN, number_base: NumberBase::Hex, word_size: WordSize::W32, ..Settings::default() };
+    api::set_settings(&mut store, settings).unwrap();
+    let response = api::evaluate(&mut store, &CalculationRequest { latex: "f32(0{,}1)".into(), ..Default::default() }).unwrap();
+    assert_eq!(response.result, r"\mathrm{3DCCCCCD}");
+    let json = serde_json::to_value(&response.bits).unwrap();
+    assert_eq!(json["ieee"]["class"], "normal");
+    assert_eq!(json["ieee"]["exponent"], -4);
+    assert_eq!(json["ieee"]["exponentBits"], "01111011");
+    assert_eq!(json["ieee"]["exact"], "0{,}100000001490116119384765625");
+    assert_eq!(json["ieee"]["error"], "0{,}000000001490116119384765625");
+}

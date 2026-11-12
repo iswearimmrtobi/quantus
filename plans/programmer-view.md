@@ -196,27 +196,27 @@ the shown result is re-evaluated as today when the base changes.
 
 ## Phase 6 — IEEE-754 view
 
-- [ ] **6.1 Input** (`basen.rs`): functions `f32(x)` and `f64(x)` whose argument is read as a
+- [x] **6.1 Input** (`basen.rs`): functions `f32(x)` and `f64(x)` whose argument is read as a
       *decimal* number in any base setting: digits, `.` or `{,}`, optional sign and exponent
       (`\cdot 10^{n}` or `e`n). Rounded to nearest-even by Rust's `str::parse::<f32/f64>()`; result
       is the pattern. Needs width ≥ 32 resp. 64, else error `core.basen.float_needs_bits`.
-- [ ] **6.2 Breakdown** (`basen.rs` → `IeeeView`), when the width is 32 or 64:
-  - [ ] `sign`, `exponent_bits`, `exponent` (unbiased), `mantissa_bits`, `class`
+- [x] **6.2 Breakdown** (`basen.rs` → `IeeeView`), when the width is 32 or 64:
+  - [x] `sign`, `exponent_bits`, `exponent` (unbiased), `mantissa_bits`, `class`
         (`normal`/`subnormal`/`zero`/`infinity`/`nan`).
-  - [ ] `exact`: the float's exact value as LaTeX, computed exactly (mantissa · 2^e as a `Value`
+  - [x] `exact`: the float's exact value as LaTeX, computed exactly (mantissa · 2^e as a `Value`
         fraction, written as a finite decimal; long ones cut to the precision setting with "…").
-  - [ ] `typed` / `error`: when the result came straight from `f32(…)`, the typed number and the
+  - [x] `typed` / `error`: when the result came straight from `f32(…)`, the typed number and the
         rounding error (exact − typed).
-  - [ ] Filled into `BitView.ieee` for every 32/64-bit result (any integer pattern can be read as
+  - [x] Filled into `BitView.ieee` for every 32/64-bit result (any integer pattern can be read as
         a float, e.g. `h3F800000` → 1.0).
 - [ ] **6.3 Desktop**: a tab "Integer | IEEE 754" on the bit panel; the IEEE tab colours sign,
       exponent and mantissa, shows each as a number and the exact value + rounding error. Keys
       `f32(`, `f64(`.
 - [ ] **6.4 Handheld**: OPTN entries `f32()`, `f64()`; the IEEE page as the last step of the S⇔D
       cycle at 32/64 bit (three coloured fields, then the exact value).
-- [ ] **6.5 Texts**: sign, exponent, mantissa, the classes, exact value, rounding error, the error
+- [x] **6.5 Texts**: sign, exponent, mantissa, the classes, exact value, rounding error, the error
       key (en, de).
-- [ ] **6.6 Tests**: `f32(0.1)` = `3DCCCCCD` with exact 0.100000001490116119384765625; `f64(0.1)`;
+- [x] **6.6 Tests**: `f32(0.1)` = `3DCCCCCD` with exact 0.100000001490116119384765625; `f64(0.1)`;
       `-0`, `f32(1e39)` = infinity, smallest subnormal, NaN pattern `h7FC00000`; an 8-bit word
       with `f32` is the error. Generator `ieee()` in `gens/basen.py` using Python's `struct`.
 

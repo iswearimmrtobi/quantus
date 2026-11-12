@@ -28,6 +28,12 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   the word with the base: `Hex 16u`, `Dec 32s`. S⇔D goes from the result in the set base to the
   other bases (with their prefix, `\mathrm{h}FE`, so the result pastes back as the same number)
   and to the bits of the word in groups of four, the sign bit in the accent.
+- Basis-N reads IEEE 754: `f32(x)` and `f64(x)` give the pattern of a decimal number (typed as
+  a decimal in any base: `f32(0{,}1)` is `3DCCCCCD`), rounded to the nearest float, in a word of
+  at least 32 or 64 bits. At 32 and 64 bits the response's `bits` carry `ieee`: sign, exponent
+  and mantissa bits, the exponent, the class (normal, subnormal, zero, infinity, NaN), the
+  float's exact value (`0{,}100000001490116119384765625`) and, after `f32(…)`, the rounding
+  error. Any pattern can be read so: `h3F800000` is 1.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on

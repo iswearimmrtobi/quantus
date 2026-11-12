@@ -9,6 +9,7 @@ pub mod error;
 pub mod forms;
 pub mod functions;
 pub mod geometry;
+pub mod ieee754;
 pub mod electro;
 pub mod eval;
 pub mod kirchhoff;

@@ -13,6 +13,9 @@ first: sign, Not, Neg, functions; · ÷; + −; << >>; and; or, xor, xnor. Hexad
 prefix. Most cases use the default word (32 bit, signed); the others draw one.
 """
 
+import struct
+from fractions import Fraction
+
 from .common import case, expect_error, level
 
 BASES = {"dec": 10, "hex": 16, "bin": 2, "oct": 8}
@@ -368,6 +371,131 @@ def shifts(rng, diff):
     return _case("shift", diff, tree, base, rng, w, "shifts and rotations of the pattern")
 
 
+# --- IEEE 754 -------------------------------------------------------------------------------------
+
+FLOAT = {"f32": (8, 23), "f64": (11, 52)}
+PRECISION = 50
+
+
+def float_bits(value, fmt):
+    """The pattern of the exact rational `value` in `fmt`, rounded to the nearest (ties to even)."""
+    ew, mw = FLOAT[fmt]
+    bias, emin = (1 << (ew - 1)) - 1, 2 - (1 << (ew - 1))
+    sign = 1 if value < 0 else 0
+    v = abs(value)
+    if v == 0:
+        return sign << (ew + mw)
+    e = v.numerator.bit_length() - v.denominator.bit_length()
+    if Fraction(2) ** e > v:
+        e -= 1
+    e = max(e, emin)
+    scaled = v / Fraction(2) ** (e - mw)
+    m = scaled.numerator // scaled.denominator
+    rest = scaled - m
+    if rest > Fraction(1, 2) or (rest == Fraction(1, 2) and m % 2 == 1):
+        m += 1
+    if m == 1 << (mw + 1):
+        m, e = m >> 1, e + 1
+    if e > bias:
+        return (sign << (ew + mw)) | (((1 << ew) - 1) << mw)
+    if m < 1 << mw:
+        return (sign << (ew + mw)) | m  # subnormal
+    return (sign << (ew + mw)) | ((e + bias) << mw) | (m - (1 << mw))
+
+
+def float_value(bits, fmt):
+    """The exact value of a finite pattern, or None, and its class."""
+    ew, mw = FLOAT[fmt]
+    sign = -1 if bits >> (ew + mw) & 1 else 1
+    raw, m = bits >> mw & ((1 << ew) - 1), bits & ((1 << mw) - 1)
+    bias = (1 << (ew - 1)) - 1
+    if raw == (1 << ew) - 1:
+        return None, "nan" if m else "infinity"
+    if raw == 0:
+        return sign * Fraction(m) * Fraction(2) ** (1 - bias - mw), "zero" if m == 0 else "subnormal"
+    return sign * Fraction(m | 1 << mw) * Fraction(2) ** (raw - bias - mw), "normal"
+
+
+def decimal(value, precision=PRECISION):
+    """A finite decimal as the engine writes it: `{,}`, cut after `precision` significant digits."""
+    sign = "-" if value < 0 else ""
+    value = abs(value)
+    places = 0
+    while (value * 10 ** places).denominator != 1:
+        places += 1
+    digits = str(int(value * 10 ** places)).rjust(places + 1, "0")
+    whole, fraction = digits[:len(digits) - places], digits[len(digits) - places:]
+    significant = len((whole + fraction).lstrip("0"))
+    lead = len(whole.lstrip("0"))
+    if significant > precision and lead > precision:
+        kept = whole[1:precision].rstrip("0")
+        return f"{sign}{whole[0]}{'{,}' + kept if kept else ''}\\ldots \\cdot 10^{{{lead - 1}}}"
+    cut = significant > precision
+    if cut:
+        zeros = len(fraction) - len(fraction.lstrip("0")) if lead == 0 else 0
+        fraction = fraction[:min(precision - lead + zeros, len(fraction))]
+    else:
+        fraction = fraction.rstrip("0")
+    number = f"{whole}{{,}}{fraction}" if fraction else whole
+    return f"{sign}{number}{'\\ldots' if cut else ''}"
+
+
+def ieee(rng, diff):
+    """f32(x) and f64(x) of a decimal number in a word of 32 or 64 bits, the float's exact value
+    and the rounding error; in a word too narrow, the error."""
+    fmt = rng.choice(["f32", "f64"])
+    base = rng.choice(list(BASES))
+    signed = rng.random() < 0.5
+    width = 32 if fmt == "f32" else 64
+    if rng.random() < 0.08:
+        w = Word(rng.choice([8, 16] if fmt == "f32" else [8, 16, 32]), signed)
+        return case("ieee", diff, f"{fmt}(1)", expect_error(f"{fmt} needs a word of at least {width} bits"),
+                    "a float needs its width", settings=w.settings(base))
+    w = Word(width, signed)
+    kind = rng.choice(["plain", "plain", "exponent", "tiny", "huge", "zero"])
+    digits = rng.randint(1, [3, 6, 9, 17][level(diff)])
+    mantissa = rng.randint(1, 10 ** digits - 1)
+    point = rng.randint(0, digits)
+    text = str(mantissa).rjust(point + 1, "0")
+    text = text[:len(text) - point] + ("." + text[len(text) - point:] if point else "")
+    exponent = 0
+    if kind == "exponent":
+        exponent = rng.randint(-20, 20)
+    elif kind == "tiny":
+        exponent = rng.randint(-46, -38) if fmt == "f32" else rng.randint(-325, -305)
+    elif kind == "huge":
+        exponent = rng.randint(37, 40) if fmt == "f32" else rng.randint(306, 310)
+    elif kind == "zero":
+        text = "0"
+    negative = rng.random() < 0.3
+    value = Fraction(text) * Fraction(10) ** exponent * (-1 if negative else 1)
+    bits = float_bits(value, fmt)
+    if fmt == "f64" and kind not in ("tiny", "huge"):
+        # The reference agrees with Python's own rounding.
+        assert bits == struct.unpack(">Q", struct.pack(">d", float(value)))[0]
+    if value == 0 and negative:
+        bits |= 1 << (width - 1)  # −0: a Fraction has no sign of its own
+    written = ("-" if negative else "") + text.replace(".", rng.choice(["{,}", "."]))
+    if exponent:
+        written += rng.choice([f" \\cdot 10^{{{exponent}}}", f"e{exponent}"])
+    latex = rng.choice([f"{fmt}({written})", f"\\operatorname{{{fmt}}}\\left({written}\\right)"])
+    exact, cls = float_value(bits, fmt)
+    expect = expect_basen(w, w.read(bits), base)
+    if cls == "nan":
+        shown = "\\mathrm{NaN}"
+    elif cls == "infinity":
+        shown = ("-" if negative else "") + "\\infty"
+    elif cls == "zero":
+        shown = ("-" if negative else "") + "0"
+    else:
+        shown = decimal(exact)
+    expect["ieee"] = {"class": cls, "exact": shown}
+    if exact is not None and cls != "zero":
+        expect["ieee"]["error"] = decimal(exact - value)
+    return case("ieee", diff, latex, expect, "the IEEE-754 pattern of a decimal number and its exact value",
+                settings=w.settings(base))
+
+
 GENERATORS = [
     (12, literals),
     (22, arithmetic),
@@ -377,4 +505,5 @@ GENERATORS = [
     (12, prefixes),
     (10, wrapping),
     (12, shifts),
+    (10, ieee),
 ]

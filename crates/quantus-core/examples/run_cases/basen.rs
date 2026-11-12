@@ -25,5 +25,19 @@ pub(super) fn check(expect: &Value, calc: &Calculation) -> Outcome {
             None => return Outcome::fail("forms", format!("no {kind} form"), calc.result.clone()),
         }
     }
+    // At 32 and 64 bits, the pattern read as a float: its class, exact value, rounding error.
+    if let Some(want) = expect.get("ieee") {
+        let Some(got) = calc.bits.as_ref().and_then(|bits| bits.ieee.as_ref()) else {
+            return Outcome::fail("ieee", "no IEEE view".into(), calc.result.clone());
+        };
+        let got = serde_json::to_value(got).unwrap_or_default();
+        for key in ["class", "exact", "error"] {
+            if let Some(want) = want.get(key) {
+                if got.get(key) != Some(want) {
+                    return Outcome::fail("ieee", format!("{key}: expected {want}, got {}", got.get(key).unwrap_or(&Value::Null)), calc.result.clone());
+                }
+            }
+        }
+    }
     Outcome::pass(calc.result.clone())
 }

@@ -461,22 +461,23 @@ Checked as: `truth` 960, `error` 40.
 
 ### base-n (1,000)
 
-Checked as: `basen` 975, `error` 25.
+Checked as: `basen` 974, `error` 26.
 
 <details>
 <summary>Subcategories</summary>
 
 | Subcategory | Cases |
 |---|---:|
-| arithmetic | 197 |
-| logic | 178 |
-| precedence | 125 |
-| literal | 108 |
-| prefix | 107 |
-| shift | 107 |
-| not-neg | 89 |
-| wrap | 82 |
-| too-big | 7 |
+| arithmetic | 181 |
+| logic | 164 |
+| precedence | 115 |
+| literal | 99 |
+| prefix | 99 |
+| shift | 98 |
+| not-neg | 82 |
+| ieee | 81 |
+| wrap | 71 |
+| too-big | 10 |
 
 </details>
 

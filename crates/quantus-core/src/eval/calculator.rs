@@ -481,7 +481,7 @@ impl LatexCalculator {
         let value = Value::from_decimal(&decimal);
         let input = latex.trim().to_string();
         let warning = result.wrapped.then(|| msg!("core.basen.wrapped", spec.width));
-        let bits = Some(result.bit_view());
+        let bits = Some(result.bit_view(self.settings.precision));
         Ok(Calculation {
             formula: Formula { label: None, expression: Node::Number { value: decimal.clone(), position: Node::SYNTHETIC }, source: latex.to_string() },
             steps: vec![Step::new(StepKind::Symbolic, input.clone()), Step::new(StepKind::Result, result.latex.clone())],
