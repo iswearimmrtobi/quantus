@@ -37,6 +37,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Desktop, Basis-N: at 32 and 64 bits the bit panel has a tab IEEE 754 that colours sign,
   exponent and mantissa and lists them with the exponent, the kind of number, the exact value
   and, after `f32(…)`/`f64(…)`, the typed number and the rounding error. Keys `f32(` and `f64(`.
+- Handheld, Basis-N: OPTN has `f32()` and `f64()` (group IEEE 754), and at 32 and 64 bits S⇔D
+  ends on a page that reads the word as a float: sign, exponent and mantissa bits in three
+  colours, their values, and the exact value cut after the digits set.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on

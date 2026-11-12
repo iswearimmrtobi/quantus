@@ -264,6 +264,8 @@ pub enum View {
     Base(NumberBase),
     /// The bits of the word, from the result in binary.
     Bits { width: u32, signed: bool },
+    /// At 32 and 64 bits: the word read as an IEEE-754 float, from the result in binary.
+    Ieee { width: u32 },
 }
 
 /// `latex` with the prefix of `base` in front of its digits: `-\mathrm{d}5`, `\mathrm{h}\mathrm{FF}`.
@@ -2791,7 +2793,7 @@ impl<B: Backend> App<B> {
             let number_base = match view {
                 View::Result => self.settings.number_base,
                 View::Base(base) => base,
-                View::Bits { .. } => NumberBase::Bin,
+                View::Bits { .. } | View::Ieee { .. } => NumberBase::Bin,
             };
             let settings = Settings { number_base, ..self.settings };
             return self.start(Pending::Swap { index, decimal: entry.decimal, view }, &settings, &latex);
@@ -2807,6 +2809,7 @@ impl<B: Backend> App<B> {
         let cycle: Vec<View> = std::iter::once(View::Result)
             .chain(NumberBase::ALL.iter().filter(|&&base| base != set).map(|&base| View::Base(base)))
             .chain([bits])
+            .chain(matches!(self.settings.word_size.bits(), 32 | 64).then(|| View::Ieee { width: self.settings.word_size.bits() }))
             .collect();
         let at = cycle.iter().position(|&shown| shown == view).unwrap_or(0);
         cycle[(at + 1) % cycle.len()]
@@ -2892,7 +2895,7 @@ impl<B: Backend> App<B> {
                 // In another base the result carries its prefix, so pasting it reads it back.
                 let answer = match view {
                     View::Base(base) => answer.map(|latex| prefixed(&latex, base)),
-                    View::Bits { .. } => answer.map(|latex| prefixed(&latex, NumberBase::Bin)),
+                    View::Bits { .. } | View::Ieee { .. } => answer.map(|latex| prefixed(&latex, NumberBase::Bin)),
                     View::Result => answer,
                 };
                 if let Some(entry) = self.history.get_mut(index) {

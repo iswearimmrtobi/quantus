@@ -61,11 +61,11 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     let bottom = HEIGHT as i32 - MARGIN - soft;
     if let Some(entry) = app.shown_entry() {
         match &entry.result {
-            Ok(result) if matches!(entry.view, View::Bits { .. }) => {
-                if let View::Bits { width: bits, signed } = entry.view {
-                    bit_view(shapes, &result.to_latex(), bits, signed, bottom);
-                }
-            }
+            Ok(result) if matches!(entry.view, View::Bits { .. } | View::Ieee { .. }) => match entry.view {
+                View::Bits { width: bits, signed } => bit_view(shapes, &result.to_latex(), bits, signed, bottom),
+                View::Ieee { width: bits } => ieee_view(shapes, &result.to_latex(), bits, app.settings.digits.into(), app.settings.language, scale, bottom),
+                _ => {}
+            },
             Ok(result) => {
                 let result = layout::layout(result, scale);
                 let x = (width - MARGIN - result.width).max(MARGIN);
@@ -101,6 +101,117 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
         let count = earlier.to_string();
         shapes.push(Shape::Text(Point::new(MARGIN + 15, baseline), count, Scale::Small, colors::faint()));
     }
+}
+
+/// The binary digits after the prefix `\mathrm{b}`, as a number.
+fn binary(latex: &str) -> u64 {
+    let digits: String = latex.replace("\\mathrm{b}", "").chars().filter(|c| matches!(c, '0' | '1')).collect();
+    u64::from_str_radix(&digits, 2).unwrap_or(0)
+}
+
+/// A 32- or 64-bit word read as an IEEE-754 float, read-only: sign, exponent and mantissa bits
+/// in three colours (on more lines where one is full), the sign, the exponent and the mantissa
+/// below them, and the exact value at the bottom, cut after `digits` significant digits.
+fn ieee_view(shapes: &mut Vec<Shape>, latex: &str, width: u32, digits: usize, lang: text::Lang, scale: Scale, bottom: i32) {
+    let bits = binary(latex);
+    let exponent_width = if width == 32 { 8 } else { 11 };
+    let mantissa_width = width - 1 - exponent_width;
+    let pattern = format!("{bits:0width$b}", width = width as usize);
+    let raw_exponent = (bits >> mantissa_width) & ((1 << exponent_width) - 1);
+    let mantissa = bits & ((1 << mantissa_width) - 1);
+    let bias = (1i64 << (exponent_width - 1)) - 1;
+    let value = if width == 32 { f64::from(f32::from_bits(bits as u32)) } else { f64::from_bits(bits) };
+
+    // From the bottom up: the value, a line with the three fields' values, the bits.
+    let exact = format!("= {}", exact_decimal(value, digits));
+    let x = (WIDTH as i32 - MARGIN - scale.width(&exact)).max(MARGIN);
+    shapes.push(Shape::Text(Point::new(x, bottom - scale.metrics().descent), exact, scale, colors::result()));
+    let small = Scale::Small;
+    let metrics = small.metrics();
+    let line = metrics.ascent + metrics.descent + 6;
+    let mut baseline = bottom - scale.metrics().descent - scale.metrics().ascent - 8;
+
+    let sign = if pattern.starts_with('1') { "-" } else { "+" };
+    let exponent = match raw_exponent {
+        e if e == (1 << exponent_width) - 1 => "-".to_string(),
+        0 => (1 - bias).to_string(),
+        e => (e as i64 - bias).to_string(),
+    };
+    let gap = small.width("   ");
+    let legend = [
+        (format!("{} {sign}", text::IEEE_SIGN.get(lang)), colors::shift()),
+        (format!("{} {exponent}", text::IEEE_EXPONENT.get(lang)), colors::alpha()),
+        (format!("{} {mantissa:X}", text::IEEE_MANTISSA.get(lang)), colors::unit()),
+    ];
+    let legend_width: i32 = legend.iter().map(|(text, _)| small.width(text) + gap).sum::<i32>() - gap;
+    let mut x = (WIDTH as i32 - MARGIN - legend_width).max(MARGIN);
+    for (text, color) in legend {
+        let advance = small.width(&text) + gap;
+        shapes.push(Shape::Text(Point::new(x, baseline), text, small, color));
+        x += advance;
+    }
+    baseline -= line;
+
+    // The bits, a digit's width between the fields, on as many lines as they need.
+    let zero = small.width("0");
+    let room = WIDTH as i32 - 2 * MARGIN;
+    let mut lines: Vec<Vec<(i32, char, Rgb565)>> = vec![Vec::new()];
+    let mut x = 0;
+    for (index, c) in pattern.chars().enumerate() {
+        let index = index as u32;
+        let color = match index {
+            0 => colors::shift(),
+            i if i <= exponent_width => colors::alpha(),
+            _ => colors::unit(),
+        };
+        if index == 1 || index == exponent_width + 1 {
+            x += zero;
+        }
+        if x + zero > room {
+            lines.push(Vec::new());
+            x = 0;
+        }
+        if let Some(cells) = lines.last_mut() {
+            cells.push((x, c, color));
+        }
+        x += zero;
+    }
+    for (row, cells) in lines.iter().rev().enumerate() {
+        let used = cells.last().map_or(0, |(x, ..)| x + zero);
+        let left = WIDTH as i32 - MARGIN - used;
+        for &(x, c, color) in cells {
+            shapes.push(Shape::Text(Point::new(left + x, baseline - row as i32 * line), c.to_string(), small, color));
+        }
+    }
+}
+
+/// A float's exact decimal value (every float is a finite decimal), cut after `digits`
+/// significant digits with `...`; with the decimal comma, as the engine writes it.
+pub fn exact_decimal(value: f64, digits: usize) -> String {
+    if value.is_nan() {
+        return "NaN".into();
+    }
+    if value.is_infinite() {
+        return if value < 0.0 { "-inf".into() } else { "inf".into() };
+    }
+    let digits = digits.max(1);
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    // 1100 places hold the smallest subnormal's whole expansion; Rust writes them exactly.
+    let full = format!("{:.1100}", value.abs());
+    let (whole, fraction) = full.split_once('.').unwrap_or((&full, ""));
+    let fraction = fraction.trim_end_matches('0');
+    let lead = whole.trim_start_matches('0').len();
+    if lead > digits {
+        // A whole number too long: its first digits and the power of ten.
+        let kept = whole[1..digits].trim_end_matches('0');
+        let kept = if kept.is_empty() { String::new() } else { format!(",{kept}") };
+        return format!("{sign}{}{kept}...E{}", &whole[..1], lead - 1);
+    }
+    let zeros = if lead == 0 { fraction.len() - fraction.trim_start_matches('0').len() } else { 0 };
+    let keep = (digits - lead + zeros).min(fraction.len());
+    let cut = keep < fraction.len();
+    let number = if keep == 0 { whole.to_string() } else { format!("{whole},{}", &fraction[..keep]) };
+    format!("{sign}{number}{}", if cut { "..." } else { "" })
 }
 
 /// The bits of a Basis-N result (its binary digits after the prefix `\mathrm{b}`), read-only:

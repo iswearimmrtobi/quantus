@@ -212,7 +212,7 @@ the shown result is re-evaluated as today when the base changes.
 - [x] **6.3 Desktop**: a tab "Integer | IEEE 754" on the bit panel; the IEEE tab colours sign,
       exponent and mantissa, shows each as a number and the exact value + rounding error. Keys
       `f32(`, `f64(`.
-- [ ] **6.4 Handheld**: OPTN entries `f32()`, `f64()`; the IEEE page as the last step of the S⇔D
+- [x] **6.4 Handheld**: OPTN entries `f32()`, `f64()`; the IEEE page as the last step of the S⇔D
       cycle at 32/64 bit (three coloured fields, then the exact value).
 - [x] **6.5 Texts**: sign, exponent, mantissa, the classes, exact value, rounding error, the error
       key (en, de).

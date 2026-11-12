@@ -476,3 +476,31 @@ fn s_d_in_basis_n_goes_through_the_other_bases_to_the_bits() {
         ]
     );
 }
+
+#[test]
+fn s_d_reaches_the_ieee_page_at_32_bits() {
+    use quantus_ui::app::{App, View};
+    use quantus_ui::key::Key;
+    let mut app = App::new(Engine::default());
+    app.mode = Mode::BaseN;
+    app.key(Key::Digit(1));
+    app.key(Key::Exe);
+    let views: Vec<View> = (0..6)
+        .map(|_| {
+            app.key(Key::SwapForm);
+            app.shown_entry().unwrap().view
+        })
+        .collect();
+    assert!(matches!(views[3], View::Bits { width: 32, .. }), "{views:?}");
+    assert_eq!(views[4], View::Ieee { width: 32 });
+    assert_eq!(views[5], View::Result);
+    assert_eq!(app.shown_entry().unwrap().result.as_ref().unwrap().to_latex(), "1");
+}
+
+#[test]
+fn f32_goes_through_the_bridge() {
+    use quantus_ui::settings::NumberBase;
+    let mut engine = Engine::default();
+    let hex = Settings { number_base: NumberBase::Hex, ..Settings::default() };
+    assert_eq!(engine.evaluate(Mode::BaseN, &hex, r"\operatorname{f32}(0,1)"), Ok(r"\mathrm{3DCCCCCD}".to_string()));
+}

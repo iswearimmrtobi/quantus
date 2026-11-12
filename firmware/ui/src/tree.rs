@@ -721,6 +721,7 @@ static OPTN_BASE_N: Page = Page {
         entry(tx!("hui.tree.signedness"), Kind::Choice(S::Signedness, &[opt(tx!("hui.tree.signed"), 0), opt(tx!("hui.tree.unsigned"), 1)])),
         group(tx!("hui.tree.prefixes_d_h_b_o"), &BASE_PREFIXES),
         group(tx!("hui.tree.shift_rotate"), &BASE_SHIFTS),
+        group(same("IEEE 754"), &BASE_FLOATS),
         ins(same("and"), r"\operatorname{and}"),
         ins(same("or"), r"\operatorname{or}"),
         ins(same("xor"), r"\operatorname{xor}"),
@@ -741,6 +742,11 @@ static BASE_SHIFTS: Page = Page {
         ins(same("rol"), r"\operatorname{rol}(;)"),
         ins(same("ror"), r"\operatorname{ror}(;)"),
     ],
+};
+
+static BASE_FLOATS: Page = Page {
+    title: same("IEEE 754"),
+    entries: &[ins(same("f32 (32 Bit)"), r"\operatorname{f32}()"), ins(same("f64 (64 Bit)"), r"\operatorname{f64}()")],
 };
 
 static BASE_PREFIXES: Page = Page {

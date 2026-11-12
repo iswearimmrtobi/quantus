@@ -265,3 +265,49 @@ fn the_bit_view_draws_the_word_with_the_row_indices() {
     assert!(shown.contains(&"63".to_string()) && shown.contains(&"31".to_string()), "{shown:?}");
     assert_eq!(shown.iter().filter(|text| *text == "1").count(), 2);
 }
+
+#[test]
+fn the_ieee_page_shows_the_fields_and_the_exact_value() {
+    use quantus_ui::app::{Entry, View};
+    use quantus_ui::render::{Frame, Shape};
+    let texts = |app: &App<Stub>| -> Vec<String> {
+        Frame::new(app).0.iter().filter_map(|shape| match shape {
+            Shape::Text(_, text, _, _) => Some(text.clone()),
+            _ => None,
+        }).collect()
+    };
+    let mut app = app(Mode::BaseN);
+    let entry = |bits: u64, width| Entry {
+        input: quantus_ui::latex::parse("f32(0,1)"),
+        result: Ok(quantus_ui::latex::parse(&format!(r"\mathrm{{b}}{bits:b}"))),
+        decimal: false,
+        eng: None,
+        mark: None,
+        view: View::Ieee { width },
+    };
+    // f32(0.1) = 3DCCCCCD: + 2^-4, the value cut after the 10 digits set.
+    app.history.push(entry(0x3DCC_CCCD, 32));
+    app.shown = Some(0);
+    let shown = texts(&app);
+    assert!(shown.contains(&"= 0,1000000014...".to_string()), "{shown:?}");
+    assert!(shown.contains(&"Vz +".to_string()) && shown.contains(&"Exp -4".to_string()) && shown.contains(&"Mant 4CCCCD".to_string()), "{shown:?}");
+    assert_eq!(shown.iter().filter(|text| *text == "0" || *text == "1").count(), 32);
+    // 64 bits: 1.0 is exact; the bits take two lines.
+    app.history[0] = entry(1f64.to_bits(), 64);
+    let shown = texts(&app);
+    assert!(shown.contains(&"= 1".to_string()), "{shown:?}");
+    assert_eq!(shown.iter().filter(|text| *text == "0" || *text == "1").count(), 64);
+    // Infinity and a big number.
+    app.history[0] = entry(f32::INFINITY.to_bits().into(), 32);
+    assert!(texts(&app).contains(&"= inf".to_string()));
+    app.history[0] = entry(f64::MAX.to_bits(), 64);
+    assert!(texts(&app).contains(&"= 1,797693134...E308".to_string()), "{:?}", texts(&app));
+}
+
+#[test]
+fn optn_inserts_f32_and_f64() {
+    let mut app = app(Mode::BaseN);
+    optn(&mut app, &["IEEE 754", "f32 (32 Bit)"]);
+    app.key(Key::Digit(1));
+    assert_eq!(app.editor.to_latex(), r"\mathrm{f32}(1)");
+}
