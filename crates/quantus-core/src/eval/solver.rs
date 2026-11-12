@@ -172,7 +172,7 @@ impl Evaluator<'_> {
                     Ok(d) => Ok(Some((if d.is_zero() { 0 } else if d.is_negative() { -1 } else { 1 }, d.to_rational().abs()))),
                     Err(_) => Ok(None), // not a real number here
                 },
-                Err(e @ (QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_))) => Err(e),
+                Err(e) if matches!(e.unlocated(), QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_)) => Err(e),
                 Err(_) => Ok(None), // outside the domain, e.g. ln of a negative number
             }
         };
@@ -351,7 +351,7 @@ fn higher_polynomial(residual: &mut dyn FnMut(Value) -> Result<PhysicalQuantity>
     let mut at = |x: &RBig| -> Result<Option<RBig>> {
         match residual(Value::Rat(x.clone())) {
             Ok(q) => Ok(q.value.as_rational().cloned()),
-            Err(e @ (QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_))) => Err(e),
+            Err(e) if matches!(e.unlocated(), QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_)) => Err(e),
             Err(_) => Ok(None),
         }
     };
@@ -366,7 +366,7 @@ fn polynomial_roots(
     let mut at = |x: Value| -> Result<Option<Value>> {
         match residual(x) {
             Ok(q) => Ok(Some(q.value)),
-            Err(e @ (QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_))) => Err(e),
+            Err(e) if matches!(e.unlocated(), QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_)) => Err(e),
             Err(_) => Ok(None),
         }
     };

@@ -14,7 +14,7 @@ pub(super) fn run(case: &Value) -> Outcome {
     // A failed task is an answer with `error`, not an `Err`; a scene that cannot be built is either.
     let result = match result {
         Ok(response) => match response.task.as_ref().and_then(|t| t.error.clone()) {
-            Some(error) => Err(api::ApiError { error, position: None }),
+            Some(error) => Err(api::ApiError::new(error)),
             None => Ok(response),
         },
         Err(e) => Err(e),

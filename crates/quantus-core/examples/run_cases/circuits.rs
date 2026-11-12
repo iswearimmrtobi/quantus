@@ -15,7 +15,7 @@ pub(super) fn run(api: &str, case: &Value) -> Outcome {
         let Ok(request) = serde_json::from_value::<KirchhoffRequest>(case["request"].clone()) else { return generator("unreadable request") };
         // The equations without a single solution come back as `error`.
         match api::kirchhoff(&settings, &request) {
-            Ok(r) if r.error.is_some() => Err(api::ApiError { error: r.error.clone().unwrap_or_default(), position: None }),
+            Ok(r) if r.error.is_some() => Err(api::ApiError::new(r.error.clone().unwrap_or_default())),
             other => other.map(|r| serde_json::to_value(r).expect("response to JSON")),
         }
     };

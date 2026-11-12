@@ -65,6 +65,9 @@ pub enum Node {
 }
 
 impl Node {
+    /// The position of a node that a rewrite built and that stands for no part of the input.
+    pub const SYNTHETIC: usize = usize::MAX;
+
     pub fn position(&self) -> usize {
         match self {
             Node::Number { position, .. }
@@ -92,6 +95,18 @@ impl Node {
             | Node::System { position, .. }
             | Node::Call { position, .. } => *position,
         }
+    }
+
+    /// The first and the last source position in this subtree (both are token starts), or
+    /// `None` when no node in it came from the source.
+    pub fn extent(&self) -> Option<(usize, usize)> {
+        let position = self.position();
+        let own = (position != Node::SYNTHETIC).then_some((position, position));
+        self.children()
+            .into_iter()
+            .filter_map(Node::extent)
+            .chain(own)
+            .reduce(|(first, last), (start, end)| (first.min(start), last.max(end)))
     }
 
     /// The direct sub-expressions, in source order.

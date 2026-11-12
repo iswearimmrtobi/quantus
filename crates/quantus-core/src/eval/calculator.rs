@@ -191,6 +191,11 @@ impl LatexCalculator {
         if self.settings.mode == Mode::Matrix {
             return Ok(self.evaluate_matrix(latex, variables, &Matrices::new())?.0);
         }
+        // The errors point into `latex`; the modes above read their own language and keep none.
+        self.evaluate_formula(latex, variables).map_err(|error| error.resolve(latex))
+    }
+
+    fn evaluate_formula(&self, latex: &str, variables: &Variables) -> Result<Calculation> {
         let mut formula = parser::parse_with(latex, &self.settings.parse_options())?;
         if self.settings.mode == Mode::Verify {
             // Checking defines nothing: `a_1 = 3` compares a_1 with 3.
@@ -276,12 +281,10 @@ impl LatexCalculator {
                     forms,
                         })
                     }
-                    Err(crate::QuantusError::UnresolvedVariable(name)) => {
-                        if !name.contains('_') {
-                            self.evaluate_algebraic(formula)
-                        } else {
-                            Err(crate::QuantusError::UnresolvedVariable(name))
-                        }
+                    Err(err)
+                        if matches!(err.unlocated(), crate::QuantusError::UnresolvedVariable(name) if !name.contains('_')) =>
+                    {
+                        self.evaluate_algebraic(formula)
                     }
                     Err(err) => Err(err),
                 }
@@ -912,8 +915,8 @@ impl LatexCalculator {
                 };
                 Ok((value, None, result))
             }
-            Err(crate::QuantusError::NotReal(message)) if self.settings.complex() => {
-                let not_real = || crate::QuantusError::NotReal(message.clone());
+            Err(error) if self.settings.complex() && matches!(error.unlocated(), crate::QuantusError::NotReal(_)) => {
+                let not_real = || error.clone();
                 let (re, im) = quantity.value.re_im().ok_or_else(not_real)?;
                 let result = match self.settings.complex_form {
                     ComplexForm::Rectangular => self.rectangular(&re, &im, &quantity.unit)?,

@@ -110,7 +110,7 @@ impl Evaluator<'_> {
         let n = unknowns.len();
         let at = |residual: &mut dyn FnMut(&[Value]) -> Result<Value>, point: &[Value]| match residual(point) {
             Ok(value) => Ok(value),
-            Err(e @ (QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_))) => Err(e),
+            Err(e) if matches!(e.unlocated(), QuantusError::DimensionMismatch(_) | QuantusError::UnresolvedVariable(_)) => Err(e),
             // Undefined somewhere, like 1/x at 0: no linear residual is.
             Err(_) => Err(not_linear()),
         };

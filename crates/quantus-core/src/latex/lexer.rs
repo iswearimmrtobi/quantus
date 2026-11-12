@@ -52,6 +52,8 @@ pub struct Token {
     pub text: String,
     /// 0-based character index into the source.
     pub position: usize,
+    /// The character index after the token's source text (`9{,}81` ends after the `1`).
+    pub end: usize,
 }
 
 const DEGREE: char = '°';
@@ -88,44 +90,59 @@ impl Lexer<'_> {
         let mut tokens = Vec::new();
         loop {
             self.skip_whitespace();
-            let Some(&c) = self.chars.get(self.index) else {
-                tokens.push(Token { kind: TokenType::End, text: String::new(), position: self.index });
+            let first = tokens.len();
+            self.next_tokens(&mut tokens)?;
+            let end = self.index;
+            for token in &mut tokens[first..] {
+                token.end = end;
+            }
+            if tokens.last().is_some_and(|t: &Token| t.kind == TokenType::End) {
                 return Ok(tokens);
-            };
-            if c.is_ascii_digit() {
-                tokens.push(self.number());
-            } else if c == DEGREE && !self.at(1).is_some_and(char::is_alphabetic) {
-                // A lone `°` is the degree sign, as `^\circ`.
-                tokens.push(Token { kind: TokenType::Caret, text: "^".to_string(), position: self.index });
-                tokens.push(Token { kind: TokenType::Command, text: "\\circ".to_string(), position: self.index });
-                self.index += 1;
-            } else if c == '\u{2033}' {
-                for _ in 0..2 {
-                    tokens.push(Token { kind: TokenType::Prime, text: "'".to_string(), position: self.index });
-                }
-                self.index += 1;
-            } else if c.is_alphabetic() || c == DEGREE {
-                tokens.push(self.identifier());
-            } else if c == '%' {
-                tokens.push(Token { kind: TokenType::Identifier, text: "%".to_string(), position: self.index });
-                self.index += 1;
-            } else if c == '\u{25b6}' || c == '\u{25ba}' {
-                // `▶`, the conversion arrow.
-                tokens.push(Token { kind: TokenType::Command, text: "\\blacktriangleright".to_string(), position: self.index });
-                self.index += 1;
-            } else if c == '\u{2109}' {
-                tokens.push(Token { kind: TokenType::Identifier, text: "°F".to_string(), position: self.index });
-                self.index += 1;
-            } else if c == '\u{2103}' {
-                // The one-character degree Celsius sign reads like `°C`.
-                tokens.push(Token { kind: TokenType::Identifier, text: "°C".to_string(), position: self.index });
-                self.index += 1;
-            } else if c == '\\' {
-                tokens.extend(self.command()?);
-            } else {
-                tokens.push(self.symbol()?);
             }
         }
+    }
+
+    /// Reads the tokens of one piece of source: usually one, two for `°` and `″`, none for
+    /// spacing.
+    fn next_tokens(&mut self, tokens: &mut Vec<Token>) -> Result<()> {
+        let Some(&c) = self.chars.get(self.index) else {
+            tokens.push(Token { kind: TokenType::End, text: String::new(), position: self.index, end: 0 });
+            return Ok(());
+        };
+        if c.is_ascii_digit() {
+            tokens.push(self.number());
+        } else if c == DEGREE && !self.at(1).is_some_and(char::is_alphabetic) {
+            // A lone `°` is the degree sign, as `^\circ`.
+            tokens.push(Token { kind: TokenType::Caret, text: "^".to_string(), position: self.index, end: 0 });
+            tokens.push(Token { kind: TokenType::Command, text: "\\circ".to_string(), position: self.index, end: 0 });
+            self.index += 1;
+        } else if c == '\u{2033}' {
+            for _ in 0..2 {
+                tokens.push(Token { kind: TokenType::Prime, text: "'".to_string(), position: self.index, end: 0 });
+            }
+            self.index += 1;
+        } else if c.is_alphabetic() || c == DEGREE {
+            tokens.push(self.identifier());
+        } else if c == '%' {
+            tokens.push(Token { kind: TokenType::Identifier, text: "%".to_string(), position: self.index, end: 0 });
+            self.index += 1;
+        } else if c == '\u{25b6}' || c == '\u{25ba}' {
+            // `▶`, the conversion arrow.
+            tokens.push(Token { kind: TokenType::Command, text: "\\blacktriangleright".to_string(), position: self.index, end: 0 });
+            self.index += 1;
+        } else if c == '\u{2109}' {
+            tokens.push(Token { kind: TokenType::Identifier, text: "°F".to_string(), position: self.index, end: 0 });
+            self.index += 1;
+        } else if c == '\u{2103}' {
+            // The one-character degree Celsius sign reads like `°C`.
+            tokens.push(Token { kind: TokenType::Identifier, text: "°C".to_string(), position: self.index, end: 0 });
+            self.index += 1;
+        } else if c == '\\' {
+            tokens.extend(self.command()?);
+        } else {
+            tokens.push(self.symbol()?);
+        }
+        Ok(())
     }
 
     fn error(&self, reason: String, position: usize) -> QuantusError {
@@ -157,7 +174,7 @@ impl Lexer<'_> {
             text.push('.');
             text.push_str(&fraction);
         }
-        Token { kind: TokenType::Number, text, position: start }
+        Token { kind: TokenType::Number, text, position: start, end: 0 }
     }
 
     /// Accepts `,5`, `.5` and the LaTeX-typeset German form `{,}5`.
@@ -189,7 +206,7 @@ impl Lexer<'_> {
         while self.at(0).is_some_and(char::is_alphabetic) {
             self.index += 1;
         }
-        Token { kind: TokenType::Identifier, text: self.chars[start..self.index].iter().collect(), position: start }
+        Token { kind: TokenType::Identifier, text: self.chars[start..self.index].iter().collect(), position: start, end: 0 }
     }
 
     /// Returns `None` for commands that carry no meaning for us (spacing, delimiters).
@@ -202,19 +219,19 @@ impl Lexer<'_> {
 
         if first == '\\' {
             self.index += 1;
-            return Ok(Some(Token { kind: TokenType::RowBreak, text: "\\\\".to_string(), position: start }));
+            return Ok(Some(Token { kind: TokenType::RowBreak, text: "\\\\".to_string(), position: start, end: 0 }));
         }
         if !first.is_alphabetic() {
             self.index += 1;
             // `\{ … \}` are brackets like `( … )`.
             if first == '%' {
-                return Ok(Some(Token { kind: TokenType::Identifier, text: "%".to_string(), position: start }));
+                return Ok(Some(Token { kind: TokenType::Identifier, text: "%".to_string(), position: start, end: 0 }));
             }
             if first == '{' {
-                return Ok(Some(Token { kind: TokenType::LParen, text: "\\{".to_string(), position: start }));
+                return Ok(Some(Token { kind: TokenType::LParen, text: "\\{".to_string(), position: start, end: 0 }));
             }
             if first == '}' {
-                return Ok(Some(Token { kind: TokenType::RParen, text: "\\}".to_string(), position: start }));
+                return Ok(Some(Token { kind: TokenType::RParen, text: "\\}".to_string(), position: start, end: 0 }));
             }
             if SPACING_SYMBOLS.contains(&first) {
                 return Ok(None);
@@ -234,7 +251,7 @@ impl Lexer<'_> {
         // the bars that separate coordinates, `(1|\left|-2\right||3)`.
         if matches!(text.as_str(), "\\left" | "\\right") && self.at(0) == Some('|') {
             self.index += 1;
-            return Ok(Some(Token { kind: TokenType::Pipe, text: format!("{text}|"), position: start }));
+            return Ok(Some(Token { kind: TokenType::Pipe, text: format!("{text}|"), position: start, end: 0 }));
         }
         let relation = match text.as_str() {
             "\\lt" => Some("<"),
@@ -245,7 +262,7 @@ impl Lexer<'_> {
             _ => None,
         };
         Ok(if let Some(relation) = relation {
-            Some(Token { kind: TokenType::Relation, text: relation.to_string(), position: start })
+            Some(Token { kind: TokenType::Relation, text: relation.to_string(), position: start, end: 0 })
         } else if IGNORED_COMMANDS.contains(&text.as_str()) {
             None
         } else if PIPE_COMMANDS.contains(&text.as_str()) {
@@ -254,13 +271,13 @@ impl Lexer<'_> {
                 "\\rvert" => "\\right|",
                 _ => "|",
             };
-            Some(Token { kind: TokenType::Pipe, text: text.to_string(), position: start })
+            Some(Token { kind: TokenType::Pipe, text: text.to_string(), position: start, end: 0 })
         } else if text == "\\AA" {
-            Some(Token { kind: TokenType::Identifier, text: "\u{c5}".to_string(), position: start })
+            Some(Token { kind: TokenType::Identifier, text: "\u{c5}".to_string(), position: start, end: 0 })
         } else if GREEK_COMMANDS.contains(&text.as_str()) {
-            Some(Token { kind: TokenType::Identifier, text, position: start })
+            Some(Token { kind: TokenType::Identifier, text, position: start, end: 0 })
         } else {
-            Some(Token { kind: TokenType::Command, text, position: start })
+            Some(Token { kind: TokenType::Command, text, position: start, end: 0 })
         })
     }
 
@@ -289,12 +306,12 @@ impl Lexer<'_> {
             '!' => TokenType::Bang,
             '\'' | '\u{2032}' => TokenType::Prime,
             '<' | '>' => TokenType::Relation,
-            '\u{2264}' => return Ok(Token { kind: TokenType::Relation, text: "\\le".into(), position: start }),
-            '\u{2265}' => return Ok(Token { kind: TokenType::Relation, text: "\\ge".into(), position: start }),
-            '\u{2260}' => return Ok(Token { kind: TokenType::Relation, text: "\\neq".into(), position: start }),
+            '\u{2264}' => return Ok(Token { kind: TokenType::Relation, text: "\\le".into(), position: start, end: 0 }),
+            '\u{2265}' => return Ok(Token { kind: TokenType::Relation, text: "\\ge".into(), position: start, end: 0 }),
+            '\u{2260}' => return Ok(Token { kind: TokenType::Relation, text: "\\neq".into(), position: start, end: 0 }),
             _ => return Err(self.error(msg!("core.latex.lexer.unexpected_character"), start)),
         };
-        Ok(Token { kind, text: c.to_string(), position: start })
+        Ok(Token { kind, text: c.to_string(), position: start, end: 0 })
     }
 }
 

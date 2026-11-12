@@ -10,6 +10,7 @@ use crate::forms::ResultForm;
 use crate::eval::{Calculation, Step};
 use crate::session::{SessionStore, Variable};
 use crate::settings::Settings;
+use crate::error::Span;
 use crate::QuantusError;
 use crate::text::msg;
 
@@ -144,16 +145,32 @@ impl VariableResponse {
     }
 }
 
-/// Everything that went wrong is reported like this; `position` (0-based) only for parse errors.
+/// Everything that went wrong is reported like this.
+///
+/// `span` is the stretch of the input the error is about (0-based characters), for marking it;
+/// `position` is its start, kept for readers that only show a number. `reason` is the message
+/// without the position a parse error adds to `error`, for a reader that marks the span.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct ApiError {
     pub error: String,
     pub position: Option<usize>,
+    #[serde(default)]
+    pub span: Option<Span>,
+    #[serde(default)]
+    pub reason: String,
+}
+
+impl ApiError {
+    /// An error about no particular part of the input.
+    pub fn new(message: impl Into<String>) -> Self {
+        let error = message.into();
+        ApiError { reason: error.clone(), error, position: None, span: None }
+    }
 }
 
 impl From<QuantusError> for ApiError {
     fn from(error: QuantusError) -> Self {
-        ApiError { error: error.to_string(), position: error.position() }
+        ApiError { error: error.to_string(), position: error.position(), span: error.span(), reason: error.reason() }
     }
 }
 
@@ -359,7 +376,7 @@ pub fn engineering(settings: &Settings, request: &EngineeringRequest) -> Result<
     use crate::latex::numbers;
     use crate::num::Decimal;
     let parse = |text: &str| {
-        Decimal::parse(text).ok_or_else(|| ApiError { error: msg!("core.api.not_number"), position: None })
+        Decimal::parse(text).ok_or_else(|| ApiError::new(msg!("core.api.not_number")))
     };
     let prefixes = settings.decimal_prefixes && request.unit_latex.is_empty();
     let real = parse(&request.value)?;
@@ -687,7 +704,12 @@ mod tests {
         let dimension = evaluate(&mut store, &request("1m + 1s")).unwrap_err();
         assert_eq!(
             json_of(&dimension),
-            json!({ "error": "Incompatible units: m (length) and s (time) cannot be added.", "position": null })
+            json!({
+                "error": "Incompatible units: m (length) and s (time) cannot be added.",
+                "position": null,
+                "span": null,
+                "reason": "Incompatible units: m (length) and s (time) cannot be added."
+            })
         );
     }
 

@@ -935,7 +935,7 @@ impl Parser<'_> {
                 let name = self.operator_function().expect("checked");
                 // Stand on the closing brace, which `parse_function` steps over like a command.
                 self.index += 3;
-                self.parse_function(&Token { kind: TokenType::Command, text: format!("\\{name}"), position })
+                self.parse_function(&Token { kind: TokenType::Command, text: format!("\\{name}"), position, end: 0 })
             }
             "\\operatorname" | "\\mathrm" if self.named_call().is_some() => {
                 let name = self.named_call().expect("checked").to_string();
@@ -1373,8 +1373,8 @@ impl Parser<'_> {
         if start == header || depth != 0 {
             return;
         }
-        let open = Token { kind: TokenType::LParen, text: "(".into(), position: self.tokens[start].position };
-        let close = Token { kind: TokenType::RParen, text: ")".into(), position: self.tokens[header].position };
+        let open = Token { kind: TokenType::LParen, text: "(".into(), position: self.tokens[start].position, end: self.tokens[start].end };
+        let close = Token { kind: TokenType::RParen, text: ")".into(), position: self.tokens[header].position, end: self.tokens[header].end };
         let function: Vec<Token> = self.tokens.drain(start..header).collect();
         let at = end - function.len();
         let moved = std::iter::once(open).chain(function).chain(std::iter::once(close));
@@ -1701,7 +1701,7 @@ impl Parser<'_> {
         }
         let (first, rest) = token.text.split_at(1);
         self.tokens[self.index] =
-            Token { kind: TokenType::Number, text: rest.to_string(), position: token.position + 1 };
+            Token { kind: TokenType::Number, text: rest.to_string(), position: token.position + 1, end: token.end };
         first.to_string()
     }
 
@@ -1815,7 +1815,7 @@ impl Parser<'_> {
         let token = self.current().clone();
         let (first, rest) = token.text.split_at(1);
         self.tokens[self.index] =
-            Token { kind: TokenType::Identifier, text: rest.to_string(), position: token.position + 1 };
+            Token { kind: TokenType::Identifier, text: rest.to_string(), position: token.position + 1, end: token.end };
         // `iy` is `i \cdot y` where `i` is the imaginary unit.
         if first == "i" && self.options.imaginary_i {
             return Node::Constant { name: first.to_string(), position: token.position };

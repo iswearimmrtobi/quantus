@@ -57,7 +57,7 @@ pub struct RemoteResponse {
 }
 
 fn error(message: impl Into<String>) -> ApiError {
-    ApiError { error: message.into(), position: None }
+    ApiError::new(message)
 }
 
 /// Answers a request given as JSON with a response as JSON; `store` is the listener's own

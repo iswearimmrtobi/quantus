@@ -302,7 +302,7 @@ pub fn open_session(engine: State<Engine>, id: String, now: Option<i64>) -> Resu
         let language = store.settings.language;
         let session = store
             .get_mut(&id)
-            .ok_or_else(|| ApiError { error: tr!(language, "core.session.there_no_session"), position: None })?;
+            .ok_or_else(|| ApiError::new(tr!(language, "core.session.there_no_session")))?;
         if now.is_some() {
             session.last_used = now;
         }
@@ -427,12 +427,8 @@ pub fn set_settings<R: Runtime>(
     #[cfg(mobile)]
     let _ = (app, before);
     if let Some(path) = engine.settings_file.get() {
-        save_settings(path, &saved).map_err(|error| ApiError {
-            error: tr!(
-                saved.language,
-                "shell.commands.settings_could_not_saved"),
-            position: None,
-        })?;
+        save_settings(path, &saved)
+            .map_err(|error| ApiError::new(tr!(saved.language, "shell.commands.settings_could_not_saved")))?;
     }
     Ok(saved)
 }
@@ -452,10 +448,7 @@ const ELEMENT_KINDS: [&str; 8] = [
 ];
 
 fn file_error(message: impl std::fmt::Display) -> ApiError {
-    ApiError {
-        error: message.to_string(),
-        position: None,
-    }
+    ApiError::new(message.to_string())
 }
 
 /// Checks the shape of a circuit file: the version, and for each element an ID, a known kind and
