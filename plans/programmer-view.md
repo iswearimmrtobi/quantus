@@ -117,15 +117,15 @@ the shown result is re-evaluated as today when the base changes.
 
 ## Phase 2 — Core: shifts and rotations
 
-- [ ] **2.1 Tokenizer**: `Token::Comma` (`,` `;`), `Token::ShiftLeft` (`<<`, `\ll`),
+- [x] **2.1 Tokenizer**: `Token::Comma` (`,` `;`), `Token::ShiftLeft` (`<<`, `\ll`),
       `Token::ShiftRight` (`>>`, `\gg`); `<`/`>` alone stay an error. `\lt`/`\gt` pairs as typed by
       MathLive are covered.
-- [ ] **2.2 Parser**
-  - [ ] New level `shift()` between `and()` and `sum()`.
-  - [ ] Functions in `unary()`/`atom()`: `shl shr sar rol ror` (case-insensitive, plain or
+- [x] **2.2 Parser**
+  - [x] New level `shift()` between `and()` and `sum()`.
+  - [x] Functions in `unary()`/`atom()`: `shl shr sar rol ror` (case-insensitive, plain or
         `\operatorname{}`), each `( expr , expr )`; error keys for a missing argument/comma.
-  - [ ] Shift count: negative is `core.basen.negative_shift`; counts ≥ width per the table.
-- [ ] **2.3 Texts**: the error keys, `function.shl/shr/sar/rol/ror` names (en, de).
+  - [x] Shift count: negative is `core.basen.negative_shift`; counts ≥ width per the table.
+- [x] **2.3 Texts**: the error keys, `function.shl/shr/sar/rol/ror` names (en, de).
 - [ ] **2.4 Tests**: unit tests per function × width × signedness, `>>` both ways, precedence
       (`1 + 1 << 2` = 8, `1 << 2 and 4` = 4), rotation by 0, by width, by width+1. Generator
       `shifts()` in `gens/basen.py` with a Python reference implementation.

@@ -11,6 +11,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   and `signed`; the default stays 32 bit, signed). A literal must fit the word: `-128` and `FF`
   can be typed in 8 bit (`FF` is −1 when signed), `1FF` is the error *'1FF' does not fit 8 bits.*
   Division is signed or unsigned by the setting.
+- Basis-N shifts and rotates: `x << n` and `x >> n` (also `\ll`, `\gg`; `>>` is arithmetic when
+  signed, logical when unsigned, as in C), and the functions `shl`, `shr`, `sar`, `rol`, `ror`
+  as `(x, n)` or `(x; n)`. `<<` and `>>` bind below `+ -` and above `and`; a shift by the width
+  or more leaves 0 (all sign bits for `sar`), a rotation turns by `n mod width`.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on

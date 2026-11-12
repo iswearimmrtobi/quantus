@@ -95,6 +95,11 @@ pub const FUNCTIONS: &[Function] = &[
     f(r"\operatorname{xnor}", Text(texts!("function.xnor")), LOGIC, &["xnor"], &[]),
     f(r"\operatorname{Not}()", Text(texts!("function.not")), LOGIC, &["Not"], &[]),
     f(r"\operatorname{Neg}()", Text(texts!("function.neg")), LOGIC, &["Neg"], &[]),
+    f(r"\operatorname{shl}(;)", Text(texts!("function.shl")), LOGIC, &["shl", "<<"], &["shift"]),
+    f(r"\operatorname{shr}(;)", Text(texts!("function.shr")), LOGIC, &["shr", ">>"], &["shift"]),
+    f(r"\operatorname{sar}(;)", Text(texts!("function.sar")), LOGIC, &["sar"], &["shift"]),
+    f(r"\operatorname{rol}(;)", Text(texts!("function.rol")), LOGIC, &["rol"], &["rotate"]),
+    f(r"\operatorname{ror}(;)", Text(texts!("function.ror")), LOGIC, &["ror"], &["rotate"]),
 ];
 
 /// A metric prefix: what is inserted, its name and its power of ten.

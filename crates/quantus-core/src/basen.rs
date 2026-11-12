@@ -9,7 +9,10 @@
 //!   another base.
 //! - `+ - \cdot \times \div \frac{}{}`; division truncates toward zero.
 //! - `and`, `or`, `xor`, `xnor` (as `\operatorname{and}` or plain), `Not(x)`, `Neg(x)`.
-//! - Precedence, highest first: sign, `Not`, `Neg`; `\cdot` `\div`; `+` `-`; `and`; `or` `xor` `xnor`.
+//! - Shifts and rotations: `x << n` (`\ll`), `x >> n` (`\gg`; arithmetic when signed, logical
+//!   when unsigned, as in C), and `shl`, `shr`, `sar`, `rol`, `ror` as `(x, n)` or `(x; n)`.
+//! - Precedence, highest first: sign, `Not`, `Neg`, functions; `\cdot` `\div`; `+` `-`; `<<` `>>`;
+//!   `and`; `or` `xor` `xnor`.
 //!
 //! Every result wraps modulo 2ⁿ like a register, and the result says so ([`BaseNResult::wrapped`]).
 //! A literal must fit the word: in decimal up to the top of the range (signed: up to 2ⁿ⁻¹, so that
@@ -211,6 +214,10 @@ enum Token {
     Divide,
     Open,
     Close,
+    /// `,` or `;` between the two arguments of a shift function.
+    Comma,
+    ShiftLeft,
+    ShiftRight,
 }
 
 impl Token {
@@ -223,6 +230,9 @@ impl Token {
             Token::Divide => "\\div".into(),
             Token::Open => "(".into(),
             Token::Close => ")".into(),
+            Token::Comma => ",".into(),
+            Token::ShiftLeft => "<<".into(),
+            Token::ShiftRight => ">>".into(),
         }
     }
 }
@@ -245,7 +255,21 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
             '-' | '\u{2212}' => (tokens.push(Token::Minus), i += 1).1,
             '*' | '\u{b7}' | '\u{d7}' => (tokens.push(Token::Times), i += 1).1,
             '/' | '\u{f7}' => (tokens.push(Token::Divide), i += 1).1,
-            '(' | '[' | '{' => (tokens.push(Token::Open), i += 1).1,
+            '(' | '[' => (tokens.push(Token::Open), i += 1).1,
+            // `{,}` is how a comma is written between digits; in Basis-N it separates arguments.
+            '{' if chars.get(i + 1) == Some(&',') && chars.get(i + 2) == Some(&'}') => (tokens.push(Token::Comma), i += 3).1,
+            '{' => (tokens.push(Token::Open), i += 1).1,
+            ',' | ';' => (tokens.push(Token::Comma), i += 1).1,
+            '<' | '>' => {
+                // Only doubled: `<<`, `>>`; `\lt\lt` arrives here as `<<` too (see below).
+                if chars.get(i + 1) != Some(&c) {
+                    return Err(unexpected(c));
+                }
+                tokens.push(if c == '<' { Token::ShiftLeft } else { Token::ShiftRight });
+                i += 2;
+            }
+            '\u{226a}' => (tokens.push(Token::ShiftLeft), i += 1).1,
+            '\u{226b}' => (tokens.push(Token::ShiftRight), i += 1).1,
             ')' | ']' | '}' => (tokens.push(Token::Close), i += 1).1,
             c if c.is_ascii_alphanumeric() => {
                 let start = i;
@@ -269,6 +293,20 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                 match name.as_str() {
                     "cdot" | "times" | "ast" => tokens.push(Token::Times),
                     "div" => tokens.push(Token::Divide),
+                    "ll" => tokens.push(Token::ShiftLeft),
+                    "gg" => tokens.push(Token::ShiftRight),
+                    // MathLive writes a typed `<` as `\lt`: two in a row are a shift.
+                    "lt" | "gt" => {
+                        let rest: String = chars[i..].iter().collect::<String>();
+                        let rest = rest.trim_start();
+                        let pair = if name == "lt" { "\\lt" } else { "\\gt" };
+                        if !rest.starts_with(pair) || rest[pair.len()..].starts_with(|c: char| c.is_ascii_alphabetic()) {
+                            return Err(unexpected(if name == "lt" { '<' } else { '>' }));
+                        }
+                        i = chars.len() - rest.chars().count() + pair.len();
+                        tokens.push(if name == "lt" { Token::ShiftLeft } else { Token::ShiftRight });
+                    }
+                    "semicolon" => tokens.push(Token::Comma),
                     "frac" => {
                         // \frac{a}{b}: (a) ÷ (b); the braces become the brackets.
                         let numerator = braced(&chars, &mut i)?;
@@ -322,6 +360,57 @@ fn braced(chars: &[char], i: &mut usize) -> Result<String> {
         *i += 1;
     }
     Err(QuantusError::other(msg!("core.basen.not_closed")))
+}
+
+/// A shift or rotation of the pattern.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Shift {
+    /// Logical left: zeros in.
+    Shl,
+    /// Logical right: zeros in.
+    Shr,
+    /// Arithmetic right: copies of the sign bit in.
+    Sar,
+    Rol,
+    Ror,
+}
+
+impl Shift {
+    fn of_name(name: &str) -> Option<Shift> {
+        Some(match name.to_ascii_lowercase().as_str() {
+            "shl" => Shift::Shl,
+            "shr" => Shift::Shr,
+            "sar" => Shift::Sar,
+            "rol" => Shift::Rol,
+            "ror" => Shift::Ror,
+            _ => return None,
+        })
+    }
+
+    /// The pattern `bits` shifted by `count ≥ 0`: a shift by the width or more leaves 0 (or all
+    /// sign bits for `Sar`), a rotation turns by `count mod width`.
+    fn apply(self, bits: u64, count: i128, spec: Spec) -> u64 {
+        let (width, mask) = (spec.width, spec.mask());
+        let bits = bits & mask;
+        let wide = count >= i128::from(width);
+        let n = if wide { 0 } else { count as u32 };
+        let turn = (count % i128::from(width)) as u32;
+        let result = match self {
+            Shift::Shl if wide => 0,
+            Shift::Shl => bits.checked_shl(n).unwrap_or(0),
+            Shift::Shr if wide => 0,
+            Shift::Shr => bits >> n,
+            Shift::Sar => {
+                // Sign-extended from the word's top bit, whatever the signedness setting.
+                let extended = Spec { width, signed: true }.read(bits);
+                (extended >> if wide { width - 1 } else { n }) as u64
+            }
+            Shift::Rol | Shift::Ror if turn == 0 => bits,
+            Shift::Rol => bits << turn | bits >> (width - turn),
+            Shift::Ror => bits >> turn | bits << (width - turn),
+        };
+        result & mask
+    }
 }
 
 /// Values are carried as `i128`: a literal may be 2ⁿ⁻¹ (to be negated), and each operation
@@ -382,14 +471,59 @@ impl Parser {
     }
 
     fn and(&mut self) -> Result<i128> {
-        let mut left = self.sum()?;
+        let mut left = self.shift()?;
         while self.word_is(&["and"]).is_some() {
             self.index += 1;
-            let right = self.sum()?;
+            let right = self.shift()?;
             let (left_bits, right_bits) = (self.bits(left), self.bits(right));
             left = self.read(left_bits & right_bits);
         }
         Ok(left)
+    }
+
+    /// `<<`, `>>`: below `+ -`, above `and`, as in C.
+    fn shift(&mut self) -> Result<i128> {
+        let mut left = self.sum()?;
+        loop {
+            let shift = match self.peek() {
+                Some(Token::ShiftLeft) => Shift::Shl,
+                Some(Token::ShiftRight) if self.spec.signed => Shift::Sar,
+                Some(Token::ShiftRight) => Shift::Shr,
+                _ => return Ok(left),
+            };
+            self.index += 1;
+            let count = self.sum()?;
+            left = self.apply(shift, left, count)?;
+        }
+    }
+
+    /// `shift` of `value` by `count` bits; bits shifted out are no overflow.
+    fn apply(&mut self, shift: Shift, value: i128, count: i128) -> Result<i128> {
+        let bits = self.bits(value);
+        let count = self.wrap(count);
+        if count < 0 {
+            return Err(QuantusError::other(msg!("core.basen.negative_shift", count)));
+        }
+        Ok(self.read(shift.apply(bits, count, self.spec)))
+    }
+
+    /// `shl(x, n)` and the like, after the name.
+    fn function(&mut self, shift: Shift, name: &str) -> Result<i128> {
+        if self.peek() != Some(&Token::Open) {
+            return Err(QuantusError::other(msg!("core.basen.expected_bracket", name)));
+        }
+        self.index += 1;
+        let value = self.or()?;
+        if self.peek() != Some(&Token::Comma) {
+            return Err(QuantusError::other(msg!("core.basen.two_arguments")));
+        }
+        self.index += 1;
+        let count = self.or()?;
+        if self.peek() != Some(&Token::Close) {
+            return Err(QuantusError::other(msg!("core.basen.bracket_not_closed")));
+        }
+        self.index += 1;
+        self.apply(shift, value, count)
     }
 
     fn sum(&mut self) -> Result<i128> {
@@ -483,6 +617,10 @@ impl Parser {
                 }
                 self.index += 1;
                 Ok(value)
+            }
+            Some(Token::Word(word)) if Shift::of_name(&word).is_some() => {
+                self.index += 1;
+                self.function(Shift::of_name(&word).unwrap_or(Shift::Shl), &word.to_ascii_lowercase())
             }
             Some(Token::Word(word)) => {
                 self.index += 1;
@@ -664,6 +802,69 @@ mod tests {
         // and binds tighter than or, + tighter than and.
         assert_eq!(eval("1 or 2 and 3", NumberBase::Dec), "3");
         assert_eq!(eval("1+1 and 3", NumberBase::Dec), "2");
+    }
+
+    #[test]
+    fn shifts_move_the_pattern() {
+        let byte = spec(WordSize::W8, true);
+        let ubyte = spec(WordSize::W8, false);
+        assert_eq!(eval_in(r"\operatorname{shl}(1, 3)", NumberBase::Dec, byte), "8");
+        assert_eq!(eval_in("shl(81; 1)", NumberBase::Hex, byte), "2");
+        assert_eq!(eval_in("shr(80, 7)", NumberBase::Hex, byte), "1");
+        assert_eq!(eval_in("sar(80, 7)", NumberBase::Hex, byte), "\\mathrm{FF}");
+        assert_eq!(eval_in("sar(80, 7)", NumberBase::Hex, ubyte), "\\mathrm{FF}");
+        assert_eq!(eval_in("sar(40, 3)", NumberBase::Hex, byte), "8");
+        // By the width or more: 0, or all sign bits for sar.
+        for shift in ["shl", "shr"] {
+            assert_eq!(eval_in(&format!("{shift}(FF, 8)"), NumberBase::Hex, ubyte), "0");
+            assert_eq!(eval_in(&format!("{shift}(FF, C8)"), NumberBase::Hex, ubyte), "0");
+        }
+        assert_eq!(eval_in("sar(80, 8)", NumberBase::Hex, ubyte), "\\mathrm{FF}");
+        assert_eq!(eval_in("sar(7F, 64)", NumberBase::Hex, ubyte), "0");
+        assert_eq!(eval_in("shl(1, 3F)", NumberBase::Hex, spec(WordSize::W64, false)), "8000000000000000");
+        assert_eq!(eval_in("shl(1, 63)", NumberBase::Dec, spec(WordSize::W64, true)), "-9223372036854775808");
+        assert_eq!(eval_in("sar(h8000000000000000, 63)", NumberBase::Dec, spec(WordSize::W64, true)), "-1");
+        // Shifting bits out is no overflow.
+        assert!(!evaluate("shl(FF, 4)", NumberBase::Hex, ubyte).unwrap().wrapped);
+        assert_eq!(eval_in("shl(1, -1)", NumberBase::Dec, byte), "error: A shift count must not be negative (-1).");
+    }
+
+    #[test]
+    fn rotations_turn_within_the_word() {
+        let ubyte = spec(WordSize::W8, false);
+        assert_eq!(eval_in("rol(81, 1)", NumberBase::Hex, ubyte), "3");
+        assert_eq!(eval_in("ror(81, 1)", NumberBase::Hex, ubyte), "\\mathrm{C0}");
+        // Counts in hexadecimal: 0, 8, 16.
+        for n in ["0", "8", "10"] {
+            assert_eq!(eval_in(&format!("rol(A5, {n})"), NumberBase::Hex, ubyte), "\\mathrm{A5}");
+        }
+        assert_eq!(eval_in("rol(81, 9)", NumberBase::Hex, ubyte), "3");
+        assert_eq!(eval_in("ror(1, 1)", NumberBase::Hex, spec(WordSize::W16, false)), "8000");
+        assert_eq!(eval_in("ror(1, 1)", NumberBase::Hex, spec(WordSize::W64, false)), "8000000000000000");
+        assert_eq!(eval_in("ROL(1, 41)", NumberBase::Hex, spec(WordSize::W64, false)), "2");
+    }
+
+    #[test]
+    fn the_shift_operators_sit_between_sum_and_and() {
+        assert_eq!(eval("1 + 1 << 2", NumberBase::Dec), "8");
+        assert_eq!(eval("1 << 2 and 4", NumberBase::Dec), "4");
+        assert_eq!(eval(r"1 \ll 4", NumberBase::Dec), "16");
+        assert_eq!(eval(r"1\lt\lt 4", NumberBase::Dec), "16");
+        assert_eq!(eval(r"64 \gg 2 \gg 1", NumberBase::Dec), "8");
+        assert_eq!(eval(r"256 \gt\gt 4", NumberBase::Dec), "16");
+        // >> is arithmetic when signed, logical when unsigned.
+        assert_eq!(eval_in("-16 >> 2", NumberBase::Dec, spec(WordSize::W8, true)), "-4");
+        assert_eq!(eval_in("F0 >> 2", NumberBase::Hex, spec(WordSize::W8, false)), "\\mathrm{3C}");
+        assert_eq!(eval("1 < 2", NumberBase::Dec), "error: Basis-N does not know '<'.");
+        assert_eq!(eval(r"1 \lt 2", NumberBase::Dec), "error: Basis-N does not know '<'.");
+    }
+
+    #[test]
+    fn shift_functions_need_two_arguments() {
+        assert_eq!(eval("shl(1)", NumberBase::Dec), "error: 'shl' takes two numbers: shl(x, n).");
+        assert_eq!(eval("ror 1", NumberBase::Dec), "error: Expected '(' after 'ror'.");
+        assert_eq!(eval(r"\operatorname{rol}\left(1{,}2\right)", NumberBase::Dec), "4");
+        assert_eq!(eval("shl(1, 2) + shr(16, 2)", NumberBase::Dec), "8");
     }
 
     #[test]
