@@ -176,7 +176,13 @@ by how often an entry was used comes later.
 - [x] Desktop: the quick search lists functions and prefixes too.
 - [ ] Usage counts that rank frequent entries first.
 
-## 7. Later
+## 7. A programmer view for Basis-N
+
+From [feature-ideas.md](feature-ideas.md) (idea 13): word size 8/16/32/64, signed or unsigned,
+wrapping, shifts and rotations, a bit view and an IEEE-754 view. Plan with the steps:
+[programmer-view.md](programmer-view.md).
+
+## 8. Later
 
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
