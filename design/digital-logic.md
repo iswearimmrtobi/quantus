@@ -491,7 +491,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   expression → LaTeX → expression.
 - [x] `parse.rs`, minterm lists (§5.3): `\sum m(…) + d(…)` with its spellings, `\prod M(…)
   \cdot d(…)`, the number of variables from the highest index, the errors (index twice, too large).
-- [ ] `table.rs`: expression → table over $2^n$ rows; canonical DNF and KNF with `\sum m`,
+- [x] `table.rs`: expression → table over $2^n$ rows; canonical DNF and KNF with `\sum m`,
   `\prod M`, `d(…)`; constant functions (*f is always 1*). The order of the inputs (§5.1, the
   declaration order, else alphabetical with numeric indices).
 

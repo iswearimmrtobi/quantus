@@ -38,7 +38,7 @@ impl Expr {
         Expr::Var(name.to_string())
     }
 
-    pub fn not(expr: Expr) -> Expr {
+    pub fn negation(expr: Expr) -> Expr {
         Expr::Not(Box::new(expr))
     }
 

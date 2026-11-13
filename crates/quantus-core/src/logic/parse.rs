@@ -622,11 +622,11 @@ impl<'a> Parser<'a> {
 
     fn unary(&mut self) -> Result<Expr> {
         if self.eat(&Token::Not) {
-            return Ok(Expr::not(self.unary()?));
+            return Ok(Expr::negation(self.unary()?));
         }
         let mut operand = self.primary()?;
         while self.eat(&Token::Prime) {
-            operand = Expr::not(operand);
+            operand = Expr::negation(operand);
         }
         Ok(operand)
     }

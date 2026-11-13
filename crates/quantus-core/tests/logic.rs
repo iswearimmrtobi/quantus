@@ -2,6 +2,7 @@
 
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
+use quantus_core::logic::table::{constant_note, input_order, line_function, Canonical};
 use quantus_core::logic::{rows_of, Function, Pattern, Value};
 
 fn names(names: &str) -> Vec<String> {
@@ -60,10 +61,10 @@ fn expressions_evaluate_row_by_row() {
 
 #[test]
 fn expressions_are_written_in_both_notations_with_the_fewest_brackets() {
-    let e = Expr::Or(vec![Expr::And(vec![v("A"), Expr::not(v("B"))]), v("C")]);
+    let e = Expr::Or(vec![Expr::And(vec![v("A"), Expr::negation(v("B"))]), v("C")]);
     assert_eq!(e.latex(Notation::Logic), r"A \land \lnot B \lor C");
     assert_eq!(e.latex(Notation::Technical), r"A \cdot \overline{B} + C");
-    let e = Expr::And(vec![Expr::Or(vec![v("A"), v("x_1")]), Expr::not(Expr::And(vec![v("B"), v("Start")]))]);
+    let e = Expr::And(vec![Expr::Or(vec![v("A"), v("x_1")]), Expr::negation(Expr::And(vec![v("B"), v("Start")]))]);
     assert_eq!(e.latex(Notation::Logic), r"(A \lor x_{1}) \land \overline{B \land \mathrm{Start}}");
     // NAND and NOR are not associative; nested ones keep their brackets.
     let e = Expr::Nand(Box::new(Expr::Nand(Box::new(v("A")), Box::new(v("B")))), Box::new(v("C")));
@@ -77,7 +78,7 @@ fn expressions_are_written_in_both_notations_with_the_fewest_brackets() {
     assert_eq!(Expr::Xnor(vec![v("A"), v("B"), v("C")]).latex(Notation::Logic), r"\overline{A \oplus B \oplus C}");
     let e = Expr::Xor(vec![Expr::Xor(vec![v("A"), v("B")]), v("C")]);
     assert_eq!(e.latex(Notation::Logic), r"(A \oplus B) \oplus C");
-    assert_eq!(Expr::not(Expr::not(v("A"))).latex(Notation::Logic), r"\overline{\lnot A}");
+    assert_eq!(Expr::negation(Expr::negation(v("A"))).latex(Notation::Logic), r"\overline{\lnot A}");
 }
 
 /// The rows where `latex` is 1, over the variables `vars`.
@@ -116,7 +117,7 @@ fn the_precedence_is_not_and_nand_xor_or_nor() {
     let parsed = |latex: &str| parse_expr(latex).unwrap();
     let and = |a: Expr, b: Expr| Expr::And(vec![a, b]);
     assert_eq!(parsed(r"A \lor B C"), Expr::Or(vec![v("A"), and(v("B"), v("C"))]));
-    assert_eq!(parsed(r"\overline{A} B'"), and(Expr::not(v("A")), Expr::not(v("B"))));
+    assert_eq!(parsed(r"\overline{A} B'"), and(Expr::negation(v("A")), Expr::negation(v("B"))));
     assert_eq!(parsed(r"A \oplus B \lor C"), Expr::Or(vec![Expr::Xor(vec![v("A"), v("B")]), v("C")]));
     assert_eq!(parsed(r"A B \uparrow C"), Expr::Nand(Box::new(and(v("A"), v("B"))), Box::new(v("C"))));
     assert_eq!(parsed(r"A \uparrow B \oplus C"), Expr::Xor(vec![Expr::Nand(Box::new(v("A")), Box::new(v("B"))), v("C")]));
@@ -125,7 +126,7 @@ fn the_precedence_is_not_and_nand_xor_or_nor() {
     assert_eq!(parsed(r"A \odot B \odot C"), Expr::Xnor(vec![Expr::Xnor(vec![v("A"), v("B")]), v("C")]));
     // A chain of XNOR is odd parity, read from the left.
     assert_eq!(ones_of(r"A \odot B \odot C", "A B C"), [1, 2, 4, 7]);
-    assert_eq!(parsed(r"(A B)'"), Expr::not(and(v("A"), v("B"))));
+    assert_eq!(parsed(r"(A B)'"), Expr::negation(and(v("A"), v("B"))));
 }
 
 #[test]
@@ -236,4 +237,62 @@ fn minterm_list_errors() {
     let Body::Minterms(minterms) = line.body else { panic!() };
     assert_eq!(minterms.function(line.inputs.as_deref(), &[]).unwrap_err().to_string(), "4 is too large for 2 variables: the rows go from 0 to 3.");
     assert_eq!(list("m(256)").function(None, &[]).unwrap_err().to_string(), "A function has at most 8 variables, not 9.");
+}
+
+fn function(latex: &str, inputs: &str) -> Function {
+    line_function(&parse_line(latex).unwrap(), &names(inputs)).unwrap_or_else(|e| panic!("{latex}: {e}"))
+}
+
+#[test]
+fn an_expression_gives_its_table_and_canonical_forms() {
+    let f = function("AB + AC + BC", "A B C");
+    assert_eq!(rows_of(f.ones()).collect::<Vec<_>>(), [3, 5, 6, 7]);
+    let canonical = Canonical::of(&f);
+    assert_eq!((canonical.sum_latex(), canonical.product_latex()), (r"\sum m(3, 5, 6, 7)".to_string(), r"\prod M(0, 1, 2, 4)".to_string()));
+    assert_eq!(
+        canonical.dnf.latex(Notation::Logic),
+        r"\lnot A \land B \land C \lor A \land \lnot B \land C \lor A \land B \land \lnot C \lor A \land B \land C"
+    );
+    assert_eq!(
+        canonical.knf.latex(Notation::Technical),
+        r"(A + B + C) \cdot (A + B + \overline{C}) \cdot (A + \overline{B} + C) \cdot (\overline{A} + B + C)"
+    );
+    // The canonical DNF is the function again.
+    assert_eq!(function(&canonical.dnf.latex(Notation::Logic), "A B C"), f);
+    assert_eq!(function(&canonical.knf.latex(Notation::Technical), "A B C"), f);
+    assert_eq!(constant_note(&f, "f"), None);
+}
+
+#[test]
+fn dont_cares_are_listed_apart_and_left_out_of_both_forms() {
+    let f = function(r"f(A, B, C) = \sum m(1, 3) + d(5, 7)", "");
+    let canonical = Canonical::of(&f);
+    assert_eq!(canonical.sum_latex(), r"\sum m(1, 3) + d(5, 7)");
+    assert_eq!(canonical.product_latex(), r"\prod M(0, 2, 4, 6) \cdot d(5, 7)");
+    assert_eq!(canonical.dnf.latex(Notation::Logic), r"\lnot A \land \lnot B \land C \lor \lnot A \land B \land C");
+}
+
+#[test]
+fn constant_functions_say_so() {
+    let one = function(r"A \lor \lnot A", "A");
+    assert_eq!((one.constant(), constant_note(&one, "f").unwrap()), (Some(true), "f is always 1.".to_string()));
+    let canonical = Canonical::of(&one);
+    assert_eq!((canonical.dnf.latex(Notation::Logic), canonical.knf.clone(), canonical.product_latex()), (r"\lnot A \lor A".to_string(), Expr::Const(true), r"\prod M()".to_string()));
+    let zero = function("g = A B'  B", "A B");
+    assert_eq!(constant_note(&zero, "g").unwrap(), "g is always 0.");
+    assert_eq!(Canonical::of(&zero).dnf, Expr::Const(false));
+    // Don't cares do not stop a function from being constant.
+    assert_eq!(function(r"\sum m(0, 1) + d(2, 3)", "A B").constant(), Some(true));
+}
+
+#[test]
+fn inputs_come_in_declaration_order_else_alphabetically() {
+    let vars = names("x_10 b x_2 A C");
+    assert_eq!(input_order(&[], &vars).unwrap(), names("A b C x_2 x_10"));
+    let (first, second) = (names("C x_10"), names("b C"));
+    assert_eq!(input_order(&[&first, &second], &vars).unwrap(), names("C x_10 b A x_2"));
+    assert!(input_order(&[], &names("A B C D E F G H I")).is_err());
+    // The scene's inputs set the columns of an expression that uses fewer of them.
+    assert_eq!(rows_of(function("B", "A B").ones()).collect::<Vec<_>>(), [1, 3]);
+    assert_eq!(line_function(&parse_line("A C").unwrap(), &names("A B")).unwrap_err().to_string(), "C is not among the inputs of f.");
 }

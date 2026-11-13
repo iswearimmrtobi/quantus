@@ -6,6 +6,7 @@
 
 pub mod expr;
 pub mod parse;
+pub mod table;
 pub mod text;
 
 use crate::{QuantusError, Result};

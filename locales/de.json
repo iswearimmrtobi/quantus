@@ -1323,6 +1323,7 @@
     "core.latex.parser.unsupported_command": "Der Befehl „{other}“ wird nicht unterstützt.",
     "core.latex.parser.unsupported_environment": "Die Umgebung „{other}“ wird nicht unterstützt.",
     "core.latex.parser.vector_name": "Ein Vektor heißt mit einem Buchstaben, etwa \\vec{{a}} oder \\vec{{a}}_1.",
+    "core.logic.always": "{output} ist immer {value}.",
     "core.logic.bad_index": "Ein Index besteht aus Buchstaben und Ziffern, etwa x_1 oder Y_{{12}}.",
     "core.logic.bad_left_side": "Links steht ein Name, etwa f oder f(A, B, C).",
     "core.logic.bad_list": "Eine Mintermliste schreibt man \\sum m(1, 3, 7) + d(5), eine Maxtermliste \\prod M(0, 2) \\cdot d(5).",
