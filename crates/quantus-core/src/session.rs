@@ -15,6 +15,7 @@ use crate::api::CalculationResponse;
 use crate::eval::linear_system::LinearSystemRequest;
 use crate::analysis::interface::{AnalysisRequest, TableRequest};
 use crate::geometry::interface::GeometryRequest;
+use crate::logic::interface::LogicRequest;
 use crate::stochastics::distributions::DistributionRequest;
 use crate::stochastics::statistics::StatisticsRequest;
 
@@ -77,6 +78,9 @@ pub struct ModeInputs {
     /// The Geometry mode's scene and its last task. Its objects are a namespace of their own:
     /// a point `A` is no variable `A`.
     pub geometry: Option<GeometryRequest>,
+    /// The Logic mode's scene (its outputs, their sources, the circuit and the editor's data)
+    /// and its last task.
+    pub logic: Option<LogicRequest>,
 }
 
 /// The variables defined so far, in definition order.

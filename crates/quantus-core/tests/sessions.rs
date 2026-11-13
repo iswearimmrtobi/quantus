@@ -131,3 +131,32 @@ fn the_geometry_scene_is_kept_per_session_apart_from_the_variables() {
     // Another session has no scene.
     assert!(api::get_mode_inputs(&mut other, Some("fresh")).geometry.is_none());
 }
+
+#[test]
+fn the_logic_scene_is_kept_per_session() {
+    use quantus_core::api::LogicRequest;
+    let mut store = SessionStore::new();
+    let id = api::new_session(&mut store, &NewSessionRequest { name: Some("Logik".into()), ..Default::default() }).id;
+    let scene: LogicRequest = serde_json::from_value(serde_json::json!({
+        "scene": {
+            "inputs": ["A", "B"],
+            "outputs": [
+                { "name": "f", "source": { "kind": "table", "values": ["0", "1", "1", "-"] }, "chosen": 0 },
+                { "source": { "kind": "expression", "latex": r"g = A \oplus B" } }
+            ],
+            "row": 2,
+            "editor": { "generated": true, "positions": { "G1": [4, 2] } }
+        },
+        "task": { "kind": "checkForm", "output": "f", "latex": "A + B" }
+    }))
+    .unwrap();
+    api::set_mode_inputs(&mut store, Some(&id), ModeInputs { logic: Some(scene.clone()), ..Default::default() });
+
+    let mut other = SessionStore::new();
+    api::import_session(&mut other, &api::export_session(&mut store, Some(&id))).unwrap();
+    let kept = api::get_mode_inputs(&mut other, Some(&id)).logic.unwrap();
+    assert_eq!(kept, scene);
+    let answer = api::logic(&other.settings, &kept).unwrap().task.unwrap();
+    assert_eq!((answer.equal, answer.minimal), (Some(true), Some(true)));
+    assert!(api::get_mode_inputs(&mut other, Some("fresh")).logic.is_none());
+}
