@@ -26,7 +26,7 @@ use super::layout::{arrange, CircuitLayout, DrawForm, Generated};
 use super::minimise::{Form, Minimisation};
 use super::nand::{GateCost, GateForm, GateKind};
 use super::parse::{parse_parts, Body, Line};
-use super::table::{constant_note, input_order, line_function, table_working, Canonical};
+use super::table::{constant_note, input_order, line_function, table_tabular, table_working, Canonical};
 use super::text::msg;
 use super::working::Working;
 use super::{Function, Pattern, Value};
@@ -294,8 +294,10 @@ pub struct KmapResponse {
     /// The blocks of the chosen minimal DNF, and of the chosen minimal KNF over the 0s.
     pub blocks: Vec<BlockResponse>,
     pub knf_blocks: Vec<BlockResponse>,
-    /// The diagram as LaTeX, for **Copy**.
+    /// The diagram as LaTeX (an `array` with the Gray codes), as in the working.
     pub latex: String,
+    /// The diagram as a `tabular` with the bars, for **Copy** (§10.5).
+    pub tabular: String,
 }
 
 /// A NAND-only or NOR-only form (§6.5).
@@ -462,6 +464,9 @@ pub struct LogicResponse {
     pub circuit: Option<CircuitResponse>,
     pub task: Option<TaskResponse>,
     pub errors: Vec<ErrorResponse>,
+    /// The truth table of every output with a function as a `tabular`, for **Copy** (§10.5);
+    /// empty without one.
+    pub table_latex: String,
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -474,6 +479,8 @@ struct Options {
     two_input: bool,
     detail: StepDetail,
     precision: usize,
+    /// 0s shown in the copied table and KV diagram (`logic_zeros`).
+    zeros: bool,
 }
 
 /// The working's lines as shown at the detail setting, and their `align*` block.
@@ -706,7 +713,8 @@ fn form_response(minimisation: &Minimisation, names: &[String], notation: Notati
         .collect()
 }
 
-fn kmap(layout: &Layout, function: &Function, dnf: &Minimisation, chosen: usize, knf: &Minimisation, chosen_knf: usize, notation: Notation) -> KmapResponse {
+fn kmap(layout: &Layout, function: &Function, dnf: &Minimisation, chosen: usize, knf: &Minimisation, chosen_knf: usize, options: Options) -> KmapResponse {
+    let notation = options.notation;
     let names = function.names();
     let vars = |range: std::ops::Range<usize>| names[range].to_vec();
     let blocks = |minimisation: &Minimisation, cover: usize| {
@@ -748,6 +756,7 @@ fn kmap(layout: &Layout, function: &Function, dnf: &Minimisation, chosen: usize,
         blocks: blocks(dnf, chosen),
         knf_blocks: blocks(knf, chosen_knf),
         latex: layout.latex(function),
+        tabular: layout.tabular(function, options.zeros),
     }
 }
 
@@ -809,7 +818,7 @@ fn output_response(output: &Output, index: usize, given: Option<(Expr, Working)>
         knf_worked: worked(&kv_working(function, &knf, chosen_knf, name, notation), options.detail),
         quine_mc_cluskey: worked(&dnf.working(names, name, notation), options.detail),
     });
-    response.kmap = Layout::new(function.arity()).map(|layout| kmap(&layout, function, &dnf, chosen, &knf, chosen_knf, notation));
+    response.kmap = Layout::new(function.arity()).map(|layout| kmap(&layout, function, &dnf, chosen, &knf, chosen_knf, options));
     response.nand = Some(gate_form(&GateForm::nand(&dnf, chosen, options.two_input), &dnf.expr(chosen, names), names, name, options));
     response.nor = Some(gate_form(&GateForm::nor(&knf, chosen_knf, options.two_input), &knf.expr(chosen_knf, names), names, name, options));
     response
@@ -1012,6 +1021,7 @@ pub fn logic(settings: &Settings, request: &LogicRequest) -> Result<LogicRespons
         two_input: settings.logic_two_input,
         detail: settings.step_detail,
         precision: request.precision.unwrap_or(settings.precision),
+        zeros: settings.logic_zeros,
     };
     let scene = &request.scene;
     let mut read = read(scene);
@@ -1044,5 +1054,7 @@ pub fn logic(settings: &Settings, request: &LogicRequest) -> Result<LogicRespons
     };
 
     let task = request.task.as_ref().map(|t| task(&read, t, options).unwrap_or_else(|e| TaskResponse { error: Some(e.to_string()), ..TaskResponse::default() }));
-    Ok(LogicResponse { inputs: read.inputs, outputs, circuit, task, errors })
+    let tables: Vec<(&str, &[Value])> = outputs.iter().filter(|o| !o.table.is_empty()).map(|o| (o.name.as_str(), o.table.as_slice())).collect();
+    let table_latex = if tables.is_empty() { String::new() } else { table_tabular(&read.inputs, &tables, options.zeros) };
+    Ok(LogicResponse { inputs: read.inputs, outputs, circuit, task, errors, table_latex })
 }

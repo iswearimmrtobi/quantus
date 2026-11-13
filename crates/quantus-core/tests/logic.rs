@@ -2253,3 +2253,55 @@ fn the_api_follows_the_logic_settings() {
     // NAND–NAND with a 3-input NAND at the output: 4 gates, 2 levels.
     assert_eq!((f["nand"]["gates"].as_u64(), f["nand"]["levels"].as_u64()), (Some(4), Some(2)));
 }
+
+#[test]
+fn the_truth_table_copies_as_a_tabular() {
+    let response = logic_api(
+        serde_json::json!({ "outputs": [
+            { "source": { "kind": "expression", "latex": "f = A \\land B" } },
+            { "source": { "kind": "minterms", "latex": "g = \\sum m(1) + d(2)" } },
+        ] }),
+        None,
+    );
+    assert_eq!(
+        response["tableLatex"],
+        "\\begin{tabular}{r|cc|cc}\n$i$ & $A$ & $B$ & $f$ & $g$ \\\\ \\hline\n0 & 0 & 0 & 0 & 0 \\\\\n1 & 0 & 1 & 0 & 1 \\\\\n2 & 1 & 0 & 0 & -- \\\\\n3 & 1 & 1 & 1 & 0 \\\\\n\\end{tabular}"
+    );
+    // Without 0s (`logic_zeros` off) their cells stay empty; without a function nothing is copied.
+    let zeros = quantus_core::logic::table::table_tabular(&names("A"), &[("f", &[Value::Zero, Value::One])], false);
+    assert_eq!(zeros, "\\begin{tabular}{r|c|c}\n$i$ & $A$ & $f$ \\\\ \\hline\n0 & 0 &  \\\\\n1 & 1 & 1 \\\\\n\\end{tabular}");
+    let none = logic_api(serde_json::json!({ "outputs": [{ "source": { "kind": "expression", "latex": "A \\land" } }] }), None);
+    assert_eq!(none["tableLatex"], "");
+}
+
+#[test]
+fn the_kv_diagram_copies_as_a_tabular_with_its_bars() {
+    // Two variables: A along the columns (the bar over the second), B along the rows.
+    let mut f = Function::new(names("A B")).unwrap();
+    f.set(3, Value::One);
+    f.set(1, Value::DontCare);
+    let two = Layout::new(2).unwrap().tabular(&f, true);
+    assert_eq!(
+        two,
+        "\\begin{tabular}{cc|c|c|}\n\
+         \\multicolumn{1}{c}{} & \\multicolumn{1}{c}{} & \\multicolumn{1}{c}{} & \\multicolumn{1}{c}{$A$} \\\\\n\
+         \\multicolumn{1}{c}{} & \\multicolumn{1}{c}{} & \\multicolumn{1}{c}{} & \\multicolumn{1}{c}{\\hrulefill} \\\\\n\
+         \\cline{3-4}\n\
+         \x20&  & 0 & 0 \\\\ \\cline{3-4}\n\
+         $B$ & \\vline & -- & 1 \\\\ \\cline{3-4}\n\
+         \\end{tabular}"
+    );
+    // Four variables: a bar on every edge, two cells long; the row bars' names lowered between their rows.
+    let four = Layout::new(4).unwrap().tabular(&Function::new(names("A B C D")).unwrap(), false);
+    assert!(four.starts_with("\\begin{tabular}{cc|c|c|c|c|cc}\n"));
+    assert!(four.contains("\\multicolumn{2}{c}{$A$}") && four.contains("\\multicolumn{2}{c}{$B$}"));
+    assert!(four.contains("\\smash{\\raisebox{-0.5\\normalbaselineskip}{$C$}} & \\vline"));
+    assert!(four.contains("\\vline & \\smash{\\raisebox{-0.5\\normalbaselineskip}{$D$}}"));
+    // The 0s left empty: no digit 0 in the cells.
+    assert!(!four.lines().any(|line| line.contains("& 0")));
+    // Six variables: four maps in an outer tabular, A's bar over the right ones, B's left of the bottom ones.
+    let six = Layout::new(6).unwrap().tabular(&Function::new(names("A B C D E F")).unwrap(), true);
+    assert!(six.starts_with("\\begin{tabular}{cccc}\n &  &  & $A$ \\\\\n &  &  & \\hrulefill \\\\\n"));
+    assert_eq!(six.matches("\\begin{tabular}").count(), 5);
+    assert!(six.contains("$B$ & \\vline & \\begin{tabular}"));
+}

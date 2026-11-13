@@ -281,6 +281,8 @@
     "app.logic.arrange": "Anordnen",
     "app.logic.arrange.hint": "Ordnet die Schaltung neu an: die Eingänge links, eine Spalte je Gatterstufe, die Ausgänge rechts",
     "app.logic.copy.hint": "Ergebnis und Schritte als align*-Block",
+    "app.logic.copy.kv": "Das KV-Diagramm als LaTeX-tabular, die Balken als Linien",
+    "app.logic.copy.table": "Die Wahrheitstabelle als LaTeX-tabular",
     "app.logic.cost": "Terme: {terms} · Literale: {literals}",
     "app.logic.delay": "Verzögerung:",
     "app.logic.delay.path.hint": "Der kritische Pfad, der mit der größten Verzögerung; Klick blendet ihn in der Schaltung ein oder aus",

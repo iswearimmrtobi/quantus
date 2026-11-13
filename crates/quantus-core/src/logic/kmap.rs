@@ -12,7 +12,7 @@ use serde::Serialize;
 use super::expr::{variable_latex, Notation};
 use super::minimise::{Form, Minimisation};
 use super::text::msg;
-use super::working::{array, list, prime_name, value_cell, Working};
+use super::working::{array, list, prime_name, text_value, value_cell, Working};
 use super::{Function, Pattern, Value};
 use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 
@@ -346,6 +346,97 @@ impl Layout {
             })
             .collect();
         if rows == 1 { grid.join("") } else { format!("\\begin{{gathered}}{}\\end{{gathered}}", grid.join(" \\\\[1ex] ")) }
+    }
+}
+
+impl Layout {
+    /// The diagram of `function` as a `tabular` for **Copy** (§10.5), in German school style: per
+    /// map a grid of the values with each variable's bar as a rule beside the columns or rows
+    /// where it is 1, its name outside the rule; with 5 and 6 variables the maps in an outer
+    /// `tabular`, the map variables' bars along it. 0s are left empty without `zeros`.
+    pub fn tabular(&self, function: &Function, zeros: bool) -> String {
+        let names = function.names();
+        let name = |bar: &Bar| format!("${}$", variable_latex(&names[bar.variable]));
+        let bars = self.bars();
+        let at = |edge: Edge, maps: bool| bars.iter().find(|b| b.edge == edge && b.maps == maps);
+        let map = |map: usize| {
+            let (top, bottom, left, right) = (at(Edge::Top, false), at(Edge::Bottom, false), at(Edge::Left, false), at(Edge::Right, false));
+            let (before, after) = (if left.is_some() { 2 } else { 0 }, if right.is_some() { 2 } else { 0 });
+            let columns = self.columns();
+            let none = "\\multicolumn{1}{c}{}";
+            let first = before + 1;
+            let cline = format!("\\cline{{{first}-{}}}", first + columns - 1);
+            // A row above or below the map, outside its lines: `content` over the bar's columns.
+            let beside = |bar: &Bar, content: String| {
+                let mut cells: Vec<String> = vec![none.to_string(); before];
+                let mut k = 0;
+                while k < columns {
+                    if k == bar.start {
+                        cells.push(format!("\\multicolumn{{{}}}{{c}}{{{content}}}", bar.len));
+                        k += bar.len;
+                    } else {
+                        cells.push(none.to_string());
+                        k += 1;
+                    }
+                }
+                cells.extend(std::iter::repeat_n(none.to_string(), after));
+                format!("{} \\\\\n", cells.join(" & "))
+            };
+            // A bar's name beside its rows: in its first row, lowered to the middle of them.
+            let label = |bar: &Bar, row: usize| match row == bar.start {
+                false => String::new(),
+                true if bar.len == 1 => name(bar),
+                true => format!("\\smash{{\\raisebox{{-{}\\normalbaselineskip}}{{{}}}}}", (bar.len - 1) as f64 / 2.0, name(bar)),
+            };
+            let rule = |bar: &Bar, row: usize| if (bar.start..bar.start + bar.len).contains(&row) { "\\vline" } else { "" }.to_string();
+            let spec = format!("{}|{}{}", if left.is_some() { "cc" } else { "" }, "c|".repeat(columns), if right.is_some() { "cc" } else { "" });
+            let mut latex = format!("\\begin{{tabular}}{{{spec}}}\n");
+            if let Some(bar) = top {
+                latex += &beside(bar, name(bar));
+                latex += &beside(bar, "\\hrulefill".into());
+            }
+            latex += &format!("{cline}\n");
+            for row in 0..self.rows() {
+                let mut cells = Vec::new();
+                if let Some(bar) = left {
+                    cells.extend([label(bar, row), rule(bar, row)]);
+                }
+                cells.extend((0..columns).map(|col| text_value(function.value(self.row_number(Place { map, row, col })), zeros).to_string()));
+                if let Some(bar) = right {
+                    cells.extend([rule(bar, row), label(bar, row)]);
+                }
+                latex += &format!("{} \\\\ {cline}\n", cells.join(" & "));
+            }
+            if let Some(bar) = bottom {
+                latex += &beside(bar, "\\hrulefill".into());
+                latex += &beside(bar, name(bar));
+            }
+            latex + "\\end{tabular}"
+        };
+        if self.map_vars == 0 {
+            return map(0);
+        }
+        // The grid of maps, the first map variable's bar on top, the second's on the left.
+        let (columns, rows) = self.map_grid();
+        let (top, left) = (at(Edge::Top, true), at(Edge::Left, true));
+        let lead = if left.is_some() { 2 } else { 0 };
+        let mut latex = format!("\\begin{{tabular}}{{{}{}}}\n", "c".repeat(lead), "c".repeat(columns));
+        if let Some(bar) = top {
+            for content in [name(bar), "\\hrulefill".to_string()] {
+                let cells: Vec<String> = std::iter::repeat_n(String::new(), lead).chain((0..columns).map(|x| if x == bar.start { content.clone() } else { String::new() })).collect();
+                latex += &format!("{} \\\\\n", cells.join(" & "));
+            }
+        }
+        for y in 0..rows {
+            let mut cells = Vec::new();
+            if let Some(bar) = left {
+                let on = y == bar.start;
+                cells.extend([if on { name(bar) } else { String::new() }, if on { "\\vline".into() } else { String::new() }]);
+            }
+            cells.extend((0..columns).map(|x| map((0..self.maps()).find(|m| self.map_place(*m) == (x, y)).expect("a map in each place"))));
+            latex += &format!("{} \\\\\n", cells.join(" & "));
+        }
+        latex + "\\end{tabular}"
     }
 }
 

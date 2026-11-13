@@ -562,6 +562,8 @@ export interface Kmap {
   blocks: KvBlockResult[];
   knfBlocks: KvBlockResult[];
   latex: string;
+  /** The diagram as a `tabular` with the bars, for Copy. */
+  tabular: string;
 }
 
 /** An output with every view of its function; without one (see `errors`) only name and source. */
@@ -651,6 +653,8 @@ export interface LogicResponse {
   circuit: LogicCircuitResult | null;
   task: LogicTaskResult | null;
   errors: LogicError[];
+  /** The truth table of every output as a `tabular`, for Copy; empty without one. */
+  tableLatex: string;
 }
 
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';

@@ -52,8 +52,8 @@ function Terms({ output, form, which, notation, hover, onHover }: { output: stri
   );
 }
 
-/** Copy for an `align*` block, saying *Copied* for a moment. */
-function CopyButton({ text, hint }: { text: string; hint?: string }) {
+/** Copy for a LaTeX block, saying *Copied* for a moment. */
+export function CopyButton({ text, hint }: { text: string; hint?: string }) {
   const { t } = useT();
   const [copied, setCopied] = useState(false);
   if (!text) return null;

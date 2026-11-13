@@ -4,6 +4,7 @@ import { cycle, dragRect, editColumn, logicRequest, rectPieces, type Cell, type 
 import { useT } from '../i18n';
 import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
+import { CopyButton } from './LogicResults';
 
 interface Props {
   scene: LogicScene;
@@ -409,6 +410,7 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange, cur
         <button className={numbers ? 'form-chip active' : 'form-chip'} title={t('logic.kv.numbers.hint')} onClick={() => setNumbers(!numbers)}>
           i
         </button>
+        <CopyButton text={kmap.tabular} hint={t('logic.copy.kv')} />
       </div>
       <div className="kv-scroll">
         <div

@@ -22,6 +22,7 @@ import {
 import { useT } from '../i18n';
 import { Katex } from './Katex';
 import { SourceMark } from './LogicLines';
+import { CopyButton } from './LogicResults';
 
 interface Props {
   scene: LogicScene;
@@ -239,7 +240,9 @@ export function LogicTable({ scene, grid, answer, zeros, onChange, currentRow = 
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={n + 2} />
+              <td colSpan={n + 2} className="logic-table-copy">
+                <CopyButton text={answer?.response.tableLatex ?? ''} hint={t('logic.copy.table')} />
+              </td>
               {columns.map((column) => (
                 <td key={`${column.index}-${column.name}`}>
                   {column.index !== null && column.source === 'table' && column.values.some((value) => value === null) && (

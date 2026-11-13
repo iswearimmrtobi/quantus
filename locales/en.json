@@ -281,6 +281,8 @@
     "app.logic.arrange": "Arrange",
     "app.logic.arrange.hint": "Lays the circuit out afresh: the inputs on the left, a column per level of gates, the outputs on the right",
     "app.logic.copy.hint": "Result and steps as an align* block",
+    "app.logic.copy.kv": "The KV diagram as a LaTeX tabular, the bars as rules",
+    "app.logic.copy.table": "The truth table as a LaTeX tabular",
     "app.logic.cost": "terms: {terms} · literals: {literals}",
     "app.logic.delay": "delay:",
     "app.logic.delay.path.hint": "The critical path, the one with the most delay; click to show or hide it in the circuit",

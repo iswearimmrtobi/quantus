@@ -449,8 +449,11 @@ English in both languages (AND, NAND), as in German textbooks.
 
 ### 10.5 Export
 
-- **Copy** on every result: LaTeX `align*` with the steps; the truth table as a `tabular`; the KV
-  diagram as a `tabular` with the bars as `\overline` labels (TikZ is not used).
+- **Copy** on every result: LaTeX `align*` with the steps; the truth table as a `tabular`
+  (`LogicResponse.tableLatex`, every output); the KV diagram as a `tabular`
+  (`KmapResponse.tabular`) with each bar as a rule (`\hrulefill`, `\vline`) beside its columns or
+  rows and the variable's name outside it, 5 and 6 variables as maps in an outer `tabular` (TikZ
+  is not used). Both leave the 0s empty when `logic_zeros` is off.
 - The circuit as **SVG** and **PNG** (the editor's SVG, without the grid, in the light theme).
 - The **write-up** (`crates/quantus-core/src/writeup`) takes the scene's results like the other
   modes.
@@ -618,7 +621,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 13: export and files
 
-- [ ] **Copy**: `align*` with the steps, the truth table and the KV diagram as `tabular`.
+- [x] **Copy**: `align*` with the steps, the truth table and the KV diagram as `tabular`.
 - [ ] The circuit as SVG and PNG (no grid, light theme).
 - [ ] The write-up (`writeup/`) takes the logic results.
 - [ ] Save and load as `.quantus-logic.json` through the electronics mode's file dialog.

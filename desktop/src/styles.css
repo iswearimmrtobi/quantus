@@ -3863,3 +3863,7 @@ select option {
     min-height: 40px;
   }
 }
+
+.logic-table-copy {
+  text-align: left;
+}

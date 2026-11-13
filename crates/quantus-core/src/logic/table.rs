@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use super::expr::{variable_latex, Expr, Notation};
 use super::parse::{Body, Line};
 use super::text::msg;
-use super::working::{array, assignment, list, value_cell, Working};
+use super::working::{array, assignment, list, text_value, value_cell, Working};
 use super::{check_names, rows_of, Function, Value};
 use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 use crate::{QuantusError, Result};
@@ -138,6 +138,24 @@ fn join(mut operands: Vec<Expr>, make: fn(Vec<Expr>) -> Expr, empty: bool) -> Ex
         1 => operands.remove(0),
         _ => make(operands),
     }
+}
+
+/// The truth table of the `outputs` (name and one value per row) over the `inputs` as a
+/// `tabular` for **Copy** (§10.5): the row number $i$, the inputs, the outputs; 0s left empty
+/// without `zeros`.
+pub fn table_tabular(inputs: &[String], outputs: &[(&str, &[Value])], zeros: bool) -> String {
+    let math = |name: &str| format!("${}$", variable_latex(name));
+    let spec = format!("r|{}|{}", "c".repeat(inputs.len()), "c".repeat(outputs.len()));
+    let header: Vec<String> = std::iter::once("$i$".to_string()).chain(inputs.iter().map(|n| math(n))).chain(outputs.iter().map(|(n, _)| math(n))).collect();
+    let mut latex = format!("\\begin{{tabular}}{{{spec}}}\n{} \\\\ \\hline\n", header.join(" & "));
+    let n = inputs.len();
+    for row in 0..1usize << n {
+        let bits = (0..n).map(|k| (row >> (n - 1 - k) & 1).to_string());
+        let values = outputs.iter().map(|(_, values)| values.get(row).map_or("", |v| text_value(*v, zeros)).to_string());
+        let cells: Vec<String> = std::iter::once(row.to_string()).chain(bits).chain(values).collect();
+        latex += &format!("{} \\\\\n", cells.join(" & "));
+    }
+    latex + "\\end{tabular}"
 }
 
 /// The working of the truth table (§8, *Expression → table*): the table at Brief; from Detailed,

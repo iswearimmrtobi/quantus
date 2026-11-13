@@ -84,3 +84,14 @@ pub(crate) fn assignment(names: &[String], row: usize) -> String {
     let n = names.len();
     names.iter().enumerate().map(|(k, name)| format!("{name} = {}", row >> (n - 1 - k) & 1)).collect::<Vec<_>>().join(", ")
 }
+
+/// A value in a `tabular` (text mode): `0`, `1`, the don't care `--`; a 0 left empty without
+/// `zeros` (the setting `logic_zeros`).
+pub(crate) fn text_value(value: super::Value, zeros: bool) -> &'static str {
+    match value {
+        super::Value::Zero if zeros => "0",
+        super::Value::Zero => "",
+        super::Value::One => "1",
+        super::Value::DontCare => "--",
+    }
+}
