@@ -64,6 +64,14 @@ impl GateForm {
         GateForm::two_level(GateKind::Nand, minimisation.arity, &minimisation.covers[cover], two_input)
     }
 
+    /// The NOR–NOR form of cover `cover` of the minimal KNF `minimisation`, the dual: each sum
+    /// a NOR of its literals, the AND a NOR of those; inverters `NOR(A, A)`; a sum of one literal
+    /// goes, negated, straight into the output NOR.
+    pub fn nor(minimisation: &Minimisation, cover: usize, two_input: bool) -> GateForm {
+        assert_eq!(minimisation.form, Form::Knf, "the NOR form is built from the minimal KNF");
+        GateForm::two_level(GateKind::Nor, minimisation.arity, &minimisation.covers[cover], two_input)
+    }
+
     /// The two-level form over `terms`: for NAND the terms are products and the function their
     /// OR; for NOR they are the 0s' terms, each negated a sum, and the function their AND.
     fn two_level(kind: GateKind, arity: usize, terms: &[Pattern], two_input: bool) -> GateForm {

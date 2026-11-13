@@ -1015,13 +1015,19 @@ fn the_nand_form_shares_inverters_and_feeds_single_literals_straight_in() {
 }
 
 #[test]
-fn every_nand_form_of_three_variables_equals_its_function() {
+fn every_nand_and_nor_form_of_three_variables_equals_its_function() {
     for ones in 0..256u64 {
         let f = Function::from_bits(names("A B C"), [ones, 0, 0, 0], [0; 4]).unwrap();
         let m = Minimisation::of(&f).unwrap();
         for cover in 0..m.covers.len() {
             for two_input in [false, true] {
                 assert!(agrees(&GateForm::nand(&m, cover, two_input), &f), "{ones:08b}, cover {cover}");
+            }
+        }
+        let knf = Minimisation::knf(&f).unwrap();
+        for cover in 0..knf.covers.len() {
+            for two_input in [false, true] {
+                assert!(agrees(&GateForm::nor(&knf, cover, two_input), &f), "NOR {ones:08b}, cover {cover}");
             }
         }
     }
@@ -1052,5 +1058,27 @@ fn with_only_two_input_gates_wider_nands_become_balanced_trees() {
     for ones in (0..65536u64).step_by(331) {
         let f = Function::from_bits(names("A B C D"), [ones, 0, 0, 0], [0; 4]).unwrap();
         assert!(agrees(&GateForm::nand(&Minimisation::of(&f).unwrap(), 0, true), &f), "{ones:016b}");
+    }
+}
+
+#[test]
+fn the_nor_form_is_the_dual_from_the_minimal_knf() {
+    let f = function("AB + AC + BC", "A B C");
+    let knf = Minimisation::knf(&f).unwrap();
+    let nor = GateForm::nor(&knf, 0, false);
+    assert_eq!(nor.gate_count(), 4);
+    assert_eq!(nor.expr(f.names()).latex(Notation::Logic), r"\overline{\overline{A \lor B} \lor \overline{A \lor C} \lor \overline{B \lor C}}");
+    assert_eq!(GateForm::nor(&knf, 0, true).gate_count(), 6);
+    // (A ∨ ¬B)(C): an inverter NOR(B, B), the single literal C negated into the output NOR.
+    let f = function(r"(A + \overline{B}) C", "A B C");
+    let nor = GateForm::nor(&Minimisation::knf(&f).unwrap(), 0, false);
+    assert_eq!(nor.expr(f.names()).latex(Notation::Technical), r"\overline{\overline{C} + \overline{A + \overline{B}}}");
+    assert_eq!(nor.gate_count(), 4);
+    assert!(agrees(&nor, &f));
+    // Constants need no gate.
+    for latex in ["A A'", "A + A'"] {
+        let f = function(latex, "A B");
+        let nor = GateForm::nor(&Minimisation::knf(&f).unwrap(), 0, true);
+        assert_eq!((nor.gate_count(), nor.output), (0, Signal::Const(latex.contains('+'))));
     }
 }

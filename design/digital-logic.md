@@ -535,7 +535,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `nand.rs`: NAND–NAND from the chosen minimal DNF, shared inverters as `NAND(A, A)`, single
   literals straight into the output NAND.
 - [x] The 2-input split (balanced trees), on with `logic_two_input`.
-- [ ] NOR-only from the minimal KNF, the dual of both.
+- [x] NOR-only from the minimal KNF, the dual of both.
 - [ ] The gate-by-gate rewrite of a given expression (*NAND from the circuit as drawn*) with
   cancelled inverter pairs.
 - [ ] Gate count, gate inputs and levels per form; steps (§8, row *NAND / NOR*). Tests: equal to
