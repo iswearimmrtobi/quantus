@@ -395,7 +395,7 @@ Each line has a text (`msg!`, English and German), a formula and the lowest leve
 
 At 7 and 8 variables the Quine–McCluskey tables replace the KV diagram in the working. The
 worked examples level by level (majority, a 7-segment segment with don't cares, the NAND form of
-an XOR) are to be added to [step-detail.md](step-detail.md) as a section *Logic mode*.
+an XOR) are in [step-detail.md § Logic mode](step-detail.md#logic-mode).
 
 ## 9. Settings
 
@@ -638,7 +638,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] Guide `docs/docs/guides/logic/` (index, input, results, editor), the settings in
   `docs/docs/reference/settings.md`, the syntax in `docs/docs/reference/syntax.md`.
-- [ ] `step-detail.md` § Logic mode with the majority, segment *a* and the NAND form of an XOR.
+- [x] `step-detail.md` § Logic mode with the majority, segment *a* and the NAND form of an XOR.
 - [ ] `docs/docs/contributing/testing.md` names `tests/logic.rs`; `CHANGELOG.md` under
   `## [Unreleased]`; [feature-ideas.md § 16](../plans/feature-ideas.md#16-digital-logic-editor)
   marked as done or cut to what is left.

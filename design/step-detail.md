@@ -12,7 +12,7 @@ The "Now" rows are real output of the engine (default settings), after the fixes
 
 **Status:** built, in the order of [Order of work](#order-of-work). The tables are the
 specification; the tests in `tests/algebra_milestone5.rs`, `tests/analysis.rs`,
-`tests/geometry.rs` and `tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
+`tests/geometry.rs`, `tests/logic.rs` and `tests/settings.rs` check their rows. Where the engine shows a row differently or not at all, the
 section says so under **Built**. Rows not built: the Maximal $+(-2) = -2$ of the tangent, the
 merged family $x^2 = k\pi$ of the inverse functions, a Standard block per summand that needs the
 product or chain rule inside a sum, factoring out $e^{2x}$ after the product rule (the algebra
@@ -955,6 +955,117 @@ Kirchhoff mode's systems, and $R_{AB} = \varphi_A / I$.
 
 Built: all of the above. Tests: `tests/kirchhoff.rs` (both languages, Brief and Detailed) and
 the unit tests in `equivalent.rs`.
+
+## Logic mode
+
+Code in `crates/quantus-core/src/logic/`, the lines in `working.rs` (`Working`, `Note` as in
+geometry): each a text through `msg!`, a formula and the lowest level it shows at. The levels
+mean ([digital-logic.md § 8](digital-logic.md#8-steps)):
+
+- **Brief:** the results: the table, the canonical forms, the minimal form, the NAND or NOR form
+  with its gates and levels.
+- **Standard:** the school method: $\sum m$ and $\prod M$, the KV diagram and its blocks, the
+  prime implicants, the essential ones and the covers, double negation and De Morgan.
+- **Detailed:** each block's variables that change and stay, each minterm from its row, the
+  grouping tables and the chart, the inverters and the 2-input split, every gate with its level.
+- **Maximal:** the bookkeeping: an example row evaluated, the prime implicants not used, the pairs
+  that did not combine, Petrick multiplied out.
+
+The rows below are the engine's output (default settings, logic notation), each working in the
+order it shows. A row's level is the lowest at which it appears.
+
+### The majority of three (`table.rs`, `kmap.rs`, `minimise.rs`)
+
+`f = \sum m(3, 5, 6, 7)`. The canonical forms:
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | The rows that are 1 give the minterms of f | $f = \sum m(3, 5, 6, 7)$ |
+| Detailed | Each row with 1 gives a minterm: the AND of every variable, negated where the row has a 0 | $m_3 = \lnot A \land B \land C$, $m_5 = A \land \lnot B \land C$, … (a table of the rows) |
+| Brief | The canonical DNF, the OR of the minterms | $f = \lnot A \land B \land C \lor A \land \lnot B \land C \lor A \land B \land \lnot C \lor A \land B \land C$ |
+| Standard | The rows that are 0 give the maxterms of f | $f = \prod M(0, 1, 2, 4)$ |
+| Detailed | Each row with 0 gives a maxterm | $M_0 = A \lor B \lor C$, … |
+| Brief | The canonical KNF, the AND of the maxterms | $f = (A \lor B \lor C) \land (A \lor B \lor \lnot C) \land (A \lor \lnot B \lor C) \land (\lnot A \lor B \lor C)$ |
+
+The KV path:
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | The KV diagram of f | $\begin{array}{c\|cccc} C \backslash AB & 00 & 01 & 11 & 10 \\ \hline 0 & 0 & 0 & 1 & 0 \\ 1 & 0 & 1 & 1 & 1 \end{array}$ |
+| Standard | The blocks of 1s, each a term of the minimal DNF | $P_1$ `-11` $B \land C$ (3, 7); $P_2$ `1-1` $A \land C$ (5, 7); $P_3$ `11-` $A \land B$ (6, 7) |
+| Detailed | Over the cells 3, 7, changing and dropped: A; unchanged: B = 1, C = 1, giving the term | $P_1 = B \land C$ (and so for $P_2$, $P_3$) |
+| Brief | The minimal DNF | $f = B \land C \lor A \land C \lor A \land B$ |
+
+Every prime implicant is used, so Maximal adds nothing. The Quine–McCluskey working of the same
+function:
+
+| Level | Step | Expression |
+|---|---|---|
+| Detailed | The rows that are 1 or don't care, grouped by their number of 1s; ✓ marks a term that combines | 2: 3 `011` ✓, 5 `101` ✓, 6 `110` ✓; 3: 7 `111` ✓ |
+| Detailed | Round 2: the combined terms | 3, 7 `-11`; 5, 7 `1-1`; 6, 7 `11-` |
+| Standard | The prime implicants, the terms that never combined | $P_1 = B \land C$, $P_2 = A \land C$, $P_3 = A \land B$ |
+| Detailed | The prime implicant chart | × in the columns 3, 7 / 5, 7 / 6, 7 |
+| Standard | The essential prime implicants, each the only one that covers some row | $P_1 = B \land C,\ P_2 = A \land C,\ P_3 = A \land B$ |
+| Detailed | The only prime implicant left over a column is taken | $m_3\colon\ P_1 = B \land C$ (and $m_5$, $m_6$) |
+| Standard | The minimal covers, 3 terms with 6 literals | $\{P_1, P_2, P_3\}$ |
+| Brief | The minimal DNF | $f = B \land C \lor A \land C \lor A \land B$ |
+
+The NAND form (`nand.rs`), with only 2-input gates:
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | Double negation, then De Morgan: the OR of the products becomes a NAND of the products' NANDs | $f = \overline{\overline{B \land C \lor A \land C \lor A \land B}} = \overline{\overline{B \land C} \land \overline{A \land C} \land \overline{A \land B}}$ |
+| Detailed | With only 2-input gates, a NAND of 3 inputs becomes a balanced tree of 3 gates | $\overline{x_1 \land x_2 \land x_3} = \overline{\overline{\overline{x_1 \land x_2}} \land x_3}$ |
+| Detailed | The gates, each over the inputs and the earlier gates, with its level | $G_1 = \overline{B \land C}$ (1), $G_2 = \overline{A \land C}$ (1), $G_3 = \overline{A \land B}$ (1), $G_4 = \overline{G_1 \land G_2}$ (2), $G_5 = \overline{G_4 \land G_4}$ (3), $G_6 = \overline{G_5 \land G_3}$ (4), $f = G_6$ |
+| Brief | The NAND form (gates: 6, gate inputs: 12, levels: 4) | $f = \overline{\overline{\overline{\overline{B \land C} \land \overline{A \land C}}} \land \overline{A \land B}}$ |
+
+Without the 2-input split the NAND form is $\overline{\overline{B \land C} \land \overline{A \land C}
+\land \overline{A \land B}}$: 4 gates, 9 gate inputs, 2 levels.
+
+### Segment *a* of a BCD 7-segment decoder, with don't cares
+
+`a(D, C, B, A) = \sum m(0, 2, 3, 5, 6, 7, 8, 9) + d(10, 11, 12, 13, 14, 15)`.
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | The don't cares (–) are left out of both forms | $d(10, 11, 12, 13, 14, 15)$ |
+| Standard | The rows that are 1 give the minterms of a | $a = \sum m(0, 2, 3, 5, 6, 7, 8, 9) + d(10, 11, 12, 13, 14, 15)$ |
+| Standard | The rows that are 0 give the maxterms of a | $a = \prod M(1, 4) \cdot d(10, 11, 12, 13, 14, 15)$ |
+| Brief | The canonical KNF | $a = (D \lor C \lor B \lor \lnot A) \land (D \lor \lnot C \lor B \lor A)$ |
+| Standard | The KV diagram of a | columns $DC$, rows $BA$, the 6 don't cares as – |
+| Standard | The blocks of 1s | $P_1$ `-0-0` $\lnot C \land \lnot A$ (0, 2, 8, 10); $P_2$ `--1-` $B$ (2, 3, 6, 7, 10, 11, 14, 15); $P_3$ `-1-1` $C \land A$ (5, 7, 13, 15); $P_4$ `1---` $D$ (8 … 15) |
+| Detailed | Over the cells 0, 2, 8, 10, changing and dropped: D, B; unchanged: C = 0, A = 0, giving the term | $P_1 = \lnot C \land \lnot A$ (and so for the others) |
+| Brief | The minimal DNF | $a = \lnot C \land \lnot A \lor B \lor C \land A \lor D$ |
+| Standard | The blocks of 0s, each a sum of the minimal KNF by De Morgan | $P_1$ `0001` $D \lor C \lor B \lor \lnot A$ (1); $P_2$ `-100` $\lnot C \lor B \lor A$ (4, 12) |
+| Detailed | The block of the single cell 1 keeps every variable | $P_1 = D \lor C \lor B \lor \lnot A$ |
+| Maximal | The prime implicants not used, blocks that could be drawn but are not needed | $P_3 = \lnot D \lor \lnot B,\ P_4 = \lnot D \lor \lnot C$ |
+| Brief | The minimal KNF | $a = (D \lor C \lor B \lor \lnot A) \land (\lnot C \lor B \lor A)$ |
+
+The don't cares grow the blocks: without them $B$ would be $\lnot D \land B$ and $D$ would be
+$D \land \lnot C \land \lnot B$. The Quine–McCluskey working takes four rounds; at Maximal each
+round lists the pairs of neighbouring groups that did not combine (`0010 / 0101`, …).
+
+### The NAND form of an XOR (`nand.rs`)
+
+`f = A \oplus B`: once from the minimal DNF, once gate by gate (*NAND gate by gate*).
+
+| Level | Step | Expression |
+|---|---|---|
+| Brief | The minimal DNF | $f = \lnot A \land B \lor A \land \lnot B$ |
+| Standard | Double negation, then De Morgan | $f = \overline{\overline{\lnot A \land B \lor A \land \lnot B}} = \overline{\overline{\lnot A \land B} \land \overline{A \land \lnot B}}$ |
+| Detailed | Each negated variable from a NAND with both inputs tied, one per variable | $\lnot A = \overline{A \land A},\ \lnot B = \overline{B \land B}$ |
+| Detailed | The gates with their levels | $G_1 = \overline{A \land A}$ (1), $G_2 = \overline{G_1 \land B}$ (2), $G_3 = \overline{B \land B}$ (1), $G_4 = \overline{A \land G_3}$ (2), $G_5 = \overline{G_2 \land G_4}$ (3) |
+| Brief | The NAND form (gates: 5, gate inputs: 10, levels: 3) | $f = \overline{\overline{\lnot A \land B} \land \overline{A \land \lnot B}}$ |
+| Standard | Gate by gate: each NOT an inverter, each AND a NAND and an inverter, each OR a NAND of the inverted inputs, each XOR four NANDs | $f = A \oplus B$ |
+| Detailed | The gates with their levels | $G_1 = \overline{A \land B}$ (1), $G_2 = \overline{A \land G_1}$ (2), $G_3 = \overline{B \land G_1}$ (2), $G_4 = \overline{G_2 \land G_3}$ (3) |
+| Brief | The NAND form gate by gate (gates: 4, gate inputs: 8, levels: 3) | $f = \overline{\overline{A \land \overline{A \land B}} \land \overline{B \land \overline{A \land B}}}$ |
+
+The four-NAND XOR shares $\overline{A \land B}$ between both halves, so it beats the NAND–NAND form
+of the minimal DNF by one gate. No inverter pair cancels here, so Maximal adds nothing; in an
+expression such as $\overline{A \land B} \lor C$ it shows
+$\overline{\overline{\overline{A \land B}}} = \overline{A \land B}$.
+
+Built: all of the above. Tests: `tests/logic.rs` (the working at every level, both languages).
 
 ---
 
