@@ -3877,3 +3877,8 @@ select option {
   display: flex;
   gap: 6px;
 }
+
+.logic-file {
+  justify-content: flex-end;
+  align-items: center;
+}

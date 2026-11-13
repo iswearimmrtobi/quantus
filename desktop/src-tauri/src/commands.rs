@@ -543,6 +543,45 @@ pub fn save_circuit<R: Runtime>(
         )))
 }
 
+/// The version of the Logic mode's scene file (`.quantus-logic.json`).
+const LOGIC_FILE_VERSION: u64 = 1;
+
+/// Checks a Logic scene file, `{ "version": 1, "scene": … }`: the version, and that the scene
+/// is one the core reads (its outputs and their sources, the netlist, the gate times). The
+/// editor's data rides along unchecked, as in the session.
+pub fn validate_logic(file: &Value, language: Language) -> Result<(), ApiError> {
+    match file.get("version").and_then(Value::as_u64) {
+        Some(LOGIC_FILE_VERSION) => {}
+        Some(other) => return Err(file_error(tr!(language, "shell.commands.logic_file_unknown_version"))),
+        None => return Err(file_error(tr!(language, "shell.commands.logic_file_version_missing"))),
+    }
+    let scene = file.get("scene").ok_or_else(|| file_error(tr!(language, "shell.commands.logic_file_no_scene")))?;
+    serde_json::from_value::<quantus_core::logic::interface::LogicScene>(scene.clone())
+        .map_err(|error| file_error(tr!(language, "shell.commands.not_valid_logic_file")))?;
+    Ok(())
+}
+
+/// Reads a Logic scene file and returns its scene; a broken one is reported instead, so the
+/// page keeps the scene it has.
+#[tauri::command]
+pub fn load_logic<R: Runtime>(app: AppHandle<R>, engine: State<Engine>, path: String) -> Result<Value, ApiError> {
+    let language = engine.language();
+    let text = read_picked(&app, &path).map_err(|error| file_error(tr!(language, "shell.commands.could_not_read", path)))?;
+    let mut file: Value = serde_json::from_str(&text).map_err(|error| file_error(tr!(language, "shell.commands.not_valid_logic_file")))?;
+    validate_logic(&file, language)?;
+    Ok(file["scene"].take())
+}
+
+/// Saves the Logic mode's scene as a file, `{ "version": 1, "scene": … }`.
+#[tauri::command]
+pub fn save_logic<R: Runtime>(app: AppHandle<R>, engine: State<Engine>, path: String, scene: Value) -> Result<(), ApiError> {
+    let language = engine.language();
+    let file = serde_json::json!({ "version": LOGIC_FILE_VERSION, "scene": scene });
+    validate_logic(&file, language)?;
+    let text = serde_json::to_string_pretty(&file).map_err(file_error)?;
+    write_picked(&app, &path, text.as_bytes()).map_err(|error| file_error(tr!(language, "shell.commands.could_not_saved", path)))
+}
+
 /// Writes a file the frontend made, a picture (SVG, PNG) or a scene, to a path from the save
 /// dialog.
 #[tauri::command]

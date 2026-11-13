@@ -1033,6 +1033,10 @@ export const api = {
 
   saveCircuit: (path: string, circuit: unknown) => call<void>('save_circuit', { path, circuit }),
 
+  /** Reads a Logic scene file (`.quantus-logic.json`); a broken one is an `ApiError`. */
+  loadLogic: (path: string) => call<LogicScene>('load_logic', { path }),
+  saveLogic: (path: string, scene: LogicScene) => call<void>('save_logic', { path, scene }),
+
   /** Writes a file the frontend made (a picture, a scene) to a path from the save dialog. */
   saveFile: (path: string, bytes: Uint8Array) => call<void>('save_file', { path, bytes: Array.from(bytes) }),
 

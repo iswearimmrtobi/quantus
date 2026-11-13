@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, ApiError, type LogicScene, type Settings } from '../api';
 import { addOutput, logicAnswer, logicGrid, logicRequest, nameLatex, shownOutputs, type LogicAnswer, type TermHover } from '../logic';
 import { useT } from '../i18n';
@@ -14,13 +14,15 @@ interface Props {
   settings: Settings;
   scene: LogicScene;
   onSceneChange(scene: LogicScene): void;
+  /** Load and Save of the scene as a file. */
+  files?: ReactNode;
 }
 
 /**
  * The Logic mode (design/digital-logic.md §10): function lines, the truth table beside the KV diagram, and the results
  * of each output, worked out by the core on every change.
  */
-export function LogicView({ settings, scene, onSceneChange }: Props) {
+export function LogicView({ settings, scene, onSceneChange, files }: Props) {
   const { t } = useT();
   const [answer, setAnswer] = useState<LogicAnswer | null>(null);
   const [failure, setFailure] = useState<ApiError | null>(null);
@@ -80,6 +82,7 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
   return (
     <main className="workspace analysis-workspace">
       <div className="analysis-panel logic-panel">
+        {files}
         {failure && <ErrorRow error={failure} />}
         {general.map((error, i) => (
           <ErrorRow key={i} error={new ApiError(error.message)} />

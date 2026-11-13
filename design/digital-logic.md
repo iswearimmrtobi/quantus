@@ -462,7 +462,10 @@ English in both languages (AND, NAND), as in German textbooks.
   *Wanted*, and a block per output with the KV diagram, the chosen minimal DNF as the result
   (*one of n* when there are several), the minimal KNF and the NAND and NOR forms with their
   gates and levels. An output whose source has an error is left out.
-- **Save / Load** the scene as a `.quantus-logic.json` file; the electronics mode's file dialog.
+- **Save / Load** the scene as a `.quantus-logic.json` file, `{ "version": 1, "scene": … }`, through
+  the electronics mode's file dialogs; the shell's `load_logic` and `save_logic` check the version
+  and that the core reads the scene (the editor's data rides along), and a broken file leaves the
+  scene as it is.
 
 ## 11. Tests
 
@@ -629,7 +632,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] **Copy**: `align*` with the steps, the truth table and the KV diagram as `tabular`.
 - [x] The circuit as SVG and PNG (no grid, light theme).
 - [x] The write-up (`writeup/`) takes the logic results.
-- [ ] Save and load as `.quantus-logic.json` through the electronics mode's file dialog.
+- [x] Save and load as `.quantus-logic.json` through the electronics mode's file dialog.
 
 ### Phase 14: docs and release notes
 

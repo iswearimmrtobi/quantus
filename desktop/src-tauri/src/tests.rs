@@ -305,6 +305,37 @@ fn a_file_is_saved_as_its_bytes() {
 }
 
 #[test]
+fn a_logic_scene_is_saved_and_loaded_with_the_editors_data() {
+    let w = window();
+    let dir = std::env::temp_dir().join(format!("quantus-logic-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("mehrheit.quantus-logic.json").to_string_lossy().into_owned();
+    let scene = json!({
+        "inputs": ["A", "B", "C"],
+        "outputs": [{ "name": "f", "source": { "kind": "minterms", "latex": "\\sum m(3, 5, 6, 7)" }, "chosen": 0, "chosenKnf": 0 }],
+        "row": 5,
+        "editor": { "parts": [{ "id": "S1", "kind": "input", "name": "A", "x": 0, "y": 0, "rotation": 0 }] },
+    });
+    invoke(&w, "save_logic", json!({ "path": path, "scene": scene })).unwrap();
+    let saved: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    assert_eq!(saved["version"], 1);
+    assert_eq!(invoke(&w, "load_logic", json!({ "path": path })).unwrap(), scene);
+
+    let load = |text: &str| {
+        let path = dir.join("kaputt.quantus-logic.json");
+        std::fs::write(&path, text).unwrap();
+        invoke(&w, "load_logic", json!({ "path": path.to_string_lossy() })).unwrap_err()["error"].as_str().unwrap().to_string()
+    };
+    assert_eq!(load(r#"{ "scene": {} }"#), "This is not a logic file: the version is missing.");
+    assert_eq!(load(r#"{ "version": 2, "scene": {} }"#), "The logic file has the unknown version 2.");
+    assert_eq!(load(r#"{ "version": 1 }"#), "The logic file has no scene.");
+    assert!(load(r#"{ "version": 1, "scene": { "outputs": [{ "source": { "kind": "drawing" } }] } }"#).starts_with("Not a valid logic file"));
+    // A circuit file is no logic file.
+    assert!(load(&saved_circuit().to_string()).starts_with("The logic file has no scene"));
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn a_broken_circuit_file_is_reported_not_loaded() {
     let w = window();
     let dir = std::env::temp_dir().join(format!("quantus-broken-{}", std::process::id()));

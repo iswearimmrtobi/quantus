@@ -132,6 +132,8 @@ export function App() {
   const [geometry, setGeometry] = useState<GeometryInput>(EMPTY_GEOMETRY);
   /** The Logic scene, kept here for the same reason. */
   const [logic, setLogic] = useState<LogicScene>(EMPTY_LOGIC);
+  /** Counts the scenes loaded from files: each opens the page afresh, its circuit shown whole. */
+  const [logicLoads, setLogicLoads] = useState(0);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const language = settings.language;
@@ -172,6 +174,41 @@ export function App() {
       setFileError(failure instanceof Error ? failure.message : String(failure));
     }
   };
+
+  /** The Logic scene as a file (`.quantus-logic.json`), through the same dialogs; a broken file leaves the scene. */
+  const LOGIC_FILTERS = [{ name: t('logic.file.filter'), extensions: ['json'] }];
+  const loadLogic = async () => {
+    try {
+      const path = await open({ filters: LOGIC_FILTERS, multiple: false });
+      if (typeof path !== 'string') return;
+      setLogic(logicInput({ scene: await api.loadLogic(path) }));
+      setLogicLoads((n) => n + 1);
+      setFileError(null);
+    } catch (failure) {
+      setFileError(failure instanceof Error ? failure.message : String(failure));
+    }
+  };
+  const saveLogic = async () => {
+    try {
+      const path = await save({ filters: LOGIC_FILTERS, defaultPath: t('logic.file.default') });
+      if (!path) return;
+      await api.saveLogic(path, logic);
+      setFileError(null);
+    } catch (failure) {
+      setFileError(failure instanceof Error ? failure.message : String(failure));
+    }
+  };
+  const logicFiles = (
+    <div className="form-row logic-file">
+      <button className="form-chip" title={t('logic.file.load.hint')} onClick={() => void loadLogic()}>
+        {t('file.load')}
+      </button>
+      <button className="form-chip" title={t('logic.file.save.hint')} onClick={() => void saveLogic()}>
+        {t('file.save')}
+      </button>
+      {fileError && <p className="file-error">{fileError}</p>}
+    </div>
+  );
 
   const fileButtons = (
     <div className="file-buttons">
@@ -612,7 +649,7 @@ export function App() {
       ) : settings.mode === 'geometry' ? (
         <GeometryView settings={settings} input={geometry} onInputChange={setGeometry} placeholder={placeholder} />
       ) : settings.mode === 'logic' ? (
-        <LogicView settings={settings} scene={logic} onSceneChange={setLogic} />
+        <LogicView key={logicLoads} settings={settings} scene={logic} onSceneChange={setLogic} files={logicFiles} />
       ) : settings.mode === 'electronics' ? (
         <main className="workspace circuit-workspace">
           <ElectronicsView
