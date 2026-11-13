@@ -607,7 +607,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] What `CircuitEditor.tsx`, `circuit.ts` and `labelLayout.ts` share (grid, snap, rotation,
   terminals, wires, labels) moved into a shared module; the electronics mode unchanged (checked by
   hand).
-- [ ] `LogicEditor.tsx`: the elements of §5.5, the number of inputs in the element's menu, gate
+- [x] `LogicEditor.tsx`: the elements of §5.5, the number of inputs in the element's menu, gate
   symbols in IEC and ANSI with inversion marks.
 - [ ] The netlist sent to the core; errors and warnings marking elements red.
 - [ ] Simulation (§10.3): switches, nets coloured by value, lamps; the matching table row and KV

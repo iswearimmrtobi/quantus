@@ -4,7 +4,9 @@ import { addOutput, logicAnswer, logicGrid, logicRequest, nameLatex, shownOutput
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { Katex } from './Katex';
+import { editorParts, type LogicPart } from '../logicCircuit';
 import { KvMap } from './KvMap';
+import { LogicEditor } from './LogicEditor';
 import { LogicLines } from './LogicLines';
 import { LogicResults } from './LogicResults';
 import { LogicTable } from './LogicTable';
@@ -27,6 +29,10 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
   const [tab, setTab] = useState<string | null>(null);
   /** The term whose block and formula stand out, in the KV diagram and the results. */
   const [hover, setHover] = useState<TermHover | null>(null);
+  const parts = editorParts(scene);
+  /** Whether the circuit editor is open; at first when there is a circuit. */
+  const [editorOpen, setEditorOpen] = useState(parts.length > 0);
+  const setParts = (next: LogicPart[]) => onSceneChange({ ...scene, editor: { parts: next } });
   /** The latest request; an answer to an older one is dropped. */
   const request = useRef(0);
 
@@ -68,6 +74,16 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
           <ErrorRow key={i} error={new ApiError(error.message)} />
         ))}
         <LogicLines scene={scene} answer={answer} onChange={onSceneChange} />
+        <section className="logic-circuit">
+          <button className="logic-section-toggle" aria-expanded={editorOpen} title={t('logic.editor.toggle')} onClick={() => setEditorOpen(!editorOpen)}>
+            {editorOpen ? '▾' : '▸'} {t('logic.editor.title')}
+          </button>
+          {editorOpen && (
+            <div className="logic-editor-frame">
+              <LogicEditor parts={parts} onChange={setParts} symbols={settings.logicSymbols} />
+            </div>
+          )}
+        </section>
         {!answer && !failure && <p className="analysis-empty">{t('logic.empty')}</p>}
         {outputs.length > 1 && (
           <div className="form-row logic-tabs">

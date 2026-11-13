@@ -2872,6 +2872,75 @@ select option {
 
 /* ---- Logic mode --------------------------------------------------------------------------- */
 
+/* The circuit editor: the electronics mode's three columns in a frame of its own height. */
+.logic-section-toggle {
+  justify-self: start;
+  padding: 2px 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.logic-section-toggle:hover {
+  color: var(--text);
+}
+.logic-circuit {
+  display: grid;
+  gap: 6px;
+}
+.logic-editor-frame {
+  height: 460px;
+  min-height: 260px;
+  resize: vertical;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+.logic-editor .circuit-palette {
+  padding: 10px 8px;
+}
+.logic-editor {
+  grid-template-columns: 150px 1fr 220px;
+}
+.part .symbol .logic-body,
+.part .symbol .logic-bubble,
+.part .symbol .logic-lamp {
+  fill: var(--background);
+}
+.logic-sign {
+  fill: var(--text);
+  stroke: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+.palette-item .logic-sign {
+  fill: var(--text-muted);
+  font-size: 14px;
+}
+.part.selected .logic-sign {
+  fill: var(--primary);
+}
+.logic-name-label,
+.logic-gate-label {
+  position: absolute;
+  padding: 0 3px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.logic-name-label {
+  font-size: 14px;
+}
+.logic-gate-label {
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.field input.invalid {
+  border-color: var(--danger);
+}
+
 .logic-panel {
   display: grid;
   gap: 12px;
