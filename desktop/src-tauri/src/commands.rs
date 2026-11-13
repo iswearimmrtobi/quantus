@@ -535,12 +535,20 @@ pub fn save_circuit<R: Runtime>(
     let language = engine.language();
     validate_circuit(&circuit, language)?;
     let text = serde_json::to_string_pretty(&circuit).map_err(file_error)?;
-    write_picked(&app, &path, &text)
+    write_picked(&app, &path, text.as_bytes())
         .map_err(|error| file_error(tr!(
             language,
             "shell.commands.could_not_saved",
             path
         )))
+}
+
+/// Writes a file the frontend made, a picture (SVG, PNG) or a scene, to a path from the save
+/// dialog.
+#[tauri::command]
+pub fn save_file<R: Runtime>(app: AppHandle<R>, engine: State<Engine>, path: String, bytes: Vec<u8>) -> Result<(), ApiError> {
+    let language = engine.language();
+    write_picked(&app, &path, &bytes).map_err(|error| file_error(tr!(language, "shell.commands.could_not_saved", path)))
 }
 
 /// A file from the open dialog: a path on the desktop.
@@ -550,8 +558,8 @@ fn read_picked<R: Runtime>(_app: &AppHandle<R>, path: &str) -> io::Result<String
 }
 
 #[cfg(desktop)]
-fn write_picked<R: Runtime>(_app: &AppHandle<R>, path: &str, text: &str) -> io::Result<()> {
-    fs::write(path, text)
+fn write_picked<R: Runtime>(_app: &AppHandle<R>, path: &str, bytes: &[u8]) -> io::Result<()> {
+    fs::write(path, bytes)
 }
 
 /// On Android the dialog hands out `content://` URIs, which only the fs plugin can open.
@@ -563,11 +571,11 @@ fn read_picked<R: Runtime>(app: &AppHandle<R>, path: &str) -> io::Result<String>
 }
 
 #[cfg(mobile)]
-fn write_picked<R: Runtime>(app: &AppHandle<R>, path: &str, text: &str) -> io::Result<()> {
+fn write_picked<R: Runtime>(app: &AppHandle<R>, path: &str, bytes: &[u8]) -> io::Result<()> {
     use io::Write;
     use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
     let path: FilePath = path.parse().map_err(io::Error::other)?;
     let mut options = OpenOptions::new();
     options.write(true).create(true).truncate(true);
-    app.fs().open(path, options)?.write_all(text.as_bytes())
+    app.fs().open(path, options)?.write_all(bytes)
 }

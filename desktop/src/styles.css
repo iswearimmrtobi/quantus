@@ -3867,3 +3867,13 @@ select option {
 .logic-table-copy {
   text-align: left;
 }
+
+.logic-export {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.logic-export-buttons {
+  display: flex;
+  gap: 6px;
+}

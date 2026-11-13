@@ -292,6 +292,19 @@ fn a_circuit_is_saved_and_loaded_unchanged() {
 }
 
 #[test]
+fn a_file_is_saved_as_its_bytes() {
+    let w = window();
+    let dir = std::env::temp_dir().join(format!("quantus-file-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("bild.png");
+    invoke(&w, "save_file", json!({ "path": path.to_string_lossy(), "bytes": [137, 80, 78, 71, 0, 255] })).unwrap();
+    assert_eq!(std::fs::read(&path).unwrap(), [137, 80, 78, 71, 0, 255]);
+    let failed = invoke(&w, "save_file", json!({ "path": dir.join("fehlt").join("bild.svg").to_string_lossy(), "bytes": [] }));
+    assert!(failed.unwrap_err()["error"].as_str().unwrap().contains("could not be saved"));
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn a_broken_circuit_file_is_reported_not_loaded() {
     let w = window();
     let dir = std::env::temp_dir().join(format!("quantus-broken-{}", std::process::id()));

@@ -57,6 +57,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::logic,
             commands::load_circuit,
             commands::save_circuit,
+            commands::save_file,
             commands::analyze,
             commands::sample_function,
             commands::tangent,

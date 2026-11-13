@@ -1033,6 +1033,9 @@ export const api = {
 
   saveCircuit: (path: string, circuit: unknown) => call<void>('save_circuit', { path, circuit }),
 
+  /** Writes a file the frontend made (a picture, a scene) to a path from the save dialog. */
+  saveFile: (path: string, bytes: Uint8Array) => call<void>('save_file', { path, bytes: Array.from(bytes) }),
+
   /** The curve sketch; the variable is read off the input (`f(t) = …`). */
   analyze: (latex: string) => call<Analysis>('analyze', { request: { latex } }),
 

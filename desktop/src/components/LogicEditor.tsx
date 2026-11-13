@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import type { GateType, LogicError, LogicSymbols } from '../api';
 import { useT } from '../i18n';
 import { nameLatex, readName } from '../logic';
@@ -24,6 +25,8 @@ import {
 } from '../logicCircuit';
 import { nearest, placeLabels, type LabelRequest, type Placement, type Side } from '../labelLayout';
 import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, segmentBox, wireEnds, type Point, type Rect, type Segment } from '../schematic';
+import { pngBytes, svgBytes, type Picture } from '../picture';
+import { saveBytes } from '../shell';
 import { Katex } from './Katex';
 import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart } from './Schematic';
 
@@ -165,6 +168,19 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
 
   const chosen = selection.length === 1 ? (parts.find((p) => p.id === selection[0]) ?? null) : null;
 
+  /** The circuit as a picture file (§10.5), the SVG or a PNG of it. */
+  const [exportError, setExportError] = useState<string | null>(null);
+  const exportPicture = async (format: 'svg' | 'png') => {
+    try {
+      const picture = circuitPicture(parts, symbols, labels, placements, dots);
+      const bytes = format === 'svg' ? svgBytes(picture) : await pngBytes(picture);
+      await saveBytes(bytes, `${t('logic.export.name')}.${format}`, { name: format.toUpperCase(), extensions: [format] });
+      setExportError(null);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   return (
     <div className="circuit logic-editor">
       <div className="circuit-palette">
@@ -185,6 +201,18 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
           </button>
         ))}
         {toolbar}
+        <div className="logic-export">
+          <div className="palette-title">{t('logic.export.title')}</div>
+          <div className="logic-export-buttons">
+            <button className="form-chip" title={t('logic.export.svg.hint')} disabled={!parts.length} onClick={() => void exportPicture('svg')}>
+              SVG
+            </button>
+            <button className="form-chip" title={t('logic.export.png.hint')} disabled={!parts.length} onClick={() => void exportPicture('png')}>
+              PNG
+            </button>
+          </div>
+          {exportError && <p className="file-error">{exportError}</p>}
+        </div>
         <p className="palette-hint">
           {t('logic.editor.hint')} <kbd>{t('key.space')}</kbd> {t('circuit.rotates')}, <kbd>{t('key.delete')}</kbd> {t('circuit.deletes')}.
         </p>
@@ -310,6 +338,92 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
       </aside>
     </div>
   );
+}
+
+/** The colours of an exported picture: the light theme's, black on white. */
+const PICTURE_STYLE = `
+.symbol, .wire { fill: none; stroke: #1b1a22; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.symbol .logic-body, .symbol .logic-bubble, .symbol .logic-lamp, .symbol .logic-switch { fill: #ffffff; }
+.symbol .logic-knob { fill: #6b6878; stroke: none; }
+.logic-sign { fill: #1b1a22; stroke: none; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; text-anchor: middle; dominant-baseline: middle; }
+.junction-dot { fill: #1b1a22; }
+.label-leader { stroke: #8a8698; stroke-width: 1; stroke-dasharray: 2 3; }
+.name { fill: #1b1a22; font-family: 'Latin Modern Roman', 'Times New Roman', serif; font-size: 15px; text-anchor: middle; dominant-baseline: central; }
+.name .letter { font-style: italic; }
+.id { fill: #8a8698; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px; text-anchor: middle; dominant-baseline: central; }
+`;
+
+type LabelOf = { id: string; anchor: Point; part: LogicPart };
+
+/** A switch's or lamp's name as SVG text: a letter in italics, a longer name upright, the index lowered. */
+function NameText({ name, x, y }: { name: string; x: number; y: number }) {
+  const [base, index] = name.split(/_(.*)/s);
+  return (
+    <text className="name" x={x} y={y}>
+      <tspan className={base.length === 1 ? 'letter' : undefined}>{base}</tspan>
+      {index !== undefined && (
+        <tspan dy="4" fontSize="10">
+          {index}
+        </tspan>
+      )}
+    </text>
+  );
+}
+
+/**
+ * The circuit as a standalone SVG (§10.5): the parts, wires, junctions and labels where the
+ * editor shows them, without the grid, the pins, a selection or the simulation, in the light
+ * theme's colours on white.
+ */
+function circuitPicture(parts: LogicPart[], symbols: LogicSymbols, labels: LabelOf[], placements: Map<string, Placement>, dots: Point[]): Picture {
+  const margin = 16;
+  const boxOf = (label: LabelOf): Rect => placements.get(label.id) ?? { x: label.anchor.x, y: label.anchor.y, w: 0, h: 0 };
+  const box = boundsOf([...parts.flatMap(obstacles), ...labels.map(boxOf)]);
+  const [x, y, width, height] = [box.x - margin, box.y - margin, Math.ceil(box.w + 2 * margin), Math.ceil(box.h + 2 * margin)];
+  const body = renderToStaticMarkup(
+    <>
+      {parts.map((part) => {
+        if (part.kind === 'wire') {
+          const [a, b] = wireEnds(part);
+          return <line key={part.id} className="wire" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+        }
+        return (
+          <g key={part.id} className="symbol" transform={`translate(${part.x} ${part.y}) rotate(${part.rotation * 90})`}>
+            <PartSymbol part={part} symbols={symbols} />
+          </g>
+        );
+      })}
+      {dots.map((point) => (
+        <circle key={pointKey(point)} className="junction-dot" cx={point.x} cy={point.y} r="3.5" />
+      ))}
+      {labels.map((label) => {
+        const placement = placements.get(label.id);
+        const at = boxOf(label);
+        const centre = { x: at.x + at.w / 2, y: at.y + at.h / 2 };
+        const leader = placement?.displaced && (() => {
+          const from = nearest(bodyBox(label.part), centre);
+          const to = nearest(placement, from);
+          return <line className="label-leader" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
+        })();
+        return (
+          <g key={label.id}>
+            {leader}
+            {label.part.kind === 'gate' ? (
+              <text className="id" x={centre.x} y={centre.y}>
+                {label.part.id}
+              </text>
+            ) : (
+              <NameText name={label.part.name ?? ''} x={centre.x} y={centre.y} />
+            )}
+          </g>
+        );
+      })}
+    </>,
+  );
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}">` +
+    `<style>${PICTURE_STYLE}</style><rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#ffffff"/>${body}</svg>`;
+  return { svg, width, height };
 }
 
 /** A part of a palette kind as the palette shows it. */

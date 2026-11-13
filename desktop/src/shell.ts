@@ -1,5 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { save } from '@tauri-apps/plugin-dialog';
+import { api } from './api';
 
 /** Everything the native menu can trigger in the UI. Mirrored by `FORWARDED` in `src-tauri/src/shell.rs`. */
 export type Shortcut =
@@ -40,4 +42,24 @@ export async function copyText(text: string): Promise<void> {
   } else {
     await navigator.clipboard.writeText(text);
   }
+}
+
+/**
+ * Saves `bytes` as a file the user picks, `name` offered; false when the dialog was cancelled.
+ * In a plain browser the file is downloaded instead.
+ */
+export async function saveBytes(bytes: Uint8Array, name: string, filter: { name: string; extensions: string[] }): Promise<boolean> {
+  if (!inShell) {
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.click();
+    URL.revokeObjectURL(url);
+    return true;
+  }
+  const path = await save({ filters: [filter], defaultPath: name });
+  if (!path) return false;
+  await api.saveFile(path, bytes);
+  return true;
 }
