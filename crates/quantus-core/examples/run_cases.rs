@@ -1059,7 +1059,7 @@ fn main() {
                 let (outcome, millis) = worker.run(&case, opts.timeout);
                 records.lock().unwrap()[i] = Some(Record { case, outcome, millis });
                 let d = done.fetch_add(1, Ordering::Relaxed) + 1;
-                if d % 5000 == 0 {
+                if d.is_multiple_of(5000) {
                     eprintln!("  {d}/{total} after {:.0} s", started.elapsed().as_secs_f64());
                 }
                 }
@@ -1222,7 +1222,7 @@ fn summarize(records: &[Record], wall: Duration, opts: &Options) -> String {
     if !notes.is_empty() {
         let _ = writeln!(s, "\n## Notes on passing cases\n\n| Cases | Note |\n|---:|---|");
         let mut notes: Vec<_> = notes.into_iter().collect();
-        notes.sort_by(|a, b| b.1.cmp(&a.1));
+        notes.sort_by_key(|note| std::cmp::Reverse(note.1));
         for (m, n) in notes.iter().take(15) {
             let _ = writeln!(s, "| {n} | {} |", md(m));
         }

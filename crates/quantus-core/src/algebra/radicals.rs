@@ -133,7 +133,7 @@ fn extract_root(index: usize, ctx: &mut Context) -> Option<Local> {
         if q == UBig::ONE {
             split = Some((out.clone(), rest.clone()));
         }
-        outside = outside * RBig::from_parts(IBig::from(out), q);
+        outside *= RBig::from_parts(IBig::from(out), q);
         inside = RBig::from(rest);
     }
 
@@ -153,7 +153,7 @@ fn extract_root(index: usize, ctx: &mut Context) -> Option<Local> {
         // \sqrt[n]{f^{nk}} is |f|^k for an even root; f^k when that cannot be negative.
         let condition = Condition::NonNegative(base.clone());
         let holds = ctx.holds(&condition);
-        let plain = n % 2 == 1 || k % 2 == 0 || holds || (r % 2 == 1 && ctx.allows(&[condition.clone()]));
+        let plain = n % 2 == 1 || k % 2 == 0 || holds || (r % 2 == 1 && ctx.allows(std::slice::from_ref(&condition)));
         if plain {
             if n % 2 == 0 && k % 2 == 1 && !holds {
                 conditions.push(condition);

@@ -347,7 +347,7 @@ impl Solver<'_> {
             return self.pure_power(degree, &value, 1);
         }
         // a x^{2m} + b x^m + c: substitution z = x^m.
-        if degree % 2 == 0 && nonzero.iter().all(|&d| d % (degree / 2) == 0) {
+        if degree.is_multiple_of(2) && nonzero.iter().all(|&d| d % (degree / 2) == 0) {
             return self.substitution(degree / 2, &c(degree), &c(degree / 2), &c(0));
         }
         if let Some(r) = find_rational_root(p, x) {
@@ -550,7 +550,7 @@ impl Solver<'_> {
             return Solutions::root(Point::rational(RBig::ZERO), n as u32 * multiplicity);
         }
         let exponent = Expr::Num(RBig::from_parts(IBig::ONE, UBig::from(n)));
-        if n % 2 == 0 {
+        if n.is_multiple_of(2) {
             if v < 0.0 {
                 let latex = format!("{} < 0", self.tex(value));
                 self.push(
@@ -564,7 +564,7 @@ impl Solver<'_> {
             let latex = format!("{var}_{{1,2}} = \\pm {}", self.tex(&root));
             self.push(AnalysisRule::InverseFunction, msg!("core.analysis.solve.take_root"), latex);
             let mut all = Solutions::none();
-            for candidate in [simplify(&Expr::neg(root.clone())), root] {
+            for candidate in [simplify(&Expr::negate(root.clone())), root] {
                 if let Some(point) = Point::exact(candidate) {
                     all.extend(Solutions::root(point, multiplicity));
                 }
@@ -572,7 +572,7 @@ impl Solver<'_> {
             return all;
         }
         let root = if v < 0.0 {
-            simplify(&Expr::neg(Expr::pow(simplify(&Expr::neg(value.clone())), exponent)))
+            simplify(&Expr::negate(Expr::pow(simplify(&Expr::negate(value.clone())), exponent)))
         } else {
             simplify(&Expr::pow(value.clone(), exponent))
         };
@@ -704,9 +704,9 @@ impl Solver<'_> {
                     }
                     Fn::Sin => {
                         let alpha = simplify(&Expr::func(Fn::Arcsin, value.clone()));
-                        let other = simplify(&Expr::Sum(vec![Expr::Pi, Expr::neg(alpha.clone())]));
+                        let other = simplify(&Expr::Sum(vec![Expr::Pi, Expr::negate(alpha.clone())]));
                         let mut values = vec![InnerValue::Family(alpha.clone(), two_pi.clone())];
-                        if !Point::exact(alpha.clone()).zip(Point::exact(Expr::Sum(vec![other.clone(), Expr::neg(two_pi.clone())]))).is_some_and(|(a, b)| a.same(&b))
+                        if !Point::exact(alpha.clone()).zip(Point::exact(Expr::Sum(vec![other.clone(), Expr::negate(two_pi.clone())]))).is_some_and(|(a, b)| a.same(&b))
                             && !Point::exact(alpha).zip(Point::exact(other.clone())).is_some_and(|(a, b)| a.same(&b))
                         {
                             values.push(InnerValue::Family(other, two_pi.clone()));
@@ -718,7 +718,7 @@ impl Solver<'_> {
                         let mut values = vec![InnerValue::Family(alpha.clone(), two_pi.clone())];
                         let a = alpha.eval_f64(0.0).unwrap_or(0.0);
                         if a.abs() > 1e-12 && (a - std::f64::consts::PI).abs() > 1e-12 {
-                            values.push(InnerValue::Family(simplify(&Expr::neg(alpha)), two_pi.clone()));
+                            values.push(InnerValue::Family(simplify(&Expr::negate(alpha)), two_pi.clone()));
                         }
                         values
                     }
@@ -745,7 +745,7 @@ impl Solver<'_> {
                     Fn::Cosh => {
                         let root = Expr::pow(Expr::Sum(vec![Expr::pow(value.clone(), Expr::int(2)), Expr::int(-1)]), Expr::ratio(1, 2));
                         let positive = simplify(&Expr::func(Fn::Ln, Expr::Sum(vec![value.clone(), root])));
-                        if v == 1.0 { vec![InnerValue::One(positive)] } else { vec![one(Expr::neg(positive.clone())), InnerValue::One(positive)] }
+                        if v == 1.0 { vec![InnerValue::One(positive)] } else { vec![one(Expr::negate(positive.clone())), InnerValue::One(positive)] }
                     }
                     Fn::Abs => {
                         if v < 0.0 {
@@ -754,7 +754,7 @@ impl Solver<'_> {
                         } else if v == 0.0 {
                             vec![InnerValue::One(Expr::int(0))]
                         } else {
-                            vec![one(Expr::neg(value.clone())), InnerValue::One(value.clone())]
+                            vec![one(Expr::negate(value.clone())), InnerValue::One(value.clone())]
                         }
                     }
                 };
@@ -789,12 +789,12 @@ impl Solver<'_> {
                 }
                 let inverse = Expr::Num(RBig::ONE / &r);
                 let magnitude = if v < 0.0 {
-                    simplify(&Expr::neg(Expr::pow(simplify(&Expr::neg(value.clone())), inverse)))
+                    simplify(&Expr::negate(Expr::pow(simplify(&Expr::negate(value.clone())), inverse)))
                 } else {
                     simplify(&Expr::pow(value.clone(), inverse))
                 };
                 let values = if even_power {
-                    vec![one(Expr::neg(magnitude.clone())), InnerValue::One(magnitude)]
+                    vec![one(Expr::negate(magnitude.clone())), InnerValue::One(magnitude)]
                 } else {
                     vec![InnerValue::One(magnitude)]
                 };
@@ -825,7 +825,7 @@ impl Solver<'_> {
         let linear = slope.is_constant() && !is_zero(&slope);
         if *u != Expr::Var && !linear {
             return match period {
-                None => Some(self.solve(&Expr::Sum(vec![u.clone(), Expr::neg(base)]))),
+                None => Some(self.solve(&Expr::Sum(vec![u.clone(), Expr::negate(base)]))),
                 Some(_) => {
                     let window = self.ctx.window;
                     Some(self.numeric(original, window))
@@ -837,7 +837,7 @@ impl Solver<'_> {
         } else {
             (slope, simplify(&u.substitute(&Expr::int(0))))
         };
-        let x = simplify(&Expr::Product(vec![Expr::Sum(vec![base, Expr::neg(beta)]), Expr::recip(alpha.clone())]));
+        let x = simplify(&Expr::Product(vec![Expr::Sum(vec![base, Expr::negate(beta)]), Expr::recip(alpha.clone())]));
         match period {
             None => {
                 if *u != Expr::Var {
@@ -1101,7 +1101,7 @@ fn divisors(n: u64) -> Vec<u64> {
     if n == 0 {
         return vec![1];
     }
-    (1..=n).filter(|d| n % d == 0).collect()
+    (1..=n).filter(|d| n.is_multiple_of(*d)).collect()
 }
 
 /// A rational as plain text: `-2`, `\frac{1}{2}` is `1/2`.

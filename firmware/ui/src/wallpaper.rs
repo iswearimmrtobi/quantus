@@ -57,8 +57,8 @@ impl Pixels {
             Pixels::Ram(pixels, _) => out.copy_from_slice(&pixels[start..start + out.len()]),
             Pixels::Raw(bytes) => {
                 let bytes = &bytes[2 * start..2 * (start + out.len())];
-                for (pixel, pair) in out.iter_mut().zip(bytes.chunks_exact(2)) {
-                    *pixel = raw(pair[0], pair[1]);
+                for (pixel, [low, high]) in out.iter_mut().zip(bytes.as_chunks::<2>().0) {
+                    *pixel = raw(*low, *high);
                 }
             }
         }

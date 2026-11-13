@@ -472,15 +472,15 @@ impl Sketch<'_> {
             steps.push(step(AnalysisRule::Symmetry, result.clone(), format!("D = {}", self.domain.to_latex(self.ctx.digits, self.ctx.settings.language))));
             return self.section("symmetry", steps, Some(text(&result)), true);
         }
-        let mirrored = simplify(&self.f.substitute(&Expr::neg(Expr::Var)));
-        let replaced = format!("f(-{var}) = {}", put_in(&self.f, &Expr::neg(Expr::Var), var));
+        let mirrored = simplify(&self.f.substitute(&Expr::negate(Expr::Var)));
+        let replaced = format!("f(-{var}) = {}", put_in(&self.f, &Expr::negate(Expr::Var), var));
         steps.push(step(AnalysisRule::Symmetry, msg!("core.analysis.discussion.replace_x_by_minus_x"), replaced).with_level(StepDetail::Standard));
         steps.push(step(
             AnalysisRule::Symmetry,
             msg!("core.analysis.discussion.replace_x_by_minus_x"),
             format!("f(-{var}) = {}", self.tex(&display(&mirrored, self.ctx.settings))),
         ));
-        let even = Expr::Sum(vec![mirrored.clone(), Expr::neg(self.f.clone())]);
+        let even = Expr::Sum(vec![mirrored.clone(), Expr::negate(self.f.clone())]);
         let odd = Expr::Sum(vec![mirrored, self.f.clone()]);
         let points: Vec<f64> = self.domain.sample_points(9).into_iter().filter(|x| self.domain.contains(-x)).collect();
         let (result, checked) = if is_zero(&even) {
@@ -502,7 +502,7 @@ impl Sketch<'_> {
             format!("f(-{var}) = -f({var})")
         };
         let result = if checked { format!("{result} {}", msg!("core.analysis.discussion.checked_numerically")) } else { result };
-        let negated = display(&simplify(&Expr::neg(self.f.clone())), self.ctx.settings);
+        let negated = display(&simplify(&Expr::negate(self.f.clone())), self.ctx.settings);
         let compared = format!("f({var}) = {}, \\quad -f({var}) = {}", self.tex(&display(&self.f, self.ctx.settings)), self.tex(&negated));
         steps.push(step(AnalysisRule::Symmetry, msg!("core.analysis.discussion.compare_symmetry"), compared).with_level(StepDetail::Standard));
         steps.push(step(AnalysisRule::Symmetry, result.clone(), relation));
@@ -1223,7 +1223,7 @@ fn multiplicity_text(m: u32) -> String {
         3 => msg!("core.analysis.discussion.triple_root"),
         _ => msg!("core.analysis.discussion.fold_root", m),
     };
-    let behaviour = if m % 2 == 0 {
+    let behaviour = if m.is_multiple_of(2) {
         msg!("core.analysis.discussion.touches_axis")
     } else {
         msg!("core.analysis.discussion.crosses_axis")

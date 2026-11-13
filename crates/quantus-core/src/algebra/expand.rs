@@ -372,7 +372,7 @@ fn like_term_lines(node: &Node, terms: &[(bool, Node)]) -> Vec<AlgebraStep> {
         return Vec::new();
     }
     let order = |m: &crate::algebra::poly::Monomial| Poly::from_term(dashu::rational::RBig::ONE, m.clone());
-    groups.sort_by(|(a, _), (b, _)| order(b).total_degree().cmp(&order(a).total_degree()));
+    groups.sort_by_key(|(m, _)| std::cmp::Reverse(order(m).total_degree()));
 
     let mut lines = Vec::new();
     let mut current = node.clone();

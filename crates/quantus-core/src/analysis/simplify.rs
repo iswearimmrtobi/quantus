@@ -647,7 +647,7 @@ fn negated(u: &Expr) -> Option<Expr> {
             let positive = terms.len() - negative;
             let leading_negative = terms.iter().find(|t| t.depends_on_var()).is_some_and(|t| negated(t).is_some());
             if negative > positive || (negative == positive && leading_negative) {
-                Some(simplify(&Expr::neg(u.clone())))
+                Some(simplify(&Expr::negate(u.clone())))
             } else {
                 None
             }

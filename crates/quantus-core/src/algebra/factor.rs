@@ -381,7 +381,7 @@ pub fn factoring_lines(poly: &Poly) -> (Vec<Line>, String) {
     }
     lines.push(Line::new(taken_out(rest.to_node()), factor_out, StepDetail::Brief));
     let (rest_lines, last) = rest_lines(&rest);
-    lines.extend(rest_lines.into_iter().map(|line| line.placed(&taken_out)));
+    lines.extend(rest_lines.into_iter().map(|line| line.placed(taken_out)));
     (lines, last)
 }
 

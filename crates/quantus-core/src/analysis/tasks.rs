@@ -127,7 +127,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
         step(AnalysisRule::Tangent, slope, format!("f'({var}) = {}, \\quad m = f'({x_tex}) = {} = {m_tex}", tex(&f1), put_in(&f1, &at, var))),
     ));
     let line = |slope: &Expr| {
-        let shifted = Expr::Sum(vec![Expr::Var, Expr::neg(at.clone())]);
+        let shifted = Expr::Sum(vec![Expr::Var, Expr::negate(at.clone())]);
         let raw = Expr::Sum(vec![Expr::Product(vec![slope.clone(), shifted]), y.exact.clone().unwrap()]);
         let simplified = simplify(&raw);
         let intercept = simplify(&simplified.substitute(&Expr::int(0)));
@@ -141,7 +141,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
         format!("t({var}) = {m_tex} \\cdot ({var} - {}) + {}", bracket(&x_tex), bracket(&y_tex)),
     ));
     let simplified = format!("t({var}) = {}", tex(&display(&t, settings)));
-    let raw = Expr::Sum(vec![Expr::Product(vec![m_exact.clone(), Expr::Sum(vec![Expr::Var, Expr::neg(at.clone())])]), y.exact.clone().unwrap()]);
+    let raw = Expr::Sum(vec![Expr::Product(vec![m_exact.clone(), Expr::Sum(vec![Expr::Var, Expr::negate(at.clone())])]), y.exact.clone().unwrap()]);
     steps.extend(super::simplify::working(&raw, var, &format!("t({var}) = "), &simplified, settings));
     steps.push(step(AnalysisRule::Simplify, msg!("core.analysis.tasks.simplify"), simplified));
     let tangent = Line::Sloped { slope: m_exact.clone(), intercept: t_intercept, latex: format!("t({var}) = {}", tex(&display(&t, settings))) };
@@ -150,7 +150,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Setting
         steps.push(step(AnalysisRule::Normal, msg!("core.analysis.tasks.tangent_horizontal_normal_vertical"), latex.clone()));
         Line::Vertical { x: x.clone(), latex }
     } else {
-        let slope = simplify(&Expr::neg(Expr::recip(m_exact)));
+        let slope = simplify(&Expr::negate(Expr::recip(m_exact)));
         let (n, n_intercept) = line(&slope);
         let shown = tex(&display(&n, settings));
         let slope_tex = Point::exact(slope.clone()).map(|s| s.to_latex(p.digits)).unwrap_or_else(|| tex(&slope));
@@ -275,7 +275,7 @@ fn covers(domain: &Domain, a: f64, b: f64) -> bool {
 
 fn exact_integral(big_f: &Expr, lo: &Point, hi: &Point) -> Option<Point> {
     let (a, b) = (lo.exact.clone()?, hi.exact.clone()?);
-    Point::exact(simplify(&Expr::Sum(vec![big_f.substitute(&b), Expr::neg(big_f.substitute(&a))])))
+    Point::exact(simplify(&Expr::Sum(vec![big_f.substitute(&b), Expr::negate(big_f.substitute(&a))])))
 }
 
 fn numeric_integral(f: &Expr, lo: &Point, hi: &Point, digits: usize) -> Option<Point> {

@@ -208,7 +208,7 @@ fn divide_at(node: &Node, ctx: &mut Context) -> Option<Local> {
             continue;
         }
         let condition = Condition::Positive(group[0].base.clone());
-        if !ctx.allows(&[condition.clone()]) {
+        if !ctx.allows(std::slice::from_ref(&condition)) {
             continue;
         }
         let exponent = group.iter().fold(Poly::zero(), |total, part| &total + &part.exponent);

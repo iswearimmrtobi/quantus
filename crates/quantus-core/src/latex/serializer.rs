@@ -537,6 +537,11 @@ fn derivative_operator(variable: &str, partial: bool) -> String {
     }
 }
 
+/// The coordinates of a point, `(1|2|3)`.
+fn coordinate_list(coordinates: &[Node], mode: SerializerMode) -> String {
+    format!("({})", coordinates.iter().map(|c| expression_with_mode(c, mode)).collect::<Vec<_>>().join("|"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -617,9 +622,4 @@ mod tests {
         assert_eq!(round_trip("e \\cdot i"), "e \\cdot i");
         assert_eq!(round_trip("2 \\cdot \\pi"), "2 \\cdot \\pi");
     }
-}
-
-/// The coordinates of a point, `(1|2|3)`.
-fn coordinate_list(coordinates: &[Node], mode: SerializerMode) -> String {
-    format!("({})", coordinates.iter().map(|c| expression_with_mode(c, mode)).collect::<Vec<_>>().join("|"))
 }

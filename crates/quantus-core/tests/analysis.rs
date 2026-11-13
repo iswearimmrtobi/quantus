@@ -329,7 +329,7 @@ fn every_antiderivative_differentiates_back() {
         let (f, var) = parse_function(input, None, &settings).unwrap();
         let (d, _) = domain(&f, &DomainContext { settings: &settings, var: &var, digits: 6 }).unwrap();
         let found = antiderivative(&simplify(&f), &IntegrateContext { settings: &settings, var: &var, domain: &d }).unwrap_or_else(|| panic!("{input}"));
-        let back = simplify(&Expr::Sum(vec![derivative(&found.result), Expr::neg(f.clone())]));
+        let back = simplify(&Expr::Sum(vec![derivative(&found.result), Expr::negate(f.clone())]));
         assert!(is_zero(&back) || is_zero_numeric(&back, &d.sample_points(9)), "{input}");
     }
 }

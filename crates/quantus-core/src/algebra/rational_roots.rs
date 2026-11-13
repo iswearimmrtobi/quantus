@@ -99,7 +99,7 @@ fn bounded_scan(coefficients: &[IBig]) -> Option<Vec<RBig>> {
     let lead = coefficients[n].clone();
     let lead_abs = to_f64(&lead)?.abs();
     let range = (root_bound(coefficients)? * lead_abs).ceil() + 1.0;
-    if !(range <= SCAN_LIMIT) {
+    if range.is_nan() || range > SCAN_LIMIT {
         return None;
     }
     // g_i = a_i a_n^(n-1-i), g_n = 1
@@ -191,7 +191,7 @@ fn small_divisors(n: u64) -> Vec<u64> {
     let mut divisors = Vec::new();
     let mut i = 1;
     while i * i <= n {
-        if n % i == 0 {
+        if n.is_multiple_of(i) {
             divisors.push(i);
             if i * i != n {
                 divisors.push(n / i);

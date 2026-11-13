@@ -223,7 +223,7 @@ fn apply(condition: &Condition, domain: &mut Domain, steps: &mut Vec<Step>, ctx:
             let latex = format!("{} \\geq -1 \\Rightarrow {var} \\in {}", tex(u), lower.to_latex(ctx.digits, language));
             let explanation = msg!("core.analysis.domain.arcsin_argument_lower");
             steps.push(step(AnalysisRule::DomainCondition, numeric_note(explanation, lower_complete), latex));
-            let (upper, upper_complete) = sign_set(&Expr::Sum(vec![Expr::int(1), Expr::neg(u.clone())]), false, ctx)?;
+            let (upper, upper_complete) = sign_set(&Expr::Sum(vec![Expr::int(1), Expr::negate(u.clone())]), false, ctx)?;
             domain.set = domain.set.intersect(&upper);
             let latex = format!("{} \\leq 1 \\Rightarrow {var} \\in {}", tex(u), upper.to_latex(ctx.digits, language));
             let explanation = msg!("core.analysis.domain.arcsin_argument_upper");

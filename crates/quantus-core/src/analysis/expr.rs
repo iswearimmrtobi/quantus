@@ -126,7 +126,7 @@ impl Expr {
         Expr::Func(function, Box::new(argument))
     }
 
-    pub fn neg(e: Expr) -> Expr {
+    pub fn negate(e: Expr) -> Expr {
         Expr::product(vec![Expr::int(-1), e])
     }
 
@@ -163,12 +163,12 @@ impl Expr {
                     "core.analysis.expr.depends_on_other_letter")));
             }
             Node::Group { inner, .. } => from(inner)?,
-            Node::Negation { operand, .. } => Expr::neg(from(operand)?),
+            Node::Negation { operand, .. } => Expr::negate(from(operand)?),
             Node::Binary { operator, left, right, .. } => {
                 let (a, b) = (from(left)?, from(right)?);
                 match operator {
                     Operator::Plus => Expr::Sum(vec![a, b]),
-                    Operator::Minus => Expr::Sum(vec![a, Expr::neg(b)]),
+                    Operator::Minus => Expr::Sum(vec![a, Expr::negate(b)]),
                     Operator::Times | Operator::ImplicitTimes => Expr::Product(vec![a, b]),
                     Operator::Divide => Expr::Product(vec![a, Expr::recip(b)]),
                 }
@@ -222,7 +222,7 @@ impl Expr {
                     "artanh" => {
                         let ratio = Expr::product(vec![
                             Expr::sum(vec![Expr::int(1), u.clone()]),
-                            Expr::recip(Expr::sum(vec![Expr::int(1), Expr::neg(u.clone())])),
+                            Expr::recip(Expr::sum(vec![Expr::int(1), Expr::negate(u.clone())])),
                         ]);
                         Expr::product(vec![Expr::ratio(1, 2), Expr::func(Fn::Ln, ratio)])
                     }
@@ -727,7 +727,7 @@ mod tests {
         assert_eq!(expr("\\sqrt[3]{x}"), Expr::pow(Expr::Var, Expr::ratio(1, 3)));
         assert_eq!(expr("e^{x}"), Expr::func(Fn::Exp, Expr::Var));
         assert_eq!(expr("\\exp(x)"), Expr::func(Fn::Exp, Expr::Var));
-        assert_eq!(expr("x-1"), Expr::Sum(vec![Expr::Var, Expr::neg(Expr::int(1))]));
+        assert_eq!(expr("x-1"), Expr::Sum(vec![Expr::Var, Expr::negate(Expr::int(1))]));
         assert_eq!(
             expr("\\tanh x"),
             Expr::Product(vec![Expr::func(Fn::Sinh, Expr::Var), Expr::recip(Expr::func(Fn::Cosh, Expr::Var))])
@@ -757,11 +757,11 @@ mod tests {
         assert_eq!(latex(&f), "x^{3} - 3x + 2");
         let g = Expr::Sum(vec![Expr::int(-1), Expr::Var, Expr::func(Fn::Exp, Expr::Var)]);
         assert_eq!(latex(&g), "x + e^{x} - 1");
-        let mixed = Expr::Sum(vec![Expr::neg(Expr::func(Fn::Ln, Expr::Var)), Expr::int(1)]);
+        let mixed = Expr::Sum(vec![Expr::negate(Expr::func(Fn::Ln, Expr::Var)), Expr::int(1)]);
         assert_eq!(latex(&mixed), "1 - \\ln(x)");
         let h = Expr::Sum(vec![Expr::recip(Expr::Var), Expr::int(2), Expr::Var]);
         assert_eq!(latex(&h), "x + 2 + \\frac{1}{x}");
-        assert_eq!(latex(&Expr::neg(x_pow(2))), "-x^{2}");
+        assert_eq!(latex(&Expr::negate(x_pow(2))), "-x^{2}");
     }
 
     #[test]
@@ -778,7 +778,7 @@ mod tests {
         assert_eq!(latex(&Expr::Product(vec![Expr::ratio(1, 4), x_pow(4)])), "\\frac{1}{4}x^{4}");
         assert_eq!(latex(&Expr::func(Fn::Exp, Expr::int(-1))), "\\frac{1}{e}");
         assert_eq!(latex(&Expr::Product(vec![Expr::int(-2), Expr::func(Fn::Exp, Expr::int(-2))])), "-\\frac{2}{e^{2}}");
-        assert_eq!(latex(&Expr::func(Fn::Exp, Expr::neg(Expr::Var))), "e^{-x}");
+        assert_eq!(latex(&Expr::func(Fn::Exp, Expr::negate(Expr::Var))), "e^{-x}");
     }
 
     #[test]
@@ -837,7 +837,7 @@ mod tests {
     #[test]
     fn substitution_replaces_the_variable() {
         let f = expr("x^2 + x");
-        assert_eq!(f.substitute(&Expr::neg(Expr::Var)).eval_f64(2.0), Some(2.0));
+        assert_eq!(f.substitute(&Expr::negate(Expr::Var)).eval_f64(2.0), Some(2.0));
         assert!(f.depends_on_var() && expr("\\pi + 1").is_constant());
     }
 }

@@ -12,6 +12,7 @@ use crate::settings::AngleUnit;
 
 /// How two lines lie to each other (Lagebeziehung).
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant, reason = "a result made once per task, not stored in bulk")]
 pub enum LineRelation {
     Identical,
     Parallel { distance: Value },

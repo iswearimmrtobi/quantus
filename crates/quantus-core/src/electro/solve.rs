@@ -180,7 +180,7 @@ pub fn solve_at(circuit: &Circuit, precision: usize) -> Result<Solution> {
             let mut ids: Vec<String> = Vec::new();
             for (slot, run) in &variations {
                 let differs = match run {
-                    Some(run) => !same(&run.flat()[n], base[n])?,
+                    Some(run) => !same(run.flat()[n], base[n])?,
                     None => true,
                 };
                 if differs {

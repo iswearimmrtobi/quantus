@@ -13,6 +13,7 @@ use super::{abs, equal, over_length, Angle, Line, Plane, PlaneForm, Point};
 
 /// How two planes lie to each other.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant, reason = "a result made once per task, not stored in bulk")]
 pub enum PlanePlane {
     Identical,
     Parallel { distance: Value },
@@ -22,6 +23,7 @@ pub enum PlanePlane {
 
 /// How a line lies to a plane.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant, reason = "a result made once per task, not stored in bulk")]
 pub enum LinePlane {
     /// The line meets the plane in `point`, at its parameter `lambda`.
     Intersecting { point: Point, lambda: Value, angle: Angle },

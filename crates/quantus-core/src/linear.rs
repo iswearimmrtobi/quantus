@@ -114,8 +114,8 @@ pub(crate) fn eliminate(mut matrix: Vec<Vec<Value>>, unknowns: usize, record: bo
         let divisor = matrix[row][column].clone();
         let width = matrix[row].len();
         if divisor != Value::one() {
-            for c in column..width {
-                matrix[row][c] = matrix[row][c].div(&divisor)?;
+            for value in &mut matrix[row][column..width] {
+                *value = value.div(&divisor)?;
             }
             note(RowOperation::Divide { row, divisor }, Reason::UnitPivot { column }, &matrix);
         }
@@ -124,10 +124,10 @@ pub(crate) fn eliminate(mut matrix: Vec<Vec<Value>>, unknowns: usize, record: bo
                 continue;
             }
             let factor = matrix[target][column].clone();
-            for c in column..width {
-                let delta = factor.mul(&matrix[row][c]);
-                matrix[target][c] = matrix[target][c].sub(&delta);
-                settle(&mut matrix[target][c]);
+            let pivot_row = matrix[row].clone();
+            for (value, p) in matrix[target][column..width].iter_mut().zip(&pivot_row[column..width]) {
+                *value = value.sub(&factor.mul(p));
+                settle(value);
             }
             note(RowOperation::Subtract { target, source: row, factor }, Reason::Eliminate { column }, &matrix);
         }

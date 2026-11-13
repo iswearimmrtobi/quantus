@@ -27,6 +27,7 @@ pub enum SpherePoint {
 
 /// How a line lies to a sphere.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant, reason = "a result made once per task, not stored in bulk")]
 pub enum SphereLine {
     /// Two common points (Sekante), at the parameters `lambdas` of the line.
     Secant { points: [Point; 2], lambdas: [Value; 2] },
@@ -38,6 +39,7 @@ pub enum SphereLine {
 
 /// How a plane lies to a sphere, with the distance `d` of the centre to the plane.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant, reason = "a result made once per task, not stored in bulk")]
 pub enum SpherePlane {
     /// They cut in a circle (Schnittkreis).
     Circle { circle: Circle, distance: Value },
@@ -49,6 +51,7 @@ pub enum SpherePlane {
 
 /// How two spheres lie to each other.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant, reason = "a result made once per task, not stored in bulk")]
 pub enum SphereSphere {
     Identical,
     /// The same centre, different radii: one inside the other, no contact.

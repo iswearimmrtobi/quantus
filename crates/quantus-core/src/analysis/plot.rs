@@ -62,7 +62,7 @@ pub fn ends_in(domain: &Domain, lo: f64, hi: f64) -> Vec<f64> {
 /// The graph of f on [x_min, x_max] from about `samples` points, plus points just beside each
 /// break and at each of `marks`. With a y-range, values are clipped to ten heights beyond it.
 pub fn sample(f: &Expr, breaks: &[f64], marks: &[f64], x_min: f64, x_max: f64, samples: usize, y_range: Option<(f64, f64)>) -> Vec<Segment> {
-    if !(x_min < x_max) || !x_min.is_finite() || !x_max.is_finite() {
+    if !x_min.is_finite() || !x_max.is_finite() || x_min >= x_max {
         return Vec::new();
     }
     let n = samples.clamp(10, MAX_SAMPLES);

@@ -77,7 +77,7 @@ impl Approach {
         };
         let with = match self {
             Approach::PosInf => return Some(f.clone()),
-            Approach::NegInf => Expr::neg(Expr::Var),
+            Approach::NegInf => Expr::negate(Expr::Var),
             Approach::Left(a) => shift(a, -1)?,
             Approach::Right(a) => shift(a, 1)?,
         };
@@ -286,7 +286,7 @@ pub fn pole(f: &Expr, at: &Point, ctx: &LimitContext) -> (Behaviour, Behaviour, 
 fn over_power(p: &Poly, n: usize, scale: &RBig, var: &str) -> String {
     let x = Expr::poly_variable();
     let mut terms: Vec<(usize, RBig)> = p.terms.iter().map(|t| (t.monomial.degree_of(x), t.coeff.clone() / scale)).collect();
-    terms.sort_by(|a, b| b.0.cmp(&a.0));
+    terms.sort_by_key(|term| std::cmp::Reverse(term.0));
     let mut out = String::new();
     for (index, (k, c)) in terms.into_iter().enumerate() {
         let size = Expr::Num(c.clone().abs()).to_latex(var);
@@ -564,7 +564,7 @@ fn growth(e: &Expr) -> Option<Growth> {
             let half_pi = Expr::Product(vec![Expr::ratio(1, 2), Expr::Pi]);
             let value = match inner.limit() {
                 Behaviour::PosInf => half_pi,
-                Behaviour::NegInf => Expr::neg(half_pi),
+                Behaviour::NegInf => Expr::negate(half_pi),
                 Behaviour::Finite(p) => Expr::func(Fn::Arctan, p.exact?),
                 _ => return None,
             };
@@ -648,7 +648,7 @@ pub fn oblique(f: &Expr, at: &Approach, ctx: &LimitContext) -> Option<(Point, Po
     }
     // A slope found only numerically is taken as the decimal it was shown with.
     let slope = m.exact.clone().unwrap_or_else(|| Expr::Num(RBig::try_from(m.approx).unwrap_or(RBig::ZERO)));
-    let rest = simplify(&Expr::Sum(vec![f.clone(), Expr::neg(Expr::Product(vec![slope, Expr::Var]))]));
+    let rest = simplify(&Expr::Sum(vec![f.clone(), Expr::negate(Expr::Product(vec![slope, Expr::Var]))]));
     let (b, step_b) = behaviour(&rest, at, ctx);
     let Behaviour::Finite(b) = b else { return None };
     let mut steps = vec![step_m, step_b];

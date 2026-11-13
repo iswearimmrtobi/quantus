@@ -214,7 +214,7 @@ impl Lexer<'_> {
         let start = self.index;
         self.index += 1; // the backslash
         let Some(first) = self.at(0) else {
-            return Err(self.error(msg!("core.latex.lexer.lone_backslash").into(), start));
+            return Err(self.error(msg!("core.latex.lexer.lone_backslash"), start));
         };
 
         if first == '\\' {

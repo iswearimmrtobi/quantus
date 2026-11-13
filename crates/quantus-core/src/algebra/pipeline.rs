@@ -1025,7 +1025,7 @@ fn exponent_line(root: &Node) -> Option<(Node, String)> {
     }
     let mut factors = Vec::new();
     crate::algebra::expand::flatten_multiplicative_factors(unwrapped, &mut factors);
-    let parts: Vec<(String, Node, Node)> = factors.iter().map(|f| exponent_of(f)).collect::<Option<_>>()?;
+    let parts: Vec<(String, Node, Node)> = factors.iter().map(exponent_of).collect::<Option<_>>()?;
     let (_, base, _) = parts.first()?.clone();
     let sum = parts.into_iter().map(|(_, _, e)| e).reduce(|acc, e| Node::binary(Operator::Plus, acc, e, Node::SYNTHETIC))?;
     Some((Node::Power { base: Box::new(base), exponent: Box::new(sum), position: Node::SYNTHETIC }, crate::text::msg!("core.algebra.pipeline.same_base_add_exponents")))

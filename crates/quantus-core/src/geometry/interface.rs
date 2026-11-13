@@ -181,6 +181,7 @@ pub struct GeometryResponse {
 
 /// A built object of the scene.
 #[derive(Clone, Debug)]
+#[allow(clippy::large_enum_variant, reason = "a scene holds a handful of objects")]
 enum Object {
     Point(Point),
     Vector(Vector3),

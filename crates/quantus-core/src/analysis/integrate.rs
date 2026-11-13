@@ -141,7 +141,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                 let product = |a: &Expr, b: &Expr| Expr::Product(vec![a.clone(), b.clone()]);
                 let solved = simplify(&Expr::Sum(vec![
                     product(&first.u, &first.v),
-                    Expr::neg(product(&second.u, &second.v)),
+                    Expr::negate(product(&second.u, &second.v)),
                 ]));
                 vec![
                     step(AnalysisRule::IntegrationByParts, with(), named(&first.u, &first.v_prime, &first.u_prime, &first.v)),
@@ -168,7 +168,7 @@ pub fn antiderivative(f: &Expr, ctx: &IntegrateContext) -> Option<Integration> {
                             "I = {} + {} I \\Rightarrow I = {}",
                             shown(&solved),
                             shown(kappa),
-                            shown(&Expr::Product(vec![solved.clone(), Expr::recip(Expr::Sum(vec![Expr::int(1), Expr::neg(kappa.clone())]))]))
+                            shown(&Expr::Product(vec![solved.clone(), Expr::recip(Expr::Sum(vec![Expr::int(1), Expr::negate(kappa.clone())]))]))
                         ),
                     ),
                 ]
@@ -193,7 +193,7 @@ fn method_text(method: AnalysisRule) -> String {
 
 /// F' = f, exactly or at sample points of the domain.
 fn verified(big_f: &Expr, f: &Expr, domain: &Domain) -> bool {
-    let difference = Expr::Sum(vec![derivative(big_f), Expr::neg(f.clone())]);
+    let difference = Expr::Sum(vec![derivative(big_f), Expr::negate(f.clone())]);
     is_zero(&difference) || is_zero_numeric(&simplify(&difference), &domain.sample_points(9))
 }
 
@@ -323,12 +323,12 @@ fn leaf(e: &Expr) -> Option<Expr> {
             let u = (**u).clone();
             let result = match function {
                 Fn::Exp => e.clone(),
-                Fn::Sin => Expr::neg(Expr::func(Fn::Cos, u)),
+                Fn::Sin => Expr::negate(Expr::func(Fn::Cos, u)),
                 Fn::Cos => Expr::func(Fn::Sin, u),
-                Fn::Tan => Expr::neg(Expr::func(Fn::Ln, Expr::func(Fn::Abs, Expr::func(Fn::Cos, u)))),
+                Fn::Tan => Expr::negate(Expr::func(Fn::Ln, Expr::func(Fn::Abs, Expr::func(Fn::Cos, u)))),
                 Fn::Sinh => Expr::func(Fn::Cosh, u),
                 Fn::Cosh => Expr::func(Fn::Sinh, u),
-                Fn::Ln => Expr::Sum(vec![Expr::Product(vec![u.clone(), Expr::func(Fn::Ln, u.clone())]), Expr::neg(u)]),
+                Fn::Ln => Expr::Sum(vec![Expr::Product(vec![u.clone(), Expr::func(Fn::Ln, u.clone())]), Expr::negate(u)]),
                 // \int |u| = \frac{1}{2} u |u|
                 Fn::Abs => Expr::Product(vec![Expr::ratio(1, 2), u.clone(), Expr::func(Fn::Abs, u)]),
                 _ => return None,
@@ -448,7 +448,7 @@ fn power_rule_line(polynomial: &Expr, var: &str) -> Option<String> {
     let (n, _) = polynomial.as_rational()?;
     let x = Expr::poly_variable();
     let mut terms: Vec<(usize, RBig)> = n.terms.iter().map(|t| (t.monomial.degree_of(x), t.coeff.clone())).collect();
-    terms.sort_by(|a, b| b.0.cmp(&a.0));
+    terms.sort_by_key(|term| std::cmp::Reverse(term.0));
     if !terms.iter().any(|(k, _)| *k >= 1) {
         return None;
     }
@@ -518,12 +518,12 @@ fn solve_linear(matrix: &mut [Vec<RBig>]) -> Option<Vec<RBig>> {
         for value in matrix[col].iter_mut() {
             *value = value.clone() / &lead;
         }
-        for row in 0..n {
-            if row != col && matrix[row][col] != RBig::ZERO {
-                let factor = matrix[row][col].clone();
-                for k in col..=n {
-                    let subtract = &factor * &matrix[col][k];
-                    matrix[row][k] -= subtract;
+        let pivot_row = matrix[col].clone();
+        for (row, values) in matrix.iter_mut().enumerate() {
+            if row != col && values[col] != RBig::ZERO {
+                let factor = values[col].clone();
+                for (value, p) in values[col..].iter_mut().zip(&pivot_row[col..]) {
+                    *value -= &factor * p;
                 }
             }
         }
@@ -564,7 +564,7 @@ fn fraction_integral(numerator: &Poly, base: &Poly, power: usize) -> Option<Expr
         let log_part = Expr::Product(vec![Expr::Num(big_b / &two_a), Expr::func(Fn::Ln, Expr::func(Fn::Abs, b))]);
         let s = Expr::pow(Expr::Num(-w_squared), Expr::ratio(1, 2));
         let ratio = Expr::Product(vec![
-            Expr::Sum(vec![shift.clone(), Expr::neg(s.clone())]),
+            Expr::Sum(vec![shift.clone(), Expr::negate(s.clone())]),
             Expr::recip(Expr::Sum(vec![shift, s.clone()])),
         ]);
         let ln = Expr::func(Fn::Ln, Expr::func(Fn::Abs, ratio));
@@ -660,6 +660,7 @@ struct Round {
     v: Expr,
 }
 
+#[allow(clippy::large_enum_variant, reason = "one per integration by parts, never stored")]
 enum Parts {
     Plain { u: Expr, v_prime: Expr, v: Expr },
     /// `e^{ax}\sin(bx)`: two rounds bring back `κ·I`, the integral I it started from, which is
@@ -686,14 +687,14 @@ fn by_parts(f: &Expr, depth: usize) -> Option<(Expr, Parts)> {
         [t @ (Expr::Func(Fn::Exp | Fn::Sin | Fn::Cos | Fn::Sinh | Fn::Cosh, _) | Expr::Pow(..))] if p != Expr::int(1) && leaf(t).is_some() => {
             let v = leaf(t)?;
             let rest = basic(&simplify(&Expr::Product(vec![derivative(&p), v.clone()])), depth + 1)?;
-            let result = Expr::Sum(vec![Expr::Product(vec![p.clone(), v.clone()]), Expr::neg(rest)]);
+            let result = Expr::Sum(vec![Expr::Product(vec![p.clone(), v.clone()]), Expr::negate(rest)]);
             Some((scaled(result), Parts::Plain { u: p, v_prime: t.clone(), v }))
         }
         // x^n \ln x, \arctan x: differentiate the function, integrate the polynomial.
         [t @ Expr::Func(Fn::Ln | Fn::Arctan | Fn::Arcsin | Fn::Arccos, argument)] if linear(argument).is_some() => {
             let v = table(&p)?;
             let rest = basic(&simplify(&Expr::Product(vec![derivative(t), v.clone()])), depth + 1)?;
-            let result = Expr::Sum(vec![Expr::Product(vec![t.clone(), v.clone()]), Expr::neg(rest)]);
+            let result = Expr::Sum(vec![Expr::Product(vec![t.clone(), v.clone()]), Expr::negate(rest)]);
             Some((scaled(result), Parts::Plain { u: t.clone(), v_prime: p, v }))
         }
         // e^{ax+β} sin(bx+γ): ∫ = e^{…}(a sin − b cos)/(a² + b²), cos: (a cos + b sin)/(a² + b²).
@@ -722,9 +723,9 @@ fn by_parts(f: &Expr, depth: usize) -> Option<(Expr, Parts)> {
             let found = Expr::Product(vec![
                 Expr::Sum(vec![
                     Expr::Product(vec![first.u.clone(), first.v.clone()]),
-                    Expr::neg(Expr::Product(vec![second.u.clone(), second.v.clone()])),
+                    Expr::negate(Expr::Product(vec![second.u.clone(), second.v.clone()])),
                 ]),
-                Expr::recip(Expr::Sum(vec![Expr::int(1), Expr::neg(kappa.clone())])),
+                Expr::recip(Expr::Sum(vec![Expr::int(1), Expr::negate(kappa.clone())])),
             ]);
             Some((scaled(found), Parts::Recurring { integrand, first, second, kappa }))
         }
@@ -889,7 +890,7 @@ mod tests {
         ] {
             let f = expr(input);
             let big_f = integrate(input).unwrap().result;
-            let back = simplify(&Expr::Sum(vec![derivative(&big_f), Expr::neg(f.clone())]));
+            let back = simplify(&Expr::Sum(vec![derivative(&big_f), Expr::negate(f.clone())]));
             assert!(is_zero(&back) || is_zero_numeric(&back, &[0.3, 0.7, 1.3, 2.1]), "{input}");
         }
     }

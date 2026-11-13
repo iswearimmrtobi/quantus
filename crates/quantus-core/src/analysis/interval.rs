@@ -46,7 +46,7 @@ impl Point {
             if (self.approx - other.approx).abs() > 1e-9 * self.approx.abs().max(1.0) {
                 return false;
             }
-            if is_zero(&Expr::Sum(vec![a.clone(), Expr::neg(b.clone())])) {
+            if is_zero(&Expr::Sum(vec![a.clone(), Expr::negate(b.clone())])) {
                 return true;
             }
         }
@@ -490,7 +490,7 @@ mod tests {
         assert_eq!(closed.to_latex(6, Language::De), "[0; \\infty[");
         let gap = IntervalSet::reals().remove_point(&Point::rational(RBig::from(2)));
         assert_eq!(gap.to_latex(6, Language::De), "\\mathbb{R} \\setminus \\{2\\}");
-        let two = gap.remove_point(&Point::exact(Expr::neg(Expr::pow(Expr::int(3), Expr::ratio(1, 2)))).unwrap());
+        let two = gap.remove_point(&Point::exact(Expr::negate(Expr::pow(Expr::int(3), Expr::ratio(1, 2)))).unwrap());
         assert_eq!(two.to_latex(6, Language::En), "\\mathbb{R} \\setminus \\{-\\sqrt{3}, 2\\}");
         assert_eq!(IntervalSet::reals().to_latex(6, Language::En), "\\mathbb{R}");
         let outside = IntervalSet(vec![

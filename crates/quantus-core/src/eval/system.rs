@@ -56,6 +56,9 @@ pub(crate) struct Affine {
     pub terms: Vec<Value>,
 }
 
+/// An unknown with a pivot, `x = c - Σ k·y`, as `(x, c, [(y, k)])` by index.
+pub(crate) type Bound = (usize, Value, Vec<(usize, Value)>);
+
 pub(crate) enum Solution {
     /// The value of each unknown.
     Unique(Vec<Value>),
@@ -63,7 +66,7 @@ pub(crate) enum Solution {
     /// can take any value: `x = c - Σ k·y`, given as `(x, c, [(y, k)])` by index. After the
     /// Gauss method the free unknowns are set to `parameters` (`λ, μ, …`); after Gauss–Jordan
     /// they stand for themselves and `parameters` is empty.
-    Parametric { free: Vec<usize>, bound: Vec<(usize, Value, Vec<(usize, Value)>)>, parameters: Vec<String> },
+    Parametric { free: Vec<usize>, bound: Vec<Bound>, parameters: Vec<String> },
     /// The row of the reduced matrix that reads `0 = c` with `c ≠ 0`.
     Inconsistent { row: usize },
 }

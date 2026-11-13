@@ -1204,7 +1204,8 @@ fn arithmetic_lines(expression: &Node, evaluator: &Evaluator, prefix: &str) -> V
     let products = |n: &Node| {
         matches!(n, Node::Fraction { .. } | Node::Binary { operator: Operator::Times | Operator::ImplicitTimes | Operator::Divide, .. })
     };
-    let stages: [(&dyn Fn(&Node) -> bool, String); 3] = [
+    type Stage<'a> = (&'a dyn Fn(&Node) -> bool, String);
+    let stages: [Stage; 3] = [
         (&brackets, msg!("core.eval.calculator.brackets_first")),
         (&powers, msg!("core.eval.calculator.powers_roots")),
         (&products, msg!("core.eval.calculator.multiplication_division")),
