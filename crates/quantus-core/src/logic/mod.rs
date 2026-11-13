@@ -5,6 +5,7 @@
 //! `i`, so the rows are in the binary order of the truth table.
 
 pub mod circuit;
+pub mod delay;
 pub mod expr;
 pub mod kmap;
 pub mod minimise;

@@ -1336,6 +1336,7 @@
     "core.logic.circuit.no_name": "{id} has no name.",
     "core.logic.circuit.not_connected": "{id}, input {pin} is not connected.",
     "core.logic.circuit.two_drivers": "{first} and {second} drive the same net.",
+    "core.logic.delay.no_time": "No time is set for the {gate} gates.",
     "core.logic.ends_too_early": "The expression ends too early.",
     "core.logic.expected_brace": "Expected '{{' after \\{name}.",
     "core.logic.index_too_large": "{index} is too large for {n} variables: the rows go from 0 to {last}.",

@@ -548,7 +548,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   as a warning.
 - [x] Tracing each output to an `Expr` with the circuit's structure; evaluation per net for one
   input row (the values of §10.3).
-- [ ] `delay.rs`: levels, delay as levels × $t_{pd}$ or with times per gate type as a `ns` quantity
+- [x] `delay.rs`: levels, delay as levels × $t_{pd}$ or with times per gate type as a `ns` quantity
   (`quantity.rs`), the critical path, counts per type.
 - [ ] The out-of-date rows: where a circuit's table differs from an output's source (§5.1).
 - [ ] Steps of circuit → expression and of the delay (§8).

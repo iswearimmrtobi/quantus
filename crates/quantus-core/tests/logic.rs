@@ -1,6 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::circuit::{Element, GateType, Issue, Netlist};
+use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
@@ -1351,4 +1352,79 @@ fn the_circuit_evaluates_each_net_and_gives_the_function_of_each_output() {
         assert_eq!(traced.eval_row(&names("A B C"), row), circuit.output_values(row)[0]);
     }
     assert_eq!(circuit.function(0, &names("A B")).unwrap_err().to_string(), "C is not among the inputs of f.");
+}
+
+fn time(value: i64, unit: &str) -> quantus_core::PhysicalQuantity {
+    quantus_core::PhysicalQuantity::new(quantus_core::num::Value::int(value), quantus_core::units::find(unit).unwrap())
+}
+
+/// f = ¬A ∧ (B ⊕ C) and g = ¬A.
+fn mixed_netlist() -> Netlist {
+    Netlist {
+        elements: vec![
+            Element::input("A", "A", 1),
+            Element::input("B", "B", 2),
+            Element::input("C", "C", 3),
+            Element::gate("G1", GateType::Not, &[1], 4),
+            Element::gate("G2", GateType::Xor, &[2, 3], 5),
+            Element::gate("G3", GateType::And, &[4, 5], 6),
+            Element::output("g", "g", 4),
+            Element::output("f", "f", 6),
+        ],
+    }
+}
+
+#[test]
+fn the_levels_give_the_delay_and_the_critical_path() {
+    let circuit = majority_netlist().check().unwrap();
+    let delay = Delay::of(&circuit, &GateTimes::default()).unwrap();
+    assert_eq!(delay.gate_levels, [1, 1, 1, 2]);
+    assert_eq!((delay.levels(), delay.critical, delay.gates, delay.gate_inputs), (2, Some(0), 4, 9));
+    assert_eq!(delay.counts, [(GateType::Nand, 4)]);
+    assert_eq!(delay.outputs[0].path, ["A", "G1", "G4", "f"]);
+    assert_eq!(delay.outputs[0].time, None);
+    // Levels × t_pd.
+    let delay = Delay::of(&circuit, &GateTimes { common: Some(time(10, "ns")), per_type: vec![] }).unwrap();
+    assert_eq!(delay.outputs[0].time, Some(time(20, "ns")));
+
+    let circuit = mixed_netlist().check().unwrap();
+    let delay = Delay::of(&circuit, &GateTimes::default()).unwrap();
+    assert_eq!(delay.counts, [(GateType::And, 1), (GateType::Not, 1), (GateType::Xor, 1)]);
+    assert_eq!((delay.outputs[0].levels, delay.outputs[1].levels, delay.critical), (1, 2, Some(1)));
+    assert_eq!(delay.outputs[0].path, ["A", "G1", "g"]);
+    // On a tie of levels the first input.
+    assert_eq!(delay.outputs[1].path, ["A", "G1", "G3", "f"]);
+}
+
+#[test]
+fn with_a_time_per_gate_type_the_delay_is_the_longest_path_in_time() {
+    let circuit = mixed_netlist().check().unwrap();
+    // XOR 18 ns, NOT 0.006 µs, the AND the common 10 ns: through the XOR 28 ns, through the NOT 16.
+    let times = GateTimes { common: Some(time(10, "ns")), per_type: vec![(GateType::Xor, time(18, "ns")), (GateType::Not, time(6, "ns").to(&quantus_core::units::find("µs").unwrap()).unwrap())] };
+    let delay = Delay::of(&circuit, &times).unwrap();
+    assert_eq!(delay.outputs[1].time, Some(time(28, "ns")));
+    assert_eq!(delay.outputs[1].path, ["B", "G2", "G3", "f"]);
+    assert_eq!(delay.outputs[0].time, Some(time(6, "ns")));
+    assert_eq!(delay.critical, Some(1));
+    let missing = GateTimes { common: None, per_type: vec![(GateType::Xor, time(18, "ns"))] };
+    assert_eq!(Delay::of(&circuit, &missing).unwrap_err().to_string(), "No time is set for the NOT gates.");
+    assert!(Delay::of(&circuit, &GateTimes { common: Some(time(10, "m")), per_type: vec![] }).is_err());
+}
+
+#[test]
+fn a_path_starts_at_an_input_rather_than_a_constant_and_an_output_may_have_no_gates() {
+    let netlist = Netlist {
+        elements: vec![
+            Element::constant("K", true, 1),
+            Element::input("A", "A", 2),
+            Element::gate("G1", GateType::And, &[1, 2], 3),
+            Element::output("f", "f", 3),
+            Element::output("g", "g", 2),
+            Element::output("h", "h", 1),
+        ],
+    };
+    let delay = Delay::of(&netlist.check().unwrap(), &GateTimes::default()).unwrap();
+    let paths: Vec<&[String]> = delay.outputs.iter().map(|o| o.path.as_slice()).collect();
+    assert_eq!(paths, [&["A", "G1", "f"][..], &["A", "g"][..], &["h"][..]]);
+    assert_eq!((delay.outputs[1].levels, delay.outputs[2].levels), (0, 0));
 }
