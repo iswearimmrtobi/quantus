@@ -3,6 +3,7 @@
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
+use quantus_core::logic::nand::{GateForm, Signal};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
 use quantus_core::logic::working::Working;
@@ -978,4 +979,50 @@ fn the_kv_working_speaks_german() {
         "Die Blöcke aus Einsen, jeder ein Term der minimalen DNF:",
         "Über den Feldern 3, 7 wechselnd und entfallen: A; gleichbleibend: B = 1, C = 1, daraus der Term:",
     ]);
+}
+
+/// Whether `form` agrees with `f` on every row that is not a don't care.
+fn agrees(form: &GateForm, f: &Function) -> bool {
+    (0..f.rows()).all(|row| f.value(row) == Value::DontCare || form.eval(row) == (f.value(row) == Value::One))
+}
+
+#[test]
+fn the_nand_form_of_the_majority_is_nand_nand() {
+    let f = function("AB + AC + BC", "A B C");
+    let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0);
+    assert_eq!(nand.gate_count(), 4);
+    assert_eq!(nand.expr(f.names()).latex(Notation::Logic), r"\overline{\overline{B \land C} \land \overline{A \land C} \land \overline{A \land B}}");
+    assert!(agrees(&nand, &f));
+}
+
+#[test]
+fn the_nand_form_shares_inverters_and_feeds_single_literals_straight_in() {
+    // A ∨ ¬B·C ∨ ¬B·D: one inverter for B, A goes in as ¬A.
+    let f = function(r"A + \overline{B} C + \overline{B} D", "A B C D");
+    let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0);
+    assert_eq!(nand.expr(f.names()).latex(Notation::Technical), r"\overline{\overline{\overline{B} \cdot D} \cdot \overline{\overline{B} \cdot C} \cdot \overline{A}}");
+    assert_eq!(nand.gate_count(), 5);
+    assert!(agrees(&nand, &f));
+    // A single literal is the variable itself, or one inverter; a single product a NAND and an inverter.
+    let count = |latex: &str| GateForm::nand(&Minimisation::of(&function(latex, "A B")).unwrap(), 0).gate_count();
+    assert_eq!((count("A"), count(r"\overline{A}"), count("AB"), count("A + B")), (0, 1, 2, 3));
+    // Constants need no gate.
+    for latex in ["A A'", "A + A'"] {
+        let f = function(latex, "A B");
+        let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0);
+        assert_eq!((nand.gate_count(), nand.output), (0, Signal::Const(latex.contains('+'))));
+    }
+}
+
+#[test]
+fn every_nand_form_of_three_variables_equals_its_function() {
+    for ones in 0..256u64 {
+        let f = Function::from_bits(names("A B C"), [ones, 0, 0, 0], [0; 4]).unwrap();
+        let m = Minimisation::of(&f).unwrap();
+        for cover in 0..m.covers.len() {
+            assert!(agrees(&GateForm::nand(&m, cover), &f), "{ones:08b}, cover {cover}");
+        }
+    }
+    let segment_a = function(r"\sum m(0, 2, 3, 5, 6, 7, 8, 9) + d(10, 11, 12, 13, 14, 15)", "A B C D");
+    assert!(agrees(&GateForm::nand(&Minimisation::of(&segment_a).unwrap(), 0), &segment_a));
 }

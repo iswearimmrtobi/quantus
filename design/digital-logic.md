@@ -532,7 +532,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 5: NAND and NOR
 
-- [ ] `nand.rs`: NAND–NAND from the chosen minimal DNF, shared inverters as `NAND(A, A)`, single
+- [x] `nand.rs`: NAND–NAND from the chosen minimal DNF, shared inverters as `NAND(A, A)`, single
   literals straight into the output NAND.
 - [ ] The 2-input split (balanced trees), on with `logic_two_input`.
 - [ ] NOR-only from the minimal KNF, the dual of both.

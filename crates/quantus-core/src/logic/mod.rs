@@ -7,6 +7,7 @@
 pub mod expr;
 pub mod kmap;
 pub mod minimise;
+pub mod nand;
 pub mod parse;
 pub mod table;
 pub mod text;
