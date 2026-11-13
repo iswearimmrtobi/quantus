@@ -1,6 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
+use quantus_core::logic::kmap::{gray, gray_position, Layout, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
@@ -698,4 +699,81 @@ fn the_working_speaks_german() {
         "Die DNF in Vollform, die ODER-Verknüpfung der Minterme:",
         "Die KNF in Vollform, die UND-Verknüpfung der Maxterme:",
     ]);
+}
+
+// KV diagrams.
+
+
+#[test]
+fn kv_layouts_spread_the_variables_over_maps_columns_and_rows() {
+    assert_eq!([gray(0), gray(1), gray(2), gray(3)], [0, 1, 3, 2]);
+    assert!((0..16).all(|k| gray_position(gray(k)) == k));
+    assert_eq!(Layout::new(1), None);
+    assert_eq!(Layout::new(7), None);
+    let shape = |n| {
+        let l = Layout::new(n).unwrap();
+        (l.map_vars, l.col_vars, l.row_vars, l.maps(), l.columns(), l.rows(), l.map_grid())
+    };
+    assert_eq!(shape(2), (0, 1, 1, 1, 2, 2, (1, 1)));
+    assert_eq!(shape(3), (0, 2, 1, 1, 4, 2, (1, 1)));
+    assert_eq!(shape(4), (0, 2, 2, 1, 4, 4, (1, 1)));
+    assert_eq!(shape(5), (1, 2, 2, 2, 4, 4, (2, 1)));
+    assert_eq!(shape(6), (2, 2, 2, 4, 4, 4, (2, 2)));
+    let six = Layout::new(6).unwrap();
+    assert_eq!((six.map_variables(), six.column_variables(), six.row_variables()), (0..2, 2..4, 4..6));
+    assert_eq!((0..4).map(|m| six.map_place(m)).collect::<Vec<_>>(), [(0, 0), (0, 1), (1, 0), (1, 1)]);
+}
+
+#[test]
+fn kv_cells_and_rows_correspond_both_ways() {
+    let four = Layout::new(4).unwrap();
+    // Columns AB in Gray order, rows CD: the top row 0, 4, 12, 8.
+    let top: Vec<usize> = (0..4).map(|col| four.row_number(Place { map: 0, row: 0, col })).collect();
+    assert_eq!(top, [0, 4, 12, 8]);
+    let left: Vec<usize> = (0..4).map(|row| four.row_number(Place { map: 0, row, col: 0 })).collect();
+    assert_eq!(left, [0, 1, 3, 2]);
+    assert_eq!(four.place(13), Place { map: 0, row: 1, col: 2 });
+    let three = Layout::new(3).unwrap();
+    assert_eq!(three.place(5), Place { map: 0, row: 1, col: 3 });
+    let five = Layout::new(5).unwrap();
+    assert_eq!(five.place(16 + 13), Place { map: 1, row: 1, col: 2 });
+    for n in 2..=6 {
+        let layout = Layout::new(n).unwrap();
+        for row in 0..1 << n {
+            assert_eq!(layout.row_number(layout.place(row)), row);
+        }
+    }
+}
+
+#[test]
+fn kv_neighbours_wrap_over_the_edges_and_across_maps() {
+    let four = Layout::new(4).unwrap();
+    // Row 8 sits in the last column: its neighbour over the edge is 0, in the first column.
+    assert_eq!(four.neighbours(8), [0, 12, 10, 9]);
+    assert_eq!((four.place(8).col, four.place(0).col), (3, 0));
+    let six = Layout::new(6).unwrap();
+    let neighbours = six.neighbours(0);
+    // The same cell in the maps to the right and below, then the cells of its own map.
+    assert_eq!(neighbours, [32, 16, 8, 4, 2, 1]);
+    assert_eq!(six.place(32), Place { map: 2, ..six.place(0) });
+    assert_eq!(six.map_place(six.place(32).map), (1, 0));
+    assert_eq!(six.map_place(six.place(16).map), (0, 1));
+    // In every layout, neighbours differ in one variable and sit next to each other or in the
+    // same place of neighbouring maps.
+    for n in 2..=6 {
+        let layout = Layout::new(n).unwrap();
+        for row in 0..1usize << n {
+            for other in layout.neighbours(row) {
+                let (a, b) = (layout.place(row), layout.place(other));
+                let step = |x: usize, y: usize, len: usize| (x + 1) % len == y || (y + 1) % len == x;
+                let (ma, mb) = (layout.map_place(a.map), layout.map_place(b.map));
+                let near = if a.map == b.map {
+                    (a.row == b.row && step(a.col, b.col, layout.columns())) || (a.col == b.col && step(a.row, b.row, layout.rows()))
+                } else {
+                    a.row == b.row && a.col == b.col && ma.0.abs_diff(mb.0) + ma.1.abs_diff(mb.1) == 1
+                };
+                assert!(near, "{n} variables: {row} and {other}");
+            }
+        }
+    }
 }

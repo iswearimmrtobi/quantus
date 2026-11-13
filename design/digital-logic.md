@@ -521,7 +521,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 4: KV diagrams
 
-- [ ] `kmap.rs`: the layout for 2 to 6 variables (columns the first $\lceil n/2 \rceil$, Gray
+- [x] `kmap.rs`: the layout for 2 to 6 variables (columns the first $\lceil n/2 \rceil$, Gray
   order, 5 and 6 as two or four maps), cell → row number and back, neighbours across maps.
 - [ ] Labels: the bar per variable over the rows or columns where it is 1, its edge (top, bottom,
   left, right); the Gray code and $i$ per cell.
