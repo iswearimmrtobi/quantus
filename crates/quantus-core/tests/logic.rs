@@ -1,5 +1,6 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
+use quantus_core::logic::circuit::{Element, GateType, Issue, Netlist};
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
@@ -1202,4 +1203,107 @@ fn the_nand_working_speaks_german() {
         "Die NAND-Form (Gatter: 6, Gattereingänge: 12, Stufen: 4):",
     ]);
     assert!(lines(&working, StepDetail::Detailed)[2].1.contains(r"&&\text{Stufe 1}"));
+}
+
+/// The majority of three from NANDs, as drawn: nets 1–3 the inputs, 4–6 the first NANDs, 7 the
+/// output.
+fn majority_netlist() -> Netlist {
+    Netlist {
+        elements: vec![
+            Element::input("A", "A", 1),
+            Element::input("B", "B", 2),
+            Element::input("C", "C", 3),
+            Element::gate("G1", GateType::Nand, &[1, 2], 4),
+            Element::gate("G2", GateType::Nand, &[1, 3], 5),
+            Element::gate("G3", GateType::Nand, &[2, 3], 6),
+            Element::gate("G4", GateType::Nand, &[4, 5, 6], 7),
+            Element::output("f", "f", 7),
+        ],
+    }
+}
+
+fn errors(netlist: &Netlist) -> Vec<Issue> {
+    netlist.check().unwrap_err()
+}
+
+#[test]
+fn a_netlist_without_faults_becomes_a_circuit_with_its_gates_in_order() {
+    // The output gate first in the netlist: the order puts it after its inputs.
+    let mut netlist = majority_netlist();
+    netlist.elements.rotate_right(2);
+    let circuit = netlist.check().unwrap();
+    assert_eq!(circuit.inputs.iter().map(|(_, name)| name.as_str()).collect::<Vec<_>>(), ["A", "B", "C"]);
+    let ids: Vec<&str> = circuit.gates.iter().map(|g| g.id.as_str()).collect();
+    assert_eq!(ids.last(), Some(&"G4"));
+    assert_eq!(circuit.gates[3].inputs.len(), 3);
+    assert_eq!(circuit.outputs[0].name, "f");
+    assert_eq!(circuit.outputs[0].driver, Signal::Gate(3));
+    assert_eq!(circuit.nets[&1], Signal::Input(0));
+    assert_eq!(circuit.drivers[&7], "G4");
+    assert!(circuit.warnings.is_empty());
+}
+
+#[test]
+fn an_unconnected_pin_names_the_gate_and_the_pin() {
+    let mut netlist = majority_netlist();
+    netlist.elements[6].inputs[1] = None;
+    netlist.elements[3].inputs[0] = Some(99);
+    let found = errors(&netlist);
+    assert_eq!(found.len(), 2);
+    assert_eq!((found[0].message.as_str(), found[0].elements.as_slice()), ("G1, input 1 is not connected.", &["G1".to_string()][..]));
+    assert_eq!(found[1].message, "G4, input 2 is not connected.");
+}
+
+#[test]
+fn a_net_with_two_drivers_names_both() {
+    let mut netlist = majority_netlist();
+    netlist.elements[4].output = Some(4);
+    let found = errors(&netlist);
+    assert_eq!(found[0].message, "G1 and G2 drive the same net.");
+    assert_eq!(found[0].elements, ["G1", "G2"]);
+}
+
+#[test]
+fn a_feedback_loop_is_an_error_along_the_signal() {
+    let mut netlist = majority_netlist();
+    // G1 reads G4's output: G1 → G4 → G1.
+    netlist.elements[3].inputs[1] = Some(7);
+    let found = errors(&netlist);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].message, "Feedback loop over G1 → G4 → G1: sequential circuits are not supported yet.");
+    assert_eq!(found[0].elements, ["G1", "G4"]);
+}
+
+#[test]
+fn names_ids_and_numbers_of_inputs_are_checked() {
+    let mut netlist = majority_netlist();
+    netlist.elements[1] = Element::input("B", "A", 2);
+    netlist.elements.push(Element::output("g", "C", 4));
+    netlist.elements.push(Element::gate("G1", GateType::Not, &[1, 2], 8));
+    netlist.elements.push(Element::output("h", " ", 8));
+    let messages: Vec<String> = errors(&netlist).into_iter().map(|e| e.message).collect();
+    assert_eq!(messages, [
+        "The element id G1 appears twice.",
+        "NOT has 1 inputs, not 2.",
+        "h has no name.",
+        "The variable A appears twice.",
+        "C is the output, so it cannot be an input too.",
+    ]);
+    let mut wide = Netlist::default();
+    for k in 0..9 {
+        wide.elements.push(Element::input(&format!("I{k}"), &format!("x_{k}"), k));
+    }
+    wide.elements.push(Element::gate("G", GateType::And, &(0..9).collect::<Vec<_>>(), 20));
+    let messages: Vec<String> = errors(&wide).into_iter().map(|e| e.message).collect();
+    assert_eq!(messages, ["AND has 2 to 8 inputs, not 9.", "A function has at most 8 variables, not 9."]);
+}
+
+#[test]
+fn a_gate_that_drives_nothing_is_a_warning() {
+    let mut netlist = majority_netlist();
+    netlist.elements.push(Element::gate("G7", GateType::Not, &[1], 30));
+    netlist.elements.push(Element { output: None, ..Element::gate("G8", GateType::Not, &[2], 0) });
+    let circuit = netlist.check().unwrap();
+    let warnings: Vec<(&str, &[String])> = circuit.warnings.iter().map(|w| (w.message.as_str(), w.elements.as_slice())).collect();
+    assert_eq!(warnings, [("G7 drives nothing.", &["G7".to_string()][..]), ("G8 drives nothing.", &["G8".to_string()][..])]);
 }

@@ -543,7 +543,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 6: circuits and delay
 
-- [ ] `circuit.rs`: the netlist (elements of §5.5 with kind, input nets, output net, id), the
+- [x] `circuit.rs`: the netlist (elements of §5.5 with kind, input nets, output net, id), the
   checks (unconnected pin, two drivers, cycle, names, 8 inputs) with element ids; *drives nothing*
   as a warning.
 - [ ] Tracing each output to an `Expr` with the circuit's structure; evaluation per net for one
