@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { GateFormResult, LogicForm, LogicOutputResult, LogicScene, Worked } from '../api';
-import { nameLatex, type LogicAnswer } from '../logic';
+import { nameLatex, type Shown } from '../logic';
 import { useT, type TextKey } from '../i18n';
 import { copyText } from '../shell';
 import { Steps } from './AnalysisView';
@@ -9,7 +9,8 @@ import { SourceMark } from './LogicLines';
 
 interface Props {
   scene: LogicScene;
-  answer: LogicAnswer;
+  /** The output whose results show. */
+  shown: Shown;
   /** At the detail level `none` the steps are hidden. */
   hideSteps: boolean;
   onChange(scene: LogicScene): void;
@@ -96,15 +97,9 @@ function Section({
  * canonical forms, the minimal DNF and KNF with the choice among several, the NAND and NOR forms
  * with their cost, each with its steps and Copy.
  */
-export function LogicResults({ scene, answer, hideSteps, onChange }: Props) {
+export function LogicResults({ scene, shown, hideSteps, onChange }: Props) {
   const { t } = useT();
-  const results = [
-    ...answer.outputs.flatMap((result, index) => (result ? [{ result, index: index as number | null }] : [])),
-    ...answer.extra.map((result) => ({ result, index: null as number | null })),
-  ];
-  const [tab, setTab] = useState<string | null>(null);
-  if (!results.length) return null;
-  const { result, index } = results.find((r) => r.result.name === tab) ?? results[0];
+  const { result, index } = shown;
   const name = nameLatex(result.name);
   const eq = (latex: string) => `${name} = ${latex}`;
 
@@ -130,15 +125,6 @@ export function LogicResults({ scene, answer, hideSteps, onChange }: Props) {
 
   return (
     <div className="logic-results">
-      {results.length > 1 && (
-        <div className="form-row logic-tabs">
-          {results.map(({ result: r }) => (
-            <button key={r.name} className={r.name === result.name ? 'form-chip active' : 'form-chip'} onClick={() => setTab(r.name)}>
-              <Katex latex={nameLatex(r.name)} />
-            </button>
-          ))}
-        </div>
-      )}
       <ResultsOf result={result} eq={eq} cost={cost} gates={gates} choices={choices} hideSteps={hideSteps} />
     </div>
   );

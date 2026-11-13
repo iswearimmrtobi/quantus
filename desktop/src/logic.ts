@@ -1,4 +1,4 @@
-import type { LogicError, LogicOutput, LogicRequest, LogicResponse, LogicScene, LogicSource, LogicValue } from './api';
+import type { LogicError, LogicOutput, LogicOutputResult, LogicRequest, LogicResponse, LogicScene, LogicSource, LogicValue } from './api';
 
 /**
  * The Logic mode's scene as the page keeps it (design/digital-logic.md §5.1): `App` holds it, so
@@ -311,3 +311,20 @@ export function removeOutput(scene: LogicScene, index: number): LogicScene {
 
 /** The next value of a cell clicked: 0 → 1 → – → 0; an empty one becomes 0. */
 export const cycle = (value: Cell): LogicValue => (value === '0' ? '1' : value === '1' ? '-' : '0');
+
+// ---- One output at a time (§10.1): the KV diagram and the results.
+
+/** An output's result, and its index in the scene (null for a lamp of the circuit). */
+export interface Shown {
+  result: LogicOutputResult;
+  index: number | null;
+}
+
+/** The outputs the answer has results for, the scene's first, then the circuit's lamps. */
+export function shownOutputs(answer: LogicAnswer | null): Shown[] {
+  if (!answer) return [];
+  return [
+    ...answer.outputs.flatMap((result, index) => (result ? [{ result, index: index as number | null }] : [])),
+    ...answer.extra.map((result) => ({ result, index: null as number | null })),
+  ];
+}
