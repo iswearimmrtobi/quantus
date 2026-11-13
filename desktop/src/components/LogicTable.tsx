@@ -30,6 +30,10 @@ interface Props {
   /** Whether 0s are written or left empty. */
   zeros: boolean;
   onChange(scene: LogicScene): void;
+  /** The row the circuit's switches are set to, highlighted; null without a circuit. */
+  currentRow?: number | null;
+  /** Sets the switches to a row, by a click on its number. */
+  onRow?(row: number): void;
 }
 
 /** A header named in place: a click opens a text field, Enter or leaving it renames, Esc keeps the name. */
@@ -74,7 +78,7 @@ function Header({ name, taken, onRename }: { name: string; taken: string[]; onRe
  * the row number first. An output cell cycles 0 → 1 → – with a click or Space; the keys 0, 1 and
  * - set it and move down, the arrows move. Editing a cell makes the table its output's source.
  */
-export function LogicTable({ scene, grid, answer, zeros, onChange }: Props) {
+export function LogicTable({ scene, grid, answer, zeros, onChange, currentRow = null, onRow }: Props) {
   const { t } = useT();
   const table = useRef<HTMLTableElement>(null);
   /** The input whose removal waits for a yes, because a table depends on it. */
@@ -189,8 +193,16 @@ export function LogicTable({ scene, grid, answer, zeros, onChange }: Props) {
           </thead>
           <tbody>
             {Array.from({ length: rows }, (_, row) => (
-              <tr key={row}>
-                <td className="logic-row-number">{row}</td>
+              <tr key={row} className={row === currentRow ? 'current' : undefined}>
+                <td className="logic-row-number">
+                  {onRow ? (
+                    <button className="logic-row-set" title={t('logic.sim.setRow')} onClick={() => onRow(row)}>
+                      {row}
+                    </button>
+                  ) : (
+                    row
+                  )}
+                </td>
                 {inputs.map((name, k) => (
                   <td key={name} className="logic-bit">
                     {(row >> (n - 1 - k)) & 1}

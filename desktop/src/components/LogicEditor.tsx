@@ -11,9 +11,11 @@ import {
   inverted,
   LOGIC_PALETTE,
   localBody,
+  numberNets,
   MAX_GATE_INPUTS,
   newPart,
   PART_LABELS,
+  partPins,
   pinOffsets,
   single,
   withGate,
@@ -36,6 +38,12 @@ interface Props {
   errors?: LogicError[];
   /** Its warnings (a gate that drives nothing), marked amber. */
   warnings?: LogicError[];
+  /** The simulation (§10.3): each net's value in the row the switches are set to, from the core. */
+  values?: Map<number, boolean> | null;
+  /** A switch's value, by its name; null when the core has no row for it. */
+  switchValue?(name: string): boolean | null;
+  /** Flips the switch of an input. */
+  onToggle?(name: string): void;
 }
 
 /**
@@ -43,7 +51,7 @@ interface Props {
  * gates on the grid of the schematic editors, joined by wires; a gate's number of inputs is set in
  * the inspector.
  */
-export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], warnings = [] }: Props) {
+export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], warnings = [], values, switchValue, onToggle }: Props) {
   const { t } = useT();
   const canvas = useRef<SVGSVGElement>(null);
   const canvasView = useCanvasView(canvas);
@@ -55,6 +63,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
     view: canvasView,
     pins: allPins,
     newWire: (next, from, to) => ({ ...newPart(next, 'wire', from), x2: to.x, y2: to.y }),
+    onTap: (part) => part.kind === 'input' && part.name && onToggle?.(part.name),
   });
   const { selection, setSelection, drag, update, remove, rotateSelected } = editing;
 
@@ -62,6 +71,13 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
   const ends = useMemo(() => parts.flatMap(allPins), [parts]);
   const connected = useMemo(() => connectedPointsOf(ends, wires), [ends, wires]);
   const dots = useMemo(() => junctionDotsOf(ends, wires), [ends, wires]);
+  // The value on a point's net: what the wires and lamps show.
+  const nets = useMemo(() => numberNets(parts), [parts]);
+  const valueAt = (point: Point): boolean | null => {
+    const net = nets.byPoint.get(pointKey(point));
+    return net === undefined ? null : (values?.get(net) ?? null);
+  };
+  const valueClass = (value: boolean | null) => (value === null ? undefined : value ? 'on' : 'off');
 
   // The names of switches and lamps, and the ids of the gates, laid out clear of the drawing.
   const { sizes, measure } = useLabelSizes();
@@ -107,6 +123,13 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
   const doubtful = useMemo(() => new Set(warnings.flatMap((e) => e.elements)), [warnings]);
   const mark = (id: string) => (faulty.has(id) ? 'error' : doubtful.has(id) ? 'warning' : null);
   const notes = errors.length ? errors : warnings;
+
+  /** A switch's value, or the value a lamp shows; null when not known. */
+  const simulated = (part: LogicPart): boolean | null => {
+    if (part.kind === 'input') return part.name ? (switchValue?.(part.name) ?? null) : null;
+    if (part.kind === 'output') return valueAt(partPins(part).inputs[0]);
+    return null;
+  };
 
   const chosen = selection.length === 1 ? (parts.find((p) => p.id === selection[0]) ?? null) : null;
 
@@ -169,6 +192,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
                       a={a}
                       b={b}
                       className={className}
+                      lineClassName={valueClass(valueAt(a))}
                       joins
                       connected={connected}
                       onPointerDown={(event) => editing.startMove(event, part)}
@@ -181,7 +205,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
                   <g key={part.id} className={className}>
                     <g transform={`translate(${part.x} ${part.y}) rotate(${part.rotation * 90})`}>
                       <g className="symbol">
-                        <PartSymbol part={part} symbols={symbols} />
+                        <PartSymbol part={part} symbols={symbols} value={simulated(part)} />
                       </g>
                       <HitArea part={part} onPointerDown={(event) => editing.startMove(event, part)} />
                     </g>
@@ -325,7 +349,8 @@ const orBack = (back: number, h: number, y: number) => {
  * A part in its own coordinates, unturned: a gate's inputs at (−2 grid, row), its output at (2 grid,
  * 0); a switch's and a constant's pin at (1 grid, 0), a lamp's at (−1 grid, 0).
  */
-function PartSymbol({ part, symbols }: { part: LogicPart; symbols: LogicSymbols }) {
+function PartSymbol({ part, symbols, value = null }: { part: LogicPart; symbols: LogicSymbols; value?: boolean | null }) {
+  const state = value === null ? '' : value ? ' on' : ' off';
   switch (part.kind) {
     case 'wire':
       return <path d={`M${-2 * GRID} 0H${2 * GRID}`} />;
@@ -333,8 +358,8 @@ function PartSymbol({ part, symbols }: { part: LogicPart; symbols: LogicSymbols 
       return (
         <>
           <path d={`M8 0H${GRID}`} />
-          <rect x="-16" y="-9" width="24" height="18" rx="9" />
-          <circle className="logic-knob" cx={-7} cy="0" r="5" />
+          <rect className={`logic-switch${state}`} x="-16" y="-9" width="24" height="18" rx="9" />
+          <circle className={`logic-knob${state}`} cx={value ? -1 : -7} cy="0" r="5" />
         </>
       );
     case 'constant':
@@ -351,7 +376,7 @@ function PartSymbol({ part, symbols }: { part: LogicPart; symbols: LogicSymbols 
       return (
         <>
           <path d={`M${-GRID} 0H-9`} />
-          <circle className="logic-lamp" r="9" />
+          <circle className={`logic-lamp${state}`} r="9" />
           <path d="M-6.4 -6.4L6.4 6.4M-6.4 6.4L6.4 -6.4" />
         </>
       );

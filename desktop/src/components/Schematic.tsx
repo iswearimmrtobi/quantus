@@ -149,7 +149,8 @@ export function GridBackground({ view }: { view: View }) {
 }
 
 export type Drag<E> =
-  | { type: 'move'; from: Point; origins: Map<string, E> }
+  /** `moved`: whether the pointer has left the grid point it started on; if not, it was a tap. */
+  | { type: 'move'; from: Point; origins: Map<string, E>; moved: boolean }
   | { type: 'end'; id: string; end: 'a' | 'b' }
   /** `across`: whether the wire leaves sideways first, decided by the first step of the pointer. */
   | { type: 'draw'; from: Point; to: Point; across: boolean | null }
@@ -167,13 +168,15 @@ interface Editing<E extends Placeable> {
   newWire(elements: E[], from: Point, to: Point): E;
   /** A part's rotation after a quarter turn. */
   turned?(rotation: number): number;
+  /** A part pressed and let go without moving it, such as a switch flipped. */
+  onTap?(element: E): void;
 }
 
 /**
  * Selecting, moving, turning and deleting parts, pulling a wire's end, drawing a wire from a pin
  * (an L of up to two wires), the selection rectangle and moving the canvas.
  */
-export function useSchematicEditing<E extends Placeable>({ elements, onChange, canvas, view: canvasView, pins, newWire, turned }: Editing<E>) {
+export function useSchematicEditing<E extends Placeable>({ elements, onChange, canvas, view: canvasView, pins, newWire, turned, onTap }: Editing<E>) {
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag<E> | null>(null);
   const { view, setView, toDrawing, toGrid } = canvasView;
@@ -200,7 +203,7 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     // Grabbing a part of the selection moves all of it; any other part becomes the selection.
     const group = selection.includes(element.id) ? selection : [element.id];
     setSelection(group);
-    setDrag({ type: 'move', from: toGrid(event), origins: new Map(elements.filter((e) => group.includes(e.id)).map((e) => [e.id, e])) });
+    setDrag({ type: 'move', from: toGrid(event), origins: new Map(elements.filter((e) => group.includes(e.id)).map((e) => [e.id, e])), moved: false });
   };
 
   const startEnd = (event: ReactPointerEvent, element: E, end: 'a' | 'b') => {
@@ -257,7 +260,10 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
       const end = Math.abs(at.x - other.x) >= Math.abs(at.y - other.y) ? { x: at.x, y: other.y } : { x: other.x, y: at.y };
       update(drag.id, (drag.end === 'a' ? end : { x2: end.x, y2: end.y }) as Partial<E>);
     } else {
-      onChange(movedBy(elements, drag.origins, at.x - drag.from.x, at.y - drag.from.y));
+      const [dx, dy] = [at.x - drag.from.x, at.y - drag.from.y];
+      if (!drag.moved && dx === 0 && dy === 0) return;
+      if (!drag.moved) setDrag({ ...drag, moved: true });
+      onChange(movedBy(elements, drag.origins, dx, dy));
     }
   };
 
@@ -276,6 +282,8 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
       setSelection(next.slice(elements.length).map((e) => e.id));
     } else if (drag?.type === 'marquee') {
       setSelection(inRectangle(elements, drag.from, drag.to, pins));
+    } else if (drag?.type === 'move' && !drag.moved && drag.origins.size === 1 && onTap) {
+      onTap([...drag.origins.values()][0]);
     }
     setDrag(null);
   };

@@ -333,6 +333,8 @@
     "app.logic.result.quineMcCluskey": "Quine–McCluskey",
     "app.logic.result.table": "Wahrheitstabelle",
     "app.logic.result.traced": "Ausdruck der Schaltung",
+    "app.logic.sim.setCell": "Strg+Klick: die Schalter der Schaltung auf diese Zelle stellen",
+    "app.logic.sim.setRow": "Die Schalter der Schaltung auf diese Zeile stellen",
     "app.logic.source.circuit": "Schaltung",
     "app.logic.source.expression": "Ausdruck",
     "app.logic.source.hint": "Die Sicht, aus der die Funktion dieses Ausgangs stammt; die anderen Sichten folgen ihr",

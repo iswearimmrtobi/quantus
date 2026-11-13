@@ -333,6 +333,8 @@
     "app.logic.result.quineMcCluskey": "Quine–McCluskey",
     "app.logic.result.table": "Truth table",
     "app.logic.result.traced": "Expression of the circuit",
+    "app.logic.sim.setCell": "Ctrl+click: set the circuit's switches to this cell",
+    "app.logic.sim.setRow": "Set the circuit's switches to this row",
     "app.logic.source.circuit": "circuit",
     "app.logic.source.expression": "expression",
     "app.logic.source.hint": "The view this output’s function comes from; the other views follow it",

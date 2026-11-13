@@ -15,6 +15,10 @@ interface Props {
   hover: TermHover | null;
   onHover(hover: TermHover | null): void;
   onChange(scene: LogicScene): void;
+  /** The row the circuit's switches are set to, its cell highlighted; null without a circuit. */
+  currentRow?: number | null;
+  /** Sets the switches to a row, by Ctrl and a click on its cell. */
+  onRow?(row: number): void;
 }
 
 /** The side of a cell, px. */
@@ -274,7 +278,7 @@ function useBlockCheck(scene: LogicScene, output: string, form: 'dnf' | 'knf', r
  * round when dragged past an edge and spanning maps when dragged into another; the core checks
  * the blocks, each shown in the colour of its answer with its number, the faults listed below.
  */
-export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange }: Props) {
+export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange, currentRow = null, onRow }: Props) {
   const { t } = useT();
   const [numbers, setNumbers] = useNumbers();
   /** The blocks shown: over the 1s for the minimal DNF, over the 0s for the minimal KNF. */
@@ -423,15 +427,19 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange }: P
           {kmap.cells.map((cell) => {
             const { x, y } = at.origin(cell.map);
             const shownValue = value(cell.index, cell.value);
-            const classes = ['kv-cell', shownValue === null ? 'empty' : '', uncovered.has(cell.index) ? 'uncovered' : ''].filter(Boolean).join(' ');
+            const classes = ['kv-cell', shownValue === null ? 'empty' : '', uncovered.has(cell.index) ? 'uncovered' : '', cell.index === currentRow ? 'current' : ''].filter(Boolean).join(' ');
             return (
               <button
                 key={cell.index}
                 className={classes}
                 style={{ left: x + cell.col * CELL, top: y + cell.row * CELL, width: CELL + 1, height: CELL + 1 }}
-                title={t('logic.kv.cell', { index: cell.index, vars, code: cell.code })}
-                disabled={index === null && !drawing}
-                onClick={() => !drawing && set(cell.index, cycle(shownValue))}
+                title={t('logic.kv.cell', { index: cell.index, vars, code: cell.code }) + (onRow ? `\n${t('logic.sim.setCell')}` : '')}
+                disabled={index === null && !drawing && !onRow}
+                onClick={(event) => {
+                  if (drawing) return;
+                  if (onRow && (event.ctrlKey || event.metaKey || index === null)) onRow(cell.index);
+                  else set(cell.index, cycle(shownValue));
+                }}
                 onKeyDown={(event) => !drawing && onKey(event, cell.index)}
                 onMouseEnter={() => hoverCell(cell.index)}
                 onFocus={() => hoverCell(cell.index)}

@@ -66,6 +66,22 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
   const general = answer?.errors.filter((error) => error.output === null && !error.elements.length) ?? [];
   const circuitErrors = answer?.errors.filter((error) => error.elements.length > 0) ?? [];
   const warnings = answer?.response.circuit?.warnings ?? [];
+
+  // The simulation (§10.3): the switches set to a row of the table, every net's value from the core.
+  const circuit = answer?.response.circuit ?? null;
+  const inputs = answer?.response.inputs ?? [];
+  const row = Math.min(scene.row ?? 0, Math.max(0, (1 << inputs.length) - 1));
+  const values = circuit ? new Map(circuit.values.map((v) => [v.net, v.value])) : null;
+  const setRow = (next: number) => onSceneChange({ ...scene, row: next });
+  const switchValue = (name: string) => {
+    const k = inputs.indexOf(name);
+    return k < 0 ? null : ((row >> (inputs.length - 1 - k)) & 1) === 1;
+  };
+  const toggle = (name: string) => {
+    const k = inputs.indexOf(name);
+    if (k >= 0) setRow(row ^ (1 << (inputs.length - 1 - k)));
+  };
+  const simulated = circuit ? { currentRow: row, onRow: setRow } : {};
   const grid = logicGrid(scene, answer);
   const outputs = shownOutputs(answer);
   const shown = outputs.find((o) => o.result.name === tab) ?? outputs[0];
@@ -89,6 +105,9 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
                 symbols={settings.logicSymbols}
                 errors={circuitErrors}
                 warnings={warnings}
+                values={values}
+                switchValue={switchValue}
+                onToggle={toggle}
               />
             </div>
           )}
@@ -105,13 +124,13 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
         )}
         <div className="logic-views">
           {grid.columns.length > 0 ? (
-            <LogicTable scene={scene} grid={grid} answer={answer} zeros={settings.logicZeros} onChange={onSceneChange} />
+            <LogicTable scene={scene} grid={grid} answer={answer} zeros={settings.logicZeros} onChange={onSceneChange} {...simulated} />
           ) : (
             <button className="palette-item logic-table-new" onClick={() => onSceneChange(addOutput(scene, grid))}>
               + {t('logic.table.new')}
             </button>
           )}
-          {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} hover={hover} onHover={setHover} onChange={onSceneChange} />}
+          {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} hover={hover} onHover={setHover} onChange={onSceneChange} {...simulated} />}
         </div>
         {shown && (
           <LogicResults
