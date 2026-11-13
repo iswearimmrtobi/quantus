@@ -1307,3 +1307,48 @@ fn a_gate_that_drives_nothing_is_a_warning() {
     let warnings: Vec<(&str, &[String])> = circuit.warnings.iter().map(|w| (w.message.as_str(), w.elements.as_slice())).collect();
     assert_eq!(warnings, [("G7 drives nothing.", &["G7".to_string()][..]), ("G8 drives nothing.", &["G8".to_string()][..])]);
 }
+
+#[test]
+fn an_output_traces_to_an_expression_with_the_circuits_structure() {
+    let circuit = majority_netlist().check().unwrap();
+    let traced = circuit.expr(0);
+    assert_eq!(traced.latex(Notation::Technical), r"\overline{\overline{A \cdot B} \cdot \overline{A \cdot C} \cdot \overline{B \cdot C}}");
+    assert_eq!(traced.latex(Notation::Logic), r"\overline{(A \uparrow B) \land (A \uparrow C) \land (B \uparrow C)}");
+    // Every gate type, a buffer without an operator, a shared gate written at each use.
+    let netlist = Netlist {
+        elements: vec![
+            Element::input("A", "A", 1),
+            Element::input("B", "B", 2),
+            Element::constant("K", true, 3),
+            Element::gate("G1", GateType::Xor, &[1, 2, 3], 4),
+            Element::gate("G2", GateType::Buffer, &[4], 5),
+            Element::gate("G3", GateType::Nor, &[5, 1], 6),
+            Element::gate("G4", GateType::Xnor, &[6, 4], 7),
+            Element::gate("G5", GateType::Not, &[7], 8),
+            Element::output("f", "f", 8),
+            Element::output("g", "g", 2),
+        ],
+    };
+    let circuit = netlist.check().unwrap();
+    assert_eq!(circuit.expr(0).latex(Notation::Logic), r"\overline{(A \oplus B \oplus 1 \downarrow A) \leftrightarrow (A \oplus B \oplus 1)}");
+    assert_eq!(circuit.expr(1), Expr::var("B"));
+}
+
+#[test]
+fn the_circuit_evaluates_each_net_and_gives_the_function_of_each_output() {
+    let circuit = majority_netlist().check().unwrap();
+    // Row 5: A = 1, B = 0, C = 1; only the NAND of A and C is 0.
+    let values = circuit.net_values(5);
+    assert_eq!(values.iter().map(|(net, v)| (*net, *v)).collect::<Vec<_>>(), [(1, true), (2, false), (3, true), (4, true), (5, false), (6, true), (7, true)]);
+    assert_eq!(circuit.output_values(5), [true]);
+    let f = circuit.function(0, &names("A B C")).unwrap();
+    assert_eq!(rows_of(f.ones()).collect::<Vec<_>>(), [3, 5, 6, 7]);
+    // Over the scene's inputs in another order, with one more.
+    let f = circuit.function(0, &names("D C B A")).unwrap();
+    assert_eq!(f, function("AB + AC + BC", "D C B A"));
+    let traced = circuit.expr(0);
+    for row in 0..8 {
+        assert_eq!(traced.eval_row(&names("A B C"), row), circuit.output_values(row)[0]);
+    }
+    assert_eq!(circuit.function(0, &names("A B")).unwrap_err().to_string(), "C is not among the inputs of f.");
+}

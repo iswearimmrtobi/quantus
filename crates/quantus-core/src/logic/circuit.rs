@@ -12,9 +12,11 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use super::expr::Expr;
 use super::nand::Signal;
 use super::text::msg;
-use super::MAX_INPUTS;
+use super::{Function, Value, MAX_INPUTS};
+use crate::{QuantusError, Result};
 
 /// A net, numbered by the shell's connectivity.
 pub type Net = u32;
@@ -187,9 +189,128 @@ pub struct Circuit {
     pub warnings: Vec<Issue>,
 }
 
+impl Circuit {
+    /// The input names, in order.
+    pub fn names(&self) -> Vec<String> {
+        self.inputs.iter().map(|(_, name)| name.clone()).collect()
+    }
+
+    /// The value of each gate when input `k` is `input(k)`.
+    pub fn gate_values(&self, input: impl Fn(usize) -> bool) -> Vec<bool> {
+        let mut values: Vec<bool> = Vec::with_capacity(self.gates.len());
+        for gate in &self.gates {
+            let inputs: Vec<bool> = gate.inputs.iter().map(|s| signal_value(*s, &input, &values)).collect();
+            values.push(gate.gate.eval(&inputs));
+        }
+        values
+    }
+
+    /// The value on each net in row `row` of the circuit's own table (the first input the most
+    /// significant bit): what the editor colours (§10.3).
+    pub fn net_values(&self, row: usize) -> BTreeMap<Net, bool> {
+        let input = self.row_input(row);
+        let gates = self.gate_values(&input);
+        self.nets.iter().map(|(net, signal)| (*net, signal_value(*signal, &input, &gates))).collect()
+    }
+
+    /// The value of each output in row `row` of the circuit's own table.
+    pub fn output_values(&self, row: usize) -> Vec<bool> {
+        let input = self.row_input(row);
+        let gates = self.gate_values(&input);
+        self.outputs.iter().map(|o| signal_value(o.driver, &input, &gates)).collect()
+    }
+
+    fn row_input(&self, row: usize) -> impl Fn(usize) -> bool {
+        let n = self.inputs.len();
+        move |k| row >> (n - 1 - k) & 1 == 1
+    }
+
+    /// The function of output `output` over the variables `names`, which hold the circuit's
+    /// inputs, in any order.
+    pub fn function(&self, output: usize, names: &[String]) -> Result<Function> {
+        let out = &self.outputs[output];
+        let places: Vec<usize> = self
+            .inputs
+            .iter()
+            .map(|(_, name)| {
+                names.iter().position(|n| n == name).ok_or_else(|| {
+                    let output = &out.name;
+                    QuantusError::other(msg!("core.logic.not_declared"))
+                })
+            })
+            .collect::<Result<_>>()?;
+        let mut function = Function::new(names.to_vec())?;
+        let n = names.len();
+        for row in 0..function.rows() {
+            let input = |k: usize| row >> (n - 1 - places[k]) & 1 == 1;
+            if signal_value(out.driver, &input, &self.gate_values(input)) {
+                function.set(row, Value::One);
+            }
+        }
+        Ok(function)
+    }
+
+    /// Output `output` traced back to the inputs: an expression with the circuit's structure,
+    /// one operator per gate (a buffer none), a gate used twice written twice.
+    pub fn expr(&self, output: usize) -> Expr {
+        self.traced(self.outputs[output].driver)
+    }
+
+    /// `signal` traced back to the inputs.
+    pub fn traced(&self, signal: Signal) -> Expr {
+        self.signal_expr(signal, &|g| self.gate_expr(g, &|s| self.traced(s)))
+    }
+
+    /// `signal` as an expression, a gate as `gate(g)`.
+    pub fn signal_expr(&self, signal: Signal, gate: &dyn Fn(usize) -> Expr) -> Expr {
+        match signal {
+            Signal::Const(b) => Expr::Const(b),
+            Signal::Input(k) => Expr::Var(self.inputs[k].1.clone()),
+            Signal::Gate(g) => gate(g),
+        }
+    }
+
+    /// Gate `g` as one operator over its inputs, each as `operand` gives it.
+    pub fn gate_expr(&self, g: usize, operand: &dyn Fn(Signal) -> Expr) -> Expr {
+        let gate = &self.gates[g];
+        let mut operands: Vec<Expr> = gate.inputs.iter().map(|s| operand(*s)).collect();
+        let pair = |operands: &mut Vec<Expr>| {
+            let b = operands.pop().expect("two inputs");
+            (Box::new(operands.pop().expect("two inputs")), Box::new(b))
+        };
+        match gate.gate {
+            GateType::Buffer => operands.remove(0),
+            GateType::Not => Expr::negation(operands.remove(0)),
+            GateType::And => Expr::And(operands),
+            GateType::Or => Expr::Or(operands),
+            GateType::Xor => Expr::Xor(operands),
+            GateType::Xnor => Expr::Xnor(operands),
+            GateType::Nand if operands.len() == 2 => {
+                let (a, b) = pair(&mut operands);
+                Expr::Nand(a, b)
+            }
+            GateType::Nor if operands.len() == 2 => {
+                let (a, b) = pair(&mut operands);
+                Expr::Nor(a, b)
+            }
+            GateType::Nand => Expr::negation(Expr::And(operands)),
+            GateType::Nor => Expr::negation(Expr::Or(operands)),
+        }
+    }
+}
+
+/// The value of `signal` with the inputs from `input` and the gates' values `gates`.
+fn signal_value(signal: Signal, input: &impl Fn(usize) -> bool, gates: &[bool]) -> bool {
+    match signal {
+        Signal::Const(b) => b,
+        Signal::Input(k) => input(k),
+        Signal::Gate(g) => gates[g],
+    }
+}
+
 impl Netlist {
     /// The checked circuit, or every error found.
-    pub fn check(&self) -> Result<Circuit, Vec<Issue>> {
+    pub fn check(&self) -> std::result::Result<Circuit, Vec<Issue>> {
         let mut errors = Vec::new();
         self.check_ids(&mut errors);
         self.check_pins(&mut errors);
@@ -368,7 +489,7 @@ struct Order<'a> {
 impl Order<'_> {
     /// Orders element `e` after its drivers; a loop comes back as its elements in the direction
     /// of the signal.
-    fn visit(&mut self, e: usize) -> Result<(), Vec<usize>> {
+    fn visit(&mut self, e: usize) -> std::result::Result<(), Vec<usize>> {
         match self.state[e] {
             State::Done => return Ok(()),
             State::Open => {

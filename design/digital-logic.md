@@ -546,7 +546,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `circuit.rs`: the netlist (elements of §5.5 with kind, input nets, output net, id), the
   checks (unconnected pin, two drivers, cycle, names, 8 inputs) with element ids; *drives nothing*
   as a warning.
-- [ ] Tracing each output to an `Expr` with the circuit's structure; evaluation per net for one
+- [x] Tracing each output to an `Expr` with the circuit's structure; evaluation per net for one
   input row (the values of §10.3).
 - [ ] `delay.rs`: levels, delay as levels × $t_{pd}$ or with times per gate type as a `ns` quantity
   (`quantity.rs`), the critical path, counts per type.
