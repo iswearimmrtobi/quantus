@@ -1,8 +1,8 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body};
-use quantus_core::logic::{Function, Pattern, Value};
+use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
+use quantus_core::logic::{rows_of, Function, Pattern, Value};
 
 fn names(names: &str) -> Vec<String> {
     names.split_whitespace().map(String::from).collect()
@@ -188,4 +188,52 @@ fn expressions_survive_a_round_trip_through_latex() {
         let back = parse_expr(&technical).unwrap();
         assert!((0..1 << vars.len()).all(|row| back.eval_row(&vars, row) == expr.eval_row(&vars, row)), "{latex} → {technical}");
     }
+}
+
+fn list(latex: &str) -> MintermList {
+    match parse_line(latex).unwrap_or_else(|e| panic!("{latex}: {e}")).body {
+        Body::Minterms(list) => list,
+        other => panic!("{latex} is not a minterm list: {other:?}"),
+    }
+}
+
+#[test]
+fn minterm_lists_have_their_spellings() {
+    for latex in [r"\sum m(1, 3, 7) + d(5)", r"\sum_m(1,3,7) + d(5)", r"\sum_{m}\left(1, 3, 7\right) d(5)", r"\Sigma m(1, 3, 7) + d(5)", "m(1, 3, 7) + d(5)", r"\sum(1,3,7)+d(5)"] {
+        assert_eq!(list(latex), MintermList { maxterms: false, indices: vec![1, 3, 7], dont_cares: vec![5] }, "{latex}");
+    }
+    for latex in [r"\prod M(0, 2, 4) \cdot d(6)", r"\prod_M(0,2,4) d(6)", r"\Pi M(0, 2, 4) \cdot d(6)", r"M(0, 2, 4) \cdot d(6)"] {
+        assert_eq!(list(latex), MintermList { maxterms: true, indices: vec![0, 2, 4], dont_cares: vec![6] }, "{latex}");
+    }
+    // An expression that merely starts with m stays one.
+    assert!(matches!(parse_line("m(A + B)").unwrap().body, Body::Expr(_)));
+}
+
+#[test]
+fn a_minterm_list_takes_the_fewest_variables_that_hold_its_highest_index() {
+    let f = list(r"\sum m(1, 3, 7) + d(5)").function(None, &[]).unwrap();
+    assert_eq!((f.names(), rows_of(f.ones()).collect::<Vec<_>>(), rows_of(f.dont_cares()).collect::<Vec<_>>()), (&names("A B C")[..], vec![1, 3, 7], vec![5]));
+    let f = list(r"\prod M(0, 2, 4, 5, 6)").function(None, &[]).unwrap();
+    assert_eq!(rows_of(f.ones()).collect::<Vec<_>>(), [1, 3, 7]);
+    // At least the scene's inputs, which then name the variables.
+    let f = list("m(1)").function(None, &names("x y z")).unwrap();
+    assert_eq!((f.names(), rows_of(f.ones()).collect::<Vec<_>>()), (&names("x y z")[..], vec![1]));
+    let f = list("m(9)").function(None, &names("x y z")).unwrap();
+    assert_eq!(f.names(), names("A B C D"));
+    // f(A, B, C, D) = … sets them.
+    let line = parse_line(r"f(P, Q, R, S) = \sum m(3)").unwrap();
+    let Body::Minterms(ref minterms) = line.body else { panic!() };
+    assert_eq!(minterms.function(line.inputs.as_deref(), &[]).unwrap().arity(), 4);
+}
+
+#[test]
+fn minterm_list_errors() {
+    assert_eq!(error(r"\sum m(1, 3, 3)"), "3 appears twice in the list.");
+    assert_eq!(error(r"\sum m(1, 3) + d(3)"), "3 appears twice in the list.");
+    assert!(error(r"\sum m(1, 3,)").starts_with("A minterm list is written"));
+    assert!(error(r"\sum m(1, 3) + x(5)").starts_with("A minterm list is written"));
+    let line = parse_line(r"f(A, B) = \sum m(1, 4)").unwrap();
+    let Body::Minterms(minterms) = line.body else { panic!() };
+    assert_eq!(minterms.function(line.inputs.as_deref(), &[]).unwrap_err().to_string(), "4 is too large for 2 variables: the rows go from 0 to 3.");
+    assert_eq!(list("m(256)").function(None, &[]).unwrap_err().to_string(), "A function has at most 8 variables, not 9.");
 }

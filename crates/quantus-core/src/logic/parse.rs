@@ -7,7 +7,7 @@
 
 use super::expr::Expr;
 use super::text::msg;
-use super::check_names;
+use super::{all_rows, check_names, set_bit, Bits, Function, MAX_INPUTS};
 use crate::{QuantusError, Result};
 
 /// One parsed line.
@@ -24,6 +24,7 @@ pub struct Line {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Body {
     Expr(Expr),
+    Minterms(MintermList),
 }
 
 impl Body {
@@ -31,6 +32,7 @@ impl Body {
     pub fn variables(&self) -> Vec<String> {
         match self {
             Body::Expr(expr) => expr.variables(),
+            Body::Minterms(_) => Vec::new(),
         }
     }
 }
@@ -81,7 +83,7 @@ fn parse_parts(latex: &str) -> Result<(Option<String>, Option<Vec<String>>, Body
         }
         None => (None, None),
     };
-    let body = Body::Expr(Parser::new(right).whole()?);
+    let body = if is_minterm_list(right) { Body::Minterms(minterm_list(right)?) } else { Body::Expr(Parser::new(right).whole()?) };
     let variables = body.variables();
     check_names(&variables)?;
     if let Some(inputs) = &inputs {
@@ -95,6 +97,131 @@ fn parse_parts(latex: &str) -> Result<(Option<String>, Option<Vec<String>>, Body
         return Err(QuantusError::other(msg!("core.logic.output_as_input")));
     }
     Ok((output, inputs, body))
+}
+
+/// A list of minterms, `\sum m(1, 3, 7) + d(5)`, or of maxterms, `\prod M(0, 2) \cdot d(5)`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MintermList {
+    /// Whether the indices are maxterms, the rows that are 0.
+    pub maxterms: bool,
+    /// The rows that are 1 (minterms) or 0 (maxterms), as typed.
+    pub indices: Vec<usize>,
+    pub dont_cares: Vec<usize>,
+}
+
+impl MintermList {
+    /// The function of the list. With the inputs `declared` by `f(A, B, C)`, over those;
+    /// otherwise over the fewest variables that hold the highest index, but at least the
+    /// scene's `inputs`, which name them when there are as many, else `A`, `B`, `C`, … do.
+    pub fn function(&self, declared: Option<&[String]>, inputs: &[String]) -> Result<Function> {
+        let highest = self.indices.iter().chain(&self.dont_cares).copied().max();
+        let needed = highest.map_or(0, |h| (usize::BITS - h.leading_zeros()) as usize);
+        let names: Vec<String> = match declared {
+            Some(declared) => declared.to_vec(),
+            None if needed <= inputs.len() => inputs.to_vec(),
+            None => {
+                let count = needed;
+                if count > MAX_INPUTS {
+                    return Err(QuantusError::other(msg!("core.logic.too_many_variables")));
+                }
+                ('A'..).take(count).map(String::from).collect()
+            }
+        };
+        let n = names.len();
+        let last = (1usize << n) - 1;
+        if let Some(index) = highest.filter(|h| *h > last) {
+            return Err(QuantusError::other(msg!("core.logic.index_too_large")));
+        }
+        let mut listed: Bits = [0; 4];
+        let mut dont_cares: Bits = [0; 4];
+        for (rows, set) in [(&self.indices, &mut listed), (&self.dont_cares, &mut dont_cares)] {
+            for &row in rows {
+                set_bit(set, row, true);
+            }
+        }
+        let ones = if self.maxterms {
+            let all = all_rows(n);
+            std::array::from_fn(|w| all[w] & !listed[w])
+        } else {
+            listed
+        };
+        Function::from_bits(names, ones, dont_cares)
+    }
+}
+
+/// Whether the tokens are a minterm list rather than an expression: they start with `\sum` or
+/// `\prod`, or with `m(` or `M(` followed by a number or `)`.
+fn is_minterm_list(tokens: &[Token]) -> bool {
+    match tokens {
+        [Token::Sum | Token::Prod, ..] => true,
+        [Token::Var(letter), Token::Open, Token::Num(_) | Token::Close, ..] => letter == "m" || letter == "M",
+        _ => false,
+    }
+}
+
+fn minterm_list(tokens: &[Token]) -> Result<MintermList> {
+    let bad = || QuantusError::other(msg!("core.logic.bad_list"));
+    let mut rest = tokens;
+    let symbol = match rest.first() {
+        Some(Token::Sum) => Some(false),
+        Some(Token::Prod) => Some(true),
+        _ => None,
+    };
+    if symbol.is_some() {
+        rest = &rest[1..];
+    }
+    let letter = match rest.first() {
+        Some(Token::Var(letter)) if letter == "m" || letter == "M" => {
+            rest = &rest[1..];
+            Some(letter == "M")
+        }
+        _ => None,
+    };
+    let maxterms = symbol.or(letter).ok_or_else(bad)?;
+    let indices = numbers(&mut rest).ok_or_else(bad)?;
+    if matches!(rest.first(), Some(Token::Or | Token::And)) {
+        rest = &rest[1..];
+    }
+    let dont_cares = match rest.first() {
+        None => Vec::new(),
+        Some(Token::Var(d)) if d == "d" => {
+            rest = &rest[1..];
+            numbers(&mut rest).ok_or_else(bad)?
+        }
+        Some(_) => return Err(bad()),
+    };
+    if !rest.is_empty() {
+        return Err(bad());
+    }
+    let mut seen: Vec<usize> = Vec::new();
+    for &index in indices.iter().chain(&dont_cares) {
+        if seen.contains(&index) {
+            return Err(QuantusError::other(msg!("core.logic.index_twice")));
+        }
+        seen.push(index);
+    }
+    Ok(MintermList { maxterms, indices, dont_cares })
+}
+
+/// `(1, 3, 7)` at the start of `tokens`, which moves past it.
+fn numbers(tokens: &mut &[Token]) -> Option<Vec<usize>> {
+    let [Token::Open, rest @ ..] = *tokens else { return None };
+    let close = rest.iter().position(|t| *t == Token::Close)?;
+    let inner = &rest[..close];
+    *tokens = &rest[close + 1..];
+    if inner.is_empty() {
+        return Some(Vec::new());
+    }
+    inner
+        .iter()
+        .enumerate()
+        .map(|(i, token)| match (i % 2, token) {
+            (0, Token::Num(digits)) => Some(Some(digits.parse().unwrap_or(usize::MAX))),
+            (1, Token::Comma) if i + 1 < inner.len() => Some(None),
+            _ => None,
+        })
+        .collect::<Option<Vec<_>>>()
+        .map(|items| items.into_iter().flatten().collect())
 }
 
 /// `f` or `f(A, B, C)`.
