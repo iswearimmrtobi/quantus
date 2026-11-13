@@ -1428,3 +1428,19 @@ fn a_path_starts_at_an_input_rather_than_a_constant_and_an_output_may_have_no_ga
     assert_eq!(paths, [&["A", "G1", "f"][..], &["A", "g"][..], &["h"][..]]);
     assert_eq!((delay.outputs[1].levels, delay.outputs[2].levels), (0, 0));
 }
+
+#[test]
+fn a_circuit_is_out_of_date_where_its_table_differs_from_the_source() {
+    let circuit = majority_netlist().check().unwrap();
+    // The source now says A ∨ B, 1 in rows 2 and 4 where the majority is 0.
+    let source = function("A + B", "A B C");
+    assert_eq!(circuit.out_of_date("f", &source).unwrap(), Some(vec![2, 4]));
+    assert_eq!(circuit.out_of_date("f", &function("BC + AC + AB", "A B C")).unwrap(), Some(vec![]));
+    // A don't care matches either value.
+    let mut relaxed = source.clone();
+    relaxed.set(2, Value::DontCare);
+    assert_eq!(circuit.out_of_date("f", &relaxed).unwrap(), Some(vec![4]));
+    // Over more inputs: the circuit does not read D.
+    assert_eq!(circuit.out_of_date("f", &function("AB + AC + BC + D", "A B C D")).unwrap(), Some(vec![1, 3, 5, 9]));
+    assert_eq!(circuit.out_of_date("g", &source).unwrap(), None);
+}

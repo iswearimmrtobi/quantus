@@ -108,6 +108,17 @@ impl Function {
         set_bit(&mut self.dont_cares, row, value == Value::DontCare);
     }
 
+    /// The rows where `self` and `other`, over the same variables, differ and neither is –.
+    pub fn differing_rows(&self, other: &Function) -> Vec<usize> {
+        assert_eq!(self.names, other.names, "functions of the same variables");
+        (0..self.rows())
+            .filter(|row| match (self.value(*row), other.value(*row)) {
+                (Value::DontCare, _) | (_, Value::DontCare) => false,
+                (a, b) => a != b,
+            })
+            .collect()
+    }
+
     /// The value of variable `index` (0 the first, most significant) in `row`.
     pub fn input(&self, row: usize, index: usize) -> bool {
         (row >> (self.arity() - 1 - index)) & 1 == 1

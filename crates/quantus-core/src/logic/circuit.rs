@@ -250,6 +250,15 @@ impl Circuit {
         Ok(function)
     }
 
+    /// The rows where the circuit's output `output` differs from `source`, the function the
+    /// output now has from its source (§5.1); `None` when the circuit has no such output. A
+    /// don't care of the source matches either value. The circuit's inputs are among the
+    /// source's variables.
+    pub fn out_of_date(&self, output: &str, source: &Function) -> Result<Option<Vec<usize>>> {
+        let Some(o) = self.outputs.iter().position(|out| out.name == output) else { return Ok(None) };
+        Ok(Some(self.function(o, source.names())?.differing_rows(source)))
+    }
+
     /// Output `output` traced back to the inputs: an expression with the circuit's structure,
     /// one operator per gate (a buffer none), a gate used twice written twice.
     pub fn expr(&self, output: usize) -> Expr {
