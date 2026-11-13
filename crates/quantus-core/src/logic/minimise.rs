@@ -1,8 +1,10 @@
 //! Minimisation (§6.4): the prime implicants by Quine–McCluskey, the prime implicant chart and
 //! Petrick's method; all minimal covers, fewest terms first, then fewest literals.
 
-use super::expr::Expr;
+use super::expr::{variable_latex, Expr, Notation};
 use super::text::msg;
+use super::working::{array, list, prime_name, Working};
+use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 use super::{rows_of, Bits, Function, Pattern};
 use crate::{QuantusError, Result};
 
@@ -451,5 +453,160 @@ impl Minimisation {
             (_, Form::Dnf) => Expr::Or(operands),
             (_, Form::Knf) => Expr::And(operands),
         }
+    }
+}
+
+impl Minimisation {
+    /// The working of the minimisation (§8, *Quine–McCluskey* and *Cover*) of the output
+    /// `output` over the variables `names`: the minimal forms at Brief; the prime implicants,
+    /// the essential ones and the minimal covers at Standard; the grouping tables with ✓, the
+    /// chart and each reduction at Detailed; the pairs that did not combine and Petrick's
+    /// product multiplied out at Maximal.
+    pub fn working(&self, names: &[String], output: &str, notation: Notation) -> Working {
+        let mut working = Working::default();
+        let knf = self.form == Form::Knf;
+        let arity = self.arity;
+        let f = variable_latex(output);
+        let term = |p: Pattern| if knf { p.sum(names) } else { p.product(names) }.latex(notation);
+        let column = |row: usize| format!("{}_{{{row}}}", if knf { "M" } else { "m" });
+        let pattern = |p: Pattern| format!("\\texttt{{{}}}", p.text(arity));
+        let or = if notation == Notation::Technical { " + " } else { " \\lor " };
+        if knf {
+            working.add(Standard, msg!("core.logic.step.knf_over_zeros"), String::new());
+        }
+
+        // Quine–McCluskey.
+        for (index, round) in self.qm.rounds.iter().enumerate() {
+            let mut rows: Vec<Option<Vec<String>>> = Vec::new();
+            for (ones, terms) in &round.groups {
+                if !rows.is_empty() {
+                    rows.push(None);
+                }
+                for (i, t) in terms.iter().enumerate() {
+                    let count = if i == 0 { ones.to_string() } else { String::new() };
+                    let check = if t.combined { "\\checkmark" } else { "" };
+                    // A don't care, in the first round, in brackets.
+                    let covered = if index == 0 && !self.chart.minterms.contains(&t.rows[0]) { format!("({})", t.rows[0]) } else { list(&t.rows) };
+                    rows.push(Some(vec![count, covered, pattern(t.pattern), check.into()]));
+                }
+            }
+            let header = ["\\#1".to_string(), column(0).replace("{0}", "{i}"), String::new(), String::new()];
+            let text = match (index, knf) {
+                (0, false) => msg!("core.logic.step.qm_minterms"),
+                (0, true) => msg!("core.logic.step.qm_maxterms"),
+                _ => {
+                    let round = index + 1;
+                    msg!("core.logic.step.qm_round")
+                }
+            };
+            working.add(Detailed, text, array("c|l|c|c", &header, &rows));
+            let failed: Vec<String> = round
+                .groups
+                .windows(2)
+                .filter(|pair| pair[1].0 == pair[0].0 + 1)
+                .flat_map(|pair| {
+                    pair[0].1.iter().flat_map(move |a| pair[1].1.iter().filter(move |b| a.pattern.mask == b.pattern.mask && a.pattern.combine(b.pattern).is_none()).map(move |b| (a.pattern, b.pattern)))
+                })
+                .map(|(a, b)| format!("{} \\,/\\, {}", pattern(a), pattern(b)))
+                .collect();
+            if !failed.is_empty() {
+                working.add(Maximal, msg!("core.logic.step.qm_not_combined"), failed.join(",\\ "));
+            }
+        }
+        if !self.qm.primes.is_empty() {
+            let rows: Vec<Option<Vec<String>>> = self
+                .qm
+                .primes
+                .iter()
+                .enumerate()
+                .map(|(i, p)| Some(vec![prime_name(i), pattern(*p), term(*p), list(&p.rows(arity).collect::<Vec<_>>())]))
+                .collect();
+            working.add(Standard, msg!("core.logic.step.primes"), array("c|c|l|l", &[String::new(), String::new(), String::new(), column(0).replace("{0}", "{i}")], &rows));
+        }
+
+        // The chart.
+        let chart = &self.chart;
+        if !chart.minterms.is_empty() {
+            let header: Vec<String> = std::iter::once(String::new()).chain(chart.minterms.iter().map(|m| m.to_string())).collect();
+            let rows: Vec<Option<Vec<String>>> = chart
+                .primes
+                .iter()
+                .enumerate()
+                .map(|(i, p)| Some(std::iter::once(prime_name(i)).chain(chart.minterms.iter().map(|m| if p.covers(*m) { "\\times".into() } else { String::new() })).collect()))
+                .collect();
+            let text = if knf { msg!("core.logic.step.chart_knf") } else { msg!("core.logic.step.chart") };
+            working.add(Detailed, text, array(&format!("c|{}", "c".repeat(chart.minterms.len())), &header, &rows));
+            let named = |row: usize| format!("{} = {}", prime_name(row), term(chart.primes[row]));
+            if chart.essential.is_empty() {
+                working.add_until(Standard, Detailed, msg!("core.logic.step.no_essentials"), String::new());
+            } else {
+                let latex = chart.essential.iter().map(|r| named(*r)).collect::<Vec<_>>().join(",\\ ");
+                working.add_until(Standard, Detailed, msg!("core.logic.step.essentials"), latex);
+            }
+            // The reductions replayed, to name what was left at each.
+            let mut rows_left: Vec<usize> = (0..chart.primes.len()).collect();
+            let mut columns_left = chart.minterms.clone();
+            let rows_over = |rows_left: &[usize], c: usize| rows_left.iter().filter(|r| chart.primes[**r].covers(c)).map(|r| prime_name(*r)).collect::<Vec<_>>().join(", ");
+            let columns_under = |columns_left: &[usize], r: usize| columns_left.iter().filter(|c| chart.primes[r].covers(**c)).map(|c| column(*c)).collect::<Vec<_>>().join(", ");
+            for reduction in &chart.reductions {
+                match *reduction {
+                    Reduction::Essential { row, column: c } => {
+                        working.add(Detailed, msg!("core.logic.step.take"), format!("{}\\colon\\ {}", column(c), named(row)));
+                        rows_left.retain(|r| *r != row);
+                        columns_left.retain(|c| !chart.primes[row].covers(*c));
+                    }
+                    Reduction::Covered { row } => {
+                        working.add(Detailed, msg!("core.logic.step.drop_covered"), named(row));
+                        rows_left.retain(|r| *r != row);
+                    }
+                    Reduction::ColumnDominates { column: c, over } => {
+                        let latex = format!("{}\\colon\\ {} \\supseteq {}\\colon\\ {}", column(c), rows_over(&rows_left, c), column(over), rows_over(&rows_left, over));
+                        working.add(Detailed, msg!("core.logic.step.drop_column"), latex);
+                        columns_left.retain(|x| *x != c);
+                    }
+                    Reduction::RowDominated { row, by } => {
+                        let latex = format!("{}\\colon\\ {} \\subseteq {}\\colon\\ {}", prime_name(row), columns_under(&columns_left, row), prime_name(by), columns_under(&columns_left, by));
+                        working.add(Detailed, msg!("core.logic.step.drop_row"), latex);
+                        rows_left.retain(|r| *r != row);
+                    }
+                }
+            }
+        }
+
+        // Petrick's method.
+        if let Some(petrick) = &self.petrick {
+            let product = |rows: &[usize]| if rows.is_empty() { "1".to_string() } else { rows.iter().map(|r| prime_name(*r)).collect::<Vec<_>>().join(" ") };
+            let sum = |products: &[Vec<usize>]| products.iter().map(|p| product(p)).collect::<Vec<_>>().join(or);
+            let sums: String = petrick
+                .sums
+                .iter()
+                .map(|s| if s.len() == 1 { prime_name(s[0]) } else { format!("({})", s.iter().map(|r| prime_name(*r)).collect::<Vec<_>>().join(or)) })
+                .collect();
+            working.add(Detailed, msg!("core.logic.step.petrick_sums"), sums);
+            for step in &petrick.steps {
+                working.add(Maximal, msg!("core.logic.step.petrick_step"), format!("= {}", sum(step)));
+            }
+            if let Some((terms, literals)) = petrick.bound {
+                working.add(Maximal, msg!("core.logic.step.petrick_bound"), String::new());
+            }
+        }
+
+        // The result.
+        if !self.chart.minterms.is_empty() {
+            let (terms, literals) = self.cost();
+            let covers = self.covers.iter().map(|c| format!("\\{{{}\\}}", c.iter().map(|p| prime_name(self.chart.primes.iter().position(|q| q == p).expect("a cover is made of primes"))).collect::<Vec<_>>().join(", ")));
+            working.add(Standard, msg!("core.logic.step.covers"), covers.collect::<Vec<_>>().join(",\\ "));
+        }
+        let count = self.covers.len();
+        let forms: Vec<String> = (0..count).map(|i| format!("{f} = {}", self.expr(i, names).latex(notation))).collect();
+        let text = match (knf, count) {
+            (false, 1) => msg!("core.logic.step.minimal_dnf"),
+            (false, _) => msg!("core.logic.step.minimal_dnfs"),
+            (true, 1) => msg!("core.logic.step.minimal_knf"),
+            (true, _) => msg!("core.logic.step.minimal_knfs"),
+        };
+        let latex = if count == 1 { forms.join("") } else { format!("\\begin{{gathered}}{}\\end{{gathered}}", forms.join(" \\\\ ")) };
+        working.add(Brief, text, latex);
+        working
     }
 }

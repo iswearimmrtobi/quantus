@@ -600,3 +600,84 @@ fn the_canonical_forms_come_with_their_rows_and_terms() {
         "The canonical KNF, the AND of the maxterms: f = 1",
     ]);
 }
+
+
+/// The texts of the lines of `working` shown at `detail`.
+fn texts_at(working: &Working, detail: StepDetail) -> Vec<String> {
+    working.at(detail).map(|n| n.text.clone()).collect()
+}
+
+#[test]
+fn the_minimisation_working_goes_from_the_form_to_the_grouping_tables() {
+    let (m, names) = minimal("AB + AC + BC", "A B C");
+    let working = m.working(&names, "f", Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Brief), [("The minimal DNF:".to_string(), r"f = B \land C \lor A \land C \lor A \land B".to_string())]);
+    assert_eq!(texts_at(&working, StepDetail::Standard), [
+        "The prime implicants, the terms that never combined:",
+        "The essential prime implicants, each the only one that covers some row:",
+        "The minimal covers, 3 terms with 6 literals:",
+        "The minimal DNF:",
+    ]);
+    let standard = lines(&working, StepDetail::Standard);
+    assert!(standard[0].1.contains(r"P_{2} & \texttt{1-1} & A \land C & 5, 7 \\"), "{}", standard[0].1);
+    assert_eq!(standard[1].1, r"P_{1} = B \land C,\ P_{2} = A \land C,\ P_{3} = A \land B");
+    assert_eq!(standard[2].1, r"\{P_{1}, P_{2}, P_{3}\}");
+    // At Detailed the grouping tables with ✓, the chart, and each essential row in place of the
+    // summary.
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert!(detailed[0].1.contains("2 & 3 & \\texttt{011} & \\checkmark \\\\\n & 5 & \\texttt{101} & \\checkmark"), "{}", detailed[0].1);
+    assert!(detailed[1].0.starts_with("Round 2:") && detailed[1].1.contains(r"2 & 3, 7 & \texttt{-11} &  \\"));
+    assert!(detailed[3].1.contains(r"P_{1} & \times &  &  & \times \\"), "{}", detailed[3].1);
+    assert_eq!(detailed[4], ("The only prime implicant left over a column is taken:".to_string(), r"m_{3}\colon\ P_{1} = B \land C".to_string()));
+    assert!(!texts_at(&working, StepDetail::Detailed).iter().any(|t| t.starts_with("The essential")));
+    // Don't cares in brackets.
+    let (m, names) = minimal(r"\sum m(4, 8, 10, 11, 12, 15) + d(9, 14)", "A B C D");
+    let working = m.working(&names, "f", Notation::Logic);
+    assert!(working.notes[0].latex.contains(r"2 & (9) & \texttt{1001}"), "{}", working.notes[0].latex);
+}
+
+#[test]
+fn the_maximal_working_names_the_failed_pairs_and_multiplies_petrick_out() {
+    let (m, names) = minimal(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    let working = m.working(&names, "f", Notation::Technical);
+    let maximal = lines(&working, StepDetail::Maximal);
+    let failed: Vec<&String> = maximal.iter().filter(|(t, _)| t.starts_with("These pairs")).map(|(_, l)| l).collect();
+    // Round 2 holds no pair with the same dashes that fails.
+    assert_eq!(failed, [r"\texttt{001} \,/\, \texttt{110},\ \texttt{010} \,/\, \texttt{101}"]);
+    assert_eq!(texts_at(&working, StepDetail::Standard)[1], "No prime implicant is essential.");
+    let petrick: Vec<&String> = maximal.iter().skip_while(|(t, _)| !t.starts_with("Petrick")).map(|(_, l)| l).collect();
+    assert_eq!(petrick[0], r"(P_{1} + P_{2})(P_{1} + P_{3})(P_{2} + P_{4})(P_{3} + P_{5})(P_{4} + P_{6})(P_{5} + P_{6})");
+    assert_eq!(petrick[1], "= P_{1} + P_{2}");
+    assert_eq!(petrick.len(), 1 + 6 + 2);
+    assert_eq!(petrick[6], r"= P_{1} P_{4} P_{5} + P_{2} P_{3} P_{6} + P_{1} P_{2} P_{5} P_{6} + P_{1} P_{3} P_{4} P_{6} + P_{2} P_{3} P_{4} P_{5}");
+    assert_eq!(petrick[7], r"\{P_{1}, P_{4}, P_{5}\},\ \{P_{2}, P_{3}, P_{6}\}");
+    assert_eq!(maximal.last().unwrap().0, "The 2 minimal DNFs:");
+    assert!(maximal.last().unwrap().1.starts_with(r"\begin{gathered}f = \overline{A} \cdot \overline{B} + B \cdot \overline{C} + A \cdot C \\ f = "));
+    // Petrick's sums are part of Detailed, its steps not.
+    let detailed = texts_at(&working, StepDetail::Detailed);
+    assert!(detailed.iter().any(|t| t.starts_with("Petrick")) && !detailed.iter().any(|t| t.starts_with("Multiplied")));
+}
+
+#[test]
+fn the_chart_working_names_each_dominance() {
+    let (m, names) = minimal(r"\sum m(0, 2, 3, 4, 5, 6, 7, 8, 9)", "A B C D");
+    let detailed = lines(&m.working(&names, "f", Notation::Logic), StepDetail::Detailed);
+    let row = detailed.iter().find(|(t, _)| t.starts_with("A prime implicant whose columns")).unwrap();
+    assert_eq!(row.1, r"P_{2}\colon\ m_{0} \subseteq P_{1}\colon\ m_{0}");
+    let (m, names) = minimal(r"\sum m(0, 1, 4, 5, 6, 7, 8, 9, 10, 11)", "A B C D");
+    let detailed = lines(&m.working(&names, "f", Notation::Logic), StepDetail::Detailed);
+    let column = detailed.iter().find(|(t, _)| t.starts_with("A column over")).unwrap();
+    assert_eq!(column.1, r"m_{1}\colon\ P_{1}, P_{2} \supseteq m_{0}\colon\ P_{1}, P_{2}");
+}
+
+#[test]
+fn the_knf_working_covers_the_zeros_and_constants_need_no_tables() {
+    let (m, names) = (Minimisation::knf(&function("AB + AC + BC", "A B C")).unwrap(), names("A B C"));
+    let working = m.working(&names, "f", Notation::Logic);
+    assert!(texts_at(&working, StepDetail::Standard)[0].starts_with("The minimal KNF covers the 0s"));
+    assert!(working.notes[1].latex.contains(r"\#1 & M_{i}"));
+    assert_eq!(lines(&working, StepDetail::Brief), [("The minimal KNF:".to_string(), r"f = (A \lor B) \land (A \lor C) \land (B \lor C)".to_string())]);
+    let zero = function("A A'", "A");
+    let working = Minimisation::of(&zero).unwrap().working(zero.names(), "g", Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Maximal), [("The minimal DNF:".to_string(), "g = 0".to_string())]);
+}

@@ -41,11 +41,6 @@ impl Working {
         self.notes.push(Note { text, latex: latex.into(), level, replaced: Some(replaced) });
     }
 
-    /// Appends the lines of `other`, the working of a part.
-    pub(crate) fn extend(&mut self, other: Working) {
-        self.notes.extend(other.notes);
-    }
-
     /// The lines shown at `detail`.
     pub fn at(&self, detail: StepDetail) -> impl Iterator<Item = &Note> {
         self.notes.iter().filter(move |note| note.shown(detail))
