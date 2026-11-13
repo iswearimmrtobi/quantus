@@ -15,9 +15,12 @@
 //! inverter, each OR a NAND of inverted inputs (dually for NOR), each 2-input XOR the four-gate
 //! circuit; an inverter of an inverter is cancelled.
 
-use super::expr::Expr;
+use super::expr::{variable_latex, Expr, Notation};
 use super::minimise::{Form, Minimisation};
+use super::text::msg;
+use super::working::Working;
 use super::Pattern;
+use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 
 /// The gate type of a form.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -47,10 +50,29 @@ impl Gate {
     }
 }
 
+/// Where a form comes from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Origin {
+    /// Two levels from the minimal DNF (NAND) or KNF (NOR).
+    Minimal,
+    /// A given expression rewritten gate by gate.
+    Rewrite,
+}
+
+/// The size of a form: gates, gate inputs (an inverter's two tied inputs count two) and levels,
+/// the most gates on a path from an input to the output.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GateCost {
+    pub gates: usize,
+    pub inputs: usize,
+    pub levels: usize,
+}
+
 /// A NAND-only or NOR-only network with one output.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GateForm {
     pub kind: GateKind,
+    pub origin: Origin,
     pub arity: usize,
     /// The gates in an order where each comes after its inputs.
     pub gates: Vec<Gate>,
@@ -85,7 +107,9 @@ impl GateForm {
     pub fn rewrite(expr: &Expr, names: &[String], kind: GateKind, two_input: bool) -> GateForm {
         let mut builder = Builder::new(kind, names.len(), two_input);
         let output = builder.rewrite(expr, names);
-        builder.finish(output)
+        let mut form = builder.finish(output);
+        form.origin = Origin::Rewrite;
+        form
     }
 
     /// The two-level form over `terms`: for NAND the terms are products and the function their
@@ -125,10 +149,10 @@ impl GateForm {
     pub fn eval(&self, row: usize) -> bool {
         let mut values: Vec<bool> = Vec::with_capacity(self.gates.len());
         for gate in &self.gates {
-            let inputs = gate.inputs.iter().map(|s| self.value(*s, row, &values));
+            let mut inputs = gate.inputs.iter().map(|s| self.value(*s, row, &values));
             let value = match self.kind {
-                GateKind::Nand => !inputs.fold(true, |all, v| all && v),
-                GateKind::Nor => !inputs.fold(false, |any, v| any || v),
+                GateKind::Nand => !inputs.all(|v| v),
+                GateKind::Nor => !inputs.any(|v| v),
             };
             values.push(value);
         }
@@ -146,6 +170,26 @@ impl GateForm {
     /// The number of gates.
     pub fn gate_count(&self) -> usize {
         self.gates.len()
+    }
+
+    /// The level of each gate: 1 over inputs and constants only, else one more than its
+    /// highest input gate.
+    pub fn gate_levels(&self) -> Vec<usize> {
+        let mut levels: Vec<usize> = Vec::with_capacity(self.gates.len());
+        for gate in &self.gates {
+            let level = gate.inputs.iter().map(|s| if let Signal::Gate(g) = s { levels[*g] } else { 0 }).max().unwrap_or(0) + 1;
+            levels.push(level);
+        }
+        levels
+    }
+
+    /// Gates, gate inputs and levels.
+    pub fn cost(&self) -> GateCost {
+        let levels = match self.output {
+            Signal::Gate(g) => self.gate_levels()[g],
+            _ => 0,
+        };
+        GateCost { gates: self.gates.len(), inputs: self.gates.iter().map(|g| g.inputs.len()).sum(), levels }
     }
 
     /// The output as an expression over `names`, each gate written out where it is used: an
@@ -170,6 +214,134 @@ impl GateForm {
                 })
             }
         }
+    }
+}
+
+impl GateForm {
+    /// The gate's name in the working, $G_1$ for gate 0.
+    fn gate_name(g: usize) -> String {
+        format!("G_{}", g + 1)
+    }
+
+    /// `signal` as one operand: a variable, a constant or a gate by its name.
+    fn named(&self, signal: Signal, names: &[String]) -> Expr {
+        match signal {
+            Signal::Const(b) => Expr::Const(b),
+            Signal::Input(k) => Expr::Var(names[k].clone()),
+            Signal::Gate(g) => Expr::Var(GateForm::gate_name(g)),
+        }
+    }
+
+    /// The gate over `operands` as written: $\overline{x \land y}$ or $\overline{x \lor y}$.
+    fn gate_of(&self, operands: Vec<Expr>) -> Expr {
+        Expr::negation(match self.kind {
+            GateKind::Nand => Expr::And(operands),
+            GateKind::Nor => Expr::Or(operands),
+        })
+    }
+
+    /// The working of the form (§8, *NAND / NOR*) of the output `output` over `names`, built
+    /// from `from` (the minimal DNF or KNF, or the given expression): the form with its gates,
+    /// gate inputs and levels at Brief; double negation and De Morgan (or the rules of the
+    /// rewrite) at Standard; the inverters, the 2-input split and every gate at Detailed; the
+    /// cancelled double negations at Maximal.
+    pub fn working(&self, from: &Expr, names: &[String], output: &str, notation: Notation) -> Working {
+        let mut working = Working::default();
+        let f = variable_latex(output);
+        let gate = match self.kind {
+            GateKind::Nand => "NAND",
+            GateKind::Nor => "NOR",
+        };
+        let nand = self.kind == GateKind::Nand;
+        let constant = matches!(from, Expr::Const(_));
+
+        match self.origin {
+            Origin::Minimal if !constant => {
+                // f = ¬¬(p₁ ∨ … ∨ pₖ) = ¬(¬p₁ ∧ … ∧ ¬pₖ), dually for the KNF.
+                let terms = match from {
+                    Expr::Or(terms) if nand => terms.clone(),
+                    Expr::And(terms) if !nand => terms.clone(),
+                    term => vec![term.clone()],
+                };
+                let negated: Vec<Expr> = terms.iter().cloned().map(Expr::negation).collect();
+                let outer = if nand { Expr::And(negated) } else { Expr::Or(negated) };
+                let latex = format!("{f} = {} = {}", Expr::negation(Expr::negation(from.clone())).latex(notation), Expr::negation(outer).latex(notation));
+                let text = if nand { msg!("core.logic.step.nand_de_morgan") } else { msg!("core.logic.step.nor_de_morgan") };
+                working.add(Standard, text, latex);
+                let single: Vec<String> = terms.iter().filter(|t| matches!(t, Expr::Var(_) | Expr::Not(_))).map(|t| t.latex(notation)).collect();
+                if !single.is_empty() && terms.len() > 1 {
+                    working.add(Standard, msg!("core.logic.step.nand_single"), single.join(",\\ "));
+                }
+            }
+            Origin::Minimal => {}
+            Origin::Rewrite => {
+                let text = if nand { msg!("core.logic.step.nand_rewrite") } else { msg!("core.logic.step.nor_rewrite") };
+                working.add(Standard, text, format!("{f} = {}", from.latex(notation)));
+            }
+        }
+
+        // The inverters of the variables.
+        let inverters: Vec<String> = self
+            .gates
+            .iter()
+            .filter(|g| g.inverter() && matches!(g.inputs[0], Signal::Input(_)))
+            .map(|g| {
+                let x = self.named(g.inputs[0], names);
+                format!("{} = {}", Expr::negation(x.clone()).latex(notation), self.gate_of(vec![x.clone(), x]).latex(notation))
+            })
+            .collect();
+        if !inverters.is_empty() {
+            working.add(Detailed, msg!("core.logic.step.nand_inverters"), inverters.join(",\\ "));
+        }
+
+        // The 2-input split of each width, over x₁ … xₘ.
+        for &m in &self.split {
+            let mut builder = Builder::new(self.kind, m, true);
+            let tree = builder.gate((0..m).map(Signal::Input).collect());
+            let tree = builder.finish(tree);
+            let xs: Vec<String> = (1..=m).map(|i| format!("x_{i}")).collect();
+            let wide = self.gate_of(xs.iter().map(|x| Expr::Var(x.clone())).collect());
+            let count = tree.gate_count();
+            working.add(Detailed, msg!("core.logic.step.nand_split"), format!("{} = {}", wide.latex(notation), tree.expr(&xs).latex(notation)));
+        }
+
+        // Every gate over the inputs and the earlier gates.
+        if !self.gates.is_empty() {
+            let levels = self.gate_levels();
+            let mut rows: Vec<String> = self
+                .gates
+                .iter()
+                .enumerate()
+                .map(|(g, gate)| {
+                    let operands = gate.inputs.iter().map(|s| self.named(*s, names)).collect();
+                    let level = levels[g];
+                    format!("{} &= {} &&\\text{{{}}}", variable_latex(&GateForm::gate_name(g)), self.gate_of(operands).latex(notation), msg!("core.logic.step.nand_level"))
+                })
+                .collect();
+            rows.push(format!("{f} &= {}", self.named(self.output, names).latex(notation)));
+            working.add(Detailed, msg!("core.logic.step.nand_gates"), format!("\\begin{{aligned}}{}\\end{{aligned}}", rows.join(" \\\\ ")));
+        }
+
+        // The cancelled double negations.
+        if !self.cancelled.is_empty() {
+            let pairs: Vec<String> = self
+                .cancelled
+                .iter()
+                .map(|s| {
+                    let x = self.signal_expr(*s, &|k| Expr::Var(names[k].clone()));
+                    format!("\\overline{{\\overline{{{}}}}} = {}", x.latex(notation), x.latex(notation))
+                })
+                .collect();
+            working.add(Maximal, msg!("core.logic.step.nand_cancelled"), pairs.join(",\\ "));
+        }
+
+        let GateCost { gates, inputs, levels } = self.cost();
+        let text = match self.origin {
+            Origin::Minimal => msg!("core.logic.step.nand_form"),
+            Origin::Rewrite => msg!("core.logic.step.nand_form_rewrite"),
+        };
+        working.add(Brief, text, format!("{f} = {}", self.expr(names).latex(notation)));
+        working
     }
 }
 
@@ -273,7 +445,7 @@ impl Builder {
         split.sort();
         let still_used = |s: &Signal| !matches!(s, Signal::Gate(g) if !used[*g]);
         let cancelled = self.cancelled.iter().filter(|s| still_used(s)).map(|s| map(*s, &renumbered)).collect();
-        GateForm { kind: self.kind, arity: self.arity, gates, output: map(output, &renumbered), split, cancelled }
+        GateForm { kind: self.kind, origin: Origin::Minimal, arity: self.arity, gates, output: map(output, &renumbered), split, cancelled }
     }
 
     /// `expr` rewritten gate by gate.

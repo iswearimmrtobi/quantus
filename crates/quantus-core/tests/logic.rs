@@ -3,7 +3,7 @@
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
-use quantus_core::logic::nand::{GateForm, GateKind, Signal};
+use quantus_core::logic::nand::{GateCost, GateForm, GateKind, Signal};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
 use quantus_core::logic::working::Working;
@@ -1117,4 +1117,89 @@ fn the_rewrite_turns_each_gate_of_an_expression_into_nands_or_nors() {
             }
         }
     }
+}
+
+#[test]
+fn each_form_has_its_gates_gate_inputs_and_levels() {
+    let f = function("AB + AC + BC", "A B C");
+    let m = Minimisation::of(&f).unwrap();
+    assert_eq!(GateForm::nand(&m, 0, false).cost(), GateCost { gates: 4, inputs: 9, levels: 2 });
+    let split = GateForm::nand(&m, 0, true);
+    assert_eq!(split.cost(), GateCost { gates: 6, inputs: 12, levels: 4 });
+    assert_eq!(split.gate_levels(), [1, 1, 1, 2, 3, 4]);
+    let knf = Minimisation::knf(&f).unwrap();
+    assert_eq!(GateForm::nor(&knf, 0, true).cost(), GateCost { gates: 6, inputs: 12, levels: 4 });
+    // An inverter counts two gate inputs; a variable alone needs no level.
+    let not_a = GateForm::nand(&Minimisation::of(&function(r"\overline{A}", "A B")).unwrap(), 0, false);
+    assert_eq!(not_a.cost(), GateCost { gates: 1, inputs: 2, levels: 1 });
+    let a = GateForm::nand(&Minimisation::of(&function("A", "A B")).unwrap(), 0, false);
+    assert_eq!(a.cost(), GateCost { gates: 0, inputs: 0, levels: 0 });
+}
+
+#[test]
+fn the_nand_working_goes_from_de_morgan_to_the_gates() {
+    let f = function("AB + AC + BC", "A B C");
+    let m = Minimisation::of(&f).unwrap();
+    let from = m.expr(0, f.names());
+    let working = GateForm::nand(&m, 0, true).working(&from, f.names(), "f", Notation::Technical);
+    assert_eq!(lines(&working, StepDetail::Brief), [(
+        "The NAND form (gates: 6, gate inputs: 12, levels: 4):".to_string(),
+        r"f = \overline{\overline{\overline{\overline{B \cdot C} \cdot \overline{A \cdot C}}} \cdot \overline{A \cdot B}}".to_string()
+    )]);
+    let standard = lines(&working, StepDetail::Standard);
+    assert_eq!(standard[0], (
+        "Double negation, then De Morgan: the OR of the products becomes a NAND of the products' NANDs:".to_string(),
+        r"f = \overline{\overline{B \cdot C + A \cdot C + A \cdot B}} = \overline{\overline{B \cdot C} \cdot \overline{A \cdot C} \cdot \overline{A \cdot B}}".to_string()
+    ));
+    assert_eq!(texts_at(&working, StepDetail::Detailed)[1..3], [
+        "With only 2-input gates, a NAND of 3 inputs becomes a balanced tree of 3 gates:",
+        "The gates, each over the inputs and the earlier gates, with its level:",
+    ]);
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed[1].1, r"\overline{x_{1} \cdot x_{2} \cdot x_{3}} = \overline{\overline{\overline{x_{1} \cdot x_{2}}} \cdot x_{3}}");
+    assert!(detailed[2].1.starts_with(r"\begin{aligned}G_{1} &= \overline{B \cdot C} &&\text{level 1} \\ "));
+    assert!(detailed[2].1.ends_with(r"G_{5} &= \overline{G_{4} \cdot G_{4}} &&\text{level 3} \\ G_{6} &= \overline{G_{5} \cdot G_{3}} &&\text{level 4} \\ f &= G_{6}\end{aligned}"));
+    // Inverters and single literals: A ∨ ¬B·C ∨ ¬B·D.
+    let f = function(r"A + \overline{B} C + \overline{B} D", "A B C D");
+    let m = Minimisation::of(&f).unwrap();
+    let working = GateForm::nand(&m, 0, false).working(&m.expr(0, f.names()), f.names(), "f", Notation::Logic);
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed[1], ("A term of one literal needs no NAND of its own; it goes negated straight into the output NAND:".to_string(), "A".to_string()));
+    assert_eq!(detailed[2], ("Each negated variable from a NAND with both inputs tied, one per variable:".to_string(), r"\lnot B = \overline{B \land B},\ \lnot A = \overline{A \land A}".to_string()));
+}
+
+#[test]
+fn the_rewrite_working_names_its_rules_and_the_cancelled_negations() {
+    let abc = names("A B C");
+    let expr = parse_expr("AB + C").unwrap();
+    let working = GateForm::rewrite(&expr, &abc, GateKind::Nand, false).working(&expr, &abc, "f", Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Brief)[0].0, "The NAND form gate by gate (gates: 3, gate inputs: 6, levels: 2):");
+    assert_eq!(texts_at(&working, StepDetail::Standard)[0], "Gate by gate: each NOT an inverter, each AND a NAND and an inverter, each OR a NAND of the inverted inputs, each XOR four NANDs:");
+    let maximal = lines(&working, StepDetail::Maximal);
+    assert_eq!(maximal[maximal.len() - 2], ("Double negations cancelled:".to_string(), r"\overline{\overline{\overline{A \land B}}} = \overline{A \land B}".to_string()));
+    assert_eq!(lines(&working, StepDetail::Detailed).len(), maximal.len() - 1);
+    // The NOR form from the minimal KNF, and a constant.
+    let f = function("AB + AC + BC", "A B C");
+    let knf = Minimisation::knf(&f).unwrap();
+    let working = GateForm::nor(&knf, 0, false).working(&knf.expr(0, f.names()), f.names(), "f", Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Standard)[0].1, r"f = \overline{\overline{(A \lor B) \land (A \lor C) \land (B \lor C)}} = \overline{\overline{A \lor B} \lor \overline{A \lor C} \lor \overline{B \lor C}}");
+    let one = function("A + A'", "A B");
+    let m = Minimisation::of(&one).unwrap();
+    let working = GateForm::nand(&m, 0, true).working(&m.expr(0, one.names()), one.names(), "g", Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Maximal), [("The NAND form (gates: 0, gate inputs: 0, levels: 0):".to_string(), "g = 1".to_string())]);
+}
+
+#[test]
+fn the_nand_working_speaks_german() {
+    let _german = quantus_core::logic::text::Scope::new(quantus_core::settings::Language::De);
+    let f = function("AB + AC + BC", "A B C");
+    let m = Minimisation::of(&f).unwrap();
+    let working = GateForm::nand(&m, 0, true).working(&m.expr(0, f.names()), f.names(), "f", Notation::Logic);
+    assert_eq!(texts_at(&working, StepDetail::Detailed), [
+        "Doppelte Negation, dann De Morgan: aus dem ODER der Produkte wird ein NAND der NANDs der Produkte:",
+        "Nur mit Gattern aus 2 Eingängen wird ein NAND mit 3 Eingängen zu einem ausgeglichenen Baum aus 3 Gattern:",
+        "Die Gatter, jedes über den Eingängen und den früheren Gattern, mit seiner Stufe:",
+        "Die NAND-Form (Gatter: 6, Gattereingänge: 12, Stufen: 4):",
+    ]);
+    assert!(lines(&working, StepDetail::Detailed)[2].1.contains(r"&&\text{Stufe 1}"));
 }

@@ -538,7 +538,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] NOR-only from the minimal KNF, the dual of both.
 - [x] The gate-by-gate rewrite of a given expression (*NAND from the circuit as drawn*) with
   cancelled inverter pairs.
-- [ ] Gate count, gate inputs and levels per form; steps (§8, row *NAND / NOR*). Tests: equal to
+- [x] Gate count, gate inputs and levels per form; steps (§8, row *NAND / NOR*). Tests: equal to
   the function on every row; the majority (4 / 6 gates), the 3-input NAND (3 gates).
 
 ### Phase 6: circuits and delay
