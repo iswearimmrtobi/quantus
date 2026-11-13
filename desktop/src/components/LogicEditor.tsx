@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { GateType, LogicSymbols } from '../api';
+import type { GateType, LogicError, LogicSymbols } from '../api';
 import { useT } from '../i18n';
 import { nameLatex, readName } from '../logic';
 import {
@@ -32,6 +32,10 @@ interface Props {
   symbols: LogicSymbols;
   /** Extra controls under the palette. */
   toolbar?: ReactNode;
+  /** The circuit's errors, each with the parts it concerns, marked red. */
+  errors?: LogicError[];
+  /** Its warnings (a gate that drives nothing), marked amber. */
+  warnings?: LogicError[];
 }
 
 /**
@@ -39,7 +43,7 @@ interface Props {
  * gates on the grid of the schematic editors, joined by wires; a gate's number of inputs is set in
  * the inspector.
  */
-export function LogicEditor({ parts, onChange, symbols, toolbar }: Props) {
+export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], warnings = [] }: Props) {
   const { t } = useT();
   const canvas = useRef<SVGSVGElement>(null);
   const canvasView = useCanvasView(canvas);
@@ -99,6 +103,11 @@ export function LogicEditor({ parts, onChange, symbols, toolbar }: Props) {
     event.preventDefault();
   };
 
+  const faulty = useMemo(() => new Set(errors.flatMap((e) => e.elements)), [errors]);
+  const doubtful = useMemo(() => new Set(warnings.flatMap((e) => e.elements)), [warnings]);
+  const mark = (id: string) => (faulty.has(id) ? 'error' : doubtful.has(id) ? 'warning' : null);
+  const notes = errors.length ? errors : warnings;
+
   const chosen = selection.length === 1 ? (parts.find((p) => p.id === selection[0]) ?? null) : null;
 
   return (
@@ -151,7 +160,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar }: Props) {
             <GridBackground view={view} />
             <g transform={viewTransform(view)}>
               {parts.map((part) => {
-                const className = ['part', selection.includes(part.id) && 'selected'].filter(Boolean).join(' ');
+                const className = ['part', selection.includes(part.id) && 'selected', mark(part.id)].filter(Boolean).join(' ');
                 if (part.kind === 'wire') {
                   const [a, b] = wireEnds(part);
                   return (
@@ -222,6 +231,14 @@ export function LogicEditor({ parts, onChange, symbols, toolbar }: Props) {
               ))}
             </div>
           </div>
+
+          {notes.length > 0 && (
+            <div className={errors.length ? 'circuit-note error' : 'circuit-note'}>
+              {notes.map((note, k) => (
+                <div key={k}>{note.message}</div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

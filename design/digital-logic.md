@@ -609,7 +609,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   hand).
 - [x] `LogicEditor.tsx`: the elements of §5.5, the number of inputs in the element's menu, gate
   symbols in IEC and ANSI with inversion marks.
-- [ ] The netlist sent to the core; errors and warnings marking elements red.
+- [x] The netlist sent to the core; errors and warnings marking elements red.
 - [ ] Simulation (§10.3): switches, nets coloured by value, lamps; the matching table row and KV
   cell highlighted, and clicking a row or cell sets the switches.
 - [ ] **Draw from…** and **Arrange**; the *out of date* marker with its rows; gate count, delay and

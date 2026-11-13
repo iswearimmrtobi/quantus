@@ -4,7 +4,7 @@ import { addOutput, logicAnswer, logicGrid, logicRequest, nameLatex, shownOutput
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { Katex } from './Katex';
-import { editorParts, type LogicPart } from '../logicCircuit';
+import { editorParts, withParts, type LogicPart } from '../logicCircuit';
 import { KvMap } from './KvMap';
 import { LogicEditor } from './LogicEditor';
 import { LogicLines } from './LogicLines';
@@ -32,7 +32,7 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
   const parts = editorParts(scene);
   /** Whether the circuit editor is open; at first when there is a circuit. */
   const [editorOpen, setEditorOpen] = useState(parts.length > 0);
-  const setParts = (next: LogicPart[]) => onSceneChange({ ...scene, editor: { parts: next } });
+  const setParts = (next: LogicPart[]) => onSceneChange(withParts(scene, next, scene.outputs.map((_, i) => answer?.outputs[i]?.name)));
   /** The latest request; an answer to an older one is dropped. */
   const request = useRef(0);
 
@@ -62,7 +62,10 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
     void run(scene);
   }, [scene, language, precision, stepDetail, logicNotation, logicTwoInput, run]);
 
-  const general = answer?.errors.filter((error) => error.output === null) ?? [];
+  // The circuit's errors name its parts and are shown in the editor; the others above.
+  const general = answer?.errors.filter((error) => error.output === null && !error.elements.length) ?? [];
+  const circuitErrors = answer?.errors.filter((error) => error.elements.length > 0) ?? [];
+  const warnings = answer?.response.circuit?.warnings ?? [];
   const grid = logicGrid(scene, answer);
   const outputs = shownOutputs(answer);
   const shown = outputs.find((o) => o.result.name === tab) ?? outputs[0];
@@ -80,7 +83,13 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
           </button>
           {editorOpen && (
             <div className="logic-editor-frame">
-              <LogicEditor parts={parts} onChange={setParts} symbols={settings.logicSymbols} />
+              <LogicEditor
+                parts={parts}
+                onChange={setParts}
+                symbols={settings.logicSymbols}
+                errors={circuitErrors}
+                warnings={warnings}
+              />
             </div>
           )}
         </section>

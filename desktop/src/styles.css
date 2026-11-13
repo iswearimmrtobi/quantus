@@ -2940,6 +2940,16 @@ select option {
 .field input.invalid {
   border-color: var(--danger);
 }
+.part.error .symbol,
+.part.error .logic-sign {
+  stroke: var(--danger);
+}
+.part.error .logic-sign {
+  fill: var(--danger);
+}
+.part.warning .symbol {
+  stroke: var(--point-saddle);
+}
 
 .logic-panel {
   display: grid;

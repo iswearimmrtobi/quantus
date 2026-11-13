@@ -1,6 +1,6 @@
-import type { GateType, LogicScene } from './api';
+import type { GateType, LogicElement, LogicOutput, LogicScene, Netlist } from './api';
 import type { TextKey } from './i18n';
-import { freshIdOf, GRID, rotate, type Placeable, type Point } from './schematic';
+import { freshIdOf, GRID, inside, pointKey, rotate, wireEnds, type Placeable, type Point } from './schematic';
 
 /**
  * The Logic mode's circuit as the editor keeps it (design/digital-logic.md §5.5): switches, lamps,
@@ -168,4 +168,113 @@ export function newPart(parts: LogicPart[], kind: PaletteKind, at: Point): Logic
 /** A gate changed to `gate`: one input for NOT and buffer, two when it had one. */
 export function withGate(part: LogicPart, gate: GateType): LogicPart {
   return { ...part, gate, inputs: single(gate) ? 1 : Math.max(2, part.inputs ?? 2) };
+}
+
+// ---- The netlist (§5.5): nets from what touches.
+
+/** The circuit's nets: each pin and wire end on a net, numbered from 1. */
+export interface Nets {
+  /** The net at a grid point (`pointKey`) where a pin or wire end sits. */
+  byPoint: Map<string, number>;
+  /** How many pins and wire ends each net joins; a pin alone is not connected. */
+  size: Map<number, number>;
+}
+
+/**
+ * Numbers the nets: pins and wire ends on the same point are joined, and every wire joins its two
+ * ends and whatever sits in its middle (the Logic mode's wires have no resistance).
+ */
+export function numberNets(parts: LogicPart[]): Nets {
+  const parent = new Map<string, string>();
+  const root = (key: string): string => {
+    let k = key;
+    while (parent.has(k)) k = parent.get(k)!;
+    return k;
+  };
+  const join = (p: string, q: string) => {
+    const [a, b] = [root(p), root(q)];
+    if (a !== b) parent.set(a, b);
+  };
+  const points = new Map<string, Point>();
+  const count = new Map<string, number>();
+  for (const part of parts) {
+    for (const point of allPins(part)) {
+      const key = pointKey(point);
+      points.set(key, point);
+      count.set(key, (count.get(key) ?? 0) + 1);
+    }
+  }
+  for (const wire of parts.filter((p) => p.kind === 'wire')) {
+    const [a, b] = wireEnds(wire);
+    join(pointKey(a), pointKey(b));
+    for (const [key, point] of points) if (inside(a, b, point)) join(key, pointKey(a));
+  }
+  const number = new Map<string, number>();
+  const byPoint = new Map<string, number>();
+  const size = new Map<number, number>();
+  for (const key of points.keys()) {
+    const r = root(key);
+    if (!number.has(r)) number.set(r, number.size + 1);
+    const net = number.get(r)!;
+    byPoint.set(key, net);
+    size.set(net, (size.get(net) ?? 0) + count.get(key)!);
+  }
+  return { byPoint, size };
+}
+
+/**
+ * The netlist the core checks: every part but the wires, with the nets of its pins; a pin that
+ * touches nothing is not connected. Null without any part.
+ */
+export function toNetlist(parts: LogicPart[], nets: Nets = numberNets(parts)): Netlist | null {
+  const net = (point: Point | null) => {
+    if (!point) return null;
+    const n = nets.byPoint.get(pointKey(point));
+    return n !== undefined && (nets.size.get(n) ?? 0) > 1 ? n : null;
+  };
+  const elements: LogicElement[] = [];
+  for (const part of parts) {
+    const { inputs, output } = partPins(part);
+    switch (part.kind) {
+      case 'input':
+        elements.push({ id: part.id, kind: 'input', name: part.name ?? '', output: net(output) });
+        break;
+      case 'output':
+        elements.push({ id: part.id, kind: 'output', name: part.name ?? '', inputs: [net(inputs[0])] });
+        break;
+      case 'constant':
+        elements.push({ id: part.id, kind: 'constant', value: part.value ?? false, output: net(output) });
+        break;
+      case 'gate':
+        elements.push({ id: part.id, kind: 'gate', gate: part.gate ?? 'and', inputs: inputs.map(net), output: net(output) });
+        break;
+    }
+  }
+  return elements.length ? { elements } : null;
+}
+
+/**
+ * The scene with the circuit drawn as `parts` (§5.1). When its netlist changes, every output a lamp
+ * names comes from the circuit; an output from the circuit follows its lamp when renamed, and goes
+ * with it. `names` holds each output's name as the core read it (a line's own `f = …`).
+ */
+export function withParts(scene: LogicScene, parts: LogicPart[], names: (string | null | undefined)[] = []): LogicScene {
+  const before = editorParts(scene);
+  const circuit = toNetlist(parts);
+  const next: LogicScene = { ...scene, editor: { parts } satisfies LogicEditorData, circuit };
+  if (JSON.stringify(circuit) === JSON.stringify(scene.circuit ?? null)) return next;
+  const lamps = (list: LogicPart[]) => new Map(list.filter((p) => p.kind === 'output').map((p) => [p.id, p.name ?? '']));
+  const [old, now] = [lamps(before), lamps(parts)];
+  const renamed = new Map<string, string | null>();
+  for (const [id, name] of old) if (now.get(id) !== name) renamed.set(name, now.get(id) ?? null);
+  const lampNames = new Set(now.values());
+  const outputs = scene.outputs.flatMap((output, index): LogicOutput[] => {
+    const name = names[index] ?? output.name;
+    if (output.source.kind === 'circuit' && name !== undefined && renamed.has(name)) {
+      const to = renamed.get(name)!;
+      return to === null ? [] : [{ ...output, name: to }];
+    }
+    return name !== undefined && lampNames.has(name) ? [{ ...output, name, source: { kind: 'circuit' } }] : [output];
+  });
+  return { ...next, outputs: outputs.length ? outputs : [{ source: { kind: 'expression', latex: '' } }] };
 }
