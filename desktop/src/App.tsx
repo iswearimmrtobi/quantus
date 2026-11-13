@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { api, ApiError, setSessionId, type Calculation, type FormKind, type HistoryEntry, type ModeInputs, type Mode, type NumberBase, type SessionInfo, type WordSize, type Settings, type StepKind, type Variable } from './api';
+import { api, ApiError, setSessionId, type Calculation, type FormKind, type HistoryEntry, type LogicScene, type ModeInputs, type Mode, type NumberBase, type SessionInfo, type WordSize, type Settings, type StepKind, type Variable } from './api';
 import { Katex, latexLines } from './components/Katex';
 import { LatexInput, type LatexInputHandle } from './components/LatexInput';
 import { ElectronicsView } from './components/ElectronicsView';
@@ -8,7 +8,9 @@ import { KirchhoffView } from './components/KirchhoffView';
 import { AnalysisView } from './components/AnalysisView';
 import { LinearSystemView } from './components/LinearSystemView';
 import { GeometryView } from './components/GeometryView';
+import { LogicView } from './components/LogicView';
 import { EMPTY_GEOMETRY, geometryInput, geometryRequest, type GeometryInput } from './geometry';
+import { EMPTY_LOGIC, logicInput, logicSaved } from './logic';
 import { EMPTY_LINEAR, inputFor, requestFor, type LinearInput } from './linear';
 import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -128,6 +130,8 @@ export function App() {
   const [linear, setLinear] = useState<LinearInput>(EMPTY_LINEAR);
   /** The Geometry scene and its task, kept here for the same reason. */
   const [geometry, setGeometry] = useState<GeometryInput>(EMPTY_GEOMETRY);
+  /** The Logic scene, kept here for the same reason. */
+  const [logic, setLogic] = useState<LogicScene>(EMPTY_LOGIC);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const language = settings.language;
@@ -256,6 +260,7 @@ export function App() {
         modeInputs.current = inputs;
         setLinear(inputFor(inputs.linear));
         setGeometry(geometryInput(inputs.geometry));
+        setLogic(logicInput(inputs.logic));
       } catch {
         setHistory([]);
       }
@@ -360,18 +365,18 @@ export function App() {
     start().catch(() => {});
   }, [openSession, newSession]);
 
-  // The linear system and the Geometry scene go into the session, a moment after the last change.
+  // The linear system and the Geometry and Logic scenes go into the session, a moment after the last change.
   useEffect(() => {
     if (!sessionId) return;
     const timer = window.setTimeout(() => {
-      const next = { ...modeInputs.current, linear: requestFor(linear), geometry: geometryRequest(geometry) };
-      const same = (key: 'linear' | 'geometry') => JSON.stringify(next[key] ?? null) === JSON.stringify(modeInputs.current[key] ?? null);
-      if (same('linear') && same('geometry')) return;
+      const next = { ...modeInputs.current, linear: requestFor(linear), geometry: geometryRequest(geometry), logic: logicSaved(logic) };
+      const same = (key: 'linear' | 'geometry' | 'logic') => JSON.stringify(next[key] ?? null) === JSON.stringify(modeInputs.current[key] ?? null);
+      if (same('linear') && same('geometry') && same('logic')) return;
       modeInputs.current = next;
       api.saveModeInputs(modeInputs.current).catch(() => {});
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [linear, geometry, sessionId]);
+  }, [linear, geometry, logic, sessionId]);
 
   /** CALC or SOLVE on what the input holds. */
   const openTool = useCallback((kind: ToolKind) => {
@@ -394,8 +399,8 @@ export function App() {
         setSettings(saved);
         setPrecision(saved.precision);
         setSettingsError(null);
-        // The analysis, linear systems and Geometry views re-run themselves; the hidden calculator input need not.
-        if (!(['analysis', 'linear', 'geometry'] as Mode[]).includes(saved.mode) && (latest.current.calculation || latest.current.error)) await evaluate({ record: false });
+        // The analysis, linear systems, Geometry and Logic views re-run themselves; the hidden calculator input need not.
+        if (!(['analysis', 'linear', 'geometry', 'logic'] as Mode[]).includes(saved.mode) && (latest.current.calculation || latest.current.error)) await evaluate({ record: false });
       } catch (failure) {
         setSettingsError(failure instanceof Error ? failure.message : String(failure));
       }
@@ -606,6 +611,8 @@ export function App() {
         />
       ) : settings.mode === 'geometry' ? (
         <GeometryView settings={settings} input={geometry} onInputChange={setGeometry} placeholder={placeholder} />
+      ) : settings.mode === 'logic' ? (
+        <LogicView settings={settings} scene={logic} onSceneChange={setLogic} />
       ) : settings.mode === 'electronics' ? (
         <main className="workspace circuit-workspace">
           <ElectronicsView

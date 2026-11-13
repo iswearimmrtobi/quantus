@@ -2870,6 +2870,49 @@ select option {
   font-size: 13px;
 }
 
+/* ---- Logic mode --------------------------------------------------------------------------- */
+
+.logic-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.logic-outputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.logic-output-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logic-name {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* Which view an output's function comes from. */
+.logic-source {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  border: 1px solid var(--hairline-strong);
+  white-space: nowrap;
+}
+.logic-source-table {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+.logic-source-circuit {
+  color: var(--point-zero);
+}
+
 /* ---------- Phone layout (the Android app) ---------- */
 
 /* The menu's actions as buttons: only the phone layout shows them, the desktop has the menu bar. */

@@ -584,7 +584,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 10: desktop page without the editor
 
-- [ ] `LogicView.tsx` and `logic.ts`: the mode in the mode menu, the state in `App.tsx`, the
+- [x] `LogicView.tsx` and `logic.ts`: the mode in the mode menu, the state in `App.tsx`, the
   request on every change with older answers dropped, the source marker per output.
 - [ ] Function lines (MathLive, one per output) with errors in place.
 - [ ] `LogicTable.tsx`: the grid of §5.4, cycling cells, the keys `0`, `1`, `-`, adding and
