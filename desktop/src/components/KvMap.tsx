@@ -1,8 +1,9 @@
-import { useState, type KeyboardEvent, type ReactElement } from 'react';
-import type { Kmap, KvBlockResult, LogicScene, LogicValue } from '../api';
-import { cycle, editColumn, type Cell, type Grid, type Shown, type TermHover } from '../logic';
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactElement } from 'react';
+import { api, type Kmap, type KvBlockResult, type LogicScene, type LogicTaskResult, type LogicValue } from '../api';
+import { cycle, dragRect, editColumn, logicRequest, rectPieces, type Cell, type Grid, type KvRect, type KvSpot, type Shown, type TermHover } from '../logic';
 import { useT } from '../i18n';
-import { Katex } from './Katex';
+import { Steps } from './AnalysisView';
+import { displayStyle, Katex } from './Katex';
 
 interface Props {
   scene: LogicScene;
@@ -86,11 +87,12 @@ const INSET_STEP = 3;
 /** How far an open side reaches past the map's edge, px. */
 const OVERHANG = 7;
 
-/** A block as drawn: its pieces, its colour (an index into the palette) and how it stands out. */
+/** A block as drawn: its pieces, its colour and how it stands out. */
 export interface DrawnBlock {
   key: string;
   pieces: KvBlockResult['pieces'];
-  colour: number;
+  /** A CSS colour. */
+  colour: string;
   /** Nested blocks lie further inside their cells. */
   depth: number;
   className?: string;
@@ -150,7 +152,7 @@ function Blocks({ blocks, at }: { blocks: DrawnBlock[]; at: Geometry }) {
   return (
     <svg className="kv-blocks" width={at.width} height={at.height} aria-hidden>
       {blocks.map((block) => (
-        <g key={block.key} className={['kv-block', block.className ?? ''].join(' ')} style={{ ['--block' as string]: `var(--geometry-${block.colour % 8})` }}>
+        <g key={block.key} className={['kv-block', block.className ?? ''].join(' ')} style={{ ['--block' as string]: block.colour }}>
           {block.pieces.map((piece, p) => {
             const { x, y } = at.origin(piece.map);
             const inset = INSET + block.depth * INSET_STEP;
@@ -165,8 +167,8 @@ function Blocks({ blocks, at }: { blocks: DrawnBlock[]; at: Geometry }) {
                 <path className="kv-block-line" d={stroke} />
                 {p === 0 && block.label && (
                   <g className="kv-block-label">
-                    <circle cx={left} cy={top} r={8} />
-                    <text x={left} y={top} dy="0.35em">
+                    <circle cx={left + block.depth * 17} cy={top} r={8} />
+                    <text x={left + block.depth * 17} y={top} dy="0.35em">
                       {block.label}
                     </text>
                   </g>
@@ -233,18 +235,64 @@ export function depths(blocks: { cells: number[] }[]): number[] {
   return found.map((d) => d % 4);
 }
 
+/** The colour of a drawn block by its check: right, could be better, wrong; grey while unchecked. */
+function tone(check: LogicTaskResult['blocks'][number] | undefined): string {
+  if (!check) return 'var(--text-muted)';
+  if (!check.valid) return 'var(--danger)';
+  return check.faults.length ? 'var(--point-saddle)' : 'var(--point-zero)';
+}
+
+/**
+ * The user's blocks checked by the core (§6.8), asked again whenever they or the scene change; an
+ * answer to an older request is dropped.
+ */
+function useBlockCheck(scene: LogicScene, output: string, form: 'dnf' | 'knf', rects: KvRect[]): LogicTaskResult | null {
+  const [answer, setAnswer] = useState<LogicTaskResult | null>(null);
+  const request = useRef(0);
+  useEffect(() => {
+    const id = ++request.current;
+    const sent = logicRequest(scene).request;
+    if (!rects.length || !sent) {
+      setAnswer(null);
+      return;
+    }
+    api
+      .logic({ ...sent, task: { kind: 'checkBlocks', output, form, blocks: rects } })
+      .then((response) => id === request.current && setAnswer(response.task))
+      .catch(() => id === request.current && setAnswer(null));
+  }, [scene, output, form, rects]);
+  return answer;
+}
+
 /**
  * The KV diagram of one output (§6.3): its maps with the variables' bars, each cell with its value
  * and the row number in its corner, and the blocks of the chosen minimal DNF over the 1s (or of
  * the KNF over the 0s) in colour. Clicking a cell cycles it like the table's and makes the table
  * the output's source; hovering it, or a term in the legend or the results, singles out a block.
+ *
+ * **Draw my blocks** (§6.8) turns the cells into a canvas: dragging draws a rectangle, wrapping
+ * round when dragged past an edge and spanning maps when dragged into another; the core checks
+ * the blocks, each shown in the colour of its answer with its number, the faults listed below.
  */
 export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange }: Props) {
   const { t } = useT();
   const [numbers, setNumbers] = useNumbers();
   /** The blocks shown: over the 1s for the minimal DNF, over the 0s for the minimal KNF. */
   const [form, setForm] = useState<'dnf' | 'knf'>('dnf');
+  /** Whether the user draws their own blocks, and those drawn, per output and form. */
+  const [drawing, setDrawing] = useState(false);
+  const [mine, setMine] = useState<Record<string, KvRect[]>>({});
+  /** The drag under way: where it started and the rectangle so far. */
+  const [drag, setDrag] = useState<{ from: KvSpot; rect: KvRect } | null>(null);
+  const dragFrom = useRef<KvSpot | null>(null);
+  /** The drawn block hovered in the list below. */
+  const [picked, setPicked] = useState<number | null>(null);
+  const [steps, setSteps] = useState(false);
   const { result, index } = shown;
+  // Drawn blocks belong to one output, form and number of inputs.
+  const key = `${result.name}|${form}|${result.table.length}`;
+  const rects = mine[key] ?? NONE;
+  const check = useBlockCheck(scene, result.name, form, drawing ? rects : NONE);
   const kmap = result.kmap;
   if (!kmap) {
     return (
@@ -272,17 +320,73 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange }: P
   const blocks = form === 'dnf' ? kmap.blocks : kmap.knfBlocks;
   const hovered = hover && hover.output === result.name && hover.form === form ? hover.term : null;
   const nested = depths(blocks);
-  const drawn: DrawnBlock[] = blocks.map((block, b) => ({
+  // The user's blocks nested by the cells the check found for them, so that overlapping ones show inside each other.
+  const mineDepths = depths(check?.blocks.length === rects.length ? check.blocks : rects.map(() => ({ cells: [] })));
+  const drawnMine: DrawnBlock[] = rects.map((rect, b) => ({
+    key: `mine-${b}`,
+    pieces: rectPieces(kmap, rect),
+    colour: tone(check?.blocks[b]),
+    depth: mineDepths[b],
+    label: String(b + 1),
+    className: picked === null ? undefined : picked === b ? 'active' : 'faded',
+  }));
+  const minimal: DrawnBlock[] = blocks.map((block, b) => ({
     key: `${form}-${block.term}`,
     pieces: block.pieces,
-    colour: block.term,
+    colour: `var(--geometry-${block.term % 8})`,
     depth: nested[b],
     className: hovered === null ? undefined : hovered === block.term ? 'active' : 'faded',
   }));
+  const preview: DrawnBlock[] = drag ? [{ key: 'drag', pieces: rectPieces(kmap, drag.rect), colour: 'var(--primary)', depth: 0, className: 'dragging' }] : [];
+  const drawn = drawing ? [...drawnMine, ...preview] : minimal;
+  const uncovered = new Set(drawing ? (check?.uncovered ?? []) : []);
+
   /** Hovering a cell picks the smallest of the blocks over it. */
   const hoverCell = (row: number) => {
+    if (drawing) return;
     const over = blocks.filter((block) => block.cells.includes(row)).sort((a, b) => a.cells.length - b.cells.length)[0];
     onHover(over ? { output: result.name, form, term: over.term } : null);
+  };
+
+  /**
+   * The cell under the pointer. With `inside`, only a cell of a map; otherwise the map whose
+   * column and row of the grid of maps the pointer is in (margins included), and the cell
+   * relative to it, past its edges when the pointer is.
+   */
+  const spot = (event: PointerEvent, inside: boolean): KvSpot | null => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const [px, py] = [event.clientX - box.left, event.clientY - box.top];
+    const first = at.origin(kmap.maps[0].map);
+    const grid = (p: number, origin: number, size: number, count: number) => Math.max(0, Math.min(count - 1, Math.floor((p - origin + MARGIN + GAP / 2) / (size + GAP))));
+    const [gx, gy] = [grid(px, first.x, at.mapWidth, Math.max(...kmap.maps.map((m) => m.x)) + 1), grid(py, first.y, at.mapHeight, Math.max(...kmap.maps.map((m) => m.y)) + 1)];
+    const map = kmap.maps.find((m) => m.x === gx && m.y === gy)?.map ?? kmap.maps[0].map;
+    const { x, y } = at.origin(map);
+    const [col, row] = [Math.floor((px - x) / CELL), Math.floor((py - y) / CELL)];
+    if (inside && !(col >= 0 && col < kmap.columns && row >= 0 && row < kmap.rows)) return null;
+    return { map, col, row };
+  };
+  const setRects = (next: KvRect[]) => setMine((all) => ({ ...all, [key]: next }));
+  const onPointerDown = (event: PointerEvent) => {
+    if (!drawing || event.button !== 0) return;
+    const from = spot(event, true);
+    if (!from) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragFrom.current = from;
+    setDrag({ from, rect: dragRect(kmap, from, from) });
+  };
+  const onPointerMove = (event: PointerEvent) => {
+    const from = dragFrom.current;
+    const to = from && spot(event, false);
+    if (from && to) setDrag({ from, rect: dragRect(kmap, from, to) });
+  };
+  // The rectangle from the release itself: the last move may not have been drawn yet.
+  const onPointerUp = (event: PointerEvent) => {
+    const from = dragFrom.current;
+    const to = from && spot(event, false);
+    dragFrom.current = null;
+    setDrag(null);
+    if (from && to) setRects([...rects, dragRect(kmap, from, to)]);
   };
 
   return (
@@ -295,25 +399,40 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange }: P
         <button className={form === 'knf' ? 'form-chip active' : 'form-chip'} title={t('logic.kv.knf.hint')} onClick={() => setForm('knf')}>
           {t('logic.kv.knf')}
         </button>
+        <button className={drawing ? 'form-chip active' : 'form-chip'} title={t(form === 'dnf' ? 'logic.kv.draw.hint' : 'logic.kv.draw.hintKnf')} onClick={() => setDrawing(!drawing)}>
+          {t('logic.kv.draw')}
+        </button>
         <button className={numbers ? 'form-chip active' : 'form-chip'} title={t('logic.kv.numbers.hint')} onClick={() => setNumbers(!numbers)}>
           i
         </button>
       </div>
       <div className="kv-scroll">
-        <div className="kv-diagram" style={{ width: at.width, height: at.height }} onMouseLeave={() => onHover(null)}>
+        <div
+          className={drawing ? 'kv-diagram drawing' : 'kv-diagram'}
+          style={{ width: at.width, height: at.height }}
+          onMouseLeave={() => onHover(null)}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => {
+            dragFrom.current = null;
+            setDrag(null);
+          }}
+        >
           <Bars kmap={kmap} at={at} />
           {kmap.cells.map((cell) => {
             const { x, y } = at.origin(cell.map);
             const shownValue = value(cell.index, cell.value);
+            const classes = ['kv-cell', shownValue === null ? 'empty' : '', uncovered.has(cell.index) ? 'uncovered' : ''].filter(Boolean).join(' ');
             return (
               <button
                 key={cell.index}
-                className={shownValue === null ? 'kv-cell empty' : 'kv-cell'}
+                className={classes}
                 style={{ left: x + cell.col * CELL, top: y + cell.row * CELL, width: CELL + 1, height: CELL + 1 }}
                 title={t('logic.kv.cell', { index: cell.index, vars, code: cell.code })}
-                disabled={index === null}
-                onClick={() => set(cell.index, cycle(shownValue))}
-                onKeyDown={(event) => onKey(event, cell.index)}
+                disabled={index === null && !drawing}
+                onClick={() => !drawing && set(cell.index, cycle(shownValue))}
+                onKeyDown={(event) => !drawing && onKey(event, cell.index)}
                 onMouseEnter={() => hoverCell(cell.index)}
                 onFocus={() => hoverCell(cell.index)}
               >
@@ -325,7 +444,7 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange }: P
           <Blocks blocks={drawn} at={at} />
         </div>
       </div>
-      {blocks.length > 0 && (
+      {!drawing && blocks.length > 0 && (
         <div className="kv-legend">
           {blocks.map((block) => (
             <span
@@ -340,6 +459,69 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange }: P
           ))}
         </div>
       )}
+      {drawing && (
+        <div className="kv-mine">
+          {!rects.length ? (
+            <p className="analysis-empty">{t(form === 'dnf' ? 'logic.kv.mine.empty' : 'logic.kv.mine.emptyKnf')}</p>
+          ) : (
+            <>
+              {check?.error && <p className="section-message error">{check.error}</p>}
+              {check && check.equal !== null && (
+                <div className={check.minimal ? 'kv-verdict right' : check.equal ? 'kv-verdict better' : 'kv-verdict wrong'}>
+                  <span>{t(check.minimal ? 'logic.kv.mine.minimal' : check.equal ? 'logic.kv.mine.notMinimal' : 'logic.kv.mine.wrong')}</span>
+                  {check.equal && check.result[0] && <Katex latex={displayStyle(check.result[0])} />}
+                </div>
+              )}
+              {check && check.uncovered.length > 0 && (
+                <span className="kv-uncovered">{t(form === 'dnf' ? 'logic.kv.mine.uncovered' : 'logic.kv.mine.uncoveredKnf', { rows: check.uncovered.join(', ') })}</span>
+              )}
+              <ol className="kv-mine-list">
+                {rects.map((_, b) => {
+                  const block = check?.blocks[b];
+                  return (
+                    <li key={b} style={{ ['--block' as string]: tone(block) }} onMouseEnter={() => setPicked(b)} onMouseLeave={() => setPicked(null)}>
+                      <span className="kv-mine-number">{b + 1}</span>
+                      <span className="kv-mine-body">
+                        {block?.term && <Katex latex={block.term} />}
+                        {block && !block.faults.length && <span className="kv-mine-right">{t('logic.kv.mine.right')}</span>}
+                        {block?.faults.map((fault, f) => (
+                          <span key={f} className="kv-mine-fault">
+                            {fault.text} {fault.latex && <Katex latex={fault.latex} />}
+                          </span>
+                        ))}
+                      </span>
+                      <button
+                        className="logic-head-remove"
+                        title={t('logic.kv.mine.remove')}
+                        onClick={() => {
+                          setPicked(null);
+                          setRects(rects.filter((_, o) => o !== b));
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+              <div className="form-row kv-mine-actions">
+                <button className="form-chip" onClick={() => setRects([])}>
+                  {t('logic.kv.mine.clear')}
+                </button>
+                {check && check.worked.steps.length > 0 && (
+                  <button className={steps ? 'form-chip active' : 'form-chip'} onClick={() => setSteps(!steps)}>
+                    {t('steps')}
+                  </button>
+                )}
+              </div>
+              {steps && check && <Steps steps={check.worked.steps} hidden={false} display />}
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }
+
+/** No blocks; one array, so that it does not count as a change. */
+const NONE: KvRect[] = [];

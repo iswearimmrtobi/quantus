@@ -398,19 +398,7 @@ impl BlocksCheck {
         for (index, block) in self.blocks.iter().enumerate() {
             let number = index + 1;
             for fault in &block.faults {
-                let (text, latex) = match fault {
-                    BlockFault::Empty => (msg!("core.logic.step.check_block_empty"), String::new()),
-                    BlockFault::Size { cells } => (msg!("core.logic.step.check_block_size"), set(&block.cells)),
-                    BlockFault::Shape => (msg!("core.logic.step.check_block_shape"), set(&block.cells)),
-                    BlockFault::WrongValue { rows } if knf => (msg!("core.logic.step.check_block_ones"), set(rows)),
-                    BlockFault::WrongValue { rows } => (msg!("core.logic.step.check_block_zeros"), set(rows)),
-                    BlockFault::Grow { to } => {
-                        let from = block.term.expect("a block that could grow has a term");
-                        (msg!("core.logic.step.check_block_grow"), format!("{} \\to {}", term(from), term(*to)))
-                    }
-                    BlockFault::Redundant if knf => (msg!("core.logic.step.check_block_redundant_knf"), term(block.term.expect("a redundant block has a term"))),
-                    BlockFault::Redundant => (msg!("core.logic.step.check_block_redundant"), term(block.term.expect("a redundant block has a term"))),
-                };
+                let (text, latex) = self.fault_note(index, fault, names, notation);
                 working.add(Standard, text, latex);
             }
             if block.faults.is_empty() {
@@ -423,6 +411,29 @@ impl BlocksCheck {
             working.add(Standard, text, set(&self.uncovered));
         }
         working
+    }
+
+    /// What is wrong with block `index` (counted from 0), as a text and a formula over the
+    /// variables `names`: *Block 2 could grow, with fewer literals:* $A\bar{C} \to A$.
+    pub fn fault_note(&self, index: usize, fault: &BlockFault, names: &[String], notation: Notation) -> (String, String) {
+        let knf = self.form == Form::Knf;
+        let block = &self.blocks[index];
+        let number = index + 1;
+        let term = |p: Pattern| if knf { p.sum(names) } else { p.product(names) }.latex(notation);
+        let set = |cells: &[usize]| format!("\\{{{}\\}}", list(cells));
+        match fault {
+            BlockFault::Empty => (msg!("core.logic.step.check_block_empty"), String::new()),
+            BlockFault::Size { cells } => (msg!("core.logic.step.check_block_size"), set(&block.cells)),
+            BlockFault::Shape => (msg!("core.logic.step.check_block_shape"), set(&block.cells)),
+            BlockFault::WrongValue { rows } if knf => (msg!("core.logic.step.check_block_ones"), set(rows)),
+            BlockFault::WrongValue { rows } => (msg!("core.logic.step.check_block_zeros"), set(rows)),
+            BlockFault::Grow { to } => {
+                let from = block.term.expect("a block that could grow has a term");
+                (msg!("core.logic.step.check_block_grow"), format!("{} \\to {}", term(from), term(*to)))
+            }
+            BlockFault::Redundant if knf => (msg!("core.logic.step.check_block_redundant_knf"), term(block.term.expect("a redundant block has a term"))),
+            BlockFault::Redundant => (msg!("core.logic.step.check_block_redundant"), term(block.term.expect("a redundant block has a term"))),
+        }
     }
 }
 

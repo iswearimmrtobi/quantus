@@ -17,7 +17,7 @@ use crate::settings::{Settings, StepDetail};
 use crate::text::Scope;
 use crate::{QuantusError, Result};
 
-use super::check::{BlocksCheck, Equivalence, FormCheck};
+use super::check::{BlockFault, BlocksCheck, Equivalence, FormCheck};
 use super::circuit::{Circuit, GateType, Issue, Netlist};
 use super::delay::{Delay, GateTimes};
 use super::expr::{variable_latex, Expr, Notation};
@@ -422,7 +422,33 @@ pub struct TaskResponse {
     pub minimal: Option<bool>,
     /// The rows where the two functions differ.
     pub rows: Vec<usize>,
+    /// `checkBlocks`: each of the user's blocks checked, in the order drawn, and the 1s (0s for
+    /// the KNF) in no valid block.
+    pub blocks: Vec<BlockCheckResponse>,
+    pub uncovered: Vec<usize>,
     pub error: Option<String>,
+}
+
+/// One of the user's KV blocks checked (§6.8): its cells, its term when its cells are one, and
+/// what is wrong with it, or could be better.
+#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockCheckResponse {
+    pub cells: Vec<usize>,
+    pub term: Option<String>,
+    /// A term over 1s (0s) and don't cares only, so part of a form of the function.
+    pub valid: bool,
+    pub faults: Vec<FaultResponse>,
+}
+
+/// A fault of a block: `empty`, `size`, `shape`, `wrongValue` (the block is wrong), `grow` or
+/// `redundant` (it could be better), with its text and formula.
+#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FaultResponse {
+    pub kind: String,
+    pub text: String,
+    pub latex: String,
 }
 
 #[derive(Clone, Debug, Default, Serialize, PartialEq)]
@@ -922,9 +948,39 @@ fn task(read: &Read, task: &LogicTask, options: Options) -> Result<TaskResponse>
                 })
                 .collect();
             let check = BlocksCheck::of(function, *form, &rows)?;
-            let mut response = answer(check.working(function.names(), output, notation));
+            let names = function.names();
+            let mut response = answer(check.working(names, output, notation));
             response.equal = Some(check.correct());
             response.minimal = Some(check.minimal());
+            response.blocks = check
+                .blocks
+                .iter()
+                .enumerate()
+                .map(|(index, block)| {
+                    let term = block.term.map(|t| match form {
+                        Form::Dnf => t.product(names),
+                        Form::Knf => t.sum(names),
+                    });
+                    let faults = block
+                        .faults
+                        .iter()
+                        .map(|fault| {
+                            let kind = match fault {
+                                BlockFault::Empty => "empty",
+                                BlockFault::Size { .. } => "size",
+                                BlockFault::Shape => "shape",
+                                BlockFault::WrongValue { .. } => "wrongValue",
+                                BlockFault::Grow { .. } => "grow",
+                                BlockFault::Redundant => "redundant",
+                            };
+                            let (text, latex) = check.fault_note(index, fault, names, notation);
+                            FaultResponse { kind: kind.into(), text, latex }
+                        })
+                        .collect();
+                    BlockCheckResponse { cells: block.cells.clone(), term: term.map(|t| t.latex(notation)), valid: block.valid(), faults }
+                })
+                .collect();
+            response.uncovered = check.uncovered.clone();
             Ok(response)
         }
         LogicTask::CheckForm { output, latex } => {

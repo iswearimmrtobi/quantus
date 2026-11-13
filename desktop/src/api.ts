@@ -622,7 +622,24 @@ export interface LogicTaskResult {
   equal: boolean | null;
   minimal: boolean | null;
   rows: number[];
+  /** `checkBlocks`: each block drawn, checked, and the 1s (0s) in no valid block. */
+  blocks: KvBlockCheck[];
+  uncovered: number[];
   error: string | null;
+}
+
+/** A fault of a drawn block: wrong (`empty`, `size`, `shape`, `wrongValue`) or could be better (`grow`, `redundant`). */
+export interface KvFault {
+  kind: 'empty' | 'size' | 'shape' | 'wrongValue' | 'grow' | 'redundant';
+  text: string;
+  latex: string;
+}
+
+export interface KvBlockCheck {
+  cells: number[];
+  term: string | null;
+  valid: boolean;
+  faults: KvFault[];
 }
 
 /** What `quantus_core::api::LogicResponse` serialises to. */

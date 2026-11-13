@@ -335,3 +335,71 @@ export interface TermHover {
   form: 'dnf' | 'knf';
   term: number;
 }
+
+// ---- The user's own KV blocks (§6.8).
+
+/** A rectangle dragged on the KV diagram: in each of `maps`, `width` columns from `col` and `height` rows from `row`, wrapping over the right and bottom edge. */
+export interface KvRect {
+  maps: number[];
+  col: number;
+  row: number;
+  width: number;
+  height: number;
+}
+
+/** A place under the pointer: a map and a column and row in it, outside it when past an edge. */
+export interface KvSpot {
+  map: number;
+  col: number;
+  row: number;
+}
+
+/** The shape of a diagram: cells per map and where each map sits in the grid of maps. */
+interface KvShape {
+  columns: number;
+  rows: number;
+  maps: { map: number; x: number; y: number }[];
+}
+
+const mod = (a: number, n: number) => ((a % n) + n) % n;
+
+/** The cells from `a` to `b` along an axis of `len`: past an edge they wrap round; at most the whole axis. */
+function span(a: number, b: number, len: number): [number, number] {
+  const width = Math.min(Math.abs(b - a) + 1, len);
+  return [width === len ? 0 : mod(Math.min(a, b), len), width];
+}
+
+/**
+ * The rectangle dragged from the cell `from` to `to`. Within one map a drag past an edge wraps
+ * round to the other side; into another map it takes in the maps between (in the grid of maps)
+ * with the same cells in each.
+ */
+export function dragRect(shape: KvShape, from: KvSpot, to: KvSpot): KvRect {
+  const place = (map: number) => shape.maps.find((m) => m.map === map) ?? { map, x: 0, y: 0 };
+  const [a, b] = [place(from.map), place(to.map)];
+  const maps = shape.maps
+    .filter((m) => m.x >= Math.min(a.x, b.x) && m.x <= Math.max(a.x, b.x) && m.y >= Math.min(a.y, b.y) && m.y <= Math.max(a.y, b.y))
+    .map((m) => m.map)
+    .sort((p, q) => p - q);
+  const [col, width] = span(from.col, to.col, shape.columns);
+  const [row, height] = span(from.row, to.row, shape.rows);
+  return { maps, col, row, width, height };
+}
+
+/** The runs of `width` positions from `start` on an axis of `len`, split where they wrap: start, length, open at the start, open at the end. */
+function runs(start: number, width: number, len: number): [number, number, boolean, boolean][] {
+  if (start + width <= len) return [[start, width, false, false]];
+  return [
+    [0, start + width - len, true, false],
+    [start, len - start, false, true],
+  ];
+}
+
+/** A rectangle as pieces to draw, like the core's blocks: one per map and part, open where it wraps. */
+export function rectPieces(shape: KvShape, rect: KvRect) {
+  return rect.maps.flatMap((map) =>
+    runs(rect.row, rect.height, shape.rows).flatMap(([row, height, top, bottom]) =>
+      runs(rect.col, rect.width, shape.columns).map(([col, width, left, right]) => ({ map, col, row, width, height, open: { left, right, top, bottom } })),
+    ),
+  );
+}

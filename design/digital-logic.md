@@ -599,7 +599,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `KvMap.tsx`: maps, bars, cells (0s shown or not), $i$ in the corner; clicking a cell cycles
   it.
 - [x] Blocks in colour, wrapping pieces, the KNF switch; hover links term and block both ways.
-- [ ] **Draw my blocks**: dragging rectangles with wrap-around and across maps, the check's
+- [x] **Draw my blocks**: dragging rectangles with wrap-around and across maps, the check's
   answer shown on the blocks.
 
 ### Phase 12: circuit editor

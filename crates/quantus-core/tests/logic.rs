@@ -2174,6 +2174,14 @@ fn the_api_answers_the_tasks() {
         "kind": "checkBlocks", "output": "f", "form": "dnf", "blocks": [[3, 7], [5, 7], { "maps": [0], "col": 2, "row": 0, "width": 1, "height": 1 }],
     })));
     assert_eq!((blocks["task"]["equal"].as_bool(), blocks["task"]["minimal"].as_bool()), (Some(true), Some(false)));
+    // Each block checked on its own: the dragged cell 6 is right but could grow to AB.
+    let checked = blocks["task"]["blocks"].as_array().unwrap();
+    assert_eq!(checked.len(), 3);
+    assert_eq!((checked[0]["valid"].as_bool(), checked[0]["faults"].as_array().unwrap().len()), (Some(true), 0));
+    assert_eq!(checked[2]["cells"], serde_json::json!([6]));
+    assert_eq!(checked[2]["faults"][0]["kind"], "grow");
+    assert_eq!(checked[2]["faults"][0]["text"], "Block 3 could grow, with fewer literals:");
+    assert_eq!(blocks["task"]["uncovered"], serde_json::json!([]));
 
     let form = logic_api(scene.clone(), Some(serde_json::json!({ "kind": "checkForm", "output": "f", "latex": "AB + AC + BC" })));
     assert_eq!((form["task"]["equal"].as_bool(), form["task"]["minimal"].as_bool()), (Some(true), Some(true)));
