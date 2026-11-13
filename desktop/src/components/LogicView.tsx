@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError, type LogicScene, type LogicSource, type Settings } from '../api';
+import { api, ApiError, type LogicScene, type Settings } from '../api';
 import { logicAnswer, logicRequest, type LogicAnswer } from '../logic';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
+import { LogicLines, SourceMark } from './LogicLines';
 
 interface Props {
   settings: Settings;
@@ -10,21 +11,11 @@ interface Props {
   onSceneChange(scene: LogicScene): void;
 }
 
-/** Which view an output's function comes from (§5.1): a small mark beside its name. */
-export function SourceMark({ kind }: { kind: LogicSource['kind'] }) {
-  const { t } = useT();
-  return (
-    <span className={`logic-source logic-source-${kind}`} title={t('logic.source.hint')}>
-      {t(`logic.source.${kind}`)}
-    </span>
-  );
-}
-
 /**
  * The Logic mode (design/digital-logic.md §10): function lines, the truth table and the results
  * of each output, worked out by the core on every change.
  */
-export function LogicView({ settings, scene }: Props) {
+export function LogicView({ settings, scene, onSceneChange }: Props) {
   const { t } = useT();
   const [answer, setAnswer] = useState<LogicAnswer | null>(null);
   const [failure, setFailure] = useState<ApiError | null>(null);
@@ -65,10 +56,11 @@ export function LogicView({ settings, scene }: Props) {
         {general.map((error, i) => (
           <ErrorRow key={i} error={new ApiError(error.message)} />
         ))}
+        <LogicLines scene={scene} answer={answer} onChange={onSceneChange} />
         {!answer && !failure && <p className="analysis-empty">{t('logic.empty')}</p>}
-        {answer && (
+        {answer && answer.extra.length > 0 && (
           <div className="logic-outputs">
-            {[...answer.outputs.filter((output) => output !== null), ...answer.extra].map((output) => (
+            {answer.extra.map((output) => (
               <div className="logic-output-name" key={output.name}>
                 <span className="logic-name">{output.name}</span>
                 <SourceMark kind={output.source} />

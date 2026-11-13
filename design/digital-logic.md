@@ -586,7 +586,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] `LogicView.tsx` and `logic.ts`: the mode in the mode menu, the state in `App.tsx`, the
   request on every change with older answers dropped, the source marker per output.
-- [ ] Function lines (MathLive, one per output) with errors in place.
+- [x] Function lines (MathLive, one per output) with errors in place.
 - [ ] `LogicTable.tsx`: the grid of §5.4, cycling cells, the keys `0`, `1`, `-`, adding and
   removing inputs and outputs, renaming headers, **Fill the rest with 0**.
 - [ ] Results panel: canonical and minimal forms with the choice between solutions, NAND and NOR

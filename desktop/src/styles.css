@@ -2913,6 +2913,55 @@ select option {
   color: var(--point-zero);
 }
 
+.logic-lines {
+  display: grid;
+  gap: 6px;
+}
+
+.logic-line {
+  display: grid;
+  gap: 4px;
+}
+
+.logic-line-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logic-line-row .math-host {
+  flex: 1;
+  min-width: 0;
+}
+
+.logic-line.has-error .logic-line-row .math-host {
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+
+.logic-line-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 96px;
+}
+
+.logic-line-remove {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.logic-line-remove:hover {
+  color: var(--danger);
+}
+
+.logic-line-add {
+  justify-self: start;
+  width: auto;
+}
+
 /* ---------- Phone layout (the Android app) ---------- */
 
 /* The menu's actions as buttons: only the phone layout shows them, the desktop has the menu bar. */

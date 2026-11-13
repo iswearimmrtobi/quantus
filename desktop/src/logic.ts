@@ -8,8 +8,17 @@ import type { LogicError, LogicOutput, LogicRequest, LogicResponse, LogicScene, 
 /** A new scene: one empty function line. */
 export const EMPTY_LOGIC: LogicScene = { inputs: [], outputs: [{ source: { kind: 'expression', latex: '' } }] };
 
+/** An output given by a typed line. */
+export type LineOutput = LogicOutput & { source: Extract<LogicSource, { latex: string }> };
+
+/** Whether an output is given by a typed line, an expression or a minterm list. */
+export const isLine = (output: LogicOutput): output is LineOutput => output.source.kind === 'expression' || output.source.kind === 'minterms';
+
+/** A new, empty function line. */
+export const newLine = (): LogicOutput => ({ source: { kind: 'expression', latex: '' } });
+
 /** Whether a line is still empty; such lines are not sent. */
-const blank = (output: LogicOutput) => (output.source.kind === 'expression' || output.source.kind === 'minterms') && !output.source.latex.trim();
+const blank = (output: LogicOutput) => isLine(output) && !output.source.latex.trim();
 
 /** The request for a scene, and for each of its outputs the index in the scene they came from. */
 export interface SentScene {
