@@ -54,6 +54,7 @@ fn app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
             commands::solve_kirchhoff,
             commands::geometry,
             commands::geometry_view,
+            commands::logic,
             commands::load_circuit,
             commands::save_circuit,
             commands::analyze,

@@ -132,6 +132,7 @@ export interface SessionInfo {
 export interface ModeInputs {
   linear?: LinearSystemRequest | null;
   geometry?: GeometryRequest | null;
+  logic?: LogicRequest | null;
   [mode: string]: unknown;
 }
 
@@ -410,8 +411,204 @@ export interface GeometryViewResponse {
   bounds: { min: [number, number, number]; max: [number, number, number] };
 }
 
+// ---- Logic mode (`quantus_core::logic::interface`).
+
+/** A row's value: 0, 1 or don't care. */
+export type LogicValue = '0' | '1' | '-';
+
+/** Where an output's function comes from; a table cell not filled is `null`. */
+export type LogicSource =
+  | { kind: 'circuit' }
+  | { kind: 'table'; values: (LogicValue | null)[] }
+  | { kind: 'expression'; latex: string }
+  | { kind: 'minterms'; latex: string };
+
+export interface LogicOutput {
+  /** A typed line that names its output overrides it. */
+  name?: string;
+  source: LogicSource;
+  /** The minimal DNF and KNF chosen among several. */
+  chosen?: number;
+  chosenKnf?: number;
+}
+
+export type GateType = 'and' | 'or' | 'not' | 'nand' | 'nor' | 'xor' | 'xnor' | 'buffer';
+
+/** An element of the circuit's netlist; an unconnected pin is `null`. */
+export type LogicElement = { id: string; inputs?: (number | null)[]; output?: number | null } & (
+  | { kind: 'input'; name: string }
+  | { kind: 'output'; name: string }
+  | { kind: 'constant'; value: boolean }
+  | { kind: 'gate'; gate: GateType }
+);
+
+export interface Netlist {
+  elements: LogicElement[];
+}
+
+export interface LogicScene {
+  /** The table's columns, the first the most significant bit. */
+  inputs: string[];
+  outputs: LogicOutput[];
+  circuit?: Netlist | null;
+  /** LaTeX times: t_pd for every gate, and per gate type. */
+  gateTimes?: { common?: string | null; perType?: { gate: GateType; time: string }[] };
+  /** The row the input switches are set to. */
+  row?: number;
+  /** The editor's own data, kept with the scene; the core does not read it. */
+  editor?: unknown;
+}
+
+export type DrawForm = 'dnf' | 'knf' | 'nand' | 'nor';
+
+export type LogicOperand =
+  | { kind: 'output'; name: string }
+  | { kind: 'circuit'; output: string }
+  | { kind: 'expression'; latex: string };
+
+/** A block drawn on the KV diagram: its rows, or a dragged rectangle. */
+export type KvBlock = number[] | { maps: number[]; col: number; row: number; width: number; height: number };
+
+export type LogicTask =
+  | { kind: 'draw'; form: DrawForm; output?: string | null }
+  | { kind: 'equivalent'; first: LogicOperand; second: LogicOperand }
+  | { kind: 'checkBlocks'; output: string; form: 'dnf' | 'knf'; blocks: KvBlock[] }
+  | { kind: 'checkForm'; output: string; latex: string };
+
+export interface LogicRequest {
+  scene: LogicScene;
+  task?: LogicTask | null;
+  precision?: number | null;
+}
+
+/** A working at the detail setting and its `align*` block. */
+export interface Worked {
+  steps: Step[];
+  alignBlock: string;
+}
+
+export interface LogicError {
+  message: string;
+  /** The index in `outputs` of the output whose source has the error. */
+  output: number | null;
+  elements: string[];
+  rows: number[];
+}
+
+export interface LogicForm {
+  latex: string;
+  terms: { latex: string; pattern: string; rows: number[] }[];
+  cost: { terms: number; literals: number };
+}
+
+export interface GateFormResult {
+  latex: string;
+  gates: number;
+  inputs: number;
+  levels: number;
+  worked: Worked;
+}
+
+export type KvEdge = 'top' | 'bottom' | 'left' | 'right';
+
+export interface KvBlockResult {
+  /** Index into the chosen form's terms. */
+  term: number;
+  latex: string;
+  cells: number[];
+  pieces: { map: number; col: number; row: number; width: number; height: number; open: { left: boolean; right: boolean; top: boolean; bottom: boolean } }[];
+}
+
+export interface Kmap {
+  columns: number;
+  rows: number;
+  maps: { map: number; x: number; y: number }[];
+  mapVars: string[];
+  colVars: string[];
+  rowVars: string[];
+  bars: { name: string; latex: string; edge: KvEdge; start: number; len: number; maps: boolean }[];
+  cells: { map: number; row: number; col: number; index: number; code: string; value: LogicValue }[];
+  blocks: KvBlockResult[];
+  knfBlocks: KvBlockResult[];
+  latex: string;
+}
+
+/** An output with every view of its function; without one (see `errors`) only name and source. */
+export interface LogicOutputResult {
+  name: string;
+  source: LogicSource['kind'];
+  table: LogicValue[];
+  tableWorked: Worked | null;
+  constant: string | null;
+  expression: { latex: string; worked: Worked } | null;
+  canonical: {
+    dnf: string;
+    knf: string;
+    sum: string;
+    product: string;
+    minterms: number[];
+    maxterms: number[];
+    dontCares: number[];
+    worked: Worked;
+  } | null;
+  minimal: {
+    dnf: LogicForm[];
+    knf: LogicForm[];
+    chosen: number;
+    chosenKnf: number;
+    worked: Worked;
+    knfWorked: Worked;
+    quineMcCluskey: Worked;
+  } | null;
+  kmap: Kmap | null;
+  nand: GateFormResult | null;
+  nor: GateFormResult | null;
+  nandRewrite: GateFormResult | null;
+  norRewrite: GateFormResult | null;
+}
+
+export interface LogicCircuitResult {
+  values: { net: number; value: boolean }[];
+  outputs: { name: string; levels: number; time: string | null; path: string[]; worked: Worked }[];
+  critical: string | null;
+  criticalPath: string[];
+  counts: { gate: GateType; count: number }[];
+  gates: number;
+  gateInputs: number;
+  levels: { id: string; level: number }[];
+  outOfDate: { output: string; rows: number[] }[];
+  warnings: LogicError[];
+}
+
+/** A grid point of the editor, in grid steps, `y` downwards. */
+export interface GridPoint {
+  x: number;
+  y: number;
+}
+
+export interface LogicTaskResult {
+  result: string[];
+  worked: Worked;
+  circuit: { netlist: Netlist; layout: { elements: { id: string; at: GridPoint }[]; wires: { from: GridPoint; to: GridPoint }[] } } | null;
+  equal: boolean | null;
+  minimal: boolean | null;
+  rows: number[];
+  error: string | null;
+}
+
+/** What `quantus_core::api::LogicResponse` serialises to. */
+export interface LogicResponse {
+  inputs: string[];
+  outputs: LogicOutputResult[];
+  circuit: LogicCircuitResult | null;
+  task: LogicTaskResult | null;
+  errors: LogicError[];
+}
+
 export type BinomialForm = 'auto' | 'expanded' | 'binomial';
-export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff' | 'baseN' | 'verify' | 'geometry';
+export type LogicSymbols = 'iec' | 'ansi';
+export type LogicNotation = 'logic' | 'technical';
+export type Mode = 'algebra' | 'physics' | 'imaginary' | 'electronics' | 'analysis' | 'linear' | 'kirchhoff' | 'baseN' | 'verify' | 'geometry' | 'logic';
 export type QuadraticFormula = 'auto' | 'pq' | 'abc';
 import type { Language } from './i18n';
 export type { Language };
@@ -488,6 +685,14 @@ export interface Settings {
   numberBase: NumberBase;
   /** The id of the colour theme (`themes/`), or `system` for light or dark as the system is set. */
   theme: string;
+  /** The Logic mode's gate symbols. */
+  logicSymbols: LogicSymbols;
+  /** How the Logic mode writes expressions: A ∧ ¬B or A · B̄. */
+  logicNotation: LogicNotation;
+  /** NAND and NOR forms only from 2-input gates. */
+  logicTwoInput: boolean;
+  /** Whether the truth table and the KV diagram show the 0s. */
+  logicZeros: boolean;
 }
 
 /** A theme on offer: built in, or a file in the user's themes folder. */
@@ -742,6 +947,9 @@ export const api = {
   geometry: (request: GeometryRequest) => call<Geometry>('geometry', { request }),
   /** The scene projected for the 3D view. */
   geometryView: (request: GeometryViewRequest) => call<GeometryViewResponse>('geometry_view', { request }),
+
+  /** A Logic scene worked out, and its task answered (`quantus_core::api::logic`). */
+  logic: (request: LogicRequest) => call<LogicResponse>('logic', { request }),
 
   /** Reads a circuit file; a broken one is an `ApiError` and nothing is returned. */
   loadCircuit: (path: string) => call<unknown>('load_circuit', { path }),

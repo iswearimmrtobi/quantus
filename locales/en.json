@@ -281,6 +281,8 @@
     "app.mode.kirchhoff.hint": "Resistor networks by the junction and loop rules, with the equations and their Gauss steps, or the resistance between two terminals A and B. Inputs are read as in Physics.",
     "app.mode.linear": "Linear systems",
     "app.mode.linear.hint": "Systems of linear equations, typed or as a matrix, solved exactly. Letters are unknowns; session variables are not used.",
+    "app.mode.logic": "Logic",
+    "app.mode.logic.hint": "Combinational logic: truth tables, minimal forms, KV diagrams, NAND and NOR forms and circuits, each with its working. Inputs are read as in Algebra.",
     "app.mode.physics": "Physics",
     "app.mode.physics.hint": "Units and natural constants are known; i is a variable.",
     "app.mode.verify": "Verify",

@@ -281,6 +281,8 @@
     "app.mode.kirchhoff.hint": "Widerstandsnetze nach Knoten- und Maschenregel, mit den Gleichungen und ihren Gauß-Schritten, oder der Widerstand zwischen zwei Anschlüssen A und B. Eingaben werden wie in Physik gelesen.",
     "app.mode.linear": "LGS",
     "app.mode.linear.hint": "Lineare Gleichungssysteme, als Gleichungen oder als Matrix, exakt gelöst. Buchstaben sind Unbekannte; Sitzungsvariablen werden nicht verwendet.",
+    "app.mode.logic": "Logik",
+    "app.mode.logic.hint": "Kombinatorische Logik: Wahrheitstabellen, Minimalformen, KV-Diagramme, NAND- und NOR-Formen und Schaltungen, jeweils mit Rechenweg. Eingaben werden wie in Algebra gelesen.",
     "app.mode.physics": "Physik",
     "app.mode.physics.hint": "Einheiten und Naturkonstanten sind bekannt; i ist eine Variable.",
     "app.mode.verify": "Prüfen",

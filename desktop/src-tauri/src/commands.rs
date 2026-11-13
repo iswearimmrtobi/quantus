@@ -12,7 +12,7 @@ use std::{fs, io};
 
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
-    CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, GeometryRequest, GeometryResponse, ViewRequest, ViewResponse, KirchhoffRequest, KirchhoffResponse,
+    CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, GeometryRequest, GeometryResponse, LogicRequest, LogicResponse, ViewRequest, ViewResponse, KirchhoffRequest, KirchhoffResponse,
     LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
@@ -191,6 +191,14 @@ pub fn geometry(engine: State<Engine>, request: GeometryRequest) -> Result<Geome
 pub fn geometry_view(engine: State<Engine>, request: ViewRequest) -> Result<ViewResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::geometry_view(&settings, &request)
+}
+
+/// A Logic scene and a task on it: every output's table, forms, KV diagram and gates, and the
+/// circuit's figures. Stateless: the scene is saved with the mode inputs.
+#[tauri::command]
+pub fn logic(engine: State<Engine>, request: LogicRequest) -> Result<LogicResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::logic(&settings, &request)
 }
 
 /// A resistor network by the junction and loop rules. Stateless like `solve_circuit`.

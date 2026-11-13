@@ -579,7 +579,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `Mode::Logic` (`"logic"`) in `settings.rs` with its options and the serde test; the
   settings `logic_symbols`, `logic_notation`, `logic_two_input`, `logic_zeros` (§9).
 - [x] `ModeInputs.logic` in `session.rs`, saved with the session.
-- [ ] The Tauri command `logic` in `desktop/src-tauri/src/commands.rs`, registered in `lib.rs`;
+- [x] The Tauri command `logic` in `desktop/src-tauri/src/commands.rs`, registered in `lib.rs`;
   the wrapper and types in `desktop/src/api.ts`.
 
 ### Phase 10: desktop page without the editor

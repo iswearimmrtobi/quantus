@@ -132,6 +132,10 @@ export const DEFAULT_SETTINGS: Settings = {
   complexForm: 'rectangular',
   numberBase: 'dec',
   theme: SYSTEM_THEME,
+  logicSymbols: 'iec',
+  logicNotation: 'logic',
+  logicTwoInput: true,
+  logicZeros: true,
 };
 
 export function Segmented<T extends string>(props: { choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
