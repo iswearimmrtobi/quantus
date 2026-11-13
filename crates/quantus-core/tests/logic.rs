@@ -528,3 +528,18 @@ fn a_sample_of_four_variables_is_minimal() {
         check_against_brute_force(&Function::from_bits(names("A B C D"), [ones, 0, 0, 0], [dont_cares, 0, 0, 0]).unwrap());
     }
 }
+
+#[test]
+fn a_working_line_shows_from_its_level_until_a_fuller_one_replaces_it() {
+    use quantus_core::logic::working::{Note, Working};
+    use quantus_core::settings::StepDetail::{self, Brief, Detailed, Maximal, Standard};
+    let note = |text: &str, level, replaced| Note { text: text.into(), latex: String::new(), level, replaced };
+    let working = Working {
+        notes: vec![note("table", Brief, Some(Detailed)), note("rows", Standard, Option::None), note("columns", Detailed, Option::None)],
+    };
+    let shown = |detail| working.at(detail).map(|n| n.text.as_str()).collect::<Vec<_>>();
+    assert_eq!(shown(StepDetail::None), ["table"]);
+    assert_eq!(shown(Standard), ["table", "rows"]);
+    assert_eq!(shown(Detailed), ["rows", "columns"]);
+    assert_eq!(shown(Maximal), ["rows", "columns"]);
+}

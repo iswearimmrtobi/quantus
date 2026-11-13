@@ -9,6 +9,7 @@ pub mod minimise;
 pub mod parse;
 pub mod table;
 pub mod text;
+pub mod working;
 
 use crate::{QuantusError, Result};
 use text::msg;
