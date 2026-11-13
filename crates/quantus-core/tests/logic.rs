@@ -3,7 +3,7 @@
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
-use quantus_core::logic::nand::{GateForm, Signal};
+use quantus_core::logic::nand::{GateForm, GateKind, Signal};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
 use quantus_core::logic::working::Working;
@@ -1080,5 +1080,41 @@ fn the_nor_form_is_the_dual_from_the_minimal_knf() {
         let f = function(latex, "A B");
         let nor = GateForm::nor(&Minimisation::knf(&f).unwrap(), 0, true);
         assert_eq!((nor.gate_count(), nor.output), (0, Signal::Const(latex.contains('+'))));
+    }
+}
+
+#[test]
+fn the_rewrite_turns_each_gate_of_an_expression_into_nands_or_nors() {
+    let abc = names("A B C");
+    let rewrite = |latex: &str, kind: GateKind, two_input: bool| {
+        let expr = parse_expr(latex).unwrap();
+        let form = GateForm::rewrite(&expr, &abc, kind, two_input);
+        assert!((0..8).all(|row| form.eval(row) == expr.eval_row(&abc, row)), "{latex} as {kind:?}");
+        form
+    };
+    // AB ∨ C: the AND's inverter and the OR's inverter cancel.
+    let form = rewrite("AB + C", GateKind::Nand, false);
+    assert_eq!(form.expr(&abc).latex(Notation::Logic), r"\overline{\overline{A \land B} \land \lnot C}");
+    assert_eq!((form.gate_count(), form.cancelled.clone()), (3, vec![Signal::Gate(0)]));
+    // An XOR is the four-NAND circuit, against 5 gates from the minimal DNF.
+    assert_eq!(rewrite(r"A \oplus B", GateKind::Nand, false).gate_count(), 4);
+    let xor = function(r"A \oplus B", "A B");
+    assert_eq!(GateForm::nand(&Minimisation::of(&xor).unwrap(), 0, false).gate_count(), 5);
+    // For NOR, an XNOR is four gates, an XOR five.
+    assert_eq!(rewrite(r"A \odot B", GateKind::Nor, false).gate_count(), 4);
+    assert_eq!(rewrite(r"A \oplus B", GateKind::Nor, false).gate_count(), 5);
+    // (A ∨ B) C in NOR: the OR's inverter cancels against the AND's inverted input.
+    let form = rewrite("(A + B) C", GateKind::Nor, false);
+    assert_eq!((form.gate_count(), form.cancelled.len()), (3, 1));
+    // Every operator, both kinds, with and without the split.
+    for latex in [r"\overline{A B C} + A", r"A \uparrow B", r"A \downarrow (B + C)", r"A \oplus B \oplus C", r"\overline{A \oplus B \oplus C}", r"A \odot B", r"A B C + 1", r"(A + B + C) \cdot 0 + \overline{\overline{A}}"] {
+        for kind in [GateKind::Nand, GateKind::Nor] {
+            for two_input in [false, true] {
+                let form = rewrite(latex, kind, two_input);
+                if two_input {
+                    assert!(form.gates.iter().all(|g| g.inputs.len() == 2), "{latex}");
+                }
+            }
+        }
     }
 }

@@ -9,6 +9,11 @@
 //! into two halves, each half of more than one input its own gate and an inverter (an AND from a
 //! NAND, an OR from a NOR), and the two joined by a last 2-input gate. A 3-input gate becomes 3
 //! gates, a 4-input one 5.
+//!
+//! Besides the two-level forms from the minimal DNF and KNF, a given expression can be rewritten
+//! gate by gate (*NAND from the circuit as drawn*): each NOT an inverter, each AND a NAND and an
+//! inverter, each OR a NAND of inverted inputs (dually for NOR), each 2-input XOR the four-gate
+//! circuit; an inverter of an inverter is cancelled.
 
 use super::expr::Expr;
 use super::minimise::{Form, Minimisation};
@@ -52,6 +57,9 @@ pub struct GateForm {
     pub output: Signal,
     /// The numbers of inputs of the gates split into 2-input trees, ascending.
     pub split: Vec<usize>,
+    /// The signals $x$ whose double negation $\overline{\overline{x}}$ was cancelled, in the
+    /// order of cancelling.
+    pub cancelled: Vec<Signal>,
 }
 
 impl GateForm {
@@ -70,6 +78,14 @@ impl GateForm {
     pub fn nor(minimisation: &Minimisation, cover: usize, two_input: bool) -> GateForm {
         assert_eq!(minimisation.form, Form::Knf, "the NOR form is built from the minimal KNF");
         GateForm::two_level(GateKind::Nor, minimisation.arity, &minimisation.covers[cover], two_input)
+    }
+
+    /// The gate-by-gate rewrite of `expr` over the variables `names` into gates of `kind`, its
+    /// structure kept, double negations cancelled.
+    pub fn rewrite(expr: &Expr, names: &[String], kind: GateKind, two_input: bool) -> GateForm {
+        let mut builder = Builder::new(kind, names.len(), two_input);
+        let output = builder.rewrite(expr, names);
+        builder.finish(output)
     }
 
     /// The two-level form over `terms`: for NAND the terms are products and the function their
@@ -164,11 +180,12 @@ struct Builder {
     gates: Vec<Gate>,
     two_input: bool,
     split: Vec<usize>,
+    cancelled: Vec<Signal>,
 }
 
 impl Builder {
     fn new(kind: GateKind, arity: usize, two_input: bool) -> Builder {
-        Builder { kind, arity, gates: Vec::new(), two_input, split: Vec::new() }
+        Builder { kind, arity, gates: Vec::new(), two_input, split: Vec::new(), cancelled: Vec::new() }
     }
 
     /// The gate over `inputs`, as a balanced tree of 2-input gates when it is wider and only
@@ -215,7 +232,11 @@ impl Builder {
     fn invert(&mut self, signal: Signal) -> Signal {
         if let Signal::Gate(g) = signal {
             if self.gates[g].inverter() {
-                return self.gates[g].inputs[0];
+                let inner = self.gates[g].inputs[0];
+                if !self.cancelled.contains(&inner) {
+                    self.cancelled.push(inner);
+                }
+                return inner;
             }
         }
         self.single(vec![signal, signal])
@@ -250,6 +271,62 @@ impl Builder {
         }
         let mut split = self.split;
         split.sort();
-        GateForm { kind: self.kind, arity: self.arity, gates, output: map(output, &renumbered), split }
+        let still_used = |s: &Signal| !matches!(s, Signal::Gate(g) if !used[*g]);
+        let cancelled = self.cancelled.iter().filter(|s| still_used(s)).map(|s| map(*s, &renumbered)).collect();
+        GateForm { kind: self.kind, arity: self.arity, gates, output: map(output, &renumbered), split, cancelled }
+    }
+
+    /// `expr` rewritten gate by gate.
+    fn rewrite(&mut self, expr: &Expr, names: &[String]) -> Signal {
+        let nand = self.kind == GateKind::Nand;
+        let all = |builder: &mut Builder, operands: &[Expr]| -> Vec<Signal> { operands.iter().map(|e| builder.rewrite(e, names)).collect() };
+        match expr {
+            Expr::Const(b) => Signal::Const(*b),
+            Expr::Var(name) => Signal::Input(names.iter().position(|n| n == name).expect("the expression's variables are among the inputs")),
+            Expr::Not(e) => {
+                let e = self.rewrite(e, names);
+                self.invert(e)
+            }
+            // The operation of the gate kind's own: the gate inverted (NAND for an AND, NOR for
+            // an OR); the other: the gate of the inverted inputs.
+            Expr::And(operands) | Expr::Or(operands) => {
+                let inputs = all(self, operands);
+                self.join(inputs, matches!(expr, Expr::And(_)) == nand, false)
+            }
+            Expr::Nand(a, b) | Expr::Nor(a, b) => {
+                let inputs = vec![self.rewrite(a, names), self.rewrite(b, names)];
+                self.join(inputs, matches!(expr, Expr::Nand(..)) == nand, true)
+            }
+            Expr::Xor(operands) | Expr::Xnor(operands) => {
+                let inputs = all(self, operands);
+                let mut odd = inputs[0];
+                for &next in &inputs[1..] {
+                    odd = self.xor(odd, next);
+                }
+                if matches!(expr, Expr::Xnor(_)) { self.invert(odd) } else { odd }
+            }
+        }
+    }
+
+    /// The AND (`own` for NAND gates) or OR (`own` for NOR gates) of `inputs`, negated when
+    /// `negated`: the gate's own operation is the gate inverted, the other one the gate over the
+    /// inverted inputs.
+    fn join(&mut self, inputs: Vec<Signal>, own: bool, negated: bool) -> Signal {
+        if own {
+            let gate = self.gate(inputs);
+            return if negated { gate } else { self.invert(gate) };
+        }
+        let inverted = inputs.into_iter().map(|s| self.invert(s)).collect();
+        let gate = self.gate(inverted);
+        if negated { self.invert(gate) } else { gate }
+    }
+
+    /// $a \oplus b$ from four gates: for NAND $t = \overline{ab}$, then
+    /// $\overline{\overline{at} \cdot \overline{bt}}$; for NOR the same gives the XNOR, inverted.
+    fn xor(&mut self, a: Signal, b: Signal) -> Signal {
+        let t = self.single(vec![a, b]);
+        let (at, bt) = (self.single(vec![a, t]), self.single(vec![b, t]));
+        let out = self.single(vec![at, bt]);
+        if self.kind == GateKind::Nand { out } else { self.invert(out) }
     }
 }
