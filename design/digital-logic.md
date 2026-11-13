@@ -479,7 +479,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 1: functions, expressions, tables
 
-- [ ] `logic/mod.rs` (`pub mod logic` in `lib.rs`): `Function` with the ones and don't-care
+- [x] `logic/mod.rs` (`pub mod logic` in `lib.rs`): `Function` with the ones and don't-care
   bitsets (`[u64; 4]`) and the variable names; `Pattern` (value, mask as `u8`); `text.rs` with the
   first `msg!` texts. Test file `tests/logic.rs` created.
 - [ ] `expr.rs`: `Expr` (`Var`, `Const`, `Not`, n-ary `And`, `Or`, `Xor`, `Xnor`, binary `Nand`,

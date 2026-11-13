@@ -1323,6 +1323,8 @@
     "core.latex.parser.unsupported_command": "Der Befehl „{other}“ wird nicht unterstützt.",
     "core.latex.parser.unsupported_environment": "Die Umgebung „{other}“ wird nicht unterstützt.",
     "core.latex.parser.vector_name": "Ein Vektor heißt mit einem Buchstaben, etwa \\vec{{a}} oder \\vec{{a}}_1.",
+    "core.logic.name_twice": "Die Variable {name} kommt doppelt vor.",
+    "core.logic.too_many_variables": "Eine Funktion hat höchstens 8 Variablen, nicht {count}.",
     "core.matrix.a_sum": "Eine Summe",
     "core.matrix.difference": "Eine Differenz",
     "core.matrix.does_not_take_matrix": "„{name}“ nimmt keine Matrix.",

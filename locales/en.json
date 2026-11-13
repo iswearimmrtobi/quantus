@@ -1323,6 +1323,8 @@
     "core.latex.parser.unsupported_command": "Unsupported command '{other}'.",
     "core.latex.parser.unsupported_environment": "Unsupported environment '{other}'.",
     "core.latex.parser.vector_name": "A vector is named by one letter, as in \\vec{{a}} or \\vec{{a}}_1.",
+    "core.logic.name_twice": "The variable {name} appears twice.",
+    "core.logic.too_many_variables": "A function has at most 8 variables, not {count}.",
     "core.matrix.a_sum": "A sum",
     "core.matrix.difference": "A difference",
     "core.matrix.does_not_take_matrix": "'{name}' does not take a matrix.",
