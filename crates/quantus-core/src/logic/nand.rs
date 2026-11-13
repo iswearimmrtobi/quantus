@@ -4,6 +4,11 @@
 //! earlier gates, and the signal of the output. An inverter is a gate with both inputs tied,
 //! `NAND(A, A)`. Identical gates (the same inputs in any order) are built once, so each inverter
 //! is shared.
+//!
+//! With only 2-input gates, a gate of $m > 2$ inputs becomes a balanced tree: the inputs split
+//! into two halves, each half of more than one input its own gate and an inverter (an AND from a
+//! NAND, an OR from a NOR), and the two joined by a last 2-input gate. A 3-input gate becomes 3
+//! gates, a 4-input one 5.
 
 use super::expr::Expr;
 use super::minimise::{Form, Minimisation};
@@ -45,22 +50,24 @@ pub struct GateForm {
     /// The gates in an order where each comes after its inputs.
     pub gates: Vec<Gate>,
     pub output: Signal,
+    /// The numbers of inputs of the gates split into 2-input trees, ascending.
+    pub split: Vec<usize>,
 }
 
 impl GateForm {
     /// The NAND–NAND form of cover `cover` of the minimal DNF `minimisation`: each product a
     /// NAND of its literals, the OR a NAND of those; a negated variable from an inverter
     /// `NAND(A, A)`, one per variable; a product of one literal goes, negated, straight into
-    /// the output NAND.
-    pub fn nand(minimisation: &Minimisation, cover: usize) -> GateForm {
+    /// the output NAND. With `two_input`, wider gates are split into trees.
+    pub fn nand(minimisation: &Minimisation, cover: usize, two_input: bool) -> GateForm {
         assert_eq!(minimisation.form, Form::Dnf, "the NAND form is built from the minimal DNF");
-        GateForm::two_level(GateKind::Nand, minimisation.arity, &minimisation.covers[cover])
+        GateForm::two_level(GateKind::Nand, minimisation.arity, &minimisation.covers[cover], two_input)
     }
 
     /// The two-level form over `terms`: for NAND the terms are products and the function their
     /// OR; for NOR they are the 0s' terms, each negated a sum, and the function their AND.
-    fn two_level(kind: GateKind, arity: usize, terms: &[Pattern]) -> GateForm {
-        let mut builder = Builder::new(kind, arity);
+    fn two_level(kind: GateKind, arity: usize, terms: &[Pattern], two_input: bool) -> GateForm {
+        let mut builder = Builder::new(kind, arity, two_input);
         // A term without literals is the whole table: the OR is 1, the AND 0.
         if terms.iter().any(|t| t.literals(arity) == 0) {
             return builder.finish(Signal::Const(kind == GateKind::Nand));
@@ -147,16 +154,42 @@ struct Builder {
     kind: GateKind,
     arity: usize,
     gates: Vec<Gate>,
+    two_input: bool,
+    split: Vec<usize>,
 }
 
 impl Builder {
-    fn new(kind: GateKind, arity: usize) -> Builder {
-        Builder { kind, arity, gates: Vec::new() }
+    fn new(kind: GateKind, arity: usize, two_input: bool) -> Builder {
+        Builder { kind, arity, gates: Vec::new(), two_input, split: Vec::new() }
     }
 
-    /// The gate over `inputs`, the existing one if there is one with the same inputs in any
-    /// order.
+    /// The gate over `inputs`, as a balanced tree of 2-input gates when it is wider and only
+    /// those are allowed.
     fn gate(&mut self, inputs: Vec<Signal>) -> Signal {
+        if !self.two_input || inputs.len() <= 2 {
+            return self.single(inputs);
+        }
+        if !self.split.contains(&inputs.len()) {
+            self.split.push(inputs.len());
+        }
+        let (left, right) = inputs.split_at(inputs.len().div_ceil(2));
+        let (left, right) = (self.half(left), self.half(right));
+        self.single(vec![left, right])
+    }
+
+    /// The AND of `inputs` for NAND gates, the OR for NOR gates: the gate over them inverted,
+    /// or the one input itself.
+    fn half(&mut self, inputs: &[Signal]) -> Signal {
+        if let [single] = inputs {
+            return *single;
+        }
+        let gate = self.gate(inputs.to_vec());
+        self.invert(gate)
+    }
+
+    /// The single gate over `inputs`, the existing one if there is one with the same inputs in
+    /// any order.
+    fn single(&mut self, inputs: Vec<Signal>) -> Signal {
         let sorted = |inputs: &[Signal]| {
             let mut sorted = inputs.to_vec();
             sorted.sort();
@@ -177,7 +210,7 @@ impl Builder {
                 return self.gates[g].inputs[0];
             }
         }
-        self.gate(vec![signal, signal])
+        self.single(vec![signal, signal])
     }
 
     /// The form with the output `output`, the gates it does not use left out.
@@ -207,6 +240,8 @@ impl Builder {
                 gates.push(Gate { inputs: gate.inputs.iter().map(|s| map(*s, &renumbered)).collect() });
             }
         }
-        GateForm { kind: self.kind, arity: self.arity, gates, output: map(output, &renumbered) }
+        let mut split = self.split;
+        split.sort();
+        GateForm { kind: self.kind, arity: self.arity, gates, output: map(output, &renumbered), split }
     }
 }

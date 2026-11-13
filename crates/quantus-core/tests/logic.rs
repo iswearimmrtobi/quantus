@@ -989,7 +989,7 @@ fn agrees(form: &GateForm, f: &Function) -> bool {
 #[test]
 fn the_nand_form_of_the_majority_is_nand_nand() {
     let f = function("AB + AC + BC", "A B C");
-    let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0);
+    let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0, false);
     assert_eq!(nand.gate_count(), 4);
     assert_eq!(nand.expr(f.names()).latex(Notation::Logic), r"\overline{\overline{B \land C} \land \overline{A \land C} \land \overline{A \land B}}");
     assert!(agrees(&nand, &f));
@@ -999,17 +999,17 @@ fn the_nand_form_of_the_majority_is_nand_nand() {
 fn the_nand_form_shares_inverters_and_feeds_single_literals_straight_in() {
     // A ∨ ¬B·C ∨ ¬B·D: one inverter for B, A goes in as ¬A.
     let f = function(r"A + \overline{B} C + \overline{B} D", "A B C D");
-    let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0);
+    let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0, false);
     assert_eq!(nand.expr(f.names()).latex(Notation::Technical), r"\overline{\overline{\overline{B} \cdot D} \cdot \overline{\overline{B} \cdot C} \cdot \overline{A}}");
     assert_eq!(nand.gate_count(), 5);
     assert!(agrees(&nand, &f));
     // A single literal is the variable itself, or one inverter; a single product a NAND and an inverter.
-    let count = |latex: &str| GateForm::nand(&Minimisation::of(&function(latex, "A B")).unwrap(), 0).gate_count();
+    let count = |latex: &str| GateForm::nand(&Minimisation::of(&function(latex, "A B")).unwrap(), 0, false).gate_count();
     assert_eq!((count("A"), count(r"\overline{A}"), count("AB"), count("A + B")), (0, 1, 2, 3));
     // Constants need no gate.
     for latex in ["A A'", "A + A'"] {
         let f = function(latex, "A B");
-        let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0);
+        let nand = GateForm::nand(&Minimisation::of(&f).unwrap(), 0, false);
         assert_eq!((nand.gate_count(), nand.output), (0, Signal::Const(latex.contains('+'))));
     }
 }
@@ -1020,9 +1020,37 @@ fn every_nand_form_of_three_variables_equals_its_function() {
         let f = Function::from_bits(names("A B C"), [ones, 0, 0, 0], [0; 4]).unwrap();
         let m = Minimisation::of(&f).unwrap();
         for cover in 0..m.covers.len() {
-            assert!(agrees(&GateForm::nand(&m, cover), &f), "{ones:08b}, cover {cover}");
+            for two_input in [false, true] {
+                assert!(agrees(&GateForm::nand(&m, cover, two_input), &f), "{ones:08b}, cover {cover}");
+            }
         }
     }
     let segment_a = function(r"\sum m(0, 2, 3, 5, 6, 7, 8, 9) + d(10, 11, 12, 13, 14, 15)", "A B C D");
-    assert!(agrees(&GateForm::nand(&Minimisation::of(&segment_a).unwrap(), 0), &segment_a));
+    assert!(agrees(&GateForm::nand(&Minimisation::of(&segment_a).unwrap(), 0, true), &segment_a));
+}
+
+#[test]
+fn with_only_two_input_gates_wider_nands_become_balanced_trees() {
+    let nand = |latex: &str, inputs: &str| {
+        let f = function(latex, inputs);
+        let form = GateForm::nand(&Minimisation::of(&f).unwrap(), 0, true);
+        assert!(agrees(&form, &f), "{latex}");
+        assert!(form.gates.iter().all(|g| g.inputs.len() == 2));
+        form
+    };
+    // The majority: 3 NANDs and the output NAND of 3 as 3 gates.
+    let majority = nand("AB + AC + BC", "A B C");
+    assert_eq!((majority.gate_count(), majority.split.clone()), (6, vec![3]));
+    assert_eq!(majority.expr(&names("A B C")).latex(Notation::Logic), r"\overline{\overline{\overline{\overline{B \land C} \land \overline{A \land C}}} \land \overline{A \land B}}");
+    // A NAND of 3 inputs is 3 gates, of 4 inputs 5, of 5 inputs 7.
+    assert_eq!(nand(r"\overline{A B C}", "A B C").gate_count(), 3);
+    assert_eq!(nand(r"\overline{A B C D}", "A B C D").gate_count(), 5);
+    assert_eq!(nand(r"\overline{A B C D E}", "A B C D E").gate_count(), 7);
+    let without = GateForm::nand(&Minimisation::of(&function(r"\overline{A B C D}", "A B C D")).unwrap(), 0, false);
+    assert_eq!((without.gate_count(), without.split.len()), (1, 0));
+    // A sample of four variables.
+    for ones in (0..65536u64).step_by(331) {
+        let f = Function::from_bits(names("A B C D"), [ones, 0, 0, 0], [0; 4]).unwrap();
+        assert!(agrees(&GateForm::nand(&Minimisation::of(&f).unwrap(), 0, true), &f), "{ones:016b}");
+    }
 }
