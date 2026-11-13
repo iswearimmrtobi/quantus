@@ -576,7 +576,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `interface.rs` with the structs of §7.2 (`LogicRequest`, `LogicResponse`,
   `OutputResponse`, `KmapResponse`, `CircuitResponse`, `TaskResponse`, `ErrorResponse`),
   `api::logic`, re-exported in `api.rs`.
-- [ ] `Mode::Logic` (`"logic"`) in `settings.rs` with its options and the serde test; the
+- [x] `Mode::Logic` (`"logic"`) in `settings.rs` with its options and the serde test; the
   settings `logic_symbols`, `logic_notation`, `logic_two_input`, `logic_zeros` (§9).
 - [ ] `ModeInputs.logic` in `session.rs`, saved with the session.
 - [ ] The Tauri command `logic` in `desktop/src-tauri/src/commands.rs`, registered in `lib.rs`;

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::algebra::pipeline::{OutputStyle, PipelineConfig};
 pub use crate::basen::NumberBase;
+pub use crate::logic::expr::Notation as LogicNotation;
 use crate::latex::numbers::Style;
 use crate::latex::parser::ParseOptions;
 use crate::num::{DEFAULT_PRECISION, MAX_PRECISION};
@@ -161,6 +162,20 @@ pub enum Mode {
     /// Vectors, points, lines, planes, spheres and circles in 3D ([`crate::geometry`]). Inputs are read
     /// as in `Algebra`.
     Geometry,
+    /// Combinational logic: truth tables, minimal forms, KV diagrams and circuits
+    /// ([`crate::logic`]). Inputs are read as in `Algebra`.
+    Logic,
+}
+
+/// The gate symbols of the logic mode's circuits.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum LogicSymbols {
+    /// IEC 60617: rectangles with `&`, `≥1`, `=1`, `1`.
+    #[default]
+    Iec,
+    /// ANSI distinctive shapes.
+    Ansi,
 }
 
 /// The unit a plain number in a trigonometric function is read in, and inverse functions answer in.
@@ -260,6 +275,15 @@ pub struct Settings {
     /// The id of the desktop's colour theme (quantus-themes), or `system` for the light or the dark
     /// one as the system is set. The engine does not use it; an unknown id shows the dark theme.
     pub theme: String,
+    /// The logic mode's gate symbols.
+    pub logic_symbols: LogicSymbols,
+    /// How the logic mode writes expressions: $A \land \lnot B$ or $A \cdot \overline{B}$.
+    /// Any notation is read whatever the setting.
+    pub logic_notation: LogicNotation,
+    /// The NAND and NOR forms only from 2-input gates.
+    pub logic_two_input: bool,
+    /// Whether the truth table and the KV diagram show the 0s rather than leaving them empty.
+    pub logic_zeros: bool,
 }
 
 impl Default for Settings {
@@ -292,6 +316,10 @@ impl Default for Settings {
             complex_form: ComplexForm::Rectangular,
             number_base: NumberBase::Dec,
             theme: "system".to_string(),
+            logic_symbols: LogicSymbols::Iec,
+            logic_notation: LogicNotation::Logic,
+            logic_two_input: true,
+            logic_zeros: true,
         }
     }
 }
@@ -321,7 +349,7 @@ impl Settings {
             a_and_y_as_variables: self.a_and_y_as_variables,
             letter_products: self.letter_products,
             extra_unit_letters: self.extra_unit_letters,
-            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify | Mode::Geometry),
+            units: !matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify | Mode::Geometry | Mode::Logic),
             imaginary_i: self.complex(),
             geometry: self.mode == Mode::Geometry,
         }
@@ -414,7 +442,11 @@ mod tests {
                 "recurring": true,
                 "complexForm": "rectangular",
                 "numberBase": "dec",
-                "theme": "system"
+                "theme": "system",
+                "logicSymbols": "iec",
+                "logicNotation": "logic",
+                "logicTwoInput": true,
+                "logicZeros": true
             })
         );
     }
@@ -436,6 +468,8 @@ mod tests {
         assert_eq!(serde_json::to_value(Mode::Verify).unwrap(), json!("verify"));
         assert_eq!((options(Mode::Geometry).units, options(Mode::Geometry).imaginary_i), (false, false));
         assert_eq!(serde_json::to_value(Mode::Geometry).unwrap(), json!("geometry"));
+        assert_eq!((options(Mode::Logic).units, options(Mode::Logic).imaginary_i), (false, false));
+        assert_eq!(serde_json::to_value(Mode::Logic).unwrap(), json!("logic"));
     }
 
     #[test]

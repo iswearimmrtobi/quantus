@@ -2181,3 +2181,17 @@ fn the_api_answers_the_tasks() {
     let missing = logic_api(scene, Some(serde_json::json!({ "kind": "checkForm", "output": "g", "latex": "A" })));
     assert_eq!(missing["task"]["error"], "There is no output g.");
 }
+
+#[test]
+fn the_api_follows_the_logic_settings() {
+    let request: quantus_core::api::LogicRequest = serde_json::from_value(serde_json::json!({
+        "scene": { "outputs": [{ "source": { "kind": "expression", "latex": "AB + AC + BC" } }] },
+    }))
+    .unwrap();
+    let settings = quantus_core::settings::Settings { logic_notation: Notation::Technical, logic_two_input: false, ..Default::default() };
+    let response = serde_json::to_value(quantus_core::api::logic(&settings, &request).unwrap()).unwrap();
+    let f = &response["outputs"][0];
+    assert_eq!(f["minimal"]["dnf"][0]["latex"], r"B \cdot C + A \cdot C + A \cdot B");
+    // NAND–NAND with a 3-input NAND at the output: 4 gates, 2 levels.
+    assert_eq!((f["nand"]["gates"].as_u64(), f["nand"]["levels"].as_u64()), (Some(4), Some(2)));
+}

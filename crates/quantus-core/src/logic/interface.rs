@@ -945,8 +945,8 @@ fn task(read: &Read, task: &LogicTask, options: Options) -> Result<TaskResponse>
 pub fn logic(settings: &Settings, request: &LogicRequest) -> Result<LogicResponse> {
     let _language = Scope::new(settings.language);
     let options = Options {
-        notation: Notation::default(),
-        two_input: true,
+        notation: settings.logic_notation,
+        two_input: settings.logic_two_input,
         detail: settings.step_detail,
         precision: request.precision.unwrap_or(settings.precision),
     };

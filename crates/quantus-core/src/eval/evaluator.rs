@@ -90,7 +90,7 @@ impl<'a> Evaluator<'a> {
 
     /// The physical constant of that name, unless the mode has none.
     pub(super) fn physical_constant(&self, key: &str) -> Option<PhysicalQuantity> {
-        if matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify | Mode::Geometry) { None } else { physical_constant(key) }
+        if matches!(self.mode, Mode::Algebra | Mode::Imaginary | Mode::Analysis | Mode::Linear | Mode::BaseN | Mode::Matrix | Mode::Statistics | Mode::Distributions | Mode::Verify | Mode::Geometry | Mode::Logic) { None } else { physical_constant(key) }
     }
 
     /// An evaluator that sees the same variables plus `scope`, which the caller updates between
