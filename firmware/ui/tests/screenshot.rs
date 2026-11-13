@@ -8,7 +8,7 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
 use quantus_ui::app::{screenshot_name, App, Mode, Screen, Settings, NOTICE_MS};
-use quantus_ui::backend::{Answer, Backend, Create, File, Stub};
+use quantus_ui::backend::{create_in, Answer, Backend, Create, File, Stub};
 use quantus_ui::clock::Zone;
 use quantus_ui::layer::Layer;
 use quantus_ui::text;
@@ -272,4 +272,19 @@ fn screenshots_are_named_by_the_time_or_numbered() {
     assert_eq!(screenshot_name(Some(noon), Zone::Berlin, 1), "2026-11-12_14-03-27.bmp");
     assert_eq!(screenshot_name(Some(noon), Zone::Berlin, 2), "2026-11-12_14-03-27-2.bmp");
     assert_eq!(screenshot_name(Some(noon), Zone::Utc, 1), "2026-11-12_13-03-27.bmp");
+}
+
+#[test]
+fn a_file_on_a_card_folder_is_new_and_its_folder_made() {
+    let root = std::env::temp_dir().join(format!("quantus-card-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut file = create_in(&root, "screenshots/a.bmp").expect("a new file");
+    bmp::write(&Frame::new(&App::new(Stub)), &mut file).unwrap();
+    drop(file);
+    let bytes = std::fs::read(root.join("screenshots/a.bmp")).unwrap();
+    assert_eq!(bytes.len(), bmp::SIZE as usize);
+    read(&bytes);
+    assert!(matches!(create_in(&root, "screenshots/a.bmp"), Err(Create::Exists)));
+    assert_eq!(std::fs::read(root.join("screenshots/a.bmp")).unwrap(), bytes, "not overwritten");
+    std::fs::remove_dir_all(&root).unwrap();
 }

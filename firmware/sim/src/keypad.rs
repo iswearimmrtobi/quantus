@@ -279,6 +279,7 @@ fn shift_legend(label: &str) -> Option<(&'static str, bool)> {
         "EXE" => ("≈", true),
         "OPTN" => ("CATALOG", true),
         "MODE" => ("SETUP", true),
+        "7" => ("CAPTURE", true),
         _ => return None,
     })
 }

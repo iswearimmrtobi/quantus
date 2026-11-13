@@ -20,7 +20,7 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sys;
 use quantus_ui::app::{App, Mode, Settings};
-use quantus_ui::backend::{Backend, Catalogue, Group, Network, Reply, Request, Storage, WlanStatus};
+use quantus_ui::backend::{Backend, Catalogue, Create, File, Group, Network, Reply, Request, Storage, WlanStatus};
 use quantus_texts::tr;
 use quantus_ui::text::Lang;
 #[cfg(feature = "engine")]
@@ -439,6 +439,17 @@ impl Backend for Board {
         if unsafe { sys::settimeofday(&time, core::ptr::null()) } != 0 {
             println!("the clock could not be set");
         }
+    }
+
+    fn create(&mut self, path: &str) -> Result<Box<dyn File>, Create> {
+        self.card.as_ref().ok_or(Create::NoCard)?;
+        let file = quantus_ui::backend::create_in(std::path::Path::new(sd::MOUNT), path);
+        match &file {
+            Ok(_) => println!("writing {}/{path}", sd::MOUNT),
+            Err(Create::Exists) => {}
+            Err(error) => println!("{}/{path} not written: {error:?}", sd::MOUNT),
+        }
+        file
     }
 
     fn storage(&mut self) -> Option<Storage> {

@@ -65,8 +65,10 @@ Current state, for reference:
 
 ## Step 5 — Board and simulator
 
-- [ ] Board: `create` under `/sd` (no card → `NoCard`), buffered; a log line on the serial port.
-- [ ] Simulator: `create` under the `--sd` folder; PrintScreen; the key list.
+- [x] Board: `create` under `/sd` (no card → `NoCard`), buffered; a log line on the serial port.
+      Both go through `backend::create_in` (folders made, `create_new`, an 8 KB buffer).
+- [x] Simulator: `create` under the `--sd` folder; PrintScreen; the key list; CAPTURE on the
+      keypad's 7 with SHIFT.
 
 ## Step 6 — Docs and wrap-up
 

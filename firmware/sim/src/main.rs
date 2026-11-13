@@ -38,7 +38,7 @@ use quantus_apps::{Apps, Seeded};
 use quantus_engine::Engine;
 use quantus_ui::app::{App, Mode, Settings};
 use quantus_ui::backend::{
-    Backend, Catalogue, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stored, Stub, Units,
+    Backend, Catalogue, Create, File, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stored, Stub, Units,
     VariableCommand, WlanStatus,
 };
 use quantus_ui::text::Lang;
@@ -521,6 +521,18 @@ impl Backend for Sim {
         }
     }
 
+    /// A file in the SD folder; with `--png` nothing is written.
+    fn create(&mut self, path: &str) -> Result<Box<dyn File>, Create> {
+        if !self.keep {
+            return Err(Create::Failed("--png keeps nothing".to_string()));
+        }
+        let file = quantus_ui::backend::create_in(&self.sd, path);
+        if file.is_ok() {
+            eprintln!("writing {}", self.sd.join(path).display());
+        }
+        file
+    }
+
     /// The folder as a card of [`SD_CAPACITY`]: what its files take is used.
     fn storage(&mut self) -> Option<Storage> {
         fn size(path: &Path) -> u64 {
@@ -565,6 +577,7 @@ Quantus simulator keys
   ln log Ans           Ctrl+L  Ctrl+G  Ctrl+A
   ;                    Shift+, (between equations and arguments)
   history              Up/Down outside a fraction
+  screenshot           F1 then 7 (SHIFT+7) or PrintScreen: a BMP in screenshots/ in the SD folder
   charging / busy      Ctrl+F9 / Ctrl+F10 (what the board will report)
   touch                the mouse is the finger: click to tap, drag to scroll
   keypad               click the keys beside the screen (--keypad=small for the small unit,
@@ -612,6 +625,7 @@ fn key(keycode: Keycode, keymod: Mod) -> Option<Key> {
         Keycode::F10 => return Some(Key::Eng),
         Keycode::F11 => return Some(Key::Vars),
         Keycode::F12 => return Some(Key::Symb),
+        Keycode::PrintScreen => return Some(Key::Screenshot),
         Keycode::KpPlus => return Some(Key::Plus),
         Keycode::KpMinus => return Some(Key::Minus),
         Keycode::KpMultiply => return Some(Key::Times),

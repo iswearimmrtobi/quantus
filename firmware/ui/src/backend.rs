@@ -55,6 +55,18 @@ pub enum Create {
     Failed(String),
 }
 
+/// [`Backend::create`] on a card (or a folder standing for one) mounted at `root`: the folders
+/// made, the file new, written through a buffer.
+pub fn create_in(root: &std::path::Path, path: &str) -> Result<Box<dyn File>, Create> {
+    let path = root.join(path);
+    let made = path.parent().map_or(Ok(()), std::fs::create_dir_all);
+    match made.and_then(|()| std::fs::OpenOptions::new().write(true).create_new(true).open(&path)) {
+        Ok(file) => Ok(Box::new(std::io::BufWriter::with_capacity(8 * 1024, file))),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Err(Create::Exists),
+        Err(error) => Err(Create::Failed(error.to_string())),
+    }
+}
+
 pub trait Backend {
     /// The result of `latex` in `mode`, written as `settings` say, as LaTeX, or why not.
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Answer;
