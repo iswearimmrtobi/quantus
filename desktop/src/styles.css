@@ -2877,16 +2877,174 @@ select option {
   gap: 12px;
 }
 
-.logic-outputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.logic-table-new {
+  justify-self: start;
+  width: auto;
 }
 
-.logic-output-name {
+.logic-table-card {
+  padding: 0;
+}
+
+.logic-table-scroll {
+  overflow-x: auto;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.logic-table {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.logic-table th,
+.logic-table td {
+  padding: 0;
+  text-align: center;
+  min-width: 34px;
+}
+
+.logic-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline-strong);
+  padding: 6px 6px;
+  font-weight: 400;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.logic-table tbody tr:nth-child(4n) td {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.logic-row-number {
+  color: var(--text-faint);
+  font-size: 11px;
+  padding: 0 8px !important;
+}
+
+.logic-bit {
+  color: var(--text-muted);
+  height: 26px;
+}
+
+/* The line between the inputs and the outputs. */
+.logic-table .first {
+  border-left: 1px solid var(--hairline-strong);
+}
+
+.logic-add-head {
+  min-width: 24px !important;
+}
+
+.logic-add,
+.logic-head-remove {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 12px;
+}
+.logic-add:hover:not(:disabled) {
+  color: var(--accent);
+}
+.logic-head-remove:hover:not(:disabled) {
+  color: var(--danger);
+}
+.logic-add:disabled,
+.logic-head-remove:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.logic-header-name {
+  border: none;
+  background: none;
+  color: var(--text);
+  padding: 0 2px;
+  cursor: text;
+}
+.logic-header-name:disabled {
+  cursor: default;
+}
+
+.logic-header-input {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--primary-dim);
+  border-radius: var(--radius);
+  padding: 1px 4px;
+}
+.logic-header-input.invalid {
+  border-color: var(--danger);
+}
+
+.logic-output-head .logic-source {
+  margin: 0 2px;
+}
+
+.logic-ask {
   display: inline-flex;
+  gap: 4px;
   align-items: center;
-  gap: 6px;
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--danger);
+}
+.logic-ask button {
+  font-size: 11px;
+  padding: 0 4px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.logic-cell button {
+  width: 100%;
+  height: 26px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  cursor: pointer;
+}
+.logic-cell button:hover {
+  background: var(--surface-hover);
+}
+.logic-cell button:focus-visible {
+  outline: 1px solid var(--primary);
+  outline-offset: -1px;
+}
+.logic-cell.empty button {
+  background: var(--surface-raised);
+}
+.logic-cell.wrong button,
+.logic-cell.wrong {
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.logic-fill {
+  margin: 6px 4px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.logic-fill:hover {
+  color: var(--text);
 }
 
 .logic-name {

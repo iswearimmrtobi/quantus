@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type LogicScene, type Settings } from '../api';
-import { logicAnswer, logicRequest, type LogicAnswer } from '../logic';
+import { addOutput, logicAnswer, logicGrid, logicRequest, type LogicAnswer } from '../logic';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
-import { LogicLines, SourceMark } from './LogicLines';
+import { LogicLines } from './LogicLines';
+import { LogicTable } from './LogicTable';
 
 interface Props {
   settings: Settings;
@@ -49,6 +50,7 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
   }, [scene, language, precision, stepDetail, logicNotation, logicTwoInput, run]);
 
   const general = answer?.errors.filter((error) => error.output === null) ?? [];
+  const grid = logicGrid(scene, answer);
   return (
     <main className="workspace analysis-workspace">
       <div className="analysis-panel logic-panel">
@@ -58,15 +60,12 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
         ))}
         <LogicLines scene={scene} answer={answer} onChange={onSceneChange} />
         {!answer && !failure && <p className="analysis-empty">{t('logic.empty')}</p>}
-        {answer && answer.extra.length > 0 && (
-          <div className="logic-outputs">
-            {answer.extra.map((output) => (
-              <div className="logic-output-name" key={output.name}>
-                <span className="logic-name">{output.name}</span>
-                <SourceMark kind={output.source} />
-              </div>
-            ))}
-          </div>
+        {grid.columns.length > 0 ? (
+          <LogicTable scene={scene} grid={grid} answer={answer} zeros={settings.logicZeros} onChange={onSceneChange} />
+        ) : (
+          <button className="palette-item logic-table-new" onClick={() => onSceneChange(addOutput(scene, grid))}>
+            + {t('logic.table.new')}
+          </button>
         )}
       </div>
     </main>
