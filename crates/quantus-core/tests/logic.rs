@@ -3,7 +3,9 @@
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
-use quantus_core::logic::table::{constant_note, input_order, line_function, Canonical};
+use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
+use quantus_core::logic::working::Working;
+use quantus_core::settings::StepDetail;
 use quantus_core::logic::{contains, rows_of, Bits, Function, Pattern, Value};
 use std::collections::BTreeSet;
 
@@ -542,4 +544,59 @@ fn a_working_line_shows_from_its_level_until_a_fuller_one_replaces_it() {
     assert_eq!(shown(Standard), ["table", "rows"]);
     assert_eq!(shown(Detailed), ["rows", "columns"]);
     assert_eq!(shown(Maximal), ["rows", "columns"]);
+}
+
+/// The lines of `working` shown at `detail`, text and formula.
+fn lines(working: &Working, detail: StepDetail) -> Vec<(String, String)> {
+    working.at(detail).map(|n| (n.text.clone(), n.latex.clone())).collect()
+}
+
+#[test]
+fn the_table_working_adds_a_column_per_part_and_an_example_row() {
+    let expr = parse_expr(r"\overline{A B} \lor C").unwrap();
+    assert_eq!(subexpressions(&expr).iter().map(|e| e.latex(Notation::Logic)).collect::<Vec<_>>(), [r"A \land B", r"\overline{A \land B}", r"\overline{A \land B} \lor C"]);
+    let f = function(r"\overline{A B} \lor C", "A B C");
+    let working = table_working(&f, Some(&expr), "f", Notation::Logic);
+    let brief = lines(&working, StepDetail::Brief);
+    assert_eq!(brief.len(), 1);
+    assert_eq!(brief[0].0, "The truth table of f:");
+    assert!(brief[0].1.starts_with("\\begin{array}{r|ccc|c}\ni & A & B & C & f \\\\ \\hline\n0 & 0 & 0 & 0 & 1 \\\\\n"), "{}", brief[0].1);
+    // From Detailed the table with the parts replaces it.
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed.len(), 1);
+    assert!(detailed[0].1.contains(r"i & A & B & C & A \land B & \overline{A \land B} & f"), "{}", detailed[0].1);
+    assert!(detailed[0].1.contains(r"6 & 1 & 1 & 0 & 1 & 0 & 0 \\"), "{}", detailed[0].1);
+    let maximal = lines(&working, StepDetail::Maximal);
+    assert_eq!(maximal[1], ("Row 0, A = 0, B = 0, C = 0, as an example:".to_string(), r"f = \overline{0 \land 0} \lor 0 = 1".to_string()));
+    // A minterm list has no parts and no example; don't cares show as –.
+    let list = function(r"\sum m(1) + d(2)", "A B");
+    let working = table_working(&list, None, "g", Notation::Logic);
+    assert_eq!(working.notes.len(), 1);
+    assert!(working.notes[0].latex.contains(r"2 & 1 & 0 & \text{–}"));
+}
+
+#[test]
+fn the_canonical_forms_come_with_their_rows_and_terms() {
+    let f = function(r"f(A, B, C) = \sum m(3, 5, 6, 7) + d(1)", "");
+    let working = Canonical::of(&f).working(&f, "f", Notation::Logic);
+    let texts = |detail| lines(&working, detail).into_iter().map(|(t, _)| t).collect::<Vec<_>>();
+    assert_eq!(texts(StepDetail::Brief), ["The canonical DNF, the OR of the minterms:", "The canonical KNF, the AND of the maxterms:"]);
+    let standard = lines(&working, StepDetail::Standard);
+    assert_eq!(standard[0], ("The don't cares (–) are left out of both forms:".to_string(), "d(1)".to_string()));
+    assert_eq!(standard[1], ("The rows that are 1 give the minterms of f:".to_string(), r"f = \sum m(3, 5, 6, 7) + d(1)".to_string()));
+    assert_eq!(standard[3].1, r"f = \prod M(0, 2, 4) \cdot d(1)");
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed.len(), 7);
+    assert!(detailed[2].1.contains(r"5 & 1 & 0 & 1 & m_{5} = A \land \lnot B \land C \\"), "{}", detailed[2].1);
+    assert!(detailed[5].1.contains(r"4 & 1 & 0 & 0 & M_{4} = \lnot A \lor B \lor C \\"), "{}", detailed[5].1);
+    // A constant says so and has no rows of the missing kind.
+    let one = function(r"A \lor \lnot A", "A");
+    let working = Canonical::of(&one).working(&one, "f", Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Maximal).into_iter().map(|(t, l)| format!("{t} {l}")).collect::<Vec<_>>(), [
+        "f is always 1. ",
+        r"The rows that are 1 give the minterms of f: f = \sum m(0, 1)",
+        "Each row with 1 gives a minterm: the AND of every variable, negated where the row has a 0. \\begin{array}{r|c|l}\ni & A &  \\\\ \\hline\n0 & 0 & m_{0} = \\lnot A \\\\\n1 & 1 & m_{1} = A \\\\\n\\end{array}",
+        r"The canonical DNF, the OR of the minterms: f = \lnot A \lor A",
+        "The canonical KNF, the AND of the maxterms: f = 1",
+    ]);
 }

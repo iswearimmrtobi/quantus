@@ -84,13 +84,8 @@ pub(crate) fn prime_name(index: usize) -> String {
     format!("P_{{{}}}", index + 1)
 }
 
-/// `A = 1, B = 0, C = 1`: the inputs of `row` among the variables `names`.
+/// `A = 1, B = 0, C = 1`, as plain text: the inputs of `row` among the variables `names`.
 pub(crate) fn assignment(names: &[String], row: usize) -> String {
     let n = names.len();
-    names
-        .iter()
-        .enumerate()
-        .map(|(k, name)| format!("{} = {}", super::expr::variable_latex(name), row >> (n - 1 - k) & 1))
-        .collect::<Vec<_>>()
-        .join(",\\ ")
+    names.iter().enumerate().map(|(k, name)| format!("{name} = {}", row >> (n - 1 - k) & 1)).collect::<Vec<_>>().join(", ")
 }
