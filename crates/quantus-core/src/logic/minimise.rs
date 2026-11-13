@@ -442,17 +442,22 @@ impl Minimisation {
     /// Cover `index` over `names`: a sum of products for the DNF, no term the constant 0; a
     /// product of sums for the KNF, no term the constant 1.
     pub fn expr(&self, index: usize, names: &[String]) -> Expr {
-        let terms = &self.covers[index];
-        let mut operands: Vec<Expr> = match self.form {
-            Form::Dnf => terms.iter().map(|t| t.product(names)).collect(),
-            Form::Knf => terms.iter().map(|t| t.sum(names)).collect(),
-        };
-        match (operands.len(), self.form) {
-            (0, form) => Expr::Const(form == Form::Knf),
-            (1, _) => operands.remove(0),
-            (_, Form::Dnf) => Expr::Or(operands),
-            (_, Form::Knf) => Expr::And(operands),
-        }
+        form_expr(self.form, &self.covers[index], names)
+    }
+}
+
+/// The terms `terms` over `names` as a form: a sum of products for the DNF, no term the constant
+/// 0; a product of sums for the KNF, no term the constant 1.
+pub fn form_expr(form: Form, terms: &[Pattern], names: &[String]) -> Expr {
+    let mut operands: Vec<Expr> = match form {
+        Form::Dnf => terms.iter().map(|t| t.product(names)).collect(),
+        Form::Knf => terms.iter().map(|t| t.sum(names)).collect(),
+    };
+    match (operands.len(), form) {
+        (0, form) => Expr::Const(form == Form::Knf),
+        (1, _) => operands.remove(0),
+        (_, Form::Dnf) => Expr::Or(operands),
+        (_, Form::Knf) => Expr::And(operands),
     }
 }
 

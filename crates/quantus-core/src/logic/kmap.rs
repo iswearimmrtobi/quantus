@@ -133,6 +133,22 @@ impl Layout {
         }
     }
 
+    /// The rows of a dragged rectangle: in each of `maps`, `width` columns from `col` and
+    /// `height` rows from `row`, running over the right and the bottom edge back to the start.
+    pub fn rectangle(&self, maps: &[usize], col: usize, row: usize, width: usize, height: usize) -> Vec<usize> {
+        let mut rows: Vec<usize> = maps
+            .iter()
+            .flat_map(|&map| {
+                (0..height.min(self.rows())).flat_map(move |y| {
+                    (0..width.min(self.columns())).map(move |x| self.row_number(Place { map, row: (row + y) % self.rows(), col: (col + x) % self.columns() }))
+                })
+            })
+            .collect();
+        rows.sort();
+        rows.dedup();
+        rows
+    }
+
     /// The neighbours of the row `row`, one per variable in the order of the variables: the rows
     /// that differ from it in that variable only. In the diagram they are the cells next to it,
     /// over the edges of a map, and in the same place of the neighbouring maps.

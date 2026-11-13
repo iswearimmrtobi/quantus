@@ -1,6 +1,6 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
-use quantus_core::logic::check::{Counterexample, Equivalence};
+use quantus_core::logic::check::{term_of_rows, BlockFault, BlocksCheck, Counterexample, Equivalence};
 use quantus_core::logic::circuit::{Element, GateType, Issue, Net, Netlist};
 use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
@@ -1810,4 +1810,99 @@ fn a_function_over_more_variables_keeps_its_values() {
         assert_eq!(g.value(row), f.value(a << 1 | b), "row {row}");
     }
     assert!(f.over(&names("A C")).unwrap_err().to_string().contains("B is not among"));
+}
+
+fn faults(check: &BlocksCheck) -> Vec<Vec<BlockFault>> {
+    check.blocks.iter().map(|b| b.faults.clone()).collect()
+}
+
+#[test]
+fn a_set_of_rows_is_a_term_when_it_is_a_block_in_the_gray_code_sense() {
+    assert_eq!(term_of_rows(&[3, 7], 3), Some(Pattern { value: 0b011, mask: 0b100 }));
+    assert_eq!(term_of_rows(&[0, 2, 8, 10], 4).map(|p| p.text(4)), Some("-0-0".to_string()));
+    assert_eq!(term_of_rows(&[3, 6], 3), None);
+    assert_eq!(term_of_rows(&[0, 1, 2], 3), None);
+    assert_eq!(term_of_rows(&[0, 3, 5, 6], 3), None);
+    assert_eq!(term_of_rows(&[], 3), None);
+    // A rectangle over the right edge: columns AB = 10 and 00, row CD = 00.
+    let layout = Layout::new(4).unwrap();
+    assert_eq!(layout.rectangle(&[0], 3, 0, 2, 1), [0, 8]);
+    // The four corners.
+    assert_eq!(layout.rectangle(&[0], 3, 3, 2, 2), [0, 2, 8, 10]);
+    // The same cells of both maps of five variables.
+    assert_eq!(Layout::new(5).unwrap().rectangle(&[0, 1], 1, 1, 1, 1), [5, 21]);
+}
+
+#[test]
+fn the_blocks_of_a_minimal_form_pass() {
+    let majority = function("AB + AC + BC", "A B C");
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 7], vec![5, 7], vec![6, 7]]).unwrap();
+    assert!(check.correct() && check.minimal());
+    assert_eq!((check.cost, check.minimum), ((3, 6), (3, 6)));
+    assert_eq!(check.expr(&names("A B C")).latex(Notation::Technical), r"B \cdot C + A \cdot C + A \cdot B");
+    // The 0s of the KNF.
+    let check = BlocksCheck::of(&majority, Form::Knf, &[vec![0, 1], vec![0, 2], vec![0, 4]]).unwrap();
+    assert!(check.minimal());
+    assert_eq!(check.expr(&names("A B C")).latex(Notation::Technical), r"(A + B) \cdot (A + C) \cdot (B + C)");
+}
+
+#[test]
+fn each_block_is_checked_for_its_size_its_shape_and_its_values() {
+    let majority = function("AB + AC + BC", "A B C");
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 5, 6], vec![3, 6], vec![2, 3], vec![], vec![6, 7]]).unwrap();
+    assert_eq!(faults(&check), [
+        vec![BlockFault::Size { cells: 3 }],
+        vec![BlockFault::Shape],
+        vec![BlockFault::WrongValue { rows: vec![2] }],
+        vec![BlockFault::Empty],
+        vec![],
+    ]);
+    assert!(!check.correct());
+    // Only AB counts: 3 and 5 are not covered.
+    assert_eq!((check.uncovered.clone(), check.terms.len()), (vec![3, 5], 1));
+    // In the KNF a 1 is the wrong value.
+    let check = BlocksCheck::of(&majority, Form::Knf, &[vec![1, 3]]).unwrap();
+    assert_eq!(faults(&check), [vec![BlockFault::WrongValue { rows: vec![3] }]]);
+    assert_eq!(check.uncovered, [0, 1, 2, 4]);
+}
+
+#[test]
+fn blocks_that_could_grow_or_are_not_needed_are_named() {
+    let majority = function("AB + AC + BC", "A B C");
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 7], vec![5, 7], vec![6, 7], vec![7]]).unwrap();
+    let bc = Pattern { value: 0b011, mask: 0b100 };
+    assert_eq!(faults(&check)[3], [BlockFault::Grow { to: bc }, BlockFault::Redundant]);
+    assert!(check.correct() && !check.minimal());
+    assert_eq!(check.cost, (4, 9));
+    // With don't cares: Σm(1, 3) + d(5, 7) is C; A'C could grow, AC holds only don't cares.
+    let f = function(r"\sum m(1, 3) + d(5, 7)", "A B C");
+    let c = Pattern { value: 0b001, mask: 0b110 };
+    let check = BlocksCheck::of(&f, Form::Dnf, &[vec![1, 3], vec![5, 7], vec![1, 3, 5, 7]]).unwrap();
+    assert_eq!(faults(&check), [
+        vec![BlockFault::Grow { to: c }, BlockFault::Redundant],
+        vec![BlockFault::Grow { to: c }, BlockFault::Redundant],
+        vec![],
+    ]);
+}
+
+#[test]
+fn an_irredundant_cover_of_prime_implicants_may_still_cost_more_than_the_minimum() {
+    // The cyclic chart: A'B' A'C' AC AB covers every 1, each block needed, but three suffice.
+    let f = function(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    let check = BlocksCheck::of(&f, Form::Dnf, &[vec![0, 1], vec![0, 2], vec![5, 7], vec![6, 7]]).unwrap();
+    assert!(faults(&check).iter().all(|f| f.is_empty()));
+    assert!(check.correct() && !check.minimal());
+    assert_eq!((check.cost, check.minimum), ((4, 8), (3, 6)));
+}
+
+#[test]
+fn of_two_blocks_covering_each_other_only_one_is_redundant() {
+    let majority = function("AB + AC + BC", "A B C");
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 7], vec![5, 7], vec![6, 7], vec![3, 7]]).unwrap();
+    assert_eq!(faults(&check), [vec![], vec![], vec![], vec![BlockFault::Redundant]]);
+    // The whole C column of Σm(1, 3, 5, 7) drawn as the block and as two halves: the halves go.
+    let c = function("C", "A B C");
+    let check = BlocksCheck::of(&c, Form::Dnf, &[vec![1, 3], vec![1, 3, 5, 7], vec![5, 7]]).unwrap();
+    let grow = BlockFault::Grow { to: Pattern { value: 0b001, mask: 0b110 } };
+    assert_eq!(faults(&check), [vec![grow.clone(), BlockFault::Redundant], vec![], vec![grow, BlockFault::Redundant]]);
 }

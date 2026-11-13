@@ -566,7 +566,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] `check.rs`: equivalence of two functions, ignoring –, with the first counterexample and all
   differing rows.
-- [ ] The user's KV blocks: size, shape, no 0 inside; uncovered 1s, blocks that could grow,
+- [x] The user's KV blocks: size, shape, no 0 inside; uncovered 1s, blocks that could grow,
   redundant blocks; the resulting expression and its cost against the minimum.
 - [ ] The user's minimal form: equal, DNF or KNF, minimal; the hint naming the first improvement.
 - [ ] Steps of the checks (§8, row *Checks*).
