@@ -1967,3 +1967,81 @@ fn a_form_that_is_neither_a_dnf_nor_a_knf_is_not_minimal() {
     assert_eq!((check.form, check.minimal(), check.minimum), (None, false, (2, 4)));
     assert_eq!(form_check(r"\overline{AB}", r"\bar{A} + \bar{B}", "A B").form, None);
 }
+
+#[test]
+fn the_equivalence_working_gives_the_counterexample_and_the_rows_that_differ() {
+    let majority = function("AB + AC + BC", "A B C");
+    let check = Equivalence::of(&majority, &function("A + B", "A B C")).unwrap();
+    let working = check.working("f", "g");
+    assert_eq!(lines(&working, StepDetail::Brief), [("f and g are not equal.".to_string(), String::new())]);
+    assert_eq!(texts_at(&working, StepDetail::Standard)[1], "For A = 0, B = 1, C = 0 (row 2), f gives 0, g 1.");
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed[2].0, "They differ in 2 rows:");
+    assert_eq!(detailed[2].1, "\\begin{array}{c|ccc|cc}\ni & A & B & C & \\text{f} & \\text{g} \\\\ \\hline\n2 & 0 & 1 & 0 & 0 & 1 \\\\\n4 & 1 & 0 & 0 & 0 & 1 \\\\\n\\end{array}");
+    let same = Equivalence::of(&majority, &majority).unwrap().working("the circuit", "f");
+    assert_eq!(texts_at(&same, StepDetail::Maximal), ["the circuit and f are equal: they agree in every row where neither is a don't care."]);
+}
+
+#[test]
+fn the_blocks_working_names_the_faults_of_each_block() {
+    let abc = names("A B C");
+    let majority = function("AB + AC + BC", "A B C");
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 7], vec![5, 7], vec![6, 7]]).unwrap();
+    let working = check.working(&abc, "f", Notation::Technical);
+    assert_eq!(lines(&working, StepDetail::Standard), [("The blocks drawn give a minimal form of f:".to_string(), r"f = B \cdot C + A \cdot C + A \cdot B".to_string())]);
+    assert_eq!(lines(&working, StepDetail::Detailed)[1], ("Block 1 is right, a prime implicant that is needed:".to_string(), r"\{3, 7\} \colon\ B \cdot C".to_string()));
+
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 7], vec![5, 7], vec![6, 7], vec![7]]).unwrap();
+    let working = check.working(&abc, "f", Notation::Technical);
+    assert_eq!(lines(&working, StepDetail::Standard), [
+        ("The blocks drawn give f, but not a minimal form (4 terms with 9 literals; the minimum is 3 with 6):".to_string(), r"f = B \cdot C + A \cdot C + A \cdot B + A \cdot B \cdot C".to_string()),
+        ("Block 4 could grow, with fewer literals:".to_string(), r"A \cdot B \cdot C \to B \cdot C".to_string()),
+        ("Block 4 is not needed: each of its 1s is in another block.".to_string(), r"A \cdot B \cdot C".to_string()),
+    ]);
+
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 5, 6], vec![2, 3], vec![6, 7]]).unwrap();
+    assert_eq!(lines(&check.working(&abc, "f", Notation::Logic), StepDetail::Standard), [
+        ("The blocks drawn do not give f.".to_string(), String::new()),
+        ("Block 1 has 3 cells, not a power of two:".to_string(), r"\{3, 5, 6\}".to_string()),
+        ("Block 2 covers 0s, in the rows:".to_string(), r"\{2\}".to_string()),
+        ("These 1s are in no block:".to_string(), r"\{3, 5\}".to_string()),
+    ]);
+}
+
+#[test]
+fn the_form_working_gives_the_first_improvement_and_the_cost() {
+    let majority = "AB + AC + BC";
+    let working = form_check(r"AB\bar{C} + AC + BC", majority, "A B C").working("f", Notation::Technical);
+    assert_eq!(lines(&working, StepDetail::Detailed), [
+        ("The form given is a DNF of f, but not a minimal one.".to_string(), String::new()),
+        ("This term can lose a literal and still cover no 0:".to_string(), r"A \cdot B \cdot \overline{C} \to A \cdot B".to_string()),
+        ("The form has 3 terms with 7 literals; the minimum is 3 with 6.".to_string(), String::new()),
+    ]);
+    let working = form_check("(A + B)(A + C)(B + C)(A + B + C)", majority, "A B C").working("f", Notation::Technical);
+    assert_eq!(lines(&working, StepDetail::Standard)[1], ("This sum can go: the other sums cover its 0s.".to_string(), "A + B + C".to_string()));
+    let working = form_check("AB + AC + BC", majority, "A B C").working("f", Notation::Logic);
+    assert_eq!(texts_at(&working, StepDetail::Standard), ["The form given is a minimal DNF of f."]);
+    let working = form_check("A + B", majority, "A B C").working("f", Notation::Logic);
+    assert_eq!(texts_at(&working, StepDetail::Detailed), ["The form given is not equal to f.", "For A = 0, B = 1, C = 0 (row 2), the form gives 1, f 0."]);
+    let working = form_check(r"A \oplus B", r"A \oplus B", "A B").working("f", Notation::Logic);
+    assert_eq!(texts_at(&working, StepDetail::Detailed), ["The form given equals f, but it is neither a DNF nor a KNF."]);
+}
+
+#[test]
+fn the_check_workings_speak_german() {
+    let _german = quantus_core::logic::text::Scope::new(quantus_core::settings::Language::De);
+    let majority = function("AB + AC + BC", "A B C");
+    let check = Equivalence::of(&majority, &function("A + B", "A B C")).unwrap();
+    assert_eq!(texts_at(&check.working("f", "g"), StepDetail::Detailed), [
+        "f und g sind nicht gleich.",
+        "Für A = 0, B = 1, C = 0 (Zeile 2) ergibt f 0, g 1.",
+        "Sie unterscheiden sich in 2 Zeilen:",
+    ]);
+    let check = BlocksCheck::of(&majority, Form::Dnf, &[vec![3, 7], vec![5, 7], vec![6, 7], vec![7]]).unwrap();
+    assert_eq!(texts_at(&check.working(&names("A B C"), "f", Notation::Logic), StepDetail::Standard)[1], "Block 4 könnte größer sein, mit weniger Literalen:");
+    let working = form_check(r"\bar{A}\bar{B} + \bar{A}\bar{C} + AC + AB", r"\sum m(0, 1, 2, 5, 6, 7)", "A B C").working("f", Notation::Logic);
+    assert_eq!(texts_at(&working, StepDetail::Standard), [
+        "Die eingegebene Form ist eine DNF von f, aber keine minimale.",
+        "Kein Term und kein Literal kann allein wegfallen, aber es gibt eine Form mit weniger Termen oder Literalen.",
+    ]);
+}

@@ -1,9 +1,12 @@
 //! Checks (§6.8): two functions equal, the user's own KV blocks, the user's own minimal form.
 
-use super::expr::Expr;
+use super::expr::{variable_latex, Expr, Notation};
 use super::minimise::{cost, form_expr, Form, Minimisation};
 use super::table::expr_function;
 use super::{contains, rows_of, set_bit, Bits, Function, Pattern, Value};
+use super::text::msg;
+use super::working::{array, assignment, list, value_cell, Working};
+use crate::settings::StepDetail::{Brief, Detailed, Standard};
 use crate::Result;
 
 /// The first row where two functions differ: its number and both values.
@@ -22,6 +25,8 @@ pub struct Equivalence {
     /// Every row where they differ, ascending.
     pub rows: Vec<usize>,
     pub counterexample: Option<Counterexample>,
+    /// The value of both in every row.
+    pub values: [Vec<Value>; 2],
 }
 
 impl Equivalence {
@@ -32,7 +37,8 @@ impl Equivalence {
         let (a, b) = (first.over(&names)?, second.over(&names)?);
         let rows = a.differing_rows(&b);
         let counterexample = rows.first().map(|&row| Counterexample { row, first: a.value(row), second: b.value(row) });
-        Ok(Equivalence { names, rows, counterexample })
+        let values = [&a, &b].map(|f| (0..f.rows()).map(|r| f.value(r)).collect());
+        Ok(Equivalence { names, rows, counterexample, values })
     }
 
     pub fn equal(&self) -> bool {
@@ -315,4 +321,150 @@ fn first_improvement(function: &Function, form: Form, terms: &[Vec<Expr>], names
         }
     }
     Hint::Cheaper
+}
+
+/// `0` or `1`.
+fn digit(value: Value) -> &'static str {
+    match value {
+        Value::Zero => "0",
+        Value::One => "1",
+        Value::DontCare => "–",
+    }
+}
+
+impl Equivalence {
+    /// The working of the comparison (§8, *Checks*) of `first` and `second`, plain-text names
+    /// such as *f* or *the circuit*: equal or not at Brief; the counterexample at Standard; every
+    /// row where they differ at Detailed.
+    pub fn working(&self, first: &str, second: &str) -> Working {
+        let mut working = Working::default();
+        let Some(example) = self.counterexample else {
+            working.add(Brief, msg!("core.logic.step.check_equal"), String::new());
+            return working;
+        };
+        working.add(Brief, msg!("core.logic.step.check_not_equal"), String::new());
+        let (row, a, b) = (example.row, digit(example.first), digit(example.second));
+        let inputs = assignment(&self.names, row);
+        working.add(Standard, msg!("core.logic.step.check_counterexample"), String::new());
+        let n = self.names.len();
+        let header: Vec<String> = std::iter::once("i".to_string())
+            .chain(self.names.iter().map(|name| variable_latex(name)))
+            .chain([first, second].map(|label| format!("\\text{{{label}}}")))
+            .collect();
+        let rows: Vec<Option<Vec<String>>> = self
+            .rows
+            .iter()
+            .map(|&r| {
+                let (x, y) = (self.values[0][r], self.values[1][r]);
+                Some(std::iter::once(r.to_string()).chain((0..n).map(|k| (r >> (n - 1 - k) & 1).to_string())).chain([value_cell(x), value_cell(y)]).collect())
+            })
+            .collect();
+        let count = self.rows.len();
+        working.add(Detailed, msg!("core.logic.step.check_rows"), array(&format!("c|{}|cc", "c".repeat(n)), &header, &rows));
+        working
+    }
+}
+
+/// The literals `literals` as one term: a product for the DNF, a sum for the KNF.
+fn term_expr(form: Form, literals: &[Expr]) -> Expr {
+    match (literals.len(), form) {
+        (0, form) => Expr::Const(form == Form::Dnf),
+        (1, _) => literals[0].clone(),
+        (_, Form::Dnf) => Expr::And(literals.to_vec()),
+        (_, Form::Knf) => Expr::Or(literals.to_vec()),
+    }
+}
+
+impl BlocksCheck {
+    /// The working of the check of the user's blocks (§8, *Checks*) for the output `output` over
+    /// the variables `names`: whether they give the output and a minimal form at Brief; the
+    /// faults of each block and the 1s (0s) in none at Standard; each block that is right at
+    /// Detailed.
+    pub fn working(&self, names: &[String], output: &str, notation: Notation) -> Working {
+        let mut working = Working::default();
+        let knf = self.form == Form::Knf;
+        let f = variable_latex(output);
+        let term = |p: Pattern| if knf { p.sum(names) } else { p.product(names) }.latex(notation);
+        let form = format!("{f} = {}", self.expr(names).latex(notation));
+        let ((terms, literals), (min_terms, min_literals)) = (self.cost, self.minimum);
+        if !self.correct() {
+            working.add(Brief, msg!("core.logic.step.check_blocks_wrong"), String::new());
+        } else if self.minimal() {
+            working.add(Brief, msg!("core.logic.step.check_blocks_minimal"), form);
+        } else {
+            working.add(Brief, msg!("core.logic.step.check_blocks_not_minimal"), form);
+        }
+        let set = |cells: &[usize]| format!("\\{{{}\\}}", list(cells));
+        for (index, block) in self.blocks.iter().enumerate() {
+            let number = index + 1;
+            for fault in &block.faults {
+                let (text, latex) = match fault {
+                    BlockFault::Empty => (msg!("core.logic.step.check_block_empty"), String::new()),
+                    BlockFault::Size { cells } => (msg!("core.logic.step.check_block_size"), set(&block.cells)),
+                    BlockFault::Shape => (msg!("core.logic.step.check_block_shape"), set(&block.cells)),
+                    BlockFault::WrongValue { rows } if knf => (msg!("core.logic.step.check_block_ones"), set(rows)),
+                    BlockFault::WrongValue { rows } => (msg!("core.logic.step.check_block_zeros"), set(rows)),
+                    BlockFault::Grow { to } => {
+                        let from = block.term.expect("a block that could grow has a term");
+                        (msg!("core.logic.step.check_block_grow"), format!("{} \\to {}", term(from), term(*to)))
+                    }
+                    BlockFault::Redundant if knf => (msg!("core.logic.step.check_block_redundant_knf"), term(block.term.expect("a redundant block has a term"))),
+                    BlockFault::Redundant => (msg!("core.logic.step.check_block_redundant"), term(block.term.expect("a redundant block has a term"))),
+                };
+                working.add(Standard, text, latex);
+            }
+            if block.faults.is_empty() {
+                let latex = format!("{} \\colon\\ {}", set(&block.cells), term(block.term.expect("a block without faults has a term")));
+                working.add(Detailed, msg!("core.logic.step.check_block_right"), latex);
+            }
+        }
+        if !self.uncovered.is_empty() {
+            let text = if knf { msg!("core.logic.step.check_uncovered_zeros") } else { msg!("core.logic.step.check_uncovered_ones") };
+            working.add(Standard, text, set(&self.uncovered));
+        }
+        working
+    }
+}
+
+impl FormCheck {
+    /// The working of the check of the user's form (§8, *Checks*) for the output `output`:
+    /// equal or not and minimal or not at Brief; the counterexample or the first improvement at
+    /// Standard; the cost against the minimum at Detailed.
+    pub fn working(&self, output: &str, notation: Notation) -> Working {
+        let mut working = Working::default();
+        if let Some(example) = self.equivalence.counterexample {
+            working.add(Brief, msg!("core.logic.step.check_form_not_equal"), String::new());
+            let (row, mine, theirs) = (example.row, digit(example.first), digit(example.second));
+            let inputs = assignment(&self.equivalence.names, row);
+            working.add(Standard, msg!("core.logic.step.check_form_counterexample"), String::new());
+            return working;
+        }
+        let Some(form) = self.form else {
+            working.add(Brief, msg!("core.logic.step.check_form_not_normal"), String::new());
+            return working;
+        };
+        let knf = form == Form::Knf;
+        let text = match (self.minimal(), knf) {
+            (true, false) => msg!("core.logic.step.check_form_minimal_dnf"),
+            (true, true) => msg!("core.logic.step.check_form_minimal_knf"),
+            (false, false) => msg!("core.logic.step.check_form_dnf"),
+            (false, true) => msg!("core.logic.step.check_form_knf"),
+        };
+        working.add(Brief, text, String::new());
+        let term = |t: usize| term_expr(form, &self.terms[t]).latex(notation);
+        match self.hint {
+            Some(Hint::DropTerm { term: t }) if knf => working.add(Standard, msg!("core.logic.step.check_hint_sum"), term(t)),
+            Some(Hint::DropTerm { term: t }) => working.add(Standard, msg!("core.logic.step.check_hint_term"), term(t)),
+            Some(Hint::DropLiteral { term: t, literal }) => {
+                let rest: Vec<Expr> = self.terms[t].iter().enumerate().filter(|(j, _)| *j != literal).map(|(_, l)| l.clone()).collect();
+                let text = if knf { msg!("core.logic.step.check_hint_literal_knf") } else { msg!("core.logic.step.check_hint_literal") };
+                working.add(Standard, text, format!("{} \\to {}", term(t), term_expr(form, &rest).latex(notation)));
+            }
+            Some(Hint::Cheaper) => working.add(Standard, msg!("core.logic.step.check_hint_cheaper"), String::new()),
+            None => {}
+        }
+        let ((terms, literals), (min_terms, min_literals)) = (self.cost, self.minimum);
+        working.add(Detailed, msg!("core.logic.step.check_form_cost"), String::new());
+        working
+    }
 }
