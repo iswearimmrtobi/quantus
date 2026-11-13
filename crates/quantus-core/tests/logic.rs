@@ -1,7 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::kmap::{gray, gray_position, Bar, Edge, Layout, Place};
+use quantus_core::logic::kmap::{gray, gray_position, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
@@ -819,4 +819,82 @@ fn kv_cells_carry_their_row_its_inputs_and_the_value() {
     assert_eq!(cells.iter().map(|c| c.index).collect::<Vec<_>>(), [0, 2, 6, 4, 1, 3, 7, 5]);
     assert_eq!((cells[5].code.as_str(), cells[5].value, cells[5].place), ("011", Value::One, Place { map: 0, row: 1, col: 1 }));
     assert_eq!((cells[0].value, cells[1].value), (Value::DontCare, Value::Zero));
+}
+
+fn piece(map: usize, col: usize, row: usize, width: usize, height: usize, open: &str) -> Piece {
+    let open = Open { left: open.contains('l'), right: open.contains('r'), top: open.contains('t'), bottom: open.contains('b') };
+    Piece { map, col, row, width, height, open }
+}
+
+#[test]
+fn kv_blocks_are_cell_sets_drawn_as_rectangles() {
+    let four = Layout::new(4).unwrap();
+    // B·D: columns 01 and 11, rows 01 and 11, one square in the middle.
+    let bd = four.block(Pattern { value: 0b0101, mask: 0b1010 });
+    assert_eq!(bd.cells, [5, 7, 13, 15]);
+    assert_eq!(bd.pieces, [piece(0, 1, 1, 2, 2, "")]);
+    // A whole row: C̄·D̄.
+    assert_eq!(four.block(Pattern { value: 0, mask: 0b1100 }).pieces, [piece(0, 0, 0, 4, 1, "")]);
+    // A single cell.
+    assert_eq!(four.block(Pattern::minterm(13)).pieces, [piece(0, 2, 1, 1, 1, "")]);
+}
+
+#[test]
+fn kv_blocks_wrap_over_the_edges_in_two_or_four_pieces() {
+    let four = Layout::new(4).unwrap();
+    // B̄·D̄ wraps left–right and top–bottom: the four corners.
+    let corners = four.block(Pattern { value: 0, mask: 0b1010 });
+    assert_eq!(corners.cells, [0, 2, 8, 10]);
+    assert_eq!(corners.pieces, [piece(0, 0, 0, 1, 1, "lt"), piece(0, 3, 0, 1, 1, "rt"), piece(0, 0, 3, 1, 1, "lb"), piece(0, 3, 3, 1, 1, "rb")]);
+    // B̄·D wraps left–right only.
+    let sides = four.block(Pattern { value: 0b0001, mask: 0b1010 });
+    assert_eq!(sides.pieces, [piece(0, 0, 1, 1, 2, "l"), piece(0, 3, 1, 1, 2, "r")]);
+    // Over three variables, C̄ is the top row, B̄ the outer columns.
+    let three = Layout::new(3).unwrap();
+    assert_eq!(three.block(Pattern { value: 0, mask: 0b110 }).pieces, [piece(0, 0, 0, 4, 1, "")]);
+    assert_eq!(three.block(Pattern { value: 0, mask: 0b101 }).pieces, [piece(0, 0, 0, 1, 2, "l"), piece(0, 3, 0, 1, 2, "r")]);
+}
+
+#[test]
+fn kv_blocks_go_across_maps_in_the_same_place() {
+    // Over five variables, a term without A lies in both maps.
+    let five = Layout::new(5).unwrap();
+    let block = five.block(Pattern { value: 0b00101, mask: 0b11010 });
+    assert_eq!(block.cells, [5, 7, 13, 15, 21, 23, 29, 31]);
+    assert_eq!(block.pieces, [piece(0, 1, 1, 2, 2, ""), piece(1, 1, 1, 2, 2, "")]);
+    // Over six, B̄·(the corners) lies in the two maps with B = 0, wrapping in each: 8 pieces.
+    let six = Layout::new(6).unwrap();
+    let block = six.block(Pattern { value: 0, mask: 0b101010 });
+    assert_eq!(block.cells.len(), 8);
+    assert_eq!(block.pieces.iter().map(|p| p.map).collect::<Vec<_>>(), [0, 0, 0, 0, 2, 2, 2, 2]);
+    // Every block's pieces cover exactly its cells, for every term over 2 to 6 variables.
+    for n in 2..=6usize {
+        let layout = Layout::new(n).unwrap();
+        for mask in 0..1u8 << n {
+            for value in (0..1u8 << n).filter(|v| v & mask == 0) {
+                let block = layout.block(Pattern { value, mask });
+                let mut drawn: Vec<usize> = block
+                    .pieces
+                    .iter()
+                    .flat_map(|p| (p.row..p.row + p.height).flat_map(move |row| (p.col..p.col + p.width).map(move |col| Place { map: p.map, row, col })))
+                    .map(|place| layout.row_number(place))
+                    .collect();
+                drawn.sort();
+                assert_eq!(drawn, block.cells, "{n} variables, {}", Pattern { value, mask }.text(n));
+            }
+        }
+    }
+}
+
+#[test]
+fn kv_blocks_of_the_minimal_dnf_and_knf() {
+    let f = function("AB + AC + BC", "A B C");
+    let three = Layout::new(3).unwrap();
+    let dnf: Vec<Vec<usize>> = three.blocks(&Minimisation::of(&f).unwrap(), 0).into_iter().map(|b| b.cells).collect();
+    assert_eq!(dnf, [vec![3, 7], vec![5, 7], vec![6, 7]]);
+    let knf: Vec<Vec<usize>> = three.blocks(&Minimisation::knf(&f).unwrap(), 0).into_iter().map(|b| b.cells).collect();
+    assert_eq!(knf, [vec![0, 1], vec![0, 2], vec![0, 4]]);
+    // The cyclic chart has two covers, each with its own blocks.
+    let (m, _) = minimal(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    assert_ne!(three.blocks(&m, 0), three.blocks(&m, 1));
 }

@@ -1,4 +1,4 @@
-//! KV diagrams (§6.3): the layout of 2 to 6 variables and its labels.
+//! KV diagrams (§6.3): the layout of 2 to 6 variables, its labels and the blocks.
 //!
 //! Variables beyond four choose the map: the first $n - 4$ of them. Of the other $m$, the first
 //! $\lceil m/2 \rceil$ run along the columns and the rest along the rows, each axis in Gray
@@ -7,6 +7,7 @@
 //! along its rows. The maps are copies, not mirrors: cells in the same place of neighbouring maps
 //! are neighbours.
 
+use super::minimise::Minimisation;
 use super::{Function, Pattern, Value};
 
 /// The fewest variables of a KV diagram.
@@ -205,5 +206,84 @@ impl Layout {
             }
         }
         cells
+    }
+}
+
+/// One rectangle of a block within one map, in cells. A block that wraps over an edge is drawn
+/// as pieces at both edges, each open towards the edge it continues over.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Piece {
+    pub map: usize,
+    pub col: usize,
+    pub row: usize,
+    pub width: usize,
+    pub height: usize,
+    pub open: Open,
+}
+
+/// The sides of a piece where the block goes on over the map's edge.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Open {
+    pub left: bool,
+    pub right: bool,
+    pub top: bool,
+    pub bottom: bool,
+}
+
+/// A term of a minimal form as a block: the rows of the truth table it covers and the pieces it
+/// is drawn as, map by map, then row by row and column by column. For the KNF the term covers 0s.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Block {
+    pub term: Pattern,
+    pub cells: Vec<usize>,
+    pub pieces: Vec<Piece>,
+}
+
+/// A run of positions along one axis: start, length, open at the start, open at the end.
+type Run = (usize, usize, bool, bool);
+
+/// The positions `0..len` that `keep` keeps, as runs side by side; when the first run starts at
+/// 0 and the last ends at `len` they are one run over the edge, and open there.
+fn runs(len: usize, keep: impl Fn(usize) -> bool) -> Vec<Run> {
+    let mut runs: Vec<Run> = Vec::new();
+    for k in (0..len).filter(|k| keep(*k)) {
+        match runs.last_mut() {
+            Some((start, length, _, _)) if *start + *length == k => *length += 1,
+            _ => runs.push((k, 1, false, false)),
+        }
+    }
+    if runs.len() > 1 && runs[0].0 == 0 && runs.last().is_some_and(|r| r.0 + r.1 == len) {
+        runs[0].2 = true;
+        runs.last_mut().expect("more than one run").3 = true;
+    }
+    runs
+}
+
+impl Layout {
+    /// The block of `term`.
+    pub fn block(&self, term: Pattern) -> Block {
+        let (c, r) = (self.col_vars, self.row_vars);
+        // Whether `code` of `bits` bits, `shift` bits up in a row number, fits the term.
+        let fits = |code: usize, bits: usize, shift: usize| {
+            let part = |x: u8| (x as usize >> shift) & ((1 << bits) - 1);
+            code & !part(term.mask) == part(term.value)
+        };
+        let cols = runs(self.columns(), |k| fits(gray(k), c, r));
+        let rows = runs(self.rows(), |k| fits(gray(k), r, 0));
+        let mut pieces = Vec::new();
+        for map in (0..self.maps()).filter(|m| fits(*m, self.map_vars, c + r)) {
+            for &(row, height, top, bottom) in &rows {
+                for &(col, width, left, right) in &cols {
+                    pieces.push(Piece { map, col, row, width, height, open: Open { left, right, top, bottom } });
+                }
+            }
+        }
+        Block { term, cells: term.rows(self.arity).collect(), pieces }
+    }
+
+    /// The blocks of the minimal cover `cover` of `minimisation`: over the 1s for the DNF, over
+    /// the 0s for the KNF.
+    pub fn blocks(&self, minimisation: &Minimisation, cover: usize) -> Vec<Block> {
+        minimisation.covers[cover].iter().map(|term| self.block(*term)).collect()
     }
 }
