@@ -39,6 +39,22 @@ impl std::fmt::Display for Failure {
 /// A calculation's result as LaTeX, or why there is none.
 pub type Answer = Result<String, Failure>;
 
+/// A file being written on the SD card ([`Backend::create`]).
+pub trait File: std::io::Write + std::io::Seek {}
+
+impl<T: std::io::Write + std::io::Seek> File for T {}
+
+/// Why [`Backend::create`] made no file.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Create {
+    /// There is a file of that name already; it is left as it is.
+    Exists,
+    /// There is no SD card.
+    NoCard,
+    /// The card refused, with the reason.
+    Failed(String),
+}
+
 pub trait Backend {
     /// The result of `latex` in `mode`, written as `settings` say, as LaTeX, or why not.
     fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Answer;
@@ -163,6 +179,12 @@ pub trait Backend {
     /// How full the SD card is; `None` without a card.
     fn storage(&mut self) -> Option<Storage> {
         None
+    }
+
+    /// A new file at `path` on the SD card (`screenshots/1.bmp`, relative to its root), with
+    /// the folders it needs; an existing file is never overwritten.
+    fn create(&mut self, _path: &str) -> Result<Box<dyn File>, Create> {
+        Err(Create::NoCard)
     }
 
     /// The settings kept from the last run, if any.

@@ -71,6 +71,9 @@ pub enum Key {
     /// SHIFT on ▲ and ▼: copy the selection, paste it.
     Copy,
     Paste,
+    /// SHIFT on 7 (CAPTURE), PrintScreen on a keyboard: the screen saved as a picture on the SD
+    /// card.
+    Screenshot,
     /// SHIFT on OPTN: every function and template, by name.
     Catalog,
     /// SHIFT on EXE: the result straight as a decimal.

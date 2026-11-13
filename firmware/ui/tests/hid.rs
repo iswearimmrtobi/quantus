@@ -64,6 +64,7 @@ fn named_keys_and_the_keypad() {
     assert_eq!(key(0x54, 0), Some(Key::Fraction));
     assert_eq!(key(0x63, 0), Some(Key::Comma));
     assert_eq!(key(0x45, 0), Some(Key::Symb));
+    assert_eq!(key(0x46, 0), Some(Key::Screenshot), "PrintScreen");
 }
 
 #[test]

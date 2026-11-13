@@ -165,6 +165,7 @@ fn shift(key: Key) -> Option<Resolved> {
         Key::Exe => K(Key::Approx),
         Key::Optn => K(Key::Catalog),
         Key::Eng => K(Key::EngBack),
+        Key::Digit(7) => K(Key::Screenshot),
         // FACT and recurring decimals wait for the engine.
         Key::SwapForm => Nothing,
         _ => return None,

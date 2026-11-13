@@ -1,11 +1,17 @@
-use std::io::Cursor;
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::io::{Cursor, Seek, SeekFrom, Write};
+use std::rc::Rc;
 
 use embedded_graphics::image::Image;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
-use quantus_ui::app::{App, NOTICE_MS};
-use quantus_ui::backend::Stub;
+use quantus_ui::app::{screenshot_name, App, Mode, Screen, Settings, NOTICE_MS};
+use quantus_ui::backend::{Answer, Backend, Create, File, Stub};
+use quantus_ui::clock::Zone;
+use quantus_ui::layer::Layer;
+use quantus_ui::text;
 use quantus_ui::key::Key;
 use quantus_ui::render::{bmp, Frame, Renderer, Shape, HEIGHT, WIDTH};
 use quantus_ui::wallpaper::Wallpaper;
@@ -131,4 +137,139 @@ fn a_key_takes_the_notice_away_and_does_what_it_does() {
     press(&mut app, &[Key::Digit(4)]);
     assert!(app.notice.is_none());
     assert_eq!(app.editor.to_latex(), "4");
+}
+
+/// The files on a card in memory, by path.
+type Files = Rc<RefCell<BTreeMap<String, Vec<u8>>>>;
+
+/// The stub's answers, with a card in memory.
+struct Card(Files);
+
+impl Backend for Card {
+    fn evaluate(&mut self, mode: Mode, settings: &Settings, latex: &str) -> Answer {
+        Stub.evaluate(mode, settings, latex)
+    }
+
+    fn create(&mut self, path: &str) -> Result<Box<dyn File>, Create> {
+        if self.0.borrow().contains_key(path) {
+            return Err(Create::Exists);
+        }
+        self.0.borrow_mut().insert(path.to_string(), Vec::new());
+        Ok(Box::new(Written { path: path.to_string(), bytes: Cursor::new(Vec::new()), files: self.0.clone() }))
+    }
+}
+
+/// A file being written; on the card when dropped.
+struct Written {
+    path: String,
+    bytes: Cursor<Vec<u8>>,
+    files: Files,
+}
+
+impl Write for Written {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.bytes.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl Seek for Written {
+    fn seek(&mut self, to: SeekFrom) -> std::io::Result<u64> {
+        self.bytes.seek(to)
+    }
+}
+
+impl Drop for Written {
+    fn drop(&mut self) {
+        self.files.borrow_mut().insert(self.path.clone(), std::mem::take(self.bytes.get_mut()));
+    }
+}
+
+fn card() -> (App<Card>, Files) {
+    let files = Files::default();
+    (App::new(Card(files.clone())), files)
+}
+
+/// The names of the screenshots on the card.
+fn names(files: &Files) -> Vec<String> {
+    files.borrow().keys().cloned().collect()
+}
+
+#[test]
+fn shift_7_saves_the_screen_without_the_shift_mark_and_says_where() {
+    let (mut app, files) = card();
+    press(&mut app, &[Key::Digit(1), Key::Plus, Key::Digit(2), Key::Exe, Key::Shift, Key::Digit(7)]);
+    let names = names(&files);
+    assert_eq!(names.len(), 1);
+    assert!(names[0].starts_with("screenshots/") && names[0].ends_with(".bmp"), "{names:?}");
+    // Nothing typed, SHIFT used up.
+    assert_eq!(app.modifier.pending, None);
+    assert!(app.history.len() == 1 && app.editor.to_latex() == "1+2");
+    let notice = app.notice.clone().expect("a notice");
+    assert!(!notice.error && notice.text.ends_with(&names[0].replace("screenshots/", "/screenshots/")), "{notice:?}");
+    // The picture is the screen without the notice and without SHIFT in the bar.
+    app.notice = None;
+    let mut shown = Screen565::default();
+    Renderer::new().render(&Frame::new(&app), &mut shown).unwrap();
+    assert!(read(&files.borrow()[&names[0]]).0 == shown.0);
+}
+
+#[test]
+fn a_second_screenshot_gets_a_name_of_its_own() {
+    let (mut app, files) = card();
+    press(&mut app, &[Key::Shift, Key::Digit(7), Key::Screenshot]);
+    assert_eq!(names(&files).len(), 2);
+    assert!(files.borrow().values().all(|bytes| bytes.len() == bmp::SIZE as usize));
+}
+
+#[test]
+fn shift_7_works_in_a_menu_and_on_the_mode_tiles() {
+    let (mut app, files) = card();
+    // SETUP, then SHIFT + 7 in it.
+    press(&mut app, &[Key::Shift, Key::Mode]);
+    assert!(matches!(app.screen, Screen::Menu(_)));
+    press(&mut app, &[Key::Shift]);
+    assert_eq!(app.modifier.pending, Some(Layer::Shift), "the bar shows SHIFT");
+    press(&mut app, &[Key::Digit(7)]);
+    assert!(matches!(app.screen, Screen::Menu(_)));
+    assert_eq!(names(&files).len(), 1);
+    // The mode tiles.
+    press(&mut app, &[Key::Ac, Key::Ac, Key::Ac, Key::Mode]);
+    assert!(matches!(app.screen, Screen::Modes { .. }), "{:?}", app.screen);
+    press(&mut app, &[Key::Shift, Key::Digit(7)]);
+    assert!(matches!(app.screen, Screen::Modes { .. }));
+    assert_eq!(names(&files).len(), 2);
+}
+
+#[test]
+fn shift_then_another_key_in_a_menu_does_what_the_key_does() {
+    let (mut shifted, _) = card();
+    let (mut plain, _) = card();
+    press(&mut shifted, &[Key::Shift, Key::Mode, Key::Shift, Key::Down, Key::Shift, Key::Shift, Key::Down]);
+    press(&mut plain, &[Key::Shift, Key::Mode, Key::Down, Key::Down]);
+    assert_eq!(shifted.screen, plain.screen);
+    assert_eq!(shifted.modifier, plain.modifier);
+}
+
+#[test]
+fn without_a_card_the_notice_says_so() {
+    let mut app = App::new(Stub);
+    press(&mut app, &[Key::Shift, Key::Digit(7)]);
+    let notice = app.notice.clone().expect("a notice");
+    assert!(notice.error);
+    assert_eq!(notice.text, text::NO_CARD.get(app.settings.language));
+}
+
+#[test]
+fn screenshots_are_named_by_the_time_or_numbered() {
+    assert_eq!(screenshot_name(None, Zone::Berlin, 1), "screenshot-1.bmp");
+    assert_eq!(screenshot_name(None, Zone::Berlin, 12), "screenshot-12.bmp");
+    // 14:03:27 in Berlin, in winter time; then a second one in the same second.
+    let noon = quantus_ui::clock::to_utc(2026, 11, 12, 14, 3, Zone::Berlin) + 27_000;
+    assert_eq!(screenshot_name(Some(noon), Zone::Berlin, 1), "2026-11-12_14-03-27.bmp");
+    assert_eq!(screenshot_name(Some(noon), Zone::Berlin, 2), "2026-11-12_14-03-27-2.bmp");
+    assert_eq!(screenshot_name(Some(noon), Zone::Utc, 1), "2026-11-12_13-03-27.bmp");
 }

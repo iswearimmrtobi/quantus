@@ -2,7 +2,7 @@
 
 use crate::applet::{AppInfo, AppKey, Applet, Event, Grid, Host, Input, Question, Response};
 use crate::backend::{
-    Backend, Catalogue, Graph, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Units, VariableCommand, Window,
+    Backend, Catalogue, Create, Graph, Group, Item, Opened, Reply, Request, SessionCommand, SessionInfo, Units, VariableCommand, Window,
     WlanStatus,
 };
 use crate::editor::{Editor, Mark, Node, Row};
@@ -415,6 +415,28 @@ const SPIN_MS: u64 = 125;
 
 /// How often the WLAN connection is asked for.
 const WLAN_MS: u64 = 500;
+
+/// How many screenshots of one name (one second, or with the clock not set) are numbered.
+const SCREENSHOTS: u32 = 9999;
+
+/// The file name of a screenshot: the local time in `zone` while the clock is set
+/// (`2026-11-12_14-03-27.bmp`, then `…-2.bmp` in the same second), else a number
+/// (`screenshot-3.bmp`); `n` counts from 1.
+pub fn screenshot_name(now: Option<i64>, zone: crate::settings::Zone, n: u32) -> String {
+    match now {
+        Some(now) => {
+            let local = clock::local(now, zone);
+            // Zones are whole minutes off UTC: the seconds are UTC's.
+            let second = (now / 1000).rem_euclid(60);
+            let stamp = format!(
+                "{:04}-{:02}-{:02}_{:02}-{:02}-{second:02}",
+                local.year, local.month, local.day, local.hour, local.minute
+            );
+            if n == 1 { format!("{stamp}.bmp") } else { format!("{stamp}-{n}.bmp") }
+        }
+        None => format!("screenshot-{n}.bmp"),
+    }
+}
 
 /// How long a [`Notice`] stays over the top bar.
 pub const NOTICE_MS: u64 = 2000;
@@ -883,6 +905,32 @@ impl<B: Backend> App<B> {
         changed
     }
 
+    /// Saves the screen as it is now, without the notice of an earlier one, as a BMP file in
+    /// `/screenshots/` on the card, named by the time ([`screenshot_name`]); then says where, or
+    /// why not, over the top bar.
+    pub fn screenshot(&mut self) {
+        self.notice = None;
+        let frame = render::Frame::new(self);
+        let now = clock::now();
+        let mut result = Err(Create::Exists);
+        for n in 1..=SCREENSHOTS {
+            let name = screenshot_name(now, self.settings.zone, n);
+            result = match self.backend.create(&format!("screenshots/{name}")) {
+                Err(Create::Exists) => continue,
+                Ok(file) => render::bmp::write(&frame, file).map(|()| name).map_err(|error| Create::Failed(error.to_string())),
+                Err(error) => Err(error),
+            };
+            break;
+        }
+        let lang = self.settings.language;
+        match result {
+            Ok(name) => self.notify(format!("{}: /screenshots/{name}", text::SCREENSHOT_SAVED.get(lang)), false),
+            Err(Create::NoCard) => self.notify(text::NO_CARD.get(lang), true),
+            Err(Create::Exists) => self.notify(text::SCREENSHOT_FAILED.get(lang), true),
+            Err(Create::Failed(error)) => self.notify(format!("{}: {error}", text::SCREENSHOT_FAILED.get(lang)), true),
+        }
+    }
+
     /// Shows `text` over the top bar for [`NOTICE_MS`], in the error colour if `error`.
     pub fn notify(&mut self, text: impl Into<String>, error: bool) {
         self.notice = Some(Notice { text: text.into(), error, shown_at: None });
@@ -904,9 +952,30 @@ impl<B: Backend> App<B> {
         let typing = typing || self.app_typing();
         let Some(key) = (if typing { Some(key) } else { key.plain() }) else { return };
         self.caret_on = true;
+        if key == Key::Screenshot {
+            return self.screenshot();
+        }
+        let line = matches!(self.screen, Screen::App)
+            && self.app_typing()
+            && self.running.as_ref().is_some_and(|running| running.menu.is_none());
+        // Where SHIFT has no legends (menus, the mode tiles, an app without a line) it has one
+        // use: SHIFT + 7 saves the screen. Any other key drops it and does what it does.
+        if !matches!(self.screen, Screen::Calc) && !line {
+            if key == Key::Shift {
+                let shift = self.modifier.pending == Some(Layer::Shift);
+                self.modifier.pending = if shift { None } else { Some(Layer::Shift) };
+                return;
+            }
+            if self.modifier.pending == Some(Layer::Shift) {
+                self.modifier.pending = None;
+                if key == Key::Digit(7) {
+                    return self.screenshot();
+                }
+            }
+        }
         if matches!(self.screen, Screen::App) {
             // SHIFT, ALPHA and UNIT work while the app has a line typed into.
-            if self.app_typing() && self.running.as_ref().is_some_and(|running| running.menu.is_none()) {
+            if line {
                 if Modifier::is_modifier(key) {
                     return self.modifier.press(key);
                 }
@@ -919,6 +988,7 @@ impl<B: Backend> App<B> {
                 self.modifier.settle(key, layer);
                 let shift = layer == Layer::Shift;
                 return match resolved {
+                    Resolved::Key(Key::Screenshot) => self.screenshot(),
                     Resolved::Key(key) if self.applet_typed(key, shift) => {}
                     Resolved::Key(key) if self.line_key(key, shift) => {}
                     Resolved::Key(key) if self.cells_key(key, layer == Layer::Shift) => {}
@@ -945,6 +1015,7 @@ impl<B: Backend> App<B> {
             self.track_unit(layer, resolved);
         }
         let key = match resolved {
+            Resolved::Key(Key::Screenshot) => return self.screenshot(),
             Resolved::Key(key) => key,
             Resolved::Insert(latex) if calc => return self.insert(latex),
             Resolved::Nothing => return,

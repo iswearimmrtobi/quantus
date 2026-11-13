@@ -1944,6 +1944,8 @@
     "hui.render.sheet.step": "Schritt",
     "hui.render.sheet.to": "Bis",
     "hui.sd_card": "SD-Karte",
+    "hui.screenshot.failed": "Bildschirmfoto nicht gespeichert",
+    "hui.screenshot.saved": "Gespeichert",
     "hui.search.nothing": "Nichts gefunden.",
     "hui.searching": "Suche Netzwerke ...",
     "hui.section_failed": "fehlgeschlagen",

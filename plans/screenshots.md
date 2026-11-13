@@ -51,15 +51,16 @@ Current state, for reference:
 
 ## Step 4 — SHIFT + 7 saves the screen
 
-- [ ] `Key::Screenshot`; SHIFT + 7 in the SHIFT table; PrintScreen on a USB keyboard (`hid.rs`).
-- [ ] SHIFT latches on every screen: on screens without SHIFT legends only SHIFT + 7 means
+- [x] `Key::Screenshot`; SHIFT + 7 in the SHIFT table; PrintScreen on a USB keyboard (`hid.rs`).
+- [x] SHIFT latches on every screen: on screens without SHIFT legends only SHIFT + 7 means
       something; any other key drops it and does what it did.
-- [ ] `Backend::create(path)`: a new file on the card (folder made, never overwritten);
+- [x] `Backend::create(path)`: a new file on the card (folder made, never overwritten);
       `Create::{Exists, NoCard, Failed}`; general, so the export of idea 27 can use it.
-- [ ] `App::screenshot()`: the modifier cleared, the frame written to
+- [x] `App::screenshot()`: the modifier cleared, the frame written to
       `screenshots/<date or number>.bmp`, then the notice.
-- [ ] Texts `hui.screenshot.*` in every file of `locales/`.
-- [ ] Tests: on the calculation screen, in a menu and on the mode tiles; the date name and the
+- [x] Texts `hui.screenshot.saved` and `hui.screenshot.failed` in every file of `locales/`; no
+      card says `hui.no_card`, which exists.
+- [x] Tests: on the calculation screen, in a menu and on the mode tiles; the date name and the
       numbers; the SHIFT mark not in the picture; no card; SHIFT then another key in a menu.
 
 ## Step 5 — Board and simulator

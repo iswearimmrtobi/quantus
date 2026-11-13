@@ -1944,6 +1944,8 @@
     "hui.render.sheet.step": "Step",
     "hui.render.sheet.to": "To",
     "hui.sd_card": "SD card",
+    "hui.screenshot.failed": "Screenshot not saved",
+    "hui.screenshot.saved": "Saved",
     "hui.search.nothing": "Nothing found.",
     "hui.searching": "Looking for networks ...",
     "hui.section_failed": "failed",

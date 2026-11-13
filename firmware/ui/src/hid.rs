@@ -44,6 +44,8 @@ pub fn key(usage: u8, modifiers: u8) -> Option<Key> {
         0x43 => Some(Key::Eng),
         0x44 => Some(Key::Vars),
         0x45 => Some(Key::Symb),
+        // PrintScreen
+        0x46 => Some(Key::Screenshot),
         0x54 => Some(Key::Fraction),
         0x55 => Some(Key::Times),
         0x56 => Some(Key::Minus),
