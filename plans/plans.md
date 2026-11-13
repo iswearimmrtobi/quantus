@@ -182,7 +182,13 @@ From [feature-ideas.md](feature-ideas.md) (idea 13): word size 8/16/32/64, signe
 wrapping, shifts and rotations, a bit view and an IEEE-754 view. Plan with the steps:
 [programmer-view.md](programmer-view.md).
 
-## 8. Later
+## 8. Screenshots on the handheld
+
+From [feature-ideas.md](feature-ideas.md) (idea 28): SHIFT + 7 saves the screen as a BMP in
+`/screenshots/` on the SD card, drawn band by band into the file. Plan with the steps:
+[screenshots.md](screenshots.md).
+
+## 9. Later
 
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
