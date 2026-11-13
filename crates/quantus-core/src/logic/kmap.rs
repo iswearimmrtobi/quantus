@@ -7,6 +7,8 @@
 //! along its rows. The maps are copies, not mirrors: cells in the same place of neighbouring maps
 //! are neighbours.
 
+use serde::Serialize;
+
 use super::expr::{variable_latex, Notation};
 use super::minimise::{Form, Minimisation};
 use super::text::msg;
@@ -36,7 +38,7 @@ pub fn gray_position(code: usize) -> usize {
 }
 
 /// The place of a cell: its map and its row and column in the map.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct Place {
     /// The map, the value of the map variables (the first variable most significant).
     pub map: usize,
@@ -158,7 +160,8 @@ impl Layout {
 }
 
 /// An edge of a map, or of the grid of maps.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Edge {
     Top,
     Bottom,
@@ -169,7 +172,7 @@ pub enum Edge {
 /// A variable's label in German school style: a bar with its name along `edge`, over the
 /// columns or rows where the variable is 1, `start` and `len` of them. With `maps`, the bar runs
 /// along the grid of maps and counts maps; otherwise it is drawn at every map and counts cells.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct Bar {
     pub variable: usize,
     pub edge: Edge,
@@ -231,7 +234,7 @@ impl Layout {
 
 /// One rectangle of a block within one map, in cells. A block that wraps over an edge is drawn
 /// as pieces at both edges, each open towards the edge it continues over.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct Piece {
     pub map: usize,
     pub col: usize,
@@ -242,7 +245,7 @@ pub struct Piece {
 }
 
 /// The sides of a piece where the block goes on over the map's edge.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Open {
     pub left: bool,
     pub right: bool,

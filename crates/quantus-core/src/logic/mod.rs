@@ -8,6 +8,7 @@ pub mod check;
 pub mod circuit;
 pub mod delay;
 pub mod expr;
+pub mod interface;
 pub mod kmap;
 pub mod layout;
 pub mod minimise;
@@ -16,6 +17,8 @@ pub mod parse;
 pub mod table;
 pub mod text;
 pub mod working;
+
+use serde::{Deserialize, Serialize};
 
 use crate::{QuantusError, Result};
 use text::msg;
@@ -26,12 +29,15 @@ pub const MAX_INPUTS: usize = 8;
 /// A set of rows, bit `i` of the set for row `i`.
 pub type Bits = [u64; 4];
 
-/// The value of one row.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// The value of one row, `"0"`, `"1"` or `"-"` to the shells.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Value {
+    #[serde(rename = "0")]
     Zero,
+    #[serde(rename = "1")]
     One,
     /// Don't care, written –.
+    #[serde(rename = "-")]
     DontCare,
 }
 

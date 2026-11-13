@@ -323,6 +323,18 @@ pub fn geometry_view(settings: &Settings, request: &ViewRequest) -> Result<ViewR
     Ok(crate::geometry::interface::geometry_view(settings, request)?)
 }
 
+pub use crate::logic::interface::{
+    CircuitResponse as LogicCircuitResponse, ErrorResponse as LogicErrorResponse, KmapResponse, LogicRequest, LogicResponse,
+    LogicScene, LogicTask, Operand as LogicOperand, OutputResponse as LogicOutputResponse, SceneOutput as LogicOutput,
+    Source as LogicSource, TaskResponse as LogicTaskResponse,
+};
+
+/// A scene of logic functions, each from a truth table, an expression, a minterm list or the
+/// drawn circuit, and a task on it (Logic mode). Stateless: the shell keeps the scene.
+pub fn logic(settings: &Settings, request: &LogicRequest) -> Result<LogicResponse, ApiError> {
+    Ok(crate::logic::interface::logic(settings, request)?)
+}
+
 /// An ENG or ←ENG step on a result: its `value` (and `imaginary`) from the
 /// [`CalculationResponse`], `steps` presses of ENG (negative for ←ENG; 0 is the first press).
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

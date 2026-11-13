@@ -573,7 +573,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 9: API, settings, session
 
-- [ ] `interface.rs` with the structs of §7.2 (`LogicRequest`, `LogicResponse`,
+- [x] `interface.rs` with the structs of §7.2 (`LogicRequest`, `LogicResponse`,
   `OutputResponse`, `KmapResponse`, `CircuitResponse`, `TaskResponse`, `ErrorResponse`),
   `api::logic`, re-exported in `api.rs`.
 - [ ] `Mode::Logic` (`"logic"`) in `settings.rs` with its options and the serde test; the

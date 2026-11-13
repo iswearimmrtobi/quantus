@@ -70,7 +70,9 @@ pub fn parse_expr(latex: &str) -> Result<Expr> {
     Ok(expr)
 }
 
-fn parse_parts(latex: &str) -> Result<(Option<String>, Option<Vec<String>>, Body)> {
+/// Parses one line into its parts: the output's name if the line gives one, the inputs it
+/// declares and the right side.
+pub fn parse_parts(latex: &str) -> Result<(Option<String>, Option<Vec<String>>, Body)> {
     let tokens = tokenize(latex)?;
     let (left, right) = match tokens.iter().position(|t| *t == Token::Eq) {
         Some(eq) => (Some(&tokens[..eq]), &tokens[eq + 1..]),

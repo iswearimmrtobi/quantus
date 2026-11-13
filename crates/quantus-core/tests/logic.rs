@@ -2045,3 +2045,139 @@ fn the_check_workings_speak_german() {
         "Kein Term und kein Literal kann allein wegfallen, aber es gibt eine Form mit weniger Termen oder Literalen.",
     ]);
 }
+
+/// The response of `api::logic` to a scene given as JSON, with the task `task`.
+fn logic_api(scene: serde_json::Value, task: Option<serde_json::Value>) -> serde_json::Value {
+    let request: quantus_core::api::LogicRequest = serde_json::from_value(serde_json::json!({ "scene": scene, "task": task })).unwrap();
+    let response = quantus_core::api::logic(&quantus_core::settings::Settings::default(), &request).unwrap();
+    serde_json::to_value(&response).unwrap()
+}
+
+#[test]
+fn the_api_works_out_every_view_of_an_expression() {
+    let response = logic_api(serde_json::json!({ "outputs": [{ "source": { "kind": "expression", "latex": "AB + AC + BC" } }] }), None);
+    assert_eq!(response["inputs"], serde_json::json!(["A", "B", "C"]));
+    assert_eq!(response["errors"], serde_json::json!([]));
+    let f = &response["outputs"][0];
+    assert_eq!((f["name"].as_str(), f["source"].as_str()), (Some("f"), Some("expression")));
+    assert_eq!(f["table"], serde_json::json!(["0", "0", "0", "1", "0", "1", "1", "1"]));
+    assert_eq!(f["canonical"]["minterms"], serde_json::json!([3, 5, 6, 7]));
+    assert_eq!(f["canonical"]["sum"], r"\sum m(3, 5, 6, 7)");
+    let dnf = &f["minimal"]["dnf"];
+    assert_eq!(dnf.as_array().unwrap().len(), 1);
+    assert_eq!(dnf[0]["cost"], serde_json::json!({ "terms": 3, "literals": 6 }));
+    assert_eq!(dnf[0]["terms"][0]["pattern"], "-11");
+    assert_eq!(f["kmap"]["blocks"].as_array().unwrap().len(), 3);
+    assert_eq!(f["kmap"]["cells"].as_array().unwrap().len(), 8);
+    assert_eq!((f["nand"]["gates"].as_u64(), f["nand"]["levels"].as_u64()), (Some(6), Some(4)));
+    assert!(f["nandRewrite"].is_object());
+    assert!(f["minimal"]["worked"]["alignBlock"].as_str().unwrap().starts_with(r"\begin{align*}"));
+}
+
+#[test]
+fn the_api_reads_tables_and_minterm_lists_and_names_their_errors() {
+    let scene = serde_json::json!({
+        "inputs": ["A", "B"],
+        "outputs": [
+            { "name": "f", "source": { "kind": "table", "values": ["0", "1", "1", "-"] } },
+            { "name": "g", "source": { "kind": "table", "values": ["0", null, "1", null] } },
+            { "source": { "kind": "minterms", "latex": r"\sum m(1, 2)" } },
+            { "source": { "kind": "expression", "latex": "A +" } },
+        ],
+    });
+    let response = logic_api(scene, None);
+    let outputs = response["outputs"].as_array().unwrap();
+    let names: Vec<&str> = outputs.iter().map(|o| o["name"].as_str().unwrap()).collect();
+    assert_eq!(names, ["f", "g", "h", "i"]);
+    assert_eq!(outputs[0]["table"], serde_json::json!(["0", "1", "1", "-"]));
+    // The terms in the order of their first rows.
+    assert_eq!(outputs[0]["minimal"]["dnf"][0]["latex"], r"B \lor A");
+    assert_eq!(outputs[2]["table"], serde_json::json!(["0", "1", "1", "0"]));
+    assert!(outputs[1]["minimal"].is_null() && outputs[3]["minimal"].is_null());
+    let errors = response["errors"].as_array().unwrap();
+    assert_eq!(errors.len(), 2);
+    let error = errors.iter().find(|e| e["output"] == 1).unwrap();
+    assert_eq!(error["message"], "Rows 1, 3 of g have no value.");
+    assert_eq!(error["rows"], serde_json::json!([1, 3]));
+    assert!(errors.iter().any(|e| e["output"] == 3));
+}
+
+#[test]
+fn the_api_checks_the_circuit_and_simulates_a_row() {
+    // f = NOT(NAND(A, B)) and g = NAND(A, B) drawn; the line gives g = A ∨ B.
+    let netlist = serde_json::json!({ "elements": [
+        { "id": "S1", "kind": "input", "name": "A", "output": 1 },
+        { "id": "S2", "kind": "input", "name": "B", "output": 2 },
+        { "id": "G1", "kind": "gate", "gate": "nand", "inputs": [1, 2], "output": 3 },
+        { "id": "G2", "kind": "gate", "gate": "not", "inputs": [3], "output": 4 },
+        { "id": "L1", "kind": "output", "name": "f", "inputs": [4] },
+        { "id": "L2", "kind": "output", "name": "g", "inputs": [3] },
+    ] });
+    let scene = serde_json::json!({
+        "inputs": ["A", "B"],
+        "outputs": [{ "name": "g", "source": { "kind": "expression", "latex": "g = A + B" } }],
+        "circuit": netlist,
+        "row": 3,
+        "gateTimes": { "common": r"10\,\mathrm{ns}" },
+    });
+    let response = logic_api(scene, None);
+    assert_eq!(response["errors"], serde_json::json!([]));
+    let outputs = response["outputs"].as_array().unwrap();
+    assert_eq!((outputs[1]["name"].as_str(), outputs[1]["source"].as_str()), (Some("f"), Some("circuit")));
+    assert_eq!(outputs[1]["table"], serde_json::json!(["0", "0", "0", "1"]));
+    assert!(outputs[1]["expression"]["latex"].is_string());
+    let circuit = &response["circuit"];
+    assert_eq!(circuit["values"], serde_json::json!([
+        { "net": 1, "value": true }, { "net": 2, "value": true }, { "net": 3, "value": false }, { "net": 4, "value": true },
+    ]));
+    assert_eq!(circuit["critical"], "f");
+    assert_eq!(circuit["criticalPath"], serde_json::json!(["S1", "G1", "G2", "L1"]));
+    assert_eq!(circuit["outputs"][0]["time"], r"20\,\mathrm{ns}");
+    // g = A ∨ B, the circuit's g is NAND(A, B): they differ in rows 0 and 3.
+    assert_eq!(circuit["outOfDate"], serde_json::json!([{ "output": "g", "rows": [0, 3] }]));
+
+    let mut broken = netlist_without_pin();
+    broken["outputs"] = serde_json::json!([]);
+    let response = logic_api(broken, None);
+    assert_eq!(response["errors"][0]["elements"], serde_json::json!(["G1"]));
+    assert!(response["circuit"].is_null());
+}
+
+/// A scene whose NAND's second input is open.
+fn netlist_without_pin() -> serde_json::Value {
+    serde_json::json!({ "circuit": { "elements": [
+        { "id": "S1", "kind": "input", "name": "A", "output": 1 },
+        { "id": "G1", "kind": "gate", "gate": "nand", "inputs": [1, null], "output": 2 },
+        { "id": "L1", "kind": "output", "name": "f", "inputs": [2] },
+    ] } })
+}
+
+#[test]
+fn the_api_answers_the_tasks() {
+    let scene = serde_json::json!({ "outputs": [{ "source": { "kind": "minterms", "latex": r"f = \sum m(3, 5, 6, 7)" } }] });
+
+    let draw = logic_api(scene.clone(), Some(serde_json::json!({ "kind": "draw", "form": "nand" })));
+    let task = &draw["task"];
+    assert!(task["error"].is_null());
+    let elements = task["circuit"]["netlist"]["elements"].as_array().unwrap();
+    assert_eq!(elements.iter().filter(|e| e["kind"] == "gate").count(), 6);
+    assert_eq!(task["circuit"]["layout"]["elements"].as_array().unwrap().len(), elements.len());
+
+    let equal = logic_api(scene.clone(), Some(serde_json::json!({
+        "kind": "equivalent", "first": { "kind": "output", "name": "f" }, "second": { "kind": "expression", "latex": "A + B" },
+    })));
+    assert_eq!(equal["task"]["equal"], false);
+    assert_eq!(equal["task"]["rows"], serde_json::json!([2, 4]));
+    assert_eq!(equal["task"]["result"][0], "f and the expression are not equal.");
+
+    let blocks = logic_api(scene.clone(), Some(serde_json::json!({
+        "kind": "checkBlocks", "output": "f", "form": "dnf", "blocks": [[3, 7], [5, 7], { "maps": [0], "col": 2, "row": 0, "width": 1, "height": 1 }],
+    })));
+    assert_eq!((blocks["task"]["equal"].as_bool(), blocks["task"]["minimal"].as_bool()), (Some(true), Some(false)));
+
+    let form = logic_api(scene.clone(), Some(serde_json::json!({ "kind": "checkForm", "output": "f", "latex": "AB + AC + BC" })));
+    assert_eq!((form["task"]["equal"].as_bool(), form["task"]["minimal"].as_bool()), (Some(true), Some(true)));
+
+    let missing = logic_api(scene, Some(serde_json::json!({ "kind": "checkForm", "output": "g", "latex": "A" })));
+    assert_eq!(missing["task"]["error"], "There is no output g.");
+}

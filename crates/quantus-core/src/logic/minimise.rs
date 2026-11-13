@@ -380,7 +380,8 @@ pub fn cost(terms: &[Pattern], arity: usize) -> (usize, usize) {
 }
 
 /// Which rows a minimisation covers: the 1s for the minimal DNF, the 0s for the minimal KNF.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Form {
     Dnf,
     Knf,
