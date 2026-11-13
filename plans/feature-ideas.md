@@ -298,10 +298,16 @@ response, Bode plot. Symbolic in parameters: "for which K is this stable?".
 
 ### 16. Digital logic editor
 
-Draw gates; get the truth table, the minimised function (Karnaugh map, Quine-McCluskey), a NAND-only
-rewrite and the propagation delay. The digital counterpart of the electronics mode.
-- Engine: Base-N and Verify already cover logic operators and relations.
-- Spec: [design/digital-logic.md](../design/digital-logic.md).
+**Built** as the Logic mode on the desktop: gates drawn or generated, truth table, minimal forms
+by KV diagram and Quine–McCluskey, NAND- and NOR-only forms, propagation delay
+([design/digital-logic.md](../design/digital-logic.md), guide `docs/docs/guides/logic/`). What is
+left ([§ 13 of the spec](../design/digital-logic.md#13-later)):
+- Sequential logic: flip-flops, clocked simulation, then Moore and Mealy state machines.
+- Timing diagrams, glitches and static hazards.
+- Ready-made blocks (adders, multiplexers, decoders, 7-segment display) and own subcircuits.
+- Joint minimisation of several outputs; the NAND circuit with the fewest gates; more than 8
+  inputs (Espresso).
+- Random exercises; the handheld; VHDL and Verilog export.
 
 ### 17. Markov chains and graphs
 
@@ -350,7 +356,7 @@ slope field or a numerical solution (RK4). Physics uses: oscillation, RC dischar
 ### 23. Number theory and discrete maths
 
 Modular inverses, Chinese remainder theorem, Euler's φ (`mod`, ggT, kgV and nPr exist). Truth
-tables and Boolean simplification fit Base-N and Verify (see also idea 16).
+tables and Boolean simplification are in the Logic mode (idea 16).
 
 ### 24. Electronics, extended
 

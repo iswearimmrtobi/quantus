@@ -639,7 +639,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] Guide `docs/docs/guides/logic/` (index, input, results, editor), the settings in
   `docs/docs/reference/settings.md`, the syntax in `docs/docs/reference/syntax.md`.
 - [x] `step-detail.md` § Logic mode with the majority, segment *a* and the NAND form of an XOR.
-- [ ] `docs/docs/contributing/testing.md` names `tests/logic.rs`; `CHANGELOG.md` under
+- [x] `docs/docs/contributing/testing.md` names `tests/logic.rs`; `CHANGELOG.md` under
   `## [Unreleased]`; [feature-ideas.md § 16](../plans/feature-ideas.md#16-digital-logic-editor)
   marked as done or cut to what is left.
 

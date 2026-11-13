@@ -102,6 +102,32 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   simulator takes `--seed` to repeat a game. On the dev kit a move of either game takes under
   10 ms; the serial console types the soft keys as Shift+F1 to F12, and the firmware is flashed
   in QIO at 80 MHz, which runs scripts about 1.6 times as fast.
+- **Logic** mode (Logik) for combinational digital logic, up to 8 inputs. An output's function
+  comes from a typed line (`f = A \land B \lor C`, `AB + \overline{C}`, `A \oplus B`, every
+  common notation, or a minterm list `\sum m(3, 5, 6, 7) + d(…)`, `\prod M(…)`), from a truth
+  table (cells cycled 0, 1, – by click or keys) or from a drawn circuit; the view edited last is
+  its source and the others follow. Each output gets its truth table, the canonical DNF and KNF,
+  all minimal DNFs and KNFs (exact, by Quine–McCluskey and Petrick, a choice when there are
+  several), the KV diagram for 2 to 6 inputs with the bars of German textbooks and the blocks
+  in colour, and the NAND-only and NOR-only forms with gates, gate inputs and levels, also gate
+  by gate from a typed expression or circuit. Every result has its working at the four step
+  levels, in English and German, and Copies as LaTeX; the truth table and KV diagram copy as a
+  `tabular`. **Draw my blocks** checks your own KV blocks: size, shape, 0s inside, blocks that
+  could grow or are not needed, and whether they give a minimal form.
+- The Logic mode's circuit editor: input switches, output lamps, constants, NOT, buffer and AND,
+  OR, NAND, NOR, XOR, XNOR with 2 to 8 inputs, in IEC 60617 or ANSI symbols. An open pin, two
+  drivers on a net or a feedback loop marks the parts red. The circuit is live: clicking a switch
+  colours each wire by its value and lights the lamps, with the matching row of the table and
+  cell of the KV diagram highlighted. **Draw from** the minimal DNF, the minimal KNF, NAND only
+  or NOR only, for one output or all (identical gates shared), lays the circuit out on the grid;
+  **Arrange** lays a drawn one out afresh. A drawn circuit that no longer fits the function is
+  marked *out of date* with the rows that differ. The corner shows the gates, the levels, the
+  delay in $t_{pd}$ or as a time, and the critical path, highlighted in the circuit. The circuit
+  saves as SVG and PNG, the scene as a `.quantus-logic.json` file, and the write-up (Ctrl+G)
+  takes each output's KV diagram, minimal forms and NAND and NOR forms.
+- Settings for the Logic mode: the notation ($A \land \lnot B$ or $A \cdot \overline{B}$), the
+  gate symbols (IEC or ANSI), NAND and NOR from 2-input gates only, and 0s shown or left empty
+  in the table and KV diagram.
 
 ### Fixed
 
