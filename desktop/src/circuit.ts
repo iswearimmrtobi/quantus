@@ -1,5 +1,21 @@
 import type { TextKey } from './i18n';
 import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, KirchhoffRequest, MergeStep } from './api';
+import {
+  boundsOf,
+  connectedPointsOf,
+  GRID,
+  inside,
+  junctionDotsOf,
+  pointKey,
+  rotate,
+  segmentBox,
+  snap,
+  type Point,
+  type Rect,
+  type Segment,
+} from './schematic';
+
+export { GRID, inside, pointKey, rotate, snap, type Point };
 
 /**
  * The schematic as the editor keeps it, and the pure functions that turn it into a
@@ -7,8 +23,6 @@ import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, Kir
  * same grid point, or one sits in the middle of an ideal wire, so the numbers the solver needs
  * come out of the geometry.
  */
-
-export const GRID = 20;
 
 /**
  * `ground` is the reference potential (node 0); the solver never sees it as an element. A
@@ -30,11 +44,6 @@ export interface EditorElement extends Omit<CircuitElement, 'kind' | 'a' | 'b'> 
   y2?: number;
   /** Kirchhoff mode: the branch this part leads runs the other way. */
   reversed?: boolean;
-}
-
-export interface Point {
-  x: number;
-  y: number;
 }
 
 export type Terminal = 'a' | 'b' | 'wiper' | 'ground' | 'terminal';
@@ -74,24 +83,6 @@ const LOCAL_TERMINALS: Record<Exclude<EditorKind, 'wire'>, Partial<Record<Termin
   terminal: { terminal: { x: 0, y: 0 } },
 };
 
-export function snap(value: number): number {
-  return Math.round(value / GRID) * GRID;
-}
-
-export function rotate(point: Point, quarterTurns: number): Point {
-  const turns = ((quarterTurns % 4) + 4) % 4;
-  switch (turns) {
-    case 1:
-      return { x: -point.y, y: point.x };
-    case 2:
-      return { x: -point.x, y: -point.y };
-    case 3:
-      return { x: point.y, y: -point.x };
-    default:
-      return point;
-  }
-}
-
 /** Whether a part sits at 45° to the grid: its `rotation` ends in a half, 0.5 being 45°. */
 export const isDiagonal = (rotation: number) => !Number.isInteger(rotation);
 
@@ -121,8 +112,6 @@ export function terminals(element: EditorElement): Partial<Record<Terminal, Poin
   return placed;
 }
 
-export const pointKey = (point: Point) => `${point.x},${point.y}`;
-
 export interface Nodes {
   /** Node number by grid point; 0 is the ground. */
   byPoint: Map<string, number>;
@@ -141,33 +130,12 @@ export function isIdealWire(element: EditorElement): boolean {
   return element.kind === 'wire' && !given('rOverride') && !(given('material') && given('length') && given('area'));
 }
 
-/** Whether `p` lies on the segment from `a` to `b` but on neither end. */
-export function inside(a: Point, b: Point, p: Point): boolean {
-  if ((b.x - a.x) * (p.y - a.y) !== (b.y - a.y) * (p.x - a.x)) return false;
-  if (pointKey(p) === pointKey(a) || pointKey(p) === pointKey(b)) return false;
-  return Math.min(a.x, b.x) <= p.x && p.x <= Math.max(a.x, b.x) && Math.min(a.y, b.y) <= p.y && p.y <= Math.max(a.y, b.y);
-}
-
 /**
  * The points where a terminal or wire end is connected: where it meets another one, or sits in the
  * middle of an ideal wire. The editor draws the open dot only at the others.
  */
 export function connectedPoints(elements: EditorElement[]): Set<string> {
-  const count = new Map<string, number>();
-  const points: Point[] = [];
-  for (const element of elements) {
-    for (const point of Object.values(terminals(element)) as Point[]) {
-      const key = pointKey(point);
-      count.set(key, (count.get(key) ?? 0) + 1);
-      points.push(point);
-    }
-  }
-  const connected = new Set([...count].filter(([, n]) => n > 1).map(([key]) => key));
-  for (const wire of elements.filter(isIdealWire)) {
-    const { a, b } = terminals(wire);
-    for (const point of points) if (inside(a!, b!, point)) connected.add(pointKey(point));
-  }
-  return connected;
+  return connectedPointsOf(elements.flatMap(ends), idealSegments(elements));
 }
 
 /**
@@ -176,24 +144,18 @@ export function connectedPoints(elements: EditorElement[]): Set<string> {
  * two lines gets none. The terminals A and B are marks, not lines, and do not count.
  */
 export function junctionDots(elements: EditorElement[]): Point[] {
-  const count = new Map<string, number>();
-  const points = new Map<string, Point>();
-  const add = (point: Point, by: number) => {
-    const key = pointKey(point);
-    count.set(key, (count.get(key) ?? 0) + by);
-    points.set(key, point);
-  };
   const lines = elements.filter((e) => e.kind !== 'terminal');
-  for (const element of lines) {
-    for (const point of Object.values(terminals(element)) as Point[]) add(point, 1);
-  }
-  const ends = [...points.values()];
-  for (const wire of lines.filter(isIdealWire)) {
-    const { a, b } = terminals(wire);
-    for (const point of ends) if (inside(a!, b!, point)) add(point, 2);
-  }
-  return [...points].filter(([key]) => count.get(key)! >= 3).map(([, point]) => point);
+  return junctionDotsOf(lines.flatMap(ends), idealSegments(lines));
 }
+
+/** The terminals of a part, both ends of a wire. */
+const ends = (element: EditorElement) => Object.values(terminals(element)) as Point[];
+
+/** The ideal wires as segments: they join what meets their middle. */
+const idealSegments = (elements: EditorElement[]): Segment[] => elements.filter(isIdealWire).map((w) => {
+  const { a, b } = terminals(w);
+  return [a!, b!];
+});
 
 /**
  * Numbers the points where terminals sit. Ground is the point of a ground symbol; without one it
@@ -433,6 +395,59 @@ export const MATERIALS: { id: string; label: TextKey }[] = [
   { id: 'constantan', label: 'material.constantan' },
   { id: 'brass', label: 'material.brass' },
 ];
+
+// ---- What the labels keep clear of (`labelLayout.ts`).
+
+/** The box around points turned with a part and moved to its place. */
+function turned(element: EditorElement, corners: Point[]): Rect {
+  // A rectangle turned by 45° is bounded by its four corners turned, not by the two given ones.
+  const all = isDiagonal(element.rotation)
+    ? [corners[0], corners[1], { x: corners[0].x, y: corners[1].y }, { x: corners[1].x, y: corners[0].y }]
+    : corners;
+  const angle = (element.rotation * Math.PI) / 2;
+  const turn = (p: Point) =>
+    isDiagonal(element.rotation)
+      ? { x: p.x * Math.cos(angle) - p.y * Math.sin(angle), y: p.x * Math.sin(angle) + p.y * Math.cos(angle) }
+      : rotate(p, element.rotation);
+  const points = all.map(turn).map((p) => ({ x: element.x + p.x, y: element.y + p.y }));
+  return boundsOf(points.map((p) => ({ ...p, w: 0, h: 0 })));
+}
+
+/** Half the size of a part's body across its axis and along it, as `Symbol` draws it. */
+const BODY: Partial<Record<EditorElement['kind'], { along: number; across: number }>> = {
+  resistor: { along: 20, across: 7 },
+  potentiometer: { along: 20, across: 7 },
+  voltageSource: { along: 14, across: 14 },
+  currentSource: { along: 14, across: 14 },
+  powerLoad: { along: 14, across: 14 },
+};
+
+/** The drawn body of a part: the symbol without its leads, a wire's line, a ground's bars. */
+export function body(element: EditorElement): Rect {
+  if (element.kind === 'wire') {
+    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
+    return segmentBox(a, b, 2);
+  }
+  if (element.kind === 'ground') return turned(element, [{ x: -12, y: 0 }, { x: 12, y: 19 }]);
+  if (element.kind === 'terminal') return turned(element, [{ x: -7, y: -7 }, { x: 22, y: 7 }]);
+  const { along, across } = BODY[element.kind]!;
+  return turned(element, [{ x: -along, y: -across }, { x: along, y: across }]);
+}
+
+/** What the labels must keep clear of: the bodies and leads of the parts, the wires, the terminals. */
+export function obstacles(elements: EditorElement[]): Rect[] {
+  const rects: Rect[] = [];
+  for (const element of elements) {
+    const places = terminals(element);
+    for (const point of Object.values(places) as Point[]) rects.push(segmentBox(point, point, 5));
+    rects.push(body(element));
+    if (element.kind === 'wire' || element.kind === 'ground' || element.kind === 'terminal') continue;
+    const lead = isDiagonal(element.rotation) ? HALF * Math.SQRT2 : HALF;
+    rects.push(turned(element, [{ x: -lead, y: -2 }, { x: lead, y: 2 }]));
+    if (places.wiper) rects.push(turned(element, [{ x: -4, y: -HALF }, { x: 4, y: 0 }]));
+  }
+  return rects;
+}
 
 /** The version of the circuit file; the backend refuses any other. */
 export const FILE_VERSION = 1;

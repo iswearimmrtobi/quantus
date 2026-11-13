@@ -1,31 +1,20 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-  type Ref,
-} from 'react';
+import { useEffect, useMemo, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type Ref } from 'react';
 import type { CircuitResponse, CircuitValue } from '../api';
 import {
+  body,
   FIELDS,
   connectedPoints,
   GRID,
   HALF,
-  inside,
   junctionDots,
   isDiagonal,
   isIdealWire,
   KIND_LABELS,
   MATERIALS,
   newElement,
+  obstacles,
   QUANTITIES,
   pointKey,
-  rotate,
-  snap,
   terminals,
   turnedBy,
   type EditorElement,
@@ -36,8 +25,9 @@ import {
   type Terminal,
 } from '../circuit';
 import { useT } from '../i18n';
-import { body, nearest, obstacles, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../labelLayout';
+import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../labelLayout';
 import { Katex } from './Katex';
+import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart } from './Schematic';
 
 type ElementResult = CircuitResponse['elements'][number];
 
@@ -89,29 +79,6 @@ interface Props {
   toolbar?: ReactNode;
 }
 
-type Drag =
-  | { type: 'move'; from: Point; origins: Map<string, EditorElement> }
-  | { type: 'end'; id: string; end: 'a' | 'b' }
-  /** `across`: whether the wire leaves sideways first, decided by the first step of the pointer. */
-  | { type: 'draw'; from: Point; to: Point; across: boolean | null }
-  | { type: 'marquee'; from: Point; to: Point }
-  | { type: 'pan'; from: Point; origin: View };
-
-/** The drawing is shown scaled by `zoom` and then moved by (x, y) on the canvas. */
-interface View {
-  x: number;
-  y: number;
-  zoom: number;
-}
-
-const HOME: View = { x: 0, y: 0, zoom: 1 };
-
-/** Where a wire drawn from `from` to `to` turns: wires run only across and down, so a slant is an L. */
-const corner = (from: Point, to: Point, across: boolean | null): Point =>
-  across === false ? { x: from.x, y: to.y } : { x: to.x, y: from.y };
-const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 4;
-
 export const PALETTE: EditorKind[] = [
   'voltageSource',
   'currentSource',
@@ -142,11 +109,20 @@ export function CircuitEditor({
   toolbar,
 }: Props) {
   const { t } = useT();
-  const [selection, setSelection] = useState<string[]>([]);
-  const [drag, setDrag] = useState<Drag | null>(null);
-  /** How the drawing lies on the canvas; positions stay in drawing coordinates. */
-  const [view, setView] = useState<View>(HOME);
   const canvas = useRef<SVGSVGElement>(null);
+  const canvasView = useCanvasView(canvas);
+  const { view, setView, toGrid } = canvasView;
+  const pins = (e: EditorElement) => Object.values(terminals(e)) as Point[];
+  const editing = useSchematicEditing({
+    elements,
+    onChange,
+    canvas,
+    view: canvasView,
+    pins,
+    newWire: (next, from, to) => ({ ...newElement(next, 'wire', from), x2: to.x, y2: to.y }),
+    turned: (rotation) => turnedBy(rotation, 2),
+  });
+  const { selection, setSelection, drag, update, remove, rotateSelected } = editing;
 
   const results = useMemo(() => new Map(resultList?.map((e) => [e.id, e])), [resultList]);
   /** What the canvas shows: the elements, or the preview while there is one. */
@@ -154,35 +130,7 @@ export function CircuitEditor({
   const connected = useMemo(() => connectedPoints(drawn), [drawn]);
   const dots = useMemo(() => junctionDots(drawn), [drawn]);
 
-  // The labels are laid out from their real sizes, which only the browser knows once KaTeX has
-  // set them. Offset sizes ignore the zoom transform, so they are already in drawing units.
-  const [sizes, setSizes] = useState<Map<string, { w: number; h: number }>>(() => new Map());
-  const [observer] = useState(
-    () =>
-      new ResizeObserver((entries) =>
-        setSizes((previous) => {
-          let next = previous;
-          for (const entry of entries) {
-            const target = entry.target as HTMLElement;
-            const id = target.dataset.label!;
-            const size = { w: target.offsetWidth, h: target.offsetHeight };
-            const old = previous.get(id);
-            if (old && old.w === size.w && old.h === size.h) continue;
-            if (next === previous) next = new Map(previous);
-            next.set(id, size);
-          }
-          return next;
-        }),
-      ),
-  );
-  const measure = useCallback(
-    (label: HTMLDivElement | null) => {
-      if (!label) return;
-      observer.observe(label);
-      return () => observer.unobserve(label);
-    },
-    [observer],
-  );
+  const { sizes, measure } = useLabelSizes();
 
   /**
    * Part labels first, in drawing order, then the mode's own, then the node voltages, which give
@@ -219,9 +167,6 @@ export function CircuitEditor({
     lastPlacements.current = placements;
   }, [placements]);
 
-  const update = (id: string, change: Partial<EditorElement>) =>
-    onChange(elements.map((e) => (e.id === id ? { ...e, ...change } : e)));
-
   const selected = selection.length === 1 ? selection[0] : null;
 
   const add = (kind: EditorKind, at?: Point) => {
@@ -237,195 +182,10 @@ export function CircuitEditor({
     setSelection([element.id]);
   };
 
-  const remove = (ids: string[]) => {
-    onChange(elements.filter((e) => !ids.includes(e.id)));
-    setSelection([]);
-  };
-
-  const rotateSelected = () => {
-    const chosen = elements.filter((e) => selection.includes(e.id));
-    if (chosen.length === 0) return;
-    // One part turns about itself (a wire about its start); several turn together about the
-    // middle of their bounding box, so they stay connected to each other.
-    let center: Point;
-    if (chosen.length === 1) {
-      center = { x: chosen[0].x, y: chosen[0].y };
-    } else {
-      const points = chosen.flatMap((e) => Object.values(terminals(e)) as Point[]);
-      const xs = points.map((p) => p.x);
-      const ys = points.map((p) => p.y);
-      center = { x: snap((Math.min(...xs) + Math.max(...xs)) / 2), y: snap((Math.min(...ys) + Math.max(...ys)) / 2) };
-    }
-    const turn = (x: number, y: number): Point => {
-      const turned = rotate({ x: x - center.x, y: y - center.y }, 1);
-      return { x: center.x + turned.x, y: center.y + turned.y };
-    };
-    onChange(
-      elements.map((e) => {
-        if (!selection.includes(e.id)) return e;
-        const start = turn(e.x, e.y);
-        if (e.kind === 'wire') {
-          const end = turn(e.x2 ?? e.x, e.y2 ?? e.y);
-          return { ...e, x: start.x, y: start.y, x2: end.x, y2: end.y };
-        }
-        return { ...e, x: start.x, y: start.y, rotation: turnedBy(e.rotation, 2) };
-      }),
-    );
-  };
-
   /** Turns each selected resistor by 45° about its middle; other parts stay as they are. */
   const tiltSelected = () => {
     if (!elements.some((e) => selection.includes(e.id) && e.kind === 'resistor')) return;
     onChange(elements.map((e) => (selection.includes(e.id) && e.kind === 'resistor' ? { ...e, rotation: turnedBy(e.rotation, 1) } : e)));
-  };
-
-  /** The point under the pointer in drawing coordinates, unsnapped. */
-  const toDrawing = (event: { clientX: number; clientY: number }): Point => {
-    const box = canvas.current!.getBoundingClientRect();
-    return { x: (event.clientX - box.left - view.x) / view.zoom, y: (event.clientY - box.top - view.y) / view.zoom };
-  };
-
-  // A wheel scrolls up and down, with Shift sideways; a touchpad scrolls both ways. With Ctrl (and
-  // a touchpad pinch, which arrives as one) it zooms about the pointer. React's wheel handler is
-  // passive and could not keep the webview from zooming the whole page, so this one is native.
-  useEffect(() => {
-    const svg = canvas.current;
-    if (!svg) return;
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : 1;
-      if (event.ctrlKey) {
-        const box = svg.getBoundingClientRect();
-        const at = { x: event.clientX - box.left, y: event.clientY - box.top };
-        setView((v) => {
-          const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.zoom * Math.exp(-event.deltaY * unit * 0.002)));
-          // The drawing point under the pointer stays under it.
-          return { zoom, x: at.x - ((at.x - v.x) * zoom) / v.zoom, y: at.y - ((at.y - v.y) * zoom) / v.zoom };
-        });
-        return;
-      }
-      const sideways = event.shiftKey && event.deltaX === 0;
-      const dx = (sideways ? event.deltaY : event.deltaX) * unit;
-      const dy = (sideways ? 0 : event.deltaY) * unit;
-      setView((v) => ({ ...v, x: v.x - dx, y: v.y - dy }));
-    };
-    svg.addEventListener('wheel', onWheel, { passive: false });
-    return () => svg.removeEventListener('wheel', onWheel);
-  }, []);
-
-  const toCanvas = (event: { clientX: number; clientY: number }): Point => {
-    const at = toDrawing(event);
-    return { x: snap(at.x), y: snap(at.y) };
-  };
-
-  // Only the left button works on parts; the others fall through to the canvas and move it.
-  const startMove = (event: ReactPointerEvent, element: EditorElement) => {
-    if (event.button !== 0) return;
-    event.stopPropagation();
-    canvas.current?.setPointerCapture(event.pointerId);
-    // Grabbing a part of the selection moves all of it; any other part becomes the selection.
-    const group = selection.includes(element.id) ? selection : [element.id];
-    setSelection(group);
-    setDrag({
-      type: 'move',
-      from: toCanvas(event),
-      origins: new Map(elements.filter((e) => group.includes(e.id)).map((e) => [e.id, e])),
-    });
-  };
-
-  const startEnd = (event: ReactPointerEvent, element: EditorElement, end: 'a' | 'b') => {
-    if (event.button !== 0) return;
-    event.stopPropagation();
-    canvas.current?.setPointerCapture(event.pointerId);
-    setSelection([element.id]);
-    setDrag({ type: 'end', id: element.id, end });
-  };
-
-  const startDraw = (event: ReactPointerEvent, from: Point) => {
-    if (event.button !== 0) return;
-    event.stopPropagation();
-    canvas.current?.setPointerCapture(event.pointerId);
-    setDrag({ type: 'draw', from, to: from, across: null });
-  };
-
-  /** Left on empty canvas draws a selection rectangle; the middle or right button moves the canvas. */
-  const startCanvas = (event: ReactPointerEvent) => {
-    canvas.current?.setPointerCapture(event.pointerId);
-    canvas.current?.focus();
-    if (event.button === 1 || event.button === 2) {
-      event.preventDefault();
-      setDrag({ type: 'pan', from: { x: event.clientX, y: event.clientY }, origin: view });
-      return;
-    }
-    const from = toDrawing(event);
-    setSelection([]);
-    setDrag({ type: 'marquee', from, to: from });
-  };
-
-  const onMove = (event: ReactPointerEvent) => {
-    if (!drag) return;
-    if (drag.type === 'pan') {
-      setView({ ...drag.origin, x: drag.origin.x + event.clientX - drag.from.x, y: drag.origin.y + event.clientY - drag.from.y });
-      return;
-    }
-    if (drag.type === 'marquee') {
-      setDrag({ ...drag, to: toDrawing(event) });
-      return;
-    }
-    const at = toCanvas(event);
-    if (drag.type === 'draw') {
-      if (at.x === drag.to.x && at.y === drag.to.y) return;
-      const dx = Math.abs(at.x - drag.from.x);
-      const dy = Math.abs(at.y - drag.from.y);
-      const across = dx === 0 && dy === 0 ? null : (drag.across ?? dx >= dy);
-      setDrag({ ...drag, to: at, across });
-    } else if (drag.type === 'end') {
-      // The end moves along the axis it is pulled most, so the wire stays across or down.
-      const wire = elements.find((e) => e.id === drag.id);
-      if (!wire) return;
-      const other = drag.end === 'a' ? { x: wire.x2 ?? wire.x, y: wire.y2 ?? wire.y } : { x: wire.x, y: wire.y };
-      const end = Math.abs(at.x - other.x) >= Math.abs(at.y - other.y) ? { x: at.x, y: other.y } : { x: other.x, y: at.y };
-      update(drag.id, drag.end === 'a' ? end : { x2: end.x, y2: end.y });
-    } else {
-      const dx = at.x - drag.from.x;
-      const dy = at.y - drag.from.y;
-      onChange(
-        elements.map((e) => {
-          const o = drag.origins.get(e.id);
-          if (!o) return e;
-          return o.kind === 'wire'
-            ? { ...e, x: o.x + dx, y: o.y + dy, x2: (o.x2 ?? o.x) + dx, y2: (o.y2 ?? o.y) + dy }
-            : { ...e, x: o.x + dx, y: o.y + dy };
-        }),
-      );
-    }
-  };
-
-  const onUp = () => {
-    if (drag?.type === 'draw' && pointKey(drag.from) !== pointKey(drag.to)) {
-      const bend = corner(drag.from, drag.to, drag.across);
-      const next = [...elements];
-      for (const [from, to] of [
-        [drag.from, bend],
-        [bend, drag.to],
-      ]) {
-        if (pointKey(from) === pointKey(to)) continue;
-        next.push({ ...newElement(next, 'wire', from), x2: to.x, y2: to.y });
-      }
-      onChange(next);
-      setSelection(next.slice(elements.length).map((e) => e.id));
-    } else if (drag?.type === 'marquee') {
-      const [x0, x1] = [Math.min(drag.from.x, drag.to.x), Math.max(drag.from.x, drag.to.x)];
-      const [y0, y1] = [Math.min(drag.from.y, drag.to.y), Math.max(drag.from.y, drag.to.y)];
-      const inside = (p: Point) => p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
-      // A part is picked when its position or any of its terminals lies in the rectangle.
-      setSelection(
-        elements
-          .filter((e) => [{ x: e.x, y: e.y }, ...(Object.values(terminals(e)) as Point[])].some(inside))
-          .map((e) => e.id),
-      );
-    }
-    setDrag(null);
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -482,32 +242,21 @@ export function CircuitEditor({
           className="circuit-canvas"
           tabIndex={0}
           onKeyDown={onKeyDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={() => setDrag(null)}
-          onPointerDown={startCanvas}
+          onPointerMove={editing.onMove}
+          onPointerUp={editing.onUp}
+          onPointerCancel={() => editing.setDrag(null)}
+          onPointerDown={editing.startCanvas}
           onContextMenu={(event) => event.preventDefault()}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
             const kind = event.dataTransfer.getData('text/plain') as EditorKind;
-            if (palette.includes(kind)) add(kind, toCanvas(event));
+            if (palette.includes(kind)) add(kind, toGrid(event));
           }}
         >
-          <defs>
-            <pattern
-              id="grid"
-              width={GRID}
-              height={GRID}
-              patternUnits="userSpaceOnUse"
-              patternTransform={`translate(${view.x} ${view.y}) scale(${view.zoom})`}
-            >
-              <circle cx="0" cy="0" r="0.8" className="grid-dot" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" pointerEvents="none" />
+          <GridBackground view={view} />
 
-          <g transform={`translate(${view.x} ${view.y}) scale(${view.zoom})`}>
+          <g transform={viewTransform(view)}>
             <g pointerEvents={preview ? 'none' : undefined}>
             {drawn.map((element) => (
               <Part
@@ -516,9 +265,9 @@ export function CircuitEditor({
                 selected={!preview && selection.includes(element.id)}
                 highlighted={highlight?.includes(element.id) ?? false}
                 connected={connected}
-                onPointerDown={(event) => startMove(event, element)}
-                onTerminal={(event, point) => startDraw(event, point)}
-                onEnd={(event, end) => startEnd(event, element, end)}
+                onPointerDown={(event) => editing.startMove(event, element)}
+                onTerminal={(event, point) => editing.startDraw(event, point)}
+                onEnd={(event, end) => editing.startEnd(event, element, end)}
               />
             ))}
             </g>
@@ -538,23 +287,7 @@ export function CircuitEditor({
               return <line key={label.id} className="label-leader" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
             })}
 
-            {drag?.type === 'marquee' && (
-              <rect
-                className="marquee"
-                x={Math.min(drag.from.x, drag.to.x)}
-                y={Math.min(drag.from.y, drag.to.y)}
-                width={Math.abs(drag.to.x - drag.from.x)}
-                height={Math.abs(drag.to.y - drag.from.y)}
-                pointerEvents="none"
-              />
-            )}
-
-            {drag?.type === 'draw' && (
-              <polyline
-                className="wire-ghost"
-                points={[drag.from, corner(drag.from, drag.to, drag.across), drag.to].map((p) => `${p.x},${p.y}`).join(' ')}
-              />
-            )}
+            <DragGhost drag={drag} />
           </g>
         </svg>
 
@@ -704,42 +437,22 @@ interface PartProps {
 
 function Part({ element, selected, highlighted, connected, onPointerDown, onTerminal, onEnd }: PartProps) {
   const places = terminals(element);
-  /** The grid point on an ideal wire under the pointer, where a new wire can start. */
-  const [junction, setJunction] = useState<Point | null>(null);
   const dot = (base: string, point: Point) => (connected.has(pointKey(point)) ? `${base} connected` : base);
   const className = ['part', selected && 'selected', highlighted && 'highlighted'].filter(Boolean).join(' ');
 
   if (element.kind === 'wire') {
     const { a, b } = places as Record<'a' | 'b', Point>;
-    // Near a grid point in its middle an ideal wire offers a handle, as a terminal does: a wire
-    // drawn from it starts a T-junction. Elsewhere the wire is grabbed to move it.
-    const findJunction = (event: ReactPointerEvent<SVGElement>) => {
-      const matrix = (event.currentTarget as SVGGraphicsElement).getScreenCTM()?.inverse();
-      if (!matrix || !isIdealWire(element)) return setJunction(null);
-      const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix);
-      const point = { x: snap(at.x), y: snap(at.y) };
-      const near = Math.hypot(at.x - point.x, at.y - point.y) <= 6 && inside(a, b, point);
-      setJunction((old) => (near ? (old && pointKey(old) === pointKey(point) ? old : point) : null));
-    };
     return (
-      <g className={className} onPointerMove={findJunction} onPointerLeave={() => setJunction(null)}>
-        <line className="hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} onPointerDown={onPointerDown} />
-        <line className="wire" x1={a.x} y1={a.y} x2={b.x} y2={b.y} pointerEvents="none" />
-        <circle className={dot('end', a)} cx={a.x} cy={a.y} r="5" onPointerDown={(event) => onEnd(event, 'a')} />
-        <circle className={dot('end', b)} cx={b.x} cy={b.y} r="5" onPointerDown={(event) => onEnd(event, 'b')} />
-        {junction && (
-          <circle
-            className="end"
-            cx={junction.x}
-            cy={junction.y}
-            r="5"
-            onPointerDown={(event) => {
-              setJunction(null);
-              onTerminal(event, junction);
-            }}
-          />
-        )}
-      </g>
+      <WirePart
+        a={a}
+        b={b}
+        className={className}
+        joins={isIdealWire(element)}
+        connected={connected}
+        onPointerDown={onPointerDown}
+        onEnd={onEnd}
+        onTerminal={onTerminal}
+      />
     );
   }
 
@@ -807,13 +520,6 @@ const nodePlace = (point: Point): Place => ({
   corner: true,
   sides: ['above', 'below', 'right', 'left'],
 });
-
-/** Where a label is drawn: at its placement once measured, until then hidden at its anchor. */
-function labelStyle(placement: Placement | undefined, anchor: Point): CSSProperties {
-  return placement
-    ? { left: placement.x, top: placement.y }
-    : { left: anchor.x, top: anchor.y, visibility: 'hidden' };
-}
 
 /** The ID and the chosen results of a part. */
 function PartLabel({

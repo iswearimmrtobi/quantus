@@ -1,16 +1,12 @@
-import { GRID, HALF, isDiagonal, rotate, terminals, type EditorElement, type Point } from './circuit';
+import { boundsOf, GRID, type Point, type Rect } from './schematic';
+
+export type { Rect };
 
 /**
- * Places the labels on the circuit canvas so that none overlaps another label, a part or a wire.
- * Everything is in drawing coordinates, so zooming and moving the canvas leave the layout alone.
+ * Places the labels on a schematic's canvas so that none overlaps another label or an obstacle (a
+ * part, a wire). Everything is in drawing coordinates, so zooming and moving the canvas leave the
+ * layout alone. What the obstacles are is up to the editor (`obstacles` in `circuit.ts`).
  */
-
-export interface Rect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
 
 export type Side = 'below' | 'above' | 'right' | 'left';
 
@@ -67,17 +63,8 @@ function slides(label: LabelRequest, side: Side): number[] {
 }
 
 function bounds(rects: Rect[]): { x0: number; y0: number; x1: number; y1: number } {
-  let x0 = Infinity;
-  let y0 = Infinity;
-  let x1 = -Infinity;
-  let y1 = -Infinity;
-  for (const r of rects) {
-    x0 = Math.min(x0, r.x);
-    y0 = Math.min(y0, r.y);
-    x1 = Math.max(x1, r.x + r.w);
-    y1 = Math.max(y1, r.y + r.h);
-  }
-  return { x0, y0, x1, y1 };
+  const b = boundsOf(rects);
+  return { x0: b.x, y0: b.y, x1: b.x + b.w, y1: b.y + b.h };
 }
 
 /**
@@ -139,68 +126,6 @@ export function placeLabels(
     take(label, found.box, found.displaced);
   }
   return placed;
-}
-
-/** The box around points turned with a part and moved to its place. */
-function turned(element: EditorElement, corners: Point[]): Rect {
-  // A rectangle turned by 45° is bounded by its four corners turned, not by the two given ones.
-  const all = isDiagonal(element.rotation)
-    ? [corners[0], corners[1], { x: corners[0].x, y: corners[1].y }, { x: corners[1].x, y: corners[0].y }]
-    : corners;
-  const angle = (element.rotation * Math.PI) / 2;
-  const turn = (p: Point) =>
-    isDiagonal(element.rotation)
-      ? { x: p.x * Math.cos(angle) - p.y * Math.sin(angle), y: p.x * Math.sin(angle) + p.y * Math.cos(angle) }
-      : rotate(p, element.rotation);
-  const points = all.map(turn).map((p) => ({ x: element.x + p.x, y: element.y + p.y }));
-  const b = bounds(points.map((p) => ({ ...p, w: 0, h: 0 })));
-  return { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 };
-}
-
-/** Half the size of a part's body across its axis and along it, as `Symbol` draws it. */
-const BODY: Partial<Record<EditorElement['kind'], { along: number; across: number }>> = {
-  resistor: { along: 20, across: 7 },
-  potentiometer: { along: 20, across: 7 },
-  voltageSource: { along: 14, across: 14 },
-  currentSource: { along: 14, across: 14 },
-  powerLoad: { along: 14, across: 14 },
-};
-
-/** A line as a thin box around it, as wide as the stroke and the terminal circles. */
-function segment(a: Point, b: Point, half: number): Rect {
-  return {
-    x: Math.min(a.x, b.x) - half,
-    y: Math.min(a.y, b.y) - half,
-    w: Math.abs(b.x - a.x) + 2 * half,
-    h: Math.abs(b.y - a.y) + 2 * half,
-  };
-}
-
-/** The drawn body of a part: the symbol without its leads, a wire's line, a ground's bars. */
-export function body(element: EditorElement): Rect {
-  if (element.kind === 'wire') {
-    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
-    return segment(a, b, 2);
-  }
-  if (element.kind === 'ground') return turned(element, [{ x: -12, y: 0 }, { x: 12, y: 19 }]);
-  if (element.kind === 'terminal') return turned(element, [{ x: -7, y: -7 }, { x: 22, y: 7 }]);
-  const { along, across } = BODY[element.kind]!;
-  return turned(element, [{ x: -along, y: -across }, { x: along, y: across }]);
-}
-
-/** What the labels must keep clear of: the bodies and leads of the parts, the wires, the terminals. */
-export function obstacles(elements: EditorElement[]): Rect[] {
-  const rects: Rect[] = [];
-  for (const element of elements) {
-    const places = terminals(element);
-    for (const point of Object.values(places) as Point[]) rects.push(segment(point, point, 5));
-    rects.push(body(element));
-    if (element.kind === 'wire' || element.kind === 'ground' || element.kind === 'terminal') continue;
-    const lead = isDiagonal(element.rotation) ? HALF * Math.SQRT2 : HALF;
-    rects.push(turned(element, [{ x: -lead, y: -2 }, { x: lead, y: 2 }]));
-    if (places.wiper) rects.push(turned(element, [{ x: -4, y: -HALF }, { x: 4, y: 0 }]));
-  }
-  return rects;
 }
 
 /** The point on a box nearest to `p`, where a line from `p` to the box ends. */
