@@ -471,27 +471,162 @@ English in both languages (AND, NAND), as in German textbooks.
 - **Checks**: a counterexample row; KV blocks too large, wrong shape, over a 0, redundant,
   growable; a non-minimal form with its hint.
 
-## 12. Implementation order
+## 12. Roadmap
 
-Each step a commit on `dev`, its plan box ticked.
+Each box one commit on `dev`, ticked in the same commit; each brings its tests in
+`crates/quantus-core/tests/logic.rs` (§11), run alone (`cargo test -p quantus-core --test logic`).
+A phase ends with `cargo clippy --workspace --all-targets` clean.
 
-1. `expr.rs`, `parse.rs`, `table.rs`: expressions and minterm lists to truth tables and
-   canonical forms; parser tests.
-2. `minimise.rs`: Quine–McCluskey, chart, Petrick, all minimal DNFs and KNFs; the brute-force
-   test.
-3. `working.rs` and the steps of 1–2 at all levels.
-4. `kmap.rs`: layout, labels, blocks.
-5. `nand.rs`: NAND-only and NOR-only, the 2-input split, steps.
-6. `circuit.rs`, `delay.rs`: netlist checks, tracing, evaluation, levels and critical path.
-7. `layout.rs`: generated circuits.
-8. `check.rs`: equivalence, the user's blocks and form.
-9. `interface.rs`, `api::logic`, `Mode::Logic`, `ModeInputs.logic`, the settings, the Tauri
-   command.
-10. Desktop: the page with function lines, truth table and results.
-11. Desktop: the KV diagram, including drawing one's own blocks.
-12. Desktop: the editor (shared code with the electronics editor), both symbol sets.
-13. Desktop: simulation, **Draw from…**, delay display, export, save and load.
-14. Docs pages, the changelog, `step-detail.md` § Logic mode.
+### Phase 1: functions, expressions, tables
+
+- [ ] `logic/mod.rs` (`pub mod logic` in `lib.rs`): `Function` with the ones and don't-care
+  bitsets (`[u64; 4]`) and the variable names; `Pattern` (value, mask as `u8`); `text.rs` with the
+  first `msg!` texts. Test file `tests/logic.rs` created.
+- [ ] `expr.rs`: `Expr` (`Var`, `Const`, `Not`, n-ary `And`, `Or`, `Xor`, `Xnor`, binary `Nand`,
+  `Nor`), evaluation of one row, LaTeX in both notations (§9) with the overline over longer
+  negations and the fewest brackets the precedence of §5.2 allows.
+- [ ] `parse.rs`, expressions: every operator spelling of §5.2, juxtaposition, postfix `'`,
+  `\mathrm{Start}`, the precedence, `A \uparrow B \uparrow C` as an error; `f = …`,
+  `f(A, B, C) = …` and the bare line (outputs `f`, `g`, `h`); the errors of §5.2. Round trip
+  expression → LaTeX → expression.
+- [ ] `parse.rs`, minterm lists (§5.3): `\sum m(…) + d(…)` with its spellings, `\prod M(…)
+  \cdot d(…)`, the number of variables from the highest index, the errors (index twice, too large).
+- [ ] `table.rs`: expression → table over $2^n$ rows; canonical DNF and KNF with `\sum m`,
+  `\prod M`, `d(…)`; constant functions (*f is always 1*). The order of the inputs (§5.1, the
+  declaration order, else alphabetical with numeric indices).
+
+### Phase 2: minimisation
+
+- [ ] `minimise.rs`: Quine–McCluskey over the 1s and don't cares, the prime implicants as
+  patterns and products; kept per round for the working.
+- [ ] The prime implicant chart: essential prime implicants, row and column dominance.
+- [ ] Petrick with absorption, cost (terms, then literals), all minimal covers in the order of
+  their terms' first minterms; the limit of 5 000 products with *Too many solutions to compare*.
+- [ ] Minimal KNF over the 0s by De Morgan.
+- [ ] Tests: the reference functions of §11 (majority, XOR of 3, full adder, segment *a* with
+  don't cares, the cyclic chart $\sum m(0,1,2,5,6,7)$ with both solutions, constants), and the
+  brute force over all 256 functions of 3 variables and a sample of 4.
+
+### Phase 3: the working
+
+- [ ] `working.rs` (`Working`, `Note` as in `geometry/working.rs`), with the level of each line.
+- [ ] Steps of expression → table and the canonical forms at all four levels (§8).
+- [ ] Steps of Quine–McCluskey (grouping tables with ✓, the pairs that did not combine) and of the
+  cover (essentials, chart, dominance, Petrick multiplied out).
+- [ ] German texts for all of the above in `locales/de.json` and every other file of `locales/`
+  (`cargo test -p quantus-texts`).
+
+### Phase 4: KV diagrams
+
+- [ ] `kmap.rs`: the layout for 2 to 6 variables (columns the first $\lceil n/2 \rceil$, Gray
+  order, 5 and 6 as two or four maps), cell → row number and back, neighbours across maps.
+- [ ] Labels: the bar per variable over the rows or columns where it is 1, its edge (top, bottom,
+  left, right); the Gray code and $i$ per cell.
+- [ ] Blocks: a term as a cell set and as drawn rectangles, split into two or four pieces over the
+  edges and across maps; the KNF blocks over the 0s.
+- [ ] Steps of the KV path (§8, row *KV diagram*); 7 and 8 variables give no map and the
+  Quine–McCluskey steps instead.
+
+### Phase 5: NAND and NOR
+
+- [ ] `nand.rs`: NAND–NAND from the chosen minimal DNF, shared inverters as `NAND(A, A)`, single
+  literals straight into the output NAND.
+- [ ] The 2-input split (balanced trees), on with `logic_two_input`.
+- [ ] NOR-only from the minimal KNF, the dual of both.
+- [ ] The gate-by-gate rewrite of a given expression (*NAND from the circuit as drawn*) with
+  cancelled inverter pairs.
+- [ ] Gate count, gate inputs and levels per form; steps (§8, row *NAND / NOR*). Tests: equal to
+  the function on every row; the majority (4 / 6 gates), the 3-input NAND (3 gates).
+
+### Phase 6: circuits and delay
+
+- [ ] `circuit.rs`: the netlist (elements of §5.5 with kind, input nets, output net, id), the
+  checks (unconnected pin, two drivers, cycle, names, 8 inputs) with element ids; *drives nothing*
+  as a warning.
+- [ ] Tracing each output to an `Expr` with the circuit's structure; evaluation per net for one
+  input row (the values of §10.3).
+- [ ] `delay.rs`: levels, delay as levels × $t_{pd}$ or with times per gate type as a `ns` quantity
+  (`quantity.rs`), the critical path, counts per type.
+- [ ] The out-of-date rows: where a circuit's table differs from an output's source (§5.1).
+- [ ] Steps of circuit → expression and of the delay (§8).
+
+### Phase 7: generated circuits
+
+- [ ] `layout.rs`: a form (minimal DNF, KNF, NAND, NOR) → gates and nets; identical gates of
+  several outputs shared.
+- [ ] Positions on the editor's grid: input buses on the left, inverters by the buses, one column
+  per level, two ordering sweeps by the mean row of the inputs, outputs on the right.
+- [ ] Tests: the full adder shares its common gates; every generated circuit passes the checks of
+  Phase 6 and equals its function.
+
+### Phase 8: checks
+
+- [ ] `check.rs`: equivalence of two functions, ignoring –, with the first counterexample and all
+  differing rows.
+- [ ] The user's KV blocks: size, shape, no 0 inside; uncovered 1s, blocks that could grow,
+  redundant blocks; the resulting expression and its cost against the minimum.
+- [ ] The user's minimal form: equal, DNF or KNF, minimal; the hint naming the first improvement.
+- [ ] Steps of the checks (§8, row *Checks*).
+
+### Phase 9: API, settings, session
+
+- [ ] `interface.rs` with the structs of §7.2 (`LogicRequest`, `LogicResponse`,
+  `OutputResponse`, `KmapResponse`, `CircuitResponse`, `TaskResponse`, `ErrorResponse`),
+  `api::logic`, re-exported in `api.rs`.
+- [ ] `Mode::Logic` (`"logic"`) in `settings.rs` with its options and the serde test; the
+  settings `logic_symbols`, `logic_notation`, `logic_two_input`, `logic_zeros` (§9).
+- [ ] `ModeInputs.logic` in `session.rs`, saved with the session.
+- [ ] The Tauri command `logic` in `desktop/src-tauri/src/commands.rs`, registered in `lib.rs`;
+  the wrapper and types in `desktop/src/api.ts`.
+
+### Phase 10: desktop page without the editor
+
+- [ ] `LogicView.tsx` and `logic.ts`: the mode in the mode menu, the state in `App.tsx`, the
+  request on every change with older answers dropped, the source marker per output.
+- [ ] Function lines (MathLive, one per output) with errors in place.
+- [ ] `LogicTable.tsx`: the grid of §5.4, cycling cells, the keys `0`, `1`, `-`, adding and
+  removing inputs and outputs, renaming headers, **Fill the rest with 0**.
+- [ ] Results panel: canonical and minimal forms with the choice between solutions, NAND and NOR
+  with their cost, the steps, **Copy**.
+- [ ] The Logic section of `SettingsDialog.tsx`; texts under `mode.logic` and `logic.*` in every
+  file of `locales/`.
+
+### Phase 11: KV diagram on the desktop
+
+- [ ] `KvMap.tsx`: maps, bars, cells (0s shown or not), $i$ in the corner; clicking a cell cycles
+  it.
+- [ ] Blocks in colour, wrapping pieces, the KNF switch; hover links term and block both ways.
+- [ ] **Draw my blocks**: dragging rectangles with wrap-around and across maps, the check's
+  answer shown on the blocks.
+
+### Phase 12: circuit editor
+
+- [ ] What `CircuitEditor.tsx`, `circuit.ts` and `labelLayout.ts` share (grid, snap, rotation,
+  terminals, wires, labels) moved into a shared module; the electronics mode unchanged (checked by
+  hand).
+- [ ] `LogicEditor.tsx`: the elements of §5.5, the number of inputs in the element's menu, gate
+  symbols in IEC and ANSI with inversion marks.
+- [ ] The netlist sent to the core; errors and warnings marking elements red.
+- [ ] Simulation (§10.3): switches, nets coloured by value, lamps; the matching table row and KV
+  cell highlighted, and clicking a row or cell sets the switches.
+- [ ] **Draw from…** and **Arrange**; the *out of date* marker with its rows; gate count, delay and
+  the critical path in the editor.
+
+### Phase 13: export and files
+
+- [ ] **Copy**: `align*` with the steps, the truth table and the KV diagram as `tabular`.
+- [ ] The circuit as SVG and PNG (no grid, light theme).
+- [ ] The write-up (`writeup/`) takes the logic results.
+- [ ] Save and load as `.quantus-logic.json` through the electronics mode's file dialog.
+
+### Phase 14: docs and release notes
+
+- [ ] Guide `docs/docs/guides/logic/` (index, input, results, editor), the settings in
+  `docs/docs/reference/settings.md`, the syntax in `docs/docs/reference/syntax.md`.
+- [ ] `step-detail.md` § Logic mode with the majority, segment *a* and the NAND form of an XOR.
+- [ ] `docs/docs/contributing/testing.md` names `tests/logic.rs`; `CHANGELOG.md` under
+  `## [Unreleased]`; [feature-ideas.md § 16](../plans/feature-ideas.md#16-digital-logic-editor)
+  marked as done or cut to what is left.
 
 ## 13. Later
 
