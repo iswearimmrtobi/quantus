@@ -1,7 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::kmap::{gray, gray_position, Bar, Edge, Layout, Open, Piece, Place};
+use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
@@ -897,4 +897,85 @@ fn kv_blocks_of_the_minimal_dnf_and_knf() {
     // The cyclic chart has two covers, each with its own blocks.
     let (m, _) = minimal(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
     assert_ne!(three.blocks(&m, 0), three.blocks(&m, 1));
+}
+
+#[test]
+fn the_kv_diagram_is_written_as_arrays_with_gray_codes() {
+    let f = function(r"\sum m(3, 5, 6, 7) + d(0)", "A B C");
+    assert_eq!(
+        Layout::new(3).unwrap().latex(&f),
+        "\\begin{array}{c|cccc}\nC \\backslash AB & 00 & 01 & 11 & 10 \\\\ \\hline\n0 & \\text{–} & 0 & 1 & 0 \\\\\n1 & 0 & 1 & 1 & 1 \\\\\n\\end{array}"
+    );
+    let five = function(r"\sum m(31)", "A B C D E");
+    let latex = Layout::new(5).unwrap().latex(&five);
+    assert!(latex.starts_with(r"\begin{gathered}A = 0 \\ \begin{array}{c|cccc}"));
+    assert!(latex.contains(r"\end{array}\end{gathered} \qquad \begin{gathered}A = 1 \\ "));
+    let six = Layout::new(6).unwrap().latex(&function(r"\sum m(63)", "A B C D E F"));
+    // The grid: A = 0, B = 0 and A = 1, B = 0 on top.
+    assert!(six.starts_with(r"\begin{gathered}\begin{gathered}A = 0,\ B = 0 \\ "));
+    assert_eq!(six.matches(r"\qquad").count(), 2);
+    assert!(six.contains(r"\qquad \begin{gathered}A = 1,\ B = 0 \\ "));
+}
+
+#[test]
+fn the_kv_working_goes_from_the_form_to_the_blocks_and_why_variables_go() {
+    let f = function("AB + AC + BC", "A B C");
+    let m = Minimisation::of(&f).unwrap();
+    let working = kv_working(&f, &m, 0, "f", Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Brief), [("The minimal DNF:".to_string(), r"f = B \land C \lor A \land C \lor A \land B".to_string())]);
+    assert_eq!(texts_at(&working, StepDetail::Standard), ["The KV diagram of f:", "The blocks of 1s, each a term of the minimal DNF:", "The minimal DNF:"]);
+    let standard = lines(&working, StepDetail::Standard);
+    assert!(standard[1].1.contains(r"P_{1} & \texttt{-11} & B \land C & 3, 7 \\"));
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed[2], ("Over the cells 3, 7, changing and dropped: A; unchanged: B = 1, C = 1, giving the term:".to_string(), r"P_{1} = B \land C".to_string()));
+    assert_eq!(detailed.len(), 2 + 3 + 1);
+    // The majority uses every prime implicant: nothing more at Maximal.
+    assert_eq!(lines(&working, StepDetail::Maximal), detailed);
+    // The cyclic chart leaves three prime implicants unused, per cover.
+    let (m, names) = minimal(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    let f = function(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    let maximal = lines(&kv_working(&f, &m, 1, "f", Notation::Technical), StepDetail::Maximal);
+    let unused = maximal.iter().find(|(t, _)| t.starts_with("The prime implicants not used")).unwrap();
+    assert_eq!(unused.1, r"P_{1} = \overline{A} \cdot \overline{B},\ P_{4} = B \cdot \overline{C},\ P_{5} = A \cdot C");
+    assert_eq!(names.len(), 3);
+}
+
+#[test]
+fn the_kv_working_of_single_cells_the_whole_map_and_the_knf() {
+    let xor = function(r"A \oplus B", "A B");
+    let detailed = texts_at(&kv_working(&xor, &Minimisation::of(&xor).unwrap(), 0, "f", Notation::Logic), StepDetail::Detailed);
+    assert_eq!(detailed[2], "The block of the single cell 1 keeps every variable:");
+    let one = function(r"\sum m(0, 1, 2) + d(3)", "A B");
+    let detailed = texts_at(&kv_working(&one, &Minimisation::of(&one).unwrap(), 0, "f", Notation::Logic), StepDetail::Detailed);
+    assert_eq!(detailed[2], "The block over the whole diagram: every variable changes and drops out:");
+    let f = function("AB + AC + BC", "A B C");
+    let working = kv_working(&f, &Minimisation::knf(&f).unwrap(), 0, "f", Notation::Logic);
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed[1].0, "The blocks of 0s, each a sum of the minimal KNF by De Morgan:");
+    assert_eq!(detailed[2], ("Over the cells 0, 1, changing and dropped: C; unchanged: A = 0, B = 0, giving the sum, each negated:".to_string(), r"P_{1} = A \lor B".to_string()));
+    assert_eq!(lines(&working, StepDetail::Brief)[0].1, r"f = (A \lor B) \land (A \lor C) \land (B \lor C)");
+    // Constant 0 has no blocks.
+    let zero = function("A A' B", "A B");
+    assert_eq!(texts_at(&kv_working(&zero, &Minimisation::of(&zero).unwrap(), 0, "g", Notation::Logic), StepDetail::Maximal), ["The KV diagram of g:", "The minimal DNF:"]);
+}
+
+#[test]
+fn seven_variables_give_the_quine_mccluskey_working_instead() {
+    let f = function(r"\sum m(0, 127)", "A B C D E F G");
+    let m = Minimisation::of(&f).unwrap();
+    let working = kv_working(&f, &m, 0, "f", Notation::Logic);
+    assert_eq!(working.notes[0].text, "With 7 variables there is no KV diagram; the Quine–McCluskey tables take its place.");
+    assert_eq!(working.notes[1..], m.working(f.names(), "f", Notation::Logic).notes[..]);
+}
+
+#[test]
+fn the_kv_working_speaks_german() {
+    let _german = quantus_core::logic::text::Scope::new(quantus_core::settings::Language::De);
+    let f = function("AB + AC + BC", "A B C");
+    let detailed = texts_at(&kv_working(&f, &Minimisation::of(&f).unwrap(), 0, "f", Notation::Logic), StepDetail::Detailed);
+    assert_eq!(detailed[..3], [
+        "Das KV-Diagramm von f:",
+        "Die Blöcke aus Einsen, jeder ein Term der minimalen DNF:",
+        "Über den Feldern 3, 7 wechselnd und entfallen: A; gleichbleibend: B = 1, C = 1, daraus der Term:",
+    ]);
 }

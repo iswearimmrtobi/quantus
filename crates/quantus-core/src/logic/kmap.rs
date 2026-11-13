@@ -1,4 +1,4 @@
-//! KV diagrams (§6.3): the layout of 2 to 6 variables, its labels and the blocks.
+//! KV diagrams (§6.3): the layout of 2 to 6 variables, its labels, the blocks and the working.
 //!
 //! Variables beyond four choose the map: the first $n - 4$ of them. Of the other $m$, the first
 //! $\lceil m/2 \rceil$ run along the columns and the rest along the rows, each axis in Gray
@@ -7,8 +7,12 @@
 //! along its rows. The maps are copies, not mirrors: cells in the same place of neighbouring maps
 //! are neighbours.
 
-use super::minimise::Minimisation;
+use super::expr::{variable_latex, Notation};
+use super::minimise::{Form, Minimisation};
+use super::text::msg;
+use super::working::{array, list, prime_name, value_cell, Working};
 use super::{Function, Pattern, Value};
+use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 
 /// The fewest variables of a KV diagram.
 pub const MIN_VARIABLES: usize = 2;
@@ -286,4 +290,101 @@ impl Layout {
     pub fn blocks(&self, minimisation: &Minimisation, cover: usize) -> Vec<Block> {
         minimisation.covers[cover].iter().map(|term| self.block(*term)).collect()
     }
+}
+
+impl Layout {
+    /// The diagram of `function` as LaTeX: per map an array with the columns' and the rows' Gray
+    /// codes, headed by the values of the map variables; the maps as in the grid.
+    pub fn latex(&self, function: &Function) -> String {
+        let names = function.names();
+        let code = |value: usize, bits: usize| if bits == 0 { String::new() } else { format!("{value:0bits$b}") };
+        let joined = |vars: std::ops::Range<usize>| vars.map(|k| variable_latex(&names[k])).collect::<String>();
+        let corner = format!("{} \\backslash {}", joined(self.row_variables()), joined(self.column_variables()));
+        let header: Vec<String> = std::iter::once(corner).chain((0..self.columns()).map(|k| code(gray(k), self.col_vars))).collect();
+        let map = |map: usize| {
+            let rows: Vec<Option<Vec<String>>> = (0..self.rows())
+                .map(|row| {
+                    let values = (0..self.columns()).map(|col| value_cell(function.value(self.row_number(Place { map, row, col }))));
+                    Some(std::iter::once(code(gray(row), self.row_vars)).chain(values).collect())
+                })
+                .collect();
+            let table = array(&format!("c|{}", "c".repeat(self.columns())), &header, &rows);
+            if self.map_vars == 0 {
+                return table;
+            }
+            let values = self
+                .map_variables()
+                .map(|k| format!("{} = {}", variable_latex(&names[k]), map >> (self.map_vars - 1 - k) & 1))
+                .collect::<Vec<_>>()
+                .join(",\\ ");
+            format!("\\begin{{gathered}}{values} \\\\ {table}\\end{{gathered}}")
+        };
+        let (columns, rows) = self.map_grid();
+        let grid: Vec<String> = (0..rows)
+            .map(|y| {
+                let line = (0..columns).map(|x| (0..self.maps()).find(|m| self.map_place(*m) == (x, y)).expect("a map in each place"));
+                line.map(map).collect::<Vec<_>>().join(" \\qquad ")
+            })
+            .collect();
+        if rows == 1 { grid.join("") } else { format!("\\begin{{gathered}}{}\\end{{gathered}}", grid.join(" \\\\[1ex] ")) }
+    }
+}
+
+/// The working of the KV path (§8, *KV diagram*) for the minimal cover `cover` of
+/// `minimisation`: the minimal forms at Brief; the diagram and the blocks with their terms at
+/// Standard; per block, which variables stay and which change and drop out, at Detailed; the
+/// prime implicants not used at Maximal. Without a diagram (fewer than 2 or more than 6
+/// variables) the Quine–McCluskey working takes its place.
+pub fn kv_working(function: &Function, minimisation: &Minimisation, cover: usize, output: &str, notation: Notation) -> Working {
+    let names = function.names();
+    let Some(layout) = Layout::new(function.arity()) else {
+        let mut working = Working::default();
+        let n = function.arity();
+        working.add(Standard, msg!("core.logic.step.kv_no_map"), String::new());
+        working.notes.extend(minimisation.working(names, output, notation).notes);
+        return working;
+    };
+    let mut working = Working::default();
+    let knf = minimisation.form == Form::Knf;
+    let arity = function.arity();
+    let term = |p: Pattern| if knf { p.sum(names) } else { p.product(names) }.latex(notation);
+    let primes = &minimisation.qm.primes;
+    let name = |p: Pattern| prime_name(primes.iter().position(|q| *q == p).expect("a cover is made of primes"));
+    working.add(Standard, msg!("core.logic.step.kv_map"), layout.latex(function));
+
+    let blocks = layout.blocks(minimisation, cover);
+    if !blocks.is_empty() {
+        let rows: Vec<Option<Vec<String>>> = blocks
+            .iter()
+            .map(|b| Some(vec![name(b.term), format!("\\texttt{{{}}}", b.term.text(arity)), term(b.term), list(&b.cells)]))
+            .collect();
+        let header = [String::new(), String::new(), String::new(), "i".to_string()];
+        let text = if knf { msg!("core.logic.step.kv_blocks_knf") } else { msg!("core.logic.step.kv_blocks") };
+        working.add(Standard, text, array("c|c|l|l", &header, &rows));
+    }
+    for block in &blocks {
+        let cells = list(&block.cells);
+        let fixed = |k: usize| block.term.mask >> (arity - 1 - k) & 1 == 0;
+        let stay = (0..arity)
+            .filter(|k| fixed(*k))
+            .map(|k| format!("{} = {}", names[k], block.term.value >> (arity - 1 - k) & 1))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let go = (0..arity).filter(|k| !fixed(*k)).map(|k| names[k].clone()).collect::<Vec<_>>().join(", ");
+        let text = match (stay.is_empty(), go.is_empty(), knf) {
+            (_, true, _) => msg!("core.logic.step.kv_block_cell"),
+            (true, _, _) => msg!("core.logic.step.kv_block_whole"),
+            (false, false, false) => msg!("core.logic.step.kv_block"),
+            (false, false, true) => msg!("core.logic.step.kv_block_knf"),
+        };
+        working.add(Detailed, text, format!("{} = {}", name(block.term), term(block.term)));
+    }
+    let used = &minimisation.covers[cover];
+    let unused: Vec<String> = primes.iter().filter(|p| !used.contains(p)).map(|p| format!("{} = {}", name(*p), term(*p))).collect();
+    if !unused.is_empty() {
+        working.add(Maximal, msg!("core.logic.step.kv_unused"), unused.join(",\\ "));
+    }
+    let (text, latex) = minimisation.result(names, output, notation);
+    working.add(Brief, text, latex);
+    working
 }

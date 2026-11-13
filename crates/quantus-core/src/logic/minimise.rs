@@ -466,7 +466,6 @@ impl Minimisation {
         let mut working = Working::default();
         let knf = self.form == Form::Knf;
         let arity = self.arity;
-        let f = variable_latex(output);
         let term = |p: Pattern| if knf { p.sum(names) } else { p.product(names) }.latex(notation);
         let column = |row: usize| format!("{}_{{{row}}}", if knf { "M" } else { "m" });
         let pattern = |p: Pattern| format!("\\texttt{{{}}}", p.text(arity));
@@ -597,16 +596,23 @@ impl Minimisation {
             let covers = self.covers.iter().map(|c| format!("\\{{{}\\}}", c.iter().map(|p| prime_name(self.chart.primes.iter().position(|q| q == p).expect("a cover is made of primes"))).collect::<Vec<_>>().join(", ")));
             working.add(Standard, msg!("core.logic.step.covers"), covers.collect::<Vec<_>>().join(",\\ "));
         }
-        let count = self.covers.len();
-        let forms: Vec<String> = (0..count).map(|i| format!("{f} = {}", self.expr(i, names).latex(notation))).collect();
-        let text = match (knf, count) {
-            (false, 1) => msg!("core.logic.step.minimal_dnf"),
-            (false, _) => msg!("core.logic.step.minimal_dnfs"),
-            (true, 1) => msg!("core.logic.step.minimal_knf"),
-            (true, _) => msg!("core.logic.step.minimal_knfs"),
-        };
-        let latex = if count == 1 { forms.join("") } else { format!("\\begin{{gathered}}{}\\end{{gathered}}", forms.join(" \\\\ ")) };
+        let (text, latex) = self.result(names, output, notation);
         working.add(Brief, text, latex);
         working
+    }
+
+    /// The line of the result: every minimal form of the output `output`.
+    pub(crate) fn result(&self, names: &[String], output: &str, notation: Notation) -> (String, String) {
+        let f = variable_latex(output);
+        let count = self.covers.len();
+        let forms: Vec<String> = (0..count).map(|i| format!("{f} = {}", self.expr(i, names).latex(notation))).collect();
+        let text = match (self.form, count) {
+            (Form::Dnf, 1) => msg!("core.logic.step.minimal_dnf"),
+            (Form::Dnf, _) => msg!("core.logic.step.minimal_dnfs"),
+            (Form::Knf, 1) => msg!("core.logic.step.minimal_knf"),
+            (Form::Knf, _) => msg!("core.logic.step.minimal_knfs"),
+        };
+        let latex = if count == 1 { forms.join("") } else { format!("\\begin{{gathered}}{}\\end{{gathered}}", forms.join(" \\\\ ")) };
+        (text, latex)
     }
 }

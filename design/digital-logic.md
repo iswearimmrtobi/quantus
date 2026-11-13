@@ -527,7 +527,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   left, right); the Gray code and $i$ per cell.
 - [x] Blocks: a term as a cell set and as drawn rectangles, split into two or four pieces over the
   edges and across maps; the KNF blocks over the 0s.
-- [ ] Steps of the KV path (§8, row *KV diagram*); 7 and 8 variables give no map and the
+- [x] Steps of the KV path (§8, row *KV diagram*); 7 and 8 variables give no map and the
   Quine–McCluskey steps instead.
 
 ### Phase 5: NAND and NOR
