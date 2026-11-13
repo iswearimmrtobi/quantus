@@ -36,11 +36,11 @@ Current state, for reference:
 
 ## Step 2 — A BMP writer for the renderer
 
-- [ ] `firmware/ui/src/render/bmp.rs`: the 54-byte header (24 bit, bottom-up, rows padded to
+- [x] `firmware/ui/src/render/bmp.rs`: the 54-byte header (24 bit, bottom-up, rows padded to
       four bytes) and `Writer<W: Write + Seek>`, a `DrawTarget<Color = Rgb565>` that writes each
       band's rows as BGR at their bottom-up place; `bmp::write(frame, out)` renders with a fresh
       `Renderer` into it.
-- [ ] Test: a frame written into memory, read back with tinybmp, equals the same frame drawn
+- [x] Test (`firmware/ui/tests/screenshot.rs`): a frame written into memory, read back with tinybmp, equals the same frame drawn
       into a plain picture, pixel for pixel; the file is 54 + 480·320·3 bytes.
 
 ## Step 3 — A notice over the top bar

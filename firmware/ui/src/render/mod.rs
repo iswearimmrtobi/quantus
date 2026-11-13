@@ -7,6 +7,7 @@
 
 mod analysis;
 mod bar;
+pub mod bmp;
 mod graph;
 mod renderer;
 mod screens;
