@@ -377,9 +377,19 @@ pub fn cost(terms: &[Pattern], arity: usize) -> (usize, usize) {
     (terms.len(), terms.iter().map(|t| t.literals(arity)).sum())
 }
 
+/// Which rows a minimisation covers: the 1s for the minimal DNF, the 0s for the minimal KNF.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Form {
+    Dnf,
+    Knf,
+}
+
 /// The whole minimisation of a function: the rounds, the chart, Petrick and every minimal cover.
+/// For the KNF the terms cover the 0s, the minimal DNF of $\bar f$, and each is written negated
+/// by De Morgan as a sum.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Minimisation {
+    pub form: Form,
     pub arity: usize,
     pub qm: QuineMcCluskey,
     pub chart: Chart,
@@ -391,12 +401,17 @@ pub struct Minimisation {
 }
 
 impl Minimisation {
-    /// Minimises the 1s of `function` with its don't cares.
+    /// The minimal DNF: the 1s of `function` covered, with its don't cares.
     pub fn of(function: &Function) -> Result<Minimisation> {
-        Minimisation::of_rows(function.arity(), function.ones(), function.dont_cares())
+        Minimisation::of_rows(Form::Dnf, function.arity(), function.ones(), function.dont_cares())
     }
 
-    fn of_rows(arity: usize, ones: &Bits, dont_cares: &Bits) -> Result<Minimisation> {
+    /// The minimal KNF: the 0s of `function` covered, with its don't cares.
+    pub fn knf(function: &Function) -> Result<Minimisation> {
+        Minimisation::of_rows(Form::Knf, function.arity(), &function.zeros(), function.dont_cares())
+    }
+
+    fn of_rows(form: Form, arity: usize, ones: &Bits, dont_cares: &Bits) -> Result<Minimisation> {
         let qm = QuineMcCluskey::of(arity, ones, dont_cares);
         let chart = Chart::of(arity, &qm.primes, ones);
         let petrick = (!chart.columns_left.is_empty()).then(|| Petrick::of(&chart)).transpose()?;
@@ -414,7 +429,7 @@ impl Minimisation {
         covers.retain(|rows| cost_of(rows) == best);
         covers.sort();
         let covers = covers.into_iter().map(|rows| rows.into_iter().map(|r| chart.primes[r]).collect()).collect();
-        Ok(Minimisation { arity, qm, chart, petrick, covers })
+        Ok(Minimisation { form, arity, qm, chart, petrick, covers })
     }
 
     /// The cost of the minimal covers.
@@ -422,13 +437,18 @@ impl Minimisation {
         cost(&self.covers[0], self.arity)
     }
 
-    /// Cover `index` as a sum of products over `names`; no term is the constant 0.
+    /// Cover `index` over `names`: a sum of products for the DNF, no term the constant 0; a
+    /// product of sums for the KNF, no term the constant 1.
     pub fn expr(&self, index: usize, names: &[String]) -> Expr {
-        let mut terms: Vec<Expr> = self.covers[index].iter().map(|t| t.product(names)).collect();
-        match terms.len() {
-            0 => Expr::Const(false),
-            1 => terms.remove(0),
-            _ => Expr::Or(terms),
+        let terms = &self.covers[index];
+        let (mut operands, join, empty): (Vec<Expr>, fn(Vec<Expr>) -> Expr, bool) = match self.form {
+            Form::Dnf => (terms.iter().map(|t| t.product(names)).collect(), Expr::Or, false),
+            Form::Knf => (terms.iter().map(|t| t.sum(names)).collect(), Expr::And, true),
+        };
+        match operands.len() {
+            0 => Expr::Const(empty),
+            1 => operands.remove(0),
+            _ => join(operands),
         }
     }
 }

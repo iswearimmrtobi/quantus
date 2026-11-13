@@ -1,7 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::minimise::{Chart, Minimisation, QuineMcCluskey, Reduction};
+use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, Canonical};
 use quantus_core::logic::{rows_of, Function, Pattern, Value};
@@ -413,4 +413,24 @@ fn petrick_drops_products_dearer_than_a_greedy_cover_and_else_gives_up() {
     }
     let f = Function::from_bits(names("A B C D E F G"), [4970467940897231760, 14106837520289901734, 0, 0], [1153282333399318601, 2898629310714024473, 0, 0]).unwrap();
     assert_eq!(Minimisation::of(&f).unwrap_err().to_string(), "Too many solutions to compare.");
+}
+
+#[test]
+fn the_minimal_knf_covers_the_zeros_and_is_negated_by_de_morgan() {
+    let f = function("AB + AC + BC", "A B C");
+    let knf = Minimisation::knf(&f).unwrap();
+    assert_eq!(knf.form, Form::Knf);
+    // \bar f = \bar A \bar B + \bar A \bar C + \bar B \bar C, so f = (A + B)(A + C)(B + C).
+    assert_eq!(texts(&knf.covers[0], 3), ["00-", "0-0", "-00"]);
+    assert_eq!(knf.expr(0, f.names()).latex(Notation::Technical), "(A + B) \\cdot (A + C) \\cdot (B + C)");
+    assert_eq!(function(&knf.expr(0, f.names()).latex(Notation::Logic), "A B C"), f);
+    // Don't cares help both forms.
+    let f = function(r"\sum m(1, 3) + d(5, 7)", "A B C");
+    assert_eq!(Minimisation::knf(&f).unwrap().expr(0, f.names()), Expr::var("C"));
+    assert_eq!(Minimisation::of(&f).unwrap().expr(0, f.names()), Expr::var("C"));
+    // Constants: an empty cover.
+    let one = function(r"A \lor \lnot A", "A");
+    assert_eq!((Minimisation::of(&one).unwrap().expr(0, one.names()), Minimisation::knf(&one).unwrap().expr(0, one.names())), (Expr::Const(true), Expr::Const(true)));
+    let zero = function(r"A \land \lnot A", "A");
+    assert_eq!((Minimisation::of(&zero).unwrap().expr(0, zero.names()), Minimisation::knf(&zero).unwrap().expr(0, zero.names())), (Expr::Const(false), Expr::Const(false)));
 }
