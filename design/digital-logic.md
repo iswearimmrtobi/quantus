@@ -516,7 +516,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] Steps of expression → table and the canonical forms at all four levels (§8).
 - [x] Steps of Quine–McCluskey (grouping tables with ✓, the pairs that did not combine) and of the
   cover (essentials, chart, dominance, Petrick multiplied out).
-- [ ] German texts for all of the above in `locales/de.json` and every other file of `locales/`
+- [x] German texts for all of the above in `locales/de.json` and every other file of `locales/`
   (`cargo test -p quantus-texts`).
 
 ### Phase 4: KV diagrams

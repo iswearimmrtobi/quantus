@@ -681,3 +681,21 @@ fn the_knf_working_covers_the_zeros_and_constants_need_no_tables() {
     let working = Minimisation::of(&zero).unwrap().working(zero.names(), "g", Notation::Logic);
     assert_eq!(lines(&working, StepDetail::Maximal), [("The minimal DNF:".to_string(), "g = 0".to_string())]);
 }
+
+#[test]
+fn the_working_speaks_german() {
+    let _german = quantus_core::logic::text::Scope::new(quantus_core::settings::Language::De);
+    let (m, names) = minimal(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    let working = m.working(&names, "f", Notation::Logic);
+    assert_eq!(texts_at(&working, StepDetail::Standard), [
+        "Die Primimplikanten, die Terme, die sich nie zusammenfassen ließen:",
+        "Kein Primimplikant ist wesentlich.",
+        "Die minimalen Überdeckungen, 3 Terme mit 6 Literalen:",
+        "Die 2 minimalen DNF:",
+    ]);
+    let f = function("A B", "A B");
+    assert_eq!(texts_at(&Canonical::of(&f).working(&f, "f", Notation::Logic), StepDetail::Brief), [
+        "Die DNF in Vollform, die ODER-Verknüpfung der Minterme:",
+        "Die KNF in Vollform, die UND-Verknüpfung der Maxterme:",
+    ]);
+}
