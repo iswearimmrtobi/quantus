@@ -4,6 +4,7 @@
 //! don't cares; every other row is 0. Row `i` gives the first input the most significant bit of
 //! `i`, so the rows are in the binary order of the truth table.
 
+pub mod check;
 pub mod circuit;
 pub mod delay;
 pub mod expr;
@@ -118,6 +119,23 @@ impl Function {
                 (a, b) => a != b,
             })
             .collect()
+    }
+
+    /// The same function over the variables `names`, which hold its own in any order; the
+    /// others it does not depend on.
+    pub fn over(&self, names: &[String]) -> Result<Function> {
+        let places: Vec<usize> = self
+            .names
+            .iter()
+            .map(|name| names.iter().position(|n| n == name).ok_or_else(|| QuantusError::other(msg!("core.logic.check.not_among"))))
+            .collect::<Result<_>>()?;
+        let mut function = Function::new(names.to_vec())?;
+        let (n, own) = (names.len(), self.arity());
+        for row in 0..function.rows() {
+            let source = places.iter().enumerate().fold(0, |acc, (k, place)| acc | (row >> (n - 1 - place) & 1) << (own - 1 - k));
+            function.set(row, self.value(source));
+        }
+        Ok(function)
     }
 
     /// The value of variable `index` (0 the first, most significant) in `row`.

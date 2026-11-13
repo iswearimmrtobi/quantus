@@ -564,7 +564,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 8: checks
 
-- [ ] `check.rs`: equivalence of two functions, ignoring –, with the first counterexample and all
+- [x] `check.rs`: equivalence of two functions, ignoring –, with the first counterexample and all
   differing rows.
 - [ ] The user's KV blocks: size, shape, no 0 inside; uncovered 1s, blocks that could grow,
   redundant blocks; the resulting expression and its cost against the minimum.

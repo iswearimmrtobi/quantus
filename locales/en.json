@@ -1328,6 +1328,7 @@
     "core.logic.bad_left_side": "The left side is a name, such as f or f(A, B, C).",
     "core.logic.bad_list": "A minterm list is written \\sum m(1, 3, 7) + d(5), a maxterm list \\prod M(0, 2) \\cdot d(5).",
     "core.logic.bracket_not_closed": "A bracket is not closed.",
+    "core.logic.check.not_among": "{name} is not among the variables of the comparison.",
     "core.logic.circuit.drives_nothing": "{id} drives nothing.",
     "core.logic.circuit.feedback": "Feedback loop over {path}: sequential circuits are not supported yet.",
     "core.logic.circuit.id_twice": "The element id {id} appears twice.",

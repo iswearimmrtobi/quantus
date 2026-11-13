@@ -1328,6 +1328,7 @@
     "core.logic.bad_left_side": "Links steht ein Name, etwa f oder f(A, B, C).",
     "core.logic.bad_list": "Eine Mintermliste schreibt man \\sum m(1, 3, 7) + d(5), eine Maxtermliste \\prod M(0, 2) \\cdot d(5).",
     "core.logic.bracket_not_closed": "Eine Klammer wird nicht geschlossen.",
+    "core.logic.check.not_among": "{name} ist keine der Variablen des Vergleichs.",
     "core.logic.circuit.drives_nothing": "{id} treibt nichts an.",
     "core.logic.circuit.feedback": "Rückkopplung über {path}: Schaltwerke werden noch nicht unterstützt.",
     "core.logic.circuit.id_twice": "Die Element-ID {id} kommt zweimal vor.",

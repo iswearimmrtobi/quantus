@@ -1,5 +1,6 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
+use quantus_core::logic::check::{Counterexample, Equivalence};
 use quantus_core::logic::circuit::{Element, GateType, Issue, Net, Netlist};
 use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
@@ -1762,4 +1763,51 @@ fn generated_circuits_of_several_outputs_with_dont_cares_pass_the_checks() {
             assert_generated(&[("f", &f), ("h", &h)], form, true);
         }
     }
+}
+
+// Checks (§6.8).
+
+#[test]
+fn two_functions_are_equal_when_they_agree_wherever_neither_is_a_dont_care() {
+    let majority = function("AB + AC + BC", "A B C");
+    let same = Equivalence::of(&majority, &function(r"\sum m(3, 5, 6, 7)", "A B C")).unwrap();
+    assert!(same.equal());
+    assert_eq!(same.counterexample, None);
+    // A ∨ B is 1 in rows 2 and 4 where the majority is 0.
+    let other = Equivalence::of(&majority, &function("A + B", "A B C")).unwrap();
+    assert!(!other.equal());
+    assert_eq!(other.rows, [2, 4]);
+    assert_eq!(other.counterexample, Some(Counterexample { row: 2, first: Value::Zero, second: Value::One }));
+    // A don't care matches either value.
+    let mut relaxed = function("A + B", "A B C");
+    relaxed.set(2, Value::DontCare);
+    relaxed.set(4, Value::DontCare);
+    assert!(Equivalence::of(&majority, &relaxed).unwrap().equal());
+}
+
+#[test]
+fn functions_of_different_variables_are_compared_over_all_of_them() {
+    // A ∨ B over A, B against A ∨ B over C, B, A: equal, C ignored.
+    let a = function("A + B", "A B");
+    let check = Equivalence::of(&a, &function("A + B", "C B A")).unwrap();
+    assert_eq!(check.names, names("A B C"));
+    assert!(check.equal());
+    // A ∨ B against A ∨ C: they differ where B ≠ C and A = 0, rows 01x of A B C.
+    let check = Equivalence::of(&a, &function("A + C", "A C")).unwrap();
+    assert_eq!(check.names, names("A B C"));
+    assert_eq!(check.rows, [1, 2]);
+    assert_eq!(check.counterexample, Some(Counterexample { row: 1, first: Value::Zero, second: Value::One }));
+    assert!(Equivalence::of(&function("A", "A B C D E"), &function("F + G + H + I", "F G H I")).unwrap_err().to_string().contains("at most 8"));
+}
+
+#[test]
+fn a_function_over_more_variables_keeps_its_values() {
+    let f = function(r"\sum m(1, 2) + d(3)", "A B");
+    let g = f.over(&names("B C A")).unwrap();
+    // Row of B C A: f's row is A B.
+    for row in 0..8 {
+        let (b, a) = (row >> 2 & 1, row & 1);
+        assert_eq!(g.value(row), f.value(a << 1 | b), "row {row}");
+    }
+    assert!(f.over(&names("A C")).unwrap_err().to_string().contains("B is not among"));
 }
