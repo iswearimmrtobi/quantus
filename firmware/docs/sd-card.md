@@ -52,6 +52,13 @@ Windows' own format dialog offers only exFAT above 32 GB; use a tool such as *Ru
   the card with a built-in app's id keeps `card~<id>.json`). Written beside and then put in
   place; *Daten löschen* in an app's menu removes it. Without a card, kept until the handheld is
   switched off.
+- `screenshots/`: what SHIFT + 7 (CAPTURE) saves, on any screen, or PrintScreen on a USB
+  keyboard: the screen as a 24-bit BMP of 480×320 (450 KB), named by the local time
+  (`2026-11-12_14-03-27.bmp`, `…-2.bmp` for a second one in the same second) or, before the
+  clock is set, numbered (`screenshot-1.bmp`). An existing file is never overwritten. A notice
+  over the top bar names the file, or says *Keine SD-Karte*. The renderer draws the screen once
+  more, band by band, into the file, so the picture is exactly what the display shows, without
+  the notice and the SHIFT mark. Copied to `wallpapers/`, it is a wallpaper.
 
 SETUP → Gerät → Speicherplatz shows how full the card is.
 

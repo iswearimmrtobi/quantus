@@ -91,6 +91,7 @@ State on 2026-11-12.
 - [x] History with ↑/↓, replaying an input
 - [x] Ans
 - [x] PreAns (SHIFT+Ans)
+- [x] Screenshot (SHIFT+7, CAPTURE, on every screen; PrintScreen on a USB keyboard): a BMP in `/screenshots/` on the card
 - [x] Keys over the serial monitor
 - [x] USB keyboard, German QWERTZ layout, key repeat
 - [x] Touch: every menu by finger, taps, drag to scroll, page turns, − / + for numbers
@@ -224,7 +225,7 @@ in the simulator; on the board it builds, the checks there wait for it
 
 ## Storage and sessions
 
-- [x] SD card: wallpapers in `/wallpapers/`, sessions in `/sessions/`, apps in `/apps/` and their data in `/apps/data/`
+- [x] SD card: wallpapers in `/wallpapers/`, sessions in `/sessions/`, apps in `/apps/` and their data in `/apps/data/`, screenshots in `/screenshots/`
 - [x] Speicherplatz: used, free, total, as a bar; *Keine SD-Karte* without one
 - [x] Sessions: new, open, rename, duplicate, delete
 - [x] New sessions named after the local time ("Sitzung 2026-11-02 14:30"), or numbered before the clock is set

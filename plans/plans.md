@@ -185,8 +185,8 @@ wrapping, shifts and rotations, a bit view and an IEEE-754 view. Plan with the s
 ## 8. Screenshots on the handheld
 
 From [feature-ideas.md](feature-ideas.md) (idea 28): SHIFT + 7 saves the screen as a BMP in
-`/screenshots/` on the SD card, drawn band by band into the file. Plan with the steps:
-[screenshots.md](screenshots.md).
+`/screenshots/` on the SD card, drawn band by band into the file. Done, see
+[screenshots.md](screenshots.md); open: a look at a file from the board on a PC.
 
 ## 9. Later
 

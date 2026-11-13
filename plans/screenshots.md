@@ -72,10 +72,10 @@ Current state, for reference:
 
 ## Step 6 — Docs and wrap-up
 
-- [ ] `CHANGELOG.md`, `firmware/docs/features.md`, `firmware/docs/sd-card.md`, the keys in
+- [x] `CHANGELOG.md`, `firmware/docs/features.md`, `firmware/docs/sd-card.md`, the keys in
       `firmware/handheld/README.md` and `firmware/sim/README.md`, the layer table in
       `design/handheld-menus.md` §7.4.1.
-- [ ] Idea 28 out of `plans/feature-ideas.md`.
+- [x] Idea 28 out of `plans/feature-ideas.md`.
 
 ## Verification
 
@@ -88,6 +88,10 @@ cargo test -p quantus-texts
 Simulator: SHIFT + 7 and PrintScreen on the calculation screen, in a menu and on the graph; the
 files in `sd/screenshots/` open in an image viewer, and one copied to `sd/wallpapers/` works as a
 wallpaper. Board: SHIFT, 7 over the serial port, the log line, the file on the card.
+
+Checked on the board (2026-11-13): Ctrl+F, 7 over serial logged
+`writing /sd/screenshots/2026-11-13_17-32-16.bmp`; writing the 450 KB took about 1.5 s at the
+card's 10 MHz. The file itself is still to be looked at on a PC.
 
 ## Effort
 

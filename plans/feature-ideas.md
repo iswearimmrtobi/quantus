@@ -39,7 +39,7 @@ editor for one field that compiles to exact equations, solves them, and writes t
    [differential equations](#22-differential-equations), [number theory](#23-number-theory-and-discrete-maths),
    [electronics](#24-electronics-extended), [tuning systems](#25-tuning-systems),
    [small additions](#26-small-additions-to-existing-modes)
-7. Getting data in and out: [export](#27-export-a-session), [screenshots](#28-screenshots),
+7. Getting data in and out: [export](#27-export-a-session),
    [USB drive](#29-the-sd-card-as-a-usb-drive), [clipboard](#30-a-shared-clipboard-with-the-desktop),
    [packs on the card](#31-constant-unit-and-formula-packs-on-the-card)
 8. The device: [resume where I was](#32-resume-where-i-was), [battery and power](#33-battery-details-and-power-saving),
@@ -398,21 +398,6 @@ enough.
 **Effort.** S–M.
 
 **Open.** Whether plain text is wanted as a third format.
-
-### 28. Screenshots
-
-**What.** A key combination saves the screen as a BMP (or PNG) to `/screenshots/` on the card.
-
-**Why.** For questions to a teacher, bug reports, the documentation and the website.
-
-**How.** The renderer draws in bands; a screenshot draws all bands once more into a file instead
-of the display. No frame buffer is needed.
-
-**Where.** hui and board.
-
-**Effort.** S.
-
-**Open.** Which keys.
 
 ### 29. The SD card as a USB drive
 

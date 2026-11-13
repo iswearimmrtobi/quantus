@@ -745,6 +745,7 @@ stands in full size, with what it is (Gl. 2, Zeile 3, σ).
 | CALC, SOLVE | a key and SHIFT + it, or OPTN → Werkzeuge | `Calc` (F8, Ctrl+B): a form over the input with a field per free letter (`sheet::Kind::Formula`); its answer goes into the history. SHIFT + it is SOLVE: the same form, solved for the letter left empty (all given: the one at the cursor, starting from its value) |
 | Sitzungen | SHIFT + a key, or the MODE tile | the MODE tile |
 | PreAns | SHIFT + Ans | exists (`PreAns`): pastes the result before the last one, as Ans pastes the last |
+| CAPTURE | SHIFT + 7, on every screen | exists (`Screenshot`, also PrintScreen on a USB keyboard): the screen as a BMP in `/screenshots/` on the card ([sd-card.md](../firmware/docs/sd-card.md#what-goes-on-the-card)). Where SHIFT has no legends (menus, the mode tiles) it latches for this alone; any other key drops it |
 | ∠ | SHIFT + a key in Komplex | missing |
 | UNDO/REDO, INS | SHIFT + DEL, SHIFT + another key | missing |
 | Select, copy, paste | SHIFT + ←/→, then a copy and a paste key | missing |
@@ -791,7 +792,8 @@ existing SHIFT + VARS, M+, M−.
 | `,` | Ran# | RanInt# | |
 | ×10ˣ | recurring decimal | | |
 | Ans | PreAns | | |
-| `7 8 9 4 5 6` | | A B C D E F | G M k m µ n |
+| `7` | CAPTURE (the screen to `/screenshots/` on the card, on every screen) | A | G |
+| `8 9 4 5 6` | | B C D E F | M k m µ n |
 | `1 2 3 0` | | M, –, –, – | p c d T |
 | DEL, AC | UNDO, REDO | | |
 | ◄ ► ▲ ▼ | select left/right, copy, paste | | |

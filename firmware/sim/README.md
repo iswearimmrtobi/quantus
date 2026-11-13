@@ -107,6 +107,7 @@ keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).
 | F1, Ctrl+F | | SHIFT (SHIFT, then √ is the n-th root) |
 | F2, Ctrl+K | | ALPHA |
 | F9, Ctrl+Z | | UNIT |
+| F1 then 7, PrintScreen | | SHIFT+7 (CAPTURE): the screen as a BMP in `screenshots/` in the SD folder, on any screen (not with `--png`) |
 | F3, Ctrl+D | | S⇔D: the result exact or as a decimal |
 | F4, Ctrl+N | | OPTN: the mode's options (units, prefixes, functions, …), menus as in the setup |
 | F5 | | OK: on a sheet, edits the cell as it is |

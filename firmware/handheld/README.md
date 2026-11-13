@@ -66,10 +66,12 @@ Type into the serial monitor; the keys are those of the simulator, see its
 [key table](../sim/README.md#keys) (Ctrl+F then Tab for the setup). The arrows work as arrows,
 Delete clears like AC, F5 is OK and Shift+F1–F12 are the soft keys (as a terminal sends them,
 `ESC [ 1 ; 2 P` and so on, which an app needs for its soft keys). Ctrl+C and Ctrl+R are the monitor's own (exit, reset) and not used as keys.
+Ctrl+F then 7 (SHIFT + 7) saves the screen to `/screenshots/` on the card
+([sd-card.md](../docs/sd-card.md#what-goes-on-the-card)); the log names the file.
 
 A USB keyboard in the board's USB-A port types the same keys, with a German (QWERTZ) layout as
 in the simulator, F1–F12 and Shift+F1–F12 (the soft keys) included: F1–F4 are SHIFT, ALPHA, S⇔D
-and OPTN, F9 UNIT, F10 ENG, Tab is MODE, the keypad works, AltGr
+and OPTN, F9 UNIT, F10 ENG, Tab is MODE, PrintScreen saves the screen, the keypad works, AltGr
 types `@`, braces, brackets, `\`, `~` and `|` for a WLAN password. The arrows and Backspace repeat while held (after 600 ms, then every 100 ms). It is a HID boot keyboard
 (`src/keyboard.rs`, the layout in `firmware/ui/src/hid.rs`); one at a time, plugged in before or
 after the start, and the serial monitor keeps working beside it. Its hookup is in

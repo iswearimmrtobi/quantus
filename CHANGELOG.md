@@ -41,6 +41,12 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   ends on a page that reads the word as a float: sign, exponent and mantissa bits in three
   colours, their values, and the exact value cut after the digits set.
 - The handheld pastes the result before the last one with SHIFT + Ans, as Ans pastes the last.
+- The handheld saves the screen with SHIFT + 7 (CAPTURE), on every screen, or PrintScreen on a
+  USB keyboard: a 24-bit BMP in `/screenshots/` on the SD card, named by the local time
+  (`2026-11-12_14-03-27.bmp`) or numbered before the clock is set. A notice over the top bar
+  says where it went, or that there is no card; it goes after two seconds or with the next key
+  and is not in the picture. A screenshot works as a wallpaper too. In the simulator it lands in
+  `screenshots/` in the `--sd` folder (F1 then 7, or PrintScreen).
 - Errors point at the part of the input they are about. On the desktop that part is selected
   in red, in the formula editor and in the LaTeX field, and the message drops its position; on
   the handheld a red box lies behind it. This works for parse errors (the token that could not
