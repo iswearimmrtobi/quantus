@@ -1,0 +1,55 @@
+//! The Logic mode in the writeup (design/digital-logic.md §10.5): the scene the session keeps is
+//! worked out, each output's function is given, the output is wanted, and its block holds the
+//! KV diagram, the minimal DNF as the result, the minimal KNF and the NAND and NOR forms.
+
+use crate::logic::expr::variable_latex;
+use crate::logic::interface::{logic, LogicRequest, OutputResponse};
+use crate::settings::Settings;
+use crate::text::msg;
+
+use super::{Block, Line, LineKind, Writeup};
+
+/// Adds the outputs of the Logic scene `request` to `writeup`; an output without a function (its
+/// source has an error) is left out, and so is a scene that cannot be worked out.
+pub(super) fn add(writeup: &mut Writeup, request: &LogicRequest, settings: &Settings) {
+    let request = LogicRequest { task: None, ..request.clone() };
+    let Ok(response) = logic(settings, &request) else { return };
+    for output in &response.outputs {
+        let Some(minimal) = &output.minimal else { continue };
+        let name = variable_latex(&output.name);
+        writeup.given.push(given(output, &name));
+        writeup.wanted.push(name.clone());
+        let line = |kind, text: String, latex: String| Line { kind, text: Some(text), latex };
+        let mut lines = Vec::new();
+        if let Some(kmap) = &output.kmap {
+            lines.push(line(LineKind::Figure, msg!("core.writeup.logic.kv"), kmap.latex.clone()));
+        }
+        let dnf = &minimal.dnf[minimal.chosen];
+        let knf = &minimal.knf[minimal.chosen_knf];
+        let count = minimal.dnf.len();
+        let text = if count > 1 { msg!("core.writeup.logic.dnf_one_of") } else { msg!("core.writeup.logic.dnf") };
+        lines.push(line(LineKind::Result, text, format!("{name} = {}", dnf.latex)));
+        let count = minimal.knf.len();
+        let text = if count > 1 { msg!("core.writeup.logic.knf_one_of") } else { msg!("core.writeup.logic.knf") };
+        lines.push(line(LineKind::Step, text, format!("{name} = {}", knf.latex)));
+        if let Some(form) = &output.nand {
+            let (gates, levels) = (form.gates, form.levels);
+            lines.push(line(LineKind::Step, msg!("core.writeup.logic.nand"), format!("{name} = {}", form.latex)));
+        }
+        if let Some(form) = &output.nor {
+            let (gates, levels) = (form.gates, form.levels);
+            lines.push(line(LineKind::Step, msg!("core.writeup.logic.nor"), format!("{name} = {}", form.latex)));
+        }
+        writeup.blocks.push(Block { target: name, intermediate: false, lines });
+    }
+}
+
+/// What an output is given by: its expression as typed (or traced from the circuit), else its
+/// minterms with the don't cares.
+fn given(output: &OutputResponse, name: &str) -> String {
+    match (&output.expression, &output.canonical) {
+        (Some(expression), _) => format!("{name} = {}", expression.latex),
+        (None, Some(canonical)) => format!("{name} = {}", canonical.sum),
+        (None, None) => name.to_string(),
+    }
+}

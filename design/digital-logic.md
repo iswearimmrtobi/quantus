@@ -457,8 +457,11 @@ English in both languages (AND, NAND), as in German textbooks.
 - The circuit as **SVG** and **PNG** (the editor's drawing, without the grid, the pins, a selection or
   the simulation, in the light theme on white; the labels as SVG text; the PNG at twice the size),
   written by the shell's `save_file`.
-- The **write-up** (`crates/quantus-core/src/writeup`) takes the scene's results like the other
-  modes.
+- The **write-up** (`crates/quantus-core/src/writeup/logic.rs`) takes the scene the session keeps:
+  each output's function under *Given* (as typed, traced, or its minterms), the output under
+  *Wanted*, and a block per output with the KV diagram, the chosen minimal DNF as the result
+  (*one of n* when there are several), the minimal KNF and the NAND and NOR forms with their
+  gates and levels. An output whose source has an error is left out.
 - **Save / Load** the scene as a `.quantus-logic.json` file; the electronics mode's file dialog.
 
 ## 11. Tests
@@ -625,7 +628,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] **Copy**: `align*` with the steps, the truth table and the KV diagram as `tabular`.
 - [x] The circuit as SVG and PNG (no grid, light theme).
-- [ ] The write-up (`writeup/`) takes the logic results.
+- [x] The write-up (`writeup/`) takes the logic results.
 - [ ] Save and load as `.quantus-logic.json` through the electronics mode's file dialog.
 
 ### Phase 14: docs and release notes

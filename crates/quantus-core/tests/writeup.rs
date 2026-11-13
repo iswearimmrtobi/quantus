@@ -157,3 +157,42 @@ fn the_markdown_has_a_table_and_one_formula_per_line() {
     assert_eq!(w.markdown.matches("\\begin{aligned}").count(), 2);
     assert!(!w.markdown.contains("\\left") && !w.markdown.contains("align*"));
 }
+
+#[test]
+fn the_logic_scene_is_written_up_output_by_output() {
+    let mut store = SessionStore::new();
+    let request: api::LogicRequest = serde_json::from_value(serde_json::json!({ "scene": { "outputs": [
+        { "source": { "kind": "minterms", "latex": "f = \\sum m(3, 5, 6, 7)" } },
+        { "source": { "kind": "expression", "latex": "g = A \\oplus B" } },
+        { "source": { "kind": "expression", "latex": "h = A \\land" } },
+    ] } }))
+    .unwrap();
+    store.session(None).mode_inputs.logic = Some(request);
+    let settings = store.settings.clone();
+    let w = writeup::build(store.session(None), &settings);
+    // The line with an error is left out.
+    assert_eq!(w.given, ["f = \\sum m(3, 5, 6, 7)", "g = A \\oplus B"]);
+    assert_eq!(w.wanted, ["f", "g"]);
+    let f = lines(&w, 0);
+    assert_eq!((f[0].0, f[0].1.as_deref()), (LineKind::Figure, Some("The KV diagram:")));
+    assert!(f[0].2.starts_with("\\begin{array}"));
+    assert_eq!(f[1], (LineKind::Result, Some("The minimal DNF:".into()), "f = B \\land C \\lor A \\land C \\lor A \\land B".into()));
+    assert_eq!(f[3], (LineKind::Step, Some("Only NAND gates (6 gates, 4 levels):".into()), f[3].2.clone()));
+    assert_eq!(f.len(), 5);
+    // Set whole in the LaTeX, the result underlined twice.
+    assert!(w.latex.contains("&\\begin{array}"), "{}", w.latex);
+    assert!(w.latex.contains("\\underline{\\underline{f\\vphantom"));
+    assert!(w.markdown.contains("\\text{The minimal KNF:}"));
+}
+
+#[test]
+fn several_minimal_forms_are_named_in_the_writeup() {
+    let mut store = SessionStore::new();
+    store.settings.language = Language::De;
+    let request: api::LogicRequest =
+        serde_json::from_value(serde_json::json!({ "scene": { "outputs": [{ "source": { "kind": "minterms", "latex": "\\sum m(0, 1, 2, 5, 6, 7)" } }] } })).unwrap();
+    store.session(None).mode_inputs.logic = Some(request);
+    let settings = store.settings.clone();
+    let w = writeup::build(store.session(None), &settings);
+    assert_eq!(lines(&w, 0)[1].1.as_deref(), Some("Eine der 2 minimalen DNFs:"));
+}

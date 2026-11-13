@@ -7,6 +7,7 @@
 //! given value is listed once however often it is used.
 
 pub mod laws;
+mod logic;
 pub mod matching;
 
 use std::collections::{HashMap, HashSet};
@@ -71,6 +72,10 @@ pub enum LineKind {
     Result,
     /// `[R] = \frac{1\,\mathrm{V}}{1\,\mathrm{A}} = 1\,\Omega`.
     UnitCheck,
+    /// A step of another mode's solution, a minimal KNF or a NAND form of the Logic mode.
+    Step,
+    /// A table or diagram, set whole rather than aligned at an `=`.
+    Figure,
 }
 
 /// Where a variable's value comes from.
@@ -91,7 +96,11 @@ pub fn build(session: &Session, settings: &Settings) -> Writeup {
     if !matches!(settings.mode, Mode::Physics | Mode::Electronics | Mode::Kirchhoff) {
         settings.mode = Mode::Physics;
     }
+    let logic_settings = settings.clone();
     let mut writeup = Builder::new(session, settings).run(session);
+    if let Some(request) = &session.mode_inputs.logic {
+        logic::add(&mut writeup, request, &logic_settings);
+    }
     writeup.latex = writeup.to_latex();
     writeup.markdown = writeup.to_markdown();
     writeup
@@ -206,6 +215,7 @@ fn row(line: &Line) -> String {
             // The name as deep as the value, so both lines run straight under a fraction too.
             format!("\\underline{{\\underline{{{name}\\vphantom{{{value}}}}}}} &\\underline{{\\underline{{{{}} = {value}}}}}")
         }
+        (LineKind::Figure, _) => format!("&{}", line.latex),
         _ => aligned(&line.latex),
     }
 }

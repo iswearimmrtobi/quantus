@@ -174,7 +174,7 @@ export interface HistoryEntry {
 
 /** One line of a solution block: an optional sentence and an equation. */
 export interface WriteupLine {
-  kind: 'law' | 'rearranged' | 'substituted' | 'result' | 'unitCheck';
+  kind: 'law' | 'rearranged' | 'substituted' | 'result' | 'unitCheck' | 'step' | 'figure';
   text?: string;
   latex: string;
 }
