@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import type { GateFormResult, LogicForm, LogicOutputResult, LogicScene, Worked } from '../api';
-import { nameLatex, type Shown } from '../logic';
+import type { GateFormResult, LogicForm, LogicNotation, LogicOutputResult, LogicScene, Worked } from '../api';
+import { nameLatex, type Shown, type TermHover } from '../logic';
 import { useT, type TextKey } from '../i18n';
 import { copyText } from '../shell';
 import { Steps } from './AnalysisView';
@@ -13,7 +13,43 @@ interface Props {
   shown: Shown;
   /** At the detail level `none` the steps are hidden. */
   hideSteps: boolean;
+  /** How the terms of a minimal form are joined. */
+  notation: LogicNotation;
+  /** The term hovered here or in the KV diagram. */
+  hover: TermHover | null;
+  onHover(hover: TermHover | null): void;
   onChange(scene: LogicScene): void;
+}
+
+/**
+ * A minimal form `f = …` term by term, so that hovering a term singles out its block in the KV
+ * diagram, and the other way round. Without terms (a constant) the form as the core wrote it.
+ */
+function Terms({ output, form, which, notation, hover, onHover }: { output: string; form: LogicForm; which: 'dnf' | 'knf'; notation: LogicNotation; hover: TermHover | null; onHover(hover: TermHover | null): void }) {
+  const name = nameLatex(output);
+  if (!form.terms.length) return <Katex className="section-result" latex={displayStyle(`${name} = ${form.latex}`)} />;
+  const technical = notation === 'technical';
+  const join = which === 'dnf' ? (technical ? '+' : '\\lor') : technical ? '\\cdot' : '\\land';
+  const literals = (pattern: string) => [...pattern].filter((c) => c !== '-').length;
+  const active = hover && hover.output === output && hover.form === which ? hover.term : null;
+  return (
+    <span className="section-result logic-terms">
+      <Katex latex={displayStyle(`${name} =`)} />
+      {form.terms.map((term, k) => (
+        <span key={k} className="logic-terms-part">
+          {k > 0 && <Katex latex={displayStyle(join)} />}
+          <span
+            className={active === k ? 'logic-term active' : 'logic-term'}
+            style={{ ['--block' as string]: `var(--geometry-${k % 8})` }}
+            onMouseEnter={() => onHover({ output, form: which, term: k })}
+            onMouseLeave={() => onHover(null)}
+          >
+            <Katex latex={displayStyle(which === 'knf' && form.terms.length > 1 && literals(term.pattern) > 1 ? `(${term.latex})` : term.latex)} />
+          </span>
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /** Copy for an `align*` block, saying *Copied* for a moment. */
@@ -40,6 +76,7 @@ function CopyButton({ text, hint }: { text: string; hint?: string }) {
 /** A result: its title, its formulas, a line of figures, the choice among several, Copy and the steps to open. */
 function Section({
   title,
+  formula,
   lines,
   meta,
   choice,
@@ -48,6 +85,8 @@ function Section({
   hideSteps,
 }: {
   title: TextKey;
+  /** Shown before the lines. */
+  formula?: ReactNode;
   lines: string[];
   meta?: string;
   choice?: ReactNode;
@@ -65,6 +104,7 @@ function Section({
       <div className="linear-result-head">
         <div className="logic-result-body">
           <span className="section-title">{t(title)}</span>
+          {formula}
           {lines.map((line, i) => (
             <Katex key={i} className="section-result" latex={displayStyle(line)} />
           ))}
@@ -97,7 +137,7 @@ function Section({
  * canonical forms, the minimal DNF and KNF with the choice among several, the NAND and NOR forms
  * with their cost, each with its steps and Copy.
  */
-export function LogicResults({ scene, shown, hideSteps, onChange }: Props) {
+export function LogicResults({ scene, shown, hideSteps, notation, hover, onHover, onChange }: Props) {
   const { t } = useT();
   const { result, index } = shown;
   const name = nameLatex(result.name);
@@ -125,7 +165,15 @@ export function LogicResults({ scene, shown, hideSteps, onChange }: Props) {
 
   return (
     <div className="logic-results">
-      <ResultsOf result={result} eq={eq} cost={cost} gates={gates} choices={choices} hideSteps={hideSteps} />
+      <ResultsOf
+        result={result}
+        eq={eq}
+        cost={cost}
+        gates={gates}
+        choices={choices}
+        hideSteps={hideSteps}
+        terms={(form, which) => <Terms output={result.name} form={form} which={which} notation={notation} hover={hover} onHover={onHover} />}
+      />
     </div>
   );
 }
@@ -137,6 +185,7 @@ function ResultsOf({
   gates,
   choices,
   hideSteps,
+  terms,
 }: {
   result: LogicOutputResult;
   eq(latex: string): string;
@@ -144,6 +193,7 @@ function ResultsOf({
   gates(form: GateFormResult): string;
   choices(forms: LogicForm[], chosen: number, key: 'chosen' | 'chosenKnf'): ReactNode;
   hideSteps: boolean;
+  terms(form: LogicForm, which: 'dnf' | 'knf'): ReactNode;
 }) {
   const { t } = useT();
   const { expression, canonical, minimal, nand, nor, nandRewrite, norRewrite } = result;
@@ -175,7 +225,8 @@ function ResultsOf({
       {minimal && dnf && (
         <Section
           title="logic.result.dnf"
-          lines={[eq(dnf.latex)]}
+          formula={terms(dnf, 'dnf')}
+          lines={[]}
           meta={cost(dnf)}
           choice={choices(minimal.dnf, minimal.chosen, 'chosen')}
           worked={minimal.worked}
@@ -186,7 +237,8 @@ function ResultsOf({
       {minimal && knf && (
         <Section
           title="logic.result.knf"
-          lines={[eq(knf.latex)]}
+          formula={terms(knf, 'knf')}
+          lines={[]}
           meta={cost(knf)}
           choice={choices(minimal.knf, minimal.chosenKnf, 'chosenKnf')}
           worked={minimal.knfWorked}

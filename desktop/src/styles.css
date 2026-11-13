@@ -3252,6 +3252,74 @@ select option {
   pointer-events: none;
 }
 
+/* The blocks of the minimal form, one SVG over the cells: each in its colour, open towards an edge it wraps over. */
+.kv-blocks {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.kv-block-fill {
+  fill: var(--block);
+  fill-opacity: 0.1;
+}
+.kv-block-line {
+  fill: none;
+  stroke: var(--block);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.kv-block.active .kv-block-fill {
+  fill-opacity: 0.26;
+}
+.kv-block.active .kv-block-line {
+  stroke-width: 3;
+}
+.kv-block.faded {
+  opacity: 0.25;
+}
+.kv-block-label circle {
+  fill: var(--block);
+}
+.kv-block-label text {
+  fill: var(--background);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-anchor: middle;
+}
+
+.kv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kv-term,
+.logic-term {
+  border-radius: var(--radius);
+  box-shadow: inset 0 -2px 0 var(--block);
+  padding: 0 3px;
+  cursor: default;
+  transition: background 120ms ease;
+}
+.kv-term.active,
+.logic-term.active {
+  background: color-mix(in srgb, var(--block) 26%, transparent);
+}
+
+.logic-terms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+}
+.logic-terms-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
 /* ---------- Phone layout (the Android app) ---------- */
 
 /* The menu's actions as buttons: only the phone layout shows them, the desktop has the menu bar. */

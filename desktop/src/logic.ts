@@ -328,3 +328,10 @@ export function shownOutputs(answer: LogicAnswer | null): Shown[] {
     ...answer.extra.map((result) => ({ result, index: null as number | null })),
   ];
 }
+
+/** A term of the chosen minimal DNF or KNF of an output, hovered in the results or the KV diagram. */
+export interface TermHover {
+  output: string;
+  form: 'dnf' | 'knf';
+  term: number;
+}

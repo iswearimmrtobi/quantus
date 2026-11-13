@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type LogicScene, type Settings } from '../api';
-import { addOutput, logicAnswer, logicGrid, logicRequest, nameLatex, shownOutputs, type LogicAnswer } from '../logic';
+import { addOutput, logicAnswer, logicGrid, logicRequest, nameLatex, shownOutputs, type LogicAnswer, type TermHover } from '../logic';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { Katex } from './Katex';
@@ -25,6 +25,8 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
   const [failure, setFailure] = useState<ApiError | null>(null);
   /** The output the KV diagram and the results show, by name. */
   const [tab, setTab] = useState<string | null>(null);
+  /** The term whose block and formula stand out, in the KV diagram and the results. */
+  const [hover, setHover] = useState<TermHover | null>(null);
   /** The latest request; an answer to an older one is dropped. */
   const request = useRef(0);
 
@@ -84,9 +86,19 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
               + {t('logic.table.new')}
             </button>
           )}
-          {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} onChange={onSceneChange} />}
+          {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} hover={hover} onHover={setHover} onChange={onSceneChange} />}
         </div>
-        {shown && <LogicResults scene={scene} shown={shown} hideSteps={stepDetail === 'none'} onChange={onSceneChange} />}
+        {shown && (
+          <LogicResults
+            scene={scene}
+            shown={shown}
+            hideSteps={stepDetail === 'none'}
+            notation={logicNotation}
+            hover={hover}
+            onHover={setHover}
+            onChange={onSceneChange}
+          />
+        )}
       </div>
     </main>
   );
