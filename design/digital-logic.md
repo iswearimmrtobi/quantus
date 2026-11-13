@@ -568,7 +568,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   differing rows.
 - [x] The user's KV blocks: size, shape, no 0 inside; uncovered 1s, blocks that could grow,
   redundant blocks; the resulting expression and its cost against the minimum.
-- [ ] The user's minimal form: equal, DNF or KNF, minimal; the hint naming the first improvement.
+- [x] The user's minimal form: equal, DNF or KNF, minimal; the hint naming the first improvement.
 - [ ] Steps of the checks (§8, row *Checks*).
 
 ### Phase 9: API, settings, session

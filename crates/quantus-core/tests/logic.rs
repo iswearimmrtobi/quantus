@@ -1,6 +1,6 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
-use quantus_core::logic::check::{term_of_rows, BlockFault, BlocksCheck, Counterexample, Equivalence};
+use quantus_core::logic::check::{term_of_rows, BlockFault, BlocksCheck, Counterexample, Equivalence, FormCheck, Hint};
 use quantus_core::logic::circuit::{Element, GateType, Issue, Net, Netlist};
 use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
@@ -1905,4 +1905,65 @@ fn of_two_blocks_covering_each_other_only_one_is_redundant() {
     let check = BlocksCheck::of(&c, Form::Dnf, &[vec![1, 3], vec![1, 3, 5, 7], vec![5, 7]]).unwrap();
     let grow = BlockFault::Grow { to: Pattern { value: 0b001, mask: 0b110 } };
     assert_eq!(faults(&check), [vec![grow.clone(), BlockFault::Redundant], vec![], vec![grow, BlockFault::Redundant]]);
+}
+
+fn form_check(written: &str, f: &str, inputs: &str) -> FormCheck {
+    FormCheck::of(&parse_expr(written).unwrap(), &function(f, inputs)).unwrap()
+}
+
+#[test]
+fn a_minimal_form_is_equal_normal_and_as_cheap_as_the_minimum() {
+    let check = form_check("AB + AC + BC", "AB + AC + BC", "A B C");
+    assert!(check.minimal());
+    assert_eq!((check.form, check.cost, check.minimum, check.hint), (Some(Form::Dnf), (3, 6), (3, 6), None));
+    let check = form_check("(A + B)(A + C)(B + C)", "AB + AC + BC", "A B C");
+    assert!(check.minimal());
+    assert_eq!(check.form, Some(Form::Knf));
+    // Only minimal as a KNF: (A ∨ B)(C ∨ D) has 4 terms as a DNF.
+    let check = form_check("(A + B)(C + D)", "(A + B)(C + D)", "A B C D");
+    assert_eq!((check.form, check.cost, check.minimum, check.minimal()), (Some(Form::Knf), (2, 4), (2, 4), true));
+    // A product reads as both; AB is minimal as a DNF.
+    let check = form_check("AB", "AB", "A B");
+    assert_eq!((check.form, check.minimal()), (Some(Form::Dnf), true));
+    // Constants.
+    assert!(form_check("1", r"A + \bar{A}", "A").minimal());
+    assert!(form_check("0", r"A \bar{A}", "A").minimal());
+}
+
+#[test]
+fn a_form_that_differs_gives_the_counterexample() {
+    let check = form_check("A + B", "AB + AC + BC", "A B C");
+    assert!(!check.minimal());
+    assert_eq!(check.equivalence.counterexample, Some(Counterexample { row: 2, first: Value::One, second: Value::Zero }));
+    assert_eq!(check.hint, None);
+}
+
+#[test]
+fn a_form_that_is_not_minimal_names_the_first_improvement() {
+    let majority = "AB + AC + BC";
+    let check = form_check("AB + AC + BC + ABC", majority, "A B C");
+    assert_eq!((check.cost, check.hint), ((4, 9), Some(Hint::DropTerm { term: 3 })));
+    // AB\bar C covers only row 6, which no other term does, but it can lose \bar C.
+    let check = form_check(r"AB\bar{C} + AC + BC", majority, "A B C");
+    assert_eq!(check.hint, Some(Hint::DropLiteral { term: 0, literal: 2 }));
+    assert_eq!(check.terms[0][2], Expr::negation(v("C")));
+    // A literal twice.
+    assert_eq!(form_check("AAB", "AB", "A B").hint, Some(Hint::DropLiteral { term: 0, literal: 0 }));
+    // The KNF: a sum the others cover.
+    let check = form_check("(A + B)(A + C)(B + C)(A + B + C)", majority, "A B C");
+    assert_eq!((check.form, check.hint), (Some(Form::Knf), Some(Hint::DropTerm { term: 3 })));
+    // The cyclic chart: every term needed and prime, but three suffice.
+    let check = form_check(r"\bar{A}\bar{B} + \bar{A}\bar{C} + AC + AB", r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    assert_eq!((check.cost, check.minimum, check.hint), ((4, 8), (3, 6), Some(Hint::Cheaper)));
+    // A variable the function does not have.
+    let check = form_check("AB + AC + BC + ABD", majority, "A B C");
+    assert_eq!((check.equivalence.names.clone(), check.hint), (names("A B C D"), Some(Hint::DropTerm { term: 3 })));
+}
+
+#[test]
+fn a_form_that_is_neither_a_dnf_nor_a_knf_is_not_minimal() {
+    let check = form_check(r"A \oplus B", r"A \oplus B", "A B");
+    assert!(check.equivalence.equal());
+    assert_eq!((check.form, check.minimal(), check.minimum), (None, false, (2, 4)));
+    assert_eq!(form_check(r"\overline{AB}", r"\bar{A} + \bar{B}", "A B").form, None);
 }
