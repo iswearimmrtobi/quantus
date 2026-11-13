@@ -5,6 +5,7 @@
 //! `i`, so the rows are in the binary order of the truth table.
 
 pub mod expr;
+pub mod parse;
 pub mod text;
 
 use crate::{QuantusError, Result};

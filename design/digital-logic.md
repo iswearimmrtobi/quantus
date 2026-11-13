@@ -485,7 +485,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `expr.rs`: `Expr` (`Var`, `Const`, `Not`, n-ary `And`, `Or`, `Xor`, `Xnor`, binary `Nand`,
   `Nor`), evaluation of one row, LaTeX in both notations (§9) with the overline over longer
   negations and the fewest brackets the precedence of §5.2 allows.
-- [ ] `parse.rs`, expressions: every operator spelling of §5.2, juxtaposition, postfix `'`,
+- [x] `parse.rs`, expressions: every operator spelling of §5.2, juxtaposition, postfix `'`,
   `\mathrm{Start}`, the precedence, `A \uparrow B \uparrow C` as an error; `f = …`,
   `f(A, B, C) = …` and the bare line (outputs `f`, `g`, `h`); the errors of §5.2. Round trip
   expression → LaTeX → expression.

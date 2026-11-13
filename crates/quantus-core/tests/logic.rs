@@ -1,6 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
+use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body};
 use quantus_core::logic::{Function, Pattern, Value};
 
 fn names(names: &str) -> Vec<String> {
@@ -77,4 +78,114 @@ fn expressions_are_written_in_both_notations_with_the_fewest_brackets() {
     let e = Expr::Xor(vec![Expr::Xor(vec![v("A"), v("B")]), v("C")]);
     assert_eq!(e.latex(Notation::Logic), r"(A \oplus B) \oplus C");
     assert_eq!(Expr::not(Expr::not(v("A"))).latex(Notation::Logic), r"\overline{\lnot A}");
+}
+
+/// The rows where `latex` is 1, over the variables `vars`.
+fn ones_of(latex: &str, vars: &str) -> Vec<usize> {
+    let expr = parse_expr(latex).unwrap_or_else(|e| panic!("{latex}: {e}"));
+    let vars = names(vars);
+    (0..1 << vars.len()).filter(|row| expr.eval_row(&vars, *row)).collect()
+}
+
+fn error(latex: &str) -> String {
+    parse_line(latex).map(|l| format!("{l:?}")).unwrap_or_else(|e| e.to_string())
+}
+
+#[test]
+fn every_operator_spelling_is_read() {
+    let spellings: [(&[&str], &[usize]); 9] = [
+        (&[r"\overline{A}", r"\neg A", r"\lnot A", "!A", "A'", r"A^{\prime}", r"\bar{A}", "not A", r"\overline A"], &[0, 1]),
+        (&[r"A \land B", r"A \wedge B", r"A \cdot B", "A * B", r"A \& B", "AB", "A B", "A and B", r"A \operatorname{and} B"], &[3]),
+        (&[r"A \lor B", r"A \vee B", "A + B", r"A \mid B", "A or B", r"A \mathrm{or} B"], &[1, 2, 3]),
+        (&[r"A \oplus B", r"A \veebar B", "A xor B"], &[1, 2]),
+        (&[r"A \odot B", r"A \leftrightarrow B", r"A \Leftrightarrow B", "A xnor B"], &[0, 3]),
+        (&[r"A \uparrow B", r"A \barwedge B", "A nand B"], &[0, 1, 2]),
+        (&[r"A \downarrow B", "A nor B"], &[0]),
+        (&["A + 1", r"A \lor \top", r"\left(A \lor 1\right)", "{A + 1}"], &[0, 1, 2, 3]),
+        (&["A 0", r"A \land \bot", r"\overline{1} + A \cdot 0"], &[]),
+    ];
+    for (latexes, ones) in spellings {
+        for latex in latexes {
+            assert_eq!(ones_of(latex, "A B"), ones, "{latex}");
+        }
+    }
+}
+
+#[test]
+fn the_precedence_is_not_and_nand_xor_or_nor() {
+    let parsed = |latex: &str| parse_expr(latex).unwrap();
+    let and = |a: Expr, b: Expr| Expr::And(vec![a, b]);
+    assert_eq!(parsed(r"A \lor B C"), Expr::Or(vec![v("A"), and(v("B"), v("C"))]));
+    assert_eq!(parsed(r"\overline{A} B'"), and(Expr::not(v("A")), Expr::not(v("B"))));
+    assert_eq!(parsed(r"A \oplus B \lor C"), Expr::Or(vec![Expr::Xor(vec![v("A"), v("B")]), v("C")]));
+    assert_eq!(parsed(r"A B \uparrow C"), Expr::Nand(Box::new(and(v("A"), v("B"))), Box::new(v("C"))));
+    assert_eq!(parsed(r"A \uparrow B \oplus C"), Expr::Xor(vec![Expr::Nand(Box::new(v("A")), Box::new(v("B"))), v("C")]));
+    assert_eq!(parsed(r"A \lor B \downarrow C"), Expr::Nor(Box::new(Expr::Or(vec![v("A"), v("B")])), Box::new(v("C"))));
+    assert_eq!(parsed(r"A \oplus B \oplus C"), Expr::Xor(vec![v("A"), v("B"), v("C")]));
+    assert_eq!(parsed(r"A \odot B \odot C"), Expr::Xnor(vec![Expr::Xnor(vec![v("A"), v("B")]), v("C")]));
+    // A chain of XNOR is odd parity, read from the left.
+    assert_eq!(ones_of(r"A \odot B \odot C", "A B C"), [1, 2, 4, 7]);
+    assert_eq!(parsed(r"(A B)'"), Expr::not(and(v("A"), v("B"))));
+}
+
+#[test]
+fn variables_are_letters_with_an_index_or_long_names_in_mathrm() {
+    let parsed = parse_expr(r"AB x_1 Y_{12} \mathrm{Start} \mathrm{x_2}").unwrap();
+    assert_eq!(parsed.variables(), ["A", "B", "x_1", "Y_12", "Start", "x_2"]);
+    assert_eq!(parse_expr(r"A \mathrm{and} b").unwrap(), Expr::And(vec![v("A"), v("b")]));
+}
+
+#[test]
+fn lines_name_their_output_and_inputs() {
+    let line = parse_line(r"f(A, B, C) = AB + C").unwrap();
+    assert_eq!((line.output.as_str(), line.inputs.clone()), ("f", Some(names("A B C"))));
+    assert_eq!(line.body, Body::Expr(parse_expr("AB + C").unwrap()));
+    let line = parse_line(r"Y_2 = \overline{A}").unwrap();
+    assert_eq!((line.output.as_str(), line.inputs), ("Y_2", None));
+    let lines = parse_lines(&["A + B", "f = A", "B C", r"\mathrm{Carry} = AB"]).unwrap();
+    let outputs: Vec<&str> = lines.iter().map(|l| l.output.as_str()).collect();
+    assert_eq!(outputs, ["g", "f", "h", "Carry"]);
+}
+
+#[test]
+fn parse_errors_name_the_symbol() {
+    assert_eq!(error(r"\sin A"), r"\sin is not a logic operator.");
+    assert_eq!(error("A + 2"), "2 is not a logic value: only 0 and 1 are.");
+    assert_eq!(error(r"A \land"), "The expression ends too early.");
+    assert_eq!(error(r"A \lor \land B"), "An operand is missing before '∧'.");
+    assert_eq!(error("(A + B"), "A bracket is not closed.");
+    assert_eq!(error("A + B)"), "Unexpected ')'.");
+    assert_eq!(error(""), "Type an expression.");
+    assert!(error(r"A \uparrow B \uparrow C").starts_with("NAND is not associative"));
+    assert!(error(r"A \downarrow B \downarrow C").starts_with("NOR is not associative"));
+    assert_eq!(error("ABCDEFGHI"), "A function has at most 8 variables, not 9.");
+    assert_eq!(error("f(A, B) = A C"), "C is not among the inputs of f.");
+    assert_eq!(error("f = f A"), "f is the output, so it cannot be an input too.");
+    assert_eq!(error("f(A, B = A"), "The left side is a name, such as f or f(A, B, C).");
+    assert_eq!(error("A ? B"), "'?' is not part of a logic expression.");
+}
+
+#[test]
+fn expressions_survive_a_round_trip_through_latex() {
+    let cases = [
+        r"A \lor B C",
+        r"\overline{A \lor B} C \oplus D",
+        r"(A \oplus B) \oplus C",
+        r"A \oplus B \odot C \oplus D",
+        r"A \odot (B \odot C)",
+        r"(A \uparrow B) \uparrow (C \downarrow D)",
+        r"A \lor B \downarrow C \land D",
+        r"\overline{\overline{A}} \lor (B \lor C) \land 1",
+        r"x_1 \overline{x_{10}} \mathrm{Start}",
+        r"(A \lor B)(C \lor \lnot D)",
+    ];
+    for latex in cases {
+        let expr = parse_expr(latex).unwrap();
+        let logic = expr.latex(Notation::Logic);
+        assert_eq!(parse_expr(&logic).unwrap(), expr, "{latex} → {logic}");
+        let technical = expr.latex(Notation::Technical);
+        let vars = expr.variables();
+        let back = parse_expr(&technical).unwrap();
+        assert!((0..1 << vars.len()).all(|row| back.eval_row(&vars, row) == expr.eval_row(&vars, row)), "{latex} → {technical}");
+    }
 }
