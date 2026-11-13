@@ -523,7 +523,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] `kmap.rs`: the layout for 2 to 6 variables (columns the first $\lceil n/2 \rceil$, Gray
   order, 5 and 6 as two or four maps), cell → row number and back, neighbours across maps.
-- [ ] Labels: the bar per variable over the rows or columns where it is 1, its edge (top, bottom,
+- [x] Labels: the bar per variable over the rows or columns where it is 1, its edge (top, bottom,
   left, right); the Gray code and $i$ per cell.
 - [ ] Blocks: a term as a cell set and as drawn rectangles, split into two or four pieces over the
   edges and across maps; the KNF blocks over the 0s.

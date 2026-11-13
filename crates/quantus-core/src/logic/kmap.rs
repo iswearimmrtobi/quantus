@@ -1,4 +1,4 @@
-//! KV diagrams (§6.3): the layout of 2 to 6 variables.
+//! KV diagrams (§6.3): the layout of 2 to 6 variables and its labels.
 //!
 //! Variables beyond four choose the map: the first $n - 4$ of them. Of the other $m$, the first
 //! $\lceil m/2 \rceil$ run along the columns and the rest along the rows, each axis in Gray
@@ -6,6 +6,8 @@
 //! left; six give a 2 × 2 grid of maps, the first variable along the grid's columns, the second
 //! along its rows. The maps are copies, not mirrors: cells in the same place of neighbouring maps
 //! are neighbours.
+
+use super::{Function, Pattern, Value};
 
 /// The fewest variables of a KV diagram.
 pub const MIN_VARIABLES: usize = 2;
@@ -131,5 +133,77 @@ impl Layout {
     /// over the edges of a map, and in the same place of the neighbouring maps.
     pub fn neighbours(&self, row: usize) -> Vec<usize> {
         (0..self.arity).map(|k| row ^ 1 << (self.arity - 1 - k)).collect()
+    }
+}
+
+/// An edge of a map, or of the grid of maps.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Edge {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+/// A variable's label in German school style: a bar with its name along `edge`, over the
+/// columns or rows where the variable is 1, `start` and `len` of them. With `maps`, the bar runs
+/// along the grid of maps and counts maps; otherwise it is drawn at every map and counts cells.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Bar {
+    pub variable: usize,
+    pub edge: Edge,
+    pub start: usize,
+    pub len: usize,
+    pub maps: bool,
+}
+
+/// One cell of the diagram: its place, the row of the truth table $i$, the inputs of that row
+/// (`1-0-` style, the first variable first; the tooltip with $i$) and the value.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Cell {
+    pub place: Place,
+    pub index: usize,
+    pub code: String,
+    pub value: Value,
+}
+
+impl Layout {
+    /// The bars of every variable: the map variables first (the first on top of the grid, the
+    /// second on its left), then the columns' (the first on top, the second at the bottom) and
+    /// the rows' (the first on the left, the second on the right).
+    pub fn bars(&self) -> Vec<Bar> {
+        let mut bars = Vec::new();
+        for (j, variable) in self.map_variables().enumerate() {
+            // The maps where the variable is 1: the right column, the bottom row of the grid.
+            let edge = if j == 0 { Edge::Top } else { Edge::Left };
+            bars.push(Bar { variable, edge, start: 1, len: 1, maps: true });
+        }
+        let axis = |bars: &mut Vec<Bar>, variables: std::ops::Range<usize>, edges: [Edge; 2]| {
+            let bits = variables.len();
+            for (j, variable) in variables.enumerate() {
+                let ones: Vec<usize> = (0..1 << bits).filter(|k| gray(*k) >> (bits - 1 - j) & 1 == 1).collect();
+                // With at most two variables per axis, the 1s are always side by side.
+                bars.push(Bar { variable, edge: edges[j], start: ones[0], len: ones.len(), maps: false });
+            }
+        };
+        axis(&mut bars, self.column_variables(), [Edge::Top, Edge::Bottom]);
+        axis(&mut bars, self.row_variables(), [Edge::Left, Edge::Right]);
+        bars
+    }
+
+    /// The cells of `function`, map by map, each row by row from the left.
+    pub fn cells(&self, function: &Function) -> Vec<Cell> {
+        let mut cells = Vec::with_capacity(1 << self.arity);
+        for map in 0..self.maps() {
+            for row in 0..self.rows() {
+                for col in 0..self.columns() {
+                    let place = Place { map, row, col };
+                    let index = self.row_number(place);
+                    let code = Pattern::minterm(index).text(self.arity);
+                    cells.push(Cell { place, index, code, value: function.value(index) });
+                }
+            }
+        }
+        cells
     }
 }

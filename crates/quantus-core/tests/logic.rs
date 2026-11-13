@@ -1,7 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::kmap::{gray, gray_position, Layout, Place};
+use quantus_core::logic::kmap::{gray, gray_position, Bar, Edge, Layout, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, subexpressions, table_working, Canonical};
@@ -776,4 +776,47 @@ fn kv_neighbours_wrap_over_the_edges_and_across_maps() {
             }
         }
     }
+}
+
+#[test]
+fn kv_bars_lie_over_the_ones_of_their_variable() {
+    let bar = |variable, edge, start, len, maps| Bar { variable, edge, start, len, maps };
+    assert_eq!(Layout::new(2).unwrap().bars(), [bar(0, Edge::Top, 1, 1, false), bar(1, Edge::Left, 1, 1, false)]);
+    // AB along the columns 00, 01, 11, 10: A over the last two, B over the middle two.
+    assert_eq!(Layout::new(4).unwrap().bars(), [
+        bar(0, Edge::Top, 2, 2, false),
+        bar(1, Edge::Bottom, 1, 2, false),
+        bar(2, Edge::Left, 2, 2, false),
+        bar(3, Edge::Right, 1, 2, false),
+    ]);
+    let six = Layout::new(6).unwrap().bars();
+    assert_eq!(six[..2], [bar(0, Edge::Top, 1, 1, true), bar(1, Edge::Left, 1, 1, true)]);
+    assert_eq!(Layout::new(5).unwrap().bars()[0], bar(0, Edge::Top, 1, 1, true));
+    // Every bar covers exactly the cells where its variable is 1.
+    for n in 2..=6 {
+        let layout = Layout::new(n).unwrap();
+        let f = Function::new((0..n).map(|k| format!("x_{k}")).collect()).unwrap();
+        for b in layout.bars() {
+            for cell in layout.cells(&f) {
+                let (x, y) = layout.map_place(cell.place.map);
+                let at = match (b.maps, b.edge) {
+                    (true, Edge::Top | Edge::Bottom) => x,
+                    (true, _) => y,
+                    (false, Edge::Top | Edge::Bottom) => cell.place.col,
+                    (false, _) => cell.place.row,
+                };
+                let under = (b.start..b.start + b.len).contains(&at);
+                assert_eq!(under, f.input(cell.index, b.variable), "{n} variables, bar of {}", b.variable);
+            }
+        }
+    }
+}
+
+#[test]
+fn kv_cells_carry_their_row_its_inputs_and_the_value() {
+    let f = function(r"\sum m(3, 5, 6, 7) + d(0)", "A B C");
+    let cells = Layout::new(3).unwrap().cells(&f);
+    assert_eq!(cells.iter().map(|c| c.index).collect::<Vec<_>>(), [0, 2, 6, 4, 1, 3, 7, 5]);
+    assert_eq!((cells[5].code.as_str(), cells[5].value, cells[5].place), ("011", Value::One, Place { map: 0, row: 1, col: 1 }));
+    assert_eq!((cells[0].value, cells[1].value), (Value::DontCare, Value::Zero));
 }
