@@ -591,7 +591,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   removing inputs and outputs, renaming headers, **Fill the rest with 0**.
 - [x] Results panel: canonical and minimal forms with the choice between solutions, NAND and NOR
   with their cost, the steps, **Copy**.
-- [ ] The Logic section of `SettingsDialog.tsx`; texts under `mode.logic` and `logic.*` in every
+- [x] The Logic section of `SettingsDialog.tsx`; texts under `mode.logic` and `logic.*` in every
   file of `locales/`.
 
 ### Phase 11: KV diagram on the desktop

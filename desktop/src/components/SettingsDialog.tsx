@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, Mode, NumberFormat, QuadraticFormula, Settings, StarDelta, StepDetail, Themes, UnknownNames } from '../api';
+import type { AngleUnit, BinomialForm, ComplexForm, ConditionalIdentities, DenominatorForm, Elimination, FractionForm, Language, LogicNotation, LogicSymbols, Mode, NumberFormat, QuadraticFormula, Settings, StarDelta, StepDetail, Themes, UnknownNames } from '../api';
 import { api } from '../api';
 import { SYSTEM_THEME } from '../theme';
 import { LANGUAGES, LANGUAGE_NAMES, useT, type Translate } from '../i18n';
@@ -99,6 +99,18 @@ const COMPLEX_CHOICES: Choice<ComplexForm>[] = [
   { value: 'polar', label: 'r∠θ' },
 ];
 
+/** The Logic mode's gate symbols, named by their standards. */
+const SYMBOL_CHOICES: Choice<LogicSymbols>[] = [
+  { value: 'iec', label: 'IEC 60617' },
+  { value: 'ansi', label: 'ANSI' },
+];
+
+/** The Logic mode's notation, shown by example. */
+const NOTATION_CHOICES: Choice<LogicNotation>[] = [
+  { value: 'logic', label: 'A ∧ ¬B ∨ C' },
+  { value: 'technical', label: 'A · B̄ + C' },
+];
+
 /** Fix and Sci keep the digits they had, or start at 2. */
 const withStyle = (format: NumberFormat, style: FormatStyle): NumberFormat =>
   style === 'fix' || style === 'sci' ? { style, digits: 'digits' in format ? format.digits : 2 } : { style };
@@ -182,9 +194,9 @@ function Toggle(props: { checked: boolean; label: string; hint: string; onChange
   );
 }
 
-type Category = 'general' | 'numbers' | 'algebra' | 'steps' | 'input';
+type Category = 'general' | 'numbers' | 'algebra' | 'steps' | 'input' | 'logic';
 
-const CATEGORIES: Category[] = ['general', 'numbers', 'algebra', 'steps', 'input'];
+const CATEGORIES: Category[] = ['general', 'numbers', 'algebra', 'steps', 'input', 'logic'];
 
 /** The category the dialog was left on; only a convenience, so a blocked storage is fine. */
 const CATEGORY_KEY = 'quantus.settingsCategory';
@@ -513,7 +525,42 @@ export function SettingsDialog(props: {
     </section>
   );
 
-  const pages: Record<Category, ReactNode> = { general, numbers, algebra, steps, input };
+  const logic = (
+    <>
+      <section className="setting">
+        <h3>{t('settings.logicNotation')}</h3>
+        <Segmented choices={NOTATION_CHOICES} value={settings.logicNotation} onChange={(v) => set('logicNotation', v)} />
+        <p className="setting-hint">
+          {t('settings.logicNotation.hint')} {onlyIn('logic')}
+        </p>
+      </section>
+
+      <section className="setting">
+        <h3>{t('settings.logicSymbols')}</h3>
+        <Segmented choices={SYMBOL_CHOICES} value={settings.logicSymbols} onChange={(v) => set('logicSymbols', v)} />
+        <p className="setting-hint">
+          {t('settings.logicSymbols.hint')} {onlyIn('logic')}
+        </p>
+      </section>
+
+      <section className="setting">
+        <Toggle
+          checked={settings.logicTwoInput}
+          label={t('settings.logicTwoInput')}
+          hint={t('settings.logicTwoInput.hint')}
+          onChange={(v) => set('logicTwoInput', v)}
+        />
+        <Toggle
+          checked={settings.logicZeros}
+          label={t('settings.logicZeros')}
+          hint={t('settings.logicZeros.hint')}
+          onChange={(v) => set('logicZeros', v)}
+        />
+      </section>
+    </>
+  );
+
+  const pages: Record<Category, ReactNode> = { general, numbers, algebra, steps, input, logic };
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
