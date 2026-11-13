@@ -2984,6 +2984,85 @@ select option {
   box-shadow: inset 0 0 0 2px var(--point-zero);
 }
 
+/* Draw from…, Arrange, and the figures in the canvas's corner. */
+.logic-draw {
+  margin-top: 14px;
+  display: grid;
+  gap: 6px;
+}
+.logic-draw .palette-title {
+  margin-bottom: 0;
+}
+.logic-draw-output {
+  width: 100%;
+  padding: 3px 6px;
+  color: var(--text);
+  font-size: 12px;
+  background: var(--background);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+.logic-draw-forms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.logic-arrange {
+  justify-self: start;
+}
+.logic-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  max-width: 50%;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+.logic-figures {
+  display: grid;
+  gap: 3px;
+}
+.logic-path {
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: left;
+}
+.logic-path.active {
+  color: var(--point-saddle);
+}
+.logic-tpd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.logic-tpd input {
+  width: 70px;
+  padding: 1px 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--background);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+}
+/* The critical path: its gates in amber, its wires thicker, still in the colour of their value. */
+.part.critical .symbol {
+  stroke: var(--point-saddle);
+}
+.part .wire.critical {
+  stroke-width: 3.5;
+}
+.circuit-note .form-chip {
+  margin-top: 6px;
+}
+
 .logic-panel {
   display: grid;
   gap: 12px;

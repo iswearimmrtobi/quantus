@@ -44,6 +44,14 @@ interface Props {
   switchValue?(name: string): boolean | null;
   /** Flips the switch of an input. */
   onToggle?(name: string): void;
+  /** Shown in the canvas's top right corner: the gate count and the delay. */
+  corner?: ReactNode;
+  /** A note over the bottom of the canvas when there is no error. */
+  note?: ReactNode;
+  /** The ids along the critical path, input to lamp: they and the nets between them stand out. */
+  path?: string[];
+  /** Changed to show the whole drawing, as after it was drawn or arranged anew. */
+  fitKey?: number;
 }
 
 /**
@@ -51,11 +59,18 @@ interface Props {
  * gates on the grid of the schematic editors, joined by wires; a gate's number of inputs is set in
  * the inspector.
  */
-export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], warnings = [], values, switchValue, onToggle }: Props) {
+export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], warnings = [], values, switchValue, onToggle, corner, note, path = [], fitKey = 0 }: Props) {
   const { t } = useT();
   const canvas = useRef<SVGSVGElement>(null);
   const canvasView = useCanvasView(canvas);
-  const { view, setView, toGrid } = canvasView;
+  const { view, toGrid } = canvasView;
+  /** Shows the whole drawing; the start view without one. */
+  const fitAll = () => (parts.length ? canvasView.fit(boundsOf(parts.flatMap(obstacles))) : canvasView.setView(HOME));
+  // On opening, and whenever asked, as after a circuit was drawn.
+  useEffect(() => {
+    fitAll();
+    // Only then, not on every change of the drawing.
+  }, [fitKey]);
   const editing = useSchematicEditing({
     elements: parts,
     onChange,
@@ -78,6 +93,22 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
     return net === undefined ? null : (values?.get(net) ?? null);
   };
   const valueClass = (value: boolean | null) => (value === null ? undefined : value ? 'on' : 'off');
+  // The critical path: its parts, and the nets each of them but the lamp drives.
+  const onPath = useMemo(() => new Set(path), [path]);
+  const pathNets = useMemo(() => {
+    const driven = new Set<number>();
+    for (const id of path.slice(0, -1)) {
+      const output = parts.find((p) => p.id === id);
+      const pin = output && partPins(output).output;
+      const net = pin && nets.byPoint.get(pointKey(pin));
+      if (net !== undefined && net !== null) driven.add(net);
+    }
+    return driven;
+  }, [path, parts, nets]);
+  const wireClass = (a: Point) => {
+    const net = nets.byPoint.get(pointKey(a));
+    return [valueClass(valueAt(a)), net !== undefined && pathNets.has(net) ? 'critical' : undefined].filter(Boolean).join(' ') || undefined;
+  };
 
   // The names of switches and lamps, and the ids of the gates, laid out clear of the drawing.
   const { sizes, measure } = useLabelSizes();
@@ -114,7 +145,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
     if (event.key === 'Delete' || event.key === 'Backspace') remove(selection);
     else if (event.key === ' ' || event.key.toLowerCase() === 'r') rotateSelected();
     else if (event.key === 'Escape') setSelection([]);
-    else if (event.key === 'Home') setView(HOME);
+    else if (event.key === 'Home') fitAll();
     else return;
     event.preventDefault();
   };
@@ -123,6 +154,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
   const doubtful = useMemo(() => new Set(warnings.flatMap((e) => e.elements)), [warnings]);
   const mark = (id: string) => (faulty.has(id) ? 'error' : doubtful.has(id) ? 'warning' : null);
   const notes = errors.length ? errors : warnings;
+  const noteShown = notes.length > 0 || note;
 
   /** A switch's value, or the value a lamp shows; null when not known. */
   const simulated = (part: LogicPart): boolean | null => {
@@ -157,7 +189,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
           {t('logic.editor.hint')} <kbd>{t('key.space')}</kbd> {t('circuit.rotates')}, <kbd>{t('key.delete')}</kbd> {t('circuit.deletes')}.
         </p>
         <p className="palette-hint">
-          {t('circuit.pan')} <kbd>{t('key.home')}</kbd> {t('circuit.home')}.
+          {t('circuit.pan')} <kbd>{t('key.home')}</kbd> {t('logic.editor.home')}.
         </p>
       </div>
 
@@ -183,7 +215,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
             <GridBackground view={view} />
             <g transform={viewTransform(view)}>
               {parts.map((part) => {
-                const className = ['part', selection.includes(part.id) && 'selected', mark(part.id)].filter(Boolean).join(' ');
+                const className = ['part', selection.includes(part.id) && 'selected', mark(part.id), onPath.has(part.id) && 'critical'].filter(Boolean).join(' ');
                 if (part.kind === 'wire') {
                   const [a, b] = wireEnds(part);
                   return (
@@ -192,7 +224,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
                       a={a}
                       b={b}
                       className={className}
-                      lineClassName={valueClass(valueAt(a))}
+                      lineClassName={wireClass(a)}
                       joins
                       connected={connected}
                       onPointerDown={(event) => editing.startMove(event, part)}
@@ -256,11 +288,14 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
             </div>
           </div>
 
-          {notes.length > 0 && (
+          {corner && <div className="logic-corner">{corner}</div>}
+
+          {noteShown && (
             <div className={errors.length ? 'circuit-note error' : 'circuit-note'}>
-              {notes.map((note, k) => (
-                <div key={k}>{note.message}</div>
+              {notes.map((issue, k) => (
+                <div key={k}>{issue.message}</div>
               ))}
+              {!errors.length && note}
             </div>
           )}
         </div>

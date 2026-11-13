@@ -4,7 +4,7 @@ use quantus_core::logic::check::{term_of_rows, BlockFault, BlocksCheck, Countere
 use quantus_core::logic::circuit::{Element, GateType, Issue, Net, Netlist};
 use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::layout::{pins, CircuitLayout, DrawForm, Generated, Point};
+use quantus_core::logic::layout::{arrange, pins, CircuitLayout, DrawForm, Generated, Point};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::nand::{GateCost, GateForm, GateKind, Signal};
@@ -1630,8 +1630,12 @@ fn drawn_nets(netlist: &Netlist, layout: &CircuitLayout) -> Vec<(Net, usize)> {
 
 /// The drawn connectivity of a generated circuit is its netlist's, and its elements don't overlap.
 fn assert_drawn_as_netlist(circuit: &Generated) {
-    let (netlist, layout) = (circuit.netlist(), circuit.layout());
-    let nets = drawn_nets(&netlist, &layout);
+    assert_drawn(&circuit.netlist(), &circuit.layout());
+}
+
+/// The drawn connectivity of `layout` is that of `netlist`, and its elements don't overlap.
+fn assert_drawn(netlist: &Netlist, layout: &CircuitLayout) {
+    let nets = drawn_nets(netlist, layout);
     for (a, b) in nets.iter().flat_map(|a| nets.iter().map(move |b| (a, b))) {
         assert_eq!(a.0 == b.0, a.1 == b.1, "nets {} and {} drawn {}", a.0, b.0, if a.1 == b.1 { "joined" } else { "apart" });
     }
@@ -1683,6 +1687,52 @@ fn nets_that_skip_a_column_run_under_the_circuit() {
     let lowest = layout.elements.iter().map(|p| p.at.y).max().unwrap();
     assert!(layout.wires.iter().any(|w| w.from.y == w.to.y && w.from.y > lowest + 1));
     assert_drawn_as_netlist(&circuit);
+}
+
+/// A drawn circuit: two NOTs of A, both used, an AND, an OR, a lamp, a constant that drives
+/// nothing; the editor's own ids.
+fn hand_drawn() -> Netlist {
+    Netlist {
+        elements: vec![
+            Element::input("sw-a", "A", 1),
+            Element::input("sw-b", "B", 2),
+            Element::constant("one", true, 9),
+            Element::gate("n1", GateType::Not, &[1], 3),
+            Element::gate("n2", GateType::Not, &[1], 4),
+            Element::gate("x", GateType::And, &[3, 2], 5),
+            Element::gate("y", GateType::Or, &[4, 5], 6),
+            Element::output("lamp", "f", 6),
+        ],
+    }
+}
+
+#[test]
+fn arranging_a_drawn_circuit_keeps_its_gates_and_ids() {
+    let circuit = hand_drawn().check().unwrap();
+    let (netlist, layout) = arrange(&circuit);
+    let ids: Vec<&str> = netlist.elements.iter().map(|e| e.id.as_str()).collect();
+    // Both NOTs stay, though identical; the constant that drives nothing goes.
+    assert_eq!(ids, ["sw-a", "sw-b", "n1", "n2", "x", "y", "lamp"]);
+    assert_eq!(layout.elements.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(), ids);
+    let again = netlist.check().unwrap();
+    assert!(again.warnings.is_empty(), "{:?}", again.warnings);
+    assert_eq!(again.function(0, &names("A B")).unwrap().differing_rows(&circuit.function(0, &names("A B")).unwrap()), Vec::<usize>::new());
+    assert_drawn(&netlist, &layout);
+    // The inputs on the left, the lamp on the right.
+    let at = |id: &str| layout.elements.iter().find(|p| p.id == id).unwrap().at;
+    assert!(at("sw-a").x < at("x").x && at("x").x < at("y").x && at("y").x < at("lamp").x);
+}
+
+#[test]
+fn the_api_arranges_the_drawn_circuit() {
+    let scene = serde_json::json!({ "outputs": [], "circuit": serde_json::to_value(hand_drawn()).unwrap() });
+    let response = logic_api(scene, Some(serde_json::json!({ "kind": "arrange" })));
+    let circuit = &response["task"]["circuit"];
+    assert_eq!(circuit["netlist"]["elements"].as_array().unwrap().len(), 7);
+    assert_eq!(circuit["layout"]["elements"][0]["id"], "sw-a");
+    assert!(!circuit["layout"]["wires"].as_array().unwrap().is_empty());
+    let none = logic_api(serde_json::json!({ "outputs": [{ "source": { "kind": "expression", "latex": "A" } }] }), Some(serde_json::json!({ "kind": "arrange" })));
+    assert!(none["task"]["error"].is_string());
 }
 
 /// The generated circuit of each of `outputs` drawn from `form`: it passes the checks without

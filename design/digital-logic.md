@@ -369,8 +369,9 @@ A pattern is a pair of `u8` (value, mask); a function a pair of `[u64; 4]`. No n
 - `CircuitResponse { values[], delay, criticalPath[], counts, outOfDate[] }`: per net its value
   for the simulated input row (§10.3), the delay figures, and the rows where the circuit and an
   output's source differ.
-- `TaskResponse`: the result of a task: `draw` (a generated circuit with positions), `equivalent`,
-  `checkBlocks`, `checkForm`, each with its steps and an `alignBlock` for **Copy**.
+- `TaskResponse`: the result of a task: `draw` (a generated circuit with positions), `arrange`
+  (the drawn circuit laid out afresh, its gates and ids kept), `equivalent`, `checkBlocks`,
+  `checkForm`, each with its steps and an `alignBlock` for **Copy**.
 - Errors carry element ids or table rows (`ErrorResponse { message, elements[], rows[] }`).
 - Stateless; the Tauri command `logic` wraps it, reading the language, notation and step detail
   from the store like `geometry`. The page recomputes on every change; an answer to an older
@@ -612,7 +613,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] The netlist sent to the core; errors and warnings marking elements red.
 - [x] Simulation (§10.3): switches, nets coloured by value, lamps; the matching table row and KV
   cell highlighted, and clicking a row or cell sets the switches.
-- [ ] **Draw from…** and **Arrange**; the *out of date* marker with its rows; gate count, delay and
+- [x] **Draw from…** and **Arrange**; the *out of date* marker with its rows; gate count, delay and
   the critical path in the editor.
 
 ### Phase 13: export and files

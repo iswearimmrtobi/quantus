@@ -19,6 +19,7 @@ import {
   snap,
   type Placeable,
   type Point,
+  type Rect,
 } from '../schematic';
 
 /**
@@ -88,7 +89,17 @@ export function useCanvasView(canvas: RefObject<SVGSVGElement | null>) {
     return { x: snap(at.x), y: snap(at.y) };
   };
 
-  return { view, setView, toDrawing, toGrid };
+  /** Shows `box` of the drawing whole and centred, at most a little enlarged. */
+  const fit = (box: Rect, margin = 30) => {
+    const svg = canvas.current;
+    if (!svg || !Number.isFinite(box.w) || !Number.isFinite(box.h)) return;
+    const { width, height } = svg.getBoundingClientRect();
+    if (!width || !height) return;
+    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min((width - 2 * margin) / Math.max(box.w, 1), (height - 2 * margin) / Math.max(box.h, 1), 1.5)));
+    setView({ zoom, x: width / 2 - (box.x + box.w / 2) * zoom, y: height / 2 - (box.y + box.h / 2) * zoom });
+  };
+
+  return { view, setView, toDrawing, toGrid, fit };
 }
 
 /**

@@ -4,9 +4,8 @@ import { addOutput, logicAnswer, logicGrid, logicRequest, nameLatex, shownOutput
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { Katex } from './Katex';
-import { editorParts, withParts, type LogicPart } from '../logicCircuit';
 import { KvMap } from './KvMap';
-import { LogicEditor } from './LogicEditor';
+import { LogicCircuit } from './LogicCircuit';
 import { LogicLines } from './LogicLines';
 import { LogicResults } from './LogicResults';
 import { LogicTable } from './LogicTable';
@@ -29,10 +28,6 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
   const [tab, setTab] = useState<string | null>(null);
   /** The term whose block and formula stand out, in the KV diagram and the results. */
   const [hover, setHover] = useState<TermHover | null>(null);
-  const parts = editorParts(scene);
-  /** Whether the circuit editor is open; at first when there is a circuit. */
-  const [editorOpen, setEditorOpen] = useState(parts.length > 0);
-  const setParts = (next: LogicPart[]) => onSceneChange(withParts(scene, next, scene.outputs.map((_, i) => answer?.outputs[i]?.name)));
   /** The latest request; an answer to an older one is dropped. */
   const request = useRef(0);
 
@@ -64,14 +59,11 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
 
   // The circuit's errors name its parts and are shown in the editor; the others above.
   const general = answer?.errors.filter((error) => error.output === null && !error.elements.length) ?? [];
-  const circuitErrors = answer?.errors.filter((error) => error.elements.length > 0) ?? [];
-  const warnings = answer?.response.circuit?.warnings ?? [];
 
   // The simulation (§10.3): the switches set to a row of the table, every net's value from the core.
   const circuit = answer?.response.circuit ?? null;
   const inputs = answer?.response.inputs ?? [];
   const row = Math.min(scene.row ?? 0, Math.max(0, (1 << inputs.length) - 1));
-  const values = circuit ? new Map(circuit.values.map((v) => [v.net, v.value])) : null;
   const setRow = (next: number) => onSceneChange({ ...scene, row: next });
   const switchValue = (name: string) => {
     const k = inputs.indexOf(name);
@@ -93,25 +85,7 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
           <ErrorRow key={i} error={new ApiError(error.message)} />
         ))}
         <LogicLines scene={scene} answer={answer} onChange={onSceneChange} />
-        <section className="logic-circuit">
-          <button className="logic-section-toggle" aria-expanded={editorOpen} title={t('logic.editor.toggle')} onClick={() => setEditorOpen(!editorOpen)}>
-            {editorOpen ? '▾' : '▸'} {t('logic.editor.title')}
-          </button>
-          {editorOpen && (
-            <div className="logic-editor-frame">
-              <LogicEditor
-                parts={parts}
-                onChange={setParts}
-                symbols={settings.logicSymbols}
-                errors={circuitErrors}
-                warnings={warnings}
-                values={values}
-                switchValue={switchValue}
-                onToggle={toggle}
-              />
-            </div>
-          )}
-        </section>
+        <LogicCircuit settings={settings} scene={scene} answer={answer} onSceneChange={onSceneChange} switchValue={switchValue} onToggle={toggle} />
         {!answer && !failure && <p className="analysis-empty">{t('logic.empty')}</p>}
         {outputs.length > 1 && (
           <div className="form-row logic-tabs">

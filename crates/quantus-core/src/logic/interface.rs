@@ -22,7 +22,7 @@ use super::circuit::{Circuit, GateType, Issue, Netlist};
 use super::delay::{Delay, GateTimes};
 use super::expr::{variable_latex, Expr, Notation};
 use super::kmap::{kv_working, Bar, Edge, Layout, Open, Place};
-use super::layout::{CircuitLayout, DrawForm, Generated};
+use super::layout::{arrange, CircuitLayout, DrawForm, Generated};
 use super::minimise::{Form, Minimisation};
 use super::nand::{GateCost, GateForm, GateKind};
 use super::parse::{parse_parts, Body, Line};
@@ -126,6 +126,8 @@ pub enum LogicTask {
     CheckBlocks { output: String, form: Form, blocks: Vec<KvBlock> },
     /// The user's minimal form of `output`.
     CheckForm { output: String, latex: String },
+    /// The drawn circuit laid out afresh, its gates and ids kept (**Arrange**).
+    Arrange,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -928,6 +930,11 @@ fn task(read: &Read, task: &LogicTask, options: Options) -> Result<TaskResponse>
                 return Err(QuantusError::other(msg!("core.logic.interface.no_output")));
             }
             Ok(TaskResponse { circuit: Some(GeneratedResponse { netlist: generated.netlist(), layout: generated.layout() }), ..TaskResponse::default() })
+        }
+        LogicTask::Arrange => {
+            let circuit = read.circuit.as_ref().ok_or_else(|| QuantusError::other(msg!("core.logic.interface.no_circuit")))?;
+            let (netlist, layout) = arrange(circuit);
+            Ok(TaskResponse { circuit: Some(GeneratedResponse { netlist, layout }), ..TaskResponse::default() })
         }
         LogicTask::Equivalent { first, second } => {
             let ((a, a_name), (b, b_name)) = (operand(read, first)?, operand(read, second)?);

@@ -1,4 +1,4 @@
-import type { GateType, LogicElement, LogicOutput, LogicScene, Netlist } from './api';
+import type { DrawForm, GateType, LogicElement, LogicOutput, LogicScene, LogicTaskResult, Netlist } from './api';
 import type { TextKey } from './i18n';
 import { freshIdOf, GRID, inside, pointKey, rotate, wireEnds, type Placeable, type Point } from './schematic';
 
@@ -24,12 +24,22 @@ export interface LogicPart extends Placeable {
 /** What the scene keeps for the editor. */
 export interface LogicEditorData {
   parts: LogicPart[];
+  /**
+   * How the circuit was drawn, while it has not been edited since (§5.1): the form, the output
+   * (all when null), and what it was drawn from, so that it is drawn again when that changes.
+   */
+  generated?: { form: DrawForm; output: string | null; from: string } | null;
+}
+
+/** What the scene keeps for the editor, none if it has nothing. */
+export function editorData(scene: LogicScene): LogicEditorData {
+  const data = scene.editor as Partial<LogicEditorData> | null | undefined;
+  return { parts: Array.isArray(data?.parts) ? data.parts : [], generated: data?.generated ?? null };
 }
 
 /** The editor's parts kept in a scene, none if it has none. */
 export function editorParts(scene: LogicScene): LogicPart[] {
-  const data = scene.editor as Partial<LogicEditorData> | null | undefined;
-  return Array.isArray(data?.parts) ? data.parts : [];
+  return editorData(scene).parts;
 }
 
 /** What the palette offers: the switch, the lamp, a constant, each gate type and the wire. */
@@ -277,4 +287,55 @@ export function withParts(scene: LogicScene, parts: LogicPart[], names: (string 
     return name !== undefined && lampNames.has(name) ? [{ ...output, name, source: { kind: 'circuit' } }] : [output];
   });
   return { ...next, outputs: outputs.length ? outputs : [{ source: { kind: 'expression', latex: '' } }] };
+}
+
+// ---- Circuits from the core (§6.6): drawn from a form, or arranged.
+
+/** A circuit the core drew or arranged: its netlist on the grid. */
+export type Generated = NonNullable<LogicTaskResult['circuit']>;
+
+/**
+ * The parts of a circuit from the core, unturned at their places on the grid, with wires between
+ * the pins; the core's ids. `kept` are parts of the drawing before that the core left out (a
+ * constant that drives nothing), which stay where they were.
+ */
+export function fromGenerated(circuit: Generated, kept: LogicPart[] = []): LogicPart[] {
+  const at = new Map(circuit.layout.elements.map((p) => [p.id, p.at]));
+  const parts: LogicPart[] = [];
+  for (const element of circuit.netlist.elements) {
+    const place = at.get(element.id);
+    if (!place) continue;
+    const base = { id: element.id, x: place.x * GRID, y: place.y * GRID, rotation: 0 };
+    switch (element.kind) {
+      case 'input':
+      case 'output':
+        parts.push({ ...base, kind: element.kind, name: element.name });
+        break;
+      case 'constant':
+        parts.push({ ...base, kind: 'constant', value: element.value });
+        break;
+      case 'gate':
+        parts.push({ ...base, kind: 'gate', gate: element.gate, inputs: element.inputs?.length ?? 2 });
+        break;
+    }
+  }
+  const ids = new Set(parts.map((p) => p.id));
+  parts.push(...kept.filter((p) => p.kind !== 'wire' && !ids.has(p.id)));
+  circuit.layout.wires.forEach((wire, k) => {
+    parts.push({ id: `W${k + 1}`, kind: 'wire', x: wire.from.x * GRID, y: wire.from.y * GRID, x2: wire.to.x * GRID, y2: wire.to.y * GRID, rotation: 0 });
+  });
+  return parts;
+}
+
+/** What a generated circuit is drawn from: the outputs' sources and choices, the inputs and the 2-input setting. */
+export const drawnFrom = (scene: LogicScene, twoInput: boolean) => JSON.stringify([scene.inputs, scene.outputs, twoInput]);
+
+/**
+ * The scene with a circuit the core drew from `form` of the scene `from` ([`drawnFrom`]): the
+ * outputs keep their sources, since the circuit follows them until it is edited.
+ */
+export function withGenerated(scene: LogicScene, circuit: Generated, form: DrawForm, output: string | null, from: string): LogicScene {
+  const parts = fromGenerated(circuit);
+  const editor: LogicEditorData = { parts, generated: { form, output, from } };
+  return { ...scene, editor, circuit: toNetlist(parts) };
 }

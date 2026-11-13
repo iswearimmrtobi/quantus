@@ -29,7 +29,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
-use super::circuit::{Element, ElementKind, GateType, Net, Netlist};
+use super::circuit::{Circuit, Element, ElementKind, GateType, Net, Netlist};
 use super::minimise::{Form, Minimisation};
 use super::nand::{GateForm, GateKind, Signal};
 use super::text::msg;
@@ -218,6 +218,42 @@ impl Generated {
         elements.extend(self.outputs.iter().enumerate().map(|(o, (name, signal))| Element::output(&output_id(o), name, self.net(*signal))));
         Netlist { elements }
     }
+}
+
+/// A checked circuit laid out afresh (**Arrange**): the same gates, none shared, as the netlist
+/// and its layout under the circuit's own ids. A constant that drives nothing is left out, and of
+/// several constants of one value only the first: they all drive the same net then.
+pub fn arrange(circuit: &Circuit) -> (Netlist, CircuitLayout) {
+    let generated = Generated {
+        inputs: circuit.names(),
+        gates: circuit.gates.iter().map(|g| GeneratedGate { gate: g.gate, inputs: g.inputs.clone() }).collect(),
+        outputs: circuit.outputs.iter().map(|o| (o.name.clone(), o.driver)).collect(),
+    };
+    let mut ids: BTreeMap<String, String> = BTreeMap::new();
+    for (k, (id, _)) in circuit.inputs.iter().enumerate() {
+        ids.insert(input_id(k), id.clone());
+    }
+    for (c, b) in generated.constants().into_iter().enumerate() {
+        let driver = circuit.nets.iter().find(|(_, s)| **s == Signal::Const(b)).and_then(|(net, _)| circuit.drivers.get(net));
+        if let Some(id) = driver {
+            ids.insert(constant_id(c), id.clone());
+        }
+    }
+    for (g, gate) in circuit.gates.iter().enumerate() {
+        ids.insert(gate_id(g), gate.id.clone());
+    }
+    for (o, output) in circuit.outputs.iter().enumerate() {
+        ids.insert(output_id(o), output.id.clone());
+    }
+    let own = |id: &mut String| {
+        if let Some(own) = ids.get(id) {
+            *id = own.clone();
+        }
+    };
+    let (mut netlist, mut layout) = (generated.netlist(), generated.layout());
+    netlist.elements.iter_mut().for_each(|e| own(&mut e.id));
+    layout.elements.iter_mut().for_each(|p| own(&mut p.id));
+    (netlist, layout)
 }
 
 /// The ids of a generated circuit's elements, counted from 1.

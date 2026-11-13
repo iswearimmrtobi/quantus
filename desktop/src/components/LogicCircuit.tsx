@@ -1,0 +1,202 @@
+import { useEffect, useRef, useState } from 'react';
+import { api, type DrawForm, type LogicScene, type LogicTask, type Settings } from '../api';
+import { useT, type TextKey } from '../i18n';
+import { logicRequest, nameLatex, type LogicAnswer } from '../logic';
+import { drawnFrom, editorData, fromGenerated, toNetlist, withGenerated, withParts, type Generated, type LogicPart } from '../logicCircuit';
+import { asError } from './AnalysisView';
+import { Katex } from './Katex';
+import { LogicEditor } from './LogicEditor';
+
+interface Props {
+  settings: Settings;
+  scene: LogicScene;
+  answer: LogicAnswer | null;
+  onSceneChange(scene: LogicScene): void;
+  /** A switch's value in the simulated row; null when the core has no row for it. */
+  switchValue(name: string): boolean | null;
+  onToggle(name: string): void;
+}
+
+const FORMS: { form: DrawForm; label: TextKey }[] = [
+  { form: 'dnf', label: 'logic.draw.dnf' },
+  { form: 'knf', label: 'logic.draw.knf' },
+  { form: 'nand', label: 'logic.draw.nand' },
+  { form: 'nor', label: 'logic.draw.nor' },
+];
+
+/**
+ * The circuit panel of the Logic mode (design/digital-logic.md §10.1): the editor with **Draw
+ * from…** and **Arrange**, the gate count and delay in its corner, the critical path, and the
+ * note when the circuit is out of date. A circuit drawn from a form is drawn again when the
+ * function changes, until it is edited (§5.1).
+ */
+export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle }: Props) {
+  const { t } = useT();
+  const data = editorData(scene);
+  const parts = data.parts;
+  /** Whether the editor is open; at first when there is a circuit. */
+  const [open, setOpen] = useState(parts.length > 0);
+  /** The output the next drawing is for; all when null. */
+  const [drawOutput, setDrawOutput] = useState<string | null>(null);
+  const [taskError, setTaskError] = useState<string | null>(null);
+  const [showPath, setShowPath] = useState(true);
+  /** Counts the circuits drawn or arranged anew, each shown whole. */
+  const [fitKey, setFitKey] = useState(0);
+  /** The scene as it is now, for answers that arrive after it changed. */
+  const latest = useRef(scene);
+  latest.current = scene;
+  const twoInput = settings.logicTwoInput;
+
+  const circuit = answer?.response.circuit ?? null;
+  const errors = answer?.errors.filter((error) => error.elements.length > 0) ?? [];
+  const outputs = answer?.response.outputs.map((o) => o.name) ?? [];
+
+  // An edit makes the circuit hand-drawn: no longer drawn again from the forms.
+  const setParts = (next: LogicPart[]) => onSceneChange(withParts(scene, next, scene.outputs.map((_, i) => answer?.outputs[i]?.name)));
+
+  /** The circuit the core gives for `task` over `current`; null, with the error shown, when it gives none. */
+  const task = async (current: LogicScene, logicTask: LogicTask): Promise<Generated | null> => {
+    const sent = logicRequest(current);
+    if (!sent.request) return null;
+    try {
+      const response = await api.logic({ ...sent.request, task: logicTask });
+      const error = response.task?.error ?? (response.task?.circuit ? null : (response.errors[0]?.message ?? null));
+      setTaskError(error);
+      return response.task?.circuit ?? null;
+    } catch (error) {
+      setTaskError(asError(error).message);
+      return null;
+    }
+  };
+
+  const draw = async (form: DrawForm, output: string | null) => {
+    const from = latest.current;
+    const drawn = await task(from, { kind: 'draw', form, output });
+    if (!drawn) return;
+    // Drawn from the scene as it was asked; a change since makes it be drawn again.
+    onSceneChange(withGenerated(latest.current, drawn, form, output, drawnFrom(from, twoInput)));
+    setOpen(true);
+    setFitKey((k) => k + 1);
+  };
+
+  const arrange = async () => {
+    const arranged = await task(latest.current, { kind: 'arrange' });
+    if (!arranged) return;
+    const current = latest.current;
+    const next = fromGenerated(arranged, editorData(current).parts);
+    onSceneChange({ ...current, editor: { ...editorData(current), parts: next }, circuit: toNetlist(next) });
+    setFitKey((k) => k + 1);
+  };
+
+  // A drawn circuit, never edited, follows its function: drawn again once that changed.
+  const tried = useRef<string | null>(null);
+  const from = drawnFrom(scene, twoInput);
+  const generated = data.generated;
+  useEffect(() => {
+    if (!generated || generated.from === from || tried.current === from) return;
+    tried.current = from;
+    // `draw` reads the latest scene itself.
+    void draw(generated.form, generated.output);
+  }, [generated, from]);
+
+  // The critical path, input to lamp, with the names of switches and lamps.
+  const named = new Map(parts.filter((p) => p.name).map((p) => [p.id, p.name!]));
+  const path = circuit?.criticalPath ?? [];
+  const critical = circuit?.outputs.find((o) => o.name === circuit.critical);
+  const levels = Math.max(0, ...(circuit?.outputs.map((o) => o.levels) ?? []));
+  const outOfDate = !generated ? (circuit?.outOfDate.filter((o) => o.rows.length) ?? []) : [];
+  const generatedForm = generated && FORMS.find((f) => f.form === generated.form);
+  const setTime = (common: string) => onSceneChange({ ...scene, gateTimes: { ...scene.gateTimes, common } });
+
+  const toolbar = (
+    <div className="logic-draw">
+      <div className="palette-title">{t('logic.draw.title')}</div>
+      <select className="logic-draw-output" value={drawOutput ?? ''} title={t('logic.draw.output')} onChange={(event) => setDrawOutput(event.target.value || null)}>
+        <option value="">{t('logic.draw.all')}</option>
+        {outputs.map((name) => (
+          <option key={name} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <div className="logic-draw-forms">
+        {FORMS.map(({ form, label }) => (
+          <button key={form} className="form-chip" title={t('logic.draw.hint')} disabled={!outputs.length} onClick={() => void draw(form, drawOutput && outputs.includes(drawOutput) ? drawOutput : null)}>
+            {t(label)}
+          </button>
+        ))}
+      </div>
+      <button className="form-chip logic-arrange" title={t('logic.arrange.hint')} disabled={!circuit} onClick={() => void arrange()}>
+        {t('logic.arrange')}
+      </button>
+      {taskError && <p className="file-error">{taskError}</p>}
+    </div>
+  );
+
+  const corner = circuit && (
+    <div className="logic-figures">
+      <div>{t('logic.gates', { gates: circuit.gates, inputs: circuit.gateInputs, levels })}</div>
+      {critical && (
+        <div className="logic-delay">
+          {t('logic.delay')}{' '}
+          {critical.time ? <Katex latex={critical.time} /> : <Katex latex={`${critical.levels}\\,t_{pd}`} />}
+        </div>
+      )}
+      {path.length > 1 && (
+        <button className={showPath ? 'logic-path active' : 'logic-path'} title={t('logic.delay.path.hint')} aria-pressed={showPath} onClick={() => setShowPath(!showPath)}>
+          {path.map((id, k) => (
+            <span key={k}>
+              {k > 0 && ' → '}
+              {named.has(id) ? <Katex latex={nameLatex(named.get(id)!)} /> : id}
+            </span>
+          ))}
+        </button>
+      )}
+      <label className="logic-tpd" title={t('logic.delay.tpd.hint')}>
+        <Katex latex="t_{pd} =" />
+        <input type="text" spellCheck={false} autoComplete="off" placeholder="10ns" value={scene.gateTimes?.common ?? ''} onChange={(event) => setTime(event.target.value)} />
+      </label>
+    </div>
+  );
+
+  const note =
+    outOfDate.length > 0 ? (
+      <>
+        {outOfDate.map((o) => (
+          <div key={o.output}>{t('logic.outOfDate', { output: o.output, rows: o.rows.join(', ') })}</div>
+        ))}
+        <button className="form-chip" onClick={() => void draw('dnf', null)}>
+          {t('logic.outOfDate.draw')}
+        </button>
+      </>
+    ) : generatedForm ? (
+      t('logic.generated', { form: t(generatedForm.label) })
+    ) : null;
+
+  return (
+    <section className="logic-circuit">
+      <button className="logic-section-toggle" aria-expanded={open} title={t('logic.editor.toggle')} onClick={() => setOpen(!open)}>
+        {open ? '▾' : '▸'} {t('logic.editor.title')}
+      </button>
+      {open && (
+        <div className="logic-editor-frame">
+          <LogicEditor
+            parts={parts}
+            onChange={setParts}
+            symbols={settings.logicSymbols}
+            toolbar={toolbar}
+            errors={errors}
+            warnings={circuit?.warnings ?? []}
+            values={circuit ? new Map(circuit.values.map((v) => [v.net, v.value])) : null}
+            switchValue={switchValue}
+            onToggle={onToggle}
+            corner={corner}
+            note={note}
+            path={showPath ? path : []}
+            fitKey={fitKey}
+          />
+        </div>
+      )}
+    </section>
+  );
+}

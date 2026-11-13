@@ -502,7 +502,9 @@ export type LogicTask =
   | { kind: 'draw'; form: DrawForm; output?: string | null }
   | { kind: 'equivalent'; first: LogicOperand; second: LogicOperand }
   | { kind: 'checkBlocks'; output: string; form: 'dnf' | 'knf'; blocks: KvBlock[] }
-  | { kind: 'checkForm'; output: string; latex: string };
+  | { kind: 'checkForm'; output: string; latex: string }
+  /** The drawn circuit laid out afresh, its gates and ids kept. */
+  | { kind: 'arrange' };
 
 export interface LogicRequest {
   scene: LogicScene;
