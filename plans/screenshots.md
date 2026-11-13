@@ -45,9 +45,9 @@ Current state, for reference:
 
 ## Step 3 — A notice over the top bar
 
-- [ ] `App::notify(text)`: a notice drawn over the top bar, gone after two seconds (`tick`) or
-      with the next key.
-- [ ] Test: it shows, and goes.
+- [x] `App::notify(text, error)`: a notice drawn over the top bar, gone after two seconds
+      (`tick`) or with the next key.
+- [x] Test: it shows, and goes.
 
 ## Step 4 — SHIFT + 7 saves the screen
 

@@ -4,10 +4,10 @@ use embedded_graphics::image::Image;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
-use quantus_ui::app::App;
+use quantus_ui::app::{App, NOTICE_MS};
 use quantus_ui::backend::Stub;
 use quantus_ui::key::Key;
-use quantus_ui::render::{bmp, Frame, Renderer, HEIGHT, WIDTH};
+use quantus_ui::render::{bmp, Frame, Renderer, Shape, HEIGHT, WIDTH};
 use quantus_ui::wallpaper::Wallpaper;
 use tinybmp::Bmp;
 
@@ -102,4 +102,33 @@ fn the_rows_are_bottom_up_and_blue_green_red() {
     let wallpaper = Wallpaper::from_bmp(&bytes).expect("a wallpaper");
     assert_eq!(wallpaper.full.get(0), Rgb565::RED);
     assert_eq!(wallpaper.full.get((WIDTH * HEIGHT - 1) as usize), Rgb565::BLUE);
+}
+
+/// Whether the frame shows `text` somewhere.
+fn shows<B>(app: &App<B>, text: &str) -> bool {
+    Frame::new(app).0.iter().any(|shape| matches!(shape, Shape::Text(_, shown, ..) if shown == text))
+}
+
+#[test]
+fn a_notice_shows_over_the_bar_for_two_seconds() {
+    let mut app = App::new(Stub);
+    app.tick(10_000);
+    app.notify("Saved", false);
+    assert!(shows(&app, "Saved"));
+    // Its time starts at the next tick.
+    app.tick(10_100);
+    assert!(app.notice.is_some());
+    app.tick(10_100 + NOTICE_MS - 1);
+    assert!(shows(&app, "Saved"));
+    assert!(app.tick(10_100 + NOTICE_MS));
+    assert!(app.notice.is_none() && !shows(&app, "Saved"));
+}
+
+#[test]
+fn a_key_takes_the_notice_away_and_does_what_it_does() {
+    let mut app = App::new(Stub);
+    app.notify("No SD card", true);
+    press(&mut app, &[Key::Digit(4)]);
+    assert!(app.notice.is_none());
+    assert_eq!(app.editor.to_latex(), "4");
 }

@@ -114,6 +114,12 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
             right -= tag(shapes, right, &label, color) + 8;
         }
     }
+    // A notice covers the whole bar while it shows.
+    if let Some(notice) = &app.notice {
+        let color = if notice.error { colors::error() } else { colors::accent() };
+        shapes.push(Shape::Fill(full_width(0, BAR as u32), color));
+        shapes.push(Shape::Text(Point::new(MARGIN, baseline), notice.text.clone(), Scale::Small, colors::background()));
+    }
 }
 
 /// A label on a coloured tag in the top bar, ending at `right`; returns its width.

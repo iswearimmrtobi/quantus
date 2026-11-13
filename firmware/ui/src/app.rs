@@ -416,6 +416,20 @@ const SPIN_MS: u64 = 125;
 /// How often the WLAN connection is asked for.
 const WLAN_MS: u64 = 500;
 
+/// How long a [`Notice`] stays over the top bar.
+pub const NOTICE_MS: u64 = 2000;
+
+/// A short message over the top bar ("Saved …"), until [`NOTICE_MS`] have passed or a key is
+/// pressed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Notice {
+    pub text: String,
+    /// Whether something went wrong: drawn in the error colour.
+    pub error: bool,
+    /// The tick it was first shown at; set by the next tick.
+    shown_at: Option<u64>,
+}
+
 /// Older entries are dropped.
 const HISTORY: usize = 50;
 
@@ -525,6 +539,8 @@ pub struct App<B> {
     /// The apps with a tile of their own in the mode menu, after the modes (`tile: yes`), read
     /// when it opens; none in Prüfungsmodus.
     pub app_tiles: Vec<AppInfo>,
+    /// The message over the top bar, if any.
+    pub notice: Option<Notice>,
 }
 
 /// How many recent units the unit bar remembers.
@@ -667,6 +683,7 @@ impl<B: Backend> App<B> {
             handed: None,
             searched_apps: Vec::new(),
             app_tiles: Vec::new(),
+            notice: None,
         };
         let settings = app.settings;
         if let Ok(opened) = app.backend.session(SessionCommand::Current, &settings) {
@@ -856,10 +873,24 @@ impl<B: Backend> App<B> {
             changed = true;
         }
         changed |= self.refresh_units();
+        if let Some(notice) = &mut self.notice {
+            let shown_at = *notice.shown_at.get_or_insert(now_ms);
+            if now_ms.saturating_sub(shown_at) >= NOTICE_MS {
+                self.notice = None;
+                changed = true;
+            }
+        }
         changed
     }
 
+    /// Shows `text` over the top bar for [`NOTICE_MS`], in the error colour if `error`.
+    pub fn notify(&mut self, text: impl Into<String>, error: bool) {
+        self.notice = Some(Notice { text: text.into(), error, shown_at: None });
+    }
+
     pub fn key(&mut self, key: Key) {
+        // A key takes the notice away, as it does on a phone.
+        self.notice = None;
         self.press(key);
         self.app_exit();
         self.refresh_units();
