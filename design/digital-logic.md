@@ -555,7 +555,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 7: generated circuits
 
-- [ ] `layout.rs`: a form (minimal DNF, KNF, NAND, NOR) → gates and nets; identical gates of
+- [x] `layout.rs`: a form (minimal DNF, KNF, NAND, NOR) → gates and nets; identical gates of
   several outputs shared.
 - [ ] Positions on the editor's grid: input buses on the left, inverters by the buses, one column
   per level, two ordering sweeps by the mean row of the inputs, outputs on the right.

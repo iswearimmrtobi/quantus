@@ -3,6 +3,7 @@
 use quantus_core::logic::circuit::{Element, GateType, Issue, Netlist};
 use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
+use quantus_core::logic::layout::{DrawForm, Generated};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::nand::{GateCost, GateForm, GateKind, Signal};
@@ -1517,4 +1518,71 @@ fn the_circuit_and_delay_workings_speak_german() {
     let mut netlist = majority_netlist();
     netlist.elements[6].inputs[1] = None;
     assert_eq!(errors(&netlist)[0].message, "G4, Eingang 2 ist nicht verbunden.");
+}
+
+// Generated circuits (§6.6).
+
+/// The gate types of a netlist's gates, in order.
+fn gate_types(netlist: &Netlist) -> Vec<GateType> {
+    netlist
+        .elements
+        .iter()
+        .filter_map(|e| match e.kind {
+            quantus_core::logic::circuit::ElementKind::Gate { gate } => Some(gate),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn the_minimal_dnf_becomes_inverters_ands_and_an_or() {
+    let f = function(r"A \overline{C} + B", "A B C");
+    let mut circuit = Generated::new(names("A B C")).unwrap();
+    circuit.add("f", &f, DrawForm::Dnf, 0, true).unwrap();
+    let netlist = circuit.netlist();
+    // B goes straight into the OR; ¬C from a NOT.
+    assert_eq!(gate_types(&netlist), [GateType::Not, GateType::And, GateType::Or]);
+    let checked = netlist.check().unwrap();
+    assert_eq!(checked.expr(0).latex(Notation::Logic), r"B \lor A \land \lnot C");
+    // The KNF: (A ∨ B)(B ∨ ¬C).
+    let mut circuit = Generated::new(names("A B C")).unwrap();
+    circuit.add("f", &f, DrawForm::Knf, 0, true).unwrap();
+    assert_eq!(circuit.netlist().check().unwrap().expr(0).latex(Notation::Logic), r"(A \lor B) \land (B \lor \lnot C)");
+}
+
+#[test]
+fn identical_gates_of_several_outputs_are_built_once() {
+    let inputs = names("A B C");
+    let mut circuit = Generated::new(inputs.clone()).unwrap();
+    circuit.add("f", &function("AB + C", "A B C"), DrawForm::Dnf, 0, true).unwrap();
+    circuit.add("g", &function("AB + C'", "A B C"), DrawForm::Dnf, 0, true).unwrap();
+    // AB once; f's OR, g's NOT and OR.
+    assert_eq!(gate_types(&circuit.netlist()), [GateType::And, GateType::Or, GateType::Not, GateType::Or]);
+    // An output of a function over fewer inputs, by name; one not among them is an error.
+    circuit.add("h", &function("B", "B"), DrawForm::Nand, 0, true).unwrap();
+    assert_eq!(circuit.outputs[2].1, Signal::Input(1));
+    let err = circuit.add("k", &function("D", "D"), DrawForm::Dnf, 0, true).unwrap_err();
+    assert!(err.to_string().contains("D is not among the inputs of k"));
+}
+
+#[test]
+fn constants_and_wide_gates_in_a_generated_circuit() {
+    let mut circuit = Generated::new(names("A B")).unwrap();
+    circuit.add("one", &function("A + A'", "A B"), DrawForm::Nand, 0, true).unwrap();
+    circuit.add("zero", &function("A A'", "A B"), DrawForm::Dnf, 0, true).unwrap();
+    let netlist = circuit.netlist();
+    let checked = netlist.check().unwrap();
+    assert_eq!((checked.output_values(0), checked.gates.len()), (vec![true, false], 0));
+    // A parity of 4 has 8 products: one OR of 8; with 5 variables 16, two ORs of 8 and one of 2.
+    let parity = |n: usize| {
+        let inputs: Vec<String> = ["A", "B", "C", "D", "E"][..n].iter().map(|s| s.to_string()).collect();
+        let mut f = Function::new(inputs.clone()).unwrap();
+        for row in (0..1 << n).filter(|r: &usize| r.count_ones() % 2 == 1) {
+            f.set(row, Value::One);
+        }
+        let mut circuit = Generated::new(inputs).unwrap();
+        circuit.add("p", &f, DrawForm::Dnf, 0, true).unwrap();
+        circuit.gates.iter().filter(|g| g.gate == GateType::Or).map(|g| g.inputs.len()).collect::<Vec<_>>()
+    };
+    assert_eq!((parity(4), parity(5)), (vec![8], vec![8, 8, 2]));
 }

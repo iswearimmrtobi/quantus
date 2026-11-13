@@ -8,6 +8,7 @@ pub mod circuit;
 pub mod delay;
 pub mod expr;
 pub mod kmap;
+pub mod layout;
 pub mod minimise;
 pub mod nand;
 pub mod parse;
