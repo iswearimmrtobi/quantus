@@ -12,10 +12,12 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::expr::Expr;
+use super::expr::{variable_latex, Expr, Notation};
 use super::nand::Signal;
 use super::text::msg;
+use super::working::Working;
 use super::{Function, Value, MAX_INPUTS};
+use crate::settings::StepDetail::{Brief, Detailed, Standard};
 use crate::{QuantusError, Result};
 
 /// A net, numbered by the shell's connectivity.
@@ -305,6 +307,77 @@ impl Circuit {
             GateType::Nand => Expr::negation(Expr::And(operands)),
             GateType::Nor => Expr::negation(Expr::Or(operands)),
         }
+    }
+}
+
+/// The variable that names a gate in the working: `G_1` for the id `G1`, else the id.
+pub fn gate_variable(id: &str) -> String {
+    let digits = id.trim_start_matches(|c: char| c.is_ascii_alphabetic());
+    let letters = &id[..id.len() - digits.len()];
+    if !letters.is_empty() && !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) { format!("{letters}_{digits}") } else { id.to_string() }
+}
+
+impl Circuit {
+    /// `signal` with each gate by its name.
+    fn named(&self, signal: Signal) -> Expr {
+        self.signal_expr(signal, &|g| Expr::Var(gate_variable(&self.gates[g].id)))
+    }
+
+    /// `signal` with the gates `depth` steps from it written out, the gates beyond by name.
+    fn expanded(&self, signal: Signal, depth: usize) -> Expr {
+        match signal {
+            Signal::Gate(_) if depth == 0 => self.named(signal),
+            _ => self.signal_expr(signal, &|g| self.gate_expr(g, &|s| self.expanded(s, depth - 1))),
+        }
+    }
+
+    /// The gates output `output` reads through, in the order of the circuit.
+    pub fn gates_of(&self, output: usize) -> Vec<usize> {
+        let mut used = vec![false; self.gates.len()];
+        let mut open = vec![self.outputs[output].driver];
+        while let Some(signal) = open.pop() {
+            if let Signal::Gate(g) = signal {
+                if !used[g] {
+                    used[g] = true;
+                    open.extend(&self.gates[g].inputs);
+                }
+            }
+        }
+        (0..self.gates.len()).filter(|g| used[*g]).collect()
+    }
+
+    /// The working of output `output`'s expression (§8, *Circuit → expression*): the traced
+    /// expression at Brief; from Standard, the gates written out step by step from the output
+    /// back to the inputs; at Detailed, each gate's output as a named intermediate.
+    pub fn working(&self, output: usize, notation: Notation) -> Working {
+        let mut working = Working::default();
+        let out = &self.outputs[output];
+        let f = variable_latex(&out.name);
+        let traced = self.expr(output);
+        let gates = self.gates_of(output);
+        if !gates.is_empty() {
+            let rows: Vec<String> = gates.iter().map(|&g| format!("{} &= {}", variable_latex(&gate_variable(&self.gates[g].id)), self.gate_expr(g, &|s| self.named(s)).latex(notation))).collect();
+            working.add(Detailed, msg!("core.logic.step.circuit_gates"), format!("\\begin{{aligned}}{}\\end{{aligned}}", rows.join(" \\\\ ")));
+        }
+        // One step per gate from the output on the longest path.
+        let mut chain: Vec<String> = Vec::new();
+        let mut depth = 1;
+        loop {
+            let latex = self.expanded(out.driver, depth).latex(notation);
+            if chain.last() == Some(&latex) {
+                break;
+            }
+            chain.push(latex);
+            depth += 1;
+        }
+        let traced_text = msg!("core.logic.step.circuit_traced");
+        if chain.len() > 1 {
+            working.add_until(Brief, Standard, traced_text, format!("{f} = {}", traced.latex(notation)));
+            working.add(Standard, msg!("core.logic.step.circuit_steps"), format!("{f} = {}", chain.join(" = ")));
+        } else {
+            working.add(Brief, traced_text, format!("{f} = {}", traced.latex(notation)));
+        }
+        working
     }
 }
 

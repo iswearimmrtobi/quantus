@@ -1444,3 +1444,77 @@ fn a_circuit_is_out_of_date_where_its_table_differs_from_the_source() {
     assert_eq!(circuit.out_of_date("f", &function("AB + AC + BC + D", "A B C D")).unwrap(), Some(vec![1, 3, 5, 9]));
     assert_eq!(circuit.out_of_date("g", &source).unwrap(), None);
 }
+
+#[test]
+fn the_circuit_working_goes_from_the_traced_expression_gate_by_gate() {
+    let circuit = majority_netlist().check().unwrap();
+    let working = circuit.working(0, Notation::Technical);
+    assert_eq!(lines(&working, StepDetail::Brief), [(
+        "The expression of the circuit, traced from the output back to the inputs:".to_string(),
+        r"f = \overline{\overline{A \cdot B} \cdot \overline{A \cdot C} \cdot \overline{B \cdot C}}".to_string(),
+    )]);
+    assert_eq!(lines(&working, StepDetail::Standard), [(
+        "Gate by gate, from the output back to the inputs:".to_string(),
+        r"f = \overline{G_{1} \cdot G_{2} \cdot G_{3}} = \overline{\overline{A \cdot B} \cdot \overline{A \cdot C} \cdot \overline{B \cdot C}}".to_string(),
+    )]);
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed[0].0, "Each gate's output, over the inputs and the earlier gates:");
+    assert_eq!(detailed[0].1, r"\begin{aligned}G_{1} &= \overline{A \cdot B} \\ G_{2} &= \overline{A \cdot C} \\ G_{3} &= \overline{B \cdot C} \\ G_{4} &= \overline{G_{1} \cdot G_{2} \cdot G_{3}}\end{aligned}");
+    // An output on an input: the expression alone.
+    let netlist = Netlist { elements: vec![Element::input("A", "A", 1), Element::output("f", "f", 1)] };
+    let working = netlist.check().unwrap().working(0, Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Maximal), [("The expression of the circuit, traced from the output back to the inputs:".to_string(), "f = A".to_string())]);
+}
+
+#[test]
+fn the_steps_expand_one_gate_level_at_a_time_and_name_only_the_gates_used() {
+    let circuit = mixed_netlist().check().unwrap();
+    let working = circuit.working(1, Notation::Logic);
+    assert_eq!(lines(&working, StepDetail::Standard)[0].1, r"f = G_{1} \land G_{2} = \lnot A \land (B \oplus C)");
+    let g = circuit.working(0, Notation::Logic);
+    assert_eq!(lines(&g, StepDetail::Detailed)[0].1, r"\begin{aligned}G_{1} &= \lnot A\end{aligned}");
+}
+
+#[test]
+fn the_delay_working_gives_the_levels_the_path_and_each_gate() {
+    let circuit = majority_netlist().check().unwrap();
+    let delay = Delay::of(&circuit, &GateTimes::default()).unwrap();
+    let working = delay.working(&circuit, 0, 6).unwrap();
+    assert_eq!(lines(&working, StepDetail::Brief), [
+        ("The circuit has 4 gates with 9 gate inputs:".to_string(), r"4 \times \text{NAND}".to_string()),
+        ("The longest path to f goes through 2 gates; the delay:".to_string(), r"t_{f} = 2\,t_{pd}".to_string()),
+    ]);
+    assert_eq!(lines(&working, StepDetail::Standard)[2], ("The critical path, the one with the most delay:".to_string(), r"A \to G_{1} \to G_{4} \to f".to_string()));
+    let each = &lines(&working, StepDetail::Detailed)[3].1;
+    assert!(each.starts_with(r"\begin{aligned}G_{1} &\quad \text{NAND, level 1}"), "{each}");
+
+    let circuit = mixed_netlist().check().unwrap();
+    let times = GateTimes { common: Some(time(10, "ns")), per_type: vec![(GateType::Xor, time(18, "ns"))] };
+    let delay = Delay::of(&circuit, &times).unwrap();
+    let working = delay.working(&circuit, 1, 6).unwrap();
+    let detailed = lines(&working, StepDetail::Detailed);
+    assert_eq!(detailed[0].1, r"1 \times \text{AND},\ 1 \times \text{NOT},\ 1 \times \text{XOR}");
+    assert_eq!(detailed[1].1, r"t_{f} = 28\,\mathrm{ns}");
+    assert_eq!(detailed[2].1, r"B \to G_{2} \to G_{3} \to f");
+    assert_eq!(detailed[3].1, r"\begin{aligned}G_{1} &\quad \text{NOT, level 1} &\quad 10\,\mathrm{ns} \\ G_{2} &\quad \text{XOR, level 1} &\quad 18\,\mathrm{ns} \\ G_{3} &\quad \text{AND, level 2} &\quad 28\,\mathrm{ns}\end{aligned}");
+}
+
+#[test]
+fn the_circuit_and_delay_workings_speak_german() {
+    let _german = quantus_core::logic::text::Scope::new(quantus_core::settings::Language::De);
+    let circuit = majority_netlist().check().unwrap();
+    assert_eq!(texts_at(&circuit.working(0, Notation::Logic), StepDetail::Detailed), [
+        "Der Ausgang jedes Gatters, über den Eingängen und den früheren Gattern:",
+        "Gatter für Gatter, vom Ausgang zurück zu den Eingängen:",
+    ]);
+    let delay = Delay::of(&circuit, &GateTimes::default()).unwrap();
+    assert_eq!(texts_at(&delay.working(&circuit, 0, 6).unwrap(), StepDetail::Detailed), [
+        "Die Schaltung hat 4 Gatter mit 9 Gattereingängen:",
+        "Der längste Weg zu f führt durch 2 Gatter; die Laufzeit:",
+        "Der kritische Pfad, der mit der größten Laufzeit:",
+        "Die Stufe jedes Gatters auf dem Weg, die Zahl der Gatter bis einschließlich ihm:",
+    ]);
+    let mut netlist = majority_netlist();
+    netlist.elements[6].inputs[1] = None;
+    assert_eq!(errors(&netlist)[0].message, "G4, Eingang 2 ist nicht verbunden.");
+}

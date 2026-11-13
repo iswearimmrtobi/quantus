@@ -5,9 +5,13 @@
 //! $t_{pd}$, or, with a time per gate type, the longest path in time, in ns. The critical path
 //! is the path that gives the delay: from an input through the gates to the output.
 
-use super::circuit::{Circuit, GateType};
+use super::circuit::{gate_variable, Circuit, GateType};
+use super::expr::variable_latex;
 use super::nand::Signal;
 use super::text::msg;
+use super::working::Working;
+use crate::latex::serializer;
+use crate::settings::StepDetail::{Brief, Detailed, Standard};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
 use crate::units::find;
@@ -54,6 +58,8 @@ pub struct Delay {
     pub counts: Vec<(GateType, usize)>,
     pub gates: usize,
     pub gate_inputs: usize,
+    /// When the gates have times, the time in ns at which each gate's output settles.
+    pub arrivals: Option<Vec<Value>>,
 }
 
 impl Delay {
@@ -150,7 +156,8 @@ impl Delay {
         }
         counts.sort();
         let gate_inputs = circuit.gates.iter().map(|g| g.inputs.len()).sum();
-        Ok(Delay { gate_levels: levels, outputs, critical, counts, gates: circuit.gates.len(), gate_inputs })
+        let arrivals = gate_times.map(|_| arrivals);
+        Ok(Delay { gate_levels: levels, outputs, critical, counts, gates: circuit.gates.len(), gate_inputs, arrivals })
     }
 
     /// The most levels of any output.
@@ -162,4 +169,52 @@ impl Delay {
 /// Whether time `a` is later than `b`.
 fn later_than(a: &Value, b: &Value) -> Result<bool> {
     b.sub(a).is_negative()
+}
+
+impl Delay {
+    /// The working of the delay of output `output` (§8, *Delay*): the gates, the levels and the
+    /// delay at Brief; the critical path at Standard; the level of every gate on the way at
+    /// Detailed. Times are written with `precision` significant digits.
+    pub fn working(&self, circuit: &Circuit, output: usize, precision: usize) -> Result<Working> {
+        let mut working = Working::default();
+        let out = &self.outputs[output];
+        let f = variable_latex(&circuit.outputs[output].name);
+        let (gates, inputs) = (self.gates, self.gate_inputs);
+        if gates > 0 {
+            let counts: Vec<String> = self.counts.iter().map(|(gate, count)| format!("{count} \\times \\text{{{}}}", gate.name())).collect();
+            working.add(Brief, msg!("core.logic.step.delay_gates"), counts.join(",\\ "));
+        }
+        let (levels, target) = (out.levels, &circuit.outputs[output].name);
+        let delay = match &out.time {
+            Some(time) => serializer::quantity(&time.decimal(precision)?, &time.unit),
+            None => format!("{levels}\\,t_{{pd}}"),
+        };
+        working.add(Brief, msg!("core.logic.step.delay_levels"), format!("t_{{{f}}} = {delay}"));
+
+        // The path by name: inputs and outputs by their names, gates by theirs.
+        let name = |id: &String| {
+            let input = circuit.inputs.iter().find(|(i, _)| i == id).map(|(_, n)| n.clone());
+            let output = circuit.outputs.iter().find(|o| &o.id == id).map(|o| o.name.clone());
+            variable_latex(&input.or(output).unwrap_or_else(|| gate_variable(id)))
+        };
+        if levels > 0 {
+            let path: Vec<String> = out.path.iter().map(name).collect();
+            working.add(Standard, msg!("core.logic.step.delay_path"), path.join(" \\to "));
+            let used = circuit.gates_of(output);
+            let ns = find("ns").expect("ns is a unit");
+            let mut rows = Vec::new();
+            for g in used {
+                let gate = &circuit.gates[g];
+                let level = self.gate_levels[g];
+                let mut row = format!("{} &\\quad \\text{{{}, {}}}", variable_latex(&gate_variable(&gate.id)), gate.gate.name(), msg!("core.logic.step.nand_level"));
+                if let Some(arrival) = self.arrivals.as_ref().map(|a| &a[g]) {
+                    let time = PhysicalQuantity::new(arrival.clone(), ns.clone());
+                    row += &format!(" &\\quad {}", serializer::quantity(&time.decimal(precision)?, &time.unit));
+                }
+                rows.push(row);
+            }
+            working.add(Detailed, msg!("core.logic.step.delay_each"), format!("\\begin{{aligned}}{}\\end{{aligned}}", rows.join(" \\\\ ")));
+        }
+        Ok(working)
+    }
 }
