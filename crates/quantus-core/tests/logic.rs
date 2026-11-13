@@ -1,9 +1,9 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
-use quantus_core::logic::circuit::{Element, GateType, Issue, Netlist};
+use quantus_core::logic::circuit::{Element, GateType, Issue, Net, Netlist};
 use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::layout::{DrawForm, Generated};
+use quantus_core::logic::layout::{pins, CircuitLayout, DrawForm, Generated, Point};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::nand::{GateCost, GateForm, GateKind, Signal};
@@ -1585,4 +1585,101 @@ fn constants_and_wide_gates_in_a_generated_circuit() {
         circuit.gates.iter().filter(|g| g.gate == GateType::Or).map(|g| g.inputs.len()).collect::<Vec<_>>()
     };
     assert_eq!((parity(4), parity(5)), (vec![8], vec![8, 8, 2]));
+}
+
+/// The nets the editor sees in `layout`: pins on the same point, or a pin or a wire's end on
+/// the middle of a wire, are connected. Each pin of `netlist` (inputs, then output, per
+/// element) with the number of its connected part.
+fn drawn_nets(netlist: &Netlist, layout: &CircuitLayout) -> Vec<(Net, usize)> {
+    let mut points: Vec<Point> = layout.wires.iter().flat_map(|w| [w.from, w.to]).collect();
+    let mut element_pins: Vec<(Net, Point)> = Vec::new();
+    for (element, placed) in netlist.elements.iter().zip(&layout.elements) {
+        assert_eq!(element.id, placed.id);
+        let (inputs, output) = pins(element, placed.at);
+        assert_eq!(inputs.len(), element.inputs.len());
+        element_pins.extend(element.inputs.iter().zip(inputs).map(|(net, p)| (net.unwrap(), p)));
+        element_pins.extend(element.output.zip(output));
+    }
+    points.extend(element_pins.iter().map(|(_, p)| *p));
+    points.sort();
+    points.dedup();
+    let mut parent: Vec<usize> = (0..points.len()).collect();
+    fn find(parent: &mut [usize], i: usize) -> usize {
+        if parent[i] != i {
+            parent[i] = find(parent, parent[i]);
+        }
+        parent[i]
+    }
+    let index = |p: Point| points.binary_search(&p).unwrap();
+    for wire in &layout.wires {
+        assert!(wire.from.x == wire.to.x || wire.from.y == wire.to.y, "a wire across or down: {wire:?}");
+        assert_ne!(wire.from, wire.to, "a wire of no length");
+        let (lo, hi) = (wire.from.min(wire.to), wire.from.max(wire.to));
+        let a = index(wire.from);
+        for (i, p) in points.iter().enumerate() {
+            let on = if lo.x == hi.x { p.x == lo.x && (lo.y..=hi.y).contains(&p.y) } else { p.y == lo.y && (lo.x..=hi.x).contains(&p.x) };
+            if on {
+                let (ra, rb) = (find(&mut parent, a), find(&mut parent, i));
+                parent[ra] = rb;
+            }
+        }
+    }
+    element_pins.iter().map(|(net, p)| (*net, find(&mut parent, index(*p)))).collect()
+}
+
+/// The drawn connectivity of a generated circuit is its netlist's, and its elements don't overlap.
+fn assert_drawn_as_netlist(circuit: &Generated) {
+    let (netlist, layout) = (circuit.netlist(), circuit.layout());
+    let nets = drawn_nets(&netlist, &layout);
+    for (a, b) in nets.iter().flat_map(|a| nets.iter().map(move |b| (a, b))) {
+        assert_eq!(a.0 == b.0, a.1 == b.1, "nets {} and {} drawn {}", a.0, b.0, if a.1 == b.1 { "joined" } else { "apart" });
+    }
+    // No two elements on the same place, no gate's rows over another's in its column.
+    let mut places: Vec<Point> = layout.elements.iter().map(|p| p.at).collect();
+    places.sort();
+    places.dedup();
+    assert_eq!(places.len(), layout.elements.len());
+}
+
+#[test]
+fn a_generated_circuit_is_laid_out_from_the_inputs_on_the_left_to_the_outputs_on_the_right() {
+    let mut circuit = Generated::new(names("A B C")).unwrap();
+    circuit.add("f", &function(r"A \overline{C} + B", "A B C"), DrawForm::Dnf, 0, true).unwrap();
+    let layout = circuit.layout();
+    let at = |id: &str| layout.elements.iter().find(|p| p.id == id).unwrap().at;
+    // The inputs one under the other on the left, the NOT of C by C's bus, under the inputs.
+    assert_eq!((at("I1"), at("I2"), at("I3")), (Point::new(-1, 0), Point::new(-1, 2), Point::new(-1, 4)));
+    let not = at("G1");
+    assert!(not.y > 4 && not.x < at("G2").x);
+    // The AND in column 1, the OR in column 2, the output right of it.
+    assert!(at("G2").x < at("G3").x && at("G3").x < at("O1").x);
+    assert_drawn_as_netlist(&circuit);
+}
+
+#[test]
+fn a_pin_lies_in_the_row_of_the_gate_that_drives_it_where_it_can() {
+    // The majority as NAND–NAND without the 2-input split: G4 over three NANDs in a column.
+    let mut circuit = Generated::new(names("A B C")).unwrap();
+    circuit.add("f", &function("AB + AC + BC", "A B C"), DrawForm::Nand, 0, false).unwrap();
+    let layout = circuit.layout();
+    let row = |id: &str| layout.elements.iter().find(|p| p.id == id).unwrap().at.y;
+    let out = circuit.gates.len();
+    // The output in the row of the last gate; its middle input in the row of the middle NAND.
+    assert_eq!(row("O1"), row(&format!("G{out}")));
+    let firsts: Vec<i32> = (1..out).map(|g| row(&format!("G{g}"))).collect();
+    assert!(firsts.contains(&row(&format!("G{out}"))));
+    assert_drawn_as_netlist(&circuit);
+}
+
+#[test]
+fn nets_that_skip_a_column_run_under_the_circuit() {
+    // A + ¬B·C·D with 2-input NANDs: A goes into the last NAND, several columns on.
+    let mut circuit = Generated::new(names("A B C D")).unwrap();
+    circuit.add("f", &function(r"A + \overline{B} C D", "A B C D"), DrawForm::Nand, 0, true).unwrap();
+    circuit.add("g", &function("A", "A B C D"), DrawForm::Dnf, 0, true).unwrap();
+    circuit.add("h", &function("A + A'", "A B C D"), DrawForm::Dnf, 0, true).unwrap();
+    let layout = circuit.layout();
+    let lowest = layout.elements.iter().map(|p| p.at.y).max().unwrap();
+    assert!(layout.wires.iter().any(|w| w.from.y == w.to.y && w.from.y > lowest + 1));
+    assert_drawn_as_netlist(&circuit);
 }

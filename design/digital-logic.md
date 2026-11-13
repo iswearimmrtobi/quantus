@@ -557,7 +557,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] `layout.rs`: a form (minimal DNF, KNF, NAND, NOR) → gates and nets; identical gates of
   several outputs shared.
-- [ ] Positions on the editor's grid: input buses on the left, inverters by the buses, one column
+- [x] Positions on the editor's grid: input buses on the left, inverters by the buses, one column
   per level, two ordering sweeps by the mean row of the inputs, outputs on the right.
 - [ ] Tests: the full adder shares its common gates; every generated circuit passes the checks of
   Phase 6 and equals its function.
