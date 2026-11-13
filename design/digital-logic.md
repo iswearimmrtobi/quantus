@@ -482,7 +482,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `logic/mod.rs` (`pub mod logic` in `lib.rs`): `Function` with the ones and don't-care
   bitsets (`[u64; 4]`) and the variable names; `Pattern` (value, mask as `u8`); `text.rs` with the
   first `msg!` texts. Test file `tests/logic.rs` created.
-- [ ] `expr.rs`: `Expr` (`Var`, `Const`, `Not`, n-ary `And`, `Or`, `Xor`, `Xnor`, binary `Nand`,
+- [x] `expr.rs`: `Expr` (`Var`, `Const`, `Not`, n-ary `And`, `Or`, `Xor`, `Xnor`, binary `Nand`,
   `Nor`), evaluation of one row, LaTeX in both notations (§9) with the overline over longer
   negations and the fewest brackets the precedence of §5.2 allows.
 - [ ] `parse.rs`, expressions: every operator spelling of §5.2, juxtaposition, postfix `'`,

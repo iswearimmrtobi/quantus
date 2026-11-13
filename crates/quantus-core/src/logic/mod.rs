@@ -4,6 +4,7 @@
 //! don't cares; every other row is 0. Row `i` gives the first input the most significant bit of
 //! `i`, so the rows are in the binary order of the truth table.
 
+pub mod expr;
 pub mod text;
 
 use crate::{QuantusError, Result};
