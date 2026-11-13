@@ -1,7 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::minimise::{Chart, QuineMcCluskey, Reduction};
+use quantus_core::logic::minimise::{Chart, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, Canonical};
 use quantus_core::logic::{rows_of, Function, Pattern, Value};
@@ -365,3 +365,52 @@ fn the_chart_is_reduced_by_dominance() {
     assert!(chart.columns_left.iter().all(|c| !chart.rows_over(*c).is_empty()));
 }
 
+
+fn minimal(latex: &str, inputs: &str) -> (Minimisation, Vec<String>) {
+    let f = function(latex, inputs);
+    (Minimisation::of(&f).unwrap(), f.names().to_vec())
+}
+
+fn forms(m: &Minimisation, names: &[String], notation: Notation) -> Vec<String> {
+    (0..m.covers.len()).map(|i| m.expr(i, names).latex(notation)).collect()
+}
+
+#[test]
+fn petrick_lists_every_minimal_cover_of_a_cyclic_chart() {
+    let (m, names) = minimal(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    let petrick = m.petrick.as_ref().unwrap();
+    assert_eq!(petrick.sums.len(), 6);
+    // Absorption leaves the irredundant covers only: two of three terms, three of four.
+    assert!(petrick.products().iter().all(|p| p.len() == 3 || p.len() == 4));
+    assert_eq!(m.cost(), (3, 6));
+    assert_eq!(
+        forms(&m, &names, Notation::Technical),
+        [r"\overline{A} \cdot \overline{B} + B \cdot \overline{C} + A \cdot C", r"\overline{A} \cdot \overline{C} + \overline{B} \cdot C + A \cdot B"]
+    );
+}
+
+#[test]
+fn a_chart_reduced_to_nothing_needs_no_petrick() {
+    let (m, names) = minimal("AB + AC + BC", "A B C");
+    assert!(m.petrick.is_none());
+    assert_eq!(forms(&m, &names, Notation::Logic), [r"B \land C \lor A \land C \lor A \land B"]);
+    // Petrick picks 01-1 over 0-01 and 011- together.
+    let (m, names) = minimal(r"\sum m(0, 1, 2, 5, 6, 7, 8, 9, 10, 14)", "A B C D");
+    assert_eq!(m.petrick.as_ref().unwrap().products(), [vec![4], vec![2, 5]]);
+    assert_eq!(forms(&m, &names, Notation::Technical), [r"\overline{B} \cdot \overline{C} + C \cdot \overline{D} + \overline{A} \cdot B \cdot D"]);
+    assert_eq!(m.cost(), (3, 7));
+}
+
+#[test]
+fn petrick_drops_products_dearer_than_a_greedy_cover_and_else_gives_up() {
+    let f = Function::from_bits(names("A B C D E F"), [765355759196986280, 0, 0, 0], [4692795414456369173, 0, 0, 0]).unwrap();
+    let m = Minimisation::of(&f).unwrap();
+    let bound = m.petrick.as_ref().unwrap().bound.unwrap();
+    for cover in &m.covers {
+        assert!(rows_of(f.ones()).all(|row| cover.iter().any(|t| t.covers(row))));
+        let rest: Vec<Pattern> = cover.iter().copied().filter(|t| !m.chart.taken.iter().any(|r| m.chart.primes[*r] == *t)).collect();
+        assert!(quantus_core::logic::minimise::cost(&rest, 6) <= bound);
+    }
+    let f = Function::from_bits(names("A B C D E F G"), [4970467940897231760, 14106837520289901734, 0, 0], [1153282333399318601, 2898629310714024473, 0, 0]).unwrap();
+    assert_eq!(Minimisation::of(&f).unwrap_err().to_string(), "Too many solutions to compare.");
+}

@@ -2,7 +2,9 @@
 //! Petrick's method; all minimal covers, fewest terms first, then fewest literals.
 
 use super::expr::Expr;
-use super::{rows_of, Bits, Pattern};
+use super::text::msg;
+use super::{rows_of, Bits, Function, Pattern};
+use crate::{QuantusError, Result};
 
 /// A term of a Quine–McCluskey table: its pattern, the rows it covers (ones and don't cares) and
 /// whether it combined with another (✓); a term that never combined is a prime implicant.
@@ -265,5 +267,168 @@ impl Chart {
             self.drop_empty_rows();
         }
         changed
+    }
+}
+
+/// The most products Petrick's method keeps after a multiplication before it gives up.
+pub const PETRICK_LIMIT: usize = 5000;
+
+/// Petrick's method over what the chart left: the product of one sum per column, the rows over
+/// it, multiplied out with absorption, the sums with the fewest rows first.
+///
+/// When a step holds more than [`PETRICK_LIMIT`] products, those that already cost more than a
+/// cover found greedily are dropped: more rows only cost more, so none of them leads to a
+/// minimal cover. Only when that is not enough does the method give up.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Petrick {
+    /// Per column left, the rows over it, in the order multiplied.
+    pub sums: Vec<Vec<usize>>,
+    /// The products after each multiplication, each a sorted list of rows.
+    pub steps: Vec<Vec<Vec<usize>>>,
+    /// The cost of the greedy cover when products had to be dropped against it.
+    pub bound: Option<(usize, usize)>,
+}
+
+impl Petrick {
+    /// Multiplies out the chart's rest; an error when a step holds more than [`PETRICK_LIMIT`]
+    /// products that might be minimal.
+    pub fn of(chart: &Chart) -> Result<Petrick> {
+        let mut sums: Vec<Vec<usize>> = chart.columns_left.iter().map(|c| chart.rows_over(*c)).collect();
+        sums.sort_by_key(Vec::len);
+        let literals = |product: &[usize]| product.iter().map(|r| chart.primes[*r].literals(chart.arity)).sum::<usize>();
+        let mut products: Vec<Vec<usize>> = vec![Vec::new()];
+        let mut steps = Vec::new();
+        let mut bound = None;
+        for sum in &sums {
+            let mut next: Vec<Vec<usize>> = Vec::new();
+            for product in &products {
+                if product.iter().any(|r| sum.contains(r)) {
+                    // (X)(X + Y) = X.
+                    next.push(product.clone());
+                    continue;
+                }
+                for row in sum {
+                    let mut grown = product.clone();
+                    let at = grown.partition_point(|r| r < row);
+                    grown.insert(at, *row);
+                    next.push(grown);
+                }
+            }
+            if next.len() > PETRICK_LIMIT {
+                let limit = *bound.get_or_insert_with(|| greedy(chart));
+                next.retain(|p| (p.len(), literals(p)) <= limit);
+            }
+            products = absorb(next);
+            if products.len() > PETRICK_LIMIT {
+                return Err(QuantusError::other(msg!("core.logic.too_many_solutions")));
+            }
+            steps.push(products.clone());
+        }
+        Ok(Petrick { sums, steps, bound })
+    }
+
+    /// The products of the last step: every irredundant way to cover what was left (with
+    /// [`Petrick::bound`], every one that might be minimal).
+    pub fn products(&self) -> &[Vec<usize>] {
+        self.steps.last().map_or(&[], |s| &s[..])
+    }
+}
+
+/// The cost of a cover of the chart's rest, each time the row over the most columns still open,
+/// then with the fewest literals.
+fn greedy(chart: &Chart) -> (usize, usize) {
+    let mut open = chart.columns_left.clone();
+    let (mut terms, mut literals) = (0, 0);
+    while !open.is_empty() {
+        let row = chart.rows_left.iter().copied().max_by_key(|r| {
+            let prime = chart.primes[*r];
+            (open.iter().filter(|c| prime.covers(**c)).count(), std::cmp::Reverse(prime.literals(chart.arity)))
+        });
+        let prime = chart.primes[row.expect("every column has a row")];
+        open.retain(|c| !prime.covers(*c));
+        terms += 1;
+        literals += prime.literals(chart.arity);
+    }
+    (terms, literals)
+}
+
+/// The products without those that contain another ($X + XY = X$) and without repeats, the
+/// shortest first.
+fn absorb(mut products: Vec<Vec<usize>>) -> Vec<Vec<usize>> {
+    products.sort_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)));
+    products.dedup();
+    let mut kept: Vec<Vec<usize>> = Vec::new();
+    for product in products {
+        if !kept.iter().any(|k| subset(k, &product)) {
+            kept.push(product);
+        }
+    }
+    kept
+}
+
+/// Whether the sorted list `a` is part of the sorted list `b`.
+fn subset(a: &[usize], b: &[usize]) -> bool {
+    let mut rest = b.iter();
+    a.iter().all(|x| rest.any(|y| y == x))
+}
+
+/// The cost of a cover: the number of terms, then the number of literals.
+pub fn cost(terms: &[Pattern], arity: usize) -> (usize, usize) {
+    (terms.len(), terms.iter().map(|t| t.literals(arity)).sum())
+}
+
+/// The whole minimisation of a function: the rounds, the chart, Petrick and every minimal cover.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Minimisation {
+    pub arity: usize,
+    pub qm: QuineMcCluskey,
+    pub chart: Chart,
+    /// `None` when the chart left nothing.
+    pub petrick: Option<Petrick>,
+    /// Every minimal cover, its terms in the order of their first row, the covers in the order
+    /// of their terms.
+    pub covers: Vec<Vec<Pattern>>,
+}
+
+impl Minimisation {
+    /// Minimises the 1s of `function` with its don't cares.
+    pub fn of(function: &Function) -> Result<Minimisation> {
+        Minimisation::of_rows(function.arity(), function.ones(), function.dont_cares())
+    }
+
+    fn of_rows(arity: usize, ones: &Bits, dont_cares: &Bits) -> Result<Minimisation> {
+        let qm = QuineMcCluskey::of(arity, ones, dont_cares);
+        let chart = Chart::of(arity, &qm.primes, ones);
+        let petrick = (!chart.columns_left.is_empty()).then(|| Petrick::of(&chart)).transpose()?;
+        let rests: Vec<Vec<usize>> = petrick.as_ref().map_or_else(|| vec![Vec::new()], |p| p.products().to_vec());
+        let mut covers: Vec<Vec<usize>> = rests
+            .into_iter()
+            .map(|rest| {
+                let mut rows: Vec<usize> = chart.taken.iter().copied().chain(rest).collect();
+                rows.sort();
+                rows
+            })
+            .collect();
+        let cost_of = |rows: &Vec<usize>| cost(&rows.iter().map(|r| chart.primes[*r]).collect::<Vec<_>>(), arity);
+        let best = covers.iter().map(cost_of).min().unwrap_or((0, 0));
+        covers.retain(|rows| cost_of(rows) == best);
+        covers.sort();
+        let covers = covers.into_iter().map(|rows| rows.into_iter().map(|r| chart.primes[r]).collect()).collect();
+        Ok(Minimisation { arity, qm, chart, petrick, covers })
+    }
+
+    /// The cost of the minimal covers.
+    pub fn cost(&self) -> (usize, usize) {
+        cost(&self.covers[0], self.arity)
+    }
+
+    /// Cover `index` as a sum of products over `names`; no term is the constant 0.
+    pub fn expr(&self, index: usize, names: &[String]) -> Expr {
+        let mut terms: Vec<Expr> = self.covers[index].iter().map(|t| t.product(names)).collect();
+        match terms.len() {
+            0 => Expr::Const(false),
+            1 => terms.remove(0),
+            _ => Expr::Or(terms),
+        }
     }
 }

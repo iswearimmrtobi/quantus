@@ -1338,6 +1338,7 @@
     "core.logic.not_binary": "{number} ist kein Wahrheitswert: nur 0 und 1 sind es.",
     "core.logic.not_declared": "{name} gehört nicht zu den Eingängen von {output}.",
     "core.logic.output_as_input": "{name} ist der Ausgang und kann nicht zugleich Eingang sein.",
+    "core.logic.too_many_solutions": "Zu viele Lösungen zum Vergleichen.",
     "core.logic.too_many_variables": "Eine Funktion hat höchstens 8 Variablen, nicht {count}.",
     "core.logic.type_expression": "Gib einen Ausdruck ein.",
     "core.logic.unexpected": "Unerwartetes „{token}“.",

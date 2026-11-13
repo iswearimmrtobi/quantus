@@ -256,8 +256,11 @@ minimal covers. Cost: first the number of terms, then the number of literals.
 **All minimal solutions** are listed; the first (in the order of their terms' first minterms) is
 chosen, and the user can pick another, which then drives the KV blocks, the NAND form and the
 drawn circuit. A limit guards Petrick: with more than 5 000 products in an intermediate step the
-mode stops with *Too many solutions to compare*, which a function of 8 inputs rarely reaches; it
-never returns a cover that might not be minimal.
+mode stops with *Too many solutions to compare*; it never returns a cover that might not be
+minimal. The sums are multiplied with the fewest rows first; when a step passes the limit, the
+products that already cost more than a greedily found cover are dropped first (more terms only
+cost more), and only if that is not enough does the mode stop. Structured functions stay far
+below the limit; random tables of 7 or 8 inputs often reach it.
 
 **Minimal KNF**: the same over the 0s and the don't cares, the terms negated by De Morgan into
 sums: $\bar f = \bar{A}\bar{B} \lor \dots \Rightarrow f = (A \lor B) \land \dots$.
@@ -500,7 +503,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] `minimise.rs`: Quine–McCluskey over the 1s and don't cares, the prime implicants as
   patterns and products; kept per round for the working.
 - [x] The prime implicant chart: essential prime implicants, row and column dominance.
-- [ ] Petrick with absorption, cost (terms, then literals), all minimal covers in the order of
+- [x] Petrick with absorption, cost (terms, then literals), all minimal covers in the order of
   their terms' first minterms; the limit of 5 000 products with *Too many solutions to compare*.
 - [ ] Minimal KNF over the 0s by De Morgan.
 - [ ] Tests: the reference functions of §11 (majority, XOR of 3, full adder, segment *a* with

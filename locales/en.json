@@ -1338,6 +1338,7 @@
     "core.logic.not_binary": "{number} is not a logic value: only 0 and 1 are.",
     "core.logic.not_declared": "{name} is not among the inputs of {output}.",
     "core.logic.output_as_input": "{name} is the output, so it cannot be an input too.",
+    "core.logic.too_many_solutions": "Too many solutions to compare.",
     "core.logic.too_many_variables": "A function has at most 8 variables, not {count}.",
     "core.logic.type_expression": "Type an expression.",
     "core.logic.unexpected": "Unexpected '{token}'.",
