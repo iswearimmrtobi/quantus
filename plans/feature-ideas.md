@@ -341,6 +341,7 @@ response, Bode plot. Symbolic in parameters: "for which K is this stable?".
 Draw gates; get the truth table, the minimised function (Karnaugh map, Quine-McCluskey), a NAND-only
 rewrite and the propagation delay. The digital counterpart of the electronics mode.
 - Engine: Base-N and Verify already cover logic operators and relations.
+- Spec: [design/digital-logic.md](../design/digital-logic.md).
 
 ### 17. Markov chains and graphs
 
