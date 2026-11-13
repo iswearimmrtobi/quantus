@@ -589,7 +589,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] Function lines (MathLive, one per output) with errors in place.
 - [x] `LogicTable.tsx`: the grid of §5.4, cycling cells, the keys `0`, `1`, `-`, adding and
   removing inputs and outputs, renaming headers, **Fill the rest with 0**.
-- [ ] Results panel: canonical and minimal forms with the choice between solutions, NAND and NOR
+- [x] Results panel: canonical and minimal forms with the choice between solutions, NAND and NOR
   with their cost, the steps, **Copy**.
 - [ ] The Logic section of `SettingsDialog.tsx`; texts under `mode.logic` and `logic.*` in every
   file of `locales/`.

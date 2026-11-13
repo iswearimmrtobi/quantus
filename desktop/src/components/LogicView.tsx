@@ -4,6 +4,7 @@ import { addOutput, logicAnswer, logicGrid, logicRequest, type LogicAnswer } fro
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { LogicLines } from './LogicLines';
+import { LogicResults } from './LogicResults';
 import { LogicTable } from './LogicTable';
 
 interface Props {
@@ -67,6 +68,7 @@ export function LogicView({ settings, scene, onSceneChange }: Props) {
             + {t('logic.table.new')}
           </button>
         )}
+        {answer && <LogicResults scene={scene} answer={answer} hideSteps={stepDetail === 'none'} onChange={onSceneChange} />}
       </div>
     </main>
   );
