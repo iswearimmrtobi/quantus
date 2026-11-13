@@ -506,7 +506,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 - [x] Petrick with absorption, cost (terms, then literals), all minimal covers in the order of
   their terms' first minterms; the limit of 5 000 products with *Too many solutions to compare*.
 - [x] Minimal KNF over the 0s by De Morgan.
-- [ ] Tests: the reference functions of §11 (majority, XOR of 3, full adder, segment *a* with
+- [x] Tests: the reference functions of §11 (majority, XOR of 3, full adder, segment *a* with
   don't cares, the cyclic chart $\sum m(0,1,2,5,6,7)$ with both solutions, constants), and the
   brute force over all 256 functions of 3 variables and a sample of 4.
 

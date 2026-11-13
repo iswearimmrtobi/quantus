@@ -441,14 +441,15 @@ impl Minimisation {
     /// product of sums for the KNF, no term the constant 1.
     pub fn expr(&self, index: usize, names: &[String]) -> Expr {
         let terms = &self.covers[index];
-        let (mut operands, join, empty): (Vec<Expr>, fn(Vec<Expr>) -> Expr, bool) = match self.form {
-            Form::Dnf => (terms.iter().map(|t| t.product(names)).collect(), Expr::Or, false),
-            Form::Knf => (terms.iter().map(|t| t.sum(names)).collect(), Expr::And, true),
+        let mut operands: Vec<Expr> = match self.form {
+            Form::Dnf => terms.iter().map(|t| t.product(names)).collect(),
+            Form::Knf => terms.iter().map(|t| t.sum(names)).collect(),
         };
-        match operands.len() {
-            0 => Expr::Const(empty),
-            1 => operands.remove(0),
-            _ => join(operands),
+        match (operands.len(), self.form) {
+            (0, form) => Expr::Const(form == Form::Knf),
+            (1, _) => operands.remove(0),
+            (_, Form::Dnf) => Expr::Or(operands),
+            (_, Form::Knf) => Expr::And(operands),
         }
     }
 }

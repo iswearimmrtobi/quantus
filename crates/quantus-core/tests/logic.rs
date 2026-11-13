@@ -4,7 +4,8 @@ use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, Canonical};
-use quantus_core::logic::{rows_of, Function, Pattern, Value};
+use quantus_core::logic::{contains, rows_of, Bits, Function, Pattern, Value};
+use std::collections::BTreeSet;
 
 fn names(names: &str) -> Vec<String> {
     names.split_whitespace().map(String::from).collect()
@@ -433,4 +434,97 @@ fn the_minimal_knf_covers_the_zeros_and_is_negated_by_de_morgan() {
     assert_eq!((Minimisation::of(&one).unwrap().expr(0, one.names()), Minimisation::knf(&one).unwrap().expr(0, one.names())), (Expr::Const(true), Expr::Const(true)));
     let zero = function(r"A \land \lnot A", "A");
     assert_eq!((Minimisation::of(&zero).unwrap().expr(0, zero.names()), Minimisation::knf(&zero).unwrap().expr(0, zero.names())), (Expr::Const(false), Expr::Const(false)));
+}
+
+#[test]
+fn reference_functions_minimise_as_in_the_textbooks() {
+    // XOR of three: nothing combines, four minterms of three literals.
+    let (m, names) = minimal(r"A \oplus B \oplus C", "A B C");
+    assert_eq!((m.qm.rounds.len(), m.covers.len(), m.cost()), (1, 1, (4, 12)));
+    assert_eq!(m.chart.essential.len(), 4);
+    assert_eq!(forms(&m, &names, Notation::Technical), [r"\overline{A} \cdot \overline{B} \cdot C + \overline{A} \cdot B \cdot \overline{C} + A \cdot \overline{B} \cdot \overline{C} + A \cdot B \cdot C"]);
+    // The full adder: the sum is the XOR of three, the carry the majority.
+    let (sum, _) = minimal(r"s(A, B, C) = \sum m(1, 2, 4, 7)", "");
+    assert_eq!(sum.covers, m.covers);
+    let (carry, names) = minimal(r"c(A, B, C) = \sum m(3, 5, 6, 7)", "");
+    assert_eq!((carry.covers.len(), carry.cost()), (1, (3, 6)));
+    assert_eq!(forms(&carry, &names, Notation::Technical), [r"B \cdot C + A \cdot C + A \cdot B"]);
+    // Segment a of a BCD 7-segment decoder: off for 1 and 4, 10 to 15 never occur.
+    let (a, names) = minimal(r"a(A, B, C, D) = \sum m(0, 2, 3, 5, 6, 7, 8, 9) + d(10, 11, 12, 13, 14, 15)", "");
+    assert_eq!(forms(&a, &names, Notation::Technical), [r"\overline{B} \cdot \overline{D} + C + B \cdot D + A"]);
+    assert_eq!(a.cost(), (4, 6));
+    let knf = Minimisation::knf(&function(r"a(A, B, C, D) = \sum m(0, 2, 3, 5, 6, 7, 8, 9) + d(10, 11, 12, 13, 14, 15)", "")).unwrap();
+    assert_eq!(knf.expr(0, &names).latex(Notation::Technical), r"(A + B + C + \overline{D}) \cdot (\overline{B} + C + D)");
+}
+
+/// Every minimal cover by an exhaustive search over all implicants, prime or not: branch over
+/// each implicant covering the first row still open.
+fn brute_force(arity: usize, ones: &Bits, dont_cares: &Bits) -> BTreeSet<Vec<Pattern>> {
+    let allowed: Vec<usize> = rows_of(ones).chain(rows_of(dont_cares)).collect();
+    let mut implicants = Vec::new();
+    for mask in 0..1u16 << arity {
+        for value in 0..1u16 << arity {
+            let p = Pattern { value: value as u8, mask: mask as u8 };
+            if value & mask == 0 && p.rows(arity).all(|r| allowed.contains(&r)) && p.rows(arity).any(|r| contains(ones, r)) {
+                implicants.push(p);
+            }
+        }
+    }
+    fn search(arity: usize, open: Vec<usize>, chosen: &mut Vec<Pattern>, implicants: &[Pattern], best: &mut (usize, usize), found: &mut BTreeSet<Vec<Pattern>>) {
+        let cost = quantus_core::logic::minimise::cost(chosen, arity);
+        if cost > *best {
+            return;
+        }
+        let Some(&first) = open.first() else {
+            if cost < *best {
+                *best = cost;
+                found.clear();
+            }
+            let mut cover = chosen.clone();
+            cover.sort();
+            found.insert(cover);
+            return;
+        };
+        for p in implicants.iter().filter(|p| p.covers(first)) {
+            chosen.push(*p);
+            search(arity, open.iter().copied().filter(|r| !p.covers(*r)).collect(), chosen, implicants, best, found);
+            chosen.pop();
+        }
+    }
+    let mut found = BTreeSet::new();
+    search(arity, rows_of(ones).collect(), &mut Vec::new(), &implicants, &mut (usize::MAX, usize::MAX), &mut found);
+    found
+}
+
+fn check_against_brute_force(f: &Function) {
+    for m in [Minimisation::of(f).unwrap(), Minimisation::knf(f).unwrap()] {
+        let rows = if m.form == Form::Dnf { *f.ones() } else { f.zeros() };
+        let ours: BTreeSet<Vec<Pattern>> = m.covers.iter().map(|c| { let mut c = c.clone(); c.sort(); c }).collect();
+        assert_eq!(ours.len(), m.covers.len());
+        assert_eq!(ours, brute_force(f.arity(), &rows, f.dont_cares()), "{:?} {:?} {:?}", m.form, f.ones(), f.dont_cares());
+    }
+}
+
+#[test]
+fn every_function_of_three_variables_is_minimal() {
+    for bits in 0..256u64 {
+        check_against_brute_force(&Function::from_bits(names("A B C"), [bits, 0, 0, 0], [0; 4]).unwrap());
+    }
+}
+
+#[test]
+fn a_sample_of_four_variables_is_minimal() {
+    let mut seed = 0x9e37_79b9_7f4a_7c15u64;
+    let mut next = || {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        seed
+    };
+    for i in 0..300 {
+        let ones = next() & 0xffff;
+        // Every third function with don't cares.
+        let dont_cares = if i % 3 == 0 { next() & next() & 0xffff } else { 0 };
+        check_against_brute_force(&Function::from_bits(names("A B C D"), [ones, 0, 0, 0], [dont_cares, 0, 0, 0]).unwrap());
+    }
 }
