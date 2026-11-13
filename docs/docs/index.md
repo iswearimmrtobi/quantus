@@ -23,7 +23,7 @@ F = m_1 \cdot 9{,}81\frac{m}{s^2}
 
 Every result can be copied as LaTeX.
 
-## Ten modes
+## Eleven modes
 
 | Mode | What it is for |
 |---|---|
@@ -36,6 +36,7 @@ Every result can be copied as LaTeX.
 | [**Kirchhoff**](guides/kirchhoff/index.md) | Draw a resistor network and get the junction and loop rules, solved step by step |
 | [**Geometry**](guides/geometry/index.md) | Points, vectors, lines, planes, spheres and circles in 3D, with relations, distances and angles worked out exactly |
 | [**Base-N**](guides/base-n.md) | Whole numbers in decimal, hexadecimal, binary and octal, with bitwise logic |
+| [**Logic**](guides/logic/index.md) | Truth tables, minimal forms, KV diagrams, NAND and NOR forms and circuits of gates, with the working |
 | [**Verify**](guides/verify.md) | Check an equation or comparison: true or false |
 
 ## Where to go next

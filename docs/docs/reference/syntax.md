@@ -206,6 +206,33 @@ then `and`, then `or`, `xor` and `xnor`. A shift by the width or more leaves 0 (
 bits); a rotation turns by n mod width; a negative count is an error. `f32` and `f64` need a word
 of 32 or 64 bits; `F32` in capitals is a hexadecimal number.
 
+## Logic
+
+The mode `logic` reads one function per line, of up to 8 variables, with a parser of its own:
+`+`, juxtaposition and the overline mean OR, AND and NOT here. See
+[Logic](../guides/logic/input.md).
+
+| Input | Meaning |
+|---|---|
+| `f = …`, `f(A, B, C) = …`, or the expression alone | an output, with its inputs in this order; alone, the output is the next free of $f$, $g$, $h$, … |
+| `A`, `x_1`, `Y_{12}`, `\mathrm{Start}` | a variable; `AB` is the two variables $A$ and $B$ |
+| `0`, `1`, `\top`, `\bot` | the constants |
+| `\overline{A}`, `\bar{A}`, `\neg A`, `\lnot A`, `!A`, `A'`, `not A` | NOT |
+| `A \land B`, `\wedge`, `\cdot`, `*`, `\&`, `and`, `AB` | AND |
+| `A \lor B`, `\vee`, `+`, `\mid`, `or` | OR |
+| `A \oplus B`, `\veebar`, `xor` | XOR |
+| `A \odot B`, `\leftrightarrow`, `\Leftrightarrow`, `\equiv`, `xnor` | XNOR |
+| `A \uparrow B`, `\barwedge`, `nand` | NAND |
+| `A \downarrow B`, `nor` | NOR |
+| `( )`, `[ ]`, `\left( \right)` | grouping |
+| `\sum m(1, 3, 7) + d(5)` | a minterm list: 1 in the rows given, – in the rows of `d`; also `\sum_m`, `\Sigma m`, `m(…)`, `\sum(…)` |
+| `\prod M(0, 2) \cdot d(5)` | a maxterm list: 0 in the rows given |
+
+NOT binds first, then AND (also juxtaposition), then NAND, then XOR and XNOR, then OR, then NOR.
+NAND and NOR are not associative, so `A \uparrow B \uparrow C` asks for brackets. The words
+`and`, `or`, … also work inside `\mathrm{}` and `\operatorname{}`. The first variable is the
+most significant bit of the row number.
+
 ## Ignored layout
 
 `\displaystyle`, `\textstyle`, `\limits`, `\quad`, `\qquad` and `\,` are accepted and change

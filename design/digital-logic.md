@@ -636,7 +636,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 14: docs and release notes
 
-- [ ] Guide `docs/docs/guides/logic/` (index, input, results, editor), the settings in
+- [x] Guide `docs/docs/guides/logic/` (index, input, results, editor), the settings in
   `docs/docs/reference/settings.md`, the syntax in `docs/docs/reference/syntax.md`.
 - [ ] `step-detail.md` § Logic mode with the majority, segment *a* and the NAND form of an XOR.
 - [ ] `docs/docs/contributing/testing.md` names `tests/logic.rs`; `CHANGELOG.md` under

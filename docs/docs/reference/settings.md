@@ -6,7 +6,7 @@ title: Settings
 # Settings
 
 Open the settings window with <kbd>Ctrl</kbd>+<kbd>.</kbd> or the slider button at the bottom of the right edge;
-its categories are General, Numbers, Algebra, Steps and Input. The mode is switched in the top
+its categories are General, Numbers, Algebra, Steps, Input and Logic. The mode is switched in the top
 bar, not there. Every change applies to the next
 calculation and is saved in `settings.json` in the app's config directory. **Restore defaults**
 resets all of them. The *Key* column is the name in `settings.json` and in the
@@ -148,13 +148,31 @@ only in [Linear systems](../guides/linear-systems/index.md) mode.
 | **Letter runs as a product** | `letterProducts` | on | `2ab` is read as $2 \cdot a \cdot b$ |
 | **t, u and in as units** | `extraUnitLetters` | off | tonne, atomic mass unit and inch instead of variables |
 
+## Logic
+
+| Setting | Key | Values | Default |
+|---|---|---|---|
+| **Logic notation** | `logicNotation` | `logic`, `technical` | `logic` |
+| **Gate symbols** | `logicSymbols` | `iec`, `ansi` | `iec` |
+| **NAND and NOR from 2-input gates only** | `logicTwoInput` | on / off | on |
+| **Show 0s in the truth table and KV diagram** | `logicZeros` | on / off | on |
+
+These are read only in [Logic](../guides/logic/index.md) mode. **Logic notation** decides how
+results, the KV labels and **Copy** write a function: *logic* is $A \land \lnot B \lor C$ (with
+the overline over a longer negation), *technical* is $A \cdot \overline{B} + C$. The input reads
+both, whatever the setting. **Gate symbols** draws the circuit's gates as the IEC 60617
+rectangles with `&`, `≥1`, `=1` and `1`, or as the ANSI distinctive shapes. With **NAND and NOR
+from 2-input gates only** on, a NAND or NOR with more inputs becomes a tree of 2-input gates: a
+3-input NAND becomes 3 gates. Off, **Show 0s** leaves the cells with 0 empty, in the table, the
+KV diagram and the copied `tabular`.
+
 ## Outside the window
 
 These are set elsewhere in the app, but kept in `settings.json` with the others.
 
 | Setting | Key | Values | Default | Set with |
 |---|---|---|---|---|
-| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `electronics`, `kirchhoff`, `geometry`, `baseN`, `matrix`, `statistics`, `distributions`, `verify` | `physics` | the top bar |
+| **Mode** | `mode` | `physics`, `algebra`, `imaginary`, `analysis`, `linear`, `electronics`, `kirchhoff`, `geometry`, `baseN`, `logic`, `matrix`, `statistics`, `distributions`, `verify` | `physics` | the top bar |
 | **Number base** | `numberBase` | `dec`, `hex`, `bin`, `oct` | `dec` | the DEC/HEX/BIN/OCT switch in Base-N mode |
 | **Word size** | `wordSize` | `8`, `16`, `32`, `64` | `32` | the 8/16/32/64 switch in Base-N mode |
 | **Signed** | `signed` | on / off | on | the signed/unsigned switch in Base-N mode |

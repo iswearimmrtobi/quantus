@@ -1,0 +1,116 @@
+---
+sidebar_position: 3
+title: Results
+---
+
+# Results
+
+Under the table and the KV diagram are the results of one output; with several outputs, the
+tabs above the table choose it. Each result has its steps at the level of **Step detail**
+(see [Step detail in the Logic mode](#step-detail)) and a **Copy** button that copies the result
+and its steps as a LaTeX `align*` block.
+
+| Result | What it is |
+|---|---|
+| **Expression** | the line as typed, with the truth table it gives |
+| **Expression of the circuit** | for an output from the circuit: the circuit traced from the lamp back to the switches, gate by gate, unsimplified |
+| **Canonical DNF and KNF** | $\sum m(\ldots)$ and the OR of the minterms; $\prod M(\ldots)$ and the AND of the maxterms; don't cares as $d(\ldots)$ |
+| **Minimal DNF** | the fewest terms, then the fewest literals; the KV path, with **Quine–McCluskey** as a second working |
+| **Minimal KNF** | the same over the 0s, each term turned into a sum by De Morgan |
+| **NAND only**, **NOR only** | the minimal DNF as NAND gates, the minimal KNF as NOR gates, with gates, gate inputs and levels |
+| **NAND gate by gate**, **NOR gate by gate** | for a typed expression or a circuit: each gate rewritten into NANDs (NORs), double negations cancelled |
+
+A function that is always 0 or always 1 says so (*f is always 1*) and has no KV blocks.
+
+## Minimal forms
+
+Minimisation is exact: the prime implicants by Quine–McCluskey, the cover by the prime implicant
+chart (essential prime implicants, then row and column dominance) and Petrick's method for the
+rest. **All** minimal solutions are found. When there are several, the result says so
+(*2 minimal solutions:*) and lets you pick one; the one picked drives the KV blocks, the NAND and
+NOR forms, the write-up and a circuit drawn from the minimal form.
+
+$\sum m(0, 1, 2, 5, 6, 7)$ has two minimal DNFs, each with 3 terms and 6 literals:
+
+$$f = \lnot A \land \lnot B \lor B \land \lnot C \lor A \land C \qquad f = \lnot A \land \lnot C \lor \lnot B \land C \lor A \land B$$
+
+The cost of each form is shown beside it (*terms: 3 · literals: 6*). Hovering a term highlights
+its block in the KV diagram, and hovering a block highlights its term.
+
+## The KV diagram
+
+The diagram stands beside the truth table, for 2 to 6 inputs. The first half of the inputs run
+along the columns, the rest along the rows, each in Gray code (00, 01, 11, 10). 5 inputs give two
+4-input maps side by side, one for each value of the first input; 6 inputs give four maps. Each
+variable has a bar beside the rows or columns where it is 1, with its name, as in German
+textbooks; hovering a cell shows its row number and its code. The *i* button writes the row
+number into each cell's corner.
+
+- **1s · DNF** shows the blocks of the chosen minimal DNF over the 1s, **0s · KNF** those of the
+  minimal KNF over the 0s. A block that wraps over an edge is drawn as two or four open pieces.
+- A click on a cell cycles it 0 → 1 → – like the table, and makes the table the output's source.
+- With a circuit, <kbd>Ctrl</kbd>+click sets the circuit's switches to that cell.
+
+### Draw my blocks
+
+**Draw my blocks** lets you draw your own blocks and have them checked. Drag a rectangle over the
+cells; drag past an edge to wrap round, or into the next map to span both. Each block gets an
+answer on it:
+
+- *right: a prime implicant that is needed*;
+- not a power of two in size, or not the cells of one term;
+- covering a 0 (or, for the KNF, a 1);
+- *could grow*, with the larger term;
+- *not needed*: each of its 1s is in another block.
+
+Under the diagram: the 1s in no block, then the expression your blocks give, and whether it is a
+minimal form (*Right, and a minimal form*) or not, with its cost against the minimum. With
+**0s · KNF** you draw blocks of 0s and get a KNF. **Clear** removes your blocks.
+
+## NAND and NOR
+
+**NAND only** starts from the chosen minimal DNF $f = p_1 \lor \dots \lor p_k$: double negation
+and De Morgan turn it into $\overline{\overline{p_1} \land \dots \land \overline{p_k}}$, a NAND
+of NANDs. Each negated variable comes from a NAND with both inputs tied, one per variable; a
+term of one literal goes straight into the output NAND. With **NAND and NOR from 2-input gates
+only** on (the default), a NAND of 3 inputs becomes a tree of 3 gates, one of 4 inputs 5 gates.
+**NOR only** is the same from the minimal KNF.
+
+For the majority of three, the NAND form has 6 gates, 12 gate inputs and 4 levels with 2-input
+gates, and 4 gates with them off.
+
+For a typed expression or a circuit, **NAND gate by gate** rewrites each gate instead: each NOT
+an inverter, each AND a NAND and an inverter, each OR a NAND of the inverted inputs, each XOR
+four NANDs, and then cancels pairs of inverters. This can be smaller than the form from the
+minimal DNF: $A \oplus B$ takes 5 NANDs from its minimal DNF but 4 gate by gate. Neither is
+guaranteed to be the circuit with the fewest gates.
+
+## Copy
+
+- **Copy** on a result: the result and its steps as an `align*` block.
+- **Copy** in the table's foot: the truth table as a LaTeX `tabular`, all outputs.
+- **Copy** in the KV diagram's head: the diagram as a `tabular`, each bar a rule beside its
+  columns (`\hrulefill`) or rows (`\vline`) with the variable's name outside it; 5 and 6 inputs
+  as maps inside an outer `tabular`.
+
+All three follow **Logic notation**, and leave the 0s empty when **Show 0s** is off.
+
+## Step detail
+
+| Working | Brief | Standard | Detailed | Maximal |
+|---|---|---|---|---|
+| Expression → table | the table | | a column per part of the expression | one row worked as an example |
+| Circuit → expression | the traced expression | the gates from the output back | each gate's output as $G_1$, $G_2$, … | |
+| Canonical forms | DNF and KNF | $\sum m$, $\prod M$, the don't cares | each minterm and maxterm from its row | |
+| KV diagram | the minimal form | the diagram, the blocks and their terms | why each variable stays or goes in a block | the prime implicants not used |
+| Quine–McCluskey | the minimal form | the prime implicants, the essential ones, the covers | the grouping tables with ✓, the chart, dominance | the pairs that did not combine, Petrick multiplied out |
+| NAND and NOR | the form with its gates and levels | double negation and De Morgan | the inverters, the 2-input split, every gate with its level | |
+
+**None** hides the steps. At 7 and 8 inputs the Quine–McCluskey tables replace the KV diagram in
+the working.
+
+## See also
+
+- [Input](input.md)
+- [Circuit editor](editor.md)
+- [Working and output](../../basics/working-and-output.md)

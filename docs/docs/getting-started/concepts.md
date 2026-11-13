@@ -23,6 +23,7 @@ the product $2 \cdot g \cdot k$ in Algebra.
 | **Kirchhoff** | values typed into the circuit's parts, read as in Physics | known | a variable |
 | **Geometry** | variables, as in Algebra; points, vectors, lines and planes are named objects of their own | unknown | a variable |
 | **Base-N** | hexadecimal digits A–F, the logic words and the prefixes d, h, b, o | unknown | not used |
+| **Logic** | logic variables: `AB` is $A \land B$, `+` is OR, the overline NOT | unknown | a variable |
 | **Verify** | variables, as in Algebra | unknown | a variable |
 
 Switch the mode in the top bar; hovering a mode shows what it does. An example under the empty
