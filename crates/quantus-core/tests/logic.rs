@@ -1,6 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
+use quantus_core::logic::minimise::QuineMcCluskey;
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, Canonical};
 use quantus_core::logic::{rows_of, Function, Pattern, Value};
@@ -295,4 +296,28 @@ fn inputs_come_in_declaration_order_else_alphabetically() {
     // The scene's inputs set the columns of an expression that uses fewer of them.
     assert_eq!(rows_of(function("B", "A B").ones()).collect::<Vec<_>>(), [1, 3]);
     assert_eq!(line_function(&parse_line("A C").unwrap(), &names("A B")).unwrap_err().to_string(), "C is not among the inputs of f.");
+}
+
+fn texts(patterns: &[Pattern], arity: usize) -> Vec<String> {
+    patterns.iter().map(|p| p.text(arity)).collect()
+}
+
+#[test]
+fn quine_mccluskey_finds_the_prime_implicants_round_by_round() {
+    let f = function(r"\sum m(4, 8, 10, 11, 12, 15) + d(9, 14)", "A B C D");
+    let qm = QuineMcCluskey::of(4, f.ones(), f.dont_cares());
+    // Minterms grouped by their 1s: {4, 8}, {9, 10, 12}, {11, 14}, {15}.
+    let sizes: Vec<Vec<(u32, usize)>> = qm.rounds.iter().map(|r| r.groups.iter().map(|(o, t)| (*o, t.len())).collect()).collect();
+    assert_eq!(sizes, [vec![(1, 2), (2, 3), (3, 2), (4, 1)], vec![(1, 4), (2, 4), (3, 2)], vec![(1, 2), (2, 1)]]);
+    assert_eq!(qm.rounds[1].groups[0].1[0].rows, [4, 12]);
+    assert!(qm.rounds[0].terms().all(|t| t.combined));
+    assert_eq!(texts(&qm.primes, 4), ["-100", "10--", "1--0", "1-1-"]);
+    let names = names("A B C D");
+    assert_eq!(qm.primes[0].product(&names).latex(Notation::Logic), r"B \land \lnot C \land \lnot D");
+    assert_eq!(qm.primes[0].sum(&names).latex(Notation::Logic), r"\lnot B \lor C \lor D");
+    assert_eq!(Pattern { value: 0, mask: 0b11 }.product(&names[..2]), Expr::Const(true));
+    // Nothing combines in the XOR of three.
+    let xor = function(r"A \oplus B \oplus C", "A B C");
+    let qm = QuineMcCluskey::of(3, xor.ones(), xor.dont_cares());
+    assert_eq!((qm.rounds.len(), texts(&qm.primes, 3)), (1, vec!["001".into(), "010".into(), "100".into(), "111".into()]));
 }

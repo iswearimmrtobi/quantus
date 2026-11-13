@@ -497,7 +497,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 ### Phase 2: minimisation
 
-- [ ] `minimise.rs`: Quine–McCluskey over the 1s and don't cares, the prime implicants as
+- [x] `minimise.rs`: Quine–McCluskey over the 1s and don't cares, the prime implicants as
   patterns and products; kept per round for the working.
 - [ ] The prime implicant chart: essential prime implicants, row and column dominance.
 - [ ] Petrick with absorption, cost (terms, then literals), all minimal covers in the order of
