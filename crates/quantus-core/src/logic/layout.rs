@@ -324,14 +324,17 @@ impl Track {
     }
 
     /// The wires of the track at `x`: one across in each of its rows, from `left` where it comes
-    /// in (or from `from` for an explicit wire) to `right` where it drives a pin, and one down.
+    /// in to `right` where it drives a pin, and one down.
     fn wires(&self, x: i32, left: i32, right: i32, wires: &mut Vec<Wire>) {
         let rows: BTreeSet<i32> = self.all_rows().into_iter().collect();
         for &y in &rows {
             let from = if self.entry == Some(y) { left } else { x };
             let to = if self.taps.contains(&y) { right } else { x };
-            if from < to {
-                wires.push(Wire { from: Point::new(from, y), to: Point::new(to, y) });
+            // A wire on each side of the track, so that the track ends on them.
+            for (a, b) in [(from, x), (x, to)] {
+                if a < b {
+                    wires.push(Wire { from: Point::new(a, y), to: Point::new(b, y) });
+                }
             }
         }
         if let (Some(&top), Some(&bottom)) = (rows.first(), rows.last()) {

@@ -559,7 +559,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   several outputs shared.
 - [x] Positions on the editor's grid: input buses on the left, inverters by the buses, one column
   per level, two ordering sweeps by the mean row of the inputs, outputs on the right.
-- [ ] Tests: the full adder shares its common gates; every generated circuit passes the checks of
+- [x] Tests: the full adder shares its common gates; every generated circuit passes the checks of
   Phase 6 and equals its function.
 
 ### Phase 8: checks

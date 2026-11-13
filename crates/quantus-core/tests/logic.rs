@@ -1683,3 +1683,83 @@ fn nets_that_skip_a_column_run_under_the_circuit() {
     assert!(layout.wires.iter().any(|w| w.from.y == w.to.y && w.from.y > lowest + 1));
     assert_drawn_as_netlist(&circuit);
 }
+
+/// The generated circuit of each of `outputs` drawn from `form`: it passes the checks without
+/// warnings, each output equals its function wherever that is not –, and the drawing connects
+/// what the netlist does.
+fn assert_generated(outputs: &[(&str, &Function)], form: DrawForm, two_input: bool) -> Generated {
+    let inputs = outputs[0].1.names().to_vec();
+    let mut circuit = Generated::new(inputs.clone()).unwrap();
+    for (name, f) in outputs {
+        circuit.add(name, f, form, 0, two_input).unwrap();
+    }
+    let checked = circuit.netlist().check().unwrap();
+    assert!(checked.warnings.is_empty(), "{:?}", checked.warnings);
+    for (o, (name, f)) in outputs.iter().enumerate() {
+        assert_eq!(checked.function(o, &inputs).unwrap().differing_rows(f), Vec::<usize>::new(), "{name} drawn from {form:?}");
+    }
+    assert_drawn_as_netlist(&circuit);
+    circuit
+}
+
+#[test]
+fn the_full_adder_shares_its_common_gates() {
+    let (sum, carry) = (function(r"A \oplus B \oplus C", "A B C"), function("AB + AC + BC", "A B C"));
+    for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
+        let alone = |f: &Function| assert_generated(&[("f", f)], form, true).gates.len();
+        let both = assert_generated(&[("s", &sum), ("c", &carry)], form, true);
+        let checked = both.netlist().check().unwrap();
+        let (s, c): (BTreeSet<usize>, BTreeSet<usize>) = (checked.gates_of(0).into_iter().collect(), checked.gates_of(1).into_iter().collect());
+        // Every gate once: the two outputs' gates less the ones they share.
+        assert_eq!(both.gates.len(), alone(&sum) + alone(&carry) - s.intersection(&c).count(), "{form:?}");
+        assert_eq!(s.union(&c).count(), both.gates.len());
+    }
+    // From 2-input NANDs, the sum's A·B·C and the carry's A·B both start with NAND(A, B).
+    let nand = assert_generated(&[("s", &sum), ("c", &carry)], DrawForm::Nand, true).netlist().check().unwrap();
+    let shared: Vec<usize> = nand.gates_of(0).into_iter().filter(|g| nand.gates_of(1).contains(g)).collect();
+    assert!(shared.iter().any(|g| nand.gates[*g].inputs == [Signal::Input(0), Signal::Input(1)]));
+}
+
+#[test]
+fn every_generated_circuit_of_three_variables_passes_the_checks_and_equals_its_function() {
+    for bits in 0..256u64 {
+        let f = Function::from_bits(names("A B C"), [bits, 0, 0, 0], [0; 4]).unwrap();
+        for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
+            for two_input in [true, false] {
+                assert_generated(&[("f", &f)], form, two_input);
+            }
+        }
+    }
+}
+
+#[test]
+fn generated_circuits_of_several_outputs_with_dont_cares_pass_the_checks() {
+    // Segment a of a BCD 7-segment decoder, with 10–15 don't care, beside segments b and g.
+    let segment = |ones: &[usize]| {
+        let mut f = Function::new(names("A B C D")).unwrap();
+        for row in 0..16 {
+            f.set(row, if row >= 10 { Value::DontCare } else if ones.contains(&row) { Value::One } else { Value::Zero });
+        }
+        f
+    };
+    let (a, b, g) = (segment(&[0, 2, 3, 5, 6, 7, 8, 9]), segment(&[0, 1, 2, 3, 4, 7, 8, 9]), segment(&[2, 3, 4, 5, 6, 8, 9]));
+    for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
+        for two_input in [true, false] {
+            assert_generated(&[("a", &a), ("b", &b), ("g", &g)], form, two_input);
+        }
+    }
+    // A sample of 4-variable functions in pairs, every form.
+    let mut state = 0x9e37_79b9_u64;
+    for _ in 0..40 {
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state & 0xffff
+        };
+        let (f, h) = (Function::from_bits(names("A B C D"), [next(), 0, 0, 0], [next() & next(), 0, 0, 0]).unwrap(), Function::from_bits(names("A B C D"), [next(), 0, 0, 0], [0; 4]).unwrap());
+        for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
+            assert_generated(&[("f", &f), ("h", &h)], form, true);
+        }
+    }
+}
