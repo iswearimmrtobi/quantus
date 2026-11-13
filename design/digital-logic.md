@@ -499,7 +499,7 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] `minimise.rs`: Quine–McCluskey over the 1s and don't cares, the prime implicants as
   patterns and products; kept per round for the working.
-- [ ] The prime implicant chart: essential prime implicants, row and column dominance.
+- [x] The prime implicant chart: essential prime implicants, row and column dominance.
 - [ ] Petrick with absorption, cost (terms, then literals), all minimal covers in the order of
   their terms' first minterms; the limit of 5 000 products with *Too many solutions to compare*.
 - [ ] Minimal KNF over the 0s by De Morgan.

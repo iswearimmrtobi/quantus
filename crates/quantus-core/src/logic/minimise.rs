@@ -126,3 +126,144 @@ impl Pattern {
             .collect()
     }
 }
+
+/// One reduction of the prime implicant chart, rows by their index in [`Chart::primes`],
+/// columns by their minterm.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reduction {
+    /// `row` is the only prime implicant left over `column`, so it is taken.
+    Essential { row: usize, column: usize },
+    /// `row` covers no column that is left.
+    Covered { row: usize },
+    /// Every row over `over` is also over `column`, which is therefore covered anyway.
+    ColumnDominates { column: usize, over: usize },
+    /// `by` covers every column left that `row` covers, with fewer literals.
+    RowDominated { row: usize, by: usize },
+}
+
+/// The prime implicant chart (§6.4): rows the prime implicants, columns the minterms with value
+/// 1, reduced by essential rows and dominance until nothing changes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Chart {
+    pub arity: usize,
+    pub primes: Vec<Pattern>,
+    pub minterms: Vec<usize>,
+    /// The essential prime implicants: the rows taken before any dominance.
+    pub essential: Vec<usize>,
+    /// Every row taken because it alone covered a column, the essential ones first.
+    pub taken: Vec<usize>,
+    pub reductions: Vec<Reduction>,
+    /// What is left for Petrick's method.
+    pub rows_left: Vec<usize>,
+    pub columns_left: Vec<usize>,
+}
+
+impl Chart {
+    /// The chart of the prime implicants `primes` over the minterms `ones`, reduced.
+    ///
+    /// A row is only dropped as dominated when the dominating row has fewer literals: with as
+    /// many, both can be part of different minimal covers, all of which are listed.
+    pub fn of(arity: usize, primes: &[Pattern], ones: &Bits) -> Chart {
+        let minterms: Vec<usize> = rows_of(ones).collect();
+        let mut chart = Chart {
+            arity,
+            primes: primes.to_vec(),
+            minterms: minterms.clone(),
+            essential: Vec::new(),
+            taken: Vec::new(),
+            reductions: Vec::new(),
+            rows_left: (0..primes.len()).collect(),
+            columns_left: minterms,
+        };
+        chart.drop_empty_rows();
+        chart.take_essential();
+        chart.essential = chart.taken.clone();
+        while chart.drop_dominating_columns() | chart.drop_dominated_rows() | chart.take_essential() {}
+        chart
+    }
+
+    /// The rows left over `column`.
+    pub fn rows_over(&self, column: usize) -> Vec<usize> {
+        self.rows_left.iter().copied().filter(|r| self.primes[*r].covers(column)).collect()
+    }
+
+    /// The columns left under `row`.
+    pub fn columns_under(&self, row: usize) -> Vec<usize> {
+        self.columns_left.iter().copied().filter(|c| self.primes[row].covers(*c)).collect()
+    }
+
+    /// Takes every row that alone covers a column left; whether any was.
+    fn take_essential(&mut self) -> bool {
+        let mut changed = false;
+        let mut c = 0;
+        while c < self.columns_left.len() {
+            let column = self.columns_left[c];
+            if let [row] = self.rows_over(column)[..] {
+                self.reductions.push(Reduction::Essential { row, column });
+                self.taken.push(row);
+                self.rows_left.retain(|r| *r != row);
+                let prime = self.primes[row];
+                self.columns_left.retain(|c| !prime.covers(*c));
+                self.drop_empty_rows();
+                changed = true;
+                c = 0;
+            } else {
+                c += 1;
+            }
+        }
+        changed
+    }
+
+    fn drop_empty_rows(&mut self) {
+        for row in self.rows_left.clone() {
+            if self.columns_under(row).is_empty() {
+                self.reductions.push(Reduction::Covered { row });
+                self.rows_left.retain(|r| *r != row);
+            }
+        }
+    }
+
+    /// Drops each column whose rows include all rows of another column left.
+    fn drop_dominating_columns(&mut self) -> bool {
+        let mut changed = false;
+        let mut c = 0;
+        while c < self.columns_left.len() {
+            let column = self.columns_left[c];
+            let rows = self.rows_over(column);
+            let over = self.columns_left.iter().copied().find(|other| {
+                let theirs = self.rows_over(*other);
+                // Of two equal columns the later one goes.
+                *other != column && theirs.iter().all(|r| rows.contains(r)) && (theirs.len() < rows.len() || *other < column)
+            });
+            if let Some(over) = over {
+                self.reductions.push(Reduction::ColumnDominates { column, over });
+                self.columns_left.remove(c);
+                changed = true;
+            } else {
+                c += 1;
+            }
+        }
+        changed
+    }
+
+    /// Drops each row whose columns another row with fewer literals covers too.
+    fn drop_dominated_rows(&mut self) -> bool {
+        let mut changed = false;
+        for row in self.rows_left.clone() {
+            let mine = self.columns_under(row);
+            let literals = self.primes[row].literals(self.arity);
+            let by = self.rows_left.iter().copied().find(|other| {
+                self.primes[*other].literals(self.arity) < literals && mine.iter().all(|c| self.primes[*other].covers(*c))
+            });
+            if let Some(by) = by {
+                self.reductions.push(Reduction::RowDominated { row, by });
+                self.rows_left.retain(|r| *r != row);
+                changed = true;
+            }
+        }
+        if changed {
+            self.drop_empty_rows();
+        }
+        changed
+    }
+}

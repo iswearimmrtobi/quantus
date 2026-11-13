@@ -1,7 +1,7 @@
 //! The logic mode (`design/digital-logic.md` §11).
 
 use quantus_core::logic::expr::{Expr, Notation};
-use quantus_core::logic::minimise::QuineMcCluskey;
+use quantus_core::logic::minimise::{Chart, QuineMcCluskey, Reduction};
 use quantus_core::logic::parse::{parse_expr, parse_line, parse_lines, Body, MintermList};
 use quantus_core::logic::table::{constant_note, input_order, line_function, Canonical};
 use quantus_core::logic::{rows_of, Function, Pattern, Value};
@@ -321,3 +321,47 @@ fn quine_mccluskey_finds_the_prime_implicants_round_by_round() {
     let qm = QuineMcCluskey::of(3, xor.ones(), xor.dont_cares());
     assert_eq!((qm.rounds.len(), texts(&qm.primes, 3)), (1, vec!["001".into(), "010".into(), "100".into(), "111".into()]));
 }
+
+fn chart_of(latex: &str, inputs: &str) -> (Chart, usize) {
+    let f = function(latex, inputs);
+    let qm = QuineMcCluskey::of(f.arity(), f.ones(), f.dont_cares());
+    (Chart::of(f.arity(), &qm.primes, f.ones()), f.arity())
+}
+
+#[test]
+fn the_chart_takes_the_essential_prime_implicants() {
+    let (chart, n) = chart_of(r"\sum m(4, 8, 10, 11, 12, 15) + d(9, 14)", "A B C D");
+    let taken: Vec<String> = chart.taken.iter().map(|r| chart.primes[*r].text(n)).collect();
+    assert_eq!(taken, ["-100", "1-1-"]);
+    assert_eq!(chart.essential, chart.taken);
+    // m(8) is left: 10-- and 1--0 both cover it, with as many literals, so both stay.
+    assert_eq!((chart.columns_left.clone(), chart.rows_left.len()), (vec![8], 2));
+    // The majority has three essential prime implicants and nothing left.
+    let (chart, n) = chart_of("AB + AC + BC", "A B C");
+    assert_eq!(texts(&chart.essential.iter().map(|r| chart.primes[*r]).collect::<Vec<_>>(), n), ["-11", "1-1", "11-"]);
+    assert!(chart.rows_left.is_empty() && chart.columns_left.is_empty());
+}
+
+#[test]
+fn the_chart_is_reduced_by_dominance() {
+    // The cyclic chart: no essential prime implicant, no dominance, all left.
+    let (chart, _) = chart_of(r"\sum m(0, 1, 2, 5, 6, 7)", "A B C");
+    assert!(chart.essential.is_empty() && chart.reductions.is_empty());
+    assert_eq!((chart.rows_left.len(), chart.columns_left.len()), (6, 6));
+    // After 0-1-, 01-- and 100-, m(0) is left under 0--0 and -000; -000 has more literals.
+    let (chart, n) = chart_of(r"\sum m(0, 2, 3, 4, 5, 6, 7, 8, 9)", "A B C D");
+    assert_eq!(texts(&chart.essential.iter().map(|r| chart.primes[*r]).collect::<Vec<_>>(), n), ["0-1-", "01--", "100-"]);
+    let dominated = chart.reductions.iter().find_map(|r| match r {
+        Reduction::RowDominated { row, by } => Some((chart.primes[*row].text(n), chart.primes[*by].text(n))),
+        _ => None,
+    });
+    assert_eq!(dominated, Some(("-000".into(), "0--0".into())));
+    // 0--0 then alone covers m(0): taken, though not essential.
+    assert_eq!((chart.taken.len(), chart.essential.len()), (4, 3));
+    // m(0) and m(1) under the same rows: the later column goes.
+    let (chart, _) = chart_of(r"\sum m(0, 1, 4, 5, 6, 7, 8, 9, 10, 11)", "A B C D");
+    assert!(chart.reductions.contains(&Reduction::ColumnDominates { column: 1, over: 0 }));
+    assert_eq!((chart.columns_left.clone(), chart.rows_left.len()), (vec![0], 2));
+    assert!(chart.columns_left.iter().all(|c| !chart.rows_over(*c).is_empty()));
+}
+
