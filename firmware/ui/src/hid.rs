@@ -12,8 +12,8 @@ const SHIFT: u8 = 0x02 | 0x20;
 const ALT_GR: u8 = 0x40;
 
 /// How long a key is held before it repeats, and how often it then repeats, in ms.
-pub const REPEAT_DELAY: u64 = 500;
-pub const REPEAT_RATE: u64 = 50;
+pub const REPEAT_DELAY: u64 = 600;
+pub const REPEAT_RATE: u64 = 100;
 
 /// The key for a pressed key's usage ID (HID usage table, page 7) with the report's modifiers.
 pub fn key(usage: u8, modifiers: u8) -> Option<Key> {

@@ -38,6 +38,10 @@ script's stack and the heap.
 settings, the menu entry selected, and the input and the entry shown with its result and view.
 With the keys sent over the serial line, the board can be tested without looking at it.
 
+`QUANTUS_USB_DEBUG=1` logs every report of the USB keyboard (its eight bytes, with the time in
+ms) and every key it gives, repeats included: to tell a keyboard that sends a key twice from the
+key repeat.
+
 The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 
 ```sh
@@ -66,7 +70,7 @@ Delete clears like AC, F5 is OK and Shift+F1–F12 are the soft keys (as a termi
 A USB keyboard in the board's USB-A port types the same keys, with a German (QWERTZ) layout as
 in the simulator, F1–F12 and Shift+F1–F12 (the soft keys) included: F1–F4 are SHIFT, ALPHA, S⇔D
 and OPTN, F9 UNIT, F10 ENG, Tab is MODE, the keypad works, AltGr
-types `@`, braces, brackets, `\`, `~` and `|` for a WLAN password. The arrows and Backspace repeat while held. It is a HID boot keyboard
+types `@`, braces, brackets, `\`, `~` and `|` for a WLAN password. The arrows and Backspace repeat while held (after 600 ms, then every 100 ms). It is a HID boot keyboard
 (`src/keyboard.rs`, the layout in `firmware/ui/src/hid.rs`); one at a time, plugged in before or
 after the start, and the serial monitor keeps working beside it. Its hookup is in
 [dev-kit.md](../docs/dev-kit.md#usb-keyboard).

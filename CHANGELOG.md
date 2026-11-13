@@ -110,6 +110,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - In the handheld simulator F9 and F10 are UNIT and ENG, as its key table says; charging and the
   busy spinner moved to Ctrl+F9 and Ctrl+F10. A USB keyboard on the handheld types UNIT and ENG
   with F9 and F10 too.
+- A USB keyboard on the handheld repeats the arrows and Backspace after 600 ms and then every
+  100 ms, instead of after 500 ms and every 50 ms: a slightly long tap on Backspace deleted
+  several characters.
 
 ### Changed
 

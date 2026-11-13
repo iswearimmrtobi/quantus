@@ -24,6 +24,9 @@ const POLL_MS: u32 = 10;
 const SET_IDLE: u8 = 0x0A;
 const SET_PROTOCOL: u8 = 0x0B;
 
+/// Build with `QUANTUS_USB_DEBUG=1` to log every report and every key it gives, with the time.
+const DEBUG: bool = option_env!("QUANTUS_USB_DEBUG").is_some();
+
 /// Starts the USB host and the keyboard driver; keys go to `keys`. Without a keyboard, or if the
 /// USB host does not start, it only logs.
 pub fn start(keys: Sender<Key>) {
@@ -146,6 +149,9 @@ fn run(keys: Sender<Key>) -> Result<(), EspError> {
         driver.close_when_idle();
         let now = driver.now();
         if let Some(key) = driver.keyboard.tick(now) {
+            if DEBUG {
+                log::info!("usb {now} ms: repeat {key:?}");
+            }
             let _ = driver.keys.send(key);
         }
     }
@@ -369,8 +375,14 @@ unsafe extern "C" fn report_done(transfer: *mut sys::usb_transfer_t) {
     }
     match status {
         sys::usb_transfer_status_t_USB_TRANSFER_STATUS_COMPLETED => {
+            if DEBUG {
+                log::info!("usb {now} ms: report {bytes:02x?}");
+            }
             if let Some(report) = Report::parse(bytes) {
                 for key in driver.keyboard.report(report, now) {
+                    if DEBUG {
+                        log::info!("usb {now} ms: key {key:?}");
+                    }
                     let _ = driver.keys.send(key);
                 }
             }
