@@ -130,6 +130,10 @@ impl Lexer<'_> {
             // `▶`, the conversion arrow.
             tokens.push(Token { kind: TokenType::Command, text: "\\blacktriangleright".to_string(), position: self.index, end: 0 });
             self.index += 1;
+        } else if c == '\u{221e}' {
+            // `∞` reads like `\infty`.
+            tokens.push(Token { kind: TokenType::Command, text: "\\infty".to_string(), position: self.index, end: 0 });
+            self.index += 1;
         } else if c == '\u{2109}' {
             tokens.push(Token { kind: TokenType::Identifier, text: "°F".to_string(), position: self.index, end: 0 });
             self.index += 1;
@@ -272,6 +276,9 @@ impl Lexer<'_> {
                 _ => "|",
             };
             Some(Token { kind: TokenType::Pipe, text: text.to_string(), position: start, end: 0 })
+        } else if text == "\\infin" {
+            // MathLive's other spelling of infinity.
+            Some(Token { kind: TokenType::Command, text: "\\infty".to_string(), position: start, end: 0 })
         } else if text == "\\AA" {
             Some(Token { kind: TokenType::Identifier, text: "\u{c5}".to_string(), position: start, end: 0 })
         } else if GREEK_COMMANDS.contains(&text.as_str()) {
@@ -348,6 +355,13 @@ mod tests {
         let tokens = texts("\\omega\\frac");
         assert_eq!(tokens[0], (TokenType::Identifier, "\\omega".to_string()));
         assert_eq!(tokens[1], (TokenType::Command, "\\frac".to_string()));
+    }
+
+    #[test]
+    fn infinity_has_one_spelling() {
+        for source in ["\\infty", "\\infin", "\u{221e}"] {
+            assert_eq!(texts(source)[0], (TokenType::Command, "\\infty".to_string()), "{source}");
+        }
     }
 
     #[test]

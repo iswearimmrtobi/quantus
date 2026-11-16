@@ -178,7 +178,7 @@ pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<
     let var = p.var.as_str();
     let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral"));
     let enter_bounds = || QuantusError::other(msg!("core.analysis.tasks.please_enter_bounds"));
-    let infinite = |bound: Option<&str>| bound.is_some_and(|b| b.contains("\\infty") || b.contains('∞'));
+    let infinite = |bound: Option<&str>| bound.is_some_and(|b| b.contains("\\infty") || b.contains("\\infin") || b.contains('∞'));
     if infinite(from) || infinite(to) {
         return Err(improper());
     }
