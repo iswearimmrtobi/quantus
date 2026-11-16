@@ -153,8 +153,16 @@ impl<'a> Evaluator<'a> {
             Node::Power { base, exponent, .. } => self.evaluate(base)?.pow(&self.evaluate(exponent)?),
             Node::Root { radicand, degree, .. } => {
                 let degree = self.degree(degree.as_deref())?;
-                let reciprocal = PhysicalQuantity::dimensionless(Value::Rat(RBig::from_parts(IBig::ONE, degree)));
-                self.evaluate(radicand)?.pow(&reciprocal)
+                let even = &degree % UBig::from(2u8) == UBig::ZERO;
+                let reciprocal = Value::Rat(RBig::from_parts(IBig::ONE, degree.clone()));
+                let radicand = self.evaluate(radicand)?;
+                let reciprocal_quantity = PhysicalQuantity::dimensionless(reciprocal.clone());
+                if self.complex() && even && !radicand.value.contains_imaginary() && radicand.value.is_negative()? {
+                    // The principal root: ⁿ√(-a) = ⁿ√a · e^{iπ/n} = ⁿ√a · i^{2/n}.
+                    let turn = Value::I.pow(&reciprocal.mul(&Value::int(2)))?;
+                    return Ok(radicand.neg().pow(&reciprocal_quantity)?.mul(&PhysicalQuantity::dimensionless(turn)));
+                }
+                radicand.pow(&reciprocal_quantity)
             }
             Node::Binary { operator, left, right: right_node, .. } => {
                 let left = self.evaluate(left)?;
