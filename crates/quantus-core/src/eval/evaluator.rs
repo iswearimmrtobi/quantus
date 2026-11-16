@@ -874,7 +874,7 @@ impl<'a> Evaluator<'a> {
 
         let mut scope = self.variables.clone();
         let mut unit = None;
-        let mut samples = Vec::new();
+        let (mut real, mut imaginary) = (Vec::new(), Vec::new());
         for exponent in [digits + 5, digits + 4] {
             for direction in directions {
                 let x = match infinite {
@@ -890,32 +890,30 @@ impl<'a> Evaluator<'a> {
                     }
                     Some(u) => y.to(u)?,
                 };
-                samples.push(y.value.decimal(working)?.to_rational());
+                // In Imaginary mode a sample can be complex: its parts settle separately.
+                let (re, im) = match y.value.re_im() {
+                    Some((re, im)) if self.complex() && y.value.contains_imaginary() => (re, im),
+                    _ => (y.value.clone(), Value::zero()),
+                };
+                real.push(re.decimal(working)?.to_rational());
+                imaginary.push(im.decimal(working)?.to_rational());
             }
         }
 
-        let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits.saturating_sub(5)));
-        let reference = samples[0].clone();
-        let scale = reference.clone().abs().max(RBig::ONE);
-        if samples.iter().any(|s| (s.clone() - &reference).abs() > &tolerance * &scale) {
+        let settled = |samples: &[RBig]| settle(samples, digits);
+        let (Some(re), Some(im)) = (settled(&real), settled(&imaginary)) else {
             return Err(QuantusError::other(if side == 0 && infinite.is_none() {
                 msg!("core.eval.evaluator.limit_sides_disagree")
             } else {
                 msg!("core.eval.evaluator.limit_does_not_settle")
             }));
-        }
-        let mean = samples.iter().fold(RBig::ZERO, |sum, s| sum + s) / RBig::from(samples.len());
-        // Only the digits the samples agree on are kept: x ln x at 0 is 0, not -6.8·10^-53.
-        let whole_digits = scale.floor().to_string().trim_start_matches('-').len() as i64;
-        let quantum_exponent = whole_digits - 1 - digits.saturating_sub(5) as i64;
-        let quantum = if quantum_exponent >= 0 {
-            RBig::from(IBig::from(10).pow(quantum_exponent as usize))
-        } else {
-            RBig::from_parts(IBig::ONE, UBig::from(10u8).pow((-quantum_exponent) as usize))
         };
-        let half = RBig::from_parts(IBig::ONE, UBig::from(2u8));
-        let rounded = RBig::from((&mean / &quantum + half).floor()) * &quantum;
-        let value = Value::from_decimal(&Value::Rat(rounded).decimal(digits)?);
+        let value = Value::from_decimal(&Value::Rat(re).decimal(digits)?);
+        let value = if im == RBig::ZERO {
+            value
+        } else {
+            value.add(&Value::from_decimal(&Value::Rat(im).decimal(digits)?).mul(&Value::I))
+        };
         Ok(PhysicalQuantity::new(value, unit.unwrap_or(crate::units::Unit::ONE)))
     }
 
@@ -938,6 +936,28 @@ impl<'a> Evaluator<'a> {
             ))),
         }
     }
+}
+
+/// What a limit's samples (of one real part) settle on: their mean, rounded to the digits they
+/// agree on; none when they disagree, which also rules out a limit that diverges.
+fn settle(samples: &[RBig], digits: usize) -> Option<RBig> {
+    let tolerance = RBig::from_parts(IBig::ONE, UBig::from(10u8).pow(digits.saturating_sub(5)));
+    let reference = samples[0].clone();
+    let scale = reference.clone().abs().max(RBig::ONE);
+    if samples.iter().any(|s| (s.clone() - &reference).abs() > &tolerance * &scale) {
+        return None;
+    }
+    let mean = samples.iter().fold(RBig::ZERO, |sum, s| sum + s) / RBig::from(samples.len());
+    // Only the digits the samples agree on are kept: x ln x at 0 is 0, not -6.8·10^-53.
+    let whole_digits = scale.floor().to_string().trim_start_matches('-').len() as i64;
+    let quantum_exponent = whole_digits - 1 - digits.saturating_sub(5) as i64;
+    let quantum = if quantum_exponent >= 0 {
+        RBig::from(IBig::from(10).pow(quantum_exponent as usize))
+    } else {
+        RBig::from_parts(IBig::ONE, UBig::from(10u8).pow((-quantum_exponent) as usize))
+    };
+    let half = RBig::from_parts(IBig::ONE, UBig::from(2u8));
+    Some(RBig::from((&mean / &quantum + half).floor()) * &quantum)
 }
 
 /// `Some(1)` for `\\infty` (also `+\\infty`), `Some(-1)` for `-\\infty`.
