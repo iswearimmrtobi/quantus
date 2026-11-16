@@ -134,9 +134,16 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Settings for the Logic mode: the notation ($A \land \lnot B$ or $A \cdot \overline{B}$), the
   gate symbols (IEC or ANSI), NAND and NOR from 2-input gates only, and 0s shown or left empty
   in the table and KV diagram.
+- `\infin` and `∞` mean infinity, like `\infty`.
+- Limits can have complex values in Imaginary mode: `\lim_{x\to\infty}\sqrt[x]{i}` is 1.
+- In Imaginary mode an even root of a negative number is the principal root:
+  `\sqrt[4]{-16}` is `√2 + √2 i`.
 
 ### Fixed
 
+- A root's degree can be any positive whole number, so `\lim_{x\to\infty}\sqrt[x]{2}` is 1
+  instead of the error *The degree of a root must be a positive whole number, but was
+  '10000000000'.*
 - Unit errors and the quantity next to a result are named in the language set: in German
   `m (Länge) und s (Zeit)` instead of `m (length) und s (time)`, and *Kraft* instead of *force*.
 - In the handheld simulator F9 and F10 are UNIT and ENG, as its key table says; charging and the
