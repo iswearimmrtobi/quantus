@@ -153,7 +153,8 @@ impl<'a> Evaluator<'a> {
             Node::Power { base, exponent, .. } => self.evaluate(base)?.pow(&self.evaluate(exponent)?),
             Node::Root { radicand, degree, .. } => {
                 let degree = self.degree(degree.as_deref())?;
-                self.evaluate(radicand)?.root(degree)
+                let reciprocal = PhysicalQuantity::dimensionless(Value::Rat(RBig::from_parts(IBig::ONE, degree)));
+                self.evaluate(radicand)?.pow(&reciprocal)
             }
             Node::Binary { operator, left, right: right_node, .. } => {
                 let left = self.evaluate(left)?;
@@ -910,8 +911,10 @@ impl<'a> Evaluator<'a> {
         Ok(PhysicalQuantity::new(value, unit.unwrap_or(crate::units::Unit::ONE)))
     }
 
-    fn degree(&self, degree: Option<&Node>) -> Result<u32> {
-        let Some(degree) = degree else { return Ok(2) };
+    /// A root's degree: a positive whole number of any size, so that a limit at ∞ can sample
+    /// `\\sqrt[x]{…}` at x = 10^k.
+    fn degree(&self, degree: Option<&Node>) -> Result<UBig> {
+        let Some(degree) = degree else { return Ok(UBig::from(2u8)) };
         let quantity = self.evaluate(degree)?;
         if !quantity.is_dimensionless() {
             return Err(QuantusError::other(
@@ -919,8 +922,10 @@ impl<'a> Evaluator<'a> {
             ));
         }
         let value = quantity.dimensionless_value()?;
-        match value.to_i64() {
-            Some(n) if n > 0 && n <= i64::from(u32::MAX) => Ok(n as u32),
+        match value.as_rational() {
+            Some(n) if *n.denominator() == UBig::ONE && *n.numerator() > IBig::ZERO => {
+                Ok(UBig::try_from(n.numerator().clone()).expect("positive"))
+            }
             _ => Err(QuantusError::other(msg!("core.eval.evaluator.root_degree_whole"
             ))),
         }
@@ -1071,6 +1076,10 @@ mod tests {
         assert!(with_unit.to_string().contains("plain number"));
         let zero = eval("\\sqrt[0]{4}", &Variables::new()).unwrap_err();
         assert!(zero.to_string().contains("positive whole number, but was '0'"));
+        let huge = eval("\\sqrt[10000000000]{2}", &Variables::new()).unwrap();
+        assert_eq!(huge.decimal(10).unwrap().to_plain_string(), "1");
+        let limit = eval("\\lim_{x\\to\\infin}\\sqrt[x]{2}", &Variables::new()).unwrap();
+        assert_eq!(limit.decimal(10).unwrap().to_plain_string(), "1");
     }
 }
 
