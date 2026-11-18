@@ -16,12 +16,16 @@ $\vec{a}$ and a variable $a$ can all exist at once. Inputs are read as in
 
 ## The page
 
-Switch to **Geometry** in the top bar. From top to bottom the page has:
+Switch to **Geometry** in the top bar. The objects are in a **sidebar** on the left, and the
+**3D view** fills the rest of the window. The sidebar has, from top to bottom:
 
-1. a line to **type** an object with its name,
-2. the **3D view** of the scene,
-3. the **objects**, each as a form,
-4. the **task** with its answer and steps.
+1. a line to **type** an object with its name, and **+** to add one with a form,
+2. the **objects**, one row each,
+3. the **task** with its answer and steps.
+
+Drag the sidebar's right edge to make it wider or narrower (240 to 600 pixels; the width is
+kept). **«** folds it to a thin strip, so the view gets the whole window; **»** opens it again.
+In a narrow window the sidebar sits above the view.
 
 The scene and the task are kept when you switch to another mode and back, and saved with the
 session.
@@ -29,12 +33,17 @@ session.
 ## The 3D view
 
 The view draws every object in its own colour, with its name; the object rows use the same
-colour. Planes are cut off at a box around the scene and drawn translucent, lines are clipped to
-it, vectors are arrows from the origin, spheres have rings of latitude and longitude.
+colour, and an object keeps it when another one is hidden or removed. Planes are cut off at a
+box around the scene and drawn translucent, lines are clipped to it, vectors are arrows from
+the origin, spheres have rings of latitude and longitude.
 
 - Drag to turn the scene, scroll to zoom.
 - **View from above** looks down the z-axis, which is the view for a 2D scene.
 - **Reset** goes back to the start view.
+- Hover over a row in the sidebar and its object is drawn stronger while the others fade.
+- Click an object in the view (its point, line, plane or name) and its row opens in the
+  sidebar. <kbd>Ctrl</kbd> + click (<kbd>⌘</kbd> on a Mac) selects it for a task instead; see
+  [Tasks](tasks.md#picking-a-task-from-the-objects).
 
 ## What is refused
 

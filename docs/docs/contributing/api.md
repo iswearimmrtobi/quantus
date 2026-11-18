@@ -130,7 +130,7 @@ is [`design/geometry.md`](https://github.com/iswearimmrtobi/quantus/blob/master/
 | Command | Arguments | Returns |
 |---|---|---|
 | `geometry` | `{ request: { scene: { objects[] }, task? } }` | `{ objects: { name, kind, latex, steps[], error? }[], task?: { result[], relation?, steps[], alignBlock, error? } }` |
-| `geometry_view` | `{ request: { scene, yaw, pitch, zoom, hatch } }` | `{ primitives[], objects: { name, kind }[], camera, bounds }` |
+| `geometry_view` | `{ request: { scene, yaw, pitch, zoom, hatch } }` | `{ primitives[], objects: { name, kind, index }[], camera, bounds }` |
 
 The objects are built in order, so a later one can name an earlier point or vector. Each is
 `{ name, kind, … }` with `kind` one of `point { at }`, `vector { value }`,
@@ -140,7 +140,8 @@ The objects are built in order, so a later one can name an earlier point or vect
 `circle { centre, radius, normal? }`, `circleCut { sphere, plane }` or `typed { latex }` (one line
 with the name in it, such as `g: X = A + \lambda \vec{u}`). A point or vector entry is an array of
 two or three LaTeX cells or one LaTeX string (`"A"`, `"B - A"`, `"(1|2|3)"`); numbers are LaTeX
-strings.
+strings. `hidden: true` builds an object, so later ones can use it, but leaves it out of the view
+and its box; it is left out of the JSON when false.
 
 ```json
 { "scene": { "objects": [
@@ -163,7 +164,8 @@ fails has its `error` and leaves the rest standing.
 `segment { from, to, depth, stroke, object? }` (`stroke` `axis`, `tick`, `object`, `hatch` or
 `hidden`), `polygon { points, depth, object }`, `marker { at, depth, object }` and
 `label { at, depth, text, object? }`, in coordinates where the box fits the unit circle. `object`
-is an index into `objects`. `yaw` and `pitch` are in radians; `zoom` 1 shows the whole box.
+is an index into `objects`, the objects drawn; each has `index`, its place in the scene (hidden
+objects and those that failed are counted), which also gives its colour. `yaw` and `pitch` are in radians; `zoom` 1 shows the whole box.
 
 ## Sessions
 

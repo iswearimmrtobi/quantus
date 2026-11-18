@@ -30,6 +30,7 @@ Effort: S = an hour or two, M = a day, L = several days.
 | Rewrite pictures | `LogicTask::Draw { from_expression }` draws the rewrite of a typed or traced expression (NAND/NOR forms only) |
 | The Gates card's choice | Kept in the scene's `editor` data (`gates: { [output]: { form, fromExpression } }`), no core field |
 | The task's answer in 3D | Drawn by the core (`ViewRequest.task`), highlighted in the view |
+| Docs screenshots | None; the docs have no screenshots anywhere, Phase 3 is described in text |
 | Object colours | By the object's place in the scene (`ViewObject.index`), not among those drawn, so hiding one or a broken one recolours none |
 
 ---
@@ -247,9 +248,10 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 
 ### 3.6 Docs and changelog (S)
 
-- [ ] `docs/docs/guides/geometry.md` (or wherever the mode is described): new screenshots, the
-  sidebar, hiding, selecting, picking tasks.
-- [ ] CHANGELOG `[Unreleased]` → Changed: the Geometry mode's layout.
+- [x] `docs/docs/guides/geometry/` (`index.md`, `objects.md`, `tasks.md`): the sidebar, hiding,
+  selecting, picking tasks; `contributing/api.md`: `hidden` and `index`. No screenshots: the docs
+  have none anywhere.
+- [x] CHANGELOG `[Unreleased]` → Changed: the Geometry mode's layout.
 
 ---
 

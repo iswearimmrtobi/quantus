@@ -7,11 +7,29 @@ title: Objects
 
 An object in [Geometry](index.md) mode is added with a form or typed on one line.
 
+## The rows
+
+Every object is one row in the sidebar: a dot in its colour, the object as the engine read it,
+such as
+$g: \vec{x} = \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} + \lambda \begin{pmatrix} 2 \\ 2 \\ 0 \end{pmatrix}$,
+or its name and why it could not be built, in red. At the end of the row:
+
+- the **eye** hides the object in the view. A hidden object is still built, so a line through a
+  hidden point is drawn, and tasks can use it; the view's box leaves it out. Its row is greyed;
+  the eye again shows it.
+- **×** removes the object.
+
+Click a row to open its form under it; only one row is open at a time, and a click on the row
+or <kbd>Esc</kbd> closes it. The open row also has **Up** and **Down**: the objects are built in
+the order of the list, so an object that uses another must come after it. Moved before it, it
+shows the error that the other object is not in the scene.
+
 ## Adding objects with a form
 
-The buttons after **Add** create a **Point**, **Vector**, **Line**, **Plane**, **Sphere** or
-**Circle** with the next free name ($A, B, \dots$ for points, $g, h, \dots$ for lines,
-$E, F, \dots$ for planes). The switch at the start of a row chooses how the object is given:
+**+** beside the typed line opens a menu with **Point**, **Vector**, **Line**, **Plane**,
+**Sphere** and **Circle**. Each adds that object with the next free name ($A, B, \dots$ for
+points, $g, h, \dots$ for lines, $E, F, \dots$ for planes) and opens its row. The switch at the
+top of the open row chooses how the object is given:
 
 | Object | Given by |
 |---|---|
@@ -27,13 +45,11 @@ $E, F, \dots$ for planes). The switch at the start of a row chooses how the obje
 - The small button beside a point or vector (**A**) swaps the cells for one field that takes a
   name or an expression of the scene: `A`, `\vec{u}`, `B - A`, `(1|2|3)`. Click it again
   (**( | )**) for the cells.
-- The name field can be changed; **×** removes the object.
+- The name field can be changed.
 
-Under each row the engine writes the object as it read it, such as
-$g: \vec{x} = \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} + \lambda \begin{pmatrix} 2 \\ 2 \\ 0 \end{pmatrix}$,
-or why it could not be built. A construction that takes some working (a line through two points,
-a sphere through four) shows its steps there too. An object that fails is left out of the view
-and the tasks; the others still work.
+A construction that takes some working (a line through two points, a sphere through four) shows
+its steps in the open row. An object that fails is left out of the view and the tasks; the
+others still work.
 
 ## Typing objects
 

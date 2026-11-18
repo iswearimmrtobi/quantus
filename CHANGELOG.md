@@ -166,6 +166,17 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   digit outside the base names the base in the language set (*'12' is not a binary number.*).
 - Improper integrals of exponentials (`\int_0^{\infty} e^{-2x}\,dx`, `\int_{-\infty}^{\infty} e^{-x^2}\,dx`)
   are about four times faster, 0.2–0.3 s instead of about a second.
+- Desktop, Geometry: the objects are in a sidebar on the left and the 3D view fills the rest of
+  the window. The sidebar's width can be dragged (and is kept), and it folds to a thin strip.
+  Each object is one compact row (its colour, the object as built or its error, an eye and ×); a
+  click opens its form in place, one at a time, with buttons to move it up or down. **+** beside
+  the typed line adds a point, vector, line, plane, sphere or circle. The eye hides an object
+  from the view: it is still built, so others can use it, and the view's box leaves it out
+  (`hidden` on the scene object, kept in the session). Hovering a row highlights its object in
+  the view; a click on an object in the view opens its row. One object, or two Ctrl-clicked,
+  offer the tasks that fit them, and the task's second choice lists only objects that go with
+  the first. An object keeps its colour when another one is hidden or fails, and the answer's
+  last line is no longer repeated at the end of its steps.
 
 ## [0.2.0] - 2026-11-06
 

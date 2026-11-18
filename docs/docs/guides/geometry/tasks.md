@@ -6,14 +6,16 @@ title: Tasks
 # Tasks
 
 Pick two objects of the [Geometry](index.md) page and a task: the answer is worked out exactly, with the steps.
+The task sits at the foot of the sidebar.
 
 ## Tasks
 
-Choose a task, then the objects it works on. The choices offer only objects that fit.
+Choose a task, then the objects it works on. The choices offer only objects that fit; the
+second offers only those that go with the first (for a distance from a sphere, only points).
 
 | Task | Objects | Answer |
 |---|---|---|
-| **Relation** | any two | how they lie, and what comes with it (below) |
+| **Relation** | two of points, lines, planes, spheres and circles (the pairs below) | how they lie, and what comes with it (below) |
 | **Distance** | points, lines, planes, spheres | the distance |
 | **Angle** | vectors, lines, planes | the angle |
 | **Foot of the perpendicular** | a point onto a line or plane | the foot $F$ |
@@ -24,7 +26,17 @@ Choose a task, then the objects it works on. The choices offer only objects that
 | **Length, area, volume** | a vector, sphere or circle | length; surface or volume; circumference or area |
 | **Expression** | the scene's points and vectors | the value of an expression |
 
-The relations:
+## Picking a task from the objects
+
+Open an object's row, or select two objects with <kbd>Ctrl</kbd> + click (<kbd>⌘</kbd> on a Mac)
+on their rows or in the view, and the task shows the tasks that fit them under **For the
+selection:**. One click sets the task with these objects, in the order it takes them: a point
+and a plane give **Relation**, **Distance**, **Foot of the perpendicular** and **Reflection**;
+two lines **Relation**, **Distance** and **Angle**; a sphere alone **Length, area, volume**.
+A third object selected takes the place of the first; <kbd>Ctrl</kbd> + click on a selected one
+takes it out.
+
+## The relations
 
 | Objects | Results |
 |---|---|
