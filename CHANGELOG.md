@@ -136,8 +136,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   a bar above the canvas and in the middle of an empty one, lays the circuit out on the grid, its
   input buses in the order that makes the fewest wires cross;
   **Arrange** lays a drawn one out afresh. A drawn circuit that no longer fits the function is
-  marked *out of date* with the rows that differ. **Full screen** lets the editor fill the window
-  (<kbd>Esc</kbd> leaves). A bar under the canvas shows the gates, the levels, the
+  marked *out of date* with the rows that differ. A bar under the canvas shows the gates, the levels, the
   delay in $t_{pd}$ or as a time, and the critical path, marked dashed in red in the circuit at a click. The circuit
   saves as SVG and PNG, the scene as a `.quantus-logic.json` file, and the write-up (Ctrl+G)
   takes each output's KV diagram, minimal forms and NAND and NOR forms.
@@ -188,7 +187,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Desktop, the circuit editors (Electronics, Kirchhoff, Logic): scrolling zooms about the
   pointer, and Shift and scrolling moves the canvas. Buttons in the canvas's top left corner zoom
   out, back to 100 % and in and fit the whole drawing; <kbd>+</kbd>, <kbd>-</kbd> and <kbd>0</kbd>
-  do the same on the canvas. Before, only Ctrl and scrolling zoomed.
+  do the same on the canvas. Before, only Ctrl and scrolling zoomed. The last button, ⤢, lets the
+  editor fill the window (<kbd>Esc</kbd> leaves); in the Logic mode the output tabs come along.
 
 ## [0.2.0] - 2026-11-06
 

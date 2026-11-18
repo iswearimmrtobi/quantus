@@ -203,12 +203,14 @@ A truth table with several output columns gave one circuit per output in the Gat
   one it only chooses what **Draw from** draws.
 - [x] Docs (`logic/results.md`, `logic/editor.md`), CHANGELOG (the Logic entry).
 
-### 2.6 The Logic editor in full screen (S)
+### 2.6 The circuit editors in full screen (S)
 
-- [x] **Full screen** in the editor's toolbar: the frame, put into the page's body, fills the
-  window over the app (under its dialogs), with the output tabs in the toolbar. **Exit full
-  screen** or Esc leaves (Esc clears a selection first); switching to another tab or mode leaves too.
-- [x] Texts `app.logic.editor.fullscreen*`, docs (`logic/editor.md`), CHANGELOG.
+- [x] `useFullscreen` (`Schematic.tsx`): the editor, put into the page's body, fills the window
+  over the app (under its dialogs). Its switch ⤢/⤡ is the last of the zoom controls, in the
+  Logic, Electronics and Kirchhoff editors. Esc leaves (it clears a selection first); in Logic the
+  output tabs move into the toolbar, and the Table & KV tab or another mode leaves too.
+- [x] Texts `app.schematic.fullscreen*`, docs (`logic/editor.md`, `electronics.md`,
+  `kirchhoff/index.md`), CHANGELOG.
 
 ---
 

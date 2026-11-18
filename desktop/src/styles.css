@@ -1611,6 +1611,14 @@ select option {
   grid-template-rows: minmax(0, 1fr);
   height: 100%;
 }
+/* The Electronics and Kirchhoff editor filling the window, over the app but under its dialogs. */
+.circuit.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  height: auto;
+  background: var(--background);
+}
 .circuit-centre {
   display: flex;
   flex-direction: column;
@@ -1707,6 +1715,9 @@ select option {
 }
 .zoom-button + .zoom-button {
   border-left: 1px solid var(--hairline);
+}
+.zoom-button.active {
+  color: var(--accent);
 }
 .zoom-button:hover {
   color: var(--text);
@@ -3161,9 +3172,6 @@ select option {
 }
 .logic-draw .logic-output-tabs {
   margin-left: 8px;
-}
-.logic-fullscreen {
-  margin-left: auto;
 }
 .logic-editor .circuit-palette {
   padding: 10px 8px;

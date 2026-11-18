@@ -4,9 +4,11 @@ import {
   useId,
   useState,
   type CSSProperties,
+  type ReactNode,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { useT } from '../i18n';
 import type { Placement } from '../labelLayout';
 import {
@@ -170,8 +172,31 @@ export function zoomKey(event: { key: string; ctrlKey: boolean; metaKey: boolean
   return true;
 }
 
-/** −, the zoom in percent (a click goes back to 100 %), + and Fit, in the canvas's corner. */
-export function ZoomControls({ view, fit }: { view: ReturnType<typeof useCanvasView>; fit(): void }) {
+/**
+ * An editor filling the window: `portal` puts it into the page's body while `full`, so that nothing
+ * of the app is drawn over it. Esc leaves, unless the editor used it (to clear a selection).
+ */
+export function useFullscreen() {
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) setFull(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [full]);
+  const portal = (editor: ReactNode) => (full ? createPortal(editor, document.body) : editor);
+  return { full, setFull, portal };
+}
+
+export type Fullscreen = ReturnType<typeof useFullscreen>;
+
+/**
+ * −, the zoom in percent (a click goes back to 100 %), + and Fit, in the canvas's corner, and the
+ * full-screen switch when the editor has one.
+ */
+export function ZoomControls({ view, fit, fullscreen }: { view: ReturnType<typeof useCanvasView>; fit(): void; fullscreen?: Fullscreen }) {
   const { t } = useT();
   return (
     <div className="zoom-controls" onPointerDown={(event) => event.stopPropagation()}>
@@ -187,6 +212,17 @@ export function ZoomControls({ view, fit }: { view: ReturnType<typeof useCanvasV
       <button className="zoom-button" title={t('schematic.fit')} onClick={fit}>
         {t('schematic.fit.short')}
       </button>
+      {fullscreen && (
+        <button
+          className={fullscreen.full ? 'zoom-button active' : 'zoom-button'}
+          title={t(fullscreen.full ? 'schematic.fullscreen.exit' : 'schematic.fullscreen')}
+          aria-label={t(fullscreen.full ? 'schematic.fullscreen.exit' : 'schematic.fullscreen')}
+          aria-pressed={fullscreen.full}
+          onClick={() => fullscreen.setFull(!fullscreen.full)}
+        >
+          {fullscreen.full ? '⤡' : '⤢'}
+        </button>
+      )}
     </div>
   );
 }

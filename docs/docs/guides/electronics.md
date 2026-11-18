@@ -38,7 +38,8 @@ connected there.
 Scrolling zooms about the pointer; the canvas moves with the right or middle mouse button or
 with <kbd>Shift</kbd> and scrolling. The buttons in the canvas's top left corner zoom out, back to
 100 % and in, and **Fit** shows the whole circuit; on the canvas <kbd>+</kbd>, <kbd>-</kbd> and
-<kbd>0</kbd> do the same. <kbd>Home</kbd> goes back to the start.
+<kbd>0</kbd> do the same. <kbd>Home</kbd> goes back to the start. The last of those buttons, ⤢,
+lets the editor fill the window; ⤡ or <kbd>Esc</kbd> (when nothing is selected) goes back.
 
 **Load** and **Save** under *File* read and write the circuit as a `.json` file. The Kirchhoff
 mode uses the same files, see [Kirchhoff](kirchhoff/index.md); the format is in

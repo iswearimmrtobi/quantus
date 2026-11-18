@@ -28,7 +28,7 @@ import { boundsOf } from '../schematic';
 import { useT } from '../i18n';
 import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../labelLayout';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey } from './Schematic';
+import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey, useFullscreen } from './Schematic';
 
 type ElementResult = CircuitResponse['elements'][number];
 
@@ -199,7 +199,8 @@ export function CircuitEditor({
       tiltSelected();
     } else if (event.key === ' ' || event.key.toLowerCase() === 'r') {
       rotateSelected();
-    } else if (event.key === 'Escape') {
+    } else if (event.key === 'Escape' && selection.length) {
+      // With nothing selected, Esc is left to the full-screen view.
       setSelection([]);
     } else if (event.key === 'Home') {
       setView(HOME);
@@ -210,9 +211,10 @@ export function CircuitEditor({
   };
 
   const chosen = elements.find((e) => e.id === selected) ?? null;
+  const fullscreen = useFullscreen();
 
-  return (
-    <div className="circuit">
+  return fullscreen.portal(
+    <div className={fullscreen.full ? 'circuit fullscreen' : 'circuit'}>
       <div className="circuit-palette">
         <div className="palette-title">{t('circuit.parts')}</div>
         {palette.map((kind) => (
@@ -241,7 +243,7 @@ export function CircuitEditor({
 
       <div className="circuit-centre">
       <div className="circuit-stage">
-        <ZoomControls view={canvasView} fit={fitAll} />
+        <ZoomControls view={canvasView} fit={fitAll} fullscreen={fullscreen} />
         <svg
           ref={canvas}
           className="circuit-canvas"

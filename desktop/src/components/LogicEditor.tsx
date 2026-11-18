@@ -28,7 +28,7 @@ import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, se
 import { pngBytes, svgBytes, type Picture } from '../picture';
 import { saveBytes } from '../shell';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey } from './Schematic';
+import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey, type Fullscreen } from './Schematic';
 
 interface Props {
   parts: LogicPart[];
@@ -57,6 +57,8 @@ interface Props {
   path?: string[];
   /** Changed to show the whole drawing, as after it was drawn or arranged anew. */
   fitKey?: number;
+  /** The full-screen switch, in the zoom controls. */
+  fullscreen?: Fullscreen;
 }
 
 /**
@@ -64,7 +66,7 @@ interface Props {
  * gates on the grid of the schematic editors, joined by wires; a gate's number of inputs is set in
  * the inspector.
  */
-export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, errors = [], warnings = [], values, switchValue, onToggle, corner, note, path = [], fitKey = 0 }: Props) {
+export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, errors = [], warnings = [], values, switchValue, onToggle, corner, note, path = [], fitKey = 0, fullscreen }: Props) {
   const { t } = useT();
   const canvas = useRef<SVGSVGElement>(null);
   const canvasView = useCanvasView(canvas);
@@ -261,7 +263,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
       <div className="circuit-centre">
         {toolbar && <div className="logic-toolbar">{toolbar}</div>}
         <div className="circuit-stage">
-          <ZoomControls view={canvasView} fit={fitAll} />
+          <ZoomControls view={canvasView} fit={fitAll} fullscreen={fullscreen} />
           <svg
             ref={canvas}
             className="circuit-canvas"

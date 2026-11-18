@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import type { DrawForm, LogicScene, LogicTask, Settings } from '../api';
 import { useT, type TextKey } from '../i18n';
 import { logicTask, nameLatex, type LogicAnswer } from '../logic';
 import { drawnFrom, editorData, fromGenerated, toNetlist, withGenerated, withParts, type Generated, type LogicPart } from '../logicCircuit';
 import { Katex } from './Katex';
 import { LogicEditor } from './LogicEditor';
+import { useFullscreen } from './Schematic';
 
 interface Props {
   settings: Settings;
@@ -58,19 +58,12 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   const [taskError, setTaskError] = useState<string | null>(null);
   /** Whether the critical path is marked in the circuit; off until its button turns it on. */
   const [showPath, setShowPath] = useState(false);
-  /** Whether the editor fills the window; Esc, when it clears nothing else, leaves. */
-  const [full, setFull] = useState(false);
+  /** Whether the editor fills the window. */
+  const fullscreen = useFullscreen();
+  const full = fullscreen.full;
+  // Hidden (the other tab), it is no longer full screen.
   useEffect(() => {
-    if (!full) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !event.defaultPrevented) setFull(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [full]);
-  // Hidden (another tab, another mode), it is no longer full screen.
-  useEffect(() => {
-    if (!shown) setFull(false);
+    if (!shown) fullscreen.setFull(false);
   }, [shown]);
   /** Counts the circuits drawn or arranged anew, each shown whole. */
   const [fitKey, setFitKey] = useState(0);
@@ -161,15 +154,6 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
       <button className="form-chip logic-arrange" title={t('logic.arrange.hint')} disabled={!circuit} onClick={() => void arrange()}>
         {t('logic.arrange')}
       </button>
-      <button
-        className={full ? 'form-chip logic-fullscreen active' : 'form-chip logic-fullscreen'}
-        title={t(full ? 'logic.editor.fullscreen.leave' : 'logic.editor.fullscreen.hint')}
-        aria-pressed={full}
-        onClick={() => setFull(!full)}
-      >
-        {full ? '⤡ ' : '⤢ '}
-        {t(full ? 'logic.editor.fullscreen.exit' : 'logic.editor.fullscreen')}
-      </button>
       {full && outputTabs}
       {taskError && <p className="file-error">{taskError}</p>}
     </div>
@@ -225,12 +209,9 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
       t('logic.generated', { form: t(generatedForm.label) })
     ) : null;
 
-  // Full screen it goes to the page's body, so that nothing of the app is drawn over it.
-  const portal = (editor: ReactNode) => (full ? createPortal(editor, document.body) : editor);
-
   return (
     <section className="logic-circuit" ref={frame} hidden={!shown}>
-      {shown && portal(
+      {shown && fullscreen.portal(
         <div className={full ? 'logic-editor-frame fullscreen' : 'logic-editor-frame'}>
           <LogicEditor
             parts={parts}
@@ -247,6 +228,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
             note={note}
             path={showPath ? path : []}
             fitKey={fitKey}
+            fullscreen={fullscreen}
           />
         </div>,
       )}
