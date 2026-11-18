@@ -21,23 +21,23 @@ pub type V3 = [f64; 3];
 /// A point on the screen in view units, y up.
 pub type V2 = [f64; 2];
 
-fn sub(a: V3, b: V3) -> V3 {
+pub(crate) fn sub(a: V3, b: V3) -> V3 {
     [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 }
 
-fn add(a: V3, b: V3) -> V3 {
+pub(crate) fn add(a: V3, b: V3) -> V3 {
     [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 }
 
-fn scale(k: f64, a: V3) -> V3 {
+pub(crate) fn scale(k: f64, a: V3) -> V3 {
     [k * a[0], k * a[1], k * a[2]]
 }
 
-fn dot(a: V3, b: V3) -> f64 {
+pub(crate) fn dot(a: V3, b: V3) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 }
 
-fn cross(a: V3, b: V3) -> V3 {
+pub(crate) fn cross(a: V3, b: V3) -> V3 {
     [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 }
 
@@ -46,7 +46,7 @@ fn unit(a: V3) -> V3 {
 }
 
 /// Two unit vectors that span the plane perpendicular to `n`, with `n` a right-handed frame.
-fn frame(n: V3) -> (V3, V3) {
+pub(crate) fn frame(n: V3) -> (V3, V3) {
     let n = unit(n);
     // The axis least along n gives the most stable perpendicular.
     let axis = (0..3).min_by(|&i, &j| n[i].abs().total_cmp(&n[j].abs())).expect("three axes");
@@ -61,7 +61,8 @@ pub fn approx(value: &Value) -> Option<f64> {
     value.decimal(17).ok()?.to_string().parse().ok()
 }
 
-fn approx3(coords: &[Value; 3]) -> Option<V3> {
+/// Three exact coordinates as floats; `None` if one is not real.
+pub fn approx3(coords: &[Value; 3]) -> Option<V3> {
     Some([approx(&coords[0])?, approx(&coords[1])?, approx(&coords[2])?])
 }
 
@@ -160,6 +161,11 @@ impl Bounds {
                     take(add(*centre, [*radius; 3]));
                     take(sub(*centre, [*radius; 3]));
                 }
+                Figure::Segment { from, to, .. } => {
+                    take(*from);
+                    take(*to);
+                }
+                Figure::Angle { vertex, .. } => take(*vertex),
                 Figure::Circle { centre, radius, normal } => {
                     // Along each axis a circle reaches r · √(1 − n²) with n its unit normal.
                     let n = unit(*normal);
@@ -190,6 +196,12 @@ pub enum Figure {
     Plane { normal: V3, constant: f64, support: V3 },
     Sphere { centre: V3, radius: f64 },
     Circle { centre: V3, radius: f64, normal: V3 },
+    /// Only in a task's answer: a distance, or a perpendicular drawn dashed. Its name, if any,
+    /// goes at the middle.
+    Segment { from: V3, to: V3, dashed: bool },
+    /// Only in a task's answer: the angle at `vertex` between the directions `a` and `b`, as two
+    /// rays and an arc, their size a share of the box; its name goes beside the arc.
+    Angle { vertex: V3, a: V3, b: V3 },
 }
 
 impl Figure {
@@ -223,6 +235,20 @@ impl Figure {
 pub struct Shown {
     pub name: String,
     pub figure: Figure,
+    /// Part of a task's answer: drawn on top, its primitives marked `result`.
+    pub result: bool,
+}
+
+impl Shown {
+    /// An object of the scene.
+    pub fn object(name: impl Into<String>, figure: Figure) -> Shown {
+        Shown { name: name.into(), figure, result: false }
+    }
+
+    /// A figure of a task's answer.
+    pub fn result(name: impl Into<String>, figure: Figure) -> Shown {
+        Shown { name: name.into(), figure, result: true }
+    }
 }
 
 /// What a segment belongs to, for its style.
@@ -236,21 +262,53 @@ pub enum Stroke {
     Hatch,
     /// A ring on the far side of a sphere, hidden by it.
     Hidden,
+    /// A line of a task's answer: a distance, a tangent, the rays and arc of an angle.
+    Result,
+    /// A helper line of a task's answer, drawn dashed: the perpendicular to a foot or an image.
+    Guide,
 }
 
 /// What a shell draws. `depth` is larger nearer the viewer; `object` is the index of the
-/// figure, `None` for the axes.
+/// figure, `None` for the axes; `result` marks a part of a task's answer, left out of the JSON
+/// when false.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum Primitive {
-    Segment { from: V2, to: V2, depth: f64, stroke: Stroke, object: Option<usize> },
+    Segment {
+        from: V2,
+        to: V2,
+        depth: f64,
+        stroke: Stroke,
+        object: Option<usize>,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        result: bool,
+    },
     /// A piece of a plane or the outline of a sphere, closed, to be filled translucent or drawn
     /// as lines.
-    Polygon { points: Vec<V2>, depth: f64, object: usize },
+    Polygon {
+        points: Vec<V2>,
+        depth: f64,
+        object: usize,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        result: bool,
+    },
     /// The marker of a point.
-    Marker { at: V2, depth: f64, object: usize },
+    Marker {
+        at: V2,
+        depth: f64,
+        object: usize,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        result: bool,
+    },
     /// A name, an axis or a tick number, placed next to `at`.
-    Label { at: V2, depth: f64, text: String, object: Option<usize> },
+    Label {
+        at: V2,
+        depth: f64,
+        text: String,
+        object: Option<usize>,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        result: bool,
+    },
 }
 
 /// How the figures are drawn.
@@ -340,6 +398,29 @@ impl Primitive {
             | Primitive::Polygon { depth, .. }
             | Primitive::Marker { depth, .. }
             | Primitive::Label { depth, .. } => *depth,
+        }
+    }
+
+    /// Whether it belongs to a task's answer.
+    pub fn result(&self) -> bool {
+        match self {
+            Primitive::Segment { result, .. }
+            | Primitive::Polygon { result, .. }
+            | Primitive::Marker { result, .. }
+            | Primitive::Label { result, .. } => *result,
+        }
+    }
+
+    /// Marks it as a part of a task's answer, its lines as [`Stroke::Result`].
+    fn mark_result(&mut self) {
+        match self {
+            Primitive::Segment { result, stroke, .. } => {
+                *result = true;
+                if matches!(stroke, Stroke::Object | Stroke::Hidden) {
+                    *stroke = Stroke::Result;
+                }
+            }
+            Primitive::Polygon { result, .. } | Primitive::Marker { result, .. } | Primitive::Label { result, .. } => *result = true,
         }
     }
 }
@@ -435,7 +516,7 @@ fn tick_text(value: f64, step: f64) -> String {
 fn segment(camera: &Camera, a: V3, b: V3, stroke: Stroke, object: Option<usize>) -> Primitive {
     let (from, da) = camera.project(a);
     let (to, db) = camera.project(b);
-    Primitive::Segment { from, to, depth: (da + db) / 2.0, stroke, object }
+    Primitive::Segment { from, to, depth: (da + db) / 2.0, stroke, object, result: false }
 }
 
 /// The three axes over the box (each through the origin, reaching 0 if the box does not), with
@@ -454,7 +535,7 @@ fn axes(camera: &Camera, bounds: &Bounds, cutters: &[Cutter], out: &mut Vec<Prim
         let (end, end_depth) = camera.project(along(hi));
         let direction = [end[0] - start[0], end[1] - start[1]];
         let length = direction[0].hypot(direction[1]);
-        out.push(Primitive::Label { at: end, depth: end_depth, text: ["x", "y", "z"][axis].to_owned(), object: None });
+        out.push(Primitive::Label { at: end, depth: end_depth, text: ["x", "y", "z"][axis].to_owned(), object: None, result: false });
         // An axis seen end-on has no room for ticks.
         if length < 4.0 * TICK || hi <= lo {
             continue;
@@ -468,8 +549,8 @@ fn axes(camera: &Camera, bounds: &Bounds, cutters: &[Cutter], out: &mut Vec<Prim
                 let (at, depth) = camera.project(along(t));
                 let from = [at[0] - normal[0] / 2.0, at[1] - normal[1] / 2.0];
                 let to = [at[0] + normal[0] / 2.0, at[1] + normal[1] / 2.0];
-                out.push(Primitive::Segment { from, to, depth, stroke: Stroke::Tick, object: None });
-                out.push(Primitive::Label { at: from, depth, text: tick_text(t, step), object: None });
+                out.push(Primitive::Segment { from, to, depth, stroke: Stroke::Tick, object: None, result: false });
+                out.push(Primitive::Label { at: from, depth, text: tick_text(t, step), object: None, result: false });
             }
             k += 1;
         }
@@ -497,7 +578,7 @@ fn crossing(polygon: &[V3], normal: V3, constant: f64) -> Option<(V3, V3)> {
 fn plane_piece(camera: &Camera, polygon: &[V3], normal: V3, spacing: f64, hatch: bool, object: usize, out: &mut Vec<Primitive>) {
     let projected: Vec<(V2, f64)> = polygon.iter().map(|p| camera.project(*p)).collect();
     let depth = projected.iter().map(|(_, d)| d).sum::<f64>() / projected.len() as f64;
-    out.push(Primitive::Polygon { points: projected.iter().map(|(p, _)| *p).collect(), depth, object });
+    out.push(Primitive::Polygon { points: projected.iter().map(|(p, _)| *p).collect(), depth, object, result: false });
     if !hatch {
         return;
     }
@@ -531,11 +612,43 @@ fn polyline(camera: &Camera, points: &[V3], behind: Option<f64>, object: usize, 
     for i in 0..points.len() {
         let piece = segment(camera, points[i], points[(i + 1) % points.len()], Stroke::Object, Some(object));
         out.push(match (piece, behind) {
-            (Primitive::Segment { from, to, depth, object, .. }, Some(limit)) if depth < limit => {
-                Primitive::Segment { from, to, depth, stroke: Stroke::Hidden, object }
+            (Primitive::Segment { from, to, depth, object, result, .. }, Some(limit)) if depth < limit => {
+                Primitive::Segment { from, to, depth, stroke: Stroke::Hidden, object, result }
             }
             (piece, _) => piece,
         });
+    }
+}
+
+/// The share of the box's diagonal that the rays of an angle take, and its arc.
+const RAY: f64 = 1.0 / 6.0;
+const ARC: f64 = 1.0 / 14.0;
+/// The number of segments of an angle's arc.
+const ARC_STEPS: usize = 16;
+
+/// An angle at `vertex` between the directions `a` and `b`: two rays, an arc between them and
+/// its name beside the arc's middle.
+#[allow(clippy::too_many_arguments, reason = "the parts of one figure")]
+fn angle(camera: &Camera, vertex: V3, a: V3, b: V3, diagonal: f64, name: &str, object: usize, out: &mut Vec<Primitive>) {
+    let (a, b) = (unit(a), unit(b));
+    for direction in [a, b] {
+        out.push(segment(camera, vertex, add(vertex, scale(RAY * diagonal, direction)), Stroke::Object, Some(object)));
+    }
+    // The arc turns from a towards b in their plane, by the angle between them.
+    let total = dot(a, b).clamp(-1.0, 1.0).acos();
+    let across = sub(b, scale(dot(a, b), a));
+    let across = if dot(across, across) < 1e-24 { frame(a).0 } else { unit(across) };
+    let at = |t: f64| {
+        let (sin, cos) = (t * total).sin_cos();
+        add(vertex, scale(ARC * diagonal, add(scale(cos, a), scale(sin, across))))
+    };
+    for k in 0..ARC_STEPS {
+        let (from, to) = (at(k as f64 / ARC_STEPS as f64), at((k + 1) as f64 / ARC_STEPS as f64));
+        out.push(segment(camera, from, to, Stroke::Object, Some(object)));
+    }
+    if !name.is_empty() {
+        let (at, depth) = camera.project(add(vertex, scale(1.6, sub(at(0.5), vertex))));
+        out.push(Primitive::Label { at, depth, text: name.to_owned(), object: Some(object), result: false });
     }
 }
 
@@ -559,7 +672,7 @@ fn sphere(camera: &Camera, centre: V3, radius: f64, object: usize, out: &mut Vec
             [middle[0] + r * cos, middle[1] + r * sin]
         })
         .collect();
-    out.push(Primitive::Polygon { points, depth, object });
+    out.push(Primitive::Polygon { points, depth, object, result: false });
     for latitude in LATITUDES {
         let (sin, cos) = latitude.to_radians().sin_cos();
         let points = ring(add(centre, [0.0, 0.0, radius * sin]), radius * cos, [0.0, 0.0, 1.0]);
@@ -586,12 +699,12 @@ fn arrow(camera: &Camera, tip: V3, name: &str, object: usize, cutters: &[Cutter]
             // Back along the shaft, turned by ±30°.
             let (sin, cos) = (side * 0.5f64, 0.75f64.sqrt());
             let to = [end[0] + back[0] * cos - back[1] * sin, end[1] + back[0] * sin + back[1] * cos];
-            out.push(Primitive::Segment { from: end, to, depth, stroke: Stroke::Object, object: Some(object) });
+            out.push(Primitive::Segment { from: end, to, depth, stroke: Stroke::Object, object: Some(object), result: false });
         }
     }
     let middle = scale(0.5, tip);
     let (at, depth) = camera.project(middle);
-    out.push(Primitive::Label { at, depth, text: name.to_owned(), object: Some(object) });
+    out.push(Primitive::Label { at, depth, text: name.to_owned(), object: Some(object), result: false });
 }
 
 /// The primitives of the scene as `camera` sees it, with the axes over `bounds`: far to near,
@@ -613,18 +726,21 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Op
     let mut out = Vec::new();
     axes(camera, bounds, &cutters, &mut out);
     for (object, shown) in figures.iter().enumerate() {
+        let start = out.len();
         match &shown.figure {
             Figure::Point(p) => {
                 let (at, depth) = camera.project(*p);
-                out.push(Primitive::Marker { at, depth, object });
-                out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
+                out.push(Primitive::Marker { at, depth, object, result: false });
+                if !shown.name.is_empty() {
+                    out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object), result: false });
+                }
             }
             Figure::Vector(tip) => arrow(camera, *tip, &shown.name, object, &cutters, &mut out),
             Figure::Line { support, direction } => {
                 if let Some((a, b)) = bounds.clip(*support, *direction) {
                     segments(camera, a, b, Stroke::Object, Some(object), &cutters, &mut out);
                     let (at, depth) = camera.project(b);
-                    out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
+                    out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object), result: false });
                 }
             }
             Figure::Plane { normal, constant, .. } => {
@@ -643,26 +759,39 @@ pub fn project(figures: &[Shown], camera: &Camera, bounds: &Bounds, options: &Op
                     plane_piece(camera, piece, *normal, bounds.diagonal() / HATCHES, options.hatch, object, &mut out);
                 }
                 let (at, depth) = top_right(camera, &polygon);
-                out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
+                out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object), result: false });
             }
             Figure::Sphere { centre, radius } => {
                 sphere(camera, *centre, *radius, object, &mut out);
                 let (middle, depth) = camera.project(*centre);
                 let r = camera.zoom * radius / std::f64::consts::SQRT_2;
-                out.push(Primitive::Label { at: [middle[0] + r, middle[1] + r], depth, text: shown.name.clone(), object: Some(object) });
+                out.push(Primitive::Label { at: [middle[0] + r, middle[1] + r], depth, text: shown.name.clone(), object: Some(object), result: false });
             }
             Figure::Circle { centre, radius, normal } => {
                 let points = ring(*centre, *radius, *normal);
                 polyline(camera, &points, None, object, &mut out);
                 let (at, depth) = top_right(camera, &points);
-                out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object) });
+                out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object), result: false });
             }
+            Figure::Segment { from, to, dashed } => {
+                let stroke = if *dashed { Stroke::Guide } else { Stroke::Object };
+                out.push(segment(camera, *from, *to, stroke, Some(object)));
+                if !shown.name.is_empty() {
+                    let (at, depth) = camera.project(scale(0.5, add(*from, *to)));
+                    out.push(Primitive::Label { at, depth, text: shown.name.clone(), object: Some(object), result: false });
+                }
+            }
+            Figure::Angle { vertex, a, b } => angle(camera, *vertex, *a, *b, bounds.diagonal(), &shown.name, object, &mut out),
+        }
+        if shown.result {
+            out[start..].iter_mut().for_each(Primitive::mark_result);
         }
     }
-    // Stable, so that what lies at one depth keeps the order it was drawn in.
+    // Stable, so that what lies at one depth keeps the order it was drawn in. A task's answer
+    // goes on top of the scene, and its labels after the others.
     out.sort_by(|p, q| {
         let label = |p: &Primitive| matches!(p, Primitive::Label { .. });
-        label(p).cmp(&label(q)).then(p.depth().total_cmp(&q.depth()))
+        label(p).cmp(&label(q)).then(p.result().cmp(&q.result())).then(p.depth().total_cmp(&q.depth()))
     });
     out
 }

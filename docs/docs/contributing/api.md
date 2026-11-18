@@ -130,7 +130,7 @@ is [`design/geometry.md`](https://github.com/iswearimmrtobi/quantus/blob/master/
 | Command | Arguments | Returns |
 |---|---|---|
 | `geometry` | `{ request: { scene: { objects[] }, task? } }` | `{ objects: { name, kind, latex, steps[], error? }[], task?: { result[], relation?, steps[], alignBlock, error? } }` |
-| `geometry_view` | `{ request: { scene, yaw, pitch, zoom, hatch } }` | `{ primitives[], objects: { name, kind, index }[], camera, bounds }` |
+| `geometry_view` | `{ request: { scene, yaw, pitch, zoom, hatch, task? } }` | `{ primitives[], objects: { name, kind, index, result? }[], camera, bounds }` |
 
 The objects are built in order, so a later one can name an earlier point or vector. Each is
 `{ name, kind, … }` with `kind` one of `point { at }`, `vector { value }`,
@@ -161,11 +161,21 @@ names how two objects lie (`intersecting`, `skew`, `tangent`, `inside`, …). An
 fails has its `error` and leaves the rest standing.
 
 `geometry_view` returns the scene as 2D primitives, far to near, for the shell to draw:
-`segment { from, to, depth, stroke, object? }` (`stroke` `axis`, `tick`, `object`, `hatch` or
-`hidden`), `polygon { points, depth, object }`, `marker { at, depth, object }` and
+`segment { from, to, depth, stroke, object? }` (`stroke` `axis`, `tick`, `object`, `hatch`,
+`hidden`, `result` or `guide`), `polygon { points, depth, object }`, `marker { at, depth, object }` and
 `label { at, depth, text, object? }`, in coordinates where the box fits the unit circle. `object`
 is an index into `objects`, the objects drawn; each has `index`, its place in the scene (hidden
 objects and those that failed are counted), which also gives its colour. `yaw` and `pitch` are in radians; `zoom` 1 shows the whole box.
+
+With a `task`, its answer is drawn on top of the scene: the segment of a distance (labelled
+`d = 3` or `d ≈ 3.46`), the foot of a perpendicular, an image or a midpoint with a dashed helper
+line, the points, line or circle two objects meet in, the rays and arc of an angle (`φ ≈ …`) and a
+tangent. Its figures follow the scene's objects in `objects`, with `result: true`, their label as
+`name`, the kinds `point`, `segment`, `line`, `plane`, `circle` or `angle` and an `index` past the
+scene's end; their primitives carry `result: true` too, their lines the stroke `result` (or
+`guide` for a dashed helper line). They are sorted after the scene's, and the box takes them in.
+A task that fails, or one with nothing to draw (`convert`, `measure`, `evaluate`), draws nothing.
+`result` is left out of the JSON when false.
 
 ## Sessions
 

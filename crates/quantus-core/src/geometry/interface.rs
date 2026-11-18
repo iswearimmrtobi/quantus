@@ -3,6 +3,7 @@
 //! objects in order, so a later one can use an earlier point or vector by its name, and answers
 //! the task with its exact result, the steps at the detail setting and the `align*` copy block.
 
+mod drawn;
 mod typed;
 
 use std::collections::HashMap;
@@ -401,8 +402,8 @@ impl<'a> Builder<'a> {
                         _ => {}
                     }
                     if let Some(figure) = result.figure().filter(|_| !hidden) {
-                        self.shown.push(Shown { name: key.clone(), figure });
-                        self.drawn.push(ViewObject { name: key.clone(), kind: result.kind().into(), index });
+                        self.shown.push(Shown::object(key.clone(), figure));
+                        self.drawn.push(ViewObject { name: key.clone(), kind: result.kind().into(), index, result: false });
                     }
                     // Vectors have a namespace of their own.
                     let stored = if matches!(result, Object::Vector(_)) { format!("\\vec{key}") } else { key };
@@ -729,23 +730,31 @@ pub struct ViewRequest {
     pub zoom: f64,
     /// Hatch the planes.
     pub hatch: bool,
+    /// A task whose answer is drawn on top of the scene, as [`geometry`] answers it.
+    pub task: Option<Task>,
 }
 
 impl Default for ViewRequest {
     fn default() -> ViewRequest {
         let camera = Camera::default();
-        ViewRequest { scene: Scene::default(), yaw: camera.yaw, pitch: camera.pitch, zoom: 1.0, hatch: false }
+        ViewRequest { scene: Scene::default(), yaw: camera.yaw, pitch: camera.pitch, zoom: 1.0, hatch: false, task: None }
     }
 }
 
 /// An object of the view: its name as the evaluator keys it (`P_1`, `a` for `\vec{a}`), its
 /// kind (`point`, `vector`, …) and its place in the scene, among all objects, not only those drawn.
+///
+/// The figures of a task's answer follow the scene's objects, marked `result`, with the label
+/// as their name, the kinds `point`, `segment`, `line`, `plane`, `circle` or `angle`, and an
+/// `index` past the scene's end.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewObject {
     pub name: String,
     pub kind: String,
     pub index: usize,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub result: bool,
 }
 
 /// The scene drawn: the primitives far to near, then the labels. A primitive's `object` is an
@@ -759,13 +768,22 @@ pub struct ViewResponse {
     pub bounds: Bounds,
 }
 
-/// Builds the scene and projects it; an object that fails is left out, as in [`geometry`].
+/// Builds the scene and projects it; an object that fails is left out, as in [`geometry`]. With
+/// a task, its answer is drawn too, unless it fails.
 pub fn geometry_view(settings: &Settings, request: &ViewRequest) -> Result<ViewResponse> {
     let _language = Scope::new(settings.language);
     let settings = Settings { mode: Mode::Geometry, exact_roots: true, step_detail: StepDetail::None, ..settings.clone() };
     let variables = Variables::new();
     let mut builder = Builder::new(&settings, &variables);
     builder.scene(&request.scene);
+    if let Some(task) = &request.task {
+        let count = request.scene.objects.len();
+        for (k, shown) in builder.drawn_answer(task).into_iter().enumerate() {
+            let kind = drawn::kind(&shown.figure);
+            builder.drawn.push(ViewObject { name: shown.name.clone(), kind: kind.into(), index: count + k, result: true });
+            builder.shown.push(shown);
+        }
+    }
     let bounds = Bounds::fit(&builder.shown);
     let fitted = Camera { yaw: request.yaw, pitch: request.pitch, ..Camera::default() }.fit(&bounds);
     let zoom = if request.zoom.is_finite() && request.zoom > 0.0 { request.zoom } else { 1.0 };

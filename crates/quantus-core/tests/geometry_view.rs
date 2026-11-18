@@ -11,7 +11,7 @@ fn close2(a: [f64; 2], b: [f64; 2]) -> bool {
 }
 
 fn shown(name: &str, figure: Figure) -> Shown {
-    Shown { name: name.to_owned(), figure }
+    Shown::object(name, figure)
 }
 
 fn unit_box() -> Bounds {
@@ -441,4 +441,73 @@ fn a_hidden_object_round_trips_and_an_old_scene_loads() {
     assert_eq!(serde_json::from_str::<Scene>(&json).unwrap(), scene);
     let old: Scene = serde_json::from_str(r#"{"objects":[{"kind":"typed","latex":"A(1|2|3)"}]}"#).unwrap();
     assert!(!old.objects[0].hidden);
+}
+
+/// The view of typed objects with a task.
+fn answered(objects: &[&str], task: quantus_core::api::Task) -> quantus_core::api::ViewResponse {
+    use quantus_core::api::{geometry_view, Scene, ViewRequest};
+    use quantus_core::settings::Settings;
+    let objects = objects.iter().map(|latex| typed(latex, false)).collect();
+    let request = ViewRequest { scene: Scene { objects }, task: Some(task), ..ViewRequest::default() };
+    geometry_view(&Settings::default(), &request).unwrap()
+}
+
+#[test]
+fn a_point_plane_distance_draws_a_segment_ending_on_the_plane() {
+    use quantus_core::api::Task as GeometryTask;
+    let view = answered(&["A(1|2|3)", "E: x + y + z = 0"], GeometryTask::Distance { a: "A".into(), b: "E".into() });
+    // A, E, then the answer: the distance and the foot.
+    let results: Vec<(&str, &str, usize)> = view.objects.iter().filter(|o| o.result).map(|o| (o.name.as_str(), o.kind.as_str(), o.index)).collect();
+    assert_eq!(results, [("d ≈ 3.46", "segment", 2), ("", "point", 3)]);
+    let segment = view
+        .primitives
+        .iter()
+        .find_map(|p| match p {
+            Primitive::Segment { from, to, stroke: Stroke::Result, object: Some(2), result: true, .. } => Some((*from, *to)),
+            _ => None,
+        })
+        .expect("the distance");
+    // From A to its foot F = (-1|0|1), which lies on E.
+    assert!(close2(segment.0, view.camera.project([1.0, 2.0, 3.0]).0));
+    assert!(close2(segment.1, view.camera.project([-1.0, 0.0, 1.0]).0));
+    // The answer is drawn on top of the scene, its labels after the others.
+    let last_shape = view.primitives.iter().rposition(|p| !matches!(p, Primitive::Label { .. })).unwrap();
+    assert!(view.primitives[last_shape].result());
+    assert!(view.primitives.last().unwrap().result());
+}
+
+#[test]
+fn a_reflection_draws_the_mirrored_point_and_the_perpendicular() {
+    use quantus_core::api::Task as GeometryTask;
+    let view = answered(&["A(1|2|3)", "E: z = 0"], GeometryTask::Reflect { point: "A".into(), mirror: "E".into() });
+    let at = view.camera.project([1.0, 2.0, -3.0]).0;
+    assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Marker { at: m, result: true, .. } if close2(*m, at))));
+    assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Label { text, result: true, .. } if text == "A'")));
+    assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Segment { stroke: Stroke::Guide, result: true, .. })));
+    // The box takes the image in.
+    assert!(view.bounds.min[2] < -3.0);
+}
+
+#[test]
+fn an_angle_draws_two_rays_and_an_arc_at_the_cut_point() {
+    use quantus_core::api::Task as GeometryTask;
+    let view = answered(&["A(0|0|0)", "B(1|0|0)", "C(1|1|0)", "g: X = A + \\lambda (B - A)", "h: X = A + \\lambda (C - A)"], GeometryTask::Angle { a: "g".into(), b: "h".into() });
+    let angle = view.objects.iter().find(|o| o.result).expect("the angle");
+    assert_eq!(angle.kind, "angle");
+    assert!(angle.name.starts_with("φ ≈ 0.79"), "{}", angle.name);
+}
+
+#[test]
+fn no_task_or_a_failing_one_draws_no_answer() {
+    use quantus_core::api::{geometry_view, Scene, Task as GeometryTask, ViewRequest};
+    use quantus_core::settings::Settings;
+    let objects = vec![typed("A(1|2|3)", false)];
+    let plain = ViewRequest { scene: Scene { objects: objects.clone() }, ..ViewRequest::default() };
+    let view = geometry_view(&Settings::default(), &plain).unwrap();
+    assert!(view.primitives.iter().all(|p| !p.result()));
+    // Without a result, the JSON has no `result` key.
+    assert!(!serde_json::to_string(&view).unwrap().contains("result"));
+    let failing = ViewRequest { task: Some(GeometryTask::Distance { a: "A".into(), b: "Z".into() }), ..plain };
+    let view = geometry_view(&Settings::default(), &failing).unwrap();
+    assert!(view.primitives.iter().all(|p| !p.result()) && view.objects.len() == 1);
 }

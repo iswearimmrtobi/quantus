@@ -259,7 +259,7 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 
 ### 4.1 Core (M)
 
-- [ ] `ViewRequest.task: Option<GeometryTask>`. `geometry_view` answers it as `geometry` does
+- [x] `ViewRequest.task: Option<GeometryTask>`. `geometry_view` answers it as `geometry` does
   and adds its figures as extra `Shown` with a flag `result: true`:
   - distance: the segment between the two closest points (point–plane: point and foot);
   - foot of the perpendicular, midpoint, reflection: the new point, and the perpendicular as a
@@ -267,10 +267,13 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
   - relation: the intersection point, line or circle;
   - angle: the two directions from the intersection point and an arc;
   - tangent: the tangent plane or line.
-- [ ] New stroke `Stroke::Result` and primitive field `result: bool`. The labels are the
+- [x] New stroke `Stroke::Result` and primitive field `result: bool`. The labels are the
   result's name (`F`, `d = …` at the segment's middle).
-- [ ] Tests: a point–plane distance draws a segment ending on the plane; a reflection draws the
+- [x] Tests: a point–plane distance draws a segment ending on the plane; a reflection draws the
   mirrored point.
+  (Done with two answer-only figures, `Figure::Segment` and `Figure::Angle`, and the stroke
+  `Guide` for the dashed helper lines. The answer's figures follow the scene's in
+  `ViewResponse.objects`, marked `result`.)
 
 ### 4.2 Desktop (S)
 
