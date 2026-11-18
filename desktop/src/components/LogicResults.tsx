@@ -31,7 +31,7 @@ interface Props {
  * A minimal form `f = …` term by term, so that hovering a term singles out its block in the KV
  * diagram, and the other way round. Without terms (a constant) the form as the core wrote it.
  */
-function Terms({ output, form, which, notation, hover, onHover }: { output: string; form: LogicForm; which: 'dnf' | 'knf'; notation: LogicNotation; hover: TermHover | null; onHover(hover: TermHover | null): void }) {
+export function Terms({ output, form, which, notation, hover, onHover }: { output: string; form: LogicForm; which: 'dnf' | 'knf'; notation: LogicNotation; hover: TermHover | null; onHover(hover: TermHover | null): void }) {
   const name = nameLatex(output);
   if (!form.terms.length) return <Katex className="section-result" latex={displayStyle(`${name} = ${form.latex}`)} />;
   const technical = notation === 'technical';

@@ -109,7 +109,7 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
               + {t('logic.table.new')}
             </button>
           )}
-          {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} hover={hover} onHover={setHover} onChange={onSceneChange} {...simulated} />}
+          {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} notation={logicNotation} hover={hover} onHover={setHover} onChange={onSceneChange} {...simulated} />}
         </div>
         {shown && (
           <LogicResults

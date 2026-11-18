@@ -3401,7 +3401,7 @@ select option {
   max-width: 60%;
 }
 .logic-views > .kv-card {
-  flex: 1 1 0;
+  flex: 0 1 auto;
 }
 @media (max-width: 980px) {
   .logic-views {
@@ -3524,13 +3524,10 @@ select option {
   text-anchor: middle;
 }
 
-.kv-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.kv-form {
+  max-width: 100%;
 }
 
-.kv-term,
 .logic-term {
   border-radius: var(--radius);
   box-shadow: inset 0 -2px 0 var(--block);
@@ -3538,7 +3535,6 @@ select option {
   cursor: default;
   transition: background 120ms ease;
 }
-.kv-term.active,
 .logic-term.active {
   background: color-mix(in srgb, var(--block) 26%, transparent);
 }

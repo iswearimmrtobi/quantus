@@ -49,6 +49,7 @@ number into each cell's corner.
 
 - **1s · DNF** shows the blocks of the chosen minimal DNF over the 1s, **0s · KNF** those of the
   minimal KNF over the 0s. A block that wraps over an edge is drawn as two or four open pieces.
+  The form itself stands under the map, each term underlined in its block's colour.
 - A click on a cell cycles it 0 → 1 → – like the table, and makes the table the output's source.
 - With a circuit, <kbd>Ctrl</kbd>+click sets the circuit's switches to that cell.
 

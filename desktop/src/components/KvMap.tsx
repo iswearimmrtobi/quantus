@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactElement } from 'react';
-import { api, type Kmap, type KvBlockResult, type LogicScene, type LogicTaskResult, type LogicValue } from '../api';
+import { api, type Kmap, type LogicNotation, type KvBlockResult, type LogicScene, type LogicTaskResult, type LogicValue } from '../api';
 import { cycle, dragRect, editColumn, logicRequest, rectPieces, type Cell, type Grid, type KvRect, type KvSpot, type Shown, type TermHover } from '../logic';
 import { useT } from '../i18n';
 import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
-import { CopyButton } from './LogicResults';
+import { CopyButton, Terms } from './LogicResults';
 
 interface Props {
   scene: LogicScene;
@@ -12,6 +12,8 @@ interface Props {
   shown: Shown;
   /** Whether 0s are written or left empty. */
   zeros: boolean;
+  /** How the terms of the minimal form under the map are joined. */
+  notation: LogicNotation;
   /** The term hovered here or in the results; its block stands out. */
   hover: TermHover | null;
   onHover(hover: TermHover | null): void;
@@ -279,7 +281,7 @@ function useBlockCheck(scene: LogicScene, output: string, form: 'dnf' | 'knf', r
  * round when dragged past an edge and spanning maps when dragged into another; the core checks
  * the blocks, each shown in the colour of its answer with its number, the faults listed below.
  */
-export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange, currentRow = null, onRow }: Props) {
+export function KvMap({ scene, grid, shown, zeros, notation, hover, onHover, onChange, currentRow = null, onRow }: Props) {
   const { t } = useT();
   const [numbers, setNumbers] = useNumbers();
   /** The blocks shown: over the 1s for the minimal DNF, over the 0s for the minimal KNF. */
@@ -342,6 +344,8 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange, cur
     depth: nested[b],
     className: hovered === null ? undefined : hovered === block.term ? 'active' : 'faded',
   }));
+  /** The chosen minimal form of the blocks shown, written out under the map. */
+  const chosenForm = result.minimal ? (form === 'dnf' ? result.minimal.dnf[result.minimal.chosen] : result.minimal.knf[result.minimal.chosenKnf]) : undefined;
   const preview: DrawnBlock[] = drag ? [{ key: 'drag', pieces: rectPieces(kmap, drag.rect), colour: 'var(--primary)', depth: 0, className: 'dragging' }] : [];
   const drawn = drawing ? [...drawnMine, ...preview] : minimal;
   const uncovered = new Set(drawing ? (check?.uncovered ?? []) : []);
@@ -454,19 +458,9 @@ export function KvMap({ scene, grid, shown, zeros, hover, onHover, onChange, cur
           <Blocks blocks={drawn} at={at} />
         </div>
       </div>
-      {!drawing && blocks.length > 0 && (
-        <div className="kv-legend">
-          {blocks.map((block) => (
-            <span
-              key={block.term}
-              className={hovered === block.term ? 'kv-term active' : 'kv-term'}
-              style={{ ['--block' as string]: `var(--geometry-${block.term % 8})` }}
-              onMouseEnter={() => onHover({ output: result.name, form, term: block.term })}
-              onMouseLeave={() => onHover(null)}
-            >
-              <Katex latex={block.latex} />
-            </span>
-          ))}
+      {!drawing && chosenForm && (
+        <div className="kv-form">
+          <Terms output={result.name} form={chosenForm} which={form} notation={notation} hover={hover} onHover={onHover} />
         </div>
       )}
       {drawing && (

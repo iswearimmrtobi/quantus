@@ -115,7 +115,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   its source and the others follow. Each output gets its truth table, the canonical DNF and KNF,
   all minimal DNFs and KNFs (exact, by Quine–McCluskey and Petrick, a choice when there are
   several), the KV diagram for 2 to 6 inputs with the bars of German textbooks and the blocks
-  in colour, and a **Gates** card with the function as AND–OR, OR–AND, NAND, NAND from 2-input
+  in colour and the chosen minimal form under it, and a **Gates** card with the function as AND–OR, OR–AND, NAND, NAND from 2-input
   gates, NOR or NOR from 2-input gates (the 2-input forms where they differ), the NAND and NOR
   forms also gate by gate from a typed expression or circuit, each with gates, gate inputs and
   levels, a picture of the circuit and **Open in editor**. The results fill three cards: the
