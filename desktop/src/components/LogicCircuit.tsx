@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { DrawForm, LogicScene, LogicTask, Settings } from '../api';
 import { useT, type TextKey } from '../i18n';
 import { logicTask, nameLatex, type LogicAnswer } from '../logic';
@@ -18,6 +19,8 @@ interface Props {
   drawRequest?: DrawRequest | null;
   /** The output the output tabs chose for **Draw from**; null for all of them. */
   drawOutput: string | null;
+  /** The output tabs, shown in the editor's toolbar while it fills the window. */
+  outputTabs?: ReactNode;
   /** Whether the Circuit tab is the one shown; hidden, the circuit is still drawn again when its function changes. */
   shown: boolean;
   /** Brings the Circuit tab up, after a drawing asked for by hand. */
@@ -48,13 +51,27 @@ const FORMS: { form: DrawForm; label: TextKey }[] = [
  * note when the circuit is out of date. A circuit drawn from a form is drawn again when the
  * function changes, until it is edited (§5.1).
  */
-export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle, drawRequest, drawOutput, shown, onShow }: Props) {
+export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle, drawRequest, drawOutput, outputTabs, shown, onShow }: Props) {
   const { t } = useT();
   const data = editorData(scene);
   const parts = data.parts;
   const [taskError, setTaskError] = useState<string | null>(null);
   /** Whether the critical path is marked in the circuit; off until its button turns it on. */
   const [showPath, setShowPath] = useState(false);
+  /** Whether the editor fills the window; Esc, when it clears nothing else, leaves. */
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) setFull(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [full]);
+  // Hidden (another tab, another mode), it is no longer full screen.
+  useEffect(() => {
+    if (!shown) setFull(false);
+  }, [shown]);
   /** Counts the circuits drawn or arranged anew, each shown whole. */
   const [fitKey, setFitKey] = useState(0);
   /** The scene as it is now, for answers that arrive after it changed. */
@@ -144,6 +161,16 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
       <button className="form-chip logic-arrange" title={t('logic.arrange.hint')} disabled={!circuit} onClick={() => void arrange()}>
         {t('logic.arrange')}
       </button>
+      <button
+        className={full ? 'form-chip logic-fullscreen active' : 'form-chip logic-fullscreen'}
+        title={t(full ? 'logic.editor.fullscreen.leave' : 'logic.editor.fullscreen.hint')}
+        aria-pressed={full}
+        onClick={() => setFull(!full)}
+      >
+        {full ? '⤡ ' : '⤢ '}
+        {t(full ? 'logic.editor.fullscreen.exit' : 'logic.editor.fullscreen')}
+      </button>
+      {full && outputTabs}
       {taskError && <p className="file-error">{taskError}</p>}
     </div>
   );
@@ -198,10 +225,13 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
       t('logic.generated', { form: t(generatedForm.label) })
     ) : null;
 
+  // Full screen it goes to the page's body, so that nothing of the app is drawn over it.
+  const portal = (editor: ReactNode) => (full ? createPortal(editor, document.body) : editor);
+
   return (
     <section className="logic-circuit" ref={frame} hidden={!shown}>
-      {shown && (
-        <div className="logic-editor-frame">
+      {shown && portal(
+        <div className={full ? 'logic-editor-frame fullscreen' : 'logic-editor-frame'}>
           <LogicEditor
             parts={parts}
             onChange={setParts}
@@ -218,7 +248,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
             path={showPath ? path : []}
             fitKey={fitKey}
           />
-        </div>
+        </div>,
       )}
     </section>
   );

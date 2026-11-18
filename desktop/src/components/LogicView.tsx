@@ -107,6 +107,25 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
     // A drawn circuit is drawn again for the output at once; a hand-made one is left as it is.
     if (generated && generated.output !== name) setDrawRequest({ form: generated.form, output: name, fromExpression: generated.fromExpression ?? false, quiet: true });
   };
+  // The circuit view's output tabs, also shown in the editor's toolbar while it fills the window.
+  const outputTabs =
+    outputs.length > 1 ? (
+      <div className="form-row logic-output-tabs" role="group" title={t('logic.draw.output')}>
+        <button className={drawOutput === null ? 'form-chip active' : 'form-chip'} aria-pressed={drawOutput === null} onClick={() => chooseDrawOutput(null)}>
+          {t('logic.draw.all')}
+        </button>
+        {outputs.map(({ result }) => (
+          <button
+            key={result.name}
+            className={result.name === drawOutput ? 'form-chip active' : 'form-chip'}
+            aria-pressed={result.name === drawOutput}
+            onClick={() => chooseDrawOutput(result.name)}
+          >
+            <Katex latex={nameLatex(result.name)} />
+          </button>
+        ))}
+      </div>
+    ) : null;
   return (
     <main className="workspace analysis-workspace">
       <div className="analysis-panel logic-panel">
@@ -140,23 +159,7 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
               ))}
             </div>
           )}
-          {outputs.length > 1 && view === 'circuit' && (
-            <div className="form-row logic-output-tabs" role="group" title={t('logic.draw.output')}>
-              <button className={drawOutput === null ? 'form-chip active' : 'form-chip'} aria-pressed={drawOutput === null} onClick={() => chooseDrawOutput(null)}>
-                {t('logic.draw.all')}
-              </button>
-              {outputs.map(({ result }) => (
-                <button
-                  key={result.name}
-                  className={result.name === drawOutput ? 'form-chip active' : 'form-chip'}
-                  aria-pressed={result.name === drawOutput}
-                  onClick={() => chooseDrawOutput(result.name)}
-                >
-                  <Katex latex={nameLatex(result.name)} />
-                </button>
-              ))}
-            </div>
-          )}
+          {view === 'circuit' && outputTabs}
         </div>
         <LogicCircuit
           settings={settings}
@@ -167,6 +170,7 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
           onToggle={toggle}
           drawRequest={drawRequest}
           drawOutput={drawOutput}
+          outputTabs={outputTabs}
           shown={view === 'circuit'}
           onShow={() => setView('circuit')}
         />

@@ -39,6 +39,10 @@ with <kbd>Shift</kbd> and scrolling. The buttons in the canvas's top left corner
 100 % and in, and **Fit** shows the whole circuit; on the canvas <kbd>+</kbd>, <kbd>-</kbd> and
 <kbd>0</kbd> do the same, and so does <kbd>Home</kbd> for the whole circuit.
 
+**Full screen**, at the right end of the bar above the canvas, lets the editor fill the window,
+with the output tabs in its bar; **Exit full screen** or <kbd>Esc</kbd> (when nothing is
+selected) goes back.
+
 ## Checks
 
 Nothing is guessed: an open pin is not silently 0. The parts at fault turn red, with the message

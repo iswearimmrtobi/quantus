@@ -165,7 +165,8 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') remove(selection);
     else if (event.key === ' ' || event.key.toLowerCase() === 'r') rotateSelected();
-    else if (event.key === 'Escape') setSelection([]);
+    // Esc with nothing selected is left to the full-screen view.
+    else if (event.key === 'Escape' && selection.length) setSelection([]);
     else if (event.key === 'Home') fitAll();
     else if (!zoomKey(event, canvasView, fitAll)) return;
     event.preventDefault();

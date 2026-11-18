@@ -3147,6 +3147,24 @@ select option {
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
 }
+/* The editor filling the window, over the app but under its dialogs. */
+.logic-editor-frame.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  height: auto;
+  min-height: 0;
+  resize: none;
+  border: none;
+  border-radius: 0;
+  background: var(--background);
+}
+.logic-draw .logic-output-tabs {
+  margin-left: 8px;
+}
+.logic-fullscreen {
+  margin-left: auto;
+}
 .logic-editor .circuit-palette {
   padding: 10px 8px;
 }

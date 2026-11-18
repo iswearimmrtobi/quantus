@@ -203,6 +203,13 @@ A truth table with several output columns gave one circuit per output in the Gat
   one it only chooses what **Draw from** draws.
 - [x] Docs (`logic/results.md`, `logic/editor.md`), CHANGELOG (the Logic entry).
 
+### 2.6 The Logic editor in full screen (S)
+
+- [x] **Full screen** in the editor's toolbar: the frame, put into the page's body, fills the
+  window over the app (under its dialogs), with the output tabs in the toolbar. **Exit full
+  screen** or Esc leaves (Esc clears a selection first); switching to another tab or mode leaves too.
+- [x] Texts `app.logic.editor.fullscreen*`, docs (`logic/editor.md`), CHANGELOG.
+
 ---
 
 ## Phase 3: Geometry, sidebar and full 3D view (the wish)
