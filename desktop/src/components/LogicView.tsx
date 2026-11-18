@@ -40,6 +40,8 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
   const request = useRef(0);
   /** A circuit to draw in the editor, asked for by the Gates card. */
   const [drawRequest, setDrawRequest] = useState<DrawRequest | null>(null);
+  /** The circuit tab's output for **Draw from**, null for all; a drawn circuit's own output wins. */
+  const [drawScope, setDrawScope] = useState<string | null>(null);
   /** The tab over the table and the KV diagram, or over the circuit editor; the circuit's at first when there is one. */
   const [view, setView] = useState<'table' | 'circuit'>(() => (editorData(scene).parts.length ? 'circuit' : 'table'));
 
@@ -89,6 +91,22 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
   const grid = logicGrid(scene, answer);
   const outputs = shownOutputs(answer);
   const shown = outputs.find((o) => o.result.name === tab) ?? outputs[0];
+  // In the circuit view the output tabs say which outputs the circuit is drawn for: All, or one.
+  // A circuit drawn from a form shows its own; a gone output falls back to All.
+  const generated = editorData(scene).generated;
+  const known = (name: string | null) => (name !== null && outputs.some((o) => o.result.name === name) ? name : null);
+  const drawOutput = known(generated ? generated.output : drawScope);
+  // A drawing keeps its output as the tab's choice once the circuit is edited by hand.
+  const generatedOutput = generated ? generated.output : undefined;
+  useEffect(() => {
+    if (generatedOutput !== undefined) setDrawScope(generatedOutput);
+  }, [generatedOutput]);
+  const chooseDrawOutput = (name: string | null) => {
+    setDrawScope(name);
+    if (name !== null) setTab(name);
+    // A drawn circuit is drawn again for the output at once; a hand-made one is left as it is.
+    if (generated && generated.output !== name) setDrawRequest({ form: generated.form, output: name, fromExpression: generated.fromExpression ?? false, quiet: true });
+  };
   return (
     <main className="workspace analysis-workspace">
       <div className="analysis-panel logic-panel">
@@ -113,10 +131,27 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
             value={view}
             onChange={setView}
           />
-          {outputs.length > 1 && (
+          {outputs.length > 1 && view === 'table' && (
             <div className="form-row logic-output-tabs">
               {outputs.map(({ result }) => (
                 <button key={result.name} className={result.name === shown?.result.name ? 'form-chip active' : 'form-chip'} onClick={() => setTab(result.name)}>
+                  <Katex latex={nameLatex(result.name)} />
+                </button>
+              ))}
+            </div>
+          )}
+          {outputs.length > 1 && view === 'circuit' && (
+            <div className="form-row logic-output-tabs" role="group" title={t('logic.draw.output')}>
+              <button className={drawOutput === null ? 'form-chip active' : 'form-chip'} aria-pressed={drawOutput === null} onClick={() => chooseDrawOutput(null)}>
+                {t('logic.draw.all')}
+              </button>
+              {outputs.map(({ result }) => (
+                <button
+                  key={result.name}
+                  className={result.name === drawOutput ? 'form-chip active' : 'form-chip'}
+                  aria-pressed={result.name === drawOutput}
+                  onClick={() => chooseDrawOutput(result.name)}
+                >
                   <Katex latex={nameLatex(result.name)} />
                 </button>
               ))}
@@ -131,6 +166,7 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
           switchValue={switchValue}
           onToggle={toggle}
           drawRequest={drawRequest}
+          drawOutput={drawOutput}
           shown={view === 'circuit'}
           onShow={() => setView('circuit')}
         />

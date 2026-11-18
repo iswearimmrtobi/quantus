@@ -3265,14 +3265,6 @@ select option {
   flex-basis: 100%;
   margin: 0;
 }
-.logic-draw-output {
-  padding: 3px 6px;
-  color: var(--text);
-  font-size: 12px;
-  background: var(--background);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius);
-}
 .logic-draw-forms {
   display: flex;
   flex-wrap: wrap;

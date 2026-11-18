@@ -119,7 +119,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   in colour and the chosen minimal form under it, and a **Gates** card with the function as AND–OR, OR–AND, NAND, NAND from 2-input
   gates, NOR or NOR from 2-input gates (the 2-input forms where they differ), the NAND and NOR
   forms also gate by gate from a typed expression or circuit, each with gates, gate inputs and
-  levels, a picture of the circuit and **Open in editor**. The results fill three cards: the
+  levels, a picture of the circuit and **Open in editor**, both of every output in one circuit when
+  there are several. The results fill three cards: the
   expression beside the canonical forms, the minimal DNF beside the minimal KNF, and the Gates
   card. Every result has its working at the four step
   levels, in English and German, and Copies as LaTeX; the truth table and KV diagram copy as a
@@ -130,7 +131,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   drivers on a net or a feedback loop marks the parts red. The circuit is live: clicking a switch
   colours each wire by its value and lights the lamps, with the matching row of the table and
   cell of the KV diagram highlighted. **Draw from** the minimal DNF, the minimal KNF, NAND only,
-  2-input NAND only, NOR only or 2-input NOR only, for one output or all (identical gates shared), in
+  2-input NAND only, NOR only or 2-input NOR only, for all outputs in one circuit (identical gates
+  shared) or, picked by the output tabs over the editor, for one, in
   a bar above the canvas and in the middle of an empty one, lays the circuit out on the grid, its
   input buses in the order that makes the fewest wires cross;
   **Arrange** lays a drawn one out afresh. A drawn circuit that no longer fits the function is

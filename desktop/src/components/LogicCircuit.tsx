@@ -14,8 +14,10 @@ interface Props {
   /** A switch's value in the simulated row; null when the core has no row for it. */
   switchValue(name: string): boolean | null;
   onToggle(name: string): void;
-  /** A drawing asked for elsewhere (the Gates card's **Open in editor**); a new object each time. */
+  /** A drawing asked for elsewhere (the Gates card's **Open in editor**, an output tab); a new object each time. */
   drawRequest?: DrawRequest | null;
+  /** The output the output tabs chose for **Draw from**; null for all of them. */
+  drawOutput: string | null;
   /** Whether the Circuit tab is the one shown; hidden, the circuit is still drawn again when its function changes. */
   shown: boolean;
   /** Brings the Circuit tab up, after a drawing asked for by hand. */
@@ -27,6 +29,8 @@ export interface DrawRequest {
   form: DrawForm;
   output: string | null;
   fromExpression: boolean;
+  /** Drawn without bringing the Circuit tab up or scrolling to it, as for an output tab. */
+  quiet?: boolean;
 }
 
 const FORMS: { form: DrawForm; label: TextKey }[] = [
@@ -44,12 +48,10 @@ const FORMS: { form: DrawForm; label: TextKey }[] = [
  * note when the circuit is out of date. A circuit drawn from a form is drawn again when the
  * function changes, until it is edited (§5.1).
  */
-export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle, drawRequest, shown, onShow }: Props) {
+export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle, drawRequest, drawOutput, shown, onShow }: Props) {
   const { t } = useT();
   const data = editorData(scene);
   const parts = data.parts;
-  /** The output the next drawing is for; all when null. */
-  const [drawOutput, setDrawOutput] = useState<string | null>(null);
   const [taskError, setTaskError] = useState<string | null>(null);
   /** Whether the critical path is marked in the circuit; off until its button turns it on. */
   const [showPath, setShowPath] = useState(false);
@@ -88,6 +90,10 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   const frame = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!drawRequest) return;
+    if (drawRequest.quiet) {
+      void draw(drawRequest.form, drawRequest.output, drawRequest.fromExpression, false);
+      return;
+    }
     // Once the Circuit tab is up, in the next frame.
     void draw(drawRequest.form, drawRequest.output, drawRequest.fromExpression).then(() =>
       requestAnimationFrame(() => frame.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })),
@@ -134,14 +140,6 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   const toolbar = (
     <div className="logic-draw">
       <span className="palette-title">{t('logic.draw.title')}</span>
-      <select className="logic-draw-output" value={drawOutput ?? ''} title={t('logic.draw.output')} onChange={(event) => setDrawOutput(event.target.value || null)}>
-        <option value="">{t('logic.draw.all')}</option>
-        {outputs.map((name) => (
-          <option key={name} value={name}>
-            {name}
-          </option>
-        ))}
-      </select>
       <div className="logic-draw-forms">{formButtons('form-chip')}</div>
       <button className="form-chip logic-arrange" title={t('logic.arrange.hint')} disabled={!circuit} onClick={() => void arrange()}>
         {t('logic.arrange')}

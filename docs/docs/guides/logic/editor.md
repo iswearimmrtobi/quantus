@@ -68,7 +68,13 @@ its middle.
 
 - **minimal DNF**, **minimal KNF**, **NAND only**, **2-input NAND only**, **NOR only** or
   **2-input NOR only**;
-- for one output, or for **all outputs** at once. Several outputs share their identical gates.
+- for **all outputs** at once (the default), or for one. Several outputs share their identical
+  gates, so a truth table with several output columns gives one circuit.
+
+With several outputs, the tabs beside **Table & KV | Circuit** read **All**, f, g, … in the
+circuit view. On a drawn circuit a tab draws it again at once, in the same form, for that output
+or for all; on a circuit you made or edited by hand it only chooses what the next **Draw from**
+draws, and leaves your circuit as it is.
 
 The circuit is laid out on the grid: the switches on the left, each with a bus line down (the
 buses in the order that makes the fewest wires cross), the inverters by the buses, a column per level of gates, the lamps on the right. A circuit drawn this

@@ -197,10 +197,11 @@ A truth table with several output columns gave one circuit per output in the Gat
   rewrite over one typed and one table output.
 - [x] Gates card: with several outputs the picture and **Open in editor** draw all of them in one
   circuit; the cost line adds the whole circuit's figures.
-- [ ] Editor: output tabs **All | f | g | …** over the canvas instead of the select. On a drawn
+- [x] Editor: output tabs **All | f | g | …** over the canvas instead of the select (the
+  Logic view's output tabs, with **All** in the circuit view). On a drawn
   circuit a tab draws the same form for that output (or all) at once; on a hand-made or edited
   one it only chooses what **Draw from** draws.
-- [ ] Docs (`logic/results.md`, `logic/editor.md`), CHANGELOG (the Logic entry).
+- [x] Docs (`logic/results.md`, `logic/editor.md`), CHANGELOG (the Logic entry).
 
 ---
 
