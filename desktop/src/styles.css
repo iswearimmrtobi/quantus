@@ -3882,3 +3882,18 @@ select option {
   justify-content: flex-end;
   align-items: center;
 }
+
+/* The Gates card's switches: the six forms, then minimal or from the expression. */
+.logic-gates-switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 6px;
+}
+.logic-gates-switches .segmented {
+  flex: 0 1 auto;
+}
+.logic-gates-switches .segment {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+}

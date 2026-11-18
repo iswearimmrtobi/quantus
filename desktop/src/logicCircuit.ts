@@ -29,12 +29,27 @@ export interface LogicEditorData {
    * (all when null), and what it was drawn from, so that it is drawn again when that changes.
    */
   generated?: { form: DrawForm; output: string | null; from: string } | null;
+  /** The form each output's Gates card shows, by the output's name. */
+  gates?: Record<string, GateChoice>;
+}
+
+/** A form of the Gates card: AND–OR (`dnf`), OR–AND (`knf`) or a NAND/NOR form, rewritten from the expression or not. */
+export interface GateChoice {
+  form: DrawForm;
+  fromExpression?: boolean;
 }
 
 /** What the scene keeps for the editor, none if it has nothing. */
 export function editorData(scene: LogicScene): LogicEditorData {
   const data = scene.editor as Partial<LogicEditorData> | null | undefined;
-  return { parts: Array.isArray(data?.parts) ? data.parts : [], generated: data?.generated ?? null };
+  const gates = data?.gates && typeof data.gates === 'object' ? data.gates : {};
+  return { parts: Array.isArray(data?.parts) ? data.parts : [], generated: data?.generated ?? null, gates };
+}
+
+/** The scene with `choice` as the Gates card's form of output `output`. */
+export function withGateChoice(scene: LogicScene, output: string, choice: GateChoice): LogicScene {
+  const data = editorData(scene);
+  return { ...scene, editor: { ...data, gates: { ...data.gates, [output]: choice } } };
 }
 
 /** The editor's parts kept in a scene, none if it has none. */
@@ -271,7 +286,7 @@ export function toNetlist(parts: LogicPart[], nets: Nets = numberNets(parts)): N
 export function withParts(scene: LogicScene, parts: LogicPart[], names: (string | null | undefined)[] = []): LogicScene {
   const before = editorParts(scene);
   const circuit = toNetlist(parts);
-  const next: LogicScene = { ...scene, editor: { parts } satisfies LogicEditorData, circuit };
+  const next: LogicScene = { ...scene, editor: { parts, gates: editorData(scene).gates } satisfies LogicEditorData, circuit };
   if (JSON.stringify(circuit) === JSON.stringify(scene.circuit ?? null)) return next;
   const lamps = (list: LogicPart[]) => new Map(list.filter((p) => p.kind === 'output').map((p) => [p.id, p.name ?? '']));
   const [old, now] = [lamps(before), lamps(parts)];
@@ -336,6 +351,6 @@ export const drawnFrom = (scene: LogicScene) => JSON.stringify([scene.inputs, sc
  */
 export function withGenerated(scene: LogicScene, circuit: Generated, form: DrawForm, output: string | null, from: string): LogicScene {
   const parts = fromGenerated(circuit);
-  const editor: LogicEditorData = { parts, generated: { form, output, from } };
+  const editor: LogicEditorData = { parts, generated: { form, output, from }, gates: editorData(scene).gates };
   return { ...scene, editor, circuit: toNetlist(parts) };
 }

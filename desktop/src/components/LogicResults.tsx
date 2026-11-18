@@ -6,6 +6,8 @@ import { copyText } from '../shell';
 import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
 import { SourceMark } from './LogicLines';
+import { LogicGates } from './LogicGates';
+import { editorData, withGateChoice, type GateChoice } from '../logicCircuit';
 
 interface Props {
   scene: LogicScene;
@@ -74,7 +76,7 @@ export function CopyButton({ text, hint }: { text: string; hint?: string }) {
 }
 
 /** A result: its title, its formulas, a line of figures, the choice among several, Copy and the steps to open. */
-function Section({
+export function Section({
   title,
   formula,
   lines,
@@ -83,6 +85,7 @@ function Section({
   worked,
   more,
   hideSteps,
+  children,
 }: {
   title: TextKey;
   /** Shown before the lines. */
@@ -94,6 +97,8 @@ function Section({
   /** A second working, opened on its own (Quine–McCluskey beside the KV path). */
   more?: { title: TextKey; worked: Worked };
   hideSteps: boolean;
+  /** Shown under the result, above the steps. */
+  children?: ReactNode;
 }) {
   const { t } = useT();
   const [open, setOpen] = useState<'steps' | 'more' | null>(null);
@@ -113,6 +118,7 @@ function Section({
         </div>
         <CopyButton text={shown?.alignBlock ?? worked?.alignBlock ?? ''} hint={t('logic.copy.hint')} />
       </div>
+      {children}
       {!hideSteps && (worked?.steps.length || more) ? (
         <div className="form-row logic-result-toggles">
           {worked && worked.steps.length > 0 && (
@@ -134,8 +140,8 @@ function Section({
 
 /**
  * The results of one output at a time (§10.1, panel 4): the expression it is given by, the
- * canonical forms, the minimal DNF and KNF with the choice among several, the NAND and NOR forms
- * with their cost, each with its steps and Copy.
+ * canonical forms, the minimal DNF and KNF with the choice among several, and the Gates card with
+ * the six gate forms, each with its steps and Copy.
  */
 export function LogicResults({ scene, shown, hideSteps, notation, hover, onHover, onChange }: Props) {
   const { t } = useT();
@@ -171,6 +177,8 @@ export function LogicResults({ scene, shown, hideSteps, notation, hover, onHover
         cost={cost}
         gates={gates}
         choices={choices}
+        gateChoice={editorData(scene).gates?.[result.name]}
+        onGateChoice={(choice) => onChange(withGateChoice(scene, result.name, choice))}
         hideSteps={hideSteps}
         terms={(form, which) => <Terms output={result.name} form={form} which={which} notation={notation} hover={hover} onHover={onHover} />}
       />
@@ -184,6 +192,8 @@ function ResultsOf({
   cost,
   gates,
   choices,
+  gateChoice,
+  onGateChoice,
   hideSteps,
   terms,
 }: {
@@ -192,14 +202,13 @@ function ResultsOf({
   cost(form: LogicForm): string;
   gates(form: GateFormResult): string;
   choices(forms: LogicForm[], chosen: number, key: 'chosen' | 'chosenKnf'): ReactNode;
+  gateChoice: GateChoice | undefined;
+  onGateChoice(choice: GateChoice): void;
   hideSteps: boolean;
   terms(form: LogicForm, which: 'dnf' | 'knf'): ReactNode;
 }) {
   const { t } = useT();
   const { expression, canonical, minimal } = result;
-  // The form of any width (the first of its kind and origin).
-  const form = (kind: 'nand' | 'nor', origin: 'minimal' | 'rewrite') => result.gateForms.find((f) => f.kind === kind && f.origin === origin);
-  const [nand, nor, nandRewrite, norRewrite] = [form('nand', 'minimal'), form('nor', 'minimal'), form('nand', 'rewrite'), form('nor', 'rewrite')];
   const dnf = minimal?.dnf[minimal.chosen];
   const knf = minimal?.knf[minimal.chosenKnf];
   return (
@@ -248,14 +257,7 @@ function ResultsOf({
           hideSteps={hideSteps}
         />
       )}
-      {nand && <Section title="logic.result.nand" lines={[eq(nand.latex)]} meta={gates(nand)} worked={nand.worked} hideSteps={hideSteps} />}
-      {nandRewrite && (
-        <Section title="logic.result.nandRewrite" lines={[eq(nandRewrite.latex)]} meta={gates(nandRewrite)} worked={nandRewrite.worked} hideSteps={hideSteps} />
-      )}
-      {nor && <Section title="logic.result.nor" lines={[eq(nor.latex)]} meta={gates(nor)} worked={nor.worked} hideSteps={hideSteps} />}
-      {norRewrite && (
-        <Section title="logic.result.norRewrite" lines={[eq(norRewrite.latex)]} meta={gates(norRewrite)} worked={norRewrite.worked} hideSteps={hideSteps} />
-      )}
+      <LogicGates result={result} choice={gateChoice} onChoose={onGateChoice} eq={eq} cost={cost} gates={gates} hideSteps={hideSteps} />
       {!expression && !canonical && <p className="analysis-empty">{t('logic.result.none')}</p>}
     </>
   );

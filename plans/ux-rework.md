@@ -89,15 +89,15 @@ Effort: S = an hour or two, M = a day, L = several days.
 New component `desktop/src/components/LogicGates.tsx`, used by `LogicResults.tsx` instead of the
 four NAND/NOR `Section`s (L240–249).
 
-- [ ] A segmented switch with six buttons: **AND–OR**, **OR–AND**, **NAND**, **NAND 2-in**, **NOR**,
+- [x] A segmented switch with six buttons: **AND–OR**, **OR–AND**, **NAND**, **NAND 2-in**, **NOR**,
   **NOR 2-in**. A 2-in button is left out when the core sent no separate 2-input form. The choice is
   kept per output in the scene's editor data (like `chosen`), so it survives a reload, and is
   NAND by default.
-- [ ] Under it: the formula (`eq(latex)`), the cost line (`gates · gate inputs · levels`, the
+- [x] Under it: the formula (`eq(latex)`), the cost line (`gates · gate inputs · levels`, the
   existing `gates()` helper), **Copy** and **Steps**.
-- [ ] The rewrite forms (from a typed expression) as a second small switch, "from the minimal
+- [x] The rewrite forms (from a typed expression) as a second small switch, "from the minimal
   form / from your expression", shown only when the output has an expression or a circuit.
-- [ ] Texts: `app.logic.gates.title`, `.andOr`, `.orAnd`, `.nand`, `.nand2`, `.nor`, `.nor2`,
+- [x] Texts: `app.logic.gates.title`, `.andOr`, `.orAnd`, `.nand`, `.nand2`, `.nor`, `.nor2`,
   `.fromMinimal`, `.fromExpression`, `.open`, in `en.json` and `de.json`.
 
 ### 1.5 Desktop: the circuit picture in the Gates card (M)
