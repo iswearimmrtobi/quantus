@@ -29,7 +29,9 @@ const FORMS: { form: DrawForm; label: TextKey }[] = [
   { form: 'dnf', label: 'logic.draw.dnf' },
   { form: 'knf', label: 'logic.draw.knf' },
   { form: 'nand', label: 'logic.draw.nand' },
+  { form: 'nand2', label: 'logic.draw.nand2' },
   { form: 'nor', label: 'logic.draw.nor' },
+  { form: 'nor2', label: 'logic.draw.nor2' },
 ];
 
 /**

@@ -116,9 +116,9 @@ four NAND/NOR `Section`s (L240–249).
 
 ### 1.6 Desktop: Draw from with six forms (S)
 
-- [ ] `LogicCircuit.tsx` `FORMS` (L20): add `nand2` and `nor2` with texts `logic.draw.nand2`,
+- [x] `LogicCircuit.tsx` `FORMS` (L20): add `nand2` and `nor2` with texts `logic.draw.nand2`,
   `logic.draw.nor2` ("NAND, 2 inputs only", "NOR, 2 inputs only").
-- [ ] A circuit drawn from `nand2` is drawn again from `nand2` when the function changes
+- [x] A circuit drawn from `nand2` is drawn again from `nand2` when the function changes
   (`generated.form`); check this by hand.
 
 ### 1.7 Docs and changelog (S)
