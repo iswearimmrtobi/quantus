@@ -69,13 +69,6 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
   const canvas = useRef<SVGSVGElement>(null);
   const canvasView = useCanvasView(canvas);
   const { view, toGrid } = canvasView;
-  /** Shows the whole drawing; the start view without one. */
-  const fitAll = () => (parts.length ? canvasView.fit(boundsOf(parts.flatMap(obstacles))) : canvasView.setView(HOME));
-  // On opening, and whenever asked, as after a circuit was drawn.
-  useEffect(() => {
-    fitAll();
-    // Only then, not on every change of the drawing.
-  }, [fitKey]);
   const editing = useSchematicEditing({
     elements: parts,
     onChange,
@@ -131,6 +124,32 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
   useEffect(() => {
     lastPlacements.current = placements;
   }, [placements]);
+
+  /** Shows the whole drawing with its labels; the start view without one. */
+  const fitAll = () => (parts.length ? canvasView.fit(boundsOf([...parts.flatMap(obstacles), ...placements.values()])) : canvasView.setView(HOME));
+  // On opening, and whenever asked, as after a circuit was drawn: once the canvas has its size
+  // and every label has been measured, so that nothing is cut off at the edge.
+  const pendingFit = useRef(true);
+  const [fitTry, setFitTry] = useState(0);
+  useEffect(() => {
+    pendingFit.current = true;
+  }, [fitKey]);
+  useEffect(() => {
+    if (!pendingFit.current) return;
+    const width = canvas.current?.getBoundingClientRect().width ?? 0;
+    const measured = labels.every((label) => sizes.has(label.id));
+    if (!width || !measured) {
+      // Not laid out yet: look again in the next frame, a few times at most.
+      if (fitTry < 30) {
+        const frame = requestAnimationFrame(() => setFitTry((n) => n + 1));
+        return () => cancelAnimationFrame(frame);
+      }
+    }
+    pendingFit.current = false;
+    setFitTry(0);
+    fitAll();
+    // Only when asked, not on every change of the drawing.
+  }, [fitKey, placements, fitTry]);
 
   const add = (kind: PaletteKind, at?: Point) => {
     // Without a drop position the part goes to a free spot, one row below the last one.

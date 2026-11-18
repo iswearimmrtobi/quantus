@@ -159,7 +159,7 @@ four NAND/NOR `Section`s (L240–249).
 - [x] `LogicEditor.tsx`: **Draw from** and **Arrange** go into a toolbar above the canvas, out
   of the palette (`toolbar` prop). On an empty canvas with a function typed, show the six Draw
   from buttons in the middle of the canvas instead of "Drag input switches…".
-- [ ] After a drawing, fit the whole circuit (`fitKey` exists; check that it runs after the
+- [x] After a drawing, fit the whole circuit (`fitKey` exists; check that it runs after the
   layout is measured, since G3 was cut off).
 - [ ] The note "Drawn from the minimal DNF…" and the stats box (`corner`) go into a bar under
   the canvas, not over it.
