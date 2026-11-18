@@ -7,14 +7,14 @@ title: Logic
 
 **Logic** mode (German **Logik**) is for combinational digital logic. Type a function, fill in
 a truth table or draw a circuit of gates. The page then shows the truth table, the canonical and
-minimal forms, the KV diagram, the NAND-only and NOR-only forms and a circuit drawn from any of
-them, each with its working.
+minimal forms, the KV diagram, the function as AND–OR, OR–AND, NAND and NOR gates (also from
+2-input gates only) and a circuit drawn from any of them, each with its working.
 
 **Example.** The majority of three: *the output is 1 when at least two of A, B, C are 1.* Type
 `f = \sum m(3, 5, 6, 7)`, or fill in the column of $f$ in the table. The KV diagram shows three
-blocks, the minimal form is $f = B \land C \lor A \land C \lor A \land B$, and the NAND-only
-form needs 6 gates from 2-input NANDs over 4 levels. **Draw from → NAND only** puts that circuit
-into the editor. Click its input switches and the matching row of the table and cell of the KV
+blocks, the minimal form is $f = B \land C \lor A \land C \lor A \land B$, and the **Gates**
+card shows it as 4 NANDs over 2 levels, or 6 from 2-input NANDs over 4 levels. **Open in
+editor** puts that circuit into the editor. Click its input switches and the matching row of the table and cell of the KV
 diagram light up.
 
 ## The page
@@ -60,7 +60,7 @@ be read is reported, and the scene stays as it was. The file is
 <kbd>Ctrl</kbd>+<kbd>G</kbd> writes the scene up as *Given*, *Wanted*, *Solution*: each output's
 function under *Given* (as typed, traced from the circuit, or its minterms), and per output its
 KV diagram, the chosen minimal DNF as the result (*one of n* when there are several), the minimal
-KNF and the NAND and NOR forms with their gates and levels. An output with an error is left out.
+KNF and the NAND and NOR forms (and the 2-input ones where they differ) with their gates and levels. An output with an error is left out.
 See [Given, wanted, solution](../physics/writeup.md).
 
 ## Settings that matter here
@@ -70,8 +70,6 @@ The **Logic** section of the settings:
 - **Logic notation**: results, KV labels and Copy in $A \land \lnot B \lor C$ or in
   $A \cdot \overline{B} + C$. The input reads both.
 - **Gate symbols**: IEC 60617 rectangles (`&`, `≥1`, `=1`, `1`) or the ANSI distinctive shapes.
-- **NAND and NOR from 2-input gates only**: on by default; a wider gate becomes a tree of
-  2-input gates.
 - **Show 0s in the truth table and KV diagram**: off leaves the 0 cells empty, as many
   textbooks draw them.
 
@@ -81,7 +79,7 @@ steps. See [Settings](../../reference/settings.md#logic).
 ## See also
 
 - [Input](input.md): function lines, minterm lists and the truth table
-- [Results](results.md): the forms, the KV diagram and its blocks, NAND and NOR, Copy
+- [Results](results.md): the forms, the KV diagram and its blocks, the Gates card, Copy
 - [Circuit editor](editor.md): drawing gates, simulating, drawing a circuit from a form, delay
 - [Syntax](../../reference/syntax.md#logic): every operator spelling
 - [Base-N](../base-n.md): bitwise logic on whole numbers

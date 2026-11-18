@@ -123,10 +123,11 @@ four NAND/NOR `Section`s (L240–249).
 
 ### 1.7 Docs and changelog (S)
 
-- [ ] `docs/docs/guides/logic/results.md`: the Gates card, the six forms, the picture, Open in
+- [x] `docs/docs/guides/logic/results.md`: the Gates card, the six forms, the picture, Open in
   editor; `editor.md`: Draw from with six forms; `index.md` § settings: `logicTwoInput` gone.
-- [ ] CHANGELOG `[Unreleased]`: under Added, the Gates card with the four NAND/NOR forms; under
-  Removed, the setting *NAND and NOR from 2-input gates only*.
+- [x] CHANGELOG `[Unreleased]`: the Gates card with the four NAND/NOR forms in the Logic entry
+  under Added. The Logic mode is itself unreleased, so the setting *NAND and NOR from 2-input
+  gates only* was taken out of its entry instead of being listed under Removed.
 
 ---
 

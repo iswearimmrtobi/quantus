@@ -17,8 +17,7 @@ and its steps as a LaTeX `align*` block.
 | **Canonical DNF and KNF** | $\sum m(\ldots)$ and the OR of the minterms; $\prod M(\ldots)$ and the AND of the maxterms; don't cares as $d(\ldots)$ |
 | **Minimal DNF** | the fewest terms, then the fewest literals; the KV path, with **Quine–McCluskey** as a second working |
 | **Minimal KNF** | the same over the 0s, each term turned into a sum by De Morgan |
-| **NAND only**, **NOR only** | the minimal DNF as NAND gates, the minimal KNF as NOR gates, with gates, gate inputs and levels |
-| **NAND gate by gate**, **NOR gate by gate** | for a typed expression or a circuit: each gate rewritten into NANDs (NORs), double negations cancelled |
+| **Gates** | the function as AND–OR, OR–AND, NAND, NAND 2-in, NOR or NOR 2-in, with gates, gate inputs and levels, and a picture of the circuit (see [Gates](#gates)) |
 
 A function that is always 0 or always 1 says so (*f is always 1*) and has no KV blocks.
 
@@ -27,8 +26,8 @@ A function that is always 0 or always 1 says so (*f is always 1*) and has no KV 
 Minimisation is exact: the prime implicants by Quine–McCluskey, the cover by the prime implicant
 chart (essential prime implicants, then row and column dominance) and Petrick's method for the
 rest. **All** minimal solutions are found. When there are several, the result says so
-(*2 minimal solutions:*) and lets you pick one; the one picked drives the KV blocks, the NAND and
-NOR forms, the write-up and a circuit drawn from the minimal form.
+(*2 minimal solutions:*) and lets you pick one; the one picked drives the KV blocks, the Gates
+card, the write-up and a circuit drawn from the minimal form.
 
 $\sum m(0, 1, 2, 5, 6, 7)$ has two minimal DNFs, each with 3 terms and 6 literals:
 
@@ -67,19 +66,36 @@ Under the diagram: the 1s in no block, then the expression your blocks give, and
 minimal form (*Right, and a minimal form*) or not, with its cost against the minimum. With
 **0s · KNF** you draw blocks of 0s and get a KNF. **Clear** removes your blocks.
 
-## NAND and NOR
+## Gates
 
-**NAND only** starts from the chosen minimal DNF $f = p_1 \lor \dots \lor p_k$: double negation
+The **Gates** card shows the function built from gates. A switch picks the form:
+
+| Form | What it is |
+|---|---|
+| **AND–OR** | the chosen minimal DNF: ANDs of the literals into an OR |
+| **OR–AND** | the chosen minimal KNF: ORs of the literals into an AND |
+| **NAND**, **NOR** | NAND gates only, NOR gates only, of any number of inputs |
+| **NAND 2-in**, **NOR 2-in** | the same from gates of 2 inputs only |
+
+The 2-in buttons are there only when they differ: for a function of two variables every gate
+already has 2 inputs, so there is one NAND and one NOR form. Under the formula and its cost is
+the circuit as **Draw from** would draw it, read-only. **Open in editor** draws it in the
+[circuit editor](editor.md) (replacing the circuit there) and scrolls to it. Each output keeps
+its form, also in a saved session.
+
+For a typed expression or a circuit, a second switch picks where the NAND and NOR forms come
+from: **from the minimal form** or **from the expression** (rewritten gate by gate, see below).
+
+**NAND** starts from the chosen minimal DNF $f = p_1 \lor \dots \lor p_k$: double negation
 and De Morgan turn it into $\overline{\overline{p_1} \land \dots \land \overline{p_k}}$, a NAND
 of NANDs. Each negated variable comes from a NAND with both inputs tied, one per variable; a
-term of one literal goes straight into the output NAND. With **NAND and NOR from 2-input gates
-only** on (the default), a NAND of 3 inputs becomes a tree of 3 gates, one of 4 inputs 5 gates.
-**NOR only** is the same from the minimal KNF.
+term of one literal goes straight into the output NAND. In **NAND 2-in**, a NAND of 3 inputs
+becomes a tree of 3 gates, one of 4 inputs 5 gates. **NOR** is the same from the minimal KNF.
 
-For the majority of three, the NAND form has 6 gates, 12 gate inputs and 4 levels with 2-input
-gates, and 4 gates with them off.
+For the majority of three, **NAND** has 4 gates, 9 gate inputs and 2 levels; **NAND 2-in** has
+6 gates, 12 gate inputs and 4 levels.
 
-For a typed expression or a circuit, **NAND gate by gate** rewrites each gate instead: each NOT
+**From the expression**, the NAND form rewrites each gate instead: each NOT
 an inverter, each AND a NAND and an inverter, each OR a NAND of the inverted inputs, each XOR
 four NANDs, and then cancels pairs of inverters. This can be smaller than the form from the
 minimal DNF: $A \oplus B$ takes 5 NANDs from its minimal DNF but 4 gate by gate. Neither is

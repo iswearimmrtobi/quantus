@@ -61,13 +61,15 @@ number in the table, or <kbd>Ctrl</kbd>+click on a KV cell, sets the switches to
 
 **Draw from** replaces the circuit with one drawn from a form of the function:
 
-- **minimal DNF**, **minimal KNF**, **NAND only** or **NOR only**;
+- **minimal DNF**, **minimal KNF**, **NAND only**, **2-input NAND only**, **NOR only** or
+  **2-input NOR only**;
 - for one output, or for **all outputs** at once. Several outputs share their identical gates.
 
 The circuit is laid out on the grid: the switches on the left, each with a bus line down, the
 inverters by the buses, a column per level of gates, the lamps on the right. A circuit drawn this
-way follows its function: it is drawn again when the outputs, the inputs or the 2-input setting
-change, until you edit it. From then on it is a drawn circuit like any other.
+way follows its function: it is drawn again from the same form when the outputs or the inputs
+change, until you edit it. **Open in editor** in the [Gates](results.md#gates) card draws the same
+way, and can also draw a NAND or NOR form rewritten from the expression. From then on it is a drawn circuit like any other.
 
 **Arrange** lays the circuit out afresh in the same way, keeping its gates.
 
@@ -97,5 +99,5 @@ the simulation. The PNG is at twice the size.
 ## See also
 
 - [Logic](index.md): the page, files and the write-up
-- [Results](results.md): the NAND and NOR forms the circuits are drawn from
+- [Results](results.md): the Gates card with the forms the circuits are drawn from
 - [Electronics](../electronics.md): the same editor for DC circuits

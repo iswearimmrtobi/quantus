@@ -115,8 +115,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   its source and the others follow. Each output gets its truth table, the canonical DNF and KNF,
   all minimal DNFs and KNFs (exact, by Quine–McCluskey and Petrick, a choice when there are
   several), the KV diagram for 2 to 6 inputs with the bars of German textbooks and the blocks
-  in colour, and the NAND-only and NOR-only forms with gates, gate inputs and levels, also gate
-  by gate from a typed expression or circuit. Every result has its working at the four step
+  in colour, and a **Gates** card: the function as AND–OR, OR–AND, NAND, NAND from 2-input
+  gates, NOR or NOR from 2-input gates (the 2-input forms where they differ), the NAND and NOR
+  forms also gate by gate from a typed expression or circuit, each with gates, gate inputs and
+  levels, a picture of the circuit and **Open in editor**. Every result has its working at the four step
   levels, in English and German, and Copies as LaTeX; the truth table and KV diagram copy as a
   `tabular`. **Draw my blocks** checks your own KV blocks: size, shape, 0s inside, blocks that
   could grow or are not needed, and whether they give a minimal form.
@@ -124,16 +126,15 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   OR, NAND, NOR, XOR, XNOR with 2 to 8 inputs, in IEC 60617 or ANSI symbols. An open pin, two
   drivers on a net or a feedback loop marks the parts red. The circuit is live: clicking a switch
   colours each wire by its value and lights the lamps, with the matching row of the table and
-  cell of the KV diagram highlighted. **Draw from** the minimal DNF, the minimal KNF, NAND only
-  or NOR only, for one output or all (identical gates shared), lays the circuit out on the grid;
+  cell of the KV diagram highlighted. **Draw from** the minimal DNF, the minimal KNF, NAND only,
+  2-input NAND only, NOR only or 2-input NOR only, for one output or all (identical gates shared), lays the circuit out on the grid;
   **Arrange** lays a drawn one out afresh. A drawn circuit that no longer fits the function is
   marked *out of date* with the rows that differ. The corner shows the gates, the levels, the
   delay in $t_{pd}$ or as a time, and the critical path, highlighted in the circuit. The circuit
   saves as SVG and PNG, the scene as a `.quantus-logic.json` file, and the write-up (Ctrl+G)
   takes each output's KV diagram, minimal forms and NAND and NOR forms.
 - Settings for the Logic mode: the notation ($A \land \lnot B$ or $A \cdot \overline{B}$), the
-  gate symbols (IEC or ANSI), NAND and NOR from 2-input gates only, and 0s shown or left empty
-  in the table and KV diagram.
+  gate symbols (IEC or ANSI), and 0s shown or left empty in the table and KV diagram.
 - `\infin` and `∞` mean infinity, like `\infty`.
 - Limits can have complex values in Imaginary mode: `\lim_{x\to\infty}\sqrt[x]{i}` is 1.
 - In Imaginary mode an even root of a negative number is the principal root:
