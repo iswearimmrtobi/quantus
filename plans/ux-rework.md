@@ -163,7 +163,7 @@ four NAND/NOR `Section`s (L240–249).
   layout is measured, since G3 was cut off).
 - [x] The note "Drawn from the minimal DNF…" and the stats box (`corner`) go into a bar under
   the canvas, not over it.
-- [ ] The critical path in a colour of its own (not the yellow of "on" and of the selection),
+- [x] The critical path in a colour of its own (not the yellow of "on" and of the selection),
   dashed, and off by default. Its button in the bar turns it on.
 - [ ] The inspector: as a popover beside the chosen part instead of a fixed 440 px column. The
   canvas gets that width.

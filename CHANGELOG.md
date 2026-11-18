@@ -134,7 +134,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   a bar above the canvas and in the middle of an empty one, lays the circuit out on the grid;
   **Arrange** lays a drawn one out afresh. A drawn circuit that no longer fits the function is
   marked *out of date* with the rows that differ. A bar under the canvas shows the gates, the levels, the
-  delay in $t_{pd}$ or as a time, and the critical path, highlighted in the circuit. The circuit
+  delay in $t_{pd}$ or as a time, and the critical path, marked dashed in red in the circuit at a click. The circuit
   saves as SVG and PNG, the scene as a `.quantus-logic.json` file, and the write-up (Ctrl+G)
   takes each output's KV diagram, minimal forms and NAND and NOR forms.
 - Settings for the Logic mode: the notation ($A \land \lnot B$ or $A \cdot \overline{B}$), the

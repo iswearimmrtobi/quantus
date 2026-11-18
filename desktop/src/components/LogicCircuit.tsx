@@ -49,7 +49,8 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   /** The output the next drawing is for; all when null. */
   const [drawOutput, setDrawOutput] = useState<string | null>(null);
   const [taskError, setTaskError] = useState<string | null>(null);
-  const [showPath, setShowPath] = useState(true);
+  /** Whether the critical path is marked in the circuit; off until its button turns it on. */
+  const [showPath, setShowPath] = useState(false);
   /** Counts the circuits drawn or arranged anew, each shown whole. */
   const [fitKey, setFitKey] = useState(0);
   /** The scene as it is now, for answers that arrive after it changed. */

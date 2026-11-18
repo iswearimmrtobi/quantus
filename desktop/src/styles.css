@@ -3083,7 +3083,7 @@ select option {
   text-align: left;
 }
 .logic-path.active {
-  color: var(--point-saddle);
+  color: var(--danger);
 }
 .logic-tpd {
   display: flex;
@@ -3100,12 +3100,15 @@ select option {
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
 }
-/* The critical path: its gates in amber, its wires thicker, still in the colour of their value. */
+/* The critical path, when turned on: its gates and wires dashed in a colour of their own, apart
+   from the yellow of 1 and of the selection. */
 .part.critical .symbol {
-  stroke: var(--point-saddle);
+  stroke: var(--danger);
+  stroke-dasharray: 5 3;
 }
 .part .wire.critical {
-  stroke-width: 3.5;
+  stroke: var(--danger);
+  stroke-dasharray: 6 4;
 }
 
 .logic-panel {

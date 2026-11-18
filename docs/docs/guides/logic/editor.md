@@ -90,7 +90,7 @@ The bar under the canvas shows the circuit's figures, with the note or the error
 - the **delay**: the levels times $t_{pd}$, or a time when the field $t_{pd}$ has one (`10ns`
   gives $40\,\mathrm{ns}$ for 4 levels);
 - the **critical path**, the path with the most delay, such as $A$ → G1 → G4 → G6 → $f$.
-  It is highlighted in the circuit; click it to hide or show it.
+  Click it to mark it in the circuit, dashed in red; click again to hide it. It starts hidden.
 
 ## Picture
 
