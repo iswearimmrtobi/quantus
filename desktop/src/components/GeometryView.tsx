@@ -56,6 +56,22 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
   /** The row whose editor is open, and the one the pointer is over; both by place in the scene. */
   const [open, setOpen] = useState<number | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  /**
+   * The objects a task is looked for, at most two: the open row, or those Ctrl-clicked in the
+   * sidebar or the view.
+   */
+  const [selected, setSelected] = useState<number[]>([]);
+  const select = (index: number) =>
+    setSelected((current) => (current.includes(index) ? current.filter((i) => i !== index) : [...current, index].slice(-2)));
+  const openRow = (index: number | null) => {
+    setOpen(index);
+    setSelected(index === null ? [] : [index]);
+  };
+  // An object removed takes its place out of the selection.
+  const count = input.objects.length;
+  useEffect(() => {
+    setSelected((current) => current.filter((index) => index < count));
+  }, [count]);
   const [sidebar, setSidebar] = useState(loadSidebar);
   useEffect(() => saveSidebar(sidebar), [sidebar]);
   const resizing = useRef<{ x: number; width: number } | null>(null);
@@ -117,7 +133,9 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
               built={answer?.objects ?? null}
               onChange={(objects) => onInputChange({ ...input, objects })}
               open={open}
-              onOpen={setOpen}
+              onOpen={openRow}
+              selected={selected}
+              onSelect={select}
               onHover={setHovered}
               hideSteps={stepDetail === 'none'}
               placeholder={placeholder}
@@ -135,6 +153,7 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
                     answer={answer?.task ?? null}
                     onChange={(task) => onInputChange({ ...input, task })}
                     hideSteps={stepDetail === 'none'}
+                    selected={selected.flatMap((index) => answer?.objects[index] ?? [])}
                   />
                 )
               }
@@ -155,10 +174,11 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
           {input.objects.length > 0 ? (
             <GeometryPlot
               objects={input.objects}
-              highlight={hovered}
-              onPick={(index) => {
+              highlight={hovered !== null ? [hovered] : selected}
+              onPick={(index, add) => {
                 setSidebar((s) => ({ ...s, collapsed: false }));
-                setOpen(index);
+                if (add) select(index);
+                else openRow(index);
               }}
             />
           ) : (

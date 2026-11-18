@@ -233,14 +233,17 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 
 ### 3.5 Desktop: picking a task in the sidebar (M)
 
-- [ ] With one or two objects selected (Ctrl + click on rows or in the view), the task panel
+- [x] With one or two objects selected (Ctrl + click on rows or in the view), the task panel
   lists the tasks that fit them (point and plane → distance, foot of the perpendicular,
   reflection, relation; two lines → relation, angle, distance; …) as buttons. A click sets the
   task with these operands.
-- [ ] The operand pickers (`Pick` in `GeometryTask.tsx:48`) list only objects of a fitting
+- [x] The operand pickers (`Pick` in `GeometryTask.tsx:48`) list only objects of a fitting
   kind; `kinds` is already passed, so check every task's slots.
-- [ ] The result shown once: the result lines, then the steps without the final line repeated.
+- [x] The result shown once: the result lines, then the steps without the final line repeated.
   Does `Steps` take `hidden` per line? If not, drop the last step when it equals `result`.
+  (It does not: `stepsBelow` drops the trailing steps that repeat a result line. The pickers
+  were checked against the core: relation no longer offers vectors, and the second pick lists
+  only kinds that go with the first, from the table `PAIRS`.)
 
 ### 3.6 Docs and changelog (S)
 

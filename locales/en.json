@@ -194,6 +194,7 @@
     "app.geometry.task.distance": "Distance",
     "app.geometry.task.evaluate": "Expression",
     "app.geometry.task.evaluate.hint": "An expression with the scene’s points and vectors, such as \\vec{a} \\times \\vec{b} or |B - A|",
+    "app.geometry.task.fitting": "For the selection:",
     "app.geometry.task.foot": "Foot of the perpendicular",
     "app.geometry.task.in": "in",
     "app.geometry.task.into": "into",

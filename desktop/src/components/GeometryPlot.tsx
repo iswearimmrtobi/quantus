@@ -6,10 +6,10 @@ import { useT } from '../i18n';
 interface Props {
   /** The scene to draw; the engine builds and projects it. */
   objects: GeometryObject[];
-  /** The object, by place in the scene, drawn stronger while the others fade. */
-  highlight?: number | null;
-  /** A click (not a drag) on an object: its place in the scene. */
-  onPick?(index: number): void;
+  /** The objects, by place in the scene, drawn stronger while the others fade; none fade while it is empty. */
+  highlight?: number[];
+  /** A click (not a drag) on an object: its place in the scene, and whether Ctrl or ⌘ was held, which adds it to the selection. */
+  onPick?(index: number, add: boolean): void;
 }
 
 /** The school view of `quantus_core::geometry::view::Camera::default`: 25° round, 20° up. */
@@ -68,7 +68,7 @@ const ABOVE: Omit<Look, 'zoom'> = { yaw: -HALF_PI, pitch: HALF_PI };
  * scene into flat primitives, far to near, and this only draws them in that order. Dragging
  * turns the scene, the wheel zooms.
  */
-export function GeometryPlot({ objects, highlight = null, onPick }: Props) {
+export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
   const { t } = useT();
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 460 });
@@ -155,7 +155,7 @@ export function GeometryPlot({ objects, highlight = null, onPick }: Props) {
   const onPointerUp = (event: React.PointerEvent) => {
     const start = drag.current;
     drag.current = null;
-    if (start?.object != null && Math.hypot(event.clientX - start.x, event.clientY - start.y) < CLICK) onPick?.(start.object);
+    if (start?.object != null && Math.hypot(event.clientX - start.x, event.clientY - start.y) < CLICK) onPick?.(start.object, event.ctrlKey || event.metaKey);
   };
   const onPointerLeave = () => {
     drag.current = null;
@@ -170,7 +170,7 @@ export function GeometryPlot({ objects, highlight = null, onPick }: Props) {
   /** The classes and data of a primitive of an object: stronger or faded while a row is hovered, and what a click picks. */
   const of = (object: number, className: string) => {
     const index = sceneIndex(object);
-    const mark = highlight === null ? '' : index === highlight ? ' strong' : ' faded';
+    const mark = !highlight.length ? '' : highlight.includes(index) ? ' strong' : ' faded';
     return { className: className + mark, style: colour(object), 'data-object': index };
   };
   const points = (list: ViewPoint[]) =>

@@ -194,6 +194,7 @@
     "app.geometry.task.distance": "Abstand",
     "app.geometry.task.evaluate": "Ausdruck",
     "app.geometry.task.evaluate.hint": "Ein Ausdruck mit den Punkten und Vektoren der Szene, etwa \\vec{a} \\times \\vec{b} oder |B - A|",
+    "app.geometry.task.fitting": "Zur Auswahl:",
     "app.geometry.task.foot": "Lotfußpunkt",
     "app.geometry.task.in": "an",
     "app.geometry.task.into": "in die",

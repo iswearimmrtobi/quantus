@@ -27,6 +27,10 @@ interface Props {
   /** The row whose editor is open. */
   open: number | null;
   onOpen(index: number | null): void;
+  /** The objects selected for a task, by place in the scene. */
+  selected: number[];
+  /** A click with Ctrl or ⌘ on a row: adds it to the selection or takes it out. */
+  onSelect(index: number): void;
   /** The row the pointer is over, so the view can highlight its object. */
   onHover(index: number | null): void;
   /** At the detail level `none` the steps of a construction are hidden. */
@@ -46,7 +50,7 @@ interface Props {
  * (colour, the object as built, hide and remove), the open row's editor under it, and the task
  * at the foot.
  */
-export function GeometrySidebar({ objects, built, onChange, open, onOpen, onHover, hideSteps, placeholder, headEnd, error, footer }: Props) {
+export function GeometrySidebar({ objects, built, onChange, open, onOpen, selected, onSelect, onHover, hideSteps, placeholder, headEnd, error, footer }: Props) {
   const { t } = useT();
   const colours = colourIndices(built);
   /** The typed line not yet entered. */
@@ -138,7 +142,7 @@ export function GeometrySidebar({ objects, built, onChange, open, onOpen, onHove
             <li
               key={index}
               ref={isOpen ? openRow : undefined}
-              className={`geometry-row${isOpen ? ' open' : ''}${object.hidden ? ' hidden' : ''}`}
+              className={`geometry-row${isOpen ? ' open' : ''}${selected.includes(index) ? ' selected' : ''}${object.hidden ? ' hidden' : ''}`}
               style={colour === null || colour === undefined ? undefined : colourStyle(colour)}
               onMouseEnter={() => onHover(index)}
               onMouseLeave={() => onHover(null)}
@@ -154,7 +158,7 @@ export function GeometrySidebar({ objects, built, onChange, open, onOpen, onHove
                 role="button"
                 tabIndex={0}
                 aria-expanded={isOpen}
-                onClick={toggle}
+                onClick={(event) => (event.ctrlKey || event.metaKey ? onSelect(index) : toggle())}
                 onKeyDown={(event) => {
                   if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
                     event.preventDefault();

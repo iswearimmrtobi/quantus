@@ -2841,6 +2841,10 @@ select option {
   background: var(--surface);
   border-color: var(--hairline);
 }
+.geometry-row.selected {
+  border-color: var(--object, var(--primary));
+  box-shadow: inset 3px 0 0 var(--object, var(--primary));
+}
 .geometry-row-head {
   display: flex;
   align-items: center;
@@ -2903,6 +2907,12 @@ select option {
 /* The task at the foot of the sidebar. */
 .geometry-sidebar > .geometry-task {
   margin-top: auto;
+}
+.geometry-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .geometry-object-form {
