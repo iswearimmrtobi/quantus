@@ -1,6 +1,9 @@
-import type { DrawForm, GateFormResult, LogicForm, LogicOutputResult, Worked } from '../api';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { DrawForm, GateFormResult, LogicForm, LogicOutputResult, LogicScene, LogicSymbols, Worked } from '../api';
 import { useT, type TextKey } from '../i18n';
-import type { GateChoice } from '../logicCircuit';
+import { logicTask } from '../logic';
+import { fromGenerated, type GateChoice, type LogicPart } from '../logicCircuit';
+import { staticPicture } from './LogicEditor';
 import { Section } from './LogicResults';
 import { Segmented } from './SettingsDialog';
 
@@ -57,17 +60,24 @@ export function shownChoice(result: LogicOutputResult, choice: GateChoice | unde
  * NOR forms come from the minimal form or, when the output has an expression, from that.
  */
 export function LogicGates({
+  scene,
   result,
+  symbols,
   choice,
   onChoose,
+  onOpen,
   eq,
   cost,
   gates,
   hideSteps,
 }: {
+  scene: LogicScene;
   result: LogicOutputResult;
+  symbols: LogicSymbols;
   choice: GateChoice | undefined;
   onChoose(choice: GateChoice): void;
+  /** **Open in editor**: the circuit of the shown form drawn in the editor. */
+  onOpen(form: DrawForm, fromExpression: boolean): void;
   eq(latex: string): string;
   cost(form: LogicForm): string;
   gates(form: GateFormResult): string;
@@ -125,5 +135,51 @@ export function LogicGates({
     </div>
   );
 
-  return <Section title="logic.gates.title" formula={switches} lines={latex ? [eq(latex)] : []} meta={meta} worked={worked} hideSteps={hideSteps} />;
+  return (
+    <Section title="logic.gates.title" formula={switches} lines={latex ? [eq(latex)] : []} meta={meta} worked={worked} hideSteps={hideSteps}>
+      {latex && (
+        <div className="logic-gates-circuit">
+          <GatesPicture scene={scene} output={result.name} form={form} fromExpression={fromExpression} symbols={symbols} />
+          <button className="form-chip" title={t('logic.draw.hint')} onClick={() => onOpen(form, fromExpression)}>
+            {t('logic.gates.open')}
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/**
+ * The circuit of `form` of output `output`, drawn by the core as **Draw from** draws it, shown
+ * read-only in the app's colours. It is drawn again when the scene's functions or the form change.
+ */
+function GatesPicture({ scene, output, form, fromExpression, symbols }: { scene: LogicScene; output: string; form: DrawForm; fromExpression: boolean; symbols: LogicSymbols }) {
+  const [parts, setParts] = useState<LogicPart[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  /** The latest request; an answer to an older one is dropped. */
+  const request = useRef(0);
+  // What the drawing depends on: the functions and the circuit (a rewrite of a traced expression), not the editor's data.
+  const key = JSON.stringify([scene.inputs, scene.outputs, scene.circuit, output, form, fromExpression]);
+  const latest = useRef(scene);
+  latest.current = scene;
+  useEffect(() => {
+    const id = ++request.current;
+    void logicTask(latest.current, { kind: 'draw', form, output, fromExpression }).then(({ circuit, error }) => {
+      if (id !== request.current) return;
+      setParts(circuit ? fromGenerated(circuit) : null);
+      setError(error);
+    });
+  }, [key]);
+  const picture = useMemo(() => (parts?.length ? staticPicture(parts, symbols, 'app') : null), [parts, symbols]);
+  if (error) return <p className="file-error">{error}</p>;
+  if (!picture) return null;
+  return (
+    <img
+      className="logic-gates-picture"
+      alt=""
+      width={picture.width}
+      height={picture.height}
+      src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(picture.svg)}`}
+    />
+  );
 }

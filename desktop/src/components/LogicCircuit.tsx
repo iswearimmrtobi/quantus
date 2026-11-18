@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, type DrawForm, type LogicScene, type LogicTask, type Settings } from '../api';
+import type { DrawForm, LogicScene, LogicTask, Settings } from '../api';
 import { useT, type TextKey } from '../i18n';
-import { logicRequest, nameLatex, type LogicAnswer } from '../logic';
+import { logicTask, nameLatex, type LogicAnswer } from '../logic';
 import { drawnFrom, editorData, fromGenerated, toNetlist, withGenerated, withParts, type Generated, type LogicPart } from '../logicCircuit';
-import { asError } from './AnalysisView';
 import { Katex } from './Katex';
 import { LogicEditor } from './LogicEditor';
 
@@ -15,6 +14,15 @@ interface Props {
   /** A switch's value in the simulated row; null when the core has no row for it. */
   switchValue(name: string): boolean | null;
   onToggle(name: string): void;
+  /** A drawing asked for elsewhere (the Gates card's **Open in editor**); a new object each time. */
+  drawRequest?: DrawRequest | null;
+}
+
+/** A circuit to draw: `form` of `output`, rewritten from the expression or not. */
+export interface DrawRequest {
+  form: DrawForm;
+  output: string | null;
+  fromExpression: boolean;
 }
 
 const FORMS: { form: DrawForm; label: TextKey }[] = [
@@ -30,7 +38,7 @@ const FORMS: { form: DrawForm; label: TextKey }[] = [
  * note when the circuit is out of date. A circuit drawn from a form is drawn again when the
  * function changes, until it is edited (§5.1).
  */
-export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle }: Props) {
+export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle, drawRequest }: Props) {
   const { t } = useT();
   const data = editorData(scene);
   const parts = data.parts;
@@ -54,29 +62,28 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   const setParts = (next: LogicPart[]) => onSceneChange(withParts(scene, next, scene.outputs.map((_, i) => answer?.outputs[i]?.name)));
 
   /** The circuit the core gives for `task` over `current`; null, with the error shown, when it gives none. */
-  const task = async (current: LogicScene, logicTask: LogicTask): Promise<Generated | null> => {
-    const sent = logicRequest(current);
-    if (!sent.request) return null;
-    try {
-      const response = await api.logic({ ...sent.request, task: logicTask });
-      const error = response.task?.error ?? (response.task?.circuit ? null : (response.errors[0]?.message ?? null));
-      setTaskError(error);
-      return response.task?.circuit ?? null;
-    } catch (error) {
-      setTaskError(asError(error).message);
-      return null;
-    }
+  const task = async (current: LogicScene, request: LogicTask): Promise<Generated | null> => {
+    const { circuit, error } = await logicTask(current, request);
+    setTaskError(error);
+    return circuit;
   };
 
-  const draw = async (form: DrawForm, output: string | null) => {
+  const draw = async (form: DrawForm, output: string | null, fromExpression = false) => {
     const from = latest.current;
-    const drawn = await task(from, { kind: 'draw', form, output });
+    const drawn = await task(from, { kind: 'draw', form, output, fromExpression });
     if (!drawn) return;
     // Drawn from the scene as it was asked; a change since makes it be drawn again.
-    onSceneChange(withGenerated(latest.current, drawn, form, output, drawnFrom(from)));
+    onSceneChange(withGenerated(latest.current, drawn, { form, output, fromExpression }, drawnFrom(from)));
     setOpen(true);
     setFitKey((k) => k + 1);
   };
+
+  // **Open in editor** of the Gates card: drawn here, and the editor brought into view.
+  const frame = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!drawRequest) return;
+    void draw(drawRequest.form, drawRequest.output, drawRequest.fromExpression).then(() => frame.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, [drawRequest]);
 
   const arrange = async () => {
     const arranged = await task(latest.current, { kind: 'arrange' });
@@ -95,7 +102,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
     if (!generated || generated.from === from || tried.current === from) return;
     tried.current = from;
     // `draw` reads the latest scene itself.
-    void draw(generated.form, generated.output);
+    void draw(generated.form, generated.output, generated.fromExpression);
   }, [generated, from]);
 
   // The critical path, input to lamp, with the names of switches and lamps.
@@ -173,7 +180,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
     ) : null;
 
   return (
-    <section className="logic-circuit">
+    <section className="logic-circuit" ref={frame}>
       <button className="logic-section-toggle" aria-expanded={open} title={t('logic.editor.toggle')} onClick={() => setOpen(!open)}>
         {open ? '▾' : '▸'} {t('logic.editor.title')}
       </button>

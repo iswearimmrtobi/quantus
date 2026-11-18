@@ -1,3 +1,4 @@
+import { api, type LogicTask, type LogicTaskResult } from './api';
 import type { LogicError, LogicOutput, LogicOutputResult, LogicRequest, LogicResponse, LogicScene, LogicSource, LogicValue } from './api';
 
 /**
@@ -52,6 +53,22 @@ export function logicAnswer(scene: LogicScene, sent: SentScene, response: LogicR
   });
   const errors = response.errors.map((error) => ({ ...error, output: error.output === null ? null : (sent.indices[error.output] ?? error.output) }));
   return { response, outputs, extra: response.outputs.slice(sent.indices.length), errors };
+}
+
+/**
+ * The circuit the core gives for the task `task` over `scene` (Draw from, Arrange), or why it
+ * gives none.
+ */
+export async function logicTask(scene: LogicScene, task: LogicTask): Promise<{ circuit: LogicTaskResult['circuit']; error: string | null }> {
+  const sent = logicRequest(scene);
+  if (!sent.request) return { circuit: null, error: null };
+  try {
+    const response = await api.logic({ ...sent.request, task });
+    const circuit = response.task?.circuit ?? null;
+    return { circuit, error: response.task?.error ?? (circuit ? null : (response.errors[0]?.message ?? null)) };
+  } catch (error) {
+    return { circuit: null, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 /** The kind of a typed line: a list of minterms or maxterms, or an expression. */

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { GateFormResult, LogicForm, LogicNotation, LogicOutputResult, LogicScene, Worked } from '../api';
+import type { DrawForm, GateFormResult, LogicForm, LogicNotation, LogicOutputResult, LogicScene, LogicSymbols, Worked } from '../api';
 import { nameLatex, type Shown, type TermHover } from '../logic';
 import { useT, type TextKey } from '../i18n';
 import { copyText } from '../shell';
@@ -7,7 +7,7 @@ import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
 import { SourceMark } from './LogicLines';
 import { LogicGates } from './LogicGates';
-import { editorData, withGateChoice, type GateChoice } from '../logicCircuit';
+import { editorData, withGateChoice } from '../logicCircuit';
 
 interface Props {
   scene: LogicScene;
@@ -17,6 +17,10 @@ interface Props {
   hideSteps: boolean;
   /** How the terms of a minimal form are joined. */
   notation: LogicNotation;
+  /** The gate symbols of the Gates card's picture. */
+  symbols: LogicSymbols;
+  /** **Open in editor** of the Gates card. */
+  onOpen(form: DrawForm, output: string, fromExpression: boolean): void;
   /** The term hovered here or in the KV diagram. */
   hover: TermHover | null;
   onHover(hover: TermHover | null): void;
@@ -143,7 +147,7 @@ export function Section({
  * canonical forms, the minimal DNF and KNF with the choice among several, and the Gates card with
  * the six gate forms, each with its steps and Copy.
  */
-export function LogicResults({ scene, shown, hideSteps, notation, hover, onHover, onChange }: Props) {
+export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpen, hover, onHover, onChange }: Props) {
   const { t } = useT();
   const { result, index } = shown;
   const name = nameLatex(result.name);
@@ -177,8 +181,17 @@ export function LogicResults({ scene, shown, hideSteps, notation, hover, onHover
         cost={cost}
         gates={gates}
         choices={choices}
-        gateChoice={editorData(scene).gates?.[result.name]}
-        onGateChoice={(choice) => onChange(withGateChoice(scene, result.name, choice))}
+        gatesCard={(props) => (
+          <LogicGates
+            scene={scene}
+            result={result}
+            symbols={symbols}
+            choice={editorData(scene).gates?.[result.name]}
+            onChoose={(choice) => onChange(withGateChoice(scene, result.name, choice))}
+            onOpen={(form, fromExpression) => onOpen(form, result.name, fromExpression)}
+            {...props}
+          />
+        )}
         hideSteps={hideSteps}
         terms={(form, which) => <Terms output={result.name} form={form} which={which} notation={notation} hover={hover} onHover={onHover} />}
       />
@@ -192,8 +205,7 @@ function ResultsOf({
   cost,
   gates,
   choices,
-  gateChoice,
-  onGateChoice,
+  gatesCard,
   hideSteps,
   terms,
 }: {
@@ -202,8 +214,8 @@ function ResultsOf({
   cost(form: LogicForm): string;
   gates(form: GateFormResult): string;
   choices(forms: LogicForm[], chosen: number, key: 'chosen' | 'chosenKnf'): ReactNode;
-  gateChoice: GateChoice | undefined;
-  onGateChoice(choice: GateChoice): void;
+  /** The Gates card, given what ResultsOf shares with the other cards. */
+  gatesCard(props: { eq(latex: string): string; cost(form: LogicForm): string; gates(form: GateFormResult): string; hideSteps: boolean }): ReactNode;
   hideSteps: boolean;
   terms(form: LogicForm, which: 'dnf' | 'knf'): ReactNode;
 }) {
@@ -257,7 +269,7 @@ function ResultsOf({
           hideSteps={hideSteps}
         />
       )}
-      <LogicGates result={result} choice={gateChoice} onChoose={onGateChoice} eq={eq} cost={cost} gates={gates} hideSteps={hideSteps} />
+      {gatesCard({ eq, cost, gates, hideSteps })}
       {!expression && !canonical && <p className="analysis-empty">{t('logic.result.none')}</p>}
     </>
   );

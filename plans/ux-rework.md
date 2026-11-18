@@ -102,14 +102,14 @@ four NAND/NOR `Section`s (L240–249).
 
 ### 1.5 Desktop: the circuit picture in the Gates card (M)
 
-- [ ] When the switch changes (and on every new answer), send `{ kind: 'draw', form, output }`
+- [x] When the switch changes (and on every new answer), send `{ kind: 'draw', form, output }`
   through the existing `task()` path (move it from `LogicCircuit.tsx` to `logic.ts` so both use
   it). Drop an answer to an older request, as `LogicView.run` does.
-- [ ] Turn the answer into parts with `fromGenerated` (`logicCircuit.ts`) and draw it read-only
+- [x] Turn the answer into parts with `fromGenerated` (`logicCircuit.ts`) and draw it read-only
   with `circuitPicture` (`LogicEditor.tsx`, already used for the SVG export), fitted to the
   card's width, in the app's colours instead of black on white (give `circuitPicture` a
   `theme` argument).
-- [ ] **Open in editor**: calls `draw(form, output)` of `LogicCircuit` (lift it into
+- [x] **Open in editor**: calls `draw(form, output)` of `LogicCircuit` (lift it into
   `LogicView` or pass a callback), opens the editor and scrolls to it.
 - [ ] Simulation in the picture: the wires coloured by the table's current row, as in the editor
   (`scene.row`). This is optional and can follow later.

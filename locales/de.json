@@ -323,6 +323,7 @@
     "app.logic.gates.nor": "NOR",
     "app.logic.gates.nor2": "NOR 2-Eing.",
     "app.logic.gates.orAnd": "ODER–UND",
+    "app.logic.gates.open": "Im Editor öffnen",
     "app.logic.gates.title": "Gatter",
     "app.logic.gates.twoInput.hint": "Nur Gatter mit 2 Eingängen: ein breiteres Gatter wird ein Baum",
     "app.logic.generated": "Gezeichnet aus {form}; neu gezeichnet, wenn sich die Funktion ändert, bis du sie bearbeitest.",

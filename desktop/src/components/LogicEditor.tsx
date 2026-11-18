@@ -115,10 +115,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
 
   // The names of switches and lamps, and the ids of the gates, laid out clear of the drawing.
   const { sizes, measure } = useLabelSizes();
-  const labels = useMemo(() => parts.flatMap((part) => {
-    const place = labelPlace(part);
-    return place ? [{ ...place, id: part.id, part }] : [];
-  }), [parts]);
+  const labels = useMemo(() => labelsOf(parts), [parts]);
   const dragging = drag?.type === 'move' || drag?.type === 'end';
   const lastPlacements = useRef<Map<string, Placement>>(new Map());
   const placements = useMemo(() => {
@@ -340,18 +337,60 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
   );
 }
 
-/** The colours of an exported picture: the light theme's, black on white. */
-const PICTURE_STYLE = `
-.symbol, .wire { fill: none; stroke: #1b1a22; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.symbol .logic-body, .symbol .logic-bubble, .symbol .logic-lamp, .symbol .logic-switch { fill: #ffffff; }
-.symbol .logic-knob { fill: #6b6878; stroke: none; }
-.logic-sign { fill: #1b1a22; stroke: none; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; text-anchor: middle; dominant-baseline: middle; }
-.junction-dot { fill: #1b1a22; }
-.label-leader { stroke: #8a8698; stroke-width: 1; stroke-dasharray: 2 3; }
-.name { fill: #1b1a22; font-family: 'Latin Modern Roman', 'Times New Roman', serif; font-size: 15px; text-anchor: middle; dominant-baseline: central; }
+/** The colours of a picture: ink, the paper (also the fill of bodies), the knob's and the faint labels' grey. */
+interface PictureColors {
+  ink: string;
+  paper: string;
+  muted: string;
+  faint: string;
+}
+
+/** An exported picture: the light theme's colours, black on white. */
+const EXPORT_COLORS: PictureColors = { ink: '#1b1a22', paper: '#ffffff', muted: '#6b6878', faint: '#8a8698' };
+
+/** The app's colours as the current theme sets them, for a picture shown in the app. */
+function appColors(): PictureColors {
+  const style = getComputedStyle(document.documentElement);
+  const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
+  return { ink: read('--text', EXPORT_COLORS.ink), paper: read('--background', EXPORT_COLORS.paper), muted: read('--text-muted', EXPORT_COLORS.muted), faint: read('--text-faint', EXPORT_COLORS.faint) };
+}
+
+const pictureStyle = ({ ink, paper, muted, faint }: PictureColors) => `
+.symbol, .wire { fill: none; stroke: ${ink}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.symbol .logic-body, .symbol .logic-bubble, .symbol .logic-lamp, .symbol .logic-switch { fill: ${paper}; }
+.symbol .logic-knob { fill: ${muted}; stroke: none; }
+.logic-sign { fill: ${ink}; stroke: none; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; text-anchor: middle; dominant-baseline: middle; }
+.junction-dot { fill: ${ink}; }
+.label-leader { stroke: ${faint}; stroke-width: 1; stroke-dasharray: 2 3; }
+.name { fill: ${ink}; font-family: 'Latin Modern Roman', 'Times New Roman', serif; font-size: 15px; text-anchor: middle; dominant-baseline: central; }
 .name .letter { font-style: italic; }
-.id { fill: #8a8698; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px; text-anchor: middle; dominant-baseline: central; }
+.id { fill: ${faint}; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px; text-anchor: middle; dominant-baseline: central; }
 `;
+
+/** The labels of the parts that have one: a switch's or lamp's name, a gate's id. */
+const labelsOf = (parts: LogicPart[]): (LabelOf & Omit<LabelRequest, 'w' | 'h'>)[] =>
+  parts.flatMap((part) => {
+    const place = labelPlace(part);
+    return place ? [{ ...place, id: part.id, part }] : [];
+  });
+
+/**
+ * A circuit as a picture without an editor (the Gates card): the labels' sizes guessed from their
+ * text instead of measured, in the app's colours (`theme: 'app'`) or black on white.
+ */
+export function staticPicture(parts: LogicPart[], symbols: LogicSymbols, theme: 'app' | 'export'): Picture {
+  const labels = labelsOf(parts);
+  const size = (part: LogicPart) => {
+    if (part.kind === 'gate') return { w: 7 * part.id.length + 6, h: 12 };
+    const [base, index = ''] = (part.name ?? '').split(/_(.*)/s);
+    return { w: 9 * base.length + 6 * index.length + 6, h: 18 };
+  };
+  const requests = labels.map((label) => ({ ...label, ...size(label.part) }));
+  const placements = placeLabels(requests, parts.flatMap(obstacles));
+  const ends = parts.flatMap(allPins);
+  const wires = parts.filter((p) => p.kind === 'wire').map(wireEnds);
+  return circuitPicture(parts, symbols, labels, placements, junctionDotsOf(ends, wires), theme === 'app' ? appColors() : EXPORT_COLORS, theme === 'export');
+}
 
 type LabelOf = { id: string; anchor: Point; part: LogicPart };
 
@@ -375,7 +414,7 @@ function NameText({ name, x, y }: { name: string; x: number; y: number }) {
  * editor shows them, without the grid, the pins, a selection or the simulation, in the light
  * theme's colours on white.
  */
-function circuitPicture(parts: LogicPart[], symbols: LogicSymbols, labels: LabelOf[], placements: Map<string, Placement>, dots: Point[]): Picture {
+function circuitPicture(parts: LogicPart[], symbols: LogicSymbols, labels: LabelOf[], placements: Map<string, Placement>, dots: Point[], colors = EXPORT_COLORS, paper = true): Picture {
   const margin = 16;
   const boxOf = (label: LabelOf): Rect => placements.get(label.id) ?? { x: label.anchor.x, y: label.anchor.y, w: 0, h: 0 };
   const box = boundsOf([...parts.flatMap(obstacles), ...labels.map(boxOf)]);
@@ -422,7 +461,7 @@ function circuitPicture(parts: LogicPart[], symbols: LogicSymbols, labels: Label
   );
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}">` +
-    `<style>${PICTURE_STYLE}</style><rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#ffffff"/>${body}</svg>`;
+    `<style>${pictureStyle(colors)}</style>${paper ? `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${colors.paper}"/>` : ''}${body}</svg>`;
   return { svg, width, height };
 }
 

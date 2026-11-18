@@ -28,7 +28,7 @@ export interface LogicEditorData {
    * How the circuit was drawn, while it has not been edited since (§5.1): the form, the output
    * (all when null), and what it was drawn from, so that it is drawn again when that changes.
    */
-  generated?: { form: DrawForm; output: string | null; from: string } | null;
+  generated?: { form: DrawForm; output: string | null; fromExpression?: boolean; from: string } | null;
   /** The form each output's Gates card shows, by the output's name. */
   gates?: Record<string, GateChoice>;
 }
@@ -349,8 +349,8 @@ export const drawnFrom = (scene: LogicScene) => JSON.stringify([scene.inputs, sc
  * The scene with a circuit the core drew from `form` of the scene `from` ([`drawnFrom`]): the
  * outputs keep their sources, since the circuit follows them until it is edited.
  */
-export function withGenerated(scene: LogicScene, circuit: Generated, form: DrawForm, output: string | null, from: string): LogicScene {
+export function withGenerated(scene: LogicScene, circuit: Generated, drawn: { form: DrawForm; output: string | null; fromExpression?: boolean }, from: string): LogicScene {
   const parts = fromGenerated(circuit);
-  const editor: LogicEditorData = { parts, generated: { form, output, from }, gates: editorData(scene).gates };
+  const editor: LogicEditorData = { parts, generated: { ...drawn, from }, gates: editorData(scene).gates };
   return { ...scene, editor, circuit: toNetlist(parts) };
 }

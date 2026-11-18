@@ -5,7 +5,7 @@ import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { Katex } from './Katex';
 import { KvMap } from './KvMap';
-import { LogicCircuit } from './LogicCircuit';
+import { LogicCircuit, type DrawRequest } from './LogicCircuit';
 import { LogicLines } from './LogicLines';
 import { LogicResults } from './LogicResults';
 import { LogicTable } from './LogicTable';
@@ -32,6 +32,8 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
   const [hover, setHover] = useState<TermHover | null>(null);
   /** The latest request; an answer to an older one is dropped. */
   const request = useRef(0);
+  /** A circuit to draw in the editor, asked for by the Gates card. */
+  const [drawRequest, setDrawRequest] = useState<DrawRequest | null>(null);
 
   const run = useCallback(async (current: LogicScene) => {
     const id = ++request.current;
@@ -88,7 +90,7 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
           <ErrorRow key={i} error={new ApiError(error.message)} />
         ))}
         <LogicLines scene={scene} answer={answer} onChange={onSceneChange} />
-        <LogicCircuit settings={settings} scene={scene} answer={answer} onSceneChange={onSceneChange} switchValue={switchValue} onToggle={toggle} />
+        <LogicCircuit settings={settings} scene={scene} answer={answer} onSceneChange={onSceneChange} switchValue={switchValue} onToggle={toggle} drawRequest={drawRequest} />
         {!answer && !failure && <p className="analysis-empty">{t('logic.empty')}</p>}
         {outputs.length > 1 && (
           <div className="form-row logic-tabs">
@@ -115,6 +117,8 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
             shown={shown}
             hideSteps={stepDetail === 'none'}
             notation={logicNotation}
+            symbols={settings.logicSymbols}
+            onOpen={(form, output, fromExpression) => setDrawRequest({ form, output, fromExpression })}
             hover={hover}
             onHover={setHover}
             onChange={onSceneChange}
