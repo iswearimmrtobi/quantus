@@ -151,7 +151,7 @@ four NAND/NOR `Section`s (L240–249).
   (`LogicLines.tsx`).
 - [x] The `f` label left of a line goes when the line itself starts with `f =`; the placeholder
   sits at the field's left edge.
-- [ ] The **expression** badge only on the line, not on the table's column, the results head
+- [x] The **expression** badge only on the line, not on the table's column, the results head
   (`SourceMark` in `ResultsOf`) and the Truth table button.
 
 ### 2.3 Circuit editor (M)

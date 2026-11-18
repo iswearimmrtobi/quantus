@@ -3176,10 +3176,6 @@ select option {
   border-color: var(--danger);
 }
 
-.logic-output-head .logic-source {
-  margin: 0 2px;
-}
-
 .logic-ask {
   display: inline-flex;
   gap: 4px;

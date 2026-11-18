@@ -5,7 +5,6 @@ import { useT, type TextKey } from '../i18n';
 import { copyText } from '../shell';
 import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
-import { SourceMark } from './LogicLines';
 import { LogicGates } from './LogicGates';
 import { editorData, withGateChoice } from '../logicCircuit';
 
@@ -228,10 +227,11 @@ function ResultsOf({
   const knf = minimal?.knf[minimal.chosenKnf];
   return (
     <>
-      <div className="logic-results-head">
-        <SourceMark kind={result.source} />
-        {result.constant && <span className="section-message">{result.constant}</span>}
-      </div>
+      {result.constant && (
+        <div className="logic-results-head">
+          <span className="section-message">{result.constant}</span>
+        </div>
+      )}
       {(expression || canonical) && (
         <div className="section-card logic-card-pair">
           {expression && (

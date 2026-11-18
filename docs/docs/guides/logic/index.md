@@ -30,7 +30,7 @@ Switch to **Logic** in the top bar. From top to bottom the page has:
 
 The function lines, the table and the circuit are three ways to give an output its function.
 Each output has one **source**, the view it was edited in last; the other views follow from it.
-A small marker beside each output names its source: *expression*, *minterms*, *table* or
+A small marker beside each function line names its source: *expression*, *minterms*, *table* or
 *circuit*. Editing a view makes it the source of the outputs it touches. See
 [Input](input.md) for the details.
 

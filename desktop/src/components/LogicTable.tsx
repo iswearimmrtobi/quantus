@@ -21,7 +21,6 @@ import {
 } from '../logic';
 import { useT } from '../i18n';
 import { Katex } from './Katex';
-import { SourceMark } from './LogicLines';
 import { CopyButton } from './LogicResults';
 
 interface Props {
@@ -177,7 +176,6 @@ export function LogicTable({ scene, grid, answer, zeros, onChange, currentRow = 
                     taken={names}
                     onRename={column.index === null ? undefined : (to) => onChange(renameOutputAt(scene, column.index!, column.name, to))}
                   />
-                  <SourceMark kind={column.source} />
                   {column.index !== null && (
                     <button className="logic-head-remove" title={t('logic.line.remove')} onClick={() => onChange(removeOutput(scene, column.index!))}>
                       ✕
