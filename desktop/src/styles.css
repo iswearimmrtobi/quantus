@@ -2984,17 +2984,25 @@ select option {
   box-shadow: inset 0 0 0 2px var(--point-zero);
 }
 
-/* Draw from…, Arrange, and the figures in the canvas's corner. */
+/* Draw from… and Arrange in a bar above the canvas, and the figures in the canvas's corner. */
+.logic-toolbar {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
 .logic-draw {
-  margin-top: 14px;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
 }
 .logic-draw .palette-title {
   margin-bottom: 0;
 }
+.logic-draw .file-error {
+  flex-basis: 100%;
+  margin: 0;
+}
 .logic-draw-output {
-  width: 100%;
   padding: 3px 6px;
   color: var(--text);
   font-size: 12px;
@@ -3007,8 +3015,31 @@ select option {
   flex-wrap: wrap;
   gap: 4px;
 }
-.logic-arrange {
-  justify-self: start;
+/* An empty canvas: the forms to draw from in its middle, the drop target still under them. */
+.logic-canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  pointer-events: none;
+}
+.logic-canvas-start {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 460px;
+  text-align: center;
+}
+.logic-canvas-start .palette-title {
+  margin-bottom: 0;
+}
+.logic-canvas-start .logic-draw-forms {
+  justify-content: center;
+  pointer-events: auto;
+}
+.logic-canvas-empty .panel-empty {
+  margin: 0;
 }
 .logic-corner {
   position: absolute;

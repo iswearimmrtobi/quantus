@@ -35,8 +35,10 @@ interface Props {
   onChange(parts: LogicPart[]): void;
   /** IEC rectangles or ANSI shapes. */
   symbols: LogicSymbols;
-  /** Extra controls under the palette. */
+  /** Controls in a bar above the canvas: Draw from and Arrange. */
   toolbar?: ReactNode;
+  /** Shown in the middle of the canvas while it is empty. */
+  emptyCanvas?: ReactNode;
   /** The circuit's errors, each with the parts it concerns, marked red. */
   errors?: LogicError[];
   /** Its warnings (a gate that drives nothing), marked amber. */
@@ -62,7 +64,7 @@ interface Props {
  * gates on the grid of the schematic editors, joined by wires; a gate's number of inputs is set in
  * the inspector.
  */
-export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], warnings = [], values, switchValue, onToggle, corner, note, path = [], fitKey = 0 }: Props) {
+export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, errors = [], warnings = [], values, switchValue, onToggle, corner, note, path = [], fitKey = 0 }: Props) {
   const { t } = useT();
   const canvas = useRef<SVGSVGElement>(null);
   const canvasView = useCanvasView(canvas);
@@ -197,7 +199,6 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
             <span>{paletteLabel(kind, t)}</span>
           </button>
         ))}
-        {toolbar}
         <div className="logic-export">
           <div className="palette-title">{t('logic.export.title')}</div>
           <div className="logic-export-buttons">
@@ -219,6 +220,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
       </div>
 
       <div className="circuit-centre">
+        {toolbar && <div className="logic-toolbar">{toolbar}</div>}
         <div className="circuit-stage">
           <svg
             ref={canvas}
@@ -313,6 +315,8 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
             </div>
           </div>
 
+          {!parts.length && emptyCanvas && <div className="logic-canvas-empty">{emptyCanvas}</div>}
+
           {corner && <div className="logic-corner">{corner}</div>}
 
           {noteShown && (
@@ -330,7 +334,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, errors = [], wa
         {chosen ? (
           <Inspector part={chosen} parts={parts} onChange={(change) => update(chosen.id, change)} onReplace={(next) => onChange(parts.map((p) => (p.id === next.id ? next : p)))} onRemove={() => remove([chosen.id])} />
         ) : (
-          <p className="panel-empty">{parts.length === 0 ? t('logic.editor.empty') : t('logic.editor.choose')}</p>
+          parts.length > 0 && <p className="panel-empty">{t('logic.editor.choose')}</p>
         )}
       </aside>
     </div>

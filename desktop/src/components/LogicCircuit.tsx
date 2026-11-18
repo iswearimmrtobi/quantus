@@ -116,9 +116,17 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   const generatedForm = generated && FORMS.find((f) => f.form === generated.form);
   const setTime = (common: string) => onSceneChange({ ...scene, gateTimes: { ...scene.gateTimes, common } });
 
+  /** The six forms as buttons, drawing for the output chosen or all. */
+  const formButtons = (className: string) =>
+    FORMS.map(({ form, label }) => (
+      <button key={form} className={className} title={t('logic.draw.hint')} disabled={!outputs.length} onClick={() => void draw(form, drawOutput && outputs.includes(drawOutput) ? drawOutput : null)}>
+        {t(label)}
+      </button>
+    ));
+
   const toolbar = (
     <div className="logic-draw">
-      <div className="palette-title">{t('logic.draw.title')}</div>
+      <span className="palette-title">{t('logic.draw.title')}</span>
       <select className="logic-draw-output" value={drawOutput ?? ''} title={t('logic.draw.output')} onChange={(event) => setDrawOutput(event.target.value || null)}>
         <option value="">{t('logic.draw.all')}</option>
         {outputs.map((name) => (
@@ -127,18 +135,22 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
           </option>
         ))}
       </select>
-      <div className="logic-draw-forms">
-        {FORMS.map(({ form, label }) => (
-          <button key={form} className="form-chip" title={t('logic.draw.hint')} disabled={!outputs.length} onClick={() => void draw(form, drawOutput && outputs.includes(drawOutput) ? drawOutput : null)}>
-            {t(label)}
-          </button>
-        ))}
-      </div>
+      <div className="logic-draw-forms">{formButtons('form-chip')}</div>
       <button className="form-chip logic-arrange" title={t('logic.arrange.hint')} disabled={!circuit} onClick={() => void arrange()}>
         {t('logic.arrange')}
       </button>
       {taskError && <p className="file-error">{taskError}</p>}
     </div>
+  );
+
+  // On an empty canvas: the forms to draw from, or how to start without a function.
+  const emptyCanvas = outputs.length ? (
+    <div className="logic-canvas-start">
+      <span className="palette-title">{t('logic.draw.title')}</span>
+      <div className="logic-draw-forms">{formButtons('form-chip')}</div>
+    </div>
+  ) : (
+    <p className="panel-empty">{t('logic.editor.empty')}</p>
   );
 
   const corner = circuit && (
@@ -193,6 +205,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
             onChange={setParts}
             symbols={settings.logicSymbols}
             toolbar={toolbar}
+            emptyCanvas={emptyCanvas}
             errors={errors}
             warnings={circuit?.warnings ?? []}
             values={circuit ? new Map(circuit.values.map((v) => [v.net, v.value])) : null}

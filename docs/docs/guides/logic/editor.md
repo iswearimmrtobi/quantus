@@ -59,7 +59,9 @@ number in the table, or <kbd>Ctrl</kbd>+click on a KV cell, sets the switches to
 
 ## Draw from
 
-**Draw from** replaces the circuit with one drawn from a form of the function:
+**Draw from**, in the bar above the canvas, replaces the circuit with one drawn from a form of
+the function. While the canvas is empty and there is a function, the same six buttons stand in
+its middle.
 
 - **minimal DNF**, **minimal KNF**, **NAND only**, **2-input NAND only**, **NOR only** or
   **2-input NOR only**;
