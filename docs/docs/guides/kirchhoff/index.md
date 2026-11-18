@@ -25,8 +25,9 @@ middle, the selected part's values on the right, and the working under the canva
 Drag a part onto the canvas or click it in the list. Dragging from a terminal draws a wire;
 <kbd>Space</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a resistor by 45° and
 <kbd>Del</kbd> deletes it. Two terminals are connected
-when they sit on the same grid point, or one ends in the middle of a wire. The canvas moves with
-the right or middle mouse button or by scrolling, and zooms with <kbd>Ctrl</kbd> and scrolling.
+when they sit on the same grid point, or one ends in the middle of a wire. Scrolling zooms;
+the canvas moves with the right or middle mouse button or with <kbd>Shift</kbd> and scrolling, and
+the buttons in its top left corner zoom and show the whole circuit.
 
 The source's `+` terminal is the end with the `+` mark. Every value must be given, and every
 terminal must be connected to something.

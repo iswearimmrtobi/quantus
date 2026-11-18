@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from 'react';
+import { useT } from '../i18n';
 import type { Placement } from '../labelLayout';
 import {
   corner,
@@ -43,11 +44,17 @@ const MAX_ZOOM = 4;
 /** The SVG transform of the drawing in `view`. */
 export const viewTransform = (view: View) => `translate(${view.x} ${view.y}) scale(${view.zoom})`;
 
+/** `v` scaled by `factor` (within the zoom's limits), the canvas point `at` staying where it is. */
+function zoomedAbout(v: View, factor: number, at: Point): View {
+  const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.zoom * factor));
+  return { zoom, x: at.x - ((at.x - v.x) * zoom) / v.zoom, y: at.y - ((at.y - v.y) * zoom) / v.zoom };
+}
+
 /**
- * How the drawing lies on the canvas. A wheel scrolls up and down, with Shift sideways; a touchpad
- * scrolls both ways. With Ctrl (and a touchpad pinch, which arrives as one) it zooms about the
- * pointer. React's wheel handler is passive and could not keep the webview from zooming the whole
- * page, so this one is native.
+ * How the drawing lies on the canvas. The wheel zooms about the pointer (with Ctrl too, as a
+ * touchpad pinch arrives); with Shift, or a sideways touchpad swipe, it moves the drawing. React's
+ * wheel handler is passive and could not keep the webview from zooming or scrolling the whole page,
+ * so this one is native.
  */
 export function useCanvasView(canvas: RefObject<SVGSVGElement | null>) {
   const [view, setView] = useState<View>(HOME);
@@ -58,24 +65,28 @@ export function useCanvasView(canvas: RefObject<SVGSVGElement | null>) {
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : 1;
-      if (event.ctrlKey) {
-        const box = svg.getBoundingClientRect();
-        const at = { x: event.clientX - box.left, y: event.clientY - box.top };
-        setView((v) => {
-          const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.zoom * Math.exp(-event.deltaY * unit * 0.002)));
-          // The drawing point under the pointer stays under it.
-          return { zoom, x: at.x - ((at.x - v.x) * zoom) / v.zoom, y: at.y - ((at.y - v.y) * zoom) / v.zoom };
-        });
+      if (event.shiftKey || (event.deltaX !== 0 && !event.ctrlKey)) {
+        const sideways = event.shiftKey && event.deltaX === 0;
+        const dx = (sideways ? event.deltaY : event.deltaX) * unit;
+        const dy = (event.shiftKey ? 0 : event.deltaY) * unit;
+        setView((v) => ({ ...v, x: v.x - dx, y: v.y - dy }));
         return;
       }
-      const sideways = event.shiftKey && event.deltaX === 0;
-      const dx = (sideways ? event.deltaY : event.deltaX) * unit;
-      const dy = (sideways ? 0 : event.deltaY) * unit;
-      setView((v) => ({ ...v, x: v.x - dx, y: v.y - dy }));
+      const box = svg.getBoundingClientRect();
+      const at = { x: event.clientX - box.left, y: event.clientY - box.top };
+      setView((v) => zoomedAbout(v, Math.exp(-event.deltaY * unit * 0.002), at));
     };
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
   }, [canvas]);
+
+  /** Zooms by `factor` about the middle of the canvas. */
+  const zoomBy = (factor: number) => {
+    const svg = canvas.current;
+    if (!svg) return;
+    const { width, height } = svg.getBoundingClientRect();
+    setView((v) => zoomedAbout(v, factor, { x: width / 2, y: height / 2 }));
+  };
 
   /** The point under the pointer in drawing coordinates, unsnapped. */
   const toDrawing = (event: { clientX: number; clientY: number }): Point => {
@@ -99,7 +110,7 @@ export function useCanvasView(canvas: RefObject<SVGSVGElement | null>) {
     setView({ zoom, x: width / 2 - (box.x + box.w / 2) * zoom, y: height / 2 - (box.y + box.h / 2) * zoom });
   };
 
-  return { view, setView, toDrawing, toGrid, fit };
+  return { view, setView, toDrawing, toGrid, fit, zoomBy };
 }
 
 /**
@@ -141,6 +152,43 @@ export function useLabelSizes() {
 /** Where a label is drawn: at its placement once measured, until then hidden at its anchor. */
 export function labelStyle(placement: Placement | undefined, anchor: Point): CSSProperties {
   return placement ? { left: placement.x, top: placement.y } : { left: anchor.x, top: anchor.y, visibility: 'hidden' };
+}
+
+/** How much one press of a zoom button or key zooms. */
+export const ZOOM_STEP = 1.25;
+
+/**
+ * The zoom keys of a focused canvas: + (or =) and − zoom, 0 shows the whole drawing. Ctrl+0 and
+ * Ctrl+Plus stay the app's own. Returns whether the key was one of them.
+ */
+export function zoomKey(event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean }, view: ReturnType<typeof useCanvasView>, fit: () => void): boolean {
+  if (event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (event.key === '+' || event.key === '=') view.zoomBy(ZOOM_STEP);
+  else if (event.key === '-') view.zoomBy(1 / ZOOM_STEP);
+  else if (event.key === '0') fit();
+  else return false;
+  return true;
+}
+
+/** −, the zoom in percent (a click goes back to 100 %), + and Fit, in the canvas's corner. */
+export function ZoomControls({ view, fit }: { view: ReturnType<typeof useCanvasView>; fit(): void }) {
+  const { t } = useT();
+  return (
+    <div className="zoom-controls" onPointerDown={(event) => event.stopPropagation()}>
+      <button className="zoom-button" title={t('schematic.zoomOut')} aria-label={t('schematic.zoomOut')} onClick={() => view.zoomBy(1 / ZOOM_STEP)}>
+        −
+      </button>
+      <button className="zoom-button zoom-level" title={t('schematic.zoomReset')} onClick={() => view.zoomBy(1 / view.view.zoom)}>
+        {Math.round(view.view.zoom * 100)} %
+      </button>
+      <button className="zoom-button" title={t('schematic.zoomIn')} aria-label={t('schematic.zoomIn')} onClick={() => view.zoomBy(ZOOM_STEP)}>
+        +
+      </button>
+      <button className="zoom-button" title={t('schematic.fit')} onClick={fit}>
+        {t('schematic.fit.short')}
+      </button>
+    </div>
+  );
 }
 
 /** The dotted grid behind the drawing, moving and scaling with it. */

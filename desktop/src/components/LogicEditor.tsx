@@ -28,7 +28,7 @@ import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, se
 import { pngBytes, svgBytes, type Picture } from '../picture';
 import { saveBytes } from '../shell';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart } from './Schematic';
+import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey } from './Schematic';
 
 interface Props {
   parts: LogicPart[];
@@ -167,7 +167,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
     else if (event.key === ' ' || event.key.toLowerCase() === 'r') rotateSelected();
     else if (event.key === 'Escape') setSelection([]);
     else if (event.key === 'Home') fitAll();
-    else return;
+    else if (!zoomKey(event, canvasView, fitAll)) return;
     event.preventDefault();
   };
 
@@ -260,6 +260,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
       <div className="circuit-centre">
         {toolbar && <div className="logic-toolbar">{toolbar}</div>}
         <div className="circuit-stage">
+          <ZoomControls view={canvasView} fit={fitAll} />
           <svg
             ref={canvas}
             className="circuit-canvas"

@@ -34,8 +34,10 @@ symbols are the IEC 60617 rectangles (`&`, `≥1`, `=1`, `1`) or the ANSI shapes
 Drag a part onto the canvas or click it in the list. Dragging from a pin, or from a point on a
 wire, draws a wire; dragging on empty canvas selects several parts. <kbd>Space</kbd> or
 <kbd>R</kbd> rotates the selection by 90°, <kbd>Del</kbd> deletes it, <kbd>Esc</kbd> clears it.
-The canvas moves with the right or middle mouse button or by scrolling, zooms with
-<kbd>Ctrl</kbd> and scrolling, and <kbd>Home</kbd> shows the whole circuit.
+Scrolling zooms about the pointer; the canvas moves with the right or middle mouse button or
+with <kbd>Shift</kbd> and scrolling. The buttons in the canvas's top left corner zoom out, back to
+100 % and in, and **Fit** shows the whole circuit; on the canvas <kbd>+</kbd>, <kbd>-</kbd> and
+<kbd>0</kbd> do the same, and so does <kbd>Home</kbd> for the whole circuit.
 
 ## Checks
 

@@ -35,8 +35,10 @@ Two terminals are connected when they sit on the same grid point, or when one en
 of an ideal wire (a T-junction). The open dot at a terminal disappears once something is
 connected there.
 
-The canvas moves with the right or middle mouse button or by scrolling, and zooms with
-<kbd>Ctrl</kbd> and scrolling or a pinch; <kbd>Home</kbd> goes back to the start.
+Scrolling zooms about the pointer; the canvas moves with the right or middle mouse button or
+with <kbd>Shift</kbd> and scrolling. The buttons in the canvas's top left corner zoom out, back to
+100 % and in, and **Fit** shows the whole circuit; on the canvas <kbd>+</kbd>, <kbd>-</kbd> and
+<kbd>0</kbd> do the same. <kbd>Home</kbd> goes back to the start.
 
 **Load** and **Save** under *File* read and write the circuit as a `.json` file. The Kirchhoff
 mode uses the same files, see [Kirchhoff](kirchhoff/index.md); the format is in

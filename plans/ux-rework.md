@@ -174,6 +174,34 @@ four NAND/NOR `Section`s (L240–249).
 - [x] (Could, M) fewer wire crossings in `layout.rs`: each input's rail next to its NOT gate,
   rails sorted by first use.
 
+### 2.4 Zoom in the circuit editors (S)
+
+Found after 2.3: only Ctrl + wheel zoomed, and a touchpad pinch does not reach the page in
+WebKitGTK.
+
+- [x] `useCanvasView` (`Schematic.tsx`): the wheel zooms about the pointer (with Ctrl too);
+  Shift + wheel and sideways swipes pan. `zoomBy` zooms about the canvas's middle.
+- [x] `ZoomControls` in the canvas's top left corner of both editors: −, the zoom in % (a click
+  goes back to 100 %), +, **Fit**. Keys on the canvas: `+`/`=`, `-`, `0` (fit). `CircuitEditor`
+  gets a fit like `LogicEditor.fitAll`.
+- [x] Texts `app.schematic.*`, `app.circuit.pan`; docs (`logic/editor.md`, `electronics.md`,
+  `kirchhoff/index.md`); CHANGELOG → Changed.
+
+### 2.5 One circuit for all outputs (M)
+
+A truth table with several output columns gave one circuit per output in the Gates card.
+
+- [ ] Core: `Draw { output: None, from_expression: true }` takes the minimal form's gate form for
+  an output without an expression, failing only when no output has one. Tests in
+  `tests/logic.rs`: two outputs drawn into one netlist with both lamps and a shared NOT; a NAND
+  rewrite over one typed and one table output.
+- [ ] Gates card: with several outputs the picture and **Open in editor** draw all of them in one
+  circuit; the cost line adds the whole circuit's figures.
+- [ ] Editor: output tabs **All | f | g | …** over the canvas instead of the select. On a drawn
+  circuit a tab draws the same form for that output (or all) at once; on a hand-made or edited
+  one it only chooses what **Draw from** draws.
+- [ ] Docs (`logic/results.md`, `logic/editor.md`), CHANGELOG (the Logic entry).
+
 ---
 
 ## Phase 3: Geometry, sidebar and full 3D view (the wish)

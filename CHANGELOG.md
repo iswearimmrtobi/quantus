@@ -182,6 +182,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   with a dashed helper line, and a relation the point, points, line or circle the objects meet
   in. An angle shows its two directions and an arc with $\varphi$, a tangent its plane or line.
   The other objects fade while the answer is shown (`task` in the `geometry_view` request).
+- Desktop, the circuit editors (Electronics, Kirchhoff, Logic): scrolling zooms about the
+  pointer, and Shift and scrolling moves the canvas. Buttons in the canvas's top left corner zoom
+  out, back to 100 % and in and fit the whole drawing; <kbd>+</kbd>, <kbd>-</kbd> and <kbd>0</kbd>
+  do the same on the canvas. Before, only Ctrl and scrolling zoomed.
 
 ## [0.2.0] - 2026-11-06
 

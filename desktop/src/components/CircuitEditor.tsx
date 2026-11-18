@@ -24,10 +24,11 @@ import {
   type Shown,
   type Terminal,
 } from '../circuit';
+import { boundsOf } from '../schematic';
 import { useT } from '../i18n';
 import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../labelLayout';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart } from './Schematic';
+import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey } from './Schematic';
 
 type ElementResult = CircuitResponse['elements'][number];
 
@@ -167,6 +168,9 @@ export function CircuitEditor({
     lastPlacements.current = placements;
   }, [placements]);
 
+  /** Shows the whole drawing with its labels; the start view without one. */
+  const fitAll = () => (elements.length ? canvasView.fit(boundsOf([...obstacles(elements), ...placements.values()])) : setView(HOME));
+
   const selected = selection.length === 1 ? selection[0] : null;
 
   const add = (kind: EditorKind, at?: Point) => {
@@ -199,7 +203,7 @@ export function CircuitEditor({
       setSelection([]);
     } else if (event.key === 'Home') {
       setView(HOME);
-    } else {
+    } else if (!zoomKey(event, canvasView, fitAll)) {
       return;
     }
     event.preventDefault();
@@ -237,6 +241,7 @@ export function CircuitEditor({
 
       <div className="circuit-centre">
       <div className="circuit-stage">
+        <ZoomControls view={canvasView} fit={fitAll} />
         <svg
           ref={canvas}
           className="circuit-canvas"

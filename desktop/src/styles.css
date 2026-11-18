@@ -1686,6 +1686,36 @@ select option {
 .grid-dot {
   fill: var(--hairline-strong);
 }
+/* The zoom buttons in the canvas's top left corner. */
+.zoom-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.zoom-button {
+  font-family: var(--mono);
+  font-size: 12px;
+  min-width: 26px;
+  padding: 3px 7px;
+  color: var(--text-muted);
+}
+.zoom-button + .zoom-button {
+  border-left: 1px solid var(--hairline);
+}
+.zoom-button:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.zoom-level {
+  min-width: 52px;
+  font-size: 11px;
+}
 
 .part .symbol,
 .part .wire {
