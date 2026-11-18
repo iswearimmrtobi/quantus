@@ -68,8 +68,8 @@ its middle.
   **2-input NOR only**;
 - for one output, or for **all outputs** at once. Several outputs share their identical gates.
 
-The circuit is laid out on the grid: the switches on the left, each with a bus line down, the
-inverters by the buses, a column per level of gates, the lamps on the right. A circuit drawn this
+The circuit is laid out on the grid: the switches on the left, each with a bus line down (the
+buses in the order that makes the fewest wires cross), the inverters by the buses, a column per level of gates, the lamps on the right. A circuit drawn this
 way follows its function: it is drawn again from the same form when the outputs or the inputs
 change, until you edit it. **Open in editor** in the [Gates](results.md#gates) card draws the same
 way, and can also draw a NAND or NOR form rewritten from the expression. From then on it is a drawn circuit like any other.

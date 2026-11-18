@@ -131,7 +131,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   colours each wire by its value and lights the lamps, with the matching row of the table and
   cell of the KV diagram highlighted. **Draw from** the minimal DNF, the minimal KNF, NAND only,
   2-input NAND only, NOR only or 2-input NOR only, for one output or all (identical gates shared), in
-  a bar above the canvas and in the middle of an empty one, lays the circuit out on the grid;
+  a bar above the canvas and in the middle of an empty one, lays the circuit out on the grid, its
+  input buses in the order that makes the fewest wires cross;
   **Arrange** lays a drawn one out afresh. A drawn circuit that no longer fits the function is
   marked *out of date* with the rows that differ. A bar under the canvas shows the gates, the levels, the
   delay in $t_{pd}$ or as a time, and the critical path, marked dashed in red in the circuit at a click. The circuit

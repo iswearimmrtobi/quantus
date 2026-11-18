@@ -169,7 +169,7 @@ four NAND/NOR `Section`s (L240–249).
   canvas gets that width.
 - [x] The editor as a tab: **Table & KV | Circuit**, so it no longer pushes the table and
   results 950 px down (`LogicView.tsx`).
-- [ ] (Could, M) fewer wire crossings in `layout.rs`: each input's rail next to its NOT gate,
+- [x] (Could, M) fewer wire crossings in `layout.rs`: each input's rail next to its NOT gate,
   rails sorted by first use.
 
 ---

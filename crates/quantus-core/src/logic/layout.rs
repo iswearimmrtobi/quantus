@@ -12,7 +12,8 @@
 //! element unturned, the signals running from left to right:
 //!
 //! - the inputs (then the constants) on the left, one under the other, each with a vertical bus
-//!   line; an inverter of an input sits by its bus and starts a bus of its own;
+//!   line, the buses in the order whose wires cross least; an inverter of an input sits by its
+//!   bus and starts a bus of its own;
 //! - one column per level of gates; the gates of a column are ordered twice, first by the mean
 //!   row of their inputs from left to right, then by the mean row of the pins they drive from
 //!   right to left, and placed so that a pin lies in the row of the gate that drives it where it
@@ -328,6 +329,16 @@ pub struct CircuitLayout {
     pub wires: Vec<Wire>,
 }
 
+impl CircuitLayout {
+    /// How many times a wire across crosses a wire down without meeting it: inside both, not at
+    /// the end of either.
+    pub fn crossings(&self) -> usize {
+        let (across, down): (Vec<&Wire>, Vec<&Wire>) = self.wires.iter().filter(|w| w.from != w.to).partition(|w| w.from.y == w.to.y);
+        let inside = |v: i32, a: i32, b: i32| a.min(b) < v && v < a.max(b);
+        across.iter().map(|h| down.iter().filter(|v| inside(v.from.x, h.from.x, h.to.x) && inside(h.from.y, v.from.y, v.to.y)).count()).sum()
+    }
+}
+
 /// The rows of a gate's input pins relative to its output: one grid step apart, centred, the
 /// output's row left out for an even number: `[0]`, `[-1, 1]`, `[-1, 0, 1]`, `[-2, -1, 1, 2]`.
 pub fn pin_offsets(inputs: usize) -> Vec<i32> {
@@ -409,9 +420,51 @@ impl Generated {
         }
     }
 
-    /// The circuit laid out on the grid (§6.6), its elements with the ids of [`Self::netlist`].
+    /// The circuit laid out on the grid (§6.6), its elements with the ids of [`Self::netlist`]:
+    /// the switches in their order from the top, their buses in the order, of those tried, whose
+    /// wires cross least (the switches' own order first, then the reverse, each improved by
+    /// swapping neighbours while that saves crossings).
     pub fn layout(&self) -> CircuitLayout {
         let n = self.inputs.len();
+        let identity: Vec<usize> = (0..n).collect();
+        let mut best = self.layout_with_buses(&identity);
+        let mut best_count = best.crossings();
+        for start in [identity.clone(), identity.iter().rev().copied().collect()] {
+            let mut order = start;
+            let mut layout = self.layout_with_buses(&order);
+            let mut count = layout.crossings();
+            // Neighbours swapped while that saves crossings; a few rounds at most.
+            for _ in 0..n {
+                let mut improved = false;
+                for i in 0..n.saturating_sub(1) {
+                    if count == 0 {
+                        break;
+                    }
+                    order.swap(i, i + 1);
+                    let tried = self.layout_with_buses(&order);
+                    let tried_count = tried.crossings();
+                    if tried_count < count {
+                        (layout, count, improved) = (tried, tried_count, true);
+                    } else {
+                        order.swap(i, i + 1);
+                    }
+                }
+                if !improved {
+                    break;
+                }
+            }
+            if count < best_count {
+                (best, best_count) = (layout, count);
+            }
+        }
+        best
+    }
+
+    /// The circuit laid out with the buses of the inputs from left to right in `order` (indices
+    /// into the inputs), the switches still one under the other in their own order.
+    pub fn layout_with_buses(&self, order: &[usize]) -> CircuitLayout {
+        let n = self.inputs.len();
+        debug_assert_eq!(order.len(), n);
         let constants = self.constants();
         let inverters: Vec<Option<usize>> = (0..self.gates.len()).map(|g| self.inverter_of(g)).collect();
 
@@ -435,7 +488,7 @@ impl Generated {
         let mut inverter_taps: Vec<(Signal, i32, i32)> = Vec::new();
         let mut x = 2;
         let mut next_row = 2 * (n + constants.len()) as i32 + 1;
-        for k in 0..n {
+        for &k in order {
             let input = Signal::Input(k);
             placed.insert(input_id(k), Point::new(-1, 2 * k as i32));
             bus_x.insert(input, x);

@@ -2365,3 +2365,37 @@ fn the_kv_diagram_copies_as_a_tabular_with_its_bars() {
     assert_eq!(six.matches("\\begin{tabular}").count(), 5);
     assert!(six.contains("$B$ & \\vline & \\begin{tabular}"));
 }
+
+/// Circuits whose buses the layout reorders, with their form.
+fn crossing_cases() -> Vec<(Generated, &'static str)> {
+    let mut cases = Vec::new();
+    for (expr, vars) in [
+        ("AB + AC + BC", "A B C"),
+        (r"\overline{A} B + C D + A \overline{D}", "A B C D"),
+        (r"A \overline{B} C + \overline{A} D + B \overline{C} \overline{D}", "A B C D"),
+        (r"D \overline{A} + C B", "A B C D"),
+    ] {
+        for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nand2, DrawForm::Nor2] {
+            let mut circuit = Generated::new(names(vars)).unwrap();
+            circuit.add("f", &function(expr, vars), form, 0).unwrap();
+            cases.push((circuit, expr));
+        }
+    }
+    cases
+}
+
+#[test]
+fn the_buses_are_ordered_so_that_fewer_wires_cross() {
+    let mut saved = 0;
+    for (circuit, expr) in crossing_cases() {
+        let identity: Vec<usize> = (0..circuit.inputs.len()).collect();
+        let (chosen, plain) = (circuit.layout(), circuit.layout_with_buses(&identity));
+        assert!(chosen.crossings() <= plain.crossings(), "{expr}: more crossings than in the switches' order");
+        assert_drawn(&circuit.netlist(), &chosen);
+        saved += plain.crossings() - chosen.crossings();
+    }
+    // The majority of three as AND–OR crosses 7 times in the switches' order, fewer reordered.
+    assert!(saved > 0);
+    let (majority, _) = &crossing_cases()[0];
+    assert!(majority.layout().crossings() < majority.layout_with_buses(&[0, 1, 2]).crossings());
+}
