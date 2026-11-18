@@ -27,6 +27,8 @@ Effort: S = an hour or two, M = a day, L = several days.
 | Geometry layout | Objects in a sidebar on the left (about 380 px, resizable), the 3D view fills the rest of the window's height and width, and the task sits at the foot of the sidebar |
 | Object rows | Collapsed by default (swatch, name, the built formula, eye, ×). A click opens the row's editor in place, and only one is open at a time |
 | Hidden objects | `SceneObject.hidden` in the core: built, so others can use it, but not drawn |
+| Rewrite pictures | `LogicTask::Draw { from_expression }` draws the rewrite of a typed or traced expression (NAND/NOR forms only) |
+| The Gates card's choice | Kept in the scene's `editor` data (`gates: { [output]: { form, fromExpression } }`), no core field |
 | The task's answer in 3D | Drawn by the core (`ViewRequest.task`), highlighted in the view |
 
 ---
@@ -37,23 +39,24 @@ Effort: S = an hour or two, M = a day, L = several days.
 
 `crates/quantus-core/src/logic/interface.rs`, `nand.rs`, `layout.rs`.
 
-- [ ] New `GateFormResponse` fields: `kind: GateKind` (`nand`/`nor`, serialised lowercase),
+- [x] New `GateFormResponse` fields: `kind: GateKind` (`nand`/`nor`, serialised lowercase),
   `two_input: bool`, `origin: "minimal" | "rewrite"`. Keep `latex`, `gates`, `inputs`, `levels`
   and `worked`.
-- [ ] `OutputResponse`: replace `nand`, `nor`, `nand_rewrite`, `nor_rewrite` with
+- [x] `OutputResponse`: replace `nand`, `nor`, `nand_rewrite`, `nor_rewrite` with
   `gate_forms: Vec<GateFormResponse>`, in this order: NAND, NAND 2-in, NOR, NOR 2-in (from the
   chosen minimal DNF and KNF), then the rewrites of a typed expression or traced circuit in the
   same order. Build them in `output_response` (around L788 and L822) by calling
   `GateForm::nand`/`nor`/`rewrite` with `two_input` false and true. When nothing is split (every
   gate already has 2 inputs or fewer), leave out the 2-input copy and set `two_input: true` on
   the one kept, so the UI does not show two identical forms. Compare by `GateForm::split.is_empty()`.
-- [ ] `DrawForm`: add `Nand2` and `Nor2` (serialised `nand2`, `nor2`). In `Generated::add`
+- [x] `DrawForm`: add `Nand2` and `Nor2` (serialised `nand2`, `nor2`). In `Generated::add`
   (`layout.rs:76`) the `two_input` parameter goes; it follows from the form.
-  `LogicTask::Draw` stays as it is.
-- [ ] `Options.two_input` goes.
-- [ ] `writeup/logic.rs`: write the NAND and NOR forms from `gate_forms` (the minimal ones, any
+  `LogicTask::Draw` gets `from_expression` (default false): a NAND or NOR form rewritten from the
+  typed or traced expression, so the Gates card can draw the rewrites too.
+- [x] `Options.two_input` goes.
+- [x] `writeup/logic.rs`: write the NAND and NOR forms from `gate_forms` (the minimal ones, any
   width), plus the 2-input ones when they differ, as two more `step` lines.
-- [ ] Tests in `tests/logic.rs`: the majority of three has four forms. NAND has 4 gates, NAND
+- [x] Tests in `tests/logic.rs`: the majority of three has four forms. NAND has 4 gates, NAND
   2-in has more gates and no gate with more than 2 inputs. A 2-variable function has only two
   forms (nothing to split). `Draw { form: Nand2 }` gives a netlist whose gates all have ≤ 2
   inputs. Rewrite the 22 existing NAND/NOR asserts for the new shape. Run only

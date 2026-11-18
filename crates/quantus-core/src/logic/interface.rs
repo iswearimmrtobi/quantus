@@ -24,7 +24,7 @@ use super::expr::{variable_latex, Expr, Notation};
 use super::kmap::{kv_working, Bar, Edge, Layout, Open, Place};
 use super::layout::{arrange, CircuitLayout, DrawForm, Generated};
 use super::minimise::{Form, Minimisation};
-use super::nand::{GateCost, GateForm, GateKind};
+use super::nand::{GateCost, GateForm, GateKind, Origin};
 use super::parse::{parse_parts, Body, Line};
 use super::table::{constant_note, input_order, line_function, table_tabular, table_working, Canonical};
 use super::text::msg;
@@ -119,8 +119,15 @@ pub enum KvBlock {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum LogicTask {
-    /// A circuit drawn from `form` of `output`, or of every output (§6.6).
-    Draw { form: DrawForm, output: Option<String> },
+    /// A circuit drawn from `form` of `output`, or of every output (§6.6). With
+    /// `from_expression`, a NAND or NOR form is the rewrite of the output's typed or traced
+    /// expression instead of the two levels from its minimal form.
+    Draw {
+        form: DrawForm,
+        output: Option<String>,
+        #[serde(default)]
+        from_expression: bool,
+    },
     Equivalent { first: Operand, second: Operand },
     /// The user's blocks over the 1s (`dnf`) or the 0s (`knf`) of `output`.
     CheckBlocks { output: String, form: Form, blocks: Vec<KvBlock> },
@@ -304,6 +311,12 @@ pub struct KmapResponse {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct GateFormResponse {
+    /// `nand` or `nor`.
+    pub kind: GateKind,
+    /// Only gates of 2 inputs. A form with no wider gate is sent once, with this set.
+    pub two_input: bool,
+    /// `minimal` (from the minimal DNF or KNF) or `rewrite` (the given expression gate by gate).
+    pub origin: Origin,
     pub latex: String,
     pub gates: usize,
     pub inputs: usize,
@@ -337,11 +350,10 @@ pub struct OutputResponse {
     pub minimal: Option<MinimalResponse>,
     /// From 2 to 6 inputs.
     pub kmap: Option<KmapResponse>,
-    pub nand: Option<GateFormResponse>,
-    pub nor: Option<GateFormResponse>,
-    /// *NAND from the circuit as drawn* (or from the expression as typed), and NOR.
-    pub nand_rewrite: Option<GateFormResponse>,
-    pub nor_rewrite: Option<GateFormResponse>,
+    /// The NAND and NOR forms: NAND, NAND of 2 inputs, NOR, NOR of 2 inputs from the minimal
+    /// forms, then the same rewritten from the expression as typed or traced from the circuit.
+    /// A 2-input copy is left out when no gate had to be split.
+    pub gate_forms: Vec<GateFormResponse>,
 }
 
 /// The delay of one of the circuit's outputs.
@@ -476,7 +488,6 @@ pub struct LogicResponse {
 #[derive(Clone, Copy, Debug)]
 struct Options {
     notation: Notation,
-    two_input: bool,
     detail: StepDetail,
     precision: usize,
     /// 0s shown in the copied table and KV diagram (`logic_zeros`).
@@ -688,10 +699,22 @@ fn table_function(names: &[String], values: &[Option<Value>], output: &str) -> s
     Ok(function)
 }
 
-fn gate_form(form: &GateForm, from: &Expr, names: &[String], output: &str, options: Options) -> GateFormResponse {
+fn gate_form(form: &GateForm, two_input: bool, from: &Expr, names: &[String], output: &str, options: Options) -> GateFormResponse {
     let GateCost { gates, inputs, levels } = form.cost();
     let latex = form.expr(names).latex(options.notation);
-    GateFormResponse { latex, gates, inputs, levels, worked: worked(&form.working(from, names, output, options.notation), options.detail) }
+    let worked = worked(&form.working(from, names, output, options.notation), options.detail);
+    GateFormResponse { kind: form.kind, two_input, origin: form.origin, latex, gates, inputs, levels, worked }
+}
+
+/// The form of `kind` with gates of any width and with 2-input gates only (`build(two_input)`);
+/// the 2-input copy only when a gate was split, otherwise the one form marked `two_input`.
+fn gate_forms(kind: GateKind, build: impl Fn(GateKind, bool) -> GateForm, from: &Expr, names: &[String], output: &str, options: Options) -> Vec<GateFormResponse> {
+    // `split` names the widths split into trees, so it is empty when every gate had ≤ 2 inputs.
+    let two = build(kind, true);
+    if two.split.is_empty() {
+        return vec![gate_form(&two, true, from, names, output, options)];
+    }
+    vec![gate_form(&build(kind, false), false, from, names, output, options), gate_form(&two, true, from, names, output, options)]
 }
 
 fn form_response(minimisation: &Minimisation, names: &[String], notation: Notation) -> Vec<FormResponse> {
@@ -772,10 +795,7 @@ fn output_response(output: &Output, index: usize, given: Option<(Expr, Working)>
         canonical: None,
         minimal: None,
         kmap: None,
-        nand: None,
-        nor: None,
-        nand_rewrite: None,
-        nor_rewrite: None,
+        gate_forms: Vec::new(),
     };
     let Some(function) = &output.function else { return response };
     let (name, names, notation) = (&output.name, function.names(), options.notation);
@@ -783,11 +803,13 @@ fn output_response(output: &Output, index: usize, given: Option<(Expr, Working)>
     response.table = (0..function.rows()).map(|r| function.value(r)).collect();
     response.table_worked = Some(worked(&table_working(function, given_expr, name, notation), options.detail));
     response.constant = constant_note(function, name);
+    let mut rewrites = Vec::new();
     if let Some((expr, working)) = &given {
         response.expression = Some(ExpressionResponse { latex: expr.latex(notation), worked: worked(working, options.detail) });
-        let rewrite = |kind| gate_form(&GateForm::rewrite(expr, names, kind, options.two_input), expr, names, name, options);
-        response.nand_rewrite = Some(rewrite(GateKind::Nand));
-        response.nor_rewrite = Some(rewrite(GateKind::Nor));
+        let rewrite = |kind, two_input| GateForm::rewrite(expr, names, kind, two_input);
+        for kind in [GateKind::Nand, GateKind::Nor] {
+            rewrites.extend(gate_forms(kind, rewrite, expr, names, name, options));
+        }
     }
     let canonical = Canonical::of(function);
     response.canonical = Some(CanonicalResponse {
@@ -819,8 +841,9 @@ fn output_response(output: &Output, index: usize, given: Option<(Expr, Working)>
         quine_mc_cluskey: worked(&dnf.working(names, name, notation), options.detail),
     });
     response.kmap = Layout::new(function.arity()).map(|layout| kmap(&layout, function, &dnf, chosen, &knf, chosen_knf, options));
-    response.nand = Some(gate_form(&GateForm::nand(&dnf, chosen, options.two_input), &dnf.expr(chosen, names), names, name, options));
-    response.nor = Some(gate_form(&GateForm::nor(&knf, chosen_knf, options.two_input), &knf.expr(chosen_knf, names), names, name, options));
+    response.gate_forms = gate_forms(GateKind::Nand, |_, two| GateForm::nand(&dnf, chosen, two), &dnf.expr(chosen, names), names, name, options);
+    response.gate_forms.extend(gate_forms(GateKind::Nor, |_, two| GateForm::nor(&knf, chosen_knf, two), &knf.expr(chosen_knf, names), names, name, options));
+    response.gate_forms.extend(rewrites);
     response
 }
 
@@ -889,6 +912,19 @@ fn circuit_response(circuit: &Circuit, read: &Read, scene: &LogicScene, times: &
     })
 }
 
+/// The expression `output` is given by: as typed, or traced from its lamp.
+fn given(output: &Output, read: &Read, notation: Notation) -> Option<(Expr, Working)> {
+    match (&output.line, &read.circuit) {
+        (Some(Line { body: Body::Expr(expr), .. }), _) => Some((expr.clone(), Working::default())),
+        (None, Some(circuit)) if output.source == "circuit" => circuit
+            .outputs
+            .iter()
+            .position(|l| l.name == output.name)
+            .map(|lamp| (circuit.expr(lamp), circuit.working(lamp, notation))),
+        _ => None,
+    }
+}
+
 /// The output named `name` with its function.
 fn output_function<'a>(read: &'a Read, name: &str) -> Result<(&'a Output, &'a Function)> {
     let output = read.outputs.iter().find(|o| o.name == name).ok_or_else(|| QuantusError::other(msg!("core.logic.interface.no_output")))?;
@@ -925,13 +961,20 @@ fn task(read: &Read, task: &LogicTask, options: Options) -> Result<TaskResponse>
         ..TaskResponse::default()
     };
     match task {
-        LogicTask::Draw { form, output } => {
+        LogicTask::Draw { form, output, from_expression } => {
             let mut generated = Generated::new(read.inputs.clone())?;
             let mut any = false;
             for o in read.outputs.iter().filter(|o| output.as_ref().is_none_or(|name| *name == o.name)) {
                 let function = output_function(read, &o.name)?.1;
-                let cover = if matches!(form, DrawForm::Dnf | DrawForm::Nand) { o.chosen } else { o.chosen_knf };
-                generated.add(&o.name, function, *form, cover, options.two_input)?;
+                if *from_expression {
+                    let (kind, two_input) = form.gates().ok_or_else(|| QuantusError::other(msg!("core.logic.interface.rewrite_gates_only")))?;
+                    let name = &o.name;
+                    let (expr, _) = given(o, read, notation).ok_or_else(|| QuantusError::other(msg!("core.logic.interface.no_expression")))?;
+                    generated.add_gates(&o.name, function.names(), &GateForm::rewrite(&expr, function.names(), kind, two_input))?;
+                } else {
+                    let cover = if form.from_dnf() { o.chosen } else { o.chosen_knf };
+                    generated.add(&o.name, function, *form, cover)?;
+                }
                 any = true;
             }
             if !any {
@@ -1018,7 +1061,6 @@ pub fn logic(settings: &Settings, request: &LogicRequest) -> Result<LogicRespons
     let _language = Scope::new(settings.language);
     let options = Options {
         notation: settings.logic_notation,
-        two_input: settings.logic_two_input,
         detail: settings.step_detail,
         precision: request.precision.unwrap_or(settings.precision),
         zeros: settings.logic_zeros,
@@ -1029,17 +1071,7 @@ pub fn logic(settings: &Settings, request: &LogicRequest) -> Result<LogicRespons
 
     let mut outputs = Vec::new();
     for (index, output) in read.outputs.iter().enumerate() {
-        // The expression the output is given by: as typed, or traced from its lamp.
-        let given = match (&output.line, &read.circuit) {
-            (Some(Line { body: Body::Expr(expr), .. }), _) => Some((expr.clone(), Working::default())),
-            (None, Some(circuit)) if output.source == "circuit" => circuit
-                .outputs
-                .iter()
-                .position(|l| l.name == output.name)
-                .map(|lamp| (circuit.expr(lamp), circuit.working(lamp, options.notation))),
-            _ => None,
-        };
-        outputs.push(output_response(output, index, given, options, &mut errors));
+        outputs.push(output_response(output, index, given(output, &read, options.notation), options, &mut errors));
     }
 
     let circuit = match &read.circuit {

@@ -42,8 +42,30 @@ use crate::{QuantusError, Result};
 pub enum DrawForm {
     Dnf,
     Knf,
+    /// NAND gates of any number of inputs.
     Nand,
+    /// NAND gates of 2 inputs only, wider ones split into trees.
+    Nand2,
     Nor,
+    Nor2,
+}
+
+impl DrawForm {
+    /// Whether the form is built from the minimal DNF (otherwise from the KNF).
+    pub fn from_dnf(self) -> bool {
+        matches!(self, DrawForm::Dnf | DrawForm::Nand | DrawForm::Nand2)
+    }
+
+    /// The gate kind of a NAND or NOR form, and whether its gates have 2 inputs only.
+    pub fn gates(self) -> Option<(GateKind, bool)> {
+        match self {
+            DrawForm::Dnf | DrawForm::Knf => None,
+            DrawForm::Nand => Some((GateKind::Nand, false)),
+            DrawForm::Nand2 => Some((GateKind::Nand, true)),
+            DrawForm::Nor => Some((GateKind::Nor, false)),
+            DrawForm::Nor2 => Some((GateKind::Nor, true)),
+        }
+    }
 }
 
 /// A gate of a generated circuit.
@@ -71,18 +93,14 @@ impl Generated {
     }
 
     /// Output `output` of the function `function` (over some of the circuit's inputs) drawn
-    /// from `form`, the minimal cover `cover` of it; `two_input` splits the NAND and NOR gates
-    /// as in their forms.
-    pub fn add(&mut self, output: &str, function: &Function, form: DrawForm, cover: usize, two_input: bool) -> Result<()> {
-        let minimisation = match form {
-            DrawForm::Dnf | DrawForm::Nand => Minimisation::of(function)?,
-            DrawForm::Knf | DrawForm::Nor => Minimisation::knf(function)?,
-        };
+    /// from `form`, the minimal cover `cover` of it.
+    pub fn add(&mut self, output: &str, function: &Function, form: DrawForm, cover: usize) -> Result<()> {
+        let minimisation = if form.from_dnf() { Minimisation::of(function)? } else { Minimisation::knf(function)? };
         let cover = cover.min(minimisation.covers.len() - 1);
-        match form {
-            DrawForm::Dnf | DrawForm::Knf => self.add_terms(output, function.names(), minimisation.form, &minimisation.covers[cover]),
-            DrawForm::Nand => self.add_gates(output, function.names(), &GateForm::nand(&minimisation, cover, two_input)),
-            DrawForm::Nor => self.add_gates(output, function.names(), &GateForm::nor(&minimisation, cover, two_input)),
+        match form.gates() {
+            None => self.add_terms(output, function.names(), minimisation.form, &minimisation.covers[cover]),
+            Some((GateKind::Nand, two_input)) => self.add_gates(output, function.names(), &GateForm::nand(&minimisation, cover, two_input)),
+            Some((GateKind::Nor, two_input)) => self.add_gates(output, function.names(), &GateForm::nor(&minimisation, cover, two_input)),
         }
     }
 

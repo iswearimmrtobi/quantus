@@ -15,6 +15,8 @@
 //! inverter, each OR a NAND of inverted inputs (dually for NOR), each 2-input XOR the four-gate
 //! circuit; an inverter of an inverter is cancelled.
 
+use serde::{Deserialize, Serialize};
+
 use super::expr::{variable_latex, Expr, Notation};
 use super::minimise::{Form, Minimisation};
 use super::text::msg;
@@ -23,7 +25,8 @@ use super::Pattern;
 use crate::settings::StepDetail::{Brief, Detailed, Maximal, Standard};
 
 /// The gate type of a form.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum GateKind {
     Nand,
     Nor,
@@ -51,7 +54,8 @@ impl Gate {
 }
 
 /// Where a form comes from.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Origin {
     /// Two levels from the minimal DNF (NAND) or KNF (NOR).
     Minimal,

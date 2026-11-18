@@ -177,8 +177,11 @@ fn the_logic_scene_is_written_up_output_by_output() {
     assert_eq!((f[0].0, f[0].1.as_deref()), (LineKind::Figure, Some("The KV diagram:")));
     assert!(f[0].2.starts_with("\\begin{array}"));
     assert_eq!(f[1], (LineKind::Result, Some("The minimal DNF:".into()), "f = B \\land C \\lor A \\land C \\lor A \\land B".into()));
-    assert_eq!(f[3], (LineKind::Step, Some("Only NAND gates (6 gates, 4 levels):".into()), f[3].2.clone()));
-    assert_eq!(f.len(), 5);
+    assert_eq!(f[3], (LineKind::Step, Some("Only NAND gates (4 gates, 2 levels):".into()), f[3].2.clone()));
+    assert_eq!(f[4], (LineKind::Step, Some("Only NAND gates of 2 inputs (6 gates, 4 levels):".into()), f[4].2.clone()));
+    assert_eq!(f[5].1.as_deref(), Some("Only NOR gates (4 gates, 2 levels):"));
+    assert_eq!(f[6].1.as_deref(), Some("Only NOR gates of 2 inputs (6 gates, 4 levels):"));
+    assert_eq!(f.len(), 7);
     // Set whole in the LaTeX, the result underlined twice.
     assert!(w.latex.contains("&\\begin{array}"), "{}", w.latex);
     assert!(w.latex.contains("\\underline{\\underline{f\\vphantom"));

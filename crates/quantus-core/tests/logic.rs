@@ -1539,7 +1539,7 @@ fn gate_types(netlist: &Netlist) -> Vec<GateType> {
 fn the_minimal_dnf_becomes_inverters_ands_and_an_or() {
     let f = function(r"A \overline{C} + B", "A B C");
     let mut circuit = Generated::new(names("A B C")).unwrap();
-    circuit.add("f", &f, DrawForm::Dnf, 0, true).unwrap();
+    circuit.add("f", &f, DrawForm::Dnf, 0).unwrap();
     let netlist = circuit.netlist();
     // B goes straight into the OR; ¬C from a NOT.
     assert_eq!(gate_types(&netlist), [GateType::Not, GateType::And, GateType::Or]);
@@ -1547,7 +1547,7 @@ fn the_minimal_dnf_becomes_inverters_ands_and_an_or() {
     assert_eq!(checked.expr(0).latex(Notation::Logic), r"B \lor A \land \lnot C");
     // The KNF: (A ∨ B)(B ∨ ¬C).
     let mut circuit = Generated::new(names("A B C")).unwrap();
-    circuit.add("f", &f, DrawForm::Knf, 0, true).unwrap();
+    circuit.add("f", &f, DrawForm::Knf, 0).unwrap();
     assert_eq!(circuit.netlist().check().unwrap().expr(0).latex(Notation::Logic), r"(A \lor B) \land (B \lor \lnot C)");
 }
 
@@ -1555,22 +1555,22 @@ fn the_minimal_dnf_becomes_inverters_ands_and_an_or() {
 fn identical_gates_of_several_outputs_are_built_once() {
     let inputs = names("A B C");
     let mut circuit = Generated::new(inputs.clone()).unwrap();
-    circuit.add("f", &function("AB + C", "A B C"), DrawForm::Dnf, 0, true).unwrap();
-    circuit.add("g", &function("AB + C'", "A B C"), DrawForm::Dnf, 0, true).unwrap();
+    circuit.add("f", &function("AB + C", "A B C"), DrawForm::Dnf, 0).unwrap();
+    circuit.add("g", &function("AB + C'", "A B C"), DrawForm::Dnf, 0).unwrap();
     // AB once; f's OR, g's NOT and OR.
     assert_eq!(gate_types(&circuit.netlist()), [GateType::And, GateType::Or, GateType::Not, GateType::Or]);
     // An output of a function over fewer inputs, by name; one not among them is an error.
-    circuit.add("h", &function("B", "B"), DrawForm::Nand, 0, true).unwrap();
+    circuit.add("h", &function("B", "B"), DrawForm::Nand2, 0).unwrap();
     assert_eq!(circuit.outputs[2].1, Signal::Input(1));
-    let err = circuit.add("k", &function("D", "D"), DrawForm::Dnf, 0, true).unwrap_err();
+    let err = circuit.add("k", &function("D", "D"), DrawForm::Dnf, 0).unwrap_err();
     assert!(err.to_string().contains("D is not among the inputs of k"));
 }
 
 #[test]
 fn constants_and_wide_gates_in_a_generated_circuit() {
     let mut circuit = Generated::new(names("A B")).unwrap();
-    circuit.add("one", &function("A + A'", "A B"), DrawForm::Nand, 0, true).unwrap();
-    circuit.add("zero", &function("A A'", "A B"), DrawForm::Dnf, 0, true).unwrap();
+    circuit.add("one", &function("A + A'", "A B"), DrawForm::Nand2, 0).unwrap();
+    circuit.add("zero", &function("A A'", "A B"), DrawForm::Dnf, 0).unwrap();
     let netlist = circuit.netlist();
     let checked = netlist.check().unwrap();
     assert_eq!((checked.output_values(0), checked.gates.len()), (vec![true, false], 0));
@@ -1582,7 +1582,7 @@ fn constants_and_wide_gates_in_a_generated_circuit() {
             f.set(row, Value::One);
         }
         let mut circuit = Generated::new(inputs).unwrap();
-        circuit.add("p", &f, DrawForm::Dnf, 0, true).unwrap();
+        circuit.add("p", &f, DrawForm::Dnf, 0).unwrap();
         circuit.gates.iter().filter(|g| g.gate == GateType::Or).map(|g| g.inputs.len()).collect::<Vec<_>>()
     };
     assert_eq!((parity(4), parity(5)), (vec![8], vec![8, 8, 2]));
@@ -1649,7 +1649,7 @@ fn assert_drawn(netlist: &Netlist, layout: &CircuitLayout) {
 #[test]
 fn a_generated_circuit_is_laid_out_from_the_inputs_on_the_left_to_the_outputs_on_the_right() {
     let mut circuit = Generated::new(names("A B C")).unwrap();
-    circuit.add("f", &function(r"A \overline{C} + B", "A B C"), DrawForm::Dnf, 0, true).unwrap();
+    circuit.add("f", &function(r"A \overline{C} + B", "A B C"), DrawForm::Dnf, 0).unwrap();
     let layout = circuit.layout();
     let at = |id: &str| layout.elements.iter().find(|p| p.id == id).unwrap().at;
     // The inputs one under the other on the left, the NOT of C by C's bus, under the inputs.
@@ -1665,7 +1665,7 @@ fn a_generated_circuit_is_laid_out_from_the_inputs_on_the_left_to_the_outputs_on
 fn a_pin_lies_in_the_row_of_the_gate_that_drives_it_where_it_can() {
     // The majority as NAND–NAND without the 2-input split: G4 over three NANDs in a column.
     let mut circuit = Generated::new(names("A B C")).unwrap();
-    circuit.add("f", &function("AB + AC + BC", "A B C"), DrawForm::Nand, 0, false).unwrap();
+    circuit.add("f", &function("AB + AC + BC", "A B C"), DrawForm::Nand, 0).unwrap();
     let layout = circuit.layout();
     let row = |id: &str| layout.elements.iter().find(|p| p.id == id).unwrap().at.y;
     let out = circuit.gates.len();
@@ -1680,9 +1680,9 @@ fn a_pin_lies_in_the_row_of_the_gate_that_drives_it_where_it_can() {
 fn nets_that_skip_a_column_run_under_the_circuit() {
     // A + ¬B·C·D with 2-input NANDs: A goes into the last NAND, several columns on.
     let mut circuit = Generated::new(names("A B C D")).unwrap();
-    circuit.add("f", &function(r"A + \overline{B} C D", "A B C D"), DrawForm::Nand, 0, true).unwrap();
-    circuit.add("g", &function("A", "A B C D"), DrawForm::Dnf, 0, true).unwrap();
-    circuit.add("h", &function("A + A'", "A B C D"), DrawForm::Dnf, 0, true).unwrap();
+    circuit.add("f", &function(r"A + \overline{B} C D", "A B C D"), DrawForm::Nand2, 0).unwrap();
+    circuit.add("g", &function("A", "A B C D"), DrawForm::Dnf, 0).unwrap();
+    circuit.add("h", &function("A + A'", "A B C D"), DrawForm::Dnf, 0).unwrap();
     let layout = circuit.layout();
     let lowest = layout.elements.iter().map(|p| p.at.y).max().unwrap();
     assert!(layout.wires.iter().any(|w| w.from.y == w.to.y && w.from.y > lowest + 1));
@@ -1735,14 +1735,16 @@ fn the_api_arranges_the_drawn_circuit() {
     assert!(none["task"]["error"].is_string());
 }
 
+const ALL_FORMS: [DrawForm; 6] = [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nand2, DrawForm::Nor, DrawForm::Nor2];
+
 /// The generated circuit of each of `outputs` drawn from `form`: it passes the checks without
 /// warnings, each output equals its function wherever that is not –, and the drawing connects
 /// what the netlist does.
-fn assert_generated(outputs: &[(&str, &Function)], form: DrawForm, two_input: bool) -> Generated {
+fn assert_generated(outputs: &[(&str, &Function)], form: DrawForm) -> Generated {
     let inputs = outputs[0].1.names().to_vec();
     let mut circuit = Generated::new(inputs.clone()).unwrap();
     for (name, f) in outputs {
-        circuit.add(name, f, form, 0, two_input).unwrap();
+        circuit.add(name, f, form, 0).unwrap();
     }
     let checked = circuit.netlist().check().unwrap();
     assert!(checked.warnings.is_empty(), "{:?}", checked.warnings);
@@ -1756,9 +1758,9 @@ fn assert_generated(outputs: &[(&str, &Function)], form: DrawForm, two_input: bo
 #[test]
 fn the_full_adder_shares_its_common_gates() {
     let (sum, carry) = (function(r"A \oplus B \oplus C", "A B C"), function("AB + AC + BC", "A B C"));
-    for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
-        let alone = |f: &Function| assert_generated(&[("f", f)], form, true).gates.len();
-        let both = assert_generated(&[("s", &sum), ("c", &carry)], form, true);
+    for form in ALL_FORMS {
+        let alone = |f: &Function| assert_generated(&[("f", f)], form).gates.len();
+        let both = assert_generated(&[("s", &sum), ("c", &carry)], form);
         let checked = both.netlist().check().unwrap();
         let (s, c): (BTreeSet<usize>, BTreeSet<usize>) = (checked.gates_of(0).into_iter().collect(), checked.gates_of(1).into_iter().collect());
         // Every gate once: the two outputs' gates less the ones they share.
@@ -1766,7 +1768,7 @@ fn the_full_adder_shares_its_common_gates() {
         assert_eq!(s.union(&c).count(), both.gates.len());
     }
     // From 2-input NANDs, the sum's A·B·C and the carry's A·B both start with NAND(A, B).
-    let nand = assert_generated(&[("s", &sum), ("c", &carry)], DrawForm::Nand, true).netlist().check().unwrap();
+    let nand = assert_generated(&[("s", &sum), ("c", &carry)], DrawForm::Nand2).netlist().check().unwrap();
     let shared: Vec<usize> = nand.gates_of(0).into_iter().filter(|g| nand.gates_of(1).contains(g)).collect();
     assert!(shared.iter().any(|g| nand.gates[*g].inputs == [Signal::Input(0), Signal::Input(1)]));
 }
@@ -1775,10 +1777,8 @@ fn the_full_adder_shares_its_common_gates() {
 fn every_generated_circuit_of_three_variables_passes_the_checks_and_equals_its_function() {
     for bits in 0..256u64 {
         let f = Function::from_bits(names("A B C"), [bits, 0, 0, 0], [0; 4]).unwrap();
-        for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
-            for two_input in [true, false] {
-                assert_generated(&[("f", &f)], form, two_input);
-            }
+        for form in ALL_FORMS {
+            assert_generated(&[("f", &f)], form);
         }
     }
 }
@@ -1794,10 +1794,8 @@ fn generated_circuits_of_several_outputs_with_dont_cares_pass_the_checks() {
         f
     };
     let (a, b, g) = (segment(&[0, 2, 3, 5, 6, 7, 8, 9]), segment(&[0, 1, 2, 3, 4, 7, 8, 9]), segment(&[2, 3, 4, 5, 6, 8, 9]));
-    for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
-        for two_input in [true, false] {
-            assert_generated(&[("a", &a), ("b", &b), ("g", &g)], form, two_input);
-        }
+    for form in ALL_FORMS {
+        assert_generated(&[("a", &a), ("b", &b), ("g", &g)], form);
     }
     // A sample of 4-variable functions in pairs, every form.
     let mut state = 0x9e37_79b9_u64;
@@ -1809,8 +1807,8 @@ fn generated_circuits_of_several_outputs_with_dont_cares_pass_the_checks() {
             state & 0xffff
         };
         let (f, h) = (Function::from_bits(names("A B C D"), [next(), 0, 0, 0], [next() & next(), 0, 0, 0]).unwrap(), Function::from_bits(names("A B C D"), [next(), 0, 0, 0], [0; 4]).unwrap());
-        for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand, DrawForm::Nor] {
-            assert_generated(&[("f", &f), ("h", &h)], form, true);
+        for form in [DrawForm::Dnf, DrawForm::Knf, DrawForm::Nand2, DrawForm::Nor2] {
+            assert_generated(&[("f", &f), ("h", &h)], form);
         }
     }
 }
@@ -2119,8 +2117,15 @@ fn the_api_works_out_every_view_of_an_expression() {
     assert_eq!(dnf[0]["terms"][0]["pattern"], "-11");
     assert_eq!(f["kmap"]["blocks"].as_array().unwrap().len(), 3);
     assert_eq!(f["kmap"]["cells"].as_array().unwrap().len(), 8);
-    assert_eq!((f["nand"]["gates"].as_u64(), f["nand"]["levels"].as_u64()), (Some(6), Some(4)));
-    assert!(f["nandRewrite"].is_object());
+    // NAND, NAND of 2 inputs, NOR, NOR of 2 inputs, then the same rewritten from the expression.
+    let forms = f["gateForms"].as_array().unwrap();
+    let shape: Vec<(&str, bool, &str)> = forms.iter().map(|g| (g["kind"].as_str().unwrap(), g["twoInput"].as_bool().unwrap(), g["origin"].as_str().unwrap())).collect();
+    assert_eq!(shape, [
+        ("nand", false, "minimal"), ("nand", true, "minimal"), ("nor", false, "minimal"), ("nor", true, "minimal"),
+        ("nand", false, "rewrite"), ("nand", true, "rewrite"), ("nor", false, "rewrite"), ("nor", true, "rewrite"),
+    ]);
+    assert_eq!((forms[0]["gates"].as_u64(), forms[0]["levels"].as_u64()), (Some(4), Some(2)));
+    assert_eq!((forms[1]["gates"].as_u64(), forms[1]["levels"].as_u64()), (Some(6), Some(4)));
     assert!(f["minimal"]["worked"]["alignBlock"].as_str().unwrap().starts_with(r"\begin{align*}"));
 }
 
@@ -2206,12 +2211,20 @@ fn netlist_without_pin() -> serde_json::Value {
 fn the_api_answers_the_tasks() {
     let scene = serde_json::json!({ "outputs": [{ "source": { "kind": "minterms", "latex": r"f = \sum m(3, 5, 6, 7)" } }] });
 
-    let draw = logic_api(scene.clone(), Some(serde_json::json!({ "kind": "draw", "form": "nand" })));
-    let task = &draw["task"];
-    assert!(task["error"].is_null());
-    let elements = task["circuit"]["netlist"]["elements"].as_array().unwrap();
-    assert_eq!(elements.iter().filter(|e| e["kind"] == "gate").count(), 6);
-    assert_eq!(task["circuit"]["layout"]["elements"].as_array().unwrap().len(), elements.len());
+    let gate_count = |form: &str| {
+        let draw = logic_api(scene.clone(), Some(serde_json::json!({ "kind": "draw", "form": form })));
+        let task = &draw["task"];
+        assert!(task["error"].is_null(), "{form}: {}", task["error"]);
+        let elements = task["circuit"]["netlist"]["elements"].as_array().unwrap();
+        assert_eq!(task["circuit"]["layout"]["elements"].as_array().unwrap().len(), elements.len());
+        elements.iter().filter(|e| e["kind"] == "gate").count()
+    };
+    // NAND–NAND with a 3-input NAND at the output, and with that split into 2-input gates.
+    assert_eq!(gate_count("nand"), 4);
+    assert_eq!(gate_count("nand2"), 6);
+    // A minterm list has no expression to rewrite.
+    let draw = logic_api(scene.clone(), Some(serde_json::json!({ "kind": "draw", "form": "nand", "fromExpression": true })));
+    assert_eq!(draw["task"]["error"], "f has no expression to rewrite: it is neither typed nor traced from the circuit.");
 
     let equal = logic_api(scene.clone(), Some(serde_json::json!({
         "kind": "equivalent", "first": { "kind": "output", "name": "f" }, "second": { "kind": "expression", "latex": "A + B" },
@@ -2241,17 +2254,64 @@ fn the_api_answers_the_tasks() {
 }
 
 #[test]
+fn every_output_has_the_nand_and_nor_forms_of_any_width_and_of_two_inputs() {
+    let majority = serde_json::json!({ "outputs": [{ "source": { "kind": "minterms", "latex": r"f = \sum m(3, 5, 6, 7)" } }] });
+    let response = logic_api(majority.clone(), None);
+    let forms = response["outputs"][0]["gateForms"].as_array().unwrap();
+    let shape: Vec<(&str, bool)> = forms.iter().map(|g| (g["kind"].as_str().unwrap(), g["twoInput"].as_bool().unwrap())).collect();
+    assert_eq!(shape, [("nand", false), ("nand", true), ("nor", false), ("nor", true)]);
+    assert_eq!(forms[0]["gates"].as_u64(), Some(4));
+    assert!(forms[1]["gates"].as_u64().unwrap() > 4);
+
+    // Drawn from 2-input NANDs or NORs, no gate has more than 2 inputs.
+    for form in ["nand2", "nor2"] {
+        let draw = logic_api(majority.clone(), Some(serde_json::json!({ "kind": "draw", "form": form })));
+        let elements = draw["task"]["circuit"]["netlist"]["elements"].as_array().unwrap();
+        let gates: Vec<_> = elements.iter().filter(|e| e["kind"] == "gate").collect();
+        assert!(!gates.is_empty());
+        assert!(gates.iter().all(|g| g["inputs"].as_array().unwrap().len() <= 2), "{form}");
+    }
+
+    // Two variables: nothing to split, so one NAND and one NOR form, each of 2-input gates.
+    let response = logic_api(serde_json::json!({ "outputs": [{ "source": { "kind": "expression", "latex": r"A \land B" } }] }), None);
+    let minimal: Vec<(&str, bool)> = response["outputs"][0]["gateForms"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|g| g["origin"] == "minimal")
+        .map(|g| (g["kind"].as_str().unwrap(), g["twoInput"].as_bool().unwrap()))
+        .collect();
+    assert_eq!(minimal, [("nand", true), ("nor", true)]);
+}
+
+#[test]
+fn a_typed_expression_is_drawn_rewritten_gate_by_gate() {
+    let scene = serde_json::json!({ "outputs": [{ "source": { "kind": "expression", "latex": r"f = (A \lor B) \land C" } }] });
+    let response = logic_api(scene.clone(), None);
+    let rewrite = response["outputs"][0]["gateForms"].as_array().unwrap().iter().find(|g| g["origin"] == "rewrite" && g["kind"] == "nand").unwrap().clone();
+    let draw = logic_api(scene.clone(), Some(serde_json::json!({ "kind": "draw", "form": "nand", "fromExpression": true })));
+    assert!(draw["task"]["error"].is_null(), "{}", draw["task"]["error"]);
+    let elements = draw["task"]["circuit"]["netlist"]["elements"].as_array().unwrap();
+    assert_eq!(elements.iter().filter(|e| e["kind"] == "gate").count() as u64, rewrite["gates"].as_u64().unwrap());
+    // Only NAND and NOR forms are rewritten.
+    let dnf = logic_api(scene, Some(serde_json::json!({ "kind": "draw", "form": "dnf", "fromExpression": true })));
+    assert_eq!(dnf["task"]["error"], "Only a NAND or NOR form can be rewritten from the expression.");
+}
+
+#[test]
 fn the_api_follows_the_logic_settings() {
     let request: quantus_core::api::LogicRequest = serde_json::from_value(serde_json::json!({
         "scene": { "outputs": [{ "source": { "kind": "expression", "latex": "AB + AC + BC" } }] },
     }))
     .unwrap();
-    let settings = quantus_core::settings::Settings { logic_notation: Notation::Technical, logic_two_input: false, ..Default::default() };
+    let settings = quantus_core::settings::Settings { logic_notation: Notation::Technical, ..Default::default() };
     let response = serde_json::to_value(quantus_core::api::logic(&settings, &request).unwrap()).unwrap();
     let f = &response["outputs"][0];
     assert_eq!(f["minimal"]["dnf"][0]["latex"], r"B \cdot C + A \cdot C + A \cdot B");
     // NAND–NAND with a 3-input NAND at the output: 4 gates, 2 levels.
-    assert_eq!((f["nand"]["gates"].as_u64(), f["nand"]["levels"].as_u64()), (Some(4), Some(2)));
+    let nand = &f["gateForms"][0];
+    assert_eq!((nand["kind"].as_str(), nand["twoInput"].as_bool()), (Some("nand"), Some(false)));
+    assert_eq!((nand["gates"].as_u64(), nand["levels"].as_u64()), (Some(4), Some(2)));
 }
 
 #[test]
