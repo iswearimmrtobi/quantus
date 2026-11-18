@@ -11,7 +11,8 @@ source, and the others are worked out from it.
 
 ## Function lines
 
-Each line is one output: an expression or a minterm list. **+ Function** adds a line, the cross
+Each line is one output: an expression or a minterm list. **+ Function** adds a line (<kbd>Enter</kbd>
+moves to the next line but adds none), the cross
 beside a line removes its output. Errors show under the line, naming the symbol: *\sin is not a
 logic operator*, *2 is not a logic value: only 0 and 1 are.*
 

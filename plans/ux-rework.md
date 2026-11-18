@@ -147,7 +147,7 @@ four NAND/NOR `Section`s (L240–249).
   `\land`/`\lor`/`\sum`. Split the text into words and two formulas.
 - [x] Operator keys above the function lines, **∧ ∨ ¬ ⊕ ( )** and **Σm**, inserting into the
   focused MathField (as the Base-N chips do).
-- [ ] Enter on a line no longer adds an empty line. **+ Function** stays the only way
+- [x] Enter on a line no longer adds an empty line. **+ Function** stays the only way
   (`LogicLines.tsx`).
 - [ ] The `f` label left of a line goes when the line itself starts with `f =`; the placeholder
   sits at the field's left edge.

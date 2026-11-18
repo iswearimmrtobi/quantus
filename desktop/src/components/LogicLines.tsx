@@ -39,9 +39,9 @@ const PLACEHOLDER = 'f = A \\land B \\lor C';
 /**
  * One function line per output (§5.2, §5.3): an expression or a minterm list, typed in MathLive.
  * A line's output takes it as its source as it is typed; an output from the table or the circuit
- * keeps that source until Enter, so that a stray key does not throw a filled table away. Enter in
- * the last line starts a new one, Backspace in an empty line removes it, Up and Down move between
- * lines. Each line's errors stand under it.
+ * keeps that source until Enter, so that a stray key does not throw a filled table away. Enter
+ * moves to the next line (**+ Function** adds one), Backspace in an empty line removes it, Up and
+ * Down move between lines. Each line's errors stand under it.
  */
 export function LogicLines({ scene, answer, onChange }: Props) {
   const { t } = useT();
@@ -87,11 +87,8 @@ export function LogicLines({ scene, answer, onChange }: Props) {
       // The field is made anew as a line's; it keeps the focus.
       setFocusId(id);
     }
-    const line = next[index];
-    if (index === next.length - 1 && !(isLine(line) && !line.source.latex.trim())) {
-      setFocusId(nextId.current);
-      next = [...next, newLine()];
-    } else if (index < next.length - 1) focus(index + 1);
+    // On to the next line; a new line comes only from **+ Function**.
+    if (index < next.length - 1) focus(index + 1);
     if (next !== outputs) setOutputs(next);
   };
 
