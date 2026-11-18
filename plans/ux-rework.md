@@ -30,6 +30,7 @@ Effort: S = an hour or two, M = a day, L = several days.
 | Rewrite pictures | `LogicTask::Draw { from_expression }` draws the rewrite of a typed or traced expression (NAND/NOR forms only) |
 | The Gates card's choice | Kept in the scene's `editor` data (`gates: { [output]: { form, fromExpression } }`), no core field |
 | The task's answer in 3D | Drawn by the core (`ViewRequest.task`), highlighted in the view |
+| Object colours | By the object's place in the scene (`ViewObject.index`), not among those drawn, so hiding one or a broken one recolours none |
 
 ---
 
@@ -189,7 +190,7 @@ four NAND/NOR `Section`s (L240–249).
 
 ### 3.2 Core: the view says which object a primitive belongs to (S)
 
-- [ ] `ViewObject` gets `index`: the object's place in the scene (not among those drawn), so a
+- [x] `ViewObject` gets `index`: the object's place in the scene (not among those drawn), so a
   click in the view can select the row in the sidebar.
 
 ### 3.3 Desktop: the layout (M)

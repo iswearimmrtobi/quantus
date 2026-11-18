@@ -59,10 +59,9 @@ interface Props {
   hideSteps: boolean;
 }
 
-/** The colour index of each object in the view: built objects are drawn in scene order. */
+/** The colour index of each object: its place in the scene, as the view colours it; none for one that failed. */
 export function colourIndices(built: Geometry['objects'] | null): (number | null)[] {
-  let next = 0;
-  return (built ?? []).map((object) => (object.error ? null : next++));
+  return (built ?? []).map((object, index) => (object.error ? null : index));
 }
 
 /** One small formula field for a number. */

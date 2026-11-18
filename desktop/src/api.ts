@@ -434,8 +434,11 @@ export type ViewPrimitive =
 /** The scene drawn: far to near, then the labels. */
 export interface GeometryViewResponse {
   primitives: ViewPrimitive[];
-  /** The objects that could be drawn, in scene order; `name` as keyed (`P_1`, `a` for `\vec{a}`). */
-  objects: { name: string; kind: GeometryKind }[];
+  /**
+   * The objects that could be drawn, in scene order; `name` as keyed (`P_1`, `a` for `\vec{a}`),
+   * `index` the object's place in the scene (which also gives its colour).
+   */
+  objects: { name: string; kind: GeometryKind; index: number }[];
   camera: { yaw: number; pitch: number; zoom: number; centre: [number, number, number] };
   bounds: { min: [number, number, number]; max: [number, number, number] };
 }

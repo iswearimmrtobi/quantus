@@ -374,7 +374,7 @@ impl<'a> Builder<'a> {
     /// Builds the scene object by object; one that fails is reported and left out.
     fn scene(&mut self, scene: &Scene) -> Vec<ObjectResponse> {
         let mut responses = Vec::new();
-        for SceneObject { name, shape, hidden } in &scene.objects {
+        for (index, SceneObject { name, shape, hidden }) in scene.objects.iter().enumerate() {
             let (name, built) = match shape {
                 Shape::Typed { latex } => match self.typed(latex) {
                     Ok((key, object)) => (key, Ok(Worked::new(object, Working::default()))),
@@ -402,7 +402,7 @@ impl<'a> Builder<'a> {
                     }
                     if let Some(figure) = result.figure().filter(|_| !hidden) {
                         self.shown.push(Shown { name: key.clone(), figure });
-                        self.drawn.push(ViewObject { name: key.clone(), kind: result.kind().into() });
+                        self.drawn.push(ViewObject { name: key.clone(), kind: result.kind().into(), index });
                     }
                     // Vectors have a namespace of their own.
                     let stored = if matches!(result, Object::Vector(_)) { format!("\\vec{key}") } else { key };
@@ -738,13 +738,14 @@ impl Default for ViewRequest {
     }
 }
 
-/// An object of the view: its name as the evaluator keys it (`P_1`, `a` for `\vec{a}`) and its
-/// kind (`point`, `vector`, …).
+/// An object of the view: its name as the evaluator keys it (`P_1`, `a` for `\vec{a}`), its
+/// kind (`point`, `vector`, …) and its place in the scene, among all objects, not only those drawn.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewObject {
     pub name: String,
     pub kind: String,
+    pub index: usize,
 }
 
 /// The scene drawn: the primitives far to near, then the labels. A primitive's `object` is an

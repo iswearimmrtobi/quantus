@@ -151,6 +151,8 @@ export function GeometryPlot({ objects }: Props) {
   const { width, height } = size;
   const scale = (Math.min(width, height) / 2) * FILL;
   const px = ([x, y]: ViewPoint) => [width / 2 + x * scale, height / 2 - y * scale] as const;
+  /** The colour of a primitive's object: its place in the scene, so hiding one recolours none. */
+  const colour = (object: number) => colourStyle(view?.objects[object]?.index ?? object);
   const points = (list: ViewPoint[]) =>
     list
       .map((p) => px(p))
@@ -173,14 +175,14 @@ export function GeometryPlot({ objects }: Props) {
               case 'segment': {
                 const [x1, y1] = px(primitive.from);
                 const [x2, y2] = px(primitive.to);
-                const style = primitive.object === null ? undefined : colourStyle(primitive.object);
+                const style = primitive.object === null ? undefined : colour(primitive.object);
                 return <line key={i} className={`geometry-${primitive.stroke}`} style={style} x1={x1} y1={y1} x2={x2} y2={y2} />;
               }
               case 'polygon':
-                return <polygon key={i} className="geometry-face" style={colourStyle(primitive.object)} points={points(primitive.points)} />;
+                return <polygon key={i} className="geometry-face" style={colour(primitive.object)} points={points(primitive.points)} />;
               case 'marker': {
                 const [cx, cy] = px(primitive.at);
-                return <circle key={i} className="geometry-marker" style={colourStyle(primitive.object)} cx={cx} cy={cy} r={4} />;
+                return <circle key={i} className="geometry-marker" style={colour(primitive.object)} cx={cx} cy={cy} r={4} />;
               }
               case 'label': {
                 const [x, y] = px(primitive.at);
@@ -192,7 +194,7 @@ export function GeometryPlot({ objects }: Props) {
                   );
                 }
                 return (
-                  <text key={i} className="geometry-label" style={colourStyle(primitive.object)} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
+                  <text key={i} className="geometry-label" style={colour(primitive.object)} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
                     <Name name={primitive.text} kind={view.objects[primitive.object]?.kind} />
                   </text>
                 );

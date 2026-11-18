@@ -423,6 +423,9 @@ fn a_hidden_object_is_built_for_the_others_but_not_drawn() {
     let view = geometry_view(&Settings::default(), &request).unwrap();
     let names: Vec<&str> = view.objects.iter().map(|o| o.name.as_str()).collect();
     assert_eq!(names, ["B", "C", "g"]);
+    // Each drawn object knows its place in the scene, hidden objects counted.
+    let indices: Vec<usize> = view.objects.iter().map(|o| o.index).collect();
+    assert_eq!(indices, [1, 2, 3]);
     assert!(view.primitives.iter().all(|p| !matches!(p, Primitive::Label { text, object: Some(_), .. } if text == "A")));
     assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Segment { stroke: Stroke::Object, object: Some(2), .. })));
     // The box is fitted to B and C, not to the far hidden A.
