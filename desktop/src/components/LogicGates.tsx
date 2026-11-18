@@ -191,7 +191,7 @@ function GatesPicture({ scene, output, all, form, fromExpression, symbols }: { s
   /** The latest request; an answer to an older one is dropped. */
   const request = useRef(0);
   // What the drawing depends on: the functions and the circuit (a rewrite of a traced expression), not the editor's data.
-  const key = JSON.stringify([scene.inputs, scene.outputs, scene.circuit, output, all, form, fromExpression]);
+  const key = JSON.stringify([scene.inputs, scene.outputs, scene.circuit, scene.jointChosen, scene.jointChosenKnf, output, all, form, fromExpression]);
   const latest = useRef(scene);
   latest.current = scene;
   useEffect(() => {
@@ -220,6 +220,7 @@ function GatesPicture({ scene, output, all, form, fromExpression, symbols }: { s
         src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(picture.svg)}`}
       />
       {whole && <span className="logic-result-meta">{t('logic.gates.whole', whole)}</span>}
+      {whole && !fromExpression && <span className="logic-result-meta">{t('logic.gates.joint')}</span>}
     </>
   );
 }

@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react';
-import type { DrawForm, GateFormResult, LogicForm, LogicNotation, LogicOutputResult, LogicScene, LogicSymbols, Worked } from '../api';
+import type { DrawForm, GateFormResult, JointResult, LogicForm, LogicNotation, LogicOutputResult, LogicScene, LogicSymbols, Worked } from '../api';
 import { nameLatex, type Shown, type TermHover } from '../logic';
 import { useT, type TextKey } from '../i18n';
 import { copyText } from '../shell';
 import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
 import { LogicGates } from './LogicGates';
+import { LogicJoint } from './LogicJoint';
 import { editorData, withGateChoice } from '../logicCircuit';
 
 interface Props {
@@ -22,6 +23,8 @@ interface Props {
   onOpen(form: DrawForm, output: string | null, fromExpression: boolean): void;
   /** Whether there are several outputs: the Gates card then draws them all in one circuit. */
   several: boolean;
+  /** The joint minimisation of all outputs, with several. */
+  joint: JointResult | null;
   /** The term hovered here or in the KV diagram. */
   hover: TermHover | null;
   onHover(hover: TermHover | null): void;
@@ -149,9 +152,10 @@ export function Section({
 /**
  * The results of one output at a time (§10.1, panel 4), in three cards: the expression it is
  * given by beside the canonical forms, the minimal DNF beside the minimal KNF with the choice
- * among several, and the Gates card with the six gate forms, each with its steps and Copy.
+ * among several, the joint minimisation of all outputs when there are several, and the Gates card
+ * with the six gate forms, each with its steps and Copy.
  */
-export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpen, several, hover, onHover, onChange }: Props) {
+export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpen, several, joint, hover, onHover, onChange }: Props) {
   const { t } = useT();
   const { result, index } = shown;
   const name = nameLatex(result.name);
@@ -197,6 +201,7 @@ export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpe
             {...props}
           />
         )}
+        jointCard={joint && <LogicJoint joint={joint} scene={scene} notation={notation} hideSteps={hideSteps} onChange={onChange} />}
         hideSteps={hideSteps}
         terms={(form, which) => <Terms output={result.name} form={form} which={which} notation={notation} hover={hover} onHover={onHover} />}
       />
@@ -211,6 +216,7 @@ function ResultsOf({
   gates,
   choices,
   gatesCard,
+  jointCard,
   hideSteps,
   terms,
 }: {
@@ -221,6 +227,8 @@ function ResultsOf({
   choices(forms: LogicForm[], chosen: number, key: 'chosen' | 'chosenKnf'): ReactNode;
   /** The Gates card, given what ResultsOf shares with the other cards. */
   gatesCard(props: { eq(latex: string): string; cost(form: LogicForm): string; gates(form: GateFormResult): string; hideSteps: boolean }): ReactNode;
+  /** The joint minimisation of all outputs, between the minimal forms and the Gates card. */
+  jointCard?: ReactNode;
   hideSteps: boolean;
   terms(form: LogicForm, which: 'dnf' | 'knf'): ReactNode;
 }) {
@@ -287,6 +295,7 @@ function ResultsOf({
           )}
         </div>
       )}
+      {jointCard}
       {gatesCard({ eq, cost, gates, hideSteps })}
       {!expression && !canonical && <p className="analysis-empty">{t('logic.result.none')}</p>}
     </>

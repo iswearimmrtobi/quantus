@@ -3869,6 +3869,15 @@ select option {
 .logic-term.active {
   background: color-mix(in srgb, var(--block) 26%, transparent);
 }
+.logic-term.shared {
+  box-shadow: inset 0 -2px 0 var(--block), inset 0 2px 0 var(--block);
+}
+
+.logic-joint-lines {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
 
 .logic-terms {
   display: flex;

@@ -195,6 +195,7 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
             symbols={settings.logicSymbols}
             onOpen={(form, output, fromExpression) => setDrawRequest({ form, output, fromExpression })}
             several={outputs.length > 1}
+            joint={outputs.length > 1 ? (answer?.response.joint ?? null) : null}
             hover={hover}
             onHover={setHover}
             onChange={onSceneChange}
