@@ -149,7 +149,7 @@ four NAND/NOR `Section`s (L240–249).
   focused MathField (as the Base-N chips do).
 - [x] Enter on a line no longer adds an empty line. **+ Function** stays the only way
   (`LogicLines.tsx`).
-- [ ] The `f` label left of a line goes when the line itself starts with `f =`; the placeholder
+- [x] The `f` label left of a line goes when the line itself starts with `f =`; the placeholder
   sits at the field's left edge.
 - [ ] The **expression** badge only on the line, not on the table's column, the results head
   (`SourceMark` in `ResultsOf`) and the Truth table button.

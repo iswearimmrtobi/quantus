@@ -120,13 +120,18 @@ export function LogicLines({ scene, answer, onChange }: Props) {
         const result = answer?.outputs[index] ?? null;
         const errors = answer?.errors.filter((error) => error.output === index) ?? [];
         const line = isLine(output);
+        // A line that names its output (`f = …`, `f(A, B) = …`) needs no name beside it.
+        const name = line && output.source.latex.includes('=') ? '' : (result?.name ?? output.name ?? '');
+        const mark = Boolean(result) || !line;
         return (
           <div className={errors.length ? 'logic-line has-error' : 'logic-line'} key={id}>
             <div className="logic-line-row" onFocus={() => (lastFocused.current = id)}>
-              <span className="logic-line-name">
-                <span className="logic-name">{result?.name ?? output.name ?? ''}</span>
-                {(result || !line) && <SourceMark kind={output.source.kind} />}
-              </span>
+              {(name || mark) && (
+                <span className="logic-line-name">
+                  {name && <span className="logic-name">{name}</span>}
+                  {mark && <SourceMark kind={output.source.kind} />}
+                </span>
+              )}
               <MathField
                 // A new field when the output starts or stops being a line, with its own placeholder.
                 key={line ? 'line' : 'other'}

@@ -3292,7 +3292,6 @@ select option {
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  min-width: 96px;
 }
 
 .logic-line-remove {
