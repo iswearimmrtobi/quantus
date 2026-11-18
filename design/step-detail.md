@@ -1067,6 +1067,31 @@ $\overline{\overline{\overline{A \land B}}} = \overline{A \land B}$.
 
 Built: all of the above. Tests: `tests/logic.rs` (the working at every level, both languages).
 
+### Two outputs minimised together (`joint.rs`)
+
+$f = \sum m(1, 3, 7)$ and $g = \sum m(2, 6, 7)$ over $A, B, C$, the joint minimal DNF (§6.4.1 of
+`digital-logic.md`).
+
+| Level | Step | Expression |
+|---|---|---|
+| Standard | The outputs minimised together: a product may serve several outputs and is built once | |
+| Detailed | The rows with 1 or – in some output, each with the outputs where it is 1 or – | `001` $f$ ✓, `010` $g$ ✓, `011` $f$ ✓, `110` $g$ ✓, `111` $f, g$ |
+| Detailed | Round 2: terms combined where their outputs overlap; ✓ only with the same outputs | `0-1` $f$, `-10` $g$, `-11` $f$, `11-` $g$ |
+| Standard | The prime implicants with the outputs each is an implicant of | $P_1 = \lnot A \land C$ ($f$), $P_2 = B \land \lnot C$ ($g$), $P_3 = B \land C$ ($f$), $P_4 = A \land B$ ($g$), $P_5 = A \land B \land C$ ($f, g$) |
+| Detailed | The chart: a column per 1 of each output | columns $1^{(f)}, 3^{(f)}, 7^{(f)}, 2^{(g)}, 6^{(g)}, 7^{(g)}$ |
+| Standard | The essential prime implicants | $P_1 = \lnot A \land C,\ P_2 = B \land \lnot C$ |
+| Detailed | Petrick's method | $(P_3 \lor P_5)(P_4 \lor P_5)$ |
+| Maximal | Multiplied out, with absorption | $= P_5 \lor P_3 P_4$ |
+| Standard | The joint minimal covers, 3 terms with 7 literals | $\{P_1, P_2, P_5\}$ |
+| Standard | Together 3 products, 7 literals, 4 inputs to the ORs; each output alone 4 products, 8 literals | |
+| Brief | The joint minimal DNF of each output | $f = \lnot A \land C \lor A \land B \land C$, $g = B \land \lnot C \lor A \land B \land C$ |
+
+`111` is not ✓ in the first round: it combines with `011` and `110`, but only into terms of one
+output. So $A \land B \land C$ stays a prime implicant of $f$ and $g$ together, and Petrick's
+method picks it once for both instead of $B \land C$ and $A \land B$.
+
+Built: all of the above. Tests: `tests/logic.rs` (`the_joint_working_names_the_shared_primes_and_the_saving`).
+
 ---
 
 ## Fixed along the way

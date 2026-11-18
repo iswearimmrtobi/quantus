@@ -140,6 +140,13 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   delay in $t_{pd}$ or as a time, and the critical path, marked dashed in red in the circuit at a click. The circuit
   saves as SVG and PNG, the scene as a `.quantus-logic.json` file, and the write-up (Ctrl+G)
   takes each output's KV diagram, minimal forms and NAND and NOR forms.
+- Logic mode, several outputs are also minimised together (a card *All outputs, minimised
+  together*): tagged Quine–McCluskey and one prime implicant chart over every output's 1s (0s for
+  the KNF) find the fewest distinct terms, then literals, then inputs to the ORs, with every
+  joint minimal solution to pick from and the cost of each output alone beside it; shared terms
+  are marked. Drawing all outputs from the minimal DNF, KNF, NAND or NOR form builds them from the
+  joint forms, so they share their terms. The response has `joint`, the scene `jointChosen` and
+  `jointChosenKnf`.
 - Settings for the Logic mode: the notation ($A \land \lnot B$ or $A \cdot \overline{B}$), the
   gate symbols (IEC or ANSI), and 0s shown or left empty in the table and KV diagram.
 - `\infin` and `∞` mean infinity, like `\infty`.

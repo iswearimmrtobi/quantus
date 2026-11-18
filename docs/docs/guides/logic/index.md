@@ -43,7 +43,8 @@ The scene is kept when you switch to another mode and back, and saved with the s
   place.
 - Combinational logic only: a circuit with a feedback loop is refused (*sequential circuits are
   not supported yet*). Flip-flops, timing diagrams and hazards are not part of the mode.
-- Every output is minimised on its own; shared terms between outputs are not searched for.
+- Every output is minimised on its own, and with several outputs also all together, with shared
+  terms (see [Results](results.md#all-outputs-together)).
 - Minimisation is exact (Quine–McCluskey and Petrick), so it never gives a form that might not
   be minimal. For random tables of 7 or 8 inputs the comparison can get too large; the mode then
   says *Too many solutions to compare* instead of guessing.

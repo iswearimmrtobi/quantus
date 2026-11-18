@@ -38,6 +38,26 @@ $$f = \lnot A \land \lnot B \lor B \land \lnot C \lor A \land C \qquad f = \lnot
 The cost of each form is shown beside it (*terms: 3 · literals: 6*). Hovering a term highlights
 its block in the KV diagram, and hovering a block highlights its term.
 
+## All outputs together
+
+With two or more outputs, the card **All outputs, minimised together** minimises them jointly:
+one set of terms for all of them, where a term that serves several outputs is built only once.
+Its cost is the number of distinct terms, then their literals, then the inputs of the outputs'
+ORs (ANDs for the KNF); beside it is the cost of each output minimised alone, identical terms
+counted once.
+
+$f = \sum m(1, 3, 7)$ and $g = \sum m(2, 6, 7)$ each need two products alone, four in all.
+Together they need three, $A \land B \land C$ serving both:
+
+$$f = \lnot A \land C \lor A \land B \land C \qquad g = B \land \lnot C \lor A \land B \land C$$
+
+A switch shows the joint DNF or the joint KNF (the same over the 0s). A shared term is marked
+over and under, keeps its colour in every output, and hovering it marks it everywhere; its
+tooltip names the outputs that share it. With several joint minimal solutions you can pick one,
+like the minimal forms of one output. The steps show the tagged Quine–McCluskey tables (each term
+with the outputs it is an implicant of), the chart with a column per 1 of each output and
+Petrick's method. An output whose source has an error is left out, and named.
+
 ## The KV diagram
 
 The diagram stands beside the truth table, for 2 to 6 inputs. The first half of the inputs run
@@ -85,7 +105,8 @@ already has 2 inputs, so there is one NAND and one NOR form. Under the formula a
 the circuit as **Draw from** would draw it, read-only. **Open in editor** draws it in the
 [circuit editor](editor.md) (replacing the circuit there) and scrolls to it. With several
 outputs, such as a truth table with several output columns, the picture and **Open in editor**
-take all of them in one circuit, identical gates shared, in the form chosen here; the line under
+take all of them in one circuit in the form chosen here, built from the
+[joint minimal forms](#all-outputs-together) so that the outputs share their terms; the line under
 the picture gives the whole circuit's gates, gate inputs and levels. (Drawn from the expression,
 an output without one takes its minimal form.) If another output has an error, the picture
 shows this output alone. Each output keeps its form, also in a saved session.

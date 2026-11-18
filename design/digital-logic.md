@@ -34,8 +34,9 @@ Code (planned): `crates/quantus-core/src/logic/`, re-exported in `api.rs`; in th
 - Export as LaTeX, the circuit as SVG and PNG, the write-up, the scene as a JSON file (§10.5).
 
 **Not in the first version** (§13): flip-flops and state machines, timing diagrams and hazards,
-ready-made blocks (adders, multiplexers, decoders, 7-segment display) and own subcircuits, joint
-minimisation of several outputs, more than 8 inputs, random exercises, the handheld, HDL export.
+ready-made blocks (adders, multiplexers, decoders, 7-segment display) and own subcircuits, more
+than 8 inputs, random exercises, the handheld, HDL export. Joint minimisation of several outputs
+came after the first version (§6.4.1).
 
 ## 2. Core principles
 
@@ -88,7 +89,7 @@ The English names are those of the app; the German ones those of `locales/de.jso
 | KV labels | German school style: a bar with the variable's name over the rows or columns where it is 1; the Gray code as a tooltip |
 | Minimisation | Quine–McCluskey for the prime implicants, Petrick for the cover; all minimal solutions |
 | Cost | Fewest terms, then fewest literals |
-| Several outputs | Each minimised alone; identical gates drawn once. Joint minimisation later |
+| Several outputs | Each minimised alone, and all together with shared terms (§6.4.1); drawn together from the joint forms |
 | NAND / NOR | NAND-only from the minimal DNF, NOR-only from the minimal KNF; every output has both, with gates of any width and with 2-input gates only |
 | Delay | Gate levels on the critical path × $t_{pd}$; optionally a time per gate type |
 | Generated circuits | Laid out automatically once, then editable like a drawn circuit |
@@ -265,6 +266,32 @@ below the limit; random tables of 7 or 8 inputs often reach it.
 **Minimal KNF**: the same over the 0s and the don't cares, the terms negated by De Morgan into
 sums: $\bar f = \bar{A}\bar{B} \lor \dots \Rightarrow f = (A \lor B) \land \dots$.
 
+### 6.4.1 Joint minimisation
+
+With two or more outputs (those whose source has no error), they are also minimised **together**
+(`joint.rs`): one set of terms for all of them, a term that serves several outputs built once.
+$f = \sum m(1, 3, 7)$ and $g = \sum m(2, 6, 7)$ alone need four products
+($\bar{A}C \lor BC$, $B\bar{C} \lor AB$); together three, $ABC$ serving both.
+
+- **Tagged Quine–McCluskey**: every row that is 1 or – in some output starts as a minterm tagged
+  with those outputs. Two terms combine as in §6.4 when their tags share an output; the new term
+  has the shared outputs. A term is ✓ only when it combined into one with the **same** tag. The
+  unchecked terms are the prime implicants of the outputs together; a term's tag is exactly the
+  outputs it is an implicant of, so each pattern appears once.
+- **Cover**: the chart has a column per 1 of each output ($m_7^{(f)}$, $m_7^{(g)}$), a row over it
+  when the term is an implicant of that output and covers the row. Each term costs once, so the
+  reductions and Petrick's method are those of §6.4, with the same limit.
+- **Cost**: fewest distinct terms, then fewest literals in them, then fewest inputs to the
+  outputs' ORs; each output takes the fewest of the cover's terms that give it. All joint minimal
+  solutions are listed, the first chosen; the choice is the scene's `jointChosen`.
+- **Minimal KNF** jointly: the same over the 0s, the terms negated into sums.
+- The result is compared with each output alone (its first minimal form, identical terms counted
+  once). A joint minimisation too large to compare says so in its own card; the outputs' own
+  results stay.
+- **Draw** for all outputs from a minimal form (DNF, KNF, NAND, NOR, also 2-input) takes the joint
+  covers, so the drawn outputs share their terms; drawn for one output, or rewritten from the
+  expression, it takes that output's own form.
+
 ### 6.5 NAND-only and NOR-only
 
 **NAND-only** from the chosen minimal DNF $f = p_1 \lor \dots \lor p_k$:
@@ -344,6 +371,7 @@ minimal DNF, the NAND form with and without 2-input gates can be compared.
 | `table.rs` | the truth table, canonical forms |
 | `circuit.rs` | the netlist, its checks, tracing to `Expr`, evaluation per gate |
 | `minimise.rs` | Quine–McCluskey, the prime implicant chart, Petrick, all minimal covers, cost |
+| `joint.rs` | joint minimisation of several outputs: tagged Quine–McCluskey, the chart over every output's 1s (§6.4.1) |
 | `kmap.rs` | the KV layout, labels, blocks as cell sets and as drawn rectangles |
 | `nand.rs` | NAND-only and NOR-only, the 2-input split, the gate-by-gate rewrite |
 | `layout.rs` | the automatic layout of a generated circuit |
@@ -389,6 +417,7 @@ Each line has a text (`msg!`, English and German), a formula and the lowest leve
 | KV diagram | the minimal form | the blocks and their terms | why each variable stays or goes in a block | the prime implicants not used |
 | Quine–McCluskey | the minimal form | the prime implicants | the grouping tables, step by step, with ✓ for combined terms | the pairs tried that did not combine |
 | Cover | — | the essential prime implicants | the chart, reductions by dominance | Petrick's product multiplied out |
+| Joint minimisation | each output's joint form | the prime implicants with their outputs, the covers, the cost against each output alone | the tagged grouping tables, the chart over every output's 1s, its reductions | Petrick's product multiplied out |
 | NAND / NOR | the NAND form | double negation and De Morgan | the 2-input split, inverters | the cancelled double negations |
 | Delay | levels and delay | the critical path | the level of every gate | — |
 | Checks | equal or not, minimal or not | the counterexample row, the faults of each block | each block's check | — |
@@ -644,6 +673,19 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   `## [Unreleased]`; [feature-ideas.md § 16](../plans/feature-ideas.md#16-digital-logic-editor)
   marked as done or cut to what is left.
 
+### Phase 15: joint minimisation
+
+- [x] `minimise.rs`: the chart over columns of its own (each row's coverage kept), its working a
+  function of its own.
+- [x] `joint.rs` (§6.4.1): tagged Quine–McCluskey, the chart over every output's 1s or 0s,
+  Petrick, the cost (terms, literals, inputs to the ORs), each output alone for comparison; the
+  working; tests against brute force.
+- [x] `interface.rs`: `joint` in the response, `jointChosen` and `jointChosenKnf` in the scene;
+  **Draw** of all outputs from a minimal form takes the joint covers.
+- [x] `LogicJoint.tsx`: the card *All outputs, minimised together*, the shared terms marked, the
+  cost against each output alone, the choice; the Gates card's hint.
+- [x] Guide, changelog.
+
 ## 13. Later
 
 - **Sequential logic**: SR, D, JK and T flip-flops, clocked simulation, then state machines
@@ -652,7 +694,6 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   diagram and the term that removes them.
 - **Blocks**: half and full adder, multiplexer, decoder, 7-segment display, and own
   subcircuits saved as blocks.
-- **Multi-output minimisation** with shared terms.
 - **Fewest gates**: a search for the NAND circuit with the fewest gates, free inverted inputs as
   an option.
 - **More than 8 inputs** with Espresso, marked *possibly not minimal*.
