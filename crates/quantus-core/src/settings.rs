@@ -284,8 +284,6 @@ pub struct Settings {
     /// How the logic mode writes expressions: $A \land \lnot B$ or $A \cdot \overline{B}$.
     /// Any notation is read whatever the setting.
     pub logic_notation: LogicNotation,
-    /// The NAND and NOR forms only from 2-input gates.
-    pub logic_two_input: bool,
     /// Whether the truth table and the KV diagram show the 0s rather than leaving them empty.
     pub logic_zeros: bool,
 }
@@ -324,7 +322,6 @@ impl Default for Settings {
             theme: "system".to_string(),
             logic_symbols: LogicSymbols::Iec,
             logic_notation: LogicNotation::Logic,
-            logic_two_input: true,
             logic_zeros: true,
         }
     }
@@ -453,10 +450,16 @@ mod tests {
                 "theme": "system",
                 "logicSymbols": "iec",
                 "logicNotation": "logic",
-                "logicTwoInput": true,
                 "logicZeros": true
             })
         );
+    }
+
+    #[test]
+    fn a_file_with_a_setting_that_is_gone_still_loads() {
+        // `logicTwoInput` went when every output got both NAND and NOR forms.
+        let settings: Settings = serde_json::from_value(json!({ "logicTwoInput": false, "logicZeros": false })).unwrap();
+        assert_eq!(settings, Settings { logic_zeros: false, ..Settings::default() });
     }
 
     #[test]

@@ -522,7 +522,6 @@ fn core_settings(mode: CoreMode, settings: &Settings) -> core::Settings {
         // The handheld has no logic mode yet.
         logic_symbols: core::LogicSymbols::Iec,
         logic_notation: core::LogicNotation::Logic,
-        logic_two_input: true,
         logic_zeros: true,
     }
 }

@@ -89,7 +89,7 @@ The English names are those of the app; the German ones those of `locales/de.jso
 | Minimisation | Quine–McCluskey for the prime implicants, Petrick for the cover; all minimal solutions |
 | Cost | Fewest terms, then fewest literals |
 | Several outputs | Each minimised alone; identical gates drawn once. Joint minimisation later |
-| NAND / NOR | NAND-only from the minimal DNF, NOR-only from the minimal KNF; the switch *only 2-input gates*, on by default |
+| NAND / NOR | NAND-only from the minimal DNF, NOR-only from the minimal KNF; every output has both, with gates of any width and with 2-input gates only |
 | Delay | Gate levels on the critical path × $t_{pd}$; optionally a time per gate type |
 | Generated circuits | Laid out automatically once, then editable like a drawn circuit |
 | Symbols | IEC 60617 (default) or ANSI distinctive shapes, a setting |
@@ -109,7 +109,7 @@ A `LogicScene` holds:
 - **outputs**: names, and for each output its **source**: `circuit`, `table`, `expression` or
   `minterms`, with the data of that source;
 - the **circuit** (if any): the gates and the netlist, with positions kept by the shell;
-- the **options**: only 2-input gates, gate times, the chosen minimal solution per output.
+- the **options**: gate times, the chosen minimal solution per output.
 
 Each output has one source; the other views are worked out from it. Editing a view makes it the
 source of the outputs it touches:
@@ -275,7 +275,7 @@ sums: $\bar f = \bar{A}\bar{B} \lor \dots \Rightarrow f = (A \lor B) \land \dots
    inverter per variable, shared;
 3. a product of one literal needs no first-level NAND: $\overline{\overline{A}} = A$ is dropped,
    the literal goes, negated, straight into the output NAND;
-4. with **only 2-input gates** (default on), every NAND with $m > 2$ inputs becomes a balanced
+4. in the form with **only 2-input gates** (every output has it beside the one of any width), every NAND with $m > 2$ inputs becomes a balanced
    tree: AND-trees of NAND + inverting NAND pairs, the last stage a NAND. A 3-input NAND becomes
    3 gates, a 4-input one 5 (two NANDs, two inverters, one NAND).
 
@@ -403,7 +403,6 @@ an XOR) are in [step-detail.md § Logic mode](step-detail.md#logic-mode).
 |---|---|---|
 | `logic_symbols` | `iec` (rectangles with `&`, `≥1`, `=1`, `1`) or `ansi` (distinctive shapes) | `iec` |
 | `logic_notation` | `logic` ($A \land \lnot B \lor C$, with the overline for longer negations) or `technical` ($A \cdot \overline{B} + C$) | `logic` |
-| `logic_two_input` | NAND / NOR forms only from 2-input gates | `true` |
 | `logic_zeros` | KV diagram and table show 0s or leave them empty | show |
 
 The input accepts every notation whatever the setting; output, KV labels and **Copy** follow it.
@@ -546,7 +545,8 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
 
 - [x] `nand.rs`: NAND–NAND from the chosen minimal DNF, shared inverters as `NAND(A, A)`, single
   literals straight into the output NAND.
-- [x] The 2-input split (balanced trees), on with `logic_two_input`.
+- [x] The 2-input split (balanced trees); every output has both, the setting `logic_two_input` went
+  (ux-rework.md 1.2).
 - [x] NOR-only from the minimal KNF, the dual of both.
 - [x] The gate-by-gate rewrite of a given expression (*NAND from the circuit as drawn*) with
   cancelled inverter pairs.
@@ -589,7 +589,8 @@ A phase ends with `cargo clippy --workspace --all-targets` clean.
   `OutputResponse`, `KmapResponse`, `CircuitResponse`, `TaskResponse`, `ErrorResponse`),
   `api::logic`, re-exported in `api.rs`.
 - [x] `Mode::Logic` (`"logic"`) in `settings.rs` with its options and the serde test; the
-  settings `logic_symbols`, `logic_notation`, `logic_two_input`, `logic_zeros` (§9).
+  settings `logic_symbols`, `logic_notation`, `logic_zeros` (§9); `logic_two_input` went, every
+  output has both NAND and NOR forms.
 - [x] `ModeInputs.logic` in `session.rs`, saved with the session.
 - [x] The Tauri command `logic` in `desktop/src-tauri/src/commands.rs`, registered in `lib.rs`;
   the wrapper and types in `desktop/src/api.ts`.

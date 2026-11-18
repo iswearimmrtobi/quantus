@@ -64,13 +64,13 @@ Effort: S = an hour or two, M = a day, L = several days.
 
 ### 1.2 Core: the setting goes (S)
 
-- [ ] Remove `logic_two_input` from `Settings` (`settings.rs` L288, L327, the serde test at L456).
+- [x] Remove `logic_two_input` from `Settings` (`settings.rs` L288, L327, the serde test at L456).
   Old config files that still hold `logicTwoInput` must still load: check that `Settings` has no
   `deny_unknown_fields`, and add a test that reads a settings JSON with the old key.
-- [ ] `firmware/engine/src/lib.rs:525`: drop the field. Check with `cargo check -p quantus-engine`.
-- [ ] `tests/logic.rs:2249`: drop `logic_two_input: false` (that test then asks for the
+- [x] `firmware/engine/src/lib.rs:525`: drop the field. Check with `cargo check -p quantus-engine`.
+- [x] `tests/logic.rs:2249`: drop `logic_two_input: false` (that test then asks for the
   non-split form from `gate_forms`).
-- [ ] `design/digital-logic.md` (L406, L549, L592): the setting replaced by "every output has both".
+- [x] `design/digital-logic.md` (L406, L549, L592): the setting replaced by "every output has both".
 
 ### 1.3 Desktop: the types (S)
 
