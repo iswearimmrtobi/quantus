@@ -167,7 +167,7 @@ four NAND/NOR `Section`s (L240–249).
   dashed, and off by default. Its button in the bar turns it on.
 - [x] The inspector: as a popover beside the chosen part instead of a fixed 440 px column. The
   canvas gets that width.
-- [ ] The editor as a tab: **Table & KV | Circuit**, so it no longer pushes the table and
+- [x] The editor as a tab: **Table & KV | Circuit**, so it no longer pushes the table and
   results 950 px down (`LogicView.tsx`).
 - [ ] (Could, M) fewer wire crossings in `layout.rs`: each input's rail next to its NOT gate,
   rails sorted by first use.

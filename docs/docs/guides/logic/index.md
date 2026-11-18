@@ -23,10 +23,10 @@ Switch to **Logic** in the top bar. From top to bottom the page has:
 
 1. **Load** and **Save** for the scene,
 2. the **function lines**, one per output,
-3. the **circuit** editor (folded away until it has a circuit; click *Circuit* to open it),
-4. the **truth table** and the **KV diagram** side by side, for one output at a time (tabs above
-   them when there are several),
-5. the **results** of that output, each with its steps and **Copy**.
+3. a switch **Table & KV | Circuit**, with a tab per output beside it when there are several,
+4. under it the **truth table** and the **KV diagram** side by side, for one output at a time, or
+   the **circuit** editor,
+5. the **results** of that output, each with its steps and **Copy**, under either.
 
 The function lines, the table and the circuit are three ways to give an output its function.
 Each output has one **source**, the view it was edited in last; the other views follow from it.

@@ -125,7 +125,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   levels, in English and German, and Copies as LaTeX; the truth table and KV diagram copy as a
   `tabular`. **Draw my blocks** checks your own KV blocks: size, shape, 0s inside, blocks that
   could grow or are not needed, and whether they give a minimal form.
-- The Logic mode's circuit editor: input switches, output lamps, constants, NOT, buffer and AND,
+- The Logic mode's circuit editor, a tab beside the table and KV diagram: input switches, output lamps, constants, NOT, buffer and AND,
   OR, NAND, NOR, XOR, XNOR with 2 to 8 inputs, in IEC 60617 or ANSI symbols. An open pin, two
   drivers on a net or a feedback loop marks the parts red. The circuit is live: clicking a switch
   colours each wire by its value and lights the lamps, with the matching row of the table and

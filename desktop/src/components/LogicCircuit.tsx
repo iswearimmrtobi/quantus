@@ -16,6 +16,10 @@ interface Props {
   onToggle(name: string): void;
   /** A drawing asked for elsewhere (the Gates card's **Open in editor**); a new object each time. */
   drawRequest?: DrawRequest | null;
+  /** Whether the Circuit tab is the one shown; hidden, the circuit is still drawn again when its function changes. */
+  shown: boolean;
+  /** Brings the Circuit tab up, after a drawing asked for by hand. */
+  onShow(): void;
 }
 
 /** A circuit to draw: `form` of `output`, rewritten from the expression or not. */
@@ -40,12 +44,10 @@ const FORMS: { form: DrawForm; label: TextKey }[] = [
  * note when the circuit is out of date. A circuit drawn from a form is drawn again when the
  * function changes, until it is edited (§5.1).
  */
-export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle, drawRequest }: Props) {
+export function LogicCircuit({ settings, scene, answer, onSceneChange, switchValue, onToggle, drawRequest, shown, onShow }: Props) {
   const { t } = useT();
   const data = editorData(scene);
   const parts = data.parts;
-  /** Whether the editor is open; at first when there is a circuit. */
-  const [open, setOpen] = useState(parts.length > 0);
   /** The output the next drawing is for; all when null. */
   const [drawOutput, setDrawOutput] = useState<string | null>(null);
   const [taskError, setTaskError] = useState<string | null>(null);
@@ -71,13 +73,14 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
     return circuit;
   };
 
-  const draw = async (form: DrawForm, output: string | null, fromExpression = false) => {
+  /** Draws `form` of `output`; `reveal` brings the Circuit tab up, as for a drawing asked for by hand. */
+  const draw = async (form: DrawForm, output: string | null, fromExpression = false, reveal = true) => {
     const from = latest.current;
     const drawn = await task(from, { kind: 'draw', form, output, fromExpression });
     if (!drawn) return;
     // Drawn from the scene as it was asked; a change since makes it be drawn again.
     onSceneChange(withGenerated(latest.current, drawn, { form, output, fromExpression }, drawnFrom(from)));
-    setOpen(true);
+    if (reveal) onShow();
     setFitKey((k) => k + 1);
   };
 
@@ -85,7 +88,10 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   const frame = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!drawRequest) return;
-    void draw(drawRequest.form, drawRequest.output, drawRequest.fromExpression).then(() => frame.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    // Once the Circuit tab is up, in the next frame.
+    void draw(drawRequest.form, drawRequest.output, drawRequest.fromExpression).then(() =>
+      requestAnimationFrame(() => frame.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })),
+    );
   }, [drawRequest]);
 
   const arrange = async () => {
@@ -105,7 +111,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
     if (!generated || generated.from === from || tried.current === from) return;
     tried.current = from;
     // `draw` reads the latest scene itself.
-    void draw(generated.form, generated.output, generated.fromExpression);
+    void draw(generated.form, generated.output, generated.fromExpression, false);
   }, [generated, from]);
 
   // The critical path, input to lamp, with the names of switches and lamps.
@@ -195,11 +201,8 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
     ) : null;
 
   return (
-    <section className="logic-circuit" ref={frame}>
-      <button className="logic-section-toggle" aria-expanded={open} title={t('logic.editor.toggle')} onClick={() => setOpen(!open)}>
-        {open ? '▾' : '▸'} {t('logic.editor.title')}
-      </button>
-      {open && (
+    <section className="logic-circuit" ref={frame} hidden={!shown}>
+      {shown && (
         <div className="logic-editor-frame">
           <LogicEditor
             parts={parts}

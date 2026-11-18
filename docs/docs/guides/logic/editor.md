@@ -10,8 +10,9 @@ has a lamp in it: its function is traced from the lamp back to the switches, and
 forms and the KV diagram follow. The other way round, **Draw from** puts a circuit drawn from a
 minimal form into the editor.
 
-Click **Circuit** above the table to open the editor; it is folded away while there is no
-circuit. It has the parts on the left and the canvas beside them, as in the
+Switch **Table & KV | Circuit** to *Circuit* to see the editor in place of the table and the KV
+diagram; the results stay under it. The page opens on *Circuit* when the scene has a circuit, and
+**Draw from** or **Open in editor** switch to it. It has the parts on the left and the canvas beside them, as in the
 [Electronics](../electronics.md) editor; clicking a part opens its settings in a box beside it.
 
 ## Parts

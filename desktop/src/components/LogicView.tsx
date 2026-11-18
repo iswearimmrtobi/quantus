@@ -9,6 +9,8 @@ import { LogicCircuit, type DrawRequest } from './LogicCircuit';
 import { LogicLines } from './LogicLines';
 import { LogicResults } from './LogicResults';
 import { LogicTable } from './LogicTable';
+import { Segmented } from './SettingsDialog';
+import { editorData } from '../logicCircuit';
 
 /** The two examples of the empty page: an expression and a minterm list. */
 const EXAMPLE_EXPRESSION = 'f = A \\land B \\lor C';
@@ -38,6 +40,8 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
   const request = useRef(0);
   /** A circuit to draw in the editor, asked for by the Gates card. */
   const [drawRequest, setDrawRequest] = useState<DrawRequest | null>(null);
+  /** The tab over the table and the KV diagram, or over the circuit editor; the circuit's at first when there is one. */
+  const [view, setView] = useState<'table' | 'circuit'>(() => (editorData(scene).parts.length ? 'circuit' : 'table'));
 
   const run = useCallback(async (current: LogicScene) => {
     const id = ++request.current;
@@ -94,32 +98,54 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
           <ErrorRow key={i} error={new ApiError(error.message)} />
         ))}
         <LogicLines scene={scene} answer={answer} onChange={onSceneChange} />
-        <LogicCircuit settings={settings} scene={scene} answer={answer} onSceneChange={onSceneChange} switchValue={switchValue} onToggle={toggle} drawRequest={drawRequest} />
         {!answer && !failure && (
           <p className="analysis-empty logic-empty">
             {t('logic.empty.lead')} <Katex latex={EXAMPLE_EXPRESSION} /> {t('logic.empty.or')} <Katex latex={EXAMPLE_MINTERMS} />
             {t('logic.empty.tail')}
           </p>
         )}
-        {outputs.length > 1 && (
-          <div className="form-row logic-tabs">
-            {outputs.map(({ result }) => (
-              <button key={result.name} className={result.name === shown?.result.name ? 'form-chip active' : 'form-chip'} onClick={() => setTab(result.name)}>
-                <Katex latex={nameLatex(result.name)} />
+        <div className="logic-tabs">
+          <Segmented
+            choices={[
+              { value: 'table', label: t('logic.tab.table') },
+              { value: 'circuit', label: t('logic.tab.circuit') },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+          {outputs.length > 1 && (
+            <div className="form-row logic-output-tabs">
+              {outputs.map(({ result }) => (
+                <button key={result.name} className={result.name === shown?.result.name ? 'form-chip active' : 'form-chip'} onClick={() => setTab(result.name)}>
+                  <Katex latex={nameLatex(result.name)} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <LogicCircuit
+          settings={settings}
+          scene={scene}
+          answer={answer}
+          onSceneChange={onSceneChange}
+          switchValue={switchValue}
+          onToggle={toggle}
+          drawRequest={drawRequest}
+          shown={view === 'circuit'}
+          onShow={() => setView('circuit')}
+        />
+        {view === 'table' && (
+          <div className="logic-views">
+            {grid.columns.length > 0 ? (
+              <LogicTable scene={scene} grid={grid} answer={answer} zeros={settings.logicZeros} onChange={onSceneChange} {...simulated} />
+            ) : (
+              <button className="palette-item logic-table-new" onClick={() => onSceneChange(addOutput(scene, grid))}>
+                + {t('logic.table.new')}
               </button>
-            ))}
+            )}
+            {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} notation={logicNotation} hover={hover} onHover={setHover} onChange={onSceneChange} {...simulated} />}
           </div>
         )}
-        <div className="logic-views">
-          {grid.columns.length > 0 ? (
-            <LogicTable scene={scene} grid={grid} answer={answer} zeros={settings.logicZeros} onChange={onSceneChange} {...simulated} />
-          ) : (
-            <button className="palette-item logic-table-new" onClick={() => onSceneChange(addOutput(scene, grid))}>
-              + {t('logic.table.new')}
-            </button>
-          )}
-          {shown && <KvMap scene={scene} grid={grid} shown={shown} zeros={settings.logicZeros} notation={logicNotation} hover={hover} onHover={setHover} onChange={onSceneChange} {...simulated} />}
-        </div>
         {shown && (
           <LogicResults
             scene={scene}

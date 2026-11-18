@@ -2872,17 +2872,7 @@ select option {
 
 /* ---- Logic mode --------------------------------------------------------------------------- */
 
-/* The circuit editor: the electronics mode's three columns in a frame of its own height. */
-.logic-section-toggle {
-  justify-self: start;
-  padding: 2px 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-.logic-section-toggle:hover {
-  color: var(--text);
-}
+/* The circuit editor: the electronics mode's columns in a frame of its own height. */
 .logic-circuit {
   display: grid;
   gap: 6px;
@@ -3404,7 +3394,14 @@ select option {
   }
 }
 
+/* Table & KV | Circuit, and the outputs' tabs beside it. */
 .logic-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.logic-output-tabs {
   padding: 0;
   margin: 0;
 }
