@@ -83,7 +83,7 @@ the circuit gives other values for f in rows 3, 5*, with the button **Draw from 
 
 ## Gates and delay
 
-The corner of the canvas shows the circuit's figures:
+The bar under the canvas shows the circuit's figures, with the note or the errors beside them:
 
 - *gates*, *gate inputs* and *levels*: the most gates on any path from a switch to a lamp
   (switches, lamps and constants count 0);

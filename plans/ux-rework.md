@@ -161,7 +161,7 @@ four NAND/NOR `Section`s (L240–249).
   from buttons in the middle of the canvas instead of "Drag input switches…".
 - [x] After a drawing, fit the whole circuit (`fitKey` exists; check that it runs after the
   layout is measured, since G3 was cut off).
-- [ ] The note "Drawn from the minimal DNF…" and the stats box (`corner`) go into a bar under
+- [x] The note "Drawn from the minimal DNF…" and the stats box (`corner`) go into a bar under
   the canvas, not over it.
 - [ ] The critical path in a colour of its own (not the yellow of "on" and of the selection),
   dashed, and off by default. Its button in the bar turns it on.

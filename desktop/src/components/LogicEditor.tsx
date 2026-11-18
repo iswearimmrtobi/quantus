@@ -49,9 +49,9 @@ interface Props {
   switchValue?(name: string): boolean | null;
   /** Flips the switch of an input. */
   onToggle?(name: string): void;
-  /** Shown in the canvas's top right corner: the gate count and the delay. */
+  /** Shown in the bar under the canvas: the gate count and the delay. */
   corner?: ReactNode;
-  /** A note over the bottom of the canvas when there is no error. */
+  /** A note in the bar under the canvas when there is no error. */
   note?: ReactNode;
   /** The ids along the critical path, input to lamp: they and the nets between them stand out. */
   path?: string[];
@@ -336,17 +336,21 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
 
           {!parts.length && emptyCanvas && <div className="logic-canvas-empty">{emptyCanvas}</div>}
 
-          {corner && <div className="logic-corner">{corner}</div>}
-
-          {noteShown && (
-            <div className={errors.length ? 'circuit-note error' : 'circuit-note'}>
-              {notes.map((issue, k) => (
-                <div key={k}>{issue.message}</div>
-              ))}
-              {!errors.length && note}
-            </div>
-          )}
         </div>
+
+        {(corner || noteShown) && (
+          <div className="logic-editor-bar">
+            {corner}
+            {noteShown && (
+              <div className={errors.length ? 'logic-bar-note error' : 'logic-bar-note'}>
+                {notes.map((issue, k) => (
+                  <div key={k}>{issue.message}</div>
+                ))}
+                {!errors.length && note}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <aside className="circuit-inspector">
