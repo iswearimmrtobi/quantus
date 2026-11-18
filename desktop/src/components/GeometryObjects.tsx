@@ -1,14 +1,14 @@
 import type { Geometry, GeometryEntry, GeometryObject } from '../api';
 import { useT } from '../i18n';
 import type { TextKey } from '../i18n';
-import { formKindOf, freeName, plainBars, newObject, switchVariant, VARIANTS, type FormKind, type Variant } from '../geometry';
-import { colourStyle } from './GeometryPlot';
+import { formKindOf, plainBars, switchVariant, VARIANTS, type FormKind, type Variant } from '../geometry';
 import { Katex } from './Katex';
 import { Steps } from './AnalysisView';
 import { MathField } from './MathField';
 import { Segmented } from './SettingsDialog';
 
-const KINDS: { kind: FormKind; label: TextKey }[] = [
+/** The kinds the + menu adds, in its order. */
+export const KINDS: { kind: FormKind; label: TextKey }[] = [
   { kind: 'point', label: 'geometry.kind.point' },
   { kind: 'vector', label: 'geometry.kind.vector' },
   { kind: 'line', label: 'geometry.kind.line' },
@@ -48,15 +48,6 @@ function ObjectPick({ value, kind, built, onChange }: { value: string; kind: str
       ))}
     </select>
   );
-}
-
-interface Props {
-  objects: GeometryObject[];
-  /** The engine's answer to the scene, in the same order: each object as built, or its error. */
-  built: Geometry['objects'] | null;
-  onChange(objects: GeometryObject[]): void;
-  /** At the detail level `none` the steps of a construction are hidden. */
-  hideSteps: boolean;
 }
 
 /** The colour index of each object: its place in the scene, as the view colours it; none for one that failed. */
@@ -253,64 +244,45 @@ function VariantSwitch({ object, onChange }: { object: GeometryObject; onChange(
   return <Segmented choices={choices} value={object.kind as Variant} onChange={(variant) => onChange(switchVariant(object, variant))} />;
 }
 
-/**
- * The scene as a list of forms, one per object, in the colour the view draws it in: its name,
- * its entries, and below them the object as the engine read it, or why it could not.
- */
-export function GeometryObjects({ objects, built, onChange, hideSteps }: Props) {
-  const { t } = useT();
-  const colours = colourIndices(built);
-  const replace = (index: number, object: GeometryObject) => onChange(objects.map((o, i) => (i === index ? object : o)));
-  const remove = (index: number) => onChange(objects.filter((_, i) => i !== index));
-  const add = (kind: FormKind) => onChange([...objects, newObject(kind, freeName(kind, objects))]);
+interface EditorProps {
+  object: GeometryObject;
+  /** The engine's answer to this object: as built, or its error. */
+  answer: Geometry['objects'][number] | undefined;
+  /** The whole scene's answer, for the picks of a cut circle. */
+  built: Geometry['objects'] | null;
+  onChange(object: GeometryObject): void;
+  /** At the detail level `none` the steps of a construction are hidden. */
+  hideSteps: boolean;
+}
 
+/**
+ * The editor of one object, opened in its row of the sidebar: the switch between its ways, its
+ * name, its entries laid out as its equation is written, and the steps of a construction.
+ */
+export function ObjectEditor({ object, answer, built, onChange, hideSteps }: EditorProps) {
+  const { t } = useT();
   return (
-    <section className="section-card geometry-objects">
-      <div className="geometry-add">
-        <span className="geometry-add-label">{t('geometry.add')}</span>
-        {KINDS.map(({ kind, label }) => (
-          <button key={kind} className="palette-item" onClick={() => add(kind)}>
-            {t(label)}
-          </button>
-        ))}
+    <div className="geometry-editor">
+      <VariantSwitch object={object} onChange={onChange} />
+      <div className="geometry-object-form">
+        {object.kind !== 'typed' && (
+          <input
+            className="task-input geometry-name"
+            value={object.name ?? ''}
+            aria-label={t('geometry.name')}
+            title={t('geometry.name')}
+            onChange={(event) => onChange({ ...object, name: event.target.value })}
+          />
+        )}
+        <Form object={object} built={built} onChange={onChange} />
       </div>
-      {objects.map((object, index) => {
-        const answer = built?.[index];
-        const colour = colours[index];
-        return (
-          <div key={index} className="geometry-object-row" style={colour === null || colour === undefined ? undefined : colourStyle(colour)}>
-            <VariantSwitch object={object} onChange={(next) => replace(index, next)} />
-            <div className="geometry-object-form">
-              <span className="geometry-swatch" />
-              {object.kind !== 'typed' && (
-                <input
-                  className="task-input geometry-name"
-                  value={object.name ?? ''}
-                  aria-label={t('geometry.name')}
-                  title={t('geometry.name')}
-                  onChange={(event) => replace(index, { ...object, name: event.target.value })}
-                />
-              )}
-              <Form object={object} built={built} onChange={(next) => replace(index, next)} />
-              <button className="copy-btn geometry-remove" title={t('geometry.remove')} onClick={() => remove(index)}>
-                ×
-              </button>
-            </div>
-            {answer?.error ? (
-              <span className="geometry-error">{answer.error}</span>
-            ) : (
-              answer?.latex && <Katex className="geometry-built" latex={answer.latex} />
-            )}
-            {/* How a line through two points, a plane through three or a cut circle came about. */}
-            {!hideSteps && answer && !answer.error && answer.steps.length > 0 && (
-              <details className="geometry-object-steps">
-                <summary>{t('steps')}</summary>
-                <Steps steps={answer.steps} hidden={false} display />
-              </details>
-            )}
-          </div>
-        );
-      })}
-    </section>
+      {/* How a line through two points, a plane through three or a cut circle came about. */}
+      {!hideSteps && answer && !answer.error && answer.steps.length > 0 && (
+        <details className="geometry-object-steps">
+          <summary>{t('steps')}</summary>
+          <Steps steps={answer.steps} hidden={false} display />
+        </details>
+      )}
+    </div>
   );
 }

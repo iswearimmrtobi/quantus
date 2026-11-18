@@ -244,7 +244,8 @@ export function withTyped(objects: GeometryObject[], latex: string): GeometryObj
   const typed: GeometryObject = { kind: 'typed', latex: plainBars(latex.trim()) };
   const key = typedKey(typed.latex);
   const index = key === null ? -1 : objects.findIndex((object) => objectKey(object) === key);
-  return index < 0 ? [...objects, typed] : objects.map((object, i) => (i === index ? typed : object));
+  // A hidden object stays hidden when its line is typed again.
+  return index < 0 ? [...objects, typed] : objects.map((object, i) => (i === index ? (object.hidden ? { ...typed, hidden: true } : typed) : object));
 }
 
 /** The input a session saved, or the empty one. */

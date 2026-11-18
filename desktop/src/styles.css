@@ -2761,40 +2761,148 @@ select option {
   font-size: 10px;
 }
 
+/* While a row is hovered: its object stronger, the others faded. */
+.geometry-plot .strong.geometry-object {
+  stroke-width: 3.2;
+}
+.geometry-plot .strong.geometry-face {
+  fill-opacity: 0.26;
+  stroke-opacity: 0.9;
+}
+.geometry-plot .strong.geometry-marker {
+  r: 6px;
+}
+.geometry-plot .strong.geometry-label {
+  font-weight: 600;
+}
+.geometry-plot .faded {
+  opacity: 0.25;
+}
+.geometry-plot [data-object] {
+  cursor: pointer;
+}
+
 .geometry-tick-label {
   fill: var(--text-faint);
   font-family: var(--mono);
   font-size: 10px;
 }
 
-.geometry-objects {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
+/* The + menu beside the typed line. */
 .geometry-add {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  position: relative;
 }
-
-.geometry-add-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin-right: 4px;
+.geometry-add-button {
+  font-size: 15px;
+  line-height: 1;
 }
-
-.geometry-object-row {
+.geometry-add-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
   display: flex;
   flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px var(--overlay);
+}
+.geometry-add-menu button {
+  text-align: left;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+}
+.geometry-add-menu button:hover {
+  background: var(--surface-hover);
+}
+
+/* One compact row per object; a click opens its editor under it. */
+.geometry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.geometry-row {
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+.geometry-row:hover {
+  background: var(--surface);
+}
+.geometry-row.open {
+  background: var(--surface);
+  border-color: var(--hairline);
+}
+.geometry-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 3px 4px 3px 8px;
+  cursor: pointer;
+}
+.geometry-row-head:focus-visible {
+  outline: 1px solid var(--primary);
+  outline-offset: -1px;
+}
+.geometry-row-formula {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+.geometry-row-error {
+  color: var(--danger);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.geometry-row-button {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.6;
+}
+.geometry-row:hover .geometry-row-button,
+.geometry-row.open .geometry-row-button,
+.geometry-row.hidden .geometry-row-button[aria-pressed='true'] {
+  opacity: 1;
+}
+.geometry-row.hidden .geometry-row-formula,
+.geometry-row.hidden .geometry-swatch {
+  opacity: 0.4;
+}
+.geometry-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 10px 8px;
+}
+.geometry-row-moves {
+  display: flex;
   gap: 4px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline);
+  padding: 0 6px 6px;
+}
+.geometry-row-moves .copy-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* The task at the foot of the sidebar. */
+.geometry-sidebar > .geometry-task {
+  margin-top: auto;
 }
 
 .geometry-object-form {
@@ -2891,15 +2999,6 @@ select option {
   color: var(--text-muted);
 }
 
-.geometry-remove {
-  margin-left: auto;
-}
-
-.geometry-built {
-  font-size: 14px;
-  padding-left: 18px;
-}
-
 .geometry-task {
   margin-top: 14px;
   display: flex;
@@ -2932,7 +3031,7 @@ select option {
 }
 
 .geometry-object-steps {
-  padding-left: 18px;
+  padding-left: 0;
 }
 .geometry-object-steps summary {
   cursor: pointer;

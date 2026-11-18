@@ -373,8 +373,8 @@ export type GeometryShape =
   /** One typed line with its name: `A(1|2|3)`, `g: X = A + \lambda \vec{u}`, `E: 2x + y = 3`. */
   | { kind: 'typed'; latex: string };
 
-/** A named object; a typed one takes its name from the line. */
-export type GeometryObject = GeometryShape & { name?: string };
+/** A named object; a typed one takes its name from the line. A hidden one is built but not drawn. */
+export type GeometryObject = GeometryShape & { name?: string; hidden?: boolean };
 
 export type GeometryMeasure = 'length' | 'surface' | 'volume' | 'circumference' | 'area';
 export type PlaneForm = 'parameter' | 'normal' | 'coordinate';

@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { api, ApiError, type Geometry, type Settings } from '../api';
-import { geometryRequest, withTyped, type GeometryInput } from '../geometry';
+import { geometryRequest, type GeometryInput } from '../geometry';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
-import { GeometryObjects } from './GeometryObjects';
 import { GeometryPlot } from './GeometryPlot';
 import { GeometryTaskPanel } from './GeometryTask';
-import { MathField } from './MathField';
+import { GeometrySidebar } from './GeometrySidebar';
 
 
 /** The sidebar's width in pixels: at first, and the range dragging keeps it in. */
@@ -54,13 +53,9 @@ interface Props {
  */
 export function GeometryView({ settings, input, onInputChange, placeholder }: Props) {
   const { t } = useT();
-  /** The typed line not yet entered. */
-  const [typed, setTyped] = useState('');
-  const enterTyped = () => {
-    if (!typed.trim()) return;
-    onInputChange({ ...input, objects: withTyped(input.objects, typed) });
-    setTyped('');
-  };
+  /** The row whose editor is open, and the one the pointer is over; both by place in the scene. */
+  const [open, setOpen] = useState<number | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
   const [sidebar, setSidebar] = useState(loadSidebar);
   useEffect(() => saveSidebar(sidebar), [sidebar]);
   const resizing = useRef<{ x: number; width: number } | null>(null);
@@ -117,32 +112,33 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
           </aside>
         ) : (
           <>
-            <aside className="geometry-sidebar">
-              <div className="geometry-sidebar-head">
-                <div className="input-row geometry-typed" title={t('geometry.typed.hint')}>
-                  <MathField value={typed} onChange={setTyped} onEnter={enterTyped} placeholder={placeholder} />
-                </div>
+            <GeometrySidebar
+              objects={input.objects}
+              built={answer?.objects ?? null}
+              onChange={(objects) => onInputChange({ ...input, objects })}
+              open={open}
+              onOpen={setOpen}
+              onHover={setHovered}
+              hideSteps={stepDetail === 'none'}
+              placeholder={placeholder}
+              headEnd={
                 <button className="copy-btn" title={t('geometry.sidebar.collapse')} aria-label={t('geometry.sidebar.collapse')} onClick={() => setSidebar((s) => ({ ...s, collapsed: true }))}>
                   «
                 </button>
-              </div>
-              {error && <ErrorRow error={error} soft />}
-              <GeometryObjects
-                objects={input.objects}
-                built={answer?.objects ?? null}
-                onChange={(objects) => onInputChange({ ...input, objects })}
-                hideSteps={stepDetail === 'none'}
-              />
-              {input.objects.length > 0 && (
-                <GeometryTaskPanel
-                  task={input.task}
-                  built={answer?.objects ?? null}
-                  answer={answer?.task ?? null}
-                  onChange={(task) => onInputChange({ ...input, task })}
-                  hideSteps={stepDetail === 'none'}
-                />
-              )}
-            </aside>
+              }
+              error={error && <ErrorRow error={error} soft />}
+              footer={
+                input.objects.length > 0 && (
+                  <GeometryTaskPanel
+                    task={input.task}
+                    built={answer?.objects ?? null}
+                    answer={answer?.task ?? null}
+                    onChange={(task) => onInputChange({ ...input, task })}
+                    hideSteps={stepDetail === 'none'}
+                  />
+                )
+              }
+            />
             <div
               className="geometry-splitter"
               role="separator"
@@ -156,7 +152,18 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
           </>
         )}
         <section className="geometry-stage">
-          {input.objects.length > 0 ? <GeometryPlot objects={input.objects} /> : <p className="analysis-empty">{t('geometry.empty')}</p>}
+          {input.objects.length > 0 ? (
+            <GeometryPlot
+              objects={input.objects}
+              highlight={hovered}
+              onPick={(index) => {
+                setSidebar((s) => ({ ...s, collapsed: false }));
+                setOpen(index);
+              }}
+            />
+          ) : (
+            <p className="analysis-empty">{t('geometry.empty')}</p>
+          )}
         </section>
       </div>
     </main>

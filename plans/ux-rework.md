@@ -212,23 +212,23 @@ four NAND/NOR `Section`s (L240–249).
 
 New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `GeometryObjects.tsx`.
 
-- [ ] Top: the typed line (`MathField`, as now), and beside it a **+** menu with Point, Vector,
+- [x] Top: the typed line (`MathField`, as now), and beside it a **+** menu with Point, Vector,
   Line, Plane, Sphere, Circle (the old Add list). Each inserts its form as a new row and
   opens it.
-- [ ] The list: one compact row per object: colour swatch, name, the built formula small
+- [x] The list: one compact row per object: colour swatch, name, the built formula small
   (`answer.latex`, otherwise the error in red), an eye toggle (`hidden`) and ×. Hidden rows are
   greyed.
-- [ ] A click on a row opens its editor below it (the current `Form`, `VariantSwitch`,
+- [x] A click on a row opens its editor below it (the current `Form`, `VariantSwitch`,
   name field and steps, laid out for 380 px: the coordinate cells in one row, wrapping). Only
   one row is open; Esc closes it.
-- [ ] Rows can be reordered by dragging. The order is the build order, so a move that puts an
+- [x] Rows can be reordered by dragging. The order is the build order, so a move that puts an
   object before one it needs shows that object's error. Keep it simple: move up and move down
   buttons in the open row.
-- [ ] Bottom of the sidebar: the task panel (`GeometryTaskPanel`), with the result and steps
+- [x] Bottom of the sidebar: the task panel (`GeometryTaskPanel`), with the result and steps
   scrolling inside the sidebar.
-- [ ] Selection: hovering a row highlights its object in the view (thicker stroke, the others
+- [x] Selection: hovering a row highlights its object in the view (thicker stroke, the others
   faded). A click on a marker or label in the view selects its row (needs 3.2).
-- [ ] Texts: `app.geometry.sidebar.collapse`, `.expand`, `.hide`, `.show`, `.moveUp`,
+- [x] Texts: `app.geometry.sidebar.collapse`, `.expand`, `.hide`, `.show`, `.moveUp`,
   `.moveDown`, `app.geometry.add.menu`.
 
 ### 3.5 Desktop: picking a task in the sidebar (M)

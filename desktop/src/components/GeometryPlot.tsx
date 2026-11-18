@@ -6,6 +6,10 @@ import { useT } from '../i18n';
 interface Props {
   /** The scene to draw; the engine builds and projects it. */
   objects: GeometryObject[];
+  /** The object, by place in the scene, drawn stronger while the others fade. */
+  highlight?: number | null;
+  /** A click (not a drag) on an object: its place in the scene. */
+  onPick?(index: number): void;
 }
 
 /** The school view of `quantus_core::geometry::view::Camera::default`: 25° round, 20° up. */
@@ -15,6 +19,8 @@ export const DEFAULT_PITCH = (20 * Math.PI) / 180;
 const FILL = 0.92;
 /** How far a label sits from its anchor, in pixels. */
 const LABEL_OFFSET = 6;
+/** A press that moves less than this many pixels is a click, not a drag. */
+const CLICK = 4;
 /** Radians of turn per pixel dragged. */
 const TURN = 0.01;
 const ZOOM_STEP = 1.15;
@@ -62,13 +68,14 @@ const ABOVE: Omit<Look, 'zoom'> = { yaw: -HALF_PI, pitch: HALF_PI };
  * scene into flat primitives, far to near, and this only draws them in that order. Dragging
  * turns the scene, the wheel zooms.
  */
-export function GeometryPlot({ objects }: Props) {
+export function GeometryPlot({ objects, highlight = null, onPick }: Props) {
   const { t } = useT();
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 460 });
   const [view, setView] = useState<GeometryViewResponse | null>(null);
   const [look, setLook] = useState<Look>(START);
-  const drag = useRef<{ x: number; y: number; look: Look } | null>(null);
+  /** The press: where, the look then, and the object under it (by place in the scene). */
+  const drag = useRef<{ x: number; y: number; look: Look; object: number | null } | null>(null);
 
   useEffect(() => {
     const element = host.current;
@@ -133,7 +140,8 @@ export function GeometryPlot({ objects }: Props) {
   }, []);
 
   const onPointerDown = (event: React.PointerEvent) => {
-    drag.current = { x: event.clientX, y: event.clientY, look };
+    const hit = (event.target as Element).closest('[data-object]')?.getAttribute('data-object');
+    drag.current = { x: event.clientX, y: event.clientY, look, object: hit ? Number(hit) : null };
     (event.currentTarget as Element).setPointerCapture(event.pointerId);
   };
   // Dragging right turns the scene to the right, dragging down tips it towards the viewer.
@@ -144,15 +152,27 @@ export function GeometryPlot({ objects }: Props) {
     const pitch = Math.min(HALF_PI, Math.max(-HALF_PI, start.look.pitch + (event.clientY - start.y) * TURN));
     setLook({ ...start.look, yaw, pitch });
   };
-  const onPointerUp = () => {
+  const onPointerUp = (event: React.PointerEvent) => {
+    const start = drag.current;
+    drag.current = null;
+    if (start?.object != null && Math.hypot(event.clientX - start.x, event.clientY - start.y) < CLICK) onPick?.(start.object);
+  };
+  const onPointerLeave = () => {
     drag.current = null;
   };
 
   const { width, height } = size;
   const scale = (Math.min(width, height) / 2) * FILL;
   const px = ([x, y]: ViewPoint) => [width / 2 + x * scale, height / 2 - y * scale] as const;
-  /** The colour of a primitive's object: its place in the scene, so hiding one recolours none. */
-  const colour = (object: number) => colourStyle(view?.objects[object]?.index ?? object);
+  /** A primitive's object by its place in the scene, which also gives its colour, so hiding one recolours none. */
+  const sceneIndex = (object: number) => view?.objects[object]?.index ?? object;
+  const colour = (object: number) => colourStyle(sceneIndex(object));
+  /** The classes and data of a primitive of an object: stronger or faded while a row is hovered, and what a click picks. */
+  const of = (object: number, className: string) => {
+    const index = sceneIndex(object);
+    const mark = highlight === null ? '' : index === highlight ? ' strong' : ' faded';
+    return { className: className + mark, style: colour(object), 'data-object': index };
+  };
   const points = (list: ViewPoint[]) =>
     list
       .map((p) => px(p))
@@ -167,7 +187,7 @@ export function GeometryPlot({ objects }: Props) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        onPointerLeave={onPointerLeave}
       >
         <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
           {view?.primitives.map((primitive, i) => {
@@ -175,14 +195,15 @@ export function GeometryPlot({ objects }: Props) {
               case 'segment': {
                 const [x1, y1] = px(primitive.from);
                 const [x2, y2] = px(primitive.to);
-                const style = primitive.object === null ? undefined : colour(primitive.object);
-                return <line key={i} className={`geometry-${primitive.stroke}`} style={style} x1={x1} y1={y1} x2={x2} y2={y2} />;
+                const className = `geometry-${primitive.stroke}`;
+                const props = primitive.object === null ? { className } : of(primitive.object, className);
+                return <line key={i} {...props} x1={x1} y1={y1} x2={x2} y2={y2} />;
               }
               case 'polygon':
-                return <polygon key={i} className="geometry-face" style={colour(primitive.object)} points={points(primitive.points)} />;
+                return <polygon key={i} {...of(primitive.object, 'geometry-face')} points={points(primitive.points)} />;
               case 'marker': {
                 const [cx, cy] = px(primitive.at);
-                return <circle key={i} className="geometry-marker" style={colour(primitive.object)} cx={cx} cy={cy} r={4} />;
+                return <circle key={i} {...of(primitive.object, 'geometry-marker')} cx={cx} cy={cy} r={4} />;
               }
               case 'label': {
                 const [x, y] = px(primitive.at);
@@ -194,7 +215,7 @@ export function GeometryPlot({ objects }: Props) {
                   );
                 }
                 return (
-                  <text key={i} className="geometry-label" style={colour(primitive.object)} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
+                  <text key={i} {...of(primitive.object, 'geometry-label')} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
                     <Name name={primitive.text} kind={view.objects[primitive.object]?.kind} />
                   </text>
                 );
