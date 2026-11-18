@@ -2,109 +2,319 @@
 
 ## Context
 
-The modes added since v0.2.0 work, but they are hard to use. This list comes from a walk through
-the running desktop app on 2026-11-18 (debug build, fresh config, 2360×1560 window): Geometry with
-three points, a line, a plane and a sphere; Base-N with `FF·3+1` in HEX, a bit flip and a change to
-8 bits; Logic with the majority of three, then its circuit drawn from the minimal DNF. Nothing is
-released until the items marked **must** are done.
+The modes added since v0.2.0 (Geometry, Base-N, Logic and its circuit editor) work, but they are
+hard to use. A walk through the running desktop app on 2026-11-18 (debug build, fresh config,
+2360×1560 window) found the problems listed in each phase below. On top of those, two wishes:
+
+1. **Geometry:** a sidebar with all objects, and a 3D view that fills the rest of the window.
+2. **Logic:** from a truth table straight to gates, as NAND only, NAND with 2 inputs only, NOR
+   only and NOR with 2 inputs only.
+
+Nothing is released until Phases 1–4 are done. One commit per step on `dev`, each step's box
+ticked in the same commit, a CHANGELOG line under `[Unreleased]` for every user-visible change,
+texts in every file of `locales/`.
 
 Effort: S = an hour or two, M = a day, L = several days.
 
-## Geometry (`desktop/src/components/Geometry*.tsx`)
+## Decisions
 
-- [ ] **must, M: one long column.** Typed line, then a 3D view about 900 px high, then the Add list
-  (six full-width rows), then the objects, then the task at the very bottom. The scene, the objects
-  and the task's answer are never on screen together. Proposal: two columns, the 3D view on one
-  side and the objects with the task on the other (`GeometryView.tsx`); the view's height follows the
-  window.
-- [ ] **must, M: the answer is not drawn.** `GeometryPlot` gets only `objects`
-  (`GeometryView.tsx:69`), so a distance, a foot point, an intersection or a reflection never shows
-  in the scene. Draw the task's result: a segment for a distance, the new point, the line of
-  intersection, highlighted, with the objects it uses picked out.
-- [ ] **must, S: the Add list is too big.** Six text rows over the full width. Make them a row of
-  small buttons (or a menu) next to the typed line. Each inserts a template into that line.
-- [ ] **should, S: each object is shown twice.** The editable line plus a rendered copy that is often
-  identical (`A(1|2|3)` / `A = (1|2|3)`). Show the built form only when it says more (the vector
-  form of a line, a converted plane), or on hover.
-- [ ] **should, M: the task is a dropdown and then more dropdowns.** "Choose a task…" plus a
-  "choose…" for each operand, listing every object whatever its kind. Proposal: offer the tasks
-  that fit the objects you selected (click A and E → distance, foot point, reflection), and list
-  only operands of a fitting kind. Several tasks at once, kept as a list, would match how
-  exercises are set.
-- [ ] **should, S: the result is shown twice.** `d = √6/6` sits above the steps and again as their
-  last row (`GeometryTask.tsx`).
-- [ ] **could, S: rendering.** `B(4|0|-1)` renders as `(4|0| − 1)` with a binary minus. Labels
-  overlap in the view (A and K, g on B). Axis ticks are hard to read.
-- [ ] **could, S: delete is a tiny × at the far right**, with low contrast.
-- [ ] **check by hand:** typing `A(1|2|3)` key by key in the MathLive field. Automated keystrokes
-  garbled `|` and the auto-closed `)`, so a real keyboard needs to confirm it works.
+| Topic | Decision |
+|---|---|
+| 2-input gates | No longer a setting. Every output gets all four gate forms (NAND, NAND 2-input, NOR, NOR 2-input). `logicTwoInput` goes from the settings, the dialog, the docs and the handheld's engine |
+| Where the four forms live | A **Gates** card in the results, a segmented switch over six forms (AND–OR, OR–AND, NAND, NAND 2-in, NOR, NOR 2-in): formula, cost, a picture of the circuit and **Open in editor** |
+| Response shape | `OutputResponse.nand / nor / nand_rewrite / nor_rewrite` become one list `gate_forms`, each item tagged with `kind`, `two_input` and `origin` (minimal or rewrite) |
+| Draw forms | `DrawForm` gets `Nand2` and `Nor2`; `Nand` and `Nor` mean any number of inputs |
+| Geometry layout | Objects in a sidebar on the left (about 380 px, resizable), the 3D view fills the rest of the window's height and width, and the task sits at the foot of the sidebar |
+| Object rows | Collapsed by default (swatch, name, the built formula, eye, ×). A click opens the row's editor in place, and only one is open at a time |
+| Hidden objects | `SceneObject.hidden` in the core: built, so others can use it, but not drawn |
+| The task's answer in 3D | Drawn by the core (`ViewRequest.task`), highlighted in the view |
 
-## Base-N (`desktop/src/components/BitView.tsx`, the Base-N keypad in `App.tsx`)
+---
 
-- [ ] **must, S: the hex digits look like variables.** Typed `FF` renders in italics as `F·F` in
-  the field and in the Symbolic row; a bit flip writes `\mathrm{2FF}` upright. Render the digits
-  upright as you type, the same way everywhere.
-- [ ] **must, M: show all bases at once.** A programmer view shows HEX, DEC, OCT and BIN of the
-  result together. Now you see one, and the others sit behind the chips `= DEC BIN OCT BITS`
-  (and `=` is not clear). Make a fixed block with all four and copy on each.
-- [ ] **should, S: 25 chips in two rows above the input.** Operators, functions, IEEE and the
-  suffixes are mixed, and the second row is just `f64( d h b o`. Group them: logic (and or xor xnor
-  Not Neg), shifts (<< >> shl shr sar rol ror), float (f32 f64), suffixes. Or put the rarer ones
-  in a menu.
-- [ ] **should, S: a bit flip throws away the expression.** `FF·3+1` becomes `2FF` with no hint
-  and no undo. Then switching to 8 bits fails with "'2FF' does not fit 8 bits." Keep the
-  expression (flip the result only, as a new line in the history), or at least say what happens
-  ("replaces the input"), and let the narrower word truncate with the wrap warning.
-- [ ] **should, S: the bit view.** 1s and 0s differ only a little in brightness, the bit indices
-  (28, 24 …) do not sit under the bit they name, nothing shows that bits can be clicked except a
-  tooltip, and "IEEE 754" wraps onto two lines in its segment button.
-- [ ] Closes `programmer-view.md` 4.6 (the manual check) once the above is done.
+## Phase 1: Logic, from the truth table to gates (the wish)
 
-## Logic (`desktop/src/components/Logic*.tsx`)
+### 1.1 Core: all four gate forms per output (M)
 
-- [ ] **must, M: eight full-width result cards.** Expression, canonical DNF/KNF, minimal DNF,
-  minimal KNF, NAND only, NAND gate by gate, NOR only, NOR gate by gate. Each holds one short
-  formula, a stat line, Copy and Steps, and the page is 2.5 screens long. Proposal: one card with
-  tabs or a compact table (form | formula | gates/literals | copy | steps), with the minimal DNF open
-  by default.
-- [ ] **must, S: the help text shows raw LaTeX.** "Type a function, f = A \land B \lor C or
-  f = \sum m(3, 5, 6, 7)". Show it rendered, and give buttons or keys for ∧ ∨ ¬ (what does a
-  student press?).
-- [ ] **should, S: "expression" badges everywhere.** On the line, the table's column, before the
-  results and in the result. Show the source once, on the line.
-- [ ] **should, S: Enter adds an empty function line**, and "+ Function" is there as well. Do one
-  or the other.
-- [ ] **should, S:** the `f` label beside a line that already starts with `f =`. The empty line's
-  placeholder sits far from the left edge.
-- [ ] **could, S: NAND/NOR forms with three stacked overlines** are hard to read. Offer the
-  gate-by-gate form with named intermediate signals instead.
-- [ ] **could, S:** the KV diagram is small in a wide panel with empty space on the right; put
-  the minimal form next to it.
+`crates/quantus-core/src/logic/interface.rs`, `nand.rs`, `layout.rs`.
 
-## Logic circuit editor (`LogicEditor.tsx`, `LogicCircuit.tsx`, `Schematic.tsx`)
+- [ ] New `GateFormResponse` fields: `kind: GateKind` (`nand`/`nor`, serialised lowercase),
+  `two_input: bool`, `origin: "minimal" | "rewrite"`. Keep `latex`, `gates`, `inputs`, `levels`
+  and `worked`.
+- [ ] `OutputResponse`: replace `nand`, `nor`, `nand_rewrite`, `nor_rewrite` with
+  `gate_forms: Vec<GateFormResponse>`, in this order: NAND, NAND 2-in, NOR, NOR 2-in (from the
+  chosen minimal DNF and KNF), then the rewrites of a typed expression or traced circuit in the
+  same order. Build them in `output_response` (around L788 and L822) by calling
+  `GateForm::nand`/`nor`/`rewrite` with `two_input` false and true. When nothing is split (every
+  gate already has 2 inputs or fewer), leave out the 2-input copy and set `two_input: true` on
+  the one kept, so the UI does not show two identical forms. Compare by `GateForm::split.is_empty()`.
+- [ ] `DrawForm`: add `Nand2` and `Nor2` (serialised `nand2`, `nor2`). In `Generated::add`
+  (`layout.rs:76`) the `two_input` parameter goes; it follows from the form.
+  `LogicTask::Draw` stays as it is.
+- [ ] `Options.two_input` goes.
+- [ ] `writeup/logic.rs`: write the NAND and NOR forms from `gate_forms` (the minimal ones, any
+  width), plus the 2-input ones when they differ, as two more `step` lines.
+- [ ] Tests in `tests/logic.rs`: the majority of three has four forms. NAND has 4 gates, NAND
+  2-in has more gates and no gate with more than 2 inputs. A 2-variable function has only two
+  forms (nothing to split). `Draw { form: Nand2 }` gives a netlist whose gates all have ≤ 2
+  inputs. Rewrite the 22 existing NAND/NOR asserts for the new shape. Run only
+  `cargo test -p quantus-core --test logic` and `--test writeup`.
 
-- [ ] **must, S: "Draw from" is hidden.** With a function typed, the empty canvas says "Drag input
-  switches…" while Draw from the minimal DNF / KNF / NAND / NOR sits under the parts list, out
-  of sight unless you scroll the palette. Put it on the empty canvas as the first offer, and in a
-  toolbar above the canvas.
-- [ ] **must, S: the drawn circuit is not fitted.** G3 is cut off at the bottom, under the
-  "Drawn from the minimal DNF…" note that covers the canvas. Fit the circuit (Home) after
-  drawing, and move the note out of the canvas.
-- [ ] **should, S: colours clash.** The critical path (yellow) colours B's switch, G1, G4 and f as
-  if they were on or selected, at row 0 where everything is 0. Use another colour or a dashed
-  outline for the path, and show it only on request.
-- [ ] **should, S: the panel layout.** The stats box overlaps the canvas at the top right. The
-  inspector on the right takes about 440 px for a one-line hint until a part is chosen. The
-  editor pushes the table, KV diagram and results about 950 px down. Proposal: the inspector as a
-  popover on the chosen part, the stats in a bar under the canvas, the editor as its own tab next
-  to the results instead of above them.
-- [ ] **could, M: wiring readability.** Many crossings in the drawn circuit, with junction dots
-  and crossings close together (A over the B junction). Route the input rails with fewer
-  crossings, or put each input's rail with its NOT next to it.
+### 1.2 Core: the setting goes (S)
 
-## Order
+- [ ] Remove `logic_two_input` from `Settings` (`settings.rs` L288, L327, the serde test at L456).
+  Old config files that still hold `logicTwoInput` must still load: check that `Settings` has no
+  `deny_unknown_fields`, and add a test that reads a settings JSON with the old key.
+- [ ] `firmware/engine/src/lib.rs:525`: drop the field. Check with `cargo check -p quantus-engine`.
+- [ ] `tests/logic.rs:2249`: drop `logic_two_input: false` (that test then asks for the
+  non-split form from `gate_forms`).
+- [ ] `design/digital-logic.md` (L406, L549, L592): the setting replaced by "every output has both".
 
-1. The **must** items, mode by mode: Logic and its editor first (biggest gains for the least
-   work), then Geometry, then Base-N.
-2. Walk through all four again in the app, then the **should** items.
-3. Release (plans.md §2's manual checks, RELEASING.md).
+### 1.3 Desktop: the types (S)
+
+- [ ] `desktop/src/api.ts`: `DrawForm = 'dnf' | 'knf' | 'nand' | 'nand2' | 'nor' | 'nor2'`;
+  `GateFormResult` gets `kind`, `twoInput` and `origin`; `LogicOutputResult.gateForms` replaces the
+  four fields; `Settings.logicTwoInput` goes (L750).
+- [ ] `SettingsDialog.tsx`: remove the checkbox (L548–551) and the default (L151); remove
+  `app.settings.logicTwoInput*` from `locales/*.json`; remove the row in
+  `docs/docs/reference/settings.md:157`.
+- [ ] `LogicView.tsx:57–60` and `LogicCircuit.tsx:48`: the setting goes from the dependency
+  lists; `drawnFrom` (`logicCircuit.ts:331`) loses its `twoInput` argument.
+- [ ] `npm run typecheck`.
+
+### 1.4 Desktop: the Gates card (M)
+
+New component `desktop/src/components/LogicGates.tsx`, used by `LogicResults.tsx` instead of the
+four NAND/NOR `Section`s (L240–249).
+
+- [ ] A segmented switch with six buttons: **AND–OR**, **OR–AND**, **NAND**, **NAND 2-in**, **NOR**,
+  **NOR 2-in**. A 2-in button is left out when the core sent no separate 2-input form. The choice is
+  kept per output in the scene's editor data (like `chosen`), so it survives a reload, and is
+  NAND by default.
+- [ ] Under it: the formula (`eq(latex)`), the cost line (`gates · gate inputs · levels`, the
+  existing `gates()` helper), **Copy** and **Steps**.
+- [ ] The rewrite forms (from a typed expression) as a second small switch, "from the minimal
+  form / from your expression", shown only when the output has an expression or a circuit.
+- [ ] Texts: `app.logic.gates.title`, `.andOr`, `.orAnd`, `.nand`, `.nand2`, `.nor`, `.nor2`,
+  `.fromMinimal`, `.fromExpression`, `.open`, in `en.json` and `de.json`.
+
+### 1.5 Desktop: the circuit picture in the Gates card (M)
+
+- [ ] When the switch changes (and on every new answer), send `{ kind: 'draw', form, output }`
+  through the existing `task()` path (move it from `LogicCircuit.tsx` to `logic.ts` so both use
+  it). Drop an answer to an older request, as `LogicView.run` does.
+- [ ] Turn the answer into parts with `fromGenerated` (`logicCircuit.ts`) and draw it read-only
+  with `circuitPicture` (`LogicEditor.tsx`, already used for the SVG export), fitted to the
+  card's width, in the app's colours instead of black on white (give `circuitPicture` a
+  `theme` argument).
+- [ ] **Open in editor**: calls `draw(form, output)` of `LogicCircuit` (lift it into
+  `LogicView` or pass a callback), opens the editor and scrolls to it.
+- [ ] Simulation in the picture: the wires coloured by the table's current row, as in the editor
+  (`scene.row`). This is optional and can follow later.
+
+### 1.6 Desktop: Draw from with six forms (S)
+
+- [ ] `LogicCircuit.tsx` `FORMS` (L20): add `nand2` and `nor2` with texts `logic.draw.nand2`,
+  `logic.draw.nor2` ("NAND, 2 inputs only", "NOR, 2 inputs only").
+- [ ] A circuit drawn from `nand2` is drawn again from `nand2` when the function changes
+  (`generated.form`); check this by hand.
+
+### 1.7 Docs and changelog (S)
+
+- [ ] `docs/docs/guides/logic/results.md`: the Gates card, the six forms, the picture, Open in
+  editor; `editor.md`: Draw from with six forms; `index.md` § settings: `logicTwoInput` gone.
+- [ ] CHANGELOG `[Unreleased]`: under Added, the Gates card with the four NAND/NOR forms; under
+  Removed, the setting *NAND and NOR from 2-input gates only*.
+
+---
+
+## Phase 2: Logic, the rest of the review
+
+### 2.1 Results in less space (M)
+
+- [ ] `LogicResults.tsx`: the eight cards become three: **Expression and canonical forms**
+  (one card, two columns), **Minimal forms** (DNF and KNF side by side, each with its choice,
+  cost, Copy and Steps) and **Gates** (Phase 1). The page shrinks from about 2.5 screens to about one.
+- [ ] Next to the KV diagram (`logic-views`), the chosen minimal DNF under the map instead of the
+  empty space to its right. Check at 1280 px and in the narrow layout.
+
+### 2.2 Input (S)
+
+- [ ] `logic.empty` (`locales/*.json`): the example rendered with `Katex`, not as raw
+  `\land`/`\lor`/`\sum`. Split the text into words and two formulas.
+- [ ] Operator keys above the function lines, **∧ ∨ ¬ ⊕ ( )** and **Σm**, inserting into the
+  focused MathField (as the Base-N chips do).
+- [ ] Enter on a line no longer adds an empty line. **+ Function** stays the only way
+  (`LogicLines.tsx`).
+- [ ] The `f` label left of a line goes when the line itself starts with `f =`; the placeholder
+  sits at the field's left edge.
+- [ ] The **expression** badge only on the line, not on the table's column, the results head
+  (`SourceMark` in `ResultsOf`) and the Truth table button.
+
+### 2.3 Circuit editor (M)
+
+- [ ] `LogicEditor.tsx`: **Draw from** and **Arrange** go into a toolbar above the canvas, out
+  of the palette (`toolbar` prop). On an empty canvas with a function typed, show the six Draw
+  from buttons in the middle of the canvas instead of "Drag input switches…".
+- [ ] After a drawing, fit the whole circuit (`fitKey` exists; check that it runs after the
+  layout is measured, since G3 was cut off).
+- [ ] The note "Drawn from the minimal DNF…" and the stats box (`corner`) go into a bar under
+  the canvas, not over it.
+- [ ] The critical path in a colour of its own (not the yellow of "on" and of the selection),
+  dashed, and off by default. Its button in the bar turns it on.
+- [ ] The inspector: as a popover beside the chosen part instead of a fixed 440 px column. The
+  canvas gets that width.
+- [ ] The editor as a tab: **Table & KV | Circuit**, so it no longer pushes the table and
+  results 950 px down (`LogicView.tsx`).
+- [ ] (Could, M) fewer wire crossings in `layout.rs`: each input's rail next to its NOT gate,
+  rails sorted by first use.
+
+---
+
+## Phase 3: Geometry, sidebar and full 3D view (the wish)
+
+### 3.1 Core: hidden objects (S)
+
+`crates/quantus-core/src/geometry/interface.rs`, `view.rs`.
+
+- [ ] `SceneObject.hidden: bool` with `#[serde(default, skip_serializing_if = "is_false")]`, so
+  old sessions load unchanged.
+- [ ] `Builder::scene`: a hidden object is built (so `g: X = A + …` still finds A) but not pushed
+  to `shown`, and it is left out of `Bounds::fit`.
+- [ ] Tests (`tests/geometry.rs`): a line through a hidden point is drawn and the point is not;
+  the bounds ignore the hidden point; a session with `hidden` round-trips.
+
+### 3.2 Core: the view says which object a primitive belongs to (S)
+
+- [ ] `ViewObject` gets `index`: the object's place in the scene (not among those drawn), so a
+  click in the view can select the row in the sidebar.
+
+### 3.3 Desktop: the layout (M)
+
+`GeometryView.tsx`, `styles.css`.
+
+- [ ] `GeometryView` returns a two-column grid: the sidebar (`geometry-sidebar`) left, the plot
+  (`geometry-stage`) right. It no longer uses `analysis-panel` with its `max-width: 1280px`; the
+  workspace does not scroll, and each column scrolls on its own.
+- [ ] The stage fills the window: `height: 100%` instead of `.geometry-plot .plot-canvas
+  { height: 460px }` (`styles.css:2612`). The ResizeObserver in `GeometryPlot` (L76) already
+  follows the size.
+- [ ] The sidebar's width can be dragged (240–600 px) and is kept in `localStorage`. A button
+  collapses it to a thin strip, so the view gets the whole window.
+- [ ] The narrow layout (`@media` at `styles.css:3669`): sidebar over the view, the view at least
+  60 vh high.
+
+### 3.4 Desktop: the sidebar (M)
+
+New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `GeometryObjects.tsx`.
+
+- [ ] Top: the typed line (`MathField`, as now), and beside it a **+** menu with Point, Vector,
+  Line, Plane, Sphere, Circle (the old Add list). Each inserts its form as a new row and
+  opens it.
+- [ ] The list: one compact row per object: colour swatch, name, the built formula small
+  (`answer.latex`, otherwise the error in red), an eye toggle (`hidden`) and ×. Hidden rows are
+  greyed.
+- [ ] A click on a row opens its editor below it (the current `Form`, `VariantSwitch`,
+  name field and steps, laid out for 380 px: the coordinate cells in one row, wrapping). Only
+  one row is open; Esc closes it.
+- [ ] Rows can be reordered by dragging. The order is the build order, so a move that puts an
+  object before one it needs shows that object's error. Keep it simple: move up and move down
+  buttons in the open row.
+- [ ] Bottom of the sidebar: the task panel (`GeometryTaskPanel`), with the result and steps
+  scrolling inside the sidebar.
+- [ ] Selection: hovering a row highlights its object in the view (thicker stroke, the others
+  faded). A click on a marker or label in the view selects its row (needs 3.2).
+- [ ] Texts: `app.geometry.sidebar.collapse`, `.expand`, `.hide`, `.show`, `.moveUp`,
+  `.moveDown`, `app.geometry.add.menu`.
+
+### 3.5 Desktop: picking a task in the sidebar (M)
+
+- [ ] With one or two objects selected (Ctrl + click on rows or in the view), the task panel
+  lists the tasks that fit them (point and plane → distance, foot of the perpendicular,
+  reflection, relation; two lines → relation, angle, distance; …) as buttons. A click sets the
+  task with these operands.
+- [ ] The operand pickers (`Pick` in `GeometryTask.tsx:48`) list only objects of a fitting
+  kind; `kinds` is already passed, so check every task's slots.
+- [ ] The result shown once: the result lines, then the steps without the final line repeated.
+  Does `Steps` take `hidden` per line? If not, drop the last step when it equals `result`.
+
+### 3.6 Docs and changelog (S)
+
+- [ ] `docs/docs/guides/geometry.md` (or wherever the mode is described): new screenshots, the
+  sidebar, hiding, selecting, picking tasks.
+- [ ] CHANGELOG `[Unreleased]` → Changed: the Geometry mode's layout.
+
+---
+
+## Phase 4: Geometry, the task's answer in the view
+
+### 4.1 Core (M)
+
+- [ ] `ViewRequest.task: Option<GeometryTask>`. `geometry_view` answers it as `geometry` does
+  and adds its figures as extra `Shown` with a flag `result: true`:
+  - distance: the segment between the two closest points (point–plane: point and foot);
+  - foot of the perpendicular, midpoint, reflection: the new point, and the perpendicular as a
+    dashed segment;
+  - relation: the intersection point, line or circle;
+  - angle: the two directions from the intersection point and an arc;
+  - tangent: the tangent plane or line.
+- [ ] New stroke `Stroke::Result` and primitive field `result: bool`. The labels are the
+  result's name (`F`, `d = …` at the segment's middle).
+- [ ] Tests: a point–plane distance draws a segment ending on the plane; a reflection draws the
+  mirrored point.
+
+### 4.2 Desktop (S)
+
+- [ ] `GeometryPlot` gets `task` and sends it with the view request; `.geometry-result` drawn in
+  the accent colour, on top. The other objects fade while a result is shown.
+
+---
+
+## Phase 5: Base-N
+
+- [ ] **5.1 Hex digits upright (S).** Typed `FF` shows as italic variables. In Base-N with
+  HEX, MathField turns the letters A–F into `\mathrm{…}` as they are typed (the same
+  form a bit flip writes). The **Symbolic** row uses the core's LaTeX, which writes them
+  upright. Check in `basen.rs::write`.
+- [ ] **5.2 All bases at once (M).** Replace the chips `= DEC BIN OCT BITS` with a fixed
+  block: HEX, DEC, OCT and BIN of the result, one line each with Copy, BIN grouped in fours.
+  The values are already in the result's forms (`FormKind::{Dec,Hex,Bin,Oct}`).
+- [ ] **5.3 The keys (S).** The 25 chips (`App.tsx`) in four labelled groups on one line,
+  wrapping as a whole: Logic (and or xor xnor Not Neg), Shift (<< >> shl shr sar rol ror), Float
+  (f32 f64), Suffix (d h b o).
+- [ ] **5.4 A bit flip keeps the expression (S).** A click on a bit enters the flipped value as
+  a new calculation (history) instead of overwriting the field, or, if overwriting stays, a
+  note "replaces your input" and Ctrl+Z brings it back. When the word size shrinks, a literal
+  that no longer fits is truncated with the wrap warning instead of the error "does not fit
+  8 bits" (core: `basen.rs::literal`, decide for literals produced by a flip only).
+- [ ] **5.5 The bit view (S).** 1s clearly set apart (accent colour, bold), the index under the
+  bit it names (`BitView.tsx` `.bit-index`, align right under the group's lowest bit), a cursor
+  and hover on bits, "IEEE 754" on one line.
+- [ ] **5.6** Tick `programmer-view.md` 4.6 after a walk through all widths.
+
+---
+
+## Phase 6: Polish (could)
+
+- [ ] Geometry: `B(4|0|-1)` renders as `(4|0| − 1)`; write the sign as unary in the object's
+  LaTeX (core, `geometry/show.rs`).
+- [ ] Geometry: labels overlap in the view (A and K, g on B). Nudge labels away from each
+  other in `view::project`, as `labelLayout.ts` does for the schematics.
+- [ ] Geometry: axis ticks with more contrast.
+- [ ] Logic: the NAND/NOR formulas with three stacked overlines. In the Gates card, offer the
+  gate-by-gate form with named signals (`G_1 = \overline{A \land B}` …) as the default view.
+- [ ] Check by hand: typing `A(1|2|3)` key by key in the MathLive field (automated typing
+  garbled `|` and the auto-closed `)`).
+
+---
+
+## Verification
+
+- Per step: the targeted tests named in it (`cargo test -p quantus-core --test logic`,
+  `--test geometry`, `--test writeup`, `--test settings`), `cargo clippy -p quantus-core`,
+  `npm run typecheck`. No full workspace run.
+- Per phase: the app through tauri-driver with a throwaway config (as on 2026-11-18): Logic with
+  the majority of three, the six forms in the Gates card, Open in editor, then a 2-variable
+  function (no 2-in buttons). Geometry with six objects: the sidebar, hiding A (g still drawn),
+  the view filling the window at 1280×800 and at full size, a distance drawn in the view. Base-N
+  with `FF·3+1` in HEX, all four bases, a bit flip, then 8 bits.
+- Before the release: the manual checks of plans.md §2 and RELEASING.md.

@@ -4,8 +4,9 @@ Open work, most important first. Remove an item once it is done; git keeps the h
 
 ## 0. UX rework before the next release
 
-Geometry, Base-N, Logic and the Logic circuit editor work but are hard to use; no release until
-the **must** items in [ux-rework.md](ux-rework.md) are done.
+Geometry, Base-N, Logic and the Logic circuit editor work but are hard to use. Plan with the
+steps, including the Geometry sidebar and the truth table to NAND/NOR gates (2-input or not):
+[ux-rework.md](ux-rework.md). No release until its Phases 1–4 are done.
 
 ## 1. Make nested integrals fast
 
