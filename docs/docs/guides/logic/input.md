@@ -15,6 +15,9 @@ Each line is one output: an expression or a minterm list. **+ Function** adds a 
 beside a line removes its output. Errors show under the line, naming the symbol: *\sin is not a
 logic operator*, *2 is not a logic value: only 0 and 1 are.*
 
+The keys above the lines, **∧ ∨ ¬ ⊕ ( )** and **Σm**, put their operator in at the cursor of the
+line you typed in last.
+
 | Line | Output | Inputs |
 |---|---|---|
 | `f = A \land B \lor C` | $f$ | $A$, $B$, $C$ |

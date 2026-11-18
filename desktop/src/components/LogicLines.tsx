@@ -3,6 +3,7 @@ import { ApiError, type LogicOutput, type LogicScene, type LogicSource } from '.
 import { isLine, lineSource, newLine, type LogicAnswer } from '../logic';
 import { useT } from '../i18n';
 import { ErrorRow } from './AnalysisView';
+import { InsertBar, type InsertKey } from './InsertBar';
 import { MathField, type MathFieldHandle } from './MathField';
 
 interface Props {
@@ -20,6 +21,17 @@ export function SourceMark({ kind }: { kind: LogicSource['kind'] }) {
     </span>
   );
 }
+
+/** The operators a keyboard lacks, put in at the cursor of the line typed in last. */
+const KEYS: InsertKey[] = [
+  { label: '\\land', latex: ' \\land ', math: true },
+  { label: '\\lor', latex: ' \\lor ', math: true },
+  { label: '\\lnot', latex: '\\lnot ', math: true },
+  { label: '\\oplus', latex: ' \\oplus ', math: true },
+  { label: '(', latex: '(', math: true },
+  { label: ')', latex: ')', math: true },
+  { label: '\\Sigma m', latex: '\\sum m\\left(#?\\right)', math: true },
+];
 
 /** The example in the first empty line. */
 const PLACEHOLDER = 'f = A \\land B \\lor C';
@@ -44,6 +56,8 @@ export function LogicLines({ scene, answer, onChange }: Props) {
   useEffect(() => {
     if (focusId !== null) setFocusId(null);
   }, [focusId]);
+  /** The line typed in last, where the operator keys put their text. */
+  const lastFocused = useRef<number | null>(null);
   /** What is typed over an output from the table or the circuit, by line id, until Enter. */
   const [drafts, setDrafts] = useState<Record<number, string>>({});
 
@@ -96,8 +110,14 @@ export function LogicLines({ scene, answer, onChange }: Props) {
     setOutputs([...outputs, newLine()]);
   };
 
+  const insert = (latex: string) => {
+    const id = lastFocused.current !== null && ids.current.includes(lastFocused.current) ? lastFocused.current : ids.current[0];
+    if (id !== undefined) fields.current.get(id)?.insert(latex);
+  };
+
   return (
     <section className="section-card logic-lines">
+      <InsertBar keys={KEYS} onInsert={insert} />
       {outputs.map((output, index) => {
         const id = ids.current[index];
         const result = answer?.outputs[index] ?? null;
@@ -105,7 +125,7 @@ export function LogicLines({ scene, answer, onChange }: Props) {
         const line = isLine(output);
         return (
           <div className={errors.length ? 'logic-line has-error' : 'logic-line'} key={id}>
-            <div className="logic-line-row">
+            <div className="logic-line-row" onFocus={() => (lastFocused.current = id)}>
               <span className="logic-line-name">
                 <span className="logic-name">{result?.name ?? output.name ?? ''}</span>
                 {(result || !line) && <SourceMark kind={output.source.kind} />}

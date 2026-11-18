@@ -110,7 +110,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   in QIO at 80 MHz, which runs scripts about 1.6 times as fast.
 - **Logic** mode (Logik) for combinational digital logic, up to 8 inputs. An output's function
   comes from a typed line (`f = A \land B \lor C`, `AB + \overline{C}`, `A \oplus B`, every
-  common notation, or a minterm list `\sum m(3, 5, 6, 7) + d(…)`, `\prod M(…)`), from a truth
+  common notation, or a minterm list `\sum m(3, 5, 6, 7) + d(…)`, `\prod M(…)`; keys above the
+  lines for ∧ ∨ ¬ ⊕ ( ) and Σm), from a truth
   table (cells cycled 0, 1, – by click or keys) or from a drawn circuit; the view edited last is
   its source and the others follow. Each output gets its truth table, the canonical DNF and KNF,
   all minimal DNFs and KNFs (exact, by Quine–McCluskey and Petrick, a choice when there are

@@ -145,7 +145,7 @@ four NAND/NOR `Section`s (L240–249).
 
 - [x] `logic.empty` (`locales/*.json`): the example rendered with `Katex`, not as raw
   `\land`/`\lor`/`\sum`. Split the text into words and two formulas.
-- [ ] Operator keys above the function lines, **∧ ∨ ¬ ⊕ ( )** and **Σm**, inserting into the
+- [x] Operator keys above the function lines, **∧ ∨ ¬ ⊕ ( )** and **Σm**, inserting into the
   focused MathField (as the Base-N chips do).
 - [ ] Enter on a line no longer adds an empty line. **+ Function** stays the only way
   (`LogicLines.tsx`).
