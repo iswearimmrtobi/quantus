@@ -89,6 +89,7 @@ export function Section({
   worked,
   more,
   hideSteps,
+  bare,
   children,
 }: {
   title: TextKey;
@@ -103,13 +104,15 @@ export function Section({
   hideSteps: boolean;
   /** Shown under the result, above the steps. */
   children?: ReactNode;
+  /** Without a card of its own: one of two columns in a shared card. */
+  bare?: boolean;
 }) {
   const { t } = useT();
   const [open, setOpen] = useState<'steps' | 'more' | null>(null);
   const toggle = (which: 'steps' | 'more') => setOpen((current) => (current === which ? null : which));
   const shown = open === 'more' ? more?.worked : worked;
   return (
-    <section className="section-card logic-result">
+    <section className={bare ? 'logic-result' : 'section-card logic-result'}>
       <div className="linear-result-head">
         <div className="logic-result-body">
           <span className="section-title">{t(title)}</span>
@@ -143,9 +146,9 @@ export function Section({
 }
 
 /**
- * The results of one output at a time (§10.1, panel 4): the expression it is given by, the
- * canonical forms, the minimal DNF and KNF with the choice among several, and the Gates card with
- * the six gate forms, each with its steps and Copy.
+ * The results of one output at a time (§10.1, panel 4), in three cards: the expression it is
+ * given by beside the canonical forms, the minimal DNF beside the minimal KNF with the choice
+ * among several, and the Gates card with the six gate forms, each with its steps and Copy.
  */
 export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpen, hover, onHover, onChange }: Props) {
   const { t } = useT();
@@ -229,45 +232,57 @@ function ResultsOf({
         <SourceMark kind={result.source} />
         {result.constant && <span className="section-message">{result.constant}</span>}
       </div>
-      {expression && (
-        <Section
-          title={result.source === 'circuit' ? 'logic.result.traced' : 'logic.result.expression'}
-          lines={[eq(expression.latex)]}
-          worked={expression.worked}
-          more={result.tableWorked ? { title: 'logic.result.table', worked: result.tableWorked } : undefined}
-          hideSteps={hideSteps}
-        />
+      {(expression || canonical) && (
+        <div className="section-card logic-card-pair">
+          {expression && (
+            <Section
+              bare
+              title={result.source === 'circuit' ? 'logic.result.traced' : 'logic.result.expression'}
+              lines={[eq(expression.latex)]}
+              worked={expression.worked}
+              more={result.tableWorked ? { title: 'logic.result.table', worked: result.tableWorked } : undefined}
+              hideSteps={hideSteps}
+            />
+          )}
+          {canonical && (
+            <Section
+              bare
+              title="logic.result.canonical"
+              lines={[eq(canonical.sum), eq(canonical.dnf), eq(canonical.product), eq(canonical.knf)]}
+              worked={canonical.worked}
+              hideSteps={hideSteps}
+            />
+          )}
+        </div>
       )}
-      {canonical && (
-        <Section
-          title="logic.result.canonical"
-          lines={[eq(canonical.sum), eq(canonical.dnf), eq(canonical.product), eq(canonical.knf)]}
-          worked={canonical.worked}
-          hideSteps={hideSteps}
-        />
-      )}
-      {minimal && dnf && (
-        <Section
-          title="logic.result.dnf"
-          formula={terms(dnf, 'dnf')}
-          lines={[]}
-          meta={cost(dnf)}
-          choice={choices(minimal.dnf, minimal.chosen, 'chosen')}
-          worked={minimal.worked}
-          more={{ title: 'logic.result.quineMcCluskey', worked: minimal.quineMcCluskey }}
-          hideSteps={hideSteps}
-        />
-      )}
-      {minimal && knf && (
-        <Section
-          title="logic.result.knf"
-          formula={terms(knf, 'knf')}
-          lines={[]}
-          meta={cost(knf)}
-          choice={choices(minimal.knf, minimal.chosenKnf, 'chosenKnf')}
-          worked={minimal.knfWorked}
-          hideSteps={hideSteps}
-        />
+      {minimal && (dnf || knf) && (
+        <div className="section-card logic-card-pair">
+          {dnf && (
+            <Section
+              bare
+              title="logic.result.dnf"
+              formula={terms(dnf, 'dnf')}
+              lines={[]}
+              meta={cost(dnf)}
+              choice={choices(minimal.dnf, minimal.chosen, 'chosen')}
+              worked={minimal.worked}
+              more={{ title: 'logic.result.quineMcCluskey', worked: minimal.quineMcCluskey }}
+              hideSteps={hideSteps}
+            />
+          )}
+          {knf && (
+            <Section
+              bare
+              title="logic.result.knf"
+              formula={terms(knf, 'knf')}
+              lines={[]}
+              meta={cost(knf)}
+              choice={choices(minimal.knf, minimal.chosenKnf, 'chosenKnf')}
+              worked={minimal.knfWorked}
+              hideSteps={hideSteps}
+            />
+          )}
+        </div>
       )}
       {gatesCard({ eq, cost, gates, hideSteps })}
       {!expression && !canonical && <p className="analysis-empty">{t('logic.result.none')}</p>}

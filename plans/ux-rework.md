@@ -135,7 +135,7 @@ four NAND/NOR `Section`s (L240–249).
 
 ### 2.1 Results in less space (M)
 
-- [ ] `LogicResults.tsx`: the eight cards become three: **Expression and canonical forms**
+- [x] `LogicResults.tsx`: the eight cards become three: **Expression and canonical forms**
   (one card, two columns), **Minimal forms** (DNF and KNF side by side, each with its choice,
   cost, Copy and Steps) and **Gates** (Phase 1). The page shrinks from about 2.5 screens to about one.
 - [ ] Next to the KV diagram (`logic-views`), the chosen minimal DNF under the map instead of the

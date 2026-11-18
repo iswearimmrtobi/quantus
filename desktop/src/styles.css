@@ -3316,6 +3316,40 @@ select option {
   gap: 10px;
 }
 
+/* Two results in one card, side by side with a rule between; one under the other when narrow. */
+.logic-card-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 28px;
+}
+.logic-card-pair > .logic-result:only-child {
+  grid-column: 1 / -1;
+}
+.logic-card-pair > .logic-result + .logic-result {
+  position: relative;
+}
+.logic-card-pair > .logic-result + .logic-result::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -14px;
+  border-left: 1px solid var(--hairline);
+}
+@media (max-width: 900px) {
+  .logic-card-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .logic-card-pair > .logic-result + .logic-result::before {
+    top: -5px;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+  }
+}
+
 .logic-tabs {
   padding: 0;
   margin: 0;

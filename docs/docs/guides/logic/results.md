@@ -6,7 +6,9 @@ title: Results
 # Results
 
 Under the table and the KV diagram are the results of one output; with several outputs, the
-tabs above the table choose it. Each result has its steps at the level of **Step detail**
+tabs above the table choose it. They sit in three cards: the expression beside the canonical
+forms, the minimal DNF beside the minimal KNF (one under the other in a narrow window), and the
+Gates card. Each result has its steps at the level of **Step detail**
 (see [Step detail in the Logic mode](#step-detail)) and a **Copy** button that copies the result
 and its steps as a LaTeX `align*` block.
 
