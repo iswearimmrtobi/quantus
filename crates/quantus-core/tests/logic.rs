@@ -2492,6 +2492,73 @@ fn several_outputs_are_drawn_into_one_circuit() {
     assert!(elements.iter().filter(|e| e["kind"] == "gate").all(|e| e["gate"] == "nand"));
 }
 
+fn joint_scene() -> serde_json::Value {
+    // f = Σm(1, 3, 7), g = Σm(2, 6, 7): together they share A B C.
+    serde_json::json!({
+        "inputs": ["A", "B", "C"],
+        "outputs": [
+            { "name": "f", "source": { "kind": "table", "values": ["0", "1", "0", "1", "0", "0", "0", "1"] } },
+            { "name": "g", "source": { "kind": "table", "values": ["0", "0", "1", "0", "0", "0", "1", "1"] } },
+        ],
+    })
+}
+
+#[test]
+fn the_api_minimises_several_outputs_jointly() {
+    let response = logic_api(joint_scene(), None);
+    let joint = &response["joint"];
+    assert_eq!(joint["outputs"], serde_json::json!(["f", "g"]));
+    let dnf = &joint["dnf"];
+    assert!(dnf["error"].is_null());
+    assert_eq!(dnf["forms"][0]["cost"], serde_json::json!({ "terms": 3, "literals": 7, "joins": 4 }));
+    assert_eq!(dnf["separate"], serde_json::json!({ "terms": 4, "literals": 8, "joins": 4 }));
+    let terms = dnf["forms"][0]["terms"].as_array().unwrap();
+    let abc = terms.iter().find(|t| t["pattern"] == "111").unwrap();
+    assert_eq!(abc["outputs"], serde_json::json!([0, 1]));
+    assert_eq!(dnf["forms"][0]["outputs"][0]["terms"].as_array().unwrap().len(), 2);
+    assert!(!dnf["worked"]["steps"].as_array().unwrap().is_empty());
+    assert!(joint["knf"]["forms"][0]["cost"]["terms"].as_u64().is_some());
+    // Each output alone keeps its own minimal form.
+    assert_eq!(response["outputs"][0]["minimal"]["dnf"][0]["cost"], serde_json::json!({ "terms": 2, "literals": 4 }));
+
+    // One output, or one with a function beside one with an error: no joint minimisation.
+    let one = logic_api(serde_json::json!({ "outputs": [{ "source": { "kind": "expression", "latex": "AB + C" } }] }), None);
+    assert!(one["joint"].is_null());
+    let mut scene = joint_scene();
+    scene["outputs"].as_array_mut().unwrap().push(serde_json::json!({ "name": "h", "source": { "kind": "expression", "latex": r"h = A \land" } }));
+    let response = logic_api(scene, None);
+    assert_eq!(response["joint"]["skipped"], serde_json::json!(["h"]));
+    assert_eq!(response["joint"]["outputs"], serde_json::json!(["f", "g"]));
+}
+
+/// The netlist of a draw task, checked, with each lamp's function over `inputs`.
+fn drawn_functions(draw: &serde_json::Value, inputs: &[String]) -> (Vec<Function>, usize) {
+    assert!(draw["task"]["error"].is_null(), "{}", draw["task"]["error"]);
+    let netlist: Netlist = serde_json::from_value(draw["task"]["circuit"]["netlist"].clone()).unwrap();
+    let circuit = netlist.check().unwrap();
+    ((0..circuit.outputs.len()).map(|o| circuit.function(o, inputs).unwrap()).collect(), circuit.gates.len())
+}
+
+#[test]
+fn every_output_drawn_together_takes_the_joint_minimal_form() {
+    let abc = names("A B C");
+    let (f, g) = (function(r"\sum m(1, 3, 7)", "A B C"), function(r"\sum m(2, 6, 7)", "A B C"));
+    for (form, gates) in [("dnf", 7), ("nand", 7), ("nand2", 9), ("knf", 0), ("nor", 0), ("nor2", 0)] {
+        let draw = logic_api(joint_scene(), Some(serde_json::json!({ "kind": "draw", "form": form })));
+        let (functions, count) = drawn_functions(&draw, &abc);
+        assert_eq!(functions[0].differing_rows(&f), Vec::<usize>::new(), "{form}");
+        assert_eq!(functions[1].differing_rows(&g), Vec::<usize>::new(), "{form}");
+        // Two NOTs, the three shared products and two ORs; the same in NAND gates.
+        if gates > 0 {
+            assert_eq!(count, gates, "{form}");
+        }
+    }
+    // A single output is drawn from its own minimal form.
+    let draw = logic_api(joint_scene(), Some(serde_json::json!({ "kind": "draw", "form": "dnf", "output": "f" })));
+    let (functions, _) = drawn_functions(&draw, &abc);
+    assert_eq!(functions.len(), 1);
+}
+
 #[test]
 fn the_api_follows_the_logic_settings() {
     let request: quantus_core::api::LogicRequest = serde_json::from_value(serde_json::json!({

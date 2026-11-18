@@ -496,6 +496,9 @@ export interface LogicScene {
   row?: number;
   /** The editor's own data, kept with the scene; the core does not read it. */
   editor?: unknown;
+  /** The joint minimal DNF and KNF chosen among several. */
+  jointChosen?: number;
+  jointChosenKnf?: number;
 }
 
 /** `nand2` and `nor2`: gates of 2 inputs only; `nand` and `nor`: of any number. */
@@ -661,12 +664,46 @@ export interface KvBlockCheck {
   faults: KvFault[];
 }
 
+/** The cost of a joint form: distinct terms, their literals, the inputs of the outputs' ORs (ANDs for the KNF). */
+export interface JointCost {
+  terms: number;
+  literals: number;
+  joins: number;
+}
+
+/** One joint minimal solution: its distinct terms (with the outputs, indexes into `JointResult.outputs`, that take each) and each output's form. */
+export interface JointForm {
+  terms: { latex: string; pattern: string; rows: number[]; outputs: number[] }[];
+  outputs: { name: string; latex: string; terms: number[] }[];
+  cost: JointCost;
+}
+
+export interface JointForms {
+  forms: JointForm[];
+  chosen: number;
+  worked: Worked | null;
+  /** Each output minimised alone, identical terms counted once. */
+  separate: JointCost | null;
+  error: string | null;
+}
+
+/** The joint minimisation of every output with a function, with two or more. */
+export interface JointResult {
+  outputs: string[];
+  /** Outputs left out because their source has an error. */
+  skipped: string[];
+  dnf: JointForms;
+  knf: JointForms;
+}
+
 /** What `quantus_core::api::LogicResponse` serialises to. */
 export interface LogicResponse {
   inputs: string[];
   outputs: LogicOutputResult[];
   circuit: LogicCircuitResult | null;
   task: LogicTaskResult | null;
+  /** The joint minimisation of the outputs, with two or more. */
+  joint: JointResult | null;
   errors: LogicError[];
   /** The truth table of every output as a `tabular`, for Copy; empty without one. */
   tableLatex: string;

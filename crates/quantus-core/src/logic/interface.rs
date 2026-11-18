@@ -21,6 +21,7 @@ use super::check::{BlockFault, BlocksCheck, Equivalence, FormCheck};
 use super::circuit::{Circuit, GateType, Issue, Netlist};
 use super::delay::{Delay, GateTimes};
 use super::expr::{variable_latex, Expr, Notation};
+use super::joint::{JointCost, JointMinimisation};
 use super::kmap::{kv_working, Bar, Edge, Layout, Open, Place};
 use super::layout::{arrange, CircuitLayout, DrawForm, Generated};
 use super::minimise::{Form, Minimisation};
@@ -93,6 +94,9 @@ pub struct LogicScene {
     pub row: usize,
     /// The editor's own data (positions, wires, whether the circuit was generated); kept, not read.
     pub editor: Option<serde_json::Value>,
+    /// The joint minimal DNF and KNF of all outputs chosen among several (§6.4.1).
+    pub joint_chosen: usize,
+    pub joint_chosen_knf: usize,
 }
 
 /// A function the equivalence check compares.
@@ -332,6 +336,73 @@ pub struct ExpressionResponse {
     pub worked: Worked,
 }
 
+/// The cost of a joint form: its distinct terms, their literals, the inputs of the outputs' ORs
+/// (ANDs for the KNF).
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct JointCostResponse {
+    pub terms: usize,
+    pub literals: usize,
+    pub joins: usize,
+}
+
+impl From<JointCost> for JointCostResponse {
+    fn from(JointCost { terms, literals, joins }: JointCost) -> Self {
+        JointCostResponse { terms, literals, joins }
+    }
+}
+
+/// A term of a joint form and the outputs (indexes into [`JointResponse::outputs`]) that take it.
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct JointTermResponse {
+    pub latex: String,
+    pub pattern: String,
+    pub rows: Vec<usize>,
+    pub outputs: Vec<usize>,
+}
+
+/// An output of a joint form: its right side and its terms (indexes into the form's `terms`).
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct JointOutputResponse {
+    pub name: String,
+    pub latex: String,
+    pub terms: Vec<usize>,
+}
+
+/// One joint minimal solution.
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct JointFormResponse {
+    pub terms: Vec<JointTermResponse>,
+    pub outputs: Vec<JointOutputResponse>,
+    pub cost: JointCostResponse,
+}
+
+/// Every joint minimal DNF (or KNF) with the working, or why there is none.
+#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct JointFormsResponse {
+    pub forms: Vec<JointFormResponse>,
+    pub chosen: usize,
+    pub worked: Option<Worked>,
+    /// Each output minimised alone, identical terms counted once.
+    pub separate: Option<JointCostResponse>,
+    pub error: Option<String>,
+}
+
+/// The joint minimisation of every output with a function (§6.4.1), when there are two or more.
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct JointResponse {
+    pub outputs: Vec<String>,
+    /// The outputs left out because their source has an error.
+    pub skipped: Vec<String>,
+    pub dnf: JointFormsResponse,
+    pub knf: JointFormsResponse,
+}
+
 /// An output with every view of its function. Without a function (its source has an error,
 /// see `errors`), only `name` and `source` are set.
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -475,6 +546,8 @@ pub struct LogicResponse {
     pub outputs: Vec<OutputResponse>,
     pub circuit: Option<CircuitResponse>,
     pub task: Option<TaskResponse>,
+    /// The joint minimisation of the outputs, with two or more of them.
+    pub joint: Option<JointResponse>,
     pub errors: Vec<ErrorResponse>,
     /// The truth table of every output with a function as a `tabular`, for **Copy** (§10.5);
     /// empty without one.
@@ -953,7 +1026,89 @@ fn operand(read: &Read, operand: &Operand) -> Result<(Function, String)> {
     }
 }
 
-fn task(read: &Read, task: &LogicTask, options: Options) -> Result<TaskResponse> {
+/// The joint minimisations of every output with a function, when there are two or more.
+struct Joint {
+    /// The outputs' indexes in [`Read::outputs`].
+    outputs: Vec<usize>,
+    dnf: Result<JointMinimisation>,
+    knf: Result<JointMinimisation>,
+}
+
+impl Joint {
+    fn of(read: &Read) -> Option<Joint> {
+        let outputs: Vec<usize> = (0..read.outputs.len()).filter(|o| read.outputs[*o].function.is_some()).collect();
+        if outputs.len() < 2 {
+            return None;
+        }
+        let functions: Vec<&Function> = outputs.iter().filter_map(|o| read.outputs[*o].function.as_ref()).collect();
+        Some(Joint { dnf: JointMinimisation::of(Form::Dnf, &functions), knf: JointMinimisation::of(Form::Knf, &functions), outputs })
+    }
+
+    fn get(&self, form: Form) -> &Result<JointMinimisation> {
+        match form {
+            Form::Dnf => &self.dnf,
+            Form::Knf => &self.knf,
+        }
+    }
+}
+
+fn joint_forms(joint: &Result<JointMinimisation>, outputs: &[String], names: &[String], chosen: usize, options: Options) -> JointFormsResponse {
+    let joint = match joint {
+        Ok(joint) => joint,
+        Err(e) => return JointFormsResponse { error: Some(e.to_string()), ..JointFormsResponse::default() },
+    };
+    let (arity, notation) = (joint.arity, options.notation);
+    let chosen = chosen.min(joint.covers.len() - 1);
+    let forms = joint
+        .covers
+        .iter()
+        .enumerate()
+        .map(|(c, cover)| {
+            let terms = cover
+                .terms
+                .iter()
+                .map(|t| {
+                    let expr = match joint.form {
+                        Form::Dnf => t.product(names),
+                        Form::Knf => t.sum(names),
+                    };
+                    let outputs = (0..outputs.len()).filter(|o| cover.outputs[*o].contains(t)).collect();
+                    JointTermResponse { latex: expr.latex(notation), pattern: t.text(arity), rows: t.rows(arity).collect(), outputs }
+                })
+                .collect();
+            let outputs = outputs
+                .iter()
+                .enumerate()
+                .map(|(o, name)| JointOutputResponse {
+                    name: name.clone(),
+                    latex: joint.expr(c, o, names).latex(notation),
+                    terms: cover.outputs[o].iter().map(|t| cover.terms.iter().position(|u| u == t).expect("an output's term is the cover's")).collect(),
+                })
+                .collect();
+            JointFormResponse { terms, outputs, cost: cover.cost(arity).into() }
+        })
+        .collect();
+    JointFormsResponse {
+        forms,
+        chosen,
+        worked: Some(worked(&joint.working(names, outputs, chosen, notation), options.detail)),
+        separate: joint.separate.map(Into::into),
+        error: None,
+    }
+}
+
+fn joint_response(joint: &Joint, read: &Read, scene: &LogicScene, options: Options) -> JointResponse {
+    let outputs: Vec<String> = joint.outputs.iter().map(|o| read.outputs[*o].name.clone()).collect();
+    let skipped = read.outputs.iter().filter(|o| o.function.is_none()).map(|o| o.name.clone()).collect();
+    JointResponse {
+        dnf: joint_forms(&joint.dnf, &outputs, &read.inputs, scene.joint_chosen, options),
+        knf: joint_forms(&joint.knf, &outputs, &read.inputs, scene.joint_chosen_knf, options),
+        outputs,
+        skipped,
+    }
+}
+
+fn task(read: &Read, scene: &LogicScene, joint: Option<&Joint>, task: &LogicTask, options: Options) -> Result<TaskResponse> {
     let notation = options.notation;
     let answer = |working: Working| TaskResponse {
         result: working.at(Brief).filter(|n| !n.latex.is_empty() || !n.text.is_empty()).map(|n| if n.latex.is_empty() { n.text.clone() } else { n.latex.clone() }).collect(),
@@ -969,6 +1124,26 @@ fn task(read: &Read, task: &LogicTask, options: Options) -> Result<TaskResponse>
             // Drawn together, an output without an expression takes its minimal form in the same
             // gates; only when none has one is that an error.
             let any_given = expressions.iter().any(Option::is_some);
+            // Every output from its minimal form, drawn together: the joint minimal covers, so
+            // that the outputs share their terms (§6.4.1).
+            let form_kind = if form.from_dnf() { Form::Dnf } else { Form::Knf };
+            let joint_cover = match joint {
+                Some(joint) if output.is_none() && !from_expression && joint.outputs.len() == read.outputs.len() => joint.get(form_kind).as_ref().ok().map(|j| {
+                    let cover = if form.from_dnf() { scene.joint_chosen } else { scene.joint_chosen_knf };
+                    (j, cover.min(j.covers.len() - 1))
+                }),
+                _ => None,
+            };
+            if let Some((j, cover)) = joint_cover {
+                for (o, out) in read.outputs.iter().enumerate() {
+                    let terms = &j.covers[cover].outputs[o];
+                    match form.gates() {
+                        None => generated.add_terms(&out.name, &read.inputs, form_kind, terms)?,
+                        Some((kind, two_input)) => generated.add_gates(&out.name, &read.inputs, &GateForm::of_terms(kind, j.arity, terms, two_input))?,
+                    }
+                }
+                return Ok(TaskResponse { circuit: Some(GeneratedResponse { netlist: generated.netlist(), layout: generated.layout() }), ..TaskResponse::default() });
+            }
             for (o, expr) in chosen.iter().zip(&expressions) {
                 let function = output_function(read, &o.name)?.1;
                 match (gates, expr) {
@@ -1092,8 +1267,10 @@ pub fn logic(settings: &Settings, request: &LogicRequest) -> Result<LogicRespons
         None => None,
     };
 
-    let task = request.task.as_ref().map(|t| task(&read, t, options).unwrap_or_else(|e| TaskResponse { error: Some(e.to_string()), ..TaskResponse::default() }));
+    let joint = Joint::of(&read);
+    let joint_result = joint.as_ref().map(|j| joint_response(j, &read, scene, options));
+    let task = request.task.as_ref().map(|t| task(&read, scene, joint.as_ref(), t, options).unwrap_or_else(|e| TaskResponse { error: Some(e.to_string()), ..TaskResponse::default() }));
     let tables: Vec<(&str, &[Value])> = outputs.iter().filter(|o| !o.table.is_empty()).map(|o| (o.name.as_str(), o.table.as_slice())).collect();
     let table_latex = if tables.is_empty() { String::new() } else { table_tabular(&read.inputs, &tables, options.zeros) };
-    Ok(LogicResponse { inputs: read.inputs, outputs, circuit, task, errors, table_latex })
+    Ok(LogicResponse { inputs: read.inputs, outputs, circuit, task, joint: joint_result, errors, table_latex })
 }

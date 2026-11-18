@@ -106,6 +106,12 @@ impl GateForm {
         GateForm::two_level(GateKind::Nor, minimisation.arity, &minimisation.covers[cover], two_input)
     }
 
+    /// The two-level form of `kind` over the terms `terms` of `arity` variables: products for
+    /// NAND, the 0s' terms for NOR, as [`GateForm::nand`] and [`GateForm::nor`] build from a cover.
+    pub fn of_terms(kind: GateKind, arity: usize, terms: &[Pattern], two_input: bool) -> GateForm {
+        GateForm::two_level(kind, arity, terms, two_input)
+    }
+
     /// The gate-by-gate rewrite of `expr` over the variables `names` into gates of `kind`, its
     /// structure kept, double negations cancelled.
     pub fn rewrite(expr: &Expr, names: &[String], kind: GateKind, two_input: bool) -> GateForm {
