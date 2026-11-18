@@ -2299,6 +2299,39 @@ fn a_typed_expression_is_drawn_rewritten_gate_by_gate() {
 }
 
 #[test]
+fn several_outputs_are_drawn_into_one_circuit() {
+    // XOR and NOR of A and B from a table: one circuit with both lamps, sharing the NOTs.
+    let scene = serde_json::json!({
+        "inputs": ["A", "B"],
+        "outputs": [
+            { "name": "s", "source": { "kind": "table", "values": ["0", "1", "1", "0"] } },
+            { "name": "n", "source": { "kind": "table", "values": ["1", "0", "0", "0"] } },
+        ],
+    });
+    let draw = logic_api(scene, Some(serde_json::json!({ "kind": "draw", "form": "dnf" })));
+    assert!(draw["task"]["error"].is_null(), "{}", draw["task"]["error"]);
+    let elements = draw["task"]["circuit"]["netlist"]["elements"].as_array().unwrap();
+    let lamps: Vec<&str> = elements.iter().filter(|e| e["kind"] == "output").map(|e| e["name"].as_str().unwrap()).collect();
+    assert_eq!(lamps, ["s", "n"]);
+    assert_eq!(elements.iter().filter(|e| e["gate"] == "not").count(), 2);
+
+    // Rewritten from the expression: the typed output is rewritten, the table's takes its
+    // minimal form in NAND gates.
+    let scene = serde_json::json!({
+        "inputs": ["A", "B"],
+        "outputs": [
+            { "source": { "kind": "expression", "latex": r"f = A \lor B" } },
+            { "name": "g", "source": { "kind": "table", "values": ["1", "0", "0", "0"] } },
+        ],
+    });
+    let draw = logic_api(scene, Some(serde_json::json!({ "kind": "draw", "form": "nand", "fromExpression": true })));
+    assert!(draw["task"]["error"].is_null(), "{}", draw["task"]["error"]);
+    let elements = draw["task"]["circuit"]["netlist"]["elements"].as_array().unwrap();
+    assert_eq!(elements.iter().filter(|e| e["kind"] == "output").count(), 2);
+    assert!(elements.iter().filter(|e| e["kind"] == "gate").all(|e| e["gate"] == "nand"));
+}
+
+#[test]
 fn the_api_follows_the_logic_settings() {
     let request: quantus_core::api::LogicRequest = serde_json::from_value(serde_json::json!({
         "scene": { "outputs": [{ "source": { "kind": "expression", "latex": "AB + AC + BC" } }] },

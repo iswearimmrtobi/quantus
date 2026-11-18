@@ -191,7 +191,7 @@ WebKitGTK.
 
 A truth table with several output columns gave one circuit per output in the Gates card.
 
-- [ ] Core: `Draw { output: None, from_expression: true }` takes the minimal form's gate form for
+- [x] Core: `Draw { output: None, from_expression: true }` takes the minimal form's gate form for
   an output without an expression, failing only when no output has one. Tests in
   `tests/logic.rs`: two outputs drawn into one netlist with both lamps and a shared NOT; a NAND
   rewrite over one typed and one table output.

@@ -963,20 +963,27 @@ fn task(read: &Read, task: &LogicTask, options: Options) -> Result<TaskResponse>
     match task {
         LogicTask::Draw { form, output, from_expression } => {
             let mut generated = Generated::new(read.inputs.clone())?;
-            let mut any = false;
-            for o in read.outputs.iter().filter(|o| output.as_ref().is_none_or(|name| *name == o.name)) {
+            let gates = if *from_expression { Some(form.gates().ok_or_else(|| QuantusError::other(msg!("core.logic.interface.rewrite_gates_only")))?) } else { None };
+            let chosen: Vec<&Output> = read.outputs.iter().filter(|o| output.as_ref().is_none_or(|name| *name == o.name)).collect();
+            let expressions: Vec<Option<Expr>> = chosen.iter().map(|o| if gates.is_some() { given(o, read, notation).map(|(expr, _)| expr) } else { None }).collect();
+            // Drawn together, an output without an expression takes its minimal form in the same
+            // gates; only when none has one is that an error.
+            let any_given = expressions.iter().any(Option::is_some);
+            for (o, expr) in chosen.iter().zip(&expressions) {
                 let function = output_function(read, &o.name)?.1;
-                if *from_expression {
-                    let (kind, two_input) = form.gates().ok_or_else(|| QuantusError::other(msg!("core.logic.interface.rewrite_gates_only")))?;
-                    let name = &o.name;
-                    let (expr, _) = given(o, read, notation).ok_or_else(|| QuantusError::other(msg!("core.logic.interface.no_expression")))?;
-                    generated.add_gates(&o.name, function.names(), &GateForm::rewrite(&expr, function.names(), kind, two_input))?;
-                } else {
-                    let cover = if form.from_dnf() { o.chosen } else { o.chosen_knf };
-                    generated.add(&o.name, function, *form, cover)?;
+                match (gates, expr) {
+                    (Some((kind, two_input)), Some(expr)) => generated.add_gates(&o.name, function.names(), &GateForm::rewrite(expr, function.names(), kind, two_input))?,
+                    (Some(_), None) if !any_given => {
+                        let name = &o.name;
+                        return Err(QuantusError::other(msg!("core.logic.interface.no_expression")));
+                    }
+                    _ => {
+                        let cover = if form.from_dnf() { o.chosen } else { o.chosen_knf };
+                        generated.add(&o.name, function, *form, cover)?;
+                    }
                 }
-                any = true;
             }
+            let any = !chosen.is_empty();
             if !any {
                 let name = output.clone().unwrap_or_default();
                 return Err(QuantusError::other(msg!("core.logic.interface.no_output")));
