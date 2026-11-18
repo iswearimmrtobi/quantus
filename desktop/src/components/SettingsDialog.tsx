@@ -148,7 +148,6 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: SYSTEM_THEME,
   logicSymbols: 'iec',
   logicNotation: 'logic',
-  logicTwoInput: true,
   logicZeros: true,
 };
 
@@ -544,12 +543,6 @@ export function SettingsDialog(props: {
       </section>
 
       <section className="setting">
-        <Toggle
-          checked={settings.logicTwoInput}
-          label={t('settings.logicTwoInput')}
-          hint={t('settings.logicTwoInput.hint')}
-          onChange={(v) => set('logicTwoInput', v)}
-        />
         <Toggle
           checked={settings.logicZeros}
           label={t('settings.logicZeros')}

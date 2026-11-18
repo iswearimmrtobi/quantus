@@ -327,8 +327,8 @@ export function fromGenerated(circuit: Generated, kept: LogicPart[] = []): Logic
   return parts;
 }
 
-/** What a generated circuit is drawn from: the outputs' sources and choices, the inputs and the 2-input setting. */
-export const drawnFrom = (scene: LogicScene, twoInput: boolean) => JSON.stringify([scene.inputs, scene.outputs, twoInput]);
+/** What a generated circuit is drawn from: the outputs' sources and choices, and the inputs. */
+export const drawnFrom = (scene: LogicScene) => JSON.stringify([scene.inputs, scene.outputs]);
 
 /**
  * The scene with a circuit the core drew from `form` of the scene `from` ([`drawnFrom`]): the

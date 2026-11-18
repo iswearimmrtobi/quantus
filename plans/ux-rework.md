@@ -74,15 +74,15 @@ Effort: S = an hour or two, M = a day, L = several days.
 
 ### 1.3 Desktop: the types (S)
 
-- [ ] `desktop/src/api.ts`: `DrawForm = 'dnf' | 'knf' | 'nand' | 'nand2' | 'nor' | 'nor2'`;
+- [x] `desktop/src/api.ts`: `DrawForm = 'dnf' | 'knf' | 'nand' | 'nand2' | 'nor' | 'nor2'`;
   `GateFormResult` gets `kind`, `twoInput` and `origin`; `LogicOutputResult.gateForms` replaces the
   four fields; `Settings.logicTwoInput` goes (L750).
-- [ ] `SettingsDialog.tsx`: remove the checkbox (L548–551) and the default (L151); remove
+- [x] `SettingsDialog.tsx`: remove the checkbox (L548–551) and the default (L151); remove
   `app.settings.logicTwoInput*` from `locales/*.json`; remove the row in
   `docs/docs/reference/settings.md:157`.
-- [ ] `LogicView.tsx:57–60` and `LogicCircuit.tsx:48`: the setting goes from the dependency
+- [x] `LogicView.tsx:57–60` and `LogicCircuit.tsx:48`: the setting goes from the dependency
   lists; `drawnFrom` (`logicCircuit.ts:331`) loses its `twoInput` argument.
-- [ ] `npm run typecheck`.
+- [x] `npm run typecheck`.
 
 ### 1.4 Desktop: the Gates card (M)
 

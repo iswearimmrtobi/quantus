@@ -196,7 +196,10 @@ function ResultsOf({
   terms(form: LogicForm, which: 'dnf' | 'knf'): ReactNode;
 }) {
   const { t } = useT();
-  const { expression, canonical, minimal, nand, nor, nandRewrite, norRewrite } = result;
+  const { expression, canonical, minimal } = result;
+  // The form of any width (the first of its kind and origin).
+  const form = (kind: 'nand' | 'nor', origin: 'minimal' | 'rewrite') => result.gateForms.find((f) => f.kind === kind && f.origin === origin);
+  const [nand, nor, nandRewrite, norRewrite] = [form('nand', 'minimal'), form('nor', 'minimal'), form('nand', 'rewrite'), form('nor', 'rewrite')];
   const dnf = minimal?.dnf[minimal.chosen];
   const knf = minimal?.knf[minimal.chosenKnf];
   return (

@@ -491,8 +491,6 @@
     "app.settings.logicNotation.hint": "How results, KV labels and Copy write a function: with ∧ ∨ ¬, or with · + and the overline. The input reads both.",
     "app.settings.logicSymbols": "Gate symbols",
     "app.settings.logicSymbols.hint": "Rectangles with &, ≥1, =1 and 1 (IEC 60617), or the distinctive shapes (ANSI).",
-    "app.settings.logicTwoInput": "NAND and NOR from 2-input gates only",
-    "app.settings.logicTwoInput.hint": "A gate with more inputs becomes a tree of 2-input gates.",
     "app.settings.logicZeros": "Show 0s in the truth table and KV diagram",
     "app.settings.logicZeros.hint": "Off: the cells with 0 stay empty, as many textbooks draw them.",
     "app.settings.onlyIn": "Only in the {mode} mode.",

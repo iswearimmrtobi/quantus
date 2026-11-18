@@ -45,7 +45,6 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
   /** The scene as it is now, for answers that arrive after it changed. */
   const latest = useRef(scene);
   latest.current = scene;
-  const twoInput = settings.logicTwoInput;
 
   const circuit = answer?.response.circuit ?? null;
   const errors = answer?.errors.filter((error) => error.elements.length > 0) ?? [];
@@ -74,7 +73,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
     const drawn = await task(from, { kind: 'draw', form, output });
     if (!drawn) return;
     // Drawn from the scene as it was asked; a change since makes it be drawn again.
-    onSceneChange(withGenerated(latest.current, drawn, form, output, drawnFrom(from, twoInput)));
+    onSceneChange(withGenerated(latest.current, drawn, form, output, drawnFrom(from)));
     setOpen(true);
     setFitKey((k) => k + 1);
   };
@@ -90,7 +89,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
 
   // A drawn circuit, never edited, follows its function: drawn again once that changed.
   const tried = useRef<string | null>(null);
-  const from = drawnFrom(scene, twoInput);
+  const from = drawnFrom(scene);
   const generated = data.generated;
   useEffect(() => {
     if (!generated || generated.from === from || tried.current === from) return;

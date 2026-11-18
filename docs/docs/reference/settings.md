@@ -154,17 +154,16 @@ only in [Linear systems](../guides/linear-systems/index.md) mode.
 |---|---|---|---|
 | **Logic notation** | `logicNotation` | `logic`, `technical` | `logic` |
 | **Gate symbols** | `logicSymbols` | `iec`, `ansi` | `iec` |
-| **NAND and NOR from 2-input gates only** | `logicTwoInput` | on / off | on |
 | **Show 0s in the truth table and KV diagram** | `logicZeros` | on / off | on |
 
 These are read only in [Logic](../guides/logic/index.md) mode. **Logic notation** decides how
 results, the KV labels and **Copy** write a function: *logic* is $A \land \lnot B \lor C$ (with
 the overline over a longer negation), *technical* is $A \cdot \overline{B} + C$. The input reads
 both, whatever the setting. **Gate symbols** draws the circuit's gates as the IEC 60617
-rectangles with `&`, `≥1`, `=1` and `1`, or as the ANSI distinctive shapes. With **NAND and NOR
-from 2-input gates only** on, a NAND or NOR with more inputs becomes a tree of 2-input gates: a
-3-input NAND becomes 3 gates. Off, **Show 0s** leaves the cells with 0 empty, in the table, the
-KV diagram and the copied `tabular`.
+rectangles with `&`, `≥1`, `=1` and `1`, or as the ANSI distinctive shapes. Off, **Show 0s**
+leaves the cells with 0 empty, in the table, the KV diagram and the copied `tabular`. The NAND
+and NOR forms need no setting: every output has them with gates of any width and with 2-input
+gates only.
 
 ## Outside the window
 

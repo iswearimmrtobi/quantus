@@ -488,7 +488,8 @@ export interface LogicScene {
   editor?: unknown;
 }
 
-export type DrawForm = 'dnf' | 'knf' | 'nand' | 'nor';
+/** `nand2` and `nor2`: gates of 2 inputs only; `nand` and `nor`: of any number. */
+export type DrawForm = 'dnf' | 'knf' | 'nand' | 'nand2' | 'nor' | 'nor2';
 
 export type LogicOperand =
   | { kind: 'output'; name: string }
@@ -499,7 +500,8 @@ export type LogicOperand =
 export type KvBlock = number[] | { maps: number[]; col: number; row: number; width: number; height: number };
 
 export type LogicTask =
-  | { kind: 'draw'; form: DrawForm; output?: string | null }
+  /** With `fromExpression`, a NAND or NOR form rewritten from the typed or traced expression. */
+  | { kind: 'draw'; form: DrawForm; output?: string | null; fromExpression?: boolean }
   | { kind: 'equivalent'; first: LogicOperand; second: LogicOperand }
   | { kind: 'checkBlocks'; output: string; form: 'dnf' | 'knf'; blocks: KvBlock[] }
   | { kind: 'checkForm'; output: string; latex: string }
@@ -533,6 +535,11 @@ export interface LogicForm {
 }
 
 export interface GateFormResult {
+  kind: 'nand' | 'nor';
+  /** Only gates of 2 inputs; a form without wider gates is sent once, with this set. */
+  twoInput: boolean;
+  /** From the minimal DNF or KNF, or the given expression rewritten gate by gate. */
+  origin: 'minimal' | 'rewrite';
   latex: string;
   gates: number;
   inputs: number;
@@ -594,10 +601,8 @@ export interface LogicOutputResult {
     quineMcCluskey: Worked;
   } | null;
   kmap: Kmap | null;
-  nand: GateFormResult | null;
-  nor: GateFormResult | null;
-  nandRewrite: GateFormResult | null;
-  norRewrite: GateFormResult | null;
+  /** NAND, NAND 2-input, NOR, NOR 2-input from the minimal forms, then the same rewritten from the expression. */
+  gateForms: GateFormResult[];
 }
 
 export interface LogicCircuitResult {
@@ -746,8 +751,6 @@ export interface Settings {
   logicSymbols: LogicSymbols;
   /** How the Logic mode writes expressions: A ∧ ¬B or A · B̄. */
   logicNotation: LogicNotation;
-  /** NAND and NOR forms only from 2-input gates. */
-  logicTwoInput: boolean;
   /** Whether the truth table and the KV diagram show the 0s. */
   logicZeros: boolean;
 }

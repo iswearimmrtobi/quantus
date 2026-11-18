@@ -54,10 +54,10 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
   }, []);
 
   // On opening the page, on every change and whenever a setting changes how the results are written.
-  const { language, precision, stepDetail, logicNotation, logicTwoInput } = settings;
+  const { language, precision, stepDetail, logicNotation } = settings;
   useEffect(() => {
     void run(scene);
-  }, [scene, language, precision, stepDetail, logicNotation, logicTwoInput, run]);
+  }, [scene, language, precision, stepDetail, logicNotation, run]);
 
   // The circuit's errors name its parts and are shown in the editor; the others above.
   const general = answer?.errors.filter((error) => error.output === null && !error.elements.length) ?? [];
