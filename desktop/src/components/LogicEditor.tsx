@@ -186,6 +186,25 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
 
   const chosen = selection.length === 1 ? (parts.find((p) => p.id === selection[0]) ?? null) : null;
 
+  /**
+   * Where the inspector of the chosen part stands: beside the part on the canvas, to its right,
+   * or to its left when there is no room, and inside the canvas.
+   */
+  const popoverPlace = (part: LogicPart): React.CSSProperties => {
+    const box = part.kind === 'wire' ? segmentBox(...wireEnds(part), 2) : bodyBox(part);
+    const stage = canvas.current?.getBoundingClientRect() ?? { width: 0, height: 0 };
+    const [left, right] = [box.x * view.zoom + view.x, (box.x + box.w) * view.zoom + view.x];
+    const top = box.y * view.zoom + view.y;
+    const gap = 14;
+    const x = right + gap + POPOVER_WIDTH <= stage.width - 8 ? right + gap : left - gap - POPOVER_WIDTH;
+    return {
+      width: POPOVER_WIDTH,
+      left: Math.max(8, Math.min(x, stage.width - POPOVER_WIDTH - 8)),
+      top: Math.max(8, Math.min(top, stage.height - 120)),
+      maxHeight: `calc(100% - ${Math.max(8, Math.min(top, stage.height - 120)) + 8}px)`,
+    };
+  };
+
   /** The circuit as a picture file (§10.5), the SVG or a PNG of it. */
   const [exportError, setExportError] = useState<string | null>(null);
   const exportPicture = async (format: 'svg' | 'png') => {
@@ -336,6 +355,12 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
 
           {!parts.length && emptyCanvas && <div className="logic-canvas-empty">{emptyCanvas}</div>}
 
+          {chosen && drag?.type !== 'move' && (
+            <aside className="logic-inspector-popover" style={popoverPlace(chosen)}>
+              <Inspector part={chosen} parts={parts} onChange={(change) => update(chosen.id, change)} onReplace={(next) => onChange(parts.map((p) => (p.id === next.id ? next : p)))} onRemove={() => remove([chosen.id])} />
+            </aside>
+          )}
+
         </div>
 
         {(corner || noteShown) && (
@@ -353,16 +378,12 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
         )}
       </div>
 
-      <aside className="circuit-inspector">
-        {chosen ? (
-          <Inspector part={chosen} parts={parts} onChange={(change) => update(chosen.id, change)} onReplace={(next) => onChange(parts.map((p) => (p.id === next.id ? next : p)))} onRemove={() => remove([chosen.id])} />
-        ) : (
-          parts.length > 0 && <p className="panel-empty">{t('logic.editor.choose')}</p>
-        )}
-      </aside>
     </div>
   );
 }
+
+/** The width of the inspector beside the chosen part, px. */
+const POPOVER_WIDTH = 240;
 
 /** The colours of a picture: ink, the paper (also the fill of bodies), the knob's and the faint labels' grey. */
 interface PictureColors {

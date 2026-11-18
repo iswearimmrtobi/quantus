@@ -305,7 +305,6 @@
     "app.logic.file.filter": "Logic scene",
     "app.logic.file.load.hint": "Opens a scene saved before: the function lines, the table and the circuit",
     "app.logic.file.save.hint": "Saves the scene as a .quantus-logic.json file: the function lines, the table and the circuit",
-    "app.logic.editor.choose": "Choose a part to set its name, its value or its number of inputs.",
     "app.logic.editor.empty": "Drag input switches, gates and output lamps onto the canvas, then connect their pins with wires.",
     "app.logic.editor.hint": "Dragging from a pin, or from a point on a wire, draws a wire. Dragging on empty canvas selects several parts.",
     "app.logic.editor.home": "shows the whole circuit",

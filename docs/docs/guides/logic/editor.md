@@ -11,8 +11,8 @@ forms and the KV diagram follow. The other way round, **Draw from** puts a circu
 minimal form into the editor.
 
 Click **Circuit** above the table to open the editor; it is folded away while there is no
-circuit. It has the parts on the left, the canvas in the middle and the selected part on the
-right, like the [Electronics](../electronics.md) editor.
+circuit. It has the parts on the left and the canvas beside them, as in the
+[Electronics](../electronics.md) editor; clicking a part opens its settings in a box beside it.
 
 ## Parts
 
@@ -26,7 +26,7 @@ right, like the [Electronics](../electronics.md) editor.
 | **XOR**, **XNOR** | 2 to 8 in, 1 out | the number of inputs; with more than 2, odd and even parity |
 | **Wire** | | |
 
-A gate's type can be changed in the panel on the right; it keeps its place and its wires. The
+A gate's type can be changed in the box beside it; it keeps its place and its wires. The
 symbols are the IEC 60617 rectangles (`&`, `≥1`, `=1`, `1`) or the ANSI shapes, as set under
 **Gate symbols**; NAND, NOR, NOT and XNOR have the inversion mark.
 

@@ -165,7 +165,7 @@ four NAND/NOR `Section`s (L240–249).
   the canvas, not over it.
 - [x] The critical path in a colour of its own (not the yellow of "on" and of the selection),
   dashed, and off by default. Its button in the bar turns it on.
-- [ ] The inspector: as a popover beside the chosen part instead of a fixed 440 px column. The
+- [x] The inspector: as a popover beside the chosen part instead of a fixed 440 px column. The
   canvas gets that width.
 - [ ] The editor as a tab: **Table & KV | Circuit**, so it no longer pushes the table and
   results 950 px down (`LogicView.tsx`).

@@ -305,7 +305,6 @@
     "app.logic.file.filter": "Logik-Szene",
     "app.logic.file.load.hint": "Öffnet eine gespeicherte Szene: die Funktionszeilen, die Tabelle und die Schaltung",
     "app.logic.file.save.hint": "Speichert die Szene als .quantus-logic.json-Datei: die Funktionszeilen, die Tabelle und die Schaltung",
-    "app.logic.editor.choose": "Wähle ein Teil, um seinen Namen, seinen Wert oder seine Zahl der Eingänge einzustellen.",
     "app.logic.editor.empty": "Ziehe Eingangsschalter, Gatter und Ausgangslampen auf die Fläche und verbinde ihre Anschlüsse mit Leitungen.",
     "app.logic.editor.hint": "Ziehen von einem Anschluss oder einem Punkt auf einer Leitung zeichnet eine Leitung. Ziehen auf freier Fläche wählt mehrere Teile.",
     "app.logic.editor.home": "zeigt die ganze Schaltung",
