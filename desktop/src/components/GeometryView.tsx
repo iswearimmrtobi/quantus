@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { api, ApiError, type Geometry, type Settings } from '../api';
-import { geometryRequest, type GeometryInput } from '../geometry';
+import { geometryRequest, taskReady, type GeometryInput } from '../geometry';
 import { useT } from '../i18n';
 import { asError, ErrorRow } from './AnalysisView';
 import { GeometryPlot } from './GeometryPlot';
@@ -174,6 +174,7 @@ export function GeometryView({ settings, input, onInputChange, placeholder }: Pr
           {input.objects.length > 0 ? (
             <GeometryPlot
               objects={input.objects}
+              task={input.task && taskReady(input.task) ? input.task : null}
               highlight={hovered !== null ? [hovered] : selected}
               onPick={(index, add) => {
                 setSidebar((s) => ({ ...s, collapsed: false }));

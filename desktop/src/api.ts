@@ -418,27 +418,34 @@ export interface GeometryViewRequest {
   pitch: number;
   zoom: number;
   hatch?: boolean;
+  /** A task whose answer is drawn on top of the scene. */
+  task?: GeometryTask | null;
 }
 
 /** A point on the screen in view units, y up; the fitted box lies inside the unit circle. */
 export type ViewPoint = [number, number];
-export type ViewStroke = 'axis' | 'tick' | 'object' | 'hatch' | 'hidden';
+/** `result` is a line of a task's answer, `guide` its dashed helper line. */
+export type ViewStroke = 'axis' | 'tick' | 'object' | 'hatch' | 'hidden' | 'result' | 'guide';
 
-/** What `quantus_core::geometry::view::Primitive` serialises to; `object` indexes `objects`. */
+/**
+ * What `quantus_core::geometry::view::Primitive` serialises to; `object` indexes `objects`,
+ * `result` marks a part of a task's answer.
+ */
 export type ViewPrimitive =
-  | { kind: 'segment'; from: ViewPoint; to: ViewPoint; depth: number; stroke: ViewStroke; object: number | null }
-  | { kind: 'polygon'; points: ViewPoint[]; depth: number; object: number }
-  | { kind: 'marker'; at: ViewPoint; depth: number; object: number }
-  | { kind: 'label'; at: ViewPoint; depth: number; text: string; object: number | null };
+  | { kind: 'segment'; from: ViewPoint; to: ViewPoint; depth: number; stroke: ViewStroke; object: number | null; result?: boolean }
+  | { kind: 'polygon'; points: ViewPoint[]; depth: number; object: number; result?: boolean }
+  | { kind: 'marker'; at: ViewPoint; depth: number; object: number; result?: boolean }
+  | { kind: 'label'; at: ViewPoint; depth: number; text: string; object: number | null; result?: boolean };
 
 /** The scene drawn: far to near, then the labels. */
 export interface GeometryViewResponse {
   primitives: ViewPrimitive[];
   /**
    * The objects that could be drawn, in scene order; `name` as keyed (`P_1`, `a` for `\vec{a}`),
-   * `index` the object's place in the scene (which also gives its colour).
+   * `index` the object's place in the scene (which also gives its colour). The figures of a
+   * task's answer follow, marked `result`, with their label as `name` and an index past the scene.
    */
-  objects: { name: string; kind: GeometryKind; index: number }[];
+  objects: { name: string; kind: GeometryKind | 'segment' | 'angle'; index: number; result?: boolean }[];
   camera: { yaw: number; pitch: number; zoom: number; centre: [number, number, number] };
   bounds: { min: [number, number, number]; max: [number, number, number] };
 }

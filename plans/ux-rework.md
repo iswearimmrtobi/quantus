@@ -277,7 +277,7 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 
 ### 4.2 Desktop (S)
 
-- [ ] `GeometryPlot` gets `task` and sends it with the view request; `.geometry-result` drawn in
+- [x] `GeometryPlot` gets `task` and sends it with the view request; `.geometry-result` drawn in
   the accent colour, on top. The other objects fade while a result is shown.
 
 ---

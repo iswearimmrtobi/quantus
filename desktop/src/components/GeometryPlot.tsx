@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { api, type GeometryKind, type GeometryObject, type GeometryViewResponse, type ViewPoint } from '../api';
+import { api, type GeometryKind, type GeometryObject, type GeometryTask, type GeometryViewResponse, type ViewPoint } from '../api';
 import { useT } from '../i18n';
 
 interface Props {
@@ -8,6 +8,8 @@ interface Props {
   objects: GeometryObject[];
   /** The objects, by place in the scene, drawn stronger while the others fade; none fade while it is empty. */
   highlight?: number[];
+  /** A finished task, whose answer the engine draws on top of the scene; the other objects fade. */
+  task?: GeometryTask | null;
   /** A click (not a drag) on an object: its place in the scene, and whether Ctrl or ⌘ was held, which adds it to the selection. */
   onPick?(index: number, add: boolean): void;
 }
@@ -37,7 +39,7 @@ export function colourStyle(index: number): CSSProperties {
 }
 
 /** A name as the engine keys it, `P_1` or `\alpha`, as SVG text: the index lowered, a vector with its arrow. */
-function Name({ name, kind }: { name: string; kind: GeometryKind | undefined }) {
+function Name({ name, kind }: { name: string; kind: GeometryKind | 'segment' | 'angle' | undefined }) {
   const [base, index] = name.replace(/\\/g, '').split('_', 2);
   return (
     <>
@@ -68,7 +70,7 @@ const ABOVE: Omit<Look, 'zoom'> = { yaw: -HALF_PI, pitch: HALF_PI };
  * scene into flat primitives, far to near, and this only draws them in that order. Dragging
  * turns the scene, the wheel zooms.
  */
-export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
+export function GeometryPlot({ objects, task = null, highlight = [], onPick }: Props) {
   const { t } = useT();
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 460 });
@@ -90,8 +92,8 @@ export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
 
   // One request at a time: while the engine projects, moves only update `wanted`, and the
   // answer asks again for the latest of them. A drag thus never queues up stale pictures.
-  const wanted = useRef({ objects, look });
-  wanted.current = { objects, look };
+  const wanted = useRef({ objects, task, look });
+  wanted.current = { objects, task, look };
   const busy = useRef(false);
   const stale = useRef(false);
   const alive = useRef(true);
@@ -108,9 +110,9 @@ export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
     }
     busy.current = true;
     stale.current = false;
-    const { objects: scene, look: at } = wanted.current;
+    const { objects: scene, task: asked, look: at } = wanted.current;
     api
-      .geometryView({ scene: { objects: scene }, ...at })
+      .geometryView({ scene: { objects: scene }, task: asked, ...at })
       .then(
         (next) => {
           if (alive.current) setView(next);
@@ -123,7 +125,7 @@ export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
         if (stale.current && alive.current) project();
       });
   }, []);
-  useEffect(() => project(), [objects, look, project]);
+  useEffect(() => project(), [objects, task, look, project]);
 
   // Zoom with the wheel. A native listener, since React's wheel listeners are passive and could
   // not keep the page from scrolling along.
@@ -167,10 +169,16 @@ export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
   /** A primitive's object by its place in the scene, which also gives its colour, so hiding one recolours none. */
   const sceneIndex = (object: number) => view?.objects[object]?.index ?? object;
   const colour = (object: number) => colourStyle(sceneIndex(object));
-  /** The classes and data of a primitive of an object: stronger or faded while a row is hovered, and what a click picks. */
-  const of = (object: number, className: string) => {
+  /** Whether a task's answer is drawn; the scene then fades unless a row is hovered or selected. */
+  const answered = view?.primitives.some((p) => p.result) ?? false;
+  /**
+   * The classes and data of a primitive of an object: stronger or faded while a row is hovered,
+   * and what a click picks. A part of the answer is drawn in the accent colour and picks nothing.
+   */
+  const of = (object: number, className: string, result?: boolean) => {
+    if (result) return { className: `${className} geometry-result` };
     const index = sceneIndex(object);
-    const mark = !highlight.length ? '' : highlight.includes(index) ? ' strong' : ' faded';
+    const mark = highlight.length ? (highlight.includes(index) ? ' strong' : ' faded') : answered ? ' faded' : '';
     return { className: className + mark, style: colour(object), 'data-object': index };
   };
   const points = (list: ViewPoint[]) =>
@@ -196,14 +204,14 @@ export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
                 const [x1, y1] = px(primitive.from);
                 const [x2, y2] = px(primitive.to);
                 const className = `geometry-${primitive.stroke}`;
-                const props = primitive.object === null ? { className } : of(primitive.object, className);
+                const props = primitive.object === null ? { className } : of(primitive.object, className, primitive.result);
                 return <line key={i} {...props} x1={x1} y1={y1} x2={x2} y2={y2} />;
               }
               case 'polygon':
-                return <polygon key={i} {...of(primitive.object, 'geometry-face')} points={points(primitive.points)} />;
+                return <polygon key={i} {...of(primitive.object, 'geometry-face', primitive.result)} points={points(primitive.points)} />;
               case 'marker': {
                 const [cx, cy] = px(primitive.at);
-                return <circle key={i} {...of(primitive.object, 'geometry-marker')} cx={cx} cy={cy} r={4} />;
+                return <circle key={i} {...of(primitive.object, 'geometry-marker', primitive.result)} cx={cx} cy={cy} r={4} />;
               }
               case 'label': {
                 const [x, y] = px(primitive.at);
@@ -215,7 +223,7 @@ export function GeometryPlot({ objects, highlight = [], onPick }: Props) {
                   );
                 }
                 return (
-                  <text key={i} {...of(primitive.object, 'geometry-label')} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
+                  <text key={i} {...of(primitive.object, 'geometry-label', primitive.result)} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
                     <Name name={primitive.text} kind={view.objects[primitive.object]?.kind} />
                   </text>
                 );

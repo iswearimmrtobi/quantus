@@ -177,6 +177,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   offer the tasks that fit them, and the task's second choice lists only objects that go with
   the first. An object keeps its colour when another one is hidden or fails, and the answer's
   last line is no longer repeated at the end of its steps.
+- Desktop, Geometry: the 3D view draws the task's answer on top of the scene, in the accent
+  colour. A distance shows its shortest segment with $d$, a foot, image or midpoint its point
+  with a dashed helper line, and a relation the point, points, line or circle the objects meet
+  in. An angle shows its two directions and an arc with $\varphi$, a tangent its plane or line.
+  The other objects fade while the answer is shown (`task` in the `geometry_view` request).
 
 ## [0.2.0] - 2026-11-06
 

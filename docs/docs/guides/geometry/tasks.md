@@ -88,6 +88,25 @@ form it is written as its $\arccos$ or $\arcsin$ with the decimal:
 
 **Copy** puts the answer and the steps on the clipboard as an `align*` block.
 
+## The answer in the view
+
+The 3D view also draws the answer, in the accent colour, on top of the scene. The other objects
+fade until you hover a row or select an object:
+
+| Task | Drawn |
+|---|---|
+| Distance | the shortest segment between the two objects, labelled $d = 3$ or $d \approx 3{.}46$ (nothing when they meet) |
+| Foot of the perpendicular | the foot $F$ and the perpendicular, dashed |
+| Reflection | the image ($A'$ for the point $A$) and the dashed line to it |
+| Midpoint | $M$ and the dashed segment between the two points |
+| Relation | where the objects meet: the point $S$, the points $S_1$ and $S_2$, the line $s$ or the circle $k$ |
+| Angle | the two directions from the point where the objects meet (the origin for vectors) and an arc, labelled $\varphi \approx \ldots$ |
+| Tangent | the tangent plane $T$ or the tangent $t$ |
+
+The labels in the view are rounded to two decimals. The exact answer stays in the sidebar.
+Converting a plane, measuring and evaluating an expression draw nothing. The view's box grows
+when the answer lies outside it, for example a far image point.
+
 ## The steps
 
 The steps follow the setting **Step detail**. For the two lines above:
