@@ -83,8 +83,12 @@ The **Gates** card shows the function built from gates. A switch picks the form:
 The 2-in buttons are there only when they differ: for a function of two variables every gate
 already has 2 inputs, so there is one NAND and one NOR form. Under the formula and its cost is
 the circuit as **Draw from** would draw it, read-only. **Open in editor** draws it in the
-[circuit editor](editor.md) (replacing the circuit there) and scrolls to it. Each output keeps
-its form, also in a saved session.
+[circuit editor](editor.md) (replacing the circuit there) and scrolls to it. With several
+outputs, such as a truth table with several output columns, the picture and **Open in editor**
+take all of them in one circuit, identical gates shared, in the form chosen here; the line under
+the picture gives the whole circuit's gates, gate inputs and levels. (Drawn from the expression,
+an output without one takes its minimal form.) If another output has an error, the picture
+shows this output alone. Each output keeps its form, also in a saved session.
 
 For a typed expression or a circuit, a second switch picks where the NAND and NOR forms come
 from: **from the minimal form** or **from the expression** (rewritten gate by gate, see below).

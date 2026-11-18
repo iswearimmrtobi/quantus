@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { DrawForm, GateFormResult, LogicForm, LogicOutputResult, LogicScene, LogicSymbols, Worked } from '../api';
+import type { DrawForm, GateFormResult, LogicElement, LogicForm, LogicOutputResult, LogicScene, LogicSymbols, Netlist, Worked } from '../api';
 import { useT, type TextKey } from '../i18n';
 import { logicTask } from '../logic';
 import { fromGenerated, type GateChoice, type LogicPart } from '../logicCircuit';
@@ -57,7 +57,8 @@ export function shownChoice(result: LogicOutputResult, choice: GateChoice | unde
 /**
  * The Gates card (ux-rework.md 1.4): one output's function as AND–OR, OR–AND, NAND, NAND of
  * 2 inputs, NOR or NOR of 2 inputs, with the formula, its cost, Copy and the steps. The NAND and
- * NOR forms come from the minimal form or, when the output has an expression, from that.
+ * NOR forms come from the minimal form or, when the output has an expression, from that. With
+ * several outputs the picture and **Open in editor** take all of them, in one circuit.
  */
 export function LogicGates({
   scene,
@@ -66,6 +67,7 @@ export function LogicGates({
   choice,
   onChoose,
   onOpen,
+  several,
   eq,
   cost,
   gates,
@@ -78,6 +80,8 @@ export function LogicGates({
   onChoose(choice: GateChoice): void;
   /** **Open in editor**: the circuit of the shown form drawn in the editor. */
   onOpen(form: DrawForm, fromExpression: boolean): void;
+  /** Whether the scene has more outputs than this one: the picture then shows them all. */
+  several: boolean;
   eq(latex: string): string;
   cost(form: LogicForm): string;
   gates(form: GateFormResult): string;
@@ -139,7 +143,7 @@ export function LogicGates({
     <Section title="logic.gates.title" formula={switches} lines={latex ? [eq(latex)] : []} meta={meta} worked={worked} hideSteps={hideSteps}>
       {latex && (
         <div className="logic-gates-circuit">
-          <GatesPicture scene={scene} output={result.name} form={form} fromExpression={fromExpression} symbols={symbols} />
+          <GatesPicture scene={scene} output={result.name} all={several} form={form} fromExpression={fromExpression} symbols={symbols} />
           <button className="form-chip" title={t('logic.draw.hint')} onClick={() => onOpen(form, fromExpression)}>
             {t('logic.gates.open')}
           </button>
@@ -149,37 +153,73 @@ export function LogicGates({
   );
 }
 
+/** Gates, gate inputs and levels (the most gates on a way from an input to a lamp) of a netlist. */
+function figures(netlist: Netlist) {
+  const driver = new Map<number, LogicElement>();
+  for (const element of netlist.elements) if (element.output != null) driver.set(element.output, element);
+  const memo = new Map<string, number>();
+  const level = (element: LogicElement): number => {
+    if (element.kind !== 'gate') return 0;
+    const known = memo.get(element.id);
+    if (known !== undefined) return known;
+    memo.set(element.id, 0);
+    const from = (element.inputs ?? []).map((net) => (net == null ? 0 : level(driver.get(net) ?? element)));
+    const depth = 1 + Math.max(0, ...from);
+    memo.set(element.id, depth);
+    return depth;
+  };
+  const gates = netlist.elements.filter((e) => e.kind === 'gate');
+  return {
+    gates: gates.length,
+    inputs: gates.reduce((sum, g) => sum + (g.inputs?.length ?? 0), 0),
+    levels: Math.max(0, ...gates.map(level)),
+  };
+}
+
 /**
- * The circuit of `form` of output `output`, drawn by the core as **Draw from** draws it, shown
- * read-only in the app's colours. It is drawn again when the scene's functions or the form change.
+ * The circuit of `form` of output `output`, or of every output with `all`, drawn by the core as
+ * **Draw from** draws it, shown read-only in the app's colours. It is drawn again when the scene's
+ * functions or the form change. When the outputs cannot be drawn together (another one has an
+ * error), this one is drawn alone.
  */
-function GatesPicture({ scene, output, form, fromExpression, symbols }: { scene: LogicScene; output: string; form: DrawForm; fromExpression: boolean; symbols: LogicSymbols }) {
+function GatesPicture({ scene, output, all, form, fromExpression, symbols }: { scene: LogicScene; output: string; all: boolean; form: DrawForm; fromExpression: boolean; symbols: LogicSymbols }) {
+  const { t } = useT();
   const [parts, setParts] = useState<LogicPart[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** The figures of the whole circuit, when it has every output. */
+  const [whole, setWhole] = useState<ReturnType<typeof figures> | null>(null);
   /** The latest request; an answer to an older one is dropped. */
   const request = useRef(0);
   // What the drawing depends on: the functions and the circuit (a rewrite of a traced expression), not the editor's data.
-  const key = JSON.stringify([scene.inputs, scene.outputs, scene.circuit, output, form, fromExpression]);
+  const key = JSON.stringify([scene.inputs, scene.outputs, scene.circuit, output, all, form, fromExpression]);
   const latest = useRef(scene);
   latest.current = scene;
   useEffect(() => {
     const id = ++request.current;
-    void logicTask(latest.current, { kind: 'draw', form, output, fromExpression }).then(({ circuit, error }) => {
-      if (id !== request.current) return;
+    void (async () => {
+      let answer = all ? await logicTask(latest.current, { kind: 'draw', form, output: null, fromExpression }) : null;
+      const together = answer?.circuit != null;
+      if (!together) answer = await logicTask(latest.current, { kind: 'draw', form, output, fromExpression });
+      if (id !== request.current || !answer) return;
+      const { circuit, error } = answer;
       setParts(circuit ? fromGenerated(circuit) : null);
+      setWhole(together && circuit ? figures(circuit.netlist) : null);
       setError(error);
-    });
+    })();
   }, [key]);
   const picture = useMemo(() => (parts?.length ? staticPicture(parts, symbols, 'app') : null), [parts, symbols]);
   if (error) return <p className="file-error">{error}</p>;
   if (!picture) return null;
   return (
-    <img
-      className="logic-gates-picture"
-      alt=""
-      width={picture.width}
-      height={picture.height}
-      src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(picture.svg)}`}
-    />
+    <>
+      <img
+        className="logic-gates-picture"
+        alt=""
+        width={picture.width}
+        height={picture.height}
+        src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(picture.svg)}`}
+      />
+      {whole && <span className="logic-result-meta">{t('logic.gates.whole', whole)}</span>}
+    </>
   );
 }

@@ -338,6 +338,7 @@
     "app.logic.gates.nor2": "NOR 2-in",
     "app.logic.gates.orAnd": "OR–AND",
     "app.logic.gates.open": "Open in editor",
+    "app.logic.gates.whole": "whole circuit, all outputs: gates: {gates} · gate inputs: {inputs} · levels: {levels}",
     "app.logic.gates.title": "Gates",
     "app.logic.gates.twoInput.hint": "Gates of 2 inputs only: a wider gate becomes a tree",
     "app.logic.generated": "Drawn from the {form}; drawn again when the function changes, until you edit it.",

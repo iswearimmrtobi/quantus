@@ -195,7 +195,7 @@ A truth table with several output columns gave one circuit per output in the Gat
   an output without an expression, failing only when no output has one. Tests in
   `tests/logic.rs`: two outputs drawn into one netlist with both lamps and a shared NOT; a NAND
   rewrite over one typed and one table output.
-- [ ] Gates card: with several outputs the picture and **Open in editor** draw all of them in one
+- [x] Gates card: with several outputs the picture and **Open in editor** draw all of them in one
   circuit; the cost line adds the whole circuit's figures.
 - [ ] Editor: output tabs **All | f | g | …** over the canvas instead of the select. On a drawn
   circuit a tab draws the same form for that output (or all) at once; on a hand-made or edited

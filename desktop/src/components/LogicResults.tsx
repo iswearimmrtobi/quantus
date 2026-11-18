@@ -18,8 +18,10 @@ interface Props {
   notation: LogicNotation;
   /** The gate symbols of the Gates card's picture. */
   symbols: LogicSymbols;
-  /** **Open in editor** of the Gates card. */
-  onOpen(form: DrawForm, output: string, fromExpression: boolean): void;
+  /** **Open in editor** of the Gates card, for one output or (null) all. */
+  onOpen(form: DrawForm, output: string | null, fromExpression: boolean): void;
+  /** Whether there are several outputs: the Gates card then draws them all in one circuit. */
+  several: boolean;
   /** The term hovered here or in the KV diagram. */
   hover: TermHover | null;
   onHover(hover: TermHover | null): void;
@@ -149,7 +151,7 @@ export function Section({
  * given by beside the canonical forms, the minimal DNF beside the minimal KNF with the choice
  * among several, and the Gates card with the six gate forms, each with its steps and Copy.
  */
-export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpen, hover, onHover, onChange }: Props) {
+export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpen, several, hover, onHover, onChange }: Props) {
   const { t } = useT();
   const { result, index } = shown;
   const name = nameLatex(result.name);
@@ -190,7 +192,8 @@ export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpe
             symbols={symbols}
             choice={editorData(scene).gates?.[result.name]}
             onChoose={(choice) => onChange(withGateChoice(scene, result.name, choice))}
-            onOpen={(form, fromExpression) => onOpen(form, result.name, fromExpression)}
+            onOpen={(form, fromExpression) => onOpen(form, several ? null : result.name, fromExpression)}
+            several={several}
             {...props}
           />
         )}
