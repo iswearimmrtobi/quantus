@@ -5,6 +5,7 @@ use quantus_core::logic::circuit::{Element, GateType, Issue, Net, Netlist};
 use quantus_core::logic::delay::{Delay, GateTimes};
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::layout::{arrange, pins, CircuitLayout, DrawForm, Generated, Point};
+use quantus_core::logic::joint::{JointCost, JointMinimisation};
 use quantus_core::logic::kmap::{gray, gray_position, kv_working, Bar, Edge, Layout, Open, Piece, Place};
 use quantus_core::logic::minimise::{Chart, Form, Minimisation, QuineMcCluskey, Reduction};
 use quantus_core::logic::nand::{GateCost, GateForm, GateKind, Signal};
@@ -1811,6 +1812,166 @@ fn generated_circuits_of_several_outputs_with_dont_cares_pass_the_checks() {
             assert_generated(&[("f", &f), ("h", &h)], form);
         }
     }
+}
+
+// Joint minimisation (§6.4.1).
+
+fn joint(form: Form, functions: &[&Function]) -> JointMinimisation {
+    JointMinimisation::of(form, functions).unwrap()
+}
+
+/// Every joint cover: each output's terms are implicants of it (over its 1s and –) and cover its
+/// 1s (0s for the KNF), and the cover's terms are the outputs' terms.
+fn assert_joint_valid(j: &JointMinimisation, functions: &[&Function]) {
+    let n = j.arity;
+    for cover in &j.covers {
+        for (i, f) in functions.iter().enumerate() {
+            let (ones, others) = match j.form {
+                Form::Dnf => (*f.ones(), f.zeros()),
+                Form::Knf => (f.zeros(), *f.ones()),
+            };
+            let terms = &cover.outputs[i];
+            for t in terms {
+                assert!(cover.terms.contains(t));
+                assert!(t.rows(n).all(|r| !contains(&others, r)), "{} is no implicant of output {i}", t.text(n));
+            }
+            assert!(rows_of(&ones).all(|r| terms.iter().any(|t| t.covers(r))), "output {i} not covered");
+        }
+        let used: BTreeSet<Pattern> = cover.outputs.iter().flatten().copied().collect();
+        assert_eq!(used, cover.terms.iter().copied().collect::<BTreeSet<_>>(), "every term used");
+    }
+}
+
+#[test]
+fn joint_minimisation_shares_a_product_where_each_output_alone_would_not() {
+    // f = Σm(1, 3, 7) and g = Σm(2, 6, 7): alone ¬A C ∨ B C and B ¬C ∨ A B, four products;
+    // together A B C serves both, three products.
+    let (f, g) = (function(r"\sum m(1, 3, 7)", "A B C"), function(r"\sum m(2, 6, 7)", "A B C"));
+    let j = joint(Form::Dnf, &[&f, &g]);
+    assert_joint_valid(&j, &[&f, &g]);
+    assert_eq!(j.cost(), JointCost { terms: 3, literals: 7, joins: 4 });
+    assert_eq!(j.separate, Some(JointCost { terms: 4, literals: 8, joins: 4 }));
+    assert_eq!(j.covers.len(), 1);
+    let abc = names("A B C");
+    let forms: Vec<String> = (0..2).map(|o| j.expr(0, o, &abc).latex(Notation::Technical)).collect();
+    assert_eq!(forms, [r"\overline{A} \cdot C + A \cdot B \cdot C", r"B \cdot \overline{C} + A \cdot B \cdot C"]);
+    // A B C (111) is a prime of f and g together, tagged with both.
+    assert!(j.primes.contains(&(Pattern::minterm(7), 0b11)));
+}
+
+#[test]
+fn joint_minimisation_of_one_output_is_its_own_minimisation() {
+    for bits in (0..256u64).step_by(7) {
+        let f = Function::from_bits(names("A B C"), [bits, 0, 0, 0], [bits.rotate_left(3) & 0x55, 0, 0, 0]).unwrap();
+        for form in [Form::Dnf, Form::Knf] {
+            let alone = if form == Form::Dnf { Minimisation::of(&f) } else { Minimisation::knf(&f) }.unwrap();
+            let j = joint(form, &[&f]);
+            let covers: Vec<Vec<Pattern>> = j.covers.iter().map(|c| c.outputs[0].clone()).collect();
+            assert_eq!(covers, alone.covers, "{bits:#x} {form:?}");
+            assert_eq!(j.primes.iter().map(|(p, _)| *p).collect::<Vec<_>>(), alone.qm.primes);
+        }
+    }
+}
+
+/// The cheapest joint cost by brute force: subsets of the implicants of some output, by
+/// size, then literals, then the fewest of the subset's terms each output needs.
+fn brute_joint_cost(form: Form, functions: &[&Function]) -> JointCost {
+    let n = functions[0].arity();
+    let rows = 1usize << n;
+    let sets = |f: &Function| match form {
+        Form::Dnf => (*f.ones(), f.zeros()),
+        Form::Knf => (f.zeros(), *f.ones()),
+    };
+    let all: Vec<Pattern> = (0..1u8 << n).flat_map(|mask| (0..1u8 << n).filter(move |v| v & mask == 0).map(move |value| Pattern { value, mask })).collect();
+    let implies = |p: &Pattern, i: usize| p.rows(n).all(|r| !contains(&sets(functions[i]).1, r));
+    let useful: Vec<Pattern> = all.into_iter().filter(|p| (0..functions.len()).any(|i| implies(p, i) && p.rows(n).any(|r| contains(&sets(functions[i]).0, r)))).collect();
+    let covered = |terms: &[Pattern], i: usize| (0..rows).filter(|r| contains(&sets(functions[i]).0, *r)).all(|r| terms.iter().any(|t| implies(t, i) && t.covers(r)));
+    // The fewest of `terms` that give output i.
+    let fewest = |terms: &[Pattern], i: usize| {
+        let own: Vec<Pattern> = terms.iter().copied().filter(|t| implies(t, i)).collect();
+        (0..1usize << own.len()).filter(|s| covered(&own.iter().enumerate().filter(|(k, _)| s >> k & 1 == 1).map(|(_, t)| *t).collect::<Vec<_>>(), i)).map(|s: usize| s.count_ones() as usize).min().unwrap()
+    };
+    let mut best: Option<JointCost> = None;
+    let mut stack: Vec<(usize, Vec<Pattern>)> = vec![(0, Vec::new())];
+    while let Some((start, chosen)) = stack.pop() {
+        if (0..functions.len()).all(|i| covered(&chosen, i)) {
+            let cost = JointCost { terms: chosen.len(), literals: chosen.iter().map(|t| t.literals(n)).sum(), joins: (0..functions.len()).map(|i| fewest(&chosen, i)).sum() };
+            best = Some(best.map_or(cost, |b| b.min(cost)));
+            continue;
+        }
+        if best.is_some_and(|b| chosen.len() >= b.terms) {
+            continue;
+        }
+        for (k, term) in useful.iter().enumerate().skip(start) {
+            let mut more = chosen.clone();
+            more.push(*term);
+            stack.push((k + 1, more));
+        }
+    }
+    best.unwrap()
+}
+
+#[test]
+fn joint_minimisation_finds_the_cheapest_cover_of_random_outputs() {
+    let mut state = 0x2545_f491_u64;
+    let mut next = || {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state
+    };
+    for case in 0..16 {
+        let count = 2 + case % 2;
+        let functions: Vec<Function> = (0..count)
+            .map(|_| {
+                let (ones, dc) = (next() & 0xff, next() & next() & next() & 0xff);
+                Function::from_bits(names("A B C"), [ones, 0, 0, 0], [dc, 0, 0, 0]).unwrap()
+            })
+            .collect();
+        let refs: Vec<&Function> = functions.iter().collect();
+        for form in [Form::Dnf, Form::Knf] {
+            let j = joint(form, &refs);
+            assert_joint_valid(&j, &refs);
+            assert_eq!(j.cost(), brute_joint_cost(form, &refs), "case {case} {form:?}");
+            assert!(j.covers.iter().all(|c| c.cost(3) == j.cost()));
+            let separate = j.separate.unwrap();
+            assert!((j.cost().terms, j.cost().literals) <= (separate.terms, separate.literals), "case {case}");
+        }
+    }
+}
+
+#[test]
+fn joint_minimisation_covers_the_zeros_for_the_knf_and_uses_dont_cares() {
+    // The dual of the first example: f over its 0s Σm(1, 3, 7) is f = Π M(1, 3, 7).
+    let (f, g) = (function(r"\prod M(1, 3, 7)", "A B C"), function(r"\prod M(2, 6, 7)", "A B C"));
+    let j = joint(Form::Knf, &[&f, &g]);
+    assert_joint_valid(&j, &[&f, &g]);
+    assert_eq!(j.cost(), JointCost { terms: 3, literals: 7, joins: 4 });
+    let abc = names("A B C");
+    assert_eq!(j.expr(0, 0, &abc).latex(Notation::Technical), r"(A + \overline{C}) \cdot (\overline{A} + \overline{B} + \overline{C})");
+    // With f(7) = – f is ¬A C alone, its – left out, and g keeps B ¬C ∨ A B.
+    let mut relaxed = function(r"\sum m(1, 3, 7)", "A B C");
+    relaxed.set(7, Value::DontCare);
+    let g = function(r"\sum m(2, 6, 7)", "A B C");
+    let j = joint(Form::Dnf, &[&relaxed, &g]);
+    assert_joint_valid(&j, &[&relaxed, &g]);
+    assert_eq!(j.cost(), JointCost { terms: 3, literals: 6, joins: 3 });
+    assert_eq!(j.expr(0, 0, &abc).latex(Notation::Technical), r"\overline{A} \cdot C");
+}
+
+#[test]
+fn the_joint_working_names_the_shared_primes_and_the_saving() {
+    let (f, g) = (function(r"\sum m(1, 3, 7)", "A B C"), function(r"\sum m(2, 6, 7)", "A B C"));
+    let j = joint(Form::Dnf, &[&f, &g]);
+    let working = j.working(&names("A B C"), &names("f g"), 0, Notation::Technical);
+    let at = |detail: StepDetail| working.at(detail).map(|n| format!("{} {}", n.text, n.latex)).collect::<Vec<_>>().join("\n");
+    let brief = at(StepDetail::Brief);
+    assert!(brief.contains(r"f = \overline{A} \cdot C + A \cdot B \cdot C \\ g = B \cdot \overline{C} + A \cdot B \cdot C"), "{brief}");
+    let standard = at(StepDetail::Standard);
+    assert!(standard.contains("Together: 3 products with 7 literals and 4 inputs to the ORs. Each output alone, identical products built once: 4 products with 8 literals."), "{standard}");
+    assert!(standard.contains("f, g"), "the shared prime's outputs: {standard}");
+    let detailed = at(StepDetail::Detailed);
+    assert!(detailed.contains(r"m_{7}^{(f)}") || detailed.contains(r"7^{(f)}"), "{detailed}");
 }
 
 // Checks (§6.8).

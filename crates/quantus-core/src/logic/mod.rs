@@ -9,6 +9,7 @@ pub mod circuit;
 pub mod delay;
 pub mod expr;
 pub mod interface;
+pub mod joint;
 pub mod kmap;
 pub mod layout;
 pub mod minimise;

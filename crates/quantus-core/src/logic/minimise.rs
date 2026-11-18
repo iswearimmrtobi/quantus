@@ -431,25 +431,19 @@ impl Minimisation {
         Minimisation::of_rows(Form::Knf, function.arity(), &function.zeros(), function.dont_cares())
     }
 
-    fn of_rows(form: Form, arity: usize, ones: &Bits, dont_cares: &Bits) -> Result<Minimisation> {
+    pub(crate) fn of_rows(form: Form, arity: usize, ones: &Bits, dont_cares: &Bits) -> Result<Minimisation> {
         let qm = QuineMcCluskey::of(arity, ones, dont_cares);
         let chart = Chart::of(arity, &qm.primes, ones);
         let petrick = (!chart.columns_left.is_empty()).then(|| Petrick::of(&chart)).transpose()?;
-        let rests: Vec<Vec<usize>> = petrick.as_ref().map_or_else(|| vec![Vec::new()], |p| p.products().to_vec());
-        let mut covers: Vec<Vec<usize>> = rests
-            .into_iter()
-            .map(|rest| {
-                let mut rows: Vec<usize> = chart.taken.iter().copied().chain(rest).collect();
-                rows.sort();
-                rows
-            })
-            .collect();
-        let cost_of = |rows: &Vec<usize>| cost(&rows.iter().map(|r| chart.primes[*r]).collect::<Vec<_>>(), arity);
-        let best = covers.iter().map(cost_of).min().unwrap_or((0, 0));
-        covers.retain(|rows| cost_of(rows) == best);
-        covers.sort();
-        let covers = covers.into_iter().map(|rows| rows.into_iter().map(|r| chart.primes[r]).collect()).collect();
+        let covers = minimal_covers(&chart, petrick.as_ref());
         Ok(Minimisation { form, arity, qm, chart, petrick, covers })
+    }
+
+    /// Every cover of the rows `ones` by the fewest of `terms`, then the fewest literals.
+    pub(crate) fn of_terms(arity: usize, terms: &[Pattern], ones: &Bits) -> Result<Vec<Vec<Pattern>>> {
+        let chart = Chart::of(arity, terms, ones);
+        let petrick = (!chart.columns_left.is_empty()).then(|| Petrick::of(&chart)).transpose()?;
+        Ok(minimal_covers(&chart, petrick.as_ref()))
     }
 
     /// The cost of the minimal covers.
@@ -462,6 +456,25 @@ impl Minimisation {
     pub fn expr(&self, index: usize, names: &[String]) -> Expr {
         form_expr(self.form, &self.covers[index], names)
     }
+}
+
+/// The cheapest covers of the chart (fewest rows, then literals), the rows taken and each of
+/// Petrick's products, in the order of their rows.
+fn minimal_covers(chart: &Chart, petrick: Option<&Petrick>) -> Vec<Vec<Pattern>> {
+    let rests: Vec<Vec<usize>> = petrick.map_or_else(|| vec![Vec::new()], |p| p.products().to_vec());
+    let mut covers: Vec<Vec<usize>> = rests
+        .into_iter()
+        .map(|rest| {
+            let mut rows: Vec<usize> = chart.taken.iter().copied().chain(rest).collect();
+            rows.sort();
+            rows
+        })
+        .collect();
+    let cost_of = |rows: &Vec<usize>| cost(&rows.iter().map(|r| chart.primes[*r]).collect::<Vec<_>>(), chart.arity);
+    let best = covers.iter().map(cost_of).min().unwrap_or((0, 0));
+    covers.retain(|rows| cost_of(rows) == best);
+    covers.sort();
+    covers.into_iter().map(|rows| rows.into_iter().map(|r| chart.primes[r]).collect()).collect()
 }
 
 /// The terms `terms` over `names` as a form: a sum of products for the DNF, no term the constant
