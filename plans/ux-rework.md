@@ -180,11 +180,11 @@ four NAND/NOR `Section`s (L240–249).
 
 `crates/quantus-core/src/geometry/interface.rs`, `view.rs`.
 
-- [ ] `SceneObject.hidden: bool` with `#[serde(default, skip_serializing_if = "is_false")]`, so
+- [x] `SceneObject.hidden: bool` with `#[serde(default, skip_serializing_if = "is_false")]`, so
   old sessions load unchanged.
-- [ ] `Builder::scene`: a hidden object is built (so `g: X = A + …` still finds A) but not pushed
+- [x] `Builder::scene`: a hidden object is built (so `g: X = A + …` still finds A) but not pushed
   to `shown`, and it is left out of `Bounds::fit`.
-- [ ] Tests (`tests/geometry.rs`): a line through a hidden point is drawn and the point is not;
+- [x] Tests (`tests/geometry_view.rs`): a line through a hidden point is drawn and the point is not;
   the bounds ignore the hidden point; a session with `hidden` round-trips.
 
 ### 3.2 Core: the view says which object a primitive belongs to (S)

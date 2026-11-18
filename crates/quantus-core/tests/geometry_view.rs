@@ -392,9 +392,9 @@ fn the_api_projects_a_scene_with_the_objects_that_could_be_built() {
     use quantus_core::api::{geometry_view, Entry, Scene, SceneObject, Shape, ViewRequest};
     use quantus_core::settings::Settings;
     let objects = vec![
-        SceneObject { name: "A".into(), shape: Shape::Point { at: Entry::Coordinates(vec!["4".into(), "0".into(), "0".into()]) } },
-        SceneObject { name: "B".into(), shape: Shape::Point { at: Entry::Latex("x".into()) } },
-        SceneObject { name: String::new(), shape: Shape::Typed { latex: "E: z = 1".into() } },
+        SceneObject { name: "A".into(), shape: Shape::Point { at: Entry::Coordinates(vec!["4".into(), "0".into(), "0".into()]) }, hidden: false },
+        SceneObject { name: "B".into(), shape: Shape::Point { at: Entry::Latex("x".into()) }, hidden: false },
+        SceneObject { name: String::new(), shape: Shape::Typed { latex: "E: z = 1".into() }, hidden: false },
     ];
     let request = ViewRequest { scene: Scene { objects }, zoom: 2.0, ..ViewRequest::default() };
     let view = geometry_view(&Settings::default(), &request).unwrap();
@@ -407,4 +407,35 @@ fn the_api_projects_a_scene_with_the_objects_that_could_be_built() {
     let fitted = Camera::default().fit(&view.bounds);
     assert!(close(view.camera.zoom, 2.0 * fitted.zoom));
     assert!(close(view.camera.yaw, Camera::default().yaw));
+}
+
+/// A typed object of the scene, hidden or not.
+fn typed(latex: &str, hidden: bool) -> quantus_core::api::SceneObject {
+    quantus_core::api::SceneObject { name: String::new(), shape: quantus_core::api::Shape::Typed { latex: latex.into() }, hidden }
+}
+
+#[test]
+fn a_hidden_object_is_built_for_the_others_but_not_drawn() {
+    use quantus_core::api::{geometry_view, Scene, ViewRequest};
+    use quantus_core::settings::Settings;
+    let objects = vec![typed("A(9|9|9)", true), typed("B(0|0|0)", false), typed("C(1|0|0)", false), typed("g: X = B + \\lambda (A - B)", false)];
+    let request = ViewRequest { scene: Scene { objects }, ..ViewRequest::default() };
+    let view = geometry_view(&Settings::default(), &request).unwrap();
+    let names: Vec<&str> = view.objects.iter().map(|o| o.name.as_str()).collect();
+    assert_eq!(names, ["B", "C", "g"]);
+    assert!(view.primitives.iter().all(|p| !matches!(p, Primitive::Label { text, object: Some(_), .. } if text == "A")));
+    assert!(view.primitives.iter().any(|p| matches!(p, Primitive::Segment { stroke: Stroke::Object, object: Some(2), .. })));
+    // The box is fitted to B and C, not to the far hidden A.
+    assert!(view.bounds.max.iter().all(|&m| m < 9.0));
+}
+
+#[test]
+fn a_hidden_object_round_trips_and_an_old_scene_loads() {
+    use quantus_core::api::Scene;
+    let scene = Scene { objects: vec![typed("A(1|2|3)", true), typed("B(0|0|0)", false)] };
+    let json = serde_json::to_string(&scene).unwrap();
+    assert_eq!(json.matches("hidden").count(), 1);
+    assert_eq!(serde_json::from_str::<Scene>(&json).unwrap(), scene);
+    let old: Scene = serde_json::from_str(r#"{"objects":[{"kind":"typed","latex":"A(1|2|3)"}]}"#).unwrap();
+    assert!(!old.objects[0].hidden);
 }

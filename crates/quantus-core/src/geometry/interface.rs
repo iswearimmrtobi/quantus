@@ -73,6 +73,9 @@ pub struct SceneObject {
     pub name: String,
     #[serde(flatten)]
     pub shape: Shape,
+    /// Built, so that other objects can use it, but not drawn.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hidden: bool,
 }
 
 /// The objects in the order they are built.
@@ -371,7 +374,7 @@ impl<'a> Builder<'a> {
     /// Builds the scene object by object; one that fails is reported and left out.
     fn scene(&mut self, scene: &Scene) -> Vec<ObjectResponse> {
         let mut responses = Vec::new();
-        for SceneObject { name, shape } in &scene.objects {
+        for SceneObject { name, shape, hidden } in &scene.objects {
             let (name, built) = match shape {
                 Shape::Typed { latex } => match self.typed(latex) {
                     Ok((key, object)) => (key, Ok(Worked::new(object, Working::default()))),
@@ -397,7 +400,7 @@ impl<'a> Builder<'a> {
                         }
                         _ => {}
                     }
-                    if let Some(figure) = result.figure() {
+                    if let Some(figure) = result.figure().filter(|_| !hidden) {
                         self.shown.push(Shown { name: key.clone(), figure });
                         self.drawn.push(ViewObject { name: key.clone(), kind: result.kind().into() });
                     }
