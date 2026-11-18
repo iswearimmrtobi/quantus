@@ -151,7 +151,11 @@ pub enum Reduction {
 pub struct Chart {
     pub arity: usize,
     pub primes: Vec<Pattern>,
-    pub minterms: Vec<usize>,
+    /// The columns: the minterms for one output, the (output, minterm) pairs of a joint
+    /// minimisation.
+    pub columns: Vec<usize>,
+    /// Per row, the columns it covers, ascending.
+    pub coverage: Vec<Vec<usize>>,
     /// The essential prime implicants: the rows taken before any dominance.
     pub essential: Vec<usize>,
     /// Every row taken because it alone covered a column, the essential ones first.
@@ -169,15 +173,23 @@ impl Chart {
     /// many, both can be part of different minimal covers, all of which are listed.
     pub fn of(arity: usize, primes: &[Pattern], ones: &Bits) -> Chart {
         let minterms: Vec<usize> = rows_of(ones).collect();
+        Chart::with(arity, primes, minterms, |row, column| primes[row].covers(column))
+    }
+
+    /// The chart of the rows `primes` over the columns `columns`, row `r` over column `c` when
+    /// `covers(r, c)`, reduced like [`Chart::of`].
+    pub fn with(arity: usize, primes: &[Pattern], columns: Vec<usize>, covers: impl Fn(usize, usize) -> bool) -> Chart {
+        let coverage = (0..primes.len()).map(|r| columns.iter().copied().filter(|c| covers(r, *c)).collect()).collect();
         let mut chart = Chart {
             arity,
             primes: primes.to_vec(),
-            minterms: minterms.clone(),
+            columns: columns.clone(),
+            coverage,
             essential: Vec::new(),
             taken: Vec::new(),
             reductions: Vec::new(),
             rows_left: (0..primes.len()).collect(),
-            columns_left: minterms,
+            columns_left: columns,
         };
         chart.drop_empty_rows();
         chart.take_essential();
@@ -186,14 +198,19 @@ impl Chart {
         chart
     }
 
+    /// Whether row `row` covers column `column`.
+    pub fn covers(&self, row: usize, column: usize) -> bool {
+        self.coverage[row].binary_search(&column).is_ok()
+    }
+
     /// The rows left over `column`.
     pub fn rows_over(&self, column: usize) -> Vec<usize> {
-        self.rows_left.iter().copied().filter(|r| self.primes[*r].covers(column)).collect()
+        self.rows_left.iter().copied().filter(|r| self.covers(*r, column)).collect()
     }
 
     /// The columns left under `row`.
     pub fn columns_under(&self, row: usize) -> Vec<usize> {
-        self.columns_left.iter().copied().filter(|c| self.primes[row].covers(*c)).collect()
+        self.columns_left.iter().copied().filter(|c| self.covers(row, *c)).collect()
     }
 
     /// Takes every row that alone covers a column left; whether any was.
@@ -206,8 +223,8 @@ impl Chart {
                 self.reductions.push(Reduction::Essential { row, column });
                 self.taken.push(row);
                 self.rows_left.retain(|r| *r != row);
-                let prime = self.primes[row];
-                self.columns_left.retain(|c| !prime.covers(*c));
+                let covered = &self.coverage[row];
+                self.columns_left.retain(|c| covered.binary_search(c).is_err());
                 self.drop_empty_rows();
                 changed = true;
                 c = 0;
@@ -257,7 +274,7 @@ impl Chart {
             let mine = self.columns_under(row);
             let literals = self.primes[row].literals(self.arity);
             let by = self.rows_left.iter().copied().find(|other| {
-                self.primes[*other].literals(self.arity) < literals && mine.iter().all(|c| self.primes[*other].covers(*c))
+                self.primes[*other].literals(self.arity) < literals && mine.iter().all(|c| self.covers(*other, *c))
             });
             if let Some(by) = by {
                 self.reductions.push(Reduction::RowDominated { row, by });
@@ -343,11 +360,11 @@ fn greedy(chart: &Chart) -> (usize, usize) {
     let (mut terms, mut literals) = (0, 0);
     while !open.is_empty() {
         let row = chart.rows_left.iter().copied().max_by_key(|r| {
-            let prime = chart.primes[*r];
-            (open.iter().filter(|c| prime.covers(**c)).count(), std::cmp::Reverse(prime.literals(chart.arity)))
+            (open.iter().filter(|c| chart.covers(*r, **c)).count(), std::cmp::Reverse(chart.primes[*r].literals(chart.arity)))
         });
-        let prime = chart.primes[row.expect("every column has a row")];
-        open.retain(|c| !prime.covers(*c));
+        let row = row.expect("every column has a row");
+        let prime = chart.primes[row];
+        open.retain(|c| !chart.covers(row, *c));
         terms += 1;
         literals += prime.literals(chart.arity);
     }
@@ -491,7 +508,7 @@ impl Minimisation {
                     let count = if i == 0 { ones.to_string() } else { String::new() };
                     let check = if t.combined { "\\checkmark" } else { "" };
                     // A don't care, in the first round, in brackets.
-                    let covered = if index == 0 && !self.chart.minterms.contains(&t.rows[0]) { format!("({})", t.rows[0]) } else { list(&t.rows) };
+                    let covered = if index == 0 && !self.chart.columns.contains(&t.rows[0]) { format!("({})", t.rows[0]) } else { list(&t.rows) };
                     rows.push(Some(vec![count, covered, pattern(t.pattern), check.into()]));
                 }
             }
@@ -529,75 +546,14 @@ impl Minimisation {
             working.add(Standard, msg!("core.logic.step.primes"), array("c|c|l|l", &[String::new(), String::new(), String::new(), column(0).replace("{0}", "{i}")], &rows));
         }
 
-        // The chart.
-        let chart = &self.chart;
-        if !chart.minterms.is_empty() {
-            let header: Vec<String> = std::iter::once(String::new()).chain(chart.minterms.iter().map(|m| m.to_string())).collect();
-            let rows: Vec<Option<Vec<String>>> = chart
-                .primes
-                .iter()
-                .enumerate()
-                .map(|(i, p)| Some(std::iter::once(prime_name(i)).chain(chart.minterms.iter().map(|m| if p.covers(*m) { "\\times".into() } else { String::new() })).collect()))
-                .collect();
-            let text = if knf { msg!("core.logic.step.chart_knf") } else { msg!("core.logic.step.chart") };
-            working.add(Detailed, text, array(&format!("c|{}", "c".repeat(chart.minterms.len())), &header, &rows));
-            let named = |row: usize| format!("{} = {}", prime_name(row), term(chart.primes[row]));
-            if chart.essential.is_empty() {
-                working.add_until(Standard, Detailed, msg!("core.logic.step.no_essentials"), String::new());
-            } else {
-                let latex = chart.essential.iter().map(|r| named(*r)).collect::<Vec<_>>().join(",\\ ");
-                working.add_until(Standard, Detailed, msg!("core.logic.step.essentials"), latex);
-            }
-            // The reductions replayed, to name what was left at each.
-            let mut rows_left: Vec<usize> = (0..chart.primes.len()).collect();
-            let mut columns_left = chart.minterms.clone();
-            let rows_over = |rows_left: &[usize], c: usize| rows_left.iter().filter(|r| chart.primes[**r].covers(c)).map(|r| prime_name(*r)).collect::<Vec<_>>().join(", ");
-            let columns_under = |columns_left: &[usize], r: usize| columns_left.iter().filter(|c| chart.primes[r].covers(**c)).map(|c| column(*c)).collect::<Vec<_>>().join(", ");
-            for reduction in &chart.reductions {
-                match *reduction {
-                    Reduction::Essential { row, column: c } => {
-                        working.add(Detailed, msg!("core.logic.step.take"), format!("{}\\colon\\ {}", column(c), named(row)));
-                        rows_left.retain(|r| *r != row);
-                        columns_left.retain(|c| !chart.primes[row].covers(*c));
-                    }
-                    Reduction::Covered { row } => {
-                        working.add(Detailed, msg!("core.logic.step.drop_covered"), named(row));
-                        rows_left.retain(|r| *r != row);
-                    }
-                    Reduction::ColumnDominates { column: c, over } => {
-                        let latex = format!("{}\\colon\\ {} \\supseteq {}\\colon\\ {}", column(c), rows_over(&rows_left, c), column(over), rows_over(&rows_left, over));
-                        working.add(Detailed, msg!("core.logic.step.drop_column"), latex);
-                        columns_left.retain(|x| *x != c);
-                    }
-                    Reduction::RowDominated { row, by } => {
-                        let latex = format!("{}\\colon\\ {} \\subseteq {}\\colon\\ {}", prime_name(row), columns_under(&columns_left, row), prime_name(by), columns_under(&columns_left, by));
-                        working.add(Detailed, msg!("core.logic.step.drop_row"), latex);
-                        rows_left.retain(|r| *r != row);
-                    }
-                }
-            }
-        }
-
-        // Petrick's method.
-        if let Some(petrick) = &self.petrick {
-            let product = |rows: &[usize]| if rows.is_empty() { "1".to_string() } else { rows.iter().map(|r| prime_name(*r)).collect::<Vec<_>>().join(" ") };
-            let sum = |products: &[Vec<usize>]| products.iter().map(|p| product(p)).collect::<Vec<_>>().join(or);
-            let sums: String = petrick
-                .sums
-                .iter()
-                .map(|s| if s.len() == 1 { prime_name(s[0]) } else { format!("({})", s.iter().map(|r| prime_name(*r)).collect::<Vec<_>>().join(or)) })
-                .collect();
-            working.add(Detailed, msg!("core.logic.step.petrick_sums"), sums);
-            for step in &petrick.steps {
-                working.add(Maximal, msg!("core.logic.step.petrick_step"), format!("= {}", sum(step)));
-            }
-            if let Some((terms, literals)) = petrick.bound {
-                working.add(Maximal, msg!("core.logic.step.petrick_bound"), String::new());
-            }
-        }
+        // The chart and Petrick's method.
+        let text = if knf { msg!("core.logic.step.chart_knf") } else { msg!("core.logic.step.chart") };
+        let row_term = |row: usize| term(self.chart.primes[row]);
+        let labels = ChartLabels { term: &row_term, column: &column, heading: &|m| m.to_string(), or };
+        chart_working(&mut working, &self.chart, self.petrick.as_ref(), text, &labels);
 
         // The result.
-        if !self.chart.minterms.is_empty() {
+        if !self.chart.columns.is_empty() {
             let (terms, literals) = self.cost();
             let covers = self.covers.iter().map(|c| format!("\\{{{}\\}}", c.iter().map(|p| prime_name(self.chart.primes.iter().position(|q| q == p).expect("a cover is made of primes"))).collect::<Vec<_>>().join(", ")));
             working.add(Standard, msg!("core.logic.step.covers"), covers.collect::<Vec<_>>().join(",\\ "));
@@ -620,5 +576,80 @@ impl Minimisation {
         };
         let latex = if count == 1 { forms.join("") } else { format!("\\begin{{gathered}}{}\\end{{gathered}}", forms.join(" \\\\ ")) };
         (text, latex)
+    }
+}
+
+/// The working of a prime implicant chart (§8, *Cover*): the chart with `text` at Detailed, the
+/// essential rows at Standard, each reduction at Detailed, and Petrick's method. `term` writes a
+/// row's term, `column` a column in a formula (`m_{5}`), `heading` a column over the chart.
+pub(crate) struct ChartLabels<'a> {
+    pub term: &'a dyn Fn(usize) -> String,
+    pub column: &'a dyn Fn(usize) -> String,
+    pub heading: &'a dyn Fn(usize) -> String,
+    /// The OR between the rows of Petrick's sums.
+    pub or: &'a str,
+}
+
+pub(crate) fn chart_working(working: &mut Working, chart: &Chart, petrick: Option<&Petrick>, text: String, labels: &ChartLabels) {
+    let ChartLabels { term, column, heading, or } = *labels;
+    if !chart.columns.is_empty() {
+        let header: Vec<String> = std::iter::once(String::new()).chain(chart.columns.iter().map(|c| heading(*c))).collect();
+        let rows: Vec<Option<Vec<String>>> = (0..chart.primes.len())
+            .map(|r| Some(std::iter::once(prime_name(r)).chain(chart.columns.iter().map(|c| if chart.covers(r, *c) { "\\times".into() } else { String::new() })).collect()))
+            .collect();
+        working.add(Detailed, text, array(&format!("c|{}", "c".repeat(chart.columns.len())), &header, &rows));
+        let named = |row: usize| format!("{} = {}", prime_name(row), term(row));
+        if chart.essential.is_empty() {
+            working.add_until(Standard, Detailed, msg!("core.logic.step.no_essentials"), String::new());
+        } else {
+            let latex = chart.essential.iter().map(|r| named(*r)).collect::<Vec<_>>().join(",\\ ");
+            working.add_until(Standard, Detailed, msg!("core.logic.step.essentials"), latex);
+        }
+        // The reductions replayed, to name what was left at each.
+        let mut rows_left: Vec<usize> = (0..chart.primes.len()).collect();
+        let mut columns_left = chart.columns.clone();
+        let rows_over = |rows_left: &[usize], c: usize| rows_left.iter().filter(|r| chart.covers(**r, c)).map(|r| prime_name(*r)).collect::<Vec<_>>().join(", ");
+        let columns_under = |columns_left: &[usize], r: usize| columns_left.iter().filter(|c| chart.covers(r, **c)).map(|c| column(*c)).collect::<Vec<_>>().join(", ");
+        for reduction in &chart.reductions {
+            match *reduction {
+                Reduction::Essential { row, column: c } => {
+                    working.add(Detailed, msg!("core.logic.step.take"), format!("{}\\colon\\ {}", column(c), named(row)));
+                    rows_left.retain(|r| *r != row);
+                    columns_left.retain(|c| !chart.covers(row, *c));
+                }
+                Reduction::Covered { row } => {
+                    working.add(Detailed, msg!("core.logic.step.drop_covered"), named(row));
+                    rows_left.retain(|r| *r != row);
+                }
+                Reduction::ColumnDominates { column: c, over } => {
+                    let latex = format!("{}\\colon\\ {} \\supseteq {}\\colon\\ {}", column(c), rows_over(&rows_left, c), column(over), rows_over(&rows_left, over));
+                    working.add(Detailed, msg!("core.logic.step.drop_column"), latex);
+                    columns_left.retain(|x| *x != c);
+                }
+                Reduction::RowDominated { row, by } => {
+                    let latex = format!("{}\\colon\\ {} \\subseteq {}\\colon\\ {}", prime_name(row), columns_under(&columns_left, row), prime_name(by), columns_under(&columns_left, by));
+                    working.add(Detailed, msg!("core.logic.step.drop_row"), latex);
+                    rows_left.retain(|r| *r != row);
+                }
+            }
+        }
+    }
+
+    // Petrick's method.
+    if let Some(petrick) = petrick {
+        let product = |rows: &[usize]| if rows.is_empty() { "1".to_string() } else { rows.iter().map(|r| prime_name(*r)).collect::<Vec<_>>().join(" ") };
+        let sum = |products: &[Vec<usize>]| products.iter().map(|p| product(p)).collect::<Vec<_>>().join(or);
+        let sums: String = petrick
+            .sums
+            .iter()
+            .map(|s| if s.len() == 1 { prime_name(s[0]) } else { format!("({})", s.iter().map(|r| prime_name(*r)).collect::<Vec<_>>().join(or)) })
+            .collect();
+        working.add(Detailed, msg!("core.logic.step.petrick_sums"), sums);
+        for step in &petrick.steps {
+            working.add(Maximal, msg!("core.logic.step.petrick_step"), format!("= {}", sum(step)));
+        }
+        if let Some((terms, literals)) = petrick.bound {
+            working.add(Maximal, msg!("core.logic.step.petrick_bound"), String::new());
+        }
     }
 }
