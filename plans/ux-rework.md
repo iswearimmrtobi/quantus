@@ -197,15 +197,15 @@ four NAND/NOR `Section`s (L240–249).
 
 `GeometryView.tsx`, `styles.css`.
 
-- [ ] `GeometryView` returns a two-column grid: the sidebar (`geometry-sidebar`) left, the plot
+- [x] `GeometryView` returns a two-column grid: the sidebar (`geometry-sidebar`) left, the plot
   (`geometry-stage`) right. It no longer uses `analysis-panel` with its `max-width: 1280px`; the
   workspace does not scroll, and each column scrolls on its own.
-- [ ] The stage fills the window: `height: 100%` instead of `.geometry-plot .plot-canvas
+- [x] The stage fills the window: `height: 100%` instead of `.geometry-plot .plot-canvas
   { height: 460px }` (`styles.css:2612`). The ResizeObserver in `GeometryPlot` (L76) already
   follows the size.
-- [ ] The sidebar's width can be dragged (240–600 px) and is kept in `localStorage`. A button
+- [x] The sidebar's width can be dragged (240–600 px) and is kept in `localStorage`. A button
   collapses it to a thin strip, so the view gets the whole window.
-- [ ] The narrow layout (`@media` at `styles.css:3669`): sidebar over the view, the view at least
+- [x] The narrow layout (`@media (max-width: 760px)` of its own): sidebar over the view, the view at least
   60 vh high.
 
 ### 3.4 Desktop: the sidebar (M)
