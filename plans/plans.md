@@ -2,6 +2,11 @@
 
 Open work, most important first. Remove an item once it is done; git keeps the history.
 
+## 0. UX rework before the next release
+
+Geometry, Base-N, Logic and the Logic circuit editor work but are hard to use; no release until
+the **must** items in [ux-rework.md](ux-rework.md) are done.
+
 ## 1. Make nested integrals fast
 
 **Problem.** `\int_0^1\int_0^2 x y \, dx\, dy` takes 1.9 s in a release build (2.9 s in a debug
