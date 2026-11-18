@@ -10,6 +10,10 @@ import { LogicLines } from './LogicLines';
 import { LogicResults } from './LogicResults';
 import { LogicTable } from './LogicTable';
 
+/** The two examples of the empty page: an expression and a minterm list. */
+const EXAMPLE_EXPRESSION = 'f = A \\land B \\lor C';
+const EXAMPLE_MINTERMS = 'f = \\sum m(3, 5, 6, 7)';
+
 interface Props {
   settings: Settings;
   scene: LogicScene;
@@ -91,7 +95,12 @@ export function LogicView({ settings, scene, onSceneChange, files }: Props) {
         ))}
         <LogicLines scene={scene} answer={answer} onChange={onSceneChange} />
         <LogicCircuit settings={settings} scene={scene} answer={answer} onSceneChange={onSceneChange} switchValue={switchValue} onToggle={toggle} drawRequest={drawRequest} />
-        {!answer && !failure && <p className="analysis-empty">{t('logic.empty')}</p>}
+        {!answer && !failure && (
+          <p className="analysis-empty logic-empty">
+            {t('logic.empty.lead')} <Katex latex={EXAMPLE_EXPRESSION} /> {t('logic.empty.or')} <Katex latex={EXAMPLE_MINTERMS} />
+            {t('logic.empty.tail')}
+          </p>
+        )}
         {outputs.length > 1 && (
           <div className="form-row logic-tabs">
             {outputs.map(({ result }) => (

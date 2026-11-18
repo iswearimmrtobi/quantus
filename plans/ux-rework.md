@@ -143,7 +143,7 @@ four NAND/NOR `Section`s (L240–249).
 
 ### 2.2 Input (S)
 
-- [ ] `logic.empty` (`locales/*.json`): the example rendered with `Katex`, not as raw
+- [x] `logic.empty` (`locales/*.json`): the example rendered with `Katex`, not as raw
   `\land`/`\lor`/`\sum`. Split the text into words and two formulas.
 - [ ] Operator keys above the function lines, **∧ ∨ ¬ ⊕ ( )** and **Σm**, inserting into the
   focused MathField (as the Base-N chips do).
