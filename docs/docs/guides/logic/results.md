@@ -102,7 +102,8 @@ The **Gates** card shows the function built from gates. A switch picks the form:
 
 The 2-in buttons are there only when they differ: for a function of two variables every gate
 already has 2 inputs, so there is one NAND and one NOR form. Under the formula and its cost is
-the circuit as **Draw from** would draw it, read-only. **Open in editor** draws it in the
+the circuit as **Draw from** would draw it, read-only, simulated in the table's current row as
+the editor is: a net at 1 bright, at 0 dim, the switches set and the lamps lit. **Open in editor** draws it in the
 [circuit editor](editor.md) (replacing the circuit there) and scrolls to it. With several
 outputs, such as a truth table with several output columns, the picture and **Open in editor**
 take all of them in one circuit in the form chosen here, built from the

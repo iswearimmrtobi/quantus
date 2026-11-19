@@ -2,7 +2,7 @@ import type { GateType, LogicSymbols } from '../api';
 import { Katex } from '../components/Katex';
 import { useT, type Translate } from '../i18n';
 import { nameLatex, readName } from '../logic';
-import { GRID, segmentBox, sidesAround, turnedBox, wireBetween, wireEnds, type Rect, type Side } from '../schematic/geometry';
+import { GRID, pointKey, segmentBox, sidesAround, turnedBox, wireBetween, wireEnds, type Point, type Rect, type Side } from '../schematic/geometry';
 import { CheckedTextField, InspectorHead, SelectField } from '../schematic/inspector';
 import type { PartKit } from '../schematic/kit';
 import type { CanvasLabel, LabelRequest } from '../schematic/labels';
@@ -18,14 +18,18 @@ import {
   localBody,
   MAX_GATE_INPUTS,
   newPart,
+  numberNets,
   PART_LABELS,
+  partPins,
   pastedPart,
   pinOffsets,
   single,
+  toNetlist,
   withGate,
   type LogicPart,
   type PaletteKind,
 } from './circuit';
+import { simulate } from './simulate';
 
 /**
  * The Logic mode's parts for the shared editor (design/digital-logic.md §10.2): switches, lamps,
@@ -66,13 +70,15 @@ export function logicKit(symbols: LogicSymbols): PartKit<LogicPart, PaletteKind,
 }
 
 /** The Logic mode's own CSS of a picture, after the shared one (`schematic/picture.tsx`). */
-const pictureStyle = ({ ink, paper, muted, faint }: PictureColors) => `
+const pictureStyle = ({ ink, paper, muted, faint, on, lit }: PictureColors) => `
 .symbol .logic-body, .symbol .logic-bubble, .symbol .logic-lamp, .symbol .logic-switch { fill: ${paper}; }
 .symbol .logic-knob { fill: ${muted}; stroke: none; }
 .logic-sign { fill: ${ink}; stroke: none; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; text-anchor: middle; dominant-baseline: middle; }
 .name { fill: ${ink}; font-family: 'Latin Modern Roman', 'Times New Roman', serif; font-size: 15px; text-anchor: middle; dominant-baseline: central; }
 .name .letter { font-style: italic; }
 .id { fill: ${faint}; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px; text-anchor: middle; dominant-baseline: central; }
+${on ? `.wire.on, .symbol .logic-switch.on { stroke: ${on}; } .wire.off { stroke: ${muted}; } .symbol .logic-knob.on { fill: ${on}; }` : ''}
+${lit ? `.symbol .logic-lamp.on { fill: ${lit}; }` : ''}
 `;
 
 /** The labels of the parts that have one: a switch's or lamp's name, a gate's id. */
@@ -91,9 +97,32 @@ export function logicLabels(parts: LogicPart[]): CanvasLabel[] {
   });
 }
 
-/** A circuit as a picture without an editor (the Gates card), in the app's colours or black on white. */
-export function staticPicture(parts: LogicPart[], symbols: LogicSymbols, theme: 'app' | 'export'): Picture {
-  return guessedPicture(logicKit(symbols), parts, logicLabels(parts), theme);
+/**
+ * A circuit as a picture without an editor (the Gates card), in the app's colours or black on
+ * white. With `switches` (by name) it shows the simulation as the editor does: each net at 1
+ * bright, at 0 dim, the switches set and the lamps lit.
+ */
+export function staticPicture(parts: LogicPart[], symbols: LogicSymbols, theme: 'app' | 'export', switches?: Map<string, boolean>): Picture {
+  const kit = logicKit(symbols);
+  if (!switches) return guessedPicture(kit, parts, logicLabels(parts), theme);
+  const nets = numberNets(parts);
+  const netlist = toNetlist(parts, nets);
+  const values = netlist ? simulate(netlist, switches) : new Map<number, boolean>();
+  const at = (point: Point | undefined): boolean | null => {
+    const net = point && nets.byPoint.get(pointKey(point));
+    return net === undefined ? null : (values.get(net) ?? null);
+  };
+  return guessedPicture(kit, parts, logicLabels(parts), theme, {
+    wireClass: (wire) => {
+      const value = at(wireEnds(wire)[0]);
+      return value === null ? undefined : value ? 'on' : 'off';
+    },
+    partState: (part) => {
+      if (part.kind === 'input') return part.name ? (switches.get(part.name) ?? null) : null;
+      if (part.kind === 'output') return at(partPins(part).inputs[0]);
+      return null;
+    },
+  });
 }
 
 /** A switch's or lamp's name as SVG text: a letter in italics, a longer name upright, the index lowered. */

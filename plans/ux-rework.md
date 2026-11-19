@@ -113,7 +113,7 @@ four NAND/NOR `Section`s (L240–249).
   `theme` argument).
 - [x] **Open in editor**: calls `draw(form, output)` of `LogicCircuit` (lift it into
   `LogicView` or pass a callback), opens the editor and scrolls to it.
-- [ ] Simulation in the picture: the wires coloured by the table's current row, as in the editor
+- [x] Simulation in the picture: the wires coloured by the table's current row, as in the editor
   (`scene.row`). This is optional and can follow later.
 
 ### 1.6 Desktop: Draw from with six forms (S)

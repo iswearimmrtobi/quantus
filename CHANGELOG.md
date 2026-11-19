@@ -133,7 +133,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   in colour and the chosen minimal form under it, and a **Gates** card with the function as AND–OR, OR–AND, NAND, NAND from 2-input
   gates, NOR or NOR from 2-input gates (the 2-input forms where they differ), the NAND and NOR
   forms also gate by gate from a typed expression or circuit, each with gates, gate inputs and
-  levels, a picture of the circuit and **Open in editor**, both of every output in one circuit when
+  levels, a picture of the circuit (simulated in the table's current row) and **Open in editor**, both of every output in one circuit when
   there are several. A NAND or NOR form is shown gate by gate (`G_1 = \overline{A \land B}`, …,
   `f = G_4`), or as one formula. The results fill three cards: the
   expression beside the canonical forms, the minimal DNF beside the minimal KNF, and the Gates

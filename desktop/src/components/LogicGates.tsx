@@ -5,6 +5,7 @@ import { useT, type TextKey } from '../i18n';
 import { logicTask } from '../logic';
 import { fromGenerated, type GateChoice, type LogicPart } from '../logic/circuit';
 import { staticPicture } from '../logic/kit';
+import { rowInputs } from '../logic/simulate';
 import { Section } from './LogicResults';
 import { Segmented } from './SettingsDialog';
 
@@ -252,7 +253,15 @@ function GatesPicture({ scene, output, all, form, fromExpression, symbols }: { s
       setError(error);
     })();
   }, [key]);
-  const picture = useMemo(() => (parts?.length ? staticPicture(parts, symbols, 'app') : null), [parts, symbols]);
+  // The simulation of the table's current row, as in the editor: changing the row recolours the picture without drawing it again.
+  const row = Math.min(scene.row ?? 0, Math.max(0, (1 << scene.inputs.length) - 1));
+  const rowKey = JSON.stringify([scene.inputs, row]);
+  const picture = useMemo(
+    () => (parts?.length ? staticPicture(parts, symbols, 'app', rowInputs(scene.inputs, row)) : null),
+    // scene.inputs and row are in rowKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [parts, symbols, rowKey],
+  );
   if (error) return <p className="file-error">{error}</p>;
   if (!picture) return null;
   return (
