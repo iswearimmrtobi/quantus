@@ -226,7 +226,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
   const shownX = hovered?.x ?? (shown !== null ? points[shown]?.x : undefined);
 
   return (
-    <div className="plot">
+    <div className="plot function-plot">
       <div
         className="plot-canvas"
         ref={host}

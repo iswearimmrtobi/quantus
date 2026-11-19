@@ -2146,13 +2146,16 @@ select option {
   container-type: inline-size;
 }
 
+/* The panel fills the workspace: input and tabs on top, below them the graph and the sheet, which
+   scrolls on its own. */
 .analysis-panel {
-  /* Its own height, not the workspace's: otherwise the bottom padding falls outside the scroll range. */
-  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  max-width: 1280px;
-  margin-top: 4vh;
-  padding: 0 24px 40px;
+  max-width: 1600px;
+  height: 100%;
+  min-height: 0;
+  padding: 16px 24px 16px;
 }
 
 .analysis-tabs {
@@ -2165,22 +2168,48 @@ select option {
 }
 
 .analysis-body {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(340px, 2fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 20px;
-  align-items: start;
-}
-
-@container (max-width: 900px) {
-  .analysis-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .analysis-sheet {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  /* Room for the cards' borders and a scroll bar that does not cover them. */
+  padding-right: 4px;
+}
+
+.analysis-sheet > * {
+  flex-shrink: 0;
+}
+
+/* Narrow: one column, the graph first, the page scrolling as a whole. */
+@container (max-width: 900px) {
+  .analysis-panel {
+    height: auto;
+  }
+  .analysis-body {
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  .analysis-sheet {
+    overflow-y: visible;
+    padding-right: 0;
+  }
+  .analysis-graph .plot-canvas {
+    flex: none;
+    height: 55vh;
+    min-height: 300px;
+  }
 }
 
 .analysis-function {
@@ -2351,11 +2380,25 @@ select option {
 }
 
 .analysis-graph {
-  position: sticky;
-  top: 12px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   min-width: 0;
+  min-height: 0;
+}
+
+.function-plot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.function-plot .plot-canvas {
+  flex: 1;
+  height: auto;
+  min-height: 300px;
+  overflow: hidden;
 }
 
 .plot {
@@ -4068,10 +4111,12 @@ select option {
   .app.panel-open .workspace {
     padding-right: 0;
   }
-  .calc-panel,
-  .analysis-panel {
+  .calc-panel {
     margin-top: 16px;
     padding: 0 12px 24px;
+  }
+  .analysis-panel {
+    padding: 16px 12px 24px;
   }
 
   /* The rail becomes the tab bar at the bottom, the status bar gives way to it. */

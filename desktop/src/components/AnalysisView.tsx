@@ -262,6 +262,32 @@ export function AnalysisView({ settings }: { settings: Settings }) {
 
         {analysis && analysed && (
           <div className="analysis-body">
+            <div className="analysis-graph">
+              <FunctionPlot
+                latex={analysed}
+                plot={analysis.plot}
+                points={points}
+                asymptotes={analysis.asymptotes}
+                lines={tab === 'tangent' && tangent ? [tangent.tangent, tangent.normal] : []}
+                regions={tab === 'area' && area ? area.regions : []}
+                dots={tab === 'table' && rows ? tableDots(rows) : []}
+                selected={selectedIndex !== null && selectedIndex >= 0 ? selectedIndex : null}
+                onSelect={select}
+              />
+              <div className="point-list">
+                {points.map((point, i) => (
+                  <button
+                    key={pointKey(point)}
+                    className={i === selectedIndex ? `point-item kind-${point.kind} selected` : `point-item kind-${point.kind}`}
+                    onClick={() => select(i === selectedIndex ? null : i)}
+                  >
+                    <span className="point-swatch" />
+                    <span className="point-kind">{t(`point.${point.kind}`)}</span>
+                    <Katex latex={point.latex} />
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="analysis-sheet">
               <div className="analysis-function">
                 <Katex latex={analysis.function} display />
@@ -397,32 +423,6 @@ export function AnalysisView({ settings }: { settings: Settings }) {
               )}
             </div>
 
-            <div className="analysis-graph">
-              <FunctionPlot
-                latex={analysed}
-                plot={analysis.plot}
-                points={points}
-                asymptotes={analysis.asymptotes}
-                lines={tab === 'tangent' && tangent ? [tangent.tangent, tangent.normal] : []}
-                regions={tab === 'area' && area ? area.regions : []}
-                dots={tab === 'table' && rows ? tableDots(rows) : []}
-                selected={selectedIndex !== null && selectedIndex >= 0 ? selectedIndex : null}
-                onSelect={select}
-              />
-              <div className="point-list">
-                {points.map((point, i) => (
-                  <button
-                    key={pointKey(point)}
-                    className={i === selectedIndex ? `point-item kind-${point.kind} selected` : `point-item kind-${point.kind}`}
-                    onClick={() => select(i === selectedIndex ? null : i)}
-                  >
-                    <span className="point-swatch" />
-                    <span className="point-kind">{t(`point.${point.kind}`)}</span>
-                    <Katex latex={point.latex} />
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </div>
