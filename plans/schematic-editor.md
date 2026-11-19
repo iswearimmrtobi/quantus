@@ -120,7 +120,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   note move there from the `.circuit-note` overlay.
 - [x] 9. **Fit on open/load** for Electronics and Kirchhoff: load counter in `App.tsx` (like
   `logicLoads`) → `fitKey`.
-- [ ] 10. **SVG/PNG export** for Electronics and Kirchhoff via `ExportButtons` in the palette column;
+- [x] 10. **SVG/PNG export** for Electronics and Kirchhoff via `ExportButtons` in the palette column;
   labels' `svg` = id + shown values as plain text (`value` `unit`); the Kirchhoff overlay is not
   exported. Texts `logic.export.*` → `schematic.export.*`, `circuit.export.name`.
 - [ ] 11. **Undo / redo.** `useHistory` in the shell wraps `onChange`: a drag is one entry (snapshot at

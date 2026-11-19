@@ -4,6 +4,8 @@ import { useT } from '../i18n';
 import { opposite, sidesAround, wireBetween, type Rect, type Side } from '../schematic/geometry';
 import { InspectorHead, SelectField, TextField } from '../schematic/inspector';
 import type { PartKit } from '../schematic/kit';
+import type { PictureColors } from '../schematic/picture';
+import { plainOf } from '../schematic/plain';
 import type { LabelRequest } from '../schematic/labels';
 import {
   body,
@@ -34,6 +36,34 @@ export type ElementResult = CircuitResponse['elements'][number];
 
 /** Where a part is grabbed, in its own coordinates: along its body, short of its terminals. */
 const HIT: Rect = { x: -HALF + 8, y: -16, w: 2 * HALF - 16, h: 32 };
+
+/** Electronics' own CSS of a picture, after the shared one (`schematic/picture.tsx`). */
+const pictureStyle = ({ ink, faint }: PictureColors) => `
+.terminal-name { fill: ${ink}; font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; }
+.label { fill: ${ink}; font-family: system-ui, sans-serif; font-size: 11px; text-anchor: middle; dominant-baseline: central; }
+.label .id { fill: ${faint}; font-family: ui-monospace, Menlo, Consolas, monospace; }
+`;
+
+/** A computed value as plain text, for a picture: `U = 5 V`; `?` when not known. */
+export function plainValue(label: string, value: CircuitValue): string {
+  const known = value.status !== 'unknown' && value.result !== null;
+  return `${label} = ${known ? plainOf(value.result!) : '?'}`;
+}
+
+/** A label's lines as SVG text centred on (0, 0), the first one, an id, set apart. */
+export function LabelText({ id, lines }: { id?: string; lines: string[] }) {
+  const all = id === undefined ? lines : [id, ...lines];
+  const step = 14;
+  return (
+    <text className="label">
+      {all.map((line, k) => (
+        <tspan key={k} x="0" y={(k - (all.length - 1) / 2) * step} className={id !== undefined && k === 0 ? 'id' : undefined}>
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
+}
 
 /** The kit of a mode offering `palette`. */
 export function circuitKit(palette: EditorKind[]): PartKit<EditorElement, EditorKind> {
@@ -74,6 +104,7 @@ export function circuitKit(palette: EditorKind[]): PartKit<EditorElement, Editor
           {element.id}
         </text>
       ),
+    pictureStyle,
     keys: ({ elements, selection, onChange }) => [
       {
         // Shift+R turns each selected resistor by 45° about its middle; other parts stay as they are.

@@ -4,7 +4,7 @@ import { useT } from '../i18n';
 import { SchematicEditor } from '../schematic/Editor';
 import { pointKey, type Rect } from '../schematic/geometry';
 import type { CanvasLabel } from '../schematic/labels';
-import { CircuitInspector, circuitKit, nodePlace, partPlace, Value, type ElementResult, type Place } from './kit';
+import { CircuitInspector, circuitKit, LabelText, nodePlace, partPlace, plainValue, Value, type ElementResult, type Place } from './kit';
 import { body, FIELDS, QUANTITIES, type EditorElement, type EditorKind, type Field, type Point, type Shown } from './model';
 
 /** A label a mode adds to the canvas; it is laid out with the part labels and kept clear of them. */
@@ -94,22 +94,23 @@ export function CircuitEditor({
       const place = partPlace(element);
       if (!place) continue;
       const result = results.get(element.id);
+      const values = result ? QUANTITIES.flatMap(({ key, symbol }) => (shown[key] && result[key] ? [{ symbol, value: result[key]! }] : [])) : [];
       const content = (
         <>
           <span className="part-id">{element.id}</span>
-          {result &&
-            QUANTITIES.map(({ key, symbol }) => {
-              const value = result[key];
-              return shown[key] && value ? <Value key={key} label={symbol} value={value} /> : null;
-            })}
+          {values.map(({ symbol, value }) => (
+            <Value key={symbol} label={symbol} value={value} />
+          ))}
         </>
       );
-      list.push({ ...place, id: element.id, className: 'part-label', content, leaderFrom: body(element) });
+      const svg = <LabelText id={element.id} lines={values.map(({ symbol, value }) => plainValue(symbol, value))} />;
+      list.push({ ...place, id: element.id, className: 'part-label', content, svg, leaderFrom: body(element) });
     }
     if (preview) return list;
     for (const extra of extraLabels ?? []) list.push({ ...extra, className: extra.className ?? '' });
     for (const { point, voltage } of voltages ?? []) {
-      list.push({ ...nodePlace(point), id: `node-${pointKey(point)}`, className: 'node-label', content: <Value label="φ" value={voltage} /> });
+      const svg = <LabelText lines={[plainValue('φ', voltage)]} />;
+      list.push({ ...nodePlace(point), id: `node-${pointKey(point)}`, className: 'node-label', content: <Value label="φ" value={voltage} />, svg });
     }
     return list;
   }, [elements, preview, results, shown, extraLabels, voltages]);

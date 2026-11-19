@@ -7,6 +7,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Desktop, Electronics and Kirchhoff: *Picture* under the palette saves the circuit as an SVG or
+  PNG file, as Logic does: the parts, wires, junctions, the parts' names and the values shown on
+  the canvas, black on white without the grid. Kirchhoff's arrows and marks are left out.
 - Basis-N computes in a word of 8, 16, 32 or 64 bits, signed or unsigned (settings `wordSize`
   and `signed`; the default stays 32 bit, signed). A literal must fit the word: `-128` and `FF`
   can be typed in 8 bit (`FF` is −1 when signed), `1FF` is the error *'1FF' does not fit 8 bits.*
