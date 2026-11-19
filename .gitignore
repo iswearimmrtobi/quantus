@@ -21,3 +21,6 @@ firmware/sim/sd/*
 # The example apps are part of the repository; what they save is not.
 !firmware/sim/sd/apps/
 firmware/sim/sd/apps/data/
+
+# a private theme, not part of the repository
+themes/secret-1.toml

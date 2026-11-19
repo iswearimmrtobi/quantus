@@ -13,7 +13,7 @@ minimal form into the editor.
 Switch **Table & KV | Circuit** to *Circuit* to see the editor in place of the table and the KV
 diagram; the results stay under it. The page opens on *Circuit* when the scene has a circuit, and
 **Draw from** or **Open in editor** switch to it. It has the parts on the left and the canvas beside them, as in the
-[Electronics](../electronics.md) editor; clicking a part opens its settings in a box beside it.
+[Electronics](../electronics.md) editor; clicking a part opens its settings in a box beside it (a switch: double-click, since a click flips it).
 
 ## Parts
 

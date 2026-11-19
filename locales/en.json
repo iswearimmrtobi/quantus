@@ -69,7 +69,7 @@
     "app.choice.radian": "Radians",
     "app.choice.starToDelta": "Star → delta",
     "app.choice.withCondition": "With condition",
-    "app.circuit.choose": "Choose a part to enter its values.",
+    "app.circuit.close": "Close (Esc)",
     "app.circuit.delete": "Delete",
     "app.circuit.deletes": "deletes",
     "app.circuit.drag": "Drag onto the canvas or click",

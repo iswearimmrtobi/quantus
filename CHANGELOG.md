@@ -167,8 +167,18 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - A USB keyboard on the handheld repeats the arrows and Backspace after 600 ms and then every
   100 ms, instead of after 500 ms and every 50 ms: a slightly long tap on Backspace deleted
   several characters.
+- Desktop, circuit editors: a click beside a part no longer chooses it. A part's grab area ran
+  on to the right edge of the canvas, so a click anywhere on its row took it.
+- Desktop, circuit editors: a click on a wire chooses it, also on a grid point of the wire;
+  only a drag from there draws a branching wire.
+- Desktop, circuit editors: Del deletes a part right after it was put in from the palette.
 
 ### Changed
+
+- Desktop, Electronics and Kirchhoff: a part's values open beside it over the canvas, as in Logic,
+  instead of in a column on the right. In every circuit editor the ✕ of that box closes it, and a
+  red bin deletes the part. Esc closes the box, a second Esc clears the choice.
+- Desktop, Logic: a click on a switch only flips it; a double click opens its box.
 
 - Basis-N wraps a result that does not fit the word, as a register does, and warns: *Overflow:
   the result was wrapped to 32 bits.* Before, `2147483647 + 1` was an error. The message for a

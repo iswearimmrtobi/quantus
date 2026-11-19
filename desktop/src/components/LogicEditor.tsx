@@ -28,7 +28,7 @@ import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, se
 import { pngBytes, svgBytes, type Picture } from '../picture';
 import { saveBytes } from '../shell';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey, type Fullscreen } from './Schematic';
+import { DragGhost, GridBackground, HOME, InspectorHead, InspectorPopover, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, type Fullscreen } from './Schematic';
 
 interface Props {
   parts: LogicPart[];
@@ -79,8 +79,10 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
     pins: allPins,
     newWire: (next, from, to) => ({ ...newPart(next, 'wire', from), x2: to.x, y2: to.y }),
     onTap: (part) => part.kind === 'input' && part.name && onToggle?.(part.name),
+    // A click flips a switch; a double click opens its inspector.
+    tapOnly: (part) => part.kind === 'input',
   });
-  const { selection, setSelection, drag, update, remove, rotateSelected } = editing;
+  const { selection, inspected, drag, update, remove } = editing;
 
   const wires = useMemo<Segment[]>(() => parts.filter((p) => p.kind === 'wire').map(wireEnds), [parts]);
   const ends = useMemo(() => parts.flatMap(allPins), [parts]);
@@ -161,18 +163,12 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
     };
     const part = newPart(parts, kind, spot);
     onChange([...parts, part]);
-    setSelection([part.id]);
+    editing.inspect(part.id);
+    // The canvas takes the keys, so that Del removes the new part at once.
+    canvas.current?.focus();
   };
 
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Delete' || event.key === 'Backspace') remove(selection);
-    else if (event.key === ' ' || event.key.toLowerCase() === 'r') rotateSelected();
-    // Esc with nothing selected is left to the full-screen view.
-    else if (event.key === 'Escape' && selection.length) setSelection([]);
-    else if (event.key === 'Home') fitAll();
-    else if (!zoomKey(event, canvasView, fitAll)) return;
-    event.preventDefault();
-  };
+  const onKeyDown = (event: React.KeyboardEvent) => editing.keyDown(event, { home: fitAll, fit: fitAll });
 
   const faulty = useMemo(() => new Set(errors.flatMap((e) => e.elements)), [errors]);
   const doubtful = useMemo(() => new Set(warnings.flatMap((e) => e.elements)), [warnings]);
@@ -187,26 +183,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
     return null;
   };
 
-  const chosen = selection.length === 1 ? (parts.find((p) => p.id === selection[0]) ?? null) : null;
-
-  /**
-   * Where the inspector of the chosen part stands: beside the part on the canvas, to its right,
-   * or to its left when there is no room, and inside the canvas.
-   */
-  const popoverPlace = (part: LogicPart): React.CSSProperties => {
-    const box = part.kind === 'wire' ? segmentBox(...wireEnds(part), 2) : bodyBox(part);
-    const stage = canvas.current?.getBoundingClientRect() ?? { width: 0, height: 0 };
-    const [left, right] = [box.x * view.zoom + view.x, (box.x + box.w) * view.zoom + view.x];
-    const top = box.y * view.zoom + view.y;
-    const gap = 14;
-    const x = right + gap + POPOVER_WIDTH <= stage.width - 8 ? right + gap : left - gap - POPOVER_WIDTH;
-    return {
-      width: POPOVER_WIDTH,
-      left: Math.max(8, Math.min(x, stage.width - POPOVER_WIDTH - 8)),
-      top: Math.max(8, Math.min(top, stage.height - 120)),
-      maxHeight: `calc(100% - ${Math.max(8, Math.min(top, stage.height - 120)) + 8}px)`,
-    };
-  };
+  const chosen = (drag?.type !== 'move' && parts.find((p) => p.id === inspected)) || null;
 
   /** The circuit as a picture file (§10.5), the SVG or a PNG of it. */
   const [exportError, setExportError] = useState<string | null>(null);
@@ -298,7 +275,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
                       connected={connected}
                       onPointerDown={(event) => editing.startMove(event, part)}
                       onEnd={(event, end) => editing.startEnd(event, part, end)}
-                      onTerminal={(event, point) => editing.startDraw(event, point)}
+                      onTerminal={(event, point) => editing.startDraw(event, point, part)}
                     />
                   );
                 }
@@ -359,10 +336,17 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
 
           {!parts.length && emptyCanvas && <div className="logic-canvas-empty">{emptyCanvas}</div>}
 
-          {chosen && drag?.type !== 'move' && (
-            <aside className="logic-inspector-popover" style={popoverPlace(chosen)}>
-              <Inspector part={chosen} parts={parts} onChange={(change) => update(chosen.id, change)} onReplace={(next) => onChange(parts.map((p) => (p.id === next.id ? next : p)))} onRemove={() => remove([chosen.id])} />
-            </aside>
+          {chosen && (
+            <InspectorPopover box={chosen.kind === 'wire' ? segmentBox(...wireEnds(chosen), 2) : bodyBox(chosen)} view={view} canvas={canvas}>
+              <Inspector
+                part={chosen}
+                parts={parts}
+                onChange={(change) => update(chosen.id, change)}
+                onReplace={(next) => onChange(parts.map((p) => (p.id === next.id ? next : p)))}
+                onRemove={() => remove([chosen.id])}
+                onClose={editing.closeInspector}
+              />
+            </InspectorPopover>
           )}
 
         </div>
@@ -385,9 +369,6 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
     </div>
   );
 }
-
-/** The width of the inspector beside the chosen part, px. */
-const POPOVER_WIDTH = 240;
 
 /** The colours of a picture: ink, the paper (also the fill of bodies), the knob's and the faint labels' grey. */
 interface PictureColors {
@@ -573,7 +554,7 @@ function obstacles(part: LogicPart): Rect[] {
 /** Where a part is grabbed: its body with a little room. */
 function HitArea({ part, onPointerDown }: { part: LogicPart; onPointerDown(event: React.PointerEvent): void }) {
   const [x0, y0, x1, y1] = localBody(part);
-  return <rect className="hit" x={x0 - 4} y={y0 - 4} width={x1 - x0 + 8} height={y1 - y0 + 8} onPointerDown={onPointerDown} />;
+  return <rect className="part-hit" x={x0 - 4} y={y0 - 4} width={x1 - x0 + 8} height={y1 - y0 + 8} onPointerDown={onPointerDown} />;
 }
 
 /** The sign in an IEC gate's box. */
@@ -704,24 +685,20 @@ function Inspector({
   onChange,
   onReplace,
   onRemove,
+  onClose,
 }: {
   part: LogicPart;
   parts: LogicPart[];
   onChange(change: Partial<LogicPart>): void;
   onReplace(part: LogicPart): void;
   onRemove(): void;
+  onClose(): void;
 }) {
   const { t } = useT();
   const kind = part.kind === 'gate' ? gateName(part.gate ?? 'and') : t(PART_LABELS[part.kind]);
   return (
     <div className="inspector">
-      <div className="inspector-head">
-        <span className="inspector-id">{part.id}</span>
-        <span className="inspector-kind">{kind}</span>
-        <button className="inspector-delete" title={`${t('circuit.delete')} (${t('key.delete')})`} onClick={onRemove}>
-          ✕
-        </button>
-      </div>
+      <InspectorHead id={part.id} kind={kind} onRemove={onRemove} onClose={onClose} />
 
       {(part.kind === 'input' || part.kind === 'output') && (
         <NameField

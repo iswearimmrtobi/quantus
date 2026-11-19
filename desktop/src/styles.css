@@ -1607,7 +1607,7 @@ select option {
 
 .circuit {
   display: grid;
-  grid-template-columns: 170px 1fr 250px;
+  grid-template-columns: 170px 1fr;
   grid-template-rows: minmax(0, 1fr);
   height: 100%;
 }
@@ -1626,17 +1626,11 @@ select option {
   min-height: 0;
 }
 
-.circuit-palette,
-.circuit-inspector {
+.circuit-palette {
   padding: 14px 12px;
   overflow-y: auto;
   background: var(--surface);
-}
-.circuit-palette {
   border-right: 1px solid var(--hairline);
-}
-.circuit-inspector {
-  border-left: 1px solid var(--hairline);
 }
 
 .palette-title {
@@ -1753,7 +1747,7 @@ select option {
 .part.selected .terminal-name {
   fill: var(--primary);
 }
-.part .hit {
+.part .part-hit {
   fill: transparent;
   stroke: transparent;
   stroke-width: 14;
@@ -2036,11 +2030,34 @@ select option {
   color: var(--text-muted);
   font-size: 12px;
 }
+.inspector-delete,
+.inspector-close {
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius);
+}
 .inspector-delete {
+  color: var(--danger);
+}
+.inspector-delete svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.inspector-close {
   color: var(--text-faint);
 }
-.inspector-delete:hover {
-  color: var(--danger);
+.inspector-delete:hover,
+.inspector-close:hover {
+  background: var(--surface-hover);
+}
+.inspector-close:hover {
+  color: var(--text);
 }
 
 .field {
@@ -3180,7 +3197,7 @@ select option {
   grid-template-columns: 150px 1fr;
 }
 /* The inspector of the chosen part, beside it over the canvas. */
-.logic-inspector-popover {
+.inspector-popover {
   position: absolute;
   z-index: 2;
   overflow-y: auto;
@@ -3297,13 +3314,19 @@ select option {
   gap: 4px;
 }
 /* An empty canvas: the forms to draw from in its middle, the drop target still under them. */
-.logic-canvas-empty {
+.logic-canvas-empty,
+.circuit-canvas-empty {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   padding: 20px;
   pointer-events: none;
+}
+.circuit-canvas-empty {
+  color: var(--text-faint);
+  font-size: 13px;
+  text-align: center;
 }
 .logic-canvas-start {
   display: grid;
@@ -4219,11 +4242,10 @@ select option {
   }
   .circuit {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(360px, 70dvh) auto;
+    grid-template-rows: auto minmax(360px, 70dvh);
     height: auto;
   }
-  .circuit-palette,
-  .circuit-inspector {
+  .circuit-palette {
     border: none;
     border-bottom: 1px solid var(--hairline);
   }

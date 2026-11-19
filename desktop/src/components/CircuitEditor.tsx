@@ -28,7 +28,7 @@ import { boundsOf } from '../schematic';
 import { useT } from '../i18n';
 import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../labelLayout';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, zoomKey, useFullscreen } from './Schematic';
+import { DragGhost, GridBackground, HOME, InspectorHead, InspectorPopover, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, useFullscreen } from './Schematic';
 
 type ElementResult = CircuitResponse['elements'][number];
 
@@ -123,7 +123,7 @@ export function CircuitEditor({
     newWire: (next, from, to) => ({ ...newElement(next, 'wire', from), x2: to.x, y2: to.y }),
     turned: (rotation) => turnedBy(rotation, 2),
   });
-  const { selection, setSelection, drag, update, remove, rotateSelected } = editing;
+  const { selection, inspected, drag, update, remove } = editing;
 
   const results = useMemo(() => new Map(resultList?.map((e) => [e.id, e])), [resultList]);
   /** What the canvas shows: the elements, or the preview while there is one. */
@@ -171,8 +171,6 @@ export function CircuitEditor({
   /** Shows the whole drawing with its labels; the start view without one. */
   const fitAll = () => (elements.length ? canvasView.fit(boundsOf([...obstacles(elements), ...placements.values()])) : setView(HOME));
 
-  const selected = selection.length === 1 ? selection[0] : null;
-
   const add = (kind: EditorKind, at?: Point) => {
     // There are two terminals, A and B, and no third.
     if (kind === 'terminal' && elements.filter((e) => e.kind === 'terminal').length >= 2) return;
@@ -183,7 +181,9 @@ export function CircuitEditor({
     };
     const element = newElement(elements, kind, spot);
     onChange([...elements, element]);
-    setSelection([element.id]);
+    editing.inspect(element.id);
+    // The canvas takes the keys, so that Del removes the new part at once.
+    canvas.current?.focus();
   };
 
   /** Turns each selected resistor by 45° about its middle; other parts stay as they are. */
@@ -192,25 +192,15 @@ export function CircuitEditor({
     onChange(elements.map((e) => (selection.includes(e.id) && e.kind === 'resistor' ? { ...e, rotation: turnedBy(e.rotation, 1) } : e)));
   };
 
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Delete' || event.key === 'Backspace') {
-      remove(selection);
-    } else if (event.key.toLowerCase() === 'r' && event.shiftKey) {
-      tiltSelected();
-    } else if (event.key === ' ' || event.key.toLowerCase() === 'r') {
-      rotateSelected();
-    } else if (event.key === 'Escape' && selection.length) {
-      // With nothing selected, Esc is left to the full-screen view.
-      setSelection([]);
-    } else if (event.key === 'Home') {
-      setView(HOME);
-    } else if (!zoomKey(event, canvasView, fitAll)) {
-      return;
-    }
-    event.preventDefault();
-  };
+  const onKeyDown = (event: React.KeyboardEvent) =>
+    editing.keyDown(event, {
+      home: () => setView(HOME),
+      fit: fitAll,
+      // Shift+R tilts a resistor.
+      extra: (key) => key.key.toLowerCase() === 'r' && key.shiftKey && (tiltSelected(), true),
+    });
 
-  const chosen = elements.find((e) => e.id === selected) ?? null;
+  const chosen = (!preview && drag?.type !== 'move' && elements.find((e) => e.id === inspected)) || null;
   const fullscreen = useFullscreen();
 
   return fullscreen.portal(
@@ -273,7 +263,7 @@ export function CircuitEditor({
                 highlighted={highlight?.includes(element.id) ?? false}
                 connected={connected}
                 onPointerDown={(event) => editing.startMove(event, element)}
-                onTerminal={(event, point) => editing.startDraw(event, point)}
+                onTerminal={(event, point) => editing.startDraw(event, point, element)}
                 onEnd={(event, end) => editing.startEnd(event, element, end)}
               />
             ))}
@@ -354,28 +344,25 @@ export function CircuitEditor({
           </div>
         </div>
 
+        {elements.length === 0 && !preview && <div className="circuit-canvas-empty">{t('circuit.empty')}</div>}
+
         {(failure || note) && <div className={failure ? 'circuit-note error' : 'circuit-note'}>{failure ?? note}</div>}
+
+        {chosen && (
+          <InspectorPopover box={body(chosen)} view={view} canvas={canvas}>
+            <Inspector
+              element={chosen}
+              fields={fields[chosen.kind]}
+              result={results.get(chosen.id)}
+              onChange={(change) => update(chosen.id, change)}
+              onRemove={() => remove([chosen.id])}
+              onClose={editing.closeInspector}
+            />
+          </InspectorPopover>
+        )}
       </div>
       {below}
       </div>
-
-      <aside className="circuit-inspector">
-        {chosen ? (
-          <Inspector
-            element={chosen}
-            fields={fields[chosen.kind]}
-            result={results.get(chosen.id)}
-            onChange={(change) => update(chosen.id, change)}
-            onRemove={() => remove([chosen.id])}
-          />
-        ) : (
-          <p className="panel-empty">
-            {elements.length === 0
-              ? t('circuit.empty')
-              : t('circuit.choose')}
-          </p>
-        )}
-      </aside>
     </div>
   );
 }
@@ -471,7 +458,7 @@ function Part({ element, selected, highlighted, connected, onPointerDown, onTerm
           {/* At 45° the terminals are √2 times as far out, so the leads run on to them. */}
           {isDiagonal(element.rotation) && <path d={`M${-HALF * Math.SQRT2} 0H${-HALF}M${HALF} 0H${HALF * Math.SQRT2}`} />}
         </g>
-        <rect className="hit" x={-HALF + 8} y="-16" width={2 * HALF - 16} height="32" onPointerDown={onPointerDown} />
+        <rect className="part-hit" x={-HALF + 8} y="-16" width={2 * HALF - 16} height="32" onPointerDown={onPointerDown} />
       </g>
       {(Object.entries(places) as [Terminal, Point][]).map(([name, point]) => (
         <circle
@@ -575,24 +562,20 @@ function Inspector({
   result,
   onChange,
   onRemove,
+  onClose,
 }: {
   element: EditorElement;
   fields: Field[];
   result: ElementResult | undefined;
   onChange(change: Partial<EditorElement>): void;
   onRemove(): void;
+  onClose(): void;
 }) {
   const { t, language } = useT();
   const parameters = element as unknown as Record<string, string | undefined>;
   return (
     <div className="inspector">
-      <div className="inspector-head">
-        <span className="inspector-id">{element.id}</span>
-        <span className="inspector-kind">{t(KIND_LABELS[element.kind])}</span>
-        <button className="inspector-delete" title={`${t('circuit.delete')} (${t('key.delete')})`} onClick={onRemove}>
-          ✕
-        </button>
-      </div>
+      <InspectorHead id={element.id} kind={t(KIND_LABELS[element.kind])} onRemove={onRemove} onClose={onClose} />
 
       {/* A mode with ideal wires only still offers the material when one is set, to take it off. */}
       {element.kind === 'wire' && (fields.length > 0 || element.material) && (

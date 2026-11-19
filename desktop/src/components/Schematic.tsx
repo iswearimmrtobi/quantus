@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -246,9 +247,13 @@ export function GridBackground({ view }: { view: View }) {
 export type Drag<E> =
   /** `moved`: whether the pointer has left the grid point it started on; if not, it was a tap. */
   | { type: 'move'; from: Point; origins: Map<string, E>; moved: boolean }
-  | { type: 'end'; id: string; end: 'a' | 'b' }
-  /** `across`: whether the wire leaves sideways first, decided by the first step of the pointer. */
-  | { type: 'draw'; from: Point; to: Point; across: boolean | null }
+  | { type: 'end'; id: string; end: 'a' | 'b'; moved: boolean }
+  /**
+   * `across`: whether the wire leaves sideways first, decided by the first step of the pointer.
+   * `tapped`: the wire the drawing started on, chosen instead when the pointer is let go where it
+   * was pressed.
+   */
+  | { type: 'draw'; from: Point; to: Point; across: boolean | null; tapped?: E }
   | { type: 'marquee'; from: Point; to: Point }
   | { type: 'pan'; from: Point; origin: View };
 
@@ -265,22 +270,40 @@ interface Editing<E extends Placeable> {
   turned?(rotation: number): number;
   /** A part pressed and let go without moving it, such as a switch flipped. */
   onTap?(element: E): void;
+  /** Whether a tap on the part only does `onTap`; its inspector then opens on a double click. */
+  tapOnly?(element: E): boolean;
 }
+
+/** The longest pause between the two taps of a double click, ms. */
+const DOUBLE_TAP = 400;
 
 /**
  * Selecting, moving, turning and deleting parts, pulling a wire's end, drawing a wire from a pin
  * (an L of up to two wires), the selection rectangle and moving the canvas.
  */
-export function useSchematicEditing<E extends Placeable>({ elements, onChange, canvas, view: canvasView, pins, newWire, turned, onTap }: Editing<E>) {
+export function useSchematicEditing<E extends Placeable>({ elements, onChange, canvas, view: canvasView, pins, newWire, turned, onTap, tapOnly }: Editing<E>) {
   const [selection, setSelection] = useState<string[]>([]);
   const [drag, setDrag] = useState<Drag<E> | null>(null);
+  /** The part whose inspector is open; it stays open only while that part alone is selected. */
+  const [inspectedId, setInspected] = useState<string | null>(null);
+  const inspected = inspectedId !== null && selection.length === 1 && selection[0] === inspectedId ? inspectedId : null;
+  /** The last tap on a part, to tell a double click. */
+  const lastTap = useRef<{ id: string; time: number } | null>(null);
   const { view, setView, toDrawing, toGrid } = canvasView;
+
+  /** Selects a part alone and opens its inspector. */
+  const inspect = (id: string) => {
+    setSelection([id]);
+    setInspected(id);
+  };
+  const closeInspector = () => setInspected(null);
 
   const update = (id: string, change: Partial<E>) => onChange(elements.map((e) => (e.id === id ? { ...e, ...change } : e)));
 
   const remove = (ids: string[]) => {
     onChange(elements.filter((e) => !ids.includes(e.id)));
     setSelection([]);
+    setInspected(null);
   };
 
   const rotateSelected = () => {
@@ -298,6 +321,7 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     // Grabbing a part of the selection moves all of it; any other part becomes the selection.
     const group = selection.includes(element.id) ? selection : [element.id];
     setSelection(group);
+    if (element.id !== inspectedId) setInspected(null);
     setDrag({ type: 'move', from: toGrid(event), origins: new Map(elements.filter((e) => group.includes(e.id)).map((e) => [e.id, e])), moved: false });
   };
 
@@ -306,14 +330,16 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     event.stopPropagation();
     capture(event);
     setSelection([element.id]);
-    setDrag({ type: 'end', id: element.id, end });
+    if (element.id !== inspectedId) setInspected(null);
+    setDrag({ type: 'end', id: element.id, end, moved: false });
   };
 
-  const startDraw = (event: ReactPointerEvent, from: Point) => {
+  /** Draws a wire from `from`; pressed on a wire (`tapped`), a tap without moving chooses that wire. */
+  const startDraw = (event: ReactPointerEvent, from: Point, tapped?: E) => {
     if (event.button !== 0) return;
     event.stopPropagation();
     capture(event);
-    setDrag({ type: 'draw', from, to: from, across: null });
+    setDrag({ type: 'draw', from, to: from, across: null, tapped });
   };
 
   /** Left on empty canvas draws a selection rectangle; the middle or right button moves the canvas. */
@@ -327,6 +353,7 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     }
     const from = toDrawing(event);
     setSelection([]);
+    setInspected(null);
     setDrag({ type: 'marquee', from, to: from });
   };
 
@@ -353,6 +380,9 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
       if (!wire) return;
       const other = drag.end === 'a' ? { x: wire.x2 ?? wire.x, y: wire.y2 ?? wire.y } : { x: wire.x, y: wire.y };
       const end = Math.abs(at.x - other.x) >= Math.abs(at.y - other.y) ? { x: at.x, y: other.y } : { x: other.x, y: at.y };
+      const current = drag.end === 'a' ? { x: wire.x, y: wire.y } : { x: wire.x2 ?? wire.x, y: wire.y2 ?? wire.y };
+      if (pointKey(end) === pointKey(current)) return;
+      if (!drag.moved) setDrag({ ...drag, moved: true });
       update(drag.id, (drag.end === 'a' ? end : { x2: end.x, y2: end.y }) as Partial<E>);
     } else {
       const [dx, dy] = [at.x - drag.from.x, at.y - drag.from.y];
@@ -375,15 +405,125 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
       }
       onChange(next);
       setSelection(next.slice(elements.length).map((e) => e.id));
+    } else if (drag?.type === 'draw' && drag.tapped) {
+      inspect(drag.tapped.id);
     } else if (drag?.type === 'marquee') {
       setSelection(inRectangle(elements, drag.from, drag.to, pins));
-    } else if (drag?.type === 'move' && !drag.moved && drag.origins.size === 1 && onTap) {
-      onTap([...drag.origins.values()][0]);
+    } else if (drag?.type === 'end' && !drag.moved) {
+      inspect(drag.id);
+    } else if (drag?.type === 'move' && !drag.moved && drag.origins.size === 1) {
+      tap([...drag.origins.values()][0]);
     }
     setDrag(null);
   };
 
-  return { selection, setSelection, drag, setDrag, update, remove, rotateSelected, startMove, startEnd, startDraw, startCanvas, onMove, onUp };
+  /**
+   * A part pressed and let go without moving it: its inspector opens. A part that only taps (a
+   * switch) does its tap instead, and opens its inspector on a double click; the second tap undoes
+   * the first then, so the double click leaves the part as it was.
+   */
+  const tap = (element: E) => {
+    const now = performance.now();
+    const double = lastTap.current?.id === element.id && now - lastTap.current.time < DOUBLE_TAP;
+    lastTap.current = double ? null : { id: element.id, time: now };
+    if (!tapOnly?.(element)) {
+      inspect(element.id);
+      return;
+    }
+    onTap?.(element);
+    if (double) inspect(element.id);
+  };
+
+  /**
+   * The keys of a focused canvas: Del deletes the selection, Space or R turns it, Esc closes the
+   * inspector and then clears the selection, Home calls `home`, and the zoom keys. `extra` takes a
+   * mode's own keys first and returns whether it used the key.
+   */
+  const keyDown = (event: React.KeyboardEvent, { home, fit, extra }: { home(): void; fit(): void; extra?(event: React.KeyboardEvent): boolean }) => {
+    if (extra?.(event)) {
+      // Taken by the mode.
+    } else if (event.key === 'Delete' || event.key === 'Backspace') {
+      remove(selection);
+    } else if (event.key === ' ' || event.key.toLowerCase() === 'r') {
+      rotateSelected();
+    } else if (event.key === 'Escape' && inspected) {
+      closeInspector();
+    } else if (event.key === 'Escape' && selection.length) {
+      // With nothing selected, Esc is left to the full-screen view.
+      setSelection([]);
+    } else if (event.key === 'Home') {
+      home();
+    } else if (!zoomKey(event, canvasView, fit)) {
+      return;
+    }
+    event.preventDefault();
+  };
+
+  return {
+    selection,
+    setSelection,
+    inspected,
+    inspect,
+    closeInspector,
+    drag,
+    setDrag,
+    update,
+    remove,
+    rotateSelected,
+    startMove,
+    startEnd,
+    startDraw,
+    startCanvas,
+    onMove,
+    onUp,
+    keyDown,
+  };
+}
+
+/** The width of the inspector beside the chosen part, px. */
+export const POPOVER_WIDTH = 260;
+
+/**
+ * A part's inspector, beside the part's `box` (drawing coordinates) over the canvas: to its right,
+ * or to its left when there is no room, and inside the canvas.
+ */
+export function InspectorPopover({ box, view, canvas, children }: { box: Rect; view: View; canvas: RefObject<SVGSVGElement | null>; children: ReactNode }) {
+  const stage = canvas.current?.getBoundingClientRect() ?? { width: 0, height: 0 };
+  const [left, right] = [box.x * view.zoom + view.x, (box.x + box.w) * view.zoom + view.x];
+  const top = Math.max(8, Math.min(box.y * view.zoom + view.y, stage.height - 120));
+  const gap = 14;
+  const x = right + gap + POPOVER_WIDTH <= stage.width - 8 ? right + gap : left - gap - POPOVER_WIDTH;
+  const style: CSSProperties = {
+    width: POPOVER_WIDTH,
+    left: Math.max(8, Math.min(x, stage.width - POPOVER_WIDTH - 8)),
+    top,
+    maxHeight: `calc(100% - ${top + 8}px)`,
+  };
+  return (
+    // Pointers on the inspector stay off the canvas behind it.
+    <aside className="inspector-popover" style={style} onPointerDown={(event) => event.stopPropagation()}>
+      {children}
+    </aside>
+  );
+}
+
+/** The head of an inspector: the part's id and kind, delete (a red bin) and close (✕). */
+export function InspectorHead({ id, kind, onRemove, onClose }: { id: string; kind: string; onRemove(): void; onClose(): void }) {
+  const { t } = useT();
+  return (
+    <div className="inspector-head">
+      <span className="inspector-id">{id}</span>
+      <span className="inspector-kind">{kind}</span>
+      <button className="inspector-delete" title={`${t('circuit.delete')} (${t('key.delete')})`} aria-label={t('circuit.delete')} onClick={onRemove}>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v4.5M9.4 6.5v4.5" />
+        </svg>
+      </button>
+      <button className="inspector-close" title={t('circuit.close')} aria-label={t('circuit.close')} onClick={onClose}>
+        ✕
+      </button>
+    </div>
+  );
 }
 
 /** What a drag draws over the drawing: the selection rectangle, or the wire about to be drawn. */
@@ -434,12 +574,12 @@ export function WirePart({ a, b, className, lineClassName, joins, connected, onP
     if (!matrix || !joins) return setJunction(null);
     const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix);
     const point = { x: snap(at.x), y: snap(at.y) };
-    const near = Math.hypot(at.x - point.x, at.y - point.y) <= 6 && inside(a, b, point);
+    const near = Math.hypot(at.x - point.x, at.y - point.y) <= 4 && inside(a, b, point);
     setJunction((old) => (near ? (old && pointKey(old) === pointKey(point) ? old : point) : null));
   };
   return (
     <g className={className} onPointerMove={findJunction} onPointerLeave={() => setJunction(null)}>
-      <line className="hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} onPointerDown={onPointerDown} />
+      <line className="part-hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} onPointerDown={onPointerDown} />
       <line className={lineClassName ? `wire ${lineClassName}` : 'wire'} x1={a.x} y1={a.y} x2={b.x} y2={b.y} pointerEvents="none" />
       <circle className={dot(a)} cx={a.x} cy={a.y} r="5" onPointerDown={(event) => onEnd(event, 'a')} />
       <circle className={dot(b)} cx={b.x} cy={b.y} r="5" onPointerDown={(event) => onEnd(event, 'b')} />

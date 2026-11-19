@@ -77,7 +77,7 @@ Ideal wires get no label on the canvas; their values show in the inspector.
 
 Each part has a label beside it with its name and its values. The buttons **U I P R** at the top
 right choose which values are shown: voltage, current, power and resistance (voltage and current
-to start with). The inspector on the right always shows all of them for the selected part.
+to start with). A click on a part opens its inspector beside it, which always shows all of them.
 
 - Values get the unit prefix that fits: $4\,\mathrm{mA}$ instead of $0{,}004\,\mathrm{A}$,
   $2\,\mathrm{kW}$ instead of $2000\,\mathrm{W}$.
