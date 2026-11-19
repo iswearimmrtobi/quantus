@@ -19,7 +19,7 @@ import { copyText, inShell, onShortcut, type Shortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
 import { BitView } from './components/BitView';
-import { flipBit, patternInput } from './bits';
+import { flipBit, patternInput, uprightHex } from './bits';
 import { LibraryDialog } from './components/LibraryDialog';
 import { WriteupDialog } from './components/WriteupDialog';
 import { QuickSearch } from './components/QuickSearch';
@@ -732,6 +732,7 @@ export function App() {
                 onEnter={() => void evaluate()}
                 onLatexRequested={(seed) => toggleLatexMode(seed)}
                 tools={tools}
+                rewrite={settings.mode === 'baseN' && settings.numberBase === 'hex' ? uprightHex : undefined}
               />
             )}
             <button

@@ -237,6 +237,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   out, back to 100 % and in and fit the whole drawing; <kbd>+</kbd>, <kbd>-</kbd> and <kbd>0</kbd>
   do the same on the canvas. Before, only Ctrl and scrolling zoomed. The last button, ⤢, lets the
   editor fill the window (<kbd>Esc</kbd> leaves); in the Logic mode the output tabs come along.
+- Desktop, Basis-N: a hex number typed in HEX (`FF`, `1F0`) is set upright as one number, as
+  the result shows it, instead of as italic variables.
 
 ## [0.2.0] - 2026-11-06
 

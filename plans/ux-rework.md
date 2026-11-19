@@ -322,10 +322,12 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 
 ## Phase 5: Base-N
 
-- [ ] **5.1 Hex digits upright (S).** Typed `FF` shows as italic variables. In Base-N with
+- [x] **5.1 Hex digits upright (S).** Typed `FF` shows as italic variables. In Base-N with
   HEX, MathField turns the letters A–F into `\mathrm{…}` as they are typed (the same
   form a bit flip writes). The **Symbolic** row uses the core's LaTeX, which writes them
   upright. Check in `basen.rs::write`.
+  (`uprightHex` in `bits.ts`, through MathField's `rewrite`; `basen.rs::write` already writes
+  `\mathrm{…}`.)
 - [ ] **5.2 All bases at once (M).** Replace the chips `= DEC BIN OCT BITS` with a fixed
   block: HEX, DEC, OCT and BIN of the result, one line each with Copy, BIN grouped in fours.
   The values are already in the result's forms (`FormKind::{Dec,Hex,Bin,Oct}`).

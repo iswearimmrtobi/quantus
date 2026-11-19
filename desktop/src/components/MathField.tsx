@@ -96,6 +96,11 @@ interface Props {
   onPasteText?(text: string): boolean;
   /** Entries put at the top of the field's context menu, above MathLive's own (CALC, SOLVE). */
   tools?: Tool[];
+  /**
+   * Rewrites what was typed, while the cursor is at the end (Basis-N: hex digits upright). The
+   * field then holds the rewritten LaTeX, with the cursor at the end again.
+   */
+  rewrite?(latex: string): string;
   className?: string;
   ref?: Ref<MathFieldHandle>;
 }
@@ -132,13 +137,14 @@ export function MathField({
   onTab,
   onPasteText,
   tools,
+  rewrite,
   className,
   ref,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
-  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText });
-  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText };
+  const callbacks = useRef({ onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText, rewrite });
+  callbacks.current = { onChange, onEnter, onLatexRequested, onBackspaceEmpty, onLeaveLine, onTab, onPasteText, rewrite };
   /** Der zuletzt aus dem Feld gemeldete Wert — alles andere kommt von außen. */
   const reported = useRef(value);
 
@@ -164,6 +170,14 @@ export function MathField({
       if (commandJustCommitted) {
         commandJustCommitted = false;
         completeCommand(mathfield);
+      }
+      const rewrite = callbacks.current.rewrite;
+      if (rewrite && mathfield.mode === 'math' && mathfield.position === mathfield.lastOffset) {
+        const rewritten = rewrite(mathfield.value);
+        if (rewritten !== mathfield.value) {
+          mathfield.value = rewritten;
+          mathfield.executeCommand(['moveToMathfieldEnd']);
+        }
       }
       reported.current = mathfield.value;
       callbacks.current.onChange(mathfield.value);
