@@ -1,15 +1,13 @@
 import { useCallback, useState, type CSSProperties } from 'react';
-import { boundsOf, GRID, type Point, type Rect } from './geometry';
+import { boundsOf, GRID, type Point, type Rect, type Side } from './geometry';
 
-export type { Rect };
+export type { Rect, Side };
 
 /**
  * Places the labels on a schematic's canvas so that none overlaps another label or an obstacle (a
  * part, a wire). Everything is in drawing coordinates, so zooming and moving the canvas leave the
  * layout alone. What the obstacles are is up to the editor (`obstacles` in `circuit/model.ts`).
  */
-
-export type Side = 'below' | 'above' | 'right' | 'left';
 
 export interface LabelRequest {
   id: string;

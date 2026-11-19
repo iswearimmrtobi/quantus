@@ -3,16 +3,22 @@ import {
   boundsOf,
   connectedPointsOf,
   corner,
+  freeSpot,
   freshIdOf,
   GRID,
   inRectangle,
   inside,
   junctionDotsOf,
   movedBy,
+  opposite,
+  placeLocal,
   rotate,
   rotatedQuarter,
   segmentBox,
+  sidesAround,
   snap,
+  turnedBox,
+  wireBetween,
   wireEnds,
   type Placeable,
   type Point,
@@ -109,5 +115,43 @@ describe('moving, turning, choosing', () => {
     expect(inRectangle(elements, p(15, -5), p(25, 5), pins)).toEqual(['R1', 'W1']);
     expect(inRectangle(elements, p(90, 70), p(110, 90), pins)).toEqual(['R2']);
     expect(inRectangle(elements, p(200, 200), p(300, 300), pins)).toEqual([]);
+  });
+});
+
+describe('parts in their own coordinates', () => {
+  it('places pins turned by quarters, and at 45° an eighth further and √2 out', () => {
+    expect(placeLocal({ x: 100, y: 100, rotation: 1 }, p(40, 0))).toEqual(p(100, 140));
+    expect(placeLocal({ x: 0, y: 0, rotation: 0.5 }, p(40, 0))).toEqual(p(40, 40));
+    expect(placeLocal({ x: 0, y: 0, rotation: 1.5 }, p(40, 0))).toEqual(p(-40, 40));
+  });
+
+  it('boxes a turned rectangle, exactly at 45°', () => {
+    expect(turnedBox({ x: 10, y: 0, rotation: 1 }, [p(-20, -7), p(20, 7)])).toEqual({ x: 3, y: -20, w: 14, h: 40 });
+    const diagonal = turnedBox({ x: 0, y: 0, rotation: 0.5 }, [p(-20, -7), p(20, 7)]);
+    expect(diagonal.w).toBeCloseTo(27 * Math.SQRT2, 9);
+    expect(diagonal.x).toBeCloseTo(-27 / Math.SQRT2, 9);
+  });
+
+  it('makes a wire', () => {
+    expect(wireBetween('W1', p(0, 0), p(0, 40))).toEqual({ id: 'W1', kind: 'wire', x: 0, y: 0, x2: 0, y2: 40, rotation: 0 });
+  });
+
+  it('puts a new part at a free spot on the grid, four to a row', () => {
+    const view = { x: 0, y: 0, zoom: 1 };
+    expect(freeSpot(view, 0, 3)).toEqual(p(160, 120));
+    expect(freeSpot(view, 5, 3)).toEqual(p(220, 180));
+    expect(freeSpot({ x: 15, y: 0, zoom: 2 }, 0, 5)).toEqual(p(80, 60));
+  });
+});
+
+describe('label sides', () => {
+  it('tries the opposite side second, or last', () => {
+    expect(opposite('left')).toBe('right');
+    // As the editors had them written out.
+    expect(sidesAround('below', 'right')).toEqual(['below', 'above', 'right', 'left']);
+    expect(sidesAround('right', 'below')).toEqual(['right', 'left', 'below', 'above']);
+    expect(sidesAround('above', 'right')).toEqual(['above', 'below', 'right', 'left']);
+    expect(sidesAround('right', 'above')).toEqual(['right', 'left', 'above', 'below']);
+    expect(sidesAround('left', 'above', true)).toEqual(['left', 'above', 'below', 'right']);
   });
 });

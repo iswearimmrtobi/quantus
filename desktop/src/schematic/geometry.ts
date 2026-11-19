@@ -7,6 +7,9 @@
 
 export const GRID = 20;
 
+/** A side of a label's anchor. */
+export type Side = 'below' | 'above' | 'right' | 'left';
+
 export interface Point {
   x: number;
   y: number;
@@ -50,6 +53,33 @@ export function rotate(point: Point, quarterTurns: number): Point {
 
 export const pointKey = (point: Point) => `${point.x},${point.y}`;
 
+/** Whether a part sits at 45° to the grid: its `rotation` ends in a half, 0.5 being 45°. */
+export const isDiagonal = (rotation: number) => !Number.isInteger(rotation);
+
+/** Where a pin `p` of a part's own coordinates lies on the canvas, the part turned and moved to its place. */
+export function placeLocal(part: { x: number; y: number; rotation: number }, p: Point): Point {
+  // At 45° the point turns by an eighth and grows by √2, which keeps it on the grid.
+  const start = isDiagonal(part.rotation) ? { x: p.x - p.y, y: p.x + p.y } : p;
+  const turned = rotate(start, Math.floor(part.rotation));
+  return { x: part.x + turned.x, y: part.y + turned.y };
+}
+
+/**
+ * The box around a rectangle of a part's own coordinates (two opposite `corners`), turned with the
+ * part, exactly also at 45°, and moved to its place.
+ */
+export function turnedBox(part: { x: number; y: number; rotation: number }, corners: [Point, Point]): Rect {
+  const diagonal = isDiagonal(part.rotation);
+  // A rectangle turned by 45° is bounded by its four corners turned, not by the two given ones.
+  const all = diagonal
+    ? [corners[0], corners[1], { x: corners[0].x, y: corners[1].y }, { x: corners[1].x, y: corners[0].y }]
+    : corners;
+  const angle = (part.rotation * Math.PI) / 2;
+  const turn = (p: Point) =>
+    diagonal ? { x: p.x * Math.cos(angle) - p.y * Math.sin(angle), y: p.x * Math.sin(angle) + p.y * Math.cos(angle) } : rotate(p, part.rotation);
+  return boundsOf(all.map(turn).map((p) => ({ x: part.x + p.x, y: part.y + p.y, w: 0, h: 0 })));
+}
+
 /** Whether `p` lies on the segment from `a` to `b` but on neither end. */
 export function inside(a: Point, b: Point, p: Point): boolean {
   if ((b.x - a.x) * (p.y - a.y) !== (b.y - a.y) * (p.x - a.x)) return false;
@@ -60,6 +90,12 @@ export function inside(a: Point, b: Point, p: Point): boolean {
 /** Where a wire drawn from `from` to `to` turns: wires run only across and down, so a slant is an L. */
 export const corner = (from: Point, to: Point, across: boolean | null): Point =>
   across === false ? { x: from.x, y: to.y } : { x: to.x, y: from.y };
+
+/** A wire from `from` to `to`. */
+export const wireBetween = (id: string, from: Point, to: Point) => ({ id, kind: 'wire' as const, x: from.x, y: from.y, x2: to.x, y2: to.y, rotation: 0 });
+
+/** The length of a wire put in from the palette: as long as a part with its leads. */
+export const NEW_WIRE = 4 * GRID;
 
 /** The two ends of a wire. */
 export const wireEnds = (wire: Placeable): [Point, Point] => [
@@ -191,4 +227,28 @@ export function freshIdOf(taken: Iterable<string>, prefix: string): string {
     const id = `${prefix}${n}`;
     if (!used.has(id)) return id;
   }
+}
+
+/**
+ * Where a part put in without a drop position goes: near the top left of what the canvas shows,
+ * four to a row, `spacing` grid steps apart, after the `count` parts already there.
+ */
+export function freeSpot(view: { x: number; y: number; zoom: number }, count: number, spacing: number): Point {
+  return {
+    x: snap((160 - view.x) / view.zoom + (count % 4) * spacing * GRID),
+    y: snap((120 - view.y) / view.zoom + Math.floor(count / 4) * spacing * GRID),
+  };
+}
+
+/** The side of a label opposite `side`. */
+const OPPOSITE: Record<Side, Side> = { below: 'above', above: 'below', right: 'left', left: 'right' };
+export const opposite = (side: Side): Side => OPPOSITE[side];
+
+/**
+ * The order in which a label tries the sides of its anchor: `first`, then its opposite, then
+ * `second` and its opposite; with `oppositeLast` the opposite of `first` comes last, as for a
+ * label that must keep off the pin on that side.
+ */
+export function sidesAround(first: Side, second: Side, oppositeLast = false): Side[] {
+  return oppositeLast ? [first, second, opposite(second), opposite(first)] : [first, opposite(first), second, opposite(second)];
 }
