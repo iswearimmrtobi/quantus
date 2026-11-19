@@ -239,6 +239,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   editor fill the window (<kbd>Esc</kbd> leaves); in the Logic mode the output tabs come along.
 - Desktop, Basis-N: a hex number typed in HEX (`FF`, `1F0`) is set upright as one number, as
   the result shows it, instead of as italic variables.
+- Desktop, Basis-N: under the result it stands in all four bases at once, HEX, DEC, OCT and BIN
+  (in groups of four), each with Copy, instead of the buttons DEC, BIN, OCT, BITS to switch
+  between them.
 
 ## [0.2.0] - 2026-11-06
 

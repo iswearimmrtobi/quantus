@@ -19,6 +19,7 @@ import { copyText, inShell, onShortcut, type Shortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
 import { BitView } from './components/BitView';
+import { BaseForms } from './components/BaseForms';
 import { flipBit, patternInput, uprightHex } from './bits';
 import { LibraryDialog } from './components/LibraryDialog';
 import { WriteupDialog } from './components/WriteupDialog';
@@ -832,7 +833,7 @@ export function App() {
                   </button>
                 )}
               </div>
-              {calculation && (forms.length > 1 || engineeringApplies(calculation, settings.mode)) && (
+              {calculation && settings.mode !== 'baseN' && (forms.length > 1 || engineeringApplies(calculation, settings.mode)) && (
                 <div className="form-row">
                   {forms.length > 1 &&
                     forms.map((form, index) => (
@@ -859,6 +860,15 @@ export function App() {
                     </>
                   )}
                 </div>
+              )}
+              {calculation?.forms && settings.mode === 'baseN' && (
+                <BaseForms
+                  result={calculation.result}
+                  base={settings.numberBase}
+                  forms={calculation.forms}
+                  copied={copied}
+                  onCopy={(text, marker) => void copy(text, marker)}
+                />
               )}
               {calculation?.bits && settings.mode === 'baseN' && <BitView view={calculation.bits} onFlip={flip} />}
               {calculation?.warning && (

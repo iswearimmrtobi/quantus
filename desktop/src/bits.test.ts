@@ -23,3 +23,13 @@ describe('uprightHex', () => {
     expect(uprightHex('\\operatorname{f32}\\left(1E3\\right)+A')).toBe('\\operatorname{f32}\\left(1E3\\right)+\\mathrm{A}');
   });
 });
+
+describe('base forms', () => {
+  it('strips the upright marks and groups binary digits from the right', async () => {
+    const { plainDigits, groupedBinary } = await import('./components/BaseForms');
+    expect(plainDigits('\\mathrm{FF}')).toBe('FF');
+    expect(plainDigits('-5')).toBe('-5');
+    expect(groupedBinary('101101')).toBe('10 1101');
+    expect(groupedBinary('1111')).toBe('1111');
+  });
+});

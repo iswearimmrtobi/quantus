@@ -646,6 +646,39 @@ code {
   background: var(--surface-hover);
 }
 
+/* A Basis-N result in all four bases, one line each, the set base marked. */
+.base-forms {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  margin: 10px 0 0;
+  padding: 0 4px;
+}
+.base-form {
+  display: contents;
+}
+.base-form dt {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.base-form dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.base-form code {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.base-form.active dt,
+.base-form.active code {
+  color: var(--accent);
+}
+
 /* The bits of a Basis-N result: groups of four, the index under each group's lowest bit. */
 .bit-panel {
   display: flex;

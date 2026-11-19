@@ -328,7 +328,7 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
   upright. Check in `basen.rs::write`.
   (`uprightHex` in `bits.ts`, through MathField's `rewrite`; `basen.rs::write` already writes
   `\mathrm{…}`.)
-- [ ] **5.2 All bases at once (M).** Replace the chips `= DEC BIN OCT BITS` with a fixed
+- [x] **5.2 All bases at once (M).** Replace the chips `= DEC BIN OCT BITS` with a fixed
   block: HEX, DEC, OCT and BIN of the result, one line each with Copy, BIN grouped in fours.
   The values are already in the result's forms (`FormKind::{Dec,Hex,Bin,Oct}`).
 - [ ] **5.3 The keys (S).** The 25 chips (`App.tsx`) in four labelled groups on one line,

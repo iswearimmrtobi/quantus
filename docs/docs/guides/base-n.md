@@ -44,8 +44,10 @@ a minus, so `-128` can be typed in 8 bit), in the other bases any pattern of at 
 | `\mathrm{h}1F + \mathrm{b}101` | $36$ | HEX $24$, BIN $100100$, OCT $44$ |
 | `2147483647 + 1` | $-2147483648$ | with the overflow note |
 
-The result comes in the other three bases and as its bits (`BITS`, groups of four) as its
-forms: the buttons under the result, or <kbd>Ctrl</kbd>+<kbd>D</kbd>, switch between them.
+Under the result it stands in all four bases at once, one line each: HEX, DEC, OCT and BIN (in
+groups of four), the base set marked, each with **Copy**, which copies the digits alone.
+<kbd>Ctrl</kbd>+<kbd>D</kbd> switches the result itself between the other bases and its bits
+(`BITS`).
 
 - **Prefixes** read one number in another base: `\mathrm{h}1F` is hexadecimal 1F whatever the
   switch says.
