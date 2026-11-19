@@ -1,3 +1,4 @@
+import { useCallback, useState, type CSSProperties } from 'react';
 import { boundsOf, GRID, type Point, type Rect } from './geometry';
 
 export type { Rect };
@@ -131,4 +132,45 @@ export function placeLabels(
 /** The point on a box nearest to `p`, where a line from `p` to the box ends. */
 export function nearest(r: Rect, p: Point): Point {
   return { x: Math.min(Math.max(p.x, r.x), r.x + r.w), y: Math.min(Math.max(p.y, r.y), r.y + r.h) };
+}
+
+/**
+ * The labels are laid out from their real sizes, which only the browser knows once KaTeX has set
+ * them. `measure` is the ref of a label element with `data-label` set to its id; offset sizes
+ * ignore the zoom transform, so they are already in drawing units.
+ */
+export function useLabelSizes() {
+  const [sizes, setSizes] = useState<Map<string, { w: number; h: number }>>(() => new Map());
+  const [observer] = useState(
+    () =>
+      new ResizeObserver((entries) =>
+        setSizes((previous) => {
+          let next = previous;
+          for (const entry of entries) {
+            const target = entry.target as HTMLElement;
+            const id = target.dataset.label!;
+            const size = { w: target.offsetWidth, h: target.offsetHeight };
+            const old = previous.get(id);
+            if (old && old.w === size.w && old.h === size.h) continue;
+            if (next === previous) next = new Map(previous);
+            next.set(id, size);
+          }
+          return next;
+        }),
+      ),
+  );
+  const measure = useCallback(
+    (label: HTMLDivElement | null) => {
+      if (!label) return;
+      observer.observe(label);
+      return () => observer.unobserve(label);
+    },
+    [observer],
+  );
+  return { sizes, measure };
+}
+
+/** Where a label is drawn: at its placement once measured, until then hidden at its anchor. */
+export function labelStyle(placement: Placement | undefined, anchor: Point): CSSProperties {
+  return placement ? { left: placement.x, top: placement.y } : { left: anchor.x, top: anchor.y, visibility: 'hidden' };
 }

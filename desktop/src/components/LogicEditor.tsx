@@ -23,12 +23,15 @@ import {
   type LogicPart,
   type PaletteKind,
 } from '../logic/circuit';
-import { nearest, placeLabels, type LabelRequest, type Placement, type Side } from '../schematic/labels';
+import { labelStyle, nearest, placeLabels, useLabelSizes, type LabelRequest, type Placement, type Side } from '../schematic/labels';
 import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, segmentBox, wireEnds, type Point, type Rect, type Segment } from '../schematic/geometry';
 import { pngBytes, svgBytes, type Picture } from '../schematic/picture';
 import { saveBytes } from '../shell';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, InspectorHead, InspectorPopover, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, type Fullscreen } from './Schematic';
+import { useSchematicEditing } from '../schematic/editing';
+import { InspectorHead, InspectorPopover } from '../schematic/inspector';
+import { DragGhost, WirePart } from '../schematic/parts';
+import { GridBackground, HOME, useCanvasView, viewTransform, ZoomControls, type Fullscreen } from '../schematic/view';
 
 interface Props {
   parts: LogicPart[];

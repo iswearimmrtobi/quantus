@@ -26,9 +26,12 @@ import {
 } from '../circuit/model';
 import { boundsOf } from '../schematic/geometry';
 import { useT } from '../i18n';
-import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../schematic/labels';
+import { labelStyle, nearest, placeLabels, useLabelSizes, type LabelRequest, type Placement, type Rect, type Side } from '../schematic/labels';
 import { Katex } from './Katex';
-import { DragGhost, GridBackground, HOME, InspectorHead, InspectorPopover, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, useFullscreen } from './Schematic';
+import { useSchematicEditing } from '../schematic/editing';
+import { InspectorHead, InspectorPopover } from '../schematic/inspector';
+import { DragGhost, WirePart } from '../schematic/parts';
+import { GridBackground, HOME, useCanvasView, useFullscreen, viewTransform, ZoomControls } from '../schematic/view';
 
 type ElementResult = CircuitResponse['elements'][number];
 
