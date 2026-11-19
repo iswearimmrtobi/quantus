@@ -133,12 +133,17 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   terminal is dropped), offset two grid steps each paste, pasted parts selected. In-app
   clipboard keyed by `kit.id`.
 - [x] 13. **Arrow keys** move the selection one grid step (Shift: five); a burst is one undo entry.
-- [ ] 14. **Docs.** `CHANGELOG.md` [Unreleased]; user guide pages of Electronics, Kirchhoff, Logic
+- [x] 14. **Docs.** `CHANGELOG.md` [Unreleased]; user guide pages of Electronics, Kirchhoff, Logic
   (keys, undo, copy/paste, export, status bar); `design/digital-logic.md` §10 file references,
   `plans/ux-rework.md`, `plans/kirchhoff.md`; `CLAUDE.md` and `docs/docs/contributing/testing.md`
   (`npm test`), `building.md` if it lists files. Every new text in all `locales/*.json`.
 
 ## Verification
+
+Still open: the manual run through the checklist below in the real app (`npm run dev`); the
+unit tests, typecheck and a renderer build pass. Remove this plan and its entry in `plans.md` once
+it is done.
+
 
 - Each step: `cd desktop && npm run typecheck && npm test`; `cargo test -p quantus-texts` when
   locales change; licenses regenerated in step 1. No full workspace test runs.

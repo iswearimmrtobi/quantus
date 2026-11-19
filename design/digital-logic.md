@@ -14,7 +14,8 @@ NANDs (6 gates, 4 gate delays) and draws it, editable. Clicking the input switch
 highlights the matching row of the table and cell of the KV diagram.
 
 Code (planned): `crates/quantus-core/src/logic/`, re-exported in `api.rs`; in the desktop app
-`LogicView.tsx`, `LogicEditor.tsx`, `LogicTable.tsx`, `KvMap.tsx` and `logic.ts`. Tests:
+`LogicView.tsx`, `LogicTable.tsx`, `KvMap.tsx`, `logic.ts`, and the editor in `logic/` (`circuit.ts`,
+`kit.tsx`, `LogicEditor.tsx`) on the shared `schematic/`. Tests:
 `crates/quantus-core/tests/logic.rs`.
 
 ## 1. Scope
@@ -456,10 +457,10 @@ Narrow windows stack the table under the KV diagram.
 
 ### 10.2 The editor
 
-`LogicEditor.tsx` reuses the electronics editor's grid, snapping, rotation, terminals, label
-placement and wire routing (`desktop/src/circuit.ts`, `desktop/src/labelLayout.ts`, the
-interaction of `CircuitEditor.tsx`); what is common moves into a shared module rather than being
-copied. New: gate symbols in both styles as SVG, pins on a gate that grow with its number of
+The Logic editor is the shared schematic editor of every circuit mode (`desktop/src/schematic/`:
+grid, snapping, rotation, wires and junctions, nets, label placement, the canvas, keys, undo,
+clipboard and picture, in `Editor.tsx`) driven by the Logic mode's part kit (`logic/kit.tsx`);
+Electronics and Kirchhoff have theirs in `circuit/kit.tsx`. New: gate symbols in both styles as SVG, pins on a gate that grow with its number of
 inputs, an inversion bubble on NAND/NOR/NOT/XNOR (IEC: the small triangle or circle, as the
 standard draws it), nets coloured by value.
 

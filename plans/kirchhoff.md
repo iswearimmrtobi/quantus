@@ -5,7 +5,7 @@
 `plans/physics-and-circuits.md` §3 sketches a Kirchhoff calculator: draw a resistor network and get
 the junction and loop rules, the linear system, its Gauss steps and all currents and voltages, worked
 out the way a student does it. The parts it needs exist now. The electronics solver
-(`crates/quantus-core/src/electro/`), the circuit editor (`desktop/src/components/CircuitEditor.tsx`),
+(`crates/quantus-core/src/electro/`), the circuit editor (`desktop/src/circuit/CircuitEditor.tsx` on `desktop/src/schematic/`),
 indexed unknowns and the Gauss steps of the LGS mode (`linear.rs`, `eval/system.rs`,
 `eval/system_steps.rs`, `eval/linear_system.rs`) are all done. The electronics MNA solver gives
 the answer but not the *explained* route. This mode adds that route.

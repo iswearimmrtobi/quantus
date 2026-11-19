@@ -13,7 +13,8 @@ into `master`. Merging that PR tags and builds the release.
 
 - `crates/quantus-core`: the engine, no UI. `eval/`, `electro/`, `linear`, `numeric`, `quantity`,
   `settings`, `session`, `text`, `api`. Tests are integration tests in `tests/`.
-- `desktop/`: the Tauri app. Rust shell in `src-tauri/`, frontend in `src/`.
+- `desktop/`: the Tauri app. Rust shell in `src-tauri/`, frontend in `src/`; the circuit editors
+  are one shared editor in `src/schematic/` with the parts of each mode in `src/circuit/` and `src/logic/`.
 - `firmware/`: the handheld. `ui` (in the workspace) is its UI; `sim`, `handheld` and the engine
   spike `esp32` (the engine over serial, no UI) are their own workspaces; both firmwares target
   the ESP32-P4 dev kit. `c6` is the ESP-IDF (C) firmware of the kit's ESP32-C6 (Wi-Fi through
