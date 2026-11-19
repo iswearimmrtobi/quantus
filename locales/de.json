@@ -20,6 +20,8 @@
     "app.analysis.input.function": "Funktion f(x)",
     "app.analysis.period": "Periode",
     "app.analysis.reset": "Ansicht zurücksetzen",
+    "app.analysis.fullscreen": "Vollbild: der Graph füllt das Fenster",
+    "app.analysis.fullscreen.exit": "Vollbild verlassen (Esc)",
     "app.analysis.signed": "INTEGRAL",
     "app.analysis.status.failed": "FEHLGESCHLAGEN",
     "app.analysis.status.partial": "TEILWEISE",

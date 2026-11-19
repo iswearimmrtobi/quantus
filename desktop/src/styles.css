@@ -2400,6 +2400,24 @@ select option {
   min-height: 0;
 }
 
+/* The graph filling the window, over the app but under its dialogs. */
+.function-plot.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  border: none;
+  border-radius: 0;
+  background: var(--background);
+}
+
+.plot-fullscreen {
+  font-size: 14px;
+  line-height: 1;
+}
+.plot-fullscreen.active {
+  color: var(--primary);
+}
+
 .function-plot .plot-canvas {
   flex: 1;
   height: auto;

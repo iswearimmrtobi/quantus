@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Asymptote, type Line, type MarkedPoint, type PlotData, type Segment } from '../api';
 import { useT } from '../i18n';
+import { useFullscreen } from '../schematic/view';
 import { Katex } from './Katex';
 
 /** The visible part of the plane. */
@@ -68,6 +69,8 @@ function ticks(min: number, max: number, count: number): number[] {
  */
 export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
   const { t, language } = useT();
+  /** The graph filling the window; the view and everything drawn stay as they are. */
+  const fullscreen = useFullscreen();
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 420 });
   const initial: View = useMemo(() => ({ xMin: plot.xMin, xMax: plot.xMax, yMin: plot.yMin, yMax: plot.yMax }), [plot]);
@@ -110,7 +113,8 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+    // Full screen mounts the canvas anew in the page's body.
+  }, [fullscreen.full]);
 
   // Fresh segments for a moved or zoomed view, once the movement pauses.
   useEffect(() => {
@@ -164,7 +168,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
     };
     element.addEventListener('wheel', onWheel, { passive: false });
     return () => element.removeEventListener('wheel', onWheel);
-  }, []);
+  }, [fullscreen.full]);
 
   const reset = () => {
     request.current++;
@@ -225,8 +229,8 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
   const shown = hovered?.index ?? selected;
   const shownX = hovered?.x ?? (shown !== null ? points[shown]?.x : undefined);
 
-  return (
-    <div className="plot function-plot">
+  return fullscreen.portal(
+    <div className={fullscreen.full ? 'plot function-plot fullscreen' : 'plot function-plot'}>
       <div
         className="plot-canvas"
         ref={host}
@@ -329,6 +333,15 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
         <span className="plot-hint">{t('plot.hint')}</span>
         <button className="copy-btn" onClick={reset}>
           {t('analysis.reset')}
+        </button>
+        <button
+          className={fullscreen.full ? 'copy-btn plot-fullscreen active' : 'copy-btn plot-fullscreen'}
+          title={t(fullscreen.full ? 'analysis.fullscreen.exit' : 'analysis.fullscreen')}
+          aria-label={t(fullscreen.full ? 'analysis.fullscreen.exit' : 'analysis.fullscreen')}
+          aria-pressed={fullscreen.full}
+          onClick={() => fullscreen.setFull(!fullscreen.full)}
+        >
+          {fullscreen.full ? '⤡' : '⤢'}
         </button>
       </div>
     </div>
