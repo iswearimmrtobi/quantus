@@ -8,12 +8,6 @@ Geometry, Base-N, Logic and the Logic circuit editor work but are hard to use. P
 steps, including the Geometry sidebar and the truth table to NAND/NOR gates (2-input or not):
 [ux-rework.md](ux-rework.md). No release until its Phases 1–4 are done.
 
-## 0a. One shared schematic editor
-
-Electronics, Kirchhoff and Logic on one editor shell driven by a part kit, the shared code in
-`desktop/src/schematic/`, plus undo/redo, copy/paste and export in every mode:
-[schematic-editor.md](schematic-editor.md).
-
 ## 1. Make nested integrals fast
 
 **Problem.** `\int_0^1\int_0^2 x y \, dx\, dy` takes 1.9 s in a release build (2.9 s in a debug
@@ -25,12 +19,7 @@ at 1.7 ms each. `tests/golden.rs` lists it in `KNOWN_SLOW`; remove it from there
 evaluation per outer sample, or lower the inner precision to what the outer one needs.
 Target: under 0.2 s.
 
-**Improper integrals of exponentials (mostly done).**
-- [x] Timing guard: no `evaluate.json` case over 1 s (`tests/golden.rs`).
-- [x] Round `x` and the Jacobian to the working precision in `improper_integral`.
-- [x] Keep the π/e/ln 2 constants per thread in `Value::decimal` (this was the biggest cost).
-- [x] Multiply integrand and Jacobian as decimals, not exact fractions.
-- [x] Measure again: 0.2–0.3 s per case in a release build, digits unchanged.
+**Improper integrals of exponentials.** 0.2–0.3 s per case in a release build now.
 - [ ] Stop sampling a tail earlier than `integrate`'s two negligible nodes per level. About 1,100
   samples at 0.2 ms (an `exp` at 78 digits) remain.
 
@@ -46,88 +35,25 @@ Verified in code and unit tests, but not yet by eye in the running app:
   and X11).
 - The rendering of the AppImage, run from a fresh directory.
 
-## 3. Finish the electronics mode
-
-Implemented (`crates/quantus-core/src/electro/`, `tests/electro.rs`, the circuit editor in the
-frontend) and selectable again in the mode selector. Spec: [electronics-module.md](../design/electronics-module.md).
-Documented in the README and the user docs (`docs/docs/guides/electronics.md`).
-
 ## 4. Quantus on an ESP32 (spike)
 
 `firmware/esp32`: the engine driven over serial, printing results, time, heap and stack. It
-started on a classic ESP32 (WROOM, no PSRAM; the numbers below) and now builds for the ESP32-P4
+started on a classic ESP32 (WROOM, no PSRAM; its numbers in the README) and now builds for the ESP32-P4
 dev kit. See its [README](../firmware/esp32/README.md).
 
-- [x] Builds unchanged for `xtensa-esp32-espidf`; the release app is 1.9 MB of a 4 MB flash.
-- [x] Flash it and record heap, stack and time per input. First run on a WROOM: 254 KB heap at
-  start. Arithmetic, units, equations and the derivative work in 11–76 ms, with at most 14 KB of
-  stack. Building the unit table (`units/lookup.rs`, ~1000 owned strings in two hash maps)
-  takes 154 KB. The integrals take 7–17 s and keep another ~80 KB; after them the heap is gone
-  and `e^{4i\pi/2}` aborts. `ln` and float formatting fail softly first (NaN, "could not read a
-  computed number") because `astro-float` reports failed allocations instead of aborting.
-- [x] Shrink the unit table: with the `small-memory` feature of `quantus-core` (on in the
-  spike, off on the handheld, which has PSRAM), `units/lookup.rs` replays the registrations on every lookup instead of keeping
-  the two maps (last match wins, same answers for all 2345 tried spellings). Units then cost no
-  heap; all three integrals are right (7–20 s each) and `x^3 - 3x` sketches in 2.1 s. The
-  desktop keeps the maps; with the feature a lookup costs ~34 µs in a debug build.
 - [ ] Each integral still keeps ~44 KB, mostly the quadrature node cache (`NODES` in
   `numeric.rs`; also `RATIONAL_CACHE` in `analysis/simplify.rs`, `CACHE` in
   `algebra/rational_roots.rs`), and the second curve sketch runs out of memory. A way to drop
   the caches between calculations would likely fix that.
 - [ ] Run `:bench` on the P4 and record time, heap and internal RAM against the WROOM numbers.
-- [x] The engine on the handheld (`firmware/handheld`, through `firmware/engine`): on a thread
-  of its own with a 64 KB stack, the spinner turning meanwhile, AC dropping the answer. First
-  run on the P4 (2026-11-02): `2+3`, `2^{10}` and S⇔D in 6–15 ms, `2x+3=7` in 43 ms,
-  `\int_0^1 \ln x\,dx` in 3.1 s (2.5 s the second time) with at most 16 KB of stack; 33 MB of
-  heap free, of it 380–440 KB internal RAM.
-- [x] Kurvendiskussion on the P4 (2026-11-03): the sketch of `x^3-3x` in 0.3–0.7 s, `\sin(x)`
-  0.4 s, `xe^{-x}` 0.8 s, `\frac{x^2-1}{x-2}` 1.9 s (all sections ok, under the 3 s budget);
-  the tangent at 2 in 0.23 s, the area between the outer zeros in 0.2 s. At most 25 KB of
-  stack, 33 MB heap free throughout, internal RAM down to 116 KB free at its lowest. Eight
-  sketches and tasks in a row did not run short (the WROOM's second sketch did). The graph page
-  first took 7 s to draw (a 2 px polyline of 600 points across all ten bands); drawn in short
-  1 px pieces a full screen takes at most 218 ms.
-- [x] Moving the graph on the P4 (2026-11-03): the curve for a new window (480 samples) in
-  33–41 ms for `\sin(x)`, 59–63 ms for `x^3-3x`; a full redraw of the moved graph 134–204 ms.
-  Once, right after a boot (WLAN connecting, clock being set), keys sent over serial came in
-  late and bunched, so OK closed the sketch instead of starting the move; not seen again.
 - [ ] A handheld on an ESP32-P4: hardware requirements in
   [hardware.md](../firmware/docs/hardware.md).
-- [ ] Its UI, on the ESP32-P4 dev kit (before that a classic ESP32) with the display, keys over
-  serial and no engine. Rust and embedded-graphics, shared by a PC simulator and the board:
-  - [x] `firmware/ui`: the input editor (a tree with a cursor, Casio-like templates) that writes
-    LaTeX, and a reader of LaTeX results.
-  - [x] 2D layout of math, the screen, band-wise redraws, a stub backend.
-  - [x] `firmware/sim`: the UI in a window, PC keys.
-  - [x] `firmware/handheld`: the ST7796S over SPI and its FT6336U touch over I²C on the ESP32-P4 (before: an ILI9486 RPi display).
-  - [x] Keys over the serial console on the board (built; not yet tried on the board).
-  - [x] The screen like a Casio, in the desktop's dark palette: a top bar in the mode's colour,
-    one calculation (input top left, result bottom right), the mode menu as coloured tiles,
-    a setup page (SHIFT+MODE) for significant digits and exact or decimal, S⇔D.
+- [ ] Its UI (`firmware/ui`, shared by the simulator and the board), what is left:
   - [ ] ALPHA letters on the keys, once the keypad's legend is fixed.
-  - [x] The menus of the handheld tree, modelled on the Casio fx-991DE X
-    ([handheld-menus.md](../design/handheld-menus.md) §7, which marks each entry as working or
-    UI only): MODE with twelve tiles, SETUP with a submenu per entry (a list of values or a typed
-    number), OPTN per mode, German and English texts, the top bar's indicators, the purple
-    palette. Entries that wait for the engine or the firmware say so.
   - [ ] The keys still missing in §7.4 (ENG, PreAns, UNDO …).
   - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
   - [ ] On a bare ST7796S panel, measure `bench` at 40, 60 and 80 MHz and wire `TE` against
     tearing ([hardware.md](../firmware/docs/hardware.md) §3).
-  - [x] Brackets that grow with what they hold.
-  - [x] For testing: the simulator with the real engine, and its picture mirrored to the board
-    over serial (`--mirror`, the handheld's `mirror` binary; not yet tried on the board).
-  - [x] A wallpaper from the SD card behind the mode tiles, the menus or everything, picked in
-    SETUP → Gerät → Hintergrundbild (§7.6; the simulator reads `sd/wallpapers/`).
-  - [x] The SD card on the board: `wallpapers()` and `wallpaper()` of the backend from
-    `/wallpapers/`, and the picture set kept across restarts (its name in NVS).
-  - [x] Sessions on the card in `/sessions/` (§6), the Sitzungen menu, the last one reopened.
-  - [x] WLAN through the C6 (ESP-Hosted; [wlan.md](../firmware/docs/wlan.md)): networks,
-    passwords, saved networks, status, off in the exam mode. On the board: joining, NTP and
-    the reconnect after a restart work. The C6's firmware is updated by the handheld itself
-    (`firmware/c6`, now ESP-Hosted 3.0.10 on both sides).
-  - [x] The clock: NTP or by hand, named time zones with summer time, session names and
-    timestamps from it; the settings kept across a restart.
   - [ ] A larger Greek font than u8g2's bitmap ones (π, μ and Ω are fine); German texts.
 
 ## 5. Features modelled on the Casio fx-991DE X
@@ -156,10 +82,6 @@ handheld-menus.md, *What is missing*.
 - [ ] Stochastik: lists, one-variable statistics, the regressions, the distributions (normal,
   binomial, Poisson; density, cumulative, inverse normal). Two tiles on the handheld, a mode
   with a data editor on the desktop.
-- [x] Sessions: history, mode inputs, a name and timestamps in `session.rs`, serialised to JSON
-  with a format version. The desktop keeps them in its config directory with a session menu and
-  opens the last one on start; the handheld keeps them on the SD card.
-- [x] PreAns on a key of the handheld (SHIFT + Ans).
 - [ ] The link between handheld and desktop: the request and response format (the JSON of
   `api.rs`) and the session files from the core; on the desktop a listener reachable over WLAN
   and Bluetooth, with pairing; on the handheld the client (remote engine, session sync).
@@ -179,13 +101,6 @@ functions, units, prefixes, constants, settings and menu pages together. The han
 CATALOG (SHIFT+OPTN); the desktop's quick search and library dialog get the larger index. Ranking
 by how often an entry was used comes later.
 
-- [x] `crates/quantus-search`: the matching and ranking of `library_search`, shared by the engine
-  and the handheld, which does not depend on the engine.
-- [x] Core: functions and prefixes with names in every language and aliases (`wurzel`, `sqrt`) in
-  the library search, and the whole index for the handheld (`api::library_index`).
-- [x] Handheld: typing in CATALOG lists the hits of the index and of the SETUP and OPTN menus;
-  a function, unit or constant is inserted, a menu entry opens where it lives.
-- [x] Desktop: the quick search lists functions and prefixes too.
 - [ ] Usage counts that rank frequent entries first.
 
 ## 7. A programmer view for Basis-N
@@ -197,8 +112,8 @@ wrapping, shifts and rotations, a bit view and an IEEE-754 view. Plan with the s
 ## 8. Screenshots on the handheld
 
 From [feature-ideas.md](feature-ideas.md) (idea 28): SHIFT + 7 saves the screen as a BMP in
-`/screenshots/` on the SD card, drawn band by band into the file. Done, see
-[screenshots.md](screenshots.md); open: a look at a file from the board on a PC.
+`/screenshots/` on the SD card, drawn band by band into the file. Done; open: a
+look at a file from the board on a PC.
 
 ## 9. Later
 

@@ -1,7 +1,7 @@
 # Physics mode and circuits
 
 Ideas for physics mode, ending in a Kirchhoff calculator that reuses the electronics mode
-(implemented but hidden, see [plans.md](plans.md) item 3, spec in
+(done, spec in
 [electronics-module.md](../design/electronics-module.md)).
 
 ## 1. Formula collection in physics mode

@@ -10,7 +10,7 @@ Target: the Waveshare ESP32-P4-Module-DEV-KIT (16 MB flash, 32 MB PSRAM,
 Toolchain, flashing and the serial port: [setup.md](../docs/setup.md).
 
 Until the P4 arrived this ran on a classic ESP32 (WROOM, 4 MB flash, 520 KB SRAM, no PSRAM,
-target `xtensa-esp32-espidf`); its numbers are in [plans.md](../../plans/plans.md) §4 and git
+target `xtensa-esp32-espidf`); its numbers are under [Measurements](#measurements) and git
 history has that build setup. To compare with them, `:mem` and each result also print the
 internal RAM alone.
 
@@ -48,3 +48,21 @@ until the board is reset. Commands:
 The largest free block matters as much as the free heap: big numbers need contiguous memory.
 When an allocation fails the board prints `memory allocation of … failed` and halts instead of
 restarting; press RESET or run `espflash reset`.
+
+## Measurements
+
+**WROOM** (release app 1.9 MB of a 4 MB flash, 254 KB heap at start). Arithmetic, units,
+equations and the derivative in 11–76 ms with at most 14 KB of stack. The unit table
+(`units/lookup.rs`, ~1000 owned strings in two hash maps) took 154 KB; the integrals 7–17 s and
+another ~80 KB, after which `e^{4i\pi/2}` aborted (`ln` and float formatting failed softly first,
+since `astro-float` reports failed allocations). With the `small-memory` feature lookups replay
+the registrations instead of keeping the maps (~34 µs each in a debug build): units cost no heap,
+all three integrals are right (7–20 s each) and `x^3 - 3x` sketches in 2.1 s; the second sketch
+still runs out of memory.
+
+**P4, on the handheld** (`firmware/handheld`, the engine on its own thread with a 64 KB stack;
+2026-11-02/03). `2+3`, `2^{10}` and S⇔D in 6–15 ms, `2x+3=7` in 43 ms, `\int_0^1 \ln x\,dx` in
+3.1 s (2.5 s the second time); 33 MB heap free, 380–440 KB of it internal. Curve sketches:
+`x^3-3x` 0.3–0.7 s, `\sin(x)` 0.4 s, `xe^{-x}` 0.8 s, `\frac{x^2-1}{x-2}` 1.9 s; the tangent
+0.23 s, an area 0.2 s; at most 25 KB of stack, internal RAM at least 116 KB free, eight sketches
+in a row fine. Moving the graph: a new window (480 samples) in 33–63 ms, the redraw 134–204 ms.
