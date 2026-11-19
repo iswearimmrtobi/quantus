@@ -116,7 +116,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
 - [x] 7. **Electronics and Kirchhoff on the shell.** `circuit/kit.tsx` (`circuitKit(fields)`);
   `CircuitEditor` keeps its props, so `ElectronicsView`/`KirchhoffView` stay as they are; preview,
   highlight, overlay, reserved, Shift+R tilt as a kit key.
-- [ ] 8. **One status bar** under the canvas; Electronics' failure / `circuit.noGround` and Kirchhoff's
+- [x] 8. **One status bar** under the canvas; Electronics' failure / `circuit.noGround` and Kirchhoff's
   note move there from the `.circuit-note` overlay.
 - [ ] 9. **Fit on open/load** for Electronics and Kirchhoff: load counter in `App.tsx` (like
   `logicLoads`) → `fitKey`.

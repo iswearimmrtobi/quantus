@@ -30,9 +30,9 @@ interface Props {
   results?: ElementResult[];
   /** The potentials, each at one point of its node. */
   voltages?: { point: Point; voltage: CircuitValue }[];
-  /** Why there are no results; shown as an error over the canvas. */
+  /** Why there are no results; shown as an error under the canvas. */
   failure?: string | null;
-  /** A hint over the canvas when there is no failure. */
+  /** A hint under the canvas when there is no failure. */
   note?: string | null;
   /** SVG drawn over the parts, in drawing coordinates. */
   overlay?: ReactNode;
@@ -126,23 +126,21 @@ export function CircuitEditor({
       hint={t('circuit.hint')}
       paletteExtras={toolbar}
       emptyCanvas={t('circuit.empty')}
+      status={{ note: failure ?? note, error: Boolean(failure) }}
       stageExtras={
-        <>
-          <div className="segmented circuit-shown" role="group" aria-label={t('circuit.show')} title={t('circuit.show')}>
-            {QUANTITIES.map((quantity) => (
-              <button
-                key={quantity.key}
-                className={shown[quantity.key] ? 'segment active' : 'segment'}
-                aria-pressed={shown[quantity.key]}
-                title={t(quantity.label)}
-                onClick={() => onShownChange({ ...shown, [quantity.key]: !shown[quantity.key] })}
-              >
-                {quantity.symbol}
-              </button>
-            ))}
-          </div>
-          {(failure || note) && <div className={failure ? 'circuit-note error' : 'circuit-note'}>{failure ?? note}</div>}
-        </>
+        <div className="segmented circuit-shown" role="group" aria-label={t('circuit.show')} title={t('circuit.show')}>
+          {QUANTITIES.map((quantity) => (
+            <button
+              key={quantity.key}
+              className={shown[quantity.key] ? 'segment active' : 'segment'}
+              aria-pressed={shown[quantity.key]}
+              title={t(quantity.label)}
+              onClick={() => onShownChange({ ...shown, [quantity.key]: !shown[quantity.key] })}
+            >
+              {quantity.symbol}
+            </button>
+          ))}
+        </div>
       }
       below={below}
       inspector={(element, actions) => (
