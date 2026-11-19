@@ -132,7 +132,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   wires among them) via `kit.pasted` (fresh ids; Logic switches/lamps get free names; a third
   terminal is dropped), offset two grid steps each paste, pasted parts selected. In-app
   clipboard keyed by `kit.id`.
-- [ ] 13. **Arrow keys** move the selection one grid step (Shift: five); a burst is one undo entry.
+- [x] 13. **Arrow keys** move the selection one grid step (Shift: five); a burst is one undo entry.
 - [ ] 14. **Docs.** `CHANGELOG.md` [Unreleased]; user guide pages of Electronics, Kirchhoff, Logic
   (keys, undo, copy/paste, export, status bar); `design/digital-logic.md` §10 file references,
   `plans/ux-rework.md`, `plans/kirchhoff.md`; `CLAUDE.md` and `docs/docs/contributing/testing.md`

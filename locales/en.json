@@ -96,6 +96,7 @@
     "app.schematic.copies": "copies the chosen parts",
     "app.schematic.pastes": "pastes them, a little further off each time",
     "app.schematic.duplicates": "duplicates the chosen parts",
+    "app.schematic.moves": "move the chosen parts by a grid step, with Shift by five",
     "app.schematic.export.title": "PICTURE",
     "app.schematic.export.svg.hint": "Saves the drawing as an SVG picture, without the grid, black on white",
     "app.schematic.export.png.hint": "Saves the drawing as a PNG picture, without the grid, black on white",

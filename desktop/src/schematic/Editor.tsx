@@ -4,7 +4,7 @@ import { useSchematicEditing } from './editing';
 import { copyParts, pasteParts } from './clipboard';
 import { useHistory } from './history';
 import { ExportButtons } from './ExportButtons';
-import { boundsOf, connectedPointsOf, freeSpot, junctionDotsOf, wireEnds, type Placeable, type Rect } from './geometry';
+import { boundsOf, connectedPointsOf, freeSpot, GRID, junctionDotsOf, movedBy, wireEnds, type Placeable, type Rect } from './geometry';
 import { InspectorPopover } from './inspector';
 import { editorKeys, keyName, runKey } from './keys';
 import type { PartKit } from './kit';
@@ -163,6 +163,12 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
       copy: () => copyParts(kit.id, elements, selection),
       paste,
       duplicate: () => copyParts(kit.id, elements, selection) && paste(),
+      // A burst of arrow keys is one step of the history.
+      nudge: (dx, dy) => {
+        const origins = new Map(elements.filter((e) => selection.includes(e.id)).map((e) => [e.id, e]));
+        if (!origins.size) return false;
+        history.change(movedBy(elements, origins, dx * GRID, dy * GRID), 'arrows');
+      },
       view: canvasView,
     }),
   ];

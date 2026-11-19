@@ -15,6 +15,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   off each time and chooses them, Ctrl+D duplicates them. Pasted parts get fresh IDs; a pasted
   Logic switch or lamp keeps its name only if it is free. Parts go only into an editor that offers
   them (no ground into Kirchhoff, no third terminal).
+- Desktop, circuit editors: the arrow keys move the chosen parts by a grid step, with Shift by five.
 - Desktop, Electronics and Kirchhoff: *Picture* under the palette saves the circuit as an SVG or
   PNG file, as Logic does: the parts, wires, junctions, the parts' names and the values shown on
   the canvas, black on white without the grid. Kirchhoff's arrows and marks are left out.

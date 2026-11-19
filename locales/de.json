@@ -96,6 +96,7 @@
     "app.schematic.copies": "kopiert die gewählten Teile",
     "app.schematic.pastes": "fügt sie ein, jedes Mal etwas weiter versetzt",
     "app.schematic.duplicates": "verdoppelt die gewählten Teile",
+    "app.schematic.moves": "verschieben die gewählten Teile um einen Rasterschritt, mit Umschalt um fünf",
     "app.schematic.export.title": "BILD",
     "app.schematic.export.svg.hint": "Speichert die Zeichnung als SVG-Bild, ohne Raster, schwarz auf weiß",
     "app.schematic.export.png.hint": "Speichert die Zeichnung als PNG-Bild, ohne Raster, schwarz auf weiß",

@@ -40,8 +40,13 @@ export interface KeyActions {
   copy(): boolean;
   paste(): boolean | void;
   duplicate(): boolean | void;
+  /** Moves the chosen parts by (dx, dy) grid steps; false when none is chosen. */
+  nudge(dx: number, dy: number): boolean | void;
   view: ReturnType<typeof useCanvasView>;
 }
+
+/** The arrow keys' directions. */
+const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
 /** Ctrl, or ⌘ on a Mac, and neither Alt. */
 const command = (event: KeyboardEvent) => (event.ctrlKey || event.metaKey) && !event.altKey;
@@ -61,6 +66,16 @@ export function editorKeys(actions: KeyActions): KeyBinding[] {
     { keys: ['key.ctrl+D'], hint: 'schematic.duplicates', matches: (e) => command(e) && !e.shiftKey && e.key.toLowerCase() === 'd', run: actions.duplicate },
     { keys: ['key.delete'], hint: 'circuit.deletes', matches: (e) => e.key === 'Delete' || e.key === 'Backspace', run: actions.removeSelection },
     { keys: ['key.space', 'R'], hint: 'circuit.rotates', matches: (e) => plain(e) && (e.key === ' ' || e.key.toLowerCase() === 'r'), run: actions.rotateSelection },
+    {
+      keys: ['←', '→', '↑', '↓'],
+      hint: 'schematic.moves',
+      matches: (e) => plain(e) && e.key in ARROWS,
+      run: (e) => {
+        const [dx, dy] = ARROWS[e.key];
+        const steps = e.shiftKey ? 5 : 1;
+        return actions.nudge(dx * steps, dy * steps);
+      },
+    },
     { keys: ['Esc'], hint: 'schematic.escape', matches: (e) => e.key === 'Escape', run: actions.escape },
     { keys: ['key.home', '0'], hint: 'schematic.home', matches: (e) => plain(e) && (e.key === 'Home' || e.key === '0'), run: actions.fit },
     {
