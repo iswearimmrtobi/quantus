@@ -146,10 +146,10 @@ export function junctionDots(elements: EditorElement[]): Point[] {
 }
 
 /** The terminals of a part, both ends of a wire. */
-const ends = (element: EditorElement) => Object.values(terminals(element)) as Point[];
+export const ends = (element: EditorElement) => Object.values(terminals(element)) as Point[];
 
 /** The ideal wires as segments: they join what meets their middle. */
-const idealSegments = (elements: EditorElement[]): Segment[] => elements.filter(isIdealWire).map((w) => {
+export const idealSegments = (elements: EditorElement[]): Segment[] => elements.filter(isIdealWire).map((w) => {
   const { a, b } = terminals(w);
   return [a!, b!];
 });

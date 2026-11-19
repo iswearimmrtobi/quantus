@@ -113,7 +113,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   portal (`fullscreen` prop or its own); `LogicCircuit` only passes `fullscreen`.
   `logic/kit.tsx` + `LogicEditor` wrapper; `schematicPicture` replaces `circuitPicture`
   (`staticPicture` kept for LogicGates). CSS: shared classes `schematic-*`; one pin radius (5).
-- [ ] 7. **Electronics and Kirchhoff on the shell.** `circuit/kit.tsx` (`circuitKit(fields)`);
+- [x] 7. **Electronics and Kirchhoff on the shell.** `circuit/kit.tsx` (`circuitKit(fields)`);
   `CircuitEditor` keeps its props, so `ElectronicsView`/`KirchhoffView` stay as they are; preview,
   highlight, overlay, reserved, Shift+R tilt as a kit key.
 - [ ] 8. **One status bar** under the canvas; Electronics' failure / `circuit.noGround` and Kirchhoff's
