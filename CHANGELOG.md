@@ -11,6 +11,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   Ctrl+Shift+Z (or Ctrl+Y) on the canvas or ↶ and ↷ beside the zoom buttons. A drag, the typing in
   one field of a part's values and a burst of arrow keys are one step each; loading a file or
   drawing a circuit anew starts afresh.
+- Desktop, circuit editors: Ctrl+C copies the chosen parts, Ctrl+V pastes them a little further
+  off each time and chooses them, Ctrl+D duplicates them. Pasted parts get fresh IDs; a pasted
+  Logic switch or lamp keeps its name only if it is free. Parts go only into an editor that offers
+  them (no ground into Kirchhoff, no third terminal).
 - Desktop, Electronics and Kirchhoff: *Picture* under the palette saves the circuit as an SVG or
   PNG file, as Logic does: the parts, wires, junctions, the parts' names and the values shown on
   the canvas, black on white without the grid. Kirchhoff's arrows and marks are left out.

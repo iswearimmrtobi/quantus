@@ -36,6 +36,10 @@ export interface KeyActions {
   /** Return false when there was nothing to undo or redo. */
   undo(): boolean | void;
   redo(): boolean | void;
+  /** Return false when nothing is chosen, or there is nothing to paste. */
+  copy(): boolean;
+  paste(): boolean | void;
+  duplicate(): boolean | void;
   view: ReturnType<typeof useCanvasView>;
 }
 
@@ -52,6 +56,9 @@ export function editorKeys(actions: KeyActions): KeyBinding[] {
       matches: (e) => command(e) && ((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y'),
       run: actions.redo,
     },
+    { keys: ['key.ctrl+C'], hint: 'schematic.copies', matches: (e) => command(e) && !e.shiftKey && e.key.toLowerCase() === 'c', run: actions.copy },
+    { keys: ['key.ctrl+V'], hint: 'schematic.pastes', matches: (e) => command(e) && !e.shiftKey && e.key.toLowerCase() === 'v', run: actions.paste },
+    { keys: ['key.ctrl+D'], hint: 'schematic.duplicates', matches: (e) => command(e) && !e.shiftKey && e.key.toLowerCase() === 'd', run: actions.duplicate },
     { keys: ['key.delete'], hint: 'circuit.deletes', matches: (e) => e.key === 'Delete' || e.key === 'Backspace', run: actions.removeSelection },
     { keys: ['key.space', 'R'], hint: 'circuit.rotates', matches: (e) => plain(e) && (e.key === ' ' || e.key.toLowerCase() === 'r'), run: actions.rotateSelection },
     { keys: ['Esc'], hint: 'schematic.escape', matches: (e) => e.key === 'Escape', run: actions.escape },

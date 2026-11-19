@@ -1,6 +1,7 @@
 import { useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useT } from '../i18n';
 import { useSchematicEditing } from './editing';
+import { copyParts, pasteParts } from './clipboard';
 import { useHistory } from './history';
 import { ExportButtons } from './ExportButtons';
 import { boundsOf, connectedPointsOf, freeSpot, junctionDotsOf, wireEnds, type Placeable, type Rect } from './geometry';
@@ -135,6 +136,15 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
     canvas.current?.focus();
   };
 
+  /** Pastes the clipboard, the pasted parts then the choice; false when there was nothing for this editor. */
+  const paste = () => {
+    const added = pasteParts(kit.id, elements, kit.pasted);
+    if (!added) return false;
+    history.change([...elements, ...added]);
+    editing.setSelection(added.map((e) => e.id));
+    return true;
+  };
+
   const bindings = [
     ...(kit.keys?.({ elements, selection, onChange: (next) => history.change(next) }) ?? []),
     ...editorKeys({
@@ -150,6 +160,9 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
       fit: fitAll,
       undo: history.undo,
       redo: history.redo,
+      copy: () => copyParts(kit.id, elements, selection),
+      paste,
+      duplicate: () => copyParts(kit.id, elements, selection) && paste(),
       view: canvasView,
     }),
   ];

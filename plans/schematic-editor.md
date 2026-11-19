@@ -128,7 +128,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   one each; Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y on the canvas; ↶ ↷ buttons by the zoom controls;
   limit 100; reset by `fitKey` (load, Logic "Draw from"). Logic: an undo is an edit, so the
   circuit counts as hand-drawn afterwards, as with any edit.
-- [ ] 12. **Copy / paste / duplicate.** Ctrl+C, Ctrl+V, Ctrl+D on the canvas: the selected parts (and
+- [x] 12. **Copy / paste / duplicate.** Ctrl+C, Ctrl+V, Ctrl+D on the canvas: the selected parts (and
   wires among them) via `kit.pasted` (fresh ids; Logic switches/lamps get free names; a third
   terminal is dropped), offset two grid steps each paste, pasted parts selected. In-app
   clipboard keyed by `kit.id`.
