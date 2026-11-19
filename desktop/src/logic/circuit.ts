@@ -1,6 +1,7 @@
 import type { DrawForm, GateType, LogicElement, LogicOutput, LogicScene, LogicTaskResult, Netlist } from '../api';
 import type { TextKey } from '../i18n';
-import { freshIdOf, GRID, inside, NEW_WIRE, placeLocal, pointKey, wireBetween, wireEnds, type Placeable, type Point } from '../schematic/geometry';
+import { freshIdOf, GRID, NEW_WIRE, placeLocal, pointKey, wireBetween, wireEnds, type Placeable, type Point } from '../schematic/geometry';
+import { joinPoints } from '../schematic/nets';
 
 /**
  * The Logic mode's circuit as the editor keeps it (design/digital-logic.md §5.5): switches, lamps,
@@ -207,16 +208,6 @@ export interface Nets {
  * ends and whatever sits in its middle (the Logic mode's wires have no resistance).
  */
 export function numberNets(parts: LogicPart[]): Nets {
-  const parent = new Map<string, string>();
-  const root = (key: string): string => {
-    let k = key;
-    while (parent.has(k)) k = parent.get(k)!;
-    return k;
-  };
-  const join = (p: string, q: string) => {
-    const [a, b] = [root(p), root(q)];
-    if (a !== b) parent.set(a, b);
-  };
   const points = new Map<string, Point>();
   const count = new Map<string, number>();
   for (const part of parts) {
@@ -226,11 +217,8 @@ export function numberNets(parts: LogicPart[]): Nets {
       count.set(key, (count.get(key) ?? 0) + 1);
     }
   }
-  for (const wire of parts.filter((p) => p.kind === 'wire')) {
-    const [a, b] = wireEnds(wire);
-    join(pointKey(a), pointKey(b));
-    for (const [key, point] of points) if (inside(a, b, point)) join(key, pointKey(a));
-  }
+  const wires = parts.filter((p) => p.kind === 'wire').map(wireEnds);
+  const root = joinPoints(points.values(), wires, wires);
   const number = new Map<string, number>();
   const byPoint = new Map<string, number>();
   const size = new Map<number, number>();
