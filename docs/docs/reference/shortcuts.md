@@ -126,4 +126,5 @@ Electronics, Kirchhoff and Logic share one editor. These keys work while its can
 |---|---|
 | Wheel | Zoom |
 | Drag | Move |
-| Click a point | Select it in the list below the graph |
+| Click a point | Select it, in the graph or in the legend under it |
+| <kbd>Esc</kbd> | Leave full screen |

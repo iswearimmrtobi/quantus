@@ -7,6 +7,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Desktop, Analysis: the graph in full screen, with ⤢ beside *Reset view*; <kbd>Esc</kbd> leaves.
+  The view, the tangent, the area and the table's dots stay as they were.
 - Desktop, circuit editors (Electronics, Kirchhoff, Logic): undo and redo, with Ctrl+Z and
   Ctrl+Shift+Z (or Ctrl+Y) on the canvas or ↶ and ↷ beside the zoom buttons. A drag, the typing in
   one field of a part's values and a burst of arrow keys are one step each; loading a file or
@@ -191,6 +193,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Desktop, Analysis: the graph comes first and fills the window's height, the curve sketch beside
+  it scrolls on its own; in a narrow window the graph stands above the sketch. The sections' steps
+  start closed, so the sketch reads as a summary. The marked points stand as a legend under the
+  graph instead of a list; pointing at one shows its coordinates.
 - Desktop, circuit editors: Electronics, Kirchhoff and Logic share one editor and work alike.
   Under the palette a folded list *Keys* names every key of the canvas; Home (or 0) shows the
   whole drawing in every mode, and Electronics and Kirchhoff show the whole circuit when opened

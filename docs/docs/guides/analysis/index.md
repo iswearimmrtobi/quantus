@@ -6,7 +6,7 @@ title: Curve sketching
 # Curve sketching
 
 **Analysis** mode takes a function of one variable and works through the whole curve sketch,
-each part with its working, beside an interactive graph. Letters are read as in Algebra.
+each part with its working, beside an interactive graph that fills the window's height. Letters are read as in Algebra.
 
 ## Enter a function
 
@@ -40,7 +40,8 @@ The **Curve sketch** tab lists one section per question. For $f(x) = x^3 - 3x$:
 | Behaviour at the edges and asymptotes | no asymptotes |
 | Antiderivative | $F(x) = \frac{1}{4}x^{4} - \frac{3}{2}x^{2} + C$ |
 
-Each section opens to its working. The zeros, for example:
+The sections start closed, so the results read as a summary; click a section's title to open its
+working. The zeros, for example:
 
 | | |
 |---|---|

@@ -512,10 +512,9 @@ pub fn value_table(settings: &Settings, r: &TableRequest) -> Result<TableRespons
 - **`components/AnalysisView.tsx`:**
   - **Top:** the function input using `MathField`/`LatexInput` with the same LaTeX toggle and Enter behaviour, and a placeholder `f(x) = x^3 - 3x`.
   - **Below the input:** a tab row "Kurvendiskussion · Tangente/Normale · Fläche · Wertetabelle" / "Curve sketch · Tangent/normal · Area · Value table".
-  - **Body:** two columns, collapsing to one under 900 px.
-    - **Left:** the results sheet. Curve-sketch tab: one collapsible card per section, with the title, a status badge for partial or failed (its message as tooltip and below the result), the result line (KaTeX) and steps (explanation text plus KaTeX latex). Task tabs: small LaTeX text fields (x₀ / from–to / from–to–step; these are short numbers, so no formula editor) with a "Berechnen" / "Compute" button, then the steps or a table.
-    - **Below the graph:** the list of marked points with their kind (Hochpunkt, …) and coordinates; clicking one selects it in the graph and the other way round.
-    - **Right:** `FunctionPlot`.
+  - **Body:** two columns filling the window's height (graph 3fr, sheet 2fr, at least 340 px), the sheet scrolling on its own; under 900 px one column, the graph first at 55vh, the page scrolling.
+    - **Left:** `FunctionPlot`. Its footer holds the legend of the marked points (swatch and name; pointing at one shows its coordinates in the graph, a click selects it, and the other way round), **Reset view** and ⤢ for full screen (`useFullscreen` of the schematic editor: the graph fills the window through a portal, Esc leaves; the view stays).
+    - **Right:** the results sheet, under the function line. Curve-sketch tab: one card per section, its steps closed at first, with the title, a status badge for partial or failed (its message as tooltip and below the result), the result line (KaTeX) and steps (explanation text plus KaTeX latex). Task tabs: small LaTeX text fields (x₀ / from–to / from–to–step; these are short numbers, so no formula editor) with a "Berechnen" / "Compute" button, then the steps or a table.
   - **State:** `response`, `selectedPoint`, `taskResult`.
   - **Re-runs:** a change of language, precision, output style or quadratic formula re-runs `analyze` and the active task.
   - **Errors:** shown like in the calculator, with the position marker on parse errors.
@@ -582,5 +581,5 @@ Plus:
 **Manual check:** `npm run dev`, switch to Analysis, then:
 1. Enter `x^3-3x`, `x e^x`, `\frac{x^2-1}{x-2}` and `\sin x`, in German and English, and check the working, the marked points and the asymptotes.
 2. Zoom and pan: the curve breaks at x = 2 and resamples.
-3. Click a point in the sheet and in the graph.
+3. Click a point in the legend and in the graph; ⤢ and Esc for full screen.
 4. Try each task tab and toggle pq/abc.

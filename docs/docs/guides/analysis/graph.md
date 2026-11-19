@@ -5,14 +5,22 @@ title: Graph and tools
 
 # Graph and tools
 
-Beside the curve sketch of [Analysis](index.md) mode are the graph and three tools that work on
+Next to the curve sketch of [Analysis](index.md) mode are the graph and three tools that work on
 the same function: tangent and normal, area, and a value table.
 
 ## The graph
 
-The graph shows the curve, its asymptotes and the marked points (zeros, extrema, inflection and
-saddle points, removable gaps). Scroll to zoom, drag to move, **Reset view** to go back. Clicking
-a point selects it in the list below the graph, and the other way round.
+The graph takes the left of the window, the curve sketch the right; in a narrow window the graph
+comes first and the sketch below it. It shows the curve, its asymptotes and the marked points
+(zeros, extrema, inflection and saddle points, removable gaps). Scroll to zoom, drag to move,
+**Reset view** to go back.
+
+The points' names stand as a legend under the graph, in the points' colours. Pointing at a name
+shows the point's coordinates in the graph; clicking a point, in the graph or in the legend,
+selects it.
+
+**⤢** beside **Reset view** lets the graph fill the window, with the view, the tangent, the area
+and the table's dots as they were; <kbd>Esc</kbd> or **⤡** goes back.
 
 ## Tangent and normal
 
