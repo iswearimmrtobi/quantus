@@ -539,7 +539,16 @@ fn derivative_operator(variable: &str, partial: bool) -> String {
 
 /// The coordinates of a point, `(1|2|3)`.
 fn coordinate_list(coordinates: &[Node], mode: SerializerMode) -> String {
-    format!("({})", coordinates.iter().map(|c| expression_with_mode(c, mode)).collect::<Vec<_>>().join("|"))
+    bar_point(coordinates.iter().map(|c| expression_with_mode(c, mode)))
+}
+
+/// Coordinates in school notation, `(4|0|{-1})`. A bar is an ordinary symbol to TeX, so a minus
+/// after it would be set as a subtraction, `(4|0| − 1)`; in braces it is a sign. After the
+/// opening bracket a minus is a sign anyway.
+pub(crate) fn bar_point(entries: impl IntoIterator<Item = String>) -> String {
+    let entries: Vec<String> =
+        entries.into_iter().enumerate().map(|(i, e)| if i > 0 && e.starts_with('-') { format!("{{{e}}}") } else { e }).collect();
+    format!("({})", entries.join("|"))
 }
 
 #[cfg(test)]

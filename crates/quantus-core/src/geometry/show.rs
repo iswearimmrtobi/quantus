@@ -58,8 +58,7 @@ pub(crate) fn vector(v: &Vector3) -> String {
 
 /// A point in school notation, `(1|2|3)`.
 pub(crate) fn point(p: &Point) -> String {
-    let entries: Vec<String> = coordinates(&p.coords, p.planar).iter().map(value).collect();
-    format!("({})", entries.join("|"))
+    serializer::bar_point(coordinates(&p.coords, p.planar).iter().map(value))
 }
 
 /// A sum of multiples, `2x - y + \frac{1}{2}z - 3`; a term with an empty symbol is a constant.

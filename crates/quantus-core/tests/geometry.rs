@@ -211,7 +211,9 @@ fn points_are_written_with_bars_or_semicolons() {
     assert_eq!(point("(1,5|2|3)").coords[0], Value::ratio(3, 2));
     assert_eq!(point(r"(\frac{1}{2}|2+3|(1+1)^{2})"), Point::new(Value::ratio(1, 2), Value::int(5), Value::int(4)));
     assert_eq!(written("P_1(1;2;3)"), "P_{1}(1|2|3)");
-    assert_eq!(written(r"(1|\frac{1}{2}|-3)"), r"(1|\frac{1}{2}|-3)");
+    assert_eq!(written(r"(1|\frac{1}{2}|-3)"), r"(1|\frac{1}{2}|{-3})");
+    // The minus after a bar in braces, so TeX sets a sign, not a subtraction; it reads back.
+    assert_eq!(point(r"B(4|0|{-1})"), Point::from_ints(4, 0, -1));
     // Without a bar or a semicolon the brackets are a plain group, and a letter before them a factor.
     assert_eq!(read("(1+2)", &Objects::default()), Ok(Item::Scalar(Value::int(3))));
     assert_eq!(written("a(1+2)"), r"a \cdot (1 + 2)");
@@ -620,7 +622,7 @@ fn reflections() {
     let p = at([1, 2, 3]);
     let worked = p.reflect_in_point(&at([2, 0, 1]));
     assert_eq!(worked.result, at([3, -2, -1]));
-    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["P' = (3|-2|-1)"]);
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), ["P' = (3|{-2}|{-1})"]);
     // In the x axis: (1|-2|-3).
     let x_axis = line([0, 0, 0], [1, 0, 0]);
     assert_eq!(x_axis.reflect(&p).result, at([1, -2, -3]));
@@ -705,7 +707,7 @@ fn a_sphere_and_a_line() {
     let worked = unit.meet_line(&line([0, 0, 0], [1, 1, 0])).unwrap();
     let SphereLine::Secant { points, .. } = &worked.result else { panic!() };
     assert_eq!(decimal(&points[1].coords[0]), decimal(&sqrt(2).mul(&Value::ratio(1, 2))));
-    assert_eq!(latex_at(&worked.working, StepDetail::Brief), [r"S_1 = (-\frac{\sqrt{2}}{2}|-\frac{\sqrt{2}}{2}|0), \quad S_2 = (\frac{\sqrt{2}}{2}|\frac{\sqrt{2}}{2}|0)"]);
+    assert_eq!(latex_at(&worked.working, StepDetail::Brief), [r"S_1 = (-\frac{\sqrt{2}}{2}|{-\frac{\sqrt{2}}{2}}|0), \quad S_2 = (\frac{\sqrt{2}}{2}|\frac{\sqrt{2}}{2}|0)"]);
 }
 
 #[test]
@@ -990,7 +992,7 @@ fn the_api_builds_a_scene_from_forms_and_names() {
     let task = |task| ask(scene.clone(), task, &settings).task.unwrap();
     let relation = task(json!({ "kind": "relation", "a": "g", "b": "h" }));
     assert_eq!(relation.relation.as_deref(), Some("intersecting"));
-    assert!(relation.result.contains(&"S = (0|-1|0)".to_string()), "{:?}", relation.result);
+    assert!(relation.result.contains(&"S = (0|{-1}|0)".to_string()), "{:?}", relation.result);
     assert!(relation.result.contains(&r"\varphi = 45^\circ".to_string()));
     assert!(relation.align_block.starts_with("\\begin{align*}"));
 

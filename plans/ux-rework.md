@@ -350,8 +350,9 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 
 ## Phase 6: Polish (could)
 
-- [ ] Geometry: `B(4|0|-1)` renders as `(4|0| − 1)`; write the sign as unary in the object's
-  LaTeX (core, `geometry/show.rs`).
+- [x] Geometry: `B(4|0|-1)` renders as `(4|0| − 1)`; write the sign as unary in the object's
+  LaTeX (core, `geometry/show.rs`). (`serializer::bar_point`, used by `show::point` too, writes
+  `{-1}` after a bar.)
 - [ ] Geometry: labels overlap in the view (A and K, g on B). Nudge labels away from each
   other in `view::project`, as `labelLayout.ts` does for the schematics.
 - [ ] Geometry: axis ticks with more contrast.

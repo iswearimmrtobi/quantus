@@ -170,6 +170,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Geometry: a negative coordinate after a bar is set as a sign, `(4|0|-1)`, instead of as a
+  subtraction with spaces, `(4|0| − 1)`. The LaTeX writes it `{-1}`, which reads back the same.
 - Electronics: a part whose terminal sits in the middle of two ideal wires that cross is joined to
   both of them; before, only the first wire counted and the other was left unconnected there.
 - A root's degree can be any positive whole number, so `\lim_{x\to\infty}\sqrt[x]{2}` is 1
