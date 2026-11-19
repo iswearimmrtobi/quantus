@@ -191,6 +191,15 @@ export function newPart(parts: LogicPart[], kind: PaletteKind, at: Point): Logic
   }
 }
 
+/** A copy of `part` to paste into `parts`: a fresh id, and a switch or lamp a free name if its own is taken. */
+export function pastedPart(part: LogicPart, parts: LogicPart[]): LogicPart {
+  const id = freshIdOf(parts.map((p) => p.id), PREFIX[part.kind]);
+  if (part.kind !== 'input' && part.kind !== 'output') return { ...part, id };
+  const taken = parts.some((p) => p.kind === part.kind && p.name === part.name);
+  const name = !taken ? part.name : part.kind === 'input' ? freeName(parts, 'input', LETTERS, 'x') : freeName(parts, 'output', OUTPUT_NAMES, 'f');
+  return { ...part, id, name };
+}
+
 /** A gate changed to `gate`: one input for NOT and buffer, two when it had one. */
 export function withGate(part: LogicPart, gate: GateType): LogicPart {
   return { ...part, gate, inputs: single(gate) ? 1 : Math.max(2, part.inputs ?? 2) };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allPins, localBody, newPart, numberNets, partPins, toNetlist, withGate, type LogicPart } from './circuit';
+import { allPins, localBody, newPart, numberNets, partPins, pastedPart, toNetlist, withGate, type LogicPart } from './circuit';
 
 const wire = (id: string, x: number, y: number, x2: number, y2: number): LogicPart => ({ id, kind: 'wire', x, y, x2, y2, rotation: 0 });
 
@@ -86,5 +86,16 @@ describe('nets', () => {
       ],
     });
     expect(toNetlist([])).toBeNull();
+  });
+});
+
+describe('paste', () => {
+  it('gives a pasted part a fresh id, and a switch or lamp a free name', () => {
+    const parts = andCircuit();
+    expect(pastedPart(parts[0], parts)).toMatchObject({ id: 'I3', name: 'C' });
+    expect(pastedPart(parts[3], parts)).toMatchObject({ id: 'O2', name: 'g' });
+    expect(pastedPart(parts[2], parts)).toMatchObject({ id: 'G2', gate: 'and' });
+    // A name no switch has yet stays.
+    expect(pastedPart({ ...parts[0], name: 'Q' }, parts).name).toBe('Q');
   });
 });
