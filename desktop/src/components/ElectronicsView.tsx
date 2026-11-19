@@ -12,10 +12,12 @@ interface Props {
   shown: Shown;
   onShownChange(next: Shown): void;
   toolbar?: ReactNode;
+  /** Changed to show the whole drawing, as after a file was loaded. */
+  fitKey?: number;
 }
 
 /** The electronics mode: the circuit editor with the node-voltage solver behind it. */
-export function ElectronicsView({ elements, onChange, settings, shown, onShownChange, toolbar }: Props) {
+export function ElectronicsView({ elements, onChange, settings, shown, onShownChange, toolbar, fitKey }: Props) {
   const { t } = useT();
   const [response, setResponse] = useState<CircuitResponse | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export function ElectronicsView({ elements, onChange, settings, shown, onShownCh
       shown={shown}
       onShownChange={onShownChange}
       toolbar={toolbar}
+      fitKey={fitKey}
     />
   );
 }

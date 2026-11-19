@@ -54,6 +54,8 @@ interface Props {
   onShownChange(next: Shown): void;
   /** Extra controls for the palette column (load and save). */
   toolbar?: ReactNode;
+  /** Changed to show the whole drawing, as after a file was loaded; it is also shown on opening. */
+  fitKey?: number;
 }
 
 export const PALETTE: EditorKind[] = ['voltageSource', 'currentSource', 'resistor', 'potentiometer', 'powerLoad', 'wire', 'ground'];
@@ -76,6 +78,7 @@ export function CircuitEditor({
   shown,
   onShownChange,
   toolbar,
+  fitKey,
 }: Props) {
   const { t } = useT();
   const kit = useMemo(() => circuitKit(palette), [palette]);
@@ -143,6 +146,7 @@ export function CircuitEditor({
         </div>
       }
       below={below}
+      fitKey={fitKey}
       inspector={(element, actions) => (
         <CircuitInspector
           element={element}

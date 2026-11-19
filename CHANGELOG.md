@@ -181,7 +181,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 - Desktop, circuit editors: Electronics, Kirchhoff and Logic share one editor and work alike.
   Under the palette a folded list *Keys* names every key of the canvas; Home (or 0) shows the
-  whole drawing in every mode. The error or hint about the circuit sits in a bar under the canvas
+  whole drawing in every mode, and Electronics and Kirchhoff show the whole circuit when opened
+  and after a file was loaded, as Logic does. The error or hint about the circuit sits in a bar under the canvas
   in Electronics and Kirchhoff too, as in Logic, instead of over the drawing. Pins have one size,
   and a click on a part's pin opens its values as a click on the part does.
 - Desktop, Electronics and Kirchhoff: a part's values open beside it over the canvas, as in Logic,

@@ -30,13 +30,15 @@ interface Props {
   shown: Shown;
   onShownChange(next: Shown): void;
   toolbar?: ReactNode;
+  /** Changed to show the whole drawing, as after a file was loaded. */
+  fitKey?: number;
 }
 
 /**
  * The Kirchhoff mode: a resistor network drawn in the circuit editor, worked out by the junction
  * and loop rules.
  */
-export function KirchhoffView({ elements, onChange, settings, shown, onShownChange, toolbar }: Props) {
+export function KirchhoffView({ elements, onChange, settings, shown, onShownChange, toolbar, fitKey }: Props) {
   const { t } = useT();
   const [solution, setSolution] = useState<Kirchhoff | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -184,6 +186,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       shown={shown}
       onShownChange={onShownChange}
       toolbar={toolbar}
+      fitKey={fitKey}
     />
   );
 }

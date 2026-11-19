@@ -118,7 +118,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   highlight, overlay, reserved, Shift+R tilt as a kit key.
 - [x] 8. **One status bar** under the canvas; Electronics' failure / `circuit.noGround` and Kirchhoff's
   note move there from the `.circuit-note` overlay.
-- [ ] 9. **Fit on open/load** for Electronics and Kirchhoff: load counter in `App.tsx` (like
+- [x] 9. **Fit on open/load** for Electronics and Kirchhoff: load counter in `App.tsx` (like
   `logicLoads`) → `fitKey`.
 - [ ] 10. **SVG/PNG export** for Electronics and Kirchhoff via `ExportButtons` in the palette column;
   labels' `svg` = id + shown values as plain text (`value` `unit`); the Kirchhoff overlay is not

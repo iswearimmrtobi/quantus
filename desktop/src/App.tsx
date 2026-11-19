@@ -134,6 +134,8 @@ export function App() {
   const [logic, setLogic] = useState<LogicScene>(EMPTY_LOGIC);
   /** Counts the scenes loaded from files: each opens the page afresh, its circuit shown whole. */
   const [logicLoads, setLogicLoads] = useState(0);
+  /** Counts the circuits loaded from files in Electronics and Kirchhoff: each is shown whole. */
+  const [circuitLoads, setCircuitLoads] = useState(0);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const language = settings.language;
@@ -158,6 +160,7 @@ export function App() {
       const path = await open({ filters: FILTERS, multiple: false });
       if (typeof path !== 'string') return;
       (kirchhoff ? setKirchhoffCircuit : setCircuit)(fromFile(await api.loadCircuit(path)));
+      setCircuitLoads((n) => n + 1);
       setFileError(null);
     } catch (failure) {
       setFileError(failure instanceof Error ? failure.message : String(failure));
@@ -659,6 +662,7 @@ export function App() {
             shown={circuitShown}
             onShownChange={setCircuitShown}
             toolbar={fileButtons}
+            fitKey={circuitLoads}
           />
         </main>
       ) : kirchhoff ? (
@@ -670,6 +674,7 @@ export function App() {
             shown={circuitShown}
             onShownChange={setCircuitShown}
             toolbar={fileButtons}
+            fitKey={circuitLoads}
           />
         </main>
       ) : (
