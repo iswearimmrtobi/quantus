@@ -1,7 +1,7 @@
 import type { Kirchhoff } from '../api';
 import { GRID, terminals, type EditorElement, type Point } from '../circuit';
 import { useT } from '../i18n';
-import type { Rect } from '../labelLayout';
+import type { Rect } from '../schematic/labels';
 import type { ExtraLabel } from './CircuitEditor';
 import { Katex } from './Katex';
 

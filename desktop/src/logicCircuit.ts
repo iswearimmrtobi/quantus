@@ -1,6 +1,6 @@
 import type { DrawForm, GateType, LogicElement, LogicOutput, LogicScene, LogicTaskResult, Netlist } from './api';
 import type { TextKey } from './i18n';
-import { freshIdOf, GRID, inside, pointKey, rotate, wireEnds, type Placeable, type Point } from './schematic';
+import { freshIdOf, GRID, inside, pointKey, rotate, wireEnds, type Placeable, type Point } from './schematic/geometry';
 
 /**
  * The Logic mode's circuit as the editor keeps it (design/digital-logic.md §5.5): switches, lamps,

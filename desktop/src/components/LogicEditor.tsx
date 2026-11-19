@@ -23,9 +23,9 @@ import {
   type LogicPart,
   type PaletteKind,
 } from '../logicCircuit';
-import { nearest, placeLabels, type LabelRequest, type Placement, type Side } from '../labelLayout';
-import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, segmentBox, wireEnds, type Point, type Rect, type Segment } from '../schematic';
-import { pngBytes, svgBytes, type Picture } from '../picture';
+import { nearest, placeLabels, type LabelRequest, type Placement, type Side } from '../schematic/labels';
+import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, segmentBox, wireEnds, type Point, type Rect, type Segment } from '../schematic/geometry';
+import { pngBytes, svgBytes, type Picture } from '../schematic/picture';
 import { saveBytes } from '../shell';
 import { Katex } from './Katex';
 import { DragGhost, GridBackground, HOME, InspectorHead, InspectorPopover, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, type Fullscreen } from './Schematic';

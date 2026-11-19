@@ -24,9 +24,9 @@ import {
   type Shown,
   type Terminal,
 } from '../circuit';
-import { boundsOf } from '../schematic';
+import { boundsOf } from '../schematic/geometry';
 import { useT } from '../i18n';
-import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../labelLayout';
+import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../schematic/labels';
 import { Katex } from './Katex';
 import { DragGhost, GridBackground, HOME, InspectorHead, InspectorPopover, labelStyle, useCanvasView, useLabelSizes, useSchematicEditing, viewTransform, WirePart, ZoomControls, useFullscreen } from './Schematic';
 

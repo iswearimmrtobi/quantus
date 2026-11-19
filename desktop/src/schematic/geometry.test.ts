@@ -16,7 +16,7 @@ import {
   wireEnds,
   type Placeable,
   type Point,
-} from './schematic';
+} from './geometry';
 
 const p = (x: number, y: number): Point => ({ x, y });
 const part = (id: string, x: number, y: number, rotation = 0): Placeable => ({ id, kind: 'part', x, y, rotation });

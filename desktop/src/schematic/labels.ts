@@ -1,4 +1,4 @@
-import { boundsOf, GRID, type Point, type Rect } from './schematic';
+import { boundsOf, GRID, type Point, type Rect } from './geometry';
 
 export type { Rect };
 

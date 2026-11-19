@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nearest, placeLabels, type LabelRequest } from './labelLayout';
+import { nearest, placeLabels, type LabelRequest } from './labels';
 
 const label = (id: string, x: number, y: number, rest: Partial<LabelRequest> = {}): LabelRequest => ({
   id,

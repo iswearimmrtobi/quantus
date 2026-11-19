@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '../i18n';
-import type { Placement } from '../labelLayout';
+import type { Placement } from '../schematic/labels';
 import {
   corner,
   GRID,
@@ -24,7 +24,7 @@ import {
   type Placeable,
   type Point,
   type Rect,
-} from '../schematic';
+} from '../schematic/geometry';
 
 /**
  * The parts of a schematic editor that are not about what is drawn: the canvas that pans and

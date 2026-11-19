@@ -13,7 +13,7 @@ import {
   type Point,
   type Rect,
   type Segment,
-} from './schematic';
+} from './schematic/geometry';
 
 export { GRID, inside, pointKey, rotate, snap, type Point };
 
