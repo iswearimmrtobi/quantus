@@ -61,9 +61,8 @@ interface PartKit<E extends Placeable, K extends string, S = never> {
   id: string;                                         // clipboard: paste only into the same kit
   palette: K[]; paletteLabel(kind: K, t): string; paletteIcon(kind: K): ReactNode;
   newPart(elements: E[], kind: K, at: Point): E; spacing: number; canAdd?(elements: E[], kind: K): boolean;
-  localPins(e: E): Point[];                           // unturned; shell places them (placeLocal, 45° rule incl.)
-  localBody(e: E): Rect; localHit?(e: E): Rect;       // hit defaults to body + 4
-  localObstacles?(e: E): Rect[];                      // leads, wiper; body and pins are added by the shell
+  pins(e: E): Point[];                                // placed, by the model's own placeLocal-based pins
+  body(e: E): Rect; hit(e: E): Rect; obstacles(e: E): Rect[];   // hit in local coordinates
   joining(elements: E[]): E[];                        // wires that join in their middle (ideal / all)
   dotsIgnore?(e: E): boolean;                         // terminals A/B are marks, not lines
   turned?(rotation: number): number;
@@ -108,7 +107,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   took only the first): a fix, with a test and a changelog line.
 - [x] 5. **Shared inspector fields.** `TextField`, `SelectField`, `CheckedTextField` (NameField with
   `check(text) → value | null`); both inspectors use them.
-- [ ] 6. **The shell, Logic on it.** `kit.ts`, `keys.ts` (one table drives `keyDown` and the palette
+- [x] 6. **The shell, Logic on it.** `kit.ts`, `keys.ts` (one table drives `keyDown` and the palette
   hints; a "Keys" disclosure lists all), `useLabelPlacements`, `useFitOnRequest` (LogicEditor's
   pendingFit loop), `Editor.tsx`, `PlacedPart`, `JunctionDots`, `LeaderLines`. The shell owns the
   portal (`fullscreen` prop or its own); `LogicCircuit` only passes `fullscreen`.

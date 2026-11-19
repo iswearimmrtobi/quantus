@@ -3,7 +3,7 @@ import type { DrawForm, GateFormResult, LogicElement, LogicForm, LogicOutputResu
 import { useT, type TextKey } from '../i18n';
 import { logicTask } from '../logic';
 import { fromGenerated, type GateChoice, type LogicPart } from '../logic/circuit';
-import { staticPicture } from '../logic/LogicEditor';
+import { staticPicture } from '../logic/kit';
 import { Section } from './LogicResults';
 import { Segmented } from './SettingsDialog';
 

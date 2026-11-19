@@ -204,8 +204,8 @@ export function CircuitEditor({
   const fullscreen = useFullscreen();
 
   return fullscreen.portal(
-    <div className={fullscreen.full ? 'circuit fullscreen' : 'circuit'}>
-      <div className="circuit-palette">
+    <div className={fullscreen.full ? 'schematic-editor fullscreen' : 'schematic-editor'}>
+      <div className="schematic-palette">
         <div className="palette-title">{t('circuit.parts')}</div>
         {palette.map((kind) => (
           <button
@@ -231,12 +231,12 @@ export function CircuitEditor({
         </p>
       </div>
 
-      <div className="circuit-centre">
-      <div className="circuit-stage">
+      <div className="schematic-centre">
+      <div className="schematic-stage">
         <ZoomControls view={canvasView} fit={fitAll} fullscreen={fullscreen} />
         <svg
           ref={canvas}
-          className="circuit-canvas"
+          className="schematic-canvas"
           tabIndex={0}
           onKeyDown={onKeyDown}
           onPointerMove={editing.onMove}
@@ -304,9 +304,9 @@ export function CircuitEditor({
           ))}
         </div>
 
-        <div className="circuit-labels">
+        <div className="schematic-labels">
           <div
-            className="circuit-labels-drawing"
+            className="schematic-labels-drawing"
             style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}
           >
             {labels.map((label) =>
@@ -344,7 +344,7 @@ export function CircuitEditor({
           </div>
         </div>
 
-        {elements.length === 0 && !preview && <div className="circuit-canvas-empty">{t('circuit.empty')}</div>}
+        {elements.length === 0 && !preview && <div className="schematic-empty">{t('circuit.empty')}</div>}
 
         {(failure || note) && <div className={failure ? 'circuit-note error' : 'circuit-note'}>{failure ?? note}</div>}
 

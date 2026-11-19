@@ -211,8 +211,8 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
 
   return (
     <section className="logic-circuit" ref={frame} hidden={!shown}>
-      {shown && fullscreen.portal(
-        <div className={full ? 'logic-editor-frame fullscreen' : 'logic-editor-frame'}>
+      {shown && (
+        <div className="logic-editor-frame">
           <LogicEditor
             parts={parts}
             onChange={setParts}
@@ -230,7 +230,7 @@ export function LogicCircuit({ settings, scene, answer, onSceneChange, switchVal
             fitKey={fitKey}
             fullscreen={fullscreen}
           />
-        </div>,
+        </div>
       )}
     </section>
   );

@@ -1598,35 +1598,35 @@ select option {
   padding: 3px 10px;
 }
 
-/* ---------- Electronics: the schematic editor ---------- */
+/* ---------- The schematic editor of Electronics, Kirchhoff and Logic ---------- */
 
 .workspace.circuit-workspace {
   display: block;
   overflow: hidden;
 }
 
-.circuit {
+.schematic-editor {
   display: grid;
   grid-template-columns: 170px 1fr;
   grid-template-rows: minmax(0, 1fr);
   height: 100%;
 }
-/* The Electronics and Kirchhoff editor filling the window, over the app but under its dialogs. */
-.circuit.fullscreen {
+/* An editor filling the window, over the app but under its dialogs. */
+.schematic-editor.fullscreen {
   position: fixed;
   inset: 0;
   z-index: 15;
   height: auto;
   background: var(--background);
 }
-.circuit-centre {
+.schematic-centre {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
 }
 
-.circuit-palette {
+.schematic-palette {
   padding: 14px 12px;
   overflow-y: auto;
   background: var(--surface);
@@ -1669,15 +1669,41 @@ select option {
   font-size: 11px;
   line-height: 1.5;
 }
+/* The keys of the canvas, folded away under the hints. */
+.palette-keys {
+  margin: 10px 2px 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.palette-keys summary {
+  cursor: pointer;
+}
+.palette-keys dl {
+  margin: 6px 0 0;
+}
+.palette-keys dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  margin-bottom: 4px;
+}
+.palette-keys dt {
+  display: flex;
+  gap: 3px;
+}
+.palette-keys dd {
+  margin: 0;
+}
 
-.circuit-stage {
+.schematic-stage {
   position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
 }
 
-.circuit-canvas {
+.schematic-canvas {
   width: 100%;
   height: 100%;
   display: block;
@@ -1794,13 +1820,13 @@ select option {
   flex: none;
   min-width: 28px;
 }
-.circuit-labels {
+.schematic-labels {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
 }
-.circuit-labels-drawing {
+.schematic-labels-drawing {
   position: absolute;
   left: 0;
   top: 0;
@@ -3175,22 +3201,10 @@ select option {
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
 }
-/* The editor filling the window, over the app but under its dialogs. */
-.logic-editor-frame.fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 15;
-  height: auto;
-  min-height: 0;
-  resize: none;
-  border: none;
-  border-radius: 0;
-  background: var(--background);
-}
 .logic-draw .logic-output-tabs {
   margin-left: 8px;
 }
-.logic-editor .circuit-palette {
+.logic-editor .schematic-palette {
   padding: 10px 8px;
 }
 .logic-editor {
@@ -3291,7 +3305,7 @@ select option {
 }
 
 /* Draw from… and Arrange in a bar above the canvas, and the figures in the canvas's corner. */
-.logic-toolbar {
+.schematic-toolbar {
   padding: 6px 10px;
   border-bottom: 1px solid var(--hairline);
 }
@@ -3314,8 +3328,7 @@ select option {
   gap: 4px;
 }
 /* An empty canvas: the forms to draw from in its middle, the drop target still under them. */
-.logic-canvas-empty,
-.circuit-canvas-empty {
+.schematic-empty {
   position: absolute;
   inset: 0;
   display: grid;
@@ -3323,7 +3336,7 @@ select option {
   padding: 20px;
   pointer-events: none;
 }
-.circuit-canvas-empty {
+.schematic-empty {
   color: var(--text-faint);
   font-size: 13px;
   text-align: center;
@@ -3342,11 +3355,11 @@ select option {
   justify-content: center;
   pointer-events: auto;
 }
-.logic-canvas-empty .panel-empty {
+.schematic-empty .panel-empty {
   margin: 0;
 }
 /* The bar under the canvas: the figures, the critical path and t_pd, then the note or the errors. */
-.logic-editor-bar {
+.schematic-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -3362,7 +3375,7 @@ select option {
   align-items: center;
   gap: 4px 16px;
 }
-.logic-bar-note {
+.schematic-bar-note {
   flex: 1 1 260px;
   display: flex;
   flex-wrap: wrap;
@@ -3372,7 +3385,7 @@ select option {
   font-size: 12px;
   text-align: right;
 }
-.logic-bar-note.error {
+.schematic-bar-note.error {
   justify-content: flex-start;
   flex-direction: column;
   align-items: flex-start;
@@ -4246,12 +4259,12 @@ select option {
   .workspace.circuit-workspace {
     overflow-y: auto;
   }
-  .circuit {
+  .schematic-editor {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(360px, 70dvh);
     height: auto;
   }
-  .circuit-palette {
+  .schematic-palette {
     border: none;
     border-bottom: 1px solid var(--hairline);
   }
@@ -4266,12 +4279,12 @@ select option {
   text-align: left;
 }
 
-.logic-export {
+.schematic-export {
   display: grid;
   gap: 6px;
   margin-top: 10px;
 }
-.logic-export-buttons {
+.schematic-export-buttons {
   display: flex;
   gap: 6px;
 }
