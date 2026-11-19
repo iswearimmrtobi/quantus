@@ -242,6 +242,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Desktop, Basis-N: under the result it stands in all four bases at once, HEX, DEC, OCT and BIN
   (in groups of four), each with Copy, instead of the buttons DEC, BIN, OCT, BITS to switch
   between them.
+- Desktop, Basis-N: the keys above the input stand in four labelled groups, Logic, Shift, Float
+  and Prefix, and a group wraps to the next line as a whole.
 
 ## [0.2.0] - 2026-11-06
 

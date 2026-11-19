@@ -10,8 +10,9 @@ numbers in four bases.
 
 Switch to **Base-N** in the top bar. Above the input are a switch **DEC / HEX / BIN / OCT** for
 the base the input is read in and the result written in, a switch **8 / 16 / 32 / 64** for the
-word size, a switch **signed / unsigned**, and keys for the logic, the shifts, the floats and
-the prefixes.
+word size, a switch **signed / unsigned**, and keys in four labelled groups: **Logic** (`and`,
+`or`, `xor`, `xnor`, `Not`, `Neg`), **Shift** (`<<`, `>>`, `shl`, `shr`, `sar`, `rol`, `ror`),
+**Float** (`f32`, `f64`) and **Prefix** (`d`, `h`, `b`, `o`).
 
 ## The word
 

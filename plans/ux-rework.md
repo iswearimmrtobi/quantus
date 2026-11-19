@@ -331,9 +331,9 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 - [x] **5.2 All bases at once (M).** Replace the chips `= DEC BIN OCT BITS` with a fixed
   block: HEX, DEC, OCT and BIN of the result, one line each with Copy, BIN grouped in fours.
   The values are already in the result's forms (`FormKind::{Dec,Hex,Bin,Oct}`).
-- [ ] **5.3 The keys (S).** The 25 chips (`App.tsx`) in four labelled groups on one line,
+- [x] **5.3 The keys (S).** The 25 chips (`App.tsx`) in four labelled groups on one line,
   wrapping as a whole: Logic (and or xor xnor Not Neg), Shift (<< >> shl shr sar rol ror), Float
-  (f32 f64), Suffix (d h b o).
+  (f32 f64), Suffix (d h b o). (Labelled *Prefix*: `d h b o` stand before the number.)
 - [ ] **5.4 A bit flip keeps the expression (S).** A click on a bit enters the flipped value as
   a new calculation (history) instead of overwriting the field, or, if overwriting stays, a
   note "replaces your input" and Ctrl+Z brings it back. When the word size shrinks, a literal

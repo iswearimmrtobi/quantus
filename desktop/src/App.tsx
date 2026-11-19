@@ -63,15 +63,25 @@ const BASE_CHOICES: { value: NumberBase; label: string }[] = [
 
 const WORD_CHOICES: { value: `${WordSize}`; label: string }[] = (['8', '16', '32', '64'] as const).map((value) => ({ value, label: value }));
 
-/** The logic, shifts and rotations of Basis-N and the prefixes that read one number in another base. */
-const BASE_KEYS: InsertKey[] = [
-  ...['and', 'or', 'xor', 'xnor'].map((word) => ({ label: word, latex: ` \\operatorname{${word}} ` })),
-  ...['Not', 'Neg'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?\\right)` })),
-  { label: '<<', latex: ' \\ll ' },
-  { label: '>>', latex: ' \\gg ' },
-  ...['shl', 'shr', 'sar', 'rol', 'ror'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?,#?\\right)` })),
-  ...['f32', 'f64'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?\\right)` })),
-  ...['d', 'h', 'b', 'o'].map((prefix) => ({ label: prefix, latex: `\\mathrm{${prefix}}` })),
+/** The keys of Basis-N in labelled groups: logic, shifts and rotations, floats, and the prefixes that read one number in another base. */
+const BASE_KEYS: { group: 'logic' | 'shift' | 'float' | 'prefix'; keys: InsertKey[] }[] = [
+  {
+    group: 'logic',
+    keys: [
+      ...['and', 'or', 'xor', 'xnor'].map((word) => ({ label: word, latex: ` \\operatorname{${word}} ` })),
+      ...['Not', 'Neg'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?\\right)` })),
+    ],
+  },
+  {
+    group: 'shift',
+    keys: [
+      { label: '<<', latex: ' \\ll ' },
+      { label: '>>', latex: ' \\gg ' },
+      ...['shl', 'shr', 'sar', 'rol', 'ror'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?,#?\\right)` })),
+    ],
+  },
+  { group: 'float', keys: ['f32', 'f64'].map((word) => ({ label: `${word}(`, latex: `\\operatorname{${word}}\\left(#?\\right)` })) },
+  { group: 'prefix', keys: ['d', 'h', 'b', 'o'].map((prefix) => ({ label: prefix, latex: `\\mathrm{${prefix}}` })) },
 ];
 
 /** The relations Prüfen checks, chained as on a Casio: `1 < 2 < 3`. */
@@ -707,7 +717,11 @@ export function App() {
                 value={settings.signed ? 'signed' : 'unsigned'}
                 onChange={(sign) => void changeSettings({ ...settings, signed: sign === 'signed' })}
               />
-              <InsertBar keys={BASE_KEYS} onInsert={insert} />
+              <div className="insert-groups">
+                {BASE_KEYS.map(({ group, keys }) => (
+                  <InsertBar key={group} keys={keys} onInsert={insert} label={t(`basen.keys.${group}`)} />
+                ))}
+              </div>
             </div>
           )}
           {settings.mode === 'verify' && (

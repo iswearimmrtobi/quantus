@@ -631,6 +631,23 @@ code {
   flex-wrap: wrap;
   gap: 4px;
 }
+.insert-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+/* A labelled group wraps as a whole, never inside. */
+.insert-bar.labelled {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.insert-label {
+  margin-right: 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
 .insert-key {
   min-width: 30px;
   font-family: var(--mono);
