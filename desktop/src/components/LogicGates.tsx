@@ -57,7 +57,7 @@ export function shownChoice(result: LogicOutputResult, choice: GateChoice | unde
 }
 
 /**
- * The Gates card (ux-rework.md 1.4): one output's function as AND–OR, OR–AND, NAND, NAND of
+ * The Gates card: one output's function as AND–OR, OR–AND, NAND, NAND of
  * 2 inputs, NOR or NOR of 2 inputs, with the formula, its cost, Copy and the steps. The NAND and
  * NOR forms come from the minimal form or, when the output has an expression, from that. With
  * several outputs the picture and **Open in editor** take all of them, in one circuit.
