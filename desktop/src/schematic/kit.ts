@@ -18,6 +18,8 @@ export interface KitContext<E> {
  * `K` is what the palette offers, `S` what a part shows of the simulation.
  */
 export interface PartKit<E extends Placeable, K extends string, S = undefined> {
+  /** Which editors share a clipboard: parts copied in one paste only into one of the same `id`. */
+  id: string;
   /** The kinds the palette offers, in order. */
   palette: K[];
   paletteLabel(kind: K, t: Translate): string;
@@ -29,6 +31,8 @@ export interface PartKit<E extends Placeable, K extends string, S = undefined> {
   canAdd?(elements: E[], kind: K): boolean;
   newPart(elements: E[], kind: K, at: Point): E;
   newWire(elements: E[], from: Point, to: Point): E;
+  /** A copied part made new to be pasted into `into`: a fresh id, a free name; null when it may not go in. */
+  pasted(part: E, into: E[]): E | null;
 
   /** A part's pins at their places on the canvas; both ends of a wire. */
   pins(element: E): Point[];

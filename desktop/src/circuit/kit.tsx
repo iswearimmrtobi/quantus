@@ -68,6 +68,7 @@ export function LabelText({ id, lines }: { id?: string; lines: string[] }) {
 /** The kit of a mode offering `palette`. */
 export function circuitKit(palette: EditorKind[]): PartKit<EditorElement, EditorKind> {
   return {
+    id: 'circuit',
     palette,
     paletteLabel: (kind, t) => t(KIND_LABELS[kind]),
     paletteIcon: (kind) => (
@@ -80,6 +81,12 @@ export function circuitKit(palette: EditorKind[]): PartKit<EditorElement, Editor
     canAdd: (elements, kind) => kind !== 'terminal' || elements.filter((e) => e.kind === 'terminal').length < 2,
     newPart: newElement,
     newWire: (elements, from, to) => wireBetween(freshId(elements, 'wire'), from, to),
+    // Only what the mode offers, and a third terminal not at all.
+    pasted: (element, into) => {
+      if (!palette.includes(element.kind)) return null;
+      if (element.kind === 'terminal' && into.filter((e) => e.kind === 'terminal').length >= 2) return null;
+      return { ...element, id: freshId(into, element.kind) };
+    },
     pins: ends,
     // A ground and a terminal are moved by their one point; no wire starts there.
     pinMoves: (element) => element.kind === 'ground' || element.kind === 'terminal',

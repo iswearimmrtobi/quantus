@@ -19,6 +19,7 @@ import {
   MAX_GATE_INPUTS,
   newPart,
   PART_LABELS,
+  pastedPart,
   pinOffsets,
   single,
   withGate,
@@ -34,6 +35,7 @@ import {
 /** The kit of `symbols`, IEC rectangles or ANSI shapes; a part shows its simulated value. */
 export function logicKit(symbols: LogicSymbols): PartKit<LogicPart, PaletteKind, boolean | null> {
   return {
+    id: 'logic',
     palette: LOGIC_PALETTE,
     paletteLabel,
     paletteIcon: (kind) => (
@@ -44,6 +46,7 @@ export function logicKit(symbols: LogicSymbols): PartKit<LogicPart, PaletteKind,
     spacing: 5,
     newPart,
     newWire: (elements, from, to) => wireBetween(newPart(elements, 'wire', from).id, from, to),
+    pasted: pastedPart,
     pins: allPins,
     joining: (parts) => parts.filter((p) => p.kind === 'wire').map(wireEnds),
     // The Logic mode's wires have no resistance: any of them can be joined in its middle.
