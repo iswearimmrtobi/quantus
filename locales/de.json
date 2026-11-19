@@ -41,6 +41,7 @@
     "app.basen.class.normal": "normalisiert",
     "app.basen.class.subnormal": "subnormal",
     "app.basen.class.zero": "null",
+    "app.basen.cut": "Überlauf: Der umgeschaltete Wert wurde auf {width} Bit abgeschnitten.",
     "app.basen.exact": "Exakter Wert",
     "app.basen.exponent": "Exponent",
     "app.basen.integer": "Ganzzahl",

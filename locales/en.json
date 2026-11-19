@@ -41,6 +41,7 @@
     "app.basen.class.normal": "normal",
     "app.basen.class.subnormal": "subnormal",
     "app.basen.class.zero": "zero",
+    "app.basen.cut": "Overflow: the flipped value was cut to {width} bits.",
     "app.basen.exact": "Exact value",
     "app.basen.exponent": "Exponent",
     "app.basen.integer": "Integer",

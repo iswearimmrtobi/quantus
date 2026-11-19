@@ -7,6 +7,11 @@ export function flipBit(view: BitView, index: number): string {
   return view.bits.slice(0, at) + flipped + view.bits.slice(at + 1);
 }
 
+/** The lowest `width` bits of a pattern, as a register of that width keeps them. */
+export function lowBits(bits: string, width: number): string {
+  return bits.slice(-width);
+}
+
 /** The number a pattern stands for: two's complement when signed. */
 export function patternValue(bits: string, signed: boolean): bigint {
   const unsigned = BigInt(`0b${bits}`);

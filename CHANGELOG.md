@@ -244,6 +244,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   between them.
 - Desktop, Basis-N: the keys above the input stand in four labelled groups, Logic, Shift, Float
   and Prefix, and a group wraps to the next line as a whole.
+- Desktop, Basis-N: a click on a bit makes the flipped value a new calculation in the history,
+  and the expression it was flipped from stays in the history before it; before, the flip
+  overwrote it. A smaller word size cuts a flipped value to its low bits, with a note, instead
+  of refusing it as too big.
 
 ## [0.2.0] - 2026-11-06
 

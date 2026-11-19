@@ -72,8 +72,11 @@ In 8 bit unsigned HEX, `\operatorname{rol}(81, 1)` is $3$.
 
 Under the result the bit panel shows the word in groups of four, the index under each group's
 lowest bit (64 bits in two rows), the sign bit marked when the word is signed. A click on a bit,
-or <kbd>Space</kbd> on it, flips it: the new value, in the set base, becomes the input and is
-worked out.
+or <kbd>Space</kbd> on it, flips it: the new value, in the set base, becomes a new calculation in
+the history. The expression it was flipped from stays in the history before it
+(<kbd>Ctrl</kbd>+<kbd>H</kbd>). A flipped value is a pattern: when the word size is made smaller while it stands
+in the input, it keeps its low bits, with the note *Overflow: the flipped value was cut to 8
+bits.*, instead of the error *does not fit 8 bits* a typed number gets.
 
 ## IEEE 754
 

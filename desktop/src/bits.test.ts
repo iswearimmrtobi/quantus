@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { uprightHex } from './bits';
+import { lowBits, patternInput, uprightHex } from './bits';
 
 describe('uprightHex', () => {
   it('sets a typed hex number upright', () => {
@@ -31,5 +31,14 @@ describe('base forms', () => {
     expect(plainDigits('-5')).toBe('-5');
     expect(groupedBinary('101101')).toBe('10 1101');
     expect(groupedBinary('1111')).toBe('1111');
+  });
+});
+
+describe('lowBits', () => {
+  it('keeps the low bits of a flipped value when the word shrinks', () => {
+    const cut = lowBits('0000000110000001', 8);
+    expect(cut).toBe('10000001');
+    expect(patternInput(cut, true, 'dec')).toBe('-127');
+    expect(patternInput(cut, false, 'hex')).toBe('81');
   });
 });

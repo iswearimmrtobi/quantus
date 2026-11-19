@@ -20,7 +20,7 @@ import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './c
 import { InsertBar, type InsertKey } from './components/InsertBar';
 import { BitView } from './components/BitView';
 import { BaseForms } from './components/BaseForms';
-import { flipBit, patternInput, uprightHex } from './bits';
+import { flipBit, lowBits, patternInput, uprightHex } from './bits';
 import { LibraryDialog } from './components/LibraryDialog';
 import { WriteupDialog } from './components/WriteupDialog';
 import { QuickSearch } from './components/QuickSearch';
@@ -331,18 +331,40 @@ export function App() {
   const shownResult = calculation ? (eng?.latex ?? (formIndex !== null ? forms[formIndex].latex : calculation.result)) : '';
   const activeForm = eng ? -1 : (formIndex ?? forms.findIndex((form) => form.latex === calculation?.result));
 
-  /** A click on a bit of the bit view: the flipped pattern, written in the set base, becomes the input. */
+  /** The input a bit flip wrote, while it stands in the field: a word size cut short cuts it too. */
+  const flipped = useRef<string | null>(null);
+  /** The word the flipped value was cut to when the word size shrank. */
+  const [cutTo, setCutTo] = useState<number | null>(null);
+  useEffect(() => {
+    if (input.trim() !== flipped.current) setCutTo(null);
+  }, [input]);
+
+  /**
+   * A click on a bit of the bit view: the flipped pattern, written in the set base, becomes a new
+   * calculation. The expression it was flipped from goes into the history first, unless it is
+   * there already, so it can be fetched back from there.
+   */
   const flip = useCallback(
-    (index: number) => {
+    async (index: number) => {
       const bits = latest.current.calculation?.bits;
       if (!bits) return;
+      const typed = latest.current.input.trim();
+      if (typed && typed !== flipped.current && history.at(-1)?.input !== typed) {
+        try {
+          await api.evaluate(typed);
+        } catch {
+          /* an expression that fails now is not worth keeping */
+        }
+      }
       const latex = patternInput(flipBit(bits, index), bits.signed, settings.numberBase);
+      flipped.current = latex;
+      setCutTo(null);
       setInput(latex);
       field.current?.setValue(latex);
       latest.current.input = latex;
-      void evaluate({ record: false });
+      void evaluate();
     },
-    [evaluate, settings.numberBase],
+    [evaluate, history, settings.numberBase],
   );
 
   /** S⇔D: on to the next form of the result, round to the first. */
@@ -448,6 +470,17 @@ export function App() {
     async (next: Settings) => {
       try {
         const saved = await api.saveSettings(next);
+        // A value flipped into the field is a pattern, not a typed number: a smaller word keeps
+        // its low bits (with a note) instead of refusing it as too big.
+        const bits = latest.current.calculation?.bits;
+        if (saved.mode === 'baseN' && bits && flipped.current !== null && latest.current.input.trim() === flipped.current && saved.wordSize < bits.width) {
+          const latex = patternInput(lowBits(bits.bits, saved.wordSize), saved.signed, saved.numberBase);
+          flipped.current = latex;
+          setInput(latex);
+          field.current?.setValue(latex);
+          latest.current.input = latex;
+          setCutTo(saved.wordSize);
+        }
         setSettings(saved);
         setPrecision(saved.precision);
         setSettingsError(null);
@@ -884,7 +917,13 @@ export function App() {
                   onCopy={(text, marker) => void copy(text, marker)}
                 />
               )}
-              {calculation?.bits && settings.mode === 'baseN' && <BitView view={calculation.bits} onFlip={flip} />}
+              {calculation?.bits && settings.mode === 'baseN' && <BitView view={calculation.bits} onFlip={(index) => void flip(index)} />}
+              {cutTo !== null && settings.mode === 'baseN' && (
+                <div className="domain-row warning-row">
+                  <span className="domain-label">{t('note')}</span>
+                  <span>{t('basen.cut', { width: cutTo })}</span>
+                </div>
+              )}
               {calculation?.warning && (
                 <div className="domain-row warning-row">
                   <span className="domain-label">{t('note')}</span>

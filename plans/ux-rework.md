@@ -334,11 +334,13 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 - [x] **5.3 The keys (S).** The 25 chips (`App.tsx`) in four labelled groups on one line,
   wrapping as a whole: Logic (and or xor xnor Not Neg), Shift (<< >> shl shr sar rol ror), Float
   (f32 f64), Suffix (d h b o). (Labelled *Prefix*: `d h b o` stand before the number.)
-- [ ] **5.4 A bit flip keeps the expression (S).** A click on a bit enters the flipped value as
+- [x] **5.4 A bit flip keeps the expression (S).** A click on a bit enters the flipped value as
   a new calculation (history) instead of overwriting the field, or, if overwriting stays, a
   note "replaces your input" and Ctrl+Z brings it back. When the word size shrinks, a literal
   that no longer fits is truncated with the wrap warning instead of the error "does not fit
   8 bits" (core: `basen.rs::literal`, decide for literals produced by a flip only).
+  (A new calculation; the cut is done in the desktop, which knows the input is a flip, and the
+  core is unchanged.)
 - [ ] **5.5 The bit view (S).** 1s clearly set apart (accent colour, bold), the index under the
   bit it names (`BitView.tsx` `.bit-index`, align right under the group's lowest bit), a cursor
   and hover on bits, "IEEE 754" on one line.
