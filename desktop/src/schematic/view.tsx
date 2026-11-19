@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '../i18n';
 import { GRID, snap, type Point, type Rect } from './geometry';
@@ -176,4 +176,30 @@ export function GridBackground({ view }: { view: View }) {
       <rect width="100%" height="100%" fill={`url(#${id})`} pointerEvents="none" />
     </>
   );
+}
+
+/**
+ * Shows the whole drawing on opening and whenever `fitKey` changes, as after a circuit was loaded,
+ * drawn or arranged anew: once the canvas has its size and every label has been `measured`, so
+ * that nothing is cut off at the edge. `layout` is what changes as the labels are laid out.
+ */
+export function useFitOnRequest(canvas: RefObject<SVGSVGElement | null>, fitKey: unknown, measured: boolean, fit: () => void, layout: unknown) {
+  const pending = useRef(true);
+  const [tries, setTries] = useState(0);
+  useEffect(() => {
+    pending.current = true;
+  }, [fitKey]);
+  useEffect(() => {
+    if (!pending.current) return;
+    const width = canvas.current?.getBoundingClientRect().width ?? 0;
+    if ((!width || !measured) && tries < 30) {
+      // Not laid out yet: look again in the next frame, a few times at most.
+      const frame = requestAnimationFrame(() => setTries((n) => n + 1));
+      return () => cancelAnimationFrame(frame);
+    }
+    pending.current = false;
+    setTries(0);
+    fit();
+    // Only when asked, not on every change of the drawing.
+  }, [fitKey, layout, tries]);
 }

@@ -1,4 +1,4 @@
-import { useCallback, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { boundsOf, GRID, type Point, type Rect, type Side } from './geometry';
 
 export type { Rect, Side };
@@ -171,4 +171,48 @@ export function useLabelSizes() {
 /** Where a label is drawn: at its placement once measured, until then hidden at its anchor. */
 export function labelStyle(placement: Placement | undefined, anchor: Point): CSSProperties {
   return placement ? { left: placement.x, top: placement.y } : { left: anchor.x, top: anchor.y, visibility: 'hidden' };
+}
+
+/**
+ * A label on an editor's canvas, laid out clear of the drawing and of the other labels: a part's
+ * name or values, a node's potential, a mode's own marks.
+ */
+export interface CanvasLabel extends Omit<LabelRequest, 'w' | 'h'> {
+  className: string;
+  /** What the label shows, as HTML over the canvas. */
+  content: ReactNode;
+  /** Where a leader to the label starts when it had to move away: the part's body; else its anchor. */
+  leaderFrom?: Rect;
+  /** The label in an exported picture, as SVG text centred on (0, 0); left out of the picture without it. */
+  svg?: ReactNode;
+  /** Its size guessed from its text, for a picture drawn without measuring. */
+  guess?: { w: number; h: number };
+}
+
+/**
+ * The labels laid out from their measured `sizes`, clear of `obstacles` and each other. While
+ * `dragging`, every label keeps its spot as long as it stays free, so the labels do not jump about
+ * under the pointer; dropping lays them out afresh. Labels not measured yet are left out.
+ */
+export function useLabelPlacements(labels: CanvasLabel[], sizes: Map<string, { w: number; h: number }>, obstacles: Rect[], dragging: boolean): Map<string, Placement> {
+  const last = useRef<Map<string, Placement>>(new Map());
+  const placements = useMemo(() => {
+    const requests: LabelRequest[] = [];
+    for (const label of labels) {
+      const size = sizes.get(label.id);
+      if (size) requests.push({ ...label, ...size });
+    }
+    return placeLabels(requests, obstacles, dragging ? last.current : undefined);
+  }, [labels, sizes, obstacles, dragging]);
+  useEffect(() => {
+    last.current = placements;
+  }, [placements]);
+  return placements;
+}
+
+/** Where a leader to a moved label runs: from the nearest point of what it belongs to, to the nearest of the label. */
+export function leaderOf(label: Pick<CanvasLabel, 'anchor' | 'leaderFrom'>, placement: Rect): [Point, Point] {
+  const centre = { x: placement.x + placement.w / 2, y: placement.y + placement.h / 2 };
+  const from = label.leaderFrom ? nearest(label.leaderFrom, centre) : label.anchor;
+  return [from, nearest(placement, from)];
 }

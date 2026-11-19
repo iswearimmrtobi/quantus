@@ -1,6 +1,10 @@
-import { useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { corner, inside, pointKey, snap, type Point } from './geometry';
+import { useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { corner, inside, pointKey, snap, type Placeable, type Point, type Rect } from './geometry';
 import type { Drag } from './editing';
+import { leaderOf, type CanvasLabel, type Placement } from './labels';
+
+/** The radius of a pin's handle and a wire end's, drawing units. */
+export const PIN_RADIUS = 5;
 
 /** What a drag draws over the drawing: the selection rectangle, or the wire about to be drawn. */
 export function DragGhost<E>({ drag }: { drag: Drag<E> | null }) {
@@ -57,14 +61,14 @@ export function WirePart({ a, b, className, lineClassName, joins, connected, onP
     <g className={className} onPointerMove={findJunction} onPointerLeave={() => setJunction(null)}>
       <line className="part-hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} onPointerDown={onPointerDown} />
       <line className={lineClassName ? `wire ${lineClassName}` : 'wire'} x1={a.x} y1={a.y} x2={b.x} y2={b.y} pointerEvents="none" />
-      <circle className={dot(a)} cx={a.x} cy={a.y} r="5" onPointerDown={(event) => onEnd(event, 'a')} />
-      <circle className={dot(b)} cx={b.x} cy={b.y} r="5" onPointerDown={(event) => onEnd(event, 'b')} />
+      <circle className={dot(a)} cx={a.x} cy={a.y} r={PIN_RADIUS} onPointerDown={(event) => onEnd(event, 'a')} />
+      <circle className={dot(b)} cx={b.x} cy={b.y} r={PIN_RADIUS} onPointerDown={(event) => onEnd(event, 'b')} />
       {junction && (
         <circle
           className="end"
           cx={junction.x}
           cy={junction.y}
-          r="5"
+          r={PIN_RADIUS}
           onPointerDown={(event) => {
             setJunction(null);
             onTerminal(event, junction);
@@ -72,5 +76,69 @@ export function WirePart({ a, b, className, lineClassName, joins, connected, onP
         />
       )}
     </g>
+  );
+}
+
+interface PlacedPartProps {
+  element: Placeable;
+  className: string;
+  /** The part in its own coordinates. */
+  symbol: ReactNode;
+  /** Where it is grabbed, in its own coordinates. */
+  hit: Rect;
+  pins: Point[];
+  /** Drawn over the part at its place, unturned. */
+  decoration?: ReactNode;
+  /** The points where pins meet; their handles are hidden until hovered. */
+  connected: Set<string>;
+  onPointerDown(event: ReactPointerEvent): void;
+  onPin(event: ReactPointerEvent, point: Point): void;
+}
+
+/** A part at its place, turned: its symbol, where it is grabbed, and its pins to draw wires from. */
+export function PlacedPart({ element, className, symbol, hit, pins, decoration, connected, onPointerDown, onPin }: PlacedPartProps) {
+  return (
+    <g className={className}>
+      <g transform={`translate(${element.x} ${element.y}) rotate(${element.rotation * 90})`}>
+        <g className="symbol">{symbol}</g>
+        <rect className="part-hit" x={hit.x} y={hit.y} width={hit.w} height={hit.h} onPointerDown={onPointerDown} />
+      </g>
+      {pins.map((point, k) => (
+        <circle
+          key={k}
+          className={connected.has(pointKey(point)) ? 'terminal connected' : 'terminal'}
+          cx={point.x}
+          cy={point.y}
+          r={PIN_RADIUS}
+          onPointerDown={(event) => onPin(event, point)}
+        />
+      ))}
+      {decoration}
+    </g>
+  );
+}
+
+/** The filled dots where three or more lines meet. */
+export function JunctionDots({ dots }: { dots: Point[] }) {
+  return (
+    <>
+      {dots.map((point) => (
+        <circle key={pointKey(point)} className="junction-dot" cx={point.x} cy={point.y} r="3.5" />
+      ))}
+    </>
+  );
+}
+
+/** The dashed lines to the labels that had to move away from what they belong to. */
+export function LeaderLines({ labels, placements }: { labels: CanvasLabel[]; placements: Map<string, Placement> }) {
+  return (
+    <>
+      {labels.map((label) => {
+        const placement = placements.get(label.id);
+        if (!placement?.displaced) return null;
+        const [from, to] = leaderOf(label, placement);
+        return <line key={label.id} className="label-leader" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
+      })}
+    </>
   );
 }
