@@ -41,10 +41,13 @@ export interface GateChoice {
 }
 
 /** What the scene keeps for the editor, none if it has nothing. */
+/** No parts, the same list each time, so that an empty circuit does not look changed. */
+const NO_PARTS: LogicPart[] = [];
+
 export function editorData(scene: LogicScene): LogicEditorData {
   const data = scene.editor as Partial<LogicEditorData> | null | undefined;
   const gates = data?.gates && typeof data.gates === 'object' ? data.gates : {};
-  return { parts: Array.isArray(data?.parts) ? data.parts : [], generated: data?.generated ?? null, gates };
+  return { parts: Array.isArray(data?.parts) ? data.parts : NO_PARTS, generated: data?.generated ?? null, gates };
 }
 
 /** The scene with `choice` as the Gates card's form of output `output`. */
