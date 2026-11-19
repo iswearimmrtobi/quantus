@@ -99,7 +99,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   `components/Schematic.tsx` split into `view.tsx`, `editing.ts`, `parts.tsx`, `inspector.tsx`,
   `labels.ts`. Imports fixed (App, ElectronicsView, KirchhoffView, KirchhoffOverlay, LogicCircuit,
   LogicGates, LogicView, the tests).
-- [ ] 3. **Shared geometry.** `placeLocal(part, p)` (quarter turns; 45°: eighth turn × √2), `turnedBox`
+- [x] 3. **Shared geometry.** `placeLocal(part, p)` (quarter turns; 45°: eighth turn × √2), `turnedBox`
   (exact for 45°) replacing `turned` and `turnedBox`; `wireBetween(id, from, to)` for both
   `newWire`s and `newPart/newElement('wire')`; Electronics ids via `freshIdOf` (A/B kept);
   `sidesFrom(rotation, first)` for both label places; `freeSpot(view, count, spacing)`.

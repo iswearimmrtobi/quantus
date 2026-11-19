@@ -1,6 +1,6 @@
 import type { DrawForm, GateType, LogicElement, LogicOutput, LogicScene, LogicTaskResult, Netlist } from '../api';
 import type { TextKey } from '../i18n';
-import { freshIdOf, GRID, inside, pointKey, rotate, wireEnds, type Placeable, type Point } from '../schematic/geometry';
+import { freshIdOf, GRID, inside, NEW_WIRE, placeLocal, pointKey, wireBetween, wireEnds, type Placeable, type Point } from '../schematic/geometry';
 
 /**
  * The Logic mode's circuit as the editor keeps it (design/digital-logic.md §5.5): switches, lamps,
@@ -120,10 +120,7 @@ function localPins(part: LogicPart): { inputs: Point[]; output: Point | null } {
 
 /** The pins of a part at their places on the canvas: the inputs in order and the output. */
 export function partPins(part: LogicPart): { inputs: Point[]; output: Point | null } {
-  const place = (p: Point) => {
-    const turned = rotate(p, part.rotation);
-    return { x: part.x + turned.x, y: part.y + turned.y };
-  };
+  const place = (p: Point) => placeLocal(part, p);
   const { inputs, output } = localPins(part);
   return { inputs: inputs.map(place), output: output && place(output) };
 }
@@ -182,7 +179,7 @@ export function newPart(parts: LogicPart[], kind: PaletteKind, at: Point): Logic
     case 'constant':
       return { ...base, value: true };
     case 'wire':
-      return { ...base, x2: at.x + 4 * GRID, y2: at.y };
+      return { ...base, ...wireBetween(base.id, at, { x: at.x + NEW_WIRE, y: at.y }) };
     case 'gate': {
       const gate = kind as GateType;
       return { ...base, gate, inputs: single(gate) ? 1 : 2 };

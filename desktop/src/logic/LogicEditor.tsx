@@ -24,7 +24,7 @@ import {
   type PaletteKind,
 } from './circuit';
 import { labelStyle, nearest, placeLabels, useLabelSizes, type LabelRequest, type Placement, type Side } from '../schematic/labels';
-import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, segmentBox, wireEnds, type Point, type Rect, type Segment } from '../schematic/geometry';
+import { boundsOf, connectedPointsOf, freeSpot, GRID, junctionDotsOf, pointKey, segmentBox, sidesAround, turnedBox, wireBetween, wireEnds, type Point, type Rect, type Segment } from '../schematic/geometry';
 import { pngBytes, svgBytes, type Picture } from '../schematic/picture';
 import { saveBytes } from '../shell';
 import { Katex } from '../components/Katex';
@@ -80,7 +80,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
     canvas,
     view: canvasView,
     pins: allPins,
-    newWire: (next, from, to) => ({ ...newPart(next, 'wire', from), x2: to.x, y2: to.y }),
+    newWire: (next, from, to) => wireBetween(newPart(next, 'wire', from).id, from, to),
     onTap: (part) => part.kind === 'input' && part.name && onToggle?.(part.name),
     // A click flips a switch; a double click opens its inspector.
     tapOnly: (part) => part.kind === 'input',
@@ -160,10 +160,7 @@ export function LogicEditor({ parts, onChange, symbols, toolbar, emptyCanvas, er
 
   const add = (kind: PaletteKind, at?: Point) => {
     // Without a drop position the part goes to a free spot, one row below the last one.
-    const spot = at ?? {
-      x: Math.round(((160 - view.x) / view.zoom + (parts.length % 4) * 5 * GRID) / GRID) * GRID,
-      y: Math.round(((120 - view.y) / view.zoom + Math.floor(parts.length / 4) * 5 * GRID) / GRID) * GRID,
-    };
+    const spot = at ?? freeSpot(view, parts.length, 5);
     const part = newPart(parts, kind, spot);
     onChange([...parts, part]);
     editing.inspect(part.id);
@@ -516,25 +513,23 @@ function labelPlace(part: LogicPart): Pick<LabelRequest, 'anchor' | 'sides' | 'g
   const centre = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
   const vertical = part.rotation % 2 === 1;
   if (part.kind === 'gate') {
-    return { anchor: centre, sides: vertical ? ['right', 'left', 'above', 'below'] : ['above', 'below', 'right', 'left'], gap: (vertical ? box.w : box.h) / 2 + 2 };
+    return { anchor: centre, sides: vertical ? sidesAround('right', 'above') : sidesAround('above', 'right'), gap: (vertical ? box.w : box.h) / 2 + 2 };
   }
   if (part.kind !== 'input' && part.kind !== 'output') return null;
   // The side away from the pin: a switch's pin points right when unturned, a lamp's left.
   const away: Side[] = ['left', 'above', 'right', 'below'];
   const turn = (part.rotation + (part.kind === 'output' ? 2 : 0)) % 4;
   const first = away[turn];
-  const sides = [first, ...(['above', 'below', 'left', 'right'] as Side[]).filter((side) => side !== first)];
+  // Across, the side of the pin comes last.
+  const sides = first === 'left' || first === 'right' ? sidesAround(first, 'above', true) : sidesAround(first, 'left');
   return { anchor: centre, sides, gap: (first === 'left' || first === 'right' ? box.w : box.h) / 2 + 4 };
 }
 
 /** The box from (x0, y0) to (x1, y1) of a part's own coordinates, turned with it and moved to its place. */
-function turnedBox(part: LogicPart, x0: number, y0: number, x1: number, y1: number): Rect {
-  const corners = [{ x: x0, y: y0 }, { x: x1, y: y1 }].map((p) => rotate(p, part.rotation)).map((p) => ({ x: part.x + p.x, y: part.y + p.y, w: 0, h: 0 }));
-  return boundsOf(corners);
-}
+const boxOfLocal = (part: LogicPart, x0: number, y0: number, x1: number, y1: number): Rect => turnedBox(part, [{ x: x0, y: y0 }, { x: x1, y: y1 }]);
 
 /** A part's drawn body on the canvas. */
-const bodyBox = (part: LogicPart): Rect => turnedBox(part, ...localBody(part));
+const bodyBox = (part: LogicPart): Rect => boxOfLocal(part, ...localBody(part));
 
 /** What the labels keep clear of: a part's body, leads and pins; a wire's line. */
 function obstacles(part: LogicPart): Rect[] {
@@ -546,10 +541,10 @@ function obstacles(part: LogicPart): Rect[] {
   // The leads run across from the pins to the body, in the part's own coordinates.
   const offsets = part.kind === 'gate' ? pinOffsets(inputCount(part)).map((o) => o * GRID) : [];
   const leads = [
-    ...offsets.map((y) => turnedBox(part, -2 * GRID, y - 2, left, y + 2)),
-    ...(part.kind === 'gate' ? [turnedBox(part, right, -2, 2 * GRID, 2)] : []),
-    ...(part.kind === 'input' || part.kind === 'constant' ? [turnedBox(part, right, -2, GRID, 2)] : []),
-    ...(part.kind === 'output' ? [turnedBox(part, -GRID, -2, left, 2)] : []),
+    ...offsets.map((y) => boxOfLocal(part, -2 * GRID, y - 2, left, y + 2)),
+    ...(part.kind === 'gate' ? [boxOfLocal(part, right, -2, 2 * GRID, 2)] : []),
+    ...(part.kind === 'input' || part.kind === 'constant' ? [boxOfLocal(part, right, -2, GRID, 2)] : []),
+    ...(part.kind === 'output' ? [boxOfLocal(part, -GRID, -2, left, 2)] : []),
   ];
   return [bodyBox(part), ...leads, ...allPins(part).map((pin) => segmentBox(pin, pin, 5))];
 }
