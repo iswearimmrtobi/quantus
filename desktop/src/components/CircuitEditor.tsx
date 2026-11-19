@@ -23,7 +23,7 @@ import {
   type Point,
   type Shown,
   type Terminal,
-} from '../circuit';
+} from '../circuit/model';
 import { boundsOf } from '../schematic/geometry';
 import { useT } from '../i18n';
 import { nearest, placeLabels, type LabelRequest, type Placement, type Rect, type Side } from '../schematic/labels';

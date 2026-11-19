@@ -12,7 +12,7 @@ import {
   toFile,
   toRequest,
   type EditorElement,
-} from './circuit';
+} from './model';
 
 const at = (kind: EditorElement['kind'], id: string, x: number, y: number, rotation = 0, rest: Partial<EditorElement> = {}): EditorElement => ({
   id,

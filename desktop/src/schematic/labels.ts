@@ -5,7 +5,7 @@ export type { Rect };
 /**
  * Places the labels on a schematic's canvas so that none overlaps another label or an obstacle (a
  * part, a wire). Everything is in drawing coordinates, so zooming and moving the canvas leave the
- * layout alone. What the obstacles are is up to the editor (`obstacles` in `circuit.ts`).
+ * layout alone. What the obstacles are is up to the editor (`obstacles` in `circuit/model.ts`).
  */
 
 export type Side = 'below' | 'above' | 'right' | 'left';

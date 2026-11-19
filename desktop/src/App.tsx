@@ -12,7 +12,7 @@ import { LogicView } from './components/LogicView';
 import { EMPTY_GEOMETRY, geometryInput, geometryRequest, type GeometryInput } from './geometry';
 import { EMPTY_LOGIC, logicInput, logicSaved } from './logic';
 import { EMPTY_LINEAR, inputFor, requestFor, type LinearInput } from './linear';
-import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit';
+import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit/model';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyText, inShell, onShortcut, type Shortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';

@@ -1,5 +1,5 @@
 import type { Kirchhoff } from '../api';
-import { GRID, terminals, type EditorElement, type Point } from '../circuit';
+import { GRID, terminals, type EditorElement, type Point } from '../circuit/model';
 import { useT } from '../i18n';
 import type { Rect } from '../schematic/labels';
 import type { ExtraLabel } from './CircuitEditor';
