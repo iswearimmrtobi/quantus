@@ -8,6 +8,12 @@ Geometry, Base-N, Logic and the Logic circuit editor work but are hard to use. P
 steps, including the Geometry sidebar and the truth table to NAND/NOR gates (2-input or not):
 [ux-rework.md](ux-rework.md). No release until its Phases 1–4 are done.
 
+## 0a. One shared schematic editor
+
+Electronics, Kirchhoff and Logic on one editor shell driven by a part kit, the shared code in
+`desktop/src/schematic/`, plus undo/redo, copy/paste and export in every mode:
+[schematic-editor.md](schematic-editor.md).
+
 ## 1. Make nested integrals fast
 
 **Problem.** `\int_0^1\int_0^2 x y \, dx\, dy` takes 1.9 s in a release build (2.9 s in a debug
