@@ -89,6 +89,8 @@
     "app.schematic.home": "zeigt die ganze Zeichnung",
     "app.schematic.zooms": "vergrößern und verkleinern",
     "app.schematic.keys": "Tasten",
+    "app.schematic.undo": "Rückgängig (Strg+Z)",
+    "app.schematic.redo": "Wiederholen (Strg+Umschalt+Z)",
     "app.schematic.export.title": "BILD",
     "app.schematic.export.svg.hint": "Speichert die Zeichnung als SVG-Bild, ohne Raster, schwarz auf weiß",
     "app.schematic.export.png.hint": "Speichert die Zeichnung als PNG-Bild, ohne Raster, schwarz auf weiß",

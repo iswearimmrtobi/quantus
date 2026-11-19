@@ -118,10 +118,31 @@ export type Fullscreen = ReturnType<typeof useFullscreen>;
  * −, the zoom in percent (a click goes back to 100 %), + and Fit, in the canvas's corner, and the
  * full-screen switch when the editor has one.
  */
-export function ZoomControls({ view, fit, fullscreen }: { view: ReturnType<typeof useCanvasView>; fit(): void; fullscreen?: Fullscreen }) {
+export function ZoomControls({
+  view,
+  fit,
+  fullscreen,
+  history,
+}: {
+  view: ReturnType<typeof useCanvasView>;
+  fit(): void;
+  fullscreen?: Fullscreen;
+  /** Undo and redo, before the zoom. */
+  history?: { undo(): void; redo(): void; canUndo: boolean; canRedo: boolean };
+}) {
   const { t } = useT();
   return (
     <div className="zoom-controls" onPointerDown={(event) => event.stopPropagation()}>
+      {history && (
+        <>
+          <button className="zoom-button" title={t('schematic.undo')} aria-label={t('schematic.undo')} disabled={!history.canUndo} onClick={() => history.undo()}>
+            ↶
+          </button>
+          <button className="zoom-button zoom-gap" title={t('schematic.redo')} aria-label={t('schematic.redo')} disabled={!history.canRedo} onClick={() => history.redo()}>
+            ↷
+          </button>
+        </>
+      )}
       <button className="zoom-button" title={t('schematic.zoomOut')} aria-label={t('schematic.zoomOut')} onClick={() => view.zoomBy(1 / ZOOM_STEP)}>
         −
       </button>

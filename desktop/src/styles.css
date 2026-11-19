@@ -1747,6 +1747,15 @@ select option {
   min-width: 52px;
   font-size: 11px;
 }
+.zoom-button:disabled {
+  color: var(--text-faint);
+  opacity: 0.5;
+  background: none;
+}
+/* Undo and redo stand apart from the zoom. */
+.zoom-button.zoom-gap {
+  border-right: 1px solid var(--hairline-strong);
+}
 
 .part .symbol,
 .part .wire {
