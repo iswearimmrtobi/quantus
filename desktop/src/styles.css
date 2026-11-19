@@ -3414,6 +3414,12 @@ select option {
   stroke: var(--danger);
   stroke-dasharray: 6 4;
 }
+/* A chosen wire shows it, whatever its value or the critical path (its dash stays). */
+.part.selected .wire.on,
+.part.selected .wire.off,
+.part.selected .wire.critical {
+  stroke: var(--primary);
+}
 
 .logic-panel {
   display: grid;

@@ -96,3 +96,23 @@ fn the_texts_follow_the_language_setting() {
     assert_eq!(message(Language::En), "The circuit has no ground node 0.");
     assert_eq!(message(Language::De), "Die Schaltung hat keinen Masseknoten 0.");
 }
+
+#[test]
+fn a_plain_number_is_in_the_standard_unit_but_not_on_a_wire() {
+    let request = |r: &str, u: &str, length: &str| {
+        let elements = json!([
+            { "id": "V1", "kind": "voltageSource", "a": 1, "b": 0, "u": u },
+            { "id": "R1", "kind": "resistor", "a": 1, "b": 2, "r": r },
+            { "id": "W1", "kind": "wire", "a": 2, "b": 0, "material": "copper", "length": length, "area": "2mm^2" },
+        ]);
+        serde_json::from_value::<CircuitRequest>(json!({ "nodes": [0, 1, 2], "elements": elements })).unwrap()
+    };
+    let current = |request: CircuitRequest| {
+        let response = solve_circuit(&settings(), &request).unwrap();
+        response.elements.iter().find(|e| e.id == "R1").unwrap().current.result.clone()
+    };
+    assert_eq!(current(request("100", "10", "1m")), current(request("100\\Omega", "10V", "1m")));
+    assert!(current(request("100", "10", "1m")).is_some());
+    // A wire's length without a unit is still an error.
+    assert!(solve_circuit(&settings(), &request("100", "10", "5")).is_err());
+}

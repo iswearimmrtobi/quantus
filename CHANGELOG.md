@@ -172,6 +172,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Desktop, circuit editors: a click on a wire chooses it, also on a grid point of the wire;
   only a drag from there draws a branching wire.
 - Desktop, circuit editors: Del deletes a part right after it was put in from the palette.
+- Desktop, Logic: a chosen wire is drawn in the colour of the selection also while the circuit
+  runs or the critical path is shown; before, the colour of its value or of the path covered it.
 
 ### Changed
 
@@ -179,6 +181,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   instead of in a column on the right. In every circuit editor the ✕ of that box closes it, and a
   red bin deletes the part. Esc closes the box, a second Esc clears the choice.
 - Desktop, Logic: a click on a switch only flips it; a double click opens its box.
+- Electronics: a value without a unit is in the standard unit of its field: `100` for a resistor
+  is 100 Ω, `230` for a voltage source 230 V (Ω, V, A, S, W, and the target of a reverse
+  solve). Before, a plain number was an error. A wire's fields still need their unit.
 
 - Basis-N wraps a result that does not fit the word, as a register does, and warns: *Overflow:
   the result was wrapped to 32 bits.* Before, `2147483647 + 1` was an error. The message for a

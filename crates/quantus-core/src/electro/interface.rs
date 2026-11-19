@@ -10,7 +10,7 @@ use crate::eval::{LatexCalculator, Variables};
 use crate::num::Value;
 use crate::quantity::PhysicalQuantity;
 use crate::settings::Settings;
-use crate::units::{Atom, Kind, Prefix, Unit};
+use crate::units::{find, Atom, Kind, Prefix, Unit};
 
 use super::circuit::{Circuit, Element, ElementKind};
 use super::materials::Material;
@@ -168,7 +168,16 @@ pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<Ci
         None => (solve_at(&circuit, precision)?, None),
         Some(ask) => {
             let parameter = parameter_of(&ask.parameter)?;
-            let target = Target { measure: measure_of(&ask.measure)?, value: quantity(&calculator, &ask.value, &msg!("core.electro.interface.target_value"))? };
+            let measure = measure_of(&ask.measure)?;
+            // A plain number is in the unit of the measure; for a relative drop it is the fraction.
+            let unit = match measure {
+                Measure::NodeVoltage(_) | Measure::Voltage(_) => Some("V"),
+                Measure::Current(_) => Some("A"),
+                Measure::Power(_) => Some("W"),
+                Measure::RelativeDrop { .. } => None,
+            };
+            let value = in_unit(quantity(&calculator, &ask.value, &msg!("core.electro.interface.target_value"))?, unit)?;
+            let target = Target { measure, value };
             let Reverse { value, solution } = solve_for(&circuit, &ask.element, parameter, &target, precision)?;
             let found = ReverseResponse {
                 element: ask.element.clone(),
@@ -187,9 +196,11 @@ fn circuit_of(calculator: &LatexCalculator, request: &CircuitRequest) -> Result<
 }
 
 pub(crate) fn element_of(calculator: &LatexCalculator, e: &ElementRequest) -> Result<Element> {
-    let get = |text: &Option<String>, what: &str| optional(calculator, text, &format!("{} {what}", e.id));
+    let get = |text: &Option<String>, what: &str| optional(calculator, text, &format!("{} {what}", e.id), None);
+    // A plain number is in the standard unit of the parameter; on a wire it stays as typed.
+    let given = |text: &Option<String>, what: &str, unit: &str| optional(calculator, text, &format!("{} {what}", e.id), Some(unit));
     let kind = match e.kind.as_str() {
-        "resistor" => ElementKind::Resistor { r: get(&e.r, "R")? },
+        "resistor" => ElementKind::Resistor { r: given(&e.r, "R", "Ω")? },
         "wire" => {
             let wire = Wire {
             material: match e.material.as_deref().map(str::trim).filter(|m| !m.is_empty()) {
@@ -211,32 +222,40 @@ pub(crate) fn element_of(calculator: &LatexCalculator, e: &ElementRequest) -> Re
             ElementKind::Wire(Box::new(wire))
         }
         "voltageSource" => ElementKind::VoltageSource {
-            u: get(&e.u, "U")?,
-            internal_resistance: get(&e.internal_resistance, &msg!("core.electro.interface.internal_resistance"))?,
+            u: given(&e.u, "U", "V")?,
+            internal_resistance: given(&e.internal_resistance, &msg!("core.electro.interface.internal_resistance"), "Ω")?,
         },
         "currentSource" => ElementKind::CurrentSource {
-            i: get(&e.i, "I")?,
-            internal_conductance: get(&e.internal_conductance, &msg!("core.electro.interface.internal_conductance"))?,
+            i: given(&e.i, "I", "A")?,
+            internal_conductance: given(&e.internal_conductance, &msg!("core.electro.interface.internal_conductance"), "S")?,
         },
         "potentiometer" => ElementKind::Potentiometer {
             wiper: e
                 .wiper
                 .ok_or_else(|| QuantusError::other(msg!("core.electro.interface.wiper_not_connected", e.id)))?,
-            r_total: get(&e.r_total, "R")?,
+            r_total: given(&e.r_total, "R", "Ω")?,
             position: get(&e.position, &msg!("core.electro.interface.position"))?.map(|q| q.dimensionless_value()).transpose()?,
         },
-        "powerLoad" => ElementKind::PowerLoad { p: get(&e.p, "P")? },
+        "powerLoad" => ElementKind::PowerLoad { p: given(&e.p, "P", "W")? },
         other => return Err(QuantusError::other(msg!("core.electro.interface.unknown_element_kind", e.id))),
     };
     Ok(Element { id: e.id.clone(), a: e.a, b: e.b, kind })
 }
 
-/// A blank text is a missing parameter.
-fn optional(calculator: &LatexCalculator, text: &Option<String>, what: &str) -> Result<Option<PhysicalQuantity>> {
+/// A blank text is a missing parameter. With a `unit`, a plain number is taken in it.
+fn optional(calculator: &LatexCalculator, text: &Option<String>, what: &str, unit: Option<&str>) -> Result<Option<PhysicalQuantity>> {
     match text.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
-        Some(text) => quantity(calculator, text, what).map(Some),
+        Some(text) => in_unit(quantity(calculator, text, what)?, unit).map(Some),
         None => Ok(None),
     }
+}
+
+/// A plain number in `unit`; anything with a unit, or without a `unit` to give, as it is.
+fn in_unit(q: PhysicalQuantity, unit: Option<&str>) -> Result<PhysicalQuantity> {
+    Ok(match unit {
+        Some(symbol) if q.is_dimensionless() => PhysicalQuantity::new(q.dimensionless_value()?, find(symbol).expect("unit is registered")),
+        _ => q,
+    })
 }
 
 fn quantity(calculator: &LatexCalculator, text: &str, what: &str) -> Result<PhysicalQuantity> {

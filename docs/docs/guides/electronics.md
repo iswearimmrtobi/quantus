@@ -25,6 +25,10 @@ middle and the selected part's values on the right.
 | **Wire** | Material, length, cross-section, temperature, or a fixed resistance | `100m`, `2mm^2`, `20°C` |
 | **Ground** | none: the reference potential | |
 
+A plain number is in the field's standard unit: `100` for a resistor is $100\,\Omega$, `230` for
+a voltage source $230\,\mathrm{V}$ (Ω, V, A, S, W). A wire's fields
+always need their unit.
+
 Drag a part onto the canvas or click it in the list. Dragging from a terminal, or from a grid
 point on a wire, draws a wire. Wires run only across and down: one drawn on a slant becomes two at
 a right angle. <kbd>Space</kbd> or <kbd>R</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a
