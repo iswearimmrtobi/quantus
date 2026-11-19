@@ -318,7 +318,7 @@
     "app.logic.draw.nor2": "nur NOR mit 2 Eingängen",
     "app.logic.draw.output": "Der Ausgang, für den die Schaltung gezeichnet wird",
     "app.logic.draw.title": "ZEICHNEN AUS",
-    "app.logic.export.name": "schaltung",
+    "app.schematic.export.name": "schaltung",
     "app.logic.file.default": "logik.quantus-logic.json",
     "app.logic.file.filter": "Logik-Szene",
     "app.logic.file.load.hint": "Öffnet eine gespeicherte Szene: die Funktionszeilen, die Tabelle und die Schaltung",

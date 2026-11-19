@@ -59,7 +59,6 @@ export function logicKit(symbols: LogicSymbols): PartKit<LogicPart, PaletteKind,
     // A click flips a switch; a double click opens its inspector.
     tapOnly: (part) => part.kind === 'input',
     pictureStyle,
-    exportName: 'logic.export.name',
   };
 }
 

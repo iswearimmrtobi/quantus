@@ -166,7 +166,7 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
           </button>
         ))}
         {props.paletteExtras}
-        {kit.pictureStyle && kit.exportName && <ExportButtons picture={picture} name={t(kit.exportName)} disabled={!elements.length} />}
+        {kit.pictureStyle && <ExportButtons picture={picture} name={t('schematic.export.name')} disabled={!elements.length} />}
         <p className="palette-hint">{props.hint}</p>
         <p className="palette-hint">{t('circuit.pan')}</p>
         <details className="palette-keys">

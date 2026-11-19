@@ -318,7 +318,7 @@
     "app.logic.draw.nor2": "2-input NOR only",
     "app.logic.draw.output": "The output the circuit is drawn for",
     "app.logic.draw.title": "DRAW FROM",
-    "app.logic.export.name": "circuit",
+    "app.schematic.export.name": "circuit",
     "app.logic.file.default": "logic.quantus-logic.json",
     "app.logic.file.filter": "Logic scene",
     "app.logic.file.load.hint": "Opens a scene saved before: the function lines, the table and the circuit",

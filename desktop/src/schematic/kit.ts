@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { TextKey, Translate } from '../i18n';
+import type { Translate } from '../i18n';
 import type { Placeable, Point, Rect, Segment } from './geometry';
 import type { KeyBinding } from './keys';
 import type { PictureColors } from './picture';
@@ -59,8 +59,6 @@ export interface PartKit<E extends Placeable, K extends string, S = undefined> {
   /** A mode's own keys, tried before the editor's. */
   keys?(context: KitContext<E>): KeyBinding[];
 
-  /** The CSS of an exported picture; no export without it. */
+  /** The mode's own CSS of an exported picture, after the shared one; no export without it. */
   pictureStyle?(colors: PictureColors): string;
-  /** The exported file's name. */
-  exportName?: TextKey;
 }
