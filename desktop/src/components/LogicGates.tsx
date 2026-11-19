@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { DrawForm, GateFormResult, LogicElement, LogicForm, LogicOutputResult, LogicScene, LogicSymbols, Netlist, Worked } from '../api';
+import type { DrawForm, GateFormResult, LogicElement, LogicForm, LogicNotation, LogicOutputResult, LogicScene, LogicSymbols, Netlist, Worked } from '../api';
+import { gateByGate } from '../logic/byGate';
 import { useT, type TextKey } from '../i18n';
 import { logicTask } from '../logic';
 import { fromGenerated, type GateChoice, type LogicPart } from '../logic/circuit';
@@ -68,6 +69,7 @@ export function LogicGates({
   onChoose,
   onOpen,
   several,
+  notation,
   eq,
   cost,
   gates,
@@ -82,6 +84,7 @@ export function LogicGates({
   onOpen(form: DrawForm, fromExpression: boolean): void;
   /** Whether the scene has more outputs than this one: the picture then shows them all. */
   several: boolean;
+  notation: LogicNotation;
   eq(latex: string): string;
   cost(form: LogicForm): string;
   gates(form: GateFormResult): string;
@@ -89,6 +92,8 @@ export function LogicGates({
 }) {
   const { t } = useT();
   const { form, fromExpression } = shownChoice(result, choice);
+  const byGate = isGateForm(form) && !choice?.formula;
+  const netlist = useDrawn(scene, result.name, form, fromExpression, byGate);
   const { minimal } = result;
   const rewrites = result.gateForms.some((f) => f.origin === 'rewrite');
 
@@ -124,7 +129,7 @@ export function LogicGates({
       <Segmented
         choices={available.map(({ form: f, label, hint }) => ({ value: f, label: t(label), hint: hint && t(hint) }))}
         value={form}
-        onChange={(f) => onChoose({ form: f, fromExpression })}
+        onChange={(f) => onChoose({ form: f, fromExpression, formula: choice?.formula })}
       />
       {rewrites && isGateForm(form) && (
         <Segmented
@@ -133,14 +138,31 @@ export function LogicGates({
             { value: 'expression', label: t('logic.gates.fromExpression') },
           ]}
           value={fromExpression ? 'expression' : 'minimal'}
-          onChange={(v) => onChoose({ form, fromExpression: v === 'expression' })}
+          onChange={(v) => onChoose({ form, fromExpression: v === 'expression', formula: choice?.formula })}
+        />
+      )}
+      {isGateForm(form) && (
+        <Segmented
+          choices={[
+            { value: 'byGate', label: t('logic.gates.byGate'), hint: t('logic.gates.byGate.hint') },
+            { value: 'formula', label: t('logic.gates.formula') },
+          ]}
+          value={byGate ? 'byGate' : 'formula'}
+          onChange={(v) => onChoose({ form, fromExpression, formula: v === 'formula' })}
         />
       )}
     </div>
   );
 
   return (
-    <Section title="logic.gates.title" formula={switches} lines={latex ? [eq(latex)] : []} meta={meta} worked={worked} hideSteps={hideSteps}>
+    <Section
+      title="logic.gates.title"
+      formula={switches}
+      lines={latex ? [byGate && netlist ? gateByGate(netlist, notation) : eq(latex)] : []}
+      meta={meta}
+      worked={worked}
+      hideSteps={hideSteps}
+    >
       {latex && (
         <div className="logic-gates-circuit">
           <GatesPicture scene={scene} output={result.name} all={several} form={form} fromExpression={fromExpression} symbols={symbols} />
@@ -151,6 +173,29 @@ export function LogicGates({
       )}
     </Section>
   );
+}
+
+/**
+ * The netlist of `form` of this one output, as **Draw from** draws it, for the gate-by-gate
+ * view; none while `wanted` is off or the answer is pending. An answer to an older request is
+ * dropped.
+ */
+function useDrawn(scene: LogicScene, output: string, form: DrawForm, fromExpression: boolean, wanted: boolean): Netlist | null {
+  const [netlist, setNetlist] = useState<{ key: string; netlist: Netlist | null } | null>(null);
+  const request = useRef(0);
+  const key = JSON.stringify([scene.inputs, scene.outputs, scene.circuit, output, form, fromExpression]);
+  const latest = useRef(scene);
+  latest.current = scene;
+  useEffect(() => {
+    if (!wanted) return;
+    const id = ++request.current;
+    void (async () => {
+      const answer = await logicTask(latest.current, { kind: 'draw', form, output, fromExpression });
+      if (id === request.current) setNetlist({ key, netlist: answer?.circuit?.netlist ?? null });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, wanted]);
+  return netlist?.key === key ? netlist.netlist : null;
 }
 
 /** Gates, gate inputs and levels (the most gates on a way from an input to a lamp) of a netlist. */

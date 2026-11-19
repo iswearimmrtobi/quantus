@@ -38,6 +38,8 @@ export interface LogicEditorData {
 export interface GateChoice {
   form: DrawForm;
   fromExpression?: boolean;
+  /** A NAND or NOR form as one formula instead of gate by gate (the default). */
+  formula?: boolean;
 }
 
 /** What the scene keeps for the editor, none if it has nothing. */

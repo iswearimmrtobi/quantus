@@ -198,6 +198,7 @@ export function LogicResults({ scene, shown, hideSteps, notation, symbols, onOpe
             onChoose={(choice) => onChange(withGateChoice(scene, result.name, choice))}
             onOpen={(form, fromExpression) => onOpen(form, several ? null : result.name, fromExpression)}
             several={several}
+            notation={notation}
             {...props}
           />
         )}

@@ -134,7 +134,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   gates, NOR or NOR from 2-input gates (the 2-input forms where they differ), the NAND and NOR
   forms also gate by gate from a typed expression or circuit, each with gates, gate inputs and
   levels, a picture of the circuit and **Open in editor**, both of every output in one circuit when
-  there are several. The results fill three cards: the
+  there are several. A NAND or NOR form is shown gate by gate (`G_1 = \overline{A \land B}`, …,
+  `f = G_4`), or as one formula. The results fill three cards: the
   expression beside the canonical forms, the minimal DNF beside the minimal KNF, and the Gates
   card. Every result has its working at the four step
   levels, in English and German, and Copies as LaTeX; the truth table and KV diagram copy as a

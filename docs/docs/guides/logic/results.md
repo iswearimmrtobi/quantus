@@ -114,6 +114,16 @@ shows this output alone. Each output keeps its form, also in a saved session.
 For a typed expression or a circuit, a second switch picks where the NAND and NOR forms come
 from: **from the minimal form** or **from the expression** (rewritten gate by gate, see below).
 
+A NAND or NOR form is shown **gate by gate** at first: each gate gets a signal of its own,
+numbered from the inputs on, and the output is the last one. For the majority of three as NAND:
+
+$$
+\begin{aligned} G_1 &= \overline{A \land B} \\ G_2 &= \overline{A \land C} \\ G_3 &= \overline{B \land C} \\ G_4 &= \overline{G_1 \land G_2 \land G_3} \\ f &= G_4 \end{aligned}
+$$
+
+That is the circuit of the picture, and easier to read than the formula with its overlines
+stacked three deep. A third switch, **gate by gate / as one formula**, shows the formula instead.
+
 **NAND** starts from the chosen minimal DNF $f = p_1 \lor \dots \lor p_k$: double negation
 and De Morgan turn it into $\overline{\overline{p_1} \land \dots \land \overline{p_k}}$, a NAND
 of NANDs. Each negated variable comes from a NAND with both inputs tied, one per variable; a
