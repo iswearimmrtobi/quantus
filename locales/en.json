@@ -75,7 +75,6 @@
     "app.circuit.drag": "Drag onto the canvas or click",
     "app.circuit.empty": "Drag parts from the palette onto the canvas, then connect terminals with wires.",
     "app.circuit.hint": "Dragging from a terminal, or from a point on a wire, draws a wire. Dragging on empty canvas selects several parts.",
-    "app.circuit.home": "goes back to the start",
     "app.circuit.ideal": "— ideal —",
     "app.circuit.noGround": "No ground set: the reference potential is the negative terminal of the first voltage source.",
     "app.circuit.pan": "Scrolling zooms; dragging with the right or middle mouse button, or Shift and scrolling, moves the canvas.",

@@ -31,6 +31,7 @@ import { Katex } from '../components/Katex';
 import { useSchematicEditing } from '../schematic/editing';
 import { InspectorHead, InspectorPopover, SelectField, TextField } from '../schematic/inspector';
 import { DragGhost, WirePart } from '../schematic/parts';
+import { editorKeys, runKey } from '../schematic/keys';
 import { GridBackground, HOME, useCanvasView, useFullscreen, viewTransform, ZoomControls } from '../schematic/view';
 
 type ElementResult = CircuitResponse['elements'][number];
@@ -193,12 +194,25 @@ export function CircuitEditor({
   };
 
   const onKeyDown = (event: React.KeyboardEvent) =>
-    editing.keyDown(event, {
-      home: () => setView(HOME),
-      fit: fitAll,
-      // Shift+R tilts a resistor.
-      extra: (key) => key.key.toLowerCase() === 'r' && key.shiftKey && (tiltSelected(), true),
-    });
+    void runKey(
+      [
+        // Shift+R tilts a resistor.
+        { keys: ['key.shiftR'], hint: 'circuit.tilts', matches: (key) => key.key.toLowerCase() === 'r' && key.shiftKey, run: tiltSelected },
+        ...editorKeys({
+          removeSelection: () => remove(selection),
+          rotateSelection: editing.rotateSelected,
+          escape: () => {
+            if (inspected) editing.closeInspector();
+            else if (selection.length) editing.setSelection([]);
+            else return false;
+            return true;
+          },
+          fit: fitAll,
+          view: canvasView,
+        }),
+      ],
+      event,
+    );
 
   const chosen = (!preview && drag?.type !== 'move' && elements.find((e) => e.id === inspected)) || null;
   const fullscreen = useFullscreen();
@@ -227,7 +241,7 @@ export function CircuitEditor({
           {t('circuit.hint')} <kbd>{t('key.space')}</kbd> {t('circuit.rotates')}, <kbd>{t('key.shiftR')}</kbd> {t('circuit.tilts')}, <kbd>{t('key.delete')}</kbd> {t('circuit.deletes')}.
         </p>
         <p className="palette-hint">
-          {t('circuit.pan')} <kbd>{t('key.home')}</kbd> {t('circuit.home')}.
+          {t('circuit.pan')} <kbd>{t('key.home')}</kbd> {t('schematic.home')}.
         </p>
       </div>
 

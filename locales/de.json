@@ -75,7 +75,6 @@
     "app.circuit.drag": "Auf die Zeichenfläche ziehen oder klicken",
     "app.circuit.empty": "Bauteile aus der Palette auf die Fläche ziehen, dann Klemmen mit Leitungen verbinden.",
     "app.circuit.hint": "Von einer Klemme oder einem Punkt auf einer Leitung ziehen zeichnet eine Leitung. Auf freier Fläche ziehen wählt mehrere Bauteile.",
-    "app.circuit.home": "springt zum Anfang zurück",
     "app.circuit.ideal": "— ideal —",
     "app.circuit.noGround": "Keine Masse gesetzt: Bezugspotential ist der Minuspol der ersten Spannungsquelle.",
     "app.circuit.pan": "Scrollen zoomt; Ziehen mit der rechten oder mittleren Maustaste oder Umschalt und Scrollen verschiebt die Fläche.",

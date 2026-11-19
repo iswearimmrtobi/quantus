@@ -95,19 +95,6 @@ export function useCanvasView(canvas: RefObject<SVGSVGElement | null>) {
 export const ZOOM_STEP = 1.25;
 
 /**
- * The zoom keys of a focused canvas: + (or =) and − zoom, 0 shows the whole drawing. Ctrl+0 and
- * Ctrl+Plus stay the app's own. Returns whether the key was one of them.
- */
-export function zoomKey(event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean }, view: ReturnType<typeof useCanvasView>, fit: () => void): boolean {
-  if (event.ctrlKey || event.metaKey || event.altKey) return false;
-  if (event.key === '+' || event.key === '=') view.zoomBy(ZOOM_STEP);
-  else if (event.key === '-') view.zoomBy(1 / ZOOM_STEP);
-  else if (event.key === '0') fit();
-  else return false;
-  return true;
-}
-
-/**
  * An editor filling the window: `portal` puts it into the page's body while `full`, so that nothing
  * of the app is drawn over it. Esc leaves, unless the editor used it (to clear a selection).
  */

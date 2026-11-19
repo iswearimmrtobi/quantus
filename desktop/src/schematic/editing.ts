@@ -1,6 +1,6 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { corner, inRectangle, movedBy, pointKey, rotatedQuarter, type Placeable, type Point } from './geometry';
-import { zoomKey, type useCanvasView, type View } from './view';
+import type { useCanvasView, View } from './view';
 
 export type Drag<E> =
   /** `moved`: whether the pointer has left the grid point it started on; if not, it was a tap. */
@@ -192,31 +192,6 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     if (double) inspect(element.id);
   };
 
-  /**
-   * The keys of a focused canvas: Del deletes the selection, Space or R turns it, Esc closes the
-   * inspector and then clears the selection, Home calls `home`, and the zoom keys. `extra` takes a
-   * mode's own keys first and returns whether it used the key.
-   */
-  const keyDown = (event: KeyboardEvent, { home, fit, extra }: { home(): void; fit(): void; extra?(event: KeyboardEvent): boolean }) => {
-    if (extra?.(event)) {
-      // Taken by the mode.
-    } else if (event.key === 'Delete' || event.key === 'Backspace') {
-      remove(selection);
-    } else if (event.key === ' ' || event.key.toLowerCase() === 'r') {
-      rotateSelected();
-    } else if (event.key === 'Escape' && inspected) {
-      closeInspector();
-    } else if (event.key === 'Escape' && selection.length) {
-      // With nothing selected, Esc is left to the full-screen view.
-      setSelection([]);
-    } else if (event.key === 'Home') {
-      home();
-    } else if (!zoomKey(event, canvasView, fit)) {
-      return;
-    }
-    event.preventDefault();
-  };
-
   return {
     selection,
     setSelection,
@@ -234,6 +209,5 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     startCanvas,
     onMove,
     onUp,
-    keyDown,
   };
 }
