@@ -7,7 +7,7 @@ import { Steps } from './AnalysisView';
 import { displayStyle, Katex } from './Katex';
 import { LogicGates } from './LogicGates';
 import { LogicJoint } from './LogicJoint';
-import { editorData, withGateChoice } from '../logicCircuit';
+import { editorData, withGateChoice } from '../logic/circuit';
 
 interface Props {
   scene: LogicScene;

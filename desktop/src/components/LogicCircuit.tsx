@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DrawForm, LogicScene, LogicTask, Settings } from '../api';
 import { useT, type TextKey } from '../i18n';
 import { logicTask, nameLatex, type LogicAnswer } from '../logic';
-import { drawnFrom, editorData, fromGenerated, toNetlist, withGenerated, withParts, type Generated, type LogicPart } from '../logicCircuit';
+import { drawnFrom, editorData, fromGenerated, toNetlist, withGenerated, withParts, type Generated, type LogicPart } from '../logic/circuit';
 import { Katex } from './Katex';
 import { LogicEditor } from './LogicEditor';
 import { useFullscreen } from './Schematic';

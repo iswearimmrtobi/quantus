@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allPins, localBody, newPart, numberNets, partPins, toNetlist, withGate, type LogicPart } from './logicCircuit';
+import { allPins, localBody, newPart, numberNets, partPins, toNetlist, withGate, type LogicPart } from './circuit';
 
 const wire = (id: string, x: number, y: number, x2: number, y2: number): LogicPart => ({ id, kind: 'wire', x, y, x2, y2, rotation: 0 });
 

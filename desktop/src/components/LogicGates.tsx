@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DrawForm, GateFormResult, LogicElement, LogicForm, LogicOutputResult, LogicScene, LogicSymbols, Netlist, Worked } from '../api';
 import { useT, type TextKey } from '../i18n';
 import { logicTask } from '../logic';
-import { fromGenerated, type GateChoice, type LogicPart } from '../logicCircuit';
+import { fromGenerated, type GateChoice, type LogicPart } from '../logic/circuit';
 import { staticPicture } from './LogicEditor';
 import { Section } from './LogicResults';
 import { Segmented } from './SettingsDialog';

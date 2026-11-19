@@ -22,7 +22,7 @@ import {
   withGate,
   type LogicPart,
   type PaletteKind,
-} from '../logicCircuit';
+} from '../logic/circuit';
 import { nearest, placeLabels, type LabelRequest, type Placement, type Side } from '../schematic/labels';
 import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, segmentBox, wireEnds, type Point, type Rect, type Segment } from '../schematic/geometry';
 import { pngBytes, svgBytes, type Picture } from '../schematic/picture';

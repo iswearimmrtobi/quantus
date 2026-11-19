@@ -10,7 +10,7 @@ import { LogicLines } from './LogicLines';
 import { LogicResults } from './LogicResults';
 import { LogicTable } from './LogicTable';
 import { Segmented } from './SettingsDialog';
-import { editorData } from '../logicCircuit';
+import { editorData } from '../logic/circuit';
 
 /** The two examples of the empty page: an expression and a minterm list. */
 const EXAMPLE_EXPRESSION = 'f = A \\land B \\lor C';
