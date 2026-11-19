@@ -15,6 +15,7 @@
     "android:dev": "tauri android dev",
     "android:build": "tauri android build --apk",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
     "copy-fonts": "node scripts/copy-mathlive-fonts.mjs",
     "licenses": "node scripts/third-party-licenses.mjs",
     "postinstall": "npm run copy-fonts"
@@ -35,7 +36,8 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "^5.9.0",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "vitest": "^3.2.7"
   },
   "allowScripts": {
     "esbuild@0.28.1": true

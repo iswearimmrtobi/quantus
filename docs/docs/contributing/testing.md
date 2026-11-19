@@ -11,8 +11,10 @@ Quantus has two kinds of tests:
    coverage of the engine. A full run takes about 4 minutes, so run it when you change the engine's
    behaviour, not on every commit.
 
-The frontend (`desktop/src/`) has no tests of its own; `npm run typecheck` is its only check. The
-renderer's calls into the engine are covered by the Tauri IPC tests below.
+The frontend (`desktop/src/`) is checked by `npm run typecheck`; the pure modules of the schematic
+editors (geometry, nets, label layout, the circuit models) have unit tests next to them
+(`*.test.ts`, run by Vitest with `npm test`). The renderer's calls into the engine are covered by
+the Tauri IPC tests below.
 
 How many tests of each kind there are, file by file and category by category, is listed on
 [Test inventory](test-set.md). The tables below describe the main files; their counts are older.
@@ -28,6 +30,7 @@ cargo test -p quantus-core binomial             # every test whose name contains
 cargo test -p quantus-core --test golden -- --nocapture   # show println! output
 
 cd desktop && npm run typecheck                 # TypeScript of the renderer
+cd desktop && npm test                          # the renderer's unit tests (Vitest)
 ```
 
 The number crates are built with `opt-level = 3` even in debug builds (see the root `Cargo.toml`);
@@ -131,5 +134,5 @@ directly; it defines the conventions the generator's algebra cases follow.
 ## Before committing
 
 ```sh
-cargo test --workspace && (cd desktop && npm run typecheck)
+cargo test --workspace && (cd desktop && npm run typecheck && npm test)
 ```
