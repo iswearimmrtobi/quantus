@@ -74,6 +74,25 @@ usual keys of your system (<kbd>Ctrl</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>+<kbd>C<
 | <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> in the matrix | Next / previous cell, row by row |
 | <kbd>Enter</kbd> in the matrix | Solve |
 
+## In the circuit editors
+
+Electronics, Kirchhoff and Logic share one editor. These keys work while its canvas has the focus
+(click on it); *Keys* under the parts lists them too.
+
+| Key | Action |
+|---|---|
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd> | Undo the last change (a drag or the typing in one field is one step) |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> or <kbd>Ctrl</kbd>+<kbd>Y</kbd> | Redo |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd> | Copy the chosen parts / paste them, a little further off each time |
+| <kbd>Ctrl</kbd>+<kbd>D</kbd> | Duplicate the chosen parts |
+| <kbd>Del</kbd> | Delete the chosen parts |
+| <kbd>Space</kbd> or <kbd>R</kbd> | Rotate the chosen parts by 90° |
+| <kbd>Shift</kbd>+<kbd>R</kbd> | Turn a resistor by 45° (Electronics, Kirchhoff) |
+| <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> | Move the chosen parts by a grid step, with <kbd>Shift</kbd> by five |
+| <kbd>Esc</kbd> | Close a part's values, then clear the choice, then leave full screen |
+| <kbd>Home</kbd> or <kbd>0</kbd> | Show the whole drawing |
+| <kbd>+</kbd> / <kbd>-</kbd> | Zoom in / out |
+
 ## In the dialogs
 
 | Where | Key | Action |

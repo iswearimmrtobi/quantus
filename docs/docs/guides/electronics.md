@@ -13,7 +13,7 @@ current as you go. The values are exact until they are written; inputs are read 
 ## Drawing the circuit
 
 Switch to **Electronics** in the top bar. The page has the parts on the left, the canvas in the
-middle and the selected part's values on the right.
+middle; a click on a part opens its values beside it.
 
 | Part | Fields | Example |
 |---|---|---|
@@ -34,6 +34,11 @@ point on a wire, draws a wire. Wires run only across and down: one drawn on a sl
 a right angle. <kbd>Space</kbd> or <kbd>R</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a
 resistor by 45° (its terminals then sit on the grid two steps across and two down from its
 middle), and <kbd>Del</kbd> deletes it; dragging on empty canvas selects several parts.
+<kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a change and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> makes it again
+(also ↶ and ↷ beside the zoom buttons); a drag or the typing in one field is one step.
+<kbd>Ctrl</kbd>+<kbd>C</kbd> and <kbd>Ctrl</kbd>+<kbd>V</kbd> copy and paste the chosen parts,
+<kbd>Ctrl</kbd>+<kbd>D</kbd> duplicates them, and the arrow keys move them by a grid step. *Keys*
+under the parts lists every key; see [Keyboard shortcuts](../reference/shortcuts.md#in-the-circuit-editors).
 
 Two terminals are connected when they sit on the same grid point, or when one ends in the middle
 of an ideal wire (a T-junction). The open dot at a terminal disappears once something is
@@ -42,12 +47,17 @@ connected there.
 Scrolling zooms about the pointer; the canvas moves with the right or middle mouse button or
 with <kbd>Shift</kbd> and scrolling. The buttons in the canvas's top left corner zoom out, back to
 100 % and in, and **Fit** shows the whole circuit; on the canvas <kbd>+</kbd>, <kbd>-</kbd> and
-<kbd>0</kbd> do the same. <kbd>Home</kbd> goes back to the start. The last of those buttons, ⤢,
+<kbd>0</kbd> do the same, and so does <kbd>Home</kbd>; the editor shows the whole circuit when it
+opens and after **Load**, too. The last of those buttons, ⤢,
 lets the editor fill the window; ⤡ or <kbd>Esc</kbd> (when nothing is selected) goes back.
 
 **Load** and **Save** under *File* read and write the circuit as a `.json` file. The Kirchhoff
 mode uses the same files, see [Kirchhoff](kirchhoff/index.md); the format is in
 [Circuit files](circuit-files.md).
+
+**SVG** and **PNG** under *Picture* save the circuit as a picture: the parts, wires, junctions,
+the parts' names and the values the canvas shows (as plain text), black on white, without the
+grid, the pins or the selection. The PNG is at twice the size.
 
 ## Ground
 

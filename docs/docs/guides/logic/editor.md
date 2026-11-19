@@ -34,6 +34,12 @@ symbols are the IEC 60617 rectangles (`&`, `≥1`, `=1`, `1`) or the ANSI shapes
 Drag a part onto the canvas or click it in the list. Dragging from a pin, or from a point on a
 wire, draws a wire; dragging on empty canvas selects several parts. <kbd>Space</kbd> or
 <kbd>R</kbd> rotates the selection by 90°, <kbd>Del</kbd> deletes it, <kbd>Esc</kbd> clears it.
+<kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a change and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> makes it again
+(also ↶ and ↷ beside the zoom buttons); a drag or the typing in one field is one step.
+<kbd>Ctrl</kbd>+<kbd>C</kbd> and <kbd>Ctrl</kbd>+<kbd>V</kbd> copy and paste the chosen parts,
+<kbd>Ctrl</kbd>+<kbd>D</kbd> duplicates them, and the arrow keys move them by a grid step. *Keys*
+under the parts lists every key; see [Keyboard shortcuts](../../reference/shortcuts.md#in-the-circuit-editors).
+A pasted switch or lamp keeps its name only while no other has it.
 Scrolling zooms about the pointer; the canvas moves with the right or middle mouse button or
 with <kbd>Shift</kbd> and scrolling. The buttons in the canvas's top left corner zoom out, back to
 100 % and in, and **Fit** shows the whole circuit; on the canvas <kbd>+</kbd>, <kbd>-</kbd> and

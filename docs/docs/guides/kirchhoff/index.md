@@ -13,7 +13,7 @@ as in [Physics](../physics/index.md): `10V`, `2k\Omega`, `500mA`.
 ## Drawing the circuit
 
 Switch to **Kirchhoff** in the top bar. The page has the parts on the left, the canvas in the
-middle, the selected part's values on the right, and the working under the canvas.
+middle with the working under it; a click on a part opens its values beside it.
 
 | Part | Field | Example |
 |---|---|---|
@@ -24,11 +24,14 @@ middle, the selected part's values on the right, and the working under the canva
 
 Drag a part onto the canvas or click it in the list. Dragging from a terminal draws a wire;
 <kbd>Space</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a resistor by 45° and
-<kbd>Del</kbd> deletes it. Two terminals are connected
+<kbd>Del</kbd> deletes it; undo, copy and paste work as in [Electronics](../electronics.md#drawing-the-circuit).
+Two terminals are connected
 when they sit on the same grid point, or one ends in the middle of a wire. Scrolling zooms;
 the canvas moves with the right or middle mouse button or with <kbd>Shift</kbd> and scrolling, and
 the buttons in its top left corner zoom, show the whole circuit and (⤢) let the editor fill the
-window; <kbd>Esc</kbd> goes back.
+window; <kbd>Esc</kbd> goes back. A note on the circuit, such as a missing terminal, shows in the
+bar under the canvas. **SVG** and **PNG** under *Picture* save the circuit as a picture, without
+the arrows and marks of the working.
 
 The source's `+` terminal is the end with the `+` mark. Every value must be given, and every
 terminal must be connected to something.
