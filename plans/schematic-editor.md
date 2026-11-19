@@ -123,7 +123,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
 - [x] 10. **SVG/PNG export** for Electronics and Kirchhoff via `ExportButtons` in the palette column;
   labels' `svg` = id + shown values as plain text (`value` `unit`); the Kirchhoff overlay is not
   exported. Texts `logic.export.*` → `schematic.export.*`, `circuit.export.name`.
-- [ ] 11. **Undo / redo.** `useHistory` in the shell wraps `onChange`: a drag is one entry (snapshot at
+- [x] 11. **Undo / redo.** `useHistory` in the shell wraps `onChange`: a drag is one entry (snapshot at
   start, pushed on drop if changed), typing in one inspector field is one entry, everything else
   one each; Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y on the canvas; ↶ ↷ buttons by the zoom controls;
   limit 100; reset by `fitKey` (load, Logic "Draw from"). Logic: an undo is an edit, so the

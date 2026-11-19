@@ -16,8 +16,12 @@ export interface KeyBinding {
   run(event: KeyboardEvent): boolean | void;
 }
 
-/** A key's name as shown. */
-export const keyName = (key: string, t: Translate) => (key.startsWith('key.') ? t(key as TextKey) : key);
+/** A key's name as shown: `key.ctrl+Z` is `Ctrl+Z`, the parts that are texts translated. */
+export const keyName = (key: string, t: Translate) =>
+  key
+    .split('+')
+    .map((part) => (part.startsWith('key.') ? t(part as TextKey) : part))
+    .join('+');
 
 /** Neither Ctrl, ⌘ nor Alt: those stay the app's own. */
 const plain = (event: KeyboardEvent) => !event.ctrlKey && !event.metaKey && !event.altKey;
@@ -29,12 +33,25 @@ export interface KeyActions {
   /** Closes the inspector, else clears the selection; false when there was neither. */
   escape(): boolean;
   fit(): void;
+  /** Return false when there was nothing to undo or redo. */
+  undo(): boolean | void;
+  redo(): boolean | void;
   view: ReturnType<typeof useCanvasView>;
 }
+
+/** Ctrl, or ⌘ on a Mac, and neither Alt. */
+const command = (event: KeyboardEvent) => (event.ctrlKey || event.metaKey) && !event.altKey;
 
 /** The keys of every editor, after a mode's own. */
 export function editorKeys(actions: KeyActions): KeyBinding[] {
   return [
+    { keys: ['key.ctrl+Z'], hint: 'schematic.undoes', matches: (e) => command(e) && !e.shiftKey && e.key.toLowerCase() === 'z', run: actions.undo },
+    {
+      keys: ['key.ctrl+key.shift+Z', 'key.ctrl+Y'],
+      hint: 'schematic.redoes',
+      matches: (e) => command(e) && ((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y'),
+      run: actions.redo,
+    },
     { keys: ['key.delete'], hint: 'circuit.deletes', matches: (e) => e.key === 'Delete' || e.key === 'Backspace', run: actions.removeSelection },
     { keys: ['key.space', 'R'], hint: 'circuit.rotates', matches: (e) => plain(e) && (e.key === ' ' || e.key.toLowerCase() === 'r'), run: actions.rotateSelection },
     { keys: ['Esc'], hint: 'schematic.escape', matches: (e) => e.key === 'Escape', run: actions.escape },

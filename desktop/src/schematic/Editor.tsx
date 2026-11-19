@@ -1,6 +1,7 @@
 import { useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useT } from '../i18n';
 import { useSchematicEditing } from './editing';
+import { useHistory } from './history';
 import { ExportButtons } from './ExportButtons';
 import { boundsOf, connectedPointsOf, freeSpot, junctionDotsOf, wireEnds, type Placeable, type Rect } from './geometry';
 import { InspectorPopover } from './inspector';
@@ -81,9 +82,12 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
   const canvas = useRef<SVGSVGElement>(null);
   const canvasView = useCanvasView(canvas);
   const { view, setView, toGrid } = canvasView;
+  const history = useHistory(elements, onChange, fitKey);
+  /** Whether a drag is on, so that its changes make one entry of the history. */
+  const dragging = useRef(false);
   const editing = useSchematicEditing({
     elements,
-    onChange,
+    onChange: (next) => history.change(next, dragging.current ? 'pointer' : undefined),
     canvas,
     view: canvasView,
     pins: kit.pins,
@@ -92,7 +96,12 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
     onTap,
     tapOnly: kit.tapOnly,
   });
-  const { selection, inspected, drag, update, remove } = editing;
+  const { selection, inspected, drag, remove } = editing;
+  dragging.current = drag !== null;
+  const endDrag = () => {
+    history.seal();
+    dragging.current = false;
+  };
   const ownFullscreen = useFullscreen();
   const fullscreen = props.fullscreen ?? ownFullscreen;
 
@@ -105,8 +114,7 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
 
   const { sizes, measure } = useLabelSizes();
   const obstacles = useMemo(() => [...drawn.flatMap(kit.obstacles), ...(reserved ?? [])], [drawn, reserved, kit]);
-  const dragging = drag?.type === 'move' || drag?.type === 'end';
-  const placements = useLabelPlacements(labels, sizes, obstacles, dragging);
+  const placements = useLabelPlacements(labels, sizes, obstacles, drag?.type === 'move' || drag?.type === 'end');
 
   /** Shows the whole drawing with its labels; the start view without one. */
   const fitAll = () => (drawn.length ? canvasView.fit(boundsOf([...obstacles, ...placements.values()])) : setView(HOME));
@@ -121,14 +129,14 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
   const add = (kind: K, at?: ReturnType<typeof toGrid>) => {
     if (kit.canAdd && !kit.canAdd(elements, kind)) return;
     const part = kit.newPart(elements, kind, at ?? freeSpot(view, elements.length, kit.spacing));
-    onChange([...elements, part]);
+    history.change([...elements, part]);
     editing.inspect(part.id);
     // The canvas takes the keys, so that Del removes the new part at once.
     canvas.current?.focus();
   };
 
   const bindings = [
-    ...(kit.keys?.({ elements, selection, onChange }) ?? []),
+    ...(kit.keys?.({ elements, selection, onChange: (next) => history.change(next) }) ?? []),
     ...editorKeys({
       removeSelection: () => remove(selection),
       rotateSelection: editing.rotateSelected,
@@ -140,6 +148,8 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
         return true;
       },
       fit: fitAll,
+      undo: history.undo,
+      redo: history.redo,
       view: canvasView,
     }),
   ];
@@ -189,15 +199,21 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
       <div className="schematic-centre">
         {props.toolbar && <div className="schematic-toolbar">{props.toolbar}</div>}
         <div className="schematic-stage">
-          <ZoomControls view={canvasView} fit={fitAll} fullscreen={fullscreen} />
+          <ZoomControls view={canvasView} fit={fitAll} fullscreen={fullscreen} history={history} />
           <svg
             ref={canvas}
             className="schematic-canvas"
             tabIndex={0}
             onKeyDown={onKeyDown}
             onPointerMove={editing.onMove}
-            onPointerUp={editing.onUp}
-            onPointerCancel={() => editing.setDrag(null)}
+            onPointerUp={() => {
+              editing.onUp();
+              endDrag();
+            }}
+            onPointerCancel={() => {
+              editing.setDrag(null);
+              endDrag();
+            }}
             onPointerDown={editing.startCanvas}
             onContextMenu={(event) => event.preventDefault()}
             onDragOver={(event) => event.preventDefault()}
@@ -270,8 +286,9 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
           {chosen && (
             <InspectorPopover box={kit.body(chosen)} view={view} canvas={canvas}>
               {props.inspector(chosen, {
-                update: (change) => update(chosen.id, change),
-                replace: (next) => onChange(elements.map((e) => (e.id === next.id ? next : e))),
+                // Typing into one field is one entry of the history.
+                update: (change) => history.change(elements.map((e) => (e.id === chosen.id ? { ...e, ...change } : e)), `field:${chosen.id}:${Object.keys(change).join()}`),
+                replace: (next) => history.change(elements.map((e) => (e.id === next.id ? next : e))),
                 remove: () => remove([chosen.id]),
                 close: editing.closeInspector,
               })}

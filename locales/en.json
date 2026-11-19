@@ -91,6 +91,8 @@
     "app.schematic.keys": "Keys",
     "app.schematic.undo": "Undo (Ctrl+Z)",
     "app.schematic.redo": "Redo (Ctrl+Shift+Z)",
+    "app.schematic.undoes": "undoes the last change",
+    "app.schematic.redoes": "makes it again",
     "app.schematic.export.title": "PICTURE",
     "app.schematic.export.svg.hint": "Saves the drawing as an SVG picture, without the grid, black on white",
     "app.schematic.export.png.hint": "Saves the drawing as a PNG picture, without the grid, black on white",
