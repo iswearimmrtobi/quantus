@@ -2244,6 +2244,12 @@ select option {
   text-align: left;
 }
 
+.section-head:disabled {
+  cursor: default;
+  color: inherit;
+  opacity: 1;
+}
+
 .section-head .chev {
   color: var(--text-faint);
   transform: rotate(-90deg);

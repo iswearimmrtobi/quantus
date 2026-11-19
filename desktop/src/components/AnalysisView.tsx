@@ -102,7 +102,8 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [tab, setTab] = useState<Tab>('sketch');
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  /** The sections whose steps are shown; all closed at first, so the results read as a summary. */
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
 
   const [x0, setX0] = useState('1');
@@ -178,6 +179,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     if (!latex) return;
     clearTasks();
     setSelected(null);
+    if (latex !== analysed) setExpanded(new Set());
     void run(latex);
   };
 
@@ -207,7 +209,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   };
 
   const toggleSection = (id: string) =>
-    setCollapsed((current) => {
+    setExpanded((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -300,11 +302,12 @@ export function AnalysisView({ settings }: { settings: Settings }) {
 
               {tab === 'sketch' &&
                 analysis.sections.map((section) => {
-                  const open = !collapsed.has(section.id);
+                  const open = expanded.has(section.id);
+                  const hasSteps = section.steps.length > 0 && !hideSteps;
                   return (
                     <section className="section-card" key={section.id}>
-                      <button className="section-head" onClick={() => toggleSection(section.id)}>
-                        <span className={open ? 'chev open' : 'chev'}>⌄</span>
+                      <button className="section-head" disabled={!hasSteps} aria-expanded={hasSteps ? open : undefined} onClick={() => toggleSection(section.id)}>
+                        {hasSteps && <span className={open ? 'chev open' : 'chev'}>⌄</span>}
                         <span className="section-title">{section.title}</span>
                         {section.status !== 'ok' && (
                           <span className={`section-status ${section.status}`} title={section.message ?? ''}>
@@ -314,7 +317,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                       </button>
                       {section.result && <Katex className="section-result" latex={section.result} />}
                       {section.message && <p className="section-message">{section.message}</p>}
-                      {open && section.steps.length > 0 && <Steps steps={section.steps} hidden={hideSteps} />}
+                      {open && hasSteps && <Steps steps={section.steps} hidden={hideSteps} />}
                     </section>
                   );
                 })}
