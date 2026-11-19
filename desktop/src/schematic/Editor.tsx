@@ -1,4 +1,4 @@
-import { useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useT } from '../i18n';
 import { useSchematicEditing } from './editing';
 import { copyParts, pasteParts } from './clipboard';
@@ -11,6 +11,7 @@ import type { PartKit } from './kit';
 import { labelStyle, useLabelPlacements, useLabelSizes, type CanvasLabel } from './labels';
 import { DragGhost, JunctionDots, LeaderLines, PlacedPart, WirePart } from './parts';
 import { schematicPicture } from './picture';
+import { setCanvasShortcuts } from './shortcuts';
 import { StatusBar } from './StatusBar';
 import { GridBackground, HOME, useCanvasView, useFitOnRequest, useFullscreen, viewTransform, ZoomControls, type Fullscreen } from './view';
 
@@ -136,6 +137,8 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
     canvas.current?.focus();
   };
 
+  /** Copies the chosen parts; false when none is chosen. */
+  const copy = () => copyParts(kit.id, elements, selection);
   /** Pastes the clipboard, the pasted parts then the choice; false when there was nothing for this editor. */
   const paste = () => {
     const added = pasteParts(kit.id, elements, kit.pasted);
@@ -160,9 +163,9 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
       fit: fitAll,
       undo: history.undo,
       redo: history.redo,
-      copy: () => copyParts(kit.id, elements, selection),
+      copy,
       paste,
-      duplicate: () => copyParts(kit.id, elements, selection) && paste(),
+      duplicate: () => copy() && paste(),
       // A burst of arrow keys is one step of the history.
       nudge: (dx, dy) => {
         const origins = new Map(elements.filter((e) => selection.includes(e.id)).map((e) => [e.id, e]));
@@ -173,6 +176,25 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
     }),
   ];
   const onKeyDown = (event: KeyboardEvent) => void runKey(bindings, event);
+
+  // In the app, the Edit menu's Copy and Paste and the menu's Ctrl+D take those keys before the
+  // canvas sees them; they arrive as the clipboard's events and as a forwarded shortcut instead.
+  const latest = useRef({ copy, paste });
+  latest.current = { copy, paste };
+  useEffect(() => {
+    const focused = () => document.activeElement === canvas.current;
+    const onCopy = (event: ClipboardEvent) => focused() && latest.current.copy() && event.preventDefault();
+    const onPaste = (event: ClipboardEvent) => focused() && latest.current.paste() && event.preventDefault();
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('paste', onPaste);
+    return () => {
+      document.removeEventListener('copy', onCopy);
+      document.removeEventListener('paste', onPaste);
+    };
+  }, []);
+  const onFocus = () => setCanvasShortcuts((shortcut) => shortcut === 'switch-form' && (latest.current.copy() && latest.current.paste(), true));
+  const onBlur = () => setCanvasShortcuts(null);
+  useEffect(() => () => setCanvasShortcuts(null), []);
 
   const chosen = (!preview && drag?.type !== 'move' && elements.find((e) => e.id === inspected)) || null;
   const picture = () => schematicPicture(kit, elements, labels, placements);
@@ -224,6 +246,8 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
             className="schematic-canvas"
             tabIndex={0}
             onKeyDown={onKeyDown}
+            onFocus={onFocus}
+            onBlur={onBlur}
             onPointerMove={editing.onMove}
             onPointerUp={() => {
               editing.onUp();

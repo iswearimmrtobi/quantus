@@ -14,6 +14,7 @@ import { EMPTY_LOGIC, logicInput, logicSaved } from './logic';
 import { EMPTY_LINEAR, inputFor, requestFor, type LinearInput } from './linear';
 import { fromFile, SHOWN, toFile, type EditorElement, type Shown } from './circuit/model';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { canvasShortcut } from './schematic/shortcuts';
 import { copyText, inShell, onShortcut, type Shortcut } from './shell';
 import { MathField, toReadableLatex, type MathFieldHandle, type Tool } from './components/MathField';
 import { InsertBar, type InsertKey } from './components/InsertBar';
@@ -451,6 +452,8 @@ export function App() {
   /** What the menu accelerators of the native shell (F10) and the action bar of the phone layout do. */
   const runShortcut = useCallback(
     (shortcut: Shortcut) => {
+      // A focused circuit editor takes its own (Ctrl+D duplicates there).
+      if (canvasShortcut(shortcut)) return;
       const current = latest.current.calculation;
       switch (shortcut) {
         case 'new':
@@ -533,7 +536,8 @@ export function App() {
         editor()?.focus();
         return;
       }
-      if (inShell || !event.ctrlKey) return;
+      // A key a circuit editor already took (Ctrl+D duplicates there) is not the calculator's.
+      if (inShell || !event.ctrlKey || event.defaultPrevented) return;
       const key = event.key.toLowerCase();
       if (key === 'l') {
         event.preventDefault();
