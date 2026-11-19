@@ -19,6 +19,7 @@ import {
   type Rect,
   type Segment,
 } from '../schematic/geometry';
+import { joinPoints } from '../schematic/nets';
 
 export { GRID, inside, isDiagonal, pointKey, rotate, snap, type Point };
 
@@ -157,7 +158,8 @@ const idealSegments = (elements: EditorElement[]): Segment[] => elements.filter(
  * Numbers the points where terminals sit. Ground is the point of a ground symbol; without one it
  * is the negative terminal of the first voltage source, so a drawn source-and-load circuit
  * works without ceremony. A terminal in the middle of an ideal wire is a junction and shares the
- * node of the wire's start; a resistive wire is joined only at its ends.
+ * node of the wire's start, of every such wire it sits on; a resistive wire is joined only at its
+ * ends.
  */
 export function numberNodes(elements: EditorElement[]): Nodes {
   const points = new Map<string, Point>();
@@ -176,22 +178,8 @@ export function numberNodes(elements: EditorElement[]): Nodes {
     if (source) ground = pointKey(terminals(source).b!);
   }
 
-  // Junctions: each point inside an ideal wire stands for the wire's start.
-  const alias = new Map<string, string>();
-  for (const wire of elements.filter(isIdealWire)) {
-    const { a, b } = terminals(wire);
-    for (const [key, point] of points) {
-      if (!alias.has(key) && inside(a!, b!, point)) alias.set(key, pointKey(a!));
-    }
-  }
-  const canonical = (key: string) => {
-    const seen = new Set<string>();
-    while (alias.has(key) && !seen.has(key)) {
-      seen.add(key);
-      key = alias.get(key)!;
-    }
-    return key;
-  };
+  // Junctions: each point inside an ideal wire joins the wire's start.
+  const canonical = joinPoints(points.values(), [], idealSegments(elements));
 
   const byPoint = new Map<string, number>();
   const pointOf = new Map<number, Point>();
@@ -272,22 +260,13 @@ export function toKirchhoffRequest(elements: EditorElement[]): KirchhoffRequest 
  * the most terminals and wires meet, the first in reading order of those. The engine names a node
  * by its first point, which may be the end of a part rather than the fork of the wires.
  */
-export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: Point): Point {
-  // `nodes` keeps the two ends of a wire apart, as the electronics mode needs; here they are one.
-  const parent = new Map<number, number>();
-  const root = (n: number): number => {
-    while (parent.has(n)) n = parent.get(n)!;
-    return n;
-  };
-  for (const wire of elements.filter(isIdealWire)) {
-    const { a, b } = terminals(wire);
-    const [p, q] = [nodes.byPoint.get(pointKey(a!)), nodes.byPoint.get(pointKey(b!))];
-    if (p !== undefined && q !== undefined && root(p) !== root(q)) parent.set(root(p), root(q));
-  }
-  const nodeOf = (point: Point) => {
-    const n = nodes.byPoint.get(pointKey(point));
-    return n === undefined ? undefined : root(n);
-  };
+export function junctionPoint(elements: EditorElement[], anchor: Point): Point {
+  // Unlike the solver's nodes, the two ends of an ideal wire are one point here.
+  const lines = elements.filter((e) => e.kind !== 'terminal').flatMap(ends);
+  const ideal = idealSegments(elements);
+  const root = joinPoints(lines, ideal, ideal);
+  const known = new Set(lines.map(pointKey));
+  const nodeOf = (point: Point) => (known.has(pointKey(point)) ? root(pointKey(point)) : undefined);
   const node = nodeOf(anchor);
   if (node === undefined) return anchor;
   const degree = new Map<string, number>();
@@ -302,10 +281,7 @@ export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: P
   }
   const points = [...unique.values()];
   // A point in the middle of an ideal wire has the wire on both sides.
-  for (const wire of elements.filter(isIdealWire)) {
-    const { a, b } = terminals(wire);
-    for (const point of points) if (inside(a!, b!, point)) count(point, 2);
-  }
+  for (const [a, b] of ideal) for (const point of points) if (inside(a, b, point)) count(point, 2);
   let best = anchor;
   for (const point of points) {
     if (nodeOf(point) !== node) continue;

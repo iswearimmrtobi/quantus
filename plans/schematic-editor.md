@@ -103,7 +103,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   (exact for 45°) replacing `turned` and `turnedBox`; `wireBetween(id, from, to)` for both
   `newWire`s and `newPart/newElement('wire')`; Electronics ids via `freshIdOf` (A/B kept);
   `sidesFrom(rotation, first)` for both label places; `freeSpot(view, count, spacing)`.
-- [ ] 4. **Shared nets.** `nets.ts` `joinPoints(points, joinEnds, joinMiddles)`; `numberNets` and
+- [x] 4. **Shared nets.** `nets.ts` `joinPoints(points, joinEnds, joinMiddles)`; `numberNets` and
   `numberNodes` (ground = 0) on top. A point inside two ideal wires now joins both (the alias map
   took only the first): a fix, with a test and a changelog line.
 - [ ] 5. **Shared inspector fields.** `TextField`, `SelectField`, `CheckedTextField` (NameField with

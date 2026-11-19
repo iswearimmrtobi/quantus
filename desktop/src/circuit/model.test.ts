@@ -5,6 +5,7 @@ import {
   freshId,
   fromFile,
   junctionDots,
+  junctionPoint,
   newElement,
   numberNodes,
   obstacles,
@@ -151,5 +152,20 @@ describe('new parts', () => {
   it('snaps a new part and gives a new wire its length', () => {
     expect(newElement(loop, 'resistor', { x: 11, y: 29 })).toEqual({ id: 'R3', kind: 'resistor', x: 20, y: 20, rotation: 0 });
     expect(newElement([], 'wire', { x: 0, y: 0 })).toEqual({ id: 'W1', kind: 'wire', x: 0, y: 0, x2: 80, y2: 0, rotation: 0 });
+  });
+});
+
+describe('junctions', () => {
+  it('joins a terminal on two crossing ideal wires to both', () => {
+    // W6 crosses W5 at (80, 120); R3 hangs from there.
+    const nodes = numberNodes([...loop, wire('W6', 80, 80, 80, 140), at('resistor', 'R3', 80, 160, 1)]);
+    expect(nodes.byPoint.get('80,120')).toBe(nodes.byPoint.get('0,120'));
+    expect(nodes.byPoint.get('80,80')).toBe(nodes.byPoint.get('0,120'));
+  });
+
+  it('puts a junction’s dot where the most lines meet', () => {
+    const withR3 = [...loop, at('resistor', 'R3', 80, 160, 1)];
+    expect(junctionPoint(withR3, { x: 0, y: 120 })).toEqual({ x: 80, y: 120 });
+    expect(junctionPoint(withR3, { x: 999, y: 999 })).toEqual({ x: 999, y: 999 });
   });
 });

@@ -156,6 +156,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Electronics: a part whose terminal sits in the middle of two ideal wires that cross is joined to
+  both of them; before, only the first wire counted and the other was left unconnected there.
 - A root's degree can be any positive whole number, so `\lim_{x\to\infty}\sqrt[x]{2}` is 1
   instead of the error *The degree of a root must be a positive whole number, but was
   '10000000000'.*

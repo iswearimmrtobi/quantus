@@ -4,7 +4,6 @@ import {
   GRID,
   IDEAL_FIELDS,
   junctionPoint,
-  numberNodes,
   terminalParts,
   toKirchhoffRequest,
   type EditorElement,
@@ -79,14 +78,13 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
     };
   }, [request, halfTerminals, language, precision, exactRoots, letterProducts, extraUnitLetters, stepDetail, cancelMarks, elimination, starDelta]);
 
-  const nodes = useMemo(() => numberNodes(elements), [elements]);
   // The overlay belongs to the drawing it was solved for; while a change is being solved the
   // parts may have moved, which only shifts the marks until the answer comes.
   const marks = useMemo(() => {
     if (!solution) return null;
     const junctions = solution.junctions.map((junction, index) => ({
       index,
-      point: junctionPoint(elements, nodes, { x: junction.anchor.x * GRID, y: junction.anchor.y * GRID }),
+      point: junctionPoint(elements, { x: junction.anchor.x * GRID, y: junction.anchor.y * GRID }),
     }));
     const arrows = currentArrows(solution, elements);
     const voltages = shown.voltage ? voltageArrows(solution, elements) : [];
@@ -97,7 +95,7 @@ export function KirchhoffView({ elements, onChange, settings, shown, onShownChan
       labels: overlayLabels(solution, junctions, arrows),
       reserved: overlayReserved(solution, [...arrows, ...voltages]),
     };
-  }, [solution, elements, nodes, shown.voltage]);
+  }, [solution, elements, shown.voltage]);
 
   /** While a step of the reduction is under the pointer, the network as it stands after it. */
   // Worked out on the first hover over a step and kept for the solution, since placing a star or
