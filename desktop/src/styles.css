@@ -2507,8 +2507,10 @@ select option {
 
 .plot-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 4px 12px;
   padding: 4px 10px;
   border-top: 1px solid var(--hairline);
 }
@@ -2519,25 +2521,25 @@ select option {
   color: var(--text-faint);
 }
 
-.point-list {
-  display: grid;
-  gap: 2px;
+.plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  flex: 1;
+  min-width: 0;
 }
 
-.point-item {
+.legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
+  gap: 5px;
+  padding: 2px 6px;
   border-radius: var(--radius);
-  text-align: left;
-  font-size: 13px;
-  min-width: 0;
-  overflow-x: auto;
+  font-size: 12px;
 }
 
-.point-item:hover,
-.point-item.selected {
+.legend-item:hover,
+.legend-item.selected {
   background: var(--surface-hover);
 }
 
@@ -2548,14 +2550,7 @@ select option {
   flex-shrink: 0;
 }
 
-.point-kind {
-  font-size: 11px;
-  color: var(--text-muted);
-  width: 110px;
-  flex-shrink: 0;
-}
-
-/* One colour per kind of point, in the graph and in the list. */
+/* One colour per kind of point, in the graph and in its legend. */
 .kind-zero { --point: var(--point-zero); }
 .kind-yIntercept { --point: var(--point-y-intercept); }
 .kind-max { --point: var(--point-max); }

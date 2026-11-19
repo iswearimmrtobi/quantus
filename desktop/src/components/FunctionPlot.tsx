@@ -310,6 +310,22 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
         )}
       </div>
       <div className="plot-footer">
+        {/* The marked points as a legend; hovering one shows its coordinates in the graph, a click selects it. */}
+        <div className="plot-legend">
+          {points.map((point, i) => (
+            <button
+              key={`${point.kind}|${point.x}|${point.y}`}
+              className={i === selected ? `legend-item kind-${point.kind} selected` : `legend-item kind-${point.kind}`}
+              title={t(`point.${point.kind}`)}
+              onPointerEnter={() => setHovered({ index: i, x: point.x })}
+              onPointerLeave={() => setHovered(null)}
+              onClick={() => onSelect(i === selected ? null : i)}
+            >
+              <span className="point-swatch" />
+              <Katex latex={point.name} />
+            </button>
+          ))}
+        </div>
         <span className="plot-hint">{t('plot.hint')}</span>
         <button className="copy-btn" onClick={reset}>
           {t('analysis.reset')}

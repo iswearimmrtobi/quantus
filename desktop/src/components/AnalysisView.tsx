@@ -276,19 +276,6 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                 selected={selectedIndex !== null && selectedIndex >= 0 ? selectedIndex : null}
                 onSelect={select}
               />
-              <div className="point-list">
-                {points.map((point, i) => (
-                  <button
-                    key={pointKey(point)}
-                    className={i === selectedIndex ? `point-item kind-${point.kind} selected` : `point-item kind-${point.kind}`}
-                    onClick={() => select(i === selectedIndex ? null : i)}
-                  >
-                    <span className="point-swatch" />
-                    <span className="point-kind">{t(`point.${point.kind}`)}</span>
-                    <Katex latex={point.latex} />
-                  </button>
-                ))}
-              </div>
             </div>
             <div className="analysis-sheet">
               <div className="analysis-function">
