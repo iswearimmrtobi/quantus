@@ -1,21 +1,26 @@
 import type { TextKey } from '../i18n';
 import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, KirchhoffRequest, } from '../api';
 import {
-  boundsOf,
   connectedPointsOf,
+  freshIdOf,
   GRID,
   inside,
+  isDiagonal,
   junctionDotsOf,
+  NEW_WIRE,
+  placeLocal,
   pointKey,
   rotate,
   segmentBox,
   snap,
+  turnedBox,
+  wireBetween,
   type Point,
   type Rect,
   type Segment,
 } from '../schematic/geometry';
 
-export { GRID, inside, pointKey, rotate, snap, type Point };
+export { GRID, inside, isDiagonal, pointKey, rotate, snap, type Point };
 
 /**
  * The schematic as the editor keeps it, and the pure functions that turn it into a
@@ -83,9 +88,6 @@ const LOCAL_TERMINALS: Record<Exclude<EditorKind, 'wire'>, Partial<Record<Termin
   terminal: { terminal: { x: 0, y: 0 } },
 };
 
-/** Whether a part sits at 45° to the grid: its `rotation` ends in a half, 0.5 being 45°. */
-export const isDiagonal = (rotation: number) => !Number.isInteger(rotation);
-
 /**
  * A resistor's turns in eighths: by 45° about its middle, or by a quarter. Only a resistor turns
  * by 45°; its terminals then sit two grid steps across and two down from the middle, so they stay
@@ -101,14 +103,8 @@ export function terminals(element: EditorElement): Partial<Record<Terminal, Poin
       b: { x: element.x2 ?? element.x, y: element.y2 ?? element.y },
     };
   }
-  const diagonal = isDiagonal(element.rotation);
   const placed: Partial<Record<Terminal, Point>> = {};
-  for (const [name, local] of Object.entries(LOCAL_TERMINALS[element.kind])) {
-    // At 45° the point turns by an eighth and grows by √2, which keeps it on the grid.
-    const start = diagonal ? { x: local.x - local.y, y: local.x + local.y } : local;
-    const turned = rotate(start, Math.floor(element.rotation));
-    placed[name as Terminal] = { x: element.x + turned.x, y: element.y + turned.y };
-  }
+  for (const [name, local] of Object.entries(LOCAL_TERMINALS[element.kind])) placed[name as Terminal] = placeLocal(element, local);
   return placed;
 }
 
@@ -322,19 +318,13 @@ export function junctionPoint(elements: EditorElement[], nodes: Nodes, anchor: P
 /** The next unused ID of a kind: R1, R2, …; the terminals are A and B. */
 export function freshId(elements: EditorElement[], kind: EditorKind): string {
   const taken = new Set(elements.map((e) => e.id));
-  if (kind === 'terminal') {
-    const free = ['A', 'B'].find((id) => !taken.has(id));
-    if (free) return free;
-  }
-  for (let n = 1; ; n += 1) {
-    const id = `${PREFIX[kind]}${n}`;
-    if (!taken.has(id)) return id;
-  }
+  const free = kind === 'terminal' ? ['A', 'B'].find((id) => !taken.has(id)) : undefined;
+  return free ?? freshIdOf(taken, PREFIX[kind]);
 }
 
 export function newElement(elements: EditorElement[], kind: EditorKind, at: Point): EditorElement {
-  const base = { id: freshId(elements, kind), kind, x: snap(at.x), y: snap(at.y), rotation: 0 };
-  return kind === 'wire' ? { ...base, x2: snap(at.x) + 2 * HALF, y2: snap(at.y) } : base;
+  const [id, place] = [freshId(elements, kind), { x: snap(at.x), y: snap(at.y) }];
+  return kind === 'wire' ? wireBetween(id, place, { x: place.x + NEW_WIRE, y: place.y }) : { id, kind, ...place, rotation: 0 };
 }
 
 /** The results a part can show on the canvas, with their symbols. */
@@ -398,21 +388,6 @@ export const MATERIALS: { id: string; label: TextKey }[] = [
 
 // ---- What the labels keep clear of (`schematic/labels.ts`).
 
-/** The box around points turned with a part and moved to its place. */
-function turned(element: EditorElement, corners: Point[]): Rect {
-  // A rectangle turned by 45° is bounded by its four corners turned, not by the two given ones.
-  const all = isDiagonal(element.rotation)
-    ? [corners[0], corners[1], { x: corners[0].x, y: corners[1].y }, { x: corners[1].x, y: corners[0].y }]
-    : corners;
-  const angle = (element.rotation * Math.PI) / 2;
-  const turn = (p: Point) =>
-    isDiagonal(element.rotation)
-      ? { x: p.x * Math.cos(angle) - p.y * Math.sin(angle), y: p.x * Math.sin(angle) + p.y * Math.cos(angle) }
-      : rotate(p, element.rotation);
-  const points = all.map(turn).map((p) => ({ x: element.x + p.x, y: element.y + p.y }));
-  return boundsOf(points.map((p) => ({ ...p, w: 0, h: 0 })));
-}
-
 /** Half the size of a part's body across its axis and along it, as `Symbol` draws it. */
 const BODY: Partial<Record<EditorElement['kind'], { along: number; across: number }>> = {
   resistor: { along: 20, across: 7 },
@@ -428,10 +403,10 @@ export function body(element: EditorElement): Rect {
     const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
     return segmentBox(a, b, 2);
   }
-  if (element.kind === 'ground') return turned(element, [{ x: -12, y: 0 }, { x: 12, y: 19 }]);
-  if (element.kind === 'terminal') return turned(element, [{ x: -7, y: -7 }, { x: 22, y: 7 }]);
+  if (element.kind === 'ground') return turnedBox(element, [{ x: -12, y: 0 }, { x: 12, y: 19 }]);
+  if (element.kind === 'terminal') return turnedBox(element, [{ x: -7, y: -7 }, { x: 22, y: 7 }]);
   const { along, across } = BODY[element.kind]!;
-  return turned(element, [{ x: -along, y: -across }, { x: along, y: across }]);
+  return turnedBox(element, [{ x: -along, y: -across }, { x: along, y: across }]);
 }
 
 /** What the labels must keep clear of: the bodies and leads of the parts, the wires, the terminals. */
@@ -443,8 +418,8 @@ export function obstacles(elements: EditorElement[]): Rect[] {
     rects.push(body(element));
     if (element.kind === 'wire' || element.kind === 'ground' || element.kind === 'terminal') continue;
     const lead = isDiagonal(element.rotation) ? HALF * Math.SQRT2 : HALF;
-    rects.push(turned(element, [{ x: -lead, y: -2 }, { x: lead, y: 2 }]));
-    if (places.wiper) rects.push(turned(element, [{ x: -4, y: -HALF }, { x: 4, y: 0 }]));
+    rects.push(turnedBox(element, [{ x: -lead, y: -2 }, { x: lead, y: 2 }]));
+    if (places.wiper) rects.push(turnedBox(element, [{ x: -4, y: -HALF }, { x: 4, y: 0 }]));
   }
   return rects;
 }

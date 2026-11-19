@@ -4,7 +4,7 @@ import {
   body,
   FIELDS,
   connectedPoints,
-  GRID,
+  freshId,
   HALF,
   junctionDots,
   isDiagonal,
@@ -24,7 +24,7 @@ import {
   type Shown,
   type Terminal,
 } from './model';
-import { boundsOf } from '../schematic/geometry';
+import { boundsOf, freeSpot, opposite, sidesAround, wireBetween } from '../schematic/geometry';
 import { useT } from '../i18n';
 import { labelStyle, nearest, placeLabels, useLabelSizes, type LabelRequest, type Placement, type Rect, type Side } from '../schematic/labels';
 import { Katex } from '../components/Katex';
@@ -123,7 +123,7 @@ export function CircuitEditor({
     canvas,
     view: canvasView,
     pins,
-    newWire: (next, from, to) => ({ ...newElement(next, 'wire', from), x2: to.x, y2: to.y }),
+    newWire: (next, from, to) => wireBetween(freshId(next, 'wire'), from, to),
     turned: (rotation) => turnedBy(rotation, 2),
   });
   const { selection, inspected, drag, update, remove } = editing;
@@ -178,10 +178,7 @@ export function CircuitEditor({
     // There are two terminals, A and B, and no third.
     if (kind === 'terminal' && elements.filter((e) => e.kind === 'terminal').length >= 2) return;
     // Without a drop position the part goes to a free spot, one row below the last one.
-    const spot = at ?? {
-      x: (160 - view.x) / view.zoom + (elements.length % 4) * 3 * GRID,
-      y: (120 - view.y) / view.zoom + Math.floor(elements.length / 4) * 3 * GRID,
-    };
+    const spot = at ?? freeSpot(view, elements.length, 3);
     const element = newElement(elements, kind, spot);
     onChange([...elements, element]);
     editing.inspect(element.id);
@@ -499,14 +496,14 @@ function partPlace(element: EditorElement): Place | null {
     const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
     const anchor = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const across = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
-    return { anchor, gap: 8, sides: across ? ['above', 'below', 'right', 'left'] : ['right', 'left', 'above', 'below'] };
+    return { anchor, gap: 8, sides: across ? sidesAround('above', 'right') : sidesAround('right', 'above') };
   }
   // A part at 45° counts with the direction it leans more towards: 45° as across, 135° as down.
   const vertical = Math.floor(element.rotation) % 2 === 1;
   const wiper = terminals(element).wiper;
   const flipped = wiper !== undefined && (vertical ? wiper.x > element.x : wiper.y > element.y);
-  let sides: Side[] = vertical ? ['right', 'left', 'below', 'above'] : ['below', 'above', 'right', 'left'];
-  if (flipped) sides = [sides[1], sides[0], sides[2], sides[3]];
+  const [first, second]: Side[] = vertical ? ['right', 'below'] : ['below', 'right'];
+  const sides = sidesAround(flipped ? opposite(first) : first, second);
   return { anchor: { x: element.x, y: element.y }, gap: 18, sides };
 }
 
