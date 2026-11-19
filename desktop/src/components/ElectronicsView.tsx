@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, ApiError, type CircuitResponse, type Settings } from '../api';
 import { numberNodes, toRequest, type EditorElement, type Shown } from '../circuit/model';
 import { useT } from '../i18n';
-import { CircuitEditor } from './CircuitEditor';
+import { CircuitEditor } from '../circuit/CircuitEditor';
 
 interface Props {
   elements: EditorElement[];

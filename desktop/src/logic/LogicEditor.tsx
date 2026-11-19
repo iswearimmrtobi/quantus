@@ -22,12 +22,12 @@ import {
   withGate,
   type LogicPart,
   type PaletteKind,
-} from '../logic/circuit';
+} from './circuit';
 import { labelStyle, nearest, placeLabels, useLabelSizes, type LabelRequest, type Placement, type Side } from '../schematic/labels';
 import { boundsOf, connectedPointsOf, GRID, junctionDotsOf, pointKey, rotate, segmentBox, wireEnds, type Point, type Rect, type Segment } from '../schematic/geometry';
 import { pngBytes, svgBytes, type Picture } from '../schematic/picture';
 import { saveBytes } from '../shell';
-import { Katex } from './Katex';
+import { Katex } from '../components/Katex';
 import { useSchematicEditing } from '../schematic/editing';
 import { InspectorHead, InspectorPopover } from '../schematic/inspector';
 import { DragGhost, WirePart } from '../schematic/parts';

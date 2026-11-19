@@ -95,7 +95,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
   points, movedBy, rotatedQuarter, inRectangle), `labelLayout.ts`, and `numberNodes`/`numberNets`
   on sample circuits (a source loop, a potentiometer, a 45° resistor, a
   T-junction, ground vs no ground). These pin the behaviour the refactor must keep.
-- [ ] 2. **Move files, no behaviour change.** Into `schematic/`, `circuit/`, `logic/` as above;
+- [x] 2. **Move files, no behaviour change.** Into `schematic/`, `circuit/`, `logic/` as above;
   `components/Schematic.tsx` split into `view.tsx`, `editing.ts`, `parts.tsx`, `inspector.tsx`,
   `labels.ts`. Imports fixed (App, ElectronicsView, KirchhoffView, KirchhoffOverlay, LogicCircuit,
   LogicGates, LogicView, the tests).

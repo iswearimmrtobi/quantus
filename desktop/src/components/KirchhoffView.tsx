@@ -13,7 +13,7 @@ import {
 } from '../circuit/model';
 import { reducedDrawings } from '../circuit/reduce';
 import { useT } from '../i18n';
-import { CircuitEditor } from './CircuitEditor';
+import { CircuitEditor } from '../circuit/CircuitEditor';
 import { currentArrows, KirchhoffOverlay, overlayLabels, overlayReserved, voltageArrows, type Hover } from './KirchhoffOverlay';
 import { KirchhoffWorking } from './KirchhoffWorking';
 

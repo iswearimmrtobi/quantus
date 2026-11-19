@@ -2,7 +2,7 @@ import type { Kirchhoff } from '../api';
 import { GRID, terminals, type EditorElement, type Point } from '../circuit/model';
 import { useT } from '../i18n';
 import type { Rect } from '../schematic/labels';
-import type { ExtraLabel } from './CircuitEditor';
+import type { ExtraLabel } from '../circuit/CircuitEditor';
 import { Katex } from './Katex';
 
 /** What the pointer rests on, in the overlay or the working: its parts are highlighted. */

@@ -4,7 +4,7 @@ import { useT, type TextKey } from '../i18n';
 import { logicTask, nameLatex, type LogicAnswer } from '../logic';
 import { drawnFrom, editorData, fromGenerated, toNetlist, withGenerated, withParts, type Generated, type LogicPart } from '../logic/circuit';
 import { Katex } from './Katex';
-import { LogicEditor } from './LogicEditor';
+import { LogicEditor } from '../logic/LogicEditor';
 import { useFullscreen } from '../schematic/view';
 
 interface Props {

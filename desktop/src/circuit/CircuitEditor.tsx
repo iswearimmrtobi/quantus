@@ -23,11 +23,11 @@ import {
   type Point,
   type Shown,
   type Terminal,
-} from '../circuit/model';
+} from './model';
 import { boundsOf } from '../schematic/geometry';
 import { useT } from '../i18n';
 import { labelStyle, nearest, placeLabels, useLabelSizes, type LabelRequest, type Placement, type Rect, type Side } from '../schematic/labels';
-import { Katex } from './Katex';
+import { Katex } from '../components/Katex';
 import { useSchematicEditing } from '../schematic/editing';
 import { InspectorHead, InspectorPopover } from '../schematic/inspector';
 import { DragGhost, WirePart } from '../schematic/parts';
