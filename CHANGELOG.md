@@ -248,6 +248,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   and the expression it was flipped from stays in the history before it; before, the flip
   overwrote it. A smaller word size cuts a flipped value to its low bits, with a note, instead
   of refusing it as too big.
+- Desktop, Basis-N: in the bit view the 1s stand out in the accent colour and bold, a bit shows
+  that it can be clicked, and each group's index stands under the bit it names.
 
 ## [0.2.0] - 2026-11-06
 

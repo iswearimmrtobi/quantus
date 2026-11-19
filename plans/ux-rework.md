@@ -341,7 +341,7 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
   8 bits" (core: `basen.rs::literal`, decide for literals produced by a flip only).
   (A new calculation; the cut is done in the desktop, which knows the input is a flip, and the
   core is unchanged.)
-- [ ] **5.5 The bit view (S).** 1s clearly set apart (accent colour, bold), the index under the
+- [x] **5.5 The bit view (S).** 1s clearly set apart (accent colour, bold), the index under the
   bit it names (`BitView.tsx` `.bit-index`, align right under the group's lowest bit), a cursor
   and hover on bits, "IEEE 754" on one line.
 - [x] **5.6** A walk through all widths (the programmer view's check 4.6).

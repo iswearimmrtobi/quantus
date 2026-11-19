@@ -710,6 +710,7 @@ code {
 }
 .bit-panel > .segmented .segment {
   padding: 4px 10px;
+  white-space: nowrap;
 }
 .bit-view {
   display: flex;
@@ -738,9 +739,12 @@ code {
   text-align: center;
   color: var(--text-faint);
   border-radius: var(--radius);
+  cursor: pointer;
 }
+/* The 1s set apart from the 0s: in the accent, bold. */
 .bit.one {
-  color: var(--text);
+  color: var(--accent);
+  font-weight: 700;
 }
 .bit.sign {
   box-shadow: inset 0 -2px 0 var(--accent-dim);
@@ -752,6 +756,7 @@ code {
 .bit:focus-visible {
   background: var(--surface-hover);
   color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary-dim);
   outline: none;
 }
 /* IEEE 754: sign, exponent and mantissa in their colours, in the bits and in the list below. */
@@ -793,11 +798,15 @@ code {
   font-size: 11.5px;
   word-break: break-all;
 }
+/* Under the group's lowest bit, centred on it even when two digits are wider than the bit. */
 .bit-index {
+  display: flex;
+  justify-content: center;
+  width: 15px;
   font-family: var(--mono);
   font-size: 9.5px;
   color: var(--text-faint);
-  padding-right: 4px;
+  white-space: nowrap;
 }
 
 /* ---------- Side rail and panel ---------- */
