@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { api, type GeometryKind, type GeometryObject, type GeometryTask, type GeometryViewResponse, type ViewPoint } from '../api';
 import { useT } from '../i18n';
+import { LABEL_GAP, spreadLabels, type ViewLabel } from '../geometryLabels';
 
 interface Props {
   /** The scene to draw; the engine builds and projects it. */
@@ -19,8 +20,8 @@ export const DEFAULT_YAW = (25 * Math.PI) / 180;
 export const DEFAULT_PITCH = (20 * Math.PI) / 180;
 /** The share of the plot's half size that the unit circle of the view takes. */
 const FILL = 0.92;
-/** How far a label sits from its anchor, in pixels. */
-const LABEL_OFFSET = 6;
+/** How far a tick number sits from its tick, in pixels. */
+const LABEL_OFFSET = LABEL_GAP;
 /** A press that moves less than this many pixels is a click, not a drag. */
 const CLICK = 4;
 /** Radians of turn per pixel dragged. */
@@ -181,6 +182,19 @@ export function GeometryPlot({ objects, task = null, highlight = [], onPick }: P
     const mark = highlight.length ? (highlight.includes(index) ? ' strong' : ' faded') : answered ? ' faded' : '';
     return { className: className + mark, style: colour(object), 'data-object': index };
   };
+  /** The objects' names spread so that none covers another or a point (the tick numbers stay put). */
+  const placed = useMemo(() => {
+    const labels: ViewLabel[] = [];
+    const markers: { x: number; y: number }[] = [];
+    view?.primitives.forEach((primitive, i) => {
+      const [x, y] = px(primitive.kind === 'label' || primitive.kind === 'marker' ? primitive.at : [0, 0]);
+      if (primitive.kind === 'marker') markers.push({ x, y });
+      if (primitive.kind === 'label' && primitive.object !== null) labels.push({ id: `${primitive.object}:${primitive.text}:${i}`, x, y, text: primitive.text });
+    });
+    return spreadLabels(labels, markers);
+    // px follows width, height and scale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, width, height]);
   const points = (list: ViewPoint[]) =>
     list
       .map((p) => px(p))
@@ -222,8 +236,14 @@ export function GeometryPlot({ objects, task = null, highlight = [], onPick }: P
                     </text>
                   );
                 }
+                const spot = placed.get(`${primitive.object}:${primitive.text}:${i}`);
                 return (
-                  <text key={i} {...of(primitive.object, 'geometry-label', primitive.result)} x={x + LABEL_OFFSET} y={y - LABEL_OFFSET}>
+                  <text
+                    key={i}
+                    {...of(primitive.object, 'geometry-label', primitive.result)}
+                    x={spot ? spot.x : x + LABEL_OFFSET}
+                    y={spot ? spot.y + spot.h : y - LABEL_OFFSET}
+                  >
                     <Name name={primitive.text} kind={view.objects[primitive.object]?.kind} />
                   </text>
                 );

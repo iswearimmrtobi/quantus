@@ -353,8 +353,10 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 - [x] Geometry: `B(4|0|-1)` renders as `(4|0| − 1)`; write the sign as unary in the object's
   LaTeX (core, `geometry/show.rs`). (`serializer::bar_point`, used by `show::point` too, writes
   `{-1}` after a bar.)
-- [ ] Geometry: labels overlap in the view (A and K, g on B). Nudge labels away from each
+- [x] Geometry: labels overlap in the view (A and K, g on B). Nudge labels away from each
   other in `view::project`, as `labelLayout.ts` does for the schematics.
+  (In the desktop, `geometryLabels.ts` with the schematics' `placeLabels`: only the shell knows
+  the view's pixel size, and the handheld does not draw the view.)
 - [ ] Geometry: axis ticks with more contrast.
 - [ ] Logic: the NAND/NOR formulas with three stacked overlines. In the Gates card, offer the
   gate-by-gate form with named signals (`G_1 = \overline{A \land B}` …) as the default view.
