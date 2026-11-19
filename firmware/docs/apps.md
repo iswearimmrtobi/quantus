@@ -42,7 +42,7 @@ What shapes the design:
 | Touch is never the only way in ([unit-keys.md](unit-keys.md)) | Every app works from the keys; a tap is an extra |
 | No random numbers anywhere in the firmware | The platform has to give them (`esp_random` on the board) |
 | The UI reaches the card only through single methods of `Backend` (wallpapers, sessions) | Listing apps and keeping their data are new methods; an app gets no file access of its own |
-| 32 MB PSRAM, about 33 MB of heap free; 7.9 MB for the firmware image; the main task has a 16 KB stack ([plans.md](../../plans/plans.md) §4) | An interpreter fits. Where it runs depends on the stack it needs (§5) |
+| 32 MB PSRAM, about 33 MB of heap free; 7.9 MB for the firmware image; the main task has a 16 KB stack ([esp32 README](../esp32/README.md#measurements)) | An interpreter fits. Where it runs depends on the stack it needs (§5) |
 | The board builds with `panic_abort` | A fault in an app must come back as an error value, never as a panic |
 
 ## 1. Decisions

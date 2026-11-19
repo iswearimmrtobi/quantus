@@ -587,7 +587,7 @@ engine; the modes with a sheet work it out with EXE on its last cell.
   14. Setup [Q, fw] ✓: opens SETUP (7.2), as SHIFT + MODE does; the mode stays as it is.
 - Later: Ungleichungen [C, eng] ([plans/new-areas-and-themes.md](../plans/new-areas-and-themes.md)),
   Geometrie with the vectors [fw]: the engine has the mode, the tile is in
-  [plans/geometry.md](../plans/geometry.md) § Later.
+  [plans.md](../plans/plans.md) §9.
 - Not on the handheld: Tabellenkalk., Verhältnisse (typed in Algebra), Kirchhoff and
   Elektronik (they need a drawn circuit).
 

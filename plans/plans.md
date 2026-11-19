@@ -23,18 +23,6 @@ Target: under 0.2 s.
 - [ ] Stop sampling a tail earlier than `integrate`'s two negligible nodes per level. About 1,100
   samples at 0.2 ms (an `exp` at 78 digits) remain.
 
-## 2. Manual checks left over from the Rust/Tauri migration
-
-Verified in code and unit tests, but not yet by eye in the running app:
-
-- Accelerators in the real window (Ctrl+0, Ctrl+Plus, Ctrl+-, F11, Ctrl+Shift+I in debug builds)
-  and every menu shortcut.
-- Starting a second instance focuses the first one.
-- External links open in the browser; copy puts the `align*` block on the clipboard.
-- `StartupWMClass=dev.tobifrosch.quantus` matches the window, so the taskbar groups it (Wayland
-  and X11).
-- The rendering of the AppImage, run from a fresh directory.
-
 ## 4. Quantus on an ESP32 (spike)
 
 `firmware/esp32`: the engine driven over serial, printing results, time, heap and stack. It
@@ -50,7 +38,7 @@ dev kit. See its [README](../firmware/esp32/README.md).
   [hardware.md](../firmware/docs/hardware.md).
 - [ ] Its UI (`firmware/ui`, shared by the simulator and the board), what is left:
   - [ ] ALPHA letters on the keys, once the keypad's legend is fixed.
-  - [ ] The keys still missing in §7.4 (ENG, PreAns, UNDO …).
+  - [ ] The keys still missing in §7.4 (ENG, UNDO …).
   - [ ] Try both on the board: colours, orientation, SPI clock, time to the first frame.
   - [ ] On a bare ST7796S panel, measure `bench` at 40, 60 and 80 MHz and wire `TE` against
     tearing ([hardware.md](../firmware/docs/hardware.md) §3).
@@ -89,7 +77,7 @@ handheld-menus.md, *What is missing*.
   releases and uploads it to the handheld (USB or the link); the handheld can fetch it over
   WLAN itself; the release workflow ([RELEASING.md](../RELEASING.md)) attaches the image.
 - (Vectors went into the Geometry mode, built in engine and desktop; its handheld part is in
-  [geometry.md](geometry.md) § Later.)
+  §9.)
 
 The handheld's own part (menus, keys, the purple palette, WLAN and Bluetooth, the exam mode) is
 in [handheld-menus.md](../design/handheld-menus.md) §7.
@@ -103,20 +91,11 @@ by how often an entry was used comes later.
 
 - [ ] Usage counts that rank frequent entries first.
 
-## 7. A programmer view for Basis-N
-
-From [feature-ideas.md](feature-ideas.md) (idea 13): word size 8/16/32/64, signed or unsigned,
-wrapping, shifts and rotations, a bit view and an IEEE-754 view. Plan with the steps:
-[programmer-view.md](programmer-view.md).
-
-## 8. Screenshots on the handheld
-
-From [feature-ideas.md](feature-ideas.md) (idea 28): SHIFT + 7 saves the screen as a BMP in
-`/screenshots/` on the SD card, drawn band by band into the file. Done; open: a
-look at a file from the board on a PC.
-
 ## 9. Later
 
+- The Geometrie tile on the handheld: the engine and its 3D view are shared, the tile, the
+  input and the drawing (short 1 px lines, keys rotate) are missing; the approach is in
+  [geometry.md](geometry.md) § 3D view and the handheld.
 - The remaining gaps in [unsupported-inputs.md](../design/unsupported-inputs.md) (constants and the
   history are now in §5).
 - The unit bar on an app's input line on the handheld (apps-roadmap.md F9); the apps themselves

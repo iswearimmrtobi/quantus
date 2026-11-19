@@ -44,15 +44,14 @@ optionally Markdown. Check that the copied block compiles standalone in a LaTeX 
 
 **Idea.** Enter a circuit (or its Kirchhoff equations); get node and mesh equations, the linear
 system, the Gauss working, and all currents and voltages. It combines three existing parts:
-physics (units), Gauss ([linear-systems.md](linear-systems.md)) and the electronics solver.
+physics (units), Gauss (the LGS mode) and the electronics solver.
 
 **Check.** Sensible, and the best fit of all the ideas: the circuit solver already builds and
 solves `A·x = z` with exact arithmetic (`electro/solve.rs`, `linear.rs`). What is missing is the
 *explained* route, as a student does it: choose a tree, write the junction rule per node, the loop
 rule per mesh, then solve. Note the name: **Kirchhoff**.
 
-**Plan.** Worked out as its own mode in [kirchhoff.md](kirchhoff.md). Its dependencies (the
-electronics mode back in the selector, indexed unknowns, Gauss steps) are done.
+**Done** as the Kirchhoff mode (guide: `docs/docs/guides/kirchhoff.md`).
 
 ## Order
 

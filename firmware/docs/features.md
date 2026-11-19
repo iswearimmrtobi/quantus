@@ -125,7 +125,7 @@ State on 2026-11-12.
 - [x] 12 Sitzungen (the tile opens the sessions menu)
 - [ ] Later: Ungleichungen
 - [ ] Later: Geometrie: the engine and the 3D view are shared, the tiles and the drawing are in
-  [plans/geometry.md](../../plans/geometry.md) § Later
+  [plans.md](../../plans/plans.md) §9
 
 ## Results
 

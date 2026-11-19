@@ -24,7 +24,8 @@ interface Props {
 /**
  * A system typed one equation per line: a formula field for each line, drawn as one block with a
  * brace. One field with a `cases` block would read the same, but MathLive loses the block on
- * Home/End + Backspace and cannot remove an empty line (see the spike in plans/linear-systems.md).
+ * Home/End + Backspace and cannot remove an empty line (see the spike in the git history of
+ * plans/linear-systems.md).
  *
  * Enter solves; a second Enter right after it starts a line below, and so does a line break:
  * `\\` (in the formula editor the first `\` opens the source, the second one breaks the line) or

@@ -340,7 +340,7 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 - [ ] **5.5 The bit view (S).** 1s clearly set apart (accent colour, bold), the index under the
   bit it names (`BitView.tsx` `.bit-index`, align right under the group's lowest bit), a cursor
   and hover on bits, "IEEE 754" on one line.
-- [ ] **5.6** Tick `programmer-view.md` 4.6 after a walk through all widths.
+- [x] **5.6** A walk through all widths (the programmer view's check 4.6).
 
 ---
 
@@ -353,7 +353,7 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
 - [ ] Geometry: axis ticks with more contrast.
 - [ ] Logic: the NAND/NOR formulas with three stacked overlines. In the Gates card, offer the
   gate-by-gate form with named signals (`G_1 = \overline{A \land B}` …) as the default view.
-- [ ] Check by hand: typing `A(1|2|3)` key by key in the MathLive field (automated typing
+- [x] Check by hand: typing `A(1|2|3)` key by key in the MathLive field (automated typing
   garbled `|` and the auto-closed `)`).
 
 ---
@@ -368,4 +368,4 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
   function (no 2-in buttons). Geometry with six objects: the sidebar, hiding A (g still drawn),
   the view filling the window at 1280×800 and at full size, a distance drawn in the view. Base-N
   with `FF·3+1` in HEX, all four bases, a bit flip, then 8 bits.
-- Before the release: the manual checks of plans.md §2 and RELEASING.md.
+- Before the release: the checks of RELEASING.md.
