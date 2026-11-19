@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode, RefObject } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { useT } from '../i18n';
 import type { Rect } from './geometry';
 import type { View } from './view';
@@ -46,5 +46,64 @@ export function InspectorHead({ id, kind, onRemove, onClose }: { id: string; kin
         ✕
       </button>
     </div>
+  );
+}
+
+/** A labelled text input of an inspector. */
+export function TextField({ label, value, placeholder, invalid, title, onChange }: { label: string; value: string; placeholder?: string; invalid?: boolean; title?: string; onChange(text: string): void }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input
+        type="text"
+        spellCheck={false}
+        autoComplete="off"
+        className={invalid ? 'invalid' : undefined}
+        title={title}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
+/** A labelled choice of an inspector. */
+export function SelectField<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange(value: T): void }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value as T)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/**
+ * A text input that only takes what `check` reads (a value other than null); the text stays as
+ * typed meanwhile, marked invalid with `invalidTitle` as its hint. Give it a `key` per part, so
+ * that it starts afresh for another one.
+ */
+export function CheckedTextField<T>({ label, value, check, invalidTitle, onChange }: { label: string; value: string; check(text: string): T | null; invalidTitle: string; onChange(value: T): void }) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const valid = check(text) !== null;
+  return (
+    <TextField
+      label={label}
+      value={text}
+      invalid={!valid}
+      title={valid ? undefined : invalidTitle}
+      onChange={(next) => {
+        setText(next);
+        const read = check(next);
+        if (read !== null) onChange(read);
+      }}
+    />
   );
 }

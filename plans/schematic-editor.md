@@ -106,7 +106,7 @@ stageExtras?` (U/I/P/R toggle), `status?, below?, fitKey?` (also resets the hist
 - [x] 4. **Shared nets.** `nets.ts` `joinPoints(points, joinEnds, joinMiddles)`; `numberNets` and
   `numberNodes` (ground = 0) on top. A point inside two ideal wires now joins both (the alias map
   took only the first): a fix, with a test and a changelog line.
-- [ ] 5. **Shared inspector fields.** `TextField`, `SelectField`, `CheckedTextField` (NameField with
+- [x] 5. **Shared inspector fields.** `TextField`, `SelectField`, `CheckedTextField` (NameField with
   `check(text) → value | null`); both inspectors use them.
 - [ ] 6. **The shell, Logic on it.** `kit.ts`, `keys.ts` (one table drives `keyDown` and the palette
   hints; a "Keys" disclosure lists all), `useLabelPlacements`, `useFitOnRequest` (LogicEditor's

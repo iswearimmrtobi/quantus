@@ -29,7 +29,7 @@ import { pngBytes, svgBytes, type Picture } from '../schematic/picture';
 import { saveBytes } from '../shell';
 import { Katex } from '../components/Katex';
 import { useSchematicEditing } from '../schematic/editing';
-import { InspectorHead, InspectorPopover } from '../schematic/inspector';
+import { CheckedTextField, InspectorHead, InspectorPopover, SelectField } from '../schematic/inspector';
 import { DragGhost, WirePart } from '../schematic/parts';
 import { GridBackground, HOME, useCanvasView, viewTransform, ZoomControls, type Fullscreen } from '../schematic/view';
 
@@ -699,77 +699,50 @@ function Inspector({
       <InspectorHead id={part.id} kind={kind} onRemove={onRemove} onClose={onClose} />
 
       {(part.kind === 'input' || part.kind === 'output') && (
-        <NameField
+        <CheckedTextField
           key={part.id}
-          name={part.name ?? ''}
-          taken={parts.filter((p) => p.kind === part.kind && p.id !== part.id).map((p) => p.name ?? '')}
-          onRename={(name) => onChange({ name })}
+          label={t('logic.field.name')}
+          value={part.name ?? ''}
+          check={(text) => {
+            // A name no other switch (or lamp) has.
+            const name = readName(text);
+            return name !== null && !parts.some((p) => p.kind === part.kind && p.id !== part.id && p.name === name) ? name : null;
+          }}
+          invalidTitle={t('logic.table.badName')}
+          onChange={(name) => onChange({ name })}
         />
       )}
 
       {part.kind === 'constant' && (
-        <label className="field">
-          <span>{t('logic.field.value')}</span>
-          <select value={part.value ? '1' : '0'} onChange={(event) => onChange({ value: event.target.value === '1' })}>
-            <option value="0">0</option>
-            <option value="1">1</option>
-          </select>
-        </label>
+        <SelectField
+          label={t('logic.field.value')}
+          value={part.value ? '1' : '0'}
+          options={[
+            { value: '0', label: '0' },
+            { value: '1', label: '1' },
+          ]}
+          onChange={(value) => onChange({ value: value === '1' })}
+        />
       )}
 
       {part.kind === 'gate' && (
         <>
-          <label className="field">
-            <span>{t('logic.field.gate')}</span>
-            <select value={part.gate} onChange={(event) => onReplace(withGate(part, event.target.value as GateType))}>
-              {GATES.map((gate) => (
-                <option key={gate} value={gate}>
-                  {gateName(gate)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label={t('logic.field.gate')}
+            value={part.gate ?? 'and'}
+            options={GATES.map((gate) => ({ value: gate, label: gateName(gate) }))}
+            onChange={(gate) => onReplace(withGate(part, gate))}
+          />
           {!single(part.gate) && (
-            <label className="field">
-              <span>{t('logic.field.inputs')}</span>
-              <select value={inputCount(part)} onChange={(event) => onChange({ inputs: Number(event.target.value) })}>
-                {Array.from({ length: MAX_GATE_INPUTS - 1 }, (_, k) => k + 2).map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField
+              label={t('logic.field.inputs')}
+              value={String(inputCount(part))}
+              options={Array.from({ length: MAX_GATE_INPUTS - 1 }, (_, k) => ({ value: String(k + 2), label: String(k + 2) }))}
+              onChange={(n) => onChange({ inputs: Number(n) })}
+            />
           )}
         </>
       )}
     </div>
-  );
-}
-
-/** A switch's or lamp's name, taken when it is a name no other of its kind has. */
-function NameField({ name, taken, onRename }: { name: string; taken: string[]; onRename(name: string): void }) {
-  const { t } = useT();
-  const [text, setText] = useState(name);
-  useEffect(() => setText(name), [name]);
-  const read = readName(text);
-  const valid = read !== null && !taken.includes(read);
-  return (
-    <label className="field">
-      <span>{t('logic.field.name')}</span>
-      <input
-        type="text"
-        spellCheck={false}
-        autoComplete="off"
-        className={valid ? undefined : 'invalid'}
-        title={valid ? undefined : t('logic.table.badName')}
-        value={text}
-        onChange={(event) => {
-          setText(event.target.value);
-          const next = readName(event.target.value);
-          if (next !== null && !taken.includes(next)) onRename(next);
-        }}
-      />
-    </label>
   );
 }

@@ -29,7 +29,7 @@ import { useT } from '../i18n';
 import { labelStyle, nearest, placeLabels, useLabelSizes, type LabelRequest, type Placement, type Rect, type Side } from '../schematic/labels';
 import { Katex } from '../components/Katex';
 import { useSchematicEditing } from '../schematic/editing';
-import { InspectorHead, InspectorPopover } from '../schematic/inspector';
+import { InspectorHead, InspectorPopover, SelectField, TextField } from '../schematic/inspector';
 import { DragGhost, WirePart } from '../schematic/parts';
 import { GridBackground, HOME, useCanvasView, useFullscreen, viewTransform, ZoomControls } from '../schematic/view';
 
@@ -579,34 +579,22 @@ function Inspector({
 
       {/* A mode with ideal wires only still offers the material when one is set, to take it off. */}
       {element.kind === 'wire' && (fields.length > 0 || element.material) && (
-        <label className="field">
-          <span>{t('field.material')}</span>
-          <select
-            value={element.material ?? ''}
-            onChange={(event) => onChange({ material: event.target.value || undefined })}
-          >
-            <option value="">{t('circuit.ideal')}</option>
-            {MATERIALS.map((material) => (
-              <option key={material.id} value={material.id}>
-                {t(material.label)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label={t('field.material')}
+          value={element.material ?? ''}
+          options={[{ value: '', label: t('circuit.ideal') }, ...MATERIALS.map((material) => ({ value: material.id, label: t(material.label) }))]}
+          onChange={(material) => onChange({ material: material || undefined })}
+        />
       )}
 
       {fields.map((field) => (
-        <label className="field" key={field.key}>
-          <span>{t(field.label)}</span>
-          <input
-            type="text"
-            spellCheck={false}
-            autoComplete="off"
-            value={parameters[field.key] ?? ''}
-            placeholder={field.placeholder.replace('{,}', language === 'de' ? '{,}' : '.')}
-            onChange={(event) => onChange({ [field.key]: event.target.value })}
-          />
-        </label>
+        <TextField
+          key={field.key}
+          label={t(field.label)}
+          value={parameters[field.key] ?? ''}
+          placeholder={field.placeholder.replace('{,}', language === 'de' ? '{,}' : '.')}
+          onChange={(text) => onChange({ [field.key]: text })}
+        />
       ))}
 
       {result && (
