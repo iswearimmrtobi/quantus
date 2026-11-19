@@ -357,7 +357,7 @@ New `GeometrySidebar.tsx`. It takes over the typed line and the parts of `Geomet
   other in `view::project`, as `labelLayout.ts` does for the schematics.
   (In the desktop, `geometryLabels.ts` with the schematics' `placeLabels`: only the shell knows
   the view's pixel size, and the handheld does not draw the view.)
-- [ ] Geometry: axis ticks with more contrast.
+- [x] Geometry: axis ticks with more contrast.
 - [ ] Logic: the NAND/NOR formulas with three stacked overlines. In the Gates card, offer the
   gate-by-gate form with named signals (`G_1 = \overline{A \land B}` …) as the default view.
 - [x] Check by hand: typing `A(1|2|3)` key by key in the MathLive field (automated typing

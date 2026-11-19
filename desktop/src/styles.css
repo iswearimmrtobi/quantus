@@ -2905,13 +2905,13 @@ select option {
 }
 
 .geometry-axis {
-  stroke: var(--text-faint);
-  stroke-width: 1.2;
+  stroke: var(--text-muted);
+  stroke-width: 1.3;
 }
 
 .geometry-tick {
-  stroke: var(--text-faint);
-  stroke-width: 1;
+  stroke: var(--text-muted);
+  stroke-width: 1.2;
 }
 
 .geometry-object {
@@ -3011,10 +3011,15 @@ select option {
   font-weight: 600;
 }
 
+/* The tick numbers and axis names: muted, not faint, with a halo of the canvas so they read over a plane. */
 .geometry-tick-label {
-  fill: var(--text-faint);
+  fill: var(--text-muted);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 10.5px;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 /* The + menu beside the typed line. */
