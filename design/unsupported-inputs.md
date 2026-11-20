@@ -97,7 +97,7 @@ numbers, `\pi`, `e`, `+ − · /`, powers, roots, `e^u`, `a^u`, `\exp`, `\ln`, `
 Rejected with an error that names the reason:
 
 - **Function families** (a second free letter, `x^2 + a`).
-- Piecewise functions, implicit or parametric curves, complex results.
+- Implicit or parametric curves, complex results.
 - Units, sums, integrals, limits, derivatives, matrices, `n!` and the other integer functions.
 - **Domains made of periodic intervals**, such as `\ln(\sin x)` (periodic gaps like those of
   `\tan x` are fine).
@@ -126,6 +126,9 @@ Limits worth knowing:
 - Simplification treats functions such as `\ln x` and `\sqrt{3}` as independent symbols when it
   multiplies out and cancels, so a result can be correct without being the shortest form.
 - A sketch is cut off after **3 seconds**; the sections still missing are marked partial.
+- **Piecewise functions** and **given domains** (`f(x) = x^2, \ x \in [0, 3]`, `\begin{cases}`)
+  are sketched piece by piece; on part of ℝ a periodic f is not continued periodically, its
+  members in the piece are listed. Symmetry of a piecewise f is compared at sample points.
 - Periodic families are listed in the window [−P, P] (at most 12 members each), or [−10, 10]
   when f itself is not periodic. For f = ax + (a periodic part), such as `x + \sin x`, the
   general family is shown with a y that moves along; for other non-periodic f only x is general.

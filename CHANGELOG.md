@@ -25,6 +25,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Analysis: the antiderivative of a piecewise function, piece by piece. Where f is continuous at
   every join, the constants are chosen so F joins up, each worked out at its join
   (`C_2 = F_1(1) + C_1 - F_2(1)`); otherwise each piece keeps a constant of its own.
+- Analysis: tangent, area and value table for piecewise functions. Each takes the piece that
+  holds x; a tangent at a join needs both pieces to meet with the same slope, and the area is
+  split where the pieces meet, each part integrated with its own piece.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

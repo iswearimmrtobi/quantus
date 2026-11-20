@@ -42,6 +42,23 @@ section **Global extrema** compares the values at the local and boundary extrema
 at open or unbounded ends: $x^2$ on $[-1, 2]$ has the global maximum $f(2) = 4$ and the global
 minimum $f(0) = 0$; $e^{-x}$ for $x \ge 0$ has no global minimum, its infimum 0 is not attained.
 
+### Piecewise functions
+
+Type the pieces as cases, each with its condition, and `\text{otherwise}` (`\text{sonst}`) for
+the rest if you like:
+
+```latex
+f(x) = \begin{cases} x^2 & x \le 1 \\ 2x - 1 & x > 1 \end{cases}
+```
+
+Each piece is sketched on its part of the domain, its working headed *Piece 1*, *Piece 2*, …;
+the derivatives come as cases. The section **Continuity at the joins** works out f at each join,
+both one-sided limits and, where f is continuous, both one-sided slopes: here f is continuous
+and differentiable at $x = 1$ with $f'(1) = 2$. A join where f is lower or higher on both sides
+is a maximum or minimum. The antiderivative is joined up with constants where f is continuous.
+The graph shows the ends of the pieces as filled or hollow dots; tangent, area and value table
+take the piece that holds x, and a tangent at a join needs f to be differentiable there.
+
 ## The curve sketch
 
 The **Curve sketch** tab lists one section per question. For $f(x) = x^3 - 3x$:

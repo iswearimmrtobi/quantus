@@ -11,12 +11,21 @@ Quantus can differentiate symbolically (`eval/derivative.rs`), but it only uses 
 
 **Not in v1 (each one gets a clear error, and all are listed in `docs/unsupported-inputs.md`):**
 - Function families (a second free letter)
-- Piecewise functions
 - Implicit or parametric curves
 - Complex results
 - Domains made of periodic intervals (e.g. `\ln(\sin x)`)
 - Improper integrals in the area task
 - Areas between two curves
+
+**Added later:** a given domain and piecewise functions (`analysis/function.rs`): a function is
+a list of pieces, each an `Expr` on an `IntervalSet`. A plain function is one piece on ℝ, a given
+domain (typed after the function, or in the request's `domain` field) one piece on that set, and
+`\begin{cases}` one piece per row, `\text{otherwise}` taking the rest. The domain is each piece's
+own domain on its set (`domain::function_domain`); the sketch of a piecewise f
+(`discussion/piecewise.rs`) runs one `Sketch` per piece and merges the sections, adds a section
+`joins` (value, one-sided limits and slopes at each join) and `globalExtrema` (also for a given
+domain), and joins the pieces' antiderivatives up with constants where f is continuous. The
+tasks take the piece that holds x; the area is split at the joins.
 
 **Error policy:** `analyze` fails as a whole only on input errors: a parse error (with position), an unsupported construct, a second variable, or an empty domain. Every other problem degrades one section, which gets `status: "partial" | "failed"` and a message. The other sections still appear.
 

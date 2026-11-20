@@ -96,7 +96,7 @@ handheld keeps working.
   - [x] Nested chains to every level (`\sin(e^{2x})`), also inside the product rule's parts.
   - [x] The chain rule for u′ and v′ of the quotient rule.
   - [x] `u^v` continued after `e^{v \ln u}` with the chain and product rules.
-- [ ] 2. Restricted domains and piecewise functions (`analysis/function.rs`: pieces of `Expr`
+- [x] 2. Restricted domains and piecewise functions (`analysis/function.rs`: pieces of `Expr`
   on an `IntervalSet`):
   - [x] Input: a domain clause (`x\in[0,3]`, `0\le x<3`, `D=…`), `\begin{cases}`, an optional
     `domain` request field.
@@ -104,7 +104,7 @@ handheld keeps working.
   - [x] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.
   - [x] Continuity and differentiability at the joins.
   - [x] Global extrema on given domains.
-  - [ ] Tangent, area and value table respect the domain and the joins.
+  - [x] Tangent, area and value table respect the domain and the joins.
   - [x] A piecewise antiderivative, continuous where f is.
 - [ ] 3. Splines through points (`analysis/spline.rs`): natural and clamped cubic splines, solved
   exactly with `linear::gauss`, with the conditions as steps; the interpolating polynomial as the

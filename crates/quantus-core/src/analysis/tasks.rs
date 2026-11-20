@@ -68,8 +68,6 @@ pub struct TableRow {
 pub(super) struct Prepared {
     /// The function simplified, piece by piece.
     pub function: Function,
-    /// The first piece, simplified: the function itself unless it is piecewise.
-    pub f: Expr,
     pub var: String,
     /// Where the function is defined: the union of the pieces' domains.
     pub domain: Domain,
@@ -82,17 +80,14 @@ pub(super) fn prepare(latex: &str, variable: Option<&str>, given: Option<&str>, 
     let (function, var) = super::input::parse_function(latex, variable, given, settings)?;
     let digits = super::digits(settings, precision);
     let (domain, _, pieces) = function_domain(&function, &DomainContext { settings, var: &var, digits })?;
-    let function = function.simplified();
-    let f = function.pieces[0].expr.clone();
-    Ok(Prepared { function, f, var, domain, pieces, digits })
+    Ok(Prepared { function: function.simplified(), var, domain, pieces, digits })
 }
 
-/// A task that does not handle pieces yet.
-fn single(p: &Prepared) -> Result<()> {
-    if p.function.is_piecewise() {
-        return Err(QuantusError::other(msg!("core.analysis.input.piecewise_not_yet")));
+impl Prepared {
+    /// The index of the piece that holds x.
+    fn piece_at(&self, x: f64) -> Option<usize> {
+        self.function.pieces.iter().zip(&self.pieces).position(|(piece, domain)| piece.on.contains(x) && domain.contains(x))
     }
-    Ok(())
 }
 
 /// A number typed by the user: `2`, `\frac{\pi}{4}`, `-\sqrt{2}`.
@@ -112,7 +107,6 @@ pub fn tangent(latex: &str, variable: Option<&str>, given: Option<&str>, x0: &st
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, given, settings, precision)?;
-    single(&p)?;
     let var = p.var.as_str();
     let tex = |e: &Expr| e.to_latex(var);
     let x = parse_number(x0, settings, "x_0")?;
@@ -122,12 +116,27 @@ pub fn tangent(latex: &str, variable: Option<&str>, given: Option<&str>, x0: &st
             x.to_latex(p.digits)
         ))
     };
-    if !p.domain.contains(x.approx) {
-        return Err(not_differentiable());
-    }
+    let Some(index) = p.piece_at(x.approx) else { return Err(not_differentiable()) };
+    let f = &p.function.pieces[index].expr;
     let at = x.exact.clone().unwrap();
-    let y = Point::exact(simplify(&p.f.substitute(&at))).ok_or_else(not_differentiable)?;
-    let f1 = derive_chain(&p.f, 1, var, settings).remove(0).result;
+    let y = Point::exact(simplify(&f.substitute(&at))).ok_or_else(not_differentiable)?;
+    let f1 = derive_chain(f, 1, var, settings).remove(0).result;
+    // At a join the piece on the other side must meet f with the same value and slope.
+    if p.function.joins().iter().any(|j| j.same(&x)) {
+        let slope = Point::exact(simplify(&f1.substitute(&at))).ok_or_else(not_differentiable)?;
+        for (i, other) in p.function.pieces.iter().enumerate() {
+            let touches = super::function::finite_bounds(&other.on).iter().any(|b| b.same(&x));
+            if i == index || !touches {
+                continue;
+            }
+            let other_slope = derive_chain(&other.expr, 1, var, settings).remove(0).result;
+            let value = Point::exact(simplify(&other.expr.substitute(&at)));
+            let m = Point::exact(simplify(&other_slope.substitute(&at)));
+            if !matches!((value, m), (Some(v), Some(m)) if v.same(&y) && m.same(&slope)) {
+                return Err(not_differentiable());
+            }
+        }
+    }
     // Checked in floating point first: simplifying x/|x| at 0 would fold 0·0^{-1} to 0.
     if f1.eval_f64(x.approx).is_none() {
         return Err(not_differentiable());
@@ -139,7 +148,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, given: Option<&str>, x0: &st
     let mut steps = Vec::new();
     steps.extend(written_out(
         step(AnalysisRule::Tangent, point.clone(), format!("f({x_tex}) = {y_tex}")),
-        step(AnalysisRule::Tangent, point, format!("f({x_tex}) = {} = {y_tex}", put_in(&p.f, &at, var))),
+        step(AnalysisRule::Tangent, point, format!("f({x_tex}) = {} = {y_tex}", put_in(f, &at, var))),
     ));
     steps.extend(written_out(
         step(AnalysisRule::Tangent, slope.clone(), format!("f'({var}) = {}, \\quad m = f'({x_tex}) = {m_tex}", tex(&f1))),
@@ -194,7 +203,6 @@ pub fn area(latex: &str, variable: Option<&str>, given: Option<&str>, from: Opti
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, given, settings, precision)?;
-    single(&p)?;
     let var = p.var.as_str();
     let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral"));
     let enter_bounds = || QuantusError::other(msg!("core.analysis.tasks.please_enter_bounds"));
@@ -210,58 +218,92 @@ pub fn area(latex: &str, variable: Option<&str>, given: Option<&str>, from: Opti
         (None, None) => None,
         _ => return Err(enter_bounds()),
     };
-    // The zeros on [a, b] itself, or all of them when the bounds are to be the outermost ones.
+    // The zeros on [a, b] itself, or all of them when the bounds are to be the outermost ones,
+    // piece by piece.
     let window = bounds.as_ref().map_or((-10.0, 10.0), |(a, b)| (a.approx, b.approx));
-    let ctx = SolveContext { settings, var, domain: &p.domain, window, digits: p.digits };
-    let solved = solve_zero(&p.f, &ctx);
-    let mut zeros: Vec<Point> = solved.solutions.roots.into_iter().map(|r| r.point).collect();
-    if bounds.is_some() {
-        for family in &solved.solutions.families {
-            zeros.extend(family.points_in(window.0, window.1, MAX_TABLE_ROWS));
+    let mut zeros: Vec<Point> = Vec::new();
+    let mut families = false;
+    for (piece, domain) in p.function.pieces.iter().zip(&p.pieces) {
+        let ctx = SolveContext { settings, var, domain, window, digits: p.digits };
+        let solved = solve_zero(&piece.expr, &ctx);
+        zeros.extend(solved.solutions.roots.into_iter().map(|r| r.point).filter(|z| domain.contains(z.approx)));
+        families |= !solved.solutions.families.is_empty();
+        if bounds.is_some() {
+            for family in &solved.solutions.families {
+                zeros.extend(family.points_in(window.0, window.1, MAX_TABLE_ROWS).into_iter().filter(|z| domain.contains(z.approx)));
+            }
         }
     }
     zeros.sort_by(|a, b| a.approx.partial_cmp(&b.approx).unwrap_or(std::cmp::Ordering::Equal));
+    zeros.dedup_by(|a, b| a.same(b));
     let (a, b) = match bounds {
         Some(bounds) => bounds,
         // Infinitely many zeros have no outermost ones.
-        None if zeros.len() >= 2 && solved.solutions.families.is_empty() => (zeros[0].clone(), zeros[zeros.len() - 1].clone()),
+        None if zeros.len() >= 2 && !families => (zeros[0].clone(), zeros[zeros.len() - 1].clone()),
         None => return Err(enter_bounds()),
     };
     if !covers(&p.domain, a.approx, b.approx) {
         return Err(improper());
     }
+    let inside = |z: &&Point| z.approx > a.approx + 1e-12 && z.approx < b.approx - 1e-12;
+    let joins: Vec<Point> = p.function.joins().into_iter().filter(|j| inside(&j)).collect();
     let mut cuts = vec![a.clone()];
-    cuts.extend(zeros.iter().filter(|z| z.approx > a.approx + 1e-12 && z.approx < b.approx - 1e-12).cloned());
+    cuts.extend(zeros.iter().filter(inside).cloned());
+    cuts.extend(joins.iter().cloned());
     cuts.push(b.clone());
+    cuts.sort_by(|a, b| a.approx.partial_cmp(&b.approx).unwrap_or(std::cmp::Ordering::Equal));
+    cuts.dedup_by(|a, b| a.same(b));
     let d = p.digits;
     let mut steps = Vec::new();
-    if cuts.len() > 2 {
-        let inner: Vec<String> = cuts[1..cuts.len() - 1].iter().map(|z| z.to_latex(d)).collect();
-        steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.zeros_inside_interval_split"), format!("{var} = {}", inner.join(", \\ "))));
+    let inner_zeros: Vec<String> = zeros.iter().filter(inside).map(|z| z.to_latex(d)).collect();
+    if !inner_zeros.is_empty() {
+        steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.zeros_inside_interval_split"), format!("{var} = {}", inner_zeros.join(", \\ "))));
     }
-    let primitive = antiderivative(&p.f, &IntegrateContext { settings, var, domain: &p.domain }).map(|i| i.result);
-    if let Some(big_f) = &primitive {
-        steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.antiderivative"), format!("F({var}) = {}", big_f.to_latex(var))));
+    if !joins.is_empty() {
+        let listed: Vec<String> = joins.iter().map(|j| j.to_latex(d)).collect();
+        steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.joins_split"), format!("{var} = {}", listed.join(", \\ "))));
     }
+    // Each part is integrated with the piece that holds it, which must be defined on all of it.
+    let piecewise = p.function.is_piecewise();
+    let mut primitives: Vec<Option<Option<Expr>>> = vec![None; p.function.pieces.len()];
     let mut parts: Vec<Point> = Vec::new();
     let mut regions = Vec::new();
     for (i, pair) in cuts.windows(2).enumerate() {
         let (lo, hi) = (&pair[0], &pair[1]);
+        let index = p.piece_at((lo.approx + hi.approx) / 2.0).ok_or_else(improper)?;
+        let f = &p.function.pieces[index].expr;
+        if piecewise {
+            let (own, _) = super::domain::domain(f, &DomainContext { settings, var, digits: d })?;
+            if !covers(&own, lo.approx, hi.approx) {
+                return Err(improper());
+            }
+        }
+        let primitive = primitives[index]
+            .get_or_insert_with(|| {
+                let found = antiderivative(f, &IntegrateContext { settings, var, domain: &p.pieces[index] }).map(|i| i.result);
+                if let Some(big_f) = &found {
+                    let name = if piecewise { format!("F_{{{}}}", index + 1) } else { "F".to_string() };
+                    steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.antiderivative"), format!("{name}({var}) = {}", big_f.to_latex(var))));
+                }
+                found
+            })
+            .clone();
         let value = match &primitive {
-            Some(big_f) => exact_integral(big_f, lo, hi).or_else(|| numeric_integral(&p.f, lo, hi, d)),
-            None => numeric_integral(&p.f, lo, hi, d),
+            Some(big_f) => exact_integral(big_f, lo, hi).or_else(|| numeric_integral(f, lo, hi, d)),
+            None => numeric_integral(f, lo, hi, d),
         }
         .ok_or_else(|| QuantusError::other(msg!("core.analysis.tasks.integral_could_not_computed")))?;
+        let big = if piecewise { format!("F_{{{}}}", index + 1) } else { "F".to_string() };
         let bounds = format!("\\int_{{{}}}^{{{}}} f({var}) \\, d{var}", lo.to_latex(d), hi.to_latex(d));
         let shown = if value.exact.is_some() { value.to_latex(d) } else { format!("\\approx {}", value.to_latex(d)) };
         let latex = match &primitive {
-            Some(_) if value.exact.is_some() => format!("A_{{{}}} = {bounds} = \\left[F({var})\\right]_{{{}}}^{{{}}} = {shown}", i + 1, lo.to_latex(d), hi.to_latex(d)),
+            Some(_) if value.exact.is_some() => format!("A_{{{}}} = {bounds} = \\left[{big}({var})\\right]_{{{}}}^{{{}}} = {shown}", i + 1, lo.to_latex(d), hi.to_latex(d)),
             _ => format!("A_{{{}}} = {bounds} = {shown}", i + 1),
         };
         // Upper minus lower bound, put into F.
         if let (Some(big_f), Some(lo_exact), Some(hi_exact), Some(_)) = (&primitive, &lo.exact, &hi.exact, &value.exact) {
             let put = |at: &Expr| format!("\\left({}\\right)", put_in(big_f, at, var));
-            let latex = format!("A_{{{}}} = F({}) - F({}) = {} - {}", i + 1, hi.to_latex(d), lo.to_latex(d), put(hi_exact), put(lo_exact));
+            let latex = format!("A_{{{}}} = {big}({}) - {big}({}) = {} - {}", i + 1, hi.to_latex(d), lo.to_latex(d), put(hi_exact), put(lo_exact));
             steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.upper_minus_lower_bound"), latex).with_level(StepDetail::Standard));
         }
         steps.push(step(AnalysisRule::Area, msg!("core.analysis.tasks.integral_over_part"), latex));
@@ -347,7 +389,6 @@ pub fn value_table(latex: &str, variable: Option<&str>, given: Option<&str>, fro
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, given, settings, precision)?;
-    single(&p)?;
     let (start, end, step) = (parse_number(from, settings, "from")?, parse_number(to, settings, "to")?, parse_number(step_size, settings, "step")?);
     if step.approx <= 0.0 {
         return Err(QuantusError::other(msg!("core.analysis.tasks.step_must_positive")));
@@ -363,8 +404,9 @@ pub fn value_table(latex: &str, variable: Option<&str>, given: Option<&str>, fro
     for i in 0..=count as i64 {
         let x = simplify(&Expr::Sum(vec![start.exact.clone().unwrap(), Expr::Product(vec![Expr::int(i), step.exact.clone().unwrap()])]));
         let point = Point::exact(x.clone()).unwrap();
-        let y = if p.domain.contains(point.approx) { Point::exact(simplify(&p.f.substitute(&x))) } else { None };
-        let y_text = y.as_ref().map(|y| if closed_form(y, &p.f, &x) { y.to_latex(p.digits) } else { y.decimal_latex(p.digits) });
+        let piece = p.piece_at(point.approx).map(|i| &p.function.pieces[i].expr);
+        let y = piece.and_then(|f| Point::exact(simplify(&f.substitute(&x))));
+        let y_text = y.as_ref().zip(piece).map(|(y, f)| if closed_form(y, f, &x) { y.to_latex(p.digits) } else { y.decimal_latex(p.digits) });
         rows.push(TableRow { x: point.to_latex(p.digits), y: y_text, x_value: point.approx, y_value: y.map(|y| y.approx) });
     }
     let _ = p.var;
@@ -444,5 +486,30 @@ mod tests {
         assert_eq!(root[2].y.as_deref(), Some("\\sqrt{2}"));
         assert!(value_table("x", None, None, "0", "1000", "1", &Settings::default(), None).is_err());
         assert!(value_table("x", None, None, "0", "1", "-1", &Settings::default(), None).is_err());
+    }
+
+    #[test]
+    fn the_tasks_take_the_piece_that_holds_x() {
+        let smooth = "\\begin{cases}x^2 & x\\le 1\\\\ 2x-1 & x>1\\end{cases}";
+        let r = tangent(smooth, None, None, "2", &Settings::default(), None).unwrap();
+        assert_eq!(line(&r.tangent), "t(x) = 2x - 1");
+        let join = tangent(smooth, None, None, "1", &Settings::default(), None).unwrap();
+        assert_eq!(line(&join.tangent), "t(x) = 2x - 1");
+        let kink = "\\begin{cases}-x & x<0\\\\ x & x\\ge 0\\end{cases}";
+        assert!(tangent(kink, None, None, "0", &Settings::default(), None).unwrap_err().to_string().contains("not differentiable"));
+        assert!(tangent("x^2", None, Some("[0, 1]"), "2", &Settings::default(), None).is_err());
+
+        let a = area(kink, None, None, Some("-1"), Some("2"), &Settings::default(), None).unwrap();
+        assert_eq!(a.area.to_latex(6), "\\frac{5}{2}");
+        assert_eq!(a.regions.len(), 2);
+        assert!(a.steps.iter().any(|s| s.latex.starts_with("F_{1}(x) = ")));
+        let pole = "\\begin{cases}\\frac{1}{x} & x<0\\\\ x & x\\ge 0\\end{cases}";
+        assert!(area(pole, None, None, Some("-1"), Some("1"), &Settings::default(), None).unwrap_err().to_string().contains("Improper"));
+
+        let rows = value_table(kink, None, None, "-1", "1", "1", &Settings::default(), None).unwrap();
+        let ys: Vec<_> = rows.iter().map(|r| r.y.clone().unwrap()).collect();
+        assert_eq!(ys, ["1", "0", "1"]);
+        let gap = value_table("x^2", None, Some("x > 0"), "-1", "1", "1", &Settings::default(), None).unwrap();
+        assert_eq!(gap.iter().map(|r| r.y.is_some()).collect::<Vec<_>>(), [false, false, true]);
     }
 }

@@ -76,7 +76,7 @@ nested in any way.
 Rejected with an error that names the reason:
 
 - **function families** with a second free letter ($x^2 + a$)
-- piecewise functions, implicit or parametric curves, complex results
+- implicit or parametric curves, complex results
 - units, sums, integrals, limits, derivatives, matrices, $n!$ and the other integer functions
 - **domains made of periodic intervals**, such as $\ln(\sin x)$ (periodic gaps like those of
   $\tan x$ are fine)
@@ -93,6 +93,9 @@ Results that are partial or approximate:
   $\frac{\sin x}{x}$) give *no elementary antiderivative found*. Every antiderivative shown has
   been checked by differentiation.
 - **Limits** that no rule decides are sampled and shown with $\approx$, or as unknown.
+- **Piecewise functions** compare their symmetry at sample points only ("checked
+  numerically"), and an antiderivative is joined up only where every piece is one interval and
+  f is continuous at every join.
 - A sketch is cut off after **3 seconds**, each task after 2 seconds; the missing sections are
   marked *PARTIAL*.
 - Simplification treats $\ln x$ or $\sqrt{3}$ as independent symbols, so a result can be correct

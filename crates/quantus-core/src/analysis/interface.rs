@@ -354,7 +354,7 @@ pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> 
     let r = tasks::area(&request.latex, request.variable.as_deref(), request.domain.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?;
     let digits = super::digits(settings, request.precision);
     let shown = |p: &Point| if p.exact.is_some() { p.to_latex(digits) } else { format!("\\approx {}", p.to_latex(digits)) };
-    let f = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?.f;
+    let f = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?.function;
     let regions = r
         .regions
         .iter()
