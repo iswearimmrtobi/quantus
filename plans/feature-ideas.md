@@ -38,7 +38,8 @@ editor for one field that compiles to exact equations, solves them, and writes t
 6. More maths: [statistics](#21-statistics-and-regression-the-rest),
    [differential equations](#22-differential-equations), [number theory](#23-number-theory-and-discrete-maths),
    [electronics](#24-electronics-extended), [tuning systems](#25-tuning-systems),
-   [small additions](#26-small-additions-to-existing-modes)
+   [small additions](#26-small-additions-to-existing-modes),
+   [analysis](#39-more-for-the-analysis-mode)
 7. Getting data in and out: [export](#27-export-a-session),
    [USB drive](#29-the-sd-card-as-a-usb-drive), [clipboard](#30-a-shared-clipboard-with-the-desktop),
    [packs on the card](#31-constant-unit-and-formula-packs-on-the-card)
@@ -375,8 +376,34 @@ of fifths. Odd but charming: exact arithmetic shows its worth here.
 - Multivariable calculus: gradient, double integrals, Lagrange multipliers (partial derivatives
   exist).
 - CSV export of the value table.
-- Parameter study: sliders for `a` in `f(x)=a·x²`, the plot updates live.
 - Solver with an interval and all solutions, with a plot of the roots.
+
+### 39. More for the analysis mode
+
+Next to plans.md §7 (chain rule, domains and piecewise functions, splines, several functions,
+families). All of it is **core** with a tab or a field in the **desktop**'s analysis view; the
+derivatives, the solver, the antiderivative and the exact linear solver are already there.
+
+- **Tangents from a condition.** A tangent with a given slope m (solve f′(x) = m), through a point
+  off the curve (solve f(x₀) + f′(x₀)(P_x − x₀) = P_y), and the angle between two curves at an
+  intersection. S.
+- **Solid of revolution.** V = π∫f(x)² dx around the x-axis (and π∫x²·|f′| around the y-axis),
+  reusing the antiderivative with its steps; a sketch of the solid in the graph is optional. S.
+- **Mean value and arc length.** The average value 1/(b−a)·∫f, with the mean-value point drawn;
+  the arc length ∫√(1+f′²) numerically where no antiderivative exists. S.
+- **Inverse function.** On each interval where f is monotone (already computed): solve y = f(x)
+  for x where the solver can, the domain and range swapped, f⁻¹ drawn mirrored at y = x. M.
+- **Taylor polynomial.** T_n at x₀ from the derivatives the sketch already has, drawn next to f,
+  with the error at a chosen point. S.
+- **Newton's method.** The iteration table x_{n+1} = x_n − f(x_n)/f′(x_n) from a start value, with
+  the tangents drawn; it explains numeric zeros the sketch finds. S.
+- **Steckbriefaufgaben.** Find the polynomial (or e-function) from conditions: "a maximum at
+  (1, 2), through the origin, a turning point at x = 3". Each condition becomes a linear equation
+  in the coefficients, solved exactly by `linear::gauss`, with the system as steps, and the result
+  checked by sketching it. M.
+- **Rate of change.** The average rate on [a, b] (secant drawn) against the instant one f′(x₀). S.
+- **Export of the sketch.** The whole curve sketch with its working as LaTeX or PDF, the graph as
+  SVG, as handed in in school. M.
 
 ## 7. Getting data in and out
 

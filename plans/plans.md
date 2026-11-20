@@ -123,8 +123,7 @@ handheld keeps working.
   - [ ] The locus (Ortskurve) of the extrema and inflection points.
   - [ ] A slider per parameter in the graph; the numeric sketch for one value as the fallback.
 
-Ideas for later: tangent with a given slope or through an outside point, solid of revolution,
-average value, inverse function, Taylor polynomial, Newton's method, Steckbriefaufgaben.
+Further ideas for the mode: [feature-ideas.md](feature-ideas.md) §39.
 
 ## 9. Later
 
