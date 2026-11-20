@@ -140,6 +140,8 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const [taskError, setTaskError] = useState<ApiError | null>(null);
   /** The other function the intersections and the area between are with, by its place in the list. */
   const [partner, setPartner] = useState(0);
+  /** The area down to the x-axis (-1) or to another function, by its place in the list. */
+  const [areaPartner, setAreaPartner] = useState(-1);
   const [meeting, setMeeting] = useState<IntersectionResult | null>(null);
 
   const field = useRef<MathFieldHandle>(null);
@@ -191,7 +193,11 @@ export function AnalysisView({ settings }: { settings: Settings }) {
           if (current()) setTangent(result);
         }
         if (which === 'area') {
-          const result = await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain, analysedDefinitions);
+          const all = [latex, ...others];
+          const other = areaPartner >= 0 && others[areaPartner]?.trim() ? asDefinition(others[areaPartner], assignNames(all)[areaPartner + 1]) : null;
+          const own = other ? asDefinition(latex, assignNames(all)[0]) : latex;
+          const definitions = other ? definitionsFor(all, -1) : analysedDefinitions;
+          const result = await api.areaUnderCurve(own, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain, definitions, other);
           if (current()) setArea(result);
         }
         if (which === 'intersect') {
@@ -211,7 +217,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
       }
     },
     // definitionsFor only reads its arguments.
-    [x0, bounds, table, analysedDomain, analysedDefinitions, others, partner, t],
+    [x0, bounds, table, analysedDomain, analysedDefinitions, others, partner, areaPartner, t],
   );
 
   /** The curve through the points, then its sketch like any function's. */
@@ -530,6 +536,21 @@ export function AnalysisView({ settings }: { settings: Settings }) {
               {tab === 'area' && (
                 <section className="section-card">
                   <div className="task-inputs">
+                    {others.some((other) => other.trim()) && (
+                      <label>
+                        {t('analysis.area.between')}
+                        <select className="task-input" value={areaPartner} onChange={(e) => setAreaPartner(Number(e.target.value))}>
+                          <option value={-1}>{t('analysis.area.axis')}</option>
+                          {others.map((other, i) =>
+                            other.trim() ? (
+                              <option key={i} value={i}>
+                                {`${names[i + 1]}(x)`}
+                              </option>
+                            ) : null,
+                          )}
+                        </select>
+                      </label>
+                    )}
                     <label>
                       {t('analysis.from')}
                       <input

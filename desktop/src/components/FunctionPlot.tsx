@@ -36,8 +36,8 @@ interface Props {
   asymptotes: Asymptote[];
   /** Tangent and normal, drawn in the accent colour. */
   lines?: Line[];
-  /** Areas to shade down to the x-axis. */
-  regions?: { segments: Segment[]; positive: boolean }[];
+  /** Areas to shade down to the x-axis, or to a lower curve. */
+  regions?: { segments: Segment[]; positive: boolean; lower?: Segment[] }[];
   /** More curves, each sampled for the view like the analysed one. */
   extra?: ExtraCurve[];
   /** Extra dots: the rows of a value table. */
@@ -298,13 +298,25 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
           ))}
           <g clipPath="url(#plot-area)">
             {regions.map((region, i) =>
-              region.segments.map((segment, j) => (
+              region.lower && region.lower.length > 0 ? (
+                // Between two curves: along the upper one and back along the lower.
                 <polygon
-                  key={`r${i}-${j}`}
+                  key={`r${i}`}
                   className={region.positive ? 'plot-region' : 'plot-region negative'}
-                  points={`${sx(segment[0][0])},${sy(0)} ${path(segment)} ${sx(segment[segment.length - 1][0])},${sy(0)}`}
+                  points={`${region.segments.map(path).join(' ')} ${region.lower
+                    .map((segment) => path([...segment].reverse()))
+                    .reverse()
+                    .join(' ')}`}
                 />
-              )),
+              ) : (
+                region.segments.map((segment, j) => (
+                  <polygon
+                    key={`r${i}-${j}`}
+                    className={region.positive ? 'plot-region' : 'plot-region negative'}
+                    points={`${sx(segment[0][0])},${sy(0)} ${path(segment)} ${sx(segment[segment.length - 1][0])},${sy(0)}`}
+                  />
+                ))
+              ),
             )}
             {view.yMin < 0 && view.yMax > 0 && <line className="plot-axis" x1={0} y1={sy(0)} x2={width} y2={sy(0)} />}
             {view.xMin < 0 && view.xMax > 0 && <line className="plot-axis" x1={sx(0)} y1={0} x2={sx(0)} y2={height} />}

@@ -15,7 +15,6 @@ Quantus can differentiate symbolically (`eval/derivative.rs`), but it only uses 
 - Complex results
 - Domains made of periodic intervals (e.g. `\ln(\sin x)`)
 - Improper integrals in the area task
-- Areas between two curves
 
 **Added later:** a given domain and piecewise functions (`analysis/function.rs`): a function is
 a list of pieces, each an `Expr` on an `IntervalSet`. A plain function is one piece on ℝ, a given
@@ -26,6 +25,11 @@ own domain on its set (`domain::function_domain`); the sketch of a piecewise f
 `joins` (value, one-sided limits and slopes at each join) and `globalExtrema` (also for a given
 domain), and joins the pieces' antiderivatives up with constants where f is continuous. The
 tasks take the piece that holds x; the area is split at the joins.
+
+**Several functions** (`analysis/references.rs`): each request carries the other functions as
+`definitions`; a reference `f(x - 1)`, `f'(x)` is put in before anything else reads the input.
+Intersections solve f − g = 0 piece pair by piece pair; the area between two curves is the area
+task on `Function::minus`.
 
 **Error policy:** `analyze` fails as a whole only on input errors: a parse error (with position), an unsupported construct, a second variable, or an empty domain. Every other problem degrades one section, which gets `status: "partial" | "failed"` and a message. The other sections still appear.
 

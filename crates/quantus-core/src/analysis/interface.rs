@@ -177,6 +177,8 @@ pub struct AreaRequest {
     pub domain: Option<String>,
     /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
     pub definitions: Vec<String>,
+    /// The other function, for the area between the two curves instead of down to the axis.
+    pub other: Option<String>,
     /// The bounds; both missing means between the outermost zeros.
     pub from: Option<String>,
     pub to: Option<String>,
@@ -199,8 +201,10 @@ pub struct RegionResponse {
     pub from: f64,
     pub to: f64,
     pub positive: bool,
-    /// The curve over the region, for shading down to the axis.
+    /// The curve over the region, for shading down to the axis …
     pub segments: Vec<Segment>,
+    /// … or to this other curve, for an area between two curves.
+    pub lower: Vec<Segment>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -480,10 +484,25 @@ fn line(l: &Line) -> LineResponse {
 
 pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> {
     let latex = resolved(&request.latex, &request.definitions, settings)?;
-    let r = tasks::area(&latex, request.variable.as_deref(), request.domain.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?;
+    let other = match request.other.as_deref().filter(|o| !o.trim().is_empty()) {
+        Some(o) => Some(resolved(o, &request.definitions, settings)?),
+        None => None,
+    };
+    let r = match &other {
+        Some(g) => {
+            let name = |latex: &str, fallback: &str| super::input::definition(latex).map_or(fallback.to_string(), |(name, _, _)| name);
+            let names = (name(&request.latex, "f"), name(request.other.as_deref().unwrap_or(""), "g"));
+            tasks::area_between(&latex, g, (&names.0, &names.1), request.domain.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?
+        }
+        None => tasks::area(&latex, request.variable.as_deref(), request.domain.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?,
+    };
     let digits = super::digits(settings, request.precision);
     let shown = |p: &Point| if p.exact.is_some() { p.to_latex(digits) } else { format!("\\approx {}", p.to_latex(digits)) };
     let f = super::tasks::prepare(&latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?.function;
+    let g = match &other {
+        Some(g) => Some(super::tasks::prepare(g, None, None, settings, None)?.function),
+        None => None,
+    };
     let regions = r
         .regions
         .iter()
@@ -492,6 +511,7 @@ pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> 
             to: region.to,
             positive: region.positive,
             segments: sample(&f, &[], &[], region.from, region.to, REGION_SAMPLES, None),
+            lower: g.as_ref().map(|g| sample(g, &[], &[], region.from, region.to, REGION_SAMPLES, None)).unwrap_or_default(),
         })
         .collect();
     Ok(AreaResponse { steps: steps(&r.steps, settings), area: shown(&r.area), signed: shown(&r.signed), regions })

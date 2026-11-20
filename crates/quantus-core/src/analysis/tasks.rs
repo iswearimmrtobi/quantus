@@ -284,10 +284,36 @@ fn bracket(text: &str) -> String {
 }
 
 /// The area between the graph and the x-axis over [from, to], or between the outermost zeros.
+#[allow(clippy::too_many_arguments, reason = "the fields of an area request")]
 pub fn area(latex: &str, variable: Option<&str>, given: Option<&str>, from: Option<&str>, to: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<AreaResult> {
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, given, settings, precision)?;
+    let integrand = format!("f({})", p.var);
+    area_of(&p, &integrand, from, to, settings)
+}
+
+/// The area between f and g over [from, to], or between their outermost intersections: the
+/// area task on f − g. `names` are what f and g are called.
+#[allow(clippy::too_many_arguments, reason = "the fields of an area request")]
+pub fn area_between(f: &str, g: &str, names: (&str, &str), given: Option<&str>, from: Option<&str>, to: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<AreaResult> {
+    let _language = Scope::new(settings.language);
+    let _budget = budget::Guard::new(super::TASK_LIMIT);
+    let p = prepare(f, None, given, settings, precision)?;
+    let q = prepare(g, Some(p.var.as_str()), None, settings, precision)?;
+    let difference = p.function.minus(&q.function);
+    if difference.pieces.is_empty() {
+        return Err(QuantusError::other(msg!("core.analysis.tasks.no_common_domain")));
+    }
+    let (domain, _, pieces) = function_domain(&difference, &DomainContext { settings, var: &p.var, digits: p.digits })?;
+    let between = Prepared { function: difference.simplified(), var: p.var.clone(), domain, pieces, digits: p.digits };
+    let integrand = format!("\\left({}({var}) - {}({var})\\right)", names.0, names.1, var = p.var);
+    area_of(&between, &integrand, from, to, settings)
+}
+
+/// The area between the graph of `p` and the x-axis; `integrand` is how it is written in the
+/// integrals, `f(x)` or `(f(x) - g(x))`.
+fn area_of(p: &Prepared, integrand: &str, from: Option<&str>, to: Option<&str>, settings: &Settings) -> Result<AreaResult> {
     let var = p.var.as_str();
     let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral"));
     let enter_bounds = || QuantusError::other(msg!("core.analysis.tasks.please_enter_bounds"));
@@ -379,7 +405,7 @@ pub fn area(latex: &str, variable: Option<&str>, given: Option<&str>, from: Opti
         }
         .ok_or_else(|| QuantusError::other(msg!("core.analysis.tasks.integral_could_not_computed")))?;
         let big = if piecewise { format!("F_{{{}}}", index + 1) } else { "F".to_string() };
-        let bounds = format!("\\int_{{{}}}^{{{}}} f({var}) \\, d{var}", lo.to_latex(d), hi.to_latex(d));
+        let bounds = format!("\\int_{{{}}}^{{{}}} {integrand} \\, d{var}", lo.to_latex(d), hi.to_latex(d));
         let shown = if value.exact.is_some() { value.to_latex(d) } else { format!("\\approx {}", value.to_latex(d)) };
         let latex = match &primitive {
             Some(_) if value.exact.is_some() => format!("A_{{{}}} = {bounds} = \\left[{big}({var})\\right]_{{{}}}^{{{}}} = {shown}", i + 1, lo.to_latex(d), hi.to_latex(d)),
@@ -407,7 +433,7 @@ pub fn area(latex: &str, variable: Option<&str>, given: Option<&str>, from: Opti
     steps.push(step(
         AnalysisRule::Area,
         msg!("core.analysis.tasks.signed_integral"),
-        format!("\\int_{{{}}}^{{{}}} f({var}) \\, d{var} = {} = {signed_shown}", a.to_latex(d), b.to_latex(d), parts_sum.join(" + ")),
+        format!("\\int_{{{}}}^{{{}}} {integrand} \\, d{var} = {} = {signed_shown}", a.to_latex(d), b.to_latex(d), parts_sum.join(" + ")),
     ));
     Ok(AreaResult { steps, area, signed, regions })
 }
@@ -612,5 +638,16 @@ mod tests {
         let pieces = intersections("\\begin{cases}x & x<0\\\\ 1 & x\\ge 0\\end{cases}", "x^2", ("f", "g"), &Settings::default(), None).unwrap();
         let xs: Vec<f64> = pieces.points.iter().map(|(x, _)| x.approx).collect();
         assert_eq!(xs, [1.0]);
+    }
+
+    #[test]
+    fn the_area_between_two_curves_runs_between_their_intersections() {
+        let r = area_between("x^2", "x", ("f", "g"), None, None, None, &Settings::default(), None).unwrap();
+        assert_eq!(r.area.to_latex(6), "\\frac{1}{6}");
+        assert_eq!(r.signed.to_latex(6), "-\\frac{1}{6}");
+        assert!(r.steps.iter().any(|s| s.latex.starts_with("A_{1} = \\int_{0}^{1} \\left(f(x) - g(x)\\right) \\, dx")), "{:?}", r.steps.iter().map(|s| &s.latex).collect::<Vec<_>>());
+        let crossing = area_between("x^3", "x", ("f", "g"), None, Some("-1"), Some("1"), &Settings::default(), None).unwrap();
+        assert_eq!(crossing.area.to_latex(6), "\\frac{1}{2}");
+        assert_eq!(crossing.regions.len(), 2);
     }
 }

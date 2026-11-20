@@ -101,8 +101,7 @@ Rejected with an error that names the reason:
 - Units, sums, integrals, limits, derivatives, matrices, `n!` and the other integer functions.
 - **Domains made of periodic intervals**, such as `\ln(\sin x)` (periodic gaps like those of
   `\tan x` are fine).
-- In the area task: **improper integrals** (a pole, gap or unbounded bound in the interval) and
-  areas between two curves.
+- In the area task: **improper integrals** (a pole, gap or unbounded bound in the interval).
 
 Limits worth knowing:
 

@@ -80,7 +80,7 @@ Rejected with an error that names the reason:
 - units, sums, integrals, limits, derivatives, matrices, $n!$ and the other integer functions
 - **domains made of periodic intervals**, such as $\ln(\sin x)$ (periodic gaps like those of
   $\tan x$ are fine)
-- in the area task: **improper integrals** and areas between two curves
+- in the area task: **improper integrals**
 
 Results that are partial or approximate:
 

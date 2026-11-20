@@ -83,6 +83,10 @@ one side and solves $f(x) - g(x) = 0$ like a zero, exactly where it can and nume
 otherwise; the points get their y from $f$ and are drawn in the graph. For $f(x) = x^2$ and
 $g(x) = x + 2$ they are $P_1(-1 \mid 1)$ and $P_2(2 \mid 4)$ (S in German).
 
+In the **Area** tab, *Down to* chooses another function instead of the x-axis: the area between
+the two curves is the area of $f - g$, split where they cross, by default between their outermost
+intersections. For $x^2$ and $x$ it is $\frac{1}{6}$; the graph shades the region between them.
+
 ### A curve through points
 
 Type points instead of a function, and the analysis builds the curve through them:

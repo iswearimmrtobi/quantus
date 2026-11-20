@@ -40,6 +40,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   legend; two boxes above the graph draw f′ and f″ of the sketched function as well.
 - Analysis: intersections of two functions (tab *Intersections*): f(x) = g(x) brought to one
   side and solved like a zero, piece by piece for piecewise functions, with the points marked.
+- Analysis: the area between two curves. The area task's *Down to* takes another function instead
+  of the x-axis; the area of f − g is split where the curves cross, by default between their
+  outermost intersections, and the graph shades the region between them.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

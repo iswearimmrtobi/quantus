@@ -187,7 +187,7 @@ fn straight(line: &LineResponse) -> Option<Straight> {
 /// The area between `f` and the x-axis from `from` to `to`, or between the outer zeros.
 pub fn area(core: &CoreSettings, f: &str, from: &str, to: &str, precision: Option<usize>) -> Result<Task, String> {
     let bound = |bound: &str| (!bound.trim().is_empty()).then(|| bound.to_string());
-    let request = AreaRequest { latex: f.to_string(), variable: None, domain: None, definitions: Vec::new(), from: bound(from), to: bound(to), precision };
+    let request = AreaRequest { latex: f.to_string(), variable: None, domain: None, definitions: Vec::new(), other: None, from: bound(from), to: bound(to), precision };
     let response = api::area(core, &request).map_err(|error| error.error)?;
     let lines = steps(&response.steps);
     let result = vec![Line::Math(format!("A = {}", response.area)), Line::Math(format!("\\int f(x)\\,dx = {}", response.signed))];

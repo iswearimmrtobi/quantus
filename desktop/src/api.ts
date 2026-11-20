@@ -966,7 +966,8 @@ export interface AreaResult {
   steps: Step[];
   area: string;
   signed: string;
-  regions: { from: number; to: number; positive: boolean; segments: Segment[] }[];
+  /** `lower`: the other curve, for an area between two curves; empty down to the axis. */
+  regions: { from: number; to: number; positive: boolean; segments: Segment[]; lower: Segment[] }[];
 }
 
 export interface TableResult {
@@ -1127,8 +1128,8 @@ export const api = {
     call<TangentResult>('tangent', { request: { latex, domain, definitions, x0 } }),
 
   /** Without bounds, the area between the outermost zeros. */
-  areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null, definitions: string[] = []) =>
-    call<AreaResult>('area_under_curve', { request: { latex, domain, definitions, from, to } }),
+  areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null, definitions: string[] = [], other: string | null = null) =>
+    call<AreaResult>('area_under_curve', { request: { latex, domain, definitions, other, from, to } }),
 
   /** Where the analysed function meets another; both may use `definitions`. */
   intersections: (latex: string, other: string, definitions: string[] = []) =>
