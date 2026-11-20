@@ -101,7 +101,7 @@ handheld keeps working.
   - [x] Input: a domain clause (`x\in[0,3]`, `0\le x<3`, `D=…`), `\begin{cases}`, an optional
     `domain` request field.
   - [x] Domain and plot per piece; open and closed ends as dots.
-  - [ ] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.
+  - [x] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.
   - [ ] Continuity and differentiability at the joins.
   - [x] Global extrema on given domains.
   - [ ] Tangent, area and value table respect the domain and the joins.

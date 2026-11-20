@@ -13,6 +13,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   set, closed ends are boundary extrema, open ends get their limits, and the graph stops there
   with a filled dot at an end that belongs to the domain and a hollow one where it does not. The
   tangent, area and table tasks use it too.
+- Analysis: piecewise functions, typed as cases (`\begin{cases} x^2 & x \le 1 \\ 2x - 1 & x > 1
+  \end{cases}`, with `\text{otherwise}` / `\text{sonst}` for the rest). Each piece is sketched on
+  its part of the domain and the sections put the pieces' working one after the other; the
+  derivatives come as cases, monotonicity and curvature as one table, symmetry is compared at
+  sample points, and the global extrema cover all pieces. The graph is drawn piece by piece.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

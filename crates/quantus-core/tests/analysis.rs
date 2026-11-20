@@ -606,3 +606,23 @@ fn global_extrema_compare_the_extrema_with_the_ends() {
     assert_eq!(result(&decay, "globalExtrema"), r"\text{Global maximum} \ f(0) = 1, \quad \text{No global minimum, the infimum is not attained:} \ \inf f = 0");
     assert!(sketch("x^2").sections.iter().all(|s| s.id != "globalExtrema"));
 }
+
+#[test]
+fn a_piecewise_function_is_sketched_piece_by_piece() {
+    let d = sketch(r"\begin{cases}x^2 & x\le 1\\ 2x-1 & x>1\end{cases}");
+    assert_eq!(d.function, r"f(x) = \begin{cases} x^{2} & x \le 1 \\ 2x - 1 & x > 1 \end{cases}");
+    assert!(result(&d, "derivatives").starts_with(r"f'(x) = \begin{cases} 2x & x < 1 \\ 2 & x > 1 \end{cases}"), "{}", result(&d, "derivatives"));
+    assert!(steps(&d, "derivatives").contains(&r"f(x) = 2x - 1, \ x > 1".to_string()));
+    assert_eq!(result(&d, "zeros"), r"Z\left(0 \mid 0\right) \ \text{(double root: touches the axis)}");
+    assert_eq!(result(&d, "extrema"), r"Min\left(0 \mid 0\right)");
+    assert_eq!(result(&d, "inflection"), r"\text{No inflection points}");
+    assert_eq!(result(&d, "curvature"), r"\text{left-curved (convex) on}: (-\infty, 1], \quad \text{straight (no curvature)}: (1, \infty)");
+    assert_eq!(result(&d, "globalExtrema"), r"\text{No global maximum: f is unbounded above}, \quad \text{Global minimum} \ f(0) = 0");
+    assert_eq!(d.piece_domains.len(), 2);
+
+    let wave = sketch(r"\begin{cases}\sin x & x<0\\ x^2 & x \ge 0\end{cases}");
+    assert!(!result(&wave, "zeros").contains(r"k \in"), "{}", result(&wave, "zeros"));
+    assert!(wave.points.iter().filter(|p| p.x == 0.0).all(|p| p.kind == PointKind::Zero || p.kind == PointKind::YIntercept));
+    let on_part = sketch(r"\sin x, \ x \in [0, 10]");
+    assert!(on_part.period.is_none() && !result(&on_part, "extrema").contains(r"k \in"));
+}

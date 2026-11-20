@@ -1,6 +1,8 @@
 //! The curve sketch: one section per question a student answers about f, each with its working
 //! and a result line, plus the points and asymptotes to draw.
 
+mod piecewise;
+
 use std::cmp::Ordering;
 
 use dashu::base::{Abs, UnsignedAbs};
@@ -188,22 +190,25 @@ fn out_of_time(section: &mut Section) {
 /// The whole curve sketch of `function` (the trees as typed). Fails only when the domain is empty.
 pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
     if function.is_piecewise() {
-        return Err(crate::QuantusError::other(msg!("core.analysis.input.piecewise_not_yet")));
+        return piecewise::discuss(function, ctx);
     }
     let piece = &function.pieces[0];
     let f = &piece.expr;
     let (dom, domain_steps) = domain_on(f, &piece.on, &DomainContext { settings: ctx.settings, var: ctx.var, digits: ctx.digits })?;
     let var = ctx.var;
     let tex = |e: &Expr| e.to_latex(var);
-    let period = period_of(&simplify(f));
+    // On a given domain f is not periodic any more: its members are listed, not continued.
+    let restricted = function.is_restricted();
+    let period = if restricted { None } else { period_of(&simplify(f)) };
     let window = match &period {
         Some(p) => {
             let p = p.to_f64().value() * std::f64::consts::PI;
             (-p, p)
         }
+        None if restricted => piecewise::window_of(&dom.set),
         None => (-10.0, 10.0),
     };
-    let wave = if period.is_none() { linear_plus_periodic(&simplify(f)) } else { None };
+    let wave = if period.is_none() && !restricted { linear_plus_periodic(&simplify(f)) } else { None };
     let mut sketch = Sketch {
         ctx,
         f: simplify(f),
@@ -403,8 +408,8 @@ struct Sketch<'a> {
     breaks: Vec<f64>,
     /// Tells the point tokens of the pieces' sketches apart.
     tag: usize,
-    /// Where this piece meets another one: no boundary extremum and no limit there, the join
-    /// section looks at those points.
+    /// Where this piece meets another one: no boundary extremum there, the join section looks at
+    /// those points.
     joins: Vec<Point>,
     /// The local and boundary extrema found, as (x, y), for the global ones.
     extremes: Vec<(Point, Point)>,
@@ -584,7 +589,8 @@ impl Sketch<'_> {
             };
             lines.push(format!("{coordinates}{note}"));
         }
-        for family in &solved.solutions.families {
+        // The general form only where every member lies in D; on part of ℝ the members are listed.
+        for family in solved.solutions.families.iter().filter(|_| self.domain.set.is_reals()) {
             for general in family.to_latex() {
                 lines.push(format!("{} = {general}, \\ k \\in \\mathbb{{Z}}", self.ctx.var));
             }
@@ -626,7 +632,9 @@ impl Sketch<'_> {
                 }
                 None => {
                     for point in family.points_in(self.window.0, self.window.1, MAX_WINDOW_POINTS) {
-                        out.push(Candidate { point, family: None });
+                        if self.domain.contains(point.approx) {
+                            out.push(Candidate { point, family: None });
+                        }
                     }
                 }
             }
@@ -644,6 +652,9 @@ impl Sketch<'_> {
                 }
             }
         }
+        // A join is decided by the join section, with both pieces in view; an end of D by the
+        // boundary extrema (it has a side only).
+        out.retain(|c| !self.is_join(&c.point) && !self.is_domain_end(&c.point));
         out.sort_by(|a, b| a.point.approx.partial_cmp(&b.point.approx).unwrap_or(Ordering::Equal));
         out
     }
@@ -1071,12 +1082,12 @@ impl Sketch<'_> {
         let mut ends: Vec<Approach> = Vec::new();
         match set.first().map(|i| &i.lo) {
             Some(Bound::NegInf) => ends.push(Approach::NegInf),
-            Some(Bound::At { point, closed: false }) if !self.is_join(point) => ends.push(Approach::Right(point.clone())),
+            Some(Bound::At { point, closed: false }) => ends.push(Approach::Right(point.clone())),
             _ => {}
         }
         match set.last().map(|i| &i.hi) {
             Some(Bound::PosInf) => ends.push(Approach::PosInf),
-            Some(Bound::At { point, closed: false }) if !self.is_join(point) => ends.push(Approach::Left(point.clone())),
+            Some(Bound::At { point, closed: false }) => ends.push(Approach::Left(point.clone())),
             _ => {}
         }
         let mut horizontal: Vec<(Point, Side)> = Vec::new();
