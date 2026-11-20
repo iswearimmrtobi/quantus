@@ -28,6 +28,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Analysis: tangent, area and value table for piecewise functions. Each takes the piece that
   holds x; a tangent at a join needs both pieces to meet with the same slope, and the area is
   split where the pieces meet, each part integrated with its own piece.
+- Analysis: a curve through points. Typing points (`(0, 0), (1, 1), (2, 0)`) builds a natural
+  cubic spline, a spline with given end slopes, or the interpolating polynomial, with the
+  conditions, the exactly solved linear system and the pieces as working, and sketches it as a
+  piecewise function with the points in the graph.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

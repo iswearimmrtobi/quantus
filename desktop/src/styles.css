@@ -2414,6 +2414,16 @@ select option {
   margin-top: 6px;
 }
 
+.spline-row {
+  flex-wrap: wrap;
+}
+
+.spline-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .domain-row-label {
   color: var(--text-muted);
   flex: none;

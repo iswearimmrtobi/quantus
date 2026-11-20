@@ -48,6 +48,8 @@ pub enum AnalysisRule {
     /// Continuity and differentiability where two pieces meet.
     Continuity,
     GlobalExtremum,
+    /// A curve through given points: its conditions and their solution.
+    Spline,
 }
 
 impl AnalysisRule {
@@ -91,6 +93,7 @@ impl AnalysisRule {
             AnalysisRule::Piecewise => "PIECEWISE",
             AnalysisRule::Continuity => "CONTINUITY",
             AnalysisRule::GlobalExtremum => "GLOBAL_EXTREMUM",
+            AnalysisRule::Spline => "SPLINE",
         }
     }
 }

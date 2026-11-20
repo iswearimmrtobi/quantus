@@ -10,8 +10,11 @@ import {
   type Step,
   type TableResult,
   type TangentResult,
+  type SplineEnds,
+  type SplineResult,
 } from '../api';
 import { useT } from '../i18n';
+import { isPointList } from '../pointList';
 import { copyText } from '../shell';
 import type { TextKey } from '../i18n';
 import { FunctionPlot } from './FunctionPlot';
@@ -98,6 +101,11 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const [input, setInput] = useState('');
   /** The domain field: empty for the function's own domain. */
   const [domainInput, setDomainInput] = useState('');
+  /** A list of points in the input: the curve through them, how it ends, and its working. */
+  const [ends, setEnds] = useState<SplineEnds>('natural');
+  const [slopes, setSlopes] = useState({ start: '0', end: '0' });
+  const [spline, setSpline] = useState<SplineResult | null>(null);
+  const pointInput = isPointList(input);
   const [latexMode, setLatexMode] = useState(false);
   /** The function the results belong to; tasks and the graph use it, not the half-typed input. */
   const [analysed, setAnalysed] = useState<string | null>(null);
@@ -179,11 +187,38 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     [x0, bounds, table, analysedDomain],
   );
 
+  /** The curve through the points, then its sketch like any function's. */
+  const runSpline = useCallback(
+    async (points: string) => {
+      const id = ++analysisRequest.current;
+      try {
+        const curve = await api.spline(points, ends, ends === 'clamped' ? slopes.start : null, ends === 'clamped' ? slopes.end : null);
+        if (id !== analysisRequest.current) return;
+        setSpline(curve);
+        await run(curve.function, null);
+      } catch (failure) {
+        if (id !== analysisRequest.current) return;
+        setSpline(null);
+        setAnalysis(null);
+        setAnalysed(null);
+        setError(asError(failure));
+        clearTasks();
+      }
+    },
+    [ends, slopes, run, clearTasks],
+  );
+
   const submit = () => {
     const latex = input.trim();
     if (!latex) return;
     clearTasks();
     setSelected(null);
+    if (isPointList(latex)) {
+      setExpanded(new Set(['spline']));
+      void runSpline(latex);
+      return;
+    }
+    setSpline(null);
     const domain = domainInput.trim() || null;
     if (latex !== analysed || domain !== analysedDomain) setExpanded(new Set());
     void run(latex, domain);
@@ -198,12 +233,13 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   // A changed language, precision, output style or step detail shows at once.
   const { language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks } = settings;
   const hideSteps = stepDetail === 'none';
-  const latest = useRef({ analysed, analysedDomain, tab, runTask });
-  latest.current = { analysed, analysedDomain, tab, runTask };
+  const latest = useRef({ analysed, analysedDomain, tab, runTask, spline, input, runSpline });
+  latest.current = { analysed, analysedDomain, tab, runTask, spline, input, runSpline };
   useEffect(() => {
-    const { analysed: latex, analysedDomain: domain, tab: active, runTask: task } = latest.current;
+    const { analysed: latex, analysedDomain: domain, tab: active, runTask: task, spline: curve, input: typed, runSpline: again } = latest.current;
     if (!latex) return;
-    void run(latex, domain);
+    if (curve) void again(typed.trim());
+    else void run(latex, domain);
     if (active !== 'sketch') void task(active, latex);
   }, [language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks, run]);
 
@@ -247,6 +283,29 @@ export function AnalysisView({ settings }: { settings: Settings }) {
             {latexMode ? 'TeX' : 'f(x)'}
           </button>
         </div>
+        {pointInput ? (
+          <div className="domain-row spline-row">
+            <div className="segmented">
+              {(['natural', 'clamped', 'polynomial'] as const).map((kind) => (
+                <button key={kind} className={kind === ends ? 'segment active' : 'segment'} onClick={() => setEnds(kind)}>
+                  {t(`analysis.spline.${kind}`)}
+                </button>
+              ))}
+            </div>
+            {ends === 'clamped' && (
+              <>
+                <label>
+                  {t('analysis.spline.startSlope')}
+                  <input className="task-input" value={slopes.start} onChange={(e) => setSlopes({ ...slopes, start: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && submit()} />
+                </label>
+                <label>
+                  {t('analysis.spline.endSlope')}
+                  <input className="task-input" value={slopes.end} onChange={(e) => setSlopes({ ...slopes, end: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && submit()} />
+                </label>
+              </>
+            )}
+          </div>
+        ) : (
         <label className="domain-row" title={t('analysis.domain.hint')}>
           <span className="domain-row-label">
             <Katex latex="D =" />
@@ -260,6 +319,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
             spellCheck={false}
           />
         </label>
+        )}
         {/* The other view of the input below it, as in the calculator: typeset while writing LaTeX, the source otherwise. */}
         <div className="source-row" style={{ '--lines': latexMode && input ? latexLines(input) : 1 } as CSSProperties}>
           {latexMode && input ? <Katex className="source-preview" latex={`\\displaystyle ${input}`} /> : <code className="source">{input || PLACEHOLDER}</code>}
@@ -292,7 +352,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                 asymptotes={analysis.asymptotes}
                 lines={tab === 'tangent' && tangent ? [tangent.tangent, tangent.normal] : []}
                 regions={tab === 'area' && area ? area.regions : []}
-                dots={tab === 'table' && rows ? tableDots(rows) : []}
+                dots={[...(spline ? spline.points : []), ...(tab === 'table' && rows ? tableDots(rows) : [])]}
                 selected={selectedIndex !== null && selectedIndex >= 0 ? selectedIndex : null}
                 onSelect={select}
               />
@@ -307,6 +367,16 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                 )}
               </div>
 
+              {tab === 'sketch' && spline && (
+                <section className="section-card">
+                  <button className="section-head" disabled={hideSteps} aria-expanded={!hideSteps ? expanded.has('spline') : undefined} onClick={() => toggleSection('spline')}>
+                    {!hideSteps && <span className={expanded.has('spline') ? 'chev open' : 'chev'}>⌄</span>}
+                    <span className="section-title">{t(`analysis.spline.${ends}`)}</span>
+                  </button>
+                  <Katex className="section-result" latex={`f(x) = ${spline.function}`} />
+                  {expanded.has('spline') && <Steps steps={spline.steps} hidden={hideSteps} />}
+                </section>
+              )}
               {tab === 'sketch' &&
                 analysis.sections.map((section) => {
                   const open = expanded.has(section.id);

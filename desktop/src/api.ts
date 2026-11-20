@@ -917,6 +917,17 @@ export interface PlotData {
   ends: { x: number; y: number; closed: boolean }[];
 }
 
+/** How a curve through points ends, or that it is one polynomial. */
+export type SplineEnds = 'natural' | 'clamped' | 'polynomial';
+
+/** What `quantus_core::api::SplineResponse` serialises to. */
+export interface SplineResult {
+  /** The curve as a function to sketch: cases for a spline. */
+  function: string;
+  steps: Step[];
+  points: [number, number][];
+}
+
 /** What `quantus_core::api::AnalysisResponse` serialises to. */
 export interface Analysis {
   function: string;
@@ -1104,6 +1115,10 @@ export const api = {
   /** Without bounds, the area between the outermost zeros. */
   areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null) =>
     call<AreaResult>('area_under_curve', { request: { latex, domain, from, to } }),
+
+  /** The spline (`natural`, `clamped` with end slopes) or the polynomial (`polynomial`) through points. */
+  spline: (points: string, ends: SplineEnds, startSlope: string | null = null, endSlope: string | null = null) =>
+    call<SplineResult>('spline', { request: { points, ends, startSlope, endSlope } }),
 
   valueTable: (latex: string, from: string, to: string, step: string, domain: string | null = null) =>
     call<TableResult>('value_table', { request: { latex, domain, from, to, step } }),

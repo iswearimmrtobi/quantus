@@ -106,7 +106,7 @@ handheld keeps working.
   - [x] Global extrema on given domains.
   - [x] Tangent, area and value table respect the domain and the joins.
   - [x] A piecewise antiderivative, continuous where f is.
-- [ ] 3. Splines through points (`analysis/spline.rs`): natural and clamped cubic splines, solved
+- [x] 3. Splines through points (`analysis/spline.rs`): natural and clamped cubic splines, solved
   exactly with `linear::gauss`, with the conditions as steps; the interpolating polynomial as the
   alternative; a point list in the input switches to it, the result is sketched as a piecewise
   function.

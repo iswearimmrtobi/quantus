@@ -435,7 +435,7 @@ fn split_top_level(text: &str, separator: &str) -> Vec<String> {
 }
 
 /// A constant bound: `3`, `-\frac{1}{2}`, `\pi`, `\sqrt{2}`.
-fn parse_bound_number(text: &str, settings: &Settings) -> Result<Point> {
+pub(crate) fn parse_bound_number(text: &str, settings: &Settings) -> Result<Point> {
     let options = Settings { mode: Mode::Algebra, ..settings.clone() }.parse_options();
     let not_a_number = || QuantusError::other(msg!("core.analysis.input.condition_not_understood", text.trim()));
     let node = parser::parse_with(text.trim(), &options).map_err(|_| not_a_number())?.expression;

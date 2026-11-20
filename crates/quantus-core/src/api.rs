@@ -283,8 +283,8 @@ pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<Ci
 
 pub use crate::analysis::interface::{
     AnalysisRequest, AnalysisResponse, AreaRequest, AreaResponse, AsymptoteResponse, LineResponse, PlotResponse,
-    PointResponse, RegionResponse, SampleRequest, SampleResponse, SectionResponse, TableRequest, TableResponse,
-    TableRowResponse, TangentRequest, TangentResponse,
+    PointResponse, RegionResponse, SampleRequest, SampleResponse, SectionResponse, SplineRequest, SplineResponse,
+    TableRequest, TableResponse, TableRowResponse, TangentRequest, TangentResponse,
 };
 
 /// The curve sketch of a function (analysis mode). Stateless, like `solve_circuit`.
@@ -305,6 +305,11 @@ pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentR
 /// The area between the graph and the x-axis.
 pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse, ApiError> {
     Ok(crate::analysis::interface::area(settings, request)?)
+}
+
+/// The spline or polynomial through given points, as a function to sketch.
+pub fn spline(settings: &Settings, request: &SplineRequest) -> Result<SplineResponse, ApiError> {
+    Ok(crate::analysis::interface::spline(settings, request)?)
 }
 
 /// A table of values.

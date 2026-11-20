@@ -59,6 +59,24 @@ is a maximum or minimum. The antiderivative is joined up with constants where f 
 The graph shows the ends of the pieces as filled or hollow dots; tangent, area and value table
 take the piece that holds x, and a tangent at a join needs f to be differentiable there.
 
+### A curve through points
+
+Type points instead of a function, and the analysis builds the curve through them:
+
+```latex
+(0, 0), (1, 1), (2, 0), (3, 1)
+(0 | 0); (1 | 1); (2 | 0)
+```
+
+Below the input choose a **natural spline** (no curvature at the ends, the default), a **spline
+with end slopes** (type the slopes at the first and last point) or the **interpolating
+polynomial**. A card above the sketch shows the working: one cubic
+$s_i(x) = a_i + b_i(x - x_i) + c_i(x - x_i)^2 + d_i(x - x_i)^3$ per interval, the conditions
+through the points, the same slope and curvature where two pieces meet and at the ends, the
+linear system solved exactly, and the pieces multiplied out. The curve is then sketched as a
+piecewise function on $[x_0, x_n]$, with the points drawn in the graph. The coordinates must be
+rational numbers; up to 30 points.
+
 ## The curve sketch
 
 The **Curve sketch** tab lists one section per question. For $f(x) = x^3 - 3x$:

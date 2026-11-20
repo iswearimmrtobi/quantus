@@ -225,6 +225,59 @@ pub struct TableRowResponse {
     pub y_value: Option<f64>,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SplineRequest {
+    /// The points as typed: `(0, 1), (1, 3), (2, 2)`.
+    pub points: String,
+    /// `natural` (the default), `clamped` (with the slopes below) or `polynomial`.
+    pub ends: String,
+    pub start_slope: Option<String>,
+    pub end_slope: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SplineResponse {
+    /// The curve as a function the analysis takes: cases for a spline, a polynomial otherwise.
+    pub function: String,
+    pub steps: Vec<StepResponse>,
+    /// The given points, sorted by x, for the graph.
+    pub points: Vec<[f64; 2]>,
+}
+
+/// Whether an input is a list of points rather than a function.
+pub fn is_point_list(latex: &str) -> bool {
+    super::spline::is_point_list(latex)
+}
+
+/// The spline or polynomial through the points, with the working.
+pub fn spline(settings: &Settings, request: &SplineRequest) -> Result<SplineResponse> {
+    use super::spline::{interpolate, parse_points, Ends};
+    let _language = Scope::new(settings.language);
+    let points = parse_points(&request.points, settings)?;
+    let slope = |text: &Option<String>| -> Result<dashu::rational::RBig> {
+        let text = text.as_deref().filter(|t| !t.trim().is_empty()).unwrap_or("0");
+        let point = super::function::parse_bound_number(text, settings)?;
+        point
+            .exact
+            .as_ref()
+            .and_then(|e| e.as_num().cloned())
+            .ok_or_else(|| crate::QuantusError::other(crate::text::msg!("core.analysis.spline.not_rational", text)))
+    };
+    let ends = match request.ends.as_str() {
+        "clamped" => Ends::Clamped(slope(&request.start_slope)?, slope(&request.end_slope)?),
+        "polynomial" => Ends::Polynomial,
+        _ => Ends::Natural,
+    };
+    let curve = interpolate(&points, &ends, "x", settings.language)?;
+    Ok(SplineResponse {
+        function: curve.function.to_latex("x", super::digits(settings, None), settings.language),
+        steps: steps(&curve.steps, settings),
+        points: curve.points.iter().map(|(x, y)| [x.to_f64().value(), y.to_f64().value()]).collect(),
+    })
+}
+
 /// The curve sketch with the initial plot.
 pub fn analyze(settings: &Settings, request: &AnalysisRequest) -> Result<AnalysisResponse> {
     let d = super::analyze_on(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, request.precision)?;

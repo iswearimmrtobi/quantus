@@ -156,6 +156,7 @@ fn call(store: &mut SessionStore, method: &str, raw: Json, session: Option<&str>
         "tangent" => json(api::tangent(&settings, &params(raw)?)?),
         "area" => json(api::area(&settings, &params(raw)?)?),
         "valueTable" => json(api::value_table(&settings, &params(raw)?)?),
+        "spline" => json(api::spline(&settings, &params(raw)?)?),
         "linearSystem" => json(api::linear_system(&settings, &params(raw)?)?),
         "kirchhoff" => json(api::kirchhoff(&settings, &params(raw)?)?),
         "solveCircuit" => json(api::solve_circuit(&settings, &params(raw)?)?),
