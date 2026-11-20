@@ -20,7 +20,6 @@ struct PieceSketch<'a> {
 }
 
 /// What the joins section found at one join.
-#[allow(dead_code, reason = "the antiderivative reads them next")]
 struct Join {
     at: Point,
     /// The pieces on its left and right.
@@ -514,7 +513,7 @@ fn global(pieces: &mut [PieceSketch], joins: &[Join], ctx: &Ctx) -> Section {
 /// An antiderivative piece by piece. Where f is continuous at every join and each piece is one
 /// interval, the constants are chosen so F joins up: C of the right piece is F_left(c) + C_left
 /// - F_right(c).
-fn antiderivative_section(pieces: &mut [PieceSketch], _joins: &[Join], ctx: &Ctx) -> Section {
+fn antiderivative_section(pieces: &mut [PieceSketch], joins: &[Join], ctx: &Ctx) -> Section {
     let var = ctx.var;
     let d = ctx.digits;
     let mut steps = Vec::new();
@@ -540,8 +539,39 @@ fn antiderivative_section(pieces: &mut [PieceSketch], _joins: &[Join], ctx: &Ctx
         return Section { id: "antiderivative", title: String::new(), status: SectionStatus::Partial, message: Some(message.clone()), steps, result: Some(text(&message)) };
     }
     let found: Vec<Expr> = found.into_iter().flatten().collect();
-    let joinable = false;
-    let rows: Vec<String> = {
+    let joinable = joins.iter().all(|j| j.continuous && j.left.is_some() && j.right.is_some()) && pieces.iter().all(|p| p.on.0.len() == 1);
+    let rows: Vec<String> = if joinable {
+        // Left to right, each constant from the join with the piece before it.
+        let mut constants: Vec<Option<Expr>> = vec![None; pieces.len()];
+        let first = (0..pieces.len()).min_by(|a, b| pieces[*a].on.0[0].lo.value().partial_cmp(&pieces[*b].on.0[0].lo.value()).unwrap_or(Ordering::Equal)).unwrap();
+        constants[first] = Some(Expr::int(0));
+        let mut ordered: Vec<&Join> = joins.iter().collect();
+        ordered.sort_by(|a, b| a.at.approx.partial_cmp(&b.at.approx).unwrap_or(Ordering::Equal));
+        for join in ordered {
+            let (Some(l), Some(r)) = (join.left, join.right) else { continue };
+            let (Some(cl), Some(at)) = (constants[l].clone(), join.at.exact.clone()) else { continue };
+            let c = simplify(&Expr::Sum(vec![found[l].substitute(&at), cl, Expr::negate(found[r].substitute(&at))]));
+            let x = join.at.to_latex(d);
+            steps.push(step(
+                AnalysisRule::Piecewise,
+                msg!("core.analysis.antiderivative.join_constant", x.clone()),
+                format!("C_{{{}}} = F_{{{}}}({x}) + C_{{{}}} - F_{{{}}}({x}) = {}", r + 1, l + 1, l + 1, r + 1, c.to_latex(var)),
+            ));
+            constants[r] = Some(c);
+        }
+        pieces
+            .iter()
+            .zip(&found)
+            .zip(&constants)
+            .map(|((p, big_f), c)| {
+                let shifted = match c {
+                    Some(c) => display(&simplify(&Expr::Sum(vec![big_f.clone(), c.clone()])), ctx.settings),
+                    None => big_f.clone(),
+                };
+                format!("{} & {}", shifted.to_latex(var), condition(p))
+            })
+            .collect()
+    } else {
         steps.push(step(AnalysisRule::Piecewise, msg!("core.analysis.antiderivative.own_constants"), String::new()));
         pieces
             .iter()

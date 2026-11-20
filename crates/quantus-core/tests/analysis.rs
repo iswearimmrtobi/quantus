@@ -642,3 +642,11 @@ fn the_joins_are_checked_for_continuity_and_differentiability() {
     assert_eq!(result(&pole, "joins"), r"x = 0\colon \ \text{not continuous (pole)}");
     assert!(result(&pole, "behaviour").contains(r"\text{vertical asymptote} x = 0"));
 }
+
+#[test]
+fn a_piecewise_antiderivative_joins_up_where_f_is_continuous() {
+    let smooth = sketch(r"\begin{cases}x^2 & x\le 1\\ 2x-1 & x>1\end{cases}");
+    assert_eq!(result(&smooth, "antiderivative"), r"F(x) = \begin{cases} \frac{1}{3}x^{3} & x \le 1 \\ x^{2} - x + \frac{1}{3} & x > 1 \end{cases} + C");
+    let jump = sketch(r"\begin{cases}x & x<1\\ x+1 & x\ge 1\end{cases}");
+    assert_eq!(result(&jump, "antiderivative"), r"F(x) = \begin{cases} \frac{1}{2}x^{2} + C_{1} & x < 1 \\ \frac{1}{2}x^{2} + x + C_{2} & x \ge 1 \end{cases}");
+}
