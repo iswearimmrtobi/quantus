@@ -54,6 +54,20 @@ impl Function {
         Function { pieces: self.pieces.iter().map(|p| Piece { expr: simplify(&p.expr), on: p.on.clone() }).collect() }
     }
 
+    /// f − g, piece by piece where both are given.
+    pub fn minus(&self, other: &Function) -> Function {
+        let mut pieces = Vec::new();
+        for a in &self.pieces {
+            for b in &other.pieces {
+                let on = a.on.intersect(&b.on);
+                if !on.is_empty() {
+                    pieces.push(Piece { expr: Expr::sum(vec![a.expr.clone(), Expr::negate(b.expr.clone())]), on });
+                }
+            }
+        }
+        Function { pieces }
+    }
+
     /// The x where one piece ends and another one starts, sorted.
     pub fn joins(&self) -> Vec<Point> {
         let mut out: Vec<Point> = Vec::new();

@@ -884,7 +884,8 @@ export type PointKind =
   | 'hole'
   | 'boundaryMax'
   | 'boundaryMin'
-  | 'tangent';
+  | 'tangent'
+  | 'intersection';
 
 export interface MarkedPoint {
   kind: PointKind;
@@ -915,6 +916,13 @@ export interface PlotData {
   segments: Segment[];
   /** The ends of a given domain or of the pieces: filled where they belong to f, hollow where not. */
   ends: { x: number; y: number; closed: boolean }[];
+}
+
+/** What `quantus_core::api::IntersectionResponse` serialises to. */
+export interface IntersectionResult {
+  steps: Step[];
+  points: MarkedPoint[];
+  result: string;
 }
 
 /** How a curve through points ends, or that it is one polynomial. */
@@ -1121,6 +1129,10 @@ export const api = {
   /** Without bounds, the area between the outermost zeros. */
   areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null, definitions: string[] = []) =>
     call<AreaResult>('area_under_curve', { request: { latex, domain, definitions, from, to } }),
+
+  /** Where the analysed function meets another; both may use `definitions`. */
+  intersections: (latex: string, other: string, definitions: string[] = []) =>
+    call<IntersectionResult>('intersections', { request: { latex, other, definitions } }),
 
   /** The spline (`natural`, `clamped` with end slopes) or the polynomial (`polynomial`) through points. */
   spline: (points: string, ends: SplineEnds, startSlope: string | null = null, endSlope: string | null = null) =>

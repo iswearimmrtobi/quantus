@@ -90,6 +90,91 @@ impl Prepared {
     }
 }
 
+/// Where two curves meet.
+#[derive(Debug)]
+pub struct IntersectionResult {
+    pub steps: Vec<Step>,
+    /// The points, sorted by x.
+    pub points: Vec<(Point, Point)>,
+    /// The points of periodic families, written generally: `x = \frac{\pi}{4} + k\pi`.
+    pub families: Vec<String>,
+}
+
+/// The intersections of f and g: f(x) = g(x) as f(x) − g(x) = 0 on each part where both are
+/// given, solved like a zero, with y from f. `names` are what f and g are called.
+pub fn intersections(f: &str, g: &str, names: (&str, &str), settings: &Settings, precision: Option<usize>) -> Result<IntersectionResult> {
+    let _language = Scope::new(settings.language);
+    let _budget = budget::Guard::new(super::TASK_LIMIT);
+    let p = prepare(f, None, None, settings, precision)?;
+    let q = prepare(g, Some(p.var.as_str()), None, settings, precision)?;
+    let var = p.var.as_str();
+    let d = p.digits;
+    let (fname, gname) = names;
+    let mut steps = Vec::new();
+    let mut points: Vec<(Point, Point)> = Vec::new();
+    let mut families = Vec::new();
+    let several = p.function.pieces.len() * q.function.pieces.len() > 1;
+    let pairs = p.function.pieces.iter().zip(&p.pieces).flat_map(|a| q.function.pieces.iter().zip(&q.pieces).map(move |b| (a, b)));
+    for ((a, a_domain), (b, b_domain)) in pairs {
+        let fi = &a.expr;
+        let gi = b;
+        // Where both are given and defined.
+        let mut both = a_domain.clone();
+        both.set = a_domain.set.intersect(&b_domain.set).intersect(&a.on).intersect(&b.on);
+        both.excluded.extend(b_domain.excluded.iter().cloned());
+        if both.set.is_empty() {
+            continue;
+        }
+        let difference = Expr::sum(vec![a.expr.clone(), Expr::negate(b.expr.clone())]);
+        let simplified = simplify(&difference);
+        let equation = format!(
+            "{fname}({var}) = {gname}({var}) \\Leftrightarrow {} = {} \\Leftrightarrow {} = 0",
+            fi.to_latex(var),
+            gi.expr.to_latex(var),
+            display(&simplified, settings).to_latex(var)
+        );
+        if several {
+            let condition = super::function::condition_latex(&both.set, var, d, settings.language);
+            steps.push(step(AnalysisRule::Piecewise, msg!("core.analysis.tasks.where_both"), condition));
+        }
+        steps.push(step(AnalysisRule::Intersection, msg!("core.analysis.tasks.set_equal"), equation));
+        let ctx = SolveContext { settings, var, domain: &both, window: (-10.0, 10.0), digits: d };
+        let solved = solve_zero(&simplified, &ctx);
+        steps.extend(solved.steps);
+        let mut found: Vec<Point> = solved.solutions.roots.into_iter().map(|r| r.point).collect();
+        for family in &solved.solutions.families {
+            if both.set.is_reals() {
+                for general in family.to_latex() {
+                    families.push(format!("{var} = {general}, \\ k \\in \\mathbb{{Z}}"));
+                }
+            }
+            found.extend(family.points_in(-10.0, 10.0, MAX_TABLE_ROWS));
+        }
+        if solved.solutions.all {
+            steps.push(step(AnalysisRule::Intersection, msg!("core.analysis.tasks.curves_equal"), String::new()));
+        }
+        for x in found.into_iter().filter(|x| both.contains(x.approx)) {
+            let y = match &x.exact {
+                Some(at) => Point::exact(simplify(&fi.substitute(at))),
+                None => fi.eval_f64(x.approx).map(Point::approx),
+            };
+            if let Some(y) = y {
+                if !points.iter().any(|(px, _)| px.same(&x)) {
+                    points.push((x, y));
+                }
+            }
+        }
+    }
+    points.sort_by(|a, b| a.0.approx.partial_cmp(&b.0.approx).unwrap_or(std::cmp::Ordering::Equal));
+    for (x, y) in &points {
+        if let Some(at) = &x.exact {
+            let latex = format!("{fname}({}) = {} = {}", x.to_latex(d), put_in(&p.function.piece_at(x.approx).map_or(p.function.pieces[0].expr.clone(), |pc| pc.expr.clone()), at, var), y.to_latex(d));
+            steps.push(step(AnalysisRule::Simplify, msg!("core.analysis.discussion.y_value"), latex).with_level(StepDetail::Standard));
+        }
+    }
+    Ok(IntersectionResult { steps, points, families })
+}
+
 /// A number typed by the user: `2`, `\frac{\pi}{4}`, `-\sqrt{2}`.
 fn parse_number(latex: &str, settings: &Settings, what: &str) -> Result<Point> {
     let options = Settings { mode: Mode::Algebra, ..settings.clone() }.parse_options();
@@ -511,5 +596,21 @@ mod tests {
         assert_eq!(ys, ["1", "0", "1"]);
         let gap = value_table("x^2", None, Some("x > 0"), "-1", "1", "1", &Settings::default(), None).unwrap();
         assert_eq!(gap.iter().map(|r| r.y.is_some()).collect::<Vec<_>>(), [false, false, true]);
+    }
+
+    #[test]
+    fn two_curves_meet_where_their_difference_is_zero() {
+        let r = intersections("x^2", "x + 2", ("f", "g"), &Settings::default(), None).unwrap();
+        let xs: Vec<String> = r.points.iter().map(|(x, y)| format!("{}|{}", x.to_latex(6), y.to_latex(6))).collect();
+        assert_eq!(xs, ["-1|1", "2|4"]);
+        assert!(r.steps[0].latex.starts_with("f(x) = g(x) \\Leftrightarrow x^{2} = x + 2 \\Leftrightarrow "), "{}", r.steps[0].latex);
+        let numeric = intersections("e^x", "x + 2", ("f", "g"), &Settings::default(), None).unwrap();
+        assert_eq!(numeric.points.len(), 2);
+        assert!((numeric.points[1].0.approx - 1.146193).abs() < 1e-5);
+        let none = intersections("x^2 + 1", "0", ("f", "g"), &Settings::default(), None).unwrap();
+        assert!(none.points.is_empty());
+        let pieces = intersections("\\begin{cases}x & x<0\\\\ 1 & x\\ge 0\\end{cases}", "x^2", ("f", "g"), &Settings::default(), None).unwrap();
+        let xs: Vec<f64> = pieces.points.iter().map(|(x, _)| x.approx).collect();
+        assert_eq!(xs, [1.0]);
     }
 }

@@ -13,7 +13,7 @@ use std::{fs, io};
 use quantus_core::api::{
     self, AnalysisRequest, AnalysisResponse, ApiError, AreaRequest, AreaResponse, CalculationRequest,
     CalcRequest, CalculationResponse, HistoryEntry, ModeInputs, NewSessionRequest, SessionInfo, CircuitRequest, FreeVariable, SolveRequest, CircuitResponse, ConstantCategory, DistributionRequest, DistributionResponse, EngineeringRequest, EngineeringResponse, GeometryRequest, GeometryResponse, LogicRequest, LogicResponse, ViewRequest, ViewResponse, KirchhoffRequest, KirchhoffResponse,
-    LinearSystemRequest, LinearSystemResponse, SampleRequest, SampleResponse, SplineRequest, SplineResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
+    LinearSystemRequest, LinearSystemResponse, IntersectionRequest, IntersectionResponse, SampleRequest, SampleResponse, SplineRequest, SplineResponse, StatisticsRequest, StatisticsResponse, TableRequest, TableResponse, TangentRequest, TangentResponse, UnitCategory,
     VariableResponse,
 };
 use quantus_core::session::{SessionStore, DEFAULT_SESSION};
@@ -389,6 +389,13 @@ pub fn tangent(engine: State<Engine>, request: TangentRequest) -> Result<Tangent
 pub fn area_under_curve(engine: State<Engine>, request: AreaRequest) -> Result<AreaResponse, ApiError> {
     let settings = engine.with(|store| api::get_settings(store));
     api::area(&settings, &request)
+}
+
+/// Where two functions meet.
+#[tauri::command]
+pub fn intersections(engine: State<Engine>, request: IntersectionRequest) -> Result<IntersectionResponse, ApiError> {
+    let settings = engine.with(|store| api::get_settings(store));
+    api::intersections(&settings, &request)
 }
 
 /// The spline or polynomial through given points.

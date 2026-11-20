@@ -256,6 +256,62 @@ pub struct SplineResponse {
     pub points: Vec<[f64; 2]>,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct IntersectionRequest {
+    /// f, as typed: `f(x) = …` or a bare expression.
+    pub latex: String,
+    /// g, the other function.
+    pub other: String,
+    /// The functions both may use.
+    pub definitions: Vec<String>,
+    pub precision: Option<usize>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct IntersectionResponse {
+    pub steps: Vec<StepResponse>,
+    /// `kind` `intersection`, named S_1, S_2 … (P in English).
+    pub points: Vec<PointResponse>,
+    /// The result line: the points, or that there are none.
+    pub result: String,
+}
+
+/// Where two functions meet.
+pub fn intersections(settings: &Settings, request: &IntersectionRequest) -> Result<IntersectionResponse> {
+    let f = resolved(&request.latex, &request.definitions, settings)?;
+    let g = resolved(&request.other, &request.definitions, settings)?;
+    let name = |latex: &str, fallback: &str| super::input::definition(latex).map_or(fallback.to_string(), |(name, _, _)| name);
+    let (fname, gname) = (name(&request.latex, "f"), name(&request.other, "g"));
+    let r = tasks::intersections(&f, &g, (&fname, &gname), settings, request.precision)?;
+    let _language = Scope::new(settings.language);
+    let digits = super::digits(settings, request.precision);
+    let letter = crate::text::msg!("core.analysis.tasks.letter_intersection");
+    let count = r.points.len();
+    let points: Vec<PointResponse> = r
+        .points
+        .iter()
+        .enumerate()
+        .map(|(i, (x, y))| {
+            let name = if count == 1 { letter.clone() } else { format!("{letter}_{{{}}}", i + 1) };
+            let exact = format!("{name}\\left({} \\mid {}\\right)", x.to_latex(digits), y.to_latex(digits));
+            let latex = if x.exact.is_some() && y.exact.is_some() && !(x.is_rational() && y.is_rational()) {
+                format!("{exact} \\approx {name}\\left({} \\mid {}\\right)", x.decimal_latex(digits), y.decimal_latex(digits))
+            } else if x.exact.is_none() {
+                format!("{name}\\left(\\approx {} \\mid \\approx {}\\right)", x.to_latex(digits), y.to_latex(digits))
+            } else {
+                exact
+            };
+            PointResponse { kind: "intersection".into(), name, x: x.approx, y: y.approx, latex, period: None }
+        })
+        .collect();
+    let mut lines: Vec<String> = points.iter().map(|p| p.latex.clone()).collect();
+    lines.extend(r.families.iter().cloned());
+    let result = if lines.is_empty() { format!("\\text{{{}}}", crate::text::msg!("core.analysis.tasks.no_intersections")) } else { lines.join(", \\quad ") };
+    Ok(IntersectionResponse { steps: steps(&r.steps, settings), points, result })
+}
+
 /// Whether an input is a list of points rather than a function.
 pub fn is_point_list(latex: &str) -> bool {
     super::spline::is_point_list(latex)

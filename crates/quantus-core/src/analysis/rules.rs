@@ -50,6 +50,8 @@ pub enum AnalysisRule {
     GlobalExtremum,
     /// A curve through given points: its conditions and their solution.
     Spline,
+    /// Two curves set equal.
+    Intersection,
 }
 
 impl AnalysisRule {
@@ -94,6 +96,7 @@ impl AnalysisRule {
             AnalysisRule::Continuity => "CONTINUITY",
             AnalysisRule::GlobalExtremum => "GLOBAL_EXTREMUM",
             AnalysisRule::Spline => "SPLINE",
+            AnalysisRule::Intersection => "INTERSECTION",
         }
     }
 }

@@ -114,7 +114,7 @@ handheld keeps working.
   - [x] A list of function fields, one sketch each; `g(x)=f'(x)` and `h(x)=f(x-1)+2` resolved
     in core.
   - [x] Several curves in the graph with a legend; f′ and f″ as a toggle.
-  - [ ] Intersections of two functions.
+  - [x] Intersections of two functions.
   - [ ] The area between two curves.
 - [ ] 5. Families f_a(x):
   - [ ] `Expr::Param`; the other letters are parameters, conditions like `a>0` from the domain

@@ -78,6 +78,11 @@ function or one with a given domain cannot be used inside another.
 All functions are drawn in the graph, each in its own colour with its name in the legend. The
 boxes $f'$ and $f''$ above the graph draw the derivatives of the sketched function as well.
 
+The tab **Intersections** sets the sketched function equal to another one, brings everything to
+one side and solves $f(x) - g(x) = 0$ like a zero, exactly where it can and numerically
+otherwise; the points get their y from $f$ and are drawn in the graph. For $f(x) = x^2$ and
+$g(x) = x + 2$ they are $P_1(-1 \mid 1)$ and $P_2(2 \mid 4)$ (S in German).
+
 ### A curve through points
 
 Type points instead of a function, and the analysis builds the curve through them:

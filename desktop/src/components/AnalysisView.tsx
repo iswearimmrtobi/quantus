@@ -10,6 +10,7 @@ import {
   type Step,
   type TableResult,
   type TangentResult,
+  type IntersectionResult,
   type SplineEnds,
   type SplineResult,
 } from '../api';
@@ -23,13 +24,14 @@ import { displayStyle, Katex, latexLines } from './Katex';
 import { LatexInput, type LatexInputHandle } from './LatexInput';
 import { MathField, toReadableLatex, type MathFieldHandle } from './MathField';
 
-type Tab = 'sketch' | 'tangent' | 'area' | 'table';
+type Tab = 'sketch' | 'tangent' | 'area' | 'table' | 'intersect';
 
 const TABS: { id: Tab; label: TextKey }[] = [
   { id: 'sketch', label: 'analysis.tab.sketch' },
   { id: 'tangent', label: 'analysis.tab.tangent' },
   { id: 'area', label: 'analysis.tab.area' },
   { id: 'table', label: 'analysis.tab.table' },
+  { id: 'intersect', label: 'analysis.tab.intersect' },
 ];
 
 const PLACEHOLDER = 'f(x) = x^3 - 3x';
@@ -136,6 +138,9 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const [table, setTable] = useState({ from: '-3', to: '3', step: '1' });
   const [rows, setRows] = useState<TableResult | null>(null);
   const [taskError, setTaskError] = useState<ApiError | null>(null);
+  /** The other function the intersections and the area between are with, by its place in the list. */
+  const [partner, setPartner] = useState(0);
+  const [meeting, setMeeting] = useState<IntersectionResult | null>(null);
 
   const field = useRef<MathFieldHandle>(null);
   const latexField = useRef<LatexInputHandle>(null);
@@ -148,6 +153,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     setTangent(null);
     setArea(null);
     setRows(null);
+    setMeeting(null);
     setTaskError(null);
   }, []);
 
@@ -188,6 +194,14 @@ export function AnalysisView({ settings }: { settings: Settings }) {
           const result = await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain, analysedDefinitions);
           if (current()) setArea(result);
         }
+        if (which === 'intersect') {
+          const all = [latex, ...others];
+          const other = others[partner];
+          if (!other?.trim()) throw new ApiError(t('analysis.intersect.none'));
+          const definitions = definitionsFor(all, -1);
+          const result = await api.intersections(asDefinition(latex, assignNames(all)[0]), asDefinition(other, assignNames(all)[partner + 1]), definitions);
+          if (current()) setMeeting(result);
+        }
         if (which === 'table') {
           const result = await api.valueTable(latex, table.from, table.to, table.step, analysedDomain, analysedDefinitions);
           if (current()) setRows(result);
@@ -196,7 +210,8 @@ export function AnalysisView({ settings }: { settings: Settings }) {
         if (current()) setTaskError(asError(failure));
       }
     },
-    [x0, bounds, table, analysedDomain, analysedDefinitions],
+    // definitionsFor only reads its arguments.
+    [x0, bounds, table, analysedDomain, analysedDefinitions, others, partner, t],
   );
 
   /** The curve through the points, then its sketch like any function's. */
@@ -311,7 +326,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     // definitionsFor only reads its arguments.
   }, [analysed, others, derivatives, spline]);
 
-  const taskPoints: MarkedPoint[] = tab === 'tangent' && tangent ? [tangent.point] : [];
+  const taskPoints: MarkedPoint[] = tab === 'tangent' && tangent ? [tangent.point] : tab === 'intersect' && meeting ? meeting.points : [];
   const points = analysis ? [...analysis.points, ...taskPoints] : [];
   const selectedIndex = selected === null ? null : points.findIndex((point) => pointKey(point) === selected);
   const select = (index: number | null) => setSelected(index === null || index < 0 ? null : pointKey(points[index]));
@@ -543,6 +558,39 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                         <Katex latex={area.signed} />
                       </div>
                       <Steps steps={area.steps} hidden={hideSteps} />
+                    </>
+                  )}
+                </section>
+              )}
+
+              {tab === 'intersect' && (
+                <section className="section-card">
+                  {others.some((other) => other.trim()) ? (
+                    <div className="task-inputs">
+                      <label>
+                        <Katex latex={`${names[0]}(x) = `} />
+                        <select className="task-input" value={partner} onChange={(e) => setPartner(Number(e.target.value))}>
+                          {others.map((other, i) =>
+                            other.trim() ? (
+                              <option key={i} value={i}>
+                                {`${names[i + 1]}(x)`}
+                              </option>
+                            ) : null,
+                          )}
+                        </select>
+                      </label>
+                      <button className="palette-item" onClick={() => void runTask('intersect', analysed)}>
+                        {t('analysis.compute')}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="setting-hint">{t('analysis.intersect.none')}</p>
+                  )}
+                  {taskError && <ErrorRow error={taskError} />}
+                  {meeting && (
+                    <>
+                      <Katex className="section-result" latex={meeting.result} />
+                      <Steps steps={meeting.steps} hidden={hideSteps} />
                     </>
                   )}
                 </section>

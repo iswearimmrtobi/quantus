@@ -282,7 +282,8 @@ pub fn solve_circuit(settings: &Settings, request: &CircuitRequest) -> Result<Ci
 }
 
 pub use crate::analysis::interface::{
-    AnalysisRequest, AnalysisResponse, AreaRequest, AreaResponse, AsymptoteResponse, LineResponse, PlotResponse,
+    AnalysisRequest, AnalysisResponse, AreaRequest, AreaResponse, AsymptoteResponse, IntersectionRequest, IntersectionResponse,
+    LineResponse, PlotResponse,
     PointResponse, RegionResponse, SampleRequest, SampleResponse, SectionResponse, SplineRequest, SplineResponse,
     TableRequest, TableResponse, TableRowResponse, TangentRequest, TangentResponse,
 };
@@ -305,6 +306,11 @@ pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentR
 /// The area between the graph and the x-axis.
 pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse, ApiError> {
     Ok(crate::analysis::interface::area(settings, request)?)
+}
+
+/// Where two functions meet.
+pub fn intersections(settings: &Settings, request: &IntersectionRequest) -> Result<IntersectionResponse, ApiError> {
+    Ok(crate::analysis::interface::intersections(settings, request)?)
 }
 
 /// The spline or polynomial through given points, as a function to sketch.
@@ -845,6 +851,9 @@ mod tests {
         let table = value_table(&settings, &TableRequest { latex: "x^2".into(), from: "0".into(), to: "2".into(), step: "1".into(), ..Default::default() }).unwrap();
         assert_eq!(table.rows[2], TableRowResponse { x: "2".into(), y: Some("4".into()), x_value: 2.0, y_value: Some(4.0) });
 
+        let meet = json_of(&intersections(&settings, &IntersectionRequest { latex: "g(x) = f(x) + 1".into(), other: "x + 1".into(), definitions: vec!["f(x) = x^2".into()], ..Default::default() }).unwrap());
+        assert_eq!(meet["points"][0]["name"], "P_{1}");
+        assert_eq!(meet["points"][1]["latex"], "P_{2}\\left(1 \\mid 2\\right)");
         let parse = analyze(&settings, &AnalysisRequest { latex: "x^2 +".into(), ..Default::default() }).unwrap_err();
         assert!(parse.position.is_some());
         let family = analyze(&settings, &AnalysisRequest { latex: "x^2 + a".into(), ..Default::default() }).unwrap_err();

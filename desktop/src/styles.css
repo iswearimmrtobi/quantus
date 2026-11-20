@@ -37,6 +37,7 @@
   --point-saddle: #ffd27f;
   --point-hole: var(--text);
   --point-tangent: var(--accent);
+  --point-intersection: #f0a070;
   /* The objects of the Geometry view, one colour each in scene order. */
   --geometry-0: #9186e8;
   --geometry-1: #7fd1b9;
@@ -2737,6 +2738,7 @@ select option {
 .kind-boundaryMax { --point: var(--point-max); }
 .kind-boundaryMin { --point: var(--point-min); }
 .kind-tangent { --point: var(--point-tangent); }
+.kind-intersection { --point: var(--point-intersection); }
 
 .plot-point { fill: var(--point); }
 .point-swatch { background: var(--point); }
