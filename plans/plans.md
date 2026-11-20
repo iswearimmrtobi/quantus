@@ -85,6 +85,47 @@ by how often an entry was used comes later.
 
 - [ ] Usage counts that rank frequent entries first.
 
+## 7. Analysis mode: chain rule, domains, splines, several functions, families
+
+Each step one commit. Piecewise functions (step 2) are the base for restricted domains and splines;
+families come last because `Expr` gets a parameter. New request fields are optional, so the
+handheld keeps working.
+
+- [ ] 1. The chain rule written out fully (`analysis/derive.rs`):
+  - [ ] Outer and inner function named: g(z), g′(z); h(x), h′(x); f′ = g′(h(x))·h′(x).
+  - [ ] Nested chains to every level (`\sin(e^{2x})`), also inside the product rule's parts.
+  - [ ] The chain rule for u′ and v′ of the quotient rule.
+  - [ ] `u^v` continued after `e^{v \ln u}` with the chain and product rules.
+- [ ] 2. Restricted domains and piecewise functions (`analysis/function.rs`: pieces of `Expr`
+  on an `IntervalSet`):
+  - [ ] Input: a domain clause (`x\in[0,3]`, `0\le x<3`, `D=…`), `\begin{cases}`, an optional
+    `domain` request field.
+  - [ ] Domain and plot per piece; open and closed ends as dots.
+  - [ ] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.
+  - [ ] Continuity and differentiability at the joins.
+  - [ ] Global extrema on bounded domains.
+  - [ ] Tangent, area and value table respect the domain and the joins.
+  - [ ] A piecewise antiderivative, continuous where f is.
+- [ ] 3. Splines through points (`analysis/spline.rs`): natural and clamped cubic splines, solved
+  exactly with `linear::gauss`, with the conditions as steps; the interpolating polynomial as the
+  alternative; a point list in the input switches to it, the result is sketched as a piecewise
+  function.
+- [ ] 4. Several functions f, g, h …:
+  - [ ] A list of function fields, one sketch each; `g(x)=f'(x)` and `h(x)=f(x-1)+2` resolved
+    in core.
+  - [ ] Several curves in the graph with a legend; f′ and f″ as a toggle.
+  - [ ] Intersections of two functions.
+  - [ ] The area between two curves.
+- [ ] 5. Families f_a(x):
+  - [ ] `Expr::Param`; the other letters are parameters, conditions like `a>0` from the domain
+    clause.
+  - [ ] The symbolic sketch with case splits on the parameter's sign, `partial` beyond that.
+  - [ ] The locus (Ortskurve) of the extrema and inflection points.
+  - [ ] A slider per parameter in the graph; the numeric sketch for one value as the fallback.
+
+Ideas for later: tangent with a given slope or through an outside point, solid of revolution,
+average value, inverse function, Taylor polynomial, Newton's method, Steckbriefaufgaben.
+
 ## 9. Later
 
 - The Geometrie tile on the handheld: the engine and its 3D view are shared, the tile, the
