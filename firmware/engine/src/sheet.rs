@@ -41,6 +41,7 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
                     latex: latex.to_string(),
                     variable: None,
                     domain: None,
+                    definitions: Vec::new(),
                     from: from.clone(),
                     to: to.clone(),
                     step: step.clone(),

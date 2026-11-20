@@ -285,6 +285,7 @@ mod tests {
             samples: 100,
             y_min: None,
             y_max: None,
+            ..Default::default()
         };
         let segments = super::super::interface::sample_function(&settings, &request).unwrap().segments;
         assert_eq!(segments[0][0], [0.0, 0.0]);

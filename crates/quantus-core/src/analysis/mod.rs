@@ -15,6 +15,7 @@ pub mod interface;
 pub mod interval;
 pub mod limits;
 pub mod plot;
+pub mod references;
 pub mod polydiv;
 pub mod rules;
 pub mod simplify;

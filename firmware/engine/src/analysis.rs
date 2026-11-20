@@ -12,7 +12,7 @@ use crate::sheet::{inside, plain};
 
 /// The curve sketch of `f`, a page per section.
 pub fn sketch(core: &CoreSettings, f: &str, precision: Option<usize>) -> Result<Analysis, String> {
-    let request = AnalysisRequest { latex: f.to_string(), variable: None, domain: None, precision };
+    let request = AnalysisRequest { latex: f.to_string(), variable: None, domain: None, definitions: Vec::new(), precision };
     let response = api::analyze(core, &request).map_err(|error| error.error)?;
     Ok(analysis(&response))
 }
@@ -149,6 +149,7 @@ pub fn sample(core: &CoreSettings, f: &str, window: Window) -> Result<Vec<Vec<(f
         latex: f.to_string(),
         variable: None,
         domain: None,
+        definitions: Vec::new(),
         x_min: f64::from(window.x_min),
         x_max: f64::from(window.x_max),
         samples: SAMPLES,
@@ -161,7 +162,7 @@ pub fn sample(core: &CoreSettings, f: &str, window: Window) -> Result<Vec<Vec<(f
 
 /// The tangent and the normal to `f` at `x0`.
 pub fn tangent(core: &CoreSettings, f: &str, x0: &str, precision: Option<usize>) -> Result<Task, String> {
-    let request = TangentRequest { latex: f.to_string(), variable: None, domain: None, x0: x0.to_string(), precision };
+    let request = TangentRequest { latex: f.to_string(), variable: None, domain: None, definitions: Vec::new(), x0: x0.to_string(), precision };
     let response = api::tangent(core, &request).map_err(|error| error.error)?;
     let lines = steps(&response.steps);
     let mut result = math_lines(&response.tangent.latex);
@@ -186,7 +187,7 @@ fn straight(line: &LineResponse) -> Option<Straight> {
 /// The area between `f` and the x-axis from `from` to `to`, or between the outer zeros.
 pub fn area(core: &CoreSettings, f: &str, from: &str, to: &str, precision: Option<usize>) -> Result<Task, String> {
     let bound = |bound: &str| (!bound.trim().is_empty()).then(|| bound.to_string());
-    let request = AreaRequest { latex: f.to_string(), variable: None, domain: None, from: bound(from), to: bound(to), precision };
+    let request = AreaRequest { latex: f.to_string(), variable: None, domain: None, definitions: Vec::new(), from: bound(from), to: bound(to), precision };
     let response = api::area(core, &request).map_err(|error| error.error)?;
     let lines = steps(&response.steps);
     let result = vec![Line::Math(format!("A = {}", response.area)), Line::Math(format!("\\int f(x)\\,dx = {}", response.signed))];

@@ -17,6 +17,8 @@ interface Props {
   latex: string;
   /** The domain from its own field, sent with every fresh sample. */
   domain?: string | null;
+  /** The other functions the analysed one may use, sent with every fresh sample. */
+  definitions?: string[];
   plot: PlotData;
   points: MarkedPoint[];
   asymptotes: Asymptote[];
@@ -31,6 +33,7 @@ interface Props {
 }
 
 const ZOOM_STEP = 1.15;
+const NO_DEFINITIONS: string[] = [];
 const RESAMPLE_DELAY = 120;
 /** The narrowest and widest view the wheel may zoom to. */
 const MIN_SPAN = 1e-6;
@@ -69,7 +72,7 @@ function ticks(min: number, max: number, count: number): number[] {
  * ticks, the curve, dashed asymptotes and the marked points. Wheel zooms around the cursor, drag
  * moves the view; each change asks the engine for segments that fit the new view.
  */
-export function FunctionPlot({ latex, domain = null, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
+export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITIONS, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
   const { t, language } = useT();
   /** The graph filling the window; the view and everything drawn stay as they are. */
   const fullscreen = useFullscreen();
@@ -123,7 +126,7 @@ export function FunctionPlot({ latex, domain = null, plot, points, asymptotes, l
     if (view === initial) return;
     const id = ++request.current;
     const timer = window.setTimeout(() => {
-      api.sampleFunction(latex, view, Math.round(size.width), domain).then(
+      api.sampleFunction(latex, view, Math.round(size.width), domain, definitions).then(
         (sampled) => {
           if (alive.current && id === request.current) setSegments(sampled.segments);
         },
@@ -132,7 +135,7 @@ export function FunctionPlot({ latex, domain = null, plot, points, asymptotes, l
       );
     }, RESAMPLE_DELAY);
     return () => window.clearTimeout(timer);
-  }, [latex, domain, view, initial, size.width]);
+  }, [latex, domain, definitions, view, initial, size.width]);
 
   const { width, height } = size;
   const sx = useCallback((x: number) => ((x - view.xMin) / (view.xMax - view.xMin)) * width, [view, width]);

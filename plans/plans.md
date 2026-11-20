@@ -111,7 +111,7 @@ handheld keeps working.
   alternative; a point list in the input switches to it, the result is sketched as a piecewise
   function.
 - [ ] 4. Several functions f, g, h …:
-  - [ ] A list of function fields, one sketch each; `g(x)=f'(x)` and `h(x)=f(x-1)+2` resolved
+  - [x] A list of function fields, one sketch each; `g(x)=f'(x)` and `h(x)=f(x-1)+2` resolved
     in core.
   - [ ] Several curves in the graph with a legend; f′ and f″ as a toggle.
   - [ ] Intersections of two functions.

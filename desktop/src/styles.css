@@ -2414,6 +2414,36 @@ select option {
   margin-top: 6px;
 }
 
+.other-functions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.other-function {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.other-function-name {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.other-function-field {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+
+.add-function {
+  align-self: flex-start;
+}
+
 .spline-row {
   flex-wrap: wrap;
 }

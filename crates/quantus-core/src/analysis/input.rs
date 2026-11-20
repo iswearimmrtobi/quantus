@@ -226,6 +226,19 @@ fn top_level_find(text: &str, needle: &str) -> Option<usize> {
     None
 }
 
+/// The name, the variable and where the body starts of a definition `g(x) = …` or
+/// `f_{1}\left(t\right) = …`; `None` without such a prefix.
+pub fn definition(latex: &str) -> Option<(String, String, usize)> {
+    let (blanked, var) = blank_prefix(latex);
+    let var = var?;
+    let start = latex.len() - latex.trim_start().len();
+    let body = blanked.len() - blanked.trim_start_matches(' ').len();
+    let head = &latex[start..body];
+    let end = head.find("\\left(").or_else(|| head.find('(')).unwrap_or(head.len());
+    let name: String = head[..end].chars().filter(|c| !c.is_whitespace()).collect();
+    Some((name, var, body))
+}
+
 /// The input with a leading `f(x) =` or `y =` replaced by spaces, and the variable it named.
 fn blank_prefix(latex: &str) -> (String, Option<String>) {
     let bytes = latex.as_bytes();

@@ -28,6 +28,8 @@ pub struct AnalysisRequest {
     pub variable: Option<String>,
     /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
     pub domain: Option<String>,
+    /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
+    pub definitions: Vec<String>,
     /// Significant digits of approximate values; by default at most 6.
     pub precision: Option<usize>,
 }
@@ -117,6 +119,8 @@ pub struct SampleRequest {
     pub variable: Option<String>,
     /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
     pub domain: Option<String>,
+    /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
+    pub definitions: Vec<String>,
     pub x_min: f64,
     pub x_max: f64,
     pub samples: usize,
@@ -138,6 +142,8 @@ pub struct TangentRequest {
     pub variable: Option<String>,
     /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
     pub domain: Option<String>,
+    /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
+    pub definitions: Vec<String>,
     pub x0: String,
     pub precision: Option<usize>,
 }
@@ -169,6 +175,8 @@ pub struct AreaRequest {
     pub variable: Option<String>,
     /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
     pub domain: Option<String>,
+    /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
+    pub definitions: Vec<String>,
     /// The bounds; both missing means between the outermost zeros.
     pub from: Option<String>,
     pub to: Option<String>,
@@ -202,6 +210,8 @@ pub struct TableRequest {
     pub variable: Option<String>,
     /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
     pub domain: Option<String>,
+    /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
+    pub definitions: Vec<String>,
     pub from: String,
     pub to: String,
     pub step: String,
@@ -280,8 +290,15 @@ pub fn spline(settings: &Settings, request: &SplineRequest) -> Result<SplineResp
 
 /// The curve sketch with the initial plot.
 pub fn analyze(settings: &Settings, request: &AnalysisRequest) -> Result<AnalysisResponse> {
-    let d = super::analyze_on(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, request.precision)?;
+    let latex = resolved(&request.latex, &request.definitions, settings)?;
+    let d = super::analyze_on(&latex, request.variable.as_deref(), request.domain.as_deref(), settings, request.precision)?;
     Ok(response(&d, settings))
+}
+
+/// The input with the other functions it uses put in.
+fn resolved(latex: &str, definitions: &[String], settings: &Settings) -> Result<String> {
+    let _language = Scope::new(settings.language);
+    super::references::resolve(latex, definitions, settings)
 }
 
 /// The steps shown at the chosen detail level.
@@ -367,7 +384,8 @@ fn asymptote(a: &Asymptote) -> AsymptoteResponse {
 pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<SampleResponse> {
     let _language = Scope::new(settings.language);
     let _budget = super::budget::Guard::new(super::SAMPLE_LIMIT);
-    let p = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?;
+    let latex = resolved(&request.latex, &request.definitions, settings)?;
+    let p = super::tasks::prepare(&latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?;
     let breaks = function_breaks(&p.function, &p.domain, &p.pieces, request.x_min, request.x_max);
     let mut ends = ends_in(&p.domain, request.x_min, request.x_max);
     for piece in &p.pieces {
@@ -379,7 +397,8 @@ pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<S
 }
 
 pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentResponse> {
-    let r = tasks::tangent(&request.latex, request.variable.as_deref(), request.domain.as_deref(), &request.x0, settings, request.precision)?;
+    let latex = resolved(&request.latex, &request.definitions, settings)?;
+    let r = tasks::tangent(&latex, request.variable.as_deref(), request.domain.as_deref(), &request.x0, settings, request.precision)?;
     let digits = super::digits(settings, request.precision);
     let latex = format!("\\left({} \\mid {}\\right)", r.x.to_latex(digits), r.y.to_latex(digits));
     Ok(TangentResponse {
@@ -404,10 +423,11 @@ fn line(l: &Line) -> LineResponse {
 }
 
 pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> {
-    let r = tasks::area(&request.latex, request.variable.as_deref(), request.domain.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?;
+    let latex = resolved(&request.latex, &request.definitions, settings)?;
+    let r = tasks::area(&latex, request.variable.as_deref(), request.domain.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?;
     let digits = super::digits(settings, request.precision);
     let shown = |p: &Point| if p.exact.is_some() { p.to_latex(digits) } else { format!("\\approx {}", p.to_latex(digits)) };
-    let f = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?.function;
+    let f = super::tasks::prepare(&latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?.function;
     let regions = r
         .regions
         .iter()
@@ -422,6 +442,7 @@ pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> 
 }
 
 pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableResponse> {
-    let rows = tasks::value_table(&request.latex, request.variable.as_deref(), request.domain.as_deref(), &request.from, &request.to, &request.step, settings, request.precision)?;
+    let latex = resolved(&request.latex, &request.definitions, settings)?;
+    let rows = tasks::value_table(&latex, request.variable.as_deref(), request.domain.as_deref(), &request.from, &request.to, &request.step, settings, request.precision)?;
     Ok(TableResponse { rows: rows.into_iter().map(|r| TableRowResponse { x: r.x, y: r.y, x_value: r.x_value, y_value: r.y_value }).collect() })
 }

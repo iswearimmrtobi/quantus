@@ -59,6 +59,22 @@ is a maximum or minimum. The antiderivative is joined up with constants where f 
 The graph shows the ends of the pieces as filled or hollow dots; tangent, area and value table
 take the piece that holds x, and a tangent at a join needs f to be differentiable there.
 
+### Several functions
+
+**+ Function** below the input adds another function; each gets the next free letter (g, h, k, …)
+unless it is typed with its own name (`p(x) = …`). The functions may use each other, also
+differentiated:
+
+```latex
+g(x) = f(x - 1) + 2
+h(x) = f'(x)
+```
+
+The reference is put in before the sketch starts, so $g$ above is sketched as
+$(x - 1)^2 + 2$ for $f(x) = x^2$. **Sketch** beside a function swaps it into the main field and
+sketches it. A function may not use itself, directly or through others, and a piecewise
+function or one with a given domain cannot be used inside another.
+
 ### A curve through points
 
 Type points instead of a function, and the analysis builds the curve through them:

@@ -14,6 +14,7 @@ import {
   type SplineResult,
 } from '../api';
 import { useT } from '../i18n';
+import { asDefinition, assignNames } from '../functionNames';
 import { isPointList } from '../pointList';
 import { copyText } from '../shell';
 import type { TextKey } from '../i18n';
@@ -106,6 +107,14 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const [slopes, setSlopes] = useState({ start: '0', end: '0' });
   const [spline, setSpline] = useState<SplineResult | null>(null);
   const pointInput = isPointList(input);
+  /** The other functions: drawn too, and usable in each other (`f(x - 1)`, `g'(x)`). */
+  const [others, setOthers] = useState<string[]>([]);
+  const names = assignNames([input, ...others]);
+  /** The other functions as definitions for the one in the main field. */
+  const definitionsFor = (all: string[], skip: number) =>
+    all.flatMap((latex, i) => (i === skip || !latex.trim() || isPointList(latex) ? [] : [asDefinition(latex, assignNames(all)[i])]));
+  /** The definitions the shown results belong to. */
+  const [analysedDefinitions, setAnalysedDefinitions] = useState<string[]>([]);
   const [latexMode, setLatexMode] = useState(false);
   /** The function the results belong to; tasks and the graph use it, not the half-typed input. */
   const [analysed, setAnalysed] = useState<string | null>(null);
@@ -141,14 +150,15 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   }, []);
 
   const run = useCallback(
-    async (latex: string, domain: string | null) => {
+    async (latex: string, domain: string | null, definitions: string[]) => {
       const id = ++analysisRequest.current;
       try {
-        const result = await api.analyze(latex, domain);
+        const result = await api.analyze(latex, domain, definitions);
         if (id !== analysisRequest.current) return;
         setAnalysis(result);
         setAnalysed(latex);
         setAnalysedDomain(domain);
+        setAnalysedDefinitions(definitions);
         setError(null);
       } catch (failure) {
         if (id !== analysisRequest.current) return;
@@ -169,22 +179,22 @@ export function AnalysisView({ settings }: { settings: Settings }) {
       try {
         setTaskError(null);
         if (which === 'tangent') {
-          const result = await api.tangent(latex, x0, analysedDomain);
+          const result = await api.tangent(latex, x0, analysedDomain, analysedDefinitions);
           if (current()) setTangent(result);
         }
         if (which === 'area') {
-          const result = await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain);
+          const result = await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain, analysedDefinitions);
           if (current()) setArea(result);
         }
         if (which === 'table') {
-          const result = await api.valueTable(latex, table.from, table.to, table.step, analysedDomain);
+          const result = await api.valueTable(latex, table.from, table.to, table.step, analysedDomain, analysedDefinitions);
           if (current()) setRows(result);
         }
       } catch (failure) {
         if (current()) setTaskError(asError(failure));
       }
     },
-    [x0, bounds, table, analysedDomain],
+    [x0, bounds, table, analysedDomain, analysedDefinitions],
   );
 
   /** The curve through the points, then its sketch like any function's. */
@@ -195,7 +205,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
         const curve = await api.spline(points, ends, ends === 'clamped' ? slopes.start : null, ends === 'clamped' ? slopes.end : null);
         if (id !== analysisRequest.current) return;
         setSpline(curve);
-        await run(curve.function, null);
+        await run(curve.function, null, []);
       } catch (failure) {
         if (id !== analysisRequest.current) return;
         setSpline(null);
@@ -221,7 +231,28 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     setSpline(null);
     const domain = domainInput.trim() || null;
     if (latex !== analysed || domain !== analysedDomain) setExpanded(new Set());
-    void run(latex, domain);
+    void run(latex, domain, definitionsFor([latex, ...others], 0));
+  };
+
+  /** Another function into the main field, the one there into its place, and sketched. */
+  const sketchOther = (index: number) => {
+    const chosen = others[index];
+    const rest = [...others];
+    rest[index] = input;
+    setOthers(rest);
+    setInput(chosen);
+    const latex = chosen.trim();
+    if (!latex) return;
+    clearTasks();
+    setSelected(null);
+    setExpanded(new Set());
+    setSpline(null);
+    if (isPointList(latex)) {
+      void runSpline(latex);
+      return;
+    }
+    const domain = domainInput.trim() || null;
+    void run(latex, domain, definitionsFor([latex, ...rest], 0));
   };
 
   const changeTab = (next: Tab) => {
@@ -233,13 +264,14 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   // A changed language, precision, output style or step detail shows at once.
   const { language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks } = settings;
   const hideSteps = stepDetail === 'none';
-  const latest = useRef({ analysed, analysedDomain, tab, runTask, spline, input, runSpline });
-  latest.current = { analysed, analysedDomain, tab, runTask, spline, input, runSpline };
+  const latest = useRef({ analysed, analysedDomain, analysedDefinitions, tab, runTask, spline, input, runSpline });
+  latest.current = { analysed, analysedDomain, analysedDefinitions, tab, runTask, spline, input, runSpline };
   useEffect(() => {
-    const { analysed: latex, analysedDomain: domain, tab: active, runTask: task, spline: curve, input: typed, runSpline: again } = latest.current;
+    const { analysed: latex, analysedDomain: domain, analysedDefinitions: definitions, tab: active, runTask: task, spline: curve, input: typed, runSpline: again } =
+      latest.current;
     if (!latex) return;
     if (curve) void again(typed.trim());
-    else void run(latex, domain);
+    else void run(latex, domain, definitions);
     if (active !== 'sketch') void task(active, latex);
   }, [language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks, run]);
 
@@ -320,6 +352,31 @@ export function AnalysisView({ settings }: { settings: Settings }) {
           />
         </label>
         )}
+        <div className="other-functions">
+          {others.map((latex, i) => (
+            <div className="other-function" key={i}>
+              <span className="other-function-name">
+                <Katex latex={`${names[i + 1]}(x) =`} />
+              </span>
+              <MathField
+                className="other-function-field"
+                value={latex}
+                onChange={(value) => setOthers((all) => all.map((old, j) => (j === i ? value : old)))}
+                onEnter={submit}
+                placeholder="x^2"
+              />
+              <button className="copy-btn" title={t('analysis.functions.sketchHint')} onClick={() => sketchOther(i)}>
+                {t('analysis.functions.sketch')}
+              </button>
+              <button className="copy-btn" title={t('analysis.functions.remove')} aria-label={t('analysis.functions.remove')} onClick={() => setOthers((all) => all.filter((_, j) => j !== i))}>
+                ✕
+              </button>
+            </div>
+          ))}
+          <button className="copy-btn add-function" onClick={() => setOthers((all) => [...all, ''])} title={t('analysis.functions.addHint')}>
+            + {t('analysis.functions.add')}
+          </button>
+        </div>
         {/* The other view of the input below it, as in the calculator: typeset while writing LaTeX, the source otherwise. */}
         <div className="source-row" style={{ '--lines': latexMode && input ? latexLines(input) : 1 } as CSSProperties}>
           {latexMode && input ? <Katex className="source-preview" latex={`\\displaystyle ${input}`} /> : <code className="source">{input || PLACEHOLDER}</code>}
@@ -347,6 +404,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
               <FunctionPlot
                 latex={analysed}
                 domain={analysedDomain}
+                definitions={analysedDefinitions}
                 plot={analysis.plot}
                 points={points}
                 asymptotes={analysis.asymptotes}

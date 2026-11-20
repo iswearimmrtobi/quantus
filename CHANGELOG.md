@@ -32,6 +32,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   cubic spline, a spline with given end slopes, or the interpolating polynomial, with the
   conditions, the exactly solved linear system and the pieces as working, and sketches it as a
   piecewise function with the points in the graph.
+- Desktop, Analysis: several functions. **+ Function** adds more fields, named g, h, … or by
+  their own prefix; the functions may use each other, also differentiated (`g(x) = f(x - 1) + 2`,
+  `h(x) = f'(x)`), resolved in the engine before anything else. **Sketch** swaps a function into
+  the main field.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

@@ -1104,24 +1104,30 @@ export const api = {
   saveFile: (path: string, bytes: Uint8Array) => call<void>('save_file', { path, bytes: Array.from(bytes) }),
 
   /** The curve sketch; the variable is read off the input (`f(t) = …`). `domain` restricts it (`[0, 3]`, `x > 0`). */
-  analyze: (latex: string, domain: string | null = null) => call<Analysis>('analyze', { request: { latex, domain } }),
+  analyze: (latex: string, domain: string | null = null, definitions: string[] = []) => call<Analysis>('analyze', { request: { latex, domain, definitions } }),
 
   /** Fresh curve segments for a panned or zoomed view; the y-range is for clipping. */
-  sampleFunction: (latex: string, view: { xMin: number; xMax: number; yMin: number; yMax: number }, samples: number, domain: string | null = null) =>
-    call<{ segments: Segment[] }>('sample_function', { request: { latex, domain, ...view, samples } }),
+  sampleFunction: (
+    latex: string,
+    view: { xMin: number; xMax: number; yMin: number; yMax: number },
+    samples: number,
+    domain: string | null = null,
+    definitions: string[] = [],
+  ) => call<{ segments: Segment[] }>('sample_function', { request: { latex, domain, definitions, ...view, samples } }),
 
-  tangent: (latex: string, x0: string, domain: string | null = null) => call<TangentResult>('tangent', { request: { latex, domain, x0 } }),
+  tangent: (latex: string, x0: string, domain: string | null = null, definitions: string[] = []) =>
+    call<TangentResult>('tangent', { request: { latex, domain, definitions, x0 } }),
 
   /** Without bounds, the area between the outermost zeros. */
-  areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null) =>
-    call<AreaResult>('area_under_curve', { request: { latex, domain, from, to } }),
+  areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null, definitions: string[] = []) =>
+    call<AreaResult>('area_under_curve', { request: { latex, domain, definitions, from, to } }),
 
   /** The spline (`natural`, `clamped` with end slopes) or the polynomial (`polynomial`) through points. */
   spline: (points: string, ends: SplineEnds, startSlope: string | null = null, endSlope: string | null = null) =>
     call<SplineResult>('spline', { request: { points, ends, startSlope, endSlope } }),
 
-  valueTable: (latex: string, from: string, to: string, step: string, domain: string | null = null) =>
-    call<TableResult>('value_table', { request: { latex, domain, from, to, step } }),
+  valueTable: (latex: string, from: string, to: string, step: string, domain: string | null = null, definitions: string[] = []) =>
+    call<TableResult>('value_table', { request: { latex, domain, definitions, from, to, step } }),
 
   /** Solves a linear system; it uses no session variables. */
   solveLinearSystem: (request: LinearSystemRequest) => call<LinearSystem>('solve_linear_system', { request }),
